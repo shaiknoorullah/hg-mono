@@ -135,6 +135,73 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/chargebacks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Card disputes (chargebacks) raised with the customer's bank
+         * @description [Chargebacks (#172)](https://github.com/shaiknoorullah/hg-mono/issues/172). A chargeback
+         *     is a dispute the customer raised with their bank, which Stripe reports by webhook
+         *     ([refunds, cancellations and compensation (P-18)](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/01-platform.md#p-18--refunds-cancellations-and-compensation)).
+         *     It is not an order dispute (`DISPUTED`). Open ones first, soonest evidence deadline
+         *     first; closed ones after, newest first. Submitting evidence to Stripe is
+         *     [#319](https://github.com/shaiknoorullah/hg-mono/issues/319); until then staff keep
+         *     their evidence notes here.
+         */
+        get: operations["listChargebacks"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/chargebacks/{chargebackId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One chargeback with its evidence notes */
+        get: operations["getChargeback"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/chargebacks/{chargebackId}/evidence-notes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add an evidence note to an open chargeback
+         * @description [Chargebacks (#172)](https://github.com/shaiknoorullah/hg-mono/issues/172). A note of
+         *     the evidence gathered for the customer's bank: what was delivered, when, the proof of
+         *     delivery, what the customer said. Notes are kept in order and never edited; the note
+         *     and its audit event commit together. A chargeback Stripe has closed takes no more
+         *     notes (`409 ALREADY_DECIDED`).
+         */
+        post: operations["addChargebackEvidenceNote"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/halal-certificates/{certificateId}": {
         parameters: {
             query?: never;
@@ -410,7 +477,130 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/payout-runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Payout runs, newest first
+         * @description Every run, automatic or requested by an admin, with what it paid, held and carried.
+         */
+        get: operations["listPayoutRuns"];
+        put?: never;
+        /**
+         * Run the weekly payout now, for one partner or for every partner
+         * @description Queues a payout run and returns it at once; the server's payout worker runs it
+         *     within seconds, the same code as the automatic Monday run (`GET` the run to follow
+         *     it). Payouts are weekly, every Monday, automatic, with no minimum
+         *     ([payout cadence](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#settled--client-decisions)).
+         *     A run pays the period that closed by `as_of`: Monday 00:00 to Monday 00:00,
+         *     America/Toronto. Every unpaid earning created before that Monday is included, so
+         *     balances carried from earlier weeks are paid too.
+         *
+         *     Running twice never pays twice: a partner gets at most one payout per period, a
+         *     ledger entry belongs to at most one payout, and every Stripe transfer is keyed by
+         *     its payout's id. A payout held because Stripe has payouts turned off for the partner
+         *     is released by the first run for a later period
+         *     ([held payouts](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
+         *
+         *     What is paid comes from the ledger only; the request names who and as of when, never
+         *     an amount. An earning tied to an order is paid once the order is settled and its hold
+         *     has passed: an hour after delivery for a rider, three days for a restaurant. Refunds
+         *     and chargebacks are netted at once, and a balance at or below zero is carried, never
+         *     paid.
+         *
+         *     `as_of` defaults to now and may not be in the future, so a run can never pay an
+         *     earning before its week has closed. A replay with the same `Idempotency-Key` returns
+         *     the run as it was first queued; the same key with a different body is
+         *     `409 IDEMPOTENCY_KEY_REUSE`. The session must have signed in with two-step sign-in,
+         *     and an admin may not run a payout for a partner they are, or belong to.
+         */
+        post: operations["createPayoutRun"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/payout-runs/{runId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One payout run and what it did for each partner
+         * @description The audit trail of one run: one line per action per partner — paid, held, released,
+         *     carried because the balance was not positive, skipped and why — with the payout it
+         *     created or moved.
+         */
+        get: operations["getPayoutRun"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/refunds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The refund review queue
+         * @description [Refund requests and their review (#172)](https://github.com/shaiknoorullah/hg-mono/issues/172).
+         *     Every refund on every order, for staff: a customer's request waiting for review
+         *     (`REQUESTED`), a refund waiting for a second person (`PENDING_APPROVAL`), and every
+         *     later state. Support agents see failed refunds too
+         *     ([what support agents see](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
+         *
+         *     With no `state`, the queue is what waits for a person: `REQUESTED` and
+         *     `PENDING_APPROVAL`. Oldest first, so the longest wait is at the top. Age is a range on
+         *     `requested_at`: `requested_to = now − 2 h` lists requests waiting more than two hours.
+         */
+        get: operations["listRefundsAdmin"];
+        put?: never;
+        /**
+         * Issue a refund under an authority cap
+         * @description A-33 / P-18. `Idempotency-Key` is **mandatory** — it is what prevents the double
+         *     refund a retried support click would otherwise cause.
+         *
+         *     The authority check runs before anything reaches Stripe. A request that exceeds the
+         *     caller's cap is **not rejected**: it creates an approval request and escalates, so a
+         *     customer's request is never lost. The caller's rolling 24-hour total (the refunds they
+         *     approved in the last 24 hours) is summed under a per-person lock inside the
+         *     authorising transaction, so two refunds at once cannot both slip under the cap. Nobody
+         *     may approve their own above-cap request; a goodwill refund above CAD 50.00 always
+         *     needs a second person ([goodwill approval decision](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#settled--redesign-decisions-owner-2026-09-28)).
+         *
+         *     Moving money needs a session signed in with an authenticator code (`403
+         *     MFA_REQUIRED` otherwise; [staff MFA for money actions, A-02 R4](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/05-admin.md#a-02--role-based-access-control-model)).
+         *     The refund, its ledger batch, the idempotency record and the audit event commit in one
+         *     transaction. A replay with the same key returns the first response with
+         *     `Idempotency-Replayed: true`.
+         *
+         *     Amounts are server-computed for `FULL`, `PARTIAL_ITEMS` and `FEES_ONLY`.
+         *     `amount_cents` is accepted **only** for `GOODWILL` — this is the single allowlisted
+         *     inbound monetary field besides `tip_cents` (G-3).
+         *
+         *     The customer-facing status never reads "refunded" before the provider confirms.
+         */
+        post: operations["issueRefund"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/refunds/{refundId}/approve": {
         parameters: {
             query?: never;
             header?: never;
@@ -420,23 +610,56 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Issue a refund under an authority cap
-         * @description A-33 / P-18. `Idempotency-Key` is **mandatory** — it is what prevents the double
-         *     refund a retried support click would otherwise cause.
+         * Approve a refund waiting for staff
+         * @description [Refund requests and their review (#172)](https://github.com/shaiknoorullah/hg-mono/issues/172),
+         *     under the [refund authority limits (A-33)](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/05-admin.md#a-33--refund-issuance-and-authority-limits).
          *
-         *     The authority check runs before anything reaches Stripe. A request that exceeds the
-         *     caller's cap is **not rejected**: it creates an approval request and escalates, so a
-         *     customer's request is never lost. Rolling 24-hour caps are enforced by an atomic
-         *     upsert inside the authorising transaction. Nobody may approve their own above-cap
-         *     request.
+         *     **A customer's request (`REQUESTED`).** Within the approver's rolling 24-hour limit it
+         *     is approved at once: `200`, `AUTHORISED`, its ledger batch posted, and the refund sender
+         *     sends it to Stripe. Above the limit it is **not rejected**: it becomes
+         *     `PENDING_APPROVAL` for the role one level up (`202`), and a second person decides it.
          *
-         *     Amounts are server-computed for `FULL`, `PARTIAL_ITEMS` and `FEES_ONLY`.
-         *     `amount_cents` is accepted **only** for `GOODWILL` — this is the single allowlisted
-         *     inbound monetary field besides `tip_cents` (G-3).
+         *     **An approval request (`PENDING_APPROVAL`).** The approver must hold
+         *     `approval_required_role` (or be a super admin), must have room under their own limit
+         *     (`409 DAILY_CAP_EXCEEDED` otherwise; a super admin has no limit), and may be neither
+         *     the person who asked for the refund nor the one who sent it up (`409
+         *     SELF_APPROVAL_FORBIDDEN`). A goodwill refund above CAD 50.00 always ends here
+         *     ([goodwill approval decision](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#settled--redesign-decisions-owner-2026-09-28)).
          *
-         *     The customer-facing status never reads "refunded" before the provider confirms.
+         *     Approving moves money, so it needs a session signed in with an authenticator code
+         *     (`403 MFA_REQUIRED`). The decision, its reason, the ledger batch, the idempotency
+         *     record and the audit event commit in one transaction; nothing reaches Stripe until it
+         *     has. Any other state is `409 ALREADY_DECIDED`.
          */
-        post: operations["issueRefund"];
+        post: operations["approveRefund"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/refunds/{refundId}/decline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decline a refund waiting for staff
+         * @description [Refund requests and their review (#172)](https://github.com/shaiknoorullah/hg-mono/issues/172).
+         *     Ends a `REQUESTED` or `PENDING_APPROVAL` refund in `DECLINED`. Nothing is sent to
+         *     Stripe and no ledger batch is posted. An approval request is declined by the role it
+         *     was sent up to (or a super admin), as it would be approved.
+         *
+         *     `reason_text` is the staff reason, kept on the refund and in the audit trail. When the
+         *     customer asked for the refund, they are told in the same transaction (the notification
+         *     outbox), with `customer_message` when given and a plain sentence otherwise; the staff
+         *     reason is never shown to them. Any other state is `409 ALREADY_DECIDED`.
+         */
+        post: operations["declineRefund"];
         delete?: never;
         options?: never;
         head?: never;
@@ -841,9 +1064,14 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Consume an email-verification token and issue a session
-         * @description P-03 / R-02. Single-use, consumed atomically. TTL 24 h. Advances the restaurant
-         *     onboarding state to `PROFILE_PENDING` and issues a session.
+         * Consume an email-verification token
+         * @description P-03 / R-02. Single-use, consumed atomically. TTL 24 h. Marks the email verified and
+         *     advances the restaurant onboarding state to `PROFILE_PENDING`.
+         *
+         *     **Issues no session and sets no cookie.** An emailed link must never sign anyone in:
+         *     otherwise an attacker could send someone the link for the attacker's own account and
+         *     the victim would land signed in to it (login cross-site request forgery). The owner
+         *     signs in afterwards with `login`, like any other sign-in.
          */
         post: operations["verifyEmail"];
         delete?: never;
@@ -1057,6 +1285,10 @@ export interface paths {
         /**
          * Set a new password from a reset token
          * @description P-03. Revokes **every** session in the account's family and sends a security email.
+         *
+         *     **Issues no session and sets no cookie**, also when the link is a staff invitation
+         *     setting a first password. The user signs in afterwards with `login` (with the
+         *     authenticator code where the account requires one).
          */
         post: operations["resetPassword"];
         delete?: never;
@@ -1102,7 +1334,8 @@ export interface paths {
          * Register a restaurant account (email + password)
          * @description P-03 / R-01. Creates one `account` (unverified), one `restaurant` in
          *     `onboarding_state=REGISTERED`, and one `RESTAURANT_OWNER` grant, then sends a
-         *     verification email. **No session is issued until the email is verified.**
+         *     verification email. **No session is issued**, and verifying the email issues none
+         *     either: the owner signs in with `login` once the email is verified.
          */
         post: operations["registerRestaurant"];
         delete?: never;
@@ -1251,6 +1484,13 @@ export interface paths {
          *     the current cart's restaurant and line count. `replace=true` performs clear + add as
          *     **one atomic call** — a two-call clear-then-add is prohibited because it can leave an
          *     empty cart on failure.
+         *
+         *     `409 RESTAURANT_UNAVAILABLE` when the item's restaurant cannot take orders: it is not
+         *     listed and live (delisted, suspended or banned), or its halal certificate is not
+         *     current **as of this request**, computed from admin-verified certificate data. A
+         *     client that still holds the item id from an old cart or a cached menu gets the same
+         *     answer. Quoting and placing an order check it again in their own transaction, and a
+         *     cart already holding the restaurant's items is kept but stops being quotable.
          */
         post: operations["addCartLine"];
         delete?: never;
@@ -2497,6 +2737,14 @@ export interface paths {
          *     Expiry is server-authoritative. A late accept is `409 OFFER_EXPIRED` with the final
          *     state — never a partial success. Closing the dialog, refreshing, or losing the
          *     socket never rejects an order.
+         *
+         *     `409 RESTAURANT_UNAVAILABLE` when the restaurant cannot take orders **as of this
+         *     request**: it is not listed and live (suspended, banned, delisted), or its halal
+         *     certificate is not current, computed from admin-verified certificate data. Nothing is
+         *     captured; the order stays `RESTAURANT_PENDING` until its deadline cancels it and
+         *     releases the authorisation. The check holds the restaurant row locked until the
+         *     accept commits, so a concurrent suspension either lands first and refuses the accept,
+         *     or waits for it and then treats the order as accepted.
          */
         post: operations["acceptOrder"];
         delete?: never;
@@ -3440,6 +3688,56 @@ export interface components {
             refund_kind?: components["schemas"]["RefundKind"];
         };
         /**
+         * @description A refund as staff see it: the money, who bears it, who asked, and every decision with
+         *     who took it and why ([refund requests and their review, #172](https://github.com/shaiknoorullah/hg-mono/issues/172)).
+         *     `amount_cents` and the split are the server's calculation, the same one approval
+         *     posts to the ledger.
+         */
+        AdminRefund: {
+            amount_cents: components["schemas"]["Cents"];
+            /** @description While `PENDING_APPROVAL`: the role that must decide it (a super admin always may). */
+            approval_required_role?: components["schemas"]["Role"] | null;
+            /** Format: date-time */
+            approved_at?: string | null;
+            /** Format: uuid */
+            approved_by?: string | null;
+            currency: components["schemas"]["Currency"];
+            /** @description The staff reason for the last decision. Never shown to the customer. */
+            decision_reason?: string | null;
+            /** Format: date-time */
+            declined_at?: string | null;
+            /** Format: uuid */
+            declined_by?: string | null;
+            /** Format: date-time */
+            escalated_at?: string | null;
+            /**
+             * Format: uuid
+             * @description The member of staff who sent it up for a second person. They may not approve it.
+             */
+            escalated_by?: string | null;
+            failure_message?: string | null;
+            /** Format: uuid */
+            id: string;
+            kind: components["schemas"]["RefundKind"];
+            liability_split: components["schemas"]["RefundLiabilitySplit"];
+            /** @description What the person who asked wrote. */
+            note?: string | null;
+            /** @description The human-quotable order code, e.g. `HG-8F3K2Q`. */
+            order_code: string;
+            /** Format: uuid */
+            order_id: string;
+            reason_code: components["schemas"]["RefundReasonCode"];
+            requested_at: components["schemas"]["Timestamp"];
+            /** Format: uuid */
+            requested_by: string;
+            requester_kind: components["schemas"]["RefundRequesterKind"];
+            scope?: components["schemas"]["RefundScope"] | null;
+            /** Format: date-time */
+            settled_at?: string | null;
+            state: components["schemas"]["RefundState"];
+            tax_cents: components["schemas"]["Cents"];
+        };
+        /**
          * @description `amount_cents` is the **only** inbound monetary field on any staff route and is
          *     accepted solely with `scope: PARTIAL_AMOUNT` and `reason_code: GOODWILL` (G-3's
          *     explicit allowlist). For every other scope the amount is computed from the order and
@@ -3577,7 +3875,12 @@ export interface components {
             /** Format: uuid */
             id: string;
             indicative_subtotal_cents: components["schemas"]["Cents"];
-            /** @description False when any line is unavailable, the restaurant is closed, or no address is selected. */
+            /**
+             * @description False when any line is unavailable, the restaurant is closed, the restaurant cannot
+             *     take orders (`RESTAURANT_UNAVAILABLE`: not listed and live, or its halal certificate
+             *     is not current), or no address is selected. A cart whose restaurant becomes
+             *     unavailable is kept, never emptied on the customer's behalf.
+             */
             is_quotable: boolean;
             /**
              * Format: int32
@@ -3671,6 +3974,61 @@ export interface components {
             /** Format: date-time */
             verified_at?: string | null;
         };
+        /**
+         * @description A dispute the customer raised with their bank, as Stripe reported it, with the evidence
+         *     staff have gathered ([chargebacks, #172](https://github.com/shaiknoorullah/hg-mono/issues/172)).
+         *     While open it is on the clock of its evidence deadline.
+         */
+        Chargeback: {
+            amount_cents: components["schemas"]["Cents"];
+            currency: components["schemas"]["Currency"];
+            /**
+             * Format: date-time
+             * @description The clock this chargeback is on while open: the evidence deadline, or a week when Stripe gave none.
+             */
+            deadline_at?: string | null;
+            /**
+             * Format: date-time
+             * @description The deadline Stripe gives for evidence.
+             */
+            evidence_due_at?: string | null;
+            /** @description Oldest first. */
+            evidence_notes: components["schemas"]["ChargebackEvidenceNote"][];
+            /** Format: date-time */
+            evidence_submitted_at?: string | null;
+            /** Format: uuid */
+            id: string;
+            opened_at: components["schemas"]["Timestamp"];
+            order_code: string;
+            /** Format: uuid */
+            order_id: string;
+            /** @description The closing status once Stripe has closed the dispute; null while it is open. */
+            outcome?: components["schemas"]["ChargebackStatus"] | null;
+            /** @description The bank's reason as Stripe reports it, e.g. `fraudulent`, `product_not_received`. */
+            reason?: string | null;
+            status: components["schemas"]["ChargebackStatus"];
+            stripe_dispute_id: string;
+            updated_at: components["schemas"]["Timestamp"];
+        };
+        ChargebackEvidenceNote: {
+            /** Format: uuid */
+            author_account_id: string;
+            body: string;
+            created_at: components["schemas"]["Timestamp"];
+            /** Format: uuid */
+            id: string;
+        };
+        ChargebackEvidenceNoteInput: {
+            body: string;
+        };
+        /**
+         * @description Stripe's dispute status, upper-cased. Open: `WARNING_NEEDS_RESPONSE`,
+         *     `WARNING_UNDER_REVIEW`, `NEEDS_RESPONSE`, `UNDER_REVIEW`. Closed: `WARNING_CLOSED`,
+         *     `WON`, `LOST`, `PREVENTED`, `CHARGE_REFUNDED`. A status Stripe adds later is reported
+         *     as `NEEDS_RESPONSE` while the dispute is open, so it is never quietly ignored.
+         * @enum {string}
+         */
+        ChargebackStatus: "WARNING_NEEDS_RESPONSE" | "WARNING_UNDER_REVIEW" | "WARNING_CLOSED" | "NEEDS_RESPONSE" | "UNDER_REVIEW" | "WON" | "LOST" | "PREVENTED" | "CHARGE_REFUNDED";
         /** @enum {string} */
         ClientSurface: "customer-app" | "rider-app" | "restaurant-web" | "admin-web" | "web";
         ConnectOnboardingLink: {
@@ -4504,6 +4862,33 @@ export interface components {
             review_note?: string;
         };
         /**
+         * @description One entry in the order's money timeline, with who caused it. Staff decisions carry
+         *     their reason.
+         */
+        MoneyEvent: {
+            /** Format: uuid */
+            actor_account_id?: string | null;
+            /**
+             * @description `ACCOUNT` is a person (customer or staff); the others are the platform itself.
+             * @enum {string}
+             */
+            actor_kind: "ACCOUNT" | "SYSTEM" | "WEBHOOK" | "JOB";
+            amount_cents?: components["schemas"]["Cents"] | null;
+            at: components["schemas"]["Timestamp"];
+            /** Format: uuid */
+            chargeback_id?: string | null;
+            currency: components["schemas"]["Currency"];
+            kind: components["schemas"]["MoneyEventKind"];
+            reason?: string | null;
+            /** Format: uuid */
+            refund_id?: string | null;
+        };
+        /**
+         * @description One step in an order's money: its payment, each refund and each chargeback.
+         * @enum {string}
+         */
+        MoneyEventKind: "PAYMENT_AUTHORISED" | "PAYMENT_CAPTURED" | "PAYMENT_VOIDED" | "REFUND_REQUESTED" | "REFUND_ESCALATED" | "REFUND_APPROVED" | "REFUND_DECLINED" | "REFUND_SUBMITTED" | "REFUND_SUCCEEDED" | "REFUND_FAILED" | "REFUND_SET_ASIDE" | "CHARGEBACK_OPENED" | "CHARGEBACK_UPDATED" | "CHARGEBACK_EVIDENCE_NOTE" | "CHARGEBACK_CLOSED";
+        /**
          * @description A closed enum the client maps to a screen. Routing is a server decision; an unknown
          *     value routes to "please update the app" rather than crashing.
          * @enum {string}
@@ -4576,6 +4961,8 @@ export interface components {
          */
         OrderActorKind: "CUSTOMER" | "RESTAURANT" | "RIDER" | "SUPPORT" | "ADMIN" | "SYSTEM";
         OrderAdminView: components["schemas"]["OrderCustomerView"] & {
+            /** @description The disputes the customer raised with their bank over this order. */
+            chargebacks: components["schemas"]["Chargeback"][];
             /** @description The delivery address coordinates, for LiveMapBox. */
             destination_location?: components["schemas"]["GeoPoint"] | null;
             dispatch_history?: {
@@ -4591,6 +4978,12 @@ export interface components {
             }[];
             dispatch_state?: components["schemas"]["DispatchState"] | null;
             internal_money: components["schemas"]["OrderInternalMoney"];
+            /**
+             * @description The payment, refund and chargeback history of this order, oldest first, with who
+             *     caused each step and the reason staff gave
+             *     ([order money timeline, #172](https://github.com/shaiknoorullah/hg-mono/issues/172)).
+             */
+            money_timeline: components["schemas"]["MoneyEvent"][];
             payment: components["schemas"]["OrderPayment"];
             /** @description True when the caller passed a justified reveal, which is itself audited. */
             pii_revealed?: boolean;
@@ -5041,6 +5434,130 @@ export interface components {
          * @enum {string}
          */
         PayoutInterval: "DAILY" | "WEEKLY";
+        PayoutPayee: {
+            /**
+             * Format: uuid
+             * @description The restaurant id, or the rider's account id.
+             */
+            id: string;
+            type: components["schemas"]["PayoutPayeeType"];
+        };
+        /**
+         * @description Who a payout is paid to. A restaurant is identified by its restaurant id, a rider by their account id.
+         * @enum {string}
+         */
+        PayoutPayeeType: "RESTAURANT" | "RIDER";
+        PayoutRun: {
+            as_of: components["schemas"]["Timestamp"];
+            /**
+             * Format: int32
+             * @description How many times a worker started it. Above 1 means a worker stopped mid-run and another finished it.
+             */
+            attempts: number;
+            /**
+             * Format: int32
+             * @description Partners whose unpaid balance was zero or below, carried to a later run.
+             */
+            carried: number;
+            created_at: components["schemas"]["Timestamp"];
+            /** @description When the run was due: Monday 09:00 America/Toronto for a scheduled run, the request time for an admin one. */
+            due_at: components["schemas"]["Timestamp"];
+            /** @description Why the run itself stopped, when it did. Per-partner failures are lines. */
+            error: string | null;
+            /** Format: int32 */
+            failed: number;
+            /** Format: date-time */
+            finished_at: string | null;
+            /** Format: int32 */
+            held: number;
+            held_cents: components["schemas"]["Cents"];
+            /** Format: uuid */
+            id: string;
+            kind: components["schemas"]["PayoutRunKind"];
+            /**
+             * Format: int32
+             * @description Payouts transferred, new and released.
+             */
+            paid: number;
+            paid_cents: components["schemas"]["Cents"];
+            /**
+             * Format: int32
+             * @description Partners the run looked at.
+             */
+            partners: number;
+            /** @description The one partner this run is for, or null for every partner. */
+            payee: components["schemas"]["PayoutPayee"] | null;
+            /** @description The cutoff, Monday 00:00 America/Toronto. Earnings created before it are paid. */
+            period_end: components["schemas"]["Timestamp"];
+            period_start: components["schemas"]["Timestamp"];
+            /** @description Why the admin requested it; null for a scheduled run. */
+            reason: string | null;
+            /** Format: int32 */
+            released: number;
+            /**
+             * Format: uuid
+             * @description The admin who requested it; null for a scheduled run.
+             */
+            requested_by: string | null;
+            /** Format: date-time */
+            started_at: string | null;
+            state: components["schemas"]["PayoutRunState"];
+        };
+        PayoutRunDetail: components["schemas"]["PayoutRun"] & {
+            lines: components["schemas"]["PayoutRunLine"][];
+        };
+        /** @description Who to pay and as of when; never an amount. Every amount comes from the ledger. */
+        PayoutRunInput: {
+            /**
+             * @description Run as if it were this moment: the run pays the period that closed by then.
+             *     Defaults to now; a time in the future is `422 VALIDATION_FAILED`.
+             */
+            as_of?: components["schemas"]["Timestamp"];
+            /** @description Run for this partner only. Omit it to run for every partner. */
+            payee?: components["schemas"]["PayoutPayee"];
+            /** @description Why the run is needed now. Kept on the run and in the audit trail. */
+            reason: string;
+        };
+        /**
+         * @description `SCHEDULED` is the automatic Monday run; `ADMIN` was requested with `createPayoutRun`.
+         * @enum {string}
+         */
+        PayoutRunKind: "SCHEDULED" | "ADMIN";
+        PayoutRunLine: {
+            /** @description The payout's amount, or the balance carried or owed. */
+            amount_cents: components["schemas"]["Cents"];
+            at: components["schemas"]["Timestamp"];
+            detail: string | null;
+            outcome: components["schemas"]["PayoutRunOutcome"];
+            payee: components["schemas"]["PayoutPayee"];
+            /** Format: uuid */
+            payout_id: string | null;
+        };
+        /**
+         * @description What a run did for one partner.
+         *     `PAID`: a payout for this period was created and transferred.
+         *     `HELD`: a payout was created but Stripe has payouts turned off for the partner, so no
+         *     transfer was made; `STILL_HELD`: an earlier held payout is still blocked;
+         *     `RELEASED`: an earlier held or unfinished payout was transferred.
+         *     `TRANSFER_FAILED`: Stripe refused the transfer; the payout stays owed for the next run.
+         *     `ALREADY_PAID`: this partner already has a payout for this period.
+         *     `NOTHING_DUE`: no unpaid earnings before the cutoff.
+         *     `CARRIED_NEGATIVE`: the unpaid balance is zero or below, so it is carried and netted
+         *     against later earnings.
+         *     `NO_PAYOUT_ACCOUNT`: no Stripe account yet; the balance waits for onboarding.
+         *     `PARTNER_SUSPENDED`: a suspended or banned restaurant is not paid until reinstated.
+         *     `ORDERS_BLOCKED` / `ORDERS_UNBLOCKED`: a restaurant's balance has been below zero for
+         *     longer than the configured limit, so it takes no new orders, or it has recovered.
+         *     `ERROR`: the server failed for this partner; see `detail`.
+         * @enum {string}
+         */
+        PayoutRunOutcome: "PAID" | "HELD" | "STILL_HELD" | "RELEASED" | "TRANSFER_FAILED" | "ALREADY_PAID" | "NOTHING_DUE" | "CARRIED_NEGATIVE" | "NO_PAYOUT_ACCOUNT" | "PARTNER_SUSPENDED" | "ORDERS_BLOCKED" | "ORDERS_UNBLOCKED" | "ERROR";
+        /**
+         * @description `FAILED` means at least one line is `TRANSFER_FAILED` or `ERROR`. Nothing is lost: the
+         *     payout stays owed and the next run tries it again.
+         * @enum {string}
+         */
+        PayoutRunState: "QUEUED" | "RUNNING" | "SUCCEEDED" | "FAILED";
         /**
          * @description `HELD` carries a reason and is what `payouts_enabled=false` produces.
          * @enum {string}
@@ -5409,6 +5926,12 @@ export interface components {
             state: components["schemas"]["RefundState"];
             tax_cents?: components["schemas"]["Cents"];
         };
+        /** @description Why the refund is approved. Kept on the refund and in the audit trail. */
+        RefundApprovalInput: {
+            /** Format: uuid */
+            case_id?: string | null;
+            reason_text: string;
+        };
         RefundApprovalRequest: {
             /** Format: uuid */
             case_id?: string | null;
@@ -5422,6 +5945,14 @@ export interface components {
             required_role: components["schemas"]["Role"];
             /** @enum {string} */
             status: "PENDING" | "APPROVED" | "DECLINED";
+        };
+        RefundDeclineInput: {
+            /** Format: uuid */
+            case_id?: string | null;
+            /** @description What the customer is told, when they asked for the refund. A plain sentence is sent when absent. */
+            customer_message?: string | null;
+            /** @description The staff reason. Kept on the refund and in the audit trail; never shown to the customer. */
+            reason_text: string;
         };
         /**
          * @description `amount_cents` is **absent from this DTO entirely** — customer- and support-initiated
@@ -5467,6 +5998,13 @@ export interface components {
          * @enum {string}
          */
         RefundReasonCode: "RESTAURANT_REJECTED" | "ITEM_MISSING" | "MISSING_ITEMS" | "WRONG_ITEM" | "WRONG_ITEMS" | "FOOD_QUALITY" | "FOOD_SAFETY" | "NEVER_DELIVERED" | "ORDER_NEVER_ARRIVED" | "LATE_DELIVERY" | "DAMAGED_SPILLED" | "NO_RIDER_FOUND" | "CUSTOMER_CHANGED_MIND" | "RESTAURANT_CANCELLED" | "PLATFORM_INITIATED_CANCELLATION" | "PLATFORM_ERROR" | "DUPLICATE_CHARGE" | "CHARGED_INCORRECTLY" | "PRICING_ERROR" | "HALAL_CONCERN" | "HALAL_INTEGRITY" | "GOODWILL" | "DISPUTE_RESOLUTION" | "CHARGEBACK_PREEMPTIVE" | "OTHER";
+        /**
+         * @description Who asked for a refund. `CUSTOMER`: the order's own customer (`createRefund`), whose
+         *     request waits for staff review. `STAFF`: a member of staff (`issueRefund`, or a cancel
+         *     after acceptance).
+         * @enum {string}
+         */
+        RefundRequesterKind: "CUSTOMER" | "STAFF";
         /** @enum {string} */
         RefundScope: "FULL" | "PARTIAL_ITEMS" | "PARTIAL_AMOUNT";
         /**
@@ -6454,6 +6992,7 @@ export interface components {
     parameters: {
         AssignmentIdPath: string;
         CertificateIdPath: string;
+        ChargebackIdPath: string;
         /**
          * @description Registered client surface. Selects which role grant is created on first OTP sign-up
          *     and which token transport is used. **Never trusted for authorization.**
@@ -6477,6 +7016,7 @@ export interface components {
         MenuItemIdPath: string;
         OfferIdPath: string;
         OrderIdPath: string;
+        RefundIdPath: string;
         RestaurantIdPath: string;
         RiderAccountIdPath: string;
     };
@@ -6492,6 +7032,7 @@ export type SchemaAddress = components['schemas']['Address'];
 export type SchemaAddressInput = components['schemas']['AddressInput'];
 export type SchemaAddressUpdateInput = components['schemas']['AddressUpdateInput'];
 export type SchemaAdminOrderCancellationInput = components['schemas']['AdminOrderCancellationInput'];
+export type SchemaAdminRefund = components['schemas']['AdminRefund'];
 export type SchemaAdminRefundInput = components['schemas']['AdminRefundInput'];
 export type SchemaAllergenTag = components['schemas']['AllergenTag'];
 export type SchemaAssignment = components['schemas']['Assignment'];
@@ -6504,6 +7045,10 @@ export type SchemaCartLineAvailability = components['schemas']['CartLineAvailabi
 export type SchemaCartLineInput = components['schemas']['CartLineInput'];
 export type SchemaCents = components['schemas']['Cents'];
 export type SchemaCertificationPanel = components['schemas']['CertificationPanel'];
+export type SchemaChargeback = components['schemas']['Chargeback'];
+export type SchemaChargebackEvidenceNote = components['schemas']['ChargebackEvidenceNote'];
+export type SchemaChargebackEvidenceNoteInput = components['schemas']['ChargebackEvidenceNoteInput'];
+export type SchemaChargebackStatus = components['schemas']['ChargebackStatus'];
 export type SchemaClientSurface = components['schemas']['ClientSurface'];
 export type SchemaConnectOnboardingLink = components['schemas']['ConnectOnboardingLink'];
 export type SchemaConnectStatus = components['schemas']['ConnectStatus'];
@@ -6588,6 +7133,8 @@ export type SchemaMenuItemVersion = components['schemas']['MenuItemVersion'];
 export type SchemaMenuRejectionReasonCode = components['schemas']['MenuRejectionReasonCode'];
 export type SchemaMenuReviewStatus = components['schemas']['MenuReviewStatus'];
 export type SchemaMenuVersionDecisionInput = components['schemas']['MenuVersionDecisionInput'];
+export type SchemaMoneyEvent = components['schemas']['MoneyEvent'];
+export type SchemaMoneyEventKind = components['schemas']['MoneyEventKind'];
 export type SchemaNextRoute = components['schemas']['NextRoute'];
 export type SchemaNotification = components['schemas']['Notification'];
 export type SchemaNotificationChannel = components['schemas']['NotificationChannel'];
@@ -6635,6 +7182,15 @@ export type SchemaPaymentState = components['schemas']['PaymentState'];
 export type SchemaPayout = components['schemas']['Payout'];
 export type SchemaPayoutDetail = components['schemas']['PayoutDetail'];
 export type SchemaPayoutInterval = components['schemas']['PayoutInterval'];
+export type SchemaPayoutPayee = components['schemas']['PayoutPayee'];
+export type SchemaPayoutPayeeType = components['schemas']['PayoutPayeeType'];
+export type SchemaPayoutRun = components['schemas']['PayoutRun'];
+export type SchemaPayoutRunDetail = components['schemas']['PayoutRunDetail'];
+export type SchemaPayoutRunInput = components['schemas']['PayoutRunInput'];
+export type SchemaPayoutRunKind = components['schemas']['PayoutRunKind'];
+export type SchemaPayoutRunLine = components['schemas']['PayoutRunLine'];
+export type SchemaPayoutRunOutcome = components['schemas']['PayoutRunOutcome'];
+export type SchemaPayoutRunState = components['schemas']['PayoutRunState'];
 export type SchemaPayoutState = components['schemas']['PayoutState'];
 export type SchemaPhoneE164 = components['schemas']['PhoneE164'];
 export type SchemaPickupScanInput = components['schemas']['PickupScanInput'];
@@ -6661,11 +7217,14 @@ export type SchemaRealtimeTicket = components['schemas']['RealtimeTicket'];
 export type SchemaReceipt = components['schemas']['Receipt'];
 export type SchemaReceiptPayment = components['schemas']['ReceiptPayment'];
 export type SchemaRefund = components['schemas']['Refund'];
+export type SchemaRefundApprovalInput = components['schemas']['RefundApprovalInput'];
 export type SchemaRefundApprovalRequest = components['schemas']['RefundApprovalRequest'];
+export type SchemaRefundDeclineInput = components['schemas']['RefundDeclineInput'];
 export type SchemaRefundInput = components['schemas']['RefundInput'];
 export type SchemaRefundKind = components['schemas']['RefundKind'];
 export type SchemaRefundLiabilitySplit = components['schemas']['RefundLiabilitySplit'];
 export type SchemaRefundReasonCode = components['schemas']['RefundReasonCode'];
+export type SchemaRefundRequesterKind = components['schemas']['RefundRequesterKind'];
 export type SchemaRefundScope = components['schemas']['RefundScope'];
 export type SchemaRefundState = components['schemas']['RefundState'];
 export type SchemaRemittableBy = components['schemas']['RemittableBy'];
@@ -6764,6 +7323,7 @@ export type ResponseRateLimited = components['responses']['RateLimited'];
 export type ResponseServerBusy = components['responses']['ServerBusy'];
 export type ParameterAssignmentIdPath = components['parameters']['AssignmentIdPath'];
 export type ParameterCertificateIdPath = components['parameters']['CertificateIdPath'];
+export type ParameterChargebackIdPath = components['parameters']['ChargebackIdPath'];
 export type ParameterClientHeader = components['parameters']['ClientHeader'];
 export type ParameterCursor = components['parameters']['Cursor'];
 export type ParameterDocumentIdPath = components['parameters']['DocumentIdPath'];
@@ -6773,6 +7333,7 @@ export type ParameterMenuCategoryIdPath = components['parameters']['MenuCategory
 export type ParameterMenuItemIdPath = components['parameters']['MenuItemIdPath'];
 export type ParameterOfferIdPath = components['parameters']['OfferIdPath'];
 export type ParameterOrderIdPath = components['parameters']['OrderIdPath'];
+export type ParameterRefundIdPath = components['parameters']['RefundIdPath'];
 export type ParameterRestaurantIdPath = components['parameters']['RestaurantIdPath'];
 export type ParameterRiderAccountIdPath = components['parameters']['RiderAccountIdPath'];
 export type $defs = Record<string, never>;
@@ -7018,6 +7579,142 @@ export interface operations {
                 };
             };
             404: components["responses"]["Error"];
+            default: components["responses"]["Error"];
+        };
+    };
+    listChargebacks: {
+        parameters: {
+            query?: {
+                /** @description Opaque keyset cursor from `meta.next_cursor`. Never an offset or a page number. */
+                cursor?: components["parameters"]["Cursor"];
+                /** @description Page size. 1–100, default 20. A non-numeric value is a 422, never a silent NaN. */
+                limit?: components["parameters"]["Limit"];
+                /** @description `true`: only chargebacks Stripe has not closed. `false`: only closed ones. */
+                open?: boolean;
+                order_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Chargebacks. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["Chargeback"][];
+                        meta: components["schemas"]["PageMeta"];
+                    };
+                };
+            };
+            /** @description `VALIDATION_FAILED`: a filter is not a valid value. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getChargeback: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                chargebackId: components["parameters"]["ChargebackIdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Chargeback. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["Chargeback"];
+                    };
+                };
+            };
+            404: components["responses"]["Error"];
+            default: components["responses"]["Error"];
+        };
+    };
+    addChargebackEvidenceNote: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated UUID or ULID, 16–128 characters. Scope is
+                 *     `(account_id, method, path_template, key)`. Two concurrent requests with the same key
+                 *     produce exactly one business effect; a replay returns the original status and body
+                 *     byte-identically with `Idempotency-Replayed: true`; the same key with a different body
+                 *     is `409 IDEMPOTENCY_KEY_REUSE`, never a silent replay of the wrong result. The record
+                 *     is written in the same transaction as the business effect and expires after 24 h.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKeyRequired"];
+            };
+            path: {
+                chargebackId: components["parameters"]["ChargebackIdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChargebackEvidenceNoteInput"];
+            };
+        };
+        responses: {
+            /** @description The chargeback, with the new note last. */
+            201: {
+                headers: {
+                    /** @description Present and `true` when this response replays an earlier identical request. */
+                    "Idempotency-Replayed"?: boolean;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["Chargeback"];
+                    };
+                };
+            };
+            /** @description `IDEMPOTENCY_KEY_REQUIRED`. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            404: components["responses"]["Error"];
+            /** @description `ALREADY_DECIDED`: Stripe has closed this chargeback. `IDEMPOTENCY_KEY_REUSE`. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description `VALIDATION_FAILED`: `body` missing or out of length. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             default: components["responses"]["Error"];
         };
     };
@@ -7512,6 +8209,201 @@ export interface operations {
             default: components["responses"]["Error"];
         };
     };
+    listPayoutRuns: {
+        parameters: {
+            query?: {
+                /** @description Opaque keyset cursor from `meta.next_cursor`. Never an offset or a page number. */
+                cursor?: components["parameters"]["Cursor"];
+                /** @description Page size. 1–100, default 20. A non-numeric value is a 422, never a silent NaN. */
+                limit?: components["parameters"]["Limit"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Runs, newest first. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["PayoutRun"][];
+                        meta: components["schemas"]["PageMeta"];
+                    };
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    createPayoutRun: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated UUID or ULID, 16–128 characters. Scope is
+                 *     `(account_id, method, path_template, key)`. Two concurrent requests with the same key
+                 *     produce exactly one business effect; a replay returns the original status and body
+                 *     byte-identically with `Idempotency-Replayed: true`; the same key with a different body
+                 *     is `409 IDEMPOTENCY_KEY_REUSE`, never a silent replay of the wrong result. The record
+                 *     is written in the same transaction as the business effect and expires after 24 h.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKeyRequired"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PayoutRunInput"];
+            };
+        };
+        responses: {
+            /** @description The run is queued. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["PayoutRun"];
+                    };
+                };
+            };
+            /** @description `IDEMPOTENCY_KEY_REQUIRED`. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /**
+             * @description `MFA_REQUIRED`: the session did not sign in with two-step sign-in. `FORBIDDEN`: the
+             *     payee is the caller, or a restaurant the caller belongs to.
+             */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description `NOT_FOUND`: the payee is neither a restaurant nor a rider. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description `IDEMPOTENCY_KEY_REUSE`: this key was used with a different body. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description `VALIDATION_FAILED`: `reason` is missing or too short, or `as_of` is in the future. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Stripe is not configured on this server, so nothing can be paid. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getPayoutRun: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                runId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The run and its lines. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["PayoutRunDetail"];
+                    };
+                };
+            };
+            404: components["responses"]["Error"];
+            default: components["responses"]["Error"];
+        };
+    };
+    listRefundsAdmin: {
+        parameters: {
+            query?: {
+                /** @description Opaque keyset cursor from `meta.next_cursor`. Never an offset or a page number. */
+                cursor?: components["parameters"]["Cursor"];
+                /** @description Page size. 1–100, default 20. A non-numeric value is a 422, never a silent NaN. */
+                limit?: components["parameters"]["Limit"];
+                max_amount_cents?: number;
+                min_amount_cents?: number;
+                order_id?: string;
+                reason_code?: components["schemas"]["RefundReasonCode"][];
+                requested_from?: string;
+                requested_to?: string;
+                /** @description Defaults to `REQUESTED,PENDING_APPROVAL`. */
+                state?: components["schemas"]["RefundState"][];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Refunds, oldest request first. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["AdminRefund"][];
+                        meta: components["schemas"]["PageMeta"];
+                    };
+                };
+            };
+            /** @description `VALIDATION_FAILED`: a filter is not a valid value. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
     issueRefund: {
         parameters: {
             query?: never;
@@ -7538,6 +8430,8 @@ export interface operations {
             /** @description Refund authorised and submitted. */
             201: {
                 headers: {
+                    /** @description Present and `true` when this response replays an earlier identical request. */
+                    "Idempotency-Replayed"?: boolean;
                     [name: string]: unknown;
                 };
                 content: {
@@ -7552,6 +8446,8 @@ export interface operations {
              */
             202: {
                 headers: {
+                    /** @description Present and `true` when this response replays an earlier identical request. */
+                    "Idempotency-Replayed"?: boolean;
                     [name: string]: unknown;
                 };
                 content: {
@@ -7569,11 +8465,198 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
+            /** @description `MFA_REQUIRED`: the session was not signed in with an authenticator code. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             /**
              * @description `REFUND_EXCEEDS_CAPTURED`, `DAILY_CAP_EXCEEDED`, `SELF_APPROVAL_FORBIDDEN`,
-             *     `PAYMENT_NOT_REFUNDABLE`.
+             *     `PAYMENT_NOT_REFUNDABLE`, `IDEMPOTENCY_KEY_REUSE`.
              */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    approveRefund: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated UUID or ULID, 16–128 characters. Scope is
+                 *     `(account_id, method, path_template, key)`. Two concurrent requests with the same key
+                 *     produce exactly one business effect; a replay returns the original status and body
+                 *     byte-identically with `Idempotency-Replayed: true`; the same key with a different body
+                 *     is `409 IDEMPOTENCY_KEY_REUSE`, never a silent replay of the wrong result. The record
+                 *     is written in the same transaction as the business effect and expires after 24 h.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKeyRequired"];
+            };
+            path: {
+                refundId: components["parameters"]["RefundIdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RefundApprovalInput"];
+            };
+        };
+        responses: {
+            /** @description Approved within the approver's limit; the refund is `AUTHORISED`. */
+            200: {
+                headers: {
+                    /** @description Present and `true` when this response replays an earlier identical request. */
+                    "Idempotency-Replayed"?: boolean;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["AdminRefund"];
+                    };
+                };
+            };
+            /**
+             * @description Above the approver's limit: the request is `PENDING_APPROVAL` for
+             *     `approval_required_role`, and a second person decides it. No money has moved.
+             */
+            202: {
+                headers: {
+                    /** @description Present and `true` when this response replays an earlier identical request. */
+                    "Idempotency-Replayed"?: boolean;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["AdminRefund"];
+                    };
+                };
+            };
+            /** @description `IDEMPOTENCY_KEY_REQUIRED`. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /**
+             * @description `MFA_REQUIRED`, or `FORBIDDEN`: the approval request needs a role the caller does
+             *     not hold.
+             */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            404: components["responses"]["Error"];
+            /**
+             * @description `SELF_APPROVAL_FORBIDDEN`, `ALREADY_DECIDED`, `DAILY_CAP_EXCEEDED`,
+             *     `REFUND_EXCEEDS_CAPTURED`, `IDEMPOTENCY_KEY_REUSE`.
+             */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description `VALIDATION_FAILED`: `reason_text` missing or out of length. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    declineRefund: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated UUID or ULID, 16–128 characters. Scope is
+                 *     `(account_id, method, path_template, key)`. Two concurrent requests with the same key
+                 *     produce exactly one business effect; a replay returns the original status and body
+                 *     byte-identically with `Idempotency-Replayed: true`; the same key with a different body
+                 *     is `409 IDEMPOTENCY_KEY_REUSE`, never a silent replay of the wrong result. The record
+                 *     is written in the same transaction as the business effect and expires after 24 h.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKeyRequired"];
+            };
+            path: {
+                refundId: components["parameters"]["RefundIdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RefundDeclineInput"];
+            };
+        };
+        responses: {
+            /** @description Declined; the refund is `DECLINED`. */
+            200: {
+                headers: {
+                    /** @description Present and `true` when this response replays an earlier identical request. */
+                    "Idempotency-Replayed"?: boolean;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["AdminRefund"];
+                    };
+                };
+            };
+            /** @description `IDEMPOTENCY_KEY_REQUIRED`. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description `FORBIDDEN`: the approval request needs a role the caller does not hold. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            404: components["responses"]["Error"];
+            /** @description `ALREADY_DECIDED`, `IDEMPOTENCY_KEY_REUSE`. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description `VALIDATION_FAILED`: `reason_text` missing or out of length. */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -8252,16 +9335,12 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Email verified and session issued. */
-            200: {
+            /** @description Email verified. No session issued and no cookie set. */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": {
-                        data: components["schemas"]["SessionGrant"];
-                    };
-                };
+                content?: never;
             };
             410: components["responses"]["Error"];
             default: components["responses"]["Error"];
@@ -8527,7 +9606,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Password set; all sessions revoked. */
+            /** @description Password set; all sessions revoked. No session issued and no cookie set. */
             204: {
                 headers: {
                     [name: string]: unknown;
@@ -8825,7 +9904,8 @@ export interface operations {
             };
             /**
              * @description `DIFFERENT_RESTAURANT`, `ITEM_UNAVAILABLE`, `VARIANT_UNAVAILABLE`,
-             *     `ADDON_UNAVAILABLE` or `RESTAURANT_CLOSED`. The cart is unchanged.
+             *     `ADDON_UNAVAILABLE`, `RESTAURANT_CLOSED` or `RESTAURANT_UNAVAILABLE`. The cart is
+             *     unchanged.
              */
             409: {
                 headers: {
@@ -10862,7 +11942,7 @@ export interface operations {
                 };
             };
             404: components["responses"]["Error"];
-            /** @description `OFFER_EXPIRED`, `ILLEGAL_TRANSITION`, `CAPTURE_FAILED`. */
+            /** @description `OFFER_EXPIRED`, `ILLEGAL_TRANSITION`, `CAPTURE_FAILED`, `RESTAURANT_UNAVAILABLE`. */
             409: {
                 headers: {
                     [name: string]: unknown;

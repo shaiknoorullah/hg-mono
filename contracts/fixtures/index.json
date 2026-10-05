@@ -2,14 +2,14 @@
   "generated_by": "contracts/fixtures/_build/build.py",
   "do_not_edit": "Every file under contracts/fixtures/ is generated. Run `pnpm fixtures:build`.",
   "frozen_clock": "2026-08-10T18:42:11.412Z",
-  "count": 374,
+  "count": 415,
   "counts_by_domain": {
-    "admin": 26,
-    "cart": 12,
+    "admin": 32,
+    "cart": 13,
     "catalogue": 41,
     "dispatch": 31,
     "documents": 23,
-    "errors": 43,
+    "errors": 52,
     "halal": 25,
     "handoff": 13,
     "onboarding": 35,
@@ -17,7 +17,7 @@
     "payments": 12,
     "platform": 25,
     "realtime": 8,
-    "refunds": 14,
+    "refunds": 39,
     "rider": 22
   },
   "fixtures": [
@@ -153,6 +153,102 @@
         "review-queue"
       ],
       "file": "admin/menu_version_withdrawn.json"
+    },
+    {
+      "scenario": "payout_run_detail_every_outcome",
+      "domain": "admin",
+      "schema": "PayoutRunDetail",
+      "describes": "A run's audit trail with one line for every outcome a run can record.",
+      "operations": [
+        "getPayoutRun"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "money",
+        "state-matrix"
+      ],
+      "file": "admin/payout_run_detail_every_outcome.json"
+    },
+    {
+      "scenario": "payout_run_failed",
+      "domain": "admin",
+      "schema": "PayoutRun",
+      "describes": "One transfer failed. The payout stays owed and the next run tries it again.",
+      "operations": [
+        "listPayoutRuns"
+      ],
+      "status": 200,
+      "tags": [
+        "payout-run-state-matrix",
+        "admin",
+        "money"
+      ],
+      "file": "admin/payout_run_failed.json"
+    },
+    {
+      "scenario": "payout_run_list_empty",
+      "domain": "admin",
+      "schema": "array<PayoutRun>",
+      "describes": "No payout run has happened yet.",
+      "operations": [
+        "listPayoutRuns"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "edge",
+        "empty"
+      ],
+      "file": "admin/payout_run_list_empty.json"
+    },
+    {
+      "scenario": "payout_run_queued",
+      "domain": "admin",
+      "schema": "PayoutRun",
+      "describes": "An admin asked to run the payout now; the worker picks it up within seconds.",
+      "operations": [
+        "createPayoutRun"
+      ],
+      "status": 202,
+      "tags": [
+        "payout-run-state-matrix",
+        "admin",
+        "money"
+      ],
+      "file": "admin/payout_run_queued.json"
+    },
+    {
+      "scenario": "payout_run_running",
+      "domain": "admin",
+      "schema": "PayoutRun",
+      "describes": "The Monday run is paying partners. A worker that stops mid-run is relieved by the next.",
+      "operations": [
+        "listPayoutRuns"
+      ],
+      "status": 200,
+      "tags": [
+        "payout-run-state-matrix",
+        "admin",
+        "money"
+      ],
+      "file": "admin/payout_run_running.json"
+    },
+    {
+      "scenario": "payout_run_succeeded",
+      "domain": "admin",
+      "schema": "PayoutRun",
+      "describes": "The Monday run paid everyone it could; holds and carried balances are not failures.",
+      "operations": [
+        "listPayoutRuns"
+      ],
+      "status": 200,
+      "tags": [
+        "payout-run-state-matrix",
+        "admin",
+        "money"
+      ],
+      "file": "admin/payout_run_succeeded.json"
     },
     {
       "scenario": "restaurant_application_approved",
@@ -479,6 +575,21 @@
         "dense"
       ],
       "file": "cart/cart_many_lines.json"
+    },
+    {
+      "scenario": "cart_restaurant_unavailable",
+      "domain": "cart",
+      "schema": "Cart",
+      "describes": "The restaurant's halal certificate expired after these items were added. The cart is kept as it was, the badge reads `EXPIRED` (cool slate, never a red one) and `blocking_reasons: [RESTAURANT_UNAVAILABLE]` with `is_quotable: false`. Adding, quoting and ordering answer `409 RESTAURANT_UNAVAILABLE` (`error_restaurant_unavailable`).",
+      "operations": [
+        "getCart"
+      ],
+      "status": 200,
+      "tags": [
+        "error-path",
+        "halal"
+      ],
+      "file": "cart/cart_restaurant_unavailable.json"
     },
     {
       "scenario": "cart_single_line",
@@ -2137,6 +2248,20 @@
       "file": "errors/error_category_name_taken.json"
     },
     {
+      "scenario": "error_chargeback_closed",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `ALREADY_DECIDED`. Evidence notes are for open chargebacks only.",
+      "operations": [
+        "addChargebackEvidenceNote"
+      ],
+      "status": 409,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_chargeback_closed.json"
+    },
+    {
       "scenario": "error_current_password_incorrect",
       "domain": "errors",
       "schema": "ErrorEnvelope",
@@ -2485,6 +2610,80 @@
       "file": "errors/error_rate_limited.json"
     },
     {
+      "scenario": "error_refund_already_decided",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `ALREADY_DECIDED`. Someone else decided it first, or it was never waiting. Reload the queue.",
+      "operations": [
+        "approveRefund",
+        "declineRefund"
+      ],
+      "status": 409,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_refund_already_decided.json"
+    },
+    {
+      "scenario": "error_refund_approver_over_daily_limit",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `DAILY_CAP_EXCEEDED`. A second approver's own rolling 24-hour limit counts too. The request stays in the queue for someone with room.",
+      "operations": [
+        "approveRefund"
+      ],
+      "status": 409,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_refund_approver_over_daily_limit.json"
+    },
+    {
+      "scenario": "error_refund_mfa_required",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`403` · `MFA_REQUIRED`. Money actions need a session signed in with an authenticator code (staff MFA for money actions).",
+      "operations": [
+        "approveRefund",
+        "issueRefund"
+      ],
+      "status": 403,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_refund_mfa_required.json"
+    },
+    {
+      "scenario": "error_refund_needs_higher_role",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`403` · `FORBIDDEN`. An approval request is decided by the role it was sent up to, or a super admin.",
+      "operations": [
+        "approveRefund",
+        "declineRefund"
+      ],
+      "status": 403,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_refund_needs_higher_role.json"
+    },
+    {
+      "scenario": "error_refund_self_approval_forbidden",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `SELF_APPROVAL_FORBIDDEN`. The person who asked for a refund, or who sent it up for a second person, tried to approve it. A goodwill refund above CAD 50.00 always needs someone else.",
+      "operations": [
+        "approveRefund",
+        "issueRefund"
+      ],
+      "status": 409,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_refund_self_approval_forbidden.json"
+    },
+    {
       "scenario": "error_register_restaurant_rate_limited",
       "domain": "errors",
       "schema": "ErrorEnvelope",
@@ -2524,6 +2723,18 @@
         "error-envelope"
       ],
       "file": "errors/error_restaurant_closed.json"
+    },
+    {
+      "scenario": "error_restaurant_unavailable",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `RESTAURANT_UNAVAILABLE`. From `addCartLine`, `createQuote` and `createOrder` when the restaurant is not listed and live, or its halal certificate is not current as of the request, computed from admin-verified certificate data. The apps show the halal copy and keep the cart. Pairs with `cart_restaurant_unavailable`.",
+      "operations": [],
+      "status": 409,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_restaurant_unavailable.json"
     },
     {
       "scenario": "error_review_edit_window_closed",
@@ -2614,6 +2825,34 @@
         "error-envelope"
       ],
       "file": "errors/error_validation_failed.json"
+    },
+    {
+      "scenario": "error_verification_token_expired",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`410` · `VERIFICATION_TOKEN_EXPIRED`. `verifyEmail` with a token older than 24 hours. A token that never existed gets the same code. The page offers \"Send a new link\" (`resendEmailVerification`).",
+      "operations": [
+        "verifyEmail"
+      ],
+      "status": 410,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_verification_token_expired.json"
+    },
+    {
+      "scenario": "error_verification_token_used",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`410` · `VERIFICATION_TOKEN_USED`. `verifyEmail` with a token that was already used: the email is verified, so the page sends the owner to sign in. Using the link never signs anyone in.",
+      "operations": [
+        "verifyEmail"
+      ],
+      "status": 410,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_verification_token_used.json"
     },
     {
       "scenario": "certification_panel_certified",
@@ -3745,7 +3984,7 @@
       "scenario": "order_admin_view_disputed",
       "domain": "orders",
       "schema": "OrderAdminView",
-      "describes": "A delivered order in dispute with a partial refund awaiting approval and a liability split that puts the whole amount on the restaurant (O-04 is open; the split is computed at authorisation and stored).",
+      "describes": "A delivered order in dispute with a partial refund awaiting approval and a liability split that puts the whole amount on the restaurant (O-04 is open; the split is computed at authorisation and stored). The money timeline shows the payment, the request, the agent sending it up, and a chargeback with one evidence note.",
       "operations": [
         "getOrderAdmin"
       ],
@@ -4806,8 +5045,7 @@
       "operations": [
         "verifyOtp",
         "login",
-        "refreshSession",
-        "verifyEmail"
+        "refreshSession"
       ],
       "status": 200,
       "tags": [
@@ -5099,6 +5337,364 @@
         "error-path"
       ],
       "file": "realtime/realtime_rider_reassigned.json"
+    },
+    {
+      "scenario": "admin_refund_approved",
+      "domain": "refunds",
+      "schema": "AdminRefund",
+      "describes": "Legacy state; nothing writes it at launch. Approval goes straight to `AUTHORISED`.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "admin",
+        "refund-state-matrix"
+      ],
+      "file": "refunds/admin_refund_approved.json"
+    },
+    {
+      "scenario": "admin_refund_authorised",
+      "domain": "refunds",
+      "schema": "AdminRefund",
+      "describes": "Approved within the agent's limit: its ledger batch is posted and the refund sender sends it to Stripe.",
+      "operations": [
+        "approveRefund"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "refund-state-matrix"
+      ],
+      "file": "refunds/admin_refund_authorised.json"
+    },
+    {
+      "scenario": "admin_refund_cancelled",
+      "domain": "refunds",
+      "schema": "AdminRefund",
+      "describes": "Withdrawn before anyone approved it. No money moved.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "admin",
+        "refund-state-matrix"
+      ],
+      "file": "refunds/admin_refund_cancelled.json"
+    },
+    {
+      "scenario": "admin_refund_declined",
+      "domain": "refunds",
+      "schema": "AdminRefund",
+      "describes": "Declined with a staff reason (never shown to the customer). Nothing was sent to Stripe; the customer was told through the notification outbox.",
+      "operations": [
+        "declineRefund"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "refund-state-matrix"
+      ],
+      "file": "refunds/admin_refund_declined.json"
+    },
+    {
+      "scenario": "admin_refund_failed",
+      "domain": "refunds",
+      "schema": "AdminRefund",
+      "describes": "Stripe refused it; support must act. `failure_message` says why.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "admin",
+        "refund-state-matrix"
+      ],
+      "file": "refunds/admin_refund_failed.json"
+    },
+    {
+      "scenario": "admin_refund_goodwill_needs_second_person",
+      "domain": "refunds",
+      "schema": "AdminRefund",
+      "describes": "A goodwill refund above CAD 50.00 an agent asked for: it always waits for a second person, whatever the asker's limit.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "admin",
+        "money"
+      ],
+      "file": "refunds/admin_refund_goodwill_needs_second_person.json"
+    },
+    {
+      "scenario": "admin_refund_pending_approval",
+      "domain": "refunds",
+      "schema": "AdminRefund",
+      "describes": "Above the reviewing agent's 24-hour limit: sent up to an admin (`approval_required_role`). The agent who sent it up (`escalated_by`) may not approve it.",
+      "operations": [
+        "approveRefund"
+      ],
+      "status": 202,
+      "tags": [
+        "admin",
+        "refund-state-matrix"
+      ],
+      "file": "refunds/admin_refund_pending_approval.json"
+    },
+    {
+      "scenario": "admin_refund_queue",
+      "domain": "refunds",
+      "schema": "array<AdminRefund>",
+      "describes": "The review queue: what waits for a person, oldest first.",
+      "operations": [
+        "listRefundsAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "admin"
+      ],
+      "file": "refunds/admin_refund_queue.json"
+    },
+    {
+      "scenario": "admin_refund_queue_empty",
+      "domain": "refunds",
+      "schema": "array<AdminRefund>",
+      "describes": "Nothing waiting for a person.",
+      "operations": [
+        "listRefundsAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "edge",
+        "empty"
+      ],
+      "file": "refunds/admin_refund_queue_empty.json"
+    },
+    {
+      "scenario": "admin_refund_requested",
+      "domain": "refunds",
+      "schema": "AdminRefund",
+      "describes": "A customer's request waiting for staff review. Nothing has moved.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "admin",
+        "refund-state-matrix"
+      ],
+      "file": "refunds/admin_refund_requested.json"
+    },
+    {
+      "scenario": "admin_refund_settled",
+      "domain": "refunds",
+      "schema": "AdminRefund",
+      "describes": "Back on the card.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "admin",
+        "refund-state-matrix"
+      ],
+      "file": "refunds/admin_refund_settled.json"
+    },
+    {
+      "scenario": "admin_refund_submitted",
+      "domain": "refunds",
+      "schema": "AdminRefund",
+      "describes": "Sent to Stripe, waiting for its answer.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "admin",
+        "refund-state-matrix"
+      ],
+      "file": "refunds/admin_refund_submitted.json"
+    },
+    {
+      "scenario": "admin_refund_succeeded",
+      "domain": "refunds",
+      "schema": "AdminRefund",
+      "describes": "Stripe accepted it.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "admin",
+        "refund-state-matrix"
+      ],
+      "file": "refunds/admin_refund_succeeded.json"
+    },
+    {
+      "scenario": "chargeback_charge_refunded",
+      "domain": "refunds",
+      "schema": "Chargeback",
+      "describes": "Closed because the charge was refunded.",
+      "operations": [
+        "getChargeback"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "chargeback-state-matrix"
+      ],
+      "file": "refunds/chargeback_charge_refunded.json"
+    },
+    {
+      "scenario": "chargeback_evidence_note_added",
+      "domain": "refunds",
+      "schema": "Chargeback",
+      "describes": "`201` after an evidence note: the chargeback with the new note last.",
+      "operations": [
+        "addChargebackEvidenceNote"
+      ],
+      "status": 201,
+      "tags": [
+        "admin"
+      ],
+      "file": "refunds/chargeback_evidence_note_added.json"
+    },
+    {
+      "scenario": "chargeback_list",
+      "domain": "refunds",
+      "schema": "array<Chargeback>",
+      "describes": "Open chargebacks first, soonest evidence deadline first; closed ones after.",
+      "operations": [
+        "listChargebacks"
+      ],
+      "status": 200,
+      "tags": [
+        "admin"
+      ],
+      "file": "refunds/chargeback_list.json"
+    },
+    {
+      "scenario": "chargeback_list_empty",
+      "domain": "refunds",
+      "schema": "array<Chargeback>",
+      "describes": "No chargebacks.",
+      "operations": [
+        "listChargebacks"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "edge",
+        "empty"
+      ],
+      "file": "refunds/chargeback_list_empty.json"
+    },
+    {
+      "scenario": "chargeback_lost",
+      "domain": "refunds",
+      "schema": "Chargeback",
+      "describes": "The bank decided for the customer; Stripe has taken the money back.",
+      "operations": [
+        "getChargeback"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "chargeback-state-matrix"
+      ],
+      "file": "refunds/chargeback_lost.json"
+    },
+    {
+      "scenario": "chargeback_needs_response",
+      "domain": "refunds",
+      "schema": "Chargeback",
+      "describes": "A dispute waiting for our evidence, on the clock of its deadline.",
+      "operations": [
+        "getChargeback"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "chargeback-state-matrix"
+      ],
+      "file": "refunds/chargeback_needs_response.json"
+    },
+    {
+      "scenario": "chargeback_prevented",
+      "domain": "refunds",
+      "schema": "Chargeback",
+      "describes": "Stopped before it became a dispute.",
+      "operations": [
+        "getChargeback"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "chargeback-state-matrix"
+      ],
+      "file": "refunds/chargeback_prevented.json"
+    },
+    {
+      "scenario": "chargeback_under_review",
+      "domain": "refunds",
+      "schema": "Chargeback",
+      "describes": "Evidence was sent; the bank is deciding.",
+      "operations": [
+        "getChargeback"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "chargeback-state-matrix"
+      ],
+      "file": "refunds/chargeback_under_review.json"
+    },
+    {
+      "scenario": "chargeback_warning_closed",
+      "domain": "refunds",
+      "schema": "Chargeback",
+      "describes": "The inquiry closed without becoming a dispute.",
+      "operations": [
+        "getChargeback"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "chargeback-state-matrix"
+      ],
+      "file": "refunds/chargeback_warning_closed.json"
+    },
+    {
+      "scenario": "chargeback_warning_needs_response",
+      "domain": "refunds",
+      "schema": "Chargeback",
+      "describes": "An early warning from the bank (an inquiry); it may become a dispute.",
+      "operations": [
+        "getChargeback"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "chargeback-state-matrix"
+      ],
+      "file": "refunds/chargeback_warning_needs_response.json"
+    },
+    {
+      "scenario": "chargeback_warning_under_review",
+      "domain": "refunds",
+      "schema": "Chargeback",
+      "describes": "Evidence was sent for an inquiry; the bank is reviewing it.",
+      "operations": [
+        "getChargeback"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "chargeback-state-matrix"
+      ],
+      "file": "refunds/chargeback_warning_under_review.json"
+    },
+    {
+      "scenario": "chargeback_won",
+      "domain": "refunds",
+      "schema": "Chargeback",
+      "describes": "The bank decided for us; the money stays.",
+      "operations": [
+        "getChargeback"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "chargeback-state-matrix"
+      ],
+      "file": "refunds/chargeback_won.json"
     },
     {
       "scenario": "refund_approval_request_pending",
@@ -5695,6 +6291,19 @@
     "addCartLine": [
       "cart_single_line"
     ],
+    "addChargebackEvidenceNote": [
+      "chargeback_evidence_note_added",
+      "error_chargeback_closed"
+    ],
+    "approveRefund": [
+      "admin_refund_authorised",
+      "admin_refund_pending_approval",
+      "error_refund_already_decided",
+      "error_refund_approver_over_daily_limit",
+      "error_refund_mfa_required",
+      "error_refund_needs_higher_role",
+      "error_refund_self_approval_forbidden"
+    ],
     "attachRestaurantDocument": [
       "document_approved",
       "document_expired",
@@ -5794,6 +6403,9 @@
     "createPaymentMethodSetupIntent": [
       "setup_intent"
     ],
+    "createPayoutRun": [
+      "payout_run_queued"
+    ],
     "createQuote": [
       "quote_large_tip",
       "quote_pickup",
@@ -5861,6 +6473,11 @@
       "rider_application_approved",
       "rider_application_changes_requested"
     ],
+    "declineRefund": [
+      "admin_refund_declined",
+      "error_refund_already_decided",
+      "error_refund_needs_higher_role"
+    ],
     "delayOrder": [
       "restaurant_order_picked_up",
       "restaurant_order_preparing",
@@ -5926,7 +6543,19 @@
       "cart_empty",
       "cart_has_unavailable_items",
       "cart_many_lines",
+      "cart_restaurant_unavailable",
       "cart_single_line"
+    ],
+    "getChargeback": [
+      "chargeback_charge_refunded",
+      "chargeback_lost",
+      "chargeback_needs_response",
+      "chargeback_prevented",
+      "chargeback_under_review",
+      "chargeback_warning_closed",
+      "chargeback_warning_needs_response",
+      "chargeback_warning_under_review",
+      "chargeback_won"
     ],
     "getConnectStatus": [
       "connect_status_complete",
@@ -6034,6 +6663,9 @@
     ],
     "getOwnMenu": [
       "owned_menu_with_pending_version"
+    ],
+    "getPayoutRun": [
+      "payout_run_detail_every_outcome"
     ],
     "getPublicConfig": [
       "public_config"
@@ -6152,6 +6784,8 @@
       "payout_detail_paid"
     ],
     "issueRefund": [
+      "error_refund_mfa_required",
+      "error_refund_self_approval_forbidden",
       "refund_approval_request_pending",
       "refund_approved",
       "refund_authorised",
@@ -6168,6 +6802,10 @@
     "listAddresses": [
       "addresses_empty",
       "addresses_list"
+    ],
+    "listChargebacks": [
+      "chargeback_list",
+      "chargeback_list_empty"
     ],
     "listHalalIssuingBodies": [
       "halal_issuing_bodies_empty",
@@ -6206,6 +6844,12 @@
       "payment_methods_empty",
       "payment_methods_list"
     ],
+    "listPayoutRuns": [
+      "payout_run_failed",
+      "payout_run_list_empty",
+      "payout_run_running",
+      "payout_run_succeeded"
+    ],
     "listRefunds": [
       "refund_approved",
       "refund_authorised",
@@ -6218,6 +6862,10 @@
       "refund_settled",
       "refund_submitted",
       "refund_succeeded"
+    ],
+    "listRefundsAdmin": [
+      "admin_refund_queue",
+      "admin_refund_queue_empty"
     ],
     "listRestaurantApplications": [
       "restaurant_application_queue",
@@ -6525,7 +7173,8 @@
       "menu_item_edited_by_admin"
     ],
     "verifyEmail": [
-      "session_grant_customer"
+      "error_verification_token_expired",
+      "error_verification_token_used"
     ],
     "verifyOtp": [
       "session_grant_customer",
@@ -6546,6 +7195,8 @@
     "acceptOffer": "assignment_assigned",
     "acceptOrder": "restaurant_order_preparing",
     "addCartLine": "cart_single_line",
+    "addChargebackEvidenceNote": "chargeback_evidence_note_added",
+    "approveRefund": "admin_refund_authorised",
     "attachRestaurantDocument": "document_submitted",
     "bindPackageSeal": "seal_bound",
     "cancelOrder": "order_cancelled",
@@ -6563,6 +7214,7 @@
     "createMenuItem": "menu_item_created_pending_review",
     "createMenuItemOnBehalf": "menu_item_created_by_admin",
     "createPaymentMethodSetupIntent": "setup_intent",
+    "createPayoutRun": "payout_run_queued",
     "createQuote": "quote_standard",
     "createRealtimeTicket": "realtime_ticket",
     "createRefund": "refund_requested",
@@ -6573,12 +7225,14 @@
     "decideMenuVersion": "menu_version_approved",
     "decideRestaurantApplication": "restaurant_application_approved",
     "decideRiderApplication": "rider_application_approved",
+    "declineRefund": "admin_refund_declined",
     "delayOrder": "restaurant_order_preparing",
     "enrollTotp": "totp_enrolment",
     "getActiveOrder": "order_preparing",
     "getAddress": "addresses_list",
     "getAssignment": "assignment_en_route_to_dropoff",
     "getCart": "cart_many_lines",
+    "getChargeback": "chargeback_needs_response",
     "getConnectStatus": "connect_status_complete",
     "getCurrentOffer": "offer_pending",
     "getCurrentPrincipal": "principal_customer",
@@ -6594,6 +7248,7 @@
     "getOrderReceipt": "receipt_standard",
     "getOrderTracking": "tracking_picked_up",
     "getOwnMenu": "owned_menu_with_pending_version",
+    "getPayoutRun": "payout_run_detail_every_outcome",
     "getPublicConfig": "public_config",
     "getQuote": "quote_standard",
     "getReadiness": "readiness_ok",
@@ -6615,13 +7270,16 @@
     "getRiderPayout": "payout_detail_paid",
     "issueRefund": "refund_goodwill_admin",
     "listAddresses": "addresses_list",
+    "listChargebacks": "chargeback_list",
     "listHalalIssuingBodies": "halal_issuing_body_accepted",
     "listMenuReviewQueue": "menu_review_queue",
     "listNotifications": "notifications_list",
     "listOrders": "order_list_active",
     "listOrdersAdmin": "order_list_past",
     "listPaymentMethods": "payment_methods_list",
+    "listPayoutRuns": "payout_run_succeeded",
     "listRefunds": "refund_list_empty",
+    "listRefundsAdmin": "admin_refund_queue",
     "listRestaurantApplications": "restaurant_application_queue",
     "listRestaurantDocuments": "restaurant_document_pack_complete",
     "listRestaurantOrders": "restaurant_order_queue_busy",
@@ -6672,7 +7330,6 @@
     "updateMenuCategory": "menu_category_updated",
     "updateMenuItem": "menu_item_edit_pending_review",
     "updateMenuItemOnBehalf": "menu_item_edited_by_admin",
-    "verifyEmail": "session_grant_customer",
     "verifyOtp": "session_grant_customer"
   }
 }

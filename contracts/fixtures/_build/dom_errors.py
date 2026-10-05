@@ -158,6 +158,18 @@ ERRORS = [
         "Was `restaurant_closed`. Pairs with `restaurant_availability_closed_hours`.",
     ),
     (
+        "restaurant_unavailable",
+        409,
+        "RESTAURANT_UNAVAILABLE",
+        "This restaurant cannot take orders: it is not listed, or its halal certification is "
+        "not current. Your cart is saved.",
+        None,
+        "From `addCartLine`, `createQuote` and `createOrder` when the restaurant is not listed "
+        "and live, or its halal certificate is not current as of the request, computed from "
+        "admin-verified certificate data. The apps show the halal copy and keep the cart. "
+        "Pairs with `cart_restaurant_unavailable`.",
+    ),
+    (
         "below_minimum_order",
         422,
         "BELOW_MINIMUM_ORDER",
@@ -228,8 +240,87 @@ ERRORS = [
 # (docs/decisions/README.md, "Settled — redesign decisions, round 2", "Launch scope and
 # contract"). Same tuple as ERRORS plus the operations each one is registered for, so the
 # mock lists them under the operation that returns them. Codes and messages match what
-# services/hg returns today.
+# services/hg returns today. verifyEmail's link errors are here too: its success is a bare
+# 204 with no session (https://github.com/shaiknoorullah/hg-mono/issues/356), so its
+# errors are its only fixtures.
 LAUNCH_ERRORS = [
+    (
+        "refund_self_approval_forbidden",
+        409,
+        "SELF_APPROVAL_FORBIDDEN",
+        "Nobody may approve their own refund request.",
+        None,
+        "The person who asked for a refund, or who sent it up for a second person, tried to "
+        "approve it. A goodwill refund above CAD 50.00 always needs someone else.",
+        ["approveRefund", "issueRefund"],
+    ),
+    (
+        "refund_already_decided",
+        409,
+        "ALREADY_DECIDED",
+        "This refund is not waiting for a decision; it is AUTHORISED.",
+        None,
+        "Someone else decided it first, or it was never waiting. Reload the queue.",
+        ["approveRefund", "declineRefund"],
+    ),
+    (
+        "refund_approver_over_daily_limit",
+        409,
+        "DAILY_CAP_EXCEEDED",
+        "Approving this would take you past your 24-hour refund limit; a super admin can approve it.",
+        None,
+        "A second approver's own rolling 24-hour limit counts too. The request stays in the "
+        "queue for someone with room.",
+        ["approveRefund"],
+    ),
+    (
+        "refund_mfa_required",
+        403,
+        "MFA_REQUIRED",
+        "Refunds need a session signed in with your authenticator code. Sign in again with it.",
+        None,
+        "Money actions need a session signed in with an authenticator code (staff MFA for money "
+        "actions).",
+        ["approveRefund", "issueRefund"],
+    ),
+    (
+        "refund_needs_higher_role",
+        403,
+        "FORBIDDEN",
+        "This refund needs approval from someone with the ADMIN role.",
+        None,
+        "An approval request is decided by the role it was sent up to, or a super admin.",
+        ["approveRefund", "declineRefund"],
+    ),
+    (
+        "chargeback_closed",
+        409,
+        "ALREADY_DECIDED",
+        "Stripe has closed this chargeback (lost); it takes no more evidence.",
+        None,
+        "Evidence notes are for open chargebacks only.",
+        ["addChargebackEvidenceNote"],
+    ),
+    (
+        "verification_token_expired",
+        410,
+        "VERIFICATION_TOKEN_EXPIRED",
+        "This verification link has expired.",
+        None,
+        "`verifyEmail` with a token older than 24 hours. A token that never existed gets the "
+        "same code. The page offers \"Send a new link\" (`resendEmailVerification`).",
+        ["verifyEmail"],
+    ),
+    (
+        "verification_token_used",
+        410,
+        "VERIFICATION_TOKEN_USED",
+        "This verification link has already been used.",
+        None,
+        "`verifyEmail` with a token that was already used: the email is verified, so the page "
+        "sends the owner to sign in. Using the link never signs anyone in.",
+        ["verifyEmail"],
+    ),
     (
         "reset_token_not_valid",
         400,

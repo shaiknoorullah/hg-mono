@@ -143,6 +143,17 @@ func (s *Store) transitionTx(ctx context.Context, tx pgx.Tx, req TransitionReque
 		return fmt.Errorf("insert transition: %w", err)
 	}
 
+	// The rider who delivered is paid in the same transaction as the
+	// delivery, and only by the rider's own DELIVERED transition: no other
+	// actor's state change writes earnings, and a failed write rolls the
+	// delivery back (https://github.com/shaiknoorullah/hg-mono/issues/306).
+	// DELIVERED is reachable once per order, so this runs once.
+	if req.To == machine.StateDelivered && req.Actor == machine.ActorRider && s.riderEarnings != nil {
+		if err := s.riderEarnings.CreditDeliveryTx(ctx, tx, req.OrderID, req.ActorAccountID); err != nil {
+			return fmt.Errorf("rider earnings: %w", err)
+		}
+	}
+
 	// Emit a realtime outbox event in the same transaction so the customer's
 	// tracking, the restaurant's queue and the rider see the change, in the
 	// contract's shapes, whoever called this function (events.go; issue #247).

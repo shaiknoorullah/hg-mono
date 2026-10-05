@@ -345,10 +345,17 @@ func (h *Handler) RegisterRestaurant(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	reg, err := h.svc.RegisterRestaurant(r.Context(), in.Email, in.Password, in.BusinessName, clientIPPtr(r))
+	reg, err := h.svc.RegisterRestaurant(r.Context(), in.Email, in.Password, in.BusinessName,
+		httpx.RateLimitKey(httpx.ClientIP(r)))
 	switch {
 	case errors.Is(err, ErrRateLimited):
 		failRateLimited(w, r, err, "Too many sign-ups from this network. Please wait before trying again.")
+		return
+	case errors.Is(err, ErrLimiterUnavailable):
+		// Only the email limits fail closed here (email_limits.go): with no
+		// counter, no verification email, so no account is created either.
+		httpx.Fail(w, r, http.StatusServiceUnavailable, httpx.CodeRateLimiterUnavailable,
+			"Sign-up is briefly unavailable. Please try again shortly.", nil)
 		return
 	case errors.Is(err, ErrEmailInUse):
 		httpx.Fail(w, r, http.StatusConflict, CodeEmailAlreadyRegistered,
@@ -375,7 +382,10 @@ func (h *Handler) RegisterRestaurant(w http.ResponseWriter, r *http.Request) {
 
 // ---- email verification (R-02) ---------------------------------------------
 
-// VerifyEmail implements verifyEmail. Consumes the token and issues a session.
+// VerifyEmail implements verifyEmail. Consumes the token and answers 204: no
+// session, no cookie. An emailed link must never sign anyone in
+// (https://github.com/shaiknoorullah/hg-mono/issues/356); the owner signs in
+// with Login.
 func (h *Handler) VerifyEmail(w http.ResponseWriter, r *http.Request) {
 	var in tokenInput
 	if err := decodeJSON(r, &in); err != nil || len(in.Token) < 32 || len(in.Token) > 128 {
@@ -383,11 +393,7 @@ func (h *Handler) VerifyEmail(w http.ResponseWriter, r *http.Request) {
 			"A valid token is required.", nil)
 		return
 	}
-	client, _ := clientSurface(r)
-	if !client.valid() {
-		client = ClientRestaurantWeb
-	}
-	issued, err := h.svc.VerifyEmail(r.Context(), in.Token, client, userAgentPtr(r), clientIPPtr(r))
+	err := h.svc.VerifyEmail(r.Context(), in.Token)
 	switch {
 	case errors.Is(err, errTokenExpired):
 		httpx.Fail(w, r, http.StatusGone, CodeVerifyTokenExpired,
@@ -406,7 +412,7 @@ func (h *Handler) VerifyEmail(w http.ResponseWriter, r *http.Request) {
 			"The server failed to process this request.", nil)
 		return
 	}
-	h.writeSessionGrant(w, r, issued, http.StatusOK)
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // ---- resend email verification / forgot password (acknowledgement) ---------
@@ -420,7 +426,7 @@ func (h *Handler) ResendEmailVerification(w http.ResponseWriter, r *http.Request
 			"A valid email is required.", nil)
 		return
 	}
-	if err := h.svc.ResendEmailVerification(r.Context(), in.Email); errors.Is(err, ErrRateLimited) {
+	if err := h.svc.ResendEmailVerification(r.Context(), in.Email, httpx.RateLimitKey(httpx.ClientIP(r))); errors.Is(err, ErrRateLimited) {
 		failRateLimited(w, r, err, "Please wait before requesting another email.")
 		return
 	}
@@ -436,12 +442,14 @@ func (h *Handler) RequestPasswordReset(w http.ResponseWriter, r *http.Request) {
 			"A valid email is required.", nil)
 		return
 	}
-	_ = h.svc.RequestPasswordReset(r.Context(), in.Email)
+	_ = h.svc.RequestPasswordReset(r.Context(), in.Email, httpx.RateLimitKey(httpx.ClientIP(r)))
 	httpx.Respond(w, r, http.StatusOK, wireAcknowledgement{Acknowledged: true})
 }
 
 // ResetPassword implements resetPassword. Sets the password and revokes every
-// session in the account's family, then 204.
+// session in the account's family, then 204: no session, no cookie, also for a
+// staff invitation's first password
+// (https://github.com/shaiknoorullah/hg-mono/issues/356).
 func (h *Handler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	var in resetPasswordInput
 	if err := decodeJSON(r, &in); err != nil || len(in.Token) < 32 || len(in.Token) > 128 {

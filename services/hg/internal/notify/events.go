@@ -219,6 +219,39 @@ func NotifyOrderCancelled(e OrderEvent, reason string) New {
 	}
 }
 
+// RefundEvent is the input of the refund builders. Like OrderEvent it carries
+// display strings the caller already has; it never restates an amount.
+type RefundEvent struct {
+	RefundID       string
+	OrderID        uuid.UUID
+	OrderShortCode string
+	AccountID      uuid.UUID // the customer who asked for the refund
+}
+
+// NotifyRefundDeclined tells a customer that staff declined their refund
+// request (https://github.com/shaiknoorullah/hg-mono/issues/172). message is
+// what staff chose to tell them; when it is empty they get a plain sentence.
+// The staff reason for the decline is never sent: it is internal.
+func NotifyRefundDeclined(e RefundEvent, message string) New {
+	body := fmt.Sprintf("We reviewed your refund request for order %s and could not approve it. "+
+		"Contact support if you have questions.", e.OrderShortCode)
+	if message != "" {
+		body = fmt.Sprintf("Your refund request for order %s was not approved: %s", e.OrderShortCode, message)
+	}
+	return New{
+		AccountID:   e.AccountID,
+		RoleContext: RoleCustomer,
+		Kind:        KindRefundDeclined,
+		Title:       "Refund request not approved",
+		Body:        body,
+		Priority:    PriorityNormal,
+		Channels:    standardChannels(),
+		DedupeKey:   "refund_declined:" + e.RefundID,
+		GroupKey:    "order:" + e.OrderID.String(),
+		OrderID:     uuid.NullUUID{UUID: e.OrderID, Valid: true},
+	}
+}
+
 // NotifyPaymentCaptureFailed alerts the customer that capture failed after
 // restaurant acceptance (CLAUDE.md invariant 5: authorise then capture on
 // accept — this is that capture's failure path, distinct from a reject/

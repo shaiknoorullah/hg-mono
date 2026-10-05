@@ -38,7 +38,7 @@ var ErrDuplicate = errors.New("notify: duplicate dedupe_key for account")
 // row's id and ok=false instead of erroring — the caller (Enqueue) uses this
 // to skip re-scheduling a job for a message that was already queued.
 func (r *Repo) InsertNotification(ctx context.Context, db DB, n New) (id uuid.UUID, ok bool, err error) {
-	dataJSON, err := marshalData(n.Data)
+	dataJSON, err := marshalData(withEmail(n.Data, n.Email))
 	if err != nil {
 		return uuid.Nil, false, fmt.Errorf("notify: marshal data: %w", err)
 	}
@@ -248,6 +248,48 @@ func (r *Repo) SettleDelivery(ctx context.Context, db DB, id int64, state Delive
 		id, string(state), nullIfEmpty(providerMessageID), nullIfEmpty(errCode), nullIfEmpty(errMsg), attempts)
 	if err != nil {
 		return fmt.Errorf("notify: settle delivery %d: %w", id, err)
+	}
+	return nil
+}
+
+// SuppressDelivery records a deliberate non-send on a delivery row: no
+// provider, no address, or an address the non-production allow-list blocks.
+// reason goes in suppress_reason (an UPPER_SNAKE code, see SuppressedError).
+func (r *Repo) SuppressDelivery(ctx context.Context, db DB, id int64, reason string, attempts int) error {
+	_, err := db.Exec(ctx, `
+		UPDATE notification_delivery
+		SET state = 'SUPPRESSED', suppress_reason = $2, attempts = $3, settled_at = now()
+		WHERE id = $1`, id, reason, attempts)
+	if err != nil {
+		return fmt.Errorf("notify: suppress delivery %d: %w", id, err)
+	}
+	return nil
+}
+
+// ClaimLease takes the notification's delivery lease (notification.lease_until
+// and lease_owner) for ttl, or reports false when another worker holds an
+// unexpired one. River runs a job on one worker at a time, but a job it
+// rescues as stuck can run beside the original; the lease keeps those two
+// from both sending the same email.
+func (r *Repo) ClaimLease(ctx context.Context, db DB, id uuid.UUID, owner string, ttl time.Duration) (bool, error) {
+	tag, err := db.Exec(ctx, `
+		UPDATE notification
+		SET lease_owner = $2, lease_until = now() + $3::interval
+		WHERE id = $1 AND (lease_until IS NULL OR lease_until < now() OR lease_owner = $2)`,
+		id, owner, ttl.String())
+	if err != nil {
+		return false, fmt.Errorf("notify: claim lease on %s: %w", id, err)
+	}
+	return tag.RowsAffected() == 1, nil
+}
+
+// ReleaseLease gives the lease back, if owner still holds it.
+func (r *Repo) ReleaseLease(ctx context.Context, db DB, id uuid.UUID, owner string) error {
+	_, err := db.Exec(ctx, `
+		UPDATE notification SET lease_owner = NULL, lease_until = NULL
+		WHERE id = $1 AND lease_owner = $2`, id, owner)
+	if err != nil {
+		return fmt.Errorf("notify: release lease on %s: %w", id, err)
 	}
 	return nil
 }

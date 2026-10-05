@@ -46,6 +46,7 @@ import (
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/handoff"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/notify"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/notify/emailtmpl"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders/machine"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/partitions"
@@ -457,22 +458,60 @@ func run() error {
 		return err
 	}
 
-	// P-24 transactional notifications. The notify module enqueues a
-	// notification row + River delivery job inside a business tx (see the order
-	// emitter below). Channel senders are fakes for now: real SMS/push is
-	// blocked on O-03 (A2P registration) — until then the INAPP inbox row (the
-	// system of record per listNotifications) is written and push/SMS are
-	// no-ops rather than a hard boot dependency. NoAccountLookup means no
-	// external target is resolved, which is the correct behaviour while senders
-	// are fakes. River's own tables ship as migration 00024_river_outbox.sql.
+	// Transactional notifications (docs/spec/01-platform.md, "P-24 —
+	// Notification router"). The notify module enqueues a notification row and
+	// a River delivery job inside the business transaction (the order emitter
+	// below, auth's sign-up and reset emails, admin decisions, staff invites).
+	// River's own tables ship as migration 00024_river_outbox.sql.
+	//
+	// Email goes through Resend when HG_RESEND_API_KEY is set (issue #59).
+	// Outside production every email first passes the allow-list, so dev never
+	// messages a real person (issue #235); with no key the log sender records
+	// each email instead (captured in full outside production, issue #248).
+	// Push (issue #58) and notification SMS (blocked on the A2P registration,
+	// docs/decisions/README.md "Open — blocking") have no provider yet: their
+	// deliveries are recorded SUPPRESSED and the inbox row stays the record.
+	emailTemplates, err := emailtmpl.Load()
+	if err != nil {
+		return fmt.Errorf("notify: email templates: %w", err)
+	}
+	captureEmail := cfg.Env != config.EnvProduction
+	var emailSender notify.EmailSender
+	switch {
+	case cfg.Email.Configured() && cfg.Env == config.EnvProduction:
+		emailSender = &notify.ResendSender{APIKey: cfg.Email.ResendAPIKey, From: cfg.Email.From, ReplyTo: cfg.Email.ReplyTo}
+		log.Info("email provider: resend")
+	case cfg.Email.Configured():
+		allow, err := notify.NewAllowList(cfg.Email.AllowList)
+		if err != nil {
+			return fmt.Errorf("HG_EMAIL_ALLOWLIST: %w", err)
+		}
+		emailSender = notify.AllowListSender{
+			Next:  &notify.ResendSender{APIKey: cfg.Email.ResendAPIKey, From: cfg.Email.From, ReplyTo: cfg.Email.ReplyTo},
+			Allow: allow, Log: log, Capture: captureEmail,
+		}
+		log.Info("email provider: resend, limited to the non-production allow-list",
+			slog.Int("allow_list_entries", allow.Len()))
+	default:
+		emailSender = notify.LogEmailSender{Log: log, Capture: captureEmail}
+		if cfg.Env == config.EnvProduction {
+			log.Warn("email provider: log — no email is sent (set HG_RESEND_API_KEY)")
+		} else {
+			log.Info("email provider: log — emails are written to this log, not sent")
+		}
+	}
 	notifier := notify.NewNotifier().
-		Register(notify.ChannelPush, notify.NewFakeSender()).
-		Register(notify.ChannelSMS, notify.NewFakeSender()).
-		Register(notify.ChannelEmail, notify.NewFakeSender())
+		Register(notify.ChannelPush, notify.LogSender{Channel: notify.ChannelPush, Log: log}).
+		Register(notify.ChannelSMS, notify.LogSender{Channel: notify.ChannelSMS, Log: log}).
+		Register(notify.ChannelEmail, notify.EmailAdapter{EmailSender: emailSender})
 	notifyClient, err := notify.NewClient(st.DB().Pool, notify.Options{
 		Notifier: notifier,
-		Accounts: notify.NoAccountLookup{},
-		Log:      log,
+		Accounts: notify.PgAccountLookup{DB: st.DB().Pool},
+		Emails: &notify.EmailRenderer{
+			Templates: emailTemplates,
+			Links:     notify.Links{Restaurant: cfg.Email.RestaurantWebURL, Admin: cfg.Email.AdminWebURL},
+		},
+		Log: log,
 	})
 	if err != nil {
 		return fmt.Errorf("notify: construct client: %w", err)
@@ -521,6 +560,9 @@ func run() error {
 	authModule := auth.NewModule(
 		st.DB().Pool, st.Cache().Client, authSecrets,
 		smsSender, phoneVerifier, verifyChannel, cfg.Env.IsLocal(), log)
+	// Email verification, password reset and staff invitations go out
+	// through the notification outbox (issue #248).
+	authModule.UseNotifications(notifyClient.Enqueue)
 
 	// Behind Traefik with no trusted proxy, every request's client address is
 	// Traefik's, so say which mode this process is in.
@@ -614,8 +656,47 @@ func run() error {
 	} else {
 		log.Warn("stripe not configured — payment mutation routes answer 503 (HG_STRIPE_SECRET_KEY unset)")
 	}
-	paymentsSvc := payments.NewService(payments.NewRepo(st.DB().Pool), stripeClient, cfg.Stripe, log)
+	paymentsRepo := payments.NewRepo(st.DB().Pool)
+	// A customer whose refund request staff decline is told through the
+	// notification outbox, in the decline's own transaction (#172).
+	paymentsSvc := payments.NewService(paymentsRepo, stripeClient, cfg.Stripe, log).
+		WithOrderHooks(ordersStore).
+		WithOutbox(notifyClient.Enqueue)
+	// The weekly payout run (issue #251): Monday 09:00 America/Toronto, for
+	// every rider and restaurant, and on demand through createPayoutRun. It
+	// needs Stripe, so without a client there is no runner and createPayoutRun
+	// answers 503. Started with the other background loops below.
+	var payoutRunner *payments.PayoutRunner
+	if stripeClient != nil {
+		host, _ := os.Hostname()
+		payoutRunner = payments.NewPayoutRunner(paymentsRepo, stripeClient, payments.PayoutPolicy{
+			RestaurantNegativeBlockDays: cfg.Payouts.RestaurantNegativeBalanceBlockDays,
+			RestaurantHold:              time.Duration(cfg.Payouts.RestaurantHoldHours) * time.Hour,
+		}, host, log)
+		paymentsSvc.WithPayoutRunner(payoutRunner)
+	}
 	payments.Routes(router, payments.NewHandler(paymentsSvc, cfg))
+	// The rider who delivered is paid inside the order's DELIVERED transition,
+	// under the rider pay rules the owner has not settled (issue #306).
+	paymentsSvc.WithRiderPay(cfg.RiderPay)
+	ordersStore.WithRiderEarnings(paymentsSvc)
+
+	// The webhook worker applies stored Stripe events from the database: one
+	// replica at a time under an advisory-lock lease, each event's effect and
+	// its processed_at in one transaction, retried with backoff and
+	// dead-lettered with an ops alert after eight failures (#231, #249). An
+	// authorisation event moves its order through the orders store
+	// (orders.Store.PaymentAuthorised) in that same transaction.
+	go payments.NewWebhookWorker(paymentsSvc, cfg.Env == config.EnvProduction).Run(ctx)
+	// The refund sender sends approved refunds to Stripe: one replica at a
+	// time under an advisory-lock lease, each refund claimed and recorded
+	// before the call, keyed rf:<refund id>, retried with backoff and set
+	// aside with an ops alert after eight failures (#318). The refund
+	// webhooks above finalise what it sends. With no Stripe client there is
+	// nothing to send to, and approved refunds wait.
+	if stripeClient != nil {
+		go payments.NewRefundSender(paymentsSvc).Run(ctx)
+	}
 
 	// Wire orders to the payments gateway (deferred from B5 above): createOrder
 	// now asks the payments sibling to authorise the PaymentIntent (P-16 3/4).
@@ -635,6 +716,17 @@ func run() error {
 	dispatch.Routes(router, dispatch.NewHandler(dispatchSvc))
 	dispatchRunner := dispatch.NewDispatchRunner(dispatchSvc, log, 3000, 5*time.Second)
 	go dispatchRunner.Run(ctx)
+	// Rider availability sweeps (issue #255; docs/spec/04-rider.md, "D-10 —
+	// Availability: online / offline"): a silent online rider goes ONLINE_STALE,
+	// and a rider stuck ON_DELIVERY with no live assignment is restored. Every
+	// replica runs them; a lease lets one sweep at a time. riderSweeps.RunOnce is
+	// the "sweep now" hook for the dev environment's controls (issue #235).
+	riderSweeps := dispatch.NewAvailabilitySweeper(dispatchSvc, log, dispatch.AvailabilitySweepConfig{
+		StaleAfter:     cfg.Dispatch.RiderStaleAfter,
+		StaleEvery:     cfg.Dispatch.RiderStaleSweepEvery,
+		ReconcileEvery: cfg.Dispatch.RiderReconcileEvery,
+	})
+	go riderSweeps.Run(ctx)
 
 	// B11 — Handoff (internal/handoff, migration 00027): package-seal chain of
 	// custody. Reuses the same orderLifecycleAdapter instance dispatch is wired
@@ -650,6 +742,9 @@ func run() error {
 	// restaurantPay bridges restaurant.PaymentActions to the payments sibling so
 	// AcceptOrder captures (T6) and RejectOrder voids (T7) without importing the
 	// payments package from the restaurant package (modular-monolith seam).
+	// Restaurant staff get no invitation email in 1.0: restaurant accounts are
+	// owner-only at launch (docs/decisions/README.md, "Staff accounts").
+	// Staff invitations are for HalalGoes's own admin staff (issue #170).
 	// ordersStore carries the realtime emitter, so accept, reject and
 	// mark-ready reach the customer like every other order move
 	// (https://github.com/shaiknoorullah/hg-mono/issues/337).
@@ -690,6 +785,13 @@ func run() error {
 	// fleet. It never deletes ledger, order, audit or KYC rows.
 	go retention.New(st.DB().Pool, log).Run(ctx)
 
+	// Payouts: every replica checks each minute for a due payout run; a
+	// session advisory lock lets one run at a time, and a run a replica
+	// abandons is finished by the next (internal/payments/payout_run.go).
+	if payoutRunner != nil {
+		go payoutRunner.Run(ctx)
+	}
+
 	// Start the notify worker pool now that migrations have run and the process
 	// is otherwise ready. Enqueue (used inside order transitions above) works
 	// without Start; Start is what drains and delivers queued jobs.
@@ -705,7 +807,9 @@ func run() error {
 	rider.Routes(router, rider.NewHandler(rider.NewService(rider.NewRepo(st.DB().Pool))))
 
 	// B9 — Admin, RBAC & files (internal/admin, internal/files).
-	admin.Routes(router, admin.NewHandler(admin.NewRepo(st.DB().Pool), admin.DefaultConfig()))
+	admin.Routes(router, admin.NewHandler(
+		admin.NewRepo(st.DB().Pool).WithNotifications(notifyClient.Enqueue, authModule.StaffInviter()),
+		admin.DefaultConfig()))
 	files.Routes(router, files.NewHandler(files.NewRepo(
 		st.DB().Pool,
 		// Links are signed for the public host phones reach; server-side

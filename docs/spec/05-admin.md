@@ -184,6 +184,24 @@ fails, the change is rolled back. This is a hard invariant, not a best effort.
      `410 INVITATION_EXPIRED` and the account remains `INVITED`.
 - **Out of scope**: SSO/SAML/OIDC; SCIM provisioning; per-user custom permission overrides (V3, see
   A-02); staff org-chart/manager hierarchy; hard deletion of staff rows.
+- **As built (Oct 2026)**: the invitation is a 72-hour single-use token stored like a password-reset
+  token and emailed through the notification outbox in the transaction that creates the account. The
+  address is read from the invited account itself, the email quotes nothing the super admin typed
+  (only the role, from a fixed list), and one account gets at most 3 invitations a day and one super
+  admin sends at most 20. The invitee sets a first password through the reset-password operation, which
+  also marks the email verified, then enrols two-step sign-in. `staff_invitation` is not written yet,
+  and an expired link answers with the reset operation's expired-token error rather than
+  `INVITATION_EXPIRED`: the acceptance flow is [#170](https://github.com/shaiknoorullah/hg-mono/issues/170).
+  The console's pages for these emails exist ([#329](https://github.com/shaiknoorullah/hg-mono/issues/329)).
+  `/accept-invite` sets the first password and stops there: two-step enrolment cannot start from the
+  link until the acceptance flow exists, so the page says the inviting super admin will set it up
+  with the invitee.
+  `/reset-password` is both "Forgot your password?" on the sign-in gate and the page the reset email
+  opens. Both take the token the way the restaurant app's link pages do (see
+  [email verification, as built](03-restaurant.md#r-02--email-verification-and-account-activation)),
+  with the same shared code: out of the address before anything loads, in memory only, sent once
+  in a POST body, and never a sign-in. If the console is already signed in in that tab, the page
+  asks before it uses the link.
 - **Version**: V1 · **Size**: M
 
 > **Decided:** no warning above 25 active staff accounts at launch ([staff account warning](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)).
@@ -1210,6 +1228,9 @@ These six words mean exactly this everywhere in the product, in the API, and in 
   becomes `READY` and `account_state = LIVE` only when a menu version is approved (A-19). `REJECT` is
   terminal for that application (re-application per A-13 R7) and requires a reason code plus text that
   is sent verbatim to the restaurant. `REQUEST_CHANGES` names the specific documents to redo.
+  The decision notifies the restaurant's owners and managers by email and in-app inbox, in the same
+  transaction. The reason text goes in the inbox row the restaurant app shows; the email only says
+  there is a decision and links to it, so no text typed outside HalalGoes's templates is ever emailed.
 - **Data**: `restaurant_application` (A-13); `restaurant { id, ..., onboarding_state, account_state, halal_status, delist_reasons[], approved_by, approved_at, rejected_by, rejected_at, rejection_reason_code, rejection_reason_text }`.
   Decision reason codes — approve: `ALL_CHECKS_PASSED`, `APPROVED_WITH_NOTES`; reject:
   `HALAL_CERTIFICATION_INVALID`, `DOCUMENTS_INSUFFICIENT`, `IDENTITY_UNVERIFIED`,
@@ -1612,6 +1633,7 @@ documents lapse cannot go on shift, but is not punished.
   - R6 Rejection reason text is sent verbatim to the rider along with the specific remediation step —
     this is the SOW's "Support: Get support on verification rejections".
   - R7 Rejecting a single document does not notify the rider; only the application decision does
+    (push, inbox and email; the email carries no reason text, which the rider app shows)
     ([rider document rejection](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)).
   - R8 After a rider's third resubmission the only decisions are approve or reject; requesting changes
     is no longer offered ([third resubmission](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
@@ -2174,14 +2196,27 @@ documents lapse cannot go on shift, but is not punished.
     rest; `LATE_DELIVERY`, `PRICING_ERROR`, `PLATFORM_INITIATED_CANCELLATION`, `GOODWILL`,
     `DUPLICATE_CHARGE`, `OTHER` → platform bears it. The split feeds settlement (A-36) and is visible to the
     bearing party.
-  - R5 A refund is submitted to the payment provider only after `AUTHORISED`; provider failures move
-    to `FAILED` with the provider's code, are retried with exponential backoff up to 24 hours, and
-    raise a P1 case at Tier 2 on final failure. **The customer-facing refund status never shows
+  - R5 Only an approved refund is submitted to the payment provider: `AUTHORISED`, with the member of
+    staff who approved it on the row (a cancellation's refund is approved by whoever cancelled the
+    order). A customer's own request and one waiting for a second approver are never sent. The refund
+    sender submits each refund once, keyed by the refund, from one replica at a time
+    ([sending a refund](01-platform.md#p-18--refunds-cancellations-and-compensation)). A provider
+    refusal moves the refund to `FAILED` with the provider's code, an admin alert and a reconciliation
+    exception; a refund the sender could not deliver after eight attempts, with backoff, stays
+    `AUTHORISED` and is set aside with an admin alert for a person to review.
+    **The customer-facing refund status never shows
     "completed" before the provider confirms.** (This closes defects B48/B54, where refunds only ever
     logged "refund would be initiated here".)
   - R6 Refunds require the session's MFA to be verified within 12 hours (A-02 R4).
   - R7 Every refund state change writes an `audit_event` including the authority path used
     (`role`, `cap_applied`, `approver_ids`).
+  - As built ([#172](https://github.com/shaiknoorullah/hg-mono/issues/172)): the approval request is
+    the `PENDING_APPROVAL` refund itself (no separate table), with the role that must decide it and
+    who sent it up; the rolling total counts the refunds a person *approved* (`refund.approved_by`,
+    `approved_at`) and is summed under a per-person advisory lock rather than a `staff_refund_ledger`
+    upsert; a customer's request is reviewed through `approveRefund` and `declineRefund`; the caps are
+    the platform's 24-hour figures in `internal/payments/types.go`, and the per-order and order-age
+    limits in the table above are not enforced yet.
   - R8 A refund against an order whose payment is not `CAPTURED` is rejected
     `409 PAYMENT_NOT_REFUNDABLE`; a cancellation before capture voids the authorisation instead and is
     a different operation.

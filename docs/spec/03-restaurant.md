@@ -3,7 +3,7 @@ covers:
   - apps/restaurant/**
   - services/hg/internal/restaurant/**
   - services/hg/internal/catalog/**
-reviewed: 2026-10-04
+reviewed: 2026-10-05
 ---
 
 # HalalGoes — RESTAURANT domain specification
@@ -201,9 +201,12 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
 
 - **Behaviour**: The signup email contains a link to `{APP_ORIGIN}/verify-email?token=…`. The web app
   POSTs the token once. On success the server sets `email_verified_at`, advances
-  `onboarding_state REGISTERED → EMAIL_VERIFIED`, issues an access + refresh token pair (R-03), and
-  returns the onboarding status object so the client can route to the next step. The token is
-  single-use and is consumed atomically (`UPDATE … WHERE consumed_at IS NULL RETURNING`).
+  `onboarding_state REGISTERED → EMAIL_VERIFIED` and answers `204`. It **issues no session and sets
+  no cookie**: an emailed link never signs anyone in, or an attacker could send the owner the link
+  for the attacker's own account and have them work in it
+  ([#356](https://github.com/shaiknoorullah/hg-mono/issues/356)). The page says the email is
+  verified and sends the owner to sign in ([R-03](#r-03--login-session-and-token-lifecycle)). The
+  token is single-use and is consumed atomically (`UPDATE … WHERE consumed_at IS NULL RETURNING`).
 
 - **Data**: `email_verification_token(id, restaurant_user_id, token_hash sha256, expires_at, consumed_at, created_at, requested_ip)`. The raw token is a 32-byte CSPRNG value, base64url; only its SHA-256 is stored.
 
@@ -223,12 +226,24 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
      for re-registration.
 
 - **Acceptance criteria**:
-  1. **Given** a fresh verification token, **when** it is POSTed once, **then** `200` returns `{access_token, refresh_token, onboarding_state:"EMAIL_VERIFIED", next_step:"PROFILE"}` and `email_verified_at` is set.
+  1. **Given** a fresh verification token, **when** it is POSTed once, **then** `204` returns no body and no `Set-Cookie`, no session row is created, and `email_verified_at` is set; signing in afterwards with the password succeeds.
   2. **Given** the same token, **when** it is POSTed a second time within 1 s (double-submit), **then** exactly one of the two requests succeeds and the other returns `410 verification_token_used` — verified under a concurrent 2-request test.
   3. **Given** a token issued 25 hours ago, **when** it is POSTed, **then** `410 verification_token_expired` is returned and no session is created.
   4. **Given** an account with `email_verified_at IS NULL`, **when** it calls `GET /v1/restaurant/menu/items` with a forged bearer token, **then** `403 email_not_verified` is returned.
 
 - **Out of scope**: magic-link login; email change flow; verification by SMS; deliverability/bounce handling beyond writing a `bounced` flag (V2).
+
+- **As built (Oct 2026)**: the link opens `/verify-email` in the restaurant web app
+  ([#329](https://github.com/shaiknoorullah/hg-mono/issues/329)). The token is handled like a
+  password: the app takes it out of the address bar before anything else loads or calls the network,
+  switches the page's referrer policy to `no-referrer`, keeps the token in memory only, and sends it
+  once, in the body of `POST /v1/auth/email/verify`. Opening the link never signs anyone in: the page
+  drops the session the API still returns ([#356](https://github.com/shaiknoorullah/hg-mono/issues/356))
+  and sends the owner to the normal sign-in. If someone is already signed in on the device, the page
+  asks before it uses the link. A used link says so; an expired, incomplete or cut-short link offers
+  a new one by email, and that request answers the same whether or not the account exists. The token
+  capture, the calls and the form state are shared with the admin console's link pages, in
+  `@hg/ui-web/link-token` and `@hg/ui-web/email-links`.
 
 - **Version**: V1
 - **Size**: S
@@ -283,6 +298,16 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
 - **Out of scope**: SSO/SAML; MFA (V2; it issues no recovery codes, and a super admin resets a lost
   authenticator after a phone call-back check: [recovery codes](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28), [manual resets](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)); device-trust / "remember this device"; biometric; session
   transfer between the web app and a future mobile app.
+
+- **As built (Oct 2026)**: "Forgot your password?" on the sign-in page and the reset email both open
+  `/reset-password` ([#329](https://github.com/shaiknoorullah/hg-mono/issues/329)). Without a token,
+  the page asks for the email and then shows "Check your email", the same whether or not the account
+  exists. With one, it takes a new password, checks its length (12 characters to 256 bytes) before
+  using the link, and shows a breached password as an error on the field. An expired, used or unknown
+  link gets one page, because `resetPassword` answers all three alike. Setting the password signs
+  nobody in: the owner signs in again, and the page says the order screen was signed out too. A 429
+  disables the button until the time the server gives, shown as a 12-hour clock time. The token is
+  handled as on the verify-email page ([email verification, as built](#r-02--email-verification-and-account-activation)).
 
 - **Version**: V1
 - **Size**: M
@@ -1561,6 +1586,10 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
      `CANCELLED_PAYMENT_FAILED`, the restaurant is notified, and rider dispatch is **not** enqueued.
      There is no path where a failed money operation lets the flow continue. *(Today the saga falls
      through to rider assignment when cancel/refund returns false.)*
+     Accept first checks that the restaurant can still take orders, under the same lock as checkout
+     ([one check for every order path](01-platform.md#p-09--canonical-price-computation-the-quote)): if it is
+     not listed, not `LIVE`, or its halal certificate is not current at that moment, accept answers
+     `409 RESTAURANT_UNAVAILABLE`, nothing is captured, and the order times out and releases its authorisation.
   4. **Reject** performs, in one transaction: status → `CANCELLED_BY_RESTAURANT`; store reason;
      void the authorisation; notify the customer; release any offer budget (R-21). A void failure
      leaves the order in `CANCELLED_BY_RESTAURANT` and raises an operational alert with a retry job —
@@ -2408,6 +2437,7 @@ Aggressive exclusions that apply across every feature above:
 3. **Staff sub-accounts and roles.** The `role` column exists (`OWNER|MANAGER|STAFF`) but only
    `OWNER` is issued at launch and the Staff screen is hidden; restaurant staff come in a later
    version ([staff accounts](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)).
+   Creating a restaurant staff account through the API sends no invitation email in 1.0.
 4. **Pickup / dine-in / table ordering.** Delivery only.
 5. **Scheduled and pre-orders.** Immediate orders only.
 6. **Inventory quantities, recipes, food-cost accounting, supplier integration.**
