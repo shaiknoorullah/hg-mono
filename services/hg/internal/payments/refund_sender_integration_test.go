@@ -24,7 +24,12 @@ type refundHarness struct {
 
 func newRefundHarness(t *testing.T) *refundHarness {
 	t.Helper()
-	h := newWebhookHarness(t)
+	return newRefundHarnessOn(t, newWebhookHarness(t))
+}
+
+// newRefundHarnessOn is newRefundHarness over a webhook harness the caller made.
+func newRefundHarnessOn(t *testing.T, h *webhookHarness) *refundHarness {
+	t.Helper()
 	stub := newStripeStub(t, "rs_"+h.run)
 	// The webhook route still verifies with the test secret; every Stripe
 	// call goes to the stub.
