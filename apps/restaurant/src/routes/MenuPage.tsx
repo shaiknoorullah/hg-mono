@@ -1,7 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useId, useMemo, useState } from 'react';
 import * as Switch from '@radix-ui/react-switch';
 import { isApiError, type Schema } from '@hg/api-client';
-import { Button, Card, EmptyState, ErrorState, Icon, IconButton, cx } from '@hg/ui-web';
+import { Button, Card, EmptyState, ErrorState, HG_FOCUS, Icon, IconButton, cx } from '@hg/ui-web';
 import { api, unwrapOrThrow } from '../lib/apiHelpers';
 import { useAsync } from '../lib/useAsync';
 import { PageLoading } from '../components/PageLoading';
@@ -25,6 +25,9 @@ export function MenuPage() {
   const [busyItem, setBusyItem] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [editItem, setEditItem] = useState<EditableMenuItem | null>(null);
+  // Each availability switch is named by its item's visible name plus a hidden "available", so a
+  // screen reader hears "Chicken Biryani available, switch, on" (issue #401).
+  const ids = useId();
 
   const categories = data?.categories ?? [];
   const selected = useMemo(
@@ -71,6 +74,9 @@ export function MenuPage() {
           Add item
         </Button>
       </header>
+      <span id={`${ids}-available`} hidden>
+        available
+      </span>
 
       {categories.length === 0 ? (
         <EmptyState
@@ -110,7 +116,9 @@ export function MenuPage() {
               <Card key={item.id} className="flex items-center gap-4">
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <p className="truncate text-label-lg font-bold text-fg-primary">{item.name}</p>
+                    <p id={`${ids}-item-${item.id}`} className="truncate text-label-lg font-bold text-fg-primary">
+                      {item.name}
+                    </p>
                     {item.availability_state === 'BLOCKED' && <StatusChip tone="danger">Blocked by admin</StatusChip>}
                     {item.availability_state === 'HIDDEN' && <StatusChip tone="neutral">Hidden</StatusChip>}
                     {/* Not `HalalBadge`: every listing on this platform is already halal-certified
@@ -136,7 +144,13 @@ export function MenuPage() {
                     checked={item.availability_state === 'AVAILABLE'}
                     disabled={busyItem === item.id || item.availability_state === 'BLOCKED' || item.availability_state === 'HIDDEN'}
                     onCheckedChange={() => toggleAvailability(item)}
-                    className="relative h-6 w-11 rounded-full bg-surface-subtle outline-none transition-colors data-[state=checked]:bg-action-primary-bg disabled:opacity-50"
+                    aria-labelledby={`${ids}-item-${item.id} ${ids}-available`}
+                    className={cx(
+                      'relative h-6 w-11 rounded-full bg-surface-subtle transition-colors data-[state=checked]:bg-action-primary-bg disabled:opacity-50',
+                      // The two-layer focus ring on the card, as on the design-system Switch
+                      // (docs/decisions/focus-indicator.md, issue #401).
+                      HG_FOCUS,
+                    )}
                   >
                     <Switch.Thumb className="block h-5 w-5 translate-x-0.5 rounded-full bg-white shadow-e1 transition-transform duration-200 data-[state=checked]:translate-x-[22px]" />
                   </Switch.Root>
