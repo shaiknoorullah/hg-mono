@@ -13,10 +13,14 @@ SHELL := /bin/bash
 .DEFAULT_GOAL := help
 
 DEPLOY_DIR := ../../deploy
-# docker-compose.local.yml lets this machine reach /internal and /debug through the published
-# port (issue #487). Local only: the server runs docker-compose.yml with docker-compose.server.yml.
-COMPOSE    := docker compose --project-directory $(DEPLOY_DIR) -f $(DEPLOY_DIR)/docker-compose.yml -f $(DEPLOY_DIR)/docker-compose.local.yml
 ENV_FILE   := $(DEPLOY_DIR)/.env
+# HG_ENV as compose reads it: from the shell if set there, else from deploy/.env. Expanded when
+# a recipe runs, after ensure-env has written the file.
+STACK_ENV   = $(or $(HG_ENV),$(shell sed -n 's/^HG_ENV=//p' $(ENV_FILE) 2>/dev/null | tail -n1 | tr -d '"[:space:]'))
+# With HG_ENV=local only, docker-compose.local.yml lets this machine reach /internal and /debug
+# through the published port (issue #487). Any other HG_ENV gets the base file alone, as the
+# server does (it runs docker-compose.yml with docker-compose.server.yml, never this Makefile).
+COMPOSE     = docker compose --project-directory $(DEPLOY_DIR) -f $(DEPLOY_DIR)/docker-compose.yml$(if $(filter local,$(STACK_ENV)), -f $(DEPLOY_DIR)/docker-compose.local.yml)
 
 GO         ?= go
 BIN_DIR    := bin
@@ -124,7 +128,7 @@ up: ensure-env ## Build and start the whole stack
 	@echo "stack up. Traefik fronts 2 API replicas:"
 	@echo "  API        http://localhost:$${HG_HTTP_PORT:-8080}/health"
 	@echo "  readiness  http://localhost:$${HG_HTTP_PORT:-8080}/health/ready"
-	@echo "  deps       http://localhost:$${HG_HTTP_PORT:-8080}/debug/deps (allowed from this machine)"
+	@echo "  deps       http://localhost:$${HG_HTTP_PORT:-8080}/debug/deps (with HG_ENV=local, from this machine)"
 	@echo "  dashboard  http://localhost:$${TRAEFIK_DASHBOARD_PORT:-8081}/dashboard/"
 
 .PHONY: down

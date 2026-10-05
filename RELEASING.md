@@ -128,6 +128,8 @@ make migrate       # apply migrations 0→N
 curl -fsS http://<host>:${HG_HTTP_PORT:-8080}/health/ready   # expect 200
 ```
 
+With `HG_ENV=local`, `make up` also layers [`deploy/docker-compose.local.yml`](deploy/docker-compose.local.yml): a request from your machine to the published port reaches Traefik from Docker's bridge, not `127.0.0.1`, so that file lets Docker's bridge range (`172.16.0.0/12`) through the edge to `/internal` and `/debug` ([#487](https://github.com/shaiknoorullah/hg-mono/issues/487)). With any other `HG_ENV`, `make up` runs the base file alone.
+
 The database has three logins, each with its own password in `deploy/.env`: the Postgres
 superuser (`POSTGRES_PASSWORD`) only creates the roles; goose runs as `hg_migrator`
 (`HG_DB_MIGRATOR_PASSWORD`), which owns the schema; the API runs as `hg_app`
