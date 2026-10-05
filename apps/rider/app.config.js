@@ -48,6 +48,8 @@ module.exports = () => {
       ios: {
         supportsTablet: true,
         infoPlist: {
+          // canOpenURL for the Navigate buttons (apps/rider/src/navigate.ts).
+          LSApplicationQueriesSchemes: ['maps', 'comgooglemaps'],
           NSCameraUsageDescription: CAMERA_REASON,
           NSLocationWhenInUseUsageDescription:
             'HalalGoes uses your location to route you to pickups and drop-offs.',

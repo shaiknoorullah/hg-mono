@@ -156,6 +156,10 @@ The Mapbox public token is `EXPO_PUBLIC_MAPBOX_TOKEN` (in CI, the repo secret
 `MAPBOX_PUBLIC_TOKEN_MOBILE`). No Mapbox download token is needed: Mapbox serves the native SDK
 without one.
 
+For a local `eas build`, the customer's `eas.json` `preview` and `production` profiles set
+`EXPO_PUBLIC_API_BASE_URL` to the placeholder `https://api.halalgoes.com`. To point a build at
+another API, change that profile's `env` value.
+
 The customer app pays with Stripe's payment sheet, which needs the PUBLIC key
 `EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY` (`pk_test_…` or `pk_live_…`; in CI, the repo secret
 `STRIPE_PUBLISHABLE_KEY_MOBILE`). It must be from the same Stripe account and mode as the API's
