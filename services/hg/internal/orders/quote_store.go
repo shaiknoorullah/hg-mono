@@ -119,11 +119,12 @@ func (s *Store) resolve(ctx context.Context, tx pgx.Tx, req QuoteRequest) (resol
 	}
 	jurisdiction := "CA-" + jurProvince
 
-	// Cart lines with prices read FOR SHARE. A line whose item is not AVAILABLE
-	// or whose restaurant differs fails loudly.
+	// Cart lines with prices read FOR SHARE. A line whose item is deleted, not
+	// AVAILABLE, or from another restaurant fails loudly. Both quote and order
+	// creation resolve through here, so a deleted item can reach neither.
 	rows, err := tx.Query(ctx, `
 		SELECT cl.id, cl.menu_item_id, mi.live_version_id, mi.price_cents, mi.availability_state,
-		       mi.tax_category::text, mi.restaurant_id,
+		       mi.deleted_at IS NOT NULL, mi.tax_category::text, mi.restaurant_id,
 		       COALESCE(miv.name, ''), cl.variant_id, cl.quantity, cl.special_request
 		  FROM cart_line cl
 		  JOIN menu_item mi ON mi.id = cl.menu_item_id
@@ -142,6 +143,7 @@ func (s *Store) resolve(ctx context.Context, tx pgx.Tx, req QuoteRequest) (resol
 		priceCents                           int64
 		availability, taxCat, itemRestaurant string
 		itemName                             string
+		deleted                              bool
 		variantID                            *string
 		quantity                             int
 		specialRequest                       *string
@@ -150,7 +152,7 @@ func (s *Store) resolve(ctx context.Context, tx pgx.Tx, req QuoteRequest) (resol
 	for rows.Next() {
 		var rl rawLine
 		if err := rows.Scan(&rl.lineID, &rl.menuItemID, &rl.versionID, &rl.priceCents,
-			&rl.availability, &rl.taxCat, &rl.itemRestaurant, &rl.itemName, &rl.variantID,
+			&rl.availability, &rl.deleted, &rl.taxCat, &rl.itemRestaurant, &rl.itemName, &rl.variantID,
 			&rl.quantity, &rl.specialRequest); err != nil {
 			return rc, fmt.Errorf("scan line: %w", err)
 		}
@@ -169,7 +171,7 @@ func (s *Store) resolve(ctx context.Context, tx pgx.Tx, req QuoteRequest) (resol
 		if rl.itemRestaurant != restaurantID {
 			return rc, ErrDifferentRestaurant
 		}
-		if rl.availability != "AVAILABLE" {
+		if rl.deleted || rl.availability != "AVAILABLE" {
 			return rc, fmt.Errorf("%w: %s", ErrItemUnavailable, rl.menuItemID)
 		}
 		li := pricing.LineInput{

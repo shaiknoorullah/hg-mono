@@ -215,8 +215,11 @@ func (s *Store) loadCart(ctx context.Context, tx pgx.Tx, accountID string) (*Car
 	c.RestaurantLogoURL = s.mediaURL(logoBucket, logoKey)
 	c.RestaurantHeroURL = s.mediaURL(coverBucket, coverKey)
 
+	// mi.deleted_at is read, not filtered: a line whose item was deleted after it
+	// was added stays in the cart, annotated ITEM_DELETED, never silently removed.
 	rows, err := tx.Query(ctx, `
 		SELECT cl.id, cl.menu_item_id, COALESCE(miv.name, ''), mi.price_cents, mi.availability_state::text,
+		       mi.deleted_at IS NOT NULL,
 		       cl.variant_id, v.name, v.pricing_mode::text, v.price_cents, v.delta_cents, v.is_available,
 		       cl.quantity, cl.special_request,
 		       so_img.bucket, so_img.object_key
@@ -235,11 +238,12 @@ func (s *Store) loadCart(ctx context.Context, tx pgx.Tx, accountID string) (*Car
 		var l CartLine
 		var itemPrice int64
 		var availability string
+		var itemDeleted bool
 		var variantID, variantName, variantMode *string
 		var variantPrice, variantDelta *int64
 		var variantAvail *bool
 		var imgBucket, imgKey *string
-		if err := rows.Scan(&l.ID, &l.MenuItemID, &l.Name, &itemPrice, &availability,
+		if err := rows.Scan(&l.ID, &l.MenuItemID, &l.Name, &itemPrice, &availability, &itemDeleted,
 			&variantID, &variantName, &variantMode, &variantPrice, &variantDelta, &variantAvail,
 			&l.Quantity, &l.SpecialRequest,
 			&imgBucket, &imgKey); err != nil {
@@ -261,11 +265,14 @@ func (s *Store) loadCart(ctx context.Context, tx pgx.Tx, accountID string) (*Car
 				}
 			}
 		}
-		l.IsAvailable = availability == "AVAILABLE" && (variantAvail == nil || *variantAvail)
+		l.IsAvailable = !itemDeleted && availability == "AVAILABLE" && (variantAvail == nil || *variantAvail)
 		if !l.IsAvailable {
 			anyUnavailable = true
 			reason := "OUT_OF_STOCK"
-			if variantAvail != nil && !*variantAvail {
+			switch {
+			case itemDeleted:
+				reason = "ITEM_DELETED"
+			case variantAvail != nil && !*variantAvail:
 				reason = "VARIANT_UNAVAILABLE"
 			}
 			l.UnavailReason = &reason
@@ -302,8 +309,12 @@ func (s *Store) loadCart(ctx context.Context, tx pgx.Tx, accountID string) (*Car
 			if !aavail {
 				c.Lines[i].IsAvailable = false
 				anyUnavailable = true
-				r := "ADDON_UNAVAILABLE"
-				c.Lines[i].UnavailReason = &r
+				// A deleted item outranks its add-ons: the line cannot be fixed by
+				// dropping an add-on.
+				if r := c.Lines[i].UnavailReason; r == nil || *r != "ITEM_DELETED" {
+					r := "ADDON_UNAVAILABLE"
+					c.Lines[i].UnavailReason = &r
+				}
 			}
 		}
 		if err := aRows.Err(); err != nil {
