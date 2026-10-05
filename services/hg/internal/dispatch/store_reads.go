@@ -84,7 +84,7 @@ SELECT asn.id, asn.order_id, ord.code, asn.state::text,
          || CASE WHEN r.line2 IS NOT NULL THEN ', ' || r.line2 ELSE '' END
          || CASE WHEN r.city IS NOT NULL THEN ', ' || r.city ELSE '' END,
        ST_Y(r.location::geometry), ST_X(r.location::geometry),
-       r.public_phone_e164, ord.state::text,
+       ord.state::text,
        COALESCE(a.line1, ''), a.city,
        a.unit, a.buzzer,
        ST_Y(a.location::geometry), ST_X(a.location::geometry),
@@ -102,7 +102,6 @@ WHERE asn.id = $1 AND asn.rider_account_id = $2`
 	var restaurantAddr string
 	var trackingHealth, podMethod string
 	var billable, pickupWait *int32
-	var pickupPhone *string
 	var orderState string
 	var unit, buzzer *string
 	var dropLat, dropLng *float64
@@ -118,7 +117,7 @@ WHERE asn.id = $1 AND asn.rider_account_id = $2`
 		&trackingHealth, &billable, &pickupWait,
 		&assignedAt, &arrivedPickup, &pickedUp, &arrivedDrop, &delivered, &terminated,
 		&a.Pickup.RestaurantName, &restaurantAddr, &a.Pickup.Latitude, &a.Pickup.Longitude,
-		&pickupPhone, &orderState,
+		&orderState,
 		&dropLine1, &dropCity, &unit, &buzzer, &dropLat, &dropLng,
 		&instructions, &special, &deliveryFeeCents, &tipCents)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -143,10 +142,11 @@ WHERE asn.id = $1 AND asn.rider_account_id = $2`
 
 	a.Pickup.Address = restaurantAddr
 	a.Pickup.OrderState = orderState
-	// After terminal, the restaurant proxy line is deactivated within 30 minutes.
-	if !terminal {
-		a.Pickup.PhoneAlias = pickupPhone
-	}
+	// pickup.phone_alias is a proxy number, and the restaurant's own line is
+	// never sent to the rider (contracts/openapi.yaml). There is no proxy
+	// service yet, so it stays nil, as the customer's does; the restaurant's
+	// number is not read here at all
+	// (https://github.com/shaiknoorullah/hg-mono/issues/419).
 
 	// The customer's phone alias stays nil: a stable proxy alias is out of
 	// scope for V1, and the raw number is never exposed.
