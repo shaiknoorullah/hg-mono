@@ -356,17 +356,28 @@ ON CONFLICT (id) DO NOTHING;
 INSERT INTO menu_item (id, restaurant_id, category_id, price_cents, tax_category, sort_order)
 VALUES
   ('f0000000-0000-4000-8000-000000000271', 'b0000000-0000-4000-8000-000000000207', 'e0000000-0000-4000-8000-000000000207', 1200, 'PREPARED_FOOD', 1),
+  ('f0000000-0000-4000-8000-000000000272', 'b0000000-0000-4000-8000-000000000207', 'e0000000-0000-4000-8000-000000000207', 900, 'PREPARED_FOOD', 2),
   ('f0000000-0000-4000-8000-000000000281', 'b0000000-0000-4000-8000-000000000208', 'e0000000-0000-4000-8000-000000000208', 1899, 'PREPARED_FOOD', 1),
   ('f0000000-0000-4000-8000-000000000282', 'b0000000-0000-4000-8000-000000000208', 'e0000000-0000-4000-8000-000000000208', 399, 'PREPARED_FOOD', 2),
   ('f0000000-0000-4000-8000-000000000291', 'b0000000-0000-4000-8000-000000000209', 'e0000000-0000-4000-8000-000000000209', 1699, 'PREPARED_FOOD', 1)
+ON CONFLICT (id) DO NOTHING;
+
+-- The menu persona's two items wait for review, one for `menu-approve` and one for
+-- `menu-reject`, so both scenarios run once after each reset in either order.
+INSERT INTO menu_item_version (
+  id, menu_item_id, restaurant_id, version, name, description, ingredients_text,
+  allergens_declared, review_status, submitted_at, reviewed_by, reviewed_at
+) VALUES
+  ('f0000000-0000-4000-8000-000000000371', 'f0000000-0000-4000-8000-000000000271', 'b0000000-0000-4000-8000-000000000207', 1,
+   'Draft Stew', 'Not reviewed yet.', 'lentils, tomato', true, 'PENDING_REVIEW', now() - interval '2 minutes', NULL, NULL),
+  ('f0000000-0000-4000-8000-000000000372', 'f0000000-0000-4000-8000-000000000272', 'b0000000-0000-4000-8000-000000000207', 1,
+   'Draft Soup', 'Not reviewed yet.', 'red lentils, onion, cumin', true, 'PENDING_REVIEW', now() - interval '1 minute', NULL, NULL)
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO menu_item_version (
   id, menu_item_id, restaurant_id, version, name, description, ingredients_text,
   allergens_declared, review_status, reviewed_by, reviewed_at
 ) VALUES
-  ('f0000000-0000-4000-8000-000000000371', 'f0000000-0000-4000-8000-000000000271', 'b0000000-0000-4000-8000-000000000207', 1,
-   'Draft Stew', 'Not reviewed yet.', 'lentils, tomato', true, 'DRAFT', NULL, NULL),
   ('f0000000-0000-4000-8000-000000000381', 'f0000000-0000-4000-8000-000000000281', 'b0000000-0000-4000-8000-000000000208', 1,
    'Chicken Karahi', 'Tomato and ginger karahi.', 'chicken, tomato, ginger, garlic', true, 'APPROVED',
    'a0000000-0000-4000-8000-000000000001', now()),
@@ -380,6 +391,8 @@ ON CONFLICT (id) DO NOTHING;
 
 UPDATE menu_item SET pending_version_id = 'f0000000-0000-4000-8000-000000000371'
  WHERE id = 'f0000000-0000-4000-8000-000000000271' AND pending_version_id IS NULL;
+UPDATE menu_item SET pending_version_id = 'f0000000-0000-4000-8000-000000000372'
+ WHERE id = 'f0000000-0000-4000-8000-000000000272' AND pending_version_id IS NULL;
 UPDATE menu_item SET live_version_id = 'f0000000-0000-4000-8000-000000000381'
  WHERE id = 'f0000000-0000-4000-8000-000000000281' AND live_version_id IS NULL;
 UPDATE menu_item SET live_version_id = 'f0000000-0000-4000-8000-000000000382'

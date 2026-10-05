@@ -31,7 +31,41 @@ func Reset(ctx context.Context, env, dsn string) error {
 		return err
 	}
 	flushLocalRedis(ctx)
+	dropOtherSessions(ctx, dsn)
 	return Verify(ctx, dsn)
+}
+
+// dropOtherSessions closes every other session on the database just reset. A
+// running API keeps statements prepared against the dropped schema, and each of
+// those connections fails with "cached plan must not change result type" until
+// it is closed. Closing them makes the API's pool reconnect. Best effort: a
+// failure is printed, not returned.
+func dropOtherSessions(ctx context.Context, dsn string) {
+	conn, err := connect(ctx, dsn)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "devworld: other sessions left open (%v)\n", err)
+		return
+	}
+	defer conn.Close(ctx)
+	var n int
+	if err := conn.QueryRow(ctx, `
+		SELECT count(*) FILTER (WHERE pg_terminate_backend(pid))
+		  FROM pg_stat_activity
+		 WHERE datname = current_database() AND pid <> pg_backend_pid()`).Scan(&n); err != nil {
+		fmt.Fprintf(os.Stderr, "devworld: other sessions left open (%v)\n", err)
+		return
+	}
+	fmt.Fprintf(os.Stderr, "devworld: closed %d other database sessions so the API reconnects\n", n)
+	if n == 0 {
+		return
+	}
+	// The API's pool hands each closed connection out once more before it
+	// notices; its background loops use them up within a second or so. Wait
+	// that out so the first scenario after a reset does not get a 500.
+	select {
+	case <-ctx.Done():
+	case <-time.After(2 * time.Second):
+	}
 }
 
 // Seed reapplies the reference data and the personas without dropping the

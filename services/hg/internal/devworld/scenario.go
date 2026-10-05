@@ -22,8 +22,7 @@ import (
 
 const (
 	itemChickenKarahi = "f0000000-0000-4000-8000-000000000281"
-	itemDraftStew     = "f0000000-0000-4000-8000-000000000271"
-	versionDraftStew  = "f0000000-0000-4000-8000-000000000371"
+	restaurantMenu    = "b0000000-0000-4000-8000-000000000207"
 	addressAminaNear  = "c0000000-0000-4000-8000-000000000101"
 	docInReview       = "d0000000-0000-4000-8000-000000000304"
 	restaurantDocs    = "b0000000-0000-4000-8000-000000000204"
@@ -303,69 +302,63 @@ func scenarioDocs(ctx context.Context, base, decision, reason string) error {
 }
 
 func scenarioMenu(ctx context.Context, base, decision, reason string) error {
-	owner, err := staff(ctx, base, "menu", "restaurant-web")
-	if err != nil {
-		return err
-	}
-	desc := "Lentil stew, saved by the scenario so a reviewer can decide it."
-	status, data, callErr := owner.call(ctx, http.MethodPatch, "/v1/restaurant/menu/items/"+itemDraftStew, map[string]any{
-		"description": desc,
-	}, true)
-	versionID, reviewStatus := "", ""
-	if callErr == nil {
-		var item struct {
-			LiveVersion *struct {
-				ID           string `json:"id"`
-				ReviewStatus string `json:"review_status"`
-			} `json:"live_version"`
-			PendingVersion *struct {
-				ID           string `json:"id"`
-				ReviewStatus string `json:"review_status"`
-			} `json:"pending_version"`
-		}
-		_ = json.Unmarshal(data, &item)
-		if item.LiveVersion != nil {
-			versionID, reviewStatus = item.LiveVersion.ID, item.LiveVersion.ReviewStatus
-		}
-		if item.PendingVersion != nil && item.PendingVersion.ReviewStatus != "" {
-			versionID, reviewStatus = item.PendingVersion.ID, item.PendingVersion.ReviewStatus
-		}
-	}
-	fmt.Printf("menu save  http %d  version %s  review %s\n", status, versionID, reviewStatus)
-	if versionID == "" {
-		versionID = versionDraftStew
-		fmt.Printf("menu save returned no version; deciding the seeded draft %s\n", versionID)
-	}
+	// The restaurant save is not called: it numbers a new version from the live
+	// version only and saves DRAFT, never PENDING_REVIEW, so it cannot put a
+	// version in the review queue (see the harness design, "6 Scenarios"). The
+	// dev world seeds the menu persona with two versions waiting for review;
+	// each run decides the oldest one still waiting.
 	admin, err := staff(ctx, base, "admin-seed", "admin-web")
 	if err != nil {
 		return err
 	}
+	_, data, err := admin.call(ctx, http.MethodGet, "/v1/admin/menu-reviews?restaurant_id="+restaurantMenu, nil, false)
+	if err != nil {
+		return fmt.Errorf("devworld: menu review queue: %w", err)
+	}
+	var queue []menuVersion
+	if err := json.Unmarshal(data, &queue); err != nil {
+		return fmt.Errorf("devworld: menu review queue: %w", err)
+	}
+	pending, ok := oldestPending(queue)
+	if !ok {
+		return errors.New("devworld: the menu persona has no version waiting for review; run `make dev-reset` (each reset seeds two)")
+	}
+	fmt.Printf("menu queue  %d waiting  deciding %s %q v%d\n", len(queue), pending.ID, pending.Name, pending.Version)
 	body := map[string]any{"decision": decision}
 	if reason != "" {
 		body["reason_code"] = reason
 	}
-	decStatus, _, decErr := admin.call(ctx, http.MethodPost, "/v1/admin/menu-reviews/"+versionID+"/decision", body, true)
-	if decErr != nil && decStatus == 0 {
-		return decErr
+	status, decided, err := admin.call(ctx, http.MethodPost, "/v1/admin/menu-reviews/"+pending.ID+"/decision", body, true)
+	if err != nil {
+		return fmt.Errorf("devworld: menu %s: %w", decision, err)
 	}
-	fmt.Printf("menu decision %s  http %d\n", decision, decStatus)
-	if decErr != nil {
-		fmt.Printf("menu decision error  %s\n", decErr.Error())
+	var after menuVersion
+	_ = json.Unmarshal(decided, &after)
+	fmt.Printf("menu decision %s  http %d  review %s\n", decision, status, after.ReviewStatus)
+	want := map[string]string{"APPROVE": "APPROVED", "REJECT": "REJECTED"}[decision]
+	if after.ReviewStatus != want {
+		return fmt.Errorf("devworld: menu %s left the version %s, want %s", decision, after.ReviewStatus, want)
 	}
-	if status >= 200 && status < 300 && decStatus >= 200 && decStatus < 300 {
-		fmt.Println("menu decision accepted")
-		return nil
+	return nil
+}
+
+type menuVersion struct {
+	ID           string `json:"id"`
+	MenuItemID   string `json:"menu_item_id"`
+	Version      int    `json:"version"`
+	Name         string `json:"name"`
+	ReviewStatus string `json:"review_status"`
+}
+
+// oldestPending returns the first version still PENDING_REVIEW. The queue is
+// served oldest submission first.
+func oldestPending(queue []menuVersion) (menuVersion, bool) {
+	for _, v := range queue {
+		if v.ReviewStatus == "PENDING_REVIEW" {
+			return v, true
+		}
 	}
-	if decStatus == http.StatusConflict {
-		return fmt.Errorf("devworld: menu %s blocked: restaurant save returned http %d (review %s) and the decision was refused (http %d)", decision, status, reviewStatus, decStatus)
-	}
-	if callErr != nil {
-		return fmt.Errorf("devworld: menu save: %w", callErr)
-	}
-	if decErr != nil {
-		return decErr
-	}
-	return fmt.Errorf("devworld: menu %s failed (save http %d, decision http %d)", decision, status, decStatus)
+	return menuVersion{}, false
 }
 
 // orderAt returns amina's active order when it is already at want or earlier
@@ -540,6 +533,10 @@ func (c *apiClient) signInEmail(ctx context.Context, email string) error {
 		}
 		body["totp_code"] = code
 		_, data, err = c.call(ctx, http.MethodPost, "/v1/auth/login", body, false)
+	}
+	if err != nil && isCode(err, "MFA_REQUIRED") {
+		// Still MFA_REQUIRED with a code: reset skipped the authenticator.
+		return fmt.Errorf("devworld: login %s: %w (set HG_APP_DATA_KEY in deploy/.env, restart the API and run `make dev-reset`, which enrols the admin authenticator only when that key is set)", email, err)
 	}
 	if err != nil {
 		return fmt.Errorf("devworld: login %s: %w", email, err)

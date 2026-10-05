@@ -137,7 +137,7 @@ These are the seed for the customer, rider and admin coverage tables that [exten
 - A customer cancel ends in `CANCELLED`.
 - A restaurant rejection ends in `REJECTED`.
 - Rush places one order for each of the two seeded customers, a few seconds apart, then a further order for the first customer. The API refuses that third order while one is still active. The five-order rush in the table waits until more customers exist.
-- Menu approve and reject save the draft item through the restaurant API, then ask an admin to decide it. When that save returns no version, they decide the seeded draft. The save numbers the next version from the live version only, so a draft that is not live inserts version 1 again and the database refuses it. The decision endpoint accepts only a version waiting for review, so those two scenarios exit non-zero and print both refusals. They do not insert a review row.
+- Menu approve and reject sign in as `admin-seed`, take the oldest version waiting in the menu review queue for the `menu` persona, and decide it. Reset seeds that persona with two versions waiting for review (Draft Stew and Draft Soup), so each scenario runs once per reset, in either order; a third run says to reset. They do not call the restaurant save: it numbers the next version from the live version only and saves `DRAFT`, never `PENDING_REVIEW`, so it cannot put a version in the queue ([#594](https://github.com/shaiknoorullah/hg-mono/issues/594)). Reset also closes the running API's database sessions, whose prepared statements point at the dropped schema, and waits for it to reconnect.
 
 `journey` is `devworld journey`. Arrival at the restaurant is a step inside that command, not a separate scenario. Default target is `bismillah-grill`.
 
