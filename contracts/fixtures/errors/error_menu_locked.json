@@ -1,0 +1,32 @@
+{
+  "scenario": "error_menu_locked",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`403` · `MENU_LOCKED`. A menu change while the restaurant is suspended, by its own staff or by an admin on its behalf. The menu still reads normally; every edit control shows the locked-menu state. Opening hours stay editable. Nothing was written.",
+  "operations": [
+    "createMenuCategory",
+    "updateMenuCategory",
+    "createMenuItem",
+    "updateMenuItem",
+    "setMenuItemAvailability",
+    "createMenuCategoryOnBehalf",
+    "createMenuItemOnBehalf",
+    "updateMenuItemOnBehalf",
+    "deleteMenuItemOnBehalf",
+    "decideMenuVersion"
+  ],
+  "status": 403,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "MENU_LOCKED",
+      "message": "This restaurant's menu is locked while the restaurant is suspended.",
+      "request_id": "EQ77XCFNVF23TFYVTQBE0PN5KR",
+      "details": {
+        "account_state": "SUSPENDED"
+      }
+    }
+  }
+}

@@ -192,6 +192,13 @@ Each password check takes 64 MiB, so each API replica runs at most `HG_AUTH_HASH
 2. Follow this runbook before changing anything: compare the order with its payment in Stripe's dashboard. If Stripe has events the order hasn't seen, run the catch-up for that window.
 3. Call on-call if the customer was overcharged or the order can't be matched.
 
+## A ready order nobody collects
+
+- **Signs:** an `admin.alert` of kind `PICKUP_OVERDUE` on the ops channel. The first comes 15 minutes after the kitchen marked the order ready, then one every 10 minutes until a rider picks it up ([pickup escalation][i293]). The customer is told each time.
+- **What the system has already done:** if the search for a rider had found nobody, it is searching again from the nearest radius. The alert says so, or says that a rider is assigned but late, or that no search has started.
+- **From the third alert** (45 minutes after ready, severity `CRITICAL`) the order needs a person. Cancelling with a full refund is not automatic yet, and the admin console cannot cancel a ready order ([#336][i336]): call on-call, and call the restaurant and the customer meanwhile.
+- **Never** edit the order's state or `deadline_at` by hand ([deadlines spec][p15]).
+
 ## A suspected breach
 
 PIPEDA covers this ([the Privacy Commissioner's guidance][opc-breach]; [#214][i214]). The loss of personal information counts too, not only access by someone else.
@@ -251,6 +258,8 @@ Also: reboots and plan changes longer than about 2 minutes fail over first; the 
 [i171]: https://github.com/shaiknoorullah/hg-mono/issues/171
 [i244]: https://github.com/shaiknoorullah/hg-mono/issues/244
 [i222]: https://github.com/shaiknoorullah/hg-mono/issues/222
+[i293]: https://github.com/shaiknoorullah/hg-mono/issues/293
+[i336]: https://github.com/shaiknoorullah/hg-mono/issues/336
 [i78]: https://github.com/shaiknoorullah/hg-mono/issues/78
 [i208]: https://github.com/shaiknoorullah/hg-mono/issues/208
 [i209]: https://github.com/shaiknoorullah/hg-mono/issues/209

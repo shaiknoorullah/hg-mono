@@ -3127,6 +3127,11 @@ paths:
         returned flagged `is_active: false`, out-of-stock and hidden items are returned with
         their state, and each item carries its `pending_version` when a reviewed field has
         been edited but not yet approved. Customers only ever see `live_version`.
+
+        Readable while the restaurant is `SUSPENDED`: the menu lock refuses changes, never
+        reads. The restaurant learns the menu is locked from `account_state` on its profile
+        (`getRestaurantProfile`) before it tries a save, and from `403 MENU_LOCKED` if a
+        save races a suspension.
       x-roles: [RESTAURANT_OWNER, RESTAURANT_MANAGER, RESTAURANT_STAFF]
       x-version: V0
       responses:
@@ -3173,6 +3178,12 @@ paths:
                 properties:
                   data:
                     $ref: '#/components/schemas/MenuCategory'
+        '403':
+          description: '`MENU_LOCKED`: the restaurant is `SUSPENDED` or `BANNED`, and its menu is locked for everyone, admins included. `details.account_state` names the state. Nothing is written.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
         '409':
           description: '`CATEGORY_NAME_TAKEN`.'
           content:
@@ -3222,6 +3233,12 @@ paths:
                 properties:
                   data:
                     $ref: '#/components/schemas/MenuCategory'
+        '403':
+          description: '`MENU_LOCKED`: the restaurant is `SUSPENDED` or `BANNED`, and its menu is locked for everyone, admins included. `details.account_state` names the state. Nothing is written.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
         '404':
           $ref: '#/components/responses/Error'
         '409':
@@ -3270,7 +3287,7 @@ paths:
                   data:
                     $ref: '#/components/schemas/MenuItemOwnerView'
         '403':
-          description: '`FIELD_NOT_WRITABLE` — e.g. asserting `HALAL_CERTIFIED`.'
+          description: '`FIELD_NOT_WRITABLE` — e.g. asserting `HALAL_CERTIFIED`. `MENU_LOCKED`: the restaurant is `SUSPENDED` or `BANNED`, and its menu is locked for everyone, admins included; `details.account_state` names the state and nothing is written.'
           content:
             application/json:
               schema:
@@ -3315,6 +3332,12 @@ paths:
                 properties:
                   data:
                     $ref: '#/components/schemas/MenuItemOwnerView'
+        '403':
+          description: '`MENU_LOCKED`: the restaurant is `SUSPENDED` or `BANNED`, and its menu is locked for everyone, admins included. `details.account_state` names the state. Nothing is written: no price, photo or other field changes, and a version already waiting in menu review stays as it is.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
         '404':
           $ref: '#/components/responses/Error'
         '422':
@@ -3355,7 +3378,7 @@ paths:
                   data:
                     $ref: '#/components/schemas/MenuItemOwnerView'
         '403':
-          description: '`ITEM_BLOCKED_BY_ADMIN` with the admin''s reason.'
+          description: '`ITEM_BLOCKED_BY_ADMIN` with the admin''s reason. `MENU_LOCKED`: the restaurant is `SUSPENDED` or `BANNED`, and its menu is locked for everyone, admins included, so an item cannot be marked out of stock or back in stock; `details.account_state` names the state and nothing is written.'
           content:
             application/json:
               schema:
@@ -5219,6 +5242,10 @@ paths:
         category's `created_by`. The restaurant is named in the path, which is the only
         place in the contract where a restaurant id is accepted from the caller — and it is
         gated by a global admin action, not by scope.
+
+        While the restaurant is `SUSPENDED` or `BANNED` its menu is locked for everyone,
+        admins included (`docs/decisions/README.md`, round 2, "A suspended or banned
+        restaurant's menu"): `403 MENU_LOCKED`. A `DELISTED` restaurant's menu stays editable.
       x-roles: [ADMIN, SUPER_ADMIN]
       x-version: V0
       parameters:
@@ -5242,6 +5269,12 @@ paths:
                 properties:
                   data:
                     $ref: '#/components/schemas/MenuCategory'
+        '403':
+          description: '`MENU_LOCKED`: the restaurant is `SUSPENDED` or `BANNED`, and its menu is locked for everyone, admins included. `details.account_state` names the state. Nothing is written.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
         '404':
           $ref: '#/components/responses/Error'
         '409':
@@ -5258,6 +5291,10 @@ paths:
         `HALAL_CERTIFIED` assertion, no alcohol, no pork keyword, price inside the permitted
         band. An item created by an admin is created already approved, because the reviewer
         and the author are the same accountable person; that fact is recorded on the version.
+
+        While the restaurant is `SUSPENDED` or `BANNED` its menu is locked for everyone,
+        admins included (`docs/decisions/README.md`, round 2, "A suspended or banned
+        restaurant's menu"): `403 MENU_LOCKED`. A `DELISTED` restaurant's menu stays editable.
       x-roles: [ADMIN, SUPER_ADMIN]
       x-version: V0
       parameters:
@@ -5281,6 +5318,12 @@ paths:
                 properties:
                   data:
                     $ref: '#/components/schemas/MenuItemOwnerView'
+        '403':
+          description: '`FIELD_NOT_WRITABLE` — e.g. asserting `HALAL_CERTIFIED`. `MENU_LOCKED`: the restaurant is `SUSPENDED` or `BANNED`, and its menu is locked for everyone, admins included; `details.account_state` names the state and nothing is written.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
         '404':
           $ref: '#/components/responses/Error'
         '422':
@@ -5312,6 +5355,10 @@ paths:
         `PENDING_REVIEW` and the body carries a claim-bearing field, the call is
         `409 MENU_VERSION_PENDING` — decide that version first (`decideMenuVersion`). An item
         that is not on this restaurant's menu is `404`, the same as one that does not exist.
+
+        While the restaurant is `SUSPENDED` or `BANNED` its menu is locked for everyone,
+        admins included (`docs/decisions/README.md`, round 2, "A suspended or banned
+        restaurant's menu"): `403 MENU_LOCKED`. A `DELISTED` restaurant's menu stays editable.
       x-roles: [ADMIN, SUPER_ADMIN]
       x-version: V0
       requestBody:
@@ -5333,7 +5380,7 @@ paths:
                   data:
                     $ref: '#/components/schemas/MenuItemOwnerView'
         '403':
-          description: '`FIELD_NOT_WRITABLE` — e.g. asserting `HALAL_CERTIFIED`.'
+          description: '`FIELD_NOT_WRITABLE` — e.g. asserting `HALAL_CERTIFIED`. `MENU_LOCKED`: the restaurant is `SUSPENDED` or `BANNED`, and its menu is locked for everyone, admins included; `details.account_state` names the state and nothing is written.'
           content:
             application/json:
               schema:
@@ -5369,11 +5416,21 @@ paths:
         `ITEM_DELETED`, never silently removed. A version of the item still waiting for
         review is withdrawn, and deciding it afterwards is `409 ITEM_DELETED`. Removing an
         item that is already removed, or that is not on this restaurant's menu, is `404`.
+
+        While the restaurant is `SUSPENDED` or `BANNED` its menu is locked for everyone,
+        admins included (`docs/decisions/README.md`, round 2, "A suspended or banned
+        restaurant's menu"): `403 MENU_LOCKED`. A `DELISTED` restaurant's menu stays editable.
       x-roles: [ADMIN, SUPER_ADMIN]
       x-version: V0
       responses:
         '204':
           description: Item removed.
+        '403':
+          description: '`MENU_LOCKED`: the restaurant is `SUSPENDED` or `BANNED`, and its menu is locked for everyone, admins included. `details.account_state` names the state. Nothing is removed, and a version waiting in menu review stays as it is.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
         '404':
           $ref: '#/components/responses/Error'
         default:
@@ -5389,6 +5446,10 @@ paths:
         the queue is never the bottleneck of a dinner service. **Claim-bearing fields are
         never auto-approved** (decision R-05): silence must not become consent on a halal
         claim.
+
+        A suspended or banned restaurant's pending versions stay in the queue and stay
+        readable; deciding one is refused with `403 MENU_LOCKED` until the suspension is
+        lifted (`decideMenuVersion`).
       x-roles: [ADMIN, SUPER_ADMIN]
       x-version: V0
       parameters:
@@ -5427,6 +5488,12 @@ paths:
         A-19 / R-17. Approval repoints `live_version_id` and clears `pending_version_id` in
         one transaction. Rejection requires a reason code, which the restaurant sees
         verbatim and may resubmit against without limit.
+
+        While the restaurant is `SUSPENDED` or `BANNED` its menu is locked for everyone,
+        admins included, and a version waiting for review stays as it is
+        (`docs/decisions/README.md`, round 2, "A suspended or banned restaurant's menu"):
+        approving or rejecting it is `403 MENU_LOCKED`. Decide it once the suspension is
+        lifted. A `DELISTED` restaurant's versions can be decided.
       x-roles: [ADMIN, SUPER_ADMIN]
       x-version: V0
       parameters:
@@ -5455,6 +5522,12 @@ paths:
                 properties:
                   data:
                     $ref: '#/components/schemas/MenuItemVersion'
+        '403':
+          description: '`MENU_LOCKED`: the version''s restaurant is `SUSPENDED` or `BANNED`, and its menu is locked for everyone, admins included. `details.account_state` names the state. The version stays `PENDING_REVIEW`.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
         '409':
           description: '`ITEM_DELETED`, `ALREADY_DECIDED`.'
           content:
@@ -6400,6 +6473,7 @@ components:
                 `DIFFERENT_RESTAURANT` → `{current_restaurant_id, current_restaurant_name, current_line_count}`;
                 `CART_HAS_UNAVAILABLE_ITEMS` → `{line_ids: [uuid]}`;
                 `INCOMPLETE_DOCUMENT_PACK` → `{missing: [doc_type]}`;
+                `MENU_LOCKED` → `{account_state}` (`SUSPENDED` or `BANNED`);
                 `CHECK_NOT_OVERRIDABLE` → `{check_key, computed}`;
                 `PRECONDITION_NOT_MET` → `{blockers: [string]}`;
                 `CANNOT_GO_ONLINE` → `{blocking_reasons: [string]}`;
@@ -6584,6 +6658,12 @@ components:
         - ITEM_DELETED
         - NO_LIVE_MENU_ITEM
         - MENU_VERSION_PENDING
+        # A write to a SUSPENDED or BANNED restaurant's menu, by its staff or by an admin
+        # on its behalf. Not ACCOUNT_SUSPENDED, which means the caller's own account is
+        # suspended and sends the app to the suspension screen; here the caller stays
+        # signed in and only the menu is locked
+        # (https://github.com/shaiknoorullah/hg-mono/issues/256).
+        - MENU_LOCKED
         - DOCUMENTS_INCOMPLETE
         - DOCUMENT_EXPIRES_TOO_SOON
         - UNDERAGE

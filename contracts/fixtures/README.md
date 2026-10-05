@@ -68,7 +68,7 @@ falling through, so a typo is visible immediately.
 
 ## Scenarios by domain
 
-**378 scenarios** across 15 domains.
+**380 scenarios** across 15 domains.
 
 | Domain | Scenarios | What it covers |
 |---|---:|---|
@@ -77,7 +77,7 @@ falling through, so a typo is visible immediately.
 | [`catalogue`](#catalogue) | 41 | Discovery, restaurant detail, hours and menus. |
 | [`dispatch`](#dispatch) | 31 | Dispatch states, rider offers and assignments. |
 | [`documents`](#documents) | 23 | KYC uploads, review states and every rejection reason. |
-| [`errors`](#errors) | 41 | `{error}` envelopes for the codes an app actually branches on. |
+| [`errors`](#errors) | 43 | `{error}` envelopes for the codes an app actually branches on. |
 | [`halal`](#halal) | 25 | Badges, certificates, checks and issuing bodies — the platform's core promise. |
 | [`handoff`](#handoff) | 13 | The package-seal chain of custody — every `PackageSeal` status, `HandoffEvent` type, and the bind/pickup-scan/delivery-scan/tamper-report results. |
 | [`onboarding`](#onboarding) | 35 | Restaurant and rider onboarding, profiles, vehicles and trading state. |
@@ -264,7 +264,7 @@ KYC uploads, review states and every rejection reason. — 23 scenarios.
 
 ### errors
 
-`{error}` envelopes for the codes an app actually branches on. — 41 scenarios.
+`{error}` envelopes for the codes an app actually branches on. — 43 scenarios.
 
 | Scenario | Schema | Status | Represents |
 |---|---|---:|---|
@@ -285,6 +285,8 @@ KYC uploads, review states and every rejection reason. — 23 scenarios.
 | `error_idempotency_key_reuse` | `ErrorEnvelope` | 409 | `409` · `IDEMPOTENCY_KEY_REUSE`. Never a silent replay of the wrong result. Was `idempotency_key_reuse`. |
 | `error_internal_error` | `ErrorEnvelope` | 500 | `500` · `INTERNAL_ERROR`. Was `internal_error`. The only correct client behaviour is retry-with-backoff and show `request_id` in the support sheet. |
 | `error_item_blocked_by_admin` | `ErrorEnvelope` | 403 | `403` · `ITEM_BLOCKED_BY_ADMIN`. `setMenuItemAvailability` on a `BLOCKED` item. The kitchen cannot un-block it; the message carries the admin's reason. |
+| `error_menu_locked` | `ErrorEnvelope` | 403 | `403` · `MENU_LOCKED`. A menu change while the restaurant is suspended, by its own staff or by an admin on its behalf. The menu still reads normally; every edit control shows the locked-menu state. Opening hours stay editable. Nothing was written. |
+| `error_menu_locked_banned` | `ErrorEnvelope` | 403 | `403` · `MENU_LOCKED`. An admin changing a banned restaurant's menu, or deciding one of its versions waiting for review. A banned restaurant's own staff cannot sign in, so only admins meet this one. |
 | `error_menu_version_already_decided` | `ErrorEnvelope` | 409 | `409` · `ALREADY_DECIDED`. Two reviewers on one version: the second decision is refused, never applied twice. |
 | `error_menu_version_item_deleted` | `ErrorEnvelope` | 409 | `409` · `ITEM_DELETED`. The item was removed (`deleteMenuItemOnBehalf`) while its version waited for review. |
 | `error_menu_version_pending` | `ErrorEnvelope` | 409 | `409` · `MENU_VERSION_PENDING`. `updateMenuItemOnBehalf` with a claim-bearing field while the restaurant's own edit is in the review queue. A restaurant's edit is never silently discarded. |
@@ -580,7 +582,7 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | `state-matrix` | 65 | One fixture per member of a closed enum. |
 | `edge` | 52 | A shape that breaks naive layouts — empty, overflowing, at a boundary. |
 | `rider` | 51 | Rider-facing surface. |
-| `error-envelope` | 41 | A `{error}` body with a real `ErrorCode`. |
+| `error-envelope` | 43 | A `{error}` body with a real `ErrorCode`. |
 | `restaurant` | 41 | Restaurant-facing surface. |
 | `admin` | 39 | Admin/support-facing surface. |
 | `money` | 31 | Exercises the money path specifically. |
@@ -623,7 +625,7 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 
 ## Operation coverage
 
-136 of the contract's operations have at least one fixture registered against them; the rest are `204 No Content` or write-only operations the mock answers from the response schema. The full map lives in `index.json` under `by_operation`, and `GET /__mock/operations` serves it live.
+137 of the contract's operations have at least one fixture registered against them; the rest are `204 No Content` or write-only operations the mock answers from the response schema. The full map lives in `index.json` under `by_operation`, and `GET /__mock/operations` serves it live.
 
 | Operation | Default scenario | Also available |
 |---|---|---|
@@ -642,10 +644,10 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | `createCertificateViewUrl` | `presigned_download` | — |
 | `createConnectAccount` | `connect_status_complete` | — |
 | `createDocumentDownloadUrl` | `presigned_download` | — |
-| `createMenuCategory` | `menu_category_created` | `error_category_name_taken` |
-| `createMenuCategoryOnBehalf` | `menu_category_created` | `error_category_name_taken` |
-| `createMenuItem` | `menu_item_created_pending_review` | `error_halal_tag_not_writable`, `error_price_out_of_range`, `error_prohibited_ingredient` |
-| `createMenuItemOnBehalf` | `menu_item_created_by_admin` | `error_halal_tag_not_writable`, `error_price_out_of_range`, `error_prohibited_ingredient` |
+| `createMenuCategory` | `menu_category_created` | `error_category_name_taken`, `error_menu_locked` |
+| `createMenuCategoryOnBehalf` | `menu_category_created` | `error_category_name_taken`, `error_menu_locked`, `error_menu_locked_banned` |
+| `createMenuItem` | `menu_item_created_pending_review` | `error_halal_tag_not_writable`, `error_menu_locked`, `error_price_out_of_range`, `error_prohibited_ingredient` |
+| `createMenuItemOnBehalf` | `menu_item_created_by_admin` | `error_halal_tag_not_writable`, `error_menu_locked`, `error_menu_locked_banned`, `error_price_out_of_range`, `error_prohibited_ingredient` |
 | `createPaymentMethodSetupIntent` | `setup_intent` | — |
 | `createPayoutRun` | `payout_run_queued` | — |
 | `createQuote` | `quote_standard` | `quote_large_tip`, `quote_pickup`, `quote_single_line_minimum`, `quote_with_discount`, `quote_zero_tip` |
@@ -655,10 +657,11 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | `createStaffUser` | `staff_user_invited` | `error_staff_email_in_use` |
 | `createUpload` | `presigned_upload` | — |
 | `decideHalalCertificate` | `halal_certificate_status_approved` | `halal_certificate_status_expired`, `halal_certificate_status_pending`, `halal_certificate_status_rejected`, `halal_certificate_status_revoked`, `halal_certificate_status_superseded` |
-| `decideMenuVersion` | `menu_version_approved` | `error_menu_version_already_decided`, `error_menu_version_item_deleted`, `menu_version_draft`, `menu_version_pending_review`, `menu_version_rejected`, `menu_version_superseded`, `menu_version_withdrawn` |
+| `decideMenuVersion` | `menu_version_approved` | `error_menu_locked`, `error_menu_locked_banned`, `error_menu_version_already_decided`, `error_menu_version_item_deleted`, `menu_version_draft`, `menu_version_pending_review`, `menu_version_rejected`, `menu_version_superseded`, `menu_version_withdrawn` |
 | `decideRestaurantApplication` | `restaurant_application_approved` | `error_application_already_decided`, `error_decision_approval_reason_required`, `error_decision_rejection_reason_required` |
 | `decideRiderApplication` | `rider_application_approved` | `error_application_already_decided`, `error_decision_approval_reason_required`, `error_decision_rejection_reason_required`, `error_rider_under_18`, `rider_application_changes_requested` |
 | `delayOrder` | `restaurant_order_preparing` | `restaurant_order_picked_up`, `restaurant_order_ready_for_pickup`, `restaurant_order_rejected`, `restaurant_order_restaurant_pending` |
+| `deleteMenuItemOnBehalf` | `error_menu_locked` | `error_menu_locked_banned` |
 | `enrollTotp` | `totp_enrolment` | — |
 | `getActiveOrder` | `order_preparing` | `dispatch_assigned`, `dispatch_at_customer`, `dispatch_at_restaurant`, `dispatch_carrying`, `dispatch_completed`, `dispatch_no_rider_found`, `dispatch_offered`, `dispatch_pending`, `dispatch_searching`, `dispatch_unassigned`, `order_arrived`, `order_authorized`, `order_cancelled`, `order_completed`, `order_created`, `order_delivered`, `order_disputed`, `order_failed`, `order_no_active`, `order_picked_up`, `order_ready_for_pickup`, `order_rejected`, `order_resolved`, `order_restaurant_pending` |
 | `getAddress` | `addresses_list` | — |
@@ -740,7 +743,7 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | `setDefaultAddress` | `addresses_list` | — |
 | `setDefaultPaymentMethod` | `payment_methods_list` | — |
 | `setHalalIssuingBodyStatus` | `halal_issuing_body_accepted` | `halal_issuing_body_proposed`, `halal_issuing_body_rejected`, `halal_issuing_body_retired`, `halal_issuing_body_suspended` |
-| `setMenuItemAvailability` | `menu_item_marked_out_of_stock_until` | `error_item_blocked_by_admin`, `menu_item_marked_available`, `menu_item_marked_out_of_stock_indefinitely` |
+| `setMenuItemAvailability` | `menu_item_marked_out_of_stock_until` | `error_item_blocked_by_admin`, `error_menu_locked`, `menu_item_marked_available`, `menu_item_marked_out_of_stock_indefinitely` |
 | `setRestaurantAcceptingOrders` | `restaurant_open_state_open` | `restaurant_open_state_closed_holiday`, `restaurant_open_state_closed_hours`, `restaurant_open_state_closed_offline`, `restaurant_open_state_closed_suspended`, `restaurant_open_state_closed_toggle`, `restaurant_open_state_paused` |
 | `setRestaurantHours` | `restaurant_hours_standard` | — |
 | `setRiderAvailability` | `rider_availability_online_idle` | `rider_availability_offline`, `rider_availability_on_delivery`, `rider_availability_online_stale` |
@@ -757,9 +760,9 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | `updateAddress` | `addresses_list` | — |
 | `updateCartLine` | `cart_at_quantity_cap` | — |
 | `updateCustomerProfile` | `customer_profile` | — |
-| `updateMenuCategory` | `menu_category_updated` | `error_category_name_taken` |
-| `updateMenuItem` | `menu_item_edit_pending_review` | `error_halal_tag_not_writable`, `error_price_out_of_range`, `error_prohibited_ingredient`, `menu_item_edit_price_only` |
-| `updateMenuItemOnBehalf` | `menu_item_edited_by_admin` | `error_halal_tag_not_writable`, `error_menu_version_pending`, `error_price_out_of_range`, `error_prohibited_ingredient`, `menu_item_edit_price_only` |
+| `updateMenuCategory` | `menu_category_updated` | `error_category_name_taken`, `error_menu_locked` |
+| `updateMenuItem` | `menu_item_edit_pending_review` | `error_halal_tag_not_writable`, `error_menu_locked`, `error_price_out_of_range`, `error_prohibited_ingredient`, `menu_item_edit_price_only` |
+| `updateMenuItemOnBehalf` | `menu_item_edited_by_admin` | `error_halal_tag_not_writable`, `error_menu_locked`, `error_menu_locked_banned`, `error_menu_version_pending`, `error_price_out_of_range`, `error_prohibited_ingredient`, `menu_item_edit_price_only` |
 | `verifyEmail` | `session_grant_customer` | — |
 | `verifyOtp` | `session_grant_customer` | `session_next_route_active_delivery`, `session_next_route_app_update_required`, `session_next_route_home`, `session_next_route_onboarding_documents`, `session_next_route_onboarding_rejected`, `session_next_route_order_tracking`, `session_next_route_profile_capture`, `session_next_route_suspended` |
 | `verifyTotpEnrolment` | `error_totp_code_incorrect` | — |
