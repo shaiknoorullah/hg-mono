@@ -645,6 +645,11 @@ RETURNING id::text`,
 		requestedBy, payments.RefundActionSubmit).Scan(&refundID); err != nil {
 		return fmt.Errorf("insert cancel refund: %w", err)
 	}
+	// The customer sees the refund on the order's channel, in this
+	// transaction (contracts/websocket.md section 4.3, refund.created).
+	if err := payments.EmitRefundCreated(ctx, tx, refundID); err != nil {
+		return err
+	}
 
 	// Post the balanced ledger batch and its entries, tied to the refund.
 	var batchID string

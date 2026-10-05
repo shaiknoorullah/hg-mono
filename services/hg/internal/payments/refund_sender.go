@@ -403,6 +403,9 @@ func failRefund(ctx context.Context, tx pgx.Tx, id string, c refundClaim, failur
 	if tag.RowsAffected() != 1 {
 		return fmt.Errorf("refund %s is no longer AUTHORISED", id)
 	}
+	if err := emitRefundMoved(ctx, tx, id, RefundFailed); err != nil {
+		return err
+	}
 	if _, err := fileException(ctx, tx, catchUpException{Kind: exceptionRefundFailed, StripeObjectID: refundIdempotencyKey(id),
 		OrderID: c.orderID, ExpectedCents: int64Ptr(c.amount)}); err != nil {
 		return err

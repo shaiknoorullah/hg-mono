@@ -1217,6 +1217,8 @@ These six words mean exactly this everywhere in the product, in the API, and in 
 
 ---
 
+> **Realtime (Oct 2026):** each document review, and each application decision ([restaurant](#a-18--restaurant-approval--rejection-decision) and rider), writes its event in the decision's own transaction: `document.review_state_changed` to the restaurant's owners and managers (riders hear only the application decision, [one message per review](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)), `onboarding.state_changed` to the restaurant's owners and managers or the rider. The refund an admin's order cancellation records sends `refund.created` to the customer ([realtime contract](../../contracts/websocket.md#4-event-catalogue)).
+
 ### A-18 — Restaurant approval / rejection decision
 
 - **SOW trace**: *"Restaurant Approval/Rejection: Approve or reject restaurant registrations based on submitted documents and compliance."*

@@ -416,6 +416,9 @@ func insertRefund(ctx context.Context, tx pgx.Tx, p CreateRefundParams) (string,
 			return "", err
 		}
 	}
+	if err := EmitRefundCreated(ctx, tx, refundID); err != nil {
+		return "", err
+	}
 	if p.Ledger != nil {
 		p.Ledger.RefundID = refundID
 		posted, err := postBatchTx(ctx, tx, *p.Ledger)

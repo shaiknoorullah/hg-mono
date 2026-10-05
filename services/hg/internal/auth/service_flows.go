@@ -702,16 +702,10 @@ func (s *Service) ResetPassword(ctx context.Context, token, newPassword string, 
 	if err != nil {
 		return err
 	}
-	if err := s.store.SetPassword(ctx, res.AccountID, hash); err != nil {
-		return err
-	}
 	// The token was delivered to the account's email, so using it proves the
 	// address. This is what lets an invited staff member, whose first
 	// password is set through this operation, sign in afterwards.
-	if err := s.store.MarkEmailVerified(ctx, res.AccountID); err != nil {
-		return err
-	}
-	if err := s.store.RevokeAllForAccount(ctx, res.AccountID, "password_reset"); err != nil {
+	if err := s.store.ResetPasswordAndRevokeAll(ctx, res.AccountID, hash); err != nil {
 		return err
 	}
 	s.deny.AddAccount(res.AccountID)

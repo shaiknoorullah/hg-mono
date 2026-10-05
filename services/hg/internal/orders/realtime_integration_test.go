@@ -7,13 +7,12 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/getkin/kin-openapi/openapi3"
-
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders/machine"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/realtime"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/realtime/realtimetest"
 )
 
 // recordingNotifier is an orders.EventEmitter that records the transitions it
@@ -39,32 +38,7 @@ func channelEvents(t *testing.T, pool *pgxpool.Pool, channel string) []realtime.
 // GET /v1/realtime/schema serves for its type, for every role that receives it.
 func validateEvent(t *testing.T, e realtime.StoredEvent) {
 	t.Helper()
-	raw, err := json.Marshal(realtime.SchemaFor(e.Type))
-	if err != nil {
-		t.Fatal(err)
-	}
-	schema := openapi3.NewSchema()
-	if err := schema.UnmarshalJSON(raw); err != nil {
-		t.Fatalf("compile %s schema: %v", e.Type, err)
-	}
-	delivered := 0
-	for _, v := range realtime.Viewers() {
-		out, ok := realtime.Project(e.Type, v, e.Audience, e.Payload)
-		if !ok {
-			continue
-		}
-		delivered++
-		var val any
-		if err := json.Unmarshal(out, &val); err != nil {
-			t.Fatal(err)
-		}
-		if err := schema.VisitJSON(val); err != nil {
-			t.Errorf("%s (seq %d) for %s violates its contract schema: %v\n%s", e.Type, e.Seq, v, err, out)
-		}
-	}
-	if delivered == 0 {
-		t.Errorf("%s (seq %d) reaches no viewer", e.Type, e.Seq)
-	}
+	realtimetest.Validate(t, e)
 }
 
 // TestIntegrationTransitionWritesRealtimeEvent verifies that creating and

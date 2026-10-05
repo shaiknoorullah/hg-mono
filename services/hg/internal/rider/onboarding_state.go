@@ -4,6 +4,8 @@ import (
 	"context"
 
 	"github.com/jackc/pgx/v5"
+
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/realtime"
 )
 
 // RecomputeOnboarding moves an approved rider from PAYOUT_PENDING to ACTIVE once
@@ -13,7 +15,7 @@ import (
 // transaction from every event that can satisfy the gate (admin approval,
 // Connect account updates).
 func RecomputeOnboarding(ctx context.Context, tx pgx.Tx, accountID string) error {
-	_, err := tx.Exec(ctx, `
+	tag, err := tx.Exec(ctx, `
 UPDATE rider_profile rp
    SET onboarding_state = 'ACTIVE',
        account_status = CASE WHEN account_status = 'PENDING' THEN 'ACTIVE' ELSE account_status END,
@@ -23,5 +25,10 @@ UPDATE rider_profile rp
    AND EXISTS (SELECT 1 FROM connect_account ca
                 WHERE ca.owner_type = 'RIDER' AND ca.owner_id = rp.account_id
                   AND ca.payouts_enabled)`, accountID)
-	return err
+	if err != nil || tag.RowsAffected() == 0 {
+		return err
+	}
+	// The rider sees it on their account channel: Stripe's payouts gate
+	// opened it, not the rider.
+	return realtime.EmitOnboardingChanged(ctx, tx, realtime.OnboardingRider, accountID, "PAYOUT_PENDING", "ACTIVE")
 }
