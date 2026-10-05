@@ -5,7 +5,8 @@
  * contract's own populated fixture for the happy path.
  */
 import * as React from 'react';
-import { render, screen, waitFor } from '@testing-library/react-native';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { Text } from 'react-native';
 
 import restaurantList from '../../../../../contracts/fixtures/catalogue/restaurant_list_populated.json';
 
@@ -98,6 +99,33 @@ describe('DiscoveryScreen — loading, empty, error', () => {
     expect(screen.getByText('Add an address')).toBeTruthy();
     expect(screen.getByText('Set an address')).toBeTruthy();
     expect(screen.getAllByText('Karachi Kitchen').length).toBeGreaterThan(0);
+  });
+
+  it('opens the address form from the prompt, and a restaurant from its card', async () => {
+    fetchSpy.mockImplementation(async (input) => {
+      const url = input instanceof Request ? input.url : String(input);
+      if (url.includes('/v1/addresses')) return stubOk({ data: [] });
+      return stubOk({ data: restaurantList.payload, meta: restaurantList.meta });
+    });
+    const tree = (initial: Parameters<typeof NavigationProvider>[0]['initial']) => (
+      <ThemeProvider theme="customer" scheme="light">
+        <NavigationProvider initial={initial}>
+          {(route) =>
+            route.name === 'discovery' ? <DiscoveryScreen /> : <Text>{`route:${route.name}`}</Text>
+          }
+        </NavigationProvider>
+      </ThemeProvider>
+    );
+
+    const first = render(tree({ name: 'discovery' }));
+    fireEvent.press(await screen.findByTestId('Discovery-addAddress'));
+    expect(screen.getByText('route:addressForm')).toBeTruthy();
+    first.unmount();
+
+    render(tree({ name: 'discovery' }));
+    const id = (restaurantList.payload as Array<{ id: string }>)[0]!.id;
+    fireEvent.press(await screen.findByTestId(`RestaurantCardCompact-${id}`));
+    expect(screen.getByText('route:restaurant')).toBeTruthy();
   });
 
   it('shows the error state with a retry action on failure', async () => {
