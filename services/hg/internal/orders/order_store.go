@@ -9,6 +9,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/idempotency"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders/machine"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders/pricing"
 )
@@ -22,6 +23,9 @@ type OrderInput struct {
 	SavePaymentMethod    bool
 	DeliveryInstructions []string
 	SpecialInstructions  *string
+	// Idem is the request's Idempotency-Key, claimed in the order's own
+	// transaction; nil runs without one.
+	Idem *idempotency.Key
 }
 
 // PreparedOrder is the result of the pre-payment order transaction: the order
@@ -33,7 +37,22 @@ type PreparedOrder struct {
 	QuoteID      string
 	TotalCents   int64
 	RestaurantID string
+
+	// RecordID is the idempotency record this request holds; the handler
+	// completes it with the answer once the gateway has replied.
+	RecordID string
+	// Replay is the first answer to this key: send it and do nothing else.
+	Replay *idempotency.Response
+	// Resumed is set when an earlier attempt with this key created the order
+	// but died before answering; State is the order's state now. The handler
+	// finishes that attempt (the gateway call is keyed by the order id, so it
+	// is safe to repeat).
+	Resumed bool
+	State   machine.State
 }
+
+// errOrderReplay rolls back a transaction that found the key already answered.
+var errOrderReplay = errors.New("idempotent replay")
 
 // CreateOrder re-executes the quote and compares it to the stored quote. On any
 // difference it returns ErrQuoteStale with the freshly computed quote; on expiry
@@ -50,6 +69,38 @@ type PreparedOrder struct {
 func (s *Store) CreateOrder(ctx context.Context, in OrderInput, freshQuote **Quote) (*PreparedOrder, error) {
 	var prepared *PreparedOrder
 	err := s.inTx(ctx, func(tx pgx.Tx) error {
+		// The Idempotency-Key first, before any refusal can be computed from
+		// the order an earlier attempt with it made: a retried checkout gets
+		// that attempt's answer, not ACTIVE_ORDER_EXISTS
+		// (https://github.com/shaiknoorullah/hg-mono/issues/363). A refusal
+		// below rolls the claim back with everything else, so the same key
+		// can be sent again.
+		var recordID string
+		if in.Idem != nil {
+			c, err := idempotency.Claim(ctx, tx, in.Idem)
+			if err != nil {
+				return err
+			}
+			if c.Replay != nil {
+				prepared = &PreparedOrder{Replay: c.Replay}
+				return errOrderReplay
+			}
+			if c.ResourceID != "" {
+				p := PreparedOrder{OrderID: c.ResourceID, RecordID: c.RecordID, Resumed: true}
+				var state string
+				if err := tx.QueryRow(ctx, `
+					SELECT code, quote_id::text, total_cents, restaurant_id::text, state::text
+					  FROM "order" WHERE id = $1`, c.ResourceID).
+					Scan(&p.OrderCode, &p.QuoteID, &p.TotalCents, &p.RestaurantID, &state); err != nil {
+					return fmt.Errorf("load the order an earlier attempt made: %w", err)
+				}
+				p.State = machine.State(state)
+				prepared = &p
+				return nil
+			}
+			recordID = c.RecordID
+		}
+
 		// No new orders while staff have paused them platform-wide
 		// (https://github.com/shaiknoorullah/hg-mono/issues/244). First, and
 		// FOR SHARE: the lock lasts until this transaction ends, so a pause
@@ -210,12 +261,22 @@ func (s *Store) CreateOrder(ctx context.Context, in OrderInput, freshQuote **Quo
 			return fmt.Errorf("emit order created: %w", err)
 		}
 
+		if recordID != "" {
+			if err := idempotency.Attach(ctx, tx, recordID, "order", orderID); err != nil {
+				return fmt.Errorf("attach the order to its idempotency key: %w", err)
+			}
+		}
+
 		prepared = &PreparedOrder{
 			OrderID: orderID, OrderCode: code, QuoteID: stored.ID,
 			TotalCents: stored.TotalCents, RestaurantID: stored.RestaurantID,
+			RecordID: recordID, State: machine.StateCreated,
 		}
 		return nil
 	})
+	if errors.Is(err, errOrderReplay) {
+		return prepared, nil
+	}
 	if err != nil {
 		return nil, err
 	}

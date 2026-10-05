@@ -710,9 +710,11 @@ func run() error {
 	orderGateway := orderPaymentGateway{svc: paymentsSvc, store: ordersStore, advanceLocal: !cfg.Stripe.Configured() && cfg.Env.IsLocal()}
 	orders.Routes(router, orders.NewHandler(ordersStore, orderGateway, log))
 	// A ready order nobody collects is escalated on each lapse of its pickup
-	// deadline: re-dispatch, an ops alert, a customer notice (pickup.go).
+	// deadline: re-dispatch, an ops alert, a customer notice; at the cap, if
+	// no rider holds it, it is cancelled with a full refund (pickup.go).
 	deadlineRunner := orders.NewDeadlineRunner(ordersStore, orderGateway, log, cfg.HTTPAddr).
-		WithPickupEscalator(&pickupEscalator{notify: notifyClient.Enqueue})
+		WithPickupEscalator(&pickupEscalator{notify: notifyClient.Enqueue}).
+		WithUncollectedCanceller(uncollectedCanceller{})
 	go deadlineRunner.Run(ctx)
 
 	// TODO(siblings): auth.Routes(router, …), catalog.Routes(router, …),
