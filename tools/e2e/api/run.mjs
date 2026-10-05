@@ -8,7 +8,7 @@ import { ApiError, Session, pace, sleep } from './lib/client.mjs';
 import { assertFictionalPhone, classifyEnvironment, fictionalLines, fictionalPhone } from './lib/guard.mjs';
 import { apiLogs, findEmailToken, findOtp } from './lib/logs.mjs';
 import { hostOf, redact } from './lib/redact.mjs';
-import { freshTotp } from './lib/totp.mjs';
+import { freshTotp } from '../lib/totp.mjs';
 import { padJpeg, tinyPdf, uploadBytes } from './lib/upload.mjs';
 
 const RESTAURANT_PIN = { latitude: 43.6532, longitude: -79.3832, accuracy_m: 10 };
