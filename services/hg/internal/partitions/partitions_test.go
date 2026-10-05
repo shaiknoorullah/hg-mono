@@ -2,95 +2,177 @@ package partitions
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
+	"slices"
 	"testing"
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/testseed"
 )
 
-// The clock is advanced by days and then months over a freshly migrated
-// database. At every step the partitions must run ahead of the clock, expired
-// ones must be gone, rows that landed in a default must end up in a partition
-// (or be expired with it), and audit partitions must never be dropped.
-func TestMaintenanceFollowsTheClock(t *testing.T) {
-	pool := freshDatabase(t)
-	m := New(pool, slog.New(slog.NewTextHandler(io.Discard, nil)))
-	t0 := time.Now().UTC()
-	day := daily.start(t0)
-	month := monthly.start(t0)
+// The loop runs as hg_app, the API's role, on a database migrated the way
+// production is: goose as hg_migrator, the schema's owner. The partition
+// functions check retention against the database's own clock, so the clock
+// cannot be faked; partitions an earlier pass would have left behind are made
+// by the owner instead. A pass must create partitions ahead of the clock, drop
+// expired ones, move rows out of a default (or expire them with it), never
+// drop an audit partition, and leave hg_app owning nothing.
+func TestMaintenanceAsTheAppRole(t *testing.T) {
+	db := freshDatabase(t)
+	m := New(db.app, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	now := dbNow(t, db.app)
+	day := daily.start(now)
+	month := monthly.start(now)
 
-	// Rows written while nothing kept partitions ahead: one realtime event
-	// five days out, one 30 days old, and a GPS point three months out. All
-	// three land in a default partition today.
-	insertEvent(t, pool, day.AddDate(0, 0, 5).Add(time.Hour), 1)
-	insertEvent(t, pool, day.AddDate(0, 0, -30), 2)
-	insertPosition(t, pool, month.AddDate(0, 3, 0).Add(time.Hour))
-
-	rep := pass(t, m, t0)
-	for d := 0; d <= 7; d++ {
-		mustHavePartitionAt(t, pool, "realtime_event", day.AddDate(0, 0, d))
+	// What earlier passes left: partitions now past retention, and an audit
+	// month that must outlive them.
+	for _, d := range []int{-20, -8} {
+		db.asOwner(t, `SELECT realtime_event_ensure_partition($1::date)`, day.AddDate(0, 0, d))
 	}
+	db.asOwner(t, `SELECT ensure_monthly_partition('rider_position_history', $1::date)`, month.AddDate(0, -3, 0))
+	db.asOwner(t, `SELECT audit_event_ensure_partition($1::date)`, month.AddDate(0, -3, 0))
+
+	// Rows written while nothing kept partitions ahead; all four land in a
+	// default partition. Written as the API writes them, as hg_app.
+	insertEvent(t, db.app, day.AddDate(0, 0, 5).Add(time.Hour), 1)   // its partition is made: moves
+	insertEvent(t, db.app, day.AddDate(0, 0, -30), 2)                // past retention: expires
+	insertPosition(t, db.app, month.AddDate(0, 2, 0).Add(time.Hour)) // its partition is made: moves
+	insertPosition(t, db.app, month.AddDate(0, 3, 0).Add(time.Hour)) // past the window: stays, alerts
+
+	rep := pass(t, m)
+	for d := -7; d <= 7; d++ {
+		mustHavePartitionAt(t, db.app, "realtime_event", day.AddDate(0, 0, d))
+	}
+	mustNotHavePartitionAt(t, db.app, "realtime_event", day.AddDate(0, 0, -8))
+	mustNotHavePartitionAt(t, db.app, "realtime_event", day.AddDate(0, 0, -20))
 	for mo := 0; mo <= 2; mo++ {
-		mustHavePartitionAt(t, pool, "rider_position_history", month.AddDate(0, mo, 0))
-		mustHavePartitionAt(t, pool, "audit_event", month.AddDate(0, mo, 0))
+		mustHavePartitionAt(t, db.app, "rider_position_history", month.AddDate(0, mo, 0))
+		mustHavePartitionAt(t, db.app, "audit_event", month.AddDate(0, mo, 0))
 	}
-	if rep.Moved != 1 || rep.Expired != 1 {
-		t.Errorf("moved %d, expired %d from realtime_event_default; want 1 and 1", rep.Moved, rep.Expired)
+	mustNotHavePartitionAt(t, db.app, "rider_position_history", month.AddDate(0, -3, 0))
+	mustHavePartitionAt(t, db.app, "audit_event", month.AddDate(0, -3, 0))
+
+	for _, want := range []string{
+		"realtime_event_p" + day.AddDate(0, 0, -20).Format("20060102"),
+		"realtime_event_p" + day.AddDate(0, 0, -8).Format("20060102"),
+		"rider_position_history_p" + month.AddDate(0, -3, 0).Format("200601"),
+	} {
+		if !slices.Contains(rep.Dropped, want) {
+			t.Errorf("dropped %v, want %s among them", rep.Dropped, want)
+		}
+	}
+	if rep.Moved != 2 || rep.Expired != 1 {
+		t.Errorf("moved %d, expired %d from the defaults; want 2 and 1", rep.Moved, rep.Expired)
 	}
 	if n := rep.DefaultRows["realtime_event_default"]; n != 0 {
 		t.Errorf("realtime_event_default holds %d rows after the pass, want 0", n)
 	}
-	// The GPS point is past the window created ahead: it stays and alerts.
 	if n := rep.DefaultRows["rider_position_history_default"]; n != 1 {
 		t.Errorf("rider_position_history_default reports %d rows, want 1 (the alert)", n)
 	}
-	if got := countRows(t, pool, "realtime_event"); got != 1 {
+	if got := countRows(t, db.app, "realtime_event"); got != 1 {
 		t.Errorf("realtime_event has %d rows, want the 1 moved row", got)
 	}
+	if got := countRows(t, db.app, "rider_position_history"); got != 2 {
+		t.Errorf("rider_position_history has %d rows, want 2", got)
+	}
 
-	// Ten days on: the migration's daily partitions are past 7 days.
-	pass(t, m, t0.AddDate(0, 0, 10))
-	mustNotHavePartitionAt(t, pool, "realtime_event", day.AddDate(0, 0, -1))
-	mustHavePartitionAt(t, pool, "realtime_event", day.AddDate(0, 0, 17))
+	// Everything the pass made belongs to the schema's owner.
+	var owned int
+	if err := db.app.QueryRow(context.Background(),
+		`SELECT count(*) FROM pg_class WHERE relowner = 'hg_app'::regrole`).Scan(&owned); err != nil || owned != 0 {
+		t.Errorf("hg_app owns %d relations (%v), want 0", owned, err)
+	}
 
-	// Mid-way through the GPS point's month: its partition now exists, so the
-	// point has moved out of the default; months whose last day is more than
-	// 30 days gone are dropped; audit keeps every month.
-	t2 := month.AddDate(0, 3, 15)
-	rep = pass(t, m, t2)
-	for name, n := range rep.DefaultRows {
-		if n != 0 {
-			t.Errorf("%s holds %d rows after the pass, want 0", name, n)
+	// A second pass changes nothing.
+	if rep = pass(t, m); len(rep.Created)+len(rep.Dropped) != 0 || rep.Moved+rep.Expired != 0 {
+		t.Errorf("a repeated pass created %v, dropped %v, moved %d, expired %d; want nothing",
+			rep.Created, rep.Dropped, rep.Moved, rep.Expired)
+	}
+}
+
+// hg_app runs no DDL of its own, and the partition functions refuse any table
+// but the three partitioned ones and any range outside their limits.
+func TestTheAppRoleCannotStepOutside(t *testing.T) {
+	ctx := context.Background()
+	db := freshDatabase(t)
+	now := dbNow(t, db.app)
+	day := daily.start(now)
+	month := monthly.start(now)
+	before := partitionNames(t, db.app)
+
+	refused := []struct {
+		name string
+		code string // SQLSTATE
+		sql  string
+		args []any
+	}{
+		// Directly, without the functions: hg_app owns nothing.
+		{"create a partition", "42501",
+			`CREATE TABLE realtime_event_p20990101 PARTITION OF realtime_event
+			   FOR VALUES FROM ('2099-01-01 00:00Z') TO ('2099-01-02 00:00Z')`, nil},
+		{"create one through the migration's helper", "42501",
+			`SELECT realtime_event_ensure_partition('2099-01-01')`, nil},
+		{"drop a partition", "42501", `DROP TABLE realtime_event_default`, nil},
+		{"detach a partition", "42501", `ALTER TABLE realtime_event DETACH PARTITION realtime_event_default`, nil},
+
+		// Through the functions, outside their limits.
+		{"ensure a table not on the list", "42501",
+			`SELECT * FROM hg_partition_ensure('job_run', $1, $2)`, []any{day, day.AddDate(0, 0, 1)}},
+		{"drop from a table not on the list", "42501",
+			`SELECT hg_partition_drop_before('ledger_entry', $1)`, []any{day.AddDate(-1, 0, 0)}},
+		{"drop an audit partition", "42501",
+			`SELECT hg_partition_drop_before('audit_event', '2000-01-01 00:00Z')`, nil},
+		{"a day that does not start at UTC midnight", "22023",
+			`SELECT * FROM hg_partition_ensure('realtime_event', $1, $2)`,
+			[]any{day.Add(time.Hour), day.AddDate(0, 0, 1).Add(time.Hour)}},
+		{"two days at once", "22023",
+			`SELECT * FROM hg_partition_ensure('realtime_event', $1, $2)`, []any{day, day.AddDate(0, 0, 2)}},
+		{"a day for a monthly table", "22023",
+			`SELECT * FROM hg_partition_ensure('audit_event', $1, $2)`, []any{month, month.AddDate(0, 0, 1)}},
+		{"more than 400 days ahead", "22023",
+			`SELECT * FROM hg_partition_ensure('realtime_event', $1, $2)`,
+			[]any{day.AddDate(0, 0, 401), day.AddDate(0, 0, 402)}},
+		{"a day long past retention", "22023",
+			`SELECT * FROM hg_partition_ensure('realtime_event', $1, $2)`,
+			[]any{day.AddDate(0, 0, -400), day.AddDate(0, 0, -399)}},
+		{"a drop inside realtime_event's 7 days", "22023",
+			`SELECT hg_partition_drop_before('realtime_event', $1)`, []any{now.AddDate(0, 0, -6)}},
+		{"a drop inside rider_position_history's 30 days", "22023",
+			`SELECT hg_partition_drop_before('rider_position_history', $1)`, []any{now.AddDate(0, 0, -29)}},
+		{"a drop of everything", "22023",
+			`SELECT hg_partition_drop_before('realtime_event', $1)`, []any{now.AddDate(1, 0, 0)}},
+	}
+	for _, c := range refused {
+		_, err := db.app.Exec(ctx, c.sql, c.args...)
+		var pgErr *pgconn.PgError
+		switch {
+		case err == nil:
+			t.Errorf("%s: accepted as hg_app; it must be refused", c.name)
+		case !errors.As(err, &pgErr) || pgErr.Code != c.code:
+			t.Errorf("%s: refused with %v, want SQLSTATE %s", c.name, err, c.code)
 		}
 	}
-	if got := countRows(t, pool, "rider_position_history"); got != 1 {
-		t.Errorf("rider_position_history has %d rows, want the 1 moved point", got)
-	}
-	mustNotHavePartitionAt(t, pool, "rider_position_history", month.AddDate(0, -1, 0))
-	mustNotHavePartitionAt(t, pool, "rider_position_history", month.AddDate(0, 1, 0))
-	mustHavePartitionAt(t, pool, "rider_position_history", month.AddDate(0, 5, 0))
-	mustHavePartitionAt(t, pool, "audit_event", month.AddDate(0, -1, 0))
-	mustHavePartitionAt(t, pool, "audit_event", month.AddDate(0, 5, 0))
 
-	// A second pass at the same instant changes nothing.
-	if rep = pass(t, m, t2); len(rep.Created)+len(rep.Dropped) != 0 {
-		t.Errorf("a repeated pass created %v and dropped %v, want nothing", rep.Created, rep.Dropped)
+	if after := partitionNames(t, db.app); !slices.Equal(before, after) {
+		t.Errorf("the refused calls changed the partitions:\nbefore %v\nafter  %v", before, after)
 	}
 }
 
 // Two replicas run the loop; only the one holding the lease makes a pass.
 func TestOnlyTheLeaseHolderRuns(t *testing.T) {
 	ctx := context.Background()
-	pool := freshDatabase(t)
-	m := New(pool, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	db := freshDatabase(t)
+	m := New(db.app, slog.New(slog.NewTextHandler(io.Discard, nil)))
 
-	other, err := pool.Acquire(ctx)
+	other, err := db.app.Acquire(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -113,22 +195,30 @@ func TestOnlyTheLeaseHolderRuns(t *testing.T) {
 		t.Fatalf("pass errors: %v", rep.Errors)
 	}
 	var runs int
-	if err := pool.QueryRow(ctx, `SELECT count(*) FROM job_run WHERE job = 'partition_maintenance' AND finished_at IS NOT NULL`).Scan(&runs); err != nil || runs != 1 {
+	if err := db.app.QueryRow(ctx, `SELECT count(*) FROM job_run WHERE job = 'partition_maintenance' AND finished_at IS NOT NULL`).Scan(&runs); err != nil || runs != 1 {
 		t.Fatalf("job_run rows: %d (%v), want 1", runs, err)
 	}
 }
 
-func pass(t *testing.T, m *Maintainer, now time.Time) Report {
+func pass(t *testing.T, m *Maintainer) Report {
 	t.Helper()
-	m.now = func() time.Time { return now }
 	rep, ran, err := m.RunOnce(context.Background())
 	if err != nil || !ran {
-		t.Fatalf("RunOnce at %s: ran=%v err=%v", now, ran, err)
+		t.Fatalf("RunOnce: ran=%v err=%v", ran, err)
 	}
 	if len(rep.Errors) > 0 {
-		t.Fatalf("pass at %s: %v", now, rep.Errors)
+		t.Fatalf("pass: %v", rep.Errors)
 	}
 	return rep
+}
+
+func dbNow(t *testing.T, pool *pgxpool.Pool) time.Time {
+	t.Helper()
+	var now time.Time
+	if err := pool.QueryRow(context.Background(), `SELECT now()`).Scan(&now); err != nil {
+		t.Fatal(err)
+	}
+	return now
 }
 
 func partitionAt(t *testing.T, pool *pgxpool.Pool, parent string, at time.Time) string {
@@ -164,6 +254,23 @@ func mustNotHavePartitionAt(t *testing.T, pool *pgxpool.Pool, parent string, at 
 	}
 }
 
+// partitionNames lists every partition of the three partitioned tables.
+func partitionNames(t *testing.T, pool *pgxpool.Pool) []string {
+	t.Helper()
+	rows, err := pool.Query(context.Background(), `
+		SELECT c.relname::text FROM pg_inherits i JOIN pg_class c ON c.oid = i.inhrelid
+		 WHERE i.inhparent IN ('realtime_event'::regclass, 'rider_position_history'::regclass, 'audit_event'::regclass)
+		 ORDER BY 1`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	names, err := pgx.CollectRows(rows, pgx.RowTo[string])
+	if err != nil {
+		t.Fatal(err)
+	}
+	return names
+}
+
 func insertEvent(t *testing.T, pool *pgxpool.Pool, at time.Time, seq int) {
 	t.Helper()
 	if _, err := pool.Exec(context.Background(), `
@@ -191,11 +298,40 @@ func countRows(t *testing.T, pool *pgxpool.Pool, table string) int {
 	return n
 }
 
-// freshDatabase migrates a new, empty database of its own and returns a pool
-// on it. Partition maintenance creates and drops tables, so it never shares a
-// database with another package's tests. The server is HG_TEST_POSTGRES_DSN's,
-// or a throwaway container; with neither available the test skips.
-func freshDatabase(t *testing.T) *pgxpool.Pool {
+// testDB is one fresh database, reached as each of the roles that use it.
+type testDB struct {
+	app   *pgxpool.Pool // hg_app: the API
+	owner *pgxpool.Pool // hg_migrator: goose, the schema's owner
+}
+
+// asOwner runs one statement as hg_migrator.
+func (db testDB) asOwner(t *testing.T, sql string, args ...any) {
 	t.Helper()
-	return testseed.MigratedDatabase(t, "hg_partitions")
+	if _, err := db.owner.Exec(context.Background(), sql, args...); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// freshDatabase migrates a new, empty database of its own. Partition
+// maintenance creates and drops tables, so it never shares a database with
+// another package's tests. The server is HG_TEST_POSTGRES_DSN's, or a
+// throwaway container; with neither available the test skips. The DSN must
+// name a superuser: it creates the roles and the extensions, as
+// migrations/roles/roles.sql does, and then connects as each role in turn.
+func freshDatabase(t *testing.T) testDB {
+	t.Helper()
+	dsn := testseed.MigratedDatabaseDSN(t, "hg_partitions")
+	db := testDB{}
+	for _, p := range []struct {
+		pool **pgxpool.Pool
+		role string
+	}{{&db.app, "hg_app"}, {&db.owner, "hg_migrator"}} {
+		pool, err := pgxpool.New(context.Background(), testseed.AsRole(t, dsn, p.role))
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(pool.Close)
+		*p.pool = pool
+	}
+	return db
 }

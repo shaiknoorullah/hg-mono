@@ -570,6 +570,11 @@ export interface paths {
          *     to the authenticated admin — no code path accepts an `admin_id` from a request body.
          *     A second decision on a decided application is `409 ALREADY_DECIDED`, never a silent
          *     overwrite.
+         *
+         *     Each decision has its own body (`RestaurantDecisionInput`): an approval carries an
+         *     approval reason, a rejection or a request for changes carries a rejection reason, and a
+         *     request for changes names the documents to redo. A missing reason, or a reason that
+         *     does not fit the decision, is `422 VALIDATION_FAILED`.
          */
         post: operations["decideRestaurantApplication"];
         delete?: never;
@@ -777,6 +782,11 @@ export interface paths {
          *     Rejection reason text is sent verbatim to the rider with the specific remediation
          *     step. A support agent may re-open a rejected application only for a remediable
          *     reason, and may never approve.
+         *
+         *     Each decision has its own body (`RiderDecisionInput`): an approval carries an approval
+         *     reason, a rejection or a request for changes carries a document rejection reason, and a
+         *     request for changes names the documents to redo. A missing reason, or a reason that
+         *     does not fit the decision, is `422 VALIDATION_FAILED`.
          */
         post: operations["decideRiderApplication"];
         delete?: never;
@@ -5643,6 +5653,47 @@ export interface components {
             halal_certificate?: components["schemas"]["HalalCertificate"] | null;
             profile: components["schemas"]["RestaurantProfile"];
         };
+        /** @description Approve a restaurant application. Approval does not make the restaurant live. */
+        RestaurantApplicationApproveInput: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            decision: "APPROVE";
+            /** @description For staff only; never sent to the restaurant. */
+            internal_note?: string;
+            reason_code: components["schemas"]["RestaurantApproveReasonCode"];
+            /** @description Sent verbatim to the restaurant. */
+            reason_text: string;
+        };
+        /** @description Reject a restaurant application. Rejection is final for this application. */
+        RestaurantApplicationRejectInput: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            decision: "REJECT";
+            /** @description For staff only; never sent to the restaurant. */
+            internal_note?: string;
+            reason_code: components["schemas"]["RestaurantRejectApplicationReasonCode"];
+            /** @description Sent verbatim to the restaurant. */
+            reason_text: string;
+        };
+        /** @description Send a restaurant application back for changes, naming the documents to redo. */
+        RestaurantApplicationRequestChangesInput: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            decision: "REQUEST_CHANGES";
+            /** @description Names exactly which documents to redo. */
+            documents_to_redo: components["schemas"]["RestaurantDocType"][];
+            /** @description For staff only; never sent to the restaurant. */
+            internal_note?: string;
+            reason_code: components["schemas"]["RestaurantRejectApplicationReasonCode"];
+            /** @description Sent verbatim to the restaurant. */
+            reason_text: string;
+        };
         RestaurantApplicationSummary: {
             /** Format: uuid */
             assigned_admin_id?: string | null;
@@ -5738,18 +5789,24 @@ export interface components {
         /** @enum {string} */
         RestaurantDecision: "APPROVE" | "REQUEST_CHANGES" | "REJECT";
         /**
-         * @description Every state-changing admin action requires both a `reason_code` from a closed enum and
-         *     a `reason_text`; missing either is a `422`. `reason_text` is sent verbatim to the
-         *     restaurant — internal remarks go in `internal_note`, which is never transmitted.
+         * @description The decision on a restaurant application
+         *     ([restaurant approval or rejection](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/05-admin.md#a-18--restaurant-approval--rejection-decision)).
+         *     One body shape per `decision`, chosen by the `decision` field, so each decision can
+         *     carry only the reason codes that fit it:
+         *
+         *     - `APPROVE` carries an approval reason (`RestaurantApproveReasonCode`).
+         *     - `REJECT` carries a rejection reason (`RestaurantRejectApplicationReasonCode`).
+         *     - `REQUEST_CHANGES` carries a rejection reason and names the documents to redo.
+         *
+         *     Every state-changing admin action requires both a `reason_code` from a closed enum and
+         *     a `reason_text`
+         *     ([admin conventions](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/05-admin.md#01-units-time-money-identity));
+         *     missing either, or a code that does not fit the decision, is a `422`. `reason_text` is
+         *     sent verbatim to the restaurant — internal remarks go in `internal_note`, which is
+         *     never transmitted. The rider application decision has the same shape
+         *     (`RiderDecisionInput`).
          */
-        RestaurantDecisionInput: {
-            decision: components["schemas"]["RestaurantDecision"];
-            /** @description Required for `REQUEST_CHANGES`: names exactly which documents to redo. */
-            documents_to_redo?: components["schemas"]["RestaurantDocType"][];
-            internal_note?: string;
-            reason_code: components["schemas"]["RestaurantApproveReasonCode"] | components["schemas"]["RestaurantRejectApplicationReasonCode"];
-            reason_text: string;
-        };
+        RestaurantDecisionInput: components["schemas"]["RestaurantApplicationApproveInput"] | components["schemas"]["RestaurantApplicationRejectInput"] | components["schemas"]["RestaurantApplicationRequestChangesInput"];
         RestaurantDetail: components["schemas"]["RestaurantCard"] & {
             address: components["schemas"]["PublicAddress"];
             certification: components["schemas"]["CertificationPanel"];
@@ -5973,6 +6030,45 @@ export interface components {
             profile: components["schemas"]["RiderProfile"];
             vehicle?: components["schemas"]["RiderVehicle"] | null;
         };
+        /**
+         * @description Approve a rider application. A rider under 18 cannot be approved
+         *     (`422 AGE_REQUIREMENT_NOT_MET`), and approval moves the rider to `PAYOUT_PENDING`, not
+         *     straight to dispatchable.
+         */
+        RiderApplicationApproveInput: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            decision: "APPROVE";
+            reason_code: components["schemas"]["RiderApproveReasonCode"];
+            /** @description Sent verbatim to the rider. */
+            reason_text: string;
+        };
+        /** @description Reject a rider application. */
+        RiderApplicationRejectInput: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            decision: "REJECT";
+            reason_code: components["schemas"]["DocumentRejectionReasonCode"];
+            /** @description Sent verbatim to the rider with the specific remediation step. */
+            reason_text: string;
+        };
+        /** @description Send a rider application back for changes, naming the documents to redo. */
+        RiderApplicationRequestChangesInput: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            decision: "REQUEST_CHANGES";
+            /** @description Names exactly which documents to redo. */
+            documents_to_redo: components["schemas"]["RiderDocType"][];
+            reason_code: components["schemas"]["DocumentRejectionReasonCode"];
+            /** @description Sent verbatim to the rider with the specific remediation step. */
+            reason_text: string;
+        };
         RiderApplicationSummary: {
             /** Format: uuid */
             assigned_admin_id?: string | null;
@@ -5988,6 +6084,14 @@ export interface components {
             submitted_at: components["schemas"]["Timestamp"];
             vehicle_type?: components["schemas"]["VehicleType"];
         };
+        /**
+         * @description Why a rider application was approved. The same two reasons as a restaurant approval
+         *     (`RestaurantApproveReasonCode`), because the rider review is built the same way
+         *     ([rider onboarding review and approval](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/05-admin.md#a-23--rider-onboarding-review-and-approval)).
+         *     `APPROVED_WITH_NOTES` means the reviewer recorded something in `reason_text`.
+         * @enum {string}
+         */
+        RiderApproveReasonCode: "ALL_CHECKS_PASSED" | "APPROVED_WITH_NOTES";
         RiderAvailability: {
             availability_state: components["schemas"]["RiderAvailabilityState"];
             /** @description Machine codes so the app can deep-link to each fix. */
@@ -6026,13 +6130,25 @@ export interface components {
             };
             tracking_health?: components["schemas"]["TrackingHealth"] | null;
         };
-        RiderDecisionInput: {
-            decision: components["schemas"]["RestaurantDecision"];
-            documents_to_redo?: components["schemas"]["RiderDocType"][];
-            reason_code: components["schemas"]["DocumentRejectionReasonCode"];
-            /** @description Sent verbatim to the rider with the specific remediation step. */
-            reason_text: string;
-        };
+        /**
+         * @description The decision on a rider application
+         *     ([rider onboarding review and approval](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/05-admin.md#a-23--rider-onboarding-review-and-approval)).
+         *     One body shape per `decision`, chosen by the `decision` field, so each decision can
+         *     carry only the reason codes that fit it:
+         *
+         *     - `APPROVE` carries an approval reason (`RiderApproveReasonCode`). Until
+         *       [#163](https://github.com/shaiknoorullah/hg-mono/issues/163) every decision had to
+         *       carry a document rejection reason, and none of those fits an approval.
+         *     - `REJECT` carries a document rejection reason (`DocumentRejectionReasonCode`).
+         *     - `REQUEST_CHANGES` carries a document rejection reason and names the documents to redo.
+         *
+         *     Every state-changing admin action requires both a `reason_code` from a closed enum and
+         *     a `reason_text`
+         *     ([admin conventions](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/05-admin.md#01-units-time-money-identity));
+         *     missing either, or a code that does not fit the decision, is a `422`. The same shape
+         *     as the restaurant application decision (`RestaurantDecisionInput`).
+         */
+        RiderDecisionInput: components["schemas"]["RiderApplicationApproveInput"] | components["schemas"]["RiderApplicationRejectInput"] | components["schemas"]["RiderApplicationRequestChangesInput"];
         /**
          * @description D-05 / A-23. Motorised riders need licence, registration, insurance and a photo;
          *     bicycle and on-foot couriers need a government ID and a photo.
@@ -6702,6 +6818,9 @@ export type SchemaRefundState = components['schemas']['RefundState'];
 export type SchemaRemittableBy = components['schemas']['RemittableBy'];
 export type SchemaRestaurantAccountState = components['schemas']['RestaurantAccountState'];
 export type SchemaRestaurantApplication = components['schemas']['RestaurantApplication'];
+export type SchemaRestaurantApplicationApproveInput = components['schemas']['RestaurantApplicationApproveInput'];
+export type SchemaRestaurantApplicationRejectInput = components['schemas']['RestaurantApplicationRejectInput'];
+export type SchemaRestaurantApplicationRequestChangesInput = components['schemas']['RestaurantApplicationRequestChangesInput'];
 export type SchemaRestaurantApplicationSummary = components['schemas']['RestaurantApplicationSummary'];
 export type SchemaRestaurantApproveReasonCode = components['schemas']['RestaurantApproveReasonCode'];
 export type SchemaRestaurantAvailability = components['schemas']['RestaurantAvailability'];
@@ -6732,7 +6851,11 @@ export type SchemaRestaurantStaffUser = components['schemas']['RestaurantStaffUs
 export type SchemaRestaurantStaffUserInput = components['schemas']['RestaurantStaffUserInput'];
 export type SchemaRiderAccountStatus = components['schemas']['RiderAccountStatus'];
 export type SchemaRiderApplication = components['schemas']['RiderApplication'];
+export type SchemaRiderApplicationApproveInput = components['schemas']['RiderApplicationApproveInput'];
+export type SchemaRiderApplicationRejectInput = components['schemas']['RiderApplicationRejectInput'];
+export type SchemaRiderApplicationRequestChangesInput = components['schemas']['RiderApplicationRequestChangesInput'];
 export type SchemaRiderApplicationSummary = components['schemas']['RiderApplicationSummary'];
+export type SchemaRiderApproveReasonCode = components['schemas']['RiderApproveReasonCode'];
 export type SchemaRiderAvailability = components['schemas']['RiderAvailability'];
 export type SchemaRiderAvailabilityInput = components['schemas']['RiderAvailabilityInput'];
 export type SchemaRiderAvailabilityState = components['schemas']['RiderAvailabilityState'];
@@ -8191,7 +8314,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description `AGE_REQUIREMENT_NOT_MET`, `PRECONDITION_NOT_MET`. */
+            /** @description `AGE_REQUIREMENT_NOT_MET`, `PRECONDITION_NOT_MET`, `VALIDATION_FAILED`. */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -8745,6 +8868,7 @@ export interface operations {
             };
             409: components["responses"]["Error"];
             422: components["responses"]["Error"];
+            429: components["responses"]["RateLimited"];
             default: components["responses"]["Error"];
         };
     };
