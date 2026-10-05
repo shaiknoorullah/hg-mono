@@ -102,12 +102,25 @@ func DefaultRiderPay() RiderPay {
 	return RiderPay{TipMakeUp: false}
 }
 
-// Realtime holds the WebSocket gateway's per-replica limits.
+// Realtime holds the WebSocket gateway's limits (contracts/websocket.md
+// "Limits"). The socket caps are counted per replica.
 type Realtime struct {
 	// MaxSockets caps the live sockets one replica holds. An upgrade beyond it
 	// is closed with 1013 (try again later) so the client retries, possibly on
 	// the other replica (contracts/websocket.md "Limits").
 	MaxSockets int
+	// MaxSocketsPerAccount and MaxSocketsPerSession cap one account's and one
+	// session's live sockets on a replica, so a single caller cannot fill
+	// MaxSockets and lock everyone else out (issue #288). An upgrade beyond
+	// either is closed with 1013 connection_limit.
+	MaxSocketsPerAccount int
+	MaxSocketsPerSession int
+	// UpgradesPerAddressPerMinute caps WebSocket upgrade attempts from one
+	// client address (an IPv6 caller counted per /64); beyond it the upgrade is
+	// refused with HTTP 429 before any Postgres work.
+	UpgradesPerAddressPerMinute int
+	// TicketsPerSessionPerMinute caps createRealtimeTicket calls per session.
+	TicketsPerSessionPerMinute int
 }
 
 // Halal holds the halal certificate expiry settings (internal/halalexpiry).
@@ -547,10 +560,25 @@ func Load(getenv func(string) string) (*Config, error) {
 	}
 
 	cfg.Realtime = Realtime{
-		MaxSockets: l.intVal("HG_REALTIME_MAX_SOCKETS", 2000),
+		MaxSockets:                  l.intVal("HG_REALTIME_MAX_SOCKETS", 2000),
+		MaxSocketsPerAccount:        l.intVal("HG_REALTIME_MAX_SOCKETS_PER_ACCOUNT", 10),
+		MaxSocketsPerSession:        l.intVal("HG_REALTIME_MAX_SOCKETS_PER_SESSION", 4),
+		UpgradesPerAddressPerMinute: l.intVal("HG_REALTIME_UPGRADES_PER_ADDRESS_PER_MINUTE", 120),
+		TicketsPerSessionPerMinute:  l.intVal("HG_REALTIME_TICKETS_PER_SESSION_PER_MINUTE", 30),
 	}
-	if cfg.Realtime.MaxSockets < 1 {
-		l.errf("HG_REALTIME_MAX_SOCKETS: %d must be at least 1", cfg.Realtime.MaxSockets)
+	for _, v := range []struct {
+		key string
+		val int
+	}{
+		{"HG_REALTIME_MAX_SOCKETS", cfg.Realtime.MaxSockets},
+		{"HG_REALTIME_MAX_SOCKETS_PER_ACCOUNT", cfg.Realtime.MaxSocketsPerAccount},
+		{"HG_REALTIME_MAX_SOCKETS_PER_SESSION", cfg.Realtime.MaxSocketsPerSession},
+		{"HG_REALTIME_UPGRADES_PER_ADDRESS_PER_MINUTE", cfg.Realtime.UpgradesPerAddressPerMinute},
+		{"HG_REALTIME_TICKETS_PER_SESSION_PER_MINUTE", cfg.Realtime.TicketsPerSessionPerMinute},
+	} {
+		if v.val < 1 {
+			l.errf("%s: %d must be at least 1", v.key, v.val)
+		}
 	}
 
 	cfg.Payouts = Payouts{

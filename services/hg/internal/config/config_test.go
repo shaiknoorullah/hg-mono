@@ -44,6 +44,11 @@ func TestLoadAcceptsACompleteEnvironment(t *testing.T) {
 	if cfg.Realtime.MaxSockets != 2000 {
 		t.Errorf("Realtime.MaxSockets = %d, want the 2000 default", cfg.Realtime.MaxSockets)
 	}
+	// The per-account and per-session caps are contracts/websocket.md "Limits".
+	if cfg.Realtime.MaxSocketsPerAccount != 10 || cfg.Realtime.MaxSocketsPerSession != 4 {
+		t.Errorf("Realtime per-account/per-session caps = %d/%d, want the 10/4 defaults",
+			cfg.Realtime.MaxSocketsPerAccount, cfg.Realtime.MaxSocketsPerSession)
+	}
 }
 
 // TestLoadRiderAvailabilitySweeps pins the sweeps' defaults to the values in

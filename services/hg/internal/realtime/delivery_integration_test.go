@@ -211,7 +211,7 @@ func (tc *testClient) subscribe(t *testing.T, channel string) Envelope {
 }
 
 func testGateway(pool *pgxpool.Pool) *Gateway {
-	return NewGateway(NewStore(pool, "test-node"), nil, slog.New(slog.NewTextHandler(io.Discard, nil)), nil, 50)
+	return NewGateway(NewStore(pool, "test-node"), nil, slog.New(slog.NewTextHandler(io.Discard, nil)), nil, Limits{MaxSockets: 50})
 }
 
 // emitAndFanOut writes events in one committed transaction, then hands each

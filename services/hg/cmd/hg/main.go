@@ -803,9 +803,18 @@ func run() error {
 	// Complete the Seam C wiring: orders.Store now emits realtime outbox events
 	// on every state transition via the transactional outbox (I-15 / §6.1).
 	rtEmitter.store = rtStore
-	rtGateway := realtime.NewGateway(rtStore, st.Cache().Client, log, nil, cfg.Realtime.MaxSockets)
+	rtGateway := realtime.NewGateway(rtStore, st.Cache().Client, log, nil, realtime.Limits{
+		MaxSockets:           cfg.Realtime.MaxSockets,
+		MaxSocketsPerAccount: cfg.Realtime.MaxSocketsPerAccount,
+		MaxSocketsPerSession: cfg.Realtime.MaxSocketsPerSession,
+		UpgradesPerAddress:   cfg.Realtime.UpgradesPerAddressPerMinute,
+		TicketsPerSession:    cfg.Realtime.TicketsPerSessionPerMinute,
+	})
 	rtRelay := realtime.NewRelay(st.DB().Pool, st.Cache().Client, log, nodeID)
-	realtime.Routes(router, realtime.NewHandler(rtStore, rtGateway, log, cfg.CORSOrigins))
+	// Upgrade attempts per address and ticket mints per session are counted in
+	// Redis with the same fixed-window limiter sign-in uses (issue #288).
+	rtLimiter := realtimeLimiter{auth.NewRateLimiter(st.Cache().Client, log)}
+	realtime.Routes(router, realtime.NewHandler(rtStore, rtGateway, log, cfg.CORSOrigins, rtLimiter))
 	go rtGateway.Run(ctx)
 	go rtRelay.Run(ctx)
 
@@ -954,4 +963,20 @@ type dispatchCancel struct{}
 
 func (dispatchCancel) OrderCancelledTx(ctx context.Context, tx pgx.Tx, orderID string) error {
 	return dispatch.ReleaseCancelledOrderTx(ctx, tx, orderID)
+}
+
+// realtimeLimiter implements realtime.RateLimiter with auth's Redis
+// fixed-window limiter (realtime cannot import auth: auth imports notify,
+// which imports realtime). The limits fail closed in auth's terms, so while
+// Redis cannot answer Allow returns an error and the realtime handler lets the
+// request through, as the rate-limiting spec requires for every class but
+// sign-in (docs/spec/01-platform.md, "P-38 — Rate limiting").
+type realtimeLimiter struct{ rl *auth.RateLimiter }
+
+func (l realtimeLimiter) Allow(ctx context.Context, name, subject string, limit int64, window time.Duration) (bool, error) {
+	err := l.rl.Allow(ctx, auth.Limit{Name: name, Subject: subject, Max: limit, Window: window})
+	if errors.Is(err, auth.ErrRateLimited) {
+		return false, nil
+	}
+	return err == nil, err
 }
