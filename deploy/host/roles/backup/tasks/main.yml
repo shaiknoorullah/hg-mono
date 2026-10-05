@@ -1,0 +1,213 @@
+- name: Refuse to continue without the backup passwords
+  ansible.builtin.assert:
+    that:
+      - hg_restic_password | default('') | length >= 20
+      - hg_pgbackrest_cipher_pass | default('') | length >= 20
+    fail_msg: "host.sops.yaml needs hg_restic_password and hg_pgbackrest_cipher_pass (20+ characters)."
+    quiet: true
+
+- name: Install restic
+  ansible.builtin.apt:
+    name: [restic, logrotate]
+    state: present
+
+- name: Work out every timer, and every status the alerts expect
+  ansible.builtin.set_fact:
+    hg_backup_timers: >-
+      {{ hg_backup_schedule
+         + ((hg_backup_pg_dumps | length > 0) | ternary([{'job': 'dumps', 'when': hg_backup_dumps_when}], [])) }}
+    hg_backup_statuses: >-
+      {{ ['pgbackrest', 'pgbackrest-full', 'pg-verify', 'pgrepo', 'config', 'forget', 'prune', 'check', 'drill']
+         + (hg_backup_buckets | map(attribute='bucket') | map('regex_replace', '^', 'silo-') | list)
+         + ((hg_backup_pg_dumps | length > 0) | ternary(['dumps'], [])) }}
+
+# ---------------------------------------------------------------- folders
+- name: Create the backup root; the off-server puller is locked inside it, so root owns it
+  ansible.builtin.file:
+    path: "{{ hg_backup_root }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Create the backup folders
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner }}"
+    group: "{{ item.owner }}"
+    mode: "{{ item.mode }}"
+  loop:
+    - {path: "{{ hg_backup_pgbackrest_repo }}", owner: "{{ hg_postgres_uid }}", mode: "0750"}
+    - {path: "{{ hg_backup_pgbackrest_spool }}", owner: "{{ hg_postgres_uid }}", mode: "0750"}
+    - {path: /var/log/hg, owner: root, mode: "0755"}
+    - {path: "{{ hg_backup_pgbackrest_logs }}", owner: "{{ hg_postgres_uid }}", mode: "0750"}
+    - {path: "{{ hg_backup_staging }}", owner: root, mode: "0700"}
+    - {path: "{{ hg_config_dir }}", owner: root, mode: "0755"}
+    - {path: "{{ hg_config_dir }}/backup", owner: root, mode: "0700"}
+    - {path: "{{ hg_config_dir }}/pgbackrest", owner: root, mode: "0755"}
+    - {path: /var/cache/restic, owner: root, mode: "0700"}
+  loop_control:
+    label: "{{ item.path }}"
+
+# ---------------------------------------------------------------- configuration
+- name: Write the backup scripts' settings
+  ansible.builtin.template:
+    src: backup.conf.j2
+    dest: "{{ hg_config_dir }}/backup/backup.conf"
+    owner: root
+    group: root
+    mode: "0600"
+
+- name: Write the restic password, readable by root only
+  ansible.builtin.copy:
+    content: "{{ hg_restic_password }}\n"
+    dest: "{{ hg_config_dir }}/backup/restic.pass"
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+  diff: false
+
+- name: Write rclone's read-only Silo account, readable by root only
+  ansible.builtin.template:
+    src: rclone.conf.j2
+    dest: "{{ hg_config_dir }}/backup/rclone.conf"
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+  diff: false
+
+- name: "Write pgBackRest's settings (mounted into the Postgres container, #208)"
+  ansible.builtin.template:
+    src: pgbackrest.conf.j2
+    dest: "{{ hg_config_dir }}/pgbackrest/pgbackrest.conf"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Write pgBackRest's encryption passphrase as an env file, readable by root only
+  ansible.builtin.copy:
+    content: "PGBACKREST_REPO1_CIPHER_PASS={{ hg_pgbackrest_cipher_pass }}\n"
+    dest: "{{ hg_config_dir }}/pgbackrest/cipher.env"
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+  diff: false
+
+- name: Rotate pgBackRest's logs
+  ansible.builtin.template:
+    src: logrotate.j2
+    dest: /etc/logrotate.d/hg-pgbackrest
+    owner: root
+    group: root
+    mode: "0644"
+
+# ---------------------------------------------------------------- scripts
+- name: Install the backup scripts
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "/usr/local/sbin/{{ item }}"
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - hg-backup
+    - hg-backup-status
+    - hg-backup-metrics
+    - hg-pgbackrest
+    - hg-restore-drill
+
+# ---------------------------------------------------------------- the restic repository
+- name: Create the restic repository
+  ansible.builtin.command: restic init
+  environment:
+    RESTIC_REPOSITORY: "{{ hg_backup_restic_repo }}"
+    RESTIC_PASSWORD_FILE: "{{ hg_config_dir }}/backup/restic.pass"
+  args:
+    creates: "{{ hg_backup_restic_repo }}/config"
+  notify: Let the puller's group read the repository
+
+- name: Set up the account the owner's machine pulls with
+  ansible.builtin.include_tasks: pull_access.yml
+
+# ---------------------------------------------------------------- schedules
+- name: Install the backup services and timers
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "/etc/systemd/system/{{ item }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - hg-backup@.service
+    - hg-backup-metrics.service
+    - hg-backup-metrics.timer
+    - hg-restore-drill.service
+    - hg-restore-drill.timer
+  notify: Reload systemd
+
+- name: Install one timer per scheduled job
+  ansible.builtin.template:
+    src: hg-backup-job.timer.j2
+    dest: "/etc/systemd/system/hg-backup-{{ hg_timer_job }}.timer"
+    owner: root
+    group: root
+    mode: "0644"
+  vars:
+    hg_timer_job: "{{ item.job }}"
+    hg_timer_when: "{{ item.when }}"
+  loop: "{{ hg_backup_timers }}"
+  loop_control:
+    label: "{{ item.job }}: {{ item.when }}"
+  notify: Reload systemd
+
+- name: Install one timer per bucket
+  ansible.builtin.template:
+    src: hg-backup-job.timer.j2
+    dest: "/etc/systemd/system/hg-backup-silo-{{ item.bucket }}.timer"
+    owner: root
+    group: root
+    mode: "0644"
+  vars:
+    hg_timer_job: "silo-{{ item.bucket }}"
+    hg_timer_when: "{{ item.when }}"
+  loop: "{{ hg_backup_buckets }}"
+  loop_control:
+    label: "{{ item.bucket }}: {{ item.when }}"
+  notify: Reload systemd
+
+- name: Apply systemd changes before enabling the timers
+  ansible.builtin.meta: flush_handlers
+
+- name: Enable the backup, metrics and drill timers
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    enabled: true
+    state: started
+  loop: >-
+    {{ ((hg_backup_timers | map(attribute='job') | list)
+        + (hg_backup_buckets | map(attribute='bucket') | map('regex_replace', '^', 'silo-') | list))
+       | map('regex_replace', '^', 'hg-backup-') | map('regex_replace', '$', '.timer') | list
+       + ['hg-backup-metrics.timer', 'hg-restore-drill.timer'] }}
+  # On a fresh server in check mode the units are not installed yet.
+  ignore_errors: "{{ ansible_check_mode }}"
+
+# ---------------------------------------------------------------- alert inputs
+- name: Tell the alerts how old each job's last success may be
+  ansible.builtin.template:
+    src: hg_backup_expected.prom.j2
+    dest: "{{ hg_textfile_dir }}/hg_backup_expected.prom"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Start each job's clock (a job that never succeeds alerts once its allowed age passes)
+  ansible.builtin.command: "/usr/local/sbin/hg-backup-status {{ item }} seed"
+  args:
+    creates: "{{ hg_textfile_dir }}/hg_backup_{{ item | replace('-', '_') }}.prom"
+  environment:
+    TEXTFILE_DIR: "{{ hg_textfile_dir }}"
+  loop: "{{ hg_backup_statuses }}"

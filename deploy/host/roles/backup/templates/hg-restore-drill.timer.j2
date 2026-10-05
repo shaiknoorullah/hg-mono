@@ -1,0 +1,10 @@
+# Managed by Ansible (deploy/host/roles/backup).
+[Unit]
+Description=Monthly restore drill
+
+[Timer]
+OnCalendar={{ hg_backup_drill_when }}
+Persistent=true
+
+[Install]
+WantedBy=timers.target

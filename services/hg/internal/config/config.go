@@ -50,6 +50,7 @@ type Config struct {
 	Stripe   Stripe
 	SMS      SMS
 	OTP      OTP
+	RiderPay RiderPay
 	Tax      Tax
 	Realtime Realtime
 	Payouts  Payouts
@@ -72,6 +73,31 @@ type Payouts struct {
 	// (docs/spec/03-restaurant.md, "R-32 — Payout schedule, preferences and
 	// payout requests").
 	RestaurantHoldHours int
+}
+
+// RiderPay holds the rider-pay rules the owner has not settled yet. Each
+// default is the behaviour the specs document today; the owner's open
+// questions are on https://github.com/shaiknoorullah/hg-mono/issues/164.
+//
+// Pay for an interrupted delivery (an order brought back, a reassignment) is
+// not here: nothing pays it automatically, because a rider's own exception
+// step never moves money (docs/spec/04-rider.md, "D-32 — Incident reporting &
+// mid-delivery exceptions"); it waits for a server-side decision.
+type RiderPay struct {
+	// TipMakeUp: when the tip at delivery is lower than the tip the rider saw
+	// on the offer they accepted, the platform pays the difference as an
+	// adjustment. Default false: riders are paid by pure pass-through, the
+	// tip the customer actually pays and nothing on top
+	// (docs/decisions/README.md, "Settled — reconciliations", rider pay; and
+	// the tip shown before accepting, "Settled — redesign decisions (owner,
+	// 2026-09-28)"). Whether the platform makes up a lowered tip is the
+	// owner's open question, item 15 on #164.
+	TipMakeUp bool
+}
+
+// DefaultRiderPay is the documented behaviour, used when nothing is set.
+func DefaultRiderPay() RiderPay {
+	return RiderPay{TipMakeUp: false}
 }
 
 // Realtime holds the WebSocket gateway's per-replica limits.
@@ -403,6 +429,9 @@ func Load(getenv func(string) string) (*Config, error) {
 		}
 	}
 
+	cfg.RiderPay = RiderPay{
+		TipMakeUp: l.boolVal("HG_RIDER_TIP_MAKEUP", DefaultRiderPay().TipMakeUp),
+	}
 	cfg.Dispatch = Dispatch{
 		RiderStaleAfter:      l.duration("HG_RIDER_STALE_AFTER", 120*time.Second),
 		RiderStaleSweepEvery: l.duration("HG_RIDER_STALE_SWEEP_INTERVAL", 15*time.Second),

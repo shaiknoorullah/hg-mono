@@ -1,0 +1,23 @@
+# Managed by Ansible (deploy/host/roles/offline_copy). Read by hg-offline-pull, and by
+# hg-restore-drill --config /etc/hg-offline/backup.conf --no-live
+# shellcheck shell=bash disable=SC2034
+export RESTIC_REPOSITORY={{ hg_offline_repo }}
+export RESTIC_PASSWORD_FILE=/etc/hg-offline/repo.pass
+export RESTIC_CACHE_DIR=/var/cache/hg-offline-restic
+SERVER_WG_ADDRESS={{ hostvars[hg_offline_server].hg_wg_address }}
+PULL_MIN_HOURS={{ hg_offline_min_hours }}
+KEEP=({{ hg_backup_keep | default(['--keep-within', '48h', '--keep-within-daily', '35d']) | map('quote') | join(' ') }})
+
+# For the restore drill against this copy.
+PG_IMAGE={{ hg_postgres_image | quote }}
+PG_CONTAINER=none
+PG_USER={{ hg_postgres_superuser }}
+PG_DB={{ hg_postgres_db }}
+PG_UID=999
+PGBR_STANZA={{ hg_pgbackrest_stanza }}
+PGBR_REPO={{ hg_backup_root }}/pgbackrest
+PGBR_CIPHER_ENV=/etc/hg-offline/pgbackrest-cipher.env
+STAGING={{ hg_backup_root }}/staging
+RCLONE_IMAGE={{ hg_images.rclone }}
+SILO_IMAGE={{ hg_images.silo }}
+DRILL_PARENT={{ hg_offline_dir }}

@@ -544,9 +544,10 @@ func TestConformance_ChangePassword(t *testing.T) {
 // ============================================================================
 
 // TestConformance_EmailVerification validates resendEmailVerification
-// (AcknowledgementResponse, 202) and verifyEmail (SessionGrant). A real
-// EMAIL_VERIFY credential token is issued for an unverified account so
-// verifyEmail can consume it and issue a session.
+// (AcknowledgementResponse, 202) and verifyEmail (204, no session: an emailed
+// link never signs anyone in, https://github.com/shaiknoorullah/hg-mono/issues/356).
+// A real EMAIL_VERIFY credential token is issued for an unverified account so
+// verifyEmail can consume it.
 func TestConformance_EmailVerification(t *testing.T) {
 	pool := openPool(t)
 	a := newAuthHarness(t, pool)
@@ -564,7 +565,7 @@ func TestConformance_EmailVerification(t *testing.T) {
 	a.validateResp(t, rrq, rresp, http.StatusAccepted)
 	rresp.Body.Close()
 
-	// Mint a real EMAIL_VERIFY token, then verifyEmail → SessionGrant.
+	// Mint a real EMAIL_VERIFY token, then verifyEmail → 204.
 	token, tokenHash, err := auth.NewOpaqueToken()
 	if err != nil {
 		t.Fatalf("NewOpaqueToken: %v", err)
@@ -580,7 +581,7 @@ func TestConformance_EmailVerification(t *testing.T) {
 
 	vrq = a.req(t, "POST", "/v1/auth/email/verify", vBody, map[string]string{"X-HG-Client": webClient})
 	vresp := a.do(t, vrq)
-	a.validateResp(t, vrq, vresp, http.StatusOK)
+	a.validateResp(t, vrq, vresp, http.StatusNoContent)
 	vresp.Body.Close()
 }
 
