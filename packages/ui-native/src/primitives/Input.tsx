@@ -155,6 +155,15 @@ export function Input({
     );
   }
 
+  // A string prefix or suffix ("$", "kg") must sit in a Text: a bare string inside a View is a
+  // hard crash on iOS and Android ("Text strings must be rendered within a <Text>").
+  const affix = (node: ReactNode): ReactNode =>
+    typeof node === 'string' || typeof node === 'number' ? (
+      <Text style={{ ...bodyType, color: theme.color.text.secondary }}>{node}</Text>
+    ) : (
+      node
+    );
+
   return (
     <View testID={testID} style={{ gap: tokens.space['1'] }}>
       <Text nativeID={labelId} style={{ ...labelType, color: theme.color.text.secondary }}>
@@ -163,7 +172,7 @@ export function Input({
       </Text>
 
       <View style={field}>
-        {prefix}
+        {affix(prefix)}
         <TextInput
           testID={`${testID}-field`}
           value={variant === 'tel' ? formatTel(value) : value}
@@ -199,7 +208,7 @@ export function Input({
             {'✓'}
           </Text>
         ) : null}
-        {suffix}
+        {affix(suffix)}
         {/* Focus is the field's own border (2px border.brand, above). The ring is drawn
             only on an invalid field, whose danger border cannot also mean "focused" —
             docs/decisions/focus-indicator.md. */}

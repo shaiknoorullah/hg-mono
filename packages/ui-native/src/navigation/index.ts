@@ -10,7 +10,13 @@
  */
 
 export { AppBar } from './AppBar';
-export type { AppBarProps, AppBarVariant, AppBarAction, AppBarBack } from './AppBar';
+export type {
+  AppBarProps,
+  AppBarVariant,
+  AppBarTone,
+  AppBarAction,
+  AppBarBack,
+} from './AppBar';
 
 export { BottomNav } from './BottomNav';
 export type { BottomNavProps, BottomNavItem } from './BottomNav';

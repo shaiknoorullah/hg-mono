@@ -38,6 +38,10 @@ export type TrackingSnapshot = {
   link: 'live' | 'polling';
   /** The latest REST fetch failed and there is nothing to show yet. */
   error: boolean;
+  /** Counts `order.*` / `payment.*` events from the socket; a change means "re-read the order". */
+  orderEvents: number;
+  /** Epoch ms of the last successful REST read, for "Updated 7:05 pm" while polling. */
+  updatedAtMs: number | null;
 };
 
 
@@ -47,6 +51,7 @@ export type TrackingFeedDeps = {
   openSocket: (handlers: {
     onLink: (open: boolean) => void;
     onRiderLocation: (fix: RiderLocationData) => void;
+    onOrderEvent?: (type: string) => void;
   }) => () => void;
 };
 
@@ -70,7 +75,14 @@ function fixFromSocket(d: RiderLocationData): RiderFix | null {
 }
 
 export function createTrackingFeed(deps: TrackingFeedDeps) {
-  let snap: TrackingSnapshot = { tracking: null, rider: null, link: 'polling', error: false };
+  let snap: TrackingSnapshot = {
+    tracking: null,
+    rider: null,
+    link: 'polling',
+    error: false,
+    orderEvents: 0,
+    updatedAtMs: null,
+  };
   const listeners = new Set<() => void>();
   let timer: ReturnType<typeof setTimeout> | undefined;
   let closeSocket: (() => void) | undefined;
@@ -103,7 +115,7 @@ export function createTrackingFeed(deps: TrackingFeedDeps) {
       const t = await deps.fetchTracking();
       if (stopped) return;
       finished = FINISHED.has(t.state);
-      set({ tracking: t, error: false });
+      set({ tracking: t, error: false, updatedAtMs: Date.now() });
       take(fixFromRest(t));
     } catch {
       if (!stopped && !snap.tracking) set({ error: true });
@@ -125,6 +137,12 @@ export function createTrackingFeed(deps: TrackingFeedDeps) {
           else schedule();
         },
         onRiderLocation: (d) => take(fixFromSocket(d)),
+        onOrderEvent: () => {
+          if (stopped) return;
+          set({ orderEvents: snap.orderEvents + 1 });
+          // The REST projection carries the new state, ETA and timeline.
+          void poll();
+        },
       });
     },
     stop() {

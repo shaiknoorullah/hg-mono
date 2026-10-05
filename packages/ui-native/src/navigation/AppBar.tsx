@@ -18,6 +18,12 @@ import { ChevronGlyph, CloseGlyph } from '../feedback/internal/glyphs';
 import { useTopInset } from './internal/insets';
 
 export type AppBarVariant = 'default' | 'large' | 'search' | 'contextual' | 'transparent';
+/**
+ * The bar's surface. `chrome` is the dark brand bar. `cream` is the design system's default
+ * (`surface.base` with primary ink), which the approved customer Cart, Checkout, Track and
+ * Orders canvases use so the bar reads as part of the page.
+ */
+export type AppBarTone = 'chrome' | 'cream';
 
 export interface AppBarAction {
   key: string;
@@ -44,6 +50,8 @@ export interface AppBarProps {
   back?: AppBarBack;
   actions?: readonly AppBarAction[];
   variant?: AppBarVariant;
+  /** Defaults to `chrome`. */
+  tone?: AppBarTone;
   /** Force the raised treatment. Otherwise `scrolled` decides. */
   elevated?: boolean;
   /** At rest there is no shadow; scrolled adds elevation 1 and a hairline. */
@@ -72,6 +80,7 @@ export function AppBar({
   back,
   actions,
   variant = 'default',
+  tone = 'chrome',
   elevated,
   scrolled = false,
   loading = false,
@@ -90,12 +99,15 @@ export function AppBar({
   const contextual = variant === 'contextual';
   const transparent = variant === 'transparent';
   const large = variant === 'large' && !scrolled;
+  const cream = tone === 'cream' && !transparent && !contextual;
 
   const background = transparent
     ? 'transparent'
     : contextual
       ? theme.color.surface.inverse
-      : theme.color.surface.chrome;
+      : cream
+        ? theme.color.surface.base
+        : theme.color.surface.chrome;
   // `surface.chrome` is DARK in both schemes (#1B3B31 light, #0A1913 dark), but the
   // foreground here was `text.primary`, which is only light in the dark scheme. On the
   // light scheme that put #232323 on #1B3B31 — measured 1.28:1 for the customer app's
@@ -106,7 +118,11 @@ export function AppBar({
   // explicitly per scheme. Both resolve to #F6EFDD, which is 11.6:1 on the light
   // chrome. The `transparent` variant sits over `surface.scrim` and wants the same.
   const onChrome = theme.scheme === 'dark' ? theme.color.text.primary : theme.color.text.onInverse;
-  const foreground = contextual ? theme.color.text.onInverse : onChrome;
+  const foreground = contextual
+    ? theme.color.text.onInverse
+    : cream
+      ? theme.color.text.primary
+      : onChrome;
 
   const control = Math.max(theme.target.min, 44);
 
@@ -192,7 +208,12 @@ export function AppBar({
                   // Same reason as `onChrome`: `text.secondary` is dark ink on the light
                   // scheme, and this sits on the dark chrome. 0.78 keeps the title/subtitle
                   // hierarchy without dropping below AA (8.4:1 on the light chrome).
-                  style={[type(theme, 'caption'), { color: foreground, opacity: contextual ? 1 : 0.78 }]}
+                  style={[
+                    type(theme, 'caption'),
+                    cream
+                      ? { color: theme.color.text.secondary }
+                      : { color: foreground, opacity: contextual ? 1 : 0.78 },
+                  ]}
                 >
                   {subtitle}
                 </Text>

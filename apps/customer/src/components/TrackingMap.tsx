@@ -13,7 +13,7 @@ import { useTheme, useTypeStyle } from '@hg/ui-native';
 
 import type { OrderTracking } from '../api/orders';
 import { loadMapbox } from '../maps/nativeMapbox';
-import { boundsOf, staleSeconds } from '../tracking/trackingFeed';
+import { boundsOf, staleSeconds, type TrackingSnapshot } from '../tracking/trackingFeed';
 import { useGlide, useLiveTracking } from '../tracking/useLiveTracking';
 
 const MAP_HEIGHT = 240;
@@ -29,6 +29,13 @@ function etaText(t: OrderTracking): string | null {
   return win
     ? `Arriving ${hm(at)}–${hm(new Date(at.getTime() + win * 60_000))}`
     : `Arriving ${hm(at)}`;
+}
+
+/** "45 seconds ago", "3 min ago", "over an hour ago": never a six-digit second count. */
+export function staleText(seconds: number): string {
+  if (seconds < 120) return `${seconds} seconds ago`;
+  if (seconds < 3600) return `${Math.floor(seconds / 60)} min ago`;
+  return 'over an hour ago';
 }
 
 function useNow(active: boolean, everyMs = 1_000): number {
@@ -59,9 +66,23 @@ function Pin({ color, label, size }: { color: string; label: string; size: numbe
 }
 
 export function TrackingMap({ orderId }: { orderId: string }): React.ReactElement | null {
+  return <TrackingMapView live={useLiveTracking(orderId)} />;
+}
+
+/**
+ * The map for a feed the caller already owns, so the tracking screen keeps one socket for the
+ * map, the header and the timeline. `showEta: false` where the screen prints the ETA itself.
+ */
+export function TrackingMapView({
+  live,
+  showEta = true,
+}: {
+  live: TrackingSnapshot & { retry: () => void };
+  showEta?: boolean;
+}): React.ReactElement | null {
   const theme = useTheme();
   const body = useTypeStyle('body.md');
-  const { tracking, rider, error, retry } = useLiveTracking(orderId);
+  const { tracking, rider, error, retry } = live;
   const glide = useGlide(rider);
   const now = useNow(rider !== null);
 
@@ -84,7 +105,7 @@ export function TrackingMap({ orderId }: { orderId: string }): React.ReactElemen
     );
   }
 
-  const eta = etaText(tracking);
+  const eta = showEta ? etaText(tracking) : null;
   const stale = staleSeconds(rider, now);
   const restaurant = tracking.restaurant_location;
   const dropoff = tracking.destination_location ?? null;
@@ -153,7 +174,7 @@ export function TrackingMap({ orderId }: { orderId: string }): React.ReactElemen
       {eta ? <Text style={[body, { color: theme.color.text.secondary }]}>{eta}</Text> : null}
       {stale !== null ? (
         <Text style={[body, { color: theme.color.text.secondary }]}>
-          Rider location updated {stale}s ago
+          {`Rider location updated ${staleText(stale)}`}
         </Text>
       ) : null}
     </View>

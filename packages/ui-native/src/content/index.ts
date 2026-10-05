@@ -16,7 +16,11 @@ export { Rating } from './Rating';
 export type { RatingProps, RatingSize, RatingVariant } from './Rating';
 
 export { QuantityStepper } from './QuantityStepper';
-export type { QuantityStepperProps, QuantityStepperSize } from './QuantityStepper';
+export type {
+  QuantityStepperProps,
+  QuantityStepperSize,
+  QuantityStepperVariant,
+} from './QuantityStepper';
 
 export {
   RestaurantCard,

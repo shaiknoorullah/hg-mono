@@ -20,6 +20,12 @@ export type OrderSocketHandlers = {
   /** True once the order channel is subscribed, false whenever the socket is not usable. */
   onLink: (open: boolean) => void;
   onRiderLocation: (fix: RiderLocationData) => void;
+  /**
+   * Any `order.*` or `payment.*` event on the channel (state changes, ETA, cancellation, items
+   * adjusted). The tracking screen re-reads the order over REST on each; it never derives state
+   * from the payload (client rule 9).
+   */
+  onOrderEvent?: (type: string) => void;
 };
 
 /** What the socket needs from the platform, so a test can stand in for it. */
@@ -128,6 +134,7 @@ export function openOrderSocket(
       if (hasGap(lastSeq, msg.seq)) send({ type: 'resume', channel: topic, after_seq: lastSeq });
       lastSeq = Math.max(lastSeq ?? 0, msg.seq);
       if (msg.type === 'rider.location') handlers.onRiderLocation(msg.data as RiderLocationData);
+      else if (/^(order|payment|refund)\./.test(String(msg.type))) handlers.onOrderEvent?.(String(msg.type));
     };
     ws.onclose = () => {
       if (socket === ws) socket = null;

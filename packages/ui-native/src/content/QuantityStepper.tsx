@@ -20,10 +20,16 @@ import {
   useTheme,
 } from '../certification/internal/theme';
 import type { TypeName } from '../certification/internal/theme';
-import { Spinner } from '../primitives';
+import { Icon, Spinner } from '../primitives';
 import { MinusGlyph, PlusGlyph, TrashGlyph } from './internal/glyphs';
 
 export type QuantityStepperSize = 'sm' | 'md' | 'lg';
+/**
+ * `outlined` is the bordered segment the item sheet uses. `tonal` is the cart line's control as
+ * the approved Cart canvas draws it: two round tonal buttons either side of the number, no frame,
+ * and at the last unit the minus becomes a close glyph that removes the line.
+ */
+export type QuantityStepperVariant = 'outlined' | 'tonal';
 
 export interface QuantityStepperProps {
   value: number;
@@ -31,6 +37,7 @@ export interface QuantityStepperProps {
   max?: number;
   onChange: (value: number) => void;
   size?: QuantityStepperSize;
+  variant?: QuantityStepperVariant;
   loading?: boolean;
   disabled?: boolean;
   /** At `value === min + 1` the `−` becomes a trash glyph and announces "Remove {item}". */
@@ -56,6 +63,7 @@ export function QuantityStepper({
   max,
   onChange,
   size = 'md',
+  variant = 'outlined',
   loading = false,
   disabled = false,
   removeAtZero = false,
@@ -75,6 +83,7 @@ export function QuantityStepper({
   // `loading` is not `disabled`: the control keeps its accessible name, announces busy, and
   // blocks re-entry by ignoring the event rather than going grey and losing its label.
   const blocked = loading || disabled;
+  const tonal = variant === 'tonal';
 
   const decrementLabel = willRemove
     ? itemName
@@ -89,13 +98,21 @@ export function QuantityStepper({
       accessibilityLabel={itemName ? `Quantity for ${itemName}` : 'Quantity'}
       style={[
         styles.root,
-        {
-          height,
-          borderRadius: radius.sm,
-          borderColor: theme.color.border.interactive,
-          backgroundColor: theme.color.surface.base,
-          opacity: disabled ? theme.color.state.disabledOpacity : 1,
-        },
+        tonal
+          ? {
+              height,
+              gap: 8,
+              borderWidth: 0,
+              overflow: 'visible',
+              opacity: disabled ? theme.color.state.disabledOpacity : 1,
+            }
+          : {
+              height,
+              borderRadius: radius.sm,
+              borderColor: theme.color.border.interactive,
+              backgroundColor: theme.color.surface.base,
+              opacity: disabled ? theme.color.state.disabledOpacity : 1,
+            },
         style,
       ]}
     >
@@ -105,20 +122,23 @@ export function QuantityStepper({
         disabled={blocked || (atMin && !removeAtZero)}
         busy={loading}
         height={height}
+        tonal={tonal}
         onPress={() => {
           if (blocked) return;
           if (atMin && !removeAtZero) return;
           onChange(value - 1);
         }}
       >
-        {willRemove ? (
+        {willRemove && tonal ? (
+          <Icon name="close" size={glyph} color={theme.color.text.primary} />
+        ) : willRemove ? (
           <TrashGlyph size={glyph} color={theme.color.text.primary} />
         ) : (
           <MinusGlyph size={glyph} color={theme.color.text.primary} />
         )}
       </StepperButton>
 
-      <View style={[styles.value, { minWidth: height }]}>
+      <View style={[styles.value, { minWidth: tonal ? 28 : height }]}>
         {loading ? (
           <Spinner testID={`${testID}-busy`} size="sm" label="Updating quantity" />
         ) : (
@@ -145,6 +165,7 @@ export function QuantityStepper({
         disabled={blocked || atMax}
         busy={loading}
         height={height}
+        tonal={tonal}
         onPress={() => {
           if (blocked || atMax) return;
           onChange(value + 1);
@@ -163,6 +184,7 @@ function StepperButton({
   disabled,
   busy,
   height,
+  tonal = false,
   onPress,
   children,
 }: {
@@ -172,6 +194,7 @@ function StepperButton({
   disabled: boolean;
   busy: boolean;
   height: number;
+  tonal?: boolean;
   onPress: () => void;
   children: React.ReactNode;
 }): React.ReactElement {
@@ -195,6 +218,7 @@ function StepperButton({
       style={({ pressed }) => [
         styles.button,
         { width: height, height, opacity: disabled ? theme.color.state.disabledOpacity : 1 },
+        tonal ? { borderRadius: height / 2, backgroundColor: theme.color.surface.subtle } : null,
         pressed && !disabled ? { backgroundColor: theme.color.state.pressedOverlay } : null,
         focused ? { borderWidth: 3, borderColor: theme.color.focus.ring } : null,
       ]}
