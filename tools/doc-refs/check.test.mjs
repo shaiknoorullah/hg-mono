@@ -71,6 +71,45 @@ test('a baselined finding passes, a new one still fails', () => {
   assert.doesNotMatch(r.out, /\[make\] make nuke/);
 });
 
+// lychee: GitHub draws issue and PR comment anchors with JavaScript, so a missing fragment there
+// is not a broken link (5 Oct: issues #560–#577). The URL itself is still checked.
+test('a missing fragment on a github.com issue or PR is not a finding; the URL still is', () => {
+  const root = repo(CLEAN);
+  const gh = 'https://github.com/shaiknoorullah/hg-mono';
+  const lychee = (errs, elsewhere = []) => {
+    const f = path.join(root, 'lychee.json');
+    fs.writeFileSync(f, JSON.stringify({ error_map: { 'docs/guide.md': errs, 'README.md': elsewhere } }));
+    return run(root, '--lychee', f);
+  };
+  const missing = { text: 'Cannot find fragment' };
+  const cached = { text: 'Error (cached)' };
+
+  // only JavaScript-drawn anchors: issues and PRs, first report and its cached repeats
+  let r = lychee([
+    { url: `${gh}/issues/85#issuecomment-5976668489`, status: missing },
+    { url: `${gh}/pull/541#discussion_r123`, status: missing },
+    { url: `${gh}/pull/541/files#diff-abc`, status: missing },
+  ], [{ url: `${gh}/issues/85#issuecomment-5976668489`, status: cached }]);
+  assert.equal(r.code, 0, r.out);
+
+  // the page itself is gone: still a finding, and so is its cached repeat
+  r = lychee([
+    { url: `${gh}/issues/99999#issuecomment-1`, status: { text: 'Rejected status code: 404 Not Found', code: 404 } },
+  ], [{ url: `${gh}/issues/99999#issuecomment-1`, status: cached }]);
+  assert.equal(r.code, 1, r.out);
+  assert.match(r.out, /docs\/guide\.md {2}\[link\] .*issues\/99999#issuecomment-1 — Rejected status code: 404/);
+  assert.match(r.out, /README\.md {2}\[link\] .*issues\/99999#issuecomment-1 — Error \(cached\)/);
+
+  // other sites' fragments, and github.com pages that are not issues or PRs, are still checked
+  r = lychee([
+    { url: 'https://docs.stripe.com/webhooks#retries', status: missing },
+    { url: `${gh}/blob/main/AGENTS.md#nope`, status: missing },
+  ]);
+  assert.equal(r.code, 1, r.out);
+  assert.match(r.out, /docs\.stripe\.com\/webhooks#retries/);
+  assert.match(r.out, /AGENTS\.md#nope/);
+});
+
 // Issue refs: a status word counts for an issue only in its own sentence, near the reference.
 const ISSUE = (n) => `[#${n}](https://github.com/shaiknoorullah/hg-mono/issues/${n})`;
 
