@@ -1,0 +1,7 @@
+# Managed by Ansible (deploy/host/roles/base).
+[Unit]
+Description=Reboot if an installed update needs it
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/hg-reboot-if-needed

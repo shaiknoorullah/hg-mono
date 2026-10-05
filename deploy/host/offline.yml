@@ -1,0 +1,31 @@
+# The owner's always-on machine that pulls the off-server copy (#64) and watches the server
+# from outside (#65). Run from the owner's laptop with both machines on WireGuard:
+#   ansible-playbook offline.yml
+- name: The owner's machine - its pull key
+  hosts: offline
+  become: true
+  tasks:
+    - name: Create the pull key
+      ansible.builtin.include_role:
+        name: offline_copy
+        tasks_from: keys
+
+- name: The server - let that key pull, read-only
+  hosts: prod
+  become: true
+  tasks:
+    - name: Authorise the pull keys
+      ansible.builtin.include_role:
+        name: backup
+        tasks_from: pull_access
+      vars:
+        hg_offline_pull_ssh_keys: "{{ groups['offline'] | map('extract', hostvars, 'hg_offline_pull_ssh_key') | select('defined') | list }}"
+
+- name: The owner's machine - its own repository, the hourly pull and the watcher
+  hosts: offline
+  become: true
+  roles:
+    - role: secrets
+      vars:
+        hg_secrets_env_files: []
+    - offline_copy
