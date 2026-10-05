@@ -63,4 +63,3 @@
     update_cache: true
   # A fresh server in check mode has not added the repository yet, so apt cannot find these.
   ignore_errors: "{{ ansible_check_mode }}"
-

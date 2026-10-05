@@ -1,7 +1,7 @@
 #!/bin/bash
 # Managed by Ansible (deploy/host/roles/aide). Accept the current state as the new baseline.
 set -euo pipefail
-aide.wrapper --config /etc/aide/aide.conf --update || [ $? -lt 14 ]
+aide --config /etc/aide/aide.conf --update || [ $? -lt 14 ]
 cp -f /var/lib/aide/aide.db.new /var/lib/aide/aide.db
 chmod 600 /var/lib/aide/aide.db
 echo "aide: baseline updated"

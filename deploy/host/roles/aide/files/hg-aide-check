@@ -7,7 +7,7 @@ dir=/var/log/aide
 metrics=/var/lib/prometheus/node-exporter/hg_aide.prom
 mkdir -p "$dir"
 log=$dir/check-$(date -u +%Y%m%d).log
-aide.wrapper --config /etc/aide/aide.conf --check > "$log" 2>&1
+aide --config /etc/aide/aide.conf --check > "$log" 2>&1
 rc=$?
 # aide's exit status is a bit mask: 1 added, 2 removed, 4 changed; 14 and above are errors.
 changed=0; ok=1

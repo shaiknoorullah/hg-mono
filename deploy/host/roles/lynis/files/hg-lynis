@@ -6,9 +6,8 @@ dir=/var/log/lynis
 metrics=/var/lib/prometheus/node-exporter/hg_lynis.prom
 stamp=$(date -u +%Y%m%d)
 mkdir -p "$dir"
-rc=0
 lynis audit system --cronjob --quiet --no-colors \
-  --report-file "$dir/report-$stamp.dat" --logfile "$dir/lynis-$stamp.log" || rc=$?
+  --report-file "$dir/report-$stamp.dat" --logfile "$dir/lynis-$stamp.log" || true   # a nonzero status only means findings
 idx=$(sed -n 's/^hardening_index=//p' "$dir/report-$stamp.dat")
 warn=$(grep -c '^warning\[\]=' "$dir/report-$stamp.dat" || true)
 sugg=$(grep -c '^suggestion\[\]=' "$dir/report-$stamp.dat" || true)

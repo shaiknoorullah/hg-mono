@@ -10,6 +10,7 @@
 
   vars:
     hg_layout: current
+    hg_security_rules: true
     hg_ssh_public: true                # no WireGuard-only SSH today (group_vars would outrank the inventory)
     hg_docker_upstream: false          # keep Ubuntu's docker.io: no engine change on a live stack
     hg_docker_prune: false             # never remove images the stack may need
@@ -18,20 +19,49 @@
     hg_dashboard_bind: 127.0.0.1       # dashboards: ssh -L only (or WireGuard, once a peer exists)
     hg_monitoring_components: [victoriametrics, vmalert, alertmanager, gatus, cadvisor]
     hg_gatus_endpoints:
-      - {name: api, group: production, url: "https://api.{{ hg_domain }}/health/ready", conditions: ["[STATUS] == 200", "[CERTIFICATE_EXPIRATION] > 336h"], alert: true}
-      - {name: partner, group: production, url: "https://partner.{{ hg_domain }}/", conditions: ["[STATUS] == 200", "[CERTIFICATE_EXPIRATION] > 336h"], alert: true}
-      - {name: admin, group: production, url: "https://admin.{{ hg_domain }}/", conditions: ["[STATUS] == 200", "[CERTIFICATE_EXPIRATION] > 336h"], alert: true}
-      - {name: files, group: production, url: "https://files.{{ hg_domain }}/", conditions: ["[CONNECTED] == true", "[CERTIFICATE_EXPIRATION] > 336h"], alert: true}
-      - {name: alertmanager, group: monitoring, url: "http://alertmanager:9093/-/healthy", conditions: ["[STATUS] == 200"], alert: true}
-      - {name: victoriametrics, group: monitoring, url: "http://victoriametrics:8428/health", conditions: ["[STATUS] == 200"], alert: true}
-      - {name: vmalert, group: monitoring, url: "http://vmalert:8880/health", conditions: ["[STATUS] == 200"], alert: true}
+      - name: api
+        group: production
+        url: "https://api.{{ hg_domain }}/health/ready"
+        conditions: ["[STATUS] == 200", "[CERTIFICATE_EXPIRATION] > 336h"]
+        alert: true
+      - name: partner
+        group: production
+        url: "https://partner.{{ hg_domain }}/"
+        conditions: ["[STATUS] == 200", "[CERTIFICATE_EXPIRATION] > 336h"]
+        alert: true
+      - name: admin
+        group: production
+        url: "https://admin.{{ hg_domain }}/"
+        conditions: ["[STATUS] == 200", "[CERTIFICATE_EXPIRATION] > 336h"]
+        alert: true
+      - name: files
+        group: production
+        url: "https://files.{{ hg_domain }}/"
+        conditions: ["[CONNECTED] == true", "[CERTIFICATE_EXPIRATION] > 336h"]
+        alert: true
+      - name: alertmanager
+        group: monitoring
+        url: "http://alertmanager:9093/-/healthy"
+        conditions: ["[STATUS] == 200"]
+        alert: true
+      - name: victoriametrics
+        group: monitoring
+        url: "http://victoriametrics:8428/health"
+        conditions: ["[STATUS] == 200"]
+        alert: true
+      - name: vmalert
+        group: monitoring
+        url: "http://vmalert:8880/health"
+        conditions: ["[STATUS] == 200"]
+        alert: true
 
   pre_tasks:
     - name: Is Docker installed? (roles that start containers need to know even when only they run)
       ansible.builtin.stat: {path: /usr/bin/docker}
       register: hg_docker_bin
       tags: [always]
-    - ansible.builtin.set_fact:
+    - name: Remember it
+      ansible.builtin.set_fact:
         hg_docker_ready: "{{ hg_docker_bin.stat.exists }}"
       tags: [always]
 

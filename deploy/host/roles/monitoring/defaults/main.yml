@@ -50,3 +50,5 @@ hg_gatus_endpoints:
     url: "http://vmalert:8880/health"
     conditions: ["[STATUS] == 200"]
     alert: true
+# Alerts on AIDE and Lynis (roles/aide, roles/lynis). On in the layout running today.
+hg_security_rules: false

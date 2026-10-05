@@ -4,6 +4,8 @@ exclude_paths:
   - .collections/
   - out/
   - secrets/
+  # Compose file with the !override tag, copied to the server as it is: not an Ansible file.
+  - roles/app_stack/files/
 skip_list:
   # Every variable lives in one hg_ namespace on purpose: many are shared by several roles
   # (addresses, paths, images), and group_vars/all.yml is their single home.

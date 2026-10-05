@@ -23,4 +23,3 @@
       sudo apt-get install docker-ce docker-ce-cli docker-compose-plugin
     quiet: true
   when: hg_docker_ready
-

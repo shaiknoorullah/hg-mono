@@ -6,4 +6,3 @@
     state: present
   # A fresh server in check mode has not installed them yet.
   ignore_errors: "{{ ansible_check_mode }}"
-

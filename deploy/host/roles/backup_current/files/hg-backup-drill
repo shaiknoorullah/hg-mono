@@ -4,11 +4,12 @@
 # live database for a few tables. A table with more rows live than in the dump is normal (the app
 # kept writing); fewer live than dumped, or any missing, fails.   hg-backup-drill [--no-metrics]
 set -euo pipefail
+# shellcheck source=/dev/null
 . /etc/hg/backup-current.conf
 name=hg-restore-drill
 dir=$HG_BACKUP_ROOT/pg
-db=$(ls -1 "$dir"/db-*.sql.gz | sort | tail -1)
-glob=$(ls -1 "$dir"/globals-*.sql.gz | sort | tail -1)
+db=$(find "$dir" -maxdepth 1 -name 'db-*.sql.gz' | sort | tail -1)
+glob=$(find "$dir" -maxdepth 1 -name 'globals-*.sql.gz' | sort | tail -1)
 image=$(docker inspect --format '{{.Config.Image}}' "$HG_POSTGRES")
 echo "drill: $db with $image"
 pw=drill-$RANDOM$RANDOM
@@ -23,8 +24,8 @@ zcat "$glob" | grep -v '^\(CREATE\|ALTER\|DROP\) ROLE postgres' | docker exec -i
 zcat "$db" | docker exec -i "$name" psql -U postgres -q -d "$live_db" -v ON_ERROR_STOP=0 >/dev/null 2>/var/log/hg-backup-drill.err || true
 fail=0
 for t in $HG_DRILL_TABLES; do
-  live=$(docker exec "$HG_POSTGRES" sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -Atc 'select count(*) from public.$t'" 2>/dev/null) || { echo "  $t: not in live database, skipped"; continue; }
-  rest=$(docker exec "$name" psql -U postgres -d "$live_db" -Atc "select count(*) from public.$t" 2>/dev/null || echo missing)
+  live=$(docker exec "$HG_POSTGRES" sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -Atc 'select count(*) from public.\"$t\"'" 2>/dev/null) || { echo "  $t: not in live database, skipped"; continue; }
+  rest=$(docker exec "$name" psql -U postgres -d "$live_db" -Atc "select count(*) from public.\"$t\"" 2>/dev/null || echo missing)
   if [ "$rest" = missing ] || [ "$rest" -gt "$live" ]; then verdict=FAIL; fail=1; else verdict=ok; fi
   echo "  $t: restored=$rest live=$live $verdict"
 done

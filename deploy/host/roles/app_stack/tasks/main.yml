@@ -1,8 +1,8 @@
 # The application stack running today: the base compose file plus the single-server override
 # (README, "Today's layout"). App secrets stay in {{ hg_app_repo }}/deploy/.env, edited by the
 # owner; this role never reads or writes it.
-- name: Own /srv/hg as the deploy user (rsync deploys run as {{ hg_admin_user }}); modes are left as they are
-  # No mode: deploy/.env stays 0600. Without this, a re-run would hand the tree back to root.
+- name: Own the app folder as the deploy user, leaving modes as they are
+  # Rsync deploys run as the admin user. No mode: deploy/.env stays 0600. Without this, a re-run would hand the tree back to root.
   ansible.builtin.file:
     path: "{{ hg_app_dir }}"
     state: directory

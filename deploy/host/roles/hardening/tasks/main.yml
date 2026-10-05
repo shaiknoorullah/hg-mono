@@ -56,6 +56,7 @@
     content: |
       # Managed by Ansible (deploy/host/roles/hardening). Weekly, compressed, bounded.
       /var/log/hg-backup-drill.err /var/log/lynis/*.log /var/log/aide/*.log {
+        su root root
         weekly
         rotate 8
         compress
@@ -67,4 +68,4 @@
     owner: root
     group: root
     mode: "0644"
-    validate: /usr/sbin/logrotate -d %s
+    validate: /usr/sbin/logrotate -d -s /tmp/hg-logrotate-check.state %s

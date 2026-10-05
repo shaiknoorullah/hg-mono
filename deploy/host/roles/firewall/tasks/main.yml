@@ -51,8 +51,16 @@
 - name: Gather installed packages (is ufw here?)
   ansible.builtin.package_facts:
 
-- name: Turn ufw off if the image has it (this table is the host firewall)
+- name: Is ufw active?
+  ansible.builtin.command: ufw status
+  register: hg_ufw_status
+  changed_when: false
+  check_mode: false
+  when: ansible_facts.packages['ufw'] is defined
+
+- name: Turn ufw off (this table is the host firewall)
   ansible.builtin.command: ufw --force disable
-  register: hg_ufw
-  changed_when: "'stopped and disabled' in hg_ufw.stdout"
-  when: ansible_facts.packages['ufw'] is defined and not ansible_check_mode
+  changed_when: true
+  when: >-
+    ansible_facts.packages['ufw'] is defined and ('Status: active' in hg_ufw_status.stdout)
+    and not ansible_check_mode

@@ -32,8 +32,10 @@
     - {src: rules-host.yml.j2, dest: rules/host.yml}
     - {src: rules-backups.yml.j2, dest: rules/backups.yml}
     - {src: rules-services.yml.j2, dest: rules/services.yml}
+    - {src: rules-security.yml.j2, dest: rules/security.yml}
   loop_control:
     label: "{{ item.dest }}"
+  when: item.dest != 'rules/security.yml' or hg_security_rules | bool
   notify: Restart the monitoring stack
 
 # Alertmanager runs as nobody (65534): the password file is readable by that group only.
@@ -60,7 +62,8 @@
       content: "GATUS_SMTP_PASSWORD={{ hg_alert_smtp_password | default('') }}\n"
     - dest: postgres-exporter.env
       content: >-
-        DATA_SOURCE_NAME=postgresql://hg_monitor:{{ hg_monitor_postgres_password | default("") | urlencode }}@{{ hg_postgres_host }}:5432/{{ hg_postgres_db }}?sslmode=disable
+        DATA_SOURCE_NAME=postgresql://hg_monitor:{{ hg_monitor_postgres_password | default("") | urlencode }}@{{
+        hg_postgres_host }}:5432/{{ hg_postgres_db }}?sslmode=disable
   loop_control:
     label: "{{ item.dest }}"
   when: item.dest != 'postgres-exporter.env' or 'postgres_exporter' in hg_monitoring_components

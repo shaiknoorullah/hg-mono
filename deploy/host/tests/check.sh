@@ -5,9 +5,9 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 ansible-galaxy collection install -r requirements.yml -p ./.collections >/dev/null
-for playbook in site.yml bootstrap.yml standby.yml offline.yml; do
+for playbook in site.yml current.yml bootstrap.yml standby.yml offline.yml; do
   ansible-playbook -i tests/inventory.yml --syntax-check "$playbook"
 done
 ANSIBLE_INVENTORY=tests/inventory.yml ansible-lint
-shellcheck -x provision.sh tests/check.sh roles/*/files/hg-*
+shellcheck -x provision.sh provision-current.sh tests/check.sh roles/*/files/hg-*
 echo "all checks passed"

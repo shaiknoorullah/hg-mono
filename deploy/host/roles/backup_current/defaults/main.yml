@@ -9,7 +9,7 @@ hg_backup_current_silo: hg-minio-1
 hg_backup_current_network: hg-net
 # Tables whose row counts the restore drill compares (a table missing from the live
 # database is skipped).
-hg_backup_drill_tables: [goose_db_version, spatial_ref_sys, users, orders, restaurants, ledger_entries, stored_object]
+hg_backup_drill_tables: [goose_db_version, account, account_role, restaurant, order, order_line, payment_intent, ledger_entry, stored_object, spatial_ref_sys]
 # A backup is overdue after a day and a half.
 hg_backup_current_max_age: 129600
 # Where the off-server pull account may read (it has no key until the owner adds one).

@@ -4,6 +4,7 @@
 #   silo: mc mirror of every bucket through the S3 API, then a gzipped tar of the mirror
 # Output: /srv/backup/{pg,silo}/<kind>-<UTC stamp>.*, kept hg_backup_keep_days days.
 set -euo pipefail
+# shellcheck source=/dev/null
 . /etc/hg/backup-current.conf
 umask 027
 stamp=$(date -u +%Y%m%dT%H%M%SZ)
@@ -22,6 +23,7 @@ run() { # run <name> <function>
   [ $rc -eq 0 ] || { echo "backup $name FAILED ($rc)" >&2; status=1; }
 }
 
+# shellcheck disable=SC2329  # called through run()
 pg() {
   local out=$HG_BACKUP_ROOT/pg
   docker exec "$HG_POSTGRES" sh -c 'pg_dumpall -U "$POSTGRES_USER" --globals-only' | gzip -9 > "$out/globals-$stamp.sql.gz.part"
@@ -33,6 +35,7 @@ pg() {
   mv "$out/db-$stamp.sql.gz.part" "$out/db-$stamp.sql.gz"
 }
 
+# shellcheck disable=SC2329  # called through run()
 silo() {
   local out=$HG_BACKUP_ROOT/silo user pass
   user=$(docker exec "$HG_SILO" printenv MINIO_ROOT_USER)

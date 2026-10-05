@@ -4,6 +4,8 @@
     set -euo pipefail
     if wg show {{ hg_wg_interface }} >/dev/null 2>&1; then
       wg syncconf {{ hg_wg_interface }} <(wg-quick strip {{ hg_wg_interface }})
+      # syncconf leaves out the private key (PostUp sets it at start), so set it again.
+      wg set {{ hg_wg_interface }} private-key /etc/wireguard/{{ hg_wg_interface }}.key
     else
       systemctl restart wg-quick@{{ hg_wg_interface }}
     fi

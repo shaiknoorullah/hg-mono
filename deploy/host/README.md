@@ -16,6 +16,97 @@ Everything here is open source and self-hosted. The only outside services it tal
 | `secrets/*.example.*` | The shape of each encrypted secrets file. Never filled in |
 | `tests/check.sh` | Syntax, ansible-lint and shellcheck; needs no server |
 
+## The server running today: `current.yml`
+
+Until the production compose layout ([#296][pr296]) runs, the server is the base compose file plus a single-server override (`roles/app_stack/files/docker-compose.server.yml`: Traefik with Let's Encrypt for `api.`, `partner.`, `admin.` and `files.`, nginx for the two web apps). `current.yml` provisions that, with the same roles where they apply. Differences from `site.yml`:
+
+| | Today (`current.yml`) | Production layout (`site.yml`) |
+|---|---|---|
+| Admin account | `hg` (the account the server was delivered with) | `hg` too (the variable `hg_admin_user`) |
+| SSH | public, keys only (`hg_ssh_public: true`) until a WireGuard peer exists | WireGuard only |
+| Docker | Ubuntu's `docker.io` and compose, unchanged: no engine change on a live stack (`hg_docker_upstream: false`) | Docker's own repository, Engine 29 |
+| Networks | `hg-socket`, `hg-ops`, `hg-monitoring` (and the app's own `hg-net`) | the full set in `hg_networks` |
+| Traefik reads Docker | through the socket proxy (`tcp://docker-socket-proxy:2375`), no socket mount | the same |
+| Backups | nightly logical dump and bucket copy (`roles/backup_current`) | pgBackRest and restic (`roles/backup`), once Postgres has WAL archiving |
+| App secrets | stay in `/srv/hg/repo/deploy/.env`, edited by the owner; the playbooks never read or write it | `prod.sops.env` |
+| Dashboards | `127.0.0.1` on the server: reach them with `ssh -L` | WireGuard address |
+| ClamAV, dev environment, standby | off | on, and next month |
+
+Roles, each tagged by its name (`--tags`): `secrets` (always), `base`, `wireguard`, `firewall`, `ssh`, `hardening` (kernel settings, fail2ban, log rotation), `docker`, `socket_proxy`, `app_stack`, `node_exporter`, `backup`, `auditd`, `lynis`, `aide`, `monitoring`, `logging`.
+
+### Day 1 / rebuild
+
+On the owner's laptop, from this directory (`deploy/host`). It needs `ansible-core` 2.19 or later, `sops`, `age`, `wireguard-tools` and `openssl`.
+
+```bash
+# 1. Secrets, the first time only. Creates ~/.config/halalgoes/age.key (copy it into the password
+#    manager now) and ~/.config/halalgoes/secrets/host.sops.yaml, never printing a value.
+#    Then the dry run: changes nothing, shows every diff.
+./provision-current.sh --check --diff
+
+# 2. Apply role by role. After each, from the laptop, all four must hold:
+#      ssh hg-prod true
+#      ssh hg-prod 'for h in api partner admin files; do curl -s -o /dev/null -w "$h %{http_code}\n" https://$h.halalgoes.com/; done'
+#      ssh hg-prod 'sudo docker ps --format "{{.Names}} {{.Status}}"'
+for t in base wireguard hardening ssh; do ./provision-current.sh --tags $t; done
+# The firewall can lock you out if a variable is wrong: arm an automatic undo first, cancel it once a
+# NEW ssh connection works (-o ControlPath=none).
+ssh hg-prod 'sudo systemd-run --on-active=300 --unit=hg-fw-rollback /usr/sbin/nft delete table inet host'
+./provision-current.sh --tags firewall
+ssh -o ControlMaster=no -o ControlPath=none hg-prod 'sudo systemctl stop hg-fw-rollback.timer'
+# Docker restarts once here (log caps, live-restore). Choose a quiet moment; every container has
+# restart: unless-stopped and comes back within about 15 seconds.
+./provision-current.sh --tags docker
+./provision-current.sh --tags socket_proxy,app_stack,node_exporter,backup
+./provision-current.sh --tags auditd,lynis,aide,monitoring,logging
+
+# 3. Every run after that, and the proof that nothing drifted (expect changed=0):
+./provision-current.sh
+```
+
+A rebuild on a new server: order a Contabo VPS 6 with the owner's SSH key, put its address in `inventory/current.yml` (`ansible_host`, `hg_public_ipv4`), run `ansible-playbook -i inventory/current.yml bootstrap.yml -e ansible_user=root -e ansible_host=<IP> --limit hg-prod` once if the `hg` account does not exist yet, then the commands above, then restore the data (below) and `docker compose up -d` in `/srv/hg/repo` as the deploy step does. The DNS records come from [`deploy/terraform`](../terraform/README.md).
+
+**Owner steps still open**
+
+1. **WireGuard.** The server side is installed and its tunnel is up (`sudo wg show wg0 public-key` prints its public key) but there is no peer. Generate a key on the laptop (`wg genkey | tee private.key | wg pubkey`), add `- {name: owner-laptop, public_key: "<public key>", address: 10.66.0.10}` under `hg_wg_peers` in `inventory/current.yml`, run `./provision-current.sh --tags wireguard,firewall`, then put the private key into `out/owner-laptop.conf` and bring the tunnel up. Public SSH stays open until the owner decides to close it (`hg_ssh_public: false` in `current.yml`, run from the tunnel).
+2. **Alert email.** Create a Resend API key with sending access, then `sops edit ~/.config/halalgoes/secrets/host.sops.yaml` and set `hg_alert_smtp_password`, then `./provision-current.sh --tags monitoring`. Until then alerts show in the dashboards only (Alertmanager has no email receiver; Gatus sends none).
+3. **Terraform credentials**: see [`deploy/terraform/README.md`](../terraform/README.md).
+4. **Off-server backup copy.** Add the owner's backup machine key to `hg_offline_pull_ssh_keys` and `hg_pull_sources`-style access (read-only SFTP as `hg-pull`, inside `/srv/backup`) once WireGuard works. Until then the only copy is on this server and a Contabo snapshot is the second line.
+
+### Backups today
+
+`hg-backup-current.timer` runs at 07:00 UTC every day: `pg_dumpall --globals-only` and `pg_dump` of the app database (gzip, `/srv/backup/pg`), and a copy of every Silo bucket through its S3 API (`mc mirror` into `/srv/backup/silo/mirror`, then a gzipped tar), 14 days kept. Mode `0640` root:`hg-pull`; the `hg-pull` account has no key yet. Results are metrics (`hg_backup_last_run_success`, `hg_backup_last_success_timestamp_seconds`); `BackupFailed` and `BackupOverdue` alert.
+
+```bash
+sudo systemctl start hg-backup-current        # run it now
+sudo journalctl -u hg-backup-current -n 20
+sudo hg-backup-drill                           # restore the newest dump into a throwaway Postgres (no network, 768 MB), compare row counts with live
+```
+
+Restoring for real (an empty Postgres of the same image, stack stopped except Postgres): `zcat globals-<stamp>.sql.gz | docker exec -i hg-postgres-1 psql -U hg`, create the database if needed, then `zcat db-<stamp>.sql.gz | docker exec -i hg-postgres-1 psql -U hg -d hg`. Buckets: untar `buckets-<stamp>.tar.gz` and `mc mirror` it back into Silo.
+
+### Dashboards: only over an SSH tunnel (or WireGuard later)
+
+Every dashboard listens on `127.0.0.1` on the server; nothing is published on a public address, and the host firewall would drop it anyway. cAdvisor, node-exporter's scrape and Fluent Bit stay inside internal Docker networks.
+
+```bash
+ssh -L 8080:127.0.0.1:8080 -L 8428:127.0.0.1:8428 -L 8880:127.0.0.1:8880 -L 9093:127.0.0.1:9093 -L 9428:127.0.0.1:9428 hg-prod
+# then open: http://127.0.0.1:8080 (Gatus), :8428/vmui (metrics), :8880 (alert rules), :9093 (Alertmanager), :9428/select/vmui (logs)
+```
+
+### Security auditing and logs
+
+| What | How | Where to look |
+|---|---|---|
+| auditd | rules in `/etc/audit/rules.d/hg.rules`: identity files, sudoers, sshd config, Docker config and socket, cron, systemd units, kernel module load and unload, time changes, commands run as root by someone else; **locked with `-e 2`** (changing a rule needs a reboot); log capped at 5 files of 20 MB | `sudo ausearch -k identity -ts today`, `sudo aureport --summary` |
+| Lynis | weekly, Monday 06:00 UTC | `/var/log/lynis/summary.txt`; metric `hg_lynis_hardening_index`; alert on any warning |
+| AIDE | baseline built at first run; daily check 05:30 UTC | `/var/log/aide/summary.txt`; metric `hg_aide_changes_detected`; after reviewing a change, accept it: `sudo hg-aide-accept` |
+| rkhunter | **not installed**: Lynis (weekly, its checks include rootkit tools) plus AIDE (every system file) cover it, and rkhunter's signature scans mostly add false positives | |
+| sysctl | `/etc/sysctl.d/90-hg-hardening.conf`: loose reverse-path filter (strict can drop Docker and WireGuard traffic), no ICMP redirects, `kptr_restrict`, `dmesg_restrict`, protected symlinks, hardlinks, fifos and regular files, ASLR; IPv4 forwarding stays on for Docker | `sysctl -a` |
+| Log rotation | journald capped at 500 MB and 30 days (`roles/base`); Docker `json-file` 5 files of 20 MB per container; auditd rotates itself; `/etc/logrotate.d/hg-roles` for the drill, Lynis and AIDE logs; fail2ban and the system logs rotate with their packages | |
+
+**Memory.** Limits (ceilings): VictoriaMetrics 128 MB, vmalert 32, Alertmanager 32, Gatus 48, cAdvisor 96, VictoriaLogs 128, Fluent Bit 48, socket proxy 48: **560 MB** in all, against 11.7 GiB. Measured use right after start-up is about 230 MB. Transient jobs (never at the same time: AIDE 05:30 up to 512 MB, backup 07:00 up to 256 MB, Lynis Mondays 06:00 up to 256 MB) run in the small hours. The application keeps about 11 GiB.
+
 ## Day 1, in order
 
 **What the owner gives:**
