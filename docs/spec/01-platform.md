@@ -1639,6 +1639,8 @@ CREATE UNIQUE INDEX ledger_entry_paid_once ON ledger_entry(id) WHERE payout_id I
   - **I-19.4** Every Stripe transfer/payout call is idempotency-keyed by `payout.id`.
   - **I-19.5** No partner takes a first order or offer before Stripe onboarding completes; a partner restricted later keeps working, and its balance accrues until payouts are re-enabled.
   - **I-19.6** Rider `date_of_birth` implies age ≥ 18 at onboarding.
+  - **I-19.7** A payout run on request is authorised on the database's live state, not on the access token alone. The account must be active, hold a live platform-wide `ADMIN` or `SUPER_ADMIN` grant, and not be suspended staff, both when the run is queued and again when it starts. An admin's run never pays the admin's own rider account or restaurants ([#457](https://github.com/shaiknoorullah/hg-mono/issues/457)).
+  - **I-19.8** Whether to pay a restaurant is decided inside the transaction that builds or claims its payout, under a lock on the restaurant row. A restaurant suspended partway through a run is not paid; its balance is kept until it is reinstated.
 - **Acceptance criteria**:
   1. Given a restaurant completes Express onboarding, Then `charges_enabled` remains false, `payouts_enabled` becomes true, and `capabilities.transfers` is `active`.
   2. Given a weekly payout run, Then every included ledger entry is stamped with the payout id and a second run produces `amount_cents = 0` for the same period.
