@@ -30,6 +30,7 @@ import { useHgFonts } from '@hg/ui-native/fonts';
 import { Router } from './src/navigation/Router';
 import { OrderingPauseProvider } from './src/ordering/orderingPause';
 import { StripeRoot } from './src/payments/StripeRoot';
+import { PaymentSheetHost } from './src/payments/PaymentSheetHost';
 import { requestOtp, verifyOtp } from './src/api/auth';
 import { subscribe, isAuthed } from './src/api/token';
 
@@ -256,6 +257,8 @@ export default function App(): React.ReactElement | null {
         {authed ? (
           <OrderingPauseProvider>
             <Router />
+            {/* The web card sheet `payWithSheet` opens (renders nothing on native). */}
+            <PaymentSheetHost />
           </OrderingPauseProvider>
         ) : (
           <LoginGate />

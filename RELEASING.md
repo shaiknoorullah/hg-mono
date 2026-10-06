@@ -77,7 +77,9 @@ Each is a config change, not an eng sprint — the seams are built. Do them in t
    in until this lands.*
 2. **Stripe live + Connect payouts.** `HG_STRIPE_SECRET_KEY` + `HG_STRIPE_WEBHOOK_SECRET`
    (+ `HG_STRIPE_CONNECT_RETURN_URL` / `HG_STRIPE_CONNECT_REFRESH_URL` for rider onboarding).
-   Empty keys = fake local gateway.
+   Empty keys = fake local gateway. The customer build's `EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY` must
+   be the `pk_live_…` key of the same account; a build without it takes no card payments and says
+   so at checkout ([release README](docs/release/README.md)).
 3. **HST / tax (O-01).** `HG_TAX_HST_REGISTRATION_NUMBER` + `HG_TAX_PLATFORM_LEGAL_NAME` — rendered
    on receipts only when set. (Tax is already computed.)
 4. **Mapbox token(s)** — §2.

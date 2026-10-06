@@ -225,7 +225,7 @@ Adding customer, rider or admin coverage is additive — no change to the [archi
 
 1. **Personas** — add a coverage table for the app's states to the manifest and a `migrations/devworld/<nn>_<app>_*.sql` file; `verify` picks them up.
 2. **Scenarios** — add scenarios under `internal/devworld/scenarios/` for states only a flow can produce; reuse the journey (`--manual=rider` for the rider app, customer steps for the customer app).
-3. **Playbooks** — `playbooks/<app>/*.md` under `docs/`, in the same setup → action → assertion form.
+3. **Playbooks** — `playbooks/<app>/*.md` under `docs/`, in the same setup → action → assertion form. The customer folder starts with [`card-payments.md`](../../playbooks/customer/card-payments.md): paying at checkout with Stripe test cards, on web and on a device.
 4. **Run skill** — `apps/<app>/.claude/skills/run-<app>/` with a `--backend` mode (the customer and rider apps are Expo; their web target is the automation surface).
 
 One GitHub issue per app tracks this.
