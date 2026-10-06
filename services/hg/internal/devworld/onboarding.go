@@ -155,6 +155,11 @@ func randomSuffix() string {
 }
 
 func scenarioOnboardRestaurant(ctx context.Context, base string) error {
+	// Refuse a non-local API before the first request: registering creates an
+	// account, and the database guard in emailLink only runs after that.
+	if err := AllowAPI(base); err != nil {
+		return err
+	}
 	suffix := randomSuffix()
 	email := "onboard-" + suffix + "@devworld.test"
 	owner := newAPI(base, "restaurant-web")
