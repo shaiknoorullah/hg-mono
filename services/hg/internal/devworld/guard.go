@@ -3,6 +3,7 @@ package devworld
 import (
 	"fmt"
 	"net"
+	"net/url"
 	"strings"
 
 	"github.com/jackc/pgx/v5/pgconn"
@@ -36,6 +37,31 @@ func LocalDBHost(host string) bool {
 	}
 	switch strings.ToLower(host) {
 	case "", "localhost", "postgres":
+		return true
+	}
+	ip := net.ParseIP(host)
+	return ip != nil && ip.IsLoopback()
+}
+
+// AllowAPI reports whether a scenario may create accounts and rows through the
+// API at baseURL. The host must be loopback or a compose service name ("api",
+// "traefik"); anything else is refused before the first request, so a
+// mistyped HG_API_URL never leaves a junk account on a shared server.
+func AllowAPI(baseURL string) error {
+	u, err := url.Parse(strings.TrimSpace(baseURL))
+	if err != nil || u.Host == "" {
+		return fmt.Errorf("devworld refuses API address %q; it must be an http URL on this machine", baseURL)
+	}
+	if !LocalAPIHost(u.Hostname()) {
+		return fmt.Errorf("devworld refuses API host %q; onboarding scenarios run only against this machine (localhost, 127.0.0.1, ::1, api, traefik)", u.Hostname())
+	}
+	return nil
+}
+
+// LocalAPIHost reports whether host is an API this tool may write through.
+func LocalAPIHost(host string) bool {
+	switch strings.ToLower(strings.TrimSpace(host)) {
+	case "localhost", "api", "traefik":
 		return true
 	}
 	ip := net.ParseIP(host)

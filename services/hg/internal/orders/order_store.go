@@ -251,6 +251,16 @@ func (s *Store) CreateOrder(ctx context.Context, in OrderInput, freshQuote **Quo
 			machine.ActorCustomer, in.AccountID, "order placed", ""); err != nil {
 			return err
 		}
+		// The cart becomes the order (C-23 rule 1): consumed in the same transaction, so a
+		// placed order never leaves its lines behind in the cart bar. A payment that fails
+		// is retried against this order, not a new cart; an unpaid order that ends offers
+		// "Put these items back in your cart" (C-23 rule 8).
+		if _, err := tx.Exec(ctx, `
+			UPDATE cart SET deleted_at = now()
+			 WHERE id = $1 AND account_id = $2 AND deleted_at IS NULL`,
+			stored.CartID, in.AccountID); err != nil {
+			return fmt.Errorf("consume the cart: %w", err)
+		}
 		// order.created and the first order.state_changed, in this transaction
 		// (events.go). Creation has no notification of its own, so the notifier
 		// is not called.

@@ -719,6 +719,14 @@ paths:
         **Issues no session and sets no cookie**, also when the link is a staff invitation
         setting a first password. The user signs in afterwards with `login` (with the
         authenticator code where the account requires one).
+
+        **Staff invitation with an authenticator.** A staff role needs an authenticator to sign
+        in, and enrolling one needs a session, so an invitee starts enrolment with
+        `startInviteTotpEnrolment` and sends the first code here as `totp_code`. The password is
+        set and the authenticator confirmed together. A wrong code answers `422
+        INVALID_CREDENTIALS` and leaves the link usable; a `totp_code` with no enrolment started
+        answers `422 VALIDATION_FAILED`. Without `totp_code` nothing changes
+        ([#170](https://github.com/shaiknoorullah/hg-mono/issues/170)).
       security: []
       x-roles: [PUBLIC]
       x-version: V0
@@ -738,6 +746,10 @@ paths:
                   maxLength: 128
                 new_password:
                   $ref: '#/components/schemas/Password'
+                totp_code:
+                  type: string
+                  pattern: '^[0-9]{6}$'
+                  description: 'The first code from the authenticator that `startInviteTotpEnrolment` set up for this link.'
       responses:
         '204':
           description: Password set; all sessions revoked. No session issued and no cookie set.
@@ -749,6 +761,55 @@ paths:
           $ref: '#/components/responses/RateLimited'
         '503':
           $ref: '#/components/responses/ServerBusy'
+        default:
+          $ref: '#/components/responses/Error'
+  /v1/auth/invite/totp:
+    post:
+      operationId: startInviteTotpEnrolment
+      tags: [auth]
+      summary: Start an invited staff member's authenticator enrolment
+      description: |
+        P-03/A-03. For an unused staff invitation (or reset) link whose account needs an
+        authenticator (`SUPPORT_AGENT`, `ADMIN`, `SUPER_ADMIN`) and has none yet. Returns the
+        provisioning URI; the link stays usable. `resetPassword` with the link, the new password
+        and the first code then confirms it. Calling again replaces the enrolment not yet
+        confirmed. An account that needs no authenticator or already has one answers `409
+        STEP_NOT_AVAILABLE` ([#170](https://github.com/shaiknoorullah/hg-mono/issues/170)).
+      security: []
+      x-roles: [PUBLIC]
+      x-version: V0
+      x-rate-class: AUTH
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [token]
+              properties:
+                token:
+                  type: string
+                  minLength: 32
+                  maxLength: 128
+      responses:
+        '200':
+          description: Enrolment started; confirm it with `resetPassword` and `totp_code`.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [data]
+                properties:
+                  data:
+                    $ref: '#/components/schemas/TotpEnrolment'
+        '400':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+        '429':
+          $ref: '#/components/responses/RateLimited'
         default:
           $ref: '#/components/responses/Error'
   /v1/auth/password/change:

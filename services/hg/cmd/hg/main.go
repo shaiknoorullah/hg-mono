@@ -41,6 +41,7 @@ import (
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/auth"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/catalog"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/config"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/devworld/tablets"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/dispatch"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/files"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/halalexpiry"
@@ -872,6 +873,18 @@ func run() error {
 		SuspendAfterExpiredDays: cfg.Halal.SuspendAfterExpiredDays,
 	})
 	go halalExpiry.Run(ctx)
+
+	// Local dev world only: stand in for the seeded restaurants' order screens
+	// so their heartbeats stay fresh and discovery keeps reading them open
+	// (internal/devworld/tablets). Config refuses the switch unless HG_ENV is
+	// local, and New refuses it again.
+	if cfg.DevworldTablets {
+		devTablets, err := tablets.New(string(cfg.Env), cfg.DevworldTablets, st.DB().Pool, log)
+		if err != nil {
+			return err
+		}
+		go devTablets.Run(ctx)
+	}
 
 	// TODO(siblings): auth.Routes(router, …), catalog.Routes(router, …),
 	// orders.Routes(router, …), dispatch.Routes(router, …),

@@ -94,7 +94,13 @@ func migrateAndSeed(ctx context.Context, dsn string) error {
 	if err := ApplyPersonas(ctx, dsn); err != nil {
 		return err
 	}
-	return ApplyCredentials(ctx, dsn)
+	if err := ApplyCatalogue(ctx, dsn); err != nil {
+		return err
+	}
+	if err := ApplyCredentials(ctx, dsn); err != nil {
+		return err
+	}
+	return SeedImages(ctx, dsn)
 }
 
 func recreatePublic(ctx context.Context, dsn string) error {
