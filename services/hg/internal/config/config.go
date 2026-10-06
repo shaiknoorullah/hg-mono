@@ -57,6 +57,11 @@ type Config struct {
 	Realtime Realtime
 	Halal    Halal
 	Payouts  Payouts
+
+	// DevworldTablets (HG_DEVWORLD_TABLETS=on) keeps the local dev world's
+	// seeded restaurants' heartbeats fresh, as their order screens would
+	// (internal/devworld/tablets). Refused unless HG_ENV is local.
+	DevworldTablets bool
 }
 
 // Payouts holds the payout settings the owner may still change.
@@ -616,6 +621,18 @@ func Load(getenv func(string) string) (*Config, error) {
 	if cfg.Payouts.RestaurantNegativeBalanceBlockDays < 0 {
 		l.errf("HG_RESTAURANT_NEGATIVE_BALANCE_BLOCK_DAYS: %d must be 0 (off) or more",
 			cfg.Payouts.RestaurantNegativeBalanceBlockDays)
+	}
+
+	switch v := l.optional("HG_DEVWORLD_TABLETS", "off"); v {
+	case "on":
+		cfg.DevworldTablets = true
+		if cfg.Env != EnvLocal {
+			l.errf("HG_DEVWORLD_TABLETS=on is refused when HG_ENV is %q: the simulated order screens "+
+				"run only in the local dev world", string(cfg.Env))
+		}
+	case "off":
+	default:
+		l.errf("HG_DEVWORLD_TABLETS: %q is not one of on, off", v)
 	}
 
 	// G-7: outside local, no dependency may point at loopback. This is the
