@@ -38,6 +38,20 @@ func ApplyCredentials(ctx context.Context, dsn string) error {
 	if tag.RowsAffected() == 0 {
 		return fmt.Errorf("devworld: no persona accepted a password")
 	}
+	// The catalogue's restaurant owners sign in the same way.
+	owners := make([]string, 0, len(Catalogue))
+	for _, r := range Catalogue {
+		if !r.Persona {
+			owners = append(owners, r.OwnerID)
+		}
+	}
+	if _, err := conn.Exec(ctx, `
+		UPDATE account
+		   SET password_hash = $1,
+		       password_set_at = COALESCE(password_set_at, now())
+		 WHERE id = ANY($2::uuid[])`, hash, owners); err != nil {
+		return fmt.Errorf("devworld: set catalogue owner passwords: %w", err)
+	}
 
 	key, ok, err := dataKeyFromEnv()
 	if err != nil {
