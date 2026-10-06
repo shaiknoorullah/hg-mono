@@ -40,6 +40,7 @@ var ScenarioNames = []string{
 	"docs-reject",
 	"menu-approve",
 	"menu-reject",
+	"onboard-restaurant",
 }
 
 // RunScenario signs in as the personas the scenario needs and calls the API
@@ -75,6 +76,8 @@ func RunScenario(ctx context.Context, baseURL, name string) error {
 		return scenarioMenu(ctx, baseURL, "APPROVE", "")
 	case "menu-reject":
 		return scenarioMenu(ctx, baseURL, "REJECT", "MISLEADING_DESCRIPTION")
+	case "onboard-restaurant":
+		return scenarioOnboardRestaurant(ctx, baseURL)
 	default:
 		return fmt.Errorf("devworld: unknown scenario %q", name)
 	}
@@ -520,7 +523,11 @@ func (c *apiClient) signInPhone(ctx context.Context, phone string) error {
 }
 
 func (c *apiClient) signInEmail(ctx context.Context, email string) error {
-	body := map[string]string{"email": email, "password": PersonaPassword}
+	return c.signInPassword(ctx, email, PersonaPassword)
+}
+
+func (c *apiClient) signInPassword(ctx context.Context, email, password string) error {
+	body := map[string]string{"email": email, "password": password}
 	status, data, err := c.call(ctx, http.MethodPost, "/v1/auth/login", body, false)
 	if err != nil && status == http.StatusForbidden && isCode(err, "MFA_REQUIRED") {
 		secret, serr := AdminTOTPSecret(email)
