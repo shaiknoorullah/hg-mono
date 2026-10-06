@@ -44,17 +44,7 @@ func (h *Handler) ListRestaurants(w http.ResponseWriter, r *http.Request) {
 	cards := make([]RestaurantCard, 0, len(rows))
 	now := h.now()
 	for _, rr := range rows {
-		// A listed restaurant is by predicate ACTIVE; its availability card is
-		// computed from the current row. Trading-hours evaluation is a TODO
-		// (requires the restaurant_hours join in the restaurant's timezone); a
-		// listed restaurant is treated as within hours until that lands.
-		verdict := deriveOpenState(availabilityRow{
-			accountState:      "LIVE",
-			isAcceptingOrders: true,
-			lastHeartbeatAt:   &now,
-		}, now, true, false)
-		info := buildAvailabilityInfo(rr, verdict, hasAddress)
-		cards = append(cards, toCard(rr, info, h.media))
+		cards = append(cards, h.cardFor(rr, hasAddress, now))
 	}
 
 	httpx.RespondList(w, r, http.StatusOK, cards, httpx.Meta{
@@ -102,12 +92,7 @@ func (h *Handler) GetRestaurant(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	now := h.now()
-	verdict := deriveOpenState(availabilityRow{
-		accountState: "LIVE", isAcceptingOrders: true, lastHeartbeatAt: &now,
-	}, now, true, false)
-	info := buildAvailabilityInfo(rr, verdict, lat != nil && lng != nil)
-	card := toCard(rr, info, h.media)
+	card := h.cardFor(rr, lat != nil && lng != nil, h.now())
 
 	viewable := h.presigner != nil && cr.documentID != nil
 	detail := RestaurantDetail{
