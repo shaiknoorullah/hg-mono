@@ -19,7 +19,9 @@ import (
 // enrolment and resetPassword confirms it (#170). The link stays the only key:
 // a wrong code does not spend it, a role that needs no authenticator and an
 // account that has one already are refused, and the confirmed authenticator
-// is the one the code was checked against.
+// is the one the code was checked against: a second enrolment started between
+// the check and the confirm leaves the link, the password and the
+// authenticator untouched.
 func TestIntegrationInviteLinkEnrolsTheAuthenticator(t *testing.T) {
 	pool := openTestPool(t)
 	ctx := context.Background()
@@ -85,6 +87,43 @@ func TestIntegrationInviteLinkEnrolsTheAuthenticator(t *testing.T) {
 	// A wrong code is refused and the link still works.
 	if err := svc.ResetPassword(ctx, token, "a long first staff password", wrong, nil); err != errTOTPInvalidCode {
 		t.Fatalf("wrong code: err = %v, want errTOTPInvalidCode", err)
+	}
+
+	// A second enrolment started between the code check and the confirm
+	// replaces the secret the code was checked against. Nothing is written:
+	// the link still works, no password is set, no authenticator confirmed.
+	var second *wireTotpEnrolment
+	svc.beforeResetRedeem = func() {
+		svc.beforeResetRedeem = nil
+		if second, err = svc.StartInviteTOTP(ctx, token, nil); err != nil {
+			t.Errorf("second StartInviteTOTP: %v", err)
+		}
+	}
+	if err := svc.ResetPassword(ctx, token, "a long first staff password", code, nil); err != errTOTPInvalidCode {
+		t.Fatalf("code for a replaced secret: err = %v, want errTOTPInvalidCode", err)
+	}
+	if second == nil {
+		t.Fatal("the second enrolment did not run between the check and the confirm")
+	}
+	var passwordSet, confirmed bool
+	if err := pool.QueryRow(ctx, `SELECT password_hash IS NOT NULL, totp_enrolled_at IS NOT NULL
+		FROM account WHERE id = $1`, adminID).Scan(&passwordSet, &confirmed); err != nil {
+		t.Fatal(err)
+	}
+	if passwordSet || confirmed {
+		t.Fatalf("after the refused confirm: password set = %v, authenticator confirmed = %v; want neither", passwordSet, confirmed)
+	}
+	if st, err := NewStore(pool).CredentialTokenState(ctx, "PASSWORD_RESET", HashOpaqueToken(token)); err != nil || st.AccountID != adminID {
+		t.Fatalf("link after the refused confirm = %+v (err %v), want still usable", st, err)
+	}
+
+	// The code from the enrolment now pending is the one that confirms it.
+	u, err = url.Parse(second.ProvisioningURI)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if code, err = totp.GenerateCode(u.Query().Get("secret"), time.Now()); err != nil {
+		t.Fatal(err)
 	}
 	if err := svc.ResetPassword(ctx, token, "a long first staff password", code, nil); err != nil {
 		t.Fatalf("right code: %v", err)

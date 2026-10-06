@@ -693,35 +693,40 @@ func (s *Service) ResetPassword(ctx context.Context, token, newPassword, totpCod
 	}
 	// Take the hashing slot before consuming the single-use token: if hashing
 	// is busy the caller gets 503 and the reset link still works on retry.
+	// The hash is made before the link is spent, so no transaction is held
+	// open while it runs and a failure leaves the link usable.
 	slot, err := acquireHashSlot(ctx, audienceSignup)
 	if err != nil {
 		return err
 	}
 	defer slot.release()
-	res, err := s.store.ConsumeCredentialToken(ctx, "PASSWORD_RESET", tokenHash)
+	hash, err := slot.hash(newPassword)
+	slot.release() // the writes below need no slot
+	if err != nil {
+		return err
+	}
+	if s.beforeResetRedeem != nil {
+		s.beforeResetRedeem()
+	}
+	// The link is spent, the password set, every session revoked and the
+	// authenticator confirmed in one transaction: the token was delivered to
+	// the account's email, so using it proves the address, which is what lets
+	// an invited staff member sign in afterwards. Only the secret the code was
+	// checked against is confirmed.
+	res, err := s.store.RedeemResetLink(ctx, tokenHash, hash, pendingTOTP)
+	if errors.Is(err, errTOTPNotEnrolled) && pendingTOTP != nil {
+		// A second startInviteTotpEnrolment replaced the secret after the code
+		// was checked. Nothing was written and the link still works; the code
+		// does not match the authenticator now pending.
+		return errTOTPInvalidCode
+	}
 	if err != nil {
 		return err
 	}
 	if err := resetTokenErr(res); err != nil {
 		return err
 	}
-	hash, err := slot.hash(newPassword)
-	slot.release() // the writes below need no slot
-	if err != nil {
-		return err
-	}
-	// The token was delivered to the account's email, so using it proves the
-	// address. This is what lets an invited staff member, whose first
-	// password is set through this operation, sign in afterwards.
-	if err := s.store.ResetPasswordAndRevokeAll(ctx, res.AccountID, hash); err != nil {
-		return err
-	}
 	s.deny.AddAccount(res.AccountID)
-	if pendingTOTP != nil {
-		// Only the secret the code was checked against: a second
-		// startInviteTotpEnrolment in between replaced it, and that one is unconfirmed.
-		return s.store.ActivateTOTPSecret(ctx, res.AccountID, pendingTOTP)
-	}
 	return nil
 }
 

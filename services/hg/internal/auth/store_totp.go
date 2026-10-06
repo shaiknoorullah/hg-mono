@@ -68,23 +68,6 @@ func (s *Store) ActivateTOTP(ctx context.Context, accountID string) error {
 	return nil
 }
 
-// ActivateTOTPSecret is ActivateTOTP for one exact sealed secret: it confirms
-// the enrolment only while that secret is still the one stored, so a secret
-// replaced after its code was checked is never confirmed.
-func (s *Store) ActivateTOTPSecret(ctx context.Context, accountID string, secretEnc []byte) error {
-	ct, err := s.pool.Exec(ctx, `
-		UPDATE account
-		SET totp_enrolled_at = now()
-		WHERE id = $1 AND deleted_at IS NULL AND totp_secret_enc = $2`, accountID, secretEnc)
-	if err != nil {
-		return err
-	}
-	if ct.RowsAffected() == 0 {
-		return errTOTPNotEnrolled
-	}
-	return nil
-}
-
 // ClearTOTP removes the TOTP secret and enrolled_at, disabling TOTP for the
 // account. Ownership is enforced by the accountID predicate.
 func (s *Store) ClearTOTP(ctx context.Context, accountID string) error {
@@ -187,6 +170,56 @@ func (s *Store) ResetPasswordAndRevokeAll(ctx context.Context, accountID, newHas
 		return err
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
+	if err := s.resetPasswordTx(ctx, tx, accountID, newHash); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
+}
+
+// RedeemResetLink spends a PASSWORD_RESET link and does what it pays for, in
+// one transaction: ResetPasswordAndRevokeAll and, when totpSecret is set (a
+// staff invitation enrolling its authenticator), the confirmation of exactly
+// that sealed secret. Either all of it happens or none of it does: when the
+// secret is no longer the one pending (a second startInviteTotpEnrolment
+// replaced it after its code was checked), it answers errTOTPNotEnrolled and
+// the link, the password and the sessions are as they were, so the invitee is
+// never left with a spent link and no authenticator.
+func (s *Store) RedeemResetLink(ctx context.Context, tokenHash []byte, newHash string, totpSecret []byte) (ConsumeCredentialTokenResult, error) {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return ConsumeCredentialTokenResult{}, err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	res, err := s.consumeCredentialToken(ctx, tx, "PASSWORD_RESET", tokenHash)
+	if err != nil || res.AccountID == "" {
+		return res, err
+	}
+	if err := s.resetPasswordTx(ctx, tx, res.AccountID, newHash); err != nil {
+		return ConsumeCredentialTokenResult{}, err
+	}
+	if totpSecret != nil {
+		// The account row is locked (resetPasswordTx), so the secret cannot be
+		// replaced between this check and the commit.
+		ct, err := tx.Exec(ctx, `
+			UPDATE account
+			SET totp_enrolled_at = now()
+			WHERE id = $1 AND deleted_at IS NULL
+			  AND totp_secret_enc = $2 AND totp_enrolled_at IS NULL`, res.AccountID, totpSecret)
+		if err != nil {
+			return ConsumeCredentialTokenResult{}, err
+		}
+		if ct.RowsAffected() == 0 {
+			return ConsumeCredentialTokenResult{}, errTOTPNotEnrolled
+		}
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return ConsumeCredentialTokenResult{}, err
+	}
+	return res, nil
+}
+
+// resetPasswordTx is ResetPasswordAndRevokeAll inside the caller's transaction.
+func (s *Store) resetPasswordTx(ctx context.Context, tx pgx.Tx, accountID, newHash string) error {
 	// A staff invitee sets their first password through this same path; that
 	// is not a reset of anything, so it sends no security alert.
 	var firstPassword bool
@@ -216,5 +249,5 @@ func (s *Store) ResetPasswordAndRevokeAll(ctx context.Context, accountID, newHas
 			return err
 		}
 	}
-	return tx.Commit(ctx)
+	return nil
 }
