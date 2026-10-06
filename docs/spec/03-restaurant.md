@@ -784,7 +784,9 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
   platform stores only the Stripe account id and the derived capability flags. The restaurant clicks
   "Set up payouts", the server creates or reuses a Connect account and an Account Link, and redirects
   the browser to Stripe. Stripe returns to `/onboarding/payouts/complete`; the authoritative state
-  comes from the `account.updated` **webhook**, not from the return URL.
+  comes from the `account.updated` **webhook**, not from the return URL. The onboarding status's
+  `steps_completed.payout_account` is true once the restaurant's payout account has payouts enabled
+  and details submitted, the same test that moves `PAYOUT_PENDING` on.
 
 - **Data**:
   ```
@@ -1139,7 +1141,10 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
   A restaurant edit to a reviewed field writes a `menu_item_version` with
   `review_status='PENDING_REVIEW'` and leaves `live_version_id` untouched. An admin sees a queue of
   pending versions and approves or rejects each. Approval sets `live_version_id = pending_version_id`
-  and clears `pending_version_id` in one transaction.
+  and clears `pending_version_id` in one transaction. As built, `createMenuItem` and `updateMenuItem` do exactly this: a new item
+  has no live version until approved, a change numbers its version after every earlier one and keeps
+  the latest version's value for any reviewed field not sent, and price, category and prep time apply
+  at once ([#594](https://github.com/shaiknoorullah/hg-mono/issues/594)).
 
   > **DECISION REQUIRED — reviewed vs. instant menu fields**: Which menu fields need admin approval before going live? · **Proposed default**: **Reviewed** = `name`, `description`, `ingredients_text`, `dietary_tags`, `allergen_tags`, `image_media_id`, `portion_description`. **Instant** = `price_cents`, `availability_state`, `out_of_stock_until`, `category_id`, `sort_order`, `prep_minutes`, item creation as `DRAFT`, and item deletion. · **Why**: reviewed fields are food-safety and halal claims the platform vouches for; instant fields are operational and would make the queue the bottleneck of every dinner service. *(D-03)*
 
@@ -1441,6 +1446,7 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
   orders at all. It is combined with hours (R-06), pause (R-06), account status (R-36) and a
   **liveness heartbeat** into a single computed `open_state` that the customer feed and checkout
   pre-flight both read.
+  Today the customer feed, search and restaurant detail derive it from `restaurant_hours` and its overrides in the restaurant's timezone together with the toggle, pause and heartbeat, reading `CLOSED_HOURS` with the next opening outside hours and `PAUSED` inside hours when not taking orders ([#645](https://github.com/shaiknoorullah/hg-mono/issues/645)); checkout does not yet check hours, pause or heartbeat ([#648](https://github.com/shaiknoorullah/hg-mono/issues/648)).
 
   > **DECISION REQUIRED — heartbeat-gated availability**: Should a restaurant with no live browser session still receive orders? · **Proposed default**: no. The web app POSTs a heartbeat every 30 s while the orders screen is focused or backgrounded-but-open. If `now() - last_heartbeat_at > 5 minutes`, `open_state` becomes `CLOSED_OFFLINE` and no orders are offered; `is_accepting_orders` itself is **not** mutated, so the restaurant returns to service automatically the moment the tab reconnects. A banner and an email fire on the first auto-offline event of a day. · **Why**: an order offered to an unattended screen expires, cancels a paid customer order and burns the customer relationship; requiring proven liveness is how every mature delivery platform handles it. *(D-09)*
 

@@ -502,3 +502,31 @@ func TestLoadEmailSettings(t *testing.T) {
 		t.Errorf("a valid production email setup was refused: %v", err)
 	}
 }
+
+// The dev world's simulated order screens (internal/devworld/tablets) are a
+// local switch: any other environment refuses to boot with it on, so a
+// deployed restaurant's heartbeat only ever comes from its real order screen.
+func TestLoadRefusesDevworldTabletsOutsideLocal(t *testing.T) {
+	env := validEnv()
+	env["HG_DEVWORLD_TABLETS"] = "on"
+	cfg, err := Load(getenvFrom(env))
+	if err != nil || !cfg.DevworldTablets {
+		t.Fatalf("local with HG_DEVWORLD_TABLETS=on was not loaded as on: %v", err)
+	}
+	delete(env, "HG_DEVWORLD_TABLETS")
+	if cfg, err := Load(getenvFrom(env)); err != nil || cfg.DevworldTablets {
+		t.Fatalf("unset must load as off: %v", err)
+	}
+	env["HG_DEVWORLD_TABLETS"] = "yes"
+	if _, err := Load(getenvFrom(env)); err == nil || !strings.Contains(err.Error(), "HG_DEVWORLD_TABLETS") {
+		t.Errorf("HG_DEVWORLD_TABLETS=yes was accepted: %v", err)
+	}
+	for _, e := range []string{"staging", "production"} {
+		env := validEnv()
+		env["HG_ENV"] = e
+		env["HG_DEVWORLD_TABLETS"] = "on"
+		if _, err := Load(getenvFrom(env)); err == nil || !strings.Contains(err.Error(), "HG_DEVWORLD_TABLETS") {
+			t.Errorf("HG_ENV=%s accepted HG_DEVWORLD_TABLETS=on: %v", e, err)
+		}
+	}
+}
