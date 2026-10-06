@@ -1141,7 +1141,10 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
   A restaurant edit to a reviewed field writes a `menu_item_version` with
   `review_status='PENDING_REVIEW'` and leaves `live_version_id` untouched. An admin sees a queue of
   pending versions and approves or rejects each. Approval sets `live_version_id = pending_version_id`
-  and clears `pending_version_id` in one transaction.
+  and clears `pending_version_id` in one transaction. As built, `createMenuItem` and `updateMenuItem` do exactly this: a new item
+  has no live version until approved, a change numbers its version after every earlier one and keeps
+  the latest version's value for any reviewed field not sent, and price, category and prep time apply
+  at once ([#594](https://github.com/shaiknoorullah/hg-mono/issues/594)).
 
   > **DECISION REQUIRED — reviewed vs. instant menu fields**: Which menu fields need admin approval before going live? · **Proposed default**: **Reviewed** = `name`, `description`, `ingredients_text`, `dietary_tags`, `allergen_tags`, `image_media_id`, `portion_description`. **Instant** = `price_cents`, `availability_state`, `out_of_stock_until`, `category_id`, `sort_order`, `prep_minutes`, item creation as `DRAFT`, and item deletion. · **Why**: reviewed fields are food-safety and halal claims the platform vouches for; instant fields are operational and would make the queue the bottleneck of every dinner service. *(D-03)*
 
