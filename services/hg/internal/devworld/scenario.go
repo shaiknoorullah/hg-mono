@@ -41,6 +41,7 @@ var ScenarioNames = []string{
 	"menu-approve",
 	"menu-reject",
 	"onboard-restaurant",
+	"onboard-rider",
 }
 
 // RunScenario signs in as the personas the scenario needs and calls the API
@@ -78,6 +79,8 @@ func RunScenario(ctx context.Context, baseURL, name string) error {
 		return scenarioMenu(ctx, baseURL, "REJECT", "MISLEADING_DESCRIPTION")
 	case "onboard-restaurant":
 		return scenarioOnboardRestaurant(ctx, baseURL)
+	case "onboard-rider":
+		return scenarioOnboardRider(ctx, baseURL)
 	default:
 		return fmt.Errorf("devworld: unknown scenario %q", name)
 	}

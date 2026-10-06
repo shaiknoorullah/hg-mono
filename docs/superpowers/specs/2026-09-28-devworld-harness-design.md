@@ -161,6 +161,7 @@ These are the seed for the customer, rider and admin coverage tables that [exten
 | `docs-approve` / `docs-reject` | `admin-seed` decides `docs-review` | onboarding advances / shows reason |
 | `menu-approve` / `menu-reject` | `admin-seed` decides the pending menu version | review badge resolves |
 | `onboard-restaurant` | a new restaurant signs up and completes onboarding; `admin-seed` approves its documents, halal certificate, application and first menu item | the new restaurant is `ACTIVE` and its approved item is on the customer menu ([playbook](../../playbooks/restaurant/onboarding.md)) |
+| `onboard-rider` | a new rider signs in with a fresh number, submits profile, bicycle and documents; `admin-seed` approves them and the application; the rider sets up payouts and goes online | the new rider is `ACTIVE` and online beside `bismillah-grill` ([playbook](../../playbooks/rider/onboarding.md)) |
 | `journey` | see [journey](#63-journey) | one live order through delivery when the rider is driven |
 
 ### 6.2 Bootstrap (not run by `reset`)
