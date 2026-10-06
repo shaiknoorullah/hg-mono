@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
 )
 
@@ -60,6 +61,21 @@ func (h *Handler) GetRestaurant(w http.ResponseWriter, r *http.Request) {
 	if aerr != nil {
 		httpx.Fail(w, r, http.StatusUnprocessableEntity, codeValidationFailed, aerr.Error(), nil)
 		return
+	}
+	// The contract's parameter is the customer's address id (`delivery_address_id`); the app sends
+	// it, not coordinates. Without this every restaurant page answered NO_ADDRESS for a customer
+	// with a saved address, and add-to-cart stayed blocked.
+	if addrID := r.URL.Query().Get("delivery_address_id"); addrID != "" && lat == nil {
+		if _, perr := uuid.Parse(addrID); perr != nil {
+			httpx.Fail(w, r, http.StatusUnprocessableEntity, codeValidationFailed,
+				"delivery_address_id must be a UUID", nil)
+			return
+		}
+		var perr error
+		lat, lng, perr = h.repo.addressPoint(r.Context(), httpx.PrincipalFrom(r.Context()).AccountID, addrID)
+		if h.mapErr(w, r, perr) {
+			return
+		}
 	}
 
 	rr, err := h.repo.getVisible(r.Context(), id, lat, lng)

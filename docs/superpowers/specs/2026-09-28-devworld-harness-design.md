@@ -63,7 +63,8 @@ dev-reset                                         (make dev-reset)
           as the same local superuser (new orders start open: migrating recreates the
           ordering-pause row switched off)
        3. load the reference seed
-       4. load migrations/devworld/001_personas.sql
+       4. load migrations/devworld/001_personas.sql, then the Toronto catalogue
+          (internal/devworld/catalogue.go) and its pictures
        5. set one shared password hash. The admin authenticator is enrolled only when
           HG_APP_DATA_KEY is set. The fresh restaurant email stays unverified.
        6. flush Redis only when HG_REDIS_ADDR is local. A connection failure does not fail the reset.
@@ -112,6 +113,12 @@ Email-login personas share one local password and sign in as `<persona>@seed.hg`
 | `paused` | ACTIVE | LIVE | CERTIFIED | PAUSED, with reason | availability toggle + reason |
 | `suspended` | ACTIVE | SUSPENDED | CERTIFIED | CLOSED_SUSPENDED | what a suspended operator sees |
 
+The customer apps see `expiring-halal` as Bamyan Kebab House and `paused` as Galata Pide & Grill. Their slugs, logins and states are unchanged.
+
+### 5.1a Toronto catalogue
+
+Reset also seeds 14 live, certified restaurants within 8 km of both the Danforth persona address and downtown, so a new phone sign-in sees a full marketplace once it saves a Toronto address. Three are the personas above (`bismillah-grill`, `expiring-halal`, `paused`). The other 11 are created by [`catalogue.go`](../../../services/hg/internal/devworld/catalogue.go), each with a verified certificate, a Connect stand-in and an owner who signs in as `<slug>@seed.hg`. One of them, `padma-river-kitchen`, has no trading hours on the reset day. Menus have 12 to 20 items, with one variant group at most per item, required and optional add-on groups, and some items, variants and add-ons out of stock. Photos come from Wikimedia Commons under the licences in [`catalogue_photos.json`](../../../services/hg/internal/devworld/catalogue_photos.json). The reset downloads them to a cache outside the repository and uploads them to the local `hg-media` bucket. Logos, and any photo it cannot fetch, are generated. `HG_DEVWORLD_PHOTOS=off` skips the download.
+
 ### 5.2 `bismillah-grill` depth
 
 - **Menu** — 3 categories; one item per review state the portal shows (APPROVED, PENDING_REVIEW, REJECTED with `UNSUBSTANTIATED_HALAL_CLAIM`, DRAFT); one item per availability state (AVAILABLE, OUT_OF_STOCK, HIDDEN); at least one item with variants and add-ons so order lines carry them.
@@ -137,7 +144,7 @@ These are the seed for the customer, rider and admin coverage tables that [exten
 - A customer cancel ends in `CANCELLED`.
 - A restaurant rejection ends in `REJECTED`.
 - Rush places one order for each of the two seeded customers, a few seconds apart, then a further order for the first customer. The API refuses that third order while one is still active. The five-order rush in the table waits until more customers exist.
-- Menu approve and reject sign in as `admin-seed`, take the oldest version waiting in the menu review queue for the `menu` persona, and decide it. Reset seeds that persona with two versions waiting for review (Draft Stew and Draft Soup), so each scenario runs once per reset, in either order; a third run says to reset. They do not call the restaurant save: it numbers the next version from the live version only and saves `DRAFT`, never `PENDING_REVIEW`, so it cannot put a version in the queue ([#594](https://github.com/shaiknoorullah/hg-mono/issues/594)). Reset also closes the running API's database sessions, whose prepared statements point at the dropped schema, and waits for it to reconnect.
+- Menu approve and reject sign in as `admin-seed`, take the oldest version waiting in the menu review queue for the `menu` persona, and decide it. Reset seeds that persona with two versions waiting for review (Draft Stew and Draft Soup), so each scenario runs once per reset, in either order; a third run says to reset. They do not call the restaurant save; since [#594](https://github.com/shaiknoorullah/hg-mono/issues/594) that save does queue a version for review, so a scenario could use it instead of the seed. Reset also closes the running API's database sessions, whose prepared statements point at the dropped schema, and waits for it to reconnect.
 
 `journey` is `devworld journey`. Arrival at the restaurant is a step inside that command, not a separate scenario. Default target is `bismillah-grill`.
 

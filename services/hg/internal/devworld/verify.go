@@ -160,6 +160,12 @@ func verifyTo(ctx context.Context, dsn string, out io.Writer) error {
 	}
 	fmt.Fprintf(out, "connect stand-ins %d (not real payout accounts)\n", connects)
 
+	catProblems, err := verifyCatalogue(ctx, conn, out)
+	if err != nil {
+		return err
+	}
+	problems = append(problems, catProblems...)
+
 	if adminHash == "" {
 		problems = append(problems, "admin password hash missing")
 	} else if ok, err := PasswordMatches(ctx, adminHash); err != nil {
