@@ -42,7 +42,9 @@ func TestAssignment_NamesTheCustomerByFirstNameAndLastInitial(t *testing.T) {
 		INSERT INTO customer_profile (account_id, first_name, last_name) VALUES ($1, 'Ayesha', 'rahman')`, customer); err != nil {
 		t.Fatalf("seed the customer's profile: %v", err)
 	}
-	t.Cleanup(func() { _, _ = pool.Exec(context.Background(), `DELETE FROM customer_profile WHERE account_id = $1`, customer) })
+	t.Cleanup(func() {
+		_, _ = pool.Exec(context.Background(), `DELETE FROM customer_profile WHERE account_id = $1`, customer)
+	})
 	if got := name(); got != "Ayesha R." {
 		t.Errorf("name = %q, want %q: first name and last initial, never the surname", got, "Ayesha R.")
 	}

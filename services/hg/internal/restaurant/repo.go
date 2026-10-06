@@ -41,7 +41,14 @@ func NewRepo(pool *pgxpool.Pool, ordersStore ...*orders.Store) *Repo {
 // an account_role RESTAURANT grant, or ("", false) when none exists.
 // It always returns false for an empty accountID.
 func (r *Repo) RestaurantForAccount(ctx context.Context, accountID string) (string, bool) {
-	if accountID == "" {
+	return ScopedRestaurant(ctx, r.db, accountID)
+}
+
+// ScopedRestaurant is RestaurantForAccount for callers outside this package
+// that hold their own pool, such as payments, which keys a restaurant's payout
+// account by the restaurant id, not by the signed-in staff member's account.
+func ScopedRestaurant(ctx context.Context, db *pgxpool.Pool, accountID string) (string, bool) {
+	if accountID == "" || db == nil {
 		return "", false
 	}
 	const q = `
@@ -56,7 +63,7 @@ func (r *Repo) RestaurantForAccount(ctx context.Context, accountID string) (stri
 		 LIMIT 1`
 	restaurantRoles := []string{"RESTAURANT_OWNER", "RESTAURANT_MANAGER", "RESTAURANT_STAFF"}
 	var id string
-	if err := r.db.QueryRow(ctx, q, accountID, restaurantRoles).Scan(&id); err != nil {
+	if err := db.QueryRow(ctx, q, accountID, restaurantRoles).Scan(&id); err != nil {
 		return "", false
 	}
 	return id, true
