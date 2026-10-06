@@ -2,7 +2,7 @@
   "generated_by": "contracts/fixtures/_build/build.py",
   "do_not_edit": "Every file under contracts/fixtures/ is generated. Run `pnpm fixtures:build`.",
   "frozen_clock": "2026-08-10T18:42:11.412Z",
-  "count": 423,
+  "count": 424,
   "counts_by_domain": {
     "admin": 35,
     "cart": 14,
@@ -15,7 +15,7 @@
     "onboarding": 35,
     "orders": 44,
     "payments": 12,
-    "platform": 26,
+    "platform": 27,
     "realtime": 8,
     "refunds": 39,
     "rider": 22
@@ -5352,6 +5352,21 @@
       "file": "platform/totp_enrolment.json"
     },
     {
+      "scenario": "totp_invite_enrolment",
+      "domain": "platform",
+      "schema": "TotpEnrolment",
+      "describes": "An invited admin, who has no session yet, starts the authenticator from the invitation link (`startInviteTotpEnrolment`, issue #170). The link stays usable; `resetPassword` with the link, the first password and the first code as `totp_code` confirms it.",
+      "operations": [
+        "startInviteTotpEnrolment"
+      ],
+      "status": 200,
+      "tags": [
+        "platform",
+        "auth"
+      ],
+      "file": "platform/totp_invite_enrolment.json"
+    },
+    {
       "scenario": "realtime_control_frames",
       "domain": "realtime",
       "schema": "RealtimeEvent[]",
@@ -7217,6 +7232,9 @@
       "rider_availability_online_idle",
       "rider_availability_online_stale"
     ],
+    "startInviteTotpEnrolment": [
+      "totp_invite_enrolment"
+    ],
     "submitOrderRating": [
       "order_rating_food_and_rider"
     ],
@@ -7462,6 +7480,7 @@
     "setRestaurantAcceptingOrders": "restaurant_open_state_open",
     "setRestaurantHours": "restaurant_hours_standard",
     "setRiderAvailability": "rider_availability_online_idle",
+    "startInviteTotpEnrolment": "totp_invite_enrolment",
     "submitOrderRating": "order_rating_food_and_rider",
     "submitProofOfDelivery": "assignment_delivered",
     "submitRestaurantDocuments": "restaurant_onboarding_documents_review",
