@@ -12,10 +12,10 @@
  */
 import { initPaymentSheet, presentPaymentSheet } from '@stripe/stripe-react-native';
 
-import { stripePublishableKey, UNCONFIGURED, type PayResult } from './types';
+import { stripePublishableKey, unconfigured, type PayResult } from './types';
 
 export async function payWithSheet(clientSecret: string): Promise<PayResult> {
-  if (!stripePublishableKey()) return UNCONFIGURED;
+  if (!stripePublishableKey()) return unconfigured();
   try {
     const init = await initPaymentSheet({
       paymentIntentClientSecret: clientSecret,

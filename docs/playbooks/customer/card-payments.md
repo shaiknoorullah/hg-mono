@@ -20,7 +20,7 @@ Use the test-mode keys of one Stripe account. Never commit a key.
 | `EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY` | `apps/customer/.env` (copied from `.env.example`), or the shell that starts Expo | `pk_test_…` from the same account |
 
 - With no `HG_STRIPE_SECRET_KEY` and `HG_ENV=local`, the API uses its fake gateway: orders are authorised at once and the app shows no card form.
-- With no publishable key, the app still runs. Checkout says `Card payments are not configured in this build (EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY).`, keeps the order, and offers **Retry payment**.
+- With no publishable key, the app still runs. Checkout says `Card payments aren't available right now. Please try again later.` (the console logs that `EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY` is missing), keeps the order, and offers **Retry payment**.
 - Restart Expo after changing an `EXPO_PUBLIC_` variable: it is bundled at build time.
 
 ## 2. Test cards

@@ -15,10 +15,19 @@ export type PayResult =
   | { status: 'failed'; message?: string }
   | { status: 'unconfigured'; message: string };
 
+/** What the customer reads. Never a build setting: that goes to the console only. */
 export const UNCONFIGURED_MESSAGE =
-  'Card payments are not configured in this build (EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY).';
+  "Card payments aren't available right now. Please try again later.";
 
-export const UNCONFIGURED: PayResult = { status: 'unconfigured', message: UNCONFIGURED_MESSAGE };
+/** The technical reason, for whoever reads the console. Never shown to the customer. */
+export const UNCONFIGURED_REASON =
+  'Card payments are not configured in this build: EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY is missing or is not a pk_test_/pk_live_ key.';
+
+/** The `unconfigured` result, logging the technical reason to the console. */
+export function unconfigured(): PayResult {
+  console.warn(UNCONFIGURED_REASON);
+  return { status: 'unconfigured', message: UNCONFIGURED_MESSAGE };
+}
 
 /**
  * The Stripe publishable key baked into this build, or `null` when there is none.

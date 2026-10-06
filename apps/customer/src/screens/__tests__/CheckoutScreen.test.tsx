@@ -110,8 +110,8 @@ describe('CheckoutScreen — the pay path', () => {
     ['failed without a message', { status: 'failed' }, 'Payment failed. Please try again.'],
     [
       'unconfigured',
-      { status: 'unconfigured', message: 'Card payments are not configured in this build (EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY).' },
-      'Card payments are not configured in this build (EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY).',
+      { status: 'unconfigured', message: "Card payments aren't available right now. Please try again later." },
+      "Card payments aren't available right now. Please try again later.",
     ],
   ])('%s: stays on checkout with the reason and retries the same order', async (_name, result, message) => {
     mockPayWithSheet.mockResolvedValue(result);

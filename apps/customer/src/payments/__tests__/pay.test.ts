@@ -11,7 +11,7 @@ import type { PaymentIntentResult } from '@stripe/stripe-js';
 
 import { confirmOutcome } from '../confirmResult';
 import { registerHost, settle, getSnapshot, NO_HOST_MESSAGE } from '../sheetController';
-import { UNCONFIGURED_MESSAGE } from '../types';
+import { UNCONFIGURED_MESSAGE, UNCONFIGURED_REASON } from '../types';
 
 const KEY = 'EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY';
 // Not a key: the shape `stripePublishableKey()` accepts, and nothing more.
@@ -39,11 +39,16 @@ describe('without a Stripe publishable key', () => {
     'web and native both answer unconfigured for %p, and Stripe is never called',
     async (value) => {
       if (value !== undefined) process.env[KEY] = value;
+      const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
       const want = { status: 'unconfigured', message: UNCONFIGURED_MESSAGE };
       await expect(payWeb('pi_123_secret_abc')).resolves.toEqual(want);
       await expect(payNative('pi_123_secret_abc')).resolves.toEqual(want);
       expect(native.initPaymentSheet).not.toHaveBeenCalled();
       expect(getSnapshot()).toBeNull();
+      // The customer never reads a build setting; the console gets the technical reason.
+      expect(UNCONFIGURED_MESSAGE).not.toContain(KEY);
+      expect(warn).toHaveBeenCalledWith(UNCONFIGURED_REASON);
+      warn.mockRestore();
     },
   );
 });

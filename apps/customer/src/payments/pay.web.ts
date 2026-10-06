@@ -21,10 +21,10 @@
  * passed only for a redirect-based method Stripe might offer. The card never touches our servers.
  */
 import { requestPayment } from './sheetController';
-import { stripePublishableKey, UNCONFIGURED, type PayResult } from './types';
+import { stripePublishableKey, unconfigured, type PayResult } from './types';
 
 export async function payWithSheet(clientSecret: string): Promise<PayResult> {
-  if (!stripePublishableKey()) return UNCONFIGURED;
+  if (!stripePublishableKey()) return unconfigured();
   try {
     return await requestPayment(clientSecret);
   } catch (e) {
