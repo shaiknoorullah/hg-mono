@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
 )
 
@@ -43,17 +44,7 @@ func (h *Handler) ListRestaurants(w http.ResponseWriter, r *http.Request) {
 	cards := make([]RestaurantCard, 0, len(rows))
 	now := h.now()
 	for _, rr := range rows {
-		// A listed restaurant is by predicate ACTIVE; its availability card is
-		// computed from the current row. Trading-hours evaluation is a TODO
-		// (requires the restaurant_hours join in the restaurant's timezone); a
-		// listed restaurant is treated as within hours until that lands.
-		verdict := deriveOpenState(availabilityRow{
-			accountState:      "LIVE",
-			isAcceptingOrders: true,
-			lastHeartbeatAt:   &now,
-		}, now, true, false)
-		info := buildAvailabilityInfo(rr, verdict, hasAddress)
-		cards = append(cards, toCard(rr, info, h.media))
+		cards = append(cards, h.cardFor(rr, hasAddress, now))
 	}
 
 	httpx.RespondList(w, r, http.StatusOK, cards, httpx.Meta{
@@ -71,6 +62,21 @@ func (h *Handler) GetRestaurant(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, r, http.StatusUnprocessableEntity, codeValidationFailed, aerr.Error(), nil)
 		return
 	}
+	// The contract's parameter is the customer's address id (`delivery_address_id`); the app sends
+	// it, not coordinates. Without this every restaurant page answered NO_ADDRESS for a customer
+	// with a saved address, and add-to-cart stayed blocked.
+	if addrID := r.URL.Query().Get("delivery_address_id"); addrID != "" && lat == nil {
+		if _, perr := uuid.Parse(addrID); perr != nil {
+			httpx.Fail(w, r, http.StatusUnprocessableEntity, codeValidationFailed,
+				"delivery_address_id must be a UUID", nil)
+			return
+		}
+		var perr error
+		lat, lng, perr = h.repo.addressPoint(r.Context(), httpx.PrincipalFrom(r.Context()).AccountID, addrID)
+		if h.mapErr(w, r, perr) {
+			return
+		}
+	}
 
 	rr, err := h.repo.getVisible(r.Context(), id, lat, lng)
 	if h.mapErr(w, r, err) {
@@ -86,12 +92,7 @@ func (h *Handler) GetRestaurant(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	now := h.now()
-	verdict := deriveOpenState(availabilityRow{
-		accountState: "LIVE", isAcceptingOrders: true, lastHeartbeatAt: &now,
-	}, now, true, false)
-	info := buildAvailabilityInfo(rr, verdict, lat != nil && lng != nil)
-	card := toCard(rr, info, h.media)
+	card := h.cardFor(rr, lat != nil && lng != nil, h.now())
 
 	viewable := h.presigner != nil && cr.documentID != nil
 	detail := RestaurantDetail{

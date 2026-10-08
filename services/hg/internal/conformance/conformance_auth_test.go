@@ -33,12 +33,14 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/pquerna/otp/totp"
 
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/auth"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
@@ -506,6 +508,64 @@ func TestConformance_PasswordResetFlow(t *testing.T) {
 	rresp := a.do(t, rrq)
 	a.validateResp(t, rrq, rresp, http.StatusNoContent)
 	rresp.Body.Close()
+}
+
+// TestConformance_StaffInviteTotpFlow validates startInviteTotpEnrolment (200
+// TotpEnrolment) and resetPassword with totp_code (204): an invited admin, who
+// can hold no session without an authenticator, sets up the authenticator from
+// the invitation link and confirms it while setting the first password
+// (https://github.com/shaiknoorullah/hg-mono/issues/170).
+func TestConformance_StaffInviteTotpFlow(t *testing.T) {
+	pool := openPool(t)
+	a := newAuthHarness(t, pool)
+
+	acctID := a.seedActiveEmailAccount(t, authUniqueEmail("invite"), "ConformancePass12!", "ADMIN")
+	token, tokenHash, err := auth.NewOpaqueToken()
+	if err != nil {
+		t.Fatalf("NewOpaqueToken: %v", err)
+	}
+	if err := auth.NewStore(pool).InsertCredentialToken(context.Background(), acctID, "PASSWORD_RESET", tokenHash, 30*time.Minute); err != nil {
+		t.Fatalf("InsertCredentialToken: %v", err)
+	}
+
+	srq := a.req(t, "POST", "/v1/auth/invite/totp", map[string]any{"token": token}, nil)
+	a.validateReq(t, srq)
+	srq = a.req(t, "POST", "/v1/auth/invite/totp", map[string]any{"token": token}, nil)
+	sresp := a.do(t, srq)
+	raw, _ := io.ReadAll(sresp.Body)
+	sresp.Body = io.NopCloser(bytes.NewReader(raw))
+	a.validateResp(t, srq, sresp, http.StatusOK)
+	sresp.Body.Close()
+	var env struct {
+		Data struct {
+			ProvisioningURI string `json:"provisioning_uri"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(raw, &env); err != nil {
+		t.Fatalf("decode TotpEnrolment: %v", err)
+	}
+	u, err := url.Parse(env.Data.ProvisioningURI)
+	if err != nil {
+		t.Fatalf("provisioning_uri: %v", err)
+	}
+	code, err := totp.GenerateCode(u.Query().Get("secret"), time.Now())
+	if err != nil {
+		t.Fatalf("GenerateCode: %v", err)
+	}
+
+	resetBody := map[string]any{"token": token, "new_password": "BrandNewPass34!", "totp_code": code}
+	rrq := a.req(t, "POST", "/v1/auth/password/reset", resetBody, nil)
+	a.validateReq(t, rrq)
+	rrq = a.req(t, "POST", "/v1/auth/password/reset", resetBody, nil)
+	rresp := a.do(t, rrq)
+	a.validateResp(t, rrq, rresp, http.StatusNoContent)
+	rresp.Body.Close()
+
+	var enrolled bool
+	if err := pool.QueryRow(context.Background(),
+		`SELECT totp_enrolled_at IS NOT NULL FROM account WHERE id = $1`, acctID).Scan(&enrolled); err != nil || !enrolled {
+		t.Fatalf("authenticator not confirmed after resetPassword with totp_code (enrolled=%v err=%v)", enrolled, err)
+	}
 }
 
 // ============================================================================

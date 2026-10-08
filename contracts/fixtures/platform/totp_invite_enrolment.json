@@ -1,0 +1,29 @@
+{
+  "scenario": "totp_invite_enrolment",
+  "domain": "platform",
+  "schema": "TotpEnrolment",
+  "describes": "An invited admin, who has no session yet, starts the authenticator from the invitation link (`startInviteTotpEnrolment`, issue #170). The link stays usable; `resetPassword` with the link, the first password and the first code as `totp_code` confirms it.",
+  "operations": [
+    "startInviteTotpEnrolment"
+  ],
+  "status": 200,
+  "tags": [
+    "platform",
+    "auth"
+  ],
+  "payload": {
+    "provisioning_uri": "otpauth://totp/HalalGoes:new.admin%40halalgoes.ca?secret=KRSXG5CTMVRXEZLUKN2XAZLSKNSWG4TF&issuer=HalalGoes&digits=6",
+    "recovery_codes": [
+      "8441-5597",
+      "7914-4953",
+      "5644-9756",
+      "1517-6241",
+      "9564-4082",
+      "4272-1215",
+      "2793-4206",
+      "1815-3201",
+      "3607-9453",
+      "4706-3967"
+    ]
+  }
+}

@@ -31,3 +31,31 @@ func TestAllowReset(t *testing.T) {
 		}
 	}
 }
+
+func TestAllowAPI(t *testing.T) {
+	ok := []string{
+		"http://localhost:8080",
+		"http://127.0.0.1:8080/",
+		"http://[::1]:8080",
+		"http://api:8080",
+		"http://traefik",
+	}
+	for _, u := range ok {
+		if err := AllowAPI(u); err != nil {
+			t.Errorf("%s: %v", u, err)
+		}
+	}
+	refused := []string{
+		"https://api.halalgoes.com",
+		"http://10.0.0.8:8080",
+		"http://localhost.example.com",
+		"http://api.staging.internal",
+		"localhost:8080", // no scheme: no host to check
+		"",
+	}
+	for _, u := range refused {
+		if err := AllowAPI(u); err == nil {
+			t.Errorf("expected refusal for %q", u)
+		}
+	}
+}

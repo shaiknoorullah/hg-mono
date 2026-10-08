@@ -193,9 +193,10 @@ fails, the change is rolled back. This is a hard invariant, not a best effort.
   and an expired link answers with the reset operation's expired-token error rather than
   `INVITATION_EXPIRED`: the acceptance flow is [#170](https://github.com/shaiknoorullah/hg-mono/issues/170).
   The console's pages for these emails exist ([#329](https://github.com/shaiknoorullah/hg-mono/issues/329)).
-  `/accept-invite` sets the first password and stops there: two-step enrolment cannot start from the
-  link until the acceptance flow exists, so the page says the inviting super admin will set it up
-  with the invitee.
+  `/accept-invite` sets the first password and stops there, and the page says the inviting super
+  admin will set two-step sign-in up with the invitee. The API can now start that enrolment from the
+  link (`startInviteTotpEnrolment`) and confirm it with the first password (`resetPassword` with
+  `totp_code`); the page has not adopted it yet.
   `/reset-password` is both "Forgot your password?" on the sign-in gate and the page the reset email
   opens. Both take the token the way the restaurant app's link pages do (see
   [email verification, as built](03-restaurant.md#r-02--email-verification-and-account-activation)),
