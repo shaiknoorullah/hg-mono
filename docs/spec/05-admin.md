@@ -189,13 +189,13 @@ fails, the change is rolled back. This is a hard invariant, not a best effort.
   address is read from the invited account itself, the email quotes nothing the super admin typed
   (only the role, from a fixed list), and one account gets at most 3 invitations a day and one super
   admin sends at most 20. The invitee sets a first password through the reset-password operation, which
-  also marks the email verified, then enrols two-step sign-in. `staff_invitation` is not written yet,
+  also marks the email verified, then signs in with the password alone. `staff_invitation` is not written yet,
   and an expired link answers with the reset operation's expired-token error rather than
   `INVITATION_EXPIRED`: the acceptance flow is [#170](https://github.com/shaiknoorullah/hg-mono/issues/170).
   The console's pages for these emails exist ([#329](https://github.com/shaiknoorullah/hg-mono/issues/329)).
-  `/accept-invite` sets the first password and stops there: two-step enrolment cannot start from the
-  link until the acceptance flow exists, so the page says the inviting super admin will set it up
-  with the invitee.
+  `/accept-invite` sets the first password and stops there; two-step sign-in is opt-in and set up
+  from the console with a QR code once signed in, never from the invitation link
+  ([two-step sign-in is opt-in](../decisions/README.md#settled--owner-decisions-2026-10-05)).
   `/reset-password` is both "Forgot your password?" on the sign-in gate and the page the reset email
   opens. Both take the token the way the restaurant app's link pages do (see
   [email verification, as built](03-restaurant.md#r-02--email-verification-and-account-activation)),

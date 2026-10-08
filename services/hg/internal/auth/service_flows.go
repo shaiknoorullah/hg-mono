@@ -680,27 +680,29 @@ func (s *Service) ResetPassword(ctx context.Context, token, newPassword string, 
 	}
 	// Take the hashing slot before consuming the single-use token: if hashing
 	// is busy the caller gets 503 and the reset link still works on retry.
+	// The hash is made before the link is spent, so no transaction is held
+	// open while it runs and a failure leaves the link usable.
 	slot, err := acquireHashSlot(ctx, audienceSignup)
 	if err != nil {
 		return err
 	}
 	defer slot.release()
-	res, err := s.store.ConsumeCredentialToken(ctx, "PASSWORD_RESET", tokenHash)
-	if err != nil {
-		return err
-	}
-	if err := resetTokenErr(res); err != nil {
-		return err
-	}
 	hash, err := slot.hash(newPassword)
 	slot.release() // the writes below need no slot
 	if err != nil {
 		return err
 	}
-	// The token was delivered to the account's email, so using it proves the
-	// address. This is what lets an invited staff member, whose first
-	// password is set through this operation, sign in afterwards.
-	if err := s.store.ResetPasswordAndRevokeAll(ctx, res.AccountID, hash); err != nil {
+	// The link is spent, the password set and every session revoked in one
+	// transaction. The token was delivered to the account's email, so using it
+	// proves the address, which is what lets an invited staff member sign in
+	// afterwards with the password alone: two-step sign-in is opt-in and is
+	// turned on from the console once signed in (docs/decisions/README.md,
+	// "Two-step sign-in is opt-in").
+	res, err := s.store.RedeemResetLink(ctx, tokenHash, hash)
+	if err != nil {
+		return err
+	}
+	if err := resetTokenErr(res); err != nil {
 		return err
 	}
 	s.deny.AddAccount(res.AccountID)

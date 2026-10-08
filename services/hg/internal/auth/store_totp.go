@@ -170,6 +170,36 @@ func (s *Store) ResetPasswordAndRevokeAll(ctx context.Context, accountID, newHas
 		return err
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
+	if err := s.resetPasswordTx(ctx, tx, accountID, newHash); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
+}
+
+// RedeemResetLink spends a PASSWORD_RESET link and does what it pays for
+// (ResetPasswordAndRevokeAll) in one transaction: either the link is spent and
+// the password set, or neither happens and the link still works.
+func (s *Store) RedeemResetLink(ctx context.Context, tokenHash []byte, newHash string) (ConsumeCredentialTokenResult, error) {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return ConsumeCredentialTokenResult{}, err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	res, err := s.consumeCredentialToken(ctx, tx, "PASSWORD_RESET", tokenHash)
+	if err != nil || res.AccountID == "" {
+		return res, err
+	}
+	if err := s.resetPasswordTx(ctx, tx, res.AccountID, newHash); err != nil {
+		return ConsumeCredentialTokenResult{}, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return ConsumeCredentialTokenResult{}, err
+	}
+	return res, nil
+}
+
+// resetPasswordTx is ResetPasswordAndRevokeAll inside the caller's transaction.
+func (s *Store) resetPasswordTx(ctx context.Context, tx pgx.Tx, accountID, newHash string) error {
 	// A staff invitee sets their first password through this same path; that
 	// is not a reset of anything, so it sends no security alert.
 	var firstPassword bool
@@ -199,5 +229,5 @@ func (s *Store) ResetPasswordAndRevokeAll(ctx context.Context, accountID, newHas
 			return err
 		}
 	}
-	return tx.Commit(ctx)
+	return nil
 }

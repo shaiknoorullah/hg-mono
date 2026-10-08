@@ -174,6 +174,7 @@ The rebuild **must not** reintroduce: Redis keys `riders:available:locations`, `
 - **Behaviour**: After phone verification the rider supplies `email`, `first_name`, `last_name`, `date_of_birth` via `POST /api/v1/riders/:id/onboarding/profile`. Age is computed server-side as full years at request time. **Age verification is two-stage**: (1) declared DOB gate at signup; (2) admin confirmation that the DOB on the uploaded government photo ID / driver's licence matches the declared DOB (D-06). A mismatch is a rejection reason, not a silent pass.
 - **Data**: `rider.first_name, last_name, date_of_birth (date), email, email_verified_at`; `rider_profile_photo_document_id` (FK to `rider_document`).
 - **States**: `PHONE_VERIFIED → PROFILE_PENDING → VEHICLE_PENDING` on success.
+  Phone sign-up creates no rider profile: until the first profile submission creates it, the onboarding status answers `PHONE_VERIFIED` with the profile step next.
 - **Rules**:
   - `date_of_birth` must yield age ≥ **18** years and ≤ 80 at submission. Below ⇒ `422 UNDERAGE` with `details.min_age`. The client mirrors the rule but the server is authoritative.
   - Names: 1–50 chars, letters/space/hyphen/apostrophe, trimmed, NFC-normalised.
@@ -227,7 +228,7 @@ The rebuild **must not** reintroduce: Redis keys `riders:available:locations`, `
 - **Data**: `rider_document(id, rider_id, document_type, object_key, bucket, file_name, content_type, size_bytes, sha256, expires_on, status, uploaded_at, reviewed_at, reviewed_by, rejection_code, rejection_note, superseded_by, version, created_at)`
   - `document_type ∈ {DRIVERS_LICENCE, VEHICLE_REGISTRATION, VEHICLE_INSURANCE, PROFILE_PHOTO, GOVERNMENT_ID}`
   - `status ∈ {PENDING_UPLOAD, UPLOADED, UNDER_REVIEW, APPROVED, REJECTED, EXPIRED, SUPERSEDED}`
-- **States**: document lifecycle above; rider `DOCUMENTS_PENDING → DOCUMENTS_REVIEW` when a complete set is submitted.
+- **States**: document lifecycle above; rider `DOCUMENTS_PENDING → DOCUMENTS_REVIEW` when a complete set is submitted. The same submission queues the rider's application for admin review; repeating it keeps the application's place in the queue.
 - **Rules**:
   - **Required set by vehicle type**:
     | vehicle_type | required documents |

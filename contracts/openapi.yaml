@@ -719,7 +719,9 @@ paths:
 
         **Issues no session and sets no cookie**, also when the link is a staff invitation
         setting a first password. The user signs in afterwards with `login` (with the
-        authenticator code where the account requires one).
+        authenticator code only if the account has turned two-step sign-in on). An invited staff
+        member signs in with the password alone and may turn two-step sign-in on afterwards with
+        `enrollTotp`; it is never set up from the invitation link.
       security: []
       x-roles: [PUBLIC]
       x-version: V0
