@@ -347,3 +347,24 @@ func (rp *Repo) getHours(ctx context.Context, id string) ([]hoursRow, error) {
 	}
 	return out, rows.Err()
 }
+
+// addressPoint returns the point of one of the caller's saved addresses, or nils when the
+// address is not theirs, deleted or unlocated. getRestaurant takes the customer's address by id
+// (`delivery_address_id`), so the availability verdict and distance are computed against the same
+// place the cart and quote use; an address that is not the caller's reads as no address at all,
+// never as someone else's location.
+func (rp *Repo) addressPoint(ctx context.Context, accountID, addressID string) (lat, lng *float64, err error) {
+	var la, lo float64
+	err = rp.db.QueryRow(ctx, `
+		SELECT ST_Y(location::geometry), ST_X(location::geometry)
+		  FROM address
+		 WHERE id = $1 AND account_id = $2 AND deleted_at IS NULL AND location IS NOT NULL`,
+		addressID, accountID).Scan(&la, &lo)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil, nil
+	}
+	if err != nil {
+		return nil, nil, fmt.Errorf("address point: %w", err)
+	}
+	return &la, &lo, nil
+}

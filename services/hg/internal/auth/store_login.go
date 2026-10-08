@@ -147,8 +147,18 @@ type ConsumeCredentialTokenResult struct {
 // in the same statement: once a reset link has set the password, an older
 // reset link (perhaps requested by someone else) no longer works.
 func (s *Store) ConsumeCredentialToken(ctx context.Context, kind string, tokenHash []byte) (ConsumeCredentialTokenResult, error) {
+	return s.consumeCredentialToken(ctx, s.pool, kind, tokenHash)
+}
+
+// rowQuerier is what consumeCredentialToken needs: the pool, or a transaction
+// that must spend the token together with what the token pays for.
+type rowQuerier interface {
+	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
+}
+
+func (s *Store) consumeCredentialToken(ctx context.Context, q rowQuerier, kind string, tokenHash []byte) (ConsumeCredentialTokenResult, error) {
 	var accountID string
-	err := s.pool.QueryRow(ctx, `
+	err := q.QueryRow(ctx, `
 		WITH used AS (
 			UPDATE credential_token
 			SET consumed_at = now()

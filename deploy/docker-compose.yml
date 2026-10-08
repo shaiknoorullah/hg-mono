@@ -79,6 +79,9 @@ x-api-env: &api-env
   # Rider pay the owner has not settled (#164); the default is the documented
   # behaviour.
   HG_RIDER_TIP_MAKEUP: ${HG_RIDER_TIP_MAKEUP:-false}
+  # Local dev world only (internal/devworld/tablets): keeps the seeded
+  # restaurants' heartbeats fresh. The API refuses "on" unless HG_ENV is local.
+  HG_DEVWORLD_TABLETS: ${HG_DEVWORLD_TABLETS:-off}
   HG_AUTH_HASH_CONCURRENCY: ${HG_AUTH_HASH_CONCURRENCY:-3}
   HG_AUTH_HASH_WAIT: ${HG_AUTH_HASH_WAIT:-2s}
   HG_AUTH_HASH_MAX_WAITERS: ${HG_AUTH_HASH_MAX_WAITERS:-}

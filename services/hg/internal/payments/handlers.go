@@ -10,8 +10,11 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
+
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/config"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/restaurant"
 )
 
 // Handler serves the payments, refunds, connect, earnings and payout operations.
@@ -311,21 +314,35 @@ func (h *Handler) ReceiveStripeWebhook(w http.ResponseWriter, r *http.Request) {
 // Connect.
 // ---------------------------------------------------------------------------
 
-// ownerFromPrincipal resolves the (owner_type, owner_id) a partner principal
-// acts as. Riders act as RIDER/account_id; restaurant staff act as RESTAURANT,
-// but the restaurant id is resolved from the session by the restaurant module —
-// here we fall back to the account id, which the auth sibling will refine.
-func ownerFromPrincipal(p httpx.Principal) (string, string) {
+// owner resolves the (owner_type, owner_id) a partner principal acts as. A
+// rider acts as RIDER/account_id. Restaurant staff act as RESTAURANT and the
+// restaurant's own id, the key RecomputeOnboarding and the payout run read;
+// keying it by the staff member's account id made every restaurant's Connect
+// insert fail. Staff with no restaurant grant get a 404, as in the restaurant
+// module.
+func (h *Handler) owner(w http.ResponseWriter, r *http.Request) (string, string, bool) {
+	p := httpx.PrincipalFrom(r.Context())
 	if p.HasRole(httpx.RoleRider) {
-		return "RIDER", p.AccountID
+		return "RIDER", p.AccountID, true
 	}
-	return "RESTAURANT", p.AccountID
+	var pool *pgxpool.Pool
+	if h.svc != nil && h.svc.repo != nil {
+		pool = h.svc.repo.pool
+	}
+	id, ok := restaurant.ScopedRestaurant(r.Context(), pool, p.AccountID)
+	if !ok {
+		httpx.Fail(w, r, http.StatusNotFound, httpx.CodeNotFound, "No such resource.", nil)
+		return "", "", false
+	}
+	return "RESTAURANT", id, true
 }
 
 // CreateConnectAccount implements POST /v1/connect/account.
 func (h *Handler) CreateConnectAccount(w http.ResponseWriter, r *http.Request) {
-	p := httpx.PrincipalFrom(r.Context())
-	ownerType, ownerID := ownerFromPrincipal(p)
+	ownerType, ownerID, ok := h.owner(w, r)
+	if !ok {
+		return
+	}
 	key, _ := httpx.IdempotencyKeyFrom(r.Context())
 	// Approval is enforced by the onboarding module before this route is
 	// reachable; the guard already restricted the roles. Pass approved=true.
@@ -339,8 +356,10 @@ func (h *Handler) CreateConnectAccount(w http.ResponseWriter, r *http.Request) {
 
 // CreateOnboardingLink implements POST /v1/connect/onboarding-link.
 func (h *Handler) CreateOnboardingLink(w http.ResponseWriter, r *http.Request) {
-	p := httpx.PrincipalFrom(r.Context())
-	ownerType, ownerID := ownerFromPrincipal(p)
+	ownerType, ownerID, ok := h.owner(w, r)
+	if !ok {
+		return
+	}
 	dto, err := h.svc.CreateOnboardingLink(r.Context(), ownerType, ownerID)
 	if err != nil {
 		h.fail(w, r, err)
@@ -351,8 +370,10 @@ func (h *Handler) CreateOnboardingLink(w http.ResponseWriter, r *http.Request) {
 
 // GetConnectStatus implements GET /v1/connect/status.
 func (h *Handler) GetConnectStatus(w http.ResponseWriter, r *http.Request) {
-	p := httpx.PrincipalFrom(r.Context())
-	ownerType, ownerID := ownerFromPrincipal(p)
+	ownerType, ownerID, ok := h.owner(w, r)
+	if !ok {
+		return
+	}
 	dto, err := h.svc.GetConnectStatus(r.Context(), ownerType, ownerID)
 	if err != nil {
 		h.fail(w, r, err)
@@ -415,8 +436,10 @@ func (h *Handler) ListRiderPayouts(w http.ResponseWriter, r *http.Request) {
 
 // ListRestaurantPayouts implements GET /v1/restaurant/payouts.
 func (h *Handler) ListRestaurantPayouts(w http.ResponseWriter, r *http.Request) {
-	p := httpx.PrincipalFrom(r.Context())
-	_, ownerID := ownerFromPrincipal(p)
+	_, ownerID, ok := h.owner(w, r)
+	if !ok {
+		return
+	}
 	h.listPayouts(w, r, "RESTAURANT", ownerID)
 }
 

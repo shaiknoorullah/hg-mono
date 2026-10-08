@@ -189,9 +189,11 @@ another API, change that profile's `env` value.
 The customer app pays with Stripe's payment sheet, which needs the PUBLIC key
 `EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY` (`pk_test_…` or `pk_live_…`; in CI, the repo secret
 `STRIPE_PUBLISHABLE_KEY_MOBILE`). It must be from the same Stripe account and mode as the API's
-`HG_STRIPE_SECRET_KEY`, or the sheet cannot confirm the payment. The sheet is native-only: on web
-the customer app skips it. When the API runs its local fake gateway (`HG_ENV=local`, no Stripe
-key) it returns `pi_fake_…` client secrets and the app skips the sheet too.
+`HG_STRIPE_SECRET_KEY`, or the sheet cannot confirm the payment. On web the same key loads
+Stripe.js and the Payment Element in a sheet; a build without the key takes no card payments and
+says so at checkout instead of crashing. When the API runs its local fake gateway (`HG_ENV=local`,
+no Stripe key) it returns `pi_fake_…` client secrets and the app skips the sheet. Testing with
+Stripe test cards: [card payments playbook](../playbooks/customer/card-payments.md).
 
 The customer app registers for push notifications only when the build has `EAS_PROJECT_ID`
 (`apps/customer/app.config.js` writes it into `extra.eas.projectId`) and, on Android, the Expo

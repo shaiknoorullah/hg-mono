@@ -384,7 +384,16 @@ func (s *Service) applyIntentEvent(ctx context.Context, tx pgx.Tx, ev stripeEven
 		failure = &intentFailure{Code: obj.LastPaymentError.Code, DeclineCode: obj.LastPaymentError.DeclineCode,
 			Message: obj.LastPaymentError.Message}
 	}
-	eff, err := s.assertIntentState(ctx, tx, obj.ID, target, obj.AmountReceived, ev.asOf(), failure)
+	return s.assertIntentAndOrder(ctx, tx, obj.ID, target, obj.AmountReceived, ev.asOf(), failure)
+}
+
+// assertIntentAndOrder is assertIntentState followed by the order move an
+// authorisation makes. It is shared by a stored webhook event and by the
+// reconcile-on-read in GetOrderPayment (reconcile_read.go), so both apply
+// exactly the same transition.
+func (s *Service) assertIntentAndOrder(ctx context.Context, tx pgx.Tx, stripeID string, target PaymentState,
+	amountReceived int64, asOf time.Time, failure *intentFailure) (effect, error) {
+	eff, err := s.assertIntentState(ctx, tx, stripeID, target, amountReceived, asOf, failure)
 	if err != nil {
 		return effect{}, err
 	}
@@ -439,7 +448,13 @@ func (s *Service) assertIntentState(ctx context.Context, tx pgx.Tx, stripeID str
 	// to cancelled, in docs/spec/01-platform.md, "P-14 — Order lifecycle
 	// states and transitions"). FAILED ranks with the final states, so the
 	// rank check alone would not catch it.
-	if !retried && (paymentStateRank[target] < paymentStateRank[curState] || (settled && target == StateFailed)) {
+	// A decline older than the newest fact applied here is stale too: the
+	// customer has since paid with another card (an authorisation read back
+	// from Stripe by GetOrderPayment, or a later event), so the late decline
+	// must not undo it. FAILED outranks REQUIRES_CAPTURE, so the rank check
+	// alone would let it through.
+	staleDecline := target == StateFailed && cur.LastEventAt != nil && asOf.Before(*cur.LastEventAt)
+	if !retried && (staleDecline || paymentStateRank[target] < paymentStateRank[curState] || (settled && target == StateFailed)) {
 		return effect{kind: effectBehind, label: fmt.Sprintf("skipped_backwards:%s<-%s", curState, target),
 			stripeID: stripeID, orderID: cur.OrderID}, nil
 	}
