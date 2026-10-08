@@ -5,7 +5,7 @@ covers:
   - services/hg/migrations/devworld/**
   - apps/restaurant/.claude/skills/**
   - docs/playbooks/**
-reviewed: 2026-10-05
+reviewed: 2026-10-08
 ---
 
 # Dev world — seeded personas, live scenarios, journey simulation, playbooks
@@ -117,7 +117,7 @@ The customer apps see `expiring-halal` as Bamyan Kebab House and `paused` as Gal
 
 ### 5.1a Toronto catalogue
 
-Reset also seeds 14 live, certified restaurants within 8 km of both the Danforth persona address and downtown, so a new phone sign-in sees a full marketplace once it saves a Toronto address. Three are the personas above (`bismillah-grill`, `expiring-halal`, `paused`). The other 11 are created by [`catalogue.go`](../../../services/hg/internal/devworld/catalogue.go), each with a verified certificate, a Connect stand-in and an owner who signs in as `<slug>@seed.hg`. One of them, `padma-river-kitchen`, has no trading hours on the reset day. Menus have 12 to 20 items, with one variant group at most per item, required and optional add-on groups, and some items, variants and add-ons out of stock. Photos come from Wikimedia Commons under the licences in [`catalogue_photos.json`](../../../services/hg/internal/devworld/catalogue_photos.json). The reset downloads them to a cache outside the repository and uploads them to the local `hg-media` bucket. Logos, and any photo it cannot fetch, are generated. `HG_DEVWORLD_PHOTOS=off` skips the download. While `make run` serves a local stack, the API stands in for the catalogue's order screens: once a minute it touches the heartbeat of each seeded restaurant that is live and taking orders ([`tablets`](../../../services/hg/internal/devworld/tablets/tablets.go), `HG_DEVWORLD_TABLETS=on`, refused unless `HG_ENV` is `local`), so discovery keeps them open within their hours and `paused` stays paused.
+Reset also seeds 14 live, certified restaurants within 8 km of both the Danforth persona address and downtown, so a new phone sign-in sees a full marketplace once it saves a Toronto address. Three are the personas above (`bismillah-grill`, `expiring-halal`, `paused`). The other 11 are created by [`catalogue.go`](../../../services/hg/internal/devworld/catalogue.go), each with a verified certificate, a Connect stand-in and an owner who signs in as `<slug>@seed.hg`. One of them, `padma-river-kitchen`, has no trading hours on the reset day, so adding to its cart and quoting refuse with `RESTAURANT_CLOSED` that day, as at any restaurant outside its hours ([#648](https://github.com/shaiknoorullah/hg-mono/issues/648)). Menus have 12 to 20 items, with one variant group at most per item, required and optional add-on groups, and some items, variants and add-ons out of stock. Photos come from Wikimedia Commons under the licences in [`catalogue_photos.json`](../../../services/hg/internal/devworld/catalogue_photos.json). The reset downloads them to a cache outside the repository and uploads them to the local `hg-media` bucket. Logos, and any photo it cannot fetch, are generated. `HG_DEVWORLD_PHOTOS=off` skips the download. While `make run` serves a local stack, the API stands in for the catalogue's order screens: once a minute it touches the heartbeat of each seeded restaurant that is live and taking orders ([`tablets`](../../../services/hg/internal/devworld/tablets/tablets.go), `HG_DEVWORLD_TABLETS=on`, refused unless `HG_ENV` is `local`), so discovery keeps them open within their hours and `paused` stays paused.
 
 ### 5.2 `bismillah-grill` depth
 
