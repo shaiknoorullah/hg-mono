@@ -10625,7 +10625,8 @@ export interface operations {
             /**
              * @description `QUOTE_STALE` (with `details.quote`), `QUOTE_EXPIRED`,
              *     `CART_HAS_UNAVAILABLE_ITEMS`, `ACTIVE_ORDER_EXISTS`, `RESTAURANT_UNAVAILABLE`,
-             *     `IDEMPOTENCY_KEY_REUSE`, `IDEMPOTENCY_IN_PROGRESS`, `ORDERING_PAUSED`.
+             *     `RESTAURANT_CLOSED` (outside its hours, paused, not accepting orders, or its order
+             *     screen offline), `IDEMPOTENCY_KEY_REUSE`, `IDEMPOTENCY_IN_PROGRESS`, `ORDERING_PAUSED`.
              */
             409: {
                 headers: {

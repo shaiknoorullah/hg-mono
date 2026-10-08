@@ -28,17 +28,18 @@ type Cart struct {
 	// Halal seal + card fields for the restaurant the cart is bound to (C-12).
 	// Populated for a non-empty cart so the cart surface re-asserts the chosen
 	// restaurant's halal claim before checkout.
-	RestaurantSlug         string
-	RestaurantLogoURL      *string
-	RestaurantHeroURL      *string
-	RestaurantRatingAvg    *float64
-	RestaurantRatingCount  int32
-	RestaurantPriceBand    *string
-	HalalStatus            string
-	HalalCertifyingBody    *string
-	HalalExpiresOn         *string
-	RestaurantIsAccepting  bool
-	RestaurantAccountState string
+	RestaurantSlug        string
+	RestaurantLogoURL     *string
+	RestaurantHeroURL     *string
+	RestaurantRatingAvg   *float64
+	RestaurantRatingCount int32
+	RestaurantPriceBand   *string
+	HalalStatus           string
+	HalalCertifyingBody   *string
+	HalalExpiresOn        *string
+	// RestaurantAvailability is the C-14 state the cart's restaurant card
+	// shows: OPEN, PAUSED or CLOSED_HOURS (openhours.CustomerState).
+	RestaurantAvailability string
 	RestaurantMinOrder     *int64
 
 	// tmpUnit carries per-line pre-addon unit prices between the line scan and
@@ -122,7 +123,6 @@ func (s *Store) loadCart(ctx context.Context, tx pgx.Tx, accountID string) (*Car
 	var ratingCount int32
 	var certExpiresOn *time.Time
 	var minOrder *int64
-	var accepting bool
 	var logoBucket, logoKey, coverBucket, coverKey *string
 	var gate restaurantGate
 	// The RestaurantCard on the cart re-asserts the chosen restaurant's halal seal
@@ -142,7 +142,7 @@ func (s *Store) loadCart(ctx context.Context, tx pgx.Tx, accountID string) (*Car
 		SELECT c.id, c.restaurant_id, r.display_name, c.delivery_address_id,
 		       r.slug, r.rating_avg, r.rating_count, r.price_band::text,
 		       b.name AS certifying_body, cert.expires_on AS cert_expires_on,
-		       r.is_accepting_orders, r.account_state::text, r.minimum_order_cents,
+		       r.account_state::text, r.minimum_order_cents,
 		       so_logo.bucket, so_logo.object_key, so_cover.bucket, so_cover.object_key,
 		       r.deleted_at IS NULL, r.halal_status::text, hn.halal_status::text
 		  FROM cart c
@@ -156,7 +156,7 @@ func (s *Store) loadCart(ctx context.Context, tx pgx.Tx, accountID string) (*Car
 		Scan(&cartID, &restaurantID, &restaurantName, &addressID,
 			&slug, &ratingAvg, &ratingCount, &priceBand,
 			&c.HalalCertifyingBody, &certExpiresOn,
-			&accepting, &accountState, &minOrder,
+			&accountState, &minOrder,
 			&logoBucket, &logoKey, &coverBucket, &coverKey,
 			&gate.Listed, &gate.StoredHalal, &gate.HalalNow)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -209,8 +209,6 @@ func (s *Store) loadCart(ctx context.Context, tx pgx.Tx, accountID string) (*Car
 		s := certExpiresOn.Format("2006-01-02")
 		c.HalalExpiresOn = &s
 	}
-	c.RestaurantIsAccepting = accepting
-	c.RestaurantAccountState = accountState
 	c.RestaurantMinOrder = minOrder
 	c.RestaurantLogoURL = s.mediaURL(logoBucket, logoKey)
 	c.RestaurantHeroURL = s.mediaURL(coverBucket, coverKey)
@@ -329,12 +327,17 @@ func (s *Store) loadCart(ctx context.Context, tx pgx.Tx, accountID string) (*Car
 	}
 	c.tmpUnit = nil
 
-	// Quotability + blocking reasons. Minimum-order, accepting-orders and the
-	// restaurant gate were read alongside the restaurant card fields above.
+	// Quotability + blocking reasons. Minimum-order and the restaurant gate were
+	// read alongside the restaurant card fields above; whether it is open now is
+	// the rule quoting refuses by (open_now.go).
 	gate.AccountState = &accountState
 	var minOrderCents int64
 	if c.RestaurantMinOrder != nil {
 		minOrderCents = *c.RestaurantMinOrder
+	}
+	openNow, err := cartRestaurantOpen(ctx, tx, &c, restaurantID, gate.orderable())
+	if err != nil {
+		return nil, err
 	}
 
 	c.IsQuotable = true
@@ -349,7 +352,7 @@ func (s *Store) loadCart(ctx context.Context, tx pgx.Tx, accountID string) (*Car
 	if !gate.orderable() {
 		c.IsQuotable = false
 		c.BlockingReasons = appendReason(c.BlockingReasons, "RESTAURANT_UNAVAILABLE")
-	} else if !c.RestaurantIsAccepting {
+	} else if !openNow {
 		c.IsQuotable = false
 		c.BlockingReasons = appendReason(c.BlockingReasons, "RESTAURANT_CLOSED")
 	}
@@ -397,6 +400,9 @@ func (s *Store) AddCartLine(ctx context.Context, accountID, restaurantID string,
 			return err
 		}
 		if err := LockOrderableRestaurant(ctx, tx, itemRestaurant); err != nil {
+			return err
+		}
+		if err := refuseClosedRestaurant(ctx, tx, itemRestaurant); err != nil {
 			return err
 		}
 		if availability != "AVAILABLE" {

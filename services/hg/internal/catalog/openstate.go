@@ -1,16 +1,20 @@
 package catalog
 
-import "time"
+import (
+	"time"
+
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/openhours"
+)
 
 // RestaurantOpenState members (contract RestaurantOpenState, R-22).
 const (
-	OpenStateOpen            = "OPEN"
-	OpenStatePaused          = "PAUSED"
-	OpenStateClosedHours     = "CLOSED_HOURS"
-	OpenStateClosedHoliday   = "CLOSED_HOLIDAY"
-	OpenStateClosedToggle    = "CLOSED_TOGGLE"
-	OpenStateClosedOffline   = "CLOSED_OFFLINE"
-	OpenStateClosedSuspended = "CLOSED_SUSPENDED"
+	OpenStateOpen            = openhours.StateOpen
+	OpenStatePaused          = openhours.StatePaused
+	OpenStateClosedHours     = openhours.StateClosedHours
+	OpenStateClosedHoliday   = openhours.StateClosedHoliday
+	OpenStateClosedToggle    = openhours.StateClosedToggle
+	OpenStateClosedOffline   = openhours.StateClosedOffline
+	OpenStateClosedSuspended = openhours.StateClosedSuspended
 )
 
 // resolvableBy members (contract RestaurantAvailability.resolvable_by).
@@ -27,7 +31,9 @@ type openStateVerdict struct {
 	resolvableBy string
 }
 
-// deriveOpenState computes RestaurantOpenState in the strict R-22 precedence:
+// deriveOpenState computes RestaurantOpenState in the strict R-22 precedence
+// (openhours.Derive, which the order path refuses by too) and says why, and who
+// can resolve it:
 //
 //	CLOSED_SUSPENDED → CLOSED_OFFLINE (stale heartbeat) → CLOSED_TOGGLE →
 //	PAUSED → CLOSED_HOLIDAY → CLOSED_HOURS → OPEN
@@ -36,40 +42,26 @@ type openStateVerdict struct {
 // timezone) and passed in as withinHours/holidayClosed; keeping the pure
 // precedence here makes it unit-testable without a clock or a database.
 func deriveOpenState(a availabilityRow, now time.Time, withinHours, holidayClosed bool) openStateVerdict {
-	switch a.accountState {
-	case "SUSPENDED", "DEACTIVATED", "BANNED":
-		return openStateVerdict{OpenStateClosedSuspended,
-			"This restaurant is temporarily unavailable.", resolvableAdmin}
+	state := openhours.Derive(openhours.Trading{
+		AccountState: a.accountState, IsAcceptingOrders: a.isAcceptingOrders,
+		PauseUntil: a.pauseUntil, LastHeartbeatAt: a.lastHeartbeatAt,
+	}, now, withinHours, holidayClosed)
+	switch state {
+	case OpenStateClosedSuspended:
+		return openStateVerdict{state, "This restaurant is temporarily unavailable.", resolvableAdmin}
+	case OpenStateClosedOffline:
+		// The toggle is not mutated, so service resumes the moment the
+		// order screen reconnects.
+		return openStateVerdict{state,
+			"The order screen is offline. Reconnect it to resume taking orders.", resolvableRestaurant}
+	case OpenStateClosedToggle:
+		return openStateVerdict{state, "This restaurant has paused new orders.", resolvableRestaurant}
+	case OpenStatePaused:
+		return openStateVerdict{state, "This restaurant is briefly paused and will resume shortly.", resolvableTime}
+	case OpenStateClosedHoliday:
+		return openStateVerdict{state, "This restaurant is closed for a holiday.", resolvableTime}
+	case OpenStateClosedHours:
+		return openStateVerdict{state, "This restaurant is closed right now.", resolvableTime}
 	}
-
-	// Heartbeat gate: a stale order screen is offered nothing, but the toggle is
-	// not mutated, so service resumes the moment it reconnects.
-	if a.isAcceptingOrders {
-		if a.lastHeartbeatAt == nil || now.Sub(*a.lastHeartbeatAt) > staleHeartbeat {
-			return openStateVerdict{OpenStateClosedOffline,
-				"The order screen is offline. Reconnect it to resume taking orders.", resolvableRestaurant}
-		}
-	}
-
-	if !a.isAcceptingOrders {
-		return openStateVerdict{OpenStateClosedToggle,
-			"This restaurant has paused new orders.", resolvableRestaurant}
-	}
-
-	if a.pauseUntil != nil && a.pauseUntil.After(now) {
-		return openStateVerdict{OpenStatePaused,
-			"This restaurant is briefly paused and will resume shortly.", resolvableTime}
-	}
-
-	if holidayClosed {
-		return openStateVerdict{OpenStateClosedHoliday,
-			"This restaurant is closed for a holiday.", resolvableTime}
-	}
-
-	if !withinHours {
-		return openStateVerdict{OpenStateClosedHours,
-			"This restaurant is closed right now.", resolvableTime}
-	}
-
 	return openStateVerdict{OpenStateOpen, "Open and accepting orders.", ""}
 }

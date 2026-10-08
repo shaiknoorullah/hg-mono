@@ -39,6 +39,30 @@ func CleanUpOrderFixtures(t testing.TB, pool *pgxpool.Pool, accountID, restauran
 	})
 }
 
+// OpenRestaurant makes a seeded restaurant open now, the way the order path
+// requires before it adds a cart line, quotes or places an order
+// (internal/orders/open_now.go): trading hours of 24 hours on every day, and an
+// order screen that has just checked in. The heartbeat goes stale after
+// 5 minutes, so call it right before the test orders, not in a shared setup.
+// Its hours go with the restaurant (ON DELETE CASCADE).
+// https://github.com/shaiknoorullah/hg-mono/issues/648
+func OpenRestaurant(t testing.TB, pool *pgxpool.Pool, restaurantID string) {
+	t.Helper()
+	ctx := context.Background()
+	if _, err := pool.Exec(ctx, `
+		INSERT INTO restaurant_hours (restaurant_id, day_of_week, opens_at, closes_at, crosses_midnight)
+		SELECT $1, d, time '00:00', time '00:00', true
+		  FROM generate_series(0, 6) AS d
+		 WHERE NOT EXISTS (SELECT 1 FROM restaurant_hours h
+		                    WHERE h.restaurant_id = $1 AND h.day_of_week = d)`, restaurantID); err != nil {
+		t.Fatalf("open restaurant: hours: %v", err)
+	}
+	if _, err := pool.Exec(ctx,
+		`UPDATE restaurant SET last_heartbeat_at = now() WHERE id = $1`, restaurantID); err != nil {
+		t.Fatalf("open restaurant: heartbeat: %v", err)
+	}
+}
+
 // WaitBlockedBy waits until some backend is waiting for a lock that the backend
 // pid holds, and reports whether that happened within timeout. A race test uses
 // it to know the other transaction has reached the lock before it lets go.

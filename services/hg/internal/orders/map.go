@@ -124,18 +124,13 @@ func cartRestaurantCard(c *Cart) *restaurantCardDTO {
 }
 
 // cartRestaurantAvailability derives the minimal C-14 serviceability verdict the
-// cart can compute from what it loaded: OPEN when the restaurant is LIVE and
-// accepting, otherwise PAUSED/CLOSED. distance_m is null (the cart holds no
-// address-relative geodesic distance; the full verdict is the catalog engine's).
+// cart can compute from what it loaded: the open state the catalog card shows,
+// from the same hours, toggle, pause and heartbeat (cartRestaurantOpen).
+// distance_m is null (the cart holds no address-relative geodesic distance; the
+// full verdict is the catalog engine's).
 func cartRestaurantAvailability(c *Cart) restaurantAvailabilityInfoDTO {
-	state := "OPEN"
-	if c.RestaurantAccountState != "LIVE" {
-		state = "CLOSED_HOURS"
-	} else if !c.RestaurantIsAccepting {
-		state = "PAUSED"
-	}
 	return restaurantAvailabilityInfoDTO{
-		State:             state,
+		State:             c.RestaurantAvailability,
 		MinimumOrderCents: c.RestaurantMinOrder,
 	}
 }
