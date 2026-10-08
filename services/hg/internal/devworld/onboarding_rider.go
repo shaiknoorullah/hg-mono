@@ -25,6 +25,11 @@ const (
 // reset from sign-in to online: profile, vehicle, documents, the admin's review
 // and approval, the payout account, then going online.
 func scenarioOnboardRider(ctx context.Context, base string) error {
+	// Refuse a non-local API before the first request: signing in a fresh
+	// number creates an account, as onboard-restaurant's registration does.
+	if err := AllowAPI(base); err != nil {
+		return err
+	}
 	rider, phone, err := freshRider(ctx, base)
 	if err != nil {
 		return err

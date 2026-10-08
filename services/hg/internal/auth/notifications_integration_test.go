@@ -203,10 +203,10 @@ func TestIntegrationPasswordResetEmailHasAWorkingLinkAndNoOtherSecret(t *testing
 	}
 
 	// The link works, once.
-	if err := svc.ResetPassword(ctx, token, "a brand new password for tests", nil); err != nil {
+	if err := svc.ResetPassword(ctx, token, "a brand new password for tests", "", nil); err != nil {
 		t.Fatalf("ResetPassword with the emailed token: %v", err)
 	}
-	if err := svc.ResetPassword(ctx, token, "another new password for tests", nil); err != errTokenUsed {
+	if err := svc.ResetPassword(ctx, token, "another new password for tests", "", nil); err != errTokenUsed {
 		t.Fatalf("second use of the token: err = %v, want errTokenUsed", err)
 	}
 	// Using a link sent to the address proves the address.
@@ -345,16 +345,16 @@ func TestIntegrationUsingOneResetLinkEndsTheOthers(t *testing.T) {
 		t.Fatalf("%d reset links, want 4", len(tokens))
 	}
 	// The fourth link ended the first: three live at most.
-	if err := svc.ResetPassword(ctx, tokens[0], "a new password for tests 0", nil); err != errTokenExpired {
+	if err := svc.ResetPassword(ctx, tokens[0], "a new password for tests 0", "", nil); err != errTokenExpired {
 		t.Fatalf("oldest link of four: err = %v, want errTokenExpired", err)
 	}
 	// The second link still works although two newer ones were sent.
-	if err := svc.ResetPassword(ctx, tokens[1], "a new password for tests 1", nil); err != nil {
+	if err := svc.ResetPassword(ctx, tokens[1], "a new password for tests 1", "", nil); err != nil {
 		t.Fatalf("an earlier, still live link: %v", err)
 	}
 	// Using it ended the others.
 	for _, tok := range tokens[2:] {
-		if err := svc.ResetPassword(ctx, tok, "a new password for tests 2", nil); err != errTokenExpired {
+		if err := svc.ResetPassword(ctx, tok, "a new password for tests 2", "", nil); err != errTokenExpired {
 			t.Fatalf("a link after another was used: err = %v, want errTokenExpired", err)
 		}
 	}

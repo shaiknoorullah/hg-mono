@@ -395,6 +395,7 @@ These exist so that individual features do not have to re-litigate them. Anythin
   4. The hero image is `restaurants.hero_object_key` resolved through the media CDN path; if null, a neutral cuisine-derived placeholder. A test asserts no bundled restaurant photograph exists in the app bundle.
   5. Menu payload is cached client-side for 5 min and invalidated on cart mutation failure with `ITEM_UNAVAILABLE`.
   6. A floating cart bar appears when the cart is non-empty, showing **sum of quantities** (not distinct line count) and the cart subtotal.
+  7. `GET /v1/restaurants/{id}?delivery_address_id=` prices the availability strip against that saved address when it belongs to the signed-in customer; an address that is not theirs, is deleted or has no location reads as no address (`NO_ADDRESS`), never another customer's location.
 - **Acceptance criteria**:
   1. Given a restaurant with a `hero_object_key`, when the detail page renders, then the displayed image URL contains that key and matches no path under the app's static assets directory.
   2. Given a menu with items in 3 categories, when the page renders, then tabs are `All` + those 3 in `sort_order`, and selecting a tab shows only that category's items.
@@ -703,6 +704,8 @@ These exist so that individual features do not have to re-litigate them. Anythin
 ### C-25 — Payment execution and 3DS
 - **SOW trace**: *"Secure Payments: Integration with secure payment gateways for seamless and safe transactions."*
 - **Behaviour**: On order creation the server creates a provider PaymentIntent for `amount_to_pay_cents` with `capture_method=manual` (authorise now, capture later). If the provider requires 3-D Secure, the server returns `requires_action` with a client secret; the app presents the provider's challenge sheet and confirms. **Capture occurs when the restaurant accepts** (`AWAITING_RESTAURANT → CONFIRMED`). Authorisation is **voided** on rejection, timeout, no-rider, or customer cancellation before capture.
+
+  **V0 build (customer app):** the card is confirmed on web with the Stripe.js Payment Element in a sheet (`redirect: 'if_required'`; Stripe.js loads on the first payment) and on iOS and Android with the Stripe SDK's payment sheet, both keyed by `EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY`. A build without that key takes no card and says so at checkout, keeping the order for **Retry payment**; a decline, a failed challenge or a closed sheet also keeps the order, and a retry never places a second one. After a confirmed card the app reads `GET /v1/orders/{orderId}/payment` once, so the order moves on even where no webhook can reach the API ([card payments playbook](../playbooks/customer/card-payments.md)).
 - **Data**: `payments(id, order_id, user_id, payment_method_id, provider, provider_intent_id UNIQUE, amount_cents, currency, status, captured_at, voided_at, failure_code, created_at)`; `payment_events(id, payment_id, provider_event_id UNIQUE, type, payload jsonb, received_at)` for webhook idempotency; `refunds` (C-37).
 - **States**: `payments.status ∈ {REQUIRES_ACTION, AUTHORIZED, CAPTURED, VOIDED, FAILED, REFUND_PENDING, PARTIALLY_REFUNDED, REFUNDED}`.
   - `(new) → REQUIRES_ACTION|AUTHORIZED|FAILED` — intent creation/confirmation.

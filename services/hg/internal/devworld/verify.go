@@ -162,6 +162,12 @@ func verifyTo(ctx context.Context, dsn string, out io.Writer) error {
 	}
 	fmt.Fprintf(out, "connect stand-ins %d (not real payout accounts)\n", connects)
 
+	catProblems, err := verifyCatalogue(ctx, conn, out)
+	if err != nil {
+		return err
+	}
+	problems = append(problems, catProblems...)
+
 	if adminHash == "" {
 		problems = append(problems, "admin password hash missing")
 	} else if ok, err := PasswordMatches(ctx, adminHash); err != nil {
@@ -225,12 +231,16 @@ func PrintAdminCode(now time.Time) error {
 	if err != nil {
 		return err
 	}
+	return printCode(AdminEmail, secret, now)
+}
+
+// printCode prints the current code for secret, never the secret itself.
+func printCode(email, secret string, now time.Time) error {
 	code, err := totp.GenerateCode(secret, now)
 	if err != nil {
 		return fmt.Errorf("devworld: totp code: %w", err)
 	}
-	left := 30 - int(now.Unix()%30)
-	fmt.Printf("email %s\ncode %s\nseconds %d\n", AdminEmail, code, left)
+	fmt.Printf("email %s\ncode %s\nseconds %d\n", email, code, 30-int(now.Unix()%30))
 	return nil
 }
 
@@ -263,10 +273,5 @@ func PrintCodeFor(ctx context.Context, env, dsn, email string, now time.Time) er
 	if err != nil {
 		return fmt.Errorf("devworld: open the authenticator: %w", err)
 	}
-	code, err := totp.GenerateCode(string(secret), now)
-	if err != nil {
-		return fmt.Errorf("devworld: totp code: %w", err)
-	}
-	fmt.Printf("email %s\ncode %s\nseconds %d\n", email, code, 30-int(now.Unix()%30))
-	return nil
+	return printCode(email, string(secret), now)
 }

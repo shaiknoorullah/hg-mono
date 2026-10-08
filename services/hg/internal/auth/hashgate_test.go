@@ -758,7 +758,7 @@ func TestUnusableResetLinkNeverTakesAHashingSlot(t *testing.T) {
 		"a used link":     {used, errTokenUsed},
 		"an expired link": {expired, errTokenExpired},
 	} {
-		if err := svc.ResetPassword(ctx, tc.token, newPassword, &ip); !errors.Is(err, tc.want) {
+		if err := svc.ResetPassword(ctx, tc.token, newPassword, "", &ip); !errors.Is(err, tc.want) {
 			t.Errorf("%s with the sign-up gate full = %v, want %v", name, err, tc.want)
 		}
 	}
@@ -769,11 +769,11 @@ func TestUnusableResetLinkNeverTakesAHashingSlot(t *testing.T) {
 		t.Errorf("unusable links were turned away by the sign-up gate %d times, want 0", got)
 	}
 
-	if err := svc.ResetPassword(ctx, usable, newPassword, &ip); !errors.Is(err, ErrPasswordHashBusy) {
+	if err := svc.ResetPassword(ctx, usable, newPassword, "", &ip); !errors.Is(err, ErrPasswordHashBusy) {
 		t.Fatalf("a usable link with the sign-up gate full = %v, want busy", err)
 	}
 	held.release()
-	if err := svc.ResetPassword(ctx, usable, newPassword, &ip); err != nil {
+	if err := svc.ResetPassword(ctx, usable, newPassword, "", &ip); err != nil {
 		t.Fatalf("the same link once a slot is free = %v, want the password reset", err)
 	}
 }

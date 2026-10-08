@@ -34,7 +34,7 @@ func TestConformance_SpecLoadsAndEnumerates(t *testing.T) {
 	// platform-wide during an incident, https://github.com/shaiknoorullah/hg-mono/issues/244) +
 	// deleteMenuItem/deleteMenuCategory (a restaurant deletes its own items and
 	// empty categories, https://github.com/shaiknoorullah/hg-mono/issues/239).
-	const wantOps = 168
+	const wantOps = 169
 	if got := len(spec.Operations); got != wantOps {
 		ids := make([]string, 0, len(spec.Operations))
 		for id := range spec.Operations {

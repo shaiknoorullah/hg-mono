@@ -18,6 +18,11 @@ import (
 // password and code. A staff role cannot hold a session without an
 // authenticator, so this is the whole path a new admin has.
 func scenarioOnboardAdmin(ctx context.Context, base string) error {
+	// Refuse a non-local API before the first request: the invitation creates
+	// an account, as onboard-restaurant's registration does.
+	if err := AllowAPI(base); err != nil {
+		return err
+	}
 	super, err := staff(ctx, base, "admin-seed", "admin-web")
 	if err != nil {
 		return err
