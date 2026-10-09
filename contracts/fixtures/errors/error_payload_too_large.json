@@ -1,0 +1,26 @@
+{
+  "scenario": "error_payload_too_large",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`413` · `PAYLOAD_TOO_LARGE`. `createUpload` for a file over the purpose's cap; `details.max_bytes` is the cap.",
+  "operations": [
+    "createUpload"
+  ],
+  "status": 413,
+  "tags": [
+    "error-envelope",
+    "error-path",
+    "rider",
+    "upload"
+  ],
+  "payload": {
+    "error": {
+      "code": "PAYLOAD_TOO_LARGE",
+      "message": "The declared size exceeds the cap for this purpose.",
+      "request_id": "NSYWDB1F04W7RAW1K81WTB6S26",
+      "details": {
+        "max_bytes": 10485760
+      }
+    }
+  }
+}

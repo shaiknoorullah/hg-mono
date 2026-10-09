@@ -32,6 +32,44 @@ export interface Manifest {
   by_operation: Record<string, string[]>;
   /** operationId -> the scenario served when the caller names none. */
   defaults: Record<string, string>;
+  /** The instant every fixture timestamp is relative to (`_build/content.py` NOW). */
+  frozen_clock?: string;
+}
+
+/**
+ * A scenario request, as sent in `?scenario=`, `X-Mock-Scenario` or the `mock_scenario`
+ * cookie: one bare name (`order_arrived`), or a comma-separated list of
+ * `operationId=scenario` pairs and bare names, which sets one scenario per operation:
+ *
+ *   getCurrentPrincipal=principal_admin,listRestaurantOrders=restaurant_order_queue_busy
+ *
+ * contracts/fixtures/SCENARIOS.md, "How one scenario is chosen per operation".
+ */
+export interface ScenarioRequest {
+  /** operationId -> scenario, from the `op=scenario` entries. */
+  byOperation: Map<string, string>;
+  /** Bare scenario names, in the order given. */
+  bare: string[];
+}
+
+export function parseScenarioRequest(raw: string | undefined): ScenarioRequest | undefined {
+  if (!raw) return undefined;
+  const byOperation = new Map<string, string>();
+  const bare: string[] = [];
+  for (const part of raw.split(',')) {
+    const entry = part.trim();
+    if (!entry) continue;
+    const eq = entry.indexOf('=');
+    if (eq < 0) {
+      bare.push(entry);
+      continue;
+    }
+    const op = entry.slice(0, eq).trim();
+    const scenario = entry.slice(eq + 1).trim();
+    if (op && scenario) byOperation.set(op, scenario);
+  }
+  if (byOperation.size === 0 && bare.length === 0) return undefined;
+  return { byOperation, bare };
 }
 
 export class FixtureStore {
@@ -79,31 +117,57 @@ export class FixtureStore {
   /**
    * Resolve the fixture for an operation under an optional scenario request.
    *
-   * A named scenario wins if it exists **and** is registered for this operation; a named
-   * scenario that exists but belongs to another operation is still served (an app agent
-   * driving one screen should not have to know the routing table), and one that does not
-   * exist at all is reported so the mistake is visible rather than silently ignored.
+   * One bare name: it wins if it exists. A name that exists but belongs to another
+   * operation is still served (an app agent driving one screen should not have to know the
+   * routing table), and one that does not exist at all is reported so the mistake is
+   * visible rather than silently ignored.
+   *
+   * A list (`op=scenario` pairs, or several names) sets one scenario per operation: the
+   * pair naming this operation wins, even for a fixture registered elsewhere or for no
+   * operation (a generic `error_*`); else the first bare name registered for this
+   * operation; else the operation's default. Names that do not exist are reported.
    */
   resolve(
     operationId: string,
     requested: string | undefined,
   ): { fixture?: Fixture; source: 'scenario' | 'default' | 'none'; warning?: string } {
-    if (requested) {
-      const fixture = this.byScenario.get(requested);
+    const request = parseScenarioRequest(requested);
+    if (request && request.byOperation.size === 0 && request.bare.length === 1) {
+      const name = request.bare[0]!;
+      const fixture = this.byScenario.get(name);
       if (!fixture) {
         return {
           source: 'none',
-          warning: `unknown scenario \`${requested}\` - see GET /__mock/scenarios`,
+          warning: `unknown scenario \`${name}\` - see GET /__mock/scenarios`,
         };
       }
-      const registered = (this.byOperation.get(operationId) ?? []).includes(requested);
+      const registered = (this.byOperation.get(operationId) ?? []).includes(name);
       return {
         fixture,
         source: 'scenario',
         warning: registered
           ? undefined
-          : `scenario \`${requested}\` is not registered for \`${operationId}\`; serving it anyway`,
+          : `scenario \`${name}\` is not registered for \`${operationId}\`; serving it anyway`,
       };
+    }
+    if (request) {
+      const unknown = [...request.byOperation.values(), ...request.bare].filter(
+        (name) => !this.byScenario.has(name),
+      );
+      const warning = unknown.length
+        ? `unknown scenario ${unknown.map((name) => `\`${name}\``).join(', ')} - see GET /__mock/scenarios`
+        : undefined;
+      const paired = request.byOperation.get(operationId);
+      if (paired !== undefined) {
+        const fixture = this.byScenario.get(paired);
+        return fixture ? { fixture, source: 'scenario', warning } : { source: 'none', warning };
+      }
+      const candidates = this.byOperation.get(operationId) ?? [];
+      const matched = request.bare.find((name) => candidates.includes(name));
+      if (matched) return { fixture: this.byScenario.get(matched), source: 'scenario', warning };
+      const fallback = this.defaultFor(operationId);
+      if (!fallback) return { source: 'none', warning };
+      return { fixture: this.byScenario.get(fallback), source: 'default', warning };
     }
     const fallback = this.defaultFor(operationId);
     if (!fallback) return { source: 'none' };

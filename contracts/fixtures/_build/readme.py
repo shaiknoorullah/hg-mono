@@ -41,6 +41,10 @@ pnpm validate:fixtures     # assert every fixture against its schema
 pnpm mock                  # serve them all at http://localhost:4010
 ```
 
+**The naming rules, how the mock picks one fixture per operation, and which fixtures match
+each devworld scenario and persona are in [`SCENARIOS.md`](SCENARIOS.md)**, the one scenario
+vocabulary for mock screen tests and real-API journeys.
+
 ---
 
 ## What a fixture is

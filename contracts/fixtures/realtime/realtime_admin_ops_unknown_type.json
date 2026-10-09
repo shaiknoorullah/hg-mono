@@ -1,0 +1,60 @@
+{
+  "scenario": "realtime_admin_ops_unknown_type",
+  "domain": "realtime",
+  "schema": "RealtimeEvent[]",
+  "describes": "Frames a client must ignore without crashing (websocket.md section 2): an unknown type `admin.capacity_warning`, and `admin.queue_depth` at `v: 2`. Then a normal `v: 1` queue depth that must be shown. `seq` stays gapless across all three.",
+  "operations": [],
+  "status": 200,
+  "tags": [
+    "realtime",
+    "script",
+    "admin",
+    "edge"
+  ],
+  "payload": [
+    {
+      "id": "HEEN52MX88DYGRS4V5M1BDPREC",
+      "seq": 1,
+      "channel": "admin:ops",
+      "type": "admin.capacity_warning",
+      "v": 1,
+      "ts": "2026-08-10T18:42:11.412Z",
+      "data": {
+        "region": "toronto",
+        "online_riders": 2
+      },
+      "_delay_ms": 0
+    },
+    {
+      "id": "8HHVJSWFZERB3E06RNR6C74YNA",
+      "seq": 2,
+      "channel": "admin:ops",
+      "type": "admin.queue_depth",
+      "v": 2,
+      "ts": "2026-08-10T18:42:13.412Z",
+      "data": {
+        "pending": {
+          "restaurants": 3,
+          "riders": 5
+        },
+        "disputes": 1
+      },
+      "_delay_ms": 2000
+    },
+    {
+      "id": "2FAE5EG4XBJMVXE7GQ7A9HBEQ8",
+      "seq": 3,
+      "channel": "admin:ops",
+      "type": "admin.queue_depth",
+      "v": 1,
+      "ts": "2026-08-10T18:42:15.412Z",
+      "data": {
+        "pending_restaurant_reviews": 3,
+        "pending_rider_reviews": 5,
+        "open_disputes": 1,
+        "failed_refunds": 0
+      },
+      "_delay_ms": 4000
+    }
+  ]
+}

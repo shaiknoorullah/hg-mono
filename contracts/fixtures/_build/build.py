@@ -26,9 +26,11 @@ import dom_handoff  # noqa: E402
 import dom_onboarding  # noqa: E402
 import dom_ordering_pause  # noqa: E402
 import dom_orders  # noqa: E402
+import dom_redesign  # noqa: E402
 import dom_rider  # noqa: E402
 from content import Content  # noqa: E402
 from readme import write_readme  # noqa: E402
+from vocabulary import write_vocabulary  # noqa: E402
 from registry import Registry  # noqa: E402
 from synth import Synth  # noqa: E402
 
@@ -49,6 +51,9 @@ def main() -> int:
     dom_onboarding.build(reg, synth)
     dom_errors.build(reg, synth)
     dom_handoff.build(reg, synth)
+    dom_redesign.build(reg, synth)
+
+    write_vocabulary(reg)
 
     manifest = reg.write()
     write_readme(manifest)

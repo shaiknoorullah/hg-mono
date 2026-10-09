@@ -1,0 +1,126 @@
+{
+  "scenario": "realtime_restaurant_offer_accepted_elsewhere",
+  "domain": "realtime",
+  "schema": "RealtimeEvent[]",
+  "describes": "Two offers ring; another tablet accepts the first (`restaurant.order_accepted`, the fan-out) and declines the second (`restaurant.order_rejected`, `KITCHEN_AT_CAPACITY`). This screen only clears both tiles.",
+  "operations": [],
+  "status": 200,
+  "tags": [
+    "realtime",
+    "script",
+    "restaurant"
+  ],
+  "payload": [
+    {
+      "id": "GJDAE2RQD8716KF5AWWTETZFM5",
+      "seq": 1,
+      "channel": "restaurant:a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+      "type": "restaurant.order_offered",
+      "v": 1,
+      "ts": "2026-08-10T18:42:11.412Z",
+      "data": {
+        "order_id": "11cd6318-418f-4301-af7e-3e7f33818fa8",
+        "code": "HG-A7K2-4M",
+        "expires_at": "2026-08-10T18:45:11.412Z",
+        "deadline_at": "2026-08-10T18:45:11.412Z",
+        "customer_first_name": "Ayesha",
+        "lines": [
+          {
+            "name": "Chicken Biryani",
+            "variant": null,
+            "addons": [],
+            "qty": 2,
+            "note": null
+          },
+          {
+            "name": "Garlic Naan",
+            "variant": null,
+            "addons": [],
+            "qty": 2,
+            "note": null
+          }
+        ],
+        "subtotal_cents": 3298,
+        "total_cents": 4369,
+        "currency": "CAD",
+        "prep_eta_suggestion_min": 20,
+        "fulfilment": "DELIVERY"
+      },
+      "_delay_ms": 0
+    },
+    {
+      "id": "9XM10GHW9XM36PFSY0GK6C3WHZ",
+      "seq": 2,
+      "channel": "restaurant:a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+      "type": "restaurant.order_offered",
+      "v": 1,
+      "ts": "2026-08-10T18:42:12.412Z",
+      "data": {
+        "order_id": "7cad285e-b3a0-47a5-a8ca-6c25344e6e2a",
+        "code": "HG-D2M6-9K",
+        "expires_at": "2026-08-10T18:45:12.412Z",
+        "deadline_at": "2026-08-10T18:45:12.412Z",
+        "customer_first_name": "Omar",
+        "lines": [
+          {
+            "name": "Lamb Seekh Kebab",
+            "variant": null,
+            "addons": [],
+            "qty": 4,
+            "note": null
+          },
+          {
+            "name": "Chicken Tikka",
+            "variant": "Boneless",
+            "addons": [
+              "Mint chutney"
+            ],
+            "qty": 2,
+            "note": null
+          },
+          {
+            "name": "Gulab Jamun",
+            "variant": null,
+            "addons": [],
+            "qty": 2,
+            "note": null
+          }
+        ],
+        "subtotal_cents": 6118,
+        "total_cents": 7932,
+        "currency": "CAD",
+        "prep_eta_suggestion_min": 30,
+        "fulfilment": "DELIVERY"
+      },
+      "_delay_ms": 1000
+    },
+    {
+      "id": "RJJ9XT1V13SKK677WQFXW765XB",
+      "seq": 3,
+      "channel": "restaurant:a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+      "type": "restaurant.order_accepted",
+      "v": 1,
+      "ts": "2026-08-10T18:42:18.412Z",
+      "data": {
+        "order_id": "11cd6318-418f-4301-af7e-3e7f33818fa8",
+        "accepted_by": "Hamza K.",
+        "prep_eta_minutes": 20
+      },
+      "_delay_ms": 7000
+    },
+    {
+      "id": "8KMPW7TCQP31NVXDAT4YACRASR",
+      "seq": 4,
+      "channel": "restaurant:a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+      "type": "restaurant.order_rejected",
+      "v": 1,
+      "ts": "2026-08-10T18:42:22.412Z",
+      "data": {
+        "order_id": "7cad285e-b3a0-47a5-a8ca-6c25344e6e2a",
+        "rejected_by": "Hamza K.",
+        "reason_code": "KITCHEN_AT_CAPACITY"
+      },
+      "_delay_ms": 11000
+    }
+  ]
+}

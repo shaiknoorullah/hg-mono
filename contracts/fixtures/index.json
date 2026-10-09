@@ -2,21 +2,21 @@
   "generated_by": "contracts/fixtures/_build/build.py",
   "do_not_edit": "Every file under contracts/fixtures/ is generated. Run `pnpm fixtures:build`.",
   "frozen_clock": "2026-08-10T18:42:11.412Z",
-  "count": 424,
+  "count": 491,
   "counts_by_domain": {
     "admin": 35,
     "cart": 14,
     "catalogue": 41,
     "dispatch": 31,
     "documents": 23,
-    "errors": 55,
+    "errors": 93,
     "halal": 25,
     "handoff": 13,
-    "onboarding": 35,
+    "onboarding": 47,
     "orders": 44,
     "payments": 12,
-    "platform": 27,
-    "realtime": 8,
+    "platform": 32,
+    "realtime": 20,
     "refunds": 39,
     "rider": 22
   },
@@ -2205,6 +2205,59 @@
       "file": "documents/stored_object_rejected.json"
     },
     {
+      "scenario": "error_account_not_active",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`403` · `ACCOUNT_NOT_ACTIVE`. The account is suspended, banned or deleted. Returned by `login` and by `setRiderAvailability` going online; nothing changed.",
+      "operations": [
+        "setRiderAvailability",
+        "login"
+      ],
+      "status": 403,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "rider",
+        "auth"
+      ],
+      "file": "errors/error_account_not_active.json"
+    },
+    {
+      "scenario": "error_account_suspended",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`403` · `ACCOUNT_SUSPENDED`. The signed-in account is suspended; the app routes to the on-hold screen. Contract-only: `services/hg` answers a suspended account with `ACCOUNT_NOT_ACTIVE` at sign-in (`error_account_not_active`) and `SESSION_REVOKED` at refresh (`error_session_revoked`); handle all three.",
+      "operations": [
+        "getCurrentPrincipal",
+        "refreshSession"
+      ],
+      "status": 403,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "customer",
+        "auth",
+        "session"
+      ],
+      "file": "errors/error_account_suspended.json"
+    },
+    {
+      "scenario": "error_active_delivery_in_progress",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `ACTIVE_DELIVERY_IN_PROGRESS`. Going offline while carrying an order. Contract-only: `services/hg` does not return this code yet; it lets the rider set `go_offline_after_delivery` instead.",
+      "operations": [
+        "setRiderAvailability"
+      ],
+      "status": 409,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "rider"
+      ],
+      "file": "errors/error_active_delivery_in_progress.json"
+    },
+    {
       "scenario": "error_active_order_exists",
       "domain": "errors",
       "schema": "ErrorEnvelope",
@@ -2215,6 +2268,22 @@
         "error-envelope"
       ],
       "file": "errors/error_active_order_exists.json"
+    },
+    {
+      "scenario": "error_address_in_use",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `ADDRESS_IN_USE`. Deleting the address of an active order. Contract-only: `services/hg` does not return this code yet.",
+      "operations": [
+        "deleteAddress"
+      ],
+      "status": 409,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "customer"
+      ],
+      "file": "errors/error_address_in_use.json"
     },
     {
       "scenario": "error_application_already_decided",
@@ -2269,6 +2338,182 @@
         "error-envelope"
       ],
       "file": "errors/error_breached_password.json"
+    },
+    {
+      "scenario": "error_cancellation_window_closed",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `CANCELLATION_WINDOW_CLOSED`. Cancel after the restaurant accepted. The app swaps Cancel for Get help.",
+      "operations": [
+        "cancelOrder"
+      ],
+      "status": 409,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "customer"
+      ],
+      "file": "errors/error_cancellation_window_closed.json"
+    },
+    {
+      "scenario": "error_cannot_go_online",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`422` · `CANNOT_GO_ONLINE`. Going online without a fresh location fix: the one soft reason `services/hg` sends today. The app deep-links each `details.blocking_reasons` entry to its fix.",
+      "operations": [
+        "setRiderAvailability"
+      ],
+      "status": 422,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "rider"
+      ],
+      "file": "errors/error_cannot_go_online.json"
+    },
+    {
+      "scenario": "error_cannot_go_online_account_not_active",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`422` · `CANNOT_GO_ONLINE`. One blocking reason, `ACCOUNT_NOT_ACTIVE`, so its row and deep link can be tested alone. Contract-only: `services/hg` sends only `STALE_LOCATION_FIX` in `blocking_reasons` today.",
+      "operations": [
+        "setRiderAvailability"
+      ],
+      "status": 422,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "rider"
+      ],
+      "file": "errors/error_cannot_go_online_account_not_active.json"
+    },
+    {
+      "scenario": "error_cannot_go_online_all_reasons",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`422` · `CANNOT_GO_ONLINE`. All nine contract `blocking_reasons` at once, so one screen test covers every row. Contract-only: `services/hg` sends `ONBOARDING_INCOMPLETE`, `ACCOUNT_NOT_ACTIVE` and `PAYOUT_ACCOUNT_INCOMPLETE` as their own 403 codes and only `STALE_LOCATION_FIX` in this list today.",
+      "operations": [
+        "setRiderAvailability"
+      ],
+      "status": 422,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "rider"
+      ],
+      "file": "errors/error_cannot_go_online_all_reasons.json"
+    },
+    {
+      "scenario": "error_cannot_go_online_background_location_permission",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`422` · `CANNOT_GO_ONLINE`. One blocking reason, `BACKGROUND_LOCATION_PERMISSION`, so its row and deep link can be tested alone. Contract-only: `services/hg` sends only `STALE_LOCATION_FIX` in `blocking_reasons` today.",
+      "operations": [
+        "setRiderAvailability"
+      ],
+      "status": 422,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "rider"
+      ],
+      "file": "errors/error_cannot_go_online_background_location_permission.json"
+    },
+    {
+      "scenario": "error_cannot_go_online_continuous_online_cap",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`422` · `CANNOT_GO_ONLINE`. One blocking reason, `CONTINUOUS_ONLINE_CAP`, so its row and deep link can be tested alone. Contract-only: `services/hg` sends only `STALE_LOCATION_FIX` in `blocking_reasons` today.",
+      "operations": [
+        "setRiderAvailability"
+      ],
+      "status": 422,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "rider"
+      ],
+      "file": "errors/error_cannot_go_online_continuous_online_cap.json"
+    },
+    {
+      "scenario": "error_cannot_go_online_document_expired",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`422` · `CANNOT_GO_ONLINE`. One blocking reason, `DOCUMENT_EXPIRED`, so its row and deep link can be tested alone. Contract-only: `services/hg` sends only `STALE_LOCATION_FIX` in `blocking_reasons` today.",
+      "operations": [
+        "setRiderAvailability"
+      ],
+      "status": 422,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "rider"
+      ],
+      "file": "errors/error_cannot_go_online_document_expired.json"
+    },
+    {
+      "scenario": "error_cannot_go_online_foreground_location_permission",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`422` · `CANNOT_GO_ONLINE`. One blocking reason, `FOREGROUND_LOCATION_PERMISSION`, so its row and deep link can be tested alone. Contract-only: `services/hg` sends only `STALE_LOCATION_FIX` in `blocking_reasons` today.",
+      "operations": [
+        "setRiderAvailability"
+      ],
+      "status": 422,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "rider"
+      ],
+      "file": "errors/error_cannot_go_online_foreground_location_permission.json"
+    },
+    {
+      "scenario": "error_cannot_go_online_notification_permission",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`422` · `CANNOT_GO_ONLINE`. One blocking reason, `NOTIFICATION_PERMISSION`, so its row and deep link can be tested alone. Contract-only: `services/hg` sends only `STALE_LOCATION_FIX` in `blocking_reasons` today.",
+      "operations": [
+        "setRiderAvailability"
+      ],
+      "status": 422,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "rider"
+      ],
+      "file": "errors/error_cannot_go_online_notification_permission.json"
+    },
+    {
+      "scenario": "error_cannot_go_online_onboarding_incomplete",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`422` · `CANNOT_GO_ONLINE`. One blocking reason, `ONBOARDING_INCOMPLETE`, so its row and deep link can be tested alone. Contract-only: `services/hg` sends only `STALE_LOCATION_FIX` in `blocking_reasons` today.",
+      "operations": [
+        "setRiderAvailability"
+      ],
+      "status": 422,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "rider"
+      ],
+      "file": "errors/error_cannot_go_online_onboarding_incomplete.json"
+    },
+    {
+      "scenario": "error_cannot_go_online_payout_account_incomplete",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`422` · `CANNOT_GO_ONLINE`. One blocking reason, `PAYOUT_ACCOUNT_INCOMPLETE`, so its row and deep link can be tested alone. Contract-only: `services/hg` sends only `STALE_LOCATION_FIX` in `blocking_reasons` today.",
+      "operations": [
+        "setRiderAvailability"
+      ],
+      "status": 422,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "rider"
+      ],
+      "file": "errors/error_cannot_go_online_payout_account_incomplete.json"
     },
     {
       "scenario": "error_capture_failed",
@@ -2339,6 +2584,40 @@
       "file": "errors/error_chargeback_closed.json"
     },
     {
+      "scenario": "error_checksum_mismatch",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`422` · `CHECKSUM_MISMATCH`. The upload was cut off or changed in transit. Upload it again.",
+      "operations": [
+        "confirmUpload"
+      ],
+      "status": 422,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "rider",
+        "upload"
+      ],
+      "file": "errors/error_checksum_mismatch.json"
+    },
+    {
+      "scenario": "error_content_type_mismatch",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`422` · `CONTENT_TYPE_MISMATCH`. The file's bytes are not the type declared when the upload was created.",
+      "operations": [
+        "confirmUpload"
+      ],
+      "status": 422,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "rider",
+        "upload"
+      ],
+      "file": "errors/error_content_type_mismatch.json"
+    },
+    {
       "scenario": "error_current_password_incorrect",
       "domain": "errors",
       "schema": "ErrorEnvelope",
@@ -2383,6 +2662,22 @@
       "file": "errors/error_decision_rejection_reason_required.json"
     },
     {
+      "scenario": "error_document_expires_too_soon",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`422` · `DOCUMENT_EXPIRES_TOO_SOON`. A document whose expiry date is less than 30 days away.",
+      "operations": [
+        "attachRiderDocument"
+      ],
+      "status": 422,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "rider"
+      ],
+      "file": "errors/error_document_expires_too_soon.json"
+    },
+    {
       "scenario": "error_documents_incomplete",
       "domain": "errors",
       "schema": "ErrorEnvelope",
@@ -2395,6 +2690,38 @@
       "file": "errors/error_documents_incomplete.json"
     },
     {
+      "scenario": "error_field_not_applicable",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`422` · `FIELD_NOT_APPLICABLE`. A bicycle or on-foot rider sent a plate. The form hides the field for those types.",
+      "operations": [
+        "submitRiderVehicle"
+      ],
+      "status": 422,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "rider"
+      ],
+      "file": "errors/error_field_not_applicable.json"
+    },
+    {
+      "scenario": "error_field_required",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`422` · `FIELD_REQUIRED`. A car, scooter or motorcycle without a plate.",
+      "operations": [
+        "submitRiderVehicle"
+      ],
+      "status": 422,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "rider"
+      ],
+      "file": "errors/error_field_required.json"
+    },
+    {
       "scenario": "error_forbidden",
       "domain": "errors",
       "schema": "ErrorEnvelope",
@@ -2405,6 +2732,22 @@
         "error-envelope"
       ],
       "file": "errors/error_forbidden.json"
+    },
+    {
+      "scenario": "error_geofence_required",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`422` · `GEOFENCE_REQUIRED`. A transition that needs the rider at the pickup or drop-off, sent from too far away and without `override_reason`. The app offers \"I'm here\" with a reason, which makes it a flagged manual transition.",
+      "operations": [
+        "createAssignmentTransition"
+      ],
+      "status": 422,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "rider"
+      ],
+      "file": "errors/error_geofence_required.json"
     },
     {
       "scenario": "error_halal_tag_not_writable",
@@ -2424,6 +2767,22 @@
       "file": "errors/error_halal_tag_not_writable.json"
     },
     {
+      "scenario": "error_idempotency_in_progress",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `IDEMPOTENCY_IN_PROGRESS`. A retry of `createOrder` with the same key while the first is still running. The app waits and re-reads the active order; it never sends a new key.",
+      "operations": [
+        "createOrder"
+      ],
+      "status": 409,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "customer"
+      ],
+      "file": "errors/error_idempotency_in_progress.json"
+    },
+    {
       "scenario": "error_idempotency_key_reuse",
       "domain": "errors",
       "schema": "ErrorEnvelope",
@@ -2436,6 +2795,23 @@
       "file": "errors/error_idempotency_key_reuse.json"
     },
     {
+      "scenario": "error_image_too_small",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`422` · `IMAGE_TOO_SMALL`. `confirmUpload` on a photo too small to be a real scan. PDFs are exempt. The app asks for a retake.",
+      "operations": [
+        "confirmUpload"
+      ],
+      "status": 422,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "rider",
+        "upload"
+      ],
+      "file": "errors/error_image_too_small.json"
+    },
+    {
       "scenario": "error_internal_error",
       "domain": "errors",
       "schema": "ErrorEnvelope",
@@ -2446,6 +2822,22 @@
         "error-envelope"
       ],
       "file": "errors/error_internal_error.json"
+    },
+    {
+      "scenario": "error_invalid_transition",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `INVALID_TRANSITION`. A backwards or skipped assignment transition. `details.current_state` is where the assignment really is; the app re-reads it and moves on from there. Repeating the current state is a 200 no-op, not this.",
+      "operations": [
+        "createAssignmentTransition"
+      ],
+      "status": 409,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "rider"
+      ],
+      "file": "errors/error_invalid_transition.json"
     },
     {
       "scenario": "error_item_blocked_by_admin",
@@ -2559,6 +2951,22 @@
       "file": "errors/error_not_found.json"
     },
     {
+      "scenario": "error_nothing_to_resubmit",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `NOTHING_TO_RESUBMIT`. Sending the document pack again with nothing replaced since the last review. Contract-only: `services/hg` does not return this code yet.",
+      "operations": [
+        "submitRiderDocuments"
+      ],
+      "status": 409,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "rider"
+      ],
+      "file": "errors/error_nothing_to_resubmit.json"
+    },
+    {
       "scenario": "error_offer_already_taken",
       "domain": "errors",
       "schema": "ErrorEnvelope",
@@ -2581,6 +2989,22 @@
         "error-envelope"
       ],
       "file": "errors/error_offer_expired.json"
+    },
+    {
+      "scenario": "error_onboarding_incomplete",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`403` · `ONBOARDING_INCOMPLETE`. A rider who has not finished onboarding tries to go online. `details.next_step` is the onboarding state to route to.",
+      "operations": [
+        "setRiderAvailability"
+      ],
+      "status": 403,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "rider"
+      ],
+      "file": "errors/error_onboarding_incomplete.json"
     },
     {
       "scenario": "error_ordering_paused",
@@ -2610,6 +3034,73 @@
       "file": "errors/error_otp_incorrect.json"
     },
     {
+      "scenario": "error_otp_invalid_or_expired",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`400` · `OTP_INVALID_OR_EXPIRED`. The challenge expired or was used up. Different from `error_otp_incorrect`: the app clears the code and offers \"Send a new code\".",
+      "operations": [
+        "verifyOtp"
+      ],
+      "status": 400,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "rider",
+        "customer",
+        "auth"
+      ],
+      "file": "errors/error_otp_invalid_or_expired.json"
+    },
+    {
+      "scenario": "error_payload_too_large",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`413` · `PAYLOAD_TOO_LARGE`. `createUpload` for a file over the purpose's cap; `details.max_bytes` is the cap.",
+      "operations": [
+        "createUpload"
+      ],
+      "status": 413,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "rider",
+        "upload"
+      ],
+      "file": "errors/error_payload_too_large.json"
+    },
+    {
+      "scenario": "error_payout_account_incomplete",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`403` · `PAYOUT_ACCOUNT_INCOMPLETE`. Stripe payouts are not enabled for this rider yet. The app links to the payout step (`getConnectStatus`).",
+      "operations": [
+        "setRiderAvailability"
+      ],
+      "status": 403,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "rider"
+      ],
+      "file": "errors/error_payout_account_incomplete.json"
+    },
+    {
+      "scenario": "error_plate_in_use",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `PLATE_IN_USE`. The plate belongs to another rider's vehicle. Shown on the plate field.",
+      "operations": [
+        "submitRiderVehicle"
+      ],
+      "status": 409,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "rider"
+      ],
+      "file": "errors/error_plate_in_use.json"
+    },
+    {
       "scenario": "error_pod_method_mismatch",
       "domain": "errors",
       "schema": "ErrorEnvelope",
@@ -2620,6 +3111,23 @@
         "error-envelope"
       ],
       "file": "errors/error_pod_method_mismatch.json"
+    },
+    {
+      "scenario": "error_pod_required",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`422` · `POD_REQUIRED`. `DELIVERED` without the proof artefact. `details.required_pod_method` says which proof the drop-off needs (`OTP` here).",
+      "operations": [
+        "createAssignmentTransition",
+        "submitProofOfDelivery"
+      ],
+      "status": 422,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "rider"
+      ],
+      "file": "errors/error_pod_required.json"
     },
     {
       "scenario": "error_price_out_of_range",
@@ -2637,6 +3145,22 @@
         "error-envelope"
       ],
       "file": "errors/error_price_out_of_range.json"
+    },
+    {
+      "scenario": "error_profile_incomplete",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`422` · `PROFILE_INCOMPLETE`. Placing an order before profile capture. Contract-only: `services/hg` does not return this code yet; `next_route: PROFILE_CAPTURE` routes there first.",
+      "operations": [
+        "createOrder"
+      ],
+      "status": 422,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "customer"
+      ],
+      "file": "errors/error_profile_incomplete.json"
     },
     {
       "scenario": "error_prohibited_ingredient",
@@ -2704,6 +3228,25 @@
       "file": "errors/error_rate_limited.json"
     },
     {
+      "scenario": "error_rate_limiter_unavailable",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`503` · `RATE_LIMITER_UNAVAILABLE`. The sign-in code service's rate limiter cannot be reached, so no code is sent (fail closed). This is the 503 the rider manifest calls `error_service_unavailable`.",
+      "operations": [
+        "requestOtp",
+        "verifyOtp"
+      ],
+      "status": 503,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "rider",
+        "customer",
+        "auth"
+      ],
+      "file": "errors/error_rate_limiter_unavailable.json"
+    },
+    {
       "scenario": "error_receipt_not_ready",
       "domain": "errors",
       "schema": "ErrorEnvelope",
@@ -2716,6 +3259,24 @@
         "error-envelope"
       ],
       "file": "errors/error_receipt_not_ready.json"
+    },
+    {
+      "scenario": "error_refresh_reuse_detected",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`401` · `REFRESH_REUSE_DETECTED`. A refresh token was used twice, so the whole session family was revoked. Same screen as `error_session_revoked`; never retried.",
+      "operations": [
+        "refreshSession"
+      ],
+      "status": 401,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "customer",
+        "auth",
+        "session"
+      ],
+      "file": "errors/error_refresh_reuse_detected.json"
     },
     {
       "scenario": "error_refund_already_decided",
@@ -2869,6 +3430,22 @@
       "file": "errors/error_review_window_closed.json"
     },
     {
+      "scenario": "error_rider_email_in_use",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `EMAIL_IN_USE`. `submitRiderProfile` with an email that belongs to another account. Shown on the email field; nothing was saved.",
+      "operations": [
+        "submitRiderProfile"
+      ],
+      "status": 409,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "rider"
+      ],
+      "file": "errors/error_rider_email_in_use.json"
+    },
+    {
       "scenario": "error_rider_under_18",
       "domain": "errors",
       "schema": "ErrorEnvelope",
@@ -2883,6 +3460,42 @@
       "file": "errors/error_rider_under_18.json"
     },
     {
+      "scenario": "error_session_expired",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`401` · `SESSION_EXPIRED`. `refreshSession` with a refresh token past its lifetime.",
+      "operations": [
+        "refreshSession"
+      ],
+      "status": 401,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "customer",
+        "auth",
+        "session"
+      ],
+      "file": "errors/error_session_expired.json"
+    },
+    {
+      "scenario": "error_session_revoked",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`401` · `SESSION_REVOKED`. `refreshSession` after the session was signed out elsewhere (`logoutAll`) or revoked by staff. The app drops its tokens and shows the signed-out screen.",
+      "operations": [
+        "refreshSession"
+      ],
+      "status": 401,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "customer",
+        "auth",
+        "session"
+      ],
+      "file": "errors/error_session_revoked.json"
+    },
+    {
       "scenario": "error_staff_email_in_use",
       "domain": "errors",
       "schema": "ErrorEnvelope",
@@ -2895,6 +3508,24 @@
         "error-envelope"
       ],
       "file": "errors/error_staff_email_in_use.json"
+    },
+    {
+      "scenario": "error_step_not_available",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `STEP_NOT_AVAILABLE`. Payout setup before the application is approved.",
+      "operations": [
+        "createConnectAccount",
+        "createConnectOnboardingLink"
+      ],
+      "status": 409,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "rider",
+        "restaurant"
+      ],
+      "file": "errors/error_step_not_available.json"
     },
     {
       "scenario": "error_totp_code_incorrect",
@@ -3839,6 +4470,187 @@
         "restaurant"
       ],
       "file": "onboarding/restaurant_profile.json"
+    },
+    {
+      "scenario": "restaurant_profile_account_banned",
+      "domain": "onboarding",
+      "schema": "RestaurantProfile",
+      "describes": "`getRestaurantProfile` with `account_state: BANNED`. Banned. Its own staff cannot sign in, so only admins acting on its behalf see this profile.",
+      "operations": [
+        "getRestaurantProfile"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "account-state-matrix"
+      ],
+      "file": "onboarding/restaurant_profile_account_banned.json"
+    },
+    {
+      "scenario": "restaurant_profile_account_closed",
+      "domain": "onboarding",
+      "schema": "RestaurantProfile",
+      "describes": "`getRestaurantProfile` with `account_state: CLOSED`. Closed for good. Read only.",
+      "operations": [
+        "getRestaurantProfile"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "account-state-matrix"
+      ],
+      "file": "onboarding/restaurant_profile_account_closed.json"
+    },
+    {
+      "scenario": "restaurant_profile_account_deactivated",
+      "domain": "onboarding",
+      "schema": "RestaurantProfile",
+      "describes": "`getRestaurantProfile` with `account_state: DEACTIVATED`. Deactivated at the owner's request. Read only.",
+      "operations": [
+        "getRestaurantProfile"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "account-state-matrix"
+      ],
+      "file": "onboarding/restaurant_profile_account_deactivated.json"
+    },
+    {
+      "scenario": "restaurant_profile_account_delisted",
+      "domain": "onboarding",
+      "schema": "RestaurantProfile",
+      "describes": "`getRestaurantProfile` with `account_state: DELISTED`. Hidden from customers by the system, not as a punishment: here the halal certificate lapsed. Clears by itself when the cause does.",
+      "operations": [
+        "getRestaurantProfile"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "account-state-matrix"
+      ],
+      "file": "onboarding/restaurant_profile_account_delisted.json"
+    },
+    {
+      "scenario": "restaurant_profile_account_live",
+      "domain": "onboarding",
+      "schema": "RestaurantProfile",
+      "describes": "`getRestaurantProfile` with `account_state: LIVE`. Trading normally.",
+      "operations": [
+        "getRestaurantProfile"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "account-state-matrix"
+      ],
+      "file": "onboarding/restaurant_profile_account_live.json"
+    },
+    {
+      "scenario": "restaurant_profile_account_pending",
+      "domain": "onboarding",
+      "schema": "RestaurantProfile",
+      "describes": "`getRestaurantProfile` with `account_state: PENDING`. Not live yet: onboarding is under review. No orders; the console shows the onboarding progress instead of the order screens.",
+      "operations": [
+        "getRestaurantProfile"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "account-state-matrix"
+      ],
+      "file": "onboarding/restaurant_profile_account_pending.json"
+    },
+    {
+      "scenario": "restaurant_profile_account_suspended",
+      "domain": "onboarding",
+      "schema": "RestaurantProfile",
+      "describes": "`getRestaurantProfile` with `account_state: SUSPENDED`. Suspended by staff: orders in progress complete, no new orders, payouts paused, the menu is locked (`error_menu_locked`); opening hours stay editable.",
+      "operations": [
+        "getRestaurantProfile"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "account-state-matrix"
+      ],
+      "file": "onboarding/restaurant_profile_account_suspended.json"
+    },
+    {
+      "scenario": "restaurant_profile_halal_certified",
+      "domain": "onboarding",
+      "schema": "RestaurantProfile",
+      "describes": "`getRestaurantProfile` with `halal.display_state: CERTIFIED`. Halal certified, valid for months.",
+      "operations": [
+        "getRestaurantProfile"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "halal-state-matrix"
+      ],
+      "file": "onboarding/restaurant_profile_halal_certified.json"
+    },
+    {
+      "scenario": "restaurant_profile_halal_expired",
+      "domain": "onboarding",
+      "schema": "RestaurantProfile",
+      "describes": "`getRestaurantProfile` with `halal.display_state: EXPIRED`. Certificate expired 3 days ago: the restaurant is hidden from customers (`account_state: DELISTED`). Cool slate, never red.",
+      "operations": [
+        "getRestaurantProfile"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "halal-state-matrix"
+      ],
+      "file": "onboarding/restaurant_profile_halal_expired.json"
+    },
+    {
+      "scenario": "restaurant_profile_halal_expiring_soon",
+      "domain": "onboarding",
+      "schema": "RestaurantProfile",
+      "describes": "`getRestaurantProfile` with `halal.display_state: EXPIRING_SOON`. Certificate expires in 12 days: the console shows the renewal banner. Customers still see the dated badge.",
+      "operations": [
+        "getRestaurantProfile"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "halal-state-matrix"
+      ],
+      "file": "onboarding/restaurant_profile_halal_expiring_soon.json"
+    },
+    {
+      "scenario": "restaurant_profile_halal_missing",
+      "domain": "onboarding",
+      "schema": "RestaurantProfile",
+      "describes": "`getRestaurantProfile` with **no `halal` object** (`services/hg` omits it when there is no certificate). Render **no badge**, never an optimistic one.",
+      "operations": [
+        "getRestaurantProfile"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "halal-state-matrix",
+        "edge"
+      ],
+      "file": "onboarding/restaurant_profile_halal_missing.json"
+    },
+    {
+      "scenario": "restaurant_profile_halal_unverified",
+      "domain": "onboarding",
+      "schema": "RestaurantProfile",
+      "describes": "`getRestaurantProfile` with `halal.display_state: UNVERIFIED`. No verified certificate: the restaurant is not shown to customers. Cool slate, never red.",
+      "operations": [
+        "getRestaurantProfile"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "halal-state-matrix"
+      ],
+      "file": "onboarding/restaurant_profile_halal_unverified.json"
     },
     {
       "scenario": "restaurant_registration",
@@ -5088,6 +5900,38 @@
       "file": "platform/otp_challenge.json"
     },
     {
+      "scenario": "principal_admin",
+      "domain": "platform",
+      "schema": "Principal",
+      "describes": "`GET /v1/auth/me` for an `ADMIN` signed in with password and authenticator code (`amr: pwd+totp`), so money actions are allowed. Global grant, `scope_id: null`. Devworld has no plain `ADMIN` persona yet; `admin-seed` is the super admin.",
+      "operations": [
+        "getCurrentPrincipal"
+      ],
+      "status": 200,
+      "tags": [
+        "platform",
+        "auth",
+        "staff"
+      ],
+      "file": "platform/principal_admin.json"
+    },
+    {
+      "scenario": "principal_admin_password_only",
+      "domain": "platform",
+      "schema": "Principal",
+      "describes": "An `ADMIN` whose session was signed in with a password only (`amr: pwd`). The console works, but every money action answers `403 MFA_REQUIRED` (`error_refund_mfa_required`); the app offers to sign in again with the code.",
+      "operations": [
+        "getCurrentPrincipal"
+      ],
+      "status": 200,
+      "tags": [
+        "platform",
+        "auth",
+        "staff"
+      ],
+      "file": "platform/principal_admin_password_only.json"
+    },
+    {
       "scenario": "principal_customer",
       "domain": "platform",
       "schema": "Principal",
@@ -5101,6 +5945,38 @@
         "auth"
       ],
       "file": "platform/principal_customer.json"
+    },
+    {
+      "scenario": "principal_super_admin",
+      "domain": "platform",
+      "schema": "Principal",
+      "describes": "`GET /v1/auth/me` for a `SUPER_ADMIN` with an authenticator-code session: staff management, certificate revocation and refunds above every approver's limit. The account id is the devworld `admin-seed` persona's (`make dev-admin`).",
+      "operations": [
+        "getCurrentPrincipal"
+      ],
+      "status": 200,
+      "tags": [
+        "platform",
+        "auth",
+        "staff"
+      ],
+      "file": "platform/principal_super_admin.json"
+    },
+    {
+      "scenario": "principal_support_agent",
+      "domain": "platform",
+      "schema": "Principal",
+      "describes": "`GET /v1/auth/me` for a `SUPPORT_AGENT`: read-mostly console, no decisions, no staff management. The account id is the devworld `support-seed` persona's.",
+      "operations": [
+        "getCurrentPrincipal"
+      ],
+      "status": 200,
+      "tags": [
+        "platform",
+        "auth",
+        "staff"
+      ],
+      "file": "platform/principal_support_agent.json"
     },
     {
       "scenario": "public_config",
@@ -5191,6 +6067,23 @@
         "auth"
       ],
       "file": "platform/session_grant_password_changed.json"
+    },
+    {
+      "scenario": "session_grant_staff",
+      "domain": "platform",
+      "schema": "SessionGrant",
+      "describes": "`login` for staff on the web console: password plus authenticator code, a 15-minute access token, `refresh_token: null` (the refresh token is the `hg_rt` cookie on web) and the `principal_admin` principal.",
+      "operations": [
+        "login",
+        "refreshSession"
+      ],
+      "status": 200,
+      "tags": [
+        "platform",
+        "auth",
+        "staff"
+      ],
+      "file": "platform/session_grant_staff.json"
     },
     {
       "scenario": "session_next_route_active_delivery",
@@ -5367,6 +6260,93 @@
       "file": "platform/totp_invite_enrolment.json"
     },
     {
+      "scenario": "realtime_admin_ops_alerts",
+      "domain": "realtime",
+      "schema": "RealtimeEvent[]",
+      "describes": "Four `admin.alert` frames in the shapes `services/hg` raises today: a refused webhook (`high`), a chargeback opened (`high`), a refund dead letter (`critical`) and a reconciliation exception (`high`, `subject_type: reconciliation_exception`). `severity` is `high` or `critical`.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "realtime",
+        "script",
+        "admin"
+      ],
+      "file": "realtime/realtime_admin_ops_alerts.json"
+    },
+    {
+      "scenario": "realtime_admin_ops_all",
+      "domain": "realtime",
+      "schema": "RealtimeEvent[]",
+      "describes": "Every `admin:ops` type in one script, `seq` 1 to 6: queue depth, an alert, a dispatch failure, a critical alert, a reconciliation exception, queue depth again. Drives the alerts page from empty to busy.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "realtime",
+        "script",
+        "admin"
+      ],
+      "file": "realtime/realtime_admin_ops_all.json"
+    },
+    {
+      "scenario": "realtime_admin_ops_dispatch_failure",
+      "domain": "realtime",
+      "schema": "RealtimeEvent[]",
+      "describes": "`admin.dispatch_failure`: three dispatch waves ran out to 10 km, eight riders were offered the order and nobody accepted. `services/hg` emits this when dispatch reaches `NO_RIDER_FOUND`.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "realtime",
+        "script",
+        "admin",
+        "error-path"
+      ],
+      "file": "realtime/realtime_admin_ops_dispatch_failure.json"
+    },
+    {
+      "scenario": "realtime_admin_ops_queue_depth",
+      "domain": "realtime",
+      "schema": "RealtimeEvent[]",
+      "describes": "`admin.queue_depth` on `admin:ops`: the first frame fills the nav counts (hidden until it arrives), two updates change them, the last one is all zeros (no badge rendered for 0). Contract-only: `services/hg` does not emit `admin.queue_depth` yet, so on the real API the counts stay hidden; read the queues instead.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "realtime",
+        "script",
+        "admin"
+      ],
+      "file": "realtime/realtime_admin_ops_queue_depth.json"
+    },
+    {
+      "scenario": "realtime_admin_ops_reconciliation_exception",
+      "domain": "realtime",
+      "schema": "RealtimeEvent[]",
+      "describes": "`admin.reconciliation_exception`: a transfer of 39.80 where the ledger expected 41.20. Contract-only: `services/hg` reports reconciliation exceptions as an `admin.alert` with `subject_type: reconciliation_exception` (`realtime_admin_ops_alerts`), not as this frame.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "realtime",
+        "script",
+        "admin",
+        "error-path"
+      ],
+      "file": "realtime/realtime_admin_ops_reconciliation_exception.json"
+    },
+    {
+      "scenario": "realtime_admin_ops_unknown_type",
+      "domain": "realtime",
+      "schema": "RealtimeEvent[]",
+      "describes": "Frames a client must ignore without crashing (websocket.md section 2): an unknown type `admin.capacity_warning`, and `admin.queue_depth` at `v: 2`. Then a normal `v: 1` queue depth that must be shown. `seq` stays gapless across all three.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "realtime",
+        "script",
+        "admin",
+        "edge"
+      ],
+      "file": "realtime/realtime_admin_ops_unknown_type.json"
+    },
+    {
       "scenario": "realtime_control_frames",
       "domain": "realtime",
       "schema": "RealtimeEvent[]",
@@ -5461,6 +6441,94 @@
         "error-path"
       ],
       "file": "realtime/realtime_payment_failed.json"
+    },
+    {
+      "scenario": "realtime_restaurant_offer_accepted_elsewhere",
+      "domain": "realtime",
+      "schema": "RealtimeEvent[]",
+      "describes": "Two offers ring; another tablet accepts the first (`restaurant.order_accepted`, the fan-out) and declines the second (`restaurant.order_rejected`, `KITCHEN_AT_CAPACITY`). This screen only clears both tiles.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "realtime",
+        "script",
+        "restaurant"
+      ],
+      "file": "realtime/realtime_restaurant_offer_accepted_elsewhere.json"
+    },
+    {
+      "scenario": "realtime_restaurant_offer_burst",
+      "domain": "realtime",
+      "schema": "RealtimeEvent[]",
+      "describes": "A burst of four offers inside six seconds, each with its own 180-second window: three tiles in full and the fourth behind \"+1 more\". A new offer never takes focus. One is a pickup order.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "realtime",
+        "script",
+        "restaurant",
+        "dense"
+      ],
+      "file": "realtime/realtime_restaurant_offer_burst.json"
+    },
+    {
+      "scenario": "realtime_restaurant_offer_expired",
+      "domain": "realtime",
+      "schema": "RealtimeEvent[]",
+      "describes": "An offer seen with 15 seconds of its window left (as after a reconnect), then `restaurant.order_offer_expired {reason: timeout}` when it runs out. The server ends the offer; the customer was not charged. Accepting after this is `409 OFFER_EXPIRED` (`error_offer_expired`).",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "realtime",
+        "script",
+        "restaurant",
+        "error-path"
+      ],
+      "file": "realtime/realtime_restaurant_offer_expired.json"
+    },
+    {
+      "scenario": "realtime_restaurant_offer_one",
+      "domain": "realtime",
+      "schema": "RealtimeEvent[]",
+      "describes": "One `restaurant.order_offered` with the full 180-second window: the strip rings and shows one tile. Pre-acceptance projection only (first name, no phone, no address). Pair with `restaurant_order_restaurant_pending` for the tile's detail.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "realtime",
+        "script",
+        "restaurant"
+      ],
+      "file": "realtime/realtime_restaurant_offer_one.json"
+    },
+    {
+      "scenario": "realtime_restaurant_offer_withdrawn",
+      "domain": "realtime",
+      "schema": "RealtimeEvent[]",
+      "describes": "The customer cancels while the offer is ringing: `restaurant.order_offer_withdrawn {reason: customer_cancelled}` at 8 s. The tile leaves; nothing is prepared.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "realtime",
+        "script",
+        "restaurant",
+        "error-path"
+      ],
+      "file": "realtime/realtime_restaurant_offer_withdrawn.json"
+    },
+    {
+      "scenario": "realtime_restaurant_offer_withdrawn_payment_failed",
+      "domain": "realtime",
+      "schema": "RealtimeEvent[]",
+      "describes": "The kitchen accepts, the capture is declined, and the offer is withdrawn with `reason: payment_failed`: \"Don't prepare this order. The customer was not charged.\" Accepting returns `error_capture_failed`.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "realtime",
+        "script",
+        "restaurant",
+        "error-path"
+      ],
+      "file": "realtime/realtime_restaurant_offer_withdrawn_payment_failed.json"
     },
     {
       "scenario": "realtime_rider_reassigned",
@@ -6450,10 +7518,14 @@
       "document_submitted",
       "document_superseded"
     ],
+    "attachRiderDocument": [
+      "error_document_expires_too_soon"
+    ],
     "bindPackageSeal": [
       "seal_bound"
     ],
     "cancelOrder": [
+      "error_cancellation_window_closed",
       "order_arrived",
       "order_authorized",
       "order_cancelled",
@@ -6481,6 +7553,9 @@
       "cart_empty"
     ],
     "confirmUpload": [
+      "error_checksum_mismatch",
+      "error_content_type_mismatch",
+      "error_image_too_small",
       "stored_object_deleted",
       "stored_object_pending",
       "stored_object_ready",
@@ -6501,13 +7576,20 @@
       "assignment_reassigned",
       "assignment_returned",
       "assignment_returning",
-      "assignment_undeliverable"
+      "assignment_undeliverable",
+      "error_geofence_required",
+      "error_invalid_transition",
+      "error_pod_required"
     ],
     "createCertificateViewUrl": [
       "presigned_download"
     ],
     "createConnectAccount": [
-      "connect_status_complete"
+      "connect_status_complete",
+      "error_step_not_available"
+    ],
+    "createConnectOnboardingLink": [
+      "error_step_not_available"
     ],
     "createDocumentDownloadUrl": [
       "presigned_download"
@@ -6539,7 +7621,9 @@
       "menu_item_created_by_admin"
     ],
     "createOrder": [
-      "error_ordering_paused"
+      "error_idempotency_in_progress",
+      "error_ordering_paused",
+      "error_profile_incomplete"
     ],
     "createPaymentMethodSetupIntent": [
       "setup_intent"
@@ -6579,6 +7663,7 @@
       "staff_user_invited"
     ],
     "createUpload": [
+      "error_payload_too_large",
       "presigned_upload"
     ],
     "decideHalalCertificate": [
@@ -6626,6 +7711,9 @@
       "restaurant_order_ready_for_pickup",
       "restaurant_order_rejected",
       "restaurant_order_restaurant_pending"
+    ],
+    "deleteAddress": [
+      "error_address_in_use"
     ],
     "deleteMenuCategory": [
       "error_category_not_empty",
@@ -6721,7 +7809,12 @@
       "offer_zero_tip_low_value"
     ],
     "getCurrentPrincipal": [
-      "principal_customer"
+      "error_account_suspended",
+      "principal_admin",
+      "principal_admin_password_only",
+      "principal_customer",
+      "principal_super_admin",
+      "principal_support_agent"
     ],
     "getCustomerProfile": [
       "customer_profile"
@@ -6907,7 +8000,19 @@
       "restaurant_order_restaurant_pending"
     ],
     "getRestaurantProfile": [
-      "restaurant_profile"
+      "restaurant_profile",
+      "restaurant_profile_account_banned",
+      "restaurant_profile_account_closed",
+      "restaurant_profile_account_deactivated",
+      "restaurant_profile_account_delisted",
+      "restaurant_profile_account_live",
+      "restaurant_profile_account_pending",
+      "restaurant_profile_account_suspended",
+      "restaurant_profile_halal_certified",
+      "restaurant_profile_halal_expired",
+      "restaurant_profile_halal_expiring_soon",
+      "restaurant_profile_halal_missing",
+      "restaurant_profile_halal_unverified"
     ],
     "getRiderApplication": [
       "rider_application_approved",
@@ -7088,7 +8193,9 @@
       "staff_list"
     ],
     "login": [
+      "error_account_not_active",
       "session_grant_customer",
+      "session_grant_staff",
       "session_next_route_active_delivery",
       "session_next_route_app_update_required",
       "session_next_route_home",
@@ -7121,7 +8228,12 @@
       "halal_certificate_status_superseded"
     ],
     "refreshSession": [
+      "error_account_suspended",
+      "error_refresh_reuse_detected",
+      "error_session_expired",
+      "error_session_revoked",
       "session_grant_customer",
+      "session_grant_staff",
       "session_next_route_active_delivery",
       "session_next_route_app_update_required",
       "session_next_route_home",
@@ -7149,6 +8261,7 @@
       "handoff_tamper_report"
     ],
     "requestOtp": [
+      "error_rate_limiter_unavailable",
       "otp_challenge"
     ],
     "resetPassword": [
@@ -7227,6 +8340,20 @@
       "restaurant_hours_standard"
     ],
     "setRiderAvailability": [
+      "error_account_not_active",
+      "error_active_delivery_in_progress",
+      "error_cannot_go_online",
+      "error_cannot_go_online_account_not_active",
+      "error_cannot_go_online_all_reasons",
+      "error_cannot_go_online_background_location_permission",
+      "error_cannot_go_online_continuous_online_cap",
+      "error_cannot_go_online_document_expired",
+      "error_cannot_go_online_foreground_location_permission",
+      "error_cannot_go_online_notification_permission",
+      "error_cannot_go_online_onboarding_incomplete",
+      "error_cannot_go_online_payout_account_incomplete",
+      "error_onboarding_incomplete",
+      "error_payout_account_incomplete",
       "rider_availability_offline",
       "rider_availability_on_delivery",
       "rider_availability_online_idle",
@@ -7251,7 +8378,8 @@
       "assignment_reassigned",
       "assignment_returned",
       "assignment_returning",
-      "assignment_undeliverable"
+      "assignment_undeliverable",
+      "error_pod_required"
     ],
     "submitRestaurantDocuments": [
       "restaurant_onboarding_active",
@@ -7270,6 +8398,7 @@
       "restaurant_profile"
     ],
     "submitRiderDocuments": [
+      "error_nothing_to_resubmit",
       "rider_onboarding_active",
       "rider_onboarding_documents_approved",
       "rider_onboarding_documents_pending",
@@ -7282,9 +8411,13 @@
       "rider_onboarding_vehicle_pending"
     ],
     "submitRiderProfile": [
+      "error_rider_email_in_use",
       "rider_profile"
     ],
     "submitRiderVehicle": [
+      "error_field_not_applicable",
+      "error_field_required",
+      "error_plate_in_use",
       "rider_vehicle_on_foot",
       "rider_vehicle_scooter"
     ],
@@ -7341,6 +8474,8 @@
       "error_verification_token_used"
     ],
     "verifyOtp": [
+      "error_otp_invalid_or_expired",
+      "error_rate_limiter_unavailable",
       "session_grant_customer",
       "session_next_route_active_delivery",
       "session_next_route_app_update_required",

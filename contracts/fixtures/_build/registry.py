@@ -104,6 +104,10 @@ DEFAULT_SCENARIO: dict[str, str] = {
     "changePassword": "session_grant_password_changed",
     "getConnectStatus": "connect_status_complete",
     "confirmUpload": "stored_object_ready",
+    # Staff principals and the restaurant profile matrix share these operations; the
+    # plain customer and LIVE + CERTIFIED shapes stay the defaults.
+    "getCurrentPrincipal": "principal_customer",
+    "getRestaurantProfile": "restaurant_profile",
 }
 
 

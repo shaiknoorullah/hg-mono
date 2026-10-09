@@ -39,6 +39,19 @@ curl -H 'X-Mock-Scenario: order_arrived' localhost:4010/v1/orders/any
 document.cookie = 'mock_scenario=order_arrived';
 ```
 
+One name applies to **every** request that carries it. A screen calls several operations, so
+any of the three may instead carry a **per-operation map**: `operationId=scenario` pairs,
+comma-separated. Each operation gets its own fixture; one the map does not name gets its
+default (or a bare name in the list that is registered for it):
+
+```bash
+curl -H 'X-Mock-Scenario: getCurrentPrincipal=principal_admin,refreshSession=error_session_revoked' \
+  localhost:4010/v1/auth/me          # principal_admin; POST /v1/auth/refresh answers 401
+```
+
+The naming rules and the devworld equivalents of each state are in
+[`contracts/fixtures/SCENARIOS.md`](../../contracts/fixtures/SCENARIOS.md).
+
 With no scenario named you get the operation's **default** — the plainest healthy shape,
 declared in `contracts/fixtures/_build/registry.py` and published in
 `contracts/fixtures/index.json`, so the mock and the fixture set cannot disagree.
@@ -68,8 +81,9 @@ point: a frontend that invents an endpoint finds out here, not in staging.
 ## Driving the WebSocket through a lifecycle
 
 The `realtime/` fixtures are scripted event sequences. Name one on the upgrade and the mock
-plays it, paced by each event's recorded delay, re-stamping `ts` to wall clock so countdowns
-in the client are live:
+plays it, paced by each event's recorded delay. It re-stamps `ts` to wall clock and moves
+every timestamp inside `data` (`expires_at`, `deadline_at`, ...) from the fixtures' frozen
+clock to the moment playback starts, so countdowns in the client are live:
 
 ```
 ws://localhost:4010/v1/ws?ticket=dev&scenario=realtime_order_happy_path
@@ -87,6 +101,9 @@ Playback starts on your first `subscribe` frame (or immediately with `&autoplay=
 | `realtime_rider_reassigned` | Rider drops out mid-delivery, a second one is assigned |
 | `realtime_gap_and_resume` | A deliberate `seq` gap (3 → 7) so you can prove your gap detection works |
 | `realtime_control_frames` | Every control frame, including `subscribe_error{not_found}` and `resume_complete{truncated:true}` |
+| `realtime_restaurant_offer_one` / `_burst` | One `restaurant.order_offered`; four inside six seconds |
+| `realtime_restaurant_offer_expired` / `_withdrawn` / `_withdrawn_payment_failed` / `_accepted_elsewhere` | How an offer ends without this screen answering it |
+| `realtime_admin_ops_queue_depth` / `_alerts` / `_dispatch_failure` / `_reconciliation_exception` / `_all` / `_unknown_type` | The `admin:ops` channel |
 
 The mock implements what a client can observe: the ticket-bearing upgrade (**a connection
 with no ticket is refused with HTTP 401**, as in production), the `hello` frame with
@@ -143,6 +160,7 @@ already loaded), not to swap the server out.
 | `src/routes.ts` | Route table built from `contracts/openapi.yaml` at boot |
 | `src/fixtures.ts` | Fixture loading and default resolution from `index.json` |
 | `src/ws.ts` | The `websocket.md` mock and the script player |
+| `src/scenarios.test.ts` | Scenario selection and re-stamping, against the real fixture set (`pnpm --filter @hg/mock-server test`) |
 
 Nothing here hardcodes a path, a schema or a scenario name: change the contract or the
 fixtures and the mock follows.
