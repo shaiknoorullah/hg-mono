@@ -2,7 +2,7 @@
 covers:
   - .github/workflows/e2e.yml
   - tools/e2e/**
-reviewed: 2026-10-05
+reviewed: 2026-10-09
 ---
 
 # End-to-end flows
@@ -162,6 +162,7 @@ on macOS runners and are not part of this workflow
 | [`seed/`](seed/) | The world: `seed.sh`, `world.sql`, `world.mjs`, `verify.sql` |
 | [`web/`](web/) | `serve.sh`, the Playwright config and the restaurant and admin tests |
 | [`native/`](native/) | The Maestro flows for the customer and rider apps |
+| [`native/customer/redesign/`](native/customer/redesign/) | Flows for the redesigned customer app, built with `EXPO_PUBLIC_HG_REDESIGN=1`, and their device-lab missions (`missions/*.yaml`). They run on the owner's emulator, not in CI ([#656](https://github.com/shaiknoorullah/hg-mono/issues/656)) |
 | [`lib/`](lib/) | The API client, the sign-in code reader, the TOTP generator, the run summary |
 | [`android/allow-cleartext.sh`](android/allow-cleartext.sh) | Lets the emulator's APKs reach the runner over plain HTTP. The release-builds workflow also uses it, for a dev build given an `http://` `api_base_url` ([docs/release/README.md](../../docs/release/README.md#a-build-without-a-tag)). |
 | [`run.sh`](run.sh) | Runs the flows in order and records each result |
