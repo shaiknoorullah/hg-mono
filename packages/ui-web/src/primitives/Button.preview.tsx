@@ -10,8 +10,10 @@
 import { Button } from './Button.js';
 import { Icon } from './Icon.js';
 
+/** The live design system's component name, pairing these specimens with its preview page. */
 export const component = 'Button';
 
+/** Every variant, as in the reference's first row. */
 export function Variants() {
   return (
     <div className="hg-specimen-row">
@@ -28,6 +30,7 @@ export function Variants() {
   );
 }
 
+/** Every size, as in the reference's second row. */
 export function Sizes() {
   return (
     <div className="hg-specimen-row">
@@ -39,6 +42,7 @@ export function Sizes() {
   );
 }
 
+/** Disabled, loading and link mode, as in the reference's third row. */
 export function States() {
   return (
     <div className="hg-specimen-row">
