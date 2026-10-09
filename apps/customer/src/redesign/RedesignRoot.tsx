@@ -8,23 +8,20 @@
  *
  * It adds, beside the unchanged app tree:
  *   - the `@rn-primitives/portal` host that RNR overlays render into, last so it sits on top;
- *   - the colour-scheme bridge. The app's own root fixes `ThemeProvider` to the light customer
- *     theme; this mirrors that provider so NativeWind's `className` scheme follows the same
- *     value. When the redesign root takes over the app's ThemeProvider, the bridge moves inside it.
+ *   - the colour-scheme bridge, given the same scheme the app's root gives `ThemeProvider`
+ *     (`'light'`), so NativeWind's `className` styling resolves the same scheme.
  */
 import '@hg/ui-native/global.customer.css';
 
 import * as React from 'react';
 import { PortalHost } from '@rn-primitives/portal';
-import { ThemeProvider } from '@hg/ui-native';
 import { HgColorSchemeBridge } from '@hg/ui-native/lib';
 
+/** Wraps the unchanged app with the NativeWind stylesheet, the scheme bridge and the portal host. */
 export function RedesignRoot({ children }: { children: React.ReactNode }): React.ReactElement {
   return (
     <>
-      <ThemeProvider theme="customer" scheme="light">
-        <HgColorSchemeBridge />
-      </ThemeProvider>
+      <HgColorSchemeBridge scheme="light" />
       {children}
       <PortalHost />
     </>

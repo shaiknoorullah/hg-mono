@@ -15,7 +15,8 @@ module.exports = {
   setupFilesAfterEnv: ['<rootDir>/jest.setup.cjs'],
   moduleNameMapper: {
     '^(\\.{1,2}/.*)\\.js$': '$1',
-    // NativeWind's `global.<theme>.css` (imported by src/redesign/RedesignRoot.tsx): no CSS pipeline under jest.
+    // NativeWind's `global.<theme>.css` (imported by src/redesign/RedesignRoot.tsx): no CSS
+    // pipeline under jest.
     '\\.css$': '<rootDir>/__mocks__/global-css.js',
     /*
      * pnpm resolves more than one physical copy of `react-native` / `react` under different
