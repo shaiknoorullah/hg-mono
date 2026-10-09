@@ -25,6 +25,7 @@ import { resolveTestId, useFieldRegister } from './feedback/shared';
 
 /* ------------------------------------------------------------------ ProgressBar */
 
+/** Props of `ProgressBar`. */
 export interface ProgressBarProps {
   /** 0..max. Omit (or `indeterminate`) when the amount is unknown. */
   value?: number | null;
@@ -54,6 +55,7 @@ export function ProgressBar(props: ProgressBarProps): React.ReactElement {
 
 /* ----------------------------------------------------------------- WaitProgress */
 
+/** Props of `WaitProgress`: the server deadline and clock, the window and the accessible name. */
 export interface WaitProgressProps {
   /** RFC 3339 deadline from the server (`order.deadline_at`). */
   deadlineAt: string;
@@ -130,6 +132,7 @@ export function WaitProgress(props: WaitProgressProps): React.ReactElement | nul
 
 /* ---------------------------------------------------------------- ProgressSteps */
 
+/** Props of `ProgressSteps`. */
 export interface ProgressStepsProps {
   /** The current step, 1-based. Clamped into 1..total. */
   step: number;
@@ -176,6 +179,7 @@ export function ProgressSteps(props: ProgressStepsProps): React.ReactElement {
 /** neutral (most states), warning (needs attention), info, slate (halal or lapsed). No danger, no success. */
 export type StatusLabelTone = 'neutral' | 'warning' | 'info' | 'slate';
 
+/** Props of `StatusLabel`. */
 export interface StatusLabelProps {
   icon: AnyIconName;
   /** The word that carries the status ("Pending", "Paid"). Required: never colour alone. */
@@ -206,6 +210,7 @@ export function StatusLabel({ icon, label, tone = 'neutral', ...ids }: StatusLab
 
 /* ----------------------------------------------------------------- WaitingState */
 
+/** Props of `WaitingState`. */
 export interface WaitingStateProps {
   /** Default "Waiting for offers". */
   title?: string;

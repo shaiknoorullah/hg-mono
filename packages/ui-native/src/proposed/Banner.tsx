@@ -73,6 +73,7 @@ export interface HalalBannerProps extends BannerBaseProps {
   variant?: HalalTone;
 }
 
+/** Props of `Banner`: a general message, or a halal one (slate, never danger). */
 export type BannerProps = GeneralBannerProps | HalalBannerProps;
 /** InlineAlert takes the same props; only the default placement differs. */
 export type InlineAlertProps = BannerProps;

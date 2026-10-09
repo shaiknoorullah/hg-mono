@@ -17,6 +17,7 @@ import { View } from '../lib/ui/view';
 import { FeedbackAction } from './feedback/action';
 import { type ActionSpec, resolveTestId, useFieldRegister } from './feedback/shared';
 
+/** Props of `EmptyState`: why the place is empty and what to do next. */
 export interface EmptyStateProps {
   /** Names the state, not the absence ("You haven't ordered yet"). */
   title: string;

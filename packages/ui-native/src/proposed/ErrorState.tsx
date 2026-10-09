@@ -95,6 +95,7 @@ export interface HalalErrorStateProps extends ErrorStateBaseProps {
   tone?: Exclude<HalalTone, 'info'>;
 }
 
+/** Props of `ErrorState`: a general error, or one about halal certification (slate, never danger). */
 export type ErrorStateProps = GeneralErrorStateProps | HalalErrorStateProps;
 
 function resolveCopy(props: ErrorStateProps, report: (code: string) => void): ErrorCopy {
