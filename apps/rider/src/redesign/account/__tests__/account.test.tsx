@@ -130,6 +130,20 @@ describe.each(SCHEMES)('Account tab (%s)', (scheme) => {
     expect(api.callsTo('logout')).toHaveLength(0);
   });
 
+  it('sign out re-reads RiderMe: a delivery accepted since the tab loaded still gets the warning (PA/Account-SignOut-Active)', async () => {
+    api = mockApi({
+      getRiderMe: (_c, nth) =>
+        nth === 0 ? riderMe() : riderMe({ active_assignment_id: 'd32c6111-bbee-4947-a3db-005a8ae50058', availability_state: 'ON_DELIVERY' }),
+      getPublicConfig: config(),
+    });
+    renderAccount(scheme);
+    await screen.findByText('Yusuf Ahmed');
+    fireEvent.press(screen.getByTestId('sign-out'));
+    await screen.findByText('You are on a delivery');
+    expect(screen.getByText('Stay signed in')).toBeTruthy();
+    expect(api.callsTo('logout')).toHaveLength(0);
+  });
+
   it('sign out failed keeps the rider signed in and offers Try again (PA/Account-SignOut-Failed)', async () => {
     api = mockApi({ getRiderMe: riderMe(), getPublicConfig: config(), logout: (_c, nth) => (nth === 0 ? 'offline' : NO_CONTENT) });
     act(() => setToken('t', 'r'));

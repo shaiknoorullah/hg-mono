@@ -28,7 +28,7 @@ import { toRiderError } from '../data/errors';
 import { useApiQuery } from '../data/query';
 import { useNav } from '../nav/Navigator';
 import type { ScreenProps } from '../nav/registry';
-import { useOptionalSession } from '../session/Session';
+import { fetchRiderMe, useOptionalSession } from '../session/Session';
 import { PAYOUTS, SUPPORT, intervalWords, longDate } from './copy';
 import { createConnectAccount, createOnboardingLink, fetchConnectStatus, payoutView, supportDetails, type PayoutView } from './data';
 import type { PayoutsContext } from './routes';
@@ -39,6 +39,10 @@ export const CHECK_POLL_MS = 5_000;
 export const SLOW_CHECK_MS = 120_000;
 /** Back from Stripe, a not-yet-submitted status may be the webhook still on its way. */
 export const RETURN_GRACE_MS = 30_000;
+/** How often RiderMe is re-read while "Payouts open after approval" shows. */
+export const NOT_YET_POLL_MS = 15_000;
+/** Onboarding states at or past document approval: payouts can be set up. */
+const APPROVED_STATES: ReadonlySet<string> = new Set(['DOCUMENTS_APPROVED', 'PAYOUT_PENDING', 'ACTIVE']);
 
 type Action = 'idle' | 'opening' | 'notYet' | 'createFailed' | 'linkFailed';
 
@@ -71,6 +75,9 @@ export function PayoutsScreen({ params }: ScreenProps<'payouts'>): React.ReactEl
   const now = Date.now();
   const status = useApiQuery('connect-status', fetchConnectStatus, {
     pollMs: (data) => {
+      // Offline is learned from requests (data/connectivity.ts), and Continue is disabled while
+      // offline, so keep reading: the first answer brings the screen back online.
+      if (!online) return CHECK_POLL_MS;
       const v = data === undefined ? null : payoutView(data).kind;
       return v === 'checking' || (v === 'returned' && now - returnedAt < RETURN_GRACE_MS) ? CHECK_POLL_MS : null;
     },
@@ -112,7 +119,41 @@ export function PayoutsScreen({ params }: ScreenProps<'payouts'>): React.ReactEl
     return () => clearTimeout(id);
   }, [returnedAt]);
 
+  // PA/Payout-NotYet: "This screen updates by itself while the app is open." Approval is a
+  // RiderMe change (onboarding_state past DOCUMENTS_REVIEW), so while the 409 is showing RiderMe
+  // is re-read; once the documents are approved the screen goes back to "Get paid".
+  const notYetNow = action === 'notYet';
+  const meWhileWaiting = useApiQuery('payout-rider-me', fetchRiderMe, { enabled: notYetNow, pollMs: NOT_YET_POLL_MS });
+  const onboardingState = meWhileWaiting.data?.onboarding_state;
+  const sawUnapproved = React.useRef(false);
+  React.useEffect(() => {
+    if (!notYetNow) {
+      sawUnapproved.current = false;
+      return;
+    }
+    if (!onboardingState) return;
+    // Only a change counts: a rider already past approval who still got the 409 keeps the alert
+    // rather than flickering back to "Get paid".
+    if (!APPROVED_STATES.has(onboardingState)) sawUnapproved.current = true;
+    else if (sawUnapproved.current) {
+      sawUnapproved.current = false;
+      setAction('idle');
+      void session?.refresh();
+    }
+  }, [notYetNow, onboardingState, session]);
+
+  const inFlight = React.useRef(false);
   const openStripe = async () => {
+    if (inFlight.current) return;
+    inFlight.current = true;
+    try {
+      await openStripeOnce();
+    } finally {
+      inFlight.current = false;
+    }
+  };
+
+  const openStripeOnce = async () => {
     setAction('opening');
     if (status.data === null && !createdRef.current) {
       try {
@@ -188,8 +229,18 @@ export function PayoutsScreen({ params }: ScreenProps<'payouts'>): React.ReactEl
 
   const failed = action === 'createFailed' || action === 'linkFailed';
 
+  // PA/Payout-Offline: Stripe needs a connection, so Continue is disabled until it is back.
   const continueButton = (label: string = PAYOUTS.continue, variant: 'primary' | 'tertiary' = 'primary') => (
-    <Button variant={variant} size="xl" fullWidth loading={opening} accessibilityLabel={opening ? PAYOUTS.opening : undefined} onPress={() => void openStripe()} testID="payout-continue">
+    <Button
+      variant={variant}
+      size="xl"
+      fullWidth
+      loading={opening}
+      disabled={!online}
+      accessibilityLabel={opening ? PAYOUTS.opening : undefined}
+      onPress={() => void openStripe()}
+      testID="payout-continue"
+    >
       {failed && variant === 'primary' ? PAYOUTS.retry : label}
     </Button>
   );
@@ -225,14 +276,14 @@ export function PayoutsScreen({ params }: ScreenProps<'payouts'>): React.ReactEl
     if (status.status === 'error') {
       return page(
         'payout-error',
-        // ds-request(native): ErrorState rider variant (56px action) — PA/Payout-StatusError, Account-Payouts-Error
-        <ErrorState
-          variant="page"
-          title={PAYOUTS.errorTitle}
-          description={app ? PAYOUTS.errorBodyApp : PAYOUTS.errorBodyAccount}
-          onRetry={() => void status.refetch()}
-          retrying={status.refreshing}
-        />,
+        // ds-request(native): ErrorState rider variant (56px action) — PA/Payout-StatusError, Account-Payouts-Error.
+        // The library's Try again is 52px (lg); the boards draw primary xl, so it is a Button here.
+        <View style={{ gap: space['4'] }}>
+          <ErrorState variant="page" title={PAYOUTS.errorTitle} description={app ? PAYOUTS.errorBodyApp : PAYOUTS.errorBodyAccount} />
+          <Button variant="primary" size="xl" fullWidth loading={status.refreshing} onPress={() => void status.refetch()} testID="error-retry">
+            {PAYOUTS.retry}
+          </Button>
+        </View>,
         app ? call() : undefined,
       );
     }

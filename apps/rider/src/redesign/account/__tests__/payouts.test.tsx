@@ -24,9 +24,9 @@ import { Shell } from '../../nav/Shell';
 import { mockApi, type MockApi } from '../../test/mockApi';
 import { renderRedesign, SCHEMES } from '../../test/render';
 import { longDate } from '../copy';
-import { SLOW_CHECK_MS } from '../PayoutsScreen';
+import { NOT_YET_POLL_MS, SLOW_CHECK_MS } from '../PayoutsScreen';
 import '../index';
-import { apiError, config, connectOn, connectWith, supportOff } from './fixtures';
+import { apiError, config, connectOn, connectWith, riderMe, supportOff } from './fixtures';
 
 const LINK = { status: 201, body: { data: { url: 'https://connect.stripe.com/setup/e/acct_1/abc', expires_at: '2026-10-09T22:00:00.000Z' } } };
 const PRICE_KEYS = /price|_cents|amount|total/i;
@@ -92,7 +92,7 @@ describe.each(SCHEMES)('Payouts with Stripe (%s)', (scheme) => {
   it('create fails, Try again reuses the same Idempotency-Key (PA/Payout-CreateFailed)', async () => {
     api = mockApi({
       getConnectStatus: 'error_not_found',
-      createConnectAccount: (_c, nth) => (nth === 0 ? 'offline' : 'connect_status_complete'),
+      createConnectAccount: (_c, nth) => (nth === 0 ? 'error_internal_error' : 'connect_status_complete'),
       createConnectOnboardingLink: LINK,
       getPublicConfig: config(),
     });
@@ -231,6 +231,33 @@ describe.each(SCHEMES)('Payouts with Stripe (%s)', (scheme) => {
     act(() => reportTransportFailure());
     expect(screen.getByText('You are offline')).toBeTruthy();
     expect(screen.getByText('Stripe needs a connection. Continue once you are back online.')).toBeTruthy();
+    // Continue to Stripe is disabled while offline: pressing it sends nothing.
+    fireEvent.press(screen.getByText('Continue to Stripe'));
+    await act(async () => {});
+    expect(api.callsTo('createConnectAccount')).toHaveLength(0);
+    expect(openURL).not.toHaveBeenCalled();
+  });
+
+  it('"Payouts open after approval" updates by itself once the documents are approved (PA/Payout-NotYet)', async () => {
+    api = mockApi({
+      getConnectStatus: 'error_not_found',
+      createConnectAccount: apiError(409, 'STEP_NOT_AVAILABLE'),
+      getRiderMe: (_c, nth) => riderMe({ onboarding_state: nth === 0 ? 'DOCUMENTS_REVIEW' : 'DOCUMENTS_APPROVED', account_status: 'PENDING' }),
+      getPublicConfig: config(),
+    });
+    renderPayouts(scheme, 'application');
+    fireEvent.press(await screen.findByText('Continue to Stripe'));
+    await screen.findByText('Payouts open after approval');
+    await waitFor(() => expect(api.callsTo('getRiderMe')).toHaveLength(1));
+    // Still in review on the first read: the alert stays.
+    expect(screen.getByText('Payouts open after approval')).toBeTruthy();
+    // The next read (every NOT_YET_POLL_MS, or on return to the app) says approved.
+    expect(NOT_YET_POLL_MS).toBeLessThanOrEqual(30_000);
+    returnToApp();
+    await waitFor(() => expect(api.callsTo('getRiderMe')).toHaveLength(2));
+    await waitFor(() => expect(screen.queryByText('Payouts open after approval')).toBeNull());
+    expect(screen.getByText('Step 5 of 5: payouts')).toBeTruthy();
+    expect(screen.getByText('Continue to Stripe')).toBeTruthy();
   });
 
   it('Account › Payouts not set up (PA/Account-Payouts-NotSetUp)', async () => {

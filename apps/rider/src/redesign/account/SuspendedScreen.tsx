@@ -105,8 +105,11 @@ export function SuspendedScreen(): React.ReactElement {
     </View>
   );
 
-  const loading = reasons.status === 'loading' || docs.status === 'loading';
-  const failed = reasons.status === 'error' || docs.status === 'error';
+  // The documents only matter when the reason is an expired document: a documents failure on a
+  // plain pause is not this screen's error, it is the generic pause.
+  const needsDocs = reasons.data?.includes('DOCUMENT_EXPIRED') ?? false;
+  const loading = reasons.status === 'loading' || (needsDocs && docs.status === 'loading');
+  const failed = reasons.status === 'error' || (needsDocs && docs.status === 'error');
 
   if (loading) {
     return page(
@@ -121,16 +124,22 @@ export function SuspendedScreen(): React.ReactElement {
     return page(
       'suspended-error',
       <>
-        {/* ds-request(native): ErrorState rider variant (56px action) — PA/Suspended-Error */}
-        <ErrorState
-          variant="page"
-          title={SUSPENDED.errorTitle}
-          description={SUSPENDED.errorBody}
-          onRetry={() => {
-            void reasons.refetch();
-            void docs.refetch();
+        {/* ds-request(native): ErrorState rider variant (56px action) — PA/Suspended-Error. The
+            library's Try again is 52px (lg); the board draws primary xl, so it is a Button here. */}
+        <ErrorState variant="page" title={SUSPENDED.errorTitle} description={SUSPENDED.errorBody} />
+        <Button
+          variant="primary"
+          size="xl"
+          fullWidth
+          loading={reasons.refreshing || docs.refreshing}
+          onPress={() => {
+            if (reasons.status === 'error') void reasons.refetch();
+            if (docs.status === 'error') void docs.refetch();
           }}
-        />
+          testID="error-retry"
+        >
+          {SIGN_OUT.retry}
+        </Button>
         {supportBlock('ghost')}
       </>,
     );

@@ -138,6 +138,37 @@ function SupportBlock({ support, label = SUPPORT.call, variant = 'ghost' }: { su
   );
 }
 
+/**
+ * ds-request(native): ErrorState rider variant (56px action, slate, no "Contact support") —
+ * PA/Account-Error, -Profile-Error, -Vehicle-Error, -Documents-Error, Legal-Document-Error.
+ * The library's own Try again is 52px (lg); the boards draw a 60px (xl) full-width button, so the
+ * retry is a plain xl Button under the message until the rider variant ships.
+ */
+function LoadError({
+  title,
+  description,
+  onRetry,
+  retrying = false,
+  variant = 'primary',
+  testID,
+}: {
+  title: string;
+  description: string;
+  onRetry: () => void;
+  retrying?: boolean;
+  variant?: 'primary' | 'secondary';
+  testID?: string;
+}): React.ReactElement {
+  return (
+    <View style={{ gap: space['4'] }} testID={testID}>
+      <ErrorState variant="page" title={title} description={description} />
+      <Button variant={variant} size="xl" fullWidth loading={retrying} onPress={onRetry} testID="error-retry">
+        {LEGAL.retry}
+      </Button>
+    </View>
+  );
+}
+
 /** ds-request(native): ListRow (72) — PA Account-Overview, Account-Documents (Card + Text stand-in). */
 function Row({
   title,
@@ -250,7 +281,7 @@ export function AccountScreen(): React.ReactElement {
     return (
       <Page title={ACCOUNT.title} back={false} testID="account-error">
         {/* ds-request(native): ErrorState rider variant (56px action, no "Contact support") — PA/Account-Error */}
-        <ErrorState variant="page" title={ACCOUNT.errorTitle} description={ACCOUNT.errorBody} onRetry={() => void me.refetch()} retrying={me.refreshing} />
+        <LoadError title={ACCOUNT.errorTitle} description={ACCOUNT.errorBody} onRetry={() => void me.refetch()} retrying={me.refreshing} />
       </Page>
     );
   }
@@ -317,7 +348,20 @@ export function AccountScreen(): React.ReactElement {
         <SupportBlock support={support} />
       </View>
 
-      <Button variant="tertiary" size="xl" fullWidth onPress={flow.ask} disabled={working} testID="sign-out">
+      <Button
+        variant="tertiary"
+        destructive
+        size="xl"
+        fullWidth
+        onPress={() => {
+          flow.ask();
+          // The tab can stay mounted for a whole shift: read RiderMe again so a delivery accepted
+          // since this screen loaded still gets the "You are on a delivery" confirm.
+          void me.refetch();
+        }}
+        disabled={working}
+        testID="sign-out"
+      >
         {ACCOUNT.signOut}
       </Button>
 
@@ -365,7 +409,7 @@ export function DetailsScreen(): React.ReactElement {
   if (me.status === 'error' || !me.data) {
     return (
       <Page title={DETAILS.title} testID="details-error">
-        <ErrorState variant="page" title={DETAILS.errorTitle} description={DETAILS.errorBody} onRetry={() => void me.refetch()} retrying={me.refreshing} />
+        <LoadError title={DETAILS.errorTitle} description={DETAILS.errorBody} onRetry={() => void me.refetch()} retrying={me.refreshing} />
       </Page>
     );
   }
@@ -408,7 +452,7 @@ export function VehicleScreen(): React.ReactElement {
   if (me.status === 'error' || !me.data) {
     return (
       <Page title={VEHICLE.title} testID="vehicle-error">
-        <ErrorState variant="page" title={VEHICLE.errorTitle} description={VEHICLE.errorBody} onRetry={() => void me.refetch()} retrying={me.refreshing} />
+        <LoadError title={VEHICLE.errorTitle} description={VEHICLE.errorBody} onRetry={() => void me.refetch()} retrying={me.refreshing} />
       </Page>
     );
   }
@@ -457,7 +501,7 @@ export function DocumentsScreen(): React.ReactElement {
   if (docs.status === 'error' || !docs.data) {
     return (
       <Page title={DOCUMENTS.title} testID="documents-error">
-        <ErrorState variant="page" title={DOCUMENTS.errorTitle} description={DOCUMENTS.errorBody} onRetry={() => void docs.refetch()} retrying={docs.refreshing} />
+        <LoadError title={DOCUMENTS.errorTitle} description={DOCUMENTS.errorBody} onRetry={() => void docs.refetch()} retrying={docs.refreshing} />
       </Page>
     );
   }
@@ -547,11 +591,12 @@ export function LegalDocumentScreen({ params }: ScreenProps<'legalDocument'>): R
   } else if (doc.status === 'error' || !doc.data || doc.data.length === 0) {
     // No empty state: a document with no text is this error (PA/Legal-Document-Error).
     body = (
-      <ErrorState
-        variant="page"
+      <LoadError
+        variant="secondary"
         title={copy.error}
         description={LEGAL.errorBody}
-        action={{ label: LEGAL.retry, onPress: () => void doc.refetch(), testID: 'legal-retry' }}
+        onRetry={() => void doc.refetch()}
+        retrying={doc.refreshing}
         testID="legal-error"
       />
     );

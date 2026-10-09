@@ -57,6 +57,13 @@ describe.each(SCHEMES)('Account paused (%s)', (scheme) => {
     expect(screen.queryByText("We couldn't load your account")).toBeNull();
   });
 
+  it('a documents failure on a plain pause is still the generic pause, not the error', async () => {
+    api = mockApi({ getRiderDashboard: dashboardBlocked(['ACCOUNT_NOT_ACTIVE']), listRiderDocuments: 'error_internal_error', getPublicConfig: config() });
+    renderRedesign(<SuspendedScreen />, { scheme });
+    await screen.findByText('Your account is paused.');
+    expect(screen.queryByText("We couldn't load your account")).toBeNull();
+  });
+
   it('document expired: names it and its date (PA/Suspended-DocExpired)', async () => {
     api = mockApi({ getRiderDashboard: dashboardBlocked(['DOCUMENT_EXPIRED']), listRiderDocuments: docsExpired(), getPublicConfig: config() });
     renderRedesign(<SuspendedScreen />, { scheme });
