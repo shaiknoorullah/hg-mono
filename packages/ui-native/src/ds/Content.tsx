@@ -12,6 +12,7 @@ import { type AnyIconName, type DsCommon, resolveTestId } from './shared';
 
 /* ───── Badge ───── */
 
+/** Props of the live `Badge`. */
 export interface BadgeProps extends DsCommon {
   children?: string | number;
   /** Alternative to children. */
@@ -27,6 +28,7 @@ export interface BadgeProps extends DsCommon {
   max?: number;
 }
 
+/** A small non-interactive status marker. Not the halal badge. */
 export function Badge(props: BadgeProps) {
   const { children, label, variant, appearance = 'tint', size, icon, max, style } = props;
   const theme = useTheme();
@@ -47,6 +49,7 @@ export function Badge(props: BadgeProps) {
 
 /* ───── Card ───── */
 
+/** Props of the live `Card`. */
 export interface CardProps extends DsCommon {
   children?: React.ReactNode;
   /** Defaults to `interactive` when onPress or href is set, else `elevated`. */
@@ -74,6 +77,7 @@ function points(value: number | string | undefined): number | undefined {
   return Number.isFinite(parsed) ? parsed : undefined;
 }
 
+/** The generic surface; one press target when `onPress` or `href` is set. */
 export function Card(props: CardProps) {
   const { href, onPress, padding, radius, testId: _t, testID: _T, ...rest } = props;
   const press = onPress ?? (href ? () => void Linking.openURL(href) : undefined);
@@ -91,6 +95,7 @@ export function Card(props: CardProps) {
 
 /* ───── Price ───── */
 
+/** Props of the live `Price`; money is the branded `Cents`. */
 export interface PriceProps {
   /** int64 minor units from the server, branded. A non-integer renders nothing and reports MONEY_NOT_INTEGER_CENTS. */
   cents: Cents;
@@ -139,6 +144,7 @@ export function Price(props: PriceProps) {
 
 /* ───── Rating ───── */
 
+/** Props of the live `Rating`. */
 export interface RatingProps extends DsCommon {
   /** 0–5, 1 dp. null or undefined renders "New" — never 0.0. */
   value: number | null | undefined;
@@ -151,6 +157,7 @@ export interface RatingProps extends DsCommon {
   label?: string;
 }
 
+/** Restaurant and rider ratings; a missing value reads "New", never 0.0. */
 export function Rating(props: RatingProps) {
   const { value, count, label, testId: _t, testID: _T, ...rest } = props;
   return (

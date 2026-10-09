@@ -34,6 +34,7 @@ function FieldError({ text, testID }: { text: string; testID: string }) {
 
 /* ───── Input ───── */
 
+/** Props of the live `Input`; `onChange` receives the value on native. */
 export interface InputProps extends DsCommon {
   /** REQUIRED, always visible — placeholder is never the label. */
   label: string;
@@ -62,6 +63,7 @@ export interface InputProps extends DsCommon {
   autoComplete?: string;
 }
 
+/** Single-line text entry, controlled or uncontrolled. */
 export function Input(props: InputProps) {
   const {
     value,
@@ -98,6 +100,7 @@ export function Input(props: InputProps) {
 
 /* ───── Checkbox ───── */
 
+/** Props of the live `Checkbox`. */
 export interface CheckboxProps extends DsCommon {
   label: string;
   description?: string;
@@ -116,6 +119,7 @@ export interface CheckboxProps extends DsCommon {
   size?: 20 | 24;
 }
 
+/** An independent boolean; `error` is announced under the control. */
 export function Checkbox(props: CheckboxProps) {
   const { checked = false, onChange, onCheckedChange, error, style, testId: _t, testID: _T, ...rest } = props;
   const testID = resolveTestId(props, 'Checkbox');
@@ -138,6 +142,7 @@ export function Checkbox(props: CheckboxProps) {
 
 /* ───── RadioGroup / Radio ───── */
 
+/** One option of a `RadioGroup`. */
 export interface RadioOption {
   value: string;
   label: string;
@@ -148,6 +153,7 @@ export interface RadioOption {
   priceDeltaCents?: number;
 }
 
+/** Props of the live `RadioGroup`. */
 export interface RadioGroupProps extends DsCommon {
   /** The visible legend; names the group. REQUIRED. */
   label: string;
@@ -168,6 +174,7 @@ export interface RadioGroupProps extends DsCommon {
   size?: 20 | 24;
 }
 
+/** One choice from a set; the error is announced on the group. */
 export function RadioGroup(props: RadioGroupProps) {
   const { label, name, value, onChange, onValueChange, options, children, error, size, style, hideLabel: _h, ...rest } =
     props;
@@ -197,6 +204,7 @@ export function RadioGroup(props: RadioGroupProps) {
   return style ? <View style={style}>{group}</View> : group;
 }
 
+/** Props of the live `Radio`. */
 export interface RadioProps extends RadioOption {
   size?: 20 | 24;
   testId?: string;
@@ -211,6 +219,7 @@ export function Radio(props: RadioProps) {
 
 /* ───── Switch ───── */
 
+/** Props of the live `Switch`; the state words are required. */
 export interface SwitchProps extends DsCommon {
   label: string;
   description?: string;
@@ -229,6 +238,7 @@ export interface SwitchProps extends DsCommon {
   size?: 'sm' | 'md';
 }
 
+/** An immediate, self-applying binary that says its state in words. */
 export function Switch(props: SwitchProps) {
   const { stateLabel, onCheckedChange, onChange, error, style, name: _n, size: _s, testId: _t, testID: _T, ...rest } =
     props;
@@ -253,6 +263,7 @@ export function Switch(props: SwitchProps) {
 
 export type { SelectOption };
 
+/** Props of the live `Select`. */
 export interface SelectProps extends DsCommon {
   /** REQUIRED, visible. */
   label: string;
@@ -277,6 +288,7 @@ export interface SelectProps extends DsCommon {
   size?: 'md' | 'lg';
 }
 
+/** A choice from a closed, server-defined set. */
 export function Select(props: SelectProps) {
   const {
     variant = 'native',

@@ -15,6 +15,7 @@ export type { StepState } from '../feedback/order-track';
 /** The fourteen contract order states, in lifecycle order. */
 export const ORDER_STATES = Object.keys(ORDER_STATE_LABELS) as OrderState[];
 
+/** Props of the live `StatusTimeline`. */
 export interface StatusTimelineProps extends DsCommon {
   /** Whose vocabulary to render. Never inferred. */
   audience: TimelineAudience;
@@ -35,6 +36,7 @@ export interface StatusTimelineProps extends DsCommon {
   now?: number;
 }
 
+/** Order progress for one audience; a missing state shows the loading skeleton. */
 export function StatusTimeline(props: StatusTimelineProps) {
   const { state, testId: _t, testID: _T, style, ...rest } = props;
   return (

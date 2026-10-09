@@ -34,6 +34,7 @@ export type HalalBadgeProps =
   | (HalalBadgeCommon & { surface?: 'card' | 'operational'; onPress?: never })
   | (HalalBadgeCommon & { surface: 'detail'; onPress?: () => void });
 
+/** The server's halal display state rendered as a seal; a missing state renders nothing. */
 export function HalalBadge(props: HalalBadgeProps) {
   const { testId: _t, testID: _T, ...rest } = props;
   return <LegacyHalalBadge {...rest} testID={resolveTestId(props, 'HalalBadge')} />;
@@ -54,6 +55,7 @@ interface PanelBase extends DsCommon {
   headingLevel?: 1 | 2 | 3 | 4 | 5 | 6;
 }
 
+/** Props of the live `HalalCertificationPanel`: loading, error or ready. */
 export type HalalCertificationPanelProps =
   | (PanelBase & { status: 'loading' })
   | (PanelBase & { status: 'error'; errorMessage?: string; errorCode?: string; onRetry?: () => void })

@@ -6,6 +6,7 @@ import { type Theme, useTheme } from '../tokens';
 import { Icon } from './Icon';
 import { type AnyIconName, type DsCommon, resolveTestId } from './shared';
 
+/** Props of the live `Button`, native types. */
 export interface ButtonProps extends DsCommon {
   /** The visible label. Text only on native: the label is what a screen reader announces. */
   children: string;
@@ -46,6 +47,7 @@ function labelColor(theme: Theme, variant: ButtonVariant): string {
   }
 }
 
+/** The single affordance for an action; live `Button` props over the legacy button. */
 export function Button(props: ButtonProps) {
   const { iconStart, iconEnd, style, testId: _t, testID: _T, ...rest } = props;
   const theme = useTheme();
@@ -63,6 +65,7 @@ export function Button(props: ButtonProps) {
   return style ? <View style={style}>{button}</View> : button;
 }
 
+/** Props of the live `IconButton`, native types. */
 export interface IconButtonProps extends DsCommon {
   /** Solar icon name, or a node. */
   icon: AnyIconName | React.ReactNode;
@@ -99,6 +102,7 @@ export function nameWithBadge(label: string, badge: number | boolean | undefined
   return label;
 }
 
+/** A control whose only content is an icon; the badge is folded into its name. */
 export function IconButton(props: IconButtonProps) {
   const { icon, weight = 'linear', badge, badgeNoun, shape: _shape, style, testId: _t, testID: _T, ...rest } = props;
   const theme = useTheme();

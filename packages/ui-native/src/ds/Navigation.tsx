@@ -13,6 +13,7 @@ import { type AnyIconName, type DsCommon, resolveTestId } from './shared';
 
 /* ───── AppBar ───── */
 
+/** Props of the live `AppBar`. */
 export interface AppBarProps extends DsCommon {
   variant?: AppBarVariant;
   /** Theme surface only — cream (customer) · raised · chrome · field (rider). */
@@ -37,6 +38,7 @@ export interface AppBarProps extends DsCommon {
   sticky?: boolean;
 }
 
+/** The top bar; `tone` picks the theme surface. */
 export function AppBar(props: AppBarProps) {
   const { title, subtitle, backLabel, onBack, actions, search, titleIsPageHeading, tone, variant, loading, elevated, style } =
     props;
@@ -61,6 +63,7 @@ export function AppBar(props: AppBarProps) {
 
 /* ───── BottomNav ───── */
 
+/** One destination in the `BottomNav`. */
 export interface BottomNavItem {
   key: string;
   /** Always visible. */
@@ -72,6 +75,7 @@ export interface BottomNavItem {
   badgeNoun?: string;
 }
 
+/** Props of the live `BottomNav`. */
 export interface BottomNavProps extends DsCommon {
   items: BottomNavItem[];
   /** Key of the active item. */
@@ -85,6 +89,7 @@ export interface BottomNavProps extends DsCommon {
   hidden?: boolean;
 }
 
+/** Phone primary navigation; renders nothing when `hidden`. */
 export function BottomNav(props: BottomNavProps) {
   const { items, active, onChange, hidden, style } = props;
   const theme = useTheme();
@@ -110,6 +115,7 @@ export function BottomNav(props: BottomNavProps) {
 
 /* ───── Sheet ───── */
 
+/** Props of the live `Sheet`. */
 export interface SheetProps extends DsCommon {
   open: boolean;
   /** bottom (default) · side · full (rider offer, above everything). */
@@ -130,6 +136,7 @@ export interface SheetProps extends DsCommon {
   contained?: boolean;
 }
 
+/** Overlay panel; `full` with `dismissible={false}` is the rider offer. */
 export function Sheet(props: SheetProps) {
   const { open, variant = 'bottom', title, children, footer, onClose, dismissible = true, style } = props;
   return (
@@ -151,6 +158,7 @@ export function Sheet(props: SheetProps) {
 
 /* ───── Modal / Dialog ───── */
 
+/** Props of the live `Modal`. */
 export interface ModalProps extends DsCommon {
   open: boolean;
   /** dialog = title + body + actions · confirm = a decision · alert = one acknowledgement. */
@@ -180,6 +188,7 @@ export interface ModalProps extends DsCommon {
   contained?: boolean;
 }
 
+/** Blocking dialog: dialog, confirm (cancel first) or alert. */
 export function Modal(props: ModalProps) {
   const {
     open,
@@ -236,6 +245,7 @@ export function Dialog(props: Partial<ModalProps>) {
 
 /* ───── Toast ───── */
 
+/** Props of the live `Toast`. */
 export interface ToastProps extends DsCommon {
   /** No `halal` variant, and success is a tint — never a green fill. */
   variant?: ToastVariant;
@@ -249,6 +259,7 @@ export interface ToastProps extends DsCommon {
   icon?: AnyIconName;
 }
 
+/** A short, non-blocking message; success is a tint, never a green fill. */
 export function Toast(props: ToastProps) {
   const { action, icon, style, testId: _t, testID: _T, ...rest } = props;
   const theme = useTheme();

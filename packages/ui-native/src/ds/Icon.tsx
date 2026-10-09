@@ -6,9 +6,12 @@ import { icon as iconSizes, useTheme } from '../tokens';
 import { type AnyIconName, type DsCommon, resolveTestId } from './shared';
 
 export type { IconName, IconExtensionName } from './shared';
+/** linear (inactive) or bold (active). */
 export type IconWeight = 'linear' | 'bold';
+/** A size token, a point value, or a "24px" string. */
 export type IconSize = 'sm' | 'md' | 'lg' | 'xl' | '2xl' | number | string;
 
+/** Props of the live `Icon`. */
 export interface IconProps extends DsCommon {
   name: AnyIconName;
   /** linear (inactive, default) or bold (active: selected tab, chip, nav item). */
@@ -44,6 +47,7 @@ export const ICON_MAP = Object.fromEntries(
   ]),
 ) as Record<AnyIconName, { linear: string; bold: string; extension?: true }>;
 
+/** Resolves an `IconSize` to points (md 20 when unset). */
 export function iconPx(size: IconSize | undefined): number {
   if (size === undefined) return iconSizes.md;
   if (typeof size === 'number') return size;

@@ -39,6 +39,7 @@ export type IconExtensionName =
   | 'more'
   | 'refresh';
 
+/** Every icon name the live API accepts. */
 export type AnyIconName = IconName | IconExtensionName;
 
 // Compile-time proof that every live name exists in the native Solar map.
@@ -46,6 +47,7 @@ type _EveryLiveNameIsMapped = AnyIconName extends LegacyIconName ? true : never;
 const _everyLiveNameIsMapped: _EveryLiveNameIsMapped = true;
 void _everyLiveNameIsMapped;
 
+/** Props every `/ds` component takes: test id and style. */
 export interface DsCommon {
   /** data-testid in the live API; defaults to the component name. */
   testId?: string;
@@ -54,6 +56,7 @@ export interface DsCommon {
   style?: StyleProp<ViewStyle>;
 }
 
+/** The test id: `testID`, else `testId`, else the component name. */
 export function resolveTestId(props: { testId?: string; testID?: string }, fallback: string): string {
   return props.testID ?? props.testId ?? fallback;
 }
