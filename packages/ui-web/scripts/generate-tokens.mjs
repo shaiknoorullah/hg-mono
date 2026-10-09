@@ -213,8 +213,46 @@ function componentRoles(scheme) {
 
     'skeleton.base': dark ? '{color.neutral.800}' : '{color.neutral.300}',
     'skeleton.highlight': dark ? '{color.neutral.700}' : '{color.neutral.200}',
+
+    // Elevated surfaces (the live Claude Design file's elev-surface-* roles).
+    // Light lifts with a shadow over the raised surface; dark has no shadows and
+    // steps the surface instead, so each dark value is that elevation's
+    // `surfaceStep`, read from tokens.json rather than restated here.
+    ...elevationSurfaces(scheme),
   };
 }
+
+/**
+ * `elev.surface.<level>` and `elev.hairline` for one scheme. Additions for the
+ * redesign (S0): nothing in the released apps reads them.
+ */
+function elevationSurfaces(scheme) {
+  const out = {};
+  for (const level of Object.keys(nested('elevation'))) {
+    if (scheme === 'dark') {
+      out[`elev.surface.${level}`] = `{elevation.${level}}`; // resolved to .surfaceStep below
+    } else {
+      out[`elev.surface.${level}`] =
+        level === '0' ? '{theme.light.surface.base}' : '{theme.light.surface.raised}';
+    }
+  }
+  // The hairline that stands in for a shadow edge in dark; nothing in light.
+  out['elev.hairline'] = scheme === 'dark' ? '{theme.dark.border.decorative}' : 'transparent';
+  return out;
+}
+
+/**
+ * Flat role aliases the live Claude Design file names alongside the structured
+ * roles (`action-primary` = `action-primary-bg`, …). Emitted as `var()`
+ * forwards, so an alias can never hold a value of its own.
+ */
+const ROLE_ALIASES = {
+  'action-primary': 'action-primary-bg',
+  'action-primary-pressed': 'action-primary-bg-pressed',
+  'action-secondary': 'action-secondary-bg',
+  'action-secondary-pressed': 'action-secondary-bg-pressed',
+  'action-track-on': 'control-track-on',
+};
 
 /**
  * The two-layer focus ring (01-foundations.md §4.1 / 04-accessibility.md §4.1).
@@ -311,10 +349,17 @@ for (const scheme of SCHEMES) {
     const parts = path.split('.');
     let cursor = extra;
     for (const part of parts.slice(0, -1)) cursor = cursor[part] ??= {};
-    cursor[parts.at(-1)] = resolve(ref);
+    const value = resolve(ref);
+    // A dark elevation resolves to its dual-form object; the role is the surface step.
+    cursor[parts.at(-1)] = value && typeof value === 'object' ? value.surfaceStep : value;
   }
   const { out: ring, report } = focusRoles(scheme);
   ringReports[scheme] = report;
+  // `extra` only adds groups the base theme lacks, so a shallow merge is safe; the
+  // assertion keeps it that way if a component role ever lands in a base group.
+  for (const key of Object.keys(extra)) {
+    if (key in base) throw new Error(`componentRoles would overwrite theme.${scheme}.${key}`);
+  }
   roles[scheme] = { ...base, ...extra, focus: { ...base.focus, ringOn: ring } };
 }
 
@@ -374,6 +419,12 @@ ${Object.entries(ringReports)
   .join('\n')}
  */
 export const roles = ${j(roles)} as const;
+
+/**
+ * Flat aliases the live Claude Design file names next to the structured roles.
+ * Each is a CSS custom property that forwards to the role on the right.
+ */
+export const roleAliases = ${j(ROLE_ALIASES)} as const;
 
 export const tokens = {
   color,
@@ -564,6 +615,9 @@ function roleVars(scheme, indent = '  ') {
   emit('--hg-control', r.control);
   emit('--hg-feedback', r.feedback);
   emit('--hg-skeleton', r.skeleton);
+  emit('--hg-elev', r.elev);
+  for (const [alias, target] of Object.entries(ROLE_ALIASES))
+    out.push(`${indent}--hg-${alias}: var(--hg-${target});`);
   // Default the two focus-ring layers so `.hg-focus` works with no override.
   out.push(`${indent}--hg-focus-ring-color: var(--hg-focus-ring);`);
   out.push(`${indent}--hg-focus-ring-offset: var(--hg-focus-offset);`);
@@ -685,6 +739,8 @@ t.push(forwardColors('action', 'action', roles.light.action).join('\n'));
 t.push(forwardColors('control', 'control', roles.light.control).join('\n'));
 t.push(forwardColors('feedback', 'feedback', roles.light.feedback).join('\n'));
 t.push(forwardColors('skeleton', 'skeleton', roles.light.skeleton).join('\n'));
+t.push(forwardColors('elev', 'elev', roles.light.elev).join('\n'));
+for (const alias of Object.keys(ROLE_ALIASES)) t.push(`  --color-${alias}: var(--hg-${alias});`);
 t.push('  --color-focus-ring: var(--hg-focus-ring);');
 t.push('  --color-transparent: transparent;');
 t.push('  --color-current: currentColor;');
