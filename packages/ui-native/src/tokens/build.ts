@@ -254,6 +254,97 @@ function derivedRoles(color: any, scheme: 'light' | 'dark') {
   };
 }
 
+/* --------------------------------------------- shadcn / RNR semantic aliases */
+
+/**
+ * The semantic variable names React Native Reusables (and shadcn/ui) components are written
+ * against, each an ALIAS of one of our roles — never a new value. The table is the plan's
+ * §3.2 mapping (design-system plan, "Mapping to Tailwind v4 and NativeWind v4").
+ *
+ * Two deliberate departures from RNR's defaults:
+ *   - values are hex, not `hsl()` channel triples: RNR's `hsl(var(--x))` template is rewritten
+ *     to `var(--x)` on copy-in, so the variable holds a complete colour;
+ *   - `--accent` is the selected-state TINT, not our forest `color.accent.*` ramp. shadcn's
+ *     "accent" is a hover/selected wash; mapping it to the forest ramp would paint forest
+ *     washes on hover.
+ *
+ * `--primary-foreground` is `text.onBrand` (#0F241C), never white (1.62:1 on brand 500).
+ */
+type ThemeColorsLoose = Record<string, Record<string, any>>;
+export const RNR_ALIASES: Record<string, (c: ThemeColorsLoose) => string> = {
+  '--background': (c) => c.surface!.base,
+  '--foreground': (c) => c.text!.primary,
+  '--card': (c) => c.surface!.raised,
+  '--card-foreground': (c) => c.text!.primary,
+  '--popover': (c) => c.surface!.raised,
+  '--popover-foreground': (c) => c.text!.primary,
+  '--primary': (c) => c.action!.primary,
+  '--primary-foreground': (c) => c.text!.onBrand,
+  '--secondary': (c) => c.action!.secondary,
+  '--secondary-foreground': (c) => c.text!.onAccent,
+  '--muted': (c) => c.surface!.subtle,
+  '--muted-foreground': (c) => c.text!.secondary,
+  '--accent': (c) => c.state!.selectedTint,
+  '--accent-foreground': (c) => c.text!.primary,
+  '--destructive': (c) => c.action!.danger,
+  '--destructive-foreground': (c) => c.feedback!.danger.onSolid,
+  '--border': (c) => c.border!.decorative,
+  '--input': (c) => c.border!.interactive,
+  '--ring': (c) => c.focus!.ring,
+};
+
+/** Tailwind colour utilities for the aliases above (`bg-primary`, `text-muted-foreground`). */
+const RNR_PRESET_COLORS = {
+  background: 'var(--background)',
+  foreground: 'var(--foreground)',
+  card: { DEFAULT: 'var(--card)', foreground: 'var(--card-foreground)' },
+  popover: { DEFAULT: 'var(--popover)', foreground: 'var(--popover-foreground)' },
+  primary: { DEFAULT: 'var(--primary)', foreground: 'var(--primary-foreground)' },
+  secondary: { DEFAULT: 'var(--secondary)', foreground: 'var(--secondary-foreground)' },
+  muted: { DEFAULT: 'var(--muted)', foreground: 'var(--muted-foreground)' },
+  destructive: { DEFAULT: 'var(--destructive)', foreground: 'var(--destructive-foreground)' },
+  input: 'var(--input)',
+  ring: 'var(--ring)',
+} as const;
+
+/**
+ * `global.<theme>.css` — what an app hands to `withNativeWind(config, { input })` and imports
+ * once at its root. `:root` holds the light scheme, `.dark:root` the dark one (NativeWind 4's
+ * class dark mode), each as resolved hex: the `--hg-*` role variables the preset's role
+ * utilities read (`bg-surface-base`), then the RNR aliases (`bg-primary`).
+ */
+export function nativewindGlobalCss(
+  themeName: string,
+  vars: Record<'light' | 'dark', Record<string, string>>,
+  colors: Record<'light' | 'dark', ThemeColorsLoose>,
+): string {
+  const block = (selector: string, scheme: 'light' | 'dark') => {
+    const lines = Object.entries(vars[scheme]).map(([k, v]) => `  ${k}: ${v};`);
+    lines.push('');
+    for (const [name, pick] of Object.entries(RNR_ALIASES)) {
+      lines.push(`  ${name}: ${pick(colors[scheme])};`);
+    }
+    return `${selector} {\n${lines.join('\n')}\n}\n`;
+  };
+  return [
+    '/*',
+    ' * GENERATED FILE — DO NOT EDIT.',
+    ' *',
+    ' * Source:    docs/design/tokens.json (W3C DTCG, the system of record)',
+    ' * Generator: packages/ui-native/src/tokens/build.ts (nativewindGlobalCss)',
+    ' * Command:   pnpm --filter @hg/ui-native generate:tokens',
+    ' *',
+    ` * NativeWind 4 input for the ${themeName} theme. Hex values, never hsl().`,
+    ' */',
+    '@tailwind base;',
+    '@tailwind components;',
+    '@tailwind utilities;',
+    '',
+    block(':root', 'light'),
+    block('.dark:root', 'dark'),
+  ].join('\n');
+}
+
 /* ----------------------------------------------------------------- builder */
 
 export function buildFiles(doc: Dtcg): Record<string, string> {
@@ -453,6 +544,17 @@ export function buildFiles(doc: Dtcg): Record<string, string> {
       '',
     ].join('\n');
 
+  /* ------------------------------------------------- global.<theme>.css */
+
+  for (const themeName of Object.keys(THEME_SPEC)) {
+    const t = themes[themeName] as any;
+    files[`global.${themeName}.css`] = nativewindGlobalCss(
+      themeName,
+      varsOut[themeName] as Record<'light' | 'dark', Record<string, string>>,
+      { light: t.light.color, dark: t.dark.color },
+    );
+  }
+
   /* ------------------------------------------------- nativewind-preset.cjs */
 
   const presetColors: Record<string, unknown> = {};
@@ -465,6 +567,19 @@ export function buildFiles(doc: Dtcg): Record<string, string> {
       leafs.map((leaf) => [kebab(leaf), `var(${cssVar(group === 'text' ? 'fg' : group, leaf)})`]),
     );
   }
+  /*
+   * RNR aliases (`global.<theme>.css`). Two names already exist as our groups and gain a
+   * DEFAULT rather than being replaced: `border` (so `border-border` works beside
+   * `border-border-interactive`) and `accent` (the forest ramp keeps its numbered steps;
+   * bare `bg-accent` is shadcn's selected wash, `--accent`).
+   */
+  Object.assign(presetColors, RNR_PRESET_COLORS);
+  presetColors.border = { DEFAULT: 'var(--border)', ...(presetColors.border as object) };
+  presetColors.accent = {
+    ...(presetColors.accent as object),
+    DEFAULT: 'var(--accent)',
+    foreground: 'var(--accent-foreground)',
+  };
 
   const preset = {
     darkMode: 'class',

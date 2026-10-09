@@ -51,6 +51,8 @@ module.exports = {
           '800': '#0F241C',
           '900': '#0A1913',
           '950': '#05100B',
+          DEFAULT: 'var(--accent)',
+          foreground: 'var(--accent-foreground)',
         },
         neutral: {
           '0': '#FFFFFF',
@@ -186,6 +188,7 @@ module.exports = {
           'secondary-field': 'var(--hg-fg-secondary-field)',
         },
         border: {
+          DEFAULT: 'var(--border)',
           decorative: 'var(--hg-border-decorative)',
           interactive: 'var(--hg-border-interactive)',
           strong: 'var(--hg-border-strong)',
@@ -196,6 +199,34 @@ module.exports = {
           offset: 'var(--hg-focus-offset)',
           'on-color': 'var(--hg-focus-on-color)',
         },
+        background: 'var(--background)',
+        foreground: 'var(--foreground)',
+        card: {
+          DEFAULT: 'var(--card)',
+          foreground: 'var(--card-foreground)',
+        },
+        popover: {
+          DEFAULT: 'var(--popover)',
+          foreground: 'var(--popover-foreground)',
+        },
+        primary: {
+          DEFAULT: 'var(--primary)',
+          foreground: 'var(--primary-foreground)',
+        },
+        secondary: {
+          DEFAULT: 'var(--secondary)',
+          foreground: 'var(--secondary-foreground)',
+        },
+        muted: {
+          DEFAULT: 'var(--muted)',
+          foreground: 'var(--muted-foreground)',
+        },
+        destructive: {
+          DEFAULT: 'var(--destructive)',
+          foreground: 'var(--destructive-foreground)',
+        },
+        input: 'var(--input)',
+        ring: 'var(--ring)',
       },
       spacing: {
         '0': '0px',
