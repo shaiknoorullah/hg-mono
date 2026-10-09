@@ -6,6 +6,7 @@
 
 import { setHalalClientErrorReporter } from '../certification/index.js';
 
+/** Receives a stable error code (e.g. `ICON_NAME_UNKNOWN`) and the context needed to triage it. */
 export type DsClientErrorReporter = (code: string, context: Record<string, unknown>) => void;
 
 const defaultReporter: DsClientErrorReporter = (code, context) => {
@@ -21,6 +22,7 @@ export function setClientErrorReporter(next: DsClientErrorReporter | null): void
   setHalalClientErrorReporter(next ? (code, context) => next(code, { ...context }) : null);
 }
 
+/** Report a design-system client error to the installed reporter. Never rendered. */
 export function reportDsClientError(code: string, context: Record<string, unknown>): void {
   reporter(code, context);
 }

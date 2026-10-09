@@ -46,11 +46,14 @@ export type IconExtensionName =
   | 'error'
   | 'more'
   | 'refresh';
+/** linear (inactive, default) or bold (active: selected tab, chip, nav item). */
 export type IconWeight = 'linear' | 'bold';
+/** Every name the design-system Icon accepts: the repo map plus the live extension names. */
 export type DsIconName = IconName | IconExtensionName;
 
 const ICON_SIZE = { sm: 16, md: 20, lg: 24, xl: 32, '2xl': 48 } as const;
 
+/** Props of the live `Icon` (index.d.ts). */
 export interface IconProps {
   name: DsIconName;
   weight?: IconWeight;
@@ -88,6 +91,7 @@ function glyph(icon: DsIconName | ReactNode | undefined, size?: number): ReactNo
 
 /* ───── Button ───── */
 
+/** Props of the live `Button` (index.d.ts). Action is orange; there is no success button. */
 export interface ButtonProps {
   children: ReactNode;
   variant?: 'primary' | 'secondary' | 'tertiary' | 'ghost' | 'danger';
@@ -108,6 +112,7 @@ export interface ButtonProps {
   style?: CSSProperties;
 }
 
+/** The single affordance for an action, with the live props, rendered by the legacy Button. */
 export function Button({ iconStart, iconEnd, critical, testId, onPress, size, ...rest }: ButtonProps) {
   return (
     <LegacyButton
@@ -124,6 +129,7 @@ export function Button({ iconStart, iconEnd, critical, testId, onPress, size, ..
 
 /* ───── IconButton ───── */
 
+/** Props of the live `IconButton` (index.d.ts). */
 export interface IconButtonProps {
   icon: DsIconName | ReactNode;
   /** Required. A count badge is appended to it ("Cart, 3 items"). */
@@ -143,6 +149,7 @@ export interface IconButtonProps {
 
 const ICON_BUTTON_GLYPH = { sm: 16, md: 20, lg: 24 } as const;
 
+/** A control whose only content is an icon, with the live props, rendered by the legacy IconButton. */
 export function IconButton({
   icon,
   accessibilityLabel,
@@ -184,6 +191,7 @@ export function IconButton({
 
 /* ───── Input ───── */
 
+/** Props of the live `Input` (index.d.ts). */
 export interface InputProps {
   label: string;
   variant?: 'text' | 'email' | 'tel' | 'numeric' | 'password' | 'search' | 'otp';
@@ -215,6 +223,7 @@ export interface InputProps {
   style?: CSSProperties;
 }
 
+/** Single-line text entry with the live props (onChange gets the event, onValueChange the value). */
 export function Input({ onChange, onValueChange, errorText, iconStart, prefix, testId, ...rest }: InputProps) {
   return (
     <LegacyInput
@@ -232,6 +241,7 @@ export function Input({ onChange, onValueChange, errorText, iconStart, prefix, t
 
 /* ───── Select ───── */
 
+/** One option of a Select. */
 export interface SelectOption {
   value: string;
   label: string;
@@ -239,6 +249,7 @@ export interface SelectOption {
   disabled?: boolean;
 }
 
+/** Props of the live `Select` (index.d.ts); onChange receives the value until W3. */
 export interface SelectProps {
   label: string;
   variant?: 'native' | 'listbox';
@@ -262,6 +273,7 @@ export interface SelectProps {
   style?: CSSProperties;
 }
 
+/** Choice from a closed, server-defined set, with the live props, rendered by the legacy Select. */
 export function Select({ onChange, onValueChange, value, errorText, size: _size, id: _id, testId, style, ...rest }: SelectProps) {
   return (
     <div data-testid={testId ?? 'Select'} style={style}>
@@ -280,6 +292,7 @@ export function Select({ onChange, onValueChange, value, errorText, size: _size,
 
 /* ───── Checkbox ───── */
 
+/** Props of the live `Checkbox` (index.d.ts); use onCheckedChange. */
 export interface CheckboxProps {
   label: ReactNode;
   description?: ReactNode;
@@ -298,6 +311,7 @@ export interface CheckboxProps {
   style?: CSSProperties;
 }
 
+/** Independent boolean, with the live props; priceDeltaCents renders through Price. */
 export function Checkbox({ onCheckedChange, priceDeltaCents, testId, style, ...rest }: CheckboxProps) {
   return (
     <div data-testid={testId ?? 'Checkbox'} style={style}>
@@ -316,6 +330,7 @@ export function Checkbox({ onCheckedChange, priceDeltaCents, testId, style, ...r
 
 /* ───── RadioGroup ───── */
 
+/** One option of a RadioGroup; priceDeltaCents renders through Price with the sign shown. */
 export interface RadioOption {
   value: string;
   label: ReactNode;
@@ -326,6 +341,7 @@ export interface RadioOption {
   priceDeltaCents?: number;
 }
 
+/** Props of the live `RadioGroup` (index.d.ts), options form. */
 export interface RadioGroupProps {
   /** The visible legend; names the radiogroup. */
   label: string;
@@ -344,6 +360,7 @@ export interface RadioGroupProps {
   style?: CSSProperties;
 }
 
+/** One choice from a set, with the live props, rendered by the legacy RadioGroup. */
 export function RadioGroup({
   options,
   value,
@@ -380,6 +397,7 @@ export function RadioGroup({
 
 /* ───── Switch ───── */
 
+/** Props of the live `Switch` (index.d.ts). */
 export interface SwitchProps {
   label: ReactNode;
   description?: ReactNode;
@@ -397,6 +415,7 @@ export interface SwitchProps {
   style?: CSSProperties;
 }
 
+/** Immediate, self-applying binary with visible state words, rendered by the legacy Switch. */
 export function Switch({ onCheckedChange, size: _size, testId, style, ...rest }: SwitchProps) {
   return (
     <div data-testid={testId ?? 'Switch'} style={style}>
@@ -407,6 +426,7 @@ export function Switch({ onCheckedChange, size: _size, testId, style, ...rest }:
 
 /* ───── StatusTimeline ───── */
 
+/** Props of the live `StatusTimeline` (index.d.ts). */
 export interface StatusTimelineProps {
   audience: 'customer' | 'restaurant' | 'rider' | 'admin';
   state?: OrderState;
@@ -422,6 +442,7 @@ export interface StatusTimelineProps {
   testId?: string;
 }
 
+/** Order progress from the contract timeline, rendered by the legacy StatusTimeline. */
 export function StatusTimeline({ state, transitions, connection, ...rest }: StatusTimelineProps) {
   if (!state) return <LegacyStatusTimeline {...rest} state={'CREATED'} loading />;
   return (
@@ -438,6 +459,7 @@ export function StatusTimeline({ state, transitions, connection, ...rest }: Stat
 
 /* ───── AppBar ───── */
 
+/** Props of the live `AppBar` (index.d.ts). */
 export interface AppBarProps {
   variant?: 'default' | 'large' | 'search' | 'contextual' | 'transparent';
   /** chrome is the restaurant and admin tone; tones land with the AppBar rebuild (W2). */
@@ -457,6 +479,7 @@ export interface AppBarProps {
   style?: CSSProperties;
 }
 
+/** The top bar with the live props, rendered by the legacy TopBar until W2. */
 export function AppBar({
   variant = 'default',
   tone: _tone,
