@@ -234,6 +234,7 @@ module.exports = {
             text: 'var(--hg-feedback-success-text)',
             icon: 'var(--hg-feedback-success-icon)',
             border: 'var(--hg-feedback-success-border)',
+            'tint-border': 'var(--hg-feedback-success-tint-border)',
           },
           warning: {
             tint: 'var(--hg-feedback-warning-tint)',
@@ -243,6 +244,7 @@ module.exports = {
             border: 'var(--hg-feedback-warning-border)',
             solid: 'var(--hg-feedback-warning-solid)',
             'on-solid': 'var(--hg-feedback-warning-on-solid)',
+            'tint-border': 'var(--hg-feedback-warning-tint-border)',
           },
           danger: {
             tint: 'var(--hg-feedback-danger-tint)',
@@ -252,6 +254,7 @@ module.exports = {
             border: 'var(--hg-feedback-danger-border)',
             solid: 'var(--hg-feedback-danger-solid)',
             'on-solid': 'var(--hg-feedback-danger-on-solid)',
+            'tint-border': 'var(--hg-feedback-danger-tint-border)',
           },
           info: {
             tint: 'var(--hg-feedback-info-tint)',
@@ -261,6 +264,7 @@ module.exports = {
             border: 'var(--hg-feedback-info-border)',
             solid: 'var(--hg-feedback-info-solid)',
             'on-solid': 'var(--hg-feedback-info-on-solid)',
+            'tint-border': 'var(--hg-feedback-info-tint-border)',
           },
         },
         skeleton: {

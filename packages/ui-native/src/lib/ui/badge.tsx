@@ -40,9 +40,9 @@ export const badgeVariants = cva('flex-row items-center self-start rounded-xs bo
   },
   compoundVariants: [
     { appearance: 'tint', variant: 'neutral', className: 'border-border bg-muted' },
-    { appearance: 'tint', variant: 'info', className: 'border-feedback-info-border bg-feedback-info-tint' },
-    { appearance: 'tint', variant: 'warning', className: 'border-feedback-warning-border bg-feedback-warning-tint' },
-    { appearance: 'tint', variant: 'danger', className: 'border-feedback-danger-border bg-feedback-danger-tint' },
+    { appearance: 'tint', variant: 'info', className: 'border-feedback-info-tint-border bg-feedback-info-tint' },
+    { appearance: 'tint', variant: 'warning', className: 'border-feedback-warning-tint-border bg-feedback-warning-tint' },
+    { appearance: 'tint', variant: 'danger', className: 'border-feedback-danger-tint-border bg-feedback-danger-tint' },
     { appearance: 'tint', variant: 'brand', className: 'border-border-brand bg-accent' },
     { appearance: ['tint', 'solid'], variant: 'outline', className: 'border-input bg-transparent' },
     { appearance: 'solid', variant: 'neutral', className: 'bg-surface-inverse' },

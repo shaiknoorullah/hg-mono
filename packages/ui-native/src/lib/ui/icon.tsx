@@ -37,7 +37,9 @@ export interface GlyphProps {
  */
 export function Glyph({ name, size, weight = 'linear', className }: GlyphProps): React.ReactElement {
   return (
-    <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+    // The class also sits on the wrapper: on react-native-web the glyph paints in `currentColor`,
+    // which it inherits from there; on native css-interop hands the colour to the SVG directly.
+    <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" className={cn('text-foreground', className)}>
       <Svg name={name} size={size} weight={weight} className={cn('text-foreground', className)} />
     </View>
   );

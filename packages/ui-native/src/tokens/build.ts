@@ -389,6 +389,11 @@ export function cssOnlyRoleVars(
     for (const [leaf, value] of Object.entries(role as Record<string, unknown>)) {
       if (typeof value === 'string') out[`--hg-feedback-${name}-${kebab(leaf)}`] = value;
     }
+    // The soft edge of a tint plate (the live Badge draws `<name>.100`); in the dark scheme
+    // the plate needs no edge, so it is the tint itself.
+    const tint = (role as Record<string, unknown>).tint;
+    const soft = scheme === 'dark' ? tint : ramps[name]?.['100'];
+    if (typeof soft === 'string') out[`--hg-feedback-${name}-tint-border`] = soft;
   }
   for (const [leaf, value] of Object.entries(color.skeleton ?? {})) {
     if (typeof value === 'string') out[`--hg-skeleton-${kebab(leaf)}`] = value;
@@ -405,7 +410,7 @@ function cssOnlyRoleColors(color: ThemeColorsLoose): Record<string, unknown> {
   for (const [name, role] of Object.entries(color.feedback ?? {})) {
     const leaves = Object.entries(role as Record<string, unknown>).filter(([, v]) => typeof v === 'string');
     feedback[name] = Object.fromEntries(
-      leaves.map(([leaf]) => [kebab(leaf), `var(--hg-feedback-${name}-${kebab(leaf)})`]),
+      [...leaves.map(([leaf]) => kebab(leaf)), 'tint-border'].map((leaf) => [leaf, `var(--hg-feedback-${name}-${leaf})`]),
     );
   }
   const skeleton = Object.fromEntries(

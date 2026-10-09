@@ -57,14 +57,15 @@ export const buttonVariants = cva('flex-row items-center justify-center gap-2 ro
     },
     /** The field (rider) floor: sm, md and lg grow to the 56pt field target. */
     field: { true: '', false: '' },
-    fullWidth: { true: 'self-stretch', false: '' },
+    /** Unset keeps the N0 behaviour (stretch in a column); `false` hugs the label, as the live Button does. */
+    fullWidth: { true: 'self-stretch', false: 'self-start' },
     disabled: { true: 'opacity-60 dark:opacity-50', false: '' },
   },
   compoundVariants: [
     { field: true, size: ['sm', 'md', 'lg', 'default'], className: 'min-h-target-field' },
     { field: true, size: ['icon-sm', 'icon-md'], className: 'min-h-target-field min-w-target-field' },
   ],
-  defaultVariants: { variant: 'default', size: 'default', field: false, fullWidth: false, disabled: false },
+  defaultVariants: { variant: 'default', size: 'default', field: false, disabled: false },
 });
 
 /** Label classes per `variant` × `size`, handed to the child `Text` through `TextClassContext`. */
