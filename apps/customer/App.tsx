@@ -26,9 +26,6 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ThemeProvider, useTheme, setClientErrorReporter, Wordmark } from '@hg/ui-native';
 import { useHgFonts } from '@hg/ui-native/fonts';
-// NativeWind's compiled tokens (redesign, N0). Inert for every flag-off screen: no screen in
-// this app passes a `className`.
-import '@hg/ui-native/global.customer.css';
 
 import { Router } from './src/navigation/Router';
 import { OrderingPauseProvider } from './src/ordering/orderingPause';
@@ -278,17 +275,19 @@ function AppRoot(): React.ReactElement | null {
 // ---------------------------------------------------------------------------
 
 /**
- * `EXPO_PUBLIC_HG_REDESIGN=1` builds add the `@rn-primitives/portal` host that RNR overlays
- * render into (redesign, N0); every other build exports `AppRoot` itself, so a flag-off build
- * mounts exactly the tree it did before. The portal module is required inside the branch.
+ * `EXPO_PUBLIC_HG_REDESIGN=1` builds wrap the app in the redesign root (redesign N0: the
+ * NativeWind stylesheet, the `@rn-primitives/portal` host, the colour-scheme bridge). Every other
+ * build exports `AppRoot` itself, so a flag-off build mounts exactly the tree it did before. The
+ * redesign module is required inside the branch, never imported at the top, so Metro drops it
+ * (and NativeWind with it) from a flag-off bundle.
  */
 function RedesignApp(): React.ReactElement {
-  const { PortalHost } = require('@rn-primitives/portal') as typeof import('@rn-primitives/portal');
+  const { RedesignRoot } =
+    require('./src/redesign/RedesignRoot') as typeof import('./src/redesign/RedesignRoot');
   return (
-    <>
+    <RedesignRoot>
       <AppRoot />
-      <PortalHost />
-    </>
+    </RedesignRoot>
   );
 }
 

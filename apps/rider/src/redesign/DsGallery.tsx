@@ -6,14 +6,13 @@
  *   1. NativeWind resolves `className` against the generated `global.rider.css` (role
  *      utilities `bg-surface-base` and RNR aliases `bg-primary` both paint);
  *   2. the RNR-style `Button` (`cva` + `Pressable` + `@rn-primitives/slot`) renders every
- *      variant, and the dark scheme flips through `.dark:root`;
+ *      variant, and the dark scheme flips through `.dark:root` when ThemeProvider's does;
  *   3. `@rn-primitives/portal` renders into the `<PortalHost />` at the root.
  */
 import * as React from 'react';
 import { ScrollView, View } from 'react-native';
-import { useColorScheme } from 'nativewind';
 import { Portal } from '@rn-primitives/portal';
-import { Button, Text } from '@hg/ui-native/lib';
+import { Button, Text, useHgColorScheme } from '@hg/ui-native/lib';
 
 const VARIANTS = ['default', 'secondary', 'outline', 'ghost', 'destructive'] as const;
 
@@ -25,15 +24,22 @@ const SWATCHES = [
   ['bg-surface-chrome', 'surface-chrome (role)'],
 ] as const;
 
-export function DsGallery({ onClose }: { onClose: () => void }): React.ReactElement {
-  const { colorScheme, toggleColorScheme } = useColorScheme();
+export function DsGallery({
+  onClose,
+  onToggleScheme,
+}: {
+  onClose: () => void;
+  /** Flips the enclosing ThemeProvider's scheme; NativeWind follows through useHgColorScheme. */
+  onToggleScheme: () => void;
+}): React.ReactElement {
+  const colorScheme = useHgColorScheme();
   const [portalOpen, setPortalOpen] = React.useState(false);
 
   return (
     <ScrollView className="flex-1 bg-background" contentContainerClassName="gap-4 px-4 pb-12 pt-16">
       <Text className="text-heading-lg">Design system — N0 gallery</Text>
       <Text className="text-muted-foreground">
-        NativeWind {colorScheme ?? 'light'} · rider theme · tokens from global.rider.css
+        NativeWind {colorScheme} · rider theme · tokens from global.rider.css
       </Text>
 
       {VARIANTS.map((variant) => (
@@ -58,7 +64,7 @@ export function DsGallery({ onClose }: { onClose: () => void }): React.ReactElem
         ))}
       </View>
 
-      <Button variant="outline" onPress={toggleColorScheme}>
+      <Button variant="outline" onPress={onToggleScheme}>
         <Text>Toggle dark scheme</Text>
       </Button>
       <Button variant="outline" onPress={() => setPortalOpen((open) => !open)}>

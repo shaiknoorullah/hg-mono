@@ -6,24 +6,34 @@ const preset = require.resolve('babel-preset-expo', {
   paths: [require.resolve('expo/package.json')],
 });
 
-// NativeWind 4 (redesign, N0): every JSX element goes through NativeWind's JSX runtime so a
-// `className` prop resolves against the generated tokens. Elements without `className` render
-// as before.
+// NativeWind 4 (redesign, N0) — SCOPED. Only the redesign code compiles its JSX through
+// NativeWind's runtime (so `className` resolves against the generated tokens):
+//   packages/ui-native/src/lib/**   the RNR tier
+//   apps/<app>/src/redesign/**      the flag-gated redesign roots
+// Every other file keeps React's own JSX runtime, so a flag-off build neither imports
+// NativeWind / css-interop nor wraps a single element: it shows and does what it did before.
 //
-// This is what the `nativewind/babel` preset does, spelled out, because that preset names its
-// plugins as bare strings ('@babel/plugin-transform-react-jsx', 'react-native-worklets/plugin')
-// that Babel resolves from the app's symlinked `node_modules/nativewind`, where pnpm does not
-// put them ("Cannot find module '@babel/plugin-transform-react-jsx'" on `expo export`):
-//   - the JSX transform with NativeWind's import source  -> babel-preset-expo's own, below;
+// The override is what the `nativewind/babel` preset does, spelled out, because that preset
+// names its plugins as bare strings that Babel resolves from the app's symlinked
+// `node_modules/nativewind`, where pnpm does not put them ("Cannot find module
+// '@babel/plugin-transform-react-jsx'" on `expo export`):
+//   - the JSX transform with NativeWind's import source  -> babel-preset-expo's, re-optioned;
 //   - `react-native-worklets/plugin` (Reanimated 4)      -> babel-preset-expo adds it whenever
 //                                                            react-native-worklets is installed;
 //   - css-interop's `createElement` rewrite              -> the plugin below, by absolute path.
 const cssInteropPlugin = require.resolve('react-native-css-interop/dist/babel-plugin');
+const NATIVEWIND_SCOPE = /[\\/](packages[\\/]ui-native[\\/]src[\\/]lib|apps[\\/][^\\/]+[\\/]src[\\/]redesign)[\\/]/;
 
 module.exports = function (api) {
   api.cache(true);
   return {
-    presets: [[preset, { jsxRuntime: 'automatic', jsxImportSource: 'nativewind' }]],
-    plugins: [cssInteropPlugin],
+    presets: [[preset, { jsxRuntime: 'automatic' }]],
+    overrides: [
+      {
+        test: (filename) => typeof filename === 'string' && NATIVEWIND_SCOPE.test(filename),
+        presets: [[preset, { jsxRuntime: 'automatic', jsxImportSource: 'nativewind' }]],
+        plugins: [cssInteropPlugin],
+      },
+    ],
   };
 };

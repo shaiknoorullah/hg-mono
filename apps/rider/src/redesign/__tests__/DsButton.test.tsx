@@ -13,7 +13,8 @@ import * as React from 'react';
 import { StyleSheet } from 'react-native';
 import { registerCSS, render, screen, setupAllComponents, resetData, act } from 'react-native-css-interop/test';
 import { colorScheme } from 'react-native-css-interop';
-import { Button, Text } from '@hg/ui-native/lib';
+import { ThemeProvider } from '@hg/ui-native';
+import { Button, Text, HgColorSchemeBridge } from '@hg/ui-native/lib';
 
 const { compileRiderCss, UI_NATIVE_LIB } = require('../../../jest.nativewind.cjs') as {
   compileRiderCss: (content: string[]) => Promise<{ css: string; options: object }>;
@@ -39,7 +40,7 @@ const flat = (node: { props: { style?: unknown } }) =>
 const hex = (value: unknown) => String(value).toUpperCase();
 
 describe('RNR Button styled by NativeWind from the generated rider tokens', () => {
-  it('primary: brand fill, onBrand label (never white), 44pt target', () => {
+  it('primary: brand fill, onBrand semibold label (never white), 44pt target', () => {
     render(
       <Button>
         <Text>Go online</Text>
@@ -49,6 +50,8 @@ describe('RNR Button styled by NativeWind from the generated rider tokens', () =
     expect(hex(button.backgroundColor)).toBe('#F1521E');
     expect(button.minHeight).toBe(44);
     expect(hex(flat(screen.getByText('Go online')).color)).toBe('#0F241C');
+    // The preset's generated RN face, not the web stack (React Native has no fallback chain).
+    expect(flat(screen.getByText('Go online')).fontFamily).toBe('PlusJakartaSans_600SemiBold');
   });
 
   it('field size is the 56pt rider target', () => {
@@ -81,6 +84,22 @@ describe('RNR Button styled by NativeWind from the generated rider tokens', () =
       );
       expect(hex(flat(screen.getByRole('button')).backgroundColor)).toBe('#171717');
       expect(hex(flat(screen.getByText('Details')).color)).toBe('#F6EFDD');
+    } finally {
+      act(() => colorScheme.set('light'));
+    }
+  });
+
+  it('the scheme follows ThemeProvider through the useHgColorScheme bridge', () => {
+    try {
+      render(
+        <ThemeProvider theme="rider" scheme="dark">
+          <HgColorSchemeBridge />
+          <Button variant="outline">
+            <Text>Details</Text>
+          </Button>
+        </ThemeProvider>,
+      );
+      expect(hex(flat(screen.getByRole('button')).backgroundColor)).toBe('#171717');
     } finally {
       act(() => colorScheme.set('light'));
     }
