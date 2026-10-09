@@ -16,3 +16,7 @@ live preview page yet, so they show the candidate only.
 - KeyValueList.png
 - StatCard.png
 - ProposedCore.png (Skeleton, Spinner, Separator, Tooltip)
+
+Update after merging `main` (the stack landed): KeyValueList.png, StatCard.png and
+ProposedCore.png are re-shot with the states added for the app tracks: dense rows with mono
+values, the warning StatCard tint, and the Skeleton rows and block layouts.
