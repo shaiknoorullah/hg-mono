@@ -8,12 +8,12 @@ build:
 setup: [ "make dev-reset" ]
 reality:
   - theme: light
-  - network: "airplane mode on for the first Send code (setAirplaneMode in the flow; or `adb shell cmd connectivity airplane-mode enable`), then off"
 flows:
   - "tools/e2e/native/rider/redesign/1-sign-in.yaml"
   - "tools/e2e/native/rider/redesign/0-shell.yaml"
 explore: >
-  After the flows pass, each step on the real API (devworld, rider-sim +1 555 010 0151, code
+  The flow itself turns airplane mode on for the first Send code and off again (Maestro
+  setAirplaneMode), so no network step is needed here. After the flows pass, each step on the real API (devworld, rider-sim +1 555 010 0151, code
   000000): (1) Wrong code three times in a row: the third answer is "That code no longer works"
   with "Send a new code" (attempts_remaining 0); send a new code and sign in. (2) Wait out the
   resend countdown and tap "Send the code again" twice: the third send shows "We've sent 3 codes"

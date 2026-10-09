@@ -17,6 +17,14 @@ name: e2e
 # The emulator runs cost the most runner minutes (tools/e2e/README.md, "What it costs"), so they
 # run only nightly and by hand (Run workflow, or the e2e-full label).
 #
+# Two builds of each app (MASTER-PLAN §5.3; tools/e2e/README.md, "Redesign"):
+#   legacy    the redesign flag off, as release 1.0 ships: the existing specs and flows
+#   redesign  VITE_HG_REDESIGN=1 / EXPO_PUBLIC_HG_REDESIGN=1: tools/e2e/web/redesign-<app>.*.spec.ts
+#             and tools/e2e/native/<app>/redesign/*.yaml. A redesign build is made only for an app
+#             that has such specs or flows, so it costs nothing until a track adds one. Redesign
+#             APKs, like every APK, are built only when the emulator runs (e2e-full, nightly, Run
+#             workflow with all).
+#
 # Trust rules:
 # - Read-only token (contents: read; the plan job also reads past runs). No job reads a secret:
 #   the API uses its fake payment client and logs sign-in codes, so nothing sends an SMS or
@@ -74,7 +82,14 @@ jobs:
       actions: read
     outputs:
       mode: ${{ steps.plan.outputs.mode }}
+      apks: ${{ steps.apks.outputs.apks }}
     steps:
+      # Only the flow folders, to see which apps have redesign flows; nothing here is run.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          sparse-checkout: tools/e2e/native
+          persist-credentials: false
+
       - id: plan
         env:
           GH_TOKEN: ${{ github.token }}
@@ -102,6 +117,20 @@ jobs:
           echo "mode=$mode" >>"$GITHUB_OUTPUT"
           echo "Flows this run: **$mode**" >>"$GITHUB_STEP_SUMMARY"
 
+      # The APKs to build: each app's legacy one, and a redesign one (EXPO_PUBLIC_HG_REDESIGN=1)
+      # beside it for an app with flows in tools/e2e/native/<app>/redesign/ (missions/ excepted).
+      - id: apks
+        run: |
+          entries=()
+          for app in customer rider; do
+            entries+=("{\"app\":\"$app\",\"variant\":\"legacy\",\"flag\":\"0\"}")
+            if compgen -G "tools/e2e/native/$app/redesign/*.yaml" >/dev/null; then
+              entries+=("{\"app\":\"$app\",\"variant\":\"redesign\",\"flag\":\"1\"}")
+              echo "Redesign APK: **$app**" >>"$GITHUB_STEP_SUMMARY"
+            fi
+          done
+          echo "apks=[$(IFS=,; echo "${entries[*]}")]" >>"$GITHUB_OUTPUT"
+
   apk:
     needs: plan
     if: needs.plan.outputs.mode == 'all'
@@ -110,9 +139,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        app: [customer, rider]
+        include: ${{ fromJSON(needs.plan.outputs.apks) }}
+    name: apk (${{ matrix.app }}, ${{ matrix.variant }})
     env:
       APP: ${{ matrix.app }}
+      VARIANT: ${{ matrix.variant }}
+      # legacy: off, as release 1.0 ships; redesign: on. app-env.cjs passes it to the build.
+      EXPO_PUBLIC_HG_REDESIGN: ${{ matrix.flag }}
+      # customer.apk, or customer-redesign.apk beside it.
+      APK_NAME: ${{ matrix.app }}${{ matrix.variant == 'redesign' && '-redesign' || '' }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
@@ -124,7 +159,7 @@ jobs:
         with:
           path: out/
           # Bump the leading version when the build steps below change.
-          key: e2e-apk-v1-${{ matrix.app }}-${{ hashFiles(format('apps/{0}/**', matrix.app), 'packages/**', 'scripts/release/app-env.cjs', 'pnpm-lock.yaml', 'tools/e2e/android/**') }}
+          key: e2e-apk-v1-${{ matrix.app }}${{ matrix.variant == 'redesign' && '-redesign' || '' }}-${{ hashFiles(format('apps/{0}/**', matrix.app), 'packages/**', 'scripts/release/app-env.cjs', 'pnpm-lock.yaml', 'tools/e2e/android/**') }}
 
       - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
         if: steps.cache.outputs.cache-hit != 'true'
@@ -183,12 +218,23 @@ jobs:
           badging="$("$tools/aapt2" dump badging "$apk" | sed -n 1p)"
           echo "$badging"
           [[ "$badging" == *"name='com.halalgoes.$APP.dev'"* ]] || fail "expected package com.halalgoes.$APP.dev"
-          unzip -p "$apk" assets/index.android.bundle | grep -aqF "$EXPO_PUBLIC_API_BASE_URL" \
+          unzip -p "$apk" assets/index.android.bundle >"$RUNNER_TEMP/index.android.bundle"
+          grep -aqF "$EXPO_PUBLIC_API_BASE_URL" "$RUNNER_TEMP/index.android.bundle" \
             || fail "the bundle does not contain $EXPO_PUBLIC_API_BASE_URL"
           "$tools/aapt2" dump xmltree --file AndroidManifest.xml "$apk" | grep -q 'usesCleartextTraffic.*=true' \
             || fail "the APK does not allow cleartext HTTP to $EXPO_PUBLIC_API_BASE_URL"
+          # The legacy APK is what release 1.0 ships: the same guard as release-builds.yml. The
+          # redesign one reports whether its bundle carries the flag-on marker.
+          if [ "$VARIANT" = legacy ]; then
+            node scripts/release/redesign-off.cjs bundle "$RUNNER_TEMP/index.android.bundle" \
+              || fail "the legacy APK has the redesign flag on"
+          elif grep -aqF 'hg-redesign:on' "$RUNNER_TEMP/index.android.bundle"; then
+            echo "::notice title=$APP redesign APK::the bundle carries the marker hg-redesign:on"
+          else
+            echo "::notice title=$APP redesign APK::no hg-redesign:on marker in the bundle (the app's flag module does not log it yet)"
+          fi
           mkdir -p out
-          cp "$apk" "out/$APP.apk"
+          cp "$apk" "out/$APK_NAME.apk"
 
       - name: Keep the APK for the next run with the same sources
         if: steps.cache.outputs.cache-hit != 'true'
@@ -199,8 +245,8 @@ jobs:
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: e2e-apk-${{ matrix.app }}
-          path: out/${{ matrix.app }}.apk
+          name: e2e-apk-${{ env.APK_NAME }}
+          path: out/${{ env.APK_NAME }}.apk
           if-no-files-found: error
           compression-level: 0
           retention-days: 3
@@ -217,14 +263,16 @@ jobs:
     timeout-minutes: 60
     env:
       E2E_OUT: ${{ github.workspace }}/e2e-out
-      E2E_MODE: ${{ needs.plan.outputs.mode }}
+      # Which flows: all (emulator and browser) or web. Their API: the real stack, never the mock.
+      E2E_FLOWS: ${{ needs.plan.outputs.mode }}
+      E2E_MODE: real
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
 
       - name: Let the emulator use KVM
-        if: env.E2E_MODE == 'all'
+        if: env.E2E_FLOWS == 'all'
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
             | sudo tee /etc/udev/rules.d/99-kvm4all.rules
@@ -248,7 +296,7 @@ jobs:
           pnpm --filter @hg/e2e exec playwright install --with-deps chromium
 
       - name: Install Maestro
-        if: env.E2E_MODE == 'all'
+        if: env.E2E_FLOWS == 'all'
         run: |
           dir="$RUNNER_TEMP/maestro-dl"
           mkdir -p "$dir"
@@ -259,7 +307,7 @@ jobs:
           echo "$RUNNER_TEMP/maestro/bin" >>"$GITHUB_PATH"
 
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
-        if: env.E2E_MODE == 'all'
+        if: env.E2E_FLOWS == 'all'
         with:
           pattern: e2e-apk-*
           path: ${{ env.E2E_OUT }}/apk
@@ -271,15 +319,17 @@ jobs:
       - name: Seed the world
         run: bash tools/e2e/seed/seed.sh
 
+      # Each app twice when it has redesign specs: legacy on 4173/4174, VITE_HG_REDESIGN=1 on
+      # 4175/4176 (tools/e2e/README.md, "Redesign").
       - name: Build and serve the web apps
         run: bash tools/e2e/web/serve.sh
 
       - name: Run the web flows
-        if: env.E2E_MODE == 'web'
+        if: env.E2E_FLOWS == 'web'
         run: bash tools/e2e/run.sh
 
       - name: Run every flow, on the emulator and in the browser
-        if: env.E2E_MODE == 'all'
+        if: env.E2E_FLOWS == 'all'
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
         with:
           api-level: 34
