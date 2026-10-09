@@ -104,7 +104,6 @@ export function ConsoleLayout({ onSignOut }: ConsoleLayoutProps) {
     ),
     badge: n.key === 'orders' && waiting > 0 ? waiting : undefined,
     badgeNoun: n.key === 'orders' ? 'new' : undefined,
-    onSelect: () => navigate(n.to),
   }));
 
   const layoutApi = useMemo(() => ({ setPagePanelOpen, setConfirm }), []);
@@ -141,7 +140,20 @@ export function ConsoleLayout({ onSignOut }: ConsoleLayoutProps) {
           </a>
         </div>
 
-        <nav aria-label="Main" className="flex shrink-0">
+        <nav
+          aria-label="Main"
+          className="flex shrink-0"
+          onClick={(e) => {
+            // Rail items are real links (middle-click, copy link), but a plain click stays in
+            // the app: a full page load would drop the go-live gesture and stop the order
+            // sound (WP3), and re-read everything.
+            const a = (e.target as HTMLElement).closest('a[href]');
+            const href = a?.getAttribute('href');
+            if (!a || !href?.startsWith('/') || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+            e.preventDefault();
+            navigate(href);
+          }}
+        >
           <SideNav
             groups={[{ key: 'main', items }]}
             activeKey={active}
