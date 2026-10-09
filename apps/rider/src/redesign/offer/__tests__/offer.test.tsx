@@ -196,6 +196,19 @@ describe.each(SCHEMES)('Offer layer (%s)', (scheme) => {
     expect(api.callsTo('getCurrentOffer').length).toBeGreaterThanOrEqual(3);
   });
 
+  it.each(['offer_expired', 'offer_taken_by_another', 'offer_withdrawn', 'offer_rejected'])(
+    '%s read cold (an offer that is already over): nothing renders, nothing is sent',
+    async (scenario) => {
+      await mount(scheme, { getCurrentOffer: scenario });
+      await advance(6_000);
+      expect(screen.queryByText('Delivery offer')).toBeNull();
+      expect(screen.queryByTestId('offer-result-done')).toBeNull();
+      expect(sound).not.toHaveBeenCalled();
+      expect(api.callsTo('acceptOffer')).toHaveLength(0);
+      expect(api.callsTo('rejectOffer')).toHaveLength(0);
+    },
+  );
+
   it('duplicate offer ids are ignored: the dashboard and the poll carry the same offer, once', async () => {
     await mount(scheme, { getRiderDashboard: dashboard({ current_offer: offerPending() }) });
     expect(await screen.findByText('Delivery offer')).toBeTruthy();

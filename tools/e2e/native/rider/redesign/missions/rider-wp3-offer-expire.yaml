@@ -1,0 +1,22 @@
+id: rider-wp3-offer-expire
+app: rider
+avd: hg_rider
+api: devworld
+build:
+  env: { EXPO_PUBLIC_HG_REDESIGN: "1" }
+  note: "Clear the Metro cache when building (EXPO_PUBLIC_* is inlined at transform time; a warm cache from a flag-off build serves the legacy app)."
+setup: [ "make dev-reset", "make dev-scenario s=order-ready" ]
+reality:
+  - theme: dark
+  - font-scale: 2.0
+flows: [ "tools/e2e/native/rider/redesign/3b-offer-expire.yaml" ]
+explore: >
+  Dark mode and font scale 2.0. While the offer is live (before it runs out), scroll the whole
+  sheet and screenshot it top to bottom: Decline, the countdown, the earnings, Pickup, Drop-off
+  area and the footer Accept must all be reachable, nothing clipped or overlapping, Accept never
+  under the system bar. On a second run (`make dev-reset`, `make dev-scenario s=order-ready`)
+  tap Decline: the reasons sheet must scroll to its last row and "Keep the offer" must stay
+  reachable. The countdown turns from the body colour to the warning colour under 25% and to
+  the danger colour under 10% only; "This offer expired" is slate, never red, and stays until
+  "Back to waiting" (wait 30 s on it: no auto-close). Reset font_scale to 1.0 and night mode to
+  no afterwards.

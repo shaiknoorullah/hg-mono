@@ -1,0 +1,37 @@
+id: rider-wp3-offer
+app: rider
+avd: hg_rider
+api: devworld
+build:
+  env: { EXPO_PUBLIC_HG_REDESIGN: "1" }
+  note: "Clear the Metro cache when building (EXPO_PUBLIC_* is inlined at transform time; a warm cache from a flag-off build serves the legacy app)."
+setup: [ "make dev-reset", "make dev-scenario s=order-ready" ]
+reality:
+  - theme: light
+  - font-scale: 1.3
+flows: [ "tools/e2e/native/rider/redesign/3-offer.yaml" ]
+explore: >
+  The flow signs in as rider-sim, sets the location to Bismillah Grill itself (setLocation),
+  goes online and accepts the offer for the ready order. Dispatch keeps searching for about
+  five minutes after the setup, so start the flow promptly. Check on every offer screenshot:
+  the drop-off is an area name only (never a street, never a pin on a house), the full address
+  appears only on "You've got this delivery", the countdown starts near 0:29 and ticks down,
+  Accept is the brand orange with a dark label, and nothing on the offer is red before the
+  last tenth of the time. After the flow passes:
+  (1) Clock skew: `make dev-reset`, `make dev-scenario s=order-ready`, turn off automatic time
+  in Settings and move the clock ten minutes ahead, go online: the offer still shows about 29
+  seconds, not 0:00 and not 10:29. Turn automatic time back on.
+  (2) Connection lost before Accept: on a fresh offer, `adb shell cmd connectivity
+  airplane-mode enable`: within a few seconds the slate alert "No internet connection" shows
+  and Accept stays enabled; tap Accept ("Your accept didn't reach us"), then disable airplane
+  mode: the accept goes again by itself and "You've got this delivery" follows. Screenshot
+  both. In the API log both accept requests carry the same Idempotency-Key.
+  (3) Android Back (`adb shell input keyevent 4`) on the live offer does nothing; on a result
+  ("This offer expired") it goes back to waiting.
+  (4) Lock the screen while waiting (`adb shell input keyevent KEYCODE_SLEEP`), run
+  `make dev-scenario s=order-ready`, wake it and open the app: the offer is on screen once the
+  app is in front. There is no offer push payload (API gap 14), so a notification, if any, is
+  generic.
+  (5) Haptics at 25% and 10% left: a single tick near 0:07 and a double tick near 0:03
+  (`adb logcat | grep -i vibrat`). The offer sound is not built (no audio module yet).
+  Reset font_scale to 1.0 afterwards.
