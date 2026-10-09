@@ -663,27 +663,40 @@ function Rail({
   );
 }
 
+/** The props both restaurant card shapes take (the rail card and the compact list card). */
+interface CardProps {
+  restaurant: RestaurantCard;
+  halal: HalalPresentation;
+  now: number;
+  address: Address | null;
+  onPress: () => void;
+}
+
+/** The text styles and availability lines both card shapes render from. */
+function useCardLines(r: RestaurantCard, now: number, address: Address | null) {
+  const theme = useTheme();
+  const name = useTypeStyle('heading.sm');
+  const small = useTypeStyle('body.sm');
+  const a = r.availability;
+  return {
+    theme,
+    name,
+    secondary: [small, { color: theme.color.text.secondary }],
+    cuisine: cuisineLine(r),
+    a,
+    blocked: unavailableLabel(a, now, address),
+    eta: etaDistance(a),
+  };
+}
+
 function RailCard({
   restaurant: r,
   halal,
   now,
   address,
   onPress,
-}: {
-  restaurant: RestaurantCard;
-  halal: HalalPresentation;
-  now: number;
-  address: Address | null;
-  onPress: () => void;
-}): React.ReactElement {
-  const theme = useTheme();
-  const name = useTypeStyle('heading.sm');
-  const small = useTypeStyle('body.sm');
-  const cuisine = cuisineLine(r);
-  const a = r.availability;
-  const blocked = unavailableLabel(a, now, address);
-  const eta = etaDistance(a);
-  const secondary = [small, { color: theme.color.text.secondary }];
+}: CardProps): React.ReactElement {
+  const { theme, name, secondary, cuisine, a, blocked, eta } = useCardLines(r, now, address);
   return (
     <Card
       variant="interactive"
@@ -736,21 +749,8 @@ function CompactCard({
   now,
   address,
   onPress,
-}: {
-  restaurant: RestaurantCard;
-  halal: HalalPresentation;
-  now: number;
-  address: Address | null;
-  onPress: () => void;
-}): React.ReactElement {
-  const theme = useTheme();
-  const name = useTypeStyle('heading.sm');
-  const small = useTypeStyle('body.sm');
-  const cuisine = cuisineLine(r);
-  const a = r.availability;
-  const blocked = unavailableLabel(a, now, address);
-  const eta = etaDistance(a);
-  const secondary = [small, { color: theme.color.text.secondary }];
+}: CardProps): React.ReactElement {
+  const { theme, name, secondary, cuisine, a, blocked, eta } = useCardLines(r, now, address);
   const testID = `Home-card-${r.id}`;
   return (
     <Card variant="interactive" onPress={onPress} accessibilityLabel={restaurantCardLabel(r, halal, now, address)} testID={testID}>
