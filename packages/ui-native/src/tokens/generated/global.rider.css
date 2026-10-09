@@ -28,6 +28,8 @@
   --hg-fg-on-inverse: #F6EFDD;
   --hg-fg-on-accent: #FFFFFF;
   --hg-fg-link: #0959B8;
+  --hg-fg-link-hover: #07458F;
+  --hg-fg-secondary-field: #4A4E48;
   --hg-border-decorative: #E6E0D4;
   --hg-border-interactive: #8B8578;
   --hg-border-strong: #4A4E48;
@@ -77,6 +79,8 @@
   --hg-fg-on-inverse: #232323;
   --hg-fg-on-accent: #FFFFFF;
   --hg-fg-link: #6FA9F2;
+  --hg-fg-link-hover: #CBDFFC;
+  --hg-fg-secondary-field: #D8D0BF;
   --hg-border-decorative: #33352F;
   --hg-border-interactive: #6E7C77;
   --hg-border-strong: #8B8578;
