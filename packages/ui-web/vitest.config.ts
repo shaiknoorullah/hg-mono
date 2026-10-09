@@ -7,6 +7,8 @@ const here = (path: string): string => fileURLToPath(new URL(path, import.meta.u
 
 export default defineConfig({
   plugins: [react()],
+  // components.json's shadcn aliases (`@hg/ui-web/lib/utils`), without a self-install.
+  resolve: { alias: [{ find: /^@hg\/ui-web\/lib\//, replacement: `${here('./src/lib')}/` }] },
   test: {
     globals: true,
     environment: 'jsdom',
