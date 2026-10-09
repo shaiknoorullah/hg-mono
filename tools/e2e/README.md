@@ -98,8 +98,8 @@ pnpm install
 pnpm --filter @hg/e2e exec playwright install chromium
 bash tools/e2e/stack/up.sh        # the stack, on ports 8080 (API), 5432, 6379, 9000
 bash tools/e2e/seed/seed.sh       # the world, and e2e-out/world.json
-bash tools/e2e/web/serve.sh       # restaurant on :4173, admin on :4174
-E2E_MODE=web bash tools/e2e/run.sh   # or E2E_MODE=all with an emulator attached and the APKs in e2e-out/apk/
+bash tools/e2e/web/serve.sh       # restaurant on :4173, admin on :4174 (and the redesign builds, below)
+E2E_FLOWS=web bash tools/e2e/run.sh  # or E2E_FLOWS=all with an emulator attached and the APKs in e2e-out/apk/
 ```
 
 `e2e-out/world.json` holds the run's password and the admin's TOTP secret; set `E2E_PASSWORD`
@@ -108,8 +108,8 @@ before seeding to choose the password yourself.
 One flow at a time:
 
 ```bash
-pnpm --filter @hg/e2e web --project restaurant --grep @api-order
-pnpm --filter @hg/e2e web --project admin
+pnpm --filter @hg/e2e web --project restaurant-legacy-desktop --grep @api-order
+pnpm --filter @hg/e2e web --project admin-legacy-desktop
 maestro test -e PHONE=+14165550110 tools/e2e/native/customer/1-ask-for-code.yaml
 node tools/e2e/lib/otp.mjs +14165550110       # the code the API just logged for that phone
 node tools/e2e/lib/totp.mjs <secret>          # the admin's code of the moment
@@ -121,6 +121,89 @@ Android's debug key, for x86_64, pointed at `http://10.0.2.2:8080` (the emulator
 its host). They allow plain HTTP for that, which no dev or prod APK does
 ([`android/allow-cleartext.sh`](android/allow-cleartext.sh)). Stop the stack with
 `docker compose --project-name hg-e2e -f deploy/docker-compose.yml --env-file deploy/.env.e2e down`.
+
+## Redesign
+
+The redesigned screens merge to `main` behind a build-time flag, and release 1.0 ships the
+current ones ([MASTER-PLAN §0.2 and §5](https://github.com/shaiknoorullah/hg-mono/issues/660)).
+These flows test both builds of every app.
+
+| Flag | Apps | On | Off |
+|---|---|---|---|
+| `VITE_HG_REDESIGN` | restaurant, admin (Vite) | `"1"` | anything else, or unset |
+| `EXPO_PUBLIC_HG_REDESIGN` | customer, rider (Expo) | `"1"` | anything else, or unset |
+
+Each app reads its flag in its own entry (the app tracks wire that). The flags are **off in every
+release build**: [release-builds.yml](../../.github/workflows/release-builds.yml) pins both to
+`"0"`, [`scripts/release/app-env.cjs`](../../scripts/release/app-env.cjs) refuses a prod build
+with either on (every native build runs it through `app.config.js`), and
+[`scripts/release/redesign-off.cjs`](../../scripts/release/redesign-off.cjs) fails the build,
+before it and again on the built bundle. A flag compiled to a constant leaves no trace in a
+minified bundle, so to make the bundle check positive an app's flag module may log the marker
+`hg-redesign:on` inside `if (REDESIGN)`: it is then in a flag-on bundle only, the legacy e2e APK
+is checked for its absence, and the redesign APK's check reports whether it carries it.
+
+**Where the tests go.** Tracks add only these files; the config, `serve.sh`, `run.sh`, `lib/`
+and `seed/` belong to the harness.
+
+| What | Where | Runs on |
+|---|---|---|
+| Web redesign specs | `web/redesign-<app>.<topic>.spec.ts` here (for example `redesign-admin.orders.spec.ts`) | the `VITE_HG_REDESIGN=1` build, desktop 1440x900 and tablet 1024x768 |
+| Native redesign flows | `native/<app>/redesign/*.yaml` here, in name order | the `EXPO_PUBLIC_HG_REDESIGN=1` APK |
+| Device-lab missions | `native/<app>/redesign/missions/<id>.yaml` here | the device lab only, never as flows |
+
+**Playwright projects** are `<app>-<flag>-<viewport>`: `restaurant-legacy-desktop`,
+`restaurant-legacy-tablet`, `restaurant-redesign-desktop`, `restaurant-redesign-tablet`, and the
+same for `admin`. `--project` takes wildcards (`'*-redesign-*'`). Every project uses `en-CA` and
+`America/Toronto`. Legacy projects run the existing `<app>.spec.ts`; redesign projects run the
+`redesign-<app>.*` files, and pass when there are none. `web/mode.ts` gives a spec its mode
+(`E2E_MODE`), its project (`projectMeta()`: app, flag, viewport) and `mockScenario(page, name)`.
+`stepper` writes the legacy desktop project's screenshots to `screenshots/<app>/` as before, and
+every other project's to `screenshots/<app>/<flag>-<viewport>[-mock]/`.
+
+**Two modes**, from `E2E_MODE`:
+
+| `E2E_MODE` | API | Data | Workers |
+|---|---|---|---|
+| `real` (default) | the compose stack (`stack/up.sh`) on :8080 | the seeded world (`world.json`), `make dev-*` scenarios | 1: one world, one order |
+| `mock` | `pnpm mock` on :4010 (`serve.sh` starts it) | `contracts/fixtures/**` by scenario: `mockScenario(page, 'order_arrived')` sends `X-Mock-Scenario` | 2 |
+
+The legacy specs read the seeded world, so in mock mode they are not collected. `run.sh` drives
+the real stack only; `E2E_FLOWS` (`all` or `web`, formerly `E2E_MODE`) picks its flows.
+
+**In CI** ([e2e.yml](../../.github/workflows/e2e.yml)): the `e2e` label runs the legacy flows,
+then each app's redesign specs against its redesign build, both viewports. The legacy specs stay
+on desktop: they share one world and one order, and a second pass would find it already taken.
+`e2e-full`, the nightly run and Run workflow (`all`) also build a redesign APK beside the legacy
+one, for an app with redesign flows only, and run those flows on it after the legacy ones. An app
+without redesign specs or flows costs nothing and is recorded as skipped. Redesign specs and flows
+run after the legacy cross-app smoke on the same world: Amina's order is still active, so a flow
+that needs a fresh order uses Omar or creates what it needs through `lib/api.mjs`. Each redesign
+flow gets `PHONE` (the app's persona), `RESTAURANT`, `DISH`, `EXPIRED_RESTAURANT`, `LATITUDE`,
+`LONGITUDE`, and `CODE` when the folder has a `1-ask-for-code.yaml` (run first, with the code read
+from the API's log). Each redesign spec runs twice against one world (desktop, then tablet), so it
+must not depend on state the other pass changed.
+
+**Run it locally:**
+
+```bash
+# Mock: no stack, no seed.
+E2E_MODE=mock E2E_REDESIGN=1 bash tools/e2e/web/serve.sh     # mock on :4010; legacy 4173/4174, redesign 4175/4176
+E2E_MODE=mock pnpm --filter @hg/e2e web --project 'restaurant-redesign-*'
+
+# Real: the stack and the world, as above, then
+bash tools/e2e/web/serve.sh                                   # builds a redesign app when it has specs (E2E_REDESIGN=1: always)
+pnpm --filter @hg/e2e web --project 'admin-redesign-*'
+E2E_FLOWS=web bash tools/e2e/run.sh                           # legacy, then redesign
+
+# Native: a redesign APK, then its flows (in the order run.sh gives them)
+EXPO_PUBLIC_HG_REDESIGN=1 node scripts/release/app-env.cjs dev -- pnpm --filter @hg/rider exec expo run:android
+cd tools/e2e/native/rider && maestro test -e PHONE=+14165550161 redesign/1-ask-for-code.yaml
+```
+
+`serve.sh` builds the redesign into `apps/<app>/dist-redesign/`. A laptop whose
+`deploy/.env.e2e` predates the redesign ports needs it deleted once, so `stack/up.sh` writes the
+CORS list with 4175 and 4176.
 
 ## What it costs
 
@@ -136,6 +219,7 @@ the first runs measure them; every job has a timeout:
 | A push to a PR labelled `e2e` (web flows) | plan 1, flows 15 | 16 |
 | A push to a PR labelled `e2e-full` | as a nightly run | 35 to 60 |
 | Run workflow, `flows: web` | plan 1, flows 15 | 16 |
+| Each redesign build, once an app has redesign specs or flows | web: about 1 more per app in `flows`; Android: one more APK build, 15 (1 from the cache), and its flows | +1 to +30 |
 
 A month of nightly runs on a busy `main` is about 1,000 to 1,800 minutes, most of a Free
 allowance. To spend less: run the nightly on fewer days (the `cron` line in the workflow), or
@@ -160,10 +244,10 @@ on macOS runners and are not part of this workflow
 |---|---|
 | [`stack/up.sh`](stack/up.sh) | Boots `deploy/docker-compose.yml` with throwaway secrets, migrates, waits until ready |
 | [`seed/`](seed/) | The world: `seed.sh`, `world.sql`, `world.mjs`, `verify.sql` |
-| [`web/`](web/) | `serve.sh`, the Playwright config and the restaurant and admin tests. `redesign-<app>.*.spec.ts` are the redesign's specs (flag `VITE_HG_REDESIGN` on); `redesign-restaurant.support.ts` signs in for them, against the mock server (`E2E_MODE=mock`, the default) or the real API (`E2E_MODE=real`: it signs in as the devworld `bismillah-grill` owner once per test worker, because sign-in is rate-limited per account). The shared config runs them once it has the redesign projects |
-| [`native/`](native/) | The Maestro flows for the customer and rider apps, and the device-lab missions, routes and result template ([native/README.md](native/README.md)) |
-| [`native/rider/redesign/`](native/rider/redesign/) | The rebuilt rider app's flows (a dev APK built with `EXPO_PUBLIC_HG_REDESIGN=1`) and their `missions/`: what the device lab on the owner's machine runs, with the reality steps (GPS route, network loss, camera, dark mode, font scale) for each. Not part of `run.sh` yet |
-| [`native/customer/redesign/`](native/customer/redesign/) | Flows for the redesigned customer app, built with `EXPO_PUBLIC_HG_REDESIGN=1`, and their device-lab missions (`missions/*.yaml`). They run on the owner's emulator, not in CI ([#656](https://github.com/shaiknoorullah/hg-mono/issues/656)) |
+| [`web/`](web/) | `serve.sh`, the Playwright config (`mode.ts`: mock or real), and the restaurant and admin tests, legacy and redesign. `redesign-<app>.*.spec.ts` are the redesign's specs (flag `VITE_HG_REDESIGN` on), run in the `<app>-redesign-*` projects; `redesign-restaurant.support.ts` signs in for them, against the mock server (`E2E_MODE=mock`) or the real API (`E2E_MODE=real`: it signs in as the devworld `bismillah-grill` owner once per test worker, because sign-in is rate-limited per account) |
+| [`native/`](native/) | The Maestro flows for the customer and rider apps (`<app>/redesign/` for the redesign APK), and the device-lab missions, routes and result template ([native/README.md](native/README.md)) |
+| [`native/rider/redesign/`](native/rider/redesign/) | The rebuilt rider app's flows (a dev APK built with `EXPO_PUBLIC_HG_REDESIGN=1`) and their `missions/`: what the device lab on the owner's machine runs, with the reality steps (GPS route, network loss, camera, dark mode, font scale) for each. `run.sh` runs the flows (never `missions/`) on the redesign APK in e2e-full, nightly and dispatch runs |
+| [`native/customer/redesign/`](native/customer/redesign/) | Flows for the redesigned customer app, built with `EXPO_PUBLIC_HG_REDESIGN=1`, and their device-lab missions (`missions/*.yaml`). The owner's emulator runs the missions ([#656](https://github.com/shaiknoorullah/hg-mono/issues/656)); `run.sh` runs the flows on the redesign APK in e2e-full, nightly and dispatch runs |
 | [`reality/`](reality/) | Allow-listed helpers that put the emulator into a mission's conditions: GPS route, network, theme, text size, permissions, lock ([reality/README.md](reality/README.md)) |
 | [`lib/`](lib/) | The API client, the sign-in code reader, the TOTP generator, the run summary |
 | [`android/allow-cleartext.sh`](android/allow-cleartext.sh) | Lets the emulator's APKs reach the runner over plain HTTP. The release-builds workflow also uses it, for a dev build given an `http://` `api_base_url` ([docs/release/README.md](../../docs/release/README.md#a-build-without-a-tag)). |
