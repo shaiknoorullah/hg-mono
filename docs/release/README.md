@@ -43,6 +43,25 @@ production is up ([#207](https://github.com/shaiknoorullah/hg-mono/issues/207)).
 A prod build cannot point anywhere else: the app config refuses to build a prod app whose bundle
 would talk to any API but production's.
 
+## The redesign stays out
+
+Release 1.0 ships the current screens. The redesign merges behind a build-time flag,
+`VITE_HG_REDESIGN` for the web apps and `EXPO_PUBLIC_HG_REDESIGN` for the Android apps (`"1"` on,
+anything else off), and is tested in the end-to-end runs ([tools/e2e/README.md](../../tools/e2e/README.md#redesign)).
+No build this page describes turns it on:
+
+- the workflow pins both flags to `"0"` for every build, dev and prod;
+- `app-env.cjs` sets both on every build it runs (`"0"` unless a dev build asks for `"1"`), so a
+  `.env` file cannot change them, and refuses a prod build with either at `"1"`; the Android
+  apps' `app.config.js` runs the same check for every native build;
+- [`scripts/release/redesign-off.cjs`](../../scripts/release/redesign-off.cjs) fails the workflow
+  before the build when either flag is not `"0"` or a committed `.env` file turns one on, and
+  again after it, on the APK's JavaScript bundle or the web `dist`, when the flag shows compiled
+  on (the `hg-redesign:on` marker, or an inlined env object with the flag at `"1"`).
+
+EAS profiles (below) do not set the flag, which leaves it off. A shell that exports it as `"1"`
+would turn it on in an EAS build; only one with `APP_ENV=prod` refuses.
+
 ## Versions
 
 Every app has its own [semantic version](https://semver.org): `MAJOR.MINOR.PATCH`, for example
