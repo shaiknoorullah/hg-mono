@@ -63,7 +63,8 @@ dev-reset                                         (make dev-reset)
           as the same local superuser (new orders start open: migrating recreates the
           ordering-pause row switched off)
        3. load the reference seed
-       4. load migrations/devworld/001_personas.sql, then the Toronto catalogue
+       4. load migrations/devworld/001_personas.sql, then the other files there in name
+          order, then the Toronto catalogue
           (internal/devworld/catalogue.go) and its pictures
        5. set one shared password hash. The admin authenticator is enrolled only when
           HG_APP_DATA_KEY is set. The fresh restaurant email stays unverified.
@@ -80,7 +81,7 @@ The reset does not re-run `roles/roles.sql` and does not migrate as `hg_migrator
 
 | Unit | Location | Responsibility | Depends on |
 |---|---|---|---|
-| World SQL | `migrations/devworld/001_personas.sql` | Static personas and their data, fixed UUIDs, idempotent | reference seed |
+| World SQL | `migrations/devworld/001_personas.sql`, then the other `migrations/devworld/*.sql` in name order | Static personas and their data, fixed UUIDs, idempotent | reference seed |
 | `devworld` command | `cmd/devworld/` | `reset` / `seed` / `scenario` / `journey` / `totp` / `list` / `verify` | pgx, auth credential helpers |
 | Scenario client | `internal/devworld/scenario.go` | HTTP calls that sign in as personas and place orders | auth sign-in |
 | Scenario registry | `internal/devworld/scenario.go` | Named scenarios the command accepts | scenario client |
