@@ -1,0 +1,59 @@
+# Customer redesign WP1 (#656), journey J2: a new customer's first run. Built with
+# EXPO_PUBLIC_HG_REDESIGN=1, against devworld right after `make dev-reset`.
+# NEW_PHONE is a reserved dev number (+1 555 010 01NN accepts the test code 000000) that has no
+# account yet, so verifyOtp creates one and answers next_route PROFILE_CAPTURE: Your details, then
+# (no default address) the address step, then "Not now" lands on Home.
+# Needs a reserved phone with no account in the seed (w0-request); 0141 is unused by the personas.
+appId: com.halalgoes.customer.dev
+name: customer redesign, first run (Your details, address step)
+env:
+  NEW_PHONE: "5550100141"
+  CODE: "000000"
+---
+- launchApp:
+    clearState: true
+    permissions:
+      all: allow
+- extendedWaitUntil:
+    visible: "Sign in or create an account"
+    timeout: 90000
+- tapOn:
+    id: "SignIn-phone-field"
+- inputText: ${NEW_PHONE}
+- hideKeyboard
+- tapOn: "Send code"
+- extendedWaitUntil:
+    visible: "Enter the 6-digit code"
+    timeout: 30000
+- tapOn:
+    id: "Code-input-field"
+- inputText: ${CODE}
+- hideKeyboard
+- tapOn: "Verify and continue"
+
+# S3 Your details: no tabs; Save validates on press.
+- extendedWaitUntil:
+    visible: "Tell us what to call you. Only your first name is needed to order."
+    timeout: 30000
+- assertNotVisible: "Account"
+- takeScreenshot: redesign-wp1-10-your-details
+- tapOn: "Save and continue"
+- assertVisible: ".*Enter your first name\\..*"
+- takeScreenshot: redesign-wp1-11-your-details-validation
+- tapOn:
+    id: "Profile-first-field"
+- inputText: "Maryam"
+- hideKeyboard
+- tapOn: "Save and continue"
+
+# S4 address step (no default address).
+- extendedWaitUntil:
+    visible: "Where should we deliver?"
+    timeout: 30000
+- assertVisible: "Add your address"
+- takeScreenshot: redesign-wp1-12-address-step
+- tapOn: "Not now"
+- extendedWaitUntil:
+    visible: "Account"
+    timeout: 30000
+- takeScreenshot: redesign-wp1-13-home-not-now
