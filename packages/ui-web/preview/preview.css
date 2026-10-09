@@ -1,0 +1,61 @@
+/*
+ * The preview's stylesheet: the library as a redesign app loads it (styles.css
+ * then shadcn.css), plus the gallery's own layout. Gallery classes are plain
+ * CSS so the specimen files add nothing to the released apps' Tailwind output.
+ */
+@import '../src/styles/globals.css';
+@import '../src/tokens/shadcn-aliases.css';
+
+body {
+  margin: 0;
+  background: var(--hg-surface-base);
+  color: var(--hg-text-primary);
+  font-family: var(--hg-font-ui);
+}
+
+.hg-preview {
+  display: grid;
+  gap: 32px;
+  padding: 24px;
+}
+
+.hg-preview-component {
+  display: grid;
+  gap: 12px;
+}
+
+.hg-preview-component > h2 {
+  margin: 0;
+  font-size: var(--hg-text-heading-md-size);
+  font-weight: var(--hg-text-heading-md-weight);
+}
+
+.hg-preview-state {
+  display: grid;
+  gap: 6px;
+}
+
+.hg-preview-state > h3 {
+  margin: 0;
+  font-size: var(--hg-text-label-sm-size);
+  font-weight: var(--hg-text-label-sm-weight);
+  color: var(--hg-text-secondary);
+}
+
+/* The screenshotted box: shrink-wrapped, with room for focus rings. */
+.hg-specimen {
+  justify-self: start;
+  padding: 8px;
+}
+
+.hg-specimen-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.hg-specimen-col {
+  display: grid;
+  gap: 12px;
+}
