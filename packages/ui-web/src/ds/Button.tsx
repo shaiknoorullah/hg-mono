@@ -72,6 +72,10 @@ export interface ButtonProps extends ButtonPassThroughProps {
   /** Link mode: renders `<a href>` and announces as a link. */
   href?: string;
   type?: 'button' | 'submit' | 'reset';
+  /** Associates a submit button with a form elsewhere on the page (a DetailPanel footer). */
+  form?: string;
+  /** Submitted with the form when this button submits it. */
+  name?: string;
   /** Only when the visible label is not enough. */
   accessibilityLabel?: string;
   /** `onChrome` when the button sits on the forest chrome. */
@@ -101,6 +105,8 @@ export const Button = forwardRef<HTMLButtonElement & HTMLAnchorElement, ButtonPr
   onPress,
   href,
   type = 'button',
+  form,
+  name,
   accessibilityLabel,
   tone = 'default',
   priceCents,
@@ -216,7 +222,7 @@ export const Button = forwardRef<HTMLButtonElement & HTMLAnchorElement, ButtonPr
   }
 
   return (
-    <LibButton {...shared} type={type}>
+    <LibButton {...shared} type={type} form={form} name={name}>
       {content}
     </LibButton>
   );

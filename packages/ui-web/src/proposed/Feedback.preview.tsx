@@ -26,6 +26,20 @@ export function Skeletons() {
   );
 }
 
+/** The admin layouts (#699): 44px list rows with a status line, and one block. */
+export function SkeletonLayouts() {
+  return (
+    <div className="hg-specimen-row hg-specimen-top">
+      <div style={{ width: 360 }}>
+        <Skeleton variant="rows" count={3} label="Loading orders" />
+      </div>
+      <div style={{ width: 240 }}>
+        <Skeleton variant="block" height={96} />
+      </div>
+    </div>
+  );
+}
+
 /** Spinner sizes, with and without a visible label. */
 export function Spinners() {
   return (

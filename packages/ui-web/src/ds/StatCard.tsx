@@ -9,6 +9,9 @@
  *   `aria-busy`.
  * - `error` replaces the figure with the reason in secondary text and the warning glyph. It is
  *   not red: a stat that failed to load is not a danger.
+ * - `tone="warning"` draws the card on the warning tint for a figure that needs attention (a
+ *   residual the server reports). It is a tint with a border, never a solid fill, and the
+ *   `helper` (or `hint`) must say why: colour is never the only signal.
  * - A group with a name (`role="group"`, labelled by the label), so the label is read with
  *   its figure.
  */
@@ -33,6 +36,10 @@ export interface StatCardProps {
   priceSize?: PriceSize;
   /** Context under the figure ("This week", "Before fees"). */
   helper?: ReactNode;
+  /** Alias of `helper` (the admin canvases' name). `helper` wins when both are given. */
+  hint?: ReactNode;
+  /** neutral (default) or warning: the warning tint, never a solid. */
+  tone?: 'neutral' | 'warning';
   /** Optional Solar glyph beside the label. */
   icon?: DsIconName;
   /** Shown when neither `value` nor `cents` is given. Default "Not reported". */
@@ -54,7 +61,9 @@ export function StatCard({
   value,
   cents,
   priceSize = 'display-lg',
-  helper,
+  helper: helperProp,
+  hint,
+  tone = 'neutral',
   icon,
   emptyValue = 'Not reported',
   loading = false,
@@ -65,6 +74,7 @@ export function StatCard({
   className,
 }: StatCardProps) {
   const labelId = useId();
+  const helper = helperProp ?? hint;
   const hasFigure = cents !== undefined || (value !== undefined && value !== null && value !== '');
 
   let figure: ReactNode;
@@ -86,11 +96,16 @@ export function StatCard({
       aria-labelledby={labelId}
       aria-busy={loading || undefined}
       data-testid={testId}
+      data-tone={tone}
       data-state={loading ? 'loading' : error ? 'error' : hasFigure ? 'ready' : 'empty'}
       className={cn('min-w-0', className)}
       style={style}
     >
-      <Card variant={variant} testId={`${testId}-card`}>
+      <Card
+        variant={variant}
+        testId={`${testId}-card`}
+        className={tone === 'warning' ? 'border border-feedback-warning-border bg-feedback-warning-tint' : undefined}
+      >
         <div className="flex flex-col gap-1">
           <span id={labelId} className="inline-flex items-center gap-1.5 text-label-md text-fg-secondary">
             {icon ? <Icon name={icon} size="sm" testId="StatCard-icon" /> : null}

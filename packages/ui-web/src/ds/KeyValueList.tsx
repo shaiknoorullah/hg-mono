@@ -13,6 +13,8 @@
  * - `loading` keeps the labels and puts a skeleton where each value goes; the list is
  *   `aria-busy`.
  * - An empty `items` array renders `empty` (default "Nothing to show yet.").
+ * - `dense` tightens the rows for side panes (admin SplitPanes); `mono` on an item sets its
+ *   value in the mono face (order codes, certificate numbers).
  */
 
 import type { CSSProperties, ReactNode } from 'react';
@@ -29,6 +31,8 @@ export interface KeyValueItem {
   value?: ReactNode;
   /** Secondary line under the value. */
   helper?: ReactNode;
+  /** Value in the mono face (ids, certificate numbers). Not applied to `emptyValue`. */
+  mono?: boolean;
 }
 
 /** Props of the approved `KeyValueList`. */
@@ -42,6 +46,8 @@ export interface KeyValueListProps {
   emptyValue?: ReactNode;
   /** Rendered when `items` is empty. */
   empty?: ReactNode;
+  /** Tighter rows and small text, for side panes. */
+  dense?: boolean;
   /** Labels stay; values become skeletons; the list is aria-busy. */
   loading?: boolean;
   /** Names the list when the heading above it does not. */
@@ -60,6 +66,7 @@ export function KeyValueList({
   emptyValue = 'Not on file',
   empty = 'Nothing to show yet.',
   loading = false,
+  dense = false,
   accessibilityLabel,
   testId = 'KeyValueList',
   style,
@@ -77,11 +84,13 @@ export function KeyValueList({
     <dl
       data-testid={testId}
       data-layout={layout}
+      data-density={dense ? 'dense' : undefined}
       aria-busy={loading || undefined}
       aria-label={accessibilityLabel}
       className={cn(
-        'm-0 grid text-body-md text-fg-primary',
-        layout === 'columns' ? 'gap-x-3 gap-y-2' : 'grid-cols-1 gap-y-1',
+        'm-0 grid text-fg-primary',
+        dense ? 'text-body-sm' : 'text-body-md',
+        layout === 'columns' ? (dense ? 'gap-x-3 gap-y-1' : 'gap-x-3 gap-y-2') : 'grid-cols-1 gap-y-1',
         className,
       )}
       style={layout === 'columns' ? { gridTemplateColumns: `${labelWidth} minmax(0, 1fr)`, ...style } : style}
@@ -90,12 +99,22 @@ export function KeyValueList({
         const missing = item.value === null || item.value === undefined || item.value === '';
         return (
           <div key={item.key ?? (typeof item.label === 'string' ? item.label : index)} className="contents">
-            <dt className={cn('text-label-md text-fg-secondary', layout === 'columns' ? 'pt-1' : 'pt-2')}>{item.label}</dt>
+            <dt
+              className={cn(
+                dense ? 'text-label-sm' : 'text-label-md',
+                'text-fg-secondary',
+                layout === 'columns' ? (dense ? 'pt-0.5' : 'pt-1') : 'pt-2',
+              )}
+            >
+              {item.label}
+            </dt>
             <dd className="m-0 flex min-w-0 flex-col items-start gap-1 break-words">
               {loading ? (
                 <SkeletonBlock className="mt-1 h-4 w-3/5" />
               ) : missing ? (
                 <span className="text-fg-secondary">{emptyValue}</span>
+              ) : item.mono ? (
+                <span className="font-mono">{item.value}</span>
               ) : (
                 item.value
               )}

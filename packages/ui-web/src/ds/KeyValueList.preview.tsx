@@ -43,3 +43,21 @@ export function States() {
     </div>
   );
 }
+
+/** Dense rows with mono identifiers, for side panes (#699). */
+export function Dense() {
+  return (
+    <div className="hg-specimen-pane">
+      <KeyValueList
+        dense
+        labelWidth="9rem"
+        items={[
+          { label: 'Legal name', value: 'Zaytoun Grill Inc.' },
+          { label: 'Certificate', value: 'HMA-2291-0047', mono: true },
+          { label: 'Order', value: 'HG-7Q4K', mono: true },
+          { label: 'Premises', value: null },
+        ]}
+      />
+    </div>
+  );
+}

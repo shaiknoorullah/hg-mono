@@ -29,3 +29,14 @@ export function States() {
     </div>
   );
 }
+
+/** The admin payment tiles, with the warning tint for a residual (#699). */
+export function Payment() {
+  return (
+    <div className="hg-specimen-cards">
+      <StatCard label="Authorised" cents={4187} priceSize="lg" variant="filled" />
+      <StatCard label="Captured" cents={4187} priceSize="lg" variant="filled" />
+      <StatCard label="Residual" cents={12} priceSize="lg" tone="warning" hint="The ledger does not balance" />
+    </div>
+  );
+}

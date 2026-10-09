@@ -36,6 +36,8 @@ export interface BadgeProps {
   /** data-testid; defaults to the component name. */
   testId?: string;
   style?: CSSProperties;
+  /** Layout only (margin, alignment); tone and size come from the props above. */
+  className?: string;
 }
 
 const VARIANTS: readonly BadgeVariant[] = ['neutral', 'info', 'warning', 'danger', 'brand', 'outline'];
@@ -56,6 +58,7 @@ export function Badge({
   max,
   testId = 'Badge',
   style,
+  className,
 }: BadgeProps) {
   // An unknown tone (a `success` smuggled past the types) falls back to neutral, never green.
   const tone: BadgeVariant = VARIANTS.includes(variant) ? variant : 'neutral';
@@ -77,6 +80,7 @@ export function Badge({
       appearance={appearance}
       size={size}
       style={style}
+      className={className}
     >
       {appearance === 'dot' ? <span aria-hidden="true" className={cn(badgeDotVariants({ variant: tone, size }))} /> : null}
       {icon ? <Icon name={icon} size={ICON_PX[size]} testId="Badge-icon" /> : null}

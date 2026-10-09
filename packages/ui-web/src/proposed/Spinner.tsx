@@ -3,7 +3,9 @@
  * spinners for anything with a known shape.
  *
  * Freestanding, it is a `role="status"` region named by `label`. `decorative` hides it when a
- * parent control already carries `aria-busy` (Button, IconButton). Under reduced motion the ring
+ * parent control already carries `aria-busy` (Button, IconButton). With no `label` it is
+ * decorative too (the admin canvases' rule, #699), never an unnamed status; passing
+ * `decorative={false}` without a label still reports `SPINNER_UNLABELLED`. Under reduced motion the ring
  * stops and a static bar shows instead.
  *
  * Keeps the pre-rebuild props; adds `testId` and `style`.
@@ -21,7 +23,7 @@ const SIZE = { sm: 16, md: 24, lg: 40 } as const;
 export interface SpinnerProps {
   /** sm 16 · md 24 · lg 40. */
   size?: keyof typeof SIZE;
-  /** Announced by the status region. Required unless `decorative`. */
+  /** Announced by the status region. Omit for a decorative spinner. */
   label?: string;
   /** True when a parent control already carries the busy semantics. */
   decorative?: boolean;
@@ -39,13 +41,14 @@ export interface SpinnerProps {
 export function Spinner({
   size = 'md',
   label,
-  decorative = false,
+  decorative: decorativeProp,
   inline = false,
   testId,
   'data-testid': legacyTestId,
   style,
   className,
 }: SpinnerProps) {
+  const decorative = decorativeProp ?? !label;
   if (!decorative && !label) reportDsClientError('SPINNER_UNLABELLED', { component: 'Spinner' });
   return (
     <span

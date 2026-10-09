@@ -107,6 +107,7 @@ const REGISTRY: Record<string, StateCase[]> = {
     { state: 'default', el: <KeyValueList items={[{ label: 'Restaurant', value: 'Zaytoun Grill' }]} /> },
     { state: 'loading', el: <KeyValueList loading items={[{ label: 'Restaurant' }]} /> },
     { state: 'empty', el: <KeyValueList items={[]} /> },
+    { state: 'dense', el: <KeyValueList dense items={[{ label: 'Certificate', value: 'HMA-2291', mono: true }]} /> },
   ],
   StatCard: [
     { state: 'value', el: <StatCard label="Trips" value="14" />, role: 'group', name: 'Trips' },
@@ -114,11 +115,18 @@ const REGISTRY: Record<string, StateCase[]> = {
     { state: 'loading', el: <StatCard label="Trips" loading />, role: 'group', name: 'Trips', busy: true },
     { state: 'error', el: <StatCard label="Trips" error="Couldn't load" />, role: 'group', name: 'Trips' },
     { state: 'empty', el: <StatCard label="Trips" />, role: 'group', name: 'Trips' },
+    { state: 'warning', el: <StatCard label="Residual" cents={12} tone="warning" hint="Ledger does not balance" />, role: 'group', name: 'Residual' },
   ],
-  Skeleton: (['text', 'rect', 'circle', 'card'] as const).map((shape) => ({ state: shape, el: <Skeleton shape={shape} /> })),
+  Skeleton: [
+    ...(['text', 'rect', 'circle', 'card'] as const).map((shape) => ({ state: shape, el: <Skeleton shape={shape} /> })),
+    ...(['lines', 'rows', 'block'] as const).map((variant) => ({ state: `variant ${variant}`, el: <Skeleton variant={variant} /> })),
+    // A status takes no name from its content; the words are its announced text (checked below).
+    { state: 'labelled', el: <Skeleton variant="rows" label="Loading orders" />, role: 'status' },
+  ],
   Spinner: [
     { state: 'status', el: <Spinner label="Loading orders" />, role: 'status', name: 'Loading orders' },
     { state: 'decorative', el: <Spinner decorative /> },
+    { state: 'no label', el: <Spinner size="sm" /> },
   ],
   Separator: [
     { state: 'decorative', el: <Separator /> },
@@ -127,7 +135,7 @@ const REGISTRY: Record<string, StateCase[]> = {
   Tooltip: [
     {
       state: 'trigger',
-      el: <Tooltip open content="14 March 2027, 2:41 pm"><button type="button">14 Mar</button></Tooltip>,
+      el: <Tooltip open content="14 March 2027, 2:41 pm"><Button variant="ghost">14 Mar</Button></Tooltip>,
       role: 'tooltip',
       name: '14 March 2027, 2:41 pm',
     },
@@ -193,6 +201,52 @@ describe('Button', () => {
     expect(onPress).not.toHaveBeenCalled();
     expect(screen.getByRole('button').children.length).toBe(idle);
     expect(screen.getByRole('button')).not.toHaveAttribute('aria-disabled');
+  });
+});
+
+describe('App-track additions (#675, #699)', () => {
+  it('Spinner without a label is decorative, never an unnamed status, and reports nothing', () => {
+    const report = vi.fn();
+    setClientErrorReporter(report);
+    render(<Spinner size="sm" />);
+    expect(screen.queryByRole('status')).toBeNull();
+    expect(screen.getByTestId('Spinner')).toHaveAttribute('aria-hidden', 'true');
+    expect(report).not.toHaveBeenCalled();
+  });
+
+  it('Skeleton label is one status line outside the hidden shapes', () => {
+    render(<Skeleton variant="rows" label="Loading orders" />);
+    const status = screen.getByRole('status');
+    expect(status).toHaveTextContent('Loading orders');
+    expect(status.closest('[aria-hidden="true"]')).toBeNull();
+  });
+
+  it('Skeleton rows draw count rows of 44px, hidden from assistive tech', () => {
+    render(<Skeleton variant="rows" count={4} />);
+    const el = screen.getByTestId('Skeleton');
+    expect(el).toHaveAttribute('aria-hidden', 'true');
+    expect(el.querySelectorAll('.h-11')).toHaveLength(4);
+  });
+
+  it('StatCard warning is a tint with a border, never a solid', () => {
+    render(<StatCard label="Residual" value="1" tone="warning" hint="Ledger does not balance" />);
+    const card = screen.getByTestId('StatCard-card');
+    expect(card.className).toContain('bg-feedback-warning-tint');
+    expect(card.className).not.toMatch(/warning-solid/);
+    expect(screen.getByText('Ledger does not balance')).toBeInTheDocument();
+  });
+
+  it('KeyValueList mono applies to a value, never to the missing-value words', () => {
+    render(<KeyValueList items={[{ label: 'Code', value: 'A1B2', mono: true }, { label: 'Cert', value: null, mono: true }]} />);
+    expect(screen.getByText('A1B2')).toHaveClass('font-mono');
+    expect(screen.getByText('Not on file')).not.toHaveClass('font-mono');
+  });
+
+  it('Button form and name reach the native button', () => {
+    render(<Button type="submit" form="decision" name="intent">Approve</Button>);
+    const button = screen.getByRole('button', { name: 'Approve' });
+    expect(button).toHaveAttribute('form', 'decision');
+    expect(button).toHaveAttribute('name', 'intent');
   });
 });
 
