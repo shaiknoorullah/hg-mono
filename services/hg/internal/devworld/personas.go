@@ -20,7 +20,7 @@ const AdminEmail = "admin-seed@seed.hg"
 const BismillahRestaurantID = "b0000000-0000-4000-8000-000000000208"
 
 // Identity is one stable persona. The same account id, email and phone are
-// literals in migrations/devworld/001_personas.sql.
+// literals in the SQL under migrations/devworld.
 type Identity struct {
 	Slug         string
 	AccountID    string
@@ -47,6 +47,10 @@ var World = []Identity{
 	{Slug: "payout", AccountID: "a0000000-0000-4000-8000-000000000206", RestaurantID: "b0000000-0000-4000-8000-000000000206", Email: "payout@seed.hg"},
 	{Slug: "menu", AccountID: "a0000000-0000-4000-8000-000000000207", RestaurantID: "b0000000-0000-4000-8000-000000000207", Email: "menu@seed.hg"},
 	{Slug: "bismillah-grill", AccountID: "a0000000-0000-4000-8000-000000000208", RestaurantID: BismillahRestaurantID, Email: "bismillah-grill@seed.hg"},
+	{Slug: "bismillah-manager", AccountID: "a0000000-0000-4000-8000-000000000281", Email: "bismillah-manager@seed.hg"},
+	{Slug: "bismillah-staff", AccountID: "a0000000-0000-4000-8000-000000000282", Email: "bismillah-staff@seed.hg"},
+	{Slug: "bismillah-invited", AccountID: "a0000000-0000-4000-8000-000000000283", Email: "bismillah-invited@seed.hg"},
+	{Slug: "bismillah-suspended", AccountID: "a0000000-0000-4000-8000-000000000284", Email: "bismillah-suspended@seed.hg"},
 	{Slug: "expiring-halal", AccountID: "a0000000-0000-4000-8000-000000000209", RestaurantID: "b0000000-0000-4000-8000-000000000209", Email: "expiring-halal@seed.hg"},
 	{Slug: "expired-halal", AccountID: "a0000000-0000-4000-8000-000000000210", RestaurantID: "b0000000-0000-4000-8000-000000000210", Email: "expired-halal@seed.hg"},
 	{Slug: "paused", AccountID: "a0000000-0000-4000-8000-000000000211", RestaurantID: "b0000000-0000-4000-8000-000000000211", Email: "paused@seed.hg"},

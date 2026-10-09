@@ -5,7 +5,7 @@ covers:
   - services/hg/migrations/devworld/**
   - apps/restaurant/.claude/skills/**
   - docs/playbooks/**
-reviewed: 2026-10-05
+reviewed: 2026-10-09
 ---
 
 # Dev world — seeded personas, live scenarios, journey simulation, playbooks
@@ -63,7 +63,8 @@ dev-reset                                         (make dev-reset)
           as the same local superuser (new orders start open: migrating recreates the
           ordering-pause row switched off)
        3. load the reference seed
-       4. load migrations/devworld/001_personas.sql, then the Toronto catalogue
+       4. load migrations/devworld/001_personas.sql, then the other files there in name
+          order, then the Toronto catalogue
           (internal/devworld/catalogue.go) and its pictures
        5. set one shared password hash. The admin authenticator is enrolled only when
           HG_APP_DATA_KEY is set. The fresh restaurant email stays unverified.
@@ -80,7 +81,7 @@ The reset does not re-run `roles/roles.sql` and does not migrate as `hg_migrator
 
 | Unit | Location | Responsibility | Depends on |
 |---|---|---|---|
-| World SQL | `migrations/devworld/001_personas.sql` | Static personas and their data, fixed UUIDs, idempotent | reference seed |
+| World SQL | `migrations/devworld/001_personas.sql`, then the other `migrations/devworld/*.sql` in name order | Static personas and their data, fixed UUIDs, idempotent | reference seed |
 | `devworld` command | `cmd/devworld/` | `reset` / `seed` / `scenario` / `journey` / `totp` / `list` / `verify` | pgx, auth credential helpers |
 | Scenario client | `internal/devworld/scenario.go` | HTTP calls that sign in as personas and place orders | auth sign-in |
 | Scenario registry | `internal/devworld/scenario.go` | Named scenarios the command accepts | scenario client |
@@ -123,7 +124,7 @@ Reset also seeds 14 live, certified restaurants within 8 km of both the Danforth
 
 - **Menu** — 3 categories; one item per review state the portal shows (APPROVED, PENDING_REVIEW, REJECTED with `UNSUBSTANTIATED_HALAL_CLAIM`, DRAFT); one item per availability state (AVAILABLE, OUT_OF_STOCK, HIDDEN); at least one item with variants and add-ons so order lines carry them.
 - **Hours** — weekday standard, Friday/Saturday overnight (11:00–01:00), one closed-holiday override and one late-opening override, dated relative to now.
-- **Staff** — `bismillah-manager@seed.hg` (RESTAURANT_MANAGER, ACTIVE), `bismillah-staff@seed.hg` (RESTAURANT_STAFF, ACTIVE), one INVITED, one SUSPENDED. Manager and staff can sign in to test the role matrix.
+- **Staff** — `bismillah-manager@seed.hg` (RESTAURANT_MANAGER, ACTIVE), `bismillah-staff@seed.hg` (RESTAURANT_STAFF, ACTIVE), `bismillah-invited@seed.hg` (INVITED, no password yet), `bismillah-suspended@seed.hg` (SUSPENDED, its account refused at sign-in). Manager and staff can sign in to test the role matrix. *Seeded by reset, with the two overrides below, and checked by `verify` ([#683](https://github.com/shaiknoorullah/hg-mono/issues/683)): opening late at 14:00 three days ahead and closed all day seven days ahead, counted from today in Toronto.*
 - **Payouts** — one per state (DRAFT, READY, TRANSFERRING, TRANSFERRED, PAID, FAILED, HELD). See the payout-seeds risk in [risks to settle in planning](#12-risks-to-settle-in-planning).
 - **Order history** — produced by bootstrap scenarios, not SQL (see [bootstrap](#62-bootstrap-not-run-by-reset)).
 
