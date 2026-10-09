@@ -204,6 +204,7 @@ export function ItemSheet({
     ? failureCopy(failure, {
         itemName: item.name,
         restaurantName: restaurant.name,
+        availabilityState: restaurant.availability.state,
         variantName:
           failure.kind === 'variantUnavailable'
             ? (groups.flatMap((g) => g.variants).find((v) => soldOutVariants.has(v.id))?.name ?? null)
@@ -511,7 +512,7 @@ function Footer({
       action: { label: 'Find an open restaurant', icon: 'search', onPress: onFindOpen },
     };
   } else if (a.state === 'PAUSED') {
-    gate = { text: `${restaurant.name} has paused new orders. Check back later.` };
+    gate = { text: 'Temporarily not accepting orders, please try again later.' };
   } else if (a.state === 'OUT_OF_RANGE') {
     gate = {
       text: `${restaurant.name} doesn't deliver to your address. Change your address to order.`,

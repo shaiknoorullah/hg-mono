@@ -76,7 +76,7 @@ export function unavailableLabel(a: Restaurant['availability']): string | null {
       return opens ? `Closed · ${opens}` : 'Closed now';
     }
     case 'PAUSED':
-      return 'Not taking orders right now';
+      return 'Temporarily not accepting orders';
     case 'OUT_OF_RANGE':
       return 'Too far to deliver';
     default:

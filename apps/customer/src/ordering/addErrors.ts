@@ -70,11 +70,26 @@ export interface FailureCopy {
 /** The inline alert for every failure except the different-restaurant decision. */
 export function failureCopy(
   f: Exclude<AddFailure, { kind: 'differentRestaurant' }>,
-  ctx: { itemName: string; restaurantName: string; variantName?: string | null; addonName?: string | null },
+  ctx: {
+    itemName: string;
+    restaurantName: string;
+    /** The restaurant's availability state as last read; PAUSED changes the closed copy. */
+    availabilityState?: string | null;
+    variantName?: string | null;
+    addonName?: string | null;
+  },
 ): FailureCopy {
   const unchanged = "Nothing was added and your cart hasn't changed.";
   switch (f.kind) {
     case 'restaurantClosed':
+      // Paused, accepting-orders switch off or order screen offline: the card reads PAUSED.
+      if (ctx.availabilityState === 'PAUSED') {
+        return {
+          icon: 'clock',
+          title: `${ctx.restaurantName} is temporarily not accepting orders`,
+          body: `Please try again later. ${unchanged}`,
+        };
+      }
       return {
         icon: 'clock',
         title: `${ctx.restaurantName} just closed`,

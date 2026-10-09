@@ -507,8 +507,8 @@ function AvailabilityNotice({
         <InlineAlert
           role="status"
           icon="clock"
-          title="Not taking orders right now"
-          body="The kitchen has paused new orders. You can read the menu and check back later."
+          title="Temporarily not accepting orders, please try again later."
+          body="You can still read the menu."
           action={{ label: 'Find an open restaurant', icon: 'search', onPress: onFindOpen }}
           testID="Restaurant-notice"
         />

@@ -3,7 +3,7 @@ covers:
   - apps/customer/**
   - services/hg/internal/account/**
   - services/hg/internal/addresses/**
-reviewed: 2026-10-05
+reviewed: 2026-10-09
 ---
 
 # HalalGoes — CUSTOMER Domain Specification
@@ -422,6 +422,7 @@ These exist so that individual features do not have to re-litigate them. Anythin
   4. `CLOSED_HOURS` cards show "Opens {time}" using `opens_at`; the restaurant remains browsable and its menu readable.
   5. Minimum order is compared against `item_total` **before** fees and discounts. Below minimum, checkout returns `409 BELOW_MINIMUM_ORDER` with `details.shortfall_cents`, and the cart screen shows "Add ${x} more to order".
   6. `NO_ADDRESS` never blocks browsing; it blocks add-to-cart with a prompt to add an address.
+  7. A `PAUSED` restaurant, whether paused, with its accepting-orders switch off or with its order screen not checking in for more than 5 minutes, reads "Temporarily not accepting orders" on its card and "Temporarily not accepting orders, please try again later." on its menu and dish sheet, and an add refused there says "{name} is temporarily not accepting orders"; one outside its hours or on a closed day stays "Closed" (owner decision 2026-10-09).
 - **Acceptance criteria**:
   1. Given a restaurant with hours 17:00–02:00 America/Toronto and a request at 01:30 local, then `state='OPEN'`.
   2. Given `is_accepting_orders=false` during opening hours, when the detail page renders, then the state is `PAUSED`, add controls are disabled, and the menu is still readable.
