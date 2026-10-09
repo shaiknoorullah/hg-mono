@@ -2,21 +2,35 @@
  * D1 Home and D2 the address switcher (DO/Main, DO/Home-*, DO/Halal-edge-states,
  * AC/AddressSwitcher-*).
  *
- * Top to bottom: the AppBar ("Deliver to" + the address, Change in the actions slot); the search
- * entry; with an order under way, the order strip; the How we check link; with no address, the
- * address prompt; offline, the as-of banner; the two rows ("Open now, closest first", "Quickest
+ * Top to bottom: the AppBar ("Deliver to" + the address, and Change); with no address, the address
+ * prompt; the search entry; with an order under way, the order strip; the How we check link;
+ * offline, the as-of banner; the two rows ("Open now, closest first", "Quickest
  * delivery"); every restaurant as a compact card; the View cart bar above the bottom navigation.
  *
  * The card and row composites (RestaurantCardCompact, RestaurantRail) are proposed and not in the
  * design system yet, so they are composed here from Card, HalalBadge, Price, Badge and Icon and
  * not exported (owner: page sections may be composed in route files).
  *
+ * The bar's title block and its "Change" text control are composed here (HomeBarTitle) because the
+ * DS AppBarAction only takes an icon (ds-request). Focus goes to the address title (the page h1) on
+ * arrival, to the selected address when the switcher opens, and back to Change when it closes.
+ *
  * Halal: every card asks `presentHalal` (the only halal display decision) with the feed's as-of
  * time, so offline a card older than 15 minutes loses its badge and says why. Nothing on Home
  * makes a blanket halal claim; the How we check link replaces it.
  */
 import * as React from 'react';
-import { AccessibilityInfo, Image, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  AccessibilityInfo,
+  Image,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  findNodeHandle,
+} from 'react-native';
 import { cents, unwrap, type Schema } from '@hg/api-client';
 
 import {
@@ -64,7 +78,7 @@ import {
   type Address,
   type RestaurantCard,
 } from './format';
-import { cachedFeed, loadAddresses, loadHomeFeed, loadRestaurants, rememberFeed, type HomeFeed } from './homeData';
+import { cachedFeed, loadAddresses, loadRestaurants, rememberFeed, type HomeFeed } from './homeData';
 
 type Cart = Schema['Cart'];
 
@@ -75,6 +89,12 @@ type HomeState =
   | { kind: 'ready'; feed: HomeFeed; asOf: number; refreshing: boolean };
 
 export const RAIL_CARD_WIDTH = 240;
+
+/** Moves screen-reader focus to a mounted element (no-op when it is not mounted). */
+function focusOn(ref: React.RefObject<View | Text | null>): void {
+  const node = ref.current ? findNodeHandle(ref.current) : null;
+  if (node) AccessibilityInfo.setAccessibilityFocus(node);
+}
 
 /* ===================================================================== screen */
 
@@ -92,26 +112,44 @@ export function HomeScreen(): React.ReactElement {
   const [sheetOpen, setSheetOpen] = React.useState(false);
   const [toast, setToast] = React.useState<Address | null>(null);
   const live = React.useRef(true);
-  React.useEffect(
-    () => () => {
+  const titleRef = React.useRef<Text>(null);
+  const changeRef = React.useRef<View>(null);
+  /**
+   * Only the newest load or switch may write Home's state (and the cache): a refresh that started
+   * before a switch must not land the old address's feed over the new one. `inflight` notes a load
+   * a switch interrupted, so a failed switch can restart it.
+   */
+  const generation = React.useRef(0);
+  const inflight = React.useRef(false);
+  React.useEffect(() => {
+    // The address title is the page's h1: focus lands there on arrival (the error takes it on failure).
+    focusOn(titleRef);
+    return () => {
       live.current = false;
-    },
-    [],
-  );
+    };
+  }, []);
 
   const load = React.useCallback(async () => {
+    const mine = ++generation.current;
+    const chosen = getChosenAddressId();
+    // Superseded by a newer load or switch, or a switch landed meanwhile: this answer is stale.
+    const current = () => live.current && mine === generation.current && getChosenAddressId() === chosen;
+    inflight.current = true;
     setState((prev) => (prev.kind === 'ready' ? { ...prev, refreshing: true } : { kind: 'loading', address: undefined }));
     try {
-      const { addresses, address } = await loadAddresses(getChosenAddressId());
-      if (!live.current) return;
+      const { addresses, address } = await loadAddresses(chosen);
+      if (!current()) return;
       setState((prev) => (prev.kind === 'ready' ? prev : { kind: 'loading', address }));
       const restaurants = await loadRestaurants(address);
+      if (!current()) return;
+      inflight.current = false;
       const feed: HomeFeed = { addresses, address, ...restaurants };
       const asOf = getNow();
       rememberFeed(feed, asOf);
-      if (live.current) setState({ kind: 'ready', feed, asOf, refreshing: false });
+      setState({ kind: 'ready', feed, asOf, refreshing: false });
     } catch (e) {
-      if (!live.current) return;
+      if (!current()) return;
+      inflight.current = false;
       const cached = cachedFeed();
       // Offline with something to show: keep showing it, as of when it was fetched.
       if (cached && !getConnectivity().online) {
@@ -137,6 +175,11 @@ export function HomeScreen(): React.ReactElement {
   const halalCtx = state.kind === 'ready' ? { online, asOf: state.asOf, now } : { online, now };
 
   const openSwitcher = () => setSheetOpen(true);
+  /** Closing the switcher returns focus to Change (not when it closes to open the address form). */
+  const closeSwitcher = () => {
+    setSheetOpen(false);
+    focusOn(changeRef);
+  };
   const addAddress = () => {
     setSheetOpen(false);
     nav.push({ name: 'addressForm', addressId: null });
@@ -145,48 +188,57 @@ export function HomeScreen(): React.ReactElement {
 
   /** Picks an address for this session only; never `setDefaultAddress`. */
   const switchTo = async (to: Address): Promise<boolean> => {
+    // A switch supersedes any load in flight; that load's answer is for the old address.
+    const mine = ++generation.current;
+    const interrupted = inflight.current;
     try {
       const restaurants = await loadRestaurants(to);
+      if (!live.current) return true;
+      inflight.current = false;
       chooseAddress(to.id);
       const prevAddresses = state.kind === 'ready' ? state.feed.addresses : [];
       const addresses = prevAddresses.some((a) => a.id === to.id) ? prevAddresses : [...prevAddresses, to];
       const feed: HomeFeed = { addresses, address: to, ...restaurants };
       const asOf = getNow();
       rememberFeed(feed, asOf);
-      if (live.current) {
-        setState({ kind: 'ready', feed, asOf, refreshing: false });
-        setSheetOpen(false);
-        setToast(to);
-      }
+      setState({ kind: 'ready', feed, asOf, refreshing: false });
+      setToast(to);
+      closeSwitcher();
       return true;
     } catch {
+      // The load this switch interrupted still has to finish, for the address Home still shows.
+      if (live.current && mine === generation.current && interrupted) void load();
       return false;
     }
   };
 
-  const changeAction =
-    address === undefined
-      ? []
-      : [
-          {
-            key: 'change-address',
-            // The AppBar sits on the dark chrome in both schemes; its own foreground rule.
-            icon: <Icon name="map" size={24} color={theme.scheme === 'dark' ? theme.color.text.primary : theme.color.text.onInverse} />,
-            accessibilityLabel: address ? `Change delivery address, now ${address.line1}` : 'Choose a delivery address',
-            onPress: openSwitcher,
-            testID: 'Home-changeAddress',
-          },
-        ];
-
+  const barTitle = address === undefined ? 'Deliver to' : address ? addressTitle(address) : 'Set an address';
   const cartData = cart.query.kind === 'ready' ? cart.query.data : null;
   const showCartBar = cartData != null && (cartData.item_count ?? 0) > 0;
 
   return (
     <View style={[styles.fill, { backgroundColor: theme.color.surface.base }]} testID="Home">
+      {/* The title block rides in the AppBar's slot so the bar can carry a text "Change" (ds-request). */}
       <AppBar
-        title={address === undefined ? 'Deliver to' : address ? addressTitle(address) : 'Set an address'}
-        subtitle={address === undefined ? undefined : 'Deliver to'}
-        actions={changeAction}
+        variant="search"
+        title={barTitle}
+        searchSlot={
+          <HomeBarTitle
+            title={barTitle}
+            subtitle={address === undefined ? undefined : 'Deliver to'}
+            titleRef={titleRef}
+            change={
+              address === undefined
+                ? undefined
+                : {
+                    ref: changeRef,
+                    label: address ? 'Change' : 'Choose',
+                    accessibilityLabel: address ? `Change delivery address, now ${address.line1}` : 'Choose a delivery address',
+                    onPress: openSwitcher,
+                  }
+            }
+          />
+        }
         loading={state.kind === 'loading' || (state.kind === 'ready' && state.refreshing)}
         testID="Home-appBar"
       />
@@ -214,6 +266,16 @@ export function HomeScreen(): React.ReactElement {
           />
         }
       >
+        {state.kind === 'ready' && !state.feed.address ? (
+          <Banner
+            variant="info"
+            title="Set your delivery address"
+            description="We need it to show delivery times and fees. You can browse certified restaurants now; adding to your cart waits for an address. We deliver in Ontario only for now."
+            action={{ label: 'Add an address', onPress: addAddress }}
+            testID="Home-noAddress"
+          />
+        ) : null}
+
         {state.kind === 'ready' && state.refreshing ? (
           <Text accessibilityLiveRegion="polite" style={[small, { color: theme.color.text.secondary }]}>
             Refreshing restaurants…
@@ -236,16 +298,6 @@ export function HomeScreen(): React.ReactElement {
             title="You're offline"
             description={`Showing restaurants as of ${formatTime(state.asOf)}. You can browse; adding to your cart is paused until you're back online.`}
             testID="Home-offline"
-          />
-        ) : null}
-
-        {state.kind === 'ready' && !state.feed.address ? (
-          <Banner
-            variant="info"
-            title="Set your delivery address"
-            description="We need it to show delivery times and fees. You can browse certified restaurants now; adding to your cart waits for an address. We deliver in Ontario only for now."
-            action={{ label: 'Add an address', onPress: addAddress }}
-            testID="Home-noAddress"
           />
         ) : null}
 
@@ -299,7 +351,7 @@ export function HomeScreen(): React.ReactElement {
       <AddressSwitcher
         open={sheetOpen}
         current={address ?? null}
-        onClose={() => setSheetOpen(false)}
+        onClose={closeSwitcher}
         onSwitch={switchTo}
         onAdd={addAddress}
       />
@@ -312,6 +364,68 @@ function itemsText(n: number): string {
 }
 
 /* ============================================================== page parts */
+
+/**
+ * The AppBar's title block: the address (the page h1), "Deliver to", and the text control that
+ * opens the switcher. Composed from RN text on the bar's own foreground: the DS ghost Button draws
+ * `text.primary`, which is dark ink on the light scheme's dark chrome (unreadable there).
+ */
+function HomeBarTitle({
+  title,
+  subtitle,
+  titleRef,
+  change,
+}: {
+  title: string;
+  subtitle?: string;
+  titleRef: React.RefObject<Text | null>;
+  change?: { ref: React.RefObject<View | null>; label: string; accessibilityLabel: string; onPress: () => void };
+}): React.ReactElement {
+  const theme = useTheme();
+  const heading = useTypeStyle('heading.sm');
+  const caption = useTypeStyle('caption');
+  const label = useTypeStyle('label.lg');
+  // `surface.chrome` is dark in both schemes; the same foreground rule as the AppBar's own.
+  const onChrome = theme.scheme === 'dark' ? theme.color.text.primary : theme.color.text.onInverse;
+  const target = Math.max(theme.target.min, 44);
+  return (
+    <View style={styles.barRow}>
+      <View style={styles.shrink}>
+        <Text ref={titleRef} accessibilityRole="header" numberOfLines={1} style={[heading, { color: onChrome }]} testID="Home-title">
+          {title}
+        </Text>
+        {subtitle ? (
+          <Text numberOfLines={1} style={[caption, { color: onChrome, opacity: 0.78 }]}>
+            {subtitle}
+          </Text>
+        ) : null}
+      </View>
+      {change ? (
+        <Pressable
+          ref={change.ref}
+          accessibilityRole="button"
+          accessibilityLabel={change.accessibilityLabel}
+          onPress={change.onPress}
+          hitSlop={theme.target.spacing}
+          testID="Home-changeAddress"
+          style={({ pressed }) => [styles.barAction, { minHeight: target, minWidth: target, opacity: pressed ? 0.7 : 1 }]}
+        >
+          <Text style={[label, { color: onChrome }]}>{change.label}</Text>
+        </Pressable>
+      ) : null}
+    </View>
+  );
+}
+
+function EmptyNote(): React.ReactElement {
+  const theme = useTheme();
+  const body = useTypeStyle('body.md');
+  return (
+    <Text style={[body, { color: theme.color.text.secondary }]}>
+      We're adding certified restaurants across Ontario one area at a time.
+    </Text>
+  );
+}
 
 function SearchEntry({ onPress }: { onPress: () => void }): React.ReactElement {
   const theme = useTheme();
@@ -440,13 +554,12 @@ function HomeFeedView({
             testID="Home-nothingInRange"
           />
         ) : (
-          <EmptyState
-            variant="page"
-            headingLevel={2}
-            title="No restaurants listed yet"
-            description="We're adding certified restaurants across Ontario one area at a time."
-            testID="Home-empty"
-          />
+          // No board draws an empty Ontario list; the Set-your-address banner above carries the
+          // state, so only the board's description shows here (copy question for the owner).
+          <View style={styles.section} testID="Home-empty">
+            <SectionHeader title="Restaurants in Ontario" />
+            <EmptyNote />
+          </View>
         )}
       </View>
     );
@@ -792,6 +905,7 @@ function AddressSwitcher({
   const [opened, setOpened] = React.useState(0);
   const [failed, setFailed] = React.useState<Address | null>(null);
   const [switching, setSwitching] = React.useState(false);
+  const selectedRef = React.useRef<View>(null);
 
   React.useEffect(() => {
     if (open) {
@@ -826,6 +940,13 @@ function AddressSwitcher({
 
   const q = addresses.query;
   const none = q.kind === 'ready' && q.data.length === 0;
+  const listed = open && q.kind === 'ready' && q.data.length > 0;
+
+  // The list arrived: focus moves to the selected address (the board's `:checked` focus).
+  // RadioGroup has no focus API yet (ds-request), so the selected option's wrapper takes it.
+  React.useEffect(() => {
+    if (listed) focusOn(selectedRef);
+  }, [listed, opened]);
 
   return (
     <Sheet
@@ -890,13 +1011,14 @@ function AddressSwitcher({
               testID="Switcher-list"
             >
               {q.data.map((a) => (
-                <Radio
-                  key={a.id}
-                  value={a.id}
-                  label={addressOptionLabel(a)}
-                  description={addressOptionDescription(a)}
-                  testID={`Switcher-option-${a.id}`}
-                />
+                <View key={a.id} ref={a.id === current?.id ? selectedRef : undefined} testID={`Switcher-slot-${a.id}`}>
+                  <Radio
+                    value={a.id}
+                    label={addressOptionLabel(a)}
+                    description={addressOptionDescription(a)}
+                    testID={`Switcher-option-${a.id}`}
+                  />
+                </View>
               ))}
             </RadioGroup>
             <Text style={[small, { color: theme.color.text.secondary }]}>
@@ -926,5 +1048,7 @@ const styles = StyleSheet.create({
   cartBar: { paddingVertical: 8, borderTopWidth: StyleSheet.hairlineWidth },
   toastDock: { position: 'absolute', top: 64, left: 16, right: 16, zIndex: 10 },
   sheetBody: { gap: 16 },
+  barRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  barAction: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
   srOnly: { position: 'absolute', width: 1, height: 1, overflow: 'hidden', opacity: 0 },
 });

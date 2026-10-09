@@ -19,9 +19,17 @@ explore: >
   the badges still drawn. Leave it offline for 16 minutes (or move the dev clock 16 minutes),
   screenshot again: every card must lose its badge and read "We can't check the certification
   while you're offline.", never red, never greyed. Turn the network back on and pull to refresh:
-  the badges return. (3) Open the address switcher (map button in the bar), screenshot it in dark
-  and at 200% text; pick the address already chosen and confirm the sheet closes with nothing
-  changed. (4) Add a cart item from Bismillah Grill, go back to Home and screenshot the View cart
+  the badges return. (3) Open the address switcher ("Change" in the bar), screenshot it in dark
+  and at 200% text; with TalkBack on, focus must land on the selected address when the list
+  appears and return to "Change" when the sheet closes. Pick the address already chosen and
+  confirm the sheet closes with nothing changed. Then the far address (manifest §6 J5): until the
+  devworld seed has amina's out-of-range "Cottage · 88 Lakeshore Rd", add it from the switcher's
+  "Add address" (88 Lakeshore Rd, Sauble Beach, ON, labelled Cottage, or any Ontario address
+  outside every devworld delivery area), go back to Home,
+  open "Change" and pick Cottage: expect the toast "Delivering to Cottage", the title
+  "Cottage · 88 Lakeshore Rd", "No restaurants deliver to 88 Lakeshore Rd yet" and "Try a different
+  address"; screenshot it, tap "Try a different address", pick Home again and confirm the list
+  returns. Settings must still show Home as the default address. (4) Add a cart item from Bismillah Grill, go back to Home and screenshot the View cart
   bar above the bottom navigation ("View cart · 1 item ·" and a price). (5) Deep link
   `adb shell am start -W -a android.intent.action.VIEW -d "hgcustomer://restaurant/b0000000-0000-4000-8000-000000000208"`
   and back: Home must still show the same address. (6) With amina's active order (devworld

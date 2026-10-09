@@ -10,10 +10,12 @@
  * - List: `listRestaurants` with the default sort, first page, for the chosen address.
  *
  * The last good feed is kept in memory with the time it was fetched, so Home can show it offline
- * ("Showing restaurants as of 6:42 pm") under the 15-minute halal rule.
+ * ("Showing restaurants as of 6:42 pm") under the 15-minute halal rule. It is dropped when the
+ * session ends.
  */
 import { unwrap, type operations, type Schema } from '@hg/api-client';
 
+import { isAuthed, subscribe as subscribeToken } from '../../api/token';
 import { api } from '../api/client';
 import { getNow } from '../lib/now';
 import { resolveDeliveryAddress } from './deliveryAddress';
@@ -92,7 +94,12 @@ export function rememberFeed(feed: HomeFeed, asOf: number = getNow()): void {
   cache = { feed, asOf };
 }
 
-/** Tests only. */
 export function resetHomeCache(): void {
   cache = null;
 }
+
+// The feed is one customer's: their addresses and what delivers there. Signing out (or a forced
+// sign-out clearing the token) drops it, so the next customer on this phone never sees it.
+subscribeToken(() => {
+  if (!isAuthed()) resetHomeCache();
+});

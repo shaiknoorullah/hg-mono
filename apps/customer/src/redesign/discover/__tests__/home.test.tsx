@@ -4,9 +4,11 @@
  * switcher that never calls `setDefaultAddress`.
  */
 import * as React from 'react';
-import { RefreshControl } from 'react-native';
+import { AccessibilityInfo, RefreshControl } from 'react-native';
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react-native';
 
+import { isAuthed, setToken } from '../../../api/token';
+import { setApiFetch } from '../../api/client';
 import { resetConnectivity } from '../../lib/connectivity';
 import { setNowOverride } from '../../lib/now';
 import { formatTime } from '../../lib/time';
@@ -14,7 +16,7 @@ import { mockApi, payloadOf, type MockApi } from '../../test/mockApi';
 import { navSpy, renderRedesign } from '../../test/render';
 import { HomeScreen } from '../HomeScreen';
 import { getChosenAddressId, resetChosenAddress } from '../deliveryAddress';
-import { resetHomeCache } from '../homeData';
+import { cachedFeed, resetHomeCache } from '../homeData';
 import type { Address, RestaurantCard } from '../format';
 
 const T0 = Date.parse('2026-10-09T22:42:00Z'); // 6:42 pm in Toronto
@@ -50,7 +52,20 @@ beforeEach(() => {
 afterEach(() => {
   mock?.restore();
   setNowOverride(null);
+  jest.restoreAllMocks();
 });
+
+/**
+ * Records where screen-reader focus was sent, by the target's testID. The test renderer has no
+ * native handles, so `findNodeHandle` hands back the element itself for the spy to read.
+ */
+function focusSpy(): { targets: () => (string | undefined)[] } {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const renderer = require('react-native/Libraries/ReactNative/RendererProxy') as { findNodeHandle: (el: unknown) => unknown };
+  jest.spyOn(renderer, 'findNodeHandle').mockImplementation((el) => el ?? null);
+  const spy = jest.spyOn(AccessibilityInfo, 'setAccessibilityFocus').mockImplementation(() => {});
+  return { targets: () => spy.mock.calls.map(([el]) => (el as unknown as { props?: { testID?: string } })?.props?.testID) };
+}
 
 async function renderHome(answers: Record<string, unknown> = {}, scheme: 'light' | 'dark' = 'light') {
   mock = mockApi({ ...BASE, ...(answers as Record<string, never>) });
@@ -268,6 +283,95 @@ describe('Home (D1)', () => {
     fireEvent.press(screen.getByLabelText('See all restaurants, quickest delivery first'));
     expect(nav.log).toContainEqual({ action: 'push', route: { name: 'browse', sort: 'ETA_ASC', openNow: true } });
   });
+
+  it('moves focus to the address title, the page h1, on arrival', async () => {
+    const focus = focusSpy();
+    await renderHome();
+    await screen.findByTestId('Home-list');
+    const title = screen.getByTestId('Home-title');
+    expect(title.props.accessibilityRole).toBe('header');
+    expect(screen.getAllByRole('header').map((h) => h.props.children)).toContain('Home · 88 Harbour Street');
+    expect(focus.targets()).toEqual(['Home-title']);
+  });
+
+  it('draws Change as a word in the bar, with the address in its accessible name', async () => {
+    await renderHome();
+    await screen.findByTestId('Home-list');
+    const change = screen.getByTestId('Home-changeAddress');
+    expect(within(change).getByText('Change')).toBeTruthy();
+    expect(change.props.accessibilityLabel).toBe('Change delivery address, now 88 Harbour Street');
+  });
+
+  it('with no address and nothing listed: the address prompt first, then the board description, no invented title', async () => {
+    await renderHome({ listAddresses: 'addresses_empty', listRestaurants: 'restaurant_list_empty' });
+    expect(await screen.findByTestId('Home-empty')).toBeTruthy();
+    expect(screen.getByText('Set your delivery address')).toBeTruthy();
+    expect(within(screen.getByTestId('Home-changeAddress')).getByText('Choose')).toBeTruthy();
+    expect(screen.getByText("We're adding certified restaurants across Ontario one area at a time.")).toBeTruthy();
+    expect(screen.queryByText('No restaurants listed yet')).toBeNull();
+    // The prompt sits above the search entry (DO/Home-no-address).
+    const order = screen.UNSAFE_root.findAll((n: { props: { testID?: string } }) => n.props.testID === 'Home-noAddress' || n.props.testID === 'Home-search');
+    expect(order[0]!.props.testID).toBe('Home-noAddress');
+  });
+
+  it('a refresh that started before a switch never lands the old address over the new one', async () => {
+    await renderHome();
+    await screen.findByTestId('Home-list');
+
+    // Hold Home's own address's restaurants until released; Work answers at once.
+    const mockFetch = globalThis.fetch;
+    let release!: () => void;
+    const gate = new Promise<void>((r) => (release = r));
+    setApiFetch(async (req: Request) => {
+      if (req.url.includes(`delivery_address_id=${home.id}`)) await gate;
+      return mockFetch(req);
+    });
+
+    await act(async () => {
+      screen.UNSAFE_getByType(RefreshControl).props.onRefresh();
+    });
+    expect(await screen.findByText('Refreshing restaurants…')).toBeTruthy();
+
+    fireEvent.press(screen.getByLabelText('Change delivery address, now 88 Harbour Street'));
+    fireEvent.press(await screen.findByText('Work · 35 Fontenay Court'));
+    expect(await screen.findByText('Delivering to Work')).toBeTruthy();
+    expect(screen.getByTestId('Home-title').props.children).toBe('Work · 35 Fontenay Court');
+
+    await act(async () => {
+      release();
+      await gate;
+    });
+    await act(async () => {});
+    expect(screen.getByTestId('Home-title').props.children).toBe('Work · 35 Fontenay Court');
+    expect(getChosenAddressId()).toBe(work.id);
+    expect(cachedFeed()!.feed.address!.id).toBe(work.id);
+    expect(screen.queryByText('Refreshing restaurants…')).toBeNull();
+  });
+
+  it('forgets the feed and the chosen address when the session ends', async () => {
+    setToken('access', 'hgrt_refresh');
+    await renderHome();
+    await screen.findByTestId('Home-list');
+    fireEvent.press(screen.getByLabelText('Change delivery address, now 88 Harbour Street'));
+    fireEvent.press(await screen.findByText('Work · 35 Fontenay Court'));
+    expect(await screen.findByText('Delivering to Work')).toBeTruthy();
+    expect(getChosenAddressId()).toBe(work.id);
+    expect(cachedFeed()).not.toBeNull();
+
+    act(() => setToken(null));
+    expect(isAuthed()).toBe(false);
+    expect(getChosenAddressId()).toBeNull();
+    expect(cachedFeed()).toBeNull();
+
+    // The next customer's first Home render starts from nothing, not the last one's Work feed.
+    screen.unmount();
+    mock.restore();
+    setToken('access-2', 'hgrt_refresh-2');
+    await renderHome({ listAddresses: 'addresses_empty', listRestaurants: 'hang' });
+    expect(await screen.findByTestId('Home-loading')).toBeTruthy();
+    expect(screen.queryByText(/35 Fontenay Court/)).toBeNull();
+    setToken(null);
+  });
 });
 
 describe('the address switcher (D2)', () => {
@@ -297,6 +401,25 @@ describe('the address switcher (D2)', () => {
     expect(getChosenAddressId()).toBe(work.id);
     expect(mock.callsTo('setDefaultAddress')).toHaveLength(0);
     expect(mock.calls.filter((c) => c.method !== 'GET')).toHaveLength(0);
+  });
+
+  it('focuses the selected address when the list arrives, and returns focus to Change on close', async () => {
+    await renderHome();
+    await screen.findByTestId('Home-list');
+    const focus = focusSpy();
+    // Home's own arrival focus can flush late in the test renderer; count from here.
+    const start = focus.targets().length;
+    fireEvent.press(screen.getByLabelText('Change delivery address, now 88 Harbour Street'));
+    await screen.findByText('Home (default) · 88 Harbour Street');
+    // The selected option's slot takes focus, and it holds the checked radio.
+    await waitFor(() => expect(focus.targets().slice(start)).toEqual([`Switcher-slot-${home.id}`]));
+    const slot = screen.getByTestId(`Switcher-slot-${home.id}`);
+    expect(within(slot).getByTestId(`Switcher-option-${home.id}`).props.accessibilityState).toMatchObject({ checked: true });
+
+    // Picking the address already chosen closes the sheet; focus goes back to Change.
+    fireEvent.press(screen.getByText('Home (default) · 88 Harbour Street'));
+    await waitFor(() => expect(screen.queryByTestId('Switcher')).toBeNull());
+    expect(focus.targets().slice(start)).toEqual([`Switcher-slot-${home.id}`, 'Home-changeAddress']);
   });
 
   it('keeps the current address when the switch fails, and says so', async () => {

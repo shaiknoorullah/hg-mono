@@ -4,11 +4,12 @@
  * Choosing an address never changes the customer's default (the switcher never calls
  * `setDefaultAddress`): it changes which restaurants Home lists and which address the quote is
  * built for (`createQuote` takes `delivery_address_id`). It lives in memory and is gone on the
- * next launch, when Home falls back to the default address again. Manifest §5 G1: no operation
- * sets `cart.delivery_address_id`, so checkout reads this choice too.
+ * next launch or sign-out, when Home falls back to the default address again. Manifest §5 G1: no
+ * operation sets `cart.delivery_address_id`, so checkout reads this choice too.
  */
 import * as React from 'react';
 
+import { isAuthed, subscribe as subscribeToken } from '../../api/token';
 import type { Address } from './format';
 
 let chosenId: string | null = null;
@@ -46,7 +47,12 @@ export function resolveDeliveryAddress(
   return byId(chosen) ?? addresses.find((a) => a.is_default) ?? byId(profileDefaultId) ?? null;
 }
 
-/** Tests only. */
 export function resetChosenAddress(): void {
-  chosenId = null;
+  chooseAddress(null);
 }
+
+// The choice belongs to this session's customer: signing out (or a forced sign-out) forgets it, so
+// the next customer starts on their own default address and checkout never quotes for the last one.
+subscribeToken(() => {
+  if (!isAuthed()) resetChosenAddress();
+});

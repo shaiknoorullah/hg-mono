@@ -3,6 +3,8 @@
 # on Home for her default address, Home · 1250 Danforth Avenue. She sees bismillah-grill
 # ("Bismillah Grill") and expiring-halal ("Bamyan Kebab House", with its dated "expires" badge),
 # never expired-halal ("Devworld Expired"). Until WP1 merges, sign-in is the legacy screen.
+# Switching to a far address ("nothing in range") needs amina's out-of-range "Cottage" address in
+# the devworld seed (w0-request); until it lands, the mission's explore step (3) adds one by hand.
 appId: com.halalgoes.customer.dev
 name: customer redesign, Home, address switcher and How we check
 env:
@@ -75,9 +77,11 @@ env:
     visible: "Open now, closest first"
     timeout: 10000
 
-# D2 Address switcher: session-only, never changes the default
-- tapOn:
+# D2 Address switcher: session-only, never changes the default. Change is a word in the bar.
+- assertVisible:
     id: "Home-changeAddress"
+    text: "Change"
+- tapOn: "Change"
 - extendedWaitUntil:
     visible: "Home \\(default\\) · 1250 Danforth Avenue"
     timeout: 10000
