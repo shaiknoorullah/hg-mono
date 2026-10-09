@@ -20,7 +20,7 @@ const AdminEmail = "admin-seed@seed.hg"
 const BismillahRestaurantID = "b0000000-0000-4000-8000-000000000208"
 
 // Identity is one stable persona. The same account id, email and phone are
-// literals in migrations/devworld/001_personas.sql.
+// literals in the SQL under migrations/devworld.
 type Identity struct {
 	Slug         string
 	AccountID    string
