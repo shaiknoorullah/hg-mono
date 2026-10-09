@@ -26,8 +26,6 @@ import {
   type IconName as LegacyIconName,
 } from '../primitives/index.js';
 import { Price } from '../content/index.js';
-import { StatusTimeline as LegacyStatusTimeline } from '../feedback/index.js';
-import type { OrderState } from '@hg/api-client';
 import { TopBar } from '../navigation/index.js';
 import { reportDsClientError } from './client-error.js';
 
@@ -421,39 +419,6 @@ export function Switch({ onCheckedChange, size: _size, testId, style, ...rest }:
     <div data-testid={testId ?? 'Switch'} style={style}>
       <LegacySwitch {...rest} onChange={onCheckedChange} />
     </div>
-  );
-}
-
-/* ───── StatusTimeline ───── */
-
-/** Props of the live `StatusTimeline` (index.d.ts). */
-export interface StatusTimelineProps {
-  audience: 'customer' | 'restaurant' | 'rider' | 'admin';
-  state?: OrderState;
-  /** OrderTracking.timeline. Entries without a time are not drawn as times. */
-  transitions?: Array<{ to_state: OrderState; from_state?: OrderState | null; at?: string }>;
-  orientation?: 'vertical' | 'horizontal' | 'compact';
-  showTimes?: boolean;
-  estimatedAt?: string | null;
-  deadlineAt?: string | null;
-  loading?: boolean;
-  /** 'reconnecting' keeps the last state and says it is not updating. */
-  connection?: 'live' | 'reconnecting';
-  testId?: string;
-}
-
-/** Order progress from the contract timeline, rendered by the legacy StatusTimeline. */
-export function StatusTimeline({ state, transitions, connection, ...rest }: StatusTimelineProps) {
-  if (!state) return <LegacyStatusTimeline {...rest} state={'CREATED'} loading />;
-  return (
-    <LegacyStatusTimeline
-      {...rest}
-      state={state}
-      disconnected={connection === 'reconnecting'}
-      transitions={(transitions ?? [])
-        .filter((t): t is { to_state: OrderState; at: string } => typeof t.at === 'string')
-        .map((t) => ({ state: t.to_state, at: t.at }))}
-    />
   );
 }
 

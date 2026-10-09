@@ -29,7 +29,6 @@ export {
   Input,
   RadioGroup,
   Select,
-  StatusTimeline,
   Switch,
 } from './compat.js';
 export type {
@@ -47,7 +46,6 @@ export type {
   RadioOption,
   SelectOption,
   SelectProps,
-  StatusTimelineProps,
   SwitchProps,
 } from './compat.js';
 export { ICON_NAMES } from '../primitives/index.js';
@@ -93,3 +91,17 @@ export type {
 /* Owner-approved desktop layout (decision log, 28 Sep): rebuilt in W2. */
 export { SideNav } from '../navigation/index.js';
 export type { SideNavGroup, SideNavItem, SideNavProps } from '../navigation/index.js';
+
+/* Rebuilt on shadcn/ui (W4 Feedback). */
+export { Countdown, COUNTDOWN_ANNOUNCE_AT, COUNTDOWN_SKEW_LIMIT_MS } from './Countdown.js';
+export type { CountdownProps, CountdownState } from './Countdown.js';
+export { Menu } from './Menu.js';
+export type { MenuActionItem, MenuItem, MenuProps, MenuRadioItem } from './Menu.js';
+export { Dialog, Modal } from './Modal.js';
+export type { ModalProps } from './Modal.js';
+export { Toast, TOAST_DEFAULT_DURATION, isPersistentToast } from './Toast.js';
+export type { ToastProps, ToastVariant } from './Toast.js';
+export { StatusTimeline, STEP_STATE_WORD } from './StatusTimeline.js';
+export type { StatusTimelineProps } from './StatusTimeline.js';
+export { ORDER_STATES, resolveTimeline } from './order-track.js';
+export type { ResolvedStep, ResolvedTimeline, StepState, TimelineAudience, TimelineTransition } from './order-track.js';
