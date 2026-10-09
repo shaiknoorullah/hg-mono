@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/jackc/pgx/v5"
@@ -31,30 +32,55 @@ func migrationsRoot() (string, error) {
 	return "", fmt.Errorf("devworld: could not locate migrations/devworld/001_personas.sql from %s", start)
 }
 
-// ApplyPersonas loads the persona SQL. The file is idempotent and wraps itself
-// in one transaction. It is not applied by goose.
+// ApplyPersonas loads the persona SQL: 001_personas.sql first, then every
+// other .sql file in migrations/devworld in name order. Each file is
+// idempotent and wraps itself in one transaction. None is applied by goose.
 func ApplyPersonas(ctx context.Context, dsn string) error {
 	root, err := migrationsRoot()
 	if err != nil {
 		return err
 	}
-	raw, err := os.ReadFile(filepath.Join(root, "devworld", "001_personas.sql"))
+	files, err := personaSQLFiles(root)
 	if err != nil {
-		return fmt.Errorf("devworld: read personas: %w", err)
-	}
-	script := strings.TrimSpace(string(raw))
-	if script == "" {
-		return fmt.Errorf("devworld: persona SQL is empty")
+		return err
 	}
 	conn, err := connect(ctx, dsn)
 	if err != nil {
 		return err
 	}
 	defer conn.Close(ctx)
-	if _, err := conn.PgConn().Exec(ctx, script).ReadAll(); err != nil {
-		return fmt.Errorf("devworld: persona SQL failed: %w", err)
+	for _, path := range files {
+		raw, err := os.ReadFile(path)
+		if err != nil {
+			return fmt.Errorf("devworld: read personas: %w", err)
+		}
+		script := strings.TrimSpace(string(raw))
+		if script == "" {
+			return fmt.Errorf("devworld: persona SQL %s is empty", filepath.Base(path))
+		}
+		if _, err := conn.PgConn().Exec(ctx, script).ReadAll(); err != nil {
+			return fmt.Errorf("devworld: persona SQL %s failed: %w", filepath.Base(path), err)
+		}
 	}
 	return nil
+}
+
+// personaSQLFiles lists migrations/devworld/*.sql with 001_personas.sql first.
+// The later files add to the world 001 creates, so each can grow on its own.
+func personaSQLFiles(root string) ([]string, error) {
+	files, err := filepath.Glob(filepath.Join(root, "devworld", "*.sql"))
+	if err != nil {
+		return nil, fmt.Errorf("devworld: list persona SQL: %w", err)
+	}
+	sort.Strings(files)
+	first := filepath.Join(root, "devworld", "001_personas.sql")
+	out := []string{first}
+	for _, f := range files {
+		if f != first {
+			out = append(out, f)
+		}
+	}
+	return out, nil
 }
 
 func connect(ctx context.Context, dsn string) (*pgx.Conn, error) {
