@@ -38,7 +38,7 @@ export type { MoneyInputProps, MoneyParse } from './MoneyInput.js';
 export { Stepper } from './Stepper.js';
 export type { StepperProps, StepperStep } from './Stepper.js';
 export { InlineConfirm } from './InlineConfirm.js';
-export type { InlineConfirmProps } from './InlineConfirm.js';
+export type { InlineConfirmAction, InlineConfirmProps } from './InlineConfirm.js';
 
 /* Toasts: a provider and a hook today; the live `Toast` component lands in W4. */
 export { ToastProvider, useToast } from '../primitives/index.js';

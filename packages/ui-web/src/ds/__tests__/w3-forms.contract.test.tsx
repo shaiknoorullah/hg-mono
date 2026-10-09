@@ -594,6 +594,25 @@ describe('W3 Forms behaviour', () => {
     expect(screen.getByRole('button', { name: 'Sign out' })).toHaveFocus();
   });
 
+  it('InlineConfirm accepts the restaurant action-list form: cancel first, Escape chooses it', () => {
+    const cancel = vi.fn();
+    const resume = vi.fn();
+    render(
+      <proposed.InlineConfirm
+        title="Resume orders?"
+        body="New orders start ringing again."
+        cancel={{ label: 'Stay paused', onPress: cancel }}
+        actions={[{ label: 'Resume now', onPress: resume, variant: 'primary' }]}
+      />,
+    );
+    const group = screen.getByRole('group', { name: 'Resume orders?' });
+    expect(screen.getByRole('button', { name: 'Stay paused' })).toHaveFocus();
+    fireEvent.click(screen.getByRole('button', { name: 'Resume now' }));
+    expect(resume).toHaveBeenCalledTimes(1);
+    fireEvent.keyDown(group, { key: 'Escape' });
+    expect(cancel).toHaveBeenCalledTimes(1);
+  });
+
   it('Textarea keeps the pre-rebuild onChange(value, event) signature', () => {
     const onChange = vi.fn();
     render(<proposed.Textarea label="Reason" value="" onChange={onChange} minLength={10} />);

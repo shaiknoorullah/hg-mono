@@ -19,6 +19,7 @@ import type { Cents } from '@hg/api-client';
 
 import { Input as LibInput, fieldShellVariants } from '../lib/ui/input.js';
 import { Label } from '../lib/ui/label.js';
+import { cn } from '../lib/utils.js';
 import { FieldMessage, describedBy, useFieldIds } from '../ds/field-parts.js';
 import { Price } from '../ds/index.js';
 
@@ -47,6 +48,8 @@ export interface MoneyInputProps {
   id?: string;
   name?: string;
   testId?: string;
+  /** Extra classes on the root (the admin seam's name). */
+  className?: string;
   style?: CSSProperties;
 }
 
@@ -99,6 +102,7 @@ export function MoneyInput({
   id,
   name,
   testId,
+  className,
   style,
 }: MoneyInputProps) {
   const ids = useFieldIds(id, 'money');
@@ -133,7 +137,7 @@ export function MoneyInput({
   };
 
   return (
-    <div data-testid={testId ?? 'MoneyInput'} className="grid gap-1" style={style}>
+    <div data-testid={testId ?? 'MoneyInput'} className={cn('grid gap-1', className)} style={style}>
       <Label htmlFor={ids.control} id={ids.label} required={required}>
         {label}
       </Label>

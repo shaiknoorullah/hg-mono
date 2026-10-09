@@ -45,6 +45,8 @@ export interface DateInputProps {
   id?: string;
   size?: 'md' | 'lg' | 'field';
   testId?: string;
+  /** Extra classes on the root (the admin seam's name). */
+  className?: string;
   style?: CSSProperties;
 }
 
@@ -126,6 +128,7 @@ export function DateInput({
   id,
   size = 'md',
   testId,
+  className,
   style,
 }: DateInputProps) {
   const ids = useFieldIds(id, 'dateinput');
@@ -155,7 +158,7 @@ export function DateInput({
       aria-describedby={describedBy(helperText && ids.helper, message && ids.error)}
       aria-disabled={disabled || undefined}
       data-testid={testId ?? 'DateInput'}
-      className="m-0 grid min-w-0 gap-1 border-0 p-0"
+      className={cn('m-0 grid min-w-0 gap-1 border-0 p-0', className)}
       style={style}
     >
       <legend id={ids.label} className={cn('mb-1 p-0 text-label-md font-semibold text-fg-secondary', hideLabel && 'sr-only')}>
