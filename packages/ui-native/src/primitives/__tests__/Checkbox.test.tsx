@@ -73,6 +73,17 @@ describe('RadioGroup', () => {
     expect(onChange).toHaveBeenCalledWith('large');
   });
 
+  it("joins a variant's own price to its name, as a price and never a difference", () => {
+    renderThemed(
+      <RadioGroup name="platter" label="Platter size" value="two" onChange={() => {}}>
+        <Radio value="two" label="For two" priceCents={4599} testID="Radio-two" />
+        <Radio value="kids" label="Kids" priceCents={-5} testID="Radio-kids" />
+      </RadioGroup>,
+    );
+    expect(screen.getByTestId('Radio-two').props.accessibilityLabel).toBe('For two, $45.99');
+    expect(screen.getByTestId('Radio-kids').props.accessibilityLabel).toBe('Kids, -$0.05');
+  });
+
   it('announces a required-group error on the group, not on the last option', () => {
     renderThemed(
       <RadioGroup name="reason" label="Refund reason" value={null} onChange={() => {}} required errorText="Choose a reason">

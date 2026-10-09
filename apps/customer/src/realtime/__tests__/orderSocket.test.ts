@@ -80,6 +80,18 @@ test('delivers rider.location once: duplicates and other channels are dropped; p
   expect(s.sent).toContainEqual({ type: 'pong', t: 1234 });
 });
 
+test('reports each order.* event once, by type', async () => {
+  const { sockets, deps } = setup();
+  const onOrderEvent = jest.fn();
+  openOrderSocket(ORDER, { onLink: jest.fn(), onRiderLocation: jest.fn(), onOrderEvent }, deps);
+  await flush();
+  const s = sockets[1]!;
+  s.receive(frame('order.state_changed', 1, { order_id: ORDER, to: 'READY_FOR_PICKUP' }));
+  s.receive(frame('order.state_changed', 1, { order_id: ORDER, to: 'READY_FOR_PICKUP' }));
+  s.receive(frame('rider.location', 2, fix));
+  expect(onOrderEvent.mock.calls).toEqual([['order.state_changed']]);
+});
+
 test('a gap in seq sends resume from the last seq seen', async () => {
   const { sockets, onRiderLocation } = setup();
   await flush();

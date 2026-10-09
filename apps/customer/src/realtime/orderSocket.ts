@@ -1,8 +1,10 @@
 /**
  * One order's realtime channel, per contracts/websocket.md: mint a ticket, open the socket,
  * `subscribe` to `order:{id}` on `hello`, answer `ping`, drop duplicate events, `resume` on a
- * gap, reconnect with the contract's backoff. It reports only what the tracking screen needs:
- * whether the socket is open, and each `rider.location`. Event types come from @hg/api-client.
+ * gap, reconnect with the contract's backoff. It reports whether the socket is open, each
+ * `rider.location` (the tracking map), and that an `order.*` event arrived (Home's order strip,
+ * which re-reads the order rather than trusting the event's payload). Event types come from
+ * @hg/api-client.
  */
 import {
   SeenEventIds,
@@ -20,6 +22,8 @@ export type OrderSocketHandlers = {
   /** True once the order channel is subscribed, false whenever the socket is not usable. */
   onLink: (open: boolean) => void;
   onRiderLocation: (fix: RiderLocationData) => void;
+  /** An `order.*` event (state change, ETA, cancellation, completion) for this order. */
+  onOrderEvent?: (type: string) => void;
 };
 
 /** What the socket needs from the platform, so a test can stand in for it. */
@@ -128,6 +132,7 @@ export function openOrderSocket(
       if (hasGap(lastSeq, msg.seq)) send({ type: 'resume', channel: topic, after_seq: lastSeq });
       lastSeq = Math.max(lastSeq ?? 0, msg.seq);
       if (msg.type === 'rider.location') handlers.onRiderLocation(msg.data as RiderLocationData);
+      else if (msg.type.startsWith('order.')) handlers.onOrderEvent?.(msg.type);
     };
     ws.onclose = () => {
       if (socket === ws) socket = null;

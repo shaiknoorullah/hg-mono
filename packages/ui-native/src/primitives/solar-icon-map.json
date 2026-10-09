@@ -12,5 +12,13 @@
   "check": { "linear": "check-circle-linear", "bold": "check-circle-bold" },
   "star": { "linear": "star-linear", "bold": "star-bold" },
   "clock": { "linear": "clock-circle-linear", "bold": "clock-circle-bold" },
-  "menu": { "linear": "hamburger-menu-linear", "bold": "hamburger-menu-bold" }
+  "menu": { "linear": "hamburger-menu-linear", "bold": "hamburger-menu-bold" },
+  "chevron-down": { "linear": "alt-arrow-down-linear", "bold": "alt-arrow-down-bold" },
+  "chevron-right": { "linear": "alt-arrow-right-linear", "bold": "alt-arrow-right-bold" },
+  "minus": { "linear": "minus-linear", "bold": "minus-bold" },
+  "info": { "linear": "info-circle-linear", "bold": "info-circle-bold" },
+  "warning": { "linear": "danger-triangle-linear", "bold": "danger-triangle-bold" },
+  "error": { "linear": "danger-circle-linear", "bold": "danger-circle-bold" },
+  "refresh": { "linear": "refresh-linear", "bold": "refresh-bold" },
+  "plate": { "linear": "plate-linear", "bold": "plate-bold" }
 }

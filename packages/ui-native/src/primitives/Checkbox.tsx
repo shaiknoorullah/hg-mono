@@ -142,7 +142,7 @@ export function Checkbox({
         {disabled && disabledReason ? (
           <Text
             testID={`${testID}-disabled-reason`}
-            style={{ ...captionType, color: theme.color.text.tertiary }}
+            style={{ ...captionType, color: theme.color.text.secondary }}
           >
             {disabledReason}
           </Text>

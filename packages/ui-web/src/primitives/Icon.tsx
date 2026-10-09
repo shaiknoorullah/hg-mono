@@ -59,7 +59,15 @@ export type IconName =
   | 'check'
   | 'star'
   | 'clock'
-  | 'menu';
+  | 'menu'
+  | 'chevron-down'
+  | 'chevron-right'
+  | 'minus'
+  | 'info'
+  | 'warning'
+  | 'error'
+  | 'refresh'
+  | 'plate';
 
 /**
  * The semantic name -> Solar icon id map, read from `solar-icon-map.json` — the single
