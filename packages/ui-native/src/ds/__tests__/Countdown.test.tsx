@@ -20,6 +20,8 @@ import { renderThemed, styleOf, themes } from '../../primitives/__tests__/harnes
 
 const T0 = Date.parse('2026-10-10T12:00:00Z');
 const iso = (ms: number) => new Date(ms).toISOString();
+/** A fresh 30-second window from T0: the rider offer's shape. */
+const OFFER = { expiresAt: iso(T0 + 30_000), serverNow: iso(T0), windowSeconds: 30 };
 
 let spoken: string[] = [];
 beforeEach(() => {
@@ -59,7 +61,7 @@ describe('Countdown', () => {
   it('counts from the server clock even when the phone is ten minutes fast', () => {
     jest.setSystemTime(T0 + 600_000);
     renderThemed(
-      <Countdown expiresAt={iso(T0 + 30_000)} serverNow={iso(T0)} windowSeconds={30} label="to accept" />,
+      <Countdown {...OFFER} label="to accept" />,
     );
     expect(screen.getByText('0:30')).toBeTruthy();
     expect(screen.getByLabelText('to accept: 30 seconds left')).toBeTruthy();
@@ -104,14 +106,14 @@ describe('Countdown', () => {
   });
 
   it('stays quiet when silent', () => {
-    renderThemed(<Countdown silent expiresAt={iso(T0 + 30_000)} serverNow={iso(T0)} windowSeconds={30} />);
+    renderThemed(<Countdown silent {...OFFER} />);
     act(() => jest.advanceTimersByTime(31_000));
     expect(spoken).toEqual([]);
   });
 
   it('paints info, then warning, then danger as the window runs out', () => {
     const light = themes.customer.light.color.feedback;
-    renderThemed(<Countdown expiresAt={iso(T0 + 30_000)} serverNow={iso(T0)} windowSeconds={30} />);
+    renderThemed(<Countdown {...OFFER} />);
     const colour = () => styleOf(screen.getByTestId('Countdown-numeral', { includeHiddenElements: true })).color;
     expect(colour()).toBe(light.info.icon);
     act(() => jest.advanceTimersByTime(24_000));
@@ -121,7 +123,7 @@ describe('Countdown', () => {
   });
 
   it('takes the dark scheme roles on the rider field surface', () => {
-    renderThemed(<Countdown onDark expiresAt={iso(T0 + 30_000)} serverNow={iso(T0)} windowSeconds={30} />, {
+    renderThemed(<Countdown onDark {...OFFER} />, {
       theme: 'rider',
     });
     const numeral = screen.getByTestId('Countdown-numeral', { includeHiddenElements: true });
@@ -129,16 +131,14 @@ describe('Countdown', () => {
   });
 
   it('draws a ring and a bar, and bar-only hides the numeral but keeps the name', () => {
-    renderThemed(<Countdown variant="ring" expiresAt={iso(T0 + 30_000)} serverNow={iso(T0)} windowSeconds={30} />);
+    renderThemed(<Countdown variant="ring" {...OFFER} />);
     expect(screen.getByTestId('Countdown-ring', { includeHiddenElements: true })).toBeTruthy();
     renderThemed(
       <Countdown
         variant="bar"
         barOnly
         testId="bar"
-        expiresAt={iso(T0 + 30_000)}
-        serverNow={iso(T0)}
-        windowSeconds={30}
+        {...OFFER}
       />,
     );
     expect(screen.queryByTestId('bar-numeral', { includeHiddenElements: true })).toBeNull();
