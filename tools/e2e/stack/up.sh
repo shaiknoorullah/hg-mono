@@ -30,9 +30,10 @@ if [ ! -f "$env_file" ]; then
     "HG_APP_DATA_KEY=$(openssl rand -hex 32)"
     "HG_SMS_PROVIDER=log"
     "HG_OTP_PROVIDER=log"
-    # The web apps as the flows serve them (vite preview on 4173 and 4174), and the Android
-    # emulator, whose React Native socket sends the API's own address as its Origin.
-    "HG_CORS_ALLOWED_ORIGINS=http://localhost:4173,http://localhost:4174,http://10.0.2.2:8080"
+    # The web apps as the flows serve them (vite preview: legacy on 4173 and 4174, the redesign
+    # builds on 4175 and 4176), and the Android emulator, whose React Native socket sends the
+    # API's own address as its Origin.
+    "HG_CORS_ALLOWED_ORIGINS=http://localhost:4173,http://localhost:4174,http://localhost:4175,http://localhost:4176,http://10.0.2.2:8080"
   )
   keys="$(printf '%s\n' "${overrides[@]}" | cut -d= -f1 | paste -sd'|')"
   {
