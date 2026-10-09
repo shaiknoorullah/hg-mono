@@ -4,6 +4,8 @@
  * `main` is `src/index.ts`), and @hg/api-client re-exports its own siblings with an explicit
  * `.js` extension the CJS resolver cannot follow against a `.ts` file on disk.
  */
+const path = require('path');
+
 module.exports = {
   preset: 'react-native',
   rootDir: __dirname,
@@ -13,6 +15,8 @@ module.exports = {
   setupFilesAfterEnv: ['<rootDir>/jest.setup.cjs'],
   moduleNameMapper: {
     '^(\\.{1,2}/.*)\\.js$': '$1',
+    // NativeWind's `global.<theme>.css` (imported by App.tsx): no CSS pipeline under jest.
+    '\\.css$': '<rootDir>/__mocks__/global-css.js',
     /*
      * pnpm resolves more than one physical copy of `react-native` / `react` under different
      * peer-hash directories (one reached via this app's own deps, another via @hg/ui-native's
@@ -30,8 +34,16 @@ module.exports = {
      * two native-module registries. Pin to this app's copy.
      */
     '^react-native-svg$': require.resolve('react-native-svg'),
+    /*
+     * NativeWind (redesign, N0): @hg/ui-native's `lib/` is compiled with NativeWind's JSX
+     * runtime, which from the library's directory resolves the library's own (devDependency)
+     * copy of nativewind / react-native-css-interop — a second, empty style registry. Pin
+     * them, and the RNR primitives, to this app's copy, as metro.config.js SINGLETONS does.
+     */
+    '^(nativewind|react-native-css-interop|@rn-primitives/slot|@rn-primitives/portal)(/.*)?$':
+      `${path.join(__dirname, 'node_modules')}/$1$2`,
   },
   transformIgnorePatterns: [
-    'node_modules/(?!(?:\\.pnpm/)?(?:@?react-native|@react-native-community|@testing-library|expo|@expo|nativewind))',
+    'node_modules/(?!(?:\\.pnpm/)?(?:@?react-native|@react-native-community|@testing-library|expo|@expo|nativewind|@rn-primitives))',
   ],
 };
