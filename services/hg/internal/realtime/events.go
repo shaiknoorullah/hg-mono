@@ -265,6 +265,16 @@ type OrderNoteAdded struct {
 	At         Timestamp               `json:"at"`
 }
 
+// OrderRiderArrived is order.rider_arrived, to the customer: the rider is at
+// the drop-off. It never carries a handover code; on it the customer app
+// fetches delivery_code from its own authenticated order view
+// (contracts/websocket.md section 4.2; security review on
+// https://github.com/shaiknoorullah/hg-mono/issues/183).
+type OrderRiderArrived struct {
+	OrderID string    `json:"order_id"`
+	At      Timestamp `json:"at"`
+}
+
 // ---------------------------------------------------------------------------
 // Section 4.3 — payment, on order:{order_id}.
 // ---------------------------------------------------------------------------
