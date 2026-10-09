@@ -132,7 +132,8 @@ Reset also seeds 14 live, certified restaurants within 8 km of both the Danforth
 
 | Persona | Role | Purpose |
 |---|---|---|
-| `customer-amina` | CUSTOMER, phone `+15550100101`, 3 saved addresses (near, far, unit/buzzer) | places every scenario order |
+| `customer-amina` | CUSTOMER, phone `+15550100101`, 3 saved addresses: `Home` (default, beside `bismillah-grill`), `Work` downtown (unit, buzzer and delivery instructions) and `Cottage` in Huntsville, outside every restaurant's delivery range | places every scenario order, from `Home`; `verify` checks the address book ([#681](https://github.com/shaiknoorullah/hg-mono/issues/681)) |
+| `nour` | CUSTOMER, phone `+15550100102`, no saved address | the empty address book |
 | `rider-sim` | RIDER, ACTIVE, Connect enabled, phone `+15550100151` | the journey's rider |
 | `admin-seed` | SUPER_ADMIN, email + password + TOTP | admin-decision scenarios |
 
