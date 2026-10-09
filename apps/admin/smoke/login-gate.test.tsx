@@ -60,10 +60,18 @@ describe('admin login gate', () => {
     expect(screen.queryByRole('button', { name: 'Sign out' })).toBeNull();
   });
 
-  it('opens the shell once email + password + TOTP succeed', async () => {
+  /**
+   * Stubs the API so `/auth/login` grants a session (recording the request body) and every
+   * other call is an empty list, renders the app, and fills email and password (and the
+   * authenticator code when given) before pressing Sign in. Returns the login body.
+   */
+  async function signIn(code?: string): Promise<{ body: () => unknown }> {
+    let body: unknown;
     vi.mocked(globalThis.fetch).mockImplementation(async (input) => {
-      const url = input instanceof Request ? input.url : String(input);
+      const req = input instanceof Request ? input : null;
+      const url = req ? req.url : String(input);
       if (url.includes('/auth/login')) {
+        body = req ? await req.clone().json() : undefined;
         return new Response(
           JSON.stringify({ data: { access_token: 'admin-token-abc', token_type: 'Bearer' } }),
           { status: 200, headers: { 'Content-Type': 'application/json' } },
@@ -79,45 +87,31 @@ describe('admin login gate', () => {
     render(<Root />);
 
     fireEvent.change(email(), { target: { value: 'admin@halalgoes.ca' } });
-    fireEvent.change(password(), {
-      target: { value: 'correct horse battery staple' },
-    });
-    fireEvent.paste(totp(), { clipboardData: { getData: () => '123456' } });
+    fireEvent.change(password(), { target: { value: 'correct horse battery staple' } });
+    if (code) fireEvent.paste(totp(), { clipboardData: { getData: () => code } });
     fireEvent.click(screen.getByRole('button', { name: 'Sign in' }));
+    return { body: () => body };
+  }
+
+  it('opens the shell once email + password + TOTP succeed', async () => {
+    const login = await signIn('123456');
 
     await waitFor(() => expect(isAuthed()).toBe(true));
     await waitFor(() => {
       expect(screen.queryByRole('button', { name: 'Sign out' })).not.toBeNull();
     });
     expect(screen.getByRole('link', { name: 'Restaurants' })).not.toBeNull();
+    expect(login.body()).toEqual({
+      email: 'admin@halalgoes.ca',
+      password: 'correct horse battery staple',
+      totp_code: '123456',
+    });
   });
 
   it('signs in with email + password alone, sending no totp_code', async () => {
-    let body: unknown;
-    vi.mocked(globalThis.fetch).mockImplementation(async (input) => {
-      const req = input instanceof Request ? input : null;
-      const url = req ? req.url : String(input);
-      if (url.includes('/auth/login')) {
-        body = req ? await req.clone().json() : undefined;
-        return new Response(
-          JSON.stringify({ data: { access_token: 'admin-token-def', token_type: 'Bearer' } }),
-          { status: 200, headers: { 'Content-Type': 'application/json' } },
-        );
-      }
-      return new Response(
-        JSON.stringify({ data: [], meta: { next_cursor: null, has_more: false, total: 0 } }),
-        { status: 200, headers: { 'Content-Type': 'application/json' } },
-      );
-    });
-
-    const { Root } = await import('../src/App');
-    render(<Root />);
-
-    fireEvent.change(email(), { target: { value: 'admin@halalgoes.ca' } });
-    fireEvent.change(password(), { target: { value: 'correct horse battery staple' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Sign in' }));
+    const login = await signIn();
 
     await waitFor(() => expect(isAuthed()).toBe(true));
-    expect(body).toEqual({ email: 'admin@halalgoes.ca', password: 'correct horse battery staple' });
+    expect(login.body()).toEqual({ email: 'admin@halalgoes.ca', password: 'correct horse battery staple' });
   });
 });
