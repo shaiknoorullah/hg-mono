@@ -13,6 +13,8 @@
  *   tokens.css  CSS custom properties (:root, dark scheme, density, theme)
  *   theme.css   Tailwind v4 `@theme inline` block
  *   grid-theme.css  LyteNyte Grid's `--ln-*` variables pointed at our roles
+ *   shadcn-aliases.css  shadcn/ui's variable names as aliases of our roles
+ *                   (opt-in for redesign apps; styles.css does not import it)
  *   index.ts    barrel
  *
  * Usage:
@@ -906,6 +908,130 @@ const gridThemeCss = `${BANNER(SOURCE_REL)}
 `;
 
 // ---------------------------------------------------------------------------
+// 10c. Emit — shadcn-aliases.css (shadcn/ui's variable names, as our roles)
+// ---------------------------------------------------------------------------
+//
+// shadcn/ui components read a fixed set of variable names (--background,
+// --primary, --accent, …). This file declares each of them as an ALIAS of a
+// role tokens.css already declares: no value is written here, so the redesign
+// cannot drift from the released palette, and a renamed role fails the build
+// through `hg()` instead of leaving a component unstyled.
+//
+// It is NOT imported by styles.css. The released apps keep exactly the CSS they
+// had; a redesign app opts in with
+//
+//   @import '@hg/ui-web/styles.css';
+//   @import '@hg/ui-web/shadcn.css';
+//
+// Mapping: the design-system rebuild plan, §3.2 (#110). Three rules are load-bearing:
+//  - `--accent` is shadcn's hover/selected WASH. Ours is the forest ramp. The
+//    alias goes to state-selected-tint and never to color.accent.*.
+//  - `--muted-foreground` is text-secondary, not text-tertiary (tertiary fails
+//    4.5:1 on raised and sunken surfaces, #167).
+//  - No alias may reach a halal or success solid. Solid green belongs to
+//    color.halal.* alone (invariant 10, lint L-4); the test pins it.
+//
+// Roles the mapping names that tokens.json does not declare yet
+// (surface-chrome-selected, border-on-chrome) are left out rather than
+// approximated; --sidebar-accent and --sidebar-border arrive with them.
+
+/** shadcn variable → our role custom property. Order is the emitted order. */
+const SHADCN_ALIASES = [
+  ['--background', '--hg-surface-base'],
+  ['--foreground', '--hg-text-primary'],
+  ['--card', '--hg-surface-raised'],
+  ['--card-foreground', '--hg-text-primary'],
+  ['--popover', '--hg-surface-raised'],
+  ['--popover-foreground', '--hg-text-primary'],
+  ['--primary', '--hg-action-primary-bg'],
+  ['--primary-foreground', '--hg-action-primary-fg'],
+  ['--secondary', '--hg-action-secondary-bg'],
+  ['--secondary-foreground', '--hg-action-secondary-fg'],
+  ['--muted', '--hg-surface-subtle'],
+  ['--muted-foreground', '--hg-text-secondary'],
+  ['--accent', '--hg-state-selected-tint'],
+  ['--accent-foreground', '--hg-text-primary'],
+  ['--destructive', '--hg-action-danger-bg'],
+  ['--destructive-foreground', '--hg-action-danger-fg'],
+  ['--border', '--hg-border-decorative'],
+  ['--input', '--hg-control-border'],
+  ['--ring', '--hg-focus-ring'],
+  ['--radius', '--hg-radius-md'],
+  ['--sidebar', '--hg-surface-chrome'],
+  ['--sidebar-foreground', '--hg-text-on-accent'],
+  ['--sidebar-primary', '--hg-action-primary-bg'],
+  ['--sidebar-primary-foreground', '--hg-action-primary-fg'],
+  // The chrome is forest; the computed ring for an accent container.
+  ['--sidebar-ring', '--hg-focus-ring-on-accent'],
+  ...[1, 2, 3, 4, 5].map((n) => [`--chart-${n}`, `--hg-color-viz-${n}`]),
+];
+
+/** Live design-system names (unprefixed) for density, re-resolved per scope. */
+const DENSITY_ALIASES = Object.keys(Object.values(density)[0]).map((k) => [
+  `--density-${kebab(k)}`,
+  `--hg-density-${kebab(k)}`,
+]);
+
+/** Colour aliases that become Tailwind utilities (bg-primary, text-muted-foreground, …). */
+const SHADCN_COLOURS = SHADCN_ALIASES.map(([name]) => name).filter((n) => n !== '--radius');
+
+const TEXT_SCALE = 2;
+const typeStyles = flattenTypography(typography);
+
+const shadcnAliasesCss = (() => {
+  const s = [];
+  s.push(BANNER(SOURCE_REL));
+  s.push('/*');
+  s.push(' * shadcn/ui variable names, each an alias of a HalalGoes role. Opt-in:');
+  s.push(' *');
+  s.push(" *   @import '@hg/ui-web/styles.css';");
+  s.push(" *   @import '@hg/ui-web/shadcn.css';");
+  s.push(' *');
+  s.push(' * No values live here; every right-hand side is a role from tokens.css.');
+  s.push(' * `--accent` is the selected wash (state-selected-tint), never the forest');
+  s.push(' * ramp. No alias reaches a halal or success solid (invariant 10, lint L-4).');
+  s.push(' */');
+  s.push('');
+  s.push('/* shadcn `dark:` utilities follow our theme attribute, not the media query. */');
+  s.push('@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));');
+  s.push('');
+  s.push('/* Declared wherever a role can change value, so each alias re-resolves there');
+  s.push('   (a custom property holding var() resolves on the element that declares it). */');
+  s.push(
+    ':root,\n[data-theme],\n' +
+      Object.keys(density)
+        .map((m) => `[data-hg-density="${m}"]`)
+        .join(',\n') +
+      ',\n[data-hg-theme],\n[data-hg-text-scale] {',
+  );
+  for (const [name, role] of SHADCN_ALIASES) s.push(`  ${name}: ${hg(role)};`);
+  s.push('');
+  s.push('  /* Density, under the live design system\'s names. */');
+  for (const [name, role] of DENSITY_ALIASES) s.push(`  ${name}: ${hg(role)};`);
+  s.push('}');
+  s.push('');
+  s.push(`/* Text at ${TEXT_SCALE * 100}% (#194): type sizes scale, spacing and layout do not. */`);
+  s.push(`[data-hg-text-scale="${TEXT_SCALE * 100}"] {`);
+  s.push(`  --hg-text-scale: ${TEXT_SCALE};`);
+  for (const [name, t] of Object.entries(typeStyles)) {
+    hg(`--hg-text-${name}-size`);
+    s.push(`  --hg-text-${name}-size: calc(${rem(t.fontSize)} * var(--hg-text-scale));`);
+    hg(`--hg-text-${name}-line-px`);
+    s.push(`  --hg-text-${name}-line-px: calc(${px(t.lineHeightPx)} * var(--hg-text-scale));`);
+  }
+  s.push('}');
+  s.push('');
+  s.push('/* Tailwind v4 utilities for the aliases. `inline`, so they follow the');
+  s.push('   nearest scope instead of freezing the :root value. */');
+  s.push('@theme inline {');
+  for (const name of SHADCN_COLOURS) s.push(`  --color-${name.slice(2)}: var(${name});`);
+  s.push('');
+  for (const [name] of DENSITY_ALIASES) s.push(`  --spacing-${name.slice(2)}: var(${name});`);
+  s.push('}');
+  return s.join('\n') + '\n';
+})();
+
+// ---------------------------------------------------------------------------
 // 11. Emit — index.ts
 // ---------------------------------------------------------------------------
 
@@ -924,6 +1050,7 @@ const artifacts = {
   'tokens.css': tokensCss,
   'theme.css': themeCss,
   'grid-theme.css': gridThemeCss,
+  'shadcn-aliases.css': shadcnAliasesCss,
   'index.ts': indexTs,
 };
 
