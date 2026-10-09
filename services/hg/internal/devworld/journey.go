@@ -296,7 +296,12 @@ func waitForReady(ctx context.Context, cust, kitchen *apiClient, order placedOrd
 }
 
 func riderClientFor(ctx context.Context, base string) (*apiClient, error) {
-	who, err := identity("rider-sim")
+	return riderAs(ctx, base, "rider-sim")
+}
+
+// riderAs signs in as a rider persona on the rider app's surface.
+func riderAs(ctx context.Context, base, slug string) (*apiClient, error) {
+	who, err := identity(slug)
 	if err != nil {
 		return nil, err
 	}
@@ -304,7 +309,7 @@ func riderClientFor(ctx context.Context, base string) (*apiClient, error) {
 	if err := c.signInPhone(ctx, who.Phone); err != nil {
 		return nil, err
 	}
-	fmt.Println("signed in  rider-sim")
+	fmt.Printf("signed in  %s\n", slug)
 	return c, nil
 }
 
