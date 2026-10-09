@@ -64,3 +64,14 @@ describe('legacy fallback bridge', () => {
     expect(toLegacy({ name: 'tracking', orderId: 'o' })).toEqual({ name: 'tracking', orderId: 'o' });
   });
 });
+
+describe('landing on another tab (WP1: signed in with an order on the way)', () => {
+  it('puts tracking above Home, so Back goes to Home', () => {
+    let s = initialNavState({ name: 'tracking', orderId: 'o1' }, 'home');
+    expect(s.tab).toBe('home');
+    expect(currentRoute(s)).toEqual({ name: 'tracking', orderId: 'o1' });
+    expect(canGoBack(s)).toBe(true);
+    s = reduceNav(s, { type: 'back' });
+    expect(currentRoute(s)).toEqual({ name: 'home' });
+  });
+});

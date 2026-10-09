@@ -1,0 +1,68 @@
+# Rider redesign WP1: sign in (R01 phone, R02 code, R03 opening) against devworld.
+# Cold start → "Sign in or apply to ride" → airplane mode on Send code ("You are offline", nothing
+# sent) → back online → code screen → a wrong code once shows the tries left → 000000 → the
+# splash → Home (the three-tab shell).
+#
+# Built with EXPO_PUBLIC_HG_REDESIGN=1 and a cleared Metro cache (see 0-shell.yaml).
+# Env: PHONE_DIGITS (rider-sim's ten digits; dev codes for +1 555 010 01xx are always 000000).
+appId: com.halalgoes.rider.dev
+name: rider redesign, sign in
+env:
+  PHONE_DIGITS: "5550100151"
+  WRONG_CODE: "111111"
+  CODE: "000000"
+---
+- launchApp:
+    clearState: true
+    permissions:
+      all: allow
+- extendedWaitUntil:
+    visible: "Sign in or apply to ride"
+    timeout: 90000
+- assertVisible: "Canadian numbers only (+1)."
+- takeScreenshot: rider-wp1-01-phone
+- tapOn:
+    id: "phone-field"
+- inputText: ${PHONE_DIGITS}
+- hideKeyboard
+
+# Offline: Send code sends nothing and says so (SO SignIn-Phone-Offline).
+- setAirplaneMode: enabled
+- tapOn: "Send code"
+- extendedWaitUntil:
+    visible: "You are offline"
+    timeout: 20000
+- assertVisible: "Nothing was sent. Connect to mobile data or Wi-Fi, then try again."
+- takeScreenshot: rider-wp1-02-phone-offline
+- setAirplaneMode: disabled
+# The screen re-reads PublicConfig every 5 s while offline; its answer clears the alert.
+- extendedWaitUntil:
+    notVisible: "You are offline"
+    timeout: 60000
+
+- tapOn: "Send code"
+- extendedWaitUntil:
+    visible: "Enter your code"
+    timeout: 30000
+- assertVisible: "We sent a 6-digit code to the number ending 0151."
+- assertVisible: "You can ask for a new code in .*"
+- takeScreenshot: rider-wp1-03-code
+
+# A wrong code clears the field and says how many tries are left (SO SignIn-Code-Incorrect).
+- tapOn:
+    id: "code-cell-0"
+- inputText: ${WRONG_CODE}
+- extendedWaitUntil:
+    visible: ".*That code is not right\\. You have \\d tr(y|ies) left\\..*"
+    timeout: 30000
+- takeScreenshot: rider-wp1-04-code-incorrect
+
+# The right code: the 6th digit checks it by itself.
+- tapOn:
+    id: "code-cell-0"
+- inputText: ${CODE}
+- extendedWaitUntil:
+    visible: "Earnings"
+    timeout: 60000
+- assertVisible: "Account"
+- takeScreenshot: rider-wp1-05-home
