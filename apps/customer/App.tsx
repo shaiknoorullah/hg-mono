@@ -26,6 +26,9 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ThemeProvider, useTheme, setClientErrorReporter, Wordmark } from '@hg/ui-native';
 import { useHgFonts } from '@hg/ui-native/fonts';
+// NativeWind's compiled tokens (redesign, N0). Inert for every flag-off screen: no screen in
+// this app passes a `className`.
+import '@hg/ui-native/global.customer.css';
 
 import { Router } from './src/navigation/Router';
 import { OrderingPauseProvider } from './src/ordering/orderingPause';
@@ -219,7 +222,7 @@ const styles = StyleSheet.create({
 // Root
 // ---------------------------------------------------------------------------
 
-export default function App(): React.ReactElement | null {
+function AppRoot(): React.ReactElement | null {
   const authed = React.useSyncExternalStore(subscribe, isAuthed, isAuthed);
   // Plus Jakarta Sans (the design system's `--hg-font-ui` counterpart), loaded once at the root
   // before anything renders — `ThemeProvider`'s `typeStyle()` emits these exact face names.
@@ -269,3 +272,24 @@ export default function App(): React.ReactElement | null {
     </StripeRoot>
   );
 }
+
+// ---------------------------------------------------------------------------
+// Redesign flag
+// ---------------------------------------------------------------------------
+
+/**
+ * `EXPO_PUBLIC_HG_REDESIGN=1` builds add the `@rn-primitives/portal` host that RNR overlays
+ * render into (redesign, N0); every other build exports `AppRoot` itself, so a flag-off build
+ * mounts exactly the tree it did before. The portal module is required inside the branch.
+ */
+function RedesignApp(): React.ReactElement {
+  const { PortalHost } = require('@rn-primitives/portal') as typeof import('@rn-primitives/portal');
+  return (
+    <>
+      <AppRoot />
+      <PortalHost />
+    </>
+  );
+}
+
+export default process.env.EXPO_PUBLIC_HG_REDESIGN === '1' ? RedesignApp : AppRoot;
