@@ -161,6 +161,21 @@ describe.each(SCHEMES)('Earnings line (%s)', (scheme) => {
     expect(screen.getByLabelText('Back to Payout')).toBeTruthy();
   });
 
+  it('opened from its payout, the payout row goes back to that payout instead of stacking another', async () => {
+    const e = byType('DELIVERY');
+    api = mockApi({ getRiderPayout: 'payout_detail_paid' });
+    renderRoute(scheme, 'earningsPayout', { payoutId: e.payout_id!, from: 'payouts' });
+    await waitFor(() => expect(screen.getByTestId('payout-lines')).toBeTruthy());
+    const detailEntry = payload('payout_detail_paid').entries[0];
+    fireEvent.press(screen.getByTestId(`entry-row-${detailEntry.id}`));
+    await waitFor(() => expect(screen.getByTestId('current-route').props.children).toBe('earningsLine'));
+    await waitFor(() => expect(screen.getByTestId('line-payout')).toBeTruthy());
+    fireEvent.press(screen.getByTestId('line-payout'));
+    await waitFor(() => expect(screen.getByTestId('current-route').props.children).toBe('earningsPayout'));
+    // Popped back to the payout it came from (its back label is still "Back to Payouts").
+    expect(screen.getByLabelText('Back to Payouts')).toBeTruthy();
+  });
+
   it('a reversed tip not in a payout says it will not be paid', () => {
     // Derived from earning_entries_mixed: the PAID tip, reversed before payout.
     const e = { ...byType('TIP'), status: 'REVERSED', payout_id: null };

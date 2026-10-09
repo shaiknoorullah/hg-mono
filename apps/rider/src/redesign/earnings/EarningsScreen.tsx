@@ -45,6 +45,7 @@ import {
   hoursLabel,
   isoDate,
   kmLabel,
+  loadingPeriodLine,
   payoutPeriod,
   payoutRowSub,
   periodRange,
@@ -195,11 +196,11 @@ export function EarningsScreen(): React.ReactElement {
 
       {summary.status === 'error' ? (
         <>
-          <SummaryError error={summary.error} onRetry={() => void summary.refetch()} />
+          <SummaryError error={summary.error} busy={summary.refreshing} onRetry={() => void summary.refetch()} />
           <Card variant="outlined" testID="earnings-payouts-card">
             <PayoutsRow onPress={() => nav.push('earningsPayouts')} />
           </Card>
-          <HistoryCard onActivity={() => nav.push('earningsActivity')} onDeliveries={() => nav.push('deliveries')} />
+          <HistoryCard onActivity={() => nav.push('earningsActivity', undefined)} onDeliveries={() => nav.push('deliveries')} />
         </>
       ) : (
         <>
@@ -209,6 +210,9 @@ export function EarningsScreen(): React.ReactElement {
               <NextPayoutBlock
                 next={next}
                 status={payouts.status}
+                // Connect status failed but payouts loaded: keep the amount, and still offer the
+                // one Try again the banner slot points at ("Try again under Next payout").
+                connectFailed={connect.status === 'error'}
                 onRetry={retrySlot}
                 negativeCause={clawback.data?.data[0] ?? null}
                 onSeeCorrection={(entry) => nav.push('earningsLine', { entry, from: 'earnings' })}
@@ -230,7 +234,7 @@ export function EarningsScreen(): React.ReactElement {
 
           {summary.status === 'loading' || !summary.data ? (
             <View style={{ gap: space['3'] }} testID="earnings-period-loading">
-              <LiveStatus text={`Loading ${periodTitle(sel.period, sel.offset).toLowerCase()}`} />
+              <LiveStatus text={loadingPeriodLine(sel.period, sel.offset)} />
               <Skeleton variant="rect" height={48} />
               <Skeleton variant="text" lines={3} />
             </View>
@@ -238,26 +242,26 @@ export function EarningsScreen(): React.ReactElement {
             <PeriodFigures summary={summary.data} sel={sel} onHome={goHome} />
           )}
 
-          <HistoryCard onActivity={() => nav.push('earningsActivity')} onDeliveries={() => nav.push('deliveries')} />
+          <HistoryCard onActivity={() => nav.push('earningsActivity', undefined)} onDeliveries={() => nav.push('deliveries')} />
 
           {summary.data ? <MadeOf bucket={summary.data.total} /> : null}
-          {summary.data && sel.period !== 'DAY' ? <ByDay summary={summary.data} period={sel.period} onPick={pickDay} /> : null}
+          {summary.data && sel.period !== 'DAY' ? <ByDay key={`${sel.period}-${sel.offset}`} summary={summary.data} period={sel.period} current={sel.offset === 0} onPick={pickDay} /> : null}
         </>
       )}
     </Frame>
   );
 }
 
-function SummaryError({ error, onRetry }: { error: RiderError | null; onRetry: () => void }): React.ReactElement {
+function SummaryError({ error, busy, onRetry }: { error: RiderError | null; busy: boolean; onRetry: () => void }): React.ReactElement {
   const limited = isRateLimited(error);
-  const waiting = useCooldown(limited);
+  const waiting = useCooldown(error);
   const copy = limited ? SUMMARY.rateLimited : SUMMARY.error;
   return (
     <View style={{ gap: space['3'] }} testID={limited ? 'earnings-rate-limited' : 'earnings-error'}>
       {/* ds-request(native): ErrorState rider variant (copy keyed on error.code, action in the bottom third) — EA Earnings-error / Earnings-rate-limited */}
       <ErrorState variant="inline" title={copy.title} description={copy.body} />
       {limited ? <Body>{RATE_LIMITED_WAIT}</Body> : null}
-      <Button variant="primary" size="xl" fullWidth disabled={waiting} onPress={onRetry} testID="earnings-retry">
+      <Button variant="primary" size="xl" fullWidth disabled={waiting} loading={busy} onPress={onRetry} testID="earnings-retry">
         {copy.action}
       </Button>
     </View>
@@ -393,7 +397,17 @@ function MadeOf({ bucket }: { bucket: EarningsBucket }): React.ReactElement {
   );
 }
 
-function ByDay({ summary, period, onPick }: { summary: EarningsSummary; period: EarningsPeriod; onPick: (b: EarningsBucket) => void }): React.ReactElement {
+function ByDay({
+  summary,
+  period,
+  current,
+  onPick,
+}: {
+  summary: EarningsSummary;
+  period: EarningsPeriod;
+  current: boolean;
+  onPick: (b: EarningsBucket) => void;
+}): React.ReactElement {
   const [expanded, setExpanded] = React.useState(false);
   const allZero = summary.buckets.every((b) => Number(b.gross_cents) === 0 && b.trips === 0);
   const collapsed = allZero && summary.buckets.length > 1 && !expanded;
@@ -402,7 +416,7 @@ function ByDay({ summary, period, onPick }: { summary: EarningsSummary; period: 
       <SectionTitle>By day</SectionTitle>
       {collapsed ? (
         <>
-          <Body>{`No earnings on any day this ${unitWord(period)}.`}</Body>
+          <Body>{`No earnings on any day ${current ? 'this' : 'that'} ${unitWord(period)}.`}</Body>
           <Button variant="tertiary" size="xl" fullWidth onPress={() => setExpanded(true)} testID="earnings-show-days">
             Show each day
           </Button>
@@ -458,22 +472,45 @@ export function PayoutsScreen(): React.ReactElement {
     const copy = isRateLimited(e) ? PAYOUTS.rateLimited : e?.kind === 'offline' ? PAYOUTS.offline : PAYOUTS.error;
     return (
       <Frame title="Payouts" back={back} testID="payouts">
-        <ScreenError copy={copy} rateLimited={isRateLimited(e)} onRetry={() => void first.refetch()} testID="payouts-error" />
+        <ScreenError copy={copy} error={e} busy={first.refreshing} onRetry={() => void first.refetch()} testID="payouts-error" />
       </Frame>
     );
   }
 
   const rows = list.rows;
+  if (rows.length === 0 && summary.status === 'loading') {
+    // Which empty state applies depends on the unpaid balance: wait for it rather than flash
+    // "nothing earned" and then swap to "first payout".
+    return (
+      <Frame title="Payouts" back={back} testID="payouts">
+        <LiveStatus text={PAYOUTS.loading} />
+        <Skeleton variant="rect" height={96} testID="payouts-skeleton" />
+      </Frame>
+    );
+  }
   if (rows.length === 0) {
     const unpaid = summary.data ? Number(summary.data.unpaid_balance_cents) : 0;
-    if (unpaid > 0) {
-      const date = summary.data?.next_payout_at ? dayLabel(summary.data.next_payout_at) : null;
+    if (summary.data && unpaid > 0) {
+      const date = summary.data.next_payout_at ? dayLabel(summary.data.next_payout_at) : null;
+      // The rider has earned: the summary card stays (unpaid balance, when the first payout goes).
+      const first: NextPayout = { ...nextPayout([], connect.data, summary.data), noNext: PAYOUTS.firstPayout.noNext(date), pendingLine: true };
       return (
         <Frame title="Payouts" back={back} testID="payouts">
+          <Card variant="outlined" testID="payouts-summary">
+            <NextPayoutBlock
+              next={first}
+              status="success"
+              onRetry={() => void summary.refetch()}
+              negativeCause={null}
+              onSeeCorrection={() => undefined}
+              unpaid={summary.data.unpaid_balance_cents}
+              variant="payouts"
+            />
+          </Card>
           <EmptyState
             title={PAYOUTS.firstPayout.title}
             description={`${PAYOUTS.firstPayout.body(date)}\n\n${PAYOUTS.firstPayout.more}`}
-            primaryAction={{ label: PAYOUTS.firstPayout.action, onPress: () => nav.push('earningsActivity') }}
+            primaryAction={{ label: PAYOUTS.firstPayout.action, onPress: () => nav.push('earningsActivity', { backTitle: 'Payouts' }) }}
             testID="payouts-first-payout"
           />
         </Frame>
@@ -545,6 +582,7 @@ export function PayoutsScreen(): React.ReactElement {
 function NextPayoutBlock({
   next,
   status,
+  connectFailed = false,
   onRetry,
   negativeCause,
   onSeeCorrection,
@@ -553,6 +591,7 @@ function NextPayoutBlock({
 }: {
   next: NextPayout;
   status: QueryResult<unknown>['status'];
+  connectFailed?: boolean;
   onRetry: () => void;
   negativeCause: EarningEntry | null;
   onSeeCorrection: (e: EarningEntry) => void;
@@ -585,6 +624,11 @@ function NextPayoutBlock({
           {next.soFar ? <Body secondary>{NEXT.soFar}</Body> : null}
         </View>
         {next.note ? <Body>{next.note}</Body> : null}
+        {connectFailed ? (
+          <Button variant="primary" size="xl" fullWidth onPress={onRetry} testID="earnings-next-retry">
+            Try again
+          </Button>
+        ) : null}
       </View>
     );
   } else {
@@ -592,6 +636,11 @@ function NextPayoutBlock({
       <View style={{ gap: space['1'] }} testID="earnings-no-next">
         {variant === 'earnings' ? label('Next payout') : null}
         <Body>{next.noNext}</Body>
+        {connectFailed ? (
+          <Button variant="primary" size="xl" fullWidth onPress={onRetry} testID="earnings-next-retry">
+            Try again
+          </Button>
+        ) : null}
       </View>
     );
   }
@@ -608,7 +657,7 @@ function NextPayoutBlock({
       {next.held ? (
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', columnGap: space['2'] }} testID="earnings-held-extra">
           <Price cents={next.held.amount} size="md" />
-          <Body>{NEXT.heldExtra(next.held.period)}</Body>
+          <Body>{next.held.text}</Body>
         </View>
       ) : null}
       {next.negative ? (
@@ -650,7 +699,11 @@ function AlertStack({
 }): React.ReactElement | null {
   const [fixError, setFixError] = React.useState<RiderError | null>(null);
   const [opening, setOpening] = React.useState(false);
+  // Two taps in one frame must not mint two Stripe links and open two browsers.
+  const openingRef = React.useRef(false);
   const fix = async () => {
+    if (openingRef.current) return;
+    openingRef.current = true;
     setFixError(null);
     setOpening(true);
     try {
@@ -658,6 +711,7 @@ function AlertStack({
     } catch (e) {
       setFixError(toRiderError(e));
     } finally {
+      openingRef.current = false;
       setOpening(false);
     }
   };
@@ -710,13 +764,26 @@ function PausedBlock({ copy, onAccount, testID }: { copy: StateCopy; onAccount: 
   );
 }
 
-function ScreenError({ copy, rateLimited, onRetry, testID }: { copy: StateCopy; rateLimited: boolean; onRetry: () => void; testID: string }): React.ReactElement {
-  const waiting = useCooldown(rateLimited);
+function ScreenError({
+  copy,
+  error,
+  busy,
+  onRetry,
+  testID,
+}: {
+  copy: StateCopy;
+  error: RiderError | null;
+  busy: boolean;
+  onRetry: () => void;
+  testID: string;
+}): React.ReactElement {
+  const rateLimited = isRateLimited(error);
+  const waiting = useCooldown(error);
   return (
     <View style={{ gap: space['4'] }} testID={testID}>
       <ErrorState variant="inline" title={copy.title} description={copy.body} />
       {rateLimited ? <Body>{RATE_LIMITED_WAIT}</Body> : null}
-      <Button variant="primary" size="xl" fullWidth disabled={waiting} onPress={onRetry} testID={`${testID}-retry`}>
+      <Button variant="primary" size="xl" fullWidth disabled={waiting} loading={busy} onPress={onRetry} testID={`${testID}-retry`}>
         {copy.action ?? 'Try again'}
       </Button>
     </View>

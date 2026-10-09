@@ -113,6 +113,9 @@ export const PAYOUTS = {
         : 'Your first payout goes out on the Monday after your first lines are available.',
     more: 'Payouts go out every Monday. There is no minimum.',
     action: 'See earnings activity',
+    /** The summary card's line above the empty state (EA Payouts-first-payout `SUM.firstpayout`). */
+    noNext: (date: string | null) =>
+      date ? `Your first payout goes out ${date}.` : 'Your first payout goes out on the Monday after your first lines are available.',
   },
   heading: 'Past and upcoming payouts',
   pendingLine: "Includes lines still pending. Pending lines go into a later payout once they're available.",
@@ -222,6 +225,7 @@ export const NEXT = {
   negative: 'No payout this Monday: there is nothing to send.',
   heldExtra: (period: string) =>
     `is on hold in the payout for ${period}. Once the hold is lifted, it goes out on the next Monday payout.`,
+  heldExtraShort: (period: string) => `is on hold in the payout for ${period}.`,
   negativeCause: (date: string) =>
     `correction on ${date} was larger than your available earnings. The difference is carried forward and comes off your next earnings.`,
   neverBank: 'HalalGoes never takes money from your bank account.',

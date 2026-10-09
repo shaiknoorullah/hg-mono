@@ -139,9 +139,17 @@ export function unitWord(period: EarningsPeriod): 'day' | 'week' | 'month' {
 
 /** The line shown when a period has no deliveries. */
 export function zeroLine(period: EarningsPeriod, offset: number): string {
-  if (offset !== 0) return `No deliveries ${periodTitle(period, offset).toLowerCase()}.`;
+  if (offset === -1) return `No deliveries ${periodTitle(period, offset).toLowerCase()}.`;
+  // Older periods are named by date: keep the day and month names capitalised.
+  if (offset < -1) return `No deliveries ${period === 'DAY' ? 'on' : period === 'MONTH' ? 'in' : 'from'} ${periodTitle(period, offset)}.`;
   if (period === 'DAY') return 'No deliveries yet today. Go online from Home to get offers.';
   return `No deliveries this ${unitWord(period)}. Go online from Home to get offers.`;
+}
+
+/** The hidden status line while a period loads: "Loading last week", "Loading Wednesday 16 September". */
+export function loadingPeriodLine(period: EarningsPeriod, offset: number): string {
+  const title = periodTitle(period, offset);
+  return `Loading ${offset === 0 || offset === -1 ? title.toLowerCase() : title}`;
 }
 
 export function tripsWord(n: number): string {

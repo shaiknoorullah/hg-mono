@@ -53,7 +53,7 @@ import type { LineFrom } from './routes';
 
 /* =========================================================================== R36 Activity */
 
-export function ActivityScreen(): React.ReactElement {
+export function ActivityScreen({ params }: ScreenProps<'earningsActivity'>): React.ReactElement {
   const nav = useNav();
   const online = useOnline();
   const list = usePagedList<EarningEntry>(
@@ -61,7 +61,7 @@ export function ActivityScreen(): React.ReactElement {
     React.useCallback((cursor?: string) => fetchEntries(cursor ? { cursor } : {}), []),
   );
   const first = list.first;
-  const back = { onPress: () => nav.pop(), previousTitle: 'Earnings' };
+  const back = { onPress: () => nav.pop(), previousTitle: params?.backTitle ?? 'Earnings' };
 
   if (first.status === 'loading') {
     return (
@@ -83,7 +83,7 @@ export function ActivityScreen(): React.ReactElement {
     }
     return (
       <Frame title="Earnings activity" back={back} testID="activity">
-        <ScreenError copy={isRateLimited(e) ? ACTIVITY.rateLimited : ACTIVITY.error} rateLimited={isRateLimited(e)} onRetry={() => void first.refetch()} testID="activity-error" />
+        <ScreenError copy={isRateLimited(e) ? ACTIVITY.rateLimited : ACTIVITY.error} error={e} busy={first.refreshing} onRetry={() => void first.refetch()} testID="activity-error" />
       </Frame>
     );
   }
@@ -267,7 +267,14 @@ export function LineScreen({ params }: ScreenProps<'earningsLine'>): React.React
       <View style={{ gap: space['3'] }}>
         <SectionTitle>Payout</SectionTitle>
         {e.payout_id ? (
-          <LinePayout payoutId={e.payout_id} onOpen={(payoutId) => nav.push('earningsPayout', { payoutId, from: 'line', backTitle: ENTRY_TITLE[e.type] })} onPayouts={() => nav.push('earningsPayouts')} />
+          <LinePayout
+            payoutId={e.payout_id}
+            // Opened from that payout's own page: go back to it rather than stack Payout → line → Payout.
+            onOpen={(payoutId) =>
+              params.from === 'payout' ? nav.pop() : nav.push('earningsPayout', { payoutId, from: 'line', backTitle: ENTRY_TITLE[e.type] })
+            }
+            onPayouts={() => nav.push('earningsPayouts')}
+          />
         ) : (
           <Body testID="line-no-payout">{noPayoutText(e)}</Body>
         )}
@@ -331,6 +338,8 @@ export function PayoutScreen({ params }: ScreenProps<'earningsPayout'>): React.R
   const [expanded, setExpanded] = React.useState(false);
   const [fixError, setFixError] = React.useState<RiderError | null>(null);
   const [opening, setOpening] = React.useState(false);
+  // Two taps in one frame must not mint two Stripe links and open two browsers.
+  const openingRef = React.useRef(false);
   const previousTitle = params.from === 'payouts' ? 'Payouts' : params.from === 'earnings' ? 'Earnings' : (params.backTitle ?? 'Earnings line');
   const back = { onPress: () => nav.pop(), previousTitle };
   const goPayouts = () => (params.from === 'payouts' ? nav.pop() : nav.replace('earningsPayouts'));
@@ -368,7 +377,7 @@ export function PayoutScreen({ params }: ScreenProps<'earningsPayout'>): React.R
     const copy = isRateLimited(e) ? PAYOUT.rateLimited : e?.kind === 'offline' ? PAYOUT.offline : PAYOUT.error;
     return (
       <Frame title="Payout" back={back} testID="payout">
-        <ScreenError copy={copy} rateLimited={isRateLimited(e)} onRetry={() => void payout.refetch()} testID="payout-error" />
+        <ScreenError copy={copy} error={e} busy={payout.refreshing} onRetry={() => void payout.refetch()} testID="payout-error" />
       </Frame>
     );
   }
@@ -378,6 +387,8 @@ export function PayoutScreen({ params }: ScreenProps<'earningsPayout'>): React.R
   const fix = problem && needsFix(connect.data);
   const count = p.entry_count ?? p.entries.length;
   const openFix = async () => {
+    if (openingRef.current) return;
+    openingRef.current = true;
     setFixError(null);
     setOpening(true);
     try {
@@ -385,6 +396,7 @@ export function PayoutScreen({ params }: ScreenProps<'earningsPayout'>): React.R
     } catch (err) {
       setFixError(toRiderError(err));
     } finally {
+      openingRef.current = false;
       setOpening(false);
     }
   };
@@ -438,14 +450,14 @@ export function PayoutScreen({ params }: ScreenProps<'earningsPayout'>): React.R
         <View style={{ gap: space['3'] }} testID="payout-returned">
           <SectionTitle>{PAYOUT.returned.title(count)}</SectionTitle>
           <Body>{PAYOUT.returned.body}</Body>
-          <Button variant="tertiary" size="xl" fullWidth onPress={() => nav.push('earningsActivity')}>
+          <Button variant="tertiary" size="xl" fullWidth onPress={() => nav.push('earningsActivity', { backTitle: 'Payout' })}>
             {PAYOUT.returned.action}
           </Button>
         </View>
       ) : p.entries.length === 0 ? (
         <View style={{ gap: space['3'] }} testID="payout-no-lines">
           <Banner variant="neutral" title={PAYOUT.noLines.title} description={PAYOUT.noLines.body} />
-          <Button variant="tertiary" size="xl" fullWidth onPress={() => nav.push('earningsActivity')}>
+          <Button variant="tertiary" size="xl" fullWidth onPress={() => nav.push('earningsActivity', { backTitle: 'Payout' })}>
             {PAYOUT.noLines.action}
           </Button>
         </View>
@@ -551,14 +563,27 @@ function PausedBlock({ copy, onAccount, testID }: { copy: StateCopy; onAccount: 
   );
 }
 
-function ScreenError({ copy, rateLimited, onRetry, testID }: { copy: StateCopy; rateLimited: boolean; onRetry: () => void; testID: string }): React.ReactElement {
-  const waiting = useCooldown(rateLimited);
+function ScreenError({
+  copy,
+  error,
+  busy,
+  onRetry,
+  testID,
+}: {
+  copy: StateCopy;
+  error: RiderError | null;
+  busy: boolean;
+  onRetry: () => void;
+  testID: string;
+}): React.ReactElement {
+  const rateLimited = isRateLimited(error);
+  const waiting = useCooldown(error);
   return (
     <View style={{ gap: space['4'] }} testID={testID}>
       {/* ds-request(native): ErrorState rider variant (role=alert on heading + message, action in the bottom third) — EA *-error / *-rate-limited */}
       <ErrorState variant="inline" title={copy.title} description={copy.body} />
       {rateLimited ? <Body>{RATE_LIMITED_WAIT}</Body> : null}
-      <Button variant="primary" size="xl" fullWidth disabled={waiting} onPress={onRetry} testID={`${testID}-retry`}>
+      <Button variant="primary" size="xl" fullWidth disabled={waiting} loading={busy} onPress={onRetry} testID={`${testID}-retry`}>
         {copy.action ?? 'Try again'}
       </Button>
     </View>

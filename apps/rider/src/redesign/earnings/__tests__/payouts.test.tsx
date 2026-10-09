@@ -14,8 +14,8 @@ jest.mock('react-native-safe-area-context', () => {
 import { reportTransportFailure, resetConnectivity } from '../../data/connectivity';
 import { mockApi, payload, type MockApi } from '../../test/mockApi';
 import { SCHEMES } from '../../test/render';
-import { PAUSED, PAYOUT, PAYOUTS } from '../copy';
-import { PAYOUT_STATE_WORD, payoutPeriod, payoutPeriodLong, payoutRowSub, type PayoutState } from '../format';
+import { NEXT, PAUSED, PAYOUT, PAYOUTS } from '../copy';
+import { PAYOUT_STATE_WORD, dayLabel, payoutPeriod, payoutPeriodLong, payoutRowSub, type PayoutState } from '../format';
 import { ACCOUNT_NOT_ACTIVE, money, ok, page, payoutList, renderRoute } from './harness';
 
 let api: MockApi;
@@ -87,8 +87,15 @@ describe.each(SCHEMES)('Payouts (%s)', (scheme) => {
     api = mockApi({ listRiderPayouts: 'payout_list_empty', getRiderEarningsSummary: 'earnings_summary_week' });
     renderRoute(scheme, 'earningsPayouts', undefined);
     await waitFor(() => expect(screen.getByTestId('payouts-first-payout')).toBeTruthy());
+    // The summary card stays above the empty state (EA Payouts-first-payout): the unpaid balance
+    // as returned and when the first payout goes, never "Nothing is waiting to be paid".
+    const week = payload('earnings_summary_week');
+    expect(screen.getByTestId('earnings-unpaid-amount').props.children).toBe(money(week.unpaid_balance_cents));
+    expect(screen.getByText(PAYOUTS.firstPayout.noNext(dayLabel(week.next_payout_at)))).toBeTruthy();
+    expect(screen.queryByText(NEXT.nothing)).toBeNull();
     fireEvent.press(screen.getByText(PAYOUTS.firstPayout.action));
     await waitFor(() => expect(screen.getByTestId('current-route').props.children).toBe('earningsActivity'));
+    expect(screen.getByLabelText('Back to Payouts')).toBeTruthy();
   });
 
   it.each([

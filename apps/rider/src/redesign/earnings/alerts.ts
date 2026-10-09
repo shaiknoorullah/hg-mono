@@ -111,7 +111,7 @@ export interface NextPayout {
   noNext: string | null;
   negative: boolean;
   /** A HELD payout's own amount and period, for the "is on hold in the payout for…" line. */
-  held: { amount: Cents; period: string } | null;
+  held: { amount: Cents; period: string; text: string } | null;
   pendingLine: boolean;
 }
 
@@ -138,7 +138,15 @@ export function nextPayout(
     note,
     noNext: upcoming ? null : negative ? NEXT.negative : NEXT.nothing,
     negative,
-    held: heldPayout ? { amount: heldPayout.amount_cents, period: payoutPeriod(heldPayout) } : null,
+    // With a failed payout too (Payouts-multi) the line stops at the period: the "Two payouts
+    // need attention" banner already says what happens next.
+    held: heldPayout
+      ? {
+          amount: heldPayout.amount_cents,
+          period: payoutPeriod(heldPayout),
+          text: failed ? NEXT.heldExtraShort(payoutPeriod(heldPayout)) : NEXT.heldExtra(payoutPeriod(heldPayout)),
+        }
+      : null,
     pendingLine: upcoming?.state === 'DRAFT',
   };
 }

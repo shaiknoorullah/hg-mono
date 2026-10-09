@@ -175,6 +175,26 @@ describe.each(SCHEMES)('Earnings summary (%s)', (scheme) => {
     expect(screen.getByText(SUMMARY.nextFailed)).toBeTruthy();
   });
 
+  it('connect status that could not load: the slot says so and Next payout keeps its amount with Try again', async () => {
+    api = mockApi({
+      getRiderEarningsSummary: 'earnings_summary_week',
+      listRiderPayouts: payoutList('payout_draft'),
+      getConnectStatus: (_c, n) => (n === 0 ? 'error_internal_error' : 'connect_status_complete'),
+    });
+    renderEarningsTab(scheme);
+    await waitFor(() => expect(screen.getByText(SUMMARY.slotError.title)).toBeTruthy());
+    expect(screen.getByTestId('earnings-next-amount').props.children).toBe(money(payload('payout_draft').amount_cents));
+    fireEvent.press(screen.getByTestId('earnings-next-retry'));
+    await waitFor(() => expect(api.callsTo('getConnectStatus')).toHaveLength(2));
+    // Let the retried answers land.
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 50));
+    });
+    expect(screen.queryByText(SUMMARY.slotError.title)).toBeNull();
+    expect(api.callsTo('listRiderPayouts')).toHaveLength(2);
+    expect(screen.queryByTestId('earnings-next-retry')).toBeNull();
+  });
+
   it('balance below zero names the newest correction and opens it', async () => {
     const clawback = payload('earning_entries_mixed').find((e: { type: string }) => e.type === 'CLAWBACK');
     api = mockApi({

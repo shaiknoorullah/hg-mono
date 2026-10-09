@@ -113,8 +113,13 @@ export function usePagedList<T>(key: string, fetchPage: (cursor?: string) => Pro
   const [loadingMore, setLoadingMore] = React.useState(false);
   const [moreError, setMoreError] = React.useState<RiderError | null>(null);
 
-  // A fresh first page starts the paging over (the newest rows may have shifted).
+  // A fresh first page starts the paging over (the newest rows may have shifted). The
+  // generation drops an older page that was still in flight when the first page changed, so it
+  // is never appended after the wrong cursor (duplicated or skipped rows).
+  const generation = React.useRef(0);
+  const inFlight = React.useRef(false);
   React.useEffect(() => {
+    generation.current += 1;
     setOlder(null);
     setMoreError(null);
   }, [first.updatedAt]);
@@ -123,22 +128,27 @@ export function usePagedList<T>(key: string, fetchPage: (cursor?: string) => Pro
   const hasMore = older ? older.hasMore : !!(first.data?.meta.has_more && first.data.meta.next_cursor);
 
   const loadMore = React.useCallback(async () => {
-    if (!cursor || loadingMore) return;
+    // A ref, not state: two taps in one frame must not fetch (and append) the same page twice.
+    if (!cursor || inFlight.current) return;
+    inFlight.current = true;
+    const mine = generation.current;
     setLoadingMore(true);
     setMoreError(null);
     try {
       const page = await fetchPage(cursor);
+      if (mine !== generation.current) return;
       setOlder((o) => ({
         rows: [...(o?.rows ?? []), ...page.data],
         cursor: page.meta.next_cursor,
         hasMore: !!(page.meta.has_more && page.meta.next_cursor),
       }));
     } catch (e) {
-      setMoreError(toRiderError(e));
+      if (mine === generation.current) setMoreError(toRiderError(e));
     } finally {
+      inFlight.current = false;
       setLoadingMore(false);
     }
-  }, [cursor, fetchPage, loadingMore]);
+  }, [cursor, fetchPage]);
 
   const rows = React.useMemo(() => [...(first.data?.data ?? []), ...(older?.rows ?? [])], [first.data, older]);
   return { first, rows, hasMore, loadingMore, moreError, loadMore };
@@ -150,16 +160,18 @@ export function usePagedList<T>(key: string, fetchPage: (cursor?: string) => Pro
  */
 export const RATE_LIMIT_WAIT_MS = 30_000;
 
-export function useCooldown(active: boolean): boolean {
-  const [waiting, setWaiting] = React.useState(active);
+export function useCooldown(error: RiderError | null | undefined): boolean {
+  // Keyed on the error itself: every new 429 (a retry that was limited again) restarts the wait.
+  const limited = isRateLimited(error) ? error : null;
+  const [waiting, setWaiting] = React.useState(!!limited);
   React.useEffect(() => {
-    if (!active) {
+    if (!limited) {
       setWaiting(false);
       return;
     }
     setWaiting(true);
     const id = setTimeout(() => setWaiting(false), RATE_LIMIT_WAIT_MS);
     return () => clearTimeout(id);
-  }, [active]);
+  }, [limited]);
   return waiting;
 }

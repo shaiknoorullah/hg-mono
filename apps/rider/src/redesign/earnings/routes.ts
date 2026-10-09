@@ -15,7 +15,8 @@ export type PayoutFrom = 'payouts' | 'earnings' | 'line';
 
 declare module '../nav/routes' {
   interface RedesignRoutes {
-    earningsActivity: undefined;
+    /** `backTitle` when opened from somewhere other than Earnings (a Payout's "See them in Earnings activity"). */
+    earningsActivity: { backTitle?: string } | undefined;
     /** Rendered from the row that opened it (there is no GET for one entry). */
     earningsLine: { entry: Schema['EarningEntry']; from: LineFrom };
     earningsPayouts: undefined;
