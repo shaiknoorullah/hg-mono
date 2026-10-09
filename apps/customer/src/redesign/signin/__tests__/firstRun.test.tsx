@@ -130,6 +130,43 @@ describe('S3 Your details', () => {
     expect(screen.getByTestId('Profile-first-field').props.value).toBe('Aisha');
   });
 
+  it('EMAIL_IN_USE: the email-rejected field error, not the connection banner', async () => {
+    mock.answer('updateCustomerProfile', { status: 422, code: 'EMAIL_IN_USE' });
+    renderRedesign(<YourDetailsScreen />);
+    await ready();
+    fireEvent.changeText(screen.getByTestId('Profile-first-field'), 'Aisha');
+    fireEvent.changeText(screen.getByTestId('Profile-email-field'), 'aisha.malik@example.com');
+    fireEvent.press(screen.getByText('Save and continue'));
+    expect(await screen.findByText(/We couldn't use this email\. Check it's typed correctly, or leave it blank\./)).toBeTruthy();
+    expect(screen.queryByText("We couldn't save your details")).toBeNull();
+  });
+
+  it('an unchanged email is not sent again (it would clear the verified state)', async () => {
+    mock.answer('getCustomerProfile', {
+      status: 200,
+      body: { data: { ...PROFILE, first_name: '', email: 'Aisha.Malik@example.com', default_address_id: null } },
+    });
+    renderRedesign(<YourDetailsScreen />);
+    await ready();
+    await waitFor(() => expect(screen.getByTestId('Profile-email-field').props.value).toBe('Aisha.Malik@example.com'));
+    fireEvent.changeText(screen.getByTestId('Profile-first-field'), 'Aisha');
+    fireEvent.changeText(screen.getByTestId('Profile-email-field'), 'aisha.malik@example.com');
+    fireEvent.press(screen.getByText('Save and continue'));
+    await waitFor(() => expect(mock.callsTo('updateCustomerProfile')).toHaveLength(1));
+    expect(mock.callsTo('updateCustomerProfile')[0]!.body).not.toHaveProperty('email');
+  });
+
+  it('a failed Save says the first invalid field’s error out loud', async () => {
+    const { AccessibilityInfo } = require('react-native');
+    const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility');
+    renderRedesign(<YourDetailsScreen />);
+    await ready();
+    fireEvent.changeText(screen.getByTestId('Profile-email-field'), 'aisha.malik@');
+    fireEvent.press(screen.getByText('Save and continue'));
+    expect(announce).toHaveBeenCalledWith('Enter your first name.');
+    announce.mockRestore();
+  });
+
   it('save failed: We couldn’t save your details', async () => {
     mock.answer('updateCustomerProfile', 'error_internal_error');
     renderRedesign(<YourDetailsScreen />);

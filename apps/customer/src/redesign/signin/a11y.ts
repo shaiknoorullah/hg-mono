@@ -1,6 +1,10 @@
 /**
  * Focus helpers for the sign-in pages (manifest global rule 6: focus goes to the page's only h1 on
- * arrival, and to the error on failure). Hooks only; the pages compose DS components.
+ * arrival, and to the error on failure). The pages compose DS components.
+ *
+ * The DS Input forwards no ref, so a page cannot move focus into an invalid field yet (ds-request:
+ * Input ref / focus). Until it can, a failed submit announces the field's error with
+ * `announceError`, so a screen-reader user hears it at once instead of finding it later.
  */
 import * as React from 'react';
 import { AccessibilityInfo, findNodeHandle } from 'react-native';
@@ -20,4 +24,16 @@ export function useFocusOnMount(ref: React.RefObject<unknown>, key: unknown = nu
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, enabled]);
+}
+
+/**
+ * Say a submit's error out loud (manifest global rule 6, boards `SI/*-invalidfocus`). Call it with
+ * the first invalid field's error, in reading order, each time a submit fails validation.
+ */
+export function announceError(message: string): void {
+  try {
+    AccessibilityInfo.announceForAccessibility(message);
+  } catch {
+    // A renderer without announcements just skips it; the error is still drawn in the field.
+  }
 }

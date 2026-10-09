@@ -166,7 +166,7 @@ describe('S2 Code', () => {
     expect(screen.getByText('Verify and continue')).toBeTruthy();
   });
 
-  it('expired with no resend left: This sign-in timed out, and Start again carries the server wait', async () => {
+  it('expired with no resend left: This sign-in timed out, and Start again returns to the ready Sign in', async () => {
     mock.answer('verifyOtp', { status: 400, code: 'OTP_INVALID_OR_EXPIRED' });
     renderRedesign(<SignInScreen />);
     await toCode();
@@ -178,7 +178,39 @@ describe('S2 Code', () => {
     expect(await screen.findByText('This sign-in timed out')).toBeTruthy();
     expect(screen.getByText("Sign-in attempts last 15 minutes. Start again with your number and we'll send a fresh code.")).toBeTruthy();
     fireEvent.press(screen.getByText('Start again'));
-    expect(screen.getByText('You can ask for a new code at 6:48 pm.')).toBeTruthy();
+    expect(screen.getByText('Sign in or create an account')).toBeTruthy();
+    expect(screen.getByTestId('SignIn-phone-field').props.value).toContain('416');
+    expect(screen.queryByText(/You can ask for a new code at/)).toBeNull();
+    expect(screen.queryByText('Too many codes asked for')).toBeNull();
+    expect(isDisabled('SignIn-send')).toBe(false);
+  });
+
+  it('the third send is the last: No more resends, no toast, no Resend, and no time the server did not give', async () => {
+    renderRedesign(<SignInScreen />);
+    await toCode();
+    act(() => setNowOverride({ at: Date.parse('2026-10-09T22:44:05Z') }));
+    fireEvent.press(screen.getByText('Resend code'));
+    expect(await screen.findByText('Code sent again')).toBeTruthy();
+    act(() => setNowOverride({ at: Date.parse('2026-10-09T22:46:05Z') }));
+    fireEvent.press(screen.getByText('Resend code'));
+    expect(await screen.findByText('No more resends for this sign-in')).toBeTruthy();
+    expect(mock.callsTo('requestOtp')).toHaveLength(3);
+    expect(screen.queryByText('Code sent again')).toBeNull();
+    expect(screen.queryByText('Resend code')).toBeNull();
+    expect(screen.queryByText(/You can ask for a fresh code after/)).toBeNull();
+    expect(screen.getByText('Verify and continue')).toBeTruthy();
+    expect(screen.getByText('Start again')).toBeTruthy();
+  });
+
+  it('a failed submit says its error out loud (focus cannot move into the DS Input yet)', async () => {
+    const { AccessibilityInfo } = require('react-native');
+    const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility');
+    renderRedesign(<SignInScreen />);
+    await toCode();
+    typeCode('48291');
+    fireEvent.press(screen.getByText('Verify and continue'));
+    expect(announce).toHaveBeenCalledWith('Enter all 6 digits of the code.');
+    announce.mockRestore();
   });
 
   it('resend limit: No more resends, with the time from Retry-After', async () => {

@@ -8,11 +8,11 @@ import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 
 import { setToken } from '../../../api/token';
 import { api } from '../../api/client';
-import { resetAuthForTests, signOut } from '../../api/auth';
+import { isLogoutPending, resetAuthForTests, signOut } from '../../api/auth';
 import { resetPublicConfigCache } from '../../api/config';
 import { resetConnectivity } from '../../lib/connectivity';
 import { setNowOverride } from '../../lib/now';
-import { clearForced } from '../../session/forced';
+import { clearForced, getForced } from '../../session/forced';
 import { resetSessionForTests } from '../../session/session';
 import { mockApi, payloadOf, type MockApi } from '../../test/mockApi';
 import { renderRedesign } from '../../test/render';
@@ -76,6 +76,16 @@ describe('S1 Sign in', () => {
     fireEvent.press(screen.getByText('Send code'));
     expect(screen.getByText(/Enter all 10 digits of your mobile number, like 416 555 0134\./)).toBeTruthy();
     expect(mock.callsTo('requestOtp')).toHaveLength(0);
+  });
+
+  it('a failed Send code says the error out loud (focus cannot move into the DS Input yet)', () => {
+    const { AccessibilityInfo } = require('react-native');
+    const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility');
+    renderRedesign(<SignInScreen />);
+    typePhone('41655501');
+    fireEvent.press(screen.getByText('Send code'));
+    expect(announce).toHaveBeenCalledWith('Enter all 10 digits of your mobile number, like 416 555 0134.');
+    announce.mockRestore();
   });
 
   it('refuses a pasted non-Canadian number', () => {
@@ -228,6 +238,35 @@ describe('S6 Signed out', () => {
     await waitFor(() => expect(screen.queryByText(/We'll finish signing this phone out/)).toBeNull());
     expect(mock.callsTo('logout').length).toBe(2);
     expect(mock.callsTo('logout')[1]!.headers.authorization).toBe('Bearer access');
+  });
+
+  it('an expired access token: the kept refresh token gets a new one and the session is still revoked', async () => {
+    const grant = payloadOf('session_grant_customer');
+    mock.answer('logout', [{ status: 401, code: 'AUTHENTICATION_REQUIRED' }, { status: 204, body: null }]);
+    mock.answer('refreshSession', { status: 200, body: { data: { ...grant, access_token: 'fresh', refresh_token: 'hgrt_y' } } });
+    act(() => {
+      setToken('stale', 'hgrt_x');
+      signOut('signedOut');
+    });
+    await waitFor(() => expect(mock.callsTo('logout')).toHaveLength(2));
+    expect(mock.callsTo('refreshSession')[0]!.body).toEqual({ refresh_token: 'hgrt_x' });
+    expect(mock.callsTo('logout')[0]!.headers.authorization).toBe('Bearer stale');
+    expect(mock.callsTo('logout')[1]!.headers.authorization).toBe('Bearer fresh');
+    expect(isLogoutPending()).toBe(false);
+    expect(getForced()).toBeNull();
+  });
+
+  it('a session the server already revoked: done, with no refresh and no forced route', async () => {
+    mock.answer('logout', { status: 401, code: 'SESSION_REVOKED' });
+    act(() => {
+      setToken('access', 'hgrt_x');
+      signOut('signedOut');
+    });
+    await waitFor(() => expect(mock.callsTo('logout')).toHaveLength(1));
+    await act(async () => {});
+    expect(mock.callsTo('refreshSession')).toHaveLength(0);
+    expect(isLogoutPending()).toBe(false);
+    expect(getForced()).toBeNull();
   });
 
   it('"Not you?": the right number to continue', () => {

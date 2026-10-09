@@ -35,3 +35,10 @@ explore: >
   bar, focus on the title; with support closed only "Sign out" shows.
   (6) Keyboard open on Sign in, Code and Your details: the primary button stays reachable above the
   keyboard (boards SI/SignIn-kbd, SI/Code-kbd, SI/Profile-kbd).
+  (7) Send cap: on the code step wait for Resend code, press it, wait the minute, press it again.
+  The first resend shows "Code sent again"; the second (the third send) shows "No more resends for
+  this sign-in" instead, with no toast and no Resend code, and Verify and continue still there.
+  (8) TalkBack on: press Send code with 7 digits, Verify and continue with 5 digits, and Save on
+  Your details with no first name. Each time TalkBack must speak the field's error at once.
+  (9) Mid-checkout suspension (needs #335): suspend amina while she is on Checkout and place the
+  order. Expect "You can't place orders while your account is on hold. That order wasn't placed."

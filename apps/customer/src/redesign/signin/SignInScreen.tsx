@@ -36,7 +36,7 @@ import { formatTime } from '../lib/time';
 import { NavContext, type Nav } from '../navigation/context';
 import type { Route } from '../navigation/routes';
 import { beginVerify, cancelVerify, clearSignedOutNote, useSession, type SignedOutNote } from '../session/session';
-import { useFocusOnMount } from './a11y';
+import { announceError, useFocusOnMount } from './a11y';
 import { applyLanding, landingFor } from './landing';
 import { checkPhone, displayPhone, nationalDigits, waitUntil } from './phone';
 import { TermsScreen } from './TermsScreen';
@@ -215,10 +215,16 @@ function PhoneStep({
   const limited = wait !== null && !waitOver;
   const offline = !online;
 
+  /** A field error, said out loud as it appears (focus cannot move into the DS Input yet). */
+  function failField(message: string): void {
+    setFieldError(message);
+    announceError(message);
+  }
+
   async function send(): Promise<void> {
     const check = checkPhone(phone);
     if (!check.ok) {
-      setFieldError(check.reason === 'unsupported' ? PHONE_UNSUPPORTED : PHONE_INCOMPLETE);
+      failField(check.reason === 'unsupported' ? PHONE_UNSUPPORTED : PHONE_INCOMPLETE);
       return;
     }
     setFieldError(null);
@@ -231,8 +237,8 @@ function PhoneStep({
     } catch (e) {
       setSending(false);
       const f = authFailureOf(e);
-      if (f.kind === 'invalid_phone') setFieldError(PHONE_INCOMPLETE);
-      else if (f.kind === 'unsupported_country') setFieldError(PHONE_UNSUPPORTED);
+      if (f.kind === 'invalid_phone') failField(PHONE_INCOMPLETE);
+      else if (f.kind === 'unsupported_country') failField(PHONE_UNSUPPORTED);
       else if (f.kind === 'rate_limited') onWait(waitUntil(f.at, f.retryAfterS));
       else if (f.kind === 'unavailable') setProblem('unavailable');
       else setProblem('sendFail');
@@ -402,10 +408,20 @@ function PhoneStep({
 // S2 Code
 // ---------------------------------------------------------------------------------------------
 
+/**
+ * Sends per sign-in (contract OtpChallenge: "maximum 3 sends per challenge"). The server answers a
+ * request past the cap with 200 and the same challenge and sends nothing, so the client counts:
+ * the first send, then each resend that succeeds.
+ */
+export const MAX_SENDS = 3;
+
+const CODE_EXPIRED = 'This code has run out or was already used. Send it again to get 5 more minutes.';
+
 type CodeProblem =
   | { kind: 'attempts0' }
   | { kind: 'timedOut'; until: number }
-  | { kind: 'resendLimit'; until: number }
+  /** `until` is the 429's Retry-After; null when the client counted the sends itself. */
+  | { kind: 'resendLimit'; until: number | null }
   | { kind: 'verifyFail' }
   | { kind: 'resendFail' }
   | null;
@@ -445,6 +461,8 @@ function CodeStep({
   const [resending, setResending] = React.useState(false);
   const [verifyWait, setVerifyWait] = React.useState<number | null>(null);
   const [resentToast, setResentToast] = React.useState(false);
+  const [sends, setSends] = React.useState(1);
+  const sendsLeft = sends < MAX_SENDS;
 
   const resendAt = waitUntil(sent.receivedAt, sent.challenge.resend_after_s);
   const resendOpen = usePassed(resendAt);
@@ -456,9 +474,15 @@ function CodeStep({
   const resendLimit = problem?.kind === 'resendLimit' ? problem : null;
   const resendRefused = problem?.kind === 'resendFail' || problem?.kind === 'verifyFail';
 
+  /** A field error, said out loud as it appears (focus cannot move into the DS Input yet). */
+  function failField(message: string): void {
+    setFieldError(message);
+    announceError(message);
+  }
+
   async function verify(): Promise<void> {
     if (code.length !== 6) {
-      setFieldError('Enter all 6 digits of the code.');
+      failField('Enter all 6 digits of the code.');
       return;
     }
     setFieldError(null);
@@ -479,7 +503,7 @@ function CodeStep({
             setCode('');
             setProblem({ kind: 'attempts0' });
           } else {
-            setFieldError(
+            failField(
               f.attemptsRemaining === null
                 ? "That code isn't right. Check it and try again."
                 : `That code isn't right. You have ${f.attemptsRemaining} ${f.attemptsRemaining === 1 ? 'try' : 'tries'} left.`,
@@ -488,6 +512,7 @@ function CodeStep({
           return;
         case 'expired':
           setExpired(true);
+          announceError(CODE_EXPIRED);
           return;
         case 'rate_limited':
           setVerifyWait(waitUntil(f.at, f.retryAfterS));
@@ -509,10 +534,18 @@ function CodeStep({
     try {
       const next = await requestOtp(phoneE164);
       if (!live.current) return;
-      setProblem(null);
+      const count = sends + 1;
+      setSends(count);
       setExpired(false);
       setFieldError(null);
-      setResentToast(true);
+      if (count >= MAX_SENDS) {
+        // That was the last send this sign-in allows: say so, with no Resend, instead of the toast.
+        setResentToast(false);
+        setProblem({ kind: 'resendLimit', until: null });
+      } else {
+        setProblem(null);
+        setResentToast(true);
+      }
       onSent(next);
     } catch (e) {
       if (!live.current) return;
@@ -531,7 +564,10 @@ function CodeStep({
 
   const showField = !timedOut;
   const showVerify = !expired && !timedOut && !attempts0;
-  const showResend = !timedOut && !resendLimit && !expired && !attempts0;
+  const showResend = !timedOut && !resendLimit && !expired && !attempts0 && sendsLeft;
+  // The send cap holds for the rest of this sign-in, whatever happens to the code afterwards.
+  const showLimit =
+    attempts0 || timedOut ? null : (resendLimit ?? (sendsLeft ? null : { kind: 'resendLimit' as const, until: null }));
   const canResend = (resendOpen || resendRefused) && !offline;
   const verifyBlocked = verifyWait !== null && !verifyOpen;
   const offlineWhy = 'Connect to Wi-Fi or mobile data to check your code. What you typed stays here.';
@@ -567,18 +603,25 @@ function CodeStep({
                 ) : null}
               </>
             ) : null}
-            {expired && !timedOut ? (
+            {expired && !timedOut && sendsLeft ? (
               <Button variant="primary" size="lg" fullWidth loading={resending} disabled={offline} onPress={resend} testID="Code-sendagain">
                 Send the code again
               </Button>
             ) : null}
             {attempts0 || timedOut ? (
-              <Button variant="primary" size="lg" fullWidth onPress={() => onBack(timedOut?.until ?? null)} testID="Code-startagain">
+              // Both return to the ready Sign in with the number filled in (board: timedOut → SignIn-ready).
+              <Button variant="primary" size="lg" fullWidth onPress={() => onBack(null)} testID="Code-startagain">
                 Start again
               </Button>
             ) : null}
-            {resendLimit ? (
-              <Button variant="ghost" size="lg" fullWidth onPress={() => onBack(resendLimit.until)} testID="Code-startagain">
+            {showLimit ? (
+              <Button
+                variant={showVerify ? 'ghost' : 'primary'}
+                size="lg"
+                fullWidth
+                onPress={() => onBack(showLimit.until)}
+                testID="Code-startagain"
+              >
                 Start again
               </Button>
             ) : null}
@@ -628,6 +671,7 @@ function CodeStep({
             variant="warning"
             title="Too many wrong codes"
             description="You can try a code up to 5 times. For your security this code no longer works. Start again with your number to get a new code."
+            icon={<Icon name="lock" size={24} color={theme.color.feedback.warning.icon} />}
             testID="Code-attempts0"
           />
         ) : null}
@@ -640,11 +684,15 @@ function CodeStep({
             testID="Code-timedout"
           />
         ) : null}
-        {resendLimit ? (
+        {showLimit ? (
           <Banner
             variant="neutral"
             title="No more resends for this sign-in"
-            description={`We've sent it 3 times, the most for one sign-in. Enter the code if it arrives, or start again.\nYou can ask for a fresh code after ${formatTime(resendLimit.until)}.`}
+            description={
+              "We've sent it 3 times, the most for one sign-in. Enter the code if it arrives, or start again." +
+              // The time is the server's Retry-After; the 200 at the send cap carries none, so it drops.
+              (showLimit.until !== null ? `\nYou can ask for a fresh code after ${formatTime(showLimit.until)}.` : '')
+            }
             testID="Code-limit"
           />
         ) : null}
@@ -684,7 +732,7 @@ function CodeStep({
               fieldError || expired || attempts0 ? undefined : 'The code works for 5 minutes. We fill it in for you if your phone offers it.'
             }
             errorText={
-              expired ? 'This code has run out or was already used. Send it again to get 5 more minutes.' : (fieldError ?? undefined)
+              expired ? CODE_EXPIRED : (fieldError ?? undefined)
             }
             testID="Code-input"
           />

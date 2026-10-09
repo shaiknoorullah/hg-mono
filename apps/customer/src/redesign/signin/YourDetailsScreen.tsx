@@ -28,6 +28,7 @@ import { AppBar, Banner, Button, Checkbox, Icon, Input, Skeleton, tokens, useThe
 import { useConnectivity } from '../lib/connectivity';
 import { NavContext } from '../navigation/context';
 import { finishProfileCapture } from '../session/session';
+import { announceError } from './a11y';
 
 type CustomerProfile = Schema['CustomerProfile'];
 type ProfileInput = Schema['CustomerProfileUpdateInput'];
@@ -37,12 +38,26 @@ export function looksLikeEmail(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 }
 
-/** What Save sends: ids and text only, never anything the server works out. */
-export function profileInput(first: string, last: string, email: string, consent: boolean): ProfileInput {
+/**
+ * What Save sends: ids and text only, never anything the server works out.
+ *
+ * `email` goes only when it differs from the one the account already has (`loadedEmail`, compared
+ * case-insensitively like the server's citext column): any email in the PATCH counts as a change,
+ * clears its verified state and sends a new verification link.
+ */
+export function profileInput(
+  first: string,
+  last: string,
+  email: string,
+  consent: boolean,
+  loadedEmail: string | null = null,
+): ProfileInput {
+  const typed = email.trim();
+  const changed = typed !== '' && typed.toLowerCase() !== (loadedEmail ?? '').trim().toLowerCase();
   return {
     first_name: first.trim(),
     ...(last.trim() ? { last_name: last.trim() } : {}),
-    ...(email.trim() ? { email: email.trim() } : {}),
+    ...(changed ? { email: typed } : {}),
     ...(email.trim() && consent ? { marketing_consent: true } : {}),
   };
 }
@@ -63,6 +78,7 @@ export function YourDetailsScreen({ fromCart = false }: { fromCart?: boolean }):
   const [last, setLast] = React.useState('');
   const [email, setEmail] = React.useState('');
   const [consent, setConsent] = React.useState(false);
+  const [loadedEmail, setLoadedEmail] = React.useState<string | null>(null);
   const [errors, setErrors] = React.useState<{ first?: string; email?: string }>({});
   const [saving, setSaving] = React.useState(false);
   const [failed, setFailed] = React.useState(false);
@@ -78,6 +94,7 @@ export function YourDetailsScreen({ fromCart = false }: { fromCart?: boolean }):
         setFirst(p.first_name ?? '');
         setLast(p.last_name ?? '');
         setEmail(p.email ?? '');
+        setLoadedEmail(p.email ?? null);
       })
       .catch(() => {})
       .finally(() => live && setLoading(false));
@@ -93,11 +110,15 @@ export function YourDetailsScreen({ fromCart = false }: { fromCart?: boolean }):
     if (!first.trim()) next.first = 'Enter your first name.';
     if (email.trim() && !looksLikeEmail(email)) next.email = EMAIL_FORMAT;
     setErrors(next);
-    if (next.first || next.email) return;
+    if (next.first || next.email) {
+      // Focus cannot move into the DS Input yet: say the first invalid field's error instead.
+      announceError((next.first ?? next.email)!);
+      return;
+    }
     setFailed(false);
     setSaving(true);
     try {
-      const res = await unwrap(api.PATCH('/v1/me/profile', { body: profileInput(first, last, email, consent) }));
+      const res = await unwrap(api.PATCH('/v1/me/profile', { body: profileInput(first, last, email, consent, loadedEmail) }));
       const profile = res.data as CustomerProfile;
       if (fromCart && nav) {
         nav.replace({ name: 'checkout' });
@@ -107,12 +128,16 @@ export function YourDetailsScreen({ fromCart = false }: { fromCart?: boolean }):
     } catch (e) {
       setSaving(false);
       const details = isApiError(e) ? e.details : undefined;
+      // EMAIL_IN_USE is drawn as the email-rejected state (board ProfileCapture, `emailinuse`).
       const emailRejected =
         isApiError(e) &&
-        e.code === 'VALIDATION_FAILED' &&
-        (Array.isArray(details) ? details.some((f: { field?: string }) => f.field === 'email') : true);
-      if (emailRejected && email.trim()) setErrors({ email: EMAIL_REJECTED });
-      else setFailed(true);
+        (e.code === 'EMAIL_IN_USE' ||
+          (e.code === 'VALIDATION_FAILED' &&
+            (Array.isArray(details) ? details.some((f: { field?: string }) => f.field === 'email') : true)));
+      if (emailRejected && email.trim()) {
+        setErrors({ email: EMAIL_REJECTED });
+        announceError(EMAIL_REJECTED);
+      } else setFailed(true);
     }
   }
 

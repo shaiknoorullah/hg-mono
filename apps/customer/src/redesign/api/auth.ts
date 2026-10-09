@@ -18,10 +18,10 @@ import * as React from 'react';
 import type { Schema } from '@hg/api-client';
 
 import { disablePush, enablePush } from '../../api/push';
-import { getToken, setToken } from '../../api/token';
+import { getRefreshToken, getToken, setToken } from '../../api/token';
 import { getNow } from '../lib/now';
 import { noteSignedOut, type SignedOutNote } from '../session/session';
-import { api } from './client';
+import { api, postDirect } from './client';
 
 export type OtpChallenge = Schema['OtpChallenge'];
 export type SessionGrant = Schema['SessionGrant'];
@@ -150,35 +150,75 @@ export async function verifyOtp(challengeId: string, code: string): Promise<Sess
 // Sign out
 // ---------------------------------------------------------------------------------------------
 
-/** The access token of a sign-out the server has not heard about yet (memory only). */
-let pendingLogoutToken: string | null = null;
+/**
+ * A sign-out the server has not heard about yet (memory only): the tokens the phone held, so the
+ * session can still be revoked after the 15-minute access token has run out.
+ */
+interface PendingLogout {
+  access: string;
+  refresh: string | null;
+}
+
+let pendingLogout: PendingLogout | null = null;
 const pendingListeners = new Set<() => void>();
 
-function setPending(token: string | null): void {
-  pendingLogoutToken = token;
+function setPending(next: PendingLogout | null): void {
+  pendingLogout = next;
   for (const fn of pendingListeners) fn();
 }
 
-async function tellServer(token: string): Promise<void> {
+/** The session is already over on the server: nothing left to revoke. */
+const SESSION_GONE = new Set(['SESSION_REVOKED', 'SESSION_EXPIRED', 'REFRESH_REUSE_DETECTED']);
+
+/**
+ * Revoke the session on the server. Done only on a 2xx, or when the server says the session is
+ * already gone. An access token that has simply run out (401 AUTHENTICATION_REQUIRED) is exchanged
+ * once with the kept refresh token and the logout is sent again with the new one. A transport
+ * failure or a 5xx keeps the sign-out pending, with whichever tokens are current, for later.
+ *
+ * Straight through the transport (`postDirect`), not the shared client: the session is already
+ * cleared on this phone, so a 401 here must neither refresh it back nor raise a forced route.
+ */
+async function tellServer(p: PendingLogout): Promise<void> {
+  let current = p;
+  const done = () => {
+    if (pendingLogout === p || pendingLogout === current) setPending(null);
+  };
   try {
-    const res = await api.POST('/v1/auth/logout', { headers: { Authorization: `Bearer ${token}` } });
-    // 204, or 401 (the session is already gone): the server knows. A 5xx is tried again later.
-    if (res.response.status >= 500) setPending(token);
-    else if (pendingLogoutToken === token) setPending(null);
+    let res = await postDirect('/v1/auth/logout', { token: current.access });
+    if (res.status === 401 && !SESSION_GONE.has(res.code ?? '') && current.refresh) {
+      const refreshed = await postDirect('/v1/auth/refresh', { body: { refresh_token: current.refresh } });
+      const grant = refreshed.data as { access_token?: string; refresh_token?: string | null } | null;
+      if (refreshed.status >= 500) {
+        setPending(current);
+        return;
+      }
+      if (refreshed.status >= 300 || !grant?.access_token) {
+        // Refused (revoked, expired or reused): the session is already over.
+        done();
+        return;
+      }
+      current = { access: grant.access_token, refresh: grant.refresh_token ?? current.refresh };
+      res = await postDirect('/v1/auth/logout', { token: current.access });
+    }
+    if (res.status >= 500) setPending(current);
+    else done();
   } catch {
-    setPending(token);
+    setPending(current);
   }
 }
 
 /**
  * Sign this phone out. It always works: the session is cleared at once, whatever the network
- * does, and the server is asked to revoke it best-effort.
+ * does, and the server is asked to revoke it best-effort. The refresh token is kept aside first,
+ * because clearing the session drops it.
  */
 export function logout(): void {
   const token = getToken();
+  const refresh = getRefreshToken();
   disablePush(token);
   setToken(null);
-  if (token) void tellServer(token);
+  if (token) void tellServer({ access: token, refresh });
 }
 
 /** Sign out to the signed-out screen ("You're signed out", or the "Not you?" variant). */
@@ -189,11 +229,11 @@ export function signOut(note: SignedOutNote = 'signedOut'): void {
 
 /** Back online: finish a sign-out the server has not heard about. */
 export function retryPendingLogout(): void {
-  if (pendingLogoutToken) void tellServer(pendingLogoutToken);
+  if (pendingLogout) void tellServer(pendingLogout);
 }
 
 export function isLogoutPending(): boolean {
-  return pendingLogoutToken !== null;
+  return pendingLogout !== null;
 }
 
 function subscribePending(fn: () => void): () => void {

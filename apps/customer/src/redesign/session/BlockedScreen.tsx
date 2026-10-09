@@ -14,8 +14,9 @@
  *   else is said about the cart or an order in progress (manifest §5 G41).
  *
  * Focus moves to the h1 on arrival (`SI/Blocked-*-focus`), then reads body, more and the footer in
- * order. Icons the design system lacks (user-block, download, lock) leave the circle empty, never a
- * borrowed glyph (Sign-in canvas, icon gap register).
+ * order. The circle carries `lock` (security, revoked) and `clock` (expired); the icons the design
+ * system lacks (user-block, download) leave it empty, never a borrowed glyph (Sign-in canvas, icon
+ * gap register).
  */
 import * as React from 'react';
 import { Linking, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -43,7 +44,7 @@ interface BlockedCopy {
   /** Session kinds offer Call support after the exit while the line is open. */
   offersSupport: boolean;
   /** The circle's icon; null where the Solar icon is missing from the design system. */
-  icon: 'clock' | null;
+  icon: 'clock' | 'lock' | null;
 }
 
 const NO_SUPPORT_ACCOUNT =
@@ -99,7 +100,7 @@ export const BLOCKED_COPY: Record<ForcedKind, BlockedCopy> = {
     leadsWithSupport: false,
     exit: 'Sign in again',
     offersSupport: true,
-    icon: null,
+    icon: 'lock',
   },
   revoked: {
     title: "You've been signed out",
@@ -109,7 +110,7 @@ export const BLOCKED_COPY: Record<ForcedKind, BlockedCopy> = {
     leadsWithSupport: false,
     exit: 'Sign in again',
     offersSupport: true,
-    icon: null,
+    icon: 'lock',
   },
   expired: {
     title: 'Please sign in again',

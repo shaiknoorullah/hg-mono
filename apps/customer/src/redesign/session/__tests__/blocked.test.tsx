@@ -9,6 +9,7 @@ import { act, fireEvent, screen, waitFor, within } from '@testing-library/react-
 
 import { getToken, setToken } from '../../../api/token';
 import { resetAuthForTests } from '../../api/auth';
+import { api } from '../../api/client';
 import { resetPublicConfigCache } from '../../api/config';
 import { mockApi, payloadOf, type MockApi } from '../../test/mockApi';
 import { renderRedesign } from '../../test/render';
@@ -135,6 +136,36 @@ describe('account kinds', () => {
     expect(screen.queryByText(/cart/i)).toBeNull();
   });
 
+  it('a 403 ACCOUNT_SUSPENDED from createOrder raises the mid-checkout state', async () => {
+    mock.answer('createOrder', { status: 403, code: 'ACCOUNT_SUSPENDED' });
+    await api.POST('/v1/orders', {
+      params: { header: { 'Idempotency-Key': 'test-key' } },
+      body: { quote_id: 'q_1' },
+    } as never);
+    expect(getForced()).toEqual({ kind: 'on-hold', midCheckout: true });
+    renderRedesign(<BlockedScreen forced={getForced()!} />);
+    await waitFor(() => expect(mock.callsTo('getPublicConfig').length).toBeGreaterThan(0));
+    await act(async () => {});
+    expect(screen.getByText("You can't place orders while your account is on hold. That order wasn't placed.")).toBeTruthy();
+  });
+
+  it('a 403 ACCOUNT_SUSPENDED from createQuote raises the mid-checkout state too', async () => {
+    mock.answer('createQuote', { status: 403, code: 'ACCOUNT_SUSPENDED' });
+    await api.POST('/v1/quotes', { body: { restaurant_id: 'r_1', items: [] } } as never);
+    expect(getForced()).toEqual({ kind: 'on-hold', midCheckout: true });
+  });
+
+  it('a 403 ACCOUNT_SUSPENDED from any other call leaves "That order wasn\'t placed." out', async () => {
+    mock.answer('getCustomerProfile', { status: 403, code: 'ACCOUNT_SUSPENDED' });
+    await api.GET('/v1/me/profile');
+    expect(getForced()).toEqual({ kind: 'on-hold' });
+    renderRedesign(<BlockedScreen forced={getForced()!} />);
+    await waitFor(() => expect(mock.callsTo('getPublicConfig').length).toBeGreaterThan(0));
+    await act(async () => {});
+    expect(screen.getByText("You can't place orders while your account is on hold.")).toBeTruthy();
+    expect(screen.queryByText(/That order wasn't placed/)).toBeNull();
+  });
+
   it('renders in dark', async () => {
     await show({ kind: 'on-hold' }, OPEN, 'dark');
     expect(screen.getByText('Your account is on hold')).toBeTruthy();
@@ -174,6 +205,12 @@ describe('session kinds', () => {
     });
     expect(getForced()).toBeNull();
     expect(getToken()).toBeNull();
+  });
+
+  it.each(['security', 'revoked'] as const)('%s carries the lock icon in the circle', async (kind) => {
+    await show({ kind });
+    const circle = screen.getByTestId('Blocked-icon', { includeHiddenElements: true });
+    expect(within(circle).getByTestId('hg-icon-lock', { includeHiddenElements: true })).toBeTruthy();
   });
 
   it('expired: Sign in, with the clock icon', async () => {
