@@ -3,7 +3,7 @@ covers:
   - apps/customer/**
   - services/hg/internal/account/**
   - services/hg/internal/addresses/**
-reviewed: 2026-10-05
+reviewed: 2026-10-09
 ---
 
 # HalalGoes — CUSTOMER Domain Specification
@@ -56,6 +56,16 @@ These exist so that individual features do not have to re-litigate them. Anythin
 - Rider position is published at **1 message / 10 s** while an order is in `PICKED_UP` or `ON_THE_WAY`. If no position has arrived for **45 s**, the map shows a "Location updating…" banner and freezes the last known marker.
 - Degradation: if the socket is not `OPEN`, the client polls `GET /orders/:orderId` every **15 s**. Any feature that says "live" must remain correct (only less fresh) on the polling path.
 - Reconnect: exponential backoff 1 s → 2 s → 4 s → 8 s → 15 s (cap), full jitter. On reconnect the client sends `resume{last_event_id}` and the server replays missed events for that order from Redis stream `order:{orderId}:events` (retained 6 h).
+
+### 0.6 The redesigned app, behind a build flag
+
+Release 1.0 ships the current customer app. The redesign from the owner-approved canvases ([#87](https://github.com/shaiknoorullah/hg-mono/issues/87), tracked in [#656](https://github.com/shaiknoorullah/hg-mono/issues/656)) is built beside it in `apps/customer/src/redesign/` and mounts only when the build sets `EXPO_PUBLIC_HG_REDESIGN=1`. Release builds leave it off, so a release build runs exactly the legacy app.
+
+The rules in this spec apply to both. With the flag on:
+- the bottom navigation is Home · Search · Orders · Account, with no notifications tab;
+- light and dark follow the phone;
+- an account or session error (suspended, banned, not active, session revoked or expired, refresh token reused) replaces whatever screen is open with a full-screen explanation and a way out;
+- a screen not yet redesigned falls back to its current version.
 
 ### 0.5 Sizing / versioning key
 
