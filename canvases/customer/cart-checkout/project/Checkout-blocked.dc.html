@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Checkout blocking errors</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:var(--color-neutral-100)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+.demo-focus .hg-focus,.demo-focus .hg-choice-ctl,.demo-focus .hg-row,.demo-focus > a{box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)!important}
+.demo-focus-field .hg-field{border-color:var(--focus-ring)!important;box-shadow:inset 0 0 0 calc(var(--focus-field-border-width) - 1px) var(--focus-ring)!important}
+
+</style>
+</helmet>
+<div style="width: 390px; height: 2700px; position: relative; overflow: hidden; display: flex; flex-direction: column; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="cream" title="Checkout" subtitle="Zaytoun Grill" back-label="Back to cart" on-back="{{noop}}"></x-import>
+<main style="flex-grow: 1; display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-2) var(--space-4) var(--space-4)">
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">Each blocking error: the banner replaces the price hold line and the footer primary becomes the recovery action. Amounts stay as last quoted, or empty when no quote exists.</span>
+<div style="display: flex; flex-direction: column; gap: var(--space-2); padding-bottom: var(--space-5); border-bottom: 1px dashed var(--border-decorative)">
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">BELOW_MINIMUM_ORDER (409)</span>
+<div role="status" style="display: flex; gap: var(--space-3); align-items: flex-start; padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); background: var(--surface-raised); border: 1px solid var(--border-interactive); outline: 1.5px dotted var(--color-info-500); outline-offset: 3px">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="info" size="md" color="var(--text-secondary)"></x-import>
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: var(--space-2)">
+<strong style="font-size: var(--type-label-lg-size); color: var(--text-primary)">Below the minimum order</strong>
+<span style="font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-line); color: var(--text-primary)"><span>The minimum order at Zaytoun Grill is <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{q.min}}" size="sm"></x-import>. Add more items to check out.</span></span>
+
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--color-info-700); background: var(--color-info-50)">Component gap: Banner</span>
+</div>
+</div>
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">Bound: cart.restaurant.availability.minimum_order_cents (a shortfall needs Needs API: shortfall_cents in BELOW_MINIMUM_ORDER details)</span>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" full-width="{{yes}}" icon-start="plus">Add more items</x-import>
+
+</div><div style="display: flex; flex-direction: column; gap: var(--space-2); padding-bottom: var(--space-5); border-bottom: 1px dashed var(--border-decorative)">
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">RESTAURANT_CLOSED (409)</span>
+<div role="status" style="display: flex; gap: var(--space-3); align-items: flex-start; padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); background: var(--surface-raised); border: 1px solid var(--border-interactive); outline: 1.5px dotted var(--color-info-500); outline-offset: 3px">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="info" size="md" color="var(--text-secondary)"></x-import>
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: var(--space-2)">
+<strong style="font-size: var(--type-label-lg-size); color: var(--text-primary)">Zaytoun Grill just closed</strong>
+<span style="font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-line); color: var(--text-primary)">It opens tomorrow at 11:00 am. Your cart is saved and nothing was charged.</span>
+
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--color-info-700); background: var(--color-info-50)">Component gap: Banner</span>
+</div>
+</div>
+
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" full-width="{{yes}}" icon-start="back">Back to cart</x-import>
+
+</div><div style="display: flex; flex-direction: column; gap: var(--space-2); padding-bottom: var(--space-5); border-bottom: 1px dashed var(--border-decorative)">
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">CART_HAS_UNAVAILABLE_ITEMS (409)</span>
+<div role="status" style="display: flex; gap: var(--space-3); align-items: flex-start; padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); background: var(--surface-raised); border: 1px solid var(--border-interactive); outline: 1.5px dotted var(--color-info-500); outline-offset: 3px">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="info" size="md" color="var(--text-secondary)"></x-import>
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: var(--space-2)">
+<strong style="font-size: var(--type-label-lg-size); color: var(--text-primary)">Something in your cart ran out</strong>
+<span style="font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-line); color: var(--text-primary)">Remove it or change it in your cart to continue. Nothing was charged.</span>
+
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--color-info-700); background: var(--color-info-50)">Component gap: Banner</span>
+</div>
+</div>
+
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" full-width="{{yes}}">Review cart</x-import>
+
+</div><div style="display: flex; flex-direction: column; gap: var(--space-2); padding-bottom: var(--space-5); border-bottom: 1px dashed var(--border-decorative)">
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">PROVINCE_NOT_SERVED (422)</span>
+<div role="status" style="display: flex; gap: var(--space-3); align-items: flex-start; padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); background: var(--surface-raised); border: 1px solid var(--border-interactive); outline: 1.5px dotted var(--color-info-500); outline-offset: 3px">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="info" size="md" color="var(--text-secondary)"></x-import>
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: var(--space-2)">
+<strong style="font-size: var(--type-label-lg-size); color: var(--text-primary)">We deliver in Ontario only for now</strong>
+<span style="font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-line); color: var(--text-primary)">Choose an Ontario address to place this order.</span>
+
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--color-info-700); background: var(--color-info-50)">Component gap: Banner</span>
+</div>
+</div>
+
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" full-width="{{yes}}" icon-start="map">Change address</x-import>
+
+</div><div style="display: flex; flex-direction: column; gap: var(--space-2); padding-bottom: var(--space-5); border-bottom: 1px dashed var(--border-decorative)">
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">TAX_PROFILE_MISSING (422)</span>
+<div role="status" style="display: flex; gap: var(--space-3); align-items: flex-start; padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); background: var(--surface-raised); border: 1px solid var(--border-interactive); outline: 1.5px dotted var(--color-info-500); outline-offset: 3px">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="info" size="md" color="var(--text-secondary)"></x-import>
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: var(--space-2)">
+<strong style="font-size: var(--type-label-lg-size); color: var(--text-primary)">We can't price this order right now</strong>
+<span style="font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-line); color: var(--text-primary)">This is on our side and nothing was charged. Your cart is saved.</span>
+
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--color-info-700); background: var(--color-info-50)">Component gap: Banner</span>
+</div>
+</div>
+
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" full-width="{{yes}}" icon-start="back">Back to cart</x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" full-width="{{yes}}" icon-start="refresh">Try again</x-import>
+</div><div style="display: flex; flex-direction: column; gap: var(--space-2); padding-bottom: var(--space-5); border-bottom: 1px dashed var(--border-decorative)">
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">PROFILE_INCOMPLETE (422)</span>
+<div role="status" style="display: flex; gap: var(--space-3); align-items: flex-start; padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); background: var(--surface-raised); border: 1px solid var(--border-interactive); outline: 1.5px dotted var(--color-info-500); outline-offset: 3px">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="info" size="md" color="var(--text-secondary)"></x-import>
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: var(--space-2)">
+<strong style="font-size: var(--type-label-lg-size); color: var(--text-primary)">Finish your profile to order</strong>
+<span style="font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-line); color: var(--text-primary)">Add your name and email to place your first order.</span>
+
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--color-info-700); background: var(--color-info-50)">Component gap: Banner</span>
+</div>
+</div>
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">Missing fields come from getCustomerProfile (empty first_name, last_name, email); PROFILE_INCOMPLETE has no documented error.details shape (Needs API). Finish my profile opens Checkout — finish your profile.</span>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" full-width="{{yes}}" href="Checkout-finish-profile.dc.html">Finish my profile</x-import>
+
+</div><div style="display: flex; flex-direction: column; gap: var(--space-2); padding-bottom: var(--space-5); border-bottom: 1px dashed var(--border-decorative)">
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">QUOTE_EXPIRED at placing (409)</span>
+<div role="status" style="display: flex; gap: var(--space-3); align-items: flex-start; padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); background: var(--surface-raised); border: 1px solid var(--border-interactive); outline: 1.5px dotted var(--color-info-500); outline-offset: 3px">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="info" size="md" color="var(--text-secondary)"></x-import>
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: var(--space-2)">
+<strong style="font-size: var(--type-label-lg-size); color: var(--text-primary)">Your price hold ran out</strong>
+<span style="font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-line); color: var(--text-primary)">We've priced the order again. Check the new total, then place it.</span>
+
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--color-info-700); background: var(--color-info-50)">Component gap: Banner</span>
+</div>
+</div>
+
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" full-width="{{yes}}" icon-start="refresh">Review the new total</x-import>
+
+</div><div style="display: flex; flex-direction: column; gap: var(--space-2); padding-bottom: var(--space-5); border-bottom: 1px dashed var(--border-decorative)">
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">RATE_LIMITED (429)</span>
+<div role="status" style="display: flex; gap: var(--space-3); align-items: flex-start; padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); background: var(--surface-raised); border: 1px solid var(--border-interactive); outline: 1.5px dotted var(--color-info-500); outline-offset: 3px">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="info" size="md" color="var(--text-secondary)"></x-import>
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: var(--space-2)">
+<strong style="font-size: var(--type-label-lg-size); color: var(--text-primary)">Too many tries</strong>
+<span style="font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-line); color: var(--text-primary)">Wait a moment, then try again. Nothing was charged.</span>
+
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--color-info-700); background: var(--color-info-50)">Component gap: Banner</span>
+</div>
+</div>
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">Bound: Retry-After</span>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" full-width="{{yes}}" icon-start="refresh">Try again</x-import>
+
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":2700}}'>
+class Component extends DCLogic {
+renderVals() {
+return {
+yes: true,
+no: false,
+none: null,
+zero: 0,
+two: 2,
+noop: function () {},
+nav: [
+{ key: 'home', label: 'Home', icon: 'home' },
+{ key: 'search', label: 'Search', icon: 'search' },
+{ key: 'orders', label: 'Orders', icon: 'orders' },
+{ key: 'account', label: 'Account', icon: 'profile' }
+],
+q: { l1: 2649, l2: 2498, sub: 5147, del: 299, svc: 0, tip: 500, total: 5446, totaltip: 5946, disc: 515, totald: 4931, hst: 669, totalt: 6115, min: 1500, del2: 349, total2: 5496, oldTotal: 5446, newTotal: 5596, del3: 449, short: 853 },
+tipOptions: [
+{ value: '0', label: 'No tip' },
+{ value: '200', label: '$2' },
+{ value: '300', label: '$3' },
+{ value: '500', label: '$5' },
+{ value: 'other', label: 'Other' }
+],
+w180: 180,
+w900: 900,
+handover: [
+{ value: 'LEAVE_AT_DOOR', label: 'Leave at the door', description: 'The rider takes a photo as proof of delivery.' },
+{ value: 'MEET_AT_DOOR', label: 'Meet at the door', description: "You'll give the rider a code at handover." },
+{ value: 'MEET_IN_LOBBY', label: 'Meet in the lobby', description: "You'll give the rider a code at handover." }
+],
+payOptions: [
+{ value: 'wallet', label: 'Apple Pay', description: 'Google Pay on Android. Your wallet confirms the amount.' },
+{ value: 'pm_4242', label: 'Visa •••• 4242', description: 'Expires 08/28' },
+{ value: 'pm_5454', label: 'Mastercard •••• 5454', description: 'Expires 03/27' }
+],
+addresses: [
+{ value: 'home', label: 'Home · 14 Ellesmere Rd', description: 'Unit 402 · Toronto ON M1R 4E7 · Default' },
+{ value: 'work', label: 'Work · 2075 Kennedy Rd', description: 'Toronto ON M1T 3V3' },
+{ value: 'cottage', label: 'Cottage · 88 Lakeshore Rd', description: 'Grand Bend ON N0M 1T0' }
+]
+};
+}
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Pause choices</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div style="width: 1440px; height: 1900px; box-sizing: border-box; padding: var(--space-10) var(--space-12); background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui); display: flex; flex-direction: column; gap: var(--space-6);">
+  <div style="display: flex; flex-direction: column; gap: 6px;">
+    <h1 style="margin: 0; font: var(--text-type-heading-xl); letter-spacing: -0.01em;">Pause: every choice names when it ends</h1>
+    <p style="margin: 0; font: var(--text-type-body-md); color: var(--text-secondary); max-width: 1000px;">15, 30 or 60 minutes, or until closing. “Until closing” replaces “the rest of today” (owner decision): it follows each restaurant’s own hours, so a late night stays paused past midnight to the real closing time.</p>
+    <span style="display: inline-flex; align-self: flex-start; padding: 2px var(--space-2); border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); background: var(--feedback-info-tint); font: var(--text-type-mono-sm); color: var(--feedback-info-tint-text);">Needs API: a “pause until closing” value that the server resolves to the next closing time, including past midnight and special dates. The hours rule allows only 15, 30 or 60 minutes or the end of today, so this choice waits for that change.</span>
+    <span style="display: inline-flex; align-self: flex-start; padding: 1px var(--space-2); border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); background: var(--surface-base); font: var(--text-type-mono-sm); color: var(--text-secondary);">Design-system issue: a disabled Menu item draws its reason in --text-tertiary and dims the whole item; measured about 2.3:1. Card 3 shows it. Fix in the system: reason in --text-secondary, disabled opacity on the label only.</span>
+  </div>
+  <sc-for list="{{cards}}" as="c" hint-placeholder-count="5">
+    <div style="display: flex; flex-direction: column; gap: 6px; min-height: {{c.minH}}px;">
+      <span style="font: var(--text-type-label-md); color: var(--text-secondary);">{{c.label}}</span>
+      <dc-import name="PartNowCard" state="{{c.state}}" pause-open="{{c.open}}" now="{{c.now}}" closing-at="{{c.closing}}" overnight-to="{{c.overnight}}" no-more-hours="{{c.noMore}}" w="{{cw}}" hint-size="1184px,130px"></dc-import>
+    </div>
+  </sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { cw: 1184, cards: [
+      { state: 'open', open: true, now: '19:10', closing: '22:00', overnight: null, noMore: false, minH: 460, label: 'Monday 7:10 pm, hours to 10:00 pm: each choice with its end time' },
+      { state: 'open', open: true, now: '23:10', closing: '02:00', overnight: '02:00', noMore: false, minH: 460, label: 'Friday 11:10 pm, hours to 2:00 am: until closing runs past midnight' },
+      { state: 'open', open: true, now: '15:00', closing: '', overnight: null, noMore: true, minH: 460, label: 'Sunday 3:00 pm, last range ended: until closing is off, with its reason' },
+      { state: 'paused_until_close', open: false, now: '23:10', closing: '02:00', overnight: '02:00', noMore: false, minH: 150, label: 'Paused until closing on a late night' },
+    ] };
+  }
+}
+</script>
+</body>
+</html>

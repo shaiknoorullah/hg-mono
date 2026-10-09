@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Keyboard focus states</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+[data-demo="row-focus"] tr.hg-row:nth-child(3){outline:2px solid transparent;box-shadow:inset 0 0 0 var(--focus-offset-width) var(--focus-offset),inset 0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+[data-demo="field-focus"] .hg-field{border-color:var(--focus-ring);box-shadow:inset 0 0 0 calc(var(--focus-field-border-width) - 1px) var(--focus-ring)}
+[data-demo="invalid-focus"] .hg-field{box-shadow:inset 0 0 0 1px var(--feedback-danger-border),0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+[data-demo="radio-focus"] .hg-choice:first-of-type .hg-choice-ctl{box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+</style>
+</helmet>
+<div data-theme="light" data-density="compact" style="width: 1440px; height: 1600px; box-sizing: border-box; position: relative; overflow: hidden; display: grid; grid-template-columns: 264px 264px minmax(0, 1fr); gap: var(--space-10); padding: 0 var(--space-10) 0 0; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+<div style="background: var(--surface-chrome)"><dc-import name="AdminSidebar" active="staff" viewer="super" focus-demo="link" hint-size="264px,900px"></dc-import></div>
+<div style="background: var(--surface-chrome)"><dc-import name="AdminSidebar" active="staff" viewer="super" focus-demo="signout" hint-size="264px,900px"></dc-import></div>
+<main id="main" style="display: flex; flex-direction: column; gap: var(--space-6); padding: var(--space-8) 0; min-width: 0">
+<h1 style="margin: 0; font-size: var(--type-heading-xl-size); font-weight: 700">Keyboard focus, drawn</h1>
+<p style="margin: 0; font-size: var(--type-body-md-size); line-height: 1.5; color: var(--text-secondary)">Rules from docs/decisions/focus-indicator.md. Left: a sidebar link and Sign out focused on the forest chrome: a chrome-coloured 2 px gap and a 3 px focus-ring-on-accent ring. Rings below are drawn statically to show the focused look.</p>
+<section style="display: flex; flex-direction: column; gap: var(--space-2)">
+<h2 style="margin: 0; font-size: var(--type-heading-sm-size); font-weight: 600">A focused table row (.hg-row)</h2>
+<p style="margin: 0; font-size: var(--type-body-sm-size); color: var(--text-secondary)">Staff rows are one tab stop: arrow keys move, Enter opens the account in the in-page detail panel, and closing the panel returns focus to the row. Alert rows are one tab stop too: Enter opens the alert's details beside the list; links in About are their own tab stops. Here the third row has focus: a 2 px inset offset plus a 3 px inset ring.</p>
+<div data-demo="row-focus"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.DataTable" caption="Staff accounts" hide-caption="{{yes}}" density="compact" rows="{{rows}}" columns="{{cols}}" get-row-id="{{rowId}}" row-label="{{rowLabel}}" on-row-activate="{{noop}}" status="ready"></x-import></div>
+</section>
+<section style="display: flex; flex-direction: column; gap: var(--space-3)">
+<h2 style="margin: 0; font-size: var(--type-heading-sm-size); font-weight: 600">Focused controls</h2>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" padding="16px"><div style="display: flex; flex-direction: column; gap: 10px">
+<h3 style="margin: 0; font-size: var(--type-body-md-size); font-weight: 600">Bordered field</h3>
+<div style="padding: var(--space-2) var(--space-1)"><div data-demo="field-focus"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Full name" value="Zainab Hussain" on-change="{{noop}}"></x-import></div></div>
+<p style="margin: 0; font-size: var(--type-body-sm-size); line-height: 1.5; color: var(--text-secondary)">The field’s own border turns focus-ring and 2 px (focus-field-border-width). No outer ring on a bordered field.</p>
+</div></x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" padding="16px"><div style="display: flex; flex-direction: column; gap: 10px">
+<h3 style="margin: 0; font-size: var(--type-body-md-size); font-weight: 600">Invalid field in focus</h3>
+<div style="padding: var(--space-2) var(--space-1)"><div data-demo="invalid-focus"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Work email" value="maryam@halalgoes" on-change="{{noop}}" error-text="Enter an email address like name@halalgoes.ca."></x-import></div></div>
+<p style="margin: 0; font-size: var(--type-body-sm-size); line-height: 1.5; color: var(--text-secondary)">Keeps its danger border and adds the 2 px offset and 3 px ring, so focus is never carried by the error colour alone.</p>
+</div></x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" padding="16px"><div style="display: flex; flex-direction: column; gap: 10px">
+<h3 style="margin: 0; font-size: var(--type-body-md-size); font-weight: 600">Radio option</h3>
+<div style="padding: var(--space-2) var(--space-1)"><div data-demo="radio-focus"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.RadioGroup" label="Role" value="{{nothing}}" options="{{roleOptions}}" on-value-change="{{noop}}"></x-import></div></div>
+<p style="margin: 0; font-size: var(--type-body-sm-size); line-height: 1.5; color: var(--text-secondary)">The ring goes on the control of the focused option; arrow keys move between options.</p>
+</div></x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" padding="16px"><div style="display: flex; flex-direction: column; gap: 10px">
+<h3 style="margin: 0; font-size: var(--type-body-md-size); font-weight: 600">Inline link in a table cell</h3>
+<div style="padding: var(--space-2) var(--space-1)"><p style="margin: 0; font-size: var(--type-body-md-size)">About: <a href="#orders" style="display: inline-flex; align-items: center; min-height: 44px; font-weight: 600; box-shadow: 0 0 0 var(--focus-offset-width) var(--focus-offset), 0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring); border-radius: var(--radius-sm)">Open order</a></p></div>
+<p style="margin: 0; font-size: var(--type-body-sm-size); line-height: 1.5; color: var(--text-secondary)">Plain links use the global rule: 2 px page-colour offset and 3 px focus-ring. Uses --focus-offset-width and --focus-ring-width from the design system's tokens.css.</p>
+</div></x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" padding="16px"><div style="display: flex; flex-direction: column; gap: 10px">
+<h3 style="margin: 0; font-size: var(--type-body-md-size); font-weight: 600">Panel close button</h3>
+<div style="padding: var(--space-2) var(--space-1)"><span style="display: inline-flex; box-shadow: 0 0 0 var(--focus-offset-width) var(--focus-offset), 0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring); border-radius: var(--radius-sm)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.IconButton" icon="close" accessibility-label="Close" variant="plain" size="md"></x-import></span></div>
+<p style="margin: 0; font-size: var(--type-body-sm-size); line-height: 1.5; color: var(--text-secondary)">Icon buttons take the same ring. On close, focus returns to what opened the panel.</p>
+</div></x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" padding="16px"><div style="display: flex; flex-direction: column; gap: 10px">
+<h3 style="margin: 0; font-size: var(--type-body-md-size); font-weight: 600">Button and link inside a warning banner</h3>
+<div style="padding: var(--space-2) var(--space-1)"><div data-slot="alert" style="display: flex; align-items: center; gap: var(--space-3); padding: var(--space-2) var(--space-3); border-radius: var(--radius-md); border: 1px solid var(--feedback-warning-border); background: var(--feedback-warning-tint); color: var(--feedback-warning-tint-text)">
+<span style="flex-grow: 1; font-size: var(--type-body-md-size)"><a href="#alerts" style="color: var(--feedback-warning-tint-text); font-weight: 600; box-shadow: 0 0 0 var(--focus-offset-width) var(--feedback-warning-tint), 0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring); border-radius: var(--radius-sm)">Open in live alerts</a></span>
+<span style="display: inline-flex; box-shadow: 0 0 0 var(--focus-offset-width) var(--feedback-warning-tint), 0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring); border-radius: var(--radius-sm)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" icon-start="refresh">Reconnect now</x-import></span>
+</div></div>
+<p style="margin: 0; font-size: var(--type-body-sm-size); line-height: 1.5; color: var(--text-secondary)">On the warning tint the ring stays focus-ring with a tint-coloured gap: brand-600 on warning-50 clears 3:1, so no flip to focus-on-color.</p>
+</div></x-import>
+</div>
+</section>
+<section style="display: flex; flex-direction: column; gap: var(--space-3)">
+<h2 style="margin: 0; font-size: var(--type-heading-sm-size); font-weight: 600">Where focus goes when a panel opens and closes</h2>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" padding="16px"><div style="display: flex; flex-direction: column; gap: 10px">
+<h3 style="margin: 0; font-size: var(--type-body-md-size); font-weight: 600">Invite staff panel</h3>
+<div style="display: flex; align-items: center; gap: var(--space-6); flex-wrap: wrap; padding: var(--space-2) var(--space-1)"><span style="display: inline-flex; flex-direction: column; gap: var(--space-2); align-items: flex-start"><span style="display: inline-flex; box-shadow: 0 0 0 2px var(--action-primary), 0 0 0 5px var(--focus-on-color); border-radius: var(--radius-sm)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md" icon-start="plus">Invite staff</x-import></span><span style="font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary)">As the DS renders it today: orange gap + white ring, 1.04:1 on cream. Fails.</span></span><span style="display: inline-flex; flex-direction: column; gap: var(--space-2); align-items: flex-start"><span style="display: inline-flex; box-shadow: 0 0 0 var(--focus-offset-width) var(--focus-offset), 0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring); border-radius: var(--radius-sm)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md" icon-start="plus">Invite staff</x-import></span><span style="font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary)">What the focus decision requires: page-colour gap + brand-600 ring. Design-system issue, not patched in this canvas.</span></span><span data-theme="dark" style="display: inline-flex; flex-direction: column; gap: var(--space-2); align-items: flex-start; padding: var(--space-3); border-radius: var(--radius-md); background: var(--surface-base); color: var(--text-primary)"><span style="display: inline-flex; box-shadow: 0 0 0 var(--focus-offset-width) var(--focus-offset), 0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring); border-radius: var(--radius-sm)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md" icon-start="plus">Invite staff</x-import></span><span style="font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary)">Required, dark: brand-400 ring.</span></span></div>
+<p style="margin: 0; font-size: var(--type-body-sm-size); line-height: 1.5; color: var(--text-secondary)">The DS Button adds .hg-on-brand to primary, which flips the ring to white on an orange gap: correct on a coloured container, invisible on the page. The design system still renders it so on page surfaces; this canvas no longer patches it, so live primary Buttons here show the failing ring until the system is fixed (issue raised). Opens with focus on Full name. After a server error, focus moves to the first field with an error. Cancel, Escape or sending returns focus to Invite staff.</p>
+</div></x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" padding="16px"><div style="display: flex; flex-direction: column; gap: 10px">
+<h3 style="margin: 0; font-size: var(--type-body-md-size); font-weight: 600">What's new panel</h3>
+<div style="padding: var(--space-2) var(--space-1)"><span style="display: inline-flex; box-shadow: 0 0 0 var(--focus-offset-width) var(--focus-offset), 0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring); border-radius: var(--radius-sm)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md">Done</x-import></span></div>
+<span style="font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary)">Primary focus as the decision requires (page-colour gap + brand-600 ring); the design system still draws the white ring, as for Invite staff above.</span>
+<p style="margin: 0; font-size: var(--type-body-sm-size); line-height: 1.5; color: var(--text-secondary)">Opens with focus on the panel heading, title announced. Done, Close or Escape returns focus to What's new in the sidebar footer (see What's new — focus returned).</p>
+</div></x-import>
+</div>
+</section>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1600}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const DS = window.HalalGoesDesignSystem_d11a47 || {};
+    const h = window.React.createElement;
+    const muted = function (t) { return h('span', { style: { color: 'var(--text-secondary)' } }, t); };
+    const fullDate = function (iso) { var d = new Date(iso); if (isNaN(d.getTime())) return iso; return iso.length > 10 ? d.toLocaleString('en-CA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/Toronto', timeZoneName: 'short' }) : d.toLocaleDateString('en-CA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }); };
+    const at = function (iso, label) { return h('time', { dateTime: iso, title: fullDate(iso) }, label); };
+    const tag = function (t) { return h('span', { style: { fontSize: 'var(--type-mono-sm-size)', lineHeight: 1.4, fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' } }, t); };
+    let v = {};
+
+    const ROLE = { SUPPORT_AGENT: 'Support agent', ADMIN: 'Admin', SUPER_ADMIN: 'Super admin' };
+    const STATUS = { ACTIVE: ['outline', 'Active', 'check'], INVITED: ['info', 'Invited', 'clock'], SUSPENDED: ['warning', 'Suspended', 'lock'], DEACTIVATED: ['neutral', 'Deactivated', 'close'] };
+    const staffRows = [
+      { id: 's1', full_name: 'Aminah Rahman', email: 'aminah.rahman@halalgoes.ca', role: 'SUPER_ADMIN', status: 'ACTIVE', mfa: true, lastIso: '2026-09-28T08:02:00-04:00', last: '28 Sep, 8:02 am', createdIso: '2026-06-02', created: '2 Jun', you: true },
+      { id: 's2', full_name: 'Sana Qureshi', email: 'sana.qureshi@halalgoes.ca', role: 'SUPER_ADMIN', status: 'ACTIVE', mfa: true, lastIso: '2026-09-27T17:40:00-04:00', last: '27 Sep, 5:40 pm', createdIso: '2026-06-02', created: '2 Jun' },
+      { id: 's3', full_name: 'Maryam Khan', email: 'maryam.khan@halalgoes.ca', role: 'ADMIN', status: 'ACTIVE', mfa: true, lastIso: '2026-09-28T09:10:00-04:00', last: '28 Sep, 9:10 am', createdIso: '2026-07-15', created: '15 Jul' },
+      { id: 's4', full_name: 'Yusuf Ali', email: 'yusuf.ali@halalgoes.ca', role: 'ADMIN', status: 'ACTIVE', mfa: true, lastIso: '2026-09-19T11:25:00-04:00', last: '19 Sep, 11:25 am', createdIso: '2026-07-15', created: '15 Jul' },
+      { id: 's5', full_name: 'Idris Okafor', email: 'idris.okafor@halalgoes.ca', role: 'SUPPORT_AGENT', status: 'INVITED', mfa: false, last: null, createdIso: '2026-09-26', created: '26 Sep' },
+      { id: 's6', full_name: 'Bilal Chaudhry', email: 'bilal.chaudhry@halalgoes.ca', role: 'SUPPORT_AGENT', status: 'SUSPENDED', mfa: true, lastIso: '2026-09-03T14:02:00-04:00', last: '3 Sep, 2:02 pm', createdIso: '2026-08-01', created: '1 Aug' },
+      { id: 's7', full_name: 'Hana Siddiqui', email: 'hana.siddiqui@halalgoes.ca', role: 'ADMIN', status: 'DEACTIVATED', mfa: true, lastIso: '2026-08-30T16:45:00-04:00', last: '30 Aug, 4:45 pm', createdIso: '2026-07-15', created: '15 Jul' }
+    ];
+    const roleCell = function (r) { return ROLE[r.role] || h('span', { style: { display: 'inline-flex', gap: 6, alignItems: 'baseline' } }, muted('Unrecognised role'), h('span', { style: { fontFamily: 'var(--font-mono)' } }, r.role)); };
+    const statusCell = function (r) {
+      if (r.inviteExpired) return h('span', { style: { display: 'inline-flex', gap: 'var(--space-2)', alignItems: 'center', flexWrap: 'wrap' } }, h(DS.Badge, { variant: 'warning', size: 'md', icon: 'clock' }, 'Invite link expired'), tag('Needs API: StaffUser.invitation_expires_at'));
+      const s = STATUS[r.status] || ['neutral', r.status, null];
+      const b = h(DS.Badge, { variant: s[0], size: 'md', icon: s[2] || undefined }, s[1]);
+      if (r.note === 'auto') return h('span', { style: { display: 'inline-flex', gap: 'var(--space-2)', alignItems: 'center' } }, b, muted('· invite never accepted'));
+      return b;
+    };
+    const mfaCell = function (r) {
+      if (r.note === 'auto') return muted('Never set up');
+      if (r.status === 'INVITED') return muted('Set up when they accept');
+      if (r.mfa) return 'Set up';
+      return h('span', { style: { display: 'inline-flex', gap: 'var(--space-2)', alignItems: 'center', flexWrap: 'wrap' } }, h(DS.Badge, { variant: 'warning', size: 'md', icon: 'warning' }, 'Not set up'), muted('Active accounts must have two-step sign-in. Tell the platform on-call engineer to check this account.'));
+    };
+    const plainName = function (r) { return h('span', { style: { display: 'inline-flex', gap: 'var(--space-2)', alignItems: 'center' } }, h('span', { style: { fontWeight: 600 } }, r.full_name), r.you ? h(DS.Badge, { variant: 'outline', size: 'sm' }, 'You') : null); };
+    const nameCell = plainName;
+    const staffCols = [
+      { key: 'full_name', label: 'Name', render: nameCell },
+      { key: 'email', label: 'Email', mono: true },
+      { key: 'role', label: 'Role', render: roleCell },
+      { key: 'status', label: 'Status', render: statusCell },
+      { key: 'mfa', label: 'Two-step sign-in', render: mfaCell },
+      { key: 'last', label: 'Last sign-in', render: function (r) { return r.last ? at(r.lastIso, r.last) : muted('Never'); } },
+      { key: 'created', label: 'Added', render: function (r) { return at(r.createdIso, r.created); } }
+    ];
+    const staffCols3 = [
+      { key: 'full_name', label: 'Name', render: plainName },
+      { key: 'role', label: 'Role', render: roleCell },
+      { key: 'status', label: 'Status', render: statusCell }
+    ];
+    const staffColsBare = staffCols.map(function (c) { return { key: c.key, label: c.label, mono: c.mono }; });
+    const staffColsBare3 = staffCols3.map(function (c) { return { key: c.key, label: c.label }; });
+    const rowId = function (r) { return r.id; };
+    const rowLabel = function (r) { return r.full_name; };
+
+    const roleOptions = [
+      { value: 'SUPPORT_AGENT', label: 'Support agent', description: 'Reads queues and orders with personal details masked. Early cancellations and refunds up to a set limit.' },
+      { value: 'ADMIN', label: 'Admin', description: 'Makes review decisions, including halal certificate checks. Sees names, roles and status of staff.' },
+      { value: 'SUPER_ADMIN', label: 'Super admin', description: 'Everything, including inviting staff, the issuing-body registry and revoking certificates.' }
+    ];
+    v = { rows: staffRows.slice(0, 5), cols: staffCols, rowId: rowId, rowLabel: rowLabel, roleOptions: roleOptions };
+    return Object.assign({ yes: true, no: false, nothing: null, noop: function () {} }, v);
+  }
+}
+</script>
+</body>
+</html>

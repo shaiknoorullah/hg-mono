@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>What's new</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<link rel="stylesheet" href="hg-current.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="scr {{ltClass}}" data-theme="{{theme}}" style="width: {{w}}px; height: {{h}}px; font-family: var(--font-ui); color: var(--text-primary)">
+  <sc-if value="{{f.page}}" hint-placeholder-val="{{false}}">
+    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="cream" title="What's new" on-back="{{noop}}" back-label="Back to Account"></x-import>
+    <main class="body" style="padding-top: var(--space-2); gap: var(--space-5); overflow: hidden">
+      <sc-if value="{{f.pageFocus}}" hint-placeholder-val="{{false}}">
+        <span class="anno-tag">Focus lands on Back to Account. Tab order: Back, then each version heading's section in order, then the tab bar. Headings are h2 for screen-reader jumps.</span>
+      </sc-if>
+      <sc-if value="{{f.list}}" hint-placeholder-val="{{true}}">
+        <sc-for list="{{versions}}" as="r" hint-placeholder-count="2">
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg">
+            <section style="display: flex; flex-direction: column; gap: var(--space-3)">
+              <div style="display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap">
+                <h2 class="t-h2">Version <span class="t-num">{{r.version}}</span></h2>
+                <sc-if value="{{r.current}}" hint-placeholder-val="{{false}}">
+                  <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="brand" size="sm">Your version</x-import>
+                </sc-if>
+              </div>
+              <p class="t-small">{{r.date}}</p>
+              <ul style="margin: 0; padding-left: var(--space-5); display: flex; flex-direction: column; gap: var(--space-2)">
+                <sc-for list="{{r.notes}}" as="n" hint-placeholder-count="2"><li class="t-body" style="color: var(--text-primary)">{{n}}</li></sc-for>
+              </ul>
+            </section>
+          </x-import>
+        </sc-for>
+        <span class="anno-tag" style="white-space: normal">Halal note checked against HalalBadge.certifying_body_name and expires_on: both nullable, and a missing halal field renders nothing, so the note is conditional ("when we have them").</span>
+      </sc-if>
+      <sc-if value="{{f.empty}}" hint-placeholder-val="{{false}}">
+        <div style="flex: 1 1 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: var(--space-3); padding: var(--space-8) var(--space-5)">
+          <span class="gap-tag">Proposed component: EmptyState</span>
+          <span aria-hidden="true" style="width: 56px; height: 56px; display: grid; place-items: center; border-radius: var(--radius-full); background: var(--surface-sunken); color: var(--text-secondary)"></span>
+          <span class="gap-tag">Component gap: Icon gift</span>
+          <h2 style="margin: 0; font-size: var(--type-heading-md-size); line-height: var(--type-heading-md-line); font-weight: 600; color: var(--text-primary)">Nothing new to show yet</h2>
+          <p style="margin: 0; max-width: 320px; font-size: var(--type-body-md-size); line-height: var(--type-body-md-line); color: var(--text-secondary)">When an update changes something you'll notice, we'll describe it here.</p>
+          <p class="t-small">You have version <span class="t-num">1.2.0</span>. The App Store and Google Play list what changed in every version.</p>
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" href="#store">See notes in the app store</x-import>
+        </div>
+      </sc-if>
+    </main>
+    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.BottomNav" label="Main" active="account" items="{{nav}}" on-change="{{noop}}"></x-import>
+  </sc-if>
+
+  <sc-if value="{{f.held}}" hint-placeholder-val="{{false}}">
+    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="cream" title="Order A7Q2" subtitle="Zaytoun Grill" on-back="{{noop}}" back-label="Back to Home"></x-import>
+    <div class="handoff" aria-hidden="true">
+      <span class="t-sec">Order tracking (Track team)</span>
+      <p class="t-small">The app updated while this order is open. What's new does not appear here or in checkout.</p>
+      <span class="anno-tag">Update 1.2.0 installed. Sheet held until the next Home visit after this order flow ends.</span>
+    </div>
+    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.BottomNav" label="Main" active="orders" items="{{nav}}" on-change="{{noop}}"></x-import>
+  </sc-if>
+
+  <sc-if value="{{f.sheet}}" hint-placeholder-val="{{true}}">
+    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="cream" title="14 Ellesmere Rd" subtitle="Deliver to"></x-import>
+    <main class="body" aria-hidden="true">
+      <p class="t-small">Home (Discover team) behind the sheet. Shown only when no order flow is open.</p>
+      <sc-if value="{{f.later}}" hint-placeholder-val="{{false}}">
+        <span class="anno-tag">Held from checkout or tracking: shown on the first Home visit after that flow ends, once.</span>
+      </sc-if>
+      <sc-if value="{{f.sheetFocus}}" hint-placeholder-val="{{false}}">
+        <span class="anno-tag">Focus starts on Got it (focus ring drawn). Screen-reader order: sheet title, intro, each version heading and its notes, Got it, the footer line, then Close. Escape and Close both dismiss and mark the notes seen.</span>
+      </sc-if>
+    </main>
+    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Sheet" open="{{yes}}" contained="{{yes}}" title="What's new in HalalGoes" on-close="{{noop}}" max-height="82%" footer="{{sheetFooter}}">
+      <div style="display: flex; flex-direction: column; gap: var(--space-5); font-family: var(--font-ui)">
+        <p class="t-body">{{sheetIntro}}</p>
+        <sc-for list="{{sheetVersions}}" as="r" hint-placeholder-count="1">
+          <section style="display: flex; flex-direction: column; gap: var(--space-2)">
+            <h3 class="t-h2">Version <span class="t-num">{{r.version}}</span> · <span class="t-num" style="font-weight: 400; color: var(--text-secondary)">{{r.date}}</span></h3>
+            <ul style="margin: 0; padding-left: var(--space-5); display: flex; flex-direction: column; gap: var(--space-2)">
+              <sc-for list="{{r.notes}}" as="n" hint-placeholder-count="2"><li class="t-body" style="color: var(--text-primary)">{{n}}</li></sc-for>
+            </ul>
+          </section>
+        </sc-for>
+        <span class="anno-tag" style="white-space: normal">Halal note checked against HalalBadge.certifying_body_name and expires_on: both nullable, and a missing halal field renders nothing, so the note is conditional ("when we have them").</span>
+        <sc-if value="{{f.multi}}" hint-placeholder-val="{{false}}">
+          <span class="anno-tag" style="white-space: normal">Two updates show only when this phone has a stored last-seen version. Owner decision (1 October): a new phone, or a sign-in with no stored version, shows only the latest release's notes; older notes stay on the What's new page.</span>
+        </sc-if>
+      </div>
+    </x-import>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["sheet","sheetmulti","sheetfocus","page","pagefocus","empty","held","later"],"default":"sheet"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"lt":{"editor":"boolean","default":false},"h":{"editor":"int","min":844,"max":2400,"default":844},"w":{"editor":"int","min":320,"max":430,"default":390},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  componentDidMount() {
+    this.t = setTimeout(() => {
+      try {
+        const st = this.props.state ?? 'sheet';
+        let el = null;
+        if (['sheet', 'later'].includes(st)) el = document.querySelector('[role=dialog] button');
+        if (st === 'sheetfocus') el = Array.from(document.querySelectorAll('[role=dialog] button')).find((b) => (b.textContent || '').trim() === 'Got it') || null;
+        if (st === 'pagefocus') el = document.querySelector('header button');
+        if (el) el.focus({ preventScroll: true });
+      } catch (e) {}
+    }, 500);
+  }
+  componentWillUnmount() { clearTimeout(this.t); }
+  renderVals() {
+    let s = this.props.state ?? 'sheet';
+    // Notes ship inside the app (#97): a corrupt bundle falls back to the empty state, never an error.
+    if (s === 'error' || s === 'loading') s = 'empty';
+    const f = { sheet: ['sheet', 'sheetmulti', 'sheetfocus', 'later'].includes(s), empty: s === 'empty', held: s === 'held', later: s === 'later', sheetFocus: s === 'sheetfocus', pageFocus: s === 'pagefocus', multi: s === 'sheetmulti' };
+    const h = window.React.createElement;
+    const DS = window.HalalGoesDesignSystem_d11a47 || {};
+    const sheetFooter = DS.Button ? h('div', { style: { display: 'flex', flexDirection: 'column', gap: 'var(--space-2)', fontFamily: 'var(--font-ui)' } },
+      h(DS.Button, { variant: 'primary', size: 'lg', fullWidth: true, onPress: () => {} }, 'Got it'),
+      h('p', { className: 't-small', style: { textAlign: 'center' } }, "You can read these again in Account, then What's new.")) : null;
+    f.page = !f.sheet && !f.held;
+    f.list = s === 'page' || s === 'pagefocus';
+    const v120 = { version: '1.2.0', date: '26 September 2026', current: true, notes: [
+      "Restaurant pages now show the certifying body and the certificate's end date when we have them.",
+      'Save several addresses and pick where each order goes.',
+      'Add an address from anywhere: search for it, then drag the pin onto your door.',
+    ] };
+    const v110 = { version: '1.1.0', date: '4 September 2026', current: false, notes: [
+      'Tracking shows an arrival window, like 7:42 to 7:52 pm, instead of a countdown.',
+      'Sign-in codes fill in by themselves on phones that support it.',
+    ] };
+    return {
+      f, yes: true, noop: () => {}, sheetFooter,
+      theme: this.props.theme === 'dark' ? 'dark' : 'light',
+      w: this.props.w ?? 390,
+      h: this.props.h ?? 844,
+      ltClass: this.props.lt ? 'lt' : '',
+      versions: [v120, v110],
+      sheetVersions: s === 'sheetmulti' ? [v120, v110] : [v120],
+      sheetIntro: s === 'sheetmulti' ? "Here's what changed in the 2 updates since you last looked." : "Here's what changed in this update.",
+      nav: [
+        { key: 'home', label: 'Home', icon: 'home' },
+        { key: 'search', label: 'Search', icon: 'search' },
+        { key: 'orders', label: 'Orders', icon: 'orders' },
+        { key: 'account', label: 'Account', icon: 'profile' },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

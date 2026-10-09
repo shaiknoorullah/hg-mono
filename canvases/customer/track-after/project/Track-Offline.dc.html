@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Offline</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<link rel="stylesheet" href="hg-roles.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:var(--surface-base)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+</style>
+</helmet>
+<div style="width: 390px; height: 1000px; position: relative; display: flex; flex-direction: column; overflow: hidden; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" title-is-page-heading="{{ no }}" tone="cream" title="Order HG-8F3K2Q" subtitle="Zaytoun Grill" back-label="Back to Orders" on-back="{{ noop }}"></x-import><main style="flex-grow: 1; display: flex; flex-direction: column; gap: 12px; padding: 4px 16px 16px; overflow: hidden">
+<div style="display: flex; flex-direction: column; gap: 6px"><span class="hg-tag">Proposed component: InlineAlert</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="md" padding="var(--space-3) var(--space-4)"><div role="status" style="display: flex; flex-direction: column; gap: 8px"><div style="display: flex; align-items: center; justify-content: flex-start; gap: 10px"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="info" size="md" color="var(--text-primary)"></x-import><span class="type-body-md" style="flex-grow: 1">You're offline. This is what we knew at 7:04 pm.</span></div></div></x-import></div><div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 12px"><h1 style="margin: 0; display: flex; flex-direction: column; gap: 2px"><span class="type-label-lg" aria-hidden="true" style="color: var(--text-secondary)">On the way · Last estimate</span><span class="type-display-md hg-num" aria-hidden="true">7:10–7:20 pm</span><span class="hg-vh">On the way, last estimate, arriving between 7:10 and 7:20 pm</span></h1></div><div class="hg-gap" style="height: 250px"><span class="hg-tag">Component gap: MapView</span><span class="hg-gap-note">Tiles may not load offline: the text fallback carries the addresses. The rider pin stays at its last position (7:04 pm).</span><span class="hg-gap-note">From Zaytoun Grill. To 14 Ellesmere Road, unit 402.</span></div><div style="display: flex; flex-direction: column; gap: 4px"><span class="hg-tag">Component gap: StatusTimeline connection="offline"</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.StatusTimeline" audience="customer" state="PICKED_UP" orientation="compact" transitions="{{ tl }}" estimated-at="2026-09-28T19:10:00-04:00" now="{{ now }}"></x-import><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg"><div style="display: flex; align-items: center; justify-content: space-between; gap: 12px"><span class="type-label-lg">Zaytoun Grill</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.HalalBadge" state="CERTIFIED" surface="card" size="sm"></x-import></div></x-import></div><span class="hg-gap-note">One status message only: the offline banner. The timeline shows no connection line here.</span><div class="hg-gap"><span class="hg-tag">Annotation: cached halal status</span><span class="hg-gap-note">Offline, the badge comes from the last fetched OrderRestaurantRef.halal and shows only while that copy is 15 minutes old or less (owner decision). Older than that, the badge is removed and one neutral line says it will show again once back online (Track-Offline-HalalStale). Never an optimistic badge.</span></div><div style="display: flex; flex-direction: column; gap: 8px; margin-top: auto"><div class="hg-focus-drawn"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" full-width="{{ yes }}" icon-start="refresh">Try again</x-import></div></div>
+</main><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.BottomNav" label="Main" active="orders" items="{{ nav }}"></x-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const t = (s, at, a) => ({ to_state: s, at: '2026-09-28T' + at + ':00-04:00', actor_kind: a || 'SYSTEM' });
+    const all = [t('AUTHORIZED', '18:42', 'CUSTOMER'), t('RESTAURANT_PENDING', '18:42'), t('PREPARING', '18:44', 'RESTAURANT'), t('READY_FOR_PICKUP', '18:59', 'RESTAURANT'), t('PICKED_UP', '19:02', 'RIDER'), t('ARRIVED', '19:12', 'RIDER'), t('DELIVERED', '19:13', 'RIDER'), t('COMPLETED', '19:43')];
+    const upTo = (n) => all.slice(0, n);
+    return {
+      yes: true, no: false, none: null, zero: 0, noop: () => {},
+      nav: [{ key: 'home', label: 'Home', icon: 'home' }, { key: 'search', label: 'Search', icon: 'search' }, { key: 'orders', label: 'Orders', icon: 'orders', badge: 1, badgeNoun: 'active' }, { key: 'account', label: 'Account', icon: 'profile' }],
+      tl: upTo(5), now: Date.parse('2026-09-28T19:06:00-04:00')
+    };
+  }
+}
+</script>
+</body>
+</html>

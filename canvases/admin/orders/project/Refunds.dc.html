@@ -1,0 +1,993 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Refunds</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+.hg-skip{position:absolute;left:-9999px;top:12px;z-index:20;display:inline-flex;align-items:center;min-height:44px;padding:0 var(--space-4);border-radius:var(--radius-md);background:var(--surface-raised);color:var(--text-primary);font-size:var(--type-label-lg-size);font-weight:var(--font-weight-semibold);text-decoration:none;box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+.hg-skip:focus-visible{left:16px}
+.hg-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+textarea:focus-visible{outline:2px solid transparent;border-width:var(--focus-field-border-width);border-color:var(--focus-ring)}
+textarea[aria-invalid="true"]:focus-visible{border-color:var(--feedback-danger-border);box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+.hg-pane{min-height:0;min-width:0;display:flex;flex-direction:column;background:var(--surface-base)}
+.hg-pane-body{flex-grow:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:var(--space-3);padding:var(--space-3) var(--space-4) var(--space-4)}
+.hg-pane-head{display:flex;align-items:center;gap:var(--space-2);min-height:52px;box-sizing:border-box;padding:var(--space-1) var(--space-2) var(--space-1) var(--space-4);border-bottom:1px solid var(--border-decorative);background:var(--surface-raised)}
+.hg-kv{margin:0;display:grid;grid-template-columns:150px minmax(0,1fr);gap:var(--space-2) var(--space-3);font-size:var(--type-body-md-size);line-height:1.45}
+.hg-kv dt{color:var(--text-secondary);font-size:var(--type-label-md-size);font-weight:var(--font-weight-semibold);padding-top:var(--space-1)}
+.hg-kv dd{margin:0}
+.hg-need{display:flex;align-items:center;gap:var(--space-2);font-size:var(--type-body-sm-size);line-height:1.45;color:var(--text-secondary)}
+.hg-fr{display:flex;flex-direction:column;gap:var(--space-1);min-height:44px;box-sizing:border-box;padding:var(--space-2) var(--space-3);border-bottom:1px solid var(--border-decorative);color:var(--text-primary);text-decoration:none}
+.hg-fr[aria-current="page"]{background:var(--state-selected-tint);font-weight:var(--font-weight-bold)}
+.hg-fr[aria-current="page"] span{font-weight:var(--font-weight-bold)}
+</style>
+</helmet>
+<div data-theme="{{theme}}" data-density="compact" style="width: {{rootW}}; height: {{rootH}}; position: {{rootPos}}; inset: {{rootInset}}; overflow: hidden; display: grid; grid-template-columns: {{shellCols}}; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+  <sc-if value="{{darkTag}}" hint-placeholder-val="{{false}}">
+    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="info" size="sm" icon="info" style="position: absolute; right: 12px; bottom: 8px; z-index: 5">Needs design-system fix: neutral Badge in dark theme</x-import>
+  </sc-if>
+  <sc-if value="{{notEmbed}}" hint-placeholder-val="{{true}}">
+    <a class="hg-skip" href="#main">Skip to main content</a>
+    <aside style="background: var(--surface-chrome); height: 900px">
+      <dc-import name="AdminNav" active="refunds" role="{{role}}" failed="{{navFailed}}" collapsed="{{hasOrder}}" hint-size="{{navHint}}"></dc-import>
+    </aside>
+  </sc-if>
+  <div style="display: flex; flex-direction: column; min-width: 0; min-height: 0; height: {{colH}}">
+    <sc-if value="{{isOffline}}" hint-placeholder-val="{{false}}">
+      <div role="status" style="display: flex; align-items: center; gap: var(--space-3); padding: var(--space-2) var(--space-6); background: var(--feedback-warning-tint); border-bottom: 1px solid var(--feedback-warning-border); color: var(--feedback-warning-tint-text); font-size: var(--type-body-md-size)">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="warning" size="md" color="var(--feedback-warning-icon)"></x-import>
+        <span style="flex-grow: 1"><strong>You're offline.</strong> Lookups and refunds are turned off until you reconnect, and nothing is queued.</span>
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="outline" size="sm">Proposed component: Banner</x-import>
+      </div>
+    </sc-if>
+    <sc-if value="{{notEmbed}}" hint-placeholder-val="{{true}}">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="chrome" title="{{pageTitle}}" subtitle="{{pageSubtitle}}"></x-import>
+    </sc-if>
+
+    <sc-if value="{{isQueue}}" hint-placeholder-val="{{false}}">
+      <main id="main" tabindex="-1" style="flex-grow: 1; min-height: 0; padding: var(--space-6); display: flex; flex-direction: column; gap: var(--space-4)">
+        <div role="note" style="display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-6); border-radius: var(--radius-lg); background: var(--surface-sunken); border: 1px solid var(--border-decorative); max-width: 820px">
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="info" size="md" icon="info" style="align-self: flex-start">Needs API</x-import>
+          <h2 style="margin: 0; font-size: var(--type-heading-lg-size); font-weight: var(--font-weight-semibold)">Refund approvals: list, approve, decline</h2>
+          <p style="margin: 0; font-size: var(--type-body-md-size); line-height: 1.5; color: var(--text-secondary)">A refund above someone's limit becomes an approval request, but nothing lists those requests or approves or declines one. Until something does, a request sits unseen.</p>
+          <p style="margin: 0; font-size: var(--type-body-md-size); line-height: 1.5; color: var(--text-secondary)">When it exists, this page is the same three panes: a 44px grid of pending requests, oldest first (order code, reason, proposed amount, who asked, who must approve, age); the order's money beside it; Approve and Decline in the right-hand panel. Nobody sees their own request as approvable.</p>
+          <div style="display: flex; align-items: center; gap: var(--space-2); font-size: var(--type-body-md-size); color: var(--text-secondary)">
+            <span>A goodwill amount above</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{c5000}}" size="sm"></x-import><span>always needs a second person, whatever their role.</span>
+          </div>
+        </div>
+      </main>
+    </sc-if>
+
+    <sc-if value="{{isStart}}" hint-placeholder-val="{{false}}">
+      <main id="main" tabindex="-1" style="flex-grow: 1; min-height: 0; padding: var(--space-4) var(--space-6); display: flex; flex-direction: column; gap: var(--space-3)">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" padding="var(--space-3) var(--space-4)" radius="lg">
+          <section aria-label="Find the order" style="display: flex; gap: var(--space-3); align-items: flex-start">
+            <div style="display: flex; flex-direction: column; gap: var(--space-1); width: 340px">
+              <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Order code" variant="search" placeholder="HG-8F3K2Q" default-value="{{lookupValue}}" error-text="{{lookupError}}" loading="{{isSearching}}" disabled="{{isOffline}}"></x-import>
+              <span style="font-size: var(--type-body-sm-size); line-height: 1.45; color: var(--text-secondary)">The code on the customer's receipt. Press Enter to find it.</span>
+            </div>
+            <div style="padding-top: var(--space-6)">
+              <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md" type="submit" loading="{{isSearching}}" disabled="{{isOffline}}">{{findLabel}}</x-import>
+            </div>
+            <span style="flex-grow: 1"></span>
+            <span style="max-width: 360px; font-size: var(--type-body-sm-size); line-height: 1.5; color: var(--text-secondary); padding-top: var(--space-2)">Refunds are issued against one order. There is no refund without an order.</span>
+          </section>
+        </x-import>
+        <sc-if value="{{isLookupError}}" hint-placeholder-val="{{false}}">
+          <div role="alert" style="display: flex; gap: var(--space-3); align-items: center; padding: var(--space-3) var(--space-4); border-radius: var(--radius-lg); background: var(--feedback-warning-tint); border: 1px solid var(--feedback-warning-border); color: var(--feedback-warning-tint-text); font-size: var(--type-body-md-size); line-height: 1.5">
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="warning" size="lg" color="var(--feedback-warning-icon)"></x-import>
+            <span style="flex-grow: 1"><strong>The lookup didn't finish.</strong> The server didn't answer, so we can't say whether <span style="font-family: var(--font-mono)">HG-7XQ3NE</span> exists. This is not the same as "no order". Nothing was changed.</span>
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md" icon-start="refresh">Try again</x-import>
+          </div>
+        </sc-if>
+        <sc-if value="{{showStartCard}}" hint-placeholder-val="{{false}}">
+          <div role="{{startRole}}" style="display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-4); background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: var(--radius-lg)">
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="search" size="lg" color="var(--text-secondary)"></x-import>
+            <div style="display: flex; flex-direction: column; gap: var(--space-1); flex-grow: 1">
+              <h2 style="margin: 0; font-size: var(--type-heading-sm-size); font-weight: var(--font-weight-semibold)">{{startTitle}}</h2>
+              <p style="margin: 0; font-size: var(--type-body-md-size); line-height: 1.5; color: var(--text-secondary)">{{startBody}}</p>
+            </div>
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="outline" size="sm">Proposed component: EmptyState</x-import>
+          </div>
+        </sc-if>
+        <section aria-labelledby="failed-h" style="flex-grow: 1; min-height: 0; display: flex; flex-direction: column; gap: var(--space-2)">
+          <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap">
+            <h2 id="failed-h" style="margin: 0; font-size: var(--type-heading-sm-size); font-weight: var(--font-weight-semibold)">Failed refunds</h2>
+            <sc-if value="{{failedReady}}" hint-placeholder-val="{{true}}">
+              <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="neutral" size="sm" aria-label="{{failedCountLabel}}">{{failedCount}}</x-import>
+            </sc-if>
+            <span style="font-size: var(--type-body-sm-size); color: var(--text-secondary)">Refunds the provider declined, newest first. A row stays after a replacement is issued.</span>
+            <span style="flex-grow: 1"></span>
+            <div class="hg-need"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="info" size="sm" icon="info">Needs API</x-import><span>Order code on each refund; a replaced-by link on a failed refund</span></div>
+          </div>
+          <div style="position: relative; flex-grow: 1; min-height: 0; display: flex; flex-direction: column; padding: var(--space-5) var(--space-2) var(--space-2); border: 1.5px dashed var(--border-strong); border-radius: var(--radius-lg)">
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="outline" size="sm" style="position: absolute; left: 12px; top: -10px; background: var(--surface-base)">Proposed component: DataGrid (LyteNyte, 44px rows, virtualised in this region; DataTable stand-in)</x-import>
+            <div style="flex-grow: 1; min-height: 0; overflow: auto">
+              <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.DataTable" caption="Failed refunds" hide-caption="{{yes}}" density="compact" columns="{{failedColumns}}" rows="{{failedRowsData}}" get-row-id="{{rowId}}" row-actions="{{failedActions}}" row-label="{{failedLabel}}" on-row-activate="{{noop}}" status="{{failedStatus}}" error-message="Failed refunds didn’t load. This doesn’t mean there are none. Nothing was changed." on-retry="{{noop}}" empty-state="{{failedEmpty}}"></x-import>
+            </div>
+          </div>
+          <div class="hg-need"><span>On-call for failed refunds: [On-call name], [phone].</span><a href="#" style="font-weight: var(--font-weight-semibold)">Failed refund runbook (issue #66)</a></div>
+        </section>
+      </main>
+    </sc-if>
+
+    <sc-if value="{{hasOrder}}" hint-placeholder-val="{{true}}">
+      <div style="position: relative; flex-grow: 1; min-height: 0; display: grid; grid-template-columns: {{orderCols}}; border-top: {{orderBorder}}">
+        <sc-if value="{{notEmbed}}" hint-placeholder-val="{{true}}">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="outline" size="sm" style="position: absolute; right: 12px; bottom: 8px; z-index: 3; background: var(--surface-raised)">Proposed component: ResizablePanels (queue, order, refund)</x-import>
+
+        <section class="hg-pane" aria-labelledby="q-h" style="border-right: 1px solid var(--border-decorative); background: var(--surface-raised)">
+          <div class="hg-pane-head">
+            <h2 id="q-h" style="margin: 0; flex-grow: 1; font-size: var(--type-heading-sm-size); font-weight: var(--font-weight-semibold)">Find an order</h2>
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="outline" size="sm">Proposed component: ListPaneRow</x-import>
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.IconButton" icon="back" accessibility-label="Collapse this pane" variant="ghost" size="md"></x-import>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: var(--space-1); padding: var(--space-3); border-bottom: 1px solid var(--border-decorative)">
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Order code" variant="search" placeholder="HG-8F3K2Q" default-value="{{o.code}}"></x-import>
+            <span style="font-size: var(--type-body-sm-size); color: var(--text-secondary)">Press Enter to find it.</span>
+          </div>
+          <div style="padding: var(--space-2) var(--space-3) var(--space-1); font-size: var(--type-label-md-size); font-weight: var(--font-weight-semibold); color: var(--text-secondary)">Failed refunds · {{failedCount}}</div>
+          <nav aria-label="Failed refunds" style="flex-grow: 1; min-height: 0; overflow: auto">
+            <sc-for list="{{queueRows}}" as="q" hint-placeholder-count="3">
+              <a class="hg-fr hg-row" data-interactive="true" href="{{q.href}}" aria-current="{{q.current}}">
+                <span style="display: flex; align-items: center; gap: var(--space-2)"><span style="font-family: var(--font-mono); font-weight: var(--font-weight-semibold); flex-grow: 1">{{q.name}}</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{q.amount}}" size="sm"></x-import></span>
+                <span style="font-size: var(--type-body-sm-size); color: var(--text-secondary)">{{q.sub}}</span>
+              </a>
+            </sc-for>
+          </nav>
+        </section>
+
+        <main id="main" tabindex="-1" class="hg-pane" aria-label="Order" style="border-right: 1px solid var(--border-decorative)">
+          <div style="display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--border-decorative); background: var(--surface-raised)">
+            <div style="display: flex; align-items: center; gap: var(--space-3)">
+              <h2 id="ord-h" style="margin: 0; font-family: var(--font-mono); font-size: var(--type-heading-md-size); font-weight: var(--font-weight-semibold)">{{o.code}}</h2>
+              <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="{{o.tone}}" icon="{{o.icon}}" size="md">{{o.stateLabel}}</x-import>
+              <span style="flex-grow: 1"></span>
+              <a href="{{o.href}}" style="font-size: var(--type-label-lg-size); font-weight: var(--font-weight-semibold); min-height: 44px; display: inline-flex; align-items: center">Open the order</a>
+            </div>
+            <div style="display: flex; align-items: center; gap: var(--space-2); font-size: var(--type-body-md-size); flex-wrap: wrap">
+              <span>{{o.restaurant}}</span>
+              <sc-if value="{{o.hasHalal}}" hint-placeholder-val="{{true}}">
+                <dc-import name="HalalState" state="{{o.halal}}" size="sm" expires="{{o.certShort}}" expires-full="{{o.certFull}}" hint-size="210px,20px"></dc-import>
+              </sc-if>
+              <sc-if value="{{o.noHalal}}" hint-placeholder-val="{{false}}">
+                <span style="font-size: var(--type-body-sm-size); color: var(--text-secondary)">No halal status on file</span>
+              </sc-if>
+              <span style="font-size: var(--type-body-sm-size); color: var(--text-secondary)">(restaurant's status now) · {{o.when}}</span>
+            </div>
+          </div>
+          <div class="hg-pane-body">
+            <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-2)">
+              <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="filled" padding="var(--space-2) var(--space-3)" radius="md"><div style="display: flex; flex-direction: column; gap: var(--space-1)"><span style="font-size: var(--type-body-sm-size); color: var(--text-secondary)">{{o.totalLabel}}</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{o.total}}" size="md"></x-import></div></x-import>
+              <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="filled" padding="var(--space-2) var(--space-3)" radius="md"><div style="display: flex; flex-direction: column; gap: var(--space-1)"><span style="font-size: var(--type-body-sm-size); color: var(--text-secondary)">Captured</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{o.captured}}" size="md"></x-import></div></x-import>
+              <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="filled" padding="var(--space-2) var(--space-3)" radius="md"><div style="display: flex; flex-direction: column; gap: var(--space-1)"><span style="font-size: var(--type-body-sm-size); color: var(--text-secondary)">Already refunded</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{o.refunded}}" size="md"></x-import></div></x-import>
+            </div>
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="outline" size="sm" style="align-self: flex-start">Proposed component: StatCard (approved for the system)</x-import>
+            <sc-if value="{{o.hasPayNote}}" hint-placeholder-val="{{false}}">
+              <span style="font-size: var(--type-body-sm-size); line-height: 1.45; color: var(--text-secondary)">{{o.payNote}}</span>
+            </sc-if>
+
+            <sc-if value="{{isReasons}}" hint-placeholder-val="{{false}}">
+              <section aria-labelledby="rs-h" style="display: flex; flex-direction: column; gap: var(--space-2)">
+                <div style="display: flex; align-items: center; gap: var(--space-2)">
+                  <h3 id="rs-h" style="margin: 0; font-size: var(--type-heading-sm-size); font-weight: var(--font-weight-semibold); flex-grow: 1">Reasons, by what you're refunding</h3>
+                  <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="outline" size="sm">Proposed component: Select option groups</x-import>
+                </div>
+                <div role="note" style="display: flex; gap: var(--space-2); align-items: flex-start; font-size: var(--type-caption-size); font-style: italic; line-height: 1.5; color: var(--text-secondary)">
+                  <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="outline" size="sm">Note</x-import>
+                  <span>Never offered, because only the system sets them: Restaurant rejected, No rider found, Restaurant cancelled, Cancelled by the platform. Dispute resolution belongs to resolving a dispute (Needs API), never this form. Before a chargeback appears only on a disputed order, admin only. Goodwill appears only with Goodwill amount. Who bears each reason is the server's rule, shown here in words.</span>
+                </div>
+                <sc-for list="{{reasonGroups}}" as="g" hint-placeholder-count="4">
+                  <div role="group" aria-label="{{g.name}}" style="display: flex; flex-direction: column">
+                    <span style="font-size: var(--type-label-md-size); font-weight: var(--font-weight-semibold); color: var(--text-secondary); padding: var(--space-2) 0 var(--space-1)">{{g.name}}</span>
+                    <sc-for list="{{g.items}}" as="it" hint-placeholder-count="3">
+                      <div style="display: grid; grid-template-columns: 170px minmax(0, 1fr); gap: var(--space-3); padding: var(--space-2) 0; border-top: 1px solid var(--border-decorative); font-size: var(--type-body-sm-size); line-height: 1.45">
+                        <span style="font-size: var(--type-label-lg-size); font-weight: var(--font-weight-semibold)">{{it.label}}</span>
+                        <span style="display: flex; flex-direction: column; gap: var(--space-1)"><span>{{it.desc}}</span><span style="color: var(--text-secondary)">{{it.bearer}}</span></span>
+                      </div>
+                    </sc-for>
+                  </div>
+                </sc-for>
+              </section>
+            </sc-if>
+            <sc-if value="{{notReasons}}" hint-placeholder-val="{{true}}">
+              <section aria-labelledby="rl-h" style="display: flex; flex-direction: column; gap: var(--space-2)">
+                <h3 id="rl-h" style="margin: 0; font-size: var(--type-heading-sm-size); font-weight: var(--font-weight-semibold)">Refunds on this order</h3>
+                <sc-if value="{{noRefundRows}}" hint-placeholder-val="{{false}}">
+                  <span style="font-size: var(--type-body-md-size); color: var(--text-secondary)">No refunds issued.</span>
+                </sc-if>
+                <sc-for list="{{refundRows}}" as="rf" hint-placeholder-count="2">
+                  <div style="display: flex; flex-direction: column; gap: var(--space-1); padding: var(--space-2) 0; border-top: 1px solid var(--border-decorative)">
+                    <div style="display: flex; align-items: center; gap: var(--space-2); font-size: var(--type-body-md-size); flex-wrap: wrap">
+                      <span style="flex-grow: 1">{{rf.reason}}</span>
+                      <sc-if value="{{rf.isNew}}" hint-placeholder-val="{{false}}">
+                        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="info" size="sm">{{rf.newLabel}}</x-import>
+                      </sc-if>
+                      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="{{rf.tone}}" icon="{{rf.icon}}" size="md">{{rf.stateLabel}}</x-import>
+                      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{rf.amount}}" size="sm" show-code="{{yes}}"></x-import>
+                    </div>
+                    <span style="font-size: var(--type-body-sm-size); color: var(--text-secondary)"><span style="font-family: var(--font-mono)">{{rf.id}}</span> · {{rf.meta}}</span>
+                    <sc-if value="{{rf.hasNeed}}" hint-placeholder-val="{{false}}">
+                      <div role="note" class="hg-need"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="info" size="sm" icon="info">Needs API</x-import><span>{{rf.need}}</span></div>
+                    </sc-if>
+                    <sc-if value="{{rf.hasSplit}}" hint-placeholder-val="{{true}}">
+                      <div style="display: grid; grid-template-columns: 150px repeat(3, minmax(0, 1fr)); gap: var(--space-2); align-items: center; font-size: var(--type-body-sm-size)">
+                        <span style="font-weight: var(--font-weight-semibold); color: var(--text-secondary)">{{rf.splitLabel}}</span>
+                        <span style="display: flex; gap: var(--space-1); align-items: baseline">Restaurant <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{rf.sRest}}" size="sm"></x-import></span>
+                        <span style="display: flex; gap: var(--space-1); align-items: baseline">Platform <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{rf.sPlat}}" size="sm"></x-import></span>
+                        <span style="display: flex; gap: var(--space-1); align-items: baseline">Rider <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{rf.sRider}}" size="sm"></x-import></span>
+                      </div>
+                    </sc-if>
+                    <sc-if value="{{rf.noSplit}}" hint-placeholder-val="{{false}}">
+                      <span style="font-size: var(--type-body-sm-size); color: var(--text-secondary)">{{rf.noSplitText}}</span>
+                    </sc-if>
+                  </div>
+                </sc-for>
+              </section>
+              <section aria-labelledby="ln-h" style="display: flex; flex-direction: column">
+                <h3 id="ln-h" style="margin: 0 0 var(--space-1); font-size: var(--type-heading-sm-size); font-weight: var(--font-weight-semibold)">Items</h3>
+                <sc-for list="{{o.lines}}" as="l" hint-placeholder-count="2">
+                  <div style="display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; gap: var(--space-2); padding: var(--space-2) 0; border-top: 1px solid var(--border-decorative); font-size: var(--type-body-md-size)">
+                    <span style="color: var(--text-secondary); font-variant-numeric: tabular-nums">{{l.qty}} ×</span>
+                    <span>{{l.name}}</span>
+                    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{l.total}}" size="sm"></x-import>
+                  </div>
+                </sc-for>
+              </section>
+            </sc-if>
+          </div>
+        </main>
+        </sc-if>
+
+        <aside class="hg-pane" aria-labelledby="panel-h" style="background: var(--surface-raised); box-shadow: inset 0 0 0 1px var(--border-brand)">
+          <div class="hg-pane-head">
+            <h2 id="panel-h" tabindex="-1" style="margin: 0; flex-grow: 1; font-size: var(--type-heading-sm-size); font-weight: var(--font-weight-semibold)">{{panelTitle}}</h2>
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.IconButton" icon="close" accessibility-label="{{closeLabel}}" variant="ghost" size="md"></x-import>
+          </div>
+          <div class="hg-pane-body" style="gap: var(--space-4)">
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="outline" size="sm" style="align-self: flex-start">{{panelBadge}}</x-import>
+
+            <sc-if value="{{isNothingCaptured}}" hint-placeholder-val="{{false}}">
+              <section aria-labelledby="nc-h" style="display: flex; flex-direction: column; gap: var(--space-3); font-size: var(--type-body-md-size); line-height: 1.5">
+                <h3 id="nc-h" style="margin: 0; font-size: var(--type-heading-md-size); font-weight: var(--font-weight-semibold)">Nothing captured yet, so there is nothing to refund</h3>
+                <span>The restaurant hasn't accepted this order, so the payment is only held. Cancel the order instead: that voids the authorisation and nothing is charged.</span>
+                <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md" href="CancelProposed.dc.html" style="align-self: flex-start">Open the order to cancel</x-import>
+              </section>
+            </sc-if>
+
+            <sc-if value="{{nothing.show}}" hint-placeholder-val="{{false}}">
+              <section aria-labelledby="nt-h" style="display: flex; flex-direction: column; gap: var(--space-3); font-size: var(--type-body-md-size); line-height: 1.5">
+                <h3 id="nt-h" style="margin: 0; font-size: var(--type-heading-md-size); font-weight: var(--font-weight-semibold)">{{nothing.title}}</h3>
+                <span>{{nothing.body}}</span>
+                <span style="font-size: var(--type-body-sm-size); color: var(--text-secondary)">{{nothing.after}}</span>
+                <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" href="{{o.href}}" style="align-self: flex-start">Open the order</x-import>
+              </section>
+            </sc-if>
+
+            <sc-if value="{{showForm}}" hint-placeholder-val="{{true}}">
+              <section aria-label="Refund form" style="display: flex; flex-direction: column; gap: var(--space-4)">
+                <sc-if value="{{hasAlert}}" hint-placeholder-val="{{false}}">
+                  <div role="alert" style="display: flex; gap: var(--space-3); align-items: flex-start; padding: var(--space-3); border-radius: var(--radius-md); background: {{alert.bg}}; border: 1px solid {{alert.border}}; color: {{alert.fg}}; font-size: var(--type-body-md-size); line-height: 1.45">
+                    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="{{alert.icon}}" size="md" color="{{alert.iconColor}}"></x-import>
+                    <div style="display: flex; flex-direction: column; gap: var(--space-2); flex-grow: 1">
+                      <strong>{{alert.title}}</strong>
+                      <span>{{alert.body}}</span>
+                      <sc-if value="{{alert.hasMoney}}" hint-placeholder-val="{{false}}">
+                        <div style="display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap"><span>Another refund of</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{c649}}" size="sm"></x-import><span>settled at 7:40 pm while you were filling this in. Nothing was changed.</span></div>
+                      </sc-if>
+                      <sc-if value="{{alert.hasActions}}" hint-placeholder-val="{{false}}">
+                        <div style="display: flex; gap: var(--space-3); flex-wrap: wrap">
+                          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md" href="{{alert.primaryHref}}">{{alert.primary}}</x-import>
+                          <sc-if value="{{alert.hasSecondary}}" hint-placeholder-val="{{false}}">
+                            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" icon-start="{{alert.secondaryIcon}}">{{alert.secondary}}</x-import>
+                          </sc-if>
+                        </div>
+                      </sc-if>
+                    </div>
+                  </div>
+                </sc-if>
+                <sc-if value="{{hasInfoNote}}" hint-placeholder-val="{{false}}">
+                  <div role="note" style="display: flex; gap: var(--space-3); align-items: flex-start; padding: var(--space-3); border-radius: var(--radius-md); background: var(--feedback-info-tint); border: 1px solid var(--feedback-info-border); color: var(--feedback-info-tint-text); font-size: var(--type-body-md-size); line-height: 1.45">
+                    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="info" size="md" color="var(--feedback-info-icon)"></x-import>
+                    <span>{{infoNote}}</span>
+                  </div>
+                </sc-if>
+                <sc-if value="{{isDisputedForm}}" hint-placeholder-val="{{false}}">
+                  <div role="note" style="display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-3); border-radius: var(--radius-md); background: var(--feedback-warning-tint); border: 1px solid var(--feedback-warning-border); color: var(--feedback-warning-tint-text); font-size: var(--type-body-md-size); line-height: 1.45">
+                    <strong>This order is disputed</strong>
+                    <span>Refunding doesn't close the dispute. It still escalates at its deadline and, after the third, resolves automatically in the customer's favour. Check the refunds on this order first.</span>
+                    <span>The customer said: "The bag was open when it arrived and the food was cold."</span>
+                    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Countdown" expires-at="{{disputeAt}}" server-now="{{serverNow}}" window-seconds="{{c172800}}" variant="bar" size="sm" label="to the next dispute deadline"></x-import>
+                  </div>
+                </sc-if>
+
+                <div style="display: flex; flex-direction: column; gap: var(--space-2)">
+                  <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.RadioGroup" label="What to refund" name="scope" value="{{scope}}" options="{{scopeOptions}}" orientation="vertical"></x-import>
+                  <div role="note" class="hg-need" style="flex-wrap: wrap"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="info" size="sm" icon="info">Needs API: fees-only staff refunds</x-import><span>Fees only on the staff refund route, with a case id. The staff route has no Fees only scope; the general refund route has it, but carries no case id or reason text. Fees only stays off until then.</span></div>
+                  <div role="note" class="hg-need"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="info" size="sm" icon="info">Needs API</x-import><span>What Whole order does once another refund exists (off until then).</span></div>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: var(--space-2)">
+                  <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Select" label="Reason" variant="listbox" searchable="{{yes}}" required="{{yes}}" value="{{reason}}" options="{{reasonOptions}}" disabled="{{reasonLocked}}"></x-import>
+                  <span style="font-size: var(--type-body-sm-size); line-height: 1.45; color: var(--text-secondary)">{{bearerLine}}</span>
+                  <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="outline" size="sm" style="align-self: flex-start">Proposed component: Select option groups</x-import>
+                </div>
+
+                <sc-if value="{{isItems}}" hint-placeholder-val="{{false}}">
+                  <fieldset aria-describedby="items-err" style="margin: 0; padding: var(--space-3); border: {{itemsBorder}}; border-radius: var(--radius-md); display: flex; flex-direction: column; gap: var(--space-3)">
+                    <legend style="padding: 0 var(--space-1); font-size: var(--type-label-md-size); font-weight: var(--font-weight-semibold)">Which items, and how many</legend>
+                    <sc-for list="{{pickLines}}" as="pl" hint-placeholder-count="2">
+                      <div style="display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-3); align-items: center">
+                        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Checkbox" label="{{pl.name}}" description="{{pl.desc}}" checked="{{pl.checked}}"></x-import>
+                        <sc-if value="{{pl.showStepper}}" hint-placeholder-val="{{false}}">
+                          <div role="group" aria-label="{{pl.stepLabel}}" style="display: flex; align-items: center; gap: var(--space-2)">
+                            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.IconButton" icon="minus" accessibility-label="{{pl.fewer}}" variant="tonal" size="md" disabled="{{yes}}"></x-import>
+                            <span style="min-width: 32px; text-align: center; font-size: var(--type-body-md-size); font-variant-numeric: tabular-nums">{{pl.qtyText}}</span>
+                            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.IconButton" icon="plus" accessibility-label="{{pl.more}}" variant="tonal" size="md"></x-import>
+                          </div>
+                        </sc-if>
+                      </div>
+                    </sc-for>
+                    <div style="display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap">
+                      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="outline" size="sm">Proposed component: Stepper</x-import>
+                      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="info" size="sm" icon="info">Needs API: refunded quantity per line</x-import>
+                    </div>
+                    <sc-if value="{{itemsError}}" hint-placeholder-val="{{false}}">
+                      <span id="items-err" role="alert" style="font-size: var(--type-body-sm-size); color: var(--feedback-danger-text)">Choose at least one item to refund.</span>
+                    </sc-if>
+                  </fieldset>
+                </sc-if>
+
+                <sc-if value="{{isGoodwill}}" hint-placeholder-val="{{false}}">
+                  <div style="display: flex; flex-direction: column; gap: var(--space-2)">
+                    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Goodwill amount" variant="numeric" input-mode="decimal" prefix="$" suffix="CAD" default-value="{{goodwillValue}}" error-text="{{goodwillError}}"></x-import>
+                    <div style="display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; font-size: var(--type-body-sm-size); color: var(--text-secondary)">
+                      <span>Dollars and cents, sent as whole cents. Above</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{c5000}}" size="sm"></x-import><span>needs a second approver, whatever your role.</span>
+                      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="outline" size="sm">Proposed component: MoneyInput</x-import>
+                    </div>
+                  </div>
+                </sc-if>
+
+                <div style="display: flex; flex-direction: column; gap: var(--space-2)">
+                  <label for="rt" style="font-size: var(--type-label-md-size); font-weight: var(--font-weight-semibold)">What happened <span style="font-weight: var(--font-weight-regular); color: var(--text-secondary)">(required, 10 to 1000 characters)</span></label>
+                  <textarea id="rt" rows="3" aria-invalid="{{textInvalid}}" aria-describedby="rt-help" style="box-sizing: border-box; width: 100%; border: {{textBorder}}; border-radius: var(--radius-md); padding: var(--space-3); font: inherit; font-size: var(--type-body-md-size); resize: vertical; background: var(--surface-raised); color: var(--text-primary); box-shadow: {{textRing}}">{{reasonText}}</textarea>
+                  <div style="display: flex; justify-content: space-between; align-items: center; gap: var(--space-2); font-size: var(--type-body-sm-size); color: var(--text-secondary)">
+                    <span id="rt-help" style="color: {{textHelpColor}}">{{textHelp}}</span>
+                    <span style="font-variant-numeric: tabular-nums">{{reasonCount}}</span>
+                  </div>
+                  <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="outline" size="sm" style="align-self: flex-start">Proposed component: Textarea with counter</x-import>
+                </div>
+
+                <sc-if value="{{showEvidence}}" hint-placeholder-val="{{false}}">
+                  <div role="group" aria-labelledby="ev-l" style="display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-3); border-radius: var(--radius-md); border: 1.5px dashed var(--border-strong)">
+                    <div style="display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap">
+                      <span id="ev-l" style="font-size: var(--type-label-md-size); font-weight: var(--font-weight-semibold); flex-grow: 1">Evidence (up to 3 photos)</span>
+                      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="outline" size="sm">Proposed component: FileDrop (approved for the system)</x-import>
+                    </div>
+                    <span style="font-size: var(--type-body-sm-size); line-height: 1.45; color: var(--text-secondary)">Who bears it is set by the server from the reason. Today it charges the restaurant the item's net price for {{reasonLabel}}, whether or not evidence is attached. For a halal concern the restaurant should pay only when the evidence backs it up (owner decision); that needs the API.</span>
+                    <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap">
+                      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" icon-start="plus" disabled="{{yes}}" aria-describedby="ev-off">Add photos</x-import>
+                      <span id="ev-off" style="font-size: var(--type-body-sm-size); color: var(--text-secondary)">Off: no photo can be uploaded or sent with a staff refund yet (Needs API).</span>
+                    </div>
+                    <div role="note" class="hg-need"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="info" size="sm" icon="info">Needs API</x-import><span>An upload purpose for refund evidence: uploads today take ID documents, menu images, proof of delivery and profile photos only. The staff refund route also has no evidence ids; the general refund route has them but no case id or reason text.</span></div>
+                    <div role="note" class="hg-need" style="flex-wrap: wrap"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="info" size="sm" icon="info">Needs API: evidence decides who bears a food or halal refund</x-import></div>
+                  </div>
+                </sc-if>
+
+                <sc-if value="{{isHalalConcern}}" hint-placeholder-val="{{false}}">
+                  <div style="display: flex; flex-direction: column; gap: var(--space-2)">
+                    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.RadioGroup" label="Does the evidence back up the concern?" value="{{noChoice}}" options="{{substantiatedOptions}}" required="{{yes}}"></x-import>
+                    <span style="font-size: var(--type-body-sm-size); line-height: 1.45; color: var(--text-secondary)">Owner decision: the restaurant pays only when the concern is backed up. Otherwise the refund is goodwill, paid by the platform. Either way it is not a ruling on whether the food was halal.</span>
+                    <div role="note" class="hg-need"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="info" size="sm" icon="info">Needs API</x-import><span>A field on the staff refund for whether a halal concern is backed up, so the server charges the restaurant only then. Today it charges the restaurant whatever is chosen here.</span></div>
+                  </div>
+                </sc-if>
+
+                <div style="display: flex; flex-direction: column; gap: var(--space-1)">
+                  <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Case id (optional)" placeholder="Paste the case id" default-value="{{caseValue}}"></x-import>
+                  <span style="font-size: var(--type-body-sm-size); color: var(--text-secondary)">Links this refund to a support case.</span>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: var(--space-1); padding: var(--space-3); border-radius: var(--radius-md); background: var(--surface-sunken)">
+                  <span style="font-size: var(--type-label-md-size); font-weight: var(--font-weight-semibold); color: var(--text-secondary)">Amount</span>
+                  <span style="font-size: var(--type-body-md-size); line-height: 1.45">{{amountText}}</span>
+                </div>
+                <div role="note" class="hg-need"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="info" size="sm" icon="info">Needs API</x-import><span>A refund preview (amount and who bears it) and your remaining 24-hour refund limit.</span></div>
+                <div role="note" style="display: flex; flex-direction: column; gap: var(--space-1); padding: var(--space-3); border-radius: var(--radius-md); border: 1px solid var(--border-decorative); font-size: var(--type-body-md-size); line-height: 1.45">
+                  <strong>Refunds already issued on this order</strong>
+                  <sc-if value="{{noIssued}}" hint-placeholder-val="{{false}}">
+                    <span>None.</span>
+                  </sc-if>
+                  <sc-for list="{{issuedList}}" as="iss" hint-placeholder-count="2">
+                    <span style="display: flex; align-items: baseline; gap: var(--space-2); flex-wrap: wrap"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{iss.amount}}" size="sm"></x-import><span>{{iss.text}}</span></span>
+                  </sc-for>
+                </div>
+                <sc-if value="{{hasSubmitReason}}" hint-placeholder-val="{{false}}">
+                  <span style="font-size: var(--type-body-md-size); line-height: 1.45">{{submitReason}}</span>
+                </sc-if>
+                <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" full-width="{{yes}}" disabled="{{submitDisabled}}">{{submitLabel}}</x-import>
+                <span style="font-size: var(--type-body-sm-size); color: var(--text-secondary)">You review it here before anything is sent. Pressing twice, or retrying after an error, still issues one refund.</span>
+              </section>
+            </sc-if>
+
+            <sc-if value="{{showConfirm}}" hint-placeholder-val="{{false}}">
+              <section aria-label="Review before money moves" style="display: flex; flex-direction: column; gap: var(--space-3)">
+                <span style="font-size: var(--type-body-md-size); line-height: 1.5">Money moves as soon as you issue it, unless it's above your limit; then it goes to a second person and nothing moves yet. A refund can't be undone.</span>
+                <dl class="hg-kv" style="grid-template-columns: 130px minmax(0, 1fr)">
+                  <dt>Order</dt><dd style="font-family: var(--font-mono)">{{o.code}}</dd>
+                  <dt>What</dt><dd>Whole order</dd>
+                  <dt>Reason</dt><dd>Food quality</dd>
+                  <dt>Who bears it</dt><dd>Set by the server from the reason. Today, for Food quality, the restaurant bears the food's net price and the platform bears the rest, whatever evidence is attached.</dd>
+                  <dt>Evidence</dt><dd style="font-size: var(--type-body-sm-size); color: var(--text-secondary)">Not sent: evidence on staff refunds needs the API</dd>
+                  <dt>Captured</dt><dd><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{o.captured}}" size="sm"></x-import></dd>
+                  <dt>Already refunded</dt><dd><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{o.refunded}}" size="sm"></x-import> <span style="font-size: var(--type-body-sm-size); color: var(--text-secondary)">No refunds on this order yet.</span></dd>
+                  <dt>Amount</dt><dd style="display: flex; flex-direction: column; gap: var(--space-1)"><span style="display: flex; align-items: baseline; gap: var(--space-2); flex-wrap: wrap"><span>Everything captured, since nothing is refunded yet:</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{o.captured}}" size="sm"></x-import></span><span style="font-size: var(--type-body-sm-size); color: var(--text-secondary)">The server confirms the exact amount and the split when it issues the refund.</span></dd>
+                  <dt>Case</dt><dd style="font-family: var(--font-mono); font-size: var(--type-body-sm-size)">0192c3f0…4d6e</dd>
+                </dl>
+                <sc-if value="{{isSubmitting}}" hint-placeholder-val="{{false}}">
+                  <span role="status" style="font-size: var(--type-body-sm-size); color: var(--text-secondary)">Sending. If this takes long, it's safe to try again: the same request can't refund twice.</span>
+                </sc-if>
+                <div role="note" class="hg-need" style="align-items: flex-start"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="info" size="sm" icon="info">Needs API</x-import><span>Refund preview, so this step can show the amount and the split before money moves.</span></div>
+                <div style="display: flex; gap: var(--space-3); justify-content: flex-end; padding-top: var(--space-3); border-top: 1px solid var(--border-decorative)">
+                  <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md">Go back and edit</x-import>
+                  <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md" loading="{{isSubmitting}}">Issue refund</x-import>
+                </div>
+              </section>
+            </sc-if>
+
+            <sc-if value="{{showConfirmPartial}}" hint-placeholder-val="{{false}}">
+              <section aria-label="Reference: Whole order after an earlier refund" style="display: flex; flex-direction: column; gap: var(--space-3)">
+                <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="info" size="sm" icon="info" style="align-self: flex-start">Needs API</x-import>
+                <span style="font-size: var(--type-body-md-size); line-height: 1.5">Reference only, not reachable at launch. Whole order is off on this order because a refund already went out, and the contract doesn't say what Whole order would do here.</span>
+                <dl class="hg-kv" style="grid-template-columns: 130px minmax(0, 1fr)">
+                  <dt>Order</dt><dd style="font-family: var(--font-mono)">{{o.code}}</dd>
+                  <dt>What</dt><dd>Whole order</dd>
+                  <dt>Captured</dt><dd><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{o.captured}}" size="sm"></x-import></dd>
+                  <dt>Already refunded</dt><dd><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{o.refunded}}" size="sm"></x-import></dd>
+                  <dt>Amount</dt><dd>Unknown. The server could refund what's left or refuse the request; the page can't tell which, so it won't send this.</dd>
+                </dl>
+                <span style="font-size: var(--type-body-md-size); line-height: 1.5">Once the API answers, this review shows the amount that will move before you confirm. Until then, use Selected items or Goodwill amount.</span>
+                <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" style="align-self: flex-end">Go back and edit</x-import>
+              </section>
+            </sc-if>
+
+            <sc-if value="{{isResult}}" hint-placeholder-val="{{false}}">
+              <section aria-labelledby="panel-h" style="display: flex; flex-direction: column; gap: var(--space-4)">
+                <span role="status" class="hg-sr">{{res.announce}}</span>
+                <sc-if value="{{res.asIf}}" hint-placeholder-val="{{false}}">
+                  <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="info" size="sm" icon="info" style="align-self: flex-start">Drawn as it works once Fees only ships for staff refunds (Needs API)</x-import>
+                </sc-if>
+                <div style="display: flex; align-items: baseline; gap: var(--space-3); flex-wrap: wrap">
+                  <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{res.amount}}" size="xl" show-code="{{yes}}"></x-import>
+                  <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="info" icon="clock" size="md">Sent to provider</x-import>
+                </div>
+                <span style="font-size: var(--type-body-sm-size); color: var(--text-secondary)">{{res.kindLabel}} · {{res.reasonLabel}} · refund <span style="font-family: var(--font-mono)">{{res.id}}</span></span>
+                <div style="display: flex; flex-direction: column; gap: var(--space-2)">
+                  <h3 style="margin: 0; font-size: var(--type-label-lg-size); font-weight: var(--font-weight-semibold)">Who bears it</h3>
+                  <sc-if value="{{res.hasSplit}}" hint-placeholder-val="{{true}}">
+                    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-2)">
+                      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="filled" padding="var(--space-2) var(--space-3)" radius="md"><div style="display: flex; flex-direction: column; gap: var(--space-1)"><span style="font-size: var(--type-body-sm-size); color: var(--text-secondary)">Restaurant</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{res.sRest}}" size="md"></x-import></div></x-import>
+                      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="filled" padding="var(--space-2) var(--space-3)" radius="md"><div style="display: flex; flex-direction: column; gap: var(--space-1)"><span style="font-size: var(--type-body-sm-size); color: var(--text-secondary)">Platform</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{res.sPlat}}" size="md"></x-import></div></x-import>
+                      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="filled" padding="var(--space-2) var(--space-3)" radius="md"><div style="display: flex; flex-direction: column; gap: var(--space-1)"><span style="font-size: var(--type-body-sm-size); color: var(--text-secondary)">Rider</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{res.sRider}}" size="md"></x-import></div></x-import>
+                    </div>
+                    <span style="font-size: var(--type-body-sm-size); color: var(--text-secondary)">Set by the reason when the refund was authorised. Tax on the refund isn't shown yet.</span>
+                    <div class="hg-need"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="info" size="sm" icon="info">Needs API</x-import><span>A breakdown of how the server reached this amount.</span></div>
+                  </sc-if>
+                  <sc-if value="{{res.noSplit}}" hint-placeholder-val="{{false}}">
+                    <span style="font-size: var(--type-body-md-size); color: var(--text-secondary)">Not returned by the server. It's set when the refund is authorised; reload the order to see it.</span>
+                  </sc-if>
+                </div>
+                <sc-if value="{{res.dispute}}" hint-placeholder-val="{{false}}">
+                  <div role="note" style="display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-3); border-radius: var(--radius-md); background: var(--feedback-warning-tint); border: 1px solid var(--feedback-warning-border); color: var(--feedback-warning-tint-text); font-size: var(--type-body-md-size); line-height: 1.45">
+                    <strong>The dispute is still open</strong>
+                    <span>This refund didn't close it. It still escalates at its deadline and, after the third, resolves automatically in the customer's favour. The refund is now listed on this order; anyone refunding again sees it first.</span>
+                    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Countdown" expires-at="{{disputeAt}}" server-now="{{serverNow}}" window-seconds="{{c172800}}" variant="bar" size="sm" label="to the next dispute deadline"></x-import>
+                    <div class="hg-need" style="color: inherit"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="info" size="sm" icon="info">Needs API</x-import><span>Whether the automatic resolution refunds again or nets off this refund; a support case to note it against.</span></div>
+                  </div>
+                </sc-if>
+                <p style="margin: 0; font-size: var(--type-body-md-size); line-height: 1.5">The customer sees "Refund in progress" until the provider confirms. It never reads "refunded" before then. If the provider declines it, the order shows a failed refund.</p>
+                <div style="display: flex; gap: var(--space-3)">
+                  <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md" href="{{res.backHref}}">Done</x-import>
+                  <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="md">Issue another refund</x-import>
+                </div>
+              </section>
+            </sc-if>
+
+            <sc-if value="{{isApproval}}" hint-placeholder-val="{{false}}">
+              <section aria-labelledby="panel-h" style="display: flex; flex-direction: column; gap: var(--space-4)">
+                <span role="status" class="hg-sr">Sent for approval.</span>
+                <div style="display: flex; align-items: center; gap: var(--space-3)">
+                  <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="clock" size="lg" color="var(--feedback-warning-icon)"></x-import>
+                  <span style="font-size: var(--type-heading-sm-size); font-weight: var(--font-weight-semibold); flex-grow: 1">{{ap.title}}</span>
+                  <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="warning" icon="clock" size="md">Pending</x-import>
+                </div>
+                <dl class="hg-kv">
+                  <dt>Proposed amount</dt><dd><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{ap.amount}}" size="md" show-code="{{yes}}"></x-import></dd>
+                  <dt>Needs approval from</dt><dd>{{ap.approver}}</dd>
+                  <dt>Requested</dt><dd style="font-variant-numeric: tabular-nums">7:52 pm, 28 September 2026, by you</dd>
+                  <dt>Request id</dt><dd style="font-family: var(--font-mono); font-size: var(--type-body-sm-size)">0192cb40…8e02</dd>
+                </dl>
+                <p style="margin: 0; font-size: var(--type-body-md-size); line-height: 1.5">{{ap.body}}</p>
+                <div role="note" class="hg-need" style="align-items: flex-start"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="info" size="sm" icon="info">Needs API</x-import><span>Following this request after you leave: the approvals list, approve and decline (<a href="https://claude.ai/artifact/NDbFfhcv4MwRgwjmFtpxrx">see the placeholder</a>).</span></div>
+              </section>
+            </sc-if>
+
+            <sc-if value="{{isFailed}}" hint-placeholder-val="{{false}}">
+              <section aria-labelledby="panel-h" style="display: flex; flex-direction: column; gap: var(--space-4)">
+                <div style="display: flex; align-items: center; gap: var(--space-3)">
+                  <span style="font-family: var(--font-mono); font-size: var(--type-body-md-size); flex-grow: 1">0192ca11…90b4</span>
+                  <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="danger" icon="error" size="md">Failed, no money moved</x-import>
+                </div>
+                <div role="alert" style="display: flex; gap: var(--space-2); align-items: flex-start; padding: var(--space-3); border-radius: var(--radius-md); background: var(--feedback-danger-tint); border: 1px solid var(--feedback-danger-border); color: var(--feedback-danger-tint-text); font-size: var(--type-body-md-size); line-height: 1.45">
+                  <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="error" size="md" color="var(--feedback-danger-icon)"></x-import>
+                  <span style="display: flex; flex-direction: column; gap: var(--space-1)"><span>The provider said: "The card issuer declined the refund." The customer still sees "Refund in progress". The order is held out of Completed until a new refund succeeds.</span><span>On-call has been paged: [On-call name], [phone]. <a href="#" style="color: inherit; font-weight: var(--font-weight-semibold)">Failed refund runbook (issue #66)</a></span></span>
+                </div>
+                <dl class="hg-kv">
+                  <dt>Amount</dt><dd><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{c350}}" size="md" show-code="{{yes}}"></x-import></dd>
+                  <dt>Reason</dt><dd>Goodwill · Goodwill amount</dd>
+                  <dt>Would have been borne by</dt><dd style="display: flex; gap: var(--space-3); flex-wrap: wrap; font-size: var(--type-body-sm-size)"><span>Restaurant <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{c0}}" size="sm"></x-import></span><span>Platform <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{c350}}" size="sm"></x-import></span><span>Rider <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{c0}}" size="sm"></x-import></span></dd>
+                  <dt>Requested</dt><dd style="font-variant-numeric: tabular-nums">7:40 pm, 28 September 2026</dd>
+                </dl>
+                <div style="display: flex; gap: var(--space-3)">
+                  <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md" href="https://claude.ai/artifact/NDbFfhcv4MwRgwjmFtpxrx">Issue a new refund</x-import>
+                  <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" href="OrderDetailDelivered.dc.html">Open the order</x-import>
+                </div>
+                <p style="margin: 0; font-size: var(--type-body-md-size); line-height: 1.5">After you issue a new refund, tell the customer the first one didn't go through and a new one is on its way.</p>
+                <div role="note" class="hg-need" style="align-items: flex-start"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="info" size="sm" icon="info">Needs API</x-import><span>Sending this same refund again. A new refund works today, and the failed one stays on record.</span></div>
+              </section>
+            </sc-if>
+          </div>
+        </aside>
+      </div>
+    </sc-if>
+  </div>
+
+  <sc-if value="{{showReauth}}" hint-placeholder-val="{{false}}">
+    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Modal" open="{{yes}}" contained="{{yes}}" variant="dialog" dismissible="{{no}}" size="md" title="Sign in again to continue" description="Your session ended. Staff sessions end after 30 minutes without activity, or 12 hours after you signed in. Your refund draft for {{o.code}} is kept in its panel and nothing was sent." on-close="{{noop}}">
+      <div style="display: flex; flex-direction: column; gap: var(--space-3); font-family: var(--font-ui)">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Email" variant="email" auto-complete="username"></x-import>
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Password" variant="password" auto-complete="current-password"></x-import>
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Authenticator code" variant="otp"></x-import>
+        <span style="font-size: var(--type-body-sm-size); line-height: 1.45; color: var(--text-secondary)">Lost your authenticator? A super admin resets it after calling you back on the phone number on your account and checking two account details.</span>
+        <div style="display: flex; gap: var(--space-3); justify-content: flex-end; padding-top: var(--space-3); border-top: 1px solid var(--border-decorative)">
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md">Sign out</x-import>
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md">Sign in and return to the draft</x-import>
+        </div>
+      </div>
+    </x-import>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"variant":{"editor":"enum","options":["lookup","searching","notfound","lookuperror","offline","nofailed","failedloading","failederror","full","reasons","items","feesonly","goodwill","retry","running","disputed","nohalal","confirm","submitting","timeout","errors","goodwillerrors","forbidden","reauth","refundstates","issued","issuednosplit","itemsissued","itemsafterconflict","goodwillissued","feesonlyissued","disputedissued","approval","approvaladmin","conflict","goodwillexceeds","dailycap","selfapproval","nothingcaptured","notrefundable","failed","queue","confirmafterpartial","ratelimited","nothingrejected","nothingvoided","nothingfailed","fullyrefunded","halalconcern","halalstaff"],"default":"lookup"},"role":{"editor":"enum","options":["auto","ADMIN","SUPPORT_AGENT"],"default":"auto"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"embed":{"editor":"boolean","default":false},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const v = this.props.variant ?? 'lookup';
+    const theme = this.props.theme ?? 'light';
+    const roleProp = this.props.role ?? 'auto';
+    // Embedded: only the refund panel, inside the order workspace in place of More detail.
+    const embed = !!this.props.embed;
+    const role = roleProp !== 'auto' ? roleProp : ((v === 'approval' || v === 'forbidden') ? 'SUPPORT_AGENT' : 'ADMIN');
+    const support = role === 'SUPPORT_AGENT';
+    const NS = window.HalalGoesDesignSystem_d11a47 || {};
+    const Rx = window.React;
+    const h = (C, p, ...kids) => (Rx && C ? Rx.createElement(C, p, ...kids) : kids.join(' '));
+    const el = (tag, p, ...kids) => (Rx ? Rx.createElement(tag, p, ...kids) : kids.join(' '));
+    const now = Date.now();
+    const serverNow = new Date(now).toISOString();
+    const RS = {
+      REQUESTED: ['Requested', 'neutral', 'clock'], PENDING_APPROVAL: ['Awaiting approval', 'warning', 'clock'],
+      APPROVED: ['Approved', 'info', 'check'], AUTHORISED: ['Authorised', 'info', 'check'],
+      SUBMITTED: ['Sent to provider', 'info', 'clock'], SUCCEEDED: ['Provider confirmed', 'neutral', 'check'],
+      SETTLED: ['Settled', 'neutral', 'check'], FAILED: ['Failed, no money moved', 'danger', 'error'],
+      DECLINED: ['Declined', 'outline', 'close'], CANCELLED: ['Cancelled', 'outline', 'close'],
+    };
+    // Who bears each reason, in words, from the server's liability rule (owner decision: by fault;
+    // unnamed reasons fall to the platform). The page never computes the split itself.
+    const itemNet = 'The restaurant bears the item’s net price; the platform bears the rest.';
+    const itemNetIf = 'The restaurant bears the item’s net price only when the evidence backs up the concern; otherwise it is goodwill, paid by the platform (owner decision, needs API: today the server charges the restaurant whatever evidence is attached).';
+    const riderNet = 'The rider’s earnings on this order are reversed; the platform bears the rest.';
+    const platform = 'The platform bears it.';
+    const R = {
+      ITEM_MISSING: ['Item missing', 'Food', 'One line didn’t arrive.', itemNet],
+      MISSING_ITEMS: ['Several items missing', 'Food', 'Two or more lines didn’t arrive.', itemNet],
+      WRONG_ITEM: ['Wrong item', 'Food', 'One line was swapped for something else.', itemNet],
+      WRONG_ITEMS: ['Several wrong items', 'Food', 'Two or more lines were swapped.', itemNet],
+      FOOD_QUALITY: ['Food quality', 'Food', 'Cold, undercooked or not as described.', itemNetIf],
+      FOOD_SAFETY: ['Food safety', 'Food', 'Unsafe to eat: foreign object, spoiled, allergen.', itemNetIf],
+      DAMAGED_SPILLED: ['Damaged or spilled', 'Food', 'Arrived crushed or leaking.', platform],
+      NEVER_DELIVERED: ['Never delivered', 'Delivery', 'Marked delivered with no proof of delivery.', riderNet],
+      ORDER_NEVER_ARRIVED: ['Order never arrived', 'Delivery', 'The rider was at fault and it never reached the customer.', riderNet],
+      LATE_DELIVERY: ['Late delivery', 'Delivery', 'Arrived well past the estimate.', platform],
+      DUPLICATE_CHARGE: ['Duplicate charge', 'Payment', 'The card was charged twice for this order.', platform],
+      CHARGED_INCORRECTLY: ['Charged incorrectly', 'Payment', 'The amount charged differs from the receipt.', platform],
+      PRICING_ERROR: ['Pricing error', 'Payment', 'A menu price or a fee was wrong.', platform],
+      HALAL_CONCERN: ['Halal concern', 'Halal', 'The customer has a concern about the halal status of the food, for example it wasn’t what the menu described. Opens a grievance for review.', itemNetIf],
+      HALAL_INTEGRITY: ['Halal packaging tampered', 'Halal', 'Packaging tamper. Not offered at launch: without the package seal (coming after launch) nobody can tell whether the restaurant or the delivery opened it. Use Halal concern, or Damaged or spilled.', 'Would be: the restaurant bears the item’s net price if substantiated.'],
+      PLATFORM_ERROR: ['Platform error', 'Other', 'Our system got it wrong.', platform],
+      OTHER: ['Other', 'Other', 'Explain in What happened.', platform],
+      GOODWILL: ['Goodwill', 'Goodwill', 'A typed amount, as a gesture.', platform],
+      DISPUTE_RESOLUTION: ['Dispute resolution', 'Dispute', 'Settling a disputed order.', platform],
+      CHARGEBACK_PREEMPTIVE: ['Before a chargeback', 'Dispute', 'Refunding to head off a card chargeback. Admin only.', platform],
+    };
+    const wholeReasons = ['MISSING_ITEMS', 'WRONG_ITEMS', 'FOOD_QUALITY', 'FOOD_SAFETY', 'DAMAGED_SPILLED', 'NEVER_DELIVERED', 'ORDER_NEVER_ARRIVED', 'DUPLICATE_CHARGE', 'CHARGED_INCORRECTLY', 'PRICING_ERROR', 'HALAL_CONCERN', 'PLATFORM_ERROR', 'OTHER'];
+    const itemReasons = ['ITEM_MISSING', 'WRONG_ITEM', 'FOOD_QUALITY', 'FOOD_SAFETY', 'DAMAGED_SPILLED', 'HALAL_CONCERN', 'OTHER'];
+    const feeReasons = ['LATE_DELIVERY', 'PLATFORM_ERROR', 'PRICING_ERROR'];
+    const evidenceReasons = ['FOOD_QUALITY', 'FOOD_SAFETY', 'HALAL_CONCERN'];
+    const opt = (k) => ({ value: k, label: R[k][0], description: R[k][1] + ' · ' + R[k][2] });
+
+    const goodwillish = ['goodwill', 'retry', 'goodwillerrors', 'forbidden', 'goodwillissued', 'approvaladmin', 'goodwillexceeds'];
+    const itemsish = ['items', 'errors', 'itemsissued', 'itemsafterconflict'];
+    const feesish = ['feesonlyissued'];
+    const disputedish = ['disputed', 'disputedissued'];
+    const scope = itemsish.includes(v) ? 'PARTIAL_ITEMS' : goodwillish.includes(v) ? 'PARTIAL_AMOUNT' : feesish.includes(v) ? 'FEES_ONLY' : 'FULL';
+    // On a disputed order the reason is what went wrong, mapped from the customer's words
+    // ("food was cold" = Food quality). Dispute resolution belongs to resolving the dispute
+    // (T20, Needs API), never to this form: preselecting it would record a settled dispute.
+    let reason = scope === 'PARTIAL_AMOUNT' ? 'GOODWILL' : scope === 'PARTIAL_ITEMS' ? 'WRONG_ITEM' : scope === 'FEES_ONLY' ? 'LATE_DELIVERY' : 'FOOD_QUALITY';
+    if (v === 'running') reason = 'DUPLICATE_CHARGE';
+    if (v === 'halalstaff') reason = 'HALAL_CONCERN';
+    // After a 409 conflict the admin switched Whole order to Selected items: reason and notes carry over.
+    if (v === 'itemsafterconflict') reason = 'FOOD_QUALITY';
+    let reasonKeys = scope === 'PARTIAL_AMOUNT' ? ['GOODWILL'] : scope === 'PARTIAL_ITEMS' ? itemReasons : scope === 'FEES_ONLY' ? feeReasons : wholeReasons;
+    if (disputedish.includes(v)) reasonKeys = reasonKeys.concat(support ? [] : ['CHARGEBACK_PREEMPTIVE']);
+
+    // Expiring soon draws through the proposed HalalState composite with the certificate's own date (owner decision, round 2).
+    const mkOrder = (o) => Object.assign({ hasHalal: !!o.halal, noHalal: !o.halal, certFull: o.certExpires || '', certShort: o.certExpires ? o.certExpires.split(' ')[0] + ' ' + (o.certExpires.split(' ')[1] || '').slice(0, 3) : '' }, o);
+    const delivered = mkOrder({
+      code: 'HG-7XQ3NE', stateLabel: 'Delivered', tone: 'neutral', icon: 'check', href: 'OrderDetailDelivered.dc.html',
+      restaurant: 'Zaytoun Grill', halal: 'CERTIFIED', when: 'Delivered 7:10 pm, 28 September 2026',
+      totalLabel: 'Total charged', total: 2698, captured: 2698, refunded: 649,
+      lines: [{ qty: 1, name: 'Chicken shawarma plate', total: 1349 }, { qty: 1, name: 'Falafel wrap', total: 649 }],
+    });
+    const pending = mkOrder({
+      code: 'HG-3MW9FD', stateLabel: 'Waiting for restaurant', tone: 'info', icon: 'clock', href: 'OrderDetailPending.dc.html',
+      restaurant: 'Anatolia Kebab House', halal: 'EXPIRING_SOON', certExpires: '19 October 2026', when: 'Placed 6:50 pm, 28 September 2026',
+      totalLabel: 'Order total (authorised, not charged)', total: 2199, captured: 0, refunded: 0,
+      lines: [{ qty: 1, name: 'Adana kebab plate', total: 1699 }],
+    });
+    const running = mkOrder({
+      code: 'HG-6RN4KP', stateLabel: 'Preparing', tone: 'info', icon: 'orders', href: 'OrderDetail.dc.html',
+      restaurant: 'Zaytoun Grill', halal: 'CERTIFIED', when: 'Placed 6:44 pm, 28 September 2026',
+      totalLabel: 'Total charged', total: 4396, captured: 4396, refunded: 0,
+      lines: [{ qty: 1, name: 'Mixed grill platter', total: 2499 }, { qty: 1, name: 'Fattoush', total: 799 }],
+    });
+    const disputed = mkOrder({
+      code: 'HG-9KD2WA', stateLabel: 'Disputed', tone: 'warning', icon: 'warning', href: 'OrderDetailDisputed.dc.html',
+      restaurant: 'Zaytoun Grill', halal: 'CERTIFIED', when: 'Delivered 4:49 pm, 28 September 2026',
+      totalLabel: 'Total charged', total: 1749, captured: 1749, refunded: 0,
+      lines: [{ qty: 1, name: 'Mixed grill platter', total: 1299 }],
+    });
+    const noHalal = mkOrder(Object.assign({}, delivered, { code: 'HG-2VN7QT', restaurant: 'Sham Shawarma', halal: null, href: 'OrderDetailDelivered.dc.html', total: 1650, captured: 1650, refunded: 0, lines: [{ qty: 1, name: 'Chicken shawarma plate', total: 1250 }] }));
+    const big = mkOrder({
+      code: 'HG-2RC9LA', stateLabel: 'Completed', tone: 'neutral', icon: 'check', href: 'OrderDetailCompleted.dc.html',
+      restaurant: 'Anatolia Kebab House', halal: 'EXPIRING_SOON', certExpires: '19 October 2026', when: 'Delivered 1:10 pm, 28 September 2026',
+      totalLabel: 'Total charged', total: 8420, captured: 8420, refunded: 0,
+      lines: [{ qty: 1, name: 'Family kebab platter', total: 6999 }, { qty: 2, name: 'Ayran', total: 798 }],
+    });
+    const completed = mkOrder({
+      code: 'HG-4PX2HM', stateLabel: 'Completed', tone: 'neutral', icon: 'check', href: 'OrderDetailRefundStates.dc.html',
+      restaurant: 'Zaytoun Grill', halal: 'CERTIFIED', when: 'Delivered 6:25 pm, 28 September 2026',
+      totalLabel: 'Total charged', total: 4056, captured: 4056, refunded: 499,
+      lines: [{ qty: 2, name: 'Chicken shawarma plate', total: 2698 }, { qty: 1, name: 'Hummus', total: 499 }],
+    });
+    // A delivered order with no refunds yet: the main path for Whole order, which is turned off
+    // on any order that already has a refund until the API defines what it does there.
+    const fresh = mkOrder(Object.assign({}, delivered, {
+      code: 'HG-8RW2DK', href: 'OrderDetailDeliveredPlain.dc.html', when: 'Delivered 7:02 pm, 28 September 2026', refunded: 0,
+    }));
+    const rejected = mkOrder({
+      code: 'HG-4T7MXB', stateLabel: 'Rejected by restaurant', tone: 'outline', icon: 'close', href: 'OrderDetailRejected.dc.html',
+      restaurant: 'Anatolia Kebab House', halal: 'EXPIRING_SOON', certExpires: '19 October 2026', when: 'Placed 5:34 pm, 28 September 2026',
+      totalLabel: 'Order total (nothing charged)', total: 3199, captured: 0, refunded: 0, payNote: 'Authorisation voided at 5:35 pm when the restaurant rejected.',
+      lines: [{ qty: 1, name: 'Iskender', total: 1599 }, { qty: 1, name: 'Pide', total: 900 }],
+    });
+    const voided = mkOrder({
+      code: 'HG-5TW3KD', stateLabel: 'Cancelled', tone: 'outline', icon: 'close', href: 'CancelledByCustomer.dc.html',
+      restaurant: 'Lahori Tandoor', halal: 'CERTIFIED', when: 'Placed 6:49 pm, 28 September 2026',
+      totalLabel: 'Order total (nothing charged)', total: 1949, captured: 0, refunded: 0, payNote: 'Cancelled at 6:51 pm, before the restaurant accepted. Authorisation voided.',
+      lines: [{ qty: 1, name: 'Chicken biryani', total: 1499 }],
+    });
+    const failedOrder = mkOrder({
+      code: 'HG-9TK3MA', stateLabel: 'Failed', tone: 'danger', icon: 'error', href: 'OrderDetailFailed.dc.html',
+      restaurant: 'Sham Shawarma', halal: null, when: 'Placed 5:20 pm, 28 September 2026',
+      totalLabel: 'Order total (payment failed, nothing charged)', total: 1650, captured: 0, refunded: 0, payNote: 'The card was declined at 5:21 pm. Nothing was authorised.',
+      lines: [{ qty: 1, name: 'Chicken shawarma plate', total: 1250 }],
+    });
+    const fullyRefunded = mkOrder({
+      code: 'HG-7DT1PZ', stateLabel: 'Cancelled', tone: 'outline', icon: 'close', href: 'OrderDetailCancelled.dc.html',
+      restaurant: 'Lahori Tandoor', halal: 'CERTIFIED', when: 'Placed 5:40 pm, 28 September 2026',
+      totalLabel: 'Total charged', total: 1899, captured: 1899, refunded: 1899, payNote: 'Cancelled at 5:52 pm after the restaurant accepted, with a whole-order refund.',
+      lines: [{ qty: 1, name: 'Chicken biryani', total: 1499 }],
+    });
+    const halalOrder = mkOrder({
+      code: 'HG-6HC3QA', stateLabel: 'Completed', tone: 'neutral', icon: 'check', href: 'OrderDetailHalalConcern.dc.html',
+      restaurant: 'Lahori Tandoor', halal: 'CERTIFIED', when: 'Delivered 6:58 pm, 28 September 2026',
+      totalLabel: 'Total charged', total: 2449, captured: 2449, refunded: 0,
+      lines: [{ qty: 1, name: 'Chicken biryani', total: 1799 }],
+    });
+    const freshViews = ['halalstaff', 'full', 'reasons', 'itemsafterconflict', 'confirm', 'submitting', 'timeout', 'reauth', 'conflict', 'dailycap', 'selfapproval', 'notrefundable', 'issued', 'issuednosplit', 'approval', 'ratelimited'];
+    const o = v === 'nothingcaptured' ? pending : v === 'running' ? running : disputedish.includes(v) ? disputed : v === 'nohalal' ? noHalal
+      : v === 'approvaladmin' ? big : v === 'refundstates' ? completed : freshViews.includes(v) ? fresh
+      : v === 'nothingrejected' ? rejected : v === 'nothingvoided' ? voided : v === 'nothingfailed' ? failedOrder
+      : v === 'fullyrefunded' ? fullyRefunded : v === 'halalconcern' ? halalOrder : delivered;
+    o.hasPayNote = !!o.payNote;
+    if (v === 'conflict' || v === 'itemsafterconflict') o.refunded = 649;
+
+    const baseRows = [
+      { id: '0192c9a0…33e1', reason: 'Item missing · Selected items', state: 'SETTLED', amount: 649, split: [551, 98, 0], meta: 'Requested 7:38 pm · settled 7:40 pm' },
+      { id: '0192ca11…90b4', reason: 'Goodwill · Goodwill amount', state: 'FAILED', amount: 350, split: [0, 350, 0], meta: 'Requested 7:40 pm · "The card issuer declined the refund."' },
+    ];
+    let refundRows = baseRows;
+    if (o !== delivered) refundRows = [];
+    if (v === 'conflict' || v === 'itemsafterconflict') refundRows = [{ id: '0192cb05…6e2d', reason: 'Item missing · Selected items', state: 'SETTLED', amount: 649, split: [551, 98, 0], meta: 'Requested 7:38 pm by someone else · settled 7:40 pm, while you were filling this in', isNew: true, newLabel: 'Just landed' }];
+    if (v === 'fullyrefunded') refundRows = [{ id: '0192c7e4…2b91', reason: 'Cancelled by the platform · Whole order', state: 'SETTLED', amount: 1899, split: [0, 1899, 0], meta: 'Requested 5:52 pm with the cancel · settled 5:55 pm' }];
+    if (v === 'halalconcern') refundRows = [{ id: '0192ce20…8a3f', reason: 'Halal concern · Whole order', state: 'REQUESTED', amount: 2449, split: null, meta: 'Requested 7:12 pm · being checked against limits. Raised by the customer from their app.', need: 'The grievance this refund opened, and who requested it.' }];
+    if (v === 'refundstates') {
+      refundRows = [
+        { id: '0192cd01…a1f0', reason: 'Goodwill · Goodwill amount', state: 'REQUESTED', amount: 500, split: null, meta: 'Requested 7:20 pm · being checked against limits' },
+        { id: '0192cd02…b2e1', reason: 'Goodwill · Goodwill amount', state: 'PENDING_APPROVAL', amount: 1200, split: null, meta: 'Requested 7:22 pm · above the requester’s limit' },
+        { id: '0192cd03…c3d2', reason: 'Goodwill · Goodwill amount', state: 'APPROVED', amount: 500, split: null, meta: 'Requested 7:05 pm · a second person approved it' },
+        { id: '0192cd04…d4c3', reason: 'Food quality · Selected items', state: 'AUTHORISED', amount: 1349, split: [1146, 203, 0], meta: 'Requested 7:24 pm · one Chicken shawarma plate · about to go to the provider' },
+        { id: '0192cd05…e5b4', reason: 'Item missing · Selected items', state: 'SUCCEEDED', amount: 499, split: [424, 75, 0], meta: 'Requested 6:40 pm · the provider confirmed it at 6:42 pm' },
+        { id: '0192cd06…f6a5', reason: 'Goodwill · Goodwill amount', state: 'DECLINED', amount: 800, split: null, meta: 'Requested 6:30 pm · the approver said no' },
+        { id: '0192cd07…07b6', reason: 'Pricing error · Whole order', state: 'CANCELLED', amount: 4056, split: null, meta: 'Requested 6:33 pm · withdrawn before it reached the provider' },
+      ];
+    }
+    // Before anything is added for this attempt: does the order already carry a refund that
+    // hasn't failed, been declined or been cancelled? Then Whole order is off (Needs API).
+    const priorRefund = refundRows.some((r) => !['FAILED', 'DECLINED', 'CANCELLED'].includes(r.state));
+    const RES = {
+      issued: { amount: 2698, id: '0192cb02…1d77', kindLabel: 'Whole order', reasonLabel: 'Food quality', split: [1698, 1000, 0], backHref: 'OrderDetailDeliveredPlain.dc.html' },
+      issuednosplit: { amount: 2698, id: '0192cb02…1d77', kindLabel: 'Whole order', reasonLabel: 'Food quality', split: null, backHref: 'OrderDetailDeliveredPlain.dc.html' },
+      itemsissued: { amount: 1349, id: '0192cb09…2a44', kindLabel: 'Selected items: 1 Chicken shawarma plate', reasonLabel: 'Wrong item', split: [1146, 203, 0], backHref: 'OrderDetailDelivered.dc.html' },
+      goodwillissued: { amount: 1500, id: '0192cb0c…7f31', kindLabel: 'Goodwill amount', reasonLabel: 'Goodwill', split: [0, 1500, 0], backHref: 'OrderDetailDelivered.dc.html' },
+      feesonlyissued: { amount: 500, id: '0192cb0e…4c02', kindLabel: 'Fees only', reasonLabel: 'Late delivery', split: [0, 500, 0], backHref: 'OrderDetailDelivered.dc.html', asIf: true },
+      disputedissued: { amount: 1749, id: '0192cb11…9d5e', kindLabel: 'Whole order', reasonLabel: 'Food quality', split: [1104, 645, 0], backHref: 'OrderDetailDisputed.dc.html', dispute: true },
+    };
+    const resRaw = RES[v];
+    const res = resRaw ? {
+      amount: resRaw.amount, id: resRaw.id, kindLabel: resRaw.kindLabel, reasonLabel: resRaw.reasonLabel, backHref: resRaw.backHref,
+      hasSplit: !!resRaw.split, noSplit: !resRaw.split, sRest: resRaw.split ? resRaw.split[0] : 0, sPlat: resRaw.split ? resRaw.split[1] : 0, sRider: resRaw.split ? resRaw.split[2] : 0,
+      dispute: !!resRaw.dispute, asIf: !!resRaw.asIf, announce: 'Refund sent to the payment provider.',
+    } : { hasSplit: false, noSplit: false, dispute: false, asIf: false, announce: '' };
+    if (resRaw && (o === delivered || o === fresh)) {
+      refundRows = [{ id: resRaw.id, reason: resRaw.reasonLabel + ' · ' + resRaw.kindLabel, state: 'SUBMITTED', amount: resRaw.amount, split: resRaw.split, meta: 'Requested just now · waiting for the provider to confirm', isNew: true }].concat(refundRows);
+    }
+    if (v === 'disputedissued') refundRows = [{ id: resRaw.id, reason: 'Food quality · Whole order', state: 'SUBMITTED', amount: resRaw.amount, split: resRaw.split, meta: 'Requested just now · waiting for the provider to confirm', isNew: true }];
+    if (v === 'issuednosplit') refundRows = refundRows.map((r) => (r.isNew ? Object.assign({}, r, { split: null }) : r));
+    refundRows = refundRows.map((r) => Object.assign({ isNew: false, newLabel: 'Just issued', need: '' }, r, {
+      stateLabel: RS[r.state][0], tone: RS[r.state][1], icon: RS[r.state][2],
+      hasSplit: !!r.split, noSplit: !r.split,
+      splitLabel: r.state === 'FAILED' ? 'Would have been borne by' : 'Who bears it',
+      hasNeed: !!r.need,
+      noSplitText: ['DECLINED', 'CANCELLED'].includes(r.state) ? 'Nothing moved, so no one bears it.' : 'Who bears it is set when the refund is authorised.',
+      sRest: r.split ? r.split[0] : 0, sPlat: r.split ? r.split[1] : 0, sRider: r.split ? r.split[2] : 0,
+    }));
+    // "Refunds already issued on this order", straight from order.refunds (never added up here).
+    const issuedText = (r) => ({
+      SETTLED: 'settled', SUCCEEDED: 'provider confirmed', SUBMITTED: 'sent to the provider', AUTHORISED: 'authorised, about to be sent',
+      APPROVED: 'approved', PENDING_APPROVAL: 'awaiting approval', REQUESTED: 'requested', FAILED: 'failed, no money moved',
+      DECLINED: 'declined, no money moved', CANCELLED: 'cancelled, no money moved',
+    })[r.state] + ' · ' + r.reason.split(' · ')[0].toLowerCase() + (r.isNew ? ' (' + r.newLabel.toLowerCase() + ')' : '');
+    const issuedList = refundRows.map((r) => ({ amount: r.amount, text: issuedText(r) }));
+
+    const startViews = ['lookup', 'searching', 'notfound', 'lookuperror', 'offline', 'nofailed', 'failedloading', 'failederror'];
+    const hasOrder = !startViews.includes(v) && v !== 'queue';
+    const isStart = startViews.includes(v);
+
+    const warn = { bg: 'var(--feedback-warning-tint)', border: 'var(--feedback-warning-border)', fg: 'var(--feedback-warning-tint-text)', icon: 'warning', iconColor: 'var(--feedback-warning-icon)' };
+    const danger = { bg: 'var(--feedback-danger-tint)', border: 'var(--feedback-danger-border)', fg: 'var(--feedback-danger-tint-text)', icon: 'error', iconColor: 'var(--feedback-danger-icon)' };
+    const A = {
+      conflict: Object.assign({}, warn, { title: 'This order changed while you were working', body: 'A whole-order refund would now be more than is left to refund.', hasMoney: true, hasActions: true, primary: 'Switch to selected items', primaryHref: 'https://claude.ai/artifact/NDbFfhcv4MwRgwjmFtpxrx', hasSecondary: true, secondary: 'Reload the order', secondaryIcon: 'refresh' }),
+      goodwillexceeds: Object.assign({}, warn, { title: 'That’s more than is left to refund', body: 'The amount is more than what’s left of the captured payment, once earlier refunds are counted. Nothing was changed. Captured and already refunded are on the order card. Lower the amount and try again.', hasActions: false }),
+      dailycap: Object.assign({}, warn, { title: 'You’ve reached your refund limit for the last 24 hours', body: 'Nothing was changed. Ask another admin to issue this refund. Copy your notes so they don’t have to ask the customer again.', hasActions: true, primary: 'Copy my notes', primaryHref: '#', hasSecondary: true, secondary: 'Close', secondaryIcon: 'close' }),
+      selfapproval: Object.assign({}, warn, { title: 'You can’t approve a refund you asked for', body: 'Another approver has to. Nothing was changed and the request stays pending for them.', hasActions: true, primary: 'See the approval request', primaryHref: 'https://claude.ai/artifact/NDbFfhcv4MwRgwjmFtpxrx' }),
+      notrefundable: Object.assign({}, warn, { title: 'This payment can’t be refunded right now', body: 'The payment on this order changed while you were filling this in. Nothing was changed. Reload the order to see where it stands.', hasActions: true, primary: 'Reload the order', primaryHref: 'OrderDetailDeliveredPlain.dc.html' }),
+      errors: Object.assign({}, danger, { title: '2 fields need fixing', body: 'Nothing was changed. The fields are marked below.', hasActions: false }),
+      goodwillerrors: Object.assign({}, danger, { title: 'The amount needs fixing', body: 'Checked before sending, so nothing was sent. The field is marked below.', hasActions: false }),
+      forbidden: Object.assign({}, warn, { title: 'Your role can’t issue a goodwill amount', body: 'Support agents can’t issue goodwill amounts. Nothing was changed. Choose Whole order or Selected items, or ask an admin.', hasActions: false }),
+      timeout: Object.assign({}, warn, { title: 'The server didn’t answer in time', body: 'We can’t tell yet whether the refund went through. Trying again sends the same request, so it can never refund twice.', hasActions: false }),
+      ratelimited: Object.assign({}, warn, { title: 'Too many money actions in a short time', body: 'The server paused refunds from your account for a moment. Nothing was sent and your draft is kept. You can try again in 40 seconds.', hasActions: false }),
+    };
+    const alert = Object.assign({ hasMoney: false, hasActions: false, hasSecondary: false, secondaryIcon: 'refresh' }, A[v] || {});
+
+    const textBad = v === 'errors';
+    const pickLines = [
+      { name: 'Chicken shawarma plate', desc: 'Ordered 1', checked: ['items', 'itemsissued', 'itemsafterconflict'].includes(v), showStepper: ['items', 'itemsissued', 'itemsafterconflict'].includes(v), qtyText: '1', stepLabel: 'How many Chicken shawarma plates', fewer: 'One fewer Chicken shawarma plate', more: 'One more Chicken shawarma plate' },
+      { name: 'Falafel wrap', desc: 'Ordered 1', checked: false, showStepper: false, qtyText: '', stepLabel: '', fewer: '', more: '' },
+    ];
+    const findLabel = v === 'searching' ? 'Finding…' : 'Find order';
+    const startTitle = v === 'notfound' ? 'No order has the code HG-7Q2M4K'
+      : v === 'searching' ? 'Looking up HG-7XQ3NE…'
+      : 'Look up an order to see or issue refunds';
+    const startBody = v === 'notfound' ? 'Check the code with the customer. Codes have no letters I, L, O or U. Searching by phone, email or name needs an API (#148).'
+      : v === 'searching' ? 'The order and its refunds appear here when the server answers.'
+      : 'Enter the order code from the customer’s receipt. Refunds already issued on that order appear beside the form.';
+    const failedState = v === 'nofailed' ? 'none' : v === 'failedloading' ? 'loading' : v === 'failederror' ? 'error' : 'rows';
+    // Refunds carry order_id only. The code shows once getOrderAdmin returns it; until then the
+    // row names the order by its id, as plain text. Open order lives in the row's Actions menu.
+    const failedRowsData = failedState === 'rows' ? [
+      { id: 'f1', code: 'HG-7XQ3NE', orderId: '0192b3b8…c410', refundId: '0192ca11…90b4', reason: 'Goodwill · Goodwill amount', said: 'The card issuer declined the refund.', amount: 350, requested: '28 September, 7:40 pm' },
+      { id: 'f2', code: null, orderId: '0192b45d…2f70', refundId: '0192cc88…3a10', reason: 'Food quality · Whole order', said: 'The card on file has expired.', amount: 3557, requested: '28 September, 6:02 pm' },
+      { id: 'f3', code: 'HG-9WE4TC', orderId: '0192b31f…8d26', refundId: '0192c6a3…b7e9', reason: 'Goodwill · Goodwill amount', said: 'The card issuer declined the refund.', amount: 350, requested: '28 September, 5:31 pm', replaced: { amount: 350, when: 'settled 5:52 pm' } },
+    ] : [];
+    const muted = { fontSize: 'var(--type-body-sm-size)', color: 'var(--text-secondary)', whiteSpace: 'normal', lineHeight: '1.35' };
+    // Admin table cells: short date, full absolute date in the tooltip (owner decision).
+    const shortReq = (s) => s.replace('September', 'Sep');
+    const fullReq = (s) => s.replace('September,', 'September 2026,') + ' Eastern time';
+    const QROWS = [
+      { name: 'HG-7XQ3NE', amount: 350, sub: 'Goodwill · declined by the card issuer · 28 Sep, 7:40 pm', href: 'https://claude.ai/artifact/NDbFfhcv4MwRgwjmFtpxrx' },
+      { name: '0192b45d…2f70', amount: 3557, sub: 'Food quality · card expired · 28 Sep, 6:02 pm', href: '#' },
+      { name: 'HG-9WE4TC', amount: 350, sub: 'Goodwill · replaced, settled 5:52 pm · 28 Sep, 5:31 pm', href: '#' },
+    ];
+    const queueRows = QROWS.map((q) => Object.assign({}, q, { current: q.name === o.code ? 'page' : undefined }));
+    const failedColumns = [
+      { key: 'order', label: 'Order', width: 150, render: (r) => el('span', { style: { display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' } },
+        r.code
+          ? el('span', { style: { fontFamily: 'var(--font-mono)', fontWeight: 'var(--font-weight-semibold)' } }, r.code)
+          : el('span', { style: { fontSize: 'var(--type-body-sm-size)', color: 'var(--text-secondary)' } }, 'Code loading…'),
+        el('span', { style: { fontFamily: 'var(--font-mono)', fontSize: 'var(--type-body-sm-size)', color: 'var(--text-secondary)' } }, r.orderId)) },
+      { key: 'refundId', label: 'Refund', mono: true, width: 130 },
+      { key: 'reason', label: 'Reason', width: 190, render: (r) => el('span', { style: { whiteSpace: 'normal', lineHeight: '1.35' } }, r.reason) },
+      { key: 'said', label: 'What the provider said', render: (r) => el('span', { style: muted }, r.said) },
+      { key: 'amount', label: 'Amount', align: 'end', numeric: true, width: 90, render: (r) => h(NS.Price, { cents: r.amount, size: 'sm' }) },
+      { key: 'requested', label: 'Requested', width: 120, render: (r) => el('time', { title: fullReq(r.requested), style: { fontVariantNumeric: 'tabular-nums' } }, shortReq(r.requested)) },
+      // From order.refunds on the getOrderAdmin call that already fetches the code: a refund issued
+      // after the failed one is its replacement. No later refund: the action is on the row.
+      { key: 'next', label: 'Next step', width: 230, render: (r) => (!r.code
+        ? el('span', { style: muted }, 'Checking the order…')
+        : r.replaced
+          ? el('span', { style: { display: 'inline-flex', gap: 'var(--space-2)', alignItems: 'baseline', flexWrap: 'wrap', whiteSpace: 'normal' } }, 'Replaced:', h(NS.Price, { cents: r.replaced.amount, size: 'sm' }), ', ' + r.replaced.when)
+          : h(NS.Button, { variant: 'tertiary', size: 'md', href: 'https://claude.ai/artifact/NDbFfhcv4MwRgwjmFtpxrx' }, 'Issue a new refund…')) },
+    ];
+
+    const showEvidence = evidenceReasons.includes(reason) && ['full', 'itemsafterconflict', 'confirm', 'submitting', 'reauth', 'nohalal', 'refundstates', 'halalstaff'].includes(v);
+    const isRunningInfo = v === 'running';
+    const infoNote = v === 'halalstaff'
+      ? 'What the customer sent can’t be attached yet (Needs API). Owner decision: the restaurant pays the item’s net price only when the evidence backs up the concern; otherwise it is goodwill, paid by the platform. Today the server charges the restaurant whether or not the concern is backed up; recording it, and the grievance it opens for review, need the API. The badge on the order is the restaurant’s status today, not a ruling on this order.'
+      : v === 'itemsafterconflict'
+      ? 'Switched to Selected items on this order. Your reason and What happened are kept. Whole order is off now that another refund is on this order.'
+      : v === 'retry'
+      ? 'Filled in from failed refund 0192ca11…90b4: same scope and reason. It goes as a new refund, so the failed one stays on record.'
+      : isRunningInfo ? 'This order is still being prepared. If the kitchen can’t finish, it cancels automatically and the customer is refunded in full, so don’t refund for lateness now. Refund here only for something that has already gone wrong, like a duplicate charge.'
+      : support && ['full', 'lookup'].includes(v) ? 'If the server’s amount is above your limit, the refund goes to an admin for approval instead, and nothing moves until they approve.' : '';
+    // Never suggest another reason code to get around a missing scope: the code is the ledger's
+    // record of what went wrong and decides who bears the refund.
+    let bearer = R[reason][0] + ': ' + R[reason][3];
+    if (disputedish.includes(v)) bearer = 'Pick what went wrong. Resolving the dispute is a separate step. ' + bearer;
+    // The review step replaces the form inside the same panel (no dialog over working tasks).
+    const showFormViews = ['full', 'reasons', 'items', 'itemsafterconflict', 'feesonly', 'goodwill', 'retry', 'running', 'disputed', 'nohalal', 'timeout', 'errors', 'goodwillerrors', 'forbidden', 'reauth', 'refundstates', 'conflict', 'goodwillexceeds', 'dailycap', 'selfapproval', 'notrefundable', 'ratelimited', 'halalconcern', 'halalstaff'];
+    const NOTHING = {
+      nothingrejected: { title: 'Nothing was charged, so there is nothing to refund', body: 'The restaurant rejected this order. The authorisation was voided, so the customer was never charged. Nothing can be refunded, and nothing needs to be.', hasMoney: false, after: 'If the customer sees a pending charge, it is the voided hold; their bank removes it without a refund.' },
+      nothingvoided: { title: 'Nothing was charged, so there is nothing to refund', body: 'This order was cancelled before the restaurant accepted it. The authorisation was voided, so the customer was never charged. Nothing can be refunded, and nothing needs to be.', hasMoney: false, after: 'If the customer sees a pending charge, it is the voided hold; their bank removes it without a refund.' },
+      nothingfailed: { title: 'Nothing was charged, so there is nothing to refund', body: 'The payment for this order failed, so nothing was authorised or charged. There is nothing to refund.', hasMoney: false, after: 'The customer saw the plain-language reason at checkout. The order page shows the provider’s codes.' },
+      fullyrefunded: { title: 'Nothing left to refund', body: 'Everything captured on this order has already been refunded, so the server refuses another refund.', hasMoney: true, after: 'Captured and refunded are the payment’s own totals from the server. The refund is listed on the left.' },
+    };
+    const nothing = Object.assign({ show: !!NOTHING[v], title: '', body: '', hasMoney: false, after: '' }, NOTHING[v] || {});
+    // Whole order is off here and nothing else was chosen yet: preselect nothing.
+    const noScope = (scope === 'FULL' && priorRefund && !['conflict', 'confirmafterpartial'].includes(v)) || v === 'feesonly';
+    if (noScope) bearer = 'Choose what to refund, then the reason.';
+    const isFees = scope === 'FEES_ONLY';
+    const reasonTextFor = {
+      goodwill: 'Customer waited 40 minutes past the estimate; offering goodwill.',
+      retry: 'Replacing failed goodwill refund 0192ca11…90b4 for the late delivery.',
+      items: 'Customer received a beef plate instead of chicken.',
+      fees: 'Delivered 40 minutes past the estimate. Customer asked for the delivery fee back.',
+      running: 'Customer’s bank shows this order charged twice at 6:44 pm.',
+      disputed: 'Bag arrived open and the food was cold; customer sent photos to support.',
+      full: 'Customer reports the platter was cold and undercooked.',
+      halal: 'Customer called: the menu says zabiha chicken but the restaurant told them it was a different supplier.',
+    };
+    const rtKey = textBad ? null : v === 'itemsafterconflict' ? 'full' : v === 'retry' ? 'retry' : goodwillish.includes(v) ? 'goodwill' : itemsish.includes(v) ? 'items' : (isFees || v === 'feesonly') ? 'fees' : v === 'running' ? 'running' : disputedish.includes(v) ? 'disputed' : v === 'halalstaff' ? 'halal' : 'full';
+    const reasonText = textBad ? 'Wrong' : reasonTextFor[rtKey];
+    const approvalMap = {
+      approval: { title: 'Above your limit. Sent for approval.', amount: 2698, approver: 'An admin', body: 'No refund exists yet and the customer hasn’t been told anything. Your request is kept, so nothing is lost.' },
+      approvaladmin: { title: 'Goodwill above $50.00. Sent for a second approval.', amount: 6000, approver: 'Another admin or a super admin', body: 'Goodwill above $50.00 always needs a second person, whatever your own limit. No refund exists yet and the customer hasn’t been told anything. You can’t approve your own request.' },
+    };
+    const ap = approvalMap[v] || { title: '', amount: 0, approver: '', body: '' };
+    const disputeAt = new Date(now + 150000 * 1000).toISOString();
+    return {
+      yes: true, noop: () => {}, theme, role, serverNow, disputeAt, isDark: theme === 'dark',
+      embed, notEmbed: !embed,
+      // The neutral Badge keeps a light fill under dark-theme text (about 1.9:1), so dark boards carry this tag until the system fixes it.
+      darkTag: theme === 'dark' && !embed,
+      rootW: embed ? '100%' : '1440px', rootH: embed ? '100%' : '900px', rootPos: embed ? 'absolute' : 'relative', rootInset: embed ? '0' : 'auto',
+      colH: embed ? '100%' : '900px',
+      orderCols: embed ? 'minmax(0, 1fr)' : '280px minmax(0, 1fr) 520px', orderBorder: embed ? 'none' : '1px solid var(--border-decorative)',
+      showReauth: v === 'reauth' && !embed,
+      closeLabel: embed ? 'Close the refund panel. Your draft is kept and More detail comes back.' : 'Close the panel. Your draft is kept.',
+      panelBadge: embed ? 'Proposed component: DetailPanel (in-page; replaces More detail while open)' : 'Proposed component: DetailPanel (in-page)',
+      shellCols: embed ? 'minmax(0, 1fr)' : hasOrder ? '72px minmax(0, 1fr)' : '264px minmax(0, 1fr)', navHint: hasOrder ? '72px,900px' : '264px,900px',
+      panelW: '520px', queueRows,
+      panelTitle: (v === 'confirm' || v === 'submitting') ? 'Review this refund' : v === 'confirmafterpartial' ? 'Review: Whole order after an earlier refund'
+        : resRaw ? 'Refund sent to the payment provider' : approvalMap[v] ? 'Sent for approval' : v === 'failed' ? 'Failed refund'
+        : v === 'nothingcaptured' || NOTHING[v] ? 'Nothing to refund' : 'Issue a refund',
+      nothing, issuedList, noIssued: issuedList.length === 0, hasIssued: issuedList.length > 0,
+      showConfirmPartial: v === 'confirmafterpartial',
+      failedCountLabel: failedState === 'none' ? 'No failed refunds' : '3 failed refunds', navFailed: failedState === 'none' ? 0 : 3,
+      c0: 0, c350: 350, c649: 649, c2698: 2698, c5000: 5000, c172800: 172800,
+      pageTitle: v === 'queue' ? 'Refund approvals' : 'Refunds',
+      pageSubtitle: v === 'queue' ? 'Requests above someone’s limit, waiting for a second person' : 'Find an order by its code to see or issue refunds. There’s no list of all refunds yet (Needs API).',
+      isQueue: v === 'queue', notQueue: v !== 'queue', isOffline: v === 'offline',
+      isStart, isSearching: v === 'searching', isLookupError: v === 'lookuperror',
+      showStartCard: v !== 'lookuperror', startRole: v === 'searching' ? 'status' : 'note',
+      startTitle, startBody, findLabel,
+      lookupValue: v === 'notfound' ? 'HG-7Q2M4K' : (v === 'searching' || v === 'lookuperror') ? 'HG-7XQ3NE' : (hasOrder ? o.code : ''),
+      lookupError: v === 'notfound' ? 'No order has this code.' : null,
+      failedReady: failedState === 'rows' || failedState === 'none',
+      failedCount: failedState === 'none' ? '0' : '3',
+      failedTable: true, failedRowsData, failedColumns,
+      failedStatus: failedState === 'loading' ? 'loading' : failedState === 'error' ? 'error' : 'ready',
+      failedEmpty: { title: 'No failed refunds', description: 'Refunds the provider declined appear here, newest first. A row stays after a replacement is issued.' },
+      failedActions: () => [{ key: 'open', label: 'Open order' }],
+      failedLabel: (r) => 'failed refund ' + r.refundId, rowId: (r) => r.id,
+      hasOrder, o, refundRows, noRefundRows: refundRows.length === 0,
+      isNothingCaptured: v === 'nothingcaptured',
+      showForm: showFormViews.includes(v),
+      showConfirm: v === 'confirm' || v === 'submitting', isSubmitting: v === 'submitting',
+      isReauth: v === 'reauth',
+      isResult: !!resRaw, res,
+      isApproval: !!approvalMap[v], ap, isFailed: v === 'failed',
+      hasAlert: !!A[v], alert, hasInfoNote: !!infoNote, infoNote,
+      isDisputedForm: v === 'disputed',
+      isItems: itemsish.includes(v), isGoodwill: goodwillish.includes(v),
+      isReasons: v === 'reasons', notReasons: v !== 'reasons',
+      reasonGroups: [
+        { name: 'Whole order', items: wholeReasons.map((k) => ({ label: R[k][0], desc: R[k][2], bearer: R[k][3] })) },
+        { name: 'Selected items only (plus the food and halal reasons above)', items: ['ITEM_MISSING', 'WRONG_ITEM'].map((k) => ({ label: R[k][0], desc: R[k][2], bearer: R[k][3] })) },
+        { name: 'Fees only', items: feeReasons.map((k) => ({ label: R[k][0], desc: R[k][2], bearer: R[k][3] })) },
+        { name: 'Disputed orders only, admin only', items: ['CHARGEBACK_PREEMPTIVE'].map((k) => ({ label: R[k][0], desc: R[k][2], bearer: R[k][3] })) },
+        { name: 'Resolving a dispute only (Needs API), never on this form', items: ['DISPUTE_RESOLUTION'].map((k) => ({ label: R[k][0], desc: R[k][2], bearer: 'Set by the outcome of the dispute.' })) },
+        { name: 'Not offered at launch (needs the package seal)', items: ['HALAL_INTEGRITY'].map((k) => ({ label: R[k][0], desc: R[k][2], bearer: R[k][3] })) },
+      ],
+      scope: noScope ? '' : scope,
+      scopeOptions: [
+        { value: 'FULL', label: 'Whole order', description: 'Calculated by the server from the order.', disabled: priorRefund,
+          disabledReason: priorRefund ? (support ? 'A refund already went out on this order. Choose Selected items, or ask an admin for a goodwill amount.' : 'A refund already went out on this order. Choose Selected items or Goodwill amount.') : undefined },
+        { value: 'PARTIAL_ITEMS', label: 'Selected items', description: 'Choose lines and quantities.' },
+        { value: 'FEES_ONLY', label: 'Fees only', description: 'Delivery and service fees, not the food.', disabled: true, disabledReason: 'The staff refund route has no Fees only scope yet (Needs API)' },
+        { value: 'PARTIAL_AMOUNT', label: 'Goodwill amount', description: 'You type the amount.', disabled: support, disabledReason: support ? 'Support agents can’t issue goodwill amounts.' : undefined },
+      ],
+      reason: noScope ? '' : reason, reasonLabel: R[reason][0].toLowerCase(), reasonLocked: scope === 'PARTIAL_AMOUNT',
+      reasonOptions: reasonKeys.map(opt),
+      bearerLine: bearer,
+      pickLines, itemsError: v === 'errors',
+      itemsBorder: v === 'errors' ? '2px solid var(--feedback-danger-border)' : '1px solid var(--border-decorative)',
+      goodwillValue: v === 'retry' ? '3.50' : v === 'goodwillerrors' ? '12.345' : v === 'approvaladmin' ? '60.00' : v === 'goodwillexceeds' ? '25.00' : '15.00',
+      goodwillError: v === 'goodwillerrors' ? 'Enter dollars and cents, like 12.35. Amounts go in whole cents.' : v === 'goodwillexceeds' ? 'More than is left to refund on this order.' : null,
+      reasonText, reasonCount: textBad ? '5 of 1000' : reasonText.length + ' of 1000',
+      textInvalid: textBad ? 'true' : 'false',
+      textBorder: textBad ? '2px solid var(--feedback-danger-border)' : '1px solid var(--border-interactive)',
+      textRing: textBad ? '0 0 0 var(--focus-offset-width) var(--focus-offset), 0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)' : 'none',
+      textHelp: textBad ? 'Write at least 10 characters about what happened.' : 'Kept with the refund. Not sent to the customer.',
+      textHelpColor: textBad ? 'var(--feedback-danger-text)' : 'var(--text-secondary)',
+      showEvidence: showEvidence && !noScope,
+      isHalalConcern: reason === 'HALAL_CONCERN' && !noScope,
+      substantiatedOptions: [
+        { value: 'BACKED_UP', label: 'Yes, the evidence backs it up', description: 'The restaurant bears the item’s net price.' },
+        { value: 'NOT_BACKED_UP', label: 'No, or not enough to tell', description: 'A goodwill refund, paid by the platform.' },
+      ],
+      noChoice: null,
+      caseValue: v === 'confirm' || v === 'submitting' ? '0192c3f0-7b1e-7c4a-9d2e-5f8a1b3c4d6e' : '',
+      amountText: scope === 'PARTIAL_AMOUNT'
+        ? 'The amount you enter, in whole cents. The server still checks it against what was captured.'
+        : 'Calculated by the server from the order when you issue it. You see it, and who bears it, straight after. Nothing is sent from this page as an amount.',
+      hasSubmitReason: v === 'dailycap' || v === 'forbidden' || v === 'ratelimited',
+      submitReason: v === 'dailycap' ? 'Can’t send: you’ve reached your 24-hour limit.' : v === 'forbidden' ? 'Can’t send a goodwill amount from a support account.'
+        : v === 'ratelimited' ? 'Paused by the server. The button comes back when the wait is over.' : '',
+      submitLabel: v === 'timeout' ? 'Try again (same request)' : v === 'ratelimited' ? 'Try again in 0:40' : 'Review and issue…',
+      submitDisabled: v === 'dailycap' || v === 'forbidden' || v === 'ratelimited',
+    };
+  }
+}
+</script>
+</body>
+</html>

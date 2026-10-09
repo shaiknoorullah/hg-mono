@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Report sent</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<link rel="stylesheet" href="hg-roles.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:var(--surface-base)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; display: flex; flex-direction: column; overflow: hidden; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" title-is-page-heading="{{ no }}" tone="cream" title="Order HG-8F3K2Q" subtitle="Zaytoun Grill" back-label="Back to Orders" on-back="{{ noop }}"></x-import><main style="flex-grow: 1; display: flex; flex-direction: column; gap: 20px; padding: 24px 16px 16px; overflow: hidden">
+<div style="display: flex; flex-direction: column; gap: 12px"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="check" size="2xl" color="var(--text-primary)"></x-import><div class="hg-focus-drawn"><h1 tabindex="-1" class="type-display-md">Report sent</h1></div><p class="type-body-md" style="color: var(--text-secondary)">Thank you for telling us. A person will review it with the order's records, and we'll let you know what happens next.</p><p class="type-body-md" style="color: var(--text-secondary)">You can follow it from this order in Orders.</p></div><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg"><div style="display: flex; flex-direction: column; gap: 8px"><div style="display: flex; align-items: center; justify-content: space-between; gap: 12px"><strong class="type-heading-sm">Your report</strong><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="neutral" size="sm">Under review</x-import></div><span class="type-body-md" style="color: var(--text-secondary)">A halal concern · The whole order</span><span class="type-body-sm" style="color: var(--text-secondary)">Sent 28 September 2026, 7:25 pm</span></div></x-import><div class="hg-gap"><span class="hg-tag">Annotation: status copy</span><span class="hg-gap-note">Refund.state REQUESTED or PENDING_APPROVAL reads "Under review". amount_cents exists from creation but is not shown while REQUESTED or PENDING_APPROVAL, because review may change it (the approved amount). HALAL_CONCERN is handled as high priority; the copy never promises a refund or rules on the food.</span></div><div style="display: flex; flex-direction: column; gap: 8px; margin-top: auto"><div><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" full-width="{{ yes }}" href="Track-Completed.dc.html">Back to order</x-import></div></div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const t = (s, at, a) => ({ to_state: s, at: '2026-09-28T' + at + ':00-04:00', actor_kind: a || 'SYSTEM' });
+    const all = [t('AUTHORIZED', '18:42', 'CUSTOMER'), t('RESTAURANT_PENDING', '18:42'), t('PREPARING', '18:44', 'RESTAURANT'), t('READY_FOR_PICKUP', '18:59', 'RESTAURANT'), t('PICKED_UP', '19:02', 'RIDER'), t('ARRIVED', '19:12', 'RIDER'), t('DELIVERED', '19:13', 'RIDER'), t('COMPLETED', '19:43')];
+    const upTo = (n) => all.slice(0, n);
+    return {
+      yes: true, no: false, none: null, zero: 0, noop: () => {},
+      nav: [{ key: 'home', label: 'Home', icon: 'home' }, { key: 'search', label: 'Search', icon: 'search' }, { key: 'orders', label: 'Orders', icon: 'orders', badge: 1, badgeNoun: 'active' }, { key: 'account', label: 'Account', icon: 'profile' }],
+      ok: true
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Authenticator setup</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:var(--surface-base);color:var(--text-primary);font-family:var(--font-ui)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+textarea.hg-ta:focus{outline:none;border:var(--focus-field-border-width) solid var(--focus-ring)}
+textarea.hg-ta[aria-invalid="true"]{border:var(--focus-field-border-width) solid var(--color-danger-500)}
+textarea.hg-ta[aria-invalid="true"]:focus{box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+.skip{position:absolute;left:-10000px;top:8px;z-index:900;padding:12px 16px;background:var(--surface-raised);color:var(--text-primary);border-radius:8px;font-weight:600}
+.skip:focus{left:16px;outline:none;box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; position: relative; background: var(--surface-base); font-family: var(--font-ui); color: var(--text-primary)">
+<div style="width: 1440px; box-sizing: border-box; padding: 40px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; align-items: start">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="elevated" radius="lg" padding="28px">
+<section style="display: flex; flex-direction: column; gap: 16px">
+      <h2 style="margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.01em">Set up your authenticator app</h2>
+      <p style="margin: 0; font-size: 15px; line-height: 1.5; color: var(--text-secondary)">Scan this code with an authenticator app such as 1Password, Google Authenticator or Microsoft Authenticator.</p>
+      <div role="img" aria-label="QR code for adding HalalGoes to your authenticator app" style="align-self: center; width: 200px; height: 200px; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--surface-raised); color: var(--text-secondary); font-size: 13px; text-align: center; padding: 12px">QR code from the provisioning link</div>
+      <span style="display: inline-flex; align-self: flex-start; padding: 2px 8px; border-radius: 4px; background: var(--color-info-50); color: var(--color-info-700); font-size: 12px; font-weight: 600">Proposed component: QR code</span>
+      <div style="display: flex; flex-direction: column; gap: 4px">
+        <span style="font-size: 15px; font-weight: 600">Can’t scan it? Type this key</span>
+        <span style="font-family: var(--font-mono); font-size: 15px; letter-spacing: 0.04em">JBSW Y3DP EHPK 3PXP</span>
+      </div>
+      <form style="display: flex; flex-direction: column; gap: 16px" onsubmit="return false">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Code from the app" variant="otp" auto-complete="one-time-code" default-value="" required="{{yes}}" helper-text="6 digits. Confirms the app is set up."></x-import>
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" type="submit" full-width="{{yes}}">Confirm code</x-import>
+      </form>
+      <p style="margin: 0; font-size: 13px; color: var(--text-secondary)">Step 2 of 2</p>
+      <span style="display: inline-flex; align-self: flex-start; padding: 2px 8px; border-radius: 4px; background: var(--surface-sunken); border: 1px solid var(--border-strong); font-size: 12px; font-weight: 600">Needs API: accept-invite endpoint returning an enrolment-only session (authenticator enrol and verify allowed, nothing else). Authenticator enrolment for staff moves to launch (owner decision, round 2); the contract still marks it a later version</span>
+    </section>
+</x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="elevated" radius="lg" padding="28px">
+<section style="display: flex; flex-direction: column; gap: 16px">
+      <h2 style="margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.01em">That code didn’t work</h2>
+      <form style="display: flex; flex-direction: column; gap: 16px" onsubmit="return false">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Code from the app" variant="otp" default-value="120944" required="{{yes}}" error-text="That code isn’t right. Check the app’s clock is set automatically, then enter the newest code."></x-import>
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" type="submit" full-width="{{yes}}">Confirm code</x-import>
+      </form>
+    </section>
+</x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="elevated" radius="lg" padding="28px">
+<section style="display: flex; flex-direction: column; gap: 16px">
+      <h2 style="margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.01em">You’re set up</h2>
+      <p role="status" style="margin: 0; font-size: 15px; line-height: 1.5">Your authenticator app is linked. You’ll enter a code from it every time you sign in.</p>
+      <div style="display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border-radius: 12px; background: var(--surface-sunken); font-size: 15px; line-height: 1.5">
+        <strong>Keep the app on your phone</strong>
+        <span>If you lose it, a super admin resets your authenticator after calling you back on the phone number on your account and checking two account details. There are no recovery codes.</span>
+      </div>
+      <span style="display: inline-flex; align-self: flex-start; padding: 2px 8px; border-radius: 4px; background: var(--surface-sunken); border: 1px solid var(--border-strong); font-size: 12px; font-weight: 600">Needs API: an enrolment response without recovery codes (TotpEnrolment requires 10 today)</span>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" full-width="{{yes}}" href="Queue.dc.html">Continue to HalalGoes</x-import>
+    </section>
+</x-import>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { yes: true, no: false, noop: () => {} };
+  }
+}
+</script>
+</body>
+</html>

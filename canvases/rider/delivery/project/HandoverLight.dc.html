@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>How you handed it over</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+[data-rider]{font-family:var(--font-ui)}
+.offer-chrome{background:var(--surface-raised)}
+[data-theme="dark"] .offer-chrome,[data-theme="dark"].offer-chrome{background:var(--surface-chrome)}
+</style>
+</helmet>
+<div data-rider="" data-theme="{{theme}}" style="width: 390px; height: 844px; position: relative; overflow: hidden; display: flex; flex-direction: column; background: var(--surface-base); color: var(--text-primary)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="field" title="Hand it over" subtitle="Step 4 of 4 · HG-4K2M-9T"></x-import><main style="flex: 1 1 auto; overflow-y: auto; padding: var(--space-4) var(--space-5) var(--space-5); display: flex; flex-direction: column; gap: var(--space-3)"><h2 id="rg-q" style="margin: 0; font-size: var(--type-heading-xl-size); font-weight: var(--type-heading-xl-weight); letter-spacing: var(--type-heading-xl-tracking); line-height: 1.25">How will you hand it over?</h2><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">HandoverMethod · nothing pre-selected · all four only when required_pod_method is PHOTO or PHOTO_WITH_ATTESTATION · OTP → HandoverOtp (met handovers only)</span><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Proposed variant: RadioGroup roomy (72 rows, body-lg labels) · DS Radio label is 44 / 15px</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.RadioGroup" label="How will you hand it over?" hide-label="{{yes}}" aria-labelledby="rg-q" required="{{yes}}" value="{{picked}}" on-value-change="{{pick}}" size="{{twentyFour}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Radio" value="HANDED_TO_CUSTOMER" label="To the customer" style="min-height: 72px; display: flex; align-items: center; border-bottom: 1px solid var(--border-decorative)"></x-import><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Radio" value="LEFT_AT_DOOR" label="Leave it at the door" style="min-height: 72px; display: flex; align-items: center; border-bottom: 1px solid var(--border-decorative)"></x-import><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Radio" value="LEFT_WITH_RECEPTION" label="Leave it with reception or concierge" style="min-height: 72px; display: flex; align-items: center; border-bottom: 1px solid var(--border-decorative)"></x-import><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Radio" value="HANDED_TO_OTHER_PERSON" label="To someone else at the address" style="min-height: 72px; display: flex; align-items: center; border-bottom: 1px solid var(--border-decorative)"></x-import></x-import><div style="display: flex; justify-content: space-between; align-items: baseline"><span style="font-size: var(--type-label-lg-size); font-weight: var(--font-weight-semibold); color: var(--text-secondary-field)">Proof needed next</span><span style="font-size: var(--type-body-lg-size); font-weight: var(--font-weight-semibold)">{{proofLabel}}</span></div><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Label and link follow Assignment.required_pod_method (Tweaks: podMethod) · 422 POD_METHOD_MISMATCH → PodMethodMismatch · proof, then /transitions DELIVERED</span></main><footer style="flex: 0 0 auto; padding: var(--space-3) var(--space-5) var(--space-5); border-top: 1px solid var(--border-decorative); background: var(--surface-base); display: flex; flex-direction: column; gap: var(--space-2)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="xl" full-width="{{yes}}" icon-start="warning" href="SomethingWrongDoor.dc.html">Something's wrong</x-import><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="xl" full-width="{{yes}}" href="{{nextHref}}" disabled="{{none}}">{{nextLabel}}</x-import></footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme": {"editor": "enum", "options": ["dark", "light"], "default": "light"}, "podMethod": {"editor": "enum", "options": ["PHOTO", "PHOTO_WITH_ATTESTATION"], "default": "PHOTO"}, "$preview": {"width": 390, "height": 844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const theme = this.props.theme ?? 'light';
+    const picked = (this.state && this.state.picked) || null;
+    const m = this.props.podMethod ?? 'PHOTO';
+    const pm = m === 'PHOTO_WITH_ATTESTATION' ? { next: 'Next: photo and a short statement', href: 'PodAttestation.dc.html', proof: 'A photo and a short statement' } : { next: 'Next: take the photo', href: 'PodPhoto.dc.html', proof: 'A photo at the door' };
+    return { theme: theme, onDark: theme === 'dark', yes: true, no: false, noop: () => {}, twentyFour: 24, four: 4, twoHundred: 200, activeTab: 'home',
+      tabs: [{ key: 'home', label: 'Home', icon: 'home' }, { key: 'earnings', label: 'Earnings', icon: 'orders' }, { key: 'account', label: 'Account', icon: 'profile' }], picked: picked, none: !picked, pick: (v) => this.setState({ picked: v }), proofLabel: pm.proof, nextLabel: picked ? pm.next : 'Choose how you will hand it over', nextHref: picked ? pm.href : undefined };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Reject document panel</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<link rel="stylesheet" href="composites.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<section id="doc-reject-panel" aria-labelledby="doc-reject-title" class="hg-panel" data-theme="{{theme}}" style="width: {{w}}px; height: {{h}}px; font-family: var(--font-ui); color: var(--text-primary);">
+  <div class="hg-panel-head">
+    <div style="flex-grow: 1; display: flex; flex-direction: column; gap: var(--space-1);">
+      <span class="hg-gap">Proposed component: DetailPanel (in-page, beside the viewer; never an overlay)</span>
+      <h2 id="doc-reject-title" tabindex="-1" class="hg-panel-title {{titleFocus}}">{{title}}</h2>
+      <p class="type-body-sm" style="margin: 0; color: var(--text-secondary);">{{intro}}</p>
+    </div>
+    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.IconButton" icon="close" accessibility-label="Close, back to the checks" size="md" disabled="{{submitting}}" on-press="{{noop}}"></x-import>
+  </div>
+  <div class="hg-panel-body type-body-md" style="line-height: 1.5;">
+    <sc-if value="{{alert}}" hint-placeholder-val="{{false}}">
+      <div role="alert" class="hg-tone hg-tone--sm hg-tone--warning">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="warning" size="md" style="margin-top: 2px; flex-shrink: 0;"></x-import>
+        <span><strong style="font-weight: 600;">{{alert}}</strong> {{alertBody}}</span>
+      </div>
+    </sc-if>
+    <div class="{{reasonCls}}">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Select" label="Reason" required="{{yes}}" value="{{reason}}" placeholder="Choose a reason" options="{{reasons}}" error-text="{{reasonError}}" helper-text="{{reasonHelp}}" disabled="{{submitting}}"></x-import>
+    </div>
+    <sc-if value="{{commercial}}" hint-placeholder-val="{{false}}">
+      <span class="hg-napi">Needs API: a “commercial use excluded” rejection reason (Other with a note is sent today)</span>
+    </sc-if>
+    <div style="display: flex; flex-direction: column; gap: var(--space-1);">
+      <label for="doc-note" class="type-label-md">{{noteLabel}} <span style="font-weight: 400; color: var(--text-secondary);">{{noteReq}}</span></label>
+      <span id="doc-note-help" class="type-body-sm" style="color: var(--text-secondary);">{{noteHelp}}</span>
+      <sc-if value="{{canInsert}}" hint-placeholder-val="{{false}}">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" disabled="{{submitting}}" on-press="{{noop}}" style="align-self: flex-start;">Insert my note to the rider from the checks</x-import>
+      </sc-if>
+      <sc-if value="{{noteInvalid}}" hint-placeholder-val="{{false}}">
+        <textarea id="doc-note" class="hg-field is-focused" aria-invalid="true" aria-required="{{reasonIsOther}}" aria-describedby="doc-note-help doc-note-err doc-note-count" rows="3">Wrong policy</textarea>
+        <span id="doc-note-err" role="alert" class="type-body-sm hg-err"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="error" size="sm"></x-import>Other needs a note of at least 20 characters. This one has 12.</span>
+      </sc-if>
+      <sc-if value="{{submitting}}" hint-placeholder-val="{{false}}">
+        <textarea id="doc-note" class="hg-field" aria-required="{{reasonIsOther}}" aria-describedby="doc-note-help doc-note-count" rows="3" readonly="">{{note}}</textarea>
+      </sc-if>
+      <sc-if value="{{plain}}" hint-placeholder-val="{{true}}">
+        <textarea id="doc-note" class="hg-field" aria-required="{{reasonIsOther}}" aria-describedby="doc-note-help doc-note-count" rows="3">{{note}}</textarea>
+      </sc-if>
+      <div class="type-body-sm" style="display: flex; justify-content: space-between; gap: var(--space-2); color: var(--text-secondary);"><span class="hg-gap">Proposed component: Textarea with counter</span><span id="doc-note-count" style="font-variant-numeric: tabular-nums;">{{count}} / 1,000</span></div>
+    </div>
+    <sc-if value="{{forgery}}" hint-placeholder-val="{{false}}">
+      <div class="hg-tone hg-tone--sm hg-tone--warning" style="flex-direction: column;">
+        <strong style="font-weight: 600;">The application goes on hold and your claim is released. Only a Super Admin can decide it while the hold is on; it is read-only for every reviewer, you included.</strong>
+        <span>Nothing is sent to the rider. Your check result and this note are recorded for the Super Admin.</span>
+        <span class="hg-napi">Needs API: a forgery hold on RiderApplication that records the check, the note and the case, and releases the claim in the same step</span>
+      </div>
+    </sc-if>
+    <sc-if value="{{notForgery}}" hint-placeholder-val="{{true}}">
+    <p class="type-body-sm" style="margin: 0; color: var(--text-secondary);">Rejecting a document records it; it doesn’t decide the application. The rider finds out only when you send Request changes or Reject application, and can then upload a new version.</p>
+    <span class="hg-napi">Needs API: keep a document’s rejection reason and note out of the rider’s onboarding status until Request changes or Reject application is sent (today getRiderOnboardingStatus shows them as soon as you reject)</span>
+    </sc-if>
+  </div>
+  <div class="hg-panel-foot">
+    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" disabled="{{submitting}}" on-press="{{noop}}">Cancel</x-import>
+    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="danger" size="md" destructive="{{yes}}" loading="{{submitting}}" on-press="{{noop}}">{{confirmLabel}}</x-import>
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["default","noreason","othershort","forgery","expired14","commercial","submitting","failed","offline","plate"],"default":"default"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"w":{"editor":"int","default":500},"h":{"editor":"int","default":740},"$preview":{"width":500,"height":740}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const st = this.props.state ?? 'default';
+    const submitting = st === 'submitting';
+    // The note starts empty. Internal check notes (checks[].note) never reach this field; the checks panel's own
+    // “Note to the rider” can be inserted on request, for editing.
+    const typed = 'Page 2 is missing. Upload every page of the policy, including the page that lists permitted use.';
+    let reason = null;
+    let note = '';
+    let canInsert = false;
+    let noteHelp = 'Shown to the rider word for word. Up to 1,000 characters; at least 20 when the reason is Other. Your internal check notes are never sent.';
+    if (st === 'submitting' || st === 'failed' || st === 'offline') { reason = 'INCOMPLETE_PAGES'; note = typed; }
+    if (st === 'othershort') reason = 'OTHER';
+    // Owner decision (round 2): a suspected forgery is never rejected by the reviewer. The reviewer records the
+    // authenticity check as Fail with a note for the Super Admin, and flagging releases the claim; only a Super Admin
+    // decides while the hold is on. The note goes to the Super Admin, never to the rider.
+    if (st === 'forgery') { reason = 'SUSPECTED_FORGERY'; note = 'Expiry date digits don’t match the font of the rest of the page. Page 1 header looks pasted in.'; noteHelp = 'For the Super Admin only, never sent to the rider. Say what looks altered and where. Up to 1,000 characters.'; }
+    if (st === 'expired14') { reason = 'EXPIRED'; note = 'Your policy ends on 7 October 2026. Upload a policy that is valid for at least 14 more days.'; noteHelp = 'Expired is preselected because this policy has fewer than 14 days left. Shown to the rider word for word.'; }
+    if (st === 'commercial') { reason = 'OTHER'; canInsert = true; noteHelp = 'You wrote a note to the rider in the checks. Insert it to edit here, or write a new one. Other needs at least 20 characters. Your internal check notes are never sent.'; }
+    if (st === 'plate') { reason = 'PLATE_MISMATCH'; note = 'The plate on your registration (CKRT 428) doesn’t match the plate in your profile (CKRT 482). Correct your profile or upload the right registration.'; noteHelp = 'Inserted from your note to the rider in the checks. Edit it before sending. Shown to the rider word for word.'; }
+    let alert = '', alertBody = '';
+    if (st === 'failed') { alert = 'Nothing was recorded. Your note is kept.'; alertBody = 'The connection dropped or the server had an error. Trying again is safe: the same request key is sent.'; }
+    if (st === 'offline') { alert = 'You’re offline. Nothing was sent.'; alertBody = 'Your reason and note stay here. Nothing is queued: press Try again once the connection returns.'; }
+    const registrationDoc = st === 'plate';
+    // Reasons by document type (see the reason note on the canvas). Never for riders: Address doesn’t match, Issuer not recognised.
+    // Suspected forgery and Suspected alteration are offered ONLY when “No sign of editing or forgery” is the check marked Fails.
+    const genuineFailed = st === 'forgery';
+    const docCodes = genuineFailed ? ['SUSPECTED_FORGERY', 'SUSPECTED_ALTERATION'] : ['ILLEGIBLE', 'EXPIRED', 'WRONG_DOCUMENT_TYPE', 'NAME_MISMATCH', 'PLATE_MISMATCH', 'INCOMPLETE_PAGES', 'OTHER'];
+    const labels = { ILLEGIBLE: 'Illegible', EXPIRED: 'Expired', WRONG_DOCUMENT_TYPE: 'Wrong document type', NAME_MISMATCH: 'Name doesn’t match', PLATE_MISMATCH: 'Plate doesn’t match', SUSPECTED_FORGERY: 'Suspected forgery', SUSPECTED_ALTERATION: 'Suspected alteration', INCOMPLETE_PAGES: 'Pages missing', OTHER: 'Other' };
+    return {
+      yes: true, noop: () => {},
+      theme: this.props.theme ?? 'light',
+      w: Number(this.props.w ?? 500) || 500, h: Number(this.props.h ?? 740) || 740,
+      canInsert,
+      reasonIsOther: reason === 'OTHER' ? 'true' : 'false',
+      title: st === 'forgery' ? 'Flag suspected forgery: vehicle insurance (version 2)' : registrationDoc ? 'Reject vehicle registration (version 1)' : 'Reject vehicle insurance (version 2)',
+      intro: st === 'forgery' ? 'You recorded “No sign of editing or forgery” as Fail. Flagging puts the application on hold for a Super Admin; you don’t reject anything. The scan stays open on the left.' : 'The rider sees the reason and your note word for word, so say exactly what to fix. The scan stays open on the left.',
+      noteLabel: st === 'forgery' ? 'Forgery note for the Super Admin' : 'Note to the rider', noteReq: st === 'forgery' ? '(required)' : '(required for Other)',
+      notForgery: st !== 'forgery',
+      titleFocus: st === 'default' ? 'is-focused' : '',
+      submitting,
+      alert, alertBody,
+      noteInvalid: st === 'othershort',
+      plain: !submitting && st !== 'othershort',
+      forgery: st === 'forgery', commercial: st === 'commercial',
+      reason, note, noteHelp,
+      reasonCls: st === 'noreason' ? 'hg-sim-focus' : '',
+      reasonError: st === 'noreason' ? 'Choose a reason.' : null,
+      reasonHelp: st === 'noreason' ? 'Pressing Reject document with no reason moves focus here.' : (genuineFailed ? 'What you suspect: forgery or alteration. Offered only because you recorded “No sign of editing or forgery” as Fail.' : 'Nothing is preselected. Suspected forgery and Suspected alteration are never a rejection: when “No sign of editing or forgery” fails, you flag it for a Super Admin instead.'),
+      count: st === 'othershort' ? '12' : String(note.length),
+      confirmLabel: (st === 'failed' || st === 'offline') ? 'Try again' : st === 'forgery' ? 'Flag and release my claim' : 'Reject document',
+      reasons: docCodes.map((c) => ({ value: c, label: labels[c] }))
+    };
+  }
+}
+</script>
+</body>
+</html>

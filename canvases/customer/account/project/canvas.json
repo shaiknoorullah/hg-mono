@@ -1,0 +1,1479 @@
+{
+  "v": 3,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-10-01T02:09:42Z"
+  },
+  "title": "HalalGoes Customer — Account",
+  "launch": {
+    "view": "canvas"
+  },
+  "pages": [],
+  "boards": {
+    "Addresses.dc.html": {
+      "h": 844,
+      "title": "Addresses — list (one with no label)",
+      "w": 390,
+      "x": 0,
+      "y": 0
+    },
+    "Addresses-focus.dc.html": {
+      "h": 844,
+      "title": "Addresses — row focused",
+      "w": 390,
+      "x": 470,
+      "y": 0
+    },
+    "Addresses-loading.dc.html": {
+      "h": 844,
+      "title": "Addresses — loading",
+      "w": 390,
+      "x": 940,
+      "y": 0
+    },
+    "Addresses-empty.dc.html": {
+      "h": 844,
+      "title": "Addresses — none saved",
+      "w": 390,
+      "x": 1410,
+      "y": 0
+    },
+    "Addresses-error.dc.html": {
+      "h": 844,
+      "title": "Addresses — load failed",
+      "w": 390,
+      "x": 1880,
+      "y": 0
+    },
+    "Addresses-offline.dc.html": {
+      "h": 844,
+      "title": "Addresses — offline, cached",
+      "w": 390,
+      "x": 2350,
+      "y": 0
+    },
+    "Addresses-limit.dc.html": {
+      "h": 844,
+      "title": "Addresses — 20 saved (limit)",
+      "w": 390,
+      "x": 2820,
+      "y": 0
+    },
+    "Addresses-deletedlast.dc.html": {
+      "h": 844,
+      "title": "Addresses — last one deleted",
+      "w": 390,
+      "x": 3290,
+      "y": 0
+    },
+    "Addresses-deleteddefault.dc.html": {
+      "h": 844,
+      "title": "Addresses — default deleted, Work promoted (Needs API)",
+      "w": 390,
+      "x": 3760,
+      "y": 0
+    },
+    "Addresses-360.dc.html": {
+      "h": 844,
+      "title": "Addresses — 360 wide",
+      "w": 360,
+      "x": 4230,
+      "y": 0
+    },
+    "Addresses-dark.dc.html": {
+      "h": 844,
+      "title": "Addresses — dark",
+      "w": 390,
+      "x": 4670,
+      "y": 0
+    },
+    "Addresses-lt.dc.html": {
+      "h": 1900,
+      "title": "Addresses — 200% text",
+      "w": 390,
+      "x": 5140,
+      "y": 0
+    },
+    "AddressSwitcher.dc.html": {
+      "h": 844,
+      "title": "Switcher sheet — list (focus on selected)",
+      "w": 390,
+      "x": 5610,
+      "y": 0
+    },
+    "AddressSwitcher-loading.dc.html": {
+      "h": 844,
+      "title": "Switcher sheet — loading",
+      "w": 390,
+      "x": 6080,
+      "y": 0
+    },
+    "AddressSwitcher-none.dc.html": {
+      "h": 844,
+      "title": "Switcher sheet — no address",
+      "w": 390,
+      "x": 6550,
+      "y": 0
+    },
+    "AddressSwitcher-error.dc.html": {
+      "h": 844,
+      "title": "Switcher sheet — load failed",
+      "w": 390,
+      "x": 7020,
+      "y": 0
+    },
+    "AddressSwitcher-switched.dc.html": {
+      "h": 844,
+      "title": "Home header after picking Work",
+      "w": 390,
+      "x": 7490,
+      "y": 0
+    },
+    "AddressSwitcher-switchfail.dc.html": {
+      "h": 844,
+      "title": "Switcher sheet — switch failed",
+      "w": 390,
+      "x": 7960,
+      "y": 0
+    },
+    "AddressSwitcher-360.dc.html": {
+      "h": 844,
+      "title": "Switcher sheet — 360 wide",
+      "w": 360,
+      "x": 8430,
+      "y": 0
+    },
+    "AddressSwitcher-dark.dc.html": {
+      "h": 844,
+      "title": "Switcher sheet — dark",
+      "w": 390,
+      "x": 8870,
+      "y": 0
+    },
+    "AddressSwitcher-lt.dc.html": {
+      "h": 1400,
+      "title": "Switcher sheet — 200% text",
+      "w": 390,
+      "x": 9340,
+      "y": 0
+    },
+    "AddressForm-today.dc.html": {
+      "h": 1960,
+      "title": "PRIMARY — new address, pin on the door, check not ticked yet",
+      "w": 390,
+      "x": 0,
+      "y": 2280
+    },
+    "AddressForm-first.dc.html": {
+      "h": 1960,
+      "title": "PRIMARY — first address, search focused, map ready to drag",
+      "w": 390,
+      "x": 470,
+      "y": 2280
+    },
+    "AddressForm-kbd.dc.html": {
+      "h": 844,
+      "title": "PRIMARY — keyboard open, postal error and Save visible",
+      "w": 390,
+      "x": 1410,
+      "y": 2280
+    },
+    "AddressForm.dc.html": {
+      "h": 1960,
+      "title": "PRIMARY — new address, search focused, empty",
+      "w": 390,
+      "x": 1880,
+      "y": 2280
+    },
+    "AddressForm-manualfocus.dc.html": {
+      "h": 1960,
+      "title": "PRIMARY — typing the address, focus on Street",
+      "w": 390,
+      "x": 2350,
+      "y": 2280
+    },
+    "AddressForm-filled.dc.html": {
+      "h": 1960,
+      "title": "PRIMARY — new address, filled, pin confirmed",
+      "w": 390,
+      "x": 2820,
+      "y": 2280
+    },
+    "AddressForm-validation.dc.html": {
+      "h": 1960,
+      "title": "PRIMARY — new address, validation errors",
+      "w": 390,
+      "x": 3290,
+      "y": 2280
+    },
+    "AddressForm-invalidfocus.dc.html": {
+      "h": 1960,
+      "title": "PRIMARY — invalid + focused (focus ring over the error border)",
+      "w": 390,
+      "x": 3760,
+      "y": 2280
+    },
+    "AddressForm-geocoding.dc.html": {
+      "h": 1960,
+      "title": "PRIMARY — filling the fields from the pin (Needs API: approved for launch, not in the contract yet)",
+      "w": 390,
+      "x": 4230,
+      "y": 2280
+    },
+    "AddressForm-geodown.dc.html": {
+      "h": 1960,
+      "title": "PRIMARY — address search down: drag the pin, type the fields",
+      "w": 390,
+      "x": 4700,
+      "y": 2280
+    },
+    "AddressForm-locdenied.dc.html": {
+      "h": 1960,
+      "title": "PRIMARY — location off, map at default centre (not a blocker)",
+      "w": 390,
+      "x": 5170,
+      "y": 2280
+    },
+    "AddressForm-mapfocus.dc.html": {
+      "h": 1960,
+      "title": "PRIMARY — Move pin controls, focused",
+      "w": 390,
+      "x": 5640,
+      "y": 2280
+    },
+    "AddressForm-notserved.dc.html": {
+      "h": 1960,
+      "title": "PRIMARY — searched address in Quebec (not served)",
+      "w": 390,
+      "x": 6110,
+      "y": 2280
+    },
+    "AddressForm-outside.dc.html": {
+      "h": 1960,
+      "title": "PRIMARY — delivery-area check (Needs API only)",
+      "w": 390,
+      "x": 6580,
+      "y": 2280
+    },
+    "AddressForm-saving.dc.html": {
+      "h": 1960,
+      "title": "PRIMARY — new address, saving",
+      "w": 390,
+      "x": 7050,
+      "y": 2280
+    },
+    "AddressForm-saveerror.dc.html": {
+      "h": 1960,
+      "title": "PRIMARY — save failed (network or 5xx)",
+      "w": 390,
+      "x": 7520,
+      "y": 2280
+    },
+    "AddressForm-server422.dc.html": {
+      "h": 1960,
+      "title": "PRIMARY — 422 VALIDATION_FAILED from the server",
+      "w": 390,
+      "x": 7990,
+      "y": 2280
+    },
+    "AddressForm-conflict.dc.html": {
+      "h": 1960,
+      "title": "PRIMARY — 409 other than the limit (Needs API)",
+      "w": 390,
+      "x": 8460,
+      "y": 2280
+    },
+    "AddressForm-limit.dc.html": {
+      "h": 1960,
+      "title": "PRIMARY — 21st address refused (Needs API)",
+      "w": 390,
+      "x": 8930,
+      "y": 2280
+    },
+    "AddressForm-edit.dc.html": {
+      "h": 1960,
+      "title": "Edit address — default address, stored pin",
+      "w": 390,
+      "x": 9400,
+      "y": 2280
+    },
+    "AddressForm-editloading.dc.html": {
+      "h": 844,
+      "title": "Edit address — loading (getAddress)",
+      "w": 390,
+      "x": 9870,
+      "y": 2280
+    },
+    "AddressForm-edit404.dc.html": {
+      "h": 844,
+      "title": "Edit address — 404, deleted on another device",
+      "w": 390,
+      "x": 10340,
+      "y": 2280
+    },
+    "AddressForm-editother.dc.html": {
+      "h": 1960,
+      "title": "Edit address — Other label, not default",
+      "w": 390,
+      "x": 10810,
+      "y": 2280
+    },
+    "AddressForm-settingdefault.dc.html": {
+      "h": 1960,
+      "title": "Edit address — making default (applies now)",
+      "w": 390,
+      "x": 11280,
+      "y": 2280
+    },
+    "AddressForm-defaultdone.dc.html": {
+      "h": 1960,
+      "title": "Edit address — now the default (toast)",
+      "w": 390,
+      "x": 11750,
+      "y": 2280
+    },
+    "AddressForm-deleteconfirm.dc.html": {
+      "h": 844,
+      "title": "Edit address — delete default, confirm (focus on Keep)",
+      "w": 390,
+      "x": 12220,
+      "y": 2280
+    },
+    "AddressForm-deleting.dc.html": {
+      "h": 844,
+      "title": "Edit address — deleting",
+      "w": 390,
+      "x": 12690,
+      "y": 2280
+    },
+    "AddressForm-inuse.dc.html": {
+      "h": 844,
+      "title": "Edit address — ADDRESS_IN_USE (View order)",
+      "w": 390,
+      "x": 13160,
+      "y": 2280
+    },
+    "AddressForm-unsaved.dc.html": {
+      "h": 844,
+      "title": "Leaving with unsaved changes",
+      "w": 390,
+      "x": 13630,
+      "y": 2280
+    },
+    "AddressForm-dark.dc.html": {
+      "h": 1960,
+      "title": "PRIMARY — new address, dark, errors (DS issue tagged)",
+      "w": 390,
+      "x": 14100,
+      "y": 2280
+    },
+    "AddressForm-360.dc.html": {
+      "h": 2060,
+      "title": "PRIMARY — new address, 360 wide, errors",
+      "w": 360,
+      "x": 14570,
+      "y": 2280
+    },
+    "AddressForm-lt.dc.html": {
+      "h": 4000,
+      "title": "PRIMARY — new address, 200% text",
+      "w": 390,
+      "x": 15010,
+      "y": 2280
+    },
+    "Account.dc.html": {
+      "h": 1560,
+      "title": "Account — default",
+      "w": 390,
+      "x": 0,
+      "y": 6660
+    },
+    "Account-unverified.dc.html": {
+      "h": 1560,
+      "title": "Account — email not confirmed",
+      "w": 390,
+      "x": 470,
+      "y": 6660
+    },
+    "Account-resent.dc.html": {
+      "h": 1560,
+      "title": "Account — link sent",
+      "w": 390,
+      "x": 940,
+      "y": 6660
+    },
+    "Account-resendlimited.dc.html": {
+      "h": 1560,
+      "title": "Account — resend 429 (1 a minute)",
+      "w": 390,
+      "x": 1410,
+      "y": 6660
+    },
+    "Account-resendday.dc.html": {
+      "h": 1560,
+      "title": "Account — resend 429 (5 a day)",
+      "w": 390,
+      "x": 1880,
+      "y": 6660
+    },
+    "Account-focus.dc.html": {
+      "h": 1560,
+      "title": "Account — Addresses row focused",
+      "w": 390,
+      "x": 2350,
+      "y": 6660
+    },
+    "Account-pendingemail.dc.html": {
+      "h": 1560,
+      "title": "Account — after changing email",
+      "w": 390,
+      "x": 2820,
+      "y": 6660
+    },
+    "Account-noemail.dc.html": {
+      "h": 1560,
+      "title": "Account — no email",
+      "w": 390,
+      "x": 3290,
+      "y": 6660
+    },
+    "Account-nosupport.dc.html": {
+      "h": 1560,
+      "title": "Account — support_enabled false with no support hours set",
+      "w": 390,
+      "x": 3760,
+      "y": 6660
+    },
+    "Account-supportclosed.dc.html": {
+      "h": 1560,
+      "title": "Account — phone line closed: support switched off outside its hours, hours shown",
+      "w": 390,
+      "x": 14540,
+      "y": 6660
+    },
+    "Account-dark.dc.html": {
+      "h": 1560,
+      "title": "Account — dark",
+      "w": 390,
+      "x": 4230,
+      "y": 6660
+    },
+    "Account-360.dc.html": {
+      "h": 1640,
+      "title": "Account — 360 wide",
+      "w": 360,
+      "x": 4700,
+      "y": 6660
+    },
+    "Account-lt.dc.html": {
+      "h": 3600,
+      "title": "Account — 200% text",
+      "w": 390,
+      "x": 5140,
+      "y": 6660
+    },
+    "Account-loading.dc.html": {
+      "h": 844,
+      "title": "Account — loading",
+      "w": 390,
+      "x": 5610,
+      "y": 6660
+    },
+    "Account-error.dc.html": {
+      "h": 844,
+      "title": "Account — load failed",
+      "w": 390,
+      "x": 6080,
+      "y": 6660
+    },
+    "Account-edit.dc.html": {
+      "h": 844,
+      "title": "Edit details sheet (focus on First name)",
+      "w": 390,
+      "x": 6550,
+      "y": 6660
+    },
+    "Account-editemail.dc.html": {
+      "h": 844,
+      "title": "Edit details — new email",
+      "w": 390,
+      "x": 7020,
+      "y": 6660
+    },
+    "Account-editinvalid.dc.html": {
+      "h": 844,
+      "title": "Edit details — 422 VALIDATION_FAILED",
+      "w": 390,
+      "x": 7490,
+      "y": 6660
+    },
+    "Account-editfirstempty.dc.html": {
+      "h": 844,
+      "title": "Edit details — first name empty",
+      "w": 390,
+      "x": 7960,
+      "y": 6660
+    },
+    "Account-editoffline.dc.html": {
+      "h": 844,
+      "title": "Edit details — offline",
+      "w": 390,
+      "x": 8430,
+      "y": 6660
+    },
+    "Account-editsaving.dc.html": {
+      "h": 844,
+      "title": "Edit details — saving",
+      "w": 390,
+      "x": 8900,
+      "y": 6660
+    },
+    "Account-editerror.dc.html": {
+      "h": 844,
+      "title": "Edit details — save failed",
+      "w": 390,
+      "x": 9370,
+      "y": 6660
+    },
+    "Account-editunsaved.dc.html": {
+      "h": 844,
+      "title": "Edit details — closing with edits",
+      "w": 390,
+      "x": 9840,
+      "y": 6660
+    },
+    "Account-editkbd.dc.html": {
+      "h": 844,
+      "title": "Edit details — keyboard open, error and Save visible",
+      "w": 390,
+      "x": 10310,
+      "y": 6660
+    },
+    "Account-editdark.dc.html": {
+      "h": 844,
+      "title": "Edit details — dark sheet",
+      "w": 390,
+      "x": 10780,
+      "y": 6660
+    },
+    "Account-signout.dc.html": {
+      "h": 844,
+      "title": "Sign out — confirm (focus on Stay signed in)",
+      "w": 390,
+      "x": 11250,
+      "y": 6660
+    },
+    "Account-signingout.dc.html": {
+      "h": 844,
+      "title": "Sign out — in progress",
+      "w": 390,
+      "x": 11720,
+      "y": 6660
+    },
+    "Account-signoutfail.dc.html": {
+      "h": 844,
+      "title": "Sign out — offline or logout failed: signed out on this phone anyway",
+      "w": 390,
+      "x": 12190,
+      "y": 6660
+    },
+    "Legal.dc.html": {
+      "h": 1180,
+      "title": "How we check — short AppBar title, full heading in the page",
+      "w": 390,
+      "x": 0,
+      "y": 10640
+    },
+    "Legal-dark.dc.html": {
+      "h": 1180,
+      "title": "How we check — dark",
+      "w": 390,
+      "x": 470,
+      "y": 10640
+    },
+    "Legal-terms.dc.html": {
+      "h": 1180,
+      "title": "Terms and privacy",
+      "w": 390,
+      "x": 940,
+      "y": 10640
+    },
+    "Legal-terms-focus.dc.html": {
+      "h": 1180,
+      "title": "Terms — row focused",
+      "w": 390,
+      "x": 1410,
+      "y": 10640
+    },
+    "Legal-termserror.dc.html": {
+      "h": 1180,
+      "title": "Terms — PublicConfig failed to load",
+      "w": 390,
+      "x": 1880,
+      "y": 10640
+    },
+    "Legal-terms-dark.dc.html": {
+      "h": 1180,
+      "title": "Terms — dark",
+      "w": 390,
+      "x": 2350,
+      "y": 10640
+    },
+    "EmailVerify-checking.dc.html": {
+      "h": 844,
+      "title": "Email link — checking",
+      "w": 390,
+      "x": 2820,
+      "y": 10640
+    },
+    "EmailVerify.dc.html": {
+      "h": 844,
+      "title": "Email link — confirmed (in the app, signed in)",
+      "w": 390,
+      "x": 3290,
+      "y": 10640
+    },
+    "EmailVerify-successconsent.dc.html": {
+      "h": 844,
+      "title": "Email link — confirmed, news and offers on (marketing_consent true)",
+      "w": 390,
+      "x": 13100,
+      "y": 10640
+    },
+    "EmailVerify-error.dc.html": {
+      "h": 844,
+      "title": "Email link — network or 5xx",
+      "w": 390,
+      "x": 3760,
+      "y": 10640
+    },
+    "EmailVerify-expired.dc.html": {
+      "h": 844,
+      "title": "Email link — VERIFICATION_TOKEN_EXPIRED (410): Send a new link",
+      "w": 390,
+      "x": 4230,
+      "y": 10640
+    },
+    "EmailVerify-used.dc.html": {
+      "h": 844,
+      "title": "Email link — VERIFICATION_TOKEN_USED, signed out or in a browser",
+      "w": 390,
+      "x": 4700,
+      "y": 10640
+    },
+    "EmailVerify-browser.dc.html": {
+      "h": 844,
+      "title": "Email link — opened in a browser (Needs API)",
+      "w": 390,
+      "x": 5170,
+      "y": 10640
+    },
+    "EmailVerify-signedout.dc.html": {
+      "h": 844,
+      "title": "Email link — app not signed in (Needs API)",
+      "w": 390,
+      "x": 5640,
+      "y": 10640
+    },
+    "EmailVerify-otheraccount.dc.html": {
+      "h": 844,
+      "title": "Email link — signed in as someone else (Needs API)",
+      "w": 390,
+      "x": 6110,
+      "y": 10640
+    },
+    "EmailVerify-dark.dc.html": {
+      "h": 844,
+      "title": "Email link — dark",
+      "w": 390,
+      "x": 6580,
+      "y": 10640
+    },
+    "EmailVerify-error-dark.dc.html": {
+      "h": 844,
+      "title": "Email link — failed, dark",
+      "w": 390,
+      "x": 7050,
+      "y": 10640
+    },
+    "EmailVerify-360.dc.html": {
+      "h": 844,
+      "title": "Email link — browser, 360 wide",
+      "w": 360,
+      "x": 7520,
+      "y": 10640
+    },
+    "EmailVerify-lt.dc.html": {
+      "h": 1400,
+      "title": "Email link — 200% text",
+      "w": 390,
+      "x": 7960,
+      "y": 10640
+    },
+    "NotificationSettings.dc.html": {
+      "h": 844,
+      "title": "Notification settings — push on",
+      "w": 390,
+      "x": 0,
+      "y": 12420
+    },
+    "NotificationSettings-notasked.dc.html": {
+      "h": 844,
+      "title": "Push not asked yet",
+      "w": 390,
+      "x": 470,
+      "y": 12420
+    },
+    "NotificationSettings-denied.dc.html": {
+      "h": 844,
+      "title": "Push off (denied)",
+      "w": 390,
+      "x": 940,
+      "y": 12420
+    },
+    "NotificationSettings-saving.dc.html": {
+      "h": 844,
+      "title": "Email — turning on",
+      "w": 390,
+      "x": 1410,
+      "y": 12420
+    },
+    "NotificationSettings-on.dc.html": {
+      "h": 844,
+      "title": "Email — on",
+      "w": 390,
+      "x": 1880,
+      "y": 12420
+    },
+    "NotificationSettings-turningoff.dc.html": {
+      "h": 844,
+      "title": "Email — turning off",
+      "w": 390,
+      "x": 2350,
+      "y": 12420
+    },
+    "NotificationSettings-off.dc.html": {
+      "h": 844,
+      "title": "Email — off, consent cleared",
+      "w": 390,
+      "x": 2820,
+      "y": 12420
+    },
+    "NotificationSettings-error.dc.html": {
+      "h": 844,
+      "title": "Email — change failed",
+      "w": 390,
+      "x": 3290,
+      "y": 12420
+    },
+    "NotificationSettings-noemail.dc.html": {
+      "h": 844,
+      "title": "Email — none on account",
+      "w": 390,
+      "x": 3760,
+      "y": 12420
+    },
+    "NotificationSettings-unconfirmed.dc.html": {
+      "h": 844,
+      "title": "Email — on, nothing sent until the email is confirmed",
+      "w": 390,
+      "x": 4230,
+      "y": 12420
+    },
+    "NotificationSettings-offline.dc.html": {
+      "h": 844,
+      "title": "Offline",
+      "w": 390,
+      "x": 4700,
+      "y": 12420
+    },
+    "NotificationSettings-focus.dc.html": {
+      "h": 844,
+      "title": "Switch focused",
+      "w": 390,
+      "x": 5170,
+      "y": 12420
+    },
+    "NotificationSettings-loading.dc.html": {
+      "h": 844,
+      "title": "Loading",
+      "w": 390,
+      "x": 5640,
+      "y": 12420
+    },
+    "NotificationSettings-loaderror.dc.html": {
+      "h": 844,
+      "title": "Load failed",
+      "w": 390,
+      "x": 6110,
+      "y": 12420
+    },
+    "NotificationSettings-dark.dc.html": {
+      "h": 844,
+      "title": "Dark, neutral banner",
+      "w": 390,
+      "x": 6580,
+      "y": 12420
+    },
+    "NotificationSettings-360.dc.html": {
+      "h": 844,
+      "title": "360 wide",
+      "w": 360,
+      "x": 7050,
+      "y": 12420
+    },
+    "NotificationSettings-denied360.dc.html": {
+      "h": 844,
+      "title": "Push off, 360 wide",
+      "w": 360,
+      "x": 7490,
+      "y": 12420
+    },
+    "NotificationSettings-lt.dc.html": {
+      "h": 1900,
+      "title": "200% text",
+      "w": 390,
+      "x": 7930,
+      "y": 12420
+    },
+    "AppSettings.dc.html": {
+      "h": 844,
+      "title": "App settings — location on",
+      "w": 390,
+      "x": 0,
+      "y": 14700
+    },
+    "AppSettings-notasked.dc.html": {
+      "h": 844,
+      "title": "App settings — location not asked yet",
+      "w": 390,
+      "x": 470,
+      "y": 14700
+    },
+    "AppSettings-off.dc.html": {
+      "h": 844,
+      "title": "App settings — location off",
+      "w": 390,
+      "x": 940,
+      "y": 14700
+    },
+    "AppSettings-focus.dc.html": {
+      "h": 844,
+      "title": "App settings — Open phone settings focused",
+      "w": 390,
+      "x": 1410,
+      "y": 14700
+    },
+    "AppSettings-dark.dc.html": {
+      "h": 844,
+      "title": "App settings — dark",
+      "w": 390,
+      "x": 1880,
+      "y": 14700
+    },
+    "AppSettings-360.dc.html": {
+      "h": 844,
+      "title": "App settings — 360 wide",
+      "w": 360,
+      "x": 2350,
+      "y": 14700
+    },
+    "AppSettings-lt.dc.html": {
+      "h": 1700,
+      "title": "App settings — 200% text",
+      "w": 390,
+      "x": 2790,
+      "y": 14700
+    },
+    "WhatsNew.dc.html": {
+      "h": 844,
+      "title": "What's new — after update (focus on Close)",
+      "w": 390,
+      "x": 0,
+      "y": 16780
+    },
+    "WhatsNew-multi.dc.html": {
+      "h": 844,
+      "title": "What's new — 2 updates (only with a stored last-seen version), footer pinned",
+      "w": 390,
+      "x": 470,
+      "y": 16780
+    },
+    "WhatsNew-page.dc.html": {
+      "h": 844,
+      "title": "What's new — from Account",
+      "w": 390,
+      "x": 940,
+      "y": 16780
+    },
+    "WhatsNew-empty.dc.html": {
+      "h": 844,
+      "title": "What's new — no notes (also the corrupt-bundle guard)",
+      "w": 390,
+      "x": 1410,
+      "y": 16780
+    },
+    "WhatsNew-multi360.dc.html": {
+      "h": 844,
+      "title": "What's new — 2 updates, 360 wide",
+      "w": 360,
+      "x": 1880,
+      "y": 16780
+    },
+    "WhatsNew-sheetfocus.dc.html": {
+      "h": 844,
+      "title": "What's new — Got it focused, reading order",
+      "w": 390,
+      "x": 2320,
+      "y": 16780
+    },
+    "WhatsNew-pagefocus.dc.html": {
+      "h": 844,
+      "title": "What's new page — focus and order",
+      "w": 390,
+      "x": 2790,
+      "y": 16780
+    },
+    "WhatsNew-held.dc.html": {
+      "h": 844,
+      "title": "What's new — held while an order is open",
+      "w": 390,
+      "x": 3260,
+      "y": 16780
+    },
+    "WhatsNew-later.dc.html": {
+      "h": 844,
+      "title": "What's new — shown on the next Home visit",
+      "w": 390,
+      "x": 3730,
+      "y": 16780
+    },
+    "WhatsNew-dark.dc.html": {
+      "h": 844,
+      "title": "What's new — sheet, dark",
+      "w": 390,
+      "x": 4200,
+      "y": 16780
+    },
+    "WhatsNew-page-dark.dc.html": {
+      "h": 844,
+      "title": "What's new page — dark",
+      "w": 390,
+      "x": 4670,
+      "y": 16780
+    },
+    "WhatsNew-page-360.dc.html": {
+      "h": 844,
+      "title": "What's new page — 360 wide",
+      "w": 360,
+      "x": 5140,
+      "y": 16780
+    },
+    "WhatsNew-lt.dc.html": {
+      "h": 1400,
+      "title": "What's new — sheet, 200% text",
+      "w": 390,
+      "x": 5580,
+      "y": 16780
+    },
+    "WhatsNew-page-lt.dc.html": {
+      "h": 1900,
+      "title": "What's new page — 200% text",
+      "w": 390,
+      "x": 6050,
+      "y": 16780
+    },
+    "AddressForm-unconfirmed.dc.html": {
+      "h": 1960,
+      "title": "PRIMARY — pin not confirmed (Save stopped, focus on the box)",
+      "w": 390,
+      "x": 15480,
+      "y": 2280
+    },
+    "AddressForm-repin.dc.html": {
+      "h": 1960,
+      "title": "Edit address — pin dragged, check it again",
+      "w": 390,
+      "x": 15950,
+      "y": 2280
+    },
+    "AddressForm-offline.dc.html": {
+      "h": 1960,
+      "title": "PRIMARY — new address, offline",
+      "w": 390,
+      "x": 16420,
+      "y": 2280
+    },
+    "AddressForm-editoffline.dc.html": {
+      "h": 1960,
+      "title": "Edit address — offline (Save, default, delete disabled)",
+      "w": 390,
+      "x": 16890,
+      "y": 2280
+    },
+    "AddressForm-defaultfail.dc.html": {
+      "h": 1960,
+      "title": "Edit address — make default failed",
+      "w": 390,
+      "x": 17360,
+      "y": 2280
+    },
+    "AddressForm-deletefail.dc.html": {
+      "h": 1960,
+      "title": "Edit address — delete failed (network or 5xx)",
+      "w": 390,
+      "x": 17830,
+      "y": 2280
+    },
+    "Account-sublinesloading.dc.html": {
+      "h": 1560,
+      "title": "Account — payment subline loading",
+      "w": 390,
+      "x": 12660,
+      "y": 6660
+    },
+    "Account-sublineserror.dc.html": {
+      "h": 1560,
+      "title": "Account — payment subline failed",
+      "w": 390,
+      "x": 13130,
+      "y": 6660
+    },
+    "Account-editinvalid-dark.dc.html": {
+      "h": 844,
+      "title": "Edit details — 422, dark (DS issue tagged)",
+      "w": 390,
+      "x": 13600,
+      "y": 6660
+    },
+    "Legal-terms-signedout.dc.html": {
+      "h": 844,
+      "title": "Terms — from Sign in (signed out, no BottomNav)",
+      "w": 390,
+      "x": 8430,
+      "y": 10640
+    },
+    "Legal-termsloading.dc.html": {
+      "h": 1180,
+      "title": "Terms — loading PublicConfig",
+      "w": 390,
+      "x": 8900,
+      "y": 10640
+    },
+    "EmailVerify-expiredsending.dc.html": {
+      "h": 844,
+      "title": "Email link expired — sending a new link",
+      "w": 390,
+      "x": 9370,
+      "y": 10640
+    },
+    "EmailVerify-expiredsent.dc.html": {
+      "h": 844,
+      "title": "Email link expired — new link sent",
+      "w": 390,
+      "x": 9840,
+      "y": 10640
+    },
+    "EmailVerify-expiredlimited.dc.html": {
+      "h": 844,
+      "title": "Email link expired — resend 429 (1 a minute)",
+      "w": 390,
+      "x": 10310,
+      "y": 10640
+    },
+    "EmailVerify-expiredday.dc.html": {
+      "h": 844,
+      "title": "Email link expired — resend 429 (5 a day)",
+      "w": 390,
+      "x": 10780,
+      "y": 10640
+    },
+    "EmailVerify-usedconfirmed.dc.html": {
+      "h": 844,
+      "title": "Email link used — signed in, already confirmed",
+      "w": 390,
+      "x": 11250,
+      "y": 10640
+    },
+    "EmailVerify-usedunconfirmed.dc.html": {
+      "h": 844,
+      "title": "Email link used — signed in, not confirmed",
+      "w": 390,
+      "x": 11720,
+      "y": 10640
+    },
+    "Legal-360.dc.html": {
+      "h": 1300,
+      "title": "How we check — 360 wide",
+      "w": 360,
+      "x": 12190,
+      "y": 10640
+    },
+    "Legal-lt.dc.html": {
+      "h": 2400,
+      "title": "How we check — 200% text",
+      "w": 390,
+      "x": 12630,
+      "y": 10640
+    },
+    "Account-addemail.dc.html": {
+      "h": 844,
+      "title": "Edit details — add email (from Add an email)",
+      "w": 390,
+      "x": 14070,
+      "y": 6660
+    },
+    "Addresses-deletednodefault.dc.html": {
+      "h": 844,
+      "title": "Addresses — default deleted, no default now",
+      "w": 390,
+      "x": 9810,
+      "y": 0
+    },
+    "Main.dc.html": {
+      "h": 844,
+      "title": "Shared component: Sign in screen (imported by Sign out — offline). The Sign in flow is on the Sign-in canvas.",
+      "w": 390,
+      "x": 15010,
+      "y": 6660
+    }
+  },
+  "order": [
+    "Addresses.dc.html",
+    "Addresses-focus.dc.html",
+    "Addresses-loading.dc.html",
+    "Addresses-empty.dc.html",
+    "Addresses-error.dc.html",
+    "Addresses-offline.dc.html",
+    "Addresses-limit.dc.html",
+    "Addresses-deletedlast.dc.html",
+    "Addresses-deleteddefault.dc.html",
+    "Addresses-360.dc.html",
+    "Addresses-dark.dc.html",
+    "Addresses-lt.dc.html",
+    "AddressSwitcher.dc.html",
+    "AddressSwitcher-loading.dc.html",
+    "AddressSwitcher-none.dc.html",
+    "AddressSwitcher-error.dc.html",
+    "AddressSwitcher-switched.dc.html",
+    "AddressSwitcher-switchfail.dc.html",
+    "AddressSwitcher-360.dc.html",
+    "AddressSwitcher-dark.dc.html",
+    "AddressSwitcher-lt.dc.html",
+    "AddressForm-today.dc.html",
+    "AddressForm-first.dc.html",
+    "AddressForm-kbd.dc.html",
+    "AddressForm.dc.html",
+    "AddressForm-manualfocus.dc.html",
+    "AddressForm-filled.dc.html",
+    "AddressForm-validation.dc.html",
+    "AddressForm-invalidfocus.dc.html",
+    "AddressForm-geocoding.dc.html",
+    "AddressForm-geodown.dc.html",
+    "AddressForm-locdenied.dc.html",
+    "AddressForm-mapfocus.dc.html",
+    "AddressForm-notserved.dc.html",
+    "AddressForm-outside.dc.html",
+    "AddressForm-saving.dc.html",
+    "AddressForm-saveerror.dc.html",
+    "AddressForm-server422.dc.html",
+    "AddressForm-conflict.dc.html",
+    "AddressForm-limit.dc.html",
+    "AddressForm-edit.dc.html",
+    "AddressForm-editloading.dc.html",
+    "AddressForm-edit404.dc.html",
+    "AddressForm-editother.dc.html",
+    "AddressForm-settingdefault.dc.html",
+    "AddressForm-defaultdone.dc.html",
+    "AddressForm-deleteconfirm.dc.html",
+    "AddressForm-deleting.dc.html",
+    "AddressForm-inuse.dc.html",
+    "AddressForm-unsaved.dc.html",
+    "AddressForm-dark.dc.html",
+    "AddressForm-360.dc.html",
+    "AddressForm-lt.dc.html",
+    "Account.dc.html",
+    "Account-unverified.dc.html",
+    "Account-resent.dc.html",
+    "Account-resendlimited.dc.html",
+    "Account-resendday.dc.html",
+    "Account-focus.dc.html",
+    "Account-pendingemail.dc.html",
+    "Account-noemail.dc.html",
+    "Account-nosupport.dc.html",
+    "Account-supportclosed.dc.html",
+    "Account-dark.dc.html",
+    "Account-360.dc.html",
+    "Account-lt.dc.html",
+    "Account-loading.dc.html",
+    "Account-error.dc.html",
+    "Account-edit.dc.html",
+    "Account-editemail.dc.html",
+    "Account-editinvalid.dc.html",
+    "Account-editfirstempty.dc.html",
+    "Account-editoffline.dc.html",
+    "Account-editsaving.dc.html",
+    "Account-editerror.dc.html",
+    "Account-editunsaved.dc.html",
+    "Account-editkbd.dc.html",
+    "Account-editdark.dc.html",
+    "Account-signout.dc.html",
+    "Account-signingout.dc.html",
+    "Account-signoutfail.dc.html",
+    "Legal.dc.html",
+    "Legal-dark.dc.html",
+    "Legal-terms.dc.html",
+    "Legal-terms-focus.dc.html",
+    "Legal-termserror.dc.html",
+    "Legal-terms-dark.dc.html",
+    "EmailVerify-checking.dc.html",
+    "EmailVerify.dc.html",
+    "EmailVerify-successconsent.dc.html",
+    "EmailVerify-error.dc.html",
+    "EmailVerify-expired.dc.html",
+    "EmailVerify-used.dc.html",
+    "EmailVerify-browser.dc.html",
+    "EmailVerify-signedout.dc.html",
+    "EmailVerify-otheraccount.dc.html",
+    "EmailVerify-dark.dc.html",
+    "EmailVerify-error-dark.dc.html",
+    "EmailVerify-360.dc.html",
+    "EmailVerify-lt.dc.html",
+    "NotificationSettings.dc.html",
+    "NotificationSettings-notasked.dc.html",
+    "NotificationSettings-denied.dc.html",
+    "NotificationSettings-saving.dc.html",
+    "NotificationSettings-on.dc.html",
+    "NotificationSettings-turningoff.dc.html",
+    "NotificationSettings-off.dc.html",
+    "NotificationSettings-error.dc.html",
+    "NotificationSettings-noemail.dc.html",
+    "NotificationSettings-unconfirmed.dc.html",
+    "NotificationSettings-offline.dc.html",
+    "NotificationSettings-focus.dc.html",
+    "NotificationSettings-loading.dc.html",
+    "NotificationSettings-loaderror.dc.html",
+    "NotificationSettings-dark.dc.html",
+    "NotificationSettings-360.dc.html",
+    "NotificationSettings-denied360.dc.html",
+    "NotificationSettings-lt.dc.html",
+    "AppSettings.dc.html",
+    "AppSettings-notasked.dc.html",
+    "AppSettings-off.dc.html",
+    "AppSettings-focus.dc.html",
+    "AppSettings-dark.dc.html",
+    "AppSettings-360.dc.html",
+    "AppSettings-lt.dc.html",
+    "WhatsNew.dc.html",
+    "WhatsNew-multi.dc.html",
+    "WhatsNew-page.dc.html",
+    "WhatsNew-empty.dc.html",
+    "WhatsNew-multi360.dc.html",
+    "WhatsNew-sheetfocus.dc.html",
+    "WhatsNew-pagefocus.dc.html",
+    "WhatsNew-held.dc.html",
+    "WhatsNew-later.dc.html",
+    "WhatsNew-dark.dc.html",
+    "WhatsNew-page-dark.dc.html",
+    "WhatsNew-page-360.dc.html",
+    "WhatsNew-lt.dc.html",
+    "WhatsNew-page-lt.dc.html",
+    "AddressForm-unconfirmed.dc.html",
+    "AddressForm-repin.dc.html",
+    "AddressForm-offline.dc.html",
+    "AddressForm-editoffline.dc.html",
+    "AddressForm-defaultfail.dc.html",
+    "AddressForm-deletefail.dc.html",
+    "Account-sublinesloading.dc.html",
+    "Account-sublineserror.dc.html",
+    "Account-editinvalid-dark.dc.html",
+    "Legal-terms-signedout.dc.html",
+    "Legal-termsloading.dc.html",
+    "EmailVerify-expiredsending.dc.html",
+    "EmailVerify-expiredsent.dc.html",
+    "EmailVerify-expiredlimited.dc.html",
+    "EmailVerify-expiredday.dc.html",
+    "EmailVerify-usedconfirmed.dc.html",
+    "EmailVerify-usedunconfirmed.dc.html",
+    "Legal-360.dc.html",
+    "Legal-lt.dc.html",
+    "Account-addemail.dc.html",
+    "Addresses-deletednodefault.dc.html",
+    "Main.dc.html"
+  ],
+  "notes": {
+    "legend": {
+      "fill": "gray",
+      "maxH": 420,
+      "size": 24,
+      "text": "HalalGoes customer: Sign-in and Account. One artboard per screen and state, in rows per flow. Blue dashed tag = Proposed component (a composite built only from React Native Reusables parts and design-system components, to be added to the design system after owner approval) or Component gap (an icon missing from the Solar set). Amber dashed tag = Needs API (placeholder, never shown as real). Grey dashed tag = open owner decision. Dotted grey tag = reviewer annotation, never product copy. 'PRIMARY' in a board name = the launch path. Suffixes: -dark, -360 (narrow phone), -lt (200% text; AppBar and BottomNav capped at 1.6x), -kbd (keyboard open), -focus (drawn focus). href on action buttons (Send code, Verify, Save) is prototype-only; the build uses onPress, and type=submit on form saves. Colours, fonts, focus and motion come only from the installed design system's tokens.css; hg-current.css holds layout classes, text roles and review tags only, no overrides and no component rules. Later-version features are off this canvas: the notifications inbox and Home bell (hidden until Alerts ships), signed-in devices and Sign out everywhere.",
+      "w": 1200,
+      "x": 0,
+      "y": -1500
+    },
+    "ds_issues": {
+      "fill": "orange",
+      "maxH": 1300,
+      "size": 24,
+      "text": "DS issues raised here: (1) Every text.tertiary text role in the DS fails 4.5:1 (4.18:1 on cream, 3.80:1 on sunken): Checkbox, Radio and Switch description, disabledReason, Input helper, character count. All should be text.secondary. A disabled Checkbox also wraps its description in the 0.5 disabled opacity (about 2:1). Profile capture draws the consent reason, and Notification settings the email Switch reason, as a t-small paragraph outside the control, linked with aria-describedby. The address switcher puts the street in the Radio label, not the description. (2) Modal confirm gap between cancel and destructive confirm is 12 px; target.spacing needs ≥24 px or stacked actions at 390. (3) Proposed components, drawn on the boards from library parts and DS components (list in the Proposed components note): Skeleton, EmptyState (incl. a 64 px full-screen variant used by Blocked, Email link and the address step, so the design-system components issue, GitHub #109, builds one component), ErrorState, ListRow, Banner, Avatar, MapView, Textarea. (4) Resolved: tokens.css is now compiled from the approved tokens.json (Plus Jakarta Sans, IBM Plex Mono, brand focus ring, dark label on the orange button, real motion durations); the canvas overlay is gone. (5) Countdown 'normal' numeral is info.500: 4.14:1 on feedback.warning.tint (light), 2.89:1 on warning-900 (dark), 4.40:1 on surface.base. Should use feedback.info.text (info.600 light, info.300 dark). Moving it outside the banner does not fix it (4.40:1 light, 3.91:1 dark), so no ticking numeral is drawn: every wait shows the static clock time in t-small text.secondary ('You can ask for a new code at 6:48 pm'), announced once. role=timer comes back only after the DS fix. (6) BottomNav inactive label and icon use text.tertiary: 4.36:1 on white, 4.18:1 on cream, 3.38:1 on dark surface.raised, failing 4.5:1 for label.md. Should be text.secondary (8.1:1 light, 5.8:1 dark raised). Component kept as is on the canvas. (7) Corrected: Button spreads ...rest onto the rendered button or link, so aria-describedby already passes through. Disabled controls point at their reason with it (Add address, Save, Send code, Resend code). (8) Badge appearance='dot' needs a word; the inbox unread marker is drawn as a brand dot Badge with 'New', aria-hidden, and ', unread' stays in the row name. (9) FieldText error text is hard-coded --color-danger-600: 2.32:1 on dark surface.base. Should be feedback.danger.text (danger-600 light, danger-300 dark). Tagged on AddressForm-dark, Profile-validation-dark and Account-editinvalid-dark; not recoloured here. (10) Badge tints are hard-coded light ramp steps: the neutral tint (neutral-100 with text.secondary) is 1.87:1 in dark ('Default', 'This phone', 'On'); info, warning, danger and brand tints are the same. Should be themed role pairs that reach 4.5:1 in both themes (neutral: surface.sunken with text.secondary). (11) Input helper text and character count use text.tertiary at caption size: 4.18:1 on cream, 4.36:1 on white. Should be text.secondary (7.4:1). Tagged on Sign in and Code. (12) BottomNav renders tablist/tab with roving tabindex: screen readers say 'tab 1 of 4' with no panel and only the active item is in the Tab order. Should be links (or buttons with aria-current='page') inside the nav, each in the Tab order, no tab roles. (13) Button hard-codes white-space: nowrap, so at 200% text a long label (label.lg x2 = 30 px) runs past a full-width button and is clipped: 'Not you? Use a different number', 'Use a different number', 'Place the pin again from my location'. Should wrap (white-space normal, text-align center, keep minBlockSize). Tagged on Profile-lt, Blocked-lt and AddressForm-lt; not approved as drawn. (14) color.map.pin.customer (#1b3b31) has no dark-theme value: 1.72:1 on dark surface.sunken (#000000), below the 3:1 a graphic needs. Needs a dark-theme value or an outline. AddressForm draws the pin with a 2 px text.primary ring (neutral-100 in dark) so it passes; tagged on AddressForm-dark.",
+      "w": 900,
+      "x": 2260,
+      "y": -1500
+    },
+    "icon_gaps": {
+      "fill": "blue",
+      "maxH": 420,
+      "size": 24,
+      "text": "Icon gap register (the DS Icon set has 23 names). Missing Solar icons, each tagged on its row: card (Payment methods), receipt (Refunds), phone (Call support, Phone support), gift (What's new), document (Terms), settings (App settings), user-block (Suspended, Banned), download (Update), case (Work), move (Move pin, drawn as a text Button). A row or state whose icon is missing shows an empty icon slot, never a borrowed glyph: Refunds and What's new rows, the What's new empty state and the Blocked on-hold, banned and update screens are empty and tagged. lock stays only on the security and signed-out screens, where it means what it says. 'map' is Solar map-point, so the pin and location rows are right. info appears on the halal-certificates row and on CERTIFICATION_LAPSED notices, never a check or shield: the shield is reserved for HalalShield.",
+      "w": 900,
+      "x": 1280,
+      "y": -1500
+    },
+    "proposed_components": {
+      "fill": "blue",
+      "maxH": 900,
+      "size": 24,
+      "text": "Proposed components (each tagged 'Proposed component: <Name>' on its boards; none is in the design system yet, so each goes to the owner for approval, then into Claude Design). Built only from library parts and design-system components: Banner = React Native Reusables Alert (drawn with the DS Card, outlined, radius md, in a neutral, info or warning tint role) + DS Icon + text roles, optional DS Button. ListRow = DS Card as the pressable link (href, 64 px, inset focus ring) with the DS Icon in a 36 px slot, title and subline text roles and the DS Icon chevron-right; rows are split by the React Native Reusables Separator; a row with no destination is the same Card without href. EmptyState and ErrorState = DS Icon in a 56 px (64 px full-screen) circle + heading and body text roles + DS Button. Skeleton = React Native Reusables Skeleton (static skeleton.base block, reduced-motion safe) with a role=status name outside the busy region. Avatar = React Native Reusables Avatar with AvatarFallback (initials). MapView = the customer app's @rnmapbox/maps MapView inside a DS Card, pin drawn with the DS Icon map in color.map.pin.customer with a 2 px text.primary ring. AddressMapPicker = DS Input (search) + Proposed MapView + DS Buttons (Use my current location, Move pin). Textarea = React Native Reusables Textarea part with the DS Input's label, border, radius, control.bg and focus border; 3 rows (96 px) growing to 6, character count underneath in text.secondary (Delivery notes). The canvas cannot mount React Native Reusables, so their parts are drawn from tokens inside the DS components; hg-current.css holds no rules for any of them.",
+      "w": 900,
+      "x": 3240,
+      "y": -1500
+    },
+    "t_addresses": {
+      "kind": "title1",
+      "maxW": 8000,
+      "text": "Saved addresses and the switcher",
+      "w": 240,
+      "x": 0,
+      "y": -260
+    },
+    "n_addresses": {
+      "fill": "blue",
+      "maxH": 820,
+      "size": 24,
+      "text": "Each row is one press target that opens edit. label is a free string (max 30, nullable). Home and Work are quick picks that write that word; the icon is chosen by exact match ('Home' gives home, anything else map = Solar map-point). label null: line1 becomes the title. Unit line: shown as stored when it starts with Unit, Apt, Suite or #, else prefixed 'Unit ' (never 'Unit Unit 4211'). Add address opens the map form (the first-address form when none are saved). Offline, rows still open Edit, which has its own offline state, and the disabled Add address points at its reason. The switcher opens from Change in the Home AppBar, picks the address for this session and never changes the default; 'switch failed' means Home's restaurant list (listRestaurants) for the new address did not load. Deleting the default makes another the default (the spec says so; Needs API to confirm); the toast names an address only if the refreshed data has one with is_default true, and 'default deleted, no default now' covers the case where none is promoted.",
+      "w": 480,
+      "x": -600,
+      "y": 0
+    },
+    "t_addressform": {
+      "kind": "title1",
+      "maxW": 8000,
+      "text": "Add or edit an address (full scroll length)",
+      "w": 240,
+      "x": 0,
+      "y": 2020
+    },
+    "n_addressform": {
+      "fill": "blue",
+      "maxH": 820,
+      "size": 24,
+      "text": "PRIMARY, every add and edit state (owner decision: type into the map search and drag the pin for precision). A new address opens on 'Find your door on the map': a search field that moves the map, the map with a draggable pin, 'Use my current location' (optional) and Move pin (north, south, east, west buttons for keyboard and screen-reader users; the map is role=img). latitude and longitude come from the pin, so a customer can add an address they're not at, and location off is a neutral note, never a blocker. Then Address (typed; filled from the pin once the API exists), Getting to your door, Address name and default. Once Street address has a value and the pin is placed, 'Check the pin' just above the sticky Save asks 'Is the pin on the entrance of {line1}?' and Save is gated on the box (unticked Save puts the error on the box and focuses it). Edit shows the stored pin; dragging it asks for the box again. Needs API (address-search API issue, GitHub #150): address search (autocomplete and place lookup) and filling the fields from the pin. Owner decision (1 October): both move into launch as operations on our server, which forwards to Mapbox; until they are in the contract the customer drags the pin and types, and createAddress accepts it today. Getting to your door (owner decision, 1 October): riders offered the delivery see only an approximate area before accepting (Needs API: the dispatch offer's drop-off still carries the street and pin); the rider who accepts, and the restaurant once it starts preparing (acceptance), see the full address, unit, buzzer and delivery notes included (OrderRestaurantView.delivery_address is a full Address; acceptOffer gives the rider the same plus the phone alias); before that the restaurant sees only the area (owner decision to say so). The notes field is 'Delivery notes', not 'Notes for your rider'. An address outside PublicConfig.served_provinces disables Save address, which points at the not-served message; that message offers 'Search for another address'. ADDRESS_IN_USE names no order state; View order finds it with listOrders status_group ACTIVE (Needs API: order_id in the error). Province is read-only 'Ontario' while PublicConfig.served_provinces has one entry; the not-served warning exists only for a searched or pasted address. Address name defaults to 'No name' (label null) on a new address; an edit can rename but not clear it (Needs API). Server 422 marks the named field; a 409 other than the limit is its own state. Unit and Buzzer stack at 200% text and below 375 wide.",
+      "w": 480,
+      "x": -600,
+      "y": 2280
+    },
+    "t_account": {
+      "kind": "title1",
+      "maxW": 8000,
+      "text": "Account and settings (full scroll length)",
+      "w": 240,
+      "x": 0,
+      "y": 6400
+    },
+    "n_account": {
+      "fill": "blue",
+      "maxH": 820,
+      "size": 24,
+      "text": "One Card per group, 64 px rows (Proposed component: ListRow). Payment methods and Refunds open screens drawn by Checkout and Orders. Rows whose Solar icon is missing show an empty icon slot plus the icon gap tag, never a borrowed glyph; info is used only for the halal-certificates row. Support (owner decision): a phone line during set hours only. In hours, Call support with the hours; outside them the row says the line is closed and opens Orders, where a report is started from the order's Get help (Report a problem, from acceptance; owner decision, 1 October; createRefund takes an order_id); support_enabled false says it isn't available and opens Orders the same way. The Refunds row only tracks requests already made. The server turns support off outside the hours (support_enabled false, owner decision 1 October), so 'closed' shows the support_hours text and needs no open-now API. Help centre and a complaints form have no endpoints, so they sit in a Needs API box. Delete account (owner decision, 1 October): in-app deletion is a later version that ships before the store release; at launch the page says to ask by phone or email (Needs API: a support email address in PublicConfig). Signed-in devices and Sign out everywhere are later-version operations and are not on launch screens. Resend link: fixed label plus a static time from Retry-After, announced once and linked to the button; 5 a day shows its own message. The Payment methods subline has its own loading (skeleton bar) and failed (static description, no guessed number) states. Edit sheet: Save in the Sheet footer, above the keyboard. Add an email (Account and Notification settings) opens the sheet with focus in the empty Email field and says before saving that an email can be changed but not removed. App settings opens location and appearance. Sign out always signs this phone out: offline or when logout fails, the local session is cleared and the customer lands on the signed-out screen with a neutral line; the refresh token is revoked when the phone reconnects.",
+      "w": 480,
+      "x": -600,
+      "y": 6660
+    },
+    "t_linked": {
+      "kind": "title1",
+      "maxW": 8000,
+      "text": "Pages opened from Account",
+      "w": 240,
+      "x": 0,
+      "y": 10380
+    },
+    "n_linked": {
+      "fill": "blue",
+      "maxH": 820,
+      "size": 24,
+      "text": "How we check: a plain version of the seven certificate checks; wording approved by the owner as drafted. We verify certificates and never rule on religion. Expired or unverified restaurants are taken off HalalGoes (404 on every customer read), so the page says that, and explains the end-date notice (EXPIRING_SOON). Missing or unloaded certificate details (owner decision: question 6) mean no Halal certified badge and a neutral 'certificate details unavailable' line, and the page says exactly that. The badge reads 'Halal certified'; when the certificate is close to its end date it reads 'Halal certified · expires 20 Oct' (owner decision, 1 October). Its AppBar title is the short 'How we check' so it never truncates; the full name is the first heading (360 and 200% drawn). Email link: checking, confirmed, network error; 410 expired offers Send a new link in place (sending, sent, 429, 5 a day), and the previous verified email line is Needs API; used splits on email_verified when signed in, with the vague copy kept only for signed out or a browser; and three hand-offs because verifyEmail issues a session (Needs API). Terms: loading and error states for PublicConfig, and a signed-out version opened from Sign in; full text comes from legal.",
+      "w": 480,
+      "x": -600,
+      "y": 10640
+    },
+    "t_notifsettings": {
+      "kind": "title1",
+      "maxW": 8000,
+      "text": "Notification settings",
+      "w": 240,
+      "x": 0,
+      "y": 12160
+    },
+    "n_notifsettings": {
+      "fill": "blue",
+      "maxH": 820,
+      "size": 24,
+      "text": "Order updates are transactional, so the app shows the phone's permission state and links to phone settings instead of a toggle it cannot honour; the order's tracking screen always shows them (no inbox at launch). Not asked yet: 'Turn on notifications' triggers the phone's prompt. The only real preference is marketing_consent (marketing_consent_at shown when on, cleared when off). The Switch keeps its old position until the server confirms. Owner decision: consent can be recorded while the email is unconfirmed, and nothing is sent until it is confirmed.",
+      "w": 480,
+      "x": -600,
+      "y": 12420
+    },
+    "t_appsettings": {
+      "kind": "title1",
+      "maxW": 3180,
+      "text": "App settings",
+      "w": 240,
+      "x": 0,
+      "y": 14440
+    },
+    "n_appsettings": {
+      "fill": "blue",
+      "maxH": 820,
+      "size": 24,
+      "text": "App-level settings with no API: the phone's location permission (optional; it only starts the map where you are, since the pin can be dragged) and appearance, which follows the phone (owner decision, no in-app choice). Notification settings stays its own screen.",
+      "w": 480,
+      "x": -600,
+      "y": 14700
+    },
+    "t_whatsnew": {
+      "kind": "title1",
+      "maxW": 6440,
+      "text": "What's new (release notes issue, GitHub #99)",
+      "w": 240,
+      "x": 0,
+      "y": 16520
+    },
+    "n_whatsnew": {
+      "fill": "blue",
+      "maxH": 820,
+      "size": 24,
+      "text": "Notes ship inside the app (release-notes.json, the in-app release notes issue, GitHub #97), so there is no loading or error screen; a corrupt bundle falls back to the empty state with the store link. Shown once after an update, on Home, never during checkout or tracking: held there and shown on the next Home visit. 'Got it' sits in the Sheet footer and takes focus. Notes describe only what the customer payload has, and only as far as it guarantees it: certifying_body_name and expires_on are nullable, so the note says 'when we have them'. Never the certificate file. A new phone, or a sign-in with no stored last-seen version, shows only the latest release's notes (owner decision, 1 October); the 2-update sheet needs a stored version.",
+      "w": 480,
+      "x": -600,
+      "y": 16780
+    },
+    "split_from": {
+      "x": 4240,
+      "y": -1500,
+      "w": 600,
+      "maxH": 400,
+      "fill": "gray",
+      "size": 24,
+      "text": "Split from HalalGoes Customer — Sign-in & Account: https://claude.ai/artifact/HdmzQ4h2D22cMZvJ17a8cX (Sign in, code, next_route, forced routes and Profile capture stay there)."
+    }
+  },
+  "designSystems": [
+    {
+      "title": "HalalGoes design system",
+      "namespace": "halalgoesdesignsystem-d11a47",
+      "artifact": "https://claude.ai/artifact/1GwGVZz8Ju9wcz4HfCnzbv",
+      "version": "1790605103-3266",
+      "copiedAt": "2026-10-01T02:09:42Z"
+    }
+  ]
+}

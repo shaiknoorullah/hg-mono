@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Business profile form</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+.hg-focus-field:not([aria-invalid="true"]):focus-visible{outline:2px solid transparent;border-color:var(--focus-ring) !important;box-shadow:inset 0 0 0 1px var(--focus-ring)}
+.hg-focus-field[aria-invalid="true"]:focus-visible{outline:2px solid transparent;box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+</style>
+</helmet>
+<div style="width: {{w}}; height: {{h}}; box-sizing: border-box; display: flex; flex-direction: column; gap: 24px; font-family: var(--font-ui); color: var(--text-primary)">
+
+<sc-if value="{{showBlocker}}" hint-placeholder-val="{{false}}"><div style="display: flex; flex-direction: column; gap: 8px; padding: 16px; border: 2px dashed var(--feedback-info-border); border-radius: 12px"><span class="type-label-lg">Blocker: onboarding can't get past this step until #150 and a cuisine lookup exist</span><span class="type-body-sm" style="line-height: 1.5">RestaurantProfileInput requires latitude, longitude and cuisine_ids, and the contract gives the owner no way to produce them. The default drawn here is the proposed fallback: the server places the pin from the typed address when the profile is saved, and cuisines come from a fixed list in PublicConfig. The alternative is the map picker (Profile — alternative with map picker). The owner chooses one.</span><span style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; border: 1.5px dashed var(--color-info-600); background: var(--color-info-50); color: var(--color-info-700); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">Needs API: server geocodes the typed address on save and returns the pin</span><span style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; border: 1.5px dashed var(--color-info-600); background: var(--color-info-50); color: var(--color-info-700); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">Needs API: fixed cuisine list in PublicConfig (id + label)</span></div></sc-if>
+
+<sc-if value="{{showReason}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; flex-direction: column; gap: 8px"><div role="status" style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 4px; margin-top: 32px; display: flex; gap: 12px; align-items: flex-start; padding: 12px 16px; background: var(--feedback-info-tint); color: var(--feedback-info-tint-text); border: 1px solid var(--feedback-info-border); border-radius: 12px"><span aria-hidden="true" style="position: absolute; top: -32px; left: -4px; font: 500 12px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 4px 8px; border-radius: 4px; white-space: nowrap; z-index: 1">Proposed component: Banner</span><span style="display: inline-flex; color: var(--feedback-info-icon)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="info" size="md" hint-size="20px,20px"></x-import></span><div class="type-body-md" style="display: flex; flex-direction: column; gap: 4px; line-height: 1.5"><strong class="type-label-lg">What's needed now</strong><span>Finish your business profile.</span></div></div><span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">Copy mapped from blocking_reason code: profile_incomplete</span></div>
+</sc-if>
+
+<sc-if value="{{returning}}" hint-placeholder-val="{{false}}">
+<div role="status" style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 4px; margin-top: 32px; display: flex; gap: 12px; align-items: flex-start; padding: 12px 16px; background: var(--feedback-info-tint); color: var(--feedback-info-tint-text); border: 1px solid var(--feedback-info-border); border-radius: 12px"><span aria-hidden="true" style="position: absolute; top: -32px; left: -4px; font: 500 12px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 4px 8px; border-radius: 4px; white-space: nowrap; z-index: 1">Proposed component: InlineAlert</span><span style="display: inline-flex; color: var(--feedback-info-icon)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="info" size="md" hint-size="20px,20px"></x-import></span><div class="type-body-md" style="flex-grow: 1; display: flex; flex-direction: column; gap: 4px; line-height: 1.5"><strong class="type-label-lg">Welcome back</strong><span>We kept what you typed on this device on 27 September 2026. It isn't saved to HalalGoes until you save the whole form.</span></div></div>
+<span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">Local draft in this browser only: lost on another device or if site data is cleared</span>
+</sc-if>
+
+<sc-if value="{{conflict}}" hint-placeholder-val="{{false}}">
+<div role="alert" tabindex="-1" style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 4px; margin-top: 32px; display: flex; gap: 12px; align-items: flex-start; padding: 12px 16px; background: var(--feedback-danger-tint); color: var(--feedback-danger-tint-text); border: 1px solid var(--feedback-danger-border); border-radius: 12px"><span aria-hidden="true" style="position: absolute; top: -32px; left: -4px; font: 500 12px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 4px 8px; border-radius: 4px; white-space: nowrap; z-index: 1">Proposed component: Banner</span><span style="display: inline-flex; color: var(--feedback-danger-icon)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="error" size="md" hint-size="20px,20px"></x-import></span><div class="type-body-md" style="flex-grow: 1; display: flex; flex-direction: column; gap: 4px; line-height: 1.5"><strong class="type-label-lg">Your changes weren't saved</strong><span>Your setup moved on while this page was open, so this form is out of date. Refresh to see where your setup is. What you typed stays on screen until you leave.</span></div><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" icon-start="refresh" hint-size="120px,44px">Refresh</x-import></div>
+<span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">409 STEP_NOT_AVAILABLE / ILLEGAL_STATE_TRANSITION on save</span>
+</sc-if>
+
+<sc-if value="{{saveError}}" hint-placeholder-val="{{false}}">
+<div role="alert" tabindex="-1" style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 4px; margin-top: 32px; display: flex; gap: 12px; align-items: flex-start; padding: 12px 16px; background: var(--feedback-danger-tint); color: var(--feedback-danger-tint-text); border: 1px solid var(--feedback-danger-border); border-radius: 12px"><span aria-hidden="true" style="position: absolute; top: -32px; left: -4px; font: 500 12px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 4px 8px; border-radius: 4px; white-space: nowrap; z-index: 1">Proposed component: Banner</span><span style="display: inline-flex; color: var(--feedback-danger-icon)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="error" size="md" hint-size="20px,20px"></x-import></span><div class="type-body-md" style="flex-grow: 1; display: flex; flex-direction: column; gap: 4px; line-height: 1.5"><strong class="type-label-lg">Your profile wasn't saved</strong><span>We couldn't reach HalalGoes, or something went wrong on our side. What you typed is kept on this page. Try again.</span></div><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" icon-start="refresh" hint-size="130px,44px">Try again</x-import></div>
+<span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">Network error or 5xx on submitRestaurantProfile. Focus moves here; the form keeps every value.</span>
+</sc-if>
+
+<sc-if value="{{pinAny}}" hint-placeholder-val="{{false}}">
+<div role="status" style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 4px; margin-top: 32px; display: flex; gap: 12px; align-items: flex-start; padding: 12px 16px; background: var(--feedback-info-tint); color: var(--feedback-info-tint-text); border: 1px solid var(--feedback-info-border); border-radius: 12px"><span aria-hidden="true" style="position: absolute; top: -32px; left: -4px; font: 500 12px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 4px 8px; border-radius: 4px; white-space: nowrap; z-index: 1">Proposed component: InlineAlert</span><span style="display: inline-flex; color: var(--feedback-info-icon)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="{{pinIcon}}" size="md" hint-size="20px,20px"></x-import></span><div class="type-body-md" style="flex-grow: 1; display: flex; flex-direction: column; gap: 4px; line-height: 1.5"><strong class="type-label-lg">{{pinTitle}}</strong><span>{{pinText}}</span></div></div>
+<section aria-labelledby="pin-h" style="display: flex; flex-direction: column; gap: 12px; padding: 20px; border-radius: 16px; background: var(--surface-raised); border: 1px solid var(--border-decorative)">
+<h2 id="pin-h" class="type-heading-sm" style="margin: 0">Your pin for riders</h2>
+<div style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 4px; margin-top: 32px; height: 240px; border-radius: 12px; background: var(--surface-sunken); border: 1px solid var(--border-strong); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; text-align: center; padding: 16px"><span aria-hidden="true" style="position: absolute; top: -32px; left: -4px; font: 500 12px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 4px 8px; border-radius: 4px; white-space: nowrap; z-index: 1">Proposed component: Map preview (static, read-only)</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="map" size="xl" hint-size="32px,32px"></x-import><span class="type-body-md">Map of 2872 Eglinton Ave E, Unit 4, Toronto with the pin at {{pinLatLng}}</span></div>
+<div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap"><span class="type-body-sm" style="color: var(--text-secondary); font-family: var(--font-mono)">{{pinLatLng}}</span></div>
+<span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">Pin = RestaurantProfile.address.latitude / longitude as returned after save; the preview is built only from those two numbers. The client never places or moves a pin.</span>
+<span style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; border: 1.5px dashed var(--color-info-600); background: var(--color-info-50); color: var(--color-info-700); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">Needs API: pin lat/long returned on save when the server places the pin from the address (fallback until the three Mapbox-backed operations the owner moved into launch reach the contract; in the register)</span>
+<sc-if value="{{pinCheck}}" hint-placeholder-val="{{true}}"><div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" icon-end="chevron-right" hint-size="200px,52px">Continue</x-import><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="md" href="#" hint-size="220px,44px">The pin isn’t on my entrance</x-import></div></sc-if>
+<sc-if value="{{pinWrong}}" hint-placeholder-val="{{false}}"><div style="display: flex; flex-direction: column; gap: 12px; padding: 16px; border-radius: 12px; background: var(--surface-sunken)">
+<span class="type-label-lg">Partner support moves pins</span>
+<span class="type-body-md" style="line-height: 1.5">Tell them where your entrance is, for example “side door on Markham Road”. Moving it takes a few minutes while you’re on the call. You can carry on with setup meanwhile, but please get it fixed before your first order.</span>
+<div style="display: flex; flex-direction: column; gap: 4px"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" href="tel:[support phone]" hint-size="320px,52px">Call partner support: [support phone]</x-import><span class="type-body-sm">[support hours]</span></div>
+<div><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" icon-end="chevron-right" hint-size="220px,44px">Continue setting up</x-import></div>
+<span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">Support card renders only when PublicConfig.support_enabled is true (number = support_phone_e164, never hard-coded); otherwise Ref-SupportUnavailable. There is no self-serve pin move in the contract.</span>
+<span style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; border: 1.5px dashed var(--color-info-600); background: var(--color-info-50); color: var(--color-info-700); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">Needs API: pin-move request from the restaurant (or the Mapbox-backed map picker, owner decision #150), so this doesn’t depend on a phone call</span>
+</div></sc-if>
+<sc-if value="{{pinMoved}}" hint-placeholder-val="{{false}}"><div style="display: flex; flex-direction: column; gap: 12px"><div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" icon-end="chevron-right" hint-size="200px,52px">Continue</x-import><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="md" href="#" hint-size="220px,44px">Still not right</x-import></div>
+<span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">Shown when the reloaded RestaurantProfile.address lat/long differs from the pin this device last showed (kept only as a convenience; the server value always wins).</span>
+<span style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; border: 1.5px dashed var(--color-info-600); background: var(--color-info-50); color: var(--color-info-700); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">Needs API: pin-change event or audit field (who moved it, when) so the page updates without a reload and can say “moved by partner support”</span></div></sc-if>
+</section>
+</sc-if>
+
+<sc-if value="{{errors}}" hint-placeholder-val="{{false}}">
+<div role="alert" tabindex="-1" style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 4px; margin-top: 32px; display: flex; gap: 12px; align-items: flex-start; padding: 12px 16px; background: var(--feedback-danger-tint); color: var(--feedback-danger-tint-text); border: 1px solid var(--feedback-danger-border); border-radius: 12px"><span aria-hidden="true" style="position: absolute; top: -32px; left: -4px; font: 500 12px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 4px 8px; border-radius: 4px; white-space: nowrap; z-index: 1">Proposed component: Banner (error summary)</span><span style="display: inline-flex; color: var(--feedback-danger-icon)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="error" size="md" hint-size="20px,20px"></x-import></span><div class="type-body-md" style="flex-grow: 1; display: flex; flex-direction: column; gap: 4px; line-height: 1.5"><strong class="type-label-lg">4 fields need changes before we can save</strong><ul style="margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 0"><li><a href="#phone" style="color: var(--feedback-danger-tint-text); min-height: 44px; display: inline-flex; align-items: center">Business phone</a></li><li><a href="#postal" style="color: var(--feedback-danger-tint-text); min-height: 44px; display: inline-flex; align-items: center">Postal code: outside the area we serve</a></li><li><a href="#description" style="color: var(--feedback-danger-tint-text); min-height: 44px; display: inline-flex; align-items: center">Description</a></li><li><a href="#gst" style="color: var(--feedback-danger-tint-text); min-height: 44px; display: inline-flex; align-items: center">GST/HST number</a></li></ul><span>Everything else you entered is kept.</span></div></div>
+</sc-if>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<h1 class="type-heading-xl" style="margin: 0">Business profile</h1>
+<p class="type-body-md" style="margin: 0; line-height: 1.5; color: var(--text-secondary); max-width: 680px">Reviewers compare these details with your documents, so enter them exactly as they appear there.</p>
+</div>
+
+<sc-if value="{{loading}}" hint-placeholder-val="{{false}}">
+<p role="status" class="type-body-md" style="margin: 0; line-height: 1.5; color: var(--text-secondary)">Loading your profile…</p>
+<div aria-busy="true" style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 4px; margin-top: 32px; display: flex; flex-direction: column; gap: 16px">
+<span aria-hidden="true" style="position: absolute; top: -32px; left: -4px; font: 500 12px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 4px 8px; border-radius: 4px; white-space: nowrap; z-index: 1">Proposed component: Skeleton</span>
+<div style="height: 280px; border-radius: 16px; background: var(--skeleton-base)"></div>
+<div style="height: 160px; border-radius: 16px; background: var(--skeleton-base)"></div>
+<div style="height: 360px; border-radius: 16px; background: var(--skeleton-base)"></div>
+</div>
+<span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">GET /v1/restaurant/profile in flight</span>
+</sc-if>
+
+<sc-if value="{{loadError}}" hint-placeholder-val="{{false}}">
+<div role="alert" style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 4px; margin-top: 32px; display: flex; gap: 12px; align-items: flex-start; padding: 12px 16px; background: var(--feedback-danger-tint); color: var(--feedback-danger-tint-text); border: 1px solid var(--feedback-danger-border); border-radius: 12px"><span aria-hidden="true" style="position: absolute; top: -32px; left: -4px; font: 500 12px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 4px 8px; border-radius: 4px; white-space: nowrap; z-index: 1">Proposed component: InlineAlert</span><span style="display: inline-flex; color: var(--feedback-danger-icon)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="error" size="md" hint-size="20px,20px"></x-import></span><div class="type-body-md" style="flex-grow: 1; display: flex; flex-direction: column; gap: 4px; line-height: 1.5"><strong class="type-label-lg">We couldn't load your profile</strong><span>Nothing you saved is lost. Check your connection and try again.</span></div><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" icon-start="refresh" hint-size="130px,44px">Try again</x-import></div>
+<span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">GET /v1/restaurant/profile failed (network or 5xx). No empty form is shown, so nothing can be overwritten.</span>
+</sc-if>
+
+<sc-if value="{{pinAny}}" hint-placeholder-val="{{false}}">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg" padding="24px" hint-size="832px,360px">
+<section aria-labelledby="saved-h" style="display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; align-items: center; gap: 12px"><h2 id="saved-h" class="type-heading-md" style="margin: 0; flex-grow: 1">Your saved profile</h2><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" hint-size="120px,44px">Edit details</x-import></div>
+<dl style="margin: 0; display: grid; grid-template-columns: {{c2}}; gap: 16px 24px">
+<div style="display: flex; flex-direction: column; gap: 4px"><dt class="type-label-md" style="color: var(--text-secondary)">Name customers see</dt><dd class="type-body-md" style="margin: 0">{{v.display}}</dd></div>
+<div style="display: flex; flex-direction: column; gap: 4px"><dt class="type-label-md" style="color: var(--text-secondary)">Legal business name</dt><dd class="type-body-md" style="margin: 0">{{v.legal}}</dd></div>
+<div style="display: flex; flex-direction: column; gap: 4px"><dt class="type-label-md" style="color: var(--text-secondary)">Owner</dt><dd class="type-body-md" style="margin: 0">{{v.first}} {{v.last}}</dd></div>
+<div style="display: flex; flex-direction: column; gap: 4px"><dt class="type-label-md" style="color: var(--text-secondary)">Business phone</dt><dd class="type-body-md" style="margin: 0">{{v.phone}}</dd></div>
+<div style="display: flex; flex-direction: column; gap: 4px"><dt class="type-label-md" style="color: var(--text-secondary)">Address</dt><dd class="type-body-md" style="margin: 0">{{v.line1}}, {{v.line2}}, {{v.city}}, ON {{v.postal}}</dd></div>
+<div style="display: flex; flex-direction: column; gap: 4px"><dt class="type-label-md" style="color: var(--text-secondary)">GST/HST number</dt><dd class="type-body-md" style="margin: 0">{{v.gst}}</dd></div>
+</dl>
+<span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">After the save the form collapses to this read-only summary (values from the 200 RestaurantProfile). No Save and continue here: the pin section's button is the page's only primary. Edit details (tertiary) reopens the form with its own Save and continue.</span>
+</section>
+</x-import>
+</sc-if>
+
+<sc-if value="{{showForm}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; flex-direction: column; gap: 24px">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg" padding="24px" hint-size="832px,420px">
+<fieldset style="border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 16px">
+<legend class="type-heading-md" style="padding: 0; margin-bottom: 16px">Names</legend>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Name customers see" required="{{yes}}" default-value="{{v.display}}" hint-size="100%,72px"></x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Legal business name" required="{{yes}}" default-value="{{v.legal}}" helper-text="Exactly as on your halal certificate and business licence. Reviewers check it against both." hint-size="100%,96px"></x-import>
+<div style="display: grid; grid-template-columns: {{c2}}; gap: 16px; align-items: start">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Owner's first name (optional)" auto-complete="given-name" default-value="{{v.first}}" helper-text="As on the owner's photo ID." hint-size="100%,96px"></x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Owner's last name (optional)" auto-complete="family-name" default-value="{{v.last}}" hint-size="100%,72px"></x-import>
+</div>
+<span style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; border: 1.5px dashed var(--color-info-600); background: var(--color-info-50); color: var(--color-info-700); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">Needs API: owner name required, so reviewers can match it with Owner ID (optional in RestaurantProfileInput today)</span>
+</fieldset>
+</x-import>
+
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg" padding="24px" hint-size="832px,220px">
+<fieldset style="border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 16px">
+<legend class="type-heading-md" style="padding: 0; margin-bottom: 16px">Phone numbers</legend>
+<div style="display: grid; grid-template-columns: {{c2}}; gap: 16px; align-items: start">
+<x-import id="phone" component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Business phone" variant="tel" required="{{yes}}" default-value="{{v.phone}}" helper-text="For HalalGoes to reach you. Canadian (+1) numbers only." error-text="{{e.phone}}" hint-size="100%,96px"></x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Phone customers can call (optional)" variant="tel" default-value="{{v.publicPhone}}" hint-size="100%,72px"></x-import>
+</div>
+</fieldset>
+</x-import>
+
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg" padding="24px" hint-size="832px,620px">
+<fieldset style="border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 16px">
+<legend class="type-heading-md" style="padding: 0; margin-bottom: 16px">Address and location</legend>
+<sc-if value="{{picker}}" hint-placeholder-val="{{false}}">
+<div style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 4px; margin-top: 32px; display: flex; flex-direction: column; gap: 6px">
+<span aria-hidden="true" style="position: absolute; top: -32px; left: -4px; font: 500 12px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 4px 8px; border-radius: 4px; white-space: nowrap; z-index: 1">Proposed component: Address search (combobox)</span>
+<label for="addr-search-stacked" class="type-label-lg">Search your address</label>
+<div style="position: relative"><input id="addr-search-stacked" class="hg-focus-field type-body-md" role="combobox" aria-expanded="false" aria-controls="addr-results-stacked" aria-autocomplete="list" value="" style="width: 100%; height: 44px; box-sizing: border-box; border: 1.5px solid var(--control-border); border-radius: 12px; background: var(--control-bg); padding: 0 14px 0 40px; color: var(--text-primary)"><span aria-hidden="true" style="position: absolute; left: 12px; top: 12px; color: var(--text-secondary)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="search" size="md" hint-size="20px,20px"></x-import></span></div>
+<span class="type-body-sm" style="line-height: 1.45; color: var(--text-secondary)">Pick your address from the list. It fills the fields below and places the pin.</span>
+</div>
+</sc-if>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Street address" required="{{yes}}" auto-complete="address-line1" default-value="{{v.line1}}" helper-text="Must match the address on your halal certificate." hint-size="100%,96px"></x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Unit or suite (optional)" auto-complete="address-line2" default-value="{{v.line2}}" hint-size="100%,72px"></x-import>
+<div style="display: grid; grid-template-columns: {{c3}}; gap: 16px; align-items: start">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="City" required="{{yes}}" auto-complete="address-level2" default-value="{{v.city}}" hint-size="100%,72px"></x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Select" label="Province" required="{{yes}}" options="{{provinces}}" value="ON" helper-text="Ontario only at launch." hint-size="100%,96px"></x-import>
+<x-import id="postal" component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Postal code" required="{{yes}}" auto-complete="postal-code" default-value="{{v.postal}}" error-text="{{e.postal}}" hint-size="100%,120px"></x-import>
+</div>
+<sc-if value="{{fallback}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; flex-direction: column; gap: 8px; padding: 16px; border-radius: 12px; background: var(--surface-sunken)">
+<span class="type-label-lg">Pin for riders</span>
+<span class="type-body-md" style="line-height: 1.5; color: var(--text-secondary)">{{v.pinFallback}}</span>
+<span style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; border: 1.5px dashed var(--color-info-600); background: var(--color-info-50); color: var(--color-info-700); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">Needs API: server places the pin from this address on save (fallback until the Mapbox-backed address operations reach the contract)</span>
+</div>
+</sc-if>
+<sc-if value="{{picker}}" hint-placeholder-val="{{false}}">
+<div style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 4px; margin-top: 32px; display: flex; flex-direction: column; gap: 8px">
+<span aria-hidden="true" style="position: absolute; top: -32px; left: -4px; font: 500 12px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 4px 8px; border-radius: 4px; white-space: nowrap; z-index: 1">Proposed component: Map with draggable pin</span>
+<span class="type-label-lg">Pin for riders</span>
+<div style="height: 240px; box-sizing: border-box; border-radius: 12px; background: var(--surface-sunken); border: 1.5px solid var(--border-interactive); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; padding: 16px">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="map" size="xl" hint-size="32px,32px"></x-import>
+<span class="type-body-md" style="color: var(--text-secondary); max-width: 260px">The map shows your pin once you pick your address.</span>
+</div>
+<span class="type-body-sm" style="line-height: 1.45">{{v.pin}}</span>
+<span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px; white-space: normal">Keyboard: focus the pin, then arrow keys move it 1 m. Saved as latitude and longitude on the profile.</span>
+<span style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; border: 1.5px dashed var(--color-info-600); background: var(--color-info-50); color: var(--color-info-700); font: 500 12px/1.4 var(--font-mono); border-radius: 4px; white-space: normal">Needs API: address search, place details and reverse geocoding through our API, which forwards to Mapbox (owner decision, #150; three launch operations not yet in the contract) · map tiles come from Mapbox</span>
+</div>
+</sc-if>
+</fieldset>
+</x-import>
+
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg" padding="24px" hint-size="832px,620px">
+<fieldset style="border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 16px">
+<legend class="type-heading-md" style="padding: 0; margin-bottom: 16px">About your restaurant</legend>
+<div style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 4px; margin-top: 32px; display: flex; flex-direction: column; gap: 8px">
+<span aria-hidden="true" style="position: absolute; top: -32px; left: -4px; font: 500 12px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 4px 8px; border-radius: 4px; white-space: nowrap; z-index: 1">Proposed component: Textarea with counter (label for/id; aria-describedby = helper, counter and error)</span>
+<label for="description" class="type-label-lg">Description</label>
+<textarea id="description" rows="4" aria-describedby="description-help description-count description-error" aria-invalid="{{descInvalid}}" class="hg-focus-field type-body-md" style="min-height: 112px; box-sizing: border-box; border: {{descBorder}}; border-radius: 12px; background: var(--control-bg); padding: 12px 16px; line-height: 1.5; color: var(--text-primary); resize: vertical">{{v.description}}</textarea>
+<div class="type-body-sm" style="display: flex; justify-content: space-between; gap: 16px; color: var(--text-secondary)">
+<span id="description-help">What customers should know about your food. 20 to 1,000 characters.</span>
+<span id="description-count" style="font-variant-numeric: tabular-nums; white-space: nowrap">{{v.count}} / 1,000</span>
+</div>
+<sc-if value="{{errors}}" hint-placeholder-val="{{false}}">
+<span id="description-error" role="alert" class="type-body-sm" style="display: flex; gap: 8px; align-items: flex-start; color: var(--feedback-danger-text)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="error" size="sm" hint-size="16px,16px"></x-import>Write at least 20 characters. You have 12.</span>
+</sc-if>
+</div>
+<sc-if value="{{fallback}}" hint-placeholder-val="{{true}}">
+<fieldset style="border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px">
+<legend class="type-label-lg" style="padding: 0 0 8px">Cuisines (choose 1 to 5)</legend>
+<div style="display: grid; grid-template-columns: {{c4}}; gap: var(--target-spacing, 8px) 16px">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Checkbox" label="Levantine" checked="{{cu.levantine}}" hint-size="100%,44px"></x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Checkbox" label="Lebanese" checked="{{cu.lebanese}}" hint-size="100%,44px"></x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Checkbox" label="Turkish" checked="{{cu.turkish}}" hint-size="100%,44px"></x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Checkbox" label="Persian" checked="{{cu.persian}}" hint-size="100%,44px"></x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Checkbox" label="Pakistani" checked="{{cu.pakistani}}" hint-size="100%,44px"></x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Checkbox" label="Afghan" checked="{{cu.afghan}}" hint-size="100%,44px"></x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Checkbox" label="Grill" checked="{{cu.grill}}" hint-size="100%,44px"></x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Checkbox" label="Bakery" checked="{{cu.bakery}}" hint-size="100%,44px"></x-import>
+</div>
+<span style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; border: 1.5px dashed var(--color-info-600); background: var(--color-info-50); color: var(--color-info-700); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">Needs API: fixed cuisine list in PublicConfig (id + label); the names above are sample rows</span>
+</fieldset>
+</sc-if>
+<sc-if value="{{picker}}" hint-placeholder-val="{{false}}">
+<div style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 4px; margin-top: 32px; display: flex; flex-direction: column; gap: 8px">
+<span aria-hidden="true" style="position: absolute; top: -32px; left: -4px; font: 500 12px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 4px 8px; border-radius: 4px; white-space: nowrap; z-index: 1">Proposed component: Multi-select</span>
+<span class="type-label-lg">Cuisines (choose 1 to 5)</span>
+<div class="type-body-md" style="min-height: 48px; box-sizing: border-box; border: 1.5px solid var(--border-interactive); border-radius: 12px; background: var(--surface-raised); padding: 8px 16px; display: flex; align-items: center; gap: 8px; color: var(--text-secondary)">Choose from the HalalGoes cuisine list</div>
+<span style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; border: 1.5px dashed var(--color-info-600); background: var(--color-info-50); color: var(--color-info-700); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">Needs API: cuisine lookup list readable by restaurants</span>
+</div>
+</sc-if>
+<div style="max-width: 400px">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Usual preparation time, in minutes" variant="numeric" required="{{yes}}" default-value="{{v.prep}}" helper-text="Between 5 and 120. Used to estimate when orders are ready." hint-size="100%,96px"></x-import>
+</div>
+</fieldset>
+</x-import>
+
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg" padding="24px" hint-size="832px,220px">
+<fieldset style="border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 16px">
+<legend class="type-heading-md" style="padding: 0; margin-bottom: 16px">Tax and time zone</legend>
+<div style="display: grid; grid-template-columns: {{c2}}; gap: 16px; align-items: start">
+<x-import id="gst" component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="GST/HST number (optional)" default-value="{{v.gst}}" helper-text="9-digit business number, RT, then 4 digits. For example 123456789RT0001." error-text="{{e.gst}}" hint-size="100%,112px"></x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Select" label="Time zone" required="{{yes}}" options="{{zones}}" value="America/Toronto" helper-text="Order times and opening hours use this time zone." hint-size="100%,96px"></x-import>
+</div>
+</fieldset>
+</x-import>
+
+<div style="display: flex; align-items: center; gap: 16px; padding-top: 8px; flex-wrap: wrap">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" loading="{{saving}}" icon-end="chevron-right" type="submit" hint-size="220px,52px">Save and continue</x-import>
+<sc-if value="{{returning}}" hint-placeholder-val="{{false}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="secondary" size="lg" hint-size="160px,52px">Finish later</x-import></sc-if>
+<span class="type-body-sm" style="color: var(--text-secondary); line-height: 1.5; max-width: 440px">{{footNote}}</span>
+</div>
+<sc-if value="{{returning}}" hint-placeholder-val="{{false}}"><span style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; border: 1.5px dashed var(--color-info-600); background: var(--color-info-50); color: var(--color-info-700); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">Needs API: partial profile draft save, so a half-finished profile follows the owner to another device (submitRestaurantProfile needs every field)</span></sc-if>
+</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"mode": {"editor": "enum", "options": ["empty", "saving", "errors", "returning", "conflict", "saveerror", "loading", "loaderror", "session", "pinplaced", "pinwrong", "pinmoved", "picker"], "default": "empty"}, "w": {"editor": "text", "default": "832px"}, "compact": {"editor": "boolean", "default": false}, "$preview": {"width": 832, "height": 2360}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const mode = this.props.mode ?? 'empty';
+    const errors = mode === 'errors';
+    const picker = mode === 'picker';
+    const full = {
+      display: 'Zaytoun Grill', legal: 'Zaytoun Grill Inc.', first: 'Samir', last: 'Haddad',
+      phone: errors ? '+44 20 7946 0958' : '(416) 555-0182', publicPhone: '(416) 555-0183',
+      line1: '2872 Eglinton Ave E', line2: 'Unit 4', city: 'Toronto', postal: errors ? 'H2X 1Y4' : 'M1J 2E1',
+      description: errors ? 'Great food.' : 'Family-run Levantine grill. Charcoal shawarma, fresh falafel and bread baked through the day.',
+      count: errors ? '12' : '96', prep: '20', gst: errors ? '12345678' : '123456789RT0001',
+      pin: 'Pin placed by you at 43.7309, -79.2641.',
+      pinFallback: 'No pin yet. When you save, HalalGoes places your pin from this address and shows you where it went.'
+    };
+    const empty = { display: 'Zaytoun Grill', legal: '', first: '', last: '', phone: '', publicPhone: '', line1: '', line2: '', city: '', postal: '', description: '', count: '0', prep: '', gst: '',
+      pin: 'No pin yet. Search your address, then drag the pin onto your entrance.', pinFallback: full.pinFallback };
+    const partial = Object.assign({}, empty, { legal: 'Zaytoun Grill Inc.', first: 'Samir', last: 'Haddad', phone: '(416) 555-0182', line1: '2872 Eglinton Ave E', line2: 'Unit 4', city: 'Toronto', postal: 'M1J 2E1' });
+    const v = (mode === 'empty' || picker) ? empty : (mode === 'returning' ? partial : full);
+    const e = {
+      phone: errors ? 'Enter a Canadian phone number. HalalGoes works with +1 numbers only.' : null,
+      postal: errors ? 'This address is outside the area HalalGoes serves. We’re in Ontario at launch.' : null,
+      gst: errors ? 'This isn’t a GST/HST number. It should look like 123456789RT0001.' : null
+    };
+    const on = mode !== 'empty' && mode !== 'returning';
+    const cu = { levantine: on, lebanese: on, turkish: false, persian: false, pakistani: false, afghan: false, grill: on, bakery: false };
+    return {
+      yes: true, w: this.props.w ?? '832px', c2: this.props.compact ? 'minmax(0, 1fr)' : 'repeat(2, minmax(0, 1fr))', c3: this.props.compact ? 'minmax(0, 1fr)' : 'repeat(3, minmax(0, 1fr))', c4: this.props.compact ? 'repeat(2, minmax(0, 1fr))' : 'repeat(4, minmax(0, 1fr))', h: ['pinplaced', 'pinwrong', 'pinmoved'].includes(mode) ? '2860px' : '2360px', saving: mode === 'saving', errors, returning: mode === 'returning', conflict: mode === 'conflict',
+      saveError: mode === 'saveerror', loading: mode === 'loading', loadError: mode === 'loaderror', pinAny: ['pinplaced', 'pinwrong', 'pinmoved'].includes(mode), pinCheck: mode === 'pinplaced', pinWrong: mode === 'pinwrong', pinMoved: mode === 'pinmoved',
+      pinIcon: mode === 'pinwrong' ? 'info' : 'check',
+      pinTitle: mode === 'pinmoved' ? 'Your pin was moved' : (mode === 'pinwrong' ? 'Profile saved. Let’s fix your pin' : 'Profile saved'),
+      pinText: mode === 'pinmoved' ? 'Check it is on your entrance now. If it still isn’t, call partner support again.' : (mode === 'pinwrong' ? 'Riders use the pin to find your door, so it needs to be on your entrance.' : 'Check the pin is on your entrance. If it isn’t, call partner support to move it before your first order.'),
+      pinLatLng: mode === 'pinmoved' ? '43.7314, -79.2633' : '43.7309, -79.2641',
+      showForm: mode !== 'loading' && mode !== 'loaderror' && !['pinplaced', 'pinwrong', 'pinmoved'].includes(mode), showBlocker: mode === 'empty',
+      fallback: !picker, picker, cu,
+      showReason: ['empty', 'saving', 'returning', 'loading'].includes(mode),
+      v, e, descInvalid: errors ? 'true' : 'false',
+      descBorder: errors ? '2px solid ' + 'var(--feedback-danger-border)' : '1.5px solid var(--control-border)',
+      footNote: mode === 'returning' ? 'Finish later keeps what you typed on this device only.' : 'You can change most of these later in Settings. Changes to your legal name, address or GST/HST number are checked by a reviewer first.',
+      provinces: [{ value: 'ON', label: 'Ontario' }],
+      zones: [{ value: 'America/Toronto', label: 'Eastern Time (Toronto)' }]
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Staff, read-only</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.skip-link{position:absolute;left:var(--space-4);top:-120px;z-index:60;display:inline-flex;align-items:center;min-height:44px;padding:0 var(--space-4);border-radius:var(--radius-sm);background:var(--surface-raised);color:var(--text-primary);font-family:var(--font-ui);font-size:var(--type-body-md-size);font-weight:600;text-decoration:none}
+.skip-link:focus,.skip-link[data-shown]{top:12px;outline:2px solid transparent;box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+.skip-link+.skip-link:focus{top:64px}
+.collapsible-trigger{display:flex;align-items:center;gap:var(--space-3);width:100%;box-sizing:border-box;min-height:44px;border:0;background:transparent;color:inherit;font-family:inherit;text-align:start;cursor:pointer;outline:2px solid transparent;border-radius:var(--radius-md)}
+.collapsible-trigger:focus-visible{box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+.collapsible-chevron{margin-left:auto;display:inline-flex;color:var(--text-secondary);transition:transform var(--duration-fast)}
+.collapsible-trigger[aria-expanded="true"] .collapsible-chevron{transform:rotate(180deg)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+</style>
+</helmet>
+<div data-theme="light" data-density="compact" style="width: 1440px; height: 900px; position: relative; overflow: hidden; display: grid; grid-template-columns: 264px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+<a class="skip-link" href="#main">Skip to main content</a>
+<a class="skip-link" href="#staff-table">Skip to table</a>
+<div style="background: var(--surface-chrome)">
+<dc-import name="AdminSidebar" active="staff" viewer="admin" has-new="{{no}}" counts="live" wn-expanded="{{no}}" focus-demo="none" hint-size="264px,900px"></dc-import>
+</div>
+<div style="display: flex; flex-direction: column; min-width: 0; min-height: 0">
+
+<main id="main" tabindex="-1" style="flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; outline: none">
+
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" role="none" tone="raised" sticky="{{yes}}" title="Staff" subtitle="7 staff accounts" ></x-import>
+<div style="padding: var(--space-1) var(--space-6) 0"><span style="font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary)">Component gap: AppBar needs a role prop; role="none" here so main holds no nested banner. The h1 title stays.</span></div>
+<div style="flex: 1; min-height: 0; padding: var(--space-5) var(--space-6); display: flex; flex-direction: column; gap: var(--space-4); min-width: 0">
+<div data-slot="alert" style="display: flex; align-items: center; gap: var(--space-3); min-height: 44px; padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4); border-radius: var(--radius-md); border: 1px solid var(--feedback-info-border); background: var(--feedback-info-tint); color: var(--feedback-info-tint-text)">
+<span style="display: inline-flex; color: var(--feedback-info-icon)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="lock" size="md"></x-import></span>
+<div style="margin: 0; flex-grow: 1; font-size: var(--type-body-md-size); line-height: 1.45">You can view staff accounts. Only a super admin can invite staff: Aminah Rahman or Sana Qureshi.</div>
+<span style="font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary)">Names: ACTIVE super admins from the loaded list, shown only when has_more=false. Otherwise the line ends at "invite staff."</span>
+<span style="font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary)">Proposed component: Banner (shadcn Alert + design system Icon/Button)</span>
+
+</div>
+<span style="font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary)">Component gap: LyteNyte Grid cells — StatusCell (Role, Status). Drawn with DataTable until they exist. Row: one tab stop; Enter or click opens the account.</span>
+<div style="flex: 1 1 auto; min-height: 0; overflow: auto; display: flex; flex-direction: column">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.DataTable" id="staff-table" caption="Staff accounts" density="compact" sticky-header="{{yes}}" rows="{{rows}}" columns="{{cols}}" get-row-id="{{rowId}}" row-label="{{rowLabel}}" on-row-activate="{{noop}}" status="ready" ></x-import>
+</div>
+<span style="font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary)">Scrolls inside its own region (LyteNyte Grid virtualises the rows); the page stays still.</span>
+<section aria-labelledby="status-key" style="display: flex; flex-direction: column; gap: 6px">
+<h2 id="status-key" style="margin: 0; font-size: var(--type-body-md-size); font-weight: 600">What the statuses mean</h2>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-6); font-size: var(--type-body-sm-size); line-height: 1.5; color: var(--text-secondary)">
+<p style="margin: 0"><strong style="color: var(--text-primary); font-weight: 600">Invited:</strong> hasn't accepted yet. The link works for 72 hours.</p>
+<p style="margin: 0"><strong style="color: var(--text-primary); font-weight: 600">Suspended:</strong> can't sign in. Restoring an account isn't in the console yet.</p>
+<p style="margin: 0"><strong style="color: var(--text-primary); font-weight: 600">Deactivated:</strong> can't sign in, and their sessions have ended.</p>
+</div>
+</section>
+<div data-state="closed" style="border: 1px solid var(--border-decorative); border-radius: var(--radius-md); background: var(--surface-raised)">
+<button type="button" class="collapsible-trigger" aria-expanded="false" aria-controls="roles-panel" style="padding: 0 var(--space-4); font-size: var(--type-heading-sm-size); font-weight: 600">What each role can do<span class="collapsible-chevron" aria-hidden="true"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="chevron-down" size="md"></x-import></span></button>
+<div style="padding: 0 var(--space-4) var(--space-2)"><span style="font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary)">Proposed component: Disclosure (shadcn Collapsible: the trigger is a real button with aria-expanded and aria-controls; the chevron turns when open). Closed by default so the list keeps the height; the page never scrolls.</span></div>
+<div id="roles-panel" hidden="" style="display: none; flex-direction: column; gap: var(--space-3); padding: 0 var(--space-4) var(--space-4)">
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-6)">
+<div style="display: flex; flex-direction: column; gap: var(--space-1)">
+<h3 style="margin: 0; font-size: var(--type-body-md-size); font-weight: 600">Support agent</h3>
+<p style="margin: 0; font-size: var(--type-body-sm-size); line-height: 1.5; color: var(--text-secondary)">Reads queues and orders with personal details masked. Cancels an order only before the restaurant accepts. Refunds up to a set daily limit. No review decisions and no staff list.</p>
+</div>
+<div style="display: flex; flex-direction: column; gap: var(--space-1)">
+<h3 style="margin: 0; font-size: var(--type-body-md-size); font-weight: 600">Admin (your role)</h3>
+<p style="margin: 0; font-size: var(--type-body-sm-size); line-height: 1.5; color: var(--text-secondary)">Makes review decisions: documents, halal certificate checks, restaurant and rider applications. A menu item an admin adds for a restaurant is approved as it is created, and recorded in the audit log. Cancels an order at any stage; after the restaurant accepts, linking a support case is optional. Refunds up to a set daily limit. Sees names, roles and status in this list.</p>
+</div>
+<div style="display: flex; flex-direction: column; gap: var(--space-1)">
+<h3 style="margin: 0; font-size: var(--type-body-md-size); font-weight: 600">Super admin</h3>
+<p style="margin: 0; font-size: var(--type-body-sm-size); line-height: 1.5; color: var(--text-secondary)">Everything an admin can do, plus inviting staff, removing a leaver's access, resetting a colleague's two-step sign-in after confirming who they are, changing an issuing body's status, and revoking a certificate. The platform must keep at least two active super admins.</p>
+</div>
+</div>
+<p style="margin: 0; font-size: var(--type-body-sm-size); color: var(--text-secondary)">Main differences shown; the full list is set by the platform and can't be edited. Any goodwill refund above CAD 50.00 needs a second admin to approve it, whoever sends it. Changing someone's role isn't in the console yet. Nobody can change their own role or approve their own refund.</p>
+
+<span style="font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary)">Needs API: GET /admin/me/permissions, so this card can be generated from permissions</span>
+</div>
+</div>
+</div>
+</main>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const DS = window.HalalGoesDesignSystem_d11a47 || {};
+    const h = window.React.createElement;
+    const muted = function (t) { return h('span', { style: { color: 'var(--text-secondary)' } }, t); };
+    const fullDate = function (iso) { var d = new Date(iso); if (isNaN(d.getTime())) return iso; return iso.length > 10 ? d.toLocaleString('en-CA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/Toronto', timeZoneName: 'short' }) : d.toLocaleDateString('en-CA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }); };
+    const at = function (iso, label) { return h('time', { dateTime: iso, title: fullDate(iso) }, label); };
+    const tag = function (t) { return h('span', { style: { fontSize: 'var(--type-mono-sm-size)', lineHeight: 1.4, fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' } }, t); };
+    let v = {};
+
+    const ROLE = { SUPPORT_AGENT: 'Support agent', ADMIN: 'Admin', SUPER_ADMIN: 'Super admin' };
+    const STATUS = { ACTIVE: ['outline', 'Active', 'check'], INVITED: ['info', 'Invited', 'clock'], SUSPENDED: ['warning', 'Suspended', 'lock'], DEACTIVATED: ['neutral', 'Deactivated', 'close'] };
+    const staffRows = [
+      { id: 's1', full_name: 'Aminah Rahman', email: 'aminah.rahman@halalgoes.ca', role: 'SUPER_ADMIN', status: 'ACTIVE', mfa: true, lastIso: '2026-09-28T08:02:00-04:00', last: '28 Sep, 8:02 am', createdIso: '2026-06-02', created: '2 Jun', you: true },
+      { id: 's2', full_name: 'Sana Qureshi', email: 'sana.qureshi@halalgoes.ca', role: 'SUPER_ADMIN', status: 'ACTIVE', mfa: true, lastIso: '2026-09-27T17:40:00-04:00', last: '27 Sep, 5:40 pm', createdIso: '2026-06-02', created: '2 Jun' },
+      { id: 's3', full_name: 'Maryam Khan', email: 'maryam.khan@halalgoes.ca', role: 'ADMIN', status: 'ACTIVE', mfa: true, lastIso: '2026-09-28T09:10:00-04:00', last: '28 Sep, 9:10 am', createdIso: '2026-07-15', created: '15 Jul' },
+      { id: 's4', full_name: 'Yusuf Ali', email: 'yusuf.ali@halalgoes.ca', role: 'ADMIN', status: 'ACTIVE', mfa: true, lastIso: '2026-09-19T11:25:00-04:00', last: '19 Sep, 11:25 am', createdIso: '2026-07-15', created: '15 Jul' },
+      { id: 's5', full_name: 'Idris Okafor', email: 'idris.okafor@halalgoes.ca', role: 'SUPPORT_AGENT', status: 'INVITED', mfa: false, last: null, createdIso: '2026-09-26', created: '26 Sep' },
+      { id: 's6', full_name: 'Bilal Chaudhry', email: 'bilal.chaudhry@halalgoes.ca', role: 'SUPPORT_AGENT', status: 'SUSPENDED', mfa: true, lastIso: '2026-09-03T14:02:00-04:00', last: '3 Sep, 2:02 pm', createdIso: '2026-08-01', created: '1 Aug' },
+      { id: 's7', full_name: 'Hana Siddiqui', email: 'hana.siddiqui@halalgoes.ca', role: 'ADMIN', status: 'DEACTIVATED', mfa: true, lastIso: '2026-08-30T16:45:00-04:00', last: '30 Aug, 4:45 pm', createdIso: '2026-07-15', created: '15 Jul' }
+    ];
+    const roleCell = function (r) { return ROLE[r.role] || h('span', { style: { display: 'inline-flex', gap: 6, alignItems: 'baseline' } }, muted('Unrecognised role'), h('span', { style: { fontFamily: 'var(--font-mono)' } }, r.role)); };
+    const statusCell = function (r) {
+      if (r.inviteExpired) return h('span', { style: { display: 'inline-flex', gap: 'var(--space-2)', alignItems: 'center', flexWrap: 'wrap' } }, h(DS.Badge, { variant: 'warning', size: 'md', icon: 'clock' }, 'Invite link expired'), tag('Needs API: StaffUser.invitation_expires_at'));
+      const s = STATUS[r.status] || ['neutral', r.status, null];
+      const b = h(DS.Badge, { variant: s[0], size: 'md', icon: s[2] || undefined }, s[1]);
+      if (r.note === 'auto') return h('span', { style: { display: 'inline-flex', gap: 'var(--space-2)', alignItems: 'center' } }, b, muted('· invite never accepted'));
+      return b;
+    };
+    const mfaCell = function (r) {
+      if (r.note === 'auto') return muted('Never set up');
+      if (r.status === 'INVITED') return muted('Set up when they accept');
+      if (r.mfa) return 'Set up';
+      return h('span', { style: { display: 'inline-flex', gap: 'var(--space-2)', alignItems: 'center', flexWrap: 'wrap' } }, h(DS.Badge, { variant: 'warning', size: 'md', icon: 'warning' }, 'Not set up'), muted('Active accounts must have two-step sign-in. Tell the platform on-call engineer to check this account.'));
+    };
+    const plainName = function (r) { return h('span', { style: { display: 'inline-flex', gap: 'var(--space-2)', alignItems: 'center' } }, h('span', { style: { fontWeight: 600 } }, r.full_name), r.you ? h(DS.Badge, { variant: 'outline', size: 'sm' }, 'You') : null); };
+    const nameCell = plainName;
+    const staffCols = [
+      { key: 'full_name', label: 'Name', render: nameCell },
+      { key: 'email', label: 'Email', mono: true },
+      { key: 'role', label: 'Role', render: roleCell },
+      { key: 'status', label: 'Status', render: statusCell },
+      { key: 'mfa', label: 'Two-step sign-in', render: mfaCell },
+      { key: 'last', label: 'Last sign-in', render: function (r) { return r.last ? at(r.lastIso, r.last) : muted('Never'); } },
+      { key: 'created', label: 'Added', render: function (r) { return at(r.createdIso, r.created); } }
+    ];
+    const staffCols3 = [
+      { key: 'full_name', label: 'Name', render: plainName },
+      { key: 'role', label: 'Role', render: roleCell },
+      { key: 'status', label: 'Status', render: statusCell }
+    ];
+    const staffColsBare = staffCols.map(function (c) { return { key: c.key, label: c.label, mono: c.mono }; });
+    const staffColsBare3 = staffCols3.map(function (c) { return { key: c.key, label: c.label }; });
+    const rowId = function (r) { return r.id; };
+    const rowLabel = function (r) { return r.full_name; };
+    v = { rows: staffRows.map(function (r) { return Object.assign({}, r, { you: r.id === 's3' }); }), cols: staffCols3, rowId: rowId, rowLabel: rowLabel };
+    return Object.assign({ yes: true, no: false, nothing: null, noop: function () {} }, v);
+  }
+}
+</script>
+</body>
+</html>

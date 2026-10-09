@@ -1,0 +1,608 @@
+{
+ "v": 3,
+ "attachments": {},
+ "boards": {
+  "AccountTabResume.dc.html": {
+   "h": 844,
+   "title": "Account tab — resume strip while on a delivery",
+   "w": 390,
+   "x": 11690,
+   "y": 0
+  },
+  "BlockingReasonsCopy.dc.html": {
+   "h": 844,
+   "title": "Blocking reasons — copy and fix for all 9",
+   "w": 800,
+   "x": 1410,
+   "y": 0
+  },
+  "EarningsTabResume.dc.html": {
+   "h": 844,
+   "title": "Earnings tab — resume strip while on a delivery",
+   "w": 390,
+   "x": 11220,
+   "y": 0
+  },
+  "ForcedOfflineOnDelivery.dc.html": {
+   "h": 844,
+   "title": "Set offline while on a delivery",
+   "w": 390,
+   "x": 13570,
+   "y": 0
+  },
+  "HomeBlocked.dc.html": {
+   "h": 844,
+   "title": "Home — can't go online yet",
+   "w": 390,
+   "x": 940,
+   "y": 0
+  },
+  "HomeCapWarning.dc.html": {
+   "h": 844,
+   "title": "Alternative (Needs API) — 11 hours online warning",
+   "w": 390,
+   "x": 6990,
+   "y": 0
+  },
+  "HomeDegraded.dc.html": {
+   "h": 844,
+   "title": "Home — weak tracking",
+   "w": 390,
+   "x": 3700,
+   "y": 0
+  },
+  "HomeError.dc.html": {
+   "h": 844,
+   "title": "Home — couldn't load",
+   "w": 390,
+   "x": 6050,
+   "y": 0
+  },
+  "HomeGoOfflineAfter.dc.html": {
+   "h": 844,
+   "title": "Home — go offline after this delivery",
+   "w": 390,
+   "x": 5110,
+   "y": 0
+  },
+  "HomeGoOfflineRefused.dc.html": {
+   "h": 844,
+   "title": "Go offline refused while on a delivery (409)",
+   "w": 390,
+   "x": 14510,
+   "y": 0
+  },
+  "HomeGoingOffline.dc.html": {
+   "h": 844,
+   "title": "Home — going offline (sending)",
+   "w": 390,
+   "x": 10280,
+   "y": 0
+  },
+  "HomeGoingOnline.dc.html": {
+   "h": 844,
+   "title": "Home — going online",
+   "w": 390,
+   "x": 470,
+   "y": 0
+  },
+  "HomeLoading.dc.html": {
+   "h": 844,
+   "title": "Home — loading",
+   "w": 390,
+   "x": 5580,
+   "y": 0
+  },
+  "HomeLost.dc.html": {
+   "h": 844,
+   "title": "Home — tracking lost",
+   "w": 390,
+   "x": 4170,
+   "y": 0
+  },
+  "HomeNoConnection.dc.html": {
+   "h": 844,
+   "title": "Home — no connection",
+   "w": 390,
+   "x": 6520,
+   "y": 0
+  },
+  "HomeNotificationsOff.dc.html": {
+   "h": 844,
+   "title": "Home — notifications turned off mid-shift",
+   "w": 390,
+   "x": 15920,
+   "y": 0
+  },
+  "HomeOfflineFailed.dc.html": {
+   "h": 844,
+   "title": "Home — going offline failed",
+   "w": 390,
+   "x": 10750,
+   "y": 0
+  },
+  "HomeOnDelivery.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Home — on a delivery",
+   "w": 390,
+   "x": 4640,
+   "y": 0
+  },
+  "HomeOnDeliveryDropoff.dc.html": {
+   "h": 844,
+   "title": "Home — on a delivery, drop-off leg",
+   "w": 390,
+   "x": 14980,
+   "y": 0
+  },
+  "HomeOnlineFailed.dc.html": {
+   "h": 844,
+   "title": "Home — going online failed (network / 5xx)",
+   "w": 390,
+   "x": 9810,
+   "y": 0
+  },
+  "HomePayoutsPaused.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Home — payouts paused by Stripe, still online",
+   "w": 390,
+   "x": 2760,
+   "y": 0
+  },
+  "HomePermissionRevoked.dc.html": {
+   "h": 844,
+   "title": "Home — location permission turned off",
+   "w": 390,
+   "x": 8870,
+   "y": 0
+  },
+  "HomeStale.dc.html": {
+   "h": 844,
+   "title": "Home — location not reaching us",
+   "w": 390,
+   "x": 3230,
+   "y": 0
+  },
+  "HomeTodayEmpty.dc.html": {
+   "h": 844,
+   "title": "Home — first shift, nothing earned yet",
+   "w": 390,
+   "x": 12160,
+   "y": 0
+  },
+  "HomeWaiting.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Home — waiting for offers",
+   "w": 390,
+   "x": 2290,
+   "y": 0
+  },
+  "HomeWaitingLight.dc.html": {
+   "h": 844,
+   "title": "Home — waiting (light theme)",
+   "w": 390,
+   "x": 9340,
+   "y": 0
+  },
+  "Main.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Home — offline",
+   "w": 390,
+   "x": 0,
+   "y": 0
+  },
+  "OfferAcceptExpired.dc.html": {
+   "h": 844,
+   "title": "Offer — accept reached us after it expired (409)",
+   "w": 390,
+   "x": 7960,
+   "y": 1400
+  },
+  "OfferAcceptRetry.dc.html": {
+   "h": 844,
+   "title": "Offer — accept didn't reach us",
+   "w": 390,
+   "x": 2350,
+   "y": 1400
+  },
+  "OfferAccepted.dc.html": {
+   "h": 844,
+   "title": "Offer — accepted",
+   "w": 390,
+   "x": 7490,
+   "y": 1400
+  },
+  "OfferAccepting.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Offer — accepting",
+   "w": 390,
+   "x": 1880,
+   "y": 1400
+  },
+  "OfferBreakdownPartial.dc.html": {
+   "h": 844,
+   "title": "Offer — breakdown fields missing (rows hidden)",
+   "w": 390,
+   "x": 9370,
+   "y": 1400
+  },
+  "OfferConnectionLost.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Offer — connection lost before Accept",
+   "w": 390,
+   "x": 12190,
+   "y": 1400
+  },
+  "OfferCritical.dc.html": {
+   "h": 844,
+   "title": "Offer — under 10% left",
+   "w": 390,
+   "x": 1410,
+   "y": 1400
+  },
+  "OfferCriticalLight.dc.html": {
+   "h": 844,
+   "title": "Offer — under 10% left (light theme)",
+   "w": 390,
+   "x": 11720,
+   "y": 1400
+  },
+  "OfferDecline.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Offer — tap a reason to decline",
+   "w": 390,
+   "x": 2820,
+   "y": 1400
+  },
+  "OfferDeclineFailed.dc.html": {
+   "h": 844,
+   "title": "Offer — decline did not reach us",
+   "w": 390,
+   "x": 8900,
+   "y": 1400
+  },
+  "OfferDeclineLargeText.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Offer — decline at 200% text (fit check)",
+   "w": 390,
+   "x": 13600,
+   "y": 1400
+  },
+  "OfferDeclineOther.dc.html": {
+   "h": 844,
+   "title": "Alternative (Needs API) — decline with a typed reason",
+   "w": 390,
+   "x": 3290,
+   "y": 1400
+  },
+  "OfferDeclineSmall.dc.html": {
+   "h": 640,
+   "is_interactive": true,
+   "title": "Offer — decline at 360 × 640 (fit check)",
+   "w": 360,
+   "x": 14070,
+   "y": 1400
+  },
+  "OfferDeclining.dc.html": {
+   "h": 844,
+   "title": "Offer — declining (sending)",
+   "w": 390,
+   "x": 8430,
+   "y": 1400
+  },
+  "OfferEarningsLoading.dc.html": {
+   "h": 844,
+   "title": "Offer — breakdown still loading",
+   "w": 390,
+   "x": 470,
+   "y": 1400
+  },
+  "OfferExpired.dc.html": {
+   "h": 844,
+   "title": "Offer — expired",
+   "w": 390,
+   "x": 4230,
+   "y": 1400
+  },
+  "OfferFocusOrder.dc.html": {
+   "h": 844,
+   "title": "Offer — focus order and focus ring",
+   "w": 390,
+   "x": 9840,
+   "y": 1400
+  },
+  "OfferLargeText.dc.html": {
+   "h": 844,
+   "title": "Offer — text at 200%",
+   "w": 390,
+   "x": 5640,
+   "y": 1400
+  },
+  "OfferLight.dc.html": {
+   "h": 844,
+   "title": "Offer — light theme",
+   "w": 390,
+   "x": 6550,
+   "y": 1400
+  },
+  "OfferLive.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Offer — new offer",
+   "w": 390,
+   "x": 0,
+   "y": 1400
+  },
+  "OfferLoadFailed.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Offer — couldn't load",
+   "w": 390,
+   "x": 12660,
+   "y": 1400
+  },
+  "OfferLockScreen.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Offer — phone locked or app in background (generic, no payload)",
+   "w": 390,
+   "x": 7020,
+   "y": 1400
+  },
+  "OfferLockScreenLate.dc.html": {
+   "h": 844,
+   "title": "Offer — opened from the lock screen after it expired",
+   "w": 390,
+   "x": 10780,
+   "y": 1400
+  },
+  "OfferNotAvailable.dc.html": {
+   "h": 844,
+   "title": "Offer — you're no longer available",
+   "w": 390,
+   "x": 5170,
+   "y": 1400
+  },
+  "OfferReplacesResult.dc.html": {
+   "h": 844,
+   "title": "Offer — next offer arrives over an Expired, Taken or Withdrawn result",
+   "w": 390,
+   "x": 10310,
+   "y": 1400
+  },
+  "OfferSmall.dc.html": {
+   "h": 640,
+   "title": "Offer — 360 × 640 fit check",
+   "w": 360,
+   "x": 6110,
+   "y": 1400
+  },
+  "OfferTaken.dc.html": {
+   "h": 844,
+   "title": "Offer — another rider took it",
+   "w": 390,
+   "x": 3760,
+   "y": 1400
+  },
+  "OfferTipHidden.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Offer — no tip yet (current contract, row hidden)",
+   "w": 390,
+   "x": 13130,
+   "y": 1400
+  },
+  "OfferUrgent.dc.html": {
+   "h": 844,
+   "title": "Offer — under 25% left",
+   "w": 390,
+   "x": 940,
+   "y": 1400
+  },
+  "OfferUrgentLight.dc.html": {
+   "h": 844,
+   "title": "Offer — under 25% left (light theme)",
+   "w": 390,
+   "x": 11250,
+   "y": 1400
+  },
+  "OfferWithdrawn.dc.html": {
+   "h": 844,
+   "title": "Offer — withdrawn, order cancelled",
+   "w": 390,
+   "x": 4700,
+   "y": 1400
+  },
+  "OfflineCap.dc.html": {
+   "h": 844,
+   "title": "Set offline — 12-hour limit",
+   "w": 390,
+   "x": 7930,
+   "y": 0
+  },
+  "OfflineDocExpired.dc.html": {
+   "h": 844,
+   "title": "Set offline — document expired",
+   "w": 390,
+   "x": 8400,
+   "y": 0
+  },
+  "OfflineNoReason.dc.html": {
+   "h": 844,
+   "title": "Set offline — reason not given (current contract)",
+   "w": 390,
+   "x": 12630,
+   "y": 0
+  },
+  "OfflineUnresponsive.dc.html": {
+   "h": 844,
+   "title": "Alternative — needs API: reason on availability_changed",
+   "w": 390,
+   "x": 7460,
+   "y": 0
+  },
+  "ResumeStripDropoff.dc.html": {
+   "h": 844,
+   "title": "Earnings tab — resume strip on the drop-off leg",
+   "w": 390,
+   "x": 15450,
+   "y": 0
+  },
+  "SuspendedMidShift.dc.html": {
+   "h": 844,
+   "title": "Account suspended while online (ACCOUNT_NOT_ACTIVE)",
+   "w": 390,
+   "x": 13100,
+   "y": 0
+  },
+  "SuspendedOnDelivery.dc.html": {
+   "h": 844,
+   "title": "Account suspended while on a delivery",
+   "w": 390,
+   "x": 14040,
+   "y": 0
+  }
+ },
+ "createdOnFiles": {
+  "at": "2026-09-28T01:04:56Z",
+  "v": 1
+ },
+ "designSystems": [
+  {
+   "artifact": "https://claude.ai/artifact/1GwGVZz8Ju9wcz4HfCnzbv",
+   "copiedAt": "2026-09-28T20:30:00Z",
+   "namespace": "halalgoesdesignsystem-d11a47",
+   "title": "HalalGoes design system",
+   "version": "1790605103-3266"
+  }
+ ],
+ "launch": {
+  "view": "canvas"
+ },
+ "notes": {
+  "n_home": {
+   "fill": "gray",
+   "maxH": 844,
+   "text": "Home and shift — behaviour\n\n• Mode comes only from GET /v1/riders/me/dashboard `mode`. The control never flips until PUT /v1/riders/me/availability answers.\n• Go online sends a real position fix. 422 CANNOT_GO_ONLINE lists details.blocking_reasons[]; each gets its own row and fix (see the 9-reason card).\n• 403: ONBOARDING_INCOMPLETE / ACCOUNT_NOT_ACTIVE / PAYOUT_ACCOUNT_INCOMPLETE use the same rows.\n• 409 ACTIVE_DELIVERY_IN_PROGRESS → offer go_offline_after_delivery: true (contract field on RiderAvailabilityInput).\n• ONLINE_IDLE is a working state, not an empty state.\n• 'Online since' is not shown: the dashboard does not return `since`. Today's figures are today.gross_cents / trips / online_seconds as returned.\n• Banners are persistent (Proposed component: InlineAlert), never toasts. None is red.\n• Server-forced offline arrives as rider.availability_changed, which carries no reason: the current-contract screen is OfflineNoReason ('HalalGoes set you offline', Go online shows any 422 blocking_reasons). OfflineCap and OfflineDocExpired follow dashboard.blocking_reasons. OfflineUnresponsive is the Needs API alternative.\n• 'Online' means shift status only; the network is always 'internet connection'.\n• Low battery (client-side): 'Power saving: tracking less often' uses the same banner.\n• Sound/haptics: availability change confirmed = single haptic; queued = light warning haptic.\n• Going online / offline: the control never flips while PUT availability is in flight; network or 5xx failures are drawn apart from 422 blockers (HomeOnlineFailed, HomeGoingOffline, HomeOfflineFailed).\n• Offers reach a locked phone (full-screen intent / time-sensitive push), so the copy says the phone can be locked.\n• Icon gap: wallet (Solar). The Earnings tab uses 'orders' as a labelled stand-in.\n• Design system re-synced (Sep 28) to the design system's own tokens.css (1790605103-3266); no local overrides. Secondary text on rider screens uses text-secondary-field; plain text-secondary stays only on mono annotation tags.\n• Map pins (owner decision): the map-pin tokens, a lighter step with a light outline in dark mode. tokens.css has no dark-mode pin values yet, so the boards draw the light fills with a text-primary outline.\n• Theme follows the phone (owner decision): every rider board has a light and a dark theme (Tweaks: theme); the light boards are the light theme, not only a sunlight test.\n• Payouts paused by Stripe after setup (owner decision): offers keep coming and earnings accrue, paid on the next Monday payout once Stripe is fixed; a slate banner lists Stripe's requirements as plain labels (HomePayoutsPaused; Needs API: plain-language labels for Stripe requirements, because the contract says they are shown verbatim). Under today's contract, going offline and back online would be blocked by PAYOUT_ACCOUNT_INCOMPLETE (Needs API: split it from a later restriction; tagged on HomePayoutsPaused and HomeBlocked).\n• Suspended or deactivated while on a delivery (owner decision): finish it, unless HalalGoes contacts you (operations may move it to another rider), and get paid for it and for everything earned; only new offers stop. A turned-down replacement document doesn't stop offers while the current one is still valid (owner decision).\n• Navigation: three tabs, Home, Earnings (with a Deliveries view) and Account (owner decision).",
+   "w": 440,
+   "x": 16390,
+   "y": 0
+  },
+  "n_offer": {
+   "fill": "orange",
+   "maxH": 844,
+   "text": "Offer — sound, haptics, focus\n\n• Arrives: repeating OFFER sound that plays in silent mode and Do Not Disturb + long repeating haptic. Never sound alone: the full-screen layer is the visual signal.\n• 25% left: single tick. 10% left: double tick + tone.\n• Accept confirmed: single haptic. Taken / withdrawn / expired: neutral tone + double pulse.\n• Focus lands on the sheet heading, which reads the whole offer once. Accept never gets initial focus. Focus trapped; Back and Escape ignored before expires_at. Countdown announces at 50/25/10/0%.\n• DS Sheet variant=full, dismissible=false (its focus trap, title and Back / Escape handling); the main action sits in the Sheet footer. Dark surface = surface-chrome until a surface-offer role exists (proposed design-system role). BottomNav hidden.\n• Arrival paths: push, dispatch.offer, GET /offers/current on foreground, socket connect and push receipt. Duplicates dropped by offer_id; an offer already past expires_at renders nothing.\n• Countdown = expires_at − server_time; the ring total is that remaining time at the first render, never a local 30 s constant. Needs API: offered_at (or window_seconds) on DispatchOffer and dispatch.offer.\n• Offer chrome: Proposed variant: Sheet tone=field (surface-chrome in dark); until it is approved the boards draw the library Sheet variant=full with its own surface, no local overrides; no ramp steps in any board; every label and body line is text-primary. Earnings: Proposed variant: Price size display-lg.\n• Busy-time extra and tip are hidden when absent or 0; never $0.00 (sc-if showTip, see OfferTipHidden).\n• Distance from the rider to the pickup is Needs API (DispatchOffer.pickup_distance_m); the map shows the rider's own position and the pickup as pins; before the rider accepts, the drop-off is only an approximate area (about 300 m, no centre point), never an exact pin. distance_m / est_duration_s labels are provisional until the contract defines them.\n• Offline during the countdown: persistent banner, Accept stays (OfferConnectionLost). Push arrived but the offer failed to load: OfferLoadFailed, no amounts from the push. The lock screen and heads-up are generic ('New delivery offer · Open to see it'): the contract defines no push payload (Needs API, OfferLockScreen).\n• A new offer replaces an Expired / Taken / Withdrawn result at once (OfferReplacesResult). Opened from the lock screen after expires_at → OfferLockScreenLate.\n• Accept sends Idempotency-Key; a retry reuses the same key.\n• Decline: one tap on a reason declines, no confirm step. Five frequent reasons first; the other seven behind 'More reasons'. 'Keep the offer' (72, critical) stays pinned beside the countdown; the decline sheet has no close X. No typed 'Something else' under the timer: OfferDeclineOther is a Needs API alternative (note optional for OTHER; an expiry during an open decline must not count toward UNRESPONSIVE). Reason rows are DS Button critical (72). 409 OFFER_EXPIRED on decline is silent.\n• Tip before accept (owner decision): the offer shows the tip so far whenever it is above 0, as the contract returns it. The no-tip-before-accept alternative is gone.\n• Accept label (owner decision): orange button with the dark label (text.onBrand on action.primary, 4.63:1). The rider 7:1 rule covers body text, not large bold button labels.\n• Order of the offer: total → distance / time / items → pickup and drop-off area → breakdown. Drop-off is an approximate area only, the neighbourhood (owner decision: approximate area before accepting, full address once accepted): 'You get the full address when you accept.' Needs API: an approximate area on DispatchOffer (it sends the street and an exact point today). Offer accepted shows the full address.\n• Breakdown rows render only when their field is present (tip also hidden at 0). Never $0.00 for a null, never derived from the total.\n• Expired, taken and withdrawn stay on screen until 'Back to waiting' or the next offer: no auto-close (WCAG 2.2.1). Focus moves to the h1; the heading is announced once.\n• 409 OFFER_EXPIRED on accept (the tap raced the expiry) is its own screen. Whether it counts toward UNRESPONSIVE is Needs API; the copy makes no promise.",
+   "w": 440,
+   "x": 14510,
+   "y": 1400
+  },
+  "n_owner": {
+   "fill": "orange",
+   "maxH": 844,
+   "text": "Open owner decisions and contract asks (this canvas)\n\n• Settled Sep 28 and applied: no tamper seals at launch (every seal screen removed; back in v1.1); tip shown before accept; the rider theme follows the phone; Accept keeps the orange button with the dark label; a Stripe payout pause never stops offers; a suspended rider finishes the current delivery, unless HalalGoes contacts them (operations may move it to another rider), and is paid; leave it at the door with a photo and a statement when the customer chose that; reversed earnings keep the original line plus a clawback line; dark-mode map pins; three tabs.\n• Undelivered food policy: Returned makes no promise of pay until decided.\n• Rider incident reporting (restaurant closed, 25-min not ready, breakdown, unwell, accident): LAUNCH BLOCKER. Under the current contract the only exit before pickup is ops reassigning.\n• Needs API: distance to pickup on DispatchOffer; food disposition after cancel / reassign; notification permission on the heartbeat; OTHER note optional on decline; PAYOUT_ACCOUNT_INCOMPLETE split from a later Stripe restriction; proof-of-delivery accepting PHOTO_WITH_ATTESTATION when PHOTO is required.\n• Design system: tokens.css has no dark-mode map-pin values yet; the Button critical label (Accept) renders at 18px semibold, below the 18.66px bold large-text size the Accept ruling relies on.\n• Settled Oct 1 and applied: approximate drop-off area before accepting, full address once accepted; payouts paused by Stripe keep a rider working only if their payouts worked before (a rider who never finished Stripe setup can't go online).",
+   "w": 440,
+   "x": 15030,
+   "y": 1400
+  },
+  "t_home": {
+   "kind": "title1",
+   "maxW": 8000,
+   "text": "1 · Home and shift — availability, waiting, forced offline",
+   "w": 240,
+   "x": 0,
+   "y": -300
+  },
+  "t_offer": {
+   "kind": "title1",
+   "maxW": 8000,
+   "text": "2 · Offer — 30 seconds, full screen, not dismissable",
+   "w": 240,
+   "x": 0,
+   "y": 1100
+  },
+  "n_moved": {
+   "x": -560,
+   "y": 0,
+   "w": 440,
+   "fill": "gray",
+   "text": "Moved to HalalGoes Rider — Delivery: https://claude.ai/artifact/Kw4bXJ1tMABt9kXFyD46VB\n\nSections moved there: 3 · Pickup leg (to the restaurant, wait, check the items); 4 · Drop-off leg (address, handover, proof); 5 · Exceptions, contact, reassignment, recovery (including Messages after the delivery ended). Links to those screens now open that canvas."
+  }
+ },
+ "order": [
+  "Main.dc.html",
+  "HomeGoingOnline.dc.html",
+  "HomeBlocked.dc.html",
+  "BlockingReasonsCopy.dc.html",
+  "HomeWaiting.dc.html",
+  "HomeStale.dc.html",
+  "HomeDegraded.dc.html",
+  "HomeLost.dc.html",
+  "HomeOnDelivery.dc.html",
+  "HomeGoOfflineAfter.dc.html",
+  "HomeLoading.dc.html",
+  "HomeError.dc.html",
+  "HomeNoConnection.dc.html",
+  "HomeCapWarning.dc.html",
+  "OfflineUnresponsive.dc.html",
+  "OfflineCap.dc.html",
+  "OfflineDocExpired.dc.html",
+  "HomePermissionRevoked.dc.html",
+  "HomeWaitingLight.dc.html",
+  "OfferLive.dc.html",
+  "OfferEarningsLoading.dc.html",
+  "OfferUrgent.dc.html",
+  "OfferCritical.dc.html",
+  "OfferAccepting.dc.html",
+  "OfferAcceptRetry.dc.html",
+  "OfferDecline.dc.html",
+  "OfferDeclineOther.dc.html",
+  "OfferTaken.dc.html",
+  "OfferExpired.dc.html",
+  "OfferWithdrawn.dc.html",
+  "OfferNotAvailable.dc.html",
+  "OfferLargeText.dc.html",
+  "OfferSmall.dc.html",
+  "OfferLight.dc.html",
+  "HomeOnlineFailed.dc.html",
+  "HomeGoingOffline.dc.html",
+  "HomeOfflineFailed.dc.html",
+  "EarningsTabResume.dc.html",
+  "AccountTabResume.dc.html",
+  "OfferLockScreen.dc.html",
+  "OfferAccepted.dc.html",
+  "OfferAcceptExpired.dc.html",
+  "OfferDeclining.dc.html",
+  "OfferDeclineFailed.dc.html",
+  "OfferBreakdownPartial.dc.html",
+  "OfferFocusOrder.dc.html",
+  "HomeTodayEmpty.dc.html",
+  "OfflineNoReason.dc.html",
+  "SuspendedMidShift.dc.html",
+  "ForcedOfflineOnDelivery.dc.html",
+  "SuspendedOnDelivery.dc.html",
+  "HomeGoOfflineRefused.dc.html",
+  "HomeOnDeliveryDropoff.dc.html",
+  "ResumeStripDropoff.dc.html",
+  "OfferReplacesResult.dc.html",
+  "OfferLockScreenLate.dc.html",
+  "OfferUrgentLight.dc.html",
+  "OfferCriticalLight.dc.html",
+  "HomeNotificationsOff.dc.html",
+  "OfferConnectionLost.dc.html",
+  "OfferLoadFailed.dc.html",
+  "OfferTipHidden.dc.html",
+  "OfferDeclineLargeText.dc.html",
+  "OfferDeclineSmall.dc.html",
+  "HomePayoutsPaused.dc.html"
+ ],
+ "pages": [],
+ "title": "HalalGoes Rider — Shift & Delivery"
+}

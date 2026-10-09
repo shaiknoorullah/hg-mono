@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Keyboard focus states</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div data-theme="{{theme}}" data-density="compact" style="width: 1440px; height: 1600px; box-sizing: border-box; display: grid; grid-template-columns: 264px minmax(0, 1fr); background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui); --ring: 0 0 0 var(--focus-offset-width) var(--focus-offset), 0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)">
+  <aside style="background: var(--surface-chrome); height: 1600px">
+    <dc-import name="AdminNav" active="orders" role="ADMIN" focus-item="disputes" disputes="4" failed="2" hint-size="264px,900px"></dc-import>
+  </aside>
+  <main style="padding: var(--space-10) var(--space-12); display: flex; flex-direction: column; gap: var(--space-6)">
+    <div style="display: flex; flex-direction: column; gap: var(--space-2); max-width: 900px">
+      <h1 style="margin: 0; font-size: var(--type-heading-xl-size); font-weight: var(--font-weight-bold); line-height: 1.25; letter-spacing: -0.01em">{{heading}}</h1>
+      <p style="margin: 0; font-size: var(--type-body-md-size); line-height: 1.5; color: var(--text-secondary)">What :focus-visible looks like on these screens, per docs/decisions/focus-indicator.md: the theme's focus colour ({{ringName}}). Borderless controls get a 2px page-coloured gap and a 3px ring. Bordered fields use their own 2px border and no ring. An invalid field keeps its danger border and gains the ring. The components draw this themselves; the rings here are depictions.</p>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-5)">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" padding="var(--space-5)" radius="lg">
+        <section aria-labelledby="f1" style="display: flex; flex-direction: column; gap: var(--space-3)">
+          <h2 id="f1" style="margin: 0; font-size: var(--type-heading-sm-size); font-weight: var(--font-weight-semibold)">1 · Skip links, first on every page</h2>
+          <div style="display: flex; gap: var(--space-4); align-items: center; padding: var(--space-3); background: var(--surface-sunken); border-radius: var(--radius-md)">
+            <span style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 var(--space-4); border-radius: var(--radius-md); background: var(--surface-raised); font-size: var(--type-label-lg-size); font-weight: var(--font-weight-semibold); box-shadow: var(--ring)">Skip to main content</span>
+            <span style="font-size: var(--type-body-sm-size); color: var(--text-secondary)">Then "Skip to table" on Orders and Disputes. Hidden until focused; appears top-left over the nav.</span>
+          </div>
+        </section>
+      </x-import>
+
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" padding="var(--space-5)" radius="lg">
+        <section aria-labelledby="f2" style="display: flex; flex-direction: column; gap: var(--space-3)">
+          <h2 id="f2" style="margin: 0; font-size: var(--type-heading-sm-size); font-weight: var(--font-weight-semibold)">2 · Grid rows: one roving tab stop</h2>
+          <div class="hg-row" style="display: flex; align-items: center; gap: var(--space-4); min-height: 44px; padding: 0 var(--space-3); border-radius: var(--radius-xs); font-size: var(--type-body-sm-size); box-shadow: inset 0 0 0 2px var(--focus-offset), inset 0 0 0 5px var(--focus-ring)">
+            <span style="font-family: var(--font-mono); font-weight: var(--font-weight-semibold)">HG-6RN4KP</span>
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="info" icon="orders" size="md">Preparing</x-import>
+            <span>Zaytoun Grill</span>
+          </div>
+          <span style="font-size: var(--type-body-sm-size); line-height: 1.45; color: var(--text-secondary)">The whole row takes the grid row's inset ring: a 2px gap in the page colour, then the ring out to 5px, drawn inside the row so its neighbours never cover it. Tab enters the table once; Arrow up and down move between rows, Home and End jump, Enter opens the order, and Tab leaves. The row's Actions button is reached from the focused row, not as its own stop.</span>
+        </section>
+      </x-import>
+
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" padding="var(--space-5)" radius="lg">
+        <section aria-labelledby="f3" style="display: flex; flex-direction: column; gap: var(--space-3); min-height: 230px">
+          <h2 id="f3" style="margin: 0; font-size: var(--type-heading-sm-size); font-weight: var(--font-weight-semibold)">3 · Row Actions menu, focused and open</h2>
+          <div style="display: flex; align-items: flex-start; gap: var(--space-4)">
+            <span style="display: inline-flex; border-radius: var(--radius-md); box-shadow: var(--ring)">
+              <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Menu" label="Actions for order HG-6RN4KP" items="{{menuItems}}" open="{{yes}}" align="start"></x-import>
+            </span>
+            <span style="font-size: var(--type-body-sm-size); line-height: 1.45; color: var(--text-secondary); max-width: 280px; margin-left: 180px">Arrow keys move inside the open menu; Escape closes it and returns focus to the trigger. Open live map appears only for Preparing, Ready for pickup, Picked up and Rider arrived.</span>
+          </div>
+        </section>
+      </x-import>
+
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" padding="var(--space-5)" radius="lg">
+        <section aria-labelledby="f4" style="display: flex; flex-direction: column; gap: var(--space-4)">
+          <h2 id="f4" style="margin: 0; font-size: var(--type-heading-sm-size); font-weight: var(--font-weight-semibold)">4 · Fields</h2>
+          <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4)">
+            <div style="display: flex; flex-direction: column; gap: var(--space-2)">
+              <span style="font-size: var(--type-label-md-size); font-weight: var(--font-weight-semibold)">Order code (focused)</span>
+              <span style="display: flex; align-items: center; height: 44px; padding: 0 var(--space-3); box-sizing: border-box; border-radius: var(--radius-md); border: var(--focus-field-border-width) solid var(--focus-ring); background: var(--surface-raised); font-size: var(--type-body-md-size); font-family: var(--font-mono)">HG-6RN</span>
+              <span style="font-size: var(--type-body-sm-size); color: var(--text-secondary)">Own border, 2px, focus colour. No ring.</span>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: var(--space-2)">
+              <span style="font-size: var(--type-label-md-size); font-weight: var(--font-weight-semibold)">Goodwill amount (invalid, focused)</span>
+              <span style="display: flex; align-items: center; height: 44px; padding: 0 var(--space-3); box-sizing: border-box; border-radius: var(--radius-md); border: 2px solid var(--feedback-danger-border); background: var(--surface-raised); font-size: var(--type-body-md-size); box-shadow: var(--ring)"></span>
+              <span style="font-size: var(--type-body-sm-size); color: var(--feedback-danger-text)">Enter dollars and cents, like 12.35.</span>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: var(--space-2); grid-column: span 2">
+              <span style="font-size: var(--type-label-md-size); font-weight: var(--font-weight-semibold)">What happened (textarea, invalid, focused)</span>
+              <span style="display: flex; align-items: flex-start; min-height: 76px; padding: var(--space-3) var(--space-3); box-sizing: border-box; border-radius: var(--radius-md); border: 2px solid var(--feedback-danger-border); background: var(--surface-raised); font-size: var(--type-body-md-size); box-shadow: var(--ring)">Late</span>
+              <span style="font-size: var(--type-body-sm-size); color: var(--feedback-danger-text)">Write at least 10 characters about what happened.</span>
+            </div>
+          </div>
+          <span style="font-size: var(--type-body-sm-size); color: var(--text-secondary)">Resting fields: 1px border-interactive, radius md, on surface-raised. A focused valid textarea swaps to a 2px focus-colour border, like the Order code field. The Input, Select and Textarea components own these states.</span>
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="outline" size="sm" style="align-self: flex-start">Proposed component: Textarea with counter</x-import>
+        </section>
+      </x-import>
+
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" padding="var(--space-5)" radius="lg">
+        <section aria-labelledby="f5" style="display: flex; flex-direction: column; gap: var(--space-3)">
+          <h2 id="f5" style="margin: 0; font-size: var(--type-heading-sm-size); font-weight: var(--font-weight-semibold)">5 · Buttons</h2>
+          <div style="display: flex; gap: var(--space-5); align-items: center">
+            <span style="display: inline-flex; border-radius: var(--radius-md); box-shadow: var(--ring)">
+              <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md">Issue a new refund</x-import>
+            </span>
+            <span style="font-size: var(--type-body-sm-size); line-height: 1.45; color: var(--text-secondary)">{{buttonCaption}}</span>
+          </div>
+          <div style="display: flex; gap: var(--space-5); align-items: center">
+            <span class="hg-on-accent" style="display: inline-flex; padding: var(--space-3) var(--space-3); border-radius: var(--radius-md); background: var(--surface-chrome)">
+              <span style="display: inline-flex; border-radius: var(--radius-md); box-shadow: 0 0 0 2px var(--hg-ring-offset), 0 0 0 5px var(--hg-ring)">
+                <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="md" style="color: var(--text-on-accent)">Sign out</x-import>
+              </span>
+            </span>
+            <span style="font-size: var(--type-body-sm-size); line-height: 1.45; color: var(--text-secondary)">{{chromeCaption}}</span>
+          </div>
+        </section>
+      </x-import>
+
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" padding="var(--space-5)" radius="lg">
+        <section aria-labelledby="f6" style="display: flex; flex-direction: column; gap: var(--space-3)">
+          <h2 id="f6" style="margin: 0; font-size: var(--type-heading-sm-size); font-weight: var(--font-weight-semibold)">6 · Chrome nav</h2>
+          <span style="font-size: var(--type-body-sm-size); line-height: 1.45; color: var(--text-secondary)">{{navCaption}} Orders is the current page: bold icon, bold text, an outline and aria-current. Collapse navigation keeps focus on the toggle; collapsed items keep their names as labels and tooltips.</span>
+        </section>
+      </x-import>
+
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" padding="var(--space-5)" radius="lg">
+        <section aria-labelledby="f7" style="display: flex; flex-direction: column; gap: var(--space-3)">
+          <h2 id="f7" style="margin: 0; font-size: var(--type-heading-sm-size); font-weight: var(--font-weight-semibold)">7 · Map controls</h2>
+          <div style="display: flex; gap: var(--space-5); align-items: center">
+            <div role="group" aria-label="Map controls" style="display: flex; gap: var(--space-2); padding: var(--space-3); border-radius: var(--radius-md); background: var(--surface-sunken)">
+              <span style="display: inline-flex; border-radius: var(--radius-md); box-shadow: var(--ring)">
+                <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.IconButton" icon="plus" accessibility-label="Zoom in" variant="tonal" size="md"></x-import>
+              </span>
+              <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.IconButton" icon="minus" accessibility-label="Zoom out" variant="tonal" size="md"></x-import>
+              <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.IconButton" icon="map" accessibility-label="Recenter on the order" variant="tonal" size="md"></x-import>
+            </div>
+            <span style="font-size: var(--type-body-sm-size); line-height: 1.45; color: var(--text-secondary)">The controls sit in their own "Map controls" group beside the map picture, not inside it, so screen readers name them. 8px between targets.</span>
+          </div>
+        </section>
+      </x-import>
+
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" padding="var(--space-5)" radius="lg">
+        <section aria-labelledby="f8" style="display: flex; flex-direction: column; gap: var(--space-3)">
+          <h2 id="f8" style="margin: 0; font-size: var(--type-heading-sm-size); font-weight: var(--font-weight-semibold)">8 · In-page panels: where focus opens and where it returns</h2>
+          <table style="width: 100%; border-collapse: collapse; font-size: var(--type-body-sm-size); line-height: 1.45">
+            <thead>
+              <tr style="text-align: left; color: var(--text-secondary)">
+                <th scope="col" style="padding: var(--space-2) var(--space-2) var(--space-2) 0; font-weight: var(--font-weight-semibold)">Panel</th>
+                <th scope="col" style="padding: var(--space-2) var(--space-2); font-weight: var(--font-weight-semibold)">Opens on</th>
+                <th scope="col" style="padding: var(--space-2) 0 var(--space-2) var(--space-2); font-weight: var(--font-weight-semibold)">On close (Escape or the close button), returns to</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="border-top: 1px solid var(--border-decorative)"><td style="padding: var(--space-2) var(--space-2) var(--space-2) 0; font-weight: var(--font-weight-semibold)">Cancel order (replaces More detail)</td><td style="padding: var(--space-2)">Reason</td><td style="padding: var(--space-2) 0 var(--space-2) var(--space-2)">The Cancel order button, or the More actions trigger it came from</td></tr>
+              <tr style="border-top: 1px solid var(--border-decorative)"><td style="padding: var(--space-2) var(--space-2) var(--space-2) 0; font-weight: var(--font-weight-semibold)">Reveal the delivery address (replaces More detail)</td><td style="padding: var(--space-2)">Why do you need it?</td><td style="padding: var(--space-2) 0 var(--space-2) var(--space-2)">Reveal address…, or the address itself once revealed</td></tr>
+              <tr style="border-top: 1px solid var(--border-decorative)"><td style="padding: var(--space-2) var(--space-2) var(--space-2) 0; font-weight: var(--font-weight-semibold)">Issue a refund (replaces More detail)</td><td style="padding: var(--space-2)">What to refund; the review step opens on Go back and edit, the safe choice; a result moves focus to the panel heading</td><td style="padding: var(--space-2) 0 var(--space-2) var(--space-2)">Issue refund…, or the More actions trigger it came from. Done on a result closes it the same way</td></tr>
+              <tr style="border-top: 1px solid var(--border-decorative)"><td style="padding: var(--space-2) var(--space-2) var(--space-2) 0; font-weight: var(--font-weight-semibold)">Live map (More detail, widened over the list)</td><td style="padding: var(--space-2)">The pane heading, Live map and the order code</td><td style="padding: var(--space-2) 0 var(--space-2) var(--space-2)">The Live map button in More detail</td></tr>
+              <tr style="border-top: 1px solid var(--border-decorative)"><td style="padding: var(--space-2) var(--space-2) var(--space-2) 0; font-weight: var(--font-weight-semibold)">Sign in again (the one dialog)</td><td style="padding: var(--space-2)">Email</td><td style="padding: var(--space-2) 0 var(--space-2) var(--space-2)">The field you were in when the session ended</td></tr>
+            </tbody>
+          </table>
+          <div style="display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3); border-radius: var(--radius-md); background: var(--surface-sunken)">
+            <span style="display: inline-flex; flex-direction: column; gap: var(--space-2); width: 260px">
+              <span style="font-size: var(--type-label-md-size); font-weight: var(--font-weight-semibold)">Reason (focused on open)</span>
+              <span style="display: flex; align-items: center; height: 44px; padding: 0 var(--space-3); box-sizing: border-box; border-radius: var(--radius-md); border: var(--focus-field-border-width) solid var(--focus-ring); background: var(--surface-raised); font-size: var(--type-body-md-size)">Cancelled by support</span>
+            </span>
+            <span style="font-size: var(--type-body-sm-size); line-height: 1.45; color: var(--text-secondary)">Panels don't trap focus: Tab moves on through the page and F6 cycles the panes (list, order, more detail or panel). Only Sign in again is a dialog; it holds focus and can't be dismissed.</span>
+          </div>
+        </section>
+      </x-import>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":1600}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const theme = this.props.theme ?? 'light';
+    const dark = theme === 'dark';
+    return {
+      theme, isDark: dark,
+      heading: dark ? 'Keyboard focus, drawn still: dark theme' : 'Keyboard focus, drawn still',
+      ringName: dark ? 'brand 400 in this dark theme, 5.9 to 6.2:1 on dark surfaces' : 'brand 600 in light, 400 in dark',
+      buttonCaption: dark
+        ? 'The standard ring: a 2px gap in the page colour, then a 3px brand 400 ring. It sits on the dark surface, not on the button fill, so it needs no flip.'
+        : 'The standard ring: a 2px gap in the page colour, then a 3px brand 600 ring, 4.3:1 against the page. It sits outside the button, so it needs no flip to white.',
+      chromeCaption: dark
+        ? 'On the chrome nav the ring comes from the nav’s on-accent surface class, the same one the components read: a white ring (focus-on-color) over a 2px gap in the secondary action green. The dark chrome is deeper than that green, so the gap shows as a thin green band.'
+        : 'Only on a brand or chrome surface, like Sign out in the nav, does the ring flip. The nav carries the on-accent surface class, so the button draws a white ring (focus-on-color) over a 2px gap in the chrome green.',
+      navCaption: dark
+        ? 'The sidebar shows Disputes focused, drawn with the values its links use: a white ring over a 2px green gap, from the nav’s on-accent surface class.'
+        : 'The sidebar shows Disputes focused, drawn with the values its links use: a white ring over a 2px chrome-green gap, from the nav’s on-accent surface class.',
+      yes: true,
+      menuItems: [{ label: 'Open order' }, { label: 'Open live map' }],
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,452 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Application review panes</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div style="display: {{tagWrap}}; flex-direction: column; gap: 6px">
+<sc-if value="{{showTag}}" hint-placeholder-val="{{false}}"><span style="display: inline-flex; align-self: flex-start; padding: 2px 8px; border-radius: 4px; background: var(--color-info-50); color: var(--color-info-700); font-size: 12px; font-weight: 600">Proposed component: ApplicationBody (DS Badge, Button, IconButton, Input, RadioGroup and Countdown, the proposed CertPane, HalalState and InlineAlert, in SplitPanes)</span></sc-if>
+<div style="width: {{wcss}}; height: {{hcss}}; box-sizing: border-box; display: flex; flex-direction: {{dir}}; gap: {{stackGap}}; min-height: 0; font-family: var(--font-ui); color: var(--text-primary)">
+<sc-if value="{{isLoading}}" hint-placeholder-val="{{false}}">
+  <div aria-busy="true" style="flex: 1 1 auto; display: flex; gap: 12px; min-height: 0">
+    <span class="hg-skel" style="display: block; width: {{appW}}; border-radius: 12px"></span>
+    <span class="hg-skel" style="display: block; width: {{docW}}; border-radius: 12px"></span>
+    <span class="hg-skel" style="display: block; flex: 1 1 auto; border-radius: 12px"></span>
+    <span role="status" class="hg-sr">Loading the application</span>
+  </div>
+</sc-if>
+<sc-if value="{{notLoading}}" hint-placeholder-val="{{true}}">
+<section id="pane-application" aria-labelledby="app-h" style="width: {{appW}}; flex: 0 0 auto; box-sizing: border-box; min-width: 0; min-height: 0; display: flex; flex-direction: column; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: 12px; overflow: hidden">
+  <div style="display: flex; align-items: center; gap: 8px; min-height: 48px; padding: 0 8px 0 16px; border-bottom: 1px solid var(--border-decorative); flex: 0 0 auto">
+    <h2 id="app-h" style="margin: 0; flex: 1 1 auto; font-size: 18px; font-weight: 700; letter-spacing: -0.01em">Karahi House</h2>
+    <sc-if value="{{hasStateBadge}}" hint-placeholder-val="{{true}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="{{stateVariant}}" size="md">{{stateLabel}}</x-import></sc-if>
+  </div>
+  <div style="flex: 1 1 auto; min-height: 0; overflow: auto; padding: 12px; display: flex; flex-direction: column; gap: 12px">
+    <sc-if value="{{noStateBadge}}" hint-placeholder-val="{{false}}"><span style="display: inline-flex; align-self: flex-start; padding: 2px 8px; border-radius: 4px; background: var(--surface-sunken); border: 1px solid var(--border-strong); font-size: 12px; font-weight: 600">Needs API: terminal REJECTED onboarding state (no state badge until then)</span></sc-if>
+    <span style="font-size: 13px; line-height: 1.45; color: var(--text-secondary)">{{metaLine}}</span>
+    <div style="display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 10px; border: 1px solid {{lockBorder}}">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="{{lockIcon}}" size="md" color="var(--text-secondary)"></x-import>
+      <div style="flex: 1 1 auto; display: flex; flex-direction: column; gap: 2px; min-width: 0">
+        <sc-if value="{{isMine}}" hint-placeholder-val="{{true}}">
+          <span style="display: inline-flex; align-items: baseline; gap: 6px; font-size: 13px; font-weight: 600">Claimed by you ·
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Countdown" variant="text" size="sm" expires-at="2026-09-28T14:48:00-04:00" server-now="2026-09-28T14:06:00-04:00" window-seconds="{{hour}}" urgent-threshold="{{urgent}}" critical-threshold="{{zero}}" label="left"></x-import>
+          </span>
+        </sc-if>
+        <sc-if value="{{notMine}}" hint-placeholder-val="{{false}}"><span style="font-size: 13px; font-weight: 600">{{lockTitle}}</span></sc-if>
+        <span style="font: var(--text-type-body-sm); color: var(--text-secondary)">{{lockSub}}</span>
+      </div>
+      <sc-if value="{{showTakeNext}}" hint-placeholder-val="{{false}}">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md" icon-end="chevron-right" href="App.dc.html">Take next</x-import>
+      </sc-if>
+    </div>
+
+    <section aria-labelledby="dec-h" style="display: flex; flex-direction: column; gap: 8px">
+      <h3 id="dec-h" style="margin: 0; font-size: 15px; font-weight: 600">{{decTitle}}</h3>
+      <sc-if value="{{hasBlockers}}" hint-placeholder-val="{{true}}">
+        <dc-import name="InlineAlert" tone="neutral" heading="{{blockerTitle}}" list="{{blockerList}}" needs="blockers as an enum, so each one can be named and linked" w="{{innerApp}}" hint-size="{{innerApp}}px,160px"></dc-import>
+      </sc-if>
+      <sc-if value="{{isHalalRejected}}" hint-placeholder-val="{{false}}">
+        <dc-import name="InlineAlert" tone="neutral" icon="info" heading="Karahi House’s application still needs a decision" body="Ask for a new halal certificate with Request changes…, or reject the application. Your claim is still held until 2:48 pm." w="{{innerApp}}" hint-size="{{innerApp}}px,130px"></dc-import>
+      </sc-if>
+      <sc-if value="{{isReady}}" hint-placeholder-val="{{false}}">
+        <dc-import name="InlineAlert" tone="success" heading="Nothing stops approval" body="Every required document and the halal certificate are approved, and the address has map coordinates." w="{{innerApp}}" hint-size="{{innerApp}}px,100px"></dc-import>
+      </sc-if>
+      <sc-if value="{{hasRecord}}" hint-placeholder-val="{{false}}">
+        <div style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; line-height: 1.45">
+          <span>{{record1}}</span>
+          <span>{{record2}}</span>
+          <span style="display: inline-flex; align-self: flex-start; padding: 2px 8px; border-radius: 4px; background: var(--surface-sunken); border: 1px solid var(--border-strong); font-size: 12px; font-weight: 600">Needs API: decision record on RestaurantApplication (decided_at, decided_by, decision, reason)</span>
+          <sc-if value="{{canReverse}}" hint-placeholder-val="{{false}}">
+            <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px">
+              <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" disabled="{{yes}}">Reverse this rejection…</x-import>
+              <span style="display: inline-flex; padding: 2px 8px; border-radius: 4px; background: var(--surface-sunken); border: 1px solid var(--border-strong); font-size: 12px; font-weight: 600">Needs API: reverse a rejection within 30 days</span>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+      <sc-if value="{{showDecisionButtons}}" hint-placeholder-val="{{true}}">
+        <div style="display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 12px 24px">
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" disabled="{{decOff}}" href="{{rejectHref}}">Reject…</x-import>
+          <sc-if value="{{notHalalRejected}}" hint-placeholder-val="{{true}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" disabled="{{decOff}}" href="{{changesHref}}">Request changes…</x-import></sc-if>
+          <sc-if value="{{isHalalRejected}}" hint-placeholder-val="{{false}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md" href="{{changesHref}}">Request changes…</x-import></sc-if>
+          <sc-if value="{{notHalalRejected}}" hint-placeholder-val="{{true}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md" disabled="{{approveOff}}" href="{{approveHref}}" accessibility-label="{{approveLabel}}">Approve…</x-import></sc-if>
+        </div>
+        <span id="dec-note" style="font-size: 13px; line-height: 1.45; color: var(--text-secondary)">{{decNote}}</span>
+      </sc-if>
+      <sc-if value="{{isInspect}}" hint-placeholder-val="{{false}}">
+        <span style="font-size: 13px; line-height: 1.45; color: var(--text-secondary)">Deciding needs a claim. Only Take next claims, oldest first, and it may give you a different application.</span>
+      </sc-if>
+    </section>
+
+    <section aria-labelledby="hal-h" style="display: flex; flex-direction: column; gap: 8px; padding-top: 10px; border-top: 1px solid var(--border-decorative)">
+      <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px">
+        <h3 id="hal-h" style="margin: 0; font-size: 15px; font-weight: 600">Halal certificate</h3>
+        <span style="display: inline-flex; align-items: center; gap: 8px"><span style="font: var(--text-type-body-sm); color: var(--text-secondary)">Restaurant now:</span><sc-if value="{{hasHalalBadge}}" hint-placeholder-val="{{true}}"><dc-import name="HalalState" state="{{halal}}" size="md" hint-size="150px,24px"></dc-import></sc-if><sc-if value="{{noHalalBadge}}" hint-placeholder-val="{{false}}"><span style="font: var(--text-type-body-sm); color: var(--text-secondary)">no badge: no halal status</span></sc-if></span>
+      </div>
+      <sc-if value="{{showHalalDetail}}" hint-placeholder-val="{{true}}">
+        <div style="display: flex; align-items: center; gap: 8px">
+          <div role="img" aria-label="{{halalRoll}}" style="display: flex; gap: 3px">
+            <sc-for list="{{segments}}" as="s" hint-placeholder-count="7"><span style="display: block; box-sizing: border-box; width: 16px; height: 8px; border-radius: 3px; background: {{s.fill}}; border: {{s.border}}"></span></sc-for>
+          </div>
+          <span aria-hidden="true" style="font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums">{{halalRoll}}</span>
+        </div>
+        <span style="font-size: 13px; line-height: 1.45; color: var(--text-secondary)">{{halalNames}}</span>
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="secondary" size="md" icon-end="chevron-right" href="{{verifyHref}}" style="align-self: flex-start">{{verifyLabel}}</x-import>
+      </sc-if>
+      <sc-if value="{{isSupport}}" hint-placeholder-val="{{false}}">
+        <span style="font-size: 13px">Pending review · HMA Canada · expires 14 January 2027</span>
+      </sc-if>
+      <sc-if value="{{noCert}}" hint-placeholder-val="{{false}}">
+        <dc-import name="InlineAlert" tone="neutral" heading="No halal certificate record" body="The restaurant hasn’t uploaded a halal certificate, so there is nothing to verify and no badge. This is different from a record with its document missing." action-label="Request changes…" action-href="App-NoCertRequest.dc.html" action-variant="tertiary" w="{{innerApp}}" hint-size="{{innerApp}}px,150px"></dc-import>
+      </sc-if>
+    </section>
+
+    <section aria-labelledby="pro-h" style="display: flex; flex-direction: column; gap: 8px; padding-top: 10px; border-top: 1px solid var(--border-decorative)">
+      <h3 id="pro-h" style="margin: 0; font-size: 15px; font-weight: 600">Business profile</h3>
+      <sc-if value="{{isSupport}}" hint-placeholder-val="{{false}}">
+        <dl style="margin: 0; display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 4px 10px; font-size: 13px; line-height: 1.45">
+          <dt style="color: var(--text-secondary)">Display name</dt><dd style="margin: 0">Karahi House</dd>
+          <dt style="color: var(--text-secondary)">City</dt><dd style="margin: 0">Toronto, ON</dd>
+        </dl>
+        <span style="font-size: 12px; color: var(--text-secondary)">Support agents see display name, city, onboarding state and each document’s status and rejection reason only.</span>
+        <span style="display: inline-flex; align-self: flex-start; padding: 2px 8px; border-radius: 4px; background: var(--surface-sunken); border: 1px solid var(--border-strong); font-size: 12px; font-weight: 600">Needs API: the support view of a restaurant application</span>
+      </sc-if>
+      <sc-if value="{{notSupport}}" hint-placeholder-val="{{true}}">
+        <dl style="margin: 0; display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 4px 10px; font-size: 13px; line-height: 1.45">
+          <dt style="color: var(--text-secondary)">Legal name</dt><dd style="margin: 0">Karahi House Restaurant Inc.</dd>
+          <dt style="color: var(--text-secondary)">Owner</dt><dd style="margin: 0">Imran Qureshi</dd>
+          <dt style="color: var(--text-secondary)">Phone</dt><dd style="margin: 0; font-family: var(--font-mono)">+1 416 ••• ••12</dd>
+          <dt style="color: var(--text-secondary)">GST/HST number</dt><dd style="margin: 0; font-family: var(--font-mono)">123456789RT0001</dd>
+          <dt style="color: var(--text-secondary)">Address</dt><dd style="margin: 0; display: flex; flex-direction: column; gap: 4px">3025 Kennedy Rd, Unit 4, Toronto ON M1V 1S3
+            <sc-if value="{{hasPinWarning}}" hint-placeholder-val="{{true}}">
+              <span style="display: flex; align-items: flex-start; gap: 6px; font: var(--text-type-body-sm); color: var(--text-secondary)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="warning" size="sm" color="var(--feedback-warning-icon)"></x-import>The map pin is more than 5 km from the postal code’s centre.</span>
+            </sc-if>
+            <sc-if value="{{noCoords}}" hint-placeholder-val="{{false}}">
+              <span style="font: var(--text-type-body-sm); color: var(--text-secondary)">No map coordinates on this address. Approval is blocked until the restaurant sets its pin.</span>
+            </sc-if>
+          </dd>
+          <dt style="color: var(--text-secondary)">Cuisines</dt><dd style="margin: 0">Pakistani, North Indian</dd>
+          <dt style="color: var(--text-secondary)">Delivery radius</dt><dd style="margin: 0">5 km</dd>
+        </dl>
+      </sc-if>
+    </section>
+  </div>
+</section>
+
+<sc-if value="{{notStack}}" hint-placeholder-val="{{true}}"><div role="separator" aria-orientation="vertical" aria-label="Resize the application and documents panes" aria-controls="pane-application" aria-valuenow="30" aria-valuemin="25" aria-valuemax="75" aria-valuetext="30 percent of the width. Left and Right arrows resize." tabindex="0" class="hg-focus hg-hit" style="flex: 0 0 12px; cursor: col-resize; align-self: stretch; display: flex; align-items: center; justify-content: center; border-radius: 4px"><span aria-hidden="true" style="display: block; width: 4px; height: 40px; border-radius: 2px; background: var(--border-interactive)"></span></div></sc-if>
+
+<section id="pane-documents" aria-labelledby="docs-h" style="width: {{docW}}; flex: {{docFlex}}; box-sizing: border-box; min-width: 0; min-height: 0; display: flex; flex-direction: column; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: 12px; overflow: hidden">
+  <div style="display: flex; align-items: center; gap: 8px; min-height: 48px; padding: 0 8px 0 16px; border-bottom: 1px solid var(--border-decorative); flex: 0 0 auto">
+    <h2 id="docs-h" style="margin: 0; flex: 1 1 auto; font-size: 15px; font-weight: 600">Documents</h2>
+    <span style="font-size: 12px; color: var(--text-secondary)">{{docCountLine}}</span>
+  </div>
+  <div role="grid" aria-labelledby="docs-h" aria-rowcount="{{docRowCount}}" style="flex: 0 0 auto; display: flex; flex-direction: column; border-bottom: 1px solid var(--border-decorative)">
+    <div role="rowgroup">
+      <div role="row" aria-rowindex="1" style="display: grid; grid-template-columns: {{docCols}}; gap: 8px; align-items: center; min-height: 32px; padding: 0 12px; background: var(--surface-sunken); font-size: 12px; font-weight: 600; color: var(--text-secondary)">
+        <span role="columnheader">Document</span><span role="columnheader">State</span><span role="columnheader">Valid until</span>
+      </div>
+    </div>
+    <div role="rowgroup">
+      <sc-for list="{{docs}}" as="d" hint-placeholder-count="5">
+        <div role="row" aria-rowindex="{{d.idx}}" aria-selected="{{d.sel}}" style="display: grid; grid-template-columns: {{docCols}}; gap: 8px; align-items: center; min-height: 44px; padding: 0 12px; border-top: 1px solid var(--border-decorative); font-size: 13px; background: {{d.bg}}">
+          <span role="rowheader" style="display: flex; align-items: center; gap: 6px; min-width: 0">
+            <sc-if value="{{d.isHalal}}" hint-placeholder-val="{{false}}">
+              <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="lock" size="sm" color="var(--text-secondary)"></x-import>
+              <span style="display: flex; flex-direction: column; line-height: 1.25; padding: 4px 0; min-width: 0">
+                <sc-if value="{{d.hasLink}}" hint-placeholder-val="{{true}}"><a href="{{d.href}}" class="hg-focus" style="font-weight: {{d.fw}}">{{d.type}}</a></sc-if>
+                <sc-if value="{{d.noLink}}" hint-placeholder-val="{{false}}"><span style="font-weight: {{d.fw}}">{{d.type}}</span></sc-if>
+                <span style="font: var(--text-type-body-sm); color: var(--text-secondary)">{{d.sub}}</span>
+              </span>
+            </sc-if>
+            <sc-if value="{{d.isDoc}}" hint-placeholder-val="{{true}}">
+              <button type="button" class="hg-focus" tabindex="{{d.tab}}" aria-label="Review {{d.type}}{{d.verLabel}}" style="display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0; border: 0; background: none; font: inherit; font-weight: {{d.fw}}; color: var(--text-primary); text-align: left; cursor: pointer; border-radius: 4px">{{d.type}}<span style="font-family: var(--font-mono); font-weight: 500; color: var(--text-secondary)">{{d.version}}</span></button>
+            </sc-if>
+          </span>
+          <span role="gridcell"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="{{d.variant}}" size="sm" icon="{{d.icon}}">{{d.state}}</x-import></span>
+          <span role="gridcell"><time title="{{d.valid}}" style="font-variant-numeric: tabular-nums; white-space: nowrap"><span aria-hidden="true">{{d.validShort}}</span><span class="hg-sr">{{d.valid}}</span></time></span>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+  <sc-if value="{{showDocReview}}" hint-placeholder-val="{{true}}">
+    <section aria-labelledby="rev-h" tabindex="-1" style="flex: 1 1 auto; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 10px; padding: 12px">
+      <h3 id="rev-h" style="margin: 0; font-size: 15px; font-weight: 600">{{revTitle}}</h3>
+      <sc-if value="{{isHalalPanel}}" hint-placeholder-val="{{false}}">
+        <div style="display: flex; flex-direction: column; gap: 10px">
+          <div style="display: flex; gap: 8px; align-items: flex-start; font-size: 13px; line-height: 1.45">
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="lock" size="md" color="var(--text-secondary)"></x-import>
+            <span><strong>Verified in the halal console, not here.</strong> The halal certificate is never approved or rejected as an ordinary document. It needs the transcription and all seven checks.</span>
+          </div>
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="secondary" size="md" icon-end="chevron-right" href="Verify.dc.html" style="align-self: flex-start">Open verification</x-import>
+        </div>
+      </sc-if>
+      <sc-if value="{{isDocPanel}}" hint-placeholder-val="{{true}}">
+        <div style="display: flex; flex-direction: column; gap: 10px">
+          <sc-if value="{{hasDocError}}" hint-placeholder-val="{{false}}">
+            <dc-import name="InlineAlert" tone="warning" blocking="{{yes}}" heading="Not approved: 2 things are missing" list="Holder name matches: not recorded|Expires on: not entered" foot="The server needs every check recorded and the expiry date before it approves a food safety certificate. Nothing was changed." w="{{innerDoc}}" hint-size="{{innerDoc}}px,170px"></dc-import>
+          </sc-if>
+          <dl style="margin: 0; display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 2px 10px; font-size: 13px">
+            <dt style="color: var(--text-secondary)">Issuer</dt><dd style="margin: 0">Toronto Public Health</dd>
+            <dt style="color: var(--text-secondary)">Number</dt><dd style="margin: 0; font-family: var(--font-mono)">FS-2026-88213</dd>
+            <dt style="color: var(--text-secondary)">Issued</dt><dd style="margin: 0">2 March 2026</dd>
+          </dl>
+          <div style="display: flex; flex-direction: column; gap: 4px">
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Expires on" default-value="{{docExpires}}" required="{{yes}}" read-only="{{roDoc}}" helper-text="YYYY-MM-DD, as printed. Needed before approval." error-text="{{expiryError}}"></x-import>
+            <span style="font-size: 13px; font-weight: 600">{{docExpiresWords}}</span>
+            <span style="display: inline-flex; align-self: flex-start; padding: 2px 8px; border-radius: 4px; background: var(--surface-sunken); border: 1px solid var(--border-strong); font-size: 12px; font-weight: 600">Needs API: expires_on on DocumentReviewInput</span>
+          </div>
+          <fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 6px">
+            <legend style="padding: 0 0 4px; font-size: 13px; font-weight: 600">Food safety certificate checks</legend>
+            <sc-for list="{{docChecks}}" as="k" hint-placeholder-count="4">
+              <div style="display: flex; flex-direction: column; gap: 2px; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--border-decorative)">
+                <sc-if value="{{roDocNot}}" hint-placeholder-val="{{true}}">
+                  <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.RadioGroup" label="{{k.label}}" orientation="horizontal" size="{{twenty}}" value="{{k.value}}" options="{{docResultOptions}}" error="{{k.error}}"></x-import>
+                </sc-if>
+                <sc-if value="{{roDoc}}" hint-placeholder-val="{{false}}">
+                  <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 36px">
+                    <span style="font-size: 13px; font-weight: 600">{{k.label}}</span>
+                    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="{{k.badgeVariant}}" size="sm">{{k.badge}}</x-import>
+                  </div>
+                </sc-if>
+              </div>
+            </sc-for>
+          </fieldset>
+          <sc-if value="{{hasSoon}}" hint-placeholder-val="{{false}}">
+            <dc-import name="InlineAlert" tone="neutral" icon="clock" heading="Under 14 days away, the server refuses approval" body="“Expires 5 October 2026, less than 14 days away. Reject it as Expired, or ask for a renewed certificate.” The Expires on field shows the same words." w="{{innerDoc}}" hint-size="{{innerDoc}}px,130px"></dc-import>
+          </sc-if>
+          <sc-if value="{{roDocNot}}" hint-placeholder-val="{{true}}">
+            <div style="display: flex; justify-content: flex-end; gap: 24px">
+              <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" href="App-DocReject.dc.html">Reject document…</x-import>
+              <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="secondary" size="md" href="App-Success.dc.html">Approve document</x-import>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+    </section>
+  </sc-if>
+  <sc-if value="{{noDocReview}}" hint-placeholder-val="{{false}}">
+    <p style="margin: 0; padding: 12px; font-size: 13px; line-height: 1.45; color: var(--text-secondary)">{{noReviewLine}}</p>
+  </sc-if>
+</section>
+
+<sc-if value="{{showViewer}}" hint-placeholder-val="{{true}}">
+  <sc-if value="{{notStack}}" hint-placeholder-val="{{true}}"><div role="separator" aria-orientation="vertical" aria-label="Resize the documents and scan panes" aria-controls="pane-documents" aria-valuenow="30" aria-valuemin="25" aria-valuemax="75" aria-valuetext="30 percent of the width. Left and Right arrows resize." tabindex="0" class="hg-focus hg-hit" style="flex: 0 0 12px; cursor: col-resize; align-self: stretch; display: flex; align-items: center; justify-content: center; border-radius: 4px"><span aria-hidden="true" style="display: block; width: 4px; height: 40px; border-radius: 2px; background: var(--border-interactive)"></span></div></sc-if>
+  <dc-import name="CertPane" state="ready" w="{{viewerW}}" h="{{h}}" collapsible="{{yes}}" doc-title="{{viewerTitle}}" hint-size="{{viewerW}}px,{{h}}px"></dc-import>
+</sc-if>
+<sc-if value="{{viewerCollapsed}}" hint-placeholder-val="{{false}}">
+  <div role="separator" aria-orientation="vertical" aria-label="Resize the documents and scan panes" aria-controls="pane-documents" aria-valuenow="30" aria-valuemin="25" aria-valuemax="75" aria-valuetext="30 percent of the width. Left and Right arrows resize." tabindex="0" class="hg-focus hg-hit" style="flex: 0 0 12px; cursor: col-resize; align-self: stretch; display: flex; align-items: center; justify-content: center; border-radius: 4px"><span aria-hidden="true" style="display: block; width: 4px; height: 40px; border-radius: 2px; background: var(--border-interactive)"></span></div>
+  <section aria-label="Document scan, collapsed" style="flex: 0 0 48px; box-sizing: border-box; min-width: 0; min-height: 0; display: flex; flex-direction: column; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: 12px; overflow: hidden; align-items: center; gap: 8px; padding: 4px 0">
+    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.IconButton" icon="back" accessibility-label="Show the document scan" variant="plain" size="md"></x-import>
+    <span aria-hidden="true" style="writing-mode: vertical-rl; transform: rotate(180deg); font-size: 13px; font-weight: 600; white-space: nowrap">{{viewerTitle}}</span>
+  </section>
+</sc-if>
+</sc-if>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"variant":{"editor":"enum","options":["mine","afterdoc","halalrejected","ready","readonly","inspect","support","loading","decided","decidedother","claimlost","rejected","changes","withdrawn","halalrow","docstates","nocert","forgery"],"default":"mine"},"w":{"editor":null,"default":1292},"tag":{"editor":"boolean","default":true},"$preview":{"width":1292,"height":848},"h":{"editor":null,"default":820},"third":{"editor":"enum","options":["viewer","none","collapsed"],"default":"viewer"},"stack":{"editor":"boolean","default":false}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const raw = this.props.variant ?? 'mine';
+    // decidedother: decided, by someone else (after a 409 already decided). claimlost: your claim ended (after a 409 claim lost).
+    const v = raw === 'decidedother' ? 'decided' : raw;
+    const MON = { January: 'Jan', February: 'Feb', March: 'Mar', April: 'Apr', May: 'May', June: 'Jun', July: 'Jul', August: 'Aug', September: 'Sep', October: 'Oct', November: 'Nov', December: 'Dec' };
+    const short = (x) => (x || '').replace(/(January|February|March|April|May|June|July|August|September|October|November|December)/, (m) => MON[m]);
+    const support = v === 'support';
+    const approvedAll = v === 'decided' || v === 'ready';
+    const terminal = ['decided', 'rejected', 'changes', 'withdrawn'].includes(v);
+    // Views of the certificate for someone who doesn't hold the claim are read-only boards;
+    // Verify.dc.html (the editable console) is only for the variants where you hold the claim.
+    const roVerify = { claimlost: 'Verify-LockLost.dc.html', readonly: 'Verify-OtherReviewer.dc.html', inspect: 'Verify-Inspect.dc.html', changes: 'Verify-Waiting.dc.html', withdrawn: 'Verify-Withdrawn.dc.html' };
+    const hrej = v === 'halalrejected';
+    const afterdoc = v === 'afterdoc' || hrej;
+    const ds = v === 'docstates' || v === 'forgery';
+    const nocert = v === 'nocert';
+    const selKey = v === 'halalrow' || afterdoc ? 'halal' : ds ? 'fs2' : 'fs';
+    const D = (key, type, state, variant, valid, version, extra) => Object.assign({ key, type, state, variant, valid, version, icon: undefined, sub: 'Verified in the halal console, not here' }, extra || {});
+    let docsAll;
+    if (ds) {
+      docsAll = [
+        D('br', 'Business licence', 'Approved', 'outline', 'No expiry', 'v1', { icon: 'check' }),
+        D('halal', 'Halal certificate', 'Pending review', 'info', '14 January 2027', 'v1', { halal: true }),
+        D('fs2', 'Food safety certificate', 'In review', 'info', 'Not entered', 'v2'),
+        D('fs1', 'Food safety certificate', 'Superseded', 'neutral', '2 March 2026', 'v1'),
+        D('id2', 'Owner ID', 'Submitted, not reviewed yet', 'neutral', '', 'v2'),
+        // Owner decision (round 2): a suspected forgery is a hold for a super admin, recorded as a failed check;
+        // the reviewer never rejects it. docstates shows an ordinary rejection; the forgery variant shows the hold.
+        v === 'forgery' ? D('id1', 'Owner ID', 'On hold: suspected forgery (check recorded as Fail)', 'neutral', '9 June 2029', 'v1') : D('id1', 'Owner ID', 'Rejected: illegible', 'neutral', '9 June 2029', 'v1'),
+        D('ins', 'Liability insurance', 'Expired, optional', 'neutral', '30 August 2026', 'v1'),
+      ];
+    } else {
+      docsAll = [
+        D('br', 'Business licence', 'Approved', 'outline', 'No expiry', 'v1', { icon: 'check' }),
+        nocert ? D('halal', 'Halal certificate', 'Not uploaded', 'neutral', '', '', { halal: true, noCertLink: true, sub: 'No certificate record: nothing to verify' })
+          : hrej ? D('halal', 'Halal certificate', 'Rejected: scope too narrow', 'neutral', '14 January 2027', 'v1', { halal: true })
+          : D('halal', 'Halal certificate', approvedAll ? 'Approved' : 'Pending review', approvedAll ? 'outline' : 'info', '14 January 2027', 'v1', { halal: true, icon: approvedAll ? 'check' : undefined }),
+        D('fs', 'Food safety certificate', approvedAll || afterdoc ? 'Approved' : v === 'changes' ? 'Rejected: address doesn’t match' : 'In review', approvedAll || afterdoc ? 'outline' : v === 'changes' ? 'neutral' : 'info', '2 March 2027', 'v1', { icon: approvedAll || afterdoc ? 'check' : undefined }),
+        D('id', 'Owner ID', 'Approved', 'outline', '9 June 2029', 'v1', { icon: 'check' }),
+        D('ins', 'Liability insurance', approvedAll ? 'Approved' : 'Submitted, optional', approvedAll ? 'outline' : 'neutral', '30 April 2027', 'v2', { icon: approvedAll ? 'check' : undefined }),
+      ];
+    }
+    const docs = docsAll.map((d, i) => {
+      const sel = d.key === selKey && !support && !terminal;
+      return Object.assign({}, d, {
+        idx: i + 2,
+        isHalal: !!d.halal, isDoc: !d.halal,
+        hasLink: !d.noCertLink, noLink: !!d.noCertLink,
+        href: roVerify[v] || (approvedAll ? 'Verify-Approved.dc.html' : hrej ? 'Verify-Rejected.dc.html' : 'Verify.dc.html'),
+        sel: sel ? 'true' : 'false',
+        tab: sel ? '0' : '-1',
+        fw: sel ? '700' : '600',
+        validShort: support ? '' : short(d.valid),
+        verLabel: d.version ? ', version ' + d.version.replace('v', '') : '',
+        bg: sel ? 'var(--state-selected-tint)' : 'transparent',
+        valid: support ? '' : d.valid,
+        version: support ? '' : d.version,
+      });
+    });
+    const rec = approvedAll || hrej || v === 'rejected' || v === 'changes' ? 7 : 5;
+    const segments = [];
+    for (let i = 0; i < 7; i++) segments.push(i < rec ? { fill: 'var(--text-secondary)', border: '1px solid var(--text-secondary)' } : { fill: 'transparent', border: '1px solid var(--border-interactive)' });
+    const lock = {
+      claimlost: ['lock', 'Your claim ended at 2:48 pm', 'Karahi House went back to the queue in its place. Deciding is off here. Take next gives you the oldest unclaimed application.', 'var(--border-strong)'],
+      readonly: ['lock', 'Another reviewer holds this until 2:32 pm', 'After that it returns to the queue in its place, oldest first. Take next gives you the oldest unclaimed application, which may not be this one.', 'var(--border-strong)'],
+      inspect: ['info', 'Not claimed · You are inspecting', 'Only Take next claims, oldest first. It may give you a different application.', 'var(--border-strong)'],
+      support: ['lock', 'Read-only for support', 'Document status only. No viewer, no checks.', 'var(--border-decorative)'],
+      loading: ['clock', 'Loading', '', 'var(--border-decorative)'],
+      decided: ['check', 'Decided', 'Approved. Nothing here is claimed.', 'var(--border-decorative)'],
+      rejected: ['info', 'Decided', 'Rejected. Nothing here is claimed.', 'var(--border-decorative)'],
+      changes: ['clock', 'Waiting on the restaurant', 'Changes requested. It returns to the queue when they resubmit.', 'var(--border-decorative)'],
+      withdrawn: ['info', 'Withdrawn', 'The restaurant withdrew this application.', 'var(--border-decorative)'],
+    }[v];
+    // Unrecognised blocker strings never render raw: “Another rule stops approval (code: …)”.
+    const B = (text, link, href) => ({ text, link: link || '', href: href || '#', hasLink: !!link });
+    const blockerSets = {
+      mine: [B('The food safety certificate isn’t approved yet.'), B('The halal certificate isn’t approved yet.', 'Open verification', 'Verify.dc.html')],
+      readonly: [B('The food safety certificate isn’t approved yet.'), B('The halal certificate isn’t approved yet.')],
+      claimlost: [B('The food safety certificate isn’t approved yet.'), B('The halal certificate isn’t approved yet.')],
+      inspect: [B('The food safety certificate isn’t approved yet.'), B('The halal certificate isn’t approved yet.')],
+      support: [B('The food safety certificate isn’t approved yet.'), B('The halal certificate isn’t approved yet.')],
+      halalrow: [B('The food safety certificate isn’t approved yet.'), B('The halal certificate isn’t approved yet.', 'Open verification', 'Verify.dc.html')],
+      afterdoc: [B('The halal certificate isn’t approved yet.', 'Open verification', 'Verify.dc.html')],
+      halalrejected: [B('The halal certificate was rejected. The restaurant needs to upload a new one.', 'View verification', 'Verify-Rejected.dc.html')],
+      docstates: [B('The food safety certificate isn’t approved yet.'), B('The owner ID isn’t approved yet.'), B('The halal certificate isn’t approved yet.', 'Open verification', 'Verify.dc.html'), B('The address has no map coordinates.'), B('Another rule stops approval (code: HALAL_ISSUER_UNDER_REVIEW). Ask engineering to add it to this page.')],
+      forgery: [B('The food safety certificate isn’t approved yet.'), B('The owner ID isn’t approved yet.'), B('A suspected-forgery hold is on the owner ID. Only a super admin decides this application while it is on.', 'Review the forgery flag…', 'Case-ForgeryClear.dc.html'), B('The halal certificate isn’t approved yet.', 'Open verification', 'Verify.dc.html'), B('The address has no map coordinates.')],
+      nocert: [B('The food safety certificate isn’t approved yet.'), B('No halal certificate has been uploaded.')],
+    };
+    const blockers = blockerSets[v] || [];
+    const meta = {
+      changes: 'Toronto, ON · second submission due from the restaurant · changes requested 27 September 2026, 3:10 pm',
+      withdrawn: 'Toronto, ON · submitted 25 September 2026, 11:02 am · withdrawn 27 September 2026, 9:30 am',
+    }[v] || 'Toronto, ON · submitted 25 September 2026, 11:02 am · first submission · SLA due 29 September, 1:02 pm';
+    const record = {
+      decided: ['Approved at 4:05 pm on 28 September 2026 by Aminah Rahman. Reason: All checks passed.', 'Karahi House is now Payout pending. It goes live once payouts are set up and its menu is approved in Menu reviews.'],
+      rejected: ['Rejected at 4:05 pm on 28 September 2026 by Aminah Rahman. Reason: Documents not sufficient.', 'This is final for this application. The restaurant can apply again after 14 days, or straight away if the reason can be fixed.'],
+      changes: ['Changes requested at 3:10 pm on 27 September 2026 by Aminah Rahman: Food safety certificate.', 'Nothing to decide until the restaurant uploads a new version. Its SLA was met by this decision.'],
+      withdrawn: ['The restaurant withdrew this application at 9:30 am on 27 September 2026.', 'Nothing to decide. If they apply again it arrives as a new submission.'],
+    }[v];
+    if (raw === 'decidedother') record[0] = 'Approved at 2:02 pm on 28 September 2026 by Yusuf Haddad. Reason: All checks passed.';
+    const decTitles = { decided: 'Decision', rejected: 'Decision', changes: 'Decision', withdrawn: 'Withdrawn', support: 'Decision readiness' };
+    const canDecide = ['mine', 'afterdoc', 'halalrejected', 'ready', 'halalrow', 'docstates', 'nocert', 'forgery'].includes(v);
+    const panelTitle = v === 'halalrow' || afterdoc ? 'Halal certificate' : ds ? 'Review: food safety certificate, version 2' : 'Review: food safety certificate';
+    const labels = ['Issuing health unit present', 'Premises address matches', 'Expiry at least 14 days away', 'Holder name matches'];
+    const readonlyDoc = v === 'readonly' || v === 'inspect' || v === 'claimlost';
+    const docChecks = labels.map((label, i) => {
+      const savedVal = readonlyDoc ? (i < 2 ? 'Saved: Pass' : 'Not recorded') : null;
+      const val = ds ? (i < 3 ? 'PASS' : null) : null;
+      return {
+        label, value: val,
+        error: ds && i === 3 ? 'Not recorded. Choose Pass or Fail.' : null,
+        badge: savedVal || 'Not recorded', badgeVariant: savedVal === 'Saved: Pass' ? 'outline' : 'neutral',
+      };
+    });
+    const w = this.props.w ?? 1292;
+    const stack = !!this.props.stack;
+    const h = stack ? 600 : (this.props.h ?? 820);
+    const third = this.props.third ?? 'viewer';
+    const approveOff = v !== 'ready';
+    return { showTag: !!this.props.tag, tagWrap: this.props.tag ? 'flex' : 'contents', 
+      yes: true, hour: 3600, urgent: 0.1667, zero: 0,
+      wcss: w + 'px', hcss: stack ? 'auto' : h + 'px', h, twenty: 20,
+      dir: stack ? 'column' : 'row', stackGap: stack ? '12px' : '0', notStack: !stack,
+      appW: stack ? '100%' : (support || terminal ? 520 : 400) + 'px', innerApp: stack ? w - 26 : (support || terminal ? 520 : 400) - 26,
+      docW: stack ? '100%' : '368px', docFlex: stack ? '0 0 auto' : (support || terminal || third === 'collapsed') ? '1 1 auto' : '0 0 auto', innerDoc: stack ? w - 26 : 368 - 26,
+      viewerW: stack ? w : w - 400 - 368 - 24, viewerCollapsed: !support && !terminal && third === 'collapsed',
+      docCountLine: support ? 'Status only' : docs.length + ' documents',
+      noDocReview: support || terminal, noReviewLine: support ? 'Support agents see each document’s status and rejection reason. No viewer, no checks.' : 'Nothing to review: this application has a decision or is waiting on the restaurant.',
+      hasStateBadge: v !== 'rejected', noStateBadge: v === 'rejected',
+      isInspect: v === 'inspect',
+      approveLabel: v === 'claimlost' ? 'Approve…, unavailable: your claim ended at 2:48 pm' : approveOff ? 'Approve…, unavailable: ' + (blockers.length === 1 ? '1 thing stops approval' : blockers.length + ' things stop approval') : 'Approve…',
+      blockerList: blockers.map((b) => b.hasLink ? b.text + '>>' + b.link + '>>' + b.href : b.text).join('|'),
+      hasHalalBadge: !nocert, noHalalBadge: nocert, noCert: nocert,
+      notSupport: !support,
+      stateLabel: { decided: 'Payout pending', rejected: 'Rejected', changes: 'Fix documents', withdrawn: 'Withdrawn' }[v] || 'Documents review',
+      stateVariant: { decided: 'neutral', rejected: 'neutral', changes: 'warning', withdrawn: 'neutral' }[v] || 'info',
+      metaLine: meta,
+      isMine: !lock, notMine: !!lock,
+      lockIcon: lock ? lock[0] : 'lock',
+      lockTitle: lock ? lock[1] : '', lockSub: lock ? lock[2] : 'Your claim ends at 2:48 pm and can’t be extended.', lockBorder: lock ? lock[3] : 'var(--border-decorative)',
+      showTakeNext: v === 'inspect' || v === 'claimlost',
+      isLoading: v === 'loading', notLoading: v !== 'loading',
+      showViewer: !support && !terminal && third === 'viewer',
+      viewerTitle: v === 'halalrow' || afterdoc ? 'Halal certificate scan' : 'Food safety certificate',
+      decTitle: decTitles[v] || 'Decide on this application',
+      hasBlockers: blockers.length > 0,
+      blockerTitle: blockers.length === 1 ? '1 thing stops approval' : blockers.length + ' things stop approval',
+      blockers,
+      isReady: v === 'ready',
+      hasRecord: !!record, record1: record ? record[0] : '', record2: record ? record[1] : '',
+      canReverse: v === 'rejected',
+      showDecisionButtons: canDecide || v === 'readonly' || v === 'claimlost',
+      decOff: !canDecide,
+      approveOff,
+      approveHref: v === 'ready' ? 'App-Approve.dc.html' : undefined,
+      rejectHref: canDecide ? 'App-Reject.dc.html' : undefined,
+      changesHref: hrej ? 'App-HalalRedo.dc.html' : nocert ? 'App-NoCertRequest.dc.html' : canDecide ? 'App-Decision.dc.html' : undefined,
+      isHalalRejected: hrej, notHalalRejected: !hrej,
+      decNote: hrej ? 'Approve isn’t possible: the halal certificate was rejected. Request changes… opens with Halal certificate ticked under Documents to redo. You can untick it.' : v === 'readonly' ? 'Deciding is off while another reviewer holds this application.' : v === 'claimlost' ? 'Deciding is off: your claim ended at 2:48 pm. Nothing was changed.' : v === 'inspect' ? 'Deciding needs a claim. Only Take next claims, oldest first.' : v === 'ready' ? 'Approving doesn’t make Karahi House live: payouts and its menu, reviewed in Menu reviews, come next.' : 'Approve opens once nothing stops approval. Request changes and Reject are available now.',
+      docs, docRowCount: docs.length + 1,
+      docCols: 'minmax(0, 1.5fr) minmax(0, 1.2fr) 86px',
+      showDocReview: !support && !terminal && v !== 'loading',
+      revTitle: panelTitle,
+      isHalalPanel: v === 'halalrow' || afterdoc,
+      isDocPanel: v !== 'halalrow' && !afterdoc,
+      isScanPanel: false,
+      hasDocError: ds,
+      hasSoon: ds,
+      docExpires: ds ? '' : readonlyDoc ? '2027-03-02' : '',
+      docExpiresWords: ds ? '' : readonlyDoc ? 'Reads as 2 March 2027' : '',
+      expiryError: ds ? 'Enter the expiry date printed on the certificate. The server needs it before approval.' : null,
+      roDoc: readonlyDoc, roDocNot: !readonlyDoc,
+      docChecks,
+      docResultOptions: [
+        { value: 'PASS', label: 'Pass' },
+        { value: 'FAIL', label: 'Fail' },
+        { value: 'NOT_ASSESSED', label: 'Not assessed' },
+      ],
+      halal: approvedAll ? 'CERTIFIED' : 'UNVERIFIED',
+      showHalalDetail: !support && !nocert,
+      isSupport: support,
+      segments,
+      halalRoll: rec + ' of 7 recorded',
+      halalNames: hrej ? 'Certificate rejected at 2:21 pm: 6 pass, 1 fail (H6 Scope sufficient). Reason sent to the restaurant word for word.' : approvedAll ? 'All seven recorded as Pass. Certificate approved at 3:52 pm.' : v === 'rejected' ? 'Certificate rejected: 6 pass, 1 fail.' : 'Recorded: H1 Legible and complete, H2 Issuer accepted, H3 Name match, H5 Dates valid, H7 Unique, not reused.',
+      verifyHref: hrej ? 'Verify-Rejected.dc.html' : approvedAll ? 'Verify-Approved.dc.html' : roVerify[v] || 'Verify.dc.html',
+      verifyLabel: approvedAll || terminal || hrej ? 'View verification' : v === 'readonly' || v === 'inspect' || v === 'claimlost' ? 'View verification (read-only)' : 'Open verification',
+      hasPinWarning: v !== 'ready' && !ds,
+      noCoords: ds,
+    };
+  }
+}
+</script>
+</body>
+</html>

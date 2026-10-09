@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>This device section</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<section id="device" aria-labelledby="device-h" style="width: {{w}}; box-sizing: border-box; font-family: var(--font-ui); color: var(--text-primary)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg" padding="24px">
+<div style="display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<h3 id="device-h" style="margin: 0; font: var(--text-type-heading-lg); letter-spacing: -0.01em">On this browser</h3>
+<p style="margin: 0; font: var(--text-type-body-md); color: var(--text-secondary)">Keep this screen open and on while you're accepting orders. These settings belong to this browser only.</p>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px; padding-top: 12px; border-top: 1px solid var(--border-decorative)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Switch" label="Order sound" state-label="{{onOff}}" checked="{{soundOn}}" aria-describedby="sound-what"></x-import>
+<span id="sound-what" style="font: var(--text-type-body-sm); color: var(--text-secondary)">Rings until each new order is accepted, rejected or expires.</span>
+<sc-if value="{{soundOff}}" hint-placeholder-val="{{false}}">
+<span role="status" style="display: inline-flex; align-items: center; gap: 6px; font: var(--text-type-label-md); color: var(--feedback-warning-tint-text)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="warning" size="sm" color="var(--feedback-warning-icon)"></x-import>You won't hear new orders. They still appear in the strip at the top of every page. Turn the sound on while you're accepting orders.</span>
+</sc-if>
+<div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" icon-start="{{play.icon}}" loading="{{play.busy}}">{{play.label}}</x-import>
+<sc-if value="{{play.msg}}" hint-placeholder-val="{{false}}"><span role="status" style="font: var(--text-type-body-sm); color: {{play.color}}">{{play.msg}}</span></sc-if>
+</div>
+<sc-if value="{{play.blocked}}" hint-placeholder-val="{{false}}"><span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">Browser autoplay block: play() rejected until the page gets a click · the first click anywhere unlocks it for the session</span></sc-if>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px; padding-top: 12px; border-top: 1px solid var(--border-decorative)">
+<div style="display: flex; align-items: center; gap: 12px">
+<span style="font: var(--text-type-label-lg); flex-grow: 1">Browser notifications</span>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="{{notif.tone}}" icon="{{notif.icon}}" size="md">{{notif.label}}</x-import>
+</div>
+<span style="font: var(--text-type-body-sm); color: var(--text-secondary)">{{notif.text}}</span>
+<sc-if value="{{notif.ask}}" hint-placeholder-val="{{false}}"><div style="display: flex"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" icon-start="bell" loading="{{notif.asking}}">{{notif.cta}}</x-import></div></sc-if>
+<sc-if value="{{notif.asking}}" hint-placeholder-val="{{false}}"><span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">Notification.requestPermission() pending: the browser's own prompt is open near the address bar · button busy until it resolves</span></sc-if>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px; padding-top: 12px; border-top: 1px solid var(--border-decorative)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Switch" label="Keep the screen on" state-label="{{onOff}}" checked="{{wakeOn}}" disabled="{{noWake}}" aria-describedby="wake-what"></x-import>
+<span id="wake-what" style="font: var(--text-type-body-sm); color: var(--text-secondary)">Stops the screen dimming while this page is open.</span>
+<sc-if value="{{noWake}}" hint-placeholder-val="{{false}}">
+<span style="font: var(--text-type-body-sm); color: var(--text-secondary)">This browser can't keep the screen on. Set your device to stay awake while it's plugged in.</span>
+</sc-if>
+</div>
+</div>
+</x-import>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["ok","soundoff","ask","asking","blocked","nowakelock","playing","sound-blocked"],"default":"ok"},"width":{"editor":"int","default":840},"$preview":{"width":840,"height":520}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var s = this.props.state || 'ok';
+    var N = {
+      ok: { tone: 'neutral', icon: 'check', label: 'Allowed', text: 'New orders also show as a browser notification when this tab is in the background.' },
+      ask: { tone: 'outline', icon: undefined, label: 'Not turned on', text: 'Turn them on so new orders show even when this tab is in the background.', ask: true, cta: 'Turn on notifications' },
+      asking: { tone: 'outline', icon: undefined, label: 'Not turned on', text: 'Your browser is asking whether to allow notifications. Choose Allow in its prompt.', ask: true, asking: true, cta: 'Waiting for your browser' },
+      blocked: { tone: 'warning', icon: 'warning', label: 'Blocked in this browser', text: "To allow them, open this site's settings in your browser (the icon beside the address) and set Notifications to Allow. Then reload this page." }
+    };
+    return {
+      w: (this.props.width || 840) + 'px',
+      onOff: { on: 'On', off: 'Off' },
+      soundOn: s !== 'soundoff',
+      soundOff: s === 'soundoff',
+      notif: Object.assign({ ask: false, asking: false, cta: '' }, N[s] || N.ok),
+      play: s === 'playing' ? { icon: undefined, busy: true, label: 'Playing the order sound', msg: 'Playing now. Check the volume on this device.', color: 'var(--text-secondary)', blocked: false }
+        : (s === 'sound-blocked' ? { icon: 'warning', busy: undefined, label: 'Play the order sound', msg: "Your browser blocked the sound. Click anywhere on this page, then try again. New orders still show on screen.", color: 'var(--feedback-warning-tint-text)', blocked: true }
+        : { icon: undefined, busy: undefined, label: 'Play the order sound', msg: '', color: 'var(--text-secondary)', blocked: false }),
+      wakeOn: s !== 'nowakelock',
+      noWake: s === 'nowakelock'
+    };
+  }
+}
+</script>
+</body>
+</html>

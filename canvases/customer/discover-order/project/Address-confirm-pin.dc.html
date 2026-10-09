@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Address details</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:var(--color-neutral-100)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+.demo-focus .hg-focus,.demo-focus .hg-choice-ctl,.demo-focus .hg-row,.demo-focus > a{box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)!important}
+.demo-focus-field .hg-field{border-color:var(--focus-ring)!important;box-shadow:inset 0 0 0 calc(var(--focus-field-border-width) - 1px) var(--focus-ring)!important}
+</style>
+</helmet>
+<div style="width: 390px; height: 1420px; position: relative; overflow: hidden; display: flex; flex-direction: column; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="cream" title="Address details" back-label="Back to the map" on-back="{{noop}}"></x-import>
+<main style="flex-grow: 1; display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-4)">
+<div role="img" aria-label="Map with the pin on 14 Ellesmere Rd, Toronto ON M1R 4E7" style="height: 140px; position: relative; display: flex; align-items: center; justify-content: center; border-radius: var(--radius-lg); background: var(--surface-sunken); outline: 1.5px dotted var(--color-info-500); outline-offset: 3px">
+<div aria-hidden="true" style="width: 28px; height: 28px; border-radius: var(--radius-full) var(--radius-full) var(--radius-full) 0; transform: rotate(-45deg); background: var(--action-primary); border: 3px solid var(--surface-raised)"></div>
+<span style="position: absolute; top: 8px; left: 8px; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--color-info-700); background: var(--color-info-50)">Component gap: MapPreview (static pin). Mapbox wordmark bottom-left and attribution (i) control must stay visible; never covered by sheets, cards or zoom buttons (move zoom controls up 32 px).</span>
+</div>
+<div style="display: flex; align-items: flex-start; gap: var(--space-3)"><div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px"><strong style="font-size: var(--type-heading-sm-size)">14 Ellesmere Rd</strong><span style="font-size: var(--type-body-md-size); color: var(--text-secondary)">Toronto ON M1R 4E7</span></div><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" href="Address-add.dc.html" accessibility-label="Move the pin on the map">Move pin</x-import></div>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Unit (optional)" default-value="402"></x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Buzzer (optional)" default-value="402"></x-import>
+<div style="display: flex; flex-direction: column; gap: var(--space-2); outline: 1.5px dotted var(--color-info-500); outline-offset: 3px; border-radius: var(--radius-sm)">
+<label for="addr-notes" style="font-size: var(--type-label-lg-size); font-weight: 600">Notes for the rider (optional)</label>
+<textarea id="addr-notes" rows="2" maxlength="200" aria-describedby="addr-notes-help addr-notes-count" style="font-family: inherit; font-size: var(--type-body-md-size); padding: var(--space-3); border-radius: var(--radius-md); border: 1px solid var(--border-interactive); background: var(--surface-raised); color: var(--text-primary); resize: none">Side entrance</textarea>
+<span id="addr-notes-help" style="font-size: var(--type-body-sm-size); color: var(--text-secondary)">For example the entrance or where to park.</span>
+<span id="addr-notes-count" style="align-self: flex-end; font-size: var(--type-body-sm-size); color: var(--text-secondary); font-variant-numeric: tabular-nums"><span aria-hidden="true">13/200</span><span class="hg-sr">13 of 200 characters used</span></span>
+<span role="status" aria-live="polite" class="hg-sr"></span>
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">Textarea follows Input: 1px border-interactive at rest, 2px border-brand on focus (no ring), placeholder text-secondary, helper and counter linked by aria-describedby. The polite status announces "N characters left" only from 20 left.</span>
+<div style="display: flex; gap: var(--space-2); flex-wrap: wrap"><span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--color-info-700); background: var(--color-info-50)">Component gap: Textarea (200)</span><span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">Bound: Address.delivery_notes</span></div>
+</div>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Label (optional)" helper-text="For example Home or Work." default-value="Home"></x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Checkbox" label="Make this my default address"></x-import>
+<p style="margin: 0; display: flex; align-items: flex-start; gap: var(--space-2); font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-line); color: var(--text-secondary)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="lock" size="sm" color="var(--text-secondary)"></x-import><span>Riders offered your delivery see only your general area before they accept. The rider who accepts sees your full address, including unit, buzzer and notes. The restaurant sees it once it starts preparing your order; before that, only your area.</span></p>
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">Needs API: the dispatch offer's drop-off as an approximate area only, with the full address from acceptOffer</span>
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">Privacy line: the same wording as the Account address form (owner decision, 1 October: riders see only an approximate area before they accept). The rider who accepts gets the full address; the restaurant gets it only from preparing, and only the area before that.</span>
+<div style="display: flex; flex-direction: column; gap: var(--space-1)"><span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">Bound: AddressInput. line1, city, province (Ontario only) and postal_code come from the pin (reverse geocoding, Needs API above; reverse geocoding for saved addresses uses Mapbox permanent geocoding, because createAddress stores the results); latitude and longitude are the pin. unit, buzzer, delivery_notes, label and is_default are typed here.</span><span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">No handover choice here: Address has no delivery-instruction field. Handover is chosen per order at checkout.</span></div>
+</main>
+<footer style="display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-4); background: var(--surface-raised); box-shadow: var(--elev-sticky)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" full-width="{{yes}}" href="Main.dc.html">Save address</x-import></footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1420}}'>
+class Component extends DCLogic {
+renderVals() {
+return {
+yes: true,
+no: false,
+none: null,
+zero: 0,
+two: 2,
+three: 3,
+noop: function () {},
+nav: [
+{ key: 'home', label: 'Home', icon: 'home' },
+{ key: 'search', label: 'Search', icon: 'search' },
+{ key: 'orders', label: 'Orders', icon: 'orders' },
+{ key: 'account', label: 'Account', icon: 'profile' }
+],
+c: { zfee: 299, zmin: 1500, kfee: 399, kmin: 2000, nfee: 499, nmin: 1500, fee: 299, min: 1500, grill: 2499, adana: 2199, wrap: 1249, falafel: 1099, karahi: 1899, plate: 1650, lahmacun: 950, tikka: 1599, koob: 2250, mandi: 2299 },
+sortItems: [
+{ key: 'recommended', label: 'Recommended' },
+{ key: 'eta', label: 'Delivery time' },
+{ key: 'distance', label: 'Distance' }
+]
+};
+}
+}
+</script>
+</body>
+</html>

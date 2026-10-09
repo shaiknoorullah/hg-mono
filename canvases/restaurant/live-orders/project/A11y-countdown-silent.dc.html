@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Silent countdowns</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0;background:var(--surface-base)}</style>
+</helmet>
+<div style="width: 1440px; height: 1000px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px; padding: 36px 44px; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<h1 style="margin: 0; font-size: 24px; line-height: 30px; font-weight: 700">Countdowns on screen are silent; the page announcer is the only speaker</h1>
+<p style="margin: 0; font-size: 17px; line-height: 26px; color: var(--text-secondary)">Three tiles in the strip and the panel can show four countdowns for three orders at once. Each would speak on its own at 50%, 25%, 10% and 0 today. In silent mode they only draw; the announcer speaks once per order per threshold.</p>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; align-items: start">
+
+<section aria-labelledby="cs-screen" style="display: flex; flex-direction: column; gap: 14px; padding: 18px 20px; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: var(--radius-lg)">
+<h2 id="cs-screen" style="margin: 0; font-size: 20px; font-weight: 600">On screen: every countdown silent</h2>
+<sc-for list="{{rings}}" as="r" hint-placeholder-count="3">
+<div style="display: flex; align-items: center; gap: 14px">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Countdown" variant="ring" size="md" expires-at="{{r.expires}}" server-now="{{now}}" window-seconds="180"></x-import>
+<div style="display: flex; flex-direction: column; gap: 2px">
+<span style="font-family: var(--font-mono); font-size: 17px; font-weight: 600">{{r.code}}</span>
+<span style="font-size: 15px; color: var(--text-secondary)">{{r.where}}</span>
+</div>
+</div>
+</sc-for>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 15px; font-weight: 600">Panel bar · A7K2 (the same order as the third tile)</span>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Countdown" variant="bar" size="lg" expires-at="{{a7}}" server-now="{{now}}" window-seconds="180" label="left to answer"></x-import>
+</div>
+<span style="align-self: flex-start; padding: 2px 6px; border-radius: var(--radius-xs); background: var(--surface-sunken); color: var(--text-secondary); font-family: var(--font-mono); font-size: 12px">Design-system issue: Countdown needs a silent mode (the numeral stays aria-live off; no own announcements) · on all four above</span>
+</section>
+
+<section aria-labelledby="cs-speaker" style="display: flex; flex-direction: column; gap: 14px; padding: 18px 20px; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: var(--radius-lg)">
+<h2 id="cs-speaker" style="margin: 0; font-size: 20px; font-weight: 600">Page announcer: what is actually spoken</h2>
+<ol style="margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 8px; font-size: 15px; line-height: 22px">
+<sc-for list="{{log}}" as="l" hint-placeholder-count="6">
+<li><span style="font-family: var(--font-mono); font-variant-numeric: tabular-nums">{{l.t}}</span> · <strong style="font-weight: 700">{{l.region}}</strong> · {{l.msg}}</li>
+</sc-for>
+</ol>
+<dl style="margin: 0; display: grid; grid-template-columns: 160px minmax(0, 1fr); gap: 8px 14px; font-size: 15px; line-height: 22px">
+<dt style="font-weight: 700">Thresholds</dt><dd style="margin: 0">25% polite, 10% assertive, 0 polite outcome. The design system’s 50% step is not used here.</dd>
+<dt style="font-weight: 700">Rate</dt><dd style="margin: 0">At most one assertive message in 5 seconds; the next waits. Most urgent order first.</dd>
+<dt style="font-weight: 700">Same order, two views</dt><dd style="margin: 0">A7K2 on its tile and in the panel is still one order: one message per threshold.</dd>
+</dl>
+<span style="align-self: flex-start; padding: 2px 6px; border-radius: var(--radius-xs); background: var(--surface-sunken); color: var(--text-secondary); font-family: var(--font-mono); font-size: 12px">Proposed component: PageAnnouncer</span>
+</section>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() {
+    if (!this._a) this._a = Date.now();
+    const iso = (ms) => new Date(ms).toISOString();
+    const a = this._a;
+    return {
+      now: iso(a), a7: iso(a + 132000),
+      rings: [{ code: 'C8T4', where: 'First tile in the strip', expires: iso(a + 15000) }, { code: 'B3M9', where: 'Second tile', expires: iso(a + 40000) }, { code: 'A7K2', where: 'Third tile, open in the panel', expires: iso(a + 132000) }],
+      log: [
+        { t: '6:47:02 pm', region: 'Polite', msg: '3 new orders, most urgent C8T4, 15 seconds left.' },
+        { t: '6:47:07 pm', region: 'Assertive', msg: 'C8T4, 10 seconds left to accept.' },
+        { t: '6:47:17 pm', region: 'Polite', msg: 'C8T4 timed out. The customer was not charged.' },
+        { t: '6:47:24 pm', region: 'Assertive', msg: 'B3M9, 18 seconds left to accept.' },
+        { t: '6:47:30 pm', region: 'Polite', msg: 'B3M9 accepted, ready by 7:04 pm.' },
+        { t: '6:48:29 pm', region: 'Polite', msg: 'A7K2, 45 seconds left.' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

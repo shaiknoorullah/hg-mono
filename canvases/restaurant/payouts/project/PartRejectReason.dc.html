@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Reject an order: reason</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div style="width: {{wpx}}; height: {{hpx}}; box-sizing: border-box; font-family: var(--font-ui); color: var(--text-primary); background: var(--surface-raised); display: flex; flex-direction: column; gap: 16px">
+<sc-if value="{{expired}}" hint-placeholder-val="{{false}}">
+<div role="alert" style="display: flex; align-items: flex-start; gap: 12px; padding: 12px 16px; border-radius: var(--radius-md); background: var(--surface-subtle); border: 1px solid var(--border-decorative)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="clock" size="md" color="var(--text-secondary)" style="margin-top: 2px"></x-import>
+<span style="display: flex; flex-direction: column; gap: 4px"><strong style="font: var(--text-type-label-lg)">Time ran out before you rejected it</strong><span style="font: var(--text-type-body-md); line-height: 1.5">Order HG-10482 was turned down automatically and the customer wasn't charged. There is nothing more to do.</span></span>
+</div>
+<span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">rejectOrder 409: the order already expired (deadline_at passed; the server turned it down and voided the authorisation) · the reason form is replaced, Reject order is disabled, Close is offered</span>
+</sc-if>
+<sc-if value="{{open}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; flex-direction: column; gap: 8px; padding: 12px 16px; border-radius: var(--radius-md); background: var(--surface-subtle)">
+<div style="display: flex; align-items: baseline; gap: 8px"><span style="font: var(--text-type-mono-md); font-weight: 500">HG-10482</span><span style="font: var(--text-type-body-sm); color: var(--text-secondary)">Amina K. · Scarborough, under 3 km</span></div>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Countdown" expires-at="2026-09-28T18:02:22-04:00" server-now="2026-09-28T18:00:40-04:00" window-seconds="{{180}}" variant="bar" size="sm" label="Time left to answer"></x-import>
+<span style="font: var(--text-type-body-sm); line-height: 1.45">You can still accept it from the strip above. If time runs out, it's turned down and the customer isn't charged.</span>
+</div>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.RadioGroup" label="Why are you rejecting it?" options="{{reasons}}" required="{{yes}}"></x-import>
+<div style="display: flex; flex-direction: column; gap: 8px; padding: 12px 16px; border-radius: var(--radius-md); border: 1px solid var(--border-decorative)">
+<span style="font: var(--text-type-label-lg)">Which items are unavailable?</span>
+<span style="font: var(--text-type-body-sm); color: var(--text-secondary)">Only if an item is unavailable, and optional. We'll offer to mark them out of stock afterwards; nothing changes on your menu unless you say so.</span>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Checkbox" label="2 × Chicken shawarma plate" checked="{{no}}"></x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Checkbox" label="1 × Lentil soup" checked="{{no}}"></x-import>
+</div>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Note for HalalGoes" max-length="{{500}}" aria-describedby="reject-note-rule"></x-import>
+<span id="reject-note-rule" style="margin-top: -8px; font: var(--text-type-body-sm); color: var(--text-secondary)">Optional for most reasons. Needs at least 20 characters when the reason is Something else.</span>
+<span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">Opens with no reason chosen and no item ticked, so nothing is sent that the restaurant didn't pick · Reject order stays disabled until a reason is chosen</span>
+<span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">rejectOrder: reason_code (required), note, unavailable_menu_item_ids · the order's lines come from listRestaurantOrders · voids the card authorisation, so nothing is charged</span>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"expired":{"editor":"boolean","default":false},"width":{"editor":"int","default":392},"height":{"editor":"int","default":640},"$preview":{"width":392,"height":640}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      yes: true,
+      no: false,
+      expired: !!this.props.expired,
+      open: !this.props.expired,
+      wpx: (this.props.width || 392) + 'px',
+      hpx: (this.props.height || 640) + 'px',
+      // RestaurantRejectReasonCode, in contract order. Labels are the restaurant's words; the code is what is sent.
+      reasons: [
+        { value: 'ITEM_UNAVAILABLE', label: 'An item is unavailable' },
+        { value: 'KITCHEN_AT_CAPACITY', label: 'The kitchen is at capacity' },
+        { value: 'CLOSING_SOON', label: "We're closing soon" },
+        { value: 'EQUIPMENT_FAILURE', label: "Equipment isn't working" },
+        { value: 'ADDRESS_OUT_OF_RANGE', label: 'The delivery address is too far' },
+        { value: 'SUSPECTED_FRAUD', label: 'The order looks suspicious' },
+        { value: 'OTHER', label: 'Something else' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

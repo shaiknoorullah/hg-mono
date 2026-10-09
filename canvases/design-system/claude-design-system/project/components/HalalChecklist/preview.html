@@ -1,0 +1,27 @@
+<!-- @dsCard group="Halal" height=1500 subtitle="A-15 review: H1–H7, PASS/FAIL/unset, H5/H7 locked, gated approve" -->
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>HalalChecklist</title>
+<style>body{margin:0;padding:16px;background:var(--surface-base);color:var(--text-primary);font-family:var(--font-ui)}
+.row{display:flex;flex-wrap:wrap;align-items:center;gap:12px}.col{display:grid;gap:12px}.g2{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;align-items:start}
+.lbl{font-size:var(--type-label-sm-size);letter-spacing:var(--type-label-sm-tracking);font-weight:var(--font-weight-semibold);color:var(--text-tertiary);min-inline-size:88px}
+.stage{position:relative;block-size:200px;border:1px dashed var(--border-decorative);border-radius:var(--radius-lg);overflow:hidden;background:var(--surface-sunken)}</style>
+</head><body><div id="root"></div>
+<script>
+(function () {
+  var h = React.createElement, F = React.Fragment, DS = window.HalalGoesDesignSystem_d11a47;
+  function L(t) { return h('span', { className: 'lbl' }, t); }
+
+  var checks = [
+    { check_key: 'H1_LEGIBLE_COMPLETE', result: 'PASS', overridable: true },
+    { check_key: 'H2_ISSUER_ACCEPTED', result: 'PASS', computed_result: 'PASS', overridable: true },
+    { check_key: 'H3_NAME_MATCH', result: 'FAIL', computed_result: 'PASS', overridable: true, note: 'Legal name on certificate differs from registration.' },
+    { check_key: 'H4_ADDRESS_MATCH', result: 'NOT_ASSESSED', computed_result: 'PASS', overridable: true },
+    { check_key: 'H5_DATES_VALID', result: 'PASS', computed_result: 'PASS', overridable: false },
+    { check_key: 'H6_SCOPE_SUFFICIENT', result: 'NOT_ASSESSED', overridable: true },
+    { check_key: 'H7_UNIQUE_NOT_REUSED', result: 'PASS', computed_result: 'PASS', overridable: false }];
+  var cert = { id: 'hc_01JBX7', status: 'PENDING', checklist_version: 1, certificate_number: 'HMA-2026-04417', issuing_body: { name: 'Halal Monitoring Authority (HMA)' }, certified_legal_name: 'Zaytoun Grill Inc.', certified_address: '1840 Lawrence Ave E, Scarborough ON', issued_on: '2025-11-12', expires_on: '2026-11-12', scope: 'WHOLE_ESTABLISHMENT', checks: checks };
+  function Demo() {
+    return h('div', { style: { maxInlineSize: 760 } }, h(DS.HalalChecklist, { certificate: cert, onRecord: function () {}, onApprove: function () {}, onReject: function () {} }));
+  }
+  ReactDOM.createRoot(document.getElementById('root')).render(h(Demo));
+})();
+</script></body></html>

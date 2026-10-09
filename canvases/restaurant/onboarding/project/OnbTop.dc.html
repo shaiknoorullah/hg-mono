@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Setup header</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<header style="width: {{w}}; height: 64px; box-sizing: border-box; padding: 0 28px; display: flex; align-items: center; gap: 16px; background: var(--surface-base); border-bottom: 1px solid var(--border-decorative); position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: -3px; font-family: var(--font-ui); color: var(--text-primary)">
+<span aria-hidden="true" style="position: absolute; bottom: -11px; right: 28px; z-index: 3; font: 500 11px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 3px 6px; border-radius: 4px; white-space: nowrap">Proposed component: AppBar with brand mark (AppBar has no logo slot)</span>
+<a href="#main" class="skip type-label-lg" style="min-height: 44px; display: inline-flex; align-items: center; padding: 0 16px; border-radius: 12px; background: var(--surface-raised); border: 1.5px solid var(--border-strong)">Skip to main content</a>
+<img src="/_blob/e14b0f4f6297329ccda5f602e4aecfc1" alt="HalalGoes" style="height: 32px; width: 96px">
+<span class="type-body-md" style="color: var(--text-secondary); padding-left: 16px; border-left: 1px solid var(--border-decorative)">Partner setup</span>
+<span style="flex-grow: 1"></span>
+<span class="type-label-lg">{{business}}</span>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Menu" label="Account menu, {{email}}" trigger-text="{{email}}" trigger-variant="plain" align="end" items="{{items}}" hint-size="240px,44px"></x-import>
+</header>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"business": {"editor": "text", "default": "Zaytoun Grill"}, "email": {"editor": "text", "default": "samir@zaytoungrill.ca"}, "w": {"editor": "text", "default": "1440px"}, "$preview": {"width": 1440, "height": 64}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const items = [{ key: 'signout', label: 'Sign out' }];
+    return { w: this.props.w ?? '1440px', business: this.props.business ?? 'Zaytoun Grill', email: this.props.email ?? 'samir@zaytoungrill.ca', items };
+  }
+}
+</script>
+</body>
+</html>

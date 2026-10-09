@@ -1,0 +1,513 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Settings</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div style="position: relative; width: {{rootW}}; height: {{rootH}}; overflow: hidden; display: flex; background: var(--surface-base); font-family: var(--font-ui); color: var(--text-primary)">
+<dc-import name="PartRail" active="settings" collapsed="{{railCollapsed}}" annotate="{{no}}" height="{{H}}" hint-size="232px,900px"></dc-import>
+<div style="flex-grow: 1; min-width: 0; height: {{rootH}}; display: flex; flex-direction: column">
+<dc-import name="PartTop" title="Settings" width="{{colW}}" halal="{{topHalal}}" mode="{{topMode}}" conn="{{topConn}}" accepting="{{yes}}" annotate="{{no}}" sound="{{topSound}}" hint-size="1208px,72px"></dc-import>
+<dc-import name="PartNewOrders" state="{{strip}}" orders-mode="{{topMode}}" orders-note="{{ordersNote}}" annotate="{{no}}" width="{{colW}}" hint-size="1208px,64px"></dc-import>
+
+<sc-if value="{{banner.show}}" hint-placeholder-val="{{false}}">
+<section aria-labelledby="sys-banner-h" style="flex-shrink: 0; margin: 16px 32px 0; display: flex; align-items: center; gap: 16px; padding: 12px 16px 12px 20px; border-radius: var(--radius-md); background: {{banner.bg}}; border: 1px solid {{banner.border}}">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="{{banner.icon}}" size="lg" color="{{banner.iconColor}}"></x-import>
+<div style="display: flex; flex-direction: column; gap: 4px; flex-grow: 1; min-width: 0">
+<h2 id="sys-banner-h" style="margin: 0; font: var(--text-type-heading-sm)">{{banner.title}}</h2>
+<sc-if value="{{banner.body}}" hint-placeholder-val="{{true}}"><p style="margin: 0; font: var(--text-type-body-md); line-height: 1.5">{{banner.body}}</p></sc-if>
+<div style="display: flex; gap: 6px; flex-wrap: wrap">
+<span style="padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">Proposed component: Banner (system slot, persistent: section + heading, no live role)</span>
+<sc-if value="{{banner.needs}}" hint-placeholder-val="{{false}}"><span style="padding: 2px 8px; border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--feedback-info-tint-text); background: var(--feedback-info-tint)">{{banner.needs}}</span></sc-if>
+</div>
+</div>
+<sc-if value="{{banner.action2}}" hint-placeholder-val="{{false}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" href="{{banner.href2}}">{{banner.action2}}</x-import></sc-if>
+<sc-if value="{{banner.action}}" hint-placeholder-val="{{false}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="{{banner.actionVariant}}" size="md" href="{{banner.href}}">{{banner.action}}</x-import></sc-if>
+</section>
+</sc-if>
+
+<div style="flex-grow: 1; min-height: 0; display: flex">
+<sc-if value="{{navShow}}" hint-placeholder-val="{{true}}">
+<nav aria-label="Settings sections" style="width: {{navWpx}}; flex-shrink: 0; box-sizing: border-box; padding: 16px 12px 16px 16px; display: flex; flex-direction: column; gap: 4px; border-right: 1px solid var(--border-decorative)">
+<sc-for list="{{sections}}" as="s" hint-placeholder-count="7">
+<a href="{{s.href}}" aria-current="{{s.current}}" style="position: relative; min-height: 60px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; gap: 2px; padding: 8px 12px; border-radius: var(--radius-sm); background: {{s.bg}}; color: var(--text-primary); text-decoration: none">
+<span style="font: {{s.font}}; font-weight: {{s.fw}}">{{s.title}}</span>
+<sc-if value="{{s.hasStatus}}" hint-placeholder-val="{{true}}"><span style="font: var(--text-type-body-sm); color: var(--text-secondary)">{{s.status}}</span></sc-if>
+<sc-if value="{{s.skeleton}}" hint-placeholder-val="{{false}}"><span aria-hidden="true" style="width: 60%; height: 12px; border-radius: var(--radius-xs); background: var(--skeleton-base)"></span></sc-if>
+</a>
+</sc-for>
+<span style="margin: 8px 12px 0; align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">Proposed component: SectionNav · {{navTag}}</span>
+</nav>
+</sc-if>
+
+<main aria-labelledby="section-h" style="flex-grow: 1; min-width: 0; box-sizing: border-box; padding: 24px 32px; overflow: auto; display: flex; flex-direction: column; gap: 16px">
+<h2 id="section-h" tabindex="-1" style="margin: 0; font: var(--text-type-heading-xl); letter-spacing: -0.01em">{{sectionTitle}}</h2>
+
+<sc-if value="{{isLoading}}" hint-placeholder-val="{{false}}">
+<div aria-busy="true" style="display: flex; flex-direction: column; gap: 16px">
+<span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">Proposed component: Skeleton (section-shaped)</span>
+<dc-import name="PartHalalCard" state="loading" width="{{contentW}}" height="{{420}}" hint-size="840px,420px"></dc-import>
+</div>
+</sc-if>
+
+<sc-if value="{{isError}}" hint-placeholder-val="{{false}}">
+<div role="alert" style="max-width: 640px">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg" padding="32px">
+<div style="display: flex; flex-direction: column; gap: 12px">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="info" size="xl" color="var(--text-secondary)"></x-import>
+<h3 style="margin: 0; font: var(--text-type-heading-lg)">Couldn't load your settings</h3>
+<p style="margin: 0; font: var(--text-type-body-md); line-height: 1.5; color: var(--text-secondary)">Your restaurant and your orders are not affected. Check your connection and try again.</p>
+<div style="display: flex"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" icon-start="refresh">Try again</x-import></div>
+<span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">Proposed component: ErrorState</span>
+</div>
+</x-import>
+</div>
+</sc-if>
+
+<sc-if value="{{sec.halal}}" hint-placeholder-val="{{true}}">
+<dc-import name="PartHalalCard" state="{{halal}}" expires-on="{{expiresOn}}" note="{{halalNote}}" read-only="{{readOnly}}" width="{{contentW}}" height="{{halalH}}" hint-size="840px,440px"></dc-import>
+</sc-if>
+
+<sc-if value="{{sec.account}}" hint-placeholder-val="{{false}}">
+<section aria-labelledby="account-h">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg" padding="24px">
+<div style="display: flex; flex-direction: column; gap: 12px">
+<h3 id="account-h" style="margin: 0; font: var(--text-type-heading-lg); letter-spacing: -0.01em">Your listing</h3>
+<div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="{{acct.tone}}" icon="{{acct.icon}}" size="lg">{{acct.label}}</x-import>
+<span style="font: var(--text-type-body-md)">{{acct.text}}</span>
+</div>
+<sc-if value="{{avail.row}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; flex-direction: column; gap: 12px; padding-top: 12px; border-top: 1px solid var(--border-decorative)">
+<div style="display: flex; align-items: center; gap: 12px; min-height: 52px; flex-wrap: wrap">
+<span style="font: var(--text-type-label-lg)">Orders right now</span>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="{{avail.tone}}" size="md" icon="{{avail.icon}}">{{avail.label}}</x-import>
+<span style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1; min-width: 200px"><span style="font: var(--text-type-body-md)">{{avail.reason}}</span><sc-if value="{{avail.until}}" hint-placeholder-val="{{false}}"><span style="font: var(--text-type-body-sm); color: var(--text-secondary)">{{avail.until}}</span></sc-if></span>
+</div>
+<div style="display: flex; gap: 12px; flex-wrap: wrap">
+<sc-if value="{{avail.resume}}" hint-placeholder-val="{{false}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md">Take orders again</x-import></sc-if>
+<sc-if value="{{avail.pause}}" hint-placeholder-val="{{false}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" icon-start="clock" href="Settings-PauseChoose.dc.html">Pause new orders</x-import></sc-if>
+<sc-if value="{{avail.hours}}" hint-placeholder-val="{{false}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" href="#hours">See your hours</x-import></sc-if>
+<sc-if value="{{avail.orders}}" hint-placeholder-val="{{false}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" href="#orders">Open the Orders page</x-import></sc-if>
+</div>
+<sc-if value="{{avail.missed}}" hint-placeholder-val="{{false}}"><p style="margin: 0; font: var(--text-type-body-sm); color: var(--text-secondary)">{{avail.missed}}</p></sc-if>
+<sc-if value="{{avail.needs}}" hint-placeholder-val="{{false}}"><span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--feedback-info-tint-text); background: var(--feedback-info-tint)">{{avail.needs}}</span></sc-if>
+<span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">getRestaurantAvailability · {{avail.api}} · the reason is server copy, shown verbatim (sample value)</span>
+</div>
+</sc-if>
+<sc-if value="{{avail.noRow}}" hint-placeholder-val="{{false}}">
+<span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--feedback-info-tint-text); background: var(--feedback-info-tint)">"Orders right now" is not shown while account_state is {{acctState}} · Needs API: open_state for accounts that aren't live · the banner above explains the listing</span>
+</sc-if>
+</div>
+</x-import>
+</section>
+</sc-if>
+
+<sc-if value="{{sec.profile}}" hint-placeholder-val="{{false}}">
+<dc-import name="PartProfile" editing="{{editing}}" read-only="{{readOnly}}" read-only-reason="{{roReason}}" incomplete="{{incomplete}}" pending="{{pending}}" width="{{contentW}}" hint-size="840px,900px"></dc-import>
+</sc-if>
+
+<sc-if value="{{sec.documents}}" hint-placeholder-val="{{false}}">
+<dc-import name="PartDocuments" variant="{{docs}}" read-only="{{readOnly}}" width="{{contentW}}" hint-size="840px,640px"></dc-import>
+</sc-if>
+
+<sc-if value="{{sec.device}}" hint-placeholder-val="{{false}}">
+<dc-import name="PartDevice" state="{{deviceState}}" width="{{contentW}}" hint-size="840px,520px"></dc-import>
+</sc-if>
+
+<sc-if value="{{sec.security}}" hint-placeholder-val="{{false}}">
+<section aria-labelledby="security-h" style="max-width: 760px">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg" padding="24px">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<h3 id="security-h" style="margin: 0 0 8px; font: var(--text-type-heading-lg); letter-spacing: -0.01em">Sign-in details</h3>
+<div style="display: flex; flex-direction: column; gap: 4px; padding: 12px 0; border-top: 1px solid var(--border-decorative)">
+<span style="font: var(--text-type-label-lg)">How you sign in</span>
+<span style="font: var(--text-type-body-md); line-height: 1.5">With your email address and password.</span>
+</div>
+<sc-if value="{{secLaunch}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 0; border-top: 1px solid var(--border-decorative)">
+<span style="display: flex; flex-direction: column; gap: 4px; flex-grow: 1; min-width: 240px"><span style="font: var(--text-type-label-lg)">Password</span><span style="font: var(--text-type-body-md); line-height: 1.5">{{pwLine}}</span></span>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" href="Security-ChangePassword.dc.html">Change password</x-import>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px; padding: 12px 0 4px; border-top: 1px solid var(--border-decorative)">
+<span style="font: var(--text-type-label-lg)">Forgot your password?</span>
+<span style="font: var(--text-type-body-md); line-height: 1.5">Sign out, then choose Forgot your password? on the sign-in page. We email you a link to set a new one.</span>
+</div>
+</sc-if>
+<sc-if value="{{secLater}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; gap: 4px; padding: 12px 0; border-top: 1px solid var(--border-decorative)">
+<span style="font: var(--text-type-label-lg)">Two-step sign-in</span>
+<span style="font: var(--text-type-body-md); line-height: 1.5">If you set up two-step sign-in, you also enter a code from your authenticator app when you sign in.</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px; padding: 12px 0 4px; border-top: 1px solid var(--border-decorative)">
+<span style="font: var(--text-type-label-lg)">Lost your authenticator app?</span>
+<span style="font: var(--text-type-body-md); line-height: 1.5">Contact HalalGoes support. A super admin calls you back on the phone number we have on file and checks two details of your account with you, then resets two-step sign-in so you can set it up again. There are no backup codes to keep.</span>
+<div style="display: flex"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="sm" href="Support-Account.dc.html">Contact support</x-import></div>
+</div>
+<span style="align-self: flex-start; margin-top: 8px; padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">Later version · enrollTotp (V1), verifyTotpEnrolment (V1), disableTotp (V1) · restaurant two-step sign-in is out of scope for launch</span>
+<span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">When two-step sign-in ships: no backup codes are issued; a lost authenticator is reset only by a super admin, after calling back the phone number on file and matching two account details (owner decision) · Needs API: an admin reset operation</span>
+<span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--feedback-info-tint-text); background: var(--feedback-info-tint)">Needs API: two-step status for the signed-in account</span>
+</sc-if>
+<sc-if value="{{secLaunch}}" hint-placeholder-val="{{true}}">
+<span style="align-self: flex-start; margin-top: 8px; padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">Launch: email and password · changePassword moved into launch (owner decision; the contract still marks it a later version) · two-step sign-in for restaurants (enrollTotp) and signed-in devices stay later versions, drawn on the Later version page</span>
+</sc-if>
+</div>
+</x-import>
+</section>
+</sc-if>
+
+<sc-if value="{{sec.whatsnew}}" hint-placeholder-val="{{false}}">
+<div style="max-width: 720px">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg" padding="24px">
+<dc-import name="PartWhatsNew" mode="{{wnMode}}" width="{{670}}" height="{{560}}" hint-size="670px,560px"></dc-import>
+</x-import>
+</div>
+</sc-if>
+</main>
+
+<sc-if value="{{panel.show}}" hint-placeholder-val="{{false}}">
+<aside aria-labelledby="panel-h" style="width: {{panelWpx}}; flex-shrink: 0; box-sizing: border-box; display: flex; flex-direction: column; background: var(--surface-raised); border-left: 1px solid var(--border-decorative)">
+<div style="flex-shrink: 0; display: flex; align-items: center; gap: 8px; min-height: 64px; padding: 0 12px 0 24px; border-bottom: 1px solid var(--border-decorative)">
+<h2 id="panel-h" tabindex="-1" style="margin: 0; flex-grow: 1; font: var(--text-type-heading-md)">{{panel.title}}</h2>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.IconButton" icon="close" variant="plain" accessibility-label="{{panel.closeLabel}}"></x-import>
+</div>
+<div style="flex-grow: 1; min-height: 0; overflow: auto; padding: 20px 24px; display: flex; flex-direction: column; gap: 12px">
+<sc-if value="{{panel.edit}}" hint-placeholder-val="{{false}}"><dc-import name="PartEditPanel" group="{{panel.group}}" state="{{panel.state}}" about-state="{{aboutState}}" width="{{panelInnerW}}" hint-size="392px,640px"></dc-import></sc-if>
+<sc-if value="{{panel.renew}}" hint-placeholder-val="{{false}}"><dc-import name="PartRenewalForm" variant="{{panel.renewVariant}}" doc-type="{{panel.docType}}" context="{{panel.context}}" width="{{panelInnerW}}" hint-size="392px,700px"></dc-import></sc-if>
+<sc-if value="{{panel.support}}" hint-placeholder-val="{{false}}"><dc-import name="PartSupport" context="{{panel.supportCtx}}" width="{{panelInnerW}}" height="{{600}}" hint-size="392px,600px"></dc-import></sc-if>
+<sc-if value="{{panel.password}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; gap: 16px">
+<sc-if value="{{pw.failed}}" hint-placeholder-val="{{false}}"><div role="alert" style="display: flex; gap: 12px; padding: 12px 16px; border-radius: var(--radius-md); background: var(--feedback-danger-tint); border: 1px solid var(--feedback-danger-border); color: var(--feedback-danger-tint-text)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="error" size="md" color="var(--feedback-danger-icon)"></x-import><span style="font: var(--text-type-body-md); line-height: 1.5">{{pw.failText}}</span></div></sc-if>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Current password" variant="password" default-value="{{pw.current}}" required="{{yes}}" error-text="{{pw.currentErr}}" read-only="{{pw.saving}}"></x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="New password" variant="password" default-value="{{pw.next}}" required="{{yes}}" autocomplete="new-password" error-text="{{pw.nextErr}}" read-only="{{pw.saving}}" aria-describedby="pw-rule"></x-import>
+<span id="pw-rule" style="margin-top: -8px; font: var(--text-type-body-sm); color: var(--text-secondary)">At least 12 characters. Any characters are fine; we refuse passwords known from data breaches.</span>
+<p style="margin: 0; font: var(--text-type-body-md); line-height: 1.5">Changing it signs you out on every other device, including a kitchen tablet that takes orders. Sign in there again straight away so new orders reach it.</p>
+<span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">changePassword (moved into launch, owner decision) · current_password and new_password · 200 re-issues this session and ends the others · wrong current password: 401 INVALID_CREDENTIALS · weak or breached: 422 on new_password</span>
+</div>
+</sc-if>
+<sc-if value="{{panel.pause}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; gap: 16px">
+<p style="margin: 0; font: var(--text-type-body-md); line-height: 1.5">Customers can still see your menu, but can't order until the pause ends. Orders already waiting keep their full 3 minutes.</p>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.RadioGroup" label="Pause new orders for" options="{{pauseOptions}}" required="{{yes}}"></x-import>
+<span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">Opens with no length chosen, so a quick click can't pause for the whole evening · Pause new orders stays disabled until one is chosen, with the reason before it</span>
+<span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">setRestaurantAcceptingOrders with pause_until · closing time from your hours for today</span>
+<span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--feedback-info-tint-text); background: var(--feedback-info-tint)">Needs API: pause until closing (the server resolves today's closing time, so the browser never works it out)</span>
+</div>
+</sc-if>
+<span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">Proposed component: DetailPanel (in-page, no scrim; the section stays visible beside it)</span>
+<sc-if value="{{tablet}}" hint-placeholder-val="{{false}}"><span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">Kitchen tablet, 1024 × 768: the panel is 380 px, the side navigation stays collapsed, and the section list hides while a panel is open; closing the panel brings it back</span></sc-if>
+</div>
+<sc-if value="{{panel.confirm}}" hint-placeholder-val="{{false}}">
+<div role="alertdialog" aria-labelledby="confirm-h" aria-describedby="confirm-d" style="flex-shrink: 0; display: flex; flex-direction: column; gap: 12px; padding: 16px 24px; border-top: 1px solid var(--border-decorative); background: var(--surface-subtle)">
+<strong id="confirm-h" style="font: var(--text-type-label-lg)">{{panel.confirmTitle}}</strong>
+<span id="confirm-d" style="font: var(--text-type-body-md); line-height: 1.5">{{panel.confirmBody}}</span>
+<div style="display: flex; gap: 12px; justify-content: flex-end">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md">{{panel.confirmKeep}}</x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="danger" size="md" destructive="{{yes}}">{{panel.confirmGo}}</x-import>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{panel.hasFooter}}" hint-placeholder-val="{{false}}">
+<div style="flex-shrink: 0; display: flex; flex-direction: column; gap: 10px; padding: 16px 24px; border-top: 1px solid var(--border-decorative)">
+<sc-if value="{{panel.reason}}" hint-placeholder-val="{{false}}"><span id="send-reason" style="font: var(--text-type-body-sm); color: var(--text-secondary)">{{panel.reason}}</span></sc-if>
+<div style="display: flex; gap: 12px; justify-content: flex-end">
+<sc-for list="{{panel.footer}}" as="f" hint-placeholder-count="2">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="{{f.variant}}" size="md" href="{{f.href}}" loading="{{f.loading}}" disabled="{{f.disabled}}" aria-describedby="{{f.describedBy}}" full-width="{{f.full}}">{{f.label}}</x-import>
+</sc-for>
+</div>
+</div>
+</sc-if>
+</aside>
+</sc-if>
+</div>
+</div>
+
+<sc-if value="{{toast.show}}" hint-placeholder-val="{{false}}">
+<div style="position: absolute; right: 24px; bottom: 24px; width: 420px; z-index: 600; display: flex; flex-direction: column; gap: 8px; align-items: flex-end">
+<sc-if value="{{toast.needs}}" hint-placeholder-val="{{false}}"><span style="padding: 2px 8px; border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--feedback-info-tint-text); background: var(--feedback-info-tint)">{{toast.needs}}</span></sc-if>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Toast" variant="{{toast.variant}}" title="{{toast.title}}" description="{{toast.description}}" action="{{toast.action}}" on-dismiss="{{noop}}" style="width: 100%"></x-import>
+</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"variant":{"editor":"enum","options":["overview","overview-notyet","profile-incomplete","loading","error","security","avail-paused","avail-paused-closing","pause-choose","avail-hours","avail-holiday","avail-toggle","avail-offline","avail-auto-offline","renewal-rejected-live","renewal-review-t1","renewal-review-t0","expiring","expiring-t14","expiring-t7","expiring-t1","expired","revoked","unverified","nocert","absent","delisted","food-expired","pending","suspended","banned","deactivated","closed","renewal-early","renewal-submitted","renewal-review","renewal-rejected","renewal-rejected-dup","renewal-approved","renewal-approved-early","edit-names","edit-names-invalid","edit-names-failed","edit-names-reviewed","edit-conflict","edit-othercard","edit-unknown","edit-contact","edit-contact-error","edit-tax","edit-tax-error","edit-about","edit-about-error","edit-kitchen","edit-kitchen-error","edit-address","edit-address-pin","edit-address-failed","edit-address-sent","edit-names-sent","edit-names-sending","edit-about-sending","edit-about-failed","edit-tax-sending","edit-tax-failed","edit-saving","edit-discard","edit-saved","edit-saved-kitchen","edit-saved-about","edit-saved-contact","edit-saved-tax","renew-first","renew-from-expiring","renew-after-expiry","renew-choose","renew-uploading","renew-failed","renew-type","renew-toolarge","renew-mismatch","renew-cancel","renew-ready","renew-sending","renew-sendfailed","renew-invalid","renew-expired","renew-certifier","renew-locked","renew-tooearly","doc-upload","doc-ready","doc-sent","doc-upload-licence","doc-upload-ownerid","food-expiring","food-rejected","docs-history","docs-loading","docs-error","file-link-error","device-soundoff","device-ask","device-asking","device-blocked","device-nowakelock","device-playing","device-soundblocked","support","support-account","support-halal","wn-page","wn-loading","wn-empty","wn-error","account","profile","documents","device","security-later","security-password","security-password-error","security-password-saving","security-password-failed","security-password-rejected","security-password-saved"],"default":"overview"},"device":{"editor":"enum","options":["desktop","tablet"],"default":"desktop"},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    function inList(x, l) { return l.indexOf(x) >= 0; }
+    var v = this.props.variant || 'overview';
+    var MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    function longDate(iso) { var p = iso.split('-'); return (+p[2]) + ' ' + MONTHS[+p[1] - 1] + ' ' + p[0]; }
+
+    // ---- halal state (RestaurantProfile.halal + the current HALAL_CERTIFICATE document)
+    var hiddenByCert = inList(v, ['expired', 'renewal-review-t0', 'renewal-submitted', 'renewal-review', 'renewal-rejected', 'renewal-rejected-dup', 'support-halal', 'renew-after-expiry']);
+    var halal = 'CERTIFIED', expiresOn = '2026-11-12';
+    // Reminders at 30, 14, 7 and 1 days before expiry (owner decision). Today is 28 September 2026.
+    var EXP = { expiring: '2026-10-28', 'renewal-early': '2026-10-28', 'expiring-t14': '2026-10-12', 'renew-from-expiring': '2026-10-12', 'expiring-t7': '2026-10-05', 'expiring-t1': '2026-09-29', 'renewal-rejected-live': '2026-10-12', 'renewal-review-t1': '2026-09-29' };
+    if (EXP[v]) { halal = 'EXPIRING_SOON'; expiresOn = EXP[v]; }
+    if (hiddenByCert) { halal = 'EXPIRED'; expiresOn = v === 'renewal-review-t0' ? '2026-09-28' : '2026-09-12'; }
+    // On the expiry date itself the certificate is already EXPIRED and the restaurant is off (start of expires_on).
+    if (inList(v, ['overview-notyet', 'renew-tooearly'])) expiresOn = '2027-11-12';
+    // An approved renewal replaces the certificate: the section summary, the panel and Documents all read the new expiry.
+    if (inList(v, ['renewal-approved', 'renewal-approved-early'])) expiresOn = '2027-09-12';
+    if (v === 'unverified' || v === 'pending') halal = 'UNVERIFIED';
+    if (v === 'nocert' || v === 'renew-first') halal = 'nocert';
+    if (v === 'revoked') halal = 'revoked';
+    if (v === 'absent') halal = 'absent';
+    var halalNote = { 'renewal-early': 'early', 'renewal-submitted': 'submitted', 'renewal-review': 'review', 'renewal-rejected': 'rejected', 'renewal-rejected-dup': 'rejected-dup', 'support-halal': 'rejected-dup', 'renewal-approved': 'approved', 'renewal-approved-early': 'approved-early', 'renewal-rejected-live': 'rejected-live', 'renewal-review-t1': 'review-expiring', 'renewal-review-t0': 'review-expiry-day' }[v] || 'none';
+    // No HalalBadge in the app bar for UNVERIFIED, no certificate, a withdrawal or a missing field, nor while the profile is loading or failed.
+    var topHalal = inList(halal, ['nocert', 'UNVERIFIED', 'revoked', 'absent']) || inList(v, ['loading', 'error']) ? 'none' : halal;
+    var docs = { expired: 'expired', 'renewal-early': 'submitted', 'renewal-submitted': 'submitted', 'renewal-review': 'review', 'renewal-rejected': 'rejected', 'renewal-rejected-dup': 'rejected', 'renewal-rejected-live': 'rejected', 'renewal-review-t1': 'review', 'renewal-review-t0': 'review', 'renewal-approved': 'renewed', 'renewal-approved-early': 'renewed', 'food-expired': 'foodExpired', 'food-expiring': 'foodExpiring', 'food-rejected': 'foodRejected', 'docs-history': 'history', 'doc-sent': 'foodSubmitted', nocert: 'nocert', 'docs-loading': 'loading', 'docs-error': 'error' }[v] || 'approved';
+
+    // ---- account and availability
+    var A = {
+      live: { tone: 'neutral', icon: 'check', label: 'Live', text: 'Customers can find your restaurant and order.' },
+      hidden: { tone: 'info', icon: 'info', label: 'Hidden from customers', text: "Customers can't find your restaurant right now." },
+      pending: { tone: 'info', icon: 'clock', label: 'Not live yet', text: 'HalalGoes is still checking your restaurant.' },
+      suspended: { tone: 'warning', icon: 'warning', label: 'Suspended', text: 'No new orders and no payouts while it lasts.' },
+      banned: { tone: 'outline', icon: 'lock', label: 'Banned', text: "This account can't take orders." },
+      deactivated: { tone: 'outline', icon: 'lock', label: 'Deactivated', text: "This account can't take orders." },
+      closed: { tone: 'outline', icon: 'lock', label: 'Closed', text: 'This account is closed.' }
+    };
+    var acct = A.live;
+    if (hiddenByCert || inList(v, ['delisted', 'food-expired', 'revoked'])) acct = A.hidden;
+    if (inList(v, ['pending', 'unverified', 'nocert'])) acct = A.pending;
+    if (inList(v, ['suspended', 'banned', 'deactivated', 'closed'])) acct = A[v];
+    var AV = {
+      open: { tone: 'neutral', icon: 'check', label: 'Open', reason: 'Open. Your hours today end at 11:00 pm.', pause: true, api: 'open_state OPEN' },
+      paused: { tone: 'warning', icon: 'clock', label: 'Paused', reason: 'Orders are paused.', until: 'Paused until 6:30 pm today', resume: true, api: 'open_state PAUSED · pause_until 6:30 pm · resolvable_by RESTAURANT or TIME', needs: 'Needs API: who paused and when (paused_by, paused_at)' },
+      pausedClosing: { tone: 'warning', icon: 'clock', label: 'Paused', reason: 'Orders are paused until you close today.', until: 'Paused until closing, 11:00 pm today', resume: true, api: 'open_state PAUSED · pause_until = closing time', needs: 'Needs API: pause until closing' },
+      hours: { tone: 'outline', icon: 'clock', label: 'Closed', reason: 'Closed until 11:00 am tomorrow, when your hours start.', hours: true, api: 'open_state CLOSED_HOURS · resolvable_by TIME' },
+      holiday: { tone: 'outline', icon: 'clock', label: 'Closed', reason: 'Closed today for a holiday. You open again tomorrow at 11:00 am.', hours: true, api: 'open_state CLOSED_HOLIDAY · resolvable_by TIME' },
+      toggle: { tone: 'outline', icon: 'info', label: 'Off', reason: "Ordering is turned off. Customers can see your menu but can't order.", resume: true, api: 'open_state CLOSED_TOGGLE · is_accepting_orders false' },
+      offline: { tone: 'warning', icon: 'warning', label: 'Offline', reason: 'This screen lost its connection to HalalGoes at 6:41 pm, so no new orders are being offered. Check the internet connection. It reconnects by itself.', api: 'open_state CLOSED_OFFLINE · every page that shows the orders strip sends sendRestaurantHeartbeat every 30 s, so no heartbeat for 5 minutes means this browser lost its connection · is_accepting_orders unchanged' },
+      auto: { tone: 'warning', icon: 'warning', label: 'Off', reason: "Ordering was turned off after 2 orders in a row weren't answered in time.", missed: 'Missed in a row: 2. Accepting any order resets this.', resume: true, api: 'open_state CLOSED_TOGGLE · missed_order_count 2' },
+      hidden: { row: false, noRow: true },
+      suspended: { tone: 'outline', icon: 'lock', label: 'Closed', reason: 'No new orders while your account is suspended.', api: 'open_state CLOSED_SUSPENDED · account_state SUSPENDED · resolvable_by ADMIN' },
+      banned: { tone: 'outline', icon: 'lock', label: 'Closed', reason: 'No new orders while this account is banned.', api: 'open_state CLOSED_SUSPENDED · account_state BANNED' },
+      deactivated: { tone: 'outline', icon: 'lock', label: 'Closed', reason: 'No new orders while this account is deactivated.', api: 'open_state CLOSED_SUSPENDED · account_state DEACTIVATED' },
+      closed: { tone: 'outline', icon: 'lock', label: 'Closed', reason: 'No new orders while this account is closed.', api: 'open_state CLOSED_SUSPENDED · account_state CLOSED' }
+    };
+    var avail = { 'avail-paused': AV.paused, 'avail-paused-closing': AV.pausedClosing, 'avail-hours': AV.hours, 'avail-holiday': AV.holiday, 'avail-toggle': AV.toggle, 'avail-offline': AV.offline, 'avail-auto-offline': AV.auto }[v] || AV.open;
+    if (acct === A.hidden || acct === A.pending) avail = AV.hidden;
+    if (inList(v, ['suspended', 'banned', 'deactivated', 'closed'])) avail = AV[v];
+    avail = Object.assign({ row: true, noRow: false, tone: 'outline', label: '', reason: '', api: '', resume: false, pause: false, hours: false, orders: false, until: null, missed: null, needs: null, icon: undefined }, avail);
+    var readOnly = inList(v, ['suspended', 'closed', 'banned', 'deactivated']);
+
+    // ---- banners (one system slot)
+    var slate = { bg: 'var(--surface-subtle)', border: 'var(--border-decorative)', icon: 'info', iconColor: 'var(--text-secondary)' };
+    var warn = { bg: 'var(--feedback-warning-tint)', border: 'var(--feedback-warning-border)', icon: 'warning', iconColor: 'var(--feedback-warning-icon)' };
+    var inf = { bg: 'var(--feedback-info-tint)', border: 'var(--feedback-info-border)', icon: 'info', iconColor: 'var(--feedback-info-icon)' };
+    var B = null;
+    // Owner decision: the expiring-soon badge reads "Halal certified · expires 28 Oct". The design system's HalalBadge has one fixed label, so the change is requested there.
+    var shortExp = (+expiresOn.split('-')[2]) + ' ' + MONTHS[+expiresOn.split('-')[1] - 1].slice(0, 3);
+    var CAD = 'Reminders at 30, 14, 7 and 1 days before expiry · the app bar badge reads "Halal certified · expires ' + shortExp + '" (owner decision; HalalBadge label update requested in the design system)';
+    function up(href) { return { action: 'Upload renewed certificate', actionVariant: 'primary', href: href || 'Renew-FromExpiring.dc.html', needs: CAD }; }
+    if (v === 'expiring') B = Object.assign({ title: 'Your halal certificate expires on 28 October 2026', body: 'Upload the renewed certificate before then so customers can keep finding you.' }, warn, up());
+    if (v === 'expiring-t14') B = Object.assign({ title: 'Your halal certificate expires on 12 October 2026', body: "Upload the renewed certificate before then so customers can keep finding you. We've emailed you too." }, warn, up());
+    if (v === 'expiring-t7') B = Object.assign({ title: 'Your halal certificate expires in 7 days, on 5 October 2026', body: 'Reviews can take up to 3 business days. Upload the renewed certificate this week so customers can keep finding you.' }, warn, up());
+    if (v === 'expiring-t1') B = Object.assign({ title: 'Your halal certificate expires tomorrow, 29 September 2026', body: "Unless a reviewer approves a renewed certificate first, customers can't see your restaurant from tomorrow. Upload it now." }, warn, up());
+    if (v === 'expired') B = Object.assign({ title: "Customers can't see your restaurant right now", body: 'Your halal certificate expired on 12 September 2026. Upload a renewed certificate. Your restaurant comes back when a reviewer approves it.' }, slate, up('Renew-AfterExpiry.dc.html'), { needs: null });
+    if (v === 'revoked') B = Object.assign({ title: "Customers can't see your restaurant right now", body: 'Your halal certificate was withdrawn by a HalalGoes reviewer. The details are under Halal certification.', needs: 'Future state · Needs API: withdrawal state and date for the restaurant' }, slate);
+    if (v === 'renewal-rejected-live') B = Object.assign({ title: "Your renewed certificate wasn't accepted", body: "Customers can still find you until 12 October 2026, when your current certificate expires. Upload a corrected certificate before then. The reviewer's note is under Halal certification." }, warn, { action: "See the reviewer's note", actionVariant: 'tertiary', href: '#halal' });
+    if (v === 'renewal-review-t1') B = Object.assign({ title: 'Your halal certificate expires tomorrow, 29 September 2026', body: null }, warn, { action: 'Contact support', actionVariant: 'tertiary', href: 'Support-Halal.dc.html', needs: 'Document locked while in review · 3 business days is the review time we quote, not a promise' });
+    if (v === 'renewal-review-t0') B = Object.assign({ title: "Customers can't see your restaurant right now", body: 'Your halal certificate expired today, 28 September 2026.' }, slate, { action: 'Contact support', actionVariant: 'tertiary', href: 'Support-Halal.dc.html' });
+    if (v === 'avail-auto-offline') B = Object.assign({ title: "Ordering was turned off because 2 orders weren't answered", body: "Both orders were turned down and the customers' cards were not charged. Turn ordering back on under Account when someone is watching the order screen." }, warn, { action: 'Open the Orders page', actionVariant: 'tertiary', href: '#orders', needs: 'Two expired offers in a row switch is_accepting_orders off; the restaurant turns it back on' });
+    if (v === 'avail-offline') B = Object.assign({ title: 'No orders are coming in: this screen is offline', body: 'This screen lost its connection to HalalGoes at 6:41 pm, so no new orders are being offered. Check the internet connection. It reconnects by itself.' }, warn, { needs: 'Every page with the orders strip sends sendRestaurantHeartbeat every 30 s · clears by itself when this page reconnects' });
+    // The renewal note under Halal certification carries the detail, so these banners keep the title only.
+    if (v === 'renewal-submitted' || v === 'renewal-review') B = Object.assign({ title: "Customers can't see your restaurant right now", body: null }, slate);
+    if (v === 'renewal-rejected' || v === 'renewal-rejected-dup') B = Object.assign({ title: "Customers can't see your restaurant right now", body: null }, slate);
+    // Food safety: the fix sits in the banner slot as the one primary action; the row's own button stays tertiary.
+    if (v === 'food-expiring') B = Object.assign({ title: 'Your food safety certificate expires on 12 October 2026', body: "Upload the renewed one before then. If it expires, customers can't see your restaurant until a reviewer approves a new one." }, warn, { action: 'Upload renewed certificate', actionVariant: 'primary', href: 'Doc-Upload.dc.html' });
+    if (v === 'food-rejected') B = Object.assign({ title: 'Your food safety certificate needs a new upload', body: "The reviewer couldn't read the inspection date. Their note is on the certificate below." }, warn, { action: 'Upload a new version', actionVariant: 'primary', href: 'Doc-Upload.dc.html' });
+    if (v === 'food-expired') B = Object.assign({ title: "Customers can't see your restaurant right now", body: 'Your food safety certificate expired on 20 September 2026. Upload a renewed one. Your restaurant comes back when a reviewer approves it.', action: 'Upload food safety certificate', actionVariant: 'primary', href: 'Doc-Upload.dc.html' }, slate);
+    if (v === 'delisted') B = Object.assign({ title: "Customers can't see your restaurant right now", body: 'This clears by itself when the cause is fixed. Contact support to find out what is needed.', action: 'Contact support', actionVariant: 'tertiary', href: 'Support-Account.dc.html', needs: 'Needs API: why a restaurant is delisted' }, slate);
+    if (v === 'pending') B = Object.assign({ title: "Your restaurant isn't live yet", body: "Customers can't see it until HalalGoes approves your documents and your menu. Documents are reviewed within 3 business days.", action: 'See what is left to do', actionVariant: 'tertiary', href: '#onboarding' }, inf);
+    // Opening hours stay editable while suspended (owner decision), so the banner points to them.
+    if (v === 'suspended') B = Object.assign({ title: 'Your account is suspended', body: 'Orders already in progress still complete. You receive no new orders, and payouts are paused. You can read your details but not change them. You can still update your opening hours on the Hours page.', action2: 'Go to Hours', href2: '#hours', action: 'Contact support', actionVariant: 'tertiary', href: 'Support-Account.dc.html', needs: 'Needs API: suspension reason (none is shown until then)' }, warn);
+    if (v === 'banned') B = Object.assign({ title: 'This restaurant account is banned', body: "It can't take orders or be changed. Your records stay available to read. Contact support if you think this is a mistake.", action: 'Contact support', actionVariant: 'tertiary', href: 'Support-Account.dc.html', needs: 'Needs API: ban reason' }, slate);
+    if (v === 'deactivated') B = Object.assign({ title: 'This restaurant account is deactivated', body: "It can't take orders. Your records stay available to read. Contact support to reactivate it.", action: 'Contact support', actionVariant: 'tertiary', href: 'Support-Account.dc.html' }, slate);
+    if (v === 'closed') B = Object.assign({ title: 'This restaurant account is closed', body: 'You can read your records. Nothing can be changed, and no orders can be placed.', action: 'Contact support', actionVariant: 'tertiary', href: 'Support-Account.dc.html' }, slate);
+    var banner = B ? Object.assign({ show: true, body: null, needs: null, action: null, actionVariant: 'tertiary', href: undefined, action2: null, href2: undefined }, B) : { show: false };
+
+    var hiddenStates = hiddenByCert || inList(v, ['delisted', 'food-expired', 'pending', 'unverified', 'nocert', 'revoked']);
+    var topMode = inList(v, ['suspended', 'closed', 'banned', 'deactivated']) ? 'readonly' : (hiddenStates ? 'hidden' : (inList(v, ['avail-toggle', 'avail-auto-offline']) ? 'off' : 'open'));
+    var acctState = hiddenStates ? (inList(v, ['pending', 'unverified', 'nocert']) ? 'PENDING' : 'DELISTED') : 'LIVE';
+
+    // ---- which section is open
+    var section = 'halal';
+    if (v.indexOf('avail-') === 0 || inList(v, ['account', 'pause-choose', 'suspended', 'banned', 'deactivated', 'closed', 'delisted', 'pending', 'support', 'support-account'])) section = 'account';
+    if (v === 'profile' || v === 'profile-incomplete' || v.indexOf('edit-') === 0) section = 'profile';
+    if (v.indexOf('doc-') === 0 || v.indexOf('docs-') === 0 || inList(v, ['documents', 'food-expiring', 'food-rejected', 'food-expired', 'file-link-error'])) section = 'documents';
+    if (v === 'device' || v.indexOf('device-') === 0) section = 'device';
+    if (v === 'security' || v === 'security-later' || v.indexOf('security-password') === 0) section = 'security';
+    if (v.indexOf('wn-') === 0) section = 'whatsnew';
+    var isLoading = v === 'loading', isError = v === 'error';
+
+    // ---- panel (edit, upload, support, pause)
+    var editVariants = ['edit-names-sending', 'edit-about-sending', 'edit-about-failed', 'edit-tax-sending', 'edit-tax-failed', 'edit-about-error', 'edit-names', 'edit-names-invalid', 'edit-names-failed', 'edit-names-reviewed', 'edit-conflict', 'edit-othercard', 'edit-unknown', 'edit-contact', 'edit-contact-error', 'edit-tax', 'edit-tax-error', 'edit-about', 'edit-kitchen', 'edit-kitchen-error', 'edit-address', 'edit-address-pin', 'edit-address-failed', 'edit-saving', 'edit-discard'];
+    var isEdit = inList(v, editVariants);
+    var isRenew = v.indexOf('renew-') === 0 || v.indexOf('doc-upload') === 0 || v === 'doc-ready';
+    var isDoc = v.indexOf('doc-upload') === 0 || v === 'doc-ready';
+    var docType = { 'doc-upload-licence': 'BUSINESS_LICENCE', 'doc-upload-ownerid': 'OWNER_ID' }[v] || (isDoc ? 'FOOD_SAFETY' : 'HALAL_CERTIFICATE');
+    var group = { 'edit-names-sending': 'legal', 'edit-about-sending': 'about', 'edit-about-failed': 'about', 'edit-tax-sending': 'tax', 'edit-tax-failed': 'tax', 'edit-about-error': 'about', 'edit-contact': 'contact', 'edit-contact-error': 'contact', 'edit-tax': 'tax', 'edit-tax-error': 'tax', 'edit-about': 'about', 'edit-kitchen': 'kitchen', 'edit-kitchen-error': 'kitchen', 'edit-address': 'address', 'edit-address-pin': 'address', 'edit-address-failed': 'address', 'edit-names-reviewed': 'legal', 'edit-names-invalid': 'legal', 'edit-names-failed': 'legal' }[v] || 'names';
+    // Sending and send-failed for every reviewed request (owner decision: names, address, description and GST/HST number are reviewed).
+    var estate = { 'edit-names-sending': 'saving', 'edit-about-sending': 'saving', 'edit-tax-sending': 'saving', 'edit-about-failed': 'failed', 'edit-tax-failed': 'failed', 'edit-names-invalid': 'invalid', 'edit-names-failed': 'failed', 'edit-address-failed': 'failed', 'edit-address-pin': 'pin', 'edit-conflict': 'conflict', 'edit-othercard': 'othercard', 'edit-unknown': 'unknown', 'edit-contact-error': 'error', 'edit-tax-error': 'error', 'edit-kitchen-error': 'error', 'edit-saving': 'saving' }[v] || 'default';
+    var TITLES = { names: 'Edit owner name', legal: 'Request a name change', contact: 'Edit phone numbers', address: 'Request an address change', tax: 'Request a GST/HST number change', about: 'Request a description change', kitchen: 'Edit kitchen' };
+    var renewVariant = { 'renew-choose': 'choose', 'renew-first': 'choose', 'renew-from-expiring': 'choose', 'renew-after-expiry': 'choose', 'renew-uploading': 'uploading', 'renew-failed': 'failed', 'renew-type': 'type', 'renew-toolarge': 'toolarge', 'renew-mismatch': 'mismatch', 'renew-cancel': 'uploading', 'renew-ready': 'ready', 'renew-sending': 'sending', 'renew-sendfailed': 'sendfailed', 'renew-invalid': 'invalid', 'renew-expired': 'expired', 'renew-certifier': 'certifier', 'renew-locked': 'locked', 'renew-tooearly': 'tooearly', 'doc-upload': 'choose', 'doc-upload-licence': 'choose', 'doc-upload-ownerid': 'ready', 'doc-ready': 'ready' }[v] || 'choose';
+    var renewContext = { 'renew-first': 'first', 'renew-from-expiring': 'expiring', 'renew-after-expiry': 'expired' }[v] || 'renewal';
+    var isSupport = inList(v, ['support', 'support-account', 'support-halal']);
+    var panel = { show: false, edit: false, renew: false, support: false, pause: false, password: false, confirm: false, hasFooter: false, footer: [], reason: null, title: '', closeLabel: 'Close panel', group: group, state: estate, renewVariant: renewVariant, docType: docType, context: renewContext, supportCtx: 'general' };
+    function btn(variant, label, o) { return Object.assign({ variant: variant, label: label, href: undefined, loading: undefined, disabled: false, describedBy: undefined, full: false }, o || {}); }
+    if (isEdit) {
+      // Reviewed changes (owner decisions): the name customers see and the legal name, the address, the description and the GST/HST number.
+      var sendsRequest = inList(group, ['legal', 'address', 'about', 'tax']);
+      var SENT = { address: 'Edit-AddressSent.dc.html', legal: 'Edit-NamesSent.dc.html', about: 'Edit-SavedAbout.dc.html', tax: 'Edit-SavedTax.dc.html' };
+      panel = Object.assign(panel, { show: true, edit: true, title: TITLES[group], closeLabel: 'Close without saving', hasFooter: v !== 'edit-discard', footer: [btn('tertiary', 'Cancel', { href: 'Edit-Discard.dc.html' }), btn('primary', sendsRequest ? 'Send for review' : 'Save', { loading: estate === 'saving', href: estate === 'saving' ? undefined : (sendsRequest ? SENT[group] : 'Edit-Saved.dc.html') })] });
+      if (v === 'edit-discard') panel = Object.assign(panel, { confirm: true, confirmTitle: 'Discard your changes?', confirmBody: "You changed the owner's name. Nothing has been saved yet.", confirmKeep: 'Keep editing', confirmGo: 'Discard changes' });
+    }
+    if (isRenew) {
+      var SHEET_TITLE = { FOOD_SAFETY: 'Upload food safety certificate', BUSINESS_LICENCE: 'Upload business licence', OWNER_ID: 'Upload owner ID' };
+      var filled = inList(renewVariant, ['ready', 'sendfailed', 'invalid', 'expired', 'certifier', 'tooearly']);
+      var sending = renewVariant === 'sending';
+      var canSend = filled || sending;
+      var reason = null;
+      if (renewVariant === 'locked') reason = 'A review is in progress. You can send another once it is finished.';
+      else if (!canSend) reason = 'Upload the file' + (docType === 'BUSINESS_LICENCE' ? '' : (docType === 'HALAL_CERTIFICATE' ? ', choose the certifying body and enter its expiry date' : ' and enter its expiry date')) + ' to send it.';
+      panel = Object.assign(panel, { show: true, renew: true, title: isDoc ? SHEET_TITLE[docType] : (renewContext === 'first' ? 'Upload your halal certificate' : 'Upload renewed halal certificate'), closeLabel: 'Close without sending', hasFooter: v !== 'renew-cancel', reason: reason, footer: [btn('tertiary', 'Cancel'), btn('primary', 'Send for review', { disabled: !canSend, loading: sending, href: canSend && !sending ? (isDoc ? 'Doc-Sent.dc.html' : 'Renewal-Submitted.dc.html') : undefined })] });
+      if (v === 'renew-cancel') panel = Object.assign(panel, { confirm: true, confirmTitle: 'Cancel this upload?', confirmBody: 'The file stops uploading and nothing is sent to HalalGoes.', confirmKeep: 'Keep uploading', confirmGo: 'Cancel upload' });
+    }
+    if (isSupport) panel = Object.assign(panel, { show: true, support: true, supportCtx: v === 'support-account' ? 'account' : (v === 'support-halal' ? 'halal' : 'general'), title: 'Contact support', closeLabel: 'Close contact support', hasFooter: true, footer: [btn('tertiary', 'Close', { full: true, href: v === 'support-halal' ? 'Renewal-RejectedDuplicate.dc.html' : 'Settings-Overview.dc.html' })] });
+    var isPw = inList(v, ['security-password', 'security-password-error', 'security-password-saving', 'security-password-failed', 'security-password-rejected']);
+    if (isPw) panel = Object.assign(panel, { show: true, password: true, title: 'Change password', closeLabel: 'Close without changing', hasFooter: true, footer: [btn('tertiary', 'Cancel', { href: 'Settings-Security.dc.html' }), btn('primary', 'Change password', { loading: v === 'security-password-saving', href: v === 'security-password-saving' ? undefined : 'Security-PasswordSaved.dc.html' })] });
+    if (v === 'pause-choose') panel = Object.assign(panel, { show: true, pause: true, title: 'Pause new orders', closeLabel: 'Close without pausing', hasFooter: true, reason: 'Choose how long to pause.', footer: [btn('tertiary', 'Cancel', { href: 'Settings-Account.dc.html' }), btn('primary', 'Pause new orders', { disabled: true, describedBy: 'send-reason' })] });
+    panel = Object.assign({ confirmTitle: '', confirmBody: '', confirmKeep: '', confirmGo: '' }, panel);
+
+    // Kitchen tablet: landscape 1024 × 768 and up (owner decision). The side navigation stays collapsed and the panel is 380 px, as on Live Orders.
+    var tablet = this.props.device === 'tablet';
+    var W = tablet ? 1024 : 1440, H = tablet ? 768 : 900, panelW = tablet ? 380 : 440;
+    var railCollapsed = tablet || panel.show;
+    var railW = railCollapsed ? 72 : 232;
+    var colW = W - railW;
+    // While a panel is open the section list keeps its titles only, so the section beside it keeps two columns. On the tablet it hides instead.
+    var navShow = !(tablet && panel.show);
+    var navW = !navShow ? 0 : (tablet ? 240 : (panel.show ? 200 : 280));
+    var contentW = colW - navW - (panel.show ? panelW : 0) - 64;
+
+    // ---- section list: one-line summaries (text only; no halal colours, no claim without data)
+    var HSUM = { CERTIFIED: 'Certified · valid until ' + longDate(expiresOn), EXPIRING_SOON: 'Expires on ' + longDate(expiresOn), EXPIRED: 'Expired on ' + longDate(expiresOn), UNVERIFIED: 'Not verified yet', nocert: 'No certificate on record', revoked: 'Withdrawn by a reviewer', absent: "Status couldn't load" };
+    var hsum = HSUM[halal];
+    if (inList(halalNote, ['submitted', 'review', 'review-expiring', 'review-expiry-day', 'early'])) hsum += ' · renewal in review';
+    if (inList(halalNote, ['rejected', 'rejected-dup', 'rejected-live'])) hsum += ' · renewal not accepted';
+    var asum = acct.label + (avail.row ? ' · ' + ({ Open: 'open until 11:00 pm', Paused: avail === AV.pausedClosing ? 'paused until closing' : 'paused until 6:30 pm', Closed: 'closed', Off: 'ordering off', Offline: 'order screen offline' }[avail.label] || avail.label.toLowerCase()) : '');
+    var DSUM = { foodExpiring: 'Food safety expires 12 October 2026', foodExpired: 'Food safety certificate expired', foodRejected: 'Food safety needs a new upload', foodSubmitted: 'Food safety sent for review', loading: 'Loading', error: "Couldn't load", nocert: 'Halal certificate missing', expired: 'Halal certificate expired', rejected: 'Halal certificate needs a new upload', submitted: 'Halal certificate sent for review', review: 'Halal certificate in review' };
+    var devState = { 'device-soundoff': 'soundoff', 'device-ask': 'ask', 'device-asking': 'asking', 'device-blocked': 'blocked', 'device-nowakelock': 'nowakelock', 'device-playing': 'playing', 'device-soundblocked': 'sound-blocked' }[v] || 'ok';
+    var devSum = { soundoff: 'Order sound off', ask: 'Sound on · notifications not on', asking: 'Sound on · notifications not on', blocked: 'Sound on · notifications blocked', nowakelock: "Sound on · screen can't stay on", 'sound-blocked': 'Sound blocked by the browser' }[devState] || 'Sound on · notifications allowed';
+    var defs = [
+      { key: 'halal', title: 'Halal certification', status: hsum, href: 'Settings-Overview.dc.html' },
+      { key: 'account', title: 'Account', status: asum, href: 'Settings-Account.dc.html' },
+      { key: 'profile', title: 'Business profile', status: v === 'profile-incomplete' ? 'Description missing' : 'Complete', href: 'Settings-Profile.dc.html' },
+      { key: 'documents', title: 'Documents', status: DSUM[docs] || 'All approved', href: 'Settings-Documents.dc.html' },
+      { key: 'device', title: 'This device', status: devSum, href: 'Settings-Device.dc.html' },
+      { key: 'security', title: 'Sign-in and security', status: 'Sign-in details', href: 'Settings-Security.dc.html' },
+      { key: 'whatsnew', title: "What's new", status: 'Version 1.4.0', href: 'WhatsNew-Page.dc.html' }
+    ];
+    var sections = defs.map(function (d) {
+      var on = d.key === section && !isLoading && !isError;
+      return { title: d.title, status: d.status, href: d.href, active: on, current: on ? 'page' : null, bg: on ? 'var(--state-selected-tint)' : 'transparent', font: on ? 'var(--text-type-label-lg)' : 'var(--text-type-body-md)', fw: on ? 700 : 400, hasStatus: !isLoading && !isError && !panel.show, skeleton: isLoading };
+    });
+    var SECTION_TITLE = { halal: 'Halal certification', account: 'Account', profile: 'Business profile', documents: 'Documents', device: 'This device', security: 'Sign-in and security', whatsnew: "What's new" };
+    var sec = {};
+    if (!isLoading && !isError) sec[section] = true;
+
+    // ---- toasts
+    var T = {
+      'edit-saved': { variant: 'success', title: 'Owner name saved', description: "HalalGoes uses it when we contact you. Customers don't see it." },
+      'edit-saved-kitchen': { variant: 'success', title: 'Preparation time saved', description: 'New orders use 25 minutes from now on. Orders already accepted keep their time.' },
+      'edit-saved-about': { variant: 'info', title: 'Description change sent for review', description: "HalalGoes checks it within 3 business days. Customers see your current description until it's approved.", needs: 'Needs API: a reviewed description change' },
+      'edit-saved-contact': { variant: 'success', title: 'Phone numbers saved', description: 'HalalGoes calls (416) 555-0134 about orders and your account.' },
+      'edit-saved-tax': { variant: 'info', title: 'GST/HST number change sent for review', description: "HalalGoes checks it within 3 business days. Receipts keep your current number until it's approved.", needs: 'Needs API: a reviewed GST/HST number change' },
+      'security-password-saved': { variant: 'success', title: 'Password changed', description: "Sign in again on your order screen if it isn't this one. Other devices are signed out." },
+      'edit-names-sent': { variant: 'info', title: 'Name change sent for review', description: "HalalGoes checks it within 3 business days. Your current names stay until the change is approved.", needs: 'Needs API: a reviewed change for the name customers see and the legal name' },
+      'edit-address-sent': { variant: 'info', title: 'Address change sent for review', description: 'HalalGoes checks it against your certificates within 3 business days. Your current address stays until it is approved.', needs: 'Needs API: reviewed address change (re-verification)' },
+      'doc-sent': { variant: 'success', title: 'Food safety certificate sent for review', description: 'A reviewer checks it within 3 business days.', needs: 'Needs API: review of a single document after onboarding' },
+      'renewal-submitted': { variant: 'success', title: 'Renewed certificate sent for review', description: 'A reviewer checks it within 3 business days.', needs: 'Needs API: review of a single document after onboarding' },
+      'file-link-error': { variant: 'danger', title: "Couldn't open the file", description: 'The download link expired or the connection dropped.', action: { label: 'Try again', onAction: function () {} } }
+    };
+    var toast = T[v] ? Object.assign({ show: true, action: undefined, needs: null }, T[v]) : { show: false, needs: null };
+
+    var wn = { 'wn-page': 'all', 'wn-loading': 'loading', 'wn-empty': 'empty', 'wn-error': 'error' }[v];
+    // With a renewal note the note comes first and the panel is compact, so the section fits the space under the banner.
+    var halalH = halalNote !== 'none' ? 560 : (inList(halal, ['nocert', 'UNVERIFIED']) ? 340 : (halal === 'revoked' ? 440 : 520));
+    return {
+      yes: true,
+      no: false,
+      noop: function () {},
+      tablet: tablet,
+      rootW: W + 'px',
+      rootH: H + 'px',
+      H: H,
+      panelWpx: panelW + 'px',
+      panelInnerW: panelW - 48,
+      navShow: navShow,
+      railCollapsed: railCollapsed,
+      navWpx: navW + 'px',
+      navTag: panel.show ? 'titles only while a panel is open' : 'each line is a one-line summary; the section opens beside it',
+      editing: isEdit ? ({ legal: 'names' }[group] || group) : 'none',
+      secLater: v === 'security-later',
+      secLaunch: v !== 'security-later',
+      colW: colW,
+      contentW: contentW,
+      topHalal: topHalal,
+      topMode: topMode,
+      topConn: v === 'avail-offline' ? 'offline' : 'live',
+      topSound: v === 'device-soundoff' ? 'off' : 'on',
+      strip: v === 'avail-offline' ? 'offline' : 'empty',
+      acctState: acctState,
+      banner: banner,
+      sections: sections,
+      sectionTitle: isLoading ? 'Settings' : (isError ? 'Settings' : SECTION_TITLE[section]),
+      sec: sec,
+      isLoading: isLoading,
+      isError: isError,
+      halal: halal,
+      expiresOn: expiresOn,
+      halalNote: halalNote,
+      halalH: halalH,
+      readOnly: readOnly,
+      incomplete: v === 'profile-incomplete',
+      pending: { 'edit-names-sent': 'legal', 'edit-address-sent': 'address', 'edit-saved-about': 'about', 'edit-saved-tax': 'tax' }[v] || 'none',
+      pwLine: v === 'security-password-saved' ? 'Changed today, 28 September 2026.' : 'Change it here at any time. You need your current password.',
+      pw: { failed: v === 'security-password-failed', failText: "Couldn't change your password. Nothing was changed. Check your connection and try again.", current: v === 'security-password' ? '' : '••••••••••••', next: v === 'security-password' ? '' : '••••••••••••••', currentErr: v === 'security-password-error' ? "That isn't your current password. Check it and try again." : null, nextErr: v === 'security-password-rejected' ? 'This password appears in known data breaches. Choose a different one.' : null, saving: v === 'security-password-saving' },
+      aboutState: v === 'edit-about-error' ? 'error' : 'default',
+      // The Orders switch keeps the stored value; its description says what is happening now, so it never contradicts the page.
+      ordersNote: { 'avail-paused': 'Paused until 6:30 pm', 'avail-paused-closing': 'Paused until closing, 11:00 pm', 'avail-hours': 'Closed until 11:00 am (your hours)', 'avail-holiday': 'Closed today (holiday)', 'avail-offline': 'Connection lost at 6:41 pm' }[v] || '',
+      roReason: 'Read-only while your account is ' + ({ closed: 'closed.', banned: 'banned.', deactivated: 'deactivated.' }[v] || 'suspended.'),
+      acct: acct,
+      avail: avail,
+      docs: docs,
+      deviceState: devState,
+      wnMode: wn || 'all',
+      pauseOptions: [
+        { value: '15', label: '15 minutes', description: 'Until 6:15 pm' },
+        { value: '30', label: '30 minutes', description: 'Until 6:30 pm' },
+        { value: '60', label: '1 hour', description: 'Until 7:00 pm' },
+        { value: 'closing', label: 'Until closing', description: 'Until 11:00 pm today, when your hours end' }
+      ],
+      panel: panel,
+      toast: toast
+    };
+  }
+}
+</script>
+</body>
+</html>

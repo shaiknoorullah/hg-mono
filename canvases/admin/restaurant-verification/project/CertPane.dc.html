@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Document viewer pane</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div style="display: {{tagWrap}}; flex-direction: column; gap: 6px">
+<sc-if value="{{showTag}}" hint-placeholder-val="{{false}}"><span style="display: inline-flex; align-self: flex-start; padding: 2px 8px; border-radius: 4px; background: var(--color-info-50); color: var(--color-info-700); font-size: 12px; font-weight: 600">Proposed component: CertPane (DS IconButton, Button and Icon toolbar, the proposed InlineAlert; the scan scrolls inside the pane)</span></sc-if>
+<section id="certificate" aria-labelledby="scan-h" style="width: {{w}}px; height: {{h}}px; flex: 0 0 auto; box-sizing: border-box; display: flex; flex-direction: column; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: 16px; overflow: hidden; font-family: var(--font-ui); color: var(--text-primary)">
+  <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 12px 8px 16px; border-bottom: 1px solid var(--border-decorative)">
+    <div style="display: flex; flex-direction: column; gap: 2px">
+      <h2 id="scan-h" style="margin: 0; font-size: 16px; font-weight: 600">{{title}}</h2>
+      <span style="font-size: 13px; color: var(--text-secondary)">{{sub}}</span>
+    </div>
+    <sc-if value="{{collapsible}}" hint-placeholder-val="{{false}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.IconButton" icon="back" accessibility-label="Collapse the certificate pane" variant="plain" size="md"></x-import></sc-if>
+  </div>
+
+  <sc-if value="{{hasToolbar}}" hint-placeholder-val="{{true}}">
+    <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; padding: 4px 8px; border-bottom: 1px solid var(--border-decorative); background: var(--surface-sunken)">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="{{btn}}" disabled="{{zoomOutOff}}" accessibility-label="{{zoomOutLabel}}">Zoom out</x-import>
+      <span role="status" aria-live="polite" style="font-size: 13px; font-variant-numeric: tabular-nums; color: var(--text-secondary)"><span class="hg-sr">Zoom </span>{{zoom}}</span>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="{{btn}}" disabled="{{zoomInOff}}" accessibility-label="{{zoomInLabel}}">Zoom in</x-import>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="{{btn}}">Rotate</x-import>
+      <span style="flex-grow: 1"></span>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="{{btn}}" href="Viewer.dc.html">Open full view</x-import>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{isReady}}" hint-placeholder-val="{{true}}">
+    <div role="region" tabindex="0" class="hg-focus-inset" aria-label="{{regionLabel}}" style="flex-grow: 1; display: flex; align-items: flex-start; justify-content: {{pageJustify}}; padding: 16px; margin: 4px; border-radius: 8px; background: var(--surface-sunken); overflow: auto; min-height: 0; box-shadow: {{regionRing}}">
+      <div role="img" aria-label="{{pageLabel}}" style="width: {{pageW}}; height: {{pageH}}; flex-shrink: 0; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; background: var(--surface-raised); border: 1px solid var(--border-decorative); box-shadow: var(--elev-1); text-align: center; color: var(--text-secondary); font-size: 15px">
+        <sc-if value="{{isPdf}}" hint-placeholder-val="{{false}}"><span style="display: inline-flex; padding: 2px 8px; border-radius: 4px; background: var(--color-info-50); color: var(--color-info-700); font-size: 12px; font-weight: 600">Icon gap: document (Solar file-text)</span></sc-if>
+        <span>{{pageText}}</span>
+        <span style="font-size: 13px">Shown in the page; the file is not saved.</span>
+      </div>
+    </div>
+    <sc-if value="{{hasZoomNote}}" hint-placeholder-val="{{false}}"><span role="status" style="padding: 4px 16px; font-size: 13px; color: var(--text-secondary)">{{zoomNote}}</span></sc-if>
+  </sc-if>
+
+  <sc-if value="{{isPageFail}}" hint-placeholder-val="{{false}}">
+    <div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 32px; background: var(--surface-sunken); text-align: center">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="error" size="xl" color="var(--text-secondary)"></x-import>
+      <h3 style="margin: 0; font-size: 18px; font-weight: 600">Page 2 of 2 didn’t load</h3>
+      <p style="margin: 0; max-width: 380px; font-size: 15px; line-height: 1.5; color: var(--text-secondary)">Page 1 loaded and is still available. You can’t record H1 Legible and complete until every page has been seen.</p>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" icon-start="refresh">Load page 2 again</x-import>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{isLoading}}" hint-placeholder-val="{{false}}">
+    <div aria-busy="true" style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 20px; background: var(--surface-sunken)">
+      <span class="hg-skel" style="display: block; width: {{skelW}}; height: {{skelH}}"></span>
+      <span role="status" style="font-size: 13px; color: var(--text-secondary)">Requesting a private link to the document</span>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{isExpired}}" hint-placeholder-val="{{false}}">
+    <div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 32px; background: var(--surface-sunken); text-align: center">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="clock" size="xl" color="var(--text-secondary)"></x-import>
+      <h3 style="margin: 0; font-size: 18px; font-weight: 600">This link expired</h3>
+      <p style="margin: 0; max-width: 380px; font-size: 15px; line-height: 1.5; color: var(--text-secondary)">Private links last a few minutes to protect the restaurant’s documents. Your checks and notes are still here.</p>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="secondary" size="md" icon-start="refresh">Get a new link</x-import>
+      <span style="font-size: 13px; color: var(--text-secondary)">Each new link is recorded in the audit log.</span>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{isMissing}}" hint-placeholder-val="{{false}}">
+    <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 16px; padding: 24px; background: var(--surface-sunken)">
+      <dc-import name="InlineAlert" tone="warning" heading="No certificate document is attached" body="There’s no scan to check against, so nothing can be recorded or approved. Use Ask for a new certificate… in step 3." w="{{alertW}}" hint-size="{{alertW}}px,130px"></dc-import>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{isForbidden}}" hint-placeholder-val="{{false}}">
+    <div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 32px; background: var(--surface-sunken); text-align: center">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="lock" size="xl" color="var(--text-secondary)"></x-import>
+      <h3 style="margin: 0; font-size: 18px; font-weight: 600">Support agents can’t open documents</h3>
+      <p style="margin: 0; max-width: 400px; font-size: 15px; line-height: 1.5; color: var(--text-secondary)">Your role doesn’t include viewing document contents, so no link was made. You can see each document’s status and rejection reason on the application.</p>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" href="App-Support.dc.html">Back to the application</x-import>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{isError}}" hint-placeholder-val="{{false}}">
+    <div role="alert" style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 32px; background: var(--surface-sunken); text-align: center">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="error" size="xl" color="var(--text-secondary)"></x-import>
+      <h3 style="margin: 0; font-size: 18px; font-weight: 600">The document didn’t load</h3>
+      <p style="margin: 0; max-width: 380px; font-size: 15px; line-height: 1.5; color: var(--text-secondary)">The storage service didn’t respond. Nothing was changed.</p>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" icon-start="refresh">Try again</x-import>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{hasPager}}" hint-placeholder-val="{{true}}">
+    <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 4px 8px; border-top: 1px solid var(--border-decorative)">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="{{btn}}" icon-start="back" disabled="{{prevOff}}">Previous page</x-import>
+      <span style="font-size: 13px; font-variant-numeric: tabular-nums">{{pageOf}}</span>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="{{btn}}" icon-end="chevron-right" disabled="{{nextOff}}">Next page</x-import>
+    </div>
+  </sc-if>
+  <sc-if value="{{showInlineTag}}" hint-placeholder-val="{{true}}">
+    <span style="display: inline-flex; align-self: flex-start; margin: 0 8px 6px; padding: 2px 8px; border-radius: 4px; background: var(--surface-sunken); border: 1px solid var(--border-strong); font-size: 12px; font-weight: 600">Needs API: inline disposition for the viewer (links are attachment today)</span>
+  </sc-if>
+</section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["ready","focused","zoommax","rotated","pdf","pagefail","loading","expired","missing","forbidden","error"],"default":"ready"},"h":{"editor":"int","default":752},"docTitle":{"editor":"text","default":""},"tag":{"editor":"boolean","default":true},"$preview":{"width":432,"height":780},"w":{"editor":"int","default":432},"collapsible":{"editor":"boolean","default":false}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const s = this.props.state ?? 'ready';
+    // One expiry for every pane on the page: the expires_at the server returned on this
+    // PresignedDownload (2:06 pm server time + 2 minutes in this example).
+    const subs = {
+      ready: 'Private link valid until 2:08 pm · viewing is audited',
+      focused: 'Private link valid until 2:08 pm · viewing is audited',
+      zoommax: 'Private link valid until 2:08 pm · viewing is audited',
+      rotated: 'Private link valid until 2:08 pm · viewing is audited',
+      pdf: 'PDF, 3 pages · private link valid until 2:08 pm · viewing is audited',
+      pagefail: 'Private link valid until 2:08 pm · viewing is audited',
+      loading: 'Getting a private link',
+      expired: 'Private link expired at 2:08 pm',
+      missing: 'No document on this certificate record',
+      forbidden: 'No link made',
+      error: 'Not loaded',
+    };
+    const doc = this.props.docTitle;
+    const viewing = ['ready', 'focused', 'zoommax', 'rotated', 'pdf', 'pagefail'].includes(s);
+    const page = ['ready', 'focused', 'zoommax', 'rotated', 'pdf'].includes(s);
+    const zoom = s === 'zoommax' ? '400%' : '100%';
+    const w = this.props.w ?? 432;
+    const inner = Math.max(200, w - 50);
+    const pw = Math.round(inner), ph = Math.round(inner * 1.293);
+    return { showTag: !!this.props.tag, tagWrap: this.props.tag ? 'flex' : 'contents', 
+      h: this.props.h ?? 752, w,
+      collapsible: !!this.props.collapsible,
+      btn: w < 520 ? 'sm' : 'md',
+      alertW: w - 48,
+      skelW: pw + 'px', skelH: ph + 'px',
+      title: doc ? doc : s === 'missing' ? 'Certificate scan' : 'Halal certificate scan',
+      sub: subs[s],
+      hasToolbar: viewing,
+      isReady: page, isPdf: s === 'pdf', isPageFail: s === 'pagefail',
+      zoom, zoomInOff: s === 'zoommax', zoomOutOff: false,
+      zoomInLabel: s === 'zoommax' ? 'Zoom in, unavailable: 400% is the largest size' : 'Zoom in',
+      zoomOutLabel: 'Zoom out',
+      hasZoomNote: s === 'zoommax' || s === 'rotated',
+      zoomNote: s === 'zoommax' ? 'Zoom in is off: 400% is the largest size. At 25%, Zoom out turns off the same way.' : 'Rotated 90 degrees. Rotation is for reading only and isn’t saved.',
+      // The page sits in a focusable region: Tab reaches it, arrow keys pan, Page Up and Page Down change page.
+      regionLabel: (s === 'pdf' ? 'Certificate PDF, page 1 of 3' : 'Certificate page 1 of 2') + ', ' + zoom.replace('%', ' percent') + '. Arrow keys pan.',
+      regionRing: s === 'focused' ? 'inset 0 0 0 2px var(--surface-base), inset 0 0 0 5px var(--focus-ring)' : 'none',
+      pageW: s === 'rotated' ? ph + 'px' : s === 'zoommax' ? (pw * 2) + 'px' : pw + 'px',
+      pageH: s === 'rotated' ? pw + 'px' : s === 'zoommax' ? (ph * 2) + 'px' : ph + 'px',
+      pageJustify: s === 'zoommax' ? 'flex-start' : 'center',
+      isLoading: s === 'loading', isExpired: s === 'expired', isMissing: s === 'missing', isForbidden: s === 'forbidden', isError: s === 'error',
+      pageText: s === 'pdf' ? 'Certificate PDF, page 1 of 3' : (doc ? doc : 'Certificate scan') + ', page 1 of 2',
+      pageLabel: s === 'pdf' ? 'Halal certificate PDF, page 1 of 3' : (doc ? doc : 'Halal certificate scan') + ', page 1 of 2',
+      hasPager: viewing,
+      pageOf: s === 'pdf' ? 'Page 1 of 3' : s === 'pagefail' ? 'Page 2 of 2' : 'Page 1 of 2',
+      prevOff: s !== 'pagefail', nextOff: s === 'pagefail',
+      showInlineTag: viewing,
+    };
+  }
+}
+</script>
+</body>
+</html>

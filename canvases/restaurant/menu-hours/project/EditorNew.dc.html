@@ -1,0 +1,661 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Item editor</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div data-hg-density="compact" style="width: {{W}}px; height: {{H}}px; display: grid; grid-template-columns: 88px {{mainW}}px; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui); position: relative; overflow: hidden;">
+  <dc-import name="PartRail" active="menu" collapsed="{{yes}}" h="{{nine}}" hint-size="88px,900px"></dc-import>
+  <div style="display: flex; flex-direction: column; min-width: 0; height: {{H}}px;">
+    <dc-import name="PartTopBar" title="Menu" state="open" w="{{mainW}}" hint-size="1352px,208px"></dc-import>
+    <main id="main" style="flex-grow: 1; min-height: 0; box-sizing: border-box; padding: var(--space-3) var(--space-4) var(--space-4); display: flex; gap: var(--space-3); overflow: hidden;">
+      <nav aria-label="Menu categories, collapsed" style="width: 56px; height: {{paneH}}px; flex-shrink: 0; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; gap: var(--space-2); padding: 6px 0; border-radius: var(--radius-md); background: var(--surface-raised); border: 1px solid var(--border-decorative);">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.IconButton" icon="chevron-right" accessibility-label="Show categories" size="md" hint-size="44px,44px"></x-import>
+        <span style="writing-mode: vertical-rl; font: var(--text-type-label-md); color: var(--text-secondary);">{{g.cat}}</span>
+      </nav>
+      <div style="width: {{gw}}px; height: {{paneH}}px; flex-shrink: 0; overflow: hidden;">
+        <dc-import name="PartMenuGrid" category="{{g.cat}}" rows="{{g.rows}}" editing-id="{{g.editing}}" selected-id="{{g.editing}}" inactive="{{g.inactive}}" no-live="{{g.noLive}}" cols="narrow" w="{{gw}}" h="{{paneH}}" hint-size="520px,676px"></dc-import>
+      </div>
+      <div role="separator" class="hg-focus" aria-orientation="vertical" aria-label="Resize the items list and the editor" aria-controls="item-editor" aria-valuenow="42" aria-valuemin="30" aria-valuemax="70" aria-valuetext="Items list 42 percent of the width" aria-describedby="sep-keys" tabindex="0" style="width: 44px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; cursor: col-resize; margin: 0 -22px; position: relative; z-index: 1; border-radius: var(--radius-sm);">
+        <span aria-hidden="true" style="width: 4px; height: 40px; border-radius: var(--radius-full); background: var(--border-interactive);"></span>
+        <span id="sep-keys" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;">Left and Right arrows resize in steps of 5 percent. Home and End go to the narrowest and widest list.</span>
+        <span aria-hidden="true" style="position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); writing-mode: vertical-rl; padding: 6px 1px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); background: var(--surface-base); font: var(--text-type-mono-sm); color: var(--text-secondary); white-space: nowrap;">Proposed component: ResizeHandle (shadcn Resizable), 44px hit area</span>
+      </div>
+      <section id="item-editor" aria-labelledby="item-editor-h" style="flex-grow: 1; min-width: 0; height: {{paneH}}px; box-sizing: border-box; display: flex; flex-direction: column; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: var(--radius-md); overflow: hidden;">
+        <div style="display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-2) var(--space-2) var(--space-5); border-bottom: 1px solid var(--border-decorative); flex-shrink: 0;">
+          <div style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1; min-width: 0;">
+            <span style="font: var(--text-type-body-sm); color: var(--text-secondary);">{{g.cat}} · {{m.kicker}}</span>
+            <h2 id="item-editor-h" tabindex="-1" style="margin: 0; font: var(--text-type-heading-lg); letter-spacing: -0.01em;">{{m.title}}</h2>
+          </div>
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.IconButton" icon="close" accessibility-label="{{m.closeAria}}" disabled="{{m.busy}}" size="md" hint-size="44px,44px"></x-import>
+        </div>
+    <div aria-busy="{{m.busyAttr}}" style="flex-grow: 1; min-height: 0; overflow: auto; padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-6); font-family: var(--font-ui); color: var(--text-primary);">
+
+      <sc-if value="{{m.isLoading}}" hint-placeholder-val="{{false}}">
+        <div style="display: flex; flex-direction: column; gap: var(--space-4);" aria-hidden="true">
+          <span style="display: inline-flex; align-self: flex-start; padding: 1px var(--space-2); border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); background: var(--surface-base); font: var(--text-type-mono-sm); color: var(--text-secondary);">Proposed component: Skeleton (panel-shaped)</span>
+          <div style="height: 20px; width: 60%; border-radius: var(--radius-xs); background: var(--skeleton-base);"></div>
+          <div style="height: 56px; border-radius: var(--radius-sm); background: var(--skeleton-base);"></div>
+          <div style="height: 56px; border-radius: var(--radius-sm); background: var(--skeleton-base);"></div>
+          <div style="height: 96px; border-radius: var(--radius-sm); background: var(--skeleton-base);"></div>
+          <div style="height: 96px; border-radius: var(--radius-sm); background: var(--skeleton-base);"></div>
+        </div>
+        <p role="status" style="margin: 0; font: var(--text-type-body-md); color: var(--text-secondary);">Opening Beef kofta plate…</p>
+      </sc-if>
+
+      <sc-if value="{{m.isLoadFailed}}" hint-placeholder-val="{{false}}">
+        <div role="alert" style="display: flex; flex-direction: column; gap: var(--space-3); align-items: flex-start;">
+          <span style="color: var(--feedback-warning-icon);"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="warning" size="xl" hint-size="32px,32px"></x-import></span>
+          <h3 style="margin: 0; font: var(--text-type-heading-md);">We couldn’t open this item</h3>
+          <p style="margin: 0; font: var(--text-type-body-md); color: var(--text-secondary);">Nothing about it has changed. Check your connection and try again.</p>
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md" icon-start="refresh" hint-size="130px,44px">Try again</x-import>
+          <span style="display: inline-flex; align-self: flex-start; padding: 1px var(--space-2); border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); background: var(--surface-base); font: var(--text-type-mono-sm); color: var(--text-secondary);">Proposed component: ErrorState (panel)</span>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{m.isNotFound}}" hint-placeholder-val="{{false}}">
+        <div role="alert" style="display: flex; flex-direction: column; gap: var(--space-3); align-items: flex-start;">
+          <span style="color: var(--text-secondary);"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="info" size="xl" hint-size="32px,32px"></x-import></span>
+          <h3 style="margin: 0; font: var(--text-type-heading-md);">This item is no longer on your menu</h3>
+          <p style="margin: 0; font: var(--text-type-body-md); color: var(--text-secondary);">It was removed while you had it open, so your edits couldn’t be saved. If you didn’t expect this, contact support.</p>
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" href="#" hint-size="160px,44px">Contact support</x-import>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{m.isNew}}" hint-placeholder-val="{{true}}">
+        <div style="display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-3) 14px; border-radius: var(--radius-md); background: var(--surface-subtle);">
+          <span style="font: var(--text-type-label-lg);">Not submitted yet</span>
+          <span style="font: var(--text-type-body-md); color: var(--text-secondary);">Nothing is saved until you submit. A HalalGoes reviewer checks new items before customers can see them.</span>
+          <span style="display: inline-flex; align-self: flex-start; padding: 1px var(--space-2); border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); background: var(--surface-base); font: var(--text-type-mono-sm); color: var(--text-secondary);">Proposed component: Banner (neutral)</span>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{m.isPending}}" hint-placeholder-val="{{false}}">
+        <div style="display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-3) 14px; border-radius: var(--radius-md); background: var(--feedback-info-tint); border: 1px solid var(--feedback-info-border);">
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="info" icon="clock" size="md" hint-size="120px,22px">Under review</x-import>
+          <sc-if value="{{m.isSuperseded}}" hint-placeholder-val="{{false}}">
+            <span style="font: var(--text-type-label-lg); color: var(--feedback-info-tint-text);">Your earlier change was replaced by this one.</span>
+            <span style="display: inline-flex; align-self: flex-start; padding: 2px var(--space-2); border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); background: var(--feedback-info-tint); font: var(--text-type-mono-sm); color: var(--feedback-info-tint-text);">Shown right after you resubmit, this session only. Needs API: superseded version on MenuItemOwnerView</span>
+          </sc-if>
+          <span style="font: var(--text-type-body-md); color: var(--feedback-info-tint-text);">Submitted 27 September 2026 at 2:05 pm. Customers see the approved version until a HalalGoes reviewer checks this change.</span>
+          <span style="font: var(--text-type-body-sm); color: var(--feedback-info-tint-text);">Editing a reviewed field again replaces the change under review.</span>
+          <span style="display: inline-flex; align-self: flex-start; padding: 2px var(--space-2); border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); background: var(--feedback-info-tint); font: var(--text-type-mono-sm); color: var(--feedback-info-tint-text);">Needs API #149: withdraw this change</span>
+          <span style="display: inline-flex; align-self: flex-start; padding: 1px var(--space-2); border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); background: var(--surface-base); font: var(--text-type-mono-sm); color: var(--text-secondary);">Proposed component: Banner (info)</span>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{m.isFirstReview}}" hint-placeholder-val="{{false}}">
+        <div style="display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-3) 14px; border-radius: var(--radius-md); background: var(--feedback-info-tint); border: 1px solid var(--feedback-info-border);">
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="info" icon="clock" size="md" hint-size="190px,22px">Waiting for first review</x-import>
+          <span style="font: var(--text-type-body-md); color: var(--feedback-info-tint-text);">Submitted 27 September 2026 at 2:05 pm. This item is not on your menu yet. Customers see it once a HalalGoes reviewer approves it.</span>
+          <span style="font: var(--text-type-body-sm); color: var(--feedback-info-tint-text);">There is no approved version yet, so nothing is compared. Changing a reviewed field replaces what you submitted.</span>
+          <span style="display: inline-flex; align-self: flex-start; padding: 2px var(--space-2); border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); background: var(--feedback-info-tint); font: var(--text-type-mono-sm); color: var(--feedback-info-tint-text);">live_version null · pending_version.review_status PENDING_REVIEW. Needs API #149: withdraw this item</span>
+          <span style="display: inline-flex; align-self: flex-start; padding: 1px var(--space-2); border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); background: var(--surface-base); font: var(--text-type-mono-sm); color: var(--text-secondary);">Proposed component: Banner (info)</span>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{m.isWithdrawn}}" hint-placeholder-val="{{false}}">
+        <div style="display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-3) 14px; border-radius: var(--radius-md); background: var(--surface-subtle);">
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="outline" icon="info" size="md" hint-size="110px,22px">Withdrawn</x-import>
+          <span style="font: var(--text-type-body-md);">The change you submitted on 25 September 2026 was withdrawn before review, so it won’t go live. Customers see the approved version below. Change a field and submit to try again.</span>
+          <span style="font: var(--text-type-body-sm); color: var(--text-secondary);">Only HalalGoes support can withdraw a change today.</span>
+          <span style="display: inline-flex; align-self: flex-start; padding: 2px var(--space-2); border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); background: var(--feedback-info-tint); font: var(--text-type-mono-sm); color: var(--feedback-info-tint-text);">Needs API #149: withdraw a change yourself</span>
+          <span style="display: inline-flex; align-self: flex-start; padding: 1px var(--space-2); border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); background: var(--surface-base); font: var(--text-type-mono-sm); color: var(--text-secondary);">Proposed component: Banner (neutral)</span>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{m.isRejected}}" hint-placeholder-val="{{false}}">
+        <div role="status" style="display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-3) 14px; border-radius: var(--radius-md); background: var(--feedback-warning-tint); border: 1px solid var(--feedback-warning-border);">
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="warning" icon="warning" size="md" hint-size="170px,22px">{{m.rejHeadline}}</x-import>
+          <sc-if value="{{m.reasonLinked}}" hint-placeholder-val="{{true}}">
+            <span style="font: var(--text-type-label-lg); color: var(--feedback-warning-tint-text);">Reason: <a href="{{m.flagHref}}">{{m.rejReason}}</a></span>
+            <span style="display: inline-flex; align-self: flex-start; padding: 2px var(--space-2); border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); background: var(--feedback-info-tint); font: var(--text-type-mono-sm); color: var(--feedback-info-tint-text);">Link targets {{m.flagHref}}, the flagged control itself, and moves focus to it</span>
+            <span style="display: inline-flex; align-self: flex-start; padding: 2px var(--space-2); border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); background: var(--feedback-info-tint); font: var(--text-type-mono-sm); color: var(--feedback-info-tint-text);">Build note: each flag line has an id (name-flag, desc-flag, photo-flag, diet-flag, allergens-flag) reading “Flagged by the reviewer: {reason}”. That id is in the flagged control’s aria-describedby (name Input, description Textarea, photo Button, Dietary tags and Allergens fieldsets), so focus lands on the field and the reason is announced with it.</span>
+            <span style="display: inline-flex; align-self: flex-start; padding: 1px var(--space-2); border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); background: var(--surface-base); font: var(--text-type-mono-sm); color: var(--text-secondary);">Design-system issue: Input builds its own aria-describedby (helper, error, count) and drops one passed in. It must merge an outside id for name-flag to reach the name field.</span>
+          </sc-if>
+          <sc-if value="{{m.reasonPlain}}" hint-placeholder-val="{{false}}">
+            <span style="font: var(--text-type-label-lg); color: var(--feedback-warning-tint-text);">Reason: {{m.rejReason}}</span>
+          </sc-if>
+          <sc-if value="{{m.noteFirst}}" hint-placeholder-val="{{false}}">
+            <div style="display: flex; flex-direction: column; gap: var(--space-1); padding: 10px var(--space-3); border-radius: var(--radius-sm); background: var(--surface-raised); border: 1px solid var(--feedback-warning-border);">
+              <span style="font: var(--text-type-label-md); color: var(--text-secondary);">Reviewer’s note</span>
+              <span style="font: var(--text-type-body-lg); color: var(--text-primary);">“{{m.note}}”</span>
+            </div>
+          </sc-if>
+          <sc-if value="{{m.noteAfter}}" hint-placeholder-val="{{true}}">
+            <span style="font: var(--text-type-body-md); color: var(--feedback-warning-tint-text);">Reviewer’s note: “{{m.note}}”</span>
+          </sc-if>
+          <span style="font: var(--text-type-body-sm); color: var(--feedback-warning-tint-text);">Reviewed {{m.reviewedOn}}. {{m.stillLive}} {{m.rejAction}}</span>
+          <sc-if value="{{m.isProhibited}}" hint-placeholder-val="{{false}}">
+            <span style="font: var(--text-type-body-sm); color: var(--feedback-warning-tint-text);">Contact support is at the bottom of this panel.</span>
+          </sc-if>
+          <span style="display: inline-flex; align-self: flex-start; padding: 1px var(--space-2); border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); background: var(--surface-base); font: var(--text-type-mono-sm); color: var(--text-secondary);">Proposed component: Banner (warning)</span>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{m.isApproved}}" hint-placeholder-val="{{false}}">
+        <div style="display: flex; flex-direction: column; gap: 6px; padding: var(--space-3) 14px; border-radius: var(--radius-md); background: var(--surface-subtle);">
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="neutral" icon="check" size="md" hint-size="150px,22px">{{m.approvedBadge}}</x-import>
+          <span style="font: var(--text-type-body-md); color: var(--text-secondary);">Approved 12 September 2026. If you change a reviewed field, customers keep seeing this version until the change is approved.</span>
+          <span style="display: inline-flex; align-self: flex-start; padding: 2px var(--space-2); border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); background: var(--feedback-info-tint); font: var(--text-type-mono-sm); color: var(--feedback-info-tint-text);">“Live on your menu” only when availability_state is AVAILABLE or OUT_OF_STOCK and halal.display_state is CERTIFIED or EXPIRING_SOON. Otherwise the badge reads “Approved”.</span>
+          <span style="display: inline-flex; align-self: flex-start; padding: 1px var(--space-2); border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); background: var(--surface-base); font: var(--text-type-mono-sm); color: var(--text-secondary);">Proposed component: Banner (neutral)</span>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{m.isErrors}}" hint-placeholder-val="{{false}}">
+        <div role="alert" style="display: flex; flex-direction: column; gap: 6px; padding: var(--space-3) 14px; border-radius: var(--radius-md); background: var(--feedback-danger-tint); border: 1px solid var(--feedback-danger-border);">
+          <span style="font: var(--text-type-label-lg); color: var(--feedback-danger-tint-text);">{{m.errTitle}}</span>
+          <sc-for list="{{m.errLinks}}" as="e" hint-placeholder-count="2">
+            <a href="{{e.href}}" style="font: var(--text-type-body-md);">{{e.text}}</a>
+          </sc-for>
+          <sc-if value="{{m.isServer}}" hint-placeholder-val="{{false}}">
+            <span style="font: var(--text-type-body-sm); color: var(--feedback-danger-tint-text);">We checked your changes. Fix the items below; nothing was saved.</span>
+            <span style="display: inline-flex; align-self: flex-start; padding: 2px var(--space-2); border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); background: var(--feedback-info-tint); font: var(--text-type-mono-sm); color: var(--feedback-info-tint-text);">Annotation: {{m.serverCode}}</span>
+          </sc-if>
+          <sc-if value="{{m.isLocal}}" hint-placeholder-val="{{false}}">
+            <span style="display: inline-flex; align-self: flex-start; padding: 2px var(--space-2); border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); background: var(--feedback-info-tint); font: var(--text-type-mono-sm); color: var(--feedback-info-tint-text);">Checked on this screen: price only, mirroring the contract’s 50–50000 cent bounds. Everything else is checked by the server.</span>
+          </sc-if>
+          <span style="display: inline-flex; align-self: flex-start; padding: 2px var(--space-2); border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); background: var(--feedback-info-tint); font: var(--text-type-mono-sm); color: var(--feedback-info-tint-text);">Each link targets the control’s own id (price-input, prep-input, name-input, description-input, ingredients-input, diet-vegetarian, allergen-peanuts, photo-button) and moves keyboard focus there, not just the scroll.</span>
+          <span style="display: inline-flex; align-self: flex-start; padding: 1px var(--space-2); border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); background: var(--surface-base); font: var(--text-type-mono-sm); color: var(--text-secondary);">Proposed component: Banner (danger) — error summary, takes focus after a failed submit</span>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{m.isNotWritable}}" hint-placeholder-val="{{false}}">
+        <div role="alert" style="display: flex; flex-direction: column; gap: 6px; padding: var(--space-3) 14px; border-radius: var(--radius-md); background: var(--feedback-danger-tint); border: 1px solid var(--feedback-danger-border);">
+          <span style="font: var(--text-type-label-lg); color: var(--feedback-danger-tint-text);">“Halal certified” comes from your approved certificate, so it can’t be added to an item.</span>
+          <span style="font: var(--text-type-body-md); color: var(--feedback-danger-tint-text);">This screen was out of date. Nothing was saved.</span>
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md" icon-start="refresh" style="align-self: flex-start;" hint-size="170px,44px">Reload the item</x-import>
+          <span style="display: inline-flex; align-self: flex-start; padding: 2px var(--space-2); border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); background: var(--feedback-info-tint); font: var(--text-type-mono-sm); color: var(--feedback-info-tint-text);">Annotation: refused because the field isn’t writable. Only an out-of-date screen can send it; this editor never offers that tag. Reload the item reopens the editor from the server with the other edits kept.</span>
+          <span style="display: inline-flex; align-self: flex-start; padding: 1px var(--space-2); border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); background: var(--surface-base); font: var(--text-type-mono-sm); color: var(--text-secondary);">Proposed component: Banner (danger)</span>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{m.isConflict}}" hint-placeholder-val="{{false}}">
+        <div role="alert" style="display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-3) 14px; border-radius: var(--radius-md); background: var(--feedback-warning-tint); border: 1px solid var(--feedback-warning-border);">
+          <span style="font: var(--text-type-label-lg); color: var(--feedback-warning-tint-text);">Someone else changed this item while you were editing</span>
+          <span style="font: var(--text-type-body-md); color: var(--feedback-warning-tint-text);">This item’s change under review was replaced at 2:12 pm. Your edits are still here. If you submit, yours replace the one under review.</span>
+          <span style="display: inline-flex; align-self: flex-start; padding: 2px var(--space-2); border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); background: var(--feedback-info-tint); font: var(--text-type-mono-sm); color: var(--feedback-info-tint-text);">2:12 pm = {pending_version.submitted_at}. No name: MenuItemVersion has no submitter</span>
+          <div style="display: flex; gap: var(--space-3); flex-wrap: wrap;">
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" hint-size="190px,44px">See the change under review</x-import>
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="md" hint-size="150px,44px">Discard my edits</x-import>
+          </div>
+          <span style="display: inline-flex; align-self: flex-start; padding: 2px var(--space-2); border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); background: var(--feedback-info-tint); font: var(--text-type-mono-sm); color: var(--feedback-info-tint-text);">Needs API: a version check on updateMenuItem (If-Match or expected pending_version id), so a newer change is reported instead of silently replaced; submitted_by on MenuItemVersion</span>
+          <span style="display: inline-flex; align-self: flex-start; padding: 1px var(--space-2); border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); background: var(--surface-base); font: var(--text-type-mono-sm); color: var(--text-secondary);">Proposed component: Banner (warning)</span>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{m.isSaveFailed}}" hint-placeholder-val="{{false}}">
+        <div role="alert" style="display: flex; flex-direction: column; gap: 6px; padding: var(--space-3) 14px; border-radius: var(--radius-md); background: var(--feedback-danger-tint); border: 1px solid var(--feedback-danger-border);">
+          <span style="font: var(--text-type-label-lg); color: var(--feedback-danger-tint-text);">We couldn’t submit your changes</span>
+          <span style="font: var(--text-type-body-md); color: var(--feedback-danger-tint-text);">Your edits are still here and nothing was sent for review. Check your connection and submit again.</span>
+          <span style="display: inline-flex; align-self: flex-start; padding: 1px var(--space-2); border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); background: var(--surface-base); font: var(--text-type-mono-sm); color: var(--text-secondary);">Proposed component: Banner (danger)</span>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{m.isView}}" hint-placeholder-val="{{false}}">
+        <div style="display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-3) 14px; border-radius: var(--radius-md); background: var(--surface-subtle); border: 1px solid var(--border-interactive);">
+          <div style="display: flex; align-items: center; gap: var(--space-2);">
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="lock" size="md" hint-size="20px,20px"></x-import>
+            <span style="font: var(--text-type-label-lg);">{{m.viewHeadline}}</span>
+          </div>
+          <span style="font: var(--text-type-body-md);">{{m.viewBody}}</span>
+          <sc-if value="{{m.viewNeeds}}" hint-placeholder-val="{{false}}">
+            <span style="display: inline-flex; align-self: flex-start; padding: 2px var(--space-2); border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); background: var(--feedback-info-tint); font: var(--text-type-mono-sm); color: var(--feedback-info-tint-text);">{{m.viewNeedsText}}</span>
+          </sc-if>
+          <sc-if value="{{m.viewSupport}}" hint-placeholder-val="{{false}}">
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" href="#" accessibility-label="{{m.supportLabel}}" style="align-self: flex-start;" hint-size="160px,44px">Contact support</x-import>
+          </sc-if>
+          <span style="display: inline-flex; align-self: flex-start; padding: 1px var(--space-2); border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); background: var(--surface-base); font: var(--text-type-mono-sm); color: var(--text-secondary);">Proposed component: Banner (neutral)</span>
+        </div>
+        <dl style="margin: 0; display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: var(--space-3) var(--space-4); font: var(--text-type-body-md);">
+          <dt style="font: var(--text-type-label-md); color: var(--text-secondary);">Price</dt>
+          <dd style="margin: 0;"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{m.priceCents}}" size="md" hint-size="70px,22px"></x-import></dd>
+          <dt style="font: var(--text-type-label-md); color: var(--text-secondary);">Options</dt>
+          <dd style="margin: 0; display: flex; flex-direction: column; gap: var(--space-1);">
+            <sc-if value="{{m.noGroups}}" hint-placeholder-val="{{false}}"><span>No sizes or add-ons</span></sc-if>
+            <sc-for list="{{m.groups}}" as="og" hint-placeholder-count="1">
+              <span style="font-weight: var(--font-weight-semibold);">{{og.name}} <span style="font: var(--text-type-body-sm); color: var(--text-secondary);">{{og.rule}}</span></span>
+              <sc-for list="{{og.opts}}" as="op" hint-placeholder-count="1">
+                <span style="display: flex; gap: var(--space-2); align-items: baseline; flex-wrap: wrap;">{{op.name}} <span style="font: var(--text-type-body-sm); color: var(--text-secondary);">{{op.modeText}}</span>
+                  <sc-if value="{{op.hasPrice}}" hint-placeholder-val="{{true}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{op.cents}}" sign="{{op.sign}}" size="sm" hint-size="56px,18px"></x-import></sc-if>
+                </span>
+              </sc-for>
+            </sc-for>
+          </dd>
+          <sc-for list="{{m.viewRows}}" as="v" hint-placeholder-count="8">
+            <dt style="font: var(--text-type-label-md); color: var(--text-secondary);">{{v.k}}</dt>
+            <dd style="margin: 0; line-height: var(--type-body-md-line); display: flex; flex-direction: column; gap: var(--space-1);">{{v.v}}
+              <sc-if value="{{v.hasNeeds}}" hint-placeholder-val="{{false}}">
+                <span style="display: inline-flex; align-self: flex-start; padding: 2px var(--space-2); border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); background: var(--feedback-info-tint); font: var(--text-type-mono-sm); color: var(--feedback-info-tint-text);">{{v.needs}}</span>
+              </sc-if>
+            </dd>
+          </sc-for>
+        </dl>
+      </sc-if>
+
+      <sc-if value="{{m.showForm}}" hint-placeholder-val="{{true}}">
+        <div style="display: flex; flex-direction: column; gap: var(--space-6);">
+          <section aria-labelledby="g-live" style="display: flex; flex-direction: column; gap: 14px;">
+            <div style="display: flex; flex-direction: column; gap: 2px; padding-bottom: var(--space-2); border-bottom: 1px solid var(--border-decorative);">
+              <h3 id="g-live" style="margin: 0; font: var(--text-type-heading-sm);">{{m.liveTitle}}</h3>
+              <span style="font: var(--text-type-body-sm); color: var(--text-secondary);">{{m.liveHelp}}</span>
+            </div>
+            <sc-if value="{{m.priceOk}}" hint-placeholder-val="{{true}}">
+              <x-import id="price-input" component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Price" variant="numeric" prefix="$" value="{{m.price}}" required="{{yes}}" read-only="{{m.ro}}" helper-text="Between $0.50 and $500.00. Orders already placed keep their price." hint-size="100%,96px"></x-import>
+            </sc-if>
+            <sc-if value="{{m.priceBad}}" hint-placeholder-val="{{false}}">
+              <x-import id="price-input" component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Price" variant="numeric" prefix="$" value="650.00" required="{{yes}}" error-text="Enter a price between $0.50 and $500.00." hint-size="100%,96px"></x-import>
+            </sc-if>
+            <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3);">
+              <x-import id="prep-input" component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Prep time" variant="numeric" suffix="min" value="{{m.prep}}" read-only="{{m.ro}}" error-text="{{m.prepErr}}" helper-text="1 to 120 minutes" hint-size="100%,96px"></x-import>
+              <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Position in category" variant="numeric" value="4" read-only="{{m.ro}}" helper-text="1 shows first" hint-size="100%,96px"></x-import>
+            </div>
+            <sc-if value="{{m.editCtl}}" hint-placeholder-val="{{true}}">
+              <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Select" label="Category" options="{{catOpts}}" value="{{m.catValue}}" disabled="{{m.busy}}" helper-text="{{m.catHelp}}" hint-size="100%,72px"></x-import>
+            </sc-if>
+            <sc-if value="{{m.roView}}" hint-placeholder-val="{{false}}">
+              <dl style="margin: 0; display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: var(--space-3) var(--space-4); font: var(--text-type-body-md);"><dt style="font: var(--text-type-label-md); color: var(--text-secondary);">Category</dt><dd style="margin: 0;">{{m.catText}}</dd></dl>
+            </sc-if>
+          </section>
+
+          <section aria-labelledby="g-opt" style="display: flex; flex-direction: column; gap: 10px;">
+            <div style="display: flex; flex-direction: column; gap: 2px; padding-bottom: var(--space-2); border-bottom: 1px solid var(--border-decorative);">
+              <h3 id="g-opt" style="margin: 0; font: var(--text-type-heading-sm);">Options</h3>
+              <span style="font: var(--text-type-body-sm); color: var(--text-secondary);">Sizes and add-ons customers choose from.</span>
+            </div>
+            <sc-if value="{{m.hasGroups}}" hint-placeholder-val="{{true}}">
+              <sc-for list="{{m.groups}}" as="og" hint-placeholder-count="2">
+                <div style="display: flex; flex-direction: column; gap: var(--space-1);">
+                  <span style="font: var(--text-type-label-lg);">{{og.name}} <span style="font: var(--text-type-body-sm); color: var(--text-secondary);">{{og.rule}}</span></span>
+                  <sc-for list="{{og.opts}}" as="op" hint-placeholder-count="1">
+                    <span style="display: flex; gap: var(--space-2); align-items: baseline; flex-wrap: wrap; font: var(--text-type-body-md); color: var(--text-primary);">{{op.name}} <span style="font: var(--text-type-body-sm); color: var(--text-secondary);">{{op.modeText}}</span>
+                      <sc-if value="{{op.hasPrice}}" hint-placeholder-val="{{true}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{op.cents}}" sign="{{op.sign}}" size="sm" hint-size="56px,18px"></x-import></sc-if>
+                    </span>
+                  </sc-for>
+                </div>
+              </sc-for>
+            </sc-if>
+            <sc-if value="{{m.noGroups}}" hint-placeholder-val="{{false}}">
+              <span style="font: var(--text-type-body-md); color: var(--text-secondary);">{{m.noGroupsText}}</span>
+            </sc-if>
+            <sc-if value="{{m.hasGroups}}" hint-placeholder-val="{{true}}">
+              <span style="display: inline-flex; align-self: flex-start; padding: 2px var(--space-2); border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); background: var(--feedback-info-tint); font: var(--text-type-mono-sm); color: var(--feedback-info-tint-text);">Same mapping as the menu grid: ABSOLUTE “Priced at” + Price(price_cents, auto) · DELTA “Changes price by” + Price(delta_cents, always) · add-on “Adds” + Price(price_cents, always) · DELTA 0 “Base price”, no amount</span>
+            </sc-if>
+            <span style="display: inline-flex; align-self: flex-start; padding: 2px var(--space-2); border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); background: var(--feedback-info-tint); font: var(--text-type-mono-sm); color: var(--feedback-info-tint-text);">Needs API #149: add, edit or remove sizes and add-ons</span>
+          </section>
+
+          <section aria-labelledby="g-review" style="display: flex; flex-direction: column; gap: 14px;">
+            <div style="display: flex; flex-direction: column; gap: 2px; padding-bottom: var(--space-2); border-bottom: 1px solid var(--border-decorative);">
+              <h3 id="g-review" style="margin: 0; font: var(--text-type-heading-sm);">Customers see these only after review</h3>
+              <span style="font: var(--text-type-body-sm); color: var(--text-secondary);">A HalalGoes reviewer checks these before they go live.</span>
+            </div>
+
+            <sc-if value="{{m.cmpName}}" hint-placeholder-val="{{false}}">
+              <div style="display: flex; flex-direction: column; gap: var(--space-1); padding: 10px var(--space-3); background: var(--surface-subtle); border-radius: var(--radius-xs);">
+                <span style="font: var(--text-type-label-md); color: var(--text-secondary);">Approved name (live now)</span>
+                <span style="font: var(--text-type-body-md);">{{m.apName}}</span>
+              </div>
+            </sc-if>
+            <div id="f-name" style="{{m.flagName}}">
+              <sc-if value="{{m.isFlagName}}" hint-placeholder-val="{{false}}">
+                <span id="name-flag" style="display: flex; gap: 6px; align-items: flex-start; font: var(--text-type-label-md); line-height: var(--type-caption-line); color: var(--feedback-warning-tint-text);"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="warning" size="sm" hint-size="16px,16px"></x-import>{{m.flagLine}}</span>
+              </sc-if>
+              <x-import id="name-input" component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" aria-describedby="{{m.nameDesc}}" label="{{m.nameLabel}}" value="{{m.name}}" required="{{yes}}" max-length="{{eighty}}" character-count="{{yes}}" read-only="{{m.ro}}" hint-size="100%,96px"></x-import>
+            </div>
+
+            <sc-if value="{{m.cmpDesc}}" hint-placeholder-val="{{false}}">
+              <div style="display: flex; flex-direction: column; gap: var(--space-1); padding: 10px var(--space-3); background: var(--surface-subtle); border-radius: var(--radius-xs);">
+                <span style="font: var(--text-type-label-md); color: var(--text-secondary);">Approved description (live now)</span>
+                <span style="font: var(--text-type-body-md);">{{m.apDesc}}</span>
+              </div>
+            </sc-if>
+            <div id="f-description" style="{{m.flagDesc}}">
+              <sc-if value="{{m.isFlagDesc}}" hint-placeholder-val="{{false}}">
+                <span id="desc-flag" style="display: flex; gap: 6px; align-items: flex-start; font: var(--text-type-label-md); line-height: var(--type-caption-line); color: var(--feedback-warning-tint-text);"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="warning" size="sm" hint-size="16px,16px"></x-import>{{m.flagLine}}</span>
+              </sc-if>
+              <div style="position: relative; display: flex; flex-direction: column; gap: 6px;">
+                <label for="description-input" style="font: var(--text-type-label-md);">{{m.descLabel}}</label>
+                <div id="description-input" tabindex="-1" aria-describedby="{{m.descDesc}}" style="{{m.descStyle}}">{{m.desc}}</div>
+                <span style="font: var(--text-type-body-sm); color: var(--text-secondary); font-variant-numeric: tabular-nums;">{{m.descCount}} of 600 characters</span>
+                <span style="position: absolute; top: 0; right: 0; padding: 1px var(--space-2); border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-mono-sm); color: var(--text-secondary);">Proposed component: Textarea, shadcn (id is the link target; label for, aria-describedby helper + count, aria-invalid required)</span>
+              </div>
+            </div>
+
+            <sc-if value="{{m.cmpIng}}" hint-placeholder-val="{{false}}">
+              <div style="display: flex; flex-direction: column; gap: var(--space-1); padding: 10px var(--space-3); background: var(--surface-subtle); border-radius: var(--radius-xs);">
+                <span style="font: var(--text-type-label-md); color: var(--text-secondary);">Approved ingredients (live now)</span>
+                <span style="font: var(--text-type-body-md);">{{m.apIng}}</span>
+              </div>
+            </sc-if>
+            <div id="ingredients" style="position: relative; display: flex; flex-direction: column; gap: 6px;">
+              <label for="ingredients-input" style="font: var(--text-type-label-md);">{{m.ingLabel}}</label>
+              <span style="font: var(--text-type-body-sm); color: var(--text-secondary);">List every ingredient, including sauces and oils.</span>
+              <div id="ingredients-input" tabindex="-1" style="{{m.ingStyle}}">{{m.ing}}</div>
+              <sc-if value="{{m.isProhibitedServer}}" hint-placeholder-val="{{false}}">
+                <span role="alert" style="display: flex; gap: 6px; align-items: flex-start; font: var(--text-type-body-sm); line-height: var(--type-caption-line); color: var(--feedback-danger-text);"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="error" size="sm" hint-size="16px,16px"></x-import>Items with pork or alcohol can’t be sold on HalalGoes. Check the ingredients and remove them to submit.</span>
+                <span style="display: inline-flex; align-self: flex-start; padding: 2px var(--space-2); border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); background: var(--feedback-info-tint); font: var(--text-type-mono-sm); color: var(--feedback-info-tint-text);">Annotation: 422 PROHIBITED_INGREDIENT. Shown only after the server refuses; the screen keeps no list of words. Needs API: details {field, matched_terms[]}, so the matched word can be named</span>
+              </sc-if>
+              <span style="font: var(--text-type-body-sm); color: var(--text-secondary); font-variant-numeric: tabular-nums;">{{m.ingCount}} of 1000 characters</span>
+              <span style="position: absolute; top: 0; right: 0; padding: 1px var(--space-2); border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-mono-sm); color: var(--text-secondary);">Proposed component: Textarea, shadcn (id is the link target; label for, aria-describedby helper + count, aria-invalid required)</span>
+            </div>
+
+            <div id="f-diet" style="{{m.flagDiet}}">
+              <sc-if value="{{m.isFlagDiet}}" hint-placeholder-val="{{false}}">
+                <span id="diet-flag" style="display: flex; gap: 6px; align-items: flex-start; font: var(--text-type-label-md); line-height: var(--type-caption-line); color: var(--feedback-warning-tint-text);"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="warning" size="sm" hint-size="16px,16px"></x-import>{{m.flagLine}}</span>
+              </sc-if>
+              <fieldset aria-describedby="{{m.dietDesc}}" style="border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-1);">
+                <legend style="font: var(--text-type-label-md); padding: 0 0 var(--space-1);">Dietary tags (up to 6)</legend>
+                <span style="font: var(--text-type-body-sm); color: var(--text-secondary);">Dietary tags never describe halal certification. Your halal status comes from your approved certificate.</span>
+                <sc-if value="{{m.cmpDiet}}" hint-placeholder-val="{{false}}">
+                  <span style="font: var(--text-type-body-sm); color: var(--text-secondary);">No change from the approved version.</span>
+                </sc-if>
+                <sc-if value="{{m.editCtl}}" hint-placeholder-val="{{true}}">
+                <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 var(--space-3);">
+                  <sc-for list="{{m.diet}}" as="c" hint-placeholder-count="8">
+                    <x-import id="{{c.id}}" component-from-global-scope="HalalGoesDesignSystem_d11a47.Checkbox" label="{{c.label}}" checked="{{c.on}}" disabled="{{m.busy}}" hint-size="100%,44px"></x-import>
+                  </sc-for>
+                </div>
+                </sc-if>
+                <sc-if value="{{m.roView}}" hint-placeholder-val="{{false}}">
+                  <dl style="margin: 0; display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: var(--space-3) var(--space-4); font: var(--text-type-body-md);"><dt style="font: var(--text-type-label-md); color: var(--text-secondary);">Dietary tags</dt><dd style="margin: 0;">{{m.dietText}}</dd></dl>
+                </sc-if>
+              </fieldset>
+            </div>
+
+            <sc-if value="{{m.cmpAll}}" hint-placeholder-val="{{false}}">
+              <div style="display: flex; flex-direction: column; gap: var(--space-1); padding: 10px var(--space-3); background: var(--surface-subtle); border-radius: var(--radius-xs);">
+                <span style="font: var(--text-type-label-md); color: var(--text-secondary);">Approved allergens (live now)</span>
+                <span style="font: var(--text-type-body-md);">{{m.apAll}}</span>
+                <sc-if value="{{m.apAllEmpty}}" hint-placeholder-val="{{false}}">
+                  <span style="display: inline-flex; align-self: flex-start; padding: 2px var(--space-2); border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); background: var(--feedback-info-tint); font: var(--text-type-mono-sm); color: var(--feedback-info-tint-text);">Empty allergen_tags. Needs API: allergens_declared on MenuItemOwnerView; only when it is true may this read “Contains none of the listed allergens”</span>
+                </sc-if>
+              </div>
+            </sc-if>
+            <div id="f-allergens" style="{{m.flagAll}}">
+              <sc-if value="{{m.isFlagAll}}" hint-placeholder-val="{{false}}">
+                <span id="allergens-flag" style="display: flex; gap: 6px; align-items: flex-start; font: var(--text-type-label-md); line-height: var(--type-caption-line); color: var(--feedback-warning-tint-text);"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="warning" size="sm" hint-size="16px,16px"></x-import>{{m.flagLine}}</span>
+              </sc-if>
+              <fieldset aria-describedby="{{m.allDesc}}" style="border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-1);">
+                <legend style="font: var(--text-type-label-md); padding: 0 0 var(--space-1);">Allergens this item contains</legend>
+                <span style="font: var(--text-type-body-sm); color: var(--text-secondary);">Health Canada priority allergens. Tick every one that applies.</span>
+                <sc-if value="{{m.editCtl}}" hint-placeholder-val="{{true}}">
+                <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 var(--space-3);">
+                  <sc-for list="{{m.allergens}}" as="c" hint-placeholder-count="11">
+                    <x-import id="{{c.id}}" component-from-global-scope="HalalGoesDesignSystem_d11a47.Checkbox" label="{{c.label}}" checked="{{c.on}}" disabled="{{m.busy}}" hint-size="100%,44px"></x-import>
+                  </sc-for>
+                </div>
+                </sc-if>
+                <sc-if value="{{m.roView}}" hint-placeholder-val="{{false}}">
+                  <dl style="margin: 0; display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: var(--space-3) var(--space-4); font: var(--text-type-body-md);"><dt style="font: var(--text-type-label-md); color: var(--text-secondary);">Allergens</dt><dd style="margin: 0;">{{m.allText}}</dd></dl>
+                  <span style="display: inline-flex; align-self: flex-start; padding: 2px var(--space-2); border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); background: var(--feedback-info-tint); font: var(--text-type-mono-sm); color: var(--feedback-info-tint-text);">Read-only: shown as text, not disabled controls, so it keeps full contrast (04-accessibility §1.2). disabled is kept only for the brief Submitting state.</span>
+                </sc-if>
+              </fieldset>
+            </div>
+
+            <sc-if value="{{m.showAck}}" hint-placeholder-val="{{true}}">
+              <div style="display: flex; flex-direction: column; gap: 6px; padding: var(--space-3) 14px; border: 1px solid var(--border-interactive); border-radius: var(--radius-md);">
+                <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Checkbox" label="I have checked this item’s allergens" description="Tick this even when the item contains none of them. Without it, customers see “Allergen information not provided”." checked="{{m.ack}}" disabled="{{m.busy}}" size="{{twentyfour}}" hint-size="100%,64px"></x-import>
+                <sc-if value="{{m.showAckGap}}" hint-placeholder-val="{{false}}">
+                  <span style="display: inline-flex; align-self: flex-start; padding: 2px var(--space-2); border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); background: var(--feedback-info-tint); font: var(--text-type-mono-sm); color: var(--feedback-info-tint-text);">Needs API: allergens_declared on MenuItemOwnerView, so a saved tick can be shown</span>
+                </sc-if>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{m.cmpPhoto}}" hint-placeholder-val="{{false}}">
+              <div style="display: flex; flex-direction: column; gap: var(--space-1); padding: 10px var(--space-3); background: var(--surface-subtle); border-radius: var(--radius-xs);">
+                <span style="font: var(--text-type-label-md); color: var(--text-secondary);">Approved photo (live now)</span>
+                <span style="font: var(--text-type-body-md);">{{m.apPhoto}}</span>
+              </div>
+            </sc-if>
+            <div id="f-photo" style="{{m.flagPhoto}}">
+              <sc-if value="{{m.isFlagPhoto}}" hint-placeholder-val="{{false}}">
+                <span id="photo-flag" style="display: flex; gap: 6px; align-items: flex-start; font: var(--text-type-label-md); line-height: var(--type-caption-line); color: var(--feedback-warning-tint-text);"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="warning" size="sm" hint-size="16px,16px"></x-import>{{m.flagLine}}</span>
+              </sc-if>
+              <div style="position: relative; display: flex; flex-direction: column; gap: 6px;">
+                <span style="font: var(--text-type-label-md);">{{m.photoLabel}}</span>
+                <span style="font: var(--text-type-body-sm); color: var(--text-secondary);">JPG, PNG or WebP, up to 5 MB.</span>
+                <div style="{{m.photoBox}}">
+                  <span aria-hidden="true" style="width: 72px; height: 72px; flex-shrink: 0; border-radius: var(--radius-sm); background: var(--surface-subtle); display: flex; align-items: center; justify-content: center; font: var(--text-type-mono-sm); color: var(--text-secondary);">{{m.photoState}}</span>
+                  <div style="display: flex; flex-direction: column; gap: 6px; flex-grow: 1; min-width: 0;">
+                    <span style="font: var(--text-type-body-md); line-height: var(--type-caption-line);">{{m.photoText}}</span>
+                    <sc-if value="{{m.photoProgress}}" hint-placeholder-val="{{false}}">
+                      <div role="progressbar" aria-label="Uploading photo" aria-valuenow="60" aria-valuemin="0" aria-valuemax="100" style="position: relative; height: 8px; border-radius: var(--radius-full); background: var(--surface-subtle);">
+                        <div style="width: 60%; height: 8px; border-radius: var(--radius-full); background: var(--action-primary-bg);"></div>
+                      </div>
+                      <span style="display: inline-flex; align-self: flex-start; padding: 1px var(--space-2); border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); background: var(--surface-base); font: var(--text-type-mono-sm); color: var(--text-secondary);">Proposed component: ProgressBar (shadcn Progress)</span>
+                    </sc-if>
+                    <sc-if value="{{m.photoChecking}}" hint-placeholder-val="{{false}}">
+                      <span role="status" style="font: var(--text-type-body-sm); color: var(--text-secondary);">Upload finished. Checking the photo before you can submit…</span>
+                      <span style="display: inline-flex; align-self: flex-start; padding: 2px var(--space-2); border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); background: var(--feedback-info-tint); font: var(--text-type-mono-sm); color: var(--feedback-info-tint-text);">Annotation: POST /v1/uploads/{id}/confirm checks size, type and SHA-256; the photo is usable only when READY</span>
+                    </sc-if>
+                    <sc-if value="{{m.photoErr}}" hint-placeholder-val="{{false}}">
+                      <span role="alert" style="display: flex; gap: 6px; align-items: flex-start; font: var(--text-type-body-sm); line-height: var(--type-caption-line); color: var(--feedback-danger-text);"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="error" size="sm" hint-size="16px,16px"></x-import>{{m.photoErrText}}</span>
+                    </sc-if>
+                    <x-import id="photo-button" component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" aria-describedby="{{m.photoDesc}}" variant="tertiary" size="md" disabled="{{m.photoBtnOff}}" style="align-self: flex-start;" hint-size="160px,44px">{{m.photoBtn}}</x-import>
+                  </div>
+                </div>
+                <span style="display: inline-flex; align-self: flex-start; padding: 1px var(--space-2); border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); background: var(--surface-base); font: var(--text-type-mono-sm); color: var(--text-secondary);">Proposed component: FileDrop (owner approved it for the design system) with a MediaFrame preview</span>
+              </div>
+            </div>
+          </section>
+        </div>
+      </sc-if>
+    </div>
+        <div style="position: relative; flex-shrink: 0; display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-3) var(--space-5); border-top: 1px solid var(--border-decorative); background: var(--surface-raised);">
+          <span style="position: absolute; top: -10px; left: 20px; padding: 0 var(--space-2); border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); background: var(--surface-base); font: var(--text-type-mono-sm); color: var(--text-secondary);">Proposed component: DetailPanel, editor variant (in-page, resizable; never an overlay sheet)</span>
+          <sc-if value="{{m.discard}}" hint-placeholder-val="{{false}}">
+            <div role="alertdialog" aria-labelledby="discard-h" aria-describedby="discard-b" style="display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) 14px; border-radius: var(--radius-md); background: var(--surface-subtle); border: 1px solid var(--border-interactive);">
+              <div style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1;">
+                <span id="discard-h" tabindex="-1" style="font: var(--text-type-label-lg);">{{m.discardTitle}}</span>
+                <span id="discard-b" style="font: var(--text-type-body-sm); line-height: var(--type-caption-line); color: var(--text-secondary);">{{m.discardBody}}</span>
+              </div>
+              <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" hint-size="130px,44px">Keep editing</x-import>
+              <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="danger" size="md" destructive="{{yes}}" hint-size="100px,44px">Discard</x-import>
+            </div>
+          </sc-if>
+          <sc-if value="{{m.noDiscard}}" hint-placeholder-val="{{true}}">
+            <div style="display: flex; align-items: center; gap: var(--space-3);">
+              <div style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1; min-width: 0;">
+                <sc-if value="{{m.hasFoot}}" hint-placeholder-val="{{true}}">
+                  <span style="font: var(--text-type-body-sm); line-height: var(--type-caption-line); color: var(--text-secondary);">{{m.footNote}}</span>
+                </sc-if>
+                <sc-if value="{{m.showWhy}}" hint-placeholder-val="{{false}}">
+                  <span id="submit-why" style="font: var(--text-type-body-sm); line-height: var(--type-caption-line); color: var(--text-secondary);">{{m.submitWhy}}</span>
+                </sc-if>
+              </div>
+              <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="{{m.closeVariant}}" size="md" disabled="{{m.cancelOff}}" hint-size="100px,44px">{{m.closeLabel}}</x-import>
+              <sc-if value="{{m.footSupport}}" hint-placeholder-val="{{false}}">
+                <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md" href="#" accessibility-label="{{m.supportLabel}}" hint-size="160px,44px">Contact support</x-import>
+              </sc-if>
+              <sc-if value="{{m.hasSubmit}}" hint-placeholder-val="{{true}}">
+                <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md" loading="{{m.submitLoading}}" disabled="{{m.submitDisabled}}" icon-start="{{m.submitIcon}}" aria-describedby="{{m.submitDesc}}" hint-size="190px,44px">{{m.submit}}</x-import>
+              </sc-if>
+            </div>
+          </sc-if>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"mode":{"editor":"enum","options":["new","firstreview","movecategory","errorsprohibited","submitting","pending","pendingprice","superseded","rejected","rejectednew","rejectedother","rejectedoffensive","rejectedprohibited","rejectedphoto","rejectedallergen","photochecking","approved","errors","serverfields","notwritable","conflict","savefailed","withdrawn","loading","loadfailed","notfound","viewblocked","viewhidden","photouploading","photofailed","photoexpired","photoinvalid","discard","discardnew"],"default":"new"},"device":{"editor":"enum","options":["desktop","tablet"],"default":"desktop"},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const R = window.React; const h = R.createElement; const DS = window.HalalGoesDesignSystem_d11a47;
+    const mode = this.props.mode ?? 'new';
+    const tablet = (this.props.device ?? 'desktop') === 'tablet';
+    const noop = () => {};
+    const RS = {
+      MISLEADING_DESCRIPTION: 'Description could mislead customers', UNSUBSTANTIATED_HALAL_CLAIM: 'Halal claim not supported',
+      INCORRECT_DIETARY_TAG: 'Dietary tag is not correct', MISSING_ALLERGEN: 'Missing allergen', POOR_IMAGE_QUALITY: 'Photo quality too low',
+      IMAGE_NOT_OF_DISH: 'Photo doesn’t show this dish', PROHIBITED_ITEM: 'Item not allowed on HalalGoes', OFFENSIVE_CONTENT: 'Offensive content', OTHER: 'Other reason',
+    };
+    const FIELD = { UNSUBSTANTIATED_HALAL_CLAIM: ['desc'], MISLEADING_DESCRIPTION: ['desc'], POOR_IMAGE_QUALITY: ['photo'], IMAGE_NOT_OF_DISH: ['photo'], MISSING_ALLERGEN: ['all'], INCORRECT_DIETARY_TAG: ['diet'], OFFENSIVE_CONTENT: ['name', 'desc'] };
+    const HREF = { name: '#name-input', desc: '#description-input', photo: '#photo-button', all: '#allergen-peanuts', diet: '#diet-vegetarian' };
+    const DIET = [['VEGETARIAN', 'Vegetarian'], ['VEGAN', 'Vegan'], ['GLUTEN_FREE', 'Gluten free'], ['DAIRY_FREE', 'Dairy free'], ['NUT_FREE', 'Nut free'], ['SPICY', 'Spicy'], ['KETO', 'Keto'], ['LOW_CARB', 'Low carb']];
+    const ALL = [['PEANUTS', 'Peanuts'], ['TREE_NUTS', 'Tree nuts'], ['SESAME', 'Sesame'], ['MILK', 'Milk'], ['EGGS', 'Eggs'], ['FISH', 'Fish'], ['CRUSTACEANS_MOLLUSCS', 'Crustaceans and molluscs'], ['SOY', 'Soy'], ['WHEAT_TRITICALE', 'Wheat and triticale'], ['SULPHITES', 'Sulphites'], ['MUSTARD', 'Mustard']];
+    const field = (bad) => ['min-height: 96px', 'box-sizing: border-box', 'padding: 10px var(--space-3)', 'border-radius: var(--radius-sm)', 'font: var(--text-type-body-md)', 'line-height: var(--type-body-md-line)', 'color: var(--text-primary)', 'background: var(--surface-raised)', bad ? 'border: 2px solid var(--feedback-danger-border)' : 'border: 1px solid var(--control-border)'].join('; ');
+    const flagStyle = (on) => on
+      ? 'display: flex; flex-direction: column; gap: var(--space-2); padding: 10px var(--space-3) var(--space-3) var(--space-3); border: 1px solid var(--feedback-warning-border); background: var(--feedback-warning-tint); border-radius: var(--radius-sm);'
+      : 'display: flex; flex-direction: column; gap: var(--space-2);';
+    const photoBox = (bad) => ['display: flex', 'gap: var(--space-3)', 'align-items: center', 'padding: 14px', 'border-radius: var(--radius-md)', 'background: var(--surface-base)', bad ? 'border: 2px solid var(--feedback-danger-border)' : 'border: 1px dashed var(--control-border)'].join('; ');
+
+    const kofta = { title: 'Edit Beef kofta plate', priceCents: 1850, apName: 'Beef kofta plate', apDesc: 'Three chargrilled beef kofta with parsley, onion and sumac, served with rice, salad and garlic sauce.', apIng: 'Beef, onion, parsley, sumac, black pepper, basmati rice, tomato, cucumber, garlic, canola oil, lemon juice.', apAll: '', apPhoto: 'kofta-plate.jpg', price: '18.50', prep: '15', name: 'Beef kofta plate', desc: 'Three chargrilled beef kofta with parsley, onion and sumac, served with rice, salad and garlic sauce.', ing: 'Beef, onion, parsley, sumac, black pepper, basmati rice, tomato, cucumber, garlic, canola oil, lemon juice.', dietOn: [], allOn: [], photoState: 'photo', photoText: 'kofta-plate.jpg · approved photo', photoBtn: 'Replace photo', groups: [] };
+    const halloumi = { title: 'New item', priceCents: 1150, price: '11.50', prep: '8', name: 'Halloumi wrap', desc: 'Grilled halloumi, tomato, cucumber, mint and olive tapenade in a toasted saj.', ing: '', dietOn: ['VEGETARIAN'], allOn: ['MILK', 'WHEAT_TRITICALE'], photoState: 'none', photoText: 'No photo yet.', photoBtn: 'Choose a photo', groups: [] };
+    const base = {
+      nameLabel: 'Name', descLabel: 'Description', ingLabel: 'Ingredients', photoLabel: 'Photo', ack: false, prepErr: null,
+      submit: 'Submit for review', footNote: 'Price, prep time, category and position go live now. The other fields wait for review.',
+      submitDisabled: false, submitWhy: 'Submit is off until the photo has uploaded.', showForm: true, cmpFields: [], rejAction: 'Change the flagged field and submit again.', showAck: true, showAckGap: false, busy: false, bad: false, flag: null,
+      closeOnly: false, closeLabel: 'Cancel', liveTitle: 'Live immediately', liveHelp: 'Customers see these as soon as you save. No review needed.', supportLabel: 'Contact support', serverCode: '422 VALIDATION_FAILED', catChoice: null, errLinks: [], errTitle: '', viewHeadline: '', viewBody: '', viewNeedsText: '', note: '', reviewedOn: '', stillLive: '', rejHeadline: '', discardTitle: 'Discard', discardBody: '', photoErrText: '',
+    };
+    const grid = {
+      mains: { cat: 'Mains', catValue: 'mains', rows: [
+        { id: 'm1', name: 'Chicken shawarma plate', sub: 'Prep 12 min', price: 1699, avail: 'AVAILABLE', review: 'LIVE' },
+        { id: 'm3', name: 'Mixed grill', pendingName: 'Mixed grill for two', price: 4200, avail: 'AVAILABLE', review: 'PENDING' },
+        { id: 'm4', name: 'Beef kofta plate', sub: 'Prep 15 min', price: 1850, avail: 'AVAILABLE', review: 'LIVE' },
+        { id: 'm5', name: 'Chicken biryani', sub: 'Prep 18 min', price: 1799, avail: 'AVAILABLE', review: 'LIVE' } ] },
+      wraps: { cat: 'Wraps', catValue: 'wraps', rows: [
+        { id: 'w2', name: 'Falafel wrap', sub: 'Prep 8 min', price: 1050, avail: 'AVAILABLE', review: 'LIVE' },
+        { id: 'w3', name: 'Chicken tawook wrap', sub: 'Prep 10 min', price: 1250, avail: 'BLOCKED', review: 'LIVE' },
+        { id: 'w7', name: 'Chicken shawarma wrap', sub: 'Prep 8 min', price: 1199, avail: 'AVAILABLE', review: 'LIVE' } ] },
+      wrapsFirst: { cat: 'Wraps', catValue: 'wraps', rows: [
+        { id: 'w1', name: 'Halloumi wrap', price: 1150, avail: 'AVAILABLE', review: 'FIRST' },
+        { id: 'w2', name: 'Falafel wrap', price: 1050, avail: 'AVAILABLE', review: 'LIVE' },
+        { id: 'w7', name: 'Chicken shawarma wrap', price: 1199, avail: 'AVAILABLE', review: 'LIVE' } ] },
+      breakfast: { cat: 'Breakfast', catValue: 'breakfast', noLive: true, rows: [
+        { id: 'b1', name: 'Foul medames', sub: 'New item · prep 10 min', price: 1195, avail: 'AVAILABLE', review: 'REJECTED_NEW', reason: 'INCORRECT_DIETARY_TAG' } ] },
+      desserts: { cat: 'Desserts', catValue: 'desserts', noLive: true, rows: [
+        { id: 'x1', name: 'Tiramisu', sub: 'New item · prep 5 min', price: 850, avail: 'AVAILABLE', review: 'REJECTED_NEW', reason: 'PROHIBITED_ITEM' } ] },
+      catering: { cat: 'Catering', catValue: 'catering', inactive: true, rows: [
+        { id: 'c1', name: 'Party platter (serves 10)', sub: 'Prep 60 min', price: 16500, avail: 'HIDDEN', review: 'LIVE' } ] },
+    };
+    const photoNew = { ...halloumi, photoState: 'photo' };
+    const modes = {
+      new: { ...halloumi, g: 'wraps', isNew: true, showAckGap: true, footNote: 'Customers can’t see this item until a HalalGoes reviewer approves it.', noGroupsText: 'Sizes and add-ons can’t be added here yet.' },
+      submitting: { ...halloumi, g: 'wraps', ing: 'Halloumi, saj bread, tomato, cucumber, mint, olives, olive oil.', ack: true, photoState: 'photo', photoText: 'halloumi-wrap.jpg · uploaded', photoBtn: 'Replace photo', isNew: true, busy: true, submit: 'Submitting…', footNote: 'Submitting. Keep this panel open.', noGroupsText: 'Sizes and add-ons can’t be added here yet.' },
+      discardnew: { ...halloumi, g: 'wraps', isNew: true, discard: true, discardTitle: 'Discard this new item?', discardBody: 'Halloumi wrap hasn’t been submitted, so nothing is saved. If you close now, what you typed is lost.', noGroupsText: 'Sizes and add-ons can’t be added here yet.' },
+      pending: { ...kofta, g: 'mains', editing: 'm3', title: 'Edit Mixed grill', price: '42.00', prep: '25', name: 'Mixed grill for two', nameLabel: 'Name (under review)', desc: 'Chicken tawook, lamb kofta and beef skewers with rice, hummus and two salads. Serves two.', descLabel: 'Description (under review)', ing: 'Chicken, lamb, beef, basmati rice, chickpeas, tahini, lemon, garlic, parsley, tomato, cucumber, onion.', ingLabel: 'Ingredients (under review)', allOn: ['SESAME'], photoLabel: 'Photo (under review)', photoText: 'mixed-grill-for-two.jpg · under review', priceCents: 4200, apName: 'Mixed grill', apDesc: 'Chicken tawook, lamb kofta and beef skewers with rice.', apIng: 'Chicken, lamb, beef, basmati rice, lemon, garlic, parsley, tomato, onion.', apAll: '', apPhoto: 'mixed-grill.jpg', isPending: true, showAckGap: true, cmpFields: ['name', 'desc', 'ing', 'all', 'photo', 'diet'], submit: 'Submit updated change', submitDisabled: true, submitWhy: 'Nothing to submit yet', footNote: 'Submitting again replaces the change that is under review.', groups: [{ name: 'Size', rule: 'Required · choose 1', opts: [{ name: 'For two', mode: 'DELTA', cents: 0 }, { name: 'For four', mode: 'ABSOLUTE', cents: 7999 }, { name: 'Extra meat', mode: 'DELTA', cents: 850 }] }, { name: 'Sides', rule: 'Optional · up to 2', opts: [{ name: 'Rice', mode: 'ADDON', cents: 300 }] }] },
+      superseded: null,
+      rejected: { ...kofta, g: 'mains', editing: 'm4', desc: 'Three chargrilled hand-slaughtered beef kofta with parsley, onion and sumac, served with rice, salad and garlic sauce.', isRejected: true, reason: 'UNSUBSTANTIATED_HALAL_CLAIM', note: 'The new description says the beef is hand-slaughtered. Your approved certificate does not state the slaughter method, so we can’t show that claim. Remove it, or ask your certifier to state the method on the certificate.', reviewedOn: '26 September 2026', stillLive: 'Customers still see the approved version.', rejHeadline: 'Change not approved', submit: 'Submit again for review', cmpFields: ['desc'], submitDisabled: true, submitWhy: 'Change the flagged field to submit again' },
+      rejectednew: { ...kofta, g: 'breakfast', editing: 'b1', title: 'Edit Foul medames', price: '11.95', prep: '10', name: 'Foul medames', desc: 'Slow-cooked fava beans with garlic, lemon, cumin and olive oil, finished with butter. Served with warm bread.', ing: 'Fava beans, garlic, lemon juice, cumin, olive oil, butter, parsley, bread (wheat).', dietOn: ['VEGETARIAN', 'VEGAN'], allOn: ['MILK', 'WHEAT_TRITICALE'], photoText: 'foul-medames.jpg · not approved', isRejected: true, reason: 'INCORRECT_DIETARY_TAG', note: 'Tagged vegan, but the recipe lists butter. Remove the vegan tag or change the recipe.', reviewedOn: '27 September 2026', stillLive: 'This item is not on your menu.', priceCents: 1195, rejHeadline: 'Not approved – this item is not on your menu', submit: 'Submit again for review', submitDisabled: true, submitWhy: 'Change the flagged field to submit again', footNote: 'Customers can’t see this item until a HalalGoes reviewer approves it.' },
+      rejectedother: { ...kofta, g: 'mains', editing: 'm4', desc: 'The best beef kofta in Toronto: three chargrilled kofta with parsley, onion and sumac, served with rice, salad and garlic sauce.', isRejected: true, reason: 'OTHER', note: 'The description says “the best beef kofta in Toronto”. We can’t check claims like this, so they aren’t allowed. Remove it and submit again.', reviewedOn: '26 September 2026', stillLive: 'Customers still see the approved version.', rejHeadline: 'Change not approved', rejAction: 'Read the reviewer’s note, change what it asks, and submit again.', submit: 'Submit again for review', cmpFields: ['desc'], submitDisabled: true, submitWhy: 'Change the item to submit again' },
+      rejectedoffensive: { ...kofta, g: 'mains', editing: 'm4', name: 'Killer kofta plate', desc: 'Kofta so good it’s criminal. Three chargrilled beef kofta with rice, salad and garlic sauce.', isRejected: true, reason: 'OFFENSIVE_CONTENT', note: 'The name and description use violent wording. Please describe the dish plainly.', reviewedOn: '26 September 2026', stillLive: 'Customers still see the approved version.', rejHeadline: 'Change not approved', rejAction: 'Change the name and description and submit again.', submit: 'Submit again for review', cmpFields: ['name', 'desc'], submitDisabled: true, submitWhy: 'Change the flagged fields to submit again' },
+      rejectedprohibited: { ...kofta, g: 'desserts', editing: 'x1', title: 'Tiramisu', priceCents: 850, price: '8.50', prep: '5', name: 'Tiramisu', desc: 'Layers of coffee-soaked sponge and mascarpone, with a splash of Marsala wine.', ing: 'Mascarpone, eggs, sugar, sponge fingers (wheat), espresso, Marsala wine, cocoa.', dietOn: ['VEGETARIAN'], allOn: ['EGGS', 'MILK', 'WHEAT_TRITICALE'], photoText: 'tiramisu.jpg · not approved', isRejected: true, isProhibited: true, reason: 'PROHIBITED_ITEM', note: 'Marsala is a wine. Items that contain alcohol can’t be sold on HalalGoes.', reviewedOn: '27 September 2026', stillLive: 'This item is not on your menu.', rejHeadline: 'This item can’t be sold on HalalGoes', rejAction: 'It can’t be changed and submitted again. Contact support if you think this is a mistake.', ro: true, showAck: false, closeOnly: true, closeLabel: 'Close', footSupport: true, footNote: '' },
+      rejectedphoto: { ...kofta, g: 'mains', editing: 'm4', photoText: 'kofta-plate-new.jpg · not approved', isRejected: true, reason: 'POOR_IMAGE_QUALITY', note: 'The photo is dark and out of focus, so customers can’t see the dish. Take it in daylight or under bright light.', reviewedOn: '26 September 2026', stillLive: 'Customers still see the approved photo.', rejHeadline: 'Change not approved', submit: 'Submit again for review', cmpFields: ['photo'], submitDisabled: true, submitWhy: 'Replace the photo to submit again' },
+      rejectedallergen: { ...kofta, g: 'mains', editing: 'm4', isRejected: true, reason: 'MISSING_ALLERGEN', note: 'Your garlic sauce is made with egg. Tick Eggs.', reviewedOn: '26 September 2026', stillLive: 'Customers still see the approved version.', rejHeadline: 'Change not approved', submit: 'Submit again for review', cmpFields: ['all'], submitDisabled: true, submitWhy: 'Change the flagged field to submit again' },
+      approved: { ...kofta, g: 'mains', editing: 'm4', price: '19.25', isApproved: true, showAck: false, submit: 'Save changes', footNote: 'Only the price changed. It goes live as soon as you save.' },
+      errors: { ...kofta, g: 'mains', editing: 'm4', isErrors: true, isLocal: true, bad: true, errTitle: '1 thing to fix before you can submit', errLinks: [{ href: '#price-input', text: 'Price is outside the allowed range' }] },
+      errorsprohibited: { ...kofta, g: 'mains', editing: 'm4', ing: 'Beef, onion, parsley, sumac, pork gelatin, basmati rice, tomato, cucumber, garlic, canola oil.', isErrors: true, isServer: true, serverCode: '422 PROHIBITED_INGREDIENT', isProhibitedServer: true, ingBad: true, errTitle: '1 thing to fix before you can submit', errLinks: [{ href: '#ingredients-input', text: 'Ingredients include something that can’t be sold' }] },
+      serverfields: { ...kofta, g: 'mains', editing: 'm4', prep: '0', prepErr: 'Enter a prep time from 1 to 120 minutes.', isErrors: true, isServer: true, serverCode: 'validation failed on the server (prep time)', errTitle: '1 thing to fix before you can submit', errLinks: [{ href: '#prep-input', text: 'Prep time must be from 1 to 120 minutes' }] },
+      notwritable: { ...kofta, g: 'mains', editing: 'm4', isNotWritable: true },
+      conflict: { ...kofta, g: 'mains', editing: 'm4', desc: 'Three chargrilled beef kofta with parsley and sumac, served with rice, salad and garlic sauce.', isConflict: true },
+      savefailed: { ...kofta, g: 'mains', editing: 'm4', desc: 'Three chargrilled beef kofta with parsley and sumac, served with rice, salad and garlic sauce.', isSaveFailed: true, submit: 'Submit again', footNote: 'Your edits are kept until you close this panel.' },
+      withdrawn: { ...kofta, g: 'mains', editing: 'm4', isWithdrawn: true, showAck: true },
+      firstreview: { ...halloumi, g: 'wrapsFirst', editing: 'w1', title: 'Edit Halloumi wrap', ing: 'Halloumi, saj bread, tomato, cucumber, mint, olives, olive oil.', ack: true, photoState: 'photo', photoText: 'halloumi-wrap.jpg · under review', photoBtn: 'Replace photo', nameLabel: 'Name (under review)', descLabel: 'Description (under review)', ingLabel: 'Ingredients (under review)', photoLabel: 'Photo (under review)', isFirstReview: true, showAckGap: true, cmpFields: [], liveHelp: 'Saved straight away. Customers see them once the item is approved.', submit: 'Submit updated item', submitDisabled: true, submitWhy: 'Nothing to submit yet', footNote: 'Customers can’t see this item until a HalalGoes reviewer approves it. Submitting again replaces what is under review.', noGroupsText: 'Sizes and add-ons can’t be added here yet.' },
+      movecategory: { ...kofta, g: 'mains', editing: 'm4', catChoice: 'catering', isApproved: true, showAck: false, submit: 'Save changes', footNote: 'Moving it goes live as soon as you save. Customers won’t see it while Catering is inactive.' },
+      photochecking: { ...photoNew, g: 'wraps', isNew: true, photoText: 'halloumi-wrap.jpg · uploaded, checking…', photoChecking: true, photoBtn: 'Checking photo…', submitDisabled: true, submitWhy: 'Submit is off until the photo is checked.', footNote: 'You can submit when the photo is ready.', noGroupsText: 'Sizes and add-ons can’t be added here yet.' },
+      loading: { ...kofta, g: 'mains', editing: 'm4', isLoading: true, showForm: false, showAck: false, submitDisabled: true, busy: true, footNote: '' },
+      loadfailed: { ...kofta, g: 'mains', editing: 'm4', isLoadFailed: true, showForm: false, closeOnly: true, closeLabel: 'Close', footNote: '' },
+      notfound: { ...kofta, g: 'mains', isNotFound: true, showForm: false, closeOnly: true, closeLabel: 'Close', footNote: '' },
+      viewblocked: { ...kofta, g: 'wraps', editing: 'w3', title: 'Chicken tawook wrap', name: 'Chicken tawook wrap', price: '12.50', priceCents: 1250, isView: true, showForm: false, closeOnly: true, closeLabel: 'Close', footNote: '', viewHeadline: 'Blocked by HalalGoes', viewBody: 'You can’t edit this item or change its availability. Contact support to find out why and what to change.', viewNeeds: true, viewNeedsText: 'Needs API: the admin’s reason for the block, on the item. When it exists, the reason shows here word for word.', viewSupport: true },
+      viewhidden: { ...kofta, g: 'catering', editing: 'c1', title: 'Party platter (serves 10)', name: 'Party platter (serves 10)', price: '165.00', priceCents: 16500, isView: true, showForm: false, closeOnly: true, closeLabel: 'Close', footNote: '', viewHeadline: 'Hidden from customers', viewBody: 'Its category, Catering, is inactive, so customers can’t see it. Only HalalGoes support can turn the category back on today.', viewNeeds: true, viewNeedsText: 'Needs API #149: reactivate a category yourself', viewSupport: true },
+      photouploading: { ...photoNew, g: 'wraps', isNew: true, photoText: 'halloumi-wrap.jpg · uploading, 60%', photoProgress: true, photoBtn: 'Cancel upload', submitDisabled: true, footNote: 'You can submit when the photo finishes uploading.', noGroupsText: 'Sizes and add-ons can’t be added here yet.' },
+      photofailed: { ...halloumi, g: 'wraps', isNew: true, photoText: 'halloumi-wrap.jpg didn’t upload.', photoErr: true, photoErrText: 'The upload didn’t finish. Check your connection and try again. Everything else is still here.', photoBtn: 'Try again', noGroupsText: 'Sizes and add-ons can’t be added here yet.' },
+      photoexpired: { ...halloumi, g: 'wraps', isNew: true, photoText: 'halloumi-wrap.jpg didn’t upload.', photoErr: true, photoErrText: 'The upload took longer than 5 minutes, so its link expired. Choose the photo again.', photoBtn: 'Choose a photo', noGroupsText: 'Sizes and add-ons can’t be added here yet.' },
+      photoinvalid: { ...halloumi, g: 'wraps', isNew: true, photoText: 'halloumi-wrap.heic · 8.4 MB', photoErr: true, photoErrText: 'This photo can’t be used. Choose a JPG, PNG or WebP photo up to 5 MB. Very small photos are refused too.', photoBtn: 'Choose another photo', noGroupsText: 'Sizes and add-ons can’t be added here yet.' },
+      discard: { ...kofta, g: 'mains', editing: 'm4', price: '19.25', desc: 'Three chargrilled beef kofta with parsley and sumac, served with rice, salad and garlic sauce.', discard: true, discardTitle: 'Discard your changes?', discardBody: 'You changed the price and the description of Beef kofta plate. If you close now, those changes are lost. Customers keep seeing the current version.' },
+    };
+    modes.superseded = { ...modes.pending, isSuperseded: true };
+    modes.pendingprice = { ...modes.pending, price: '44.00', submit: 'Save changes', submitDisabled: false, footNote: 'Price goes live now. Your change under review stays as it is.' };
+    const m = { ...base, ...(modes[mode] || modes.new) };
+    // live_version null (new, first review, rejected new): nothing is live, so nothing goes live on save
+    m.noLiveVersion = !!(m.isNew || m.isFirstReview || mode === 'rejectednew');
+    if (m.noLiveVersion) {
+      m.liveTitle = 'Price and placement';
+      if (!m.isFirstReview) m.liveHelp = 'Saved when you submit. Customers see these once the item is approved.';
+    }
+    m.supportLabel = m.isNotFound ? 'Contact support' : 'Contact support about ' + (m.name || 'this item');
+    const g = { ...grid[m.g || 'mains'] };
+    g.editing = m.editing || null;
+    g.inactive = !!g.inactive; g.noLive = !!g.noLive;
+    m.priceOk = !m.bad; m.priceBad = !!m.bad;
+    m.isFirstReview = !!m.isFirstReview; m.isLocal = !!m.isLocal; m.isProhibitedServer = !!m.isProhibitedServer;
+    m.catValue = m.catChoice || g.catValue;
+    m.catHelp = m.catValue === 'catering' ? 'Customers won’t see this item while Catering is inactive.' : undefined;
+    m.apAllEmpty = !m.apAll; if (!m.apAll) m.apAll = 'Allergen information not provided';
+    const certOk = true;
+    const avail = (g.rows.find((r) => r.id === m.editing) || {}).avail || 'AVAILABLE';
+    m.approvedBadge = certOk && (avail === 'AVAILABLE' || avail === 'OUT_OF_STOCK') ? 'Live on your menu' : 'Approved';
+    m.busyAttr = m.busy ? 'true' : 'false';
+    m.descStyle = field(false); m.ingStyle = field(!!m.ingBad);
+    m.descCount = m.desc.length; m.ingCount = m.ing.length;
+    const flags = (m.reason && FIELD[m.reason]) || [];
+    m.flagHref = flags.length ? HREF[flags[0]] : '';
+    m.reasonLinked = m.isRejected && flags.length > 0; m.reasonPlain = m.isRejected && flags.length === 0;
+    m.rejReason = m.reason ? RS[m.reason] : '';
+    m.hasNote = !!m.note;
+    m.noteFirst = m.hasNote && flags.length === 0; m.noteAfter = m.hasNote && flags.length > 0;
+    m.isProhibited = !!m.isProhibited;
+    m.roView = !!m.ro && !m.busy; m.editCtl = !m.roView;
+    m.ro = !!m.busy || !!m.ro;
+    m.photoBtnOff = m.ro || !!m.photoChecking; m.photoChecking = !!m.photoChecking;
+    m.isFlagName = flags.includes('name'); m.isFlagDesc = flags.includes('desc'); m.isFlagDiet = flags.includes('diet'); m.isFlagAll = flags.includes('all'); m.isFlagPhoto = flags.includes('photo');
+    m.flagLine = 'Flagged by the reviewer: ' + ((m.reason && RS[m.reason]) || '');
+    m.nameDesc = m.isFlagName ? 'name-flag' : undefined; m.descDesc = m.isFlagDesc ? 'desc-flag' : undefined; m.dietDesc = m.isFlagDiet ? 'diet-flag' : undefined; m.allDesc = m.isFlagAll ? 'allergens-flag' : undefined; m.photoDesc = m.isFlagPhoto ? 'photo-flag' : undefined;
+    m.flagWiring = m.isRejected && flags.length > 0;
+    m.flagName = flagStyle(m.isFlagName); m.flagDesc = flagStyle(m.isFlagDesc); m.flagDiet = flagStyle(m.isFlagDiet); m.flagAll = flagStyle(m.isFlagAll); m.flagPhoto = flagStyle(m.isFlagPhoto);
+    const cf = m.cmpFields || [];
+    m.cmpName = cf.includes('name'); m.cmpDesc = cf.includes('desc'); m.cmpIng = cf.includes('ing'); m.cmpAll = cf.includes('all'); m.cmpPhoto = cf.includes('photo'); m.cmpDiet = cf.includes('diet');
+    m.photoBox = photoBox(!!m.photoErr);
+    m.photoProgress = !!m.photoProgress; m.photoErr = !!m.photoErr;
+    m.diet = DIET.map(([k, label]) => ({ label, id: 'diet-' + k.toLowerCase().replace(/_/g, '-'), on: m.dietOn.includes(k) }));
+    m.allergens = ALL.map(([k, label]) => ({ label, id: 'allergen-' + k.toLowerCase().replace(/_/g, '-'), on: m.allOn.includes(k) }));
+    m.groups = m.groups.map((og) => ({ ...og, opts: og.opts.map((op) => {
+      const md = op.mode || 'ADDON';
+      return { ...op, hasPrice: !(md === 'DELTA' && op.cents === 0), sign: md === 'ABSOLUTE' ? 'auto' : 'always',
+        modeText: md === 'ABSOLUTE' ? 'Priced at' : md === 'ADDON' ? 'Adds' : (op.cents === 0 ? 'Base price' : 'Changes price by') };
+    }) }));
+    m.hasGroups = m.groups.length > 0; m.noGroups = !m.hasGroups;
+    m.noGroupsText = m.noGroupsText || 'This item has no sizes or add-ons.';
+    ['isFirstReview', 'isNew', 'isPending', 'isSuperseded', 'isWithdrawn', 'isRejected', 'isApproved', 'isErrors', 'isErrorsLocal', 'isServer', 'isNotWritable', 'isConflict', 'isSaveFailed', 'isView', 'isLoading', 'isLoadFailed', 'isNotFound', 'viewNeeds', 'viewSupport', 'discard'].forEach((k) => { m[k] = !!m[k]; });
+    const list = (arr, dict, empty) => arr.length ? arr.map((k) => dict.find((d) => d[0] === k)[1]).join(', ') : (empty || 'None');
+    m.catText = g.cat; m.dietText = list(m.dietOn, DIET); m.allText = list(m.allOn, ALL, 'Allergen information not provided');
+    m.viewRows = [
+      { k: 'Prep time', v: m.prep + ' min' }, { k: 'Category', v: g.cat },
+      { k: 'Name', v: m.name }, { k: 'Description', v: m.desc }, { k: 'Ingredients', v: m.ing || 'Not given' },
+      { k: 'Dietary tags', v: list(m.dietOn, DIET) }, { k: 'Allergens', v: list(m.allOn, ALL, 'Allergen information not provided'), hasNeeds: m.allOn.length === 0, needs: 'Needs API: allergens_declared on MenuItemOwnerView. Only when true may this read “Contains none of the listed allergens”' }, { k: 'Photo', v: m.photoText },
+    ];
+    // Footer of the in-page editor pane (no overlay, no modal: the discard check is an inline bar in the footer).
+    m.hasFoot = !!m.footNote;
+    m.showWhy = !!(m.submitDisabled && !m.isLoading && m.submitWhy);
+    m.closeVariant = m.closeOnly && !m.footSupport ? 'primary' : 'tertiary';
+    m.cancelOff = !!(m.busy && !m.isLoading);
+    m.footSupport = !!m.footSupport;
+    m.hasSubmit = !m.closeOnly;
+    m.submitLoading = !!(m.busy && !m.isLoading);
+    m.submitIcon = m.isSaveFailed ? 'refresh' : undefined;
+    m.submitDesc = m.submitDisabled ? 'submit-why' : undefined;
+    m.noDiscard = !m.discard;
+    m.kicker = m.isNew || mode === 'photouploading' || mode === 'photofailed' || mode === 'photoexpired' || mode === 'photoinvalid' || mode === 'photochecking' || mode === 'submitting' || mode === 'discardnew' ? 'new item' : m.isView ? 'view only' : 'editing';
+    m.closeAria = 'Close ' + (m.title || 'the editor');
+    return {
+      // Kitchen tablet, landscape 1024 × 768 and up (owner decision): the items list narrows so the editor keeps its width.
+      W: tablet ? 1024 : 1440, H: tablet ? 768 : 900, nine: tablet ? 768 : 900, mainW: tablet ? 936 : 1352, paneH: tablet ? 532 : 664, gw: tablet ? 300 : 520,
+      yes: true, eighty: 80, twentyfour: 24, noop, m, g,
+      catOpts: [{ value: 'mains', label: 'Mains' }, { value: 'wraps', label: 'Wraps' }, { value: 'drinks', label: 'Drinks' }, { value: 'breakfast', label: 'Breakfast' }, { value: 'desserts', label: 'Desserts' }, { value: 'catering', label: 'Catering (inactive, hidden from customers)' }],
+    };
+  }
+}
+</script>
+</body>
+</html>

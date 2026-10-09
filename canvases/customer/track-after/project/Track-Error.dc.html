@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Tracking, could not load</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<link rel="stylesheet" href="hg-roles.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:var(--surface-base)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; display: flex; flex-direction: column; overflow: hidden; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" title-is-page-heading="{{ no }}" tone="cream" title="Order HG-8F3K2Q" back-label="Back to Orders" on-back="{{ noop }}"></x-import>
+<main style="flex-grow: 1; display: flex; flex-direction: column; justify-content: center; gap: 16px; padding: 24px">
+<span class="hg-tag">Proposed component: ErrorState</span>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="refresh" size="2xl" color="var(--text-primary)"></x-import>
+<div class="hg-focus-drawn"><h1 tabindex="-1" class="type-heading-xl" style="margin: 0">We couldn't load this order</h1></div>
+<p class="type-body-md" style="margin: 0; color: var(--text-secondary)">This is a problem loading the page. It doesn't change your order. We'll let you know if anything changes.</p>
+<div style="display: flex; flex-direction: column; gap: 24px; margin-top: 8px">
+<div>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" full-width="{{ yes }}" icon-start="refresh">Try again</x-import>
+</div>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="md" full-width="{{ yes }}" href="GetHelp-Contact.dc.html">Get help</x-import>
+</div>
+</main>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.BottomNav" label="Main" active="orders" items="{{ nav }}"></x-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      no: false,
+      yes: true, noop: () => {},
+      nav: [{ key: 'home', label: 'Home', icon: 'home' }, { key: 'search', label: 'Search', icon: 'search' }, { key: 'orders', label: 'Orders', icon: 'orders' }, { key: 'account', label: 'Account', icon: 'profile' }]
+    };
+  }
+}
+</script>
+</body>
+</html>

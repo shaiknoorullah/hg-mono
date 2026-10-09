@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Keyboard focus</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div style="width: 1440px; height: 1400px; box-sizing: border-box; padding: 40px; background: var(--surface-base); font-family: var(--font-ui); color: var(--text-primary); display: flex; flex-direction: column; gap: 40px">
+<div style="display: flex; gap: 8px; flex-wrap: wrap">
+<span style="padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">One indicator, in the theme's brand colour: fields turn their own border 2px; everything else gets a 2px gap and a 3px ring, white on forest chrome</span>
+<span style="padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">Each example draws what the design system's own focus rule renders: forest surfaces carry the hg-on-accent class and their links and buttons the hg-focus class, so the gap is the forest itself and the ring is white. No screen redefines a focus token.</span>
+<span style="padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">Icon dependency: no Solar glyph yet for Menu, Payouts or Settings, so collapsed items show their name under the icon</span>
+</div>
+
+<div style="display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 32px; align-items: start">
+<div style="display: flex; flex-direction: column; gap: 12px">
+<h2 style="margin: 0; font: var(--text-type-heading-md)">Side navigation on forest</h2>
+<p style="margin: 0; font: var(--text-type-body-sm); color: var(--text-secondary)">White ring, never the brand orange on forest. Collapsed, every item keeps its visible name.</p>
+<div style="display: flex; gap: 16px; align-items: flex-start">
+<nav aria-label="Expanded navigation example" class="hg-on-accent" style="width: 200px; padding: 16px 12px; box-sizing: border-box; background: var(--surface-chrome); border-radius: var(--radius-md); display: flex; flex-direction: column; gap: 8px">
+<a href="Main.dc.html" class="hg-focus" style="display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 0 12px; border-radius: var(--radius-sm); color: var(--text-on-accent); text-decoration: none; font: var(--text-type-body-md); font-weight: 500; box-shadow: 0 0 0 2px var(--action-secondary), 0 0 0 5px var(--focus-on-color)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="clock" size="md"></x-import>Hours</a>
+<a href="https://claude.ai/artifact/VkGvVQsxmCHp8CGnCLVKga" class="hg-focus" style="display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 0 12px 0 44px; border-radius: var(--radius-sm); color: var(--text-on-accent); text-decoration: none; font: var(--text-type-body-md); font-weight: 500">Settings</a>
+</nav>
+<nav aria-label="Collapsed navigation example" class="hg-on-accent" style="width: 72px; padding: 16px 4px; box-sizing: border-box; background: var(--surface-chrome); border-radius: var(--radius-md); display: flex; flex-direction: column; gap: 8px; align-items: stretch">
+<a href="#orders" class="hg-focus" style="min-height: 56px; display: flex; flex-direction: column; gap: 4px; align-items: center; justify-content: center; border-radius: var(--radius-sm); color: var(--text-on-accent); text-decoration: none; box-shadow: 0 0 0 2px var(--action-secondary), 0 0 0 5px var(--focus-on-color)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="orders" size="md"></x-import><span style="font: var(--text-type-caption)">Orders</span></a>
+<a href="https://claude.ai/artifact/VkGvVQsxmCHp8CGnCLVKga" class="hg-focus" style="min-height: 56px; display: flex; align-items: center; justify-content: center; border-radius: var(--radius-sm); color: var(--text-on-accent); text-decoration: none"><span style="font: var(--text-type-label-md)">Settings</span></a>
+</nav>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 12px; min-width: 0">
+<h2 style="margin: 0; font: var(--text-type-heading-md)">Orders strip: one Tab stop, a roving focus between orders</h2>
+<ol style="margin: 0; padding-left: 20px; font: var(--text-type-body-md); line-height: 1.6">
+<li>Tab reaches the order list once. Focus goes to the order that expires soonest: it is a focusable group (tabindex 0, named "Order HG-10482, 3 items, 2 minutes 22 seconds left"); the other orders are tabindex -1.</li>
+<li>← and → move focus between orders. The focused order grows to show Accept, Reject and See items; the others stay compact.</li>
+<li>A accepts the focused order, R opens the reason panel for it. The keys do nothing unless focus is inside the strip, so typing elsewhere on the page can't accept anything.</li>
+<li>Tab from the focused order goes to its Accept, Reject and See items, then to the Accepting orders switch, then out of the strip.</li>
+</ol>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<dc-import name="PartNewOrders" state="several" position="header" annotate="{{no}}" width="{{1360}}" hint-size="1360px,112px"></dc-import>
+<p style="margin: 0; font: var(--text-type-body-sm); color: var(--text-secondary)">The ring sits on the focused order group itself (HG-10483 here), which is the element that holds focus.</p>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 32px; align-items: start">
+<div style="display: flex; flex-direction: column; gap: 12px">
+<h2 style="margin: 0; font: var(--text-type-heading-md)">Settings section list</h2>
+<nav aria-label="Settings sections example" style="width: 260px; display: flex; flex-direction: column; gap: 4px">
+<a href="https://claude.ai/artifact/VkGvVQsxmCHp8CGnCLVKga" aria-current="page" style="min-height: 60px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; gap: 2px; padding: 8px 12px; border-radius: var(--radius-sm); background: var(--state-selected-tint); color: var(--text-primary); text-decoration: none"><span style="font: var(--text-type-label-lg); font-weight: 700">Halal certification</span><span style="font: var(--text-type-body-sm); color: var(--text-secondary)">Certified · valid until 12 November 2026</span></a>
+<a href="https://claude.ai/artifact/VkGvVQsxmCHp8CGnCLVKga" style="min-height: 60px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; gap: 2px; padding: 8px 12px; border-radius: var(--radius-sm); color: var(--text-primary); text-decoration: none; box-shadow: 0 0 0 2px var(--focus-offset), 0 0 0 5px var(--focus-ring)"><span style="font: var(--text-type-body-md)">Account</span><span style="font: var(--text-type-body-sm); color: var(--text-secondary)">Live · open until 11:00 pm</span></a>
+</nav>
+<p style="margin: 0; font: var(--text-type-body-sm); color: var(--text-secondary)">Focused (Account) and current (Halal certification) never look alike: current is the tint and bold label, focus is the ring.</p>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 12px">
+<h2 style="margin: 0; font: var(--text-type-heading-md)">Panel: where focus goes</h2>
+<ol style="margin: 0; padding-left: 20px; font: var(--text-type-body-md); line-height: 1.6">
+<li>Opening a panel moves focus to its heading. The page beside it stays usable; there is no scrim and no focus trap.</li>
+<li>Close, Escape, Cancel or a finished save closes it and puts focus back on the control that opened it.</li>
+<li>If that control has gone, focus goes to the section heading, made focusable with tabindex="-1".</li>
+</ol>
+<div style="display: flex; gap: 16px; align-items: center">
+<span style="display: inline-flex; border-radius: var(--radius-full); box-shadow: 0 0 0 2px var(--focus-offset), 0 0 0 5px var(--focus-ring)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.IconButton" icon="close" variant="plain" accessibility-label="Close panel"></x-import></span>
+<span style="display: inline-flex; border-radius: var(--radius-sm); box-shadow: 0 0 0 2px var(--focus-offset), 0 0 0 5px var(--focus-ring)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="sm" accessibility-label="Edit kitchen">Edit</x-import></span>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<h2 style="margin: 0; font: var(--text-type-heading-md)">Fields</h2>
+<label for="f1" style="font: var(--text-type-label-lg)">Description</label>
+<span class="hg-field" style="display: block; border-radius: var(--radius-sm); background: var(--control-bg); border-color: var(--border-brand); box-shadow: inset 0 0 0 1px var(--border-brand)"><textarea id="f1" style="box-sizing: border-box; display: block; width: 100%; min-height: 80px; padding: 12px; border: 0; background: transparent; font: var(--text-type-body-md); color: var(--text-primary); resize: none">Charcoal grills, shawarma and mezze from a family kitchen.</textarea></span>
+<label for="f2" style="font: var(--text-type-label-lg)">Description, invalid and focused</label>
+<span class="hg-field" data-invalid="" style="display: block; border-radius: var(--radius-sm); background: var(--control-bg); box-shadow: inset 0 0 0 1px var(--color-danger-500), 0 0 0 2px var(--focus-offset), 0 0 0 5px var(--border-brand)"><textarea id="f2" aria-invalid="true" aria-describedby="f2-err" style="box-sizing: border-box; display: block; width: 100%; min-height: 80px; padding: 12px; border: 0; background: transparent; font: var(--text-type-body-md); color: var(--text-primary); resize: none">Charcoal grills.</textarea></span>
+<span id="f2-err" style="display: inline-flex; align-items: center; gap: 6px; font: var(--text-type-label-md); color: var(--feedback-danger-text)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="error" size="sm"></x-import>Write at least 20 characters.</span>
+<span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">Proposed component: Textarea (shadcn/ui Textarea in the design system's field wrapper) · drawn as the wrapper's :focus-within renders it</span>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 12px">
+<h2 style="margin: 0; font: var(--text-type-heading-md)">Account menu</h2>
+<span style="display: inline-flex; align-self: flex-start; border-radius: var(--radius-full); box-shadow: 0 0 0 2px var(--focus-offset), 0 0 0 5px var(--focus-ring)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Menu" label="Account menu" icon="profile" items="{{acctItems}}"></x-import></span>
+<p style="margin: 0; font: var(--text-type-body-sm); color: var(--text-secondary)">Closed trigger: two-layer ring. Open: arrow keys move through items and the menu draws its own focused item.</p>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 12px">
+<h2 style="margin: 0; font: var(--text-type-heading-md)">Switch</h2>
+<div style="padding: 8px; border-radius: var(--radius-md); box-shadow: 0 0 0 2px var(--focus-offset), 0 0 0 5px var(--focus-ring)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Switch" label="Order sound" description="Rings until each new order is accepted, rejected or expires." state-label="{{onOff}}" checked="{{yes}}"></x-import></div>
+<p style="margin: 0; font: var(--text-type-body-sm); color: var(--text-secondary)">Drawn around the whole row here; the real Switch rings its own track on Tab.</p>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 12px">
+<h2 style="margin: 0; font: var(--text-type-heading-md)">Actions on a banner</h2>
+<div style="display: flex; flex-direction: column; gap: 8px; padding: 12px 16px; border-radius: var(--radius-md); background: var(--feedback-warning-tint); border: 1px solid var(--feedback-warning-border)">
+<strong style="font: var(--text-type-label-lg)">Stripe needs 3 things from you before it can pay you</strong>
+<span style="display: inline-flex; align-self: flex-start; border-radius: var(--radius-sm); box-shadow: 0 0 0 2px var(--feedback-warning-tint), 0 0 0 5px var(--focus-ring)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="sm" icon-end="chevron-right">See Stripe's exact list</x-import></span>
+</div>
+<p style="margin: 0; font: var(--text-type-body-sm); color: var(--text-secondary)">The gap takes the banner's own tint so the ring reads on warning. Every banner action is a 44 px target.</p>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1400}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      yes: true,
+      no: false,
+      onOff: { on: 'On', off: 'Off' },
+      acctItems: [{ key: 'settings', label: 'Settings' }, { key: 'whatsnew', label: "What's new" }, { type: 'separator' }, { key: 'signout', label: 'Sign out…' }]
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Withdraw application — confirm (Needs API)</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:var(--surface-base);color:var(--text-primary);font-family:var(--font-ui)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+.skip{position:absolute;left:16px;top:-80px;z-index:10}.skip:focus{top:8px}
+form{margin:0}
+.row{appearance:none;-webkit-appearance:none;border:0;margin:0;width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer;box-sizing:border-box}
+.row:hover{background:var(--surface-sunken)}
+.row:focus-visible,.handle:focus-visible{outline:2px solid transparent;box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+.navlink:focus-visible{box-shadow:0 0 0 var(--focus-offset-width) var(--surface-chrome),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring-on-accent)}
+.hg-focus-field:not([aria-invalid="true"]):focus-visible{outline:2px solid transparent;border-color:var(--focus-ring) !important;box-shadow:inset 0 0 0 1px var(--focus-ring)}
+.hg-focus-field[aria-invalid="true"]:focus-visible{outline:2px solid transparent;box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+.gap{position:relative;outline:1.5px dashed var(--color-neutral-500);outline-offset:3px}
+.gap::before{content:"Proposed component: " attr(data-gap);position:absolute;top:-11px;right:12px;z-index:3;font:500 11px/1 var(--font-mono);color:var(--color-neutral-800);background:var(--color-neutral-100);padding:3px 6px;border-radius:4px;white-space:nowrap}
+.api{display:inline-flex;align-items:center;gap:8px;padding:4px 8px;border:1.5px dashed var(--color-info-600);background:var(--color-info-50);color:var(--color-info-700);font:500 12px/1.4 var(--font-mono);border-radius:4px}
+.note{display:inline-flex;align-items:center;padding:4px 8px;background:var(--color-neutral-100);color:var(--color-neutral-800);font:500 12px/1.4 var(--font-mono);border-radius:4px}
+summary:focus-visible{outline:2px solid transparent;box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; background: var(--surface-base); display: flex; flex-direction: column; font-family: var(--font-ui); color: var(--text-primary); position: relative; overflow: hidden">
+<dc-import name="OnbTop" hint-size="1440px,64px"></dc-import>
+<div style="height: 836px; display: flex">
+<dc-import name="OnbSide" current="AWAITING_REVIEW" done="1110000" percent="40" cycle="1" halal="UNVERIFIED" body="HMA Canada" until="14 March 2027" hint-size="288px,836px"></dc-import>
+<main id="main" style="flex-grow: 1; min-width: 0; box-sizing: border-box; padding: 20px 28px; display: flex; flex-direction: column; gap: 14px">
+<section role="region" aria-labelledby="wd-h" class="gap" data-gap="Detail panel (in page, replaces the modal)" style="display: flex; flex-direction: column; gap: 10px; padding: 16px; border-radius: 16px; background: var(--surface-raised); border: 2px solid var(--border-strong)">
+<div style="display: flex; align-items: flex-start; gap: 12px"><div style="flex-grow: 1; display: flex; flex-direction: column; gap: 4px"><h2 id="wd-h" class="type-heading-md" style="margin: 0">Withdraw your application?</h2><p class="type-body-md" style="margin: 0; line-height: 1.45; color: var(--text-secondary)">You won’t be able to carry on setting up Zaytoun Grill with this account. To apply again later, contact partner support.</p></div><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.IconButton" icon="close" variant="plain" size="md" accessibility-label="Close, keep my application" hint-size="44px,44px"></x-import></div>
+
+<div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="secondary" size="lg" hint-size="210px,52px">Keep my application</x-import><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" destructive="{{yes}}" hint-size="230px,52px">Withdraw application</x-import><span style="flex-grow: 1"></span><span class="api">Needs API: withdraw onboarding</span></div>
+<span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 3px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">Opens in the page from Withdraw application in the checklist; focus moves to Keep my application. Closing returns focus to the link.</span>
+</section>
+<dc-import name="ReviewPanes" mode="inreview" w="1096px" h="640px" hint-size="1096px,640px"></dc-import>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 1440, "height": 900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { yes: true, no: false };
+  }
+}
+</script>
+</body>
+</html>

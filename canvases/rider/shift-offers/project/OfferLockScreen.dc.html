@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Offer on the lock screen</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+[data-rider]{font-family:var(--font-ui)}
+.offer-chrome{background:var(--surface-raised)}
+[data-theme="dark"] .offer-chrome,[data-theme="dark"].offer-chrome{background:var(--surface-chrome)}
+</style>
+</helmet>
+<div data-rider="" data-theme="{{theme}}" style="width: 390px; height: 844px; position: relative; overflow: hidden; display: flex; flex-direction: column; background: var(--surface-sunken); color: var(--text-primary)">
+<main style="flex: 1 1 auto; overflow-y: auto; padding: var(--space-10) var(--space-5) var(--space-5); display: flex; flex-direction: column; gap: var(--space-4)"><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">OS surface, not app UI · Android full-screen intent / iOS time-sensitive notification · OFFER sound + long haptic as in the offer note</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg" padding="var(--space-5)"><div style="display: flex; flex-direction: column; gap: var(--space-3)"><div style="display: flex; align-items: center; gap: var(--space-2)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="bell" size="lg"></x-import><strong style="font-size: var(--type-heading-md-size); font-weight: var(--font-weight-semibold)">HalalGoes · New delivery offer</strong></div><p style="margin: 0; font-size: var(--type-body-lg-size); line-height: 1.5">Open to see it.</p><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="xl" full-width="{{yes}}" href="OfferLive.dc.html">Open the offer</x-import></div></x-import><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Current contract: no push payload is defined, so the lock screen and heads-up carry no amount, route or countdown · they load from GET /offers/current (or dispatch.offer) once opened · same rule as OfferLoadFailed: nothing from the push</span><p style="margin: 0; font-size: var(--type-body-lg-size); line-height: 1.5">Accept and Decline happen only inside the app, on the full offer. Opening it goes straight to the offer, even from the lock screen.</p><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg" padding="var(--density-card-padding)"><div style="display: flex; flex-direction: column; gap: var(--space-2)"><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">App in the background, phone unlocked: heads-up notification</span><strong style="font-size: var(--type-body-lg-size); font-weight: var(--font-weight-semibold)">New delivery offer · Open to see it</strong><p style="margin: 0; font-size: var(--type-body-lg-size); line-height: 1.5">Tap to open. The full-screen offer takes over.</p></div></x-import><div style="border: 1.5px dashed var(--text-link); border-radius: var(--radius-md); padding: var(--space-3) var(--space-4); display: flex; flex-direction: column; gap: var(--space-2)"><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--text-link); color: var(--text-link)">Needs API: offer push payload (estimated_total_cents, pickup.restaurant_name, dropoff.area, expires_at, server_time)</span><span style="font-size: var(--type-body-lg-size); line-height: 1.5; color: var(--text-secondary-field)">With it, the lock screen could show the estimate, the route and the time left. Not drawn until the contract defines it.</span></div><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Arrives also by dispatch.offer / GET /offers/current on foreground · deduplicated by offer_id · an offer past expires_at shows nothing</span></main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["dark","light"],"default":"dark"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const theme = this.props.theme ?? 'dark';
+    if (!this._t) this._t = Date.now();
+    return { theme: theme, onDark: theme === 'dark', yes: true, no: false, noop: () => {}, twentyFour: 24, activeTab: 'home',
+      onOff: { on: 'On', off: 'Off' },
+      tabs: [{ key: 'home', label: 'Home', icon: 'home' }, { key: 'earnings', label: 'Earnings', icon: 'orders' }, { key: 'account', label: 'Account', icon: 'profile' }], windowSeconds: 29, serverNow: new Date(this._t).toISOString(), expiresAt: new Date(this._t + 22000).toISOString(), o: { total: 944, base: 350, distance: 384, tip: 210 } };
+  }
+}
+</script>
+</body>
+</html>

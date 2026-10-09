@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Admin sidebar</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<nav aria-label="Admin" class="hg-on-accent" data-collapsed="{{collapsedAttr}}" style="width: {{navW}}; height: {{navH}}; box-sizing: border-box; background: var(--surface-chrome); color: var(--text-on-accent); font-family: var(--font-ui); display: flex; flex-direction: column">
+  <div style="padding: var(--space-3) var(--space-3) var(--space-2); display: flex; flex-direction: column; gap: var(--space-2); align-items: {{headAlign}}">
+    <div style="display: flex; align-items: center; gap: var(--space-2); width: 100%; justify-content: {{headJustify}}">
+      <sc-if value="{{expanded}}" hint-placeholder-val="{{true}}">
+        <div style="flex-grow: 1; height: 40px; border-radius: var(--radius-sm); border: 1px dashed var(--text-on-accent); display: flex; align-items: center; padding: 0 var(--space-3); font-size: var(--type-caption-size); font-weight: var(--font-weight-semibold); color: var(--text-on-accent)">Proposed component: Wordmark on dark</div>
+      </sc-if>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.IconButton" icon="{{toggleIcon}}" accessibility-label="{{toggleLabel}}" variant="plain" size="md" style="color: var(--text-on-accent)"></x-import>
+    </div>
+    <sc-if value="{{expanded}}" hint-placeholder-val="{{true}}">
+      <span style="font-size: var(--type-body-sm-size); color: var(--text-on-accent); padding: 0 var(--space-1)">Operations · Ontario</span>
+    </sc-if>
+  </div>
+  <div style="flex-grow: 1; display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-1) var(--space-3); overflow: hidden">
+    <sc-for list="{{groups}}" as="g" hint-placeholder-count="3">
+      <div style="display: flex; flex-direction: column; gap: var(--space-1)">
+        <sc-if value="{{expanded}}" hint-placeholder-val="{{true}}">
+          <div style="font-size: var(--type-label-md-size); font-weight: var(--font-weight-semibold); line-height: 1.4; letter-spacing: 0.01em; color: var(--text-on-accent); padding: var(--space-1) var(--space-3)">{{g.name}}</div>
+        </sc-if>
+        <sc-if value="{{collapsed}}" hint-placeholder-val="{{false}}">
+          <div aria-hidden="true" style="height: 1px; margin: var(--space-1) var(--space-2); background: var(--text-on-accent); opacity: 0.4"></div>
+        </sc-if>
+        <ul aria-label="{{g.name}}" style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: var(--space-2)">
+          <sc-for list="{{g.items}}" as="it" hint-placeholder-count="4">
+            <li>
+              <a class="hg-focus" href="{{it.href}}" aria-current="{{it.current}}" aria-label="{{it.aria}}" title="{{it.tip}}" style="position: relative; display: flex; align-items: center; justify-content: {{itemJustify}}; gap: var(--space-3); min-height: 44px; padding: 0 var(--space-3); box-sizing: border-box; border-radius: var(--radius-sm); color: var(--text-on-accent); text-decoration: none; font-size: var(--type-body-md-size); font-weight: {{it.weight}}; border: {{it.border}}; box-shadow: {{it.ring}}">
+                <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="{{it.icon}}" weight="{{it.iconWeight}}" size="md"></x-import>
+                <sc-if value="{{expanded}}" hint-placeholder-val="{{true}}">
+                  <span style="flex-grow: 1">{{it.label}}</span>
+                </sc-if>
+                <sc-if value="{{it.hasCount}}" hint-placeholder-val="{{false}}">
+                  <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="neutral" size="sm" style="{{countStyle}}">{{it.countLabel}}</x-import>
+                </sc-if>
+              </a>
+            </li>
+          </sc-for>
+        </ul>
+      </div>
+    </sc-for>
+  </div>
+  <div style="padding: var(--space-3) var(--space-3) var(--space-4); border-top: 1px solid var(--border-decorative); display: flex; flex-direction: column; gap: var(--space-2); align-items: {{headAlign}}">
+    <sc-if value="{{expanded}}" hint-placeholder-val="{{true}}">
+      <span style="font-size: var(--type-label-md-size); font-weight: var(--font-weight-semibold); padding: 0 var(--space-1)">Signed in as {{roleLabel}}</span>
+      <span style="display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; font-size: var(--type-body-sm-size); line-height: 1.4; color: var(--text-on-accent); padding: 0 var(--space-1)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="neutral" size="sm">Needs API</x-import>Staff name and email (the session carries neither)</span>
+      <div style="display: flex; align-items: flex-start">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="md" style="color: var(--text-on-accent)">Sign out</x-import>
+      </div>
+    </sc-if>
+    <sc-if value="{{collapsed}}" hint-placeholder-val="{{false}}">
+      <div style="display: flex">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.IconButton" icon="profile" accessibility-label="Signed in as {{roleLabel}}. Account and sign out" variant="plain" size="md" style="color: var(--text-on-accent)"></x-import>
+      </div>
+    </sc-if>
+  </div>
+</nav>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"active":{"editor":"enum","options":["orders","disputes","refunds","alerts","none"],"default":"orders"},"role":{"editor":"enum","options":["ADMIN","SUPPORT_AGENT"],"default":"ADMIN"},"focusItem":{"editor":"enum","options":["none","orders","disputes","refunds","alerts"],"default":"none"},"countsKnown":{"editor":"boolean","default":true},"collapsed":{"editor":"boolean","default":false},"height":{"editor":"int","default":900},"disputes":{"editor":"int","default":4},"failed":{"editor":"int","default":2},"$preview":{"width":264,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const active = this.props.active ?? 'orders';
+    const role = this.props.role ?? 'ADMIN';
+    const focusItem = this.props.focusItem ?? 'none';
+    const collapsed = !!this.props.collapsed;
+    // Counts come only from admin.queue_depth (websocket). Before the first event there is no
+    // number at all, never 0 or a stale one.
+    const known = this.props.countsKnown ?? true;
+    const qDisputes = known ? (this.props.disputes ?? 4) : undefined;
+    const qFailed = known ? (this.props.failed ?? 2) : undefined;
+    const qRest = known ? 4 : undefined;
+    const qRiders = known ? 2 : undefined;
+    const support = role === 'SUPPORT_AGENT';
+    // A still depiction of :focus-visible, drawn with the same values .hg-focus uses inside .hg-on-accent.
+    const ring = '0 0 0 2px var(--hg-ring-offset), 0 0 0 5px var(--hg-ring)';
+    const item = (key, label, href, icon, count, noun) => ({
+      label, href, icon,
+      iconWeight: key === active ? 'bold' : 'linear',
+      current: key === active ? 'page' : undefined,
+      weight: key === active ? 'var(--font-weight-bold)' : 'var(--font-weight-medium)',
+      border: key === active ? '1px solid var(--text-on-accent)' : '1px solid transparent',
+      ring: key === focusItem ? ring : 'none',
+      hasCount: typeof count === 'number',
+      countLabel: typeof count === 'number' ? String(count) : '',
+      // Collapsed, the label lives in aria-label and the tooltip; expanded, only a count adds to it.
+      aria: typeof count === 'number' ? label + ', ' + count + ' ' + noun : (collapsed ? label : undefined),
+      tip: collapsed ? label : undefined,
+    });
+    // Launch nav (owner decision, round 2): the menu review queue and Staff now ship at launch; My sessions
+    // (see and end single sessions) stays a later version. Support agents don't see Staff.
+    // Sign out lives in the account area at the foot of the nav.
+    // Owner decisions (round 2): support agents have no rider queue (they open a rider's application from its
+    // support case); Profile changes is reviewed at launch (not for support); Your account is for every role.
+    const review = [item('restaurants', 'Restaurant applications', '#', 'home', qRest, 'to review')];
+    if (!support) review.push(item('riders', 'Rider applications', '#', 'profile', qRiders, 'to review'));
+    review.push(item('bodies', 'Issuing bodies', '#', 'info'));
+    review.push(item('menu', 'Menu reviews', 'https://claude.ai/artifact/6QRa35DR4iwCGdftXEASRp', 'orders'));
+    if (!support) review.push(item('changes', 'Profile changes', 'https://claude.ai/artifact/6QRa35DR4iwCGdftXEASRp', 'home'));
+    const platform = [];
+    if (!support) platform.push(item('staff', 'Staff', 'https://claude.ai/artifact/Y7wjQPGX2UAtS238ZDVhU1', 'profile'));
+    platform.push(item('account', 'Your account', 'https://claude.ai/artifact/11QnFovXMrnVMHgAh4bBFC', 'profile'));
+    const operate = [
+      item('orders', 'Orders', 'OrdersGrid.dc.html', 'orders'),
+      item('disputes', 'Disputes', 'DisputesOpen.dc.html', 'warning', qDisputes, 'open'),
+      item('refunds', 'Refunds', 'Refunds.dc.html', 'refresh', qFailed, 'failed'),
+      item('alerts', 'Live alerts', 'LiveAlerts.dc.html', 'bell'),
+    ];
+    return {
+      groups: [
+        { name: 'Review', items: review },
+        { name: 'Operate', items: operate },
+        { name: 'Platform', items: platform },
+      ],
+      roleLabel: support ? 'Support agent' : 'Admin',
+      collapsed, expanded: !collapsed, collapsedAttr: collapsed ? 'true' : 'false',
+      navW: collapsed ? '72px' : '264px', navH: (this.props.height ?? 900) + 'px',
+      headAlign: collapsed ? 'center' : 'stretch', headJustify: collapsed ? 'center' : 'space-between',
+      itemJustify: collapsed ? 'center' : 'flex-start',
+      countStyle: collapsed ? 'position: absolute; top: 2px; right: 2px' : '',
+      toggleIcon: collapsed ? 'chevron-right' : 'back',
+      toggleLabel: collapsed ? 'Expand navigation' : 'Collapse navigation',
+    };
+  }
+}
+</script>
+</body>
+</html>

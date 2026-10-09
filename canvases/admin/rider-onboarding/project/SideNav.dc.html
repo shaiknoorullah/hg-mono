@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Admin side navigation</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<link rel="stylesheet" href="composites.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<nav class="hg-nav" aria-label="Admin" style="width: {{navW}}px; height: {{height}}px; box-sizing: border-box; background: var(--surface-chrome); color: var(--text-on-accent); font-family: var(--font-ui); display: flex; flex-direction: column;">
+  <sc-if value="{{isCollapsed}}" hint-placeholder-val="{{false}}">
+    <div style="display: flex; flex-direction: column; align-items: center; gap: var(--space-3); padding: var(--space-3) 0;">
+      <button type="button" class="hg-nav-item" aria-label="Show navigation" aria-expanded="false" aria-controls="admin-nav-list" style="width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; border-radius: var(--radius-sm);"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="menu" size="md" color="var(--text-on-accent)"></x-import></button>
+      <sc-if value="{{isAdmin}}" hint-placeholder-val="{{true}}"><a href="Main.dc.html" aria-current="page" aria-label="Rider applications" class="hg-nav-current" style="width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; border-radius: var(--radius-sm); background: var(--text-on-accent); color: var(--surface-chrome);"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="profile" weight="bold" size="md" color="var(--surface-chrome)"></x-import></a></sc-if>
+    </div>
+  </sc-if>
+  <sc-if value="{{isOpen}}" hint-placeholder-val="{{true}}">
+    <div style="display: flex; flex-direction: column; height: 100%;">
+      <div style="padding: var(--space-3) var(--space-3) var(--space-3) var(--space-4); display: flex; align-items: flex-start; gap: var(--space-2);">
+        <div style="flex-grow: 1; display: flex; flex-direction: column; gap: var(--space-2);">
+          <div class="hg-nav-annot" style="height: 40px; width: 120px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; text-align: center;">Needs asset: wordmark</div>
+          <span class="type-body-sm" style="color: var(--text-on-accent);">Operations · Ontario</span>
+        </div>
+        <button type="button" class="hg-nav-item {{collapseFocus}}" aria-label="Hide navigation" aria-expanded="true" aria-controls="admin-nav-list" style="width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; border-radius: var(--radius-sm);"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="back" size="md" color="var(--text-on-accent)"></x-import></button>
+      </div>
+      <div class="hg-nav-annot" style="margin: 0 var(--space-4) var(--space-2);">Proposed component: SideNav (approved by the owner for the design system, not in it yet). Collapsible: on working pages it folds to a 56 px rail with Show navigation. Current page = an inverted tile: --text-on-accent fill, --surface-chrome label and bold icon, bold label, aria-current="page". No side bar.</div>
+      <div id="admin-nav-list" style="flex-grow: 1; display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-2) var(--space-3); overflow: hidden;">
+        <div style="display: flex; flex-direction: column; gap: 2px;">
+          <span class="type-label-md" style="padding: 0 var(--space-3) var(--space-1); color: var(--text-on-accent);">Review</span>
+          <sc-if value="{{isSupport}}" hint-placeholder-val="{{false}}"><span class="hg-nav-annot" style="margin: 0 var(--space-3);">Support agents have no rider queue (owner decision): they open a rider’s application from its support case.</span></sc-if>
+          <sc-if value="{{isAdmin}}" hint-placeholder-val="{{true}}"><a href="Main.dc.html" aria-current="page" class="hg-nav-current {{focusClass}}" style="min-height: 44px; display: flex; align-items: center; justify-content: space-between; padding: 0 var(--space-3); border-radius: var(--radius-sm); background: var(--text-on-accent); color: var(--surface-chrome); font: var(--text-type-label-lg); font-weight: var(--font-weight-bold);"><span>Rider applications<span class="hg-sr">{{countName}}</span></span><sc-if value="{{hasCount}}" hint-placeholder-val="{{true}}"><span aria-hidden="true" style="min-width: var(--space-6); padding: 0 var(--space-2); box-sizing: border-box; border-radius: var(--radius-full); border: 1px solid var(--surface-chrome); font: var(--text-type-label-md); display: inline-flex; align-items: center; justify-content: center; font-variant-numeric: tabular-nums;">{{riderCount}}</span></sc-if></a></sc-if>
+          <a href="#" style="min-height: 44px; display: flex; align-items: center; padding: 0 var(--space-3); border-radius: var(--radius-sm); font: var(--text-type-label-lg); font-weight: 500;">Issuing bodies</a>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 2px;">
+          <span class="type-label-md" style="padding: 0 var(--space-3) var(--space-1); color: var(--text-on-accent);">Operate</span>
+          <a href="#" style="min-height: 44px; display: flex; align-items: center; padding: 0 var(--space-3); border-radius: var(--radius-sm); font: var(--text-type-label-lg); font-weight: 500;">Orders</a>
+          <a href="#" style="min-height: 44px; display: flex; align-items: center; padding: 0 var(--space-3); border-radius: var(--radius-sm); font: var(--text-type-label-lg); font-weight: 500;">Live alerts</a>
+        </div>
+        <span class="hg-nav-annot" style="margin: 0 var(--space-3);">Partial navigation for this canvas. Menu reviews, Profile changes, Staff and Your account are launch pages too (owner decision), drawn on their own canvases. My sessions stays out until a later version.</span>
+        <sc-if value="{{countNote}}" hint-placeholder-val="{{false}}">
+          <span class="hg-nav-annot" style="margin: 0 var(--space-3);">Nav count: shown only when the queue response carries a total (PageMeta.total), hidden otherwise (detail pages, paged lists). Needs API: queue count for the nav (admin dashboard proposal, issue #117).</span>
+        </sc-if>
+      </div>
+      <div style="padding: var(--space-3) var(--space-4) var(--space-4); border-top: 1px solid var(--text-on-accent); display: flex; flex-direction: column; gap: var(--space-1);">
+        <span class="type-body-sm" style="color: var(--text-on-accent);">Signed in as</span>
+        <span class="type-label-lg">{{roleLabel}}</span>
+        <span class="hg-nav-annot" style="align-self: flex-start;">Needs API: staff name and email on Principal</span>
+        <button type="button" class="hg-nav-item" style="min-height: 44px; align-self: flex-start; padding: 0 var(--space-3); margin-left: calc(-1 * var(--space-3)); border-radius: var(--radius-sm);">Sign out</button>
+      </div>
+    </div>
+  </sc-if>
+</nav>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"active":{"editor":"enum","options":["riders","restaurants"],"default":"riders"},"role":{"editor":"enum","options":["admin","superadmin","support"],"default":"admin"},"height":{"editor":"int","default":900},"riderCount":{"editor":"text","default":"5"},"collapsed":{"editor":"boolean","default":false},"focusSpecimen":{"editor":"boolean","default":false},"$preview":{"width":264,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const role = this.props.role ?? 'admin';
+    const count = this.props.riderCount ?? '5';
+    const hasCount = count !== '' && count !== null && count !== undefined;
+    const collapsed = this.props.collapsed === true || this.props.collapsed === 'true';
+    // Shown on its own artboard (no height passed by an importer): draw the focused-link specimen.
+    const focus = this.props.focusSpecimen ?? (this.props.height === undefined);
+    return {
+      navW: collapsed ? 56 : 264,
+      isCollapsed: collapsed, isOpen: !collapsed,
+      height: this.props.height ?? 900,
+      isAdmin: role !== 'support', isSupport: role === 'support',
+      roleLabel: role === 'support' ? 'Support agent' : (role === 'superadmin' ? 'Super Admin' : 'Admin'),
+      riderCount: count,
+      hasCount,
+      countName: hasCount ? ', ' + count + ' waiting' : '',
+      focusClass: focus ? 'is-focus-specimen' : '',
+      collapseFocus: '',
+      countNote: focus
+    };
+  }
+}
+</script>
+</body>
+</html>

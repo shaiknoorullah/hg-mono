@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Checkout, address out of range</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:var(--color-neutral-100)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+.demo-focus .hg-focus,.demo-focus .hg-choice-ctl,.demo-focus .hg-row,.demo-focus > a{box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)!important}
+.demo-focus-field .hg-field{border-color:var(--focus-ring)!important;box-shadow:inset 0 0 0 calc(var(--focus-field-border-width) - 1px) var(--focus-ring)!important}
+
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; display: flex; flex-direction: column; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="cream" title="Checkout" subtitle="Zaytoun Grill" back-label="Back to cart" on-back="{{noop}}" elevated="{{yes}}"></x-import>
+<main style="flex-grow: 1; display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-2) var(--space-4) var(--space-4); overflow: hidden">
+<div role="status" style="display: flex; gap: var(--space-3); align-items: flex-start; padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); background: var(--surface-raised); border: 1px solid var(--border-interactive); outline: 1.5px dotted var(--color-info-500); outline-offset: 3px">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="map" size="md" color="var(--text-secondary)"></x-import>
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: var(--space-2)">
+<strong style="font-size: var(--type-label-lg-size); color: var(--text-primary)">Zaytoun Grill doesn't deliver to Work</strong>
+<span style="font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-line); color: var(--text-primary)">2075 Kennedy Rd is outside its delivery area. Choose another address to see a price.</span>
+
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--color-info-700); background: var(--color-info-50)">Component gap: Banner</span>
+</div>
+</div>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg">
+<section aria-labelledby="deliver-h" style="display: flex; flex-direction: column; gap: var(--space-2)">
+<h2 id="deliver-h" style="margin: 0; font-size: var(--type-heading-md-size); font-weight: 600">Deliver to</h2>
+<a href="Checkout-address-sheet.dc.html" aria-label="Work, 2075 Kennedy Rd. Out of delivery range. Change address" style="min-height: 64px; display: flex; align-items: center; gap: var(--space-3); text-decoration: none; color: var(--text-primary)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="map" size="lg" color="var(--text-secondary)"></x-import>
+<span style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px"><strong style="font-size: var(--type-body-md-size);">Work · 2075 Kennedy Rd</strong><span style="font-size: var(--type-body-sm-size); color: var(--text-secondary)">Toronto ON M1T 3V3</span></span>
+<span style="font-size: var(--type-label-md-size); font-weight: 600; color: var(--text-link)">Change</span>
+</a>
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--color-info-700); background: var(--color-info-50)">Component gap: ListRow (64 px)</span><span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">Handover choice and notes as in Checkout — ready</span>
+</section></x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg">
+<section aria-labelledby="sum-h" style="display: flex; flex-direction: column; gap: var(--space-2)">
+<h2 id="sum-h" style="margin: 0; font-size: var(--type-heading-md-size); font-weight: 600">Your order</h2>
+<p style="margin: 0; font-size: var(--type-body-md-size); line-height: var(--type-body-md-line); color: var(--text-secondary)">We'll price your order once you choose an address Zaytoun Grill delivers to.</p>
+</section></x-import>
+</main>
+<footer style="display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-4); background: var(--surface-raised); box-shadow: var(--elev-sticky)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" full-width="{{yes}}" icon-start="map" href="Checkout-address-sheet.dc.html">Change address</x-import>
+</footer>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+return {
+yes: true,
+no: false,
+none: null,
+zero: 0,
+two: 2,
+noop: function () {},
+nav: [
+{ key: 'home', label: 'Home', icon: 'home' },
+{ key: 'search', label: 'Search', icon: 'search' },
+{ key: 'orders', label: 'Orders', icon: 'orders' },
+{ key: 'account', label: 'Account', icon: 'profile' }
+],
+q: { l1: 2649, l2: 2498, sub: 5147, del: 299, svc: 0, tip: 500, total: 5446, totaltip: 5946, disc: 515, totald: 4931, hst: 669, totalt: 6115, min: 1500, del2: 349, total2: 5496, oldTotal: 5446, newTotal: 5596, del3: 449, short: 853 },
+tipOptions: [
+{ value: '0', label: 'No tip' },
+{ value: '200', label: '$2' },
+{ value: '300', label: '$3' },
+{ value: '500', label: '$5' },
+{ value: 'other', label: 'Other' }
+],
+w180: 180,
+w900: 900,
+handover: [
+{ value: 'LEAVE_AT_DOOR', label: 'Leave at the door', description: 'The rider takes a photo as proof of delivery.' },
+{ value: 'MEET_AT_DOOR', label: 'Meet at the door', description: "You'll give the rider a code at handover." },
+{ value: 'MEET_IN_LOBBY', label: 'Meet in the lobby', description: "You'll give the rider a code at handover." }
+],
+payOptions: [
+{ value: 'wallet', label: 'Apple Pay', description: 'Google Pay on Android. Your wallet confirms the amount.' },
+{ value: 'pm_4242', label: 'Visa •••• 4242', description: 'Expires 08/28' },
+{ value: 'pm_5454', label: 'Mastercard •••• 5454', description: 'Expires 03/27' }
+],
+addresses: [
+{ value: 'home', label: 'Home · 14 Ellesmere Rd', description: 'Unit 402 · Toronto ON M1R 4E7 · Default' },
+{ value: 'work', label: 'Work · 2075 Kennedy Rd', description: 'Toronto ON M1T 3V3' },
+{ value: 'cottage', label: 'Cottage · 88 Lakeshore Rd', description: 'Grand Bend ON N0M 1T0' }
+]
+};
+}
+}
+</script>
+</body>
+</html>

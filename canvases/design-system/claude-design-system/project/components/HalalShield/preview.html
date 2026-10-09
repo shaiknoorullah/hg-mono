@@ -1,0 +1,23 @@
+<!-- @dsCard group="Halal" height=120 subtitle="Bespoke glyph: solid · outline · dashed · solid-clock (never an icon)" -->
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>HalalShield</title>
+<style>body{margin:0;padding:16px;background:var(--surface-base);color:var(--text-primary);font-family:var(--font-ui)}
+.row{display:flex;flex-wrap:wrap;align-items:center;gap:12px}.col{display:grid;gap:12px}.g2{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;align-items:start}
+.lbl{font-size:var(--type-label-sm-size);letter-spacing:var(--type-label-sm-tracking);font-weight:var(--font-weight-semibold);color:var(--text-tertiary);min-inline-size:88px}
+.stage{position:relative;block-size:200px;border:1px dashed var(--border-decorative);border-radius:var(--radius-lg);overflow:hidden;background:var(--surface-sunken)}</style>
+</head><body><div id="root"></div>
+<script>
+(function () {
+  var h = React.createElement, F = React.Fragment, DS = window.HalalGoesDesignSystem_d11a47;
+  function L(t) { return h('span', { className: 'lbl' }, t); }
+
+  function Demo() {
+    var cell = function (v, color, knock, name) { return h('div', { key: v, style: { display: 'grid', justifyItems: 'center', gap: 6, color: color } }, h(DS.HalalShield, { variant: v, size: 40, knockout: knock }), h('span', { className: 'lbl', style: { minInlineSize: 0 } }, name)); };
+    return h('div', { className: 'row', style: { gap: 28 } },
+      cell('solid', 'var(--color-halal-certified-seal)', 'var(--surface-base)', 'solid · certified'),
+      cell('outline', 'var(--color-halal-expired-seal)', 'transparent', 'outline · expired'),
+      cell('dashed', 'var(--color-halal-unverified-text)', 'transparent', 'dashed · unverified'),
+      cell('solid-clock', 'var(--color-halal-expiring-icon)', 'var(--surface-base)', 'solid-clock · renewal note'));
+  }
+  ReactDOM.createRoot(document.getElementById('root')).render(h(Demo));
+})();
+</script></body></html>

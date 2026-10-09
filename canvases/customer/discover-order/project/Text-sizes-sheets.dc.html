@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sheets at larger text</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:var(--color-neutral-100)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+.demo-focus .hg-focus,.demo-focus .hg-choice-ctl,.demo-focus .hg-row,.demo-focus > a{box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)!important}
+.demo-focus-field .hg-field{border-color:var(--focus-ring)!important;box-shadow:inset 0 0 0 calc(var(--focus-field-border-width) - 1px) var(--focus-ring)!important}
+
+</style>
+</helmet>
+<div style="width: 390px; height: 3100px; position: relative; overflow: hidden; display: flex; flex-direction: column; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+<div style="display: flex; flex-direction: column; gap: var(--space-5); padding: var(--space-4)">
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">Browse filters sheet at 1.3× — no rating filter at launch (ratings arrive with a later release)</span>
+<div style="zoom: 1.3; width: 275px; display: flex; flex-direction: column; gap: 12px; padding: 12px; border-radius: var(--radius-lg); background: var(--surface-raised)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Switch" label="Open now" checked="{{no}}" state-label="{{openLabel}}"></x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Select" label="Distance" options="{{distance}}" value="any"></x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Checkbox" label="Moderate"></x-import><span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--color-info-700); background: var(--color-info-50)">Component gap: Checkbox visual suffix — the $ to $$$$ price glyphs render after the word, aria-hidden, so screen readers hear "Moderate", never "dollar dollar"</span>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Checkbox" label="Gluten free"></x-import></div>
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">Browse filters sheet at 2.0× — one control per row; the sheet scrolls, Show restaurants stays in the sticky footer</span>
+<div style="zoom: 2; width: 179px; display: flex; flex-direction: column; gap: 12px; padding: 12px; border-radius: var(--radius-lg); background: var(--surface-raised)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Switch" label="Open now" checked="{{no}}" state-label="{{openLabel}}"></x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Select" label="Distance" options="{{distance}}" value="any"></x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Checkbox" label="Moderate"></x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Checkbox" label="Gluten free"></x-import></div>
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">Address picker sheet at 1.3×</span>
+<div style="zoom: 1.3; width: 275px; display: flex; flex-direction: column; gap: 12px; padding: 12px; border-radius: var(--radius-lg); background: var(--surface-raised)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.RadioGroup" label="Saved addresses" value="home" options="{{addresses2}}"></x-import></div>
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">Address picker sheet at 2.0× — label and address wrap; the radio stays top-aligned</span>
+<div style="zoom: 2; width: 179px; display: flex; flex-direction: column; gap: 12px; padding: 12px; border-radius: var(--radius-lg); background: var(--surface-raised)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.RadioGroup" label="Saved addresses" value="home" options="{{addresses2}}"></x-import></div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":3100}}'>
+class Component extends DCLogic {
+renderVals() {
+return {
+yes: true,
+no: false,
+none: null,
+zero: 0,
+two: 2,
+noop: function () {},
+nav: [
+{ key: 'home', label: 'Home', icon: 'home' },
+{ key: 'search', label: 'Search', icon: 'search' },
+{ key: 'orders', label: 'Orders', icon: 'orders' },
+{ key: 'account', label: 'Account', icon: 'profile' }
+],
+openLabel: { on: 'Only open', off: 'Any time' },
+distance: [
+{ value: 'any', label: 'Any distance' },
+{ value: '2000', label: 'Within 2 km' }
+],
+addresses2: [
+{ value: 'home', label: 'Home · 14 Ellesmere Rd', description: 'Unit 402 · Toronto ON M1R 4E7' },
+{ value: 'work', label: 'Work · 2075 Kennedy Rd', description: 'Toronto ON M1T 3V3' }
+]
+};
+}
+}
+</script>
+</body>
+</html>

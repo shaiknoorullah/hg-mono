@@ -1,0 +1,1322 @@
+{
+  "v": 3,
+  "attachments": {},
+  "boards": {
+    "Cancel-Confirm.dc.html": {
+      "h": 844,
+      "title": "Cancel — sending (button loading)",
+      "w": 390,
+      "x": 1410,
+      "y": 1540
+    },
+    "Cancel-Dark.dc.html": {
+      "h": 844,
+      "title": "Cancel — dark review variant (sheet over the scrim) (focus on Keep my order)",
+      "w": 390,
+      "x": 3760,
+      "y": 16080
+    },
+    "Cancel-Error.dc.html": {
+      "h": 844,
+      "title": "Cancel — request failed (network or server error)",
+      "w": 390,
+      "x": 1880,
+      "y": 1540
+    },
+    "Cancel-Other.dc.html": {
+      "h": 844,
+      "title": "Cancel — Something else, note too short",
+      "w": 390,
+      "x": 940,
+      "y": 1540
+    },
+    "Cancel-Reason-Accepted.dc.html": {
+      "h": 844,
+      "title": "Cancel sheet open when the restaurant accepts live (PREPARING arrives): sheet changes before a press",
+      "w": 390,
+      "x": 4230,
+      "y": 1540
+    },
+    "Cancel-Reason-ChooseCard.dc.html": {
+      "h": 844,
+      "title": "Cancel — sheet opened from choose another card: says where you go next (items back in your cart, card preselected)",
+      "w": 390,
+      "x": 4700,
+      "y": 1540
+    },
+    "Cancel-Reason-Created.dc.html": {
+      "h": 844,
+      "title": "Cancel — same sheet before the hold exists (CREATED)",
+      "w": 390,
+      "x": 470,
+      "y": 1540
+    },
+    "Cancel-Reason-NoReason.dc.html": {
+      "h": 900,
+      "title": "Cancel sheet: \"Cancel order\" pressed with no reason chosen",
+      "w": 390,
+      "x": 3760,
+      "y": 1540
+    },
+    "Cancel-Reason.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Cancel — one sheet: reason and confirm (focus on Keep my order)",
+      "w": 390,
+      "x": 0,
+      "y": 1540
+    },
+    "Cancel-WindowClosed.dc.html": {
+      "h": 960,
+      "title": "Cancel — window closed (409 race)",
+      "w": 390,
+      "x": 2350,
+      "y": 1540
+    },
+    "GetHelp-360.dc.html": {
+      "h": 844,
+      "title": "Get help — the sheet, 360 px width",
+      "w": 360,
+      "x": 3200,
+      "y": 17344
+    },
+    "GetHelp-Contact-Closed.dc.html": {
+      "h": 900,
+      "title": "Get help — phone line closed: support switched off outside its hours, the hours shown (the launch variant; focus on the",
+      "w": 390,
+      "x": 2350,
+      "y": 7100
+    },
+    "GetHelp-Contact-Unavailable.dc.html": {
+      "h": 900,
+      "title": "Get help — phone support off with no hours set (support_enabled false, support_hours absent) (focus on the heading)",
+      "w": 390,
+      "x": 9870,
+      "y": 7100
+    },
+    "GetHelp-Contact.dc.html": {
+      "h": 900,
+      "title": "Get help — call us while the phone line is open (focus on Call us)",
+      "w": 390,
+      "x": 1880,
+      "y": 7100
+    },
+    "GetHelp-Dark.dc.html": {
+      "h": 844,
+      "title": "Get help — dark review variant (sheet over the scrim)",
+      "w": 390,
+      "x": 3290,
+      "y": 16080
+    },
+    "GetHelp-Delivered.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Get help — the sheet after delivery (DELIVERED, COMPLETED)",
+      "w": 390,
+      "x": 2820,
+      "y": 7100
+    },
+    "GetHelp-HalalEarly.dc.html": {
+      "h": 844,
+      "title": "Get help — a halal concern before delivery (explainer)",
+      "w": 390,
+      "x": 1410,
+      "y": 7100
+    },
+    "GetHelp-Late.dc.html": {
+      "h": 844,
+      "title": "Get help — my order is late (explainer, before delivery)",
+      "w": 390,
+      "x": 940,
+      "y": 7100
+    },
+    "GetHelp-Refund-AlreadyRequested.dc.html": {
+      "h": 844,
+      "title": "Get help — report form answered 409 REFUND_ALREADY_REQUESTED",
+      "w": 390,
+      "x": 7050,
+      "y": 7100
+    },
+    "GetHelp-Refund-Error.dc.html": {
+      "h": 1400,
+      "title": "Get help — report form, couldn't send",
+      "w": 390,
+      "x": 6580,
+      "y": 7100
+    },
+    "GetHelp-Refund-Items-Invalid.dc.html": {
+      "h": 1600,
+      "title": "Get help — report form, some items, none chosen",
+      "w": 390,
+      "x": 4700,
+      "y": 7100
+    },
+    "GetHelp-Refund-Items.dc.html": {
+      "h": 1600,
+      "is_interactive": true,
+      "title": "Get help — report form, some items: choose which (PARTIAL_ITEMS)",
+      "w": 390,
+      "x": 4230,
+      "y": 7100
+    },
+    "GetHelp-Refund-KindInvalid.dc.html": {
+      "h": 1400,
+      "title": "Report a problem: Send pressed with no kind chosen",
+      "w": 390,
+      "x": 9400,
+      "y": 7100
+    },
+    "GetHelp-Refund-Late.dc.html": {
+      "h": 1400,
+      "title": "Get help — report form, late delivery chosen (LATE_DELIVERY)",
+      "w": 390,
+      "x": 5170,
+      "y": 7100
+    },
+    "GetHelp-Refund-Missing.dc.html": {
+      "h": 1400,
+      "title": "Get help — report form, something missing",
+      "w": 390,
+      "x": 3760,
+      "y": 7100
+    },
+    "GetHelp-Refund-NeverDelivered.dc.html": {
+      "h": 1400,
+      "title": "Report a problem: I didn't get my order (NEVER_DELIVERED chosen from the help list)",
+      "w": 390,
+      "x": 8930,
+      "y": 7100
+    },
+    "GetHelp-Refund-NotRefundable.dc.html": {
+      "h": 844,
+      "title": "Get help — report form answered 409 PAYMENT_NOT_REFUNDABLE",
+      "w": 390,
+      "x": 7990,
+      "y": 7100
+    },
+    "GetHelp-Refund-Other.dc.html": {
+      "h": 1400,
+      "title": "Get help — report form, something else: description required",
+      "w": 390,
+      "x": 5640,
+      "y": 7100
+    },
+    "GetHelp-Refund-Sending.dc.html": {
+      "h": 1400,
+      "title": "Get help — report form, sending",
+      "w": 390,
+      "x": 6110,
+      "y": 7100
+    },
+    "GetHelp-Refund-Sent.dc.html": {
+      "h": 844,
+      "title": "Get help — report sent",
+      "w": 390,
+      "x": 8460,
+      "y": 7100
+    },
+    "GetHelp-Refund-WindowClosed.dc.html": {
+      "h": 844,
+      "title": "Get help — report form answered 409 REFUND_WINDOW_CLOSED",
+      "w": 390,
+      "x": 7520,
+      "y": 7100
+    },
+    "GetHelp-Refund.dc.html": {
+      "h": 1400,
+      "is_interactive": true,
+      "title": "Get help — report form, halal concern chosen (createRefund)",
+      "w": 390,
+      "x": 3290,
+      "y": 7100
+    },
+    "GetHelp-Report-Early-Required.dc.html": {
+      "h": 1200,
+      "title": "Get help — report before delivery, wrong address chosen: note required, Send pressed with it empty",
+      "w": 390,
+      "x": 10810,
+      "y": 7100
+    },
+    "GetHelp-Report-Early.dc.html": {
+      "h": 1400,
+      "title": "Get help — report a problem before delivery (from acceptance): very late, wrong address, want to cancel",
+      "w": 390,
+      "x": 10340,
+      "y": 7100
+    },
+    "GetHelp-Sheet-Preparing.dc.html": {
+      "h": 844,
+      "title": "Get help — the sheet while preparing or ready, with Report a problem",
+      "w": 390,
+      "x": 470,
+      "y": 7100
+    },
+    "GetHelp-Sheet.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Get help — the sheet, on the way, with Report a problem (focus on first row)",
+      "w": 390,
+      "x": 0,
+      "y": 7100
+    },
+    "GetHelp-Text2x.dc.html": {
+      "h": 1024,
+      "title": "Get help — the sheet, text at 200%: 195 px layout scaled 2× (one screen)",
+      "w": 390,
+      "x": 1410,
+      "y": 17344
+    },
+    "Main.dc.html": {
+      "h": 916,
+      "is_interactive": true,
+      "title": "Tracking — on the way, live map (focus on Get help)",
+      "w": 390,
+      "x": 0,
+      "y": 4380
+    },
+    "Orders-360.dc.html": {
+      "h": 1580,
+      "title": "Orders — 360 px width",
+      "w": 360,
+      "x": 2320,
+      "y": 17344
+    },
+    "Orders-Dark.dc.html": {
+      "h": 844,
+      "title": "Orders — dark review variant",
+      "w": 390,
+      "x": 2350,
+      "y": 16080
+    },
+    "Orders-Default.dc.html": {
+      "h": 1500,
+      "is_interactive": true,
+      "title": "Orders — active pinned, then past (focus on Track)",
+      "w": 390,
+      "x": 0,
+      "y": 12200
+    },
+    "Orders-Disputed.dc.html": {
+      "h": 1080,
+      "title": "Orders — an order under review (DISPUTED): it doesn't block a new order",
+      "w": 390,
+      "x": 470,
+      "y": 12200
+    },
+    "Orders-Empty.dc.html": {
+      "h": 844,
+      "title": "Orders — never ordered",
+      "w": 390,
+      "x": 1880,
+      "y": 12200
+    },
+    "Orders-End.dc.html": {
+      "h": 904,
+      "title": "Orders — end of the list",
+      "w": 390,
+      "x": 3760,
+      "y": 12200
+    },
+    "Orders-Error-Both.dc.html": {
+      "h": 844,
+      "title": "Orders — nothing could load (active and history both failed; focus on the heading)",
+      "w": 390,
+      "x": 4230,
+      "y": 12200
+    },
+    "Orders-Error.dc.html": {
+      "h": 1000,
+      "title": "Orders — past orders couldn't load; active order and Track kept (focus on the error)",
+      "w": 390,
+      "x": 2350,
+      "y": 12200
+    },
+    "Orders-LoadMore.dc.html": {
+      "h": 904,
+      "title": "Orders — end of page, loading more (skeleton tail)",
+      "w": 390,
+      "x": 2820,
+      "y": 12200
+    },
+    "Orders-LoadMoreFailed.dc.html": {
+      "h": 904,
+      "title": "Orders — couldn't load more (list tail)",
+      "w": 390,
+      "x": 3290,
+      "y": 12200
+    },
+    "Orders-Loading.dc.html": {
+      "h": 844,
+      "title": "Orders — loading",
+      "w": 390,
+      "x": 1410,
+      "y": 12200
+    },
+    "Orders-RowMenu.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Orders — more actions for a past order (Menu)",
+      "w": 390,
+      "x": 940,
+      "y": 12200
+    },
+    "Orders-Text2x.dc.html": {
+      "h": 6980,
+      "title": "Orders — text at 200%: 195 px layout scaled 2× (row badges and prices)",
+      "w": 390,
+      "x": 470,
+      "y": 17344
+    },
+    "Outcome-CancelledByYou-Created.dc.html": {
+      "h": 1000,
+      "title": "Outcome — cancelled by you before a hold existed (from CREATED)",
+      "w": 390,
+      "x": 3290,
+      "y": 1540
+    },
+    "Outcome-CancelledByYou.dc.html": {
+      "h": 1000,
+      "title": "Outcome — cancelled by you",
+      "w": 390,
+      "x": 2820,
+      "y": 1540
+    },
+    "Outcome-CaptureFailed.dc.html": {
+      "h": 1000,
+      "title": "Outcome — cancelled, payment couldn't be taken (CAPTURE_FAILED)",
+      "w": 390,
+      "x": 2820,
+      "y": 10660
+    },
+    "Outcome-Dark.dc.html": {
+      "h": 844,
+      "title": "Outcome — dark review variant (no rider, refund)",
+      "w": 390,
+      "x": 1880,
+      "y": 16080
+    },
+    "Outcome-Disputed-Delivery.dc.html": {
+      "h": 1120,
+      "title": "Order — under review during delivery (support case)",
+      "w": 390,
+      "x": 5170,
+      "y": 10660
+    },
+    "Outcome-Disputed-Restaurant.dc.html": {
+      "h": 1120,
+      "title": "Outcome — restaurant can't finish the order: food not coming, refund, Call us",
+      "w": 390,
+      "x": 5640,
+      "y": 10660
+    },
+    "Outcome-Disputed.dc.html": {
+      "h": 1000,
+      "title": "Order — under review, opened by our team after delivery (DISPUTED)",
+      "w": 390,
+      "x": 4700,
+      "y": 10660
+    },
+    "Outcome-Failed.dc.html": {
+      "h": 1080,
+      "title": "Outcome — payment failed (FAILED)",
+      "w": 390,
+      "x": 1880,
+      "y": 10660
+    },
+    "Outcome-NoRider.dc.html": {
+      "h": 1000,
+      "title": "Outcome — cancelled, no rider found (refund on its way)",
+      "w": 390,
+      "x": 3290,
+      "y": 10660
+    },
+    "Outcome-PaymentExpired.dc.html": {
+      "h": 1000,
+      "title": "Outcome — cancelled, bank check not finished (CANCELLED, PAYMENT_EXPIRED): put the items back in the cart",
+      "w": 390,
+      "x": 2350,
+      "y": 10660
+    },
+    "Outcome-RefundInProgress.dc.html": {
+      "h": 1000,
+      "title": "Outcome — cancelled, refund delayed (Refund FAILED shows \"Refund in progress\")",
+      "w": 390,
+      "x": 3760,
+      "y": 10660
+    },
+    "Outcome-Rejected-Item.dc.html": {
+      "h": 1080,
+      "title": "Outcome — not accepted, an item ran out (REJECTED, ITEM_UNAVAILABLE)",
+      "w": 390,
+      "x": 940,
+      "y": 10660
+    },
+    "Outcome-Rejected.dc.html": {
+      "h": 1000,
+      "title": "Outcome — restaurant couldn't take it (REJECTED, kitchen busy)",
+      "w": 390,
+      "x": 470,
+      "y": 10660
+    },
+    "Outcome-Resolved-NoRefund.dc.html": {
+      "h": 1000,
+      "title": "Outcome — resolved, no refund (DECLINED)",
+      "w": 390,
+      "x": 7050,
+      "y": 10660
+    },
+    "Outcome-Resolved-Partial.dc.html": {
+      "h": 1000,
+      "title": "Outcome — resolved, part refunded (on its way)",
+      "w": 390,
+      "x": 6580,
+      "y": 10660
+    },
+    "Outcome-Resolved.dc.html": {
+      "h": 1000,
+      "title": "Outcome — resolved, full refund settled",
+      "w": 390,
+      "x": 6110,
+      "y": 10660
+    },
+    "Outcome-RestaurantClosed.dc.html": {
+      "h": 1000,
+      "title": "Outcome — cancelled before the restaurant saw it (RESTAURANT_CLOSED)",
+      "w": 390,
+      "x": 1410,
+      "y": 10660
+    },
+    "Outcome-SupportCancelled.dc.html": {
+      "h": 1000,
+      "title": "Outcome — cancelled after acceptance by our team, full refund",
+      "w": 390,
+      "x": 4230,
+      "y": 10660
+    },
+    "Outcome-Timeout.dc.html": {
+      "h": 844,
+      "title": "Outcome — restaurant didn't respond (timed out)",
+      "w": 390,
+      "x": 0,
+      "y": 10660
+    },
+    "Payment-ChooseCard-Empty.dc.html": {
+      "h": 844,
+      "title": "Payment — choose another card, no other saved card",
+      "w": 390,
+      "x": 5170,
+      "y": 0
+    },
+    "Payment-ChooseCard-Error.dc.html": {
+      "h": 844,
+      "title": "Payment — choose another card, cards couldn't load",
+      "w": 390,
+      "x": 4700,
+      "y": 0
+    },
+    "Payment-ChooseCard-Loading.dc.html": {
+      "h": 844,
+      "title": "Payment — choose another card, loading saved cards",
+      "w": 390,
+      "x": 4230,
+      "y": 0
+    },
+    "Payment-ChooseCard-Terminal.dc.html": {
+      "h": 844,
+      "title": "Choose a card from a closed order (FAILED, CAPTURE_FAILED): nothing is cancelled, items go back in the cart",
+      "w": 390,
+      "x": 5640,
+      "y": 0
+    },
+    "Payment-ChooseCard.dc.html": {
+      "h": 1040,
+      "is_interactive": true,
+      "title": "Payment — choose another card (from payment failed) (focus on Not now)",
+      "w": 390,
+      "x": 3760,
+      "y": 0
+    },
+    "Receipt-360.dc.html": {
+      "h": 1600,
+      "title": "Receipt — 360 px width",
+      "w": 360,
+      "x": 2760,
+      "y": 17344
+    },
+    "Receipt-Dark.dc.html": {
+      "h": 844,
+      "title": "Receipt — dark review variant (top of the receipt)",
+      "w": 390,
+      "x": 2820,
+      "y": 16080
+    },
+    "Receipt-Default.dc.html": {
+      "h": 1560,
+      "title": "Receipt — charged, service fee $0.00, no tax lines (HST registration still open)",
+      "w": 390,
+      "x": 0,
+      "y": 13960
+    },
+    "Receipt-Error.dc.html": {
+      "h": 844,
+      "title": "Receipt — couldn't load",
+      "w": 390,
+      "x": 3290,
+      "y": 13960
+    },
+    "Receipt-Loading.dc.html": {
+      "h": 844,
+      "title": "Receipt — loading",
+      "w": 390,
+      "x": 2350,
+      "y": 13960
+    },
+    "Receipt-NeverCompleted.dc.html": {
+      "h": 844,
+      "title": "Receipt — order resolved without completing (DELIVERED, DISPUTED, RESOLVED)",
+      "w": 390,
+      "x": 1880,
+      "y": 13960
+    },
+    "Receipt-NoCharge.dc.html": {
+      "h": 844,
+      "title": "Receipt — none, you weren't charged (409)",
+      "w": 390,
+      "x": 2820,
+      "y": 13960
+    },
+    "Receipt-NotReady.dc.html": {
+      "h": 844,
+      "title": "Receipt — not issued yet (DELIVERED, before COMPLETED)",
+      "w": 390,
+      "x": 1410,
+      "y": 13960
+    },
+    "Receipt-Refund.dc.html": {
+      "h": 1700,
+      "title": "Receipt — with a settled refund",
+      "w": 390,
+      "x": 470,
+      "y": 13960
+    },
+    "Receipt-RefundStates.dc.html": {
+      "h": 1500,
+      "title": "Receipt — refund section in every state",
+      "w": 390,
+      "x": 940,
+      "y": 13960
+    },
+    "Receipt-Text2x.dc.html": {
+      "h": 6980,
+      "title": "Receipt — text at 200%: 195 px layout scaled 2× (money rows stack, never truncate)",
+      "w": 390,
+      "x": 940,
+      "y": 17344
+    },
+    "Track-360.dc.html": {
+      "h": 916,
+      "title": "Tracking — 360 px width",
+      "w": 360,
+      "x": 1880,
+      "y": 17344
+    },
+    "Track-3DS-Confirming.dc.html": {
+      "h": 844,
+      "title": "Tracking — back from your bank, still confirming (CREATED)",
+      "w": 390,
+      "x": 2820,
+      "y": 0
+    },
+    "Track-3DS.dc.html": {
+      "h": 844,
+      "title": "Tracking — confirm with your bank (CREATED, 3-D Secure)",
+      "w": 390,
+      "x": 2350,
+      "y": 0
+    },
+    "Track-AnotherRider.dc.html": {
+      "h": 916,
+      "title": "Tracking — finding another rider (dispatch.unassigned)",
+      "w": 390,
+      "x": 5170,
+      "y": 2960
+    },
+    "Track-Arrived-Door.dc.html": {
+      "h": 916,
+      "title": "Tracking — rider is here, leave at door",
+      "w": 390,
+      "x": 4230,
+      "y": 4380
+    },
+    "Track-Arrived-Lobby.dc.html": {
+      "h": 1152,
+      "title": "Tracking — rider is here, meet in the lobby, with the delivery code",
+      "w": 390,
+      "x": 3760,
+      "y": 4380
+    },
+    "Track-Arrived-Met.dc.html": {
+      "h": 1052,
+      "title": "Tracking — rider is here, meet at door, with the delivery code",
+      "w": 390,
+      "x": 3290,
+      "y": 4380
+    },
+    "Track-Arrived-Overdue-Lobby.dc.html": {
+      "h": 1152,
+      "title": "Tracking — rider waiting 15 min, meet in the lobby, with the delivery code",
+      "w": 390,
+      "x": 5170,
+      "y": 4380
+    },
+    "Track-Arrived-Overdue.dc.html": {
+      "h": 1252,
+      "title": "Tracking — rider waiting 15 min, meet at door, with the delivery code",
+      "w": 390,
+      "x": 4700,
+      "y": 4380
+    },
+    "Track-Authorized-Slow.dc.html": {
+      "h": 960,
+      "title": "Tracking — still sending to the restaurant (AUTHORIZED, offer retrying)",
+      "w": 390,
+      "x": 940,
+      "y": 0
+    },
+    "Track-CertLapsed.dc.html": {
+      "h": 1072,
+      "title": "Tracking — certification lapsed mid-order, order goes ahead",
+      "w": 390,
+      "x": 3290,
+      "y": 2960
+    },
+    "Track-CertRevoked.dc.html": {
+      "h": 1072,
+      "title": "Tracking — certificate no longer verified mid-order (revoked, UNVERIFIED: no badge), order goes ahead",
+      "w": 390,
+      "x": 6110,
+      "y": 2960
+    },
+    "Track-Completed-Refunded.dc.html": {
+      "h": 1180,
+      "title": "Order complete, refunded: Refund row with amount and settled date",
+      "w": 390,
+      "x": 2350,
+      "y": 9120
+    },
+    "Track-Completed-ReportOpen.dc.html": {
+      "h": 1180,
+      "title": "Order complete, report under review: \"Your report\" row in the money card",
+      "w": 390,
+      "x": 1880,
+      "y": 9120
+    },
+    "Track-Completed.dc.html": {
+      "h": 1000,
+      "is_interactive": true,
+      "title": "Order complete (COMPLETED): View receipt is the primary action",
+      "w": 390,
+      "x": 1410,
+      "y": 9120
+    },
+    "Track-Dark.dc.html": {
+      "h": 844,
+      "title": "Tracking — dark review variant",
+      "w": 390,
+      "x": 0,
+      "y": 16080
+    },
+    "Track-Delivered-CertLapsed.dc.html": {
+      "h": 1000,
+      "title": "Delivered — restaurant's certificate lapsed or halal field missing",
+      "w": 390,
+      "x": 940,
+      "y": 9120
+    },
+    "Track-Delivered-LeftAtDoor.dc.html": {
+      "h": 1120,
+      "title": "Delivered — left at your door (LEAVE_AT_DOOR)",
+      "w": 390,
+      "x": 470,
+      "y": 9120
+    },
+    "Track-Delivered.dc.html": {
+      "h": 1110,
+      "is_interactive": true,
+      "title": "Delivered — met at the door (no rating at launch)",
+      "w": 390,
+      "x": 0,
+      "y": 9120
+    },
+    "Track-Delivery-Overdue.dc.html": {
+      "h": 1172,
+      "title": "Tracking — on the way, running late (DELIVERY_OVERDUE, new ETA)",
+      "w": 390,
+      "x": 470,
+      "y": 4380
+    },
+    "Track-Error.dc.html": {
+      "h": 844,
+      "title": "Tracking — couldn't load",
+      "w": 390,
+      "x": 940,
+      "y": 16080
+    },
+    "Track-FindingRider.dc.html": {
+      "h": 916,
+      "title": "Tracking — ready, finding a rider",
+      "w": 390,
+      "x": 3760,
+      "y": 2960
+    },
+    "Track-FullScroll.dc.html": {
+      "h": 2300,
+      "title": "Tracking — full scroll, below the fold (PICKED_UP), with the delivery code",
+      "w": 390,
+      "x": 5640,
+      "y": 4380
+    },
+    "Track-HoldPlaced.dc.html": {
+      "h": 844,
+      "title": "Tracking — hold placed (AUTHORIZED), same layout",
+      "w": 390,
+      "x": 470,
+      "y": 0
+    },
+    "Track-ItemsAdjusted-Refund.dc.html": {
+      "h": 1072,
+      "title": "Tracking — items adjusted, refund issued (refund.created)",
+      "w": 390,
+      "x": 2820,
+      "y": 2960
+    },
+    "Track-ItemsAdjusted.dc.html": {
+      "h": 1072,
+      "title": "Tracking — items adjusted, refund not issued yet",
+      "w": 390,
+      "x": 2350,
+      "y": 2960
+    },
+    "Track-Loading.dc.html": {
+      "h": 844,
+      "title": "Tracking — loading",
+      "w": 390,
+      "x": 470,
+      "y": 16080
+    },
+    "Track-LocationStale.dc.html": {
+      "h": 916,
+      "title": "Tracking — rider location not updating (45 s)",
+      "w": 390,
+      "x": 940,
+      "y": 4380
+    },
+    "Track-MapFailed.dc.html": {
+      "h": 916,
+      "title": "Tracking — map tiles failed while online (text fallback)",
+      "w": 390,
+      "x": 2820,
+      "y": 4380
+    },
+    "Track-NoRider.dc.html": {
+      "h": 972,
+      "title": "Tracking — no rider found yet (escalating)",
+      "w": 390,
+      "x": 5640,
+      "y": 2960
+    },
+    "Track-NotFound.dc.html": {
+      "h": 844,
+      "title": "Tracking — no active order",
+      "w": 390,
+      "x": 1410,
+      "y": 16080
+    },
+    "Track-Offline-HalalStale.dc.html": {
+      "h": 960,
+      "title": "Tracking — offline for more than 15 minutes: cached halal badge removed",
+      "w": 390,
+      "x": 7050,
+      "y": 4380
+    },
+    "Track-Offline.dc.html": {
+      "h": 1000,
+      "title": "Tracking — offline, last known state (cached halal badge up to 15 minutes old)",
+      "w": 390,
+      "x": 2350,
+      "y": 4380
+    },
+    "Track-Overdue.dc.html": {
+      "h": 916,
+      "title": "Tracking — preparing, running late (new ETA)",
+      "w": 390,
+      "x": 1880,
+      "y": 2960
+    },
+    "Track-PaymentFailed.dc.html": {
+      "h": 1120,
+      "title": "Tracking — payment failed, can retry (CREATED, payment.failed retryable)",
+      "w": 390,
+      "x": 3290,
+      "y": 0
+    },
+    "Track-Placing.dc.html": {
+      "h": 960,
+      "title": "Tracking — placing (CREATED), same layout as waiting",
+      "w": 390,
+      "x": 0,
+      "y": 0
+    },
+    "Track-Polling.dc.html": {
+      "h": 916,
+      "title": "Tracking — live updates paused, checking every 15 s",
+      "w": 390,
+      "x": 1880,
+      "y": 4380
+    },
+    "Track-Prep-Assigned.dc.html": {
+      "h": 916,
+      "title": "Tracking — preparing, rider assigned (dispatch ASSIGNED)",
+      "w": 390,
+      "x": 940,
+      "y": 2960
+    },
+    "Track-Prep-AtRestaurant.dc.html": {
+      "h": 916,
+      "title": "Tracking — preparing, rider at the restaurant (dispatch AT_RESTAURANT)",
+      "w": 390,
+      "x": 1410,
+      "y": 2960
+    },
+    "Track-Prep-Searching.dc.html": {
+      "h": 916,
+      "title": "Tracking — preparing, finding a rider (dispatch SEARCHING)",
+      "w": 390,
+      "x": 470,
+      "y": 2960
+    },
+    "Track-Preparing.dc.html": {
+      "h": 916,
+      "title": "Tracking — preparing (PREPARING, dispatch PENDING)",
+      "w": 390,
+      "x": 0,
+      "y": 2960
+    },
+    "Track-Ready-AtRestaurant.dc.html": {
+      "h": 916,
+      "title": "Tracking — ready, rider at the restaurant (READY_FOR_PICKUP, dispatch AT_RESTAURANT)",
+      "w": 390,
+      "x": 4700,
+      "y": 2960
+    },
+    "Track-Reconnecting.dc.html": {
+      "h": 916,
+      "title": "Tracking — reconnecting",
+      "w": 390,
+      "x": 1410,
+      "y": 4380
+    },
+    "Track-ReportOpen-Early.dc.html": {
+      "h": 1240,
+      "title": "Track — report under review before delivery (PICKED_UP, I want to cancel)",
+      "w": 390,
+      "x": 11280,
+      "y": 7100
+    },
+    "Track-RiderAssigned.dc.html": {
+      "h": 916,
+      "title": "Tracking — ready, rider assigned, no location yet",
+      "w": 390,
+      "x": 4230,
+      "y": 2960
+    },
+    "Track-Text2x.dc.html": {
+      "h": 3580,
+      "title": "Tracking — text at 200%: 195 px layout scaled 2× (full scroll)",
+      "w": 390,
+      "x": 0,
+      "y": 17344
+    },
+    "Track-Waiting-ExpiringSoon.dc.html": {
+      "h": 884,
+      "title": "Waiting, restaurant certificate EXPIRING_SOON (badge on the order card)",
+      "w": 390,
+      "x": 6110,
+      "y": 0
+    },
+    "Track-Waiting-NoHalal.dc.html": {
+      "h": 884,
+      "title": "Waiting, OrderRestaurantRef.halal missing: no badge on the card",
+      "w": 390,
+      "x": 6580,
+      "y": 0
+    },
+    "Track-Waiting-Offline.dc.html": {
+      "h": 1060,
+      "title": "Waiting for the restaurant while offline (180 s window keeps running)",
+      "w": 390,
+      "x": 7520,
+      "y": 0
+    },
+    "Track-Waiting-Reconnecting.dc.html": {
+      "h": 940,
+      "title": "Waiting for the restaurant while reconnecting (180 s window keeps running)",
+      "w": 390,
+      "x": 7050,
+      "y": 0
+    },
+    "Track-Waiting-Zero.dc.html": {
+      "h": 844,
+      "title": "Tracking — countdown at 0:00, waiting for the server",
+      "w": 390,
+      "x": 1880,
+      "y": 0
+    },
+    "Track-Waiting.dc.html": {
+      "h": 884,
+      "is_interactive": true,
+      "title": "Tracking — waiting for restaurant: neutral bar plus the reply-by time (focus on Cancel)",
+      "w": 390,
+      "x": 1410,
+      "y": 0
+    }
+  },
+  "createdOnFiles": {
+    "at": "2026-09-28T16:00:00Z",
+    "v": 1
+  },
+  "designSystems": [
+    {
+      "artifact": "https://claude.ai/artifact/1GwGVZz8Ju9wcz4HfCnzbv",
+      "copiedAt": "2026-09-28T21:00:00Z",
+      "namespace": "halalgoesdesignsystem-d11a47",
+      "title": "HalalGoes Design System",
+      "version": "1790605103-3266"
+    }
+  ],
+  "launch": {
+    "view": "canvas"
+  },
+  "notes": {
+    "s1": {
+      "fill": "orange",
+      "maxH": 1100,
+      "size": 24,
+      "text": "How to read this canvas\n\n- Every screen is built from the approved HalalGoes components (AppBar, BottomNav, Button, IconButton, Card, Badge, Icon, StatusTimeline, Countdown, Price, HalalBadge, Sheet, Menu, RadioGroup, Checkbox). Text uses the type role classes (type-heading-xl, type-body-md, …), never raw sizes.\n- Colours, type and focus come only from the design system's own tokens.css (installed under ds/). There are no local token overrides on this canvas.\n- Grey boxes with a mono tag are placeholders. \"Component gap: X\" means the design system has no X yet and nothing is drawn for it (MapView, Avatar, FileUpload, the bar-only Countdown). \"Needs API: X\" means the contract has no data or operation for it, so it is not designed as real.\n- \"Proposed component: X\" marks a composite that IS drawn, built only from library parts (shadcn/ui on web, React Native Reusables on native) plus HalalGoes components and tokens. Each goes to the owner for approval into the design system.\n- Grey boxes tagged \"Annotation\" are notes for reviewers and developers. Nothing in them ships; only the text outside them is customer copy.\n- The brand-orange ring drawn around one control per screen is the focus indicator, drawn on purpose.\n- Sample data only: Zaytoun Grill, order HG-8F3K2Q, rider Yusuf A. Every amount is a server field shown through Price; nothing is added up or subtracted on the phone.\n- Headings: on every screen the state is the page's only h1 (the AppBar title is not the page heading). Times, ETAs and codes are aria-hidden where drawn, with a visually hidden sentence carrying the spoken form.\n- Copy rule: no pronouns for the rider. The rider profile has only first name, last initial, photo and vehicle, so the app cannot know. Use the first name (\"Yusuf\") or \"your rider\".\n- No choice is made for the customer: cancel reasons, report reason and card choice all open empty; pressing the action with nothing chosen shows the field error and moves focus there.",
+      "w": 760,
+      "x": -900,
+      "y": 0
+    },
+    "s10": {
+      "fill": "gray",
+      "maxH": 700,
+      "size": 24,
+      "text": "Contract notes for developers\n\n- createRefund: 409 REFUND_ALREADY_REQUESTED, REFUND_WINDOW_CLOSED (48 h after delivery), PAYMENT_NOT_REFUNDABLE, REFUND_EXCEEDS_CAPTURED; 422 for OTHER without a note. RefundInput.lines is required for PARTIAL_ITEMS (order_line_no, quantity; no amounts).\n- \"Charged\" is OrderPayment.amount_captured_cents; \"Total\" is OrderMoney.total_cents.\n- The receipt exists only when completed_at is set.\n- getOrderRating and submitOrderRating are a later release and are not called at launch.",
+      "w": 760,
+      "x": -900,
+      "y": 10660
+    },
+    "s11": {
+      "fill": "gray",
+      "maxH": 900,
+      "size": 24,
+      "text": "Where focus goes (the accessibility spec's focus rules)\n\n- Arrival: every outcome, sent, submitted, not-found and empty screen moves focus to the page h1 (tabindex=-1), drawn there. Focus is never moved on a data refresh or a server push (Outcome-Timeout arrives by push).\n- Errors: when an error replaces what the customer was acting on, focus moves to the error itself (the error h1, or the error banner with tabindex=-1), never to Try again.\n- Confirm sheets: focus lands on the least destructive action (Keep my order, Not now), never on the destructive button.\n- Form errors: focus moves to the error summary or the invalid field group (a RadioGroup or Rating gets tabindex=\"-1\" on its root so it can take focus); submit buttons are never disabled for validation: they stay enabled and validate on press; field errors are linked with aria-describedby, not live regions.",
+      "w": 760,
+      "x": -1760,
+      "y": 10660
+    },
+    "s2": {
+      "fill": "blue",
+      "maxH": 1150,
+      "size": 24,
+      "text": "Owner decisions applied here (28 September)\n\n- No package seals at launch (moved to v1.1): the seal screens, the report-a-broken-seal flow and every seal line are gone.\n- Rating is a later release: no rating screens and no Rate action anywhere; View receipt is the primary action on a completed order.\n- Support: a phone line during set hours only, self-serve outside them (GetHelp-Contact, GetHelp-Contact-Closed). No message thread.\n- Bottom navigation Home · Search · Orders · Account, no bell until Alerts ships, so no copy points to Alerts: it says \"We'll let you know\".\n- The customer app follows the phone's light or dark setting: the dark boards ship.\n- Waiting for the restaurant: one neutral bar plus the absolute time (\"Zaytoun Grill replies by 6:45 pm\").\n- Offline, a cached halal status shows only while it is 15 minutes old or less (Track-Offline-HalalStale).\n- The receipt shows \"Service fee $0.00\".\n- One active order at a time.\n- Riders see the tip before accepting (the contract as it is); nothing here says otherwise.\n- No rider found: the customer gets a full refund; the platform absorbs it.\n- The drafted trust and halal wording is approved.\n\nOwner decisions applied here (1 October)\n\n- Times are 12-hour everywhere (\"7:10–7:20 pm\"), on every board.\n- The delivery code shows on the order (Track-FullScroll) and on the tracking screens at the door (Track-Arrived-Met, -Lobby and the overdue pair). The launch fallback boards without a code are gone.\n- An order under review doesn't count as the one active order: the customer can order elsewhere meanwhile (Orders-Disputed, Outcome-Disputed-Restaurant).\n- Get help opens Report a problem from acceptance, with reasons that fit before delivery: very late, wrong address, want to cancel (GetHelp-Report-Early).\n- The server switches phone support off outside its hours; the app shows the hours text (GetHelp-Contact-Closed). No open-now API.\n- After an unpaid order is cancelled, expires or fails payment, \"Put these items back in your cart\" refills the cart with the existing cart operations (Outcome-PaymentExpired, Outcome-CaptureFailed, Outcome-Failed, Outcome-CancelledByYou, Outcome-CancelledByYou-Created, Outcome-Rejected-Item, the Payment-ChooseCard sheets, Cancel-Reason-ChooseCard, Track-PaymentFailed). Putting back, failed and other-restaurant states: Checkout-cancelled on the Cart canvas.\n- The Expiring soon badge reads \"Halal certified · expires 5 Oct\" (design-system ask; Track-Waiting-ExpiringSoon).\n\nStill open for the owner\n\n1. When a restaurant cannot finish an order, is the customer always refunded in full? Outcome-Disputed-Restaurant says so.\n2. Report a problem, late delivery: send fees only and hide \"Which part of the order?\"? Until decided, the question shows with nothing chosen.\n3. Refund under review: show the requested amount (it exists from creation), or keep hiding it until approved (current)?\n4. ETA window: we render eta_at to eta_at + window. Is the window centred on eta_at instead?",
+      "w": 760,
+      "x": -900,
+      "y": 1540
+    },
+    "s3": {
+      "fill": "red",
+      "maxH": 1150,
+      "size": 24,
+      "text": "Contract conflicts to resolve (owner + API team)\n\n1. The delivery code for met handovers (ProofOfDeliveryInput.otp_code) is on no customer schema or event. Owner decision (1 October): add it to the customer order view, plus a push when the rider arrives, before launch. Track-Arrived-Met, -Lobby and Track-FullScroll draw it; they carry Needs API until the contract has the field.\n\n2. Evidence photos on the report-a-problem form (createRefund evidence_object_ids) need an upload purpose a customer may use; the only fitting one (proof of delivery) is rider-only.\n\n3. Rider rating: the rider profile and the dispatch.assigned event carry rating_avg, but the customer-app spec says rider ratings are never shown to customers, and its rider-profile acceptance test asserts no rating_avg on GET /orders/:id/rider. The canvas follows the spec. File a contract change to drop rating_avg from both.\n\n4. An order under review (DISPUTED) doesn't count as the one active order (owner decision, 1 October), but getActiveOrder says \"the one active order\" and 409 ACTIVE_ORDER_EXISTS has no exception. Contract description change: getActiveOrder and 409 ACTIVE_ORDER_EXISTS exclude DISPUTED. The Orders Active section comes from listOrders(status_group=ACTIVE), which still lists it (Orders-Default, Orders-Disputed).",
+      "w": 760,
+      "x": -900,
+      "y": 2960
+    },
+    "s4": {
+      "fill": "purple",
+      "maxH": 1200,
+      "size": 24,
+      "text": "Needs API on this canvas\n\n- Delivery code on the customer order view and a push when the rider arrives (MEET_AT_DOOR, MEET_IN_LOBBY): owner approved for launch, not in the contract yet.\n- A report reason for a wrong delivery address (sent as OTHER with a note until then).\n- Masked rider contact: on every arrival board.\n- Customer evidence-photo upload purpose.\n- PAYMENT_FAILED customer cancel reason (or a reasonless cancel from CREATED).\n- Retry payment on a CREATED order with a new payment_method_id.\n- Halal state at order time on OrderCustomerView.\n- order.restaurant_certification_changed event.\n- Dispute resolution outcome and note on OrderCustomerView.\n- Reviewer decision note on Refund, separate from Refund.note (which holds the requester's own text, so it is never shown as the team's note).\n- Captured and refund summary, refund state and delivered_at on OrderSummary.\n- Refund amount and state on order.items_adjusted.\n- customer_cancel_reason on OrderCustomerView.\n- Reorder operation for past orders (a later release). An unpaid order's items go back in the cart with the existing cart operations instead.\n- Proof-of-delivery photo for the customer.\n- Ask for a second look (grievance).\n- Receipt PDF and share.\n- Rider distance to customer (map fallback), optional.\n- Order-history search (filed as GitHub issue 148).\n- Restaurant address on OrderRestaurantRef or OrderTracking (the map text fallback names the restaurant only), optional.\n- ETA window on order.eta_updated (today the app re-fetches getOrderTracking), only if a refetch is not acceptable.\n- handover_method on OrderCustomerView (the left-at-door headline says only \"Delivered\"), optional.",
+      "w": 760,
+      "x": -900,
+      "y": 4380
+    },
+    "s5": {
+      "fill": "teal",
+      "maxH": 1150,
+      "size": 24,
+      "text": "Icons for the coding team\n\nThese Solar icons are used here but are not yet in packages/ui-web/src/primitives/solar-icon-map.json or the native map: info, warning, error, lock, refresh, minus, more, chevron-right. Adding these eight ids to both maps is a prerequisite in the build hand-off for this app: without them the Icon renders nothing (ICON_NAME_UNKNOWN).\n\nProposed components for owner approval (drawn, built only from library parts plus HalalGoes components and tokens):\n- InlineAlert: HalalGoes Card (outlined) + Icon + type-label-lg / type-body-md; shadcn/ui Alert on web, React Native Reusables Alert on native.\n- Textarea: shadcn/ui Textarea / RNR Textarea; --border-interactive at rest, 2px --focus-ring border when focused (no ring), 2px --feedback-danger-border plus the ring when invalid and focused.\n- StickyFooter: surface-raised with --elev-sticky holding Buttons.\n- ListItem: a pressable row (shadcn/ui or RNR) with Icon chevron-right and type-label-lg / type-body-sm.\n- QuantityStepper: the IconButton pair plus an \"n of m\" label.\n- Skeleton: shadcn/ui Skeleton / RNR Skeleton on --skeleton-base, inside HalalGoes Cards.\n- EmptyState and ErrorState: Icon + heading + Button.\n\nComponent gaps (not drawn): MapView, Avatar, FileUpload, a bar-only Countdown (no m:ss), StatusTimeline offline and polling connection states, Chip, a text-size scaling token for native Dynamic Type (type roles are fixed px).\n\nDesign-system ask: StatusTimeline (and every design-system time formatter) uses the app's 12-hour formatter, output \"7:10 pm\" (lowercase, no periods). Today it formats its own times with Intl.DateTimeFormat('en-CA'), which renders \"7:10 p.m.\". Until then, the boards that show timeline times carry \"Component gap: StatusTimeline time format (renders p.m.)\": Track-FullScroll, Track-3DS, Cancel-WindowClosed, Outcome-Disputed, Outcome-Disputed-Delivery, Outcome-Disputed-Restaurant.",
+      "w": 760,
+      "x": -900,
+      "y": 16080
+    },
+    "s6": {
+      "fill": "green",
+      "maxH": 1100,
+      "size": 24,
+      "text": "Orders: row badge for each OrderState\n\nCREATED, AUTHORIZED: Placing\nRESTAURANT_PENDING: Waiting for restaurant\nPREPARING: Being prepared\nREADY_FOR_PICKUP: Ready\nPICKED_UP: On the way\nARRIVED: At your door\nDELIVERED: Delivered\nCOMPLETED: Completed\nDISPUTED: Under review (listed under Active because it is not terminal, but it does not count as the one active order; owner decision 1 October)\nRESOLVED: Resolved\nCANCELLED: Cancelled\nREJECTED: Not accepted\nFAILED: Payment failed\n\nActive states use the info badge, except DISPUTED; the rest are neutral. Only REJECTED and FAILED say \"Not charged\". CANCELLED and RESOLVED show no amount, only \"See details for your money\": OrderSummary cannot tell a voided cancel from a refunded one, or a refunded resolution from a declined one, and a bare total reads as money taken (Needs API: captured and refund summary on OrderSummary). If an amount must show, it is labelled \"Order total\". Every row also has \"{item_count} items · {first_item_names}\", wrapping, never truncated. Every past row: Details + the design system Menu (\"Actions for order {code} from {restaurant}\").\n\nThe Active section comes from listOrders(status_group=ACTIVE). getActiveOrder and 409 ACTIVE_ORDER_EXISTS exclude DISPUTED (contract description change: getActiveOrder says \"the one active order\" with no exception). The Orders badge in the bottom navigation counts the orders listed under Active, an order under review included (Orders-Disputed and every Outcome-Disputed board show 1).",
+      "w": 760,
+      "x": -900,
+      "y": 12200
+    },
+    "s8": {
+      "fill": "red",
+      "maxH": 900,
+      "size": 24,
+      "text": "Get help: where each path ends\n\n- My order is late: an explainer from data the app has (ETA, deadline_at, what happens then).\n- Report a problem (owner decision, 1 October): from acceptance, with reasons that fit before delivery: very late, wrong address, want to cancel (GetHelp-Report-Early; a wrong address or something else makes the note required: GetHelp-Report-Early-Required). A person reviews it; nothing changes the address or cancels by itself. While it is open the tracking screen shows a \"Your report\" card (Track-ReportOpen-Early), and Report a problem opens GetHelp-Refund-AlreadyRequested.\n- A halal concern before delivery: an explainer; the halal report opens from DELIVERED.\n- Something else: Call us while the phone line is open. Outside phone hours the server switches support off and GetHelp-Contact-Closed shows the hours and lists the self-serve help for the order's state instead of a dead end.\n- After delivery, every report row works at any hour: that list is the out-of-hours path.\n- Disputed and refund-delayed outcomes show the review deadline and \"We'll let you know\" instead of Get help; the restaurant-can't-finish outcome adds Call us.",
+      "w": 760,
+      "x": -1760,
+      "y": 7100
+    },
+    "s9": {
+      "fill": "green",
+      "maxH": 900,
+      "size": 24,
+      "text": "Halal badge on order cards\n\n- Before DELIVERED (every tracking board from CREATED to ARRIVED, plus cancel and get help): the outlined restaurant card shows HalalBadge surface=\"card\" size=\"sm\" from OrderRestaurantRef.halal. CERTIFIED and EXPIRING_SOON (Track-Waiting-ExpiringSoon) as the design system draws them; EXPIRED in cool slate, never red (Track-CertLapsed, next to the neutral notice). Missing field: no badge at all (Track-Waiting-NoHalal).\n- From DELIVERED on, and on every terminal, DISPUTED or outcome board and the receipt: no badge. The field is the restaurant's state now, not at order time, so it could put an Expired badge beside food already eaten, or a Certified one beside a halal complaint.\n- A certificate revoked mid-order: display_state UNVERIFIED, so no badge, plus one neutral notice (\"no longer verified by HalalGoes\"), never a danger colour (Track-CertRevoked).\n- A certificate that lapses mid-order: one neutral notice plus the slate Expired badge (Track-CertLapsed), then the same no-badge card after delivery (Track-Delivered-CertLapsed).\n- Offline: the badge comes from the cached order only while that copy is 15 minutes old or less; older, it is removed and one neutral line says it returns online (Track-Offline-HalalStale).",
+      "w": 760,
+      "x": -1760,
+      "y": 9120
+    },
+    "t1": {
+      "kind": "title1",
+      "maxW": 7910,
+      "text": "1 · Before the restaurant accepts: one waiting screen, payment problems",
+      "w": 240,
+      "x": 0,
+      "y": -300
+    },
+    "t10": {
+      "kind": "title1",
+      "maxW": 3680,
+      "text": "9 · Receipt",
+      "w": 240,
+      "x": 0,
+      "y": 13660
+    },
+    "t11": {
+      "kind": "title1",
+      "maxW": 8000,
+      "text": "5 · Get help with this order: \"Get help\" opens the sheet for the order's state",
+      "w": 240,
+      "x": 0,
+      "y": 6800
+    },
+    "t12": {
+      "kind": "title1",
+      "maxW": 4620,
+      "text": "2 · Cancel before the restaurant accepts: one sheet",
+      "w": 240,
+      "x": 0,
+      "y": 1240
+    },
+    "t13": {
+      "kind": "title1",
+      "maxW": 3560,
+      "text": "11 · Text at 200% and 360 px width",
+      "w": 240,
+      "x": 0,
+      "y": 17044
+    },
+    "t2": {
+      "kind": "title1",
+      "maxW": 6500,
+      "text": "3 · Preparing, dispatch and finding a rider",
+      "w": 240,
+      "x": 0,
+      "y": 2660
+    },
+    "t3": {
+      "kind": "title1",
+      "maxW": 8000,
+      "text": "4 · On the way and at the door",
+      "w": 240,
+      "x": 0,
+      "y": 4080
+    },
+    "t4": {
+      "kind": "title1",
+      "maxW": 4150,
+      "text": "10 · Review variants and screen states: dark, loading, error, empty",
+      "w": 240,
+      "x": 0,
+      "y": 15780
+    },
+    "t5": {
+      "kind": "title1",
+      "maxW": 2740,
+      "text": "6 · Delivered and complete: no seal, no rating at launch",
+      "w": 240,
+      "x": 0,
+      "y": 8820
+    },
+    "t6": {
+      "kind": "title1",
+      "maxW": 7440,
+      "text": "7 · Outcome screens: stay until dismissed, always state the money",
+      "w": 240,
+      "x": 0,
+      "y": 10360
+    },
+    "t9": {
+      "kind": "title1",
+      "maxW": 4620,
+      "text": "8 · Orders history",
+      "w": 240,
+      "x": 0,
+      "y": 11900
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "Track-Placing.dc.html",
+    "Track-HoldPlaced.dc.html",
+    "Track-Authorized-Slow.dc.html",
+    "Track-Waiting.dc.html",
+    "Track-Waiting-Zero.dc.html",
+    "Track-Waiting-ExpiringSoon.dc.html",
+    "Track-Waiting-NoHalal.dc.html",
+    "Track-Waiting-Reconnecting.dc.html",
+    "Track-Waiting-Offline.dc.html",
+    "Track-3DS.dc.html",
+    "Track-3DS-Confirming.dc.html",
+    "Track-PaymentFailed.dc.html",
+    "Payment-ChooseCard.dc.html",
+    "Payment-ChooseCard-Loading.dc.html",
+    "Payment-ChooseCard-Error.dc.html",
+    "Payment-ChooseCard-Empty.dc.html",
+    "Payment-ChooseCard-Terminal.dc.html",
+    "Cancel-Reason.dc.html",
+    "Cancel-Reason-Created.dc.html",
+    "Cancel-Reason-NoReason.dc.html",
+    "Cancel-Other.dc.html",
+    "Cancel-Confirm.dc.html",
+    "Cancel-Error.dc.html",
+    "Cancel-WindowClosed.dc.html",
+    "Cancel-Reason-Accepted.dc.html",
+    "Outcome-CancelledByYou.dc.html",
+    "Outcome-CancelledByYou-Created.dc.html",
+    "Track-Preparing.dc.html",
+    "Track-Prep-Searching.dc.html",
+    "Track-Prep-Assigned.dc.html",
+    "Track-Prep-AtRestaurant.dc.html",
+    "Track-Overdue.dc.html",
+    "Track-ItemsAdjusted.dc.html",
+    "Track-ItemsAdjusted-Refund.dc.html",
+    "Track-CertLapsed.dc.html",
+    "Track-FindingRider.dc.html",
+    "Track-RiderAssigned.dc.html",
+    "Track-Ready-AtRestaurant.dc.html",
+    "Track-AnotherRider.dc.html",
+    "Track-NoRider.dc.html",
+    "Track-CertRevoked.dc.html",
+    "Track-Delivery-Overdue.dc.html",
+    "Track-LocationStale.dc.html",
+    "Track-Reconnecting.dc.html",
+    "Track-Polling.dc.html",
+    "Track-Offline.dc.html",
+    "Track-Offline-HalalStale.dc.html",
+    "Track-MapFailed.dc.html",
+    "Track-Arrived-Met.dc.html",
+    "Track-Arrived-Lobby.dc.html",
+    "Track-Arrived-Door.dc.html",
+    "Track-Arrived-Overdue.dc.html",
+    "Track-Arrived-Overdue-Lobby.dc.html",
+    "Track-FullScroll.dc.html",
+    "GetHelp-Sheet.dc.html",
+    "GetHelp-Sheet-Preparing.dc.html",
+    "GetHelp-Late.dc.html",
+    "GetHelp-HalalEarly.dc.html",
+    "GetHelp-Contact.dc.html",
+    "GetHelp-Contact-Closed.dc.html",
+    "GetHelp-Delivered.dc.html",
+    "GetHelp-Refund.dc.html",
+    "GetHelp-Report-Early.dc.html",
+    "GetHelp-Report-Early-Required.dc.html",
+    "Track-ReportOpen-Early.dc.html",
+    "GetHelp-Refund-NeverDelivered.dc.html",
+    "GetHelp-Refund-Missing.dc.html",
+    "GetHelp-Refund-Items.dc.html",
+    "GetHelp-Refund-Items-Invalid.dc.html",
+    "GetHelp-Refund-KindInvalid.dc.html",
+    "GetHelp-Refund-Late.dc.html",
+    "GetHelp-Refund-Other.dc.html",
+    "GetHelp-Refund-Sending.dc.html",
+    "GetHelp-Refund-Error.dc.html",
+    "GetHelp-Refund-AlreadyRequested.dc.html",
+    "GetHelp-Refund-WindowClosed.dc.html",
+    "GetHelp-Refund-NotRefundable.dc.html",
+    "GetHelp-Refund-Sent.dc.html",
+    "Track-Delivered.dc.html",
+    "Track-Delivered-LeftAtDoor.dc.html",
+    "Track-Delivered-CertLapsed.dc.html",
+    "Track-Completed.dc.html",
+    "Track-Completed-ReportOpen.dc.html",
+    "Track-Completed-Refunded.dc.html",
+    "Outcome-Timeout.dc.html",
+    "Outcome-Rejected.dc.html",
+    "Outcome-Rejected-Item.dc.html",
+    "Outcome-RestaurantClosed.dc.html",
+    "Outcome-Failed.dc.html",
+    "Outcome-PaymentExpired.dc.html",
+    "Outcome-CaptureFailed.dc.html",
+    "Outcome-NoRider.dc.html",
+    "Outcome-RefundInProgress.dc.html",
+    "Outcome-SupportCancelled.dc.html",
+    "Outcome-Disputed.dc.html",
+    "Outcome-Disputed-Delivery.dc.html",
+    "Outcome-Disputed-Restaurant.dc.html",
+    "Outcome-Resolved.dc.html",
+    "Outcome-Resolved-Partial.dc.html",
+    "Outcome-Resolved-NoRefund.dc.html",
+    "Orders-Default.dc.html",
+    "Orders-Disputed.dc.html",
+    "Orders-RowMenu.dc.html",
+    "Orders-Loading.dc.html",
+    "Orders-Empty.dc.html",
+    "Orders-Error.dc.html",
+    "Orders-LoadMore.dc.html",
+    "Orders-LoadMoreFailed.dc.html",
+    "Orders-End.dc.html",
+    "Orders-Error-Both.dc.html",
+    "Receipt-Default.dc.html",
+    "Receipt-Refund.dc.html",
+    "Receipt-RefundStates.dc.html",
+    "Receipt-NotReady.dc.html",
+    "Receipt-NeverCompleted.dc.html",
+    "Receipt-Loading.dc.html",
+    "Receipt-NoCharge.dc.html",
+    "Receipt-Error.dc.html",
+    "Track-Dark.dc.html",
+    "Track-Loading.dc.html",
+    "Track-Error.dc.html",
+    "Track-NotFound.dc.html",
+    "Outcome-Dark.dc.html",
+    "Orders-Dark.dc.html",
+    "Receipt-Dark.dc.html",
+    "GetHelp-Dark.dc.html",
+    "Cancel-Dark.dc.html",
+    "Track-Text2x.dc.html",
+    "Orders-Text2x.dc.html",
+    "Receipt-Text2x.dc.html",
+    "GetHelp-Text2x.dc.html",
+    "Track-360.dc.html",
+    "Orders-360.dc.html",
+    "Receipt-360.dc.html",
+    "GetHelp-360.dc.html",
+    "Cancel-Reason-ChooseCard.dc.html",
+    "GetHelp-Contact-Unavailable.dc.html"
+  ],
+  "pages": [],
+  "title": "HalalGoes Customer — Track & After"
+}

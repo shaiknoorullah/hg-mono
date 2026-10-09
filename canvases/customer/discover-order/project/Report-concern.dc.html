@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Report a halal concern, exploration</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:var(--color-neutral-100)}
+textarea::placeholder{color:var(--text-secondary);opacity:1}
+</style>
+</helmet>
+<div style="width: 390px; height: 924px; position: relative; overflow: hidden; display: flex; flex-direction: column; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+<div style="height: 200px; flex-shrink: 0; background: var(--surface-sunken)"></div>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Sheet" open="{{yes}}" contained="{{yes}}" title="Report a halal concern" max-height="88%" on-close="{{noop}}">
+<div style="display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-3); border-radius: var(--radius-md); outline: 1.5px dotted var(--border-strong); outline-offset: -2px">
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; color: var(--text-on-inverse); background: var(--surface-inverse); padding: 2px 6px; border-radius: var(--radius-xs)">Needs API: non-order halal concern report (C-39)</span>
+<p style="margin: 0; font-size: var(--type-body-md-size); line-height: var(--type-body-md-line)">Tell us what you saw at Zaytoun Grill. We'll check the certificate record and follow up with the certifying body. We don't make rulings on food.</p>
+<div style="display: flex; flex-direction: column; gap: var(--space-2); outline: 1.5px dotted var(--color-info-500); outline-offset: 3px; border-radius: var(--radius-sm)">
+<label for="concern-note" style="font-size: var(--type-label-lg-size); font-weight: 600">What happened</label>
+<textarea id="concern-note" rows="4" maxlength="1000" aria-describedby="concern-note-count" style="font-family: inherit; font-size: var(--type-body-md-size); padding: var(--space-3); border-radius: var(--radius-md); border: 1px solid var(--border-interactive); background: var(--surface-raised); color: var(--text-primary); resize: none"></textarea>
+<span id="concern-note-count" style="align-self: flex-end; font-size: var(--type-body-sm-size); color: var(--text-secondary); font-variant-numeric: tabular-nums"><span aria-hidden="true">0/1000</span><span class="hg-sr">0 of 1000 characters used</span></span>
+<span role="status" aria-live="polite" class="hg-sr"></span>
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">Textarea follows Input: 1px border-interactive at rest, 2px border-brand on focus (no ring), placeholder text-secondary, helper and counter linked by aria-describedby. The polite status announces "N characters left" only from 20 left.</span>
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; color: var(--color-info-700); background: var(--color-info-50); padding: 2px 6px; border-radius: var(--radius-xs)">Component gap: Textarea</span>
+</div>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" full-width="{{yes}}" disabled="{{yes}}">Send report</x-import>
+</div>
+<div style="margin-top: var(--space-4); display: flex; flex-direction: column; gap: var(--space-2)">
+<strong style="font-size: var(--type-label-lg-size)">What works today</strong>
+<p style="margin: 0; font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-line); color: var(--text-secondary)">A concern can be raised only about an order you placed: Orders, then the order, then Get help, reason "Halal concern".</p>
+</div>
+</x-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":924}}'>
+class Component extends DCLogic {
+renderVals() {
+return { yes: true, noop: function () {} };
+}
+}
+</script>
+</body>
+</html>

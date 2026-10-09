@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Payment failed</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<link rel="stylesheet" href="hg-roles.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:var(--surface-base)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+</style>
+</helmet>
+<div style="width: 390px; height: 1120px; position: relative; display: flex; flex-direction: column; overflow: hidden; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" title-is-page-heading="{{ no }}" tone="cream" title="Order HG-8F3K2Q" subtitle="Zaytoun Grill · placed 6:42 pm" back-label="Back to Orders" on-back="{{ noop }}"></x-import><main style="flex-grow: 1; display: flex; flex-direction: column; gap: 16px; padding: 8px 16px 16px; overflow: hidden">
+<h1 class="type-heading-xl">Your payment didn't go through</h1><div style="display: flex; flex-direction: column; gap: 6px"><span class="hg-tag">Proposed component: InlineAlert</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="md" padding="var(--space-3) var(--space-4)"><div role="alert" style="display: flex; flex-direction: column; gap: 8px"><div style="display: flex; gap: 12px; align-items: flex-start"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="info" size="lg" color="var(--text-primary)"></x-import><div style="display: flex; flex-direction: column; gap: 4px"><strong class="type-label-lg">Your bank declined Visa •••• 4242</strong><span class="type-body-md" style="color: var(--text-secondary)">Nothing was charged. If you choose another card, we'll cancel this order so you can order again with another card.</span></div></div></div></x-import></div><p class="type-body-md" style="color: var(--text-secondary)">Your order waits until <strong class="hg-num" style="color: var(--text-primary)">6:57 pm</strong>. After that it is closed and nothing is charged.</p><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg"><div style="display: flex; align-items: center; justify-content: space-between; gap: 12px"><div style="display: flex; flex-direction: column; gap: 6px"><span class="type-label-lg">Zaytoun Grill</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.HalalBadge" state="CERTIFIED" surface="card" size="sm"></x-import></div><div style="display: flex; flex-direction: column; gap: 2px; align-items: flex-end"><span class="type-body-sm" style="color: var(--text-secondary)">Total</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{ total }}" size="md"></x-import></div></div></x-import><div class="hg-gap"><span class="hg-tag">Annotation: decline copy</span><span class="hg-gap-note">The headline comes from a fixed map of payment.failed decline_code: declined, insufficient funds, expired card, wrong security code, processing error, authentication failed. Raw bank text is never shown.</span></div><div class="hg-gap"><span class="hg-tag hg-tag-api">Needs API: retry payment on a CREATED order with a new payment_method_id</span><span class="hg-gap-note">Would show "Try another card on this order" only when payment.failed.retryable is true. createOrder takes payment_method_id only at creation, and a second createOrder returns 409 ACTIVE_ORDER_EXISTS, so it is not drawn as real.</span></div><div class="hg-gap"><span class="hg-tag">Annotation: one cancel path</span><span class="hg-gap-note">"Choose another card" only opens the card sheet; nothing is cancelled yet. cancelOrder fires only when the customer presses "Cancel and order again from Zaytoun Grill" in that sheet and gives a reason; then the app puts the items back in the cart and opens it, with that card preselected for checkout. "Not now" returns here with the order intact. "6:57 pm" is deadline_at for CREATED (placed + 15 min).</span></div><div class="hg-gap"><span class="hg-tag">Annotation: put the items back</span><span class="hg-gap-note">Owner decision (1 October): once the unpaid order is cancelled, the app puts the same items back in the cart with the existing cart operations (addCartLine: same item, variant, add-ons, quantity and note) and opens it; the server prices them again. A line that can't be added shows its own cart state. No contract change. Putting back, failed and other-restaurant states: Checkout-cancelled on the Cart canvas.</span></div><div style="display: flex; flex-direction: column; gap: 8px; margin-top: auto"><div class="hg-focus-drawn"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" full-width="{{ yes }}" href="Payment-ChooseCard.dc.html">Choose another card</x-import></div><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="md" full-width="{{ yes }}" href="Cancel-Reason-Created.dc.html">Cancel order and leave</x-import></div>
+</main><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.BottomNav" label="Main" active="orders" items="{{ nav }}"></x-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1120}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const t = (s, at, a) => ({ to_state: s, at: '2026-09-28T' + at + ':00-04:00', actor_kind: a || 'SYSTEM' });
+    const all = [t('AUTHORIZED', '18:42', 'CUSTOMER'), t('RESTAURANT_PENDING', '18:42'), t('PREPARING', '18:44', 'RESTAURANT'), t('READY_FOR_PICKUP', '18:59', 'RESTAURANT'), t('PICKED_UP', '19:02', 'RIDER'), t('ARRIVED', '19:12', 'RIDER'), t('DELIVERED', '19:13', 'RIDER'), t('COMPLETED', '19:43')];
+    const upTo = (n) => all.slice(0, n);
+    return {
+      yes: true, no: false, none: null, zero: 0, noop: () => {},
+      nav: [{ key: 'home', label: 'Home', icon: 'home' }, { key: 'search', label: 'Search', icon: 'search' }, { key: 'orders', label: 'Orders', icon: 'orders', badge: 1, badgeNoun: 'active' }, { key: 'account', label: 'Account', icon: 'profile' }],
+      total: 6425
+    };
+  }
+}
+</script>
+</body>
+</html>

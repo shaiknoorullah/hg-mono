@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Payout setup step</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+summary:focus-visible{outline:2px solid transparent;box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+</style>
+</helmet>
+<div style="width: {{w}}; height: 1080px; box-sizing: border-box; display: flex; flex-direction: column; gap: 24px; font-family: var(--font-ui); color: var(--text-primary)">
+<sc-if value="{{showBanner}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div role="status" style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 4px; margin-top: 32px; display: flex; gap: 12px; align-items: flex-start; padding: 12px 16px; background: {{bBg}}; color: {{bFg}}; border: 1px solid {{bBd}}; border-radius: 12px">
+<span aria-hidden="true" style="position: absolute; top: -32px; left: -4px; font: 500 12px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 4px 8px; border-radius: 4px; white-space: nowrap; z-index: 1">Proposed component: Banner</span><span style="display: inline-flex; color: {{bIc}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="{{bIcon}}" size="md" hint-size="20px,20px"></x-import></span>
+<div class="type-body-md" style="display: flex; flex-direction: column; gap: 4px; line-height: 1.5"><strong class="type-label-lg">{{bTitle}}</strong><span>{{bText}}</span></div>
+</div>
+<span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">Copy mapped from blocking_reason code: {{bCode}}</span>
+</div>
+</sc-if>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<h1 class="type-heading-xl" style="margin: 0">{{pageTitle}}</h1>
+<p class="type-body-md" style="margin: 0; line-height: 1.5; color: var(--text-secondary); max-width: 720px">HalalGoes pays you through Stripe. You enter your business and bank details on Stripe's site, then come back here. HalalGoes only ever sees the last 4 digits of your bank account.</p>
+</div>
+
+<sc-if value="{{stale}}" hint-placeholder-val="{{false}}">
+<div role="status" style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 4px; margin-top: 32px; display: flex; gap: 12px; align-items: flex-start; padding: 12px 16px; background: var(--surface-sunken); color: var(--text-primary); border: 1px solid var(--border-strong); border-radius: 12px"><span aria-hidden="true" style="position: absolute; top: -32px; left: -4px; font: 500 12px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 4px 8px; border-radius: 4px; white-space: nowrap; z-index: 1">Proposed component: InlineAlert</span><span style="display: inline-flex; color: var(--text-primary)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="refresh" size="md" hint-size="20px,20px"></x-import></span><div class="type-body-md" style="flex-grow: 1; display: flex; flex-direction: column; gap: 4px; line-height: 1.5"><strong class="type-label-lg">Live updates paused</strong><span>We lost the connection that updates this page. Last checked 2:32 pm. Reconnecting…</span></div><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" hint-size="130px,44px">Check now</x-import></div>
+<span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">WebSocket disconnected; connect.requirements_changed will not arrive until it reconnects</span>
+</sc-if>
+
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg" padding="24px" hint-size="832px,460px">
+<div style="display: flex; flex-direction: column; gap: 20px">
+
+<sc-if value="{{m.notstarted}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; flex-direction: column; gap: 16px">
+<div class="type-body-md" style="display: flex; gap: 8px; align-items: center"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="check" weight="bold" size="md" hint-size="20px,20px"></x-import><span>Your documents are approved.</span></div>
+<h2 class="type-heading-md" style="margin: 0">Connect your bank account with Stripe</h2>
+<p class="type-body-md" style="margin: 0; line-height: 1.5; color: var(--text-secondary)">Stripe asks for your business details and bank account and may ask you to confirm your identity. You can't start taking orders until Stripe turns on payouts.</p>
+<div style="display: flex; align-items: center; gap: 16px">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" icon-end="chevron-right" loading="{{creating}}" hint-size="280px,52px">Set up payouts with Stripe</x-import>
+<span class="type-body-sm" style="color: var(--text-secondary)">{{nsHint}}</span>
+</div>
+<span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">On press: if ConnectStatus.stripe_account_id is null, call createConnectAccount (POST /v1/connect/account, owner only, new Idempotency-Key), then createConnectOnboardingLink, then redirect. If the account already exists, skip straight to the link. 409 STEP_NOT_AVAILABLE from either call → Payout setup — step not open (Payout-StepNA). Network/5xx on createConnectAccount → Payout-CreateError.</span>
+</div>
+</sc-if>
+
+<sc-if value="{{m.checking}}" hint-placeholder-val="{{false}}">
+<div aria-busy="true" style="display: flex; flex-direction: column; gap: 16px">
+<h2 class="type-heading-md" style="margin: 0">Checking your payout setup with Stripe</h2>
+<p class="type-body-md" style="margin: 0; line-height: 1.5; color: var(--text-secondary)">Welcome back. We're asking Stripe for the latest. This takes a moment.</p>
+<div style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 4px; margin-top: 32px; display: flex; flex-direction: column; gap: 12px">
+<span aria-hidden="true" style="position: absolute; top: -32px; left: -4px; font: 500 12px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 4px 8px; border-radius: 4px; white-space: nowrap; z-index: 1">Proposed component: Skeleton</span>
+<span style="display: block; height: 20px; width: 60%; border-radius: 4px; background: var(--skeleton-base)"></span>
+<span style="display: block; height: 20px; width: 44%; border-radius: 4px; background: var(--skeleton-base)"></span>
+<span style="display: block; height: 20px; width: 52%; border-radius: 4px; background: var(--skeleton-base)"></span>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{m.status}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; gap: 16px">
+<h2 class="type-heading-md" style="margin: 0">{{statusTitle}}</h2>
+<p class="type-body-md" style="margin: 0; line-height: 1.5; color: var(--text-secondary)">{{statusBody}}</p>
+<sc-if value="{{m.disabled}}" hint-placeholder-val="{{false}}">
+<div role="status" style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 4px; margin-top: 32px; display: flex; gap: 12px; align-items: flex-start; padding: 12px 16px; background: var(--feedback-warning-tint); color: var(--feedback-warning-tint-text); border: 1px solid var(--feedback-warning-border); border-radius: 12px"><span aria-hidden="true" style="position: absolute; top: -32px; left: -4px; font: 500 12px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 4px 8px; border-radius: 4px; white-space: nowrap; z-index: 1">Proposed component: InlineAlert</span><span style="display: inline-flex; color: var(--feedback-warning-icon)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="warning" size="md" hint-size="20px,20px"></x-import></span><div class="type-body-md" style="flex-grow: 1; display: flex; flex-direction: column; gap: 4px; line-height: 1.5"><strong class="type-label-lg">{{disabledTitle}}</strong><span>{{disabledBody}}</span><span class="type-body-sm" style="display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap">Stripe’s reason: Stripe needed details by a deadline that has passed. <span aria-hidden="true" style="display: inline-flex; align-items: center; padding: 1px 6px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 11px/1.4 var(--font-mono); border-radius: 4px">requirements.past_due</span></span></div></div>
+</sc-if>
+<sc-if value="{{m.showContinueStripe}}" hint-placeholder-val="{{false}}">
+<div><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" icon-end="chevron-right" hint-size="240px,52px">Continue on Stripe</x-import></div>
+</sc-if>
+<sc-if value="{{hasKv}}" hint-placeholder-val="{{false}}">
+<dl style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 4px; margin-top: 32px; margin-bottom: 0; display: flex; flex-direction: column; border: 1px solid var(--border-decorative); border-radius: 12px">
+<span aria-hidden="true" style="position: absolute; top: -32px; left: -4px; font: 500 12px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 4px 8px; border-radius: 4px; white-space: nowrap; z-index: 1">Proposed component: KeyValueList</span>
+<sc-for list="{{kv}}" as="k" hint-placeholder-count="3">
+<div style="display: flex; gap: 16px; padding: 12px 16px; border-top: {{k.rule}}">
+<dt class="type-body-md" style="width: {{dtW}}; flex-shrink: 0; color: var(--text-secondary)">{{k.label}}</dt>
+<dd class="type-label-lg" style="margin: 0; font-family: {{k.font}}">{{k.value}}</dd>
+</div>
+</sc-for>
+</dl>
+</sc-if>
+<sc-if value="{{hasReqs}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span class="type-label-md" style="color: var(--text-secondary)">{{reqTitle}}</span>
+<ul style="margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px">
+<sc-for list="{{reqs}}" as="q" hint-placeholder-count="2"><li class="type-body-md" style="line-height: 1.45"><span style="display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap">{{q.label}} <span aria-hidden="true" style="display: inline-flex; align-items: center; padding: 1px 6px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 11px/1.4 var(--font-mono); border-radius: 4px">{{q.key}}</span></span></li></sc-for>
+</ul>
+<span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">Each Stripe requirement is written in plain words; the raw name is only in the grey chip. An unknown one reads “Stripe needs more details. Continue on Stripe to see what”.</span>
+</div>
+</sc-if>
+<sc-if value="{{m.enabled}}" hint-placeholder-val="{{false}}">
+<div style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 4px; margin-top: 32px; border-radius: 12px"><span aria-hidden="true" style="position: absolute; top: -32px; left: -4px; font: 500 12px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 4px 8px; border-radius: 4px; white-space: nowrap; z-index: 1">Proposed component: Disclosure (native details/summary)</span><details style="border: 1px solid var(--border-decorative); border-radius: 12px">
+<summary class="type-label-lg" style="min-height: 44px; box-sizing: border-box; padding: 12px 16px; cursor: pointer">Stripe may ask later</summary>
+<div class="type-body-sm" style="padding: 0 16px 16px; display: flex; flex-direction: column; gap: 4px; color: var(--text-secondary)"><span>Nothing to do now. If Stripe needs one of these later, this page and your email will say so.</span><ul style="margin: 0; padding-left: 20px"><li class="type-body-md" style="color: var(--text-primary)"><span style="display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap">Your Social Insurance Number <span aria-hidden="true" style="display: inline-flex; align-items: center; padding: 1px 6px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 11px/1.4 var(--font-mono); border-radius: 4px">individual.id_number</span></span></li></ul></div>
+</details></div>
+<sc-if value="{{autoAdvance}}" hint-placeholder-val="{{false}}">
+<p role="status" class="type-body-md" style="margin: 0; line-height: 1.5">Payouts are on. Taking you to your first menu…</p>
+<span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">Drawn transition: back from Stripe → Checking → status says payouts_enabled and current_step = MENU → this line for 2 s → the menu step opens by itself (Menu-None). Continue stays as the fallback if the redirect doesn't happen.</span>
+</sc-if>
+<sc-if value="{{continueError}}" hint-placeholder-val="{{false}}">
+<div role="alert" tabindex="-1" style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 4px; margin-top: 32px; display: flex; gap: 12px; align-items: flex-start; padding: 12px 16px; background: var(--feedback-danger-tint); color: var(--feedback-danger-tint-text); border: 1px solid var(--feedback-danger-border); border-radius: 12px"><span aria-hidden="true" style="position: absolute; top: -32px; left: -4px; font: 500 12px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 4px 8px; border-radius: 4px; white-space: nowrap; z-index: 1">Proposed component: InlineAlert</span><span style="display: inline-flex; color: var(--feedback-danger-icon)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="error" size="md" hint-size="20px,20px"></x-import></span><div class="type-body-md" style="flex-grow: 1; display: flex; flex-direction: column; gap: 4px; line-height: 1.5"><strong class="type-label-lg">We couldn't open the next step</strong><span>We couldn't reach HalalGoes, or something went wrong on our side. Your payout setup is safe. Try again.</span></div></div>
+<span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">Network error or 5xx on getRestaurantOnboardingStatus after Continue</span>
+</sc-if>
+<div style="display: flex; align-items: center; gap: 16px">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" icon-end="chevron-right" icon-start="{{contIcon}}" hint-size="160px,52px">{{contLabel}}</x-import>
+</div>
+<span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">Continue refetches onboarding status and opens the current_step the server returns</span>
+</sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{m.manager}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; gap: 12px; align-items: center"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="lock" size="md" hint-size="20px,20px"></x-import><h2 class="type-heading-md" style="margin: 0">{{mgrTitle}}</h2></div>
+<p class="type-body-md" style="margin: 0; line-height: 1.5; color: var(--text-secondary)">{{mgrBody}}</p>
+<sc-if value="{{hasKv2}}" hint-placeholder-val="{{false}}">
+<dl style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 4px; margin-top: 32px; margin-bottom: 0; display: flex; flex-direction: column; border: 1px solid var(--border-decorative); border-radius: 12px">
+<span aria-hidden="true" style="position: absolute; top: -32px; left: -4px; font: 500 12px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 4px 8px; border-radius: 4px; white-space: nowrap; z-index: 1">Proposed component: KeyValueList</span>
+<sc-for list="{{kv}}" as="k" hint-placeholder-count="3">
+<div style="display: flex; gap: 16px; padding: 12px 16px; border-top: {{k.rule}}">
+<dt class="type-body-md" style="width: {{dtW}}; flex-shrink: 0; color: var(--text-secondary)">{{k.label}}</dt>
+<dd class="type-label-lg" style="margin: 0; font-family: {{k.font}}">{{k.value}}</dd>
+</div>
+</sc-for>
+</dl>
+</sc-if>
+<span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">owner_first_name / owner_last_name are nullable. Without them: 'Only the restaurant owner can connect a bank account.'</span>
+<sc-if value="{{m.managerdone}}" hint-placeholder-val="{{false}}"><div><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" icon-end="chevron-right" hint-size="160px,52px">Continue</x-import></div></sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{m.problem}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; gap: 16px">
+<h2 class="type-heading-md" style="margin: 0">{{probHeading}}</h2>
+<div role="{{probRole}}" style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 4px; margin-top: 32px; display: flex; gap: 12px; align-items: flex-start; padding: 12px 16px; background: {{probBg}}; color: {{probFg}}; border: 1px solid {{probBd}}; border-radius: 12px">
+<span aria-hidden="true" style="position: absolute; top: -32px; left: -4px; font: 500 12px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 4px 8px; border-radius: 4px; white-space: nowrap; z-index: 1">Proposed component: InlineAlert</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="{{probIcon}}" size="md" hint-size="20px,20px"></x-import>
+<div class="type-body-md" style="display: flex; flex-direction: column; gap: 4px; line-height: 1.5"><strong class="type-label-lg">{{probTitle}}</strong><span>{{probBody}}</span></div>
+</div>
+<div><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" icon-start="{{probBtnIcon}}" hint-size="220px,52px">{{probBtn}}</x-import></div>
+<span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">{{probCode}}</span>
+</div>
+</sc-if>
+
+</div>
+</x-import>
+<sc-if value="{{pastDue}}" hint-placeholder-val="{{false}}"><span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">Owner decision: when Stripe restricts payouts on a live restaurant, it keeps taking orders; earnings are paid out once Stripe is satisfied.</span></sc-if>
+<span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">Realtime: connect.requirements_changed and onboarding.state_changed go to the owner's account:{account_id}. The page also refetches on focus and every 60 s.</span>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"mode": {"editor": "enum", "options": ["notstarted", "creating", "createerror", "checking", "due", "verifying", "disabled", "enabled", "autoadvance", "continueerror", "manager", "managerdone", "linkerror", "linkexpired", "statuserror", "stepna", "stale", "pastdue_active"], "default": "notstarted"}, "w": {"editor": "text", "default": "832px"}, "compact": {"editor": "boolean", "default": false}, "$preview": {"width": 832, "height": 1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const mode = this.props.mode ?? 'notstarted';
+    const B = {"profile_incomplete": "Finish your business profile.", "documents_missing": "Add the four required documents, then send them for review.", "documents_in_review": "A reviewer is checking your documents. You don\u0027t need to do anything yet.", "documents_rejected": "A document needs a new upload. Replace it, then send it for review again.", "payout_not_started": "Connect a bank account with Stripe. You can\u0027t take orders until Stripe turns on payouts.", "payout_requirements_due": "Stripe needs more details before it can turn on payouts.", "payout_verifying": "Stripe is checking your details. This page updates when it\u0027s done.", "payouts_disabled": "Stripe has turned payouts off. Continue on Stripe to see what it needs.", "payout_owner_required": "The restaurant owner needs to connect a bank account.", "document_expired_in_review": "A document expired while it was waiting for review. Upload the current one.", "menu_and_hours_pending": "Add at least one menu item and set your opening hours. Items go live once a reviewer approves them.", "no_live_menu_item": "Add at least one menu item. It goes live once a reviewer approves it.", "menu_in_review": "Your items are waiting for a reviewer. You go live when the first one is approved.", "hours_not_set": "Set your opening hours so customers know when they can order.", "account_suspended": "Your restaurant is suspended. Setup is paused until partner support lifts it.", "certificate_expired": "Your halal certificate has expired, so your listing is hidden. Upload the renewed certificate to show it again."};
+    const TONES = {
+      info: ['var(--feedback-info-tint)', 'var(--feedback-info-tint-text)', 'var(--feedback-info-border)', 'var(--feedback-info-icon)', 'info'],
+      warning: ['var(--feedback-warning-tint)', 'var(--feedback-warning-tint-text)', 'var(--feedback-warning-border)', 'var(--feedback-warning-icon)', 'warning'],
+      slate: ['var(--surface-sunken)', 'var(--text-primary)', 'var(--border-strong)', 'var(--text-primary)', 'clock']
+    };
+    const bt = (tone) => { const t = TONES[tone]; return { bBg: t[0], bFg: t[1], bBd: t[2], bIc: t[3], bIcon: t[4] }; };
+    const statusModes = ['due', 'verifying', 'disabled', 'enabled', 'autoadvance', 'continueerror', 'stale', 'pastdue_active'];
+    const problems = ['createerror', 'linkerror', 'linkexpired', 'statuserror', 'stepna'];
+    const m = {
+      notstarted: mode === 'notstarted' || mode === 'creating', checking: mode === 'checking',
+      manager: mode === 'manager' || mode === 'managerdone', managerdone: mode === 'managerdone',
+      status: statusModes.includes(mode), problem: problems.includes(mode),
+      disabled: mode === 'disabled' || mode === 'pastdue_active', enabled: ['enabled', 'autoadvance', 'continueerror'].includes(mode),
+      showContinueStripe: ['due', 'disabled', 'pastdue_active'].includes(mode)
+    };
+    const kvRow = (label, value, mono, i) => ({ label, value, font: mono ? 'var(--font-mono)' : 'inherit', rule: i === 0 ? 'none' : '1px solid var(--border-decorative)' });
+    const OFF = 'Off until Stripe confirms your details';
+    const REQ = { external_account: 'Your bank account for payouts', 'individual.verification.document': 'A photo of your ID to confirm who you are', 'individual.id_number': 'Your Social Insurance Number' };
+    const plainReq = (k) => ({ key: k, label: REQ[k] || 'Stripe needs more details. Continue on Stripe to see what' });
+    let kv = [], reqs = [], reqTitle = 'What Stripe asked for', statusTitle = '', statusBody = '', disabledTitle = '', disabledBody = '';
+    if (mode === 'due') {
+      statusTitle = 'Stripe needs 2 more things';
+      statusBody = 'Stripe explains each one when you continue. You can’t start taking orders until Stripe turns on payouts.';
+      kv = [kvRow('Details sent to Stripe', 'Not yet', false, 0), kvRow('Payouts', OFF, false, 1), kvRow('Stripe’s deadline', '14 October 2026', false, 2)];
+      reqs = ['external_account', 'individual.verification.document'].map(plainReq);
+    } else if (mode === 'verifying' || mode === 'stale') {
+      statusTitle = 'Stripe is checking your details';
+      statusBody = 'Stripe has everything it asked for. This page updates by itself when Stripe finishes. You don’t need to stay on it.';
+      kv = [kvRow('Details sent to Stripe', 'Yes', false, 0), kvRow('Payouts', OFF, false, 1)];
+    } else if (mode === 'disabled') {
+      statusTitle = 'Stripe needs 1 more thing';
+      statusBody = 'Stripe explains it when you continue.';
+      disabledTitle = 'Stripe has turned payouts off';
+      disabledBody = 'You can’t start taking orders until Stripe turns payouts back on.';
+      kv = [kvRow('Details sent to Stripe', 'Yes', false, 0), kvRow('Payouts', 'Off', false, 1), kvRow('Stripe’s deadline', '30 September 2026 (passed)', false, 2)];
+      reqs = ['individual.verification.document'].map(plainReq);
+    } else if (mode === 'pastdue_active') {
+      statusTitle = 'Stripe needs 1 more thing';
+      statusBody = 'Stripe explains it when you continue.';
+      disabledTitle = 'Payouts are paused. You keep taking orders';
+      disabledBody = 'Orders carry on as normal. Your earnings keep adding up, and Stripe pays them out once it has what it needs.';
+      kv = [kvRow('Payouts', 'Paused', false, 0), kvRow('Bank account', 'Ending 4821', false, 1), kvRow('Stripe’s deadline', '30 September 2026 (passed)', false, 2)];
+      reqs = ['individual.verification.document'].map(plainReq);
+    } else if (['enabled', 'autoadvance', 'continueerror'].includes(mode)) {
+      statusTitle = 'Payouts are on';
+      statusBody = 'Stripe has confirmed your details.';
+      kv = [kvRow('Payouts', 'On', false, 0), kvRow('Bank account', 'Ending 4821', false, 1), kvRow('Payout schedule', 'Weekly', false, 2)];
+    }
+    let kv2 = [], mgrTitle = 'The owner must finish payout setup', mgrBody = 'Only the restaurant owner, Samir Haddad, can connect a bank account. Ask them to sign in and finish this step. This page updates when they do.';
+    if (mode === 'manager') kv2 = [kvRow('Payout setup', 'Not started', false, 0)];
+    if (mode === 'managerdone') { mgrTitle = 'The owner finished payout setup'; mgrBody = 'Stripe has turned on payouts for Zaytoun Grill. Only the owner can change the bank account.'; kv2 = [kvRow('Payouts', 'On', false, 0), kvRow('Bank account', 'Ending 4821', false, 1)]; }
+    const P = {
+      createerror: { h: 'Connect your bank account with Stripe', t: 'We couldn’t set up your Stripe account', b: 'Nothing was changed. Try again. If it keeps happening, call partner support on [support phone].', tone: 'danger', ic: 'error', btn: 'Try again', bi: 'refresh', code: 'createConnectAccount failed (network or 5xx). Try again resends with the same Idempotency-Key, so a second account is never created; on success it continues to createConnectOnboardingLink.', role: 'alert' },
+      linkerror: { h: 'Connect your bank account with Stripe', t: 'We couldn’t open Stripe', b: 'Nothing was changed. Try again. If it keeps happening, call partner support on [support phone].', tone: 'danger', ic: 'error', btn: 'Try again', bi: 'refresh', code: 'createConnectOnboardingLink failed (5xx or network)', role: 'alert' },
+      linkexpired: { h: 'Connect your bank account with Stripe', t: 'That Stripe link expired', b: 'Stripe links only work for a few minutes, so we’ve made a new one. Nothing you entered on Stripe is lost.', tone: 'slate', ic: 'clock', btn: 'Continue on Stripe', bi: 'chevron-right', code: 'Returned through refresh_url: ConnectOnboardingLink.expires_at passed; server mints a new link', role: 'status' },
+      statuserror: { h: 'Payout setup', t: 'We couldn’t check your payout status', b: 'Stripe may still be working on it. Try again in a moment.', tone: 'danger', ic: 'error', btn: 'Try again', bi: 'refresh', code: 'GET /v1/connect/status failed', role: 'alert' },
+      stepna: { h: 'Payout setup', t: 'Payout setup opens once your documents are approved', b: 'Your setup is on an earlier step. Refresh to go there.', tone: 'slate', ic: 'lock', btn: 'Refresh', bi: 'refresh', code: '409 STEP_NOT_AVAILABLE (from createConnectAccount or createConnectOnboardingLink), required_step = DOCUMENTS_APPROVED', role: 'status' }
+    }[mode] || {};
+    const T = { danger: ['var(--feedback-danger-tint)', 'var(--feedback-danger-tint-text)', 'var(--feedback-danger-border)'], slate: ['var(--surface-sunken)', 'var(--text-primary)', 'var(--border-strong)'] }[P.tone || 'slate'];
+    const code = { notstarted: 'payout_not_started', creating: 'payout_not_started', createerror: 'payout_not_started', checking: '', autoadvance: '', continueerror: '', due: 'payout_requirements_due', verifying: 'payout_verifying', stale: 'payout_verifying', disabled: 'payouts_disabled', enabled: 'menu_and_hours_pending', manager: 'payout_owner_required', managerdone: 'menu_and_hours_pending', linkerror: 'payout_not_started', linkexpired: 'payout_requirements_due', statuserror: 'unknown_code_example', stepna: 'documents_in_review' }[mode];
+    const warnB = mode === 'disabled';
+    return Object.assign({
+      w: this.props.w ?? '832px', dtW: this.props.compact ? '120px' : '220px', creating: mode === 'creating', nsHint: mode === 'creating' ? 'Setting up your Stripe account…' : 'Opens Stripe in this tab.', autoAdvance: mode === 'autoadvance', continueError: mode === 'continueerror', pastDue: mode === 'pastdue_active',
+      contLabel: mode === 'continueerror' ? 'Try again' : 'Continue', contIcon: mode === 'continueerror' ? 'refresh' : null,
+      m, kv, hasKv: kv.length > 0, kv2, hasKv2: kv2.length > 0, reqs, hasReqs: reqs.length > 0, reqTitle, statusTitle, statusBody, disabledTitle, disabledBody,
+      mgrTitle, mgrBody, stale: mode === 'stale',
+      pageTitle: mode === 'pastdue_active' ? 'Payouts' : 'Payout setup',
+      showBanner: !['pastdue_active', 'checking', 'statuserror', 'enabled', 'autoadvance', 'continueerror'].includes(mode),
+      bCode: code, bTitle: 'What’s needed now', bText: B[code] || 'Something still needs doing. Refresh, or call partner support.',
+      probHeading: P.h, probTitle: P.t, probBody: P.b, probBtn: P.btn, probBtnIcon: P.bi, probCode: P.code, probRole: P.role,
+      probIcon: P.ic, probBg: T[0], probFg: T[1], probBd: T[2]
+    }, bt(warnB ? 'warning' : 'info'));
+  }
+}
+</script>
+</body>
+</html>

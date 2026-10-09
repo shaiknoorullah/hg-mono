@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Checkout with tax lines, review</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:var(--color-neutral-100)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+.demo-focus .hg-focus,.demo-focus .hg-choice-ctl,.demo-focus .hg-row,.demo-focus > a{box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)!important}
+.demo-focus-field .hg-field{border-color:var(--focus-ring)!important;box-shadow:inset 0 0 0 calc(var(--focus-field-border-width) - 1px) var(--focus-ring)!important}
+
+</style>
+</helmet>
+<div style="width: 390px; height: 1000px; position: relative; overflow: hidden; display: flex; flex-direction: column; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="cream" title="Checkout" subtitle="Zaytoun Grill" back-label="Back to cart" on-back="{{noop}}" elevated="{{yes}}"></x-import>
+<main style="flex-grow: 1; display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-2) var(--space-4) var(--space-4); overflow: hidden">
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">Review only: shows what appears once O-01 (HST) closes. Not the launch design.</span>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg">
+<section aria-labelledby="sum-h" style="display: flex; flex-direction: column; gap: var(--space-2)">
+<h2 id="sum-h" style="margin: 0; font-size: var(--type-heading-md-size); font-weight: 600">Your order</h2>
+<div style="display: flex; gap: var(--space-2); align-items: baseline; font-size: var(--type-body-md-size)"><span style="width: 28px; color: var(--text-secondary); font-variant-numeric: tabular-nums">1×</span><span style="flex-grow: 1; display: flex; flex-direction: column"><span>Mixed charcoal grill</span><span style="font-size: var(--type-body-sm-size); color: var(--text-secondary)">For one · Extra garlic sauce</span></span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{q.l1}}" size="sm"></x-import></div>
+<div style="display: flex; gap: var(--space-2); align-items: baseline; font-size: var(--type-body-md-size)"><span style="width: 28px; color: var(--text-secondary); font-variant-numeric: tabular-nums">2×</span><span style="flex-grow: 1">Chicken shawarma wrap</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{q.l2}}" size="sm"></x-import></div>
+<div style="height: 1px; background: var(--border-decorative); margin: var(--space-2) 0"></div><div style="display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-2); font-size: var(--type-body-md-size); color: var(--text-secondary)"><span>Items subtotal</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{q.sub}}" size="sm"></x-import></div><div style="display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-2); font-size: var(--type-body-md-size); color: var(--text-secondary)"><span>Delivery fee</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{q.del}}" size="sm"></x-import></div><div style="display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-2); font-size: var(--type-body-md-size); color: var(--text-secondary)"><span>Service fee</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{q.svc}}" size="sm"></x-import></div><div style="display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-2); font-size: var(--type-body-md-size); color: var(--text-secondary)"><span>HST</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{q.hst}}" size="sm"></x-import></div><div style="display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-2); padding-top: var(--space-2); border-top: 1px solid var(--border-decorative)"><strong style="font-size: var(--type-heading-md-size)">Total</strong><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{q.totalt}}" size="lg"></x-import></div><div role="status" aria-live="polite" aria-atomic="true" class="hg-sr"></div><p style="margin: 0; font-size: var(--type-body-sm-size); color: var(--text-secondary)">Price held until 6:57 pm. This is the amount we'll charge.</p>
+</section></x-import>
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">Tax rows render quote.tax_lines verbatim (statutory_label + amount_cents). At launch the server returns none while O-01 is open, so no row shows. The client never hides a non-empty tax_lines.</span>
+</main>
+<footer style="display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-4); background: var(--surface-raised); box-shadow: var(--elev-sticky)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" full-width="{{yes}}" icon-start="lock" >Place order · <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{q.totalt}}" size="md"></x-import></x-import><div style="display: flex; gap: var(--space-2); flex-wrap: wrap"><span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">Bound: quote.total_cents</span><span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--color-info-700); background: var(--color-info-50)">Component gap: Button trailing Price slot</span></div><p style="margin: 0; text-align: center; font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-line); color: var(--text-secondary)">Your card is authorised now and charged only when the restaurant accepts.</p>
+</footer>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1000}}'>
+class Component extends DCLogic {
+renderVals() {
+return {
+yes: true,
+no: false,
+none: null,
+zero: 0,
+two: 2,
+noop: function () {},
+nav: [
+{ key: 'home', label: 'Home', icon: 'home' },
+{ key: 'search', label: 'Search', icon: 'search' },
+{ key: 'orders', label: 'Orders', icon: 'orders' },
+{ key: 'account', label: 'Account', icon: 'profile' }
+],
+q: { l1: 2649, l2: 2498, sub: 5147, del: 299, svc: 0, tip: 500, total: 5446, totaltip: 5946, disc: 515, totald: 4931, hst: 669, totalt: 6115, min: 1500, del2: 349, total2: 5496, oldTotal: 5446, newTotal: 5596, del3: 449, short: 853 },
+tipOptions: [
+{ value: '0', label: 'No tip' },
+{ value: '200', label: '$2' },
+{ value: '300', label: '$3' },
+{ value: '500', label: '$5' },
+{ value: 'other', label: 'Other' }
+],
+w180: 180,
+w900: 900,
+handover: [
+{ value: 'LEAVE_AT_DOOR', label: 'Leave at the door', description: 'The rider takes a photo as proof of delivery.' },
+{ value: 'MEET_AT_DOOR', label: 'Meet at the door', description: "You'll give the rider a code at handover." },
+{ value: 'MEET_IN_LOBBY', label: 'Meet in the lobby', description: "You'll give the rider a code at handover." }
+],
+payOptions: [
+{ value: 'wallet', label: 'Apple Pay', description: 'Google Pay on Android. Your wallet confirms the amount.' },
+{ value: 'pm_4242', label: 'Visa •••• 4242', description: 'Expires 08/28' },
+{ value: 'pm_5454', label: 'Mastercard •••• 5454', description: 'Expires 03/27' }
+],
+addresses: [
+{ value: 'home', label: 'Home · 14 Ellesmere Rd', description: 'Unit 402 · Toronto ON M1R 4E7 · Default' },
+{ value: 'work', label: 'Work · 2075 Kennedy Rd', description: 'Toronto ON M1T 3V3' },
+{ value: 'cottage', label: 'Cottage · 88 Lakeshore Rd', description: 'Grand Bend ON N0M 1T0' }
+]
+};
+}
+}
+</script>
+</body>
+</html>

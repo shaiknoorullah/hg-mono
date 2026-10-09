@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Something is wrong</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+[data-rider]{font-family:var(--font-ui)}
+.offer-chrome{background:var(--surface-raised)}
+[data-theme="dark"] .offer-chrome,[data-theme="dark"].offer-chrome{background:var(--surface-chrome)}
+</style>
+</helmet>
+<div data-rider="" data-theme="{{theme}}" style="width: 390px; height: 844px; position: relative; overflow: hidden; display: flex; flex-direction: column; background: var(--surface-base); color: var(--text-primary)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="field" title="Drop-off" subtitle="Step 3 of 4 · Go to the customer"></x-import><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Sheet" open="{{yes}}" contained="{{yes}}" title="What's wrong?" on-close="{{noop}}" max-height="88%"><div style="display: flex; flex-direction: column; gap: var(--space-3)"><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Proposed variant: Sheet (rider) close IconButton size lg (56) · the DS close is 44</span><div style="display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-3); border: 1px solid var(--border-strong); border-radius: var(--radius-md)"><strong style="font-size: var(--type-heading-md-size); font-weight: var(--font-weight-semibold)">In danger or hurt? Call 911 first.</strong><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="danger" size="xl" full-width="{{yes}}" href="tel:911">Call 911</x-import><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Live: tel:911 opens the dialler, no API</span></div><div style="display: flex; flex-direction: column; gap: var(--space-2)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="xl" full-width="{{yes}}" href="tel:+18005550142">Call HalalGoes support</x-import><span style="font-size: var(--type-body-lg-size); line-height: 1.5; color: var(--text-secondary-field)">1 800 555 0142 · Every day, 8 am to 2 am</span><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">tel: PublicConfig.support_phone_e164 · helper line = the number + support_hours verbatim · whole row hidden when support_enabled is false</span></div><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Current contract · call dials dropoff.phone_alias (tel:) · hidden when null</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="xl" full-width="{{yes}}" href="tel:+16475550117">Call Aisha M.</x-import><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="xl" full-width="{{yes}}" href="CantDeliverEnRoute.dc.html">I can't deliver this order</x-import><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Drop-off leg only · the only "I can't deliver" entry on the leg · before ARRIVED_AT_DROPOFF → CantDeliverEnRoute (return only) · at the door → CantDeliverConfirm</span><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Prototype branches: <a href="SomethingWrongReasonsAlt.dc.html" style="color: var(--text-link)">coded reasons (Needs API, rider incident reporting)</a> · <a href="SomethingWrongNoSupport.dc.html" style="color: var(--text-link)">support_enabled = false</a></span><div style="position: sticky; bottom: calc(var(--space-5) * -1); margin: var(--space-1) calc(var(--space-5) * -1) calc(var(--space-5) * -1); padding: var(--space-3) var(--space-5) var(--space-5); background: var(--surface-raised); border-top: 1px solid var(--border-decorative); display: flex; flex-direction: column; gap: var(--space-3)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="xl" full-width="{{yes}}" href="DropoffEnRoute.dc.html">Back to the delivery</x-import></div></div></x-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme": {"editor": "enum", "options": ["dark", "light"], "default": "dark"}, "$preview": {"width": 390, "height": 844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const theme = this.props.theme ?? 'dark';
+    return { theme: theme, onDark: theme === 'dark', yes: true, no: false, noop: () => {}, twentyFour: 24, four: 4, twoHundred: 200, activeTab: 'home',
+      tabs: [{ key: 'home', label: 'Home', icon: 'home' }, { key: 'earnings', label: 'Earnings', icon: 'orders' }, { key: 'account', label: 'Account', icon: 'profile' }] };
+  }
+}
+</script>
+</body>
+</html>

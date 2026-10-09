@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Lost authenticator</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.skip-link{position:absolute;left:var(--space-4);top:-120px;z-index:60;display:inline-flex;align-items:center;min-height:44px;padding:0 var(--space-4);border-radius:var(--radius-sm);background:var(--surface-raised);color:var(--text-primary);font-family:var(--font-ui);font-size:var(--type-body-md-size);font-weight:600;text-decoration:none}
+.skip-link:focus,.skip-link[data-shown]{top:12px;outline:2px solid transparent;box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+.skip-link+.skip-link:focus{top:64px}
+.collapsible-trigger{display:flex;align-items:center;gap:var(--space-3);width:100%;box-sizing:border-box;min-height:44px;border:0;background:transparent;color:inherit;font-family:inherit;text-align:start;cursor:pointer;outline:2px solid transparent;border-radius:var(--radius-md)}
+.collapsible-trigger:focus-visible{box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+.collapsible-chevron{margin-left:auto;display:inline-flex;color:var(--text-secondary);transition:transform var(--duration-fast)}
+.collapsible-trigger[aria-expanded="true"] .collapsible-chevron{transform:rotate(180deg)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+</style>
+</helmet>
+<div data-theme="light" data-density="compact" style="width: 1440px; height: 900px; position: relative; overflow: hidden; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; padding: var(--space-16) var(--space-6); gap: var(--space-6); background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+<a class="skip-link" href="#main">Skip to main content</a>
+<main id="main" tabindex="-1" style="width: 100%; max-width: 520px; display: flex; flex-direction: column; gap: var(--space-5); outline: none">
+<div style="height: 36px; width: 120px; border: 1px solid var(--border-interactive); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center"><span style="font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary)">Component gap: Wordmark</span></div>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="elevated" padding="32px"><form id="code-form" style="display: flex; flex-direction: column; gap: var(--space-5)">
+<h1 style="margin: 0; font-size: var(--type-heading-xl-size); font-weight: 700">Enter your sign-in code</h1>
+<p style="margin: 0; font-size: var(--type-body-md-size); line-height: 1.5; color: var(--text-secondary)">Open your authenticator app and enter the 6-digit code for HalalGoes admin.</p>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="6-digit code" variant="otp" required="{{yes}}" auto-complete="one-time-code" max-length="{{six}}"></x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" full-width="{{yes}}" type="submit">Sign in</x-import>
+<div data-state="open" style="border-top: 1px solid var(--border-decorative); padding-top: var(--space-3)">
+<button type="button" class="collapsible-trigger" aria-expanded="true" aria-controls="lost-authenticator-panel" style="font-size: var(--type-body-md-size); font-weight: 600">Lost your authenticator app?<span class="collapsible-chevron" aria-hidden="true"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="chevron-down" size="md"></x-import></span></button>
+<div id="lost-authenticator-panel" style="display: flex; flex-direction: column; gap: var(--space-2); font-size: var(--type-body-md-size); line-height: 1.5; color: var(--text-secondary)">
+<p style="margin: 0">There are no recovery codes. Ask a super admin to reset your two-step sign-in. They'll call you back on the phone number on your account and check two account details first, then you sign in with your password and set up your authenticator app again.</p>
+<p style="margin: 0">If you think someone else has your phone or password, tell a super admin now so they can remove your access while you sort it out.</p>
+</div>
+</div>
+<span style="font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary)">Proposed component: Disclosure (shadcn Collapsible: the trigger is a real button with aria-expanded and aria-controls; the chevron turns when open), shown open. Nothing is sent from this screen: the reset is done by a super admin from your staff account (Needs API: reset two-step sign-in).</span>
+</form></x-import>
+<span style="font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary)">Sign-in, second step (email and password already accepted). The full sign-in flow belongs to the auth design; this board draws only the lost-authenticator help the owner's decision adds.</span>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const DS = window.HalalGoesDesignSystem_d11a47 || {};
+    const h = window.React.createElement;
+    const muted = function (t) { return h('span', { style: { color: 'var(--text-secondary)' } }, t); };
+    const fullDate = function (iso) { var d = new Date(iso); if (isNaN(d.getTime())) return iso; return iso.length > 10 ? d.toLocaleString('en-CA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/Toronto', timeZoneName: 'short' }) : d.toLocaleDateString('en-CA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }); };
+    const at = function (iso, label) { return h('time', { dateTime: iso, title: fullDate(iso) }, label); };
+    const tag = function (t) { return h('span', { style: { fontSize: 'var(--type-mono-sm-size)', lineHeight: 1.4, fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' } }, t); };
+    let v = {};
+
+    return Object.assign({ yes: true, no: false, nothing: null, noop: function () {}, six: 6 }, v);
+  }
+}
+</script>
+</body>
+</html>

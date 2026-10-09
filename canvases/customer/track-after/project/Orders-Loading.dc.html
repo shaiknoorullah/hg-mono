@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Orders, loading</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<link rel="stylesheet" href="hg-roles.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:var(--surface-base)}
+</style>
+</helmet>
+<div aria-busy="true" style="width: 390px; height: 844px; position: relative; display: flex; flex-direction: column; overflow: hidden; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="cream" variant="large" title="Orders" loading="{{ yes }}"></x-import>
+<main style="flex-grow: 1; display: flex; flex-direction: column; gap: 12px; padding: 0 16px 16px; overflow: hidden">
+<span class="hg-tag">Proposed component: Skeleton</span>
+<sc-for list="{{ rows }}" as="r" hint-placeholder-count="5">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg" padding="var(--space-4)" style="height: 112px"><div aria-hidden="true" style="display: flex; flex-direction: column; gap: 10px">
+<div style="width: 60%; height: 16px; border-radius: var(--radius-xs); background: var(--skeleton-base)"></div>
+<div style="width: 80%; height: 12px; border-radius: var(--radius-xs); background: var(--skeleton-base)"></div>
+<div style="width: 45%; height: 12px; border-radius: var(--radius-xs); background: var(--skeleton-base)"></div>
+</div></x-import>
+</sc-for>
+</main>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.BottomNav" label="Main" active="orders" items="{{ nav }}"></x-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      yes: true, rows: [1, 2, 3, 4, 5],
+      nav: [{ key: 'home', label: 'Home', icon: 'home' }, { key: 'search', label: 'Search', icon: 'search' }, { key: 'orders', label: 'Orders', icon: 'orders' }, { key: 'account', label: 'Account', icon: 'profile' }]
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,145 @@
+/* HalalGoes admin canvas: styles for the proposed composite components on this canvas.
+   Built only from design-system tokens (project/ds/halalgoesdesignsystem-d11a47/tokens.css).
+   This file defines NO custom properties and restyles NO design-system component:
+   every colour, size and font below is read from the system's own tokens.
+   Proposed components styled here (each awaits owner approval before it joins the design system):
+   Banner, Annotation chip, Skip link, Textarea, MultiSelect trigger, SplitPanes (resizable handle),
+   DetailPanel (in-page panel), Disclosure, SideNav (approved by the owner, not yet in the system), Tooltip. */
+
+/* Annotation chrome: design notes on the canvas, never product UI. */
+.hg-gap { font: 600 11px/1.3 var(--font-mono); color: var(--text-secondary); }
+.hg-napi {
+  display: inline-block; align-self: flex-start;
+  font: 600 12px/1.35 var(--font-mono); color: var(--feedback-info-tint-text);
+  background: var(--feedback-info-tint); border: 1px dashed var(--feedback-info-border);
+  padding: var(--space-1) var(--space-2); border-radius: var(--radius-xs);
+}
+.hg-napi-box { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm); border: 1px dashed var(--feedback-info-border); background: var(--surface-sunken); }
+.hg-mono { font-family: var(--font-mono); font-variant-numeric: var(--numeric-tabular); }
+.hg-id { font: var(--text-type-mono-md); font-family: var(--font-mono); font-variant-numeric: var(--numeric-tabular); }
+
+/* Proposed component: Banner (and the same tones for inline blocker boxes and panel alerts).
+   Reads the design system's feedback roles, so light and dark come from tokens.css. */
+.hg-tone { display: flex; gap: var(--space-3); align-items: flex-start; padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); border: 1px solid; font: var(--text-type-body-md); line-height: 1.5; }
+.hg-tone--sm { gap: var(--space-2); padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm); }
+.hg-tone--warning { background: var(--feedback-warning-tint); border-color: var(--feedback-warning-border); color: var(--feedback-warning-tint-text); }
+.hg-tone--info { background: var(--feedback-info-tint); border-color: var(--feedback-info-border); color: var(--feedback-info-tint-text); }
+.hg-tone--neutral { background: var(--surface-sunken); border-color: var(--border-decorative); color: var(--text-primary); }
+.hg-quote { margin: 0; padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm); background: var(--surface-raised); color: var(--text-primary); border: 1px solid var(--border-decorative); font: var(--text-type-body-md); line-height: 1.5; }
+.hg-err { display: inline-flex; gap: var(--space-2); align-items: center; color: var(--feedback-danger-text); font-weight: 600; }
+.hg-list { margin: 0; padding-left: var(--space-5); display: flex; flex-direction: column; gap: var(--space-1); }
+
+/* Skip link: off-screen until keyboard focus, then top-left of <main>. */
+.hg-skip {
+  position: absolute; left: -9999px; top: var(--space-2);
+  min-height: var(--target-min); display: inline-flex; align-items: center;
+  padding: 0 var(--space-4); border-radius: var(--radius-sm);
+  background: var(--surface-raised); color: var(--text-primary);
+  font: var(--text-type-label-lg); text-decoration: underline; z-index: var(--z-dropdown);
+}
+.hg-skip:focus-visible, .hg-skip.is-shown {
+  left: var(--space-6); outline: 2px solid transparent;
+  box-shadow: 0 0 0 var(--focus-offset-width) var(--focus-offset), 0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring);
+}
+
+/* Proposed component: MultiSelect trigger. Layout only; its border and focus come from the DS .hg-field rule. */
+.hg-trigger { width: 100%; min-height: var(--target-min); display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); padding: 0 var(--space-3); border-radius: var(--radius-sm); background: var(--surface-raised); color: var(--text-primary); font: var(--text-type-body-md); text-align: start; cursor: pointer; }
+
+/* Proposed component: SideNav (owner-approved for the design system). Text is --text-on-accent on --surface-chrome
+   (12.23:1). The ring flips to --focus-on-color on chrome, where the brand ring measures under 3:1. */
+.hg-nav a, .hg-nav button.hg-nav-item { color: var(--text-on-accent); text-decoration: none; }
+/* Current page: an inverted tile (--text-on-accent fill, --surface-chrome label and bold icon, bold label). Never a side bar. */
+.hg-nav a[aria-current="page"], .hg-nav a.hg-nav-current { background: var(--text-on-accent); color: var(--surface-chrome); font-weight: var(--font-weight-bold); }
+.hg-nav button.hg-nav-item { background: transparent; border: 0; cursor: pointer; font: var(--text-type-label-lg); font-weight: var(--font-weight-medium); text-align: start; }
+.hg-nav a:focus-visible, .hg-nav button:focus-visible, .hg-nav .is-focus-specimen {
+  outline: 2px solid transparent;
+  box-shadow: 0 0 0 var(--focus-offset-width) var(--surface-chrome), 0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-on-color);
+}
+.hg-nav-annot { font: 600 11px/1.3 var(--font-mono); color: var(--text-on-accent); border: 1.5px dashed var(--text-on-accent); border-radius: var(--radius-sm); padding: var(--space-1) var(--space-2); }
+.hg-sr { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+/* Proposed component: SplitPanes (shadcn Resizable). The handle is a focusable separator:
+   arrow keys resize, Enter collapses or restores the pane before it. */
+.hg-split { position: relative; flex: 0 0 var(--space-3); display: flex; align-items: center; justify-content: center; cursor: col-resize; outline: 2px solid transparent; border-radius: var(--radius-xs); }
+.hg-split::before { content: ""; position: absolute; top: 0; bottom: 0; left: 50%; width: 1px; background: var(--border-decorative); }
+/* The visible line stays 1px; the pointer hit area widens to --target-min (44px) around it. */
+.hg-split::after { content: ""; position: absolute; top: 0; bottom: 0; left: calc((var(--target-min) - var(--space-3)) / -2); right: calc((var(--target-min) - var(--space-3)) / -2); }
+.hg-split-grip { position: relative; width: 4px; height: var(--space-6); border-radius: var(--radius-full); background: var(--border-interactive); }
+.hg-split:focus-visible { box-shadow: 0 0 0 var(--focus-offset-width) var(--focus-offset), 0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring); }
+
+/* Proposed component: collapsed pane strip (a pane folded to its toggle). */
+.hg-strip { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); padding: var(--space-2) 0; background: var(--surface-raised); border-inline-end: 1px solid var(--border-decorative); box-sizing: border-box; min-height: 0; }
+.hg-strip-btn { width: var(--target-min); min-height: var(--target-min); display: inline-flex; align-items: center; justify-content: center; border-radius: var(--radius-sm); border: 1px solid var(--border-interactive); background: var(--surface-raised); color: var(--text-primary); cursor: pointer; outline: 2px solid transparent; }
+.hg-strip-btn:focus-visible { box-shadow: 0 0 0 var(--focus-offset-width) var(--focus-offset), 0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring); }
+.hg-strip-label { writing-mode: vertical-rl; font: var(--text-type-label-md); color: var(--text-secondary); white-space: nowrap; }
+
+/* Pane: a region of the working page. Panes never make the page scroll; a pane scrolls inside itself
+   only when its content is longer than the viewport, and lists virtualise inside their own region. */
+.hg-pane { min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: var(--space-3); }
+.hg-pane-scroll { overflow: auto; overscroll-behavior: contain; outline: 2px solid transparent; border-radius: var(--radius-sm); }
+.hg-pane-scroll:focus-visible { box-shadow: 0 0 0 var(--focus-offset-width) var(--focus-offset), 0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring); }
+
+/* Proposed component: DetailPanel (in-page panel; replaces a working area, never overlays it). */
+.hg-panel { box-sizing: border-box; display: flex; flex-direction: column; min-height: 0; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: var(--radius-lg); overflow: hidden; }
+.hg-panel-head { display: flex; align-items: flex-start; gap: var(--space-3); padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--border-decorative); }
+.hg-panel-body { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-3) var(--space-4); overflow: auto; }
+.hg-panel-foot { display: flex; align-items: center; justify-content: flex-end; gap: var(--space-3); padding: var(--space-3) var(--space-4); border-top: 1px solid var(--border-decorative); background: var(--surface-raised); }
+.hg-panel-title { margin: 0; font: var(--text-type-heading-sm); outline: 2px solid transparent; border-radius: var(--radius-xs); }
+.hg-panel-title:focus-visible, .hg-panel-title.is-focused { box-shadow: 0 0 0 var(--focus-offset-width) var(--focus-offset), 0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring); }
+
+/* Proposed component: Disclosure (a pane section that folds to its header row). */
+.hg-disclosure { border-radius: var(--radius-md); border: 1px solid var(--border-decorative); background: var(--surface-raised); }
+.hg-disclosure-btn { width: 100%; min-height: var(--target-min); display: flex; align-items: center; gap: var(--space-2); padding: 0 var(--space-3); border: 0; border-radius: var(--radius-md); background: transparent; color: var(--text-primary); font: var(--text-type-label-lg); text-align: start; cursor: pointer; outline: 2px solid transparent; }
+.hg-disclosure-btn:focus-visible { box-shadow: inset 0 0 0 var(--focus-offset-width) var(--focus-offset), inset 0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring); }
+.hg-disclosure-body { padding: 0 var(--space-3) var(--space-3); display: flex; flex-direction: column; gap: var(--space-2); }
+
+/* Proposed component: Tooltip (shadcn Tooltip). Full absolute date behind a short table cell. */
+.hg-tooltip { position: absolute; z-index: var(--z-dropdown); max-width: 280px; padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm); background: var(--surface-inverse); color: var(--text-on-inverse); font: var(--text-type-body-sm); box-shadow: var(--elev-2); }
+
+/* Focus specimens on static boards: reproduce the DS :focus-visible rules exactly (same selectors,
+   same custom properties), so a specimen shows what the component really renders, including the
+   white ring flip on filled buttons. */
+.hg-sim-focus .hg-focus, .hg-sim-focus.hg-focus { box-shadow: 0 0 0 2px var(--hg-ring-offset, var(--focus-offset)), 0 0 0 5px var(--hg-ring, var(--border-brand)) !important; }
+.hg-sim-focus .hg-choice-ctl { box-shadow: 0 0 0 2px var(--hg-ring-offset, var(--focus-offset)), 0 0 0 5px var(--hg-ring, var(--border-brand)) !important; }
+.hg-sim-focus .hg-field:not([data-invalid]) { border-color: var(--border-brand); box-shadow: inset 0 0 0 1px var(--border-brand); }
+.hg-sim-focus .hg-field[data-invalid] { border-color: var(--feedback-danger-border); box-shadow: inset 0 0 0 1px var(--feedback-danger-border), 0 0 0 2px var(--focus-offset), 0 0 0 5px var(--border-brand); }
+.hg-sim-row .hg-row:nth-child(2) { box-shadow: inset 0 0 0 2px var(--focus-offset), inset 0 0 0 5px var(--border-brand) !important; }
+
+/* Document viewer scan region: focusable (tabindex=0) so the viewer's keys are scoped to it. */
+.hg-scan { outline: 2px solid transparent; }
+.hg-scan:focus-visible, .hg-scan.is-focused { box-shadow: 0 0 0 var(--focus-offset-width) var(--focus-offset), 0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring); }
+
+/* Proposed component: Textarea (with counter). Uses the DS .hg-field rule exactly: 1px --border-interactive;
+   focus = --border-brand border plus an inset second pixel, so layout never shifts; no ring. */
+textarea.hg-field, .hg-textarea {
+  box-sizing: border-box; width: 100%; padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised); color: var(--text-primary);
+  font: var(--text-type-body-md); line-height: 1.5; resize: vertical;
+}
+textarea.hg-field:focus, textarea.hg-field.is-focused { outline: 2px solid transparent; border-color: var(--border-brand); box-shadow: inset 0 0 0 1px var(--border-brand); }
+textarea.hg-field[aria-invalid="true"] { border-color: var(--feedback-danger-border); box-shadow: inset 0 0 0 1px var(--feedback-danger-border); }
+/* Invalid + focused: the danger border stays and the two-layer ring marks focus (focus decision, rule 4). */
+textarea.hg-field[aria-invalid="true"]:focus, textarea.hg-field[aria-invalid="true"].is-focused {
+  border-color: var(--feedback-danger-border);
+  box-shadow: inset 0 0 0 1px var(--feedback-danger-border), 0 0 0 2px var(--focus-offset), 0 0 0 5px var(--border-brand);
+}
+textarea.hg-field[readonly], textarea.hg-field:disabled { background: var(--surface-sunken); color: var(--text-secondary); }
+/* Focusable status text (decision bar reason): receives programmatic focus, drawn with the two-layer ring. */
+.hg-status-focus { outline: 2px solid transparent; border-radius: var(--radius-xs); }
+.hg-status-focus:focus-visible, .hg-status-focus.is-focused { box-shadow: 0 0 0 2px var(--focus-offset), 0 0 0 5px var(--border-brand); }
+
+/* Windows high contrast / forced colours: box-shadow rings disappear, so every custom focus style
+   also sets a real outline in a system colour. */
+@media (forced-colors: active) {
+  .hg-skip:focus-visible, .hg-nav a:focus-visible, .hg-nav button:focus-visible,
+  .hg-scan:focus-visible, textarea.hg-field:focus, .hg-status-focus:focus-visible,
+  .hg-split:focus-visible, .hg-strip-btn:focus-visible, .hg-disclosure-btn:focus-visible,
+  .hg-panel-title:focus-visible, .hg-pane-scroll:focus-visible { outline: 2px solid CanvasText; outline-offset: 2px; }
+  .hg-tone, .hg-napi, .hg-napi-box, .hg-panel, .hg-disclosure { border-color: CanvasText; forced-color-adjust: auto; }
+  .hg-split::before, .hg-split-grip { background: CanvasText; }
+  textarea.hg-field[aria-invalid="true"] { border-color: Mark; }
+  .hg-nav a[aria-current="page"] { forced-color-adjust: none; background: Highlight; color: HighlightText; }
+  .hg-nav a[aria-current="page"] svg, .hg-nav a[aria-current="page"] span { color: HighlightText !important; border-color: HighlightText !important; }
+  [role="option"].is-active { outline: 2px solid Highlight; outline-offset: -2px; }
+}

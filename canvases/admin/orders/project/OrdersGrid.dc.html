@@ -1,0 +1,482 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Orders</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+.hg-skip{position:absolute;left:-9999px;top:12px;z-index:20;display:inline-flex;align-items:center;min-height:44px;padding:0 var(--space-4);border-radius:var(--radius-md);background:var(--surface-raised);color:var(--text-primary);font-size:var(--type-label-lg-size);font-weight:var(--font-weight-semibold);text-decoration:none;box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+.hg-skip:focus-visible,.hg-skip[data-shown="true"]{left:16px}
+.hg-skip.second[data-shown="true"]{left:-9999px}
+.hg-skip.second:focus-visible{left:16px}
+.hg-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+#main:focus,#grid:focus{outline:none}
+</style>
+</helmet>
+<div data-theme="{{theme}}" data-density="compact" style="width: {{widthPx}}; height: {{heightPx}}; zoom: {{zoom}}; position: relative; overflow: hidden; display: grid; grid-template-columns: {{shellCols}}; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+  <a class="hg-skip" href="#main" data-shown="{{skipShown}}">Skip to main content</a>
+  <sc-if value="{{isDark}}" hint-placeholder-val="{{false}}">
+    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="info" size="sm" icon="info" style="position: absolute; right: 12px; bottom: 8px; z-index: 5">Needs design-system fix: neutral Badge in dark theme</x-import>
+  </sc-if>
+  <a class="hg-skip second" href="#grid" data-shown="{{skipShown}}">Skip to table</a>
+  <sc-if value="{{showNav}}" hint-placeholder-val="{{true}}">
+    <aside style="background: var(--surface-chrome); height: {{heightPx}}">
+      <dc-import name="AdminNav" active="{{navActive}}" role="{{role}}" disputes="{{navDisputes}}" failed="2" counts-known="{{countsKnown}}" height="{{heightNum}}" hint-size="264px,900px"></dc-import>
+    </aside>
+  </sc-if>
+  <div style="display: flex; flex-direction: column; min-width: 0; min-height: 0; height: {{heightPx}}">
+    <sc-if value="{{collapsedNav}}" hint-placeholder-val="{{false}}">
+      <div class="hg-on-accent" style="display: flex; align-items: center; gap: var(--space-2); padding: var(--space-1) var(--space-3); background: var(--surface-chrome); color: var(--text-on-accent)">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="md" icon-start="menu" aria-expanded="false" aria-controls="admin-nav-drawer" style="color: var(--text-on-accent)">Menu</x-import>
+        <span style="flex-grow: 1; font-size: var(--type-body-sm-size)">Operations · Ontario</span>
+      </div>
+      <div id="admin-nav-drawer" hidden="{{yes}}">
+        <dc-import name="AdminNav" active="{{navActive}}" role="{{role}}" disputes="{{navDisputes}}" failed="2" counts-known="{{countsKnown}}" height="{{heightNum}}" hint-size="264px,450px"></dc-import>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{isOffline}}" hint-placeholder-val="{{false}}">
+      <div role="status" style="display: flex; align-items: center; gap: var(--space-3); padding: var(--space-2) var(--space-6); background: var(--feedback-warning-tint); border-bottom: 1px solid var(--feedback-warning-border); color: var(--feedback-warning-tint-text); font-size: var(--type-body-md-size)">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="warning" size="md" color="var(--feedback-warning-icon)"></x-import>
+        <span style="flex-grow: 1"><strong>You're offline.</strong> Showing {{offlineNoun}} as of 6:52 pm. You can still open an order. Anything that changes an order is off until you reconnect, and nothing is queued.</span>
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="outline" size="sm">Proposed component: Banner</x-import>
+      </div>
+    </sc-if>
+
+    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="chrome" title="{{pageTitle}}" subtitle="{{pageSubtitle}}"></x-import>
+
+    <main id="main" tabindex="-1" style="flex-grow: 1; min-height: 0; display: flex; flex-direction: column; gap: var(--space-3); padding: {{mainPad}}">
+      <sc-if value="{{wideFilters}}" hint-placeholder-val="{{true}}">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" padding="var(--space-3) var(--space-4)" radius="lg">
+          <section aria-label="Filters" style="display: flex; flex-direction: column; gap: var(--space-2)">
+            <div style="display: flex; gap: var(--space-3); align-items: flex-start">
+              <div style="display: flex; flex-direction: column; gap: var(--space-1); width: 240px">
+                <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Order code" variant="search" placeholder="HG-8F3K2Q" default-value="{{codeValue}}" error-text="{{codeError}}"></x-import>
+                <span style="font-size: var(--type-body-sm-size); line-height: 1.4; color: var(--text-secondary)">Like HG-8F3K2Q</span>
+              </div>
+              <sc-if value="{{isDisputes}}" hint-placeholder-val="{{false}}">
+                <div style="display: flex; flex-direction: column; gap: var(--space-1); width: 180px">
+                <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="State" read-only="{{yes}}" value="Disputed"></x-import>
+                <span style="font-size: var(--type-body-sm-size); line-height: 1.4; color: var(--text-secondary)">Fixed for this view</span>
+              </div>
+              </sc-if>
+              <sc-if value="{{notDisputes}}" hint-placeholder-val="{{true}}">
+                <div style="display: flex; flex-direction: column; gap: var(--space-1); width: 210px">
+                <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Select" label="State" variant="listbox" searchable="{{yes}}" placeholder="All 14 states" value="{{stateValue}}" options="{{stateOptionsShown}}"></x-import>
+                <span style="font-size: var(--type-body-sm-size); line-height: 1.4; color: var(--text-secondary)">One or more states</span>
+              </div>
+              </sc-if>
+              <div style="display: flex; flex-direction: column; gap: var(--space-1); width: 160px">
+                <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Placed from" placeholder="YYYY-MM-DD" default-value="{{fromValue}}"></x-import>
+                <span style="font-size: var(--type-body-sm-size); line-height: 1.4; color: var(--text-secondary)">{{fromHelp}}</span>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: var(--space-1); width: 160px">
+                <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Placed to" placeholder="YYYY-MM-DD" default-value="{{toValue}}"></x-import>
+                <span style="font-size: var(--type-body-sm-size); line-height: 1.4; color: var(--text-secondary)">{{toHelp}}</span>
+              </div>
+              <div style="padding-top: var(--space-6)">
+                <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" icon-end="{{moreIcon}}" aria-expanded="{{moreExpanded}}">{{moreLabel}}</x-import>
+              </div>
+              <span style="flex-grow: 1"></span>
+              <div style="display: flex; flex-direction: column; gap: var(--space-1); align-items: flex-end; padding-top: var(--space-1)">
+                <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="outline" size="sm">Proposed component: FilterBar</x-import>
+                <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="outline" size="sm">Proposed component: DateInput</x-import>
+                <sc-if value="{{notDisputes}}" hint-placeholder-val="{{true}}">
+                  <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="outline" size="sm">Proposed component: MultiSelect</x-import>
+                </sc-if>
+              </div>
+            </div>
+            <sc-if value="{{moreOpen}}" hint-placeholder-val="{{false}}">
+              <div role="group" aria-label="More filters" style="display: flex; gap: var(--space-3); align-items: flex-start; padding-top: var(--space-2); border-top: 1px solid var(--border-decorative)">
+                <div style="display: flex; flex-direction: column; gap: var(--space-1); width: 300px">
+                <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Restaurant id" placeholder="0191f7c2-…" default-value="{{restaurantValue}}"></x-import>
+                <span style="font-size: var(--type-body-sm-size); line-height: 1.4; color: var(--text-secondary)">Picking by name needs an API. An id works now.</span>
+              </div>
+                <sc-if value="{{notDisputes}}" hint-placeholder-val="{{true}}">
+                  <div style="display: flex; flex-direction: column; gap: var(--space-1); width: 320px">
+                <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Customer account id" placeholder="0192a4c1-…" default-value="{{accountValue}}" error-text="{{accountError}}"></x-import>
+                <span style="font-size: var(--type-body-sm-size); line-height: 1.4; color: var(--text-secondary)">Checked as an id before searching.</span>
+              </div>
+                </sc-if>
+                <div style="display: flex; flex-direction: column; gap: var(--space-1); padding-top: var(--space-6)">
+                  <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="info" size="sm" icon="info">Needs API: restaurant picker by name</x-import>
+                </div>
+              </div>
+            </sc-if>
+            <sc-if value="{{hasChips}}" hint-placeholder-val="{{false}}">
+              <div role="group" aria-label="Active filters" style="display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap">
+                <span style="font-size: var(--type-label-md-size); font-weight: var(--font-weight-semibold); color: var(--text-secondary)">Applied</span>
+                <sc-for list="{{chips}}" as="c" hint-placeholder-count="3">
+                  <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" icon-end="close" accessibility-label="{{c.aria}}">{{c.label}}</x-import>
+                </sc-for>
+                <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="md">Clear filters</x-import>
+                <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="outline" size="sm">Proposed component: FilterChip</x-import>
+              </div>
+            </sc-if>
+            <sc-if value="{{isNoMatch}}" hint-placeholder-val="{{false}}">
+              <div role="note" style="display: flex; align-items: center; gap: var(--space-2); font-size: var(--type-body-sm-size); color: var(--text-secondary)">
+                <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="info" size="sm" icon="info">Needs API</x-import>
+                <span>Searching by customer phone, email or name (issue #148). Until then, ask the customer for the code on their receipt, or use their account id.</span>
+              </div>
+            </sc-if>
+          </section>
+        </x-import>
+      </sc-if>
+
+      <sc-if value="{{narrowFilters}}" hint-placeholder-val="{{false}}">
+        <div role="group" aria-label="Filters" style="display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap">
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" icon-end="chevron-down" aria-expanded="false">Filters</x-import>
+          <sc-for list="{{chips}}" as="c" hint-placeholder-count="1">
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" icon-end="close" accessibility-label="{{c.aria}}">{{c.label}}</x-import>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap">
+        <h2 id="grid-cap" style="margin: 0; font-size: var(--type-heading-sm-size); font-weight: var(--font-weight-semibold)">{{captionText}}</h2>
+        <span role="status" style="font-size: var(--type-body-sm-size); color: var(--text-secondary)">{{countText}}</span>
+        <sc-if value="{{showPreset}}" hint-placeholder-val="{{true}}">
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.SegmentedControl" label="Show" value="{{preset}}" options="{{presetOptions}}" size="md"></x-import>
+        </sc-if>
+        <span style="flex-grow: 1"></span>
+        <span style="font-size: var(--type-body-sm-size); color: var(--text-secondary)">{{asOfText}}</span>
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="md" icon-start="refresh" disabled="{{isOffline}}">Refresh</x-import>
+      </div>
+      <sc-if value="{{showNeeds}}" hint-placeholder-val="{{true}}">
+        <div role="note" style="display: flex; align-items: center; gap: var(--space-2); font-size: var(--type-body-sm-size); color: var(--text-secondary); margin-top: calc(-1 * var(--space-2))">
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="info" size="sm" icon="info">Needs API</x-import>
+          <span>{{needsText}}</span>
+          <sc-if value="{{isRunning}}" hint-placeholder-val="{{false}}">
+            <span>· Still running: every order that has a deadline, Created through Rider arrived, Delivered and Disputed.</span>
+          </sc-if>
+        </div>
+      </sc-if>
+
+      <div id="grid" tabindex="-1" style="position: relative; flex-grow: 1; min-height: 0; display: flex; flex-direction: column; padding: var(--space-5) var(--space-2) var(--space-2); border: 1.5px dashed var(--border-strong); border-radius: var(--radius-lg); min-width: 0">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="outline" size="sm" style="position: absolute; left: 12px; top: -10px; background: var(--surface-base)">Proposed component: DataGrid (LyteNyte, 44px rows, virtualised in this region; DataTable stand-in)</x-import>
+        <div style="flex-grow: 1; min-height: 0; overflow: auto">
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.DataTable" caption="{{captionText}}" hide-caption="{{yes}}" density="compact" sticky-header="{{yes}}" columns="{{columns}}" rows="{{rows}}" get-row-id="{{rowId}}" sort="{{sort}}" row-actions="{{rowActions}}" row-label="{{rowLabel}}" on-row-activate="{{noop}}" status="{{dsStatus}}" error-message="{{dsError}}" on-retry="{{noop}}" has-more="{{hasMore}}" loading-more="{{isLoadingMore}}" on-load-more="{{noop}}" filters-active="{{dsFiltered}}" on-clear-filters="{{noop}}" empty-state="{{dsEmpty}}"></x-import>
+        </div>
+        <sc-if value="{{footEnd}}" hint-placeholder-val="{{false}}">
+          <span role="status" style="display: block; padding: var(--space-2) var(--space-2) 0; font-size: var(--type-body-md-size); color: var(--text-secondary)">{{endText}}</span>
+        </sc-if>
+        <sc-if value="{{footLoadingAll}}" hint-placeholder-val="{{false}}">
+          <span role="status" style="display: block; padding: var(--space-2) var(--space-2) 0; font-size: var(--type-body-md-size); color: var(--text-secondary)">{{loadingAllText}}</span>
+        </sc-if>
+        <sc-if value="{{footFailed}}" hint-placeholder-val="{{false}}">
+          <div role="alert" style="display: flex; align-items: center; gap: var(--space-3); margin-top: var(--space-2); padding: var(--space-2) var(--space-4); border-radius: var(--radius-md); border: 1px solid var(--feedback-warning-border); background: var(--feedback-warning-tint); color: var(--feedback-warning-tint-text); font-size: var(--type-body-md-size)">
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="warning" size="md" color="var(--feedback-warning-icon)"></x-import>
+            <span style="flex-grow: 1">{{failedMoreText}}</span>
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md" icon-start="refresh">Try again</x-import>
+          </div>
+        </sc-if>
+      </div>
+      <sc-if value="{{reflowNote}}" hint-placeholder-val="{{false}}">
+        <div role="note" style="display: flex; gap: var(--space-2); align-items: flex-start; font-size: var(--type-caption-size); font-style: italic; line-height: 1.45; color: var(--text-secondary)">
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="outline" size="sm">Note</x-import>
+          <span>{{reflowText}}</span>
+        </div>
+      </sc-if>
+    </main>
+  </div>
+
+  <sc-if value="{{isReauth}}" hint-placeholder-val="{{false}}">
+    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Modal" open="{{yes}}" contained="{{yes}}" variant="dialog" dismissible="{{no}}" size="md" title="Sign in again to continue" description="{{reauthText}}" on-close="{{noop}}">
+      <div style="display: flex; flex-direction: column; gap: var(--space-3); font-family: var(--font-ui)">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Email" variant="email" auto-complete="username"></x-import>
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Password" variant="password" auto-complete="current-password"></x-import>
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Authenticator code" variant="otp"></x-import>
+        <span style="font-size: var(--type-body-sm-size); line-height: 1.45; color: var(--text-secondary)">Lost your authenticator? A super admin resets it after calling you back on the phone number on your account and checking two account details.</span>
+        <div style="display: flex; gap: var(--space-3); justify-content: flex-end; padding-top: var(--space-3); border-top: 1px solid var(--border-decorative)">
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md">Sign out</x-import>
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md">Sign in and return to the list</x-import>
+        </div>
+      </div>
+    </x-import>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"view":{"editor":"enum","options":["populated","loading","empty","nomatch","codeinvalid","filteredempty","account","error","offline","running","loadingmore","endoflist","loadmorefailed","refreshed","critical","overdue","reauth","disputes","disputes-clear","disputes-loading","disputes-error","disputes-loadingmore","disputes-endoflist","disputes-loadmorefailed","disputes-offline","disputes-nomatch","disputes-codeinvalid","disputes-reauth"],"default":"populated"},"role":{"editor":"enum","options":["ADMIN","SUPPORT_AGENT"],"default":"ADMIN"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"layout":{"editor":"enum","options":["wide","w1280","zoom200"],"default":"wide"},"skipShown":{"editor":"boolean","default":false},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const view = this.props.view ?? 'populated';
+    const role = this.props.role ?? 'ADMIN';
+    const theme = this.props.theme ?? 'light';
+    const layout = this.props.layout ?? 'wide';
+    const NS = window.HalalGoesDesignSystem_d11a47 || {};
+    const R = window.React;
+    const h = (C, p, ...kids) => (R && C ? R.createElement(C, p, ...kids) : (kids.length ? kids.join(' ') : ''));
+    const el = (tag, p, ...kids) => (R ? R.createElement(tag, p, ...kids) : kids.join(' '));
+    const now = Date.now();
+    const serverNow = new Date(now).toISOString();
+    const at = (s) => new Date(now + s * 1000).toISOString();
+    const ST = {
+      CREATED: ['Created', 'neutral', 'clock'], AUTHORIZED: ['Payment authorised', 'neutral', 'clock'],
+      RESTAURANT_PENDING: ['Waiting for restaurant', 'info', 'clock'], PREPARING: ['Preparing', 'info', 'orders'],
+      READY_FOR_PICKUP: ['Ready for pickup', 'info', 'orders'], PICKED_UP: ['Picked up', 'info', 'map'],
+      ARRIVED: ['Rider arrived', 'info', 'map'], DELIVERED: ['Delivered', 'neutral', 'check'],
+      COMPLETED: ['Completed', 'neutral', 'check'], CANCELLED: ['Cancelled', 'outline', 'close'],
+      REJECTED: ['Rejected by restaurant', 'outline', 'close'], FAILED: ['Failed', 'danger', 'error'],
+      DISPUTED: ['Disputed', 'warning', 'warning'], RESOLVED: ['Resolved', 'neutral', 'check'],
+    };
+    const VERB = {
+      CREATED: 'auto-cancels', AUTHORIZED: 'retries the offer', RESTAURANT_PENDING: 'auto-cancels',
+      PREPARING: 'escalates', READY_FOR_PICKUP: 'escalates', PICKED_UP: 'escalates', ARRIVED: 'escalates',
+      DELIVERED: 'settles', DISPUTED: 'escalates, or resolves for the customer if this is the last round',
+    };
+    const DUE = {
+      CREATED: 'Due to auto-cancel now', AUTHORIZED: 'Due to retry now', RESTAURANT_PENDING: 'Due to auto-cancel now',
+      PREPARING: 'Due to escalate now', READY_FOR_PICKUP: 'Due to escalate now', PICKED_UP: 'Due to escalate now', ARRIVED: 'Due to escalate now',
+      DELIVERED: 'Due to settle now', DISPUTED: 'Due to escalate, or to resolve for the customer on the last round',
+    };
+    const HREF = {
+      CREATED: 'OrderDetailCreated.dc.html', AUTHORIZED: 'OrderDetailAuthorized.dc.html', RESTAURANT_PENDING: 'OrderDetailPending.dc.html',
+      PREPARING: 'OrderDetail.dc.html', READY_FOR_PICKUP: 'OrderDetailNoRider.dc.html', PICKED_UP: 'OrderDetailPickedUp.dc.html',
+      ARRIVED: 'OrderDetailArrived.dc.html', DELIVERED: 'OrderDetailDelivered.dc.html', COMPLETED: 'OrderDetailCompleted.dc.html',
+      CANCELLED: 'OrderDetailCancelled.dc.html', REJECTED: 'OrderDetailRejected.dc.html', FAILED: 'OrderDetailFailed.dc.html',
+      DISPUTED: 'OrderDetailDisputed.dc.html', RESOLVED: 'OrderDetailResolved.dc.html',
+    };
+    // Admin table cells use the short date; the tooltip carries the full absolute date (owner decision).
+    const MON = { January: 'Jan', February: 'Feb', March: 'Mar', April: 'Apr', May: 'May', June: 'Jun', July: 'Jul', August: 'Aug', September: 'Sep', October: 'Oct', November: 'Nov', December: 'Dec' };
+    const shortDate = (s) => { const m = /^(\d+) (\w+), (.*)$/.exec(s); return m ? m[1] + ' ' + (MON[m[2]] || m[2]) + ', ' + m[3] : s; };
+    const fullDate = (s) => { const m = /^(\d+) (\w+), (.*)$/.exec(s); return m ? m[1] + ' ' + m[2] + ' 2026, ' + m[3] + ' Eastern time' : s; };
+    const liveMapStates = ['PREPARING', 'READY_FOR_PICKUP', 'PICKED_UP', 'ARRIVED'];
+    const isDisputes = view.indexOf('disputes') === 0;
+    const offline = view === 'offline' || view === 'disputes-offline';
+    const mk = (code, state, restaurant, halal, count, names, total, placed, secs) => {
+      const timed = typeof secs === 'number';
+      const overdue = timed && secs <= 0;
+      const live = timed && !overdue;
+      const pending = state === 'RESTAURANT_PENDING';
+      const disputed = state === 'DISPUTED';
+      return {
+        id: code, code, state, restaurant, halal, count, names, total, placed, secs, live, overdue,
+        exp: live ? at(secs) : null,
+        win: pending ? 180 : disputed ? 172800 : (live ? Math.max(secs, 1) : 1),
+        urgent: (pending || disputed) ? 0.25 : 0, critical: (pending || disputed) ? 0.1 : 0,
+        href: HREF[state], changed: false, changedText: '',
+      };
+    };
+    const all = [
+      mk('HG-8F3K2Q', 'CREATED', 'Zaytoun Grill', 'CERTIFIED', 2, ['Chicken shawarma plate', 'Garlic sauce'], 3150, '28 September, 6:52 pm', 812),
+      mk('HG-4WY6BR', 'AUTHORIZED', 'Lahori Tandoor', 'CERTIFIED', 3, ['Chicken karahi', 'Naan'], 3874, '28 September, 6:51 pm', 40),
+      mk('HG-3MW9FD', 'RESTAURANT_PENDING', 'Anatolia Kebab House', 'EXPIRING_SOON', 1, ['Adana kebab plate'], 2199, '28 September, 6:50 pm', view === 'critical' ? 15 : view === 'overdue' ? -8 : 142),
+      mk('HG-6RN4KP', 'PREPARING', 'Zaytoun Grill', 'CERTIFIED', 2, ['Mixed grill platter', 'Fattoush'], 4396, '28 September, 6:44 pm', 1210),
+      mk('HG-2PH6RC', 'READY_FOR_PICKUP', 'Sham Shawarma', null, 1, ['Beef shawarma wrap'], 1450, '28 September, 6:31 pm', 95),
+      mk('HG-1CV7HS', 'PICKED_UP', 'Lahori Tandoor', 'CERTIFIED', 4, ['Nihari', 'Seekh kebab'], 3620, '28 September, 6:22 pm', 3900),
+      mk('HG-0QA5GM', 'ARRIVED', 'Anatolia Kebab House', 'EXPIRING_SOON', 3, ['Lahmacun', 'Ayran'], 1880, '28 September, 6:15 pm', 410),
+      // A failed refund holds settlement: deadline_at stays set and re-arms, so the countdown stays and says why.
+      Object.assign(mk('HG-7XQ3NE', 'DELIVERED', 'Zaytoun Grill', 'CERTIFIED', 2, ['Chicken shawarma plate', 'Falafel wrap'], 2698, '28 September, 5:58 pm', 70), { verb: 'settles, held: a refund failed' }),
+      mk('HG-5BZ8JT', 'COMPLETED', 'Mandi Express', 'EXPIRED', 2, ['Lamb mandi', 'Salad'], 4210, '27 September, 8:40 pm'),
+      mk('HG-7DT1PZ', 'CANCELLED', 'Lahori Tandoor', 'CERTIFIED', 1, ['Chicken biryani'], 1899, '28 September, 5:40 pm'),
+      mk('HG-4T7MXB', 'REJECTED', 'Anatolia Kebab House', 'EXPIRING_SOON', 2, ['Iskender', 'Pide'], 3199, '28 September, 5:34 pm'),
+      mk('HG-9TK3MA', 'FAILED', 'Sham Shawarma', null, 1, ['Chicken shawarma plate'], 1650, '28 September, 5:20 pm'),
+      mk('HG-9KD2WA', 'DISPUTED', 'Zaytoun Grill', 'CERTIFIED', 1, ['Mixed grill platter'], 1749, '28 September, 4:12 pm', 150000),
+      mk('HG-2GK9VN', 'RESOLVED', 'Bismillah Kitchen', 'UNVERIFIED', 3, ['Haleem', 'Naan'], 2240, '26 September, 7:05 pm'),
+    ];
+    // Disputes arrive newest first from listOrdersAdmin(state=DISPUTED). The page follows every
+    // cursor to the end, then sorts by deadline_at. Until the end is reached it makes no sort claim.
+    const firstPage = [
+      mk('HG-9KD2WA', 'DISPUTED', 'Zaytoun Grill', 'CERTIFIED', 1, ['Mixed grill platter'], 1749, '28 September, 4:12 pm', 150000),
+      mk('HG-3KX7PB', 'DISPUTED', 'Lahori Tandoor', 'CERTIFIED', 3, ['Chicken karahi', 'Naan'], 3874, '27 September, 9:03 pm', 88000),
+      mk('HG-8PW3KC', 'DISPUTED', 'Sham Shawarma', null, 2, ['Chicken shawarma plate', 'Hummus'], 2450, '27 September, 12:30 pm', 41000),
+      mk('HG-6MH2QD', 'DISPUTED', 'Anatolia Kebab House', 'EXPIRING_SOON', 1, ['Adana kebab plate'], 2199, '26 September, 6:47 pm', 9000),
+    ];
+    const secondPage = [
+      mk('HG-5KR2VE', 'DISPUTED', 'Bismillah Kitchen', 'UNVERIFIED', 2, ['Haleem', 'Naan'], 2240, '26 September, 1:05 pm', 120000),
+      mk('HG-1QZ9TA', 'DISPUTED', 'Mandi Express', 'EXPIRED', 1, ['Lamb mandi'], 3299, '25 September, 7:40 pm', 16000),
+    ];
+    const sixOpen = ['disputes-loadingmore', 'disputes-endoflist', 'disputes-loadmorefailed'].includes(view);
+    const disputeTotal = sixOpen ? 6 : 4;
+    const allLoaded = isDisputes && !['disputes-loadingmore', 'disputes-loadmorefailed', 'disputes-loading', 'disputes-error'].includes(view);
+    let rows = all;
+    if (view === 'running' || view === 'critical' || view === 'overdue') rows = all.filter((r) => r.live || r.overdue);
+    if (view === 'account') rows = [all[3], all[7], all[12]];
+    if (view === 'refreshed') {
+      rows = all.map((r) => (r.code === 'HG-6RN4KP'
+        ? Object.assign(mk('HG-6RN4KP', 'READY_FOR_PICKUP', 'Zaytoun Grill', 'CERTIFIED', 2, ['Mixed grill platter', 'Fattoush'], 4396, '28 September, 6:44 pm', 880), { changed: true, changedText: 'Was Preparing at 6:52 pm' })
+        : r));
+    }
+    const bySoonest = (a, b) => a.secs - b.secs;
+    if (isDisputes) {
+      rows = sixOpen ? firstPage.concat(view === 'disputes-endoflist' ? secondPage : []) : firstPage.slice();
+      if (allLoaded) rows.sort(bySoonest);
+      if (view === 'disputes-nomatch') rows = [];
+    }
+    const readyViews = ['populated', 'offline', 'running', 'loadingmore', 'endoflist', 'loadmorefailed', 'refreshed', 'critical', 'overdue', 'reauth', 'codeinvalid', 'account',
+      'disputes', 'disputes-loadingmore', 'disputes-endoflist', 'disputes-loadmorefailed', 'disputes-offline', 'disputes-codeinvalid', 'disputes-reauth'];
+    if (!readyViews.includes(view)) rows = [];
+    const dsStatus = (view === 'loading' || view === 'disputes-loading') ? 'loading' : (view === 'error' || view === 'disputes-error') ? 'error' : 'ready';
+
+    const itemsText = (r) => (r.count === 1 ? '1 item: ' : r.count + ' items: ') + r.names.join(', ') + (r.count > r.names.length ? ', and more' : '');
+    const cellCol = { display: 'flex', flexDirection: 'column', gap: 'var(--space-1)', alignItems: 'flex-start' };
+    const small = { fontSize: 'var(--type-body-sm-size)', lineHeight: '1.35', color: 'var(--text-secondary)', whiteSpace: 'normal' };
+    const sr = { position: 'absolute', width: '1px', height: '1px', overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' };
+    const stateCell = (r) => {
+      const s = ST[r.state];
+      const top = el('span', { style: { display: 'inline-flex', gap: 'var(--space-2)', alignItems: 'center' } },
+        h(NS.Badge, { variant: s[1], icon: s[2], size: 'md' }, s[0]),
+        r.changed ? h(NS.Badge, { variant: 'info', size: 'sm' }, 'Updated') : null);
+      return r.changed ? el('span', { style: cellCol }, top, el('span', { style: small }, r.changedText)) : top;
+    };
+    // A missing halal field renders no badge: plain secondary text, never an optimistic badge.
+    // Owner decision (round 2): expiring soon is amber with the certificate's own date, never the solid seal.
+    // Drawn exactly as the proposed HalalState composite (HalalState.dc.html) draws it; every other state stays on HalalBadge.
+    // Needs API: the certificate's expiry date on the order list row (the grid row carries only the halal state).
+    const certExpires = { 'Anatolia Kebab House': ['19 Oct', '19 October 2026'] };
+    const expiringBadge = (r) => {
+      const e = certExpires[r.restaurant] || ['', ''];
+      return el('span', { role: 'img', 'aria-label': e[1] ? 'Halal certified, expires ' + e[1] + '.' : 'Halal certified.', 'data-halal-render': 'expiring', style: { display: 'inline-flex', alignItems: 'center', gap: '4px', boxSizing: 'border-box', height: '20px', padding: '0 8px', borderRadius: 'var(--radius-md)', background: 'var(--color-halal-expiring-tint)', border: '1px solid var(--color-halal-expiring-border)', color: 'var(--color-halal-expiring-text)', fontSize: 'var(--type-label-sm-size)', fontWeight: 'var(--font-weight-semibold)', letterSpacing: 'var(--type-label-sm-tracking)', lineHeight: 1, whiteSpace: 'nowrap' } },
+        el('span', { 'aria-hidden': 'true', style: { display: 'inline-flex', color: 'var(--color-halal-expiring-icon)' } }, h(NS.HalalShield, { variant: 'solid-clock', size: 'var(--icon-sm)', knockout: 'var(--color-halal-expiring-tint)' })),
+        el('span', { 'aria-hidden': 'true' }, e[0] ? 'Halal certified · expires ' + e[0] : 'Halal certified'));
+    };
+    const halalCell = (r) => (r.halal
+      ? (r.halal === 'EXPIRING_SOON' ? expiringBadge(r) : h(NS.HalalBadge, { state: r.halal, surface: 'operational', size: 'sm' }))
+      : el('span', { style: { fontSize: 'var(--type-body-sm-size)', color: 'var(--text-secondary)' } }, 'No status on file'));
+    const itemsCell = (r) => el('span', { style: { display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', whiteSpace: 'normal', fontSize: 'var(--type-body-sm-size)', lineHeight: '1.35', color: 'var(--text-secondary)' } }, itemsText(r));
+    // Past the deadline but not yet moved by the server: Countdown renders nothing once it has
+    // expired, so the cell draws a static 0:00 and says what is due, never a stale timer.
+    const overdueCell = (r) => el('span', { style: cellCol },
+      el('span', { style: { fontSize: 'var(--type-body-sm-size)', fontWeight: 'var(--font-weight-bold)', fontVariantNumeric: 'tabular-nums', color: 'var(--text-primary)' } }, '0:00, passed ' + Math.abs(r.secs) + ' s ago'),
+      el('span', { style: small }, DUE[r.state] + '. Waiting for the server.'));
+    const deadlineCell = (r) => (r.overdue ? overdueCell(r) : r.live
+      ? el('span', { style: cellCol },
+        h(NS.Countdown, { expiresAt: r.exp, serverNow, windowSeconds: r.win, urgentThreshold: r.urgent, criticalThreshold: r.critical, variant: 'text', size: 'sm' }),
+        el('span', { style: small }, r.verb || VERB[r.state]))
+      : el('span', { style: sr }, 'No deadline, final state'));
+    const totalCell = (r) => h(NS.Price, { cents: r.total, size: 'sm' });
+    const restCell = (r) => el('span', { style: { whiteSpace: 'normal', lineHeight: '1.35' } }, r.restaurant);
+    const placedCell = (r) => el('time', { title: fullDate(r.placed), style: { fontVariantNumeric: 'tabular-nums' } }, shortDate(r.placed));
+
+    const columns = isDisputes ? [
+      { key: 'code', label: 'Order', mono: true, width: 120 },
+      { key: 'deadline', label: 'Next deadline', width: 300, render: deadlineCell },
+      { key: 'restaurant', label: 'Restaurant', width: 170, render: restCell },
+      { key: 'halal', label: 'Restaurant halal status now', width: 170, render: halalCell },
+      { key: 'total', label: 'Total', align: 'end', numeric: true, width: 100, render: totalCell },
+      { key: 'placed', label: 'Placed', width: 120, render: placedCell },
+    ] : [
+      // Next deadline sits beside State: it is the column ops scan first.
+      // Items is last and takes the leftover width, so it is what clips at 1280.
+      { key: 'code', label: 'Order', mono: true, width: 116 },
+      { key: 'state', label: 'State', width: 190, render: stateCell },
+      { key: 'deadline', label: 'Next deadline', width: 170, render: deadlineCell },
+      { key: 'restaurant', label: 'Restaurant', width: 150, render: restCell },
+      { key: 'halal', label: 'Restaurant halal status now', width: 150, render: halalCell },
+      { key: 'total', label: 'Total', align: 'end', numeric: true, width: 92, render: totalCell },
+      { key: 'placed', label: 'Placed', width: 110, render: placedCell },
+      { key: 'items', label: 'Items', render: itemsCell },
+    ];
+    const rowActions = (r) => {
+      const items = [{ key: 'open', label: 'Open order' }];
+      if (liveMapStates.includes(r.state)) items.push({ key: 'map', label: 'Open live map', disabled: offline, disabledReason: offline ? 'You are offline. The live map needs a connection.' : undefined });
+      return items;
+    };
+
+    let dsEmpty = { title: 'No orders yet', description: 'Orders appear here as soon as a customer places one.' };
+    if (view === 'nomatch') dsEmpty = { title: 'No order matches HG-7Q2M4K', description: 'Check the code with the customer. Codes look like HG-8F3K2Q: HG, a dash, then six letters and digits, never I, L, O or U.' };
+    if (view === 'filteredempty') dsEmpty = { title: 'No orders match these filters', description: 'Nothing from Sham Shawarma in Preparing between 1 and 2 September 2026. Remove a filter above, or clear them all.' };
+    if (view === 'disputes-clear') dsEmpty = { title: 'No open disputes', description: 'Nothing needs a decision. When a customer, restaurant or support reports a problem, the order appears here.' };
+    if (view === 'disputes-nomatch') dsEmpty = { title: 'No disputed order matches HG-7Q2M4K', description: 'That code isn’t in dispute, or doesn’t exist. Search it on Orders to see where it stands.' };
+
+    const chipsByView = {
+      filteredempty: [
+        { label: 'State: Preparing', aria: 'Remove filter: state Preparing' },
+        { label: 'Restaurant: 0191fa11…9e04', aria: 'Remove filter: restaurant 0191fa11…9e04' },
+        { label: 'Placed 1 to 2 Sep 2026', aria: 'Remove filter: placed 1 to 2 September 2026' },
+      ],
+      account: [{ label: 'Account: 0192a4c1…7d20', aria: 'Remove filter: account 0192a4c1…7d20' }],
+      nomatch: [{ label: 'Code: HG-7Q2M4K', aria: 'Remove filter: code HG-7Q2M4K' }],
+      running: [{ label: 'Still running: 9 states', aria: 'Remove filter: still running' }],
+      critical: [{ label: 'Still running: 9 states', aria: 'Remove filter: still running' }],
+      overdue: [{ label: 'Still running: 9 states', aria: 'Remove filter: still running' }],
+      'disputes-nomatch': [{ label: 'Code: HG-7Q2M4K', aria: 'Remove filter: code HG-7Q2M4K' }],
+    };
+    const chips = chipsByView[view] || [];
+    const loadedDisputes = rows.length;
+    let countText = '';
+    if (isDisputes) {
+      if (['disputes', 'disputes-endoflist', 'disputes-offline', 'disputes-codeinvalid', 'disputes-reauth'].includes(view)) countText = loadedDisputes + ' of ' + disputeTotal + ' open, sorted by next deadline, soonest first';
+      if (view === 'disputes-loadingmore') countText = 'Loading all open disputes: ' + loadedDisputes + ' of ' + disputeTotal + ' so far. Not sorted until all are here.';
+      if (view === 'disputes-loadmorefailed') countText = loadedDisputes + ' of ' + disputeTotal + ' loaded, newest first. Not in deadline order.';
+    } else if (view === 'running' || view === 'critical' || view === 'overdue') countText = '9 still running, newest first. More load as you scroll.';
+    else if (view === 'endoflist') countText = 'Showing all 14, newest first';
+    else if (view === 'account') countText = '3 orders for this account, newest first';
+    else if (rows.length) countText = 'Showing 14, newest first. More load as you scroll.';
+    const hasMore = !isDisputes && readyViews.includes(view) && !['endoflist', 'loadmorefailed', 'account'].includes(view) && rows.length > 0;
+    const narrow = layout === 'zoom200';
+    const widthPx = layout === 'w1280' ? '1280px' : narrow ? '720px' : '1440px';
+    const heightNum = narrow ? 450 : 900;
+    const moreOpen = ['filteredempty', 'account'].includes(view);
+    return {
+      yes: true, no: false, noop: () => {}, theme, role, serverNow, isDark: theme === 'dark',
+      widthPx, heightNum, heightPx: heightNum + 'px', zoom: narrow ? 2 : 1, shellCols: narrow ? 'minmax(0, 1fr)' : '264px minmax(0, 1fr)',
+      showNav: !narrow, collapsedNav: narrow, wideFilters: !narrow, narrowFilters: narrow,
+      mainPad: narrow ? 'var(--space-2) var(--space-3)' : 'var(--space-4) var(--space-6)',
+      reflowNote: layout !== 'wide',
+      reflowText: narrow
+        ? 'At 200% text zoom the window is 720 by 450 CSS px. The nav collapses behind Menu and the filters fold behind a Filters button, with applied filters as chips. The page still never scrolls: the grid region scrolls inside itself, down and sideways, with the Order column pinned (Proposed component: DataGrid pinned column).'
+        : 'At 1280 px the filters keep one row. Order, State and Next deadline come first, so the countdowns stay in view; only Items, the last column, runs past the frame and scrolls sideways inside the grid region.',
+      skipShown: this.props.skipShown ? 'true' : 'false',
+      navActive: isDisputes ? 'disputes' : 'orders',
+      navDisputes: disputeTotal, countsKnown: true,
+      pageTitle: isDisputes ? 'Disputes' : 'Orders',
+      pageSubtitle: isDisputes ? 'Orders in the Disputed state. All open disputes are loaded, then sorted by next deadline.' : 'Every restaurant, newest first. Every lookup is audited.',
+      offlineNoun: isDisputes ? 'disputes' : 'orders',
+      isOffline: offline, isDisputes, notDisputes: !isDisputes,
+      showPreset: !isDisputes && !narrow,
+      isNoMatch: view === 'nomatch' || view === 'disputes-nomatch', isRunning: view === 'running' || view === 'critical' || view === 'overdue',
+      showNeeds: !narrow,
+      needsText: isDisputes
+        ? 'Server sort by deadline, why each order is disputed, and which round (1 of 3) each dispute is on. Once the round ships, the final round reads "Round 3 of 3: resolves for the customer".'
+        : 'How long each order has been in its state, for deadline urgency on every state.',
+      isReauth: view === 'reauth' || view === 'disputes-reauth',
+      reauthText: isDisputes ? 'Your session ended. Staff sessions end after 30 minutes without activity, or 12 hours after you signed in. The disputes list is kept underneath, and nothing was changed.' : 'Your session ended. Staff sessions end after 30 minutes without activity, or 12 hours after you signed in. Your filters and the list are kept underneath, and nothing was changed.',
+      preset: (view === 'running' || view === 'critical' || view === 'overdue') ? 'running' : 'all',
+      presetOptions: [{ value: 'all', label: 'All orders' }, { value: 'running', label: 'Still running' }],
+      stateValue: (view === 'running' || view === 'critical' || view === 'overdue') ? 'RUNNING_9' : view === 'filteredempty' ? 'PREPARING' : undefined,
+      codeValue: (view === 'nomatch' || view === 'disputes-nomatch') ? 'HG-7Q2M4K' : (view === 'codeinvalid' || view === 'disputes-codeinvalid') ? 'HG-7Q2L' : '',
+      codeError: (view === 'codeinvalid' || view === 'disputes-codeinvalid') ? 'Codes are HG, a dash, then six letters and digits, with no I, L, O or U. This one is too short and has an L, so it wasn’t searched.' : null,
+      accountValue: view === 'account' ? '0192a4c1-5e7b-7a10-b3c2-9d4e8f117d20' : '',
+      accountError: null,
+      restaurantValue: view === 'filteredempty' ? '0191fa11-7c20-7e55-a1d0-2b8e41c99e04' : '',
+      moreOpen, moreExpanded: moreOpen ? 'true' : 'false',
+      moreLabel: moreOpen ? 'Fewer filters' : 'More filters',
+      moreIcon: moreOpen ? 'minus' : 'chevron-down',
+      fromValue: view === 'filteredempty' ? '2026-09-01' : '', toValue: view === 'filteredempty' ? '2026-09-02' : '',
+      fromHelp: view === 'filteredempty' ? '1 September 2026' : 'Like 2026-09-28',
+      toHelp: view === 'filteredempty' ? '2 September 2026' : 'Includes the whole day',
+      hasChips: chips.length > 0, chips,
+      captionText: isDisputes ? 'Disputed orders' : ((view === 'running' || view === 'critical' || view === 'overdue') ? 'Orders still running' : 'Orders'),
+      countText,
+      asOfText: view === 'refreshed' ? 'List as of 6:55 pm. 1 order changed.' : 'List as of 6:52 pm',
+      columns, rows, rowId: (r) => r.id,
+      sort: (isDisputes && allLoaded) ? { key: 'deadline', direction: 'ascending' } : undefined,
+      rowActions, rowLabel: (r) => 'order ' + r.code,
+      dsStatus, hasMore,
+      isLoadingMore: view === 'loadingmore' || view === 'disputes-loadingmore',
+      footEnd: view === 'endoflist' || view === 'disputes-endoflist',
+      endText: isDisputes ? 'That’s every open dispute: all ' + disputeTotal + ', in deadline order.' : 'That’s every order for these filters.',
+      footLoadingAll: view === 'disputes-loadingmore',
+      loadingAllText: 'Loading the rest of the open disputes before sorting by deadline. An older dispute can be the most urgent, so nothing is ordered until all ' + disputeTotal + ' are here.',
+      footFailed: view === 'loadmorefailed' || view === 'disputes-loadmorefailed',
+      failedMoreText: isDisputes ? 'The other ' + (disputeTotal - loadedDisputes) + ' open disputes didn’t load, so these ' + loadedDisputes + ' aren’t in deadline order and one of the missing ones may be due sooner. Nothing was changed.' : 'More orders didn’t load. The 14 above are unchanged.',
+      stateOptionsShown: ((view === 'running' || view === 'critical' || view === 'overdue') ? [{ value: 'RUNNING_9', label: '9 states selected' }] : []).concat(Object.keys(ST).map((k) => ({ value: k, label: ST[k][0] }))),
+      dsError: isDisputes ? 'Disputes didn’t load. Nothing was changed. Try again.' : 'Orders didn’t load. Your filters are kept. Nothing was changed.',
+      dsFiltered: ['nomatch', 'filteredempty', 'disputes-nomatch'].includes(view), dsEmpty,
+    };
+  }
+}
+</script>
+</body>
+</html>

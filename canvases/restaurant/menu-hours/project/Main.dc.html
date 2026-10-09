@@ -1,0 +1,567 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Menu</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}.hg-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}</style>
+</helmet>
+<div data-hg-density="compact" style="width: {{L.W}}px; height: {{L.H}}px; display: grid; grid-template-columns: {{L.railW}}px {{L.mainW}}px; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui); position: relative; overflow: hidden;">
+  <dc-import name="PartRail" active="menu" collapsed="{{L.railCollapsed}}" orders="{{t.orders}}" h="{{nine}}" hint-size="224px,900px"></dc-import>
+  <div style="display: flex; flex-direction: column; min-width: 0; height: {{L.H}}px;">
+    <dc-import name="PartTopBar" title="Menu" state="{{t.state}}" halal="{{t.halal}}" account="{{t.account}}" controls="{{t.controls}}" now="{{t.now}}" closing-at="{{t.closing}}" overnight-to="{{t.overnight}}" no-more-hours="{{t.noMore}}" strip="{{t.strip}}" strip-place="{{t.place}}" version="{{t.version}}" w="{{L.mainW}}" hint-size="1216px,208px"></dc-import>
+    <main id="main" aria-busy="{{busyAttr}}" style="flex-grow: 1; min-height: 0; box-sizing: border-box; padding: var(--space-3) var(--space-4) var(--space-4); display: flex; flex-direction: column; gap: var(--space-3); overflow: hidden;">
+
+      <sc-for list="{{banners}}" as="b" hint-placeholder-count="0">
+        <div id="{{b.id}}" role="{{b.role}}" style="{{b.style}}">
+          <span style="display: inline-flex; padding-top: 2px; color: {{b.iconColor}};"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="{{b.icon}}" size="md" hint-size="20px,20px"></x-import></span>
+          <div style="display: flex; flex-direction: column; gap: var(--space-1); flex-grow: 1; min-width: 0;">
+            <span style="font: var(--text-type-body-md); line-height: var(--type-body-sm-line); color: {{b.textColor}};"><strong style="font-weight: var(--font-weight-semibold);">{{b.title}}</strong> {{b.body}}</span>
+            <sc-if value="{{b.hasChip}}" hint-placeholder-val="{{false}}">
+              <span style="display: inline-flex; align-self: flex-start; padding: 1px 6px; border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); background: var(--feedback-info-tint); font: var(--text-type-mono-sm); color: var(--feedback-info-tint-text);">{{b.chip}}</span>
+            </sc-if>
+            <sc-if value="{{b.hasDecision}}" hint-placeholder-val="{{false}}">
+              <span style="display: inline-flex; align-self: flex-start; padding: 1px 6px; border: 1px dashed var(--feedback-warning-border); border-radius: var(--radius-xs); background: var(--feedback-warning-tint); font: var(--text-type-mono-sm); color: var(--feedback-warning-tint-text);">{{b.decision}}</span>
+            </sc-if>
+          </div>
+          <sc-if value="{{b.hasBtn2}}" hint-placeholder-val="{{false}}">
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" href="{{b.href2}}" hint-size="170px,44px">{{b.btn2}}</x-import>
+          </sc-if>
+          <sc-if value="{{b.hasBtn}}" hint-placeholder-val="{{true}}">
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="{{b.btnVariant}}" size="md" icon-start="{{b.btnIcon}}" href="{{b.href}}" hint-size="170px,44px">{{b.btn}}</x-import>
+          </sc-if>
+          <span style="position: absolute; top: -9px; right: 16px; padding: 0 var(--space-2); border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); background: var(--surface-base); font: var(--text-type-mono-sm); color: var(--text-secondary);">Proposed component: Banner ({{b.kind}}{{b.never}})</span>
+        </div>
+      </sc-for>
+
+      <sc-if value="{{hasPrompt}}" hint-placeholder-val="{{false}}">
+        <section id="oos-prompt" aria-labelledby="oos-prompt-h" style="position: relative; flex-shrink: 0; display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); background: var(--state-selected-tint); border: 1px solid var(--border-brand);">
+          <span style="display: inline-flex; color: var(--text-primary);"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="info" size="md" hint-size="20px,20px"></x-import></span>
+          <div style="display: flex; flex-direction: column; gap: var(--space-1); flex-grow: 1; min-width: 0;">
+            <h2 id="oos-prompt-h" tabindex="-1" style="margin: 0; font: var(--text-type-label-lg); line-height: var(--type-caption-line);">{{pr.title}}</h2>
+            <span style="font: var(--text-type-body-sm); line-height: var(--type-caption-line); color: var(--text-secondary);">{{pr.body}}</span>
+            <span style="display: inline-flex; align-self: flex-start; padding: 1px 6px; border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); background: var(--feedback-info-tint); font: var(--text-type-mono-sm); color: var(--feedback-info-tint-text);">{{pr.chip}}</span>
+          </div>
+          <sc-if value="{{pr.lengths}}" hint-placeholder-val="{{true}}">
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" accessibility-label="Mark Lamb mandi out of stock until closing, 10:00 pm" hint-size="190px,44px">Until closing (10:00 pm)</x-import>
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" accessibility-label="Mark Lamb mandi out of stock for 1 hour, until 8:10 pm" hint-size="200px,44px">For 1 hour (until 8:10 pm)</x-import>
+          </sc-if>
+          <sc-if value="{{pr.support}}" hint-placeholder-val="{{false}}">
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" href="#" accessibility-label="Contact support to mark Lamb mandi out of stock" hint-size="160px,44px">Contact support</x-import>
+          </sc-if>
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="md" hint-size="100px,44px">Not now</x-import>
+          <span style="position: absolute; top: -9px; right: 16px; padding: 0 var(--space-2); border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); background: var(--surface-base); font: var(--text-type-mono-sm); color: var(--text-secondary);">Proposed component: Banner (prompt, in-page; built from the system Icon and Button)</span>
+        </section>
+      </sc-if>
+
+      <div role="search" aria-label="Find items" style="display: flex; align-items: flex-end; gap: var(--space-3); flex-shrink: 0;">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Search this menu" variant="search" value="{{tb.search}}" icon-start="search" disabled="{{tb.off}}" style="width: 280px;" hint-size="280px,68px"></x-import>
+        <sc-if value="{{tb.showFilter}}" hint-placeholder-val="{{true}}">
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Select" label="Show" options="{{filterOpts}}" value="{{tb.filter}}" disabled="{{tb.off}}" style="width: 200px;" hint-size="200px,68px"></x-import>
+        </sc-if>
+        <sc-if value="{{tb.clear}}" hint-placeholder-val="{{false}}">
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="md" icon-start="close" hint-size="140px,44px">Clear search</x-import>
+        </sc-if>
+        <p role="status" style="margin: 0 0 var(--space-3); flex-grow: 1; font: var(--text-type-body-sm); line-height: var(--type-caption-line); color: var(--text-secondary);">{{tb.summary}}</p>
+        <sc-if value="{{tb.showAdd}}" hint-placeholder-val="{{true}}">
+          <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px;">
+            <sc-if value="{{tb.catLimit}}" hint-placeholder-val="{{false}}">
+              <span style="font: var(--text-type-body-sm); line-height: var(--type-heading-md-line); color: var(--text-secondary); text-align: right;">You have 40 categories, the most allowed. <a href="#">Contact support</a> to remove one.</span>
+            </sc-if>
+            <div style="display: flex; gap: var(--space-2);">
+              <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" icon-start="plus" disabled="{{tb.catOff}}" accessibility-label="{{tb.catLabel}}" hint-size="150px,44px">Add category</x-import>
+              <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="{{tb.addVariant}}" size="md" icon-start="plus" disabled="{{tb.off}}" hint-size="120px,44px">Add item</x-import>
+            </div>
+          </div>
+        </sc-if>
+        <sc-if value="{{tb.v0Support}}" hint-placeholder-val="{{false}}">
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" href="#" hint-size="160px,44px">Contact support</x-import>
+        </sc-if>
+      </div>
+
+      <sc-if value="{{centerCard}}" hint-placeholder-val="{{false}}">
+        <div style="flex-grow: 1; min-height: 0; display: flex; align-items: flex-start; justify-content: center; padding-top: var(--space-6);">
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg" padding="32px" style="width: 600px;" hint-size="600px,360px">
+            <div role="{{cc.role}}" style="display: flex; flex-direction: column; gap: 14px; align-items: flex-start;">
+              <span style="color: {{cc.iconColor}}; display: inline-flex;"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="{{cc.icon}}" size="xl" hint-size="32px,32px"></x-import></span>
+              <h2 style="margin: 0; font: var(--text-type-heading-xl); letter-spacing: -0.01em;">{{cc.title}}</h2>
+              <p style="margin: 0; font: var(--text-type-body-lg); color: var(--text-secondary);">{{cc.body}}</p>
+              <sc-if value="{{cc.steps}}" hint-placeholder-val="{{false}}">
+                <ol style="margin: 0; padding-left: var(--space-5); font: var(--text-type-body-md); line-height: var(--type-body-md-line);">
+                  <li>Create a category.</li>
+                  <li>Add items with their price, allergens and a photo.</li>
+                  <li>A HalalGoes reviewer checks each item. Approved items go live on your menu.</li>
+                </ol>
+              </sc-if>
+              <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" icon-start="{{cc.btnIcon}}" hint-size="240px,52px">{{cc.btn}}</x-import>
+              <span style="display: inline-flex; padding: 1px var(--space-2); border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); background: var(--surface-base); font: var(--text-type-mono-sm); color: var(--text-secondary);">Proposed component: {{cc.comp}} (content pattern inside the system Card)</span>
+            </div>
+          </x-import>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{panes}}" hint-placeholder-val="{{true}}">
+        <div style="height: {{paneH}}px; flex-shrink: 0; display: flex; gap: var(--space-3); min-height: 0; overflow: hidden;">
+
+          <sc-if value="{{catsOpen}}" hint-placeholder-val="{{true}}">
+            <nav aria-label="Menu categories" style="width: 216px; height: {{paneH}}px; flex-shrink: 0; box-sizing: border-box; display: flex; flex-direction: column; gap: 2px; padding: var(--space-2); border-radius: var(--radius-md); background: var(--surface-raised); border: 1px solid var(--border-decorative); overflow: auto;">
+              <div style="display: flex; align-items: center; gap: var(--space-1); padding: 0 0 var(--space-1) var(--space-2);">
+                <span style="flex-grow: 1; font: var(--text-type-label-md); color: var(--text-secondary);">Categories</span>
+                <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.IconButton" icon="back" accessibility-label="Collapse categories" size="md" hint-size="44px,44px"></x-import>
+              </div>
+              <sc-if value="{{catSkeleton}}" hint-placeholder-val="{{false}}">
+                <sc-for list="{{five}}" as="i" hint-placeholder-count="5">
+                  <div aria-hidden="true" style="height: 36px; margin: var(--space-1) 0; border-radius: var(--radius-sm); background: var(--skeleton-base);"></div>
+                </sc-for>
+              </sc-if>
+              <sc-if value="{{catEmpty}}" hint-placeholder-val="{{false}}">
+                <p style="margin: 0; padding: var(--space-1) var(--space-2); font: var(--text-type-body-sm); color: var(--text-secondary);">No categories yet. They appear when HalalGoes adds your items.</p>
+              </sc-if>
+              <sc-for list="{{cats}}" as="c" hint-placeholder-count="6">
+                <a href="#" aria-current="{{c.current}}" style="{{c.style}}">
+                  <span style="flex-grow: 1; display: flex; flex-direction: column;">
+                    <span>{{c.name}}</span>
+                    <sc-if value="{{c.hasNote}}" hint-placeholder-val="{{false}}">
+                      <span style="font: var(--text-type-body-sm); color: var(--text-secondary);">{{c.note}}</span>
+                    </sc-if>
+                  </span>
+                  <span style="font: var(--text-type-body-sm); color: var(--text-secondary); font-variant-numeric: tabular-nums;"><span class="hg-sr">, </span>{{c.count}}<span class="hg-sr"> {{c.unit}}</span></span>
+                </a>
+              </sc-for>
+              <span style="margin-top: auto; display: inline-flex; align-self: flex-start; padding: 1px 6px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); background: var(--surface-base); font: var(--text-type-mono-sm); color: var(--text-secondary);">Proposed component: SideNav, list variant (collapsible pane)</span>
+              <sc-if value="{{catNeeds}}" hint-placeholder-val="{{true}}">
+                <span style="display: inline-flex; align-self: flex-start; padding: 1px 6px; border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); background: var(--feedback-info-tint); font: var(--text-type-mono-sm); color: var(--feedback-info-tint-text);">Needs API #149: rename, reorder, deactivate or delete a category</span>
+              </sc-if>
+            </nav>
+          </sc-if>
+          <sc-if value="{{catsClosed}}" hint-placeholder-val="{{false}}">
+            <nav aria-label="Menu categories, collapsed" style="width: 56px; height: {{paneH}}px; flex-shrink: 0; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; gap: var(--space-2); padding: 6px 0; border-radius: var(--radius-md); background: var(--surface-raised); border: 1px solid var(--border-decorative);">
+              <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.IconButton" icon="chevron-right" accessibility-label="Show categories" size="md" hint-size="44px,44px"></x-import>
+              <span style="writing-mode: vertical-rl; font: var(--text-type-label-md); color: var(--text-secondary);">{{catName}}</span>
+            </nav>
+          </sc-if>
+
+          <sc-if value="{{paneCard}}" hint-placeholder-val="{{false}}">
+            <div style="flex-grow: 1; min-width: 0; height: {{paneH}}px; box-sizing: border-box; display: flex; align-items: flex-start; justify-content: center; padding-top: var(--space-6);">
+              <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg" padding="32px" style="width: 600px;" hint-size="600px,300px">
+                <div role="region" aria-labelledby="v0-empty-h" style="display: flex; flex-direction: column; gap: 14px; align-items: flex-start;">
+                  <span style="color: var(--text-secondary); display: inline-flex;"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="menu" size="xl" hint-size="32px,32px"></x-import></span>
+                  <h2 id="v0-empty-h" style="margin: 0; font: var(--text-type-heading-xl); letter-spacing: -0.01em;">HalalGoes is building your menu</h2>
+                  <p style="margin: 0; font: var(--text-type-body-lg); color: var(--text-secondary);">We add your items from the menu you sent us. Customers can order once at least one item is approved. To add or change something, contact support.</p>
+                  <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" href="#" hint-size="200px,52px">Contact support</x-import>
+                  <span style="display: inline-flex; padding: 1px var(--space-2); border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); background: var(--surface-base); font: var(--text-type-mono-sm); color: var(--text-secondary);">Proposed component: EmptyState (content pattern inside the system Card)</span>
+                  <span style="display: inline-flex; padding: 1px var(--space-2); border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); background: var(--feedback-info-tint); font: var(--text-type-mono-sm); color: var(--feedback-info-tint-text);">Launch (version 0): shown when the menu has no categories. Adding categories and items yourself arrives with version 1</span>
+                </div>
+              </x-import>
+            </div>
+          </sc-if>
+          <sc-if value="{{paneGrid}}" hint-placeholder-val="{{true}}">
+          <div style="flex-grow: 1; min-width: 0; height: {{paneH}}px; overflow: hidden;">
+            <dc-import name="PartMenuGrid" category="{{g.title}}" rows="{{g.rows}}" v0="{{g.v0}}" frozen="{{g.frozen}}" status="{{g.status}}" filtered="{{g.filtered}}" all-out="{{g.allOut}}" inactive="{{g.inactive}}" no-live="{{g.noLive}}" selected-id="{{g.selected}}" one-hour-at="{{g.oneHour}}" closing-at="{{g.closing}}" no-more-hours="{{g.noMore}}" menu-gap="{{g.menuGap}}" empty-title="{{g.emptyTitle}}" empty-text="{{g.emptyText}}" empty-clear="{{g.emptyClear}}" cols="{{g.cols}}" w="{{gridW}}" h="{{paneH}}" hint-size="944px,560px"></dc-import>
+          </div>
+          </sc-if>
+
+          <sc-if value="{{hasPanel}}" hint-placeholder-val="{{false}}">
+            <div role="separator" class="hg-focus" aria-orientation="vertical" aria-label="Resize the items list and the side panel" aria-controls="{{sep.controls}}" aria-valuenow="{{sep.now}}" aria-valuemin="30" aria-valuemax="70" aria-valuetext="{{sep.text}}" aria-describedby="sep-keys" tabindex="0" style="width: 44px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; cursor: col-resize; margin: 0 -22px; position: relative; z-index: 1; border-radius: var(--radius-sm);">
+              <span aria-hidden="true" style="width: 4px; height: 40px; border-radius: var(--radius-full); background: var(--border-interactive);"></span>
+              <span id="sep-keys" class="hg-sr">Left and Right arrows resize in steps of 5 percent. Home and End go to the narrowest and widest list.</span>
+              <span aria-hidden="true" style="position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); writing-mode: vertical-rl; padding: 6px 1px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); background: var(--surface-base); font: var(--text-type-mono-sm); color: var(--text-secondary); white-space: nowrap;">Proposed component: ResizeHandle (shadcn Resizable), 44px hit area</span>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{itemPanel}}" hint-placeholder-val="{{false}}">
+            <dc-import name="PartItemPanel" item="{{panelItem}}" v0="{{panelV0}}" w="{{panelW}}" h="{{paneH}}" hint-size="420px,560px"></dc-import>
+          </sc-if>
+
+          <sc-if value="{{catPanel}}" hint-placeholder-val="{{false}}">
+            <section id="cat-panel" aria-labelledby="cat-panel-h" style="width: {{panelW}}px; height: {{paneH}}px; flex-shrink: 0; box-sizing: border-box; display: flex; flex-direction: column; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: var(--radius-md); overflow: hidden;">
+              <div style="display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4); border-bottom: 1px solid var(--border-decorative);">
+                <h2 id="cat-panel-h" tabindex="-1" style="margin: 0; flex-grow: 1; font: var(--text-type-heading-md);">Add a category</h2>
+                <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.IconButton" icon="close" accessibility-label="Close Add a category" disabled="{{cp.saving}}" size="md" hint-size="44px,44px"></x-import>
+              </div>
+              <div style="flex-grow: 1; min-height: 0; overflow: auto; padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-4);">
+                <p style="margin: 0; font: var(--text-type-body-md); color: var(--text-secondary);">Categories group items on your menu. They need no review. Customers see a category once it has an approved item.</p>
+                <sc-if value="{{cp.failed}}" hint-placeholder-val="{{false}}">
+                  <div role="alert" style="display: flex; gap: 10px; align-items: flex-start; padding: var(--space-3) 14px; border-radius: var(--radius-md); background: var(--feedback-danger-tint); border: 1px solid var(--feedback-danger-border);">
+                    <span style="color: var(--feedback-danger-icon); display: inline-flex; padding-top: 2px;"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="error" size="md" hint-size="20px,20px"></x-import></span>
+                    <div style="display: flex; flex-direction: column; gap: var(--space-1);">
+                      <span style="font: var(--text-type-body-md); color: var(--feedback-danger-tint-text);">We couldn’t add Grills. Check your connection and try again. What you typed is still here.</span>
+                      <span style="display: inline-flex; align-self: flex-start; padding: 1px 6px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); background: var(--surface-base); font: var(--text-type-mono-sm); color: var(--text-secondary);">Proposed component: Banner (danger)</span>
+                    </div>
+                  </div>
+                </sc-if>
+                <sc-if value="{{cp.taken}}" hint-placeholder-val="{{false}}">
+                  <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Category name" value="Mains" required="{{yes}}" max-length="{{sixty}}" character-count="{{yes}}" error-text="You already have a category called Mains. Choose another name." hint-size="100%,96px"></x-import>
+                </sc-if>
+                <sc-if value="{{cp.fresh}}" hint-placeholder-val="{{true}}">
+                  <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Category name" value="Grills" required="{{yes}}" read-only="{{cp.saving}}" max-length="{{sixty}}" character-count="{{yes}}" helper-text="For example Mains, Wraps or Drinks. Up to 40 categories." hint-size="100%,96px"></x-import>
+                </sc-if>
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                  <label for="cat-desc" style="font: var(--text-type-label-md);">Description (optional)</label>
+                  <span id="cat-desc-help" style="font: var(--text-type-body-sm); color: var(--text-secondary);">Shown under the category name on your menu.</span>
+                  <span class="hg-field" style="display: flex; border-radius: var(--radius-md); background: var(--surface-raised);">
+                    <textarea id="cat-desc" name="description" rows="3" maxlength="500" aria-describedby="cat-desc-help cat-desc-count" value="{{cp.desc}}" onChange="{{onCatDesc}}" style="flex: 1; min-height: 88px; box-sizing: border-box; padding: 10px var(--space-3); border: none; background: transparent; resize: vertical; font: var(--text-type-body-md); line-height: var(--type-body-sm-line); color: var(--text-primary);"></textarea>
+                  </span>
+                  <span id="cat-desc-count" style="font: var(--text-type-body-sm); color: var(--text-secondary); font-variant-numeric: tabular-nums;">{{cp.descCount}} of 500 characters</span>
+                  <span style="display: inline-flex; align-self: flex-start; padding: 1px 6px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); background: var(--surface-base); font: var(--text-type-mono-sm); color: var(--text-secondary);">Proposed component: Textarea (shadcn Textarea inside the system field wrapper: 1px control border, 2px focus-colour border on focus, no ring)</span>
+                </div>
+              </div>
+              <div style="position: relative; display: flex; gap: var(--space-2); justify-content: flex-end; padding: var(--space-3) var(--space-4); border-top: 1px solid var(--border-decorative);">
+                <span style="position: absolute; top: -10px; left: 16px; padding: 0 var(--space-2); border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); background: var(--surface-base); font: var(--text-type-mono-sm); color: var(--text-secondary);">Proposed component: DetailPanel (task variant: add category)</span>
+                <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" disabled="{{cp.saving}}" hint-size="90px,44px">Cancel</x-import>
+                <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md" loading="{{cp.saving}}" icon-start="{{cp.icon}}" hint-size="150px,44px">{{cp.btn}}</x-import>
+              </div>
+            </section>
+          </sc-if>
+
+          <sc-if value="{{rejectPanel}}" hint-placeholder-val="{{false}}">
+            <section id="reject-panel" aria-labelledby="reject-h" style="width: {{panelW}}px; height: {{paneH}}px; flex-shrink: 0; box-sizing: border-box; display: flex; flex-direction: column; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: var(--radius-md); overflow: hidden;">
+              <div style="display: flex; align-items: center; gap: var(--space-3); padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4); border-bottom: 1px solid var(--border-decorative); background: var(--state-selected-tint);">
+                <div style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1;">
+                  <h2 id="reject-h" tabindex="-1" style="margin: 0; font: var(--text-type-heading-md);">Reject order <span style="font-family: var(--font-mono);">HG-8F3K2Q</span></h2>
+                  <span style="font: var(--text-type-body-sm); color: var(--text-secondary);">Aisha K. · 3 items · the countdown keeps running</span>
+                </div>
+                <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Countdown" variant="ring" size="md" expires-at="{{rj.expiresAt}}" server-now="{{rj.serverNow}}" window-seconds="{{oneEighty}}" label="left" on-expire="{{noop}}" hint-size="56px,56px"></x-import>
+              </div>
+              <div ref="{{rjBodyRef}}" style="flex-grow: 1; min-height: 0; overflow: auto; padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-4);">
+                <p style="margin: 0; font: var(--text-type-body-md); color: var(--text-secondary);">The customer is told straight away and isn’t charged. If the countdown runs out first, the order times out instead.</p>
+                <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.RadioGroup" label="Why are you rejecting it?" value="{{rj.reason}}" options="{{rejectOpts}}" required="{{yes}}" hint-size="100%,340px"></x-import>
+                <sc-if value="{{rj.other}}" hint-placeholder-val="{{false}}">
+                  <div style="display: flex; flex-direction: column; gap: 6px;">
+                    <label for="reject-note" style="font: var(--text-type-label-md); color: var(--text-secondary);">Tell HalalGoes why <span aria-hidden="true">*</span></label>
+                    <span id="reject-note-help" style="font: var(--text-type-body-sm); color: var(--text-secondary);">The customer sees the reason you chose, not this note.</span>
+                    <span class="hg-field" style="display: flex; border-radius: var(--radius-md); background: var(--surface-raised);">
+                      <textarea id="reject-note" name="note" rows="3" maxlength="500" aria-required="true" aria-describedby="reject-note-help reject-note-count reject-why" value="{{rj.note}}" onChange="{{onRejectNote}}" style="flex: 1; min-height: 88px; box-sizing: border-box; padding: 10px var(--space-3); border: none; background: transparent; resize: vertical; font: var(--text-type-body-md); line-height: var(--type-body-sm-line); color: var(--text-primary);"></textarea>
+                    </span>
+                    <span id="reject-note-count" style="font: var(--text-type-body-sm); color: var(--text-secondary); font-variant-numeric: tabular-nums;">{{rj.noteCount}} of 500 characters (at least 20)</span>
+                    <span style="display: inline-flex; align-self: flex-start; padding: 1px 6px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); background: var(--surface-base); font: var(--text-type-mono-sm); color: var(--text-secondary);">Proposed component: Textarea (shadcn Textarea inside the system field wrapper). Choosing Something else scrolls this field into view and moves focus to it</span>
+                  </div>
+                </sc-if>
+                <sc-if value="{{rj.items}}" hint-placeholder-val="{{true}}">
+                  <fieldset aria-describedby="reject-items-help" style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 2px;">
+                    <legend style="font: var(--text-type-label-md); padding-bottom: var(--space-1);">Which item is unavailable? (optional)</legend>
+                    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Checkbox" label="Lamb mandi" checked="{{yes}}" hint-size="100%,44px"></x-import>
+                    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Checkbox" label="Chicken shawarma plate" checked="{{no}}" hint-size="100%,44px"></x-import>
+                    <span id="reject-items-help" style="font: var(--text-type-body-sm); line-height: var(--type-caption-line); color: var(--text-secondary);">We’ll ask whether to mark ticked items out of stock. Nothing changes until you choose.</span>
+                  </fieldset>
+                </sc-if>
+              </div>
+              <div style="position: relative; display: flex; gap: var(--space-2); justify-content: flex-end; align-items: center; padding: var(--space-3) var(--space-4); border-top: 1px solid var(--border-decorative);">
+                <span style="position: absolute; top: -10px; left: 16px; padding: 0 var(--space-2); border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); background: var(--surface-base); font: var(--text-type-mono-sm); color: var(--text-secondary);">Proposed component: DetailPanel (task variant: reject reasons)</span>
+                <sc-if value="{{rj.blocked}}" hint-placeholder-val="{{false}}">
+                  <span id="reject-why" style="flex-grow: 1; font: var(--text-type-body-sm); line-height: var(--type-heading-md-line); color: var(--text-secondary);">Write at least 20 characters to reject</span>
+                </sc-if>
+                <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" hint-size="120px,44px">Keep order</x-import>
+                <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="danger" size="md" destructive="{{yes}}" disabled="{{rj.blocked}}" aria-describedby="{{rj.whyId}}" hint-size="150px,44px">Reject order</x-import>
+              </div>
+            </section>
+          </sc-if>
+        </div>
+      </sc-if>
+    </main>
+    <sc-if value="{{footerStrip}}" hint-placeholder-val="{{false}}">
+      <dc-import name="PartOrderStrip" state="waiting" place="footer" w="{{L.mainW}}" hint-size="1216px,100px"></dc-import>
+    </sc-if>
+  </div>
+
+  <sc-if value="{{hasToasts}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; right: 24px; bottom: {{toastBottom}}px; width: 420px; display: flex; flex-direction: column; gap: var(--space-3);">
+      <sc-for list="{{toasts}}" as="x" hint-placeholder-count="1">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Toast" variant="{{x.variant}}" title="{{x.title}}" description="{{x.body}}" action="{{x.action}}" on-dismiss="{{noop}}" hint-size="420px,96px"></x-import>
+      </sc-for>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"mode":{"editor":"enum","options":["default","v0","v0empty","details","options","switchoff","availstates","nohours","categoryout","saved","live","search","loading","firstrun","filteredempty","allout","error","stale","suspended","suspendedrefused","cert","delisted","deactivated","catfresh","cattaken","catsaving","catfailed","catlimit","catcreated","reject","rejectother","rejected","rejectedv0","v0details","footer"],"default":"default"},"halal":{"editor":"enum","options":["EXPIRED","UNVERIFIED","EXPIRING_SOON","EXPIRED_SUSPENDED"],"default":"EXPIRED"},"noDate":{"editor":"boolean","default":false},"device":{"editor":"enum","options":["desktop","tablet"],"default":"desktop"},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const mode = this.props.mode ?? 'default';
+    const noop = () => {};
+    const row = (id, name, price, extra) => ({ id, name, price, avail: 'AVAILABLE', review: 'LIVE', ...extra });
+    const D = {
+      mains: [
+        row('m1', 'Chicken shawarma plate', 1699, { groups: 2 }),
+        row('m2', 'Lamb mandi', 2450, { avail: 'OUT_OF_STOCK', until: 'until 8:30 pm' }),
+        row('m3', 'Mixed grill', 4200, { review: 'PENDING', pendingName: 'Mixed grill for two' }),
+        row('m4', 'Beef kofta plate', 1850, { review: 'REJECTED', reason: 'UNSUBSTANTIATED_HALAL_CLAIM' }),
+        row('m5', 'Chicken biryani', 1799),
+      ],
+      mainsDetails: [
+        row('m1', 'Chicken shawarma plate', 1699, { groups: 2 }),
+        row('m3', 'Mixed grill', 4200, { review: 'REJECTED', reason: 'MISLEADING_DESCRIPTION', groups: 1 }),
+        row('m4', 'Beef kofta plate', 1850),
+        row('m5', 'Chicken biryani', 1799),
+      ],
+      switchoff: [
+        row('s1', 'Chicken biryani', 1799, { justOff: true, justOffKind: 'OOS_CLOSE', menuOpen: true }),
+        row('s2', 'Lamb mandi', 2450, { avail: 'OUT_OF_STOCK', until: 'until 2:00 am tomorrow (closing)' }),
+        row('s3', 'Kafta rice bowl', 1550, { avail: 'OUT_OF_STOCK', until: 'until 12:10 am' }),
+        row('s4', 'Mixed grill', 4200, { avail: 'OUT_OF_STOCK' }),
+        row('s5', 'Chicken shawarma plate', 1699),
+      ],
+      availstates: [
+        row('a1', 'Lamb mandi', 2450, { saving: true }),
+        row('a2', 'Falafel wrap', 1050, { failed: 'Couldn’t mark it out of stock. It’s still available to customers.' }),
+        row('a3', 'Chicken tawook wrap', 1250, { avail: 'BLOCKED', refused: true, quiet: true }),
+        row('a4', 'Kafta rice bowl', 1550, { avail: 'OUT_OF_STOCK', until: 'until 8:10 pm', menuOpen: true }),
+        row('a5', 'Mint lemonade', 450, { avail: 'OUT_OF_STOCK' }),
+        row('a6', 'Chicken shawarma plate', 1699),
+      ],
+      nohours: [
+        row('w5', 'Falafel wrap', 1050, { justOff: true, justOffKind: 'OOS_1H', menuOpen: true }),
+        row('w6', 'Halloumi wrap', 1150),
+        row('w7', 'Chicken shawarma wrap', 1199),
+        row('w10', 'Sujuk wrap', 1299, { avail: 'OUT_OF_STOCK' }),
+      ],
+      drinksOut: [row('d1', 'Mango lassi', 499, { avail: 'OUT_OF_STOCK', until: 'until 8:30 pm' }), row('d2', 'Mint lemonade', 450, { avail: 'OUT_OF_STOCK' }), row('d3', 'Ayran', 350, { avail: 'OUT_OF_STOCK', until: 'until 10:00 pm' })],
+      saved: [row('w1', 'Halloumi wrap', 1150, { review: 'FIRST' }), row('w2', 'Falafel wrap', 1050), row('w7', 'Chicken shawarma wrap', 1199)],
+      live: [row('m2', 'Lamb mandi', 2450, { restocked: 'Back in stock at 5:00 pm by itself' }), row('m1', 'Chicken shawarma plate', 1699, { groups: 2 }), row('m5', 'Chicken biryani', 1799)],
+      search: [
+        row('m1', 'Chicken shawarma plate', 1699, { catName: 'Mains' }),
+        row('m5', 'Chicken biryani', 1799, { avail: 'OUT_OF_STOCK', until: 'until 8:30 pm', catName: 'Mains' }),
+        row('w3', 'Chicken tawook wrap', 1250, { avail: 'BLOCKED', quiet: true, catName: 'Wraps' }),
+        row('w7', 'Chicken shawarma wrap', 1199, { review: 'PENDING', pendingName: 'Chicken shawarma wrap (spicy)', catName: 'Wraps' }),
+      ],
+      allOut: [row('m1', 'Chicken shawarma plate', 1699, { avail: 'OUT_OF_STOCK', until: 'until 8:30 pm' }), row('m2', 'Lamb mandi', 2450, { avail: 'OUT_OF_STOCK', until: 'until 10:00 pm' }), row('m3', 'Chicken biryani', 1799, { avail: 'OUT_OF_STOCK' })],
+      short: [row('m1', 'Chicken shawarma plate', 1699), row('m2', 'Lamb mandi', 2450, { avail: 'OUT_OF_STOCK', until: 'until 8:30 pm' }), row('m5', 'Chicken biryani', 1799)],
+      refused: [row('m2', 'Lamb mandi', 2450, { failed: 'Not saved: your account is suspended. Lamb mandi is still available to customers.', noRetry: true }), row('m5', 'Chicken biryani', 1799)],
+      rejected: [
+        row('r1', 'Chicken shawarma plate', 1699, { groups: 2 }), row('r2', 'Lamb mandi', 2450),
+        row('r3', 'Mixed grill', 4200), row('r4', 'Beef kofta plate', 1850), row('r5', 'Chicken biryani', 1799),
+      ],
+      v0: [
+        row('v1', 'Chicken shawarma plate', 1699, { groups: 2 }), row('v2', 'Lamb mandi', 2450, { avail: 'OUT_OF_STOCK', until: 'until 8:30 pm' }),
+        row('v3', 'Mixed grill', 4200), row('v4', 'Beef kofta plate', 1850), row('v5', 'Chicken biryani', 1799),
+      ],
+    };
+    const catStyle = (on) => ['display: flex', 'align-items: center', 'gap: var(--space-2)', 'min-height: 44px', 'padding: var(--space-1) var(--space-2)', 'box-sizing: border-box', 'border-radius: var(--radius-sm)', 'text-decoration: none', 'color: var(--text-primary)', 'font: var(--text-type-body-md)', on ? 'font-weight: var(--font-weight-bold)' : 'font-weight: var(--font-weight-medium)', on ? 'background: var(--state-selected-tint)' : 'background: transparent'].join('; ');
+    const CATS = [['Mains', 5], ['Wraps', 4], ['Drinks', 2], ['Breakfast', 1, 'Not on your menu yet'], ['Desserts', 0, 'Empty'], ['Catering', 1, 'Inactive']];
+    const V0CATS = [['Mains', 5], ['Wraps', 3], ['Drinks', 2], ['Desserts', 0, 'Empty']];
+
+    // Per-mode configuration. t = top bar, g = grid, tb = toolbar.
+    const t = { state: 'open', halal: 'CERTIFIED', account: 'LIVE', controls: 'full', now: '19:10', closing: '22:00', overnight: null, noMore: false, strip: 'waiting', place: 'header', orders: 2, version: 1 };
+    const g = { title: 'Mains', rows: D.mains, v0: false, frozen: false, status: 'ready', filtered: false, allOut: false, inactive: false, noLive: false, selected: null, oneHour: '20:10', closing: '22:00', noMore: false, menuGap: false, emptyTitle: null, emptyText: null, emptyClear: false, cols: 'full' };
+    const tb = { search: '', filter: 'all', showFilter: true, clear: false, summary: 'Your menu: 13 items in 6 categories. Customers can order 6 of them now.', showAdd: true, off: false, catOff: false, catLimit: false, addVariant: 'primary', v0Support: false };
+    let cats = CATS; let catSel = 'Mains';
+    let banners = []; let toasts = []; let panel = null; let panelItem = 'mixedgrill'; let panelV0 = false;
+    let cc = null; let paneCard = false; let prompt = null; let rejectReason = 'ITEM_UNAVAILABLE'; let catsCollapsed = false; let railCollapsed = false; let catSkeleton = false;
+    // A restaurant that can’t get new orders shows no waiting orders: empty strip, no count on Orders.
+    const noOrders = () => Object.assign(t, { strip: 'none', orders: 0 });
+    const B = (kind, o) => ({ kind, icon: 'info', role: 'status', btnVariant: 'tertiary', btnIcon: undefined, href: '#', hasBtn: true, hasBtn2: false, hasChip: false, hasDecision: false, never: '', ...o });
+
+    switch (mode) {
+      case 'v0': case 'v0details': case 'rejectedv0':
+        t.version = 0;
+        Object.assign(g, { rows: D.v0, v0: true }); cats = V0CATS;
+        Object.assign(tb, { showAdd: false, v0Support: true, summary: 'Your menu: 10 items in 4 categories. Customers can order 8 of them now.' });
+        banners.push(B('neutral', { title: 'HalalGoes builds and updates your menu for you.', body: 'To change an item or mark it out of stock, contact support.', hasBtn: false, hasChip: true, chip: 'Launch: restaurants can only view their menu. Adding, editing and item availability arrive with version 1' }));
+        if (mode === 'v0details') { Object.assign(g, { selected: 'v1', cols: 'narrow' }); panel = 'item'; panelItem = 'shawarma'; panelV0 = true; catsCollapsed = true; }
+        if (mode === 'rejectedv0') {
+          Object.assign(t, { strip: 'afterreject', orders: 1 }); g.selected = 'v2';
+          g.rows = D.v0.map((r) => (r.id === 'v2' ? { ...r, avail: 'AVAILABLE', until: undefined } : r));
+          prompt = { title: 'Order HG-8F3K2Q rejected. Lamb mandi is still available to customers.', body: 'You ticked it as unavailable. At launch you can’t mark items out of stock yourself: contact support to mark it out of stock.', chip: 'Launch: marking an item out of stock yourself arrives with version 1', lengths: false, support: true };
+        }
+        break;
+      case 'v0empty':
+        // Launch: HalalGoes builds each menu. A newly onboarded restaurant opens this page before any item is added.
+        Object.assign(t, { state: 'closed_toggle', version: 0 }); noOrders(); cats = []; catSel = null; paneCard = true; g.v0 = true;
+        Object.assign(tb, { off: true, showAdd: false, v0Support: false, showFilter: false, summary: 'Your menu is empty.' });
+        break;
+      case 'details':
+        Object.assign(g, { rows: D.mainsDetails, selected: 'm3', cols: 'narrow' }); panel = 'item'; panelItem = 'mixedgrill'; catsCollapsed = true; break;
+      case 'options':
+        Object.assign(g, { rows: D.mainsDetails, selected: 'm1', cols: 'narrow' }); panel = 'item'; panelItem = 'shawarma'; catsCollapsed = true; break;
+      case 'switchoff':
+        Object.assign(t, { now: '23:10', overnight: '02:00' }); Object.assign(g, { rows: D.switchoff, oneHour: '00:10', closing: '2:00 am tomorrow', menuGap: true }); break;
+      case 'availstates':
+        Object.assign(g, { rows: D.availstates, title: 'Mains and wraps' });
+        toasts = [
+          { variant: 'danger', title: 'Couldn’t mark Falafel wrap out of stock', body: 'It is still available to customers. Check your connection and try again.', action: { label: 'Try again', onAction: noop } },
+          { variant: 'warning', title: 'Chicken tawook wrap is blocked by HalalGoes. Your change wasn’t saved.', body: 'Contact support to find out why.', action: null },
+        ];
+        break;
+      case 'nohours':
+        Object.assign(t, { state: 'closed_hours', now: '15:00', noMore: true }); noOrders(); Object.assign(g, { rows: D.nohours, title: 'Wraps', oneHour: '16:00', noMore: true }); catSel = 'Wraps'; break;
+      case 'categoryout':
+        Object.assign(g, { rows: D.drinksOut, title: 'Drinks', allOut: true }); catSel = 'Drinks'; break;
+      case 'saved':
+        Object.assign(g, { rows: D.saved, title: 'Wraps' }); catSel = 'Wraps';
+        toasts = [
+          { variant: 'success', title: 'Halloumi wrap sent for review', body: 'Customers see it once a HalalGoes reviewer approves it. It’s in Wraps, marked Waiting for first review.', action: null },
+          { variant: 'success', title: 'Price saved', body: 'Beef kofta plate is now $19.25 for new orders. Orders already placed keep their price.', action: null },
+        ];
+        break;
+      case 'live':
+        Object.assign(g, { rows: D.live });
+        banners.push(B('info', { icon: 'refresh', title: 'Your menu changed on another device or at HalalGoes.', body: 'Refresh to see the latest before you change anything else.', btn: 'Refresh', btnIcon: 'refresh', hasChip: true, chip: 'Needs API: item availability and item update events on the restaurant live stream. Until then this shows when a save comes back different from the screen' }));
+        toasts = [{ variant: 'warning', title: 'Too many availability changes', body: 'You can make 120 changes an hour. Try again in 12 minutes. Nothing else changed.', action: null }];
+        break;
+      case 'search':
+        Object.assign(g, { rows: D.search, title: '4 items match “chicken”' }); Object.assign(tb, { search: 'chicken', clear: true, summary: '4 items in 2 categories. Categories with no match are left out.' }); catSel = null; break;
+      case 'loading':
+        Object.assign(g, { rows: [], status: 'loading', title: 'Loading…' }); Object.assign(tb, { off: true, catOff: true, summary: 'Loading your menu…' }); cats = []; catSkeleton = true; break;
+      case 'firstrun':
+        Object.assign(t, { state: 'closed_toggle' }); noOrders(); Object.assign(tb, { off: true, summary: 'Your menu is empty.', addVariant: 'tertiary' });
+        cc = { role: 'region', icon: 'menu', iconColor: 'var(--text-secondary)', title: 'Start your menu', body: 'Customers can’t order from you until at least one item is approved. Create a category first, such as Mains or Drinks, then add items to it.', steps: true, btn: 'Create your first category', btnIcon: 'plus', comp: 'EmptyState' };
+        break;
+      case 'filteredempty':
+        Object.assign(g, { rows: [], filtered: true, title: 'Out of stock items', emptyTitle: 'No out-of-stock items match “kunafa”', emptyText: 'Check the spelling, or clear the search and filter to see every item.', emptyClear: true });
+        Object.assign(tb, { search: 'kunafa', filter: 'oos', summary: 'No matches.' }); catSel = null; break;
+      case 'allout':
+        Object.assign(g, { rows: D.allOut });
+        banners.push(B('warning', { icon: 'warning', title: 'Every item is out of stock.', body: 'Customers can see your menu but can’t order anything. Turn items back on with their switches, or switch off New orders at the top.', hasBtn: false, hasChip: true, chip: 'Needs API #149: mark every item available at once' }));
+        break;
+      case 'error':
+        Object.assign(tb, { off: true, catOff: true, summary: 'Your menu didn’t load.' });
+        cc = { role: 'alert', icon: 'warning', iconColor: 'var(--feedback-warning-icon)', title: 'We couldn’t load your menu', body: 'Nothing on it has changed. Check your connection and try again.', steps: false, btn: 'Try again', btnIcon: 'refresh', comp: 'ErrorState' };
+        break;
+      case 'stale':
+        Object.assign(g, { rows: D.mains.slice(0, 4) });
+        banners.push(B('warning', { icon: 'warning', title: 'Showing your menu as it was at 2:32 pm.', body: 'We couldn’t refresh it. Changes you make now may fail until the connection is back.', btn: 'Try again', btnIcon: 'refresh' }));
+        break;
+      case 'suspended':
+        Object.assign(t, { state: 'suspended' }); noOrders(); Object.assign(g, { rows: D.short, frozen: true }); Object.assign(tb, { showAdd: false });
+        banners.push(B('neutral', { icon: 'lock', title: 'Your menu is read-only while your account is suspended.', body: 'Only HalalGoes support can change this. Orders already in progress still complete.', btn: 'Contact support', hasChip: true, chip: 'Needs API: suspension reason on the restaurant. Until then only the service status reason is shown, word for word' }));
+        break;
+      case 'suspendedrefused':
+        // Drawn after the reload: the tab still showed the account as active, the change was refused, and the page reloaded read-only.
+        Object.assign(t, { state: 'suspended' }); noOrders(); Object.assign(g, { rows: D.refused, frozen: true }); Object.assign(tb, { showAdd: false });
+        banners.push(B('neutral', { icon: 'lock', title: 'Your menu is read-only while your account is suspended.', body: 'Only HalalGoes support can change this. Orders already in progress still complete.', btn: 'Contact support', hasChip: true, chip: 'After the reload: this tab still showed the account as active, so marking Lamb mandi out of stock was refused; the page then reloaded into the read-only view. Needs API: confirm menu changes are refused this way while suspended' }));
+        break;
+      case 'cert': {
+        const k = this.props.halal ?? 'EXPIRED';
+        const nd = !!this.props.noDate;
+        const src = 'Reads the restaurant’s halal display state and expiry date. Field missing: no seal and no banner' + (nd ? '. Expiry date not sent: the date is left out' : '');
+        Object.assign(g, { rows: D.short });
+        if (k !== 'EXPIRING_SOON') noOrders();
+        if (k === 'EXPIRED') {
+          t.halal = 'EXPIRED'; tb.addVariant = 'tertiary'; tb.summary = 'Your menu: 13 items in 6 categories. Customers can’t see it right now.';
+          banners.push(B('neutral', { id: 'cert-banner', title: 'Customers can’t find your restaurant right now.', body: (nd ? 'Your halal certificate has expired.' : 'Your halal certificate expired on 20 September 2026.') + ' Upload your renewed certificate. HalalGoes reviews it within 3 business days.', btn: 'Upload renewed certificate', btnVariant: 'primary', hasChip: true, chip: src, never: ', never red for a halal state' }));
+        } else if (k === 'UNVERIFIED') {
+          t.halal = 'UNVERIFIED'; tb.summary = 'Your menu: 13 items in 6 categories. Customers can’t see it right now.';
+          banners.push(B('neutral', { id: 'cert-banner', title: 'Customers can’t find your restaurant yet.', body: 'Your halal certificate is not verified yet. HalalGoes reviews documents within 3 business days.', btn: 'Go to Documents', hasChip: true, chip: src, never: ', never red for a halal state' }));
+        } else if (k === 'EXPIRING_SOON') {
+          t.halal = 'EXPIRING_SOON';
+          banners.push(B('neutral', { id: 'cert-banner', icon: 'clock', title: nd ? 'Your halal certificate expires soon.' : 'Your halal certificate expires on 15 October 2026.', body: 'Upload the renewed one before then so customers can keep finding you. We remind you 30, 14, 7 and 1 days before.', btn: 'Upload renewed certificate', hasChip: true, chip: src + (nd ? ' · no date sent, so the badge reads “Halal certified” alone' : ' · the status bar badge reads “Halal certified · expires 15 Oct” (owner decision; HalalBadge label update requested in the design system)'), never: ', never red for a halal state' }));
+        } else {
+          t.state = 'suspended'; t.halal = 'EXPIRED'; g.frozen = true; tb.showAdd = false; tb.summary = 'Your menu: 13 items in 6 categories. Customers can’t see it right now.';
+          banners.push(B('neutral', { icon: 'lock', title: 'Your menu is read-only while your account is suspended.', body: 'Only HalalGoes support can change this.', btn: 'Contact support' }));
+          banners.push(B('neutral', { id: 'cert-banner', title: 'Your halal certificate has also expired.', body: 'It expired on 20 September 2026. Upload the renewed one now; customers see you again only when your account is active and the certificate is verified.', btn: 'Upload renewed certificate', hasChip: true, chip: 'Suspension first, certificate second: neither fix alone makes you visible', never: ', never red for a halal state' }));
+        }
+        break;
+      }
+      case 'delisted':
+        Object.assign(t, { account: 'DELISTED' }); noOrders(); Object.assign(g, { rows: D.short }); Object.assign(tb, { addVariant: 'tertiary', summary: 'Your menu: 13 items in 6 categories. Customers can’t see it right now.' });
+        banners.push(B('neutral', { id: 'account-banner', title: 'Customers can’t find your restaurant right now.', body: 'This isn’t a penalty. It happens when a required document has expired or nothing on your menu is approved yet. You’re listed again by itself once the cause is fixed.', btn: 'Go to Documents', btnVariant: 'primary', hasBtn2: true, btn2: 'Show items not approved', href2: '#main', hasChip: true, chip: 'Needs API: delisting reasons on the restaurant. With them, only the actual cause and its one fix show' }));
+        break;
+      case 'deactivated':
+        Object.assign(t, { account: 'DEACTIVATED', controls: 'status' }); noOrders(); Object.assign(g, { rows: D.short, v0: true }); Object.assign(tb, { showAdd: false, summary: 'View only while deactivated.' });
+        banners.push(B('neutral', { id: 'account-banner', title: 'Your restaurant is deactivated.', body: 'You asked HalalGoes to take it off the app. Your menu and hours are kept, so you can start again at any time.', btn: 'Contact support', hasChip: true, chip: 'Needs API: a reactivate operation for the restaurant. Until it exists, Contact support is the only way back', hasDecision: true, decision: 'Open question for the owner: can a deactivated restaurant still edit its menu? Drawn view only' }));
+        break;
+      case 'catfresh': case 'cattaken': case 'catsaving': case 'catfailed':
+        panel = 'cat'; catsCollapsed = false; g.cols = 'narrow'; break;
+      case 'catlimit':
+        Object.assign(tb, { catOff: true, catLimit: true, catLabel: 'Add category. Not available: you have 40 categories, the most allowed.', summary: 'Your menu: 212 items in 40 categories. Customers can order 187 of them now.' }); break;
+      case 'catcreated':
+        cats = CATS.concat([['Grills', 0, 'Empty']]); catSel = 'Grills';
+        Object.assign(g, { rows: [], title: 'Grills' }); tb.summary = 'Your menu: 13 items in 7 categories. Customers can order 6 of them now.';
+        toasts = [{ variant: 'success', title: 'Grills added', body: 'Customers see it once it has an approved item. Add the first one now.', action: null }];
+        break;
+      case 'reject': case 'rejectother':
+        Object.assign(t, { strip: 'rejecting' }); panel = 'reject'; catsCollapsed = true; g.cols = 'narrow';
+        if (mode === 'rejectother') rejectReason = 'OTHER';
+        break;
+      case 'rejected':
+        Object.assign(t, { strip: 'afterreject', orders: 1 }); Object.assign(g, { rows: D.rejected, selected: 'r2' });
+        prompt = { title: 'Order HG-8F3K2Q rejected. Mark Lamb mandi out of stock?', body: 'You ticked it as unavailable. Nothing changes until you choose; Not now leaves it available to customers.', chip: 'Same lengths as the availability switch. Until you turn it back on stays in the row’s switch menu', lengths: true, support: false };
+        break;
+      case 'footer':
+        Object.assign(t, { place: 'footer' }); break;
+      default: break;
+    }
+
+    // Kitchen tablet, landscape 1024 × 768 and up (owner decision): the side navigation stays collapsed.
+    const tablet = (this.props.device ?? 'desktop') === 'tablet';
+    const W = tablet ? 1024 : 1440, H = tablet ? 768 : 900;
+    if (tablet) railCollapsed = true;
+    const railW = railCollapsed ? 88 : 224;
+    const mainW = W - railW;
+    const innerW = mainW - 32;
+    const top = t.place === 'footer' ? 108 : 208;
+    const footer = t.place === 'footer' ? 100 : 0;
+    const bannerH = banners.reduce((s, b) => s + (b.hasChip || b.hasDecision ? 92 : 72) + 12, 0);
+    const promptH = prompt ? 92 + 12 : 0;
+    const paneH = H - top - footer - 28 - 80 - bannerH - promptH;
+    const panelW = tablet ? 380 : panel === 'reject' ? 440 : 420;
+    const catsW = catsCollapsed ? 56 : 216;
+    const gridW = innerW - catsW - 12 - (panel ? panelW + 12 : 0);
+
+    const bannerStyle = (kind) => {
+      const k = { neutral: ['var(--surface-subtle)', 'var(--border-interactive)'], info: ['var(--feedback-info-tint)', 'var(--feedback-info-border)'], warning: ['var(--feedback-warning-tint)', 'var(--feedback-warning-border)'] }[kind];
+      return ['position: relative', 'display: flex', 'align-items: center', 'gap: var(--space-3)', 'padding: var(--space-3) var(--space-4)', 'flex-shrink: 0', 'border-radius: var(--radius-md)', 'background: ' + k[0], 'border: 1px solid ' + k[1]].join('; ');
+    };
+    banners = banners.map((b, i) => ({ id: b.id || 'banner-' + i, ...b,
+      style: bannerStyle(b.kind),
+      iconColor: b.kind === 'warning' ? 'var(--feedback-warning-icon)' : b.kind === 'info' ? 'var(--feedback-info-icon)' : 'var(--text-primary)',
+      textColor: b.kind === 'warning' ? 'var(--feedback-warning-tint-text)' : b.kind === 'info' ? 'var(--feedback-info-tint-text)' : 'var(--text-primary)',
+      kind: b.kind === 'neutral' ? 'neutral, not dismissible' : b.kind }));
+
+    const catList = cats.map(([name, count, note]) => ({ name, count, note: note || '', hasNote: !!note, unit: count === 1 ? 'item' : 'items', current: name === catSel ? 'true' : 'false', style: catStyle(name === catSel) }));
+    g.inactive = g.title === 'Catering'; g.noLive = g.title === 'Breakfast';
+    const cp = { saving: mode === 'catsaving', failed: mode === 'catfailed', taken: mode === 'cattaken', fresh: mode !== 'cattaken' };
+    cp.desc = this.state && this.state.catDesc != null ? this.state.catDesc : (cp.saving || cp.failed ? 'Charcoal-grilled skewers and platters.' : '');
+    cp.descCount = cp.desc.length;
+    cp.btn = cp.saving ? 'Adding…' : cp.failed ? 'Try again' : 'Add category';
+    cp.icon = cp.failed ? 'refresh' : undefined;
+    const nowMs = Date.now();
+    return {
+      nine: H, yes: true, no: false, sixty: 60, oneEighty: 180, noop, five: [1, 2, 3, 4, 5],
+      L: { railW, mainW, railCollapsed, W, H },
+      t, g, tb: { catLabel: 'Add category', ...tb },
+      banners, cats: catList, catSkeleton, catName: catSel || 'Search',
+      catsOpen: !catsCollapsed && !cc, catsClosed: catsCollapsed && !cc,
+      catEmpty: paneCard, paneCard, paneGrid: !paneCard,
+      catNeeds: !g.v0 && mode !== 'loading',
+      panes: !cc, centerCard: !!cc, cc: cc || {},
+      paneH, gridW, panelW,
+      hasPanel: !!panel, itemPanel: panel === 'item', catPanel: panel === 'cat', rejectPanel: panel === 'reject',
+      panelItem, panelV0,
+      cp, onCatDesc: (e) => this.setState({ catDesc: e.target.value }),
+      hasPrompt: !!prompt, pr: prompt || {},
+      sep: { controls: panel === 'item' ? 'item-panel' : panel === 'cat' ? 'cat-panel' : 'reject-panel', now: String(Math.round(gridW / (gridW + panelW) * 100)), text: 'Items list ' + Math.round(gridW / (gridW + panelW) * 100) + ' percent of the width' },
+      onRejectNote: (e) => this.setState({ rejectNote: e.target.value }),
+      rjBodyRef: (el) => { if (el && rejectReason === 'OTHER') setTimeout(() => { el.scrollTop = el.scrollHeight; }, 60); },
+      rj: (() => {
+        const note = this.state && this.state.rejectNote != null ? this.state.rejectNote : 'Staff short.';
+        const other = rejectReason === 'OTHER';
+        const blocked = other && note.trim().length < 20;
+        return { serverNow: new Date(nowMs).toISOString(), expiresAt: new Date(nowMs + 141000).toISOString(), reason: rejectReason, other, items: rejectReason === 'ITEM_UNAVAILABLE', note, noteCount: note.length, blocked, whyId: blocked ? 'reject-why' : undefined };
+      })(),
+      rejectOpts: [
+        { value: 'ITEM_UNAVAILABLE', label: 'An item is unavailable' },
+        { value: 'KITCHEN_AT_CAPACITY', label: 'The kitchen is too busy' },
+        { value: 'CLOSING_SOON', label: 'We’re closing soon' },
+        { value: 'EQUIPMENT_FAILURE', label: 'Equipment isn’t working' },
+        { value: 'ADDRESS_OUT_OF_RANGE', label: 'The delivery address is too far' },
+        { value: 'SUSPECTED_FRAUD', label: 'The order looks fraudulent' },
+        { value: 'OTHER', label: 'Something else', description: 'Tell us why in at least 20 characters' },
+      ],
+      hasToasts: toasts.length > 0, toasts, toastBottom: footer ? 124 : 24,
+      footerStrip: t.place === 'footer',
+      busyAttr: mode === 'loading' ? 'true' : 'false',
+      filterOpts: [{ value: 'all', label: 'All items' }, { value: 'oos', label: 'Out of stock' }, { value: 'pending', label: 'Under review' }, { value: 'rejected', label: 'Not approved' }, { value: 'blocked', label: 'Blocked or hidden' }],
+    };
+  }
+}
+</script>
+</body>
+</html>

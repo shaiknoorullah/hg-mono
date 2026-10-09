@@ -1,0 +1,1001 @@
+{
+  "v": 3,
+  "attachments": {},
+  "boards": {
+    "Address-add-states.dc.html": {
+      "h": 1512,
+      "title": "Add an address — validation (manual entry), saving, save failed, outside Ontario",
+      "w": 1728,
+      "x": 8906,
+      "y": 0
+    },
+    "Address-add.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Add an address — step 1: search the map, drag the pin",
+      "w": 390,
+      "x": 7966,
+      "y": 0
+    },
+    "Address-confirm-pin.dc.html": {
+      "h": 1420,
+      "is_interactive": true,
+      "title": "Add an address — step 2: details, who sees it, save",
+      "w": 390,
+      "x": 8436,
+      "y": 0
+    },
+    "Address-manual.dc.html": {
+      "h": 1500,
+      "title": "Enter the address yourself (fallback when search has no match or is down)",
+      "w": 390,
+      "x": 12092,
+      "y": 0
+    },
+    "Address-picker-states.dc.html": {
+      "h": 916,
+      "title": "Address picker (Home header) — loading, error, no saved addresses",
+      "w": 1298,
+      "x": 6588,
+      "y": 0
+    },
+    "Address-picker.dc.html": {
+      "h": 844,
+      "title": "Address picker (Home header)",
+      "w": 390,
+      "x": 6118,
+      "y": 0
+    },
+    "Address-search.dc.html": {
+      "h": 916,
+      "title": "Add an address — map search: suggestions, no match, search unavailable",
+      "w": 1298,
+      "x": 10714,
+      "y": 0
+    },
+    "Browse-error.dc.html": {
+      "h": 844,
+      "title": "Browse — error",
+      "w": 390,
+      "x": 10348,
+      "y": 3520
+    },
+    "Browse-filtered-empty.dc.html": {
+      "h": 1000,
+      "title": "Browse — filtered to nothing (generic; hint is Needs API)",
+      "w": 390,
+      "x": 7990,
+      "y": 3520
+    },
+    "Browse-filters-applying.dc.html": {
+      "h": 1040,
+      "title": "Browse — applying filters (loading)",
+      "w": 390,
+      "x": 7520,
+      "y": 3520
+    },
+    "Browse-filters.dc.html": {
+      "h": 980,
+      "title": "Browse — filters sheet (focus)",
+      "w": 390,
+      "x": 7050,
+      "y": 3520
+    },
+    "Browse-list.dc.html": {
+      "h": 1300,
+      "title": "Browse — all restaurants, sorted",
+      "w": 390,
+      "x": 6110,
+      "y": 3520
+    },
+    "Browse-loading.dc.html": {
+      "h": 844,
+      "title": "Browse — loading",
+      "w": 390,
+      "x": 6580,
+      "y": 3520
+    },
+    "Browse-no-address.dc.html": {
+      "h": 1180,
+      "title": "Browse — no address",
+      "w": 390,
+      "x": 8930,
+      "y": 3520
+    },
+    "Browse-offline.dc.html": {
+      "h": 1092,
+      "title": "Browse — offline, cached list",
+      "w": 868,
+      "x": 9400,
+      "y": 3520
+    },
+    "Browse-paging.dc.html": {
+      "h": 904,
+      "title": "Browse — next page, end of list",
+      "w": 390,
+      "x": 8460,
+      "y": 3520
+    },
+    "Card-text-sizes.dc.html": {
+      "h": 3000,
+      "title": "Restaurant cards (list and row) and the How we check link — text 1.0×, 1.3×, 2.0×",
+      "w": 390,
+      "x": 4708,
+      "y": 0
+    },
+    "Cert-dark.dc.html": {
+      "h": 1000,
+      "title": "Not for approval — Certificate, dark (blocked on DS dark halal tokens)",
+      "w": 390,
+      "x": 4700,
+      "y": 8072
+    },
+    "Cert-failed.dc.html": {
+      "h": 844,
+      "title": "Certificate — failed to load",
+      "w": 390,
+      "x": 2350,
+      "y": 8072
+    },
+    "Cert-link-expired.dc.html": {
+      "h": 844,
+      "title": "Certificate — link expired",
+      "w": 390,
+      "x": 1880,
+      "y": 8072
+    },
+    "Cert-minting.dc.html": {
+      "h": 844,
+      "title": "Certificate — getting a secure link",
+      "w": 390,
+      "x": 0,
+      "y": 8072
+    },
+    "Cert-not-found.dc.html": {
+      "h": 844,
+      "title": "Certificate — no longer available (404)",
+      "w": 390,
+      "x": 3760,
+      "y": 8072
+    },
+    "Cert-not-viewable.dc.html": {
+      "h": 844,
+      "title": "Certificate — image not available",
+      "w": 390,
+      "x": 3290,
+      "y": 8072
+    },
+    "Cert-offline.dc.html": {
+      "h": 844,
+      "title": "Certificate — offline",
+      "w": 390,
+      "x": 2820,
+      "y": 8072
+    },
+    "Cert-open.dc.html": {
+      "h": 1180,
+      "title": "Certificate — open (image)",
+      "w": 390,
+      "x": 470,
+      "y": 8072
+    },
+    "Cert-pdf.dc.html": {
+      "h": 1300,
+      "title": "Certificate — PDF, in the app",
+      "w": 390,
+      "x": 1410,
+      "y": 8072
+    },
+    "Cert-text-sizes.dc.html": {
+      "h": 1500,
+      "title": "Certificate — details block at 1.3× and 2.0×",
+      "w": 390,
+      "x": 4230,
+      "y": 8072
+    },
+    "Cert-zoomed.dc.html": {
+      "h": 1060,
+      "title": "Certificate — zoomed with non-gesture controls",
+      "w": 390,
+      "x": 940,
+      "y": 8072
+    },
+    "Dark-search-browse-address.dc.html": {
+      "h": 1672,
+      "title": "Not for approval — Search, Browse and Enter the address, dark (follows the phone; blocked on DS dark halal tokens and da",
+      "w": 1298,
+      "x": 10818,
+      "y": 3520
+    },
+    "Focus-states.dc.html": {
+      "h": 4600,
+      "title": "Focus states — every control on this canvas",
+      "w": 390,
+      "x": 13032,
+      "y": 0
+    },
+    "Halal-edge-states.dc.html": {
+      "h": 2000,
+      "title": "Cards — halal edge states (missing field, partial certificate record, never-listed states, scope)",
+      "w": 390,
+      "x": 5178,
+      "y": 0
+    },
+    "Home-cart.dc.html": {
+      "h": 2020,
+      "is_interactive": true,
+      "title": "Home — cart has items: View cart bar above the bottom navigation (also on Search, Browse and the restaurant page)",
+      "w": 390,
+      "x": 16608,
+      "y": 0
+    },
+    "Home-dark.dc.html": {
+      "h": 1680,
+      "title": "Not for approval — Home, dark (follows the phone; blocked on DS dark halal tokens)",
+      "w": 390,
+      "x": 4238,
+      "y": 0
+    },
+    "Home-error.dc.html": {
+      "h": 844,
+      "title": "Home — error",
+      "w": 390,
+      "x": 3298,
+      "y": 0
+    },
+    "Home-loading.dc.html": {
+      "h": 1340,
+      "title": "Home — loading",
+      "w": 390,
+      "x": 940,
+      "y": 0
+    },
+    "Home-no-address.dc.html": {
+      "h": 1300,
+      "title": "Home — no address, still browsing (list only)",
+      "w": 390,
+      "x": 1410,
+      "y": 0
+    },
+    "Home-nothing-in-range.dc.html": {
+      "h": 844,
+      "title": "Home — nothing delivers here",
+      "w": 390,
+      "x": 1880,
+      "y": 0
+    },
+    "Home-offline.dc.html": {
+      "h": 1692,
+      "title": "Home — offline, cached (15-minute halal max age)",
+      "w": 868,
+      "x": 2350,
+      "y": 0
+    },
+    "Home-order-in-progress.dc.html": {
+      "h": 1700,
+      "title": "Home — order in progress",
+      "w": 390,
+      "x": 3768,
+      "y": 0
+    },
+    "Home-refreshing.dc.html": {
+      "h": 1500,
+      "title": "Home — pull to refresh (refreshing)",
+      "w": 390,
+      "x": 470,
+      "y": 0
+    },
+    "How-we-verify.dc.html": {
+      "h": 1220,
+      "title": "How we verify (from the Home card)",
+      "w": 390,
+      "x": 5648,
+      "y": 0
+    },
+    "Item-added.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Item — added: back on the menu (sticky header), toast and cart bar",
+      "w": 390,
+      "x": 2820,
+      "y": 9992
+    },
+    "Item-adding.dc.html": {
+      "h": 1080,
+      "title": "Item — adding",
+      "w": 390,
+      "x": 2350,
+      "y": 9992
+    },
+    "Item-addon-unavailable.dc.html": {
+      "h": 1180,
+      "title": "Item — add failed, extra ran out (409 ADDON_UNAVAILABLE)",
+      "w": 390,
+      "x": 4230,
+      "y": 9992
+    },
+    "Item-choose.dc.html": {
+      "h": 1180,
+      "title": "Item: required size not chosen",
+      "w": 390,
+      "x": 1410,
+      "y": 9992
+    },
+    "Item-closed.dc.html": {
+      "h": 844,
+      "title": "Item — restaurant closed (CLOSED_HOURS)",
+      "w": 390,
+      "x": 7520,
+      "y": 9992
+    },
+    "Item-dark.dc.html": {
+      "h": 1060,
+      "title": "Not for approval — Item, dark (blocked on DS dark tokens)",
+      "w": 390,
+      "x": 11280,
+      "y": 9992
+    },
+    "Item-delta-variant.dc.html": {
+      "h": 1000,
+      "title": "Item — DELTA-priced size, dietary tags",
+      "w": 390,
+      "x": 5640,
+      "y": 9992
+    },
+    "Item-different-restaurant.dc.html": {
+      "h": 1080,
+      "title": "Item — cart holds another restaurant",
+      "w": 390,
+      "x": 3290,
+      "y": 9992
+    },
+    "Item-error.dc.html": {
+      "h": 844,
+      "title": "Item — failed to load (getRestaurantMenu)",
+      "w": 390,
+      "x": 10340,
+      "y": 9992
+    },
+    "Item-gone.dc.html": {
+      "h": 844,
+      "title": "Item — no longer on the menu",
+      "w": 390,
+      "x": 10810,
+      "y": 9992
+    },
+    "Item-kitchen-closed.dc.html": {
+      "h": 1180,
+      "title": "Item — add failed, restaurant closed (409 RESTAURANT_CLOSED)",
+      "w": 390,
+      "x": 4700,
+      "y": 9992
+    },
+    "Item-loading.dc.html": {
+      "h": 844,
+      "title": "Item — loading (getRestaurantMenu)",
+      "w": 390,
+      "x": 9870,
+      "y": 9992
+    },
+    "Item-max-error.dc.html": {
+      "h": 1080,
+      "title": "Item — extras at the limit (others disabled); header shows the \"For two\" price",
+      "w": 390,
+      "x": 1880,
+      "y": 9992
+    },
+    "Item-max-qty.dc.html": {
+      "h": 1080,
+      "title": "Item — quantity at the maximum (20)",
+      "w": 390,
+      "x": 6110,
+      "y": 9992
+    },
+    "Item-new-cart-failed.dc.html": {
+      "h": 1080,
+      "title": "Item — start a new cart failed (old cart intact)",
+      "w": 390,
+      "x": 12220,
+      "y": 9992
+    },
+    "Item-no-address.dc.html": {
+      "h": 1080,
+      "title": "Item — no address (NO_ADDRESS)",
+      "w": 390,
+      "x": 8930,
+      "y": 9992
+    },
+    "Item-offline.dc.html": {
+      "h": 1080,
+      "title": "Item — offline",
+      "w": 390,
+      "x": 9400,
+      "y": 9992
+    },
+    "Item-options-chosen.dc.html": {
+      "h": 1180,
+      "title": "Item — options chosen by the customer",
+      "w": 390,
+      "x": 470,
+      "y": 9992
+    },
+    "Item-out-of-range.dc.html": {
+      "h": 844,
+      "title": "Item — too far to deliver (OUT_OF_RANGE)",
+      "w": 390,
+      "x": 8460,
+      "y": 9992
+    },
+    "Item-out-of-stock.dc.html": {
+      "h": 844,
+      "title": "Item — out of stock (back at 7:30 pm)",
+      "w": 390,
+      "x": 7050,
+      "y": 9992
+    },
+    "Item-paused.dc.html": {
+      "h": 844,
+      "title": "Item — restaurant paused (PAUSED)",
+      "w": 390,
+      "x": 7990,
+      "y": 9992
+    },
+    "Item-photo.dc.html": {
+      "h": 1140,
+      "title": "Item — sheet with a real image (crop and aspect ratio)",
+      "w": 390,
+      "x": 940,
+      "y": 9992
+    },
+    "Item-ready.dc.html": {
+      "h": 1320,
+      "is_interactive": true,
+      "title": "Item — ready to add (default state)",
+      "w": 390,
+      "x": 0,
+      "y": 9992
+    },
+    "Item-required-addon.dc.html": {
+      "h": 1260,
+      "title": "Item — required add-on group not met (min_select), Add disabled",
+      "w": 390,
+      "x": 5170,
+      "y": 9992
+    },
+    "Item-simple.dc.html": {
+      "h": 924,
+      "title": "Item — no options, allergens not provided",
+      "w": 390,
+      "x": 6580,
+      "y": 9992
+    },
+    "Item-text-sizes.dc.html": {
+      "h": 1700,
+      "title": "Item — variants, add-ons, allergens and Add at 1.3× and 2.0×",
+      "w": 390,
+      "x": 11750,
+      "y": 9992
+    },
+    "Item-unavailable.dc.html": {
+      "h": 1180,
+      "title": "Item — couldn't add (size sold out)",
+      "w": 390,
+      "x": 3760,
+      "y": 9992
+    },
+    "Main.dc.html": {
+      "h": 1860,
+      "is_interactive": true,
+      "title": "Home — launch: two rows (Open now, closest first; Quickest delivery) plus a list of compact cards (listRestaurants)",
+      "w": 390,
+      "x": 0,
+      "y": 0
+    },
+    "Motion-reduced.dc.html": {
+      "h": 1252,
+      "title": "Reduced motion — reply-by bar and Toast",
+      "w": 868,
+      "x": 15190,
+      "y": 0
+    },
+    "Report-concern.dc.html": {
+      "h": 924,
+      "title": "Report a halal concern — Needs API (non-order concern report)",
+      "w": 390,
+      "x": 10356,
+      "y": 5452
+    },
+    "Restaurant-cert-missing.dc.html": {
+      "h": 1420,
+      "title": "Restaurant — certification missing (no badge, neutral line, adding open)",
+      "w": 390,
+      "x": 4238,
+      "y": 5452
+    },
+    "Restaurant-cert-partial.dc.html": {
+      "h": 1600,
+      "title": "Restaurant — certification partial: no body or expiry (no badge, neutral line, adding open)",
+      "w": 390,
+      "x": 4708,
+      "y": 5452
+    },
+    "Restaurant-cert-sheet-expiring.dc.html": {
+      "h": 916,
+      "title": "Restaurant — certification Sheet, expiring: viewable and not viewable",
+      "w": 868,
+      "x": 11766,
+      "y": 5452
+    },
+    "Restaurant-cert-sheet-states.dc.html": {
+      "h": 916,
+      "title": "Restaurant — certification Sheet: loading, failed to load",
+      "w": 868,
+      "x": 12714,
+      "y": 5452
+    },
+    "Restaurant-cert-sheet.dc.html": {
+      "h": 844,
+      "title": "Restaurant — certification Sheet (certified, certificate viewable)",
+      "w": 390,
+      "x": 11296,
+      "y": 5452
+    },
+    "Restaurant-closed.dc.html": {
+      "h": 1680,
+      "title": "Restaurant — closed, opening hours open",
+      "w": 390,
+      "x": 5178,
+      "y": 5452
+    },
+    "Restaurant-dark.dc.html": {
+      "h": 1700,
+      "title": "Not for approval — Restaurant, dark (follows the phone; blocked on DS dark halal tokens)",
+      "w": 390,
+      "x": 9886,
+      "y": 5452
+    },
+    "Restaurant-deeplink-states.dc.html": {
+      "h": 916,
+      "title": "Restaurant — from a deep link or Order again: loading, error",
+      "w": 868,
+      "x": 2820,
+      "y": 5452
+    },
+    "Restaurant-empty-menu.dc.html": {
+      "h": 1420,
+      "title": "Restaurant — empty menu",
+      "w": 390,
+      "x": 8006,
+      "y": 5452
+    },
+    "Restaurant-expiring.dc.html": {
+      "h": 1480,
+      "title": "Restaurant — expiring soon (\"Halal certified · expires 20 Oct\" on the badge row)",
+      "w": 390,
+      "x": 1410,
+      "y": 5452
+    },
+    "Restaurant-loading.dc.html": {
+      "h": 844,
+      "title": "Restaurant — loading",
+      "w": 390,
+      "x": 2350,
+      "y": 5452
+    },
+    "Restaurant-menu-error.dc.html": {
+      "h": 1420,
+      "title": "Restaurant — menu error",
+      "w": 390,
+      "x": 8476,
+      "y": 5452
+    },
+    "Restaurant-menu-text-sizes.dc.html": {
+      "h": 2600,
+      "title": "Restaurant — menu item cards at 1.3× and 2.0×",
+      "w": 390,
+      "x": 10826,
+      "y": 5452
+    },
+    "Restaurant-no-address.dc.html": {
+      "h": 1880,
+      "title": "Restaurant — no address (no distance shown)",
+      "w": 390,
+      "x": 6588,
+      "y": 5452
+    },
+    "Restaurant-not-available.dc.html": {
+      "h": 844,
+      "title": "Restaurant — not available (404, includes EXPIRED)",
+      "w": 390,
+      "x": 8946,
+      "y": 5452
+    },
+    "Restaurant-offline.dc.html": {
+      "h": 1472,
+      "title": "Restaurant — offline (cached), within and past the 15-minute halal max age",
+      "w": 868,
+      "x": 7058,
+      "y": 5452
+    },
+    "Restaurant-open.dc.html": {
+      "h": 2290,
+      "is_interactive": true,
+      "title": "Restaurant — open, certified (badge and View certification by the name, then the menu)",
+      "w": 390,
+      "x": 0,
+      "y": 5452
+    },
+    "Restaurant-out-of-range.dc.html": {
+      "h": 1420,
+      "title": "Restaurant — too far to deliver",
+      "w": 390,
+      "x": 6118,
+      "y": 5452
+    },
+    "Restaurant-panel-error.dc.html": {
+      "h": 1640,
+      "title": "Restaurant — certification failed to load (no badge, neutral line, adding open)",
+      "w": 390,
+      "x": 3768,
+      "y": 5452
+    },
+    "Restaurant-paused.dc.html": {
+      "h": 1420,
+      "title": "Restaurant — paused",
+      "w": 390,
+      "x": 5648,
+      "y": 5452
+    },
+    "Restaurant-photo.dc.html": {
+      "h": 1400,
+      "title": "Restaurant — hero with a real image (crop and back control)",
+      "w": 390,
+      "x": 470,
+      "y": 5452
+    },
+    "Restaurant-scrolled.dc.html": {
+      "h": 844,
+      "title": "Restaurant — scrolled, sticky categories",
+      "w": 390,
+      "x": 940,
+      "y": 5452
+    },
+    "Restaurant-text-2x.dc.html": {
+      "h": 2200,
+      "title": "Restaurant — header, halal status row, hours and Sheet content at 2.0×",
+      "w": 390,
+      "x": 9416,
+      "y": 5452
+    },
+    "Search-error.dc.html": {
+      "h": 844,
+      "title": "Search — error",
+      "w": 390,
+      "x": 4700,
+      "y": 3520
+    },
+    "Search-first-use.dc.html": {
+      "h": 844,
+      "title": "Search — first use, no recent searches",
+      "w": 390,
+      "x": 470,
+      "y": 3520
+    },
+    "Search-loading.dc.html": {
+      "h": 844,
+      "title": "Search — first query loading",
+      "w": 390,
+      "x": 940,
+      "y": 3520
+    },
+    "Search-more-restaurants.dc.html": {
+      "h": 1520,
+      "title": "Search — more restaurants (independent paging)",
+      "w": 390,
+      "x": 1880,
+      "y": 3520
+    },
+    "Search-no-address.dc.html": {
+      "h": 1300,
+      "title": "Search — no address selected (NO_ADDRESS)",
+      "w": 390,
+      "x": 4230,
+      "y": 3520
+    },
+    "Search-no-results.dc.html": {
+      "h": 844,
+      "title": "Search — no results",
+      "w": 390,
+      "x": 3290,
+      "y": 3520
+    },
+    "Search-offline.dc.html": {
+      "h": 844,
+      "title": "Search — offline",
+      "w": 390,
+      "x": 5170,
+      "y": 3520
+    },
+    "Search-one-group.dc.html": {
+      "h": 844,
+      "title": "Search — dishes only",
+      "w": 390,
+      "x": 3760,
+      "y": 3520
+    },
+    "Search-recent.dc.html": {
+      "h": 844,
+      "title": "Search — empty box, recent searches (focus)",
+      "w": 390,
+      "x": 0,
+      "y": 3520
+    },
+    "Search-results.dc.html": {
+      "h": 1470,
+      "title": "Search — results",
+      "w": 390,
+      "x": 1410,
+      "y": 3520
+    },
+    "Search-short-query.dc.html": {
+      "h": 844,
+      "title": "Search — under 2 characters",
+      "w": 390,
+      "x": 2820,
+      "y": 3520
+    },
+    "Search-text-sizes.dc.html": {
+      "h": 1700,
+      "title": "Search — result rows at 1.3× and 2.0×",
+      "w": 390,
+      "x": 5640,
+      "y": 3520
+    },
+    "Search-updating.dc.html": {
+      "h": 980,
+      "title": "Search — typing, keeps results",
+      "w": 390,
+      "x": 2350,
+      "y": 3520
+    },
+    "Text-sizes-sheets.dc.html": {
+      "h": 3100,
+      "title": "Text 1.3× and 2.0× — Browse filters sheet and Address picker sheet",
+      "w": 390,
+      "x": 16138,
+      "y": 0
+    },
+    "Width-360.dc.html": {
+      "h": 1952,
+      "title": "360 px width — Home (row and list), Restaurant (status row), Item sheet, Checkout",
+      "w": 1608,
+      "x": 13502,
+      "y": 0
+    }
+  },
+  "createdOnFiles": {
+    "at": "2026-09-28T19:10:00Z",
+    "v": 1
+  },
+  "designSystems": [
+    {
+      "artifact": "https://claude.ai/artifact/1GwGVZz8Ju9wcz4HfCnzbv",
+      "copiedAt": "2026-09-28T21:00:00Z",
+      "namespace": "halalgoesdesignsystem-d11a47",
+      "title": "HalalGoes design system",
+      "version": "1790605103-3266"
+    }
+  ],
+  "launch": {
+    "view": "canvas"
+  },
+  "notes": {
+    "c39": {
+      "fill": "orange",
+      "maxH": 400,
+      "size": 24,
+      "text": "Needs API: a halal concern report that is not tied to an order. \"Report a halal concern\" stays out of the certification Sheet until it exists. Today a concern can be raised only from an order (Orders → order → Get help → Halal concern). Exploration: Report a halal concern.",
+      "w": 440,
+      "x": -560,
+      "y": 5452
+    },
+    "decisions": {
+      "fill": "green",
+      "maxH": 1700,
+      "size": 24,
+      "text": "Owner decisions applied (28 Sep)\n\n• Restaurant page: compact HalalBadge and a View certification button by the name; certificate details in a bottom Sheet; the menu moves up. Expiring shows on the badge row itself.\n• Certificate record missing, partial or failed to load: one rule. No badge, no View certification button, the neutral line \"Certificate details unavailable\"; adding to the cart stays open.\n• Cached halal state offline: shown for 15 minutes from the as-of time, then omitted, never stale.\n• Home: two horizontal rows (Open now, closest first; Quickest delivery, added 1 October) plus a vertical list of compact cards.\n• Bottom navigation: Home, Search, Orders, Account; bell hidden until alerts ship.\n• Address: map search and a draggable pin, both at launch. The privacy line names the restaurant.\n• Waiting for the restaurant: neutral bar plus \"Restaurant replies by 6:52 pm\".\n• Service fee shows $0.00. One active order at a time. Sign-in comes first.\n• Customer app follows the phone theme. Drafted trust and halal wording approved as drafted.\n• Ratings are a later release: no stars, no rating sort or filter at launch.\n\nOwner decisions applied (1 October)\n\n• Second Home row \"Quickest delivery\": listRestaurants sorted by ETA_ASC, already in the contract.\n• Address search, place details and reverse geocoding move into launch through our server, which forwards to Mapbox. The tags stay \"Needs API\" until the three operations are in the contract.\n• The Expiring soon badge reads \"Halal certified · expires 20 Oct\" (a design-system change; the date sits beside the badge until then), on the restaurant page and on every card badge (Home, Browse, Search).\n• Address privacy line matches the Account address form: riders offered the delivery see only the general area; the rider who accepts sees the full address.",
+      "w": 440,
+      "x": -560,
+      "y": 3480
+    },
+    "legend": {
+      "fill": "blue",
+      "maxH": 1400,
+      "size": 24,
+      "text": "How to read this canvas\n\nPhone 390 × 844 (Expo); 360 px versions of Home, Restaurant, Item and Checkout are on \"360 px width\". Tall frames show a full scroll; bars at the bottom are sticky in the app. Wide boards hold several phone frames side by side, each captioned.\n\nDesign system: every board reads the design system's current tokens.css (compiled from the approved tokens.json on 28 Sep). No local token overrides remain.\n\nDark boards: the customer app follows the phone theme at launch (owner decision). They stay \"Not for approval\" only because tokens.css has no dark mapping for the halal colours yet.\n\nBlue dotted outline + blue tag \"Component gap: X\": a placeholder for a component the design system does not have yet. Only its content is designed.\n\nDashed blue tag \"Proposed component: X\": a composite built only from design-system components (on React Native Reusables). It joins the design system after owner approval.\n\nDark tag \"Needs API: X\": the contract cannot supply this today. Drawn so the gap is visible; it must not ship as drawn.\n\nDark tag \"Bound: field\" or a plain dark note: developer annotation naming the API field or rule behind the UI. Not UI.\n\nMoney: every amount is integer cents from the API, rendered through Price, including inside buttons. Nothing is computed on the phone.\n\nHalal: state comes only from display_state. A missing, partial or unreadable certificate record renders no badge and no View certification button, only the neutral line \"Certificate details unavailable\". Expired is slate, never red. Certificate details open in a bottom Sheet from the restaurant page.\n\nTimes: the customer app writes every clock time in 12-hour form with am/pm (\"Price held until 6:57 pm\", \"open until 10:00 pm\"), on every board.\n\nCart bar: whenever the cart has items, the View cart bar sits above the bottom navigation on Home, Search and Browse, and at the bottom of the restaurant page (Home — cart has items).\n\nLaunch scope: only launch operations are drawn. The personalised home feed, the alerts inbox and bell, ratings and promo codes are later releases and are not on this canvas.\n\nPlay: Home → Zaytoun Grill → View certification, or Mixed charcoal grill → Add → View cart → Checkout.",
+      "w": 440,
+      "x": -560,
+      "y": 0
+    },
+    "nav-scope": {
+      "fill": "gray",
+      "maxH": 360,
+      "size": 24,
+      "text": "Bottom navigation (owner decision): Home · Search · Orders · Account. The alerts bell is hidden until the alerts inbox ships. Favourites stays in the Account canvas; there is no fifth tab.",
+      "w": 440,
+      "x": -560,
+      "y": 3020
+    },
+    "needs-api": {
+      "fill": "orange",
+      "maxH": 1500,
+      "size": 24,
+      "text": "Needs API — carried on this canvas\n\n• A halal concern report not tied to an order (see Report a halal concern).\n• Address search on the map: suggestions, place details and reverse geocoding through our server, which forwards to Mapbox. Owner approved for launch (1 October); the contract has none yet. The draggable pin itself needs nothing new: createAddress takes the pin's latitude and longitude. Reverse geocoding for saved addresses uses Mapbox permanent geocoding (results are stored). Every Mapbox map keeps the Mapbox wordmark bottom-left and the attribution (i) control visible, never covered by sheets, cards or zoom buttons.\n• The dispatch offer's drop-off as an approximate area only, with the full address from acceptOffer (the privacy line on Add an address — step 2).\n• createAddress to reject points outside Ontario.\n• Cuisine vocabulary with ids (Browse filters).\n• Trending searches (Search — recent).\n• shortfall_cents on Cart and in the below-minimum error details (the shipping copy uses minimum_order_cents).\n• relaxation_hint on the restaurant list meta (Browse filtered to nothing).\n• Line price preview in the item sheet (no client arithmetic).\n• A single-item menu read (only if wanted).\n• Serviceability per saved address for a restaurant (checkout address sheet).\n• Public list of accepted issuing bodies (How we verify, only if a visible list is wanted).\n• Preferred delivery instructions on Address (remembered handover).\n• ETA window on the customer order view (only if a range is wanted; eta_at is one time).\n• Contract to confirm: getCart embeds the restaurant's halal state for a restaurant no longer visible; PRICE_CHANGED and is_available; special_instructions reaches the rider.\n• tip_max_cents on Quote (only if a visible cap is wanted).\n• Edit a cart line's variant and add-ons in one call.\n• Select delivery address: an operation that sets cart.delivery_address_id.\n• delivery_address_id on search, so Search serviceability matches listRestaurants and createQuote.\n• error.details for PROFILE_INCOMPLETE listing the missing fields.\n\nDesign-system asks: dark mapping for the halal colours in tokens.css; HalalBadge Expiring soon drawn differently from Certified, in amber, labelled \"Halal certified · expires 20 Oct\" (owner decision, 1 October), on the restaurant page and on card badges too (RestaurantCardCompact, RestaurantRail, search dish rows; until then a DS Badge beside the HalalBadge carries the date); StatusTimeline (and every design-system time formatter) uses the app's 12-hour formatter, output \"7:10 pm\" (lowercase, no periods), not Intl.DateTimeFormat('en-CA'), which renders \"7:10 p.m.\"; text-tertiary (4.18:1) used for text in Checkbox and Radio descriptions, field helper and counter, and BottomNav inactive labels; HalalCertificationPanel fallback disclaimer spells the brand as two words (it is one word, HalalGoes); dark border-interactive (2.85:1 on raised); Price negative display; forced-focus demo state; MapPicker and MapPreview; Banner, InlineAlert, EmptyState, ErrorState, Skeleton, ListRow, Tabs, FilterChip, QuantityStepper, Textarea, MediaFrame, DocumentViewer, Disclosure; AppBar address title. Proposed composites: RestaurantRail, RestaurantCardCompact, RestaurantHalalStatus, WaitProgress, AddressMapPicker. HalalCertificationPanel README: it lives in a Sheet opened from the restaurant page, not inline above the menu.",
+      "w": 440,
+      "x": -560,
+      "y": 1480
+    },
+    "t-cert": {
+      "kind": "title1",
+      "maxW": 5090,
+      "text": "F4 Certificate viewer",
+      "w": 240,
+      "x": 0,
+      "y": 7772
+    },
+    "t-discover": {
+      "kind": "title1",
+      "maxW": 8000,
+      "text": "F3 Discover — home, verification, addresses",
+      "w": 240,
+      "x": 0,
+      "y": -300
+    },
+    "t-item": {
+      "kind": "title1",
+      "maxW": 8000,
+      "text": "F5 Item sheet",
+      "w": 240,
+      "x": 0,
+      "y": 9692
+    },
+    "t-restaurant": {
+      "kind": "title1",
+      "maxW": 8000,
+      "text": "F4 Restaurant page and halal certification",
+      "w": 240,
+      "x": 0,
+      "y": 5152
+    },
+    "t-search": {
+      "kind": "title1",
+      "maxW": 8000,
+      "text": "F3 Search and browse",
+      "w": 240,
+      "x": 0,
+      "y": 3220
+    },
+    "moved-cart-checkout": {
+      "x": -560,
+      "y": -640,
+      "w": 440,
+      "maxH": 300,
+      "fill": "blue",
+      "size": 24,
+      "text": "Moved to HalalGoes Customer — Cart & Checkout: https://claude.ai/artifact/GWcvkXwQ7sxHgt6YV7Q9eq\n\nSections moved: F5 Cart; F6 Checkout, payment and hand-off (with Order placed and Order being prepared) and the Checkout notes."
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "Home-cart.dc.html",
+    "Home-refreshing.dc.html",
+    "Home-loading.dc.html",
+    "Home-no-address.dc.html",
+    "Home-nothing-in-range.dc.html",
+    "Home-offline.dc.html",
+    "Home-error.dc.html",
+    "Home-order-in-progress.dc.html",
+    "Home-dark.dc.html",
+    "Card-text-sizes.dc.html",
+    "Halal-edge-states.dc.html",
+    "How-we-verify.dc.html",
+    "Address-picker.dc.html",
+    "Address-picker-states.dc.html",
+    "Address-add.dc.html",
+    "Address-confirm-pin.dc.html",
+    "Address-add-states.dc.html",
+    "Focus-states.dc.html",
+    "Width-360.dc.html",
+    "Motion-reduced.dc.html",
+    "Text-sizes-sheets.dc.html",
+    "Search-recent.dc.html",
+    "Search-first-use.dc.html",
+    "Search-loading.dc.html",
+    "Search-results.dc.html",
+    "Search-more-restaurants.dc.html",
+    "Search-updating.dc.html",
+    "Search-short-query.dc.html",
+    "Search-no-results.dc.html",
+    "Search-one-group.dc.html",
+    "Search-no-address.dc.html",
+    "Search-error.dc.html",
+    "Search-offline.dc.html",
+    "Search-text-sizes.dc.html",
+    "Browse-list.dc.html",
+    "Browse-loading.dc.html",
+    "Browse-filters.dc.html",
+    "Browse-filters-applying.dc.html",
+    "Browse-filtered-empty.dc.html",
+    "Browse-paging.dc.html",
+    "Browse-no-address.dc.html",
+    "Browse-offline.dc.html",
+    "Browse-error.dc.html",
+    "Dark-search-browse-address.dc.html",
+    "Restaurant-open.dc.html",
+    "Restaurant-photo.dc.html",
+    "Restaurant-scrolled.dc.html",
+    "Restaurant-expiring.dc.html",
+    "Restaurant-loading.dc.html",
+    "Restaurant-deeplink-states.dc.html",
+    "Restaurant-panel-error.dc.html",
+    "Restaurant-cert-missing.dc.html",
+    "Restaurant-cert-partial.dc.html",
+    "Restaurant-closed.dc.html",
+    "Restaurant-paused.dc.html",
+    "Restaurant-out-of-range.dc.html",
+    "Restaurant-no-address.dc.html",
+    "Restaurant-offline.dc.html",
+    "Restaurant-empty-menu.dc.html",
+    "Restaurant-menu-error.dc.html",
+    "Restaurant-not-available.dc.html",
+    "Restaurant-text-2x.dc.html",
+    "Restaurant-dark.dc.html",
+    "Report-concern.dc.html",
+    "Cert-minting.dc.html",
+    "Cert-open.dc.html",
+    "Cert-zoomed.dc.html",
+    "Cert-pdf.dc.html",
+    "Cert-link-expired.dc.html",
+    "Cert-failed.dc.html",
+    "Cert-offline.dc.html",
+    "Cert-not-viewable.dc.html",
+    "Cert-not-found.dc.html",
+    "Cert-text-sizes.dc.html",
+    "Cert-dark.dc.html",
+    "Item-ready.dc.html",
+    "Item-options-chosen.dc.html",
+    "Item-photo.dc.html",
+    "Item-choose.dc.html",
+    "Item-max-error.dc.html",
+    "Item-adding.dc.html",
+    "Item-added.dc.html",
+    "Item-different-restaurant.dc.html",
+    "Item-new-cart-failed.dc.html",
+    "Item-unavailable.dc.html",
+    "Item-addon-unavailable.dc.html",
+    "Item-kitchen-closed.dc.html",
+    "Item-required-addon.dc.html",
+    "Item-delta-variant.dc.html",
+    "Item-max-qty.dc.html",
+    "Item-simple.dc.html",
+    "Item-out-of-stock.dc.html",
+    "Item-closed.dc.html",
+    "Item-paused.dc.html",
+    "Item-out-of-range.dc.html",
+    "Item-no-address.dc.html",
+    "Item-offline.dc.html",
+    "Item-loading.dc.html",
+    "Item-error.dc.html",
+    "Item-gone.dc.html",
+    "Item-dark.dc.html",
+    "Item-text-sizes.dc.html",
+    "Restaurant-menu-text-sizes.dc.html",
+    "Restaurant-cert-sheet.dc.html",
+    "Restaurant-cert-sheet-expiring.dc.html",
+    "Restaurant-cert-sheet-states.dc.html",
+    "Address-search.dc.html",
+    "Address-manual.dc.html"
+  ],
+  "pages": [],
+  "title": "HalalGoes Customer — Discover & Order"
+}

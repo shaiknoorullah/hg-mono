@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Offer tile</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}[data-offer-tile]:focus-visible{outline:none;box-shadow:0 0 0 2px var(--focus-offset),0 0 0 5px var(--focus-ring) !important}@media (forced-colors: active){[data-offer-tile]:focus-visible{outline:3px solid Highlight}}</style>
+</helmet>
+<div role="group" data-offer-tile tabindex="{{t.tabindex}}" aria-label="{{t.aria}}" aria-keyshortcuts="{{t.keys}}" style="width: {{t.w}}px; height: 166px; box-sizing: border-box; flex-shrink: 0; display: flex; flex-direction: column; gap: 10px; padding: 10px; background: {{t.bg}}; border: {{t.border}}; border-radius: var(--radius-lg); box-shadow: {{t.ring}}; font-family: var(--font-ui); color: var(--text-primary); overflow: hidden">
+
+<sc-if value="{{t.isLive}}" hint-placeholder-val="{{true}}">
+<div style="min-height: 64px; display: flex; gap: 12px; align-items: center; min-width: 0">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Countdown" variant="ring" size="md" expires-at="{{t.cdExpires}}" server-now="{{t.cdNow}}" window-seconds="180" style="flex-shrink: 0"></x-import>
+<div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+<div style="display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap">
+<span style="font-family: var(--font-mono); font-size: 20px; font-weight: 600; line-height: 1.2">{{t.code}}</span>
+<sc-if value="{{t.earnReady}}" hint-placeholder-val="{{true}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{t.earn}}" size="md"></x-import></sc-if>
+<sc-if value="{{t.earnLoading}}" hint-placeholder-val="{{false}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{t.earn}}" size="md" loading="{{true}}"></x-import></sc-if>
+<sc-if value="{{t.selected}}" hint-placeholder-val="{{false}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="brand" size="sm">Selected</x-import></sc-if>
+<sc-if value="{{t.inPanel}}" hint-placeholder-val="{{false}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="neutral" size="sm">Open in panel</x-import></sc-if>
+</div>
+<div style="display: flex; align-items: center; gap: 6px; min-width: 0; font-size: 15px; line-height: 20px">
+<span style="color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0">{{t.summary}}</span>
+<sc-if value="{{t.noteInline}}" hint-placeholder-val="{{false}}"><span style="flex-shrink: 0; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; font-weight: 600; color: var(--feedback-warning-text)"><span aria-hidden="true" style="color: var(--text-secondary)">·</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="warning" size="sm" color="var(--feedback-warning-icon)"></x-import>Customer note</span></sc-if>
+</div>
+<sc-if value="{{t.noteRow}}" hint-placeholder-val="{{false}}"><span style="align-self: flex-start"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="warning" icon="warning" size="sm">Customer note</x-import></span></sc-if>
+<sc-if value="{{t.hasLine}}" hint-placeholder-val="{{false}}"><span role="note" style="display: inline-flex; gap: 6px; align-items: center; font-size: 13px; font-weight: 600; line-height: 16px; color: {{t.lineFg}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="{{t.lineIcon}}" size="sm"></x-import>{{t.line}}</span></sc-if>
+</div>
+</div>
+<div style="display: flex; gap: var(--space-6); align-items: center">
+<sc-if value="{{t.declineText}}" hint-placeholder-val="{{true}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="md" disabled="{{t.declineDisabled}}" accessibility-label="{{t.declineName}}">Decline…</x-import></sc-if>
+<sc-if value="{{t.declineIcon}}" hint-placeholder-val="{{false}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.IconButton" icon="close" variant="plain" size="md" disabled="{{t.declineDisabled}}" accessibility-label="{{t.declineName}}" style="flex-shrink: 0"></x-import></sc-if>
+<span style="flex-grow: 1; display: flex"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" critical="{{true}}" full-width="{{true}}" loading="{{t.accepting}}" disabled="{{t.acceptDisabled}}" accessibility-label="{{t.acceptName}}" style="flex-grow: 1">{{t.acceptLabel}}</x-import></span>
+</div>
+</sc-if>
+
+<sc-if value="{{t.isOutcome}}" hint-placeholder-val="{{false}}">
+<div style="flex-grow: 1; min-height: 0; display: flex; gap: 10px; align-items: flex-start">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="{{t.outIcon}}" size="lg" color="{{t.outIconColor}}" style="flex-shrink: 0"></x-import>
+<div style="display: flex; flex-direction: column; gap: 4px; min-width: 0">
+<div style="display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap">
+<span style="font-family: var(--font-mono); font-size: 20px; font-weight: 600">{{t.code}}</span>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="{{t.outBadgeVariant}}" size="sm">{{t.outBadge}}</x-import>
+</div>
+<span role="note" style="font-size: 15px; font-weight: 700; line-height: 20px">{{t.outTitle}}</span>
+<span style="font-size: 15px; line-height: 20px">{{t.outBody}}</span>
+</div>
+</div>
+<div style="display: flex; gap: 8px; align-items: center">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="{{t.removeVariant}}" size="md" accessibility-label="{{t.removeName}}">{{t.removeLabel}}</x-import>
+<span style="font-size: 13px; color: var(--text-secondary)">{{t.leaveText}}</span>
+</div>
+</sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"tile":{"editor":null,"tsType":"object"},"$preview":{"width":372,"height":166}}'>
+class Component extends DCLogic {
+  renderVals() {
+    if (!this._anchor) this._anchor = Date.now();
+    const iso = (ms) => new Date(ms).toISOString();
+    /* Standalone preview: one normal offer. Inside the strip the board passes the tile object. */
+    const base = {
+      code: 'A7K2', w: 372, cdExpires: iso(this._anchor + 132000), cdNow: iso(this._anchor), earn: 3769, earnReady: true, earnLoading: false,
+      summary: 'Aisha K. · 3 items', hasNote: true, hasLine: false, line: '', lineIcon: 'info', lineFg: 'var(--text-secondary)',
+      selected: false, inPanel: false, accepting: false, acceptDisabled: false, declineDisabled: false,
+      acceptLabel: 'Accept · 20 min', acceptName: 'Accept order A7K2, ready in 20 minutes', declineName: 'Decline order A7K2, choose a reason',
+      isLive: true, isOutcome: false, outIcon: 'clock', outIconColor: 'var(--text-secondary)', outBadge: 'Timed out', outBadgeVariant: 'neutral',
+      outTitle: '', outBody: '', removeLabel: 'Remove now', removeVariant: 'ghost', removeName: 'Remove order A7K2 from new orders', leaveText: '',
+      bg: 'var(--surface-raised)', border: '1px solid var(--border-decorative)', ring: 'var(--elev-1)', aria: 'New order A7K2, 2 minutes 12 seconds left, $37.69',
+      tabindex: '0', declineIcon: false
+    };
+    const t = Object.assign({}, base, this.props.tile || {});
+    /* The tile is the strip's roving focus stop: tabindex 0 on the active tile, -1 on the others; A, D and Enter act on it. Tablet shows Decline as a close icon so Accept keeps the width. */
+    t.declineIcon = !!t.declineIcon;
+    /* With a status line the note folds into the summary row (warning icon inline), so the info block stays at 64 px: code 24 + summary 20 + line 16 + gaps. Without one, the note keeps its own badge row. */
+    t.noteInline = !!(t.hasNote && t.hasLine); t.noteRow = !!(t.hasNote && !t.hasLine); t.declineText = !t.declineIcon; t.keys = t.isLive ? 'A D Enter' : '';
+    return { t: t };
+  }
+}
+</script>
+</body>
+</html>

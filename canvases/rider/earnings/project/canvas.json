@@ -1,0 +1,1521 @@
+{
+ "v": 3,
+ "attachments": {},
+ "boards": {
+  "Activity-empty.dc.html": {
+   "h": 844,
+   "title": "Earnings activity — empty",
+   "w": 390,
+   "x": 940,
+   "y": 1300
+  },
+  "Activity-end.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Earnings activity — end of the list",
+   "w": 390,
+   "x": 3760,
+   "y": 1300
+  },
+  "Activity-error.dc.html": {
+   "h": 844,
+   "title": "Earnings activity — couldn't load",
+   "w": 390,
+   "x": 1410,
+   "y": 1300
+  },
+  "Activity-focus-more.dc.html": {
+   "h": 844,
+   "title": "Earnings activity — focus on Show older lines",
+   "w": 390,
+   "x": 6110,
+   "y": 1300
+  },
+  "Activity-focus.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Earnings activity — focus on the first row",
+   "w": 390,
+   "x": 4230,
+   "y": 1300
+  },
+  "Activity-large-text.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Earnings activity — 200% text",
+   "w": 390,
+   "x": 5640,
+   "y": 1300
+  },
+  "Activity-light.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Earnings activity — light (sunlight test)",
+   "w": 390,
+   "x": 4700,
+   "y": 1300
+  },
+  "Activity-loading.dc.html": {
+   "h": 844,
+   "title": "Earnings activity — loading",
+   "w": 390,
+   "x": 470,
+   "y": 1300
+  },
+  "Activity-not-active.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Earnings activity — account paused (403)",
+   "w": 390,
+   "x": 5170,
+   "y": 1300
+  },
+  "Activity-offline.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Earnings activity — offline, saved copy",
+   "w": 390,
+   "x": 2350,
+   "y": 1300
+  },
+  "Activity-paging-error.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Earnings activity — older lines failed",
+   "w": 390,
+   "x": 3290,
+   "y": 1300
+  },
+  "Activity-paging.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Earnings activity — loading older lines",
+   "w": 390,
+   "x": 2820,
+   "y": 1300
+  },
+  "Activity-rate-limited.dc.html": {
+   "h": 844,
+   "title": "Earnings activity — too many tries (429)",
+   "w": 390,
+   "x": 1880,
+   "y": 1300
+  },
+  "Activity.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Earnings activity — list",
+   "w": 390,
+   "x": 0,
+   "y": 1300
+  },
+  "Earnings-account-attention.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Earnings — payouts paused (payouts_enabled=false)",
+   "w": 390,
+   "x": 5640,
+   "y": 0
+  },
+  "Earnings-account-due-mapped.dc.html": {
+   "h": 844,
+   "title": "Alternative · Earnings — deadline, requirement in rider words",
+   "w": 390,
+   "x": 470,
+   "y": 8000
+  },
+  "Earnings-account-due.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Earnings — Stripe needs info by a deadline (payouts still on)",
+   "w": 390,
+   "x": 9870,
+   "y": 0
+  },
+  "Earnings-account-light.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Earnings payouts paused — light",
+   "w": 390,
+   "x": 15040,
+   "y": 0
+  },
+  "Earnings-account-mapped.dc.html": {
+   "h": 844,
+   "title": "Alternative · Earnings — payouts paused, requirement in rider words",
+   "w": 390,
+   "x": 0,
+   "y": 8000
+  },
+  "Earnings-back-online.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Earnings — back online, saved copy refreshing",
+   "w": 390,
+   "x": 11750,
+   "y": 0
+  },
+  "Earnings-day-past.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Earnings — a past day, opened from a By-day row in Last week",
+   "w": 390,
+   "x": 9400,
+   "y": 0
+  },
+  "Earnings-day.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Earnings — today",
+   "w": 390,
+   "x": 940,
+   "y": 0
+  },
+  "Earnings-empty-month.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Earnings — empty month (zeroed buckets)",
+   "w": 390,
+   "x": 4230,
+   "y": 0
+  },
+  "Earnings-empty-week.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Earnings — empty week (zeroed)",
+   "w": 390,
+   "x": 3760,
+   "y": 0
+  },
+  "Earnings-error.dc.html": {
+   "h": 844,
+   "title": "Earnings — couldn't load",
+   "w": 390,
+   "x": 4700,
+   "y": 0
+  },
+  "Earnings-failed-cause.dc.html": {
+   "h": 844,
+   "title": "Alternative · Earnings — didn’t go through, account cause",
+   "w": 390,
+   "x": 3760,
+   "y": 6700
+  },
+  "Earnings-failed-light.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Earnings payout didn't go through — light",
+   "w": 390,
+   "x": 14570,
+   "y": 0
+  },
+  "Earnings-failed-transient.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Alternative · Earnings — didn’t go through, temporary cause",
+   "w": 390,
+   "x": 470,
+   "y": 6700
+  },
+  "Earnings-failed-twice.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Alternative · Earnings — didn’t go through twice",
+   "w": 390,
+   "x": 940,
+   "y": 6700
+  },
+  "Earnings-first-run.dc.html": {
+   "h": 844,
+   "title": "Earnings — no deliveries yet",
+   "w": 390,
+   "x": 3290,
+   "y": 0
+  },
+  "Earnings-focus-row.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Earnings — focus on the Payouts row",
+   "w": 390,
+   "x": 12220,
+   "y": 0
+  },
+  "Earnings-focus-segmented.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Earnings — focus on the period control",
+   "w": 390,
+   "x": 12690,
+   "y": 0
+  },
+  "Earnings-focus-stepper.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Earnings — focus on the period stepper",
+   "w": 390,
+   "x": 13160,
+   "y": 0
+  },
+  "Earnings-focus.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Earnings — focus on the banner's Fix button",
+   "w": 390,
+   "x": 7990,
+   "y": 0
+  },
+  "Earnings-held-cause.dc.html": {
+   "h": 844,
+   "title": "Alternative · Earnings — on hold, account cause",
+   "w": 390,
+   "x": 4230,
+   "y": 6700
+  },
+  "Earnings-held-light.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Earnings on hold — light (sunlight test)",
+   "w": 390,
+   "x": 14100,
+   "y": 0
+  },
+  "Earnings-held-review.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Alternative · Earnings — on hold for a review (nothing to fix)",
+   "w": 390,
+   "x": 0,
+   "y": 6700
+  },
+  "Earnings-large-text-banner.dc.html": {
+   "h": 844,
+   "title": "Earnings — 200% text with a payout banner and its Fix",
+   "w": 390,
+   "x": 17390,
+   "y": 0
+  },
+  "Earnings-large-text.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Earnings — 200% text",
+   "w": 390,
+   "x": 13630,
+   "y": 0
+  },
+  "Earnings-last-month.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Earnings — last month",
+   "w": 390,
+   "x": 1880,
+   "y": 0
+  },
+  "Earnings-last-week.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Earnings — last week (from = previous Monday)",
+   "w": 390,
+   "x": 470,
+   "y": 0
+  },
+  "Earnings-light.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Earnings — light (sunlight test)",
+   "w": 390,
+   "x": 8460,
+   "y": 0
+  },
+  "Earnings-loading.dc.html": {
+   "h": 844,
+   "title": "Earnings — loading",
+   "w": 390,
+   "x": 2350,
+   "y": 0
+  },
+  "Earnings-month.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Earnings — this month (daily buckets)",
+   "w": 390,
+   "x": 1410,
+   "y": 0
+  },
+  "Earnings-negative-balance.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Earnings — balance below zero (carried forward)",
+   "w": 390,
+   "x": 7050,
+   "y": 0
+  },
+  "Earnings-next-failed.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Earnings — next payout couldn't load (summary loaded, payouts failed)",
+   "w": 390,
+   "x": 17860,
+   "y": 0
+  },
+  "Earnings-not-active.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Earnings — account paused (current contract: earnings refused)",
+   "w": 390,
+   "x": 11280,
+   "y": 0
+  },
+  "Earnings-offline.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Earnings — offline, saved copy",
+   "w": 390,
+   "x": 5170,
+   "y": 0
+  },
+  "Earnings-on-delivery.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Earnings — during a delivery",
+   "w": 390,
+   "x": 7520,
+   "y": 0
+  },
+  "Earnings-paused-on-delivery.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Earnings — account paused during a delivery (finish it, then no new offers)",
+   "w": 390,
+   "x": 18330,
+   "y": 0
+  },
+  "Earnings-paused-readable.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Earnings — account paused, earnings still shown (owner decision; needs API)",
+   "w": 390,
+   "x": 16920,
+   "y": 0
+  },
+  "Earnings-payout-failed.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Earnings — a payout didn’t go through (current contract)",
+   "w": 390,
+   "x": 6580,
+   "y": 0
+  },
+  "Earnings-payout-held.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Earnings — a payout is on hold (current contract)",
+   "w": 390,
+   "x": 6110,
+   "y": 0
+  },
+  "Earnings-payout-ready.dc.html": {
+   "h": 844,
+   "title": "Earnings — payout Monday, READY (final amount, no \"so far\")",
+   "w": 390,
+   "x": 15510,
+   "y": 0
+  },
+  "Earnings-payout-transferring.dc.html": {
+   "h": 844,
+   "title": "Earnings — payout Monday, TRANSFERRING, no new DRAFT yet",
+   "w": 390,
+   "x": 15980,
+   "y": 0
+  },
+  "Earnings-rate-limited.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Earnings — too many tries (429)",
+   "w": 390,
+   "x": 10810,
+   "y": 0
+  },
+  "Earnings-stacked.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Earnings — payout on hold and payouts paused (stacking, one Fix)",
+   "w": 390,
+   "x": 10340,
+   "y": 0
+  },
+  "Earnings-switched.dc.html": {
+   "h": 844,
+   "title": "Earnings — new period loaded and announced",
+   "w": 390,
+   "x": 16450,
+   "y": 0
+  },
+  "Earnings-switching.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Earnings — loading a new period (control live)",
+   "w": 390,
+   "x": 2820,
+   "y": 0
+  },
+  "Earnings-yesterday.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Earnings — yesterday (DAY, one step back)",
+   "w": 390,
+   "x": 8930,
+   "y": 0
+  },
+  "Entry-adjustment.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Entry — adjustment (added)",
+   "w": 390,
+   "x": 2350,
+   "y": 2600
+  },
+  "Entry-bonus.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Entry — bonus",
+   "w": 390,
+   "x": 1880,
+   "y": 2600
+  },
+  "Entry-clawback-paid-from-payouts.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Entry — correction of a paid line, opened from Payouts (Back to Payouts)",
+   "w": 390,
+   "x": 14100,
+   "y": 2600
+  },
+  "Entry-clawback-paid.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Entry — correction of a paid line, opened from Earnings (Back to Earnings)",
+   "w": 390,
+   "x": 6580,
+   "y": 2600
+  },
+  "Entry-correction-light.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Entry correction — light (sunlight test)",
+   "w": 390,
+   "x": 9400,
+   "y": 2600
+  },
+  "Entry-correction.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Entry — correction (clawback)",
+   "w": 390,
+   "x": 2820,
+   "y": 2600
+  },
+  "Entry-deeplink-loading.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Entry — opened from a push, finding the line",
+   "w": 390,
+   "x": 7520,
+   "y": 2600
+  },
+  "Entry-deeplink-missing.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Entry — opened from a push, line not found",
+   "w": 390,
+   "x": 7990,
+   "y": 2600
+  },
+  "Entry-delivery-812.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Entry — delivery $7.89, available",
+   "w": 390,
+   "x": 13160,
+   "y": 2600
+  },
+  "Entry-delivery-918.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Entry — delivery $9.09, available",
+   "w": 390,
+   "x": 12690,
+   "y": 2600
+  },
+  "Entry-delivery-956-from-delivery.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Entry — delivery $10.19 (HG-5P2N-8C), opened from its Delivery (Back to Delivery)",
+   "w": 390,
+   "x": 14570,
+   "y": 2600
+  },
+  "Entry-delivery-956.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Entry — delivery $10.19, available",
+   "w": 390,
+   "x": 13630,
+   "y": 2600
+  },
+  "Entry-delivery-fallback.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Entry — delivery, estimated distance, in a payout",
+   "w": 390,
+   "x": 470,
+   "y": 2600
+  },
+  "Entry-delivery-nosource.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Entry — delivery $9.34, paid, distance source unknown",
+   "w": 390,
+   "x": 5170,
+   "y": 2600
+  },
+  "Entry-delivery-short.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Entry — short delivery $3.89, no minimum fare (pass-through)",
+   "w": 390,
+   "x": 4700,
+   "y": 2600
+  },
+  "Entry-focus-delivery.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Entry — focus on Delivery details",
+   "w": 390,
+   "x": 8930,
+   "y": 2600
+  },
+  "Entry-focus-payout.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Entry — focus on the payout row",
+   "w": 390,
+   "x": 8460,
+   "y": 2600
+  },
+  "Entry-from-payout.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Entry — opened from Payout detail",
+   "w": 390,
+   "x": 7050,
+   "y": 2600
+  },
+  "Entry-large-text.dc.html": {
+   "h": 844,
+   "title": "Entry — 200% text",
+   "w": 390,
+   "x": 11280,
+   "y": 2600
+  },
+  "Entry-light.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Entry — light (sunlight test)",
+   "w": 390,
+   "x": 4230,
+   "y": 2600
+  },
+  "Entry-paid.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Entry — paid, linked to its payout",
+   "w": 390,
+   "x": 940,
+   "y": 2600
+  },
+  "Entry-payout-error.dc.html": {
+   "h": 844,
+   "title": "Entry — payout row couldn’t load",
+   "w": 390,
+   "x": 10340,
+   "y": 2600
+  },
+  "Entry-payout-loading.dc.html": {
+   "h": 844,
+   "title": "Entry — payout row loading (second call)",
+   "w": 390,
+   "x": 9870,
+   "y": 2600
+  },
+  "Entry-payout-missing.dc.html": {
+   "h": 844,
+   "title": "Entry — payout row 404",
+   "w": 390,
+   "x": 10810,
+   "y": 2600
+  },
+  "Entry-reversed.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Entry — reversed line",
+   "w": 390,
+   "x": 3290,
+   "y": 2600
+  },
+  "Entry-tip-available.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Entry — tip, available",
+   "w": 390,
+   "x": 5640,
+   "y": 2600
+  },
+  "Entry-tip-paid-400.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Entry — tip $4.00, paid (HG-9Z4E-6T)",
+   "w": 390,
+   "x": 12220,
+   "y": 2600
+  },
+  "Entry-tip-paid.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Entry — tip, paid",
+   "w": 390,
+   "x": 6110,
+   "y": 2600
+  },
+  "Entry-tip.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Entry — tip after delivery",
+   "w": 390,
+   "x": 1410,
+   "y": 2600
+  },
+  "EntryDetail.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Entry — delivery, pending",
+   "w": 390,
+   "x": 0,
+   "y": 2600
+  },
+  "Main.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Earnings — this week",
+   "w": 390,
+   "x": 0,
+   "y": 0
+  },
+  "Payout-all-lines.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Payout — all lines shown (in place)",
+   "w": 390,
+   "x": 470,
+   "y": 5200
+  },
+  "Payout-draft.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Payout — being prepared (DRAFT)",
+   "w": 390,
+   "x": 1410,
+   "y": 5200
+  },
+  "Payout-error.dc.html": {
+   "h": 844,
+   "title": "Payout — couldn't load",
+   "w": 390,
+   "x": 4700,
+   "y": 5200
+  },
+  "Payout-failed-7-to-13.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Payout — 7 to 13 September didn’t go through (from Payouts — two problem payouts)",
+   "w": 390,
+   "x": 13630,
+   "y": 5200
+  },
+  "Payout-failed-cause.dc.html": {
+   "h": 844,
+   "title": "Alternative · Payout — didn’t go through, account cause",
+   "w": 390,
+   "x": 6110,
+   "y": 6700
+  },
+  "Payout-failed-large-text.dc.html": {
+   "h": 844,
+   "title": "Payout — didn’t go through, 200% text with the sticky Fix",
+   "w": 390,
+   "x": 12690,
+   "y": 5200
+  },
+  "Payout-failed-light.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Payout failed — light (sunlight test)",
+   "w": 390,
+   "x": 7520,
+   "y": 5200
+  },
+  "Payout-failed-no-fix.dc.html": {
+   "h": 844,
+   "title": "Payout — didn’t go through, payout account fine (no Fix)",
+   "w": 390,
+   "x": 11280,
+   "y": 5200
+  },
+  "Payout-failed-transient.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Alternative · Payout — didn’t go through, temporary cause",
+   "w": 390,
+   "x": 2350,
+   "y": 6700
+  },
+  "Payout-failed-twice.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Alternative · Payout — didn’t go through twice",
+   "w": 390,
+   "x": 2820,
+   "y": 6700
+  },
+  "Payout-failed.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Payout — didn’t go through (current contract, Fix from GET /connect/status)",
+   "w": 390,
+   "x": 3290,
+   "y": 5200
+  },
+  "Payout-focus-all.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Payout — focus on Show all lines",
+   "w": 390,
+   "x": 10340,
+   "y": 5200
+  },
+  "Payout-focus-fix.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Payout — focus on the sticky Fix button",
+   "w": 390,
+   "x": 9870,
+   "y": 5200
+  },
+  "Payout-held-cause.dc.html": {
+   "h": 844,
+   "title": "Alternative · Payout — on hold, account cause",
+   "w": 390,
+   "x": 6580,
+   "y": 6700
+  },
+  "Payout-held-checking.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Payout — on hold, account fixed, checking",
+   "w": 390,
+   "x": 8460,
+   "y": 5200
+  },
+  "Payout-held-lifted.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Payout — hold lifted (READY)",
+   "w": 390,
+   "x": 8930,
+   "y": 5200
+  },
+  "Payout-held-light.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Payout on hold — light (sunlight test)",
+   "w": 390,
+   "x": 10810,
+   "y": 5200
+  },
+  "Payout-held-no-fix.dc.html": {
+   "h": 844,
+   "title": "Payout — on hold, payout account fine (no Fix)",
+   "w": 390,
+   "x": 11750,
+   "y": 5200
+  },
+  "Payout-held-review.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Alternative · Payout — on hold for a review (nothing to fix)",
+   "w": 390,
+   "x": 3290,
+   "y": 6700
+  },
+  "Payout-held.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Payout — on hold (current contract, Fix from GET /connect/status)",
+   "w": 390,
+   "x": 3760,
+   "y": 5200
+  },
+  "Payout-loading.dc.html": {
+   "h": 844,
+   "title": "Payout — loading",
+   "w": 390,
+   "x": 4230,
+   "y": 5200
+  },
+  "Payout-no-lines.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Payout — entries[] empty",
+   "w": 390,
+   "x": 940,
+   "y": 5200
+  },
+  "Payout-not-active.dc.html": {
+   "h": 844,
+   "title": "Payout — account paused (403)",
+   "w": 390,
+   "x": 12220,
+   "y": 5200
+  },
+  "Payout-not-found.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Payout — not found (404)",
+   "w": 390,
+   "x": 5640,
+   "y": 5200
+  },
+  "Payout-offline.dc.html": {
+   "h": 844,
+   "title": "Payout — offline",
+   "w": 390,
+   "x": 5170,
+   "y": 5200
+  },
+  "Payout-paid-light.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Payout paid — light (sunlight test)",
+   "w": 390,
+   "x": 7050,
+   "y": 5200
+  },
+  "Payout-rate-limited.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Payout — too many tries (429)",
+   "w": 390,
+   "x": 9400,
+   "y": 5200
+  },
+  "Payout-ready.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Payout — scheduled (READY)",
+   "w": 390,
+   "x": 1880,
+   "y": 5200
+  },
+  "Payout-transferred.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Payout — with Stripe (TRANSFERRED)",
+   "w": 390,
+   "x": 2820,
+   "y": 5200
+  },
+  "Payout-transferring.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Payout — sending (TRANSFERRING)",
+   "w": 390,
+   "x": 2350,
+   "y": 5200
+  },
+  "PayoutAccount-returned.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Payout account — back from Stripe, checking",
+   "w": 390,
+   "x": 6580,
+   "y": 5200
+  },
+  "PayoutAccount.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Payout account — opening Stripe (hand-off to Stripe)",
+   "w": 390,
+   "x": 6110,
+   "y": 5200
+  },
+  "PayoutDetail.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Payout — paid",
+   "w": 390,
+   "x": 0,
+   "y": 5200
+  },
+  "PayoutStates.dc.html": {
+   "h": 1400,
+   "title": "Reference — the seven payout states",
+   "w": 390,
+   "x": 7990,
+   "y": 5200
+  },
+  "Payouts-account-attention.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Payouts — payouts paused (payouts_enabled=false)",
+   "w": 390,
+   "x": 1410,
+   "y": 3900
+  },
+  "Payouts-account-due.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Payouts — Stripe needs info by a deadline",
+   "w": 390,
+   "x": 8930,
+   "y": 3900
+  },
+  "Payouts-account-mapped.dc.html": {
+   "h": 844,
+   "title": "Alternative · Payouts — payouts paused, requirement in rider words",
+   "w": 390,
+   "x": 940,
+   "y": 8000
+  },
+  "Payouts-empty.dc.html": {
+   "h": 844,
+   "title": "Payouts — none yet, nothing earned",
+   "w": 390,
+   "x": 2820,
+   "y": 3900
+  },
+  "Payouts-end.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Payouts — every payout loaded",
+   "w": 390,
+   "x": 5640,
+   "y": 3900
+  },
+  "Payouts-error.dc.html": {
+   "h": 844,
+   "title": "Payouts — couldn't load",
+   "w": 390,
+   "x": 3290,
+   "y": 3900
+  },
+  "Payouts-failed-cause.dc.html": {
+   "h": 844,
+   "title": "Alternative · Payouts — didn’t go through, account cause (77 came back)",
+   "w": 390,
+   "x": 4700,
+   "y": 6700
+  },
+  "Payouts-failed-transient.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Alternative · Payouts — didn’t go through, temporary cause",
+   "w": 390,
+   "x": 1880,
+   "y": 6700
+  },
+  "Payouts-failed.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Payouts — one didn’t go through (current contract)",
+   "w": 390,
+   "x": 940,
+   "y": 3900
+  },
+  "Payouts-first-payout.dc.html": {
+   "h": 844,
+   "title": "Payouts — earned, first payout not made yet",
+   "w": 390,
+   "x": 10810,
+   "y": 3900
+  },
+  "Payouts-focus.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Payouts — keyboard focus on a row",
+   "w": 390,
+   "x": 6110,
+   "y": 3900
+  },
+  "Payouts-held-cause.dc.html": {
+   "h": 844,
+   "title": "Alternative · Payouts — on hold, account cause",
+   "w": 390,
+   "x": 5170,
+   "y": 6700
+  },
+  "Payouts-held-light.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Payouts on hold — light (sunlight test)",
+   "w": 390,
+   "x": 7050,
+   "y": 3900
+  },
+  "Payouts-held-review.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Alternative · Payouts — on hold for a review",
+   "w": 390,
+   "x": 1410,
+   "y": 6700
+  },
+  "Payouts-held.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Payouts — one on hold (current contract)",
+   "w": 390,
+   "x": 470,
+   "y": 3900
+  },
+  "Payouts-large-text.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Payouts — 200% text",
+   "w": 390,
+   "x": 10340,
+   "y": 3900
+  },
+  "Payouts-light.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Payouts — light (sunlight test)",
+   "w": 390,
+   "x": 6580,
+   "y": 3900
+  },
+  "Payouts-loading.dc.html": {
+   "h": 844,
+   "title": "Payouts — loading",
+   "w": 390,
+   "x": 2350,
+   "y": 3900
+  },
+  "Payouts-multi-cause.dc.html": {
+   "h": 844,
+   "title": "Alternative · Payouts — two problem payouts, one fix clears both",
+   "w": 390,
+   "x": 5640,
+   "y": 6700
+  },
+  "Payouts-multi.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Payouts — two problem payouts (current contract)",
+   "w": 390,
+   "x": 8460,
+   "y": 3900
+  },
+  "Payouts-negative-balance.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Payouts — balance below zero",
+   "w": 390,
+   "x": 1880,
+   "y": 3900
+  },
+  "Payouts-not-active.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Payouts — account paused (current contract: payouts refused)",
+   "w": 390,
+   "x": 9870,
+   "y": 3900
+  },
+  "Payouts-offline-saved.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Payouts — offline, saved copy",
+   "w": 390,
+   "x": 4230,
+   "y": 3900
+  },
+  "Payouts-offline.dc.html": {
+   "h": 844,
+   "title": "Payouts — offline on first open (nothing saved)",
+   "w": 390,
+   "x": 3760,
+   "y": 3900
+  },
+  "Payouts-paging-error.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Payouts — older payouts failed",
+   "w": 390,
+   "x": 5170,
+   "y": 3900
+  },
+  "Payouts-paging.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Payouts — loading older",
+   "w": 390,
+   "x": 4700,
+   "y": 3900
+  },
+  "Payouts-paused-readable.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Payouts — account paused, payouts still shown (owner decision; needs API)",
+   "w": 390,
+   "x": 11280,
+   "y": 3900
+  },
+  "Payouts-rate-limited.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Payouts — too many tries (429)",
+   "w": 390,
+   "x": 9400,
+   "y": 3900
+  },
+  "Payouts-ready.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Payouts — READY row (after the period closes)",
+   "w": 390,
+   "x": 7520,
+   "y": 3900
+  },
+  "Payouts-transferring.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Payouts — TRANSFERRING row",
+   "w": 390,
+   "x": 7990,
+   "y": 3900
+  },
+  "Payouts.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Payouts — list, older ones to load",
+   "w": 390,
+   "x": 0,
+   "y": 3900
+  }
+ },
+ "createdOnFiles": {
+  "at": "2026-09-28T01:06:36Z",
+  "v": 1
+ },
+ "designSystems": [
+  {
+   "artifact": "https://claude.ai/artifact/1GwGVZz8Ju9wcz4HfCnzbv",
+   "copiedAt": "2026-09-28T20:30:00Z",
+   "namespace": "halalgoesdesignsystem-d11a47",
+   "title": "HalalGoes design system",
+   "version": "1790605103-3266"
+  }
+ ],
+ "launch": {
+  "view": "canvas"
+ },
+ "notes": {
+  "n-activity": {
+   "fill": "gray",
+   "size": 24,
+   "text": "Every ledger line, newest first, grouped by the day it was earned (rider timezone).\n\n- Status is the proposed StatusLabel (Icon + 17px word): Pending, Available, Paid, Reversed.\n- Lines with no order_code read \"Not tied to an order\" in the UI font, never a mono placeholder.\n- The Pending explainer shows only when a Pending line is loaded, above the first day group that has one.\n- Reversed tip + its correction drawn to the owner decision (spec model): the original line stays counted, its correction line offsets it. A CLAWBACK with payout_id null shows no status word (AVAILABLE would promise a payout) and one neutral note, \"Not in a payout yet\". Whether it nets to $0.00 or comes off the next payout is not claimed (Needs API #147: corrected entry id + its status).\n- Every row opens a board with its own amount, type and status.\n- Paging is explicit: \"Show older lines\" (stays in place with loading, so focus keeps its place), paging error (focus to Try again), end.\n- Errors: couldn't load, 429, 403, offline saved copy.\n- Times use the 12-hour clock, for example 9:12 pm (owner decision).",
+   "w": 480,
+   "x": -560,
+   "y": 1300
+  },
+  "n-alt-codes": {
+   "fill": "gray",
+   "size": 24,
+   "text": "Why this row exists: Payout carries only free-text failure_message and hold_reason. With no failure_code / hold_reason_code the app cannot tell an account cause from a temporary one, a review hold or a second failure.\n\n- Main boards (rows above) use the current contract: \"This payout didn’t go through\" / \"This payout is on hold\", the text word for word under \"Reason given:\", and the Fix button only when GET /connect/status returns payouts_enabled=false or a non-empty currently_due / past_due.\n- These boards show what cause codes would buy: specific copy, Fix vs no Fix by cause, \"failed twice\" escalation, and the returned amount / line count (Needs API: returned_from_payout_id or a returned amount).\n- Codes are never rendered to the rider.",
+   "w": 480,
+   "x": -560,
+   "y": 6700
+  },
+  "n-alt-map": {
+   "fill": "gray",
+   "size": 24,
+   "text": "ConnectStatus.requirements says currently_due / past_due are surfaced verbatim from Stripe, never paraphrased. Main boards show the keys exactly as returned under \"Details from Stripe\".\n\nThese boards show rider wording (external_account → \"Your bank account\") that needs a server-side mapping and a deliberate contract change to the verbatim rule before it can ship.",
+   "w": 480,
+   "x": -560,
+   "y": 8000
+  },
+  "n-earnings": {
+   "fill": "gray",
+   "size": 24,
+   "text": "Earnings tab (tab 2 of 3: Home, Earnings, Account).\n\n- Order: banners (payout problem, then payout account, then offline), then a compact \"Right now\" (Next payout + date on one row, Unpaid balance with an \"Includes pending lines\" sub-label on one row, Payouts row with the schedule), which never changes with the period. Then the period control and stepper, then the period's gross and 3 stats, which sit above the fold at 844px when no banner shows. Then History (Earnings activity, Deliveries), What it's made of, By day last. Screen notes are collected at the bottom so they don't push the figures down.\n- Next payout = the DRAFT/READY payout's own amount_cents (\"so far\" only while DRAFT; READY / TRANSFERRING on Monday are final), date = next_payout_at. Unpaid balance = unpaid_balance_cents; it also holds pending lines, which go into a later payout. Needs API: pending_cents.\n- Monday boards (READY / TRANSFERRING): the current period is the new week, 28 September to 4 October (zeroed); 21 to 27 September is one step back as \"Last week\".\n- Payouts or connect status failing while the summary loads: the Next payout amount becomes \"Couldn't load your next payout\" + Try again, and the banner slot says it couldn't check payouts. The banner slot is never silently empty.\n- Balance below zero names its cause (the newest CLAWBACK line) and links straight to it with a primary button.\n- By-day rows are 72px controls: tap = period DAY, from = bucket_start (no new API). \"Back to {week}\" returns to the period it came from; Week / Month from a picked day open the period containing it.\n- Loading a new period: only the period figures (gross, stats, What it's made of, By day) become skeletons; Right now and History stay drawn, so the period control never moves. First load: the Right now skeleton bars sit on surface-base (never inside a Card: skeleton-base on surface-raised is invisible in dark), the Payouts row stays live, and the total height matches the loaded card so the control never moves.\n- Summary failing (error or 429): the error state takes the place of the Right now and period figures only; the Payouts row and History (Earnings activity, Deliveries) stay live, since they come from other endpoints.\n- After a period switch, a polite status announces the new period.\n- Banners: one Fix button on screen (Button primary: orange with a dark label, owner-approved for rider buttons; full width, \"Fix in Stripe\"), \"See this payout\" as Button tertiary so it has a visible border. Fix only when GET /connect/status needs something (no cause codes in the contract; cause-sorted copy is the alternative row). role=status wraps title + message only. Stacking board shows the order.\n- Every amount is a *_cents value from the API. Nothing is added up on the phone.\n- First run = entries?limit=1 is empty; otherwise the zeroed week/month.\n- 403 ACCOUNT_NOT_ACTIVE, 429, offline, back-online boards drawn.\n- No chart at launch: the owner deferred BarChart (earnings over time also needs an API, issue #152).\n- Payouts paused (Stripe needs information): the rider keeps going online and taking offers; earnings keep adding up and are paid on the next Monday payout once Stripe is fixed (owner decision). The availability contract still blocks going online: Needs API. The can’t-go-online boards are removed.\n- Account paused (suspended or deactivated): the current delivery can be finished unless HalalGoes contacts the rider (operations may move it); no new offers; money earned is always paid out (owner decision). Current contract refuses earnings (paused board); owner-decided boards: earnings still shown, and paused during a delivery (Needs API: earnings readable while paused).\n- Theme: rider follows the phone setting; dark and light are both drawn.",
+   "w": 480,
+   "x": -560,
+   "y": 0
+  },
+  "n-entries": {
+   "fill": "gray",
+   "size": 24,
+   "text": "Entry detail renders from the list row (no GET for one entry). The payout row needs GET /riders/me/payouts/{payout_id} for period and state: loading, error and 404 drawn. From a push when the line isn't loaded: finding, then \"can't show this line here\" (Needs API: GET one entry).\n\n- No order_code: the \"Order …\" line is hidden.\n- Breakdown: rider pay is a pure pass-through (decision R-02: the full delivery fee the customer paid, $2.99 + $1.00/km under decision S-02, plus 100% of tips). A delivery line is one Delivery fee row (km only as its sub-label) plus Tip, then the total; a $0.00 tip trails. Needs API: delivery_fee_cents on EarningEntry; until then the build shows only the tip and the total.\n- Footnote: \"You get the full delivery fee the customer paid, plus every tip.\"\n- Payout section follows payout_id for every type, with text by type and status when it is null: PENDING \"Once it is available…\"; REVERSED \"won't be paid out\"; any CLAWBACK with payout_id null \"Not in a payout yet. A correction is settled against your earnings\", with no status word. The two case-specific texts (nets to $0.00 / comes off your next payout) sit in an \"Alternative (Needs API #147)\" row.\n- Fallback distance copy names no multiplier.\n- Correction, reversed, adjustment: placeholder rows \"Question about this line?\" / \"See the line this corrects\" / \"See the correction\" (Needs API).\n- Boards added: short delivery (no minimum fare), distance source unknown, tip available/paid, correction of a paid line, opened from Payout.\n- Not in launch, so not drawn: cancellation pay (deferred to V1 by decision R-09), waiting pay (V1, decision R-09), minimum top-up (the rate-card floor dropped by decision R-02) and surge (0 at launch; manual surge is a V1 decision in the rider spec).\n- Back label follows the entry point: Earnings activity (\"Back to Earnings activity\"), a Payout detail row (\"Back to Payout\"), the Earnings balance-below-zero block (\"Back to Earnings\"), the Payouts balance-below-zero block (\"Back to Payouts\"), a Delivery earnings row (\"Back to Delivery\"). On return, focus goes back to the control that opened the line.\n- \"Delivery details\" links only to a Delivery board drawn for the same order; otherwise it is left off the board.",
+   "w": 480,
+   "x": -560,
+   "y": 2600
+  },
+  "n-payout": {
+   "fill": "gray",
+   "size": 24,
+   "text": "- entries[] is complete: \"Show all\" expands in place (aria-expanded; focus to the first new row).\n- No scheduled date on a Payout: \"Goes out on the next Monday payout\" (Needs API: scheduled_for).\n- FAILED: \"This payout didn't go through\" (same words as badge and banner); lines panel replaced by \"These lines are back in your balance…\" + Earnings activity. No \"Paid out\" row on FAILED / HELD.\n- Current contract: failure_message / hold_reason word for word under \"Reason given:\". Sticky \"Fix payout account in Stripe\" (Button primary) only when GET /connect/status has payouts_enabled=false or currently_due / past_due; otherwise a support placeholder. Cause-sorted boards (temporary, twice, review) are the alternative row.\n- Problem card order: title, \"Reason given:\", what happened to the money, what to do. FAILED is final: no \"checks again\" line. HELD ends with \"When the hold is lifted, this shows Scheduled.\"\n- HELD after the fix: checking, then hold lifted (READY). A released payout goes out on the next Monday payout, never as a one-off (owner decision). Needs API: rider.payout_updated.\n- Held sample: payouts_enabled=true + non-empty currently_due (Fix shows), only this payout held; payouts_enabled=false is Earnings — two banners stacked.\n- Payout account: back label follows the entry (Earnings / Payouts / Payout). Back from Stripe: \"Check again\" (GET /connect/status) + back to where the rider came from. There is no can’t-go-online entry: payouts paused never blocks offers (owner decision).\n- Couldn't get a Stripe link: Payout-LinkFailed in the Sign-in & Onboarding canvas (https://claude.ai/artifact/Und8nB7Jz3Zvap4YWdvFXX).",
+   "w": 480,
+   "x": -560,
+   "y": 5200
+  },
+  "n-payouts": {
+   "fill": "gray",
+   "size": 24,
+   "text": "Weekly, every Monday, no minimum. Only AVAILABLE lines go into a payout (rider payouts spec).\n\n- Summary: same two numbers, same order as Earnings (next payout = first row's amount_cents; unpaid balance).\n- Rows on surface-base, no Card; status is Icon + word.\n- After a FAILED transfer the lines return to AVAILABLE: the DRAFT row shows 145 lines so far, $720.61 (how many came back is not on any field).\n- READY / TRANSFERRING only after the period closes.\n- Several problem payouts: one banner, one Fix, one row each.\n- Payouts paused never stops the rider taking offers (owner decision). Account paused: payouts already earned keep going out (board: account paused, payouts still shown; Needs API).\n- Nothing earned: \"No payouts yet\" + Go to Home, no summary card. Earned but no payout yet: summary card + \"Your first payout goes out Monday {next_payout_at}\" + See earnings activity (no Go online).",
+   "w": 480,
+   "x": -560,
+   "y": 3900
+  },
+  "n-system": {
+   "fill": "gray",
+   "size": 24,
+   "text": "Design system: HalalGoes (tokens 1790605103-3266, compiled from the approved tokens.json: Plus Jakarta Sans and IBM Plex Mono, dark label on the orange primary button, brand-coloured focus ring, real motion durations). Boards read semantic roles only, never raw ramp steps. No local token overrides on this canvas, with one named exception: 200% text simulation, not a token change. The 200% boards set data-hg-text-scale=\"200\" on the root, and the source boards carry that one scaling block until the system ships a text-scale mode.\n\nOwner decisions applied:\n- Rider main actions are Button primary (orange fill, dark label 4.63:1): the rider 7:1 rule covers body text, not large bold button labels. Fill 5.09:1 on the page, 3.77:1 in a dark warning banner, 3.53:1 on surface-raised.\n- Buttons that were ghost in banners and error screens are Button tertiary, so each has a visible border.\n- StatCard and KeyValueList are approved for the design system (drawn from tokens here until they land). BarChart is deferred: no chart at launch.\n\nSystem gaps raised:\n- Button secondary: its fill (accent-600) is 1.47:1 on the dark page and 1.09:1 in a dark warning banner, with no border, so it is not used on dark rider surfaces.\n- Button tertiary: its only boundary, --border-interactive (neutral-600), is 2.85:1 on surface-raised (inside a Card), under 3:1. Boards keep tertiary buttons out of Cards or use primary there.\n- Badge: needs a field size (label-lg 15px, ≥32px) and a field theme (warning/info tints are raw ramp steps: warning 6.83:1, info a light chip in dark). Status drawn with the proposed StatusLabel until then; Badge with a field size stays the long-term replacement.\n- SegmentedControl needs 56px; AppBar field back button and Sheet close must be 56px (both 44).\n- BottomNav should be nav > links with aria-current=\"page\", not tablist/tab.\n- Price: no display-lg; announceAs has no \"not counted\".\n- Sheet: focusable title; footer can’t be passed on the canvas.\n- Icons missing from the Solar set in the system: wallet, undo, external link, hourglass, hand-money, stars. (Previous uses Icon \"back\" = Solar alt-arrow-left-linear.)\n- AppBar title must wrap (max 2 lines) at large text: today nowrap + ellipsis truncates \"Earnings activity\" at 200%.\n- Button label must wrap in field sizes: nowrap overflows \"Show older lines\" and \"Fix payout account in Stripe\" at 200%. Banner Fix buttons read \"Fix in Stripe\" meanwhile.\n- Text scale: tokens.css needs a text-scale mode built like density, e.g. [data-hg-text-scale=\"200\"]{--type-body-lg-size:34px; …}, so the 200% text boards set one attribute instead of carrying their own scaling block.\n- Forced colours: the bundle’s forced-colors outline rule does not include .hg-focus-inset; add .hg-focus-inset:focus-visible{outline:2px solid CanvasText;outline-offset:-2px}.\n\nProposed components (composites built only from library parts and system components, labelled \"Proposed component\" on the boards, for owner approval): ListRow, InlineAlert, Skeleton, EmptyState / ErrorState (rider: action in the bottom third; role=alert on heading + message only), ActiveJobBar, StatusLabel (Icon md + label, 17px semibold; never brand orange or green; warning states use --feedback-warning-icon on the icon and --text-primary on the word, other states use --text-secondary-field).",
+   "w": 480,
+   "x": -1100,
+   "y": 0
+  },
+  "t-activity": {
+   "kind": "title1",
+   "maxW": 6500,
+   "text": "Earnings · Earnings activity (ledger) — GET /riders/me/earnings/entries, cursor paging",
+   "w": 240,
+   "x": 0,
+   "y": 1000
+  },
+  "t-alt-codes": {
+   "kind": "title1",
+   "maxW": 6970,
+   "text": "Alternative — needs API: failure_code / hold_reason_code (cause-sorted copy; not the current contract)",
+   "w": 240,
+   "x": 0,
+   "y": 6400
+  },
+  "t-alt-map": {
+   "kind": "title1",
+   "maxW": 1330,
+   "text": "Alternative — needs API: requirement → rider copy mapping (contract change to the verbatim rule)",
+   "w": 240,
+   "x": 0,
+   "y": 7700
+  },
+  "t-earnings": {
+   "kind": "title1",
+   "maxW": 8000,
+   "text": "Earnings · Earnings summary — GET /riders/me/earnings/summary (period + from)",
+   "w": 240,
+   "x": 0,
+   "y": -300
+  },
+  "t-entries": {
+   "kind": "title1",
+   "maxW": 8000,
+   "text": "Earnings · One earnings line — rendered from the list row; its payout row is a second call, GET /riders/me/payouts/{payout_id}",
+   "w": 240,
+   "x": 0,
+   "y": 2300
+  },
+  "t-payout": {
+   "kind": "title1",
+   "maxW": 8000,
+   "text": "Payouts · One payout — GET /riders/me/payouts/{id} (all seven PayoutState values)",
+   "w": 240,
+   "x": 0,
+   "y": 4900
+  },
+  "t-payouts": {
+   "kind": "title1",
+   "maxW": 8000,
+   "text": "Payouts · Payouts list — GET /riders/me/payouts, cursor paging",
+   "w": 240,
+   "x": 0,
+   "y": 3600
+  },
+  "n-moved": {
+   "x": -1100,
+   "y": 800,
+   "w": 480,
+   "fill": "blue",
+   "size": 24,
+   "text": "Moved to HalalGoes Rider — Delivery history & What's new: https://claude.ai/artifact/BZ4vZmESKMfTPQVWPrGWcb\n\nSections moved: Delivery history (Deliveries list), One delivery (DeliveryDetail), What's new (#100)."
+  }
+ },
+ "order": [
+  "Main.dc.html",
+  "Earnings-last-week.dc.html",
+  "Earnings-day.dc.html",
+  "Earnings-month.dc.html",
+  "Earnings-last-month.dc.html",
+  "Earnings-loading.dc.html",
+  "Earnings-switching.dc.html",
+  "Earnings-first-run.dc.html",
+  "Earnings-empty-week.dc.html",
+  "Earnings-empty-month.dc.html",
+  "Earnings-error.dc.html",
+  "Earnings-offline.dc.html",
+  "Earnings-account-attention.dc.html",
+  "Earnings-payout-held.dc.html",
+  "Earnings-payout-failed.dc.html",
+  "Earnings-negative-balance.dc.html",
+  "Earnings-on-delivery.dc.html",
+  "Earnings-focus.dc.html",
+  "Earnings-light.dc.html",
+  "Activity.dc.html",
+  "Activity-loading.dc.html",
+  "Activity-empty.dc.html",
+  "Activity-error.dc.html",
+  "Activity-rate-limited.dc.html",
+  "Activity-offline.dc.html",
+  "Activity-paging.dc.html",
+  "Activity-paging-error.dc.html",
+  "Activity-end.dc.html",
+  "Activity-focus.dc.html",
+  "Activity-light.dc.html",
+  "EntryDetail.dc.html",
+  "Entry-delivery-fallback.dc.html",
+  "Entry-paid.dc.html",
+  "Entry-tip.dc.html",
+  "Entry-bonus.dc.html",
+  "Entry-adjustment.dc.html",
+  "Entry-correction.dc.html",
+  "Entry-reversed.dc.html",
+  "Entry-light.dc.html",
+  "Payouts.dc.html",
+  "Payouts-held.dc.html",
+  "Payouts-failed.dc.html",
+  "Payouts-account-attention.dc.html",
+  "Payouts-negative-balance.dc.html",
+  "Payouts-loading.dc.html",
+  "Payouts-empty.dc.html",
+  "Payouts-error.dc.html",
+  "Payouts-offline.dc.html",
+  "Payouts-offline-saved.dc.html",
+  "Payouts-paging.dc.html",
+  "Payouts-paging-error.dc.html",
+  "Payouts-end.dc.html",
+  "Payouts-focus.dc.html",
+  "Payouts-light.dc.html",
+  "Payouts-held-light.dc.html",
+  "PayoutDetail.dc.html",
+  "Payout-all-lines.dc.html",
+  "Payout-no-lines.dc.html",
+  "Payout-draft.dc.html",
+  "Payout-ready.dc.html",
+  "Payout-transferring.dc.html",
+  "Payout-transferred.dc.html",
+  "Payout-failed.dc.html",
+  "Payout-held.dc.html",
+  "Payout-loading.dc.html",
+  "Payout-error.dc.html",
+  "Payout-offline.dc.html",
+  "Payout-not-found.dc.html",
+  "PayoutAccount.dc.html",
+  "PayoutAccount-returned.dc.html",
+  "Payout-paid-light.dc.html",
+  "Payout-failed-light.dc.html",
+  "PayoutStates.dc.html",
+  "Earnings-yesterday.dc.html",
+  "Earnings-day-past.dc.html",
+  "Earnings-account-due.dc.html",
+  "Earnings-held-review.dc.html",
+  "Earnings-failed-transient.dc.html",
+  "Earnings-failed-twice.dc.html",
+  "Earnings-stacked.dc.html",
+  "Earnings-rate-limited.dc.html",
+  "Earnings-not-active.dc.html",
+  "Earnings-back-online.dc.html",
+  "Earnings-focus-row.dc.html",
+  "Earnings-focus-segmented.dc.html",
+  "Earnings-focus-stepper.dc.html",
+  "Earnings-large-text.dc.html",
+  "Earnings-held-light.dc.html",
+  "Earnings-failed-light.dc.html",
+  "Earnings-account-light.dc.html",
+  "Activity-not-active.dc.html",
+  "Activity-large-text.dc.html",
+  "Entry-delivery-short.dc.html",
+  "Entry-delivery-nosource.dc.html",
+  "Entry-tip-available.dc.html",
+  "Entry-tip-paid.dc.html",
+  "Entry-clawback-paid.dc.html",
+  "Entry-clawback-paid-from-payouts.dc.html",
+  "Entry-from-payout.dc.html",
+  "Entry-deeplink-loading.dc.html",
+  "Entry-deeplink-missing.dc.html",
+  "Entry-focus-payout.dc.html",
+  "Entry-focus-delivery.dc.html",
+  "Entry-correction-light.dc.html",
+  "Payouts-ready.dc.html",
+  "Payouts-transferring.dc.html",
+  "Payouts-multi.dc.html",
+  "Payouts-held-review.dc.html",
+  "Payouts-failed-transient.dc.html",
+  "Payouts-account-due.dc.html",
+  "Payouts-rate-limited.dc.html",
+  "Payouts-not-active.dc.html",
+  "Payouts-large-text.dc.html",
+  "Payout-failed-transient.dc.html",
+  "Payout-failed-twice.dc.html",
+  "Payout-held-review.dc.html",
+  "Payout-held-checking.dc.html",
+  "Payout-held-lifted.dc.html",
+  "Payout-rate-limited.dc.html",
+  "Payout-focus-fix.dc.html",
+  "Payout-focus-all.dc.html",
+  "Payout-held-light.dc.html",
+  "Earnings-payout-ready.dc.html",
+  "Earnings-payout-transferring.dc.html",
+  "Earnings-switched.dc.html",
+  "Earnings-large-text-banner.dc.html",
+  "Activity-focus-more.dc.html",
+  "Entry-payout-loading.dc.html",
+  "Entry-payout-error.dc.html",
+  "Entry-payout-missing.dc.html",
+  "Entry-large-text.dc.html",
+  "Payouts-first-payout.dc.html",
+  "Payout-failed-no-fix.dc.html",
+  "Payout-held-no-fix.dc.html",
+  "Payout-not-active.dc.html",
+  "Payout-failed-large-text.dc.html",
+  "Earnings-failed-cause.dc.html",
+  "Earnings-held-cause.dc.html",
+  "Payouts-failed-cause.dc.html",
+  "Payouts-held-cause.dc.html",
+  "Payouts-multi-cause.dc.html",
+  "Payout-failed-cause.dc.html",
+  "Payout-held-cause.dc.html",
+  "Earnings-account-mapped.dc.html",
+  "Earnings-account-due-mapped.dc.html",
+  "Payouts-account-mapped.dc.html",
+  "Earnings-next-failed.dc.html",
+  "Entry-tip-paid-400.dc.html",
+  "Entry-delivery-918.dc.html",
+  "Entry-delivery-812.dc.html",
+  "Entry-delivery-956.dc.html",
+  "Entry-delivery-956-from-delivery.dc.html",
+  "Payout-failed-7-to-13.dc.html",
+  "Earnings-paused-readable.dc.html",
+  "Earnings-paused-on-delivery.dc.html",
+  "Payouts-paused-readable.dc.html"
+ ],
+ "pages": [],
+ "title": "HalalGoes Rider — Earnings & History"
+}

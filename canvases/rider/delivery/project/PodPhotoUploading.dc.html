@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Uploading photo</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+[data-rider]{font-family:var(--font-ui)}
+.offer-chrome{background:var(--surface-raised)}
+[data-theme="dark"] .offer-chrome,[data-theme="dark"].offer-chrome{background:var(--surface-chrome)}
+</style>
+</helmet>
+<div data-rider="" data-theme="{{theme}}" style="width: 390px; height: 844px; position: relative; overflow: hidden; display: flex; flex-direction: column; background: var(--surface-base); color: var(--text-primary)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="field" title="Proof of delivery" subtitle="Step 4 of 4 · Proof · HG-4K2M-9T"></x-import><main style="flex: 1 1 auto; overflow-y: auto; padding: var(--space-4) var(--space-5) var(--space-5); display: flex; flex-direction: column; gap: var(--space-3)"><h2 style="margin: 0; font-size: var(--type-heading-xl-size); font-weight: var(--type-heading-xl-weight); letter-spacing: var(--type-heading-xl-tracking); line-height: 1.25">Uploading your photo</h2><p style="margin: 0; font-size: var(--type-body-lg-size); line-height: 1.5">Keep the app open. It's kept on your phone until it's sent.</p><div style="display: flex; flex-direction: column; gap: var(--space-2)"><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Proposed component: ProgressBar (determinate) · upload bytes, then confirm</span><div role="progressbar" aria-label="Uploading photo" aria-valuemin="0" aria-valuemax="100" aria-valuenow="60" style="height: 8px; border-radius: var(--radius-xs); background: var(--border-interactive); overflow: hidden"><div style="width: 60%; height: 100%; background: var(--text-primary)"></div></div></div><div style="height: 400px; flex: 0 0 auto; border: 1.5px dashed var(--border-strong); border-radius: var(--radius-lg); background: var(--surface-sunken); padding: var(--space-3); display: flex; flex-direction: column; justify-content: space-between"><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Proposed component: FileUpload thumbnail (full-width preview)</span><span style="align-self: center; font-size: var(--type-body-lg-size)">Your photo, 9:58 pm</span><span></span></div></main><footer style="flex: 0 0 auto; padding: var(--space-3) var(--space-5) var(--space-5); border-top: 1px solid var(--border-decorative); background: var(--surface-base); display: flex; flex-direction: column; gap: var(--space-2)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="xl" full-width="{{yes}}" loading="{{yes}}">Uploading photo</x-import><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="xl" full-width="{{yes}}" disabled="{{yes}}">Retake</x-import><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Prototype branches: <a href="PodMarkingDelivered.dc.html" style="color: var(--text-link)">proof recorded</a> · <a href="PodPhotoFailed.dc.html" style="color: var(--text-link)">failed</a></span></footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["dark","light"],"default":"dark"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const theme = this.props.theme ?? 'dark';
+    return { theme: theme, onDark: theme === 'dark', yes: true, no: false, noop: () => {}, twentyFour: 24, activeTab: 'home',
+      onOff: { on: 'On', off: 'Off' },
+      tabs: [{ key: 'home', label: 'Home', icon: 'home' }, { key: 'earnings', label: 'Earnings', icon: 'orders' }, { key: 'account', label: 'Account', icon: 'profile' }] };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>The seven checks</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<section id="checks" aria-labelledby="checks-h" style="width: {{wcss}}; box-sizing: border-box; display: flex; flex-direction: column; gap: 8px; font-family: var(--font-ui); color: var(--text-primary)">
+  <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px">
+    <div style="display: flex; align-items: center; gap: 8px">
+      <span aria-hidden="true" style="display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 9999px; background: {{stepBg}}; color: {{stepFg}}; font-size: 13px; font-weight: 700">2</span>
+      <h2 id="checks-h" tabindex="-1" style="margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.01em"><span class="hg-sr">Step 2: </span>The seven checks</h2>
+    </div>
+    <span style="font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums">{{rollup}}</span>
+  </div>
+  <p style="margin: 0; font-size: 13px; line-height: 1.45; color: var(--text-secondary)">{{intro}}</p>
+
+  <sc-if value="{{showLock}}" hint-placeholder-val="{{false}}">
+    <dc-import name="InlineAlert" tone="neutral" icon="lock" heading="{{lockTitle}}" body="{{lockBody}}" action-label="{{lockLink}}" action-href="{{lockHref}}" action-variant="tertiary" w="{{w}}" hint-size="{{w}}px,100px"></dc-import>
+  </sc-if>
+  <sc-if value="{{showList}}" hint-placeholder-val="{{false}}">
+    <dc-import name="InlineAlert" tone="{{listTone}}" blocking="{{listBlocking}}" heading="{{listTitle}}" list="{{listStr}}" foot="{{listFoot}}" action-label="{{listAction}}" action-icon="refresh" action-variant="tertiary" w="{{w}}" hint-size="{{w}}px,160px"></dc-import>
+  </sc-if>
+  <sc-if value="{{showComputed}}" hint-placeholder-val="{{false}}">
+    <dc-import name="InlineAlert" tone="neutral" icon="{{compIcon}}" heading="{{compTitle}}" body="{{compBody}}" foot="{{compFoot}}" link-label="{{compLinkLabel}}" link-href="{{compHref}}" needs="{{compNeeds}}" w="{{w}}" hint-size="{{w}}px,160px"></dc-import>
+  </sc-if>
+
+  <sc-if value="{{isLoading}}" hint-placeholder-val="{{false}}">
+    <div aria-busy="true" style="display: flex; flex-direction: column; gap: 6px">
+      <span role="status" style="font-size: 13px; color: var(--text-secondary)">Loading the recorded results</span>
+      <sc-for list="{{seven}}" as="k" hint-placeholder-count="7"><span class="hg-skel" style="display: block; height: 48px; border-radius: 8px"></span></sc-for>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{notLoading}}" hint-placeholder-val="{{true}}">
+    <ol aria-label="The seven checks, in their fixed order" style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: 12px; overflow: hidden">
+      <sc-for list="{{rows}}" as="r" hint-placeholder-count="7">
+        <li style="display: flex; flex-direction: column; gap: 4px; padding: 2px 10px; border-top: {{r.sep}}; background: {{r.bg}}">
+          <div role="group" aria-labelledby="{{r.id}}" style="display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; align-items: center; gap: 8px; min-height: 44px">
+            <span aria-hidden="true" style="font-family: var(--font-mono); font-size: 13px; font-weight: 600">{{r.key}}</span>
+            <span style="display: flex; flex-direction: column; min-width: 0; line-height: 1.3; padding: 2px 0">
+              <span id="{{r.id}}" style="font-size: 13px; font-weight: {{r.fw}}"><span class="hg-sr">{{r.key}} </span>{{r.name}}</span>
+              <span style="font: var(--text-type-body-sm); color: var(--text-secondary)">{{r.sub}}</span>
+            </span>
+            <span style="display: flex; align-items: center; justify-content: flex-end; gap: 6px">
+              <sc-if value="{{r.isLocked}}" hint-placeholder-val="{{false}}">
+                <span aria-label="{{r.lockLabel}}" role="img" style="display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 4px; font-size: 13px"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="lock" size="sm" color="var(--text-secondary)"></x-import><strong aria-hidden="true">{{r.result}}</strong></span>
+              </sc-if>
+              <sc-if value="{{r.isRo}}" hint-placeholder-val="{{false}}">
+                <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="{{r.bv}}" icon="{{r.bi}}" size="md">{{r.result}}</x-import>
+              </sc-if>
+              <sc-if value="{{r.isEdit}}" hint-placeholder-val="{{true}}">
+                <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.RadioGroup" label="{{r.groupLabel}}" hide-label="{{yes}}" name="{{r.group}}" orientation="horizontal" size="{{twenty}}" value="{{r.val}}" options="{{r.opts}}" disabled="{{r.dis}}"></x-import>
+              </sc-if>
+            </span>
+          </div>
+          <sc-if value="{{r.hasNote}}" hint-placeholder-val="{{false}}">
+            <sc-if value="{{ov422}}" hint-placeholder-val="{{false}}">
+              <dc-import name="InlineAlert" tone="warning" blocking="{{yes}}" heading="Address match wasn’t recorded" body="The server needs a note of at least 20 characters when your result differs from the suggestion. Your choice is still selected." w="{{noteW}}" hint-size="{{noteW}}px,110px"></dc-import>
+            </sc-if>
+            <dc-import name="Textarea" tid="ov-note" label="Why you disagree with the suggestion (required)" required="{{yes}}" helper="Say why they’re the same premises and which page shows it. At least 20 characters. Shown in the halal register report." value="{{ovValue}}" count="{{ovCount}}" error="{{ovError}}" focused="{{ovFocus}}" ro="{{ovRo}}" rows="2" w="{{noteW}}" hint-size="{{noteW}}px,170px"></dc-import>
+          </sc-if>
+          <sc-if value="{{r.showRecord}}" hint-placeholder-val="{{false}}">
+            <div style="display: flex; align-items: center; justify-content: flex-end; gap: 12px; padding-bottom: 4px">
+              <span style="flex: 1 1 auto; font: var(--text-type-body-sm); color: var(--text-secondary)">{{r.recLine}}</span>
+              <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="secondary" size="sm" loading="{{r.busy}}" disabled="{{r.recOff}}" accessibility-label="{{r.recLabel}}">{{r.recText}}</x-import>
+            </div>
+          </sc-if>
+        </li>
+      </sc-for>
+    </ol>
+  </sc-if>
+  <p style="margin: 0; font: var(--text-type-body-sm); color: var(--text-secondary)">A result against the suggestion needs a note of 20 or more characters. Dates valid and Unique, not reused are set by the server and can’t be overridden. Everything here is audited with your account and the time.</p>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"variant":{"editor":"enum","options":["untranscribed","progress","allpass","onefail","loading","readonly","rejected","other","unclaimed","inspect","waiting","withdrawn","errors","blocked","saving","savefail","locklost","drafted","h5fail","h7fail","h2fail","h6fail","proposed","waitingbody","override","overrideshort","override422"],"default":"progress"},"who":{"editor":"enum","options":["karahi","zaytoun","noor"],"default":"karahi"},"w":{"editor":null,"default":490},"$preview":{"width":490,"height":720}}'>
+class Component extends DCLogic {
+  renderVals() {
+    // Proposed component: SevenChecks. The DS HalalChecklist draws each check as a ~250px card, so
+    // seven of them never fit the console without scrolling (owner layout rule). This composite
+    // keeps its rules (fixed order, H5/H7 locked, suggestions, a 20-character note on any override,
+    // "Not recorded" never pre-filled) in one 44px row per check, built from DS RadioGroup, Badge,
+    // Icon and Button. The notes are in Checks-Gaps.
+    const v = this.props.variant ?? 'progress';
+    const who = this.props.who ?? 'karahi';
+    const noor = who === 'noor';
+    const w = this.props.w ?? 490;
+    const P = 'PASS', F = 'FAIL', N = 'NOT_ASSESSED';
+    const LBL = { PASS: 'Pass', FAIL: 'Fail', NOT_ASSESSED: 'Not assessed' };
+    const NAMES = { H1: 'Legible and complete', H2: 'Issuer accepted', H3: 'Name match', H4: 'Address match', H5: 'Dates valid', H6: 'Scope sufficient', H7: 'Unique, not reused' };
+    const at = noor ? '10:52 am, 20 October 2025' : '1:58 pm';
+    const rec = (result, computed, note) => ({ result, computed: computed || null, note: note || null });
+    const base = {
+      H1: rec(P), H2: rec(P, P), H3: rec(P, P),
+      H4: noor ? rec(P, P) : rec(P, F, 'note'),
+      H5: rec(P, P), H6: rec(P), H7: rec(P, P),
+    };
+    const pick = (keys, over) => { const o = {}; keys.forEach((k) => { o[k] = (over && over[k]) || base[k]; }); return o; };
+    const five = ['H1', 'H2', 'H3', 'H5', 'H7'];
+    const all = ['H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'H7'];
+    const sets = {
+      untranscribed: {}, blocked: {}, loading: {},
+      proposed: pick(['H5', 'H7']), waitingbody: pick(['H5', 'H7']),
+      progress: pick(five), savefail: pick(five), override: pick(five), overrideshort: pick(five), override422: pick(five),
+      locklost: pick(five), drafted: pick(five), inspect: pick(five), withdrawn: pick(five),
+      saving: pick(['H1', 'H2', 'H3', 'H5', 'H7']),
+      allpass: pick(all), readonly: pick(all), waiting: pick(all),
+      rejected: pick(all, { H6: rec(F) }),
+      other: pick(['H1', 'H2', 'H3']), unclaimed: pick(['H1', 'H2', 'H3']),
+      onefail: pick(all, { H6: rec(F) }), h6fail: pick(all, { H6: rec(F) }),
+      errors: pick(five, { H7: rec(N, null) }),
+      h5fail: pick(all, { H5: rec(F, F) }),
+      h7fail: pick(all, { H7: rec(F, F) }),
+      h2fail: pick(all, { H2: rec(F, F) }),
+    };
+    const recs = sets[v] || {};
+    const ro = ['readonly', 'rejected', 'other', 'unclaimed', 'inspect', 'waiting', 'waitingbody', 'withdrawn', 'untranscribed', 'blocked', 'locklost'].includes(v);
+    const lost = v === 'locklost';
+    // Open rows: unrecorded or restricted judgements. sugg = the server's suggestion; restrict = only Fail / Not assessed.
+    const h4Sugg = { sugg: 'Fail', why: 'The certified address text differs from the premises on the application.' };
+    const h6Sugg = { sugg: 'Pass', why: 'The saved scope is Whole establishment.' };
+    const h6Lock = { restrict: 'Scope is Supplier chain only: only Whole establishment or Kitchen only passes.' };
+    const opens = {
+      progress: { H4: h4Sugg, H6: h6Sugg }, errors: { H4: h4Sugg, H6: h6Sugg },
+      saving: { H4: Object.assign({ sel: P, busy: true }, h4Sugg), H6: h6Sugg },
+      savefail: { H4: Object.assign({ sel: P, note: true }, h4Sugg), H6: h6Sugg },
+      override: { H4: Object.assign({ sel: P, note: true }, h4Sugg), H6: h6Sugg },
+      overrideshort: { H4: Object.assign({ sel: P, note: true }, h4Sugg), H6: h6Sugg },
+      override422: { H4: Object.assign({ sel: P, note: true }, h4Sugg), H6: h6Sugg },
+      drafted: { H4: Object.assign({ sel: P, note: true }, h4Sugg), H6: h6Sugg },
+      locklost: { H4: Object.assign({ sel: P, note: true }, h4Sugg), H6: h6Sugg },
+      onefail: { H6: Object.assign({ sel: F, recorded: true }, h6Lock) },
+      h6fail: { H6: Object.assign({ sel: F, recorded: true }, h6Lock) },
+      proposed: {
+        H1: {}, H2: { restrict: 'HCCO is only proposed. Only an Accepted body passes this check.' },
+        H3: { sugg: 'Pass', why: 'The certified legal name matches the application.' }, H4: h4Sugg, H6: h6Sugg,
+      },
+      h2fail: { H2: { sel: F, recorded: true, restrict: 'HFSAA is Suspended in the registry. Only an Accepted body passes this check.' } },
+    };
+    const open = opens[v] || {};
+    const three = [{ value: P, label: 'Pass' }, { value: F, label: 'Fail' }, { value: N, label: 'Not assessed' }];
+    const two = [{ value: F, label: 'Fail' }, { value: N, label: 'Not assessed' }];
+    const rows = ['H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'H7'].map((k, i) => {
+      const r = recs[k];
+      const o = open[k];
+      const server = k === 'H5' || k === 'H7';
+      const base = { key: k, name: NAMES[k], id: 'chk-' + k, group: 'chk-' + k + '-r', sep: i === 0 ? 'none' : '1px solid var(--border-decorative)', fw: '600', bg: 'transparent',
+        isLocked: false, isRo: false, isEdit: false, result: '', bv: 'neutral', bi: undefined, opts: three, val: null, dis: undefined,
+        groupLabel: k + ' ' + NAMES[k] + ' result', sub: '', hasNote: false, showRecord: false, recLine: '', recText: 'Record ' + NAMES[k], recOff: undefined, recLabel: 'Record ' + NAMES[k], busy: undefined, lockLabel: '' };
+      if (server) {
+        const res = r ? LBL[r.result] : 'Not computed yet';
+        return Object.assign(base, { isLocked: true, result: res, lockLabel: k + ' ' + NAMES[k] + ', computed by the server: ' + res + '. Locked.',
+          sub: r ? (r.result === F ? 'Computed Fail · locked for everyone' : 'Computed by the server · locked') : 'Computed when the transcription is saved' });
+      }
+      if (ro || !o && !(r)) {
+        // read-only, or an editable page with this row not recorded yet (handled below when editable)
+      }
+      if (ro) {
+        if (!r) return Object.assign(base, { isRo: true, result: 'Not recorded', bv: 'neutral', sub: v === 'untranscribed' ? 'Opens after step 1 is saved' : 'Not recorded' });
+        const ovr = r.computed && r.computed !== r.result;
+        return Object.assign(base, { isRo: true, result: LBL[r.result], bv: r.result === P ? 'outline' : 'neutral', bi: r.result === P ? 'check' : undefined,
+          sub: (ovr ? 'Override of the suggestion (' + LBL[r.computed] + '), note saved · ' : r.computed ? 'Matches the suggestion · ' : '') + 'recorded ' + at });
+      }
+      if (o) {
+        const restricted = !!o.restrict;
+        const sub = restricted ? 'Pass isn’t offered. ' + o.restrict : o.sugg ? 'Suggested: ' + o.sugg + '. ' + o.why : 'Nothing is chosen for you.';
+        const sel = o.sel || null;
+        const openRow = !o.recorded;
+        const off = lost || !sel || (o.note && v === 'override');
+        const recLine = o.recorded ? '' : lost ? 'Can’t be sent: your claim ended at 2:48 pm.' : v === 'savefail' && k === 'H4' ? 'Not sent: the connection dropped. Record it again.' : !sel ? 'Choose a result first.' : (o.note && v === 'override') ? 'Write the note first.' : o.note ? 'Your choice differs from the suggestion, so the note is sent with it.' : 'Recorded when you press Record.';
+        return Object.assign(base, { isEdit: true, opts: restricted ? two : three, val: sel, dis: lost ? true : undefined,
+          sub: o.recorded ? sub + ' Recorded as Fail at ' + (k === 'H2' ? '1:58 pm' : '2:02 pm') + '.' : sub,
+          fw: openRow ? '700' : '600', bg: openRow ? 'var(--state-selected-tint)' : 'transparent',
+          hasNote: !!o.note, showRecord: openRow, recLine, busy: o.busy ? true : undefined,
+          recText: o.busy ? 'Recording ' + NAMES[k] : 'Record ' + NAMES[k],
+          recOff: off ? true : undefined,
+          recLabel: lost ? 'Record ' + NAMES[k] + ', unavailable: your claim ended at 2:48 pm' : !sel ? 'Record ' + NAMES[k] + ', unavailable: choose a result first' : (o.note && v === 'override') ? 'Record ' + NAMES[k] + ', unavailable: the note needs at least 20 characters' : 'Record ' + NAMES[k] });
+      }
+      if (r) {
+        const ovr = r.computed && r.computed !== r.result;
+        return Object.assign(base, { isEdit: true, val: r.result,
+          sub: (ovr ? 'Override of the suggestion (' + LBL[r.computed] + '), note saved · ' : r.computed ? 'Suggested: ' + LBL[r.computed] + ' · ' : '') + 'recorded ' + at });
+      }
+      return Object.assign(base, { isRo: true, result: 'Not recorded', sub: 'Not recorded' });
+    });
+    const counts = { rec: 0, pass: 0, fail: 0, na: 0 };
+    ['H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'H7'].forEach((k) => { const r = recs[k]; if (r) { counts.rec++; if (r.result === P) counts.pass++; else if (r.result === F) counts.fail++; else counts.na++; } });
+    const rollup = v === 'loading' ? 'Loading' : counts.rec + ' of 7 recorded · ' + counts.pass + ' pass · ' + counts.fail + ' fail' + (counts.na ? ' · ' + counts.na + ' not assessed' : '');
+    const unclaimedLock = ['Read-only: nobody has claimed this application', 'Recording needs the claim on its application. Only Take next claims, oldest first.', 'Queue.dc.html', 'Go to the applications queue'];
+    const lock = {
+      untranscribed: ['Step 2 opens after step 1', 'Save the transcription first so the system can suggest the issuer, name and address checks and compute Dates valid and Unique, not reused.', '', ''],
+      blocked: ['Nothing to check against', 'There’s no certificate document, so no check can be recorded. Ask the restaurant for a new certificate below.', '', ''],
+      other: ['Read-only: another reviewer holds this until 2:32 pm', 'You see what they have recorded so far.', '', ''],
+      unclaimed: unclaimedLock, inspect: unclaimedLock,
+      waiting: ['Read-only: waiting on the restaurant', 'Changes were requested on 27 September 2026. Recording opens again when they resubmit and the application is claimed.', '', ''],
+      withdrawn: ['Read-only: application withdrawn', 'The restaurant withdrew this application on 27 September 2026.', '', ''],
+      locklost: ['Recording is off: your claim ended at 2:48 pm', 'Your Address match choice and note stay here so you can copy them. They can’t be sent.', 'Queue.dc.html', 'Go to the applications queue'],
+    }[v];
+    const R = (k, n, s) => k + ' ' + n + ': ' + s;
+    const lists = {
+      errors: { tone: 'warning', blocking: true, title: 'Not approved: 3 checks aren’t Pass', items: [R('H4', 'Address match', 'not recorded'), R('H6', 'Scope sufficient', 'not recorded'), R('H7', 'Unique, not reused', 'not assessed')], foot: 'The server needs all seven recorded as Pass. For Unique, not reused, save the transcription again to re-run the computed checks. Nothing was changed.' },
+      savefail: { tone: 'warning', blocking: true, title: 'H4 Address match wasn’t recorded', items: [], foot: 'The connection dropped before the server answered. Your choice and note are still below. Nothing was changed.', action: 'Record Address match again' },
+    };
+    const l = lists[v];
+    const rejectFor = { h5fail: 'Verify-RejectH5.dc.html', h7fail: 'Verify-RejectH7.dc.html', h2fail: 'Verify-RejectH2.dc.html' };
+    const comp = {
+      h5fail: ['lock', 'H5 Dates valid, computed: Fail', 'Expires 14 October 2026, 16 days from today. Approval needs at least 30 days left. No one can override it.', 'Reject… opens with the reason Expired or expiring already chosen.', ''],
+      h7fail: ['lock', 'H7 Unique, not reused, computed: Fail', 'Certificate HMA-ON-2026-0417 from this issuer is already approved for another restaurant. No one can override it.', 'Reject… opens with the reason Already used by another restaurant already chosen.', ''],
+      h2fail: ['lock', 'H2 Issuer accepted: Fail', 'HFSAA is Suspended in the registry, so Issuer accepted can’t pass. Only Fail or Not assessed can be recorded.', 'Reject… opens with the reason Issuer not accepted already chosen.', 'the server refusing Issuer accepted Pass when the body isn’t Accepted'],
+      onefail: ['lock', 'Scope sufficient (H6) can’t pass with this scope', 'The scope was saved as Supplier chain only. Only Whole establishment and Kitchen only pass Scope sufficient.', 'Reject… opens with the reason Scope doesn’t cover this restaurant already chosen.', 'the server refusing Scope sufficient Pass for a scope other than Whole establishment or Kitchen only'],
+      h6fail: ['lock', 'Scope sufficient (H6) can’t pass with this scope', 'The scope was saved as Supplier chain only. Only Whole establishment and Kitchen only pass Scope sufficient.', 'Reject… opens with the reason Scope doesn’t cover this restaurant already chosen.', 'the server refusing Scope sufficient Pass for a scope other than Whole establishment or Kitchen only'],
+    }[v];
+    const intros = {
+      readonly: 'Read-only. The results recorded for this certificate.',
+      waitingbody: 'Read-only while the application waits on the certifying body. The next reviewer picks up from these results.',
+      rejected: 'Read-only. The results recorded when the certificate was rejected.',
+      loading: 'Loading the recorded results.',
+      other: 'Read-only while another reviewer holds the claim.',
+      unclaimed: 'Read-only until the application is claimed.', inspect: 'Read-only until the application is claimed.',
+      waiting: 'Read-only: the application is waiting on the restaurant.', withdrawn: 'Read-only: the restaurant withdrew this application.',
+      locklost: 'Recording is off: your claim ended at 2:48 pm.',
+      untranscribed: 'Opens once the transcription is saved.', blocked: 'Nothing can be recorded without a document.',
+    };
+    const ovValue = v === 'override' ? '' : (v === 'overrideshort' || v === 'override422') ? 'Same building.' : 'Same premises: Scarborough is part of Toronto and Kennedy Road is written out in full. Unit and postal code match. Page 1.';
+    const stepOn = !ro && v !== 'loading';
+    return {
+      yes: true, twenty: 20, w, wcss: w + 'px', noteW: w - 24, seven: [1, 2, 3, 4, 5, 6, 7],
+      rollup, rows,
+      intro: intros[v] || 'A suggestion is a hint, not an answer. Not assessed blocks approval, like Fail.',
+      stepBg: stepOn ? 'var(--surface-chrome)' : 'var(--surface-sunken)',
+      stepFg: stepOn ? 'var(--text-on-accent)' : 'var(--text-secondary)',
+      showLock: !!lock, lockTitle: lock ? lock[0] : '', lockBody: lock ? lock[1] : '', lockHref: lock && lock[2] ? lock[2] : '', lockLink: lock ? lock[3] : '',
+      showList: !!l, listTone: l ? l.tone : 'neutral', listBlocking: !!(l && l.blocking), listTitle: l ? l.title : '', listFoot: l ? l.foot : '',
+      listStr: l ? l.items.join('|') : '', listAction: l && l.action ? l.action : '',
+      showComputed: !!comp, compIcon: comp ? comp[0] : 'info', compTitle: comp ? comp[1] : '', compBody: comp ? comp[2] : '', compFoot: comp ? comp[3] : '', compNeeds: comp ? comp[4] : '',
+      compHref: rejectFor[v] || (v === 'onefail' || v === 'h6fail' ? 'Verify-Reject.dc.html' : ''), compLinkLabel: comp ? 'Reject…' : '',
+      isLoading: v === 'loading', notLoading: v !== 'loading',
+      ov422: v === 'override422',
+      ovValue, ovCount: ovValue.length + ' of 1000 characters · minimum 20',
+      ovError: v === 'overrideshort' ? 'Add at least 6 more characters. Say why they’re the same premises and which page shows it.' : v === 'override422' ? 'Write at least 20 characters, with the certificate page that shows the address. The server refused a shorter note.' : '',
+      ovFocus: v === 'override', ovRo: lost,
+    };
+  }
+}
+</script>
+</body>
+</html>

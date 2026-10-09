@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SevenChecks proposal</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:var(--surface-base);color:var(--text-primary);font-family:var(--font-ui)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+textarea.hg-ta:focus{outline:none;border:var(--focus-field-border-width) solid var(--focus-ring)}
+textarea.hg-ta[aria-invalid="true"]{border:var(--focus-field-border-width) solid var(--color-danger-500)}
+textarea.hg-ta[aria-invalid="true"]:focus{box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+.skip{position:absolute;left:-10000px;top:8px;z-index:900;padding:12px 16px;background:var(--surface-raised);color:var(--text-primary);border-radius:8px;font-weight:600}
+.skip:focus{left:16px;outline:none;box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+</style>
+</helmet>
+<div style="width: 1128px; height: 1100px; box-sizing: border-box; padding: 24px; display: flex; flex-direction: column; gap: 16px; background: var(--surface-base); font-family: var(--font-ui); color: var(--text-primary)">
+  <h1 style="margin: 0; font-size: 24px; font-weight: 700; letter-spacing: -0.01em">Proposed component: SevenChecks</h1>
+  <p style="margin: 0; max-width: 900px; font-size: 15px; line-height: 1.5; color: var(--text-secondary)">The owner asked for the verification console to show the application, the certificate and all seven checks together without scrolling. The design system’s HalalChecklist draws each check as a card about 250px tall, so seven of them never fit. SevenChecks keeps every HalalChecklist rule in one 44px row per check, built only from DS RadioGroup, Badge, Icon, Button and the Textarea proposal.</p>
+  <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg" padding="16px">
+    <section style="display: flex; flex-direction: column; gap: 8px; font-size: 15px; line-height: 1.5">
+      <h2 style="margin: 0; font-size: 18px; font-weight: 600">What it keeps from HalalChecklist</h2>
+      <ul style="margin: 0; padding-left: 20px">
+        <li>The fixed order (keys H1 to H7) with the plain names.</li>
+        <li>H5 Dates valid and H7 Unique, not reused computed by the server, locked for everyone, with a lock glyph and the result in words.</li>
+        <li>The system suggestion shown as a hint, never pre-selected. Nothing is chosen for you.</li>
+        <li>A result against the suggestion needs a note of at least 20 characters.</li>
+        <li>Pass, Fail or Not assessed in words, never colour alone. No red and no green fill.</li>
+        <li>Unrecorded rows stay unrecorded (“Not recorded”), with their own Record button.</li>
+      </ul>
+    </section>
+</x-import><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg" padding="16px">
+    <section style="display: flex; flex-direction: column; gap: 8px; font-size: 15px; line-height: 1.5">
+      <h2 style="margin: 0; font-size: 18px; font-weight: 600">What HalalChecklist would need to replace it</h2>
+      <ul style="margin: 0; padding-left: 20px">
+        <li>A compact density: one row per check, the note field only when a note is needed.</li>
+        <li>An unrecorded row (checked_at empty): no option selected, still recordable.</li>
+        <li>Restricted options per row: H2 Issuer accepted and H6 Scope sufficient offer only Fail and Not assessed when the issuer isn’t Accepted or the scope can’t pass.</li>
+        <li>The decision footer as a separate part, so the console can dock it at the bottom of the checks pane.</li>
+        <li>The transcription block as a separate part: the console shows it in its own pane beside the application.</li>
+      </ul>
+    </section>
+</x-import>
+  </div>
+  <section aria-label="Example" style="width: 516px; box-sizing: border-box; min-width: 0; min-height: 0; display: flex; flex-direction: column; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: 12px; overflow: hidden"><div style="padding: 12px"><dc-import name="Checks" variant="progress" w="490" hint-size="490px,560px"></dc-import></div><dc-import name="DecisionBar" variant="progress" w="514" hint-size="514px,150px"></dc-import></section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1128,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { yes: true, no: false, noop: () => {} };
+  }
+}
+</script>
+</body>
+</html>

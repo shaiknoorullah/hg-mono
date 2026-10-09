@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Item details panel (part)</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}.hg-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}</style>
+</helmet>
+<aside id="item-panel" aria-labelledby="item-panel-h" style="width: {{w}}px; height: {{h}}px; box-sizing: border-box; display: flex; flex-direction: column; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: var(--radius-md); overflow: hidden; font-family: var(--font-ui); color: var(--text-primary);">
+  <div style="display: flex; align-items: flex-start; gap: var(--space-2); padding: var(--space-3) var(--space-2) var(--space-3) var(--space-4); border-bottom: 1px solid var(--border-decorative); flex-shrink: 0;">
+    <div style="display: flex; flex-direction: column; gap: 6px; flex-grow: 1; min-width: 0;">
+      <span style="font: var(--text-type-body-sm); color: var(--text-secondary);">{{p.cat}} · item details</span>
+      <h2 id="item-panel-h" tabindex="-1" style="margin: 0; font: var(--text-type-heading-md);">{{p.name}}</h2>
+      <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="{{p.rv.v}}" icon="{{p.rv.i}}" size="md" hint-size="110px,22px">{{p.rv.t}}</x-import>
+      </div>
+    </div>
+    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.IconButton" icon="close" accessibility-label="{{p.closeLabel}}" size="md" hint-size="44px,44px"></x-import>
+  </div>
+
+  <div style="flex-grow: 1; min-height: 0; overflow: auto; padding: var(--space-4); display: flex; flex-direction: column; gap: 18px;">
+    <sc-if value="{{p.rejected}}" hint-placeholder-val="{{false}}">
+      <section aria-labelledby="rr-h" role="status" style="display: flex; flex-direction: column; gap: 6px; padding: var(--space-3) 14px; border-radius: var(--radius-md); background: var(--feedback-warning-tint); border: 1px solid var(--feedback-warning-border);">
+        <h3 id="rr-h" style="margin: 0; display: flex; gap: var(--space-2); align-items: center; font: var(--text-type-label-lg); color: var(--feedback-warning-tint-text);"><span style="display: inline-flex; color: var(--feedback-warning-icon);"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="warning" size="md" hint-size="20px,20px"></x-import></span>{{p.headline}}</h3>
+        <sc-if value="{{p.hasNote}}" hint-placeholder-val="{{true}}">
+          <span style="font: var(--text-type-body-md); color: var(--text-primary);">Reviewer’s note: “{{p.note}}”</span>
+        </sc-if>
+        <sc-if value="{{p.hasNext}}" hint-placeholder-val="{{false}}">
+          <span style="font: var(--text-type-body-md); color: var(--text-primary);">What to do: {{p.next}}</span>
+        </sc-if>
+        <span style="font: var(--text-type-body-sm); color: var(--feedback-warning-tint-text);">Reviewed {{p.reviewedOn}}. {{p.stillLive}}</span>
+      </section>
+    </sc-if>
+
+    <sc-if value="{{p.blocked}}" hint-placeholder-val="{{false}}">
+      <section role="status" style="display: flex; flex-direction: column; gap: 6px; padding: var(--space-3) 14px; border-radius: var(--radius-md); background: var(--surface-subtle); border: 1px solid var(--border-interactive);">
+        <span style="display: flex; gap: var(--space-2); align-items: center; font: var(--text-type-label-lg);"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="lock" size="md" hint-size="20px,20px"></x-import>HalalGoes blocked this item</span>
+        <span style="font: var(--text-type-body-md);">You can’t change its availability or edit it. Contact support to find out why and what to change.</span>
+        <span style="display: inline-flex; align-self: flex-start; padding: 1px 6px; border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); background: var(--feedback-info-tint); font: var(--text-type-mono-sm); color: var(--feedback-info-tint-text);">Needs API: the admin’s reason for the block, on the item. When it exists, the reason shows here word for word</span>
+      </section>
+    </sc-if>
+
+    <section aria-labelledby="cs-h" style="display: flex; flex-direction: column; gap: 10px;">
+      <div style="display: flex; align-items: baseline; gap: var(--space-2); flex-wrap: wrap;">
+        <h3 id="cs-h" style="margin: 0; font: var(--text-type-label-lg);">What customers see</h3>
+        <span style="font: var(--text-type-body-sm); color: var(--text-secondary);">{{cs.caption}}</span>
+      </div>
+      <sc-if value="{{cs.compare}}" hint-placeholder-val="{{false}}">
+        <div aria-hidden="true" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2); font: var(--text-type-label-md); color: var(--text-secondary);">
+          <span>{{cs.leftHead}}</span><span>{{cs.rightHead}}</span>
+        </div>
+      </sc-if>
+      <sc-for list="{{cs.fields}}" as="f" hint-placeholder-count="5">
+        <div role="group" aria-label="{{f.label}}" style="{{f.boxStyle}}">
+          <div style="display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap;">
+            <span style="font: var(--text-type-label-md); color: var(--text-secondary);">{{f.label}}</span>
+            <sc-if value="{{f.flagged}}" hint-placeholder-val="{{false}}">
+              <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="warning" icon="warning" size="sm" hint-size="150px,18px">Flagged by the reviewer</x-import>
+            </sc-if>
+            <sc-if value="{{f.changedOnly}}" hint-placeholder-val="{{false}}">
+              <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="outline" size="sm" hint-size="70px,18px">Changed</x-import>
+            </sc-if>
+          </div>
+          <sc-if value="{{f.single}}" hint-placeholder-val="{{true}}">
+            <sc-if value="{{f.isPhoto}}" hint-placeholder-val="{{false}}">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <span role="img" aria-label="{{f.a.alt}}" style="width: 56px; height: 56px; flex-shrink: 0; border-radius: var(--radius-sm); background: var(--surface-subtle); border: 1px solid var(--border-decorative); display: flex; align-items: center; justify-content: center; font: var(--text-type-mono-sm); color: var(--text-secondary);">Photo</span>
+                <span style="font: var(--text-type-body-sm); line-height: var(--type-caption-line); color: var(--text-secondary);">{{f.a.alt}}</span>
+              </div>
+            </sc-if>
+            <sc-if value="{{f.isText}}" hint-placeholder-val="{{true}}">
+              <span style="font: var(--text-type-body-md); line-height: var(--type-body-sm-line); color: {{f.a.color}};">{{f.a.text}}</span>
+            </sc-if>
+            <sc-if value="{{f.isTags}}" hint-placeholder-val="{{false}}">
+              <span style="display: flex; gap: 6px; flex-wrap: wrap;">
+                <sc-for list="{{f.a.tags}}" as="tg" hint-placeholder-count="2">
+                  <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="outline" size="sm" hint-size="80px,18px">{{tg}}</x-import>
+                </sc-for>
+                <sc-if value="{{f.a.none}}" hint-placeholder-val="{{false}}">
+                  <span style="font: var(--text-type-body-md); color: var(--text-secondary);">{{f.a.noneText}}</span>
+                </sc-if>
+              </span>
+            </sc-if>
+          </sc-if>
+          <sc-if value="{{f.pair}}" hint-placeholder-val="{{false}}">
+            <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2);">
+              <sc-for list="{{f.sides}}" as="sd" hint-placeholder-count="2">
+                <div style="display: flex; flex-direction: column; gap: var(--space-1); min-width: 0;">
+                  <span class="hg-sr">{{sd.head}}:</span>
+                  <sc-if value="{{f.isPhoto}}" hint-placeholder-val="{{false}}">
+                    <span role="img" aria-label="{{sd.v.alt}}" style="width: 56px; height: 56px; border-radius: var(--radius-sm); background: var(--surface-subtle); border: 1px solid var(--border-decorative); display: flex; align-items: center; justify-content: center; font: var(--text-type-mono-sm); color: var(--text-secondary);">Photo</span>
+                    <span style="font: var(--text-type-body-sm); line-height: var(--type-caption-line); color: var(--text-secondary);">{{sd.v.alt}}</span>
+                  </sc-if>
+                  <sc-if value="{{f.isText}}" hint-placeholder-val="{{true}}">
+                    <span style="font: var(--text-type-body-sm); color: {{sd.v.color}};">{{sd.v.text}}</span>
+                  </sc-if>
+                  <sc-if value="{{f.isTags}}" hint-placeholder-val="{{false}}">
+                    <span style="font: var(--text-type-body-sm);">{{sd.v.joined}}</span>
+                  </sc-if>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+        </div>
+      </sc-for>
+      <span style="font: var(--text-type-body-sm); line-height: var(--type-caption-line); color: var(--text-secondary);">Dietary tags describe the recipe. They never describe halal certification.</span>
+    </section>
+
+    <section aria-labelledby="kv-h" style="display: flex; flex-direction: column; gap: var(--space-2);">
+      <h3 id="kv-h" class="hg-sr">Summary</h3>
+      <dl style="margin: 0; display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 10px var(--space-3); font: var(--text-type-body-md); align-items: center;">
+        <dt style="font: var(--text-type-label-md); color: var(--text-secondary);">Price</dt>
+        <dd style="margin: 0;"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{p.price}}" size="md" hint-size="70px,22px"></x-import></dd>
+        <dt style="font: var(--text-type-label-md); color: var(--text-secondary);">Availability</dt>
+        <dd style="margin: 0;">
+          <sc-if value="{{p.canSwitch}}" hint-placeholder-val="{{true}}">
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Switch" label="{{p.switchLabel}}" state-label="{{availWords}}" checked="{{p.on}}" hint-size="200px,44px"></x-import>
+          </sc-if>
+          <sc-if value="{{p.availText}}" hint-placeholder-val="{{false}}">
+            <span>{{p.availWords}}</span>
+          </sc-if>
+        </dd>
+        <dt style="font: var(--text-type-label-md); color: var(--text-secondary);">Category</dt>
+        <dd style="margin: 0;">{{p.cat}}</dd>
+        <dt style="font: var(--text-type-label-md); color: var(--text-secondary);">Prep time</dt>
+        <dd style="margin: 0; font-variant-numeric: tabular-nums;">{{p.prep}}</dd>
+      </dl>
+      <span style="display: inline-flex; align-self: flex-start; padding: 1px var(--space-2); border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); background: var(--surface-base); font: var(--text-type-mono-sm); color: var(--text-secondary);">Proposed component: KeyValueList (owner approved it for the design system)</span>
+    </section>
+
+    <section aria-labelledby="opt-h" style="display: flex; flex-direction: column; gap: var(--space-2);">
+      <h3 id="opt-h" style="margin: 0; font: var(--text-type-label-lg);">Sizes and add-ons</h3>
+      <sc-if value="{{p.noGroups}}" hint-placeholder-val="{{false}}">
+        <span style="font: var(--text-type-body-md); color: var(--text-secondary);">This item has no sizes or add-ons.</span>
+      </sc-if>
+      <sc-for list="{{p.groups}}" as="g" hint-placeholder-count="1">
+        <div style="display: flex; flex-direction: column; gap: 2px;">
+          <span style="display: flex; gap: var(--space-2); align-items: baseline; flex-wrap: wrap;"><span style="font: var(--text-type-label-md); color: var(--text-secondary);">{{g.kind}}</span><span style="font: var(--text-type-label-lg);">{{g.name}}</span><span style="font: var(--text-type-body-sm); color: var(--text-secondary);">{{g.rule}}</span></span>
+          <ul style="list-style: none; margin: 0; padding: 0;">
+            <sc-for list="{{g.options}}" as="o" hint-placeholder-count="2">
+              <li style="display: flex; align-items: center; gap: var(--space-2); min-height: 44px; border-bottom: 1px solid var(--border-decorative); flex-wrap: wrap;">
+                <span style="flex-grow: 1; font: var(--text-type-body-md);">{{o.name}}</span>
+                <sc-if value="{{o.isDefault}}" hint-placeholder-val="{{false}}">
+                  <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="outline" size="sm" hint-size="60px,18px">Default</x-import>
+                </sc-if>
+                <sc-if value="{{o.off}}" hint-placeholder-val="{{false}}">
+                  <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="neutral" size="sm" hint-size="80px,18px">Unavailable</x-import>
+                </sc-if>
+                <span style="font: var(--text-type-body-sm); color: var(--text-secondary);">{{o.mode}}</span>
+                <sc-if value="{{o.hasPrice}}" hint-placeholder-val="{{true}}">
+                  <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{o.cents}}" sign="{{o.sign}}" size="sm" hint-size="56px,18px"></x-import>
+                </sc-if>
+              </li>
+            </sc-for>
+          </ul>
+        </div>
+      </sc-for>
+      <sc-if value="{{p.hasGroups}}" hint-placeholder-val="{{true}}">
+        <span style="display: inline-flex; align-self: flex-start; padding: 1px 6px; border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); background: var(--feedback-info-tint); font: var(--text-type-mono-sm); color: var(--feedback-info-tint-text);">{{p.optNeeds}}</span>
+      </sc-if>
+    </section>
+
+    <section aria-labelledby="live-h" style="display: flex; flex-direction: column; gap: var(--space-1); padding-top: var(--space-3); border-top: 1px solid var(--border-decorative);">
+      <h3 id="live-h" style="margin: 0; font: var(--text-type-label-lg);">How changes go live</h3>
+      <p style="margin: 0; font: var(--text-type-body-sm); color: var(--text-secondary);">{{p.liveText}}</p>
+    </section>
+  </div>
+
+  <div style="display: flex; gap: var(--space-2); justify-content: flex-end; flex-wrap: wrap; padding: var(--space-3) var(--space-4); border-top: 1px solid var(--border-decorative); flex-shrink: 0; position: relative;">
+    <span style="position: absolute; top: -10px; left: 16px; padding: 1px var(--space-2); border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); background: var(--surface-base); font: var(--text-type-mono-sm); color: var(--text-secondary);">Proposed component: DetailPanel (in-page, collapsible; never an overlay)</span>
+    <sc-if value="{{p.support}}" hint-placeholder-val="{{false}}">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="{{p.supportVariant}}" size="md" href="#" accessibility-label="{{p.supportLabel}}" hint-size="160px,44px">{{p.supportText}}</x-import>
+    </sc-if>
+    <sc-if value="{{p.canEdit}}" hint-placeholder-val="{{true}}">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md" accessibility-label="{{p.editLabel}}" hint-size="170px,44px">{{p.editText}}</x-import>
+    </sc-if>
+  </div>
+</aside>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"item":{"editor":"enum","options":["mixedgrill","shawarma","kofta","foul","tawook"],"default":"mixedgrill"},"v0":{"editor":"boolean","default":false},"w":{"editor":"int","default":420},"h":{"editor":"int","default":592},"$preview":{"width":420,"height":592}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const v0 = !!this.props.v0;
+    const RS = {
+      MISLEADING_DESCRIPTION: 'Description could mislead customers', UNSUBSTANTIATED_HALAL_CLAIM: 'Halal claim not supported',
+      INCORRECT_DIETARY_TAG: 'Dietary tag is not correct', MISSING_ALLERGEN: 'Missing allergen', PROHIBITED_ITEM: 'Item not allowed on HalalGoes', OTHER: 'Other reason',
+    };
+    const SHAWARMA = [
+      { kind: 'Size', name: 'Size', rule: 'Required · choose 1', options: [{ name: 'Regular', mode: 'DELTA', cents: 0, isDefault: true }, { name: 'Large', mode: 'ABSOLUTE', cents: 1999 }, { name: 'Family', mode: 'ABSOLUTE', cents: 4599, off: true }] },
+      { kind: 'Add-ons', name: 'Extras', rule: 'Optional · up to 3', options: [{ name: 'Garlic sauce', mode: 'ADDON', cents: 100 }, { name: 'Extra chicken', mode: 'ADDON', cents: 450, off: true }, { name: 'Pickled turnips', mode: 'ADDON', cents: 75 }] },
+    ];
+    const P = {
+      mixedgrill: { name: 'Mixed grill', cat: 'Mains', price: 4200, prep: '25 min', review: 'REJECTED', reason: 'MISLEADING_DESCRIPTION', reviewedOn: '26 September 2026', note: 'The photo shows four skewers but the description says three. Make them match.',
+        live: { photo: 'Three skewers on saffron rice with grilled tomato', desc: 'Chicken, lamb and beef kofta skewers on saffron rice.', ingr: 'Chicken, lamb, beef, rice, saffron, tomato, onion, spices', diet: [], allergens: [] },
+        sent: { photo: 'Four skewers on saffron rice with grilled tomato and peppers', desc: 'Three skewers (chicken, lamb and beef kofta) on saffron rice, with grilled tomato and peppers.', ingr: 'Chicken, lamb, beef, rice, saffron, tomato, peppers, onion, spices', diet: [], allergens: [] }, groups: [{ kind: 'Add-ons', name: 'Sides', rule: 'Optional · up to 2', options: [{ name: 'Rice', mode: 'ADDON', cents: 300 }, { name: 'Hummus', mode: 'ADDON', cents: 400, off: true }] }] },
+      shawarma: { name: 'Chicken shawarma plate', cat: 'Mains', price: 1699, prep: '12 min', review: 'LIVE', groups: SHAWARMA,
+        live: { photo: 'Sliced chicken shawarma with rice, salad and garlic sauce', desc: 'Marinated chicken, sliced from the spit, with rice, salad, pickles and garlic sauce.', ingr: 'Chicken, rice, lettuce, tomato, pickled turnip, garlic, lemon, olive oil, spices', diet: ['Dairy-free'], allergens: ['Mustard', 'Sesame'] } },
+      kofta: { name: 'Beef kofta plate', cat: 'Mains', price: 1850, prep: '15 min', review: 'REJECTED', reason: 'UNSUBSTANTIATED_HALAL_CLAIM', reviewedOn: '26 September 2026', note: 'The new description says the beef is hand-slaughtered. Your approved certificate does not state the slaughter method, so we can’t show that claim. Remove it, or ask your certifier to state the method on the certificate.', groups: [],
+        live: { photo: 'Two beef kofta skewers with rice and salad', desc: 'Grilled beef kofta with rice, salad and tahini.', ingr: 'Beef, onion, parsley, rice, tahini, spices', diet: [], allergens: ['Sesame'] },
+        sent: { photo: 'Two beef kofta skewers with rice and salad', desc: 'Hand-slaughtered beef kofta, grilled, with rice, salad and tahini.', ingr: 'Beef, onion, parsley, rice, tahini, spices', diet: [], allergens: ['Sesame'] } },
+      foul: { name: 'Foul medames', cat: 'Breakfast', price: 1195, prep: '10 min', review: 'REJECTED_NEW', reason: 'INCORRECT_DIETARY_TAG', reviewedOn: '27 September 2026', note: 'Tagged vegan, but the recipe lists butter.', groups: [],
+        sent: { photo: 'Bowl of foul medames with olive oil and bread', desc: 'Slow-cooked fava beans with garlic, lemon and olive oil, served with bread.', ingr: 'Fava beans, garlic, lemon, olive oil, butter, cumin, bread (wheat)', diet: ['Vegan'], allergens: ['Wheat or triticale', 'Milk'] } },
+      tawook: { name: 'Chicken tawook wrap', cat: 'Wraps', price: 1250, prep: '10 min', review: 'LIVE', blocked: true, groups: [],
+        live: { photo: null, desc: 'Grilled chicken tawook with garlic sauce and pickles in a wrap.', ingr: null, diet: [], allergens: [] } },
+    };
+    const key = this.props.item ?? 'mixedgrill';
+    const x = P[key] || P.mixedgrill;
+    const rvMap = {
+      LIVE: { t: 'Approved', v: 'neutral', i: 'check' },
+      REJECTED: { t: 'Not approved', v: 'warning', i: 'warning' },
+      REJECTED_NEW: { t: 'Not approved', v: 'warning', i: 'warning' },
+    };
+    const rejected = x.review === 'REJECTED' || x.review === 'REJECTED_NEW';
+    const groups = (x.groups || []).map((g) => ({ ...g, options: g.options.map((o) => ({
+      ...o, isDefault: !!o.isDefault, off: !!o.off,
+      hasPrice: !(o.mode === 'DELTA' && o.cents === 0), sign: o.mode === 'ABSOLUTE' ? 'auto' : 'always',
+      mode: o.mode === 'ABSOLUTE' ? 'Priced at' : o.mode === 'ADDON' ? 'Adds' : (o.cents === 0 ? 'Base price' : 'Changes price by'),
+    })) }));
+    // Reason code → the fields the reviewer flagged (same mapping as the item editor).
+    const FLAGS = { MISLEADING_DESCRIPTION: ['desc'], UNSUBSTANTIATED_HALAL_CLAIM: ['desc'], INCORRECT_DIETARY_TAG: ['diet'], MISSING_ALLERGEN: ['allergens'], POOR_IMAGE_QUALITY: ['photo'], IMAGE_NOT_OF_DISH: ['photo'], OFFENSIVE_CONTENT: ['desc'] };
+    const flagged = rejected ? (FLAGS[x.reason] || []) : [];
+    const LABEL = { photo: 'Photo', desc: 'Description', ingr: 'Ingredients', diet: 'Dietary tags', allergens: 'Allergens' };
+    const val = (k, v) => {
+      if (k === 'photo') return v ? { alt: v } : { alt: 'No photo' };
+      if (k === 'diet' || k === 'allergens') {
+        const tags = v || [];
+        const noneText = k === 'allergens' ? 'Allergen information not provided' : 'No dietary tags';
+        return { tags, none: tags.length === 0, noneText, joined: tags.length ? tags.join(', ') : noneText };
+      }
+      return v ? { text: v, color: 'var(--text-primary)' } : { text: k === 'ingr' ? 'Ingredients not provided' : 'No description', color: 'var(--text-secondary)' };
+    };
+    const hasLive = !!x.live; const hasSent = !!x.sent;
+    const compare = hasLive && hasSent;
+    const fields = ['photo', 'desc', 'ingr', 'diet', 'allergens'].map((k) => {
+      const a = hasLive ? x.live[k] : x.sent[k];
+      const b = hasSent ? x.sent[k] : null;
+      const changed = compare && JSON.stringify(x.live[k]) !== JSON.stringify(x.sent[k]);
+      const isFlag = flagged.includes(k);
+      const pair = compare && (changed || isFlag);
+      return {
+        label: LABEL[k], flagged: isFlag, changedOnly: changed && !isFlag, pair, single: !pair,
+        isPhoto: k === 'photo', isText: k === 'desc' || k === 'ingr', isTags: k === 'diet' || k === 'allergens',
+        a: val(k, hasLive ? a : b), sides: [{ head: 'Approved, live now', v: val(k, x.live && x.live[k]) }, { head: 'Sent for review', v: val(k, b) }],
+        boxStyle: isFlag ? 'display: flex; flex-direction: column; gap: 6px; padding: var(--space-2) 10px; border-radius: var(--radius-sm); background: var(--feedback-warning-tint); border: 1px solid var(--feedback-warning-border);' : 'display: flex; flex-direction: column; gap: 6px;',
+      };
+    });
+    // Flagged fields first, then changed ones, so the reason for a rejection is at the top.
+    const rank = (f) => (f.flagged ? 0 : f.pair ? 1 : 2);
+    fields.sort((m, n) => rank(m) - rank(n));
+    const cs = {
+      compare, fields,
+      leftHead: 'Approved, live now', rightHead: x.review === 'PENDING' ? 'Under review' : 'Not approved',
+      caption: compare ? 'Changed and flagged fields show both versions' : (x.review === 'REJECTED_NEW' ? 'As sent for review; not on your menu' : 'Approved, live now'),
+    };
+    const p = {
+      ...x, rv: rvMap[x.review] || rvMap.LIVE, rejected, blocked: !!x.blocked,
+      headline: 'Not approved: ' + (RS[x.reason] || ''),
+      hasNote: !!x.note, note: x.note || '', hasNext: false, next: '',
+      stillLive: x.review === 'REJECTED_NEW' ? 'This item is not on your menu.' : 'Customers still see the approved version.',
+      reviewedOn: x.reviewedOn || '',
+      groups, hasGroups: groups.length > 0, noGroups: groups.length === 0,
+      optNeeds: v0 ? 'Sizes and add-ons as HalalGoes set them up. Contact support to change one.' : 'Needs API #149: add, edit or remove sizes and add-ons. Needs API: switch a size or add-on off yourself (planned for version 2). Read-only here',
+      canSwitch: !v0 && !x.blocked, availText: v0 || !!x.blocked, availWords: x.blocked ? 'Blocked by HalalGoes' : 'Available',
+      on: true, switchLabel: x.name + ' available',
+      canEdit: !v0 && !x.blocked, editText: rejected ? 'Edit and resubmit' : 'Edit item', editLabel: (rejected ? 'Edit and resubmit ' : 'Edit ') + x.name,
+      support: v0 || !!x.blocked, supportVariant: 'tertiary', supportLabel: 'Contact support about ' + x.name, supportText: v0 ? 'Contact support about ' + x.name : 'Contact support',
+      closeLabel: 'Close details for ' + x.name,
+      liveText: v0 ? 'HalalGoes builds and updates your menu for you at launch. To change this item or mark it out of stock, contact support.'
+        : 'Price, prep time, category and availability go live as soon as you save. Name, description, ingredients, dietary tags, allergens and photo go live after a HalalGoes reviewer approves them; until then customers see the approved version. Dietary tags never describe halal certification.',
+    };
+    return { cs, p, w: this.props.w ?? 420, h: this.props.h ?? 592, availWords: { on: 'Available', off: 'Out of stock' } };
+  }
+}
+</script>
+</body>
+</html>

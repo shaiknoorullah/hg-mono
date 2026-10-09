@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>All restaurants, loading</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:var(--color-neutral-100)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+.demo-focus .hg-focus,.demo-focus .hg-choice-ctl,.demo-focus .hg-row,.demo-focus > a{box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)!important}
+.demo-focus-field .hg-field{border-color:var(--focus-ring)!important;box-shadow:inset 0 0 0 calc(var(--focus-field-border-width) - 1px) var(--focus-ring)!important}
+
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; display: flex; flex-direction: column; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="cream" title="All restaurants" subtitle="Near Home" back-label="Back to Home" on-back="{{noop}}" loading="{{yes}}"></x-import>
+<div style="display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-4)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="sm" href="Browse-filters.dc.html" accessibility-label="Filters, none applied">Filters</x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Menu" label="Sort: Recommended, sort restaurants" trigger-text="Sort: Recommended" items="{{sortItems}}"></x-import>
+</div>
+<main aria-busy="true" style="flex-grow: 1; display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-2) var(--space-4)">
+<p role="status" style="margin: 0; font-size: var(--type-body-sm-size); color: var(--text-secondary)">Loading restaurants…</p>
+<div style="display: flex; flex-direction: column; gap: var(--space-3); outline: 1.5px dotted var(--color-info-500); outline-offset: 3px; border-radius: var(--radius-lg)"><span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--color-info-700); background: var(--color-info-50)">Component gap: Skeleton</span><div style="display: flex; gap: var(--space-3); align-items: flex-start; padding: var(--space-4); border-radius: var(--radius-lg); background: var(--surface-raised)"><div style="width: 72px; height: 72px; flex-shrink: 0; border-radius: var(--radius-md); background: var(--surface-sunken)"></div><div style="flex-grow: 1; display: flex; flex-direction: column; gap: var(--space-2)"><div style="width: 60%; height: 16px; border-radius: var(--radius-xs); background: var(--surface-sunken)"></div><div style="width: 40%; height: 12px; border-radius: var(--radius-xs); background: var(--surface-sunken)"></div><div style="width: 80%; height: 12px; border-radius: var(--radius-xs); background: var(--surface-sunken)"></div></div></div><div style="display: flex; gap: var(--space-3); align-items: flex-start; padding: var(--space-4); border-radius: var(--radius-lg); background: var(--surface-raised)"><div style="width: 72px; height: 72px; flex-shrink: 0; border-radius: var(--radius-md); background: var(--surface-sunken)"></div><div style="flex-grow: 1; display: flex; flex-direction: column; gap: var(--space-2)"><div style="width: 60%; height: 16px; border-radius: var(--radius-xs); background: var(--surface-sunken)"></div><div style="width: 40%; height: 12px; border-radius: var(--radius-xs); background: var(--surface-sunken)"></div><div style="width: 80%; height: 12px; border-radius: var(--radius-xs); background: var(--surface-sunken)"></div></div></div><div style="display: flex; gap: var(--space-3); align-items: flex-start; padding: var(--space-4); border-radius: var(--radius-lg); background: var(--surface-raised)"><div style="width: 72px; height: 72px; flex-shrink: 0; border-radius: var(--radius-md); background: var(--surface-sunken)"></div><div style="flex-grow: 1; display: flex; flex-direction: column; gap: var(--space-2)"><div style="width: 60%; height: 16px; border-radius: var(--radius-xs); background: var(--surface-sunken)"></div><div style="width: 40%; height: 12px; border-radius: var(--radius-xs); background: var(--surface-sunken)"></div><div style="width: 80%; height: 12px; border-radius: var(--radius-xs); background: var(--surface-sunken)"></div></div></div></div>
+</main>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.BottomNav" label="Main" active="home" items="{{nav}}"></x-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+return {
+yes: true,
+no: false,
+none: null,
+zero: 0,
+two: 2,
+noop: function () {},
+nav: [
+{ key: 'home', label: 'Home', icon: 'home' },
+{ key: 'search', label: 'Search', icon: 'search' },
+{ key: 'orders', label: 'Orders', icon: 'orders' },
+{ key: 'account', label: 'Account', icon: 'profile' }
+],
+sortItems: [
+{ key: 'recommended', label: 'Recommended' },
+{ key: 'eta', label: 'Delivery time' },
+{ key: 'distance', label: 'Distance' }
+]
+};
+}
+}
+</script>
+</body>
+</html>

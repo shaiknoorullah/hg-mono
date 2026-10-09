@@ -1,0 +1,570 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Hours</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}.hg-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}</style>
+</helmet>
+<div data-hg-density="compact" style="width: {{W}}px; height: {{H}}px; display: grid; grid-template-columns: {{railW}}px {{mainW}}px; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui); position: relative; overflow: hidden;">
+  <dc-import name="PartRail" active="hours" collapsed="{{tablet}}" orders="{{m.orders}}" h="{{nine}}" hint-size="224px,900px"></dc-import>
+  <div style="display: flex; flex-direction: column; min-width: 0; height: {{H}}px;">
+    <dc-import name="PartTopBar" title="Hours" w="{{mainW}}" state="{{m.bar}}" controls="status" sound="{{m.sound}}" sound-gate="{{m.soundGate}}" strip="{{m.strip}}" version="{{zero}}" hint-size="1216px,208px"></dc-import>
+    <main id="main" aria-busy="{{m.busyAttr}}" style="flex-grow: 1; min-height: 0; box-sizing: border-box; padding: var(--space-3) var(--space-4) var(--space-4); display: flex; flex-direction: column; gap: var(--space-3); overflow: hidden;">
+
+      <sc-if value="{{m.hasBanner}}" hint-placeholder-val="{{false}}">
+        <div role="status" style="position: relative; flex-shrink: 0; display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); background: var(--surface-subtle); border: 1px solid var(--border-interactive);">
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="lock" size="md" hint-size="20px,20px"></x-import>
+          <div style="display: flex; flex-direction: column; gap: var(--space-1); flex-grow: 1;">
+            <span style="font: var(--text-type-body-md); line-height: var(--type-body-sm-line);"><strong style="font-weight: var(--font-weight-semibold);">{{m.bannerTitle}}</strong> {{m.bannerText}}</span>
+            <span style="display: inline-flex; align-self: flex-start; padding: 1px 6px; border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); background: var(--feedback-info-tint); font: var(--text-type-mono-sm); color: var(--feedback-info-tint-text);">{{m.bannerNeeds}}</span>
+            <sc-if value="{{m.bannerAlt}}" hint-placeholder-val="{{false}}"><span style="display: inline-flex; align-self: flex-start; padding: 1px 6px; border: 1px dashed var(--feedback-warning-border); border-radius: var(--radius-xs); background: var(--feedback-warning-tint); font: var(--text-type-mono-sm); color: var(--feedback-warning-tint-text);">{{m.bannerAlt}}</span></sc-if>
+          </div>
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" href="#" hint-size="160px,44px">Contact support</x-import>
+          <span style="position: absolute; top: -9px; right: 16px; padding: 0 var(--space-2); border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); background: var(--surface-base); font: var(--text-type-mono-sm); color: var(--text-secondary);">Proposed component: Banner (neutral, not dismissible)</span>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{m.showNow}}" hint-placeholder-val="{{true}}">
+        <dc-import name="PartNowCard" state="{{m.now}}" missed="{{m.missed}}" show-why="{{m.why}}" now="{{m.clock}}" overnight-to="{{m.overnightTo}}" sound="{{m.sound}}" w="{{cw}}" hint-size="1184px,130px"></dc-import>
+      </sc-if>
+
+      <sc-if value="{{m.isError}}" hint-placeholder-val="{{false}}">
+        <div style="flex-grow: 1; display: flex; justify-content: center; align-items: flex-start; padding-top: var(--space-8);">
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg" padding="32px" style="width: 600px;" hint-size="600px,300px">
+            <div role="alert" style="display: flex; flex-direction: column; gap: 14px; align-items: flex-start;">
+              <span style="color: var(--feedback-warning-icon);"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="warning" size="xl" hint-size="32px,32px"></x-import></span>
+              <h2 style="margin: 0; font: var(--text-type-heading-xl);">We couldn’t load your hours</h2>
+              <p style="margin: 0; font: var(--text-type-body-lg); color: var(--text-secondary);">Your hours haven’t changed. Check your connection and try again.</p>
+              <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" icon-start="refresh" hint-size="160px,52px">Try again</x-import>
+              <span style="display: inline-flex; padding: 1px var(--space-2); border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); background: var(--surface-base); font: var(--text-type-mono-sm); color: var(--text-secondary);">Proposed component: ErrorState (content pattern inside the system Card)</span>
+            </div>
+          </x-import>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{m.panes}}" hint-placeholder-val="{{true}}">
+        <div style="height: {{paneH}}px; flex-shrink: 0; display: flex; gap: var(--space-3); min-height: 0;">
+
+          <sc-if value="{{m.isLoading}}" hint-placeholder-val="{{false}}">
+            <div aria-hidden="true" style="flex-grow: 1; display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-4); border-radius: var(--radius-lg); background: var(--surface-raised); border: 1px solid var(--border-decorative);">
+              <div style="height: 24px; width: 200px; border-radius: var(--radius-xs); background: var(--skeleton-base);"></div>
+              <sc-for list="{{seven}}" as="i" hint-placeholder-count="7">
+                <div style="height: 36px; border-radius: var(--radius-xs); background: var(--skeleton-base);"></div>
+              </sc-for>
+              <span style="display: inline-flex; align-self: flex-start; padding: 1px var(--space-2); border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); background: var(--surface-base); font: var(--text-type-mono-sm); color: var(--text-secondary);">Proposed component: Skeleton (pane-shaped)</span>
+            </div>
+            <div aria-hidden="true" style="width: 420px; flex-shrink: 0; display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-4); border-radius: var(--radius-lg); background: var(--surface-raised); border: 1px solid var(--border-decorative);">
+              <div style="height: 24px; width: 160px; border-radius: var(--radius-xs); background: var(--skeleton-base);"></div>
+              <div style="height: 56px; border-radius: var(--radius-xs); background: var(--skeleton-base);"></div>
+              <div style="height: 56px; border-radius: var(--radius-xs); background: var(--skeleton-base);"></div>
+            </div>
+            <p role="status" class="hg-sr">Loading your hours…</p>
+          </sc-if>
+
+          <sc-if value="{{m.showNone}}" hint-placeholder-val="{{false}}">
+            <section aria-labelledby="none-h" style="flex-grow: 1; min-width: 0; box-sizing: border-box; padding: var(--space-8); display: flex; flex-direction: column; gap: 14px; align-items: flex-start; border-radius: var(--radius-lg); background: var(--surface-raised); border: 1px solid var(--border-decorative);">
+              <span style="color: var(--text-secondary);"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="clock" size="xl" hint-size="32px,32px"></x-import></span>
+              <h2 id="none-h" style="margin: 0; font: var(--text-type-heading-xl);">Add the times you take orders</h2>
+              <p style="margin: 0; font: var(--text-type-body-lg); color: var(--text-secondary); max-width: 620px;">Set your hours for each day of the week. Late nights past midnight are fine. You can add holidays and special dates afterwards.</p>
+              <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" icon-start="plus" hint-size="200px,52px">Add your hours</x-import>
+              <span style="display: inline-flex; padding: 1px var(--space-2); border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); background: var(--surface-base); font: var(--text-type-mono-sm); color: var(--text-secondary);">Proposed component: EmptyState (first run)</span>
+            </section>
+          </sc-if>
+
+          <sc-if value="{{m.isRead}}" hint-placeholder-val="{{true}}">
+            <section aria-labelledby="wk-h" style="flex-grow: 1; min-width: 0; box-sizing: border-box; display: flex; flex-direction: column; border-radius: var(--radius-lg); background: var(--surface-raised); border: 1px solid var(--border-decorative); overflow: hidden;">
+              <div style="display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-4) var(--space-2) var(--space-5);">
+                <h2 id="wk-h" style="margin: 0; font: var(--text-type-heading-md); flex-grow: 1;">Weekly hours</h2>
+                <sc-if value="{{m.canEdit}}" hint-placeholder-val="{{true}}">
+                  <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" hint-size="120px,44px">Edit hours</x-import>
+                </sc-if>
+              </div>
+              <p style="margin: 0; padding: 0 var(--space-5) var(--space-2); font: var(--text-type-body-sm); line-height: var(--type-caption-line); color: var(--text-secondary);">Eastern time (America/Toronto). Orders stop 20 minutes before closing, your average prep time.</p>
+              <div style="flex-grow: 1; min-height: 0; overflow: auto; padding: 0 var(--space-5) var(--space-4);">
+                <table style="width: 100%; border-collapse: collapse; font: var(--text-type-body-md);">
+                  <caption class="hg-sr">Weekly opening hours</caption>
+                  <thead>
+                    <tr style="height: 40px; text-align: left; background: var(--surface-subtle);">
+                      <th scope="col" style="padding: 0 var(--space-3); width: 180px; font: var(--text-type-label-md); color: var(--text-secondary);">Day</th>
+                      <th scope="col" style="padding: 0 var(--space-3); font: var(--text-type-label-md); color: var(--text-secondary);">Open</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <sc-for list="{{days}}" as="d" hint-placeholder-count="7">
+                      <tr style="{{d.rowStyle}}">
+                        <th scope="row" style="padding: var(--space-2) var(--space-3); text-align: left; font-weight: var(--font-weight-semibold); vertical-align: top;">
+                          <span style="display: flex; align-items: center; gap: var(--space-2);">{{d.day}}
+                            <sc-if value="{{d.today}}" hint-placeholder-val="{{false}}">
+                              <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="outline" size="sm" hint-size="50px,18px">Today</x-import>
+                            </sc-if>
+                          </span>
+                        </th>
+                        <td style="padding: var(--space-2) var(--space-3);">
+                          <sc-if value="{{d.closed}}" hint-placeholder-val="{{false}}">
+                            <span style="color: var(--text-secondary);">Closed</span>
+                          </sc-if>
+                          <div style="display: flex; gap: var(--space-4); flex-wrap: wrap;">
+                            <sc-for list="{{d.iv}}" as="v" hint-placeholder-count="1">
+                              <span style="display: flex; align-items: center; gap: var(--space-2); font-variant-numeric: tabular-nums;">{{v.text}}
+                                <sc-if value="{{v.night}}" hint-placeholder-val="{{false}}">
+                                  <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="neutral" icon="clock" size="sm" hint-size="110px,18px">Past midnight</x-import>
+                                </sc-if>
+                              </span>
+                            </sc-for>
+                          </div>
+                        </td>
+                      </tr>
+                    </sc-for>
+                  </tbody>
+                </table>
+                <span style="display: inline-flex; margin-top: var(--space-2); padding: 1px var(--space-2); border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); background: var(--surface-base); font: var(--text-type-mono-sm); color: var(--text-secondary);">Static schedule table (two columns, no sorting or selection); not a data grid</span>
+              </div>
+            </section>
+          </sc-if>
+
+          <sc-if value="{{m.isEdit}}" hint-placeholder-val="{{false}}">
+            <section aria-labelledby="wke-h" style="flex-grow: 1; min-width: 0; box-sizing: border-box; display: flex; flex-direction: column; border-radius: var(--radius-lg); background: var(--surface-raised); border: 1px solid var(--border-decorative); overflow: hidden;">
+              <div style="display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-5) var(--space-1);">
+                <h2 id="wke-h" style="margin: 0; font: var(--text-type-heading-md); flex-grow: 1;">Edit weekly hours</h2>
+                <span style="display: inline-flex; padding: 1px var(--space-2); border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); background: var(--surface-base); font: var(--text-type-mono-sm); color: var(--text-secondary);">Proposed component: TimeField (system Input as stand-in)</span>
+              </div>
+              <p style="margin: 0; padding: 0 var(--space-5) var(--space-2); font: var(--text-type-body-sm); line-height: var(--type-caption-line); color: var(--text-secondary);">Eastern time (America/Toronto). 12-hour clock, am and pm. A closing time earlier than the opening time runs past midnight. Up to 3 time ranges a day.</p>
+              <div style="flex-grow: 1; min-height: 0; overflow: auto; padding: 0 var(--space-5) var(--space-3); display: flex; flex-direction: column; gap: var(--space-3);">
+                <sc-if value="{{m.hasSummary}}" hint-placeholder-val="{{false}}">
+                  <div role="alert" tabindex="-1" style="display: flex; flex-direction: column; gap: 6px; padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); background: var(--feedback-danger-tint); border: 1px solid var(--feedback-danger-border);">
+                    <span style="font: var(--text-type-label-lg); color: var(--feedback-danger-tint-text);">{{m.sumTitle}}</span>
+                    <sc-for list="{{m.sumLinks}}" as="e" hint-placeholder-count="1">
+                      <a href="{{e.href}}" style="font: var(--text-type-body-md);">{{e.text}}</a>
+                    </sc-for>
+                    <sc-if value="{{m.sumServer}}" hint-placeholder-val="{{false}}">
+                      <span style="font: var(--text-type-body-sm); color: var(--feedback-danger-tint-text);">We checked your hours. Fix the date below; nothing was saved.</span>
+                    </sc-if>
+                    <sc-if value="{{m.sumNeeds}}" hint-placeholder-val="{{false}}">
+                      <span style="display: inline-flex; align-self: flex-start; padding: 1px 6px; border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); background: var(--feedback-info-tint); font: var(--text-type-mono-sm); color: var(--feedback-info-tint-text);">{{m.sumNeedsText}}</span>
+                    </sc-if>
+                    <span style="display: inline-flex; align-self: flex-start; padding: 1px 6px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); background: var(--surface-base); font: var(--text-type-mono-sm); color: var(--text-secondary);">Proposed component: Banner (danger), error summary; takes focus after a failed save</span>
+                  </div>
+                </sc-if>
+                <sc-if value="{{m.conflict}}" hint-placeholder-val="{{false}}">
+                  <div role="alert" style="display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); background: var(--feedback-warning-tint); border: 1px solid var(--feedback-warning-border);">
+                    <span style="font: var(--text-type-label-lg); color: var(--feedback-warning-tint-text);">Your hours were changed while you were editing</span>
+                    <span style="font: var(--text-type-body-md); color: var(--feedback-warning-tint-text);">Saving replaces your weekly hours, so saving now would undo those changes. Look at the current hours first; your edits stay here.</span>
+                    <div style="display: flex; gap: var(--space-3);">
+                      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" hint-size="170px,44px">See current hours</x-import>
+                      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="md" hint-size="170px,44px">Save mine anyway</x-import>
+                    </div>
+                    <span style="display: inline-flex; align-self: flex-start; padding: 1px 6px; border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); background: var(--feedback-info-tint); font: var(--text-type-mono-sm); color: var(--feedback-info-tint-text);">Needs API: a version check when saving hours, plus when and by whom they were last changed. Until then the screen can only notice by reading the hours again just before it saves</span>
+                  </div>
+                </sc-if>
+                <sc-for list="{{edays}}" as="d" hint-placeholder-count="7">
+                  <fieldset id="{{d.id}}" style="position: relative; margin: 0; border: 0; border-top: 1px solid var(--border-decorative); padding: var(--space-2) 0; display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: var(--space-3);">
+                    <legend class="hg-sr">{{d.day}}</legend>
+                    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Switch" label="{{d.day}}" state-label="{{openClosed}}" checked="{{d.open}}" disabled="{{m.busy}}" hint-size="190px,44px"></x-import>
+                    <div style="display: flex; flex-direction: column; gap: 6px;">
+                      <sc-if value="{{d.closed}}" hint-placeholder-val="{{false}}">
+                        <span style="font: var(--text-type-body-md); color: var(--text-secondary); min-height: 44px; display: flex; align-items: center; gap: var(--space-3);">{{d.closedText}}
+                          <sc-if value="{{d.undo}}" hint-placeholder-val="{{false}}">
+                            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="md" accessibility-label="{{d.undoLabel}}" hint-size="80px,44px">Undo</x-import>
+                          </sc-if>
+                        </span>
+                      </sc-if>
+                      <sc-for list="{{d.iv}}" as="v" hint-placeholder-count="1">
+                        <div style="display: flex; align-items: flex-start; gap: var(--space-2);">
+                          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="{{v.openLabel}}" value="{{v.o}}" read-only="{{m.busy}}" style="width: 130px;" hint-size="130px,72px"></x-import>
+                          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="{{v.closeLabel}}" value="{{v.c}}" read-only="{{m.busy}}" error-text="{{v.err}}" style="width: 240px;" hint-size="240px,72px"></x-import>
+                          <div style="display: flex; align-items: center; gap: var(--space-2); min-height: 44px; margin-top: 22px;">
+                            <sc-if value="{{v.night}}" hint-placeholder-val="{{false}}">
+                              <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="neutral" icon="clock" size="sm" hint-size="110px,18px">Past midnight</x-import>
+                            </sc-if>
+                            <sc-if value="{{v.allDay}}" hint-placeholder-val="{{false}}">
+                              <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="neutral" icon="clock" size="sm" hint-size="110px,18px">Open 24 hours</x-import>
+                            </sc-if>
+                            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.IconButton" icon="close" accessibility-label="{{v.removeLabel}}" disabled="{{m.busy}}" hint-size="44px,44px"></x-import>
+                          </div>
+                        </div>
+                      </sc-for>
+                      <sc-if value="{{d.open}}" hint-placeholder-val="{{true}}">
+                        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="md" icon-start="plus" disabled="{{d.addOff}}" accessibility-label="{{d.addLabel}}" hint-size="190px,44px">Add hours on {{d.day}}</x-import>
+                          <sc-if value="{{d.addOff}}" hint-placeholder-val="{{false}}">
+                            <span style="font: var(--text-type-body-sm); color: var(--text-secondary);">{{d.addWhy}}</span>
+                          </sc-if>
+                        </div>
+                      </sc-if>
+                    </div>
+                  </fieldset>
+                </sc-for>
+              </div>
+              <div style="position: relative; flex-shrink: 0; padding: var(--space-3) var(--space-5); border-top: 1px solid var(--border-decorative); background: var(--surface-raised);">
+                <span style="position: absolute; top: -10px; left: 20px; padding: 0 var(--space-2); border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); background: var(--surface-base); font: var(--text-type-mono-sm); color: var(--text-secondary);">Proposed component: ActionBar (pane footer; part of the pane, not a floating bar)</span>
+                <sc-if value="{{m.barNormal}}" hint-placeholder-val="{{true}}">
+                  <div style="display: flex; align-items: center; gap: var(--space-4);">
+                    <div style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1;">
+                      <span style="font: var(--text-type-label-lg);">{{m.footTitle}}</span>
+                      <span style="font: var(--text-type-body-sm); line-height: var(--type-caption-line); color: var(--text-secondary); font-variant-numeric: tabular-nums;">Saving replaces your weekly hours. Special dates save as you change them. {{m.ivCount}} of 21 time ranges used.</span>
+                    </div>
+                    <sc-if value="{{m.clean}}" hint-placeholder-val="{{false}}">
+                      <span id="save-why" style="font: var(--text-type-body-sm); color: var(--text-secondary);">Nothing to save yet</span>
+                    </sc-if>
+                    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" disabled="{{m.busy}}" hint-size="150px,44px">{{m.discardText}}</x-import>
+                    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md" loading="{{m.busy}}" disabled="{{m.clean}}" hint-size="130px,44px">{{m.saveText}}</x-import>
+                  </div>
+                </sc-if>
+                <sc-if value="{{m.barConfirm}}" hint-placeholder-val="{{false}}">
+                  <div role="alertdialog" aria-labelledby="bar-confirm-h" aria-describedby="bar-confirm-b" style="display: flex; align-items: center; gap: var(--space-4);">
+                    <div style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1;">
+                      <span id="bar-confirm-h" tabindex="-1" style="font: var(--text-type-label-lg);">{{m.cmTitle}}</span>
+                      <span id="bar-confirm-b" style="font: var(--text-type-body-sm); line-height: var(--type-caption-line); color: var(--text-secondary);">{{m.cmBody}}</span>
+                    </div>
+                    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" hint-size="130px,44px">{{m.cmCancel}}</x-import>
+                    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="{{m.cmVariant}}" size="md" destructive="{{m.cmDestructive}}" hint-size="170px,44px">{{m.cmConfirm}}</x-import>
+                    <sc-if value="{{m.cmThird}}" hint-placeholder-val="{{false}}">
+                      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md" hint-size="210px,44px">{{m.cmThirdText}}</x-import>
+                    </sc-if>
+                  </div>
+                </sc-if>
+              </div>
+            </section>
+          </sc-if>
+
+          <sc-if value="{{m.showList}}" hint-placeholder-val="{{true}}">
+            <section aria-labelledby="ov-h" style="width: 420px; flex-shrink: 0; box-sizing: border-box; display: flex; flex-direction: column; border-radius: var(--radius-lg); background: var(--surface-raised); border: 1px solid var(--border-decorative); overflow: hidden;">
+              <div style="display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-4) var(--space-1) var(--space-5);">
+                <h2 id="ov-h" style="margin: 0; font: var(--text-type-heading-md); flex-grow: 1;">Special dates</h2>
+                <sc-if value="{{m.canEdit}}" hint-placeholder-val="{{true}}">
+                  <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" icon-start="plus" disabled="{{m.ovFull}}" accessibility-label="{{m.addDateLabel}}" hint-size="120px,44px">Add date</x-import>
+                </sc-if>
+              </div>
+              <p style="margin: 0; padding: 0 var(--space-5) var(--space-2); font: var(--text-type-body-sm); line-height: var(--type-caption-line); color: var(--text-secondary);">{{m.listNote}}</p>
+              <sc-if value="{{m.ovFull}}" hint-placeholder-val="{{false}}">
+                <p style="margin: 0; padding: 0 var(--space-5) var(--space-2); font: var(--text-type-body-sm); color: var(--text-secondary);">You have 90 special dates, the most allowed. Remove one to add another.</p>
+              </sc-if>
+              <div style="flex-grow: 1; min-height: 0; overflow: auto; padding: 0 var(--space-5) var(--space-3);">
+                <sc-if value="{{m.hasList}}" hint-placeholder-val="{{true}}">
+                  <ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column;">
+                    <sc-for list="{{list}}" as="o" hint-placeholder-count="3">
+                      <li id="{{o.id}}" style="display: flex; flex-direction: column; gap: var(--space-1); padding: var(--space-2) 0; border-top: 1px solid var(--border-decorative);">
+                        <div style="display: flex; gap: var(--space-2); align-items: flex-start;">
+                          <div style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1; min-width: 0;">
+                            <span style="display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; font: var(--text-type-label-lg);">{{o.date}}
+                              <sc-if value="{{o.now}}" hint-placeholder-val="{{false}}">
+                                <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="outline" size="sm" hint-size="100px,18px">In effect now</x-import>
+                              </sc-if>
+                            </span>
+                            <span style="font: var(--text-type-body-md); font-variant-numeric: tabular-nums;">{{o.hours}}</span>
+                            <span style="font: var(--text-type-body-sm); color: var(--text-secondary);">{{o.reason}}</span>
+                            <sc-if value="{{o.hasNote}}" hint-placeholder-val="{{false}}">
+                              <span style="font: var(--text-type-body-sm); line-height: var(--type-caption-line);">{{o.note}}</span>
+                            </sc-if>
+                            <sc-if value="{{o.hasNeeds}}" hint-placeholder-val="{{false}}">
+                              <span style="display: inline-flex; align-self: flex-start; padding: 1px 6px; border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); background: var(--feedback-info-tint); font: var(--text-type-mono-sm); color: var(--feedback-info-tint-text);">{{o.needs}}</span>
+                            </sc-if>
+                          </div>
+                          <sc-if value="{{m.canEdit}}" hint-placeholder-val="{{true}}">
+                            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="md" accessibility-label="{{o.editLabel}}" disabled="{{m.busy}}" hint-size="64px,44px">Edit</x-import>
+                          </sc-if>
+                          <sc-if value="{{m.isEdit}}" hint-placeholder-val="{{false}}">
+                            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.IconButton" icon="close" accessibility-label="{{o.removeLabel}}" disabled="{{m.busy}}" size="md" hint-size="44px,44px"></x-import>
+                          </sc-if>
+                        </div>
+                        <sc-if value="{{o.bad}}" hint-placeholder-val="{{false}}">
+                          <span role="alert" style="display: flex; gap: 6px; align-items: flex-start; font: var(--text-type-body-sm); color: var(--feedback-danger-text);"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="error" size="sm" hint-size="16px,16px"></x-import>{{o.err}}</span>
+                        </sc-if>
+                      </li>
+                    </sc-for>
+                  </ul>
+                  <span style="display: inline-flex; margin-top: var(--space-1); padding: 1px var(--space-2); border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); background: var(--surface-base); font: var(--text-type-mono-sm); color: var(--text-secondary);">Proposed component: ListRow (44px minimum)</span>
+                </sc-if>
+                <sc-if value="{{m.noList}}" hint-placeholder-val="{{false}}">
+                  <div style="display: flex; flex-direction: column; gap: 6px; padding: var(--space-3) 0; border-top: 1px solid var(--border-decorative);">
+                    <span style="font: var(--text-type-label-lg);">No special dates</span>
+                    <span style="font: var(--text-type-body-md); color: var(--text-secondary);">Your weekly hours apply every day. Use Add date for a holiday, a closure or a day with different hours.</span>
+                  </div>
+                </sc-if>
+                <div style="display: flex; flex-direction: column; gap: var(--space-1); border-top: 1px solid var(--border-decorative); padding-top: var(--space-1);">
+                  <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="md" icon-start="{{pastIcon}}" aria-expanded="{{pastOpenAttr}}" aria-controls="past-dates" style="align-self: flex-start;" hint-size="200px,44px">{{pastLabel}}</x-import>
+                  <sc-if value="{{pastOpen}}" hint-placeholder-val="{{false}}">
+                    <ul id="past-dates" style="list-style: none; margin: 0; padding: 0;">
+                      <sc-for list="{{pastDates}}" as="o" hint-placeholder-count="1">
+                        <li style="display: flex; flex-direction: column; gap: 2px; padding: var(--space-2) 0; border-top: 1px solid var(--border-decorative);">
+                          <span style="display: flex; align-items: center; gap: var(--space-2); font: var(--text-type-label-lg);">{{o.date}}
+                            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="outline" size="sm" hint-size="44px,18px">Past</x-import>
+                          </span>
+                          <span style="font: var(--text-type-body-md); color: var(--text-secondary);">{{o.hours}} · {{o.reason}}</span>
+                        </li>
+                      </sc-for>
+                    </ul>
+                    <span style="display: inline-flex; align-self: flex-start; padding: 1px 6px; border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); background: var(--feedback-info-tint); font: var(--text-type-mono-sm); color: var(--feedback-info-tint-text);">Past dates are kept and sent back as returned; HalalGoes deletes them 90 days after the date. Needs API: confirm saving hours accepts past dates, and whether they count toward the 90</span>
+                  </sc-if>
+                </div>
+              </div>
+              <sc-if value="{{m.isEdit}}" hint-placeholder-val="{{false}}">
+                <p style="margin: 0; padding: var(--space-2) var(--space-5) var(--space-3); border-top: 1px solid var(--border-decorative); font: var(--text-type-body-sm); color: var(--text-secondary); font-variant-numeric: tabular-nums;">{{m.ovCount}} of 90 special dates</p>
+              </sc-if>
+            </section>
+          </sc-if>
+
+          <sc-if value="{{m.overridePanel}}" hint-placeholder-val="{{false}}">
+            <section id="special-date-panel" aria-labelledby="sd-h" style="width: 440px; flex-shrink: 0; box-sizing: border-box; display: flex; flex-direction: column; border-radius: var(--radius-lg); background: var(--surface-raised); border: 1px solid var(--border-decorative); overflow: hidden;">
+              <div style="display: flex; align-items: flex-start; gap: var(--space-2); padding: 10px var(--space-2) 10px var(--space-5); border-bottom: 1px solid var(--border-decorative); background: var(--state-selected-tint);">
+                <div style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1;">
+                  <span style="font: var(--text-type-body-sm); color: var(--text-secondary);">Special dates</span>
+                  <h2 id="sd-h" tabindex="-1" style="margin: 0; font: var(--text-type-heading-md);">{{om.title}}</h2>
+                </div>
+                <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.IconButton" icon="close" accessibility-label="Close and go back to special dates" size="md" hint-size="44px,44px"></x-import>
+              </div>
+              <div style="flex-grow: 1; min-height: 0; overflow: auto; padding: var(--space-4) var(--space-5); display: flex; flex-direction: column; gap: 14px;">
+                <p style="margin: 0; font: var(--text-type-body-md); color: var(--text-secondary);">{{om.desc}}</p>
+                <sc-if value="{{om.hasErrors}}" hint-placeholder-val="{{false}}">
+                  <p role="alert" tabindex="-1" style="margin: 0; font: var(--text-type-label-lg); color: var(--feedback-danger-text);">{{om.errTitle}}</p>
+                </sc-if>
+                <div style="display: flex; flex-direction: column; gap: var(--space-1);">
+                  <x-import id="sd-date" component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Date" value="{{om.date}}" required="{{yes}}" helper-text="Today, or up to one year ahead." error-text="{{om.dateErr}}" hint-size="100%,96px"></x-import>
+                  <span style="display: inline-flex; align-self: flex-start; padding: 1px 6px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); background: var(--surface-base); font: var(--text-type-mono-sm); color: var(--text-secondary);">Proposed component: DateField (shadcn Calendar in a Popover, typed entry kept)</span>
+                </div>
+                <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.RadioGroup" label="On this date" value="{{om.kind}}" options="{{ovOpts}}" hint-size="100%,130px"></x-import>
+                <sc-if value="{{om.showTimes}}" hint-placeholder-val="{{true}}">
+                  <fieldset style="margin: 0; padding: 0; border: 0; display: flex; gap: var(--space-3);">
+                    <legend class="hg-sr">Hours on this date</legend>
+                    <x-import id="sd-opens" component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Opens" value="{{om.opens}}" required="{{yes}}" error-text="{{om.opensErr}}" style="width: 170px;" hint-size="170px,72px"></x-import>
+                    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Closes" value="{{om.closes}}" required="{{yes}}" error-text="{{om.closesErr}}" style="width: 200px;" hint-size="200px,72px"></x-import>
+                  </fieldset>
+                </sc-if>
+                <sc-if value="{{om.hasTimeNote}}" hint-placeholder-val="{{false}}">
+                  <p style="margin: 0; display: flex; gap: var(--space-2); align-items: flex-start; font: var(--text-type-body-md);"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="clock" size="md" hint-size="20px,20px"></x-import>{{om.timeNote}}</p>
+                </sc-if>
+                <sc-if value="{{om.hasNowNote}}" hint-placeholder-val="{{false}}">
+                  <p style="margin: 0; display: flex; gap: var(--space-2); align-items: flex-start; font: var(--text-type-body-md);"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="info" size="md" hint-size="20px,20px"></x-import>{{om.nowNote}}</p>
+                </sc-if>
+                <sc-if value="{{om.hasNeeds}}" hint-placeholder-val="{{false}}">
+                  <span style="display: inline-flex; align-self: flex-start; padding: 1px 6px; border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); background: var(--feedback-info-tint); font: var(--text-type-mono-sm); color: var(--feedback-info-tint-text);">{{om.needs}}</span>
+                </sc-if>
+                <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Reason (optional)" value="{{om.reason}}" helper-text="Shown on your Hours screen." hint-size="100%,96px"></x-import>
+                <span style="display: inline-flex; align-self: flex-start; padding: 1px 6px; border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); background: var(--feedback-info-tint); font: var(--text-type-mono-sm); color: var(--feedback-info-tint-text);">Saves on its own: one save of your hours with the weekly hours as last loaded plus this date. Unsaved weekly edits are not sent. Needs API: is the reason shown to customers?</span>
+              </div>
+              <div style="position: relative; flex-shrink: 0; padding: var(--space-3) var(--space-5); border-top: 1px solid var(--border-decorative);">
+                <span style="position: absolute; top: -10px; left: 20px; padding: 0 var(--space-2); border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); background: var(--surface-base); font: var(--text-type-mono-sm); color: var(--text-secondary);">Proposed component: DetailPanel (task variant: special date)</span>
+                <sc-if value="{{om.noConfirm}}" hint-placeholder-val="{{true}}">
+                  <div style="display: flex; gap: var(--space-2); justify-content: flex-end; flex-wrap: wrap;">
+                    <sc-if value="{{om.remove}}" hint-placeholder-val="{{false}}">
+                      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="md" destructive="{{yes}}" style="margin-right: auto;" hint-size="130px,44px">Remove date</x-import>
+                    </sc-if>
+                    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" hint-size="90px,44px">Cancel</x-import>
+                    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md" hint-size="130px,44px">{{om.primary}}</x-import>
+                  </div>
+                </sc-if>
+                <sc-if value="{{om.confirmRemove}}" hint-placeholder-val="{{false}}">
+                  <div role="alertdialog" aria-labelledby="rm-h" aria-describedby="rm-b" style="display: flex; flex-direction: column; gap: 10px;">
+                    <span id="rm-h" tabindex="-1" style="font: var(--text-type-label-lg);">Remove Thanksgiving, Monday 12 October 2026?</span>
+                    <span id="rm-b" style="font: var(--text-type-body-sm); line-height: var(--type-caption-line); color: var(--text-secondary);">Your weekly hours apply on that date instead: 11:00 am – 10:00 pm. It’s removed as soon as you confirm, even if you don’t save your weekly hours.</span>
+                    <div style="display: flex; gap: var(--space-2); justify-content: flex-end;">
+                      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" hint-size="100px,44px">Keep it</x-import>
+                      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="danger" size="md" destructive="{{yes}}" hint-size="130px,44px">Remove now</x-import>
+                    </div>
+                  </div>
+                </sc-if>
+              </div>
+            </section>
+          </sc-if>
+        </div>
+      </sc-if>
+    </main>
+  </div>
+
+  <sc-if value="{{m.toast}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; right: 24px; bottom: 24px; width: 420px; display: flex; flex-direction: column; gap: var(--space-2);">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Toast" variant="{{m.toastVariant}}" title="{{m.toastTitle}}" description="{{m.toastBody}}" action="{{m.toastAction}}" on-dismiss="{{noop}}" hint-size="420px,96px"></x-import>
+      <sc-if value="{{m.toastNote}}" hint-placeholder-val="{{false}}">
+        <span style="display: inline-flex; align-self: flex-start; padding: 1px 6px; border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); background: var(--feedback-info-tint); font: var(--text-type-mono-sm); color: var(--feedback-info-tint-text);">Shown on the live status-changed event. The title names who switched it off only from that event; the body is the server’s reason, word for word. A page load never shows it.</span>
+      </sc-if>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"mode":{"editor":"enum","options":["view","pastdates","soundoff","soundgate","paused","pausedclose","pausestale","none","closedhours","offline","autooff","specialempty","specialnight","holidaytoday","holidayedit","holidayremoved","suspended","saved","viewaddoverride","edit","specialemptyedit","dirty","overlap","overlapnight","twentyfour","closesnow","limits","dayclosed","saving","server422","conflict","savefailed","overridemodal","overrideclosed","overrideerrors","overrideduplicate","overridenight","override24","overrideedit","overrideremove","unsaved","loading","error"],"default":"view"},"device":{"editor":"enum","options":["desktop","tablet"],"default":"desktop"},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const R = window.React; const h = R.createElement; const DS = window.HalalGoesDesignSystem_d11a47;
+    const mode = this.props.mode ?? 'view';
+    // Times read in 12-hour form everywhere (owner decision); interval data stays 24-hour.
+    const t12 = (v) => { const [hh, mi] = String(v).split(':').map(Number); return ((hh % 12) || 12) + ':' + String(mi).padStart(2, '0') + ' ' + (hh < 12 ? 'am' : 'pm'); };
+    // Kitchen tablet, landscape 1024 × 768 and up (owner decision): the side navigation stays collapsed.
+    const tablet = (this.props.device ?? 'desktop') === 'tablet';
+    const W = tablet ? 1024 : 1440, H = tablet ? 768 : 900, railW = tablet ? 88 : 224, mainW = W - railW;
+    const noop = () => {};
+    const editModes = ['edit', 'specialemptyedit', 'dirty', 'overlap', 'overlapnight', 'twentyfour', 'closesnow', 'limits', 'dayclosed', 'saving', 'server422', 'conflict', 'savefailed', 'overridemodal', 'overrideclosed', 'overrideerrors', 'overrideduplicate', 'overridenight', 'override24', 'overrideedit', 'overrideremove', 'unsaved'];
+    const readModes = ['pastdates', 'soundoff', 'soundgate', 'view', 'paused', 'pausedclose', 'pausestale', 'none', 'closedhours', 'offline', 'autooff', 'specialempty', 'specialnight', 'holidaytoday', 'holidayedit', 'holidayremoved', 'suspended', 'saved', 'viewaddoverride'];
+    const edit = editModes.includes(mode);
+    const read = readModes.includes(mode) && mode !== 'none';
+    const nowMap = { soundoff: 'auto_off', soundgate: 'auto_off', paused: 'paused', pausedclose: 'paused_until_close', pausestale: 'paused_stale', none: 'closed_no_hours', closedhours: 'closed_hours', offline: 'offline', autooff: 'closed_toggle', holidaytoday: 'closed_holiday', holidayedit: 'closed_holiday', suspended: 'suspended' };
+    const barMap = { soundoff: 'auto_off', soundgate: 'auto_off', paused: 'paused', pausedclose: 'paused', pausestale: 'paused_stale', none: 'closed_no_hours', closedhours: 'closed_hours', offline: 'offline', autooff: 'closed_toggle', holidaytoday: 'closed_holiday', holidayedit: 'closed_holiday', suspended: 'suspended' };
+    const clean = mode === 'edit' || mode === 'specialemptyedit';
+    const friday = ['pausedovernight', 'pausedclose', 'specialnight', 'overlapnight'].includes(mode);
+    const overrideModes = ['overridemodal', 'overrideclosed', 'overrideerrors', 'overrideduplicate', 'overridenight', 'override24', 'overrideedit', 'overrideremove', 'viewaddoverride', 'holidayedit', 'server422'];
+    const noNew = ['none', 'suspended', 'closedhours', 'holidaytoday', 'holidayedit', 'paused', 'pausedclose', 'autooff', 'soundoff', 'soundgate'];
+    const m = {
+      now: nowMap[mode] || 'open', bar: barMap[mode] || 'open',
+      // A restaurant that can’t get new orders shows no waiting orders: closed, paused, switched off, suspended or no hours.
+      // Orders offered before a switch-off keep their countdown; that case is drawn once, on the toggle states board.
+      // Offline: this page is live, but no order screen is open, so the strip says where orders go.
+      strip: noNew.includes(mode) ? 'none' : mode === 'offline' ? 'noscreen' : 'waiting',
+      orders: noNew.includes(mode) || mode === 'offline' ? 0 : 2,
+      clock: friday ? '23:10' : '19:10', overnightTo: null,
+      missed: mode === 'view' ? 1 : 0,
+      why: mode === 'closedhours',
+      isLoading: mode === 'loading', isError: mode === 'error',
+      busy: mode === 'saving',
+      showNow: !['loading', 'error'].includes(mode),
+      showNone: mode === 'none',
+      isRead: read, isEdit: edit,
+      canEdit: true,
+      clean,
+      footTitle: clean ? 'No changes yet' : mode === 'limits' ? 'Unsaved changes · 7 days changed' : ['dayclosed', 'overlapnight'].includes(mode) ? 'Unsaved changes · 2 days changed' : 'Unsaved changes · 1 day changed',
+      saveText: mode === 'saving' ? 'Saving…' : 'Save hours',
+      discardText: clean ? 'Done' : 'Discard changes',
+      conflict: mode === 'conflict',
+      sound: ['soundoff', 'soundgate'].includes(mode) ? 'off' : 'on',
+      soundGate: mode === 'soundgate',
+      overridePanel: overrideModes.includes(mode),
+      barConfirm: false, cmThird: false, cmThirdText: '', cmVariant: 'primary', cmDestructive: false, cmTitle: '', cmBody: '', cmConfirm: '', cmCancel: 'Keep editing',
+      ivCount: mode === 'limits' ? 21 : mode === 'dayclosed' ? 8 : mode === 'overlapnight' ? 9 : 7,
+      ovFull: mode === 'limits',
+      toast: false, hasBanner: false, bannerText: '', bannerNeeds: '', bannerTitle: '', bannerAlt: '',
+      sumNeeds: false, sumNeedsText: '',
+    };
+    m.busyAttr = (m.isLoading || m.busy) ? 'true' : 'false';
+    m.panes = !m.isError;
+    m.showList = !m.isLoading && !m.isError && !m.overridePanel;
+    // A refused special date is reported only in its own panel: special dates save separately from the weekly hours.
+    m.hasSummary = ['overlap', 'overlapnight'].includes(mode);
+    m.sumServer = false;
+    m.sumTitle = mode === 'overlapnight' ? 'Fix 2 things to save your hours' : 'Fix 1 thing to save your hours';
+    m.sumLinks = mode === 'server422' ? [{ href: '#sd-date', text: 'Special date 3 October 2027 is more than a year ahead' }]
+      : mode === 'overlapnight' ? [{ href: '#sat', text: 'Friday and Saturday: Friday 5:00 pm – 2:00 am runs into Saturday 1:00 am – 4:00 am' }, { href: '#mon', text: 'Sunday and Monday: Sunday 8:00 pm – 3:00 am runs into Monday 2:00 am – 10:00 am' }]
+      : [{ href: '#fri', text: 'Friday: two time ranges overlap' }];
+    if (mode === 'overlapnight') Object.assign(m, { sumNeeds: true, sumNeedsText: 'Checked on this screen. Needs API: confirm the server’s overlap check also covers a range that runs past midnight into the next day’s first range, including Sunday into Monday' });
+    if (mode === 'saved') Object.assign(m, { toast: true, toastVariant: 'success', toastTitle: 'Hours saved', toastBody: 'Customers see your new hours now.', toastAction: null });
+    if (mode === 'savefailed') Object.assign(m, { toast: true, toastVariant: 'danger', toastTitle: 'Couldn’t save your hours', toastBody: 'Your changes are still here. Check your connection and save again.', toastAction: { label: 'Save again', onAction: noop } });
+    if (mode === 'autooff') Object.assign(m, { toast: true, toastVariant: 'warning', toastTitle: 'HalalGoes switched off new orders', toastBody: 'New orders were switched off after 2 orders in a row timed out.', toastAction: { label: 'Go to Orders', onAction: noop }, toastNote: true });
+    if (mode === 'holidayremoved') Object.assign(m, { toast: true, toastVariant: 'success', toastTitle: 'Special date removed', toastBody: 'Your weekly hours apply today: 11:00 am – 10:00 pm.', toastAction: null });
+    if (mode === 'suspended') Object.assign(m, { hasBanner: true, bannerTitle: 'Your account is suspended. You can still update your hours.', bannerText: 'No new orders while it lasts. Your hours take effect for customers when HalalGoes reinstates your account. Orders already in progress still complete.', bannerNeeds: 'Owner decision: hours stay editable while suspended and become read-only once the restaurant is deactivated · Needs API: confirm saving hours is accepted while suspended', bannerAlt: '' });
+    if (mode === 'closesnow') Object.assign(m, { barConfirm: true, cmTitle: 'Save and close now?', cmBody: 'It’s Monday 7:10 pm and your new hours end at 6:00 pm today. Saving closes you now. Orders in progress still complete.', cmConfirm: 'Save and close now', cmCancel: 'Keep editing' });
+    if (mode === 'unsaved') Object.assign(m, { barConfirm: true, cmVariant: 'danger', cmDestructive: true, cmTitle: 'Leave without saving?', cmBody: 'You’re going to Orders. Your changes to your hours will be lost; customers keep seeing your current hours.', cmConfirm: 'Discard changes', cmCancel: 'Keep editing', cmThird: true, cmThirdText: 'Save and go to Orders' });
+    m.barNormal = !m.barConfirm;
+    m.toastNote = !!m.toastNote;
+
+    const W = [
+      ['Monday', [['11:00', '22:00']]], ['Tuesday', [['11:00', '22:00']]], ['Wednesday', [['11:00', '22:00']]],
+      ['Thursday', [['11:00', '23:00']]], ['Friday', [['11:00', '15:00'], ['17:00', '02:00']]], ['Saturday', [['12:00', '02:00']]], ['Sunday', []],
+    ];
+    const todayIdx = friday ? 4 : 0;
+    const days = W.map(([day, iv], i) => ({
+      day, today: i === todayIdx, closed: iv.length === 0,
+      rowStyle: ['border-top: 1px solid var(--border-decorative)', 'height: 44px', i === todayIdx ? 'background: var(--surface-subtle)' : 'background: transparent'].join('; '),
+      iv: iv.map(([o, c]) => ({ text: o === c ? 'Open 24 hours from ' + t12(o) : t12(o) + ' – ' + t12(c), night: c < o })),
+    }));
+    const three = [['07:00', '11:00'], ['12:00', '15:00'], ['17:00', '23:00']];
+    let EW = W.map(([day, iv]) => [day, iv]);
+    if (mode === 'overlap') EW = EW.map(([d, iv]) => [d, d === 'Friday' ? [['11:00', '15:00'], ['14:00', '02:00']] : iv]);
+    if (mode === 'overlapnight') EW = EW.map(([d, iv]) => [d, d === 'Saturday' ? [['01:00', '04:00'], ['12:00', '02:00']] : d === 'Sunday' ? [['20:00', '03:00']] : d === 'Monday' ? [['02:00', '10:00'], ['11:00', '22:00']] : iv]);
+    if (mode === 'twentyfour') EW = EW.map(([d, iv]) => [d, d === 'Wednesday' ? [['09:00', '09:00']] : iv]);
+    if (mode === 'closesnow') EW = EW.map(([d, iv]) => [d, d === 'Monday' ? [['11:00', '18:00']] : iv]);
+    if (mode === 'limits') EW = EW.map(([d]) => [d, three]);
+    if (mode === 'dayclosed') EW = EW.map(([d, iv]) => [d, d === 'Friday' ? [['07:00', '10:30'], ['11:00', '15:00'], ['17:00', '02:00']] : d === 'Saturday' ? [] : iv]);
+    const errFor = (day, j) => {
+      if (mode === 'overlap' && day === 'Friday' && j === 1) return 'Overlaps 11:00 am – 3:00 pm. Change one of them.';
+      if (mode === 'overlapnight' && day === 'Saturday' && j === 0) return 'Overlaps Friday 5:00 pm – 2:00 am, which runs to 2:00 am on Saturday. Change one of them.';
+      if (mode === 'overlapnight' && day === 'Monday' && j === 0) return 'Overlaps Sunday 8:00 pm – 3:00 am, which runs to 3:00 am on Monday. Change one of them.';
+      return null;
+    };
+    // Days with an error come first in view order in the build: the pane scrolls to the first error on a failed save.
+    const edays = EW.map(([day, iv]) => {
+      const n = iv.length;
+      const full21 = mode === 'limits';
+      const addOff = n >= 3 || full21;
+      const removedSat = mode === 'dayclosed' && day === 'Saturday';
+      return {
+        day, id: day.slice(0, 3).toLowerCase(), open: n > 0, closed: n === 0,
+        closedText: removedSat ? 'Closed all day. 1 time range removed (12:00 pm – 2:00 am).' : 'Closed all day',
+        undo: removedSat, undoLabel: 'Undo closing Saturday',
+        addOff, addWhy: full21 ? 'You’ve used all 21 time ranges' : 'Up to 3 time ranges a day',
+        addLabel: 'Add hours on ' + day + (addOff ? '. Not available: ' + (full21 ? 'you’ve used all 21 time ranges.' : 'up to 3 time ranges a day.') : ''),
+        iv: iv.map(([o, c], j) => ({
+          o: t12(o), c: t12(c), night: c < o, allDay: c === o,
+          openLabel: n > 1 ? 'Opens, range ' + (j + 1) : 'Opens',
+          closeLabel: n > 1 ? 'Closes, range ' + (j + 1) : 'Closes',
+          err: errFor(day, j),
+          removeLabel: 'Remove ' + t12(o) + ' to ' + t12(c) + ' on ' + day,
+        })),
+      };
+    });
+    let overrides = [
+      { date: 'Monday 12 October 2026', hours: '12:00 pm – 8:00 pm', reason: 'Thanksgiving' },
+      { date: 'Saturday 24 October 2026', hours: 'Closed all day', reason: 'Staff training' },
+      { date: 'Thursday 24 December 2026', hours: '11:00 am – 4:00 pm', reason: 'Christmas Eve' },
+    ];
+    if (mode === 'specialnight') overrides = [
+      { date: 'Saturday 3 October 2026', hours: 'Closed all day', reason: 'Family event', note: 'Friday’s hours still run to 2:00 am on Saturday. You’re closed from 2:00 am.', needs: 'Needs API: confirm Friday’s range, not the special date, covers 12:00 am – 2:00 am on Saturday (assumed)' },
+      { date: 'Thursday 31 December 2026', hours: '6:00 pm – 1:00 am (past midnight)', reason: 'New Year’s Eve', note: 'Runs to 1:00 am on Friday 1 January 2027.', needs: 'Needs API: special dates can’t say they cross midnight; confirm a closing time earlier than the opening time runs into the next day' },
+    ];
+    if (['holidaytoday', 'holidayedit'].includes(mode)) overrides = [{ date: 'Monday 28 September 2026 (today)', hours: 'Closed all day', reason: 'Staff training', now: true }].concat(overrides);
+    const specialEmpty = mode === 'specialempty' || mode === 'specialemptyedit';
+    let list = specialEmpty ? [] : overrides;
+    if (mode === 'limits') list = list.concat([{ date: '…and 87 more', hours: '', reason: '' }]);
+    list = list.map((o, i) => ({ ...o, id: 'ov-' + i, now: !!o.now, hasNote: !!o.note, note: o.note || '', hasNeeds: !!o.needs, needs: o.needs || '', bad: false, err: '', editLabel: 'Edit special date ' + o.date, removeLabel: 'Remove special date ' + o.date }));
+    m.hasList = list.length > 0; m.noList = list.length === 0;
+    m.ovCount = mode === 'limits' ? 90 : list.length;
+    m.addDateLabel = m.ovFull ? 'Add date. Not available: you have 90 special dates, the most allowed.' : 'Add a special date';
+    m.listNote = edit ? 'Special dates save straight away, separately from your weekly hours.' : 'Holidays and one-off hours replace your weekly hours on that date.';
+
+    const omBase = { title: 'Add a special date', desc: 'This replaces your weekly hours on that date only. It saves straight away, separately from your weekly hours.', date: 'Thursday 31 December 2026', kind: 'special', opens: '12:00 pm', closes: '6:00 pm', reason: 'New Year’s Eve', dateErr: null, opensErr: null, closesErr: null, hasErrors: false, errTitle: '', timeNote: '', nowNote: '', needs: '', primary: 'Add date', remove: false, confirmRemove: false };
+    const omModes = {
+      overridemodal: {},
+      overrideclosed: { kind: 'closed', reason: 'Family event' },
+      overrideerrors: { date: '', dateErr: 'Choose a date.', opens: '', opensErr: 'Enter an opening time.', hasErrors: true, errTitle: 'Fix 2 things to add this date' },
+      overrideduplicate: { date: 'Monday 12 October 2026', dateErr: 'You already have a special date on Monday 12 October 2026. Edit that one instead.', closes: '', closesErr: 'Enter a closing time.', hasErrors: true, errTitle: 'Fix 2 things to add this date' },
+      overridenight: { opens: '6:00 pm', closes: '1:00 am', timeNote: 'Past midnight: closes at 1:00 am on Friday 1 January 2027.', needs: 'Needs API: special dates can’t say they cross midnight; confirm a closing time earlier than the opening time runs into the next day, as weekly hours do' },
+      override24: { opens: '12:00 am', closes: '12:00 am', timeNote: 'Open 24 hours on this date. The same opening and closing time means a full day, as in your weekly hours.', needs: 'Needs API: confirm a special date with the same opening and closing time means 24 hours (the rule is written for weekly hours only)' },
+      overrideedit: { title: 'Edit special date', desc: 'This replaces your weekly hours on that date only. Changes save straight away, separately from your weekly hours.', date: 'Monday 12 October 2026', opens: '12:00 pm', closes: '8:00 pm', reason: 'Thanksgiving', primary: 'Save changes', remove: true },
+      overrideremove: { title: 'Edit special date', desc: 'This replaces your weekly hours on that date only.', date: 'Monday 12 October 2026', opens: '12:00 pm', closes: '8:00 pm', reason: 'Thanksgiving', primary: 'Save changes', remove: true, confirmRemove: true },
+      server422: { date: 'Sunday 3 October 2027', dateErr: 'This date is more than a year ahead. Choose a date up to 28 September 2027.', kind: 'closed', reason: 'Anniversary', hasErrors: true, errTitle: 'HalalGoes couldn’t save this date. Fix 1 thing.', needs: 'Refused by the server as invalid. Nothing was saved; your weekly edits are untouched.', primary: 'Save date' },
+      viewaddoverride: { desc: 'This replaces your weekly hours on that date only. It saves straight away; you don’t need to edit your weekly hours.', primary: 'Save date' },
+      holidayedit: { title: 'Edit special date', desc: 'It saves straight away.', date: 'Monday 28 September 2026 (today)', kind: 'closed', reason: 'Staff training', primary: 'Save changes', remove: true, nowNote: 'This date is in effect now. If you remove it, your weekly hours apply today (11:00 am – 10:00 pm), so you open straight away.' },
+    };
+    const om = { ...omBase, ...(omModes[mode] || {}) };
+    om.showTimes = om.kind === 'special';
+    om.hasTimeNote = !!om.timeNote; om.hasNowNote = !!om.nowNote; om.hasNeeds = !!om.needs;
+    om.noConfirm = !om.confirmRemove;
+
+    // Vertical budget of the no-scroll page: top bar 208 (+64 with the sound prompt), padding 28, the Right now card, banner, gaps.
+    const topH = 208 + (m.soundGate ? 64 : 0);
+    const nowH = !m.showNow ? 0 : (['closedhours'].includes(mode) ? 176 : ['view', 'closedcutoff', 'pausedovernight', 'pausedclose', 'offline', 'autooff', 'soundoff', 'soundgate', 'none'].includes(mode) ? 132 : 112);
+    const bannerH = m.hasBanner ? 108 : 0;
+    const paneH = H - topH - 28 - (nowH ? nowH + 12 : 0) - (bannerH ? bannerH + 12 : 0);
+    return {
+      m, om, days, edays, list, noop, yes: true, zero: 0, nine: H, cw: mainW - 32, paneH, W, H, railW, mainW, tablet,
+      pastOpen: mode === 'pastdates', pastOpenAttr: mode === 'pastdates' ? 'true' : 'false',
+      pastIcon: mode === 'pastdates' ? 'chevron-down' : 'chevron-right',
+      pastLabel: mode === 'pastdates' ? 'Hide past dates (1)' : 'Show past dates (1)',
+      pastDates: [{ date: 'Monday 7 September 2026', hours: 'Closed all day', reason: 'Labour Day' }],
+      seven: [1, 2, 3, 4, 5, 6, 7],
+      openClosed: { on: 'Open', off: 'Closed' },
+      ovOpts: [
+        { value: 'closed', label: 'Closed all day' },
+        { value: 'special', label: 'Special hours', description: 'Replaces your usual hours for this date' },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

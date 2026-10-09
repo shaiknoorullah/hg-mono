@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Notification settings</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<link rel="stylesheet" href="hg-current.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="scr {{ltClass}}" data-theme="{{theme}}" style="width: {{w}}px; height: {{h}}px; font-family: var(--font-ui); color: var(--text-primary)">
+  <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="cream" title="Notification settings" on-back="{{noop}}" back-label="Back to Account"></x-import>
+  <main class="body" style="padding-top: var(--space-2); gap: var(--space-6); overflow: hidden">
+    <sc-if value="{{f.loading}}" hint-placeholder-val="{{false}}">
+      <div role="status"><span class="sr">Loading notification settings</span></div>
+      <span class="gap-tag" style="white-space: normal">Proposed component: Skeleton. For the design-system components issue (<a href="https://github.com/shaiknoorullah/hg-mono/issues/109" style="color: inherit">GitHub #109</a>): role=status with a visually hidden name ('Loading notification settings'), outside the busy region; aria-busy on the container that receives the content; the skeleton aria-hidden.</span>
+      <div aria-busy="true" style="display: contents">
+      <div aria-hidden="true" style="display: flex; flex-direction: column; gap: var(--space-4)">
+        <span style="display: block; background: var(--skeleton-base); border-radius: var(--radius-xs); width: 40%; height: 16px"></span>
+        <span style="display: block; background: var(--skeleton-base); border-radius: var(--radius-xs); width: 90%; height: 12px"></span>
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg" padding="0">
+          <div style="display: flex; flex-direction: column"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="none" padding="var(--space-2) var(--space-4)" dc-props="{{rowStatic}}"><div style="display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-3); min-height: calc(var(--density-row-height) - var(--space-4))"><span style="display: block; background: var(--skeleton-base); border-radius: var(--radius-xs); width: 36px; height: 36px; border-radius: var(--radius-md)"></span><span style="display: block; background: var(--skeleton-base); border-radius: var(--radius-xs); width: 50%; height: 14px"></span></div></x-import></div>
+        </x-import>
+        <span style="display: block; background: var(--skeleton-base); border-radius: var(--radius-xs); width: 25%; height: 16px"></span>
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg">
+          <span style="display: block; background: var(--skeleton-base); border-radius: var(--radius-xs); width: 70%; height: 14px"></span>
+        </x-import>
+      </div>
+      </div>
+    </sc-if>
+    <sc-if value="{{f.loadError}}" hint-placeholder-val="{{false}}">
+      <div role="alert" style="flex: 1 1 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: var(--space-3); padding: var(--space-8) var(--space-5)">
+        <span class="gap-tag">Proposed component: ErrorState</span>
+        <span style="width: 56px; height: 56px; display: grid; place-items: center; border-radius: var(--radius-full); background: var(--surface-sunken); color: var(--text-secondary); background: var(--feedback-warning-tint); color: var(--feedback-warning-tint-text)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="refresh" size="lg"></x-import></span>
+        <h2 style="margin: 0; font-size: var(--type-heading-md-size); line-height: var(--type-heading-md-line); font-weight: 600; color: var(--text-primary)">We couldn't load your settings</h2>
+        <p style="margin: 0; max-width: 320px; font-size: var(--type-body-md-size); line-height: var(--type-body-md-line); color: var(--text-secondary)">Your order's tracking screen keeps showing updates while this is down. Try again in a moment.</p>
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="secondary" size="md" icon-start="refresh" on-press="{{noop}}">Try again</x-import>
+      </div>
+    </sc-if>
+    <sc-if value="{{f.content}}" hint-placeholder-val="{{true}}">
+
+    <sc-if value="{{f.offline}}" hint-placeholder-val="{{false}}">
+      <span class="gap-tag">Proposed component: Banner</span>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="md" padding="var(--space-3) var(--space-4)" dc-props="{{alert.neutral}}" role="status"><div style="display: flex; gap: var(--space-3); align-items: flex-start; font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-line)">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="info" size="md"></x-import>
+        <div style="display: flex; flex-direction: column; gap: 2px">
+          <span style="font-size: var(--type-label-lg-size); line-height: var(--type-label-lg-line); font-weight: 600; color: var(--text-primary)">You're offline</span>
+          <span id="offline-why">These are your settings from 6:31 pm. Connect to change them.</span>
+        </div>
+      </div></x-import>
+    </sc-if>
+
+    <section aria-labelledby="orders-h" style="display: flex; flex-direction: column; gap: var(--space-3)">
+      <h2 id="orders-h" class="t-h2">Order updates</h2>
+      <p class="t-small">We tell you when the restaurant accepts, when your rider is on the way and when your food arrives. Your order's tracking screen always shows them too.</p>
+      <span class="gap-tag">Proposed component: ListRow</span>
+      <sc-if value="{{f.pushOn}}" hint-placeholder-val="{{true}}">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg" padding="0">
+          <div style="display: flex; flex-direction: column">
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="none" padding="var(--space-2) var(--space-4)" dc-props="{{rowStatic}}"><div style="display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-3); min-height: calc(var(--density-row-height) - var(--space-4))">
+              <span style="width: 36px; height: 36px; flex: 0 0 auto; display: grid; place-items: center; border-radius: var(--radius-md); background: var(--surface-sunken); color: var(--text-secondary)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="bell" size="md"></x-import></span>
+              <span style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px"><span style="font-size: var(--type-label-lg-size); line-height: var(--type-label-lg-line); font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap">Push notifications</span><span style="font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-line); color: var(--text-secondary)">Allowed on this phone</span></span>
+              <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="neutral" size="md" icon="check">On</x-import>
+            </div></x-import>
+          </div>
+        </x-import>
+        <p class="t-small">To turn them off, use your phone's settings for HalalGoes.</p>
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="lg" full-width="{{yes}}" on-press="{{noop}}">Open phone settings</x-import>
+      </sc-if>
+      <sc-if value="{{f.notAsked}}" hint-placeholder-val="{{false}}">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg" padding="0">
+          <div style="display: flex; flex-direction: column">
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="none" padding="var(--space-2) var(--space-4)" dc-props="{{rowStatic}}"><div style="display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-3); min-height: calc(var(--density-row-height) - var(--space-4))">
+              <span style="width: 36px; height: 36px; flex: 0 0 auto; display: grid; place-items: center; border-radius: var(--radius-md); background: var(--surface-sunken); color: var(--text-secondary)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="bell" size="md"></x-import></span>
+              <span style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px"><span style="font-size: var(--type-label-lg-size); line-height: var(--type-label-lg-line); font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap">Push notifications</span><span style="font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-line); color: var(--text-secondary)">Not turned on yet</span></span>
+            </div></x-import>
+          </div>
+        </x-import>
+        <p class="t-small">Get alerts on your lock screen when your order changes. Your phone will ask you to allow them.</p>
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" full-width="{{yes}}" icon-start="bell" on-press="{{noop}}">Turn on notifications</x-import>
+      </sc-if>
+      <sc-if value="{{f.denied}}" hint-placeholder-val="{{false}}">
+        <span class="gap-tag">Proposed component: Banner</span>
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="md" padding="var(--space-3) var(--space-4)" dc-props="{{alert.neutral}}" role="status"><div style="display: flex; gap: var(--space-3); align-items: flex-start; font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-line)">
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="bell" size="md"></x-import>
+          <div style="display: flex; flex-direction: column; gap: 2px">
+            <span style="font-size: var(--type-label-lg-size); line-height: var(--type-label-lg-line); font-weight: 600; color: var(--text-primary)">Push notifications are off</span>
+            <span>You won't get alerts on your lock screen. Your order's tracking screen still shows every update.</span>
+          </div>
+        </div></x-import>
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="lg" full-width="{{yes}}" on-press="{{noop}}">Open phone settings</x-import>
+      </sc-if>
+    </section>
+
+    <section aria-labelledby="email-h" style="display: flex; flex-direction: column; gap: var(--space-3)">
+      <h2 id="email-h" class="t-h2">Email</h2>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg">
+        <div style="display: flex; flex-direction: column; gap: var(--space-2)" data-switch="">
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Switch" label="News and offers by email" aria-describedby="{{emailDescIds}}" state-label="{{onOff}}" checked="{{switchOn}}" loading="{{f.saving}}" disabled="{{switchOff}}" error="{{switchErr}}" on-checked-change="{{noop}}"></x-import>
+          <p id="email-why" class="t-small">{{emailDesc}}</p>
+          <sc-if value="{{f.dsTag}}" hint-placeholder-val="{{true}}">
+            <span class="gap-tag" style="white-space: normal">DS issue: Switch description is text.tertiary inside disabled opacity. The reason is a t-small paragraph (text.secondary) outside the Switch, linked with aria-describedby="email-why".</span>
+          </sc-if>
+          <sc-if value="{{f.consentShown}}" hint-placeholder-val="{{false}}">
+            <p class="t-small">You agreed on 3 September 2026. Turn this off at any time.</p>
+          </sc-if>
+          <sc-if value="{{f.offResult}}" hint-placeholder-val="{{false}}">
+            <p class="t-small">You won't get news or offers by email. We still email you about your account, like confirming your address.</p>
+          </sc-if>
+          <sc-if value="{{f.unconfirmed}}" hint-placeholder-val="{{false}}">
+            <p class="t-small">You agreed on 28 September 2026. We'll start once you open the link we emailed to aisha.m@example.ca; until then we send nothing there.</p>
+            <span class="anno-tag">Owner decision: consent is recorded (marketing_consent_at) before the email is confirmed, and nothing is sent until email_verified is true.</span>
+          </sc-if>
+          <sc-if value="{{f.noEmail}}" hint-placeholder-val="{{false}}">
+            <div style="align-self: flex-start">
+              <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="sm" icon-start="plus" href="Account-addemail.dc.html">Add an email</x-import>
+            </div>
+          </sc-if>
+        </div>
+      </x-import>
+    </section>
+
+    <div class="api-box">
+      <span class="api-tag">Needs API: ordering and notification preferences</span>
+      <p class="t-small">Promotion push and text messages, dietary defaults and sort order have no endpoint yet, so they are not shown as real settings.</p>
+    </div>
+    </sc-if>
+  </main>
+  <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.BottomNav" label="Main" active="account" items="{{nav}}" on-change="{{noop}}"></x-import>
+
+  <sc-if value="{{f.offResult}}" hint-placeholder-val="{{false}}">
+    <div class="toast-dock">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Toast" variant="neutral" title="News by email is off" on-dismiss="{{noop}}"></x-import>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["default","notasked","denied","saving","on","turningoff","off","error","noemail","unconfirmed","offline","focus","loading","loaderror"],"default":"default"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"lt":{"editor":"boolean","default":false},"w":{"editor":"int","min":320,"max":430,"default":390},"h":{"editor":"int","min":844,"max":2400,"default":844},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  componentDidMount() {
+    this.t = setTimeout(() => {
+      try {
+        if ((this.props.state ?? 'default') === 'focus') {
+          const el = document.querySelector('[data-switch] [role=switch], [data-switch] button, [data-switch] input');
+          if (el) el.focus({ preventScroll: true });
+        }
+      } catch (e) {}
+    }, 500);
+  }
+  componentWillUnmount() { clearTimeout(this.t); }
+  renderVals() {
+    const s = this.props.state ?? 'default';
+    const f = {
+      denied: s === 'denied', notAsked: s === 'notasked', saving: s === 'saving' || s === 'turningoff', noEmail: s === 'noemail',
+      unconfirmed: s === 'unconfirmed', offline: s === 'offline', offResult: s === 'off',
+      consentShown: s === 'on' || s === 'turningoff',
+    };
+    f.loading = s === 'loading'; f.loadError = s === 'loaderror'; f.content = !f.loading && !f.loadError;
+    f.pushOn = !f.denied && !f.notAsked;
+    f.dsTag = s === 'noemail' || s === 'default' || this.props.theme === 'dark';
+    // The Switch keeps its old position while saving: on stays on during turningoff.
+    const switchOn = s === 'on' || s === 'turningoff' || s === 'unconfirmed';
+    return {
+      alert: { neutral: { style: { background: 'var(--surface-sunken)', color: 'var(--text-secondary)', borderColor: 'var(--border-decorative)' } }, info: { style: { background: 'var(--feedback-info-tint)', color: 'var(--feedback-info-tint-text)', borderColor: 'var(--feedback-info-border)' } }, warning: { style: { background: 'var(--feedback-warning-tint)', color: 'var(--feedback-warning-tint-text)', borderColor: 'var(--feedback-warning-border)' } } }, rowLink: { className: 'hg-focus-inset', style: { border: 'none', borderRadius: 0, background: 'transparent' } }, rowStatic: { style: { border: 'none', borderRadius: 0, background: 'transparent' } },
+      f, yes: true, noop: () => {}, switchOn,
+      switchOff: f.noEmail || f.offline,
+      emailDescIds: f.offline ? 'email-why offline-why' : 'email-why',
+      theme: this.props.theme === 'dark' ? 'dark' : 'light',
+      ltClass: this.props.lt ? 'lt' : '',
+      w: this.props.w ?? 390,
+      h: this.props.h ?? 844,
+      onOff: { on: 'On', off: 'Off' },
+      emailDesc: f.noEmail ? 'Add an email to your account first.'
+        : f.unconfirmed ? 'Occasional emails to aisha.m@example.ca. Off unless you turn it on.'
+        : 'Occasional emails to aisha.malik@example.com. Off unless you turn it on.',
+      switchErr: s === 'error' ? "We couldn't change this. It's still off. Try again." : undefined,
+      nav: [
+        { key: 'home', label: 'Home', icon: 'home' },
+        { key: 'search', label: 'Search', icon: 'search' },
+        { key: 'orders', label: 'Orders', icon: 'orders' },
+        { key: 'account', label: 'Account', icon: 'profile' },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

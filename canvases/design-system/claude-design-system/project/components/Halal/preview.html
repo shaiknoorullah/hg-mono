@@ -1,0 +1,22 @@
+<!-- @dsCard group="Components" height=560 subtitle="The reserved namespace: the only solid green in the system" page -->
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Halal</title>
+<style>body{margin:0;padding:20px;background:var(--surface-base);color:var(--text-primary);font-family:var(--font-ui)}.row{display:flex;flex-wrap:wrap;align-items:center;gap:12px}.col{display:grid;gap:14px}.g2{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;align-items:start}.lbl{font-size:var(--type-label-sm-size);letter-spacing:var(--type-label-sm-tracking);color:var(--text-tertiary);font-weight:var(--font-weight-semibold)}</style>
+</head><body><div id="root"></div>
+<script>
+(function () {
+  var h = React.createElement, F = React.Fragment, DS = window.HalalGoesDesignSystem_d11a47;
+  function L(t) { return h('span', { className: 'lbl' }, t); }
+
+  function Demo() {
+    return h('div', { className: 'g2' },
+      h('div', { className: 'col' },
+        h('div', { className: 'row' }, h(DS.HalalBadge, { state: 'CERTIFIED', size: 'sm' }), h(DS.HalalBadge, { state: 'CERTIFIED' }), h(DS.HalalBadge, { state: 'CERTIFIED', size: 'lg' })),
+        h('div', { className: 'row' }, L('EXPIRING_SOON = identical'), h(DS.HalalBadge, { state: 'EXPIRING_SOON' })),
+        h('div', { className: 'row' }, h(DS.HalalBadge, { state: 'EXPIRED' }), h(DS.HalalBadge, { state: 'UNVERIFIED', surface: 'operational' }), L('slate, never red · unverified only on operational surfaces')),
+        h('div', { className: 'row' }, L('missing state → nothing'), h(DS.HalalBadge, { state: undefined, restaurantId: 'rst_demo' })),
+        h('p', { style: { margin: 0, color: 'var(--text-secondary)', fontSize: 'var(--type-body-sm-size)' } }, 'The seven admin checks (H1–H7) live in HalalChecklist — see its card.')),
+      h(DS.HalalCertificationPanel, { restaurantId: 'rst_01', onViewCertificate: function () {}, onReportConcern: function () {}, headingLevel: 3, certification: { display_state: 'EXPIRING_SOON', certifying_body_name: 'Halal Monitoring Authority (HMA)', certificate_number: 'HMA-2026-04417', scope: 'WHOLE_ESTABLISHMENT', issued_on: '2025-11-12', expires_on: '2026-11-12', certificate_viewable: true, disclaimer: 'Certification verified by Halal Goes on 4 September 2026. Halal Goes does not itself certify food.' } }));
+  }
+  ReactDOM.createRoot(document.getElementById('root')).render(h(Demo));
+})();
+</script></body></html>

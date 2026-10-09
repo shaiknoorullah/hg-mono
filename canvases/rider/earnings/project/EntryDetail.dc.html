@@ -1,0 +1,413 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Earnings line</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}
+.hg-focus-inset:focus-visible{outline:2px solid transparent;outline-offset:-2px}
+/* Named exception: 200% text simulation, not a token change. Stands in for the text-scale mode requested from the design system (tokens.css [data-hg-text-scale]); removed once the system ships it. */
+[data-hg-text-scale="200"]{--type-body-lg-size:34px;--type-body-md-size:30px;--type-body-sm-size:26px;--type-heading-sm-size:36px;--type-heading-md-size:40px;--type-heading-lg-size:44px;--type-heading-xl-size:52px;--type-label-lg-size:30px;--type-label-md-size:26px;--type-label-sm-size:22px;--type-display-md-size:60px;--type-display-lg-size:72px;--type-mono-sm-size:22px;--type-mono-md-size:26px;--type-caption-size:24px}</style>
+</helmet>
+<div data-theme="{{theme}}" data-hg-text-scale="{{textScale}}" style="width: 390px; height: 844px; position: relative; overflow: hidden; display: flex; flex-direction: column; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui); font-size: var(--type-body-lg-size); line-height: 1.5;">
+  <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="field" title="{{e.title}}" back-label="{{backLabel}}" on-back="{{noop}}"></x-import>
+
+  <div style="flex-grow: 1; min-height: 0; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 20px;">
+
+    <sc-if value="{{isDeepLoading}}" hint-placeholder-val="{{false}}">
+      <div aria-busy="true" style="display: flex; flex-direction: column; gap: 12px;">
+        <span role="status" class="hg-sr">Finding this earnings line</span>
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{zero}}" size="xl" loading="{{yes}}"></x-import>
+        <span style="display: block; width: 200px; height: 20px; border-radius: var(--radius-sm); background: var(--skeleton-base);"></span>
+        <span style="display: block; height: 96px; border-radius: var(--radius-lg); background: var(--skeleton-base);"></span>
+        <span style="display: block; height: 300px; border-radius: var(--radius-lg); background: var(--skeleton-base);"></span>
+        <span style="align-self: flex-start; font-family: var(--font-mono); font-size: var(--type-mono-sm-size); padding: 2px 6px; border-radius: var(--radius-xs); background: var(--feedback-info-tint); color: var(--feedback-info-tint-text);">Opened from a push or link (earnings.credited, payout.updated) and the line isn't in the loaded list: the app re-fetches the newest page of GET /earnings/entries and looks for the entry id. Proposed component: Skeleton (hidden status line)</span>
+        <span style="align-self: flex-start; font-family: var(--font-mono); font-size: var(--type-mono-sm-size); padding: 2px 6px; border-radius: var(--radius-xs); background: var(--feedback-warning-tint); color: var(--feedback-warning-tint-text);">Needs API: GET /riders/me/earnings/entries/{id} (one entry). Without it, a line older than the first page can't be opened from a push.</span>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{isDeepMissing}}" hint-placeholder-val="{{false}}">
+      <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 12px; padding-top: 32px;">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="search" size="2xl" color="var(--text-secondary-field)"></x-import>
+        <div role="alert" style="display: flex; flex-direction: column; gap: 12px;">
+          <h2 style="margin: 0; font-size: var(--type-heading-xl-size); line-height: 1.25;">We can't show this line here</h2>
+          <p style="margin: 0;">It may be older than the lines this phone has loaded. Earnings activity lists every line, newest first. Your earnings are not affected.</p>
+        </div>
+        <div style="margin-top: auto; display: flex; flex-direction: column; gap: 6px;">
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="xl" full-width="{{yes}}" href="Activity.dc.html">Go to Earnings activity</x-import>
+          <span style="align-self: flex-start; font-family: var(--font-mono); font-size: var(--type-mono-sm-size); padding: 2px 6px; border-radius: var(--radius-xs); background: var(--feedback-info-tint); color: var(--feedback-info-tint-text);">Proposed component: ErrorState (terminal fallback, action in the bottom third) · the entry id was not in the newest page · Needs API: GET one entry</span>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{showEntry}}" hint-placeholder-val="{{true}}">
+    <sc-if value="{{isLarge}}" hint-placeholder-val="{{false}}">
+      <span style="align-self: flex-start; font-family: var(--font-mono); font-size: var(--type-mono-sm-size); padding: 2px 6px; border-radius: var(--radius-xs); background: var(--feedback-info-tint); color: var(--feedback-info-tint-text);">Drawn at 200% text, set by data-hg-text-scale="200" on the root (a 200% text simulation, not a token change) (all type tokens doubled). Breakdown rows wrap: the amount moves under its label. Known truncation until the system gaps close: the AppBar title "Delivery earnings" (nowrap + ellipsis); see the design-system note</span>
+    </sc-if>
+    <section style="display: flex; flex-direction: column; gap: 8px; align-items: flex-start;">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{e.cents}}" size="xl" sign="{{e.sign}}"></x-import>
+      <span style="display: inline-flex; align-items: center; gap: 6px; font-weight: 600; color: var(--text-secondary-field);">
+        <sc-if value="{{e.hasSi}}" hint-placeholder-val="{{true}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="{{e.si}}" size="md" color="var(--text-secondary-field)"></x-import></sc-if>{{e.status}}
+      </span>
+      <span>{{e.earned}}</span>
+      <sc-if value="{{e.hasCode}}" hint-placeholder-val="{{true}}">
+        <span>Order <span style="font-family: var(--font-mono); font-weight: 500;">{{e.code}}</span></span>
+      </sc-if>
+      <sc-if value="{{e.noCode}}" hint-placeholder-val="{{false}}">
+        <span style="color: var(--text-secondary-field);">Not tied to one delivery</span>
+      </sc-if>
+    </section>
+
+    <div style="display: flex; flex-direction: column; gap: 6px;">
+      <div style="display: flex; gap: 12px; padding: 16px 20px; border-radius: var(--radius-lg); background: var(--surface-raised);">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="{{e.explainIcon}}" size="lg" color="var(--text-secondary-field)"></x-import>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <sc-for list="{{e.explain}}" as="line" hint-placeholder-count="2">
+            <span>{{line.text}}</span>
+          </sc-for>
+        </div>
+      </div>
+      <span style="align-self: flex-start; font-family: var(--font-mono); font-size: var(--type-mono-sm-size); padding: 2px 6px; border-radius: var(--radius-xs); background: var(--feedback-info-tint); color: var(--feedback-info-tint-text);">Proposed component: InlineAlert (neutral){{e.iconGap}}</span>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 6px;">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" padding="20px">
+        <div style="display: flex; flex-direction: column;">
+          <h2 style="margin: 0 0 8px; font-size: var(--type-heading-md-size);">How it was worked out</h2>
+          <sc-for list="{{e.lead}}" as="p" hint-placeholder-count="4">
+            <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 4px 12px; min-height: 56px; padding: 6px 0; border-bottom: 1px solid var(--border-decorative);">
+              <span style="display: flex; flex-direction: column;">
+                <span>{{p.label}}</span>
+                <sc-if value="{{p.hasSub}}" hint-placeholder-val="{{false}}"><span style="color: var(--text-secondary-field);">{{p.sub}}</span></sc-if>
+              </span>
+              <sc-if value="{{p.isMoney}}" hint-placeholder-val="{{true}}">
+                <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{p.cents}}" size="lg" sign="{{p.sign}}"></x-import>
+              </sc-if>
+              <sc-if value="{{p.isText}}" hint-placeholder-val="{{false}}">
+                <span style="font-weight: 600; font-variant-numeric: tabular-nums;">{{p.text}}</span>
+              </sc-if>
+            </div>
+          </sc-for>
+          <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 4px 12px; min-height: 56px; border-bottom: 2px solid var(--border-decorative);">
+            <strong>Total for this line</strong>
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{e.cents}}" size="xl" sign="{{e.sign}}"></x-import>
+          </div>
+          <sc-if value="{{e.hasTrail}}" hint-placeholder-val="{{true}}">
+            <sc-for list="{{e.trail}}" as="p" hint-placeholder-count="3">
+              <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 48px; color: var(--text-secondary-field);">
+                <span style="display: flex; flex-direction: column;">
+                  <span>{{p.label}}</span>
+                  <sc-if value="{{p.hasSub}}" hint-placeholder-val="{{false}}"><span>{{p.sub}}</span></sc-if>
+                </span>
+                <sc-if value="{{p.isMoney}}" hint-placeholder-val="{{true}}">
+                  <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{p.cents}}" size="md" sign="{{p.sign}}"></x-import>
+                </sc-if>
+                <sc-if value="{{p.isText}}" hint-placeholder-val="{{false}}">
+                  <span style="font-variant-numeric: tabular-nums;">{{p.text}}</span>
+                </sc-if>
+              </div>
+            </sc-for>
+          </sc-if>
+          <sc-if value="{{e.showPickupNote}}" hint-placeholder-val="{{true}}">
+            <p style="margin: 8px 0 0; color: var(--text-secondary-field);">You get the full delivery fee the customer paid, plus every tip.</p>
+          </sc-if>
+          <span style="margin-top: 12px; font-size: var(--type-body-lg-size); color: var(--text-secondary-field);">Worked out by HalalGoes, formula version 1. The app never calculates pay.</span>
+        </div>
+      </x-import>
+      <span style="align-self: flex-start; font-family: var(--font-mono); font-size: var(--type-mono-sm-size); padding: 2px 6px; border-radius: var(--radius-xs); background: var(--feedback-info-tint); color: var(--feedback-info-tint-text);">Proposed component: KeyValueList · a delivery line is one Delivery fee row (its km is only a sub-label, from billable_distance_m and distance_source; null source = km only) plus Tip, then the total (gross_cents). A $0.00 tip trails under the total in secondary text. Rider pay is a pure pass-through (decision R-02): the rate-card parts (base_cents, distance_cents, wait_cents, guarantee_topup_cents) come back as 0 at launch and are never drawn; waiting pay is deferred to V1 (decision R-09)</span>
+    </div>
+
+    <section style="display: flex; flex-direction: column; gap: 8px;">
+      <h2 style="margin: 0; font-size: var(--type-heading-md-size);">Payout</h2>
+      <sc-if value="{{payoutLoading}}" hint-placeholder-val="{{false}}">
+        <div aria-busy="true" style="display: flex; flex-direction: column; gap: 8px; justify-content: center; min-height: 72px; padding: 12px 20px; border: 1px solid var(--border-decorative); border-radius: var(--radius-lg);">
+          <span role="status" class="hg-sr">Loading the payout for this line</span>
+          <span style="display: block; width: 220px; height: 20px; border-radius: var(--radius-sm); background: var(--skeleton-base);"></span>
+          <span style="display: block; width: 260px; height: 20px; border-radius: var(--radius-sm); background: var(--skeleton-base);"></span>
+        </div>
+        <span style="align-self: flex-start; font-family: var(--font-mono); font-size: var(--type-mono-sm-size); padding: 2px 6px; border-radius: var(--radius-xs); background: var(--feedback-info-tint); color: var(--feedback-info-tint-text);">Proposed component: Skeleton (row, same 72px as the loaded link) · the rest of the line is already shown from the list row; only this row waits</span>
+      </sc-if>
+      <sc-if value="{{payoutError}}" hint-placeholder-val="{{false}}">
+        <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding: 16px 20px; border: 1px solid var(--border-decorative); border-radius: var(--radius-lg);">
+          <div role="status" style="display: flex; flex-direction: column; gap: 4px;">
+            <strong>We couldn't load the payout for this line</strong>
+            <span>This line is in a payout. The amount above is not affected.</span>
+          </div>
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="xl" icon-start="refresh">Try again</x-import>
+        </div>
+        <span style="align-self: flex-start; font-family: var(--font-mono); font-size: var(--type-mono-sm-size); padding: 2px 6px; border-radius: var(--radius-xs); background: var(--feedback-info-tint); color: var(--feedback-info-tint-text);">Network / 5xx / 429 on the second call: role=status on the message only, Try again outside it (429 waits for Retry-After as on the other screens)</span>
+      </sc-if>
+      <sc-if value="{{payoutMissing}}" hint-placeholder-val="{{false}}">
+        <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding: 16px 20px; border: 1px solid var(--border-decorative); border-radius: var(--radius-lg);">
+          <div role="status" style="display: flex; flex-direction: column; gap: 4px;">
+            <strong>In a payout we can't show right now</strong>
+            <span>Your payouts list always shows the latest.</span>
+          </div>
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="xl" href="Payouts.dc.html">Go to Payouts</x-import>
+        </div>
+        <span style="align-self: flex-start; font-family: var(--font-mono); font-size: var(--type-mono-sm-size); padding: 2px 6px; border-radius: var(--radius-xs); background: var(--feedback-info-tint); color: var(--feedback-info-tint-text);">404 NOT_FOUND on GET /riders/me/payouts/{payout_id}: payout_id is set but the payout can't be read. No period or state is guessed</span>
+      </sc-if>
+      <sc-if value="{{payoutOk}}" hint-placeholder-val="{{false}}">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" padding="0">
+          <a href="{{e.payoutHref}}" class="hg-focus-inset" style="display: flex; align-items: center; gap: 12px; min-height: 72px; padding: 12px 20px; color: var(--text-primary); text-decoration: none; box-shadow: {{payoutRing}};">
+            <span style="flex-grow: 1; display: flex; flex-direction: column;">
+              <span style="font-weight: 600;">{{e.payoutTitle}}</span>
+              <span style="color: var(--text-secondary-field);">{{e.payoutSub}}</span>
+            </span>
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="chevron-right" size="lg"></x-import>
+          </a>
+        </x-import>
+      </sc-if>
+      <sc-if value="{{e.noPayout}}" hint-placeholder-val="{{true}}">
+        <span>{{e.payoutText}}</span>
+      </sc-if>
+      <span style="align-self: flex-start; font-family: var(--font-mono); font-size: var(--type-mono-sm-size); padding: 2px 6px; border-radius: var(--radius-xs); background: var(--feedback-info-tint); color: var(--feedback-info-tint-text);">Driven by EarningEntry.payout_id for every type, reversed lines included: null = not in a payout yet; set = link to that payout. Period and state come from a second call, GET /riders/me/payouts/{payout_id} (the entry carries only payout_id): its loading, error and 404 are drawn as their own boards</span>
+    </section>
+
+    <sc-for list="{{e.needs}}" as="n" hint-placeholder-count="0">
+      <span style="align-self: flex-start; font-family: var(--font-mono); font-size: var(--type-mono-sm-size); padding: 2px 6px; border-radius: var(--radius-xs); background: var(--feedback-warning-tint); color: var(--feedback-warning-tint-text);">{{n.text}}</span>
+    </sc-for>
+
+    <sc-if value="{{e.hasDetail}}" hint-placeholder-val="{{true}}">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" padding="0">
+        <a href="{{e.detailHref}}" class="hg-focus-inset" style="display: flex; align-items: center; gap: 12px; min-height: 72px; padding: 12px 20px; color: var(--text-primary); text-decoration: none; box-shadow: {{detailRing}};">
+          <span style="flex-grow: 1; display: flex; flex-direction: column;">
+            <span style="font-weight: 600;">Delivery details</span>
+            <span style="color: var(--text-secondary-field);">Times, addresses and items</span>
+          </span>
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="chevron-right" size="lg"></x-import>
+        </a>
+      </x-import>
+    </sc-if>
+
+    <sc-for list="{{e.placeholders}}" as="ph" hint-placeholder-count="0">
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <div style="display: flex; align-items: center; gap: 12px; min-height: 72px; padding: 12px 20px; border: 1px dashed var(--border-decorative); border-radius: var(--radius-lg); color: var(--text-secondary-field);">
+          <span style="flex-grow: 1; display: flex; flex-direction: column;">
+            <span style="font-weight: 600;">{{ph.label}}</span>
+            <span>{{ph.sub}}</span>
+          </span>
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="chevron-right" size="lg" color="var(--text-secondary-field)"></x-import>
+        </div>
+        <span style="align-self: flex-start; font-family: var(--font-mono); font-size: var(--type-mono-sm-size); padding: 2px 6px; border-radius: var(--radius-xs); background: var(--feedback-warning-tint); color: var(--feedback-warning-tint-text);">{{ph.tag}}</span>
+      </div>
+    </sc-for>
+
+    <sc-for list="{{e.alts}}" as="alt" hint-placeholder-count="0">
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <div style="display: flex; flex-direction: column; gap: 8px; padding: 16px 20px; border: 1px dashed var(--border-decorative); border-radius: var(--radius-lg);">
+          <strong>{{alt.title}}</strong>
+          <sc-for list="{{alt.lines}}" as="al" hint-placeholder-count="1"><span>{{al.text}}</span></sc-for>
+        </div>
+        <span style="align-self: flex-start; font-family: var(--font-mono); font-size: var(--type-mono-sm-size); padding: 2px 6px; border-radius: var(--radius-xs); background: var(--feedback-warning-tint); color: var(--feedback-warning-tint-text);">{{alt.tag}}</span>
+      </div>
+    </sc-for>
+
+    <sc-if value="{{focusNote}}" hint-placeholder-val="{{false}}">
+      <span style="align-self: flex-start; font-family: var(--font-mono); font-size: var(--type-mono-sm-size); padding: 2px 6px; border-radius: var(--radius-xs); background: var(--feedback-info-tint); color: var(--feedback-info-tint-text);">{{focusText}}</span>
+    </sc-if>
+    <sc-if value="{{detailUndrawn}}" hint-placeholder-val="{{false}}">
+      <span style="align-self: flex-start; font-family: var(--font-mono); font-size: var(--type-mono-sm-size); padding: 2px 6px; border-radius: var(--radius-xs); background: var(--feedback-info-tint); color: var(--feedback-info-tint-text);">{{detailUndrawnText}}</span>
+    </sc-if>
+    <sc-if value="{{backNote}}" hint-placeholder-val="{{false}}">
+      <span style="align-self: flex-start; font-family: var(--font-mono); font-size: var(--type-mono-sm-size); padding: 2px 6px; border-radius: var(--radius-xs); background: var(--feedback-info-tint); color: var(--feedback-info-tint-text);">Back label follows the entry point. {{backText}}</span>
+    </sc-if>
+    <sc-if value="{{fromPayout}}" hint-placeholder-val="{{false}}">
+      <span style="align-self: flex-start; font-family: var(--font-mono); font-size: var(--type-mono-sm-size); padding: 2px 6px; border-radius: var(--radius-xs); background: var(--feedback-info-tint); color: var(--feedback-info-tint-text);">Opened from Payout detail: data from PayoutDetail.entries[] (same EarningEntry shape); back returns to that payout, focus back on the row that opened it</span>
+    </sc-if>
+    <span style="align-self: flex-start; font-family: var(--font-mono); font-size: var(--type-mono-sm-size); padding: 2px 6px; border-radius: var(--radius-xs); background: var(--feedback-info-tint); color: var(--feedback-info-tint-text);">Proposed component: StatusLabel (Icon md + label, 17px semibold; never brand orange or green; warning states use --feedback-warning-icon on the icon and --text-primary on the word, other states use --text-secondary-field) · stands in for Badge until Badge has a field size and a field theme (the long-term replacement) · Badge field size: label-lg 15px, ≥32px · System gap: AppBar tone=field back IconButton must be 56px (target.field)</span>
+    </sc-if>
+  </div>
+
+  <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.BottomNav" tone="field" label="Rider" active="earnings" items="{{tabs}}"></x-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"variant":{"editor":"enum","default":"delivery","options":["delivery","fallback","short","nosource","tip","tipavailable","tippaid","bonus","adjustment","correction","clawbackpaid","reversed","paid","frompayout","tippaid400","avail918","avail812","avail956","avail956fromdelivery","clawbackpayouts","deeplinkloading","deeplinkmissing","focuspayout","focusdetail","payoutloading","payouterror","payoutmissing","large"]},"theme":{"editor":"enum","default":"dark","options":["dark","light"]},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const variant = this.props.variant ?? 'delivery';
+    const theme = this.props.theme ?? 'dark';
+    const dark = theme !== 'light';
+    const money = (label, cents, sub, sign) => ({ label, cents, sub: sub || '', hasSub: !!sub, isMoney: true, isText: false, sign: sign || 'auto' });
+    const text = (label, t, sub) => ({ label, text: t, sub: sub || '', hasSub: !!sub, isMoney: false, isText: true });
+    const lines = (...xs) => xs.map((t) => ({ text: t }));
+    const n = (text) => ({ text });
+    const ph = (label, sub, tag) => ({ label, sub, tag });
+    const ask = ph('Question about this line?', 'Ask HalalGoes support', 'Needs API: support ticket from an earnings line (rider delivery-history spec) · drawn as a placeholder so the gap is reviewed in context');
+    // distance_source → sub-label. ROUTED / CACHED: measured; FALLBACK: estimated; null: the km value only.
+    const distSub = (km, source) => source === 'FALLBACK' ? km + ', estimated: route service was unavailable'
+      : (source === 'ROUTED' || source === 'CACHED') ? km + ', measured along the route' : km;
+    const ST = { PENDING: ['Pending', 'clock'], AVAILABLE: ['Available', 'info'], PAID: ['Paid', 'check'], REVERSED: ['Reversed', 'minus'] };
+    const pendingText = 'Pending for about an hour after the job started, or longer if something about it is being checked.';
+    // Payout text by type and status (payout_id null). "Once it is available…" only for PENDING lines.
+    const noPay = (payoutText) => ({ inPayout: false, noPayout: true, payoutText, payoutHref: '', payoutTitle: '', payoutSub: '' });
+    const notYet = noPay('Not in a payout yet. Once it is available, it goes into the next Monday payout.');
+    // Any CLAWBACK with payout_id null: one neutral text that is true whether the corrected line was paid or never paid (#147 can't tell them apart yet).
+    const clawNotYet = noPay('Not in a payout yet. A correction is settled against your earnings; see Earnings activity.');
+    const reversedNo = noPay('This line won’t be paid out. The correction that offsets it is in Earnings activity.');
+    const netNeed = n('Settled by the owner (spec model): the original line stays counted and its correction line offsets it, so a never-paid reversed line and its correction net to $0.00, and a correction of a paid line comes off the next payout. Needs API: corrected entry id + its status (#147), so the phone can tell which of the two cases this is; until then neither is claimed on the main board');
+    // Status for a CLAWBACK: AVAILABLE reads "goes into the next Monday payout", which the phone can't promise for a correction. Word and icon dropped.
+    const clawStatus = { status: 'Not in a payout yet', hasSi: false };
+    const clawStatusNeed = n('Needs API: a status for a CLAWBACK (the API returns AVAILABLE, which elsewhere means "goes into the next Monday payout"). The status word and icon are dropped until the contract has a value that fits. With #147 the reversed-tip case could read "Cancels a reversed tip"');
+    const clawExplain = lines('This corrects an earlier line. Lines are never edited: a correction is always added as a new line.', 'HalalGoes never takes money from your bank account.');
+    const alt147 = (lines_) => ({ title: 'Alternative (Needs API #147)', lines: lines_, tag: 'Alternative — Needs API #147: corrected entry id + its status. Shown only once the phone can tell whether the corrected line was paid' });
+    const inDraft = { inPayout: true, noPayout: false, payoutText: '', payoutHref: 'Payout-draft.dc.html', payoutTitle: 'In payout 21 to 27 September', payoutSub: 'Being prepared · goes out on the next Monday payout' };
+    const inPaid = { inPayout: true, noPayout: false, payoutText: '', payoutHref: 'PayoutDetail.dc.html', payoutTitle: 'In payout 14 to 20 September', payoutSub: 'Paid out Monday 21 September' };
+    // Delivery breakdown (pure pass-through, decision R-02): one Delivery fee row + Tip; the total is gross_cents.
+    // Sample fees follow decision S-02 ($2.99 + $1.00/km); the phone never works a fee out.
+    const feeNeed = n('Needs API: delivery_fee_cents on EarningEntry (pass-through fee, decision R-02). Until the field exists the build shows only Tip (tip_cents) and the total (gross_cents), never a Delivery fee worked out on the phone');
+    const fare = (km, source, fee, tip) => {
+      const all = [money('Delivery fee', fee, distSub(km, source)), money('Tip', tip, 'Tips reach you in full')];
+      const zero = (p) => p.isMoney && p.cents === 0;
+      return { lead: all.filter((p) => !zero(p)), trail: all.filter(zero), needs: [feeNeed] };
+    };
+    const base = (status, extra) => {
+      const o = Object.assign({
+        sign: 'always', status: ST[status][0], si: ST[status][1], hasSi: true, iconGap: '',
+        showPickupNote: false, needs: [], hasDetail: false, detailHref: '', placeholders: [], alts: [], trail: [], code: null,
+      }, extra);
+      o.hasCode = !!o.code; o.noCode = !o.code; o.hasTrail = o.trail.length > 0;
+      return o;
+    };
+    const tipGap = ' · Icon gap: hand-money (Solar hand-money) for tips and bonuses; "info" is the stand-in';
+    const E = {
+      delivery: base('PENDING', Object.assign({
+        title: 'Delivery earnings', cents: 939, earned: 'Earned Sunday 27 September 2026 at 9:12 pm', code: 'HG-4K2M-9T', explainIcon: 'clock',
+        explain: lines(pendingText), showPickupNote: true, hasDetail: true, detailHref: 'https://claude.ai/artifact/BZ4vZmESKMfTPQVWPrGWcb',
+      }, fare('4.4 km', 'ROUTED', 739, 200), notYet)),
+      fallback: base('AVAILABLE', Object.assign({
+        title: 'Delivery earnings', cents: 779, earned: 'Earned Sunday 27 September 2026 at 7:58 pm', code: 'HG-7PQ3-2D', explainIcon: 'info',
+        explain: lines('The route service was unavailable during this job, so HalalGoes estimated the distance from a straight line, adjusted for roads.'),
+        showPickupNote: true,
+      }, fare('3.3 km', 'FALLBACK', 629, 150), { needs: [feeNeed, n('Needs API (optional): fallback factor on the entry, shown only from the response; the phone never states a multiplier (admin config, distance-tracking spec)')] }, inDraft)),
+      short: base('AVAILABLE', Object.assign({
+        title: 'Delivery earnings', cents: 389, earned: 'Earned Saturday 26 September 2026 at 6:20 pm', code: 'HG-0V3T-6M', explainIcon: 'info',
+        explain: lines('A short delivery. You get the full delivery fee the customer paid for it.'),
+        showPickupNote: true, back: 'payout',
+      }, fare('0.9 km', 'ROUTED', 389, 0), { needs: [feeNeed, n('Pass-through (decision R-02): there is no minimum fare and no top-up, so nothing on this line implies a guaranteed amount (fixture offer_zero_tip_low_value)')] }, inDraft)),
+      nosource: base('PAID', Object.assign({
+        title: 'Delivery earnings', cents: 934, earned: 'Earned Saturday 19 September 2026 at 9:02 pm', code: 'HG-9Z4E-6T', explainIcon: 'check',
+        explain: lines('This line has been paid out.'),
+        showPickupNote: true, back: 'payout',
+      }, fare('5.1 km', null, 809, 125), { needs: [feeNeed, n('distance_source null: the km value only, with no measured or estimated label')] }, inPaid)),
+      tip: base('PENDING', Object.assign({
+        title: 'Tip', cents: 300, earned: 'Added Sunday 27 September 2026 at 8:47 pm', code: 'HG-7PQ3-2D', explainIcon: 'info', iconGap: tipGap,
+        explain: lines('The customer added this tip after the delivery, so it is a line of its own. The delivery line does not change.', 'Tips reach you in full. HalalGoes takes nothing from a tip.', pendingText),
+        lead: [money('Tip', 300)],
+      }, notYet)),
+      tipavailable: base('AVAILABLE', Object.assign({
+        title: 'Tip', cents: 250, earned: 'Added Saturday 26 September 2026 at 7:40 pm', code: 'HG-6R1N-3K', explainIcon: 'info', iconGap: tipGap,
+        explain: lines('The customer added this tip after the delivery.', 'Tips reach you in full. HalalGoes takes nothing from a tip.'),
+        lead: [money('Tip', 250)], hasDetail: true, detailHref: 'https://claude.ai/artifact/BZ4vZmESKMfTPQVWPrGWcb', back: 'payout',
+      }, inDraft)),
+      tippaid: base('PAID', Object.assign({
+        title: 'Tip', cents: 200, earned: 'Added Sunday 20 September 2026 at 8:31 pm', code: 'HG-8W2F-4L', explainIcon: 'info', iconGap: tipGap,
+        explain: lines('The customer added this tip after the delivery. It has been paid out.', 'Tips reach you in full. HalalGoes takes nothing from a tip.'),
+        lead: [money('Tip', 200)], back: 'payout',
+      }, inPaid)),
+      bonus: base('PAID', Object.assign({
+        title: 'Bonus', cents: 1500, earned: 'Added Sunday 20 September 2026 at 11:59 pm', explainIcon: 'info', iconGap: tipGap,
+        explain: lines('HalalGoes added this bonus to your earnings.'),
+        lead: [money('Bonus', 1500)],
+        needs: [n('Needs API: bonus reason or campaign name on the entry')],
+      }, inPaid)),
+      adjustment: base('AVAILABLE', Object.assign({
+        title: 'Adjustment', cents: 600, earned: 'Added Sunday 27 September 2026 at 5:30 pm', explainIcon: 'info',
+        explain: lines('HalalGoes added this to your earnings.', 'Lines are never edited: an adjustment is always added as a new line.'),
+        lead: [money('Adjustment', 600, '', 'always')],
+        needs: [n('Needs API: the reason for an adjustment')], placeholders: [ask],
+      }, inDraft)),
+      correction: base('AVAILABLE', Object.assign({
+        title: 'Correction', cents: -300, earned: 'Added Saturday 26 September 2026 at 10:40 pm', code: 'HG-2M8X-5R', explainIcon: 'info',
+        explain: clawExplain,
+        lead: [money('Correction', -300, '', 'always')],
+        needs: [clawStatusNeed, netNeed, n('Needs API: the reason for a correction')],
+        placeholders: [ph('See the line this corrects', 'Not linked yet', 'Needs API: original entry id on CLAWBACK (#147) · never matched by order code on the phone'), ask],
+        alts: [alt147(lines('If the corrected line was never paid (a reversed tip): status "Cancels a reversed tip".', 'Together they come to $0.00. Nothing comes off your payout.'))],
+      }, clawStatus, clawNotYet)),
+      clawbackpaid: base('AVAILABLE', Object.assign({
+        title: 'Correction', cents: -1500, earned: 'Added Saturday 26 September 2026 at 11:10 pm', explainIcon: 'info',
+        explain: clawExplain,
+        lead: [money('Correction', -1500, '', 'always')],
+        needs: [clawStatusNeed, n('Linked from Earnings / Payouts — balance below zero as the newest CLAWBACK (the balance itself comes from unpaid_balance_cents). Same main copy as every CLAWBACK with payout_id null'), netNeed, n('Needs API: the reason for a correction')],
+        placeholders: [ph('See the line this corrects', 'Not linked yet', 'Needs API: original entry id on CLAWBACK (#147) · never matched by order code on the phone'), ask],
+        alts: [alt147(lines('If the corrected line was already paid out: it comes off your next payout.', 'If it is larger than what you have available, the difference is carried forward.'))],
+        back: 'earnings',
+      }, clawStatus, clawNotYet)),
+      reversed: base('REVERSED', Object.assign({
+        title: 'Tip', cents: 300, earned: 'Added Friday 25 September 2026 at 8:10 pm', code: 'HG-2M8X-5R', explainIcon: 'minus',
+        explain: lines('This tip was reversed before it was paid, so it isn’t paid out.', 'A correction line offsets it: together they come to $0.00.'),
+        lead: [money('Tip', 300, 'Reversed')],
+        needs: [netNeed, n('Needs API: correcting entry id (#147). Owner decision (spec model): the line stays counted and its correction line offsets it, so no strikethrough and never left out of totals'), n('Needs API: reason for the reversal'), n('Icon gap: undo (Solar undo-left) for Reversed; "minus" is the stand-in')],
+        placeholders: [ph('See the correction', 'Not linked yet', 'Needs API: correcting entry id (#147) · no date or link until the API ties the two lines'), ask],
+      }, reversedNo)),
+      paid: base('PAID', Object.assign({
+        title: 'Delivery earnings', cents: 1119, earned: 'Earned Sunday 20 September 2026 at 9:30 pm', code: 'HG-5T7C-8V', explainIcon: 'check',
+        explain: lines('This line has been paid out.'), showPickupNote: true,
+      }, fare('6.2 km', 'CACHED', 919, 200), inPaid)),
+      // Lines opened from the PAID 14 to 20 September payout and from Activity / the DRAFT: each board carries the tapped row’s own data.
+      tippaid400: base('PAID', Object.assign({
+        title: 'Tip', cents: 400, earned: 'Added Saturday 19 September 2026 at 10:30 pm', code: 'HG-9Z4E-6T', explainIcon: 'info', iconGap: tipGap,
+        explain: lines('The customer added this tip after the delivery. It has been paid out.', 'Tips reach you in full. HalalGoes takes nothing from a tip.'),
+        lead: [money('Tip', 400)], back: 'payout',
+      }, inPaid)),
+      avail918: base('AVAILABLE', Object.assign({
+        title: 'Delivery earnings', cents: 909, earned: 'Earned Saturday 26 September 2026 at 7:02 pm', code: 'HG-6R1N-3K', explainIcon: 'info',
+        explain: lines('Available: this line goes into the next Monday payout.'), showPickupNote: true, hasDetail: true, detailHref: 'https://claude.ai/artifact/BZ4vZmESKMfTPQVWPrGWcb',
+      }, fare('6.1 km', 'ROUTED', 909, 0), inDraft)),
+      avail812: base('AVAILABLE', Object.assign({
+        title: 'Delivery earnings', cents: 789, earned: 'Earned Friday 25 September 2026 at 7:46 pm', code: 'HG-2M8X-5R', explainIcon: 'info',
+        explain: lines('Available: this line goes into the next Monday payout.'), showPickupNote: true, back: 'payout',
+      }, fare('4.9 km', 'CACHED', 789, 0), inDraft)),
+      avail956: base('AVAILABLE', Object.assign({
+        title: 'Delivery earnings', cents: 1019, earned: 'Earned Friday 25 September 2026 at 6:33 pm', code: 'HG-5P2N-8C', explainIcon: 'info',
+        explain: lines('Available: this line goes into the next Monday payout.'), showPickupNote: true, hasDetail: true, detailHref: 'https://claude.ai/artifact/BZ4vZmESKMfTPQVWPrGWcb', back: 'payout',
+      }, fare('5.7 km', 'ROUTED', 869, 150), inDraft)),
+    };
+    // Same line, other entry points: the back label follows where it was opened from.
+    E.clawbackpayouts = Object.assign({}, E.clawbackpaid, { back: 'payouts' });
+    E.avail956fromdelivery = Object.assign({}, E.avail956, { back: 'delivery', hasDetail: false });
+    E.frompayout = Object.assign({}, E.paid, { back: 'payout' });
+    E.focusdetail = E.delivery;
+    // Lines on an order with no Delivery board of its own: "Delivery details" is left off (a row never opens another order's board).
+    ['tip', 'tippaid', 'tippaid400', 'reversed', 'fallback', 'short', 'nosource', 'paid', 'frompayout', 'avail812'].forEach((k) => { E[k].detailUndrawn = true; });
+    E.focuspayout = E.paid; E.large = E.paid; E.payoutloading = E.paid; E.payouterror = E.paid; E.payoutmissing = E.paid;
+    const isDeepLoading = variant === 'deeplinkloading', isDeepMissing = variant === 'deeplinkmissing';
+    const ring = 'inset 0 0 0 2px var(--focus-offset), inset 0 0 0 5px var(--focus-ring)';
+    const focusText = variant === 'focuspayout' ? 'Drawn: focus on the payout link row (inset ring; transparent outline only on :focus-visible). One focused element per board.'
+      : variant === 'focusdetail' ? 'Drawn: focus on the Delivery details row (inset ring; transparent outline only on :focus-visible)' : '';
+    const fromPayout = variant === 'frompayout';
+    const BACK = {
+      activity: ['Back to Earnings activity', ''],
+      payout: ['Back to Payout', 'Opened from a row in Payout detail: back returns to that payout.'],
+      earnings: ['Back to Earnings', 'Opened from "See this correction" in Earnings — balance below zero: back returns to Earnings.'],
+      payouts: ['Back to Payouts', 'Opened from "See this correction" in Payouts — balance below zero: back returns to Payouts.'],
+      delivery: ['Back to Delivery', 'Opened from "You earned" on this job’s Delivery screen: back returns to that delivery.'],
+    };
+    const cur = (E[variant] || E.delivery), backKey = BACK[cur.back] ? cur.back : 'activity';
+    const backText = BACK[backKey][1] + (backKey === 'activity' ? '' : ' On return, focus goes back to the control that opened this line.');
+    return {
+      theme, dark, yes: true, zero: 0, noop: () => {}, e: E[variant] || Object.assign({}, E.delivery, { title: 'Earnings line' }),
+      isDeepLoading, isDeepMissing, showEntry: !isDeepLoading && !isDeepMissing,
+      isLarge: variant === 'large', textScale: variant === 'large' ? '200' : '100',
+      payoutLoading: variant === 'payoutloading', payoutError: variant === 'payouterror', payoutMissing: variant === 'payoutmissing',
+      payoutOk: !!(E[variant] || E.delivery).inPayout && ['payoutloading', 'payouterror', 'payoutmissing'].indexOf(variant) < 0,
+      detailUndrawn: !!cur.detailUndrawn, detailUndrawnText: 'No Delivery board is drawn for order ' + (cur.code || '') + ' yet, so this board leaves off "Delivery details" rather than open another order’s delivery. In the build the row opens this order’s own Delivery screen' + (/^Tip$|^Tip /.test(cur.title) ? ', with back label "Back to Tip".' : ', with back label "Back to Delivery earnings".'),
+      backLabel: BACK[backKey][0], fromPayout, backNote: backKey !== 'activity' && !fromPayout, backText,
+      payoutRing: variant === 'focuspayout' ? ring : 'none', detailRing: variant === 'focusdetail' ? ring : 'none',
+      focusNote: !!focusText, focusText,
+      tabs: [{ key: 'home', label: 'Home', icon: 'home' }, { key: 'earnings', label: 'Earnings', icon: 'orders' }, { key: 'account', label: 'Account', icon: 'profile' }],
+    };
+  }
+}
+</script>
+</body>
+</html>

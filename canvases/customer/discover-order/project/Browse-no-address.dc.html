@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>All restaurants, no address</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:var(--color-neutral-100)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+.demo-focus .hg-focus,.demo-focus .hg-choice-ctl,.demo-focus .hg-row,.demo-focus > a{box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)!important}
+.demo-focus-field .hg-field{border-color:var(--focus-ring)!important;box-shadow:inset 0 0 0 calc(var(--focus-field-border-width) - 1px) var(--focus-ring)!important}
+
+</style>
+</helmet>
+<div style="width: 390px; height: 1180px; position: relative; overflow: hidden; display: flex; flex-direction: column; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="cream" title="All restaurants" subtitle="Add an address for times and fees" back-label="Back to Home" on-back="{{noop}}"></x-import>
+<div style="display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-4)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="sm" href="Browse-filters.dc.html" accessibility-label="Filters, none applied">Filters</x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Menu" label="Sort: Recommended, sort restaurants" trigger-text="Sort: Recommended" items="{{sortItems}}"></x-import>
+</div>
+<main style="flex-grow: 1; display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-2) var(--space-4)">
+<div role="status" style="display: flex; gap: var(--space-3); align-items: flex-start; padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); background: var(--surface-raised); border: 1px solid var(--border-interactive); outline: 1.5px dotted var(--color-info-500); outline-offset: 3px">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="map" size="md" color="var(--text-secondary)"></x-import>
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: var(--space-2)">
+<strong style="font-size: var(--type-label-lg-size); color: var(--text-primary)">Add a delivery address</strong>
+<span style="font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-line); color: var(--text-primary)">We need it to show delivery times and fees, and to sort by distance. You can browse now.</span>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="sm" icon-start="plus" href="Address-add.dc.html">Add an address</x-import>
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--color-info-700); background: var(--color-info-50)">Component gap: Banner</span>
+</div>
+</div>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" padding="0" radius="lg" href="Restaurant-open.dc.html" accessibility-label="Zaytoun Grill. Halal certified by Halal Monitoring Authority (HMA Canada). Levantine, Grill. Moderately priced. Add an address to see delivery time and fee.">
+<div style="display: flex; flex-direction: column">
+<div style="height: 112px; position: relative; display: flex; align-items: center; justify-content: center; background: var(--surface-sunken); border-radius: var(--radius-lg) var(--radius-lg) 0 0; outline: 1.5px dotted var(--color-info-500); outline-offset: -4px"><span style="font-size: var(--type-caption-size); font-weight: 600; color: var(--text-secondary)">No image</span></div>
+<div style="padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-2)">
+<div style="display: flex; align-items: flex-start; gap: var(--space-3)">
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px">
+<h3 style="margin: 0; font-size: var(--type-heading-md-size); font-weight: 600">Zaytoun Grill</h3>
+<span style="font-size: var(--type-body-sm-size); color: var(--text-secondary)">Levantine · Grill · $$</span>
+</div>
+</div>
+<div style="display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.HalalBadge" state="CERTIFIED" size="md" surface="card"></x-import>
+<span style="font-size: var(--type-body-sm-size); color: var(--text-secondary)">Halal Monitoring Authority (HMA Canada)</span>
+</div>
+<span style="font-size: var(--type-body-sm-size); color: var(--text-secondary)">Add an address for delivery time and fee</span>
+</div>
+</div>
+</x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" padding="0" radius="lg" href="Restaurant-expiring.dc.html" accessibility-label="Karahi House. Halal certified by Islamic Society of North America Canada (ISNA Canada). Pakistani. Moderately priced. Add an address to see delivery time and fee.">
+<div style="display: flex; flex-direction: column">
+<div style="height: 112px; position: relative; display: flex; align-items: center; justify-content: center; background: var(--surface-sunken); border-radius: var(--radius-lg) var(--radius-lg) 0 0; outline: 1.5px dotted var(--color-info-500); outline-offset: -4px"><span style="font-size: var(--type-caption-size); font-weight: 600; color: var(--text-secondary)">No image</span></div>
+<div style="padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-2)">
+<div style="display: flex; align-items: flex-start; gap: var(--space-3)">
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px">
+<h3 style="margin: 0; font-size: var(--type-heading-md-size); font-weight: 600">Karahi House</h3>
+<span style="font-size: var(--type-body-sm-size); color: var(--text-secondary)">Pakistani · $$</span>
+</div>
+</div>
+<div style="display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.HalalBadge" state="EXPIRING_SOON" size="md" surface="card"></x-import>
+<span style="font-size: var(--type-body-sm-size); color: var(--text-secondary)">Islamic Society of North America Canada (ISNA Canada)</span>
+</div>
+<span style="font-size: var(--type-body-sm-size); color: var(--text-secondary)">Add an address for delivery time and fee</span>
+</div>
+</div>
+</x-import>
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">availability.state NO_ADDRESS on every card: no ETA, fee or distance. Sort "Distance" and filter "Distance" are hidden until an address exists.</span>
+</main>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.BottomNav" label="Main" active="home" items="{{nav}}"></x-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1180}}'>
+class Component extends DCLogic {
+renderVals() {
+return {
+yes: true,
+no: false,
+none: null,
+zero: 0,
+two: 2,
+noop: function () {},
+nav: [
+{ key: 'home', label: 'Home', icon: 'home' },
+{ key: 'search', label: 'Search', icon: 'search' },
+{ key: 'orders', label: 'Orders', icon: 'orders' },
+{ key: 'account', label: 'Account', icon: 'profile' }
+],
+r: { z: 4.8, zc: 212, k: 4.6, kc: 486, a: null, ac: 0, l: 4.3, lc: 97, s: 4.7, sc: 140, n: null, nc: 0 },
+c: { zfee: 299, zmin: 1500, kfee: 399, kmin: 2000, nfee: 499, nmin: 1500 },
+sortItems: [
+{ key: 'recommended', label: 'Recommended' },
+{ key: 'eta', label: 'Delivery time' },
+{ key: 'distance', label: 'Distance' }
+]
+};
+}
+}
+</script>
+</body>
+</html>

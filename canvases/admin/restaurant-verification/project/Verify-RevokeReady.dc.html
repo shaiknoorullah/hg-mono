@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Revoke the certificate, ready</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:var(--surface-base);color:var(--text-primary);font-family:var(--font-ui)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+textarea.hg-ta:focus{outline:none;border:var(--focus-field-border-width) solid var(--focus-ring)}
+textarea.hg-ta[aria-invalid="true"]{border:var(--focus-field-border-width) solid var(--color-danger-500)}
+textarea.hg-ta[aria-invalid="true"]:focus{box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+.skip{position:absolute;left:-10000px;top:8px;z-index:900;padding:12px 16px;background:var(--surface-raised);color:var(--text-primary);border-radius:8px;font-weight:600}
+.skip:focus{left:80px;outline:none;box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; display: grid; grid-template-columns: 64px minmax(0, 1fr); background: var(--surface-base); position: relative; overflow: hidden; font-family: var(--font-ui); color: var(--text-primary)">
+  <dc-import name="SideNav" active="halal" role="SUPER_ADMIN" collapsed="{{yes}}" h="900" hint-size="64px,900px"></dc-import>
+  <div style="display: flex; flex-direction: column; min-width: 0; min-height: 0; position: relative">
+    <a class="skip" href="#main">Skip to main content</a>
+    <a class="skip" href="#certificate">Skip to certificate</a>
+    <a class="skip" href="#checks">Skip to checks</a>
+    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="raised" title="Halal certificate" subtitle="Halal certificates · Noor Grill (live)" back-label="Back to halal certificates" on-back="{{noop}}"></x-import>
+    <main id="main" data-density="compact" style="flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 12px; padding: 12px; overflow: hidden">
+      <dc-import name="VerifyHeader" variant="current" restaurant="Noor Grill" number="HMA-ON-2025-0981" w="1352" hint-size="1352px,56px"></dc-import>
+      <div style="flex: 1 1 auto; min-height: 0; display: flex">
+        <section id="pane-list" aria-label="Halal certificates · 7 need attention, collapsed" style="flex: 0 0 48px; box-sizing: border-box; min-width: 0; min-height: 0; display: flex; flex-direction: column; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: 12px; overflow: hidden; align-items: center; gap: 8px; padding: 4px 0"><a href="Halal-ListOpen.dc.html" aria-label="Show the halal certificates list" class="hg-focus" style="display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 8px; color: var(--text-secondary)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="chevron-right" size="md"></x-import></a><span aria-hidden="true" style="writing-mode: vertical-rl; transform: rotate(180deg); font-size: 13px; font-weight: 600; white-space: nowrap">Halal certificates · 7 need attention</span></section>
+        <div role="separator" aria-orientation="vertical" aria-label="Resize the halal certificates list" aria-controls="pane-list" aria-valuenow="4" aria-valuemin="0" aria-valuemax="40" aria-valuetext="4 percent of the width. Left and Right arrows resize." tabindex="0" class="hg-focus hg-hit" style="flex: 0 0 12px; cursor: col-resize; align-self: stretch; display: flex; align-items: center; justify-content: center; border-radius: 4px"><span aria-hidden="true" style="display: block; width: 4px; height: 40px; border-radius: 2px; background: var(--border-interactive)"></span></div>
+        <dc-import name="CertPane" state="ready" w="300" h="752" collapsible="{{yes}}" hint-size="300px,752px"></dc-import>
+        <div role="separator" aria-orientation="vertical" aria-label="Resize the certificate pane" aria-controls="certificate" aria-valuenow="27" aria-valuemin="20" aria-valuemax="50" aria-valuetext="27 percent of the width. Left and Right arrows resize." tabindex="0" class="hg-focus hg-hit" style="flex: 0 0 12px; cursor: col-resize; align-self: stretch; display: flex; align-items: center; justify-content: center; border-radius: 4px"><span aria-hidden="true" style="display: block; width: 4px; height: 40px; border-radius: 2px; background: var(--border-interactive)"></span></div>
+        <section role="region" aria-labelledby="dp-h" style="flex: 0 0 452px; box-sizing: border-box; min-width: 0; min-height: 0; display: flex; flex-direction: column; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: 12px; overflow: hidden; border-color: var(--border-strong); box-shadow: var(--elev-1)"><div style="flex: 0 0 auto; display: flex; align-items: flex-start; gap: 8px; padding: 10px 8px 10px 16px; border-bottom: 1px solid var(--border-decorative)"><div style="flex: 1 1 auto; display: flex; flex-direction: column; gap: 4px; min-width: 0; padding-top: 4px"><h2 id="dp-h" tabindex="-1" style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Revoke the Noor Grill certificate?</h2><p style="margin: 0; font-size: 13px; line-height: 1.45; color: var(--text-secondary)">Revoking withdraws HalalGoes’s verification for cause. It takes effect immediately and can’t be undone.</p></div><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.IconButton" icon="close" accessibility-label="Close this panel. Nothing is sent." variant="plain" size="md"></x-import></div><div style="flex: 1 1 auto; min-height: 0; overflow: auto; padding: 14px 16px; display: flex; flex-direction: column; gap: 14px"><div style="display: flex; flex-direction: column; gap: 16px; font-family: var(--font-ui)">
+      <div style="display: flex; flex-direction: column; gap: 6px; padding: 12px; border-radius: 8px; background: var(--surface-sunken); font-size: 15px; line-height: 1.5">
+        <span style="font-weight: 600">What happens straight away</span>
+        <ul style="margin: 0; padding-left: 20px">
+          <li>Noor Grill is live. It goes off the app now.</li>
+          <li>Orders already in progress continue. Those customers get an informational notice. New orders stop now.</li>
+        </ul>
+      </div>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Select" label="Reason" value="SUSPECTED_FORGERY" placeholder="Choose a reason" options="{{reasons}}" required="{{yes}}"></x-import>
+      <dc-import name="Textarea" tid="rv-text" label="Message to the restaurant" helper="Sent word for word. At least 10 characters." value="HMA Canada told us certificate HMA-ON-2025-0981 was not issued to your business. Contact halal support to respond." count="113 of 1000 characters · minimum 10" error="" rows="3" w="418" hint-size="418px,170px"></dc-import>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Checkbox" label="I understand Noor Grill goes off the app now" checked="{{yes}}"></x-import>
+      <div style="display: flex; justify-content: flex-end; gap: 24px">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="secondary" size="md">Keep it approved</x-import>
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" destructive="{{yes}}" href="Verify-Revoked.dc.html">Revoke certificate</x-import>
+      </div>
+      <span style="font-size: 13px; color: var(--text-secondary)">Revoke certificate is on because a reason is chosen and the box is ticked. Requirement: when this opens, initial focus goes to Keep it approved.</span>
+    </div></div></section>
+        <div role="separator" aria-orientation="vertical" aria-label="Resize the checks pane" aria-controls="pane-checks" aria-valuenow="38" aria-valuemin="30" aria-valuemax="60" aria-valuetext="38 percent of the width. Left and Right arrows resize." tabindex="0" class="hg-focus hg-hit" style="flex: 0 0 12px; cursor: col-resize; align-self: stretch; display: flex; align-items: center; justify-content: center; border-radius: 4px"><span aria-hidden="true" style="display: block; width: 4px; height: 40px; border-radius: 2px; background: var(--border-interactive)"></span></div>
+        <section id="pane-checks" aria-label="Checks and decision" style="flex: 1 1 auto; box-sizing: border-box; min-width: 0; min-height: 0; display: flex; flex-direction: column; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: 12px; overflow: hidden"><div style="flex: 1 1 auto; min-height: 0; overflow: auto; padding: 12px; display: flex; flex-direction: column; gap: 10px"><dc-import name="Checks" variant="readonly" who="noor" w="490" hint-size="490px,600px"></dc-import></div></section>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { yes: true, no: false, nothing: null, noop: () => {}, reasons: [
+        { value: 'ILLEGIBLE', label: 'Illegible or incomplete' },
+        { value: 'EXPIRED_OR_EXPIRING', label: 'Expired or expiring' },
+        { value: 'ISSUER_NOT_ACCEPTED', label: 'Issuer not accepted' },
+        { value: 'NAME_MISMATCH', label: 'Name doesn’t match' },
+        { value: 'ADDRESS_MISMATCH', label: 'Address doesn’t match' },
+        { value: 'SCOPE_INSUFFICIENT', label: 'Scope doesn’t cover this restaurant' },
+        { value: 'DUPLICATE_CERTIFICATE', label: 'Already used by another restaurant' },
+        { value: 'SUSPECTED_FORGERY', label: 'Suspected forgery' },
+        { value: 'OTHER', label: 'Other' },
+      ] };
+  }
+}
+</script>
+</body>
+</html>

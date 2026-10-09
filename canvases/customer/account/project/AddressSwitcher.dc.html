@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Address switcher sheet</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<link rel="stylesheet" href="hg-current.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="scr {{ltClass}}" data-theme="{{theme}}" style="width: {{w}}px; height: {{h}}px; font-family: var(--font-ui); color: var(--text-primary)">
+  <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="cream" title="{{homeTitle}}" subtitle="Deliver to" actions="{{changeButton}}"></x-import>
+  <main class="body" aria-hidden="{{behindHidden}}">
+    <span class="anno-tag">The switcher opens from the Change button in the AppBar actions slot (DS ghost Button, accessible name 'Change delivery address, now 14 Ellesmere Rd'). The title and subtitle are not a control.</span>
+    <p class="t-small">Home's restaurant list (listRestaurants, designed by the Discover team) sits here.</p>
+    <sc-if value="{{f.switched}}" hint-placeholder-val="{{false}}">
+      <p class="t-small">The header now reads Work · 2075 Kennedy Rd and the restaurant list reloads for that address. The default address is unchanged.</p>
+    </sc-if>
+  </main>
+
+  <sc-if value="{{f.switched}}" hint-placeholder-val="{{false}}">
+    <div class="toast-dock">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Toast" variant="neutral" title="Delivering to Work" description="Showing restaurants that deliver to 2075 Kennedy Rd." on-dismiss="{{noop}}"></x-import>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{f.sheet}}" hint-placeholder-val="{{true}}">
+  <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Sheet" open="{{yes}}" contained="{{yes}}" title="Deliver to" on-close="{{noop}}" max-height="78%">
+    <div style="display: flex; flex-direction: column; gap: var(--space-4); font-family: var(--font-ui)">
+      <sc-if value="{{f.switchFail}}" hint-placeholder-val="{{false}}">
+        <span class="gap-tag">Proposed component: Banner</span>
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="md" padding="var(--space-3) var(--space-4)" dc-props="{{alert.warning}}" role="alert"><div style="display: flex; gap: var(--space-3); align-items: flex-start; font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-line)">
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="warning" size="md"></x-import>
+          <div style="display: flex; flex-direction: column; gap: 2px">
+            <span style="font-size: var(--type-label-lg-size); line-height: var(--type-label-lg-line); font-weight: 600">We couldn't switch to Work</span>
+            <span>You're still delivering to 14 Ellesmere Rd. Check your connection and pick Work again.</span>
+          </div>
+        </div></x-import>
+      </sc-if>
+      <sc-if value="{{f.list}}" hint-placeholder-val="{{true}}">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.RadioGroup" label="Saved addresses" hide-label="{{yes}}" value="home" options="{{options}}" on-value-change="{{noop}}"></x-import>
+        <p class="t-small">This changes where we deliver and which restaurants you see. Your default address stays the same.</p>
+        <span class="gap-tag" style="white-space: normal">DS issue: Radio description is text.tertiary, 4.36:1 light / 3.38:1 dark. The street is in the label (text.primary), so the choice never depends on the description.</span>
+        <span class="anno-tag">Descriptions use the Addresses unit rule: a stored unit that already starts with Unit, Apt, Suite or # is shown as is ('Apt 4211'); otherwise 'Unit ' is added.</span>
+      </sc-if>
+
+      <sc-if value="{{f.loading}}" hint-placeholder-val="{{false}}">
+        <div role="status"><span class="sr">Loading addresses</span></div>
+        <span class="gap-tag" style="white-space: normal">Proposed component: Skeleton. For the design-system components issue (<a href="https://github.com/shaiknoorullah/hg-mono/issues/109" style="color: inherit">GitHub #109</a>): role=status with a visually hidden name ('Loading addresses'), outside the busy region; aria-busy on the container that receives the content; the skeleton aria-hidden.</span>
+        <div aria-busy="true" style="display: contents">
+        <div aria-hidden="true" style="display: flex; flex-direction: column; gap: var(--space-3)">
+          <div style="display: flex; gap: var(--space-3); align-items: center; min-height: 64px"><span style="display: block; background: var(--skeleton-base); border-radius: var(--radius-xs); width: 20px; height: 20px; border-radius: var(--radius-full)"></span><span style="flex: 1; display: flex; flex-direction: column; gap: var(--space-2)"><span style="display: block; background: var(--skeleton-base); border-radius: var(--radius-xs); width: 35%; height: 14px"></span><span style="display: block; background: var(--skeleton-base); border-radius: var(--radius-xs); width: 80%; height: 12px"></span></span></div>
+          <div style="display: flex; gap: var(--space-3); align-items: center; min-height: 64px"><span style="display: block; background: var(--skeleton-base); border-radius: var(--radius-xs); width: 20px; height: 20px; border-radius: var(--radius-full)"></span><span style="flex: 1; display: flex; flex-direction: column; gap: var(--space-2)"><span style="display: block; background: var(--skeleton-base); border-radius: var(--radius-xs); width: 25%; height: 14px"></span><span style="display: block; background: var(--skeleton-base); border-radius: var(--radius-xs); width: 70%; height: 12px"></span></span></div>
+        </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{f.none}}" hint-placeholder-val="{{false}}">
+        <div style="flex: 1 1 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: var(--space-3); padding: var(--space-8) var(--space-5); padding: var(--space-4) 0">
+          <span class="gap-tag">Proposed component: EmptyState</span>
+          <span style="width: 56px; height: 56px; display: grid; place-items: center; border-radius: var(--radius-full); background: var(--surface-sunken); color: var(--text-secondary)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="map" size="lg"></x-import></span>
+          <h3 style="margin: 0; font-size: var(--type-heading-md-size); line-height: var(--type-heading-md-line); font-weight: 600; color: var(--text-primary)">Where should we deliver?</h3>
+          <p style="margin: 0; max-width: 320px; font-size: var(--type-body-md-size); line-height: var(--type-body-md-line); color: var(--text-secondary)">Add an address to see which restaurants deliver to you and to order.</p>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{f.error}}" hint-placeholder-val="{{false}}">
+        <div role="alert" style="flex: 1 1 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: var(--space-3); padding: var(--space-8) var(--space-5); padding: var(--space-4) 0">
+          <span class="gap-tag">Proposed component: ErrorState</span>
+          <span style="width: 56px; height: 56px; display: grid; place-items: center; border-radius: var(--radius-full); background: var(--surface-sunken); color: var(--text-secondary); background: var(--feedback-warning-tint); color: var(--feedback-warning-tint-text)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="refresh" size="lg"></x-import></span>
+          <h3 style="margin: 0; font-size: var(--type-heading-md-size); line-height: var(--type-heading-md-line); font-weight: 600; color: var(--text-primary)">We couldn't load your addresses</h3>
+          <p style="margin: 0; max-width: 320px; font-size: var(--type-body-md-size); line-height: var(--type-body-md-line); color: var(--text-secondary)">You're still delivering to 14 Ellesmere Rd. Try again to see the others.</p>
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="secondary" size="md" icon-start="refresh" on-press="{{noop}}">Try again</x-import>
+        </div>
+      </sc-if>
+
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="{{addVariant}}" size="lg" full-width="{{yes}}" icon-start="plus" href="{{addHref}}">Add address</x-import>
+    </div>
+  </x-import>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["default","focus","loading","none","error","switched","switchfail"],"default":"default"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"lt":{"editor":"boolean","default":false},"w":{"editor":"int","min":320,"max":430,"default":390},"h":{"editor":"int","min":844,"max":2400,"default":844},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  componentDidMount() {
+    this.t = setTimeout(() => {
+      try {
+        if (['default', 'focus'].includes(this.props.state ?? 'default')) {
+          const el = document.querySelector('input[type=radio]:checked');
+          if (el) el.focus({ preventScroll: true });
+        }
+      } catch (e) {}
+    }, 500);
+  }
+  componentWillUnmount() { clearTimeout(this.t); }
+  renderVals() {
+    const s = this.props.state ?? 'default';
+    const f = {
+      list: s === 'default' || s === 'focus' || s === 'switchfail', loading: s === 'loading', none: s === 'none', error: s === 'error',
+      switched: s === 'switched', switchFail: s === 'switchfail',
+    };
+    f.sheet = !f.switched;
+    return {
+      alert: { neutral: { style: { background: 'var(--surface-sunken)', color: 'var(--text-secondary)', borderColor: 'var(--border-decorative)' } }, info: { style: { background: 'var(--feedback-info-tint)', color: 'var(--feedback-info-tint-text)', borderColor: 'var(--feedback-info-border)' } }, warning: { style: { background: 'var(--feedback-warning-tint)', color: 'var(--feedback-warning-tint-text)', borderColor: 'var(--feedback-warning-border)' } } }, rowLink: { className: 'hg-focus-inset', style: { border: 'none', borderRadius: 0, background: 'transparent' } }, rowStatic: { style: { border: 'none', borderRadius: 0, background: 'transparent' } },
+      f, yes: true, noop: () => {},
+      theme: this.props.theme === 'dark' ? 'dark' : 'light',
+      w: this.props.w ?? 390,
+      h: this.props.h ?? 844,
+      ltClass: this.props.lt ? 'lt' : '',
+      behindHidden: f.sheet ? 'true' : 'false',
+      homeTitle: f.none ? 'Set your delivery address' : (f.switched ? 'Work · 2075 Kennedy Rd' : '14 Ellesmere Rd'),
+      addVariant: f.none ? 'primary' : 'tertiary',
+      addHref: f.none ? 'AddressForm-first.dc.html' : 'AddressForm-today.dc.html',
+      changeButton: (() => {
+        const h = window.React.createElement;
+        const DS = window.HalalGoesDesignSystem_d11a47 || {};
+        if (!DS.Button) return null;
+        const aria = f.none ? 'Choose a delivery address' : 'Change delivery address, now ' + (f.switched ? '2075 Kennedy Rd' : '14 Ellesmere Rd');
+        return h(DS.Button, { variant: 'ghost', size: 'sm', accessibilityLabel: aria, onPress: () => {} }, f.none ? 'Choose' : 'Change');
+      })(),
+      options: [
+        { value: 'home', label: 'Home (default) · 14 Ellesmere Rd', description: 'Unit 402, Toronto, ON M1R 4E7' },
+        { value: 'work', label: 'Work · 2075 Kennedy Rd', description: 'Toronto, ON M1T 3V3' },
+        { value: 'mum', label: "Mum's place · 88 Dundas St W", description: 'Unit 1204, Mississauga, ON L5B 1H6' },
+        { value: 'borough', label: '300 Borough Dr', description: 'Apt 4211, Toronto, ON M1P 4P5' },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Live alerts, no dispatch failures</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.skip-link{position:absolute;left:var(--space-4);top:-120px;z-index:60;display:inline-flex;align-items:center;min-height:44px;padding:0 var(--space-4);border-radius:var(--radius-sm);background:var(--surface-raised);color:var(--text-primary);font-family:var(--font-ui);font-size:var(--type-body-md-size);font-weight:600;text-decoration:none}
+.skip-link:focus,.skip-link[data-shown]{top:12px;outline:2px solid transparent;box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+.skip-link+.skip-link:focus{top:64px}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+</style>
+</helmet>
+<div data-theme="light" data-density="compact" style="width: 1440px; height: 900px; position: relative; overflow: hidden; display: grid; grid-template-columns: 264px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+<a class="skip-link" href="#main">Skip to main content</a>
+<a class="skip-link" href="#alerts-table">Skip to table</a>
+<div style="background: var(--surface-chrome)">
+<dc-import name="AdminSidebar" active="alerts" viewer="super" has-new="{{no}}" counts="live" wn-expanded="{{no}}" focus-demo="none" hint-size="264px,900px"></dc-import>
+</div>
+<div style="display: flex; flex-direction: column; min-width: 0; min-height: 0">
+
+<main id="main" tabindex="-1" style="flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; outline: none">
+
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" role="none" tone="raised" sticky="{{yes}}" title="Live alerts" subtitle="7 recent alerts · showing dispatch failures"></x-import>
+<div style="padding: var(--space-1) var(--space-6) 0"><span style="font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary)">Component gap: AppBar needs a role prop; role="none" here so main holds no nested banner. The h1 title stays.</span></div>
+<div style="flex: 1; min-height: 0; padding: var(--space-5) var(--space-6); display: flex; flex-direction: column; gap: var(--space-4); min-width: 0">
+<nav aria-label="Queues" style="display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" href="#halal-certificates" accessibility-label="Halal certificates to review">Halal certificates to review</x-import>
+<span style="font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary)">Needs API: pending certificate count</span>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" href="#refunds?queue=failed-refunds" accessibility-label="Failed refunds, 2 failed refunds">Failed refunds <span aria-hidden="true" style="display: inline-flex"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="warning" size="md">2</x-import></span></x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" href="#refunds?queue=open-disputes" accessibility-label="Open disputes, 5 open disputes">Open disputes <span aria-hidden="true" style="display: inline-flex"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="neutral" size="md">5</x-import></span></x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" href="#restaurant-applications" accessibility-label="Restaurant applications, 4 waiting">Restaurant applications <span aria-hidden="true" style="display: inline-flex"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="neutral" size="md">4</x-import></span></x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" href="#rider-applications" accessibility-label="Rider applications, 2 waiting">Rider applications <span aria-hidden="true" style="display: inline-flex"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="neutral" size="md">2</x-import></span></x-import>
+<span style="margin-left: var(--space-1); font-size: var(--type-body-sm-size); color: var(--text-secondary)">Live counts</span>
+</nav>
+<span style="font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary)">Halal certificates to review opens Halal certificates (no count until admin.queue_depth carries one). Failed refunds and Open disputes open Refunds &amp; disputes filtered to that queue; Restaurant applications and Rider applications open those queues (other admin canvases). Counts come from admin.queue_depth. Component gap: Button with count.</span>
+<div style="display: flex; align-items: flex-end; gap: var(--space-4)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Select" label="Kind of alert" value="dispatch" options="{{kinds}}" on-value-change="{{noop}}" style="width: 280px"></x-import>
+<div role="status" style="display: flex; align-items: center; gap: var(--space-2); min-height: 44px">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="outline" size="md" icon="bell">Live</x-import>
+<span style="font-size: var(--type-body-sm-size); color: var(--text-secondary)">Connected. New alerts appear at the top.</span>
+</div>
+<p style="margin: 0 0 0 auto; max-width: 380px; font-size: var(--type-body-sm-size); line-height: 1.45; color: var(--text-secondary); text-align: end">Shows recent alerts the live connection can replay (at most the last 7 days). Reloading replays them again.</p>
+<span style="font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary)">Copy rule: say "last 7 days" only when the replay started at seq 0 (cursor_seq ≤ 1000) and resume_complete.truncated is false. Otherwise say "recent": up to 1000 replayed events can cover hours, not days.</span>
+</div>
+<div style="flex: 1 1 auto; min-height: 0; overflow: auto; display: flex; flex-direction: column">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.DataTable" id="alerts-table" on-row-activate="{{noop}}" caption="Alerts" hide-caption="{{yes}}" density="compact" rows="{{rows}}" columns="{{cols}}" get-row-id="{{alertId}}" row-label="{{alertLabel}}" status="ready" empty-state="{{empty}}"></x-import>
+</div>
+<span style="font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary)">Scrolls inside its own region (LyteNyte Grid virtualises the rows); the page stays still.</span>
+</div>
+</main>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const DS = window.HalalGoesDesignSystem_d11a47 || {};
+    const h = window.React.createElement;
+    const muted = function (t) { return h('span', { style: { color: 'var(--text-secondary)' } }, t); };
+    const fullDate = function (iso) { var d = new Date(iso); if (isNaN(d.getTime())) return iso; return iso.length > 10 ? d.toLocaleString('en-CA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/Toronto', timeZoneName: 'short' }) : d.toLocaleDateString('en-CA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }); };
+    const at = function (iso, label) { return h('time', { dateTime: iso, title: fullDate(iso) }, label); };
+    const tag = function (t) { return h('span', { style: { fontSize: 'var(--type-mono-sm-size)', lineHeight: 1.4, fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' } }, t); };
+    let v = {};
+
+    const viewer = 'super';
+    const idCell = function (t) { return h('span', { style: { fontFamily: 'var(--font-mono)', fontSize: 'var(--type-mono-md-size)', color: 'var(--text-secondary)', overflowWrap: 'anywhere' } }, t); };
+    const openLink = function (label, href, sr) { const noun = { 'Open order': 'Order', "Open this restaurant's orders": 'Restaurant', "Open this rider's active orders": 'Rider' }[label] || label; return h('span', { style: { fontWeight: 600 } }, noun); };
+    const col = function (kids) { return h('span', { style: { display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'flex-start' } }, kids); };
+    const allAlerts = [
+      { id: 'e7', iso: '2026-09-28T09:41:07-04:00', at: 'Today, 9:41:07 am', kind: 'Platform alert', code: 'webhook_delivery_failed', sev: 'high', subject: { type: 'PLATFORM' }, what: 'Stripe webhook deliveries have failed for 5 minutes.' },
+      { id: 'e6', iso: '2026-09-28T09:38:52-04:00', at: 'Today, 9:38:52 am', kind: 'Dispatch failure', subject: { type: 'ORDER', id: '0193a1f2-6b7c-7d21-9e4f-3c8d5b21a2c1' }, what: 'No rider accepted after 3 waves. 11 riders offered, search radius 6.0 km.' },
+      { id: 'e5', iso: '2026-09-28T09:30:15-04:00', at: 'Today, 9:30:15 am', kind: 'Reconciliation exception', subject: { type: 'ORDER', id: '0193a0de-2f41-7a0c-b3d5-8e6f7a9019bd' }, money: { kind: 'capture_mismatch', expected: 4260, actual: 4010 } },
+      { id: 'e4', iso: '2026-09-28T09:22:03-04:00', at: 'Today, 9:22:03 am', kind: 'Platform alert', code: 'acceptance_deadlines_missed', sev: 'normal', subject: { type: 'RESTAURANT', id: '0192b3c4-8d9e-7f10-a2b3-c4d5e6f77f3a' }, what: 'Missed 3 order acceptance deadlines in the last hour.' },
+      { id: 'e3', iso: '2026-09-28T09:15:40-04:00', at: 'Today, 9:15:40 am', kind: 'Dispatch failure', subject: { type: 'ORDER', id: '0193a09c-1e2f-7304-8516-a7b8c9d05e02' }, what: 'No rider accepted after 2 waves. 4 riders offered, search radius 4.0 km.' },
+      { id: 'e2', iso: '2026-09-27T21:04:11-04:00', at: '27 Sep, 9:04:11 pm', kind: 'Platform alert', code: 'rider_location_stale', sev: 'normal', subject: { type: 'RIDER', id: '0191c7d2-4a5b-7c6d-8e9f-0a1b2c3d3b90' }, what: 'Rider location has not updated for 20 minutes during a delivery.', delivery: true },
+      { id: 'e1', iso: '2026-09-27T18:47:30-04:00', at: '27 Sep, 6:47:30 pm', kind: 'Dispatch failure', subject: { type: 'ORDER', id: '01939f11-7c8d-7e9f-a0b1-c2d3e4f58c07' }, what: 'No rider accepted after 3 waves. 9 riders offered, search radius 6.0 km.' }
+    ];
+    const aboutCell = function (r) {
+      const s = r.subject || {};
+      if (s.type === 'PLATFORM' || !s.id) return 'Platform';
+      if (s.type === 'ORDER') return col([openLink('Open order', '#orders/' + s.id, ' ' + s.id), idCell(s.id)]);
+      if (s.type === 'CUSTOMER') return col([muted('Customer'), idCell(s.id)]);
+      const onboarding = function (href, sr) { return null; };
+      const masked = viewer === 'support' ? tag('Orders open with personal details masked (listOrdersAdmin, support agent)') : null;
+      if (s.type === 'RESTAURANT') return col([openLink("Open this restaurant's orders", '#orders?restaurant_id=' + s.id, ' ' + s.id), idCell(s.id), onboarding('#restaurant-applications/' + s.id, ', restaurant ' + s.id), masked, tag('listOrdersAdmin?restaurant_id. Needs API: admin restaurant profile by id')]);
+      if (s.type === 'RIDER') return col([openLink("Open this rider's active orders", '#orders?account_id=' + s.id + '&state=PREPARING,READY_FOR_PICKUP,PICKED_UP,ARRIVED', ' ' + s.id), idCell(s.id), onboarding('#rider-applications/' + s.id, ', rider ' + s.id), masked,
+        r.delivery ? h('span', { style: { fontSize: 'var(--type-body-sm-size)', lineHeight: 1.45, color: 'var(--text-secondary)' } }, 'Delivery link: Needs API (order_id on rider alerts)') : null,
+        tag('listOrdersAdmin?account_id + active states. Needs API: confirm account_id matches the assigned rider, not only the customer')]);
+      return col([h('span', { style: { fontFamily: 'var(--font-mono)', fontSize: 'var(--type-mono-md-size)' } }, s.type), idCell(s.id)]);
+    };
+    const whatCell = function (r) {
+      if (r.money) return h('span', { style: { display: 'inline-flex', gap: 'var(--space-2)', alignItems: 'baseline', flexWrap: 'wrap' } },
+        r.money.kind === 'capture_mismatch' ? h('span', { style: { fontWeight: 600 } }, 'Captured amount doesn\'t match the order') : null, idCell(r.money.kind), 'Expected', h(DS.Price, { cents: r.money.expected, size: 'sm' }), '· Actual', h(DS.Price, { cents: r.money.actual, size: 'sm' }), muted('What to do: in the details'), tag('Needs API: reconciliation kind list (unmapped kinds show only the raw code)'));
+      if (r.sev === 'high') return col([h('span', null, r.what), muted('Runbook link: in the details'), tag('Needs content: a runbook section per alert kind (runbook linked from issue 66)')]);
+      return r.what;
+    };
+    const kindCell = function (r) {
+      return h('span', { style: { display: 'inline-flex', gap: 'var(--space-2)', alignItems: 'center', flexWrap: 'wrap' } }, h('span', { style: { fontWeight: 600 } }, r.kind),
+        r.code ? idCell(r.code) : null,
+        r.pinned ? h(DS.Badge, { variant: 'info', size: 'sm' }, 'From the banner, 9:41 am') : null,
+        r.isNew ? h(DS.Badge, { variant: 'brand', size: 'sm' }, 'New') : null);
+    };
+    const alertCols = [
+      { key: 'at', label: 'Time', width: 150, mono: true, render: function (r) { return h('time', { dateTime: r.iso, title: fullDate(r.iso) }, r.at); } },
+      { key: 'kind', label: 'Kind', width: 180, render: kindCell },
+      { key: 'sev', label: h('span', null, 'Severity', h('span', { className: 'hg-sr' }, ', platform alerts only')), width: 96, render: function (r) { return r.sev ? r.sev.charAt(0).toUpperCase() + r.sev.slice(1) : null; } },
+      { key: 'subject', label: 'About', width: 300, render: aboutCell },
+      { key: 'what', label: 'What happened', render: whatCell }
+    ];
+    const alertColsBare = alertCols.map(function (c) { return { key: c.key, label: c.label, width: c.width }; });
+    const kinds = [
+      { value: 'all', label: 'All kinds' },
+      { value: 'alert', label: 'Platform alerts' },
+      { value: 'dispatch', label: 'Dispatch failures' },
+      { value: 'recon', label: 'Reconciliation exceptions' }
+    ];
+    const alertId = function (r) { return r.id; };
+    const alertLabel = function (r) { return r.kind + ' at ' + r.at; };
+    v = { rows: [], cols: alertColsBare, kinds: kinds, alertId: alertId, alertLabel: alertLabel, empty: { title: 'No recent dispatch failures', description: '7 alerts of other kinds arrived. Show all kinds to see them.', action: h(DS.Button, { variant: 'tertiary', size: 'md', href: 'AlertsLive.dc.html' }, 'Show all kinds') } };
+    return Object.assign({ yes: true, no: false, nothing: null, noop: function () {} }, v);
+  }
+}
+</script>
+</body>
+</html>

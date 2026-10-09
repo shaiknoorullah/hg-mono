@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Step-up cancelled</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.skip-link{position:absolute;left:var(--space-4);top:-120px;z-index:60;display:inline-flex;align-items:center;min-height:44px;padding:0 var(--space-4);border-radius:var(--radius-sm);background:var(--surface-raised);color:var(--text-primary);font-family:var(--font-ui);font-size:var(--type-body-md-size);font-weight:600;text-decoration:none}
+.skip-link:focus,.skip-link[data-shown]{top:12px;outline:2px solid transparent;box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+.skip-link+.skip-link:focus{top:64px}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+</style>
+</helmet>
+<div data-theme="light" data-density="compact" style="width: 1440px; height: 900px; position: relative; overflow: hidden; display: grid; grid-template-columns: 264px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+<a class="skip-link" href="#main">Skip to main content</a>
+<div style="background: var(--surface-chrome)">
+<dc-import name="AdminSidebar" active="refunds" viewer="super" has-new="{{no}}" counts="live" wn-expanded="{{no}}" focus-demo="none" hint-size="264px,900px"></dc-import>
+</div>
+<div style="display: flex; flex-direction: column; min-width: 0; min-height: 0">
+
+<main id="main" tabindex="-1" style="flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; outline: none">
+
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" role="none" tone="raised" sticky="{{yes}}" title="Refunds &amp; disputes"></x-import>
+<div style="padding: var(--space-1) var(--space-6) 0"><span style="font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary)">Component gap: AppBar needs a role prop; role="none" here so main holds no nested banner. The h1 title stays.</span></div>
+<div style="flex: 1; min-height: 0; padding: var(--space-5) var(--space-6); display: flex; flex-direction: column; gap: var(--space-4); min-width: 0">
+<div style="height: 760px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center"><span style="font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary)">Page content: Refunds (Admin Orders & Refunds canvas)</span></div>
+</div>
+</main>
+</div>
+<div style="position: absolute; right: 24px; bottom: 24px; width: 420px">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Toast" variant="neutral" icon="info" title="Refund not sent" description="You cancelled the check, so nothing was sent. Start the refund again when you're ready." on-dismiss="{{noop}}"></x-import>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const DS = window.HalalGoesDesignSystem_d11a47 || {};
+    const h = window.React.createElement;
+    const muted = function (t) { return h('span', { style: { color: 'var(--text-secondary)' } }, t); };
+    const fullDate = function (iso) { var d = new Date(iso); if (isNaN(d.getTime())) return iso; return iso.length > 10 ? d.toLocaleString('en-CA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/Toronto', timeZoneName: 'short' }) : d.toLocaleDateString('en-CA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }); };
+    const at = function (iso, label) { return h('time', { dateTime: iso, title: fullDate(iso) }, label); };
+    const tag = function (t) { return h('span', { style: { fontSize: 'var(--type-mono-sm-size)', lineHeight: 1.4, fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' } }, t); };
+    let v = {};
+    v = {};
+    return Object.assign({ yes: true, no: false, nothing: null, noop: function () {} }, v);
+  }
+}
+</script>
+</body>
+</html>

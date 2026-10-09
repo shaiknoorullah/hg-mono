@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Authenticator setup states</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:var(--surface-base);color:var(--text-primary);font-family:var(--font-ui)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+textarea.hg-ta:focus{outline:none;border:var(--focus-field-border-width) solid var(--focus-ring)}
+textarea.hg-ta[aria-invalid="true"]{border:var(--focus-field-border-width) solid var(--color-danger-500)}
+textarea.hg-ta[aria-invalid="true"]:focus{box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+.skip{position:absolute;left:-10000px;top:8px;z-index:900;padding:12px 16px;background:var(--surface-raised);color:var(--text-primary);border-radius:8px;font-weight:600}
+.skip:focus{left:16px;outline:none;box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; position: relative; background: var(--surface-base); font-family: var(--font-ui); color: var(--text-primary)">
+<div style="width: 1440px; box-sizing: border-box; padding: 40px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; align-items: start">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="elevated" radius="lg" padding="28px">
+<section style="display: flex; flex-direction: column; gap: 16px">
+      <h2 style="margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.01em">Setting up your authenticator app</h2>
+      <span class="hg-skel" aria-hidden="true" style="display: block; align-self: center; width: 200px; height: 200px; border-radius: 8px"></span>
+      <span class="hg-skel" aria-hidden="true" style="display: block; height: 18px; width: 70%"></span>
+      <p role="status" style="margin: 0; font-size: 15px; color: var(--text-secondary)">Getting your setup code…</p>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" full-width="{{yes}}" disabled="{{yes}}" accessibility-label="Confirm code, unavailable while the setup code loads">Confirm code</x-import>
+    </section>
+</x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="elevated" radius="lg" padding="28px">
+<section style="display: flex; flex-direction: column; gap: 16px">
+      <h2 style="margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.01em">Setup didn’t start</h2>
+      <dc-import name="InlineAlert" tone="warning" heading="We couldn’t get your setup code" blocking="{{yes}}" body="The server didn’t answer. Nothing was set up, and your password is saved. Try again." action-label="Try again" action-variant="primary" action-icon="refresh" w="100%" hint-size="100%,172px"></dc-import>
+      <p style="margin: 0; font-size: 13px; color: var(--text-secondary)">Step 2 of 2</p>
+    </section>
+</x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="elevated" radius="lg" padding="28px">
+<section style="display: flex; flex-direction: column; gap: 16px">
+      <h2 style="margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.01em">The QR code didn’t show</h2>
+      <dc-import name="InlineAlert" tone="neutral" heading="The QR code couldn’t be drawn" body="Type the key below into your authenticator app instead. It sets up the same account." w="100%" hint-size="100%,120px"></dc-import>
+      <div style="display: flex; flex-direction: column; gap: 4px">
+        <span style="font-size: 15px; font-weight: 600">Type this key</span>
+        <span style="font-family: var(--font-mono); font-size: 15px; letter-spacing: 0.04em">JBSW Y3DP EHPK 3PXP</span>
+      </div>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Code from the app" variant="otp" auto-complete="one-time-code" default-value="" required="{{yes}}" helper-text="6 digits. Confirms the app is set up."></x-import>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" full-width="{{yes}}">Confirm code</x-import>
+    </section>
+</x-import>
+
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { yes: true, no: false, noop: () => {} };
+  }
+}
+</script>
+</body>
+</html>

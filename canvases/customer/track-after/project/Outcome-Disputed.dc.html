@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Under review</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<link rel="stylesheet" href="hg-roles.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:var(--surface-base)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+</style>
+</helmet>
+<div style="width: 390px; height: 1000px; position: relative; display: flex; flex-direction: column; overflow: hidden; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" title-is-page-heading="{{ no }}" tone="cream" title="Order HG-8F3K2Q" subtitle="Zaytoun Grill" back-label="Back to Orders" on-back="{{ noop }}"></x-import><main style="flex-grow: 1; display: flex; flex-direction: column; gap: 16px; padding: 16px; overflow: hidden">
+<div style="display: flex; flex-direction: column; gap: 8px"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="neutral" size="md" style="align-self: flex-start">Under review</x-import><div class="hg-focus-drawn"><h1 tabindex="-1" class="type-display-md">We're looking into this</h1></div><p class="type-body-md" style="color: var(--text-secondary)">Our team opened a review of this order at 7:20 pm. A person is checking the order's records.</p><p class="type-body-md" style="color: var(--text-primary)">We'll get back to you by <strong class="hg-num">30 September, 7:20 pm</strong>.</p><p class="type-body-md" style="color: var(--text-secondary)">If you still have the packaging, please keep it until then.</p></div><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.StatusTimeline" audience="customer" state="DISPUTED" transitions="{{ tl }}" show-times="{{ yes }}" now="{{ now }}"></x-import></x-import><span class="hg-tag" style="align-self: flex-start; white-space: normal">Component gap: StatusTimeline time format (renders "p.m.")</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg"><div style="display: flex; align-items: center; justify-content: space-between; gap: 12px"><div style="display: flex; flex-direction: column; gap: 6px"><span class="type-label-lg">Zaytoun Grill</span></div><div style="display: flex; flex-direction: column; gap: 2px; align-items: flex-end"><span class="type-body-sm" style="color: var(--text-secondary)">Charged</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{ captured }}" size="md"></x-import></div></div></x-import><div class="hg-gap"><span class="hg-tag">Annotation: the date</span><span class="hg-gap-note">"By" is the order's deadline_at while DISPUTED; every non-terminal state carries one. For DISPUTED it is the dispute time + 48 h (DISPUTE_SLA_BREACH, 01-platform), so the date is always rendered with the time (opened 28 September 7:20 pm, by 30 September, 7:20 pm). With no package seal at launch, a customer cannot move an order to DISPUTED from the app: after delivery, only our team opens one. The sentence is chosen from the DISPUTED transition's actor_kind alone and never states a cause: SUPPORT or ADMIN gives "Our team opened a review of this order at {time}." (drawn here); RESTAURANT gives "Zaytoun Grill asked us to review this order at {time}." actor_kind says who opened the review, not why; a customer's written report is a refund request instead (Track-Completed-ReportOpen).</span></div><div style="display: flex; flex-direction: column; gap: 8px; margin-top: auto"><span class="type-body-sm" style="color: var(--text-secondary); text-align: center">We'll let you know as soon as there's news.</span><div><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" full-width="{{ yes }}" href="Orders-Default.dc.html">Back to Orders</x-import></div></div>
+</main><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.BottomNav" label="Main" active="orders" items="{{ nav }}"></x-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const t = (s, at, a) => ({ to_state: s, at: '2026-09-28T' + at + ':00-04:00', actor_kind: a || 'SYSTEM' });
+    const all = [t('AUTHORIZED', '18:42', 'CUSTOMER'), t('RESTAURANT_PENDING', '18:42'), t('PREPARING', '18:44', 'RESTAURANT'), t('READY_FOR_PICKUP', '18:59', 'RESTAURANT'), t('PICKED_UP', '19:02', 'RIDER'), t('ARRIVED', '19:12', 'RIDER'), t('DELIVERED', '19:13', 'RIDER'), t('COMPLETED', '19:43')];
+    const upTo = (n) => all.slice(0, n);
+    return {
+      yes: true, no: false, none: null, zero: 0, noop: () => {},
+      nav: [{ key: 'home', label: 'Home', icon: 'home' }, { key: 'search', label: 'Search', icon: 'search' }, { key: 'orders', label: 'Orders', icon: 'orders', badge: 1, badgeNoun: 'active' }, { key: 'account', label: 'Account', icon: 'profile' }],
+      total: 6425, captured: 6425, tl: [t('PICKED_UP', '19:02', 'RIDER'), t('DELIVERED', '19:13', 'RIDER'), t('DISPUTED', '19:20', 'SUPPORT')], now: Date.parse('2026-09-28T19:30:00-04:00')
+    };
+  }
+}
+</script>
+</body>
+</html>

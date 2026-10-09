@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Chicken shawarma wrap</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:var(--color-neutral-100)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+.demo-focus .hg-focus,.demo-focus .hg-choice-ctl,.demo-focus .hg-row,.demo-focus > a{box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)!important}
+.demo-focus-field .hg-field{border-color:var(--focus-ring)!important;box-shadow:inset 0 0 0 calc(var(--focus-field-border-width) - 1px) var(--focus-ring)!important}
+
+textarea::placeholder{color:var(--text-secondary);opacity:1}
+</style>
+</helmet>
+<div style="width: 390px; height: 924px; position: relative; overflow: hidden; display: flex; flex-direction: column; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+<div style="height: 200px; flex-shrink: 0; background: var(--surface-sunken)"></div>
+<p aria-hidden="true" style="margin: var(--space-4); font-size: var(--type-heading-xl-size); font-weight: 700">Zaytoun Grill</p>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Sheet" open="{{yes}}" contained="{{yes}}" title="Chicken shawarma wrap" max-height="85%" on-close="{{noop}}">
+<div style="display: flex; flex-direction: column; gap: var(--space-4)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{c.wrap}}" size="lg"></x-import>
+<p style="margin: 0; font-size: var(--type-body-md-size); line-height: var(--type-body-md-line); color: var(--text-secondary)">Shaved chicken, pickles, toum, saj bread.</p>
+<div style="display: flex; flex-direction: column; gap: var(--space-1)">
+<strong style="font-size: var(--type-label-lg-size)">Allergens</strong>
+<p style="margin: 0; font-size: var(--type-body-md-size); line-height: var(--type-body-md-line); color: var(--text-secondary)">Allergen information not provided by this restaurant. If you have an allergy, contact them before you order.</p>
+</div>
+<div style="display: flex; flex-direction: column; gap: var(--space-1); padding-top: var(--space-3); border-top: 1px solid var(--border-decorative)">
+<div style="display: flex; align-items: center; justify-content: space-between">
+<strong style="font-size: var(--type-label-lg-size)">Quantity</strong>
+<div role="group" aria-label="Quantity for Chicken shawarma wrap" style="display: flex; align-items: center; gap: var(--space-2); outline: 1.5px dotted var(--color-info-500); outline-offset: 3px; outline-offset: 2px; border-radius: var(--radius-full)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.IconButton" icon="minus" accessibility-label="Decrease quantity of Chicken shawarma wrap" variant="tonal" shape="circle"></x-import>
+<span role="status" aria-live="polite" style="min-width: 28px; text-align: center; font-size: var(--type-heading-md-size); font-weight: 600; font-variant-numeric: tabular-nums"><span class="hg-sr">Quantity </span>2</span>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.IconButton" icon="plus" accessibility-label="Increase quantity of Chicken shawarma wrap" variant="tonal" shape="circle"></x-import>
+</div>
+</div>
+
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--color-info-700); background: var(--color-info-50); align-self: flex-end">Component gap: QuantityStepper (group named without the number; the value node is role=status holding visible N plus visually hidden "Quantity ", no aria-label; describedby reason at the limit)</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: var(--space-2); outline: 1.5px dotted var(--color-info-500); outline-offset: 3px; border-radius: var(--radius-sm)">
+<label for="special" style="font-size: var(--type-label-lg-size); font-weight: 600">Special request (optional)</label>
+<textarea id="special" rows="2" maxlength="140" placeholder="For example: no onions" aria-describedby="special-help special-count" style="font-family: inherit; font-size: var(--type-body-md-size); padding: var(--space-3); border-radius: var(--radius-md); border: 1px solid var(--border-interactive); background: var(--surface-raised); color: var(--text-primary); resize: none">Extra pickles please</textarea>
+<span id="special-help" style="font-size: var(--type-body-sm-size); color: var(--text-secondary)">The kitchen sees this. For allergies, contact the restaurant before you order.</span>
+<span id="special-count" style="align-self: flex-end; font-size: var(--type-body-sm-size); color: var(--text-secondary); font-variant-numeric: tabular-nums"><span aria-hidden="true">20/140</span><span class="hg-sr">20 of 140 characters used</span></span>
+<span role="status" aria-live="polite" class="hg-sr"></span>
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">Textarea follows Input: 1px border-interactive at rest, 2px border-brand on focus (no ring), placeholder text-secondary, helper and counter linked by aria-describedby. The polite status announces "N characters left" only from 20 left.</span>
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--color-info-700); background: var(--color-info-50)">Component gap: Textarea (140)</span>
+</div>
+<div style="position: sticky; bottom: 0; display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-3) 0 var(--space-2); background: var(--surface-raised); box-shadow: var(--elev-sticky)">
+<div><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" full-width="{{yes}}" icon-start="cart" href="Item-added.dc.html">Add 2 to cart</x-import></div>
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">Code: Sheet footer prop (sticky, above the keyboard)</span>
+</div>
+</div>
+</x-import>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":924}}'>
+class Component extends DCLogic {
+renderVals() {
+return {
+yes: true,
+no: false,
+none: null,
+zero: 0,
+two: 2,
+noop: function () {},
+nav: [
+{ key: 'home', label: 'Home', icon: 'home' },
+{ key: 'search', label: 'Search', icon: 'search' },
+{ key: 'orders', label: 'Orders', icon: 'orders' },
+{ key: 'account', label: 'Account', icon: 'profile' }
+],
+c: { base: 2499, v2: 4599, garlic: 150, turnip: 100, chilli: 125, bread: 150, wrap: 1249, falafel: 1099, large: 250, plate: 1650, tikka: 1599, koob: 2250, adana: 2199, toum: 50, tahini: 50 },
+sizes: [
+{ value: 'v1', label: 'For one' },
+{ value: 'v2', label: 'For two' }
+],
+sizesOut: [
+{ value: 'v1', label: 'For one' },
+{ value: 'v2', label: 'For two', disabled: true, disabledReason: 'Sold out' }
+],
+falafelSizes: [
+{ value: 'r', label: 'Regular' },
+{ value: 'l', label: 'Large', priceDeltaCents: 250 }
+]
+};
+}
+}
+</script>
+</body>
+</html>

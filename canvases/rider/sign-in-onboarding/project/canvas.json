@@ -1,0 +1,1467 @@
+{
+ "v": 3,
+ "attachments": {},
+ "boards": {
+  "App-UpdateRequired.dc.html": {
+   "h": 844,
+   "title": "Update the app (APP_UPDATE_REQUIRED or unknown)",
+   "w": 390,
+   "x": 2350,
+   "y": 1544
+  },
+  "Capture-Camera-Light.dc.html": {
+   "h": 844,
+   "title": "Light — capture, camera",
+   "w": 390,
+   "x": 3760,
+   "y": 14272
+  },
+  "Capture-Camera.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Capture — driver's licence camera (torch off)",
+   "w": 390,
+   "x": 470,
+   "y": 10048
+  },
+  "Capture-CameraDenied.dc.html": {
+   "h": 844,
+   "title": "Capture — camera not allowed",
+   "w": 390,
+   "x": 6110,
+   "y": 10048
+  },
+  "Capture-FileUnreadable.dc.html": {
+   "h": 844,
+   "title": "Capture — file can't be opened (CONTENT_TYPE_MISMATCH)",
+   "w": 390,
+   "x": 5640,
+   "y": 10048
+  },
+  "Capture-PdfError.dc.html": {
+   "h": 844,
+   "title": "Capture — PDF too large (413, over 15 MB or 20 pages)",
+   "w": 390,
+   "x": 5170,
+   "y": 10048
+  },
+  "Capture-PdfPicked.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Capture — PDF chosen (multi-page), add expiry",
+   "w": 390,
+   "x": 4700,
+   "y": 10048
+  },
+  "Capture-Review.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Capture — check photo and add expiry",
+   "w": 390,
+   "x": 1410,
+   "y": 10048
+  },
+  "Capture-Selfie-Denied.dc.html": {
+   "h": 844,
+   "title": "Capture — photo of you, camera not allowed",
+   "w": 390,
+   "x": 3290,
+   "y": 10048
+  },
+  "Capture-Selfie-Interrupted.dc.html": {
+   "h": 844,
+   "title": "Capture — photo of you, upload interrupted (offline or link expired)",
+   "w": 390,
+   "x": 4230,
+   "y": 10048
+  },
+  "Capture-Selfie-TooSmall.dc.html": {
+   "h": 844,
+   "title": "Capture — photo of you too small (IMAGE_TOO_SMALL)",
+   "w": 390,
+   "x": 3760,
+   "y": 10048
+  },
+  "Capture-Selfie.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Capture — photo of you (front camera)",
+   "w": 390,
+   "x": 2350,
+   "y": 10048
+  },
+  "Capture-SelfieReview.dc.html": {
+   "h": 844,
+   "title": "Capture — check photo of you (no expiry)",
+   "w": 390,
+   "x": 2820,
+   "y": 10048
+  },
+  "Capture-Starting.dc.html": {
+   "h": 844,
+   "title": "Capture — camera starting",
+   "w": 390,
+   "x": 0,
+   "y": 10048
+  },
+  "Capture-TooSoon.dc.html": {
+   "h": 844,
+   "title": "Capture — expires too soon (422 DOCUMENT_EXPIRES_TOO_SOON)",
+   "w": 390,
+   "x": 1880,
+   "y": 10048
+  },
+  "Capture-TorchOn.dc.html": {
+   "h": 844,
+   "title": "Capture — torch on",
+   "w": 390,
+   "x": 940,
+   "y": 10048
+  },
+  "Docs-AddExpiry.dc.html": {
+   "h": 1000,
+   "title": "Documents — add the missing expiry date (same photo, typed date)",
+   "w": 390,
+   "x": 7990,
+   "y": 8168
+  },
+  "Docs-Bicycle-Incomplete.dc.html": {
+   "h": 1240,
+   "title": "Documents — bicycle, 422 DOCUMENTS_INCOMPLETE",
+   "w": 390,
+   "x": 1880,
+   "y": 8168
+  },
+  "Docs-Bicycle-Ready.dc.html": {
+   "h": 1240,
+   "title": "Documents — bicycle, both added",
+   "w": 390,
+   "x": 940,
+   "y": 8168
+  },
+  "Docs-Bicycle-Submitting.dc.html": {
+   "h": 1240,
+   "title": "Documents — bicycle, sending for review",
+   "w": 390,
+   "x": 1410,
+   "y": 8168
+  },
+  "Docs-Bicycle.dc.html": {
+   "h": 1000,
+   "title": "Documents — bicycle or on foot, none added",
+   "w": 390,
+   "x": 470,
+   "y": 8168
+  },
+  "Docs-Cooldown.dc.html": {
+   "h": 1240,
+   "title": "Submit — wait before resubmitting (429)",
+   "w": 390,
+   "x": 5640,
+   "y": 8168
+  },
+  "Docs-DocView.dc.html": {
+   "h": 844,
+   "title": "Documents — open an added document (before submit)",
+   "w": 390,
+   "x": 7520,
+   "y": 8168
+  },
+  "Docs-Empty-LargeText.dc.html": {
+   "h": 2560,
+   "title": "Text at 200% — documents (rows wrap; Add buttons drop below the text)",
+   "w": 390,
+   "x": 940,
+   "y": 16232
+  },
+  "Docs-Empty.dc.html": {
+   "h": 1100,
+   "is_interactive": true,
+   "title": "Documents — motorised, none added",
+   "w": 390,
+   "x": 0,
+   "y": 8168
+  },
+  "Docs-Incomplete.dc.html": {
+   "h": 1240,
+   "title": "Submit — server says something is missing (422 DOCUMENTS_INCOMPLETE)",
+   "w": 390,
+   "x": 4230,
+   "y": 8168
+  },
+  "Docs-Interrupted.dc.html": {
+   "h": 1420,
+   "title": "Documents — upload interrupted (offline, link expired)",
+   "w": 390,
+   "x": 3290,
+   "y": 8168
+  },
+  "Docs-LoadError.dc.html": {
+   "h": 1000,
+   "title": "Documents — couldn't load",
+   "w": 390,
+   "x": 6580,
+   "y": 8168
+  },
+  "Docs-Loading.dc.html": {
+   "h": 844,
+   "title": "Documents — loading",
+   "w": 390,
+   "x": 6110,
+   "y": 8168
+  },
+  "Docs-Mixed-Light.dc.html": {
+   "h": 1480,
+   "title": "Light — documents, uploading and errors",
+   "w": 390,
+   "x": 2820,
+   "y": 14272
+  },
+  "Docs-Mixed.dc.html": {
+   "h": 1480,
+   "title": "Documents — uploading, unreadable (CONTENT_TYPE_MISMATCH), chosen file too large (413)",
+   "w": 390,
+   "x": 2350,
+   "y": 8168
+  },
+  "Docs-Offline.dc.html": {
+   "h": 1240,
+   "title": "Documents — offline",
+   "w": 390,
+   "x": 7050,
+   "y": 8168
+  },
+  "Docs-Ready-Light.dc.html": {
+   "h": 1240,
+   "title": "Light — documents ready",
+   "w": 390,
+   "x": 3290,
+   "y": 14272
+  },
+  "Docs-Ready.dc.html": {
+   "h": 1240,
+   "is_interactive": true,
+   "title": "Documents — all added, ready to submit",
+   "w": 390,
+   "x": 3760,
+   "y": 8168
+  },
+  "Docs-SubmitError.dc.html": {
+   "h": 1240,
+   "title": "Submit — couldn't send (network or 5xx)",
+   "w": 390,
+   "x": 5170,
+   "y": 8168
+  },
+  "Docs-Submitting.dc.html": {
+   "h": 1240,
+   "title": "Submit — sending for review (then the notifications ask)",
+   "w": 390,
+   "x": 4700,
+   "y": 8168
+  },
+  "Docs-UploadErrors.dc.html": {
+   "h": 1420,
+   "title": "Documents — too small (IMAGE_TOO_SMALL), incomplete (CHECKSUM_MISMATCH)",
+   "w": 390,
+   "x": 2820,
+   "y": 8168
+  },
+  "Fix-Closed-Reason.dc.html": {
+   "h": 844,
+   "title": "Application closed — alternative once the reason and date exist (Needs API)",
+   "w": 390,
+   "x": 7990,
+   "y": 12692
+  },
+  "Fix-Closed.dc.html": {
+   "h": 844,
+   "title": "Application closed (DEACTIVATED): facts only",
+   "w": 390,
+   "x": 7520,
+   "y": 12692
+  },
+  "Fix-Cooldown.dc.html": {
+   "h": 1000,
+   "title": "Fix — resend cooldown (429)",
+   "w": 390,
+   "x": 5640,
+   "y": 12692
+  },
+  "Fix-DetailsEdit-EmailInUse.dc.html": {
+   "h": 1100,
+   "title": "Fix — edit details, email in use (409 EMAIL_IN_USE) (only if the resend must carry email: Needs API)",
+   "w": 390,
+   "x": 13160,
+   "y": 12692
+  },
+  "Fix-DetailsEdit-Offline.dc.html": {
+   "h": 1100,
+   "title": "Fix — edit details, offline",
+   "w": 390,
+   "x": 11750,
+   "y": 12692
+  },
+  "Fix-DetailsEdit-Saving.dc.html": {
+   "h": 1000,
+   "title": "Fix — edit details, saving",
+   "w": 390,
+   "x": 11280,
+   "y": 12692
+  },
+  "Fix-DetailsEdit-ServerError.dc.html": {
+   "h": 1100,
+   "title": "Fix — edit details, couldn't save (5xx)",
+   "w": 390,
+   "x": 12220,
+   "y": 12692
+  },
+  "Fix-DetailsEdit-Underage.dc.html": {
+   "h": 1000,
+   "title": "Fix — edit details, under age (422 UNDERAGE)",
+   "w": 390,
+   "x": 12690,
+   "y": 12692
+  },
+  "Fix-DetailsEdit.dc.html": {
+   "h": 1000,
+   "title": "Fix — edit details (step 1 of 2)",
+   "w": 390,
+   "x": 2350,
+   "y": 12692
+  },
+  "Fix-Dob.dc.html": {
+   "h": 1000,
+   "title": "Fix — DOB_MISMATCH (fix your details, then take a new photo)",
+   "w": 390,
+   "x": 1880,
+   "y": 12692
+  },
+  "Fix-Error.dc.html": {
+   "h": 1000,
+   "title": "Fix — couldn't resend (5xx)",
+   "w": 390,
+   "x": 6580,
+   "y": 12692
+  },
+  "Fix-FinalAttempt.dc.html": {
+   "h": 1180,
+   "title": "Fix — last resend (rejected attempt_number 3: the next send is attempt 4, the last)",
+   "w": 390,
+   "x": 7050,
+   "y": 12692
+  },
+  "Fix-Forgery.dc.html": {
+   "h": 1000,
+   "title": "Fix — SUSPECTED_FORGERY (call support, no retake)",
+   "w": 390,
+   "x": 4230,
+   "y": 12692
+  },
+  "Fix-Multiple.dc.html": {
+   "h": 1180,
+   "title": "Fix — two rejected, one EXPIRED",
+   "w": 390,
+   "x": 2820,
+   "y": 12692
+  },
+  "Fix-Name.dc.html": {
+   "h": 1000,
+   "title": "Fix — NAME_MISMATCH (fix your details, then take a new photo)",
+   "w": 390,
+   "x": 1410,
+   "y": 12692
+  },
+  "Fix-NothingChanged.dc.html": {
+   "h": 1000,
+   "title": "Fix — nothing changed (422 NOTHING_TO_RESUBMIT)",
+   "w": 390,
+   "x": 8460,
+   "y": 12692
+  },
+  "Fix-Offline.dc.html": {
+   "h": 1000,
+   "title": "Fix — offline",
+   "w": 390,
+   "x": 6110,
+   "y": 12692
+  },
+  "Fix-Other.dc.html": {
+   "h": 1000,
+   "title": "Fix — OTHER (the reviewer's note is the only reason)",
+   "w": 390,
+   "x": 3760,
+   "y": 12692
+  },
+  "Fix-Partial-Light.dc.html": {
+   "h": 1000,
+   "title": "Light — fix one document",
+   "w": 390,
+   "x": 4230,
+   "y": 14272
+  },
+  "Fix-Partial.dc.html": {
+   "h": 1000,
+   "is_interactive": true,
+   "title": "Fix — one document rejected (ILLEGIBLE)",
+   "w": 390,
+   "x": 0,
+   "y": 12692
+  },
+  "Fix-Plate.dc.html": {
+   "h": 1000,
+   "title": "Fix — PLATE_MISMATCH (fix your plate, then take a new photo)",
+   "w": 390,
+   "x": 470,
+   "y": 12692
+  },
+  "Fix-PlateEdit-Alt.dc.html": {
+   "h": 844,
+   "title": "Alternative — details-only resend (Needs API: resend unchanged document after details fix)",
+   "w": 390,
+   "x": 13630,
+   "y": 12692
+  },
+  "Fix-PlateEdit-Offline.dc.html": {
+   "h": 844,
+   "title": "Fix — edit plate, offline",
+   "w": 390,
+   "x": 9400,
+   "y": 12692
+  },
+  "Fix-PlateEdit-PlateInUse.dc.html": {
+   "h": 1000,
+   "title": "Fix — edit plate, plate in use (409 PLATE_IN_USE)",
+   "w": 390,
+   "x": 10340,
+   "y": 12692
+  },
+  "Fix-PlateEdit-Required.dc.html": {
+   "h": 844,
+   "title": "Fix — edit plate, plate required (422 FIELD_REQUIRED)",
+   "w": 390,
+   "x": 10810,
+   "y": 12692
+  },
+  "Fix-PlateEdit-Saving.dc.html": {
+   "h": 844,
+   "title": "Fix — edit plate, saving",
+   "w": 390,
+   "x": 8930,
+   "y": 12692
+  },
+  "Fix-PlateEdit-ServerError.dc.html": {
+   "h": 844,
+   "title": "Fix — edit plate, couldn't save (5xx)",
+   "w": 390,
+   "x": 9870,
+   "y": 12692
+  },
+  "Fix-PlateEdit.dc.html": {
+   "h": 844,
+   "title": "Fix — edit plate (step 1 of 2; plate focused)",
+   "w": 390,
+   "x": 940,
+   "y": 12692
+  },
+  "Fix-Ready.dc.html": {
+   "h": 1000,
+   "title": "Fix — replaced, ready to resend",
+   "w": 390,
+   "x": 4700,
+   "y": 12692
+  },
+  "Fix-Resending.dc.html": {
+   "h": 1000,
+   "title": "Fix — resending",
+   "w": 390,
+   "x": 5170,
+   "y": 12692
+  },
+  "Fix-WrongType.dc.html": {
+   "h": 1000,
+   "title": "Fix — WRONG_DOCUMENT_TYPE",
+   "w": 390,
+   "x": 3290,
+   "y": 12692
+  },
+  "Main-Keyboard.dc.html": {
+   "h": 844,
+   "title": "Keyboard open — sign in (Send code rides above the keyboard)",
+   "w": 390,
+   "x": 1410,
+   "y": 16232
+  },
+  "Main-LargeText.dc.html": {
+   "h": 1700,
+   "title": "Text at 200% — sign in (footer stays pinned, body scrolls)",
+   "w": 390,
+   "x": 0,
+   "y": 16232
+  },
+  "Main.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Sign in or apply — phone",
+   "w": 390,
+   "x": 0,
+   "y": 300
+  },
+  "Notify-Prime.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Notifications — asked after the documents are sent",
+   "w": 390,
+   "x": 0,
+   "y": 11292
+  },
+  "Onboarding-Error.dc.html": {
+   "h": 844,
+   "title": "Application — could not load",
+   "w": 390,
+   "x": 1880,
+   "y": 2788
+  },
+  "Onboarding-InProgress.dc.html": {
+   "h": 1000,
+   "is_interactive": true,
+   "title": "Application — in progress (steps_completed, next_step)",
+   "w": 390,
+   "x": 940,
+   "y": 2788
+  },
+  "Onboarding-Loading.dc.html": {
+   "h": 844,
+   "title": "Application — loading",
+   "w": 390,
+   "x": 1410,
+   "y": 2788
+  },
+  "Onboarding-Offline.dc.html": {
+   "h": 1000,
+   "title": "Application — in progress, offline",
+   "w": 390,
+   "x": 2350,
+   "y": 2788
+  },
+  "Onboarding-Welcome-Light.dc.html": {
+   "h": 1300,
+   "title": "Light — apply to ride, start (same as dark, no checkbox)",
+   "w": 390,
+   "x": 1410,
+   "y": 14272
+  },
+  "Onboarding-Welcome-Terms-Tried.dc.html": {
+   "h": 1300,
+   "title": "Alternative — tried to continue unticked (Needs API, launch blocker)",
+   "w": 390,
+   "x": 2820,
+   "y": 2788
+  },
+  "Onboarding-Welcome-Terms.dc.html": {
+   "h": 1300,
+   "title": "Alternative — once terms acceptance is recorded (Needs API, launch blocker)",
+   "w": 390,
+   "x": 470,
+   "y": 2788
+  },
+  "Onboarding-Welcome.dc.html": {
+   "h": 1300,
+   "is_interactive": true,
+   "title": "Apply to ride — start (PHONE_VERIFIED): no checkbox, \"By continuing you agree\"",
+   "w": 390,
+   "x": 0,
+   "y": 2788
+  },
+  "Profile-Default-Keyboard.dc.html": {
+   "h": 844,
+   "title": "Keyboard open — your details (focused field scrolled into view)",
+   "w": 390,
+   "x": 2350,
+   "y": 16232
+  },
+  "Profile-Default-LargeText.dc.html": {
+   "h": 2860,
+   "title": "Text at 200% — your details",
+   "w": 390,
+   "x": 470,
+   "y": 16232
+  },
+  "Profile-Default.dc.html": {
+   "h": 1160,
+   "is_interactive": true,
+   "title": "Details — empty (time zone preset from the phone)",
+   "w": 390,
+   "x": 0,
+   "y": 4488
+  },
+  "Profile-EmailInUse.dc.html": {
+   "h": 1160,
+   "title": "Details — email in use (409)",
+   "w": 390,
+   "x": 2350,
+   "y": 4488
+  },
+  "Profile-Loading.dc.html": {
+   "h": 844,
+   "title": "Details — loading",
+   "w": 390,
+   "x": 3290,
+   "y": 4488
+  },
+  "Profile-Offline.dc.html": {
+   "h": 1320,
+   "title": "Details — couldn't save (offline)",
+   "w": 390,
+   "x": 3760,
+   "y": 4488
+  },
+  "Profile-Required.dc.html": {
+   "h": 1320,
+   "title": "Details — required fields missing (one alert: the summary)",
+   "w": 390,
+   "x": 470,
+   "y": 4488
+  },
+  "Profile-Saving.dc.html": {
+   "h": 1160,
+   "title": "Details — saving",
+   "w": 390,
+   "x": 940,
+   "y": 4488
+  },
+  "Profile-ServerError.dc.html": {
+   "h": 1320,
+   "title": "Details — couldn't save (5xx)",
+   "w": 390,
+   "x": 2820,
+   "y": 4488
+  },
+  "Profile-Timezone-Error.dc.html": {
+   "h": 1160,
+   "title": "Details — time zone not set (phone zone not in the list, or 422)",
+   "w": 390,
+   "x": 4230,
+   "y": 4488
+  },
+  "Profile-Underage-Light.dc.html": {
+   "h": 1000,
+   "title": "Light — details, under age",
+   "w": 390,
+   "x": 1880,
+   "y": 14272
+  },
+  "Profile-Underage.dc.html": {
+   "h": 1160,
+   "title": "Details — under age (422 UNDERAGE, details.min_age)",
+   "w": 390,
+   "x": 1410,
+   "y": 4488
+  },
+  "Profile-UnderageAgain.dc.html": {
+   "h": 1320,
+   "title": "Details — under age, second time (fields read-only)",
+   "w": 390,
+   "x": 1880,
+   "y": 4488
+  },
+  "Ref-DocumentStates.dc.html": {
+   "h": 1200,
+   "title": "Reference — document state badges and contrast",
+   "w": 880,
+   "x": 1920,
+   "y": 19672
+  },
+  "Ref-Focus.dc.html": {
+   "h": 2720,
+   "title": "Reference — focus states (both schemes) and focus order",
+   "w": 1200,
+   "x": 2880,
+   "y": 19672
+  },
+  "Ref-NeedsAPI.dc.html": {
+   "h": 5900,
+   "title": "Reference — contract gaps to file",
+   "w": 880,
+   "x": 4160,
+   "y": 19672
+  },
+  "Ref-OnboardingStates.dc.html": {
+   "h": 1520,
+   "title": "Reference — next_route → screen",
+   "w": 880,
+   "x": 0,
+   "y": 19672
+  },
+  "Ref-RejectionReasons.dc.html": {
+   "h": 1380,
+   "title": "Reference — rejection reasons and remedies",
+   "w": 880,
+   "x": 960,
+   "y": 19672
+  },
+  "Review-Approved.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Review — approved (live event only)",
+   "w": 390,
+   "x": 3290,
+   "y": 11292
+  },
+  "Review-Error.dc.html": {
+   "h": 844,
+   "title": "Review — couldn't refresh",
+   "w": 390,
+   "x": 3760,
+   "y": 11292
+  },
+  "Review-LiveRejected.dc.html": {
+   "h": 1000,
+   "title": "Review — live: a document turned down (document.review_state_changed), then Fix",
+   "w": 390,
+   "x": 2820,
+   "y": 11292
+  },
+  "Review-Partial-Light.dc.html": {
+   "h": 1000,
+   "title": "Light — review, some approved",
+   "w": 390,
+   "x": 4700,
+   "y": 14272
+  },
+  "Review-Partial.dc.html": {
+   "h": 1000,
+   "title": "Review — live update, some approved",
+   "w": 390,
+   "x": 2350,
+   "y": 11292
+  },
+  "Review-Reconnecting.dc.html": {
+   "h": 1000,
+   "title": "Review — live updates reconnecting",
+   "w": 390,
+   "x": 1880,
+   "y": 11292
+  },
+  "Review-Sent.dc.html": {
+   "h": 1000,
+   "title": "Review — sent, not picked up yet (SUBMITTED)",
+   "w": 390,
+   "x": 470,
+   "y": 11292
+  },
+  "Review-Waiting-NotifOff.dc.html": {
+   "h": 1000,
+   "title": "Review — waiting, notifications off",
+   "w": 390,
+   "x": 1410,
+   "y": 11292
+  },
+  "Review-Waiting-Slow.dc.html": {
+   "h": 1000,
+   "title": "Review — taking longer than usual (past submitted_at + 72 h)",
+   "w": 390,
+   "x": 4230,
+   "y": 11292
+  },
+  "Review-Waiting.dc.html": {
+   "h": 1000,
+   "title": "Review — waiting (ONBOARDING_AWAITING_REVIEW)",
+   "w": 390,
+   "x": 940,
+   "y": 11292
+  },
+  "Route-Error.dc.html": {
+   "h": 844,
+   "title": "Opening — couldn't load (GET /riders/me failed)",
+   "w": 390,
+   "x": 940,
+   "y": 1544
+  },
+  "Route-Splash.dc.html": {
+   "h": 844,
+   "title": "Opening — finding your next step",
+   "w": 390,
+   "x": 0,
+   "y": 1544
+  },
+  "Route-Timeout.dc.html": {
+   "h": 844,
+   "title": "Opening — taking longer than usual",
+   "w": 390,
+   "x": 470,
+   "y": 1544
+  },
+  "Route-WrongRole-NoSupport.dc.html": {
+   "h": 844,
+   "title": "Account setup problem (support_enabled false)",
+   "w": 390,
+   "x": 3290,
+   "y": 1544
+  },
+  "Route-WrongRole.dc.html": {
+   "h": 844,
+   "title": "Account setup problem (non-rider next_route)",
+   "w": 390,
+   "x": 2820,
+   "y": 1544
+  },
+  "SignIn-Code-Expired.dc.html": {
+   "h": 844,
+   "title": "Code — expired (OTP_INVALID_OR_EXPIRED)",
+   "w": 390,
+   "x": 5640,
+   "y": 300
+  },
+  "SignIn-Code-Incorrect-Light.dc.html": {
+   "h": 844,
+   "title": "Light — code incorrect",
+   "w": 390,
+   "x": 940,
+   "y": 14272
+  },
+  "SignIn-Code-Incorrect.dc.html": {
+   "h": 844,
+   "title": "Code — incorrect (OTP_INCORRECT, attempts_remaining 2)",
+   "w": 390,
+   "x": 4700,
+   "y": 300
+  },
+  "SignIn-Code-Keyboard.dc.html": {
+   "h": 844,
+   "title": "Keyboard open — code (field stays visible above the footer)",
+   "w": 390,
+   "x": 1880,
+   "y": 16232
+  },
+  "SignIn-Code-Locked.dc.html": {
+   "h": 844,
+   "title": "Code — too many tries (429)",
+   "w": 390,
+   "x": 7050,
+   "y": 300
+  },
+  "SignIn-Code-Offline.dc.html": {
+   "h": 844,
+   "title": "Code — offline",
+   "w": 390,
+   "x": 7520,
+   "y": 300
+  },
+  "SignIn-Code-Pasted.dc.html": {
+   "h": 844,
+   "title": "Code — pasted or autofilled (submits by itself)",
+   "w": 390,
+   "x": 3760,
+   "y": 300
+  },
+  "SignIn-Code-Resend.dc.html": {
+   "h": 844,
+   "title": "Code — resend available (send 2 of 3)",
+   "w": 390,
+   "x": 6110,
+   "y": 300
+  },
+  "SignIn-Code-ResendLimit.dc.html": {
+   "h": 844,
+   "title": "Code — resend limit reached (3 sends in this challenge)",
+   "w": 390,
+   "x": 6580,
+   "y": 300
+  },
+  "SignIn-Code-TriesUsed.dc.html": {
+   "h": 844,
+   "title": "Code — tries used up (attempts_remaining 0, challenge consumed)",
+   "w": 390,
+   "x": 5170,
+   "y": 300
+  },
+  "SignIn-Code-Verifying.dc.html": {
+   "h": 844,
+   "title": "Code — verifying (6th digit typed)",
+   "w": 390,
+   "x": 4230,
+   "y": 300
+  },
+  "SignIn-Code.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Code — entering (Verify off until 6 digits)",
+   "w": 390,
+   "x": 3290,
+   "y": 300
+  },
+  "SignIn-Deactivated-NoSupport.dc.html": {
+   "h": 844,
+   "title": "Account closed (support_enabled false)",
+   "w": 390,
+   "x": 1880,
+   "y": 1544
+  },
+  "SignIn-Deactivated.dc.html": {
+   "h": 844,
+   "title": "Account closed (403, support on)",
+   "w": 390,
+   "x": 1410,
+   "y": 1544
+  },
+  "SignIn-Phone-Invalid.dc.html": {
+   "h": 844,
+   "title": "Sign in — number not valid (422)",
+   "w": 390,
+   "x": 940,
+   "y": 300
+  },
+  "SignIn-Phone-Light.dc.html": {
+   "h": 844,
+   "title": "Light — sign in or apply",
+   "w": 390,
+   "x": 0,
+   "y": 14272
+  },
+  "SignIn-Phone-Offline.dc.html": {
+   "h": 844,
+   "title": "Sign in — offline",
+   "w": 390,
+   "x": 2350,
+   "y": 300
+  },
+  "SignIn-Phone-Sending.dc.html": {
+   "h": 844,
+   "title": "Sign in — sending code",
+   "w": 390,
+   "x": 470,
+   "y": 300
+  },
+  "SignIn-Phone-SignedOut.dc.html": {
+   "h": 844,
+   "title": "Sign in — session ended",
+   "w": 390,
+   "x": 2820,
+   "y": 300
+  },
+  "SignIn-Phone-TooMany-Light.dc.html": {
+   "h": 844,
+   "title": "Light — too many codes (429)",
+   "w": 390,
+   "x": 470,
+   "y": 14272
+  },
+  "SignIn-Phone-TooMany.dc.html": {
+   "h": 844,
+   "title": "Sign in — too many codes (429, Retry-After)",
+   "w": 390,
+   "x": 1410,
+   "y": 300
+  },
+  "SignIn-Phone-Unavailable.dc.html": {
+   "h": 844,
+   "title": "Sign in — codes unavailable (503)",
+   "w": 390,
+   "x": 1880,
+   "y": 300
+  },
+  "Vehicle-Bicycle.dc.html": {
+   "h": 1000,
+   "title": "Vehicle — bicycle (no plate fields)",
+   "w": 390,
+   "x": 940,
+   "y": 6208
+  },
+  "Vehicle-Car.dc.html": {
+   "h": 1560,
+   "title": "Vehicle — car (scrolled)",
+   "w": 390,
+   "x": 2350,
+   "y": 6208
+  },
+  "Vehicle-ChangeAfterDocs.dc.html": {
+   "h": 1000,
+   "title": "Vehicle — changing type after documents were added",
+   "w": 390,
+   "x": 7520,
+   "y": 6208
+  },
+  "Vehicle-Empty.dc.html": {
+   "h": 1000,
+   "title": "Vehicle — nothing chosen",
+   "w": 390,
+   "x": 0,
+   "y": 6208
+  },
+  "Vehicle-Error.dc.html": {
+   "h": 1000,
+   "title": "Vehicle — couldn't load or save (5xx)",
+   "w": 390,
+   "x": 6580,
+   "y": 6208
+  },
+  "Vehicle-Loading.dc.html": {
+   "h": 844,
+   "title": "Vehicle — loading",
+   "w": 390,
+   "x": 6110,
+   "y": 6208
+  },
+  "Vehicle-Motorcycle.dc.html": {
+   "h": 1560,
+   "title": "Vehicle — motorcycle (scrolled)",
+   "w": 390,
+   "x": 2820,
+   "y": 6208
+  },
+  "Vehicle-NoChoice.dc.html": {
+   "h": 1000,
+   "title": "Vehicle — Continue with nothing chosen",
+   "w": 390,
+   "x": 470,
+   "y": 6208
+  },
+  "Vehicle-NotApplicable.dc.html": {
+   "h": 1000,
+   "title": "Vehicle — 422 FIELD_NOT_APPLICABLE fallback",
+   "w": 390,
+   "x": 3760,
+   "y": 6208
+  },
+  "Vehicle-Offline.dc.html": {
+   "h": 1000,
+   "title": "Vehicle — offline",
+   "w": 390,
+   "x": 7050,
+   "y": 6208
+  },
+  "Vehicle-OnFoot.dc.html": {
+   "h": 1000,
+   "title": "Vehicle — on foot (no plate fields)",
+   "w": 390,
+   "x": 1410,
+   "y": 6208
+  },
+  "Vehicle-PlateInUse.dc.html": {
+   "h": 1000,
+   "title": "Vehicle — plate in use (409 PLATE_IN_USE)",
+   "w": 390,
+   "x": 4700,
+   "y": 6208
+  },
+  "Vehicle-Required.dc.html": {
+   "h": 1000,
+   "title": "Vehicle — plate required (422 FIELD_REQUIRED)",
+   "w": 390,
+   "x": 5170,
+   "y": 6208
+  },
+  "Vehicle-Saving.dc.html": {
+   "h": 1000,
+   "title": "Vehicle — saving",
+   "w": 390,
+   "x": 5640,
+   "y": 6208
+  },
+  "Vehicle-Scooter-Light.dc.html": {
+   "h": 1560,
+   "title": "Light — vehicle, scooter",
+   "w": 390,
+   "x": 2350,
+   "y": 14272
+  },
+  "Vehicle-Scooter.dc.html": {
+   "h": 1560,
+   "is_interactive": true,
+   "title": "Vehicle — scooter (scrolled)",
+   "w": 390,
+   "x": 1880,
+   "y": 6208
+  },
+  "Vehicle-Switched.dc.html": {
+   "h": 1000,
+   "title": "Vehicle — switched to bicycle after plate filled",
+   "w": 390,
+   "x": 3290,
+   "y": 6208
+  },
+  "Vehicle-YearRange.dc.html": {
+   "h": 1560,
+   "title": "Vehicle — year out of range (min 1990)",
+   "w": 390,
+   "x": 4230,
+   "y": 6208
+  }
+ },
+ "createdOnFiles": {
+  "at": "2026-09-28T01:09:02Z",
+  "v": 1
+ },
+ "designSystems": [
+  {
+   "artifact": "https://claude.ai/artifact/1GwGVZz8Ju9wcz4HfCnzbv",
+   "copiedAt": "2026-09-28T14:30:01Z",
+   "namespace": "halalgoesdesignsystem-d11a47",
+   "title": "HalalGoes Design System",
+   "version": "1790605103-3266"
+  }
+ ],
+ "launch": {
+  "view": "canvas"
+ },
+ "notes": {
+  "n_a11y": {
+   "fill": "gray",
+   "size": 24,
+   "text": "200% text (simulated by doubling the type tokens): the body scrolls, the footer stays pinned, button labels wrap inside taller buttons and never truncate (every type token doubled, the ones DS components read too), rows wrap and the Add button drops below the text. Keyboard open: the footer rides above the keyboard and the focused field scrolls into view above it (WCAG 2.4.11).",
+   "w": 420,
+   "x": 2820,
+   "y": 16232
+  },
+  "n_capture": {
+   "fill": "gray",
+   "size": 24,
+   "text": "CameraCapture gap. 'Take photo' is primary xl (60), not critical: 72 is kept for the offer screen's Accept and Decline. Torch is a Switch inside the frame. Photo of you: front camera only, no PDF, so its camera-denied state has no file option; IMAGE_TOO_SMALL and an interrupted upload have their own boards. PDF: max 15 MB and 20 pages (413); a file that is not really a PDF or photo is CONTENT_TYPE_MISMATCH: 'We can't open this file. Choose a PDF or a photo.' Expiry must be 30+ days away; too soon makes Back to documents the primary.",
+   "w": 420,
+   "x": 6620,
+   "y": 10048
+  },
+  "n_docs": {
+   "fill": "gray",
+   "size": 24,
+   "text": "The rows are exactly the set the vehicle needs (4 motorised, 2 bicycle or on foot) and the intro count matches. A row not added has a visible Add button (tertiary, 60); the footer primary is the next missing document ('Add driver's licence'); Submit for review is the primary only when every row reads Added. Work permit sits below a divider: 'Only if you're not a Canadian citizen or permanent resident. It must not be expired.', no badge, an Add button, and a blue tag (Needs API: residency status on the rider profile, so the server can require it). The Work permit row and the intro's 'plus a work permit if you have one' stay on every Documents board up to and including submit, so a rider can add it at any point before sending. When uploads fail, the footer primary is the first retake ('Retake vehicle registration'); offline, it is the next missing document, because capture still works and the upload waits in the queue. Camera photos are resized on the phone before upload, so 413 only happens for a chosen file. Row failures: static text plus one polite status line ('2 documents didn't upload'). Added = outline pill, no glyph; Approved keeps the check. A row missing only its expiry date opens Add the expiry date: the same photo, a typed date.",
+   "w": 420,
+   "x": 8460,
+   "y": 8168
+  },
+  "n_fix": {
+   "fill": "gray",
+   "size": 24,
+   "text": "The remedy follows the code and is the card's one primary; the badge names the remedy (Check your plate, Check your details, Call support, else New upload needed). *_MISMATCH is two required steps: fix the details, then take a new photo, because a details-only resend answers 422 NOTHING_TO_RESUBMIT (Fix — nothing changed). The details-only resend is a tagged alternative. Edit plate and edit details each draw saving, offline, 5xx and their 409/422 states. SUSPECTED_FORGERY: Call support, no retake. attempt_number counts submissions; a rejection at 4 closes the application. Application closed states facts only; the reason and date are Needs API.",
+   "w": 420,
+   "x": 14100,
+   "y": 12692
+  },
+  "n_light": {
+   "fill": "gray",
+   "size": 24,
+   "text": "Owner decision: the rider app follows the phone's light or dark setting; there is no in-app theme switch. Every light board uses the same generator as its dark twin, so copy and structure match (Apply to ride — start has no consent checkbox and five steps). Light covers vehicle, capture and account documents too.",
+   "w": 420,
+   "x": 5170,
+   "y": 14272
+  },
+  "n_overview": {
+   "fill": "gray",
+   "size": 24,
+   "text": "Copy rule: 'verified' and 'verification' are kept for halal certificates. Riders 'apply', we 'check', documents are 'approved'. One five-row plan. Terms today: no checkbox (nothing records it); a plain line 'By continuing you agree to the rider terms and privacy notice' with Read the rider terms and Read the privacy notice below it; both open the in-app document screen (Rider terms — document), and the document addresses are Needs API (PublicConfig). The unticked checkbox and blocked Continue live only on the alternative board, tagged Needs API: POST rider terms acceptance — a launch blocker for the owner.",
+   "w": 420,
+   "x": 3290,
+   "y": 2788
+  },
+  "n_profile": {
+   "fill": "gray",
+   "size": 24,
+   "text": "POST /riders/me/onboarding/profile. Date of birth is typed (Day, Month, Year: DateInput gap), never a calendar. Time zone: a Select (RiderProfileInput.timezone, options Eastern/Central), preset from the phone's zone, helper 'Used for your earnings days'; a phone zone outside the list presets nothing and Continue then asks for it. Helper and error both say 18, from 422 UNDERAGE details.min_age. A failed Continue shows one summary listing the fields as 56px links. Under age a second time: fields locked, the alert says how to correct a wrong date, Call support is secondary and Sign out tertiary.",
+   "w": 420,
+   "x": 4700,
+   "y": 4488
+  },
+  "n_ref": {
+   "fill": "purple",
+   "size": 24,
+   "text": "Legend: purple = Component gap (a missing size or prop on an existing design-system component) or Proposed component (a composite built from library parts and design-system components, waiting for owner approval; drawn with design-system tokens because the canvas can mount only the design-system bundle). Blue = Needs API (the contract lacks it). Grey = Data (bound to a contract field, never hardcoded) or an annotation of behaviour and screen-reader text. The boards render the installed design system as published, with no local token overrides. Orange primary button: dark label, accent-800 on brand-500 at 4.63:1. Owner decision: the rider 7:1 target covers body text, not large bold button labels, which meet 4.5:1. Where a design-system part still falls short (field helper and error text, DateInput sub-field invalid, button label wrap at 200% text) it is drawn as the system ships it with a purple Component gap tag, and listed in Reference — contract gaps.",
+   "w": 420,
+   "x": 5160,
+   "y": 19672
+  },
+  "n_review": {
+   "fill": "gray",
+   "size": 24,
+   "text": "Submit for review → Submitting → the notifications ask, only after the submit succeeds. POST /v1/devices registers the token. Owner decision: only the application decision (onboarding.state_changed: approved, changes needed, closed) reaches the rider by push and email (the screen updates on open), so 'We'll send you a notification when we decide' is about the application. One document's result (document.review_state_changed) only updates the open screen and sends nothing. Notifications off: when the rider opens the app, this screen shows the decision (getRiderOnboardingStatus, next_route). The in-app inbox is a later-version contract call, so no launch board uses it. Past submitted_at + 72 h: Review — taking longer than usual. A REJECTED row updates live but there is no Fix button until onboarding.state_changed reaches DOCUMENTS_REJECTED.",
+   "w": 420,
+   "x": 4700,
+   "y": 11292
+  },
+  "n_route": {
+   "fill": "gray",
+   "size": 24,
+   "text": "Splash while GET /v1/riders/me loads; after 10 s 'taking longer', on failure 'couldn't open'. next_route decides the screen (see Reference). APP_UPDATE_REQUIRED and truly unknown values: Update the app. Known non-rider values: Account setup problem. Support: PublicConfig.support_phone_e164 dials; support hours are the grey Data tag, bound to support_hours, never hardcoded; support_enabled false replaces the button with 'Support isn't available right now. Try again later.' A closed account offers 'Back to sign in', never 'use a different number'. A closed account (403 ACCOUNT_NOT_ACTIVE or account_status DEACTIVATED) routes to the closed alert and sign-out only when RiderMe.active_assignment_id is null; with an active assignment the rider finishes it first (Account closed — during a delivery).",
+   "w": 420,
+   "x": 3800,
+   "y": 1544
+  },
+  "n_signin": {
+   "fill": "gray",
+   "size": 24,
+   "text": "One screen for new and returning riders ('Sign in or apply'). Verify is off until 6 digits; the 6th digit or one-time-code autofill submits by itself. Resend text comes from resend_after_s. requestOtp inside an open challenge re-sends the same code, max 3 sends: after that the rider waits (Retry-After or the challenge window); starting again with the same number inside the window returns 429 (too many codes). attempts_remaining 0 consumes the challenge: 'That code no longer works'. Channel wording (text or WhatsApp) is Needs API. Loading keeps the button label (Send code, Verify) with loading on; progress is a status line. Call support is the last item of every footer (WCAG 3.2.6).",
+   "w": 420,
+   "x": 8500,
+   "y": 300
+  },
+  "n_vehicle": {
+   "fill": "gray",
+   "size": 24,
+   "text": "RadioGroup labelled by the visible question, nothing pre-selected, rows need 72 (gap). Plate required for CAR, SCOOTER, MOTORCYCLE; make, model, year (1990+) and colour optional. Switching to BICYCLE or ON_FOOT clears those fields and never sends them; 422 FIELD_NOT_APPLICABLE is the fallback. 409 PLATE_IN_USE: one field error plus 'This is my vehicle' (calls support).",
+   "w": 420,
+   "x": 8030,
+   "y": 6208
+  },
+  "t_a11y": {
+   "kind": "title1",
+   "maxW": 2740,
+   "text": "Text at 200% and keyboard open",
+   "w": 240,
+   "x": 0,
+   "y": 15982
+  },
+  "t_capture": {
+   "kind": "title1",
+   "maxW": 4000,
+   "text": "F2 · Document capture: camera, photo of you, PDF",
+   "w": 240,
+   "x": 0,
+   "y": 9798
+  },
+  "t_docs": {
+   "kind": "title1",
+   "maxW": 4000,
+   "text": "F2 · Step 3: documents",
+   "w": 240,
+   "x": 0,
+   "y": 7918
+  },
+  "t_fix": {
+   "kind": "title1",
+   "maxW": 4000,
+   "text": "F2 · Fix documents: remedy per rejection code",
+   "w": 240,
+   "x": 0,
+   "y": 12442
+  },
+  "t_light": {
+   "kind": "title1",
+   "maxW": 5090,
+   "text": "Light theme (the rider app follows the phone)",
+   "w": 240,
+   "x": 0,
+   "y": 14022
+  },
+  "t_overview": {
+   "kind": "title1",
+   "maxW": 2820,
+   "text": "F2 · Apply to ride: the plan and your application",
+   "w": 240,
+   "x": 0,
+   "y": 2538
+  },
+  "t_profile": {
+   "kind": "title1",
+   "maxW": 4000,
+   "text": "F2 · Step 1: your details",
+   "w": 240,
+   "x": 0,
+   "y": 4238
+  },
+  "t_ref": {
+   "kind": "title1",
+   "maxW": 4000,
+   "text": "Reference boards: routing, reasons, states, focus, contract gaps, DS requests",
+   "w": 240,
+   "x": 0,
+   "y": 19422
+  },
+  "t_review": {
+   "kind": "title1",
+   "maxW": 4000,
+   "text": "F2 · Step 4: we check your documents",
+   "w": 240,
+   "x": 0,
+   "y": 11042
+  },
+  "t_route": {
+   "kind": "title1",
+   "maxW": 3760,
+   "text": "F1 · After sign-in: routing, closed, update",
+   "w": 240,
+   "x": 0,
+   "y": 1294
+  },
+  "t_signin": {
+   "kind": "title1",
+   "maxW": 4000,
+   "text": "F1 · Sign in or apply: phone and code",
+   "w": 240,
+   "x": 0,
+   "y": 50
+  },
+  "t_vehicle": {
+   "kind": "title1",
+   "maxW": 4000,
+   "text": "F2 · Step 2: how you deliver",
+   "w": 240,
+   "x": 0,
+   "y": 5958
+  },
+  "n_moved": {
+   "fill": "blue",
+   "size": 24,
+   "w": 420,
+   "x": -520,
+   "y": 50,
+   "text": "Moved to HalalGoes Rider — Payouts & Account: https://claude.ai/artifact/EnL31eVhT89tqLCKDdbM4Z\nSections moved: F3 Step 5: payouts with Stripe Connect; Account paused; F15 Account: overview, details, terms, payouts, sign out; F15 Account: documents; F15 Account: vehicle; F15 Account: delete account; plus their light-theme and 200% text boards. Links to those screens open that canvas."
+  }
+ },
+ "order": [
+  "Main.dc.html",
+  "SignIn-Phone-Sending.dc.html",
+  "SignIn-Phone-Invalid.dc.html",
+  "SignIn-Phone-TooMany.dc.html",
+  "SignIn-Phone-Unavailable.dc.html",
+  "SignIn-Phone-Offline.dc.html",
+  "SignIn-Phone-SignedOut.dc.html",
+  "SignIn-Code.dc.html",
+  "SignIn-Code-Pasted.dc.html",
+  "SignIn-Code-Verifying.dc.html",
+  "SignIn-Code-Incorrect.dc.html",
+  "SignIn-Code-TriesUsed.dc.html",
+  "SignIn-Code-Expired.dc.html",
+  "SignIn-Code-Resend.dc.html",
+  "SignIn-Code-ResendLimit.dc.html",
+  "SignIn-Code-Locked.dc.html",
+  "SignIn-Code-Offline.dc.html",
+  "Route-Splash.dc.html",
+  "Route-Timeout.dc.html",
+  "Route-Error.dc.html",
+  "SignIn-Deactivated.dc.html",
+  "SignIn-Deactivated-NoSupport.dc.html",
+  "App-UpdateRequired.dc.html",
+  "Route-WrongRole.dc.html",
+  "Route-WrongRole-NoSupport.dc.html",
+  "Onboarding-Welcome.dc.html",
+  "Onboarding-Welcome-Terms.dc.html",
+  "Onboarding-InProgress.dc.html",
+  "Onboarding-Loading.dc.html",
+  "Onboarding-Error.dc.html",
+  "Onboarding-Offline.dc.html",
+  "Profile-Default.dc.html",
+  "Profile-Required.dc.html",
+  "Profile-Saving.dc.html",
+  "Profile-Underage.dc.html",
+  "Profile-UnderageAgain.dc.html",
+  "Profile-EmailInUse.dc.html",
+  "Profile-ServerError.dc.html",
+  "Profile-Loading.dc.html",
+  "Profile-Offline.dc.html",
+  "Vehicle-Empty.dc.html",
+  "Vehicle-NoChoice.dc.html",
+  "Vehicle-Bicycle.dc.html",
+  "Vehicle-OnFoot.dc.html",
+  "Vehicle-Scooter.dc.html",
+  "Vehicle-Car.dc.html",
+  "Vehicle-Motorcycle.dc.html",
+  "Vehicle-Switched.dc.html",
+  "Vehicle-NotApplicable.dc.html",
+  "Vehicle-YearRange.dc.html",
+  "Vehicle-PlateInUse.dc.html",
+  "Vehicle-Required.dc.html",
+  "Vehicle-Saving.dc.html",
+  "Vehicle-Loading.dc.html",
+  "Vehicle-Error.dc.html",
+  "Vehicle-Offline.dc.html",
+  "Vehicle-ChangeAfterDocs.dc.html",
+  "Docs-Empty.dc.html",
+  "Docs-Bicycle.dc.html",
+  "Docs-Bicycle-Ready.dc.html",
+  "Docs-Bicycle-Submitting.dc.html",
+  "Docs-Bicycle-Incomplete.dc.html",
+  "Docs-Mixed.dc.html",
+  "Docs-UploadErrors.dc.html",
+  "Docs-Interrupted.dc.html",
+  "Docs-Ready.dc.html",
+  "Docs-Incomplete.dc.html",
+  "Docs-Submitting.dc.html",
+  "Docs-SubmitError.dc.html",
+  "Docs-Cooldown.dc.html",
+  "Docs-Loading.dc.html",
+  "Docs-LoadError.dc.html",
+  "Docs-Offline.dc.html",
+  "Docs-DocView.dc.html",
+  "Capture-Starting.dc.html",
+  "Capture-Camera.dc.html",
+  "Capture-TorchOn.dc.html",
+  "Capture-Review.dc.html",
+  "Capture-TooSoon.dc.html",
+  "Capture-Selfie.dc.html",
+  "Capture-SelfieReview.dc.html",
+  "Capture-Selfie-Denied.dc.html",
+  "Capture-Selfie-TooSmall.dc.html",
+  "Capture-Selfie-Interrupted.dc.html",
+  "Capture-PdfPicked.dc.html",
+  "Capture-PdfError.dc.html",
+  "Capture-FileUnreadable.dc.html",
+  "Capture-CameraDenied.dc.html",
+  "Notify-Prime.dc.html",
+  "Review-Sent.dc.html",
+  "Review-Waiting.dc.html",
+  "Review-Waiting-NotifOff.dc.html",
+  "Review-Reconnecting.dc.html",
+  "Review-Partial.dc.html",
+  "Review-LiveRejected.dc.html",
+  "Review-Approved.dc.html",
+  "Review-Error.dc.html",
+  "Fix-Partial.dc.html",
+  "Fix-Plate.dc.html",
+  "Fix-PlateEdit.dc.html",
+  "Fix-Name.dc.html",
+  "Fix-Dob.dc.html",
+  "Fix-DetailsEdit.dc.html",
+  "Fix-Multiple.dc.html",
+  "Fix-WrongType.dc.html",
+  "Fix-Other.dc.html",
+  "Fix-Forgery.dc.html",
+  "Fix-Ready.dc.html",
+  "Fix-Resending.dc.html",
+  "Fix-Cooldown.dc.html",
+  "Fix-Offline.dc.html",
+  "Fix-Error.dc.html",
+  "Fix-FinalAttempt.dc.html",
+  "Fix-Closed.dc.html",
+  "Fix-Closed-Reason.dc.html",
+  "SignIn-Phone-Light.dc.html",
+  "SignIn-Phone-TooMany-Light.dc.html",
+  "SignIn-Code-Incorrect-Light.dc.html",
+  "Onboarding-Welcome-Light.dc.html",
+  "Profile-Underage-Light.dc.html",
+  "Vehicle-Scooter-Light.dc.html",
+  "Docs-Mixed-Light.dc.html",
+  "Docs-Ready-Light.dc.html",
+  "Capture-Camera-Light.dc.html",
+  "Fix-Partial-Light.dc.html",
+  "Review-Partial-Light.dc.html",
+  "Main-LargeText.dc.html",
+  "Profile-Default-LargeText.dc.html",
+  "Docs-Empty-LargeText.dc.html",
+  "Main-Keyboard.dc.html",
+  "SignIn-Code-Keyboard.dc.html",
+  "Profile-Default-Keyboard.dc.html",
+  "Ref-OnboardingStates.dc.html",
+  "Ref-RejectionReasons.dc.html",
+  "Ref-DocumentStates.dc.html",
+  "Ref-Focus.dc.html",
+  "Ref-NeedsAPI.dc.html",
+  "Profile-Timezone-Error.dc.html",
+  "Review-Waiting-Slow.dc.html",
+  "Fix-NothingChanged.dc.html",
+  "Fix-PlateEdit-Saving.dc.html",
+  "Fix-PlateEdit-Offline.dc.html",
+  "Fix-PlateEdit-ServerError.dc.html",
+  "Fix-PlateEdit-PlateInUse.dc.html",
+  "Fix-PlateEdit-Required.dc.html",
+  "Fix-DetailsEdit-Saving.dc.html",
+  "Fix-DetailsEdit-Offline.dc.html",
+  "Fix-DetailsEdit-ServerError.dc.html",
+  "Fix-DetailsEdit-Underage.dc.html",
+  "Fix-DetailsEdit-EmailInUse.dc.html",
+  "Fix-PlateEdit-Alt.dc.html",
+  "Onboarding-Welcome-Terms-Tried.dc.html",
+  "Docs-AddExpiry.dc.html"
+ ],
+ "pages": [],
+ "title": "HalalGoes Rider — Sign-in & Onboarding"
+}

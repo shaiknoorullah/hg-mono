@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Reset two-step sign-in (Needs API, draw-ahead)</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.skip-link{position:absolute;left:var(--space-4);top:-120px;z-index:60;display:inline-flex;align-items:center;min-height:44px;padding:0 var(--space-4);border-radius:var(--radius-sm);background:var(--surface-raised);color:var(--text-primary);font-family:var(--font-ui);font-size:var(--type-body-md-size);font-weight:600;text-decoration:none}
+.skip-link:focus,.skip-link[data-shown]{top:12px;outline:2px solid transparent;box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+.skip-link+.skip-link:focus{top:64px}
+.resize-handle{position:absolute;top:0;bottom:0;width:44px;z-index:5;display:flex;align-items:center;justify-content:center;cursor:col-resize;outline:2px solid transparent;touch-action:none}
+.resize-grip{display:flex;align-items:center;justify-content:center;gap:2px;width:14px;height:32px;box-sizing:border-box;border:1px solid var(--border-interactive);border-radius:var(--radius-xs);background:var(--surface-raised)}
+.resize-grip span{width:1px;height:14px;background:var(--text-secondary)}
+.resize-handle:focus-visible .resize-grip,.resize-handle[data-focus-demo] .resize-grip{box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+</style>
+</helmet>
+<div data-theme="light" data-density="compact" style="width: 1440px; height: 900px; position: relative; overflow: hidden; display: grid; grid-template-columns: 80px minmax(0, 1fr) 480px; grid-template-rows: minmax(0, 1fr); background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+<a class="skip-link" href="#main">Skip to main content</a>
+<a class="skip-link" href="#staff-table">Skip to table</a>
+<div style="background: var(--surface-chrome)">
+<dc-import name="AdminSidebar" collapsed="{{yes}}" active="staff" viewer="super" has-new="{{no}}" counts="live" wn-expanded="{{no}}" focus-demo="none" hint-size="80px,900px"></dc-import>
+</div>
+<div style="display: flex; flex-direction: column; min-width: 0; min-height: 0">
+
+<main id="main" tabindex="-1" style="flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; outline: none">
+
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" role="none" tone="raised" sticky="{{yes}}" title="Staff" subtitle="7 staff accounts" ></x-import>
+<div style="padding: var(--space-1) var(--space-6) 0"><span style="font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary)">Component gap: AppBar needs a role prop; role="none" here so main holds no nested banner. The h1 title stays.</span></div>
+<div style="flex: 1; min-height: 0; padding: var(--space-5) var(--space-6); display: flex; flex-direction: column; gap: var(--space-4); min-width: 0">
+<div style="display: flex; align-items: center; gap: var(--space-4)">
+<p style="margin: 0; flex-grow: 1; font-size: var(--type-body-md-size); color: var(--text-secondary)">Who can sign in to the admin console, what their role allows, and whether two-step sign-in is set up.</p>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md" icon-start="plus" href="InviteOpen.dc.html">Invite staff</x-import>
+</div>
+<div style="flex: 1 1 auto; min-height: 0; overflow: auto; display: flex; flex-direction: column">
+<span style="font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary)">Detail open: the list keeps Name, Role, Status and Last sign-in; the rest is in the panel. Component gap: DataTable current row (the open account's row marked, aria-current).</span>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.DataTable" id="staff-table" caption="Staff accounts" density="compact" sticky-header="{{yes}}" rows="{{rows}}" columns="{{cols}}" get-row-id="{{rowId}}" row-label="{{rowLabel}}" on-row-activate="{{noop}}" status="ready" has-more="{{no}}"></x-import>
+</div>
+</div>
+</main>
+</div>
+<aside id="detail-panel" aria-labelledby="panel-title" style="position: relative; display: flex; flex-direction: column; min-width: 0; min-height: 0; border-left: 1px solid var(--border-decorative); background: var(--surface-raised)">
+<div class="resize-handle" role="separator" tabindex="0" aria-orientation="vertical" aria-controls="detail-panel" aria-label="Resize panel" aria-valuenow="35" aria-valuemin="25" aria-valuemax="60" aria-valuetext="Panel 480 pixels wide, 35% of the page" style="left: -22px"><span class="resize-grip" aria-hidden="true"><span></span><span></span></span></div>
+<div style="display: flex; align-items: center; gap: var(--space-2); min-height: 64px; padding: var(--space-2) var(--space-2) var(--space-2) var(--space-5); border-bottom: 1px solid var(--border-decorative)">
+<h2 id="panel-title" style="margin: 0; flex-grow: 1; min-width: 0; font-size: var(--type-heading-md-size); font-weight: 600">Reset two-step sign-in for Maryam Khan</h2>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.IconButton" icon="close" variant="plain" size="md" accessibility-label="Close reset two-step sign-in" on-press="{{noop}}"></x-import>
+</div>
+<div style="padding: var(--space-2) var(--space-5) 0"><span style="font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary)">Needs API, draw-ahead: not buildable until the reset endpoint exists. At launch, use the on-call path (Reset two-step sign-in, above).</span></div>
+<div style="flex: 1; min-height: 0; overflow: auto; padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-4)">
+<p style="margin: 0; font-size: var(--type-body-md-size); line-height: 1.5; color: var(--text-secondary)">Use this when someone has lost their authenticator app or phone. There are no recovery codes, so a super admin resets it once they've confirmed who is asking.</p>
+<ol style="margin: 0; padding-left: var(--space-5); display: flex; flex-direction: column; gap: var(--space-4); font-size: var(--type-body-md-size); line-height: 1.5">
+<li><strong style="font-weight: 600">Confirm it's really Maryam Khan.</strong> Only a super admin does this (owner decision). Call her back on the phone number on her account, never a number the caller gives you, and have her match two details on the account, such as her work email and her role. A message or email alone isn't enough: someone with her email could be asking.</li>
+<li><strong style="font-weight: 600">Record how you confirmed it.</strong> It goes in the audit log with your name.
+<form id="reset-form" style="display: flex; flex-direction: column; gap: var(--space-3); margin-top: var(--space-2)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="How you confirmed it" required="{{yes}}" helper-text="For example: called back on the number on file, 28 Sep, 10:05 am; matched work email and role" max-length="{{noteMax}}" auto-complete="off"></x-import>
+<span style="font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary)">Component gap: Input helper text contrast (text-tertiary 3.38:1 on dark raised, 4.36:1 on light raised; the design system should draw it in text-secondary)</span>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Checkbox" label="I called Maryam Khan back on the number on file and she matched two account details" checked="{{no}}" on-checked-change="{{noop}}"></x-import>
+</form></li>
+<li><strong style="font-weight: 600">Reset.</strong> Her authenticator stops working and all her sessions end. The next time she signs in with her password, she sets up a new authenticator app.</li>
+</ol>
+<span style="font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary)">Needs API: reset a staff member's two-step sign-in (ends their sessions, asks for a new authenticator at the next sign-in, audited with the note). Needs API: a phone number on each staff account to call back (StaffUser has none); the same call-back check covers a password reset by hand. Nobody can reset their own.</span>
+</div>
+<div style="display: flex; justify-content: flex-end; gap: var(--space-3); padding: var(--space-3) var(--space-5); border-top: 1px solid var(--border-decorative)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" href="StaffDetail.dc.html">Cancel</x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md" type="submit" form="reset-form" destructive="{{yes}}" loading="{{no}}">Reset two-step sign-in</x-import>
+</div>
+<div style="padding: var(--space-2) var(--space-5) var(--space-3)"><span style="font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary)">Proposed component: DetailPanel (shadcn Resizable + ScrollArea). Opens beside the list, never over it; drag the edge to resize. Resize handle: shadcn ResizableHandle withHandle, a focusable separator (Left and Right arrow keys resize, Home and End jump to the limits), 44 px hit area centred on the edge, grip in the middle, standard two-layer focus ring. Close or Escape collapses it and focus returns to what opened it.</span></div>
+</aside>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const DS = window.HalalGoesDesignSystem_d11a47 || {};
+    const h = window.React.createElement;
+    const muted = function (t) { return h('span', { style: { color: 'var(--text-secondary)' } }, t); };
+    const fullDate = function (iso) { var d = new Date(iso); if (isNaN(d.getTime())) return iso; return iso.length > 10 ? d.toLocaleString('en-CA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/Toronto', timeZoneName: 'short' }) : d.toLocaleDateString('en-CA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }); };
+    const at = function (iso, label) { return h('time', { dateTime: iso, title: fullDate(iso) }, label); };
+    const tag = function (t) { return h('span', { style: { fontSize: 'var(--type-mono-sm-size)', lineHeight: 1.4, fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' } }, t); };
+    let v = {};
+
+    const ROLE = { SUPPORT_AGENT: 'Support agent', ADMIN: 'Admin', SUPER_ADMIN: 'Super admin' };
+    const STATUS = { ACTIVE: ['outline', 'Active', 'check'], INVITED: ['info', 'Invited', 'clock'], SUSPENDED: ['warning', 'Suspended', 'lock'], DEACTIVATED: ['neutral', 'Deactivated', 'close'] };
+    const staffRows = [
+      { id: 's1', full_name: 'Aminah Rahman', email: 'aminah.rahman@halalgoes.ca', role: 'SUPER_ADMIN', status: 'ACTIVE', mfa: true, lastIso: '2026-09-28T08:02:00-04:00', last: '28 Sep, 8:02 am', createdIso: '2026-06-02', created: '2 Jun', you: true },
+      { id: 's2', full_name: 'Sana Qureshi', email: 'sana.qureshi@halalgoes.ca', role: 'SUPER_ADMIN', status: 'ACTIVE', mfa: true, lastIso: '2026-09-27T17:40:00-04:00', last: '27 Sep, 5:40 pm', createdIso: '2026-06-02', created: '2 Jun' },
+      { id: 's3', full_name: 'Maryam Khan', email: 'maryam.khan@halalgoes.ca', role: 'ADMIN', status: 'ACTIVE', mfa: true, lastIso: '2026-09-28T09:10:00-04:00', last: '28 Sep, 9:10 am', createdIso: '2026-07-15', created: '15 Jul' },
+      { id: 's4', full_name: 'Yusuf Ali', email: 'yusuf.ali@halalgoes.ca', role: 'ADMIN', status: 'ACTIVE', mfa: true, lastIso: '2026-09-19T11:25:00-04:00', last: '19 Sep, 11:25 am', createdIso: '2026-07-15', created: '15 Jul' },
+      { id: 's5', full_name: 'Idris Okafor', email: 'idris.okafor@halalgoes.ca', role: 'SUPPORT_AGENT', status: 'INVITED', mfa: false, last: null, createdIso: '2026-09-26', created: '26 Sep' },
+      { id: 's6', full_name: 'Bilal Chaudhry', email: 'bilal.chaudhry@halalgoes.ca', role: 'SUPPORT_AGENT', status: 'SUSPENDED', mfa: true, lastIso: '2026-09-03T14:02:00-04:00', last: '3 Sep, 2:02 pm', createdIso: '2026-08-01', created: '1 Aug' },
+      { id: 's7', full_name: 'Hana Siddiqui', email: 'hana.siddiqui@halalgoes.ca', role: 'ADMIN', status: 'DEACTIVATED', mfa: true, lastIso: '2026-08-30T16:45:00-04:00', last: '30 Aug, 4:45 pm', createdIso: '2026-07-15', created: '15 Jul' }
+    ];
+    const roleCell = function (r) { return ROLE[r.role] || h('span', { style: { display: 'inline-flex', gap: 6, alignItems: 'baseline' } }, muted('Unrecognised role'), h('span', { style: { fontFamily: 'var(--font-mono)' } }, r.role)); };
+    const statusCell = function (r) {
+      if (r.inviteExpired) return h('span', { style: { display: 'inline-flex', gap: 'var(--space-2)', alignItems: 'center', flexWrap: 'wrap' } }, h(DS.Badge, { variant: 'warning', size: 'md', icon: 'clock' }, 'Invite link expired'), tag('Needs API: StaffUser.invitation_expires_at'));
+      const s = STATUS[r.status] || ['neutral', r.status, null];
+      const b = h(DS.Badge, { variant: s[0], size: 'md', icon: s[2] || undefined }, s[1]);
+      if (r.note === 'auto') return h('span', { style: { display: 'inline-flex', gap: 'var(--space-2)', alignItems: 'center' } }, b, muted('· invite never accepted'));
+      return b;
+    };
+    const mfaCell = function (r) {
+      if (r.note === 'auto') return muted('Never set up');
+      if (r.status === 'INVITED') return muted('Set up when they accept');
+      if (r.mfa) return 'Set up';
+      return h('span', { style: { display: 'inline-flex', gap: 'var(--space-2)', alignItems: 'center', flexWrap: 'wrap' } }, h(DS.Badge, { variant: 'warning', size: 'md', icon: 'warning' }, 'Not set up'), muted('Active accounts must have two-step sign-in. Tell the platform on-call engineer to check this account.'));
+    };
+    const plainName = function (r) { return h('span', { style: { display: 'inline-flex', gap: 'var(--space-2)', alignItems: 'center' } }, h('span', { style: { fontWeight: 600 } }, r.full_name), r.you ? h(DS.Badge, { variant: 'outline', size: 'sm' }, 'You') : null); };
+    const nameCell = plainName;
+    const staffCols = [
+      { key: 'full_name', label: 'Name', render: nameCell },
+      { key: 'email', label: 'Email', mono: true },
+      { key: 'role', label: 'Role', render: roleCell },
+      { key: 'status', label: 'Status', render: statusCell },
+      { key: 'mfa', label: 'Two-step sign-in', render: mfaCell },
+      { key: 'last', label: 'Last sign-in', render: function (r) { return r.last ? at(r.lastIso, r.last) : muted('Never'); } },
+      { key: 'created', label: 'Added', render: function (r) { return at(r.createdIso, r.created); } }
+    ];
+    const staffCols3 = [
+      { key: 'full_name', label: 'Name', render: plainName },
+      { key: 'role', label: 'Role', render: roleCell },
+      { key: 'status', label: 'Status', render: statusCell }
+    ];
+    const staffColsBare = staffCols.map(function (c) { return { key: c.key, label: c.label, mono: c.mono }; });
+    const staffColsBare3 = staffCols3.map(function (c) { return { key: c.key, label: c.label }; });
+    const rowId = function (r) { return r.id; };
+    const rowLabel = function (r) { return r.full_name; };
+    v = { rows: staffRows, cols: staffCols.filter(function (c) { return ['full_name', 'role', 'status', 'last'].indexOf(c.key) !== -1; }), rowId: rowId, rowLabel: rowLabel, footer: h('div', { style: { display: 'flex', justifyContent: 'flex-end' } }, h(DS.Button, { variant: 'tertiary', size: 'md', onPress: function () {} }, 'Close')) };
+    return Object.assign({ yes: true, no: false, nothing: null, noop: function () {}, noteMax: 200 }, v);
+  }
+}
+</script>
+</body>
+</html>

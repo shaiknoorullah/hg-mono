@@ -1,0 +1,100 @@
+/* HalalGoes customer screens: layout classes, text roles and review tags only.
+   Every colour, font, focus and motion value comes from the installed design system
+   (ds/halalgoesdesignsystem-d11a47/tokens.css, compiled from the approved tokens.json).
+   This file overrides no design-system value. The only variables it sets simulate 200% text
+   on the review boards marked -lt (the system's own type sizes, doubled inside .scr.lt). */
+
+/* ---- Screen type roles, composed from the type tokens (no new sizes). ---- */
+.scr { position: relative; overflow: hidden; box-sizing: border-box; display: flex; flex-direction: column; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui); font-size: var(--type-body-md-size); line-height: var(--type-body-md-line); }
+.scr *, .scr *::before, .scr *::after { box-sizing: border-box; }
+.body { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-4); }
+.t-h1 { margin: 0; font-size: var(--type-heading-xl-size); line-height: var(--type-heading-xl-line); font-weight: 700; letter-spacing: -0.01em; }
+.t-h2 { margin: 0; font-size: var(--type-heading-sm-size); line-height: var(--type-heading-sm-line); font-weight: 600; }
+.t-sec { margin: 0; font-size: var(--type-label-md-size); line-height: var(--type-label-md-line); font-weight: 600; letter-spacing: 0.01em; color: var(--text-secondary); }
+.t-body { margin: 0; font-size: var(--type-body-md-size); line-height: var(--type-body-md-line); color: var(--text-secondary); }
+.t-small { margin: 0; font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-line); color: var(--text-secondary); }
+.t-strong { font-weight: 600; color: var(--text-primary); }
+.t-mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.t-num { font-variant-numeric: tabular-nums; }
+.a-link { color: var(--text-link); text-decoration: underline; text-underline-offset: 2px; }
+.foot { flex: 0 0 auto; display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-3) var(--space-4) var(--space-6); background: var(--surface-base); }
+.foot-sticky { box-shadow: var(--elev-sticky); background: var(--surface-raised); }
+
+/* ---- Review tags. Proposed components (Banner, ListRow, EmptyState, ErrorState, Skeleton,
+        Avatar, MapView, Textarea) are composed in each artboard from design-system components
+        (Card, Icon, Button, Badge) plus the React Native Reusables part each is built on
+        (Alert, Separator, Skeleton, Avatar); this file holds no rules for them. ---- */
+.gap-tag, .api-tag { display: inline-flex; align-items: center; align-self: flex-start; gap: 4px; font-family: var(--font-mono); font-size: var(--type-mono-sm-size); line-height: 1.4; border-radius: var(--radius-xs); padding: 2px 6px; white-space: nowrap; }
+.gap-tag { color: var(--feedback-info-tint-text); background: var(--feedback-info-tint); border: 1px dashed var(--feedback-info-border); }
+.api-tag { color: var(--feedback-warning-tint-text); background: var(--feedback-warning-tint); border: 1px dashed var(--feedback-warning-border); }
+.api-box { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-3) var(--space-4); border: 1.5px dashed var(--feedback-warning-border); border-radius: var(--radius-md); }
+
+.group-label { margin: 0; padding: 0 var(--space-1); font-size: var(--type-label-md-size); font-weight: 600; letter-spacing: 0.01em; color: var(--text-secondary); }
+
+.sr { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+/* Drawn focus for static review: the two-layer indicator from focus-indicator.md. */
+.focus-drawn { display: block; border-radius: var(--radius-md); box-shadow: 0 0 0 2px var(--focus-offset), 0 0 0 5px var(--focus-ring); }
+
+/* Toast placement over the bottom of a screen. */
+.toast-dock { position: absolute; left: var(--space-4); right: var(--space-4); bottom: 88px; z-index: 600; }
+.toast-dock-low { bottom: var(--space-6); }
+/* Top dock: under a 56 px AppBar, clear of a footer holding the focused control (WCAG 2.4.11). */
+.toast-dock-top { top: calc(56px + var(--space-2)); bottom: auto; }
+
+/* ---- Review-only additions (revision 2). Still token references only. ---- */
+
+/* Large text: the largest accessibility size we must survive (200% text, WCAG 1.4.4 / Dynamic
+   Type). Base values are captured on :root, then doubled on .lt (headings 1.6x, as iOS scales
+   headings less than body). Spacing and targets do not scale; rows and footers must reflow. */
+:root {
+  --lt-b-body-lg: var(--type-body-lg-size); --lt-b-body-md: var(--type-body-md-size); --lt-b-body-sm: var(--type-body-sm-size);
+  --lt-b-caption: var(--type-caption-size); --lt-b-label-lg: var(--type-label-lg-size); --lt-b-label-md: var(--type-label-md-size);
+  --lt-b-label-sm: var(--type-label-sm-size); --lt-b-mono-md: var(--type-mono-md-size); --lt-b-mono-sm: var(--type-mono-sm-size);
+  --lt-b-h-sm: var(--type-heading-sm-size); --lt-b-h-md: var(--type-heading-md-size); --lt-b-h-lg: var(--type-heading-lg-size); --lt-b-h-xl: var(--type-heading-xl-size);
+}
+.scr.lt {
+  --type-body-lg-size: calc(var(--lt-b-body-lg) * 2); --type-body-md-size: calc(var(--lt-b-body-md) * 2); --type-body-sm-size: calc(var(--lt-b-body-sm) * 2);
+  --type-caption-size: calc(var(--lt-b-caption) * 2); --type-label-lg-size: calc(var(--lt-b-label-lg) * 2); --type-label-md-size: calc(var(--lt-b-label-md) * 2);
+  --type-label-sm-size: calc(var(--lt-b-label-sm) * 2); --type-mono-md-size: calc(var(--lt-b-mono-md) * 2); --type-mono-sm-size: calc(var(--lt-b-mono-sm) * 2);
+  --type-heading-sm-size: calc(var(--lt-b-h-sm) * 1.6); --type-heading-md-size: calc(var(--lt-b-h-md) * 1.6); --type-heading-lg-size: calc(var(--lt-b-h-lg) * 1.6); --type-heading-xl-size: calc(var(--lt-b-h-xl) * 1.6);
+}
+.scr.lt .gap-tag, .scr.lt .api-tag, .scr.lt .oq-tag { white-space: normal; }
+
+/* Invalid + focused field (focus-indicator.md rule 4): the DS field keeps its 2px danger border;
+   the two-layer ring marks focus. Drawn statically for review. */
+.drawn-invalid-focus .hg-field { box-shadow: 0 0 0 2px var(--focus-offset), 0 0 0 5px var(--focus-ring); }
+
+/* Open question tag: an owner decision, not a missing API or component. */
+.oq-tag { display: inline-flex; align-items: center; align-self: flex-start; gap: 4px; font-family: var(--font-mono); font-size: var(--type-mono-sm-size); line-height: 1.4; border-radius: var(--radius-xs); padding: 2px 6px; white-space: nowrap; color: var(--text-secondary); background: var(--surface-sunken); border: 1px dashed var(--border-strong); }
+
+/* Behind-sheet context for hand-off screens owned by other teams. */
+.handoff { flex: 1 1 auto; display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-4); border: 1.5px dashed var(--border-decorative); border-radius: var(--radius-lg); margin: var(--space-4); color: var(--text-secondary); }
+
+/* ---- Revision 3 additions. Token references only. ---- */
+
+/* Annotation tag: a reviewer note drawn beside the screen, never product copy. */
+.anno-tag { display: inline-flex; align-items: center; align-self: flex-start; gap: 4px; font-family: var(--font-mono); font-size: var(--type-mono-sm-size); line-height: 1.4; border-radius: var(--radius-xs); padding: 2px 6px; white-space: normal; color: var(--text-secondary); background: var(--surface-raised); border: 1px dotted var(--border-strong); }
+.scr.lt .anno-tag { white-space: normal; }
+
+/* The OS keyboard, drawn as a labelled region so reviewers can check what stays visible above it.
+   Not a component: the app never draws it. 291 px = iOS numeric/QWERTY at 390 wide. */
+.kbd { flex: 0 0 291px; height: 291px; display: flex; align-items: flex-start; justify-content: center; padding-top: var(--space-3); background: var(--surface-sunken); border-top: 1px solid var(--border-decorative); }
+.kbd-abs { position: absolute; left: 0; right: 0; bottom: 0; z-index: 2100; }
+/* With the keyboard up the view scrolls so the focused field and its error sit just above it. */
+.scr.kbd-open > main { overflow: hidden; justify-content: flex-end; }
+.kbd-above { position: absolute; left: 0; right: 0; top: 0; bottom: 291px; }
+
+/* Two fields side by side that stack at 200% text and below 375 wide. */
+.pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }
+.pair.stack { grid-template-columns: minmax(0, 1fr); }
+
+/* 200% text: structural chrome (AppBar, BottomNav) caps at 1.6x (04-accessibility §5). */
+.scr.lt [data-testid="AppBar"], .scr.lt [data-testid="BottomNav"] {
+  --type-label-md-size: calc(var(--lt-b-label-md) * 1.6); --type-label-sm-size: calc(var(--lt-b-label-sm) * 1.6);
+  --type-body-sm-size: calc(var(--lt-b-body-sm) * 1.6);
+}
+
+/* Drawn keyboard focus on a ListRow for the -focus review boards: the same inset two-layer
+   indicator the DS Card draws with hg-focus-inset (focus-indicator.md), shown without a real focus. */
+.is-focused { display: block; box-shadow: inset 0 0 0 2px var(--focus-offset), inset 0 0 0 5px var(--focus-ring); }

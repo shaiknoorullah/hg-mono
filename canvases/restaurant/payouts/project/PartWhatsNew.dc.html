@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Release notes list</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div style="width: {{w}}; min-height: {{hh}}; box-sizing: border-box; font-family: var(--font-ui); color: var(--text-primary); background: var(--surface-raised); display: flex; flex-direction: column; gap: 20px">
+
+<sc-if value="{{isFirst}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; gap: 16px">
+<p style="margin: 0; font: var(--text-type-body-md); line-height: 1.5">{{firstIntro}}</p>
+<ol style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; border-top: 1px solid var(--border-decorative)">
+<sc-for list="{{setup}}" as="st" hint-placeholder-count="3">
+<li style="display: flex; align-items: center; gap: 12px; min-height: 64px; border-bottom: 1px solid var(--border-decorative)">
+<span style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1"><span style="font: var(--text-type-label-lg)">{{st.title}}</span><span style="font: var(--text-type-body-sm); color: var(--text-secondary)">{{st.text}}</span></span>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" href="{{st.href}}">{{st.cta}}</x-import>
+</li>
+</sc-for>
+</ol>
+<p style="margin: 0; font: var(--text-type-body-sm); color: var(--text-secondary)">After each update, a short list of what changed opens here once. Earlier release notes are in Settings, under What's new.</p>
+<span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">First run: the current version's notes are marked seen · Set up payouts is hidden once getConnectStatus returns payouts_enabled true · visible labels are specific, so no accessibility-label override</span>
+</div>
+</sc-if>
+
+<sc-if value="{{isList}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; flex-direction: column; gap: 20px">
+<p style="margin: 0; font: var(--text-type-body-md); line-height: 1.5; color: var(--text-secondary)">{{intro}}</p>
+<sc-for list="{{releases}}" as="rel" hint-placeholder-count="2">
+<section style="display: flex; flex-direction: column; gap: 12px; padding-bottom: 20px; border-bottom: 1px solid var(--border-decorative)">
+<div style="display: flex; align-items: baseline; gap: 12px">
+<h3 style="margin: 0; font: var(--text-type-heading-md)">Version <span style="font-family: var(--font-mono); font-weight: 500">{{rel.version}}</span></h3>
+<span style="font: var(--text-type-body-sm); color: var(--text-secondary)">{{rel.date}}</span>
+<sc-if value="{{rel.fresh}}" hint-placeholder-val="{{false}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="info" size="sm">New to you</x-import></sc-if>
+</div>
+<ul style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 12px">
+<sc-for list="{{rel.notes}}" as="n" hint-placeholder-count="2">
+<li style="display: flex; gap: 12px; align-items: flex-start">
+<span style="flex-shrink: 0; width: 84px; display: flex"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="{{n.tone}}" size="sm">{{n.kind}}</x-import></span>
+<span style="font: var(--text-type-body-md); line-height: 1.5">{{n.text}}</span>
+</li>
+</sc-for>
+</ul>
+</section>
+</sc-for>
+<span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">Sample text · real notes ship with the app as a release-notes file, not from the API</span>
+</div>
+</sc-if>
+
+<sc-if value="{{isLoading}}" hint-placeholder-val="{{false}}">
+<div aria-busy="true" style="display: flex; flex-direction: column; gap: 16px">
+<span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">Proposed component: Skeleton</span>
+<div style="width: 180px; height: 22px; border-radius: var(--radius-xs); background: var(--skeleton-base)"></div>
+<div style="width: 100%; height: 16px; border-radius: var(--radius-xs); background: var(--skeleton-base)"></div>
+<div style="width: 86%; height: 16px; border-radius: var(--radius-xs); background: var(--skeleton-base)"></div>
+<div style="width: 92%; height: 16px; border-radius: var(--radius-xs); background: var(--skeleton-base)"></div>
+<div style="width: 160px; height: 22px; border-radius: var(--radius-xs); background: var(--skeleton-base); margin-top: 16px"></div>
+<div style="width: 96%; height: 16px; border-radius: var(--radius-xs); background: var(--skeleton-base)"></div>
+<div style="width: 70%; height: 16px; border-radius: var(--radius-xs); background: var(--skeleton-base)"></div>
+</div>
+</sc-if>
+
+<sc-if value="{{isEmpty}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; gap: 12px; padding: 32px 0">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="check" size="xl" color="var(--text-secondary)"></x-import>
+<h3 style="margin: 0; font: var(--text-type-heading-md)">You're up to date</h3>
+<p style="margin: 0; font: var(--text-type-body-md); line-height: 1.5; color: var(--text-secondary)">You're on version <span style="font-family: var(--font-mono)">1.4.0</span> and you've seen its notes. Notes for the next update appear here.</p>
+<span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">Proposed component: EmptyState</span>
+</div>
+</sc-if>
+
+<sc-if value="{{isError}}" hint-placeholder-val="{{false}}">
+<div role="alert" style="display: flex; flex-direction: column; gap: 12px; padding: 32px 0">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="info" size="xl" color="var(--text-secondary)"></x-import>
+<h3 style="margin: 0; font: var(--text-type-heading-md)">Couldn't load the release notes</h3>
+<p style="margin: 0; font: var(--text-type-body-md); line-height: 1.5; color: var(--text-secondary)">This doesn't affect your orders or your account.</p>
+<div style="display: flex"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" icon-start="refresh">Try again</x-import></div>
+<span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">Proposed component: ErrorState</span>
+</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"mode":{"editor":"enum","options":["since","all","first","loading","empty","error"],"default":"since"},"width":{"editor":"int","default":440},"height":{"editor":"int","default":800},"$preview":{"width":440,"height":800}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var m = this.props.mode || 'since';
+    var NEW = ['info', 'New'], IMP = ['neutral', 'Improved'], FIX = ['neutral', 'Fixed'];
+    function note(k, text) { return { tone: k[0], kind: k[1], text: text }; }
+    var r140 = { version: '1.4.0', date: '22 September 2026', notes: [
+      note(NEW, 'New orders wait in a strip at the top of every page, with the time left to accept. Accept or reject them without leaving the page.'),
+      note(IMP, 'Settings opens one section at a time, and edits open in a panel beside it.'),
+      note(FIX, 'The order sound keeps ringing when the screen dims.')
+    ] };
+    var r130 = { version: '1.3.0', date: '15 September 2026', notes: [
+      note(NEW, 'Upload a renewed halal certificate from Settings before the current one expires.'),
+      note(IMP, 'Business details are grouped into cards you edit one at a time.')
+    ] };
+    var r120 = { version: '1.2.0', date: '8 September 2026', notes: [ note(FIX, 'Payouts and Settings fit a landscape kitchen tablet, 1024 × 768 and up.') ] };
+    var r110 = { version: '1.1.0', date: '1 September 2026', notes: [ note(NEW, 'Set up payouts with Stripe from the Payouts page.') ] };
+    var since = m === 'since';
+    return {
+      w: (this.props.width || 440) + 'px',
+      hh: (this.props.height || 800) + 'px',
+      isFirst: m === 'first',
+      firstIntro: 'Welcome to HalalGoes. Three things to set up on this device and your account:',
+      setup: [
+        { title: 'Order sound', text: 'Rings on this device until each new order is answered.', cta: 'Turn on the order sound', href: 'https://claude.ai/artifact/VkGvVQsxmCHp8CGnCLVKga' },
+        { title: 'Browser notifications', text: 'New orders show even when this tab is in the background.', cta: 'Turn on notifications', href: 'https://claude.ai/artifact/VkGvVQsxmCHp8CGnCLVKga' },
+        { title: 'Payouts', text: 'Stripe needs your bank details before HalalGoes can pay you.', cta: 'Set up payouts', href: 'Payouts-NoAccount.dc.html' }
+      ],
+      isList: since || m === 'all',
+      isLoading: m === 'loading',
+      isEmpty: m === 'empty',
+      isError: m === 'error',
+      releases: (since ? [r140, r130] : [r140, r130, r120, r110]).map(function (r) { return Object.assign({ fresh: false }, r); }),
+      intro: since ? 'Two updates since you last looked. Newest first.' : "You're on version 1.4.0. Every update, newest first."
+    };
+  }
+}
+</script>
+</body>
+</html>

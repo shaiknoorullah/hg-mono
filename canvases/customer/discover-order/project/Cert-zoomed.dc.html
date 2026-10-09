@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Halal certificate, zoomed</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:var(--color-neutral-100)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+.demo-focus .hg-focus,.demo-focus .hg-choice-ctl,.demo-focus .hg-row,.demo-focus > a{box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)!important}
+.demo-focus-field .hg-field{border-color:var(--focus-ring)!important;box-shadow:inset 0 0 0 calc(var(--focus-field-border-width) - 1px) var(--focus-ring)!important}
+
+</style>
+</helmet>
+<div style="width: 390px; height: 1060px; position: relative; overflow: hidden; display: flex; flex-direction: column; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="cream" title="Halal certificate" subtitle="Zaytoun Grill" back-label="Back to Zaytoun Grill" on-back="{{noop}}"></x-import>
+<main style="flex-grow: 1; display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-4)">
+<div style="display: flex; align-items: center; gap: var(--space-2)" role="group" aria-label="Zoom">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.IconButton" icon="minus" accessibility-label="Zoom out" variant="tonal" shape="circle"></x-import>
+<span role="status" style="min-width: 56px; text-align: center; font-weight: 600; font-variant-numeric: tabular-nums">200%</span>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.IconButton" icon="plus" accessibility-label="Zoom in" variant="tonal" shape="circle"></x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="sm">Fit to screen</x-import>
+</div>
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--color-info-700); background: var(--color-info-50)">Component gap: DocumentViewer zoom controls (non-gesture: keyboard, switch, one finger)</span>
+<div role="img" aria-label="Halal certificate HMA-ON-24-0183 from Halal Monitoring Authority (HMA Canada), valid until 31 March 2027. Zoomed to 200%." tabindex="0" style="height: 460px; position: relative; overflow: hidden; border-radius: var(--radius-lg); border: 1px solid var(--border-decorative)">
+<div style="position: absolute; inset: -60px -120px; background: repeating-linear-gradient(0deg, var(--surface-raised) 0 22px, var(--border-decorative) 22px 24px)"></div>
+<span style="position: absolute; top: 8px; left: 8px; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--color-info-700); background: var(--color-info-50)">Component gap: DocumentViewer — stand-in page at 200%, arrow keys pan</span>
+</div>
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">Zoom and pan never depend on a gesture: +, − and Fit buttons, arrow keys pan the focused viewer, and the level is announced. Pinch still works.</span>
+<dl style="margin: 0; display: grid; grid-template-columns: max-content 1fr; column-gap: var(--space-4); row-gap: var(--space-1); font-size: var(--type-body-md-size)">
+<dt style="font-weight: 600; color: var(--text-secondary)">Certified by</dt><dd style="margin: 0">Halal Monitoring Authority (HMA Canada)</dd>
+<dt style="font-weight: 600; color: var(--text-secondary)">Certificate</dt><dd style="margin: 0; font-family: var(--font-mono)">HMA-ON-24-0183</dd>
+<dt style="font-weight: 600; color: var(--text-secondary)">Issued</dt><dd style="margin: 0"><time datetime="2026-04-01">1 April 2026</time></dd>
+<dt style="font-weight: 600; color: var(--text-secondary)">Valid until</dt><dd style="margin: 0"><time datetime="2027-03-31">31 March 2027</time></dd>
+<dt style="font-weight: 600; color: var(--text-secondary)">Scope</dt><dd style="margin: 0">The whole restaurant</dd>
+</dl>
+<p style="margin: 0; font-size: var(--type-body-md-size); line-height: var(--type-body-md-line); color: var(--text-primary)">Certification verified by HalalGoes on 4 September 2026. HalalGoes does not itself certify food.</p>
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">Bound: certification.disclaimer (verbatim), exactly as on Certificate — open: fixed, reviewed copy from the API, never re-authored on the client.</span>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1060}}'>
+class Component extends DCLogic {
+renderVals() {
+return {
+yes: true,
+no: false,
+none: null,
+zero: 0,
+two: 2,
+noop: function () {},
+nav: [
+{ key: 'home', label: 'Home', icon: 'home' },
+{ key: 'search', label: 'Search', icon: 'search' },
+{ key: 'orders', label: 'Orders', icon: 'orders' },
+{ key: 'account', label: 'Account', icon: 'profile' }
+]
+};
+}
+}
+</script>
+</body>
+</html>

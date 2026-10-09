@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>InlineAlert variants</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:var(--surface-base);color:var(--text-primary);font-family:var(--font-ui)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+textarea.hg-ta:focus{outline:none;border:var(--focus-field-border-width) solid var(--focus-ring)}
+textarea.hg-ta[aria-invalid="true"]{border:var(--focus-field-border-width) solid var(--color-danger-500)}
+textarea.hg-ta[aria-invalid="true"]:focus{box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+.skip{position:absolute;left:-10000px;top:8px;z-index:900;padding:12px 16px;background:var(--surface-raised);color:var(--text-primary);border-radius:8px;font-weight:600}
+.skip:focus{left:16px;outline:none;box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+</style>
+</helmet>
+<div style="width: 1200px; height: 900px; box-sizing: border-box; position: relative; background: var(--surface-base); font-family: var(--font-ui); color: var(--text-primary)">
+<div style="width: 1200px; box-sizing: border-box; padding: 32px 40px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px 32px; align-items: start">
+  <div><dc-import name="InlineAlert" tone="neutral" heading="Status, neutral" body="role=status, never takes focus." w="528" hint-size="528px,120px"></dc-import></div>
+  <div><dc-import name="InlineAlert" tone="info" heading="Status, info" body="For saved and informational messages." w="528" hint-size="528px,120px"></dc-import></div>
+  <div><dc-import name="InlineAlert" tone="success" heading="Success, tint and icon only" body="Only for positive outcomes. Never on a rejection, revocation or other negative halal outcome." w="528" hint-size="528px,120px"></dc-import></div>
+  <div><dc-import name="InlineAlert" tone="warning" heading="Blocking, warning" blocking="{{yes}}" body="role=alert with tabindex -1: takes focus when it appears." w="528" hint-size="528px,120px"></dc-import></div>
+  <div><dc-import name="InlineAlert" tone="warning" heading="List slot: 2 checks still needed" blocking="{{yes}}" list="H4 Address match: not recorded|H6 Scope sufficient: not recorded" foot="An item starting with a check key (H1 to H7) and its name shows the key in mono. An item can end in a link." w="528" hint-size="528px,172px"></dc-import></div>
+  <div><dc-import name="InlineAlert" tone="warning" heading="Action slot: Address match wasn’t recorded" blocking="{{yes}}" body="The connection dropped. Your choice and note are still here." action-label="Record Address match again" action-variant="tertiary" action-icon="refresh" w="528" hint-size="528px,172px"></dc-import></div>
+  <div><dc-import name="InlineAlert" tone="neutral" heading="Two actions and a Needs API tag" body="Actions sit under the text, never beside it, so long copy wraps cleanly." needs="an example of a tag inside an alert" action-label="Continue review" action-variant="primary" action-href="App.dc.html" action2-label="Stay on the queue" action2-variant="tertiary" w="528" hint-size="528px,198px"></dc-import></div>
+  <div><dc-import name="InlineAlert" tone="danger" heading="Danger: sign-in errors only" blocking="{{yes}}" body="Never for a halal state: red reads as haram." w="528" hint-size="528px,120px"></dc-import></div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1200,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { yes: true, no: false, noop: () => {} };
+  }
+}
+</script>
+</body>
+</html>

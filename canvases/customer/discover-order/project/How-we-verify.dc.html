@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>How we verify</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:var(--color-neutral-100)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+.demo-focus .hg-focus,.demo-focus .hg-choice-ctl,.demo-focus .hg-row,.demo-focus > a{box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)!important}
+.demo-focus-field .hg-field{border-color:var(--focus-ring)!important;box-shadow:inset 0 0 0 calc(var(--focus-field-border-width) - 1px) var(--focus-ring)!important}
+
+</style>
+</helmet>
+<div style="width: 390px; height: 1220px; position: relative; overflow: hidden; display: flex; flex-direction: column; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="cream" title="How we verify" back-label="Back to Home" on-back="{{noop}}"></x-import>
+<main style="flex-grow: 1; display: flex; flex-direction: column; gap: var(--space-5); padding: var(--space-4)">
+<p style="margin: 0; font-size: var(--type-body-lg-size); line-height: var(--type-body-lg-line)">Before a restaurant appears on HalalGoes, one of our team checks its halal certificate against seven checks. All seven must pass.</p>
+<ol style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: var(--space-4)">
+<li style="display: flex; gap: var(--space-3); align-items: flex-start">
+<span style="width: 28px; height: 28px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: var(--radius-full); background: var(--surface-sunken); font-weight: 700; font-size: var(--type-label-md-size); font-variant-numeric: tabular-nums">1</span>
+<span style="display: flex; flex-direction: column; gap: 2px"><strong style="font-size: var(--type-body-md-size)">The certificate is legible and complete</strong><span style="font-size: var(--type-body-sm-size); color: var(--text-secondary)">Readable, whole and unaltered.</span></span>
+</li><li style="display: flex; gap: var(--space-3); align-items: flex-start">
+<span style="width: 28px; height: 28px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: var(--radius-full); background: var(--surface-sunken); font-weight: 700; font-size: var(--type-label-md-size); font-variant-numeric: tabular-nums">2</span>
+<span style="display: flex; flex-direction: column; gap: 2px"><strong style="font-size: var(--type-body-md-size)">The certifying body is on our accepted list</strong></span>
+</li><li style="display: flex; gap: var(--space-3); align-items: flex-start">
+<span style="width: 28px; height: 28px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: var(--radius-full); background: var(--surface-sunken); font-weight: 700; font-size: var(--type-label-md-size); font-variant-numeric: tabular-nums">3</span>
+<span style="display: flex; flex-direction: column; gap: 2px"><strong style="font-size: var(--type-body-md-size)">The legal name matches the restaurant</strong></span>
+</li><li style="display: flex; gap: var(--space-3); align-items: flex-start">
+<span style="width: 28px; height: 28px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: var(--radius-full); background: var(--surface-sunken); font-weight: 700; font-size: var(--type-label-md-size); font-variant-numeric: tabular-nums">4</span>
+<span style="display: flex; flex-direction: column; gap: 2px"><strong style="font-size: var(--type-body-md-size)">The premises address matches</strong></span>
+</li><li style="display: flex; gap: var(--space-3); align-items: flex-start">
+<span style="width: 28px; height: 28px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: var(--radius-full); background: var(--surface-sunken); font-weight: 700; font-size: var(--type-label-md-size); font-variant-numeric: tabular-nums">5</span>
+<span style="display: flex; flex-direction: column; gap: 2px"><strong style="font-size: var(--type-body-md-size)">The dates are valid today</strong><span style="font-size: var(--type-body-sm-size); color: var(--text-secondary)">With time left on them. Our system checks this; no one can override it.</span></span>
+</li><li style="display: flex; gap: var(--space-3); align-items: flex-start">
+<span style="width: 28px; height: 28px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: var(--radius-full); background: var(--surface-sunken); font-weight: 700; font-size: var(--type-label-md-size); font-variant-numeric: tabular-nums">6</span>
+<span style="display: flex; flex-direction: column; gap: 2px"><strong style="font-size: var(--type-body-md-size)">The scope covers everything sold</strong><span style="font-size: var(--type-body-sm-size); color: var(--text-secondary)">The whole restaurant or its kitchen, not just a supplier.</span></span>
+</li><li style="display: flex; gap: var(--space-3); align-items: flex-start">
+<span style="width: 28px; height: 28px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: var(--radius-full); background: var(--surface-sunken); font-weight: 700; font-size: var(--type-label-md-size); font-variant-numeric: tabular-nums">7</span>
+<span style="display: flex; flex-direction: column; gap: 2px"><strong style="font-size: var(--type-body-md-size)">The certificate is not used by another restaurant</strong><span style="font-size: var(--type-body-sm-size); color: var(--text-secondary)">Our system checks this; no one can override it.</span></span>
+</li>
+</ol>
+<div style="display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-4); border-radius: var(--radius-lg); background: var(--surface-raised); border: 1px solid var(--border-decorative)">
+<strong style="font-size: var(--type-heading-sm-size)">What you see</strong>
+<p style="margin: 0; font-size: var(--type-body-md-size); line-height: var(--type-body-md-line); color: var(--text-secondary)">On each restaurant page, View certification shows the certifier, the certificate number, the date it is valid until and the date we checked it. When a certificate lapses, the restaurant stops taking orders until it is renewed.</p>
+<div style="display: flex; gap: var(--space-2); flex-wrap: wrap"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.HalalBadge" state="CERTIFIED" size="md" surface="card"></x-import><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.HalalBadge" state="EXPIRED" size="md" surface="card"></x-import></div>
+</div>
+<p style="margin: 0; font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-line); color: var(--text-secondary)">HalalGoes does not itself certify food. Certifying bodies certify food; we check their certificates.</p>
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">Static copy (no API). Wording mirrors the seven checks H1–H7 in plain English; the DS voice card is the source. Check 2 names no bodies: the accepted list is admin-managed (HalalIssuingBody) and naming some would read as a ranking (C-12).</span>
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">Needs API: public list of accepted issuing bodies (only if a visible list is wanted)</span>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1220}}'>
+class Component extends DCLogic {
+renderVals() {
+return {
+yes: true,
+no: false,
+none: null,
+zero: 0,
+two: 2,
+noop: function () {},
+nav: [
+{ key: 'home', label: 'Home', icon: 'home' },
+{ key: 'search', label: 'Search', icon: 'search' },
+{ key: 'orders', label: 'Orders', icon: 'orders' },
+{ key: 'account', label: 'Account', icon: 'profile' }
+]
+};
+}
+}
+</script>
+</body>
+</html>

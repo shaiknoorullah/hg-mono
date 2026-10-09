@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Halal certificate register grid</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div style="width: {{wcss}}; height: {{hcss}}; box-sizing: border-box; display: flex; flex-direction: column; gap: 12px; min-height: 0; font-family: var(--font-ui); color: var(--text-primary)">
+  <span style="display: inline-flex; align-self: flex-start; padding: 2px 8px; border-radius: 4px; background: var(--surface-sunken); border: 1px solid var(--border-strong); font-size: 12px; font-weight: 600">Needs API: halal certificate register (list certificates by status and expiry, with the restaurant’s display state)</span>
+  <div role="search" aria-label="Filter certificates" style="display: flex; align-items: flex-end; gap: 16px; padding: 12px 16px; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: 12px">
+    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Select" label="Show" value="{{filter}}" options="{{filters}}" style="width: 480px"></x-import>
+    <span style="flex-grow: 1; display: flex; flex-direction: column; align-items: flex-end; gap: 2px">
+      <span style="font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums">{{countLine}}</span>
+      <span style="display: inline-flex; padding: 2px 8px; border-radius: 4px; background: var(--color-info-50); color: var(--color-info-700); font-size: 12px; font-weight: 600">Proposed component: FilterBar</span>
+    </span>
+  </div>
+  <section id="table" aria-labelledby="hg-cap" aria-busy="{{sectionBusy}}" style="flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: 12px; overflow: hidden">
+    <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--border-decorative)">
+      <h2 id="hg-cap" style="margin: 0; font-size: 16px; font-weight: 600">Halal certificates, fixed order: expired first, then expiring by date, then pending by SLA</h2>
+      <span style="display: inline-flex; padding: 2px 8px; border-radius: 4px; background: var(--color-info-50); color: var(--color-info-700); font-size: 12px; font-weight: 600">Proposed component: LyteNyte grid (virtualised, 44px rows, short dates with a tooltip)</span>
+    </div>
+      <sc-if value="{{isRows}}" hint-placeholder-val="{{true}}"><div style="flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column">
+        <div role="grid" aria-labelledby="hg-cap" aria-rowcount="{{ariaRowCount}}" style="flex: 1 1 auto; min-height: 0; overflow: auto; display: flex; flex-direction: column">
+        <div role="rowgroup">
+          <div role="row" aria-rowindex="1" style="position: sticky; top: 0; z-index: 1; display: grid; grid-template-columns: {{cols}}; gap: 12px; align-items: center; min-height: 40px; padding: 0 16px; background: var(--surface-sunken); border-bottom: 1px solid var(--border-decorative); font-size: 13px; font-weight: 600; color: var(--text-secondary)">
+            <span role="columnheader">Restaurant</span><span role="columnheader">Certificate number</span><span role="columnheader">Issuing body</span><span role="columnheader">Certificate status</span><span role="columnheader">Restaurant now</span><span role="columnheader">Expires</span><span role="columnheader">Next step</span>
+          </div>
+        </div>
+          <div role="rowgroup">
+            <sc-for list="{{rows}}" as="r" hint-placeholder-count="5">
+              <div role="row" aria-rowindex="{{r.idx}}" style="display: grid; grid-template-columns: {{cols}}; gap: 12px; align-items: center; min-height: 44px; padding: 0 16px; border-bottom: 1px solid var(--border-decorative); font-size: 13px">
+                <span role="gridcell" class="hg-focus-inset" tabindex="{{r.tab}}" style="display: flex; flex-direction: column; line-height: 1.25"><a href="{{r.href}}" tabindex="-1" style="font-weight: 600; color: var(--text-primary)">{{r.name}}</a><sc-if value="{{r.hasTag}}" hint-placeholder-val="{{false}}"><span style="font-size: 13px; color: var(--text-secondary)">{{r.tag}}</span></sc-if></span>
+                <span role="gridcell" style="font-family: var(--font-mono)">{{r.num}}</span>
+                <span role="gridcell">{{r.body}}</span>
+                <span role="gridcell"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="{{r.sv}}" size="sm">{{r.status}}</x-import></span>
+                <span role="gridcell"><dc-import name="HalalState" state="{{r.halal}}" expires="{{r.nowExp}}" expires-full="{{r.nowExpFull}}" size="sm" hint-size="190px,24px"></dc-import></span>
+                <span role="gridcell" style="position: relative"><time title="{{r.expires}}" style="font-variant-numeric: tabular-nums; white-space: nowrap"><span aria-hidden="true">{{r.expiresShort}}</span><span class="hg-sr">{{r.expires}}</span></time><sc-if value="{{r.tip}}" hint-placeholder-val="{{false}}"><span role="tooltip" style="position: absolute; left: 0; top: 100%; z-index: 3; margin-top: 2px; padding: 6px 10px; border-radius: 8px; background: var(--surface-inverse); color: var(--text-on-inverse); font-size: 13px; white-space: nowrap; box-shadow: var(--elev-2)">{{r.expires}}</span></sc-if></span>
+                <span role="gridcell" style="line-height: 1.3">{{r.next}}</span>
+              </div>
+            </sc-for>
+            <sc-if value="{{loadingMore}}" hint-placeholder-val="{{false}}">
+              <sc-for list="{{skel3}}" as="k" hint-placeholder-count="3">
+                <div aria-hidden="true" style="display: grid; grid-template-columns: {{cols}}; gap: 12px; align-items: center; height: 44px; padding: 0 16px; border-bottom: 1px solid var(--border-decorative)">
+                  <span class="hg-skel" style="display: block; height: 12px; width: 80%"></span><span class="hg-skel" style="display: block; height: 12px; width: 70%"></span><span class="hg-skel" style="display: block; height: 12px; width: 60%"></span><span class="hg-skel" style="display: block; height: 18px; width: 60%"></span><span class="hg-skel" style="display: block; height: 20px; width: 60%"></span><span class="hg-skel" style="display: block; height: 12px; width: 70%"></span><span class="hg-skel" style="display: block; height: 12px; width: 70%"></span>
+                </div>
+              </sc-for>
+            </sc-if>
+          </div>
+      </div>
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 16px; font-size: 13px; color: var(--text-secondary)">
+          <span>Pending certificates open in the verification console. Approved and expired ones open read-only.</span>
+          <sc-if value="{{hasMore}}" hint-placeholder-val="{{false}}"><span role="status">Loading 25 more as you scroll</span></sc-if>
+          <sc-if value="{{noMore}}" hint-placeholder-val="{{true}}"><span>No more pages</span></sc-if>
+        </div>
+      </div></sc-if>
+      <sc-if value="{{isLoading}}" hint-placeholder-val="{{false}}">
+        <div aria-busy="true" style="display: flex; flex-direction: column">
+          <sc-for list="{{skel}}" as="s" hint-placeholder-count="5">
+            <div style="display: grid; grid-template-columns: {{cols}}; gap: 12px; align-items: center; height: 44px; padding: 0 16px; border-bottom: 1px solid var(--border-decorative)">
+              <span class="hg-skel" style="display: block; height: 12px; width: 80%"></span><span class="hg-skel" style="display: block; height: 12px; width: 70%"></span><span class="hg-skel" style="display: block; height: 12px; width: 70%"></span><span class="hg-skel" style="display: block; height: 18px; width: 60%"></span><span class="hg-skel" style="display: block; height: 20px; width: 60%"></span><span class="hg-skel" style="display: block; height: 12px; width: 70%"></span><span class="hg-skel" style="display: block; height: 12px; width: 70%"></span>
+            </div>
+          </sc-for>
+          <span role="status" style="padding: 8px 16px; font-size: 13px; color: var(--text-secondary)">Loading certificates</span>
+        </div>
+      </sc-if>
+      <sc-if value="{{isMessage}}" hint-placeholder-val="{{false}}">
+        <div role="{{msgRole}}" style="display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 56px 24px; text-align: center">
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="{{msgIcon}}" size="xl" color="var(--text-secondary)"></x-import>
+          <h3 style="margin: 0; font-size: 18px; font-weight: 600">{{msgTitle}}</h3>
+          <p style="margin: 0; max-width: 480px; font-size: 15px; line-height: 1.5; color: var(--text-secondary)">{{msgBody}}</p>
+          <sc-if value="{{msgRetry}}" hint-placeholder-val="{{false}}">
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" icon-start="refresh">Try again</x-import>
+          </sc-if>
+          <sc-if value="{{msgClear}}" hint-placeholder-val="{{false}}">
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" icon-start="close" href="Halal-Register.dc.html">Show everything that needs attention</x-import>
+          </sc-if>
+          <span style="display: inline-flex; padding: 2px 8px; border-radius: 4px; background: var(--color-info-50); color: var(--color-info-700); font-size: 12px; font-weight: 600">Proposed component: EmptyState / ErrorState inside the grid body</span>
+        </div>
+      </sc-if>
+  </section>
+  <div aria-label="Annotations" style="display: flex; flex-wrap: wrap; gap: 6px">
+    <span style="display: inline-flex; padding: 2px 8px; border-radius: 4px; background: var(--surface-sunken); border: 1px solid var(--border-strong); font-size: 12px; font-weight: 600">Needs API: renewal request status (for “asked on” in Next step)</span>
+    <span style="display: inline-flex; padding: 2px 8px; border-radius: 4px; background: var(--surface-sunken); border: 1px solid var(--border-strong); font-size: 12px; font-weight: 600">Needs API: SLA due on a pending certificate (orders the pending rows)</span>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"variant":{"editor":"enum","options":["default","loading","loadingmore","empty","error","fpending","fexpiring","fexpired"],"default":"default"},"$preview":{"width":1152,"height":820},"w":{"editor":null,"default":1152},"h":{"editor":null,"default":820}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const v = this.props.variant ?? 'default';
+    // Owner decision: table cells use the short date; the full absolute date is in the tooltip and read to screen readers.
+    const MON = { January: 'Jan', February: 'Feb', March: 'Mar', April: 'Apr', May: 'May', June: 'Jun', July: 'Jul', August: 'Aug', September: 'Sep', October: 'Oct', November: 'Nov', December: 'Dec' };
+    const short = (s) => (s || '').replace(/(January|February|March|April|May|June|July|August|September|October|November|December)/, (m) => MON[m]);
+    // Real deadline order: expired first, then expiring by date, then pending by SLA due.
+    const base = [
+      { name: 'Shawarma Stop', num: 'HMA-ON-2025-0114', body: 'HMA Canada', status: 'Expired', sv: 'neutral', halal: 'EXPIRED', expires: '21 September 2026', next: 'Hidden from customers until a renewal is approved', href: 'Verify-Statuses.dc.html' },
+      { name: 'Noor Grill', num: 'HMA-ON-2025-0981', body: 'HMA Canada', status: 'Approved', sv: 'outline', halal: 'EXPIRING_SOON', nowExp: '19 Oct', nowExpFull: '19 October 2026', expires: '19 October 2026', next: 'Renewal uploaded: review it (row below)', href: 'Verify-NoorCurrent.dc.html' },
+      { name: 'Medina Bakery', num: 'HFSAA-2025-3317', body: 'HFSAA', status: 'Approved', sv: 'outline', halal: 'EXPIRING_SOON', nowExp: '24 Oct', nowExpFull: '24 October 2026', expires: '24 October 2026', next: 'Waiting for renewal upload, asked 21 September', href: undefined },
+      { name: 'Noor Grill', tag: 'Renewal for a live restaurant', num: 'HMA-ON-2026-1190', body: 'HMA Canada', status: 'Pending review', sv: 'info', halal: 'EXPIRING_SOON', nowExp: '19 Oct', nowExpFull: '19 October 2026, the current certificate', expires: '18 October 2027', next: 'Review renewal', href: 'Verify-Renewal.dc.html' },
+      { name: 'Karahi House', num: 'HMA-ON-2026-0417', body: 'HMA Canada', status: 'Pending review', sv: 'info', halal: 'UNVERIFIED', expires: '14 January 2027', next: 'Review certificate (claimed by you)', href: 'Verify.dc.html' },
+      { name: 'Bait Al Mandi', num: 'ISNA-C-88120', body: 'ISNA Canada', status: 'Pending review', sv: 'info', halal: 'UNVERIFIED', expires: '2 June 2027', next: 'Another reviewer holds it', href: 'Verify-OtherReviewer.dc.html' },
+      { name: 'Zaytoun Grill', num: 'HMA-ON-2026-0533', body: 'HMA Canada', status: 'Pending review', sv: 'info', halal: 'UNVERIFIED', expires: '30 March 2027', next: 'Review certificate (claim it with Take next)', href: 'Verify-Unclaimed.dc.html' },
+    ];
+    // The default board shows the tooltip open on Noor Grill’s expiry cell (keyboard focus on that cell).
+    const rows = base.map((r, i) => Object.assign({ tag: '', nowExp: '', nowExpFull: '' }, r, { idx: i + 2, tab: (v === 'default' ? i === 1 : i === 0) ? '0' : '-1', hasTag: !!r.tag, expiresShort: short(r.expires), tip: v === 'default' && i === 1 }));
+    const msgs = {
+      empty: { role: 'status', icon: 'check', title: 'Nothing needs attention', body: 'No certificate has expired, none expires in the next 30 days, and none is waiting for review.' },
+      error: { role: 'alert', icon: 'error', title: 'Certificates didn’t load', body: 'The server didn’t respond. Nothing was changed.', retry: true },
+      fpending: { role: 'status', icon: 'search', title: 'No certificate is pending review', body: 'Every uploaded certificate has a decision. Other certificates are expired or expiring: show everything that needs attention to see them.', clear: true },
+      fexpiring: { role: 'status', icon: 'search', title: 'No certificate expires in the next 30 days', body: 'Renewals aren’t due yet. Other certificates are expired or pending: show everything that needs attention to see them.', clear: true },
+      fexpired: { role: 'status', icon: 'search', title: 'No certificate has expired', body: 'Every live restaurant has a certificate in date. Nothing is hidden from customers for an expired certificate. Show everything that needs attention to see expiring and pending certificates.', clear: true },
+    };
+    const m = msgs[v];
+    const filterFor = { fpending: 'PENDING', fexpiring: 'EXPIRING', fexpired: 'EXPIRED' }[v] || 'NEEDS_ATTENTION';
+    const hasRows = v === 'default' || v === 'loadingmore';
+    return {
+      wcss: (this.props.w ?? 1152) + 'px', hcss: (this.props.h ?? 820) + 'px',
+      sectionBusy: (v === 'loading' || v === 'loadingmore') ? 'true' : undefined,
+      cols: '1.1fr 1.1fr 0.8fr 0.9fr 1.4fr 0.9fr 1.3fr',
+      filter: filterFor,
+      filters: [
+        { value: 'NEEDS_ATTENTION', label: 'Needs attention: expired, expiring within 30 days, pending review' },
+        { value: 'PENDING', label: 'Pending review' },
+        { value: 'EXPIRING', label: 'Expiring within 30 days' },
+        { value: 'EXPIRED', label: 'Expired' },
+      ],
+      countLine: hasRows ? 'Showing ' + rows.length + (v === 'loadingmore' ? ', loading 25 more' : '') : v === 'loading' ? 'Loading' : v === 'error' ? '' : 'Showing 0',
+      isRows: hasRows, rows, ariaRowCount: rows.length + 1,
+      hasMore: v === 'loadingmore', noMore: v !== 'loadingmore', loadingMore: v === 'loadingmore', skel3: [1, 2, 3],
+      isLoading: v === 'loading', skel: [1, 2, 3, 4, 5],
+      isMessage: !!m, msgRole: m ? m.role : 'status', msgIcon: m ? m.icon : 'info', msgTitle: m ? m.title : '', msgBody: m ? m.body : '', msgRetry: !!(m && m.retry), msgClear: !!(m && m.clear),
+    };
+  }
+}
+</script>
+</body>
+</html>

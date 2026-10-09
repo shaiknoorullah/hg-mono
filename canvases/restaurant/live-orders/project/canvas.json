@@ -1,0 +1,1290 @@
+{
+ "v": 3,
+ "attachments": {},
+ "boards": {
+  "Main.dc.html": {
+   "x": 0,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Live orders — busy service: new-order strip, list, nothing open"
+  },
+  "Board-detail-open.dc.html": {
+   "x": 1520,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Live orders — an order open in the panel (list → order)"
+  },
+  "Board-three-panes.dc.html": {
+   "x": 3040,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Live orders — list → order → timeline, side by side"
+  },
+  "Board-nav-expanded.dc.html": {
+   "x": 4560,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Live orders — side navigation expanded"
+  },
+  "Board-quiet.dc.html": {
+   "x": 6080,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Live orders — quiet: nothing waiting, one order in progress"
+  },
+  "Board-empty.dc.html": {
+   "x": 7600,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Live orders — empty: nothing waiting, nothing in progress"
+  },
+  "Board-loading.dc.html": {
+   "x": 9120,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Live orders — loading"
+  },
+  "Board-first-load-error.dc.html": {
+   "x": 10640,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Live orders — first load failed, nothing cached"
+  },
+  "Board-error-stale.dc.html": {
+   "x": 12160,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Live orders — refresh failed, last good data kept"
+  },
+  "Board-gate.dc.html": {
+   "x": 13680,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Go live — sound check before taking orders"
+  },
+  "Board-gate-notif-denied.dc.html": {
+   "x": 15200,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Go live — notifications blocked"
+  },
+  "Board-sound-blocked.dc.html": {
+   "x": 16720,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Live orders — sound blocked by the browser"
+  },
+  "Board-health-open.dc.html": {
+   "x": 18240,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Screen health — details in the panel"
+  },
+  "Board-health-degraded-sheet.dc.html": {
+   "x": 19760,
+   "y": 0,
+   "w": 2960,
+   "h": 944,
+   "title": "Screen health — reconnecting with sound blocked, and offline"
+  },
+  "Board-sign-out.dc.html": {
+   "x": 22800,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Sign out while accepting: stop orders first (in the page)"
+  },
+  "Board-sign-out-off.dc.html": {
+   "x": 24320,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Sign out, accepting already off"
+  },
+  "Board-signed-out-sheet.dc.html": {
+   "x": 25840,
+   "y": 0,
+   "w": 2960,
+   "h": 944,
+   "title": "Signed out while orders are live (the one blocking alert)"
+  },
+  "Board-payouts-restricted.dc.html": {
+   "x": 28880,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Stripe paused payouts: keep taking orders"
+  },
+  "Board-reconnecting.dc.html": {
+   "x": 0,
+   "y": 1364,
+   "w": 1440,
+   "h": 900,
+   "title": "Reconnecting — accept still works"
+  },
+  "Board-reconnect-rest-down.dc.html": {
+   "x": 1520,
+   "y": 1364,
+   "w": 1440,
+   "h": 900,
+   "title": "Alternative — reconnecting with the API down too: Accept off"
+  },
+  "Board-closed-offline.dc.html": {
+   "x": 3040,
+   "y": 1364,
+   "w": 1440,
+   "h": 900,
+   "title": "This screen offline — open state unknown"
+  },
+  "Board-paused.dc.html": {
+   "x": 4560,
+   "y": 1364,
+   "w": 1440,
+   "h": 900,
+   "title": "Paused until 7:10 pm"
+  },
+  "Board-pause-menu.dc.html": {
+   "x": 6080,
+   "y": 1364,
+   "w": 1440,
+   "h": 900,
+   "title": "Pause menu — 15 min, 30 min, 1 hour, until closing"
+  },
+  "Board-resume-confirm.dc.html": {
+   "x": 7600,
+   "y": 1364,
+   "w": 1440,
+   "h": 900,
+   "title": "Resume now — confirm in the page"
+  },
+  "Board-paused-offers.dc.html": {
+   "x": 9120,
+   "y": 1364,
+   "w": 1440,
+   "h": 900,
+   "title": "Paused with orders still waiting"
+  },
+  "Board-not-accepting.dc.html": {
+   "x": 10640,
+   "y": 1364,
+   "w": 1440,
+   "h": 900,
+   "title": "Not accepting orders (switch off)"
+  },
+  "Board-off-with-offers.dc.html": {
+   "x": 12160,
+   "y": 1364,
+   "w": 1440,
+   "h": 900,
+   "title": "Switched off, orders still waiting"
+  },
+  "Board-turn-off-confirm.dc.html": {
+   "x": 13680,
+   "y": 1364,
+   "w": 1440,
+   "h": 900,
+   "title": "Turn off accepting — confirm in the page"
+  },
+  "Board-auto-off.dc.html": {
+   "x": 15200,
+   "y": 1364,
+   "w": 1440,
+   "h": 900,
+   "title": "Turned off after 2 orders in a row timed out"
+  },
+  "Board-closed-hours.dc.html": {
+   "x": 16720,
+   "y": 1364,
+   "w": 1440,
+   "h": 900,
+   "title": "Closed by your hours"
+  },
+  "Board-closed-holiday.dc.html": {
+   "x": 18240,
+   "y": 1364,
+   "w": 1440,
+   "h": 900,
+   "title": "Closed today by a date override"
+  },
+  "Board-hours-offers.dc.html": {
+   "x": 19760,
+   "y": 1364,
+   "w": 1440,
+   "h": 900,
+   "title": "Closed by hours with an order still waiting"
+  },
+  "Board-suspended.dc.html": {
+   "x": 21280,
+   "y": 1364,
+   "w": 1440,
+   "h": 900,
+   "title": "Account suspended"
+  },
+  "Board-switch-failed.dc.html": {
+   "x": 22800,
+   "y": 1364,
+   "w": 1440,
+   "h": 900,
+   "title": "Turning orders off failed"
+  },
+  "Board-switch-on-loading.dc.html": {
+   "x": 24320,
+   "y": 1364,
+   "w": 1440,
+   "h": 900,
+   "title": "Turning orders on"
+  },
+  "Board-switch-on-failed.dc.html": {
+   "x": 25840,
+   "y": 1364,
+   "w": 1440,
+   "h": 900,
+   "title": "Turning orders on failed"
+  },
+  "Offer-one.dc.html": {
+   "x": 0,
+   "y": 2684,
+   "w": 1440,
+   "h": 900,
+   "title": "Strip — one new order"
+  },
+  "Offer-three.dc.html": {
+   "x": 1520,
+   "y": 2684,
+   "w": 1440,
+   "h": 900,
+   "title": "Strip — three waiting, every Accept in view"
+  },
+  "Offer-four-overflow.dc.html": {
+   "x": 3040,
+   "y": 2684,
+   "w": 1440,
+   "h": 900,
+   "title": "Strip — four waiting: three in view, +1 more"
+  },
+  "Offer-four-focus.dc.html": {
+   "x": 4560,
+   "y": 2684,
+   "w": 1440,
+   "h": 900,
+   "title": "Strip — keyboard moved to the fourth; strip scrolled, 1 earlier"
+  },
+  "Offer-keyboard.dc.html": {
+   "x": 6080,
+   "y": 2684,
+   "w": 1440,
+   "h": 900,
+   "title": "Strip — keyboard focus on one order: A accepts only that one"
+  },
+  "Offer-loading.dc.html": {
+   "x": 7600,
+   "y": 2684,
+   "w": 1440,
+   "h": 900,
+   "title": "Strip — earnings and area loading after the ring"
+  },
+  "Offer-reduced-motion.dc.html": {
+   "x": 9120,
+   "y": 2684,
+   "w": 1440,
+   "h": 900,
+   "title": "Strip — reduced motion: steady tint"
+  },
+  "Offer-accepting.dc.html": {
+   "x": 10640,
+   "y": 2684,
+   "w": 1440,
+   "h": 900,
+   "title": "Strip — accepting (in flight)"
+  },
+  "Offer-accept-failed.dc.html": {
+   "x": 12160,
+   "y": 2684,
+   "w": 1440,
+   "h": 900,
+   "title": "Strip — accept failed, still waiting"
+  },
+  "Offer-accept-too-late.dc.html": {
+   "x": 13680,
+   "y": 2684,
+   "w": 1440,
+   "h": 900,
+   "title": "Strip — too late to accept"
+  },
+  "Offer-timed-out.dc.html": {
+   "x": 15200,
+   "y": 2684,
+   "w": 1440,
+   "h": 900,
+   "title": "Strip — timed out; one more in a row turns orders off"
+  },
+  "Offer-capture-failed.dc.html": {
+   "x": 16720,
+   "y": 2684,
+   "w": 1440,
+   "h": 900,
+   "title": "Strip — payment failed at accept"
+  },
+  "Offer-accepted.dc.html": {
+   "x": 18240,
+   "y": 2684,
+   "w": 1440,
+   "h": 900,
+   "title": "Strip — accepted: into In progress, focus to the next order"
+  },
+  "Offer-accepted-elsewhere.dc.html": {
+   "x": 19760,
+   "y": 2684,
+   "w": 1440,
+   "h": 900,
+   "title": "Strip — accepted on another screen"
+  },
+  "Offer-declined-elsewhere.dc.html": {
+   "x": 21280,
+   "y": 2684,
+   "w": 1440,
+   "h": 900,
+   "title": "Strip — declined on another screen"
+  },
+  "Offer-withdrawn.dc.html": {
+   "x": 22800,
+   "y": 2684,
+   "w": 1440,
+   "h": 900,
+   "title": "Strip — withdrawn by the customer"
+  },
+  "Offer-withdrawn-payment.dc.html": {
+   "x": 24320,
+   "y": 2684,
+   "w": 1440,
+   "h": 900,
+   "title": "Strip — withdrawn, payment failed"
+  },
+  "Offer-reconnect-accepting.dc.html": {
+   "x": 25840,
+   "y": 2684,
+   "w": 1440,
+   "h": 900,
+   "title": "Strip — accept pressed while reconnecting"
+  },
+  "Offer-reconnect-accepted.dc.html": {
+   "x": 27360,
+   "y": 2684,
+   "w": 1440,
+   "h": 900,
+   "title": "Strip — accepted while reconnecting"
+  },
+  "Offer-reconnect-failed.dc.html": {
+   "x": 28880,
+   "y": 2684,
+   "w": 1440,
+   "h": 900,
+   "title": "Strip — accept failed while reconnecting"
+  },
+  "Decline-no-reason.dc.html": {
+   "x": 0,
+   "y": 4004,
+   "w": 1440,
+   "h": 900,
+   "title": "Decline — pressed with no reason: group error, focus moved"
+  },
+  "Decline-other.dc.html": {
+   "x": 1520,
+   "y": 4004,
+   "w": 1440,
+   "h": 900,
+   "title": "Decline — something else, note too short"
+  },
+  "Decline-item-unavailable.dc.html": {
+   "x": 3040,
+   "y": 4004,
+   "w": 1440,
+   "h": 900,
+   "title": "Decline — item unavailable, mark it out of stock until closing"
+  },
+  "Decline-new-offer.dc.html": {
+   "x": 4560,
+   "y": 4004,
+   "w": 1440,
+   "h": 900,
+   "title": "Decline — a new order rings in the strip meanwhile"
+  },
+  "Decline-sending.dc.html": {
+   "x": 6080,
+   "y": 4004,
+   "w": 1440,
+   "h": 900,
+   "title": "Decline — sending"
+  },
+  "Decline-failed.dc.html": {
+   "x": 7600,
+   "y": 4004,
+   "w": 1440,
+   "h": 900,
+   "title": "Decline — network failure"
+  },
+  "Decline-too-late.dc.html": {
+   "x": 9120,
+   "y": 4004,
+   "w": 1440,
+   "h": 900,
+   "title": "Decline — too late: the timer ran out first"
+  },
+  "Decline-expired-open.dc.html": {
+   "x": 10640,
+   "y": 4004,
+   "w": 1440,
+   "h": 900,
+   "title": "Decline — timed out while the form was open"
+  },
+  "Prep-rider-waiting.dc.html": {
+   "x": 0,
+   "y": 5324,
+   "w": 1440,
+   "h": 900,
+   "title": "Preparing — rider arrived before the food is ready"
+  },
+  "Prep-rider-unassigned.dc.html": {
+   "x": 1520,
+   "y": 5324,
+   "w": 1440,
+   "h": 900,
+   "title": "Preparing — rider unassigned"
+  },
+  "Mark-ready-sending.dc.html": {
+   "x": 3040,
+   "y": 5324,
+   "w": 1440,
+   "h": 900,
+   "title": "Mark ready — sending"
+  },
+  "Mark-ready-failed.dc.html": {
+   "x": 4560,
+   "y": 5324,
+   "w": 1440,
+   "h": 900,
+   "title": "Mark ready — network failure, and one the server refused"
+  },
+  "Ready-waiting.dc.html": {
+   "x": 6080,
+   "y": 5324,
+   "w": 1440,
+   "h": 900,
+   "title": "Ready — waiting for the rider"
+  },
+  "Ready-rider-here.dc.html": {
+   "x": 7600,
+   "y": 5324,
+   "w": 1440,
+   "h": 900,
+   "title": "Ready — rider at your restaurant: read the pickup code, hand the bag over"
+  },
+  "Ready-no-rider.dc.html": {
+   "x": 9120,
+   "y": 5324,
+   "w": 1440,
+   "h": 900,
+   "title": "Ready — no rider found yet"
+  },
+  "Handoff-picked-up.dc.html": {
+   "x": 10640,
+   "y": 5324,
+   "w": 1440,
+   "h": 900,
+   "title": "Hand-off — rider entered the pickup code, out for delivery (pickup code needs API)"
+  },
+  "Out-empty.dc.html": {
+   "x": 12160,
+   "y": 5324,
+   "w": 1440,
+   "h": 900,
+   "title": "Out for delivery — none"
+  },
+  "Prep-cancelled.dc.html": {
+   "x": 13680,
+   "y": 5324,
+   "w": 1440,
+   "h": 900,
+   "title": "Preparing — cancelled: stop preparing"
+  },
+  "Prep-cancelled-refreshed.dc.html": {
+   "x": 15200,
+   "y": 5324,
+   "w": 1440,
+   "h": 900,
+   "title": "Preparing — cancelled, after a refresh (no reason)"
+  },
+  "Ready-cancelled.dc.html": {
+   "x": 16720,
+   "y": 5324,
+   "w": 1440,
+   "h": 900,
+   "title": "Ready — cancelled after it was ready: keep the bag aside"
+  },
+  "Prep-items-adjusted.dc.html": {
+   "x": 18240,
+   "y": 5324,
+   "w": 1440,
+   "h": 900,
+   "title": "Preparing — items adjusted by support"
+  },
+  "Prep-note-added.dc.html": {
+   "x": 19760,
+   "y": 5324,
+   "w": 1440,
+   "h": 900,
+   "title": "Preparing — note from support"
+  },
+  "Prep-rider-eta-updated.dc.html": {
+   "x": 21280,
+   "y": 5324,
+   "w": 1440,
+   "h": 900,
+   "title": "Preparing — rider pickup time changed"
+  },
+  "Prep-overdue-sheet.dc.html": {
+   "x": 22800,
+   "y": 5324,
+   "w": 2960,
+   "h": 944,
+   "title": "Preparing — overdue: new customer time, then final warning"
+  },
+  "Auto-cancelled-overdue.dc.html": {
+   "x": 25840,
+   "y": 5324,
+   "w": 1440,
+   "h": 900,
+   "title": "Cancelled by HalalGoes — prep and pickup overdue"
+  },
+  "Board-other-screen.dc.html": {
+   "x": 27360,
+   "y": 5324,
+   "w": 1440,
+   "h": 900,
+   "title": "Marked ready on another screen"
+  },
+  "Board-refreshed.dc.html": {
+   "x": 28880,
+   "y": 5324,
+   "w": 1440,
+   "h": 900,
+   "title": "After a refresh — what live-only facts leave behind"
+  },
+  "Detail-pending.dc.html": {
+   "x": 0,
+   "y": 6688,
+   "w": 1440,
+   "h": 900,
+   "title": "Detail — new order: Accept footer, no phone until accepted"
+  },
+  "Detail-accepting.dc.html": {
+   "x": 1520,
+   "y": 6688,
+   "w": 1440,
+   "h": 900,
+   "title": "Detail — accept in flight"
+  },
+  "Detail-accept-failed.dc.html": {
+   "x": 3040,
+   "y": 6688,
+   "w": 1440,
+   "h": 900,
+   "title": "Detail — accept failed in the panel"
+  },
+  "Detail-offer-ended-sheet.dc.html": {
+   "x": 4560,
+   "y": 6688,
+   "w": 4480,
+   "h": 944,
+   "title": "Detail — the order ends while its panel is open"
+  },
+  "Offer-stepper-bounds.dc.html": {
+   "x": 9120,
+   "y": 6688,
+   "w": 2960,
+   "h": 944,
+   "title": "Detail — prep time at 1 and 120 min (steps of 5)"
+  },
+  "Detail-preparing.dc.html": {
+   "x": 12160,
+   "y": 6688,
+   "w": 1440,
+   "h": 900,
+   "title": "Detail — preparing, late: call support and quote the code"
+  },
+  "Detail-items-adjusted.dc.html": {
+   "x": 13680,
+   "y": 6688,
+   "w": 1440,
+   "h": 900,
+   "title": "Detail — items adjusted"
+  },
+  "Detail-ready.dc.html": {
+   "x": 15200,
+   "y": 6688,
+   "w": 1440,
+   "h": 900,
+   "title": "Detail — ready, rider here"
+  },
+  "Detail-out.dc.html": {
+   "x": 16720,
+   "y": 6688,
+   "w": 1440,
+   "h": 900,
+   "title": "Detail — at the customer (read only)"
+  },
+  "Detail-loading.dc.html": {
+   "x": 18240,
+   "y": 6688,
+   "w": 1440,
+   "h": 900,
+   "title": "Detail — loading"
+  },
+  "Detail-error.dc.html": {
+   "x": 19760,
+   "y": 6688,
+   "w": 1440,
+   "h": 900,
+   "title": "Detail — network error"
+  },
+  "Detail-not-found.dc.html": {
+   "x": 21280,
+   "y": 6688,
+   "w": 1440,
+   "h": 900,
+   "title": "Detail — not found"
+  },
+  "Support-contact-sheet.dc.html": {
+   "x": 22800,
+   "y": 6688,
+   "w": 2960,
+   "h": 944,
+   "title": "Support contact — on, and off"
+  },
+  "Detail-toast-footer.dc.html": {
+   "x": 25840,
+   "y": 6688,
+   "w": 1440,
+   "h": 900,
+   "title": "Detail — toast clear of the Accept footer"
+  },
+  "History.dc.html": {
+   "x": 0,
+   "y": 8052,
+   "w": 1440,
+   "h": 900,
+   "title": "History — one grid, filtered by the server"
+  },
+  "History-filtered-empty.dc.html": {
+   "x": 1520,
+   "y": 8052,
+   "w": 1440,
+   "h": 900,
+   "title": "History — no match for the filter"
+  },
+  "History-filter-loading.dc.html": {
+   "x": 3040,
+   "y": 8052,
+   "w": 1440,
+   "h": 900,
+   "title": "History — filter reloading"
+  },
+  "History-empty.dc.html": {
+   "x": 4560,
+   "y": 8052,
+   "w": 1440,
+   "h": 900,
+   "title": "History — first run, empty"
+  },
+  "History-loading.dc.html": {
+   "x": 6080,
+   "y": 8052,
+   "w": 1440,
+   "h": 900,
+   "title": "History — loading"
+  },
+  "History-error.dc.html": {
+   "x": 7600,
+   "y": 8052,
+   "w": 1440,
+   "h": 900,
+   "title": "History — error"
+  },
+  "History-loading-more.dc.html": {
+   "x": 9120,
+   "y": 8052,
+   "w": 1440,
+   "h": 900,
+   "title": "History — loading more"
+  },
+  "History-load-more-failed.dc.html": {
+   "x": 10640,
+   "y": 8052,
+   "w": 1440,
+   "h": 900,
+   "title": "History — loading more failed"
+  },
+  "Detail-finished.dc.html": {
+   "x": 12160,
+   "y": 8052,
+   "w": 1440,
+   "h": 900,
+   "title": "History — completed order open in the panel"
+  },
+  "Detail-declined.dc.html": {
+   "x": 13680,
+   "y": 8052,
+   "w": 1440,
+   "h": 900,
+   "title": "History — declined order"
+  },
+  "History-detail-cancelled-sheet.dc.html": {
+   "x": 15200,
+   "y": 8052,
+   "w": 4480,
+   "h": 944,
+   "title": "History panel — cancelled after accept, payment failed, delivery problem resolved"
+  },
+  "History-detail-other-sheet.dc.html": {
+   "x": 19760,
+   "y": 8052,
+   "w": 4480,
+   "h": 944,
+   "title": "History panel — resolved, timed out, withdrawn"
+  },
+  "Detail-disputed.dc.html": {
+   "x": 24320,
+   "y": 8052,
+   "w": 1440,
+   "h": 900,
+   "title": "History — disputed: payout open"
+  },
+  "History-delivered.dc.html": {
+   "x": 25840,
+   "y": 8052,
+   "w": 1440,
+   "h": 900,
+   "title": "History — delivered, payment settling"
+  },
+  "Board-cert-expiring.dc.html": {
+   "x": 0,
+   "y": 9416,
+   "w": 1440,
+   "h": 900,
+   "title": "Halal — certificate expiring: reminders at 30, 14, 7 and 1 days"
+  },
+  "Board-cert-expired.dc.html": {
+   "x": 1520,
+   "y": 9416,
+   "w": 1440,
+   "h": 900,
+   "title": "Halal — certificate expired (cool slate, never red)"
+  },
+  "Board-cert-unverified.dc.html": {
+   "x": 3040,
+   "y": 9416,
+   "w": 1440,
+   "h": 900,
+   "title": "Halal — being checked (within 3 business days)"
+  },
+  "Board-cert-rejected.dc.html": {
+   "x": 4560,
+   "y": 9416,
+   "w": 1440,
+   "h": 900,
+   "title": "Halal — not accepted, with the reason and upload"
+  },
+  "Board-cert-missing.dc.html": {
+   "x": 6080,
+   "y": 9416,
+   "w": 1440,
+   "h": 900,
+   "title": "Halal — field missing: no badge at all"
+  },
+  "Tablet-busy.dc.html": {
+   "x": 0,
+   "y": 10736,
+   "w": 1024,
+   "h": 768,
+   "title": "Tablet — busy service"
+  },
+  "Tablet-one-offer.dc.html": {
+   "x": 1104,
+   "y": 10736,
+   "w": 1024,
+   "h": 768,
+   "title": "Tablet — one new order"
+  },
+  "Tablet-three-offers.dc.html": {
+   "x": 2208,
+   "y": 10736,
+   "w": 1024,
+   "h": 768,
+   "title": "Tablet — three new orders, all in view"
+  },
+  "Tablet-reconnecting.dc.html": {
+   "x": 3312,
+   "y": 10736,
+   "w": 1024,
+   "h": 768,
+   "title": "Tablet — reconnecting"
+  },
+  "Tablet-load-sheet.dc.html": {
+   "x": 4416,
+   "y": 10736,
+   "w": 2128,
+   "h": 812,
+   "title": "Tablet — loading and first-load error"
+  },
+  "Tablet-decline.dc.html": {
+   "x": 6624,
+   "y": 10736,
+   "w": 1024,
+   "h": 768,
+   "title": "Tablet — decline in the panel"
+  },
+  "Tablet-detail.dc.html": {
+   "x": 7728,
+   "y": 10736,
+   "w": 1024,
+   "h": 768,
+   "title": "Tablet — new order in the panel"
+  },
+  "Tablet-offer-ended.dc.html": {
+   "x": 8832,
+   "y": 10736,
+   "w": 1024,
+   "h": 768,
+   "title": "Tablet — order timed out while open"
+  },
+  "Tablet-rider-here.dc.html": {
+   "x": 9936,
+   "y": 10736,
+   "w": 1024,
+   "h": 768,
+   "title": "Tablet — rider at your restaurant, pickup code"
+  },
+  "Tablet-history.dc.html": {
+   "x": 11040,
+   "y": 10736,
+   "w": 1024,
+   "h": 768,
+   "title": "Tablet — history"
+  },
+  "Tablet-history-states-sheet.dc.html": {
+   "x": 12144,
+   "y": 10736,
+   "w": 2128,
+   "h": 812,
+   "title": "Tablet — history empty and error"
+  },
+  "Tablet-history-detail.dc.html": {
+   "x": 14352,
+   "y": 10736,
+   "w": 1024,
+   "h": 768,
+   "title": "Tablet — history order open in the panel"
+  },
+  "FocusControls.dc.html": {
+   "x": 0,
+   "y": 12020,
+   "w": 1440,
+   "h": 900,
+   "title": "Focus — every live-orders control"
+  },
+  "Keyboard-strip.dc.html": {
+   "x": 1520,
+   "y": 12020,
+   "w": 1440,
+   "h": 900,
+   "title": "Keyboard — strip keys and the stray-key guard"
+  },
+  "A11y-announcements.dc.html": {
+   "x": 3040,
+   "y": 12020,
+   "w": 1440,
+   "h": 1120,
+   "title": "Screen reader — silent countdowns, one announcer, focus placement"
+  },
+  "A11y-countdown-silent.dc.html": {
+   "x": 4560,
+   "y": 12020,
+   "w": 1440,
+   "h": 1000,
+   "title": "Screen reader — countdowns silent, the announcer speaks"
+  },
+  "Focus-skip-link.dc.html": {
+   "x": 6080,
+   "y": 12020,
+   "w": 1440,
+   "h": 900,
+   "title": "Focus — skip link visible on first Tab"
+  },
+  "Focus-states.dc.html": {
+   "x": 7600,
+   "y": 12020,
+   "w": 1440,
+   "h": 900,
+   "title": "Focus — rail item, health, strip tile, panel close"
+  },
+  "Zoom-200.dc.html": {
+   "x": 9120,
+   "y": 12020,
+   "w": 720,
+   "h": 450,
+   "title": "200% zoom on a 1440 × 900 screen: the strip folds to one line, Open menu replaces the rail"
+  },
+  "Zoom-200-panel.dc.html": {
+   "x": 9920,
+   "y": 12020,
+   "w": 720,
+   "h": 450,
+   "title": "200% zoom: the panel replaces the list, Back returns"
+  },
+  "Forced-colors.dc.html": {
+   "x": 10720,
+   "y": 12020,
+   "w": 1440,
+   "h": 900,
+   "title": "Forced colors (Windows high contrast), simulated"
+  },
+  "LiveBoard.dc.html": {
+   "x": 0,
+   "y": 13560,
+   "w": 1440,
+   "h": 900,
+   "title": "Component — LiveBoard (every state, via Tweaks)"
+  },
+  "NewOrderStrip.dc.html": {
+   "x": 1520,
+   "y": 13560,
+   "w": 1360,
+   "h": 186,
+   "title": "Proposed component — NewOrderStrip"
+  },
+  "OfferTile.dc.html": {
+   "x": 2960,
+   "y": 13560,
+   "w": 372,
+   "h": 166,
+   "title": "Proposed component — OfferTile"
+  },
+  "Proposed-components.dc.html": {
+   "x": 3412,
+   "y": 13560,
+   "w": 1440,
+   "h": 1500,
+   "title": "Proposed components — every composite, its parts and its boards"
+  },
+  "Zoom-200-nav.dc.html": {
+   "x": 9120,
+   "y": 12550,
+   "w": 720,
+   "h": 450,
+   "title": "200% zoom: Open menu shows the side navigation as a sheet"
+  },
+  "Out-disputed.dc.html": {
+   "x": 30400,
+   "y": 5324,
+   "w": 1440,
+   "h": 900,
+   "title": "Out for delivery: support opened a delivery problem"
+  },
+  "Decline-availability-failed.dc.html": {
+   "x": 12160,
+   "y": 4004,
+   "w": 1440,
+   "h": 900,
+   "title": "Decline — declined, but marking the item out of stock failed"
+  },
+  "Ready-rider-here-code-error.dc.html": {
+   "x": 31920,
+   "y": 5324,
+   "w": 1440,
+   "h": 900,
+   "title": "Ready — rider here, the pickup code didn’t load"
+  },
+  "History-halal-upheld.dc.html": {
+   "x": 27360,
+   "y": 8052,
+   "w": 1440,
+   "h": 900,
+   "title": "History — resolved: halal concern upheld, comes off your next payout"
+  },
+  "History-halal-goodwill.dc.html": {
+   "x": 28880,
+   "y": 8052,
+   "w": 1440,
+   "h": 900,
+   "title": "History — resolved: halal concern, goodwill refund, payout not affected"
+  }
+ },
+ "createdOnFiles": {
+  "at": "2026-09-28T01:05:00Z",
+  "v": 1
+ },
+ "designSystems": [
+  {
+   "artifact": "https://claude.ai/artifact/1GwGVZz8Ju9wcz4HfCnzbv",
+   "copiedAt": "2026-09-28T14:50:55Z",
+   "namespace": "halalgoesdesignsystem-d11a47",
+   "title": "HalalGoes Design System",
+   "version": "1790605103-3266"
+  }
+ ],
+ "launch": {
+  "view": "canvas"
+ },
+ "notes": {
+  "row_live": {
+   "kind": "title1",
+   "x": 0,
+   "y": -300,
+   "text": "Live orders: the working page (desktop 1440 × 900)",
+   "maxW": 8000
+  },
+  "row_conn": {
+   "kind": "title1",
+   "x": 0,
+   "y": 1064,
+   "text": "Connection and open state",
+   "maxW": 8000
+  },
+  "row_offers": {
+   "kind": "title1",
+   "x": 0,
+   "y": 2384,
+   "text": "New orders: the persistent strip (180 s to answer)",
+   "maxW": 8000
+  },
+  "row_decline": {
+   "kind": "title1",
+   "x": 0,
+   "y": 3704,
+   "text": "Decline, with a reason, in the panel (no dialog)",
+   "maxW": 8000
+  },
+  "row_prep": {
+   "kind": "title1",
+   "x": 0,
+   "y": 5024,
+   "text": "In progress: preparing, ready and hand-off (pickup code, no seal at launch)",
+   "maxW": 8000
+  },
+  "row_detail": {
+   "kind": "title1",
+   "x": 0,
+   "y": 6388,
+   "text": "Order detail panel",
+   "maxW": 8000
+  },
+  "row_history": {
+   "kind": "title1",
+   "x": 0,
+   "y": 7752,
+   "text": "History: list → order",
+   "maxW": 8000
+  },
+  "row_halal": {
+   "kind": "title1",
+   "x": 0,
+   "y": 9116,
+   "text": "Your halal certificate (owner view)",
+   "maxW": 8000
+  },
+  "row_tablet": {
+   "kind": "title1",
+   "x": 0,
+   "y": 10436,
+   "text": "Kitchen tablet, landscape 1024 × 768 and up (no portrait or phone)",
+   "maxW": 15376
+  },
+  "row_a11y": {
+   "kind": "title1",
+   "x": 0,
+   "y": 11720,
+   "text": "Accessibility: focus, keyboard, screen reader, zoom, forced colors",
+   "maxW": 8000
+  },
+  "row_components": {
+   "kind": "title1",
+   "x": 0,
+   "y": 13260,
+   "text": "Shared and proposed components",
+   "maxW": 8000
+  },
+  "legend": {
+   "x": 5200,
+   "y": 13560,
+   "w": 620,
+   "maxH": 1100,
+   "size": 24,
+   "fill": "gray",
+   "text": "How to read these boards\n\nGrey mono tag “Proposed component: …” = a composite built only from shadcn/ui parts and design-system components. It is not in the design system yet; the Proposed components board lists each one with its parts, for the owner to approve.\n\nBlue mono tag “Needs API: …” = the contract does not return this yet. Shown so the design can be judged; it must not ship as real data. “Live only” = it comes from a WebSocket event and is gone after a refresh.\n\nLayout (owner decision): the page never scrolls. New orders live in a persistent strip in the header, under the app bar (owner decision), every Accept in view; the list of orders in progress is a virtualised grid that scrolls inside itself; detail opens in an in-page panel beside it, and the timeline in a third pane. No dialogs for working tasks: decline, confirmations and screen health all open in the page. The only blocking dialog is “signed out”.\n\nLaunch scope: no package seals (next version): the kitchen reads a pickup code to the rider, who types it in (owner decision). Light theme only, one owner login per restaurant (no staff), no Add delay, no notifications bell (later versions). Marking items out of stock is in launch (owner decision): declining for an unavailable item offers it. No note with an acceptance (owner decision). Times are 12-hour (owner decision).\n\nMoney shown is what the API returns: You earn / Order net = restaurant_net_cents; commission shows commission_cents with no rate. Orange is only for accepting a new order; Mark ready is the forest button.\n\nCountdowns are live and loop so each board stays in its state. Every screen comes from the LiveBoard component; change its Scenario tweak to see any state."
+  }
+ },
+ "order": [
+  "Main.dc.html",
+  "Board-detail-open.dc.html",
+  "Board-three-panes.dc.html",
+  "Board-nav-expanded.dc.html",
+  "Board-quiet.dc.html",
+  "Board-empty.dc.html",
+  "Board-loading.dc.html",
+  "Board-first-load-error.dc.html",
+  "Board-error-stale.dc.html",
+  "Board-gate.dc.html",
+  "Board-gate-notif-denied.dc.html",
+  "Board-sound-blocked.dc.html",
+  "Board-health-open.dc.html",
+  "Board-health-degraded-sheet.dc.html",
+  "Board-sign-out.dc.html",
+  "Board-sign-out-off.dc.html",
+  "Board-signed-out-sheet.dc.html",
+  "Board-payouts-restricted.dc.html",
+  "Board-reconnecting.dc.html",
+  "Board-reconnect-rest-down.dc.html",
+  "Board-closed-offline.dc.html",
+  "Board-paused.dc.html",
+  "Board-pause-menu.dc.html",
+  "Board-resume-confirm.dc.html",
+  "Board-paused-offers.dc.html",
+  "Board-not-accepting.dc.html",
+  "Board-off-with-offers.dc.html",
+  "Board-turn-off-confirm.dc.html",
+  "Board-auto-off.dc.html",
+  "Board-closed-hours.dc.html",
+  "Board-closed-holiday.dc.html",
+  "Board-hours-offers.dc.html",
+  "Board-suspended.dc.html",
+  "Board-switch-failed.dc.html",
+  "Board-switch-on-loading.dc.html",
+  "Board-switch-on-failed.dc.html",
+  "Offer-one.dc.html",
+  "Offer-three.dc.html",
+  "Offer-four-overflow.dc.html",
+  "Offer-four-focus.dc.html",
+  "Offer-keyboard.dc.html",
+  "Offer-loading.dc.html",
+  "Offer-reduced-motion.dc.html",
+  "Offer-accepting.dc.html",
+  "Offer-accept-failed.dc.html",
+  "Offer-accept-too-late.dc.html",
+  "Offer-timed-out.dc.html",
+  "Offer-capture-failed.dc.html",
+  "Offer-accepted.dc.html",
+  "Offer-accepted-elsewhere.dc.html",
+  "Offer-declined-elsewhere.dc.html",
+  "Offer-withdrawn.dc.html",
+  "Offer-withdrawn-payment.dc.html",
+  "Offer-reconnect-accepting.dc.html",
+  "Offer-reconnect-accepted.dc.html",
+  "Offer-reconnect-failed.dc.html",
+  "Decline-no-reason.dc.html",
+  "Decline-other.dc.html",
+  "Decline-item-unavailable.dc.html",
+  "Decline-new-offer.dc.html",
+  "Decline-sending.dc.html",
+  "Decline-failed.dc.html",
+  "Decline-too-late.dc.html",
+  "Decline-expired-open.dc.html",
+  "Decline-availability-failed.dc.html",
+  "Prep-rider-waiting.dc.html",
+  "Prep-rider-unassigned.dc.html",
+  "Mark-ready-sending.dc.html",
+  "Mark-ready-failed.dc.html",
+  "Ready-waiting.dc.html",
+  "Ready-rider-here.dc.html",
+  "Ready-no-rider.dc.html",
+  "Handoff-picked-up.dc.html",
+  "Out-disputed.dc.html",
+  "Ready-rider-here-code-error.dc.html",
+  "Out-empty.dc.html",
+  "Prep-cancelled.dc.html",
+  "Prep-cancelled-refreshed.dc.html",
+  "Ready-cancelled.dc.html",
+  "Prep-items-adjusted.dc.html",
+  "Prep-note-added.dc.html",
+  "Prep-rider-eta-updated.dc.html",
+  "Prep-overdue-sheet.dc.html",
+  "Auto-cancelled-overdue.dc.html",
+  "Board-other-screen.dc.html",
+  "Board-refreshed.dc.html",
+  "Detail-pending.dc.html",
+  "Detail-accepting.dc.html",
+  "Detail-accept-failed.dc.html",
+  "Detail-offer-ended-sheet.dc.html",
+  "Offer-stepper-bounds.dc.html",
+  "Detail-preparing.dc.html",
+  "Detail-items-adjusted.dc.html",
+  "Detail-ready.dc.html",
+  "Detail-out.dc.html",
+  "Detail-loading.dc.html",
+  "Detail-error.dc.html",
+  "Detail-not-found.dc.html",
+  "Support-contact-sheet.dc.html",
+  "Detail-toast-footer.dc.html",
+  "History.dc.html",
+  "History-filtered-empty.dc.html",
+  "History-filter-loading.dc.html",
+  "History-empty.dc.html",
+  "History-loading.dc.html",
+  "History-error.dc.html",
+  "History-loading-more.dc.html",
+  "History-load-more-failed.dc.html",
+  "Detail-finished.dc.html",
+  "Detail-declined.dc.html",
+  "History-detail-cancelled-sheet.dc.html",
+  "History-detail-other-sheet.dc.html",
+  "Detail-disputed.dc.html",
+  "History-delivered.dc.html",
+  "History-halal-upheld.dc.html",
+  "History-halal-goodwill.dc.html",
+  "Board-cert-expiring.dc.html",
+  "Board-cert-expired.dc.html",
+  "Board-cert-unverified.dc.html",
+  "Board-cert-rejected.dc.html",
+  "Board-cert-missing.dc.html",
+  "Tablet-busy.dc.html",
+  "Tablet-one-offer.dc.html",
+  "Tablet-three-offers.dc.html",
+  "Tablet-reconnecting.dc.html",
+  "Tablet-load-sheet.dc.html",
+  "Tablet-decline.dc.html",
+  "Tablet-detail.dc.html",
+  "Tablet-offer-ended.dc.html",
+  "Tablet-rider-here.dc.html",
+  "Tablet-history.dc.html",
+  "Tablet-history-states-sheet.dc.html",
+  "Tablet-history-detail.dc.html",
+  "FocusControls.dc.html",
+  "Keyboard-strip.dc.html",
+  "A11y-announcements.dc.html",
+  "A11y-countdown-silent.dc.html",
+  "Focus-skip-link.dc.html",
+  "Focus-states.dc.html",
+  "Zoom-200.dc.html",
+  "Zoom-200-panel.dc.html",
+  "Zoom-200-nav.dc.html",
+  "Forced-colors.dc.html",
+  "LiveBoard.dc.html",
+  "NewOrderStrip.dc.html",
+  "OfferTile.dc.html",
+  "Proposed-components.dc.html"
+ ],
+ "pages": [],
+ "title": "HalalGoes Restaurant — Live Orders"
+}

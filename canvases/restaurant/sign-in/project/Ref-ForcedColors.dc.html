@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Forced colours</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:var(--surface-base);color:var(--text-primary);font-family:var(--font-ui)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+.skip{position:absolute;left:16px;top:-80px;z-index:10}.skip:focus{top:8px}
+form{margin:0}
+.gap{position:relative;outline:1.5px dashed var(--color-neutral-500);outline-offset:4px}
+.gap::before{content:"Proposed component: " attr(data-gap);position:absolute;top:-28px;left:-4px;font:500 12px/1 var(--font-mono);color:var(--color-neutral-800);background:var(--color-neutral-100);padding:4px 8px;border-radius:4px;white-space:nowrap}
+.api{display:inline-flex;align-items:center;gap:8px;padding:4px 8px;border:1.5px dashed var(--color-info-600);background:var(--color-info-50);color:var(--color-info-700);font:500 12px/1.4 var(--font-mono);border-radius:4px}
+.note{display:inline-flex;align-items:center;padding:4px 8px;background:var(--color-neutral-100);color:var(--color-neutral-800);font:500 12px/1.4 var(--font-mono);border-radius:4px}
+</style>
+</helmet>
+<div style="width: 1440px; height: 1060px; box-sizing: border-box; background: var(--surface-base); padding: 48px 120px; display: flex; flex-direction: column; gap: 24px; font-family: var(--font-ui); color: var(--text-primary)">
+<div style="display: flex; flex-direction: column; gap: 8px"><h1 class="type-heading-xl" style="margin: 0">Forced colours (Windows high contrast)</h1><p class="type-body-md" style="margin: 0; line-height: 1.5; color: var(--text-secondary)">How the halal seal, checklist glyphs, progress bar and focus render when the system replaces colours. Replicas drawn with CSS system colours (Canvas, CanvasText, Highlight, GrayText), not palette colours. Meaning never rides on colour alone: every state keeps its words.</p></div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px">
+<figure style="margin: 0; display: flex; flex-direction: column; gap: 12px; padding: 20px; border-radius: 16px; background: var(--surface-raised); border: 1px solid var(--border-decorative)">
+<div style="min-height: 120px; display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; padding: 16px; background: Canvas; color: CanvasText; border-radius: 12px; forced-color-adjust: none"><span class="type-label-md" style="display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px; border-radius: 9999px; border: 1.5px solid CanvasText; color: CanvasText"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="check" weight="bold" size="sm" hint-size="16px,16px"></x-import>Halal certified</span><span class="type-label-md" style="display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px; border-radius: 9999px; border: 1.5px solid CanvasText; color: CanvasText"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="check" weight="bold" size="sm" hint-size="16px,16px"></x-import>Certification expired</span><span class="type-label-md" style="display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px; border-radius: 9999px; border: 1.5px dashed CanvasText; color: CanvasText"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="check" weight="bold" size="sm" hint-size="16px,16px"></x-import>Not verified</span></div>
+<figcaption style="display: flex; flex-direction: column; gap: 4px"><span class="type-label-lg">HalalBadge, four states</span><span class="type-body-sm" style="color: var(--text-secondary); line-height: 1.5">Fills are dropped; the seal keeps a CanvasText outline and the visible label (Halal certified, Certification expired, Not verified). UNVERIFIED keeps its dashed outline, so it can't be read as certified.</span></figcaption>
+</figure>
+<figure style="margin: 0; display: flex; flex-direction: column; gap: 12px; padding: 20px; border-radius: 16px; background: var(--surface-raised); border: 1px solid var(--border-decorative)">
+<div style="min-height: 120px; display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; padding: 16px; background: Canvas; color: CanvasText; border-radius: 12px; forced-color-adjust: none"><div style="display: flex; flex-direction: column; gap: 4px; width: 100%"><span class="type-body-md" style="display: flex; gap: 8px; align-items: center; padding: 4px 8px; border-radius: 8px"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="check" weight="bold" size="md" hint-size="20px,20px"></x-import>Business profile · Done</span><span class="type-body-md" aria-current="step" style="display: flex; gap: 8px; align-items: center; padding: 4px 8px; border-radius: 8px; background: Highlight; color: HighlightText; font-weight: 700"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="chevron-right" weight="bold" size="md" hint-size="20px,20px"></x-import>Documents added · In progress</span><span class="type-body-md" style="display: flex; gap: 8px; align-items: center; padding: 4px 8px; border-radius: 8px"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="clock" size="md" hint-size="20px,20px"></x-import>Documents approved · With reviewer</span></div></div>
+<figcaption style="display: flex; flex-direction: column; gap: 4px"><span class="type-label-lg">Checklist step glyphs</span><span class="type-body-sm" style="color: var(--text-secondary); line-height: 1.5">Done tick, current chevron, waiting clock and warning glyph paint in CanvasText; the row's status words (Done, In progress, With reviewer, Needs a new upload) carry the state. The current row is filled with Highlight, its words and glyph in HighlightText and bold; no edge stripe.</span></figcaption>
+</figure>
+<figure style="margin: 0; display: flex; flex-direction: column; gap: 12px; padding: 20px; border-radius: 16px; background: var(--surface-raised); border: 1px solid var(--border-decorative)">
+<div style="min-height: 120px; display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; padding: 16px; background: Canvas; color: CanvasText; border-radius: 12px; forced-color-adjust: none"><div style="width: 100%; display: flex; flex-direction: column; gap: 8px"><div style="height: 8px; border-radius: 9999px; outline: 1px solid CanvasText; overflow: hidden"><div style="height: 8px; width: 40%; background: Highlight"></div></div><span class="type-body-sm">40% complete</span></div></div>
+<figcaption style="display: flex; flex-direction: column; gap: 4px"><span class="type-label-lg">Progress bar</span><span class="type-body-sm" style="color: var(--text-secondary); line-height: 1.5">Track keeps a 1px CanvasText outline; the fill becomes Highlight. The percentage is always printed next to it.</span></figcaption>
+</figure>
+<figure style="margin: 0; display: flex; flex-direction: column; gap: 12px; padding: 20px; border-radius: 16px; background: var(--surface-raised); border: 1px solid var(--border-decorative)">
+<div style="min-height: 120px; display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; padding: 16px; background: Canvas; color: CanvasText; border-radius: 12px; forced-color-adjust: none"><span class="type-label-lg" style="display: inline-flex; align-items: center; height: 44px; padding: 0 16px; border-radius: 12px; border: 1px solid ButtonText; outline: 2px solid CanvasText; outline-offset: 2px">Sign in</span></div>
+<figcaption style="display: flex; flex-direction: column; gap: 4px"><span class="type-label-lg">Focus</span><span class="type-body-sm" style="color: var(--text-secondary); line-height: 1.5">Box-shadow rings are stripped in forced colours, so the bundle's forced-colors rule draws a 2px solid CanvasText outline on :focus-visible (buttons, rows, choice controls).</span></figcaption>
+</figure>
+<figure style="margin: 0; display: flex; flex-direction: column; gap: 12px; padding: 20px; border-radius: 16px; background: var(--surface-raised); border: 1px solid var(--border-decorative)">
+<div style="min-height: 120px; display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; padding: 16px; background: Canvas; color: CanvasText; border-radius: 12px; forced-color-adjust: none"><div style="width: 100%; display: flex; gap: 8px; padding: 12px; border: 1px solid CanvasText; border-radius: 12px"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="warning" size="md" hint-size="20px,20px"></x-import><span class="type-label-lg">Your documents weren't sent</span></div></div>
+<figcaption style="display: flex; flex-direction: column; gap: 4px"><span class="type-label-lg">Alerts and banners</span><span class="type-body-sm" style="color: var(--text-secondary); line-height: 1.5">Tints disappear; each alert keeps a 1px border, its icon and its bold title, so error, warning and info are still told apart by words.</span></figcaption>
+</figure>
+<figure style="margin: 0; display: flex; flex-direction: column; gap: 12px; padding: 20px; border-radius: 16px; background: var(--surface-raised); border: 1px solid var(--border-decorative)">
+<div style="min-height: 120px; display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; padding: 16px; background: Canvas; color: CanvasText; border-radius: 12px; forced-color-adjust: none"><div style="display: flex; flex-direction: column; gap: 8px; align-items: flex-start"><span class="type-label-lg" style="display: inline-flex; align-items: center; height: 44px; padding: 0 16px; border-radius: 12px; border: 1px solid GrayText; color: GrayText">Send a new link</span><span class="type-body-sm">You can send another in 0:52</span></div></div>
+<figcaption style="display: flex; flex-direction: column; gap: 4px"><span class="type-label-lg">Disabled button with a wait</span><span class="type-body-sm" style="color: var(--text-secondary); line-height: 1.5">Disabled text uses GrayText; the wait line stays CanvasText and is linked to the button.</span></figcaption>
+</figure>
+</div>
+<span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">Checked in forced-colors: active emulation, Windows 'Night sky' and 'Desert' themes. Component owners: HalalBadge and the progress bar need a forced-colors rule in the bundle (only focus has one today).</span>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 1440, "height": 1060}}'>
+class Component extends DCLogic {
+  renderVals() {
+return { yes: true, no: false };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,728 @@
+<!-- @dsCard group="Marketing site" height=900 subtitle="Three audiences, waitlist states, seven checks, verification, writing, legal, cookie consent" page -->
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>HalalGoes — marketing site</title>
+<style>
+html,body{margin:0;min-height:100%;background:var(--color-neutral-100)}
+#root{min-height:100vh}
+/* "Show component gaps": every placeholder for a component the system lacks (#109) */
+.show-gaps [data-gap]{outline:1.5px dashed var(--color-info-500);outline-offset:2px}
+</style></head><body><div id="root"></div>
+<script>
+/* Compiled from Index3/Kit.jsx, customer-app/Photo.jsx, Index3/Content.jsx, Index3/Nav.jsx, Index3/WaitlistForm.jsx, Index3/Hero.jsx, Index3/Verification.jsx, Index3/HowItWorks.jsx, Index3/Benefits.jsx, Index3/Sealed.jsx, Index3/Faq.jsx, Index3/FooterCta.jsx, Index3/ConsentBanner.jsx, Index3/Pages.jsx, Index3/MarketingApp.jsx (JSX precompiled with esbuild; the viewer blocks
+   relative script URLs, so the kit is inlined). Components come from window.HalalGoesDesignSystem_d11a47. */
+/* Index3/Kit.jsx */
+(() => {
+  const { Button, Icon, IconButton, Card, Select, SegmentedControl, Switch, Badge } = window.HalalGoesDesignSystem_d11a47;
+  function Gap({ name, as = "div", style, children, ...rest }) {
+    const Tag = as;
+    return /* @__PURE__ */ React.createElement(Tag, { "data-gap": name, title: "Component gap: " + name + " (placeholder until #109)", style, ...rest }, children);
+  }
+  function GapWordmark({ size = 20, tone = "ink", sub }) {
+    const color = tone === "onDark" ? "var(--color-neutral-0)" : tone === "text" ? "var(--text-primary)" : "var(--color-accent-600)";
+    return /* @__PURE__ */ React.createElement(Gap, { name: "Wordmark", as: "span", style: { display: "inline-grid", gap: 2 } }, /* @__PURE__ */ React.createElement("span", { style: { fontFamily: "var(--font-display)", fontWeight: 800, fontSize: size, letterSpacing: "-.03em", color, lineHeight: 1.1 } }, "HalalGoes"), sub && /* @__PURE__ */ React.createElement("span", { style: { fontSize: "var(--type-caption-size)", color: tone === "onDark" ? "var(--text-on-accent)" : "var(--text-tertiary)", opacity: tone === "onDark" ? 0.8 : 1 } }, sub));
+  }
+  function GapSkeleton({ rows = 3, height = 72, media = false, style }) {
+    const bar = (w, h = 12) => /* @__PURE__ */ React.createElement("span", { style: { display: "block", width: w, height: h, borderRadius: "var(--radius-xs)", background: "var(--surface-sunken)" } });
+    return /* @__PURE__ */ React.createElement(Gap, { name: "Skeleton", "aria-busy": "true", "aria-label": "Loading", style: { display: "grid", gap: 12, ...style } }, Array.from({ length: rows }).map((_, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "grid", gap: 8, padding: "var(--space-4)", minHeight: height, borderRadius: "var(--radius-lg)", border: "1px solid var(--border-decorative)", background: "var(--surface-raised)" } }, media && /* @__PURE__ */ React.createElement("span", { style: { display: "block", height: 96, borderRadius: "var(--radius-md)", background: "var(--surface-sunken)" } }), bar("55%", 14), bar("80%"), bar("35%"))));
+  }
+  function GapEmptyState({ icon = "search", title, body, action, onAction, secondary, onSecondary, style }) {
+    return /* @__PURE__ */ React.createElement(Gap, { name: "EmptyState", style: { display: "grid", justifyItems: "center", textAlign: "center", gap: 10, padding: "var(--space-8) var(--space-5)", ...style } }, /* @__PURE__ */ React.createElement("span", { style: { width: 56, height: 56, display: "grid", placeItems: "center", borderRadius: "var(--radius-full)", background: "var(--surface-sunken)", color: "var(--text-tertiary)" } }, icon ? /* @__PURE__ */ React.createElement(Icon, { name: icon, size: "lg" }) : null), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "var(--type-heading-md-size)", fontWeight: 600, color: "var(--text-primary)" } }, title), body && /* @__PURE__ */ React.createElement("p", { style: { margin: 0, maxWidth: 320, fontSize: "var(--type-body-sm-size)", lineHeight: "var(--type-body-sm-line)", color: "var(--text-secondary)" } }, body), (action || secondary) && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, marginTop: 4, flexWrap: "wrap", justifyContent: "center" } }, action && /* @__PURE__ */ React.createElement(Button, { size: "md", onPress: onAction }, action), secondary && /* @__PURE__ */ React.createElement(Button, { size: "md", variant: "ghost", onPress: onSecondary }, secondary)));
+  }
+  function GapErrorState({ title = "Something went wrong", body, retry = "Try again", onRetry, terminal = false, exit, onExit, code, style }) {
+    return /* @__PURE__ */ React.createElement(Gap, { name: "ErrorState", role: "alert", style: { display: "grid", justifyItems: "center", textAlign: "center", gap: 10, padding: "var(--space-8) var(--space-5)", ...style } }, /* @__PURE__ */ React.createElement("span", { style: { width: 56, height: 56, display: "grid", placeItems: "center", borderRadius: "var(--radius-full)", background: "var(--feedback-warning-tint)", color: "var(--feedback-warning-tint-text)" } }, /* @__PURE__ */ React.createElement(Icon, { name: terminal ? "error" : "refresh", size: "lg" })), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "var(--type-heading-md-size)", fontWeight: 600, color: "var(--text-primary)" } }, title), body && /* @__PURE__ */ React.createElement("p", { style: { margin: 0, maxWidth: 320, fontSize: "var(--type-body-sm-size)", lineHeight: "var(--type-body-sm-line)", color: "var(--text-secondary)" } }, body), code && /* @__PURE__ */ React.createElement("span", { style: { fontFamily: "var(--font-mono)", fontSize: "var(--type-mono-sm-size)", color: "var(--text-tertiary)" } }, code), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, marginTop: 4 } }, !terminal && /* @__PURE__ */ React.createElement(Button, { size: "md", variant: "secondary", iconStart: "refresh", onPress: onRetry }, retry), exit && /* @__PURE__ */ React.createElement(Button, { size: "md", variant: "ghost", onPress: onExit }, exit)));
+  }
+  function GapBanner({ tone = "info", icon, title, children, action, style }) {
+    const T = {
+      info: ["var(--feedback-info-tint)", "var(--feedback-info-tint-text)", "var(--feedback-info-border)", "info"],
+      warning: ["var(--feedback-warning-tint)", "var(--feedback-warning-tint-text)", "var(--feedback-warning-border)", "warning"],
+      neutral: ["var(--surface-sunken)", "var(--text-secondary)", "var(--border-decorative)", "info"],
+      success: ["var(--feedback-success-tint)", "var(--feedback-success-tint-text)", "var(--feedback-success-border)", "check"],
+      danger: ["var(--feedback-danger-tint)", "var(--feedback-danger-tint-text)", "var(--feedback-danger-border)", "error"]
+    }[tone];
+    return /* @__PURE__ */ React.createElement(Gap, { name: "InlineAlert", role: "status", style: { display: "flex", gap: 10, alignItems: "flex-start", padding: "12px 14px", background: T[0], color: T[1], border: "1px solid " + T[2], borderRadius: "var(--radius-md)", ...style } }, /* @__PURE__ */ React.createElement("span", { style: { marginTop: 1 } }, /* @__PURE__ */ React.createElement(Icon, { name: icon || T[3], size: "md" })), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, display: "grid", gap: 2, fontSize: "var(--type-body-sm-size)", lineHeight: "var(--type-body-sm-line)" } }, title && /* @__PURE__ */ React.createElement("strong", { style: { fontWeight: 600, fontSize: "var(--type-label-lg-size)" } }, title), children && /* @__PURE__ */ React.createElement("span", null, children)), action);
+  }
+  function GapListRow({ icon, title, sub, right, onClick, chevron = !!onClick, style }) {
+    return /* @__PURE__ */ React.createElement(Gap, { name: "ListRow", onClick, style: { display: "flex", alignItems: "center", gap: 12, minHeight: "var(--target-field)", padding: "8px 0", borderTop: "1px solid var(--border-decorative)", cursor: onClick ? "pointer" : void 0, ...style } }, icon && /* @__PURE__ */ React.createElement("span", { style: { width: 36, height: 36, display: "grid", placeItems: "center", flex: "0 0 auto", borderRadius: "var(--radius-md)", background: "var(--surface-sunken)", color: "var(--text-secondary)" } }, /* @__PURE__ */ React.createElement(Icon, { name: icon, size: "md" })), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 0, display: "grid", gap: 2 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "var(--type-body-md-size)", fontWeight: 500, color: "var(--text-primary)" } }, title), sub && /* @__PURE__ */ React.createElement("div", { style: { fontSize: "var(--type-body-sm-size)", color: "var(--text-secondary)" } }, sub)), right, chevron && /* @__PURE__ */ React.createElement(Icon, { name: "chevron-right", size: "md", color: "var(--text-tertiary)" }));
+  }
+  function GapKeyValue({ rows, labelWidth = 140, style }) {
+    return /* @__PURE__ */ React.createElement(Gap, { name: "KeyValueList", as: "dl", style: { margin: 0, display: "grid", gap: 6, fontSize: "var(--type-body-sm-size)", ...style } }, rows.filter(Boolean).map(([k, v, o]) => /* @__PURE__ */ React.createElement("div", { key: k, style: { display: "flex", gap: 10, alignItems: "baseline" } }, /* @__PURE__ */ React.createElement("dt", { style: { width: labelWidth, flex: "0 0 auto", color: "var(--text-secondary)" } }, k), /* @__PURE__ */ React.createElement("dd", { style: { margin: 0, flex: 1, minWidth: 0, fontFamily: o && o.mono ? "var(--font-mono)" : "inherit", fontSize: o && o.mono ? "var(--type-mono-sm-size)" : "inherit", color: "var(--text-primary)", overflowWrap: "anywhere" } }, v))));
+  }
+  function GapChip({ label, selected, onClick, icon }) {
+    return /* @__PURE__ */ React.createElement(Gap, { name: "Chip", as: "span", style: { display: "inline-flex" } }, /* @__PURE__ */ React.createElement(
+      Button,
+      {
+        size: "sm",
+        variant: selected ? "secondary" : "tertiary",
+        iconStart: icon,
+        onPress: onClick,
+        style: { borderRadius: "var(--radius-full)" }
+      },
+      label
+    ));
+  }
+  function GapStepper({ value, onChange, min = 1, max = 20, label = "Quantity" }) {
+    return /* @__PURE__ */ React.createElement(Gap, { name: "QuantityStepper", role: "group", "aria-label": label, style: { display: "inline-flex", alignItems: "center", gap: 12 } }, /* @__PURE__ */ React.createElement(IconButton, { icon: "minus", accessibilityLabel: "One fewer", variant: "tonal", shape: "circle", disabled: value <= min, onPress: () => onChange(Math.max(min, value - 1)) }), /* @__PURE__ */ React.createElement("span", { "aria-live": "polite", style: { minWidth: 20, textAlign: "center", fontSize: "var(--type-heading-md-size)", fontWeight: 600, fontVariantNumeric: "var(--numeric-tabular)" } }, value), /* @__PURE__ */ React.createElement(IconButton, { icon: "plus", accessibilityLabel: "One more", variant: "tonal", shape: "circle", disabled: value >= max, onPress: () => onChange(Math.min(max, value + 1)) }));
+  }
+  function GapMap({ height = 180, pins = [], caption, style }) {
+    const colors = { restaurant: "var(--color-map-pin-restaurant)", rider: "var(--color-map-pin-rider)", customer: "var(--color-map-pin-customer)" };
+    return /* @__PURE__ */ React.createElement(Gap, { name: "MapView", style: { position: "relative", height, background: "var(--surface-sunken)", overflow: "hidden", ...style } }, /* @__PURE__ */ React.createElement("div", { style: { position: "absolute", inset: 0, display: "grid", placeItems: "center", color: "var(--text-tertiary)", fontSize: "var(--type-caption-size)", textAlign: "center", padding: 16 } }, /* @__PURE__ */ React.createElement("span", { style: { display: "grid", justifyItems: "center", gap: 6 } }, /* @__PURE__ */ React.createElement(Icon, { name: "map", size: "lg" }), /* @__PURE__ */ React.createElement("span", null, caption || "Map: pins from the payload"), /* @__PURE__ */ React.createElement("span", { style: { display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" } }, pins.map((p) => /* @__PURE__ */ React.createElement("span", { key: p.kind, style: { display: "inline-flex", alignItems: "center", gap: 5 } }, /* @__PURE__ */ React.createElement("span", { style: { width: 10, height: 10, borderRadius: "var(--radius-full)", background: colors[p.kind] } }), /* @__PURE__ */ React.createElement("span", { style: { fontFamily: "var(--font-mono)", fontSize: "var(--type-mono-sm-size)" } }, p.label)))))));
+  }
+  function GapFileUpload({ label, hint, state = "idle", fileName, error, onChoose }) {
+    return /* @__PURE__ */ React.createElement(Gap, { name: "FileUpload", style: { display: "grid", gap: 6 } }, label && /* @__PURE__ */ React.createElement("span", { style: { fontSize: "var(--type-label-md-size)", fontWeight: 600, color: "var(--text-secondary)" } }, label), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 12, padding: "var(--space-4)", border: "1.5px dashed " + (state === "error" ? "var(--feedback-danger-border)" : "var(--border-interactive)"), borderRadius: "var(--radius-md)", color: "var(--text-secondary)", background: "var(--surface-raised)" } }, /* @__PURE__ */ React.createElement(Icon, { name: state === "done" ? "check" : state === "uploading" ? "refresh" : "plus", size: "md" }), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, fontSize: "var(--type-body-sm-size)" } }, state === "done" ? fileName : state === "uploading" ? "Uploading " + (fileName || "") + "\u2026" : hint || "PDF, JPG or PNG"), /* @__PURE__ */ React.createElement(Button, { variant: "tertiary", size: "sm", loading: state === "uploading", onPress: onChoose }, state === "done" ? "Replace" : "Choose file")), error && /* @__PURE__ */ React.createElement("span", { style: { display: "flex", gap: 5, alignItems: "center", fontSize: "var(--type-caption-size)", color: "var(--feedback-danger-text)" } }, /* @__PURE__ */ React.createElement(Icon, { name: "error", size: "sm" }), error));
+  }
+  function GapSideNav({ items, value, onChange }) {
+    return /* @__PURE__ */ React.createElement(Gap, { name: "SideNav", as: "nav", "data-theme": "dark", style: { display: "grid", gap: 2, alignContent: "start", padding: "0 8px", background: "transparent" } }, items.map((n) => /* @__PURE__ */ React.createElement(
+      Button,
+      {
+        key: n.value,
+        variant: n.value === value ? "secondary" : "ghost",
+        iconStart: n.icon,
+        onPress: () => onChange(n.value),
+        accessibilityLabel: n.count != null ? n.label + ", " + n.count + " waiting" : void 0,
+        style: { justifyContent: "flex-start", width: "100%", color: "var(--text-on-accent)" }
+      },
+      /* @__PURE__ */ React.createElement("span", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, minWidth: 176 } }, /* @__PURE__ */ React.createElement("span", { style: { textAlign: "start" } }, n.label), n.count != null && /* @__PURE__ */ React.createElement(Badge, { variant: "brand", appearance: "solid", size: "sm" }, n.count))
+    )));
+  }
+  function GapStat({ label, children, sub }) {
+    return /* @__PURE__ */ React.createElement(Gap, { name: "StatCard" }, /* @__PURE__ */ React.createElement(Card, { radius: "lg", variant: "outlined" }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "var(--type-label-md-size)", color: "var(--text-tertiary)", fontWeight: 600 } }, label), /* @__PURE__ */ React.createElement("div", { style: { margin: "6px 0 2px" } }, children), sub && /* @__PURE__ */ React.createElement("div", { style: { fontSize: "var(--type-body-sm-size)", color: "var(--text-secondary)" } }, sub)));
+  }
+  function GapAvatar({ name = "", src, size = 44 }) {
+    const initials = name.split(" ").map((s) => s[0]).join("").slice(0, 2);
+    return /* @__PURE__ */ React.createElement(Gap, { name: "Avatar", as: "span", style: { width: size, height: size, flex: "0 0 auto", display: "grid", placeItems: "center", borderRadius: "var(--radius-full)", background: "var(--surface-sunken)", color: "var(--text-secondary)", fontWeight: 600, fontSize: size / 2.8, overflow: "hidden" } }, src ? /* @__PURE__ */ React.createElement("img", { src, alt: "", style: { width: "100%", height: "100%", objectFit: "cover" } }) : initials);
+  }
+  function GapAccordion({ items, open, onToggle }) {
+    return /* @__PURE__ */ React.createElement(Gap, { name: "Accordion", style: { display: "grid", gap: 10 } }, items.map(([q, a], i) => /* @__PURE__ */ React.createElement(Card, { key: q, radius: "lg", variant: "outlined", padding: "0" }, /* @__PURE__ */ React.createElement(
+      Button,
+      {
+        variant: "ghost",
+        fullWidth: true,
+        iconEnd: "chevron-down",
+        onPress: () => onToggle(open === i ? -1 : i),
+        accessibilityLabel: q + (open === i ? ", expanded" : ", collapsed"),
+        style: { justifyContent: "space-between", minHeight: 64, padding: "0 24px", whiteSpace: "normal", textAlign: "start" }
+      },
+      q
+    ), open === i && /* @__PURE__ */ React.createElement("p", { style: { margin: 0, padding: "0 24px 22px", fontSize: 15, lineHeight: 1.65, color: "var(--text-secondary)", maxWidth: 680 } }, a))));
+  }
+  const STATE_LABEL = { populated: "Populated", loading: "Loading", empty: "Empty", error: "Error" };
+  function readHash() {
+    try {
+      return Object.fromEntries(new URLSearchParams((location.hash || "").slice(1)));
+    } catch (e) {
+      return {};
+    }
+  }
+  function KitFrame({ title, screens, device = "phone", theme = "light", initial }) {
+    const h = readHash();
+    window.__KIT = screens.map((x) => ({ id: x.id, variants: x.variants ? x.variants.map((v) => v.id) : [null], states: x.states || ["populated", "loading", "empty", "error"] }));
+    const first = screens.find((s) => s.id === (h.screen || initial)) || screens[0];
+    const [screenId, setScreenId] = React.useState(first.id);
+    const screen = screens.find((s) => s.id === screenId) || screens[0];
+    const [variant, setVariant] = React.useState(h.variant || (screen.variants ? screen.variants[0].id : null));
+    const [state, setState] = React.useState(h.state || "populated");
+    const [showGaps, setShowGaps] = React.useState(h.gaps !== "0");
+    const states = screen.states || ["populated", "loading", "empty", "error"];
+    const go = (id, v) => {
+      const s = screens.find((x) => x.id === id);
+      setScreenId(id);
+      setState("populated");
+      setVariant(v || (s && s.variants ? s.variants[0].id : null));
+    };
+    const pick = (id) => go(id);
+    const ctx = { state: states.includes(state) ? state : "populated", variant: variant || (screen.variants ? screen.variants[0].id : null), go };
+    const body = screen.render(ctx);
+    return /* @__PURE__ */ React.createElement("div", { className: showGaps ? "kit show-gaps" : "kit", style: { display: "grid", gridTemplateRows: "auto 1fr", minHeight: "100%", background: "var(--color-neutral-100)" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "flex-end", gap: 12, flexWrap: "wrap", padding: "10px 16px", background: "var(--surface-raised)", borderBottom: "1px solid var(--border-decorative)" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gap: 2, marginRight: 8 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: "var(--type-label-sm-size)", color: "var(--text-tertiary)", fontWeight: 600, letterSpacing: ".04em" } }, title), /* @__PURE__ */ React.createElement("span", { style: { fontSize: "var(--type-caption-size)", color: "var(--text-tertiary)" } }, screens.length, " artboards")), /* @__PURE__ */ React.createElement(Select, { label: "Screen", value: screenId, onValueChange: pick, options: screens.map((s) => ({ value: s.id, label: s.label })), style: { minWidth: 220 } }), screen.variants && /* @__PURE__ */ React.createElement(Select, { label: "Variant", value: ctx.variant, onValueChange: (v) => {
+      setVariant(v);
+      setState("populated");
+    }, options: screen.variants.map((v) => ({ value: v.id, label: v.label })), style: { minWidth: 220 } }), states.length > 1 && /* @__PURE__ */ React.createElement(SegmentedControl, { label: "Artboard state", size: "sm", value: ctx.state, onChange: setState, options: states.map((s) => ({ value: s, label: STATE_LABEL[s] || s })) }), /* @__PURE__ */ React.createElement("div", { style: { marginLeft: "auto" } }, /* @__PURE__ */ React.createElement(Switch, { size: "sm", label: "Show component gaps", stateLabel: { on: "On", off: "Off" }, checked: showGaps, onCheckedChange: setShowGaps }))), device === "phone" ? /* @__PURE__ */ React.createElement("div", { style: { display: "grid", placeItems: "start center", padding: "12px 0 20px" } }, /* @__PURE__ */ React.createElement("div", { "data-theme": theme === "dark" ? "dark" : void 0, style: { width: 390, height: 820, background: "var(--surface-base)", color: "var(--text-primary)", borderRadius: 34, overflow: "hidden", boxShadow: "var(--elev-4)", position: "relative", display: "grid", gridTemplateRows: "auto 1fr" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", height: 28, padding: "0 18px", fontSize: 11, fontWeight: 600, fontVariantNumeric: "tabular-nums", color: "var(--text-primary)" } }, /* @__PURE__ */ React.createElement("span", null, "18:47"), /* @__PURE__ */ React.createElement("span", { style: { display: "flex", gap: 6 } }, /* @__PURE__ */ React.createElement("span", null, "5G"), /* @__PURE__ */ React.createElement("span", null, "84%"))), /* @__PURE__ */ React.createElement("div", { style: { position: "relative", overflow: "hidden", minHeight: 0 } }, body))) : /* @__PURE__ */ React.createElement("div", { "data-theme": theme === "dark" ? "dark" : void 0, style: { position: "relative", minHeight: 780, background: "var(--surface-base)" } }, body));
+  }
+  function Stateful({ state, loading, empty, error, children }) {
+    if (state === "loading") return loading || /* @__PURE__ */ React.createElement(GapSkeleton, null);
+    if (state === "empty") return empty || /* @__PURE__ */ React.createElement(GapEmptyState, { title: "Nothing here yet" });
+    if (state === "error") return error || /* @__PURE__ */ React.createElement(GapErrorState, null);
+    return children;
+  }
+  Object.assign(window, {
+    Gap,
+    GapWordmark,
+    GapSkeleton,
+    GapEmptyState,
+    GapErrorState,
+    GapBanner,
+    GapListRow,
+    GapKeyValue,
+    GapChip,
+    GapStepper,
+    GapMap,
+    GapFileUpload,
+    GapSideNav,
+    GapStat,
+    GapAvatar,
+    GapAccordion,
+    KitFrame,
+    Stateful
+  });
+})();
+
+/* customer-app/Photo.jsx */
+(() => {
+  function Photo({ src = null, alt = "", height = 160, aspect, radius = "lg", style }) {
+    const r = typeof radius === "string" ? "var(--radius-" + radius + ")" : radius;
+    return /* @__PURE__ */ React.createElement("div", { "data-gap": "MediaFrame", title: "Component gap: MediaFrame (placeholder until #109)", style: {
+      position: "relative",
+      height: aspect ? void 0 : height,
+      aspectRatio: aspect,
+      background: "var(--surface-sunken)",
+      borderRadius: r,
+      display: "grid",
+      placeItems: "center",
+      overflow: "hidden",
+      boxShadow: "inset 0 0 0 1px var(--border-decorative)",
+      ...style
+    } }, src ? /* @__PURE__ */ React.createElement("img", { src, alt, style: { width: "100%", height: "100%", objectFit: "cover" } }) : /* @__PURE__ */ React.createElement("span", { role: "img", "aria-label": alt ? alt + " (no image)" : "No image", style: { color: "var(--text-tertiary)", fontSize: "var(--type-caption-size)", fontWeight: 600, letterSpacing: ".02em" } }, typeof height === "number" && height < 56 ? "" : "No image"));
+  }
+  Object.assign(window, { Photo });
+})();
+
+/* Index3/Content.jsx */
+(() => {
+  const MK = {
+    DISCLAIMER: "Certification verified by HalalGoes on the date shown on each listing. HalalGoes does not itself certify food.",
+    PLACE: "Ontario",
+    MONEY: { commission: "0%", deliveryBase: "$2.99", deliveryPerKm: "$1.00", payoutDay: "Monday", tip: "100%" },
+    COMMISSION_FINE_PRINT: "0% commission applies at launch. Commission is set per restaurant and is switchable, so we do not describe it as permanent. Payment processing fees still apply."
+  };
+  const CHECKS = [
+    {
+      key: "H1_LEGIBLE_COMPLETE",
+      title: "The document is readable, whole, and unaltered",
+      by: "human",
+      body: "Every page present, nothing obscured, no sign the certificate has been edited. A person looks at the scan."
+    },
+    {
+      key: "H2_ISSUER_ACCEPTED",
+      title: "The issuer is one we accept",
+      by: "both",
+      body: "The certifying body is on our accepted registry at the moment of review \u2014 and we print its name on the listing, so you can judge the issuer for yourself."
+    },
+    {
+      key: "H3_NAME_MATCH",
+      title: "The certificate names this business",
+      by: "human",
+      body: "The legal name on the certificate is the restaurant\u2019s registered legal name, or a recorded alias of it. Not a parent brand."
+    },
+    {
+      key: "H4_ADDRESS_MATCH",
+      title: "The certificate covers this address",
+      by: "human",
+      body: "The certified address matches the premises being listed \u2014 or the certificate explicitly names multiple premises and this is one of them."
+    },
+    {
+      key: "H5_DATES_VALID",
+      title: "It is in force today, with time left on it",
+      by: "system",
+      body: "Issued in the past, and not expiring within our minimum remaining window. The server computes this. No admin can wave it through."
+    },
+    {
+      key: "H6_SCOPE_SUFFICIENT",
+      title: "It covers the food, not just the supplier",
+      by: "human",
+      body: "The scope has to cover the whole establishment or the kitchen. A certificate that only covers a meat supplier fails this check \u2014 it is the exact thing that gets mistaken for a restaurant being certified."
+    },
+    {
+      key: "H7_UNIQUE_NOT_REUSED",
+      title: "It has not been used by anyone else",
+      by: "system",
+      body: "The certificate number is not already approved for a different restaurant. Also computed by the server, also not overridable."
+    }
+  ];
+  const BY_LABEL = { human: "A person", system: "The server", both: "Person + server" };
+  const ISSUERS = [
+    { name: "Halal Monitoring Authority (HMA Canada)", where: "Ontario, Canada" },
+    { name: "Islamic Society of North America Canada (ISNA Canada)", where: "Ontario, Canada" },
+    { name: "Halal Food Standards Alliance of America (HFSAA)", where: "United States \u2014 certificates issued to Canadian establishments are accepted" }
+  ];
+  const STATES = [
+    { state: "certified", display: "CERTIFIED", label: "Halal certified", body: "A current certificate is on file, a person has checked it against all seven points, and the record says who checked it and when.", mono: "RECORD SHOWN ON THE LISTING" },
+    { state: "expired", display: "EXPIRED", label: "Expired", body: "The restaurant comes off the app until it is renewed. An expired certificate means our information has lapsed \u2014 not that anything is wrong with the food.", mono: "DELISTED WITHIN 60 SECONDS" },
+    { state: "review", label: "Under review", body: "We have the paperwork and we have not finished checking it. Nothing is ever auto-approved on a timer.", mono: "NOT VISIBLE TO CUSTOMERS" },
+    { state: "none", label: "No record", body: "If we have not read a certificate, you see nothing at all. Never a maybe, never an optimistic badge.", mono: "NO BADGE RENDERED" }
+  ];
+  const SEAL = [
+    { step: "AT THE KITCHEN", title: "The kitchen seals the bag.", body: "A tamper-evident label goes across the opening as they finish packing, and it is bound to your order alone. A seal never moves between orders." },
+    { step: "AT PICKUP", title: "Your rider scans it on collection.", body: "The scan is what moves the order to picked up. Each code works once \u2014 a second use is rejected by the database." },
+    { step: "AT YOUR DOOR", title: "It is scanned again when it reaches you.", body: "If a seal arrives broken you can report it with a photo, and the whole scan trail goes to a person to sort out." }
+  ];
+  const AUDIENCE_OPTIONS = [
+    { value: "customer", label: "Order food" },
+    { value: "restaurant", label: "List your restaurant" },
+    { value: "rider", label: "Deliver with us" }
+  ];
+  const TRACKS = {
+    customer: {
+      eyebrow: "Launching in Ontario",
+      eyebrowIcon: "map",
+      headerCta: "Join the waitlist",
+      headline: ["Verified halal,", "delivered."],
+      lede: "Seven checks on every restaurant, before it reaches you.",
+      form: {
+        label: "Email address",
+        placeholder: "you@example.com",
+        submit: "Notify me",
+        reassurance: "No spam. One email, the day we open in your area.",
+        consent: "I agree to receive one launch email from HalalGoes, and news of newly verified kitchens near me afterwards. Unsubscribe any time."
+      },
+      countLine: "[XX] certified restaurants ready for launch day",
+      /* K-52 rejected by owner: kept as is */
+      steps: { heading: "How ordering works", items: [
+        { icon: "search", title: "Pick a restaurant", body: "Everything you can see has passed all seven checks. The seal on a listing comes down the day the certificate lapses." },
+        { icon: "cart", title: "Order", body: "You see the full total before you pay. Change your mind before the restaurant accepts and the order is cancelled free \u2014 nothing is taken." },
+        { icon: "map", title: "Follow it to the door", body: "Your rider\u2019s position updates as they go, so you know whether to answer the door now or in ten minutes." }
+      ] },
+      benefits: { heading: "Why HalalGoes", sub: "For people ordering", items: [
+        { icon: "check", title: "A verified selection", body: "Every listing carries the certifying body and the date we checked it." },
+        { icon: "orders", title: "The total before you pay", body: "The amount shown is the amount charged. The delivery fee is $2.99 plus $1.00 per kilometre, and all of it goes to your rider." },
+        { title: "Tips reach the rider", body: "100% of your tip goes to the person who brings your order." }
+      ] },
+      faq: [
+        ["What does \u201Cverified\u201D mean here?", "A person reads the restaurant\u2019s halal certificate and records seven checks against it: that it is legible and complete, that the issuing body is one we accept, that the legal name matches, that the premises address matches, that the dates are valid today, that the scope covers everything sold, and that the certificate is not already in use by another restaurant. All seven have to pass."],
+        ["Whose certificates do you accept?", "HMA Canada, HFSAA and ISNA Canada. A certificate from any one of them satisfies the issuer check. The list can grow as we accept more bodies; it is never typed in free-hand."],
+        ["What happens when a certificate expires?", "The restaurant comes off the app until it is renewed. We don\u2019t leave a badge up in hope, and an expired certificate means our information has lapsed \u2014 not that anything is wrong with the food."],
+        ["Do you decide what\u2019s halal?", "No. We check certificates issued by recognised bodies and report what we find. We don\u2019t make religious rulings, and we don\u2019t rank one certifier\u2019s standard above another\u2019s."],
+        ["What do you do with my email address?", "Write to you when we open in your area, and after that only when there are newly verified kitchens near you. We don\u2019t sell it and we don\u2019t pass it to restaurants."],
+        ["When are you launching?", "Ontario first. We\u2019re pre-launch \u2014 this page is a waitlist, not a download, and there\u2019s nothing to install yet."]
+      ],
+      finalCta: { heading: "Be there on day one.", body: "One email the day we open in your area. Nothing before then." }
+    },
+    restaurant: {
+      eyebrow: "Restaurants \xB7 Ontario",
+      headerCta: "Get early access",
+      headline: ["0% commission", "at launch."],
+      lede: "A person checks your certificate seven ways, and your listing shows the record \u2014 who issued it, and when we checked it.",
+      finePrint: MK.COMMISSION_FINE_PRINT,
+      /* K-54 */
+      form: {
+        label: "Email address",
+        placeholder: "owner@yourrestaurant.ca",
+        submit: "Get early access",
+        reassurance: "A person reads your certificate. Nothing is auto-approved, on a timer or otherwise.",
+        consent: "I agree to receive email about listing my restaurant. Unsubscribe any time."
+      },
+      countLine: "[XX] restaurants already on the launch list",
+      /* K-52 rejected by owner: kept as is */
+      steps: { heading: "What listing looks like", items: [
+        { title: "Send us four documents", body: "Your business licence, your halal certificate, your food-safety permit, and owner ID. Certificates and ID sit in private storage \u2014 nothing is public." },
+        { icon: "check", title: "We check the certificate seven ways", body: "If something\u2019s missing we tell you which check failed, not just \u201Crejected\u201D. Every rejection carries a reason code." },
+        { title: "Go live at 0% commission", body: "Commission is 0% at launch, set per restaurant and switchable. Payouts land every Monday." }
+      ] },
+      benefits: { heading: "Why HalalGoes", sub: "For restaurants", items: [
+        { title: "0% commission at launch", body: "Per restaurant and switchable. Payment processing fees still apply." },
+        { icon: "clock", title: "Paid every Monday", body: "Payouts go out weekly, every Monday." },
+        { icon: "orders", title: "No paid ranking", body: "A restaurant cannot pay for or influence its position in the feed." }
+      ] },
+      faq: [
+        ["What does 0% commission actually mean?", "We take no commission on the order at launch. Commission is set per restaurant and can be switched, so we do not describe it as permanent. Payment processing fees still apply."],
+        ["What do you need from me?", "Your business licence, your halal certificate, your food-safety permit and owner ID. The certificate and the ID are stored privately; what customers see is the issuing body, the certificate number, the dates and the day we verified it."],
+        ["What if my certificate is rejected?", "You get the specific check that failed rather than a generic refusal, so you know whether it is a scope question, an address mismatch or a renewal you have not filed yet."],
+        ["When do I get paid?", "Every Monday."],
+        ["Can I pay to rank higher?", "No. A restaurant cannot pay for or influence its position in the feed."]
+      ],
+      finalCta: { heading: "List before we launch.", body: "Leave your email and we will walk you through onboarding." }
+    },
+    rider: {
+      eyebrow: "Riders \xB7 Ontario",
+      headerCta: "Start delivering",
+      headline: ["The delivery fee", "is yours. All of it."],
+      lede: "$2.99 plus $1.00 per kilometre, paid to you every Monday.",
+      form: {
+        label: "Email address",
+        placeholder: "you@example.com",
+        submit: "Start delivering",
+        reassurance: "We\u2019ll email you when we start onboarding riders in your area.",
+        consent: "I agree to receive one launch email from HalalGoes. Unsubscribe any time."
+      },
+      steps: { heading: "How the money works", items: [
+        { icon: "orders", title: "The fee is the fee", body: "$2.99 for the delivery plus $1.00 per kilometre. That is what the customer pays for delivery, and it is what you are paid." },
+        { title: "All of it reaches you", body: "We take no cut of the delivery fee. Tips are yours too \u2014 100% of every tip." },
+        { icon: "clock", title: "Paid every Monday", body: "Payouts go out weekly, every Monday." }
+      ] },
+      benefits: null,
+      faq: [
+        ["How much do I earn per delivery?", "$2.99 plus $1.00 per kilometre, and all of it is yours. A four-kilometre delivery is $6.99 to you."],
+        ["Do you take a cut of the delivery fee?", "No. One hundred percent of the delivery fee goes to the rider."],
+        ["When am I paid?", "Every Monday."],
+        ["What about tips?", "A tip is added by the customer on top of the delivery fee, and 100% of it is yours."]
+      ],
+      finalCta: { heading: "Deliver from day one.", body: "We\u2019ll email you when we start onboarding riders in your area." }
+    }
+  };
+  const POSTS = [
+    { slug: "seven-checks", title: "What the seven checks are for", date: "Sample date", dek: "Each check exists because of a specific way a certificate can be misread. Here is which one catches what." },
+    { slug: "scope", title: "Why a supplier certificate is not a restaurant certificate", dek: "Check six, and the mistake it exists to catch." },
+    { slug: "expiry", title: "What happens the day a certificate lapses", dek: "Delisted, not flagged \u2014 and why that is the honest choice." }
+  ];
+  Object.assign(window, { MK, CHECKS, BY_LABEL, ISSUERS, STATES, SEAL, AUDIENCE_OPTIONS, TRACKS, POSTS });
+})();
+
+/* Index3/Nav.jsx */
+(() => {
+  const { SegmentedControl, Button } = window.HalalGoesDesignSystem_d11a47;
+  function Section({ tone = "base", children, id, style }) {
+    const bg = { base: "var(--surface-base)", subtle: "var(--surface-subtle)", raised: "var(--surface-raised)", halal: "var(--mk-seal-plate)" }[tone];
+    return /* @__PURE__ */ React.createElement("section", { id, style: { background: bg, borderTop: tone === "halal" ? "1px solid var(--color-halal-certified-tint-border)" : void 0, borderBottom: tone === "halal" ? "1px solid var(--color-halal-certified-tint-border)" : void 0, ...style } }, /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 1180, margin: "0 auto", padding: "88px 32px" } }, children));
+  }
+  function SectionTitle({ children, sub, color = "var(--mk-ink)", style }) {
+    return /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "baseline", gap: 20, marginBottom: 40, flexWrap: "wrap", ...style } }, /* @__PURE__ */ React.createElement("h2", { style: { margin: 0, fontFamily: "var(--font-display)", fontSize: "var(--type-marketing-section-size)", lineHeight: "var(--type-marketing-section-line)", letterSpacing: "var(--type-marketing-section-tracking)", fontWeight: 700, color } }, children), sub && /* @__PURE__ */ React.createElement("span", { style: { fontSize: 15, color: "var(--text-tertiary)" } }, sub));
+  }
+  function Nav({ audience, setAudience, page = "landing", onNavigate = () => {
+  } }) {
+    const cta = TRACKS[audience || "customer"].headerCta;
+    return /* @__PURE__ */ React.createElement("header", { "data-theme": "dark", style: { position: "sticky", top: 0, zIndex: 100, background: "var(--surface-chrome)", color: "var(--text-on-accent)" } }, /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 1180, margin: "0 auto", padding: "0 32px", height: 72, display: "flex", alignItems: "center", gap: 16 } }, /* @__PURE__ */ React.createElement(GapWordmark, { size: 22, tone: "onDark" }), /* @__PURE__ */ React.createElement("div", { style: { margin: "0 auto", display: "flex", alignItems: "center", gap: 8 } }, page === "landing" ? /* @__PURE__ */ React.createElement(SegmentedControl, { label: "I want to", tone: "chrome", size: "sm", value: audience, onChange: setAudience, options: AUDIENCE_OPTIONS }) : /* @__PURE__ */ React.createElement(Button, { variant: "ghost", size: "sm", iconStart: "back", onPress: () => onNavigate("landing") }, "Home")), /* @__PURE__ */ React.createElement(Button, { variant: page === "verification" ? "secondary" : "ghost", size: "sm", onPress: () => onNavigate("verification") }, "How we verify"), /* @__PURE__ */ React.createElement(Button, { variant: page === "blog" ? "secondary" : "ghost", size: "sm", onPress: () => onNavigate("blog") }, "Writing"), /* @__PURE__ */ React.createElement(Button, { variant: "primary", href: "#waitlist" }, cta)));
+  }
+  Object.assign(window, { Nav, Section, SectionTitle });
+})();
+
+/* Index3/WaitlistForm.jsx */
+(() => {
+  const { Button, Input, Checkbox, Toast } = window.HalalGoesDesignSystem_d11a47;
+  function WaitlistForm({ audience = "customer", forceState, onDark = false }) {
+    const f = TRACKS[audience].form;
+    const [email, setEmail] = React.useState(forceState === "invalid" ? "amina@example" : forceState && forceState !== "idle" && forceState !== "consent" ? "amina@example.com" : forceState === "consent" ? "amina@example.com" : "");
+    const [consent, setConsent] = React.useState(forceState === "submitting" || forceState === "error" || forceState === "success");
+    const [status, setStatus] = React.useState(forceState || "idle");
+    React.useEffect(() => {
+      if (forceState) setStatus(forceState);
+    }, [forceState]);
+    const submit = (e) => {
+      e.preventDefault();
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return setStatus("invalid");
+      if (!consent) return setStatus("consent");
+      setStatus("submitting");
+      setTimeout(() => setStatus("success"), 900);
+    };
+    if (status === "success") {
+      return /* @__PURE__ */ React.createElement("div", { role: "status", style: { display: "grid", gap: 8, maxWidth: 460 } }, /* @__PURE__ */ React.createElement(Toast, { variant: "success", duration: Infinity, title: "You\u2019re on the list.", description: "We\u2019ll email " + (email || "you") + " once, the day we open in your area." }), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, color: onDark ? "var(--text-secondary)" : "var(--text-tertiary)" } }, "Changed your mind? Every email has one-click unsubscribe."));
+    }
+    return /* @__PURE__ */ React.createElement("form", { onSubmit: submit, noValidate: true, style: { display: "grid", gap: 12, maxWidth: 460 } }, status === "error" && /* @__PURE__ */ React.createElement(GapBanner, { tone: "warning", title: "We couldn\u2019t add you just now" }, "Nothing was saved. Your details are still here \u2014 try again in a moment."), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 10, alignItems: "flex-start" } }, /* @__PURE__ */ React.createElement("div", { style: { flex: 1 } }, /* @__PURE__ */ React.createElement(
+      Input,
+      {
+        size: "lg",
+        variant: "email",
+        autoComplete: "email",
+        label: f.label,
+        placeholder: f.placeholder,
+        required: true,
+        value: email,
+        onChange: (e) => {
+          setEmail(e.target.value);
+          if (status === "invalid") setStatus("idle");
+        },
+        errorText: status === "invalid" ? "Enter an email address like name@example.com" : null,
+        id: "wl-email-" + audience + (onDark ? "-f" : "")
+      }
+    )), /* @__PURE__ */ React.createElement(Button, { size: "lg", type: "submit", loading: status === "submitting", style: { marginTop: 26 } }, status === "error" ? "Try again" : f.submit)), /* @__PURE__ */ React.createElement(
+      Checkbox,
+      {
+        id: "wl-consent-" + audience + (onDark ? "-f" : ""),
+        label: f.consent,
+        checked: consent,
+        onCheckedChange: (v) => {
+          setConsent(v);
+          if (status === "consent") setStatus("idle");
+        },
+        error: status === "consent" ? "Tick the box to agree to the email \u2014 we can\u2019t add you without it." : void 0
+      }
+    ), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, color: "var(--text-tertiary)" } }, f.reassurance));
+  }
+  Object.assign(window, { WaitlistForm });
+})();
+
+/* Index3/Hero.jsx */
+(() => {
+  const { Badge, HalalBadge, Card } = window.HalalGoesDesignSystem_d11a47;
+  function HeroArt({ audience }) {
+    return /* @__PURE__ */ React.createElement("div", { style: { position: "relative", padding: 24 } }, /* @__PURE__ */ React.createElement(Photo, { src: null, alt: "Food photography", height: 420, radius: "xl", style: { width: "100%" } }), audience !== "rider" && /* @__PURE__ */ React.createElement(Card, { radius: "lg", variant: "elevated", style: { position: "absolute", bottom: 44, left: 0, display: "grid", gap: 6, minWidth: 300, boxShadow: "var(--elev-4)" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: "var(--type-label-sm-size)", letterSpacing: ".04em", fontWeight: 600, color: "var(--text-tertiary)" } }, "EXAMPLE LISTING"), /* @__PURE__ */ React.createElement(HalalBadge, { state: "CERTIFIED", size: "lg" }), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, color: "var(--text-secondary)" } }, "Checked seven ways \xB7 certifying body named on the listing")));
+  }
+  function Hero({ audience, formState }) {
+    const t = TRACKS[audience];
+    return /* @__PURE__ */ React.createElement("section", { id: "waitlist", style: { background: "var(--surface-base)" } }, /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 1180, margin: "0 auto", padding: "72px 32px 88px", display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: 56, alignItems: "center" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gap: 24 } }, /* @__PURE__ */ React.createElement("span", { style: { justifySelf: "start" } }, /* @__PURE__ */ React.createElement(Badge, { variant: "brand", size: "md", icon: t.eyebrowIcon }, t.eyebrow)), /* @__PURE__ */ React.createElement("h1", { style: { margin: 0, fontFamily: "var(--font-display)", fontSize: "var(--type-marketing-hero-size)", lineHeight: "var(--type-marketing-hero-line)", letterSpacing: "var(--type-marketing-hero-tracking)", fontWeight: "var(--type-marketing-hero-weight)", color: "var(--mk-ink)" } }, t.headline.map((l, i) => /* @__PURE__ */ React.createElement(React.Fragment, { key: i }, l, i < t.headline.length - 1 && /* @__PURE__ */ React.createElement("br", null)))), /* @__PURE__ */ React.createElement("p", { style: { margin: 0, fontSize: 20, lineHeight: 1.5, color: "var(--text-secondary)", maxWidth: 460 } }, t.lede), /* @__PURE__ */ React.createElement(WaitlistForm, { audience, forceState: formState }), t.countLine && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 14, paddingTop: 4 } }, /* @__PURE__ */ React.createElement(HalalBadge, { state: "CERTIFIED", size: "sm" }), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 14, color: "var(--text-tertiary)" } }, t.countLine)), t.finePrint && /* @__PURE__ */ React.createElement("p", { style: { margin: 0, fontSize: 12, lineHeight: 1.5, color: "var(--text-tertiary)", maxWidth: 460 } }, t.finePrint)), /* @__PURE__ */ React.createElement(HeroArt, { audience })));
+  }
+  Object.assign(window, { Hero });
+})();
+
+/* Index3/Verification.jsx */
+(() => {
+  const { HalalBadge, Button, Badge } = window.HalalGoesDesignSystem_d11a47;
+  function SevenChecks({ compact = false }) {
+    return /* @__PURE__ */ React.createElement(Gap, { name: "CheckList", as: "ol", "aria-label": "The seven checks", style: { listStyle: "none", margin: 0, padding: 0, display: "grid", gap: 8 } }, CHECKS.map((c, i) => /* @__PURE__ */ React.createElement("li", { key: c.key, style: { display: "grid", gridTemplateColumns: "32px minmax(0,1fr)", gap: 12, padding: "14px 16px", background: "var(--surface-raised)", border: "1px solid var(--color-halal-certified-tint-border)", borderRadius: "var(--radius-md)" } }, /* @__PURE__ */ React.createElement(Badge, { variant: "neutral", size: "md", style: { justifySelf: "start" } }, i + 1), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gap: 4 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement("strong", { style: { fontSize: 15, fontWeight: 600, color: "var(--text-primary)" } }, c.title), /* @__PURE__ */ React.createElement("span", { style: { fontFamily: "var(--font-mono)", fontSize: "var(--type-mono-sm-size)", color: "var(--text-tertiary)" } }, BY_LABEL[c.by])), !compact && /* @__PURE__ */ React.createElement("p", { style: { margin: 0, fontSize: 14, lineHeight: 1.55, color: "var(--text-secondary)" } }, c.body)))));
+  }
+  function Issuers() {
+    return /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gap: 10 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: 13, fontWeight: 600, letterSpacing: ".04em", color: "var(--color-halal-certified-tint-text)" } }, "CERTIFYING BODIES WE ACCEPT"), /* @__PURE__ */ React.createElement("ul", { style: { listStyle: "none", margin: 0, padding: 0, display: "grid", gap: 8 } }, ISSUERS.map((i) => /* @__PURE__ */ React.createElement("li", { key: i.name, style: { display: "grid", gap: 2, padding: "12px 16px", background: "var(--surface-raised)", border: "1px solid var(--color-halal-certified-tint-border)", borderRadius: "var(--radius-md)" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 15, fontWeight: 600, color: "var(--text-primary)" } }, i.name), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, color: "var(--text-tertiary)" } }, i.where)))), /* @__PURE__ */ React.createElement("p", { style: { margin: 0, fontSize: 12, color: "var(--color-halal-certified-tint-text)" } }, "The registry is seeded, not closed, and it is not a ranking. We name the issuer on every listing so you can judge it yourself."));
+  }
+  function Verification({ onReadMore }) {
+    return /* @__PURE__ */ React.createElement(Section, { tone: "halal", id: "seven-checks" }, /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "minmax(0,.9fr) minmax(0,1.1fr)", gap: 64, alignItems: "start" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gap: 20, justifyItems: "start" } }, /* @__PURE__ */ React.createElement(HalalBadge, { state: "CERTIFIED", size: "lg" }), /* @__PURE__ */ React.createElement(SectionTitle, { color: "var(--color-halal-certified-tint-text)", style: { marginBottom: 0 } }, "How we verify"), /* @__PURE__ */ React.createElement("p", { style: { margin: 0, fontSize: 17, lineHeight: 1.6, color: "var(--color-halal-certified-tint-text)", maxWidth: 420 } }, "A restaurant joins HalalGoes only after a person has checked its certificate against seven points. All seven have to pass. We record who issued it, the certificate number, and the date we checked \u2014 the badge on a listing is that record, not a claim of our own."), /* @__PURE__ */ React.createElement("p", { style: { margin: 0, fontSize: 13, lineHeight: 1.5, color: "var(--color-halal-certified-tint-text)", maxWidth: 420 } }, MK.DISCLAIMER), onReadMore && /* @__PURE__ */ React.createElement(Button, { variant: "secondary", iconEnd: "chevron-right", onPress: onReadMore }, "Read the verification standard")), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gap: 24 } }, /* @__PURE__ */ React.createElement(SevenChecks, null), /* @__PURE__ */ React.createElement(Issuers, null))));
+  }
+  Object.assign(window, { Verification, SevenChecks, Issuers });
+})();
+
+/* Index3/HowItWorks.jsx */
+(() => {
+  const { Icon, Card, Badge } = window.HalalGoesDesignSystem_d11a47;
+  function HowItWorks({ audience }) {
+    const s = TRACKS[audience].steps;
+    return /* @__PURE__ */ React.createElement(Section, { tone: "base" }, /* @__PURE__ */ React.createElement(SectionTitle, null, s.heading), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(3,minmax(0,1fr))", gap: 24 } }, s.items.map((it, i) => /* @__PURE__ */ React.createElement(Card, { key: it.title, radius: "lg", variant: "outlined", style: { display: "grid", gap: 14, padding: "28px 26px", alignContent: "start" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 12 } }, /* @__PURE__ */ React.createElement(Badge, { variant: "neutral", size: "md" }, "0" + (i + 1)), it.icon && /* @__PURE__ */ React.createElement(Icon, { name: it.icon, size: "lg", color: "var(--mk-accent)" })), /* @__PURE__ */ React.createElement("h3", { style: { margin: 0, fontSize: 20, fontWeight: 700, letterSpacing: "-.01em", color: "var(--mk-ink)" } }, it.title), /* @__PURE__ */ React.createElement("p", { style: { margin: 0, fontSize: 15, lineHeight: 1.6, color: "var(--text-secondary)" } }, it.body)))));
+  }
+  Object.assign(window, { HowItWorks });
+})();
+
+/* Index3/Benefits.jsx */
+(() => {
+  const { Icon, Card } = window.HalalGoesDesignSystem_d11a47;
+  function Benefits({ audience }) {
+    const b = TRACKS[audience].benefits;
+    if (!b) return null;
+    return /* @__PURE__ */ React.createElement(Section, { tone: "subtle" }, /* @__PURE__ */ React.createElement(SectionTitle, { sub: b.sub }, b.heading), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(3,minmax(0,1fr))", gap: 24 } }, b.items.map((it) => /* @__PURE__ */ React.createElement(Card, { key: it.title, radius: "lg", variant: "outlined", style: { display: "grid", gap: 12, alignContent: "start" } }, it.icon && /* @__PURE__ */ React.createElement(Icon, { name: it.icon, size: "lg", color: "var(--mk-accent)" }), /* @__PURE__ */ React.createElement("h3", { style: { margin: 0, fontSize: 20, fontWeight: 700, letterSpacing: "-.01em", color: "var(--mk-ink)" } }, it.title), /* @__PURE__ */ React.createElement("p", { style: { margin: 0, fontSize: 15, lineHeight: 1.6, color: "var(--text-secondary)" } }, it.body)))));
+  }
+  Object.assign(window, { Benefits });
+})();
+
+/* Index3/Sealed.jsx */
+(() => {
+  const { Card, Badge } = window.HalalGoesDesignSystem_d11a47;
+  function Sealed() {
+    return /* @__PURE__ */ React.createElement(Section, { tone: "base" }, /* @__PURE__ */ React.createElement(SectionTitle, { sub: "Chain of custody" }, "Sealed to your door"), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(3,minmax(0,1fr))", gap: 24 } }, SEAL.map((s) => /* @__PURE__ */ React.createElement(Card, { key: s.step, radius: "lg", variant: "outlined", style: { display: "grid", gap: 10, alignContent: "start" } }, /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement(Badge, { variant: "neutral", size: "md" }, s.step)), /* @__PURE__ */ React.createElement("h3", { style: { margin: 0, fontSize: 20, fontWeight: 700, color: "var(--mk-ink)" } }, s.title), /* @__PURE__ */ React.createElement("p", { style: { margin: 0, fontSize: 15, lineHeight: 1.6, color: "var(--text-secondary)" } }, s.body)))));
+  }
+  Object.assign(window, { Sealed });
+})();
+
+/* Index3/Faq.jsx */
+(() => {
+  function Faq({ audience }) {
+    const [open, setOpen] = React.useState(0);
+    React.useEffect(() => setOpen(0), [audience]);
+    return /* @__PURE__ */ React.createElement(Section, { tone: "subtle" }, /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 860 } }, /* @__PURE__ */ React.createElement(SectionTitle, null, "Questions"), /* @__PURE__ */ React.createElement(GapAccordion, { items: TRACKS[audience].faq, open, onToggle: setOpen })));
+  }
+  Object.assign(window, { Faq });
+})();
+
+/* Index3/FooterCta.jsx */
+(() => {
+  const { Button } = window.HalalGoesDesignSystem_d11a47;
+  function FooterCta({ audience = "customer", onNavigate = () => {
+  }, onCookies, showCta = true }) {
+    const t = TRACKS[audience];
+    const cols = [
+      ["HalalGoes", [["How we verify", "verification"], ["Writing", "blog"]]],
+      ["Join", [["Order food", "landing"], ["List your restaurant", "landing"], ["Deliver with us", "landing"]]],
+      ["Legal", [["Privacy", "privacy"], ["Terms", "terms"]]]
+    ];
+    return /* @__PURE__ */ React.createElement("footer", { "data-theme": "dark", style: { background: "var(--surface-chrome)", color: "var(--text-primary)" } }, /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 1180, margin: "0 auto", padding: "88px 32px 40px" } }, showCta && /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,460px)", gap: 56, alignItems: "center", paddingBottom: 56, borderBottom: "1px solid var(--border-decorative)" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gap: 16 } }, /* @__PURE__ */ React.createElement("h2", { style: { margin: 0, fontFamily: "var(--font-display)", fontSize: "var(--type-marketing-section-size)", lineHeight: "var(--type-marketing-section-line)", letterSpacing: "var(--type-marketing-section-tracking)", fontWeight: 700 } }, t.finalCta.heading), /* @__PURE__ */ React.createElement("p", { style: { margin: 0, fontSize: 17, lineHeight: 1.55, color: "var(--text-secondary)", maxWidth: 420 } }, t.finalCta.body)), /* @__PURE__ */ React.createElement(WaitlistForm, { audience, onDark: true })), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 40, flexWrap: "wrap", padding: "40px 0 32px" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gap: 10, minWidth: 220, alignContent: "start" } }, /* @__PURE__ */ React.createElement(GapWordmark, { size: 20, tone: "onDark" }), /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, color: "var(--text-secondary)" } }, "Verified halal, delivered. Ontario, Canada.")), cols.map(([h, links]) => /* @__PURE__ */ React.createElement("div", { key: h, style: { display: "grid", gap: 2, alignContent: "start", minWidth: 170 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, fontWeight: 700, letterSpacing: ".04em", color: "var(--text-secondary)", marginBottom: 6 } }, h.toUpperCase()), links.map(([l, to]) => /* @__PURE__ */ React.createElement(Button, { key: l, variant: "ghost", size: "sm", onPress: () => onNavigate(to), style: { justifyContent: "flex-start", padding: "0 4px" } }, l)), h === "Legal" && /* @__PURE__ */ React.createElement(Button, { variant: "ghost", size: "sm", onPress: onCookies, style: { justifyContent: "flex-start", padding: "0 4px" } }, "Cookie settings")))), /* @__PURE__ */ React.createElement("p", { style: { margin: 0, fontSize: 12, lineHeight: 1.6, color: "var(--text-secondary)", maxWidth: 720 } }, MK.DISCLAIMER, " \xA9 2026 HalalGoes \xB7 Ontario, Canada.")));
+  }
+  Object.assign(window, { FooterCta });
+})();
+
+/* Index3/ConsentBanner.jsx */
+(() => {
+  const { Card, Button, Modal, Switch } = window.HalalGoesDesignSystem_d11a47;
+  function ConsentBanner({ mode = "notice", onClose = () => {
+  }, onChoose = () => {
+  } }) {
+    const [on, setOn] = React.useState({ umami: false, ads: false });
+    if (mode === "preferences") {
+      return /* @__PURE__ */ React.createElement(
+        Modal,
+        {
+          open: true,
+          contained: true,
+          size: "md",
+          title: "What we would like to use",
+          onClose,
+          description: "Everything below is off by default and stays off unless you turn it on. You can change this at any time from the link in the footer.",
+          actions: /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Button, { variant: "secondary", onPress: onClose }, "Decline"), /* @__PURE__ */ React.createElement(Button, { variant: "secondary", onPress: onClose }, "Save choices"))
+        },
+        /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gap: 8 } }, /* @__PURE__ */ React.createElement(
+          Switch,
+          {
+            id: "ck-umami",
+            label: "Measurement \xB7 Umami",
+            stateLabel: { on: "On", off: "Off" },
+            checked: on.umami,
+            onCheckedChange: (v) => setOn({ ...on, umami: v }),
+            description: "Our own analytics, running on our own server. It counts page views and where they came from. It sets no cookie, follows nobody between sites, and records no personal data."
+          }
+        ), /* @__PURE__ */ React.createElement(
+          Switch,
+          {
+            id: "ck-ads",
+            label: "Advertising \xB7 Advertising pixels",
+            stateLabel: { on: "On", off: "Off" },
+            checked: on.ads,
+            onCheckedChange: (v) => setOn({ ...on, ads: v }),
+            description: "Lets an ad platform know that a visit turned into a signup, so we stop paying for ads that do not work. This one does follow you between sites, which is why it is off unless you allow it."
+          }
+        ))
+      );
+    }
+    return /* @__PURE__ */ React.createElement(
+      Card,
+      {
+        radius: "lg",
+        variant: "outlined",
+        role: "dialog",
+        "aria-label": "Cookies",
+        style: { position: "fixed", insetInlineStart: 16, bottom: 16, zIndex: "var(--z-toast)", maxWidth: 420, display: "grid", gap: 10, boxShadow: "var(--elev-4)" }
+      },
+      /* @__PURE__ */ React.createElement("strong", { style: { fontSize: "var(--type-heading-sm-size)" } }, "Cookies"),
+      /* @__PURE__ */ React.createElement("p", { style: { margin: 0, fontSize: "var(--type-body-sm-size)", lineHeight: "var(--type-body-sm-line)", color: "var(--text-secondary)" } }, "We would like to measure how this page is used, and \u2014 once we advertise \u2014 whether an ad led you here. Nothing is switched on until you say so."),
+      /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement(Button, { variant: "secondary", size: "sm", onPress: onClose }, "Decline"), /* @__PURE__ */ React.createElement(Button, { variant: "secondary", size: "sm", onPress: onClose }, "Accept all"), /* @__PURE__ */ React.createElement(Button, { variant: "ghost", size: "sm", onPress: onChoose }, "Choose"))
+    );
+  }
+  Object.assign(window, { ConsentBanner });
+})();
+
+/* Index3/Pages.jsx */
+(() => {
+  const { Card, Badge, Button, HalalBadge } = window.HalalGoesDesignSystem_d11a47;
+  function PageHead({ title, lede, eyebrow }) {
+    return /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gap: 16, marginBottom: 40 } }, eyebrow && /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement(Badge, { variant: "brand", size: "md" }, eyebrow)), /* @__PURE__ */ React.createElement("h1", { style: { margin: 0, fontFamily: "var(--font-display)", fontSize: "var(--type-marketing-section-size)", lineHeight: "var(--type-marketing-section-line)", letterSpacing: "var(--type-marketing-section-tracking)", fontWeight: "var(--type-marketing-section-weight)", color: "var(--mk-ink)", maxWidth: "18ch" } }, title), lede && /* @__PURE__ */ React.createElement("p", { style: { margin: 0, fontSize: 19, lineHeight: 1.55, color: "var(--text-secondary)", maxWidth: "56ch" } }, lede));
+  }
+  function VerificationPage() {
+    return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Section, { tone: "base", style: { paddingBottom: 0 } }, /* @__PURE__ */ React.createElement(
+      PageHead,
+      {
+        eyebrow: "The verification standard",
+        title: "Seven checks, and what we show for each outcome.",
+        lede: "A person reads the certificate and records seven checks against it. Two of them are computed by the server and cannot be overridden by anyone."
+      }
+    )), /* @__PURE__ */ React.createElement(Verification, null), /* @__PURE__ */ React.createElement(Section, { tone: "base" }, /* @__PURE__ */ React.createElement(SectionTitle, { sub: "What a listing can show" }, "Four states, never a guess"), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 20 } }, STATES.map((s) => /* @__PURE__ */ React.createElement(Card, { key: s.state, radius: "lg", variant: "outlined", style: { display: "grid", gap: 10, alignContent: "start" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 10, minHeight: 34 } }, s.display && /* @__PURE__ */ React.createElement(HalalBadge, { state: s.display, surface: "card", size: "md" }), s.state === "review" && /* @__PURE__ */ React.createElement(Badge, { variant: "neutral", size: "md", icon: "clock" }, s.label), s.state === "none" && /* @__PURE__ */ React.createElement(Badge, { variant: "neutral", size: "md" }, s.label, ": no badge")), /* @__PURE__ */ React.createElement("p", { style: { margin: 0, fontSize: 15, lineHeight: 1.6, color: "var(--text-secondary)" } }, s.body), /* @__PURE__ */ React.createElement("span", { style: { fontFamily: "var(--font-mono)", fontSize: "var(--type-mono-sm-size)", color: "var(--text-tertiary)" } }, s.mono))))), /* @__PURE__ */ React.createElement(Sealed, null));
+  }
+  function BlogIndex({ state, onOpen, onNavigate }) {
+    return /* @__PURE__ */ React.createElement(Section, { tone: "base" }, /* @__PURE__ */ React.createElement(PageHead, { title: "Writing", lede: "How halal certification actually works in Canada, what the seven checks are for, and what we find when we run them." }), state === "empty" ? /* @__PURE__ */ React.createElement(Card, { radius: "lg", variant: "outlined", style: { maxWidth: 620 } }, /* @__PURE__ */ React.createElement(
+      GapEmptyState,
+      {
+        icon: "orders",
+        title: "Nothing published yet.",
+        body: "The first pieces are being written. In the meantime, the seven checks \u2014 and what each one catches \u2014 are set out in full on the home page.",
+        action: "Read the seven checks",
+        onAction: () => onNavigate("verification"),
+        style: { justifyItems: "start", textAlign: "start" }
+      }
+    )) : /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gap: 16, maxWidth: 760 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 12, color: "var(--text-tertiary)" } }, "Sample posts \u2014 layout only."), POSTS.map((p) => /* @__PURE__ */ React.createElement(Card, { key: p.slug, radius: "lg", onPress: onOpen, accessibilityLabel: "Read: " + p.title, style: { display: "grid", gap: 6 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: 13, color: "var(--text-tertiary)" } }, p.date || "Sample date"), /* @__PURE__ */ React.createElement("h2", { style: { margin: 0, fontSize: "var(--type-heading-lg-size)", fontWeight: 700, color: "var(--mk-ink)" } }, p.title), /* @__PURE__ */ React.createElement("p", { style: { margin: 0, fontSize: 15, color: "var(--text-secondary)" } }, p.dek)))));
+  }
+  function BlogPost({ state, onNavigate }) {
+    if (state === "error") {
+      return /* @__PURE__ */ React.createElement(Section, { tone: "base" }, /* @__PURE__ */ React.createElement(
+        GapErrorState,
+        {
+          terminal: true,
+          title: "We can\u2019t find that piece",
+          body: "It may have been renamed or taken down. Everything we have published is on the Writing page.",
+          exit: "Back to Writing",
+          onExit: () => onNavigate("blog"),
+          code: "404"
+        }
+      ));
+    }
+    const p = POSTS[0];
+    return /* @__PURE__ */ React.createElement(Section, { tone: "base" }, /* @__PURE__ */ React.createElement("article", { style: { maxWidth: 680, display: "grid", gap: 20 } }, /* @__PURE__ */ React.createElement(Button, { variant: "ghost", size: "sm", iconStart: "back", onPress: () => onNavigate("blog"), style: { justifySelf: "start" } }, "Writing"), /* @__PURE__ */ React.createElement(PageHead, { title: p.title, lede: p.dek, eyebrow: "Sample post \xB7 layout only" }), /* @__PURE__ */ React.createElement("p", { style: { margin: 0, fontSize: 17, lineHeight: 1.7, color: "var(--text-primary)" } }, "Body copy is authored in Keystatic and rendered with the site\u2019s prose styles. Every factual statement in a post is held to the same rule as the rest of the site: if it cannot carry a source in claims.ts, it does not go on the page."), /* @__PURE__ */ React.createElement(Card, { radius: "lg", variant: "outlined", style: { display: "grid", gap: 10 } }, /* @__PURE__ */ React.createElement("strong", { style: { fontSize: "var(--type-heading-sm-size)" } }, "The seven checks"), /* @__PURE__ */ React.createElement(SevenChecks, { compact: true })), /* @__PURE__ */ React.createElement("p", { style: { margin: 0, fontSize: 13, color: "var(--text-tertiary)" } }, MK.DISCLAIMER)));
+  }
+  const LEGAL = {
+    privacy: {
+      title: "Privacy policy.",
+      version: "v1.1 \xB7 effective 19 September 2026",
+      lede: "One email address, and nothing we can identify you by beyond that. Here is exactly what happens to it.",
+      short: ["We collect your email address, and only if you type it in.", "We use it to email you when we open, and afterwards only about newly verified kitchens near you.", "We do not sell it, rent it, or pass it to restaurants or anyone else for their own marketing.", "You can have it deleted at any time, and you don\u2019t have to give a reason.", "Nothing measures you until you agree to it, and declining is one click."],
+      sections: ["What we collect", "Your consent, and the record of it", "Analytics and cookies", "Who else touches it", "How long we keep it", "Your rights", "Security", "Changes", "Contact"]
+    },
+    terms: {
+      title: "Website and waitlist terms.",
+      version: "Versioned in apps/marketing/src/app/terms/page.tsx",
+      lede: "Short, because there is not much here yet. This site is a pre-launch page and an email waitlist \u2014 there is no app, no account and nothing to buy.",
+      sections: ["What this site is", "The waitlist", "What we say about halal verification", "What we say about money", "Using the site", "Our content", "No warranty, and what we\u2019re responsible for", "Changes", "Law", "Contact"]
+    }
+  };
+  function LegalPage({ doc = "privacy" }) {
+    const d = LEGAL[doc];
+    return /* @__PURE__ */ React.createElement(Section, { tone: "base" }, /* @__PURE__ */ React.createElement("div", { style: { maxWidth: 760 } }, /* @__PURE__ */ React.createElement(PageHead, { title: d.title, lede: d.lede, eyebrow: d.version }), d.short && /* @__PURE__ */ React.createElement(Card, { radius: "lg", variant: "outlined", style: { marginBottom: 24 } }, /* @__PURE__ */ React.createElement("strong", { style: { display: "block", marginBottom: 8, fontSize: "var(--type-heading-sm-size)" } }, "01 \xB7 The short version"), /* @__PURE__ */ React.createElement("ul", { style: { margin: 0, paddingLeft: 20, display: "grid", gap: 6, fontSize: 15, lineHeight: 1.6, color: "var(--text-secondary)" } }, d.short.map((s) => /* @__PURE__ */ React.createElement("li", { key: s }, s)))), /* @__PURE__ */ React.createElement("ol", { style: { listStyle: "none", margin: 0, padding: 0 } }, d.sections.map((s, i) => /* @__PURE__ */ React.createElement("li", { key: s }, /* @__PURE__ */ React.createElement(GapListRow, { title: String(i + (d.short ? 2 : 1)).padStart(2, "0") + " \xB7 " + s, sub: "Section text: see the page source in apps/marketing (not re-typed in the kit)" }))))));
+  }
+  Object.assign(window, { VerificationPage, BlogIndex, BlogPost, LegalPage });
+})();
+
+/* Index3/MarketingApp.jsx */
+(() => {
+  function Landing({ audience, setAudience, formState, consent, setConsent, onNavigate }) {
+    return /* @__PURE__ */ React.createElement("div", { style: { background: "var(--surface-base)", position: "relative" } }, /* @__PURE__ */ React.createElement(Nav, { audience, setAudience, onNavigate }), /* @__PURE__ */ React.createElement(Hero, { audience, formState }), audience !== "rider" && /* @__PURE__ */ React.createElement(Verification, { onReadMore: () => onNavigate("verification") }), /* @__PURE__ */ React.createElement(HowItWorks, { audience }), /* @__PURE__ */ React.createElement(Benefits, { audience }), audience === "customer" && /* @__PURE__ */ React.createElement(Sealed, null), /* @__PURE__ */ React.createElement(Faq, { audience }), /* @__PURE__ */ React.createElement(FooterCta, { audience, onNavigate, onCookies: () => setConsent && setConsent("notice") }), consent && /* @__PURE__ */ React.createElement(ConsentBanner, { mode: consent, onClose: () => setConsent(null), onChoose: () => setConsent("preferences") }));
+  }
+  function Shell({ page, onNavigate, children }) {
+    return /* @__PURE__ */ React.createElement("div", { style: { background: "var(--surface-base)" } }, /* @__PURE__ */ React.createElement(Nav, { audience: "customer", page, onNavigate }), children, /* @__PURE__ */ React.createElement(FooterCta, { audience: "customer", showCta: false, onNavigate }));
+  }
+  function LandingArtboard({ variant, go, forceForm, consentMode }) {
+    const [audience, setAudience] = React.useState(variant);
+    const [consent, setConsent] = React.useState(consentMode || null);
+    React.useEffect(() => setAudience(variant), [variant]);
+    React.useEffect(() => setConsent(consentMode || null), [consentMode]);
+    return /* @__PURE__ */ React.createElement(Landing, { audience, setAudience, formState: forceForm, consent, setConsent, onNavigate: (to) => go(to === "privacy" || to === "terms" ? "legal" : to, to === "privacy" || to === "terms" ? to : void 0) });
+  }
+  function MarketingApp() {
+    const nav = (go) => (to) => go(to === "privacy" || to === "terms" ? "legal" : to, to === "privacy" || to === "terms" ? to : void 0);
+    const screens = [
+      {
+        id: "landing",
+        label: "Landing (/, /restaurants, /riders)",
+        states: ["populated"],
+        variants: [{ id: "customer", label: "Customer \xB7 /" }, { id: "restaurant", label: "Restaurant \xB7 /restaurants" }, { id: "rider", label: "Rider \xB7 /riders" }],
+        render: ({ variant, go }) => /* @__PURE__ */ React.createElement(LandingArtboard, { variant, go })
+      },
+      {
+        id: "waitlist",
+        label: "Waitlist form states",
+        states: ["populated"],
+        variants: [
+          { id: "idle", label: "Idle (consent unticked)" },
+          { id: "submitting", label: "Submitting" },
+          { id: "invalid", label: "Invalid email" },
+          { id: "consent", label: "Consent required" },
+          { id: "error", label: "Server error (retry)" },
+          { id: "success", label: "Success" }
+        ],
+        render: ({ variant, go }) => /* @__PURE__ */ React.createElement(LandingArtboard, { key: variant, variant: "customer", go, forceForm: variant })
+      },
+      {
+        id: "consent",
+        label: "Cookie consent",
+        states: ["populated"],
+        variants: [{ id: "notice", label: "Notice (nothing pre-accepted)" }, { id: "preferences", label: "Preferences (all off)" }],
+        render: ({ variant, go }) => /* @__PURE__ */ React.createElement(LandingArtboard, { variant: "customer", go, consentMode: variant })
+      },
+      {
+        id: "verification",
+        label: "Verification standard (/verification)",
+        states: ["populated"],
+        render: ({ go }) => /* @__PURE__ */ React.createElement(Shell, { page: "verification", onNavigate: nav(go) }, /* @__PURE__ */ React.createElement(VerificationPage, null))
+      },
+      {
+        id: "blog",
+        label: "Writing (/blog)",
+        states: ["populated", "empty"],
+        render: ({ state, go }) => /* @__PURE__ */ React.createElement(Shell, { page: "blog", onNavigate: nav(go) }, /* @__PURE__ */ React.createElement(BlogIndex, { state, onOpen: () => go("post"), onNavigate: nav(go) }))
+      },
+      {
+        id: "post",
+        label: "Post (/blog/[slug])",
+        states: ["populated", "error"],
+        render: ({ state, go }) => /* @__PURE__ */ React.createElement(Shell, { page: "blog", onNavigate: nav(go) }, /* @__PURE__ */ React.createElement(BlogPost, { state, onNavigate: nav(go) }))
+      },
+      {
+        id: "legal",
+        label: "Legal (/privacy, /terms)",
+        states: ["populated"],
+        variants: [{ id: "privacy", label: "Privacy" }, { id: "terms", label: "Terms" }],
+        render: ({ variant, go }) => /* @__PURE__ */ React.createElement(Shell, { page: "legal", onNavigate: nav(go) }, /* @__PURE__ */ React.createElement(LegalPage, { doc: variant }))
+      }
+    ];
+    return /* @__PURE__ */ React.createElement(KitFrame, { title: "MARKETING SITE", device: "desktop", screens });
+  }
+  ReactDOM.createRoot(document.getElementById("root")).render(/* @__PURE__ */ React.createElement(MarketingApp, null));
+})();
+
+</script></body></html>

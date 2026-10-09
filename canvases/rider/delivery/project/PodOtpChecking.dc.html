@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Checking the code</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+[data-rider]{font-family:var(--font-ui)}
+.offer-chrome{background:var(--surface-raised)}
+[data-theme="dark"] .offer-chrome,[data-theme="dark"].offer-chrome{background:var(--surface-chrome)}
+</style>
+</helmet>
+<div data-rider="" data-theme="{{theme}}" style="width: 390px; height: 844px; position: relative; overflow: hidden; display: flex; flex-direction: column; background: var(--surface-base); color: var(--text-primary)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="field" title="Proof of delivery" subtitle="Step 4 of 4 · Proof · HG-7Q3F-2R" on-back="{{noop}}" back-label="Back to handover"></x-import><div aria-hidden="true" style="position: absolute; top: var(--space-1); left: var(--space-1); width: 56px; height: 56px; border: 1.5px dashed var(--text-link); border-radius: var(--radius-sm); pointer-events: none; z-index: 5"></div><main style="flex: 1 1 auto; overflow-y: auto; padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-4)"><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Proposed variant: AppBar tone=field with IconButton size lg (56) · the DS back control is 44; the 56 hit area is outlined top left</span><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">POST proof-of-delivery {method: OTP, otp_code} · Idempotency-Key · input read-only while it sends</span><h2 style="margin: 0; font-size: var(--type-heading-xl-size); font-weight: var(--type-heading-xl-weight); letter-spacing: var(--type-heading-xl-tracking); line-height: 1.25">Ask the customer for their 4-digit code</h2><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Customer's code" variant="numeric" size="lg" value="4821" read-only="{{yes}}" max-length="{{four}}"></x-import><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Proposed variant: Input size xl (56, body-lg) · focused = the field's own 2px border.brand border, no outer ring (docs/decisions/focus-indicator.md)</span></main><footer style="flex: 0 0 auto; padding: var(--space-3) var(--space-5) var(--space-5); border-top: 1px solid var(--border-decorative); background: var(--surface-base); display: flex; flex-direction: column; gap: var(--space-2)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="xl" full-width="{{yes}}" loading="{{yes}}">Checking the code</x-import><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Prototype branches: <a href="PodOtpAccepted.dc.html" style="color: var(--text-link)">200</a> · <a href="PodOtpWrong.dc.html" style="color: var(--text-link)">422 wrong</a> · <a href="PodOtpLocked.dc.html" style="color: var(--text-link)">423 locked</a></span></footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["dark","light"],"default":"dark"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const theme = this.props.theme ?? 'dark';
+    return { theme: theme, onDark: theme === 'dark', yes: true, no: false, noop: () => {}, twentyFour: 24, activeTab: 'home',
+      onOff: { on: 'On', off: 'Off' },
+      tabs: [{ key: 'home', label: 'Home', icon: 'home' }, { key: 'earnings', label: 'Earnings', icon: 'orders' }, { key: 'account', label: 'Account', icon: 'profile' }], four: 4 };
+  }
+}
+</script>
+</body>
+</html>

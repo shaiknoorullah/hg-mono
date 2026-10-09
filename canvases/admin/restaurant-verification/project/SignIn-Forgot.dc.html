@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Reset a forgotten password</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:var(--surface-base);color:var(--text-primary);font-family:var(--font-ui)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+textarea.hg-ta{box-sizing:border-box;width:100%;min-height:96px;padding:10px 12px;border:1px solid var(--border-interactive);border-radius:8px;background:var(--surface-raised);color:var(--text-primary);font:inherit;font-size:15px;line-height:1.5;resize:vertical}
+textarea.hg-ta:focus{outline:none;border:var(--focus-field-border-width) solid var(--focus-ring)}
+textarea.hg-ta[aria-invalid="true"]{border:var(--focus-field-border-width) solid var(--color-danger-500)}
+.skip{position:absolute;left:-10000px;top:8px;z-index:900;padding:12px 16px;background:var(--surface-raised);color:var(--text-primary);border-radius:8px;font-weight:600}
+.skip:focus{left:80px;outline:none;box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+.napi{display:inline-flex;align-self:flex-start;padding:2px 8px;border-radius:4px;background:var(--surface-sunken);border:1px solid var(--border-strong);font-size:12px;font-weight:600;line-height:1.4}
+.prop{display:inline-flex;align-self:flex-start;padding:2px 8px;border-radius:4px;background:var(--color-info-50);color:var(--color-info-700);font-size:12px;font-weight:600;line-height:1.4}
+</style>
+</helmet>
+<div style="width: 2120px; height: 1200px; box-sizing: border-box; position: relative; background: var(--surface-base); font-family: var(--font-ui); color: var(--text-primary); display: flex; flex-direction: column; align-items: center; gap: 20px; padding: 40px 0">
+  <a class="skip" href="#forgot">Skip to main content</a>
+  <div style="display: flex; flex-direction: column; align-items: center; gap: 6px">
+    <div data-gap="Wordmark" role="img" aria-label="HalalGoes" style="width: 96px; height: 32px; box-sizing: border-box; border: 1px solid var(--border-strong); border-radius: 4px"></div>
+    <span style="font-size: 15px; color: var(--text-secondary)">Operations</span>
+  </div>
+  <main id="forgot" style="width: 2040px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px 32px; align-items: start">
+    <section aria-labelledby="fp1" style="display: flex; flex-direction: column; gap: 8px">
+      <span style="font-size: 13px; font-weight: 600; color: var(--text-secondary)">1 · Ask for a link (requestPasswordReset)</span>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="elevated" radius="lg" padding="28px">
+<div style="display: flex; flex-direction: column; gap: 14px">
+      <h1 id="fp1" style="margin: 0; font-size: 22px; font-weight: 700">Reset your password</h1>
+      <p style="margin: 0; font-size: 15px; line-height: 1.5">Enter your work email. If it belongs to a staff account, we send a link to choose a new password. It works for 30 minutes, once.</p>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Work email" variant="email" required="{{yes}}" default-value="sana.qureshi@halalgoes.ca" auto-complete="email"></x-import>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" full-width="{{yes}}">Send reset link</x-import>
+      <a href="SignIn-Help.dc.html" style="font-size: 15px">Lost your authenticator app instead?</a>
+</div>
+</x-import>
+    </section>
+    <section aria-labelledby="fp1s" style="display: flex; flex-direction: column; gap: 8px">
+      <span style="font-size: 13px; font-weight: 600; color: var(--text-secondary)">1 · Sending (requestPasswordReset in flight)</span>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="elevated" radius="lg" padding="28px">
+<div style="display: flex; flex-direction: column; gap: 14px">
+      <h2 id="fp1s" style="margin: 0; font-size: 22px; font-weight: 700">Reset your password</h2>
+      <p style="margin: 0; font-size: 15px; line-height: 1.5">Enter your work email. If it belongs to a staff account, we send a link to choose a new password. It works for 30 minutes, once.</p>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Work email" variant="email" required="{{yes}}" default-value="sana.qureshi@halalgoes.ca" auto-complete="email" read-only="{{yes}}"></x-import>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" full-width="{{yes}}" loading="{{yes}}">Send reset link</x-import>
+      <span role="status" style="font-size: 13px; color: var(--text-secondary)">Sending the link. The email field is read-only until the server answers.</span>
+</div>
+</x-import>
+    </section>
+    <section aria-labelledby="fp1f" style="display: flex; flex-direction: column; gap: 8px">
+      <span style="font-size: 13px; font-weight: 600; color: var(--text-secondary)">1 · Didn’t send (network or server error)</span>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="elevated" radius="lg" padding="28px">
+<div style="display: flex; flex-direction: column; gap: 14px">
+      <h2 id="fp1f" style="margin: 0; font-size: 22px; font-weight: 700">Reset your password</h2>
+      <dc-import name="InlineAlert" tone="warning" blocking="{{yes}}" heading="We couldn’t send the link." body="Nothing was changed. Try again." w="436" hint-size="436px,110px"></dc-import>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Work email" variant="email" required="{{yes}}" default-value="sana.qureshi@halalgoes.ca" auto-complete="email"></x-import>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" full-width="{{yes}}">Send reset link</x-import>
+</div>
+</x-import>
+    </section>
+    <section aria-labelledby="fp2" style="display: flex; flex-direction: column; gap: 8px">
+      <span style="font-size: 13px; font-weight: 600; color: var(--text-secondary)">2 · Sent (the same answer whether or not the account exists)</span>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="elevated" radius="lg" padding="28px">
+<div style="display: flex; flex-direction: column; gap: 14px">
+      <h2 id="fp2" style="margin: 0; font-size: 22px; font-weight: 700">Check your email</h2>
+      <p role="status" style="margin: 0; font-size: 15px; line-height: 1.5">If sana.qureshi@halalgoes.ca is a staff account, a reset link is on its way. It works for 30 minutes. Nothing changes until you choose a new password.</p>
+      <p style="margin: 0; font-size: 13px; line-height: 1.45; color: var(--text-secondary)">No email after a few minutes? Check spam, or ask a super admin.</p>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" href="Main.dc.html" style="align-self: flex-start">Back to sign in</x-import>
+</div>
+</x-import>
+    </section>
+    <section aria-labelledby="fp3" style="display: flex; flex-direction: column; gap: 8px">
+      <span style="font-size: 13px; font-weight: 600; color: var(--text-secondary)">3 · Choose a new password (resetPassword, from the link)</span>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="elevated" radius="lg" padding="28px">
+<div style="display: flex; flex-direction: column; gap: 14px">
+      <h2 id="fp3" style="margin: 0; font-size: 22px; font-weight: 700">Choose a new password</h2>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="New password" variant="password" required="{{yes}}" default-value="ramadanmubarak2026" auto-complete="new-password" error-text="This password has appeared in a data breach, so it isn’t safe. Choose a different one of at least 12 characters."></x-import>
+      <p style="margin: 0; font-size: 13px; line-height: 1.45; color: var(--text-secondary)">Saving signs you out everywhere, on every device, and we email you to say the password changed. Then sign in with your new password and an authenticator code.</p>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" full-width="{{yes}}">Save password</x-import>
+</div>
+</x-import>
+    </section>
+    <section aria-labelledby="fp3s" style="display: flex; flex-direction: column; gap: 8px">
+      <span style="font-size: 13px; font-weight: 600; color: var(--text-secondary)">3 · Saving (resetPassword in flight)</span>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="elevated" radius="lg" padding="28px">
+<div style="display: flex; flex-direction: column; gap: 14px">
+      <h2 id="fp3s" style="margin: 0; font-size: 22px; font-weight: 700">Choose a new password</h2>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="New password" variant="password" required="{{yes}}" default-value="tamarind-orchard-41" auto-complete="new-password" read-only="{{yes}}"></x-import>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" full-width="{{yes}}" loading="{{yes}}">Save password</x-import>
+      <span role="status" style="font-size: 13px; color: var(--text-secondary)">Saving. The field is read-only until the server answers.</span>
+</div>
+</x-import>
+    </section>
+    <section aria-labelledby="fp3f" style="display: flex; flex-direction: column; gap: 8px">
+      <span style="font-size: 13px; font-weight: 600; color: var(--text-secondary)">3 · Didn’t save (network or server error)</span>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="elevated" radius="lg" padding="28px">
+<div style="display: flex; flex-direction: column; gap: 14px">
+      <h2 id="fp3f" style="margin: 0; font-size: 22px; font-weight: 700">Choose a new password</h2>
+      <dc-import name="InlineAlert" tone="warning" blocking="{{yes}}" heading="Your password wasn’t changed." body="Try again; the link still works until it expires." w="436" hint-size="436px,110px"></dc-import>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="New password" variant="password" required="{{yes}}" default-value="tamarind-orchard-41" auto-complete="new-password"></x-import>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" full-width="{{yes}}">Save password</x-import>
+</div>
+</x-import>
+    </section>
+    <section aria-labelledby="fp4" style="display: flex; flex-direction: column; gap: 8px">
+      <span style="font-size: 13px; font-weight: 600; color: var(--text-secondary)">4 · Link expired or already used (400), and done (204)</span>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="elevated" radius="lg" padding="28px">
+<div style="display: flex; flex-direction: column; gap: 14px">
+      <dc-import name="InlineAlert" tone="warning" blocking="{{yes}}" heading="This link has expired or was already used" body="Reset links work for 30 minutes, once. Nothing was changed. Ask for a new link." w="424" hint-size="424px,110px"></dc-import>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="secondary" size="md" style="align-self: flex-start">Ask for a new link</x-import>
+      <div role="status" style="display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border-radius: 12px; background: var(--surface-sunken)">
+        <strong style="font-size: 15px">Password saved</strong>
+        <span style="font-size: 15px; line-height: 1.5">You’ve been signed out everywhere. Sign in with your new password.</span>
+      </div>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md" href="Main.dc.html" style="align-self: flex-start">Go to sign in</x-import>
+</div>
+</x-import>
+    </section>
+  </main>
+  <div style="width: 2040px; display: flex; flex-direction: column; gap: 6px">
+    <span class="napi">Contract change: forgotten-password reset (requestPasswordReset, resetPassword) moves to launch for staff (owner decision, round 2); the contract still marks it a later version</span>
+    <span style="font-size: 13px; line-height: 1.45; color: var(--text-secondary)">Each step is a page of its own at sign-in size; they are drawn side by side here, each followed by its in-flight and failed states. The request always answers the same way, so the page never says whether an email has an account. A lost authenticator is never reset this way: a super admin calls the person back on the phone number on their account and checks two account details first.</span>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":2120,"height":1200}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { yes: true, no: false, noop: () => {} };
+  }
+}
+</script>
+</body>
+</html>

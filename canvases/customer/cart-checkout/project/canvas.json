@@ -1,0 +1,625 @@
+{
+  "v": 3,
+  "attachments": {},
+  "boards": {
+    "Cart-active-order.dc.html": {
+      "h": 1140,
+      "title": "Cart — order already on the way",
+      "w": 390,
+      "x": 3858,
+      "y": 300
+    },
+    "Cart-addon-unavailable.dc.html": {
+      "h": 1060,
+      "title": "Cart — extra ran out (ADDON_UNAVAILABLE)",
+      "w": 390,
+      "x": 7618,
+      "y": 300
+    },
+    "Cart-below-minimum.dc.html": {
+      "h": 1160,
+      "title": "Cart — below minimum order",
+      "w": 390,
+      "x": 10908,
+      "y": 300
+    },
+    "Cart-cert-lapsed.dc.html": {
+      "h": 1000,
+      "title": "Cart — certification lapsed (EXPIRED)",
+      "w": 390,
+      "x": 9968,
+      "y": 300
+    },
+    "Cart-clear-confirm.dc.html": {
+      "h": 1000,
+      "title": "Cart — clear cart confirm",
+      "w": 390,
+      "x": 11378,
+      "y": 300
+    },
+    "Cart-dark.dc.html": {
+      "h": 1000,
+      "title": "Not for approval — Cart, dark (blocked on DS dark halal tokens)",
+      "w": 390,
+      "x": 11848,
+      "y": 300
+    },
+    "Cart-default.dc.html": {
+      "h": 1000,
+      "is_interactive": true,
+      "title": "Cart — default, priced from the quote",
+      "w": 390,
+      "x": 560,
+      "y": 300
+    },
+    "Cart-edit-line.dc.html": {
+      "h": 1140,
+      "title": "Cart — edit a line (item sheet, prefilled)",
+      "w": 390,
+      "x": 6208,
+      "y": 300
+    },
+    "Cart-empty.dc.html": {
+      "h": 844,
+      "title": "Cart — empty",
+      "w": 390,
+      "x": 1970,
+      "y": 300
+    },
+    "Cart-error.dc.html": {
+      "h": 844,
+      "title": "Cart — error",
+      "w": 390,
+      "x": 2440,
+      "y": 300
+    },
+    "Cart-item-deleted.dc.html": {
+      "h": 1060,
+      "title": "Cart — removed from menu (ITEM_DELETED, CATEGORY_INACTIVE)",
+      "w": 390,
+      "x": 8088,
+      "y": 300
+    },
+    "Cart-line-removed.dc.html": {
+      "h": 900,
+      "title": "Cart — line removed, with Undo",
+      "w": 390,
+      "x": 4798,
+      "y": 300
+    },
+    "Cart-line-updating.dc.html": {
+      "h": 1000,
+      "title": "Cart — line updating",
+      "w": 390,
+      "x": 4328,
+      "y": 300
+    },
+    "Cart-loading.dc.html": {
+      "h": 844,
+      "title": "Cart — loading",
+      "w": 390,
+      "x": 1500,
+      "y": 300
+    },
+    "Cart-max-qty.dc.html": {
+      "h": 1000,
+      "title": "Cart — line at the maximum (20)",
+      "w": 390,
+      "x": 5738,
+      "y": 300
+    },
+    "Cart-no-address.dc.html": {
+      "h": 1100,
+      "title": "Cart — no address (estimate)",
+      "w": 390,
+      "x": 10438,
+      "y": 300
+    },
+    "Cart-offline.dc.html": {
+      "h": 1192,
+      "title": "Cart — offline (reading, quantity changes paused)",
+      "w": 868,
+      "x": 2910,
+      "y": 300
+    },
+    "Cart-price-changed.dc.html": {
+      "h": 1180,
+      "title": "Cart — price changed",
+      "w": 390,
+      "x": 8558,
+      "y": 300
+    },
+    "Cart-quoting.dc.html": {
+      "h": 1000,
+      "title": "Cart — pricing for your address",
+      "w": 390,
+      "x": 1030,
+      "y": 300
+    },
+    "Cart-restaurant-closed.dc.html": {
+      "h": 1060,
+      "title": "Cart — restaurant closed or paused",
+      "w": 390,
+      "x": 9028,
+      "y": 300
+    },
+    "Cart-restaurant-unavailable.dc.html": {
+      "h": 1100,
+      "title": "Cart — restaurant unavailable (no halal cause)",
+      "w": 390,
+      "x": 9498,
+      "y": 300
+    },
+    "Cart-text-2x.dc.html": {
+      "h": 1300,
+      "title": "Cart — lines at 1.3× and 2.0×",
+      "w": 390,
+      "x": 12318,
+      "y": 300
+    },
+    "Cart-unavailable-line.dc.html": {
+      "h": 1120,
+      "title": "Cart — item out of stock (OUT_OF_STOCK)",
+      "w": 390,
+      "x": 6678,
+      "y": 300
+    },
+    "Cart-undo-failed.dc.html": {
+      "h": 900,
+      "title": "Cart — Undo failed (item became unavailable)",
+      "w": 390,
+      "x": 5268,
+      "y": 300
+    },
+    "Cart-variant-unavailable.dc.html": {
+      "h": 1060,
+      "title": "Cart — chosen size sold out (VARIANT_UNAVAILABLE)",
+      "w": 390,
+      "x": 7148,
+      "y": 300
+    },
+    "Checkout-3ds-failed.dc.html": {
+      "h": 1200,
+      "title": "Checkout — bank confirmation failed or cancelled (order CREATED, deadline running)",
+      "w": 390,
+      "x": 12246,
+      "y": 2020
+    },
+    "Checkout-3ds.dc.html": {
+      "h": 980,
+      "title": "Checkout — bank confirmation needed (order created)",
+      "w": 390,
+      "x": 11776,
+      "y": 2020
+    },
+    "Checkout-active-order.dc.html": {
+      "h": 1000,
+      "title": "Checkout — order already on the way (fallback; Cart warns first)",
+      "w": 390,
+      "x": 14126,
+      "y": 2020
+    },
+    "Checkout-active-race.dc.html": {
+      "h": 900,
+      "title": "Checkout — active order found at placing (race)",
+      "w": 390,
+      "x": 14596,
+      "y": 2020
+    },
+    "Checkout-add-card.dc.html": {
+      "h": 916,
+      "title": "Checkout — Add a card (SetupIntent): loading, ready to save, card rejected, limit reached",
+      "w": 1728,
+      "x": 6208,
+      "y": 2020
+    },
+    "Checkout-address-empty.dc.html": {
+      "h": 844,
+      "title": "Checkout — no saved addresses (sheet)",
+      "w": 390,
+      "x": 4798,
+      "y": 2020
+    },
+    "Checkout-address-sheet.dc.html": {
+      "h": 844,
+      "title": "Checkout — choose address (all selectable)",
+      "w": 390,
+      "x": 4328,
+      "y": 2020
+    },
+    "Checkout-another-way.dc.html": {
+      "h": 1200,
+      "title": "Checkout — another way to pay (order created, same PaymentIntent)",
+      "w": 390,
+      "x": 23534,
+      "y": 2020
+    },
+    "Checkout-blocked.dc.html": {
+      "h": 2700,
+      "title": "Checkout — blocking errors (quote and place)",
+      "w": 390,
+      "x": 15066,
+      "y": 2020
+    },
+    "Checkout-cancel-states.dc.html": {
+      "h": 1272,
+      "title": "Checkout — cancel confirm, reason states (note too short, cancelling, failed)",
+      "w": 1298,
+      "x": 24004,
+      "y": 2020
+    },
+    "Checkout-cancelled.dc.html": {
+      "h": 916,
+      "title": "Checkout — order cancelled: Put these items back in your cart; putting back (loading), couldn't put back (error), cart h",
+      "w": 1728,
+      "x": 25382,
+      "y": 2020
+    },
+    "Checkout-cannot-deliver.dc.html": {
+      "h": 844,
+      "title": "Checkout — address out of range",
+      "w": 390,
+      "x": 15536,
+      "y": 2020
+    },
+    "Checkout-card-expired.dc.html": {
+      "h": 1000,
+      "title": "Checkout — saved card expired",
+      "w": 390,
+      "x": 9426,
+      "y": 2020
+    },
+    "Checkout-checking.dc.html": {
+      "h": 900,
+      "title": "Checkout — connection dropped while placing",
+      "w": 390,
+      "x": 13656,
+      "y": 2020
+    },
+    "Checkout-dark.dc.html": {
+      "h": 1400,
+      "title": "Not for approval — Checkout, dark (blocked on DS dark halal tokens)",
+      "w": 390,
+      "x": 18826,
+      "y": 2020
+    },
+    "Checkout-deadline-passed.dc.html": {
+      "h": 844,
+      "title": "Checkout — 15-minute deadline passed: Put these items back in your cart",
+      "w": 390,
+      "x": 12716,
+      "y": 2020
+    },
+    "Checkout-declined-cancel.dc.html": {
+      "h": 1260,
+      "is_interactive": true,
+      "title": "Checkout — cancel confirm with reason (payment declined, bank confirmation failed, wallet closed)",
+      "w": 390,
+      "x": 22124,
+      "y": 2020
+    },
+    "Checkout-declined.dc.html": {
+      "h": 1200,
+      "title": "Checkout — payment declined (order CREATED, deadline running)",
+      "w": 390,
+      "x": 11306,
+      "y": 2020
+    },
+    "Checkout-double-tap.dc.html": {
+      "h": 900,
+      "title": "Checkout — second tap while placing (IDEMPOTENCY_IN_PROGRESS)",
+      "w": 390,
+      "x": 10366,
+      "y": 2020
+    },
+    "Checkout-error.dc.html": {
+      "h": 844,
+      "title": "Checkout — error",
+      "w": 390,
+      "x": 18356,
+      "y": 2020
+    },
+    "Checkout-finish-profile.dc.html": {
+      "h": 1372,
+      "title": "Checkout — finish profile (sheet): default, saving, error",
+      "w": 1298,
+      "x": 27190,
+      "y": 2020
+    },
+    "Checkout-halal-lapsed.dc.html": {
+      "h": 844,
+      "title": "Checkout — restaurant unavailable, certificate not current (re-read EXPIRED)",
+      "w": 390,
+      "x": 16476,
+      "y": 2020
+    },
+    "Checkout-handover-sheet.dc.html": {
+      "h": 1080,
+      "title": "Checkout — handover, flags and rider notes (sheet)",
+      "w": 390,
+      "x": 1030,
+      "y": 2020
+    },
+    "Checkout-no-address.dc.html": {
+      "h": 900,
+      "title": "Checkout — no address selected",
+      "w": 390,
+      "x": 5268,
+      "y": 2020
+    },
+    "Checkout-no-card.dc.html": {
+      "h": 1100,
+      "title": "Checkout — no saved card (wallet first)",
+      "w": 390,
+      "x": 8016,
+      "y": 2020
+    },
+    "Checkout-offline.dc.html": {
+      "h": 1572,
+      "title": "Checkout — offline before placing",
+      "w": 868,
+      "x": 1970,
+      "y": 2020
+    },
+    "Checkout-pay-sheet.dc.html": {
+      "h": 900,
+      "title": "Checkout — Pay with sheet (cards, wallet, add card)",
+      "w": 390,
+      "x": 5738,
+      "y": 2020
+    },
+    "Checkout-placing.dc.html": {
+      "h": 1000,
+      "title": "Checkout — placing (pending, no optimistic navigation)",
+      "w": 390,
+      "x": 9896,
+      "y": 2020
+    },
+    "Checkout-prices-updated.dc.html": {
+      "h": 1160,
+      "title": "Checkout — quote expired, prices updated",
+      "w": 390,
+      "x": 3858,
+      "y": 2020
+    },
+    "Checkout-processing.dc.html": {
+      "h": 1260,
+      "title": "Checkout — payment still processing (PaymentState PROCESSING)",
+      "w": 390,
+      "x": 10836,
+      "y": 2020
+    },
+    "Checkout-quote-stale.dc.html": {
+      "h": 900,
+      "title": "Checkout — price changed at placing",
+      "w": 390,
+      "x": 13186,
+      "y": 2020
+    },
+    "Checkout-quoting.dc.html": {
+      "h": 1000,
+      "title": "Checkout — calculating",
+      "w": 390,
+      "x": 1500,
+      "y": 2020
+    },
+    "Checkout-ready.dc.html": {
+      "h": 1860,
+      "is_interactive": true,
+      "title": "Checkout — ready to place",
+      "w": 390,
+      "x": 560,
+      "y": 2020
+    },
+    "Checkout-retries-exhausted.dc.html": {
+      "h": 844,
+      "title": "Checkout — payment retries used up (Needs API: payment attempt limit): Put these items back in your cart",
+      "w": 390,
+      "x": 22594,
+      "y": 2020
+    },
+    "Checkout-tax-review.dc.html": {
+      "h": 1000,
+      "title": "Checkout — with tax lines (after HST registration; review only)",
+      "w": 390,
+      "x": 19766,
+      "y": 2020
+    },
+    "Checkout-text-2x.dc.html": {
+      "h": 2000,
+      "title": "Checkout — tip group, total and footer at 1.3× and 2.0×",
+      "w": 390,
+      "x": 19296,
+      "y": 2020
+    },
+    "Checkout-tip-too-high.dc.html": {
+      "h": 1160,
+      "title": "Checkout — tip over the limit (422)",
+      "w": 390,
+      "x": 3388,
+      "y": 2020
+    },
+    "Checkout-tip.dc.html": {
+      "h": 1200,
+      "title": "Checkout — tip added, re-quoted (focus)",
+      "w": 390,
+      "x": 2918,
+      "y": 2020
+    },
+    "Checkout-unavailable.dc.html": {
+      "h": 844,
+      "title": "Checkout — restaurant unavailable (409, no halal cause)",
+      "w": 390,
+      "x": 16006,
+      "y": 2020
+    },
+    "Checkout-wallet-cancelled.dc.html": {
+      "h": 1300,
+      "title": "Checkout — Apple Pay / Google Pay sheet closed by the customer",
+      "w": 390,
+      "x": 8956,
+      "y": 2020
+    },
+    "Checkout-wallet.dc.html": {
+      "h": 1260,
+      "title": "Checkout — paying with Apple Pay / Google Pay",
+      "w": 390,
+      "x": 8486,
+      "y": 2020
+    },
+    "Order-placed-authorized.dc.html": {
+      "h": 1180,
+      "title": "Order placed — sending to the restaurant (AUTHORIZED, no countdown yet)",
+      "w": 390,
+      "x": 23064,
+      "y": 2020
+    },
+    "Order-placed-cancel.dc.html": {
+      "h": 1252,
+      "title": "Order placed — cancel confirm and the too-late race",
+      "w": 868,
+      "x": 20706,
+      "y": 2020
+    },
+    "Order-placed.dc.html": {
+      "h": 1180,
+      "title": "Order placed — waiting for the restaurant (reply-by time and neutral bar, recap, cancel)",
+      "w": 390,
+      "x": 20236,
+      "y": 2020
+    },
+    "Order-preparing.dc.html": {
+      "h": 1180,
+      "title": "Order — being prepared (accepted, payment captured, no cancel; where View order goes for an order being prepared)",
+      "w": 390,
+      "x": 21654,
+      "y": 2020
+    }
+  },
+  "createdOnFiles": {
+    "at": "2026-10-01T02:00:19Z",
+    "v": 1
+  },
+  "designSystems": [
+    {
+      "artifact": "https://claude.ai/artifact/1GwGVZz8Ju9wcz4HfCnzbv",
+      "copiedAt": "2026-10-01T02:00:19Z",
+      "namespace": "halalgoesdesignsystem-d11a47",
+      "title": "HalalGoes design system",
+      "version": "1790605103-3266"
+    }
+  ],
+  "launch": {
+    "view": "canvas"
+  },
+  "notes": {
+    "open-decisions": {
+      "fill": "gray",
+      "maxH": 800,
+      "size": 24,
+      "text": "Checkout notes\n\n• Delivery instructions are an array in the contract; the handover choice is one of three (photo for Leave at the door, a code for Meet), plus two optional flags.\n• Tax: rows render the quote's tax lines verbatim; none at launch while the HST registration question is open. The service fee line always shows, even at $0.00 (owner decision).\n• Tip presets are customer inputs; the server validates tip_cents. Riders see the tip before they accept (owner decision).\n• Promo codes are a later release and are not drawn.\n• Package tamper seals are out of launch (owner decision), so checkout has no seal step.\n• One active order at a time (owner decision): Cart and Checkout stop a second order. An order under review doesn't count (owner decision, 1 October).\n• After createOrder the order exists unpaid with a 15-minute deadline: decline, bank confirmation failure and a closed wallet sheet all recover on the SAME payment, or cancel (free). A second createOrder is never sent.\n• Cart after a cancelled, expired or failed unpaid order (owner decision, 1 October): the cart is deleted when the order is created, so the cancelled, deadline-passed and retries-used-up boards offer \"Put these items back in your cart\", which re-adds the lines with the existing cart operations (one addCartLine per line); the server prices them again. No contract change. Its loading, error and cart-holds-another-restaurant states are frames 2 to 4 of Checkout — order cancelled; the result is the cart itself (Cart — default).\n• Still open: cancel reason at the payment stage. Drawn to the contract (customer picks a reason, nothing pre-selected); the alternative is a fixed \"changed my mind\" reason with no step.",
+      "w": 440,
+      "x": 0,
+      "y": 2020
+    },
+    "split-from": {
+      "fill": "blue",
+      "maxH": 300,
+      "size": 24,
+      "text": "Split from HalalGoes Customer — Discover & Order: https://claude.ai/artifact/F2MfULPYoJQkkLsA5G3aFk",
+      "w": 440,
+      "x": 0,
+      "y": 300
+    },
+    "t-cart": {
+      "kind": "title1",
+      "maxW": 8000,
+      "text": "F5 Cart",
+      "w": 240,
+      "x": 560,
+      "y": 0
+    },
+    "t-checkout": {
+      "kind": "title1",
+      "maxW": 8000,
+      "text": "F6 Checkout, payment and hand-off",
+      "w": 240,
+      "x": 560,
+      "y": 1720
+    }
+  },
+  "order": [
+    "Cart-default.dc.html",
+    "Cart-quoting.dc.html",
+    "Cart-loading.dc.html",
+    "Cart-empty.dc.html",
+    "Cart-error.dc.html",
+    "Cart-offline.dc.html",
+    "Cart-active-order.dc.html",
+    "Cart-line-updating.dc.html",
+    "Cart-line-removed.dc.html",
+    "Cart-undo-failed.dc.html",
+    "Cart-max-qty.dc.html",
+    "Cart-edit-line.dc.html",
+    "Cart-unavailable-line.dc.html",
+    "Cart-variant-unavailable.dc.html",
+    "Cart-addon-unavailable.dc.html",
+    "Cart-item-deleted.dc.html",
+    "Cart-price-changed.dc.html",
+    "Cart-restaurant-closed.dc.html",
+    "Cart-restaurant-unavailable.dc.html",
+    "Cart-cert-lapsed.dc.html",
+    "Cart-no-address.dc.html",
+    "Cart-below-minimum.dc.html",
+    "Cart-clear-confirm.dc.html",
+    "Cart-dark.dc.html",
+    "Cart-text-2x.dc.html",
+    "Checkout-ready.dc.html",
+    "Checkout-handover-sheet.dc.html",
+    "Checkout-quoting.dc.html",
+    "Checkout-offline.dc.html",
+    "Checkout-tip.dc.html",
+    "Checkout-tip-too-high.dc.html",
+    "Checkout-prices-updated.dc.html",
+    "Checkout-address-sheet.dc.html",
+    "Checkout-address-empty.dc.html",
+    "Checkout-no-address.dc.html",
+    "Checkout-pay-sheet.dc.html",
+    "Checkout-add-card.dc.html",
+    "Checkout-no-card.dc.html",
+    "Checkout-wallet.dc.html",
+    "Checkout-wallet-cancelled.dc.html",
+    "Checkout-card-expired.dc.html",
+    "Checkout-placing.dc.html",
+    "Checkout-double-tap.dc.html",
+    "Checkout-processing.dc.html",
+    "Checkout-declined.dc.html",
+    "Checkout-another-way.dc.html",
+    "Checkout-3ds.dc.html",
+    "Checkout-3ds-failed.dc.html",
+    "Checkout-deadline-passed.dc.html",
+    "Checkout-quote-stale.dc.html",
+    "Checkout-checking.dc.html",
+    "Checkout-active-order.dc.html",
+    "Checkout-active-race.dc.html",
+    "Checkout-blocked.dc.html",
+    "Checkout-finish-profile.dc.html",
+    "Checkout-cannot-deliver.dc.html",
+    "Checkout-unavailable.dc.html",
+    "Checkout-halal-lapsed.dc.html",
+    "Checkout-error.dc.html",
+    "Checkout-dark.dc.html",
+    "Checkout-text-2x.dc.html",
+    "Checkout-tax-review.dc.html",
+    "Order-placed.dc.html",
+    "Order-placed-cancel.dc.html",
+    "Order-preparing.dc.html",
+    "Checkout-declined-cancel.dc.html",
+    "Checkout-cancel-states.dc.html",
+    "Checkout-cancelled.dc.html",
+    "Checkout-retries-exhausted.dc.html",
+    "Order-placed-authorized.dc.html"
+  ],
+  "pages": [],
+  "title": "HalalGoes Customer — Cart & Checkout"
+}

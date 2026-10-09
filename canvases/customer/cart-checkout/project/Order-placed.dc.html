@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Order placed, waiting for the restaurant</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:var(--color-neutral-100)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+.demo-focus .hg-focus,.demo-focus .hg-choice-ctl,.demo-focus .hg-row,.demo-focus > a{box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)!important}
+.demo-focus-field .hg-field{border-color:var(--focus-ring)!important;box-shadow:inset 0 0 0 calc(var(--focus-field-border-width) - 1px) var(--focus-ring)!important}
+
+</style>
+</helmet>
+<div style="width: 390px; height: 1180px; position: relative; overflow: hidden; display: flex; flex-direction: column; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="cream" title="Order HG-8F3K2Q" subtitle="Zaytoun Grill" back-label="Back to Home" on-back="{{noop}}"></x-import>
+<main style="flex-grow: 1; display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-4)">
+<h2 style="margin: 0; font-size: var(--type-heading-xl-size); font-weight: 700">Waiting for Zaytoun Grill to accept</h2>
+<div style="display: flex; flex-direction: column; gap: var(--space-2)"><p style="margin: 0; font-size: var(--type-heading-md-size); font-weight: 600; font-variant-numeric: tabular-nums">Restaurant replies by 6:52 pm</p><div role="progressbar" data-library="React Native Reusables Progress (shadcn/ui Progress on web)" aria-label="Waiting for Zaytoun Grill to reply" aria-valuemin="0" aria-valuemax="180" aria-valuenow="10" aria-valuetext="Restaurant replies by 6:52 pm" style="height: var(--space-2); border-radius: var(--radius-full); background: var(--surface-sunken); overflow: hidden; outline: 1.5px dashed var(--color-info-500); outline-offset: 3px"><div data-part="indicator" style="width: 6%; height: 100%; border-radius: var(--radius-full); background: var(--text-secondary)"></div></div></div>
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--color-info-700); background: var(--color-info-50); border: 1px dashed var(--color-info-500)">Proposed component: WaitProgress: RNR Progress (neutral) under an absolute reply-by time. Built on the React Native Reusables Progress primitive (shadcn/ui Progress on web): indicator var(--text-secondary), track var(--surface-sunken). No seconds ticking, no amber or red urgency, no pulse.</span>
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">Owner decision: a neutral progress bar plus the absolute time, instead of the Countdown timer. Bound: order.deadline_at (180-second acceptance window) against server time; the bar fills with elapsed time. Screen readers hear the reply-by time once, not a running count.</span>
+<p style="margin: 0; font-size: var(--type-body-md-size); line-height: var(--type-body-md-line); color: var(--text-secondary)">Your card is authorised, not charged. If Zaytoun Grill doesn't accept by 6:52 pm, the authorisation is released and nothing is charged.</p>
+<div style="display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap"><span style="font-size: var(--type-body-md-size)">Zaytoun Grill</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.HalalBadge" state="CERTIFIED" size="sm" surface="card"></x-import></div>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg">
+<section aria-labelledby="recap-h" style="display: flex; flex-direction: column; gap: var(--space-2)">
+<h2 id="recap-h" style="margin: 0; font-size: var(--type-heading-md-size); font-weight: 600">What you ordered</h2>
+<div style="display: flex; gap: var(--space-2); align-items: baseline; font-size: var(--type-body-md-size)"><span style="width: 28px; color: var(--text-secondary); font-variant-numeric: tabular-nums">1×</span><span style="flex-grow: 1; display: flex; flex-direction: column"><span>Mixed charcoal grill</span><span style="font-size: var(--type-body-sm-size); color: var(--text-secondary)">For one · Extra garlic sauce · "No onions please"</span></span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{q.l1}}" size="sm"></x-import></div>
+<div style="display: flex; gap: var(--space-2); align-items: baseline; font-size: var(--type-body-md-size)"><span style="width: 28px; color: var(--text-secondary); font-variant-numeric: tabular-nums">2×</span><span style="flex-grow: 1">Chicken shawarma wrap</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{q.l2}}" size="sm"></x-import></div>
+<div style="display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-2); padding-top: var(--space-2); border-top: 1px solid var(--border-decorative)"><strong style="font-size: var(--type-heading-md-size)">Total authorised</strong><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{q.total}}" size="lg"></x-import></div>
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">Bound: order.lines[] and order.money (OrderCustomerView)</span>
+</section></x-import>
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">Reached only after createOrder 201 and payment confirmation (C-23). Accepted, rejected and timed-out states live in the Orders and tracking canvas.</span>
+</main>
+<footer style="display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-4); background: var(--surface-raised); box-shadow: var(--elev-sticky)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" full-width="{{yes}}" icon-start="orders">Track order</x-import><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" full-width="{{yes}}" href="Order-placed-cancel.dc.html" destructive="{{yes}}">Cancel order</x-import><span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">Shown only while order.can_cancel is true (free before the restaurant accepts).</span>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1180}}'>
+class Component extends DCLogic {
+renderVals() {
+return {
+yes: true,
+no: false,
+none: null,
+zero: 0,
+two: 2,
+noop: function () {},
+nav: [
+{ key: 'home', label: 'Home', icon: 'home' },
+{ key: 'search', label: 'Search', icon: 'search' },
+{ key: 'orders', label: 'Orders', icon: 'orders' },
+{ key: 'account', label: 'Account', icon: 'profile' }
+],
+q: { l1: 2649, l2: 2498, sub: 5147, del: 299, svc: 0, tip: 500, total: 5446, totaltip: 5946, disc: 515, totald: 4931, hst: 669, totalt: 6115, min: 1500, del2: 349, total2: 5496, oldTotal: 5446, newTotal: 5596, del3: 449, short: 853 },
+tipOptions: [
+{ value: '0', label: 'No tip' },
+{ value: '200', label: '$2' },
+{ value: '300', label: '$3' },
+{ value: '500', label: '$5' },
+{ value: 'other', label: 'Other' }
+],
+w180: 180,
+w900: 900,
+handover: [
+{ value: 'LEAVE_AT_DOOR', label: 'Leave at the door', description: 'The rider takes a photo as proof of delivery.' },
+{ value: 'MEET_AT_DOOR', label: 'Meet at the door', description: "You'll give the rider a code at handover." },
+{ value: 'MEET_IN_LOBBY', label: 'Meet in the lobby', description: "You'll give the rider a code at handover." }
+],
+payOptions: [
+{ value: 'wallet', label: 'Apple Pay', description: 'Google Pay on Android. Your wallet confirms the amount.' },
+{ value: 'pm_4242', label: 'Visa •••• 4242', description: 'Expires 08/28' },
+{ value: 'pm_5454', label: 'Mastercard •••• 5454', description: 'Expires 03/27' }
+],
+addresses: [
+{ value: 'home', label: 'Home · 14 Ellesmere Rd', description: 'Unit 402 · Toronto ON M1R 4E7 · Default' },
+{ value: 'work', label: 'Work · 2075 Kennedy Rd', description: 'Toronto ON M1T 3V3' },
+{ value: 'cottage', label: 'Cottage · 88 Lakeshore Rd', description: 'Grand Bend ON N0M 1T0' }
+]
+};
+}
+}
+</script>
+</body>
+</html>

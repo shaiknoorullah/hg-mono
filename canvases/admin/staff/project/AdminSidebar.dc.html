@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Admin sidebar</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+[data-admin-chrome] a:focus-visible,[data-admin-chrome] button:focus-visible{outline:2px solid transparent;box-shadow:0 0 0 var(--focus-offset-width) var(--surface-chrome),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring-on-accent) !important}
+[data-admin-chrome] .nav-item{display:flex;align-items:center;gap:10px;min-height:44px;width:100%;box-sizing:border-box;padding:0 var(--space-3);border:0;border-radius:var(--radius-sm);background:transparent;color:var(--text-on-accent);text-decoration:none;font-weight:500;font-size:var(--type-body-md-size);line-height:1.3;font-family:var(--font-ui);text-align:start;cursor:pointer}
+[data-admin-chrome] .nav-item[aria-current="page"]{font-weight:700;background:var(--text-on-accent);color:var(--surface-chrome)}
+[data-admin-chrome] .icon-gap{width:20px;height:20px;box-sizing:border-box;flex-shrink:0;border:1px dashed currentColor;border-radius:var(--radius-xs)}
+[data-admin-chrome] .rail-item{display:flex;flex-direction:column;gap:2px;align-items:center;justify-content:center;position:relative;width:76px;min-height:48px;padding:4px 0;box-sizing:border-box;border:0;border-radius:var(--radius-sm);background:transparent;color:var(--text-on-accent);text-decoration:none;cursor:pointer}
+[data-admin-chrome] .rail-item[aria-current="page"]{background:var(--text-on-accent);color:var(--surface-chrome)}
+[data-admin-chrome] .wn-trigger[aria-expanded="true"]{font-weight:700;background:var(--text-on-accent);color:var(--surface-chrome)}
+[data-admin-chrome] .rail-item.wn-trigger[aria-expanded="true"] .rail-label{font-weight:700}
+[data-admin-chrome] .rail-count{position:absolute;top:2px;right:2px}
+[data-admin-chrome] .rail-label{font-size:var(--type-caption-size);line-height:1.2;font-weight:500;text-align:center;max-width:72px;overflow-wrap:anywhere;font-family:var(--font-ui)}
+[data-admin-chrome] .rail-item[aria-current="page"] .rail-label{font-weight:700}
+[data-admin-chrome] .chrome-tag{font-size:var(--type-mono-sm-size);line-height:1.4;font-family:var(--font-mono);color:var(--text-on-accent)}
+</style>
+</helmet>
+<div data-density="compact" data-admin-chrome="" style="width: {{rootWidth}}; height: 900px; box-sizing: border-box; background: var(--surface-chrome); color: var(--text-on-accent); font-family: var(--font-ui); display: flex; flex-direction: column">
+<sc-if value="{{expanded}}" hint-placeholder-val="{{true}}">
+<div style="width: 264px; height: 900px; box-sizing: border-box; display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-4) var(--space-3)">
+<div style="display: flex; align-items: flex-start; gap: var(--space-2); padding: var(--space-1) 0 var(--space-2) 6px">
+<div style="display: flex; flex-direction: column; gap: 6px; flex-grow: 1">
+<div class="chrome-tag" style="height: 36px; width: 120px; border: 1px solid currentColor; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center">Component gap: Wordmark</div>
+<div style="font-size: var(--type-body-sm-size)">Operations · Ontario</div>
+</div>
+<button type="button" class="rail-item" aria-label="Collapse navigation" aria-expanded="true" aria-controls="admin-nav" style="width: 44px; min-height: 44px"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="back" size="md"></x-import></button>
+</div>
+<div class="chrome-tag" style="padding: 0 6px">SideNav: owner-approved, not built yet. Collapses to an 80 px rail that shows a short text label under every item, so nothing depends on a hover tooltip. Dashed squares: Solar glyphs to add.</div>
+<nav id="admin-nav" aria-label="Admin" style="display: flex; flex-direction: column; gap: 12px; flex-grow: 1; min-height: 0; overflow-y: auto">
+<sc-for list="{{groups}}" as="group" hint-placeholder-count="3">
+<div style="display: flex; flex-direction: column; gap: 2px">
+<h2 style="margin: 0; padding: 0 var(--space-3) var(--space-1); font-size: var(--type-body-sm-size); font-weight: 700; letter-spacing: 0.02em">{{group.label}}<sc-if value="{{group.viewOnly}}" hint-placeholder-val="{{false}}"><span style="font-weight: 400"> · view only</span></sc-if></h2>
+<ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px">
+<sc-for list="{{group.items}}" as="item" hint-placeholder-count="3">
+<li style="margin: 0; display: flex; flex-direction: column">
+<a class="nav-item" href="{{item.href}}" aria-current="{{item.ariaCurrent}}" aria-label="{{item.aria}}" style="{{item.style}}">
+<sc-if value="{{item.hasIcon}}" hint-placeholder-val="{{true}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="{{item.icon}}" weight="{{item.weight}}" size="md"></x-import></sc-if>
+<sc-if value="{{item.iconGap}}" hint-placeholder-val="{{false}}"><span class="icon-gap" aria-hidden="true"></span></sc-if>
+<span style="flex-grow: 1">{{item.label}}</span>
+<span aria-hidden="true" style="display: inline-flex; gap: var(--space-1)">
+<sc-for list="{{item.counts}}" as="c" hint-placeholder-count="0">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="{{c.variant}}" size="sm">{{c.n}}</x-import>
+</sc-for>
+</span>
+</a>
+<sc-if value="{{item.note}}" hint-placeholder-val="{{false}}"><span class="chrome-tag" style="padding: 0 var(--space-3) var(--space-1) 42px">{{item.note}}</span></sc-if>
+</li>
+</sc-for>
+</ul>
+</div>
+</sc-for>
+<sc-if value="{{countsNote}}" hint-placeholder-val="{{false}}">
+<p style="margin: 0; padding: 0 var(--space-3); font-size: var(--type-body-sm-size); line-height: 1.4">{{countsNote}}</p>
+</sc-if>
+</nav>
+<div style="padding: var(--space-3) 6px 0; display: flex; flex-direction: column; gap: var(--space-1)">
+<button type="button" class="nav-item wn-trigger" aria-expanded="{{wnExpanded}}" aria-controls="detail-panel" style="{{whatsNewStyle}}">
+<span class="icon-gap" aria-hidden="true"></span>
+<span style="flex-grow: 1">What's new</span>
+<sc-if value="{{hasNew}}" hint-placeholder-val="{{false}}">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="brand" appearance="solid" size="sm">New</x-import><span class="hg-sr">, updates since you last looked</span>
+</sc-if>
+</button>
+<a class="nav-item" href="https://claude.ai/artifact/11QnFovXMrnVMHgAh4bBFC" aria-current="{{systemCurrent}}">
+<span class="icon-gap" aria-hidden="true"></span>
+<span style="flex-grow: 1">System status</span>
+</a>
+<p style="margin: 0; padding: 6px var(--space-3) 0; font-size: var(--type-body-sm-size)">Signed in as <strong style="font-weight: 700">{{roleLabel}}</strong></p>
+<div style="display: flex; flex-direction: column; gap: var(--space-1); padding: var(--space-1) 6px 0">
+<button type="button" class="nav-item" style="justify-content: center; border: 1px solid currentColor; font-weight: 600; {{signOutRing}}">Sign out</button>
+<span class="chrome-tag">Component gap: Button variant on-chrome (Sign out)</span>
+</div>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{collapsed}}" hint-placeholder-val="{{false}}">
+<div style="width: 80px; height: 900px; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; gap: var(--space-2); padding: var(--space-4) 0">
+<button type="button" class="rail-item" aria-label="Expand navigation" aria-expanded="false" aria-controls="admin-nav"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="menu" size="md"></x-import></button>
+<nav id="admin-nav" aria-label="Admin" style="display: flex; flex-direction: column; align-items: center; gap: var(--space-1); flex-grow: 1; min-height: 0">
+<sc-for list="{{railItems}}" as="item" hint-placeholder-count="8">
+<a class="rail-item" href="{{item.href}}" aria-current="{{item.ariaCurrent}}" aria-label="{{item.aria}}" title="{{item.label}}">
+<sc-if value="{{item.hasIcon}}" hint-placeholder-val="{{true}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="{{item.icon}}" weight="{{item.weight}}" size="md"></x-import></sc-if>
+<sc-if value="{{item.iconGap}}" hint-placeholder-val="{{false}}"><span class="icon-gap" aria-hidden="true"></span></sc-if>
+<span class="rail-label" aria-hidden="true">{{item.short}}</span>
+<sc-if value="{{item.hasCount}}" hint-placeholder-val="{{false}}"><span class="rail-count" aria-hidden="true"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="{{item.countVariant}}" size="sm">{{item.countN}}</x-import></span></sc-if>
+</a>
+</sc-for>
+</nav>
+<button type="button" class="rail-item wn-trigger" aria-expanded="{{wnExpanded}}" aria-controls="detail-panel" aria-label="What's new" title="What's new"><span class="icon-gap" aria-hidden="true"></span><span class="rail-label" aria-hidden="true">What's new</span></button>
+<a class="rail-item" href="https://claude.ai/artifact/11QnFovXMrnVMHgAh4bBFC" aria-current="{{systemCurrent}}" aria-label="System status" title="System status"><span class="icon-gap" aria-hidden="true"></span><span class="rail-label" aria-hidden="true">System</span></a>
+<button type="button" class="rail-item" aria-label="Sign out, signed in as {{roleLabel}}" title="Sign out"><span class="icon-gap" aria-hidden="true"></span><span class="rail-label" aria-hidden="true">Sign out</span></button>
+</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"active":{"editor":"enum","options":["certificates","restaurants","riders","bodies","menu","changes","orders","refunds","alerts","staff","account","sessions","system","none"],"default":"staff"},"viewer":{"editor":"enum","options":["super","admin","support"],"default":"super"},"counts":{"editor":"enum","options":["live","loading","waiting","stale"],"default":"live"},"hasNew":{"editor":"boolean","default":false},"wnExpanded":{"editor":"boolean","default":false},"focusDemo":{"editor":"enum","options":["none","link","signout","whatsnew"],"default":"none"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"collapsed":{"editor":"boolean","default":false},"$preview":{"width":264,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const active = this.props.active ?? 'staff';
+    const viewer = this.props.viewer ?? 'super';
+    const counts = this.props.counts ?? 'live';
+    const focusDemo = this.props.focusDemo ?? 'none';
+    const dark = (this.props.theme ?? 'light') === 'dark';
+    const truthy = function (x) { return x === true || x === 'true'; };
+    const collapsed = truthy(this.props.collapsed);
+    const wnExpanded = truthy(this.props.wnExpanded);
+    const ring = 'box-shadow: 0 0 0 var(--focus-offset-width) var(--surface-chrome), 0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring-on-accent);';
+    const live = counts === 'live' || counts === 'stale';
+    const q = { restaurants: 4, riders: 2, disputes: 5, refunds: 2 };
+    const item = function (key, label, href, icon, cnts) {
+      const on = key === active;
+      const shown = live && cnts ? cnts : [];
+      const aria = shown.length ? label + ', ' + shown.map(function (c) { return c.n + ' ' + c.noun; }).join(', ') : label;
+      return {
+        key: key, label: label, href: href, aria: aria,
+        icon: icon || 'info', hasIcon: !!icon, iconGap: !icon, weight: on ? 'bold' : 'linear',
+        ariaCurrent: on ? 'page' : 'false', style: (focusDemo === 'link' && key === 'alerts') ? ring : '',
+        counts: shown.map(function (c) { return dark && c.variant === 'neutral' ? Object.assign({}, c, { variant: 'outline' }) : c; }),
+        note: '',
+        short: ({ certificates: 'Certificates', restaurants: 'Restaurant', riders: 'Rider', bodies: 'Bodies', orders: 'Orders', refunds: 'Refunds', alerts: 'Alerts', staff: 'Staff', sessions: 'Sessions', menu: 'Menus', changes: 'Changes', account: 'Account' })[key] || label
+      };
+    };
+    const review = [
+      Object.assign(item('certificates', 'Halal certificates', '#', null, null), { note: 'Needs API: certificate queue count. None shown until then.' }),
+      item('restaurants', 'Restaurant applications', '#', null, [{ n: q.restaurants, noun: 'waiting', variant: 'neutral' }]),
+      item('bodies', 'Issuing bodies', '#', null, null),
+      // Owner decision (round 2): restaurants edit their own menus at launch, so the menu review queue ships too.
+      item('menu', 'Menu reviews', 'https://claude.ai/artifact/6QRa35DR4iwCGdftXEASRp', 'orders', null)
+    ];
+    // Owner decision (round 2): support agents have no rider queue; they open a rider's application from its support case.
+    if (viewer !== 'support') review.splice(2, 0, item('riders', 'Rider applications', '#', null, [{ n: q.riders, noun: 'waiting', variant: 'neutral' }]));
+    // Owner decision (round 2): restaurant profile changes are reviewed at launch (admins and super admins).
+    if (viewer !== 'support') review.push(item('changes', 'Profile changes', 'https://claude.ai/artifact/6QRa35DR4iwCGdftXEASRp', 'home', null));
+    const operate = [
+      item('orders', 'Orders', '#', 'orders', null),
+      item('refunds', 'Refunds & disputes', '#', null, [{ n: q.refunds, noun: 'failed refunds', variant: 'warning' }, { n: q.disputes, noun: 'open disputes', variant: 'neutral' }]),
+      item('alerts', 'Live alerts', 'https://claude.ai/artifact/11QnFovXMrnVMHgAh4bBFC', 'bell', null)
+    ];
+    const platform = [];
+    if (viewer !== 'support') platform.push(item('staff', 'Staff', 'Main.dc.html', 'profile', null));
+    // Owner decision (round 2): Change password and Sign out everywhere ship at launch on Your account;
+    // My sessions (see and end single sessions) stays a later version and is not in the launch navigation.
+    platform.push(item('account', 'Your account', 'https://claude.ai/artifact/11QnFovXMrnVMHgAh4bBFC', 'profile', null));
+    const roleLabel = viewer === 'support' ? 'Support agent' : viewer === 'admin' ? 'Admin' : 'Super admin';
+    const countsNote = counts === 'loading' ? 'Waiting for queue counts from the live connection.' : counts === 'waiting' ? 'Connected. Counts arrive with the next change.' : counts === 'stale' ? 'Counts from 9:44 am. Not live while the connection is down.' : '';
+    const all = review.concat(operate, platform);
+    const railItems = all.map(function (it) { var c = it.counts[0]; return Object.assign({}, it, { hasCount: !!c, countN: c ? c.n : '', countVariant: c ? c.variant : 'neutral' }); });
+    return {
+      yes: true,
+      expanded: !collapsed,
+      collapsed: collapsed,
+      rootWidth: collapsed ? '80px' : '264px',
+      railItems: railItems,
+      groups: [
+        { label: 'Review', viewOnly: viewer === 'support', items: review },
+        { label: 'Operate', viewOnly: false, items: operate },
+        { label: 'Platform', viewOnly: false, items: platform }
+      ],
+      countsNote: countsNote,
+      roleLabel: roleLabel,
+      hasNew: truthy(this.props.hasNew),
+      wnExpanded: wnExpanded ? 'true' : 'false',
+      whatsNewStyle: focusDemo === 'whatsnew' ? ring : '',
+      systemCurrent: active === 'system' ? 'page' : 'false',
+      signOutRing: focusDemo === 'signout' ? ring : ''
+    };
+  }
+}
+</script>
+</body>
+</html>

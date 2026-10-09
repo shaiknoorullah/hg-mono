@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Order state catalogue</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+.hg-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+</style>
+</helmet>
+<div data-density="compact" style="width: 1440px; height: 2060px; box-sizing: border-box; padding: var(--space-10) var(--space-16); background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui); display: flex; flex-direction: column; gap: var(--space-6)">
+  <div style="display: flex; flex-direction: column; gap: var(--space-2); max-width: 980px">
+    <h1 style="margin: 0; font-size: var(--type-heading-xl-size); font-weight: var(--font-weight-bold); line-height: 1.25; letter-spacing: -0.01em">How each state renders on order detail</h1>
+    <p style="margin: 0; font-size: var(--type-body-md-size); line-height: 1.5; color: var(--text-secondary)">Every value of PaymentState, DispatchState and RefundState, and every halal cell, exactly as the order detail and the grid draw it. Sample amounts are the order HG-6RN4KP; the words and badges are the design.</p>
+  </div>
+
+  <section aria-labelledby="pay-h" style="display: flex; flex-direction: column; gap: var(--space-3)">
+    <h2 id="pay-h" style="margin: 0; font-size: var(--type-heading-md-size); font-weight: var(--font-weight-semibold)">Payment card · PaymentState</h2>
+    <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-3)">
+      <sc-for list="{{pay}}" as="p" hint-placeholder-count="8">
+        <div style="background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: var(--radius-lg); padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-2)">
+          <div style="display: flex; align-items: center; gap: var(--space-2)">
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="{{p.tone}}" icon="{{p.icon}}" size="md">{{p.label}}</x-import>
+          </div>
+          <span style="font-family: var(--font-mono); font-size: var(--type-caption-size); color: var(--text-secondary)">{{p.key}}</span>
+          <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-2); font-size: var(--type-caption-size); color: var(--text-secondary)">
+            <span style="display: flex; flex-direction: column; gap: var(--space-1)">Authorised<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{p.auth}}" size="sm"></x-import></span>
+            <span style="display: flex; flex-direction: column; gap: var(--space-1)">Captured<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{p.cap}}" size="sm"></x-import></span>
+            <span style="display: flex; flex-direction: column; gap: var(--space-1)">Refunded<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{zero}}" size="sm"></x-import></span>
+          </div>
+          <span style="font-size: var(--type-body-sm-size); line-height: 1.45">{{p.note}}</span>
+          <span style="font-size: var(--type-caption-size); color: var(--text-secondary)">Total row: {{p.total}}</span>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-6)">
+    <section aria-labelledby="dis-h" style="background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: var(--radius-lg); padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-2)">
+      <h2 id="dis-h" style="margin: 0; font-size: var(--type-heading-md-size); font-weight: var(--font-weight-semibold)">Dispatch cell · DispatchState</h2>
+      <sc-for list="{{dispatch}}" as="d" hint-placeholder-count="10">
+        <div style="display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: var(--space-3); padding: var(--space-2) 0; border-top: 1px solid var(--border-decorative); font-size: var(--type-body-sm-size); line-height: 1.45; min-height: 28px">
+          <span style="font-family: var(--font-mono); color: var(--text-secondary)">{{d.key}}</span>
+          <span style="display: flex; flex-direction: column; gap: var(--space-1)"><span style="font-size: var(--type-body-md-size)">{{d.label}}</span><span style="color: var(--text-secondary)">{{d.note}}</span></span>
+        </div>
+      </sc-for>
+      <span style="font-size: var(--type-body-sm-size); color: var(--text-secondary)">No dispatch yet: "Not started. Dispatch begins when the restaurant accepts."</span>
+    </section>
+
+    <section aria-labelledby="ref-h" style="background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: var(--radius-lg); padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-2)">
+      <h2 id="ref-h" style="margin: 0; font-size: var(--type-heading-md-size); font-weight: var(--font-weight-semibold)">Refund row · RefundState</h2>
+      <sc-for list="{{refund}}" as="r" hint-placeholder-count="10">
+        <div style="display: grid; grid-template-columns: 190px minmax(0, 1fr); gap: var(--space-3); align-items: start; padding: var(--space-2) 0; border-top: 1px solid var(--border-decorative); font-size: var(--type-body-sm-size); line-height: 1.45; min-height: 28px">
+          <span style="display: flex; flex-direction: column; gap: var(--space-1); align-items: flex-start"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="{{r.tone}}" icon="{{r.icon}}" size="md">{{r.label}}</x-import><span style="font-family: var(--font-mono); font-size: var(--type-caption-size); color: var(--text-secondary)">{{r.key}}</span></span>
+          <span>{{r.note}}</span>
+        </div>
+      </sc-for>
+    </section>
+  </div>
+
+  <section aria-labelledby="hal-h" style="background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: var(--radius-lg); padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-3)">
+    <h2 id="hal-h" style="margin: 0; font-size: var(--type-heading-md-size); font-weight: var(--font-weight-semibold)">Restaurant halal status now · operational surface on every admin screen</h2>
+    <div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--space-3)">
+      <sc-for list="{{halal}}" as="h" hint-placeholder-count="4">
+        <div style="display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-3); border-radius: var(--radius-md); background: var(--surface-sunken); min-height: 110px">
+          <span style="font-family: var(--font-mono); font-size: var(--type-caption-size); color: var(--text-secondary)">{{h.key}}</span>
+          <dc-import name="HalalState" state="{{h.key}}" size="sm" expires="{{h.exp}}" expires-full="{{h.expFull}}" hint-size="210px,20px"></dc-import>
+          <span style="font-size: var(--type-body-sm-size); line-height: 1.45">{{h.note}}</span>
+        </div>
+      </sc-for>
+      <div style="display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-3); border-radius: var(--radius-md); background: var(--surface-sunken); min-height: 110px">
+        <span style="font-family: var(--font-mono); font-size: var(--type-caption-size); color: var(--text-secondary)">null / missing</span>
+        <span style="font-size: var(--type-body-sm-size); color: var(--text-secondary)">No status on file</span>
+        <span style="font-size: var(--type-body-sm-size); line-height: 1.45">No badge, never an optimistic one. The grid shows "No status on file" and detail "No halal status on file", as plain secondary text.</span>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="led-h" style="background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: var(--radius-lg); padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-3)">
+    <h2 id="led-h" style="margin: 0; font-size: var(--type-heading-md-size); font-weight: var(--font-weight-semibold)">Ledger entries · batch_kind, LedgerAccount, LedgerComponent</h2>
+    <span style="font-size: var(--type-body-sm-size); line-height: 1.45; color: var(--text-secondary)">Staff only, on order detail. Each batch sums to zero; an order's entries sum to zero once its money is final. Batches are drawn in posting order with the batch id and time.</span>
+    <div style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: var(--space-3)">
+      <sc-for list="{{batches}}" as="b" hint-placeholder-count="6">
+        <div style="display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-3); border-radius: var(--radius-md); background: var(--surface-sunken); min-height: 96px">
+          <span style="display: flex; align-items: baseline; gap: var(--space-2)"><span style="font-size: var(--type-label-lg-size); font-weight: var(--font-weight-semibold)">{{b.label}}</span><span style="font-family: var(--font-mono); font-size: var(--type-body-sm-size); color: var(--text-secondary)">{{b.key}}</span></span>
+          <span style="font-size: var(--type-body-sm-size); line-height: 1.45">{{b.note}}</span>
+        </div>
+      </sc-for>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-6)">
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--space-4); align-content: start">
+        <h3 style="grid-column: span 2; margin: 0 0 var(--space-1); font-size: var(--type-label-lg-size); font-weight: var(--font-weight-semibold)">Account labels</h3>
+        <sc-for list="{{accounts}}" as="a" hint-placeholder-count="10">
+          <div style="display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: var(--space-2); padding: var(--space-2) 0; border-top: 1px solid var(--border-decorative); font-size: var(--type-body-sm-size); line-height: 1.45">
+            <span style="font-family: var(--font-mono); color: var(--text-secondary)">{{a.key}}</span>
+            <span>{{a.label}}</span>
+          </div>
+        </sc-for>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--space-4); align-content: start">
+        <h3 style="grid-column: span 2; margin: 0 0 var(--space-1); font-size: var(--type-label-lg-size); font-weight: var(--font-weight-semibold)">Component labels</h3>
+        <sc-for list="{{components}}" as="c" hint-placeholder-count="9">
+          <div style="display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: var(--space-2); padding: var(--space-2) 0; border-top: 1px solid var(--border-decorative); font-size: var(--type-body-sm-size); line-height: 1.45">
+            <span style="font-family: var(--font-mono); color: var(--text-secondary)">{{c.key}}</span>
+            <span>{{c.label}}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+    <div role="note" style="display: flex; flex-direction: column; gap: var(--space-1); padding: var(--space-3); border-radius: var(--radius-md); border: 1px solid var(--border-decorative); font-size: var(--type-body-sm-size); line-height: 1.45">
+      <strong style="font-size: var(--type-body-md-size)">Tax while HST registration is open</strong>
+      <span>No tax is charged while HST registration is open, so orders show only the quote's lines, which add up to the total, and the ledger has no tax postings. The two tax labels, "Tax payable (pending HST decision)" and "Tax (pending HST decision)", stay in this legend only, for when registration is settled. See Order detail, ledger batches.</span>
+    </div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":2060}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const pay = [
+      ['REQUIRES_PAYMENT_METHOD', 'Needs a payment method', 'neutral', 'clock', 0, 0, 'The customer hasn’t attached a card yet. Nothing is held.', 'Order total (not yet authorised)'],
+      ['REQUIRES_CONFIRMATION', 'Waiting for confirmation', 'neutral', 'clock', 0, 0, 'The card is attached; the app hasn’t confirmed it. Nothing is held.', 'Order total (not yet authorised)'],
+      ['REQUIRES_ACTION', 'Customer confirming (3-D Secure)', 'warning', 'clock', 0, 0, 'The issuer asked the customer to confirm. The order cancels itself after 15 minutes.', 'Order total (not yet authorised)'],
+      ['PROCESSING', 'Processing', 'info', 'clock', 0, 0, 'The provider is working on it. Nothing to do yet.', 'Order total (not yet authorised)'],
+      ['REQUIRES_CAPTURE', 'Authorised, not captured', 'info', 'lock', 4396, 0, 'Funds held. Captured only when the restaurant accepts.', 'Order total (authorised, not charged)'],
+      ['SUCCEEDED', 'Captured', 'neutral', 'check', 4396, 4396, 'Charged when the restaurant accepted. Refunds are possible.', 'Total charged'],
+      ['CANCELED', 'Authorisation voided', 'outline', 'close', 4396, 0, 'Released after a rejection, timeout or cancel before acceptance. Nothing was charged.', 'Order total (authorisation voided, nothing charged)'],
+      ['FAILED', 'Payment failed', 'danger', 'error', 0, 0, 'Shown as Failure and Decline reason in plain words, with the code in mono beside each. The customer only ever sees the plain-language message.', 'Order total (payment failed, nothing charged)'],
+    ].map((x) => ({ key: x[0], label: x[1], tone: x[2], icon: x[3], auth: x[4], cap: x[5], note: x[6], total: x[7] }));
+    const dispatch = [
+      ['PENDING', 'Waiting to start the search', 'Created when the restaurant accepts; the search starts straight after.'],
+      ['SEARCHING', 'Searching for a rider', 'Shows which search and how far: 3, 6, then 10 km.'],
+      ['OFFERED', 'Offered to a rider, waiting for an answer', 'The rider has 30 seconds. The log shows the outcome: accepted, rejected, expired or withdrawn.'],
+      ['ASSIGNED', 'Rider assigned, heading to the restaurant', 'Rider name and vehicle appear in People and place.'],
+      ['AT_RESTAURANT', 'Rider at the restaurant', 'Waiting for the food.'],
+      ['CARRYING', 'Rider has the order, on the way', 'Moves the order to Picked up.'],
+      ['AT_CUSTOMER', 'Rider at the delivery address', 'Moves the order to Rider arrived.'],
+      ['COMPLETED', 'Delivery completed', 'Moves the order to Delivered.'],
+      ['UNASSIGNED', 'The rider dropped the order. Searching again.', 'The rider row reads "None. The last rider dropped the order at 6:41 pm."'],
+      ['NO_RIDER_FOUND', 'No rider found after 3 searches', 'Starts the no-rider escalation on Ready for pickup. Nothing is cancelled by this state alone.'],
+    ].map((x) => ({ key: x[0], label: x[1], note: x[2] }));
+    const refund = [
+      ['REQUESTED', 'Requested', 'neutral', 'clock', 'Received, not yet checked against limits.'],
+      ['PENDING_APPROVAL', 'Awaiting approval', 'warning', 'clock', 'Above the requester’s limit. A second person must approve before anything moves.'],
+      ['APPROVED', 'Approved', 'info', 'check', 'A second person approved it.'],
+      ['AUTHORISED', 'Authorised', 'info', 'check', 'Liability split fixed; about to go to the provider.'],
+      ['SUBMITTED', 'Sent to provider', 'info', 'clock', 'The customer sees "Refund in progress".'],
+      ['SUCCEEDED', 'Provider confirmed', 'neutral', 'check', 'Money has left. Terminal and irreversible.'],
+      ['SETTLED', 'Settled', 'neutral', 'check', 'Posted to the ledger. Terminal and irreversible.'],
+      ['FAILED', 'Failed, no money moved', 'danger', 'error', 'Pages on-call ([On-call name], [phone]; runbook linked from issue #66) and holds the order out of Completed until a new refund succeeds. Offers Issue a new refund.'],
+      ['DECLINED', 'Declined', 'outline', 'close', 'The approver said no. Nothing moved.'],
+      ['CANCELLED', 'Cancelled', 'outline', 'close', 'Withdrawn before it reached the provider. Nothing moved.'],
+    ].map((x) => ({ key: x[0], label: x[1], tone: x[2], icon: x[3], note: x[4] }));
+    const halal = [
+      { key: 'CERTIFIED', exp: '', expFull: '', note: 'The only solid green in the product.' },
+      { key: 'EXPIRING_SOON', exp: '19 Oct', expFull: '19 October 2026', note: 'Still certified, but the certificate ends soon: the amber tint with the certificate’s own date in the label, "Halal certified · expires 19 Oct". Drawn with the proposed HalalState composite until the design system’s badge has this look; never the solid seal.' },
+      { key: 'EXPIRED', exp: '', expFull: '', note: 'Cool slate: we can’t currently vouch. Never red.' },
+      { key: 'UNVERIFIED', exp: '', expFull: '', note: 'Dashed and transparent. Not a ruling on the food.' },
+    ];
+    const batches = [
+      ['CAPTURE', 'Capture', 'Posted when the restaurant accepts and the payment is captured: the customer charge against provider clearing.'],
+      ['SETTLE', 'Settlement', 'Posted about 2 minutes after delivery: clearing split to the restaurant, the rider and the platform (and tax, if any). Moves the order to Completed.'],
+      ['REFUND', 'Refund', 'Posted when a refund settles: the charge reversed against provider clearing. Who bears it is on the refund row.'],
+      ['PAYOUT', 'Payout', 'Payables transferred to a restaurant or rider. Payouts are weekly per partner; whether they appear on one order is Needs API.'],
+      ['ADJUSTMENT', 'Adjustment', 'A correction. The ledger is append-only, so mistakes are fixed by a new batch, never an edit.'],
+      ['PSP_FEE', 'Provider fee', 'The card processor’s fee, posted when the provider reports it, against platform revenue.'],
+    ].map((x) => ({ key: x[0], label: x[1], note: x[2] }));
+    const accounts = [
+      ['CUSTOMER_CHARGES', 'Customer charges'], ['PSP_CLEARING', 'Provider clearing'], ['PSP_FEES', 'Provider fees'],
+      ['RESTAURANT_PAYABLE', 'Restaurant payable'], ['RIDER_PAYABLE', 'Rider payable'], ['PLATFORM_REVENUE', 'Platform revenue'],
+      ['TAX_PAYABLE', 'Tax payable (pending HST decision)'], ['PROMO_EXPENSE', 'Promotion expense'], ['REFUNDS', 'Refunds'], ['PLATFORM_ABSORBED', 'Platform absorbed'],
+    ].map((x) => ({ key: x[0], label: x[1] }));
+    const components = [
+      ['SUBTOTAL', 'Subtotal'], ['COMMISSION', 'Commission'], ['DELIVERY_FEE', 'Delivery fee'], ['SERVICE_FEE', 'Service fee'],
+      ['TAX', 'Tax (pending HST decision)'], ['TIP', 'Tip'], ['DISCOUNT', 'Discount'], ['PSP_FEE', 'Provider fee'], ['REFUND', 'Refund'],
+    ].map((x) => ({ key: x[0], label: x[1] }));
+    return { zero: 0, pay, dispatch, refund, halal, batches, accounts, components };
+  }
+}
+</script>
+</body>
+</html>

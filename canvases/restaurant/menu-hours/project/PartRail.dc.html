@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Side navigation (part)</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+[data-rail] .rail-skip{transform:translateY(-200%)}
+[data-rail] .rail-skip:focus-visible{transform:none}
+[data-rail] .rail-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+</style>
+</helmet>
+<nav data-rail="" class="hg-on-accent" aria-label="Restaurant console" style="width: {{w}}px; height: {{h}}px; box-sizing: border-box; background: var(--surface-chrome); color: var(--text-on-accent); display: flex; flex-direction: column; font-family: var(--font-ui); position: relative;">
+  <a href="#main" class="rail-skip hg-focus" style="position: absolute; left: 8px; top: 8px; z-index: 1; padding: 10px 14px; background: var(--surface-raised); color: var(--text-primary); border-radius: var(--radius-sm); font: var(--text-type-label-md);">Skip to content</a>
+  <sc-if value="{{full}}" hint-placeholder-val="{{true}}">
+    <div style="padding: var(--space-5) var(--space-5) var(--space-3); display: flex; flex-direction: column; gap: var(--space-1);">
+      <img src="/_blob/6936218f408b0d4febf186032175e53d" alt="HalalGoes" style="width: 120px; height: 40px; display: block;">
+      <span style="font: var(--text-type-body-sm); color: var(--text-on-accent);">Restaurant partner</span>
+    </div>
+  </sc-if>
+  <sc-if value="{{icons}}" hint-placeholder-val="{{false}}">
+    <div style="padding: var(--space-4) var(--space-2) var(--space-3); display: flex; justify-content: center;">
+      <img src="/_blob/6936218f408b0d4febf186032175e53d" alt="HalalGoes" style="width: 66px; height: 22px; display: block;">
+    </div>
+  </sc-if>
+  <ul style="list-style: none; margin: 0; padding: var(--space-2); display: flex; flex-direction: column; gap: var(--space-1); flex-grow: 1;">
+    <sc-for list="{{items}}" as="it" hint-placeholder-count="5">
+      <li>
+        <a href="#" class="hg-focus" aria-current="{{it.current}}" style="{{it.linkStyle}}">
+          <sc-if value="{{it.hasIcon}}" hint-placeholder-val="{{true}}">
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="{{it.icon}}" weight="{{it.weight}}" size="md" hint-size="20px,20px"></x-import>
+          </sc-if>
+          <span style="{{labelStyle}}">{{it.label}}</span>
+          <sc-if value="{{it.hasCount}}" hint-placeholder-val="{{false}}">
+            <span aria-hidden="true" style="display: inline-flex;"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="brand" appearance="solid" size="sm" label="{{it.count}}" hint-size="22px,18px"></x-import></span>
+            <span class="rail-sr">, {{it.count}} waiting for an answer</span>
+          </sc-if>
+        </a>
+      </li>
+    </sc-for>
+  </ul>
+  <div style="padding: var(--space-3); display: flex; flex-direction: column; gap: var(--space-2); align-items: {{footAlign}};">
+    <sc-if value="{{full}}" hint-placeholder-val="{{true}}">
+      <span style="display: inline-flex; align-self: flex-start; padding: 2px var(--space-2); border: 1px dashed var(--text-on-accent); border-radius: var(--radius-xs); font: var(--text-type-mono-sm); color: var(--text-on-accent);">Proposed component: SideNav (collapsible). Owner approved it for the design system; built from shadcn Sidebar and the system Icon, Badge and IconButton</span>
+      <span style="font: var(--text-type-body-sm); color: var(--text-on-accent);">Zaytoun Grill · Mississauga</span>
+    </sc-if>
+    <span style="display: inline-flex; color: var(--text-on-accent);">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.IconButton" icon="{{toggleIcon}}" accessibility-label="{{toggleLabel}}" variant="plain" size="md" hint-size="44px,44px"></x-import>
+    </span>
+  </div>
+</nav>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"active":{"editor":"enum","options":["orders","menu","hours","payouts","settings"],"default":"menu"},"collapsed":{"editor":"boolean","default":false},"orders":{"editor":"int","default":2},"h":{"editor":"int","default":900},"$preview":{"width":224,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const active = this.props.active ?? 'menu';
+    const collapsed = !!this.props.collapsed;
+    const full = !collapsed;
+    // Owner-only at launch: no Staff page. Payouts and Settings have no Solar glyph in the system yet, so they are text-only.
+    const base = [
+      // Orders waiting for an answer; 0 when the restaurant can’t receive new orders (the badge is then left out).
+      { key: 'orders', label: 'Orders', icon: 'orders', count: Number(this.props.orders ?? 2) },
+      { key: 'menu', label: 'Menu', icon: 'menu' },
+      { key: 'hours', label: 'Hours', icon: 'clock' },
+      { key: 'payouts', label: 'Payouts', icon: null },
+      { key: 'settings', label: 'Settings', icon: null },
+    ];
+    const items = base.map((b) => {
+      const on = b.key === active;
+      const linkStyle = [
+        'display: flex', full ? 'flex-direction: row' : 'flex-direction: column', 'align-items: center',
+        full ? 'gap: var(--space-3)' : 'gap: var(--space-1)', full ? 'min-height: 48px' : 'min-height: 60px', full ? 'padding: 0 var(--space-3)' : 'padding: var(--space-2) var(--space-1)',
+        'box-sizing: border-box', 'border-radius: var(--radius-md)', 'text-decoration: none',
+        // The current page is an inverted tile (light tile, chrome-coloured label and icon), never a side bar.
+        on ? 'color: var(--surface-chrome)' : 'color: var(--text-on-accent)',
+        full ? 'font: var(--text-type-body-md)' : 'font: var(--text-type-body-sm)', on ? 'font-weight: var(--font-weight-bold)' : 'font-weight: var(--font-weight-medium)',
+        on ? 'background: var(--text-on-accent)' : 'background: transparent',
+        full ? 'text-align: left' : 'text-align: center', 'position: relative',
+      ].join('; ');
+      return { ...b, current: on ? 'page' : 'false', weight: on ? 'bold' : 'linear', hasIcon: !!b.icon, hasCount: !!b.count, linkStyle };
+    });
+    return {
+      items, full, icons: collapsed, w: collapsed ? 88 : 224, h: this.props.h ?? 900,
+      labelStyle: full ? 'flex-grow: 1;' : 'flex-grow: 0;',
+      footAlign: full ? 'stretch' : 'center',
+      toggleIcon: collapsed ? 'chevron-right' : 'back',
+      toggleLabel: collapsed ? 'Expand navigation' : 'Collapse navigation',
+    };
+  }
+}
+</script>
+</body>
+</html>

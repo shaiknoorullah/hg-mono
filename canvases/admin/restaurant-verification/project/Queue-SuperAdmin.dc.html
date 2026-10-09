@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Restaurant applications, super admin</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:var(--surface-base);color:var(--text-primary);font-family:var(--font-ui)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+textarea.hg-ta:focus{outline:none;border:var(--focus-field-border-width) solid var(--focus-ring)}
+textarea.hg-ta[aria-invalid="true"]{border:var(--focus-field-border-width) solid var(--color-danger-500)}
+textarea.hg-ta[aria-invalid="true"]:focus{box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+.skip{position:absolute;left:-10000px;top:8px;z-index:900;padding:12px 16px;background:var(--surface-raised);color:var(--text-primary);border-radius:8px;font-weight:600}
+.skip:focus{left:80px;outline:none;box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; display: grid; grid-template-columns: 64px minmax(0, 1fr); background: var(--surface-base); position: relative; overflow: hidden; font-family: var(--font-ui); color: var(--text-primary)">
+  <dc-import name="SideNav" active="applications" role="SUPER_ADMIN" collapsed="{{yes}}" h="900" hint-size="64px,900px"></dc-import>
+  <div style="display: flex; flex-direction: column; min-width: 0; min-height: 0; position: relative">
+    <a class="skip" href="#main">Skip to main content</a>
+    <a class="skip" href="#table">Skip to table</a>
+    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="raised" title="Restaurant applications" subtitle="Onboarding review · decided within 48 business hours"></x-import>
+    <main id="main" data-density="compact" style="flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 12px; padding: 12px; overflow: hidden">
+      <div style="flex: 1 1 auto; min-height: 0; display: flex"><dc-import name="QueueGrid" variant="superadmin" w="880" h="820" hint-size="880px,820px"></dc-import><div role="separator" aria-orientation="vertical" aria-label="Resize the detail panel" aria-controls="pane-detail" aria-valuenow="34" aria-valuemin="25" aria-valuemax="60" aria-valuetext="34 percent of the width. Left and Right arrows resize." tabindex="0" class="hg-focus hg-hit" style="flex: 0 0 12px; cursor: col-resize; align-self: stretch; display: flex; align-items: center; justify-content: center; border-radius: 4px"><span aria-hidden="true" style="display: block; width: 4px; height: 40px; border-radius: 2px; background: var(--border-interactive)"></span></div><section id="pane-detail" role="region" aria-labelledby="dp-h" style="flex: 0 0 460px; box-sizing: border-box; min-width: 0; min-height: 0; display: flex; flex-direction: column; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: 12px; overflow: hidden; border-color: var(--border-strong); box-shadow: var(--elev-1)"><div style="flex: 0 0 auto; display: flex; align-items: flex-start; gap: 8px; padding: 10px 8px 10px 16px; border-bottom: 1px solid var(--border-decorative)"><div style="flex: 1 1 auto; display: flex; flex-direction: column; gap: 4px; min-width: 0; padding-top: 4px"><h2 id="dp-h" tabindex="-1" style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Release the claim on Bait Al Mandi?</h2><p style="margin: 0; font-size: 13px; line-height: 1.45; color: var(--text-secondary)">Only super admins can do this. It is recorded with your account.</p></div><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.IconButton" icon="close" accessibility-label="Close this panel. Nothing is sent." variant="plain" size="md"></x-import></div><div style="flex: 1 1 auto; min-height: 0; overflow: auto; padding: 14px 16px; display: flex; flex-direction: column; gap: 14px"><div style="display: flex; flex-direction: column; gap: 16px; font-family: var(--font-ui)">
+      <p style="margin: 0; font-size: 15px; line-height: 1.5">Another reviewer has held it since 1:32 pm and its SLA is breached. Releasing puts it back in the queue in its place, oldest first. The reviewer’s unsaved work on their page can’t be sent after this.</p>
+      <dc-import name="Textarea" tid="rel-why" label="Reason (staff only)" helper="Recorded in the audit log. Never sent to the restaurant." value="SLA breached and the reviewer is off shift. Reassigning to Tier 2." count="62 of 1000 characters · minimum 10" error="" rows="3" w="426" hint-size="426px,170px"></dc-import>
+      <span style="display: inline-flex; align-self: flex-start; padding: 2px 8px; border-radius: 4px; background: var(--surface-sunken); border: 1px solid var(--border-strong); font-size: 12px; font-weight: 600">Needs API: release or reassign a review lock (super admin)</span>
+    </div></div><div style="flex: 0 0 auto; display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 12px 24px; padding: 10px 16px 12px; border-top: 1px solid var(--border-decorative); background: var(--surface-raised)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md">Keep the claim</x-import><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md">Release claim</x-import></div></section></div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { yes: true, no: false, noop: () => {} };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Profile — couldn’t load</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:var(--surface-base);color:var(--text-primary);font-family:var(--font-ui)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+.skip{position:absolute;left:16px;top:-80px;z-index:10}.skip:focus{top:8px}
+form{margin:0}
+.row{appearance:none;-webkit-appearance:none;border:0;margin:0;width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer;box-sizing:border-box}
+.row:hover{background:var(--surface-sunken)}
+.row:focus-visible,.handle:focus-visible{outline:2px solid transparent;box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+.navlink:focus-visible{box-shadow:0 0 0 var(--focus-offset-width) var(--surface-chrome),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring-on-accent)}
+.hg-focus-field:not([aria-invalid="true"]):focus-visible{outline:2px solid transparent;border-color:var(--focus-ring) !important;box-shadow:inset 0 0 0 1px var(--focus-ring)}
+.hg-focus-field[aria-invalid="true"]:focus-visible{outline:2px solid transparent;box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+.gap{position:relative;outline:1.5px dashed var(--color-neutral-500);outline-offset:3px}
+.gap::before{content:"Proposed component: " attr(data-gap);position:absolute;top:-11px;right:12px;z-index:3;font:500 11px/1 var(--font-mono);color:var(--color-neutral-800);background:var(--color-neutral-100);padding:3px 6px;border-radius:4px;white-space:nowrap}
+.api{display:inline-flex;align-items:center;gap:8px;padding:4px 8px;border:1.5px dashed var(--color-info-600);background:var(--color-info-50);color:var(--color-info-700);font:500 12px/1.4 var(--font-mono);border-radius:4px}
+.note{display:inline-flex;align-items:center;padding:4px 8px;background:var(--color-neutral-100);color:var(--color-neutral-800);font:500 12px/1.4 var(--font-mono);border-radius:4px}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; background: var(--surface-base); display: flex; flex-direction: column; font-family: var(--font-ui); color: var(--text-primary); position: relative; overflow: hidden">
+<dc-import name="OnbTop" hint-size="1440px,64px"></dc-import>
+<div style="height: 836px; display: flex">
+<dc-import name="OnbSide" current="PROFILE" done="0000000" percent="0" cycle="0" halal="" hint-size="288px,836px"></dc-import>
+<main id="main" style="flex-grow: 1; min-width: 0; box-sizing: border-box; padding: 20px 28px; display: flex; flex-direction: column; gap: 14px">
+<dc-import name="ProfilePanes" mode="loaderror" w="1096px" h="796px" hint-size="1096px,796px"></dc-import>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 1440, "height": 900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { yes: true, no: false };
+  }
+}
+</script>
+</body>
+</html>

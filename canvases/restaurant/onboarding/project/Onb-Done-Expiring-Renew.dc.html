@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Setup done — certificate expiring soon, renewal panel open</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:var(--surface-base);color:var(--text-primary);font-family:var(--font-ui)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+.skip{position:absolute;left:16px;top:-80px;z-index:10}.skip:focus{top:8px}
+form{margin:0}
+.row{appearance:none;-webkit-appearance:none;border:0;margin:0;width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer;box-sizing:border-box}
+.row:hover{background:var(--surface-sunken)}
+.row:focus-visible,.handle:focus-visible{outline:2px solid transparent;box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+.navlink:focus-visible{box-shadow:0 0 0 var(--focus-offset-width) var(--surface-chrome),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring-on-accent)}
+.hg-focus-field:not([aria-invalid="true"]):focus-visible{outline:2px solid transparent;border-color:var(--focus-ring) !important;box-shadow:inset 0 0 0 1px var(--focus-ring)}
+.hg-focus-field[aria-invalid="true"]:focus-visible{outline:2px solid transparent;box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+.gap{position:relative;outline:1.5px dashed var(--color-neutral-500);outline-offset:3px}
+.gap::before{content:"Proposed component: " attr(data-gap);position:absolute;top:-11px;right:12px;z-index:3;font:500 11px/1 var(--font-mono);color:var(--color-neutral-800);background:var(--color-neutral-100);padding:3px 6px;border-radius:4px;white-space:nowrap}
+.api{display:inline-flex;align-items:center;gap:8px;padding:4px 8px;border:1.5px dashed var(--color-info-600);background:var(--color-info-50);color:var(--color-info-700);font:500 12px/1.4 var(--font-mono);border-radius:4px}
+.note{display:inline-flex;align-items:center;padding:4px 8px;background:var(--color-neutral-100);color:var(--color-neutral-800);font:500 12px/1.4 var(--font-mono);border-radius:4px}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; background: var(--surface-base); display: flex; flex-direction: column; font-family: var(--font-ui); color: var(--text-primary); position: relative; overflow: hidden">
+<dc-import name="OnbTop" hint-size="1440px,64px"></dc-import>
+<div style="height: 836px; display: flex">
+<dc-import name="OnbSide" current="DONE" done="1111111" percent="100" cycle="1" halal="EXPIRING_SOON" body="HMA Canada" until="14 October 2026" hint-size="288px,836px"></dc-import>
+<main id="main" style="flex-grow: 1; min-width: 0; box-sizing: border-box; padding: 20px 28px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; flex-direction: column; gap: 4px"><h1 class="type-heading-xl" style="margin: 0">You’re ready to take orders</h1><p class="type-body-md" style="margin: 0; color: var(--text-secondary)">Zaytoun Grill is approved, your menu is live and your opening hours are set. Customers can order whenever you’re open and accepting orders.</p></div>
+<span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 3px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">Shown only when the current step is DONE. The button label comes from the current step.</span>
+<div style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 3px; flex-grow: 1; min-height: 0; display: flex; align-items: stretch"><span aria-hidden="true" style="position: absolute; top: -11px; right: 12px; z-index: 3; font: 500 11px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 3px 6px; border-radius: 4px; white-space: nowrap">Proposed component: Split panes (resizable)</span><section aria-labelledby="done-l" style="display: flex; flex-direction: column; min-height: 0; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: 16px; overflow: hidden; width: 520px; flex-shrink: 0">
+<div style="display: flex; align-items: center; gap: 12px; min-height: 52px; box-sizing: border-box; padding: 8px 16px; border-bottom: 1px solid var(--border-decorative)"><h2 id="done-l" class="type-heading-sm" style="margin: 0">Your listing shows</h2></div>
+<div style="flex-grow: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px; padding: 16px">
+<sc-if value="{{hasHalal}}" hint-placeholder-val="{{true}}"><div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.HalalBadge" state="{{halal.display_state}}" surface="operational" size="md" hint-size="200px,24px"></x-import><span class="type-body-md">{{halalLine}}</span></div></sc-if>
+<span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 3px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">Seal bound to the profile’s halal data; the line uses only the body name and end date. Nothing renders if it is null. Expiring soon: the badge reads “Halal certified · expires 14 Oct” (owner decision; HalalBadge label update requested in the design system).</span>
+<div style="display: flex; flex-direction: column; gap: 8px; padding: 12px 14px; border-radius: 12px; background: var(--surface-sunken)">
+<span class="type-body-md" style="line-height: 1.5">Your certificate from HMA Canada ends on 14 October 2026. After that your listing is hidden until a reviewer approves the renewed one. Reviews take up to 3 business days, so upload it now.</span>
+<span class="type-body-sm" style="color: var(--text-secondary)">We’ll remind you 30, 14, 7 and 1 day before it ends.</span>
+<div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" icon-start="plus" aria-controls="renew-panel" aria-expanded="true" hint-size="260px,44px">Upload renewed certificate</x-import><span class="api">Needs API: renewed-certificate upload after setup</span></div>
+<span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 3px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">Opens the renewal panel in this page, the same panel as the delisted console (see Onb-Done-Expiring-Renew). Go to orders stays the single primary.</span>
+</div>
+<h3 class="type-heading-md" style="margin: 4px 0 0">Before your first order</h3>
+<ol class="type-body-md" style="margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 8px; line-height: 1.5">
+<li>Open the order screen on a tablet at the pass. Keep it open and the screen on.</li>
+<li>Turn on order sound. Your browser needs one tap to allow it, and we’ll play a test chime. The alert keeps sounding until each new order is accepted, rejected or expires.</li>
+<li>Accept each new order within 3 minutes. If two orders in a row time out, new orders stop until you turn them back on.</li>
+</ol>
+<span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 3px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">3 minutes comes from the public config’s response window (180 seconds), never hard-coded.</span>
+</div>
+<div style="display: flex; align-items: center; gap: 16px; padding: 12px 16px; border-top: 1px solid var(--border-decorative)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" icon-end="chevron-right" hint-size="200px,52px">Go to orders</x-import><span class="type-body-sm" style="color: var(--text-secondary)">You’ll turn on sound and start accepting orders there.</span></div>
+</section><div class="handle" role="separator" aria-orientation="vertical" aria-label="Resize the two panes" aria-valuenow="36" aria-valuemin="25" aria-valuemax="60" tabindex="0" style="width: 16px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; cursor: col-resize; border-radius: 8px"><span aria-hidden="true" style="width: 4px; height: 40px; border-radius: 9999px; background: var(--border-strong)"></span></div><section id="renew-panel" aria-labelledby="renew-panel-h" class="gap" data-gap="Detail panel (in page)" style="display: flex; flex-direction: column; min-height: 0; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: 16px; overflow: hidden; flex-grow: 1; min-width: 0"><div style="display: flex; align-items: center; gap: 12px; min-height: 52px; box-sizing: border-box; padding: 8px 16px; border-bottom: 1px solid var(--border-decorative)"><h2 id="renew-panel-h" tabindex="-1" class="type-heading-sm" style="margin: 0; flex-grow: 1">Upload your renewed certificate</h2><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.IconButton" icon="close" variant="plain" size="md" accessibility-label="Close the renewal panel" href="Onb-Done-Expiring.dc.html" hint-size="44px,44px"></x-import></div><div style="flex-grow: 1; min-height: 0; overflow: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px"><dc-import name="RenewCert" mode="idle" ctx="live" w="100%" hint-size="100%,420px"></dc-import><span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 3px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">In the page, not a modal. Opening it moves focus to its heading; closing it returns focus to Upload renewed certificate. The certificate is still valid, so the seal stays Expiring soon until a reviewer approves the renewal.</span></div></section></div>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 1440, "height": 900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const cert = { display_state: 'EXPIRING_SOON', certifying_body_name: 'HMA Canada', certificate_number: 'HMA-2026-00481', scope: 'WHOLE_ESTABLISHMENT', issued_on: '2026-03-15', expires_on: '2026-10-14', verified_at: '2026-10-01T15:20:00Z', certificate_viewable: true, disclaimer: 'Certification verified by HalalGoes on 1 October 2026. HalalGoes does not itself certify food.' };
+    const halal = { display_state: 'EXPIRING_SOON', certifying_body_name: 'HMA Canada', expires_on: '2026-10-14' };
+    return { yes: true, no: false, cert, halal, hasHalal: !!halal, halalLine: 'HMA Canada · Valid until 14 October 2026' };
+  }
+}
+</script>
+</body>
+</html>

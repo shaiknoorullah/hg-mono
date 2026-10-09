@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Rider applications queue</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<link rel="stylesheet" href="composites.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div data-density="compact" data-theme="{{theme}}" style="position: relative; width: {{w}}px; height: 900px; overflow: hidden; display: grid; grid-template-columns: {{gridCols}}; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui);">
+  <a href="#grid" class="hg-skip">Skip to rider applications</a>
+  <sc-if value="{{showNav}}" hint-placeholder-val="{{true}}">
+    <dc-import name="SideNav" active="riders" role="{{role}}" height="900" rider-count="{{navCount}}" hint-size="264px,900px"></dc-import>
+  </sc-if>
+  <sc-if value="{{showRail}}" hint-placeholder-val="{{false}}">
+    <dc-import name="SideNav" collapsed="{{yes}}" active="riders" role="{{role}}" height="900" rider-count="{{navCount}}" hint-size="56px,900px"></dc-import>
+  </sc-if>
+  <main style="position: relative; display: flex; flex-direction: column; min-width: 0;">
+    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="raised" elevated="{{yes}}" title="Rider applications" subtitle="Oldest first · review target 48 business hours (8:00 am–10:00 pm Toronto)" actions="{{actions}}"></x-import>
+    <div style="flex-grow: 1; display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-5) var(--space-6); min-height: 0;">
+
+      <sc-if value="{{hasBanner}}" hint-placeholder-val="{{false}}">
+        <div style="display: flex; flex-direction: column; gap: var(--space-1);">
+          <span class="hg-gap">Proposed component: Banner ({{banner.tone}})</span>
+          <div role="{{banner.role}}" tabindex="-1" class="{{banner.cls}}">
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="{{banner.icon}}" size="md" style="margin-top: 2px; flex-shrink: 0;"></x-import>
+            <div style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1;">
+              <strong style="font-weight: 600;">{{banner.title}}</strong>
+              <span>{{banner.body}}</span>
+              <sc-if value="{{banner.napi}}" hint-placeholder-val="{{false}}">
+                <span class="hg-napi" style="margin-top: var(--space-1);">{{banner.napi}}</span>
+              </sc-if>
+            </div>
+            <sc-if value="{{banner.secondary}}" hint-placeholder-val="{{false}}">
+              <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" on-press="{{noop}}" style="flex-shrink: 0;">{{banner.secondary}}</x-import>
+            </sc-if>
+            <sc-if value="{{banner.primary}}" hint-placeholder-val="{{false}}">
+              <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md" on-press="{{noop}}" style="flex-shrink: 0;">{{banner.primary}}</x-import>
+            </sc-if>
+          </div>
+          <sc-if value="{{banner.gap}}" hint-placeholder-val="{{false}}">
+            <span class="hg-gap">{{banner.gap}}</span>
+          </sc-if>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{isBlocked}}" hint-placeholder-val="{{false}}">
+        <div style="display: flex; flex-direction: column; gap: var(--space-2); width: 640px; max-width: 100%; margin: var(--space-12) auto 0;">
+          <span class="hg-gap">Proposed component: ErrorState (DS Card, Icon, Button)</span>
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" padding="var(--space-8)">
+            <div role="alert" style="display: flex; flex-direction: column; gap: var(--space-3);">
+              <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="lock" size="xl" color="var(--text-secondary)"></x-import>
+              <h2 class="type-heading-lg" style="margin: 0;">{{blocked.title}}</h2>
+              <p class="type-body-md" style="margin: 0; line-height: 1.5; color: var(--text-secondary);">{{blocked.body}}</p>
+              <div style="display: flex; gap: var(--space-3); margin-top: var(--space-2);">
+                <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md" on-press="{{noop}}">{{blocked.action}}</x-import>
+              </div>
+            </div>
+          </x-import>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{showList}}" hint-placeholder-val="{{true}}">
+        <div style="flex-grow: 1; display: flex; flex-direction: column; gap: var(--space-4); min-height: 0;">
+          <div style="position: relative; display: flex; flex-direction: column; gap: var(--space-1);">
+            <span class="hg-gap">Proposed component: FilterBar (DS Card) · Proposed component: MultiSelect (onboarding state, several at once)</span>
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="md">
+              <div style="display: flex; gap: var(--space-4); align-items: flex-end; flex-wrap: wrap;">
+                <div style="display: flex; flex-direction: column; gap: var(--space-1); width: 300px;">
+                  <span id="state-filter-label" class="type-label-md">Onboarding state</span>
+                  <button type="button" class="hg-field hg-trigger" aria-haspopup="listbox" aria-expanded="{{filterOpen}}" aria-controls="{{listboxId}}" aria-labelledby="state-filter-label state-filter-value"><span id="state-filter-value" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{stateFilterText}}</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="chevron-down" size="md"></x-import></button>
+                </div>
+                <sc-if value="{{searchMode}}" hint-placeholder-val="{{false}}">
+                  <div style="display: flex; flex-direction: column; gap: var(--space-1); width: 320px;">
+                    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Find a rider" variant="search" placeholder="Name or phone number" disabled="{{yes}}" helper-text="Not available yet"></x-import>
+                  </div>
+                </sc-if>
+                <sc-if value="{{filtered}}" hint-placeholder-val="{{false}}">
+                  <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="md" on-press="{{noop}}">Reset to Documents review</x-import>
+                </sc-if>
+                <span role="status" class="type-body-sm" style="margin-left: auto; align-self: center; color: var(--text-secondary);">{{countLine}}</span>
+              </div>
+            </x-import>
+            <sc-if value="{{filterOpen}}" hint-placeholder-val="{{false}}">
+              <div style="position: absolute; top: 118px; left: var(--space-3); width: 320px; z-index: 5;">
+                <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="elevated" padding="var(--space-2)">
+                  <div style="display: flex; flex-direction: column; gap: var(--space-1);">
+                    <span class="hg-gap">Proposed component: MultiSelect, list open</span>
+                    <ul id="state-listbox" role="listbox" aria-multiselectable="true" aria-labelledby="state-filter-label" aria-activedescendant="opt-payout" tabindex="-1" style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column;">
+                      <sc-for list="{{stateOptions}}" as="o" hint-placeholder-count="10">
+                        <li id="{{o.id}}" role="option" aria-selected="{{o.sel}}" class="{{o.cls}}" style="min-height: var(--target-min); display: flex; align-items: center; gap: var(--space-2); padding: 0 var(--space-2); border-radius: var(--radius-sm); font: var(--text-type-body-md); background: {{o.bg}}; outline: {{o.ring}}; outline-offset: -2px;">
+                          <span aria-hidden="true" style="width: 20px; display: inline-flex; justify-content: center;"><sc-if value="{{o.sel}}" hint-placeholder-val="{{false}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="check" size="sm"></x-import></sc-if></span>
+                          <span>{{o.label}}</span>
+                        </li>
+                      </sc-for>
+                    </ul>
+                    <span class="type-body-sm" style="color: var(--text-secondary); padding: var(--space-1) var(--space-2);">3 selected · Space toggles, Escape closes and keeps the choice</span>
+                    <span class="hg-gap">DOM focus stays on the listbox (aria-activedescendant); the active option alone is marked: selected tint plus a 2px inset --border-brand outline (a real outline, so forced colours keep it as Highlight; other options carry a transparent one). The trigger shows no focus while the list is open. Options are 44 px.</span>
+                  </div>
+                </x-import>
+              </div>
+            </sc-if>
+            <div style="display: flex; gap: var(--space-2); flex-wrap: wrap;">
+              <span class="hg-napi">Needs API: sla_breached filter on listRiderApplications (would add a “Missed review target only” switch)</span>
+              <sc-if value="{{searchMode}}" hint-placeholder-val="{{false}}">
+                <span class="hg-napi">Needs API: search on listRiderApplications by name or phone</span>
+              </sc-if>
+              <sc-if value="{{mixedNapi}}" hint-placeholder-val="{{false}}">
+                <span class="hg-napi">Needs API: meaning of submitted_at before submission (drawn as “Not submitted yet”)</span>
+                <span class="hg-napi">Needs API: profile (or date_of_birth), submitted_at and sla_due_at nullable on RiderApplication for states before Documents review; today getRiderApplication requires them, so rows before submission can’t open a valid record</span>
+              </sc-if>
+            </div>
+          </div>
+
+          <div id="grid" tabindex="-1" class="{{gridCls}}" style="position: relative; flex-grow: 1; display: flex; flex-direction: column; gap: var(--space-1); min-height: 0; overflow: hidden;">
+            <span class="hg-gap">LyteNyte grid, drawn with the DS DataTable: rows virtualise inside this region, so the page never scrolls · Proposed components: IdCell, StatusCell, TimeCell, CountdownCell</span>
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.DataTable" caption="{{caption}}" density="compact" sticky-header="{{yes}}" columns="{{columns}}" rows="{{rows}}" status="{{status}}" error-message="Rider applications didn't load. Nothing was claimed." on-retry="{{noop}}" filters-active="{{filtered}}" on-clear-filters="{{noop}}" empty-state="{{emptyState}}" on-row-activate="{{noop}}" row-label="{{rowLabel}}" has-more="{{hasMore}}" loading-more="{{loadingMore}}" on-load-more="{{noop}}"></x-import>
+            <sc-if value="{{moreFailed}}" hint-placeholder-val="{{false}}">
+              <div style="display: flex; flex-direction: column; gap: var(--space-1);">
+                <span class="hg-gap">Proposed component: DataTable load-more error (the DS table has no error state for a later page)</span>
+                <div role="alert" class="hg-tone hg-tone--sm hg-tone--warning" style="align-items: center;">
+                  <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="warning" size="md" style="flex-shrink: 0;"></x-import>
+                  <span style="flex-grow: 1;"><strong style="font-weight: 600;">More applications didn’t load.</strong> The 8 above are still correct, oldest first. Nothing was claimed.</span>
+                  <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" icon-start="refresh" on-press="{{noop}}">Try again</x-import>
+                </div>
+              </div>
+            </sc-if>
+            <sc-if value="{{listEnd}}" hint-placeholder-val="{{false}}">
+              <div style="display: flex; flex-direction: column; gap: var(--space-1); align-items: center;">
+                <span class="hg-gap">Proposed component: DataTable end of list (shown once has_more turns false)</span>
+                <p role="status" class="type-body-sm" style="margin: 0; color: var(--text-secondary);">That’s every application in Documents review: 8, oldest first.</p>
+              </div>
+            </sc-if>
+            <sc-if value="{{rowFocus}}" hint-placeholder-val="{{false}}">
+              <div role="tooltip" id="submitted-tip" class="hg-tooltip" style="left: 590px; top: 150px;">26 September 2026, 5:55 pm Toronto time</div>
+              <span class="hg-gap" style="position: absolute; left: 590px; top: 196px;">Proposed component: Tooltip (shadcn Tooltip) · the full absolute date behind a short date cell</span>
+              <span class="type-body-sm" style="color: var(--text-secondary);">Keyboard focus is on Fatima Noor’s row (the ring sits inside the row so the grid doesn’t clip it). Arrow keys move between rows; Enter opens the application in a pane beside the list, without claiming it. Date cells use the short form (26 Sep, 5:55 pm); hovering or focusing a date cell shows the full absolute date.</span>
+            </sc-if>
+          </div>
+          <sc-if value="{{support}}" hint-placeholder-val="{{false}}">
+            <div style="display: flex; flex-direction: column; gap: var(--space-2); align-items: flex-start;">
+              <p class="type-body-sm" style="margin: 0; color: var(--text-secondary);">You can read applications and tell riders what's missing. Admins take and decide applications.</p>
+              <span class="hg-napi">Needs API: per-document status on RiderApplicationSummary (which documents are missing or rejected)</span>
+              <div class="hg-napi-box">
+                <span class="hg-napi">Open conflict for the owner: role rules vs contract</span>
+                <span class="type-body-sm" style="color: var(--text-secondary);">The role matrix lets a support agent read a rider application only from a support case. The contract lets support list this whole queue (listRiderApplications allows SUPPORT_AGENT). This board is drawn as the contract allows; one of the two has to change.</span>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"mode":{"editor":"enum","options":["populated","loading","empty","filtered","drained","error","offline","support","search","holding","taking","takefailed","takeheld","paged","pagedloading","pagedfailed","pagedend","mixed","allclaimed","claimending","claimended","filteropen","rowfocus","session","forbidden","supportempty","supportloading"],"default":"populated"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"w":{"editor":"int","default":1440},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const DS = window.HalalGoesDesignSystem_d11a47 || {};
+    const h = React.createElement;
+    const mode = this.props.mode ?? 'populated';
+    const W = Number(this.props.w ?? 1440) || 1440;
+    const narrow = W <= 1024;
+    const mid = W <= 1280;
+    const support = ['support', 'search', 'supportempty', 'supportloading'].includes(mode);
+    const offline = mode === 'offline';
+    const filtered = mode === 'filtered';
+    const drained = mode === 'drained';
+    const holding = ['holding', 'takeheld', 'claimending'].includes(mode);
+    const taking = mode === 'taking' || !!(this.state && this.state.taking);
+    const blockedMode = mode === 'session' || mode === 'forbidden';
+    const noop = () => {};
+    const mono = { fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' };
+    const sm = { font: 'var(--text-type-body-sm)', lineHeight: '16px', color: 'var(--text-secondary)' };
+    // Fixtures. Now = 28 September 2026, 2:32 pm Toronto. sla_due_at = submitted_at + 48 business hours,
+    // computed server-side; the client shows the absolute time and a wall-clock countdown.
+    // display_name is shown exactly as the API sends it.
+    // One icon per onboarding state (accessibility rule: a status badge carries an icon and a word). Same map as the detail page.
+    const stateIcon = (st) => ({ 'Documents review': 'clock', 'Payout pending': 'clock', 'Documents approved': 'check', 'Active': 'check', 'Documents rejected': 'warning' })[st] || 'info';
+    const R = (o) => Object.assign({ state: 'Documents review', badge: 'info', claim: 'none', claimText: 'Unclaimed', claimRel: '' }, o);
+    const fatima = { id: '0192f3a1-7c2e-7b10-9f4d-1a2b3c4d9c1a', name: 'Fatima Noor', vehicle: 'Car', attempt: 2, submitted: '26 Sep 2026, 5:55 pm', subRel: '2 days ago', sla: 'due', slaText: 'Due 30 Sep, 9:55 am', slaRel: 'in 1 day 19 h' };
+    const musa = { id: '0192f3a4-11d0-7c55-8e2a-77aa01bb3e07', name: 'Musa Ibrahim', vehicle: 'Scooter', attempt: 1, submitted: '24 Sep 2026, 10:02 am', subRel: '4 days ago', sla: 'missed', slaText: 'Was due 27 Sep, 4:02 pm', slaRel: '22 h 30 min over', claim: 'other', claimText: 'Claimed by another reviewer', claimRel: 'until 3:10 pm' };
+    const rest = [
+      R({ id: '0192f3b0-5e61-7a02-b3c9-0f1e2d3c4b5a', name: 'Yusuf Ahmed', vehicle: 'Bicycle', attempt: 1, submitted: '27 Sep 2026, 8:40 am', subRel: 'yesterday', sla: 'due', slaText: 'Due 30 Sep, 2:40 pm', slaRel: 'in 2 days' }),
+      R({ id: '0192f3b8-9a12-7f33-a1d4-5c6d7e8f2210', name: 'Hafsa Qureshi', vehicle: 'Motorcycle', attempt: 1, submitted: '27 Sep 2026, 7:21 pm', subRel: 'yesterday', sla: 'due', slaText: 'Due 1 Oct, 11:21 am', slaRel: 'in 2 days 21 h' }),
+      R({ id: '0192f3c2-2b7e-7d48-9c05-e1f2a3b4c688', name: 'Omar Siddiqui', vehicle: 'On foot', attempt: 3, submitted: '28 Sep 2026, 9:05 am', subRel: 'today', sla: 'due', slaText: 'Due 1 Oct, 3:05 pm', slaRel: 'in 3 days' })
+    ];
+    const fatimaRow = (claim) => R(Object.assign({}, fatima, claim || {}));
+    const heldClaim = { claim: 'you', claimText: 'Claimed by you', claimRel: '42 min left · until 3:14 pm' };
+    // The plain, most common case: nobody on this screen holds a claim.
+    let five = [R(musa), fatimaRow(), ...rest];
+    if (holding || mode === 'takeheld') five = [R(musa), fatimaRow(mode === 'claimending' ? { claim: 'you', claimText: 'Claimed by you', claimRel: '1 min left · until 2:33 pm' } : heldClaim), ...rest];
+    if (mode === 'claimended') five = [R(musa), fatimaRow({ claim: 'stale', claimText: 'Unclaimed', claimRel: 'your claim ended 2:33 pm' }), ...rest];
+    const extra = [
+      R({ id: '0192f3c9-40aa-7e10-8b21-aa01c2d3e4f5', name: 'Maryam Hassan', vehicle: 'Bicycle', attempt: 1, submitted: '28 Sep 2026, 10:12 am', subRel: 'today', sla: 'due', slaText: 'Due 1 Oct, 4:12 pm', slaRel: 'in 3 days' }),
+      R({ id: '0192f3cc-7d11-7a90-9e33-bb12c3d4e506', name: 'Bilal Rahman', vehicle: 'Car', attempt: 1, submitted: '28 Sep 2026, 11:47 am', subRel: 'today', sla: 'due', slaText: 'Due 1 Oct, 5:47 pm', slaRel: 'in 3 days' }),
+      R({ id: '0192f3d0-1e22-7c41-a5f0-cc23d4e5f617', name: 'Zainab Khan', vehicle: 'Scooter', attempt: 2, submitted: '28 Sep 2026, 1:09 pm', subRel: '1 h ago', sla: 'due', slaText: 'Due 1 Oct, 7:09 pm', slaRel: 'in 3 days' })
+    ];
+    const notReview = { sla: 'none', slaText: 'Not in review', slaRel: '', submitted: '', subRel: '', notSubmitted: true };
+    const decidedRow = { sla: 'none', slaText: 'Decided', slaRel: '' };
+    const mixed = [
+      fatimaRow(),
+      R({ id: '0192f3b8-9a12-7f33-a1d4-5c6d7e8f2210', name: 'Hafsa Qureshi', vehicle: 'Motorcycle', attempt: 1, submitted: '27 Sep 2026, 7:21 pm', subRel: 'yesterday', sla: 'due', slaText: 'Due 1 Oct, 11:21 am', slaRel: 'in 2 days 21 h', claim: 'stale', claimText: 'Unclaimed', claimRel: 'previous claim ended 2:10 pm' }),
+      R(Object.assign({ id: '0192f390-0a01-7b01-8001-000000000001', name: 'Adam Tahir', vehicle: '—', attempt: 1, state: 'Registered', badge: 'outline' }, notReview)),
+      R(Object.assign({ id: '0192f390-0a02-7b02-8002-000000000002', name: 'Sara Mahmoud', vehicle: 'Car', attempt: 1, state: 'Phone verified', badge: 'outline' }, notReview)),
+      R(Object.assign({ id: '0192f390-0a03-7b03-8003-000000000003', name: 'Ibrahim Osman', vehicle: 'Scooter', attempt: 1, state: 'Profile pending', badge: 'outline' }, notReview)),
+      R(Object.assign({ id: '0192f390-0a04-7b04-8004-000000000004', name: 'Layla Farah', vehicle: 'Car', attempt: 1, state: 'Vehicle pending', badge: 'outline' }, notReview)),
+      R(Object.assign({ id: '0192f390-0a05-7b05-8005-000000000005', name: 'Hamza Darwish', vehicle: 'Motorcycle', attempt: 1, state: 'Documents pending', badge: 'outline' }, notReview)),
+      R(Object.assign({ id: '0192f390-0a06-7b06-8006-000000000006', name: 'Aisha Bakr', vehicle: 'Car', attempt: 1, submitted: '21 Sep 2026, 10:11 am', subRel: '7 days ago', state: 'Documents approved', badge: 'neutral' }, decidedRow)),
+      R(Object.assign({ id: '0192f390-0a07-7b07-8007-000000000007', name: 'Khalid Wahid', vehicle: 'Scooter', attempt: 2, submitted: '19 Sep 2026, 1:25 pm', subRel: '9 days ago', state: 'Documents rejected', badge: 'warning' }, decidedRow)),
+      R(Object.assign({ id: '0192f390-0a08-7b08-8008-000000000008', name: 'Noura Saleh', vehicle: 'Bicycle', attempt: 1, submitted: '18 Sep 2026, 11:02 am', subRel: '10 days ago', state: 'Payout pending', badge: 'neutral' }, decidedRow)),
+      R(Object.assign({ id: '0192f390-0a09-7b09-8009-000000000009', name: 'Yahya Latif', vehicle: 'Car', attempt: 1, submitted: '12 Sep 2026, 3:48 pm', subRel: '16 days ago', state: 'Active', badge: 'neutral' }, decidedRow))
+    ];
+    const allClaimed = [R(musa), fatimaRow({ claim: 'other', claimText: 'Claimed by another reviewer', claimRel: 'until 3:02 pm' })];
+    const shortId = (id) => id.slice(0, 6) + '…' + id.slice(-4);
+    // Table cells use the short date form (26 Sep, 5:55 pm; the year only when it isn't this year). The full absolute date is in the tooltip and on the detail page.
+    const shortDate = (t) => (t || '').replace(' 2026,', ',');
+    const two = (a, b, bStyle) => h('span', { style: { display: 'flex', flexDirection: 'column', gap: 2, lineHeight: '18px' } },
+      h('span', null, a), b ? h('span', { className: 'type-body-sm', style: Object.assign({}, sm, bStyle || {}) }, b) : null);
+    const applicant = (r) => h('span', { style: { display: 'flex', flexDirection: 'column', gap: 2, lineHeight: '18px' } },
+      h('strong', { style: { fontWeight: 600 } }, r.name),
+      h('span', { className: 'type-body-sm', style: Object.assign({}, sm, mono) }, narrow ? r.vehicle + ' · attempt ' + r.attempt : shortId(r.id)));
+    const columns = [
+      { key: 'name', label: 'Applicant', width: narrow ? 200 : 190, render: applicant },
+      { key: 'vehicle', label: 'Vehicle', width: 110 },
+      { key: 'state', label: 'State', width: mid ? 170 : 190, render: (r) => h(DS.Badge, { variant: r.badge, size: 'md', icon: stateIcon(r.state) }, r.state) },
+      { key: 'attempt', label: 'Attempt', width: 90, align: 'end', numeric: true },
+      { key: 'submitted', label: 'Submitted', width: mid ? 170 : 200, render: (r) => r.notSubmitted ? h('span', { className: 'type-body-sm', style: sm }, 'Not submitted yet') : two(shortDate(r.submitted), r.subRel) },
+      { key: 'sla', label: 'Review target', width: mid ? 190 : 210, render: (r) => r.sla === 'missed'
+          ? h('span', { style: { display: 'flex', flexDirection: 'column', gap: 2, lineHeight: '18px' } },
+              h(DS.Badge, { variant: 'warning', size: 'md', icon: 'warning' }, 'Target missed'),
+              h('span', { className: 'type-body-sm', style: Object.assign({}, sm, mono) }, r.slaText + ' · ' + r.slaRel))
+          : (r.sla === 'none' ? h('span', { className: 'type-body-sm', style: sm }, r.slaText) : two(r.slaText, r.slaRel, mono)) },
+      { key: 'claim', label: 'Claim', width: mid ? 210 : 240, render: (r) => h('span', { style: { display: 'inline-flex', gap: 6, alignItems: 'flex-start' } },
+          (r.claim === 'you' || r.claim === 'other') ? h(DS.Icon, { name: 'lock', size: 'sm', color: r.claim === 'you' ? 'var(--text-primary)' : 'var(--text-secondary)', style: { marginTop: 2 } }) : null,
+          two(r.claimText, r.claimRel, mono)) }
+    ].filter((c) => !(narrow && (c.key === 'vehicle' || c.key === 'attempt')));
+    let rows = [];
+    if (['populated', 'offline', 'support', 'search', 'holding', 'taking', 'takefailed', 'takeheld', 'claimending', 'claimended', 'filteropen', 'rowfocus'].includes(mode)) rows = five;
+    if (mode === 'paged' || mode === 'pagedloading' || mode === 'pagedfailed') rows = five.concat(extra);
+    if (mode === 'pagedend') rows = five.concat(extra);
+    if (mode === 'mixed') rows = mixed;
+    if (mode === 'allclaimed') rows = allClaimed;
+    const status = (mode === 'loading' || mode === 'supportloading') ? 'loading' : mode === 'error' ? 'error' : 'ready';
+    const showAll = h(DS.Button, { variant: 'tertiary', size: 'md', onPress: noop }, 'Show all states');
+    let emptyState = { title: 'Nothing waiting for review', description: 'New applications appear here, oldest first, when a rider submits documents.', action: showAll };
+    if (filtered) emptyState = { title: 'No applications in Payout pending', description: 'No rider is waiting on payouts right now. Choose other states to see more.' };
+    if (mode === 'supportempty') emptyState = { title: 'Nothing waiting for review', description: 'To help a rider, open their application from the support case. Other states are under Onboarding state.', action: showAll };
+
+    const takeOff = offline || drained || mode === 'empty';
+    let takeReason = 'Claims the oldest unclaimed application for 60 minutes. Opening a row only reads it.';
+    if (offline) takeReason = 'Paused while offline';
+    else if (drained || mode === 'empty') takeReason = 'Nothing waiting to take';
+    else if (mode === 'error') takeReason = 'Take next still works while the list is unavailable';
+    else if (mode === 'loading') takeReason = 'Take next works while the list loads';
+    else if (taking) takeReason = 'Claiming the oldest application…';
+    const startTaking = () => this.setState({ taking: true });
+    const actions = (support || blockedMode) ? null : h('div', { style: { display: 'flex', alignItems: 'center', gap: 12 } },
+      h('span', { id: 'take-reason', className: 'type-body-sm', style: { color: 'var(--text-secondary)', maxWidth: mid ? 220 : 340, textAlign: 'end' } }, takeReason),
+      h(DS.Button, { variant: holding ? 'secondary' : 'primary', size: 'md', iconEnd: 'chevron-right', disabled: takeOff, loading: taking, onPress: startTaking, 'aria-describedby': 'take-reason' }, 'Take next'));
+
+    const tone = (t) => ({ tone: t, cls: 'hg-tone hg-tone--' + t, icon: t === 'warning' ? 'warning' : 'info' });
+    const mk = (t, o) => Object.assign(tone(t), { primary: '', secondary: '', napi: '', gap: '' }, o);
+    let banner = null;
+    if (offline) banner = mk('warning', { role: 'status', title: "You're offline. Take next is paused.", body: "This list is from 2:32 pm and won't update until the connection returns. Nothing you do now is queued or sent later." });
+    if (mode === 'holding') banner = mk('info', { role: 'status', title: 'You have Fatima Noor claimed, 42 min left', body: 'Your claim ends at 3:14 pm and can’t be extended. Continue where you left off.', primary: 'Continue review' });
+    if (mode === 'claimending') banner = mk('warning', { role: 'status', title: 'You have Fatima Noor claimed, 1 min left', body: 'Your claim ends at 2:33 pm and can’t be extended. Anything you haven’t submitted won’t be recorded.', primary: 'Continue review' });
+    if (mode === 'claimended') banner = mk('warning', { role: 'alert', title: 'Your claim on Fatima Noor ended at 2:33 pm', body: 'Nothing you hadn’t submitted was recorded. Fatima Noor is back in the queue for anyone to take, including you.', primary: 'Take next' });
+    if (mode === 'takeheld') banner = mk('info', { role: 'alert', title: 'You already have Fatima Noor claimed', body: 'Take next opened your current claim instead of claiming a second one. Finish it, or let the claim end at 3:14 pm.', primary: 'Continue review', napi: 'Needs API: take-next behaviour while you hold a claim (return your claim, or refuse with 409). Drawn as “returns your claim”.' });
+    if (mode === 'takefailed') banner = mk('warning', { role: 'alert', title: "Take next didn't work. Nothing was claimed.", body: "The server didn't answer (network or server error). Trying again can't claim two applications: the same request key is sent.", primary: 'Try again' });
+    if (drained) banner = mk('info', { role: 'status', title: 'Nothing to take: no applications are waiting', body: 'Take next found nothing unclaimed in Documents review. New applications appear here, oldest first.' });
+    if (mode === 'allclaimed') banner = mk('info', { role: 'status', title: 'Nothing to take: the 2 waiting applications are claimed by other reviewers', body: 'Take next claims only unclaimed applications. The first claim ends at 3:02 pm; try again then, or open a row to read it.', gap: 'Design note: the first claim end is worked out from each row’s review_lock_expires_at.' });
+
+    let countLine = '5 waiting · oldest first';
+    if (mode === 'loading' || mode === 'supportloading') countLine = 'Loading…';
+    if (mode === 'error') countLine = '';
+    if (mode === 'empty' || drained || mode === 'supportempty') countLine = '0 waiting';
+    if (filtered) countLine = '0 in Payout pending';
+    if (offline) countLine = 'Last updated 2:32 pm · offline';
+    if (mode === 'paged' || mode === 'pagedloading') countLine = 'Showing 8 · more below · oldest first';
+    if (mode === 'pagedfailed') countLine = 'Showing 8 · more didn’t load';
+    if (mode === 'pagedend') countLine = 'Showing all 8 · oldest first';
+    if (mode === 'mixed') countLine = 'Showing 11 · oldest first';
+    if (mode === 'allclaimed') countLine = '2 waiting · both claimed';
+    let stateFilterText = 'Documents review';
+    if (filtered) stateFilterText = 'Payout pending';
+    if (mode === 'mixed') stateFilterText = 'All 10 states';
+    if (mode === 'filteropen') stateFilterText = 'Documents review, Documents rejected, Payout pending';
+
+    const labels = ['Registered', 'Phone verified', 'Profile pending', 'Vehicle pending', 'Documents pending', 'Documents review', 'Documents approved', 'Documents rejected', 'Payout pending', 'Active'];
+    const picked = ['Documents review', 'Documents rejected', 'Payout pending'];
+    const stateOptions = labels.map((l, i) => {
+      const focused = l === 'Payout pending';
+      return { id: focused ? 'opt-payout' : 'opt-' + i, label: l, sel: picked.includes(l), cls: focused ? 'hg-opt is-active' : 'hg-opt', ring: focused ? '2px solid var(--border-brand)' : '2px solid transparent', bg: focused ? 'var(--state-selected-tint)' : 'transparent' };
+    });
+
+    // Rider count on the nav: only when the queue response carries PageMeta.total.
+    let navCount = '5';
+    if (mode === 'empty' || drained || mode === 'supportempty') navCount = '0';
+    if (['paged', 'pagedloading', 'pagedfailed', 'pagedend', 'mixed', 'loading', 'error', 'session', 'forbidden', 'supportloading'].includes(mode)) navCount = '';
+    if (mode === 'allclaimed') navCount = '2';
+
+    let blocked = { title: '', body: '', action: '' };
+    if (mode === 'session') blocked = { title: 'Your session ended', body: 'Staff sessions end after 30 minutes without activity, or 12 hours after you signed in. Sign in again to see rider applications. Nothing was claimed or changed.', action: 'Sign in again' };
+    if (mode === 'forbidden') blocked = { title: 'You don’t have access to rider applications', body: 'The server refused this list. Support agents don’t see the rider queue (owner decision): open a rider’s application from their support case. Otherwise your role changed while you were signed in; if you think that’s wrong, ask a Super Admin.', action: 'Sign out and in again' };
+
+    return {
+      yes: true,
+      noop,
+      theme: this.props.theme ?? 'light',
+      w: W, showNav: !narrow, showRail: narrow, gridCols: narrow ? '56px minmax(0, 1fr)' : '264px minmax(0, 1fr)',
+      role: support ? 'support' : 'admin',
+      navCount,
+      actions,
+      hasBanner: !!banner && !blockedMode,
+      banner: banner || {},
+      isBlocked: blockedMode, blocked, showList: !blockedMode,
+      support,
+      searchMode: mode === 'search',
+      filtered,
+      filterOpen: mode === 'filteropen',
+      listboxId: mode === 'filteropen' ? 'state-listbox' : undefined,
+      caption: 'Rider applications: ' + (mode === 'mixed' ? 'all states' : (filtered ? 'Payout pending' : (mode === 'filteropen' ? 'Documents review, Documents rejected and Payout pending' : 'Documents review'))),
+      stateOptions,
+      stateFilterText,
+      mixedNapi: mode === 'mixed',
+      columns,
+      rows,
+      status,
+      emptyState,
+      rowFocus: mode === 'rowfocus',
+      gridCls: mode === 'rowfocus' ? 'hg-sim-row' : '',
+      hasMore: mode === 'paged' || mode === 'pagedloading',
+      moreFailed: mode === 'pagedfailed',
+      listEnd: mode === 'pagedend',
+      loadingMore: mode === 'pagedloading',
+      rowLabel: (r) => 'rider application ' + r.name,
+      countLine
+    };
+  }
+}
+</script>
+</body>
+</html>

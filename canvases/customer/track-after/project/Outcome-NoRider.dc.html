@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>No rider found</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<link rel="stylesheet" href="hg-roles.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:var(--surface-base)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+</style>
+</helmet>
+<div style="width: 390px; height: 1000px; position: relative; display: flex; flex-direction: column; overflow: hidden; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" title-is-page-heading="{{ no }}" tone="cream" title="Order HG-8F3K2Q" subtitle="Zaytoun Grill" back-label="Back to Orders" on-back="{{ noop }}"></x-import><main style="flex-grow: 1; display: flex; flex-direction: column; gap: 20px; padding: 24px 16px 16px; overflow: hidden">
+<div style="display: flex; flex-direction: column; gap: 12px"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="info" size="2xl" color="var(--text-primary)"></x-import><div class="hg-focus-drawn"><h1 tabindex="-1" class="type-display-md">We couldn't find a rider</h1></div><p class="type-body-md" style="color: var(--text-secondary)">Your food was ready, but no rider could collect it. We cancelled the order at 7:44 pm. We're sorry.</p></div><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg"><div style="display: flex; flex-direction: column; gap: 12px"><strong class="type-heading-sm">Your money</strong><div style="display: flex; justify-content: space-between; align-items: baseline; gap: 12px"><span class="type-body-md" style="color: var(--text-secondary)">Charged to Visa •••• 4242</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{ captured }}" size="sm"></x-import></div><div style="display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding-top: 12px; border-top: 1px solid var(--border-decorative)"><strong class="type-label-lg">Refund</strong><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{ refund }}" size="md"></x-import></div><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="info" size="md" style="align-self: flex-start">On its way to your card</x-import><span class="type-body-sm" style="color: var(--text-secondary)">We'll let you know when it reaches your card.</span></div></x-import><div class="hg-gap"><span class="hg-tag">Annotation: where the refund comes from</span><span class="hg-gap-note">Live: order.cancelled.refund (kind, amount_cents, state). On reload or from Orders: listRefunds?order_id, because the event is not replayed. State copy: see the refund states board in Receipt.</span></div><div style="display: flex; flex-direction: column; gap: 8px; margin-top: auto"><div><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" full-width="{{ yes }}">Find something to eat</x-import></div><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="md" full-width="{{ yes }}" href="Orders-Default.dc.html">Back to Orders</x-import></div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const t = (s, at, a) => ({ to_state: s, at: '2026-09-28T' + at + ':00-04:00', actor_kind: a || 'SYSTEM' });
+    const all = [t('AUTHORIZED', '18:42', 'CUSTOMER'), t('RESTAURANT_PENDING', '18:42'), t('PREPARING', '18:44', 'RESTAURANT'), t('READY_FOR_PICKUP', '18:59', 'RESTAURANT'), t('PICKED_UP', '19:02', 'RIDER'), t('ARRIVED', '19:12', 'RIDER'), t('DELIVERED', '19:13', 'RIDER'), t('COMPLETED', '19:43')];
+    const upTo = (n) => all.slice(0, n);
+    return {
+      yes: true, no: false, none: null, zero: 0, noop: () => {},
+      nav: [{ key: 'home', label: 'Home', icon: 'home' }, { key: 'search', label: 'Search', icon: 'search' }, { key: 'orders', label: 'Orders', icon: 'orders', badge: 1, badgeNoun: 'active' }, { key: 'account', label: 'Account', icon: 'profile' }],
+      captured: 6425, refund: 6425
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Running late</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<link rel="stylesheet" href="hg-roles.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:var(--surface-base)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+</style>
+</helmet>
+<div style="width: 390px; height: 1172px; position: relative; display: flex; flex-direction: column; overflow: hidden; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" title-is-page-heading="{{ no }}" tone="cream" title="Order HG-8F3K2Q" subtitle="Zaytoun Grill" back-label="Back to Orders" on-back="{{ noop }}"></x-import><main style="flex-grow: 1; display: flex; flex-direction: column; gap: 12px; padding: 4px 16px 16px; overflow: hidden">
+<div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 12px"><h1 style="margin: 0; display: flex; flex-direction: column; gap: 2px"><span class="type-label-lg" aria-hidden="true" style="color: var(--text-secondary)">Running late · New estimate</span><span class="type-display-md hg-num" aria-hidden="true">8:20–8:30 pm</span><span class="hg-vh">Running late, new estimate, arriving between 8:20 and 8:30 pm</span></h1><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="info" size="md" appearance="dot">Live</x-import></div><div style="display: flex; flex-direction: column; gap: 6px"><span class="hg-tag">Proposed component: InlineAlert</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="md" padding="var(--space-3) var(--space-4)"><div role="status" style="display: flex; flex-direction: column; gap: 8px"><div style="display: flex; gap: 12px; align-items: flex-start"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="clock" size="lg" color="var(--text-primary)"></x-import><div style="display: flex; flex-direction: column; gap: 4px"><strong class="type-label-lg">Your delivery is taking longer than planned</strong><span class="type-body-md" style="color: var(--text-secondary)">Yusuf still has your order. New arrival: <span class="hg-num">8:20–8:30 pm</span>. If it hasn't arrived by <span class="hg-num">8:32 pm</span>, our team steps in.</span></div></div></div></x-import></div><div class="hg-gap" style="height: 200px; justify-content: space-between"><div style="display: flex; flex-direction: column; gap: 6px"><span class="hg-tag">Component gap: MapView</span><span class="hg-gap-note">Rider pin at its last known position; the route is never animated.</span></div><div style="display: flex; flex-direction: column; gap: 8px; align-self: flex-end"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.IconButton" icon="plus" variant="tonal" size="md" accessibility-label="Zoom in"></x-import><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.IconButton" icon="minus" variant="tonal" size="md" accessibility-label="Zoom out"></x-import></div></div><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.StatusTimeline" audience="customer" state="PICKED_UP" orientation="compact" transitions="{{ tl }}" estimated-at="2026-09-28T20:20:00-04:00" connection="live" now="{{ now }}"></x-import><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg"><div style="display: flex; align-items: center; justify-content: space-between; gap: 12px"><span class="type-label-lg">Zaytoun Grill</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.HalalBadge" state="CERTIFIED" surface="card" size="sm"></x-import></div></x-import><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg"><div style="display: flex; align-items: center; gap: 12px"><div class="hg-gap" aria-hidden="true" style="width: 48px; height: 48px; flex-shrink: 0; padding: 0; border-radius: var(--radius-full); align-items: center; justify-content: center"><span class="type-label-md" style="color: var(--text-secondary)">YA</span></div><div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px"><span class="type-label-lg">Yusuf A. is bringing your order</span><span class="type-body-sm" style="color: var(--text-secondary)">Bicycle</span></div><div class="hg-focus-drawn"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="secondary" size="sm" href="GetHelp-Sheet.dc.html">Get help</x-import></div></div><div style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px"><span class="hg-tag">Component gap: Avatar</span></div></x-import><div class="hg-gap"><span class="hg-tag">Annotation: DELIVERY_OVERDUE</span><span class="hg-gap-note">PICKED_UP deadline_at is picked_up_at + 75 min (8:17 pm here). At the deadline the server pings the rider, alerts ops and re-arms +15 min (8:32 pm), up to 3 times, then the order moves to DISPUTED as a support case. The banner shows once the deadline has been re-armed; the new window is order.eta_updated, and "by 8:32 pm" is the current deadline_at. The app never works out a lateness itself. The timeline's estimate is the same new eta_at (8:20 pm), so the screen shows one ETA. order.eta_updated carries only pickup_eta_at and dropoff_eta_at, no window: on it the app re-fetches getOrderTracking for eta_window_minutes (or keeps the last width).</span></div>
+</main><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.BottomNav" label="Main" active="orders" items="{{ nav }}"></x-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1172}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const t = (s, at, a) => ({ to_state: s, at: '2026-09-28T' + at + ':00-04:00', actor_kind: a || 'SYSTEM' });
+    const all = [t('AUTHORIZED', '18:42', 'CUSTOMER'), t('RESTAURANT_PENDING', '18:42'), t('PREPARING', '18:44', 'RESTAURANT'), t('READY_FOR_PICKUP', '18:59', 'RESTAURANT'), t('PICKED_UP', '19:02', 'RIDER'), t('ARRIVED', '19:12', 'RIDER'), t('DELIVERED', '19:13', 'RIDER'), t('COMPLETED', '19:43')];
+    const upTo = (n) => all.slice(0, n);
+    return {
+      yes: true, no: false, none: null, zero: 0, noop: () => {},
+      nav: [{ key: 'home', label: 'Home', icon: 'home' }, { key: 'search', label: 'Search', icon: 'search' }, { key: 'orders', label: 'Orders', icon: 'orders', badge: 1, badgeNoun: 'active' }, { key: 'account', label: 'Account', icon: 'profile' }],
+      tl: upTo(5), now: Date.parse('2026-09-28T20:18:00-04:00')
+    };
+  }
+}
+</script>
+</body>
+</html>

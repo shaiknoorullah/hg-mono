@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Application with the list open</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:var(--surface-base);color:var(--text-primary);font-family:var(--font-ui)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+textarea.hg-ta:focus{outline:none;border:var(--focus-field-border-width) solid var(--focus-ring)}
+textarea.hg-ta[aria-invalid="true"]{border:var(--focus-field-border-width) solid var(--color-danger-500)}
+textarea.hg-ta[aria-invalid="true"]:focus{box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+.skip{position:absolute;left:-10000px;top:8px;z-index:900;padding:12px 16px;background:var(--surface-raised);color:var(--text-primary);border-radius:8px;font-weight:600}
+.skip:focus{left:80px;outline:none;box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; display: grid; grid-template-columns: 64px minmax(0, 1fr); background: var(--surface-base); position: relative; overflow: hidden; font-family: var(--font-ui); color: var(--text-primary)">
+  <dc-import name="SideNav" active="applications" role="ADMIN" collapsed="{{yes}}" h="900" hint-size="64px,900px"></dc-import>
+  <div style="display: flex; flex-direction: column; min-width: 0; min-height: 0; position: relative">
+    <a class="skip" href="#main">Skip to main content</a>
+    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="raised" title="Restaurant application" subtitle="Karahi House" back-label="Back to restaurant applications" on-back="{{noop}}"></x-import>
+    <main id="main" data-density="compact" style="flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 12px; padding: 12px; overflow: hidden">
+      <div style="flex: 1 1 auto; min-height: 0; display: flex">
+        <section id="pane-list" aria-labelledby="ql-h" style="flex: 0 0 320px; box-sizing: border-box; min-width: 0; min-height: 0; display: flex; flex-direction: column; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: 12px; overflow: hidden"><div style="display: flex; align-items: center; gap: 8px; min-height: 48px; padding: 0 8px 0 16px; border-bottom: 1px solid var(--border-decorative)"><h2 id="ql-h" style="margin: 0; flex: 1 1 auto; font-size: 15px; font-weight: 600">Restaurant applications</h2><a href="App.dc.html" aria-label="Collapse the applications list" class="hg-focus" style="display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 8px; color: var(--text-secondary)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="back" size="md"></x-import></a></div><div style="padding: 8px 12px; border-bottom: 1px solid var(--border-decorative); display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--text-secondary)"><span>Oldest first · 5 shown</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="secondary" size="sm" disabled="{{yes}}" accessibility-label="Take next, unavailable: you already hold Karahi House">Take next</x-import></div><ul aria-label="Applications, oldest first" style="flex: 1 1 auto; min-height: 0; overflow: auto; margin: 0; padding: 4px; list-style: none; display: flex; flex-direction: column; gap: 2px"><li><a href="App-ChangesRequested.dc.html" class="hg-focus" style="display: flex; flex-direction: column; gap: 4px; min-height: 44px; padding: 8px 12px; background: transparent; text-decoration: none; color: var(--text-primary); border-radius: 4px"><span style="display: flex; align-items: center; justify-content: space-between; gap: 8px"><span style="font-size: 13px; font-weight: 600">Tandoor Lane</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="warning" size="sm">Fix documents</x-import></span><span style="font-size: 12px; color: var(--text-secondary)">Waiting on the restaurant</span></a></li><li><a href="App-ReadOnly.dc.html" class="hg-focus" style="display: flex; flex-direction: column; gap: 4px; min-height: 44px; padding: 8px 12px; background: transparent; text-decoration: none; color: var(--text-primary); border-radius: 4px"><span style="display: flex; align-items: center; justify-content: space-between; gap: 8px"><span style="font-size: 13px; font-weight: 600">Bait Al Mandi</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="info" size="sm">Documents review</x-import></span><span style="font-size: 12px; color: var(--text-secondary)">SLA breached · another reviewer</span></a></li><li><a href="App-Inspect.dc.html" class="hg-focus" style="display: flex; flex-direction: column; gap: 4px; min-height: 44px; padding: 8px 12px; background: transparent; text-decoration: none; color: var(--text-primary); border-radius: 4px"><span style="display: flex; align-items: center; justify-content: space-between; gap: 8px"><span style="font-size: 13px; font-weight: 600">Sufra Kitchen</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="info" size="sm">Documents review</x-import></span><span style="font-size: 12px; color: var(--text-secondary)">Due 29 Sep, 11:14 am · unclaimed</span></a></li><li><a href="App.dc.html" aria-current="page" class="hg-focus" style="display: flex; flex-direction: column; gap: 4px; min-height: 44px; padding: 8px 12px; background: var(--state-selected-tint); text-decoration: none; color: var(--text-primary); border-radius: 4px"><span style="display: flex; align-items: center; justify-content: space-between; gap: 8px"><span style="font-size: 13px; font-weight: 700">Karahi House</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="info" size="sm">Documents review</x-import></span><span style="font-size: 12px; color: var(--text-secondary)">Due 29 Sep, 1:02 pm · claimed by you</span></a></li><li><a href="App-Inspect.dc.html" class="hg-focus" style="display: flex; flex-direction: column; gap: 4px; min-height: 44px; padding: 8px 12px; background: transparent; text-decoration: none; color: var(--text-primary); border-radius: 4px"><span style="display: flex; align-items: center; justify-content: space-between; gap: 8px"><span style="font-size: 13px; font-weight: 600">Zaytoun Grill</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="info" size="sm">Documents review</x-import></span><span style="font-size: 12px; color: var(--text-secondary)">Due 30 Sep, 8:30 am · unclaimed</span></a></li></ul><p style="margin: 0; padding: 8px 12px; border-top: 1px solid var(--border-decorative); font-size: 12px; line-height: 1.4; color: var(--text-secondary)">Opening one here only inspects it. Only Take next claims, oldest first.</p></section>
+        <div role="separator" aria-orientation="vertical" aria-label="Resize the applications list" aria-controls="pane-list" aria-valuenow="24" aria-valuemin="0" aria-valuemax="40" aria-valuetext="24 percent of the width. Left and Right arrows resize." tabindex="0" class="hg-focus hg-hit" style="flex: 0 0 12px; cursor: col-resize; align-self: stretch; display: flex; align-items: center; justify-content: center; border-radius: 4px"><span aria-hidden="true" style="display: block; width: 4px; height: 40px; border-radius: 2px; background: var(--border-interactive)"></span></div>
+        <dc-import name="AppBody" variant="mine" w="1020" h="820" third="collapsed" hint-size="1020px,820px"></dc-import>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { yes: true, no: false, noop: () => {} };
+  }
+}
+</script>
+</body>
+</html>

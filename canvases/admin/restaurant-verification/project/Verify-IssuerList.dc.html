@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Issuing body list, open</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:var(--surface-base);color:var(--text-primary);font-family:var(--font-ui)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+textarea.hg-ta:focus{outline:none;border:var(--focus-field-border-width) solid var(--focus-ring)}
+textarea.hg-ta[aria-invalid="true"]{border:var(--focus-field-border-width) solid var(--color-danger-500)}
+textarea.hg-ta[aria-invalid="true"]:focus{box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+.skip{position:absolute;left:-10000px;top:8px;z-index:900;padding:12px 16px;background:var(--surface-raised);color:var(--text-primary);border-radius:8px;font-weight:600}
+.skip:focus{left:80px;outline:none;box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; display: grid; grid-template-columns: 64px minmax(0, 1fr); background: var(--surface-base); position: relative; overflow: hidden; font-family: var(--font-ui); color: var(--text-primary)">
+  <dc-import name="SideNav" active="applications" role="ADMIN" collapsed="{{yes}}" h="900" hint-size="64px,900px"></dc-import>
+  <div style="display: flex; flex-direction: column; min-width: 0; min-height: 0; position: relative">
+    <a class="skip" href="#main">Skip to main content</a>
+    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="raised" title="Verify halal certificate" subtitle="Restaurant application · Karahi House" back-label="Back to the Karahi House application" on-back="{{noop}}"></x-import>
+    <main id="main" data-density="compact" style="flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 12px; padding: 12px; overflow: hidden">
+      <div style="display: grid; grid-template-columns: 528px minmax(0, 1fr); gap: 32px; align-items: start">
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <label for="issuer-cb" style="font-size: 15px; font-weight: 600">Issuing body</label>
+          <div class="hg-field" style="display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 12px; border-radius: 12px; background: var(--surface-raised); border-color: var(--border-brand); box-shadow: inset 0 0 0 1px var(--border-brand)">
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="search" size="md" color="var(--text-secondary)"></x-import>
+            <input id="issuer-cb" type="text" role="combobox" aria-expanded="true" aria-controls="issuer-lb" aria-autocomplete="list" aria-activedescendant="issuer-opt-hcco" aria-describedby="issuer-help" autocomplete="off" value="hal" style="flex: 1 1 auto; min-width: 0; height: 40px; border: none; background: transparent; font: inherit; font-size: 15px; color: var(--text-primary); outline: none">
+          </div>
+          <div role="listbox" id="issuer-lb" aria-label="Issuing bodies matching hal" style="display: flex; flex-direction: column; gap: 2px; padding: 6px; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: 12px; box-shadow: var(--elev-2)">
+            <div role="option" id="issuer-opt-hma" aria-selected="false" style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; min-height: 44px; padding: 8px 12px; border-radius: 8px; cursor: pointer; background: transparent;">
+              <span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 500">Halal Monitoring Authority (HMA Canada)</span><span style="font-size: 13px; color: var(--text-secondary)">Passes Issuer accepted</span></span>
+              <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="outline" size="sm">Accepted</x-import>
+            </div>
+            <div role="option" id="issuer-opt-isna" aria-selected="false" style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; min-height: 44px; padding: 8px 12px; border-radius: 8px; cursor: pointer; background: transparent;">
+              <span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 500">Islamic Society of North America Canada (ISNA Canada)</span><span style="font-size: 13px; color: var(--text-secondary)">Passes Issuer accepted</span></span>
+              <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="outline" size="sm">Accepted</x-import>
+            </div>
+            <div role="option" id="issuer-opt-habc" aria-selected="false" style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; min-height: 44px; padding: 8px 12px; border-radius: 8px; cursor: pointer; background: transparent;">
+              <span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 500">Halal Assurance Board of Canada (HABC)</span><span style="font-size: 13px; color: var(--text-secondary)">Passes Issuer accepted · the issuer’s confirmation is needed before approval</span></span>
+              <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="outline" size="sm">Accepted</x-import>
+            </div>
+            <div role="option" id="issuer-opt-hcco" aria-selected="true" style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; min-height: 44px; padding: 8px 12px; border-radius: 8px; cursor: pointer; background: var(--state-selected-tint); box-shadow: inset 0 0 0 2px var(--border-brand);">
+              <span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 500">Halal Certification Council of Ontario (HCCO)</span><span style="font-size: 13px; color: var(--text-secondary)">Waiting for a super admin · doesn’t pass Issuer accepted</span></span>
+              <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="info" size="sm">Proposed</x-import>
+            </div>
+            <div role="option" id="issuer-opt-hfsaa" aria-selected="false" style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; min-height: 44px; padding: 8px 12px; border-radius: 8px; cursor: pointer; background: transparent;">
+              <span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 500">Halal Food Standards Alliance of America (HFSAA)</span><span style="font-size: 13px; color: var(--text-secondary)">Doesn’t pass Issuer accepted</span></span>
+              <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="neutral" size="sm">Suspended</x-import>
+            </div>
+            <div role="option" id="issuer-opt-chrb" aria-selected="false" style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; min-height: 44px; padding: 8px 12px; border-radius: 8px; cursor: pointer; background: transparent;">
+              <span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 500">Canadian Halal Review Board (CHRB)</span><span style="font-size: 13px; color: var(--text-secondary)">Doesn’t pass Issuer accepted</span></span>
+              <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="neutral" size="sm">Retired</x-import>
+            </div>
+            <div role="option" id="issuer-opt-ghm" aria-selected="false" style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; min-height: 44px; padding: 8px 12px; border-radius: 8px; cursor: pointer; background: transparent;">
+              <span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 500">Global Halal Mark (GHM)</span><span style="font-size: 13px; color: var(--text-secondary)">Doesn’t pass Issuer accepted</span></span>
+              <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="neutral" size="sm">Rejected</x-import>
+            </div>
+          </div>
+          <span id="issuer-help" style="font-size: 15px; color: var(--text-secondary)">Choose the body printed on the certificate. Only Accepted bodies pass the Issuer accepted check.</span>
+          <span style="display: inline-flex; align-self: flex-start; padding: 2px 8px; border-radius: 4px; background: var(--color-info-50); color: var(--color-info-700); font-size: 12px; font-weight: 600">Proposed component: IssuerCombobox (shadcn Combobox: Popover + Command, DS Input style as the trigger, DS Badge for status)</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 12px; font-size: 15px; line-height: 1.5; max-width: 480px">
+          <h2 style="margin: 0; font-size: 18px; font-weight: 600">How the list behaves</h2>
+          <p style="margin: 0">Options come from GET /v1/admin/halal-issuing-bodies with every status, Accepted first, then by name. The filter matches the name and its aliases.</p>
+          <p style="margin: 0">Any body can be saved in the transcription. With a Rejected, Suspended or Retired body, the server suggests Issuer accepted as Fail and Reject… opens with Issuer not accepted. With a Proposed body, Reject is off: release your claim and the application waits on the certifying body.</p>
+          <p style="margin: 0">After a proposal returns 201, the new Proposed body is chosen here for you (HCCO, highlighted).</p>
+          <p style="margin: 0">Keyboard: focus stays in the field. Typing filters; Down and Up move the highlight (aria-activedescendant names it), Enter chooses it, Escape closes the list and keeps what you typed. Screen readers hear the option’s name, its status badge and whether it passes.</p>
+          <p style="margin: 0">Status badges never use red: Rejected and Suspended are neutral, like Retired.</p>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { yes: true, no: false, noop: () => {} };
+  }
+}
+</script>
+</body>
+</html>

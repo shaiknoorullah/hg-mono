@@ -1,0 +1,103 @@
+{
+  "home": {
+    "linear": "home-2-linear",
+    "bold": "home-2-bold"
+  },
+  "search": {
+    "linear": "magnifier-linear",
+    "bold": "magnifier-bold"
+  },
+  "cart": {
+    "linear": "cart-large-2-linear",
+    "bold": "cart-large-2-bold"
+  },
+  "orders": {
+    "linear": "checklist-linear",
+    "bold": "checklist-bold"
+  },
+  "profile": {
+    "linear": "user-circle-linear",
+    "bold": "user-circle-bold"
+  },
+  "map": {
+    "linear": "map-point-linear",
+    "bold": "map-point-bold"
+  },
+  "bell": {
+    "linear": "bell-linear",
+    "bold": "bell-bold"
+  },
+  "back": {
+    "linear": "alt-arrow-left-linear",
+    "bold": "alt-arrow-left-bold"
+  },
+  "close": {
+    "linear": "close-linear",
+    "bold": "close-bold"
+  },
+  "plus": {
+    "linear": "add-linear",
+    "bold": "add-bold"
+  },
+  "check": {
+    "linear": "check-circle-linear",
+    "bold": "check-circle-bold"
+  },
+  "star": {
+    "linear": "star-linear",
+    "bold": "star-bold"
+  },
+  "clock": {
+    "linear": "clock-circle-linear",
+    "bold": "clock-circle-bold"
+  },
+  "menu": {
+    "linear": "hamburger-menu-linear",
+    "bold": "hamburger-menu-bold"
+  },
+  "chevron-down": {
+    "linear": "alt-arrow-down-linear",
+    "bold": "alt-arrow-down-bold",
+    "extension": true
+  },
+  "chevron-right": {
+    "linear": "alt-arrow-right-linear",
+    "bold": "alt-arrow-right-bold",
+    "extension": true
+  },
+  "minus": {
+    "linear": "minus-circle-linear",
+    "bold": "minus-circle-bold",
+    "extension": true
+  },
+  "lock": {
+    "linear": "lock-keyhole-linear",
+    "bold": "lock-keyhole-bold",
+    "extension": true
+  },
+  "info": {
+    "linear": "info-circle-linear",
+    "bold": "info-circle-bold",
+    "extension": true
+  },
+  "warning": {
+    "linear": "danger-triangle-linear",
+    "bold": "danger-triangle-bold",
+    "extension": true
+  },
+  "error": {
+    "linear": "danger-circle-linear",
+    "bold": "danger-circle-bold",
+    "extension": true
+  },
+  "more": {
+    "linear": "menu-dots-linear",
+    "bold": "menu-dots-bold",
+    "extension": true
+  },
+  "refresh": {
+    "linear": "restart-linear",
+    "bold": "restart-bold",
+    "extension": true
+  }
+}

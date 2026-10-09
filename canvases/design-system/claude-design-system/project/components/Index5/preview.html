@@ -1,0 +1,840 @@
+<!-- @dsCard group="Rider app" height=900 subtitle="Dark scheme · sign-in, onboarding, availability, one offer at a time (30 s), trip per AssignmentState, earnings and payouts" page -->
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>HalalGoes — rider app</title>
+<style>
+html,body{margin:0;min-height:100%;background:var(--color-neutral-100)}
+#root{min-height:100vh}
+/* "Show component gaps": every placeholder for a component the system lacks (#109) */
+.show-gaps [data-gap]{outline:1.5px dashed var(--color-info-500);outline-offset:2px}
+</style></head><body><div id="root"></div>
+<script>
+/* Compiled from Index5/Kit.jsx, Index5/Data.jsx, Index5/RiderUi.jsx, Index5/SignInScreen.jsx, Index5/OnboardingScreen.jsx, Index5/OnlineScreen.jsx, Index5/OfferScreen.jsx, Index5/ActiveScreen.jsx, Index5/EarningsScreen.jsx, Index5/HistoryScreen.jsx, Index5/RiderApp.jsx (JSX precompiled with esbuild; the viewer blocks
+   relative script URLs, so the kit is inlined). Components come from window.HalalGoesDesignSystem_d11a47. */
+/* Index5/Kit.jsx */
+(() => {
+  const { Button, Icon, IconButton, Card, Select, SegmentedControl, Switch, Badge } = window.HalalGoesDesignSystem_d11a47;
+  function Gap({ name, as = "div", style, children, ...rest }) {
+    const Tag = as;
+    return /* @__PURE__ */ React.createElement(Tag, { "data-gap": name, title: "Component gap: " + name + " (placeholder until #109)", style, ...rest }, children);
+  }
+  function GapWordmark({ size = 20, tone = "ink", sub }) {
+    const color = tone === "onDark" ? "var(--color-neutral-0)" : tone === "text" ? "var(--text-primary)" : "var(--color-accent-600)";
+    return /* @__PURE__ */ React.createElement(Gap, { name: "Wordmark", as: "span", style: { display: "inline-grid", gap: 2 } }, /* @__PURE__ */ React.createElement("span", { style: { fontFamily: "var(--font-display)", fontWeight: 800, fontSize: size, letterSpacing: "-.03em", color, lineHeight: 1.1 } }, "HalalGoes"), sub && /* @__PURE__ */ React.createElement("span", { style: { fontSize: "var(--type-caption-size)", color: tone === "onDark" ? "var(--text-on-accent)" : "var(--text-tertiary)", opacity: tone === "onDark" ? 0.8 : 1 } }, sub));
+  }
+  function GapSkeleton({ rows = 3, height = 72, media = false, style }) {
+    const bar = (w, h = 12) => /* @__PURE__ */ React.createElement("span", { style: { display: "block", width: w, height: h, borderRadius: "var(--radius-xs)", background: "var(--surface-sunken)" } });
+    return /* @__PURE__ */ React.createElement(Gap, { name: "Skeleton", "aria-busy": "true", "aria-label": "Loading", style: { display: "grid", gap: 12, ...style } }, Array.from({ length: rows }).map((_, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "grid", gap: 8, padding: "var(--space-4)", minHeight: height, borderRadius: "var(--radius-lg)", border: "1px solid var(--border-decorative)", background: "var(--surface-raised)" } }, media && /* @__PURE__ */ React.createElement("span", { style: { display: "block", height: 96, borderRadius: "var(--radius-md)", background: "var(--surface-sunken)" } }), bar("55%", 14), bar("80%"), bar("35%"))));
+  }
+  function GapEmptyState({ icon = "search", title, body, action, onAction, secondary, onSecondary, style }) {
+    return /* @__PURE__ */ React.createElement(Gap, { name: "EmptyState", style: { display: "grid", justifyItems: "center", textAlign: "center", gap: 10, padding: "var(--space-8) var(--space-5)", ...style } }, /* @__PURE__ */ React.createElement("span", { style: { width: 56, height: 56, display: "grid", placeItems: "center", borderRadius: "var(--radius-full)", background: "var(--surface-sunken)", color: "var(--text-tertiary)" } }, icon ? /* @__PURE__ */ React.createElement(Icon, { name: icon, size: "lg" }) : null), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "var(--type-heading-md-size)", fontWeight: 600, color: "var(--text-primary)" } }, title), body && /* @__PURE__ */ React.createElement("p", { style: { margin: 0, maxWidth: 320, fontSize: "var(--type-body-sm-size)", lineHeight: "var(--type-body-sm-line)", color: "var(--text-secondary)" } }, body), (action || secondary) && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, marginTop: 4, flexWrap: "wrap", justifyContent: "center" } }, action && /* @__PURE__ */ React.createElement(Button, { size: "md", onPress: onAction }, action), secondary && /* @__PURE__ */ React.createElement(Button, { size: "md", variant: "ghost", onPress: onSecondary }, secondary)));
+  }
+  function GapErrorState({ title = "Something went wrong", body, retry = "Try again", onRetry, terminal = false, exit, onExit, code, style }) {
+    return /* @__PURE__ */ React.createElement(Gap, { name: "ErrorState", role: "alert", style: { display: "grid", justifyItems: "center", textAlign: "center", gap: 10, padding: "var(--space-8) var(--space-5)", ...style } }, /* @__PURE__ */ React.createElement("span", { style: { width: 56, height: 56, display: "grid", placeItems: "center", borderRadius: "var(--radius-full)", background: "var(--feedback-warning-tint)", color: "var(--feedback-warning-tint-text)" } }, /* @__PURE__ */ React.createElement(Icon, { name: terminal ? "error" : "refresh", size: "lg" })), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "var(--type-heading-md-size)", fontWeight: 600, color: "var(--text-primary)" } }, title), body && /* @__PURE__ */ React.createElement("p", { style: { margin: 0, maxWidth: 320, fontSize: "var(--type-body-sm-size)", lineHeight: "var(--type-body-sm-line)", color: "var(--text-secondary)" } }, body), code && /* @__PURE__ */ React.createElement("span", { style: { fontFamily: "var(--font-mono)", fontSize: "var(--type-mono-sm-size)", color: "var(--text-tertiary)" } }, code), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, marginTop: 4 } }, !terminal && /* @__PURE__ */ React.createElement(Button, { size: "md", variant: "secondary", iconStart: "refresh", onPress: onRetry }, retry), exit && /* @__PURE__ */ React.createElement(Button, { size: "md", variant: "ghost", onPress: onExit }, exit)));
+  }
+  function GapBanner({ tone = "info", icon, title, children, action, style }) {
+    const T = {
+      info: ["var(--feedback-info-tint)", "var(--feedback-info-tint-text)", "var(--feedback-info-border)", "info"],
+      warning: ["var(--feedback-warning-tint)", "var(--feedback-warning-tint-text)", "var(--feedback-warning-border)", "warning"],
+      neutral: ["var(--surface-sunken)", "var(--text-secondary)", "var(--border-decorative)", "info"],
+      success: ["var(--feedback-success-tint)", "var(--feedback-success-tint-text)", "var(--feedback-success-border)", "check"],
+      danger: ["var(--feedback-danger-tint)", "var(--feedback-danger-tint-text)", "var(--feedback-danger-border)", "error"]
+    }[tone];
+    return /* @__PURE__ */ React.createElement(Gap, { name: "InlineAlert", role: "status", style: { display: "flex", gap: 10, alignItems: "flex-start", padding: "12px 14px", background: T[0], color: T[1], border: "1px solid " + T[2], borderRadius: "var(--radius-md)", ...style } }, /* @__PURE__ */ React.createElement("span", { style: { marginTop: 1 } }, /* @__PURE__ */ React.createElement(Icon, { name: icon || T[3], size: "md" })), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, display: "grid", gap: 2, fontSize: "var(--type-body-sm-size)", lineHeight: "var(--type-body-sm-line)" } }, title && /* @__PURE__ */ React.createElement("strong", { style: { fontWeight: 600, fontSize: "var(--type-label-lg-size)" } }, title), children && /* @__PURE__ */ React.createElement("span", null, children)), action);
+  }
+  function GapListRow({ icon, title, sub, right, onClick, chevron = !!onClick, style }) {
+    return /* @__PURE__ */ React.createElement(Gap, { name: "ListRow", onClick, style: { display: "flex", alignItems: "center", gap: 12, minHeight: "var(--target-field)", padding: "8px 0", borderTop: "1px solid var(--border-decorative)", cursor: onClick ? "pointer" : void 0, ...style } }, icon && /* @__PURE__ */ React.createElement("span", { style: { width: 36, height: 36, display: "grid", placeItems: "center", flex: "0 0 auto", borderRadius: "var(--radius-md)", background: "var(--surface-sunken)", color: "var(--text-secondary)" } }, /* @__PURE__ */ React.createElement(Icon, { name: icon, size: "md" })), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 0, display: "grid", gap: 2 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "var(--type-body-md-size)", fontWeight: 500, color: "var(--text-primary)" } }, title), sub && /* @__PURE__ */ React.createElement("div", { style: { fontSize: "var(--type-body-sm-size)", color: "var(--text-secondary)" } }, sub)), right, chevron && /* @__PURE__ */ React.createElement(Icon, { name: "chevron-right", size: "md", color: "var(--text-tertiary)" }));
+  }
+  function GapKeyValue({ rows, labelWidth = 140, style }) {
+    return /* @__PURE__ */ React.createElement(Gap, { name: "KeyValueList", as: "dl", style: { margin: 0, display: "grid", gap: 6, fontSize: "var(--type-body-sm-size)", ...style } }, rows.filter(Boolean).map(([k, v, o]) => /* @__PURE__ */ React.createElement("div", { key: k, style: { display: "flex", gap: 10, alignItems: "baseline" } }, /* @__PURE__ */ React.createElement("dt", { style: { width: labelWidth, flex: "0 0 auto", color: "var(--text-secondary)" } }, k), /* @__PURE__ */ React.createElement("dd", { style: { margin: 0, flex: 1, minWidth: 0, fontFamily: o && o.mono ? "var(--font-mono)" : "inherit", fontSize: o && o.mono ? "var(--type-mono-sm-size)" : "inherit", color: "var(--text-primary)", overflowWrap: "anywhere" } }, v))));
+  }
+  function GapChip({ label, selected, onClick, icon }) {
+    return /* @__PURE__ */ React.createElement(Gap, { name: "Chip", as: "span", style: { display: "inline-flex" } }, /* @__PURE__ */ React.createElement(
+      Button,
+      {
+        size: "sm",
+        variant: selected ? "secondary" : "tertiary",
+        iconStart: icon,
+        onPress: onClick,
+        style: { borderRadius: "var(--radius-full)" }
+      },
+      label
+    ));
+  }
+  function GapStepper({ value, onChange, min = 1, max = 20, label = "Quantity" }) {
+    return /* @__PURE__ */ React.createElement(Gap, { name: "QuantityStepper", role: "group", "aria-label": label, style: { display: "inline-flex", alignItems: "center", gap: 12 } }, /* @__PURE__ */ React.createElement(IconButton, { icon: "minus", accessibilityLabel: "One fewer", variant: "tonal", shape: "circle", disabled: value <= min, onPress: () => onChange(Math.max(min, value - 1)) }), /* @__PURE__ */ React.createElement("span", { "aria-live": "polite", style: { minWidth: 20, textAlign: "center", fontSize: "var(--type-heading-md-size)", fontWeight: 600, fontVariantNumeric: "var(--numeric-tabular)" } }, value), /* @__PURE__ */ React.createElement(IconButton, { icon: "plus", accessibilityLabel: "One more", variant: "tonal", shape: "circle", disabled: value >= max, onPress: () => onChange(Math.min(max, value + 1)) }));
+  }
+  function GapMap({ height = 180, pins = [], caption, style }) {
+    const colors = { restaurant: "var(--color-map-pin-restaurant)", rider: "var(--color-map-pin-rider)", customer: "var(--color-map-pin-customer)" };
+    return /* @__PURE__ */ React.createElement(Gap, { name: "MapView", style: { position: "relative", height, background: "var(--surface-sunken)", overflow: "hidden", ...style } }, /* @__PURE__ */ React.createElement("div", { style: { position: "absolute", inset: 0, display: "grid", placeItems: "center", color: "var(--text-tertiary)", fontSize: "var(--type-caption-size)", textAlign: "center", padding: 16 } }, /* @__PURE__ */ React.createElement("span", { style: { display: "grid", justifyItems: "center", gap: 6 } }, /* @__PURE__ */ React.createElement(Icon, { name: "map", size: "lg" }), /* @__PURE__ */ React.createElement("span", null, caption || "Map: pins from the payload"), /* @__PURE__ */ React.createElement("span", { style: { display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" } }, pins.map((p) => /* @__PURE__ */ React.createElement("span", { key: p.kind, style: { display: "inline-flex", alignItems: "center", gap: 5 } }, /* @__PURE__ */ React.createElement("span", { style: { width: 10, height: 10, borderRadius: "var(--radius-full)", background: colors[p.kind] } }), /* @__PURE__ */ React.createElement("span", { style: { fontFamily: "var(--font-mono)", fontSize: "var(--type-mono-sm-size)" } }, p.label)))))));
+  }
+  function GapFileUpload({ label, hint, state = "idle", fileName, error, onChoose }) {
+    return /* @__PURE__ */ React.createElement(Gap, { name: "FileUpload", style: { display: "grid", gap: 6 } }, label && /* @__PURE__ */ React.createElement("span", { style: { fontSize: "var(--type-label-md-size)", fontWeight: 600, color: "var(--text-secondary)" } }, label), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 12, padding: "var(--space-4)", border: "1.5px dashed " + (state === "error" ? "var(--feedback-danger-border)" : "var(--border-interactive)"), borderRadius: "var(--radius-md)", color: "var(--text-secondary)", background: "var(--surface-raised)" } }, /* @__PURE__ */ React.createElement(Icon, { name: state === "done" ? "check" : state === "uploading" ? "refresh" : "plus", size: "md" }), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, fontSize: "var(--type-body-sm-size)" } }, state === "done" ? fileName : state === "uploading" ? "Uploading " + (fileName || "") + "\u2026" : hint || "PDF, JPG or PNG"), /* @__PURE__ */ React.createElement(Button, { variant: "tertiary", size: "sm", loading: state === "uploading", onPress: onChoose }, state === "done" ? "Replace" : "Choose file")), error && /* @__PURE__ */ React.createElement("span", { style: { display: "flex", gap: 5, alignItems: "center", fontSize: "var(--type-caption-size)", color: "var(--feedback-danger-text)" } }, /* @__PURE__ */ React.createElement(Icon, { name: "error", size: "sm" }), error));
+  }
+  function GapSideNav({ items, value, onChange }) {
+    return /* @__PURE__ */ React.createElement(Gap, { name: "SideNav", as: "nav", "data-theme": "dark", style: { display: "grid", gap: 2, alignContent: "start", padding: "0 8px", background: "transparent" } }, items.map((n) => /* @__PURE__ */ React.createElement(
+      Button,
+      {
+        key: n.value,
+        variant: n.value === value ? "secondary" : "ghost",
+        iconStart: n.icon,
+        onPress: () => onChange(n.value),
+        accessibilityLabel: n.count != null ? n.label + ", " + n.count + " waiting" : void 0,
+        style: { justifyContent: "flex-start", width: "100%", color: "var(--text-on-accent)" }
+      },
+      /* @__PURE__ */ React.createElement("span", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, minWidth: 176 } }, /* @__PURE__ */ React.createElement("span", { style: { textAlign: "start" } }, n.label), n.count != null && /* @__PURE__ */ React.createElement(Badge, { variant: "brand", appearance: "solid", size: "sm" }, n.count))
+    )));
+  }
+  function GapStat({ label, children, sub }) {
+    return /* @__PURE__ */ React.createElement(Gap, { name: "StatCard" }, /* @__PURE__ */ React.createElement(Card, { radius: "lg", variant: "outlined" }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "var(--type-label-md-size)", color: "var(--text-tertiary)", fontWeight: 600 } }, label), /* @__PURE__ */ React.createElement("div", { style: { margin: "6px 0 2px" } }, children), sub && /* @__PURE__ */ React.createElement("div", { style: { fontSize: "var(--type-body-sm-size)", color: "var(--text-secondary)" } }, sub)));
+  }
+  function GapAvatar({ name = "", src, size = 44 }) {
+    const initials = name.split(" ").map((s) => s[0]).join("").slice(0, 2);
+    return /* @__PURE__ */ React.createElement(Gap, { name: "Avatar", as: "span", style: { width: size, height: size, flex: "0 0 auto", display: "grid", placeItems: "center", borderRadius: "var(--radius-full)", background: "var(--surface-sunken)", color: "var(--text-secondary)", fontWeight: 600, fontSize: size / 2.8, overflow: "hidden" } }, src ? /* @__PURE__ */ React.createElement("img", { src, alt: "", style: { width: "100%", height: "100%", objectFit: "cover" } }) : initials);
+  }
+  function GapAccordion({ items, open, onToggle }) {
+    return /* @__PURE__ */ React.createElement(Gap, { name: "Accordion", style: { display: "grid", gap: 10 } }, items.map(([q, a], i) => /* @__PURE__ */ React.createElement(Card, { key: q, radius: "lg", variant: "outlined", padding: "0" }, /* @__PURE__ */ React.createElement(
+      Button,
+      {
+        variant: "ghost",
+        fullWidth: true,
+        iconEnd: "chevron-down",
+        onPress: () => onToggle(open === i ? -1 : i),
+        accessibilityLabel: q + (open === i ? ", expanded" : ", collapsed"),
+        style: { justifyContent: "space-between", minHeight: 64, padding: "0 24px", whiteSpace: "normal", textAlign: "start" }
+      },
+      q
+    ), open === i && /* @__PURE__ */ React.createElement("p", { style: { margin: 0, padding: "0 24px 22px", fontSize: 15, lineHeight: 1.65, color: "var(--text-secondary)", maxWidth: 680 } }, a))));
+  }
+  const STATE_LABEL = { populated: "Populated", loading: "Loading", empty: "Empty", error: "Error" };
+  function readHash() {
+    try {
+      return Object.fromEntries(new URLSearchParams((location.hash || "").slice(1)));
+    } catch (e) {
+      return {};
+    }
+  }
+  function KitFrame({ title, screens, device = "phone", theme = "light", initial }) {
+    const h = readHash();
+    window.__KIT = screens.map((x) => ({ id: x.id, variants: x.variants ? x.variants.map((v) => v.id) : [null], states: x.states || ["populated", "loading", "empty", "error"] }));
+    const first = screens.find((s) => s.id === (h.screen || initial)) || screens[0];
+    const [screenId, setScreenId] = React.useState(first.id);
+    const screen = screens.find((s) => s.id === screenId) || screens[0];
+    const [variant, setVariant] = React.useState(h.variant || (screen.variants ? screen.variants[0].id : null));
+    const [state, setState] = React.useState(h.state || "populated");
+    const [showGaps, setShowGaps] = React.useState(h.gaps !== "0");
+    const states = screen.states || ["populated", "loading", "empty", "error"];
+    const go = (id, v) => {
+      const s = screens.find((x) => x.id === id);
+      setScreenId(id);
+      setState("populated");
+      setVariant(v || (s && s.variants ? s.variants[0].id : null));
+    };
+    const pick = (id) => go(id);
+    const ctx = { state: states.includes(state) ? state : "populated", variant: variant || (screen.variants ? screen.variants[0].id : null), go };
+    const body = screen.render(ctx);
+    return /* @__PURE__ */ React.createElement("div", { className: showGaps ? "kit show-gaps" : "kit", style: { display: "grid", gridTemplateRows: "auto 1fr", minHeight: "100%", background: "var(--color-neutral-100)" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "flex-end", gap: 12, flexWrap: "wrap", padding: "10px 16px", background: "var(--surface-raised)", borderBottom: "1px solid var(--border-decorative)" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gap: 2, marginRight: 8 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: "var(--type-label-sm-size)", color: "var(--text-tertiary)", fontWeight: 600, letterSpacing: ".04em" } }, title), /* @__PURE__ */ React.createElement("span", { style: { fontSize: "var(--type-caption-size)", color: "var(--text-tertiary)" } }, screens.length, " artboards")), /* @__PURE__ */ React.createElement(Select, { label: "Screen", value: screenId, onValueChange: pick, options: screens.map((s) => ({ value: s.id, label: s.label })), style: { minWidth: 220 } }), screen.variants && /* @__PURE__ */ React.createElement(Select, { label: "Variant", value: ctx.variant, onValueChange: (v) => {
+      setVariant(v);
+      setState("populated");
+    }, options: screen.variants.map((v) => ({ value: v.id, label: v.label })), style: { minWidth: 220 } }), states.length > 1 && /* @__PURE__ */ React.createElement(SegmentedControl, { label: "Artboard state", size: "sm", value: ctx.state, onChange: setState, options: states.map((s) => ({ value: s, label: STATE_LABEL[s] || s })) }), /* @__PURE__ */ React.createElement("div", { style: { marginLeft: "auto" } }, /* @__PURE__ */ React.createElement(Switch, { size: "sm", label: "Show component gaps", stateLabel: { on: "On", off: "Off" }, checked: showGaps, onCheckedChange: setShowGaps }))), device === "phone" ? /* @__PURE__ */ React.createElement("div", { style: { display: "grid", placeItems: "start center", padding: "12px 0 20px" } }, /* @__PURE__ */ React.createElement("div", { "data-theme": theme === "dark" ? "dark" : void 0, style: { width: 390, height: 820, background: "var(--surface-base)", color: "var(--text-primary)", borderRadius: 34, overflow: "hidden", boxShadow: "var(--elev-4)", position: "relative", display: "grid", gridTemplateRows: "auto 1fr" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", height: 28, padding: "0 18px", fontSize: 11, fontWeight: 600, fontVariantNumeric: "tabular-nums", color: "var(--text-primary)" } }, /* @__PURE__ */ React.createElement("span", null, "18:47"), /* @__PURE__ */ React.createElement("span", { style: { display: "flex", gap: 6 } }, /* @__PURE__ */ React.createElement("span", null, "5G"), /* @__PURE__ */ React.createElement("span", null, "84%"))), /* @__PURE__ */ React.createElement("div", { style: { position: "relative", overflow: "hidden", minHeight: 0 } }, body))) : /* @__PURE__ */ React.createElement("div", { "data-theme": theme === "dark" ? "dark" : void 0, style: { position: "relative", minHeight: 780, background: "var(--surface-base)" } }, body));
+  }
+  function Stateful({ state, loading, empty, error, children }) {
+    if (state === "loading") return loading || /* @__PURE__ */ React.createElement(GapSkeleton, null);
+    if (state === "empty") return empty || /* @__PURE__ */ React.createElement(GapEmptyState, { title: "Nothing here yet" });
+    if (state === "error") return error || /* @__PURE__ */ React.createElement(GapErrorState, null);
+    return children;
+  }
+  Object.assign(window, {
+    Gap,
+    GapWordmark,
+    GapSkeleton,
+    GapEmptyState,
+    GapErrorState,
+    GapBanner,
+    GapListRow,
+    GapKeyValue,
+    GapChip,
+    GapStepper,
+    GapMap,
+    GapFileUpload,
+    GapSideNav,
+    GapStat,
+    GapAvatar,
+    GapAccordion,
+    KitFrame,
+    Stateful
+  });
+})();
+
+/* Index5/Data.jsx */
+(() => {
+  const RIDER_ME = {
+    id: "0192f1a8-7c3e-7b2a-9d41-5e8f3a6c2b17",
+    first_name: "Yusuf",
+    last_initial: "A",
+    phone: "+1 416 555 0134",
+    vehicle: { vehicle_type: "SCOOTER", plate: "CJRA 204", make_model: "Honda PCX 125" }
+  };
+  const TODAY = { gross_cents: 4280, currency: "CAD", trips: 7, online_seconds: 11520 };
+  const OFFER = {
+    offer_id: "0192f1b2-0d44-7e19-8a6c-3f2b91d0c4e5",
+    order_id: "0192f1b1-f3a0-7c88-b2d1-6e4a07c9d3f1",
+    state: "PENDING",
+    wave: 1,
+    server_time: "2026-09-28T22:47:02Z",
+    expires_at: "2026-09-28T22:47:32Z",
+    /* offer_ttl_seconds = 30 */
+    pickup: { restaurant_name: "Zaytoun Grill", address_short: "Ellesmere Rd, Scarborough" },
+    dropoff: { area: "Brimley Rd, Scarborough" },
+    distance_m: 4800,
+    est_duration_s: 840,
+    items_count: 3,
+    earnings: { base_cents: 350, distance_cents: 384, surge_cents: 0, tip_so_far_cents: 210, estimated_total_cents: 944, currency: "CAD" }
+  };
+  const ASSIGNMENT = {
+    id: "0192f1b2-2a91-7f03-9c5e-81d4b6a0e2c7",
+    order_id: OFFER.order_id,
+    order_code: "HG-4K2M-9T",
+    pickup: {
+      restaurant_name: "Zaytoun Grill",
+      address: "14 Ellesmere Rd, Scarborough, ON",
+      phone_alias: "+1 647 555 0190",
+      pickup_notes: "Collect at the side counter. Ask for the order code.",
+      order_state: "PREPARING"
+    },
+    dropoff: {
+      address: "88 Brimley Rd, Scarborough, ON",
+      unit: "402",
+      buzzer: "4021",
+      customer_display_name: "Aisha M.",
+      phone_alias: "+1 647 555 0117",
+      delivery_instructions: ["LEAVE_AT_DOOR", "DO_NOT_RING_BELL"],
+      special_instructions: "Blue door at the end of the hall."
+    },
+    items: [
+      { name: "Mixed charcoal grill", quantity: 1, variant_name: "For two", addon_names: ["Extra garlic sauce"], note: null, allergen_tags: ["SESAME", "MILK"] },
+      { name: "Chicken shawarma wrap", quantity: 2, variant_name: null, addon_names: [], note: "No pickles", allergen_tags: ["WHEAT_TRITICALE"] }
+    ],
+    required_pod_method: "PHOTO",
+    earnings: OFFER.earnings,
+    tracking_health: "HEALTHY"
+  };
+  const INSTRUCTION_TEXT = {
+    LEAVE_AT_DOOR: "Leave at the door",
+    DO_NOT_RING_BELL: "Do not ring the bell",
+    DO_NOT_CALL: "Do not call",
+    MEET_AT_DOOR: "Meet at the door",
+    MEET_IN_LOBBY: "Meet in the lobby"
+  };
+  const ALLERGEN_TEXT = {
+    PEANUTS: "Peanuts",
+    TREE_NUTS: "Tree nuts",
+    SESAME: "Sesame",
+    MILK: "Milk",
+    EGGS: "Eggs",
+    FISH: "Fish",
+    CRUSTACEANS_MOLLUSCS: "Shellfish",
+    SOY: "Soy",
+    WHEAT_TRITICALE: "Wheat",
+    SULPHITES: "Sulphites",
+    MUSTARD: "Mustard"
+  };
+  const OFFER_REJECT_REASONS = [
+    ["TOO_FAR_PICKUP", "Pickup is too far"],
+    ["TOO_FAR_DROPOFF", "Drop-off is too far"],
+    ["TOO_LONG_WAIT", "Wait looks too long"],
+    ["EARNINGS_TOO_LOW", "Earnings too low"],
+    ["VEHICLE_UNSUITABLE", "Not suitable for my vehicle"],
+    ["ORDER_TOO_LARGE", "Order too large"],
+    ["ENDING_SHIFT", "Ending my shift"],
+    ["PERSONAL_BREAK", "Taking a break"],
+    ["SAFETY_CONCERN", "Safety concern"],
+    ["OTHER", "Other"]
+  ];
+  const VEHICLES = [
+    ["BICYCLE", "Bicycle"],
+    ["ON_FOOT", "On foot"],
+    ["SCOOTER", "Scooter"],
+    ["MOTORCYCLE", "Motorcycle"],
+    ["CAR", "Car"]
+  ];
+  const DOCS_FOR = {
+    motorised: [["DRIVERS_LICENCE", "Driver's licence"], ["VEHICLE_REGISTRATION", "Vehicle registration"], ["VEHICLE_INSURANCE", "Vehicle insurance"], ["PROFILE_PHOTO", "Profile photo"]],
+    unpowered: [["GOVERNMENT_ID", "Government ID"], ["PROFILE_PHOTO", "Profile photo"]]
+  };
+  const EARNINGS = {
+    period: "WEEK",
+    currency: "CAD",
+    unpaid_balance_cents: 21860,
+    next_payout_at: "2026-10-05T14:00:00Z",
+    total: { bucket_start: "2026-09-22T04:00:00Z", gross_cents: 34370, trips: 57, online_seconds: 118800 },
+    buckets: [
+      ["2026-09-28", "Sun 28 Sept", 4280, 7],
+      ["2026-09-27", "Sat 27 Sept", 7180, 12],
+      ["2026-09-26", "Fri 26 Sept", 6740, 11],
+      ["2026-09-25", "Thu 25 Sept", 5210, 9],
+      ["2026-09-24", "Wed 24 Sept", 2980, 5],
+      ["2026-09-23", "Tue 23 Sept", 4160, 7],
+      ["2026-09-22", "Mon 22 Sept", 3820, 6]
+    ]
+  };
+  const PAYOUTS = [
+    { id: "0192e3c4-5b10-7a2e-8f63-2c9d4e1b7a05", period_start: "15 Sept", period_end: "21 Sept 2026", amount_cents: 31240, state: "PAID", entry_count: 52, paid_at: "Mon 22 Sept 2026", hold_reason: null, failure_message: null },
+    { id: "0192ded0-11c7-7d4b-a0e9-6b3f8c2d1e44", period_start: "8 Sept", period_end: "14 Sept 2026", amount_cents: 28790, state: "PAID", entry_count: 47, paid_at: "Mon 15 Sept 2026", hold_reason: null, failure_message: null },
+    { id: "0192d9dc-8e02-7f61-b4a7-0d5c3e9f2b18", period_start: "1 Sept", period_end: "7 Sept 2026", amount_cents: 26410, state: "PAID", entry_count: 44, paid_at: "Mon 8 Sept 2026", hold_reason: null, failure_message: null }
+  ];
+  const PAYOUT_TONE = { DRAFT: "outline", READY: "outline", TRANSFERRING: "info", TRANSFERRED: "info", PAID: "outline", FAILED: "warning", HELD: "warning" };
+  const PAYOUT_LABEL = { DRAFT: "Draft", READY: "Ready", TRANSFERRING: "Transferring", TRANSFERRED: "Transferred", PAID: "Paid", FAILED: "Failed", HELD: "Held" };
+  const HISTORY = [
+    { id: "0192f1a0-4d2e-7b91-9c0a-7e3f5b2d8c61", order_code: "HG-7R2P-4C", restaurant: "Karahi House", area: "Midland Ave, Scarborough", at: "Today 17:58", state: "DELIVERED" },
+    { id: "0192f19a-9b13-7c20-8e44-1a6d0f7c3b92", order_code: "HG-2M9D-1K", restaurant: "Anatolia Doner", area: "Kennedy Rd, Scarborough", at: "Today 16:40", state: "DELIVERED" },
+    { id: "0192f18e-0f57-7a6d-b3c8-5d2e9a1f4c07", order_code: "HG-9Q4T-8W", restaurant: "Zaytoun Grill", area: "Warden Ave, Scarborough", at: "Today 15:12", state: "RETURNED" },
+    { id: "0192f182-6c31-7e08-9f15-3b7a2c4d6e90", order_code: "HG-1H6V-3N", restaurant: "Sufra Kitchen", area: "Eglinton Ave E, Scarborough", at: "Yesterday 21:03", state: "CANCELLED_BY_PLATFORM" }
+  ];
+  const ASSIGNMENT_LABEL = {
+    DELIVERED: ["Delivered", "outline"],
+    RETURNED: ["Returned to restaurant", "warning"],
+    UNDELIVERABLE: ["Undeliverable", "warning"],
+    CANCELLED_BY_PLATFORM: ["Cancelled by HalalGoes", "outline"],
+    REASSIGNED: ["Reassigned", "outline"]
+  };
+  const DOCUMENTS = [
+    { doc_type: "DRIVERS_LICENCE", label: "Driver's licence", state: "APPROVED", valid_until: "14 Mar 2029" },
+    { doc_type: "VEHICLE_REGISTRATION", label: "Vehicle registration", state: "APPROVED", valid_until: "2 Feb 2027" },
+    { doc_type: "VEHICLE_INSURANCE", label: "Vehicle insurance", state: "APPROVED", valid_until: "30 Nov 2026" },
+    { doc_type: "PROFILE_PHOTO", label: "Profile photo", state: "APPROVED", valid_until: null }
+  ];
+  const KYC_TONE = { SUBMITTED: "info", IN_REVIEW: "info", APPROVED: "outline", REJECTED: "warning", EXPIRED: "warning", SUPERSEDED: "outline" };
+  const KYC_LABEL = { SUBMITTED: "Submitted", IN_REVIEW: "In review", APPROVED: "Approved", REJECTED: "Needs a new upload", EXPIRED: "Expired", SUPERSEDED: "Replaced" };
+  const kmText = (m) => (m / 1e3).toFixed(1) + " km";
+  const minText = (s) => Math.round(s / 60) + " min";
+  const hoursText = (s) => Math.floor(s / 3600) + "h " + String(Math.floor(s % 3600 / 60)).padStart(2, "0") + "m";
+  const secondsLeft = (o) => Math.max(0, Math.round((Date.parse(o.expires_at) - Date.parse(o.server_time)) / 1e3));
+  Object.assign(window, {
+    RIDER_ME,
+    TODAY,
+    OFFER,
+    ASSIGNMENT,
+    INSTRUCTION_TEXT,
+    ALLERGEN_TEXT,
+    OFFER_REJECT_REASONS,
+    VEHICLES,
+    DOCS_FOR,
+    EARNINGS,
+    PAYOUTS,
+    PAYOUT_TONE,
+    PAYOUT_LABEL,
+    HISTORY,
+    ASSIGNMENT_LABEL,
+    DOCUMENTS,
+    KYC_TONE,
+    KYC_LABEL,
+    kmText,
+    minText,
+    hoursText,
+    secondsLeft
+  });
+})();
+
+/* Index5/RiderUi.jsx */
+(() => {
+  const { AppBar, BottomNav, Card, Button, Icon, Input, RadioGroup, Badge, Price, Sheet } = window.HalalGoesDesignSystem_d11a47;
+  const RIDER_TABS = [
+    { key: "home", label: "Home", icon: "home" },
+    { key: "earnings", label: "Earnings", icon: "orders" },
+    { key: "history", label: "History", icon: "clock" },
+    { key: "profile", label: "Profile", icon: "profile" }
+  ];
+  function RiderScreen({ title, subtitle, onBack, backLabel, actions, children, footer, tab, go, overlay }) {
+    return /* @__PURE__ */ React.createElement("div", { style: { position: "absolute", inset: 0, display: "grid", gridTemplateRows: "auto 1fr auto auto", background: "var(--surface-base)", color: "var(--text-primary)" } }, /* @__PURE__ */ React.createElement(AppBar, { tone: "field", title, subtitle, onBack, backLabel, actions }), /* @__PURE__ */ React.createElement("div", { style: { overflowY: "auto", minHeight: 0 } }, children), footer ? /* @__PURE__ */ React.createElement("div", { style: { padding: "var(--space-4)", display: "grid", gap: "var(--space-3)", borderTop: "1px solid var(--border-decorative)", background: "var(--surface-base)" } }, footer) : /* @__PURE__ */ React.createElement("span", null), tab ? /* @__PURE__ */ React.createElement(BottomNav, { tone: "field", label: "Rider", active: tab, onChange: (k) => go && go(k), items: RIDER_TABS }) : /* @__PURE__ */ React.createElement("span", null), overlay);
+  }
+  function Pad({ children, gap = "var(--space-4)" }) {
+    return /* @__PURE__ */ React.createElement("div", { style: { padding: "var(--space-4)", display: "grid", gap, alignContent: "start" } }, children);
+  }
+  function SectionLabel({ children }) {
+    return /* @__PURE__ */ React.createElement("div", { style: { fontSize: "var(--type-label-md-size)", fontWeight: 600, color: "var(--text-secondary)", letterSpacing: ".01em" } }, children);
+  }
+  function Body({ children, muted }) {
+    return /* @__PURE__ */ React.createElement("p", { style: { margin: 0, fontSize: "var(--type-body-md-size)", lineHeight: "var(--type-body-md-line)", color: muted ? "var(--text-secondary)" : "var(--text-primary)" } }, children);
+  }
+  function EstimateLine({ earnings, size = "md" }) {
+    return /* @__PURE__ */ React.createElement("span", { style: { display: "inline-flex", alignItems: "baseline", gap: 6, flexWrap: "wrap", fontSize: "var(--type-body-md-size)", color: "var(--text-primary)" } }, "Estimated ", /* @__PURE__ */ React.createElement(Price, { cents: earnings.estimated_total_cents, size, onDark: true }), earnings.tip_so_far_cents != null && /* @__PURE__ */ React.createElement(React.Fragment, null, "\xB7 tip so far ", /* @__PURE__ */ React.createElement(Price, { cents: earnings.tip_so_far_cents, size: "md", onDark: true })));
+  }
+  function ItemsList({ items }) {
+    return /* @__PURE__ */ React.createElement("div", null, items.map((it) => /* @__PURE__ */ React.createElement(
+      GapListRow,
+      {
+        key: it.name,
+        title: it.quantity + "\xD7 " + it.name,
+        sub: /* @__PURE__ */ React.createElement("span", { style: { display: "grid", gap: 4, color: "var(--text-primary)" } }, (it.variant_name || it.addon_names.length > 0) && /* @__PURE__ */ React.createElement("span", null, [it.variant_name, ...it.addon_names].filter(Boolean).join(" \xB7 ")), it.note && /* @__PURE__ */ React.createElement("span", null, "Note: ", it.note), /* @__PURE__ */ React.createElement("span", { style: { display: "flex", gap: 4, flexWrap: "wrap" } }, it.allergen_tags.length ? it.allergen_tags.map((a) => /* @__PURE__ */ React.createElement(Badge, { key: a, variant: "warning", size: "sm", icon: "warning" }, ALLERGEN_TEXT[a])) : /* @__PURE__ */ React.createElement(Badge, { variant: "outline", size: "sm" }, "Allergens not provided")))
+      }
+    )));
+  }
+  const TEMPLATES = ["I\u2019m outside", "I\u2019m at the lobby", "Running a few minutes late", "I can\u2019t find the entrance"];
+  function ContactActions({ who, alias, setTemplatesOpen }) {
+    return /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-3)" } }, /* @__PURE__ */ React.createElement(Button, { variant: "secondary", size: "lg" }, "Call ", who), /* @__PURE__ */ React.createElement(Button, { variant: "tertiary", size: "lg", onPress: () => setTemplatesOpen && setTemplatesOpen(true) }, "Message"), /* @__PURE__ */ React.createElement("span", { style: { gridColumn: "span 2", fontSize: "var(--type-caption-size)", color: "var(--text-secondary)" } }, "Calls go through a masked number (", alias ? "proxy " + alias.slice(-4) : "none", "), switched off 30 min after the trip."));
+  }
+  function TemplatesSheet({ open, onClose }) {
+    return /* @__PURE__ */ React.createElement(Sheet, { open: !!open, contained: true, title: "Send a message", onClose, footer: /* @__PURE__ */ React.createElement(Button, { variant: "ghost", fullWidth: true, onPress: onClose }, "Cancel") }, /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gap: 8 } }, TEMPLATES.map((t) => /* @__PURE__ */ React.createElement(Button, { key: t, variant: "secondary", size: "lg", fullWidth: true, style: { justifyContent: "flex-start" }, onPress: onClose }, t))), /* @__PURE__ */ React.createElement("p", { style: { margin: "var(--space-3) 0 0", fontSize: "var(--type-caption-size)", color: "var(--text-secondary)" } }, "Templates only. Free-text chat is V2 (D-24)."));
+  }
+  function GapScanner({ height = 150, caption = "Point the camera at the seal\u2019s QR" }) {
+    return /* @__PURE__ */ React.createElement(Gap, { name: "Scanner", style: { height, display: "grid", placeItems: "center", borderRadius: "var(--radius-md)", background: "var(--surface-sunken)", border: "1.5px dashed var(--border-interactive)", color: "var(--text-primary)" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: "var(--type-body-sm-size)" } }, caption));
+  }
+  function SealScan({ phase }) {
+    const [cond, setCond] = React.useState(null);
+    const [manual, setManual] = React.useState(false);
+    return /* @__PURE__ */ React.createElement(Card, { variant: "outlined", radius: "lg" }, /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gap: "var(--space-3)" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "var(--type-heading-sm-size)", fontWeight: 600 } }, phase === "pickup" ? "Scan the seal at pickup" : "Scan the seal at the door"), manual ? /* @__PURE__ */ React.createElement(Input, { size: "lg", label: "Seal code", placeholder: "Code printed under the QR" }) : /* @__PURE__ */ React.createElement(GapScanner, null), /* @__PURE__ */ React.createElement(Button, { variant: "ghost", size: "sm", onPress: () => setManual((m) => !m), style: { justifySelf: "start" } }, manual ? "Use the camera" : "Type the code instead"), /* @__PURE__ */ React.createElement(
+      RadioGroup,
+      {
+        label: "What does the seal look like?",
+        value: cond,
+        onValueChange: setCond,
+        required: true,
+        options: [
+          { value: "intact", label: "Intact" },
+          { value: "broken", label: "Broken or tampered", description: "Still continue. It is recorded with the scan." }
+        ]
+      }
+    ), /* @__PURE__ */ React.createElement(Button, { size: "xl", fullWidth: true, disabled: !cond }, cond ? "Confirm scan" : "Choose the seal condition"), /* @__PURE__ */ React.createElement(Button, { variant: "ghost", size: "sm", style: { justifySelf: "start" } }, "No seal on this package")));
+  }
+  Object.assign(window, { RIDER_TABS, RiderScreen, Pad, SectionLabel, Body, EstimateLine, ItemsList, ContactActions, TemplatesSheet, GapScanner, SealScan });
+})();
+
+/* Index5/SignInScreen.jsx */
+(() => {
+  const { Button, Input, Card, Countdown } = window.HalalGoesDesignSystem_d11a47;
+  function SignInScreen({ variant, state }) {
+    const phone = variant === "phone";
+    const codeError = variant === "code-error";
+    const locked = variant === "locked";
+    return /* @__PURE__ */ React.createElement("div", { style: { position: "absolute", inset: 0, display: "grid", gridTemplateRows: "1fr auto", background: "var(--surface-base)", color: "var(--text-primary)" } }, /* @__PURE__ */ React.createElement("div", { style: { padding: "var(--space-6) var(--space-5)", display: "grid", gap: "var(--space-5)", alignContent: "start" } }, /* @__PURE__ */ React.createElement(GapWordmark, { size: 26, tone: "text", sub: "Rider" }), state === "error" ? /* @__PURE__ */ React.createElement(GapErrorState, { title: "We couldn't send a code", body: "The sign-in service didn't answer. Nothing was sent. Check your connection and try again." }) : locked ? /* @__PURE__ */ React.createElement(GapErrorState, { terminal: true, title: "Too many attempts", body: "For your security, sign-in is paused for this number. You can try again in 15 minutes.", exit: "Use a different number" }) : phone ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gap: 6 } }, /* @__PURE__ */ React.createElement("h1", { style: { margin: 0, fontSize: "var(--type-heading-xl-size)", fontWeight: 700 } }, "Sign in to ride"), /* @__PURE__ */ React.createElement(Body, { muted: true }, "We'll send a 6-digit code to your phone.")), /* @__PURE__ */ React.createElement(Input, { size: "lg", label: "Mobile number", variant: "tel", value: "416 555 0134", onChange: () => {
+    } })) : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gap: 6 } }, /* @__PURE__ */ React.createElement("h1", { style: { margin: 0, fontSize: "var(--type-heading-xl-size)", fontWeight: 700 } }, "Enter the code"), /* @__PURE__ */ React.createElement(Body, { muted: true }, "Sent to (416) 555-0134.")), /* @__PURE__ */ React.createElement(
+      Input,
+      {
+        size: "lg",
+        label: "6-digit code",
+        variant: "otp",
+        value: codeError ? "482913" : "48",
+        onChange: () => {
+        },
+        errorText: codeError ? "That code is not right. 2 attempts left." : void 0
+      }
+    ), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 10 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: "var(--type-body-sm-size)", color: "var(--text-secondary)" } }, "Resend in"), /* @__PURE__ */ React.createElement(Countdown, { variant: "text", size: "sm", onDark: true, serverNow: "2026-09-28T22:47:02Z", expiresAt: "2026-09-28T22:47:44Z", windowSeconds: 60 })))), state !== "error" && !locked && /* @__PURE__ */ React.createElement("div", { style: { padding: "var(--space-4) var(--space-5) var(--space-6)" } }, /* @__PURE__ */ React.createElement(Button, { size: "lg", fullWidth: true, loading: state === "loading" }, phone ? "Send code" : "Verify")));
+  }
+  Object.assign(window, { SignInScreen });
+})();
+
+/* Index5/OnboardingScreen.jsx */
+(() => {
+  const { Button, Input, Card, RadioGroup, Badge } = window.HalalGoesDesignSystem_d11a47;
+  const OB_STEPS = ["Profile", "Vehicle", "Documents", "Review", "Payouts"];
+  const OB_INDEX = { profile: 0, vehicle: 1, documents: 2, review: 3, fix: 2, payout: 4 };
+  function OnboardingScreen({ variant, state }) {
+    const [vehicle, setVehicle] = React.useState("SCOOTER");
+    const motorised = ["SCOOTER", "MOTORCYCLE", "CAR"].includes(vehicle);
+    const docs = DOCS_FOR[motorised ? "motorised" : "unpowered"];
+    const cta = { profile: "Continue", vehicle: "Continue", documents: "Submit for review", review: null, fix: "Resubmit", payout: "Set up payouts" }[variant];
+    const content = () => {
+      if (variant === "profile") return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Input, { label: "First name", value: "Yusuf", onChange: () => {
+      } }), /* @__PURE__ */ React.createElement(Input, { label: "Last name", value: "Ahmed", onChange: () => {
+      }, helperText: "Customers only see your first name and last initial." }), /* @__PURE__ */ React.createElement(Input, { label: "Email", variant: "email", value: "yusuf@example.ca", onChange: () => {
+      } }));
+      if (variant === "vehicle") return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
+        RadioGroup,
+        {
+          label: "How will you deliver?",
+          value: vehicle,
+          onValueChange: setVehicle,
+          required: true,
+          options: VEHICLES.map(([v, l]) => ({ value: v, label: l }))
+        }
+      ), motorised && /* @__PURE__ */ React.createElement(Input, { label: "Licence plate", value: "CJRA 204", onChange: () => {
+      } }), motorised && /* @__PURE__ */ React.createElement(Input, { label: "Make and model", value: "Honda PCX 125", onChange: () => {
+      } }));
+      if (variant === "documents") return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Body, { muted: true }, motorised ? "Motorised riders upload a licence, registration, insurance and a photo." : "Bicycle and on-foot riders upload a government ID and a photo."), docs.map(([t, l], i) => /* @__PURE__ */ React.createElement(GapFileUpload, { key: t, label: l, state: i === 0 ? "done" : i === 1 ? "uploading" : "idle", fileName: i === 0 ? "licence-front.jpg" : "registration.pdf" })));
+      if (variant === "review") return /* @__PURE__ */ React.createElement(
+        GapEmptyState,
+        {
+          icon: "clock",
+          title: "We're checking your documents",
+          body: "A person reviews every document. You'll get a notification when it's done. You can't go online until then."
+        }
+      );
+      if (variant === "fix") return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(GapBanner, { tone: "warning", title: "One document needs a new upload" }, "Everything else is approved. Replace the document below and resubmit."), /* @__PURE__ */ React.createElement(Card, { variant: "outlined", radius: "lg" }, /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gap: "var(--space-3)" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8 } }, /* @__PURE__ */ React.createElement("span", { style: { flex: 1, fontWeight: 600 } }, "Vehicle registration"), /* @__PURE__ */ React.createElement(Badge, { variant: "warning", size: "sm" }, KYC_LABEL.REJECTED)), /* @__PURE__ */ React.createElement(GapKeyValue, { labelWidth: 96, rows: [["Reason", "Plate does not match (PLATE_MISMATCH)"], ["Reviewer note", "The plate on the registration is CJRA 240, not CJRA 204."]] }), /* @__PURE__ */ React.createElement(GapFileUpload, { label: "New upload", state: "error", error: "Upload failed. Check your connection and choose the file again." }))), /* @__PURE__ */ React.createElement(GapListRow, { title: "Driver's licence", right: /* @__PURE__ */ React.createElement(Badge, { variant: "outline", size: "sm", icon: "check" }, KYC_LABEL.APPROVED) }), /* @__PURE__ */ React.createElement(GapListRow, { title: "Vehicle insurance", right: /* @__PURE__ */ React.createElement(Badge, { variant: "outline", size: "sm", icon: "check" }, KYC_LABEL.APPROVED) }));
+      return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Body, null, "Earnings are paid weekly, every Monday, to your bank through Stripe."), /* @__PURE__ */ React.createElement(GapBanner, { tone: "info", title: "Payouts not set up yet" }, "You can't go online until Stripe confirms your payout details."));
+    };
+    return /* @__PURE__ */ React.createElement(
+      RiderScreen,
+      {
+        title: "Become a rider",
+        subtitle: "Step " + (OB_INDEX[variant] + 1) + " of " + OB_STEPS.length + " \xB7 " + OB_STEPS[OB_INDEX[variant]],
+        footer: cta && state === "populated" ? /* @__PURE__ */ React.createElement(Button, { size: "xl", fullWidth: true }, cta) : null
+      },
+      /* @__PURE__ */ React.createElement(Pad, null, /* @__PURE__ */ React.createElement(GapOnboardingSteps, { steps: OB_STEPS, current: OB_INDEX[variant] }), state === "loading" ? /* @__PURE__ */ React.createElement(GapSkeleton, { rows: 2 }) : state === "error" ? /* @__PURE__ */ React.createElement(GapErrorState, { title: "Couldn't load your application", body: "Your answers are saved. Try again to continue where you left off." }) : content())
+    );
+  }
+  function GapOnboardingSteps({ steps, current }) {
+    return /* @__PURE__ */ React.createElement(Gap, { name: "ProgressSteps", role: "list", "aria-label": "Step " + (current + 1) + " of " + steps.length, style: { display: "flex", gap: 6, flexWrap: "wrap" } }, steps.map((l, i) => /* @__PURE__ */ React.createElement("span", { role: "listitem", key: l, "aria-current": i === current ? "step" : void 0 }, /* @__PURE__ */ React.createElement(Badge, { size: "sm", variant: i === current ? "brand" : i < current ? "neutral" : "outline", appearance: i === current ? "solid" : "tint", icon: i < current ? "check" : void 0 }, l))));
+  }
+  Object.assign(window, { OnboardingScreen });
+})();
+
+/* Index5/OnlineScreen.jsx */
+(() => {
+  const { Card, Button, Switch, Price, Badge, Icon } = window.HalalGoesDesignSystem_d11a47;
+  const HOME_VARIANTS = [
+    { id: "ONLINE_IDLE", label: "Online \xB7 waiting for an offer" },
+    { id: "OFFLINE", label: "Offline" },
+    { id: "ONLINE_STALE", label: "Online \xB7 location stale (ONLINE_STALE)" },
+    { id: "DEGRADED", label: "Online \xB7 tracking DEGRADED" },
+    { id: "BLOCKED", label: "Blocked (blocking_reasons)" },
+    { id: "ON_DELIVERY", label: "On a delivery (active_assignment)" }
+  ];
+  function TodayCard() {
+    return /* @__PURE__ */ React.createElement(Card, { variant: "outlined", radius: "lg" }, /* @__PURE__ */ React.createElement(SectionLabel, null, "Today"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "baseline", justifyContent: "space-between", marginTop: 4, gap: 8 } }, /* @__PURE__ */ React.createElement(Price, { cents: TODAY.gross_cents, size: "xl", onDark: true }), /* @__PURE__ */ React.createElement("span", { style: { fontSize: "var(--type-body-md-size)", color: "var(--text-primary)", fontVariantNumeric: "var(--numeric-tabular)" } }, TODAY.trips, " trips \xB7 ", hoursText(TODAY.online_seconds), " online")));
+  }
+  function OnlineScreen({ variant, state, go }) {
+    const online = variant !== "OFFLINE" && variant !== "BLOCKED";
+    const title = { OFFLINE: "Offline", BLOCKED: "Offline", ON_DELIVERY: "On a delivery" }[variant] || "Online";
+    const subtitle = { OFFLINE: "Go online to receive offers", BLOCKED: "You can\u2019t go online yet", ONLINE_STALE: "No offers while we can\u2019t see you", ON_DELIVERY: ASSIGNMENT.order_code }[variant] || "Waiting for an offer";
+    const body = () => {
+      if (state === "loading") return /* @__PURE__ */ React.createElement(GapSkeleton, { rows: 2 });
+      if (state === "error") return /* @__PURE__ */ React.createElement(GapErrorState, { title: "Can\u2019t reach HalalGoes", body: "Your status didn\u2019t load. While we can\u2019t reach you, you won\u2019t receive offers." });
+      return /* @__PURE__ */ React.createElement(React.Fragment, null, variant === "ONLINE_IDLE" && /* @__PURE__ */ React.createElement(
+        GapEmptyState,
+        {
+          icon: "clock",
+          title: "Waiting for an offer",
+          body: "Offers come one at a time. When one arrives it fills the screen, and you have 30 seconds to answer. Keep the app open."
+        }
+      ), variant === "OFFLINE" && /* @__PURE__ */ React.createElement(GapEmptyState, { icon: "info", title: "You\u2019re offline", body: "Go online when you\u2019re ready to deliver. You only get offers while you\u2019re online.", action: "Go online" }), variant === "ONLINE_STALE" && /* @__PURE__ */ React.createElement(
+        GapBanner,
+        {
+          tone: "warning",
+          icon: "map",
+          title: "You\u2019re online, but we can\u2019t see your location",
+          action: /* @__PURE__ */ React.createElement(Button, { size: "sm", variant: "secondary" }, "Fix")
+        },
+        "No offers will arrive until your location updates. Turn on location for HalalGoes and keep the app open."
+      ), variant === "DEGRADED" && /* @__PURE__ */ React.createElement(GapBanner, { tone: "info", icon: "map", title: "Weak location signal" }, "Offers may be slower to reach you. Move somewhere with a clearer view of the sky."), variant === "BLOCKED" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(GapBanner, { tone: "warning", title: "Before you can go online" }, "Sort out the items below. Each one links to where you fix it."), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(GapListRow, { icon: "warning", title: "Vehicle insurance expired", sub: "Upload a current policy", onClick: () => go("profile") }), /* @__PURE__ */ React.createElement(GapListRow, { icon: "warning", title: "Payouts not set up", sub: "Finish Stripe setup", onClick: () => go("onboarding", "payout") }))), variant === "ON_DELIVERY" && /* @__PURE__ */ React.createElement(Card, { radius: "lg", onPress: () => go("trip", "EN_ROUTE_TO_PICKUP"), accessibilityLabel: "Resume trip " + ASSIGNMENT.order_code + " to " + ASSIGNMENT.pickup.restaurant_name }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 12 } }, /* @__PURE__ */ React.createElement("span", { style: { color: "var(--text-primary)" } }, /* @__PURE__ */ React.createElement(Icon, { name: "map", size: "lg" })), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, display: "grid", gap: 2 } }, /* @__PURE__ */ React.createElement("span", { style: { fontWeight: 600 } }, "Head to ", ASSIGNMENT.pickup.restaurant_name), /* @__PURE__ */ React.createElement("span", { style: { fontSize: "var(--type-body-sm-size)" } }, ASSIGNMENT.order_code, " \xB7 Resume")), /* @__PURE__ */ React.createElement(Icon, { name: "chevron-right", size: "md" }))), /* @__PURE__ */ React.createElement(TodayCard, null));
+    };
+    return /* @__PURE__ */ React.createElement(
+      RiderScreen,
+      {
+        title,
+        subtitle,
+        tab: "home",
+        go,
+        actions: variant === "BLOCKED" || variant === "ON_DELIVERY" ? null : /* @__PURE__ */ React.createElement(Switch, { size: "sm", label: "Availability", stateLabel: { on: "Online", off: "Offline" }, checked: online, onCheckedChange: () => {
+        } })
+      },
+      /* @__PURE__ */ React.createElement(Pad, null, body())
+    );
+  }
+  Object.assign(window, { OnlineScreen, HOME_VARIANTS });
+})();
+
+/* Index5/OfferScreen.jsx */
+(() => {
+  const { Countdown, Button, Price, Icon, Badge, Card, Sheet, RadioGroup } = window.HalalGoesDesignSystem_d11a47;
+  const OFFER_VARIANTS = [
+    { id: "live", label: "Live offer (PENDING)" },
+    { id: "decline", label: "Decline \u2192 reason picker" },
+    { id: "EXPIRED", label: "Outcome: expired" },
+    { id: "WITHDRAWN", label: "Outcome: withdrawn" },
+    { id: "taken", label: "Outcome: already taken (409)" }
+  ];
+  function OfferOutcome({ icon, title, body, go }) {
+    return /* @__PURE__ */ React.createElement("div", { style: { position: "absolute", inset: 0, display: "grid", gridTemplateRows: "1fr auto", background: "var(--surface-base)", color: "var(--text-primary)" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "grid", alignContent: "center" } }, /* @__PURE__ */ React.createElement(GapEmptyState, { icon, title, body })), /* @__PURE__ */ React.createElement("div", { style: { padding: "var(--space-4) var(--space-4) var(--space-6)" } }, /* @__PURE__ */ React.createElement(Button, { size: "xl", fullWidth: true, variant: "secondary", onPress: () => go("home") }, "Back to waiting")));
+  }
+  function DeclineSheet({ open, onClose }) {
+    const [reason, setReason] = React.useState(null);
+    if (!open) return null;
+    return /* @__PURE__ */ React.createElement("div", { style: { position: "absolute", inset: 0, zIndex: "calc(var(--z-offer-sheet) + 1)" } }, /* @__PURE__ */ React.createElement(
+      Sheet,
+      {
+        open: true,
+        contained: true,
+        title: "Why are you declining?",
+        onClose,
+        maxHeight: "88%",
+        footer: /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gap: 8 } }, /* @__PURE__ */ React.createElement(Button, { size: "xl", fullWidth: true, variant: "secondary", disabled: !reason }, reason ? "Decline offer" : "Choose a reason"), /* @__PURE__ */ React.createElement(Button, { size: "md", fullWidth: true, variant: "ghost", onPress: onClose }, "Keep the offer"))
+      },
+      /* @__PURE__ */ React.createElement(
+        RadioGroup,
+        {
+          label: "Decline reason",
+          hideLabel: true,
+          value: reason,
+          onValueChange: setReason,
+          required: true,
+          options: OFFER_REJECT_REASONS.map(([code, label]) => ({ value: code, label }))
+        }
+      ),
+      /* @__PURE__ */ React.createElement("p", { style: { margin: "var(--space-2) 0 0", fontSize: "var(--type-caption-size)", color: "var(--text-secondary)" } }, "The timer keeps running while you choose.")
+    ));
+  }
+  function OfferScreen({ variant, state, go }) {
+    const [declining, setDeclining] = React.useState(variant === "decline");
+    React.useEffect(() => setDeclining(variant === "decline"), [variant]);
+    if (variant === "EXPIRED") return /* @__PURE__ */ React.createElement(OfferOutcome, { go, icon: "clock", title: "The offer expired", body: "Nobody answered within 30 seconds, so it went to another rider. It doesn\u2019t count against you." });
+    if (variant === "WITHDRAWN") return /* @__PURE__ */ React.createElement(OfferOutcome, { go, icon: "close", title: "This offer was withdrawn", body: "The order changed or was cancelled before anyone accepted it." });
+    if (variant === "taken") return /* @__PURE__ */ React.createElement(OfferOutcome, { go, icon: "profile", title: "Another rider took this one", body: "Offers go to a few riders at once and the first to accept gets it. Stay online for the next one." });
+    const o = OFFER;
+    return /* @__PURE__ */ React.createElement("div", { style: { position: "absolute", inset: 0, background: "var(--surface-base)" } }, /* @__PURE__ */ React.createElement(
+      Sheet,
+      {
+        open: true,
+        contained: true,
+        variant: "full",
+        dismissible: false,
+        title: "New delivery offer",
+        footer: /* @__PURE__ */ React.createElement(Button, { size: "xl", critical: true, fullWidth: true, loading: state === "loading", onPress: () => go("trip", "ASSIGNED") }, state === "error" ? "Try accepting again" : "Accept")
+      },
+      /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gap: "var(--space-5)" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 } }, /* @__PURE__ */ React.createElement(Button, { size: "sm", variant: "tertiary", onPress: () => setDeclining(true) }, "Decline\u2026"), /* @__PURE__ */ React.createElement(Badge, { variant: "brand", appearance: "solid", size: "sm" }, "New offer")), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", justifyItems: "center", gap: 4, textAlign: "center" } }, /* @__PURE__ */ React.createElement(
+        Countdown,
+        {
+          variant: "ring",
+          size: "lg",
+          onDark: true,
+          label: "to answer",
+          expiresAt: o.expires_at,
+          serverNow: o.server_time,
+          windowSeconds: 30
+        }
+      ), /* @__PURE__ */ React.createElement("span", { style: { fontSize: "var(--type-caption-size)", color: "var(--text-secondary)" } }, "Timed by the server: expires_at \u2212 server_time")), /* @__PURE__ */ React.createElement("div", { style: { textAlign: "center", display: "grid", gap: 4, justifyItems: "center" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: "var(--type-body-md-size)" } }, "Estimated"), /* @__PURE__ */ React.createElement(Price, { cents: o.earnings.estimated_total_cents, size: "xl", onDark: true }), /* @__PURE__ */ React.createElement("span", { style: { display: "inline-flex", gap: 6, alignItems: "baseline", fontSize: "var(--type-body-md-size)" } }, "tip so far ", /* @__PURE__ */ React.createElement(Price, { cents: o.earnings.tip_so_far_cents, size: "md", onDark: true }), " \xB7 it can still change")), /* @__PURE__ */ React.createElement(Card, { variant: "outlined", radius: "lg" }, /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gap: "var(--space-3)" } }, [[null, "Pickup \xB7 " + o.pickup.restaurant_name, o.pickup.address_short], ["map", "Drop-off area", o.dropoff.area]].map(([icon, t, s]) => /* @__PURE__ */ React.createElement("div", { key: t, style: { display: "flex", gap: 12, alignItems: "flex-start" } }, /* @__PURE__ */ React.createElement("span", { style: { width: 20, marginTop: 2 } }, icon ? /* @__PURE__ */ React.createElement(Icon, { name: icon, size: "md" }) : null), /* @__PURE__ */ React.createElement("span", { style: { display: "grid", gap: 2 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: "var(--type-body-lg-size)", fontWeight: 600 } }, t), /* @__PURE__ */ React.createElement("span", { style: { fontSize: "var(--type-body-md-size)" } }, s)))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, flexWrap: "wrap", paddingTop: "var(--space-2)", borderTop: "1px solid var(--border-decorative)" } }, /* @__PURE__ */ React.createElement(Badge, { variant: "outline", icon: "map" }, kmText(o.distance_m)), /* @__PURE__ */ React.createElement(Badge, { variant: "outline", icon: "clock" }, minText(o.est_duration_s)), /* @__PURE__ */ React.createElement(Badge, { variant: "outline", icon: "cart" }, o.items_count, " items")), /* @__PURE__ */ React.createElement("span", { style: { fontSize: "var(--type-caption-size)", color: "var(--text-secondary)" } }, "The exact address, unit and buzzer arrive when you accept."))), state === "error" && /* @__PURE__ */ React.createElement(GapBanner, { tone: "warning", title: "Couldn\u2019t accept" }, "The network dropped. Try again while the timer is still running."))
+    ), /* @__PURE__ */ React.createElement(DeclineSheet, { open: declining, onClose: () => setDeclining(false) }));
+  }
+  Object.assign(window, { OfferScreen, OFFER_VARIANTS });
+})();
+
+/* Index5/ActiveScreen.jsx */
+(() => {
+  const { Button, StatusTimeline, Card, Input, Badge, Checkbox, Price, Icon, RadioGroup } = window.HalalGoesDesignSystem_d11a47;
+  const TRIP_VARIANTS = [
+    { id: "ASSIGNED", label: "ASSIGNED" },
+    { id: "EN_ROUTE_TO_PICKUP", label: "EN_ROUTE_TO_PICKUP" },
+    { id: "ARRIVED_AT_PICKUP", label: "ARRIVED_AT_PICKUP \xB7 pickup seal scan" },
+    { id: "PICKED_UP", label: "PICKED_UP" },
+    { id: "EN_ROUTE_TO_DROPOFF", label: "EN_ROUTE_TO_DROPOFF" },
+    { id: "ARRIVED_AT_DROPOFF", label: "ARRIVED_AT_DROPOFF \xB7 delivery seal scan" },
+    { id: "POD_OTP", label: "Proof of delivery \xB7 OTP" },
+    { id: "POD_PHOTO", label: "Proof of delivery \xB7 PHOTO" },
+    { id: "POD_ATTEST", label: "Proof of delivery \xB7 PHOTO_WITH_ATTESTATION" },
+    { id: "DELIVERED", label: "DELIVERED" },
+    { id: "UNDELIVERABLE", label: "UNDELIVERABLE (report)" },
+    { id: "RETURNING", label: "RETURNING" },
+    { id: "RETURNED", label: "RETURNED" },
+    { id: "CANCELLED_BY_PLATFORM", label: "CANCELLED_BY_PLATFORM" },
+    { id: "REASSIGNED", label: "REASSIGNED" }
+  ];
+  const ORDER_STATE_AT = { ASSIGNED: "PREPARING", EN_ROUTE_TO_PICKUP: "PREPARING", ARRIVED_AT_PICKUP: "READY_FOR_PICKUP", PICKED_UP: "PICKED_UP", EN_ROUTE_TO_DROPOFF: "PICKED_UP", ARRIVED_AT_DROPOFF: "ARRIVED", POD_OTP: "ARRIVED", POD_PHOTO: "ARRIVED", POD_ATTEST: "ARRIVED", DELIVERED: "DELIVERED" };
+  function PickupDetails({ a }) {
+    return /* @__PURE__ */ React.createElement(Card, { variant: "outlined", radius: "lg" }, /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gap: "var(--space-3)" } }, /* @__PURE__ */ React.createElement(SectionLabel, null, "Pickup"), /* @__PURE__ */ React.createElement(GapKeyValue, { labelWidth: 96, rows: [["Restaurant", a.pickup.restaurant_name], ["Address", a.pickup.address], ["Order code", a.order_code, { mono: true }], ["Pickup notes", a.pickup.pickup_notes]] })));
+  }
+  function DropoffDetails({ a }) {
+    const d = a.dropoff;
+    return /* @__PURE__ */ React.createElement(Card, { variant: "outlined", radius: "lg" }, /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gap: "var(--space-3)" } }, /* @__PURE__ */ React.createElement(SectionLabel, null, "Drop-off"), /* @__PURE__ */ React.createElement(GapKeyValue, { labelWidth: 96, rows: [
+      ["Customer", d.customer_display_name],
+      ["Address", d.address],
+      ["Unit", d.unit],
+      ["Buzzer", d.buzzer, { mono: true }],
+      ["Instructions", d.delivery_instructions.map((i) => INSTRUCTION_TEXT[i]).join(" \xB7 ")],
+      ["Note", d.special_instructions]
+    ] })));
+  }
+  function ItemsCard({ a }) {
+    return /* @__PURE__ */ React.createElement(Card, { variant: "outlined", radius: "lg" }, /* @__PURE__ */ React.createElement(SectionLabel, null, "Items \xB7 check against the bag"), /* @__PURE__ */ React.createElement(ItemsList, { items: a.items }));
+  }
+  function PodBlock({ method }) {
+    const [attest, setAttest] = React.useState(false);
+    if (method === "OTP") return /* @__PURE__ */ React.createElement(Card, { variant: "outlined", radius: "lg" }, /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gap: "var(--space-3)" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "var(--type-heading-sm-size)", fontWeight: 600 } }, "Ask for the 4-digit code"), /* @__PURE__ */ React.createElement(Body, null, "The customer sees it in their app. It proves you handed the order over in person."), /* @__PURE__ */ React.createElement(Input, { size: "lg", label: "Delivery code", variant: "numeric", maxLength: 4, placeholder: "4 digits" })));
+    return /* @__PURE__ */ React.createElement(Card, { variant: "outlined", radius: "lg" }, /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gap: "var(--space-3)" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "var(--type-heading-sm-size)", fontWeight: 600 } }, "Take a photo of the drop-off"), /* @__PURE__ */ React.createElement(Body, null, "Show the bag at the door, with the unit number in frame if you can."), /* @__PURE__ */ React.createElement(GapScanner, { height: 130, caption: "Camera: photo of the bag at the door" }), method === "PHOTO_WITH_ATTESTATION" && /* @__PURE__ */ React.createElement(Checkbox, { label: "I left the order where the customer asked", description: "Required for this drop-off.", checked: attest, onCheckedChange: setAttest })));
+  }
+  function UndeliverableReasons() {
+    const [r, setR] = React.useState(null);
+    return /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gap: "var(--space-3)" } }, /* @__PURE__ */ React.createElement(
+      RadioGroup,
+      {
+        label: "What went wrong?",
+        value: r,
+        onValueChange: setR,
+        required: true,
+        options: ["Customer not answering", "Address can\u2019t be found", "Unsafe to deliver", "Order damaged"].map((x) => ({ value: x, label: x }))
+      }
+    ), /* @__PURE__ */ React.createElement(Button, { size: "xl", fullWidth: true, variant: "secondary", disabled: !r }, r ? "Send to support" : "Choose a reason"));
+  }
+  function ActiveScreen({ variant, state, go }) {
+    const a = ASSIGNMENT;
+    const [tpl, setTpl] = React.useState(false);
+    const v = variant;
+    const toDropoff = ["PICKED_UP", "EN_ROUTE_TO_DROPOFF", "ARRIVED_AT_DROPOFF", "POD_OTP", "POD_PHOTO", "POD_ATTEST"].includes(v);
+    const terminal = { DELIVERED: 1, RETURNED: 1, CANCELLED_BY_PLATFORM: 1, REASSIGNED: 1 }[v];
+    const cta = {
+      ASSIGNED: "Start trip to restaurant",
+      EN_ROUTE_TO_PICKUP: "I\u2019ve arrived at the restaurant",
+      PICKED_UP: "Start trip to customer",
+      EN_ROUTE_TO_DROPOFF: "I\u2019ve arrived",
+      POD_OTP: "Confirm delivery",
+      POD_PHOTO: "Confirm delivery",
+      POD_ATTEST: "Confirm delivery",
+      RETURNING: "I\u2019m back at the restaurant",
+      RETURNED: "Back to waiting",
+      DELIVERED: "Back to waiting",
+      CANCELLED_BY_PLATFORM: "Back to waiting",
+      REASSIGNED: "Back to waiting"
+    }[v];
+    const content = () => {
+      if (state === "loading") return /* @__PURE__ */ React.createElement(GapSkeleton, { rows: 2 });
+      if (state === "error") return /* @__PURE__ */ React.createElement(GapErrorState, { title: "Couldn\u2019t update the trip", body: "Your last step wasn\u2019t saved. Nothing changed for the customer. Try again." });
+      if (v === "DELIVERED") return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(GapEmptyState, { icon: "check", title: "Delivered", body: a.order_code + " is complete. Your earnings for it will show in Earnings once finalised." }), /* @__PURE__ */ React.createElement(Card, { variant: "outlined", radius: "lg" }, /* @__PURE__ */ React.createElement(EstimateLine, { earnings: a.earnings })));
+      if (v === "UNDELIVERABLE") return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(GapBanner, { tone: "warning", title: "Can\u2019t deliver?" }, "Tell us why. Support is notified and you\u2019ll be told whether to return the order to the restaurant."), /* @__PURE__ */ React.createElement(Card, { variant: "outlined", radius: "lg" }, /* @__PURE__ */ React.createElement(UndeliverableReasons, null)));
+      if (v === "RETURNING") return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(GapBanner, { tone: "info", title: "Return the order to the restaurant" }, "Support asked you to take it back. The seal stays on; don\u2019t open the bag."), /* @__PURE__ */ React.createElement(PickupDetails, { a }));
+      if (v === "RETURNED") return /* @__PURE__ */ React.createElement(GapEmptyState, { icon: "check", title: "Returned to the restaurant", body: "Thanks. Support will settle this trip; any payment for it shows in Earnings." });
+      if (v === "CANCELLED_BY_PLATFORM") return /* @__PURE__ */ React.createElement(GapEmptyState, { icon: "close", title: "This trip was cancelled", body: "HalalGoes cancelled the order. If you already collected it, support will tell you what to do with it." });
+      if (v === "REASSIGNED") return /* @__PURE__ */ React.createElement(GapEmptyState, { icon: "profile", title: "This trip moved to another rider", body: "Support reassigned it. You don\u2019t need to do anything." });
+      return /* @__PURE__ */ React.createElement(React.Fragment, null, !toDropoff && /* @__PURE__ */ React.createElement(PickupDetails, { a }), v === "ARRIVED_AT_PICKUP" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(ItemsCard, { a }), /* @__PURE__ */ React.createElement(SealScan, { phase: "pickup" })), toDropoff && /* @__PURE__ */ React.createElement(DropoffDetails, { a }), (v === "PICKED_UP" || v === "EN_ROUTE_TO_DROPOFF") && /* @__PURE__ */ React.createElement(GapBanner, { tone: "neutral", icon: "lock" }, "Keep the bag sealed. Don\u2019t open it, even to check."), v === "ARRIVED_AT_DROPOFF" && /* @__PURE__ */ React.createElement(SealScan, { phase: "delivery" }), v === "POD_OTP" && /* @__PURE__ */ React.createElement(PodBlock, { method: "OTP" }), v === "POD_PHOTO" && /* @__PURE__ */ React.createElement(PodBlock, { method: "PHOTO" }), v === "POD_ATTEST" && /* @__PURE__ */ React.createElement(PodBlock, { method: "PHOTO_WITH_ATTESTATION" }), toDropoff ? /* @__PURE__ */ React.createElement(ContactActions, { who: a.dropoff.customer_display_name.split(" ")[0], alias: a.dropoff.phone_alias, setTemplatesOpen: setTpl }) : /* @__PURE__ */ React.createElement(ContactActions, { who: "restaurant", alias: a.pickup.phone_alias, setTemplatesOpen: setTpl }), v !== "ARRIVED_AT_PICKUP" && /* @__PURE__ */ React.createElement(ItemsCard, { a }), /* @__PURE__ */ React.createElement(Button, { variant: "ghost", size: "md", iconStart: "warning", onPress: () => go("trip", "UNDELIVERABLE"), style: { justifySelf: "start" } }, toDropoff ? "I can\u2019t deliver this" : "Problem at pickup"));
+    };
+    const orderState = ORDER_STATE_AT[v];
+    return /* @__PURE__ */ React.createElement(
+      RiderScreen,
+      {
+        title: terminal ? "Trip ended" : v === "UNDELIVERABLE" ? "Report a problem" : "Trip \xB7 " + a.order_code,
+        subtitle: a.pickup.restaurant_name + (toDropoff || v === "DELIVERED" ? " \u2192 " + a.dropoff.address.split(",")[0] : ""),
+        footer: cta && state === "populated" ? /* @__PURE__ */ React.createElement(Button, { size: "xl", fullWidth: true, onPress: () => terminal && go("home") }, cta) : null,
+        overlay: /* @__PURE__ */ React.createElement(TemplatesSheet, { open: tpl, onClose: () => setTpl(false) })
+      },
+      !terminal && orderState && state === "populated" && /* @__PURE__ */ React.createElement(
+        GapMap,
+        {
+          height: 130,
+          caption: "Route from the assignment's GeoPoints",
+          pins: toDropoff ? [{ kind: "rider", label: "you" }, { kind: "customer", label: "dropoff" }] : [{ kind: "rider", label: "you" }, { kind: "restaurant", label: "pickup" }]
+        }
+      ),
+      /* @__PURE__ */ React.createElement(Pad, null, orderState && !terminal && /* @__PURE__ */ React.createElement(StatusTimeline, { audience: "rider", orientation: "compact", state: orderState }), a.tracking_health !== "HEALTHY" && /* @__PURE__ */ React.createElement(GapBanner, { tone: "warning" }, "Your location is not updating."), content())
+    );
+  }
+  Object.assign(window, { ActiveScreen, TRIP_VARIANTS });
+})();
+
+/* Index5/EarningsScreen.jsx */
+(() => {
+  const { Price, Badge, Card, Button } = window.HalalGoesDesignSystem_d11a47;
+  const EARN_VARIANTS = [
+    { id: "normal", label: "All payouts paid" },
+    { id: "HELD", label: "Latest payout HELD" },
+    { id: "FAILED", label: "Latest payout FAILED" }
+  ];
+  const PAYOUT_VARIANTS = [
+    { id: "PAID", label: "PAID" },
+    { id: "TRANSFERRING", label: "TRANSFERRING" },
+    { id: "HELD", label: "HELD (hold_reason)" },
+    { id: "FAILED", label: "FAILED (failure_message)" }
+  ];
+  const HELD_REASON = "Held while support reviews a delivery from 19 Sept. It is released on the next Monday run once the review closes.";
+  const FAILED_MSG = "Your bank rejected the transfer (account closed). Update your bank details in Stripe.";
+  function payoutFor(v) {
+    const p = PAYOUTS[0];
+    if (v === "HELD") return { ...p, state: "HELD", paid_at: null, hold_reason: HELD_REASON };
+    if (v === "FAILED") return { ...p, state: "FAILED", paid_at: null, failure_message: FAILED_MSG };
+    if (v === "TRANSFERRING") return { ...p, state: "TRANSFERRING", paid_at: null };
+    return p;
+  }
+  function EarningsScreen({ variant, state, go }) {
+    const e = EARNINGS;
+    const payouts = variant === "normal" ? PAYOUTS : [payoutFor(variant), ...PAYOUTS.slice(1)];
+    const body = () => {
+      if (state === "loading") return /* @__PURE__ */ React.createElement(GapSkeleton, { rows: 3 });
+      if (state === "error") return /* @__PURE__ */ React.createElement(GapErrorState, { title: "Couldn\u2019t load earnings", body: "Your earnings are safe; we just couldn\u2019t show them. Try again." });
+      if (state === "empty") return /* @__PURE__ */ React.createElement(GapEmptyState, { icon: "orders", title: "No earnings yet this week", body: "Deliveries you complete show here the same day. Payouts go out every Monday.", action: "Go online", onAction: () => go("home") });
+      return /* @__PURE__ */ React.createElement(React.Fragment, null, variant === "HELD" && /* @__PURE__ */ React.createElement(GapBanner, { tone: "warning", title: "A payout is on hold" }, HELD_REASON), variant === "FAILED" && /* @__PURE__ */ React.createElement(GapBanner, { tone: "warning", title: "A payout didn\u2019t go through", action: /* @__PURE__ */ React.createElement(Button, { size: "sm", variant: "secondary" }, "Fix") }, FAILED_MSG), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-3)" } }, /* @__PURE__ */ React.createElement(GapStat, { label: "Unpaid balance", sub: "Next payout Mon 5 Oct" }, /* @__PURE__ */ React.createElement(Price, { cents: e.unpaid_balance_cents, size: "lg", onDark: true })), /* @__PURE__ */ React.createElement(GapStat, { label: "This week", sub: e.total.trips + " trips \xB7 " + hoursText(e.total.online_seconds) }, /* @__PURE__ */ React.createElement(Price, { cents: e.total.gross_cents, size: "lg", onDark: true }))), /* @__PURE__ */ React.createElement(Card, { variant: "outlined", radius: "lg" }, /* @__PURE__ */ React.createElement(SectionLabel, null, "By day"), e.buckets.map(([k, d, cents, trips]) => /* @__PURE__ */ React.createElement(GapListRow, { key: k, title: d, sub: /* @__PURE__ */ React.createElement("span", { style: { color: "var(--text-primary)" } }, trips, " trips"), right: /* @__PURE__ */ React.createElement(Price, { cents, size: "md", onDark: true }) }))), /* @__PURE__ */ React.createElement(Card, { variant: "outlined", radius: "lg" }, /* @__PURE__ */ React.createElement(SectionLabel, null, "Payouts \xB7 weekly, every Monday"), payouts.map((p) => /* @__PURE__ */ React.createElement(
+        GapListRow,
+        {
+          key: p.id,
+          title: p.period_start + " \u2013 " + p.period_end,
+          sub: /* @__PURE__ */ React.createElement("span", { style: { color: "var(--text-primary)" } }, p.entry_count, " entries", p.paid_at ? " \xB7 paid " + p.paid_at : ""),
+          right: /* @__PURE__ */ React.createElement("span", { style: { display: "grid", justifyItems: "end", gap: 4 } }, /* @__PURE__ */ React.createElement(Price, { cents: p.amount_cents, size: "md", onDark: true }), /* @__PURE__ */ React.createElement(Badge, { variant: PAYOUT_TONE[p.state], size: "sm" }, PAYOUT_LABEL[p.state])),
+          onClick: () => go("payout", p.state === "PAID" ? "PAID" : p.state)
+        }
+      ))));
+    };
+    return /* @__PURE__ */ React.createElement(RiderScreen, { title: "Earnings", subtitle: "Week of 22 Sept 2026", tab: "earnings", go }, /* @__PURE__ */ React.createElement(Pad, null, body()));
+  }
+  function PayoutDetailScreen({ variant, state, go }) {
+    const p = payoutFor(variant);
+    return /* @__PURE__ */ React.createElement(RiderScreen, { title: "Payout", subtitle: p.period_start + " \u2013 " + p.period_end, onBack: () => go("earnings"), backLabel: "Back to Earnings" }, /* @__PURE__ */ React.createElement(Pad, null, state === "loading" ? /* @__PURE__ */ React.createElement(GapSkeleton, { rows: 2 }) : state === "error" ? /* @__PURE__ */ React.createElement(GapErrorState, { title: "Couldn\u2019t load this payout", body: "Try again. If it keeps failing, contact support with the payout id.", code: p.id }) : /* @__PURE__ */ React.createElement(React.Fragment, null, p.state === "HELD" && /* @__PURE__ */ React.createElement(GapBanner, { tone: "warning", title: "On hold" }, p.hold_reason), p.state === "FAILED" && /* @__PURE__ */ React.createElement(GapBanner, { tone: "warning", title: "Transfer failed", action: /* @__PURE__ */ React.createElement(Button, { size: "sm", variant: "secondary" }, "Update bank") }, p.failure_message), p.state === "TRANSFERRING" && /* @__PURE__ */ React.createElement(GapBanner, { tone: "info", title: "On its way" }, "Stripe is sending this to your bank. It usually lands within 2 business days."), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gap: 4 } }, /* @__PURE__ */ React.createElement(Price, { cents: p.amount_cents, size: "xl", onDark: true }), /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement(Badge, { variant: PAYOUT_TONE[p.state] }, PAYOUT_LABEL[p.state]))), /* @__PURE__ */ React.createElement(Card, { variant: "outlined", radius: "lg" }, /* @__PURE__ */ React.createElement(GapKeyValue, { labelWidth: 110, rows: [
+      ["Period", p.period_start + " \u2013 " + p.period_end],
+      ["Entries", String(p.entry_count)],
+      ["Paid", p.paid_at || "Not yet"],
+      ["Payout id", p.id, { mono: true }]
+    ] })), /* @__PURE__ */ React.createElement(Body, { muted: true }, "The entries are the deliveries, tips and adjustments that make up this amount. Totals are computed by HalalGoes, not by the app."))));
+  }
+  Object.assign(window, { EarningsScreen, PayoutDetailScreen, EARN_VARIANTS, PAYOUT_VARIANTS });
+})();
+
+/* Index5/HistoryScreen.jsx */
+(() => {
+  const { Badge, Card, Button } = window.HalalGoesDesignSystem_d11a47;
+  function HistoryScreen({ state, go }) {
+    return /* @__PURE__ */ React.createElement(RiderScreen, { title: "Delivery history", subtitle: "Last 30 days", tab: "history", go }, /* @__PURE__ */ React.createElement(Pad, null, state === "loading" ? /* @__PURE__ */ React.createElement(GapSkeleton, { rows: 4, height: 56 }) : state === "error" ? /* @__PURE__ */ React.createElement(GapErrorState, { title: "Couldn\u2019t load your history", body: "Try again in a moment." }) : state === "empty" ? /* @__PURE__ */ React.createElement(GapEmptyState, { icon: "orders", title: "No deliveries yet", body: "Trips you finish, return or that are cancelled show here." }) : /* @__PURE__ */ React.createElement(Card, { variant: "outlined", radius: "lg" }, HISTORY.map((h) => /* @__PURE__ */ React.createElement(
+      GapListRow,
+      {
+        key: h.id,
+        title: h.restaurant + " \u2192 " + h.area,
+        sub: /* @__PURE__ */ React.createElement("span", { style: { color: "var(--text-primary)" } }, h.at, " \xB7 ", /* @__PURE__ */ React.createElement("span", { style: { fontFamily: "var(--font-mono)", fontSize: "var(--type-mono-sm-size)" } }, h.order_code)),
+        right: /* @__PURE__ */ React.createElement(Badge, { variant: ASSIGNMENT_LABEL[h.state][1], size: "sm" }, ASSIGNMENT_LABEL[h.state][0])
+      }
+    )))));
+  }
+  function ProfileScreen({ state, go }) {
+    const me = RIDER_ME;
+    return /* @__PURE__ */ React.createElement(RiderScreen, { title: "Profile", tab: "profile", go }, /* @__PURE__ */ React.createElement(Pad, null, state === "loading" ? /* @__PURE__ */ React.createElement(GapSkeleton, { rows: 3 }) : state === "error" ? /* @__PURE__ */ React.createElement(GapErrorState, { title: "Couldn\u2019t load your profile", body: "Try again. You can still go online meanwhile." }) : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 12 } }, /* @__PURE__ */ React.createElement(GapAvatar, { name: me.first_name + " " + me.last_initial, size: 56 }), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gap: 2 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: "var(--type-heading-md-size)", fontWeight: 600 } }, me.first_name, " ", me.last_initial, "."), /* @__PURE__ */ React.createElement("span", { style: { fontSize: "var(--type-body-md-size)" } }, me.phone))), /* @__PURE__ */ React.createElement(Card, { variant: "outlined", radius: "lg" }, /* @__PURE__ */ React.createElement(SectionLabel, null, "Vehicle"), /* @__PURE__ */ React.createElement(GapKeyValue, { labelWidth: 96, style: { marginTop: 8 }, rows: [["Type", "Scooter"], ["Plate", me.vehicle.plate, { mono: true }], ["Model", me.vehicle.make_model]] })), /* @__PURE__ */ React.createElement(Card, { variant: "outlined", radius: "lg" }, /* @__PURE__ */ React.createElement(SectionLabel, null, "Documents"), DOCUMENTS.map((d) => /* @__PURE__ */ React.createElement(
+      GapListRow,
+      {
+        key: d.doc_type,
+        title: d.label,
+        sub: d.valid_until ? /* @__PURE__ */ React.createElement("span", { style: { color: "var(--text-primary)" } }, "Valid until ", d.valid_until) : null,
+        right: /* @__PURE__ */ React.createElement(Badge, { variant: KYC_TONE[d.state], size: "sm" }, KYC_LABEL[d.state])
+      }
+    ))), /* @__PURE__ */ React.createElement(Card, { variant: "outlined", radius: "lg" }, /* @__PURE__ */ React.createElement(GapListRow, { title: "Payout account", sub: /* @__PURE__ */ React.createElement("span", { style: { color: "var(--text-primary)" } }, "Bank ending 4821 \xB7 via Stripe"), onClick: () => {
+    } }), /* @__PURE__ */ React.createElement(GapListRow, { icon: "bell", title: "Notifications", onClick: () => {
+    } }), /* @__PURE__ */ React.createElement(GapListRow, { icon: "info", title: "Help and support", onClick: () => {
+    } })), /* @__PURE__ */ React.createElement(Button, { variant: "ghost", style: { justifySelf: "start" }, onPress: () => go("signin", "phone") }, "Sign out"))));
+  }
+  Object.assign(window, { HistoryScreen, ProfileScreen });
+})();
+
+/* Index5/RiderApp.jsx */
+(() => {
+  const SIGNIN_VARIANTS = [
+    { id: "phone", label: "Enter phone" },
+    { id: "code", label: "Enter code" },
+    { id: "code-error", label: "Wrong code" },
+    { id: "locked", label: "Too many attempts" }
+  ];
+  const ONBOARDING_VARIANTS = [
+    { id: "profile", label: "PROFILE_PENDING" },
+    { id: "vehicle", label: "VEHICLE_PENDING" },
+    { id: "documents", label: "DOCUMENTS_PENDING" },
+    { id: "review", label: "DOCUMENTS_REVIEW" },
+    { id: "fix", label: "DOCUMENTS_REJECTED \xB7 fix documents" },
+    { id: "payout", label: "PAYOUT_PENDING" }
+  ];
+  const NO_EMPTY = ["populated", "loading", "error"];
+  function RiderApp() {
+    const screens = [
+      { id: "signin", label: "Sign in (phone OTP)", variants: SIGNIN_VARIANTS, states: NO_EMPTY, render: (c) => /* @__PURE__ */ React.createElement(SignInScreen, { ...c }) },
+      { id: "onboarding", label: "Onboarding", variants: ONBOARDING_VARIANTS, states: NO_EMPTY, render: (c) => /* @__PURE__ */ React.createElement(OnboardingScreen, { ...c }) },
+      { id: "home", label: "Home \xB7 availability", variants: HOME_VARIANTS, states: NO_EMPTY, render: (c) => /* @__PURE__ */ React.createElement(OnlineScreen, { ...c }) },
+      { id: "offer", label: "Offer (current_offer)", variants: OFFER_VARIANTS, states: NO_EMPTY, render: (c) => /* @__PURE__ */ React.createElement(OfferScreen, { ...c }) },
+      { id: "trip", label: "Active trip (AssignmentState)", variants: TRIP_VARIANTS, states: NO_EMPTY, render: (c) => /* @__PURE__ */ React.createElement(ActiveScreen, { ...c }) },
+      { id: "earnings", label: "Earnings", variants: EARN_VARIANTS, render: (c) => /* @__PURE__ */ React.createElement(EarningsScreen, { ...c }) },
+      { id: "payout", label: "Payout detail", variants: PAYOUT_VARIANTS, states: NO_EMPTY, render: (c) => /* @__PURE__ */ React.createElement(PayoutDetailScreen, { ...c }) },
+      { id: "history", label: "Delivery history", render: (c) => /* @__PURE__ */ React.createElement(HistoryScreen, { ...c }) },
+      { id: "profile", label: "Profile", states: NO_EMPTY, render: (c) => /* @__PURE__ */ React.createElement(ProfileScreen, { ...c }) }
+    ];
+    return /* @__PURE__ */ React.createElement(KitFrame, { title: "HALALGOES \xB7 RIDER APP", device: "phone", theme: "dark", initial: "home", screens });
+  }
+  ReactDOM.createRoot(document.getElementById("root")).render(/* @__PURE__ */ React.createElement(RiderApp, null));
+})();
+
+</script></body></html>

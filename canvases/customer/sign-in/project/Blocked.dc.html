@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Account status: full-screen routes</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<link rel="stylesheet" href="hg-current.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="scr {{ltClass}}" data-theme="{{theme}}" style="width: {{w}}px; height: {{h}}px; font-family: var(--font-ui); color: var(--text-primary)">
+  <main class="body" style="padding: var(--space-12) var(--space-4) var(--space-4); gap: var(--space-6)">
+    <img src="{{wordmark}}" alt="HalalGoes" style="width: 96px; height: 32px; display: block">
+    <div style="flex: 1 1 auto; display: flex; flex-direction: column; justify-content: center; gap: var(--space-4)">
+      <span class="gap-tag">Proposed component: EmptyState (full-screen variant)</span>
+      <div style="display: flex; gap: var(--space-2); align-items: center; flex-wrap: wrap">
+        <span aria-hidden="true" style="width: 56px; height: 56px; display: grid; place-items: center; border-radius: var(--radius-full); background: var(--surface-sunken); color: var(--text-secondary); width: 64px; height: 64px">
+          <sc-if value="{{c.icon}}" hint-placeholder-val="{{true}}">
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="{{c.icon}}" size="xl"></x-import>
+          </sc-if>
+        </span>
+        <sc-if value="{{c.iconGap}}" hint-placeholder-val="{{false}}"><span class="gap-tag">{{c.iconGap}}</span></sc-if>
+      </div>
+      <h1 class="t-h1 {{h1Class}}" tabindex="-1" data-h1="">{{c.title}}</h1>
+      <sc-if value="{{f.h1Focus}}" hint-placeholder-val="{{false}}">
+        <span class="anno-tag">Focus: when this route replaces the open screen mid-session, focus moves to the h1 (tabindex -1, ring drawn) so the title is announced first. Reading order: title, the two paragraphs, then the footer buttons in order. Nothing behind it stays in the tab order.</span>
+      </sc-if>
+      <p class="t-body" style="color: var(--text-primary)">{{c.body}}</p>
+      <p class="t-body">{{c.more}}</p>
+      <sc-if value="{{f.update}}" hint-placeholder-val="{{false}}">
+        <p class="t-small">Your version: <span class="t-mono">1.0.3</span></p>
+      </sc-if>
+      <sc-if value="{{c.api}}" hint-placeholder-val="{{false}}">
+        <span class="api-tag" style="white-space: normal">{{c.api}}</span>
+      </sc-if>
+      <sc-if value="{{c.anno}}" hint-placeholder-val="{{false}}">
+        <span class="anno-tag">{{c.anno}}</span>
+      </sc-if>
+    </div>
+  </main>
+  <footer class="foot">
+    <div data-primary="">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" full-width="{{yes}}" href="{{c.href}}">{{c.primary}}</x-import>
+    </div>
+    <sc-if value="{{c.hours}}" hint-placeholder-val="{{false}}">
+      <p class="t-small" style="text-align: center">Support hours: [support_hours]</p>
+    </sc-if>
+    <sc-if value="{{c.support}}" hint-placeholder-val="{{false}}">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="lg" full-width="{{yes}}" href="#support_phone_e164">Call support</x-import>
+      <p class="t-small" style="text-align: center">Support hours: [support_hours]</p>
+    </sc-if>
+    <sc-if value="{{c.other}}" hint-placeholder-val="{{false}}">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="lg" full-width="{{yes}}" href="Main.dc.html">Use a different number</x-import>
+      <sc-if value="{{f.ltBtn}}" hint-placeholder-val="{{false}}">
+        <span class="gap-tag" style="white-space: normal">DS issue: Button label nowrap clips at 200% text. Not approved as drawn. Needs white-space normal, centred text, same minBlockSize.</span>
+      </sc-if>
+    </sc-if>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["suspended","midsession","midcheckout","banned","suspendednosupport","bannednosupport","unavailable","unavailablenosupport","update","security","securitynosupport","revoked","revokednosupport","expired"],"default":"suspended"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"lt":{"editor":"boolean","default":false},"focus":{"editor":"boolean","default":false},"w":{"editor":"int","min":320,"max":430,"default":390},"h":{"editor":"int","min":844,"max":2400,"default":844},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  componentDidMount() {
+    this.t = setTimeout(() => {
+      try {
+        if (this.props.focus) {
+          const s = this.props.state ?? 'suspended';
+          const el = s === 'update' ? document.querySelector('[data-primary] a, [data-primary] button') : document.querySelector('[data-h1]');
+          if (el) el.focus({ preventScroll: true });
+        }
+      } catch (e) {}
+    }, 400);
+  }
+  componentWillUnmount() { clearTimeout(this.t); }
+  renderVals() {
+    const s = this.props.state ?? 'suspended';
+    // Missing Solar icons leave the 64 px slot empty with the gap tag, never a borrowed glyph.
+    const person = 'Component gap: Icon user-block (Solar user-block-rounded)';
+    const noSup = "Our phone line is closed right now. It's open [support_hours]. Sign out to use HalalGoes with a different number.";
+    const C = {
+      suspended: {
+        icon: null, iconGap: person, title: 'Your account is on hold',
+        body: "You can't place orders while your account is on hold.",
+        more: 'If you think this is a mistake, or you have a question about an order or refund, call support.',
+        primary: 'Call support', href: '#support_phone_e164', hours: true, support: false, other: true,
+      },
+      midsession: {
+        icon: null, iconGap: person, title: 'Your account is on hold',
+        body: "You can't place orders while your account is on hold.",
+        more: 'If you think this is a mistake, or you have a question about an order or refund, call support.',
+        primary: 'Call support', href: '#support_phone_e164', hours: true, support: false, other: true,
+        anno: "Any call other than checkout (a restaurant list, profile or order call) that returns 403 ACCOUNT_SUSPENDED mid-session routes here, full screen, replacing whatever was open. No sentence about checkout: an order may already be placed and on hold, so saying none was placed could be false. The next call may instead be SESSION_REVOKED (sessions end within 10 s); that shows the signed-out screen, and signing in again lands here.",
+        api: 'Needs API: what happens to an order already in progress, and to the saved cart, when an account is suspended mid-session',
+      },
+      midcheckout: {
+        icon: null, iconGap: person, title: 'Your account is on hold',
+        body: "You can't place orders while your account is on hold. That order wasn't placed.",
+        more: 'If you think this is a mistake, or you have a question about an order or refund, call support.',
+        primary: 'Call support', href: '#support_phone_e164', hours: true, support: false, other: true,
+        anno: "Shown only when the 403 ACCOUNT_SUSPENDED came from the checkout call itself (quote or createOrder), so no order was created. Any other trigger uses the mid-session board without this sentence.",
+        api: 'Needs API: what happens to the saved cart when an account is suspended mid-session',
+      },
+      banned: {
+        icon: null, iconGap: person, title: "This account can't be used",
+        body: 'HalalGoes has closed this account.',
+        more: 'If you have a question about a past order or a refund, call support and give them your phone number.',
+        primary: 'Call support', href: '#support_phone_e164', hours: true, support: false, other: true,
+      },
+      suspendednosupport: {
+        icon: null, iconGap: person, title: 'Your account is on hold',
+        body: "You can't place orders while your account is on hold.",
+        more: noSup,
+        primary: 'Sign out', href: 'Main-signedout.dc.html', hours: false, support: false, other: false,
+        anno: 'Phone line closed (outside its hours) or support_enabled false. One exit: Sign out and Use a different number both returned to Sign in, so only Sign out stays. No "try again later": signing back in with this number lands here again. With support_enabled false the hours sentence drops.',
+      },
+      bannednosupport: {
+        icon: null, iconGap: person, title: "This account can't be used",
+        body: 'HalalGoes has closed this account.',
+        more: noSup,
+        primary: 'Sign out', href: 'Main-signedout.dc.html', hours: false, support: false, other: false,
+        anno: 'One exit: Sign out. The account is closed, so nothing here suggests trying again.',
+      },
+      unavailable: {
+        icon: null, iconGap: person, title: "This account isn't available",
+        body: "You can't sign in to this account right now.",
+        more: 'Call support if you have a question about a past order or refund.',
+        primary: 'Call support', href: '#support_phone_e164', hours: true, support: false, other: true,
+        anno: 'Neutral fallback. Opens for next_route SUSPENDED with principal.status DELETED or any status other than SUSPENDED or BANNED, and for 403 ACCOUNT_NOT_ACTIVE or ACCOUNT_DEACTIVATED from verifyOtp. Gives no reason and no timeline, because the status does not say whether it is temporary.',
+        api: 'Needs API: a PENDING_DELETION status and restore-on-verifyOtp, so a customer in deletion grace gets a restore path instead of this screen',
+      },
+      unavailablenosupport: {
+        icon: null, iconGap: person, title: "This account isn't available",
+        body: "You can't sign in to this account right now.",
+        more: noSup,
+        primary: 'Sign out', href: 'Main-signedout.dc.html', hours: false, support: false, other: false,
+        anno: 'Fallback with the phone line closed or support_enabled false: one exit, Sign out. No "try again later".',
+      },
+      update: {
+        icon: null, iconGap: 'Component gap: Icon download (Solar download-minimalistic)', title: 'Update HalalGoes to keep ordering',
+        body: 'This version of the app is no longer supported.',
+        more: 'Get the latest version from the App Store or Google Play. Your addresses are saved to your account, so nothing is lost.',
+        primary: 'Update the app', href: '#store', hours: false, support: false, other: false,
+      },
+      security: {
+        icon: 'lock', iconGap: null, title: 'We signed you out to keep your account safe',
+        body: 'Your sign-in was used from two places at the same time, so we signed you out everywhere.',
+        more: "Sign in again with your phone. If you didn't expect this, call support.",
+        primary: 'Sign in again', href: 'Main.dc.html', hours: false, support: true, other: false,
+      },
+      securitynosupport: {
+        icon: 'lock', iconGap: null, title: 'We signed you out to keep your account safe',
+        body: 'Your sign-in was used from two places at the same time, so we signed you out everywhere.',
+        more: 'Sign in again with your phone.',
+        primary: 'Sign in again', href: 'Main.dc.html', hours: false, support: false, other: false,
+      },
+      revoked: {
+        icon: 'lock', iconGap: null, title: "You've been signed out",
+        body: 'This phone is no longer signed in to your account.',
+        more: "Sign in again with your number to keep ordering. If you didn't expect this, call support during its hours.",
+        primary: 'Sign in again', href: 'Main.dc.html', hours: false, support: true, other: false,
+        anno: 'SESSION_REVOKED and WS close 4401 carry no cause: support ending the session, or the account leaving ACTIVE. If the account is on hold, the next verifyOtp returns ACCOUNT_SUSPENDED and routes to the on-hold screen. No Sign out everywhere or device list at launch (both are later-version operations). The body sends the customer to support, so the footer carries Call support and the hours, as on the security sign-out.',
+      },
+      revokednosupport: {
+        icon: 'lock', iconGap: null, title: "You've been signed out",
+        body: 'This phone is no longer signed in to your account.',
+        more: 'Sign in again with your number to keep ordering.',
+        primary: 'Sign in again', href: 'Main.dc.html', hours: false, support: false, other: false,
+        anno: 'Phone line closed (outside its hours) or support_enabled false: the sentence about calling support drops, and so does the Call support button. With support_enabled false the hours line drops too.',
+      },
+      expired: {
+        icon: 'clock', iconGap: null, title: 'Please sign in again',
+        body: "It's been a while since you last used HalalGoes on this phone, so your sign-in has run out.",
+        more: 'Your addresses are saved to your account. Sign in with your number to pick up where you left off.',
+        primary: 'Sign in', href: 'Main.dc.html', hours: false, support: false, other: false,
+      },
+    };
+    const dark = this.props.theme === 'dark';
+    const c = Object.assign({ api: null, anno: null }, C[s] || C.suspended);
+    return {
+      f: { update: s === 'update', noSupport: s === 'suspendednosupport' || s === 'bannednosupport' || s === 'unavailablenosupport' || s === 'securitynosupport' || s === 'revokednosupport', h1Focus: !!this.props.focus && s !== 'update', ltBtn: !!this.props.lt },
+      h1Class: (this.props.focus && s !== 'update') ? 'focus-drawn' : '',
+      c, yes: true,
+      theme: dark ? 'dark' : 'light',
+      ltClass: this.props.lt ? 'lt' : '',
+      w: this.props.w ?? 390,
+      h: this.props.h ?? 844,
+      wordmark: dark ? '/_blob/843ebf06b5228cfa7692cb421908d434' : '/_blob/d30db9859e3d16adcb42d3b151c41784',
+    };
+  }
+}
+</script>
+</body>
+</html>

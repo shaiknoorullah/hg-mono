@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Enter the address</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:var(--color-neutral-100)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+.demo-focus .hg-focus,.demo-focus .hg-choice-ctl,.demo-focus .hg-row,.demo-focus > a{box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)!important}
+.demo-focus-field .hg-field{border-color:var(--focus-ring)!important;box-shadow:inset 0 0 0 calc(var(--focus-field-border-width) - 1px) var(--focus-ring)!important}
+
+textarea::placeholder{color:var(--text-secondary);opacity:1}
+</style>
+</helmet>
+<div style="width: 390px; height: 1500px; position: relative; overflow: hidden; display: flex; flex-direction: column; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="cream" title="Enter the address" back-label="Back to the map" on-back="{{noop}}"></x-import>
+<main style="flex-grow: 1; display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-4)">
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">Fallback path: reached from Enter the address yourself when search has no match or is unavailable. The pin is still required, so the next step is the map.</span>
+
+<div class="demo-focus-field"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Street address" required="{{yes}}" autocomplete="address-line1" default-value="14 Ellesmere Rd"></x-import></div>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Unit (optional)" default-value="402"></x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Buzzer (optional)" default-value="402"></x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="City" required="{{yes}}" autocomplete="address-level2" default-value="Toronto"></x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Province" read-only="{{yes}}" default-value="Ontario" helper-text="We deliver in Ontario only for now."></x-import>
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--color-info-700); background: var(--color-info-50)">Component gap: Input helper text contrast (text-tertiary 12px, 4.18:1; needs text-secondary at body-sm)</span>
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">DS fix recorded: FieldText helper and the character count move to --text-secondary at --type-body-sm-size. Helper text here is needed to finish the form.</span>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Postal code" required="{{yes}}" autocomplete="postal-code" helper-text="For example M1R 4E7." default-value="M1R 4E7"></x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Label (optional)" helper-text="For example Home or Work." default-value="Home"></x-import>
+<div style="display: flex; flex-direction: column; gap: var(--space-2); outline: 1.5px dotted var(--color-info-500); outline-offset: 3px; border-radius: var(--radius-sm)">
+<label for="addr-notes" style="font-size: var(--type-label-lg-size); font-weight: 600">Notes for the rider (optional)</label>
+<textarea id="addr-notes" rows="2" maxlength="200" aria-describedby="addr-notes-help addr-notes-count" style="font-family: inherit; font-size: var(--type-body-md-size); padding: var(--space-3); border-radius: var(--radius-md); border: 1px solid var(--border-interactive); background: var(--surface-raised); color: var(--text-primary); resize: none">Side entrance</textarea>
+<span id="addr-notes-help" style="font-size: var(--type-body-sm-size); color: var(--text-secondary)">For example the entrance or where to park.</span>
+<span id="addr-notes-count" style="align-self: flex-end; font-size: var(--type-body-sm-size); color: var(--text-secondary); font-variant-numeric: tabular-nums"><span aria-hidden="true">13/200</span><span class="hg-sr">13 of 200 characters used</span></span>
+<span role="status" aria-live="polite" class="hg-sr"></span>
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">Textarea follows Input: 1px border-interactive at rest, 2px border-brand on focus (no ring), placeholder text-secondary, helper and counter linked by aria-describedby. The polite status announces "N characters left" only from 20 left.</span>
+<div style="display: flex; gap: var(--space-2); flex-wrap: wrap"><span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--color-info-700); background: var(--color-info-50)">Component gap: Textarea (200)</span><span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">Bound: Address.delivery_notes</span></div>
+</div>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Checkbox" label="Make this my default address"></x-import>
+<div style="display: flex; flex-direction: column; gap: var(--space-1)"><span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">Bound: AddressInput: line1, unit, buzzer, city, province (fixed ON), postal_code, label; latitude/longitude from the pin, placed on the map next</span><span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">No handover choice here: Address has no delivery-instruction field. Handover is chosen per order at checkout.</span></div>
+</main>
+<footer style="display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-4); background: var(--surface-raised); box-shadow: var(--elev-sticky)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" full-width="{{yes}}" icon-start="map" href="Address-add.dc.html">Next: place the pin</x-import>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1500}}'>
+class Component extends DCLogic {
+renderVals() {
+return {
+yes: true,
+no: false,
+none: null,
+zero: 0,
+two: 2,
+noop: function () {},
+nav: [
+{ key: 'home', label: 'Home', icon: 'home' },
+{ key: 'search', label: 'Search', icon: 'search' },
+{ key: 'orders', label: 'Orders', icon: 'orders' },
+{ key: 'account', label: 'Account', icon: 'profile' }
+]
+};
+}
+}
+</script>
+</body>
+</html>

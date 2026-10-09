@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Halal certification section</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div id="halal" style="width: {{w}}; height: {{hh}}; box-sizing: border-box; font-family: var(--font-ui); color: var(--text-primary); display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; gap: 8px; flex-wrap: wrap">
+<span style="padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">{{tag}}</span>
+<sc-if value="{{showMapping}}" hint-placeholder-val="{{true}}"><span style="padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">{{mapping}}</span></sc-if>
+</div>
+
+<sc-if value="{{hasNote}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; gap: 10px; padding: 16px; border-radius: var(--radius-md); background: {{note.bg}}; border: 1px solid {{note.border}}">
+<div style="display: flex; align-items: center; gap: 12px">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="{{note.tone}}" icon="{{note.icon}}" size="md">{{note.badge}}</x-import>
+<strong style="font: var(--text-type-heading-sm); flex-grow: 1">{{note.title}}</strong>
+<span style="padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">Proposed component: Banner (inline)</span>
+</div>
+<span style="font: var(--text-type-body-md); line-height: 1.5">{{note.text}}</span>
+<sc-if value="{{note.review}}" hint-placeholder-val="{{false}}">
+<span style="font: var(--text-type-body-md); line-height: 1.5">Reviewer's note: "{{note.review}}"</span>
+<span style="font: var(--text-type-body-md); line-height: 1.5"><strong>What you can do:</strong> {{note.todo}}</span>
+<div style="display: flex; gap: 12px; flex-wrap: wrap"><sc-if value="{{note.dup}}" hint-placeholder-val="{{false}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" href="https://claude.ai/artifact/VkGvVQsxmCHp8CGnCLVKga">Contact support</x-import></sc-if><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md" href="https://claude.ai/artifact/VkGvVQsxmCHp8CGnCLVKga">Upload a corrected certificate</x-import></div>
+</sc-if>
+<sc-if value="{{note.needs}}" hint-placeholder-val="{{false}}"><span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--feedback-info-tint-text); background: var(--feedback-info-tint)">{{note.needs}}</span></sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{usePanel}}" hint-placeholder-val="{{true}}">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.HalalCertificationPanel" restaurant-id="0191c2d6-3b21-7a10-8c00-7d1e2f3a4b00" status="{{panelStatus}}" certification="{{cert}}" error-message="{{panelError}}" on-retry="{{noop}}" on-view-certificate="{{noop}}" heading-level="{{2}}"></x-import>
+</sc-if>
+
+<sc-if value="{{absent}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; gap: 12px">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" href="https://claude.ai/artifact/VkGvVQsxmCHp8CGnCLVKga">Contact support</x-import>
+</div>
+</sc-if>
+
+<sc-if value="{{ownCard}}" hint-placeholder-val="{{false}}">
+<section aria-labelledby="halal-own-h">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg" padding="24px">
+<div style="display: flex; flex-direction: column; gap: 12px">
+<h2 id="halal-own-h" style="margin: 0; font: var(--text-type-heading-lg); letter-spacing: -0.01em">Halal certification</h2>
+<sc-if value="{{own.future}}" hint-placeholder-val="{{false}}"><span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--feedback-info-tint-text); background: var(--feedback-info-tint)">Future state · Needs API: withdrawal state and date for the restaurant</span></sc-if>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font: var(--text-type-heading-sm)">{{own.title}}</span>
+<span style="font: var(--text-type-body-md); line-height: 1.5">{{own.body}}</span>
+<span style="font: var(--text-type-body-sm); color: var(--text-secondary)">HalalGoes does not itself certify food.</span>
+</div>
+<span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">No HalalBadge here: the not-verified state shows only on the onboarding halal step</span>
+<sc-if value="{{own.needs}}" hint-placeholder-val="{{false}}"><span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--feedback-info-tint-text); background: var(--feedback-info-tint)">{{own.needs}}</span></sc-if>
+<sc-if value="{{own.support}}" hint-placeholder-val="{{false}}"><div style="display: flex"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" href="https://claude.ai/artifact/VkGvVQsxmCHp8CGnCLVKga">Contact support</x-import></div></sc-if>
+<sc-if value="{{own.upload}}" hint-placeholder-val="{{false}}">
+<div style="display: flex"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md" href="https://claude.ai/artifact/VkGvVQsxmCHp8CGnCLVKga">{{own.cta}}</x-import></div>
+</sc-if>
+</div>
+</x-import>
+</section>
+</sc-if>
+
+
+<sc-if value="{{renewOpen}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md" href="https://claude.ai/artifact/VkGvVQsxmCHp8CGnCLVKga">Upload renewed certificate</x-import>
+<span style="font: var(--text-type-body-sm); color: var(--text-secondary)">Your certificate expires on {{expLong}}. You can upload the renewed one now. It stays private: only HalalGoes reviewers see it.</span>
+</div>
+</sc-if>
+<sc-if value="{{renewNotYet}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap">
+<span id="renew-when" style="font: var(--text-type-body-md)">You can upload a renewal from {{windowLong}}.</span>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" disabled="{{yes}}" aria-describedby="renew-when">Upload renewed certificate</x-import>
+<span style="padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">Uploads open 60 days before expires_on · the reason sits before the button and is wired with aria-describedby</span>
+</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["CERTIFIED","EXPIRING_SOON","EXPIRED","UNVERIFIED","nocert","revoked","absent","loading"],"default":"CERTIFIED"},"width":{"editor":"int","default":840},"expiresOn":{"editor":"text","default":"2026-11-12"},"note":{"editor":"enum","options":["none","early","submitted","review","review-expiring","review-expiry-day","rejected","rejected-live","rejected-dup","approved","approved-early"],"default":"none"},"readOnly":{"editor":"boolean","default":false},"height":{"editor":"int","default":440},"$preview":{"width":840,"height":440}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var s = this.props.state || 'CERTIFIED';
+    var n = this.props.note || 'none';
+    var ro = !!this.props.readOnly;
+    var exp = this.props.expiresOn || '2026-11-12';
+    var TODAY = '2026-09-28';
+    var MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    function longDate(iso) { var p = iso.split('-'); return (+p[2]) + ' ' + MONTHS[+p[1] - 1] + ' ' + p[0]; }
+    function minusDays(iso, d) { var t = new Date(iso + 'T12:00:00Z'); t.setUTCDate(t.getUTCDate() - d); return t.toISOString().slice(0, 10); }
+    var windowIso = minusDays(exp, 60);
+    var panelStates = ['CERTIFIED', 'EXPIRING_SOON', 'EXPIRED', 'absent', 'loading'];
+    var usePanel = panelStates.indexOf(s) >= 0;
+    var approved = n === 'approved' || n === 'approved-early';
+    var cert = {
+      display_state: s === 'absent' || s === 'loading' ? 'CERTIFIED' : s,
+      certifying_body_name: 'HMA Canada',
+      certificate_number: approved ? 'HMA-2026-09114' : 'HMA-2025-03317',
+      // Compact while a renewal note is shown: body, number, expiry and View certificate only.
+      issued_on: n !== 'none' ? null : (approved ? '2026-09-12' : '2025-11-12'),
+      expires_on: approved ? '2027-09-12' : exp,
+      verified_at: approved ? '2026-09-27' : '2026-03-03',
+      certificate_viewable: true,
+      disclaimer: 'Certification verified by HalalGoes on ' + (approved ? '27 September 2026' : '3 March 2026') + '. HalalGoes does not itself certify food.'
+    };
+    var info = { bg: 'var(--feedback-info-tint)', border: 'var(--feedback-info-border)' };
+    var warn = { bg: 'var(--feedback-warning-tint)', border: 'var(--feedback-warning-border)' };
+    var calm = { bg: 'var(--surface-subtle)', border: 'var(--border-decorative)' };
+    var SLA = 'We quote reviews within 3 business days (owner decision) · Needs API: review of a single document after onboarding';
+    var NOTES = {
+      early: Object.assign({ tone: 'info', icon: 'clock', badge: 'Received', title: 'Renewed certificate received on 26 September 2026', text: 'Your current certificate stays valid until the date above while a reviewer checks the new one. Nothing changes for customers.', needs: SLA }, info),
+      submitted: Object.assign({ tone: 'info', icon: 'clock', badge: 'Received', title: 'Renewed certificate received on 26 September 2026', text: 'A reviewer checks it within 3 business days. You get a notification either way.', needs: SLA }, info),
+      review: Object.assign({ tone: 'info', icon: 'clock', badge: 'In review', title: 'A reviewer is checking your renewed certificate', text: 'You can send another once this review is finished.' }, info),
+      'review-expiring': Object.assign({ tone: 'info', icon: 'clock', badge: 'In review', title: 'A reviewer is checking your renewed certificate', text: 'You sent it on 26 September 2026. You don\'t need to send it again. If it\'s approved before your current certificate expires on ' + longDate(exp) + ', nothing changes for customers. If not, customers can\'t see your restaurant from ' + longDate(exp) + ' until it\'s approved.', needs: SLA }, info),
+      'review-expiry-day': Object.assign({ tone: 'info', icon: 'clock', badge: 'In review', title: 'A reviewer is checking your renewed certificate', text: 'You sent it on 26 September 2026. You don\'t need to send it again. Customers see your restaurant again once it\'s approved.', needs: SLA }, info),
+      'rejected-live': Object.assign({ tone: 'warning', icon: 'warning', badge: 'Not accepted', title: 'Not accepted: pages are missing', text: 'Your renewed certificate was reviewed on 27 September 2026. Your current certificate is still valid until ' + longDate(exp) + ', so customers can still find you until then.', review: "Page 2 is cut off at the bottom, so the expiry date isn't visible.", todo: 'upload a clear scan or photo of every page before ' + longDate(exp) + '.' }, warn),
+      rejected: Object.assign({ tone: 'warning', icon: 'warning', badge: 'Not accepted', title: 'Not accepted: pages are missing', text: 'Your renewed certificate was reviewed on 27 September 2026.', review: "Page 2 is cut off at the bottom, so the expiry date isn't visible.", todo: 'upload a clear scan or photo of every page.' }, warn),
+      'rejected-dup': Object.assign({ tone: 'warning', icon: 'warning', badge: 'Not accepted', title: 'Not accepted: this certificate is already in use', text: 'Your renewed certificate was reviewed on 27 September 2026.', review: 'This certificate number is already on record for another restaurant.', todo: 'If this certificate is yours, contact support. Otherwise upload your own certificate.', dup: true, needs: 'Needs API: a duplicate-certificate rejection reason (sent today as OTHER plus the review note)' }, warn),
+      approved: Object.assign({ tone: 'neutral', icon: 'check', badge: 'Approved', title: 'Renewed certificate approved on 27 September 2026', text: 'Customers can find your restaurant again.' }, calm),
+      'approved-early': Object.assign({ tone: 'neutral', icon: 'check', badge: 'Approved', title: 'Renewed certificate approved on 27 September 2026', text: 'Your new certificate is on record. Nothing changed for customers.' }, calm)
+    };
+    var note = NOTES[n] ? Object.assign({ dup: false }, NOTES[n]) : null;
+    var OWN = {
+      UNVERIFIED: { title: "Your certificate hasn't been verified yet", body: "A HalalGoes reviewer is checking it. Customers can't see your restaurant until it's approved.", upload: false },
+      nocert: { title: 'No halal certificate on record', body: "Customers can't see your restaurant until a HalalGoes reviewer approves one.", upload: !ro, cta: 'Upload your halal certificate' },
+      revoked: { future: true, title: 'Your halal certificate was withdrawn', body: "A HalalGoes reviewer withdrew it, so customers can't see your restaurant. Upload a valid certificate to be listed again, or contact support to ask why.", upload: !ro, cta: 'Upload your halal certificate', support: true, needs: 'The restaurant cannot read revocation or its date today: HalalCertificateStatus is admin-only (getHalalCertificate); HalalDisplayState and KycDocumentState have no REVOKED. Until the API exists the app shows what it returns: display_state UNVERIFIED or EXPIRED (see those artboards) and the HALAL_CERTIFICATE KycDocument state.' }
+    };
+    var own = OWN[s] ? Object.assign({ future: false, upload: false, cta: '', support: false, needs: null }, OWN[s]) : { future: false, title: '', body: '', upload: false, cta: '', support: false, needs: null };
+    var renewable = !ro && s === 'CERTIFIED' && n === 'none';
+    var mapping = 'Mapping: verified_at from the current halal certificate document (reviewed_at) · number, issued_on and expires_on from that document · body from RestaurantProfile.halal · View certificate opens a short-lived private link (createDocumentDownloadUrl) · no report-a-concern link · views here are not logged as customer views';
+    return {
+      yes: true,
+      w: (this.props.width || 840) + 'px',
+      hh: (this.props.height || 440) + 'px',
+      noop: function () {},
+      usePanel: usePanel,
+      panelStatus: s === 'absent' ? 'error' : (s === 'loading' ? 'loading' : 'ready'),
+      panelError: "We couldn't load your halal certification status. Reload the page. If this keeps happening, contact support.",
+      cert: cert,
+      absent: s === 'absent',
+      ownCard: !!OWN[s],
+      own: own,
+      mapping: mapping,
+      tag: usePanel ? (note ? 'Renewal note first, then HalalCertificationPanel · Proposed variant: compact (body, number, expiry, View certificate) while a renewal note is shown' : 'HalalCertificationPanel (design-system component, reused) · needs a restaurant variant: no concern link, no view logging, "expires" wording') : 'Proposed component: HalalCertificationPanel restaurant variant (the panel renders nothing for this state)',
+      hasNote: !!note,
+      showMapping: !note,
+      note: note || {},
+      renewOpen: renewable && TODAY >= windowIso,
+      renewNotYet: renewable && TODAY < windowIso,
+      expLong: longDate(exp),
+      windowLong: longDate(windowIso)
+    };
+  }
+}
+</script>
+</body>
+</html>

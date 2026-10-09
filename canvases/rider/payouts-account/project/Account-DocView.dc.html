@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Document — view</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+</style>
+</helmet>
+<div data-theme="dark" style="width: 390px; height: 1000px; position: relative; overflow: hidden; display: flex; flex-direction: column; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+<div style="position: relative; outline: 1.5px solid var(--color-viz-4); outline-offset: 3px; border-radius: 0px"><span style="position: absolute; top: -9px; right: 10px; z-index: 2; color: var(--color-neutral-0); font-family: var(--font-mono); font-size: 10px; font-weight: var(--font-weight-semibold); line-height: 16px; padding: 0 var(--space-2); border-radius: var(--radius-xs); white-space: nowrap; background: var(--color-viz-4)">Component gap: AppBar back 56 (field)</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="field" title="Driver's licence" back-label="Back to Documents" on-back="{{noop}}"></x-import></div>
+
+<main style="flex-grow: 1; min-height: 0; overflow: hidden; padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-5)">
+<div style="display: flex; flex-direction: column; gap: var(--space-4)"><section style="display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-4) 0; border-top: 1px solid var(--border-decorative); border-bottom: 1px solid var(--border-decorative)"><div style="position: relative; outline: 1.5px solid var(--color-viz-4); outline-offset: 3px; border-radius: var(--radius-xs)"><span style="position: absolute; top: -9px; right: 10px; z-index: 2; color: var(--color-neutral-0); font-family: var(--font-mono); font-size: 10px; font-weight: var(--font-weight-semibold); line-height: 16px; padding: 0 var(--space-2); border-radius: var(--radius-xs); white-space: nowrap; background: var(--color-viz-4)">Proposed component: KeyValueList</span><dl style="margin: 0; display: flex; flex-direction: column; gap: var(--space-3)"><div style="display: flex; align-items: center; gap: var(--space-3); justify-content: space-between"><dt style="font-size: var(--type-label-lg-size); font-weight: var(--font-weight-semibold); line-height: var(--type-label-lg-line); color: var(--text-secondary)">Status</dt><dd style="margin: 0; text-align: right; font-size: var(--type-body-lg-size); line-height: var(--type-body-lg-line); color: var(--text-primary)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="outline" size="lg" icon="check">Approved</x-import></dd></div><div style="display: flex; align-items: center; gap: var(--space-3); justify-content: space-between"><dt style="font-size: var(--type-label-lg-size); font-weight: var(--font-weight-semibold); line-height: var(--type-label-lg-line); color: var(--text-secondary)">Expires</dt><dd style="margin: 0; text-align: right; font-size: var(--type-body-lg-size); line-height: var(--type-body-lg-line); color: var(--text-primary)">Wednesday 14 March 2029</dd></div></dl></div></section><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="secondary" size="xl" full-width="{{yes}}">Download a copy</x-import><p style="margin: 0; font-size: var(--type-body-lg-size); font-weight: var(--font-weight-regular); line-height: var(--type-body-lg-line); color: var(--text-secondary)">The download link works for 2 minutes, to keep your document private.</p></div>
+</main>
+<div style="flex-shrink: 0; padding: var(--space-4) var(--space-5) var(--space-6); border-top: 1px solid var(--border-decorative); background: var(--surface-base); display: flex; flex-direction: column; gap: var(--space-3)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="xl" full-width="{{yes}}" href="Account-Replace-Confirm.dc.html">Replace this document</x-import></div>
+
+<div style="position: relative; outline: 1.5px solid var(--color-viz-4); outline-offset: 3px; border-radius: 0px"><span style="position: absolute; top: -9px; right: 10px; z-index: 2; color: var(--color-neutral-0); font-family: var(--font-mono); font-size: 10px; font-weight: var(--font-weight-semibold); line-height: 16px; padding: 0 var(--space-2); border-radius: var(--radius-xs); white-space: nowrap; background: var(--color-viz-4)">Component gap: Icon wallet (Earnings uses orders)</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.BottomNav" tone="field" label="Rider" active="account" items="{{navItems}}" on-change="{{noop}}"></x-import></div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var v = {"yes": true, "no": false, "nul": null, "size24": 24, "navItems": [{"key": "home", "label": "Home", "icon": "home"}, {"key": "earnings", "label": "Earnings", "icon": "orders"}, {"key": "account", "label": "Account", "icon": "profile"}], "vehicleOptions": [{"value": "CAR", "label": "Car", "description": "Licence, registration, insurance and a photo of you"}, {"value": "SCOOTER", "label": "Scooter", "description": "Licence, registration, insurance and a photo of you"}, {"value": "MOTORCYCLE", "label": "Motorcycle", "description": "Licence, registration, insurance and a photo of you"}, {"value": "BICYCLE", "label": "Bicycle", "description": "Government ID and a photo of you"}, {"value": "ON_FOOT", "label": "On foot", "description": "Government ID and a photo of you"}], "tzOptions": [{"value": "America/Toronto", "label": "Eastern time (Toronto)"}, {"value": "America/Winnipeg", "label": "Central time (Winnipeg)"}], "stateWords": {"on": "Online", "off": "Offline"}, "torchWords": {"on": "On", "off": "Off"}};
+    v.noop = function () {};
+    return v;
+  }
+}
+</script>
+</body>
+</html>

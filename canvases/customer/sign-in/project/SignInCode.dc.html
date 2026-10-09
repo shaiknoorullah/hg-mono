@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sign in: enter code</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<link rel="stylesheet" href="hg-current.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="scr {{ltClass}} {{kbdClass}}" data-theme="{{theme}}" style="width: {{w}}px; height: {{h}}px; font-family: var(--font-ui); color: var(--text-primary)">
+  <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="cream" on-back="{{noop}}" back-label="Back to phone number" title-is-page-heading="{{no}}"></x-import>
+  <main class="body" style="padding-top: var(--space-2); gap: var(--space-6)">
+    <div style="display: flex; flex-direction: column; gap: var(--space-2)">
+      <h1 class="t-h1">Enter the 6-digit code</h1>
+      <p class="t-body">We sent it to <span class="t-strong t-num">+1 416 555 0134</span>.</p>
+      <p class="t-body" style="color: var(--text-primary)">Check WhatsApp and your text messages.</p>
+      <span class="api-tag">Needs API: OTP channel in OtpChallenge or PublicConfig (then name the one channel)</span>
+      <div style="align-self: flex-start; margin-left: calc(var(--space-3) * -1)">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="sm" href="Main.dc.html">Change number</x-import>
+      </div>
+    </div>
+
+    <sc-if value="{{f.attempts0}}" hint-placeholder-val="{{false}}">
+      <span class="gap-tag">Proposed component: Banner</span>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="md" padding="var(--space-3) var(--space-4)" dc-props="{{alert.warning}}" role="alert"><div style="display: flex; gap: var(--space-3); align-items: flex-start; font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-line)">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="lock" size="md"></x-import>
+        <div style="display: flex; flex-direction: column; gap: 2px">
+          <span style="font-size: var(--type-label-lg-size); line-height: var(--type-label-lg-line); font-weight: 600">Too many wrong codes</span>
+          <span>You can try a code up to 5 times. For your security this code no longer works. Start again with your number to get a new code.</span>
+        </div>
+      </div></x-import>
+    </sc-if>
+
+    <sc-if value="{{f.attempts0}}" hint-placeholder-val="{{false}}">
+      <span class="api-tag" style="white-space: normal">Needs API: confirm requestOtp after attempts_remaining 0 opens a new challenge (today a re-request re-sends the same code). Until then: Start again, and show the 429 wait if refused.</span>
+    </sc-if>
+
+    <sc-if value="{{f.timedOut}}" hint-placeholder-val="{{false}}">
+      <span class="gap-tag">Proposed component: Banner</span>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="md" padding="var(--space-3) var(--space-4)" dc-props="{{alert.neutral}}" role="alert"><div style="display: flex; gap: var(--space-3); align-items: flex-start; font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-line)">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="clock" size="md"></x-import>
+        <div style="display: flex; flex-direction: column; gap: 2px">
+          <span style="font-size: var(--type-label-lg-size); line-height: var(--type-label-lg-line); font-weight: 600; color: var(--text-primary)">This sign-in timed out</span>
+          <span>Sign-in attempts last 15 minutes. Start again with your number and we'll send a fresh code.</span>
+        </div>
+      </div></x-import>
+    </sc-if>
+
+    <sc-if value="{{f.limit}}" hint-placeholder-val="{{false}}">
+      <span class="gap-tag">Proposed component: Banner</span>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="md" padding="var(--space-3) var(--space-4)" dc-props="{{alert.neutral}}" role="status"><div style="display: flex; gap: var(--space-3); align-items: flex-start; font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-line)">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="info" size="md"></x-import>
+        <div style="display: flex; flex-direction: column; gap: 2px">
+          <span style="font-size: var(--type-label-lg-size); line-height: var(--type-label-lg-line); font-weight: 600; color: var(--text-primary)">No more resends for this sign-in</span>
+          <span>We've sent it 3 times, the most for one sign-in. Enter the code if it arrives, or start again.</span>
+          <span>You can ask for a fresh code after <span class="t-num t-strong">6:58 pm</span>.</span>
+        </div>
+      </div></x-import>
+      <span class="api-tag">Needs API: challenge window end (challenge_expires_at) on OtpChallenge. Until then the time comes from Retry-After on the 429.</span>
+    </sc-if>
+
+    <sc-if value="{{f.verifyFail}}" hint-placeholder-val="{{false}}">
+      <span class="gap-tag">Proposed component: Banner</span>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="md" padding="var(--space-3) var(--space-4)" dc-props="{{alert.warning}}" role="alert"><div style="display: flex; gap: var(--space-3); align-items: flex-start; font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-line)">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="warning" size="md"></x-import>
+        <div style="display: flex; flex-direction: column; gap: 2px">
+          <span style="font-size: var(--type-label-lg-size); line-height: var(--type-label-lg-line); font-weight: 600">We couldn't check your code</span>
+          <span>The problem is with the connection or on our side, not your code. It's still here, so try again.</span>
+        </div>
+      </div></x-import>
+    </sc-if>
+
+    <sc-if value="{{f.resendFail}}" hint-placeholder-val="{{false}}">
+      <span class="gap-tag">Proposed component: Banner</span>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="md" padding="var(--space-3) var(--space-4)" dc-props="{{alert.warning}}" role="alert"><div style="display: flex; gap: var(--space-3); align-items: flex-start; font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-line)">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="warning" size="md"></x-import>
+        <div style="display: flex; flex-direction: column; gap: 2px">
+          <span style="font-size: var(--type-label-lg-size); line-height: var(--type-label-lg-line); font-weight: 600">We couldn't send the code again</span>
+          <span>The problem is on our side. The code we already sent still works for 5 minutes after it was sent, so enter it if it arrives.</span>
+        </div>
+      </div></x-import>
+    </sc-if>
+
+    <sc-if value="{{f.offline}}" hint-placeholder-val="{{false}}">
+      <span class="gap-tag">Proposed component: Banner</span>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="md" padding="var(--space-3) var(--space-4)" dc-props="{{alert.neutral}}" role="status"><div style="display: flex; gap: var(--space-3); align-items: flex-start; font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-line)">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="info" size="md"></x-import>
+        <div style="display: flex; flex-direction: column; gap: 2px">
+          <span style="font-size: var(--type-label-lg-size); line-height: var(--type-label-lg-line); font-weight: 600; color: var(--text-primary)">You're offline</span>
+          <span id="offline-why">Connect to Wi-Fi or mobile data to check your code. What you typed stays here.</span>
+        </div>
+      </div></x-import>
+    </sc-if>
+
+    <sc-if value="{{f.showField}}" hint-placeholder-val="{{true}}">
+      <div data-autofocus="" class="{{fieldClass}}" style="display: flex; flex-direction: column; gap: var(--space-2)">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="6-digit code" variant="otp" input-mode="numeric" auto-complete="one-time-code" size="lg" required="{{yes}}" default-value="{{code}}" read-only="{{f.verifying}}" disabled="{{f.attempts0}}" helper-text="{{helper}}" error-text="{{err}}"></x-import>
+        <sc-if value="{{f.default}}" hint-placeholder-val="{{true}}">
+          <span class="gap-tag" style="white-space: normal">DS issue: Input helper text uses text.tertiary, 4.18:1 on cream; should be text.secondary. The code lifetime must reach 4.5:1; not approved as drawn.</span>
+        </sc-if>
+      </div>
+    </sc-if>
+  </main>
+
+  <footer class="foot">
+    <sc-if value="{{f.showVerify}}" hint-placeholder-val="{{true}}">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" full-width="{{yes}}" loading="{{f.verifying}}" disabled="{{verifyOff}}" aria-describedby="{{verifyDesc}}" href="{{next}}">{{verifyLabel}}</x-import>
+      <sc-if value="{{f.verifyLimit}}" hint-placeholder-val="{{false}}">
+        <div style="align-self: center; display: flex; flex-direction: column; align-items: center; gap: var(--space-1)">
+          <p id="verify-wait" class="t-small" role="status" style="text-align: center">You can try the code again at <span class="t-num t-strong">6:52 pm</span>.</p>
+          <span class="anno-tag">verifyOtp 429 RateLimited (x-rate-class AUTH): the code and what was typed stay, Verify is disabled and points here (aria-describedby="verify-wait"). Time = when the 429 arrived + Retry-After, static, announced once. Change number stays available. Resend keeps its own rules; a refused resend shows its own 429.</span>
+        </div>
+      </sc-if>
+    </sc-if>
+    <sc-if value="{{f.needAgain}}" hint-placeholder-val="{{false}}">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" full-width="{{yes}}" icon-start="refresh" on-press="{{noop}}">Send the code again</x-import>
+    </sc-if>
+    <sc-if value="{{f.needNew}}" hint-placeholder-val="{{false}}">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" full-width="{{yes}}" href="SignIn-ready.dc.html">Start again</x-import>
+    </sc-if>
+    <sc-if value="{{f.startAgain}}" hint-placeholder-val="{{false}}">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" full-width="{{yes}}" href="SignIn-ready.dc.html">Start again</x-import>
+      <span class="anno-tag" style="align-self: center">Returns to Sign in with this number filled in, as after too many wrong codes</span>
+    </sc-if>
+    <sc-if value="{{f.limit}}" hint-placeholder-val="{{false}}">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="lg" full-width="{{yes}}" href="SignIn-limited.dc.html">Start again</x-import>
+      <span class="anno-tag" style="align-self: center">Returns to Sign in with this number filled in, and the 429 wait if Retry-After is still running</span>
+    </sc-if>
+    <sc-if value="{{f.showResend}}" hint-placeholder-val="{{true}}">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="lg" full-width="{{yes}}" disabled="{{resendBlocked}}" aria-describedby="{{resendDesc}}" on-press="{{noop}}">Resend code</x-import>
+      <sc-if value="{{showResendWait}}" hint-placeholder-val="{{false}}">
+        <div style="align-self: center; display: flex; flex-direction: column; align-items: center; gap: var(--space-1)">
+          <p id="resend-wait" class="t-small" style="text-align: center">You can resend the code at <span class="t-num t-strong">{{resendAt}}</span>.</p>
+          <span class="anno-tag">Time = when the requestOtp response was received + resend_after_s (OtpChallenge has no created_at); serverNow from the response Date header. Shown to the minute, rounded up. Static, not a ticking Countdown, until Countdown uses feedback.info.text. The button label never ticks.</span>
+        </div>
+      </sc-if>
+    </sc-if>
+  <sc-if value="{{kbd}}" hint-placeholder-val="{{false}}"><div class="kbd" aria-hidden="true"><span class="anno-tag">Phone keyboard, drawn by the OS (291 px)</span></div></sc-if>
+  </footer>
+
+  <sc-if value="{{f.resent}}" hint-placeholder-val="{{false}}">
+    <div class="toast-dock toast-dock-top">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Toast" variant="success" title="Code sent again" description="It's the same code as before. It works for 5 minutes from now." on-dismiss="{{noop}}"></x-import>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["default","changefocus","short","verifying","incorrect","invalidfocus","expired","attempts0","timedout","resend","resent","limit","verifyfail","verifylimit","resendfail","offline"],"default":"default"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"lt":{"editor":"boolean","default":false},"kbd":{"editor":"boolean","default":false},"w":{"editor":"int","min":320,"max":430,"default":390},"h":{"editor":"int","min":844,"max":2400,"default":844},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  componentDidMount() {
+    this.t = setTimeout(() => {
+      try {
+        const s = this.props.state ?? 'default';
+        let el = null;
+        if (s === 'default' || s === 'invalidfocus' || s === 'short' || this.props.kbd) el = document.querySelector('[data-autofocus] input');
+        if (s === 'changefocus') el = document.querySelector('main a[href="Main.dc.html"], main button');
+        if (el) el.focus({ preventScroll: true });
+      } catch (e) {}
+    }, 400);
+  }
+  componentWillUnmount() { clearTimeout(this.t); }
+  renderVals() {
+    let s = this.props.state ?? 'default';
+    if (s === 'locked') s = 'attempts0';
+    const f = {
+      default: s === 'default', short: s === 'short', verifying: s === 'verifying', incorrect: s === 'incorrect' || s === 'invalidfocus',
+      expired: s === 'expired', attempts0: s === 'attempts0', timedOut: s === 'timedout', resend: s === 'resend', resent: s === 'resent',
+      limit: s === 'limit', verifyFail: s === 'verifyfail', verifyLimit: s === 'verifylimit', resendFail: s === 'resendfail', offline: s === 'offline',
+    };
+    f.showField = !f.timedOut;
+    f.needAgain = f.expired;
+    f.needNew = f.attempts0;
+    f.startAgain = f.timedOut;
+    f.showVerify = !f.expired && !f.timedOut && !f.attempts0;
+    f.showResend = !f.timedOut && !f.limit && !f.expired && !f.attempts0;
+    const code = { default: '48291', short: '48291', verifying: '482915', incorrect: '482915', invalidfocus: '482915', expired: '482915', attempts0: '', resend: '', resent: '', limit: '', verifyfail: '482915', verifylimit: '482915', resendfail: '', offline: '482915' }[s] ?? '';
+    const err = f.incorrect ? "That code isn't right. You have 2 tries left."
+      : f.short ? 'Enter all 6 digits of the code.'
+      : f.expired ? 'This code has run out or was already used. Send it again to get 5 more minutes.' : null;
+    const canResend = f.resend || f.verifyFail || f.resendFail;
+    const dark = this.props.theme === 'dark';
+    return {
+      alert: { neutral: { style: { background: 'var(--surface-sunken)', color: 'var(--text-secondary)', borderColor: 'var(--border-decorative)' } }, info: { style: { background: 'var(--feedback-info-tint)', color: 'var(--feedback-info-tint-text)', borderColor: 'var(--feedback-info-border)' } }, warning: { style: { background: 'var(--feedback-warning-tint)', color: 'var(--feedback-warning-tint-text)', borderColor: 'var(--feedback-warning-border)' } } }, rowLink: { className: 'hg-focus-inset', style: { border: 'none', borderRadius: 0, background: 'transparent' } }, rowStatic: { style: { border: 'none', borderRadius: 0, background: 'transparent' } },
+      f, yes: true, no: false, noop: () => {},
+      theme: dark ? 'dark' : 'light',
+      ltClass: this.props.lt ? 'lt' : '',
+      w: this.props.w ?? 390,
+      h: this.props.h ?? 844,
+      code, err,
+      fieldClass: s === 'invalidfocus' ? 'drawn-invalid-focus' : '',
+      helper: err || f.attempts0 ? null : 'The code works for 5 minutes. We fill it in for you if your phone offers it.',
+      verifyLabel: f.verifying ? 'Checking code' : (f.verifyFail ? 'Try again' : 'Verify and continue'),
+      next: (f.verifying || f.offline || f.verifyLimit) ? undefined : 'ProfileCapture.dc.html',
+      verifyOff: f.offline || f.verifyLimit,
+      verifyDesc: f.offline ? 'offline-why' : (f.verifyLimit ? 'verify-wait' : undefined),
+      resendBlocked: !canResend,
+      sixty: 60, zero: 0,
+      resendAt: '6:45 pm',
+      resendDesc: f.offline ? 'offline-why' : (!canResend ? 'resend-wait' : undefined),
+      showResendWait: !canResend && !f.offline,
+      kbd: !!this.props.kbd, kbdClass: this.props.kbd ? 'kbd-open' : '',
+    };
+  }
+}
+</script>
+</body>
+</html>

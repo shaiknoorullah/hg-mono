@@ -1,0 +1,376 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Review and fix documents</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+.hg-focus-field:not([aria-invalid="true"]):focus-visible{outline:2px solid transparent;border-color:var(--focus-ring) !important;box-shadow:inset 0 0 0 1px var(--focus-ring)}
+.hg-focus-field[aria-invalid="true"]:focus-visible{outline:2px solid transparent;box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+summary:focus-visible{outline:2px solid transparent;box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+</style>
+</helmet>
+<div style="width: {{w}}; height: 1860px; box-sizing: border-box; display: flex; flex-direction: column; gap: 24px; font-family: var(--font-ui); color: var(--text-primary)">
+<sc-if value="{{showBanner}}" hint-placeholder-val="{{true}}"><div style="display: flex; flex-direction: column; gap: 8px">
+<div role="status" style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 4px; margin-top: 32px; display: flex; gap: 12px; align-items: flex-start; padding: 12px 16px; background: {{bBg}}; color: {{bFg}}; border: 1px solid {{bBd}}; border-radius: 12px">
+<span aria-hidden="true" style="position: absolute; top: -32px; left: -4px; font: 500 12px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 4px 8px; border-radius: 4px; white-space: nowrap; z-index: 1">Proposed component: Banner</span><span style="display: inline-flex; color: {{bIc}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="{{bIcon}}" size="md" hint-size="20px,20px"></x-import></span>
+<div class="type-body-md" style="display: flex; flex-direction: column; gap: 4px; line-height: 1.5"><strong class="type-label-lg">{{bTitle}}</strong><span>{{bText}}</span></div>
+</div>
+<span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">Copy mapped from blocking_reason code: {{bCode}}</span>
+</div></sc-if>
+
+<sc-if value="{{stale}}" hint-placeholder-val="{{false}}">
+<div role="status" style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 4px; margin-top: 32px; display: flex; gap: 12px; align-items: flex-start; padding: 12px 16px; background: var(--surface-sunken); color: var(--text-primary); border: 1px solid var(--border-strong); border-radius: 12px"><span aria-hidden="true" style="position: absolute; top: -32px; left: -4px; font: 500 12px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 4px 8px; border-radius: 4px; white-space: nowrap; z-index: 1">Proposed component: InlineAlert</span><span style="display: inline-flex; color: var(--text-primary)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="refresh" size="md" hint-size="20px,20px"></x-import></span><div class="type-body-md" style="flex-grow: 1; display: flex; flex-direction: column; gap: 4px; line-height: 1.5"><strong class="type-label-lg">Live updates paused</strong><span>We lost the connection that updates this page. Last updated 2:32 pm. Reconnecting…</span></div><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" hint-size="140px,44px">Refresh now</x-import></div>
+<span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">WebSocket disconnected; page keeps the last known state and retries</span>
+</sc-if>
+
+<sc-if value="{{sendFailed}}" hint-placeholder-val="{{false}}">
+<div role="alert" tabindex="-1" style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 4px; margin-top: 32px; display: flex; gap: 12px; align-items: flex-start; padding: 12px 16px; background: var(--feedback-warning-tint); color: var(--feedback-warning-tint-text); border: 1px solid var(--feedback-warning-border); border-radius: 12px"><span aria-hidden="true" style="position: absolute; top: -32px; left: -4px; font: 500 12px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 4px 8px; border-radius: 4px; white-space: nowrap; z-index: 1">Proposed component: Banner (error summary)</span><span style="display: inline-flex; color: var(--feedback-warning-icon)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="warning" size="md" hint-size="20px,20px"></x-import></span><div class="type-body-md" style="flex-grow: 1; display: flex; flex-direction: column; gap: 4px; line-height: 1.5"><strong class="type-label-lg">Your documents weren't sent</strong><span><a href="#owner-id" style="color: var(--feedback-warning-tint-text); font-weight: 600; min-height: 44px; display: inline-flex; align-items: center">Owner ID</a> still needs a new upload. Replace it, then send again. Your new halal certificate is kept.</span></div></div>
+<span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">422 INCOMPLETE_DOCUMENT_PACK on submitRestaurantDocuments, details.missing = [OWNER_ID]</span>
+</sc-if>
+
+<sc-if value="{{sendNet}}" hint-placeholder-val="{{false}}">
+<div role="alert" tabindex="-1" style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 4px; margin-top: 32px; display: flex; gap: 12px; align-items: flex-start; padding: 12px 16px; background: var(--feedback-danger-tint); color: var(--feedback-danger-tint-text); border: 1px solid var(--feedback-danger-border); border-radius: 12px"><span aria-hidden="true" style="position: absolute; top: -32px; left: -4px; font: 500 12px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 4px 8px; border-radius: 4px; white-space: nowrap; z-index: 1">Proposed component: Banner</span><span style="display: inline-flex; color: var(--feedback-danger-icon)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="error" size="md" hint-size="20px,20px"></x-import></span><div class="type-body-md" style="flex-grow: 1; display: flex; flex-direction: column; gap: 4px; line-height: 1.5"><strong class="type-label-lg">Your documents weren't sent</strong><span>We couldn't reach HalalGoes, or something went wrong on our side. Your replacement is kept. Try again.</span></div><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" icon-start="refresh" hint-size="130px,44px">Try again</x-import></div>
+<span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">Network error or 5xx on submitRestaurantDocuments (POST /v1/restaurant/documents/submit), Idempotency-Key reused on retry. A 200 carries the new RestaurantOnboardingStatus, so the page re-renders from current_step without a separate refetch.</span>
+</sc-if>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<h1 class="type-heading-xl" style="margin: 0">{{title}}</h1>
+<p class="type-body-md" style="margin: 0; line-height: 1.5; color: var(--text-secondary); max-width: 720px">{{intro}}</p>
+<span class="type-body-sm" style="color: var(--text-secondary)">{{meta}}</span>
+</div>
+
+<sc-if value="{{loading}}" hint-placeholder-val="{{false}}">
+<p role="status" class="type-body-md" style="margin: 0; line-height: 1.5; color: var(--text-secondary)">Loading your documents…</p>
+<div aria-busy="true" style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 4px; margin-top: 32px; display: flex; flex-direction: column; gap: 16px">
+<span aria-hidden="true" style="position: absolute; top: -32px; left: -4px; font: 500 12px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 4px 8px; border-radius: 4px; white-space: nowrap; z-index: 1">Proposed component: Skeleton</span>
+<div style="height: 140px; border-radius: 16px; background: var(--skeleton-base)"></div>
+<div style="height: 140px; border-radius: 16px; background: var(--skeleton-base)"></div>
+<div style="height: 140px; border-radius: 16px; background: var(--skeleton-base)"></div>
+<div style="height: 140px; border-radius: 16px; background: var(--skeleton-base)"></div>
+</div>
+<span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">listRestaurantDocuments and getRestaurantOnboardingStatus in flight</span>
+</sc-if>
+
+<sc-if value="{{loadError}}" hint-placeholder-val="{{false}}">
+<div role="alert" style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 4px; margin-top: 32px; display: flex; gap: 12px; align-items: flex-start; padding: 12px 16px; background: var(--feedback-danger-tint); color: var(--feedback-danger-tint-text); border: 1px solid var(--feedback-danger-border); border-radius: 12px"><span aria-hidden="true" style="position: absolute; top: -32px; left: -4px; font: 500 12px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 4px 8px; border-radius: 4px; white-space: nowrap; z-index: 1">Proposed component: InlineAlert</span><span style="display: inline-flex; color: var(--feedback-danger-icon)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="error" size="md" hint-size="20px,20px"></x-import></span><div class="type-body-md" style="flex-grow: 1; display: flex; flex-direction: column; gap: 4px; line-height: 1.5"><strong class="type-label-lg">We couldn't load your documents</strong><span>Nothing you sent is lost. Check your connection and try again.</span></div><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" icon-start="refresh" hint-size="130px,44px">Try again</x-import></div>
+<span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">listRestaurantDocuments or getRestaurantOnboardingStatus failed. No rows are guessed.</span>
+</sc-if>
+
+<sc-if value="{{packNote}}" hint-placeholder-val="{{false}}">
+<section aria-labelledby="pack-note" style="display: flex; flex-direction: column; gap: 8px; padding: 16px 20px; border-radius: 16px; background: var(--surface-raised); border: 1px solid var(--border-strong)">
+<h2 id="pack-note" class="type-heading-sm" style="margin: 0">Reviewer's note on your application</h2>
+<span class="type-label-lg">Some documents need replacing</span>
+<blockquote class="type-body-md" style="margin: 0; line-height: 1.5">The halal certificate doesn’t match the issuing body selected, and the photo ID is for someone other than the owner on your profile. Please check both before sending again.</blockquote>
+<span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">RestaurantOnboardingStatus.rejection.reason_code: string, the application-level decision code (here DOCUMENTS_INSUFFICIENT), mapped through the application table in Ref-Rejections. Unknown code or null: title “A reviewer left a note”. rejection.note verbatim. Per-document codes appear only on the document cards below. Card shown only when rejection is non-null.</span>
+</section>
+</sc-if>
+
+<sc-if value="{{showRows}}" hint-placeholder-val="{{true}}">
+<ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 16px">
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="5">
+<li id="{{r.id}}" style="display: flex; flex-direction: column; gap: 12px; padding: 20px 24px; background: var(--surface-raised); border: {{r.border}}; border-radius: 16px">
+<div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap">
+<h2 class="type-heading-sm" style="margin: 0">{{r.title}}</h2>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="outline" size="sm" hint-size="70px,18px">{{r.req}}</x-import>
+<span style="flex-grow: 1"></span>
+<sc-if value="{{r.hasBadge}}" hint-placeholder-val="{{true}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="{{r.badgeVariant}}" size="md" icon="{{r.badgeIcon}}" hint-size="130px,22px">{{r.badgeLabel}}</x-import></sc-if>
+<sc-if value="{{r.hasPlain}}" hint-placeholder-val="{{false}}"><span class="type-label-lg">{{r.plainStatus}}</span></sc-if>
+</div>
+<sc-if value="{{r.hasFile}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; align-items: center; gap: 16px; padding: 12px 16px; border-radius: 12px; background: var(--surface-sunken)">
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: 4px">
+<span class="type-label-lg" style="font-family: var(--font-mono)">{{r.fileName}}</span>
+<span class="type-body-sm" style="color: var(--text-secondary)">{{r.summary}}</span>
+</div>
+<sc-if value="{{r.canView}}" hint-placeholder-val="{{true}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="sm" accessibility-label="Download file: {{r.lc}}" hint-size="130px,44px">Download file</x-import></sc-if>
+</div>
+<sc-if value="{{r.canView}}" hint-placeholder-val="{{true}}"><span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">Download: createDocumentDownloadUrl (owner only, audited). Minted on click, never cached; TTL 120 s; downloads as an attachment.</span></sc-if>
+</sc-if>
+<sc-if value="{{r.noFile}}" hint-placeholder-val="{{false}}"><span class="type-body-md" style="color: var(--text-secondary)">{{r.summary}}</span></sc-if>
+<sc-if value="{{r.rj}}" hint-placeholder-val="{{false}}">
+<div style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 4px; margin-top: 32px; display: flex; flex-direction: column; gap: 16px; padding: 16px; border-radius: 12px; background: {{r.rjBg}}; color: {{r.rjFg}}; border: {{r.rjBd}}">
+<span aria-hidden="true" style="position: absolute; top: -32px; left: -4px; font: 500 12px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 4px 8px; border-radius: 4px; white-space: nowrap; z-index: 1">Proposed component: InlineAlert</span>
+<sc-if value="{{r.rjHead}}" hint-placeholder-val="{{true}}"><div style="display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span class="type-label-md">Why it wasn't approved</span>
+<span class="type-heading-sm">{{r.rjReason}}</span>
+<span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">KycDocument.rejection_reason_code: {{r.rjCode}} (DocumentRejectionReasonCode; label from Ref-Rejections, approved by the owner)</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span class="type-label-md">Reviewer's note, reviewed {{r.rjDate}}</span>
+<blockquote class="type-body-md" style="margin: 0; line-height: 1.5">{{r.rjNote}}</blockquote>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span class="type-label-md">What you can do</span>
+<span class="type-body-md" style="line-height: 1.5">{{r.rjWhat}}</span>
+</div>
+</div></sc-if>
+<sc-if value="{{r.rjActions}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap">
+<sc-if value="{{r.rjSupportFirst}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; gap: 4px"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="{{r.supVariant}}" size="md" href="tel:[support phone]" hint-size="300px,44px">Call partner support: [support phone]</x-import><span class="type-body-sm">[support hours]</span></div>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="secondary" size="md" icon-start="plus" accessibility-label="{{r.altUpload}}: {{r.lc}}" hint-size="320px,44px">{{r.altUpload}}</x-import>
+</sc-if>
+<sc-if value="{{r.rjUploadFirst}}" hint-placeholder-val="{{true}}">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="{{r.upVariant}}" size="{{r.rjSize}}" icon-start="plus" accessibility-label="Upload new file: {{r.lc}}" hint-size="200px,52px">Upload new file</x-import>
+<sc-if value="{{r.supSecondary}}" hint-placeholder-val="{{false}}"><span class="type-body-md">Not sure? Call partner support on <a href="tel:[support phone]" style="color: inherit; font-weight: 600">[support phone]</a>, [support hours].</span></sc-if>
+</sc-if>
+</div>
+</sc-if>
+<sc-if value="{{r.hasRjApi}}" hint-placeholder-val="{{false}}"><span style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; border: 1.5px dashed var(--color-info-600); background: var(--color-info-50); color: var(--color-info-700); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">{{r.rjApi}}</span></sc-if>
+<sc-if value="{{r.showBodies}}" hint-placeholder-val="{{false}}">
+<div style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 4px; margin-top: 32px; border-radius: 12px"><span aria-hidden="true" style="position: absolute; top: -32px; left: -4px; font: 500 12px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 4px 8px; border-radius: 4px; white-space: nowrap; z-index: 1">Proposed component: Disclosure (native details/summary)</span>
+<details style="border: 1px solid var(--feedback-warning-border); border-radius: 12px; background: var(--surface-raised); color: var(--text-primary)">
+<summary class="type-label-lg" style="min-height: 44px; box-sizing: border-box; padding: 12px 16px; cursor: pointer">See accepted certifying bodies</summary>
+<div style="padding: 0 16px 16px; display: flex; flex-direction: column; gap: 8px">
+<span class="type-body-sm" style="color: var(--text-secondary)">[Accepted certifying bodies, as HalalGoes lists them. Not ranked.]</span>
+<span style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; border: 1.5px dashed var(--color-info-600); background: var(--color-info-50); color: var(--color-info-700); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">Needs API: accepted-certifier registry readable by restaurants</span>
+</div>
+</details>
+</div>
+</sc-if>
+<sc-if value="{{r.showProgress}}" hint-placeholder-val="{{false}}"><div style="color: var(--text-primary)"><div style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 4px; margin-top: 32px; display: flex; align-items: center; gap: 16px; padding: 12px 16px; border-radius: 12px; background: var(--surface-sunken)">
+<span aria-hidden="true" style="position: absolute; top: -32px; left: -4px; font: 500 12px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 4px 8px; border-radius: 4px; white-space: nowrap; z-index: 1">Proposed component: FileUpload</span>
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; justify-content: space-between; gap: 12px">
+<span class="type-label-lg" style="font-family: var(--font-mono)">{{r.upName}}</span>
+<span class="type-body-sm" style="color: var(--text-secondary); font-variant-numeric: tabular-nums">{{r.progressText}}</span>
+</div>
+<div role="progressbar" aria-label="Uploading {{r.upName}}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{r.pct}}" style="height: 8px; box-sizing: border-box; border-radius: 9999px; background: var(--border-decorative); outline: 1px solid var(--border-interactive); overflow: hidden">
+<div style="height: 8px; width: {{r.pctW}}; border-radius: 9999px; background: var(--text-secondary)"></div>
+</div>
+</div>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="sm" accessibility-label="Cancel upload of {{r.lc}}" hint-size="90px,44px">Cancel</x-import>
+</div></div></sc-if>
+<sc-if value="{{r.showForm}}" hint-placeholder-val="{{false}}"><div style="color: var(--text-primary); background: var(--surface-raised); border-radius: 12px"><form style="display: flex; flex-direction: column; gap: 16px; padding: 16px; border-radius: 12px; border: 1px solid var(--border-decorative)">
+<div style="display: flex; align-items: center; gap: 12px">
+<span class="type-label-lg" style="font-family: var(--font-mono)">{{r.upName}}</span>
+<span class="type-body-sm" style="color: var(--text-secondary)">{{r.formNote}}</span>
+</div>
+<sc-if value="{{r.isHalal}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Select" label="Issuing body" variant="listbox" required="{{yes}}" options="{{bodies}}" value="{{r.issuer}}" placeholder="Choose the body that issued your certificate" helper-text="{{r.issuerHelp}}" hint-size="100%,96px"></x-import>
+<span style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; border: 1.5px dashed var(--color-info-600); background: var(--color-info-50); color: var(--color-info-700); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">Needs API: accepted-certifier registry readable by restaurants</span>
+</div>
+</sc-if>
+<div style="display: grid; grid-template-columns: {{cols3}}; gap: 16px; align-items: start; margin-top: 8px">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="{{r.numberLabel}}" default-value="{{r.number}}" hint-size="100%,72px"></x-import>
+<div style="grid-column: {{span2}}; position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 4px; margin-top: {{dateTop}}; display: grid; grid-template-columns: {{cols2}}; gap: 16px; align-items: start">
+<span aria-hidden="true" style="position: absolute; top: -32px; left: -4px; font: 500 12px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 4px 8px; border-radius: 4px; white-space: nowrap; z-index: 1">Proposed component: Date field (label for; persistent example and error linked by aria-describedby + aria-invalid, as Input; no placeholder)</span>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<label for="{{r.id}}-issued" class="type-label-lg">Issue date (optional)</label>
+<input id="{{r.id}}-issued" value="{{r.issued}}" aria-describedby="{{r.id}}-issued-help" class="hg-focus-field type-body-md" style="height: 44px; box-sizing: border-box; border: 1.5px solid var(--control-border); border-radius: 12px; background: var(--control-bg); padding: 0 16px; color: var(--text-primary)">
+<span id="{{r.id}}-issued-help" class="type-body-sm" style="color: var(--text-secondary)">For example, 15 March 2026</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<label for="{{r.id}}-valid" class="type-label-lg">{{r.validLabel}}</label>
+<input id="{{r.id}}-valid" value="{{r.valid}}" aria-invalid="{{r.validInvalid}}" aria-describedby="{{r.validDesc}}" class="hg-focus-field type-body-md" style="height: 44px; box-sizing: border-box; border: {{r.validBorder}}; border-radius: 12px; background: var(--control-bg); padding: 0 16px; color: var(--text-primary)">
+<span id="{{r.id}}-valid-help" class="type-body-sm" style="color: var(--text-secondary)">For example, 14 March 2027</span>
+<sc-if value="{{r.hasValidError}}" hint-placeholder-val="{{false}}">
+<span id="{{r.id}}-valid-error" role="alert" class="type-body-sm" style="display: flex; gap: 8px; align-items: flex-start; line-height: 1.5; color: {{r.validErrColor}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="{{r.validErrIcon}}" size="sm" hint-size="16px,16px"></x-import>{{r.validError}}</span>
+</sc-if>
+</div>
+</div>
+</div>
+<div style="display: flex; gap: 12px; align-items: center">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="{{r.saveVariant}}" size="{{r.saveSize}}" loading="{{r.saving}}" accessibility-label="Save replacement: {{r.lc}}" hint-size="190px,52px">Save replacement</x-import>
+<sc-if value="{{r.chooseOther}}" hint-placeholder-val="{{false}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="secondary" size="md" icon-start="plus" accessibility-label="Choose another file: {{r.lc}}" hint-size="200px,44px">Choose another file</x-import></sc-if>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="md" accessibility-label="Remove file: {{r.lc}}" hint-size="120px,44px">Remove file</x-import>
+</div>
+</form></div></sc-if>
+<sc-if value="{{r.hasFormCode}}" hint-placeholder-val="{{false}}"><span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">{{r.formCode}}</span></sc-if>
+</div>
+</sc-if>
+<sc-if value="{{r.exp}}" hint-placeholder-val="{{false}}">
+<div style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 4px; margin-top: 32px; display: flex; flex-direction: column; gap: 12px; padding: 16px; border-radius: 12px; background: var(--surface-sunken); color: var(--text-primary); border: 1px solid var(--border-strong)">
+<span aria-hidden="true" style="position: absolute; top: -32px; left: -4px; font: 500 12px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 4px 8px; border-radius: 4px; white-space: nowrap; z-index: 1">Proposed component: InlineAlert</span>
+<div style="display: flex; gap: 12px; align-items: flex-start"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="clock" size="md" hint-size="20px,20px"></x-import><div class="type-body-md" style="display: flex; flex-direction: column; gap: 4px; line-height: 1.5"><strong class="type-label-lg">{{r.expTitle}}</strong><span>{{r.expText}}</span></div></div>
+<div><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" icon-start="plus" accessibility-label="{{r.expAction}}: {{r.lc}}" hint-size="260px,52px">{{r.expAction}}</x-import></div>
+<span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">{{r.expNoteText}}</span>
+</div>
+</sc-if>
+<sc-if value="{{r.hasHistory}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; gap: 4px; padding-top: 8px; border-top: 1px solid var(--border-decorative)">
+<span class="type-label-md" style="color: var(--text-secondary)">Earlier version</span>
+<span class="type-body-sm" style="color: var(--text-secondary)">{{r.histText}}</span>
+</div>
+</sc-if>
+</li>
+</sc-for>
+</ul>
+</sc-if>
+
+<sc-if value="{{approvedNote}}" hint-placeholder-val="{{false}}"><span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">Approving the certificate document is KYC, not a halal claim. The only seal on this page is the checklist’s, driven by RestaurantProfile.halal as refetched after approval; no document row carries a seal.</span></sc-if>
+<sc-if value="{{expNote}}" hint-placeholder-val="{{false}}"><span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">Renewal during review: attachRestaurantDocument adds version 2 to the EXPIRED row, then submitRestaurantDocuments (Idempotency-Key reused on retry) sends it; the 200 status re-renders the page. Assumes the server accepts a new version on an EXPIRED row while the rest of the pack is IN_REVIEW; if it doesn’t, Needs API. Slate throughout: an expired certificate is never amber or red.</span></sc-if>
+<sc-if value="{{showFoot}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; flex-direction: column; gap: 8px; padding: 20px 24px; border-radius: 16px; background: var(--surface-sunken)">
+<div style="display: flex; align-items: center; gap: 16px">
+<span class="type-heading-sm" style="flex-grow: 1">{{footTitle}}</span>
+<sc-if value="{{showSend}}" hint-placeholder-val="{{false}}">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" loading="{{sending}}" hint-size="260px,52px">{{sendLabel}}</x-import>
+</sc-if>
+<sc-if value="{{showGo}}" hint-placeholder-val="{{false}}">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="secondary" size="lg" icon-end="chevron-right" href="{{goHref}}" hint-size="220px,52px">{{goLabel}}</x-import>
+</sc-if>
+<sc-if value="{{showContinue}}" hint-placeholder-val="{{false}}">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" icon-end="chevron-right" hint-size="160px,52px">Continue</x-import>
+</sc-if>
+</div>
+<span class="type-body-sm" style="line-height: 1.5; color: var(--text-secondary)">{{footNote}}</span>
+<sc-if value="{{showContinue}}" hint-placeholder-val="{{false}}"><span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">Continue refetches onboarding status and opens the current_step the server returns; the client never names the next step</span></sc-if>
+</div>
+</sc-if>
+<span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">Realtime: document.review_state_changed and onboarding.state_changed go to account:{account_id} of the owner. The page also refetches on focus and every 60 s.</span>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"mode": {"editor": "enum", "options": ["inreview", "inreview2", "partial", "allapproved", "expired", "stale", "rejected", "rejectedmulti", "fixuploading", "fixdetails", "fixerror", "replaced", "sending", "sendfailed", "sendnet", "integrity", "duplicate", "expiredform", "expirederror", "expiredreplaced", "expiredsending", "expiredsendfailed", "loading", "loaderror"], "default": "inreview"}, "w": {"editor": "text", "default": "832px"}, "compact": {"editor": "boolean", "default": false}, "expDoc": {"editor": "enum", "options": ["HALAL_CERTIFICATE", "FOOD_SAFETY", "OWNER_ID"], "default": "HALAL_CERTIFICATE"}, "$preview": {"width": 832, "height": 1860}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const mode = this.props.mode ?? 'inreview';
+    const role = this.props.role ?? 'Owner';
+    const B = { profile_incomplete: "Finish your business profile.", documents_missing: "Add the four required documents, then send them for review.", documents_in_review: "A reviewer is checking your documents. You don’t need to do anything yet.", documents_rejected: "A document needs a new upload. Replace it, then send it for review again.", payout_not_started: "Connect a bank account with Stripe. You can’t take orders until Stripe turns on payouts.", payout_requirements_due: "Stripe needs more details before it can turn on payouts.", payout_verifying: "Stripe is checking your details. This page updates when it’s done.", payouts_disabled: "Stripe has turned payouts off. Continue on Stripe to see what it needs.", payout_owner_required: "The restaurant owner needs to connect a bank account.", document_expired_in_review: "A document expired while it was waiting for review. Upload the current one.", menu_and_hours_pending: "Add at least one menu item and set your opening hours. Items go live once a reviewer approves them.", no_live_menu_item: "Add at least one menu item. It goes live once a reviewer approves it.", menu_in_review: "Your items are waiting for a reviewer. You go live when the first one is approved.", hours_not_set: "Set your opening hours so customers know when they can order.", account_suspended: "Your restaurant is suspended. Setup is paused until partner support lifts it.", certificate_expired: "Your halal certificate has expired, so your listing is hidden. Upload the renewed certificate to show it again." } /* one source: Ref-BlockingReasons */;
+    const TONES = {
+      info: ['var(--feedback-info-tint)', 'var(--feedback-info-tint-text)', 'var(--feedback-info-border)', 'var(--feedback-info-icon)', 'info'],
+      warning: ['var(--feedback-warning-tint)', 'var(--feedback-warning-tint-text)', 'var(--feedback-warning-border)', 'var(--feedback-warning-icon)', 'warning'],
+      slate: ['var(--surface-sunken)', 'var(--text-primary)', 'var(--border-strong)', 'var(--text-primary)', 'clock']
+    };
+    const bt = (tone) => { const t = TONES[tone]; return { bBg: t[0], bFg: t[1], bBd: t[2], bIc: t[3], bIcon: t[4] }; };
+    const W = '2px solid var(--feedback-warning-border)';
+    const inReview = { badgeVariant: 'info', badgeIcon: 'clock', badgeLabel: 'In review' };
+    const approved = { badgeVariant: 'neutral', badgeIcon: 'check', badgeLabel: 'Approved' };
+    const needs = { badgeVariant: 'warning', badgeIcon: 'warning', badgeLabel: 'Needs a new upload', border: W };
+    const base = { rjReason: '', rjCode: '', rjDate: '', rjNote: '', rjWhat: '', expTitle: '', expText: '', expAction: 'Upload renewed certificate', expNoteText: '', rj: false, rjActions: true, supSecondary: false, hasRjApi: false, rjApi: '', rjSupportFirst: false, rjUploadFirst: true, supVariant: 'primary', altUpload: 'Upload a new file', upVariant: 'primary', chooseOther: false, showBodies: false, rjSize: 'lg', exp: false, hasHistory: false, histText: 'Version 1 · halal-certificate-hma.pdf · Replaced · Not approved: some pages are missing', expNoRj: false, showProgress: false, showForm: false, hasFormCode: false, formCode: '',
+      border: '1px solid var(--border-decorative)', isHalal: false, saving: false, canView: true, hasBadge: true, hasPlain: false, plainStatus: '',
+      upName: '', progressText: '', pct: 0, pctW: '0%', formNote: 'Uploaded. Check the details, then save.', issuer: 'hma',
+      issuerHelp: 'Filled in from version 1. Change it if your new certificate is from a different body.',
+      number: 'HMA-2026-00481', issued: '15 March 2026', valid: '14 March 2027', validLabel: 'Valid until', numberLabel: 'Certificate number (optional)',
+      validBorder: '1.5px solid var(--control-border)', validInvalid: 'false', hasValidError: false, validError: '', validErrColor: 'var(--feedback-warning-tint-text)', validErrIcon: 'error' };
+    const row = (id, lc, title, req, fileName, summary, st) => Object.assign({}, base, { id, lc, title, req, fileName, summary, hasFile: !!fileName, noFile: !fileName }, inReview, st || {});
+    const bl = row('business-licence', 'business licence', 'Business licence', 'Required', 'business-licence-2026.pdf', 'Sent 28 September 2026');
+    const hc = row('halal-certificate', 'halal certificate', 'Halal certificate', 'Required', 'halal-certificate-hma.pdf', 'HMA Canada · Certificate HMA-2026-00481 · Valid until 14 March 2027', { isHalal: true });
+    const fs = row('food-safety', 'food safety certificate', 'Food safety certificate', 'Required', 'food-handler-certificate.jpg', 'Certificate FH-551903 · Valid until 9 August 2029');
+    const id = row('owner-id', 'owner ID', 'Owner ID', 'Required', 'ontario-driver-licence.jpg', 'Valid until 21 May 2030');
+    const ins = row('insurance', 'liability insurance', 'Liability insurance', 'Optional', '', 'Not added. You can add it later in Settings.', { badgeVariant: 'outline', badgeIcon: null, badgeLabel: 'Not added' });
+    const approveAll = (suffix) => {
+      Object.assign(bl, approved, { summary: 'Approved 29 September 2026' + suffix });
+      Object.assign(fs, approved, { summary: 'Certificate FH-551903 · Valid until 9 August 2029 · Approved 29 September 2026' + suffix });
+      Object.assign(id, approved, { summary: 'Approved 30 September 2026' + suffix });
+    };
+    const fixModes = ['rejected', 'rejectedmulti', 'fixuploading', 'fixdetails', 'fixerror', 'replaced', 'sending', 'sendfailed', 'sendnet', 'integrity', 'duplicate'];
+    const fix = fixModes.includes(mode);
+    const supportFirst = { rjSupportFirst: true, rjUploadFirst: false, supVariant: 'primary', rjSize: 'md' };
+    const hcReject = { rj: true, rjCode: 'INCOMPLETE_PAGES', rjReason: 'Some pages are missing', rjDate: '30 September 2026',
+      rjNote: 'Page 2 is cut off and the expiry date can’t be read. Please upload every page of the certificate.',
+      rjWhat: 'Upload a complete copy with every page and check its details. Then send it for review again.',
+      summary: 'Version 1 · HMA Canada · Certificate HMA-2026-00481' };
+    if (mode === 'partial') {
+      Object.assign(bl, approved, { summary: 'Approved 29 September 2026' });
+      Object.assign(fs, approved, { summary: 'Certificate FH-551903 · Valid until 9 August 2029 · Approved 29 September 2026' });
+    }
+    if (mode === 'allapproved') { approveAll(''); Object.assign(hc, approved, { summary: 'HMA Canada · Certificate HMA-2026-00481 · Valid until 14 March 2027 · Approved 1 October 2026' }); }
+    if (mode === 'inreview2') { approveAll(' · Not sent again'); Object.assign(hc, { fileName: 'halal-certificate-hma-all-pages.pdf', summary: 'Version 2 · Sent 1 October 2026', hasHistory: true }); }
+    const expModes = ['expired', 'expiredform', 'expirederror', 'expiredreplaced', 'expiredsending', 'expiredsendfailed'];
+    const expAny = expModes.includes(mode);
+    if (expAny && mode !== 'expired') {
+      Object.assign(bl, approved, { summary: 'Approved 29 September 2026' });
+      Object.assign(hc, { summary: 'Version 1 · HMA Canada · Valid until 30 September 2026 · Expired', badgeVariant: 'outline', badgeIcon: 'clock', badgeLabel: 'Expired', formNote: 'Uploaded. Check the details of your renewed certificate, then save.', issuerHelp: 'Filled in from version 1. Change it if your renewed certificate is from a different body.', number: 'HMA-2026-00977', issued: '1 October 2026', valid: '30 September 2027' });
+      if (mode === 'expiredform' || mode === 'expirederror') Object.assign(hc, { showForm: true, rj: true, rjActions: false, rjCode: '', upName: 'halal-certificate-hma-renewed.pdf', badgeVariant: 'info', badgeIcon: null, badgeLabel: 'Details needed', expNoRj: true });
+      if (mode === 'expirederror') Object.assign(hc, { valid: '30 September 2026', validBorder: '2px solid var(--border-strong)', validErrColor: 'var(--text-primary)', validErrIcon: 'clock', validInvalid: 'true', hasValidError: true, validError: 'This date has passed. Choose the renewed certificate instead, not the one that expired.', chooseOther: true, hasFormCode: true, formCode: '422 DOCUMENT_ALREADY_EXPIRED on attachRestaurantDocument. Slate, not amber or red: an expired halal date is a halal state.' });
+      if (['expiredreplaced', 'expiredsending', 'expiredsendfailed'].includes(mode)) Object.assign(hc, { badgeVariant: 'neutral', badgeIcon: 'check', badgeLabel: 'Added', fileName: 'halal-certificate-hma-renewed.pdf', summary: 'Version 2 · HMA Canada · Certificate HMA-2026-00977 · Valid until 30 September 2027 · Added 2 October 2026', hasHistory: true, histText: 'Version 1 · halal-certificate-hma.pdf · Expired 30 September 2026 before it was reviewed' });
+    }
+    const expDoc = this.props.expDoc ?? 'HALAL_CERTIFICATE';
+    const expHalal = expDoc === 'HALAL_CERTIFICATE';
+    if (mode === 'expired' && !expHalal) {
+      Object.assign(bl, approved, { summary: 'Approved 29 September 2026' });
+      const tgt = expDoc === 'OWNER_ID' ? id : fs;
+      const was = expDoc === 'OWNER_ID' ? 'Valid until 30 September 2026' : 'Certificate FH-551903 · Valid until 30 September 2026';
+      Object.assign(tgt, { hasBadge: false, hasPlain: true, plainStatus: 'Expired 30 September 2026', exp: true, summary: was, expAction: expDoc === 'OWNER_ID' ? 'Upload current photo ID' : 'Upload renewed certificate',
+        expTitle: expDoc === 'OWNER_ID' ? 'This ID expired while it was waiting for review' : 'This certificate expired while it was waiting for review',
+        expText: 'Its end date, 30 September 2026, has passed, so a reviewer can’t approve it. Upload the current one. Your other documents stay where they are.',
+        expNoteText: 'KycDocumentState = EXPIRED on doc_type ' + expDoc + '. Title, tone and this line come from the doc_type of the EXPIRED document, never from the blocking_reason code (document_expired_in_review is generic). Not a halal state: the halal certificate row stays In review and the checklist keeps “With a reviewer”.' });
+    }
+    if (mode === 'expired' && expHalal) {
+      Object.assign(bl, approved, { summary: 'Approved 29 September 2026' });
+      Object.assign(hc, { expNoteText: 'KycDocumentState = EXPIRED on doc_type HALAL_CERTIFICATE (valid_until passed during review). Slate, never red or amber. No seal on any document row: the only seal on this page is the checklist’s, bound to RestaurantProfile.halal.', hasBadge: false, hasPlain: true, plainStatus: 'Expired 30 September 2026', exp: true, summary: 'HMA Canada · Certificate HMA-2026-00481 · Valid until 30 September 2026',
+        expTitle: 'This certificate expired while it was waiting for review', expText: 'Its end date, 30 September 2026, has passed, so a reviewer can’t approve it. Upload your renewed certificate. Your other documents stay where they are.' });
+    }
+    if (fix) {
+      approveAll('');
+      Object.assign(hc, needs, hcReject);
+      if (mode === 'rejectedmulti' || mode === 'sendfailed' || mode === 'sendnet') {
+        Object.assign(hc, { rjCode: 'UNRECOGNISED_CERTIFIER', rjReason: 'We couldn’t match the certificate to its issuing body', rjSize: 'md', supSecondary: true,
+          rjNote: 'The uploaded certificate is issued by a different body than the one selected (HMA Canada). We could not match it to an accepted certifying body.',
+          rjWhat: 'Check the issuing body printed on your certificate, then upload it again and choose that body. If it isn’t in the list, call partner support.',
+          showBodies: true, summary: 'Version 1 · HMA Canada · Certificate HMA-2026-00481' });
+        Object.assign(id, needs, { rj: true, rjCode: 'NAME_MISMATCH', rjReason: 'The name doesn’t match your profile', rjDate: '30 September 2026', rjNote: 'The ID is for Rami Haddad. The profile names Samir Haddad as the owner.',
+          rjWhat: 'Upload photo ID for the owner named on your profile. If the profile is wrong, call partner support to correct it first.', rjSize: 'md', upVariant: 'secondary', summary: 'Version 1 · ontario-driver-licence.jpg' });
+      }
+      if (mode === 'integrity') Object.assign(hc, supportFirst, { rjCode: 'SUSPECTED_FORGERY', rjReason: 'We couldn’t verify this certificate',
+          rjNote: 'The certificate number could not be matched with the issuing body’s records.',
+          rjWhat: 'Uploading the same file again won’t change this. Call partner support: they’ll tell you what the reviewer needs. You may need a fresh copy from your certifying body.',
+          altUpload: 'Upload a fresh copy from your certifying body' });
+      if (mode === 'duplicate') Object.assign(hc, { rjCode: 'OTHER', rjReason: 'A reviewer left a note', supSecondary: true,
+          rjNote: 'Certificate HMA-2026-00481 is already registered to another restaurant on HalalGoes. Upload the certificate issued for this address, or call partner support if you think this is a mistake.',
+          rjWhat: 'Follow the reviewer’s note above. Upload a new file, or call partner support if you’re not sure what to change.',
+          hasRjApi: true, rjApi: 'Needs API: HalalRejectionReasonCode on the partner document view (DUPLICATE_CERTIFICATE, SCOPE_INSUFFICIENT, ISSUER_NOT_ACCEPTED). Until then the code arrives as OTHER and review_note carries the explanation.' });
+      if (mode === 'fixuploading') Object.assign(hc, { rjActions: false, showProgress: true, upName: 'halal-certificate-hma-all-pages.pdf', progressText: 'Uploading, 52%', pct: 52, pctW: '52%', badgeVariant: 'info', badgeIcon: null, badgeLabel: 'Uploading' });
+      if (mode === 'fixdetails' || mode === 'fixerror') Object.assign(hc, { rjActions: false, showForm: true, upName: 'halal-certificate-hma-all-pages.pdf', badgeVariant: 'info', badgeIcon: null, badgeLabel: 'Details needed' });
+      if (mode === 'fixerror') Object.assign(hc, { valid: '14 March 2026', validBorder: '2px solid var(--border-strong)', validErrColor: 'var(--text-primary)', validErrIcon: 'clock', validInvalid: 'true', hasValidError: true, validError: 'This date has passed. Choose the current certificate instead.', chooseOther: true, hasFormCode: true, formCode: '422 DOCUMENT_ALREADY_EXPIRED. Slate, not amber or red: an expired halal date is a halal state. The row keeps its Needs a new upload badge for the rejection itself. Choose another file replaces the upload in place; the details typed are kept.' });
+      if (['replaced', 'sending', 'sendfailed', 'sendnet'].includes(mode)) {
+        Object.assign(hc, { rj: false, badgeVariant: 'neutral', badgeIcon: 'check', badgeLabel: 'Added', border: '1px solid var(--border-decorative)', fileName: 'halal-certificate-hma-all-pages.pdf', summary: 'Version 2 · HMA Canada · Certificate HMA-2026-00481 · Valid until 14 March 2027 · Added 1 October 2026', hasHistory: true });
+        if (mode === 'sendfailed') Object.assign(id, { upVariant: 'primary' });
+        if (mode === 'sendnet') Object.assign(id, { rj: false, badgeVariant: 'neutral', badgeIcon: 'check', badgeLabel: 'Added', border: '1px solid var(--border-decorative)', fileName: 'ontario-photo-card-samir-haddad.jpg', summary: 'Version 2 · Added 1 October 2026', hasHistory: true, histText: 'Version 1 · ontario-driver-licence.jpg · Replaced · Not approved: the name doesn’t match your profile' });
+      }
+    }
+    const replacedAny = ['replaced', 'sending', 'sendfailed', 'sendnet', 'expiredreplaced', 'expiredsending', 'expiredsendfailed'].includes(mode);
+    const codeFor = { inreview: 'documents_in_review', inreview2: 'documents_in_review', partial: 'documents_in_review', stale: 'documents_in_review', allapproved: 'payout_not_started', expired: 'document_expired_in_review', expiredform: 'document_expired_in_review', expirederror: 'document_expired_in_review', expiredreplaced: 'document_expired_in_review', expiredsending: 'document_expired_in_review', expiredsendfailed: 'document_expired_in_review', loading: 'documents_in_review', loaderror: '' };
+    const bCode = fix ? 'documents_rejected' : codeFor[mode];
+    const tone = fix ? 'warning' : (expAny ? (expHalal ? 'slate' : 'warning') : 'info');
+    const titles = { allapproved: 'Your documents are approved', expired: 'Your halal certificate needs renewing', expiredform: 'Your halal certificate needs renewing', expirederror: 'Your halal certificate needs renewing', expiredreplaced: 'Your halal certificate needs renewing', expiredsending: 'Your halal certificate needs renewing', expiredsendfailed: 'Your halal certificate needs renewing' };
+    const intro = fix
+      ? (mode === 'rejectedmulti' || mode === 'sendfailed' || mode === 'sendnet' ? 'A reviewer couldn’t approve 2 documents. Start with the first one below; your approved documents stay approved.' : 'A reviewer couldn’t approve your halal certificate. Replace it below; your approved documents stay approved.')
+      : mode === 'allapproved' ? 'Every required document is approved.'
+      : mode === 'inreview2' ? 'Only the document you replaced is being reviewed. Approved documents stay approved and aren’t reviewed again.'
+      : mode === 'expired' ? (expHalal ? 'Your certificate reached its end date before a reviewer could check it. This isn’t a rejection.' : 'This document reached its end date before a reviewer could check it. This isn’t a rejection. Your halal certificate is still with the reviewer.')
+      : expAny ? 'Add your renewed certificate below, then send it. Your other documents stay with the reviewer and aren’t sent again.'
+      : 'A person at HalalGoes checks every document. Your halal certificate is checked against seven points, including the issuing body, your legal name and address, what it covers and its dates. Reviews take up to 3 business days, and this page updates as each document is reviewed. Documents can’t be changed while they’re being reviewed.';
+    const meta = { inreview2: 'Sent again 1 October 2026 · Review round 2: sent again after changes', partial: 'Sent 28 September 2026 · Review round 1 · Updated just now', allapproved: 'Review round 1 finished 1 October 2026' }[mode] || (fix ? 'Review round 1 finished 30 September 2026' : 'Sent 28 September 2026 · Review round 1');
+    const loading = mode === 'loading', loadError = mode === 'loaderror';
+    const all4 = [bl, hc, fs, id];
+    const pend = all4.filter((r) => r.hasBadge && r.badgeLabel === 'Needs a new upload');
+    const pendNames = pend.map((r) => r.title);
+    const pendList = pendNames.length > 1 ? pendNames.slice(0, -1).join(', ') + ' and ' + pendNames[pendNames.length - 1] : (pendNames[0] || '');
+    const footPending = fix && pend.length > 0 && ['replaced', 'sending', 'sendfailed', 'sendnet'].includes(mode);
+    const goRow = pend.length ? pend[0] : null;
+    const pendTitle = pend.length === 1 ? '1 document still needs a new upload: ' + pendList : pend.length + ' documents still need a new upload: ' + pendList;
+    const pendNote = (pend.length === 1 ? 'Replace it before you send. ' : 'Replace them before you send. ') + 'Sending only works once every document that wasn’t approved has a new upload. Approved documents stay locked.';
+    return Object.assign({
+      yes: true, w: this.props.w ?? '832px', cols3: this.props.compact ? 'minmax(0, 1fr)' : 'repeat(3, minmax(0, 1fr))', cols2: this.props.compact ? 'minmax(0, 1fr)' : 'repeat(2, minmax(0, 1fr))', span2: this.props.compact ? 'auto' : 'span 2', dateTop: this.props.compact ? '32px' : '0px', bodies: [{ value: 'hma', label: 'HMA Canada' }, { value: 'hfsaa', label: 'HFSAA' }, { value: 'isna', label: 'ISNA Canada' }],
+      rows: [bl, hc, fs, id].map(r => Object.assign(r, { saveVariant: r.showForm ? 'primary' : 'secondary', saveSize: r.showForm ? 'lg' : 'md', validDesc: r.id + '-valid-help' + (r.hasValidError ? ' ' + r.id + '-valid-error' : ''), rjHead: !r.expNoRj, rjBg: r.expNoRj ? 'var(--surface-sunken)' : 'var(--feedback-warning-tint)', rjFg: r.expNoRj ? 'var(--text-primary)' : 'var(--feedback-warning-tint-text)', rjBd: r.expNoRj ? '1px solid var(--border-strong)' : '1px solid var(--feedback-warning-border)' })), showRows: !loading && !loadError, loading, loadError, showBanner: !loading && !loadError,
+      bCode: bCode || 'none', bTitle: expAny ? ({ HALAL_CERTIFICATE: 'Your halal certificate expired', FOOD_SAFETY: 'Your food safety certificate expired', OWNER_ID: 'Your photo ID expired' }[expDoc] || 'A document expired') : 'What’s needed now', bText: B[bCode] || 'Something still needs doing. Refresh, or call partner support.',
+      stale: mode === 'stale', sendFailed: mode === 'sendfailed', sendNet: mode === 'sendnet' || mode === 'expiredsendfailed', expNote: expAny && mode !== 'expired', approvedNote: mode === 'allapproved', packNote: mode === 'rejectedmulti' || mode === 'sendfailed' || mode === 'sendnet',
+      title: loading || loadError ? 'Your documents' : ((expAny && !expHalal) ? { FOOD_SAFETY: 'Your food safety certificate needs renewing', OWNER_ID: 'Your photo ID needs replacing' }[expDoc] : null) || (titles[mode] || (fix ? 'Fix your documents' : 'Your documents are with a reviewer')), intro: loading || loadError ? '' : intro, meta: loading || loadError ? '' : meta,
+      showFoot: !loading && !loadError && (!fix || replacedAny || footPending),
+      showSend: replacedAny && !footPending, showGo: footPending, goLabel: goRow ? 'Go to ' + goRow.title : '', goHref: goRow ? '#' + goRow.id : '#', sending: mode === 'sending' || mode === 'expiredsending', sendLabel: mode.indexOf('expired') === 0 ? 'Send renewed certificate' : 'Send for review again', showContinue: mode === 'allapproved',
+      footTitle: footPending ? pendTitle : (mode === 'expiredreplaced' || mode === 'expiredsending' || mode === 'expiredsendfailed') ? 'Renewed certificate replaced. Ready to send' : replacedAny ? 'Ready to send again' : (mode === 'allapproved' ? 'Next: payout setup' : (mode === 'expired' || mode === 'expiredform' || mode === 'expirederror' ? (expHalal ? 'Waiting for your renewed certificate' : 'Waiting for your current document') : 'Nothing to do right now')),
+      footNote: footPending ? pendNote : (mode.indexOf('expired') === 0 && replacedAny) ? 'Only the renewed certificate is sent. Your other documents stay with the reviewer.' : replacedAny ? 'Only replaced documents are sent. Approved documents stay locked and aren’t sent again.'
+        : mode === 'allapproved' ? 'We’ll take you to the step your setup is on.'
+        : expAny ? 'The rest of your documents stay with the reviewer.'
+        : role === 'Manager' ? 'We’ll email the owner when the review is finished.'
+        : 'You can close this page. We’ll email you at samir@zaytoungrill.ca when the review is finished.'
+    }, bt(tone));
+  }
+}
+</script>
+</body>
+</html>

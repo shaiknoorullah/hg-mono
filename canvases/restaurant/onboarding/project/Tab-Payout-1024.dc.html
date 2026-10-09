@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Tablet 1024 — payout setup</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:var(--surface-base);color:var(--text-primary);font-family:var(--font-ui)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+.skip{position:absolute;left:16px;top:-80px;z-index:10}.skip:focus{top:8px}
+form{margin:0}
+.gap{position:relative;outline:1.5px dashed var(--color-neutral-500);outline-offset:4px}
+.gap::before{content:"Proposed component: " attr(data-gap);position:absolute;top:-28px;left:-4px;font:500 12px/1 var(--font-mono);color:var(--color-neutral-800);background:var(--color-neutral-100);padding:4px 8px;border-radius:4px;white-space:nowrap}
+.api{display:inline-flex;align-items:center;gap:8px;padding:4px 8px;border:1.5px dashed var(--color-info-600);background:var(--color-info-50);color:var(--color-info-700);font:500 12px/1.4 var(--font-mono);border-radius:4px}
+.note{display:inline-flex;align-items:center;padding:4px 8px;background:var(--color-neutral-100);color:var(--color-neutral-800);font:500 12px/1.4 var(--font-mono);border-radius:4px}
+.hg-focus-field:not([aria-invalid="true"]):focus-visible{outline:2px solid transparent;border-color:var(--focus-ring) !important;box-shadow:inset 0 0 0 1px var(--focus-ring)}
+.hg-focus-field[aria-invalid="true"]:focus-visible{outline:2px solid transparent;box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+summary:focus-visible{outline:2px solid transparent;box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+</style>
+</helmet>
+<div style="width: 1024px; height: 1420px; box-sizing: border-box; background: var(--surface-base); display: flex; flex-direction: column; font-family: var(--font-ui); color: var(--text-primary); position: relative; overflow: hidden">
+<dc-import name="OnbTop" w="1024px" hint-size="1024px,72px"></dc-import>
+<div style="display: flex; flex-direction: column; gap: 24px; padding: 24px 32px 48px">
+<div class="gap" data-gap="Stepper (compact header, expands in page)" style="margin-top: 28px; display: flex; flex-direction: column; gap: 4px; padding: 12px 16px; border-radius: 12px; background: var(--surface-raised); border: 1px solid var(--border-decorative)">
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: 4px"><span class="type-label-md" style="color: var(--text-secondary)">Now</span><span class="type-heading-sm">Payout setup · 65% complete</span></div>
+<div style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 2px; border-top: 1px solid var(--border-decorative)"><span aria-hidden="true" style="position: absolute; top: 14px; right: 0; z-index: 3; font: 500 12px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 4px 8px; border-radius: 4px; white-space: nowrap">Proposed component: Disclosure (native details/summary)</span><details>
+<summary class="type-label-lg" style="min-height: 44px; box-sizing: border-box; padding: 12px 0; cursor: pointer">View checklist and halal status</summary>
+<div style="padding: 8px 0 4px"><dc-import name="OnbSide" current="PAYOUT" done="1111000" percent="65" cycle="1" halal="CERTIFIED" body="HMA Canada" until="14 March 2027" hint-size="288px,836px"></dc-import></div>
+</details></div>
+<span class="note" style="align-self: flex-start">Opens in the page and pushes the content down. Never a sheet or modal on restaurant web.</span>
+</div>
+<main id="main" style="display: flex; flex-direction: column; gap: 24px">
+<dc-import name="PayoutMain" mode="due" w="960px" hint-size="960px,1080px"></dc-import>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 1024, "height": 1420}}'>
+class Component extends DCLogic {
+  renderVals() {
+return { yes: true, no: false };
+  }
+}
+</script>
+</body>
+</html>

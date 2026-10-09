@@ -1,0 +1,1318 @@
+{
+ "v": 3,
+ "attachments": {},
+ "boards": {
+  "AdminNav.dc.html": {
+   "h": 900,
+   "title": "Shell — admin sidebar (child)",
+   "w": 264,
+   "x": 1520,
+   "y": 0
+  },
+  "AdminNavCollapsed.dc.html": {
+   "h": 900,
+   "title": "Shell — sidebar collapsed to an icon rail (child)",
+   "w": 72,
+   "x": 5248,
+   "y": 0
+  },
+  "AdminNavCountsPending.dc.html": {
+   "h": 900,
+   "title": "Shell — sidebar before the first queue count (no numbers)",
+   "w": 264,
+   "x": 4904,
+   "y": 0
+  },
+  "CancelAfterProposed.dc.html": {
+   "h": 900,
+   "title": "Cancel after acceptance — whole-order refund",
+   "w": 1440,
+   "x": 4560,
+   "y": 10140
+  },
+  "CancelAuthorized.dc.html": {
+   "h": 900,
+   "title": "Cancel — payment authorised, not yet offered to the restaurant",
+   "w": 1440,
+   "x": 6080,
+   "y": 10140
+  },
+  "CancelConflict.dc.html": {
+   "h": 900,
+   "title": "Cancel — food marked ready first (409)",
+   "w": 1440,
+   "x": 10640,
+   "y": 10140
+  },
+  "CancelCreated.dc.html": {
+   "h": 900,
+   "title": "Cancel — created, nothing authorised",
+   "w": 1440,
+   "x": 1520,
+   "y": 10140
+  },
+  "CancelFieldErrors.dc.html": {
+   "h": 900,
+   "title": "Cancel — fields need fixing (422)",
+   "w": 1440,
+   "x": 9120,
+   "y": 10140
+  },
+  "CancelProposed.dc.html": {
+   "h": 900,
+   "title": "Cancel before acceptance — case id optional (in-page panel)",
+   "w": 1440,
+   "x": 0,
+   "y": 10140
+  },
+  "CancelRateLimited.dc.html": {
+   "h": 900,
+   "title": "Cancel — too many requests (429)",
+   "w": 1440,
+   "x": 27360,
+   "y": 10140
+  },
+  "CancelResultRefund.dc.html": {
+   "h": 900,
+   "title": "Cancelled by an admin after acceptance — refund issued (result)",
+   "w": 1440,
+   "x": 3040,
+   "y": 7580
+  },
+  "CancelResultVoid.dc.html": {
+   "h": 900,
+   "title": "Cancelled by an admin — authorisation voided (result)",
+   "w": 1440,
+   "x": 0,
+   "y": 7580
+  },
+  "CancelResultVoidSupport.dc.html": {
+   "h": 900,
+   "title": "Cancelled by a support agent — voided (result)",
+   "w": 1440,
+   "x": 1520,
+   "y": 7580
+  },
+  "CancelSubmitting.dc.html": {
+   "h": 900,
+   "title": "Cancel — sending",
+   "w": 1440,
+   "x": 7600,
+   "y": 10140
+  },
+  "CancelSupportBefore.dc.html": {
+   "h": 900,
+   "title": "Cancel — support agent before acceptance",
+   "w": 1440,
+   "x": 3040,
+   "y": 10140
+  },
+  "CancelSupportBlocked.dc.html": {
+   "h": 900,
+   "title": "Cancel — support agent after acceptance, refused (403)",
+   "w": 1440,
+   "x": 12160,
+   "y": 10140
+  },
+  "CancelTimeout.dc.html": {
+   "h": 900,
+   "title": "Cancel — no answer, try the same request",
+   "w": 1440,
+   "x": 25840,
+   "y": 10140
+  },
+  "CancelledByCustomer.dc.html": {
+   "h": 900,
+   "title": "Cancelled by the customer before acceptance",
+   "w": 1440,
+   "x": 10640,
+   "y": 7580
+  },
+  "CancelledNoRider.dc.html": {
+   "h": 900,
+   "title": "Cancelled by the system — no rider, full refund",
+   "w": 1440,
+   "x": 9120,
+   "y": 7580
+  },
+  "CancelledPaymentExpired.dc.html": {
+   "h": 900,
+   "title": "Cancelled by the system — payment not confirmed",
+   "w": 1440,
+   "x": 6080,
+   "y": 7580
+  },
+  "CancelledRestaurantClosed.dc.html": {
+   "h": 900,
+   "title": "Cancelled by the system — restaurant closed",
+   "w": 1440,
+   "x": 7600,
+   "y": 7580
+  },
+  "CancelledTimeout.dc.html": {
+   "h": 900,
+   "title": "Cancelled by the system — restaurant didn’t answer",
+   "w": 1440,
+   "x": 4560,
+   "y": 7580
+  },
+  "DisputesClear.dc.html": {
+   "h": 900,
+   "title": "Disputes — none open",
+   "w": 1440,
+   "x": 1520,
+   "y": 3740
+  },
+  "DisputesCodeInvalid.dc.html": {
+   "h": 900,
+   "title": "Disputes — code not in the right shape (checked before searching)",
+   "w": 1440,
+   "x": 18240,
+   "y": 3740
+  },
+  "DisputesEndOfList.dc.html": {
+   "h": 900,
+   "title": "Disputes — all 6 loaded across two pages, sorted",
+   "w": 1440,
+   "x": 7600,
+   "y": 3740
+  },
+  "DisputesError.dc.html": {
+   "h": 900,
+   "title": "Disputes — load failed",
+   "w": 1440,
+   "x": 4560,
+   "y": 3740
+  },
+  "DisputesLoadMoreFailed.dc.html": {
+   "h": 900,
+   "title": "Disputes — second page failed, left unsorted",
+   "w": 1440,
+   "x": 9120,
+   "y": 3740
+  },
+  "DisputesLoading.dc.html": {
+   "h": 900,
+   "title": "Disputes — loading",
+   "w": 1440,
+   "x": 3040,
+   "y": 3740
+  },
+  "DisputesLoadingMore.dc.html": {
+   "h": 900,
+   "title": "Disputes — loading all 6 before sorting (4 so far)",
+   "w": 1440,
+   "x": 6080,
+   "y": 3740
+  },
+  "DisputesNoMatch.dc.html": {
+   "h": 900,
+   "title": "Disputes — no match for a code",
+   "w": 1440,
+   "x": 12160,
+   "y": 3740
+  },
+  "DisputesOffline.dc.html": {
+   "h": 900,
+   "title": "Disputes — offline",
+   "w": 1440,
+   "x": 10640,
+   "y": 3740
+  },
+  "DisputesOpen.dc.html": {
+   "h": 900,
+   "title": "Disputes — all 4 open loaded, sorted by next deadline",
+   "w": 1440,
+   "x": 0,
+   "y": 3740
+  },
+  "DisputesSessionEnded.dc.html": {
+   "h": 900,
+   "title": "Disputes — session ended, list kept (401)",
+   "w": 1440,
+   "x": 16720,
+   "y": 3740
+  },
+  "DisputesSupport.dc.html": {
+   "h": 900,
+   "title": "Disputes — support agent",
+   "w": 1440,
+   "x": 13680,
+   "y": 3740
+  },
+  "FocusStates.dc.html": {
+   "h": 1600,
+   "title": "Keyboard focus — skip link, rows, menu, fields, buttons, nav, map, panels",
+   "w": 1440,
+   "x": 1864,
+   "y": 0
+  },
+  "LiveAlerts.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Live alerts — received since the page opened",
+   "w": 1440,
+   "x": 0,
+   "y": 12700
+  },
+  "LiveAlertsArriving.dc.html": {
+   "h": 900,
+   "title": "Live alerts — critical alert arrives while focus is in the table",
+   "w": 1440,
+   "x": 15200,
+   "y": 12700
+  },
+  "LiveAlertsConnecting.dc.html": {
+   "h": 900,
+   "title": "Live alerts — connecting",
+   "w": 1440,
+   "x": 6080,
+   "y": 12700
+  },
+  "LiveAlertsEmpty.dc.html": {
+   "h": 900,
+   "title": "Live alerts — none yet",
+   "w": 1440,
+   "x": 1520,
+   "y": 12700
+  },
+  "LiveAlertsForbidden.dc.html": {
+   "h": 900,
+   "title": "Live alerts — subscription refused (forbidden)",
+   "w": 1440,
+   "x": 9120,
+   "y": 12700
+  },
+  "LiveAlertsInvalidChannel.dc.html": {
+   "h": 900,
+   "title": "Live alerts — subscription refused (invalid channel)",
+   "w": 1440,
+   "x": 10640,
+   "y": 12700
+  },
+  "LiveAlertsReconnecting.dc.html": {
+   "h": 900,
+   "title": "Live alerts — connection dropped",
+   "w": 1440,
+   "x": 3040,
+   "y": 12700
+  },
+  "LiveAlertsSessionEnded.dc.html": {
+   "h": 900,
+   "title": "Live alerts — session ended (reauth_required)",
+   "w": 1440,
+   "x": 12160,
+   "y": 12700
+  },
+  "LiveAlertsSupport.dc.html": {
+   "h": 900,
+   "title": "Live alerts — support agent",
+   "w": 1440,
+   "x": 13680,
+   "y": 12700
+  },
+  "LiveAlertsTicketFailed.dc.html": {
+   "h": 900,
+   "title": "Live alerts — connection ticket failed",
+   "w": 1440,
+   "x": 7600,
+   "y": 12700
+  },
+  "LiveMap.dc.html": {
+   "h": 900,
+   "title": "Live map — rider heading to the restaurant (More detail widened)",
+   "w": 1440,
+   "x": 0,
+   "y": 11420
+  },
+  "LiveMapArrived.dc.html": {
+   "h": 900,
+   "title": "Live map — rider at the door",
+   "w": 1440,
+   "x": 3040,
+   "y": 11420
+  },
+  "LiveMapAtRestaurant.dc.html": {
+   "h": 900,
+   "title": "Live map — rider at the restaurant",
+   "w": 1440,
+   "x": 1520,
+   "y": 11420
+  },
+  "LiveMapDisputed.dc.html": {
+   "h": 900,
+   "title": "Live map — disputed mid-delivery, rider live",
+   "w": 1440,
+   "x": 4560,
+   "y": 11420
+  },
+  "LiveMapError.dc.html": {
+   "h": 900,
+   "title": "Live map — load failed",
+   "w": 1440,
+   "x": 18240,
+   "y": 11420
+  },
+  "LiveMapFinished.dc.html": {
+   "h": 900,
+   "title": "Live map — order finished",
+   "w": 1440,
+   "x": 19760,
+   "y": 11420
+  },
+  "LiveMapLoading.dc.html": {
+   "h": 900,
+   "title": "Live map — loading",
+   "w": 1440,
+   "x": 16720,
+   "y": 11420
+  },
+  "LiveMapNoDestination.dc.html": {
+   "h": 900,
+   "title": "Live map — no destination location",
+   "w": 1440,
+   "x": 13680,
+   "y": 11420
+  },
+  "LiveMapNoPing.dc.html": {
+   "h": 900,
+   "title": "Live map — rider assigned, no position yet",
+   "w": 1440,
+   "x": 12160,
+   "y": 11420
+  },
+  "LiveMapNoRestaurant.dc.html": {
+   "h": 900,
+   "title": "Live map — no restaurant location",
+   "w": 1440,
+   "x": 15200,
+   "y": 11420
+  },
+  "LiveMapNoRider.dc.html": {
+   "h": 900,
+   "title": "Live map — no rider yet",
+   "w": 1440,
+   "x": 10640,
+   "y": 11420
+  },
+  "LiveMapOffline.dc.html": {
+   "h": 900,
+   "title": "Live map — this computer offline",
+   "w": 1440,
+   "x": 27360,
+   "y": 11420
+  },
+  "LiveMapPane.dc.html": {
+   "h": 790,
+   "title": "Live map pane (child) — opened by widening More detail in the order workspace",
+   "w": 760,
+   "x": 6920,
+   "y": 0
+  },
+  "LiveMapReconnecting.dc.html": {
+   "h": 900,
+   "title": "Live map — your connection reconnecting",
+   "w": 1440,
+   "x": 7600,
+   "y": 11420
+  },
+  "LiveMapSessionEnded.dc.html": {
+   "h": 900,
+   "title": "Live map — session ended (401 / reauth_required)",
+   "w": 1440,
+   "x": 25840,
+   "y": 11420
+  },
+  "LiveMapStale.dc.html": {
+   "h": 900,
+   "title": "Live map — rider’s signal stale",
+   "w": 1440,
+   "x": 9120,
+   "y": 11420
+  },
+  "LiveMapStateChanged.dc.html": {
+   "h": 900,
+   "title": "Live map — delivered while watching",
+   "w": 1440,
+   "x": 6080,
+   "y": 11420
+  },
+  "LiveMapSupport.dc.html": {
+   "h": 900,
+   "title": "Live map — support agent",
+   "w": 1440,
+   "x": 21280,
+   "y": 11420
+  },
+  "Main.dc.html": {
+   "h": 2080,
+   "is_interactive": true,
+   "title": "Overview — how to read this canvas",
+   "w": 1440,
+   "x": 0,
+   "y": 0
+  },
+  "OrderDetail.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Order workspace — preparing, rider assigned (admin)",
+   "w": 1440,
+   "x": 0,
+   "y": 5020
+  },
+  "OrderDetail1280.dc.html": {
+   "h": 900,
+   "title": "Order workspace — 1280 px",
+   "w": 1280,
+   "x": 2880,
+   "y": 13980
+  },
+  "OrderDetailApprovalPending.dc.html": {
+   "h": 900,
+   "title": "Order detail — requester returns, approval pending (needs API)",
+   "w": 1440,
+   "x": 6080,
+   "y": 6300
+  },
+  "OrderDetailArrived.dc.html": {
+   "h": 900,
+   "title": "Order detail — rider arrived",
+   "w": 1440,
+   "x": 21280,
+   "y": 5020
+  },
+  "OrderDetailAuthorized.dc.html": {
+   "h": 900,
+   "title": "Order detail — payment authorised",
+   "w": 1440,
+   "x": 6080,
+   "y": 5020
+  },
+  "OrderDetailCancelled.dc.html": {
+   "h": 900,
+   "title": "Cancelled by staff after acceptance, refunded in full (opened from the list)",
+   "w": 1440,
+   "x": 12160,
+   "y": 7580
+  },
+  "OrderDetailChargeback.dc.html": {
+   "h": 900,
+   "title": "Order detail — card chargeback (needs API)",
+   "w": 1440,
+   "x": 15200,
+   "y": 6300
+  },
+  "OrderDetailCompleted.dc.html": {
+   "h": 900,
+   "title": "Order detail — completed, ledger balances",
+   "w": 1440,
+   "x": 3040,
+   "y": 6300
+  },
+  "OrderDetailCreated.dc.html": {
+   "h": 900,
+   "title": "Order detail — created, 3-D Secure pending",
+   "w": 1440,
+   "x": 4560,
+   "y": 5020
+  },
+  "OrderDetailDelivered.dc.html": {
+   "h": 900,
+   "title": "Order detail — delivered, a refund failed, settlement held",
+   "w": 1440,
+   "x": 0,
+   "y": 6300
+  },
+  "OrderDetailDeliveredPlain.dc.html": {
+   "h": 900,
+   "title": "Order detail — delivered, no refunds, settling",
+   "w": 1440,
+   "x": 13680,
+   "y": 6300
+  },
+  "OrderDetailDeliveredSettled.dc.html": {
+   "h": 900,
+   "title": "Order detail — delivered, refund settled",
+   "w": 1440,
+   "x": 1520,
+   "y": 6300
+  },
+  "OrderDetailDisputed.dc.html": {
+   "h": 900,
+   "title": "Disputed by the customer after completion",
+   "w": 1440,
+   "x": 0,
+   "y": 8860
+  },
+  "OrderDetailDisputedDelivered.dc.html": {
+   "h": 900,
+   "title": "Disputed by the customer after delivery, before settling",
+   "w": 1440,
+   "x": 4560,
+   "y": 8860
+  },
+  "OrderDetailDisputedMid.dc.html": {
+   "h": 900,
+   "title": "Disputed by support mid-delivery, rider still live",
+   "w": 1440,
+   "x": 1520,
+   "y": 8860
+  },
+  "OrderDetailDisputedRestaurant.dc.html": {
+   "h": 900,
+   "title": "Disputed by the restaurant before pickup",
+   "w": 1440,
+   "x": 3040,
+   "y": 8860
+  },
+  "OrderDetailDisputedSupport.dc.html": {
+   "h": 900,
+   "title": "Disputed — support agent view",
+   "w": 1440,
+   "x": 12160,
+   "y": 8860
+  },
+  "OrderDetailError.dc.html": {
+   "h": 900,
+   "title": "Order detail — load failed",
+   "w": 1440,
+   "x": 30400,
+   "y": 5020
+  },
+  "OrderDetailFailed.dc.html": {
+   "h": 900,
+   "title": "Order detail — payment failed",
+   "w": 1440,
+   "x": 10640,
+   "y": 6300
+  },
+  "OrderDetailHalalConcern.dc.html": {
+   "h": 900,
+   "title": "Order detail — customer's halal concern refund",
+   "w": 1440,
+   "x": 18240,
+   "y": 6300
+  },
+  "OrderDetailIncident.dc.html": {
+   "h": 900,
+   "title": "Incidents and dispute resolution — needs API",
+   "w": 1440,
+   "x": 9120,
+   "y": 8860
+  },
+  "OrderDetailLedgerBatches.dc.html": {
+   "h": 900,
+   "title": "Order detail — capture, provider fee and settlement batches (no tax while HST registration is open)",
+   "w": 1440,
+   "x": 16720,
+   "y": 6300
+  },
+  "OrderDetailListCollapsed.dc.html": {
+   "h": 900,
+   "title": "Order workspace — list pane collapsed, order widened",
+   "w": 1440,
+   "x": 38000,
+   "y": 5020
+  },
+  "OrderDetailLoading.dc.html": {
+   "h": 900,
+   "title": "Order detail — loading",
+   "w": 1440,
+   "x": 27360,
+   "y": 5020
+  },
+  "OrderDetailNoRider.dc.html": {
+   "h": 900,
+   "title": "Order detail — ready, no rider found, reconnecting",
+   "w": 1440,
+   "x": 16720,
+   "y": 5020
+  },
+  "OrderDetailNotFound.dc.html": {
+   "h": 900,
+   "title": "Order detail — not found",
+   "w": 1440,
+   "x": 28880,
+   "y": 5020
+  },
+  "OrderDetailOffline.dc.html": {
+   "h": 900,
+   "title": "Order detail — offline, actions off",
+   "w": 1440,
+   "x": 24320,
+   "y": 5020
+  },
+  "OrderDetailOverdue.dc.html": {
+   "h": 900,
+   "title": "Order detail — 180 s window passed, server hasn't cancelled yet",
+   "w": 1440,
+   "x": 34960,
+   "y": 5020
+  },
+  "OrderDetailPending.dc.html": {
+   "h": 900,
+   "title": "Order detail — waiting for restaurant",
+   "w": 1440,
+   "x": 7600,
+   "y": 5020
+  },
+  "OrderDetailPendingCritical.dc.html": {
+   "h": 900,
+   "title": "Order detail — 180 s window critical, reduced motion (no pulse)",
+   "w": 1440,
+   "x": 9120,
+   "y": 5020
+  },
+  "OrderDetailPickedUp.dc.html": {
+   "h": 900,
+   "title": "Order detail — picked up",
+   "w": 1440,
+   "x": 19760,
+   "y": 5020
+  },
+  "OrderDetailPrepPending.dc.html": {
+   "h": 900,
+   "title": "Order detail — preparing, dispatch about to search",
+   "w": 1440,
+   "x": 1520,
+   "y": 5020
+  },
+  "OrderDetailPrepSearching.dc.html": {
+   "h": 900,
+   "title": "Order detail — preparing, searching for a rider",
+   "w": 1440,
+   "x": 3040,
+   "y": 5020
+  },
+  "OrderDetailReadyAssigned.dc.html": {
+   "h": 900,
+   "title": "Order detail — ready, rider assigned",
+   "w": 1440,
+   "x": 13680,
+   "y": 5020
+  },
+  "OrderDetailReadyAtRestaurant.dc.html": {
+   "h": 900,
+   "title": "Order detail — ready, rider at the restaurant",
+   "w": 1440,
+   "x": 15200,
+   "y": 5020
+  },
+  "OrderDetailReadyOffered.dc.html": {
+   "h": 900,
+   "title": "Order detail — ready, offered to a rider (30 s)",
+   "w": 1440,
+   "x": 12160,
+   "y": 5020
+  },
+  "OrderDetailReadySearching.dc.html": {
+   "h": 900,
+   "title": "Order detail — ready, searching for a rider",
+   "w": 1440,
+   "x": 10640,
+   "y": 5020
+  },
+  "OrderDetailRearmed.dc.html": {
+   "h": 900,
+   "title": "Order detail — preparing, deadline re-armed after an overrun",
+   "w": 1440,
+   "x": 36480,
+   "y": 5020
+  },
+  "OrderDetailRefundStates.dc.html": {
+   "h": 900,
+   "title": "Order detail — refund rows in every state",
+   "w": 1440,
+   "x": 4560,
+   "y": 6300
+  },
+  "OrderDetailRejected.dc.html": {
+   "h": 900,
+   "title": "Order detail — rejected, authorisation voided",
+   "w": 1440,
+   "x": 9120,
+   "y": 6300
+  },
+  "OrderDetailResidual.dc.html": {
+   "h": 900,
+   "title": "Order detail — ledger does not balance",
+   "w": 1440,
+   "x": 7600,
+   "y": 6300
+  },
+  "OrderDetailResolved.dc.html": {
+   "h": 900,
+   "title": "Resolved by support, partial refund",
+   "w": 1440,
+   "x": 6080,
+   "y": 8860
+  },
+  "OrderDetailResolvedAuto.dc.html": {
+   "h": 900,
+   "title": "Resolved automatically at the last deadline",
+   "w": 1440,
+   "x": 7600,
+   "y": 8860
+  },
+  "OrderDetailRevealed.dc.html": {
+   "h": 900,
+   "title": "Order detail — delivery address just revealed",
+   "w": 1440,
+   "x": 22800,
+   "y": 5020
+  },
+  "OrderDetailSupport.dc.html": {
+   "h": 900,
+   "title": "Order detail — support agent view",
+   "w": 1440,
+   "x": 25840,
+   "y": 5020
+  },
+  "OrderDetailUnassigned.dc.html": {
+   "h": 900,
+   "title": "Order detail — rider dropped the order",
+   "w": 1440,
+   "x": 18240,
+   "y": 5020
+  },
+  "OrderDetailZoom200.dc.html": {
+   "h": 900,
+   "title": "Order workspace — 200% text zoom (one pane at a time)",
+   "w": 1440,
+   "x": 4240,
+   "y": 13980
+  },
+  "OrdersAccountFilter.dc.html": {
+   "h": 900,
+   "title": "Orders — filtered by account id (support agent)",
+   "w": 1440,
+   "x": 28880,
+   "y": 2460
+  },
+  "OrdersCodeInvalid.dc.html": {
+   "h": 900,
+   "title": "Orders — code not in the right shape (checked before searching)",
+   "w": 1440,
+   "x": 6080,
+   "y": 2460
+  },
+  "OrdersCriticalReducedMotion.dc.html": {
+   "h": 900,
+   "title": "Orders — 180 s window critical, reduced motion (no pulse)",
+   "w": 1440,
+   "x": 13680,
+   "y": 2460
+  },
+  "OrdersEmpty.dc.html": {
+   "h": 900,
+   "title": "Orders — no orders yet",
+   "w": 1440,
+   "x": 3040,
+   "y": 2460
+  },
+  "OrdersEndOfList.dc.html": {
+   "h": 900,
+   "title": "Orders — end of the list",
+   "w": 1440,
+   "x": 16720,
+   "y": 2460
+  },
+  "OrdersError.dc.html": {
+   "h": 900,
+   "title": "Orders — load failed",
+   "w": 1440,
+   "x": 9120,
+   "y": 2460
+  },
+  "OrdersFilteredEmpty.dc.html": {
+   "h": 900,
+   "title": "Orders — state, restaurant and dates match nothing",
+   "w": 1440,
+   "x": 7600,
+   "y": 2460
+  },
+  "OrdersGrid.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Orders — all 14 states, all four halal states",
+   "w": 1440,
+   "x": 0,
+   "y": 2460
+  },
+  "OrdersGrid1280.dc.html": {
+   "h": 900,
+   "title": "Orders — 1280 px",
+   "w": 1280,
+   "x": 0,
+   "y": 13980
+  },
+  "OrdersLoadMoreFailed.dc.html": {
+   "h": 900,
+   "title": "Orders — load more failed",
+   "w": 1440,
+   "x": 18240,
+   "y": 2460
+  },
+  "OrdersLoading.dc.html": {
+   "h": 900,
+   "title": "Orders — loading",
+   "w": 1440,
+   "x": 1520,
+   "y": 2460
+  },
+  "OrdersLoadingMore.dc.html": {
+   "h": 900,
+   "title": "Orders — loading more",
+   "w": 1440,
+   "x": 15200,
+   "y": 2460
+  },
+  "OrdersNoMatch.dc.html": {
+   "h": 900,
+   "title": "Orders — no match for a code",
+   "w": 1440,
+   "x": 4560,
+   "y": 2460
+  },
+  "OrdersOffline.dc.html": {
+   "h": 900,
+   "title": "Orders — offline",
+   "w": 1440,
+   "x": 10640,
+   "y": 2460
+  },
+  "OrdersOverdue.dc.html": {
+   "h": 900,
+   "title": "Orders — deadline passed, server hasn't moved the order yet",
+   "w": 1440,
+   "x": 27360,
+   "y": 2460
+  },
+  "OrdersRefreshed.dc.html": {
+   "h": 900,
+   "title": "Orders — refreshed, one row changed",
+   "w": 1440,
+   "x": 19760,
+   "y": 2460
+  },
+  "OrdersSessionEnded.dc.html": {
+   "h": 900,
+   "title": "Orders — session ended, list kept (401)",
+   "w": 1440,
+   "x": 24320,
+   "y": 2460
+  },
+  "OrdersSkipLink.dc.html": {
+   "h": 900,
+   "title": "Orders — skip link focused",
+   "w": 1440,
+   "x": 21280,
+   "y": 2460
+  },
+  "OrdersStillRunning.dc.html": {
+   "h": 900,
+   "title": "Orders — Still running preset",
+   "w": 1440,
+   "x": 12160,
+   "y": 2460
+  },
+  "OrdersSupport.dc.html": {
+   "h": 900,
+   "title": "Orders — support agent",
+   "w": 1440,
+   "x": 22800,
+   "y": 2460
+  },
+  "OrdersZoom200.dc.html": {
+   "h": 900,
+   "title": "Orders — 200% text zoom (filters folded)",
+   "w": 1440,
+   "x": 1360,
+   "y": 13980
+  },
+  "ReauthKeepsDraft.dc.html": {
+   "h": 900,
+   "title": "Session ended — cancel draft kept in its panel (401)",
+   "w": 1440,
+   "x": 19760,
+   "y": 10140
+  },
+  "Refunds.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Refunds — failed refunds first, then look up one order",
+   "w": 1440,
+   "x": 7760,
+   "y": 0
+  },
+  "RevealFailed.dc.html": {
+   "h": 900,
+   "title": "Reveal — failed",
+   "w": 1440,
+   "x": 18240,
+   "y": 10140
+  },
+  "RevealLoading.dc.html": {
+   "h": 900,
+   "title": "Reveal — loading",
+   "w": 1440,
+   "x": 16720,
+   "y": 10140
+  },
+  "RevealPii.dc.html": {
+   "h": 900,
+   "title": "Reveal the delivery address — justification panel",
+   "w": 1440,
+   "x": 13680,
+   "y": 10140
+  },
+  "RevealRateLimited.dc.html": {
+   "h": 900,
+   "title": "Reveal — too many requests (429)",
+   "w": 1440,
+   "x": 28880,
+   "y": 10140
+  },
+  "RevealTooShort.dc.html": {
+   "h": 900,
+   "title": "Reveal — reason too short (422)",
+   "w": 1440,
+   "x": 15200,
+   "y": 10140
+  },
+  "StateCatalogue.dc.html": {
+   "h": 2060,
+   "title": "State catalogue — payment, dispatch, refund, halal, ledger",
+   "w": 1440,
+   "x": 3384,
+   "y": 0
+  },
+  "HalalState.dc.html": {
+   "h": 32,
+   "title": "Halal state badge (child, proposed HalalState): expiring soon in amber with the certificate’s date; other states on the system’s HalalBadge",
+   "w": 220,
+   "x": 1520,
+   "y": 1000
+  }
+ },
+ "createdOnFiles": {
+  "at": "2026-09-28T01:08:08Z",
+  "v": 1
+ },
+ "designSystems": [
+  {
+   "artifact": "https://claude.ai/artifact/1GwGVZz8Ju9wcz4HfCnzbv",
+   "copiedAt": "2026-09-28T14:45:10Z",
+   "namespace": "halalgoesdesignsystem-d11a47",
+   "title": "HalalGoes design system",
+   "version": "1790605103-3266"
+  }
+ ],
+ "launch": {
+  "view": "canvas"
+ },
+ "notes": {
+  "moved_refunds": {
+   "fill": "blue",
+   "text": "Moved to HalalGoes Admin — Refunds: https://claude.ai/artifact/NDbFfhcv4MwRgwjmFtpxrx\n\nSections moved there:\n• Refunds — failed refunds first, then look up one order\n• Refund form — scope, reason, evidence, confirm\n• Refund results — 201, 202, 409 and provider failure\n\nThe Refunds page board stays here too, because the order workspace imports it.",
+   "w": 460,
+   "x": 9280,
+   "y": 0
+  },
+  "s_actions": {
+   "fill": "gray",
+   "text": "Cancel is live at launch with an optional case id (owner decision), before and after the restaurant accepts; support agents cancel only before acceptance. The contract still requires a case id, so it is marked Needs API. The panel doesn't say who bears the refund: which refund reason a cancel becomes is Needs API, and the result shows the server's split.\n\nCancel and reveal are in-page panels that take the place of More detail; the order stays visible beside them. Sign in again is the one dialog.\n\nCancel and refund are rate limited as money actions; a 429 says nothing was sent and when to try again.\n\nStaff pick from Customer asked to cancel, Restaurant closed, Item unavailable, Cancelled by support, Fraud suspected and Platform error. No rider found is offered only when dispatch is in No rider found. System-only reasons are never offered.",
+   "w": 460,
+   "x": 30400,
+   "y": 10140
+  },
+  "s_alerts": {
+   "fill": "gray",
+   "text": "Built only from admin:ops events received while the page is open: admin.alert, admin.dispatch_failure and admin.reconciliation_exception. There is no history or acknowledge, so reloading starts the list again (Needs API).\n\nRows show only what each event carries. Severity appears only on admin.alert; the other two get a fixed kind badge. A ledger mismatch shows Expected and Recorded exactly as sent, never a difference worked out here. Events name the order by id; the code fills in once getOrderAdmin returns ('Code loading…' until then).\n\nNav counts come from admin.queue_depth; before the first one the nav shows no number, never 0.",
+   "w": 460,
+   "x": 16720,
+   "y": 12700
+  },
+  "s_cancelled": {
+   "fill": "gray",
+   "text": "Result boards are the order the server returns straight after your own cancel; only they carry the one-time 'Cancelled. Refund issued.' banner. Opening a cancelled order from a list shows the plain order, with who cancelled it and why, and no result banner.\n\nSystem cancels name the rule that fired: restaurant timeout (void), payment expired, restaurant closed at offer time, and no rider after 3 escalations (full refund, restaurant paid, the platform bears it).\n\nA cancelled order never settles, so its refund batch only reverses the charge; provider clearing ends at zero and nothing lands in Platform absorbed except the restaurant's net on a no-rider cancel.\n\nCancel reason to refund reason is Needs API: the result shows the refund reason the server returned.",
+   "w": 460,
+   "x": 13680,
+   "y": 7580
+  },
+  "s_detail": {
+   "fill": "gray",
+   "text": "Three panes, side by side, and the page never scrolls: the list the admin came from (collapsible), the order, and More detail (timeline, map, event log, ledger), each scrolling inside itself. The nav folds to an icon rail while an order is open. The order header holds code, state, the one live Countdown and the actions; the status card's deadline bar is visual only.\n\nWhile the address is masked, no destination is drawn at all: the masked view still carries the exact destination, and a blur in the browser would not protect it.\n\nActions follow what the system will do anyway. Preparing and Ready for pickup: the countdown leads, a line says the order cancels and refunds itself, and refund and cancel sit in More actions. Before acceptance the system cancels on its own too (15 minutes to confirm payment, 180 s for the restaurant), so Cancel order sits in More actions as a destructive item, with a line saying so; the case id is optional (owner decision). Delivered, Completed, Disputed and Resolved: Issue refund is a visible button.\n\nThe list pane is the list the admin came from: Still running, the open disputes in deadline order, or All orders with its filters; its count is the rows shown. It is one roving tab stop.\n\nCancel, reveal and the refund panel open in place of More detail, never a dialog; Close or Done brings More detail back. The live map widens More detail over the list. No rider ratings (a V1 feature).",
+   "w": 460,
+   "x": 39520,
+   "y": 5020
+  },
+  "s_detail2": {
+   "fill": "gray",
+   "text": "A failed refund holds settlement, but the order keeps its deadline: settlement re-arms with backoff and pages on-call, so Delivered keeps the countdown to the next settlement attempt with 'Held while a refund has failed' beside it. The Orders grid says the same: 'settles, held: a refund failed'. The one entry point is 'Issue a new refund' in the order header, prefilled from the failed one; the banner points to it. A failed row's split reads 'Would have been borne by'.\n\nLedger entries: capture posts customer charges against provider clearing; settlement splits clearing to restaurant, rider and platform; refunds reverse the charge; provider fees post against platform revenue. Every account, component and batch kind has a label. No tax is charged while HST registration is open, so there are no tax postings; the tax labels stay in the state catalogue legend. Whether payout batches attach to one order is Needs API.\n\nThe order pane leads with Refunds on these boards; More detail leads with the ledger where the board is about it. Refund rows show requested and settled times and the provider's message only. Who requested a refund is Needs API.\n\nThe ledger banner shows whenever ledger_residual_cents isn't zero on a finished order, from getOrderAdmin. The live admin.reconciliation_exception event only raises it on an open page.\n\nThe approval-pending board shows where a request would sit if approval requests were readable on the order.",
+   "w": 460,
+   "x": 19760,
+   "y": 6300
+  },
+  "s_detail3": {
+   "fill": "gray",
+   "text": "Three origins of a dispute are drawn: customer after completion or delivery, support mid-delivery with the rider still live, and the restaurant before pickup. The dispute panel holds its own deadline and the refund action, with the warning that a refund doesn't close the dispute and the refunds already on the order.\n\nThe refund panel never offers Dispute resolution: that code belongs to resolving the dispute (Needs API). Support agents can refund within their limit, but not goodwill or Before a chargeback.\n\nNo package seals at launch (owner decision), so no seal step and no seal-chain board. Whether the automatic resolution refunds, and whether it nets off earlier refunds, is Needs API.",
+   "w": 460,
+   "x": 13680,
+   "y": 8860
+  },
+  "s_disputes": {
+   "fill": "gray",
+   "text": "A dispute is an order in the Disputed state: listOrdersAdmin with state=DISPUTED, which returns newest first. The page follows every cursor until has_more is false, then sorts by deadline_at. Until then the header says 'Loading all open disputes: 4 of 6 so far' and makes no sort claim, because an older dispute on a later page can be the most urgent. If a page fails, the list stays newest first and says so. Server sort is Needs API.\n\nThe total comes from admin.queue_depth.open_disputes over the socket. The deadline header is plain text, not a sort control.\n\nAt each deadline the dispute escalates to senior ops and gets 24 hours more, up to 3 times; after the third it resolves in the customer's favour. Why each order is disputed is one Needs API note above the grid, not a column.",
+   "w": 460,
+   "x": 19760,
+   "y": 3740
+  },
+  "s_map": {
+   "fill": "gray",
+   "text": "The live map opens inside the order workspace: More detail widens over the list, the nav stays on the icon rail and the order stays beside it. Its one close control brings More detail back; Reveal address… opens its panel in the same place.\n\nThe strip on top holds the deadline (the page's one live timer), the delivery estimate (eta_at on the admin order view) and the leg, from dispatch_state: Assigned or At restaurant = to pickup; Carrying or At customer = to drop-off. A pickup estimate is Needs API: pickup_eta_at reaches only customer, restaurant and rider audiences.\n\nRider ratings are a V1 feature and aren't shown. A drop reason comes only from dispatch.unassigned while the page is open.\n\nNo destination is drawn while the address is masked. The finished message sits outside the map picture, as a status, and in the text equivalent.\n\nYour connection reconnecting, this computer offline and a session that ended are three different banners.\n\nYour connection and the rider's signal are separate problems. A stale pin keeps full opacity with a dashed outline, a Stale badge and 'last known' in its label. Pins are proposed MapPin components: Solar glyph in a token-coloured pin. Rider and destination share forest by owner decision and differ by glyph and label.",
+   "w": 460,
+   "x": 28880,
+   "y": 11420
+  },
+  "s_orders": {
+   "fill": "gray",
+   "text": "The grid is drawn on the DataTable component inside a dashed 'LyteNyte' frame: 44px rows, rich cells (Badge, HalalBadge operational, Price, Countdown). Rows are one roving tab stop.\n\nNext deadline: remaining time plus what happens at zero (auto-cancels, escalates, settles). Only Waiting for restaurant (180 s) and Disputed (48 h) get urgency colour; the rest need state_since. Final states show an empty cell with hidden text 'No deadline, final state'.\n\nItems read '2 items: A, B' from item_count and first_item_names and wrap to two lines. A missing halal field shows plain 'No status on file', never a badge.\n\nA refreshed row gets an 'Updated' badge, not the selection tint. The critical board is drawn as it looks under reduced motion: critical colour, no pulse.\n\nPast the deadline, before the server moves the order, the cell reads '0:00, passed 8 s ago' and what is due. Countdown renders nothing after zero, and the page never re-arms a deadline itself.\n\nPlaced is a fixed caption, 'newest first': listOrdersAdmin has no sort parameter. Account id filters by account_id and is checked as a UUID before searching.\n\nSupport agents see the same grid and filters.\n\nThe page never scrolls: filters take one row (Restaurant id and Account id sit behind More filters), and the grid scrolls inside its own region, virtualised. Placed shows the short date; the tooltip carries the full date.",
+   "w": 460,
+   "x": 30400,
+   "y": 2460
+  },
+  "s_reflow": {
+   "fill": "gray",
+   "text": "The 200% boards are a 1440 × 900 window at 200% text zoom: 720 × 450 CSS px, drawn at twice the size. The nav folds behind Menu, the order workspace shows one pane at a time (Show: List, Order, More detail), and the Orders filters fold behind a Filters button. The page never scrolls; panes and grids scroll inside themselves.\n\nAt 1280 px the list and More detail panes narrow; the grid scrolls sideways inside its region for its last column.",
+   "w": 460,
+   "x": 5760,
+   "y": 13980
+  },
+  "t_actions": {
+   "kind": "title1",
+   "maxW": 8000,
+   "text": "Order actions — cancel, reveal, re-auth",
+   "w": 240,
+   "x": 0,
+   "y": 9880
+  },
+  "t_alerts": {
+   "kind": "title1",
+   "maxW": 8000,
+   "text": "Live alerts — admin:ops",
+   "w": 240,
+   "x": 0,
+   "y": 12440
+  },
+  "t_cancelled": {
+   "kind": "title1",
+   "maxW": 8000,
+   "text": "Order detail — cancelled, by whom and why",
+   "w": 240,
+   "x": 0,
+   "y": 7320
+  },
+  "t_detail": {
+   "kind": "title1",
+   "maxW": 8000,
+   "text": "Order detail — running orders",
+   "w": 240,
+   "x": 0,
+   "y": 4760
+  },
+  "t_detail2": {
+   "kind": "title1",
+   "maxW": 8000,
+   "text": "Order detail — delivered, completed and money exceptions",
+   "w": 240,
+   "x": 0,
+   "y": 6040
+  },
+  "t_detail3": {
+   "kind": "title1",
+   "maxW": 8000,
+   "text": "Order detail — disputes and resolution",
+   "w": 240,
+   "x": 0,
+   "y": 8600
+  },
+  "t_disputes": {
+   "kind": "title1",
+   "maxW": 8000,
+   "text": "Disputes — orders in the Disputed state",
+   "w": 240,
+   "x": 0,
+   "y": 3480
+  },
+  "t_map": {
+   "kind": "title1",
+   "maxW": 8000,
+   "text": "Live map — one order at a time",
+   "w": 240,
+   "x": 0,
+   "y": 11160
+  },
+  "t_orders": {
+   "kind": "title1",
+   "maxW": 8000,
+   "text": "Orders grid",
+   "w": 240,
+   "x": 0,
+   "y": 2200
+  },
+  "t_reflow": {
+   "kind": "title1",
+   "maxW": 5600,
+   "text": "Reflow — 1280 px and 200% text zoom",
+   "w": 240,
+   "x": 0,
+   "y": 13720
+  }
+ },
+ "order": [
+  "Main.dc.html",
+  "AdminNav.dc.html",
+  "FocusStates.dc.html",
+  "StateCatalogue.dc.html",
+  "OrdersGrid.dc.html",
+  "OrdersLoading.dc.html",
+  "OrdersEmpty.dc.html",
+  "OrdersNoMatch.dc.html",
+  "OrdersCodeInvalid.dc.html",
+  "OrdersFilteredEmpty.dc.html",
+  "OrdersError.dc.html",
+  "OrdersOffline.dc.html",
+  "OrdersStillRunning.dc.html",
+  "OrdersCriticalReducedMotion.dc.html",
+  "OrdersLoadingMore.dc.html",
+  "OrdersEndOfList.dc.html",
+  "OrdersLoadMoreFailed.dc.html",
+  "OrdersRefreshed.dc.html",
+  "OrdersSkipLink.dc.html",
+  "OrdersSupport.dc.html",
+  "OrdersSessionEnded.dc.html",
+  "DisputesOpen.dc.html",
+  "DisputesClear.dc.html",
+  "DisputesLoading.dc.html",
+  "DisputesError.dc.html",
+  "DisputesLoadingMore.dc.html",
+  "DisputesEndOfList.dc.html",
+  "DisputesLoadMoreFailed.dc.html",
+  "DisputesOffline.dc.html",
+  "DisputesNoMatch.dc.html",
+  "DisputesSupport.dc.html",
+  "OrderDetail.dc.html",
+  "OrderDetailPrepPending.dc.html",
+  "OrderDetailPrepSearching.dc.html",
+  "OrderDetailCreated.dc.html",
+  "OrderDetailAuthorized.dc.html",
+  "OrderDetailPending.dc.html",
+  "OrderDetailPendingCritical.dc.html",
+  "OrderDetailReadySearching.dc.html",
+  "OrderDetailReadyOffered.dc.html",
+  "OrderDetailReadyAssigned.dc.html",
+  "OrderDetailReadyAtRestaurant.dc.html",
+  "OrderDetailNoRider.dc.html",
+  "OrderDetailUnassigned.dc.html",
+  "OrderDetailPickedUp.dc.html",
+  "OrderDetailArrived.dc.html",
+  "OrderDetailRevealed.dc.html",
+  "OrderDetailOffline.dc.html",
+  "OrderDetailSupport.dc.html",
+  "OrderDetailLoading.dc.html",
+  "OrderDetailNotFound.dc.html",
+  "OrderDetailError.dc.html",
+  "OrderDetailDelivered.dc.html",
+  "OrderDetailDeliveredSettled.dc.html",
+  "OrderDetailCompleted.dc.html",
+  "OrderDetailRefundStates.dc.html",
+  "OrderDetailApprovalPending.dc.html",
+  "OrderDetailResidual.dc.html",
+  "OrderDetailRejected.dc.html",
+  "OrderDetailFailed.dc.html",
+  "CancelResultVoid.dc.html",
+  "CancelResultVoidSupport.dc.html",
+  "CancelResultRefund.dc.html",
+  "CancelledTimeout.dc.html",
+  "CancelledPaymentExpired.dc.html",
+  "CancelledRestaurantClosed.dc.html",
+  "CancelledNoRider.dc.html",
+  "CancelledByCustomer.dc.html",
+  "OrderDetailDisputed.dc.html",
+  "OrderDetailDisputedMid.dc.html",
+  "OrderDetailDisputedRestaurant.dc.html",
+  "OrderDetailDisputedDelivered.dc.html",
+  "OrderDetailResolved.dc.html",
+  "OrderDetailResolvedAuto.dc.html",
+  "OrderDetailIncident.dc.html",
+  "CancelProposed.dc.html",
+  "CancelCreated.dc.html",
+  "CancelSupportBefore.dc.html",
+  "CancelAfterProposed.dc.html",
+  "CancelAuthorized.dc.html",
+  "CancelSubmitting.dc.html",
+  "CancelFieldErrors.dc.html",
+  "CancelConflict.dc.html",
+  "CancelSupportBlocked.dc.html",
+  "RevealPii.dc.html",
+  "RevealTooShort.dc.html",
+  "RevealLoading.dc.html",
+  "RevealFailed.dc.html",
+  "ReauthKeepsDraft.dc.html",
+  "LiveMap.dc.html",
+  "LiveMapAtRestaurant.dc.html",
+  "LiveMapArrived.dc.html",
+  "LiveMapDisputed.dc.html",
+  "LiveMapStateChanged.dc.html",
+  "LiveMapReconnecting.dc.html",
+  "LiveMapStale.dc.html",
+  "LiveMapNoRider.dc.html",
+  "LiveMapNoPing.dc.html",
+  "LiveMapNoDestination.dc.html",
+  "LiveMapNoRestaurant.dc.html",
+  "LiveMapLoading.dc.html",
+  "LiveMapError.dc.html",
+  "LiveMapFinished.dc.html",
+  "LiveMapSupport.dc.html",
+  "LiveAlerts.dc.html",
+  "LiveAlertsEmpty.dc.html",
+  "LiveAlertsReconnecting.dc.html",
+  "Refunds.dc.html",
+  "AdminNavCountsPending.dc.html",
+  "OrdersOverdue.dc.html",
+  "OrdersAccountFilter.dc.html",
+  "DisputesSessionEnded.dc.html",
+  "DisputesCodeInvalid.dc.html",
+  "OrderDetailOverdue.dc.html",
+  "OrderDetailRearmed.dc.html",
+  "OrderDetailDeliveredPlain.dc.html",
+  "OrderDetailChargeback.dc.html",
+  "OrderDetailLedgerBatches.dc.html",
+  "OrderDetailHalalConcern.dc.html",
+  "OrderDetailDisputedSupport.dc.html",
+  "CancelTimeout.dc.html",
+  "CancelRateLimited.dc.html",
+  "RevealRateLimited.dc.html",
+  "LiveMapSessionEnded.dc.html",
+  "LiveMapOffline.dc.html",
+  "LiveAlertsConnecting.dc.html",
+  "LiveAlertsTicketFailed.dc.html",
+  "LiveAlertsForbidden.dc.html",
+  "LiveAlertsInvalidChannel.dc.html",
+  "LiveAlertsSessionEnded.dc.html",
+  "LiveAlertsSupport.dc.html",
+  "LiveAlertsArriving.dc.html",
+  "OrdersGrid1280.dc.html",
+  "OrdersZoom200.dc.html",
+  "OrderDetail1280.dc.html",
+  "OrderDetailZoom200.dc.html",
+  "AdminNavCollapsed.dc.html",
+  "OrderDetailListCollapsed.dc.html",
+  "LiveMapPane.dc.html",
+  "OrderDetailCancelled.dc.html",
+  "HalalState.dc.html"
+ ],
+ "pages": [],
+ "title": "HalalGoes Admin — Orders & Refunds"
+}

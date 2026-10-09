@@ -1,0 +1,1086 @@
+{
+ "v": 3,
+ "createdOnFiles": {
+  "v": 1,
+  "at": "2026-10-01T02:09:22Z"
+ },
+ "title": "HalalGoes Rider — Delivery",
+ "launch": {
+  "view": "canvas"
+ },
+ "pages": [],
+ "boards": {
+  "PickupEnRoute.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Pickup — go to the restaurant (preparing)",
+   "w": 390,
+   "x": 0,
+   "y": 0
+  },
+  "PickupReady.dc.html": {
+   "h": 844,
+   "title": "Pickup — go to the restaurant (food ready)",
+   "w": 390,
+   "x": 470,
+   "y": 0
+  },
+  "PickupGeofence.dc.html": {
+   "h": 844,
+   "title": "Pickup — you look far from the restaurant",
+   "w": 390,
+   "x": 940,
+   "y": 0
+  },
+  "PickupWaiting.dc.html": {
+   "h": 844,
+   "title": "Pickup — at the restaurant, food not ready",
+   "w": 390,
+   "x": 1410,
+   "y": 0
+  },
+  "PickupItems.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Pickup — check the items and type the pickup code (food ready)",
+   "w": 390,
+   "x": 1880,
+   "y": 0
+  },
+  "TripOutOfDate.dc.html": {
+   "h": 844,
+   "title": "Trip — step changed elsewhere (409)",
+   "w": 390,
+   "x": 2350,
+   "y": 0
+  },
+  "TripLoading.dc.html": {
+   "h": 844,
+   "title": "Trip — loading",
+   "w": 390,
+   "x": 2820,
+   "y": 0
+  },
+  "DropoffEnRoute.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Drop-off — go to the customer",
+   "w": 390,
+   "x": 0,
+   "y": 1400
+  },
+  "DropoffTrackingLost.dc.html": {
+   "h": 844,
+   "title": "Drop-off — tracking lost",
+   "w": 390,
+   "x": 470,
+   "y": 1400
+  },
+  "DropoffArrived.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Drop-off — at the door (heading from the customer's instructions)",
+   "w": 390,
+   "x": 940,
+   "y": 1400
+  },
+  "Handover.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Drop-off — how you handed it over (photo methods)",
+   "w": 390,
+   "x": 1410,
+   "y": 1400
+  },
+  "PodOtp.dc.html": {
+   "h": 844,
+   "title": "Proof — customer's code",
+   "w": 390,
+   "x": 1880,
+   "y": 1400
+  },
+  "PodOtpWrong.dc.html": {
+   "h": 844,
+   "title": "Proof — code incorrect",
+   "w": 390,
+   "x": 2350,
+   "y": 1400
+  },
+  "PodOtpLocked.dc.html": {
+   "h": 844,
+   "title": "Proof — code locked",
+   "w": 390,
+   "x": 2820,
+   "y": 1400
+  },
+  "PodPhoto.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Proof — take a photo",
+   "w": 390,
+   "x": 3290,
+   "y": 1400
+  },
+  "PodPhotoFailed.dc.html": {
+   "h": 844,
+   "title": "Proof — photo didn't upload",
+   "w": 390,
+   "x": 3760,
+   "y": 1400
+  },
+  "PodAttestation.dc.html": {
+   "h": 844,
+   "title": "Proof — photo and statement",
+   "w": 390,
+   "x": 4230,
+   "y": 1400
+  },
+  "DeliveredPodMissing.dc.html": {
+   "h": 844,
+   "title": "Delivered — proof still needed (422)",
+   "w": 390,
+   "x": 4700,
+   "y": 1400
+  },
+  "Delivered.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Delivered",
+   "w": 390,
+   "x": 5170,
+   "y": 1400
+  },
+  "DropoffLight.dc.html": {
+   "h": 844,
+   "title": "Drop-off — light theme",
+   "w": 390,
+   "x": 5640,
+   "y": 1400
+  },
+  "SomethingWrong.dc.html": {
+   "h": 844,
+   "title": "Something's wrong — drop-off leg (current contract)",
+   "w": 390,
+   "x": 0,
+   "y": 2800
+  },
+  "RestaurantNotes.dc.html": {
+   "h": 844,
+   "title": "Contact — after pickup",
+   "w": 390,
+   "x": 470,
+   "y": 2800
+  },
+  "OrderCancelled.dc.html": {
+   "h": 844,
+   "title": "Order cancelled by HalalGoes — before pickup",
+   "w": 390,
+   "x": 940,
+   "y": 2800
+  },
+  "Reassigned.dc.html": {
+   "h": 844,
+   "title": "Delivery moved to another rider — before pickup",
+   "w": 390,
+   "x": 1410,
+   "y": 2800
+  },
+  "Returning.dc.html": {
+   "h": 844,
+   "title": "Can't deliver — return the food",
+   "w": 390,
+   "x": 1880,
+   "y": 2800
+  },
+  "Returned.dc.html": {
+   "h": 844,
+   "title": "Food returned",
+   "w": 390,
+   "x": 2350,
+   "y": 2800
+  },
+  "TripNoConnection.dc.html": {
+   "h": 844,
+   "title": "Trip — no connection at the door (keep the bag until back online)",
+   "w": 390,
+   "x": 2820,
+   "y": 2800
+  },
+  "Restoring.dc.html": {
+   "h": 844,
+   "title": "Reopening — restoring your delivery",
+   "w": 390,
+   "x": 3290,
+   "y": 2800
+  },
+  "EndedWhileClosed.dc.html": {
+   "h": 844,
+   "title": "Reopening — delivery ended while closed",
+   "w": 390,
+   "x": 3760,
+   "y": 2800
+  },
+  "QueuedRejected.dc.html": {
+   "h": 844,
+   "title": "Reopening — a saved step wasn't accepted",
+   "w": 390,
+   "x": 4230,
+   "y": 2800
+  },
+  "SignedOut.dc.html": {
+   "h": 844,
+   "title": "Signed out mid-delivery",
+   "w": 390,
+   "x": 4700,
+   "y": 2800
+  },
+  "UpdateApp.dc.html": {
+   "h": 844,
+   "title": "Update the app",
+   "w": 390,
+   "x": 5170,
+   "y": 2800
+  },
+  "PickupArriving.dc.html": {
+   "h": 844,
+   "title": "Pickup — \"I'm at the restaurant\" sending",
+   "w": 390,
+   "x": 3290,
+   "y": 0
+  },
+  "PickupArriveFailed.dc.html": {
+   "h": 844,
+   "title": "Pickup — arrival not recorded (5xx)",
+   "w": 390,
+   "x": 3760,
+   "y": 0
+  },
+  "PickupLongWait.dc.html": {
+   "h": 844,
+   "title": "Pickup — still waiting after 20 minutes",
+   "w": 390,
+   "x": 4230,
+   "y": 0
+  },
+  "PickupNotMarkedReady.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Pickup — handed over but not marked ready",
+   "w": 390,
+   "x": 4700,
+   "y": 0
+  },
+  "TripLoadFailed.dc.html": {
+   "h": 844,
+   "title": "Trip — couldn't load the delivery",
+   "w": 390,
+   "x": 5170,
+   "y": 0
+  },
+  "PickupItemsLight.dc.html": {
+   "h": 844,
+   "title": "Pickup — check the items and type the pickup code (light theme)",
+   "w": 390,
+   "x": 5640,
+   "y": 0
+  },
+  "DropoffGeofence.dc.html": {
+   "h": 844,
+   "title": "Drop-off — you look far from the address (422)",
+   "w": 390,
+   "x": 6110,
+   "y": 1400
+  },
+  "PodMethodMismatch.dc.html": {
+   "h": 844,
+   "title": "Proof — different method needed (422)",
+   "w": 390,
+   "x": 6580,
+   "y": 1400
+  },
+  "PodOtpHelp.dc.html": {
+   "h": 844,
+   "title": "Proof — the customer can't find the code",
+   "w": 390,
+   "x": 7050,
+   "y": 1400
+  },
+  "PodOtpChecking.dc.html": {
+   "h": 844,
+   "title": "Proof — checking the code (sending)",
+   "w": 390,
+   "x": 7520,
+   "y": 1400
+  },
+  "PodOtpAccepted.dc.html": {
+   "h": 844,
+   "title": "Proof — code accepted",
+   "w": 390,
+   "x": 7990,
+   "y": 1400
+  },
+  "PodPhotoReview.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Proof — check the photo, save the proof",
+   "w": 390,
+   "x": 8460,
+   "y": 1400
+  },
+  "PodPhotoUploading.dc.html": {
+   "h": 844,
+   "title": "Proof — uploading the photo",
+   "w": 390,
+   "x": 8930,
+   "y": 1400
+  },
+  "PodMarkingDelivered.dc.html": {
+   "h": 844,
+   "title": "Proof — marking as delivered",
+   "w": 390,
+   "x": 9400,
+   "y": 1400
+  },
+  "PodDeliverFailed.dc.html": {
+   "h": 844,
+   "title": "Proof — mark as delivered failed (5xx)",
+   "w": 390,
+   "x": 9870,
+   "y": 1400
+  },
+  "PodDeliverQueued.dc.html": {
+   "h": 844,
+   "title": "Alternative (Needs API) — delivered saved offline, sends later",
+   "w": 390,
+   "x": 10340,
+   "y": 1400
+  },
+  "PodAttestationWait.dc.html": {
+   "h": 844,
+   "title": "Proof — photo and statement, waiting at the door",
+   "w": 390,
+   "x": 10810,
+   "y": 1400
+  },
+  "DeliveredGoOffline.dc.html": {
+   "h": 844,
+   "title": "Delivered — you asked to go offline after it",
+   "w": 390,
+   "x": 11280,
+   "y": 1400
+  },
+  "PodPhotoReviewLight.dc.html": {
+   "h": 844,
+   "title": "Proof — check the photo (light theme)",
+   "w": 390,
+   "x": 11750,
+   "y": 1400
+  },
+  "CantDeliverConfirm.dc.html": {
+   "h": 844,
+   "title": "Can't deliver — confirm (UNDELIVERABLE)",
+   "w": 390,
+   "x": 5640,
+   "y": 2800
+  },
+  "OrderCancelledAfterPickup.dc.html": {
+   "h": 844,
+   "title": "Order cancelled by HalalGoes — after pickup",
+   "w": 390,
+   "x": 6580,
+   "y": 2800
+  },
+  "CustomerCancelledAfterPickup.dc.html": {
+   "h": 844,
+   "title": "Order cancelled for the customer — after pickup",
+   "w": 390,
+   "x": 7050,
+   "y": 2800
+  },
+  "ReassignedAfterPickup.dc.html": {
+   "h": 844,
+   "title": "Delivery moved to another rider — after pickup",
+   "w": 390,
+   "x": 7520,
+   "y": 2800
+  },
+  "ContactBeforePickup.dc.html": {
+   "h": 844,
+   "title": "Contact — before pickup (restaurant only)",
+   "w": 390,
+   "x": 7990,
+   "y": 2800
+  },
+  "ContactEmpty.dc.html": {
+   "h": 844,
+   "title": "Contact — no messages, no numbers",
+   "w": 390,
+   "x": 8460,
+   "y": 2800
+  },
+  "PickupStartFailed.dc.html": {
+   "h": 844,
+   "title": "Accepted — 'on my way' step didn't reach us",
+   "w": 390,
+   "x": 6110,
+   "y": 0
+  },
+  "PickupStartQueued.dc.html": {
+   "h": 844,
+   "title": "Accepted — 'on my way' saved offline",
+   "w": 390,
+   "x": 6580,
+   "y": 0
+  },
+  "PickupRecording.dc.html": {
+   "h": 844,
+   "title": "Pickup — 'I've got the food' sending",
+   "w": 390,
+   "x": 7050,
+   "y": 0
+  },
+  "PickupRecordFailed.dc.html": {
+   "h": 844,
+   "title": "Pickup — not recorded (5xx)",
+   "w": 390,
+   "x": 7520,
+   "y": 0
+  },
+  "PickupRecordQueued.dc.html": {
+   "h": 844,
+   "title": "Pickup — saved offline ('Not sent yet')",
+   "w": 390,
+   "x": 7990,
+   "y": 0
+  },
+  "PickupTrackingLost.dc.html": {
+   "h": 844,
+   "title": "Pickup — tracking lost",
+   "w": 390,
+   "x": 8460,
+   "y": 0
+  },
+  "PickupTrackingDegraded.dc.html": {
+   "h": 844,
+   "title": "Pickup — weak tracking",
+   "w": 390,
+   "x": 8930,
+   "y": 0
+  },
+  "TripSocketLost.dc.html": {
+   "h": 844,
+   "title": "Trip — live updates lost, requests still work",
+   "w": 390,
+   "x": 9400,
+   "y": 0
+  },
+  "DropoffArriving.dc.html": {
+   "h": 844,
+   "title": "Drop-off — 'I'm here' sending",
+   "w": 390,
+   "x": 12220,
+   "y": 1400
+  },
+  "DropoffArriveFailed.dc.html": {
+   "h": 844,
+   "title": "Drop-off — arrival not recorded (5xx)",
+   "w": 390,
+   "x": 12690,
+   "y": 1400
+  },
+  "DropoffArriveQueued.dc.html": {
+   "h": 844,
+   "title": "Drop-off — 'I'm here' saved offline",
+   "w": 390,
+   "x": 13160,
+   "y": 1400
+  },
+  "DropoffDoNotCall.dc.html": {
+   "h": 844,
+   "title": "Drop-off — asked not to be called (alias present)",
+   "w": 390,
+   "x": 13630,
+   "y": 1400
+  },
+  "DropoffTrackingDegraded.dc.html": {
+   "h": 844,
+   "title": "Drop-off — weak tracking",
+   "w": 390,
+   "x": 14100,
+   "y": 1400
+  },
+  "HandoverOtp.dc.html": {
+   "h": 844,
+   "title": "Drop-off — how you handed it over (customer's code needed)",
+   "w": 390,
+   "x": 14570,
+   "y": 1400
+  },
+  "PodPhotoCameraDenied.dc.html": {
+   "h": 844,
+   "title": "Proof — camera not allowed for the photo",
+   "w": 390,
+   "x": 15040,
+   "y": 1400
+  },
+  "PodAttestationCameraDenied.dc.html": {
+   "h": 844,
+   "title": "Proof — camera not allowed for the attestation photo",
+   "w": 390,
+   "x": 15510,
+   "y": 1400
+  },
+  "PodAttestationValid.dc.html": {
+   "h": 844,
+   "title": "Proof — photo and statement ready (after the server wait)",
+   "w": 390,
+   "x": 15980,
+   "y": 1400
+  },
+  "PodAttestationSubmitting.dc.html": {
+   "h": 844,
+   "title": "Proof — photo and statement sending",
+   "w": 390,
+   "x": 16450,
+   "y": 1400
+  },
+  "PodAttestationFailed.dc.html": {
+   "h": 844,
+   "title": "Proof — photo and statement didn't send",
+   "w": 390,
+   "x": 16920,
+   "y": 1400
+  },
+  "PodQueuedRejectedAlt.dc.html": {
+   "h": 844,
+   "title": "Alternative (Needs API) — saved 'Delivered' rejected on replay",
+   "w": 390,
+   "x": 17390,
+   "y": 1400
+  },
+  "DeliveredOtp.dc.html": {
+   "h": 844,
+   "title": "Delivered — customer's code proof",
+   "w": 390,
+   "x": 17860,
+   "y": 1400
+  },
+  "DeliveredAttestation.dc.html": {
+   "h": 844,
+   "title": "Delivered — photo and statement proof",
+   "w": 390,
+   "x": 18330,
+   "y": 1400
+  },
+  "DeliveredLight.dc.html": {
+   "h": 844,
+   "title": "Delivered (light theme)",
+   "w": 390,
+   "x": 18800,
+   "y": 1400
+  },
+  "PodOtpLight.dc.html": {
+   "h": 844,
+   "title": "Proof — customer's code (light theme)",
+   "w": 390,
+   "x": 19270,
+   "y": 1400
+  },
+  "HandoverLight.dc.html": {
+   "h": 844,
+   "title": "Drop-off — how you handed it over (light theme)",
+   "w": 390,
+   "x": 19740,
+   "y": 1400
+  },
+  "SomethingWrongPickup.dc.html": {
+   "h": 844,
+   "title": "Something's wrong — pickup leg (no 'I can't deliver')",
+   "w": 390,
+   "x": 8930,
+   "y": 2800
+  },
+  "SomethingWrongReasonsAlt.dc.html": {
+   "h": 844,
+   "title": "Alternative — Needs API: coded reasons and Tell HalalGoes (rider incident reporting)",
+   "w": 390,
+   "x": 9400,
+   "y": 2800
+  },
+  "CantDeliverSending.dc.html": {
+   "h": 844,
+   "title": "Can't deliver — sending (UNDELIVERABLE)",
+   "w": 390,
+   "x": 9870,
+   "y": 2800
+  },
+  "CantDeliverFailed.dc.html": {
+   "h": 844,
+   "title": "Can't deliver — not recorded (5xx)",
+   "w": 390,
+   "x": 10340,
+   "y": 2800
+  },
+  "CantDeliverQueued.dc.html": {
+   "h": 844,
+   "title": "Can't deliver — saved offline ('Not sent yet')",
+   "w": 390,
+   "x": 10810,
+   "y": 2800
+  },
+  "ReturnedSending.dc.html": {
+   "h": 844,
+   "title": "Returning — 'I've returned it' sending",
+   "w": 390,
+   "x": 11280,
+   "y": 2800
+  },
+  "ReturnedFailed.dc.html": {
+   "h": 844,
+   "title": "Returning — return not recorded (5xx)",
+   "w": 390,
+   "x": 11750,
+   "y": 2800
+  },
+  "ReturnedGeofence.dc.html": {
+   "h": 844,
+   "title": "Returning — you look far from the restaurant (422)",
+   "w": 390,
+   "x": 12220,
+   "y": 2800
+  },
+  "ReturnedLoading.dc.html": {
+   "h": 844,
+   "title": "Food returned — loading",
+   "w": 390,
+   "x": 12690,
+   "y": 2800
+  },
+  "CancelledFoodConfirm.dc.html": {
+   "h": 844,
+   "title": "After-pickup cancel — confirm the food is dealt with",
+   "w": 390,
+   "x": 13160,
+   "y": 2800
+  },
+  "ContactLoading.dc.html": {
+   "h": 844,
+   "title": "Contact — loading",
+   "w": 390,
+   "x": 13630,
+   "y": 2800
+  },
+  "ContactError.dc.html": {
+   "h": 844,
+   "title": "Contact — couldn't load",
+   "w": 390,
+   "x": 14100,
+   "y": 2800
+  },
+  "FocusStatesControls.dc.html": {
+   "h": 844,
+   "title": "Focus — radio rows, decline rows and text fields",
+   "w": 800,
+   "x": 14570,
+   "y": 2800
+  },
+  "FocusStatesChrome.dc.html": {
+   "h": 844,
+   "title": "Focus — card, bottom nav, app bar back and primary button",
+   "w": 800,
+   "x": 15450,
+   "y": 2800
+  },
+  "PickupEnRouteLarge.dc.html": {
+   "h": 844,
+   "title": "Pickup — go to the restaurant — text at 200%",
+   "w": 390,
+   "x": 9870,
+   "y": 0
+  },
+  "PickupEnRouteSmall.dc.html": {
+   "h": 640,
+   "title": "Pickup — go to the restaurant — 360 × 640 fit check",
+   "w": 360,
+   "x": 10340,
+   "y": 0
+  },
+  "DropoffEnRouteLarge.dc.html": {
+   "h": 844,
+   "title": "Drop-off — go to the customer — text at 200%",
+   "w": 390,
+   "x": 20210,
+   "y": 1400
+  },
+  "DropoffEnRouteSmall.dc.html": {
+   "h": 640,
+   "title": "Drop-off — go to the customer — 360 × 640 fit check",
+   "w": 360,
+   "x": 20680,
+   "y": 1400
+  },
+  "DropoffArrivedLarge.dc.html": {
+   "h": 844,
+   "title": "Drop-off — at the door — text at 200%",
+   "w": 390,
+   "x": 21120,
+   "y": 1400
+  },
+  "DropoffArrivedSmall.dc.html": {
+   "h": 640,
+   "title": "Drop-off — at the door — 360 × 640 fit check",
+   "w": 360,
+   "x": 21590,
+   "y": 1400
+  },
+  "HandoverLarge.dc.html": {
+   "h": 844,
+   "title": "Drop-off — how you handed it over — text at 200%",
+   "w": 390,
+   "x": 22030,
+   "y": 1400
+  },
+  "HandoverSmall.dc.html": {
+   "h": 640,
+   "title": "Drop-off — how you handed it over — 360 × 640 fit check",
+   "w": 360,
+   "x": 22500,
+   "y": 1400
+  },
+  "PickupRestaurantClosed.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Pickup — restaurant closed",
+   "w": 390,
+   "x": 10780,
+   "y": 0
+  },
+  "CantDeliverEnRoute.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Can't deliver — on the way (return only)",
+   "w": 390,
+   "x": 22940,
+   "y": 1400
+  },
+  "SomethingWrongDoor.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Something's wrong — at the door (step 4)",
+   "w": 390,
+   "x": 23410,
+   "y": 1400
+  },
+  "SomethingWrongNoSupport.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Something's wrong — drop-off, support_enabled = false",
+   "w": 390,
+   "x": 16330,
+   "y": 2800
+  },
+  "SomethingWrongPickupNoSupport.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Something's wrong — pickup, support_enabled = false",
+   "w": 390,
+   "x": 16800,
+   "y": 2800
+  },
+  "SomethingWrongReturning.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Something's wrong — returning leg",
+   "w": 390,
+   "x": 17270,
+   "y": 2800
+  },
+  "OrderCancelledByRestaurant.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Cancelled before pickup — by the restaurant",
+   "w": 390,
+   "x": 17740,
+   "y": 2800
+  },
+  "OrderCancelledByCustomer.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Cancelled before pickup — for the customer",
+   "w": 390,
+   "x": 18210,
+   "y": 2800
+  },
+  "ReturningNoConnection.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Returning — no connection",
+   "w": 390,
+   "x": 18680,
+   "y": 2800
+  },
+  "ReturnedQueued.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Returned — \"I've returned it\" not sent yet",
+   "w": 390,
+   "x": 19150,
+   "y": 2800
+  },
+  "CancelledFoodConfirmReassigned.dc.html": {
+   "h": 844,
+   "title": "After-pickup move — confirm the bag is handed over",
+   "w": 390,
+   "x": 19620,
+   "y": 2800
+  },
+  "ReturnedPaid.dc.html": {
+   "h": 844,
+   "title": "Returned — ledger entry exists",
+   "w": 390,
+   "x": 20090,
+   "y": 2800
+  },
+  "PodAttestationLeftAtDoor.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Can't deliver — leave it at the door with a photo and a statement",
+   "w": 390,
+   "x": 6110,
+   "y": 2800
+  },
+  "MessagesAfterEnd.dc.html": {
+   "h": 844,
+   "title": "Messages — after the delivery ended (read-only)",
+   "w": 390,
+   "x": 0,
+   "y": 4200
+  },
+  "PickupCodeWrong.dc.html": {
+   "x": 11250,
+   "y": 0,
+   "w": 390,
+   "h": 844,
+   "title": "Pickup — pickup code not right"
+  },
+  "PickupCodeHelp.dc.html": {
+   "x": 11720,
+   "y": 0,
+   "w": 390,
+   "h": 844,
+   "title": "Pickup — the kitchen can't find the pickup code"
+  },
+  "PickupCodeLocked.dc.html": {
+   "x": 12190,
+   "y": 0,
+   "w": 390,
+   "h": 844,
+   "title": "Pickup — too many wrong pickup codes"
+  },
+  "PickupCodeRejectedLater.dc.html": {
+   "x": 12660,
+   "y": 0,
+   "w": 390,
+   "h": 844,
+   "title": "Pickup — saved pickup code not accepted when it sent"
+  }
+ },
+ "order": [
+  "PickupEnRoute.dc.html",
+  "PickupReady.dc.html",
+  "PickupGeofence.dc.html",
+  "PickupWaiting.dc.html",
+  "PickupItems.dc.html",
+  "TripOutOfDate.dc.html",
+  "TripLoading.dc.html",
+  "DropoffEnRoute.dc.html",
+  "DropoffTrackingLost.dc.html",
+  "DropoffArrived.dc.html",
+  "Handover.dc.html",
+  "PodOtp.dc.html",
+  "PodOtpWrong.dc.html",
+  "PodOtpLocked.dc.html",
+  "PodPhoto.dc.html",
+  "PodPhotoFailed.dc.html",
+  "PodAttestation.dc.html",
+  "DeliveredPodMissing.dc.html",
+  "Delivered.dc.html",
+  "DropoffLight.dc.html",
+  "SomethingWrong.dc.html",
+  "RestaurantNotes.dc.html",
+  "OrderCancelled.dc.html",
+  "Reassigned.dc.html",
+  "Returning.dc.html",
+  "Returned.dc.html",
+  "TripNoConnection.dc.html",
+  "Restoring.dc.html",
+  "EndedWhileClosed.dc.html",
+  "QueuedRejected.dc.html",
+  "SignedOut.dc.html",
+  "UpdateApp.dc.html",
+  "PickupArriving.dc.html",
+  "PickupArriveFailed.dc.html",
+  "PickupLongWait.dc.html",
+  "PickupNotMarkedReady.dc.html",
+  "TripLoadFailed.dc.html",
+  "PickupItemsLight.dc.html",
+  "DropoffGeofence.dc.html",
+  "PodMethodMismatch.dc.html",
+  "PodOtpHelp.dc.html",
+  "PodOtpChecking.dc.html",
+  "PodOtpAccepted.dc.html",
+  "PodPhotoReview.dc.html",
+  "PodPhotoUploading.dc.html",
+  "PodMarkingDelivered.dc.html",
+  "PodDeliverFailed.dc.html",
+  "PodDeliverQueued.dc.html",
+  "PodAttestationWait.dc.html",
+  "DeliveredGoOffline.dc.html",
+  "PodPhotoReviewLight.dc.html",
+  "CantDeliverConfirm.dc.html",
+  "OrderCancelledAfterPickup.dc.html",
+  "CustomerCancelledAfterPickup.dc.html",
+  "ReassignedAfterPickup.dc.html",
+  "ContactBeforePickup.dc.html",
+  "ContactEmpty.dc.html",
+  "PickupStartFailed.dc.html",
+  "PickupStartQueued.dc.html",
+  "PickupRecording.dc.html",
+  "PickupRecordFailed.dc.html",
+  "PickupRecordQueued.dc.html",
+  "PickupTrackingLost.dc.html",
+  "PickupTrackingDegraded.dc.html",
+  "TripSocketLost.dc.html",
+  "DropoffArriving.dc.html",
+  "DropoffArriveFailed.dc.html",
+  "DropoffArriveQueued.dc.html",
+  "DropoffDoNotCall.dc.html",
+  "DropoffTrackingDegraded.dc.html",
+  "HandoverOtp.dc.html",
+  "PodPhotoCameraDenied.dc.html",
+  "PodAttestationCameraDenied.dc.html",
+  "PodAttestationValid.dc.html",
+  "PodAttestationSubmitting.dc.html",
+  "PodAttestationFailed.dc.html",
+  "PodQueuedRejectedAlt.dc.html",
+  "DeliveredOtp.dc.html",
+  "DeliveredAttestation.dc.html",
+  "DeliveredLight.dc.html",
+  "PodOtpLight.dc.html",
+  "HandoverLight.dc.html",
+  "SomethingWrongPickup.dc.html",
+  "SomethingWrongReasonsAlt.dc.html",
+  "CantDeliverSending.dc.html",
+  "CantDeliverFailed.dc.html",
+  "CantDeliverQueued.dc.html",
+  "ReturnedSending.dc.html",
+  "ReturnedFailed.dc.html",
+  "ReturnedGeofence.dc.html",
+  "ReturnedLoading.dc.html",
+  "CancelledFoodConfirm.dc.html",
+  "ContactLoading.dc.html",
+  "ContactError.dc.html",
+  "FocusStatesControls.dc.html",
+  "FocusStatesChrome.dc.html",
+  "PickupEnRouteLarge.dc.html",
+  "PickupEnRouteSmall.dc.html",
+  "DropoffEnRouteLarge.dc.html",
+  "DropoffEnRouteSmall.dc.html",
+  "DropoffArrivedLarge.dc.html",
+  "DropoffArrivedSmall.dc.html",
+  "HandoverLarge.dc.html",
+  "HandoverSmall.dc.html",
+  "PickupRestaurantClosed.dc.html",
+  "CantDeliverEnRoute.dc.html",
+  "SomethingWrongDoor.dc.html",
+  "SomethingWrongNoSupport.dc.html",
+  "SomethingWrongPickupNoSupport.dc.html",
+  "SomethingWrongReturning.dc.html",
+  "OrderCancelledByRestaurant.dc.html",
+  "OrderCancelledByCustomer.dc.html",
+  "ReturningNoConnection.dc.html",
+  "ReturnedQueued.dc.html",
+  "CancelledFoodConfirmReassigned.dc.html",
+  "ReturnedPaid.dc.html",
+  "PodAttestationLeftAtDoor.dc.html",
+  "MessagesAfterEnd.dc.html",
+  "PickupCodeWrong.dc.html",
+  "PickupCodeHelp.dc.html",
+  "PickupCodeLocked.dc.html",
+  "PickupCodeRejectedLater.dc.html"
+ ],
+ "notes": {
+  "t_pickup": {
+   "kind": "title1",
+   "maxW": 8000,
+   "text": "3 · Pickup leg — to the restaurant, wait, check the items",
+   "w": 240,
+   "x": 0,
+   "y": -300
+  },
+  "n_pickup": {
+   "fill": "teal",
+   "maxH": 844,
+   "text": "Pickup — behaviour\n\n• Data: GET /v1/riders/me/assignments/{id} + order:{order_id} events (order.state_changed, order.note_added, order.cancelled, dispatch.unassigned).\n• Every transition POSTs …/transitions with to_state, occurred_at and a real latitude/longitude/accuracy_m.\n• 422 GEOFENCE_REQUIRED → override with override_reason (5–200 chars). Never stuck.\n• 409 INVALID_TRANSITION → re-sync to details.current_state.\n• No tamper seal at launch (owner decision; seals move to v1.1): no scan at pickup or at the door. The rider matches the order code on the receipt, counts the items and types the pickup code the kitchen reads out (owner decision: it proves both sides were there), then 'I've got the food' posts /transitions PICKED_UP with the code. Wrong code: PickupCodeWrong. Kitchen can't find it: PickupCodeHelp. Too many wrong codes: PickupCodeLocked (call HalalGoes support to finish the pickup). Needs API: the pickup code on the restaurant's order and on the PICKED_UP step, its wrong-code answer, a limit on tries with its error code and how support releases the pickup, and what a replayed pickup with a wrong code returns.\n• Offline → /transitions steps, PICKED_UP included, advance locally with 'Not sent yet' and replay with the original occurred_at (PickupRecordQueued). A saved pickup code that isn't accepted when it sends opens PickupCodeRejectedLater (type the code again, call the restaurant or support), not the generic saved-step screen.\n• EN_ROUTE_TO_PICKUP is posted on accept; EN_ROUTE_TO_DROPOFF follows PICKED_UP; neither has a button (rider spec: delivery status updates).\n• No halal badge anywhere: Assignment.items[] has no halal field.\n• 'I'm at the restaurant' branches on pickup.order_state: PREPARING → wait, READY_FOR_PICKUP → items; 422 → geofence sheet.\n• 'Check the items' turns on when order.state_changed reports READY_FOR_PICKUP.\n• Every pickup screen shows the full drop-off address and unit: the rider gets them on accept (owner decision: approximate area before accepting, full address once accepted).\n• Long wait: at 20 min a slate banner offers a direct call. Ops escalation and release at 25 min are Needs API.\n• Handed over but not marked ready: the sheet records nothing. The rider asks the restaurant to mark it ready (Call restaurant, Call HalalGoes support); PICKED_UP is allowed only from READY_FOR_PICKUP and override_reason covers the location check only. Needs API: pickup before the restaurant marks the order ready.\n• The pickup What's-wrong sheet carries the incident-reporting release path as a labelled Needs API block. Under the current contract the only exit before pickup is HalalGoes reassigning the order: launch blocker, see Open owner decisions.\n• Call buttons dial phone_alias directly and hide when it is null; the latest order.note_added shows inline with 'See all messages'. Needs API: order notes history (notes arrive only live, so the list can't be rebuilt after a restart, a re-sync or the end of the delivery).",
+   "w": 440,
+   "x": 13130,
+   "y": 0
+  },
+  "t_drop": {
+   "kind": "title1",
+   "maxW": 8000,
+   "text": "4 · Drop-off leg — address, handover, proof",
+   "w": 240,
+   "x": 0,
+   "y": 1100
+  },
+  "n_drop": {
+   "fill": "blue",
+   "maxH": 844,
+   "text": "Drop-off — behaviour\n\n• The full drop-off is on the phone from accept (owner decision: approximate area before accepting, full address once accepted; the address-not-here-yet fallback is removed): address, unit, buzzer (mono), customer_display_name, delivery_instructions[], special_instructions (verbatim, never truncated), required_pod_method.\n• delivery_instructions has 5 contract values: LEAVE_AT_DOOR, DO_NOT_RING_BELL, DO_NOT_CALL, MEET_AT_DOOR, MEET_IN_LOBBY.\n• Call uses dropoff.phone_alias as a tel: link; hidden when null.\n• Handover method: nothing pre-selected. PHOTO / PHOTO_WITH_ATTESTATION list all 4 HandoverMethod rows; OTP lists only met handovers (HandoverOtp).\n• The at-the-door heading comes from delivery_instructions (LEAVE_AT_DOOR → 'Leave it at Aisha M.'s door'); the Customer asked rows sit under it. DO_NOT_CALL with an alias: Call demoted to ghost with a line.\n• Proof by required_pod_method: OTP (rider never sees the code; the customer finds it on their order and tracking screens, owner decision; 423 OTP_LOCKED → attestation path), PHOTO (in-app camera only), PHOTO_WITH_ATTESTATION (checkbox never pre-ticked; the server's mandatory wait holds every submit, except a leave-at-door drop the customer asked for).\n• No tamper seal at launch (owner decision): handover → proof-of-delivery → Mark as delivered (/transitions DELIVERED). DELIVERED is always a deliberate tap and cannot commit without proof: 422 POD_REQUIRED shows details.required_pod_method; 422 POD_METHOD_MISMATCH re-routes.\n• Earnings rule (Delivered, Returned, OrderCancelled alike): each amount is one EarningEntry matched on assignment_id, gross_cents as returned; hidden while none exists; a reversal keeps the original line and adds its CLAWBACK line under it (owner decision); never summed on the client. Delivered shows Assignment.earnings as an estimate until then.\n• After a terminal state the address is cut back to street level and Call disappears.\n• No connection at the door: keep the bag; proof never queues (TripNoConnection). Offline proof + DELIVERED replay is the Needs API alternative (PodDeliverQueued, PodQueuedRejectedAlt).\n• 'I can't deliver' lives only in Something's wrong: on the way → CantDeliverEnRoute (return, call, support); at the door → CantDeliverConfirm. When the customer chose LEAVE_AT_DOOR, the main answer is leaving it with a photo and a statement straight away, with no wait (owner decision; PodAttestationLeftAtDoor; Needs API: proof-of-delivery accepting PHOTO_WITH_ATTESTATION when PHOTO is required, and skipping the mandatory wait for this drop).\n• Remaining OTP attempts are not returned: Needs API.",
+   "w": 440,
+   "x": 24350,
+   "y": 1400
+  },
+  "t_exc": {
+   "kind": "title1",
+   "maxW": 8000,
+   "text": "5 · Exceptions, contact, reassignment, recovery",
+   "w": 240,
+   "x": 0,
+   "y": 2500
+  },
+  "n_exc": {
+   "fill": "purple",
+   "maxH": 844,
+   "text": "Exceptions and recovery — behaviour\n\n• 'Something's wrong' sits on every screen from ASSIGNED onward (camera screens: AppBar trailing slot), linked to the leg's own sheet: pickup (911, HalalGoes support, restaurant, incident-reporting Needs API block), drop-off step 3 and step 4 (911, support, customer, 'I can't deliver'), returning (911, support, restaurant). Support = PublicConfig.support_phone_e164 with support_hours; the row is not drawn when support_enabled is false (NoSupport variants). Coded reasons and 'Tell HalalGoes' are the Needs API (rider incident reporting) alternative board. 'I can't deliver' with LEAVE_AT_DOOR offers leaving it with a photo and a statement first (owner decision).\n• Contact real today: call via phone_alias; read-only feed of order.note_added, live only (Needs API: order notes history); after a delivery ends or is moved, 'See messages about this order' opens MessagesAfterEnd. Templates, restaurant issue codes and chat are Needs API.\n• Terminal states reachable from REST or WS: DELIVERED, CANCELLED_BY_PLATFORM, REASSIGNED (dispatch.unassigned), UNDELIVERABLE → RETURNING → RETURNED.\n• Compensation and pay are shown only from the ledger (each entry its own line, gross_cents as returned, hidden if none; a clawback adds a line under the original). Returned makes no promise of pay until the undelivered-food policy is decided.\n• Cancelled before pickup: heading keyed on order.cancelled.by (HalalGoes / the restaurant / for the customer).\n• Cold start: next_route ACTIVE_DELIVERY restores the exact step from active_assignment.state; queued transitions replay with original occurred_at; socket resume {after_seq}, re-fetch on truncated.\n• Session revoked (4401) or refresh failed → sign-in. The delivery continues on the server.\n• Unknown enum or next_route → 'Update the app'.\n• Socket down is quiet: the app polls REST and renders the same.\n• Offline copy never promises that the route is back-filled (the contract rejects old points as STALE_POINT).\n• Cancelled and reassigned are split before and after pickup. After pickup the instruction for the food is Needs API; meanwhile the primary is Call HalalGoes support, the restaurant call is secondary. The closing step records nothing (no fake custody report). Cancellations close on CancelledFoodConfirm ('Have you dealt with the food?'); a move to another rider closes on CancelledFoodConfirmReassigned ('Have you handed the bag over?').\n• 'Back to Home' resolves to the mode GET dashboard returns; go_offline_after_delivery ends on Home offline.\n• Contact before PICKED_UP shows the restaurant only; an empty state covers no messages and no numbers.",
+   "w": 440,
+   "x": 20560,
+   "y": 2800
+  },
+  "n_owner": {
+   "fill": "orange",
+   "maxH": 844,
+   "text": "Open owner decisions and contract asks (this canvas)\n\n• Settled Sep 28 and applied: no tamper seals at launch (every seal screen removed; back in v1.1); tip shown before accept; the rider theme follows the phone; Accept keeps the orange button with the dark label; a Stripe payout pause never stops offers; a suspended rider finishes the current delivery, unless HalalGoes contacts them (operations may move it to another rider), and is paid; leave it at the door with a photo and a statement when the customer chose that; reversed earnings keep the original line plus a clawback line; dark-mode map pins; three tabs.\n• Undelivered food policy: Returned makes no promise of pay until decided.\n• Rider incident reporting (restaurant closed, 25-min not ready, breakdown, unwell, accident): LAUNCH BLOCKER. Under the current contract the only exit before pickup is ops reassigning.\n• Needs API: distance to pickup on DispatchOffer; food disposition after cancel / reassign; notification permission on the heartbeat; OTHER note optional on decline; PAYOUT_ACCOUNT_INCOMPLETE split from a later Stripe restriction; proof-of-delivery accepting PHOTO_WITH_ATTESTATION when PHOTO is required; the delivery code on the customer's order and tracking screens (customer app), plus the push when the rider arrives.\n• Design system: tokens.css has no dark-mode map-pin values yet; the Button critical label (Accept) renders at 18px semibold, below the 18.66px bold large-text size the Accept ruling relies on.\n• Settled Oct 1 and applied: the kitchen reads a short pickup code that the rider types in; the customer's delivery code is on their order and tracking screens; full drop-off address once accepted; leaving it at the door when the customer asked needs no wait; times use the 12-hour clock.",
+   "w": 440,
+   "x": 21080,
+   "y": 2800
+  },
+  "n_split": {
+   "x": -560,
+   "y": 0,
+   "w": 440,
+   "fill": "gray",
+   "text": "Split from HalalGoes Rider — Shift & Delivery: https://claude.ai/artifact/JJsWRMctEXTssZsT4qnEGN\n\nThis canvas holds the pickup leg, the drop-off leg, and exceptions, contact, reassignment and recovery. Home, shift and offers stay on the original canvas; links to those screens open it."
+  }
+ },
+ "designSystems": [
+  {
+   "title": "HalalGoes design system",
+   "namespace": "halalgoesdesignsystem-d11a47",
+   "artifact": "https://claude.ai/artifact/1GwGVZz8Ju9wcz4HfCnzbv",
+   "version": "1790605103-3266",
+   "copiedAt": "2026-10-01T02:09:22Z"
+  }
+ ]
+}

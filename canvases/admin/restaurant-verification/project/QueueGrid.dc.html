@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Applications grid</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div style="width: {{wcss}}; height: {{hcss}}; box-sizing: border-box; display: flex; flex-direction: column; gap: 12px; min-height: 0; font-family: var(--font-ui); color: var(--text-primary)">
+  <sc-if value="{{holds}}" hint-placeholder-val="{{false}}">
+    <div role="region" aria-label="Your claim" style="display: flex; align-items: center; gap: 16px; padding: 12px 16px; background: var(--surface-raised); border: 1px solid var(--border-strong); border-radius: 12px">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="lock" size="lg" color="var(--text-secondary)"></x-import>
+      <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px">
+        <span style="display: inline-flex; align-items: baseline; gap: 6px; font-size: 15px; font-weight: 600">You’re reviewing Karahi House ·
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Countdown" variant="text" size="sm" expires-at="2026-09-28T14:48:00-04:00" server-now="{{now}}" window-seconds="{{hour}}" urgent-threshold="{{urgent}}" critical-threshold="{{zero}}" label="left"></x-import>
+        </span>
+        <span style="font-size: 13px; color: var(--text-secondary)">Your claim ends at 2:48 pm. Decide Karahi House before taking another; after 2:48 pm it returns to the queue.</span>
+      </div>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md" icon-end="chevron-right" href="App.dc.html">Continue review</x-import>
+    </div>
+  </sc-if>
+  <sc-if value="{{showFilters}}" hint-placeholder-val="{{true}}">
+    <div role="search" aria-label="Filter applications" style="display: flex; align-items: flex-end; gap: 16px; padding: 12px 16px; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: 12px">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Select" label="Onboarding state" value="{{stateFilter}}" options="{{stateOptions}}" style="width: 280px"></x-import>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Switch" label="SLA breached only" state-label="{{onOff}}" checked="{{breachedOnly}}" size="md"></x-import>
+      <span style="flex-grow: 1; display: flex; flex-direction: column; align-items: flex-end; gap: 2px">
+        <span style="font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums">{{countLine}}</span>
+        <span style="display: inline-flex; padding: 2px 8px; border-radius: 4px; background: var(--color-info-50); color: var(--color-info-700); font-size: 12px; font-weight: 600">Proposed component: FilterBar</span>
+      </span>
+      <sc-if value="{{canTake}}" hint-placeholder-val="{{true}}">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="{{takeVariant}}" size="md" icon-end="chevron-right" href="{{takeHref}}" disabled="{{takeOff}}" loading="{{taking}}">Take next</x-import>
+      </sc-if>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{hasTakeMsg}}" hint-placeholder-val="{{false}}">
+    <dc-import name="InlineAlert" tone="{{takeTone}}" blocking="{{takeBlocking}}" heading="{{takeTitle}}" body="{{takeBody}}" action-label="{{takeAction}}" action-href="{{takeActionHref}}" action-variant="{{takeActionVariant}}" action-icon="{{takeActionIcon}}" action2-label="{{takeAction2}}" action2-href="{{takeAction2Href}}" needs="{{takeNeeds}}" w="{{alertW}}" hint-size="{{alertW}}px,150px"></dc-import>
+  </sc-if>
+
+  <section id="table" aria-labelledby="grid-cap" aria-busy="{{sectionBusy}}" style="flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: 12px; overflow: hidden">
+    <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--border-decorative)">
+      <h2 id="grid-cap" style="margin: 0; font-size: 16px; font-weight: 600">{{caption}}</h2>
+      <span style="display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px"><span style="display: inline-flex; padding: 2px 8px; border-radius: 4px; background: var(--color-info-50); color: var(--color-info-700); font-size: 12px; font-weight: 600">Proposed component: LyteNyte grid (virtualised, 44px rows, short dates with a tooltip)</span><span style="display: inline-flex; padding: 2px 8px; border-radius: 4px; background: var(--color-info-50); color: var(--color-info-700); font-size: 12px; font-weight: 600">Proposed component: DateCell (DS text + shadcn Tooltip; short date in the cell, full date in the tooltip and to screen readers)</span></span>
+    </div>
+    <sc-if value="{{showNew}}" hint-placeholder-val="{{false}}">
+      <div role="status" style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 16px; background: var(--feedback-info-tint); color: var(--feedback-info-tint-text); font-size: 13px; border-bottom: 1px solid var(--border-decorative)">
+        <span>1 new application arrived. The order is held still while you’re in the table.</span>
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md">Show new items</x-import>
+      </div>
+    </sc-if>
+      <sc-if value="{{isRows}}" hint-placeholder-val="{{true}}"><div style="flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column">
+        <div role="grid" aria-labelledby="grid-cap" aria-rowcount="{{ariaRowCount}}" style="flex: 1 1 auto; min-height: 0; overflow: auto; display: flex; flex-direction: column">
+        <div role="rowgroup">
+          <div role="row" aria-rowindex="1" style="position: sticky; top: 0; z-index: 1; display: grid; grid-template-columns: {{cols}}; align-items: center; min-height: 40px; padding: 0 16px; gap: 12px; background: var(--surface-sunken); border-bottom: 1px solid var(--border-decorative); font-size: 13px; font-weight: 600; color: var(--text-secondary)">
+            <sc-for list="{{headers}}" as="hd" hint-placeholder-count="7"><span role="columnheader">{{hd.label}}</span></sc-for>
+          </div>
+        </div>
+          <div role="rowgroup">
+            <sc-for list="{{rows}}" as="r" hint-placeholder-count="5">
+              <div role="row" aria-rowindex="{{r.idx}}" style="display: grid; grid-template-columns: {{cols}}; align-items: center; min-height: 44px; padding: 0 16px; gap: 12px; border-bottom: 1px solid var(--border-decorative); font-size: 13px; position: relative">
+                <span role="gridcell" class="hg-focus-inset" tabindex="{{r.tab}}" style="min-width: 0; display: flex; align-items: center; min-height: 36px; padding: 0 4px; margin-left: -4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-radius: 4px; box-shadow: {{r.ring}}"><a href="{{r.href}}" tabindex="-1" style="font-weight: 600; color: var(--text-primary)">{{r.name}}</a></span>
+                <span role="gridcell" style="white-space: nowrap">{{r.city}}</span>
+                <span role="gridcell"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="{{r.stateVariant}}" size="sm">{{r.state}}</x-import></span>
+                <span role="gridcell" style="font-variant-numeric: tabular-nums">{{r.attempt}}</span>
+                <span role="gridcell"><time title="{{r.submitted}}" style="font-variant-numeric: tabular-nums; white-space: nowrap"><span aria-hidden="true">{{r.submittedShort}}</span><span class="hg-sr">{{r.submitted}}</span></time></span>
+                <span role="gridcell" style="display: flex; flex-direction: column; line-height: 1.25; font-variant-numeric: tabular-nums">
+                  <sc-if value="{{r.breached}}" hint-placeholder-val="{{false}}">
+                    <span style="display: inline-flex"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="warning" size="sm" icon="warning">SLA breached</x-import></span>
+                  </sc-if>
+                  <sc-if value="{{r.slaText}}" hint-placeholder-val="{{false}}">
+                    <span style="font-weight: 500">{{r.sla1}}</span>
+                  </sc-if>
+                  <sc-if value="{{r.slaLive}}" hint-placeholder-val="{{true}}">
+                    <span style="font-weight: 500" title="{{r.sla1}}"><span aria-hidden="true">{{r.sla1Short}}</span><span class="hg-sr">{{r.sla1}}</span></span>
+                    <span style="color: var(--text-secondary)">{{r.slaLeft}}</span>
+                  </sc-if>
+                  <span style="color: var(--text-secondary)">{{r.sla2}}</span>
+                </span>
+                <span role="gridcell" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; line-height: 1.25">
+                  <span style="display: flex; flex-direction: column">
+                    <span style="display: inline-flex; align-items: center; gap: 4px; font-weight: 600"><sc-if value="{{r.locked}}" hint-placeholder-val="{{false}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="lock" size="sm"></x-import></sc-if>{{r.claim1}}</span>
+                    <sc-if value="{{r.claimLive}}" hint-placeholder-val="{{false}}">
+                      <span style="color: var(--text-secondary)" title="{{r.claimFull}}"><span aria-hidden="true">{{r.claimShort}}</span><span class="hg-sr">{{r.claimFull}}</span></span>
+                    </sc-if>
+                    <span style="color: var(--text-secondary)">{{r.claim2}}</span>
+                  </span>
+                  <sc-if value="{{r.canRelease}}" hint-placeholder-val="{{false}}">
+                    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="sm" href="Queue-SuperAdmin.dc.html">Release claim…</x-import>
+                  </sc-if>
+                </span>
+              </div>
+            </sc-for>
+            <sc-if value="{{isLoadingMore}}" hint-placeholder-val="{{false}}">
+              <sc-for list="{{skel3}}" as="s" hint-placeholder-count="3">
+                <div aria-hidden="true" style="display: grid; grid-template-columns: {{cols}}; align-items: center; height: 44px; padding: 0 16px; gap: 12px; border-bottom: 1px solid var(--border-decorative)">
+                  <span class="hg-skel" style="display: block; height: 12px; width: 80%"></span><span class="hg-skel" style="display: block; height: 12px; width: 70%"></span><span class="hg-skel" style="display: block; height: 18px; width: 60%"></span><span class="hg-skel" style="display: block; height: 12px; width: 40%"></span><span class="hg-skel" style="display: block; height: 12px; width: 80%"></span><span class="hg-skel" style="display: block; height: 12px; width: 70%"></span><span class="hg-skel" style="display: block; height: 12px; width: 60%"></span>
+                </div>
+              </sc-for>
+            </sc-if>
+          </div>
+      </div>
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 16px; font-size: 13px; color: var(--text-secondary)">
+          <span>{{footLine}}</span>
+          <sc-if value="{{hasMore}}" hint-placeholder-val="{{false}}">
+            <span role="status">{{moreLine}}</span>
+          </sc-if>
+          <sc-if value="{{noMore}}" hint-placeholder-val="{{true}}">
+            <span>No more pages</span>
+          </sc-if>
+        </div>
+      </div></sc-if>
+
+      <sc-if value="{{isLoading}}" hint-placeholder-val="{{false}}">
+        <div aria-busy="true" style="display: flex; flex-direction: column">
+          <sc-for list="{{skel}}" as="s" hint-placeholder-count="5">
+            <div style="display: grid; grid-template-columns: {{cols}}; align-items: center; height: 44px; padding: 0 16px; gap: 12px; border-bottom: 1px solid var(--border-decorative)">
+              <span class="hg-skel" style="display: block; height: 12px; width: 80%"></span><span class="hg-skel" style="display: block; height: 12px; width: 70%"></span><span class="hg-skel" style="display: block; height: 18px; width: 60%"></span><span class="hg-skel" style="display: block; height: 12px; width: 40%"></span><span class="hg-skel" style="display: block; height: 12px; width: 80%"></span><span class="hg-skel" style="display: block; height: 12px; width: 70%"></span><span class="hg-skel" style="display: block; height: 12px; width: 60%"></span>
+            </div>
+          </sc-for>
+          <span role="status" style="padding: 8px 16px; font-size: 13px; color: var(--text-secondary)">Loading applications</span>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{isMessage}}" hint-placeholder-val="{{false}}">
+        <div role="{{msgRole}}" style="display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 56px 24px; text-align: center">
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="{{msgIcon}}" size="xl" color="var(--text-secondary)"></x-import>
+          <h3 style="margin: 0; font-size: 18px; font-weight: 600">{{msgTitle}}</h3>
+          <p style="margin: 0; max-width: 480px; font-size: 15px; line-height: 1.5; color: var(--text-secondary)">{{msgBody}}</p>
+          <sc-if value="{{msgHasAction}}" hint-placeholder-val="{{false}}">
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" icon-start="{{msgActionIcon}}" href="{{msgHref}}">{{msgAction}}</x-import>
+          </sc-if>
+          <sc-if value="{{msgNeedsApi}}" hint-placeholder-val="{{false}}">
+            <span style="display: inline-flex; padding: 2px 8px; border-radius: 4px; background: var(--surface-sunken); border: 1px solid var(--border-strong); font-size: 12px; font-weight: 600">Needs API: when the last application was decided</span>
+          </sc-if>
+          <span style="display: inline-flex; padding: 2px 8px; border-radius: 4px; background: var(--color-info-50); color: var(--color-info-700); font-size: 12px; font-weight: 600">Proposed component: EmptyState / ErrorState inside the grid body</span>
+        </div>
+      </sc-if>
+  </section>
+  <sc-if value="{{isSupport}}" hint-placeholder-val="{{false}}">
+    <span style="display: inline-flex; align-self: flex-start; padding: 2px 8px; border-radius: 4px; background: var(--surface-sunken); border: 1px solid var(--border-strong); font-size: 12px; font-weight: 600">Needs API: missing or rejected document types on the application summary</span>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"variant":{"editor":"enum","options":["default","focus","loading","filtered","breached","more","loadingmore","drained","norecords","error","support","taking","takenull","takeerror","takeheld","superadmin","allstates"],"default":"default"},"$preview":{"width":1152,"height":820},"w":{"editor":null,"default":1152},"h":{"editor":null,"default":820}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const v = this.props.variant ?? 'default';
+    // Owner decision: table cells use the short date; the full absolute date is in the tooltip and read to screen readers.
+    const MON = { January: 'Jan', February: 'Feb', March: 'Mar', April: 'Apr', May: 'May', June: 'Jun', July: 'Jul', August: 'Aug', September: 'Sep', October: 'Oct', November: 'Nov', December: 'Dec' };
+    const short = (s) => (s || '').replace(/(January|February|March|April|May|June|July|August|September|October|November|December)/, (m) => MON[m]);
+    const support = v === 'support';
+    const superAdmin = v === 'superadmin';
+    const cols = support ? '1.4fr 1.1fr 1.2fr 0.6fr 1.4fr 1.4fr 1.6fr' : '1.3fr 1.05fr 1.05fr 0.6fr 1.35fr 1.3fr 1.55fr';
+    const now = '2026-09-28T14:06:00-04:00';
+    const R = (o) => Object.assign({ breached: false, slaText: false, slaLive: true, sla1: '', sla2: '', slaAt: '', locked: false, claim1: 'Unclaimed', claim2: '', claimLive: false, lockAt: '', href: 'App-Inspect.dc.html' }, o);
+    let base = [
+      R({ name: 'Bait Al Mandi', city: 'Toronto, ON', state: 'Documents review', stateVariant: 'info', attempt: '2nd', submitted: '23 September 2026, 4:40 pm', breached: true, slaLive: false, sla2: '', locked: true, claim1: 'Another reviewer', claimLive: true, lockAt: '2026-09-28T14:32:00-04:00', href: 'App-ReadOnly.dc.html', other: true }),
+      R({ name: 'Sufra Kitchen', city: 'Mississauga, ON', state: 'Documents review', stateVariant: 'info', attempt: '1st', submitted: '25 September 2026, 9:14 am', sla1: 'Due 29 September, 11:14 am', slaAt: '2026-09-29T11:14:00-04:00' }),
+      R({ name: 'Karahi House', city: 'Toronto, ON', state: 'Documents review', stateVariant: 'info', attempt: '1st', submitted: '25 September 2026, 11:02 am', sla1: 'Due 29 September, 1:02 pm', slaAt: '2026-09-29T13:02:00-04:00', locked: true, claim1: 'Claimed by you', claimLive: true, lockAt: '2026-09-28T14:48:00-04:00', href: 'App.dc.html', mine: true }),
+      R({ name: 'Zaytoun Grill', city: 'Brampton, ON', state: 'Documents review', stateVariant: 'info', attempt: '1st', submitted: '26 September 2026, 10:30 am', sla1: 'Due 30 September, 8:30 am', slaAt: '2026-09-30T08:30:00-04:00' }),
+      R({ name: 'Tandoor Lane', city: 'Markham, ON', state: 'Fix documents', stateVariant: 'warning', attempt: '3rd', submitted: '21 September 2026, 10:20 am', slaLive: false, slaText: true, sla1: 'Waiting on the restaurant', sla2: 'Changes requested', href: 'App-ChangesRequested.dc.html' }),
+    ];
+    if (v === 'breached') base = [base[0], R({ name: 'Al Noor Shawarma', city: 'Ottawa, ON', state: 'Documents review', stateVariant: 'info', attempt: '1st', submitted: '22 September 2026, 1:05 pm', breached: true, slaLive: false, sla2: '' })];
+    if (v === 'takenull' || v === 'takeerror' || v === 'taking') base = [base[0], base[4]];
+    if (v === 'allstates') {
+      const S = (name, city, state, sv, submitted) => R({ name, city, state, stateVariant: sv, attempt: '1st', submitted, slaLive: false, slaText: true, sla1: 'Not in review', sla2: '', claim1: 'Not in review', href: 'App-Inspect.dc.html' });
+      base = [
+        S('Dosa Point', 'Toronto, ON', 'Registered', 'neutral', '28 September 2026, 9:10 am'),
+        S('Mandi Express', 'Hamilton, ON', 'Email verified', 'neutral', '28 September 2026, 8:02 am'),
+        S('Pita Corner', 'Oshawa, ON', 'Profile in progress', 'neutral', '27 September 2026, 5:45 pm'),
+        S('Biryani Bros', 'Toronto, ON', 'Documents not sent', 'neutral', '27 September 2026, 12:30 pm'),
+        base[2],
+        S('Lahore Tikka', 'Mississauga, ON', 'Documents approved', 'outline', '24 September 2026, 10:00 am'),
+        base[4],
+        S('Kabul Kitchen', 'Toronto, ON', 'Payout pending', 'neutral', '20 September 2026, 2:20 pm'),
+        // Owner decision (round 2): released while a super admin decides on a proposed certifying body;
+        // it comes back at the top of the queue once the body is accepted or rejected. Needs API: the state.
+        Object.assign(S('Bait Al Mandi', 'Brampton, ON', 'Waiting on certifying body', 'neutral', '19 September 2026, 3:30 pm'), { sla1: 'Waiting on HCCO', claim1: 'Released' }),
+        S('Shami Grill', 'Vaughan, ON', 'Menu pending', 'neutral', '18 September 2026, 11:05 am'),
+        S('Noor Grill', 'Toronto, ON', 'Active', 'outline', '2 September 2026, 9:40 am'),
+        S('Samosa House', 'London, ON', 'Withdrawn', 'neutral', '15 September 2026, 4:15 pm'),
+      ];
+    }
+    // Fixed order, oldest first: by submitted time, the key the caption names.
+    const MN = { January: 0, February: 1, March: 2, April: 3, May: 4, June: 5, July: 6, August: 7, September: 8, October: 9, November: 10, December: 11 };
+    const when = (t) => { const m = /^(\d+) (\w+) (\d+), (\d+):(\d+)(?: (am|pm))?/.exec(t || ''); return m ? Date.UTC(+m[3], MN[m[2]], +m[1], (+m[4] % 12) + (m[6] === 'pm' ? 12 : 0), +m[5]) : 0; };
+    base = base.slice().sort((a, b) => when(a.submitted) - when(b.submitted));
+    // Grid time cells are plain text, refreshed silently: no live region, so 25 rows never interrupt a
+    // screen reader. Only your own claim strip (above) uses the announcing Countdown.
+    const nowMs = Date.parse(now);
+    const hm = (ms) => { const mins = Math.max(0, Math.round(ms / 60000)); const h = Math.floor(mins / 60), mm = mins % 60; return h ? h + ' h ' + mm + ' min' : mm + ' min'; };
+    const hhmm = (iso) => { const t = (iso || '').slice(11, 16); if (!t) return ''; const h = +t.slice(0, 2); return ((h % 12) || 12) + ':' + t.slice(3, 5) + (h < 12 ? ' am' : ' pm'); };
+    const rows = base.map((r, i) => Object.assign({}, r, {
+      slaLeft: r.slaAt ? hm(Date.parse(r.slaAt) - nowMs) + ' left' : '',
+      claimShort: r.lockAt ? 'Until ' + hhmm(r.lockAt) + ' · ' + hm(Date.parse(r.lockAt) - nowMs) + ' left' : '',
+      claimFull: r.lockAt ? 'Claim ends at ' + hhmm(r.lockAt) + ', ' + hm(Date.parse(r.lockAt) - nowMs).replace(' h ', ' hours ').replace(' min', ' minutes') + ' left' : '',
+      idx: i + 2, submittedShort: short(r.submitted), sla1Short: short(r.sla1),
+      // Focus model (LyteNyte default): tabindex and the ring sit on the active gridcell, never the row.
+      tab: v === 'focus' ? (i === 1 ? '0' : '-1') : (i === 0 ? '0' : '-1'),
+      ring: v === 'focus' && i === 1 ? '0 0 0 2px var(--surface-raised), 0 0 0 5px var(--focus-ring)' : 'none',
+      claim1: support ? '' : r.claim1,
+      claim2: support ? (r.state === 'Fix documents' ? 'Open the application to see which documents are missing.' : '') : r.claim2,
+      claimLive: support ? false : r.claimLive,
+      locked: support ? false : r.locked,
+      href: support ? 'App-Support.dc.html' : r.href,
+      canRelease: superAdmin && !!r.other,
+    }));
+    // Fixed order, oldest first: no sortable headers, so no aria-sort.
+    const headers = ['Restaurant', 'City', 'State', 'Attempt', 'Submitted', 'SLA', support ? 'Documents' : 'Claim'].map((label) => ({ label }));
+    const msgs = {
+      filtered: { role: 'status', icon: 'search', title: 'No applications match these filters', body: 'Nothing is SLA-breached in Fix documents right now. Clear the filters to see the whole queue.', action: 'Clear filters', actionIcon: 'close', href: 'Queue.dc.html' },
+      drained: { role: 'status', icon: 'check', title: 'Onboarding queue is clear', body: 'Every application has a decision. New applications appear here, oldest first. Take next is off until one arrives.', needsApi: true },
+      norecords: { role: 'status', icon: 'orders', title: 'No restaurants have applied yet', body: 'Applications appear here once a restaurant submits all four required documents.' },
+      error: { role: 'alert', icon: 'error', title: 'The queue didn’t load', body: 'The server didn’t respond. Nothing was claimed and your filters are kept.', action: 'Try again', actionIcon: 'refresh', href: 'Queue.dc.html' },
+    };
+    const takeMsgs = {
+      takenull: { blocking: false, tone: 'neutral', title: 'No application was free to take', body: 'Everything waiting is claimed by another reviewer or is with its restaurant. Nothing was claimed. Try again in a few minutes.' },
+      takeerror: { blocking: true, tone: 'warning', title: 'Take next didn’t work', body: 'The server didn’t respond. Nothing was claimed. Your place in the table is kept.', action: 'Try again', icon: 'refresh', variant: 'tertiary' },
+      takeheld: { blocking: true, tone: 'neutral', title: 'You already hold Karahi House', body: 'Nothing new was claimed. Decide Karahi House first, or it stays claimed until 2:48 pm. Continue review, above, takes you back to it.', needs: 'take-next when the caller already holds a claim (return the held one, or refuse with 409)' },
+    };
+    const tm = takeMsgs[v];
+    const m = msgs[v];
+    const filtered = v === 'filtered' || v === 'breached';
+    const showRows = ['default', 'focus', 'support', 'breached', 'more', 'loadingmore', 'taking', 'takenull', 'takeerror', 'takeheld', 'superadmin', 'allstates'].includes(v);
+    const more = v === 'more' || v === 'loadingmore';
+    return {
+      wcss: (this.props.w ?? 1152) + 'px', hcss: (this.props.h ?? 820) + 'px',
+      alertW: (this.props.w ?? 1152),
+      moreLine: v === 'loadingmore' ? 'Loading 25 more as you scroll' : '25 shown · more load as you scroll',
+      sectionBusy: (v === 'loading' || v === 'loadingmore') ? 'true' : undefined,
+      cols, headers, now, hour: 3600, twoDays: 172800, urgent: 0.1667, zero: 0,
+      showFilters: v !== 'norecords',
+      canTake: !support,
+      holds: ['default', 'focus', 'more', 'loadingmore', 'takeheld', 'allstates'].includes(v),
+      takeVariant: ['default', 'focus', 'more', 'loadingmore', 'takeheld', 'allstates'].includes(v) ? 'secondary' : 'primary',
+      takeOff: v === 'drained' || v === 'loading' || v === 'error',
+      taking: v === 'taking',
+      takeHref: v === 'taking' || v === 'takenull' || v === 'takeerror' ? undefined : 'App.dc.html',
+      hasTakeMsg: !!tm,
+      takeTone: tm ? tm.tone : 'neutral', takeBlocking: !!(tm && tm.blocking), takeTitle: tm ? tm.title : '', takeBody: tm ? tm.body : '',
+      takeAction: tm && tm.action ? tm.action : '', takeActionHref: tm && tm.href ? tm.href : '', takeActionVariant: tm && tm.variant ? tm.variant : 'tertiary', takeActionIcon: tm && tm.icon ? tm.icon : '',
+      takeAction2: tm && tm.action2 ? tm.action2 : '', takeAction2Href: '', takeNeeds: tm && tm.needs ? tm.needs : '',
+      onOff: { on: 'On', off: 'Off' },
+      breachedOnly: filtered,
+      stateFilter: v === 'filtered' ? 'DOCUMENTS_REJECTED' : v === 'allstates' ? 'ALL' : 'REVIEW_AND_FIX',
+      stateOptions: [
+        { value: 'REVIEW_AND_FIX', label: 'Documents review and Fix documents' },
+        { value: 'DOCUMENTS_REVIEW', label: 'Documents review' },
+        { value: 'DOCUMENTS_REJECTED', label: 'Fix documents' },
+        { value: 'ALL', label: 'All 12 states' },
+      ],
+      countLine: showRows ? 'Fixed order, oldest first · showing ' + (more ? 25 : rows.length) : v === 'loading' ? 'Loading' : v === 'error' ? '' : 'Oldest first · showing 0',
+      caption: support ? 'Applications, fixed order: oldest first (read-only for support)' : v === 'allstates' ? 'Applications in all 12 states, fixed order: oldest first' : 'Applications, fixed order: oldest first',
+      showNew: v === 'default',
+      isRows: showRows,
+      rows, ariaRowCount: rows.length + 1,
+      footLine: support ? 'Selecting a row opens a read-only summary beside the list.' : 'Selecting a row opens it beside the list to inspect. Only Take next claims, oldest first.',
+      hasMore: more, noMore: !more, isLoadingMore: v === 'loadingmore', skel3: [1, 2, 3],
+      isLoading: v === 'loading',
+      skel: [1, 2, 3, 4, 5],
+      isMessage: !!m,
+      msgRole: m ? m.role : 'status', msgIcon: m ? m.icon : 'info', msgTitle: m ? m.title : '', msgBody: m ? m.body : '',
+      msgHasAction: !!(m && m.action), msgAction: m ? m.action : '', msgActionIcon: m ? m.actionIcon : 'close', msgHref: m ? m.href : '#',
+      msgNeedsApi: !!(m && m.needsApi),
+      isSupport: support,
+    };
+  }
+}
+</script>
+</body>
+</html>

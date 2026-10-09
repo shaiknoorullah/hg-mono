@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Email confirmation link</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<link rel="stylesheet" href="hg-current.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="scr {{ltClass}}" data-theme="{{theme}}" style="width: {{w}}px; height: {{h}}px; font-family: var(--font-ui); color: var(--text-primary)">
+  <main class="body" style="padding: var(--space-12) var(--space-4) var(--space-4); gap: var(--space-6)">
+    <img src="{{wordmark}}" alt="HalalGoes" style="width: 96px; height: 32px; display: block">
+    <div style="flex: 1 1 auto; display: flex; flex-direction: column; justify-content: center; gap: var(--space-4)">
+      <span class="gap-tag">Proposed component: EmptyState (full-screen variant)</span>
+      <span style="width: 56px; height: 56px; display: grid; place-items: center; border-radius: var(--radius-full); background: var(--surface-sunken); color: var(--text-secondary); width: 64px; height: 64px">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="{{c.icon}}" size="xl"></x-import>
+      </span>
+      <h1 class="t-h1" tabindex="-1" data-h1="">{{c.title}}</h1>
+      <p class="t-body" style="color: var(--text-primary)">{{c.body}}</p>
+      <p class="t-body">{{c.more}}</p>
+      <sc-if value="{{f.checking}}" hint-placeholder-val="{{false}}">
+        <div role="status"><span class="sr">Checking your link</span></div>
+        <span class="gap-tag">Proposed component: Skeleton</span>
+        <div aria-hidden="true" style="display: flex; flex-direction: column; gap: var(--space-2)">
+          <span style="display: block; background: var(--skeleton-base); border-radius: var(--radius-xs); width: 70%; height: 14px"></span>
+        </div>
+        <span class="anno-tag">Live regions here: this short status while the link is checked, and the send-why time after a press (role=status). If the build swaps the result in place, that swap may use role=status once. Result screens have no live region: focus moves to the h1 (tabindex -1), as on the Blocked routes.</span>
+      </sc-if>
+      <sc-if value="{{c.api}}" hint-placeholder-val="{{false}}">
+        <span class="api-tag" style="white-space: normal">{{c.api}}</span>
+      </sc-if>
+      <sc-if value="{{c.anno}}" hint-placeholder-val="{{false}}">
+        <span class="anno-tag">{{c.anno}}</span>
+      </sc-if>
+      <sc-if value="{{f.expired}}" hint-placeholder-val="{{false}}">
+        <div class="api-box">
+          <span class="api-tag" style="white-space: normal">Needs API: previous verified email. The spec's intended behaviour: after 24 h the link returns 410 and the email reverts to the previous verified value. CustomerProfile has no pending_email or previous_email, so the app can't show it today.</span>
+          <p class="t-body" style="color: var(--text-primary)">Your account still uses [previous email].</p>
+        </div>
+      </sc-if>
+      <sc-if value="{{c.status}}" hint-placeholder-val="{{false}}">
+        <p class="t-small" role="status" id="send-why">{{c.status}}</p>
+      </sc-if>
+    </div>
+  </main>
+  <footer class="foot">
+    <sc-if value="{{c.primary}}" hint-placeholder-val="{{true}}">
+      <div data-primary="">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" full-width="{{yes}}" icon-start="{{c.icon1}}" loading="{{c.loading}}" disabled="{{c.disabled}}" aria-describedby="{{c.desc}}" on-press="{{c.press}}" href="{{c.href}}">{{c.primary}}</x-import>
+      </div>
+    </sc-if>
+    <sc-if value="{{c.second}}" hint-placeholder-val="{{false}}">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="lg" full-width="{{yes}}" href="{{c.href2}}">{{c.second}}</x-import>
+    </sc-if>
+  </footer>
+  <sc-if value="{{c.toast}}" hint-placeholder-val="{{false}}">
+    <div class="toast-dock toast-dock-top">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Toast" variant="success" title="Link sent" description="Check aisha.malik@example.com. The new link works for 24 hours." on-dismiss="{{noop}}"></x-import>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["checking","success","successconsent","error","expired","expiredsending","expiredsent","expiredlimited","expiredday","used","usedconfirmed","usedunconfirmed","browser","signedout","otheraccount"],"default":"success"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"lt":{"editor":"boolean","default":false},"focus":{"editor":"boolean","default":false},"h":{"editor":"int","min":844,"max":2400,"default":844},"w":{"editor":"int","min":320,"max":430,"default":390},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  componentDidMount() {
+    this.t = setTimeout(() => {
+      try {
+        const el = this.props.focus ? document.querySelector('[data-primary] a, [data-primary] button') : document.querySelector('[data-h1]');
+        if (el) el.focus({ preventScroll: true });
+      } catch (e) {}
+    }, 400);
+  }
+  componentWillUnmount() { clearTimeout(this.t); }
+  renderVals() {
+    const s = this.props.state ?? 'success';
+    const session = 'Needs API: customer email verification should not issue a session, or the session must be scoped to customer-app. verifyEmail returns a SessionGrant today, so opening the link signs in whatever opened it.';
+    const C = {
+      checking: { icon: 'clock', title: 'Confirming your email', body: 'This takes a moment.', more: '', primary: null, href: undefined },
+      success: { icon: 'check', title: 'Your email is confirmed', body: 'We can now email you at aisha.malik@example.com.', more: 'News and offers still come only if you turn them on in Notification settings.', primary: 'Go to Account', href: 'Account.dc.html', anno: 'getCustomerProfile.marketing_consent false: news and offers stay off. When it is true, the line reads as on the news-on board.' },
+      successconsent: { icon: 'check', title: 'Your email is confirmed', body: 'We can now email you at aisha.malik@example.com.', more: 'News and offers by email start now. You can turn them off in Notification settings.', primary: 'Go to Account', href: 'Account.dc.html', anno: 'getCustomerProfile.marketing_consent true (ticked on Your details, or News by email turned on before confirming): news starts with this confirmation, so the line says so.' },
+      error: { icon: 'warning', title: "We couldn't confirm your email", body: 'The problem is with the connection or on our side. The link still works, so try again.', more: 'Links work for 24 hours after we send them.', primary: 'Try again', icon1: 'refresh', href: undefined, press: () => {} },
+      expired: { icon: 'clock', title: 'This link has run out', body: "Confirmation links work for 24 hours. We'll send a new one to aisha.malik@example.com.", more: '', primary: 'Send a new link', href: undefined, press: () => {}, second: 'Go to Account', href2: 'Account-unverified.dc.html', anno: 'Send a new link calls resendEmailVerification. Signed in, so no detour through Account. Loading, sent, 429 and 5-a-day follow Account.' },
+      expiredsending: { icon: 'clock', title: 'This link has run out', body: "Confirmation links work for 24 hours. We'll send a new one to aisha.malik@example.com.", more: '', primary: 'Sending link', loading: true, href: undefined, press: () => {}, second: 'Go to Account', href2: 'Account-unverified.dc.html' },
+      expiredsent: { icon: 'check', title: 'We sent a new link', body: 'Open the email we sent to aisha.malik@example.com. The new link works for 24 hours.', more: '', primary: 'Go to Account', href: 'Account-unverified.dc.html', toast: true },
+      expiredlimited: { icon: 'clock', title: 'This link has run out', body: "Confirmation links work for 24 hours. We'll send a new one to aisha.malik@example.com.", more: '', primary: 'Send a new link', disabled: true, desc: 'send-why', href: undefined, second: 'Go to Account', href2: 'Account-unverified.dc.html', status: 'You can ask for a new link at 6:44 pm.', anno: 'resendEmailVerification 429 (1 a minute): static time from Retry-After, announced once. No ticking Countdown until it uses feedback.info.text.' },
+      expiredday: { icon: 'clock', title: 'This link has run out', body: 'Confirmation links work for 24 hours.', more: '', primary: 'Send a new link', disabled: true, desc: 'send-why', href: undefined, second: 'Go to Account', href2: 'Account-unverified.dc.html', status: "You've asked 5 times today. Try again tomorrow." },
+      used: { icon: 'info', title: 'This link was already used', body: 'Each link works once. If you opened it before, your email may already be confirmed.', more: 'Check Account to see.', primary: 'Go to Account', href: 'Account.dc.html', anno: 'Only when the app cannot read the profile: opened signed out or in a browser. Signed in, the app reads email_verified from getCustomerProfile and shows one of the two definite versions.' },
+      usedconfirmed: { icon: 'check', title: 'Your email is already confirmed', body: 'You opened this link before, so there is nothing more to do.', more: 'We can email you at aisha.malik@example.com.', primary: 'Go to Account', href: 'Account.dc.html', anno: 'VERIFICATION_TOKEN_USED, signed in, getCustomerProfile.email_verified true.' },
+      usedunconfirmed: { icon: 'info', title: 'This link was already used', body: "Your email isn't confirmed yet. Send a new link to confirm it.", more: '', primary: 'Send a new link', href: undefined, press: () => {}, second: 'Go to Account', href2: 'Account-unverified.dc.html', anno: 'VERIFICATION_TOKEN_USED, signed in, email_verified false (an older link for an address since changed). Send a new link calls resendEmailVerification.' },
+      browser: { icon: 'check', title: 'Your email is confirmed', body: 'You can close this page.', more: 'Open the HalalGoes app to keep ordering. There is no account page on the web.', primary: 'Open the HalalGoes app', href: '#app-link', second: 'Get the app', href2: '#store', api: session, anno: 'Opened in a phone or desktop browser. No web account UI: the page offers the app and nothing else.' },
+      signedout: { icon: 'check', title: 'Your email is confirmed', body: 'Sign in with your mobile number to keep ordering.', more: '', primary: 'Sign in', href: 'Main.dc.html', api: session, anno: 'Opened in the app on a phone that is not signed in. The app does not keep the session the link would grant; it hands off to Sign in.' },
+      otheraccount: { icon: 'info', title: 'This link was for another account', body: 'We confirmed that email, and you are still signed in on this phone as +1 416 555 0134.', more: 'Nothing on your account has changed.', primary: 'Go to Account', href: 'Account.dc.html', api: session, anno: 'Opened in the app while signed in to a different account. The app keeps the current session and discards the grant.' },
+    };
+    const dark = this.props.theme === 'dark';
+    const c = Object.assign({ api: null, anno: null, second: null, href2: undefined, icon1: undefined, press: undefined, loading: undefined, disabled: false, desc: undefined, status: null, toast: false }, C[s] || C.success);
+    return {
+      f: { checking: s === 'checking', expired: ['expired', 'expiredsending', 'expiredlimited', 'expiredday'].includes(s) },
+      c, yes: true, noop: () => {},
+      theme: dark ? 'dark' : 'light',
+      ltClass: this.props.lt ? 'lt' : '',
+      w: this.props.w ?? 390,
+      h: this.props.h ?? 844,
+      wordmark: dark ? '/_blob/843ebf06b5228cfa7692cb421908d434' : '/_blob/d30db9859e3d16adcb42d3b151c41784',
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Inline alert (component gap)</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div data-gap="InlineAlert" style="width: {{wcss}}; box-sizing: border-box; display: flex; flex-direction: column; gap: 4px; font-family: var(--font-ui); color: var(--text-primary)">
+  <sc-if value="{{blocking}}" hint-placeholder-val="{{false}}">
+    <div role="alert" tabindex="-1" style="display: flex; align-items: flex-start; gap: 12px; padding: 10px 12px; border-radius: 12px; background: {{bg}}; border: 1px solid {{bd}}; color: {{fg}}; font-size: 15px; line-height: 1.5">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="{{icon}}" size="lg" color="{{ic}}"></x-import>
+      <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px">
+        <strong>{{heading}}</strong>
+        <sc-if value="{{hasBody}}" hint-placeholder-val="{{true}}"><span>{{body}}</span></sc-if>
+        <sc-if value="{{hasList}}" hint-placeholder-val="{{false}}">
+          <ul style="margin: 0; padding-left: 20px">
+            <sc-for list="{{items}}" as="i" hint-placeholder-count="2"><li><sc-if value="{{i.hasLead}}" hint-placeholder-val="{{false}}"><strong style="font-family: var(--font-mono); font-weight: 600">{{i.lead}}</strong> </sc-if>{{i.text}}<sc-if value="{{i.hasLink}}" hint-placeholder-val="{{false}}"> <a href="{{i.href}}" style="font-weight: 600">{{i.link}}</a></sc-if></li></sc-for>
+          </ul>
+        </sc-if>
+        <sc-if value="{{hasFoot}}" hint-placeholder-val="{{false}}"><span>{{foot}}</span></sc-if>
+        <sc-if value="{{hasLink}}" hint-placeholder-val="{{false}}"><a href="{{linkHref}}" style="align-self: flex-start; display: inline-flex; align-items: center; min-height: 44px; font-weight: 600">{{linkLabel}}</a></sc-if>
+        <sc-if value="{{hasNeeds}}" hint-placeholder-val="{{false}}"><span style="display: inline-flex; align-self: flex-start; padding: 2px 8px; border-radius: 4px; background: var(--surface-raised); border: 1px solid var(--border-strong); color: var(--text-primary); font-size: 12px; font-weight: 600">Needs API: {{needs}}</span></sc-if>
+        <sc-if value="{{actionsBelow}}" hint-placeholder-val="{{false}}">
+          <div style="display: flex; flex-wrap: wrap; gap: 12px; padding-top: 4px">
+            <sc-if value="{{hasAction}}" hint-placeholder-val="{{false}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="{{actionVariant}}" size="md" icon-start="{{actionIcon}}" href="{{actionHref}}" loading="{{actionLoading}}">{{actionLabel}}</x-import></sc-if>
+            <sc-if value="{{hasAction2}}" hint-placeholder-val="{{false}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="{{action2Variant}}" size="md" href="{{action2Href}}">{{action2Label}}</x-import></sc-if>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+  </sc-if>
+  <sc-if value="{{polite}}" hint-placeholder-val="{{true}}">
+    <div role="status" style="display: flex; align-items: flex-start; gap: 12px; padding: 10px 12px; border-radius: 12px; background: {{bg}}; border: 1px solid {{bd}}; color: {{fg}}; font-size: 15px; line-height: 1.5">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="{{icon}}" size="lg" color="{{ic}}"></x-import>
+      <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px">
+        <strong>{{heading}}</strong>
+        <sc-if value="{{hasBody}}" hint-placeholder-val="{{true}}"><span>{{body}}</span></sc-if>
+        <sc-if value="{{hasList}}" hint-placeholder-val="{{false}}">
+          <ul style="margin: 0; padding-left: 20px">
+            <sc-for list="{{items}}" as="i" hint-placeholder-count="2"><li><sc-if value="{{i.hasLead}}" hint-placeholder-val="{{false}}"><strong style="font-family: var(--font-mono); font-weight: 600">{{i.lead}}</strong> </sc-if>{{i.text}}<sc-if value="{{i.hasLink}}" hint-placeholder-val="{{false}}"> <a href="{{i.href}}" style="font-weight: 600">{{i.link}}</a></sc-if></li></sc-for>
+          </ul>
+        </sc-if>
+        <sc-if value="{{hasFoot}}" hint-placeholder-val="{{false}}"><span>{{foot}}</span></sc-if>
+        <sc-if value="{{hasLink}}" hint-placeholder-val="{{false}}"><a href="{{linkHref}}" style="align-self: flex-start; display: inline-flex; align-items: center; min-height: 44px; font-weight: 600">{{linkLabel}}</a></sc-if>
+        <sc-if value="{{hasNeeds}}" hint-placeholder-val="{{false}}"><span style="display: inline-flex; align-self: flex-start; padding: 2px 8px; border-radius: 4px; background: var(--surface-raised); border: 1px solid var(--border-strong); color: var(--text-primary); font-size: 12px; font-weight: 600">Needs API: {{needs}}</span></sc-if>
+        <sc-if value="{{actionsBelow}}" hint-placeholder-val="{{false}}">
+          <div style="display: flex; flex-wrap: wrap; gap: 12px; padding-top: 4px">
+            <sc-if value="{{hasAction}}" hint-placeholder-val="{{false}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="{{actionVariant}}" size="md" icon-start="{{actionIcon}}" href="{{actionHref}}" loading="{{actionLoading}}">{{actionLabel}}</x-import></sc-if>
+            <sc-if value="{{hasAction2}}" hint-placeholder-val="{{false}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="{{action2Variant}}" size="md" href="{{action2Href}}">{{action2Label}}</x-import></sc-if>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+  </sc-if>
+  <sc-if value="{{showTag}}" hint-placeholder-val="{{false}}"><span style="display: inline-flex; align-self: flex-start; padding: 2px 8px; border-radius: 4px; background: var(--color-info-50); color: var(--color-info-700); font-size: 12px; font-weight: 600">Proposed component: InlineAlert ({{tone}}{{kindLabel}})</span></sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"tone":{"editor":"enum","options":["warning","danger","neutral","info","success"],"default":"neutral"},"blocking":{"editor":"boolean","default":false},"heading":{"editor":null,"default":"Nothing was changed"},"body":{"editor":null,"default":""},"list":{"editor":null,"default":""},"foot":{"editor":null,"default":""},"icon":{"editor":null,"default":""},"linkLabel":{"editor":null,"default":""},"linkHref":{"editor":null,"default":"#"},"actionLabel":{"editor":null,"default":""},"actionHref":{"editor":null,"default":""},"actionIcon":{"editor":null,"default":""},"actionVariant":{"editor":null,"default":"tertiary"},"actionLoading":{"editor":null,"default":false},"action2Label":{"editor":null,"default":""},"action2Href":{"editor":null,"default":""},"action2Variant":{"editor":null,"default":"tertiary"},"needs":{"editor":null,"default":""},"w":{"editor":null,"default":528},"$preview":{"width":528,"height":134},"tag":{"editor":"boolean","default":true}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props;
+    const tone = p.tone ?? 'neutral';
+    // One definition owns the look: 12px 16px padding, 12px radius, lg icon, 15px text.
+    // Blocking alerts are role="alert" with tabindex="-1" and take focus when they appear.
+    // Everything else is role="status" and never moves focus. Success is tint plus icon only:
+    // solid green is reserved to the halal seal, and success is never used for a negative halal outcome.
+    // Tones use the semantic feedback roles (tint, tint-text, border, icon), which switch with the
+    // theme, so text keeps 4.5:1 on its tint in light and dark. Neutral stays on the surface roles.
+    const t = {
+      warning: ['var(--feedback-warning-tint)', 'var(--feedback-warning-border)', 'var(--feedback-warning-tint-text)', 'warning', 'var(--feedback-warning-icon)'],
+      danger: ['var(--feedback-danger-tint)', 'var(--feedback-danger-border)', 'var(--feedback-danger-tint-text)', 'error', 'var(--feedback-danger-icon)'],
+      neutral: ['var(--surface-sunken)', 'var(--border-strong)', 'var(--text-primary)', 'info', 'var(--text-secondary)'],
+      info: ['var(--feedback-info-tint)', 'var(--feedback-info-border)', 'var(--feedback-info-tint-text)', 'info', 'var(--feedback-info-icon)'],
+      success: ['var(--feedback-success-tint)', 'var(--feedback-success-border)', 'var(--feedback-success-tint-text)', 'check', 'var(--feedback-success-icon)'],
+    }[tone] || ['var(--surface-sunken)', 'var(--border-strong)', 'var(--text-primary)', 'info', 'var(--text-secondary)'];
+    const blocking = p.blocking === true || p.blocking === 'true' || p.blocking === 'yes';
+    // list: items separated by "|". An item starting "H1 " to "H7 " shows the key in mono.
+    // "text>>Link label>>href" adds a link after the text.
+    const raw = typeof p.list === 'string' ? p.list : '';
+    const items = raw ? raw.split('|').map((s) => {
+      const parts = s.split('>>');
+      const m = /^(H[1-7])\s(.*)$/.exec(parts[0]);
+      return { hasLead: !!m, lead: m ? m[1] : '', text: m ? m[2] : parts[0], hasLink: parts.length > 2, link: parts[1] || '', href: parts[2] || '#' };
+    }) : [];
+    const w = p.w ?? 528;
+    const wcss = typeof w === 'number' || /^\d+$/.test(String(w)) ? w + 'px' : String(w);
+    const aL = p.actionLabel || '', a2 = p.action2Label || '';
+    return {
+      showTag: !!p.tag,
+      wcss, tone,
+      bg: t[0], bd: t[1], fg: t[2], icon: p.icon || t[3], ic: t[4],
+      blocking, polite: !blocking,
+      heading: p.heading ?? 'Nothing was changed',
+      body: p.body || '', hasBody: !!p.body,
+      items, hasList: items.length > 0,
+      foot: p.foot || '', hasFoot: !!p.foot,
+      linkLabel: p.linkLabel || '', linkHref: p.linkHref || '#', hasLink: !!p.linkLabel,
+      needs: p.needs || '', hasNeeds: !!p.needs,
+      hasAction: !!aL, actionLabel: aL, actionHref: p.actionHref || undefined, actionIcon: p.actionIcon || undefined, actionVariant: p.actionVariant || 'tertiary',
+      actionLoading: p.actionLoading === true || p.actionLoading === 'true',
+      hasAction2: !!a2, action2Label: a2, action2Href: p.action2Href || undefined, action2Variant: p.action2Variant || 'tertiary',
+      actionsBelow: !!(aL || a2),
+      kindLabel: (blocking ? ', blocking' : '') + (items.length ? ', list slot' : '') + (aL || a2 ? ', action slot' : ''),
+    };
+  }
+}
+</script>
+</body>
+</html>

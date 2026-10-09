@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Tablet 1024 — sign in (kitchen tablet, landscape)</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:var(--surface-base);color:var(--text-primary);font-family:var(--font-ui)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+.skip{position:absolute;left:16px;top:-80px;z-index:10}.skip:focus{top:8px}
+form{margin:0}
+.gap{position:relative;outline:1.5px dashed var(--color-neutral-500);outline-offset:4px}
+.gap::before{content:"Proposed component: " attr(data-gap);position:absolute;top:-28px;left:-4px;font:500 12px/1 var(--font-mono);color:var(--color-neutral-800);background:var(--color-neutral-100);padding:4px 8px;border-radius:4px;white-space:nowrap}
+.api{display:inline-flex;align-items:center;gap:8px;padding:4px 8px;border:1.5px dashed var(--color-info-600);background:var(--color-info-50);color:var(--color-info-700);font:500 12px/1.4 var(--font-mono);border-radius:4px}
+.note{display:inline-flex;align-items:center;padding:4px 8px;background:var(--color-neutral-100);color:var(--color-neutral-800);font:500 12px/1.4 var(--font-mono);border-radius:4px}
+</style>
+</helmet>
+<div style="width: 1024px; height: 768px; box-sizing: border-box; background: var(--surface-base); display: flex; flex-direction: column; font-family: var(--font-ui); color: var(--text-primary); position: relative; overflow: hidden">
+<dc-import name="AuthTop" w="1024px" hint-size="1024px,80px"></dc-import>
+<main style="flex-grow: 1; display: flex; justify-content: center; padding: 24px 16px 0">
+<div style="width: 480px; max-width: 100%; display: flex; flex-direction: column; gap: 24px">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="elevated" radius="lg" padding="32px" hint-size="480px,420px">
+<form novalidate style="display: flex; flex-direction: column; gap: 20px">
+<div style="display: flex; flex-direction: column; gap: 8px"><h1 class="type-heading-xl" style="margin: 0">Sign in to your restaurant</h1><p class="type-body-md" style="margin: 0; line-height: 1.5; color: var(--text-secondary)">Use the email and password you registered with.</p></div><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Email" variant="email" auto-complete="username" default-value="samir@zaytoungrill.ca" hint-size="100%,72px"></x-import><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Password" variant="password" auto-complete="current-password" default-value="correct-horse-battery" hint-size="100%,72px"></x-import><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" full-width="{{yes}}" type="submit" hint-size="100%,52px">Sign in</x-import><p class="type-body-sm" style="margin: 0; line-height: 1.5; color: var(--text-secondary)">Forgot your password? <a href="Forgot-Password.dc.html" style="font-weight: 600">Reset it by email</a>.</p>
+</form>
+</x-import>
+<p class="type-body-md" style="margin: 0; text-align: center; color: var(--text-secondary)">New to HalalGoes? <a href="Register-Default.dc.html" style="font-weight: 600">Register your restaurant</a></p><p class="type-body-sm" style="margin: 0; text-align: center; line-height: 1.5; color: var(--text-secondary)">Need help signing in? Call partner support on <a href="tel:[support phone]">[support phone]</a>, [support hours].</p>
+</div>
+</main>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 1024, "height": 768}}'>
+class Component extends DCLogic {
+  renderVals() {
+return { yes: true, no: false };
+  }
+}
+</script>
+</body>
+</html>

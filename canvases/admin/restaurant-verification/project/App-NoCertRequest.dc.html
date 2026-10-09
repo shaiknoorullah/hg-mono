@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Request changes, no halal certificate uploaded</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:var(--surface-base);color:var(--text-primary);font-family:var(--font-ui)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+textarea.hg-ta:focus{outline:none;border:var(--focus-field-border-width) solid var(--focus-ring)}
+textarea.hg-ta[aria-invalid="true"]{border:var(--focus-field-border-width) solid var(--color-danger-500)}
+textarea.hg-ta[aria-invalid="true"]:focus{box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+.skip{position:absolute;left:-10000px;top:8px;z-index:900;padding:12px 16px;background:var(--surface-raised);color:var(--text-primary);border-radius:8px;font-weight:600}
+.skip:focus{left:80px;outline:none;box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; display: grid; grid-template-columns: 64px minmax(0, 1fr); background: var(--surface-base); position: relative; overflow: hidden; font-family: var(--font-ui); color: var(--text-primary)">
+  <dc-import name="SideNav" active="applications" role="ADMIN" collapsed="{{yes}}" h="900" hint-size="64px,900px"></dc-import>
+  <div style="display: flex; flex-direction: column; min-width: 0; min-height: 0; position: relative">
+    <a class="skip" href="#main">Skip to main content</a>
+    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="raised" title="Restaurant application" subtitle="Karahi House" back-label="Back to restaurant applications" on-back="{{noop}}"></x-import>
+    <main id="main" data-density="compact" style="flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 12px; padding: 12px; overflow: hidden">
+      <div style="flex: 1 1 auto; min-height: 0; display: flex">
+        <section id="pane-list" aria-label="Restaurant applications · 5 waiting, collapsed" style="flex: 0 0 48px; box-sizing: border-box; min-width: 0; min-height: 0; display: flex; flex-direction: column; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: 12px; overflow: hidden; align-items: center; gap: 8px; padding: 4px 0"><a href="App-ListOpen.dc.html" aria-label="Show the applications list" class="hg-focus" style="display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 8px; color: var(--text-secondary)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="chevron-right" size="md"></x-import></a><span aria-hidden="true" style="writing-mode: vertical-rl; transform: rotate(180deg); font-size: 13px; font-weight: 600; white-space: nowrap">Restaurant applications · 5 waiting</span></section>
+        <div role="separator" aria-orientation="vertical" aria-label="Resize the applications list" aria-controls="pane-list" aria-valuenow="4" aria-valuemin="0" aria-valuemax="40" aria-valuetext="4 percent of the width. Left and Right arrows resize." tabindex="0" class="hg-focus hg-hit" style="flex: 0 0 12px; cursor: col-resize; align-self: stretch; display: flex; align-items: center; justify-content: center; border-radius: 4px"><span aria-hidden="true" style="display: block; width: 4px; height: 40px; border-radius: 2px; background: var(--border-interactive)"></span></div>
+        <dc-import name="AppBody" variant="nocert" w="780" h="820" third="none" hint-size="780px,820px"></dc-import>
+        <div role="separator" aria-orientation="vertical" aria-label="Resize the decision panel" aria-controls="pane-decision" aria-valuenow="39" aria-valuemin="30" aria-valuemax="60" aria-valuetext="39 percent of the width. Left and Right arrows resize." tabindex="0" class="hg-focus hg-hit" style="flex: 0 0 12px; cursor: col-resize; align-self: stretch; display: flex; align-items: center; justify-content: center; border-radius: 4px"><span aria-hidden="true" style="display: block; width: 4px; height: 40px; border-radius: 2px; background: var(--border-interactive)"></span></div>
+        <section id="pane-decision" role="region" aria-labelledby="dp-h" style="flex: 1 1 auto; box-sizing: border-box; min-width: 0; min-height: 0; display: flex; flex-direction: column; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: 12px; overflow: hidden; border-color: var(--border-strong); box-shadow: var(--elev-1)"><div style="flex: 0 0 auto; display: flex; align-items: flex-start; gap: 8px; padding: 10px 8px 10px 16px; border-bottom: 1px solid var(--border-decorative)"><div style="flex: 1 1 auto; display: flex; flex-direction: column; gap: 4px; min-width: 0; padding-top: 4px"><h2 id="dp-h" tabindex="-1" style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Request changes from Karahi House?</h2><p style="margin: 0; font-size: 13px; line-height: 1.45; color: var(--text-secondary)">Karahi House is asked to upload the documents you tick. The whole application goes back to them and leaves your claim.</p></div><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.IconButton" icon="close" accessibility-label="Close this panel. Nothing is sent." variant="plain" size="md"></x-import></div><div style="flex: 1 1 auto; min-height: 0; overflow: auto; padding: 14px 16px; display: flex; flex-direction: column; gap: 14px"><div style="display: flex; flex-direction: column; gap: 16px; font-family: var(--font-ui)">
+      <dc-import name="InlineAlert" tone="neutral" icon="info" heading="Halal certificate is ticked because none was uploaded" body="Karahi House has no halal certificate record, so there is nothing to verify and no badge. Untick it if you meant something else." w="100%" hint-size="100%,120px"></dc-import>
+      <fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 4px">
+        <legend style="padding: 0 0 6px; font-size: 15px; font-weight: 600">Documents to redo (choose at least one)</legend>
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 16px">
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Checkbox" label="Business licence" checked="{{no}}"></x-import>
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Checkbox" label="Halal certificate" checked="{{yes}}"></x-import>
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Checkbox" label="Food safety certificate" checked="{{no}}"></x-import>
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Checkbox" label="Owner ID" checked="{{no}}"></x-import>
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Checkbox" label="Liability insurance (optional)" checked="{{no}}"></x-import>
+        </div>
+      </fieldset>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Select" label="Reason" value="DOCUMENTS_INSUFFICIENT" placeholder="Choose a reason" options="{{reasons}}" required="{{yes}}"></x-import>
+      <dc-import name="Textarea" tid="rc-text" label="Message to the restaurant" helper="Sent to the restaurant word for word. At least 10 characters." value="Please upload your halal certificate. It must cover your kitchen or the whole restaurant." count="89 of 1000 characters · minimum 10" error="" rows="3" w="466" hint-size="466px,170px"></dc-import>
+      <dc-import name="Textarea" tid="rc-int" label="Internal note (staff only, optional)" helper="Never sent to the restaurant." value="" count="0 of 2000 characters" error="" rows="2" w="466" hint-size="466px,170px"></dc-import>
+    </div></div><div style="flex: 0 0 auto; display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 12px 24px; padding: 10px 16px 12px; border-top: 1px solid var(--border-decorative); background: var(--surface-raised)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md">Cancel</x-import><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md">Send request for changes</x-import></div></section>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { yes: true, no: false, nothing: null, noop: () => {}, reasons: [
+        { value: 'HALAL_CERTIFICATION_INVALID', label: 'Halal certification not valid' },
+        { value: 'DOCUMENTS_INSUFFICIENT', label: 'Documents not sufficient' },
+        { value: 'IDENTITY_UNVERIFIED', label: 'Identity not verified' },
+        { value: 'OTHER', label: 'Other' },
+      ] };
+  }
+}
+</script>
+</body>
+</html>

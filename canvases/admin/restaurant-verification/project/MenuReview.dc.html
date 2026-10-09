@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Menu reviews</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:var(--surface-base);color:var(--text-primary);font-family:var(--font-ui)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+textarea.hg-ta{box-sizing:border-box;width:100%;min-height:96px;padding:10px 12px;border:1px solid var(--border-interactive);border-radius:8px;background:var(--surface-raised);color:var(--text-primary);font:inherit;font-size:15px;line-height:1.5;resize:vertical}
+textarea.hg-ta:focus{outline:none;border:var(--focus-field-border-width) solid var(--focus-ring)}
+textarea.hg-ta[aria-invalid="true"]{border:var(--focus-field-border-width) solid var(--color-danger-500)}
+.skip{position:absolute;left:-10000px;top:8px;z-index:900;padding:12px 16px;background:var(--surface-raised);color:var(--text-primary);border-radius:8px;font-weight:600}
+.skip:focus{left:80px;outline:none;box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+.napi{display:inline-flex;align-self:flex-start;padding:2px 8px;border-radius:4px;background:var(--surface-sunken);border:1px solid var(--border-strong);font-size:12px;font-weight:600;line-height:1.4}
+.prop{display:inline-flex;align-self:flex-start;padding:2px 8px;border-radius:4px;background:var(--color-info-50);color:var(--color-info-700);font-size:12px;font-weight:600;line-height:1.4}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; display: grid; grid-template-columns: 64px minmax(0, 1fr); background: var(--surface-base); position: relative; overflow: hidden; font-family: var(--font-ui); color: var(--text-primary)">
+  <dc-import name="SideNav" active="menu" role="ADMIN" collapsed="{{yes}}" h="900" hint-size="64px,900px"></dc-import>
+  <div style="display: flex; flex-direction: column; min-width: 0; min-height: 0; position: relative">
+    <a class="skip" href="#main">Skip to main content</a>
+    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="raised" title="Menu reviews" subtitle="Words, photos and dietary and allergen tags wait for review before customers see them"></x-import>
+    <main id="main" data-density="compact" style="flex: 1 1 auto; min-height: 0; display: flex; gap: 12px; padding: 12px; overflow: hidden">
+      <section aria-labelledby="mr-list-h" style="flex: 0 0 380px; min-height: 0; display: flex; flex-direction: column; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: 12px; overflow: hidden">
+        <div style="display: flex; flex-direction: column; gap: 4px; padding: 12px 16px; border-bottom: 1px solid var(--border-decorative)">
+          <h2 id="mr-list-h" style="margin: 0; font-size: 16px; font-weight: 600">Waiting for review, oldest first</h2>
+          <span style="font-size: 13px; color: var(--text-secondary)">Showing {{count}} · from listMenuReviewQueue</span>
+        </div>
+        <ul role="listbox" aria-labelledby="mr-list-h" style="flex: 1 1 auto; min-height: 0; overflow: auto; margin: 0; padding: 6px; list-style: none; display: flex; flex-direction: column; gap: 4px">
+          <sc-for list="{{rows}}" as="r" hint-placeholder-count="3">
+            <li role="option" aria-selected="{{r.sel}}" tabindex="{{r.tab}}" class="hg-focus" style="display: flex; flex-direction: column; gap: 2px; min-height: 44px; padding: 8px 12px; border-radius: 8px; background: {{r.bg}}; cursor: pointer">
+              <span style="display: flex; justify-content: space-between; gap: 8px; font-size: 15px; font-weight: {{r.fw}}"><span>{{r.name}}</span><span style="font-size: 13px; font-weight: 500; color: var(--text-secondary); white-space: nowrap"><time title="{{r.submittedFull}}">{{r.submitted}}</time></span></span>
+              <span style="font-size: 13px; color: var(--text-secondary)">Version {{r.version}} · restaurant <span style="font-family: var(--font-mono)">{{r.restaurant}}</span></span>
+            </li>
+          </sc-for>
+        </ul>
+        <div style="display: flex; flex-direction: column; gap: 6px; padding: 8px 12px; border-top: 1px solid var(--border-decorative)">
+          <span class="napi">Needs API: the restaurant’s name on each pending version (MenuItemVersion carries only restaurant_id)</span>
+          <span class="prop">Proposed component: LyteNyte grid (the selected row is a filled tile, never a side bar)</span>
+        </div>
+      </section>
+      <div role="separator" aria-orientation="vertical" aria-label="Resize the list" tabindex="0" class="hg-focus" style="flex: 0 0 12px; cursor: col-resize; align-self: stretch; display: flex; align-items: center; justify-content: center; border-radius: 4px"><span aria-hidden="true" style="display: block; width: 4px; height: 40px; border-radius: 2px; background: var(--border-interactive)"></span></div>
+      <section aria-labelledby="mr-h" style="flex: 1 1 auto; min-width: 0; min-height: 0; display: flex; flex-direction: column; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: 12px; overflow: hidden">
+        <div style="flex: 1 1 auto; min-height: 0; overflow: auto; padding: 16px 20px; display: flex; flex-direction: column; gap: 14px">
+          <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 16px">
+            <div style="display: flex; flex-direction: column; gap: 4px">
+              <h2 id="mr-h" tabindex="-1" style="margin: 0; font-size: 20px; font-weight: 700">{{v.name}}</h2>
+              <span style="font-size: 13px; color: var(--text-secondary)">Version {{v.version}} · submitted <time title="{{v.submittedFull}}">{{v.submitted}}</time> · restaurant <span style="font-family: var(--font-mono)">{{v.restaurant}}</span></span>
+            </div>
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="info" size="md" icon="clock">Waiting for review</x-import>
+          </div>
+          <dc-import name="InlineAlert" tone="info" heading="Read it as a customer would" body="Only the words, the photo and the dietary and allergen tags wait for you. Price and availability changed at once. A description may not claim more than the restaurant’s halal certificate covers: “100% zabiha, hand-slaughtered” is a claim the certificate has to back up." w="{{alertW}}" hint-size="{{alertW}}px,96px"></dc-import>
+          <div style="display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 20px; align-items: start">
+            <dl style="margin: 0; display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 10px 16px; font-size: 15px; line-height: 1.5">
+              <dt style="color: var(--text-secondary)">Name</dt><dd style="margin: 0; font-weight: 600">{{v.name}}</dd>
+              <dt style="color: var(--text-secondary)">Description</dt><dd style="margin: 0">{{v.description}}</dd>
+              <dt style="color: var(--text-secondary)">Ingredients</dt><dd style="margin: 0">{{v.ingredients}}</dd>
+              <dt style="color: var(--text-secondary)">Dietary tags</dt><dd style="margin: 0; display: flex; flex-wrap: wrap; gap: 6px"><sc-for list="{{v.dietaryL}}" as="t" hint-placeholder-count="1"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="neutral" size="sm">{{t}}</x-import></sc-for><sc-if value="{{v.noDietary}}" hint-placeholder-val="{{false}}"><span style="color: var(--text-secondary)">None</span></sc-if></dd>
+              <dt style="color: var(--text-secondary)">Allergens</dt><dd style="margin: 0; display: flex; flex-wrap: wrap; gap: 6px"><sc-for list="{{v.allergensL}}" as="t" hint-placeholder-count="2"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="outline" size="sm">{{t}}</x-import></sc-for><sc-if value="{{v.noAllergens}}" hint-placeholder-val="{{false}}"><span style="color: var(--text-secondary)">Not provided</span></sc-if></dd>
+            </dl>
+            <figure style="margin: 0; display: flex; flex-direction: column; gap: 6px">
+              <div role="img" aria-label="{{v.photoLabel}}" style="width: 260px; height: 195px; box-sizing: border-box; border-radius: 8px; border: 1px dashed var(--border-strong); background: var(--surface-sunken); display: flex; align-items: center; justify-content: center; text-align: center; padding: 12px; font-size: 13px; color: var(--text-secondary)">{{v.photoText}}</div>
+              <figcaption style="font-size: 13px; color: var(--text-secondary)">Photo as the customer will see it</figcaption>
+            </figure>
+          </div>
+          <p style="margin: 0; font-size: 13px; line-height: 1.45; color: var(--text-secondary)">The halal status customers see comes from the restaurant’s approved certificate, never from a menu item. A restaurant can’t tag an item Halal certified.</p>
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <span class="napi">Needs API: the live version beside the pending one, so you can see what changed</span>
+            <span class="napi">Contract change: the menu review queue and decision move to launch (owner decision, round 2); the contract still marks them a later version</span>
+          </div>
+        </div>
+        <div role="region" aria-label="Decide" style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 10px 16px; border-top: 1px solid var(--border-strong); background: var(--surface-raised)">
+          <span style="font-size: 13px; line-height: 1.45; color: var(--text-secondary); max-width: 560px">Approving makes this version live at once. Rejecting sends the restaurant your reason word for word; they can fix it and send it again.</span>
+          <div style="display: flex; gap: 24px">
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" href="MenuReview-Reject.dc.html">Reject…</x-import>
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md">Approve</x-import>
+          </div>
+        </div>
+
+      </section>
+
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+
+    const TAG = { VEGETARIAN: 'Vegetarian', VEGAN: 'Vegan', GLUTEN_FREE: 'Gluten free', DAIRY_FREE: 'Dairy free', NUT_FREE: 'Nut free', SPICY: 'Spicy', KETO: 'Keto', LOW_CARB: 'Low carb' };
+    const ALG = { PEANUTS: 'Peanuts', TREE_NUTS: 'Tree nuts', SESAME: 'Sesame', MILK: 'Milk', EGGS: 'Eggs', FISH: 'Fish', CRUSTACEANS_MOLLUSCS: 'Crustaceans and molluscs', SOY: 'Soy', WHEAT_TRITICALE: 'Wheat or triticale', SULPHITES: 'Sulphites', MUSTARD: 'Mustard' };
+    // MenuItemVersion rows from listMenuReviewQueue, oldest first. The version carries no restaurant name:
+    // the row shows the restaurant id until the API adds the name (Needs API).
+    const versions = [
+      { id: 'v1', name: 'Chicken shawarma plate', restaurant: '0192e1a4…77c1', version: 3, submitted: '27 Sep, 6:40 pm', submittedFull: 'Sunday 27 September 2026, 6:40 pm EDT',
+        description: 'Charcoal-grilled chicken, garlic sauce, pickles and rice. 100% zabiha, hand-slaughtered.',
+        ingredients: 'Chicken thigh, garlic, lemon, yoghurt, spices, basmati rice, turnip pickles.',
+        dietary: ['SPICY'], allergens: ['MILK', 'MUSTARD'], photo: true },
+      { id: 'v2', name: 'Lamb mandi', restaurant: '0192e1b8…0a4d', version: 1, submitted: '28 Sep, 9:15 am', submittedFull: 'Monday 28 September 2026, 9:15 am EDT',
+        description: 'Slow-cooked lamb on smoked rice.', ingredients: 'Lamb shoulder, basmati rice, mandi spice, onion.', dietary: [], allergens: [], photo: false },
+      { id: 'v3', name: 'Falafel wrap', restaurant: '0192e1a4…77c1', version: 2, submitted: '28 Sep, 11:02 am', submittedFull: 'Monday 28 September 2026, 11:02 am EDT',
+        description: 'Crisp falafel, tahini, salad in a warm wrap.', ingredients: 'Chickpeas, parsley, tahini, wheat wrap, tomato.', dietary: ['VEGAN', 'VEGETARIAN'], allergens: ['SESAME', 'WHEAT_TRITICALE'], photo: true },
+    ];
+
+    const sel = this.props.sel ?? 'v1';
+    const rows = versions.map((r, i) => Object.assign({}, r, {
+      sel: r.id === sel ? 'true' : 'false', tab: r.id === sel ? '0' : '-1',
+      bg: r.id === sel ? 'var(--surface-sunken)' : 'transparent', fw: r.id === sel ? '700' : '500',
+    }));
+    const cur = versions.find((r) => r.id === sel) || versions[0];
+    const v = Object.assign({}, cur, {
+      dietaryL: cur.dietary.map((k) => TAG[k]), noDietary: cur.dietary.length === 0,
+      allergensL: cur.allergens.map((k) => ALG[k]), noAllergens: cur.allergens.length === 0,
+      photoText: cur.photo ? 'Photo of the ' + cur.name.toLowerCase() : 'No photo sent',
+      photoLabel: cur.photo ? 'Photo submitted for ' + cur.name : 'No photo submitted',
+    });
+
+    return { yes: true, no: false, noop: () => {}, rows, count: rows.length, v, alertW: 900 };
+  }
+}
+</script>
+</body>
+</html>

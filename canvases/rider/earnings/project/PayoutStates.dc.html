@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Payout states reference</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div data-theme="dark" style="width: 390px; height: 1240px; overflow: hidden; box-sizing: border-box; padding: 24px 20px; display: flex; flex-direction: column; gap: 12px; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui); font-size: var(--type-body-lg-size); line-height: 1.5;">
+  <h1 style="margin: 0; font-size: var(--type-heading-lg-size); line-height: 1.3;">Payout states, as the rider sees them</h1>
+  <p style="margin: 0; color: var(--text-secondary-field);">Every PayoutState value, its status (icon + 17px word, never brand orange, never green) and the line shown on the payout. Icon + word replaces the 13px Badge until Badge has a field size and theme.</p>
+  <span style="align-self: flex-start; font-family: var(--font-mono); font-size: var(--type-mono-sm-size); padding: 2px 6px; border-radius: var(--radius-xs); background: var(--feedback-info-tint); color: var(--feedback-info-tint-text);">Proposed component: StatusLabel (Icon md + label, 17px semibold; never brand orange or green; warning states use --feedback-warning-icon on the icon and --text-primary on the word, other states use --text-secondary-field) · stands in for Badge until Badge has a field size and a field theme (the long-term replacement)</span>
+  <sc-for list="{{states}}" as="s" hint-placeholder-count="7">
+    <div style="display: flex; flex-direction: column; gap: 6px; padding: 12px 0; border-top: 1px solid var(--border-decorative);">
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+        <span style="display: inline-flex; align-items: center; gap: 6px; font-weight: 600; color: {{s.fg}};"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="{{s.bi}}" size="md" color="{{s.ic}}"></x-import>{{s.label}}</span>
+        <span style="font-family: var(--font-mono); font-size: var(--type-mono-md-size); color: var(--text-secondary-field);">{{s.key}}</span>
+      </div>
+      <span>{{s.copy}}</span>
+    </div>
+  </sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1240}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const q = 'var(--text-secondary-field)';
+    const s = (key, label, warn, bi, copy) => ({ key, label, bi, copy, fg: warn ? 'var(--text-primary)' : q, ic: warn ? 'var(--feedback-warning-icon)' : q });
+    return { states: [
+      s('DRAFT', 'Being prepared', false, 'clock', 'This payout is being prepared from the lines that are available now. Goes out on the next Monday payout. Lines still pending join once available. (Icon gap: hourglass. Needs API: scheduled_for on Payout; no date until then.)'),
+      s('READY', 'Scheduled', false, 'clock', 'Scheduled. The period has closed, so no more lines join. Goes out on the next Monday payout. Only after the period ends.'),
+      s('TRANSFERRING', 'Sending', false, 'refresh', 'HalalGoes is sending this payout to your Stripe account now.'),
+      s('TRANSFERRED', 'With Stripe', false, 'check', 'Sent to your Stripe account. Stripe sends it to your bank on its own schedule.'),
+      s('PAID', 'Paid', false, 'check', 'Paid out through Stripe on {paid_at}. Stripe sends it to your bank on its own schedule. (Needs API: define PAID vs TRANSFERRED.)'),
+      s('FAILED', 'Didn’t go through', true, 'warning', 'Title "This payout didn’t go through", then failure_message word for word under "Reason given:" (never a code), then the money, then what to do. Final: no "checks again" line. The money is back in your balance and goes into the next Monday payout: lines return to AVAILABLE and join the next DRAFT. Fix payout account in Stripe (Button primary) only when GET /connect/status has payouts_enabled=false or currently_due / past_due; otherwise a support placeholder. Cause-sorted copy (account, temporary, failed twice) is the alternative row: Needs API failure_code. Warning, not danger: nothing is lost.'),
+      s('HELD', 'On hold', true, 'lock', 'Title "This payout is on hold". Current contract: hold_reason shown word for word under "Reason given:" (platform-set; never credited to Stripe). Goes out on the next Monday payout once the hold is lifted. Fix only when GET /connect/status needs something; after the fix, "Checking with Stripe", then READY. Card order: title, "Reason given:", money, what to do, then "When the hold is lifted, this shows Scheduled." (Needs API: rider.payout_updated.) Account vs review wording is the alternative row: Needs API hold_reason_code.'),
+    ] };
+  }
+}
+</script>
+</body>
+</html>

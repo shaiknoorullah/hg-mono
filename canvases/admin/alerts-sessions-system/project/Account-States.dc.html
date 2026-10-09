@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Your account: states</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.skip-link{position:absolute;left:var(--space-4);top:-120px;z-index:60;display:inline-flex;align-items:center;min-height:44px;padding:0 var(--space-4);border-radius:var(--radius-sm);background:var(--surface-raised);color:var(--text-primary);font-family:var(--font-ui);font-size:var(--type-body-md-size);font-weight:600;text-decoration:none}
+.skip-link:focus,.skip-link[data-shown]{top:12px;outline:2px solid transparent;box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+.tag{font-size:var(--type-mono-sm-size);line-height:1.4;font-family:var(--font-mono);color:var(--text-secondary)}
+</style>
+</helmet>
+<div style="width: 1440px; height: 2760px; display: flex; flex-direction: column; gap: 30px; background: var(--surface-base)">
+<div data-theme="light" data-density="compact" style="width: 1440px; height: 900px; position: relative; overflow: hidden; display: grid; grid-template-columns: 264px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+<a class="skip-link" href="#main">Skip to main content</a>
+<div style="background: var(--surface-chrome)">
+<dc-import name="AdminSidebar" active="account" viewer="admin" has-new="{{no}}" counts="live" wn-expanded="{{no}}" focus-demo="none" hint-size="264px,900px"></dc-import>
+</div>
+<div style="display: flex; flex-direction: column; min-width: 0; min-height: 0">
+<main id="main" tabindex="-1" style="flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; outline: none">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" role="none" tone="raised" sticky="{{yes}}" title="Your account" subtitle="Change password refused, and the sign-out-everywhere panel open"></x-import>
+<div style="flex: 1; min-height: 0; padding: var(--space-5) var(--space-6); display: flex; gap: var(--space-5); min-width: 0; overflow: hidden">
+<section aria-labelledby="pw-h" style="flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-5); border: 1px solid var(--border-decorative); border-radius: var(--radius-lg); background: var(--surface-raised)">
+<h2 id="pw-h" style="margin: 0; font-size: var(--type-heading-md-size); font-weight: 600">Change password</h2>
+<div role="alert" tabindex="-1" style="display: flex; gap: var(--space-3); align-items: flex-start; padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); border: 1px solid var(--feedback-warning-border); background: var(--feedback-warning-tint); color: var(--feedback-warning-tint-text)">
+<span style="display: inline-flex; color: var(--feedback-warning-icon)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="warning" size="md"></x-import></span>
+<span style="font-size: var(--type-body-md-size); line-height: 1.45"><strong style="font-weight: 600">Password not changed.</strong> Fix the two fields below. Nothing else was changed and you are still signed in.</span>
+</div>
+
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Current password" variant="password" required="{{yes}}" value="Spring-Garden-2026" auto-complete="current-password" error-text="That isn't your current password."></x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="New password" variant="password" required="{{yes}}" value="ramadanmubarak2026" auto-complete="new-password" helper-text="At least 12 characters. We check it against passwords exposed in data breaches." error-text="This password has appeared in a data breach, so it isn't safe. Choose a different one of at least 12 characters."></x-import>
+<p style="margin: 0; font-size: var(--type-body-sm-size); line-height: 1.45; color: var(--text-secondary)">Saving keeps you signed in here and signs you out on every other device.</p>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" loading="{{no}}" style="align-self: flex-start">Save new password</x-import>
+<span class="tag">changePassword (current and new password). The calling session is re-issued; every other session ends. Contract change: it moves to launch (owner decision, round 2); the contract still marks it a later version.</span>
+</section>
+<section id="so-panel" aria-labelledby="sop-h" style="flex: 0 0 420px; display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-5); border: 1px solid var(--border-strong); border-radius: var(--radius-lg); background: var(--surface-raised)">
+<span class="tag">Proposed component: DetailPanel (in the page beside your account, never over it)</span>
+<h2 id="sop-h" tabindex="-1" style="margin: 0; font-size: var(--type-heading-md-size); font-weight: 600">Sign out everywhere, including here?</h2>
+<p style="margin: 0; font-size: var(--type-body-md-size); line-height: 1.5">Every session, including this one, ends within 10 seconds. You’ll need to sign in again with your password and an authenticator code.</p>
+<div style="display: flex; gap: var(--space-3); justify-content: flex-end">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md">Keep me signed in</x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="danger" size="md" destructive="{{yes}}">Sign out everywhere</x-import>
+</div>
+<span class="tag">Focus opens on Keep me signed in; Escape closes it and returns focus to Sign out everywhere…. Done (204) goes straight to sign in. In flight and outcome unknown: drawn below on this board.</span>
+</section>
+</div>
+</main>
+</div>
+</div>
+<div data-theme="light" data-density="compact" style="width: 1440px; height: 900px; position: relative; overflow: hidden; display: grid; grid-template-columns: 264px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+<a class="skip-link" href="#main2">Skip to main content</a>
+<div style="background: var(--surface-chrome)">
+<dc-import name="AdminSidebar" active="account" viewer="admin" has-new="{{no}}" counts="live" wn-expanded="{{no}}" focus-demo="none" hint-size="264px,900px"></dc-import>
+</div>
+<div style="display: flex; flex-direction: column; min-width: 0; min-height: 0">
+<main id="main2" tabindex="-1" style="flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; outline: none">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" role="none" tone="raised" sticky="{{yes}}" title="Your account" subtitle="Change password: saving, saved and didn’t save"></x-import>
+<div style="flex: 1; min-height: 0; padding: var(--space-5) var(--space-6); display: flex; gap: var(--space-5); min-width: 0; overflow: hidden">
+<section aria-labelledby="pw-s-h" style="flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-5); border: 1px solid var(--border-decorative); border-radius: var(--radius-lg); background: var(--surface-raised)">
+<span class="tag">Saving (changePassword in flight): fields read-only</span>
+<h2 id="pw-s-h" style="margin: 0; font-size: var(--type-heading-md-size); font-weight: 600">Change password</h2>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Current password" variant="password" required="{{yes}}" value="Spring-Garden-2027" auto-complete="current-password" read-only="{{yes}}"></x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="New password" variant="password" required="{{yes}}" value="tamarind-orchard-41" auto-complete="new-password" helper-text="At least 12 characters. We check it against passwords exposed in data breaches." read-only="{{yes}}"></x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" loading="{{yes}}" style="align-self: flex-start">Save new password</x-import>
+<span role="status" style="font-size: var(--type-body-sm-size); color: var(--text-secondary)">Saving your new password.</span>
+</section>
+<section aria-labelledby="pw-ok-h" style="flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-5); border: 1px solid var(--border-decorative); border-radius: var(--radius-lg); background: var(--surface-raised)">
+<span class="tag">Saved (200): toast, focus back on the section heading, fields cleared</span>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Toast" variant="success" title="Password changed." description="You’re still signed in here; every other device was signed out." on-dismiss="{{noop}}"></x-import>
+<h2 id="pw-ok-h" tabindex="-1" style="margin: 0; align-self: flex-start; font-size: var(--type-heading-md-size); font-weight: 600; box-shadow: 0 0 0 var(--focus-offset-width) var(--focus-offset), 0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring); border-radius: var(--radius-sm)">Change password</h2>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Current password" variant="password" required="{{yes}}" value="" auto-complete="current-password"></x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="New password" variant="password" required="{{yes}}" value="" auto-complete="new-password" helper-text="At least 12 characters. We check it against passwords exposed in data breaches."></x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" style="align-self: flex-start">Save new password</x-import>
+</section>
+<section aria-labelledby="pw-net-h" style="flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-5); border: 1px solid var(--border-decorative); border-radius: var(--radius-lg); background: var(--surface-raised)">
+<span class="tag">Didn’t save (network or server error, or no answer)</span>
+<h2 id="pw-net-h" style="margin: 0; font-size: var(--type-heading-md-size); font-weight: 600">Change password</h2>
+<div role="alert" tabindex="-1" style="display: flex; gap: var(--space-3); align-items: flex-start; padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); border: 1px solid var(--feedback-warning-border); background: var(--feedback-warning-tint); color: var(--feedback-warning-tint-text)">
+<span style="display: inline-flex; color: var(--feedback-warning-icon)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="warning" size="md"></x-import></span>
+<span style="font-size: var(--type-body-md-size); line-height: 1.45"><strong style="font-weight: 600">Password not changed.</strong> Nothing was sent, or we couldn’t confirm it. Try again.</span>
+</div>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Current password" variant="password" required="{{yes}}" value="Spring-Garden-2027" auto-complete="current-password"></x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="New password" variant="password" required="{{yes}}" value="tamarind-orchard-41" auto-complete="new-password" helper-text="At least 12 characters. We check it against passwords exposed in data breaches."></x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" style="align-self: flex-start">Save new password</x-import>
+<span class="tag">Focus moves to the alert. Your typed passwords stay so Try again needs no retyping.</span>
+</section>
+</div>
+</main>
+</div>
+</div>
+<div data-theme="light" data-density="compact" style="width: 1440px; height: 900px; position: relative; overflow: hidden; display: grid; grid-template-columns: 264px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+<a class="skip-link" href="#main3">Skip to main content</a>
+<div style="background: var(--surface-chrome)">
+<dc-import name="AdminSidebar" active="account" viewer="admin" has-new="{{no}}" counts="live" wn-expanded="{{no}}" focus-demo="none" hint-size="264px,900px"></dc-import>
+</div>
+<div style="display: flex; flex-direction: column; min-width: 0; min-height: 0">
+<main id="main3" tabindex="-1" style="flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; outline: none">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" role="none" tone="raised" sticky="{{yes}}" title="Your account" subtitle="Sign out everywhere: in flight and outcome unknown"></x-import>
+<div style="flex: 1; min-height: 0; padding: var(--space-5) var(--space-6); display: flex; gap: var(--space-5); min-width: 0; overflow: hidden">
+<section aria-labelledby="so-w-h" style="flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-5); border: 1px solid var(--border-strong); border-radius: var(--radius-lg); background: var(--surface-raised)">
+<span class="tag">Sign out everywhere, in flight (logoutAll, up to 10 seconds)</span>
+<h2 id="so-w-h" tabindex="-1" style="margin: 0; font-size: var(--type-heading-md-size); font-weight: 600">Sign out everywhere, including here?</h2>
+<p style="margin: 0; font-size: var(--type-body-md-size); line-height: 1.5">Every session, including this one, ends within 10 seconds. You’ll need to sign in again with your password and an authenticator code.</p>
+<div style="display: flex; gap: var(--space-3); justify-content: flex-end">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" disabled="{{yes}}">Keep me signed in</x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="danger" size="md" destructive="{{yes}}" loading="{{yes}}">Sign out everywhere</x-import>
+</div>
+<span role="status" style="font-size: var(--type-body-sm-size); color: var(--text-secondary)">Signing you out everywhere.</span>
+<span class="tag">The panel stays open while busy; Escape and Keep me signed in do nothing until logoutAll answers. 204, or 401 (this session had already ended): go to sign in.</span>
+</section>
+<section aria-labelledby="so-t-h" style="flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-5); border: 1px solid var(--border-strong); border-radius: var(--radius-lg); background: var(--surface-raised)">
+<span class="tag">Sign out everywhere, outcome unknown (timeout or server error)</span>
+<h2 id="so-t-h" style="margin: 0; font-size: var(--type-heading-md-size); font-weight: 600">Sign out everywhere, including here?</h2>
+<div role="alert" tabindex="-1" style="display: flex; gap: var(--space-3); align-items: flex-start; padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); border: 1px solid var(--feedback-warning-border); background: var(--feedback-warning-tint); color: var(--feedback-warning-tint-text)">
+<span style="display: inline-flex; color: var(--feedback-warning-icon)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="warning" size="md"></x-import></span>
+<span style="font-size: var(--type-body-md-size); line-height: 1.45"><strong style="font-weight: 600">We couldn’t confirm you were signed out everywhere.</strong> The server didn’t answer in time, so some of your sessions, this one included, may still be active. Try again: signing out everywhere twice does no harm.</span>
+</div>
+<div style="display: flex; gap: var(--space-3); justify-content: flex-end">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md">Close</x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="danger" size="md" destructive="{{yes}}">Try again</x-import>
+</div>
+<span class="tag">The copy never says it worked or failed. Focus moves to Try again; it is safe to repeat. If it then gets 401, every session already ended: go to sign in.</span>
+</section>
+<div style="flex: 1 1 0; min-width: 0"></div>
+</div>
+</main>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":2760}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { yes: true, no: false, nothing: null, noop: function () {} };
+  }
+}
+</script>
+</body>
+</html>

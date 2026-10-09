@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sign-in header</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<header style="width: {{w}}; height: 80px; box-sizing: border-box; padding: 0 {{pad}}; display: flex; align-items: center; gap: 16px; background: var(--surface-base); position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: -4px; font-family: var(--font-ui); color: var(--text-primary)">
+<span aria-hidden="true" style="position: absolute; bottom: -30px; left: 48px; font: 500 12px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 4px 8px; border-radius: 4px; white-space: nowrap; z-index: 1">Proposed component: AppBar with brand mark (AppBar has no logo slot)</span>
+<img src="/_blob/e14b0f4f6297329ccda5f602e4aecfc1" alt="HalalGoes" style="height: 32px; width: 96px">
+<sc-if value="{{wide}}" hint-placeholder-val="{{true}}"><span class="type-body-md" style="color: var(--text-secondary); padding-left: 16px; border-left: 1px solid var(--border-decorative)">Restaurant partner</span></sc-if>
+</header>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"w": {"editor": "text", "default": "1440px"}, "$preview": {"width": 1440, "height": 80}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const w = this.props.w ?? '1440px'; const n = parseInt(w, 10); return { w, pad: n < 600 ? '16px' : '48px', wide: n >= 400 };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Choose another card</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<link rel="stylesheet" href="hg-roles.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:var(--surface-base)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+</style>
+</helmet>
+<div style="width: 390px; height: 1040px; position: relative; display: flex; flex-direction: column; overflow: hidden; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="cream" title="Order HG-8F3K2Q" subtitle="Zaytoun Grill · placed 6:42 pm" back-label="Back to Orders" on-back="{{ noop }}"></x-import><main style="flex-grow: 1; display: flex; flex-direction: column; gap: 0px; padding: 0; overflow: hidden">
+
+</main><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Sheet" open="{{ yes }}" contained="{{ yes }}" title="Choose another card" on-close="{{ noop }}" max-height="88%"><div style="display: flex; flex-direction: column; gap: 16px"><p class="type-body-md" style="color: var(--text-secondary)">We'll put your items back in your cart and check the price again before you pay.</p><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.RadioGroup" label="Pay with" name="card" value="pm_2" options="{{ cards }}" required="{{ yes }}"></x-import><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" full-width="{{ yes }}" icon-start="plus">Add a new card</x-import><div style="display: flex; flex-direction: column; gap: 8px; padding-top: 8px"><div style="display: flex; flex-direction: column; gap: 6px"><div><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="danger" size="lg" destructive="{{ yes }}" full-width="{{ yes }}" aria-describedby="cc-consequence" href="Cancel-Reason-ChooseCard.dc.html">Cancel and order again from Zaytoun Grill</x-import></div><span id="cc-consequence" class="type-body-sm" style="color: var(--text-secondary); text-align: center">This cancels this order. Nothing is charged. Mastercard •••• 5100 is chosen when you pay.</span></div><div class="hg-focus-drawn"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="md" full-width="{{ yes }}" href="Track-PaymentFailed.dc.html">Not now</x-import></div></div></div><div class="hg-gap"><span class="hg-tag">Annotation: where this comes from</span><span class="hg-gap-note">Saved cards come from listPaymentMethods (brand, last4, expiry only). The card that was declined is listed last and not preselected. Checkout re-quotes, so no amount is shown here. Opened from a terminal outcome (FAILED, CAPTURE_FAILED) the primary reads "Put these items back in your cart" and nothing is cancelled (Payment-ChooseCard-Terminal).</span></div><div class="hg-gap"><span class="hg-tag">Annotation: where the cancel goes</span><span class="hg-gap-note">A cancel that starts here is a route back to ordering, not an ending. Once cancelOrder succeeds the app puts the items back in the cart and opens it, skipping Outcome-CancelledByYou-Created. The card chosen here is remembered on the device and preselected at the next checkout, which prices the order again. The same items go back in the cart (owner decision, 1 October), and the cart opens instead of the menu.</span></div><div class="hg-gap"><span class="hg-tag">Annotation: when the cancel fires</span><span class="hg-gap-note">cancelOrder is sent only after "Cancel and order again from Zaytoun Grill" and the reason sheet (Cancel-Reason-ChooseCard), never on opening this sheet. When the sheet opens, focus lands on "Not now", the least destructive action (04-accessibility §4); the destructive primary is never focused first. The primary is variant="danger" like every other cancel; the line under it (id cc-consequence) says what pressing it does and is tied to it with aria-describedby. "Not now" closes the sheet and the order stays CREATED until its 6:57 pm deadline.</span></div><div class="hg-gap"><span class="hg-tag hg-tag-api">Needs API: PAYMENT_FAILED customer cancel reason (or a reasonless cancel from CREATED)</span><span class="hg-gap-note">cancelOrder requires reason_code, and no CustomerCancellationReasonCode fits a declined card (OTHER needs a 5-200 character note). Until the contract has one, this press opens the reason sheet (Cancel-Reason-ChooseCard) first; the app never auto-fills OTHER.</span></div><div class="hg-gap"><span class="hg-tag">Annotation: put the items back</span><span class="hg-gap-note">Owner decision (1 October): once the unpaid order is cancelled, the app puts the same items back in the cart with the existing cart operations (addCartLine: same item, variant, add-ons, quantity and note) and opens it; the server prices them again. A line that can't be added shows its own cart state. No contract change. Putting back, failed and other-restaurant states: Checkout-cancelled on the Cart canvas.</span></div></x-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1040}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const t = (s, at, a) => ({ to_state: s, at: '2026-09-28T' + at + ':00-04:00', actor_kind: a || 'SYSTEM' });
+    const all = [t('AUTHORIZED', '18:42', 'CUSTOMER'), t('RESTAURANT_PENDING', '18:42'), t('PREPARING', '18:44', 'RESTAURANT'), t('READY_FOR_PICKUP', '18:59', 'RESTAURANT'), t('PICKED_UP', '19:02', 'RIDER'), t('ARRIVED', '19:12', 'RIDER'), t('DELIVERED', '19:13', 'RIDER'), t('COMPLETED', '19:43')];
+    const upTo = (n) => all.slice(0, n);
+    return {
+      yes: true, no: false, none: null, zero: 0, noop: () => {},
+      nav: [{ key: 'home', label: 'Home', icon: 'home' }, { key: 'search', label: 'Search', icon: 'search' }, { key: 'orders', label: 'Orders', icon: 'orders', badge: 1, badgeNoun: 'active' }, { key: 'account', label: 'Account', icon: 'profile' }],
+      cards: [{ value: 'pm_2', label: 'Mastercard •••• 5100', description: 'Expires 03/28' }, { value: 'pm_3', label: 'Visa •••• 0077', description: 'Expires 11/27' }, { value: 'pm_1', label: 'Visa •••• 4242', description: 'Declined for this order' }]
+    };
+  }
+}
+</script>
+</body>
+</html>

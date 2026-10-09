@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>All restaurants, filtered to nothing</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:var(--color-neutral-100)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+.demo-focus .hg-focus,.demo-focus .hg-choice-ctl,.demo-focus .hg-row,.demo-focus > a{box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)!important}
+.demo-focus-field .hg-field{border-color:var(--focus-ring)!important;box-shadow:inset 0 0 0 calc(var(--focus-field-border-width) - 1px) var(--focus-ring)!important}
+
+</style>
+</helmet>
+<div style="width: 390px; height: 1000px; position: relative; overflow: hidden; display: flex; flex-direction: column; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="cream" title="All restaurants" subtitle="Near Home" back-label="Back to Home" on-back="{{noop}}"></x-import>
+<div style="display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-4)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="sm" href="Browse-filters.dc.html" accessibility-label="Filters, 3 applied">Filters · 3</x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Menu" label="Sort: Recommended, sort restaurants" trigger-text="Sort: Recommended" items="{{sortItems}}"></x-import>
+</div>
+<main style="flex-grow: 1; display: flex; flex-direction: column; padding: var(--space-4)">
+<section style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-4); padding: var(--space-8) var(--space-4); text-align: center; outline: 1.5px dotted var(--color-info-500); outline-offset: -2px; border-radius: var(--radius-lg); position: relative">
+<span style="position: absolute; top: 8px; left: 8px; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--color-info-700); background: var(--color-info-50)">Component gap: EmptyState</span>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="search" size="2xl" color="var(--text-secondary)"></x-import>
+<h2 style="margin: 0; font-size: var(--type-heading-lg-size); font-weight: 600">No restaurants match your filters</h2>
+<p style="margin: 0; max-width: 300px; font-size: var(--type-body-md-size); line-height: var(--type-body-md-line); color: var(--text-secondary)">Remove a filter below, or clear them all.</p>
+<div style="display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-2); outline: 1.5px dotted var(--color-info-500); outline-offset: 3px; border-radius: var(--radius-sm)"><button type="button" aria-label="Remove filter: Within 2 km" style="min-height: 44px; display: inline-flex; align-items: center; gap: var(--space-1); padding: 0 var(--space-3); border-radius: var(--radius-full); border: 1.5px solid var(--border-brand); background: var(--state-selected-tint); font-family: inherit; font-size: var(--type-label-md-size); font-weight: 600; color: var(--text-primary)">Within 2 km<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="close" size="sm"></x-import></button><button type="button" aria-label="Remove filter: Open now" style="min-height: 44px; display: inline-flex; align-items: center; gap: var(--space-1); padding: 0 var(--space-3); border-radius: var(--radius-full); border: 1.5px solid var(--border-brand); background: var(--state-selected-tint); font-family: inherit; font-size: var(--type-label-md-size); font-weight: 600; color: var(--text-primary)">Open now<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="close" size="sm"></x-import></button><button type="button" aria-label="Remove filter: Vegetarian" style="min-height: 44px; display: inline-flex; align-items: center; gap: var(--space-1); padding: 0 var(--space-3); border-radius: var(--radius-full); border: 1.5px solid var(--border-brand); background: var(--state-selected-tint); font-family: inherit; font-size: var(--type-label-md-size); font-weight: 600; color: var(--text-primary)">Vegetarian<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="close" size="sm"></x-import></button></div>
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--color-info-700); background: var(--color-info-50)">Component gap: FilterChip</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" full-width="{{yes}}">Clear all filters</x-import><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" full-width="{{yes}}" href="Browse-filters.dc.html">Edit filters</x-import>
+</section>
+<div style="display: flex; flex-direction: column; gap: var(--space-2); margin-top: var(--space-4); padding: var(--space-3); border-radius: var(--radius-md); outline: 1.5px dotted var(--border-strong); outline-offset: -2px">
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">Needs API: relaxation_hint on RestaurantListMeta (listRestaurants returns PageMeta only; search has no filter parameters)</span>
+<span style="font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-line); color: var(--text-secondary)">Enhanced variant, not shipping: name the tightest filter ("Within 2 km") and offer to remove just that one.</span>
+</div>
+</main>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.BottomNav" label="Main" active="home" items="{{nav}}"></x-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1000}}'>
+class Component extends DCLogic {
+renderVals() {
+return {
+yes: true,
+no: false,
+none: null,
+zero: 0,
+two: 2,
+noop: function () {},
+nav: [
+{ key: 'home', label: 'Home', icon: 'home' },
+{ key: 'search', label: 'Search', icon: 'search' },
+{ key: 'orders', label: 'Orders', icon: 'orders' },
+{ key: 'account', label: 'Account', icon: 'profile' }
+],
+sortItems: [
+{ key: 'recommended', label: 'Recommended' },
+{ key: 'eta', label: 'Delivery time' },
+{ key: 'distance', label: 'Distance' }
+]
+};
+}
+}
+</script>
+</body>
+</html>

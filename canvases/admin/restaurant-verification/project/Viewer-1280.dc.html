@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Certificate viewer at 1280px</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:var(--surface-base);color:var(--text-primary);font-family:var(--font-ui)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+textarea.hg-ta:focus{outline:none;border:var(--focus-field-border-width) solid var(--focus-ring)}
+textarea.hg-ta[aria-invalid="true"]{border:var(--focus-field-border-width) solid var(--color-danger-500)}
+textarea.hg-ta[aria-invalid="true"]:focus{box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+.skip{position:absolute;left:-10000px;top:8px;z-index:900;padding:12px 16px;background:var(--surface-raised);color:var(--text-primary);border-radius:8px;font-weight:600}
+.skip:focus{left:80px;outline:none;box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+</style>
+</helmet>
+<div style="width: 1280px; height: 900px; box-sizing: border-box; display: grid; grid-template-columns: 64px minmax(0, 1fr); background: var(--surface-base); position: relative; overflow: hidden; font-family: var(--font-ui); color: var(--text-primary)">
+  <dc-import name="SideNav" active="applications" role="ADMIN" collapsed="{{yes}}" h="900" hint-size="64px,900px"></dc-import>
+  <div style="display: flex; flex-direction: column; min-width: 0; min-height: 0; position: relative">
+    <a class="skip" href="#main">Skip to main content</a>
+    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="raised" title="Certificate scan" subtitle="Karahi House · HMA-ON-2026-0417" back-label="Back to verification" on-back="{{noop}}"></x-import>
+    <main id="main" data-density="compact" style="flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 12px; padding: 12px; overflow: hidden">
+      <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: 12px">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="md">Zoom out</x-import>
+        <span role="status" aria-live="polite" style="font-size: 15px; font-variant-numeric: tabular-nums"><span class="hg-sr">Zoom </span>150%</span>
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="md">Zoom in</x-import>
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="md">Fit to width</x-import>
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="md">Rotate</x-import>
+        <span style="flex-grow: 1"></span>
+        <span style="font-size: 13px; color: var(--text-secondary)">Link valid until 2:08 pm · viewing is audited</span>
+        <span style="display: inline-flex; align-self: flex-start; padding: 2px 8px; border-radius: 4px; background: var(--color-info-50); color: var(--color-info-700); font-size: 12px; font-weight: 600">Proposed component: DocumentViewer</span>
+      </div>
+      <div style="flex-grow: 1; display: grid; grid-template-columns: 120px minmax(0, 1fr) 260px; gap: 12px; min-height: 0">
+        <nav aria-label="Pages" style="display: flex; flex-direction: column; gap: 12px; padding: 12px; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: 12px">
+          <button type="button" class="hg-focus" aria-current="page" aria-label="Show page 1 of 2" style="display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px; border: 0; border-radius: 8px; background: var(--state-selected-tint); color: var(--text-primary); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer">
+            <span style="display: block; width: 84px; height: 108px; background: var(--surface-raised); border: 1px solid var(--border-strong)"></span>Page 1
+          </button>
+          <button type="button" class="hg-focus" aria-label="Show page 2 of 2" style="display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px; border: 0; border-radius: 8px; background: transparent; color: var(--text-primary); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; ">
+            <span style="display: block; width: 84px; height: 108px; background: var(--surface-raised); border: 1px solid var(--border-decorative)"></span>Page 2
+          </button>
+        </nav>
+        <div role="region" tabindex="0" class="hg-focus-inset" aria-label="Certificate page 1 of 2, 150 percent. Arrow keys pan." style="display: flex; justify-content: center; align-items: flex-start; padding: 24px; background: var(--surface-sunken); border: 1px solid var(--border-decorative); border-radius: 12px; overflow: auto">
+          <div role="img" aria-label="Halal certificate scan, page 1 of 2, at 150 percent" style="width: 480px; height: 620px; flex-shrink: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; background: var(--surface-raised); border: 1px solid var(--border-decorative); box-shadow: var(--elev-2); color: var(--text-secondary); font-size: 15px; text-align: center">
+            <span>Certificate scan, page 1 of 2</span>
+            <span style="font-size: 13px">Tab to the page, then arrow keys pan. Page Up and Page Down change page.</span>
+          </div>
+        </div>
+        <aside aria-labelledby="rail-h" style="display: flex; flex-direction: column; gap: 12px; padding: 16px; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: 12px">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px">
+            <h2 id="rail-h" style="margin: 0; font-size: 16px; font-weight: 600">Transcription</h2>
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="sm">Hide</x-import>
+          </div>
+          <span style="font-size: 13px; color: var(--text-secondary)">Read-only. Saved at 1:58 pm.</span>
+          <dl style="margin: 0; display: flex; flex-direction: column; gap: 10px; font-size: 15px; line-height: 1.4">
+            <div><dt style="font-size: 13px; color: var(--text-secondary)">Certificate number</dt><dd style="margin: 0; font-family: var(--font-mono)">HMA-ON-2026-0417</dd></div>
+            <div><dt style="font-size: 13px; color: var(--text-secondary)">Issuing body</dt><dd style="margin: 0">HMA Canada</dd></div>
+            <div><dt style="font-size: 13px; color: var(--text-secondary)">Certified legal name</dt><dd style="margin: 0">Karahi House Restaurant Inc.</dd></div>
+            <div><dt style="font-size: 13px; color: var(--text-secondary)">Certified address</dt><dd style="margin: 0">3025 Kennedy Road, Unit 4, Scarborough ON M1V 1S3</dd></div>
+            <div><dt style="font-size: 13px; color: var(--text-secondary)">Issued on</dt><dd style="margin: 0">15 January 2026</dd></div>
+            <div><dt style="font-size: 13px; color: var(--text-secondary)">Expires on</dt><dd style="margin: 0">14 January 2027</dd></div>
+            <div><dt style="font-size: 13px; color: var(--text-secondary)">Scope</dt><dd style="margin: 0">Whole establishment</dd></div>
+          </dl>
+          <a href="Verify.dc.html#checks" style="display: inline-flex; align-items: center; min-height: 44px; font-weight: 600">Back to checks</a>
+          <span style="font-size: 13px; color: var(--text-secondary)">Returns to the checks where you left them.</span>
+        </aside>
+      </div>
+      <div style="display: flex; flex-wrap: wrap; gap: 8px">
+        <span style="display: inline-flex; align-self: flex-start; padding: 2px 8px; border-radius: 4px; background: var(--surface-sunken); border: 1px solid var(--border-strong); font-size: 12px; font-weight: 600">Needs API: inline disposition for the viewer (links are attachment today)</span>
+        <span style="display: inline-flex; align-self: flex-start; padding: 2px 8px; border-radius: 4px; background: var(--color-info-50); color: var(--color-info-700); font-size: 12px; font-weight: 600">1280: thumbnails 120, transcription rail 260, the scan keeps the rest; the toolbar note shortens. Nothing scrolls sideways.</span>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { yes: true, no: false, noop: () => {} };
+  }
+}
+</script>
+</body>
+</html>

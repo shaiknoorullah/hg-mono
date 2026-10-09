@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Orders, past orders could not load</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<link rel="stylesheet" href="hg-roles.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:var(--surface-base)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+</style>
+</helmet>
+<div style="width: 390px; height: 1000px; position: relative; display: flex; flex-direction: column; overflow: hidden; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="cream" variant="large" title="Orders"></x-import><main style="flex-grow: 1; display: flex; flex-direction: column; gap: 12px; padding: 0 16px 16px; overflow: hidden">
+<h2 class="type-heading-md" style="margin: 4px 0 0">Active orders</h2><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg"><div style="display: flex; flex-direction: column; gap: 10px"><div style="display: flex; align-items: center; justify-content: space-between; gap: 8px"><span class="type-heading-sm">Zaytoun Grill</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="info" size="sm">On the way</x-import></div><span class="type-label-lg">Arriving <span class="hg-num">7:10–7:20 pm</span></span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.StatusTimeline" audience="customer" state="PICKED_UP" orientation="compact" transitions="{{ tl1 }}" now="{{ now }}"></x-import><div style="display: flex; align-items: baseline; justify-content: space-between; gap: 8px"><span class="type-body-sm" style="color: var(--text-secondary)"><span class="hg-mono">HG-8F3K2Q</span> · Today, 6:42 pm</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{ t1 }}" size="sm"></x-import></div><span class="type-body-sm" style="color: var(--text-secondary); overflow-wrap: anywhere">3 items · Mixed charcoal grill, Chicken shawarma wrap</span><div style="display: flex; gap: 8px; align-items: center; justify-content: space-between"><div style="display: flex; gap: 8px"><div><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="sm" accessibility-label="Track order HG-8F3K2Q from Zaytoun Grill" href="Main.dc.html">Track</x-import></div><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="secondary" size="sm" accessibility-label="Get help with order HG-8F3K2Q" href="GetHelp-Sheet.dc.html">Get help</x-import></div></div></div></x-import><h2 class="type-heading-md" style="margin: 8px 0 0">Past orders</h2><div style="display: flex; flex-direction: column; gap: 6px"><span class="hg-tag">Proposed component: ErrorState</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg" padding="var(--space-4)"><div style="display: flex; flex-direction: column; align-items: flex-start; gap: 12px"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="refresh" size="lg" color="var(--text-primary)"></x-import><div class="hg-focus-drawn"><h3 tabindex="-1" class="type-heading-sm" style="margin: 0">We couldn't load your past orders</h3></div><p class="type-body-md" style="margin: 0; color: var(--text-secondary)">Your active order above is up to date.</p><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="secondary" size="md" icon-start="refresh">Try again</x-import></div></x-import></div><div class="hg-gap"><span class="hg-tag">Annotation: error scoped to history</span><span class="hg-gap-note">listOrders failed; getActiveOrder and getOrderTracking did not, so the active card, Track, Get help and the BottomNav "1 active" badge stay. Only the history shows the inline ErrorState. Drawn: after a failed Try again, focus moves to the error heading (tabindex=-1). On arrival focus is on the page heading, as on every route. Both calls failed: Orders-Error-Both (full-screen ErrorState).</span></div>
+</main><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.BottomNav" label="Main" active="orders" items="{{ nav }}"></x-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const t = (s, at, a) => ({ to_state: s, at: '2026-09-28T' + at + ':00-04:00', actor_kind: a || 'SYSTEM' });
+    const all = [t('AUTHORIZED', '18:42', 'CUSTOMER'), t('RESTAURANT_PENDING', '18:42'), t('PREPARING', '18:44', 'RESTAURANT'), t('READY_FOR_PICKUP', '18:59', 'RESTAURANT'), t('PICKED_UP', '19:02', 'RIDER'), t('ARRIVED', '19:12', 'RIDER'), t('DELIVERED', '19:13', 'RIDER'), t('COMPLETED', '19:43')];
+    const upTo = (n) => all.slice(0, n);
+    return {
+      yes: true, no: false, none: null, zero: 0, noop: () => {}, menuItems: [{ key: 'receipt', label: 'View receipt' }, { key: 'help', label: 'Get help with this order' }],
+      nav: [{ key: 'home', label: 'Home', icon: 'home' }, { key: 'search', label: 'Search', icon: 'search' }, { key: 'orders', label: 'Orders', icon: 'orders', badge: 1, badgeNoun: 'active' }, { key: 'account', label: 'Account', icon: 'profile' }],
+      t1: 6425, t2: 4410, t4: 5120, t5: 3120, t6: 3480, tl1: upTo(5), tl2: upTo(2), now: Date.parse('2026-09-28T19:05:00-04:00')
+    };
+  }
+}
+</script>
+</body>
+</html>

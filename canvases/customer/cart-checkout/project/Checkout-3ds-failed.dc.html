@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Checkout, bank confirmation failed</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:var(--color-neutral-100)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+.demo-focus .hg-focus,.demo-focus .hg-choice-ctl,.demo-focus .hg-row,.demo-focus > a{box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)!important}
+.demo-focus-field .hg-field{border-color:var(--focus-ring)!important;box-shadow:inset 0 0 0 calc(var(--focus-field-border-width) - 1px) var(--focus-ring)!important}
+
+</style>
+</helmet>
+<div style="width: 390px; height: 1200px; position: relative; overflow: hidden; display: flex; flex-direction: column; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="cream" title="Checkout" subtitle="Zaytoun Grill" back-label="Back to Zaytoun Grill" on-back="{{noop}}" elevated="{{yes}}"></x-import>
+<main style="flex-grow: 1; display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-2) var(--space-4) var(--space-4); overflow: hidden">
+<div role="alert" style="display: flex; gap: var(--space-3); align-items: flex-start; padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); background: var(--surface-raised); border: 1px solid var(--border-interactive); outline: 1.5px dotted var(--color-info-500); outline-offset: 3px">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="error" size="md" color="var(--text-secondary)"></x-import>
+<div style="display: flex; flex-direction: column; gap: var(--space-1)">
+<strong style="font-size: var(--type-label-lg-size); color: var(--text-primary)">Your bank didn't confirm the payment</strong>
+<span style="font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-line); color: var(--text-primary)">Nothing was charged. Try again before 7:01 pm or cancel.</span>
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--color-info-700); background: var(--color-info-50)">Component gap: InlineAlert</span>
+</div>
+</div>
+<div style="display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; font-size: var(--type-body-md-size)"><span>Order held for</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Countdown" variant="text" size="md" expires-at="2026-09-28T19:01:00-04:00" server-now="2026-09-28T18:49:30-04:00" window-seconds="{{w900}}" label="until the order is cancelled"></x-import></div>
+<div style="display: flex; flex-direction: column; gap: var(--space-1)">
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">Bound: order.deadline_at (CREATED, 15 min, spec 01-platform T3)</span>
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">The order already exists in CREATED. Try again re-confirms the same PaymentIntent (client_secret from OrderCreated, or getOrderPayment.client_secret, re-issued while an action is required). Cancel order opens the same confirm as Checkout — payment declined (reason step; confirming calls cancelOrder {reason_code, note}, free in CREATED) and then shows Checkout — order cancelled. Use another way to pay opens Checkout — another way to pay (order created).</span><span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">Order exists (CREATED): the AppBar back is labelled "Back to Zaytoun Grill" and opens the same cancel confirm (Checkout — payment declined, cancel confirm) instead of leaving a held order behind. "Back to cart" is used only before createOrder.</span><span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">Open question (contract): is the cart kept or restored when a CREATED order is cancelled or expires? 02-customer C-23 deletes the cart on order creation, so no board promises a saved cart. Every payment-stage cancel lands on Checkout — order cancelled ("Back to Zaytoun Grill"), the same as the 15-minute deadline. The "cart restored" version is drawn there only as the alternative.</span>
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">decline_code maps to a fixed message set; raw provider text is never shown.</span>
+</div>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg">
+<section aria-labelledby="pay-h" style="display: flex; flex-direction: column; gap: var(--space-2)">
+<h2 id="pay-h" style="margin: 0; font-size: var(--type-heading-md-size); font-weight: 600">Pay with</h2>
+<div style="min-height: 64px; display: flex; align-items: center; gap: var(--space-3)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="lock" size="lg" color="var(--text-secondary)"></x-import><span style="display: flex; flex-direction: column; gap: 2px"><strong style="font-size: var(--type-body-md-size); font-family: var(--font-mono); font-weight: 500">Visa •••• 4242</strong><span style="font-size: var(--type-body-sm-size); color: var(--text-secondary)">Not confirmed</span></span></div>
+</section></x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg">
+<section aria-labelledby="sum-h" style="display: flex; flex-direction: column; gap: var(--space-2)">
+<h2 id="sum-h" style="margin: 0; font-size: var(--type-heading-md-size); font-weight: 600">Your order</h2>
+<div style="display: flex; gap: var(--space-2); align-items: baseline; font-size: var(--type-body-md-size)"><span style="width: 28px; color: var(--text-secondary); font-variant-numeric: tabular-nums">1×</span><span style="flex-grow: 1; display: flex; flex-direction: column"><span>Mixed charcoal grill</span><span style="font-size: var(--type-body-sm-size); color: var(--text-secondary)">For one · Extra garlic sauce</span></span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{q.l1}}" size="sm"></x-import></div>
+<div style="display: flex; gap: var(--space-2); align-items: baseline; font-size: var(--type-body-md-size)"><span style="width: 28px; color: var(--text-secondary); font-variant-numeric: tabular-nums">2×</span><span style="flex-grow: 1">Chicken shawarma wrap</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{q.l2}}" size="sm"></x-import></div>
+<div style="height: 1px; background: var(--border-decorative); margin: var(--space-2) 0"></div><div style="display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-2); font-size: var(--type-body-md-size); color: var(--text-secondary)"><span>Items subtotal</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{q.sub}}" size="sm"></x-import></div><div style="display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-2); font-size: var(--type-body-md-size); color: var(--text-secondary)"><span>Delivery fee</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{q.del}}" size="sm"></x-import></div><div style="display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-2); font-size: var(--type-body-md-size); color: var(--text-secondary)"><span>Service fee</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{q.svc}}" size="sm"></x-import></div><div style="display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-2); padding-top: var(--space-2); border-top: 1px solid var(--border-decorative)"><strong style="font-size: var(--type-heading-md-size)">Total</strong><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{q.total}}" size="lg"></x-import></div><div role="status" aria-live="polite" aria-atomic="true" class="hg-sr"></div>
+</section></x-import>
+</main>
+<footer style="display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-4); background: var(--surface-raised); box-shadow: var(--elev-sticky)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" full-width="{{yes}}" icon-start="lock">Try again</x-import><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" full-width="{{yes}}" href="Checkout-another-way.dc.html">Use another way to pay</x-import><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="md" full-width="{{yes}}" href="Checkout-declined-cancel.dc.html" destructive="{{yes}}">Cancel order</x-import>
+</footer>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1200}}'>
+class Component extends DCLogic {
+renderVals() {
+return {
+yes: true,
+no: false,
+none: null,
+zero: 0,
+two: 2,
+noop: function () {},
+nav: [
+{ key: 'home', label: 'Home', icon: 'home' },
+{ key: 'search', label: 'Search', icon: 'search' },
+{ key: 'orders', label: 'Orders', icon: 'orders' },
+{ key: 'account', label: 'Account', icon: 'profile' }
+],
+q: { l1: 2649, l2: 2498, sub: 5147, del: 299, svc: 0, tip: 500, total: 5446, totaltip: 5946, disc: 515, totald: 4931, hst: 669, totalt: 6115, min: 1500, del2: 349, total2: 5496, oldTotal: 5446, newTotal: 5596, del3: 449, short: 853 },
+tipOptions: [
+{ value: '0', label: 'No tip' },
+{ value: '200', label: '$2' },
+{ value: '300', label: '$3' },
+{ value: '500', label: '$5' },
+{ value: 'other', label: 'Other' }
+],
+w180: 180,
+w900: 900,
+handover: [
+{ value: 'LEAVE_AT_DOOR', label: 'Leave at the door', description: 'The rider takes a photo as proof of delivery.' },
+{ value: 'MEET_AT_DOOR', label: 'Meet at the door', description: "You'll give the rider a code at handover." },
+{ value: 'MEET_IN_LOBBY', label: 'Meet in the lobby', description: "You'll give the rider a code at handover." }
+],
+payOptions: [
+{ value: 'wallet', label: 'Apple Pay', description: 'Google Pay on Android. Your wallet confirms the amount.' },
+{ value: 'pm_4242', label: 'Visa •••• 4242', description: 'Expires 08/28' },
+{ value: 'pm_5454', label: 'Mastercard •••• 5454', description: 'Expires 03/27' }
+],
+addresses: [
+{ value: 'home', label: 'Home · 14 Ellesmere Rd', description: 'Unit 402 · Toronto ON M1R 4E7 · Default' },
+{ value: 'work', label: 'Work · 2075 Kennedy Rd', description: 'Toronto ON M1T 3V3' },
+{ value: 'cottage', label: 'Cottage · 88 Lakeshore Rd', description: 'Grand Bend ON N0M 1T0' }
+]
+};
+}
+}
+</script>
+</body>
+</html>

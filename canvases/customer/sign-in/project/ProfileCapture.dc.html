@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Profile capture</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<link rel="stylesheet" href="hg-current.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="scr {{ltClass}} {{kbdClass}}" data-theme="{{theme}}" style="width: {{w}}px; height: {{h}}px; font-family: var(--font-ui); color: var(--text-primary)">
+  <sc-if value="{{f.fromCart}}" hint-placeholder-val="{{false}}">
+    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="cream" title="Your details" on-back="{{noop}}" back-label="Back to cart"></x-import>
+  </sc-if>
+  <sc-if value="{{f.notFromCart}}" hint-placeholder-val="{{true}}">
+    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="cream" title="Your details"></x-import>
+  </sc-if>
+  <main class="body" style="padding-top: var(--space-2); gap: var(--space-5)">
+    <p class="t-body">Tell us what to call you. Only your first name is needed to order.</p>
+
+    <sc-if value="{{f.fromCart}}" hint-placeholder-val="{{false}}">
+      <span class="gap-tag">Proposed component: Banner</span>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="md" padding="var(--space-3) var(--space-4)" dc-props="{{alert.info}}" role="status"><div style="display: flex; gap: var(--space-3); align-items: flex-start; font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-line)">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="cart" size="md"></x-import>
+        <div style="display: flex; flex-direction: column; gap: 2px">
+          <span style="font-size: var(--type-label-lg-size); line-height: var(--type-label-lg-line); font-weight: 600">Add your name to order</span>
+          <span>Your cart is saved. We'll take you back to it when you're done.</span>
+        </div>
+      </div></x-import>
+    </sc-if>
+
+    <sc-if value="{{f.error}}" hint-placeholder-val="{{false}}">
+      <span class="gap-tag">Proposed component: Banner</span>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="md" padding="var(--space-3) var(--space-4)" dc-props="{{alert.warning}}" role="alert"><div style="display: flex; gap: var(--space-3); align-items: flex-start; font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-line)">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="warning" size="md"></x-import>
+        <div style="display: flex; flex-direction: column; gap: 2px">
+          <span style="font-size: var(--type-label-lg-size); line-height: var(--type-label-lg-line); font-weight: 600">We couldn't save your details</span>
+          <span>What you typed is still here. Check your connection and try again.</span>
+        </div>
+      </div></x-import>
+    </sc-if>
+
+    <sc-if value="{{f.offline}}" hint-placeholder-val="{{false}}">
+      <span class="gap-tag">Proposed component: Banner</span>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="md" padding="var(--space-3) var(--space-4)" dc-props="{{alert.neutral}}" role="status"><div style="display: flex; gap: var(--space-3); align-items: flex-start; font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-line)">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="info" size="md"></x-import>
+        <div style="display: flex; flex-direction: column; gap: 2px">
+          <span style="font-size: var(--type-label-lg-size); line-height: var(--type-label-lg-line); font-weight: 600; color: var(--text-primary)">You're offline</span>
+          <span id="offline-why">What you type stays here. Connect to Wi-Fi or mobile data to save it.</span>
+        </div>
+      </div></x-import>
+    </sc-if>
+
+    <sc-if value="{{darkErr}}" hint-placeholder-val="{{false}}">
+      <span class="gap-tag" style="white-space: normal">DS issue: form field error text is hard-coded danger-600, 2.32:1 on the dark background; should be feedback.danger.text. Not recoloured here.</span>
+    </sc-if>
+    <div data-autofocus="" style="display: flex; flex-direction: column; gap: var(--space-4)">
+      <div class="{{firstClass}}">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="First name" required="{{yes}}" auto-complete="given-name" max-length="{{n50}}" default-value="{{v.first}}" read-only="{{f.saving}}" error-text="{{e.first}}"></x-import>
+      </div>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Last name (optional)" auto-complete="family-name" max-length="{{n50}}" default-value="{{v.last}}" read-only="{{f.saving}}"></x-import>
+      <div data-kbd-focus=""><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Email (optional)" variant="email" auto-complete="email" max-length="{{n254}}" default-value="{{v.email}}" read-only="{{f.saving}}" helper-text="{{emailHelp}}" error-text="{{e.email}}"></x-import></div>
+      <div style="display: flex; flex-direction: column; gap: 0">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Checkbox" label="Email me news and offers from HalalGoes" checked="{{no}}" disabled="{{consentOff}}" aria-describedby="consent-why" on-checked-change="{{noop}}"></x-import>
+        <p id="consent-why" class="t-small" style="padding-left: 32px">{{consentDesc}}</p>
+      </div>
+      <sc-if value="{{consentOff}}" hint-placeholder-val="{{true}}">
+        <span class="gap-tag" style="white-space: normal">DS issue: Checkbox description and disabledReason are text.tertiary, and sit inside the disabled 0.5 opacity (about 2:1). The reason is a t-small paragraph (text.secondary) outside the Checkbox, linked with aria-describedby="consent-why".</span>
+      </sc-if>
+    </div>
+  </main>
+  <footer class="foot">
+    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" full-width="{{yes}}" loading="{{f.saving}}" disabled="{{f.offline}}" aria-describedby="{{saveDesc}}" href="{{saveHref}}">{{saveLabel}}</x-import>
+    <sc-if value="{{f.offline}}" hint-placeholder-val="{{false}}">
+      <p id="save-why" class="t-small" style="text-align: center">Connect to the internet to save.</p>
+    </sc-if>
+    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="lg" full-width="{{yes}}" href="Main-notyou.dc.html">Not you? Use a different number</x-import>
+    <sc-if value="{{ltBtn}}" hint-placeholder-val="{{false}}">
+      <span class="gap-tag" style="white-space: normal">DS issue: Button label nowrap clips at 200% text. Not approved as drawn. Needs white-space normal, centred text, same minBlockSize.</span>
+    </sc-if>
+  </footer>
+  <sc-if value="{{kbd}}" hint-placeholder-val="{{false}}"><div class="kbd" aria-hidden="true"><span class="anno-tag">Phone keyboard, drawn by the OS (291 px)</span></div></sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["default","filled","validation","invalidfocus","emailrejected","saving","error","offline","fromcart"],"default":"default"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"lt":{"editor":"boolean","default":false},"kbd":{"editor":"boolean","default":false},"w":{"editor":"int","min":320,"max":430,"default":390},"h":{"editor":"int","min":844,"max":2400,"default":844},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  componentDidMount() {
+    this.t = setTimeout(() => {
+      try {
+        const s = this.props.state ?? 'default';
+        if (s === 'default' || s === 'invalidfocus' || this.props.kbd) {
+          const el = document.querySelector(this.props.kbd ? '[data-kbd-focus] input' : '[data-autofocus] input');
+          if (el) el.focus({ preventScroll: true });
+        }
+      } catch (e) {}
+    }, 400);
+  }
+  componentWillUnmount() { clearTimeout(this.t); }
+  renderVals() {
+    let s = this.props.state ?? 'default';
+    if (s === 'emailinuse') s = 'emailrejected';
+    const f = { default: s === 'default', saving: s === 'saving', error: s === 'error', fromCart: s === 'fromcart', offline: s === 'offline' };
+    f.notFromCart = !f.fromCart;
+    const filled = { first: 'Aisha', last: 'Malik', email: 'aisha.malik@example.com' };
+    const v = (s === 'default' || s === 'fromcart') ? { first: '', last: '', email: '' }
+      : (s === 'validation' || s === 'invalidfocus') ? { first: '', last: 'Malik', email: 'aisha.malik@' }
+      : s === 'emailrejected' ? { first: 'Aisha', last: 'Malik', email: 'aisha.malik@example' }
+      : filled;
+    const e = (s === 'validation' || s === 'invalidfocus') ? { first: 'Enter your first name.', email: 'Enter an email like name@example.com, or leave it blank.' }
+      : s === 'emailrejected' ? { first: null, email: "We couldn't use this email. Check it's typed correctly, or leave it blank." }
+      : { first: null, email: null };
+    const hasEmail = !!v.email && !e.email;
+    return {
+      alert: { neutral: { style: { background: 'var(--surface-sunken)', color: 'var(--text-secondary)', borderColor: 'var(--border-decorative)' } }, info: { style: { background: 'var(--feedback-info-tint)', color: 'var(--feedback-info-tint-text)', borderColor: 'var(--feedback-info-border)' } }, warning: { style: { background: 'var(--feedback-warning-tint)', color: 'var(--feedback-warning-tint-text)', borderColor: 'var(--feedback-warning-border)' } } }, rowLink: { className: 'hg-focus-inset', style: { border: 'none', borderRadius: 0, background: 'transparent' } }, rowStatic: { style: { border: 'none', borderRadius: 0, background: 'transparent' } },
+      ltBtn: !!this.props.lt,
+      f, v, e, yes: true, no: false, noop: () => {}, n50: 50, n254: 254,
+      theme: this.props.theme === 'dark' ? 'dark' : 'light',
+      ltClass: this.props.lt ? 'lt' : '',
+      w: this.props.w ?? 390,
+      h: this.props.h ?? 844,
+      firstClass: s === 'invalidfocus' ? 'drawn-invalid-focus' : '',
+      emailHelp: e.email ? null : "For your account and, only if you tick the box below, news from us. We'll send a link to confirm it.",
+      consentOff: !hasEmail,
+      darkErr: this.props.theme === 'dark' && !!(e.first || e.email),
+      consentDesc: hasEmail ? "We'll only start once you confirm your email with the link we send. You can turn this off at any time in Account." : 'Add an email first to get news by email.',
+      saveLabel: f.saving ? 'Saving' : (f.fromCart ? 'Save and go to checkout' : 'Save and continue'),
+      kbd: !!this.props.kbd, kbdClass: this.props.kbd ? 'kbd-open' : '',
+      saveDesc: f.offline ? 'save-why offline-why' : undefined,
+      saveHref: (s === 'filled') ? 'SignedIn-address.dc.html' : undefined,
+    };
+  }
+}
+</script>
+</body>
+</html>

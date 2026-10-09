@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Live map pane</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+.hg-skip{position:absolute;left:-9999px;top:12px;z-index:20;display:inline-flex;align-items:center;min-height:44px;padding:0 var(--space-4);border-radius:var(--radius-md);background:var(--surface-raised);color:var(--text-primary);font-size:var(--type-label-lg-size);font-weight:var(--font-weight-semibold);text-decoration:none;box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+.hg-skip:focus-visible{left:16px}
+#main:focus{outline:none}
+</style>
+</helmet>
+<div data-theme="{{theme}}" data-density="compact" style="width: {{rootW}}; height: {{rootH}}; position: {{rootPos}}; inset: {{rootInset}}; overflow: hidden; display: flex; flex-direction: column; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+  <div style="display: flex; flex-direction: column; min-width: 0; min-height: 0; flex-grow: 1">
+    <sc-if value="{{v.reconnecting}}" hint-placeholder-val="{{false}}">
+      <div role="status" style="display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-6); background: var(--surface-sunken); border-bottom: 1px solid var(--border-decorative); font-size: var(--type-body-md-size); color: var(--text-secondary)">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="refresh" size="md"></x-import>
+        <span style="flex-grow: 1"><strong style="color: var(--text-primary)">Your connection is reconnecting.</strong> Positions paused since 6:53:10 pm. Retrying in 12 seconds. When it's back, missed updates are replayed or the order is loaded again.</span>
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" icon-start="refresh">Reconnect now</x-import>
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="outline" size="sm">Proposed component: Banner</x-import>
+      </div>
+    </sc-if>
+    <sc-if value="{{v.browserOffline}}" hint-placeholder-val="{{false}}">
+      <div role="status" style="display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-6); background: var(--feedback-warning-tint); border-bottom: 1px solid var(--feedback-warning-border); color: var(--feedback-warning-tint-text); font-size: var(--type-body-md-size)">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="warning" size="md" color="var(--feedback-warning-icon)"></x-import>
+        <span style="flex-grow: 1"><strong>You're offline.</strong> This computer has no network, so the map stopped at 6:53:10 pm and isn't retrying. It reconnects by itself when the network is back. This isn't the rider's signal.</span>
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="outline" size="sm">Proposed component: Banner</x-import>
+      </div>
+    </sc-if>
+    <div style="flex-grow: 1; display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-3) var(--space-4) var(--space-4); min-height: 0">
+      <span style="font-size: var(--type-body-sm-size); color: var(--text-secondary)">{{v.restaurant}} · placed {{v.placed}} · the order stays open beside this map</span>
+
+      <sc-if value="{{v.changed}}" hint-placeholder-val="{{false}}">
+        <div role="status" style="display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); background: var(--feedback-info-tint); border: 1px solid var(--feedback-info-border); color: var(--feedback-info-tint-text); font-size: var(--type-body-md-size)">
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="check" size="md" color="var(--feedback-info-icon)"></x-import>
+          <span style="flex-grow: 1"><strong>Delivered at 7:10 pm, while you were watching.</strong> The rider's position has stopped updating. Refunds and the rest of the order's actions are in the order pane beside this map.</span>
+        </div>
+      </sc-if>
+
+      <section aria-label="Order status on the map" style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-3); padding: var(--space-3) var(--space-3); border-radius: var(--radius-lg); background: var(--surface-raised); border: 1px solid var(--border-decorative)">
+        <div style="display: flex; flex-direction: column; gap: var(--space-1)">
+          <span style="font-size: var(--type-label-md-size); font-weight: var(--font-weight-semibold); color: var(--text-secondary)">State</span>
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="{{v.tone}}" icon="{{v.icon}}" size="lg" style="align-self: flex-start">{{v.stateLabel}}</x-import>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: var(--space-1)">
+          <span style="font-size: var(--type-label-md-size); font-weight: var(--font-weight-semibold); color: var(--text-secondary)">Next deadline</span>
+          <sc-if value="{{v.hasDeadline}}" hint-placeholder-val="{{true}}">
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Countdown" expires-at="{{v.deadlineAt}}" server-now="{{serverNow}}" window-seconds="{{v.window}}" variant="text" size="md" label="{{v.deadlineLabel}}"></x-import>
+            <span style="font-size: var(--type-body-sm-size); color: var(--text-secondary)">{{v.deadlineVerb}}</span>
+          </sc-if>
+          <sc-if value="{{v.noDeadline}}" hint-placeholder-val="{{false}}">
+            <span style="font-size: var(--type-body-md-size)">None. This order is finished.</span>
+          </sc-if>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: var(--space-1)">
+          <span style="font-size: var(--type-label-md-size); font-weight: var(--font-weight-semibold); color: var(--text-secondary)">Delivery estimate</span>
+          <span style="font-size: var(--type-label-lg-size); font-weight: var(--font-weight-semibold); font-variant-numeric: tabular-nums">{{v.eta}}</span>
+          <sc-if value="{{v.pickupNeed}}" hint-placeholder-val="{{false}}">
+            <span style="display: flex; align-items: center; gap: var(--space-2); font-size: var(--type-body-sm-size); color: var(--text-secondary)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="info" size="sm" icon="info">Needs API</x-import>Pickup estimate on the admin order view</span>
+          </sc-if>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: var(--space-1)">
+          <span style="font-size: var(--type-label-md-size); font-weight: var(--font-weight-semibold); color: var(--text-secondary)">Current leg</span>
+          <span style="font-size: var(--type-label-lg-size); font-weight: var(--font-weight-semibold)">{{v.leg}}</span>
+          <span style="font-size: var(--type-body-sm-size); color: var(--text-secondary)">{{v.legNote}}</span>
+        </div>
+      </section>
+
+      <div style="flex-grow: 1; display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: var(--space-3); min-height: 0">
+        <div style="display: flex; flex-direction: column; gap: var(--space-2); min-height: 0">
+          <sc-if value="{{v.isLoading}}" hint-placeholder-val="{{false}}">
+            <div role="status" aria-label="Loading the map for {{v.code}}" style="flex-grow: 1; border-radius: var(--radius-lg); background: var(--skeleton-base); display: flex; align-items: center; justify-content: center; gap: var(--space-2); font-size: var(--type-body-md-size); color: var(--text-primary)">
+              <span>Loading the map…</span>
+              <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="outline" size="sm">Proposed component: Skeleton (outside tables)</x-import>
+            </div>
+          </sc-if>
+          <sc-if value="{{v.isError}}" hint-placeholder-val="{{false}}">
+            <div role="alert" style="flex-grow: 1; border-radius: var(--radius-lg); background: var(--surface-raised); border: 1px solid var(--border-decorative); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-3); text-align: center; padding: var(--space-10)">
+              <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="warning" size="2xl" color="var(--feedback-warning-icon)"></x-import>
+              <h2 style="margin: 0; font-size: var(--type-heading-md-size); font-weight: var(--font-weight-semibold)">The map didn't load</h2>
+              <p style="margin: 0; max-width: 460px; font-size: var(--type-body-md-size); line-height: 1.5; color: var(--text-secondary)">The order's positions didn't arrive. Nothing was changed. The order pane beside this map still says where things are, in words.</p>
+              <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md" icon-start="refresh">Try again</x-import>
+              <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="outline" size="sm">Proposed component: ErrorState</x-import>
+            </div>
+          </sc-if>
+          <sc-if value="{{v.hasMap}}" hint-placeholder-val="{{true}}">
+            <div style="display: flex; gap: var(--space-2); flex-wrap: wrap">
+              <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="outline" size="sm">Proposed component: MapView</x-import>
+              <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="outline" size="sm">Proposed component: MapPin (restaurant / rider / destination)</x-import>
+            </div>
+            <div style="flex-grow: 1; position: relative; border-radius: var(--radius-lg); background: var(--surface-sunken); border: 1px solid var(--border-decorative); overflow: hidden">
+              <div role="img" aria-label="Map of order {{v.code}}" aria-describedby="map-text" style="position: absolute; inset: 0">
+                <sc-if value="{{v.hasRestaurant}}" hint-placeholder-val="{{true}}">
+                  <div aria-hidden="true" style="position: absolute; left: {{v.restX}}; top: {{v.restY}}; display: flex; align-items: center; gap: var(--space-2); padding: var(--space-1) var(--space-3) var(--space-1) var(--space-1); border-radius: var(--radius-md); background: var(--surface-raised); box-shadow: var(--elev-2); font-size: var(--type-label-md-size); font-weight: var(--font-weight-semibold)">
+                    <span style="display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: var(--radius-sm); background: var(--color-map-pin-restaurant); color: var(--text-on-brand)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="orders" size="sm"></x-import></span>{{v.restaurant}}
+                  </div>
+                </sc-if>
+                <sc-if value="{{v.hasRider}}" hint-placeholder-val="{{true}}">
+                  <div aria-hidden="true" style="position: absolute; left: {{v.riderX}}; top: {{v.riderY}}; display: flex; align-items: center; gap: var(--space-2); padding: var(--space-1) var(--space-3) var(--space-1) var(--space-1); border-radius: var(--radius-md); background: var(--surface-raised); box-shadow: var(--elev-2); border: {{v.riderBorder}}; font-size: var(--type-label-md-size); font-weight: var(--font-weight-semibold); color: var(--text-primary)">
+                    <span style="display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; background: var(--color-map-pin-rider); color: var(--text-on-accent)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="profile" size="sm"></x-import></span>{{v.riderPin}}
+                    <sc-if value="{{v.riderStale}}" hint-placeholder-val="{{false}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="warning" icon="clock" size="sm">Stale</x-import></sc-if>
+                  </div>
+                </sc-if>
+              </div>
+              <sc-if value="{{v.hasFinished}}" hint-placeholder-val="{{false}}">
+                <div role="status" style="position: absolute; left: 50%; top: 40%; transform: translate(-50%, -50%); display: flex; align-items: center; gap: var(--space-2); padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); background: var(--surface-raised); border: 1px solid var(--border-decorative); font-size: var(--type-body-md-size)">
+                  <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="check" size="md"></x-import>
+                  {{v.finishedText}}
+                </div>
+              </sc-if>
+              <div role="group" aria-label="Map controls" style="position: absolute; right: 12px; bottom: 12px; display: flex; flex-direction: column; gap: var(--space-2)">
+                <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.IconButton" icon="plus" accessibility-label="Zoom in" variant="tonal" size="md"></x-import>
+                <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.IconButton" icon="minus" accessibility-label="Zoom out" variant="tonal" size="md"></x-import>
+                <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.IconButton" icon="map" accessibility-label="Recenter on the order" variant="tonal" size="md"></x-import>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+
+        <aside aria-label="What the map shows" style="display: flex; flex-direction: column; gap: var(--space-3); min-height: 0; overflow: hidden">
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" padding="var(--space-4)" radius="lg">
+            <div style="display: flex; flex-direction: column; gap: var(--space-3)">
+              <div style="display: flex; align-items: center; gap: var(--space-2)">
+                <h2 style="margin: 0; font-size: var(--type-heading-sm-size); font-weight: var(--font-weight-semibold); flex-grow: 1">This order</h2>
+                <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="{{v.tone}}" icon="{{v.icon}}" size="md">{{v.stateLabel}}</x-import>
+              </div>
+              <sc-if value="{{v.hasDeadline}}" hint-placeholder-val="{{true}}">
+                <span style="font-size: var(--type-body-md-size); font-variant-numeric: tabular-nums">Next deadline at {{v.deadlineClock}}, {{v.deadlineLabel}}</span>
+              </sc-if>
+              <span style="font-size: var(--type-body-sm-size); line-height: 1.5; color: var(--text-secondary)">{{v.panelNote}}</span>
+            </div>
+          </x-import>
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" padding="var(--space-4)" radius="lg">
+            <div style="display: flex; flex-direction: column; gap: var(--space-3)">
+              <h2 style="margin: 0; font-size: var(--type-heading-sm-size); font-weight: var(--font-weight-semibold)">Text equivalent</h2>
+              <ul id="map-text" style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: var(--space-3); font-size: var(--type-body-md-size); line-height: 1.45">
+                <sc-if value="{{v.hasFinished}}" hint-placeholder-val="{{false}}">
+                  <li><strong>Order.</strong> {{v.finishedText}}</li>
+                </sc-if>
+                <li><strong>Restaurant.</strong> {{v.restaurantText}}</li>
+                <li style="display: flex; flex-direction: column; gap: var(--space-2); align-items: flex-start"><span><strong>Destination.</strong> {{v.destText}}</span>
+                  <sc-if value="{{v.canReveal}}" hint-placeholder-val="{{true}}">
+                    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" icon-start="lock" href="RevealPii.dc.html">Reveal address…</x-import>
+                  </sc-if>
+                </li>
+                <li><strong>Rider.</strong> {{v.riderText}}</li>
+              </ul>
+              <div style="display: flex; align-items: center; gap: var(--space-2); padding-top: var(--space-2); border-top: 1px solid var(--border-decorative)">
+                <span style="font-size: var(--type-body-sm-size); color: var(--text-secondary); flex-grow: 1">Your connection</span>
+                <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="{{v.connTone}}" icon="{{v.connIcon}}" size="md">{{v.connLabel}}</x-import>
+              </div>
+            </div>
+          </x-import>
+          <sc-if value="{{v.staleStep}}" hint-placeholder-val="{{false}}">
+            <div role="note" style="display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-3); border-radius: var(--radius-md); background: var(--feedback-warning-tint); border: 1px solid var(--feedback-warning-border); color: var(--feedback-warning-tint-text); font-size: var(--type-body-sm-size); line-height: 1.5">
+              <strong style="font-size: var(--type-body-md-size)">What happens next</strong>
+              <span>If there's no update by the deadline, the rider is pinged and ops are alerted automatically. You don't need to do anything yet.</span>
+              <div style="display: flex; align-items: center; gap: var(--space-2)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="info" size="sm" icon="info">Needs API</x-import><span>Contact the rider from here (call or message).</span></div>
+            </div>
+          </sc-if>
+          <sc-for list="{{v.needs}}" as="n" hint-placeholder-count="1">
+            <div role="note" style="display: flex; align-items: flex-start; gap: var(--space-2); font-size: var(--type-body-sm-size); line-height: 1.5; color: var(--text-secondary)">
+              <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="info" size="sm" icon="info">Needs API</x-import>
+              <span>{{n.text}}</span>
+            </div>
+          </sc-for>
+        </aside>
+      </div>
+    </div>
+  </div>
+
+  <sc-if value="{{showOwnReauth}}" hint-placeholder-val="{{false}}">
+    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Modal" open="{{yes}}" contained="{{yes}}" variant="dialog" dismissible="{{no}}" size="md" title="Sign in again to keep following this order" description="Your session ended at 6:53:10 pm, so positions stopped. Staff sessions end after 30 minutes without activity, or 12 hours after you signed in. The last known positions are kept underneath. Nothing was changed." on-close="{{noop}}">
+      <div style="display: flex; flex-direction: column; gap: var(--space-3); font-family: var(--font-ui)">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Email" variant="email" auto-complete="username"></x-import>
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Password" variant="password" auto-complete="current-password"></x-import>
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Authenticator code" variant="otp"></x-import>
+        <span style="font-size: var(--type-body-sm-size); line-height: 1.45; color: var(--text-secondary)">Lost your authenticator? A super admin resets it after calling you back on the phone number on your account and checking two account details.</span>
+        <div style="display: flex; gap: var(--space-3); justify-content: flex-end; padding-top: var(--space-3); border-top: 1px solid var(--border-decorative)">
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md">Sign out</x-import>
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md">Sign in and return to the map</x-import>
+        </div>
+      </div>
+    </x-import>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"variant":{"editor":"enum","options":["live","reconnecting","stale","norider","noping","nodest","norest","atrestaurant","arrived","disputed","changed","loading","error","finished","reauth","offline"],"default":"live"},"role":{"editor":"enum","options":["ADMIN","SUPPORT_AGENT"],"default":"ADMIN"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"width":{"editor":null,"default":"760px"},"height":{"editor":null,"default":"790px"},"$preview":{"width":760,"height":790}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const variant = this.props.variant ?? 'live';
+    const role = this.props.role ?? 'ADMIN';
+    const theme = this.props.theme ?? 'light';
+    const now = Date.now();
+    const serverNow = new Date(now).toISOString();
+    const at = (s) => new Date(now + s * 1000).toISOString();
+    const MON = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    const clock = (s) => { const t = new Date(now + s * 1000); const hm = ((t.getHours() % 12) || 12) + ':' + String(t.getMinutes()).padStart(2, '0') + (t.getHours() < 12 ? ' am' : ' pm'); return s >= 43200 ? hm + ' on ' + t.getDate() + ' ' + MON[t.getMonth()] : hm; };
+    const ST = {
+      PREPARING: ['Preparing', 'info', 'orders'], READY_FOR_PICKUP: ['Ready for pickup', 'info', 'orders'],
+      PICKED_UP: ['Picked up', 'info', 'map'], ARRIVED: ['Rider arrived', 'info', 'map'],
+      DELIVERED: ['Delivered', 'neutral', 'check'], COMPLETED: ['Completed', 'neutral', 'check'], DISPUTED: ['Disputed', 'warning', 'warning'],
+    };
+    // While the address is masked, no destination pin or area is drawn. The server still sends the
+    // exact destination_location in the masked view; blurring it in the browser would not protect it.
+    const coarseNeed = { text: 'A coarse destination from the server while the address is masked. The masked view must also stop sending the exact destination_location: today it reaches this browser before any audited reveal, so the page draws no destination at all.' };
+    const pickupNeedText = { text: 'A pickup estimate on the admin order view. Only eta_at, the delivery estimate, is there; pickup_eta_at arrives on events this page doesn’t receive.' };
+    const fleetNeed = { text: 'A map of every active order and online rider. This page follows one order.' };
+    const hidden = 'Hidden until you reveal the address. The reveal needs a reason and is logged.';
+    const base = {
+      state: 'PREPARING', code: 'HG-6RN4KP', placed: '6:44 pm, 28 September', orderHref: 'OrderDetail.dc.html',
+      deadlineSecs: 1210, window: 2700, deadlineLabel: 'to have it ready', deadlineVerb: 'Escalates: the customer gets a new estimate and ops are alerted.',
+      eta: 'Delivery by 7:28 pm', pickupNeed: true, leg: 'To pickup', legNote: 'Rider heading to the restaurant',
+      restaurant: 'Zaytoun Grill', restaurantText: 'Zaytoun Grill, on the map.', hasRestaurant: true, restX: '180px', restY: '420px',
+      destText: hidden, canReveal: true,
+      hasRider: true, riderX: '300px', riderY: '330px', riderPin: 'Ahmed K.', riderBorder: '1px solid var(--border-decorative)', riderStale: false,
+      riderText: 'Ahmed K., bicycle. Last position 6:52:40 pm, 8 seconds ago, moving north-east.',
+      panelNote: 'Everything you can do to this order is in the order pane beside the map. Closing the map brings More detail back.',
+      connTone: 'neutral', connIcon: 'check', connLabel: 'Live', reconnecting: false, browserOffline: false, reauth: false, staleStep: false, changed: false,
+      hasMap: true, isLoading: false, isError: false, hasFinished: false, finishedText: '', needs: [coarseNeed, pickupNeedText],
+    };
+    const pickedUp = {
+      state: 'PICKED_UP', code: 'HG-1CV7HS', placed: '6:22 pm, 28 September', restaurant: 'Lahori Tandoor', restaurantText: 'Lahori Tandoor, on the map.',
+      orderHref: 'OrderDetailPickedUp.dc.html', deadlineSecs: 3900, window: 4500, deadlineLabel: 'to deliver',
+      deadlineVerb: 'Escalates: the rider is pinged and ops are alerted.', eta: 'Delivery by 7:05 pm', pickupNeed: false, leg: 'To drop-off', legNote: 'Rider has the order',
+      riderX: '430px', riderY: '250px', riderPin: 'Bilal S.', riderText: 'Bilal S., scooter. Last position 6:52:31 pm, 17 seconds ago.',
+      needs: [coarseNeed, fleetNeed],
+    };
+    const V = {
+      live: {},
+      reconnecting: Object.assign({}, pickedUp, {
+        riderPin: 'Bilal S., as of 6:53:10 pm', riderText: 'Bilal S., scooter. Shown as of 6:53:10 pm, when your connection paused. The rider may have moved since.',
+        connTone: 'warning', connIcon: 'refresh', connLabel: 'Reconnecting', reconnecting: true,
+      }),
+      offline: Object.assign({}, pickedUp, {
+        riderPin: 'Bilal S., as of 6:53:10 pm', riderText: 'Bilal S., scooter. Shown as of 6:53:10 pm, when this computer went offline. The rider may have moved since.',
+        connTone: 'warning', connIcon: 'warning', connLabel: 'Offline', browserOffline: true,
+      }),
+      reauth: Object.assign({}, pickedUp, {
+        riderPin: 'Bilal S., as of 6:53:10 pm', riderText: 'Bilal S., scooter. Shown as of 6:53:10 pm, when your session ended.',
+        connTone: 'outline', connIcon: 'lock', connLabel: 'Signed out', reauth: true,
+      }),
+      stale: Object.assign({}, pickedUp, {
+        riderPin: 'Bilal S., last known 6:49 pm', riderBorder: '1.5px dashed var(--border-strong)', riderStale: true, staleStep: true,
+        riderText: 'Bilal S., scooter. Last position 4 minutes ago, at 6:49:02 pm. The rider’s phone isn’t sending its location, so this may not be where the rider is now.',
+        eta: 'Delivery by 7:05 pm, may be out of date',
+      }),
+      norider: {
+        state: 'READY_FOR_PICKUP', code: 'HG-2PH6RC', placed: '6:31 pm, 28 September', restaurant: 'Sham Shawarma', restaurantText: 'Sham Shawarma, on the map.',
+        orderHref: 'OrderDetailNoRider.dc.html', deadlineSecs: 95, window: 900, deadlineLabel: 'until the next escalation',
+        deadlineVerb: 'Escalates: the search widens and ops are alerted. After the third, it cancels and the customer is refunded in full.',
+        eta: 'Unknown until a rider accepts', pickupNeed: false, leg: 'No rider yet', legNote: 'The food is ready at the restaurant',
+        hasRider: false, riderText: 'None assigned. No rider accepted after 3 searches, out to 10 km.', needs: [coarseNeed],
+      },
+      noping: {
+        hasRider: false, riderText: 'Ahmed K., bicycle, is assigned, but no position has arrived from the rider yet. It appears here with the first update.',
+      },
+      nodest: {
+        destText: 'The delivery address has no map location. The address is on the order.', canReveal: false,
+        needs: [{ text: 'Every address located at checkout, so an order always has a destination on the map.' }, pickupNeedText],
+      },
+      norest: {
+        hasRestaurant: false, restaurantText: 'Zaytoun Grill has no map location. This shouldn’t happen after onboarding; tell the restaurant team.',
+      },
+      atrestaurant: {
+        state: 'READY_FOR_PICKUP', code: 'HG-5LM8QB', placed: '6:36 pm, 28 September', orderHref: 'OrderDetailReadyAtRestaurant.dc.html',
+        deadlineSecs: 600, window: 900, deadlineLabel: 'to be picked up', deadlineVerb: 'Escalates: dispatch is nudged and ops are alerted.',
+        eta: 'Delivery by 7:14 pm', leg: 'To pickup', legNote: 'Rider at the restaurant, waiting for the food',
+        riderX: '230px', riderY: '380px', riderPin: 'Yusuf B.', riderText: 'Yusuf B., car. At the restaurant since 6:55 pm.',
+      },
+      arrived: {
+        state: 'ARRIVED', code: 'HG-0QA5GM', placed: '6:15 pm, 28 September', restaurant: 'Anatolia Kebab House', restaurantText: 'Anatolia Kebab House, on the map.',
+        orderHref: 'OrderDetailArrived.dc.html', deadlineSecs: 410, window: 900, deadlineLabel: 'to hand it over',
+        deadlineVerb: 'Escalates: the customer is notified and ops are alerted.', eta: 'At the door since 6:46 pm', pickupNeed: false, leg: 'To drop-off', legNote: 'Rider at the delivery address',
+        riderX: '600px', riderY: '150px', riderPin: 'Omar H.', riderText: 'Omar H., car. At the delivery area since 6:46 pm, last position 6:52:44 pm.',
+        needs: [coarseNeed, fleetNeed],
+      },
+      disputed: Object.assign({}, pickedUp, {
+        state: 'DISPUTED', code: 'HG-4NC1XR', placed: '6:18 pm, 28 September', orderHref: 'OrderDetailDisputedMid.dc.html',
+        deadlineSecs: 172500, window: 172800, deadlineLabel: 'to resolve', deadlineVerb: 'Escalates to senior ops. After the third escalation it resolves in the customer’s favour.',
+        leg: 'To drop-off', legNote: 'Rider still carrying the order',
+        panelNote: 'Support opened an incident at 6:52 pm while the rider was on the way. The rider is still live, so the map keeps following.',
+        riderPin: 'Bilal S.', eta: 'Delivery by 7:08 pm',
+      }),
+      changed: Object.assign({}, pickedUp, {
+        state: 'DELIVERED', orderHref: 'OrderDetailDeliveredSettled.dc.html', changed: true, deadlineSecs: 110, window: 120, deadlineLabel: 'to settle',
+        deadlineVerb: 'Settles, then moves to Completed.', eta: 'Delivered 7:10 pm', leg: 'Done', legNote: 'Handed over at 7:10 pm',
+        riderX: '610px', riderY: '140px', riderPin: 'Bilal S., at 7:10 pm', riderText: 'Bilal S., scooter, handed the order over at 7:10 pm. The map no longer follows the rider.',
+        connLabel: 'Not following', connTone: 'outline', connIcon: 'check',
+      }),
+      loading: { hasMap: false, isLoading: true, riderText: 'Loading…', restaurantText: 'Loading…', destText: 'Loading…', canReveal: false, connTone: 'neutral', connIcon: 'clock', connLabel: 'Connecting', eta: 'Loading…', pickupNeed: false, leg: 'Loading…', legNote: '' },
+      error: { hasMap: false, isError: true, riderText: 'Not loaded.', restaurantText: 'Not loaded.', destText: 'Not loaded.', canReveal: false, connTone: 'outline', connIcon: 'close', connLabel: 'Not connected', eta: 'Not loaded', pickupNeed: false, leg: 'Not loaded', legNote: '' },
+      finished: {
+        state: 'COMPLETED', code: 'HG-4PX2HM', placed: '5:48 pm, 28 September', orderHref: 'OrderDetailCompleted.dc.html', deadlineSecs: null,
+        eta: 'Delivered 6:25 pm', pickupNeed: false, leg: 'Done', legNote: '', hasRider: false, hasFinished: true, finishedText: 'This order is finished, so there is no live position.',
+        riderText: 'Hamza R., scooter. Delivered at 6:25 pm.', canReveal: false, destText: 'Not shown for a finished order.',
+        connTone: 'outline', connIcon: 'check', connLabel: 'Not following', needs: [fleetNeed],
+      },
+    };
+    const v = Object.assign({}, base, V[variant] || {});
+    const s = ST[v.state];
+    v.stateLabel = s[0]; v.tone = s[1]; v.icon = s[2];
+    v.hasDeadline = typeof v.deadlineSecs === 'number' && !v.isLoading && !v.isError;
+    v.noDeadline = !v.hasDeadline && !v.isLoading && !v.isError;
+    v.deadlineAt = v.hasDeadline ? at(v.deadlineSecs) : null;
+    v.deadlineClock = v.hasDeadline ? clock(v.deadlineSecs) : '';
+    // Pin positions are drawn for the narrower map inside the widened pane.
+    const sx = (px) => Math.round(parseInt(px, 10) * 0.6) + 'px';
+    const sy = (px) => Math.round(parseInt(px, 10) * 0.8) + 'px';
+    v.restX = sx(v.restX); v.restY = sy(v.restY); v.riderX = sx(v.riderX); v.riderY = sy(v.riderY);
+    // Opened inside the order workspace (More detail, widened over the list). The workspace draws the
+    // pane heading, its one close control and the sign-in dialog.
+    const wIn = this.props.width ?? '760px';
+    const hIn = this.props.height ?? '790px';
+    const fill = wIn === '100%';
+    return {
+      yes: true, no: false, noop: () => {}, theme, role, serverNow, v, isDark: theme === 'dark',
+      rootW: wIn, rootH: hIn, rootPos: fill ? 'absolute' : 'relative', rootInset: fill ? '0' : 'auto',
+      showOwnReauth: v.reauth && !fill,
+    };
+  }
+}
+</script>
+</body>
+</html>

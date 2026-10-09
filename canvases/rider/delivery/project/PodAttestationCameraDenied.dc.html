@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Attestation camera denied</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+[data-rider]{font-family:var(--font-ui)}
+.offer-chrome{background:var(--surface-raised)}
+[data-theme="dark"] .offer-chrome,[data-theme="dark"].offer-chrome{background:var(--surface-chrome)}
+</style>
+</helmet>
+<div data-rider="" data-theme="{{theme}}" style="width: 390px; height: 844px; position: relative; overflow: hidden; display: flex; flex-direction: column; background: var(--surface-base); color: var(--text-primary)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="field" title="Proof of delivery" subtitle="Step 4 of 4 · Proof · HG-7Q3F-2R" on-back="{{noop}}" back-label="Back to handover"></x-import><main style="flex: 1 1 auto; overflow-y: auto; padding: var(--space-4) var(--space-5) var(--space-5); display: flex; flex-direction: column; gap: var(--space-4)"><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Proposed variant: AppBar tone=field with IconButton size lg (56) · the DS back control is 44; the 56 hit area is outlined top left</span><section style="padding: var(--space-5); border: 1.5px dashed var(--border-strong); border-radius: var(--radius-lg); background: var(--surface-raised); display: flex; flex-direction: column; gap: var(--space-2)"><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Proposed component: CameraCapture · permission denied (StatusPanel, slate)</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="warning" size="xl"></x-import><h2 style="margin: 0; font-size: var(--type-heading-xl-size); font-weight: var(--type-heading-xl-weight); letter-spacing: var(--type-heading-xl-tracking); line-height: 1.25">Camera is off for HalalGoes</h2><p style="margin: 0; font-size: var(--type-body-lg-size); line-height: 1.5">The photo for your statement needs the camera. Allow it in Settings, then come back here.</p></section><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">PHOTO_WITH_ATTESTATION still needs the photo; the statement alone is not accepted</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="xl" full-width="{{yes}}" icon-start="warning" href="SomethingWrongDoor.dc.html">Something's wrong</x-import></main><footer style="flex: 0 0 auto; padding: var(--space-3) var(--space-5) var(--space-5); border-top: 1px solid var(--border-decorative); background: var(--surface-base); display: flex; flex-direction: column; gap: var(--space-2)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="xl" full-width="{{yes}}">Open Settings</x-import></footer><div aria-hidden="true" style="position: absolute; top: var(--space-1); left: var(--space-1); width: 56px; height: 56px; border: 1.5px dashed var(--text-link); border-radius: var(--radius-sm); pointer-events: none; z-index: 5"></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme": {"editor": "enum", "options": ["dark", "light"], "default": "dark"}, "$preview": {"width": 390, "height": 844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const theme = this.props.theme ?? 'dark';
+    return { theme: theme, onDark: theme === 'dark', yes: true, no: false, noop: () => {}, twentyFour: 24, four: 4, twoHundred: 200, activeTab: 'home',
+      tabs: [{ key: 'home', label: 'Home', icon: 'home' }, { key: 'earnings', label: 'Earnings', icon: 'orders' }, { key: 'account', label: 'Account', icon: 'profile' }] };
+  }
+}
+</script>
+</body>
+</html>

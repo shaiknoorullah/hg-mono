@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Fix — edit details, email in use</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+</style>
+</helmet>
+<div data-theme="dark" style="width: 390px; height: 1100px; position: relative; overflow: hidden; display: flex; flex-direction: column; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+<div style="position: relative; outline: 1.5px solid var(--color-viz-4); outline-offset: 3px; border-radius: 0px"><span style="position: absolute; top: -9px; right: 10px; z-index: 2; color: var(--color-neutral-0); font-family: var(--font-mono); font-size: 10px; font-weight: var(--font-weight-semibold); line-height: 16px; padding: 0 var(--space-2); border-radius: var(--radius-xs); white-space: nowrap; background: var(--color-viz-4)">Component gap: AppBar back 56 (field)</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="field" title="Your details" back-label="Back to Fix documents" on-back="{{noop}}"></x-import></div>
+
+<main style="flex-grow: 1; min-height: 0; overflow: hidden; padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-5)">
+<div style="display: flex; flex-direction: column; gap: var(--space-4)"><div style="position: relative; outline: 1.5px solid var(--color-viz-2); outline-offset: 3px; border-radius: var(--radius-md)"><span style="position: absolute; bottom: -9px; right: 10px; z-index: 2; color: var(--color-neutral-0); font-family: var(--font-mono); font-size: 10px; font-weight: var(--font-weight-semibold); line-height: 16px; padding: 0 var(--space-2); border-radius: var(--radius-xs); white-space: nowrap; background: var(--color-viz-2)">Needs API: omitted optional fields kept?</span><div style="position: relative; outline: 1.5px solid var(--color-viz-4); outline-offset: 3px; border-radius: var(--radius-md)"><span style="position: absolute; top: -9px; right: 10px; z-index: 2; color: var(--color-neutral-0); font-family: var(--font-mono); font-size: 10px; font-weight: var(--font-weight-semibold); line-height: 16px; padding: 0 var(--space-2); border-radius: var(--radius-xs); white-space: nowrap; background: var(--color-viz-4)">Proposed component: InlineAlert · 409 EMAIL_IN_USE</span><div role="alert" style="display: flex; gap: var(--space-3); align-items: flex-start; padding: var(--space-4); background: var(--surface-base); border: 1.5px solid var(--border-strong); border-radius: var(--radius-md)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="warning" size="lg" weight="linear" color="var(--text-primary)"></x-import><div style="display: flex; flex-direction: column; gap: var(--space-2); flex-grow: 1"><p style="margin: 0; font-size: var(--type-body-lg-size); font-weight: var(--font-weight-semibold); line-height: var(--type-body-lg-line); color: var(--text-primary)">We couldn't save your details</p><p style="margin: 0; font-size: var(--type-body-lg-size); font-weight: var(--font-weight-regular); line-height: var(--type-body-lg-line); color: var(--text-secondary)">The email on your application is now on another account. Call support and we'll sort out your email. Your other answers are still here.</p></div></div></div></div><div style="position: relative; outline: 1.5px solid var(--color-viz-4); outline-offset: 3px; border-radius: var(--radius-md)"><span style="position: absolute; top: -9px; right: 10px; z-index: 2; color: var(--color-neutral-0); font-family: var(--font-mono); font-size: 10px; font-weight: var(--font-weight-semibold); line-height: 16px; padding: 0 var(--space-2); border-radius: var(--radius-xs); white-space: nowrap; background: var(--color-viz-4)">Component gap: Input 56 (field)</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="First name" size="lg" required="{{yes}}" default-value="Yusuf"></x-import></div><div style="position: relative; outline: 1.5px solid var(--color-viz-4); outline-offset: 3px; border-radius: var(--radius-md)"><span style="position: absolute; top: -9px; right: 10px; z-index: 2; color: var(--color-neutral-0); font-family: var(--font-mono); font-size: 10px; font-weight: var(--font-weight-semibold); line-height: 16px; padding: 0 var(--space-2); border-radius: var(--radius-xs); white-space: nowrap; background: var(--color-viz-4)">Component gap: Input 56 (field)</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Last name" size="lg" required="{{yes}}" default-value="Ahmed"></x-import></div><div style="position: relative; outline: 1.5px solid var(--color-viz-4); outline-offset: 3px; border-radius: var(--radius-md)"><span style="position: absolute; top: -9px; right: 10px; z-index: 2; color: var(--color-neutral-0); font-family: var(--font-mono); font-size: 10px; font-weight: var(--font-weight-semibold); line-height: 16px; padding: 0 var(--space-2); border-radius: var(--radius-xs); white-space: nowrap; background: var(--color-viz-4)">Proposed component: DateInput (typed)</span><fieldset id="dob" style="margin: 0; padding: 0; border: 0; min-width: 0; display: flex; flex-direction: column; gap: var(--space-2)"><legend style="padding: 0; margin-bottom: var(--space-2); font-size: var(--type-label-lg-size); font-weight: var(--font-weight-semibold); color: var(--text-primary)">Enter your date of birth as it is on your licence</legend><div style="display: flex; align-items: flex-end; gap: var(--space-3)"><div style="flex: 1 1 0; min-width: 0"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Day" variant="numeric" size="lg" default-value="14"></x-import></div><div style="flex: 1 1 0; min-width: 0"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Month" variant="numeric" size="lg" default-value="05"></x-import></div><div style="flex: 1.6 1 0; min-width: 0"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Year" variant="numeric" size="lg" default-value="1995"></x-import></div></div></fieldset></div><div style="font-family: var(--font-mono); font-size: 11px; line-height: 16px; color: var(--color-neutral-0); background: var(--color-viz-6); padding: var(--space-1) var(--space-2); border-radius: var(--radius-xs)">Depends on a Needs API answer: whether submitRiderProfile keeps omitted optional fields. The resend omits email, so if they are kept, 409 EMAIL_IN_USE cannot happen here and this board goes. Drawn only for the other answer, where the resend must carry the stored email; then it is a form-level alert, because this form has no email field.</div></div>
+</main>
+<div style="flex-shrink: 0; padding: var(--space-4) var(--space-5) var(--space-6); border-top: 1px solid var(--border-decorative); background: var(--surface-base); display: flex; flex-direction: column; gap: var(--space-3)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="secondary" size="xl" full-width="{{yes}}">Call support</x-import><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="xl" full-width="{{yes}}" icon-start="refresh">Try again</x-import></div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var v = {"yes": true, "no": false, "nul": null};
+    v.noop = function () {};
+    return v;
+  }
+}
+</script>
+</body>
+</html>

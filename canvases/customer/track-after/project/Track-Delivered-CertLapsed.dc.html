@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Delivered</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<link rel="stylesheet" href="hg-roles.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:var(--surface-base)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+</style>
+</helmet>
+<div style="width: 390px; height: 1000px; position: relative; display: flex; flex-direction: column; overflow: hidden; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" title-is-page-heading="{{ no }}" tone="cream" title="Order HG-8F3K2Q" subtitle="Zaytoun Grill" back-label="Back to Orders" on-back="{{ noop }}"></x-import><main style="flex-grow: 1; display: flex; flex-direction: column; gap: 14px; padding: 8px 16px 16px; overflow: hidden">
+<div style="display: flex; flex-direction: column; gap: 4px"><h1 style="margin: 0; display: flex; flex-direction: column; gap: 4px"><span class="type-label-lg" aria-hidden="true" style="color: var(--text-secondary)">Delivered</span><span class="type-display-md hg-num" aria-hidden="true">At 7:13 pm</span><span class="hg-vh">Delivered at 7:13 pm</span></h1><span class="type-body-md" style="color: var(--text-secondary)">You asked to meet at the door.</span></div><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.StatusTimeline" audience="customer" state="DELIVERED" orientation="compact" transitions="{{ tl }}" now="{{ now }}"></x-import><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg"><div style="display: flex; align-items: center; justify-content: space-between; gap: 12px"><div style="display: flex; flex-direction: column; gap: 6px"><span class="type-label-lg">Zaytoun Grill</span></div><div style="display: flex; flex-direction: column; gap: 2px; align-items: flex-end"><span class="type-body-sm" style="color: var(--text-secondary)">Charged</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{ captured }}" size="md"></x-import></div></div></x-import><div class="hg-gap"><span class="hg-tag">Annotation: certificate lapsed during or after the order</span><span class="hg-gap-note">Zaytoun Grill's certificate lapsed after this order was accepted (Track-CertLapsed), or OrderRestaurantRef.halal is missing. The card looks exactly as on every delivered order: no badge at all, never an Expired badge beside food already eaten, and never an optimistic one. A halal-at-order-time field would allow one (Needs API: halal state at order time).</span></div><span class="hg-tag hg-tag-api">Needs API: halal state at order time on OrderCustomerView</span><div style="display: flex; flex-direction: column; gap: 10px"><div class="hg-focus-drawn"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="secondary" size="lg" full-width="{{ yes }}" href="GetHelp-Delivered.dc.html">Get help with this order</x-import></div></div><div class="hg-gap"><span class="hg-tag">Annotation: no rating at launch</span><span class="hg-gap-note">Rating an order (getOrderRating, submitOrderRating) is a later release, so no Rate action appears anywhere at launch. Get help is the one action until the receipt is issued; it is secondary, not primary, because nothing here needs doing.</span></div><span class="type-body-sm" style="color: var(--text-secondary)">We'll add your receipt here when the order is complete, and let you know.</span>
+</main><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.BottomNav" label="Main" active="orders" items="{{ nav }}"></x-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const t = (s, at, a) => ({ to_state: s, at: '2026-09-28T' + at + ':00-04:00', actor_kind: a || 'SYSTEM' });
+    const all = [t('AUTHORIZED', '18:42', 'CUSTOMER'), t('RESTAURANT_PENDING', '18:42'), t('PREPARING', '18:44', 'RESTAURANT'), t('READY_FOR_PICKUP', '18:59', 'RESTAURANT'), t('PICKED_UP', '19:02', 'RIDER'), t('ARRIVED', '19:12', 'RIDER'), t('DELIVERED', '19:13', 'RIDER'), t('COMPLETED', '19:43')];
+    const upTo = (n) => all.slice(0, n);
+    return {
+      yes: true, no: false, none: null, zero: 0, noop: () => {},
+      nav: [{ key: 'home', label: 'Home', icon: 'home' }, { key: 'search', label: 'Search', icon: 'search' }, { key: 'orders', label: 'Orders', icon: 'orders', badge: 1, badgeNoun: 'active' }, { key: 'account', label: 'Account', icon: 'profile' }],
+      total: 6425, captured: 6425, tl: upTo(7), now: Date.parse('2026-09-28T19:14:00-04:00')
+    };
+  }
+}
+</script>
+</body>
+</html>

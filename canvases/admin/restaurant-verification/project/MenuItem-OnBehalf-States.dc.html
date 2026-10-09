@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Edit a menu item for a restaurant, states</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:var(--surface-base);color:var(--text-primary);font-family:var(--font-ui)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+textarea.hg-ta{box-sizing:border-box;width:100%;min-height:96px;padding:10px 12px;border:1px solid var(--border-interactive);border-radius:8px;background:var(--surface-raised);color:var(--text-primary);font:inherit;font-size:15px;line-height:1.5;resize:vertical}
+textarea.hg-ta:focus{outline:none;border:var(--focus-field-border-width) solid var(--focus-ring)}
+textarea.hg-ta[aria-invalid="true"]{border:var(--focus-field-border-width) solid var(--color-danger-500)}
+.skip{position:absolute;left:-10000px;top:8px;z-index:900;padding:12px 16px;background:var(--surface-raised);color:var(--text-primary);border-radius:8px;font-weight:600}
+.skip:focus{left:80px;outline:none;box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+.napi{display:inline-flex;align-self:flex-start;padding:2px 8px;border-radius:4px;background:var(--surface-sunken);border:1px solid var(--border-strong);font-size:12px;font-weight:600;line-height:1.4}
+.prop{display:inline-flex;align-self:flex-start;padding:2px 8px;border-radius:4px;background:var(--color-info-50);color:var(--color-info-700);font-size:12px;font-weight:600;line-height:1.4}
+</style>
+</helmet>
+<div style="width: 1440px; height: 1100px; box-sizing: border-box; display: grid; grid-template-columns: 64px minmax(0, 1fr); background: var(--surface-base); position: relative; overflow: hidden; font-family: var(--font-ui); color: var(--text-primary)">
+  <dc-import name="SideNav" active="find" role="ADMIN" collapsed="{{yes}}" h="1100" hint-size="64px,1100px"></dc-import>
+  <div style="display: flex; flex-direction: column; min-width: 0; min-height: 0; position: relative">
+    <a class="skip" href="#main">Skip to main content</a>
+    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="raised" title="Zaytoun Grill · Menu" subtitle="Edit or remove a menu item: loading, saving, refused fields, save failed, remove and removed"></x-import>
+    <main id="main" data-density="compact" style="flex: 1 1 auto; min-height: 0; display: flex; gap: 12px; padding: 12px; overflow: hidden">
+      <div style="flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: repeat(2, minmax(0, 1fr)); gap: 12px">
+        <section aria-labelledby="ms-load" style="min-height: 0; display: flex; flex-direction: column; gap: 12px; padding: 16px; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: 12px; overflow: hidden">
+          <h2 id="ms-load" style="margin: 0; font-size: 13px; font-weight: 600; color: var(--text-secondary)">Loading the item (getRestaurantMenu in flight)</h2>
+          <div aria-busy="true" style="display: flex; flex-direction: column; gap: 10px">
+            <span class="hg-skel" style="display: block; height: 28px; width: 70%"></span>
+            <span class="hg-skel" style="display: block; height: 44px"></span><span class="hg-skel" style="display: block; height: 44px"></span><span class="hg-skel" style="display: block; height: 96px"></span>
+            <span role="status" style="font-size: 13px; color: var(--text-secondary)">Loading Chicken shawarma plate</span>
+          </div>
+        </section>
+        <section aria-labelledby="ms-saving" style="min-height: 0; display: flex; flex-direction: column; gap: 12px; padding: 16px; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: 12px; overflow: hidden">
+          <h2 id="ms-saving" style="margin: 0; font-size: 13px; font-weight: 600; color: var(--text-secondary)">Save and publish in flight (fields read-only)</h2>
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Name" required="{{yes}}" default-value="Chicken shawarma plate" read-only="{{yes}}"></x-import>
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Price" variant="numeric" input-mode="decimal" prefix="$" suffix="CAD" default-value="17.49" read-only="{{yes}}"></x-import>
+          <dc-import name="Textarea" tid="ms-desc" label="Description" helper="" value="Charcoal-grilled chicken, garlic sauce, pickles and rice." count="57 of 600 characters" error="" required="{{no}}" ro="{{yes}}" rows="2" w="400" tag="{{no}}" hint-size="400px,150px"></dc-import>
+          <div style="display: flex; justify-content: flex-end; gap: 16px">
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" disabled="{{yes}}">Cancel</x-import>
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md" loading="{{yes}}">Save and publish</x-import>
+          </div>
+          <span role="status" style="font-size: 13px; color: var(--text-secondary)">Saving. Nothing goes live until the server confirms.</span>
+        </section>
+        <section aria-labelledby="ms-422" style="min-height: 0; display: flex; flex-direction: column; gap: 12px; padding: 16px; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: 12px; overflow: hidden">
+          <h2 id="ms-422" style="margin: 0; font-size: 13px; font-weight: 600; color: var(--text-secondary)">Fields refused (422): name and price</h2>
+          <span role="alert" style="font-size: 15px; line-height: 1.5; font-weight: 600">2 fields need fixing. Nothing was saved.</span>
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Name" required="{{yes}}" default-value="C" helper-text="2 to 80 characters" error-text="Name needs 2 to 80 characters. This one has 1."></x-import>
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Price" variant="numeric" input-mode="decimal" prefix="$" suffix="CAD" required="{{yes}}" default-value="0.25" helper-text="$0.50 to $500.00" error-text="Enter a price from $0.50 to $500.00."></x-import>
+          <span style="font-size: 13px; line-height: 1.45; color: var(--text-secondary)">Focus moves to the first field with an error. Your other edits stay.</span>
+        </section>
+        <section aria-labelledby="ms-failed" style="min-height: 0; display: flex; flex-direction: column; gap: 12px; padding: 16px; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: 12px; overflow: hidden">
+          <h2 id="ms-failed" style="margin: 0; font-size: 13px; font-weight: 600; color: var(--text-secondary)">Save failed (network or server)</h2>
+          <dc-import name="InlineAlert" tone="warning" blocking="{{yes}}" heading="Nothing was changed. Try again." body="The connection dropped or the server had an error. Your edits are still here." w="400" hint-size="400px,110px"></dc-import>
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Name" required="{{yes}}" default-value="Chicken shawarma plate"></x-import>
+          <div style="display: flex; justify-content: flex-end; gap: 16px">
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md">Cancel</x-import>
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md">Save and publish</x-import>
+          </div>
+        </section>
+        <section aria-labelledby="ms-remove" style="min-height: 0; display: flex; flex-direction: column; gap: 12px; padding: 16px; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: 12px; overflow: hidden">
+          <h2 id="ms-remove" style="margin: 0; font-size: 13px; font-weight: 600; color: var(--text-secondary)">Remove this item… (in-page panel, never an overlay)</h2>
+          <div role="region" aria-labelledby="ms-remove-h" style="display: flex; flex-direction: column; gap: 10px; padding: 14px; border-radius: 12px; border: 1px solid var(--border-strong); background: var(--surface-raised); box-shadow: var(--elev-1)">
+            <h3 id="ms-remove-h" tabindex="-1" style="margin: 0; font-size: 17px; font-weight: 600">Remove Chicken shawarma plate from Zaytoun Grill’s menu?</h3>
+            <p style="margin: 0; font-size: 15px; line-height: 1.5">Customers stop seeing it at once. Orders already placed keep the item exactly as they bought it. Recorded with your name.</p>
+            <div style="display: flex; justify-content: flex-end; gap: 16px">
+              <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md">Keep it</x-import>
+              <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md">Remove</x-import>
+            </div>
+          </div>
+          <span style="font-size: 13px; line-height: 1.45; color: var(--text-secondary)">Opens in place of the Remove from the menu box; focus moves to its heading. Keep it closes it and returns focus to Remove this item….</span>
+          <span class="napi">Needs API: remove a menu item on a restaurant’s behalf</span>
+        </section>
+        <section aria-labelledby="ms-removed" style="min-height: 0; display: flex; flex-direction: column; gap: 12px; padding: 16px; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: 12px; overflow: hidden">
+          <h2 id="ms-removed" style="margin: 0; font-size: 13px; font-weight: 600; color: var(--text-secondary)">Removed</h2>
+          <div role="status" style="display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border-radius: 12px; background: var(--surface-sunken)">
+            <strong style="font-size: 15px">Chicken shawarma plate was removed</strong>
+            <span style="font-size: 15px; line-height: 1.5">Customers no longer see it on Zaytoun Grill’s menu. Orders already placed keep it. Recorded with your name in the audit log.</span>
+          </div>
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="secondary" size="md" style="align-self: flex-start">Back to Zaytoun Grill’s menu</x-import>
+          <span style="font-size: 13px; line-height: 1.45; color: var(--text-secondary)">The edit form closes; focus moves to this message.</span>
+        </section>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { yes: true, no: false, noop: () => {} };
+  }
+}
+</script>
+</body>
+</html>

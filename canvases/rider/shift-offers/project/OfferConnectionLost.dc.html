@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Offer, connection lost</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+[data-rider]{font-family:var(--font-ui)}
+.offer-chrome{background:var(--surface-raised)}
+[data-theme="dark"] .offer-chrome,[data-theme="dark"].offer-chrome{background:var(--surface-chrome)}
+</style>
+</helmet>
+<div data-rider="" data-theme="{{theme}}" style="width: 390px; height: 844px; position: relative; overflow: hidden; background: var(--surface-base); color: var(--text-primary)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Sheet" open="{{yes}}" contained="{{yes}}" variant="full" dismissible="{{no}}" title="Delivery offer" footer="{{offerFooter}}"><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Proposed variant: Sheet tone=field (surface-chrome in dark) · drawn here with the library Sheet variant=full and its own surface until approved · dismissible=false: its focus trap, title wiring and Back / Escape handling</span>
+<div role="status" aria-live="polite" style="border: 1.5px dashed var(--border-strong); border-radius: var(--radius-md); background: var(--surface-raised); padding: var(--space-4) var(--space-4); display: flex; flex-direction: column; gap: var(--space-2)"><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Proposed component: InlineAlert · persistent while offline during the countdown (network lost after the offer loaded, before Accept) · never a toast · slate</span><div style="display: flex; gap: var(--space-3); align-items: flex-start"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="warning" size="lg"></x-import><div style="display: flex; flex-direction: column; gap: var(--space-1)"><strong style="font-size: var(--type-heading-md-size); font-weight: var(--font-weight-semibold)">No internet connection</strong><span style="font-size: var(--type-body-lg-size); line-height: 1.5">Accept may not reach us. We'll send it the moment you're back online, until the time runs out.</span></div></div></div><div style="display: flex; flex-direction: column; gap: var(--space-4); min-height: 100%">
+<div style="display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-4)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Countdown" variant="ring" size="lg" label="to answer" on-dark="{{onDark}}" expires-at="{{expiresAt}}" server-now="{{serverNow}}" window-seconds="{{windowSeconds}}"></x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="xl" critical="{{yes}}" href="OfferDecline.dc.html">Decline</x-import>
+</div><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Countdown: ring total = expires_at − server_time at the first render (29 s here), never a local 30 s constant · Needs API: offered_at (or window_seconds) on DispatchOffer and dispatch.offer</span>
+<div style="display: flex; flex-direction: column; gap: var(--space-1)">
+<span style="font-size: var(--type-label-lg-size); font-weight: var(--font-weight-semibold); color: var(--text-primary)">Estimated earnings</span>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{o.total}}" size="xl" on-dark="{{onDark}}"></x-import><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Proposed variant: Price size display-lg (rider offer) · drawn at xl until it exists</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-2) var(--space-3); border: 1.5px dashed var(--text-link); border-radius: var(--radius-md)"><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--text-link); color: var(--text-link)">Needs API: distance and time from you to the pickup (DispatchOffer.pickup_distance_m, pickup_duration_s)</span><span style="font-size: var(--type-body-lg-size); line-height: 1.4"><strong style="font-weight: var(--font-weight-semibold)">[— km · — min]</strong> from you to the pickup</span></div><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">distance_m / est_duration_s: the contract does not say what they measure · labels below are provisional (to confirm): distance_m drawn as pickup to drop-off, like est_duration_s; relabel once the contract defines them</span><div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-2); padding-top: var(--space-1)">
+<div style="display: flex; flex-direction: column"><strong style="font-size: var(--type-heading-md-size); font-weight: var(--font-weight-semibold); font-variant-numeric: tabular-nums">4.8 km</strong><span style="font-size: var(--type-body-lg-size); color: var(--text-primary)">pickup to drop-off</span></div>
+<div style="display: flex; flex-direction: column"><strong style="font-size: var(--type-heading-md-size); font-weight: var(--font-weight-semibold); font-variant-numeric: tabular-nums">about 14 min</strong><span style="font-size: var(--type-body-lg-size); color: var(--text-primary)">pickup to drop-off</span></div>
+<div style="display: flex; flex-direction: column"><strong style="font-size: var(--type-heading-md-size); font-weight: var(--font-weight-semibold); font-variant-numeric: tabular-nums">3 items</strong><span style="font-size: var(--type-body-lg-size); color: var(--text-primary)">to carry</span></div>
+</div>
+<div style="display: flex; flex-direction: column; gap: var(--space-3); padding-top: var(--space-3); border-top: 1px solid var(--border-decorative)">
+<div style="display: flex; flex-direction: column; gap: var(--space-1)"><span style="font-size: var(--type-label-lg-size); font-weight: var(--font-weight-semibold); color: var(--text-primary)">Pickup</span><strong style="font-size: var(--type-heading-md-size); font-weight: var(--font-weight-semibold)">Zaytoun Grill</strong><span style="font-size: var(--type-body-lg-size)">Ellesmere Rd, Scarborough</span></div>
+<div style="display: flex; flex-direction: column; gap: var(--space-1)"><span style="font-size: var(--type-label-lg-size); font-weight: var(--font-weight-semibold); color: var(--text-primary)">Drop-off area</span><strong style="font-size: var(--type-heading-md-size); font-weight: var(--font-weight-semibold)">South Scarborough</strong><span style="font-size: var(--type-body-lg-size); color: var(--text-primary)">You get the full address when you accept.</span><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--text-link); color: var(--text-link)">Needs API: an approximate drop-off area on the offer, neighbourhood only (DispatchOffer.dropoff.area sends the street today) · owner decision: approximate area before accepting, full address once accepted</span></div>
+</div>
+<div style="display: flex; flex-direction: column; gap: var(--space-2); padding-top: var(--space-3); border-top: 1px solid var(--border-decorative); font-size: var(--type-body-lg-size)">
+<span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Approved design-system component, not yet in the library: KeyValueList · a row whose value is missing or 0 is hidden, never $0.00 (tip and busy-time extra alike) · est_duration_s: the contract does not say what it covers; drawn as pickup to drop-off, to confirm</span>
+<div style="display: flex; justify-content: space-between; align-items: baseline"><span style="color: var(--text-primary)">Base fare</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{o.base}}" size="lg" on-dark="{{onDark}}"></x-import></div>
+<div style="display: flex; justify-content: space-between; align-items: baseline"><span style="color: var(--text-primary)">Distance pay</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{o.distance}}" size="lg" on-dark="{{onDark}}"></x-import></div>
+<sc-if value="{{showSurge}}" hint-placeholder-val="{{false}}"><div style="display: flex; justify-content: space-between; align-items: baseline"><span style="color: var(--text-primary)">Busy-time extra</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{o.surge}}" size="lg" on-dark="{{onDark}}"></x-import></div></sc-if>
+<sc-if value="{{showTip}}" hint-placeholder-val="{{true}}"><div style="display: flex; justify-content: space-between; align-items: baseline"><span style="color: var(--text-primary)">Tip so far (can still change)</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{o.tip}}" size="lg" on-dark="{{onDark}}"></x-import></div></sc-if>
+</div>
+<div style="height: 64px; flex: 0 0 auto; border: 1.5px dashed var(--border-strong); border-radius: var(--radius-md); background: var(--surface-sunken); padding: var(--space-2) var(--space-3); display: flex; justify-content: space-between; align-items: center; gap: var(--space-2)">
+<span style="font: var(--text-type-mono-md); color: var(--text-secondary)">Proposed component: MapView · pins: you (device position), pickup; drop-off shown as an area (about 300 m, no centre point) until the rider accepts · Needs API: DispatchOffer.dropoff sends an exact point and the street today</span>
+<span style="display: inline-flex; gap: var(--space-3); font-size: var(--type-body-lg-size)"><span style="display: inline-flex; align-items: center; gap: var(--space-2)"><span style="width: 14px; height: 14px; border-radius: 50%; background: var(--color-map-pin-rider); border: 2px solid var(--text-primary); box-sizing: border-box"></span>You</span><span style="display: inline-flex; align-items: center; gap: var(--space-2)"><span style="width: 14px; height: 14px; border-radius: 50%; background: var(--color-map-pin-restaurant); border: 2px solid var(--text-primary); box-sizing: border-box"></span>Pickup</span><span style="display: inline-flex; align-items: center; gap: var(--space-2)"><span aria-hidden="true" style="width: 22px; height: 22px; border-radius: 50%; background: color-mix(in srgb, var(--color-map-pin-customer) 30%, transparent); border: 1.5px dashed var(--text-primary); box-sizing: border-box"></span>Drop-off area</span></span>
+</div>
+<div style="flex: 1 1 auto"></div>
+<span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Proposed variant: Button critical, large bold label · the Accept label is drawn at heading-lg (20px) weight 700 (bold), so text.onBrand on action.primary (4.63:1) counts as large text (18.66px bold or more) and the owner's ruling (the 7:1 rule covers body text, not large bold button labels) applies · the library Button critical renders its label at 18px semibold today, which is not large text: the ruling is not met until this variant is added to the design system</span><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Accept stays enabled (one Idempotency-Key; the tap retries on reconnect, else OfferAcceptRetry / OfferExpired) · The main action sits in the DS Sheet footer (sticky, never under the keyboard) · no sticky hack</span>
+</div>
+</x-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["dark","light"],"default":"dark"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  componentDidMount() { this._iv = setInterval(() => { this._t = Date.now(); this.forceUpdate(); }, 8000); }
+  componentWillUnmount() { clearInterval(this._iv); }
+  renderVals() {
+    const theme = this.props.theme ?? 'dark';
+    if (!this._t) this._t = Date.now();
+    return { showTip: true /* tip_cents != null && tip_cents > 0 */,  offerFooter: (function () { const DS = window.HalalGoesDesignSystem_d11a47; const h = window.React && window.React.createElement; return (DS && h) ? h(DS.Button, { variant: 'primary', size: 'xl', href: 'OfferAcceptRetry.dc.html', critical: true, fullWidth: true }, h('span', { style: { fontSize: 'var(--type-heading-lg-size)', fontWeight: 'var(--font-weight-bold)' } }, "Accept")) : null; })(),  showSurge: false,
+      theme: theme, onDark: theme === 'dark', yes: true, no: false, windowSeconds: 29,
+      serverNow: new Date(this._t).toISOString(), expiresAt: new Date(this._t + 24000).toISOString(),
+      o: { total: 944, base: 350, distance: 384, tip: 210 }
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Staff invite</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:var(--surface-base);color:var(--text-primary);font-family:var(--font-ui)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+textarea.hg-ta:focus{outline:none;border:var(--focus-field-border-width) solid var(--focus-ring)}
+textarea.hg-ta[aria-invalid="true"]{border:var(--focus-field-border-width) solid var(--color-danger-500)}
+textarea.hg-ta[aria-invalid="true"]:focus{box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+.skip{position:absolute;left:-10000px;top:8px;z-index:900;padding:12px 16px;background:var(--surface-raised);color:var(--text-primary);border-radius:8px;font-weight:600}
+.skip:focus{left:16px;outline:none;box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+</style>
+</helmet>
+<div style="width: 1440px; height: 1000px; box-sizing: border-box; position: relative; background: var(--surface-base); font-family: var(--font-ui); color: var(--text-primary)">
+<div style="width: 1440px; box-sizing: border-box; padding: 40px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; align-items: start">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="elevated" radius="lg" padding="28px">
+<section style="display: flex; flex-direction: column; gap: 16px">
+      <h2 style="margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.01em">Set up your staff account</h2>
+      <p style="margin: 0; font-size: 15px; line-height: 1.5; color: var(--text-secondary)">You were invited to HalalGoes operations. First choose a password, then set up an authenticator app. Both are required for every staff account.</p>
+      <span style="display: inline-flex; align-self: flex-start; padding: 2px 8px; border-radius: 4px; background: var(--surface-sunken); border: 1px solid var(--border-strong); font-size: 12px; font-weight: 600">Needs API: an accept-invite endpoint returning an enrolment-only session (authenticator enrol and verify allowed, nothing else). Staff invites and authenticator enrolment move to launch (owner decision, round 2); the contract still marks them a later version. It also sets the first password from the invite link and returns email and role</span>
+      <form style="display: flex; flex-direction: column; gap: 16px" onsubmit="return false">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Work email" variant="email" default-value="aminah.r@halalgoes.ca" read-only="{{yes}}"></x-import>
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Password" variant="password" auto-complete="new-password" default-value="" required="{{yes}}" helper-text="At least 12 characters. A long phrase works well. We check it against known leaked passwords."></x-import>
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Type it again" variant="password" auto-complete="new-password" default-value="" required="{{yes}}"></x-import>
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" type="submit" full-width="{{yes}}" href="SignIn-Totp.dc.html">Continue to authenticator setup</x-import>
+      </form>
+      <p style="margin: 0; font-size: 13px; color: var(--text-secondary)">Step 1 of 2</p>
+    </section>
+</x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="elevated" radius="lg" padding="28px">
+<section style="display: flex; flex-direction: column; gap: 16px">
+      <h2 style="margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.01em">Choose another password</h2>
+      <form style="display: flex; flex-direction: column; gap: 16px" onsubmit="return false">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Work email" variant="email" default-value="aminah.r@halalgoes.ca" read-only="{{yes}}"></x-import>
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Password" variant="password" default-value="password12345" required="{{yes}}" error-text="This password appears in a list of leaked passwords. Choose another."></x-import>
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Type it again" variant="password" default-value="password12345" required="{{yes}}"></x-import>
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" type="submit" full-width="{{yes}}">Continue to authenticator setup</x-import>
+      </form>
+    </section>
+</x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="elevated" radius="lg" padding="28px">
+<section style="display: flex; flex-direction: column; gap: 16px">
+      <h2 style="margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.01em">This invite has expired</h2>
+      <dc-import name="InlineAlert" tone="neutral" heading="Invite links work for a limited time" blocking="{{yes}}" body="Ask a super admin for a new setup link. Nothing was set up." w="100%" hint-size="100%,120px"></dc-import>
+      <a href="Main.dc.html" style="display: inline-flex; align-items: center; min-height: 44px; font-size: 15px; font-weight: 600">Go to sign in</a>
+    </section>
+</x-import>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { yes: true, no: false, noop: () => {} };
+  }
+}
+</script>
+</body>
+</html>

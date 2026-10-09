@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Your cart, line removed</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:var(--color-neutral-100)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+.demo-focus .hg-focus,.demo-focus .hg-choice-ctl,.demo-focus .hg-row,.demo-focus > a{box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)!important}
+.demo-focus-field .hg-field{border-color:var(--focus-ring)!important;box-shadow:inset 0 0 0 calc(var(--focus-field-border-width) - 1px) var(--focus-ring)!important}
+
+</style>
+</helmet>
+<div style="width: 390px; height: 900px; position: relative; overflow: hidden; display: flex; flex-direction: column; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="cream" title="Your cart" back-label="Back to Zaytoun Grill" on-back="{{noop}}"></x-import>
+<main style="flex-grow: 1; display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-2) var(--space-4); overflow: hidden">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg">
+<div style="display: flex; flex-direction: column; gap: var(--space-2)">
+<div style="display: flex; align-items: center; gap: var(--space-2)"><strong style="flex-grow: 1; font-size: var(--type-heading-md-size)">Zaytoun Grill</strong><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="sm" destructive="{{yes}}" href="Cart-clear-confirm.dc.html">Clear cart</x-import></div>
+<div style="display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.HalalBadge" state="CERTIFIED" size="md" surface="card"></x-import>
+<span style="font-size: var(--type-body-sm-size); color: var(--text-secondary)">Halal Monitoring Authority (HMA Canada)</span>
+</div>
+
+</div></x-import><section aria-label="Items" style="display: flex; flex-direction: column">
+
+<div style="display: flex; gap: var(--space-3); padding: var(--space-3) 0; ">
+<div aria-hidden="true" style="width: 56px; height: 56px; flex-shrink: 0; border-radius: var(--radius-md); background: var(--surface-sunken); outline: 1.5px dotted var(--color-info-500); outline-offset: -3px"></div>
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: var(--space-1)">
+<div style="display: flex; align-items: baseline; gap: var(--space-2)"><strong style="flex-grow: 1; font-size: var(--type-body-md-size); font-weight: 600">Chicken shawarma wrap</strong><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{c.l2}}" size="md"></x-import></div>
+
+
+<div style="display: flex; align-items: center; justify-content: space-between; gap: var(--space-2)"><span style="display: inline-flex; align-items: center; gap: var(--space-1); font-size: var(--type-body-sm-size); color: var(--text-secondary)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{c.u2}}" size="sm"></x-import>each</span><div role="group" aria-label="Quantity for Chicken shawarma wrap" style="display: flex; align-items: center; gap: var(--space-2); outline: 1.5px dotted var(--color-info-500); outline-offset: 3px; outline-offset: 2px; border-radius: var(--radius-full)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.IconButton" icon="minus" accessibility-label="Decrease quantity of Chicken shawarma wrap" variant="tonal" shape="circle" size="sm"></x-import>
+<span role="status" aria-live="polite" style="min-width: 28px; text-align: center; font-size: var(--type-body-md-size); font-weight: 600; font-variant-numeric: tabular-nums"><span class="hg-sr">Quantity </span>2</span>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.IconButton" icon="plus" accessibility-label="Increase quantity of Chicken shawarma wrap" variant="tonal" shape="circle" size="sm"></x-import>
+</div></div>
+<div style="align-self: flex-start"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="sm" href="Cart-edit-line.dc.html" accessibility-label="Edit Chicken shawarma wrap">Edit</x-import></div>
+</div>
+</div>
+
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--color-info-700); background: var(--color-info-50); align-self: flex-end; margin-top: var(--space-1)">Component gap: QuantityStepper (at 1 the minus becomes Remove; group named without the number; value is role=status with visible N plus hidden "Quantity ", no aria-label), MediaFrame</span>
+</section>
+</main>
+<footer style="display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-4); background: var(--surface-raised); box-shadow: var(--elev-sticky)">
+<div style="display: flex; flex-direction: column; gap: var(--space-1)">
+
+<div style="display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-2); font-size: var(--type-body-md-size); color: var(--text-secondary)"><span>Items subtotal</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{q.sub}}" size="sm"></x-import></div>
+<div style="display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-2); font-size: var(--type-body-md-size); color: var(--text-secondary)"><span>Delivery fee</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{q.del}}" size="sm"></x-import></div>
+<div style="display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-2); font-size: var(--type-body-md-size); color: var(--text-secondary)"><span>Service fee</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{q.svc}}" size="sm"></x-import></div>
+<div style="display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-2); padding-top: var(--space-2); border-top: 1px solid var(--border-decorative)"><strong style="font-size: var(--type-heading-md-size)">Total</strong><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{q.total}}" size="lg"></x-import></div><div role="status" aria-live="polite" aria-atomic="true" class="hg-sr"></div>
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">Bound: the persisted quote (createQuote / getQuote): same rows and labels as checkout (C-22 AC1)</span>
+</div><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" full-width="{{yes}}" href="Checkout-ready.dc.html">Go to checkout</x-import>
+</footer>
+<div style="position: absolute; left: var(--space-4); right: var(--space-4); bottom: 250px"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Toast" title="Removed Mixed charcoal grill" action="{{undo}}" on-dismiss="{{noop}}"></x-import></div>
+<div style="position: absolute; left: var(--space-4); right: var(--space-4); top: 330px; display: flex; flex-direction: column; gap: var(--space-1)"><span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">Toast with an action is persistent (DS: action toasts never auto-dismiss) and pauses on hover and focus. Text is role=status.</span><span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">Focus after removal: the next line heading (Chicken shawarma wrap), or the Your cart heading if it was the last line.</span></div><div style="position: absolute; left: var(--space-4); bottom: 212px"><span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">Undo re-adds the same line (addCartLine). removeCartLine is DELETE; quantity 0 is rejected.</span></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":900}}'>
+class Component extends DCLogic {
+renderVals() {
+return {
+yes: true,
+no: false,
+none: null,
+zero: 0,
+two: 2,
+noop: function () {},
+nav: [
+{ key: 'home', label: 'Home', icon: 'home' },
+{ key: 'search', label: 'Search', icon: 'search' },
+{ key: 'orders', label: 'Orders', icon: 'orders' },
+{ key: 'account', label: 'Account', icon: 'profile' }
+],
+c: { l1: 2649, u1: 2649, l2: 2498, u2: 1249, u2new: 1299, l2new: 2598, l1x20: 52980, sub: 5147, subnew: 5247, min: 1500, short: 251, one: 1249, grill: 2499, adana: 2199 },
+q: { sub: 5147, del: 299, svc: 0, total: 5446, subnew: 5247, totalnew: 5546, l2new: 2598 },
+undo: { label: 'Undo', onAction: function () {} }
+};
+}
+}
+</script>
+</body>
+</html>

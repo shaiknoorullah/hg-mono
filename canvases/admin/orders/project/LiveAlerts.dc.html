@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Live alerts</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+.hg-skip{position:absolute;left:-9999px;top:12px;z-index:20;display:inline-flex;align-items:center;min-height:44px;padding:0 var(--space-4);border-radius:var(--radius-md);background:var(--surface-raised);color:var(--text-primary);font-size:var(--type-label-lg-size);font-weight:var(--font-weight-semibold);text-decoration:none;box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+.hg-skip:focus-visible{left:16px}
+.hg-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+#main:focus,#grid:focus{outline:none}
+.hg-focusdemo tbody tr:nth-child(4){box-shadow:inset 0 0 0 2px var(--focus-offset),inset 0 0 0 5px var(--focus-ring)}
+.hg-about summary{display:inline-flex;align-items:center;min-height:44px;cursor:pointer;font-weight:var(--font-weight-semibold);color:var(--text-primary)}
+</style>
+</helmet>
+<div data-theme="{{theme}}" data-density="compact" style="width: 1440px; height: 900px; position: relative; overflow: hidden; display: grid; grid-template-columns: 264px minmax(0, 1fr); background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui); --density-row-height: 44px">
+  <a class="hg-skip" href="#main">Skip to main content</a>
+  <aside style="background: var(--surface-chrome); height: 900px">
+    <dc-import name="AdminNav" active="alerts" role="{{role}}" counts-known="{{countsKnown}}" hint-size="264px,900px"></dc-import>
+  </aside>
+  <div style="display: flex; flex-direction: column; min-width: 0; min-height: 0; height: 900px">
+    <sc-if value="{{banner.show}}" hint-placeholder-val="{{false}}">
+      <div role="{{banner.role}}" style="display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-6); background: {{banner.bg}}; border-bottom: 1px solid {{banner.border}}; color: {{banner.fg}}; font-size: var(--type-body-md-size)">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="{{banner.icon}}" size="md" color="{{banner.iconColor}}"></x-import>
+        <span style="flex-grow: 1"><strong>{{banner.title}}</strong> {{banner.body}}</span>
+        <sc-if value="{{banner.hasAction}}" hint-placeholder-val="{{false}}">
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" icon-start="refresh">{{banner.action}}</x-import>
+        </sc-if>
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="outline" size="sm">Proposed component: Banner</x-import>
+      </div>
+    </sc-if>
+    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="chrome" title="Live alerts" subtitle="Dispatch failures, ledger mismatches and ops alerts, newest first"></x-import>
+    <main id="main" tabindex="-1" style="flex-grow: 1; display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-5) var(--space-6); min-height: 0">
+      <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap">
+        <h2 id="alerts-cap" style="margin: 0; font-size: var(--type-heading-sm-size); font-weight: var(--font-weight-semibold)">{{heading}}</h2>
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="{{connTone}}" icon="{{connIcon}}" size="md">{{connLabel}}</x-import>
+        <span style="flex-grow: 1"></span>
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="info" size="sm" icon="info">Needs API</x-import>
+        <span style="font-size: var(--type-body-sm-size); color: var(--text-secondary)">Alert history, acknowledge, and the order code on these events</span>
+      </div>
+      <details class="hg-about" style="font-size: var(--type-body-sm-size); line-height: 1.5; color: var(--text-secondary); max-width: 900px">
+        <summary>How alerts name their order · reloading starts the list again, nothing is marked as handled</summary>
+        <span style="display: block">Alerts arrive live and show exactly what each event carries. An alert names what it is about by type and id. For an order, the code appears once the order loads. For a refund, the page first finds the refund's order, then loads it. Anything else has no order to open.</span>
+        <span role="note" style="display: flex; gap: var(--space-2); align-items: flex-start; margin-top: var(--space-2); font-size: var(--type-caption-size); font-style: italic"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="outline" size="sm">Note</x-import><span>The order code comes from getOrderAdmin. For a refund subject, getRefund gives its order_id first, then getOrderAdmin the code.</span></span>
+      </details>
+      <span role="status" aria-live="polite" class="hg-sr">{{liveAnnounce}}</span>
+      <sc-if value="{{arrivingNote}}" hint-placeholder-val="{{false}}">
+        <div role="note" style="display: flex; gap: var(--space-2); align-items: flex-start; font-size: var(--type-caption-size); font-style: italic; line-height: 1.5; color: var(--text-secondary)">
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="outline" size="sm">Note</x-import>
+          <span>A critical alert arrived at 6:54:20 pm while keyboard focus was on the "Delivery overdue" row. The new row is added at the top and marked New; focus stays on the row you were on, and the table never re-orders under you. Its subject is a refund, so the row reads "Refund 0192ca11…90b4" until getRefund and getOrderAdmin return the order code. A polite live region reads: "New critical alert: Refund failed, refund 0192ca11…90b4." Nothing is announced for warning or info alerts while focus is in the table; they are counted in the heading.</span>
+        </div>
+      </sc-if>
+      <sc-if value="{{hasTable}}" hint-placeholder-val="{{true}}">
+        <div id="grid" tabindex="-1" class="{{gridClass}}" style="position: relative; flex-grow: 1; min-height: 0; display: flex; flex-direction: column; min-width: 0; padding: var(--space-5) var(--space-2) var(--space-2); border: 1.5px dashed var(--border-strong); border-radius: var(--radius-lg)">
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="outline" size="sm" style="position: absolute; left: 12px; top: -10px; background: var(--surface-base)">Proposed component: LyteNyte grid (44px rows, rich cells, scrolls inside this region), DataTable stand-in</x-import>
+          <div style="flex-grow: 1; min-height: 0; overflow: auto">
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.DataTable" caption="Live alerts" hide-caption="{{yes}}" density="compact" sticky-header="{{yes}}" columns="{{columns}}" rows="{{rows}}" get-row-id="{{rowId}}" row-actions="{{rowActions}}" row-label="{{rowLabel}}" on-row-activate="{{noop}}" status="{{dsStatus}}" empty-state="{{empty}}"></x-import>
+          </div>
+        </div>
+      </sc-if>
+      <sc-if value="{{panel.show}}" hint-placeholder-val="{{false}}">
+        <div role="{{panel.role}}" style="display: flex; flex-direction: column; align-items: center; gap: var(--space-3); text-align: center; padding: var(--space-10); background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: var(--radius-lg)">
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="{{panel.icon}}" size="2xl" color="{{panel.iconColor}}"></x-import>
+          <h2 style="margin: 0; font-size: var(--type-heading-md-size); font-weight: var(--font-weight-semibold)">{{panel.title}}</h2>
+          <p style="margin: 0; max-width: 560px; font-size: var(--type-body-md-size); line-height: 1.5; color: var(--text-secondary)">{{panel.body}}</p>
+          <sc-if value="{{panel.hasAction}}" hint-placeholder-val="{{true}}">
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md" icon-start="refresh">{{panel.action}}</x-import>
+          </sc-if>
+          <details style="font-size: var(--type-body-sm-size); color: var(--text-secondary)">
+            <summary style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 var(--space-2); cursor: pointer; font-weight: var(--font-weight-semibold); color: var(--text-primary)">Technical details for the platform team</summary>
+            <span style="display: block; font-family: var(--font-mono)">{{panel.code}}</span>
+          </details>
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="outline" size="sm">Proposed component: ErrorState</x-import>
+        </div>
+      </sc-if>
+    </main>
+  </div>
+
+  <sc-if value="{{isReauth}}" hint-placeholder-val="{{false}}">
+    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Modal" open="{{yes}}" contained="{{yes}}" variant="dialog" dismissible="{{no}}" size="md" title="Sign in again to keep receiving alerts" description="Your session ended at 7:05 pm, so live alerts stopped. Staff sessions end after 30 minutes without activity, or 12 hours after you signed in. The alerts already here are kept underneath. Alerts raised while you're signed out won't appear here afterwards." on-close="{{noop}}">
+      <div style="display: flex; flex-direction: column; gap: var(--space-3); font-family: var(--font-ui)">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Email" variant="email" auto-complete="username"></x-import>
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Password" variant="password" auto-complete="current-password"></x-import>
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Authenticator code" variant="otp"></x-import>
+        <span style="font-size: var(--type-body-sm-size); line-height: 1.45; color: var(--text-secondary)">Lost your authenticator? A super admin resets it after calling you back on the phone number on your account and checking two account details.</span>
+        <div style="display: flex; gap: var(--space-3); justify-content: flex-end; padding-top: var(--space-3); border-top: 1px solid var(--border-decorative)">
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md">Sign out</x-import>
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md">Sign in and resume alerts</x-import>
+        </div>
+      </div>
+    </x-import>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"variant":{"editor":"enum","options":["live","empty","reconnecting","connecting","ticketfailed","forbidden","invalidchannel","reauth","arriving"],"default":"live"},"role":{"editor":"enum","options":["ADMIN","SUPPORT_AGENT"],"default":"ADMIN"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const variant = this.props.variant ?? 'live';
+    const role = this.props.role ?? 'ADMIN';
+    const theme = this.props.theme ?? 'light';
+    const NS = window.HalalGoesDesignSystem_d11a47 || {};
+    const R = window.React;
+    const h = (C, p, ...kids) => (R && C ? R.createElement(C, p, ...kids) : kids.join(' '));
+    const el = (tag, p, ...kids) => (R ? R.createElement(tag, p, ...kids) : kids.join(' '));
+    // Severity exists only on admin.alert. Dispatch failures and ledger mismatches carry no
+    // severity, so they get a fixed kind badge and no severity claim.
+    const SEV = { CRITICAL: ['Critical', 'danger', 'error'], WARNING: ['Warning', 'warning', 'warning'], INFO: ['Info', 'info', 'info'] };
+    const KIND = { dispatch_failure: ['Dispatch failure', 'outline', 'map'], reconciliation_exception: ['Ledger mismatch', 'outline', 'warning'] };
+    const all = [
+      { id: 'a1', time: '6:53:02 pm', type: 'dispatch_failure', kind: 'No rider found', subject: 'ORDER', subjectId: '0192b3a2…5b17', code: 'HG-2PH6RC', href: 'OrderDetailNoRider.dc.html',
+        text: 'No rider accepted after 3 searches, out to 10 km. 3 riders were offered it.', map: true },
+      { id: 'a2', time: '6:51:40 pm', type: 'reconciliation_exception', kind: 'Ledger doesn’t balance', subject: 'ORDER', subjectId: '0192a8e1…f7b2', code: 'HG-5BZ8JT', href: 'OrderDetailResidual.dc.html',
+        text: 'Order ledger total', expected: 0, actual: 120 },
+      { id: 'a3', time: '6:49:15 pm', type: 'alert', sev: 'WARNING', kind: 'Delivery overdue', subject: 'ORDER', subjectId: '0192b38c…0f3d', code: null, href: 'OrderDetailPickedUp.dc.html',
+        text: 'The rider hasn’t delivered by the deadline. The rider was pinged.', map: true },
+      { id: 'a4', time: '6:46:30 pm', type: 'alert', sev: 'INFO', kind: 'Preparation overdue', subject: 'ORDER', subjectId: '0192b3e0…8e9f', code: 'HG-6RN4KP', href: 'OrderDetail.dc.html',
+        text: 'The kitchen passed its estimate. The customer got a new one.', map: true },
+      { id: 'a5', time: '6:41:08 pm', type: 'alert', sev: 'CRITICAL', kind: 'Refund failed', subject: 'REFUND', subjectId: '0192cc88…3a10', orderId: '0192b45d…2f70', code: 'HG-3KV8QD', href: 'Refunds.dc.html',
+        text: 'The card on file has expired, so the refund failed. On-call was paged.' },
+      { id: 'a6', time: '6:40:30 pm', type: 'alert', sev: 'WARNING', kind: 'Rider location stale', subject: 'RIDER', subjectId: '0192a7f3…d402', code: null, href: null,
+        text: 'No position received for 5 minutes. On-call was told.' },
+    ];
+    const arriving = { id: 'a0', time: '6:54:20 pm', type: 'alert', sev: 'CRITICAL', kind: 'Refund failed', subject: 'REFUND', subjectId: '0192ca11…90b4', orderId: null, code: null, href: 'OrderDetailDelivered.dc.html',
+      text: 'The card issuer declined a refund. On-call was paged.', isNew: true };
+    const tableViews = ['live', 'empty', 'reconnecting', 'reauth', 'arriving', 'connecting'];
+    let rows = variant === 'empty' || variant === 'connecting' ? [] : all;
+    if (variant === 'arriving') rows = [arriving].concat(all);
+    const typeCell = (r) => {
+      const s = r.type === 'alert' ? SEV[r.sev] : KIND[r.type];
+      return el('span', { style: { display: 'flex', flexDirection: 'column', gap: 'var(--space-1)', alignItems: 'flex-start' } },
+        h(NS.Badge, { variant: s[1], icon: s[2], size: 'md' }, s[0]),
+        r.isNew ? h(NS.Badge, { variant: 'info', size: 'sm' }, 'New') : null);
+    };
+    const whatCell = (r) => el('span', { style: { display: 'flex', flexDirection: 'column', gap: 'var(--space-1)', whiteSpace: 'normal', lineHeight: '1.35' } },
+      el('span', { style: { fontWeight: 'var(--font-weight-semibold)' } }, r.kind),
+      typeof r.expected === 'number'
+        ? el('span', { style: { fontSize: 'var(--type-body-sm-size)', color: 'var(--text-secondary)', display: 'inline-flex', gap: 'var(--space-3)', alignItems: 'baseline', flexWrap: 'wrap' } },
+          el('span', { style: { display: 'inline-flex', gap: 'var(--space-2)', alignItems: 'baseline' } }, 'Expected', h(NS.Price, { cents: r.expected, size: 'sm' })),
+          el('span', { style: { display: 'inline-flex', gap: 'var(--space-2)', alignItems: 'baseline' } }, 'Recorded', h(NS.Price, { cents: r.actual, size: 'sm' })),
+          el('span', null, 'Open the order for the ledger.'))
+        : el('span', { style: { fontSize: 'var(--type-body-sm-size)', color: 'var(--text-secondary)' } }, r.text));
+    // admin.alert names a subject (subject_type, subject_id), not an order. dispatch_failure and
+    // reconciliation_exception carry order_id. ORDER: the code comes from getOrderAdmin. REFUND:
+    // getRefund gives its order_id first, then getOrderAdmin the code. Anything else: type and id only.
+    const SUBJ = { REFUND: 'Refund', RIDER: 'Rider', RESTAURANT: 'Restaurant', CUSTOMER: 'Customer' };
+    const mono = { fontFamily: 'var(--font-mono)', fontSize: 'var(--type-body-sm-size)', color: 'var(--text-secondary)' };
+    const muted = { fontSize: 'var(--type-body-sm-size)', color: 'var(--text-secondary)' };
+    const codeEl = (c) => el('span', { style: { fontFamily: 'var(--font-mono)', fontWeight: 'var(--font-weight-semibold)', fontVariantNumeric: 'tabular-nums' } }, c);
+    const orderCell = (r) => {
+      const col = { style: { display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' } };
+      if (r.subject === 'ORDER') return el('span', col, r.code ? codeEl(r.code) : el('span', { style: muted }, 'Code loading…'), el('span', { style: mono }, r.subjectId));
+      if (r.subject === 'REFUND') return el('span', col, r.code ? codeEl(r.code) : el('span', { style: muted }, 'Finding its order…'), el('span', { style: mono }, 'Refund ' + r.subjectId));
+      return el('span', col, el('span', { style: muted }, (SUBJ[r.subject] || r.subject) + ', no order'), el('span', { style: mono }, r.subjectId));
+    };
+    const warn = { bg: 'var(--feedback-warning-tint)', border: 'var(--feedback-warning-border)', fg: 'var(--feedback-warning-tint-text)', icon: 'warning', iconColor: 'var(--feedback-warning-icon)' };
+    const BANNERS = {
+      reconnecting: Object.assign({}, warn, { show: true, role: 'status', title: 'Alerts paused.', body: 'Your connection dropped at 6:53:10 pm. Alerts raised while you’re disconnected are not shown here when you reconnect, so check the orders grid for anything still running.', hasAction: true, action: 'Reconnect now' }),
+    };
+    const banner = Object.assign({ show: false, role: 'status', title: '', body: '', hasAction: false, action: '', bg: '', border: '', fg: '', icon: 'info', iconColor: '' }, BANNERS[variant] || {});
+    const PANELS = {
+      ticketfailed: { show: true, role: 'alert', icon: 'warning', iconColor: 'var(--feedback-warning-icon)', title: 'Live alerts didn’t start', body: 'We couldn’t connect to live alerts, so nothing is arriving. Nothing was changed. Try again; if it keeps failing, use the orders grid meanwhile.', hasAction: true, action: 'Try again', code: 'POST /v1/realtime/ticket failed' },
+      forbidden: { show: true, role: 'alert', icon: 'lock', iconColor: 'var(--text-secondary)', title: 'This account can’t receive live alerts', body: 'The server refused the alerts channel for your sign-in. If your role changed recently, sign out and back in. Otherwise ask an admin to check your role. Nothing was changed.', hasAction: false, action: '', code: 'subscribe_error: forbidden' },
+      invalidchannel: { show: true, role: 'alert', icon: 'warning', iconColor: 'var(--feedback-warning-icon)', title: 'Live alerts couldn’t start', body: 'The page asked for an alerts channel the server doesn’t recognise. That’s a fault on our side, not yours. Reload the page; if it keeps happening, tell the platform team.', hasAction: true, action: 'Reload the page', code: 'subscribe_error: invalid_channel' },
+    };
+    const panel = Object.assign({ show: false, role: 'alert', icon: 'warning', iconColor: '', title: '', body: '', hasAction: false, action: '', code: '' }, PANELS[variant] || {});
+    const connMap = {
+      reconnecting: ['warning', 'refresh', 'Reconnecting'], connecting: ['neutral', 'clock', 'Connecting'], reauth: ['outline', 'lock', 'Signed out'],
+      ticketfailed: ['outline', 'close', 'Not connected'], forbidden: ['outline', 'close', 'Not connected'], invalidchannel: ['outline', 'close', 'Not connected'],
+    };
+    const conn = connMap[variant] || ['neutral', 'check', 'Live'];
+    const empty = variant === 'connecting'
+      ? { title: 'Connecting to live alerts…', description: 'Alerts appear here from the moment the connection opens. There is no history to load.' }
+      : { title: 'No alerts since 6:40 pm', description: 'Dispatch failures, ledger mismatches and ops alerts appear here the moment they’re raised. Nothing needs you right now.' };
+    return {
+      yes: true, noop: () => {}, theme, role, isDark: theme === 'dark',
+      countsKnown: !['connecting', 'ticketfailed', 'forbidden', 'invalidchannel'].includes(variant),
+      banner, panel, isReauth: variant === 'reauth',
+      heading: variant === 'arriving' ? 'Since you opened this page at 6:40 pm · 1 new' : 'Since you opened this page at 6:40 pm',
+      connTone: conn[0], connIcon: conn[1], connLabel: conn[2],
+      hasTable: tableViews.includes(variant),
+      dsStatus: 'ready',
+      arrivingNote: variant === 'arriving',
+      liveAnnounce: variant === 'arriving' ? 'New critical alert: Refund failed, refund 0192ca11…90b4.' : '',
+      gridClass: variant === 'arriving' ? 'hg-focusdemo' : '',
+      columns: [
+        { key: 'time', label: 'Received', numeric: true, width: 110 },
+        { key: 'type', label: 'Type', width: 170, render: typeCell },
+        { key: 'what', label: 'What happened', render: whatCell },
+        { key: 'order', label: 'Subject', width: 190, render: orderCell },
+      ],
+      rows, rowId: (r) => r.id,
+      rowActions: (r) => {
+        if (r.subject === 'ORDER') return r.map ? [{ key: 'open', label: 'Open order' }, { key: 'map', label: 'Open live map' }] : [{ key: 'open', label: 'Open order' }];
+        if (r.subject === 'REFUND') return [{ key: 'open', label: 'Open order', disabled: !r.code, disabledReason: r.code ? undefined : 'Finding this refund’s order.' }];
+        return [];
+      },
+      rowLabel: (r) => 'alert ' + r.kind + ' for ' + (r.subject === 'ORDER' ? 'order ' + (r.code || r.subjectId) : r.subject === 'REFUND' ? (r.code ? 'order ' + r.code + ', refund ' + r.subjectId : 'refund ' + r.subjectId) : (SUBJ[r.subject] || r.subject).toLowerCase() + ' ' + r.subjectId),
+      empty,
+    };
+  }
+}
+</script>
+</body>
+</html>

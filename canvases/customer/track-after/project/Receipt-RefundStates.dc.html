@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Refund states</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<link rel="stylesheet" href="hg-roles.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:var(--surface-base)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+</style>
+</helmet>
+<div style="width: 390px; height: 1500px; position: relative; display: flex; flex-direction: column; overflow: hidden; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="cream" title="Receipt" subtitle="Order HG-8F3K2Q" back-label="Back to order HG-8F3K2Q" on-back="{{ noop }}"></x-import><main style="flex-grow: 1; display: flex; flex-direction: column; gap: 12px; padding: 8px 16px 24px"><h2 class="type-heading-md">The refund section in each state</h2><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg"><div style="display: flex; flex-direction: column; gap: 10px"><div style="display: flex; align-items: center; justify-content: space-between; gap: 12px"><strong class="type-heading-sm">Refund</strong><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="neutral" size="sm">Under review</x-import></div><div style="display: flex; justify-content: space-between; align-items: baseline; gap: 12px"><span class="type-body-md" style="color: var(--text-secondary)">Requested on 28 September 2026. We'll set the amount when we decide.</span></div></div></x-import><span class="hg-gap-note">REQUESTED, PENDING_APPROVAL. Refund.amount_cents exists from creation (server-computed for FULL and PARTIAL_ITEMS) but is not shown while under review, because review may change it (the approved amount). Owner question: show the requested amount?</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg"><div style="display: flex; flex-direction: column; gap: 10px"><div style="display: flex; align-items: center; justify-content: space-between; gap: 12px"><strong class="type-heading-sm">Refund</strong><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="info" size="sm">On its way</x-import></div><div style="display: flex; justify-content: space-between; align-items: baseline; gap: 12px"><span class="type-body-md" style="color: var(--text-secondary)">On its way to Visa •••• 4242</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{ refund }}" size="md" show-code="{{ yes }}"></x-import></div></div></x-import><span class="hg-gap-note">APPROVED, AUTHORISED, SUBMITTED.</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg"><div style="display: flex; flex-direction: column; gap: 10px"><div style="display: flex; align-items: center; justify-content: space-between; gap: 12px"><strong class="type-heading-sm">Refund</strong><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="neutral" size="sm">Refund in progress</x-import></div><div style="display: flex; justify-content: space-between; align-items: baseline; gap: 12px"><span class="type-body-md" style="color: var(--text-secondary)">Taking longer than usual. Our team is on it.</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{ refund }}" size="md" show-code="{{ yes }}"></x-import></div></div></x-import><span class="hg-gap-note">FAILED. Never "Refunded", never an error colour.</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg"><div style="display: flex; flex-direction: column; gap: 10px"><div style="display: flex; align-items: center; justify-content: space-between; gap: 12px"><strong class="type-heading-sm">Refund</strong><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="neutral" size="sm">Refunded</x-import></div><div style="display: flex; justify-content: space-between; align-items: baseline; gap: 12px"><span class="type-body-md" style="color: var(--text-secondary)">Refunded to Visa •••• 4242 on 30 September 2026</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{ refund }}" size="md" show-code="{{ yes }}"></x-import></div></div></x-import><span class="hg-gap-note">SUCCEEDED, SETTLED.</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg"><div style="display: flex; flex-direction: column; gap: 10px"><div style="display: flex; align-items: center; justify-content: space-between; gap: 12px"><strong class="type-heading-sm">Refund</strong><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="neutral" size="sm">Not approved</x-import></div><div style="display: flex; justify-content: space-between; align-items: baseline; gap: 12px"><span class="type-body-md" style="color: var(--text-secondary)">We reviewed your request and didn't issue a refund.</span></div><span class="hg-tag hg-tag-api">Needs API: reviewer decision note on Refund (separate from the requester's note)</span></div></x-import><span class="hg-gap-note">DECLINED: the outcome only. Refund.note is never shown: it is the requester's own text from when the refund was created, not the team's decision.</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg"><div style="display: flex; flex-direction: column; gap: 10px"><div style="display: flex; align-items: center; justify-content: space-between; gap: 12px"><strong class="type-heading-sm">Refund</strong><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="neutral" size="sm">Withdrawn</x-import></div><div style="display: flex; justify-content: space-between; align-items: baseline; gap: 12px"><span class="type-body-md" style="color: var(--text-secondary)">This request was withdrawn.</span></div></div></x-import><span class="hg-gap-note">CANCELLED.</span></main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1500}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const t = (s, at, a) => ({ to_state: s, at: '2026-09-28T' + at + ':00-04:00', actor_kind: a || 'SYSTEM' });
+    const all = [t('AUTHORIZED', '18:42', 'CUSTOMER'), t('RESTAURANT_PENDING', '18:42'), t('PREPARING', '18:44', 'RESTAURANT'), t('READY_FOR_PICKUP', '18:59', 'RESTAURANT'), t('PICKED_UP', '19:02', 'RIDER'), t('ARRIVED', '19:12', 'RIDER'), t('DELIVERED', '19:13', 'RIDER'), t('COMPLETED', '19:43')];
+    const upTo = (n) => all.slice(0, n);
+    return {
+      yes: true, no: false, none: null, zero: 0, noop: () => {},
+      nav: [{ key: 'home', label: 'Home', icon: 'home' }, { key: 'search', label: 'Search', icon: 'search' }, { key: 'orders', label: 'Orders', icon: 'orders', badge: 1, badgeNoun: 'active' }, { key: 'account', label: 'Account', icon: 'profile' }],
+      l1: 2649, l2: 2348, u2: 1174, sub: 4997, del: 678, svc: 0, tip: 750, total: 6425, charged: 6425, refund: 6425
+    };
+  }
+}
+</script>
+</body>
+</html>

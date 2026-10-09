@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Payout detail body</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}details>summary{list-style:none}details>summary::-webkit-details-marker{display:none}details[open]>summary .hg-disc-chev{transform:rotate(90deg)}</style>
+</helmet>
+<div style="width: {{w}}; height: {{hh}}; box-sizing: border-box; font-family: var(--font-ui); color: var(--text-primary); display: flex; flex-direction: column; gap: 20px; background: var(--surface-raised)">
+
+<sc-if value="{{isSearching}}" hint-placeholder-val="{{false}}">
+<div aria-busy="true" style="display: flex; flex-direction: column; gap: 12px">
+<span style="font: var(--text-type-body-md); color: var(--text-secondary)">Finding this payout…</span>
+<div style="width: 50%; height: 36px; border-radius: var(--radius-xs); background: var(--skeleton-base)"></div>
+<div style="width: 30%; height: 22px; border-radius: var(--radius-full); background: var(--skeleton-base)"></div>
+<div style="width: 90%; height: 16px; border-radius: var(--radius-xs); background: var(--skeleton-base)"></div>
+<div style="width: 80%; height: 16px; border-radius: var(--radius-xs); background: var(--skeleton-base)"></div>
+<span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">Proposed component: Skeleton</span>
+<span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--feedback-info-tint-text); background: var(--feedback-info-tint)">Needs API: restaurant payout detail by id · today the app pages through listRestaurantPayouts looking for the id</span>
+</div>
+</sc-if>
+
+<sc-if value="{{isNotFound}}" hint-placeholder-val="{{false}}">
+<div role="alert" style="display: flex; flex-direction: column; gap: 12px">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="info" size="xl" color="var(--text-secondary)"></x-import>
+<h3 style="margin: 0; font: var(--text-type-heading-md)">We couldn't find this payout</h3>
+<p style="margin: 0; font: var(--text-type-body-md); line-height: 1.5">The link may be for another restaurant, or for a payout older than the ones we can look up here. Your payouts are not affected.</p>
+<div style="display: flex; flex-direction: column; gap: 8px; align-items: flex-start">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md" href="https://claude.ai/artifact/Djdm2j2nZaE3ULnyVudcjw">See all payouts</x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" href="https://claude.ai/artifact/Djdm2j2nZaE3ULnyVudcjw">Contact support</x-import>
+</div>
+<dl style="margin: 0; display: grid; grid-template-columns: 150px minmax(0, 1fr); row-gap: 8px; column-gap: 16px; font: var(--text-type-body-md); padding-top: 16px; border-top: 1px solid var(--border-decorative)">
+<dt style="color: var(--text-secondary)">Payout reference</dt><dd style="margin: 0; font: var(--text-type-mono-md); font-family: var(--font-mono); overflow-wrap: anywhere">0192f1c0-11aa-7e00-8b10-0000000000a9</dd>
+</dl>
+<span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--feedback-info-tint-text); background: var(--feedback-info-tint)">Needs API: restaurant payout detail by id · it would tell "not yours" (404) from "older than the loaded pages"</span>
+</div>
+</sc-if>
+
+<sc-if value="{{isPayout}}" hint-placeholder-val="{{true}}">
+<div style="position: relative; display: flex; flex-direction: column; gap: 20px">
+<div role="status" aria-live="polite" aria-atomic="true" style="position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0">{{live.announce}}</div>
+
+<sc-if value="{{live.show}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; gap: 4px; padding: 12px 16px; border-radius: var(--radius-md); background: var(--feedback-info-tint); border: 1px solid var(--feedback-info-border); color: var(--feedback-info-tint-text)">
+<strong style="font: var(--text-type-label-lg)">{{live.title}}</strong>
+<span style="font: var(--text-type-body-sm)">{{live.body}}</span>
+<span style="align-self: flex-start; margin-top: 4px; padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">Live: restaurant.payout_updated · the role="status" region is always mounted at the top of the Sheet body, empty on open; on update its text is injected (title + body) and read politely; only this visible box appears · focus stays where it is</span>
+</div>
+</sc-if>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span style="font: var(--text-type-label-md); color: var(--text-secondary)">{{d.amountLabel}}</span>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{d.cents}}" size="xl"></x-import>
+<div style="display: flex"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="{{d.tone}}" size="md" icon="{{d.icon}}">{{d.label}}</x-import></div>
+<p style="margin: 0; font: var(--text-type-body-md); line-height: 1.5">{{d.sentence}}</p>
+</div>
+
+<sc-if value="{{isReversal}}" hint-placeholder-val="{{false}}">
+<section aria-labelledby="rev-h" style="display: flex; flex-direction: column; gap: 8px; padding: 16px; border-radius: var(--radius-md); background: var(--feedback-info-tint); border: 1px solid var(--feedback-info-border)">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px">
+<h3 id="rev-h" style="margin: 0; font: var(--text-type-heading-sm)">Includes a payout that failed</h3>
+<span style="padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">Proposed component: Banner</span>
+</div>
+<p style="margin: 0; font: var(--text-type-body-md); line-height: 1.5">Your 10–16 August payout failed and went back into your balance. That money is part of this amount, so it is paid once, with this payout.</p>
+<div style="display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap"><span style="font: var(--text-type-body-md)">Failed payout carried into this one:</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{297800}}" size="md"></x-import></div>
+<p style="margin: 0; font: var(--text-type-body-sm); color: var(--text-secondary)">The 10–16 August row still shows Failed with its original amount, so you can see what happened. You were not paid twice, and nothing was lost.</p>
+<div style="display: flex"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" href="https://claude.ai/artifact/Djdm2j2nZaE3ULnyVudcjw">Open 10–16 August payout</x-import></div>
+<span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--feedback-info-tint-text); background: var(--feedback-info-tint)">Needs API: payout entries naming the PAYOUT_REVERSAL and the payout it came from · amounts are server cents from those entries, never subtracted in the browser · spec payout rule on reversals</span>
+</section>
+</sc-if>
+
+<sc-if value="{{isFailed}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; gap: 12px; padding: 16px; border-radius: var(--radius-md); background: var(--feedback-danger-tint); border: 1px solid var(--feedback-danger-border)">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px">
+<h3 style="margin: 0; font: var(--text-type-heading-sm)">Why it failed</h3>
+<span style="padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">Proposed component: Banner</span>
+</div>
+<p style="margin: 0; font: var(--text-type-body-md); line-height: 1.5">{{failText}}</p>
+<sc-if value="{{failBank}}" hint-placeholder-val="{{true}}">
+<p style="margin: 0; font: var(--text-type-body-md); line-height: 1.5">This amount went back into your balance and will be included in a later payout once your bank details are fixed.</p>
+</sc-if>
+<sc-if value="{{failUnknown}}" hint-placeholder-val="{{false}}">
+<p style="margin: 0; font: var(--text-type-body-md); line-height: 1.5">Contact support and we'll find out and tell you what to do. The money went back into your balance and is paid in a later payout.</p>
+<span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">failure_message is null: app fallback copy · no bank-details advice, because nothing says the bank is the cause</span>
+</sc-if>
+<p style="margin: 0; font: var(--text-type-body-sm); color: var(--text-secondary)">This payout keeps showing Failed. The later payout that includes this amount says so.</p>
+<sc-if value="{{failBank}}" hint-placeholder-val="{{true}}">
+<p style="margin: 0; font: var(--text-type-body-md); line-height: 1.5"><strong>What you can do:</strong> contact support to fix the bank details on your payout account.</p>
+</sc-if>
+<div style="display: flex; flex-direction: column; gap: 8px; align-items: flex-start">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md" href="https://claude.ai/artifact/Djdm2j2nZaE3ULnyVudcjw">Contact support</x-import>
+<span style="font: var(--text-type-body-sm); color: var(--text-secondary)">The payout reference is filled into the email for you. If you call, read it from the support panel.</span>
+</div>
+<sc-if value="{{failBank}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; flex-direction: column; gap: 6px; padding: 12px; border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-sm); background: var(--surface-raised)">
+<span style="font: var(--text-type-label-lg)">Update bank details in Stripe</span>
+<span style="font: var(--text-type-body-sm); color: var(--text-secondary)">Future button. An onboarding link can't change the bank on an account that has nothing due; Stripe needs a login link to the Express dashboard for that.</span>
+<span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--feedback-info-tint-text); background: var(--feedback-info-tint)">Needs API: a Stripe dashboard sign-in link for restaurants · until then the only action is Contact support</span>
+</div>
+</sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{isHeld}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; gap: 12px; padding: 16px; border-radius: var(--radius-md); background: var(--feedback-warning-tint); border: 1px solid var(--feedback-warning-border)">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px">
+<h3 style="margin: 0; font: var(--text-type-heading-sm)">Why it's on hold</h3>
+<span style="padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">Proposed component: Banner</span>
+</div>
+<p style="margin: 0; font: var(--text-type-body-md); line-height: 1.5">{{holdText}}</p>
+<span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">{{holdSource}}</span>
+<sc-if value="{{heldSetup}}" hint-placeholder-val="{{false}}">
+<p style="margin: 0; font: var(--text-type-body-md); line-height: 1.5">Stripe needs 3 things by 3 October 2026. One is already past due. This applies to your whole payout account, not just this payout.</p>
+<p style="margin: 0; font: var(--text-type-body-md); line-height: 1.5">Why payouts are off: something Stripe asked for is past its due date.</p>
+<div style="display: flex"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md" icon-end="chevron-right">Finish payout setup in Stripe</x-import></div>
+<details style="font: var(--text-type-body-md); border-top: 1px solid var(--feedback-warning-border)">
+<summary style="min-height: 44px; display: flex; align-items: center; gap: 8px; font-weight: 600; cursor: pointer"><span class="hg-disc-chev" aria-hidden="true" style="display: inline-flex"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="chevron-right" size="sm"></x-import></span>Stripe's exact list</summary>
+<div style="display: flex; flex-direction: column; gap: 8px; padding: 4px 0 8px">
+<span style="font: var(--text-type-body-sm); color: var(--text-secondary)">Stripe explains each item when you open it. The Stripe reference is for HalalGoes support.</span>
+<span style="font: var(--text-type-label-md)">Past due</span>
+<span style="display: flex; flex-direction: column; gap: 2px"><span style="font: var(--text-type-body-md)">Your website address</span><span style="font: var(--text-type-body-sm); color: var(--text-secondary)">Stripe reference: <span lang="zxx" style="font-family: var(--font-mono); overflow-wrap: anywhere">business_profile.url</span></span></span>
+<span style="font: var(--text-type-label-md)">Needed by 3 October 2026</span>
+<span style="display: flex; flex-direction: column; gap: 2px"><span style="font: var(--text-type-body-md)">Bank account for payouts</span><span style="font: var(--text-type-body-sm); color: var(--text-secondary)">Stripe reference: <span lang="zxx" style="font-family: var(--font-mono); overflow-wrap: anywhere">external_account</span></span></span>
+<span style="display: flex; flex-direction: column; gap: 2px"><span style="font: var(--text-type-body-md)">Photo ID for the owner</span><span style="font: var(--text-type-body-sm); color: var(--text-secondary)">Stripe reference: <span lang="zxx" style="font-family: var(--font-mono); overflow-wrap: anywhere">individual.verification.document</span></span></span>
+<span style="font: var(--text-type-label-md)">Not needed yet (not counted above)</span>
+<span style="display: flex; flex-direction: column; gap: 2px"><span style="font: var(--text-type-body-md)">Business tax number</span><span style="font: var(--text-type-body-sm); color: var(--text-secondary)">Stripe reference: <span lang="zxx" style="font-family: var(--font-mono); overflow-wrap: anywhere">company.tax_id</span></span></span>
+<span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--feedback-info-tint-text); background: var(--feedback-info-tint)">Needs API: plain-language names for Stripe requirement codes and for disabled_reason</span>
+</div>
+</details>
+<span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">Proposed component: Disclosure (summary draws a chevron-right Icon, rotated 90° when open) · shown only when ConnectStatus.payouts_enabled is false · count = currently_due.length (already includes past_due) · Past due = past_due · Needed by = currently_due minus past_due · Not needed yet = eventually_due minus currently_due · sample: past_due [business_profile.url], currently_due [business_profile.url, external_account, individual.verification.document], eventually_due [those + company.tax_id] · date from requirements.deadline (lead drops the date when null) · disabled_reason shown in plain words (Needs API), hidden when null</span>
+</sc-if>
+<sc-if value="{{heldSupport}}" hint-placeholder-val="{{false}}">
+<div style="display: flex"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" href="https://claude.ai/artifact/Djdm2j2nZaE3ULnyVudcjw">Contact support</x-import></div>
+</sc-if>
+</div>
+</sc-if>
+
+<dl style="margin: 0; display: grid; grid-template-columns: 150px minmax(0, 1fr); row-gap: 12px; column-gap: 16px; font: var(--text-type-body-md); padding-top: 16px; border-top: 1px solid var(--border-decorative)">
+<dt style="color: var(--text-secondary)">Period</dt><dd style="margin: 0">{{d.period}}</dd>
+<dt style="color: var(--text-secondary)">Paid into your bank</dt><dd style="margin: 0">{{d.paid}}</dd>
+<dt style="color: var(--text-secondary)">Currency</dt><dd style="margin: 0">{{d.currency}}</dd>
+<dt style="color: var(--text-secondary)">Entries in this payout</dt><dd style="margin: 0; display: flex; flex-direction: column; gap: 2px"><span style="font-variant-numeric: tabular-nums">{{d.lines}}</span><span style="font: var(--text-type-body-sm); color: var(--text-secondary)">{{linesNote}}</span></dd>
+<dt style="color: var(--text-secondary)">Payout reference</dt><dd style="margin: 0; font: var(--text-type-mono-md); font-family: var(--font-mono); overflow-wrap: anywhere">{{d.id}}</dd>
+</dl>
+<span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">Proposed component: KeyValueList (owner-approved to add)</span>
+
+<div style="display: flex; flex-direction: column; gap: 8px; padding: 16px; border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-md); background: var(--feedback-info-tint)">
+<span style="font: var(--text-type-label-lg); color: var(--feedback-info-tint-text)">Orders in this payout</span>
+<span style="font: var(--text-type-body-sm); color: var(--feedback-info-tint-text)">Needs API: payout detail with its entries for restaurants. Today only riders have a payout-detail endpoint.</span>
+</div>
+</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["DRAFT","READY","TRANSFERRING","TRANSFERRED","PAID","PAID_NOCOUNT","FAILED","FAILED_NOMSG","HELD","HELD_NOMSG","LIVE_FAILED","LIVE_SENDING","SEARCHING","NOTFOUND","REVERSAL_LATER","HELDSETUP_SEP","HELDSETUP_AUG","HELD_SUSPENDED","HELD_BANNED"],"default":"HELD"},"payoutsEnabled":{"editor":"boolean","default":true},"width":{"editor":"int","default":440},"height":{"editor":"int","default":900},"$preview":{"width":440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var s = this.props.state || 'HELD';
+    // ConnectStatus.payouts_enabled. The Stripe setup block shows only when it is false.
+    var payoutsEnabled = this.props.payoutsEnabled !== false;
+    var setupHold = s.indexOf('HELDSETUP_') === 0;
+    var base = setupHold ? s : s.indexOf('HELD') === 0 ? 'HELD' : (s.indexOf('FAILED') === 0 ? 'FAILED' : (s.indexOf('PAID') === 0 ? 'PAID' : s));
+    if (s === 'HELD_SUSPENDED' || s === 'HELD_BANNED') base = 'HELD_ACCT';
+    if (s === 'LIVE_FAILED') base = 'FAILED_LIVE';
+    if (s === 'LIVE_SENDING') base = 'TRANSFERRING_LIVE';
+    var D = {
+      DRAFT: { cents: 186450, amountLabel: 'So far', tone: 'neutral', label: 'Accruing', period: '14–20 September 2026', paid: 'After this period closes', lines: '58', id: '0192f1c0-11aa-7e00-8b10-000000000007',
+        sentence: 'This period is still open. The amount grows as orders settle and is fixed when the period closes.' },
+      READY: { cents: 289400, amountLabel: 'Amount', tone: 'neutral', label: 'Ready to send', period: '7–13 September 2026', paid: 'Goes to Stripe on the next payout run', lines: '126', id: '0192f1c0-11aa-7e00-8b10-000000000006',
+        sentence: 'This period is closed. The payout is queued to go to your Stripe account.' },
+      TRANSFERRING: { cents: 412300, amountLabel: 'Amount', tone: 'info', label: 'Sending to Stripe', period: '31 August – 6 September 2026', paid: 'Stripe sends it to your bank once it arrives', lines: '184', id: '0192f1c0-11aa-7e00-8b10-000000000005',
+        sentence: 'We are sending this payout to your Stripe account.' },
+      TRANSFERRING_LIVE: { cents: 289400, amountLabel: 'Amount', tone: 'info', label: 'Sending to Stripe', period: '7–13 September 2026', paid: 'Stripe sends it to your bank once it arrives', lines: '126', id: '0192f1c0-11aa-7e00-8b10-000000000006',
+        sentence: 'We are sending this payout to your Stripe account.' },
+      TRANSFERRED: { cents: 338700, amountLabel: 'Amount', tone: 'info', label: 'Sent to Stripe', period: '24–30 August 2026', paid: 'Stripe sends it to your bank next', lines: '151', id: '0192f1c0-11aa-7e00-8b10-000000000004',
+        sentence: 'This payout is in your Stripe account. Stripe pays it into your bank next.' },
+      PAID: { cents: 281200, amountLabel: 'Amount', tone: 'neutral', icon: 'check', label: 'Paid', period: '3–9 August 2026', paid: '11 August 2026', lines: '139', id: '0192f1c0-11aa-7e00-8b10-000000000001',
+        sentence: 'Paid into your bank on 11 August 2026.' },
+      FAILED: { cents: 297800, amountLabel: 'Amount', tone: 'danger', label: 'Failed', period: '10–16 August 2026', paid: 'Not paid', lines: '143', id: '0192f1c0-11aa-7e00-8b10-000000000002',
+        sentence: 'This payout did not reach your bank. The money is safe: it went back into your balance.' },
+      FAILED_LIVE: { cents: 338700, amountLabel: 'Amount', tone: 'danger', label: 'Failed', period: '24–30 August 2026', paid: 'Not paid', lines: '151', id: '0192f1c0-11aa-7e00-8b10-000000000004',
+        sentence: 'This payout did not reach your bank. The money is safe: it went back into your balance.' },
+      HELD: { cents: 305100, amountLabel: 'Amount', tone: 'warning', label: 'On hold', period: '17–23 August 2026', paid: 'Not paid while on hold', lines: '147', id: '0192f1c0-11aa-7e00-8b10-000000000003',
+        sentence: 'This payout is on hold. Nothing is sent until the reason below is resolved.' },
+      HELDSETUP_SEP: { cents: 289400, amountLabel: 'Amount', tone: 'warning', label: 'On hold', period: '7–13 September 2026', paid: 'Not paid while on hold', lines: '126', id: '0192f1c0-11aa-7e00-8b10-000000000011',
+        sentence: 'This payout is on hold. Nothing is sent until the reason below is resolved.' },
+      HELD_ACCT: { cents: 289400, amountLabel: 'Amount', tone: 'warning', label: 'On hold', period: '7–13 September 2026', paid: 'Not paid while on hold', lines: '126', id: '0192f1c0-11aa-7e00-8b10-000000000006',
+        sentence: 'This payout is on hold. Nothing is sent until the reason below is resolved.' },
+      HELDSETUP_AUG: { cents: 212300, amountLabel: 'Amount', tone: 'warning', label: 'On hold', period: '31 August – 6 September 2026', paid: 'Not paid while on hold', lines: '97', id: '0192f1c0-11aa-7e00-8b10-000000000010',
+        sentence: 'This payout is on hold. Nothing is sent until the reason below is resolved.' }
+    };
+    // hold_reason is free text from the server, shown verbatim. Only the null case has app copy.
+    var HOLD = {
+      HELD: 'Held while HalalGoes reviews a disputed order from this period.',
+      HELDSETUP_SEP: 'Payouts are not enabled on your Stripe account yet.',
+      HELDSETUP_AUG: 'Payouts are not enabled on your Stripe account yet.',
+      HELD_SUSPENDED: 'Held while this account is suspended.',
+      HELD_BANNED: 'Held while this account is banned.',
+      HELD_NOMSG: "No reason has been recorded for this hold yet. Contact support and we'll find out what's needed."
+    };
+    var LIVE = {
+      LIVE_FAILED: { title: 'This payout just changed to Failed', body: 'It was Sent to Stripe when you opened it. The list and the notice at the top of Payouts now show it too.' },
+      LIVE_SENDING: { title: 'This payout is now being sent to Stripe', body: 'It was Ready to send when you opened it.' }
+    };
+    // Sample server value that already includes the 297800 reversal: 186450 + 297800 = 484250. The browser never adds it.
+    D.REVERSAL_LATER = { cents: 484250, amountLabel: 'So far', tone: 'neutral', label: 'Accruing', period: '14–20 September 2026', paid: 'After this period closes', lines: '59', id: '0192f1c0-11aa-7e00-8b10-000000000007',
+      sentence: 'This period is still open. It includes the 10–16 August payout that failed, which went back into your balance.' };
+    if (s === 'REVERSAL_LATER') base = 'REVERSAL_LATER';
+    var d = Object.assign({ currency: 'CAD' }, D[base] || D.HELD);
+    var noCount = s === 'PAID_NOCOUNT';
+    if (noCount) d.lines = 'Not given';
+    return {
+      w: (this.props.width || 440) + 'px',
+      hh: (this.props.height || 900) + 'px',
+      isSearching: s === 'SEARCHING',
+      isNotFound: s === 'NOTFOUND',
+      isPayout: s !== 'SEARCHING' && s !== 'NOTFOUND',
+      live: LIVE[s] ? Object.assign({ show: true, announce: LIVE[s].title + '. ' + LIVE[s].body }, LIVE[s]) : { show: false, announce: '' },
+      d: d,
+      linesNote: s === 'REVERSAL_LATER' ? 'Settled orders and adjustments, including 1 payout reversal' : noCount ? 'HalalGoes didn\'t send a count for this payout. The amount is still exact.' : 'Settled orders and adjustments',
+      isFailed: base === 'FAILED' || base === 'FAILED_LIVE',
+      failBank: s !== 'FAILED_NOMSG',
+      failUnknown: s === 'FAILED_NOMSG',
+      failText: s === 'FAILED_NOMSG' ? "We don't know yet why this failed." : (s === 'LIVE_FAILED' ? 'The bank rejected the transfer: account number not found.' : 'The bank returned the transfer.'),
+      isHeld: base === 'HELD' || base === 'HELD_ACCT' || setupHold,
+      holdText: HOLD[s] || HOLD.HELD,
+      holdSource: s === 'HELD_NOMSG' ? 'hold_reason is null: app fallback copy' : (base === 'HELD_ACCT' ? 'hold_reason, shown verbatim (sample value) · payout created before the account was ' + (s === 'HELD_BANNED' ? 'banned' : 'suspended') + ' · spec payout rule: no new payout row while SUSPENDED/BANNED' : (setupHold ? 'hold_reason, shown verbatim (sample value) · payouts_enabled false' : 'hold_reason, shown verbatim (sample value) · payouts_enabled true, so no Stripe setup block')),
+      isReversal: s === 'REVERSAL_LATER',
+      heldSetup: setupHold && !payoutsEnabled,
+      heldSupport: (base === 'HELD' || base === 'HELD_ACCT' || setupHold) && !(setupHold && !payoutsEnabled),
+      yes: true
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Phone setup header</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+summary:focus-visible{outline:2px solid transparent;box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+</style>
+</helmet>
+<div style="width: {{w}}; height: {{h}}; box-sizing: border-box; display: flex; flex-direction: column; gap: 12px; font-family: var(--font-ui); color: var(--text-primary)">
+<div style="display: flex; align-items: center; gap: 8px">
+<span class="type-label-lg" style="flex-grow: 1; min-width: 0">Zaytoun Grill</span>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Menu" label="Account menu, {{email}}" trigger-text="Account" trigger-variant="plain" align="end" items="{{items}}" hint-size="120px,44px"></x-import>
+</div>
+<div style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 4px; margin-top: 32px; display: flex; flex-direction: column; gap: 8px; padding: 12px 16px; border-radius: 12px; background: var(--surface-raised); border: 1px solid var(--border-decorative)">
+<span aria-hidden="true" style="position: absolute; top: -32px; left: -4px; font: 500 12px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 4px 8px; border-radius: 4px; white-space: nowrap; z-index: 1">Proposed component: Stepper (compact header)</span>
+<span class="type-heading-sm">{{stepText}}</span>
+<div role="progressbar" aria-label="Setup progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{percent}}" style="height: 8px; box-sizing: border-box; border-radius: 9999px; background: var(--border-decorative); outline: 1px solid var(--border-interactive); overflow: hidden"><div style="height: 8px; border-radius: 9999px; background: var(--text-secondary); width: {{pctW}}"></div></div>
+<span class="type-body-sm" style="color: var(--text-secondary); font-variant-numeric: tabular-nums">{{percent}}% complete</span>
+<div style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 2px; border-top: 1px solid var(--border-decorative)"><span aria-hidden="true" style="position: absolute; top: 14px; right: 0; z-index: 3; font: 500 11px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 3px 6px; border-radius: 4px; white-space: nowrap">Proposed component: Disclosure (native details/summary)</span><details>
+<summary class="type-label-lg" style="min-height: 44px; box-sizing: border-box; padding: 12px 0; cursor: pointer">Setup checklist and halal status</summary>
+<div style="padding: 8px 0 4px"><dc-import name="OnbSide" current="{{current}}" done="{{done}}" percent="{{percent}}" cycle="{{cycle}}" halal="{{halal}}" cert="{{cert}}" body="{{body}}" until="{{until}}" role="{{role}}" account="{{account}}" hint-size="320px,960px"></dc-import></div>
+</details></div>
+</div>
+<span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">Phone: the setup checklist collapses into this header. The disclosure holds the same checklist and the single halal seal (RestaurantProfile.halal). progress_percent is the server’s.</span>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"current": {"editor": "enum", "options": ["PROFILE", "DOCUMENTS", "AWAITING_REVIEW", "FIX_DOCUMENTS", "PAYOUT", "MENU", "DONE"], "default": "DOCUMENTS"}, "done": {"editor": "text", "default": "1000000"}, "percent": {"editor": "int", "default": 20}, "cycle": {"editor": "int", "default": 1}, "halal": {"editor": "enum", "options": ["", "CERTIFIED", "EXPIRING_SOON", "EXPIRED", "UNVERIFIED"], "default": ""}, "cert": {"editor": "enum", "options": ["", "replaced", "expired", "docexpired"], "default": ""}, "body": {"editor": "text", "default": "HMA Canada"}, "until": {"editor": "text", "default": "14 March 2027"}, "account": {"editor": "text", "default": "PENDING"}, "w": {"editor": "text", "default": "358px"}, "$preview": {"width": 358, "height": 260}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const current = this.props.current ?? 'DOCUMENTS';
+    const n = { PROFILE: 1, DOCUMENTS: 2, AWAITING_REVIEW: 3, FIX_DOCUMENTS: 3, PAYOUT: 4, MENU: 5, DONE: 6 }[current] || 1;
+    const label = { PROFILE: 'Business profile', DOCUMENTS: 'Documents', AWAITING_REVIEW: 'Waiting for review', FIX_DOCUMENTS: 'Fix documents', PAYOUT: 'Payout setup', MENU: 'First menu and hours', DONE: 'Ready to take orders' }[current];
+    const percent = Number(this.props.percent ?? 20);
+    const role = this.props.role ?? 'Owner';
+    const items = [{ key: 'signout', label: 'Sign out' }];
+    return {
+      w: this.props.w ?? '358px', h: '260px', current, stepText: 'Step ' + n + ' of 6 · ' + label, percent, pctW: percent + '%',
+      done: this.props.done ?? '1000000', cycle: this.props.cycle ?? 1, halal: this.props.halal ?? '', cert: this.props.cert ?? '', body: this.props.body ?? 'HMA Canada', until: this.props.until ?? '14 March 2027', role, account: this.props.account ?? 'PENDING',
+      email: 'samir@zaytoungrill.ca', items
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Add an address, map</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:var(--color-neutral-100)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+.demo-focus .hg-focus,.demo-focus .hg-choice-ctl,.demo-focus .hg-row,.demo-focus > a{box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)!important}
+.demo-focus-field .hg-field{border-color:var(--focus-ring)!important;box-shadow:inset 0 0 0 calc(var(--focus-field-border-width) - 1px) var(--focus-ring)!important}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; display: flex; flex-direction: column; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="cream" title="Add an address" back-label="Back" on-back="{{noop}}"></x-import>
+<div class="demo-focus-field" style="padding: var(--space-3) var(--space-4); background: var(--surface-base)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Search for your address" variant="search" placeholder="Street and number, or a place"></x-import></div>
+<div role="application" aria-label="Map. The pin is on 14 Ellesmere Rd, Toronto ON M1R 4E7. Drag the map to move the pin; arrow keys move it 5 metres." tabindex="0" style="height: 420px; flex-shrink: 0; position: relative; display: flex; align-items: center; justify-content: center; background: var(--surface-sunken); outline: 1.5px dotted var(--color-info-500); outline-offset: -3px">
+<div aria-hidden="true" style="display: flex; flex-direction: column; align-items: center; gap: 2px">
+<div style="width: 36px; height: 36px; border-radius: var(--radius-full) var(--radius-full) var(--radius-full) 0; transform: rotate(-45deg); background: var(--action-primary); border: 3px solid var(--surface-raised); box-shadow: var(--elev-2)"></div>
+<div style="width: 10px; height: 4px; border-radius: var(--radius-full); background: var(--text-secondary); opacity: 0.5"></div>
+</div>
+<span style="position: absolute; top: 8px; left: 8px; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--color-info-700); background: var(--color-info-50)">Component gap: MapPicker (draggable pin; the Solar map-point glyph is not in the DS icon set yet). Mapbox wordmark bottom-left and attribution (i) control must stay visible; never covered by sheets, cards or zoom buttons (move zoom controls up 32 px).</span>
+
+</div>
+<div style="flex-grow: 1"></div>
+<div style="display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-4); background: var(--surface-raised); border-radius: var(--radius-2xl) var(--radius-2xl) 0 0; box-shadow: var(--elev-sticky)">
+<div style="display: flex; flex-direction: column; gap: 2px">
+<span style="font-size: var(--type-label-md-size); font-weight: 600; color: var(--text-secondary)">Pin is on</span>
+<strong style="font-size: var(--type-heading-sm-size)">14 Ellesmere Rd</strong>
+<span style="font-size: var(--type-body-md-size); color: var(--text-secondary)">Toronto ON M1R 4E7</span>
+</div>
+<p style="margin: 0; font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-line); color: var(--text-secondary)">Drag the map to put the pin on your door. Riders go to the pin.</p>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" full-width="{{yes}}" href="Address-confirm-pin.dc.html">Use this location</x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="md" full-width="{{yes}}" href="Address-manual.dc.html">Enter the address yourself</x-import>
+</div>
+<div style="position: absolute; left: var(--space-4); right: var(--space-4); top: 160px; display: flex; flex-direction: column; gap: var(--space-1)"><span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">Owner decision: type into the map search and drag the pin for precision, both at launch. The pin wins: its latitude and longitude are what createAddress stores, even when they differ from the search result.</span><span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">Needs API: address search on the map: suggestions, place details and reverse geocoding. Owner decision (1 October): these move into launch as three operations on our server, which forwards to Mapbox (the spec names /geo/autocomplete, /geo/place and /geo/reverse). They are not in the contract yet; until they are, the typed search cannot fill the address. Reverse geocoding for saved addresses uses Mapbox permanent geocoding (results are stored).</span><span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">The map opens on the GPS fix if allowed, else the default address, else the launch map centre. Never a hardcoded city.</span><span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--color-info-700); background: var(--color-info-50); border: 1px dashed var(--color-info-500)">Proposed component: AddressMapPicker: DS Input (search) over a map with a fixed centre pin, a bottom card with the pin address, and Use this location. Built on React Native Reusables plus the map SDK.</span></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+return {
+yes: true,
+no: false,
+none: null,
+zero: 0,
+two: 2,
+three: 3,
+noop: function () {},
+nav: [
+{ key: 'home', label: 'Home', icon: 'home' },
+{ key: 'search', label: 'Search', icon: 'search' },
+{ key: 'orders', label: 'Orders', icon: 'orders' },
+{ key: 'account', label: 'Account', icon: 'profile' }
+],
+c: { zfee: 299, zmin: 1500, kfee: 399, kmin: 2000, nfee: 499, nmin: 1500, fee: 299, min: 1500, grill: 2499, adana: 2199, wrap: 1249, falafel: 1099, karahi: 1899, plate: 1650, lahmacun: 950, tikka: 1599, koob: 2250, mandi: 2299 },
+sortItems: [
+{ key: 'recommended', label: 'Recommended' },
+{ key: 'eta', label: 'Delivery time' },
+{ key: 'distance', label: 'Distance' }
+]
+};
+}
+}
+</script>
+</body>
+</html>

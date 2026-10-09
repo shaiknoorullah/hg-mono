@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Textarea (component gap)</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div data-gap="Textarea" style="width: {{w}}px; box-sizing: border-box; display: flex; flex-direction: column; gap: 6px; font-family: var(--font-ui); color: var(--text-primary)">
+  <label for="{{tid}}" style="display: inline-flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600">
+    <span>{{label}}</span>
+  </label>
+  <sc-if value="{{hasHelper}}" hint-placeholder-val="{{true}}">
+    <span id="{{tid}}-h" style="font-size: 15px; line-height: 1.45; color: var(--text-secondary)">{{helper}}</span>
+  </sc-if>
+  <sc-if value="{{ro}}" hint-placeholder-val="{{false}}">
+    <div class="hg-field" style="display: flex; border-radius: 12px; background: var(--surface-sunken)"><textarea id="{{tid}}" rows="{{rows}}" readonly="readonly" aria-describedby="{{desc}}" style="box-sizing: border-box; width: 100%; font: inherit; font-size: 15px; line-height: 1.5; padding: 10px 12px; border: none; border-radius: 12px; background: transparent; color: var(--text-primary); resize: none">{{value}}</textarea></div>
+  </sc-if>
+  <sc-if value="{{rw}}" hint-placeholder-val="{{true}}">
+    <div class="hg-field" data-invalid="{{invAttr}}" style="{{wrapStyle}}"><textarea id="{{tid}}" rows="{{rows}}" required="{{req}}" aria-required="{{reqAria}}" aria-invalid="{{inv}}" aria-describedby="{{desc}}" style="box-sizing: border-box; width: 100%; font: inherit; font-size: 15px; line-height: 1.5; padding: 10px 12px; border: none; border-radius: 12px; background: transparent; color: var(--text-primary); resize: vertical">{{value}}</textarea></div>
+  </sc-if>
+  <sc-if value="{{hasError}}" hint-placeholder-val="{{false}}">
+    <span id="{{tid}}-e" role="alert" style="display: inline-flex; align-items: center; gap: 6px; font-size: 15px; line-height: 1.45; color: var(--feedback-danger-text)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="error" size="md" color="var(--feedback-danger-icon)"></x-import>{{error}}</span>
+  </sc-if>
+  <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px">
+    <sc-if value="{{showTag}}" hint-placeholder-val="{{false}}"><span style="display: inline-flex; padding: 2px 8px; border-radius: 4px; background: var(--color-info-50); color: var(--color-info-700); font-size: 12px; font-weight: 600">Proposed component: Textarea</span></sc-if><span></span>
+    <span id="{{tid}}-c" style="font-size: 13px; font-variant-numeric: tabular-nums; color: var(--text-secondary)">{{count}}</span>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"label":{"editor":null,"default":"Message to the restaurant"},"helper":{"editor":null,"default":"Sent word for word."},"value":{"editor":null,"default":""},"count":{"editor":null,"default":"0 of 1000 characters · minimum 10"},"error":{"editor":null,"default":""},"required":{"editor":"boolean","default":false},"ro":{"editor":"boolean","default":false},"focused":{"editor":"boolean","default":false},"locked":{"editor":null,"default":false},"rows":{"editor":null,"default":3},"w":{"editor":null,"default":528},"tid":{"editor":null,"default":"ta"},"$preview":{"width":528,"height":200},"tag":{"editor":"boolean","default":true}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props;
+    const tid = p.tid || 'ta';
+    const err = p.error || '';
+    const ro = !!p.ro;
+    const helper = p.helper ?? 'Sent word for word.';
+    const focused = !!p.focused;
+    // The field sits in the DS field wrapper (.hg-field), so real keyboard focus draws the
+    // decision in docs/decisions/focus-indicator.md: the wrapper border turns 2px border.brand
+    // (:focus-within), and an invalid field in focus keeps its danger border and adds the
+    // two-layer ring. No inline border or box-shadow on the textarea, so nothing overrides it.
+    // Mandatory notes carry required and aria-required. A "(required)" label or a count with a
+    // minimum marks the note mandatory when the caller doesn't say.
+    const count = p.count ?? '0 of 1000 characters · minimum 10';
+    const req = p.required === true || p.required === 'true' || (p.required == null && (/\(required\)/i.test(p.label || '') || /minimum \d+/.test(count)));
+    // The counter joins aria-describedby only when the field isn't focused (read on blur,
+    // not on every keystroke).
+    const desc = [helper ? tid + '-h' : '', err ? tid + '-e' : '', focused ? '' : tid + '-c'].filter(Boolean).join(' ');
+    return {
+      showTag: !!this.props.tag,
+      w: p.w ?? 528,
+      tid,
+      label: p.label ?? 'Message to the restaurant',
+      helper, hasHelper: !!helper,
+      value: p.value ?? '',
+      count,
+      req: req ? true : undefined, reqAria: req ? 'true' : undefined,
+      error: err, hasError: !!err, inv: err ? 'true' : 'false',
+      ro, rw: !ro,
+      rows: p.rows ?? 3,
+      locked: !!p.locked,
+      invAttr: err ? 'true' : undefined,
+      // focused=true is a static drawing of the focus state only; it adds the same values the
+      // DS :focus-within rule draws. Otherwise the wrapper carries no border or shadow inline.
+      wrapStyle: 'display: flex; border-radius: 12px; background: var(--surface-raised)' + (focused && !err ? '; border-color: var(--border-brand); box-shadow: inset 0 0 0 1px var(--border-brand)' : focused && err ? '; box-shadow: inset 0 0 0 1px var(--color-danger-500), 0 0 0 2px var(--surface-raised), 0 0 0 5px var(--focus-ring)' : ''),
+      desc,
+    };
+  }
+}
+</script>
+</body>
+</html>

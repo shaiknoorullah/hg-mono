@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Orders waiting strip</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div style="width: {{wpx}}; height: {{rootH}}; display: flex; flex-direction: column; gap: 8px; font-family: var(--font-ui); color: var(--text-primary)">
+<section aria-labelledby="strip-h" style="width: {{wpx}}; height: {{hpx}}; flex-shrink: 0; box-sizing: border-box; display: flex; align-items: center; gap: 16px; padding: 0 16px 0 24px; background: var(--surface-raised); border-top: {{borderTop}}; border-bottom: {{borderBottom}}; box-shadow: {{shadow}}">
+
+<sc-if value="{{isEmpty}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; align-items: center; gap: 12px; flex-grow: 1; min-width: 0">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="orders" size="md" color="var(--text-secondary)"></x-import>
+<h2 id="strip-h" style="margin: 0; font: var(--text-type-label-lg); white-space: nowrap">No orders waiting</h2>
+<span style="font: var(--text-type-body-sm); color: var(--text-secondary)">New orders appear here on every page, with the time left to accept.</span>
+</div>
+</sc-if>
+
+<sc-if value="{{isOffline}}" hint-placeholder-val="{{false}}">
+<div role="status" style="display: flex; align-items: center; gap: 12px; flex-grow: 1; min-width: 0">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="warning" icon="warning" size="md">Offline</x-import>
+<h2 id="strip-h" style="margin: 0; font: var(--text-type-label-lg); white-space: nowrap">No orders are coming in</h2>
+<span style="font: var(--text-type-body-sm); color: var(--text-secondary)">This screen lost its connection to HalalGoes at 6:41 pm, so no new orders are being offered. Check the internet connection. It reconnects by itself.</span>
+</div>
+</sc-if>
+
+<sc-if value="{{hasOrders}}" hint-placeholder-val="{{true}}">
+<div style="width: 160px; flex-shrink: 0; display: flex; flex-direction: column; gap: 4px">
+<div style="display: flex; align-items: center; gap: 8px">
+<h2 id="strip-h" style="margin: 0; font: var(--text-type-label-lg); white-space: nowrap">Waiting for you</h2>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="{{countTone}}" appearance="{{countLook}}" size="md">{{count}}</x-import>
+</div>
+<span style="display: inline-flex; align-items: flex-start; gap: 6px; font: var(--text-type-body-sm); color: var(--text-secondary)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="bell" size="sm" style="margin-top: 2px"></x-import>{{soundNote}}</span>
+</div>
+<ul role="list" aria-label="Orders waiting, soonest to expire first" style="margin: 0; padding: 8px 4px; list-style: none; flex-grow: 1; min-width: 0; display: flex; align-items: center; gap: 12px; overflow-x: auto">
+<sc-for list="{{orders}}" as="o" hint-placeholder-count="2">
+<li style="flex-shrink: 0; display: flex">
+<sc-if value="{{o.focused}}" hint-placeholder-val="{{true}}">
+<div role="group" tabindex="0" aria-label="{{o.groupLabel}}" style="display: flex; align-items: center; gap: 12px; padding: 8px 8px 8px 16px; border-radius: var(--radius-md); border: 1px solid var(--border-interactive); background: var(--surface-raised); box-shadow: {{o.ring}}">
+<div style="width: 196px; display: flex; flex-direction: column; gap: 4px">
+<div style="display: flex; align-items: baseline; gap: 8px"><span style="font: var(--text-type-mono-md); font-family: var(--font-mono); font-weight: 500">{{o.code}}</span><span style="font: var(--text-type-body-sm); color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{o.who}}</span></div>
+<span style="display: inline-flex; align-items: center; gap: 6px; font: var(--text-type-body-sm)">{{o.items}} ·<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{o.cents}}" size="sm"></x-import></span>
+<sc-if value="{{o.timer}}" hint-placeholder-val="{{true}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Countdown" expires-at="{{o.deadline}}" server-now="{{now}}" window-seconds="{{180}}" variant="bar" size="sm" label="Time left to accept"></x-import></sc-if>
+</div>
+<sc-if value="{{o.expired}}" hint-placeholder-val="{{false}}">
+<div role="alert" style="width: 248px; display: flex; flex-direction: column; gap: 6px">
+<strong style="font: var(--text-type-label-lg)">Too late to accept this one</strong>
+<span style="font: var(--text-type-body-sm)">It expired before your answer reached us. The customer's card wasn't charged.</span>
+</div>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" href="https://claude.ai/artifact/Djdm2j2nZaE3ULnyVudcjw" accessibility-label="{{o.dismissLabel}}">Dismiss</x-import>
+</sc-if>
+<sc-if value="{{o.payFailed}}" hint-placeholder-val="{{false}}">
+<div role="alert" style="width: 420px; display: flex; align-items: flex-start; gap: 10px; padding: 8px 12px; border-radius: var(--radius-sm); background: var(--feedback-warning-tint); border: 1px solid var(--feedback-warning-border); color: var(--feedback-warning-tint-text)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="warning" size="md" color="var(--feedback-warning-icon)" style="margin-top: 2px"></x-import>
+<span style="display: flex; flex-direction: column; gap: 2px"><strong style="font: var(--text-type-label-lg)">Payment didn't go through, so order {{o.code}} is cancelled</strong><span style="font: var(--text-type-body-sm)">Don't prepare it. The customer wasn't charged.</span></span>
+</div>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" href="https://claude.ai/artifact/Djdm2j2nZaE3ULnyVudcjw" accessibility-label="{{o.dismissLabel}}">Dismiss</x-import>
+</sc-if>
+<sc-if value="{{o.accepted}}" hint-placeholder-val="{{false}}">
+<div role="status" style="width: 360px; display: flex; align-items: flex-start; gap: 10px">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="check" size="md" color="var(--text-secondary)" style="margin-top: 2px"></x-import>
+<span style="display: flex; flex-direction: column; gap: 2px"><strong style="font: var(--text-type-label-lg)">Accepted. Start preparing order {{o.code}}</strong><span style="font: var(--text-type-body-sm); color: var(--text-secondary)">It has left this strip and is on the Orders page.</span></span>
+</div>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" href="#orders" icon-end="chevron-right" accessibility-label="{{o.openLabel}}">Open the order</x-import>
+</sc-if>
+<sc-if value="{{o.actions}}" hint-placeholder-val="{{true}}">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" critical="{{yes}}" loading="{{o.accepting}}" accessibility-label="{{o.acceptLabel}}" style="width: 112px">Accept</x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" critical="{{yes}}" disabled="{{o.accepting}}" accessibility-label="{{o.rejectLabel}}" href="{{o.rejectHref}}" style="width: 104px">Reject</x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" accessibility-label="{{o.itemsLabel}}" href="{{o.itemsHref}}">See items</x-import>
+</sc-if>
+</div>
+</sc-if>
+<sc-if value="{{o.compact}}" hint-placeholder-val="{{false}}">
+<div role="group" tabindex="-1" aria-label="{{o.groupLabel}}" style="width: 132px; min-height: 72px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; gap: 4px; padding: 8px 12px; border-radius: var(--radius-md); border: 1px solid var(--border-decorative); background: var(--surface-base); color: var(--text-primary)">
+<span style="font: var(--text-type-mono-md); font-family: var(--font-mono); font-weight: 500">{{o.code}}</span>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Countdown" expires-at="{{o.deadline}}" server-now="{{now}}" window-seconds="{{180}}" variant="text" size="sm" label="Time left"></x-import>
+</div>
+</sc-if>
+</li>
+</sc-for>
+</ul>
+</sc-if>
+
+<div style="width: {{switchW}}; flex-shrink: 0; display: flex; flex-direction: column; gap: 2px; padding-left: 16px; border-left: 1px solid var(--border-decorative)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Switch" size="sm" label="Accepting orders" state-label="{{onOff}}" checked="{{accepting}}" disabled="{{switchOff}}" aria-describedby="{{switchDescBy}}"></x-import>
+<sc-if value="{{switchNote}}" hint-placeholder-val="{{false}}"><span id="orders-switch-why" style="font: var(--text-type-body-sm); color: var(--text-secondary)">{{switchNote}}</span></sc-if>
+<sc-if value="{{hasOrders}}" hint-placeholder-val="{{true}}"><span style="font: var(--text-type-body-sm); color: var(--text-secondary)">In this strip: ← → move · A accepts · R rejects</span></sc-if>
+</div>
+</section>
+<sc-if value="{{annotate}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; gap: 8px; flex-wrap: wrap; padding: 0 24px">
+<span style="padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">Proposed component: NewOrdersStrip (Countdown, Button, Badge, Price, Switch) · {{posNote}}</span>
+<span style="padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">The order list is one Tab stop with a roving tabindex: the current order is a focusable group (tabindex 0), the others tabindex -1; ← → move focus between them. Tab from the current order goes to its Accept, Reject and See items, then out. Keys act only while focus is inside the strip. Accept is the one primary action and stays 72 px</span>
+<span style="padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">listRestaurantOrders, state RESTAURANT_PENDING · countdown from deadline_at (180 s, server clock) · See items opens the order's lines in the panel beside the page · customer first name and last initial plus delivery area only: the phone stays hidden until the order is accepted</span>
+<span style="padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">Accepting orders switch = is_accepting_orders (the stored value) · the line under it states what is happening now (paused, closed by your hours, offline, or why it is disabled), so the switch and the page never disagree · that line is its own element at full opacity in text-secondary, wired to the switch with aria-describedby, not the Switch description (which dims with the disabled switch) · on the raised strip, not the forest app bar, so label, state and track meet contrast</span>
+<span style="padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">Every page that shows the orders strip sends sendRestaurantHeartbeat every 30 s. Closed-offline therefore means this browser lost its connection</span>
+<span style="padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">acceptOrder captures the payment in the same transaction · success: the order leaves the strip with a confirmation that links to it · permanent capture failure: CANCELLED, cancel_reason CAPTURE_FAILED, and the kitchen is told not to prepare it</span>
+</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["empty","one","several","reject","accepting","expired","offline","accepted","paymentfailed"],"default":"one"},"ordersMode":{"editor":"enum","options":["open","off","hidden","readonly"],"default":"open"},"ordersNote":{"editor":"text","default":""},"width":{"editor":"int","default":1208},"annotate":{"editor":"boolean","default":true},"$preview":{"width":1208,"height":216}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var s = this.props.state || 'one';
+    var w = this.props.width || 1208;
+    var active = s !== 'empty' && s !== 'offline';
+    var h = active ? 112 : 64;
+    var annotate = this.props.annotate !== false;
+    var now = '2026-09-28T18:00:00-04:00';
+    // The Orders switch shows RestaurantAvailability.is_accepting_orders (the stored value). open = on, off = off.
+    // Hidden and read-only: disabled, still showing the stored value, so orders resume when the listing or account comes back.
+    var mode = this.props.ordersMode || 'open';
+    var note = this.props.ordersNote || '';
+    if (!note && mode === 'hidden') note = "Customers can't see your restaurant right now";
+    if (!note && mode === 'readonly') note = 'No new orders can come in right now';
+    // Soonest to expire first. Sample OrderRestaurantView rows; the subtotal is the server's money.subtotal_cents.
+    var ALL = [
+      { code: 'HG-10482', who: 'Amina K. · Scarborough, under 3 km', items: '3 items', n: 3, cents: 4250, deadline: '2026-09-28T18:02:22-04:00', left: '2 minutes 22 seconds' },
+      { code: 'HG-10483', who: 'Daniel M. · Scarborough, 3 to 5 km', items: '1 item', n: 1, cents: 1575, deadline: '2026-09-28T18:02:51-04:00', left: '2 minutes 51 seconds' },
+      { code: 'HG-10484', who: 'Sara A. · Agincourt, under 3 km', items: '2 items', n: 2, cents: 2890, deadline: '2026-09-28T18:02:58-04:00', left: '2 minutes 58 seconds' }
+    ];
+    var list = s === 'several' ? ALL : ALL.slice(0, 1);
+    var focusIndex = s === 'several' ? 1 : 0;
+    var ring = '0 0 0 2px var(--focus-offset), 0 0 0 5px var(--focus-ring)';
+    var orders = list.map(function (o, i) {
+      var f = i === focusIndex;
+      var done = f && (s === 'expired' || s === 'accepted' || s === 'paymentfailed');
+      return Object.assign({}, o, {
+        focused: f, compact: !f,
+        ring: f && s === 'several' ? ring : 'none',
+        expired: f && s === 'expired',
+        payFailed: f && s === 'paymentfailed',
+        accepted: f && s === 'accepted',
+        timer: !done,
+        actions: f && !done,
+        accepting: f && s === 'accepting',
+        groupLabel: 'Order ' + o.code + ', ' + o.items + ({ expired: ', expired', accepted: ', accepted', paymentfailed: ', cancelled: payment failed' }[s] || ', ' + o.left + ' left'),
+        openLabel: 'Open order ' + o.code + ' on the Orders page',
+        acceptLabel: 'Accept order ' + o.code,
+        rejectLabel: 'Reject order ' + o.code,
+        itemsLabel: 'See items in order ' + o.code,
+        dismissLabel: 'Dismiss order ' + o.code,
+        rejectHref: 'https://claude.ai/artifact/Djdm2j2nZaE3ULnyVudcjw',
+        itemsHref: 'https://claude.ai/artifact/Djdm2j2nZaE3ULnyVudcjw'
+      });
+    });
+    var waiting = (s === 'expired' || s === 'accepted' || s === 'paymentfailed') ? 0 : list.length;
+    var POS = { header: 'header, under the app bar (owner decision)' };
+    return {
+      yes: true,
+      now: now,
+      wpx: w + 'px',
+      hpx: h + 'px',
+      rootH: (annotate ? h + 104 : h) + 'px',
+      isEmpty: s === 'empty',
+      isOffline: s === 'offline',
+      hasOrders: active,
+      count: waiting,
+      countTone: waiting ? 'brand' : 'neutral',
+      countLook: waiting ? 'solid' : undefined,
+      soundNote: { expired: 'Alert stopped. This order clears in 10 s, or dismiss it now.', accepted: 'Alert stopped. Nothing else is waiting.', paymentfailed: 'Alert stopped. Nothing else is waiting.' }[s] || 'Alert sounds until each order is accepted, rejected or expires',
+      orders: orders,
+      switchW: active ? '248px' : '288px',
+      switchNote: note || null,
+      switchDescBy: note ? 'orders-switch-why' : undefined,
+      onOff: { on: 'On', off: 'Off' },
+      accepting: mode === 'open' ? true : (mode === 'off' ? false : true),
+      switchOff: mode === 'hidden' || mode === 'readonly',
+      borderTop: '0',
+      borderBottom: '1px solid var(--border-decorative)',
+      shadow: 'none',
+      annotate: annotate,
+      posNote: POS.header
+    };
+  }
+}
+</script>
+</body>
+</html>

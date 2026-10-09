@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Account — loading</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+</style>
+</helmet>
+<div data-theme="dark" style="width: 390px; height: 844px; position: relative; overflow: hidden; display: flex; flex-direction: column; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="field" title="Account" loading="{{yes}}"></x-import>
+
+<main style="flex-grow: 1; min-height: 0; overflow: hidden; padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-5)">
+<div style="display: flex; flex-direction: column; gap: var(--space-6)"><div style="display: flex; align-items: flex-start; gap: var(--space-4)"><div style="position: relative; outline: 1.5px solid var(--color-viz-4); outline-offset: 3px; border-radius: var(--radius-full)"><span style="position: absolute; top: -9px; right: 10px; z-index: 2; color: var(--color-neutral-0); font-family: var(--font-mono); font-size: 10px; font-weight: var(--font-weight-semibold); line-height: 16px; padding: 0 var(--space-2); border-radius: var(--radius-xs); white-space: nowrap; background: var(--color-viz-4)">Proposed component: Skeleton</span><div style="width: 64px; height: 64px; border-radius: var(--radius-full); background: var(--surface-raised)"></div></div><div style="display: flex; flex-direction: column; gap: var(--space-2)"><div style="position: relative; outline: 1.5px solid var(--color-viz-4); outline-offset: 3px; border-radius: var(--radius-md)"><span style="position: absolute; top: -9px; right: 10px; z-index: 2; color: var(--color-neutral-0); font-family: var(--font-mono); font-size: 10px; font-weight: var(--font-weight-semibold); line-height: 16px; padding: 0 var(--space-2); border-radius: var(--radius-xs); white-space: nowrap; background: var(--color-viz-4)">Proposed component: Skeleton</span><div aria-busy="true" style="display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-1)"><div style="width: 160px; height: 20px; border-radius: var(--radius-sm); background: var(--surface-raised)"></div><div style="width: 130px; height: 18px; border-radius: var(--radius-sm); background: var(--surface-raised)"></div></div></div><div style="font-family: var(--font-mono); font-size: 11px; line-height: 16px; color: var(--color-neutral-0); background: var(--color-viz-6); padding: var(--space-1) var(--space-2); border-radius: var(--radius-xs)">role=&quot;status&quot; (visually hidden): &quot;Loading your account&quot;</div></div></div><div style="position: relative; outline: 1.5px solid var(--color-viz-4); outline-offset: 3px; border-radius: var(--radius-md)"><span style="position: absolute; top: -9px; right: 10px; z-index: 2; color: var(--color-neutral-0); font-family: var(--font-mono); font-size: 10px; font-weight: var(--font-weight-semibold); line-height: 16px; padding: 0 var(--space-2); border-radius: var(--radius-xs); white-space: nowrap; background: var(--color-viz-4)">Proposed component: Skeleton</span><div aria-busy="true" style="display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-1)"><div style="width: 100%; height: 56px; border-radius: var(--radius-sm); background: var(--surface-raised)"></div><div style="width: 100%; height: 56px; border-radius: var(--radius-sm); background: var(--surface-raised)"></div><div style="width: 100%; height: 56px; border-radius: var(--radius-sm); background: var(--surface-raised)"></div><div style="width: 100%; height: 56px; border-radius: var(--radius-sm); background: var(--surface-raised)"></div></div></div></div>
+</main>
+
+
+<div style="position: relative; outline: 1.5px solid var(--color-viz-4); outline-offset: 3px; border-radius: 0px"><span style="position: absolute; top: -9px; right: 10px; z-index: 2; color: var(--color-neutral-0); font-family: var(--font-mono); font-size: 10px; font-weight: var(--font-weight-semibold); line-height: 16px; padding: 0 var(--space-2); border-radius: var(--radius-xs); white-space: nowrap; background: var(--color-viz-4)">Component gap: Icon wallet (Earnings uses orders)</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.BottomNav" tone="field" label="Rider" active="account" items="{{navItems}}" on-change="{{noop}}"></x-import></div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var v = {"yes": true, "no": false, "nul": null, "size24": 24, "navItems": [{"key": "home", "label": "Home", "icon": "home"}, {"key": "earnings", "label": "Earnings", "icon": "orders"}, {"key": "account", "label": "Account", "icon": "profile"}], "vehicleOptions": [{"value": "CAR", "label": "Car", "description": "Licence, registration, insurance and a photo of you"}, {"value": "SCOOTER", "label": "Scooter", "description": "Licence, registration, insurance and a photo of you"}, {"value": "MOTORCYCLE", "label": "Motorcycle", "description": "Licence, registration, insurance and a photo of you"}, {"value": "BICYCLE", "label": "Bicycle", "description": "Government ID and a photo of you"}, {"value": "ON_FOOT", "label": "On foot", "description": "Government ID and a photo of you"}], "tzOptions": [{"value": "America/Toronto", "label": "Eastern time (Toronto)"}, {"value": "America/Winnipeg", "label": "Central time (Winnipeg)"}], "stateWords": {"on": "Online", "off": "Offline"}, "torchWords": {"on": "On", "off": "Off"}};
+    v.noop = function () {};
+    return v;
+  }
+}
+</script>
+</body>
+</html>

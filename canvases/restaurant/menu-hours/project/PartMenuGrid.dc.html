@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Menu items grid (part)</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}.hg-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}</style>
+</helmet>
+<section data-hg-density="compact" aria-labelledby="{{headId}}" style="width: {{w}}px; height: {{h}}px; box-sizing: border-box; display: flex; flex-direction: column; gap: var(--space-2); font-family: var(--font-ui); color: var(--text-primary);">
+  <div style="display: flex; align-items: center; gap: 10px; min-height: 32px; flex-wrap: wrap; flex-shrink: 0;">
+    <h2 id="{{headId}}" style="margin: 0; font: var(--text-type-heading-md);">{{category}}</h2>
+    <span style="font: var(--text-type-body-sm); color: var(--text-secondary); font-variant-numeric: tabular-nums;">{{countLabel}}</span>
+    <sc-if value="{{inactive}}" hint-placeholder-val="{{false}}">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="neutral" size="md" hint-size="120px,22px">Inactive category</x-import>
+    </sc-if>
+    <sc-if value="{{noLive}}" hint-placeholder-val="{{false}}">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="outline" size="md" hint-size="150px,22px">Not on your menu yet</x-import>
+    </sc-if>
+    <sc-if value="{{allOut}}" hint-placeholder-val="{{false}}">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="warning" icon="warning" size="md" hint-size="170px,22px">All out of stock</x-import>
+    </sc-if>
+    <span style="margin-left: auto; display: inline-flex; padding: 1px var(--space-2); border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); background: var(--surface-base); font: var(--text-type-mono-sm); color: var(--text-secondary);">LyteNyte grid: rows virtualise inside this region; the page never scrolls</span>
+  </div>
+  <sc-if value="{{inactive}}" hint-placeholder-val="{{false}}">
+    <p style="margin: 0; font: var(--text-type-body-sm); line-height: var(--type-caption-line); color: var(--text-secondary); flex-shrink: 0;">Customers don’t see this category or anything in it. Only HalalGoes support can turn it back on today. <a href="#">Contact support</a> <span style="display: inline-flex; padding: 0 6px; border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); background: var(--feedback-info-tint); font: var(--text-type-mono-sm); color: var(--feedback-info-tint-text);">Needs API #149: deactivate or reactivate a category yourself</span></p>
+  </sc-if>
+  <sc-if value="{{noLive}}" hint-placeholder-val="{{false}}">
+    <p style="margin: 0; font: var(--text-type-body-sm); line-height: var(--type-caption-line); color: var(--text-secondary); flex-shrink: 0;">No item in {{category}} is approved yet, so customers don’t see this category. It appears once a HalalGoes reviewer approves an item in it. <span style="display: inline-flex; padding: 0 6px; border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); background: var(--feedback-info-tint); font: var(--text-type-mono-sm); color: var(--feedback-info-tint-text);">Needs API: confirm a category with no approved item is hidden</span></p>
+  </sc-if>
+  <sc-if value="{{allOut}}" hint-placeholder-val="{{false}}">
+    <div role="status" style="display: flex; gap: 10px; align-items: flex-start; padding: 10px 14px; border-radius: var(--radius-md); background: var(--feedback-warning-tint); border: 1px solid var(--feedback-warning-border); flex-shrink: 0;">
+      <span style="color: var(--feedback-warning-icon); display: inline-flex; padding-top: 2px;"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="warning" size="md" hint-size="20px,20px"></x-import></span>
+      <div style="display: flex; flex-direction: column; gap: var(--space-1);">
+        <span style="font: var(--text-type-body-md); line-height: var(--type-body-sm-line); color: var(--feedback-warning-tint-text);"><strong style="font-weight: var(--font-weight-semibold);">Everything in {{category}} is out of stock.</strong> Customers still see {{category}} but can’t order from it. Turn each item back on with its switch.</span>
+        <span style="display: inline-flex; align-self: flex-start; padding: 0 6px; border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); background: var(--feedback-info-tint); font: var(--text-type-mono-sm); color: var(--feedback-info-tint-text);">Needs API #149: mark a whole category available at once</span>
+        <span style="display: inline-flex; align-self: flex-start; padding: 0 6px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); background: var(--surface-base); font: var(--text-type-mono-sm); color: var(--text-secondary);">Proposed component: Banner (warning)</span>
+      </div>
+    </div>
+  </sc-if>
+  <sc-if value="{{lockedNote}}" hint-placeholder-val="{{false}}">
+    <p id="{{lockId}}" style="margin: 0; font: var(--text-type-body-sm); color: var(--text-secondary); flex-shrink: 0;">Availability is locked: read-only while your account is suspended.</p>
+  </sc-if>
+  <sc-if value="{{showMenuGap}}" hint-placeholder-val="{{false}}">
+    <span style="display: inline-flex; align-self: flex-start; flex-shrink: 0; padding: 1px var(--space-2); border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); background: var(--surface-base); font: var(--text-type-mono-sm); color: var(--text-secondary);">Design-system issue: Menu keeps its label only on icon triggers. The Change trigger must read “Change how long {item} is out of stock”; drawn as visually hidden text inside triggerText</span>
+  </sc-if>
+  <div role="region" aria-label="{{regionLabel}}" tabindex="-1" style="flex-grow: 1; min-height: 0; overflow: auto; border-radius: var(--radius-md);">
+    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.DataTable" caption="{{caption}}" hide-caption="{{yes}}" density="compact" columns="{{columns}}" rows="{{rows}}" row-label="{{rowLabel}}" status="{{status}}" filters-active="{{filtered}}" on-clear-filters="{{noop}}" empty-state="{{emptyState}}" error-message="{{errorMessage}}" on-retry="{{noop}}" sticky-header="{{yes}}" hint-size="100%,{{hintH}}px"></x-import>
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"category":{"editor":"text","default":"Mains"},"rows":{"editor":null},"inactive":{"editor":"boolean","default":false},"noLive":{"editor":"boolean","default":false},"allOut":{"editor":"boolean","default":false},"v0":{"editor":"boolean","default":false},"frozen":{"editor":"boolean","default":false},"status":{"editor":"enum","options":["ready","loading","error"],"default":"ready"},"filtered":{"editor":"boolean","default":false},"editingId":{"editor":null},"selectedId":{"editor":null},"oneHourAt":{"editor":null},"closingAt":{"editor":null},"noMoreHours":{"editor":"boolean","default":false},"menuGap":{"editor":"boolean","default":false},"emptyTitle":{"editor":null},"emptyText":{"editor":null},"emptyClear":{"editor":null},"cols":{"editor":"enum","options":["full","narrow"],"default":"full"},"w":{"editor":"int","default":944},"h":{"editor":"int","default":560},"$preview":{"width":944,"height":560}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const R = window.React;
+    const DS = window.HalalGoesDesignSystem_d11a47;
+    const h = R.createElement;
+    const noop = () => {};
+    const RS = {
+      MISLEADING_DESCRIPTION: 'Description could mislead customers', UNSUBSTANTIATED_HALAL_CLAIM: 'Halal claim not supported',
+      INCORRECT_DIETARY_TAG: 'Dietary tag is not correct', MISSING_ALLERGEN: 'Missing allergen', POOR_IMAGE_QUALITY: 'Photo quality too low',
+      IMAGE_NOT_OF_DISH: 'Photo doesn’t show this dish', PROHIBITED_ITEM: 'Item not allowed on HalalGoes', OFFENSIVE_CONTENT: 'Offensive content', OTHER: 'Other reason',
+    };
+    const demo = [
+      { id: 'a', name: 'Chicken shawarma plate', price: 1699, avail: 'AVAILABLE', review: 'LIVE', groups: 2 },
+      { id: 'b', name: 'Lamb mandi', price: 2450, avail: 'OUT_OF_STOCK', until: 'until 8:30 pm', review: 'LIVE' },
+      { id: 'c', name: 'Beef kofta plate', price: 1850, avail: 'AVAILABLE', review: 'REJECTED', reason: 'UNSUBSTANTIATED_HALAL_CLAIM' },
+    ];
+    const cat = this.props.category ?? 'Mains';
+    const frozen = !!this.props.frozen;
+    const v0 = !!this.props.v0;
+    const inactive = !!this.props.inactive;
+    const editingId = this.props.editingId ?? null;
+    const selectedId = this.props.selectedId ?? null;
+    // Times read in 12-hour form everywhere (owner decision); the props stay 24-hour data.
+    const t12x = (v) => String(v).replace(/\b(\d{1,2}):(\d{2})\b(?!\s?[ap]m)/g, (_, hh, mm) => ((+hh % 12) || 12) + ':' + mm + ' ' + (+hh < 12 ? 'am' : 'pm'));
+    const h1 = t12x(this.props.oneHourAt ?? '20:10');
+    const closeAt = t12x(this.props.closingAt ?? '22:00');
+    const noMore = !!this.props.noMoreHours;
+    const src = this.props.rows ?? demo;
+    const headId = 'cat-' + String(cat).toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    const lockId = headId + '-lock';
+    const w = this.props.w ?? 944;
+    const H = this.props.h ?? 560;
+    const narrow = (this.props.cols ?? 'full') === 'narrow';
+
+    const small = { font: 'var(--text-type-body-sm)', lineHeight: 'var(--type-heading-md-line)', color: 'var(--text-secondary)', whiteSpace: 'normal' };
+    const stack = { display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 3, padding: '6px 0', whiteSpace: 'normal' };
+    const needs = { display: 'inline-flex', padding: '1px 6px', border: '1px dashed var(--feedback-info-border)', borderRadius: 'var(--radius-xs)', background: 'var(--feedback-info-tint)', font: 'var(--text-type-mono-sm)', color: 'var(--feedback-info-tint-text)', whiteSpace: 'normal' };
+    const sr = { position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' };
+    const badge = (variant, icon, text) => h(DS.Badge, { variant, icon, size: 'md' }, text);
+
+    // Review is about review only. Drafts were dropped for 1.0 (owner decision), so there is no draft state.
+    const reviewMap = {
+      LIVE: { t: 'Approved', v: 'neutral', i: 'check', s: '' },
+      APPROVED: { t: 'Approved', v: 'neutral', i: 'check', s: '' },
+      PENDING: { t: 'Under review', v: 'info', i: 'clock', s: 'Customers see the approved version' },
+      FIRST: { t: 'Waiting for first review', v: 'info', i: 'clock', s: 'Not on your menu yet' },
+      REJECTED: { t: 'Not approved', v: 'warning', i: 'warning', s: null },
+      REJECTED_NEW: { t: 'Not approved', v: 'warning', i: 'warning', s: null, tail: 'Not on your menu' },
+      WITHDRAWN: { t: 'Withdrawn', v: 'outline', i: 'info', s: 'Customers see the approved version' },
+    };
+
+    const rows = src.map((r) => ({ ...r, isOut: r.avail === 'OUT_OF_STOCK', selected: r.id === selectedId }));
+
+    // The length menu. Each choice names when it ends. A stored end time is shown as the first, non-selectable line.
+    const lengthItems = (r) => {
+      const cur = r.justOff ? (r.justOffKind || 'OOS_CLOSE') : r.isOut ? (r.until ? 'STORED' : 'OOS_NULL') : null;
+      const tick = (k) => (cur === k ? 'check' : undefined);
+      // The tick is aria-hidden inside the system Icon, so the current choice is also said in the label text.
+      const said = (k, text) => (cur === k ? h('span', null, text, h('span', { style: sr }, ', current')) : text);
+      const nowLine = cur === 'STORED' ? [{ key: 'NOW', label: 'Now: out of stock ' + r.until, disabled: true }, { type: 'separator' }] : [];
+      return nowLine.concat([
+        noMore
+          ? { key: 'OOS_CLOSE', label: 'Until closing', disabled: true, disabledReason: 'You have no more hours today' }
+          : { key: 'OOS_CLOSE', label: said('OOS_CLOSE', 'Until closing (' + closeAt + ')'), icon: tick('OOS_CLOSE') },
+        { key: 'OOS_1H', label: said('OOS_1H', 'For 1 hour (until ' + h1 + ')'), icon: tick('OOS_1H') },
+        { key: 'OOS_NULL', label: h('span', { style: { display: 'grid', gap: 2 } }, h('span', null, said('OOS_NULL', 'Until you turn it back on')), h('span', { style: { font: 'var(--text-type-body-sm)', lineHeight: 'var(--type-heading-md-line)', color: 'var(--text-secondary)', whiteSpace: 'normal', maxWidth: 260 } }, 'If it’s still off after 14 days, it goes in your weekly reminder.')), icon: tick('OOS_NULL') },
+      ]);
+    };
+
+    const reviewBadge = (r) => {
+      const rv = reviewMap[r.review] || reviewMap.LIVE;
+      let sub = rv.s === null ? (RS[r.reason] || '') : rv.s;
+      if (rv.tail) sub = sub + ' · ' + rv.tail;
+      return { rv, sub };
+    };
+    const reviewCell = (r) => {
+      const { rv, sub } = reviewBadge(r);
+      return h('div', { style: stack }, badge(rv.v, rv.i, rv.t), sub ? h('span', { style: small }, sub) : null);
+    };
+
+    const availCell = (r) => {
+      if (r.avail === 'HIDDEN') {
+        return h('div', { style: stack }, badge('neutral', 'info', 'Hidden'),
+          h('span', { style: small }, inactive ? 'Its category, ' + cat + ', is inactive.' : 'Customers can’t see this item.'),
+          inactive ? null : h('span', { style: needs }, 'Needs API: hidden reason'));
+      }
+      if (r.avail === 'BLOCKED') {
+        return h('div', { style: stack }, badge('neutral', 'lock', 'Blocked by HalalGoes'),
+          r.refused ? h('span', { role: 'alert', style: { ...small, color: 'var(--text-primary)' } }, 'Your change wasn’t saved. HalalGoes had blocked it.') : null,
+          h('span', { style: small }, 'Ask support why. ', h('a', { href: '#', 'aria-label': 'Contact support about ' + r.name }, 'Contact support')),
+          r.quiet ? null : h('span', { style: needs }, 'Needs API: the admin’s reason for the block, on the item'));
+      }
+      if (v0) {
+        return h('div', { style: stack }, r.isOut ? badge('neutral', 'clock', 'Out of stock') : badge('outline', 'check', 'Available'),
+          r.isOut ? h('span', { style: small }, r.until ? r.until.replace(/^until/, 'Until') : 'Until it’s marked available') : null);
+      }
+      const off = r.isOut || !!r.justOff;
+      const untilText = r.justOff ? (r.justOffKind === 'OOS_1H' ? 'for 1 hour (until ' + h1 + ')' : 'until closing (' + closeAt + ')') : r.isOut ? (r.until || 'until you turn it back on') : '';
+      const failLine = r.failed ? h('span', { role: 'alert', style: { ...small, color: 'var(--feedback-danger-text)', display: 'flex', gap: 6, alignItems: 'flex-start' } }, h(DS.Icon, { name: 'error', size: 'sm' }), r.failed) : null;
+      const retry = r.failed && !r.noRetry ? h(DS.Button, { variant: 'tertiary', size: 'md', iconStart: 'refresh', accessibilityLabel: 'Try again: ' + r.name }, 'Try again') : null;
+      return h('div', { style: stack },
+        h('div', { style: { display: 'flex', alignItems: 'center', gap: 'var(--space-2)', flexWrap: 'nowrap', whiteSpace: 'nowrap' } },
+          h(DS.Switch, { label: h('span', { style: sr }, r.name + ' available'), stateLabel: { on: 'Available', off: 'Out of stock' }, checked: !off, loading: !!r.saving, disabled: frozen, 'aria-describedby': frozen ? lockId : undefined }),
+          off && !r.saving ? h('span', { style: { font: 'var(--text-type-body-sm)', color: 'var(--text-secondary)' } }, untilText) : null,
+          off && !r.saving && !frozen ? h(DS.Menu, { label: 'Change how long ' + r.name + ' is out of stock', triggerText: h('span', null, 'Change', h('span', { style: sr }, ' how long ' + r.name + ' is out of stock')), triggerVariant: 'plain', align: 'start', items: lengthItems(r), open: !!r.menuOpen }) : null),
+        r.saving ? h('span', { style: small, 'aria-live': 'polite' }, 'Saving. The switch moves when HalalGoes confirms.') : null,
+        r.justOff ? h('span', { role: 'status', style: { ...small, color: 'var(--text-primary)' } }, 'Out of stock now. Choose another length, or press Escape to keep this one.') : null,
+        failLine, retry,
+        r.restocked ? h('span', { style: small }, r.restocked) : null,
+        r.restocked ? h('span', { style: needs }, 'Needs API: last availability change on the item') : null);
+    };
+
+    const detailBtn = (r) => h(DS.IconButton, { icon: r.selected ? 'chevron-down' : 'chevron-right', weight: r.selected ? 'bold' : 'linear', accessibilityLabel: (r.selected ? 'Details open for ' : 'Show details for ') + r.name, size: 'md', 'aria-expanded': r.selected, 'aria-controls': 'item-panel' });
+    const actBtn = (r) => {
+      const view = frozen || r.avail === 'BLOCKED';
+      return h(DS.Button, { variant: 'ghost', size: 'md', accessibilityLabel: (view ? 'View ' : 'Edit ') + r.name }, view ? 'View' : 'Edit');
+    };
+    const itemCell = (r) => {
+      const { rv, sub } = reviewBadge(r);
+      return h('div', { style: stack },
+        h('span', { style: { display: 'flex', alignItems: 'center', gap: 'var(--space-2)', font: 'var(--text-type-label-lg)', flexWrap: 'wrap' } }, r.name,
+          r.id === editingId ? h(DS.Badge, { variant: 'brand', size: 'sm' }, 'Editing') : null,
+          r.selected && r.id !== editingId ? h(DS.Badge, { variant: 'outline', size: 'sm' }, 'Details open') : null),
+        r.catName ? h('span', { style: small }, 'In ' + r.catName) : null,
+        r.pendingName ? h('span', { style: small }, 'Under review: ' + r.pendingName) : null,
+        r.groups ? h('span', { style: small }, r.groups + ' option groups') : null,
+        narrow ? h('span', { style: { display: 'flex', gap: 'var(--space-2)', alignItems: 'center', flexWrap: 'wrap' } }, h(DS.Price, { cents: r.price, size: 'sm' }), rv.t !== 'Approved' ? badge(rv.v, rv.i, rv.t) : null) : null,
+        narrow && sub && rv.t !== 'Approved' ? h('span', { style: small }, sub) : null);
+    };
+    const columns = [
+      { key: 'opt', label: 'Details', width: 56, render: detailBtn },
+      { key: 'item', label: 'Item', render: itemCell },
+      { key: 'price', label: 'Price', align: 'end', numeric: true, width: 96, render: (r) => h(DS.Price, { cents: r.price, size: 'md' }) },
+      { key: 'avail', label: 'Availability', width: v0 ? 190 : 300, render: availCell },
+      { key: 'review', label: 'Review', width: 190, render: reviewCell },
+      { key: 'act', label: frozen ? 'View' : 'Edit', width: 80, render: actBtn },
+    ];
+    let shown = columns;
+    if (narrow) shown = columns.filter((c) => c.key !== 'price' && c.key !== 'review');
+    if (v0) shown = shown.filter((c) => c.key !== 'act');
+
+    const status = this.props.status ?? 'ready';
+    const n = src.length;
+    const regionH = H - 40;
+    return {
+      rows, columns: shown, noop, w, h: H, headId, lockId, yes: true,
+      hintH: Math.min(regionH, Math.max(1, n) * 52 + 44),
+      category: cat, caption: cat + ' items', regionLabel: cat + ' items, scrolls on its own',
+      countLabel: n === 1 ? '1 item' : n + ' items',
+      inactive, noLive: !!this.props.noLive, allOut: !!this.props.allOut,
+      lockedNote: frozen,
+      showMenuGap: !v0 && !!this.props.menuGap,
+      rowLabel: (r) => r.name,
+      status, filtered: !!this.props.filtered,
+      errorMessage: 'We couldn’t load the items in ' + cat + '.',
+      emptyState: this.props.emptyTitle ? { title: this.props.emptyTitle, description: this.props.emptyText || '', action: this.props.emptyClear ? h('div', { style: { display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap', justifyContent: 'center' } }, h(DS.Button, { variant: 'tertiary', size: 'md' }, 'Clear search and filter'), h(DS.Button, { variant: 'ghost', size: 'md', iconStart: 'plus' }, 'Add item')) : null } : { title: 'No items in ' + cat + ' yet', description: v0 ? 'HalalGoes adds items to your menu for you. Contact support to add one.' : 'Add an item to fill this category. It goes to a HalalGoes reviewer before customers see it.', action: !v0 && !frozen ? h(DS.Button, { variant: 'tertiary', iconStart: 'plus' }, 'Add item to ' + cat) : null },
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,1410 @@
+{
+ "v": 3,
+ "createdOnFiles": {
+  "v": 1,
+  "at": "2026-10-01T02:10:54Z"
+ },
+ "title": "HalalGoes Restaurant — Onboarding application",
+ "launch": {
+  "view": "canvas"
+ },
+ "pages": [],
+ "boards": {
+  "Onb-Loading.dc.html": {
+   "h": 900,
+   "title": "Onboarding — loading",
+   "w": 1440,
+   "x": 0,
+   "y": 260
+  },
+  "Onb-LoadError.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Onboarding — couldn’t load",
+   "w": 1440,
+   "x": 1520,
+   "y": 260
+  },
+  "Onb-UnknownStep.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Onboarding — unknown step or app update required",
+   "w": 1440,
+   "x": 3040,
+   "y": 260
+  },
+  "Profile-Empty.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Profile — first visit, names section",
+   "w": 1440,
+   "x": 4560,
+   "y": 260
+  },
+  "Profile-Saving.dc.html": {
+   "h": 900,
+   "title": "Profile — saving",
+   "w": 1440,
+   "x": 6080,
+   "y": 260
+  },
+  "Profile-Errors.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Profile — field errors (422), phone section open",
+   "w": 1440,
+   "x": 7600,
+   "y": 260
+  },
+  "Profile-SaveError.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Profile — save failed (network / 5xx)",
+   "w": 1440,
+   "x": 9120,
+   "y": 260
+  },
+  "Profile-SessionExpired.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Profile — session expired during save (401), sign in again in the page",
+   "w": 1440,
+   "x": 10640,
+   "y": 260
+  },
+  "Profile-Returning.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Profile — returning, local draft on this device",
+   "w": 1440,
+   "x": 12160,
+   "y": 260
+  },
+  "Profile-Conflict.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Profile — save refused, setup moved on (409)",
+   "w": 1440,
+   "x": 13680,
+   "y": 260
+  },
+  "Profile-Location.dc.html": {
+   "w": 1440,
+   "h": 900,
+   "title": "Profile — typing the address into the map search",
+   "x": 15200,
+   "y": 260
+  },
+  "Profile-SearchError.dc.html": {
+   "w": 1440,
+   "h": 900,
+   "title": "Profile — address search found no match, pin by hand",
+   "x": 16720,
+   "y": 260
+  },
+  "Profile-PinPlaced.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Profile — address picked, pin placed, drag it onto the entrance",
+   "w": 1440,
+   "x": 18240,
+   "y": 260
+  },
+  "Profile-PinMoved.dc.html": {
+   "x": 19760,
+   "y": 260,
+   "w": 1440,
+   "h": 900,
+   "title": "Profile — pin dragged onto the entrance by the owner",
+   "is_interactive": true
+  },
+  "Profile-Loading.dc.html": {
+   "h": 900,
+   "title": "Profile — loading",
+   "w": 1440,
+   "x": 21280,
+   "y": 260
+  },
+  "Profile-LoadError.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Profile — couldn’t load",
+   "w": 1440,
+   "x": 22800,
+   "y": 260
+  },
+  "Profile-ReadOnly.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Profile — read-only, change waiting for a reviewer (Needs API)",
+   "w": 1440,
+   "x": 24320,
+   "y": 260
+  },
+  "Docs-None.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Documents — none added (0 of 4)",
+   "w": 1440,
+   "x": 0,
+   "y": 1640
+  },
+  "Docs-Uploading.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Documents — uploading and certificate details",
+   "w": 1440,
+   "x": 1520,
+   "y": 1640
+  },
+  "Docs-UploadCancelled.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Documents — upload cancelled, row back to Not added",
+   "w": 1440,
+   "x": 3040,
+   "y": 1640
+  },
+  "Docs-AttachErrors.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Documents — save errors (attach: network, 422)",
+   "w": 1440,
+   "x": 4560,
+   "y": 1640
+  },
+  "Docs-UploadErrors.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Documents — upload errors (type, size, checksum, scan, certifier)",
+   "w": 1440,
+   "x": 6080,
+   "y": 1640
+  },
+  "Docs-ScanRejected.dc.html": {
+   "w": 1440,
+   "h": 900,
+   "title": "Documents — our file check rejected a file (reason shown verbatim)",
+   "x": 7600,
+   "y": 1640
+  },
+  "Docs-Ready.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Documents — ready to send (4 of 4)",
+   "w": 1440,
+   "x": 9120,
+   "y": 1640
+  },
+  "Docs-ViewError.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Documents — download link expired, try again",
+   "w": 1440,
+   "x": 10640,
+   "y": 1640
+  },
+  "Docs-DownloadGone.dc.html": {
+   "x": 12160,
+   "y": 1640,
+   "w": 1440,
+   "h": 900,
+   "title": "Documents — document no longer available (404 on download)",
+   "is_interactive": true
+  },
+  "Docs-Incomplete.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Documents — pack incomplete (422)",
+   "w": 1440,
+   "x": 13680,
+   "y": 1640
+  },
+  "Docs-SendError.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Documents — send failed (network / 5xx)",
+   "w": 1440,
+   "x": 15200,
+   "y": 1640
+  },
+  "Docs-Replacing.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Documents — replacing an added document",
+   "w": 1440,
+   "x": 16720,
+   "y": 1640
+  },
+  "Docs-Locked.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Documents — locked for review, step moved on (409)",
+   "w": 1440,
+   "x": 18240,
+   "y": 1640
+  },
+  "Docs-Loading.dc.html": {
+   "h": 900,
+   "title": "Documents — loading",
+   "w": 1440,
+   "x": 19760,
+   "y": 1640
+  },
+  "Docs-LoadError.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Documents — couldn’t load",
+   "w": 1440,
+   "x": 21280,
+   "y": 1640
+  },
+  "Review-InReview.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Awaiting review — in review",
+   "w": 1440,
+   "x": 0,
+   "y": 3020
+  },
+  "Review-Round2.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Awaiting review — round 2, approved documents not re-queued",
+   "w": 1440,
+   "x": 1520,
+   "y": 3020
+  },
+  "Review-Partial.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Awaiting review — live update, some approved",
+   "w": 1440,
+   "x": 3040,
+   "y": 3020
+  },
+  "Review-Stale.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Awaiting review — live updates disconnected",
+   "w": 1440,
+   "x": 4560,
+   "y": 3020
+  },
+  "Review-Expired.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Awaiting review — certificate expired while waiting",
+   "w": 1440,
+   "x": 6080,
+   "y": 3020
+  },
+  "Review-Expired-FoodSafety.dc.html": {
+   "x": 7600,
+   "y": 3020,
+   "w": 1440,
+   "h": 900,
+   "title": "Awaiting review — food safety certificate expired while waiting (not a halal state)",
+   "is_interactive": true
+  },
+  "Review-ExpiredDetails.dc.html": {
+   "x": 9120,
+   "y": 3020,
+   "w": 1440,
+   "h": 900,
+   "title": "Awaiting review — renewed certificate details",
+   "is_interactive": true
+  },
+  "Review-ExpiredDetailsError.dc.html": {
+   "x": 10640,
+   "y": 3020,
+   "w": 1440,
+   "h": 900,
+   "title": "Awaiting review — renewed certificate details error (date passed)",
+   "is_interactive": true
+  },
+  "Review-ExpiredReplaced.dc.html": {
+   "x": 12160,
+   "y": 3020,
+   "w": 1440,
+   "h": 900,
+   "title": "Awaiting review — renewed certificate replaced, send it",
+   "is_interactive": true
+  },
+  "Review-ExpiredSending.dc.html": {
+   "x": 13680,
+   "y": 3020,
+   "w": 1440,
+   "h": 900,
+   "title": "Awaiting review — sending renewed certificate",
+   "is_interactive": true
+  },
+  "Review-ExpiredSendFailed.dc.html": {
+   "x": 15200,
+   "y": 3020,
+   "w": 1440,
+   "h": 900,
+   "title": "Awaiting review — renewed certificate send failed",
+   "is_interactive": true
+  },
+  "Review-AllApproved.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Awaiting review — all approved, on to payout",
+   "w": 1440,
+   "x": 16720,
+   "y": 3020
+  },
+  "Review-Loading.dc.html": {
+   "h": 900,
+   "title": "Awaiting review — loading",
+   "w": 1440,
+   "x": 18240,
+   "y": 3020
+  },
+  "Review-LoadError.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Awaiting review — couldn’t load",
+   "w": 1440,
+   "x": 19760,
+   "y": 3020
+  },
+  "Fix-Rejected.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Fix documents — certificate needs a new upload",
+   "w": 1440,
+   "x": 0,
+   "y": 4400
+  },
+  "Fix-Multi.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Fix documents — two need a new upload",
+   "w": 1440,
+   "x": 1520,
+   "y": 4400
+  },
+  "Fix-MultiOneReplaced.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Fix documents — one of two replaced, Owner ID still needs a new upload",
+   "w": 1440,
+   "x": 16720,
+   "y": 4400
+  },
+  "Fix-Integrity.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Fix documents — certificate couldn’t be verified (SUSPECTED_FORGERY)",
+   "w": 1440,
+   "x": 3040,
+   "y": 4400
+  },
+  "Fix-Duplicate.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Fix documents — certificate already on another restaurant (arrives as OTHER today)",
+   "w": 1440,
+   "x": 4560,
+   "y": 4400
+  },
+  "Fix-Uploading.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Fix documents — replacement uploading",
+   "w": 1440,
+   "x": 6080,
+   "y": 4400
+  },
+  "Fix-Details.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Fix documents — replacement details",
+   "w": 1440,
+   "x": 7600,
+   "y": 4400
+  },
+  "Fix-DetailsError.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Fix documents — replacement details error",
+   "w": 1440,
+   "x": 9120,
+   "y": 4400
+  },
+  "Fix-Replaced.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Fix documents — replacement added, send again",
+   "w": 1440,
+   "x": 10640,
+   "y": 4400
+  },
+  "Fix-Sending.dc.html": {
+   "h": 900,
+   "title": "Fix documents — sending again",
+   "w": 1440,
+   "x": 12160,
+   "y": 4400
+  },
+  "Fix-SendFailed.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Fix documents — send again refused (422)",
+   "w": 1440,
+   "x": 13680,
+   "y": 4400
+  },
+  "Fix-SendNetError.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Fix documents — send again failed (network / 5xx)",
+   "w": 1440,
+   "x": 15200,
+   "y": 4400
+  },
+  "Payout-NotStarted.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Payout setup — not started (owner)",
+   "w": 1440,
+   "x": 0,
+   "y": 5680
+  },
+  "Payout-Creating.dc.html": {
+   "x": 1520,
+   "y": 5680,
+   "w": 1440,
+   "h": 900,
+   "title": "Payout setup — creating the Stripe account (first press)",
+   "is_interactive": true
+  },
+  "Payout-CreateError.dc.html": {
+   "x": 3040,
+   "y": 5680,
+   "w": 1440,
+   "h": 900,
+   "title": "Payout setup — couldn’t create the Stripe account",
+   "is_interactive": true
+  },
+  "Payout-Checking.dc.html": {
+   "h": 900,
+   "title": "Payout setup — back from Stripe, checking",
+   "w": 1440,
+   "x": 4560,
+   "y": 5680
+  },
+  "Payout-ReturnEnabled.dc.html": {
+   "h": 900,
+   "title": "Payout setup — back from Stripe, payouts on, opening the menu step",
+   "w": 1440,
+   "x": 6080,
+   "y": 5680
+  },
+  "Payout-Due.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Payout setup — Stripe needs more details",
+   "w": 1440,
+   "x": 7600,
+   "y": 5680
+  },
+  "Payout-Verifying.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Payout setup — Stripe is verifying",
+   "w": 1440,
+   "x": 9120,
+   "y": 5680
+  },
+  "Payout-Stale.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Payout setup — live updates disconnected",
+   "w": 1440,
+   "x": 10640,
+   "y": 5680
+  },
+  "Payout-Disabled.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Payout setup — Stripe turned payouts off (disabled_reason)",
+   "w": 1440,
+   "x": 12160,
+   "y": 5680
+  },
+  "Payout-Enabled.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Payout setup — enabled",
+   "w": 1440,
+   "x": 13680,
+   "y": 5680
+  },
+  "Payout-ContinueError.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Payout setup — Continue failed (network / 5xx)",
+   "w": 1440,
+   "x": 15200,
+   "y": 5680
+  },
+  "Payout-LinkError.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Payout setup — couldn’t open Stripe",
+   "w": 1440,
+   "x": 16720,
+   "y": 5680
+  },
+  "Payout-LinkExpired.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Payout setup — Stripe link expired (refresh return)",
+   "w": 1440,
+   "x": 18240,
+   "y": 5680
+  },
+  "Payout-StatusError.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Payout setup — couldn’t load status",
+   "w": 1440,
+   "x": 19760,
+   "y": 5680
+  },
+  "Payout-StepNA.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Payout setup — not open yet (409)",
+   "w": 1440,
+   "x": 21280,
+   "y": 5680
+  },
+  "Payout-PastDue.dc.html": {
+   "h": 900,
+   "title": "Payouts — paused by Stripe, orders continue (live restaurant)",
+   "w": 1440,
+   "x": 22800,
+   "y": 5680
+  },
+  "Menu-None.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "First menu — nothing added yet, hours not set",
+   "w": 1440,
+   "x": 0,
+   "y": 7060
+  },
+  "Menu-V0.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "First menu — first item live, two with a reviewer, hours not set",
+   "w": 1440,
+   "x": 1520,
+   "y": 7060
+  },
+  "Menu-HoursEditing.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Opening hours — editing",
+   "w": 1440,
+   "x": 3040,
+   "y": 7060
+  },
+  "Menu-HoursSaving.dc.html": {
+   "h": 900,
+   "title": "Opening hours — saving",
+   "w": 1440,
+   "x": 4560,
+   "y": 7060
+  },
+  "Menu-HoursError.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Opening hours — not saved (422)",
+   "w": 1440,
+   "x": 6080,
+   "y": 7060
+  },
+  "Menu-HoursNetError.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Opening hours — not saved (network / 5xx)",
+   "w": 1440,
+   "x": 7600,
+   "y": 7060
+  },
+  "Menu-HoursLoading.dc.html": {
+   "h": 900,
+   "title": "Opening hours — loading",
+   "w": 1440,
+   "x": 9120,
+   "y": 7060
+  },
+  "Menu-HoursLoadError.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Opening hours — couldn’t load",
+   "w": 1440,
+   "x": 10640,
+   "y": 7060
+  },
+  "Menu-Loading.dc.html": {
+   "h": 900,
+   "title": "First menu — loading",
+   "w": 1440,
+   "x": 12160,
+   "y": 7060
+  },
+  "Menu-LoadError.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "First menu — couldn’t load",
+   "w": 1440,
+   "x": 13680,
+   "y": 7060
+  },
+  "Hours-Set.dc.html": {
+   "x": 15200,
+   "y": 7060,
+   "w": 912,
+   "h": 1020,
+   "title": "Opening hours — saved (Monday closed, Friday split)"
+  },
+  "Menu-HoursSet.dc.html": {
+   "x": 16192,
+   "y": 7060,
+   "w": 1440,
+   "h": 900,
+   "title": "Opening hours — saved, desktop (Monday closed, Friday split)"
+  },
+  "Onb-Done.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Setup done — go to orders",
+   "w": 1440,
+   "x": 0,
+   "y": 8460
+  },
+  "Onb-Done-Expiring.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Setup done — certificate expiring soon",
+   "w": 1440,
+   "x": 1520,
+   "y": 8460
+  },
+  "Onb-Done-Expiring-Renew.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Setup done — certificate expiring soon, renewal panel open",
+   "w": 1440,
+   "x": 3040,
+   "y": 8460
+  },
+  "Withdraw-Confirm.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Withdraw application — confirm in the page (Needs API)",
+   "w": 1440,
+   "x": 0,
+   "y": 9740
+  },
+  "Withdraw-Confirming.dc.html": {
+   "h": 900,
+   "title": "Withdraw application — withdrawing",
+   "w": 1440,
+   "x": 1520,
+   "y": 9740
+  },
+  "Withdraw-Error.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Withdraw application — couldn’t withdraw",
+   "w": 1440,
+   "x": 3040,
+   "y": 9740
+  },
+  "Withdrawn.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Application withdrawn — also shown when a withdrawn owner signs in",
+   "w": 1440,
+   "x": 4560,
+   "y": 9740
+  },
+  "App-NotApproved.dc.html": {
+   "x": 6080,
+   "y": 9740,
+   "w": 1440,
+   "h": 900,
+   "title": "Application not approved (final)",
+   "is_interactive": true
+  },
+  "Suspended-Setup.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Account suspended — during setup, with the reason",
+   "w": 1440,
+   "x": 7600,
+   "y": 9740
+  },
+  "Suspended-SetupNoReason.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Account suspended — during setup, no reason returned (fallback)",
+   "w": 1440,
+   "x": 9120,
+   "y": 9740
+  },
+  "Delisted-Setup.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Setup blocked — halal certificate ended during setup",
+   "w": 1440,
+   "x": 10640,
+   "y": 9740
+  },
+  "Delisted-Setup-FoodSafety.dc.html": {
+   "x": 12160,
+   "y": 9740,
+   "w": 1440,
+   "h": 900,
+   "title": "Setup blocked — food safety certificate expired (halal still certified)",
+   "is_interactive": true
+  },
+  "Delisted-Uploading.dc.html": {
+   "x": 13680,
+   "y": 9740,
+   "w": 1440,
+   "h": 900,
+   "title": "Setup blocked — renewed halal certificate uploading",
+   "is_interactive": true
+  },
+  "Delisted-Details.dc.html": {
+   "x": 15200,
+   "y": 9740,
+   "w": 1440,
+   "h": 900,
+   "title": "Setup blocked — renewed halal certificate details",
+   "is_interactive": true
+  },
+  "Delisted-DetailsError.dc.html": {
+   "x": 16720,
+   "y": 9740,
+   "w": 1440,
+   "h": 900,
+   "title": "Setup blocked — renewed certificate date already passed",
+   "is_interactive": true
+  },
+  "Delisted-Sending.dc.html": {
+   "x": 18240,
+   "y": 9740,
+   "w": 1440,
+   "h": 900,
+   "title": "Setup blocked — sending renewed halal certificate",
+   "is_interactive": true
+  },
+  "Delisted-SendFailed.dc.html": {
+   "x": 19760,
+   "y": 9740,
+   "w": 1440,
+   "h": 900,
+   "title": "Setup blocked — renewed halal certificate send failed",
+   "is_interactive": true
+  },
+  "Delisted-Sent.dc.html": {
+   "x": 21280,
+   "y": 9740,
+   "w": 1440,
+   "h": 900,
+   "title": "Setup blocked — renewed halal certificate sent, waiting for a reviewer",
+   "is_interactive": true
+  },
+  "Deactivated-Setup.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Account deactivated — during setup",
+   "w": 1440,
+   "x": 22800,
+   "y": 9740
+  },
+  "Suspended-Console.dc.html": {
+   "h": 900,
+   "title": "Account suspended — console read-only (header new-orders strip, no Kanban)",
+   "w": 1440,
+   "x": 0,
+   "y": 11120
+  },
+  "Delisted-Console.dc.html": {
+   "h": 900,
+   "title": "Account delisted — console, certificate lapsed",
+   "w": 1440,
+   "x": 1520,
+   "y": 11120
+  },
+  "Delisted-Console-Renew.dc.html": {
+   "x": 3040,
+   "y": 11120,
+   "w": 1440,
+   "h": 900,
+   "title": "Account delisted — console, renewal panel open in the page",
+   "is_interactive": true
+  },
+  "Delisted-Console-Sent.dc.html": {
+   "x": 4560,
+   "y": 11120,
+   "w": 1440,
+   "h": 900,
+   "title": "Account delisted — console, renewed certificate sent, waiting for a reviewer",
+   "is_interactive": true
+  },
+  "Tab-Docs-1024.dc.html": {
+   "h": 2640,
+   "is_interactive": true,
+   "title": "Tablet 1024 — documents step",
+   "w": 1024,
+   "x": 0,
+   "y": 15880
+  },
+  "Tab-Review-1024.dc.html": {
+   "h": 2200,
+   "is_interactive": true,
+   "title": "Tablet 1024 — waiting for review",
+   "w": 1024,
+   "x": 1104,
+   "y": 15880
+  },
+  "Tab-Fix-1024.dc.html": {
+   "h": 2200,
+   "is_interactive": true,
+   "title": "Tablet 1024 — fix documents",
+   "w": 1024,
+   "x": 2208,
+   "y": 15880
+  },
+  "Tab-Payout-1024.dc.html": {
+   "h": 1420,
+   "is_interactive": true,
+   "title": "Tablet 1024 — payout setup",
+   "w": 1024,
+   "x": 3312,
+   "y": 15880
+  },
+  "Tab-Menu-1024.dc.html": {
+   "h": 2680,
+   "is_interactive": true,
+   "title": "Tablet 1024 — first menu (yours, reviewed by HalalGoes) and opening hours",
+   "w": 1024,
+   "x": 4416,
+   "y": 15880
+  },
+  "Tab-SuspendedConsole-1024.dc.html": {
+   "h": 768,
+   "title": "Tablet 1024 — suspended console (header new-orders strip, no Kanban)",
+   "w": 1024,
+   "x": 5520,
+   "y": 15880
+  },
+  "Tab-DelistedConsole-1024.dc.html": {
+   "h": 768,
+   "title": "Tablet 1024 — delisted console (header new-orders strip, no Kanban)",
+   "w": 1024,
+   "x": 6624,
+   "y": 15880
+  },
+  "Tab-AppNotApproved-1024.dc.html": {
+   "x": 7728,
+   "y": 15880,
+   "w": 1024,
+   "h": 1100,
+   "title": "Tablet 1024 — application not approved (final)",
+   "is_interactive": true
+  },
+  "Reflow-Profile-320.dc.html": {
+   "x": 0,
+   "y": 18860,
+   "w": 320,
+   "h": 5400,
+   "title": "Reflow 320 CSS px (1280 at 400% zoom) — business profile",
+   "is_interactive": true
+  },
+  "Reflow-Docs-320.dc.html": {
+   "x": 400,
+   "y": 18860,
+   "w": 320,
+   "h": 5400,
+   "title": "Reflow 320 CSS px — documents, photo uploading and details",
+   "is_interactive": true
+  },
+  "Reflow-Fix-320.dc.html": {
+   "x": 800,
+   "y": 18860,
+   "w": 320,
+   "h": 4400,
+   "title": "Reflow 320 CSS px — fix documents",
+   "is_interactive": true
+  },
+  "Reflow-Payout-320.dc.html": {
+   "x": 1200,
+   "y": 18860,
+   "w": 320,
+   "h": 2200,
+   "title": "Reflow 320 CSS px — back from Stripe, Stripe is checking",
+   "is_interactive": true
+  },
+  "OnbTop.dc.html": {
+   "h": 64,
+   "title": "Part — setup header",
+   "w": 1440,
+   "x": 0,
+   "y": 27780
+  },
+  "AuthTop.dc.html": {
+   "h": 80,
+   "title": "Part — sign-in header",
+   "w": 1440,
+   "x": 1520,
+   "y": 27780
+  },
+  "OnbSide.dc.html": {
+   "h": 836,
+   "title": "Part — setup checklist rail (collapsible)",
+   "w": 288,
+   "x": 3040,
+   "y": 27780
+  },
+  "ProfilePanes.dc.html": {
+   "w": 1096,
+   "h": 796,
+   "title": "Part — business profile, sections and detail",
+   "x": 3408,
+   "y": 27780
+  },
+  "DocsPanes.dc.html": {
+   "w": 1096,
+   "h": 796,
+   "title": "Part — documents, list and detail",
+   "x": 4584,
+   "y": 27780
+  },
+  "ReviewPanes.dc.html": {
+   "w": 1096,
+   "h": 796,
+   "title": "Part — review and fix documents, list and detail",
+   "x": 5760,
+   "y": 27780
+  },
+  "PayoutPanes.dc.html": {
+   "w": 1096,
+   "h": 796,
+   "title": "Part — payout setup, status and next step",
+   "x": 6936,
+   "y": 27780
+  },
+  "MenuPanes.dc.html": {
+   "w": 1096,
+   "h": 796,
+   "title": "Part — first menu and opening hours",
+   "x": 8112,
+   "y": 27780
+  },
+  "AccountState.dc.html": {
+   "h": 796,
+   "title": "Part — account state and setup blockers",
+   "w": 1096,
+   "x": 9288,
+   "y": 27780
+  },
+  "RenewCert.dc.html": {
+   "x": 10464,
+   "y": 27780,
+   "w": 640,
+   "h": 560,
+   "title": "Part — renewed halal certificate (setup blocker and delisted console)"
+  },
+  "AppNotApproved.dc.html": {
+   "x": 11184,
+   "y": 27780,
+   "w": 560,
+   "h": 900,
+   "title": "Part — application not approved (final)"
+  },
+  "OnbPhoneHead.dc.html": {
+   "x": 11824,
+   "y": 27780,
+   "w": 358,
+   "h": 260,
+   "title": "Part — reflow setup header (checklist collapsed)"
+  },
+  "ProfileMain.dc.html": {
+   "h": 2360,
+   "title": "Part (reflow and tablet) — business profile form",
+   "w": 832,
+   "x": 12262,
+   "y": 27780
+  },
+  "DocsMain.dc.html": {
+   "h": 2300,
+   "title": "Part (reflow and tablet) — documents step",
+   "w": 832,
+   "x": 13174,
+   "y": 27780
+  },
+  "ReviewMain.dc.html": {
+   "h": 1860,
+   "title": "Part (reflow and tablet) — review and fix documents",
+   "w": 832,
+   "x": 14086,
+   "y": 27780
+  },
+  "PayoutMain.dc.html": {
+   "h": 1080,
+   "title": "Part (reflow and tablet) — payout setup step",
+   "w": 832,
+   "x": 14998,
+   "y": 27780
+  },
+  "MenuMain.dc.html": {
+   "h": 1240,
+   "title": "Part (reflow and tablet) — first menu",
+   "w": 832,
+   "x": 15910,
+   "y": 27780
+  },
+  "HoursBlock.dc.html": {
+   "h": 860,
+   "title": "Part (reflow and tablet) — opening hours",
+   "w": 832,
+   "x": 16822,
+   "y": 27780
+  }
+ },
+ "order": [
+  "Onb-Loading.dc.html",
+  "Onb-LoadError.dc.html",
+  "Onb-UnknownStep.dc.html",
+  "Profile-Empty.dc.html",
+  "Profile-Saving.dc.html",
+  "Profile-Errors.dc.html",
+  "Profile-SaveError.dc.html",
+  "Profile-SessionExpired.dc.html",
+  "Profile-Returning.dc.html",
+  "Profile-Conflict.dc.html",
+  "Profile-Location.dc.html",
+  "Profile-SearchError.dc.html",
+  "Profile-PinPlaced.dc.html",
+  "Profile-PinMoved.dc.html",
+  "Profile-Loading.dc.html",
+  "Profile-LoadError.dc.html",
+  "Profile-ReadOnly.dc.html",
+  "Docs-None.dc.html",
+  "Docs-Uploading.dc.html",
+  "Docs-UploadCancelled.dc.html",
+  "Docs-AttachErrors.dc.html",
+  "Docs-UploadErrors.dc.html",
+  "Docs-ScanRejected.dc.html",
+  "Docs-Ready.dc.html",
+  "Docs-ViewError.dc.html",
+  "Docs-DownloadGone.dc.html",
+  "Docs-Incomplete.dc.html",
+  "Docs-SendError.dc.html",
+  "Docs-Replacing.dc.html",
+  "Docs-Locked.dc.html",
+  "Docs-Loading.dc.html",
+  "Docs-LoadError.dc.html",
+  "Review-InReview.dc.html",
+  "Review-Round2.dc.html",
+  "Review-Partial.dc.html",
+  "Review-Stale.dc.html",
+  "Review-Expired.dc.html",
+  "Review-Expired-FoodSafety.dc.html",
+  "Review-ExpiredDetails.dc.html",
+  "Review-ExpiredDetailsError.dc.html",
+  "Review-ExpiredReplaced.dc.html",
+  "Review-ExpiredSending.dc.html",
+  "Review-ExpiredSendFailed.dc.html",
+  "Review-AllApproved.dc.html",
+  "Review-Loading.dc.html",
+  "Review-LoadError.dc.html",
+  "Fix-Rejected.dc.html",
+  "Fix-Multi.dc.html",
+  "Fix-MultiOneReplaced.dc.html",
+  "Fix-Integrity.dc.html",
+  "Fix-Duplicate.dc.html",
+  "Fix-Uploading.dc.html",
+  "Fix-Details.dc.html",
+  "Fix-DetailsError.dc.html",
+  "Fix-Replaced.dc.html",
+  "Fix-Sending.dc.html",
+  "Fix-SendFailed.dc.html",
+  "Fix-SendNetError.dc.html",
+  "Payout-NotStarted.dc.html",
+  "Payout-Creating.dc.html",
+  "Payout-CreateError.dc.html",
+  "Payout-Checking.dc.html",
+  "Payout-ReturnEnabled.dc.html",
+  "Payout-Due.dc.html",
+  "Payout-Verifying.dc.html",
+  "Payout-Stale.dc.html",
+  "Payout-Disabled.dc.html",
+  "Payout-Enabled.dc.html",
+  "Payout-ContinueError.dc.html",
+  "Payout-LinkError.dc.html",
+  "Payout-LinkExpired.dc.html",
+  "Payout-StatusError.dc.html",
+  "Payout-StepNA.dc.html",
+  "Payout-PastDue.dc.html",
+  "Menu-None.dc.html",
+  "Menu-V0.dc.html",
+  "Menu-HoursEditing.dc.html",
+  "Menu-HoursSaving.dc.html",
+  "Menu-HoursError.dc.html",
+  "Menu-HoursNetError.dc.html",
+  "Menu-HoursLoading.dc.html",
+  "Menu-HoursLoadError.dc.html",
+  "Menu-Loading.dc.html",
+  "Menu-LoadError.dc.html",
+  "Hours-Set.dc.html",
+  "Menu-HoursSet.dc.html",
+  "Onb-Done.dc.html",
+  "Onb-Done-Expiring.dc.html",
+  "Onb-Done-Expiring-Renew.dc.html",
+  "Withdraw-Confirm.dc.html",
+  "Withdraw-Confirming.dc.html",
+  "Withdraw-Error.dc.html",
+  "Withdrawn.dc.html",
+  "App-NotApproved.dc.html",
+  "Suspended-Setup.dc.html",
+  "Suspended-SetupNoReason.dc.html",
+  "Delisted-Setup.dc.html",
+  "Delisted-Setup-FoodSafety.dc.html",
+  "Delisted-Uploading.dc.html",
+  "Delisted-Details.dc.html",
+  "Delisted-DetailsError.dc.html",
+  "Delisted-Sending.dc.html",
+  "Delisted-SendFailed.dc.html",
+  "Delisted-Sent.dc.html",
+  "Deactivated-Setup.dc.html",
+  "Suspended-Console.dc.html",
+  "Delisted-Console.dc.html",
+  "Delisted-Console-Renew.dc.html",
+  "Delisted-Console-Sent.dc.html",
+  "Tab-Docs-1024.dc.html",
+  "Tab-Review-1024.dc.html",
+  "Tab-Fix-1024.dc.html",
+  "Tab-Payout-1024.dc.html",
+  "Tab-Menu-1024.dc.html",
+  "Tab-SuspendedConsole-1024.dc.html",
+  "Tab-DelistedConsole-1024.dc.html",
+  "Tab-AppNotApproved-1024.dc.html",
+  "Reflow-Profile-320.dc.html",
+  "Reflow-Docs-320.dc.html",
+  "Reflow-Fix-320.dc.html",
+  "Reflow-Payout-320.dc.html",
+  "OnbTop.dc.html",
+  "AuthTop.dc.html",
+  "OnbSide.dc.html",
+  "ProfilePanes.dc.html",
+  "DocsPanes.dc.html",
+  "ReviewPanes.dc.html",
+  "PayoutPanes.dc.html",
+  "MenuPanes.dc.html",
+  "AccountState.dc.html",
+  "RenewCert.dc.html",
+  "AppNotApproved.dc.html",
+  "OnbPhoneHead.dc.html",
+  "ProfileMain.dc.html",
+  "DocsMain.dc.html",
+  "ReviewMain.dc.html",
+  "PayoutMain.dc.html",
+  "MenuMain.dc.html",
+  "HoursBlock.dc.html"
+ ],
+ "notes": {
+  "tD": {
+   "x": 0,
+   "y": 0,
+   "text": "Onboarding frame and business profile",
+   "kind": "title1",
+   "maxW": 6000
+  },
+  "nD": {
+   "x": 25840,
+   "y": 260,
+   "w": 460,
+   "fill": "blue",
+   "text": "Profile\n\n- Five sections on the left; the open section’s fields on the right. Save and continue saves the whole profile.\n- Location (owner decision): type the address into the map search, pick a match, then drag the pin onto the entrance. The pin also moves with the arrow keys. Latitude and longitude are saved on the profile; the address fields stay editable.\n- New states: searching (matches listed), no match (fill the address and drag the pin by hand), pin placed, pin moved by the owner.\n- Out-of-area errors sit on Postal code. Cuisines still need a lookup the restaurant can read (Needs API).\n- Welcome back is a local draft on this device; Finish later keeps it there.\n- Session ended during save: sign in again in the page, not in a modal; the save is retried with the same values.",
+   "maxH": 1000
+  },
+  "tE": {
+   "x": 0,
+   "y": 1380,
+   "text": "Documents, including the halal certificate",
+   "kind": "title1",
+   "maxW": 6000
+  },
+  "nE": {
+   "x": 22800,
+   "y": 1640,
+   "w": 460,
+   "fill": "blue",
+   "text": "Documents\n\n- Four required documents in the list; the selected one opens beside it. Liability insurance is hidden until V2 (owner decision).\n- Upload through the FileDrop, then add the details. Valid until is required for the halal certificate, food safety and owner ID.\n- A person checks every document within 3 business days (owner decision); the copy quotes it.\n- Send for review is never disabled; it is primary only at 4 of 4.\n- In review is neutral. Warnings are for real faults only; never red on the halal certificate.\n- Download makes a new link on each click (2 minutes); the file downloads.",
+   "maxH": 1000
+  },
+  "tF": {
+   "x": 0,
+   "y": 2760,
+   "text": "Awaiting review",
+   "kind": "title1",
+   "maxW": 6000
+  },
+  "nF": {
+   "x": 21280,
+   "y": 3020,
+   "w": 460,
+   "fill": "blue",
+   "text": "Review and fix\n\n- List of the four documents, the selected one beside it. The restaurant never sees the seven halal check results.\n- Reviews take up to 3 business days (owner decision).\n- An expired certificate during review is slate in the banner, the row and the checklist. No seal on a document row.\n- One primary per page. When a re-upload can’t fix it (certifier, forgery, duplicate), Call partner support is the primary.\n- Rejection labels come from Ref-Rejections; reviewer notes are verbatim.",
+   "maxH": 1000
+  },
+  "tF2": {
+   "x": 0,
+   "y": 4140,
+   "text": "Fixing documents",
+   "kind": "title1",
+   "maxW": 6000
+  },
+  "tG": {
+   "x": 0,
+   "y": 5420,
+   "text": "Payout setup with Stripe",
+   "kind": "title1",
+   "maxW": 6000
+  },
+  "nG": {
+   "x": 24320,
+   "y": 5680,
+   "w": 460,
+   "fill": "blue",
+   "text": "Payout\n\n- Status on the left, the next step on the right.\n- During setup, payouts must be on before the menu step.\n- Paused payouts on a live restaurant (owner decision): the restaurant keeps taking orders; earnings build up and Stripe pays them out once it has what it needs. Payout-PastDue shows a new order arriving in the header strip meanwhile.\n- Stripe requirement names stay verbatim but secondary.",
+   "maxH": 1000
+  },
+  "tH": {
+   "x": 0,
+   "y": 6800,
+   "text": "First menu (added by the restaurant, reviewed by HalalGoes) and opening hours",
+   "kind": "title1",
+   "maxW": 6000
+  },
+  "nH": {
+   "x": 17712,
+   "y": 7060,
+   "w": 460,
+   "fill": "blue",
+   "text": "Menu and hours at launch\n\n- Restaurants add and edit their own menu at launch, with the HalalGoes menu review queue (owner decision). Prices, preparation times and availability go live at once; names, descriptions, ingredients, allergens and photos are checked first.\n- The menu is published when a reviewer approves the first item.\n- The restaurant sets its own opening hours: each day Closed or up to 3 ranges, past midnight allowed. Times are 12-hour (owner decision).\n- Menu-None: nothing added yet. Menu-V0: the first item is live and two are with a reviewer.",
+   "maxH": 1000
+  },
+  "tH2": {
+   "x": 0,
+   "y": 8200,
+   "text": "Setup done",
+   "kind": "title1",
+   "maxW": 3040
+  },
+  "tK": {
+   "x": 0,
+   "y": 9480,
+   "text": "Withdrawn, account states and setup blockers",
+   "kind": "title1",
+   "maxW": 6000
+  },
+  "nK": {
+   "x": 24320,
+   "y": 9740,
+   "w": 460,
+   "fill": "blue",
+   "text": "Ends, account states and setup blockers\n\n- Withdraw asks for confirmation in the page, not in a modal (Needs API: withdraw).\n- Suspended during setup shows the reason in plain language, with a fallback only when it’s empty. Documents stay reachable.\n- A certificate that lapses during setup is a setup blocker, not delisting: the account stays pending, the seal shows Expired in slate, and nothing mentions a listing. Delisting only happens to a live restaurant (live console row).\n- The renewal opens in the right pane, as an in-page panel.\n- Deactivated is the restaurant’s own reversible exit (Reactivate: Needs API).\n- Banned and closed restaurants never see setup: their sessions end and sign-in explains why (SignIn-Banned, SignIn-RestaurantClosed).",
+   "maxH": 1000
+  },
+  "tK2": {
+   "x": 0,
+   "y": 10860,
+   "text": "Live console for account states: new orders in a header strip, no Kanban",
+   "kind": "title1",
+   "maxW": 6000
+  },
+  "nK2": {
+   "x": 6080,
+   "y": 11120,
+   "w": 460,
+   "fill": "blue",
+   "text": "Live console for account states\n\n- No Kanban. New orders live in a persistent strip in the header (owner decision: under the app bar): each shows its 180-second countdown; arrow keys move, A accepts and R rejects the focused order only; reject asks for a reason in an in-page panel.\n- Orders list on the left, the selected order on the right. Orders in progress render from their own status.\n- Side navigation is collapsible. Staff is gone (owner only).\n- The renewed-certificate form opens as an in-page panel beside the list.",
+   "maxH": 1000
+  },
+  "tP": {
+   "x": 0,
+   "y": 15620,
+   "text": "Tablet 1024 (kitchen tablet, landscape)",
+   "kind": "title1",
+   "maxW": 6000
+  },
+  "tR": {
+   "x": 0,
+   "y": 18600,
+   "text": "Reflow at 320 CSS px (1280 at 400% zoom): onboarding after the email link",
+   "kind": "title1",
+   "maxW": 1520
+  },
+  "nR": {
+   "x": 1600,
+   "y": 18860,
+   "w": 460,
+   "fill": "blue",
+   "text": "Reflow\n\n- Restaurant web runs on desktop and on landscape tablets from 1024 × 768 (owner decision); portrait tablet and phone layouts are gone.\n- These boards are the 400% zoom check: the setup pages reflow to one column at 320 CSS px with no sideways scrolling.\n- They use the stacked parts (ProfileMain, DocsMain, ReviewMain, PayoutMain, MenuMain, HoursBlock); desktop uses the pane parts.\n- A photo is one page: multi-page certificates need a PDF until the API takes several files per document.",
+   "maxH": 1000
+  },
+  "tI": {
+   "x": 0,
+   "y": 27520,
+   "text": "Shared parts (edit once, every screen updates)",
+   "kind": "title1",
+   "maxW": 6000
+  },
+  "nI": {
+   "x": 17734,
+   "y": 27780,
+   "w": 460,
+   "fill": "blue",
+   "text": "Parts\n\n- Desktop setup: OnbTop, OnbSide (collapsible rail), and one pane part per step: ProfilePanes, DocsPanes, ReviewPanes, PayoutPanes, MenuPanes, AccountState (with RenewCert).\n- 400% zoom reflow and tablet: the stacked parts in the second half of this row.\n- Each part has a mode switch in Tweaks: edit once, every screen updates.",
+   "maxH": 1000
+  },
+  "readme": {
+   "fill": "gray",
+   "maxH": 1200,
+   "text": "How to read this canvas\n\n- Restaurant web, light theme only (owner decision). Desktop screens are 1440 × 900 and never scroll: long lists scroll inside their own pane, detail opens in panes beside the list, and nothing that is work opens in a modal or sheet.\n- Owner only at launch: one login per restaurant, no staff or manager accounts, no restaurant switcher.\n- Screens compose the HalalGoes design system (Button, IconButton, Input, Select, Checkbox, Switch, Badge, Card, Menu, AppBar, Countdown, Price, HalalBadge, HalalCertificationPanel). Dashed outlines tagged “Proposed component: …” are composites built from library parts (shadcn/ui on web) and system parts, for the owner to approve into the design system. FileDrop, KeyValueList and SideNav are already approved; Split panes, Collapsible sidebar, Detail panel and the New-orders strip come from the desktop layout rules.\n- Dashed blue “Needs API: …” chips mark data the contract lacks (all on Ref-NeedsAPI). Grey mono tags are annotations, not UI.\n- Onboarding is server-driven: screens render current_step, progress and review round as returned; the client never works out the next step.\n- Sample data: Zaytoun Grill, owner Samir Haddad. Dates are absolute. [support phone] and [support hours] come from the public config.\n- Colour uses role tokens from the design system’s tokens.css (recompiled 28 September 2026); no local token overrides.",
+   "w": 520,
+   "x": -600,
+   "y": 0
+  },
+  "splitFrom": {
+   "x": -600,
+   "y": 1320,
+   "w": 520,
+   "fill": "orange",
+   "maxH": 400,
+   "text": "Split from HalalGoes Restaurant — Sign-in & Onboarding: https://claude.ai/artifact/9AZ5YnbTdrfyFK1mUwYtCw\n\nSign in, register, check your email and verify link, tablet sign-in and the reference boards stay there."
+  }
+ },
+ "designSystems": [
+  {
+   "title": "HalalGoes design system",
+   "namespace": "halalgoesdesignsystem-d11a47",
+   "artifact": "https://claude.ai/artifact/1GwGVZz8Ju9wcz4HfCnzbv",
+   "version": "1790605103-3266",
+   "copiedAt": "2026-10-01T02:10:54Z"
+  }
+ ]
+}

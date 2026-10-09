@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sign in, errors</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:var(--surface-base);color:var(--text-primary);font-family:var(--font-ui)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+textarea.hg-ta:focus{outline:none;border:var(--focus-field-border-width) solid var(--focus-ring)}
+textarea.hg-ta[aria-invalid="true"]{border:var(--focus-field-border-width) solid var(--color-danger-500)}
+textarea.hg-ta[aria-invalid="true"]:focus{box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+.skip{position:absolute;left:-10000px;top:8px;z-index:900;padding:12px 16px;background:var(--surface-raised);color:var(--text-primary);border-radius:8px;font-weight:600}
+.skip:focus{left:16px;outline:none;box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+</style>
+</helmet>
+<div style="width: 1440px; height: 1100px; box-sizing: border-box; position: relative; background: var(--surface-base); font-family: var(--font-ui); color: var(--text-primary)">
+<div style="width: 1440px; box-sizing: border-box; padding: 32px 40px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; align-items: start">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="elevated" radius="lg" padding="20px">
+<form aria-labelledby="c-a" style="display: flex; flex-direction: column; gap: 12px">
+      <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 8px">
+        <h2 id="c-a" style="margin: 0; font-size: 18px; font-weight: 600">Details not recognised</h2>
+        <span style="font-size: 13px; color: var(--text-secondary); font-family: var(--font-mono)">401</span>
+      </div>
+      <dc-import name="InlineAlert" tone="danger" heading="The email, password or code isn’t right" blocking="{{yes}}" body="Check all three and try again." w="100%" hint-size="100%,120px"></dc-import>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Work email" variant="email" auto-complete="username" default-value="aminah.r@halalgoes.ca"></x-import>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Password" variant="password" auto-complete="current-password" default-value="correct-horse-battery"></x-import>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Authentication code" variant="otp" auto-complete="one-time-code" default-value="481207"></x-import>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" type="submit" full-width="{{yes}}">Sign in</x-import>
+    </form>
+</x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="elevated" radius="lg" padding="20px">
+<form aria-labelledby="c-b" style="display: flex; flex-direction: column; gap: 12px">
+      <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 8px">
+        <h2 id="c-b" style="margin: 0; font-size: 18px; font-weight: 600">Code needed</h2>
+        <span style="font-size: 13px; color: var(--text-secondary); font-family: var(--font-mono)">403</span>
+      </div>
+      <dc-import name="InlineAlert" tone="danger" heading="Staff accounts need a code every time you sign in" blocking="{{yes}}" w="100%" hint-size="100%,94px"></dc-import>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Work email" variant="email" auto-complete="username" default-value="aminah.r@halalgoes.ca"></x-import>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Password" variant="password" auto-complete="current-password" default-value="correct-horse-battery"></x-import>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Authentication code" variant="otp" auto-complete="one-time-code" default-value="" error-text="Enter the 6-digit code from your authenticator app."></x-import>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" type="submit" full-width="{{yes}}">Sign in</x-import>
+    </form>
+</x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="elevated" radius="lg" padding="20px">
+<form aria-labelledby="c-c" style="display: flex; flex-direction: column; gap: 12px">
+      <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 8px">
+        <h2 id="c-c" style="margin: 0; font-size: 18px; font-weight: 600">Too many attempts</h2>
+        <span style="font-size: 13px; color: var(--text-secondary); font-family: var(--font-mono)">423</span>
+      </div>
+      <dc-import name="InlineAlert" tone="warning" heading="Too many attempts" blocking="{{yes}}" body="Wait a few minutes, then try again." w="100%" hint-size="100%,120px"></dc-import>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Work email" variant="email" auto-complete="username" default-value="aminah.r@halalgoes.ca"></x-import>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Password" variant="password" auto-complete="current-password" default-value="correct-horse-battery"></x-import>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Authentication code" variant="otp" auto-complete="one-time-code" default-value="481207"></x-import>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" type="submit" full-width="{{yes}}" disabled="{{yes}}" accessibility-label="Sign in, unavailable for a few minutes">Sign in</x-import>
+    </form>
+</x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="elevated" radius="lg" padding="20px">
+<form aria-labelledby="c-d" style="display: flex; flex-direction: column; gap: 12px">
+      <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 8px">
+        <h2 id="c-d" style="margin: 0; font-size: 18px; font-weight: 600">Too many requests</h2>
+        <span style="font-size: 13px; color: var(--text-secondary); font-family: var(--font-mono)">429</span>
+      </div>
+      <dc-import name="InlineAlert" tone="warning" heading="Too many requests from this device" blocking="{{yes}}" body="Try again in 2 minutes." w="100%" hint-size="100%,120px"></dc-import>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Work email" variant="email" auto-complete="username" default-value="aminah.r@halalgoes.ca"></x-import>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Password" variant="password" auto-complete="current-password" default-value="correct-horse-battery"></x-import>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Authentication code" variant="otp" auto-complete="one-time-code" default-value="481207"></x-import>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" type="submit" full-width="{{yes}}" disabled="{{yes}}" accessibility-label="Sign in, unavailable for a few minutes">Sign in</x-import>
+    </form>
+</x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="elevated" radius="lg" padding="20px">
+<form aria-labelledby="c-e" style="display: flex; flex-direction: column; gap: 12px">
+      <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 8px">
+        <h2 id="c-e" style="margin: 0; font-size: 18px; font-weight: 600">Signing in</h2>
+        <span style="font-size: 13px; color: var(--text-secondary); font-family: var(--font-mono)">in flight</span>
+      </div>
+      
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Work email" variant="email" auto-complete="username" default-value="aminah.r@halalgoes.ca" disabled="{{yes}}"></x-import>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Password" variant="password" auto-complete="current-password" default-value="correct-horse-battery" disabled="{{yes}}"></x-import>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Authentication code" variant="otp" auto-complete="one-time-code" default-value="481207" disabled="{{yes}}"></x-import>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" type="submit" full-width="{{yes}}" loading="{{yes}}">Sign in</x-import>
+    </form>
+</x-import>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { yes: true, no: false, noop: () => {} };
+  }
+}
+</script>
+</body>
+</html>

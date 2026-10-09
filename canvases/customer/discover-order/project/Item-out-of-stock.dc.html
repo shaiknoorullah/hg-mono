@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Adana kebab, out of stock</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:var(--color-neutral-100)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+.demo-focus .hg-focus,.demo-focus .hg-choice-ctl,.demo-focus .hg-row,.demo-focus > a{box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)!important}
+.demo-focus-field .hg-field{border-color:var(--focus-ring)!important;box-shadow:inset 0 0 0 calc(var(--focus-field-border-width) - 1px) var(--focus-ring)!important}
+
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; display: flex; flex-direction: column; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+<div style="height: 200px; flex-shrink: 0; background: var(--surface-sunken)"></div>
+<p aria-hidden="true" style="margin: var(--space-4); font-size: var(--type-heading-xl-size); font-weight: 700">Zaytoun Grill</p>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Sheet" open="{{yes}}" contained="{{yes}}" title="Adana kebab" max-height="75%" on-close="{{noop}}">
+<div style="display: flex; flex-direction: column; gap: var(--space-4)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{c.adana}}" size="lg"></x-import>
+<div style="display: flex; gap: var(--space-2); flex-wrap: wrap"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="neutral" size="md" icon="clock">Out of stock · back at 7:30 pm</x-import><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="outline" size="md">Spicy</x-import></div>
+<p style="margin: 0; font-size: var(--type-body-md-size); line-height: var(--type-body-md-line); color: var(--text-secondary)">Hand-minced lamb, sumac onion, ezme.</p>
+<div style="display: flex; flex-direction: column; gap: var(--space-1)">
+<strong style="font-size: var(--type-label-lg-size)">Allergens</strong>
+<p style="margin: 0; font-size: var(--type-body-md-size); line-height: var(--type-body-md-line); color: var(--text-secondary)">Allergen information not provided by this restaurant. If you have an allergy, contact them before you order.</p>
+</div>
+<div style="position: sticky; bottom: 0; display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-3) 0 var(--space-2); background: var(--surface-raised); box-shadow: var(--elev-sticky)">
+<div style="display: flex; flex-direction: column; gap: var(--space-2)"><p id="add-reason" style="margin: 0; font-size: var(--type-body-md-size); line-height: var(--type-body-md-line); color: var(--text-primary)">Adana kebab is out of stock. It's back at 7:30 pm.</p>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" full-width="{{yes}}" icon-start="cart" disabled="{{yes}}" aria-describedby="add-reason">Add to cart</x-import></div>
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">Code: Sheet footer prop (sticky, above the keyboard)</span>
+</div>
+</div>
+</x-import>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+return {
+yes: true,
+no: false,
+none: null,
+zero: 0,
+two: 2,
+noop: function () {},
+nav: [
+{ key: 'home', label: 'Home', icon: 'home' },
+{ key: 'search', label: 'Search', icon: 'search' },
+{ key: 'orders', label: 'Orders', icon: 'orders' },
+{ key: 'account', label: 'Account', icon: 'profile' }
+],
+c: { base: 2499, v2: 4599, garlic: 150, turnip: 100, chilli: 125, bread: 150, wrap: 1249, falafel: 1099, large: 250, plate: 1650, tikka: 1599, koob: 2250, adana: 2199, toum: 50, tahini: 50 },
+sizes: [
+{ value: 'v1', label: 'For one' },
+{ value: 'v2', label: 'For two' }
+],
+sizesOut: [
+{ value: 'v1', label: 'For one' },
+{ value: 'v2', label: 'For two', disabled: true, disabledReason: 'Sold out' }
+],
+falafelSizes: [
+{ value: 'r', label: 'Regular' },
+{ value: 'l', label: 'Large', priceDeltaCents: 250 }
+]
+};
+}
+}
+</script>
+</body>
+</html>

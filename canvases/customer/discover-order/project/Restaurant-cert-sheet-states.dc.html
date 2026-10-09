@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Certification sheet, loading and error</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:var(--color-neutral-100)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+.demo-focus .hg-focus,.demo-focus .hg-choice-ctl,.demo-focus .hg-row,.demo-focus > a{box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)!important}
+.demo-focus-field .hg-field{border-color:var(--focus-ring)!important;box-shadow:inset 0 0 0 calc(var(--focus-field-border-width) - 1px) var(--focus-ring)!important}
+</style>
+</helmet>
+<div style="width: 868px; height: 916px; position: relative; overflow: hidden; display: flex; gap: 40px; padding: 24px; box-sizing: border-box; color: var(--text-primary); font-family: var(--font-ui); background: var(--surface-sunken)">
+<div style="display: flex; flex-direction: column; gap: var(--space-2)"><span style="font-family: var(--font-mono); font-size: 12px; font-weight: 600; color: var(--text-secondary)">Sheet loading</span>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; display: flex; flex-direction: column; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui); border-radius: var(--radius-sm); outline: 1px solid var(--border-decorative)">
+<div aria-hidden="true" style="height: 200px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: var(--surface-sunken)"><span style="font-size: var(--type-caption-size); font-weight: 600; color: var(--text-secondary)">No image</span></div>
+<div inert="" style="flex-grow: 1; display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-4)">
+<h1 style="margin: 0; font-size: var(--type-heading-xl-size); font-weight: 700; letter-spacing: -0.01em">Zaytoun Grill</h1>
+<div style="display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.HalalBadge" state="CERTIFIED" size="md" surface="card"></x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" icon-end="chevron-right" href="Restaurant-cert-sheet.dc.html" accessibility-label="View certification: halal certificate for Zaytoun Grill">View certification</x-import>
+</div>
+<span style="font-size: var(--type-body-sm-size); color: var(--text-secondary)">Levantine · Grill · $$</span>
+<span style="font-size: var(--type-body-sm-size); color: var(--text-secondary)">25–35 min · open until 10:00 pm</span>
+<h2 style="margin: var(--space-4) 0 0; font-size: var(--type-heading-lg-size); font-weight: 600">Menu</h2>
+</div>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Sheet" open="{{yes}}" contained="{{yes}}" title="Halal certification for Zaytoun Grill" hide-title="{{yes}}" max-height="88%" on-close="{{noop}}">
+<div style="display: flex; flex-direction: column; gap: var(--space-3)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.HalalCertificationPanel" restaurant-id="01926f3b-0d4c-7e55-8b21-9a0c1d2e3f40" status="loading" heading-level="{{three}}"></x-import>
+<p role="status" style="margin: 0; font-size: var(--type-body-sm-size); color: var(--text-secondary)">Loading certification details…</p>
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">While the Sheet loads, the page keeps its badge from RestaurantDetail; nothing inside the Sheet guesses a state.</span>
+</div>
+</x-import>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: var(--space-2)"><span style="font-family: var(--font-mono); font-size: 12px; font-weight: 600; color: var(--text-secondary)">Sheet failed to load</span>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; display: flex; flex-direction: column; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui); border-radius: var(--radius-sm); outline: 1px solid var(--border-decorative)">
+<div aria-hidden="true" style="height: 200px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: var(--surface-sunken)"><span style="font-size: var(--type-caption-size); font-weight: 600; color: var(--text-secondary)">No image</span></div>
+<div inert="" style="flex-grow: 1; display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-4)">
+<h1 style="margin: 0; font-size: var(--type-heading-xl-size); font-weight: 700; letter-spacing: -0.01em">Zaytoun Grill</h1>
+<div style="display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.HalalBadge" state="CERTIFIED" size="md" surface="card"></x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" icon-end="chevron-right" href="Restaurant-cert-sheet.dc.html" accessibility-label="View certification: halal certificate for Zaytoun Grill">View certification</x-import>
+</div>
+<span style="font-size: var(--type-body-sm-size); color: var(--text-secondary)">Levantine · Grill · $$</span>
+<span style="font-size: var(--type-body-sm-size); color: var(--text-secondary)">25–35 min · open until 10:00 pm</span>
+<h2 style="margin: var(--space-4) 0 0; font-size: var(--type-heading-lg-size); font-weight: 600">Menu</h2>
+</div>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Sheet" open="{{yes}}" contained="{{yes}}" title="Halal certification for Zaytoun Grill" hide-title="{{yes}}" max-height="88%" on-close="{{noop}}">
+<div style="display: flex; flex-direction: column; gap: var(--space-3)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.HalalCertificationPanel" restaurant-id="01926f3b-0d4c-7e55-8b21-9a0c1d2e3f40" status="error" error-message="We couldn't load the certificate details. Adding to your cart stays open." heading-level="{{three}}" on-retry="{{noop}}"></x-import>
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">Read failed: the Sheet shows the error with one Retry. Adding to the cart stays open (owner decision). When the Sheet closes, the page drops its badge and View certification button for the neutral line until a read succeeds: see Restaurant — certification failed to load.</span>
+</div>
+</x-import>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":868,"height":916}}'>
+class Component extends DCLogic {
+renderVals() {
+return {
+yes: true,
+no: false,
+none: null,
+zero: 0,
+two: 2,
+three: 3,
+noop: function () {},
+nav: [
+{ key: 'home', label: 'Home', icon: 'home' },
+{ key: 'search', label: 'Search', icon: 'search' },
+{ key: 'orders', label: 'Orders', icon: 'orders' },
+{ key: 'account', label: 'Account', icon: 'profile' }
+],
+c: { zfee: 299, zmin: 1500, kfee: 399, kmin: 2000, nfee: 499, nmin: 1500, fee: 299, min: 1500, grill: 2499, adana: 2199, wrap: 1249, falafel: 1099, karahi: 1899, plate: 1650, lahmacun: 950, tikka: 1599, koob: 2250, mandi: 2299 },
+certZ: {
+display_state: 'CERTIFIED',
+certifying_body_name: 'Halal Monitoring Authority (HMA Canada)',
+certificate_number: 'HMA-ON-24-0183',
+scope: 'WHOLE_ESTABLISHMENT',
+issued_on: '2026-04-01',
+expires_on: '2027-03-31',
+verified_at: '2026-09-04T14:02:00Z',
+certificate_viewable: true,
+disclaimer: 'Certification verified by HalalGoes on 4 September 2026. HalalGoes does not itself certify food.'
+},
+certK: {
+display_state: 'EXPIRING_SOON',
+certifying_body_name: 'Islamic Society of North America Canada (ISNA Canada)',
+certificate_number: 'ISNA-C-7731',
+scope: 'KITCHEN_ONLY',
+issued_on: '2025-10-21',
+expires_on: '2026-10-20',
+verified_at: '2026-08-20T10:15:00Z',
+certificate_viewable: true,
+disclaimer: 'Certification verified by HalalGoes on 20 August 2026. HalalGoes does not itself certify food.'
+},
+certKn: {
+display_state: 'EXPIRING_SOON',
+certifying_body_name: 'Islamic Society of North America Canada (ISNA Canada)',
+certificate_number: 'ISNA-C-7731',
+scope: 'KITCHEN_ONLY',
+issued_on: '2025-10-21',
+expires_on: '2026-10-20',
+verified_at: '2026-08-20T10:15:00Z',
+certificate_viewable: false,
+disclaimer: 'Certification verified by HalalGoes on 20 August 2026. HalalGoes does not itself certify food.'
+},
+sortItems: [
+{ key: 'recommended', label: 'Recommended' },
+{ key: 'eta', label: 'Delivery time' },
+{ key: 'distance', label: 'Distance' }
+]
+};
+}
+}
+</script>
+</body>
+</html>

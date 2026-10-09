@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Accept arrived too late</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+[data-rider]{font-family:var(--font-ui)}
+.offer-chrome{background:var(--surface-raised)}
+[data-theme="dark"] .offer-chrome,[data-theme="dark"].offer-chrome{background:var(--surface-chrome)}
+</style>
+</helmet>
+<div data-rider="" data-theme="{{theme}}" style="width: 390px; height: 844px; position: relative; overflow: hidden; background: var(--surface-base); color: var(--text-primary)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Sheet" open="{{yes}}" contained="{{yes}}" variant="full" dismissible="{{no}}" title="Delivery offer" footer="{{offerFooter}}"><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Proposed variant: Sheet tone=field (surface-chrome in dark) · drawn here with the library Sheet variant=full and its own surface until approved · dismissible=false: its focus trap, title wiring and Back / Escape handling</span><div style="display: flex; flex-direction: column; gap: var(--space-4); min-height: 100%"><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">409 OFFER_EXPIRED on accept (the tap raced the expiry) · distinct from the timer reaching zero · slate, not an error colour · does not count as your fault</span><section style="padding: var(--space-5); border: 1.5px dashed var(--border-strong); border-radius: var(--radius-lg); background: var(--surface-raised); display: flex; flex-direction: column; gap: var(--space-2)"><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Proposed component: StatusPanel (ErrorState/InlineAlert, slate)</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="clock" size="xl"></x-import><h2 style="margin: 0; font-size: var(--type-heading-xl-size); font-weight: var(--type-heading-xl-weight); letter-spacing: var(--type-heading-xl-tracking); line-height: 1.25">This offer ended before your accept reached us</h2><p style="margin: 0; font-size: var(--type-body-lg-size); line-height: 1.5">You're still online and can get the next one.</p><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--text-link); color: var(--text-link)">Needs API: confirm a 409 OFFER_EXPIRED accept is recorded as an interaction and excluded from UNRESPONSIVE · add "It isn't counted against you" only after that</span></section><div style="flex: 1 1 auto"></div><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">The main action sits in the DS Sheet footer (sticky, never under the keyboard) · no sticky hack</span></div></x-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["dark","light"],"default":"dark"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const theme = this.props.theme ?? 'dark';
+    if (!this._t) this._t = Date.now();
+    return { offerFooter: (function () { const DS = window.HalalGoesDesignSystem_d11a47; const h = window.React && window.React.createElement; return (DS && h) ? h(DS.Button, { variant: 'primary', size: 'xl', href: 'HomeWaiting.dc.html', fullWidth: true }, "Back to waiting") : null; })(),  theme: theme, onDark: theme === 'dark', yes: true, no: false, noop: () => {}, twentyFour: 24, activeTab: 'home',
+      onOff: { on: 'On', off: 'Off' },
+      tabs: [{ key: 'home', label: 'Home', icon: 'home' }, { key: 'earnings', label: 'Earnings', icon: 'orders' }, { key: 'account', label: 'Account', icon: 'profile' }], windowSeconds: 29, serverNow: new Date(this._t).toISOString(), expiresAt: new Date(this._t + 18000).toISOString(), o: { total: 944, base: 350, distance: 384, tip: 210 } };
+  }
+}
+</script>
+</body>
+</html>

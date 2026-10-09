@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Checkout, order cancelled</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:var(--color-neutral-100)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+.demo-focus .hg-focus,.demo-focus .hg-choice-ctl,.demo-focus .hg-row,.demo-focus > a{box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)!important}
+.demo-focus-field .hg-field{border-color:var(--focus-ring)!important;box-shadow:inset 0 0 0 calc(var(--focus-field-border-width) - 1px) var(--focus-ring)!important}
+
+textarea::placeholder{color:var(--text-secondary);opacity:1}
+</style>
+</helmet>
+<div style="width: 1728px; height: 916px; position: relative; overflow: hidden; display: flex; flex-direction: column; background: var(--surface-sunken); color: var(--text-primary); font-family: var(--font-ui)">
+<div style="display: flex; gap: 40px; padding: 24px; align-items: flex-start">
+<div style="display: flex; flex-direction: column; gap: var(--space-2); flex-shrink: 0">
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">Order cancelled: put the items back (owner decision)</span>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; display: flex; flex-direction: column; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui); border-radius: var(--radius-sm); outline: 1px solid var(--border-decorative)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="cream" title="Checkout" subtitle="Zaytoun Grill" back-label="Back to Zaytoun Grill" on-back="{{noop}}" elevated="{{yes}}"></x-import>
+<main style="flex-grow: 1; display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-2) var(--space-4) var(--space-4); overflow: hidden">
+<section role="status" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-4); padding: var(--space-8) var(--space-4); text-align: center; outline: 1.5px dotted var(--color-info-500); outline-offset: -2px; border-radius: var(--radius-lg); position: relative"><span style="position: absolute; top: 8px; left: 8px; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--color-info-700); background: var(--color-info-50)">Component gap: EmptyState</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="close" size="2xl" color="var(--text-secondary)"></x-import><h2 style="margin: 0; font-size: var(--type-heading-lg-size); font-weight: 600">Order cancelled</h2><p style="margin: 0; max-width: 300px; font-size: var(--type-body-md-size); line-height: var(--type-body-md-line); color: var(--text-secondary)">Nothing was charged and nothing is held on your card.</p><p style="margin: 0; max-width: 300px; font-size: var(--type-body-md-size); line-height: var(--type-body-md-line); color: var(--text-primary)">You can put the same items back in your cart. We'll check each one and its price again.</p></section>
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">Reached after cancelOrder 200 from any payment-stage cancel confirm (payment declined, bank confirmation failed, wallet closed). Same destination as Checkout — 15-minute deadline passed.</span>
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">Bound: cancelOrder 200 → order.state CANCELLED; the authorisation is voided server-side. No amounts shown: nothing moved.</span>
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">Owner decision (1 October): after an unpaid order is cancelled, expires or fails payment, "Put these items back in your cart" re-adds each line with the existing cart operations (addCartLine: same item, variant, add-ons, quantity and note) and opens the cart, where the server prices them again. A line that can't be added shows its own cart state (sold out, removed from the menu, restaurant closed). No contract change.</span>
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">Result: the cart itself, Cart — default, priced from a fresh quote. No separate confirmation screen. If a line could not be added, the cart opens with that line's state (Cart — item out of stock, chosen size sold out, removed from menu). The next three frames: while it runs, if it fails, and if the cart already holds another restaurant.</span>
+</main>
+<footer style="display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-4); background: var(--surface-raised); box-shadow: var(--elev-sticky)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" full-width="{{yes}}" icon-start="cart" href="Cart-default.dc.html">Put these items back in your cart</x-import><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" full-width="{{yes}}" href="https://claude.ai/artifact/F2MfULPYoJQkkLsA5G3aFk">Back to Zaytoun Grill's menu</x-import>
+</footer>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: var(--space-2); flex-shrink: 0">
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">Putting the items back (button loading)</span>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; display: flex; flex-direction: column; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui); border-radius: var(--radius-sm); outline: 1px solid var(--border-decorative)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="cream" title="Checkout" subtitle="Zaytoun Grill" back-label="Back to Zaytoun Grill" on-back="{{noop}}" elevated="{{yes}}"></x-import>
+<main style="flex-grow: 1; display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-2) var(--space-4) var(--space-4); overflow: hidden">
+<section style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-4); padding: var(--space-8) var(--space-4); text-align: center; outline: 1.5px dotted var(--color-info-500); outline-offset: -2px; border-radius: var(--radius-lg); position: relative"><span style="position: absolute; top: 8px; left: 8px; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--color-info-700); background: var(--color-info-50)">Component gap: EmptyState</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="close" size="2xl" color="var(--text-secondary)"></x-import><h2 style="margin: 0; font-size: var(--type-heading-lg-size); font-weight: 600">Order cancelled</h2><p style="margin: 0; max-width: 300px; font-size: var(--type-body-md-size); line-height: var(--type-body-md-line); color: var(--text-secondary)">Nothing was charged and nothing is held on your card.</p><p style="margin: 0; max-width: 300px; font-size: var(--type-body-md-size); line-height: var(--type-body-md-line); color: var(--text-primary)">You can put the same items back in your cart. We'll check each one and its price again.</p></section>
+<span role="status" aria-live="polite" class="hg-sr">Putting your items back</span>
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">Bound: one addCartLine per line of the cancelled order, one after another, each with its own Idempotency-Key. The primary shows the Button's loading prop and reads "Putting your items back"; the tertiary is disabled meanwhile. When the last call returns, the cart opens (Cart — default).</span>
+</main>
+<footer style="display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-4); background: var(--surface-raised); box-shadow: var(--elev-sticky)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" full-width="{{yes}}" icon-start="cart" loading="{{yes}}">Putting your items back</x-import><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" full-width="{{yes}}" disabled="{{yes}}">Back to Zaytoun Grill's menu</x-import>
+</footer>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: var(--space-2); flex-shrink: 0">
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">Couldn't put the items back (network or server error)</span>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; display: flex; flex-direction: column; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui); border-radius: var(--radius-sm); outline: 1px solid var(--border-decorative)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="cream" title="Checkout" subtitle="Zaytoun Grill" back-label="Back to Zaytoun Grill" on-back="{{noop}}" elevated="{{yes}}"></x-import>
+<main style="flex-grow: 1; display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-2) var(--space-4) var(--space-4); overflow: hidden">
+<div role="alert" tabindex="-1" style="display: flex; gap: var(--space-3); align-items: flex-start; padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); background: var(--surface-raised); border: 1px solid var(--border-interactive); outline: 1.5px dotted var(--color-info-500); outline-offset: 3px; box-shadow: 0 0 0 var(--focus-offset-width) var(--focus-offset), 0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="error" size="md" color="var(--text-secondary)"></x-import>
+<div style="display: flex; flex-direction: column; gap: var(--space-1)">
+<strong style="font-size: var(--type-label-lg-size); color: var(--text-primary)">We couldn't put your items back</strong>
+<span style="font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-line); color: var(--text-primary)">Check your connection and try again.</span>
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--color-info-700); background: var(--color-info-50)">Proposed component: InlineAlert</span>
+</div>
+</div>
+<section style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-4); padding: var(--space-6) var(--space-4); text-align: center; outline: 1.5px dotted var(--color-info-500); outline-offset: -2px; border-radius: var(--radius-lg); position: relative"><span style="position: absolute; top: 8px; left: 8px; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--color-info-700); background: var(--color-info-50)">Component gap: EmptyState</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="close" size="2xl" color="var(--text-secondary)"></x-import><h2 style="margin: 0; font-size: var(--type-heading-lg-size); font-weight: 600">Order cancelled</h2><p style="margin: 0; max-width: 300px; font-size: var(--type-body-md-size); line-height: var(--type-body-md-line); color: var(--text-secondary)">Nothing was charged and nothing is held on your card.</p></section>
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">A call failed on the network or with a 5xx. Lines already added stay in the cart; Try again sends only the lines not added yet, each with the Idempotency-Key it had, so no line is added twice. Focus moves to the alert (tabindex=-1), drawn. A 409 on one line (sold out, size sold out, removed, restaurant closed) is not this error: that line is skipped and shows its own state in the cart.</span>
+</main>
+<footer style="display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-4); background: var(--surface-raised); box-shadow: var(--elev-sticky)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" full-width="{{yes}}" icon-start="refresh">Try again</x-import><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" full-width="{{yes}}" href="https://claude.ai/artifact/F2MfULPYoJQkkLsA5G3aFk">Back to Zaytoun Grill's menu</x-import>
+</footer>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: var(--space-2); flex-shrink: 0">
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">The cart already holds another restaurant (409 DIFFERENT_RESTAURANT)</span>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; display: flex; flex-direction: column; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui); border-radius: var(--radius-sm); outline: 1px solid var(--border-decorative)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="cream" title="Checkout" subtitle="Zaytoun Grill" back-label="Back to Zaytoun Grill" on-back="{{noop}}" elevated="{{yes}}"></x-import>
+<main style="flex-grow: 1; display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-2) var(--space-4) var(--space-4); overflow: hidden">
+<section style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-4); padding: var(--space-8) var(--space-4); text-align: center; outline: 1.5px dotted var(--color-info-500); outline-offset: -2px; border-radius: var(--radius-lg); position: relative"><span style="position: absolute; top: 8px; left: 8px; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--color-info-700); background: var(--color-info-50)">Component gap: EmptyState</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="close" size="2xl" color="var(--text-secondary)"></x-import><h2 style="margin: 0; font-size: var(--type-heading-lg-size); font-weight: 600">Order cancelled</h2><p style="margin: 0; max-width: 300px; font-size: var(--type-body-md-size); line-height: var(--type-body-md-line); color: var(--text-secondary)">Nothing was charged and nothing is held on your card.</p></section>
+</main>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Modal" open="{{yes}}" contained="{{yes}}" variant="confirm" destructive="{{yes}}" title="Your cart has items from Karahi House" description="Your cart has 2 items from Karahi House. A cart holds one restaurant at a time, so putting these items back replaces them." confirm-label="Replace them" cancel-label="Keep my cart" on-confirm="{{noop}}" on-close="{{noop}}"><div style="display: flex; flex-direction: column; gap: var(--space-1); margin-top: var(--space-3)"><span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">Trigger: 409 DIFFERENT_RESTAURANT on the first addCartLine (the customer started another cart after this order). "Karahi House" and "2 items" come from error.details (current_restaurant_name, current_line_count). Nothing has been added yet.</span><span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">Replace them = the first line with addCartLine?replace=true (clear and add in one atomic call, new Idempotency-Key), then the other lines with addCartLine, as on Item — cart holds another restaurant. Never clearCart then addCartLine: the contract forbids the two-call form because a failed add would leave an empty cart.</span><span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">Keep my cart closes the dialog and changes nothing: the Karahi House cart stays and this screen stays. Focus opens on Keep my cart. While replacing, and if it fails: the loading and error frames to the left.</span></div></x-import>
+</div>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1728,"height":916}}'>
+class Component extends DCLogic {
+renderVals() {
+return {
+yes: true,
+no: false,
+none: null,
+zero: 0,
+two: 2,
+noop: function () {}
+};
+}
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Screen reader announcements</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0;background:var(--surface-base)}</style>
+</helmet>
+<div style="width: 1440px; height: 1120px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px; padding: 36px 44px; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<h1 style="margin: 0; font-size: 24px; line-height: 30px; font-weight: 700">Screen reader: what live orders says, and where focus goes</h1>
+<p style="margin: 0; font-size: 17px; line-height: 26px; color: var(--text-secondary)">Every countdown on screen runs silent (the tile rings, the panel bar). One page announcer, with one polite and one assertive region, is the only speaker, so the same order is never announced twice.</p>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 28px; align-items: start">
+
+<section aria-labelledby="a11y-regions" style="display: flex; flex-direction: column; gap: 10px; padding: 18px 20px; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: var(--radius-lg)">
+<h2 id="a11y-regions" style="margin: 0; font-size: 20px; font-weight: 600">Live regions</h2>
+<dl style="margin: 0; display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 10px 16px; font-size: 15px; line-height: 22px">
+<dt style="font-weight: 700">New order arrives</dt><dd style="margin: 0">Polite: “New order A7K2, 3 items, 3 minutes to answer.” Several at once are batched: “2 new orders, most urgent B3M9, 40 seconds left.” The chime keeps ringing until each order is accepted, declined or times out.</dd>
+<dt style="font-weight: 700">Thresholds</dt><dd style="margin: 0">This page uses 25%, 10% and 0. It drops the design system’s 50% step: 90 seconds left is not urgent in a kitchen, and fewer interruptions keep the 10% warning heard.</dd>
+<dt style="font-weight: 700">25% left</dt><dd style="margin: 0">Polite, once per order: “B3M9, 45 seconds left.” Only the most urgent order is spoken; others queue behind it and are dropped if they pass their own threshold first.</dd>
+<dt style="font-weight: 700">10% left</dt><dd style="margin: 0">Assertive, once per order: “B3M9, 18 seconds left to accept.” Never more than one assertive message in 5 seconds; a second one waits.</dd>
+<dt style="font-weight: 700">Outcome</dt><dd style="margin: 0">Polite: “A7K2 timed out. The customer was not charged.” Accepted or declined on another screen: polite, with the code. The outcome text on the tile is a static note, so the announcer says it once.</dd>
+<dt style="font-weight: 700">Connection</dt><dd style="margin: 0">Spoken once by the banner’s own region: reconnecting polite, offline assertive; signed out by its blocking alert. The lines on each tile (“Accept still works while reconnecting”) are static notes, never live.</dd>
+<dt style="font-weight: 700">Accepted</dt><dd style="margin: 0">Polite: “A7K2 accepted, ready by 7:08 pm.” Notes from support or the rider: polite, with the code.</dd>
+<dt style="font-weight: 700">Never spoken</dt><dd style="margin: 0">Any countdown’s own region (silent mode), per-second ticks, the once-a-second tint on the strip, list re-sorts, rider pickup-time changes.</dd>
+</dl>
+</section>
+
+<section aria-labelledby="a11y-focus" style="display: flex; flex-direction: column; gap: 10px; padding: 18px 20px; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: var(--radius-lg)">
+<h2 id="a11y-focus" style="margin: 0; font-size: 20px; font-weight: 600">Focus placement</h2>
+<dl style="margin: 0; display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 10px 16px; font-size: 15px; line-height: 22px">
+<dt style="font-weight: 700">New order arrives</dt><dd style="margin: 0">Focus never moves. “Skip to new orders” and the Ringing badge in the status bar both jump to the strip.</dd>
+<dt style="font-weight: 700">In the strip</dt><dd style="margin: 0">One tab stop. Left and right arrows move between orders; A accepts and D declines only the order that has focus; Enter opens it in the panel. Keys do nothing anywhere else on the page.</dd>
+<dt style="font-weight: 700">Panel opens</dt><dd style="margin: 0">Focus moves to the panel heading (the order code). The list and the strip stay reachable; the panel is part of the page, not a dialog.</dd>
+<dt style="font-weight: 700">Panel closes</dt><dd style="margin: 0">Close or Escape returns focus to where it came from: the tile, the list row, or the History row. If that item has gone, focus goes to the strip or list heading.</dd>
+<dt style="font-weight: 700">Order ends while open</dt><dd style="margin: 0">Focus stays in the panel; the Accept footer is replaced by “Back to new orders”. The panel’s outcome note (alert) is the only speaker for that order.</dd>
+<dt style="font-weight: 700">Accept succeeds</dt><dd style="margin: 0">Focus moves to the next new order in the strip; with none left, to the New orders heading.</dd>
+<dt style="font-weight: 700">Decline</dt><dd style="margin: 0">The panel switches to the reason form, first focus on Keep order. Pressing Decline with no reason moves focus to the reason group and shows its error. Keep order returns to the tile.</dd>
+<dt style="font-weight: 700">Timeline pane</dt><dd style="margin: 0">Opens beside the order; focus moves to its heading. Closing it returns focus to the Timeline button.</dd>
+</dl>
+</section>
+
+</div>
+
+<section aria-labelledby="a11y-names" style="display: flex; flex-direction: column; gap: 10px; padding: 18px 20px; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: var(--radius-lg)">
+<h2 id="a11y-names" style="margin: 0; font-size: 20px; font-weight: 600">Accessible names start with the visible label</h2>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px 24px; font-size: 15px; font-family: var(--font-mono)">
+<span>Accept order A7K2, ready in 20 minutes</span><span>Try accept again, order B3M9, ready in 15 minutes</span><span>Decline order A7K2, choose a reason</span>
+<span>Mark order K7L8 ready</span><span>Remove order A7K2 from new orders</span><span>Remove order K7N1 from the list</span>
+<span>Live orders, 2 new</span><span>Expand menu</span><span>Show the timeline for order K7N1</span>
+</div>
+</section>
+<div style="display: flex; gap: 8px; flex-wrap: wrap">
+<span style="padding: 2px 6px; border-radius: var(--radius-xs); background: var(--surface-sunken); color: var(--text-secondary); font-family: var(--font-mono); font-size: 12px">Proposed component: PageAnnouncer (one polite and one assertive region, a rate-limited queue)</span>
+<span style="padding: 2px 6px; border-radius: var(--radius-xs); background: var(--surface-sunken); color: var(--text-secondary); font-family: var(--font-mono); font-size: 12px">Design-system issue: Countdown speaks at 50/25/10/0 per instance with no way to turn it off · needs a silent mode</span>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1120}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+/* HalalGoes customer, Track & After: annotation helpers only.
+   Nothing here restyles a component or sets a colour: role values come from the design
+   system's own tokens.css (ds/halalgoesdesignsystem-d11a47/). Everything below marks up the
+   review canvas itself (placeholders, tags, notes, a drawn focus ring) and never ships. */
+
+/* A placeholder for a component the system lacks, or for data the API lacks. */
+.hg-gap { box-sizing: border-box; display: flex; flex-direction: column; gap: 6px; padding: 12px;
+  background: var(--surface-sunken); border: 1.5px solid var(--border-decorative); border-radius: var(--radius-md); }
+.hg-tag { align-self: flex-start; font-family: var(--font-mono); font-size: 12px; line-height: 1.35; font-weight: 500;
+  padding: 2px 6px; border-radius: var(--radius-xs); background: var(--surface-raised); color: var(--text-secondary); }
+.hg-tag-api { background: var(--feedback-info-tint); color: var(--feedback-info-tint-text); }
+/* Designer and developer notes. Never product copy: nothing in a .hg-gap-note ships. */
+.hg-gap-note { font-family: var(--font-ui); font-size: 13px; line-height: 1.45; color: var(--text-secondary); }
+/* The focus indicator drawn statically (docs/decisions/focus-indicator.md, borderless control). */
+.hg-focus-drawn { border-radius: var(--radius-md);
+  box-shadow: 0 0 0 var(--focus-offset-width) var(--focus-offset), 0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring); }
+.hg-num { font-variant-numeric: tabular-nums; }
+.hg-mono { font-family: var(--font-mono); }
+/* Screen-reader-only text (the standard clip pattern). Carries the spoken form of times, ETAs and codes whose visible form is aria-hidden. No visual. */
+.hg-vh { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }

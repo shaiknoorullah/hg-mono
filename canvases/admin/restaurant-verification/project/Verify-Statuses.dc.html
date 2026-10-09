@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Certificate statuses</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:var(--surface-base);color:var(--text-primary);font-family:var(--font-ui)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+textarea.hg-ta:focus{outline:none;border:var(--focus-field-border-width) solid var(--focus-ring)}
+textarea.hg-ta[aria-invalid="true"]{border:var(--focus-field-border-width) solid var(--color-danger-500)}
+textarea.hg-ta[aria-invalid="true"]:focus{box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+.skip{position:absolute;left:-10000px;top:8px;z-index:900;padding:12px 16px;background:var(--surface-raised);color:var(--text-primary);border-radius:8px;font-weight:600}
+.skip:focus{left:80px;outline:none;box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; display: grid; grid-template-columns: 64px minmax(0, 1fr); background: var(--surface-base); position: relative; overflow: hidden; font-family: var(--font-ui); color: var(--text-primary)">
+  <dc-import name="SideNav" active="applications" role="ADMIN" collapsed="{{yes}}" h="900" hint-size="64px,900px"></dc-import>
+  <div style="display: flex; flex-direction: column; min-width: 0; min-height: 0; position: relative">
+    <a class="skip" href="#main">Skip to main content</a>
+    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="raised" title="Halal certificate" subtitle="Decided certificates, read-only" back-label="Back to the application" on-back="{{noop}}"></x-import>
+    <main id="main" data-density="compact" style="flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 12px; padding: 12px; overflow: hidden">
+      <p style="margin: 0; font-size: 15px; line-height: 1.5; color: var(--text-secondary); max-width: 760px; width: 100%">Once a certificate is decided the page is read-only: the scan, transcription and checks show as saved, and a status panel sits above them in place of the claim strip. None of these statuses uses red.</p>
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg" padding="16px 20px">
+        <section aria-label="Rejected" style="display: flex; flex-direction: column; gap: 12px">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px">
+            <h2 style="margin: 0; font-size: 18px; font-weight: 600">Rejected</h2>
+            <span style="display: inline-flex; align-items: center; gap: 8px"><span style="font-size: 13px; color: var(--text-secondary)">Restaurant now:</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.HalalBadge" state="UNVERIFIED" surface="operational" size="md"></x-import></span>
+          </div>
+          <dl style="margin: 0; display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 6px 16px; font-size: 13px; line-height: 1.45"><dt style="color: var(--text-secondary)">Decided</dt><dd style="margin: 0; font-weight: 500">2:21 pm, 28 September 2026 · Needs API: decided_at for REJECTED (or confirm verified_at is set on reject)</dd><dt style="color: var(--text-secondary)">Reason</dt><dd style="margin: 0; font-weight: 500">Scope doesn’t cover this restaurant</dd><dt style="color: var(--text-secondary)">Sent to restaurant</dt><dd style="margin: 0; font-weight: 500">“Your certificate covers your meat supplier only. Please upload a certificate that covers your kitchen or the whole restaurant.”</dd></dl>
+          <p style="margin: 0; font-size: 13px; line-height: 1.45">The restaurant can upload a new certificate. It arrives as a new record for review.</p>
+        </section>
+</x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg" padding="16px 20px">
+        <section aria-label="Approved, renewal due" style="display: flex; flex-direction: column; gap: 12px">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px">
+            <h2 style="margin: 0; font-size: 18px; font-weight: 600">Approved, renewal due</h2>
+            <span style="display: inline-flex; align-items: center; gap: 8px"><span style="font-size: 13px; color: var(--text-secondary)">Restaurant now:</span><dc-import name="HalalState" state="EXPIRING_SOON" expires="19 Oct" expires-full="19 October 2026" size="md" hint-size="210px,24px"></dc-import></span>
+          </div>
+          <dl style="margin: 0; display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 6px 16px; font-size: 13px; line-height: 1.45"><dt style="color: var(--text-secondary)">Expires on</dt><dd style="margin: 0; font-weight: 500">19 October 2026</dd><dt style="color: var(--text-secondary)">Issuing body</dt><dd style="margin: 0; font-weight: 500">Halal Monitoring Authority (HMA Canada)</dd><dt style="color: var(--text-secondary)">Number</dt><dd style="margin: 0; font-weight: 500">HMA-ON-2026-0417</dd></dl>
+          <p style="margin: 0; font-size: 13px; line-height: 1.45">Still certified. The certificate expires within the renewal window, so the restaurant has been asked to upload its renewal.</p>
+        </section>
+</x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg" padding="16px 20px">
+        <section aria-label="Expired" style="display: flex; flex-direction: column; gap: 12px">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px">
+            <h2 style="margin: 0; font-size: 18px; font-weight: 600">Expired</h2>
+            <span style="display: inline-flex; align-items: center; gap: 8px"><span style="font-size: 13px; color: var(--text-secondary)">Restaurant now:</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.HalalBadge" state="EXPIRED" surface="operational" size="md"></x-import></span>
+          </div>
+          <dl style="margin: 0; display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 6px 16px; font-size: 13px; line-height: 1.45"><dt style="color: var(--text-secondary)">Expired on</dt><dd style="margin: 0; font-weight: 500">21 September 2026</dd><dt style="color: var(--text-secondary)">Issuing body</dt><dd style="margin: 0; font-weight: 500">Halal Monitoring Authority (HMA Canada)</dd><dt style="color: var(--text-secondary)">Number</dt><dd style="margin: 0; font-weight: 500">HMA-ON-2026-0417</dd></dl>
+          <p style="margin: 0; font-size: 13px; line-height: 1.45">We can’t currently vouch for this restaurant’s certification. It is hidden from customers until a renewed certificate is approved.</p>
+        </section>
+</x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg" padding="16px 20px">
+        <section aria-label="Revoked" style="display: flex; flex-direction: column; gap: 12px">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px">
+            <h2 style="margin: 0; font-size: 18px; font-weight: 600">Revoked</h2>
+            <span style="display: inline-flex; align-items: center; gap: 8px"><span style="font-size: 13px; color: var(--text-secondary)">Restaurant now:</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.HalalBadge" state="UNVERIFIED" surface="operational" size="md"></x-import></span>
+          </div>
+          <dl style="margin: 0; display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 6px 16px; font-size: 13px; line-height: 1.45"><dt style="color: var(--text-secondary)">Revoked</dt><dd style="margin: 0; font-weight: 500">9:40 am, 26 September 2026 · Needs API: revoked_at, revoked_by, revocation_reason_code on HalalCertificate</dd><dt style="color: var(--text-secondary)">Reason</dt><dd style="margin: 0; font-weight: 500">Suspected forgery · same Needs API</dd><dt style="color: var(--text-secondary)">Case</dt><dd style="margin: 0; font-weight: 500">Priority 1 case opened · Needs API: linked case on the certificate</dd></dl>
+          <p style="margin: 0; font-size: 13px; line-height: 1.45">Verification was withdrawn for cause. Karahi House’s application can’t be approved until a new certificate is approved.</p>
+        </section>
+</x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg" padding="16px 20px">
+        <section aria-label="Superseded" style="display: flex; flex-direction: column; gap: 12px">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px">
+            <h2 style="margin: 0; font-size: 18px; font-weight: 600">Superseded</h2>
+            
+          </div>
+          <dl style="margin: 0; display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 6px 16px; font-size: 13px; line-height: 1.45"><dt style="color: var(--text-secondary)">Replaced on</dt><dd style="margin: 0; font-weight: 500">24 September 2026 · Needs API: superseded_by_id and superseded_at</dd><dt style="color: var(--text-secondary)">Replaced by</dt><dd style="margin: 0; display: flex; align-items: center; gap: 10px; flex-wrap: wrap"><a href="Verify-ApprovedSuper.dc.html" style="font-weight: 600"><span style="font-family: var(--font-mono)">HMA-ON-2026-1190</span> (Approved)</a><span style="font-size: 12px; font-weight: 600">Needs API: superseded_by_id</span><span style="font-size: 13px; color: var(--text-secondary)">Restaurant now:</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.HalalBadge" state="CERTIFIED" surface="operational" size="sm"></x-import></dd></dl>
+          <p style="margin: 0; font-size: 13px; line-height: 1.45">A newer certificate replaced this one. This record no longer certifies anything; the badge belongs to the newer certificate.</p>
+        </section>
+</x-import>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { yes: true, no: false, noop: () => {} };
+  }
+}
+</script>
+</body>
+</html>

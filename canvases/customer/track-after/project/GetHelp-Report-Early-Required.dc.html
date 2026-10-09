@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Report a problem before delivery</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<link rel="stylesheet" href="hg-roles.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:var(--surface-base)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+</style>
+</helmet>
+<div style="width: 390px; height: 1200px; position: relative; display: flex; flex-direction: column; overflow: hidden; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="cream" title="Report a problem" subtitle="Order HG-8F3K2Q · Zaytoun Grill" back-label="Back to order HG-8F3K2Q" on-back="{{ noop }}"></x-import><main style="flex-grow: 1; display: flex; flex-direction: column; gap: 20px; padding: 8px 16px 24px; overflow: hidden">
+<p class="type-body-md" style="color: var(--text-secondary)">Your order isn't with you yet. Tell us what's wrong and a person will look at it. We work out any refund from your order, so you don't enter an amount.</p><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.RadioGroup" label="What's wrong?" name="reason" value="WRONG_ADDRESS" options="{{ reasons }}" required="{{ yes }}"></x-import><span class="hg-tag hg-tag-api" style="align-self: flex-start; white-space: normal">Needs API: a reason code for a wrong delivery address (sent as OTHER with the note until the contract has one)</span><div style="display: flex; flex-direction: column; gap: 6px"><span class="hg-tag">Proposed component: Textarea</span><label class="type-label-md" for="note">Tell us the right address (required)</label><span class="type-body-sm" id="note-help" style="color: var(--text-secondary)">Only our team sees this.</span><textarea id="note" name="note" maxlength="1000" aria-describedby="note-help note-err" aria-invalid="true" aria-required="true" class="type-body-md" style="display: block; width: 100%; min-height: 88px; box-sizing: border-box; margin: 0; padding: 12px; resize: vertical; border-radius: var(--radius-md); background: var(--surface-raised); color: var(--text-primary); font-family: var(--font-ui); border: 2px solid var(--feedback-danger-border); box-shadow: 0 0 0 var(--focus-offset-width) var(--focus-offset), 0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)"></textarea><div style="display: flex; justify-content: space-between; gap: 12px"><span id="note-err" class="type-body-sm" style="display: flex; gap: 6px; align-items: center; color: var(--feedback-danger-text)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="error" size="sm" color="var(--feedback-danger-icon)"></x-import>Tell us the right address, in at least 5 characters.</span><span id="note-count" class="type-body-sm hg-num" style="color: var(--text-secondary)">0 / 1000</span></div></div><div class="hg-gap"><span class="hg-tag">Annotation: required note, empty on Send</span><span class="hg-gap-note">"The delivery address is wrong" is sent as OTHER with the note, so the note is required and its label says what goes in it. "Something else" works the same with the label "Tell us what's wrong (required)" and the message "Tell us what's wrong, in at least 5 characters." Send report was pressed with the note empty: the field error shows under the note, linked with aria-describedby, and focus moves to the note (drawn). Send stays enabled. The server's 422 VALIDATION_FAILED for a missing or short OTHER note shows the same message in the same place, as on GetHelp-Refund-Other. Nothing here changes the address by itself: a person reads the note and decides.</span></div>
+</main><div style="padding: 12px 16px 24px; display: flex; flex-direction: column; gap: 8px; background: var(--surface-raised); box-shadow: var(--elev-sticky)"><span class="hg-tag">Proposed component: StickyFooter</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" full-width="{{ yes }}">Send report</x-import><span class="type-body-sm" style="color: var(--text-secondary); text-align: center">Each order can be reported once, so tell us everything here.</span></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1200}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      yes: true, no: false, none: null, zero: 0, noop: () => {},
+      reasons: [{ value: 'LATE_DELIVERY', label: 'My order is very late' }, { value: 'WRONG_ADDRESS', label: 'The delivery address is wrong' }, { value: 'CUSTOMER_CHANGED_MIND', label: 'I want to cancel', description: 'A person decides whether it can still be stopped' }, { value: 'OTHER', label: 'Something else' }]
+    };
+  }
+}
+</script>
+</body>
+</html>

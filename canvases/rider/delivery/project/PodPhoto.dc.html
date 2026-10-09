@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Proof take a photo</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+[data-rider]{font-family:var(--font-ui)}
+.offer-chrome{background:var(--surface-raised)}
+[data-theme="dark"] .offer-chrome,[data-theme="dark"].offer-chrome{background:var(--surface-chrome)}
+</style>
+</helmet>
+<div data-rider="" data-theme="{{theme}}" style="width: 390px; height: 844px; position: relative; overflow: hidden; display: flex; flex-direction: column; background: var(--surface-base); color: var(--text-primary)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="field" title="Proof of delivery" subtitle="Step 4 of 4" on-back="{{noop}}" back-label="Back to handover"></x-import><div aria-hidden="true" style="position: absolute; top: var(--space-1); left: var(--space-1); width: 56px; height: 56px; border: 1.5px dashed var(--text-link); border-radius: var(--radius-sm); pointer-events: none; z-index: 5"></div>
+<main style="flex: 1 1 auto; overflow-y: auto; padding: var(--space-4) var(--space-5) var(--space-5); display: flex; flex-direction: column; gap: var(--space-3)"><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Something's wrong moved out of the AppBar to a full-width ghost row above the footer: with it in the bar the title and subtitle were cut to a few characters · Proposed variant: AppBar tone=field title and subtitle wrap (no ellipsis), subtitle body-lg, when actions are present · subtitle shortened to the step; the order code sits in the body</span><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Proposed variant: AppBar tone=field with IconButton size lg (56) · the DS back control is 44; the 56 hit area is outlined top left</span>
+<span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">required_pod_method: PHOTO · in-app camera only, never the photo library</span>
+<h2 style="margin: 0; font-size: var(--type-heading-xl-size); font-weight: var(--type-heading-xl-weight); letter-spacing: var(--type-heading-xl-tracking); line-height: 1.25">Take a photo of the bag at the door</h2>
+<p style="margin: 0; font-size: var(--type-body-lg-size); line-height: 1.5">Show the bag and the door or unit number in one photo. Don't include people.</p>
+<p style="margin: 0; font-size: var(--type-body-lg-size); line-height: 1.5">Bag for <span style="font-family: var(--font-mono); font-size: var(--type-heading-md-size); font-weight: var(--font-weight-semibold)">HG-4K2M-9T</span></p>
+<div style="height: 400px; flex: 0 0 auto; border: 1.5px dashed var(--border-strong); border-radius: var(--radius-lg); background: var(--surface-sunken); padding: var(--space-3); display: flex; flex-direction: column; justify-content: space-between">
+<span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Proposed component: Scanner / CameraCapture (photo mode)</span>
+<span style="align-self: center; font-size: var(--type-body-lg-size)">Camera view</span>
+<span></span>
+</div>
+<div style="display: flex; flex-direction: column; gap: var(--space-1)"><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">DS Switch "Torch" (state announced natively) · Proposed variant: Switch row height 56 (rider)</span><div style="min-height: 56px; display: flex; align-items: center"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Switch" label="Torch" state-label="{{onOff}}" checked="{{torchOn}}" on-checked-change="{{setTorch}}"></x-import></div></div>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="xl" full-width="{{yes}}" icon-start="warning" href="SomethingWrongDoor.dc.html">Something's wrong</x-import>
+</main>
+<footer style="flex: 0 0 auto; padding: var(--space-3) var(--space-5) var(--space-5); border-top: 1px solid var(--border-decorative); background: var(--surface-base); display: flex; flex-direction: column; gap: var(--space-2)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="xl" full-width="{{yes}}" href="PodPhotoReview.dc.html">Take photo</x-import><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Icon gap: camera (Solar camera-linear) · no stand-in glyph</span><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Prototype branches: <a href="PodPhotoCameraDenied.dc.html" style="color: var(--text-link)">camera not allowed</a></span>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["dark","light"],"default":"dark"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return { torchOn: !!(this.state && this.state.torch), setTorch: (v) => this.setState({ torch: v }),  swAction: (window.React && window.HalalGoesDesignSystem_d11a47) ? window.React.createElement(window.HalalGoesDesignSystem_d11a47.Button, { variant: 'ghost', size: 'xl', iconStart: 'warning', href: 'SomethingWrongDoor.dc.html' }, "Something's wrong") : null,  onOff: { on: 'On', off: 'Off' }, no: false, theme: this.props.theme ?? 'dark', yes: true, noop: () => {} }; }
+}
+</script>
+</body>
+</html>

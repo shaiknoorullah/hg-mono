@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sign in — too many attempts (429)</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:var(--surface-base);color:var(--text-primary);font-family:var(--font-ui)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+.skip{position:absolute;left:16px;top:-80px;z-index:10}.skip:focus{top:8px}
+form{margin:0}
+.gap{position:relative;outline:1.5px dashed var(--color-neutral-500);outline-offset:4px}
+.gap::before{content:"Proposed component: " attr(data-gap);position:absolute;top:-28px;left:-4px;font:500 12px/1 var(--font-mono);color:var(--color-neutral-800);background:var(--color-neutral-100);padding:4px 8px;border-radius:4px;white-space:nowrap}
+.api{display:inline-flex;align-items:center;gap:8px;padding:4px 8px;border:1.5px dashed var(--color-info-600);background:var(--color-info-50);color:var(--color-info-700);font:500 12px/1.4 var(--font-mono);border-radius:4px}
+.note{display:inline-flex;align-items:center;padding:4px 8px;background:var(--color-neutral-100);color:var(--color-neutral-800);font:500 12px/1.4 var(--font-mono);border-radius:4px}
+</style>
+</helmet>
+<div style="width: 1440px; height: 1080px; box-sizing: border-box; background: var(--surface-base); display: flex; flex-direction: column; font-family: var(--font-ui); color: var(--text-primary); position: relative; overflow: hidden">
+<dc-import name="AuthTop" w="1440px" hint-size="1440px,80px"></dc-import>
+<main style="flex-grow: 1; display: flex; justify-content: center; padding: 48px 16px 0">
+<div style="width: 480px; max-width: 100%; display: flex; flex-direction: column; gap: 24px">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="elevated" radius="lg" padding="32px" hint-size="480px,420px">
+<form novalidate style="display: flex; flex-direction: column; gap: 20px">
+<div style="display: flex; flex-direction: column; gap: 8px"><h1 class="type-heading-xl" style="margin: 0">Sign in to your restaurant</h1><p class="type-body-md" style="margin: 0; line-height: 1.5; color: var(--text-secondary)">Use the email and password you registered with.</p></div><div role="status" style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 4px; margin-top: 32px; display: flex; gap: 12px; align-items: flex-start; padding: 12px 16px; background: var(--feedback-warning-tint); color: var(--feedback-warning-tint-text); border: 1px solid var(--feedback-warning-border); border-radius: 12px"><span aria-hidden="true" style="position: absolute; top: -32px; left: -4px; font: 500 12px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 4px 8px; border-radius: 4px; white-space: nowrap; z-index: 1">Proposed component: Banner</span><span style="display: inline-flex; color: var(--feedback-warning-icon)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="clock" size="md" hint-size="20px,20px"></x-import></span><div class="type-body-md" style="flex-grow: 1; display: flex; flex-direction: column; gap: 4px; line-height: 1.5"><strong class="type-label-lg">Too many attempts from this device</strong><span>Wait a moment, then try again. What you typed is kept.</span></div></div><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Email" variant="email" auto-complete="username" default-value="samir@zaytoungrill.ca" hint-size="100%,72px"></x-import><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Password" variant="password" auto-complete="current-password" default-value="correct-horse-battery" hint-size="100%,72px"></x-import><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" full-width="{{yes}}" type="submit" disabled="{{yes}}" aria-describedby="wait-reason" hint-size="100%,52px">Try again</x-import><p id="wait-reason" class="type-body-sm" style="margin: 0; color: var(--text-secondary); display: flex; gap: 4px; align-items: center">You can try again in <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Countdown" variant="text" size="sm" expires-at="{{wait.exp}}" server-now="{{wait.now}}" window-seconds="60" label="until you can try again" hint-size="80px,20px"></x-import></p><span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">Countdown: expiresAt = response Date + Retry-After, serverNow = response Date header, windowSeconds = Retry-After. The disabled button has aria-describedby pointing at this line. One polite status message at the start and one at the end, nothing per second.</span><p class="type-body-sm" style="margin: 0; line-height: 1.5; color: var(--text-secondary)">Forgot your password? <a href="Forgot-Password.dc.html" style="font-weight: 600">Reset it by email</a>.</p>
+</form>
+</x-import>
+<p class="type-body-sm" style="margin: 0; text-align: center; line-height: 1.5; color: var(--text-secondary)">Need help signing in? Call partner support on <a href="tel:[support phone]">[support phone]</a>, [support hours].</p>
+</div>
+</main>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 1440, "height": 1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+const now = Date.now(); return { yes: true, no: false, wait: { exp: new Date(now + 42 * 1000).toISOString(), now: new Date(now).toISOString() } };
+  }
+}
+</script>
+</body>
+</html>

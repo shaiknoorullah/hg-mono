@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Proof photo did not upload</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+[data-rider]{font-family:var(--font-ui)}
+.offer-chrome{background:var(--surface-raised)}
+[data-theme="dark"] .offer-chrome,[data-theme="dark"].offer-chrome{background:var(--surface-chrome)}
+</style>
+</helmet>
+<div data-rider="" data-theme="{{theme}}" style="width: 390px; height: 844px; position: relative; overflow: hidden; display: flex; flex-direction: column; background: var(--surface-base); color: var(--text-primary)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="field" title="Proof of delivery" subtitle="Step 4 of 4 · Proof · HG-4K2M-9T" on-back="{{noop}}" back-label="Back to handover"></x-import><div aria-hidden="true" style="position: absolute; top: var(--space-1); left: var(--space-1); width: 56px; height: 56px; border: 1.5px dashed var(--text-link); border-radius: var(--radius-sm); pointer-events: none; z-index: 5"></div>
+<main style="flex: 1 1 auto; overflow-y: auto; padding: var(--space-4) var(--space-5) var(--space-5); display: flex; flex-direction: column; gap: var(--space-3)"><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Proposed variant: AppBar tone=field with IconButton size lg (56) · the DS back control is 44; the 56 hit area is outlined top left</span>
+<div style="border: 1.5px dashed var(--border-strong); border-radius: var(--radius-md); background: var(--surface-raised); padding: var(--space-4) var(--space-4); display: flex; flex-direction: column; gap: var(--space-2)">
+<span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Proposed component: InlineAlert · upload step failed (presign → PUT → confirm)</span>
+<div style="display: flex; gap: var(--space-3); align-items: flex-start">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="warning" size="lg"></x-import>
+<div style="display: flex; flex-direction: column; gap: var(--space-1)"><strong style="font-size: var(--type-heading-md-size); font-weight: var(--font-weight-semibold)">Your photo didn't upload</strong><span style="font-size: var(--type-body-lg-size); line-height: 1.5">It's kept on your phone. Try again when you have signal. The delivery isn't marked done until it uploads.</span></div>
+</div>
+</div>
+<div style="height: 260px; flex: 0 0 auto; border: 1.5px dashed var(--border-strong); border-radius: var(--radius-lg); background: var(--surface-sunken); padding: var(--space-3); display: flex; flex-direction: column; justify-content: space-between">
+<span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Proposed component: FileUpload thumbnail</span>
+<span style="align-self: center; font-size: var(--type-body-lg-size)">Your photo, 9:58 pm</span>
+<span></span>
+</div>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="xl" full-width="{{yes}}" href="PodPhoto.dc.html">Retake photo</x-import>
+</main>
+<footer style="flex: 0 0 auto; padding: var(--space-3) var(--space-5) var(--space-5); border-top: 1px solid var(--border-decorative); background: var(--surface-base); display: flex; flex-direction: column; gap: var(--space-2)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="xl" full-width="{{yes}}" icon-start="refresh">Try uploading again</x-import>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["dark","light"],"default":"dark"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return { noop: () => {},  theme: this.props.theme ?? 'dark', yes: true }; }
+}
+</script>
+</body>
+</html>

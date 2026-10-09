@@ -1,0 +1,615 @@
+{
+ "v": 3,
+ "attachments": {},
+ "boards": {
+  "AuthTop.dc.html": {
+   "h": 80,
+   "title": "Part — sign-in header",
+   "w": 1440,
+   "x": 1104,
+   "y": 8460
+  },
+  "CheckEmail-Cooldown.dc.html": {
+   "h": 1040,
+   "is_interactive": true,
+   "title": "Check your email — resent, 1-minute wait",
+   "w": 1440,
+   "x": 1520,
+   "y": 5100
+  },
+  "CheckEmail-DailyLimit.dc.html": {
+   "h": 1120,
+   "is_interactive": true,
+   "title": "Check your email — daily limit reached (429)",
+   "w": 1440,
+   "x": 3040,
+   "y": 5100
+  },
+  "CheckEmail-Default.dc.html": {
+   "h": 940,
+   "is_interactive": true,
+   "title": "Check your email — default",
+   "w": 1440,
+   "x": 0,
+   "y": 5100
+  },
+  "CheckEmail-Offline.dc.html": {
+   "h": 1000,
+   "is_interactive": true,
+   "title": "Check your email — couldn’t send, no connection",
+   "w": 1440,
+   "x": 4560,
+   "y": 5100
+  },
+  "Focus-States.dc.html": {
+   "h": 2360,
+   "title": "Reference — keyboard focus states",
+   "w": 1440,
+   "x": 6080,
+   "y": 9880
+  },
+  "Main.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Sign in — default",
+   "w": 1440,
+   "x": 0,
+   "y": 260
+  },
+  "Phone-Register-320.dc.html": {
+   "h": 1480,
+   "is_interactive": true,
+   "title": "Reflow 320 CSS px (1280 at 400% zoom) — register",
+   "w": 320,
+   "x": 0,
+   "y": 6600
+  },
+  "Ref-BlockingReasons.dc.html": {
+   "h": 1900,
+   "title": "Reference — blocking_reason and halal status copy",
+   "w": 1440,
+   "x": 0,
+   "y": 9880
+  },
+  "Ref-ForcedColors.dc.html": {
+   "h": 1060,
+   "title": "Reference — forced colours (Windows high contrast)",
+   "w": 1440,
+   "x": 7600,
+   "y": 9880
+  },
+  "Ref-NeedsAPI.dc.html": {
+   "h": 2400,
+   "title": "Reference — Needs API register",
+   "w": 1440,
+   "x": 3040,
+   "y": 9880
+  },
+  "Ref-Rejections.dc.html": {
+   "h": 3000,
+   "title": "Reference — document rejection reasons",
+   "w": 1440,
+   "x": 1520,
+   "y": 9880
+  },
+  "Ref-SupportUnavailable.dc.html": {
+   "h": 1100,
+   "title": "Reference — partner support unavailable",
+   "w": 1440,
+   "x": 4560,
+   "y": 9880
+  },
+  "Register-Default.dc.html": {
+   "h": 1240,
+   "is_interactive": true,
+   "title": "Register — default",
+   "w": 1440,
+   "x": 0,
+   "y": 3280
+  },
+  "Register-EmailTaken.dc.html": {
+   "h": 1380,
+   "is_interactive": true,
+   "title": "Register — email already registered (409)",
+   "w": 1440,
+   "x": 4560,
+   "y": 3280
+  },
+  "Register-Errors.dc.html": {
+   "h": 1420,
+   "is_interactive": true,
+   "title": "Register — field errors (422)",
+   "w": 1440,
+   "x": 3040,
+   "y": 3280
+  },
+  "Register-NetError.dc.html": {
+   "h": 1380,
+   "is_interactive": true,
+   "title": "Register — couldn’t reach HalalGoes or server error (network / 5xx)",
+   "w": 1440,
+   "x": 7600,
+   "y": 3280
+  },
+  "Register-RateLimited.dc.html": {
+   "h": 1440,
+   "is_interactive": true,
+   "title": "Register — too many attempts (429, AUTH rate class)",
+   "w": 1440,
+   "x": 9120,
+   "y": 3280
+  },
+  "Register-Submitting.dc.html": {
+   "h": 1240,
+   "title": "Register — submitting",
+   "w": 1440,
+   "x": 1520,
+   "y": 3280
+  },
+  "Register-TermsUpdated.dc.html": {
+   "h": 1380,
+   "is_interactive": true,
+   "title": "Register — partner terms changed (409 TERMS_VERSION_STALE)",
+   "w": 1440,
+   "x": 6080,
+   "y": 3280
+  },
+  "SignIn-Banned.dc.html": {
+   "h": 960,
+   "is_interactive": true,
+   "title": "Sign in — account can’t be used (403 BANNED)",
+   "w": 1440,
+   "x": 9120,
+   "y": 1760
+  },
+  "SignIn-Code.dc.html": {
+   "h": 960,
+   "is_interactive": true,
+   "title": "Sign in — authenticator code (MFA_REQUIRED) — later version, not at launch",
+   "w": 1440,
+   "x": 0,
+   "y": 1760
+  },
+  "SignIn-CodeError.dc.html": {
+   "h": 1000,
+   "is_interactive": true,
+   "title": "Sign in — code not accepted — later version, not at launch",
+   "w": 1440,
+   "x": 3040,
+   "y": 1760
+  },
+  "SignIn-CodeLocked.dc.html": {
+   "h": 1140,
+   "is_interactive": true,
+   "title": "Sign in — too many wrong codes (423/429) — later version, not at launch",
+   "w": 1440,
+   "x": 4560,
+   "y": 1760
+  },
+  "SignIn-CodeSubmitting.dc.html": {
+   "h": 960,
+   "title": "Sign in — code submitting — later version, not at launch",
+   "w": 1440,
+   "x": 1520,
+   "y": 1760
+  },
+  "SignIn-Deactivated.dc.html": {
+   "h": 960,
+   "is_interactive": true,
+   "title": "Sign in — account closed (403 DELETED)",
+   "w": 1440,
+   "x": 12160,
+   "y": 1760
+  },
+  "SignIn-Invalid.dc.html": {
+   "h": 960,
+   "is_interactive": true,
+   "title": "Sign in — wrong email or password (401)",
+   "w": 1440,
+   "x": 3040,
+   "y": 260
+  },
+  "SignIn-Locked.dc.html": {
+   "h": 1000,
+   "is_interactive": true,
+   "title": "Sign in — temporarily locked (423)",
+   "w": 1440,
+   "x": 7600,
+   "y": 260
+  },
+  "SignIn-LockedPermanent.dc.html": {
+   "h": 960,
+   "is_interactive": true,
+   "title": "Sign in — locked until support unlocks it (423)",
+   "w": 1440,
+   "x": 6080,
+   "y": 1760
+  },
+  "SignIn-NotActive.dc.html": {
+   "h": 960,
+   "is_interactive": true,
+   "title": "Sign in — account not active (403)",
+   "w": 1440,
+   "x": 10640,
+   "y": 1760
+  },
+  "SignIn-NotRestaurant.dc.html": {
+   "h": 960,
+   "is_interactive": true,
+   "title": "Sign in — not a restaurant account (no restaurant grant)",
+   "w": 1440,
+   "x": 13680,
+   "y": 260
+  },
+  "SignIn-Offline.dc.html": {
+   "h": 960,
+   "is_interactive": true,
+   "title": "Sign in — no connection",
+   "w": 1440,
+   "x": 9120,
+   "y": 260
+  },
+  "SignIn-ReuseDetected.dc.html": {
+   "h": 1120,
+   "is_interactive": true,
+   "title": "Sign in — signed out on every device (reuse detected)",
+   "w": 1440,
+   "x": 12160,
+   "y": 260
+  },
+  "SignIn-SessionExpired.dc.html": {
+   "h": 1000,
+   "is_interactive": true,
+   "title": "Sign in — session ended (401), orders at risk",
+   "w": 1440,
+   "x": 10640,
+   "y": 260
+  },
+  "SignIn-Submitting.dc.html": {
+   "h": 900,
+   "title": "Sign in — submitting",
+   "w": 1440,
+   "x": 1520,
+   "y": 260
+  },
+  "SignIn-Suspended.dc.html": {
+   "h": 960,
+   "is_interactive": true,
+   "title": "Sign in — sign-in account suspended (403)",
+   "w": 1440,
+   "x": 7600,
+   "y": 1760
+  },
+  "SignIn-TooMany.dc.html": {
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Sign in — too many attempts (429)",
+   "w": 1440,
+   "x": 6080,
+   "y": 260
+  },
+  "SignIn-Unverified.dc.html": {
+   "h": 1080,
+   "is_interactive": true,
+   "title": "Sign in — email not confirmed yet (401)",
+   "w": 1440,
+   "x": 4560,
+   "y": 260
+  },
+  "Tab-SignIn-1024.dc.html": {
+   "h": 768,
+   "is_interactive": true,
+   "title": "Tablet 1024 — sign in (kitchen tablet, landscape)",
+   "w": 1024,
+   "x": 0,
+   "y": 8460
+  },
+  "Verify-Error.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Verify link — couldn’t confirm (network)",
+   "w": 1440,
+   "x": 13680,
+   "y": 5100
+  },
+  "Verify-Expired.dc.html": {
+   "h": 940,
+   "is_interactive": true,
+   "title": "Verify link — expired",
+   "w": 1440,
+   "x": 7600,
+   "y": 5100
+  },
+  "Verify-ExpiredError.dc.html": {
+   "h": 1020,
+   "is_interactive": true,
+   "title": "Verify link — couldn’t send",
+   "w": 1440,
+   "x": 10640,
+   "y": 5100
+  },
+  "Verify-ExpiredSending.dc.html": {
+   "h": 940,
+   "title": "Verify link — sending a new link",
+   "w": 1440,
+   "x": 9120,
+   "y": 5100
+  },
+  "Verify-Used.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Verify link — already used (VERIFICATION_TOKEN_USED)",
+   "w": 1440,
+   "x": 12160,
+   "y": 5100
+  },
+  "Verify-Working.dc.html": {
+   "h": 900,
+   "title": "Verify link — confirming",
+   "w": 1440,
+   "x": 6080,
+   "y": 5100
+  },
+  "SignIn-RestaurantClosed.dc.html": {
+   "x": 13680,
+   "y": 1760,
+   "w": 1440,
+   "h": 960,
+   "title": "Sign in — restaurant account closed (sessions ended)",
+   "is_interactive": true
+  },
+  "Forgot-Password.dc.html": {
+   "x": 0,
+   "y": 13200,
+   "w": 1440,
+   "h": 900,
+   "title": "Forgot password — enter your email",
+   "is_interactive": true
+  },
+  "Forgot-Sending.dc.html": {
+   "x": 1520,
+   "y": 13200,
+   "w": 1440,
+   "h": 900,
+   "title": "Forgot password — sending",
+   "is_interactive": true
+  },
+  "Forgot-Error.dc.html": {
+   "x": 3040,
+   "y": 13200,
+   "w": 1440,
+   "h": 900,
+   "title": "Forgot password — couldn’t send (network or server error)",
+   "is_interactive": true
+  },
+  "Forgot-Sent.dc.html": {
+   "x": 4560,
+   "y": 13200,
+   "w": 1440,
+   "h": 900,
+   "title": "Forgot password — check your email (same message whether or not the account exists)",
+   "is_interactive": true
+  },
+  "Reset-Password.dc.html": {
+   "x": 6080,
+   "y": 13200,
+   "w": 1440,
+   "h": 900,
+   "title": "Reset password — set a new password (from the email link)",
+   "is_interactive": true
+  },
+  "Reset-Saving.dc.html": {
+   "x": 7600,
+   "y": 13200,
+   "w": 1440,
+   "h": 900,
+   "title": "Reset password — saving",
+   "is_interactive": true
+  },
+  "Reset-PasswordError.dc.html": {
+   "x": 9120,
+   "y": 13200,
+   "w": 1440,
+   "h": 900,
+   "title": "Reset password — new password not accepted (422)",
+   "is_interactive": true
+  },
+  "Reset-LinkInvalid.dc.html": {
+   "x": 10640,
+   "y": 13200,
+   "w": 1440,
+   "h": 900,
+   "title": "Reset password — link expired or already used (400)",
+   "is_interactive": true
+  },
+  "Reset-Done.dc.html": {
+   "x": 12160,
+   "y": 13200,
+   "w": 1440,
+   "h": 900,
+   "title": "Reset password — new password set, signed out everywhere",
+   "is_interactive": true
+  }
+ },
+ "createdOnFiles": {
+  "at": "2026-09-28T12:00:00Z",
+  "v": 1
+ },
+ "designSystems": [
+  {
+   "artifact": "https://claude.ai/artifact/1GwGVZz8Ju9wcz4HfCnzbv",
+   "copiedAt": "2026-09-28T14:50:23Z",
+   "namespace": "halalgoesdesignsystem-d11a47",
+   "title": "HalalGoes design system",
+   "version": "1790605103-3266"
+  }
+ ],
+ "launch": {
+  "view": "canvas"
+ },
+ "notes": {
+  "readme": {
+   "fill": "gray",
+   "maxH": 1200,
+   "text": "How to read this canvas\n\n- Restaurant web, light theme only (owner decision). Desktop screens are 1440 × 900 and never scroll: long lists scroll inside their own pane, detail opens in panes beside the list, and nothing that is work opens in a modal or sheet.\n- Owner only at launch: one login per restaurant, no staff or manager accounts, no restaurant switcher.\n- Screens compose the HalalGoes design system (Button, IconButton, Input, Select, Checkbox, Switch, Badge, Card, Menu, AppBar, Countdown, Price, HalalBadge, HalalCertificationPanel). Dashed outlines tagged “Proposed component: …” are composites built from library parts (shadcn/ui on web) and system parts, for the owner to approve into the design system. FileDrop, KeyValueList and SideNav are already approved; Split panes, Collapsible sidebar, Detail panel and the New-orders strip come from the desktop layout rules.\n- Dashed blue “Needs API: …” chips mark data the contract lacks (all on Ref-NeedsAPI). Grey mono tags are annotations, not UI.\n- Onboarding is server-driven: screens render current_step, progress and review round as returned; the client never works out the next step.\n- Sample data: Zaytoun Grill, owner Samir Haddad. Dates are absolute. [support phone] and [support hours] come from the public config.\n- Colour uses role tokens from the design system’s tokens.css (recompiled 28 September 2026); no local token overrides.",
+   "w": 520,
+   "x": -600,
+   "y": 0
+  },
+  "tA": {
+   "x": 0,
+   "y": 0,
+   "text": "Sign in",
+   "kind": "title1",
+   "maxW": 6000
+  },
+  "nA": {
+   "x": 15200,
+   "y": 260,
+   "w": 460,
+   "fill": "blue",
+   "text": "Sign in\n\n- Every card is a form: Enter submits; on errors focus moves to the summary.\n- Session ended or signed out everywhere: say the cost. New orders can’t reach the screen, time out after 3 minutes, and two missed in a row stop new orders.\n- Email not confirmed: login returns 401 with email_verification_required = true (only when the password was right). Send a new link is the primary.\n- Forgot your password: reset by email is in launch (owner decision; the contract still marks requestPasswordReset and resetPassword a later version). Every sign-in card links to Forgot-Password; the reset row is below the references.\n- Two-step sign-in: no recovery codes (owner decision). A lost authenticator is reset only by a super admin, who calls back the phone number on file and matches two account details (owner decision; Needs API).\n- One restaurant per login, so there is no restaurant picker.\n- Waits use Countdown from Retry-After and the response Date.",
+   "maxH": 1000
+  },
+  "tA2": {
+   "x": 0,
+   "y": 1500,
+   "text": "Sign in: account states, and the authenticator code (later version: at launch no restaurant is asked for a code)",
+   "kind": "title1",
+   "maxW": 6000
+  },
+  "tC": {
+   "x": 0,
+   "y": 3020,
+   "text": "Register",
+   "kind": "title1",
+   "maxW": 6000
+  },
+  "nC": {
+   "x": 10640,
+   "y": 3280,
+   "w": 460,
+   "fill": "blue",
+   "text": "Register and verify\n\n- A 201 issues no session. The next screen is always Check your email, which has 'Wrong email? Register again with the right one'. The resend label is 'Send a new link' in every state.\n- terms_version comes from PublicConfig. The terms document has no URL: Needs API.\n- Terms are never pre-ticked; errors are summarised at the top and focus moves there.\n- Network/5xx and 429 on register are drawn; retries reuse the Idempotency-Key.\n- VERIFICATION_TOKEN_USED has its own screen with Sign in as the primary.\n- Restaurant web is desktop and landscape tablet only (owner decision): the phone boards are gone; the 320 px board stays as the 400% zoom check.",
+   "maxH": 1000
+  },
+  "tC2": {
+   "x": 0,
+   "y": 4840,
+   "text": "Check your email and verify link",
+   "kind": "title1",
+   "maxW": 6000
+  },
+  "tN": {
+   "x": 0,
+   "y": 6340,
+   "text": "Reflow at 320 CSS px (1280 at 400% zoom): register",
+   "kind": "title1",
+   "maxW": 1200
+  },
+  "tM": {
+   "x": 0,
+   "y": 9620,
+   "text": "Reference: copy, rejections, Needs API, support, focus, forced colours",
+   "kind": "title1",
+   "maxW": 6000
+  },
+  "nM": {
+   "x": 9120,
+   "y": 9880,
+   "w": 460,
+   "fill": "blue",
+   "text": "Reference\n\n- Ref-BlockingReasons is the single source for What’s needed now copy and the checklist’s halal line (launch copy for the menu step).\n- Ref-Rejections: every rejection code, owner copy and primary action. Ref-NeedsAPI: every Needs API chip in one list.\n- Focus-States covers fields, buttons, links, checklist rows, overview rows in panes, SideNav on chrome and the in-page confirmation.",
+   "maxH": 1000
+  },
+  "tS": {
+   "x": 0,
+   "y": 8200,
+   "text": "Tablet sign-in (1024 landscape) and the shared sign-in header",
+   "kind": "title1",
+   "maxW": 3392
+  },
+  "movedTo": {
+   "x": -600,
+   "y": 1320,
+   "w": 520,
+   "fill": "orange",
+   "maxH": 800,
+   "text": "Moved to HalalGoes Restaurant — Onboarding application: https://claude.ai/artifact/91cZ3XgVs6RtiJncKjaSaT\n\nSections moved there: onboarding frame and business profile; documents, including the halal certificate; awaiting review; fixing documents; payout setup with Stripe; first menu and opening hours; setup done; withdrawn, account states and setup blockers; live console for account states; tablet 1024 setup screens; 320 px reflow (400% zoom) onboarding after the email link; and the setup parts (OnbTop, OnbSide, the pane parts and the reflow and tablet stacked parts).\n\nSign in, register, check your email and verify link, tablet sign-in and the reference boards stay here."
+  },
+  "tR": {
+   "x": 0,
+   "y": 12900,
+   "text": "Forgot your password: reset by email (in launch, owner decision)",
+   "kind": "title1",
+   "maxW": 13600
+  },
+  "nR": {
+   "x": 13760,
+   "y": 13200,
+   "w": 460,
+   "fill": "blue",
+   "maxH": 1000,
+   "text": "Password reset by email\n\n- requestPasswordReset always answers the same way, so Forgot-Sent never says whether the account exists.\n- The link works for 30 minutes, once (contract). An expired or used link answers a generic 400: Reset-LinkInvalid (Needs API: a specific code).\n- Setting a new password signs out every session, including the order screen, and sends a security email; Reset-Done says to sign in on the order screen again.\n- Passwords: at least 12 characters, no composition rules, breached passwords refused (contract)."
+  }
+ },
+ "order": [
+  "Main.dc.html",
+  "SignIn-Submitting.dc.html",
+  "SignIn-Invalid.dc.html",
+  "SignIn-Unverified.dc.html",
+  "SignIn-TooMany.dc.html",
+  "SignIn-Locked.dc.html",
+  "SignIn-Offline.dc.html",
+  "SignIn-SessionExpired.dc.html",
+  "SignIn-ReuseDetected.dc.html",
+  "SignIn-NotRestaurant.dc.html",
+  "SignIn-Code.dc.html",
+  "SignIn-CodeSubmitting.dc.html",
+  "SignIn-CodeError.dc.html",
+  "SignIn-CodeLocked.dc.html",
+  "SignIn-LockedPermanent.dc.html",
+  "SignIn-Suspended.dc.html",
+  "SignIn-Banned.dc.html",
+  "SignIn-NotActive.dc.html",
+  "SignIn-Deactivated.dc.html",
+  "SignIn-RestaurantClosed.dc.html",
+  "Register-Default.dc.html",
+  "Register-Submitting.dc.html",
+  "Register-Errors.dc.html",
+  "Register-EmailTaken.dc.html",
+  "Register-TermsUpdated.dc.html",
+  "Register-NetError.dc.html",
+  "Register-RateLimited.dc.html",
+  "CheckEmail-Default.dc.html",
+  "CheckEmail-Cooldown.dc.html",
+  "CheckEmail-DailyLimit.dc.html",
+  "CheckEmail-Offline.dc.html",
+  "Verify-Working.dc.html",
+  "Verify-Expired.dc.html",
+  "Verify-ExpiredSending.dc.html",
+  "Verify-ExpiredError.dc.html",
+  "Verify-Used.dc.html",
+  "Verify-Error.dc.html",
+  "Phone-Register-320.dc.html",
+  "Ref-BlockingReasons.dc.html",
+  "Ref-Rejections.dc.html",
+  "Ref-NeedsAPI.dc.html",
+  "Ref-SupportUnavailable.dc.html",
+  "Focus-States.dc.html",
+  "Ref-ForcedColors.dc.html",
+  "Tab-SignIn-1024.dc.html",
+  "AuthTop.dc.html",
+  "Forgot-Password.dc.html",
+  "Forgot-Sending.dc.html",
+  "Forgot-Error.dc.html",
+  "Forgot-Sent.dc.html",
+  "Reset-Password.dc.html",
+  "Reset-Saving.dc.html",
+  "Reset-PasswordError.dc.html",
+  "Reset-LinkInvalid.dc.html",
+  "Reset-Done.dc.html"
+ ],
+ "pages": [],
+ "title": "HalalGoes Restaurant — Sign-in & Onboarding"
+}

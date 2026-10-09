@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Notifications panel body</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div style="width: {{w}}; height: {{hh}}; box-sizing: border-box; font-family: var(--font-ui); color: var(--text-primary); background: var(--surface-raised); display: flex; flex-direction: column; gap: 16px">
+
+<sc-if value="{{isList}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; flex-direction: column; gap: 12px">
+<p style="margin: 0; font: var(--text-type-body-sm); color: var(--text-secondary)">3 unread · newest first. Opening one marks it read.</p>
+<ul style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; border-top: 1px solid var(--border-decorative)">
+<sc-for list="{{items}}" as="n" hint-placeholder-count="5">
+<li style="border-bottom: 1px solid var(--border-decorative)">
+<a href="{{n.href}}" style="display: flex; gap: 12px; align-items: flex-start; min-height: 64px; padding: 12px 4px; color: var(--text-primary); text-decoration: none">
+<span style="width: 12px; flex-shrink: 0; padding-top: 6px; display: flex">
+<sc-if value="{{n.unread}}" hint-placeholder-val="{{true}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="brand" appearance="dot" size="sm" label="Unread"></x-import></sc-if>
+</span>
+<span style="display: flex; flex-direction: column; gap: 4px; flex-grow: 1; min-width: 0">
+<span style="font: var(--text-type-label-lg); font-weight: {{n.weight}}">{{n.title}}</span>
+<span style="font: var(--text-type-body-sm); line-height: 1.45">{{n.body}}</span>
+<span style="font: var(--text-type-body-sm); color: var(--text-secondary)">{{n.when}}</span>
+</span>
+</a>
+</li>
+</sc-for>
+</ul>
+<div style="display: flex"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="sm">Show older notifications</x-import></div>
+<span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">listNotifications (the INAPP inbox) · markNotificationRead on open · sample text · kinds, newest first: PAYOUT_FAILED, DOCUMENT_EXPIRING (T−30, sent 28 September 2026 08:00 for a 28 October expiry), AUTO_OFFLINE, DOCUMENT_REJECTED, DOCUMENT_APPROVED (the restaurant notification catalogue) · no "payout on hold" kind exists · Proposed component: ListRow</span>
+<span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--feedback-info-tint-text); background: var(--feedback-info-tint)">Needs API: mark all read · no such button until then</span>
+<p style="margin: 0; font: var(--text-type-body-sm); color: var(--text-secondary)">Release notes are not notifications. They live under the account menu's What's new, which shows a dot when there are unseen notes.</p>
+</div>
+</sc-if>
+
+<sc-if value="{{isLoading}}" hint-placeholder-val="{{false}}">
+<div aria-busy="true" style="display: flex; flex-direction: column; gap: 16px">
+<span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">Proposed component: Skeleton</span>
+<sc-for list="{{four}}" as="k" hint-placeholder-count="4">
+<div style="display: flex; flex-direction: column; gap: 6px; padding-bottom: 12px; border-bottom: 1px solid var(--border-decorative)">
+<div style="width: 55%; height: 16px; border-radius: var(--radius-xs); background: var(--skeleton-base)"></div>
+<div style="width: 90%; height: 12px; border-radius: var(--radius-xs); background: var(--skeleton-base)"></div>
+<div style="width: 30%; height: 12px; border-radius: var(--radius-xs); background: var(--skeleton-base)"></div>
+</div>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{isEmpty}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; gap: 12px; padding: 32px 0">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="bell" size="xl" color="var(--text-secondary)"></x-import>
+<h3 style="margin: 0; font: var(--text-type-heading-md)">No notifications yet</h3>
+<p style="margin: 0; font: var(--text-type-body-md); line-height: 1.5; color: var(--text-secondary)">Messages about payouts, documents and your account appear here. New orders always show on the Orders page.</p>
+<span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">Proposed component: EmptyState</span>
+</div>
+</sc-if>
+
+<sc-if value="{{isError}}" hint-placeholder-val="{{false}}">
+<div role="alert" style="display: flex; flex-direction: column; gap: 12px; padding: 32px 0">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="info" size="xl" color="var(--text-secondary)"></x-import>
+<h3 style="margin: 0; font: var(--text-type-heading-md)">Couldn't load your notifications</h3>
+<p style="margin: 0; font: var(--text-type-body-md); line-height: 1.5; color: var(--text-secondary)">Nothing is lost; they stay in your inbox. New orders still arrive on the Orders page.</p>
+<div style="display: flex"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" icon-start="refresh">Try again</x-import></div>
+<span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">Proposed component: ErrorState</span>
+</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["list","loading","empty","error"],"default":"list"},"width":{"editor":"int","default":440},"height":{"editor":"int","default":860},"$preview":{"width":440,"height":860}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var s = this.props.state || 'list';
+    function n(title, body, when, href, unread) { return { title: title, body: body, when: when, href: href, unread: unread, weight: unread ? 700 : 500 }; }
+    return {
+      w: (this.props.width || 440) + 'px',
+      hh: (this.props.height || 860) + 'px',
+      isList: s === 'list',
+      isLoading: s === 'loading',
+      isEmpty: s === 'empty',
+      isError: s === 'error',
+      four: [1, 2, 3, 4],
+      items: [
+        n('A payout failed', "Your payout for 10–16 August didn't reach your bank. Open it to see what to do.", 'Today, 09:12', 'https://claude.ai/artifact/Djdm2j2nZaE3ULnyVudcjw', true),
+        // DOCUMENT_EXPIRING at T−30 (28 October expiry), valid under both cadences on the canvas; opens the expiring banner.
+        n('Your halal certificate expires on 28 October 2026', 'You can send the renewed certificate now.', 'Today, 08:00', 'Settings-HalalExpiring.dc.html', false),
+        n('Ordering was turned off', "2 orders in a row weren't answered in time, so new orders stopped. Turn ordering back on when someone is watching the screen.", 'Yesterday, 18:40', 'Settings-AutoOffline.dc.html', true),
+        n('Food safety certificate not accepted', "A reviewer couldn't read the inspection date. Open Documents to see the note and upload a new version.", '26 September 2026, 14:05', 'Docs-FoodRejected.dc.html', true),
+        n('Documents approved', 'HalalGoes approved your food safety certificate.', '3 March 2026, 11:30', 'Settings-Overview.dc.html', false)
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

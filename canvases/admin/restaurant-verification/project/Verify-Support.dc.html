@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Halal certificate, support agent</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:var(--surface-base);color:var(--text-primary);font-family:var(--font-ui)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+textarea.hg-ta:focus{outline:none;border:var(--focus-field-border-width) solid var(--focus-ring)}
+textarea.hg-ta[aria-invalid="true"]{border:var(--focus-field-border-width) solid var(--color-danger-500)}
+textarea.hg-ta[aria-invalid="true"]:focus{box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+.skip{position:absolute;left:-10000px;top:8px;z-index:900;padding:12px 16px;background:var(--surface-raised);color:var(--text-primary);border-radius:8px;font-weight:600}
+.skip:focus{left:80px;outline:none;box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; display: grid; grid-template-columns: 64px minmax(0, 1fr); background: var(--surface-base); position: relative; overflow: hidden; font-family: var(--font-ui); color: var(--text-primary)">
+  <dc-import name="SideNav" active="applications" role="SUPPORT_AGENT" collapsed="{{yes}}" h="900" hint-size="64px,900px"></dc-import>
+  <div style="display: flex; flex-direction: column; min-width: 0; min-height: 0; position: relative">
+    <a class="skip" href="#main">Skip to main content</a>
+    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="raised" title="Halal certificate" subtitle="Restaurant application · Karahi House" back-label="Back to the Karahi House application" on-back="{{noop}}"></x-import>
+    <main id="main" data-density="compact" style="flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 12px; padding: 12px; overflow: hidden">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg" padding="20px" style="max-width: 760px; width: 100%">
+        <section aria-labelledby="sum-h" style="display: flex; flex-direction: column; gap: 16px">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px">
+            <h2 id="sum-h" style="margin: 0; font-size: 20px; font-weight: 600">Karahi House</h2>
+            <span style="display: inline-flex; align-items: center; gap: 8px"><span style="font-size: 13px; color: var(--text-secondary)">Restaurant now:</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.HalalBadge" state="UNVERIFIED" surface="operational" size="md"></x-import></span>
+          </div>
+          <dl style="margin: 0; display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 10px 16px; font-size: 15px; line-height: 1.45">
+            <dt style="color: var(--text-secondary)">Certificate status</dt><dd style="margin: 0; font-weight: 600">Pending review</dd>
+            <dt style="color: var(--text-secondary)">Issuing body</dt><dd style="margin: 0; font-weight: 600">Halal Monitoring Authority (HMA Canada)</dd>
+            <dt style="color: var(--text-secondary)">Expires</dt><dd style="margin: 0; font-weight: 600">14 January 2027</dd>
+            <dt style="color: var(--text-secondary)">Rejection reason</dt><dd style="margin: 0; color: var(--text-secondary)">None. It hasn’t been rejected.</dd>
+          </dl>
+          <div style="display: flex; gap: 12px; padding: 12px 16px; border-radius: 12px; background: var(--surface-sunken); font-size: 15px; line-height: 1.5">
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="lock" size="md" color="var(--text-secondary)"></x-import>
+            <span>Support agents see this summary only. The scan, the certified address, the checks and notes are for admins, who make the decision.</span>
+          </div>
+        </section>
+</x-import>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { yes: true, no: false, noop: () => {} };
+  }
+}
+</script>
+</body>
+</html>

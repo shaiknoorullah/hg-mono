@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Decision panel</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<link rel="stylesheet" href="composites.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<section id="decision-panel" aria-labelledby="dp-title" class="hg-panel" data-theme="{{theme}}" style="width: {{w}}px; height: {{h}}px; font-family: var(--font-ui); color: var(--text-primary);">
+  <div class="hg-panel-head">
+    <div style="flex-grow: 1; display: flex; flex-direction: column; gap: var(--space-1);">
+      <span class="hg-gap">Proposed component: DetailPanel (in-page; replaces the document pane while open, never an overlay)</span>
+      <h2 id="dp-title" tabindex="-1" class="hg-panel-title {{titleFocus}}">{{title}}</h2>
+      <p class="type-body-sm" style="margin: 0; color: var(--text-secondary); max-width: 760px;">{{description}}</p>
+    </div>
+    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.IconButton" icon="close" accessibility-label="{{closeLabel}}" size="md" disabled="{{submitting}}" on-press="{{noop}}"></x-import>
+  </div>
+
+  <div class="hg-panel-body type-body-md" style="line-height: 1.5;">
+    <sc-if value="{{isNotSent}}" hint-placeholder-val="{{false}}">
+      <div style="display: flex; flex-direction: column; gap: var(--space-3); max-width: 720px;">
+        <div role="alert" class="hg-tone hg-tone--sm hg-tone--warning">
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="warning" size="md" style="margin-top: 2px; flex-shrink: 0;"></x-import>
+          <span><strong style="font-weight: 600;">{{ns.alert}}</strong> {{ns.alertBody}}</span>
+        </div>
+        <span class="type-body-sm" style="color: var(--text-secondary);">{{ns.picked}}</span>
+        <div style="display: flex; flex-direction: column; gap: var(--space-1);">
+          <label for="dp-kept" class="type-label-md">Your message (not sent)</label>
+          <textarea id="dp-kept" class="hg-field" rows="4" readonly="">{{msg.text}}</textarea>
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" on-press="{{noop}}" style="align-self: flex-start;">Copy message</x-import>
+        </div>
+        <p class="type-body-sm" style="margin: 0; color: var(--text-secondary);">{{ns.footer}}</p>
+        <sc-for list="{{ns.napis}}" as="n" hint-placeholder-count="0">
+          <span class="hg-napi">{{n.text}}</span>
+        </sc-for>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{isForm}}" hint-placeholder-val="{{true}}">
+      <div style="display: grid; grid-template-columns: {{cols}}; gap: var(--space-4) var(--space-6); align-items: start;">
+        <div style="display: flex; flex-direction: column; gap: var(--space-4); min-width: 0;">
+          <sc-for list="{{topNapis}}" as="n" hint-placeholder-count="0">
+            <span class="hg-napi">{{n.text}}</span>
+          </sc-for>
+          <sc-if value="{{alert}}" hint-placeholder-val="{{false}}">
+            <div role="alert" class="hg-tone hg-tone--sm hg-tone--warning">
+              <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="warning" size="md" style="margin-top: 2px; flex-shrink: 0;"></x-import>
+              <span><strong style="font-weight: 600;">{{alert}}</strong> {{alertBody}}</span>
+            </div>
+          </sc-if>
+          <sc-if value="{{fraud}}" hint-placeholder-val="{{false}}">
+            <div role="alert" class="hg-tone hg-tone--sm hg-tone--warning" style="flex-direction: column; align-items: stretch;">
+              <span style="display: inline-flex; gap: var(--space-2); align-items: flex-start;"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="warning" size="md" style="margin-top: 2px; flex-shrink: 0;"></x-import><span><strong style="font-weight: 600;">Vehicle insurance was rejected as suspected alteration. Use Reject application instead.</strong> Request changes invites the rider to upload again, which doesn’t fit a suspected fraud.</span></span>
+              <span id="send-off-reason" style="font-weight: 600;">Send request is off: untick vehicle insurance or reject the application. Reject application instead opens the rejection with your message carried across.</span>
+            </div>
+          </sc-if>
+          <sc-if value="{{kv.show}}" hint-placeholder-val="{{false}}">
+            <div style="display: flex; flex-direction: column; gap: var(--space-1);">
+              <span class="hg-gap">Proposed component: KeyValueList (approved by the owner for the design system)</span>
+              <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="filled" padding="var(--space-3) var(--space-4)">
+                <dl style="margin: 0; display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: var(--space-2) var(--space-3);">
+                  <sc-for list="{{kv.rows}}" as="r" hint-placeholder-count="3">
+                    <dt class="type-body-sm" style="color: var(--text-secondary);">{{r.k}}</dt><dd style="margin: 0;">{{r.v}}</dd>
+                  </sc-for>
+                </dl>
+              </x-import>
+            </div>
+          </sc-if>
+          <sc-if value="{{docs.show}}" hint-placeholder-val="{{false}}">
+            <fieldset aria-describedby="{{docs.describedBy}}" style="margin: 0; padding: 0; border: none; display: flex; flex-direction: column; gap: 2px;">
+              <legend class="type-label-md" style="padding: 0 0 var(--space-1);">Documents to upload again <span style="font-weight: 400; color: var(--text-secondary);">(pick at least one)</span></legend>
+              <span id="dp-docs-help" class="type-body-sm" style="color: var(--text-secondary); padding-bottom: var(--space-1);">{{docs.help}}</span>
+              <sc-for list="{{docs.items}}" as="d" hint-placeholder-count="3">
+                <div class="{{d.cls}}">
+                  <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Checkbox" label="{{d.label}}" description="{{d.desc}}" checked="{{d.checked}}" disabled="{{submitting}}"></x-import>
+                </div>
+              </sc-for>
+              <sc-if value="{{docs.invalid}}" hint-placeholder-val="{{false}}">
+                <span class="hg-gap">Proposed component: CheckboxGroup error (linked to the group, not to each box)</span>
+                <span id="dp-docs-err" role="alert" class="type-body-sm hg-err"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="error" size="sm"></x-import>Pick at least one document for the rider to upload again.</span>
+              </sc-if>
+            </fieldset>
+          </sc-if>
+          <sc-if value="{{rel.show}}" hint-placeholder-val="{{false}}">
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.RadioGroup" label="After releasing" required="{{yes}}" value="QUEUE" options="{{rel.options}}" disabled="{{submitting}}"></x-import>
+            <span class="hg-napi">Needs API: staff list for assigning a claim to a named reviewer</span>
+          </sc-if>
+          <sc-if value="{{ovr.show}}" hint-placeholder-val="{{false}}">
+            <div class="{{ovr.cls}}">
+              <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.RadioGroup" label="New decision for vehicle insurance version 2" required="{{yes}}" value="{{ovr.decision}}" options="{{ovr.options}}" error="{{ovr.error}}" disabled="{{submitting}}"></x-import>
+            </div>
+            <sc-if value="{{ovr.rejectChosen}}" hint-placeholder-val="{{false}}">
+              <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Select" label="Reason" required="{{yes}}" value="{{nullVal}}" placeholder="Choose a reason" options="{{ovr.reasons}}" disabled="{{submitting}}" helper-text="Reasons for vehicle insurance only. Nothing is preselected."></x-import>
+            </sc-if>
+            <sc-if value="{{ovr.noDecision}}" hint-placeholder-val="{{false}}">
+              <span class="hg-gap">Pressing Override decision with nothing chosen moves focus to the group; its error is linked to it.</span>
+            </sc-if>
+          </sc-if>
+          <sc-if value="{{sel.show}}" hint-placeholder-val="{{false}}">
+            <div class="{{sel.cls}}">
+              <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Select" label="{{sel.label}}" required="{{yes}}" value="{{sel.value}}" placeholder="Choose a reason" options="{{sel.options}}" error-text="{{sel.error}}" disabled="{{submitting}}" helper-text="{{sel.help}}"></x-import>
+            </div>
+            <sc-if value="{{sel.napi}}" hint-placeholder-val="{{false}}">
+              <span class="hg-napi">{{sel.napi}}</span>
+            </sc-if>
+          </sc-if>
+          <sc-if value="{{msg.show}}" hint-placeholder-val="{{false}}">
+            <div style="display: flex; flex-direction: column; gap: var(--space-1);">
+              <label for="dp-msg" class="type-label-md">{{msg.label}} <span style="font-weight: 400; color: var(--text-secondary);">{{msg.hint}}</span></label>
+              <span id="dp-msg-help" class="type-body-sm" style="color: var(--text-secondary);">{{msg.help}}</span>
+              <sc-if value="{{msg.invalid}}" hint-placeholder-val="{{false}}">
+                <textarea id="dp-msg" class="hg-field {{msg.focusCls}}" aria-invalid="true" aria-required="{{msg.required}}" aria-describedby="dp-msg-help dp-msg-err dp-msg-count" rows="4">{{msg.text}}</textarea>
+                <span id="dp-msg-err" role="alert" class="type-body-sm hg-err"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="error" size="sm"></x-import>{{msg.error}}</span>
+              </sc-if>
+              <sc-if value="{{msg.locked}}" hint-placeholder-val="{{false}}">
+                <textarea id="dp-msg" class="hg-field" aria-required="{{msg.required}}" aria-describedby="dp-msg-help dp-msg-count" rows="4" readonly="">{{msg.text}}</textarea>
+              </sc-if>
+              <sc-if value="{{msg.plain}}" hint-placeholder-val="{{true}}">
+                <textarea id="dp-msg" class="hg-field" aria-required="{{msg.required}}" aria-describedby="dp-msg-help dp-msg-count" rows="4">{{msg.text}}</textarea>
+              </sc-if>
+              <div class="type-body-sm" style="display: flex; justify-content: space-between; gap: var(--space-2); color: var(--text-secondary);"><span class="hg-gap">Proposed component: Textarea with counter</span><span id="dp-msg-count" style="font-variant-numeric: tabular-nums;">{{msg.count}} / 1,000</span></div>
+            </div>
+          </sc-if>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: var(--space-4); min-width: 0;">
+          <sc-if value="{{fin.show}}" hint-placeholder-val="{{false}}">
+            <div class="hg-tone hg-tone--sm hg-tone--warning" style="flex-direction: column;">
+              <span style="display: inline-flex; gap: var(--space-2); align-items: flex-start;"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="warning" size="md" style="margin-top: 2px; flex-shrink: 0;"></x-import><strong style="font-weight: 600;">{{fin.title}}</strong></span>
+              <span>{{fin.body}}</span>
+              <span class="hg-napi">Needs API: deactivation outcome on RiderApplication (account status and its reason); the attempt limit itself is settled</span>
+            </div>
+          </sc-if>
+          <sc-if value="{{consequence}}" hint-placeholder-val="{{false}}">
+            <p style="margin: 0; font-weight: 600;">{{consequence}}</p>
+          </sc-if>
+          <sc-if value="{{under18Note}}" hint-placeholder-val="{{false}}">
+            <span class="type-body-sm" style="color: var(--text-secondary);">Date of birth doesn’t match: the ID gives 2 November 2008 (age 17), the profile 2 November 2006. The message says why in words.</span>
+            <span class="hg-napi">Needs API: an age-requirement rejection reason (clearer for the rider than “Date of birth doesn’t match”)</span>
+          </sc-if>
+          <sc-if value="{{rem.show}}" hint-placeholder-val="{{false}}">
+            <div class="hg-tone hg-tone--sm hg-tone--info" style="flex-direction: column; align-items: stretch;">
+              <span style="display: inline-flex; gap: var(--space-2); align-items: flex-start;"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="info" size="md" style="margin-top: 2px; flex-shrink: 0;"></x-import><span>{{rem.text}}</span></span>
+              <sc-if value="{{rem.showBtn}}" hint-placeholder-val="{{true}}">
+                <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="secondary" size="md" aria-controls="decision-panel" on-press="{{noop}}" style="align-self: flex-start;">Request changes instead</x-import>
+              </sc-if>
+            </div>
+          </sc-if>
+          <sc-if value="{{reapply}}" hint-placeholder-val="{{false}}">
+            <div style="display: flex; flex-direction: column; gap: var(--space-1);">
+              <span class="type-body-sm" style="color: var(--text-secondary);">{{reapply}}</span>
+              <span class="hg-napi">Needs API: distinct Rejected onboarding state and re-apply waiting period on RiderApplication</span>
+            </div>
+          </sc-if>
+          <sc-for list="{{sideNapis}}" as="n" hint-placeholder-count="0">
+            <span class="hg-napi">{{n.text}}</span>
+          </sc-for>
+          <p class="type-body-sm" style="margin: 0; color: var(--text-secondary);">{{footer}}</p>
+          <span class="hg-gap">Opening: focus moves to the panel title. Cancel, the close button or Escape closes it (not while sending) and returns focus to the button that opened it. The rest of the page stays usable; one decision panel at a time.</span>
+        </div>
+      </div>
+    </sc-if>
+  </div>
+
+  <div class="hg-panel-foot">
+    <sc-if value="{{reloadFoot}}" hint-placeholder-val="{{false}}">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md" icon-start="refresh" on-press="{{noop}}">Reload the application</x-import>
+    </sc-if>
+    <sc-if value="{{fraudFoot}}" hint-placeholder-val="{{false}}">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" on-press="{{noop}}">Cancel</x-import>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="secondary" size="md" disabled="{{yes}}" aria-describedby="send-off-reason" on-press="{{noop}}">Send request</x-import>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md" aria-controls="decision-panel" on-press="{{noop}}">Reject application instead</x-import>
+    </sc-if>
+    <sc-if value="{{plainFoot}}" hint-placeholder-val="{{true}}">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" disabled="{{submitting}}" on-press="{{noop}}">Cancel</x-import>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="{{confirmVariant}}" size="md" destructive="{{destructive}}" loading="{{submitting}}" on-press="{{noop}}">{{confirmLabel}}</x-import>
+    </sc-if>
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"kind":{"editor":"enum","options":["reject","changes","approve","reverse","override","release","reopen"],"default":"reject"},"state":{"editor":"enum","options":["default","remediable","invalid","submitting","failed","offline","under18","final","bicycle","fraud","nodecision","rejectchosen","age422","lost409","decided409","changed422"],"default":"default"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"w":{"editor":"int","default":924},"h":{"editor":"int","default":740},"$preview":{"width":924,"height":740}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const DS = window.HalalGoesDesignSystem_d11a47 || {};
+    const kind = this.props.kind ?? 'reject';
+    const st = this.props.state ?? 'default';
+    const W = Number(this.props.w ?? 924) || 924;
+    const H = Number(this.props.h ?? 740) || 740;
+    const noop = () => {};
+    const submitting = st === 'submitting';
+    const notSent = ['lost409', 'decided409', 'changed422'].includes(st);
+    const N = (t) => ({ text: t });
+    const LABELS = { ILLEGIBLE: 'Illegible', EXPIRED: 'Expired', WRONG_DOCUMENT_TYPE: 'Wrong document type', NAME_MISMATCH: 'Name doesn’t match', DOB_MISMATCH: 'Date of birth doesn’t match', PLATE_MISMATCH: 'Plate doesn’t match', SUSPECTED_FORGERY: 'Suspected forgery', SUSPECTED_ALTERATION: 'Suspected alteration', INCOMPLETE_PAGES: 'Pages missing', OTHER: 'Other' };
+    const opts = (codes) => codes.map((c) => ({ value: c, label: LABELS[c] }));
+    const tenTo1000 = 'Sent to the rider word for word. 10 to 1,000 characters.';
+
+    // Defaults shared by every kind.
+    let v = {
+      title: '', description: '', closeLabel: 'Close, back to the document',
+      alert: '', alertBody: '', fraud: false,
+      kv: { show: false, rows: [] },
+      docs: { show: false, items: [], help: '', invalid: false, describedBy: 'dp-docs-help' },
+      rel: { show: false, options: [] },
+      ovr: { show: false, decision: null, options: [], error: null, cls: '', rejectChosen: false, noDecision: false, reasons: [] },
+      sel: { show: false, label: 'Reason', value: null, options: [], error: null, help: '', cls: '', napi: '' },
+      msg: { show: false, label: 'Message to the rider', hint: '(required)', help: tenTo1000, text: '', count: '0', invalid: false, focusCls: 'is-focused', locked: submitting, plain: !submitting, error: '' },
+      fin: { show: false, title: '', body: '' },
+      consequence: '', under18Note: false,
+      rem: { show: false, text: '', finalNote: false, showBtn: true },
+      reapply: '', topNapis: [], sideNapis: [], footer: 'Your decision is recorded with your account and the time.',
+      confirmLabel: 'Confirm', confirmVariant: 'primary', destructive: false,
+      ns: { alert: '', alertBody: '', footer: '', picked: '', napis: [] }
+    };
+    const failedAlert = () => { v.alert = 'Nothing was recorded. Your message is kept.'; v.alertBody = 'The connection dropped or the server had an error. Trying again is safe: the same request key is sent.'; };
+
+    if (kind === 'reject') {
+      const under18 = st === 'under18';
+      const final = st === 'final';
+      const who = under18 ? 'Yusuf Ahmed' : (final ? 'Omar Siddiqui' : 'Fatima Noor');
+      // Owner decision (round 2): a reviewer never rejects for suspected forgery or alteration; that is a hold a
+      // Super Admin decides. The sample reason on these boards is a name mismatch instead.
+      const mismatch = 'The name on your vehicle insurance doesn’t match the name on your HalalGoes profile, so we can’t accept it. Contact support if you believe this is a mistake.';
+      let reason = null, message = '';
+      if (['submitting', 'failed'].includes(st) || notSent) { reason = 'NAME_MISMATCH'; message = mismatch; }
+      if (st === 'remediable') { reason = 'ILLEGIBLE'; message = 'We couldn’t read your insurance document: the photo is blurred. Upload a clear photo of every page.'; }
+      if (under18) { reason = 'DOB_MISMATCH'; message = 'You must be 18 or older to deliver with HalalGoes. You can apply again once you turn 18.'; }
+      if (final) { reason = 'ILLEGIBLE'; message = 'We still can’t read your ID: glare covers the ID number. This was your last attempt, so your account is now deactivated. Contact support to continue.'; }
+      const fixable = ['ILLEGIBLE', 'EXPIRED', 'WRONG_DOCUMENT_TYPE', 'INCOMPLETE_PAGES'];
+      const hasPlate = !(under18 || final);
+      v.title = 'Reject ' + who + '’s application';
+      v.description = 'The application moves to Documents rejected. The rider sees the reason and your message word for word.';
+      v.closeLabel = 'Close, back to the application';
+      v.sel = Object.assign(v.sel, { show: true, value: reason, options: opts(['ILLEGIBLE', 'EXPIRED', 'WRONG_DOCUMENT_TYPE', 'NAME_MISMATCH', 'DOB_MISMATCH'].concat(hasPlate ? ['PLATE_MISMATCH'] : [], ['INCOMPLETE_PAGES', 'OTHER'])), help: final ? 'Illegible, expired, wrong document type and pages missing can normally be fixed by the rider, but this is attempt 4 of 4: no uploads are left, so Request changes isn’t available.' : 'Illegible, expired, wrong document type and pages missing can be fixed by the rider. For those, Request changes usually serves the rider better. Suspected forgery isn’t a reason here: flag the document for a Super Admin instead.', error: st === 'invalid' ? 'Choose a reason.' : null, cls: st === 'invalid' ? 'hg-sim-focus' : '' });
+      v.msg = Object.assign(v.msg, { show: true, text: st === 'invalid' ? 'Rejected' : message, count: st === 'invalid' ? '8' : String(message.length), invalid: st === 'invalid', plain: !submitting && st !== 'invalid', error: 'Write at least 10 characters. This has 8.' });
+      // Focus goes to the first invalid field (the Reason select); the message shows only its invalid border and error.
+      if (st === 'invalid') v.msg.focusCls = '';
+      if (st === 'failed') failedAlert();
+      v.consequence = 'What happens next depends on the reason you choose.';
+      if (reason) v.consequence = fixable.includes(reason) ? 'The rider can’t continue this application. Support can re-open it for new uploads.' : 'The rider can’t continue this application. Only a Super Admin can reverse this, within 30 days.';
+      if (under18) v.consequence = 'The rider can’t continue this application. The age rule can’t be overridden; they can apply again once they turn 18.';
+      if (final) {
+        v.consequence = 'The rider’s account is deactivated because every attempt is used. Only support can re-open the account.';
+        v.fin = { show: true, title: 'Attempt 4 of 4: rejecting this deactivates the account.', body: 'Riders get 3 resubmissions. After this rejection only support can re-open the account.' };
+      }
+      v.under18Note = under18;
+      const rl = { ILLEGIBLE: 'Illegible', EXPIRED: 'Expired', WRONG_DOCUMENT_TYPE: 'Wrong document type', INCOMPLETE_PAGES: 'Pages missing' }[reason] || '';
+      v.rem = { show: !!reason && fixable.includes(reason), finalNote: final, showBtn: !final, text: final ? rl + ' can normally be fixed by the rider, but every attempt is used. Rejecting deactivates the account, and only support can re-open it.' : rl + ' can be fixed by the rider, so Request changes usually serves them better. Your reason and message carry over.' };
+      v.reapply = 'The re-apply date appears once you choose a reason.';
+      if (reason === 'NAME_MISMATCH') v.reapply = 'The rider can re-apply from 12 October 2026 (14 days).';
+      if (reason === 'ILLEGIBLE') v.reapply = 'The rider can re-apply straight away.';
+      if (under18) v.reapply = 'They can apply again once they turn 18.';
+      if (final) v.reapply = 'This account is deactivated, so the rider can’t re-apply with it.';
+      v.confirmLabel = st === 'failed' ? 'Try again' : 'Reject application';
+      v.confirmVariant = 'danger'; v.destructive = true;
+      v.ns.picked = 'Reason you chose: ' + (LABELS[reason] || 'None');
+    }
+
+    if (kind === 'changes') {
+      const bicycle = st === 'bicycle', final = st === 'final', fraud = st === 'fraud', invalid = st === 'invalid';
+      // Pre-ticked: only documents YOU rejected in this claim. Submitted / In review documents are never pre-ticked.
+      const car = [
+        { label: 'Driver’s licence', desc: 'Approved · version 2', checked: false },
+        { label: 'Vehicle registration', desc: 'Approved · version 1', checked: false },
+        { label: 'Vehicle insurance', desc: fraud ? 'Rejected by you 2:32 pm · Suspected alteration' : 'Rejected by you 2:32 pm · Pages missing', checked: true },
+        { label: 'Work eligibility', desc: 'Submitted · version 1 · not reviewed yet', checked: false },
+        { label: 'Profile photo', desc: 'Approved · version 1', checked: false }
+      ];
+      const bike = [
+        { label: 'Government ID', desc: 'Approved · version 1', checked: false },
+        { label: 'Work eligibility', desc: 'Rejected by you 2:32 pm · Illegible', checked: true },
+        { label: 'Profile photo', desc: 'Rejected by you 2:29 pm · Wrong document type', checked: true }
+      ];
+      const foot = [
+        { label: 'Government ID', desc: 'Rejected by you 2:32 pm · Illegible · version 3', checked: true },
+        { label: 'Work eligibility', desc: 'Approved · version 1', checked: false },
+        { label: 'Profile photo', desc: 'Approved · version 1', checked: false }
+      ];
+      let items = (bicycle ? bike : (final ? foot : car)).map((d) => Object.assign({}, d, { cls: '' }));
+      if (invalid) items = items.map((d, i) => Object.assign({}, d, { checked: false, cls: i === 0 ? 'hg-sim-focus' : '' }));
+      let message = 'Page 2 of your vehicle insurance is missing. Upload every page of the policy, including the page that lists permitted use.';
+      if (bicycle) message = 'Your work permit photo is blurred: upload a clear photo of the whole permit. Your profile photo shows a group: upload a photo of just your face.';
+      if (final) message = 'We still can’t read your ID: glare covers the ID number. Take the photo away from lights, with all four corners showing. This is your last attempt.';
+      v.title = bicycle ? 'Ask Maryam Hassan to fix documents' : (final ? 'Ask Omar Siddiqui to fix documents' : 'Ask Fatima Noor to fix documents');
+      v.description = 'The application goes back to the rider with the documents you pick. They see your message word for word. This is when the rider finds out about documents you rejected.';
+      v.closeLabel = 'Close, back to the application';
+      v.fraud = fraud;
+      v.docs = { show: true, items, invalid, describedBy: invalid ? 'dp-docs-help dp-docs-err' : 'dp-docs-help', help: (bicycle || final) ? (bicycle ? 'A bicycle rider’s set' : 'An on-foot rider’s set') + ': Government ID, work eligibility, profile photo. Documents you rejected in this claim are ticked, with the reason you recorded.' : 'Documents you rejected in this claim are ticked, with the reason you recorded. Documents still Submitted or In review aren’t ticked.' };
+      v.sel = Object.assign(v.sel, { show: true, label: 'Main reason (one reason is sent for all picked documents)', value: fraud ? null : ((bicycle || final) ? 'ILLEGIBLE' : 'INCOMPLETE_PAGES'), options: opts(['ILLEGIBLE', 'EXPIRED', 'WRONG_DOCUMENT_TYPE', 'NAME_MISMATCH', 'DOB_MISMATCH'].concat((bicycle || final) ? [] : ['PLATE_MISMATCH'], ['INCOMPLETE_PAGES', 'OTHER'])), help: fraud ? 'Only reasons the rider can act on are offered. Suspected forgery and suspected alteration go through Reject application.' : (bicycle ? 'Your document rejections used Illegible and Wrong document type; only one can be sent.' : (final ? 'Taken from your rejection of the Government ID.' : 'Taken from your rejection of vehicle insurance.')), napi: 'Needs API: a reason per document on request changes' });
+      v.msg = Object.assign(v.msg, { show: true, text: invalid ? 'Fix it' : message, count: invalid ? '6' : String(message.length), invalid, plain: !submitting && !invalid, error: 'Write at least 10 characters. This has 6.', help: 'Pre-filled by joining your notes to the rider on each rejected document (never your internal check notes). Sent to the rider word for word. 10 to 1,000 characters.' });
+      // Focus goes to the first invalid field (the first document checkbox); the message shows only its invalid border and error.
+      if (invalid) v.msg.focusCls = '';
+      if (st === 'failed') failedAlert();
+      if (final) v.fin = { show: true, title: 'This is attempt 3 of 4: the rider gets one last upload.', body: 'Say exactly what to fix. If attempt 4 is rejected, the account is deactivated and only support can re-open it.' };
+      v.footer = 'The application moves to Documents rejected until the rider uploads again. Your decision is recorded with your account and the time.';
+      v.sideNapis = [N('Needs API: distinct Changes requested onboarding state')];
+      v.confirmLabel = st === 'failed' ? 'Try again' : 'Send request';
+      v.ns.picked = 'You picked: vehicle insurance · Pages missing';
+    }
+
+    if (kind === 'approve') {
+      const invalid = st === 'invalid';
+      const approveMsg = 'Your documents are approved. Next, set up payouts in the app. You can start taking deliveries once payouts are confirmed.';
+      v.title = st === 'age422' ? 'Not approved: this rider is under 18' : 'Approve Fatima Noor as a rider';
+      v.description = st === 'age422' ? 'The date of birth on file now makes them 17. Nothing was changed.' : 'They move to Payout pending. They can’t take deliveries until payouts are set up and Stripe confirms them.';
+      v.closeLabel = 'Close, back to the application';
+      v.topNapis = [N('Needs API: approval without a rejection code (open owner decision). Drawn as it works after the contract change; until then Approve rider stays off and this panel can’t open.')];
+      if (st !== 'age422') {
+        v.kv = { show: true, rows: [{ k: 'Rider', v: 'Fatima Noor · attempt 2' }, { k: 'Vehicle', v: 'Car · plate CKRT 482' }, { k: 'Age', v: '32, from the date of birth on the approved ID' }, { k: 'Documents', v: '5 of 5 approved: driver’s licence, vehicle registration, vehicle insurance, work eligibility, profile photo' }] };
+        v.msg = Object.assign(v.msg, { show: true, text: invalid ? 'Approved.' : approveMsg, count: invalid ? '9' : String(approveMsg.length), invalid, plain: !submitting && !invalid, error: 'Write at least 10 characters. This has 9.' });
+      } else {
+        v.alert = 'Riders must be 18 or older, and no one can override this.';
+        v.alertBody = 'Reload the application to see what the server has now.';
+        v.sideNapis = [N('The server’s age-requirement error goes to the audit trail and the client log, never into visible copy.')];
+      }
+      if (st === 'failed') failedAlert();
+      v.confirmLabel = st === 'failed' ? 'Try again' : 'Approve rider';
+    }
+
+    if (kind === 'reverse' || kind === 'override' || kind === 'release') {
+      const override = kind === 'override', release = kind === 'release';
+      const pick = (a, b, c) => release ? c : (override ? b : a);
+      let reason = override ? 'Re-checked with the insurer by phone on 28 September: the expiry date is genuine. Case closed.' : 'The insurer confirmed the policy dates are genuine. The alteration flag was a scan artefact.';
+      if (override && st === 'rejectchosen') reason = 'The insurer confirmed by phone on 28 September that the dates are genuine, but page 2 is missing from this upload.';
+      if (release) reason = 'Review target missed by 22 hours; the reviewer is off shift until tomorrow.';
+      let decision = null;
+      if (override && ['invalid', 'submitting', 'failed'].includes(st)) decision = 'APPROVE';
+      if (override && st === 'rejectchosen') decision = 'REJECT';
+      const insCodes = ['ILLEGIBLE', 'EXPIRED', 'WRONG_DOCUMENT_TYPE', 'NAME_MISMATCH', 'PLATE_MISMATCH', 'SUSPECTED_FORGERY', 'SUSPECTED_ALTERATION', 'INCOMPLETE_PAGES', 'OTHER'];
+      v.title = pick('Reverse the rejection of Fatima Noor’s application', 'Override the decision on vehicle insurance', 'Release the claim on Musa Ibrahim’s application');
+      v.description = pick('The application goes back to Documents review and joins the queue. The rider is told their application is being reviewed again.', 'The document’s decision changes now. The rider isn’t told; the application’s own decision is unchanged.', 'The other reviewer loses the claim now. Anything they haven’t submitted isn’t recorded; decisions they already sent stay.');
+      v.closeLabel = override ? 'Close, back to the document' : 'Close, back to the application';
+      v.topNapis = [N(pick('Needs API: Super Admin reversal of a rejection within 30 days', 'Needs API: Super Admin override of a document decision', 'Needs API: Super Admin release and reassign of a rider application claim'))];
+      v.kv = { show: true, rows: [
+        { k: pick('Application', 'Document', 'Application'), v: pick('Fatima Noor · attempt 2', 'Vehicle insurance · version 2', 'Musa Ibrahim · attempt 1 · review target missed') },
+        { k: release ? 'Current claim' : 'Current decision', v: release ? 'Claimed by another reviewer until 3:10 pm' : 'Rejected 25 September 2026, 4:02 pm: Suspected alteration' },
+        { k: 'After this', v: pick('Documents review, unclaimed (reversible until 25 October)', 'The decision you pick below', 'Unclaimed, or claimed by the reviewer you pick') }] };
+      v.rel = { show: release, options: [{ value: 'QUEUE', label: 'Put it back in the queue, unclaimed (oldest first, so it’s next)' }, { value: 'ASSIGN', label: 'Assign it to a named reviewer' }] };
+      v.ovr = { show: override, decision, options: [{ value: 'APPROVE', label: 'Approved' }, { value: 'REJECT', label: 'Rejected, with a new reason' }], error: st === 'nodecision' ? 'Choose the new decision.' : null, cls: st === 'nodecision' ? 'hg-sim-focus' : '', rejectChosen: override && st === 'rejectchosen', noDecision: st === 'nodecision', reasons: opts(insCodes) };
+      v.msg = Object.assign(v.msg, { show: true, label: 'Reason', hint: '(required, internal)', help: 'Recorded with your account and the time. Never sent to the rider. At least 20 characters.', text: st === 'invalid' ? 'Looks fine now' : reason, count: st === 'invalid' ? '14' : String(reason.length), invalid: st === 'invalid', plain: !submitting && st !== 'invalid', error: 'Write at least 20 characters. This has 14.' });
+      if (st === 'failed') { v.alert = 'Nothing was changed. Your reason is kept.'; v.alertBody = 'The connection dropped or the server had an error. Trying again is safe: the same request key is sent.'; }
+      v.footer = pick('Reversal is allowed for 30 days after the rejection. After that, the rider re-applies instead.', 'Overrides are listed in the audit trail with the original decision beside them.', 'The other reviewer is told their claim was released. Your reason stays in the audit trail and isn’t shown to them.');
+      v.confirmLabel = st === 'failed' ? 'Try again' : pick('Reverse rejection', 'Override decision', 'Release claim');
+    }
+
+    if (kind === 'reopen') {
+      const invalid = st === 'invalid';
+      v.title = 'Re-open Fatima Noor’s application';
+      v.description = 'It goes back to the rider to upload the documents you pick.';
+      v.closeLabel = 'Close, back to the application';
+      v.topNapis = [N('Needs API: support re-open of a rejected application (fixable reasons only)'), N('Needs API: distinct Changes requested state (where the re-opened application goes)')];
+      v.docs = { show: true, invalid, describedBy: invalid ? 'dp-docs-help dp-docs-err' : 'dp-docs-help', help: 'Only documents rejected for a reason the rider can fix can be sent back.', items: [
+        { label: 'Vehicle insurance', desc: 'Rejected 27 September · Illegible', checked: !invalid, cls: invalid ? 'hg-sim-focus' : '' },
+        { label: 'Work eligibility', desc: 'Approved · version 1', checked: false, cls: '' }] };
+      if (st === 'failed') { v.alert = 'Nothing was changed.'; v.alertBody = 'The connection dropped or the server had an error. Trying again is safe: the same request key is sent.'; }
+      if (st === 'offline') { v.alert = 'You’re offline. Nothing was sent.'; v.alertBody = 'Your choice stays here. Nothing is queued: press Try again once the connection returns.'; }
+      v.footer = 'Allowed because the rejection reason, Illegible, is one the rider can fix. Recorded with your account, the case and the time.';
+      v.confirmLabel = (st === 'failed' || st === 'offline') ? 'Try again' : 'Re-open application';
+    }
+
+    // The claim ended (409), another reviewer decided (409) or the application changed (422) while the panel was open.
+    if (notSent) {
+      const what = kind === 'changes' ? 'request' : 'rejection';
+      if (st === 'lost409') v.ns = Object.assign(v.ns, { alert: 'Not sent: your claim ended at 2:32 pm while this panel was open.', alertBody: 'Nothing was recorded or sent to the rider. Copy your message if you want to use it again.', footer: 'Reload the application to read it without a claim. To decide, take it again from the queue; Take next may give you a different application.', napis: [] });
+      if (st === 'decided409') v.ns = Object.assign(v.ns, { alert: 'Not sent: another reviewer already decided this application.', alertBody: 'It’s now Documents rejected. Your ' + what + ' wasn’t recorded, and nothing you wrote was sent to the rider.', footer: 'Reload the application to see the decision that was made.', napis: [N('Needs API: decided_by and decided_at on RiderApplication')] });
+      if (st === 'changed422') v.ns = Object.assign(v.ns, { alert: 'Not sent: the application changed after you opened it.', alertBody: (kind === 'changes' ? 'Vehicle insurance was re-uploaded (version 3).' : 'Work eligibility was re-uploaded (version 2).') + ' Nothing was recorded or sent.', footer: 'Reload the application to see the new version in Documents, review it, then decide again.', napis: [N('Needs API: blocker codes on RiderApplication, so the page can say exactly what changed (today the refusal carries plain text)')] });
+      v.title = kind === 'changes' ? 'Request not sent' : 'Rejection not sent';
+      v.description = 'Your message is kept below, read only.';
+    }
+
+    // Required is announced, not only printed: the field carries aria-required whenever its label says “required”.
+    v.msg = Object.assign({}, v.msg, { required: /required/.test(v.msg.hint || '') ? 'true' : 'false' });
+    const twoCol = W >= 760;
+    return Object.assign(v, {
+      yes: true, noop, nullVal: null,
+      theme: this.props.theme ?? 'light',
+      w: W, h: H,
+      cols: twoCol ? 'minmax(0, 1.15fr) minmax(0, 1fr)' : 'minmax(0, 1fr)',
+      submitting,
+      titleFocus: st === 'default' ? 'is-focused' : '',
+      isNotSent: notSent, isForm: !notSent, reloadFoot: notSent || (kind === 'approve' && st === 'age422'),
+      fraudFoot: !notSent && v.fraud,
+      plainFoot: !notSent && !v.fraud && st !== 'age422',
+      alertShow: !!v.alert
+    });
+  }
+}
+</script>
+</body>
+</html>

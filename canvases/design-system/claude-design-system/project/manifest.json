@@ -1,0 +1,2169 @@
+{
+  "manifestVersion": 3,
+  "name": "Halal Goes Design System",
+  "namespace": "HalalGoesDesignSystem_d11a47",
+  "files": [
+    "assets/Uploads/tokens.json",
+    "assets/notes/MIGRATION-REPORT.md",
+    "assets/notes/SKILL.from-standalone.md",
+    "components/AppBar/AppBar.d.ts",
+    "components/AppBar/README.md",
+    "components/Badge/Badge.d.ts",
+    "components/Badge/README.md",
+    "components/BottomNav/BottomNav.d.ts",
+    "components/BottomNav/README.md",
+    "components/Button/Button.d.ts",
+    "components/Button/README.md",
+    "components/Card/Card.d.ts",
+    "components/Card/README.md",
+    "components/Checkbox/Checkbox.d.ts",
+    "components/Checkbox/README.md",
+    "components/Core/README.md",
+    "components/Countdown/Countdown.d.ts",
+    "components/Countdown/README.md",
+    "components/Data/README.md",
+    "components/DataTable/DataTable.d.ts",
+    "components/DataTable/README.md",
+    "components/Dialog/Dialog.d.ts",
+    "components/Dialog/README.md",
+    "components/Feedback/README.md",
+    "components/Forms/README.md",
+    "components/Halal/README.md",
+    "components/HalalBadge/HalalBadge.d.ts",
+    "components/HalalBadge/README.md",
+    "components/HalalCertificationPanel/HalalCertificationPanel.d.ts",
+    "components/HalalCertificationPanel/README.md",
+    "components/HalalChecklist/HalalChecklist.d.ts",
+    "components/HalalChecklist/README.md",
+    "components/HalalShield/HalalShield.d.ts",
+    "components/HalalShield/README.md",
+    "components/Icon/Icon.d.ts",
+    "components/Icon/README.md",
+    "components/IconButton/IconButton.d.ts",
+    "components/IconButton/README.md",
+    "components/Index/AdminApp.jsx",
+    "components/Index/AdminShell.jsx",
+    "components/Index/CertificationQueueScreen.jsx",
+    "components/Index/DashboardScreen.jsx",
+    "components/Index/README.md",
+    "components/Index/TablesScreen.jsx",
+    "components/Index2/CheckoutScreen.jsx",
+    "components/Index2/CustomerApp.jsx",
+    "components/Index2/HomeScreen.jsx",
+    "components/Index2/Photo.jsx",
+    "components/Index2/README.md",
+    "components/Index2/RestaurantScreen.jsx",
+    "components/Index2/TrackingScreen.jsx",
+    "components/Index3/Benefits.jsx",
+    "components/Index3/Faq.jsx",
+    "components/Index3/FooterCta.jsx",
+    "components/Index3/Hero.jsx",
+    "components/Index3/HowItWorks.jsx",
+    "components/Index3/MarketingApp.jsx",
+    "components/Index3/Nav.jsx",
+    "components/Index3/README.md",
+    "components/Index3/SocialProof.jsx",
+    "components/Index3/Verification.jsx",
+    "components/Index4/CertificationScreen.jsx",
+    "components/Index4/MenuScreen.jsx",
+    "components/Index4/PayoutsScreen.jsx",
+    "components/Index4/QueueScreen.jsx",
+    "components/Index4/README.md",
+    "components/Index4/RestaurantApp.jsx",
+    "components/Index4/RestaurantShell.jsx",
+    "components/Index4/SettingsScreen.jsx",
+    "components/Index5/ActiveScreen.jsx",
+    "components/Index5/EarningsScreen.jsx",
+    "components/Index5/OfferScreen.jsx",
+    "components/Index5/OnlineScreen.jsx",
+    "components/Index5/README.md",
+    "components/Index5/RiderApp.jsx",
+    "components/Input/Input.d.ts",
+    "components/Input/README.md",
+    "components/Menu/Menu.d.ts",
+    "components/Menu/README.md",
+    "components/Navigation/README.md",
+    "components/Price/Price.d.ts",
+    "components/Price/README.md",
+    "components/Radio/README.md",
+    "components/Radio/Radio.d.ts",
+    "components/Rating/README.md",
+    "components/Rating/Rating.d.ts",
+    "components/SegmentedControl/README.md",
+    "components/SegmentedControl/SegmentedControl.d.ts",
+    "components/Select/README.md",
+    "components/Select/Select.d.ts",
+    "components/Sheet/README.md",
+    "components/Sheet/Sheet.d.ts",
+    "components/StatusTimeline/README.md",
+    "components/StatusTimeline/StatusTimeline.d.ts",
+    "components/Switch/README.md",
+    "components/Switch/Switch.d.ts",
+    "components/Toast/README.md",
+    "components/Toast/Toast.d.ts",
+    "components/bundle.css",
+    "components/bundle.js",
+    "components/customer-app/Photo.jsx",
+    "components/lib/react-dom.production.min.js",
+    "components/lib/react.production.min.js",
+    "docs/_ds_bundle.js",
+    "docs/_ds_manifest.json",
+    "guidelines/brand-seal-anatomy.card.html",
+    "guidelines/brand-voice.card.html",
+    "guidelines/brand-wordmark.card.html",
+    "guidelines/colors-accent.card.html",
+    "guidelines/colors-brand.card.html",
+    "guidelines/colors-halal.card.html",
+    "guidelines/colors-invariants.card.html",
+    "guidelines/colors-neutral.card.html",
+    "guidelines/colors-semantic.card.html",
+    "guidelines/colors-surfaces.card.html",
+    "guidelines/colors-text.card.html",
+    "guidelines/elevation-scale.card.html",
+    "guidelines/halal-states.card.html",
+    "guidelines/icons-lucide.card.html",
+    "guidelines/motion-scale.card.html",
+    "guidelines/radius-scale.card.html",
+    "guidelines/spacing-density.card.html",
+    "guidelines/spacing-scale.card.html",
+    "guidelines/targets.card.html",
+    "guidelines/type-body.card.html",
+    "guidelines/type-display.card.html",
+    "guidelines/type-families.card.html",
+    "guidelines/type-heading.card.html",
+    "guidelines/type-labels.card.html",
+    "guidelines/type-marketing.card.html",
+    "guidelines/type-numerals.card.html",
+    "templates/landing-waitlist/LandingWaitlist.dc.html",
+    "templates/landing-waitlist/ds-base.js",
+    "templates/landing-waitlist/support.js",
+    "tokens.css",
+    "ui_kits/admin-web/README.md",
+    "ui_kits/customer-app/README.md",
+    "ui_kits/marketing-site/README.md",
+    "ui_kits/marketing-site/artboards.html",
+    "ui_kits/restaurant-web/README.md",
+    "ui_kits/rider-app/README.md",
+    "uploads/claude-design-brief.md"
+  ],
+  "libraries": [
+    {
+      "name": "react",
+      "version": "18.3.1",
+      "global": "React",
+      "file": "components/lib/react.production.min.js"
+    },
+    {
+      "name": "react-dom",
+      "version": "18.3.1",
+      "global": "ReactDOM",
+      "file": "components/lib/react-dom.production.min.js"
+    }
+  ],
+  "components": [
+    {
+      "name": "Badge",
+      "summary": "Status and metadata labels — promos, order states, admin flags."
+    },
+    {
+      "name": "Button",
+      "summary": "Use for any action; primary is the orange CTA and there is exactly one per view."
+    },
+    {
+      "name": "Card",
+      "summary": "The default surface: a white plate raised above the cream canvas."
+    },
+    {
+      "name": "Icon",
+      "summary": "The only icon component — Lucide glyphs, stroked, inherited currentColor."
+    },
+    {
+      "name": "ICON_NAMES"
+    },
+    {
+      "name": "IconButton",
+      "summary": "Icon-only control for app bars, cards and toolbars; label is mandatory."
+    },
+    {
+      "name": "Countdown",
+      "summary": "Rider offer expiry, restaurant accept window, \"arriving in\"."
+    },
+    {
+      "name": "DataTable",
+      "summary": "Admin lists: restaurants, orders, certification queue, payouts."
+    },
+    {
+      "name": "Price",
+      "summary": "Every amount on every surface."
+    },
+    {
+      "name": "Rating",
+      "summary": "Restaurant and rider ratings."
+    },
+    {
+      "name": "StatusTimeline",
+      "summary": "Order tracking on customer, restaurant and rider surfaces."
+    },
+    {
+      "name": "Dialog",
+      "summary": "Confirmations and short forms that must block the view."
+    },
+    {
+      "name": "Menu",
+      "summary": "Overflow actions on admin rows, restaurant items and account headers."
+    },
+    {
+      "name": "Sheet",
+      "summary": "Mobile-first overlay: item customisation, address picker, tip selection, rider offers."
+    },
+    {
+      "name": "Toast",
+      "summary": "Short confirmations."
+    },
+    {
+      "name": "Checkbox",
+      "summary": "Multi-select and consent."
+    },
+    {
+      "name": "Input",
+      "summary": "Text entry."
+    },
+    {
+      "name": "Radio",
+      "summary": "One-of-many choice: tip amount, payment method, refund reason."
+    },
+    {
+      "name": "SegmentedControl",
+      "summary": "Two or three exclusive views."
+    },
+    {
+      "name": "Select",
+      "summary": "Choice from a short list; wraps a native so mobile gets the platform picker."
+    },
+    {
+      "name": "Switch",
+      "summary": "Settings that apply immediately — store open/closed, notification prefs."
+    },
+    {
+      "name": "HalalBadge",
+      "summary": "The single differentiator, rendered."
+    },
+    {
+      "name": "DEFAULT_POINTS"
+    },
+    {
+      "name": "HalalCertificationPanel",
+      "summary": "The proof."
+    },
+    {
+      "name": "HalalChecklist",
+      "summary": "Admin review of a restaurant's certification."
+    },
+    {
+      "name": "HalalShield",
+      "summary": "The verification mark."
+    },
+    {
+      "name": "AppBar",
+      "summary": "The top bar."
+    },
+    {
+      "name": "BottomNav",
+      "summary": "Phone-only primary navigation; 3-5 destinations."
+    },
+    {
+      "name": "Core",
+      "group": "Components",
+      "summary": "Orange action, forest chrome, warm tints",
+      "page": true
+    },
+    {
+      "name": "Data",
+      "group": "Components",
+      "summary": "Tabular numerals everywhere; mono for ids",
+      "page": true
+    },
+    {
+      "name": "Feedback",
+      "group": "Components",
+      "summary": "Scrims, sheets and the ink toast",
+      "page": true
+    },
+    {
+      "name": "Forms",
+      "group": "Components",
+      "summary": "3.33:1 interactive borders; orange controls",
+      "page": true
+    },
+    {
+      "name": "Halal",
+      "group": "Components",
+      "summary": "The reserved namespace: the only filled green in the system",
+      "page": true
+    },
+    {
+      "name": "Index",
+      "group": "Admin web",
+      "summary": "Compact density, mono ids, the seven-point review",
+      "page": true
+    },
+    {
+      "name": "Index2",
+      "group": "Customer app",
+      "summary": "Discovery → restaurant → checkout → tracking, click-through",
+      "page": true
+    },
+    {
+      "name": "Index3",
+      "group": "Marketing site",
+      "summary": "Audience toggle, both heroes, verification centrepiece, FAQ, footer CTA",
+      "page": true
+    },
+    {
+      "name": "Index4",
+      "group": "Restaurant web",
+      "summary": "Forest chrome sidebar, 4-column queue, certification renewal",
+      "page": true
+    },
+    {
+      "name": "Index5",
+      "group": "Rider app",
+      "summary": "Field theme: deepest forest, 56/72px targets, non-dismissible offer",
+      "page": true
+    },
+    {
+      "name": "Navigation",
+      "group": "Components",
+      "summary": "Cream, forest chrome and rider field tones",
+      "page": true
+    }
+  ],
+  "lastChange": {
+    "by": "Migration",
+    "via": "standalone export",
+    "at": "2026-09-18T11:41:02.763Z",
+    "note": "migrated from the standalone version",
+    "source": "claude-design",
+    "authoredIn": "spa"
+  },
+  "assetGroups": [
+    {
+      "name": "Icons",
+      "files": [
+        {
+          "path": "assets/Icons/icon-1.svg",
+          "id": "56fb7fb66425dedece640f8e35b15f5d"
+        },
+        {
+          "path": "assets/Icons/icon-10.svg",
+          "id": "6d0cec9d75fb7ec564c7d7db3c6f694b"
+        },
+        {
+          "path": "assets/Icons/icon-11.svg",
+          "id": "54ebd0ef58edcad9c97e1f5262941435"
+        },
+        {
+          "path": "assets/Icons/icon-12.svg",
+          "id": "264b082f2dce34d1bcb95a42b7b18cbd"
+        },
+        {
+          "path": "assets/Icons/icon-13.svg",
+          "id": "3888363fbbe6919709afc3be9f5e5d8c"
+        },
+        {
+          "path": "assets/Icons/icon-14.svg",
+          "id": "4638ac48b6c28fa5dc4dd0b7d82f15d9"
+        },
+        {
+          "path": "assets/Icons/icon-15.svg",
+          "id": "34d4cf009d6dfb7670efda735d025c63"
+        },
+        {
+          "path": "assets/Icons/icon-16.svg",
+          "id": "fac484834cc3f38df2bccb8db0e7a37c"
+        },
+        {
+          "path": "assets/Icons/icon-17.svg",
+          "id": "96c3639684ce833d3576b42953d11a48"
+        },
+        {
+          "path": "assets/Icons/icon-18.svg",
+          "id": "c92cd971fee9334cf7fba8e74239da1d"
+        },
+        {
+          "path": "assets/Icons/icon-19.svg",
+          "id": "240c7071493586af0da097b7793a0db3"
+        },
+        {
+          "path": "assets/Icons/icon-2.svg",
+          "id": "0655fba36c0066cf31bde0226707e702"
+        },
+        {
+          "path": "assets/Icons/icon-20.svg",
+          "id": "31226492e422b92d4ac5fd7f34434405"
+        },
+        {
+          "path": "assets/Icons/icon-21.svg",
+          "id": "7b8dcd6015db7f28cf1c73a89df7768f"
+        },
+        {
+          "path": "assets/Icons/icon-22.svg",
+          "id": "2e69c240dc504ed3018884daec2e09f9"
+        },
+        {
+          "path": "assets/Icons/icon-23.svg",
+          "id": "3a9814d67d71c4259c4b4bfe9bb9a873"
+        },
+        {
+          "path": "assets/Icons/icon-24.svg",
+          "id": "01d076e75b5d178aa0065628a60116ec"
+        },
+        {
+          "path": "assets/Icons/icon-25.svg",
+          "id": "66a657d89006135d1ebc1d756bff6644"
+        },
+        {
+          "path": "assets/Icons/icon-26.svg",
+          "id": "ff5adb1df0c404918bf11a79c5edc685"
+        },
+        {
+          "path": "assets/Icons/icon-27.svg",
+          "id": "96e99d9ea8bad9241f614025114c5925"
+        },
+        {
+          "path": "assets/Icons/icon-28.svg",
+          "id": "ad4ff7a9d8e2185a3f7dd9232c50a53d"
+        },
+        {
+          "path": "assets/Icons/icon-29.svg",
+          "id": "351c7f579f1022ec6c294cda3f544c70"
+        },
+        {
+          "path": "assets/Icons/icon-3.svg",
+          "id": "b620b10359975d0e7194fdb943da435e"
+        },
+        {
+          "path": "assets/Icons/icon-30.svg",
+          "id": "3a9ce52454fe525b2ec1d5210f4c946d"
+        },
+        {
+          "path": "assets/Icons/icon-31.svg",
+          "id": "916cbe19ae0571e1c46a97b53f3fc6dc"
+        },
+        {
+          "path": "assets/Icons/icon-32.svg",
+          "id": "cd4936de5d91fb30ec5a6c07db11d1d2"
+        },
+        {
+          "path": "assets/Icons/icon-33.svg",
+          "id": "d6a79a492a93e4ecd1b096d284026766"
+        },
+        {
+          "path": "assets/Icons/icon-34.svg",
+          "id": "5a869c59f3384ab4a71d074bfa1e2da3"
+        },
+        {
+          "path": "assets/Icons/icon-35.svg",
+          "id": "0c72cd260858b78f8c03282834a162c8"
+        },
+        {
+          "path": "assets/Icons/icon-36.svg",
+          "id": "9e7cae8c5978db7afa648f9fa4cd6094"
+        },
+        {
+          "path": "assets/Icons/icon-37.svg",
+          "id": "84560f5477357bddc03231d5cc0454cc"
+        },
+        {
+          "path": "assets/Icons/icon-38.svg",
+          "id": "2fa287d65789396b1e5a6476f94b7953"
+        },
+        {
+          "path": "assets/Icons/icon-39.svg",
+          "id": "f0331f92d83373581f43a6192d38e0b4"
+        },
+        {
+          "path": "assets/Icons/icon-4.svg",
+          "id": "e057094873f0e8e8374a6771f4c6cd6e"
+        },
+        {
+          "path": "assets/Icons/icon-40.svg",
+          "id": "2772bb0c540249ef639f2a234fdf1e1d"
+        },
+        {
+          "path": "assets/Icons/icon-41.svg",
+          "id": "6b4582af299d7616d00f6ce095099347"
+        },
+        {
+          "path": "assets/Icons/icon-42.svg",
+          "id": "aac123368fc19aedcda3ecc32ae033ff"
+        },
+        {
+          "path": "assets/Icons/icon-43.svg",
+          "id": "6af5ef7fc0f029e975861fd8c2eafb35"
+        },
+        {
+          "path": "assets/Icons/icon-44.svg",
+          "id": "502d1ad6dacc33991f85d8e7f560af9b"
+        },
+        {
+          "path": "assets/Icons/icon-45.svg",
+          "id": "2b0bd8dbb2d69215a2caec8f6e8289b5"
+        },
+        {
+          "path": "assets/Icons/icon-46.svg",
+          "id": "3af54d2964e08297ea0e0c5615257a16"
+        },
+        {
+          "path": "assets/Icons/icon-47.svg",
+          "id": "d6d64c7be6e116c67b0f25a9693b1aba"
+        },
+        {
+          "path": "assets/Icons/icon-48.svg",
+          "id": "c933748508955204950b3748dcb5da4c"
+        },
+        {
+          "path": "assets/Icons/icon-49.svg",
+          "id": "bb419bc855c5e2cb9849061ae1e68ffd"
+        },
+        {
+          "path": "assets/Icons/icon-5.svg",
+          "id": "b09e4cc0f9cc3aec4993ae837f3e7e0b"
+        },
+        {
+          "path": "assets/Icons/icon-50.svg",
+          "id": "69e1e0b7e23e14d338ea7e50198c7f8d"
+        },
+        {
+          "path": "assets/Icons/icon-51.svg",
+          "id": "0ac5f603240ce00927912b7ee644ea6d"
+        },
+        {
+          "path": "assets/Icons/icon-52.svg",
+          "id": "7f1414da178dc1d0df7d183e6f1d10ba"
+        },
+        {
+          "path": "assets/Icons/icon-53.svg",
+          "id": "d73ea94be8774e778637d8e1e4a44dc8"
+        },
+        {
+          "path": "assets/Icons/icon-54.svg",
+          "id": "8035882765f4154d8c5bbc1f24e2c677"
+        },
+        {
+          "path": "assets/Icons/icon-55.svg",
+          "id": "674e0ec16396e03a92cf84fab39f84d8"
+        },
+        {
+          "path": "assets/Icons/icon-56.svg",
+          "id": "0595f0d2e401c572b7a63c50236bb2aa"
+        },
+        {
+          "path": "assets/Icons/icon-57.svg",
+          "id": "6ed9e50afde4ab2fa41f8f33b9296641"
+        },
+        {
+          "path": "assets/Icons/icon-58.svg",
+          "id": "c81febea2a7e406c14513fd66120e15b"
+        },
+        {
+          "path": "assets/Icons/icon-59.svg",
+          "id": "11a386be0d78e9fc1636d22121ba01ee"
+        },
+        {
+          "path": "assets/Icons/icon-6.svg",
+          "id": "3b88bae1ae6d15f7e9c0e8d126fc4caf"
+        },
+        {
+          "path": "assets/Icons/icon-60.svg",
+          "id": "c404f5533c9d8487148f1afdf94b57fb"
+        },
+        {
+          "path": "assets/Icons/icon-7.svg",
+          "id": "8dea3763516525dbf2f700be46066a20"
+        },
+        {
+          "path": "assets/Icons/icon-8.svg",
+          "id": "0021835fae2e274c0ad496e47a59aff9"
+        },
+        {
+          "path": "assets/Icons/icon-9.svg",
+          "id": "404ded2233c96bbcf54d5f70948f13f1"
+        }
+      ]
+    },
+    {
+      "name": "Uploads"
+    },
+    {
+      "name": "Other",
+      "files": [
+        {
+          "path": "assets/halal-shield.svg",
+          "id": "e862d5e937fc7577dc3a7560ff6dfd16"
+        }
+      ]
+    },
+    {
+      "name": "icons",
+      "files": [
+        {
+          "path": "assets/icons/arrow-left.svg",
+          "id": "d60a3b5f07aaf20d7db3fe6c4d949af0"
+        },
+        {
+          "path": "assets/icons/arrow-right.svg",
+          "id": "396fcb85f3f732483e0f54692ca84415"
+        },
+        {
+          "path": "assets/icons/badge-check.svg",
+          "id": "12a555ef7fbc298d1326686f938da2b0"
+        },
+        {
+          "path": "assets/icons/banknote.svg",
+          "id": "b8df0e1a3fcc542500181110f84c2e3a"
+        },
+        {
+          "path": "assets/icons/bell.svg",
+          "id": "0d1434064ac88c2e8ae1864e78a487c9"
+        },
+        {
+          "path": "assets/icons/bike.svg",
+          "id": "b447c91fd6694bed46949c23a3085805"
+        },
+        {
+          "path": "assets/icons/calendar.svg",
+          "id": "a5e453a9f99c6d9adf8175ca026a8d72"
+        },
+        {
+          "path": "assets/icons/camera.svg",
+          "id": "1227479953be955021fa3489e088d062"
+        },
+        {
+          "path": "assets/icons/chart-column.svg",
+          "id": "ca748c4826e43b5959f4e6ac6973ee94"
+        },
+        {
+          "path": "assets/icons/check.svg",
+          "id": "ff2c0c8766031ceb14fc4394b71caa0f"
+        },
+        {
+          "path": "assets/icons/chevron-down.svg",
+          "id": "bf729c330b135872f5c476b35605703b"
+        },
+        {
+          "path": "assets/icons/chevron-left.svg",
+          "id": "69d40bfbc84d1d51d73b3cf3a2987b3c"
+        },
+        {
+          "path": "assets/icons/chevron-right.svg",
+          "id": "12cac018a323873869fe330406e5697f"
+        },
+        {
+          "path": "assets/icons/chevron-up.svg",
+          "id": "2843b267fa67d6f84d9096db02e72600"
+        },
+        {
+          "path": "assets/icons/circle-alert.svg",
+          "id": "c3bb33cca52b8e3c8f593a3f807c12b3"
+        },
+        {
+          "path": "assets/icons/circle-check.svg",
+          "id": "d0ea8e6d0570d371ce38e1bb8a51eed2"
+        },
+        {
+          "path": "assets/icons/clipboard-list.svg",
+          "id": "70548fa1c087ade7272e89e7e0cef1b7"
+        },
+        {
+          "path": "assets/icons/clock.svg",
+          "id": "ca031da0a86def1c533455b426597e8f"
+        },
+        {
+          "path": "assets/icons/credit-card.svg",
+          "id": "eb1e93ede37bd35b720e5765105beff3"
+        },
+        {
+          "path": "assets/icons/dollar-sign.svg",
+          "id": "66a1452190bf0ec25392f03bb37c6c8e"
+        },
+        {
+          "path": "assets/icons/download.svg",
+          "id": "6046ca2c0d5f913f13557f5eff835991"
+        },
+        {
+          "path": "assets/icons/ellipsis.svg",
+          "id": "c17cbfcf051ff64bb6902e2af26bd024"
+        },
+        {
+          "path": "assets/icons/external-link.svg",
+          "id": "8b545ee80463848c6521d625232141be"
+        },
+        {
+          "path": "assets/icons/eye.svg",
+          "id": "3aad6b23289b78a3929188049894dfc4"
+        },
+        {
+          "path": "assets/icons/file-text.svg",
+          "id": "7b07724390e37ae6db0ab68472a96ca9"
+        },
+        {
+          "path": "assets/icons/flame.svg",
+          "id": "a171fb0eb88fbd2483d16096212d60f7"
+        },
+        {
+          "path": "assets/icons/globe.svg",
+          "id": "da715f9f1faf228b261ae068ecd9c7bb"
+        },
+        {
+          "path": "assets/icons/heart.svg",
+          "id": "ca62c5063d025c48b59837a33527e4fc"
+        },
+        {
+          "path": "assets/icons/house.svg",
+          "id": "fddb53cc22c883bfc35fa123ce7f6d74"
+        },
+        {
+          "path": "assets/icons/info.svg",
+          "id": "f5b2aeff581a44a5aa4f5beb149a8e55"
+        },
+        {
+          "path": "assets/icons/layout-dashboard.svg",
+          "id": "87a7c721b2969385a927a883476d44fb"
+        },
+        {
+          "path": "assets/icons/leaf.svg",
+          "id": "81b69cd77648868dd5b25de957bb95c8"
+        },
+        {
+          "path": "assets/icons/list.svg",
+          "id": "f67a8a8f87e9e8bca7cd55eecdab52a7"
+        },
+        {
+          "path": "assets/icons/loader-circle.svg",
+          "id": "13a84454afa942598c6545ac2570d1db"
+        },
+        {
+          "path": "assets/icons/lock.svg",
+          "id": "360e950836ee4142c4c85c13342e8f98"
+        },
+        {
+          "path": "assets/icons/log-out.svg",
+          "id": "2534383a7946edd8cef002a2e605eb61"
+        },
+        {
+          "path": "assets/icons/mail.svg",
+          "id": "a29e63f38ca934a2ceffa4bfa3552456"
+        },
+        {
+          "path": "assets/icons/map-pin.svg",
+          "id": "ba774625740b0e58f4efd819ce0a6428"
+        },
+        {
+          "path": "assets/icons/menu.svg",
+          "id": "7eac882c77f8fc80431b6a044d145247"
+        },
+        {
+          "path": "assets/icons/message-circle.svg",
+          "id": "0befaf3480eff0583e62b3716a3dc30f"
+        },
+        {
+          "path": "assets/icons/minus.svg",
+          "id": "143c20084375f5833c20bd9a6a6df356"
+        },
+        {
+          "path": "assets/icons/navigation.svg",
+          "id": "1da72a1defa0650a337229f36c781e2f"
+        },
+        {
+          "path": "assets/icons/package.svg",
+          "id": "11ed212d71f10301330a29f752dfbc28"
+        },
+        {
+          "path": "assets/icons/phone.svg",
+          "id": "24046b83416d14187f71dcbc86188970"
+        },
+        {
+          "path": "assets/icons/plus.svg",
+          "id": "15447916ec704338ef6ef7b4e309d387"
+        },
+        {
+          "path": "assets/icons/printer.svg",
+          "id": "0c27a10b82a6fd5524ed18ef28de1198"
+        },
+        {
+          "path": "assets/icons/receipt.svg",
+          "id": "2e9ddd990ac6eca584e5a2f10b4d2459"
+        },
+        {
+          "path": "assets/icons/refresh-cw.svg",
+          "id": "150ee95bd5eb6c79fbea7a32b986784f"
+        },
+        {
+          "path": "assets/icons/route.svg",
+          "id": "bd46b58a83ff838cbf04a41f71914f12"
+        },
+        {
+          "path": "assets/icons/search.svg",
+          "id": "78d1b1a6e63e0341a8fd59f2eb877183"
+        },
+        {
+          "path": "assets/icons/settings.svg",
+          "id": "e320ef4d58c024102a4274275893439f"
+        },
+        {
+          "path": "assets/icons/shopping-bag.svg",
+          "id": "89e91c6b7a02887b0a07365a112ff979"
+        },
+        {
+          "path": "assets/icons/sliders-horizontal.svg",
+          "id": "4513354302eabe4143ed1a3edf68ddbe"
+        },
+        {
+          "path": "assets/icons/square-pen.svg",
+          "id": "cac7e3ca99ab6c21c26f459bb546b91d"
+        },
+        {
+          "path": "assets/icons/star.svg",
+          "id": "b1d8caef73a479c32347d01b8d6a235a"
+        },
+        {
+          "path": "assets/icons/store.svg",
+          "id": "9008ceda53bb2a34bd25ec2bf3aabf6c"
+        },
+        {
+          "path": "assets/icons/ticket-percent.svg",
+          "id": "cb5332a5dd8429dd77580217a991a6b5"
+        },
+        {
+          "path": "assets/icons/timer.svg",
+          "id": "9695ea68f1b24482dda3b1bac2ad3952"
+        },
+        {
+          "path": "assets/icons/trending-up.svg",
+          "id": "cf9a5dca1b853448c37424633c64a604"
+        },
+        {
+          "path": "assets/icons/triangle-alert.svg",
+          "id": "5b7b87a81a52958956b41c8b74819e97"
+        },
+        {
+          "path": "assets/icons/truck.svg",
+          "id": "c728cfe0341092d7fc9474192a7b715f"
+        },
+        {
+          "path": "assets/icons/upload.svg",
+          "id": "03abd4cb7f3722a691bb85b6cdc4d84f"
+        },
+        {
+          "path": "assets/icons/user.svg",
+          "id": "2e657660a5eb0a08eb6cab928c58447e"
+        },
+        {
+          "path": "assets/icons/users.svg",
+          "id": "0afbb8a4c5a5b0f58aac7002160c6b41"
+        },
+        {
+          "path": "assets/icons/utensils.svg",
+          "id": "5cfa4ac70463f692248a478708038929"
+        },
+        {
+          "path": "assets/icons/wallet.svg",
+          "id": "2982c8fb4dcf71be47b22d8264e061ca"
+        },
+        {
+          "path": "assets/icons/x.svg",
+          "id": "7d4f135be971b99dc1037e6f56d42d30"
+        }
+      ]
+    },
+    {
+      "name": "notes"
+    }
+  ],
+  "storage": {
+    "files": {
+      "assets/Icons/icon-1.svg": {
+        "store": "blob",
+        "id": "56fb7fb66425dedece640f8e35b15f5d",
+        "sha256": "89952eea7e682e2f2ce85282c60450d4f3fc854bd36451c533e24e4478329854",
+        "bytes": 258,
+        "type": "image/svg+xml",
+        "name": "icon-1.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/Icons/icon-10.svg": {
+        "store": "blob",
+        "id": "6d0cec9d75fb7ec564c7d7db3c6f694b",
+        "sha256": "42aa44f510572fdc09c9244f5ca4d3fed458d38169c1e69fb4a56ba3b87dcdde",
+        "bytes": 351,
+        "type": "image/svg+xml",
+        "name": "icon-10.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/Icons/icon-11.svg": {
+        "store": "blob",
+        "id": "54ebd0ef58edcad9c97e1f5262941435",
+        "sha256": "f467234a352461760000e490d865cf08760bc11f8b4ccc6eac8ef5b748412813",
+        "bytes": 363,
+        "type": "image/svg+xml",
+        "name": "icon-11.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/Icons/icon-12.svg": {
+        "store": "blob",
+        "id": "264b082f2dce34d1bcb95a42b7b18cbd",
+        "sha256": "13fb675aeb862d53791a026ac9610184c27ecd0fc93e61090f46bfc3264fc144",
+        "bytes": 280,
+        "type": "image/svg+xml",
+        "name": "icon-12.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/Icons/icon-13.svg": {
+        "store": "blob",
+        "id": "3888363fbbe6919709afc3be9f5e5d8c",
+        "sha256": "e1821b9559203df170fe76bd1d4a80ee5356bb2604bea9878e9eacfa52a9da03",
+        "bytes": 369,
+        "type": "image/svg+xml",
+        "name": "icon-13.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/Icons/icon-14.svg": {
+        "store": "blob",
+        "id": "4638ac48b6c28fa5dc4dd0b7d82f15d9",
+        "sha256": "3b3036c6c73dcd40ea42b0acd42c61d678109e626d9e2069e980968ad5dc2925",
+        "bytes": 569,
+        "type": "image/svg+xml",
+        "name": "icon-14.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/Icons/icon-15.svg": {
+        "store": "blob",
+        "id": "34d4cf009d6dfb7670efda735d025c63",
+        "sha256": "67b6bc0726792b09c03c39ba098c7ba49652348db5cdc1042ed6576d3571a064",
+        "bytes": 725,
+        "type": "image/svg+xml",
+        "name": "icon-15.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/Icons/icon-16.svg": {
+        "store": "blob",
+        "id": "fac484834cc3f38df2bccb8db0e7a37c",
+        "sha256": "215b519e257e371a5e16caed23700045acd2655b3de7e9c35076890135f63fe6",
+        "bytes": 314,
+        "type": "image/svg+xml",
+        "name": "icon-16.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/Icons/icon-17.svg": {
+        "store": "blob",
+        "id": "96c3639684ce833d3576b42953d11a48",
+        "sha256": "ed2214f46682366dce1b59409f379b00057d1a810b87809e8df9933de93abaaa",
+        "bytes": 368,
+        "type": "image/svg+xml",
+        "name": "icon-17.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/Icons/icon-18.svg": {
+        "store": "blob",
+        "id": "c92cd971fee9334cf7fba8e74239da1d",
+        "sha256": "370fb411db249ed0a6cdf3442cc868acb93861a8bc4eb85b3bed3e3444f9fa6b",
+        "bytes": 318,
+        "type": "image/svg+xml",
+        "name": "icon-18.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/Icons/icon-19.svg": {
+        "store": "blob",
+        "id": "240c7071493586af0da097b7793a0db3",
+        "sha256": "3d5bfe28c34923c0eb6b6012059102badaf61d1284af41454a77e3e35ce583a9",
+        "bytes": 372,
+        "type": "image/svg+xml",
+        "name": "icon-19.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/Icons/icon-2.svg": {
+        "store": "blob",
+        "id": "0655fba36c0066cf31bde0226707e702",
+        "sha256": "c047dbebe977f68bec10dd93440066b4410ee484c0dcced000fd2c051f4d71cc",
+        "bytes": 343,
+        "type": "image/svg+xml",
+        "name": "icon-2.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/Icons/icon-20.svg": {
+        "store": "blob",
+        "id": "31226492e422b92d4ac5fd7f34434405",
+        "sha256": "92a97d2dd1857141eccdfecc3e83c292ba2b8d6b434a44b168a928bfa736b67e",
+        "bytes": 334,
+        "type": "image/svg+xml",
+        "name": "icon-20.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/Icons/icon-21.svg": {
+        "store": "blob",
+        "id": "7b8dcd6015db7f28cf1c73a89df7768f",
+        "sha256": "b6f0fc575ead171ff3763cbf202b180490ec0f475d28f64d3b5e711688072eca",
+        "bytes": 415,
+        "type": "image/svg+xml",
+        "name": "icon-21.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/Icons/icon-22.svg": {
+        "store": "blob",
+        "id": "2e69c240dc504ed3018884daec2e09f9",
+        "sha256": "cc1472941fa3c0fd2a98109f4e13af588e46f30bc5f73f404fdcc92c9da03af6",
+        "bytes": 295,
+        "type": "image/svg+xml",
+        "name": "icon-22.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/Icons/icon-23.svg": {
+        "store": "blob",
+        "id": "3a9814d67d71c4259c4b4bfe9bb9a873",
+        "sha256": "3dbb3912ae281829521365c14be2bf69a4cb3df6a57f62aaf9693a3e74105c4c",
+        "bytes": 244,
+        "type": "image/svg+xml",
+        "name": "icon-23.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/Icons/icon-24.svg": {
+        "store": "blob",
+        "id": "01d076e75b5d178aa0065628a60116ec",
+        "sha256": "49360a1a906d6e8da82ce11103cb0b37c0e25cd94160330e45ca77dbfbdfd30a",
+        "bytes": 330,
+        "type": "image/svg+xml",
+        "name": "icon-24.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/Icons/icon-25.svg": {
+        "store": "blob",
+        "id": "66a657d89006135d1ebc1d756bff6644",
+        "sha256": "9015ebc3bb485955054fd24bb8f1a9197995b700cab9580b0c2a14772ca92884",
+        "bytes": 436,
+        "type": "image/svg+xml",
+        "name": "icon-25.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/Icons/icon-26.svg": {
+        "store": "blob",
+        "id": "ff5adb1df0c404918bf11a79c5edc685",
+        "sha256": "80a28af0daca9982ae6f52e3475c3bb537f4a7b60a11961f9643993a8eefa5b0",
+        "bytes": 390,
+        "type": "image/svg+xml",
+        "name": "icon-26.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/Icons/icon-27.svg": {
+        "store": "blob",
+        "id": "96e99d9ea8bad9241f614025114c5925",
+        "sha256": "7a7deefda1db49bc5896c0ea79adeb1e76101345666a9d627d1b1e3a04e48bac",
+        "bytes": 420,
+        "type": "image/svg+xml",
+        "name": "icon-27.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/Icons/icon-28.svg": {
+        "store": "blob",
+        "id": "ad4ff7a9d8e2185a3f7dd9232c50a53d",
+        "sha256": "8823b9ce47599b7897d08d7f3489563a54c3e7718543b0b00a64e4bb5293cf63",
+        "bytes": 571,
+        "type": "image/svg+xml",
+        "name": "icon-28.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/Icons/icon-29.svg": {
+        "store": "blob",
+        "id": "351c7f579f1022ec6c294cda3f544c70",
+        "sha256": "0a8b9dc0fb24c62c75c72c53bcacbaa9bc015c7fb5b14d24368b59c08ef21fae",
+        "bytes": 411,
+        "type": "image/svg+xml",
+        "name": "icon-29.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/Icons/icon-3.svg": {
+        "store": "blob",
+        "id": "b620b10359975d0e7194fdb943da435e",
+        "sha256": "1fa48cc7df5b04ff1505fccb98b8e2a98ad6c0dc796e51a21ffc2f8fd77f2a71",
+        "bytes": 411,
+        "type": "image/svg+xml",
+        "name": "icon-3.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/Icons/icon-30.svg": {
+        "store": "blob",
+        "id": "3a9ce52454fe525b2ec1d5210f4c946d",
+        "sha256": "42a01d9271683750a0ec696a37b6a03266fd460c86a32a4d16a4c1d83af70ad1",
+        "bytes": 311,
+        "type": "image/svg+xml",
+        "name": "icon-30.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/Icons/icon-31.svg": {
+        "store": "blob",
+        "id": "916cbe19ae0571e1c46a97b53f3fc6dc",
+        "sha256": "b1f16f81e9bd6403e5fc9f5c3d35ad537585f1c3b8105eaec4654db8ac4c8b09",
+        "bytes": 257,
+        "type": "image/svg+xml",
+        "name": "icon-31.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/Icons/icon-32.svg": {
+        "store": "blob",
+        "id": "cd4936de5d91fb30ec5a6c07db11d1d2",
+        "sha256": "1ad1d75db5b923045fb0bf7d2ec6ed61ca701038e7640455b32afe57fe063df3",
+        "bytes": 449,
+        "type": "image/svg+xml",
+        "name": "icon-32.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/Icons/icon-33.svg": {
+        "store": "blob",
+        "id": "d6a79a492a93e4ecd1b096d284026766",
+        "sha256": "914828b781b3cfac8ac11ed55b4cf89cfcf6eef7963d8357a0091d5241fb6144",
+        "bytes": 434,
+        "type": "image/svg+xml",
+        "name": "icon-33.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/Icons/icon-34.svg": {
+        "store": "blob",
+        "id": "5a869c59f3384ab4a71d074bfa1e2da3",
+        "sha256": "c3303ff7d46bb1566284b13e5da73e257282b5605ef7d0e363593a70b9870dd2",
+        "bytes": 267,
+        "type": "image/svg+xml",
+        "name": "icon-34.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/Icons/icon-35.svg": {
+        "store": "blob",
+        "id": "0c72cd260858b78f8c03282834a162c8",
+        "sha256": "466c1336af68c073a6180d0e904f25c67f560ed20130abde904d713948d1f2c9",
+        "bytes": 323,
+        "type": "image/svg+xml",
+        "name": "icon-35.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/Icons/icon-36.svg": {
+        "store": "blob",
+        "id": "9e7cae8c5978db7afa648f9fa4cd6094",
+        "sha256": "785306aaf5924a67539f69b1bd160888885b3bd2520493e820056b6e49d9010d",
+        "bytes": 336,
+        "type": "image/svg+xml",
+        "name": "icon-36.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/Icons/icon-37.svg": {
+        "store": "blob",
+        "id": "84560f5477357bddc03231d5cc0454cc",
+        "sha256": "be14f2858e14682a0e010afa3510122aecc287d05c10f170e330fda05161434c",
+        "bytes": 277,
+        "type": "image/svg+xml",
+        "name": "icon-37.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/Icons/icon-38.svg": {
+        "store": "blob",
+        "id": "2fa287d65789396b1e5a6476f94b7953",
+        "sha256": "ebd924c8c1d9617e2ebd76df20ba8b8109a7695d04eb984360a7be152398a0a2",
+        "bytes": 288,
+        "type": "image/svg+xml",
+        "name": "icon-38.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/Icons/icon-39.svg": {
+        "store": "blob",
+        "id": "f0331f92d83373581f43a6192d38e0b4",
+        "sha256": "5981fe35cd166cbfb0df988c95255e555438e85b564ab912d6145ffdddf5db14",
+        "bytes": 340,
+        "type": "image/svg+xml",
+        "name": "icon-39.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/Icons/icon-4.svg": {
+        "store": "blob",
+        "id": "e057094873f0e8e8374a6771f4c6cd6e",
+        "sha256": "df2aaab965e613f196102f527015ff649be999936b64652768c46718ab7e62ff",
+        "bytes": 333,
+        "type": "image/svg+xml",
+        "name": "icon-4.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/Icons/icon-40.svg": {
+        "store": "blob",
+        "id": "2772bb0c540249ef639f2a234fdf1e1d",
+        "sha256": "a1a9a808c7bfb3684bf8e0d856b8cd96945415abdd6fdf1e537547770dfe75fe",
+        "bytes": 383,
+        "type": "image/svg+xml",
+        "name": "icon-40.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/Icons/icon-41.svg": {
+        "store": "blob",
+        "id": "6b4582af299d7616d00f6ce095099347",
+        "sha256": "6dcba6f159017bd748e7132ab960dc9ff439eb2d4a0e29c64c276cc2d21fd93f",
+        "bytes": 292,
+        "type": "image/svg+xml",
+        "name": "icon-41.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/Icons/icon-42.svg": {
+        "store": "blob",
+        "id": "aac123368fc19aedcda3ecc32ae033ff",
+        "sha256": "7e9141a421fa707bee370a79be7f96b71eb9d1737b5fc2a43e6bd3160cb5a9f5",
+        "bytes": 393,
+        "type": "image/svg+xml",
+        "name": "icon-42.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/Icons/icon-43.svg": {
+        "store": "blob",
+        "id": "6af5ef7fc0f029e975861fd8c2eafb35",
+        "sha256": "2348e6b936037ef12e10c62b0f52309cb58a7b221cf54083ae32ca2440a593e7",
+        "bytes": 429,
+        "type": "image/svg+xml",
+        "name": "icon-43.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/Icons/icon-44.svg": {
+        "store": "blob",
+        "id": "502d1ad6dacc33991f85d8e7f560af9b",
+        "sha256": "e18affb3858599c64430f91a6229e15e6663b015f2bbaa7e73108a96df36d119",
+        "bytes": 340,
+        "type": "image/svg+xml",
+        "name": "icon-44.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/Icons/icon-45.svg": {
+        "store": "blob",
+        "id": "2b0bd8dbb2d69215a2caec8f6e8289b5",
+        "sha256": "d099475bd4141b218735d3d369441da8993dad35b6de10c4e0df070cec8a7d4d",
+        "bytes": 260,
+        "type": "image/svg+xml",
+        "name": "icon-45.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/Icons/icon-46.svg": {
+        "store": "blob",
+        "id": "3af54d2964e08297ea0e0c5615257a16",
+        "sha256": "8e6ff3923df8bf5630301008b0db0becfc98e3c940d701d95b0d8869c033bdbb",
+        "bytes": 303,
+        "type": "image/svg+xml",
+        "name": "icon-46.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/Icons/icon-47.svg": {
+        "store": "blob",
+        "id": "d6d64c7be6e116c67b0f25a9693b1aba",
+        "sha256": "cca943a554f8b7c3aca34ba4eab5bcc7b16c52ff9048b68f37e46481e094b627",
+        "bytes": 235,
+        "type": "image/svg+xml",
+        "name": "icon-47.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/Icons/icon-48.svg": {
+        "store": "blob",
+        "id": "c933748508955204950b3748dcb5da4c",
+        "sha256": "4f3b430f434385cf4238a003a8ab38dcb7490976958b8a577b6018604289c2bd",
+        "bytes": 210,
+        "type": "image/svg+xml",
+        "name": "icon-48.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/Icons/icon-49.svg": {
+        "store": "blob",
+        "id": "bb419bc855c5e2cb9849061ae1e68ffd",
+        "sha256": "d7b69cd46739d03aa4fbc591f4de0bb3b809c3867d24f48a29bbcca5fc019068",
+        "bytes": 217,
+        "type": "image/svg+xml",
+        "name": "icon-49.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/Icons/icon-5.svg": {
+        "store": "blob",
+        "id": "b09e4cc0f9cc3aec4993ae837f3e7e0b",
+        "sha256": "aa24bd368c5416b91d611be1e6bf3ce14c459f58e67aedba7cbfba3c88ae20e2",
+        "bytes": 354,
+        "type": "image/svg+xml",
+        "name": "icon-5.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/Icons/icon-50.svg": {
+        "store": "blob",
+        "id": "69e1e0b7e23e14d338ea7e50198c7f8d",
+        "sha256": "f453ca646d01187b7371df5ad216206eb376eb4f8fc562e5b8eeacbf7891d80e",
+        "bytes": 236,
+        "type": "image/svg+xml",
+        "name": "icon-50.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/Icons/icon-51.svg": {
+        "store": "blob",
+        "id": "0ac5f603240ce00927912b7ee644ea6d",
+        "sha256": "403eaae6b4ef6339f52dddd287aa3a1487a5c11f4ec735502d065390b4809691",
+        "bytes": 223,
+        "type": "image/svg+xml",
+        "name": "icon-51.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/Icons/icon-52.svg": {
+        "store": "blob",
+        "id": "7f1414da178dc1d0df7d183e6f1d10ba",
+        "sha256": "e503957c7534eb7e7ba78827e04f0459c9947fcd9f51c8489cff21f193d53b51",
+        "bytes": 223,
+        "type": "image/svg+xml",
+        "name": "icon-52.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/Icons/icon-53.svg": {
+        "store": "blob",
+        "id": "d73ea94be8774e778637d8e1e4a44dc8",
+        "sha256": "376a35e30eb2edade8666c7ef9596d5108eb01312f9ef0bb0a4fe4e988c425d7",
+        "bytes": 221,
+        "type": "image/svg+xml",
+        "name": "icon-53.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/Icons/icon-54.svg": {
+        "store": "blob",
+        "id": "8035882765f4154d8c5bbc1f24e2c677",
+        "sha256": "2b14cf539eefa1ce9332863679f344dafd15b901c4f0ec0f033e7fdd24156d3c",
+        "bytes": 221,
+        "type": "image/svg+xml",
+        "name": "icon-54.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/Icons/icon-55.svg": {
+        "store": "blob",
+        "id": "674e0ec16396e03a92cf84fab39f84d8",
+        "sha256": "3fe9f6ab283326b8c2a14e4eab8a692e4c018147555a7c49ad0ed3c661b1389f",
+        "bytes": 247,
+        "type": "image/svg+xml",
+        "name": "icon-55.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/Icons/icon-56.svg": {
+        "store": "blob",
+        "id": "0595f0d2e401c572b7a63c50236bb2aa",
+        "sha256": "c22a2627c7fd8f82632d350b01878137e783a33fceabf0e57fd8ca2a32806641",
+        "bytes": 247,
+        "type": "image/svg+xml",
+        "name": "icon-56.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/Icons/icon-57.svg": {
+        "store": "blob",
+        "id": "6ed9e50afde4ab2fa41f8f33b9296641",
+        "sha256": "d607658f9cf01975370c3de1e9d46a3a0c949537ff8c19f0b2a3b029da9c2e6a",
+        "bytes": 381,
+        "type": "image/svg+xml",
+        "name": "icon-57.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/Icons/icon-58.svg": {
+        "store": "blob",
+        "id": "c81febea2a7e406c14513fd66120e15b",
+        "sha256": "9731556e7e6312c3d2f254c4e253b5bbac3ef82311a75d9c8dc00d79619c75e7",
+        "bytes": 303,
+        "type": "image/svg+xml",
+        "name": "icon-58.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/Icons/icon-59.svg": {
+        "store": "blob",
+        "id": "11a386be0d78e9fc1636d22121ba01ee",
+        "sha256": "cb05d1ba1d2f3b3a45f0d2d0589973d149b72b3aab0db79bfe2d1595237db5b4",
+        "bytes": 301,
+        "type": "image/svg+xml",
+        "name": "icon-59.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/Icons/icon-6.svg": {
+        "store": "blob",
+        "id": "3b88bae1ae6d15f7e9c0e8d126fc4caf",
+        "sha256": "b2d8fe8c6cab6353b9a22259833216db0348dc56c0705230ecb1e1efed828e3b",
+        "bytes": 459,
+        "type": "image/svg+xml",
+        "name": "icon-6.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/Icons/icon-60.svg": {
+        "store": "blob",
+        "id": "c404f5533c9d8487148f1afdf94b57fb",
+        "sha256": "38205da36ad9c9b3c483c4887a819e82257c8e3f173682eab4c22f5e56c74e3c",
+        "bytes": 322,
+        "type": "image/svg+xml",
+        "name": "icon-60.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/Icons/icon-7.svg": {
+        "store": "blob",
+        "id": "8dea3763516525dbf2f700be46066a20",
+        "sha256": "12ea2aeca45376091db7c455e4351f69761b373ba2a9e2632a83ff6d61f1b6bd",
+        "bytes": 253,
+        "type": "image/svg+xml",
+        "name": "icon-7.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/Icons/icon-8.svg": {
+        "store": "blob",
+        "id": "0021835fae2e274c0ad496e47a59aff9",
+        "sha256": "7e99fdbe5720baf4cf661c78cee4ad699ca6ed8bf22a165aa2194f23d5fe26bc",
+        "bytes": 311,
+        "type": "image/svg+xml",
+        "name": "icon-8.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/Icons/icon-9.svg": {
+        "store": "blob",
+        "id": "404ded2233c96bbcf54d5f70948f13f1",
+        "sha256": "be7d1ea5b4e79bfe93ccaf18da179951098c1246bcb188e4b29b13eff16009bd",
+        "bytes": 568,
+        "type": "image/svg+xml",
+        "name": "icon-9.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/halal-shield.svg": {
+        "store": "blob",
+        "id": "e862d5e937fc7577dc3a7560ff6dfd16",
+        "sha256": "a150d90d6eee4d093319da9cb851b1c2f5487bc96bb9334fddc2d392288665b9",
+        "bytes": 8108,
+        "type": "image/svg+xml",
+        "name": "halal-shield.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/icons/arrow-left.svg": {
+        "store": "blob",
+        "id": "d60a3b5f07aaf20d7db3fe6c4d949af0",
+        "sha256": "33bf4c7745d99117199afe3fbaa5d29a6b2548ad611c2258a0fa258504808118",
+        "bytes": 252,
+        "type": "image/svg+xml",
+        "name": "arrow-left.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/icons/arrow-right.svg": {
+        "store": "blob",
+        "id": "396fcb85f3f732483e0f54692ca84415",
+        "sha256": "a150108cb4d32643ab18a34552c9e1f5b06000921e74d8fbc7c9cf76ec8c0fdd",
+        "bytes": 251,
+        "type": "image/svg+xml",
+        "name": "arrow-right.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/icons/badge-check.svg": {
+        "store": "blob",
+        "id": "12a555ef7fbc298d1326686f938da2b0",
+        "sha256": "cddd9d805536b834dd770104dfafb60b731f30d01217a83961dcf22e4bc73328",
+        "bytes": 407,
+        "type": "image/svg+xml",
+        "name": "badge-check.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/icons/banknote.svg": {
+        "store": "blob",
+        "id": "b8df0e1a3fcc542500181110f84c2e3a",
+        "sha256": "fab46073d67a3da8820ab9cfb969fde960652e814199e90bfbaa55ed61d5ab0b",
+        "bytes": 328,
+        "type": "image/svg+xml",
+        "name": "banknote.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/icons/bell.svg": {
+        "store": "blob",
+        "id": "0d1434064ac88c2e8ae1864e78a487c9",
+        "sha256": "e1522dc3e8fc6c182e16a5c056ecab86e11218c61bb34935da14f2a43c2c5190",
+        "bytes": 383,
+        "type": "image/svg+xml",
+        "name": "bell.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/icons/bike.svg": {
+        "store": "blob",
+        "id": "b447c91fd6694bed46949c23a3085805",
+        "sha256": "74f3362c9b5fed1caacd273a3a14eb4779b248f5424f624ce519579fc14fb4a4",
+        "bytes": 371,
+        "type": "image/svg+xml",
+        "name": "bike.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/icons/calendar.svg": {
+        "store": "blob",
+        "id": "a5e453a9f99c6d9adf8175ca026a8d72",
+        "sha256": "5d046a826067a21880c758ff18b16d5a5660110c1ce5b4bc5c142ac60fd5552e",
+        "bytes": 329,
+        "type": "image/svg+xml",
+        "name": "calendar.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/icons/camera.svg": {
+        "store": "blob",
+        "id": "1227479953be955021fa3489e088d062",
+        "sha256": "8b53bb27821a9b119d328570982c889e72bb3d8968cb951ba8b3ad7c0874e40f",
+        "bytes": 429,
+        "type": "image/svg+xml",
+        "name": "camera.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/icons/chart-column.svg": {
+        "store": "blob",
+        "id": "ca748c4826e43b5959f4e6ac6973ee94",
+        "sha256": "864531b741b94a59c19d075074eb4af3ecf10ef9ed259ff878be4894bf90c2a6",
+        "bytes": 320,
+        "type": "image/svg+xml",
+        "name": "chart-column.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/icons/check.svg": {
+        "store": "blob",
+        "id": "ff2c0c8766031ceb14fc4394b71caa0f",
+        "sha256": "d584f9ac3be0003bc205c1f8b789f90eba97252391bbdbb53fa4846dbde808a0",
+        "bytes": 224,
+        "type": "image/svg+xml",
+        "name": "check.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/icons/chevron-down.svg": {
+        "store": "blob",
+        "id": "bf729c330b135872f5c476b35605703b",
+        "sha256": "751d7daa675ca4f9ce34335049c95281fbf54d694ca4159f8c693bf15e527b64",
+        "bytes": 221,
+        "type": "image/svg+xml",
+        "name": "chevron-down.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/icons/chevron-left.svg": {
+        "store": "blob",
+        "id": "69d40bfbc84d1d51d73b3cf3a2987b3c",
+        "sha256": "662376d24ff1821b22a840debf66337603a0293c7f6bddbde82a373bbea864f2",
+        "bytes": 223,
+        "type": "image/svg+xml",
+        "name": "chevron-left.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/icons/chevron-right.svg": {
+        "store": "blob",
+        "id": "12cac018a323873869fe330406e5697f",
+        "sha256": "f1fc16cf91c6a9ced407ef47c047ab7d0363dbe43379f74bbc202d0b2de94523",
+        "bytes": 222,
+        "type": "image/svg+xml",
+        "name": "chevron-right.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/icons/chevron-up.svg": {
+        "store": "blob",
+        "id": "2843b267fa67d6f84d9096db02e72600",
+        "sha256": "5b91f2a68fbe48af1360d79e4b8da50d5991e42ed4b3c4bad5aa514748c28751",
+        "bytes": 223,
+        "type": "image/svg+xml",
+        "name": "chevron-up.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/icons/circle-alert.svg": {
+        "store": "blob",
+        "id": "c3bb33cca52b8e3c8f593a3f807c12b3",
+        "sha256": "48e857da27a7e75ef66819e1a16e552a4e48166d2b254553685d230e7cedd56c",
+        "bytes": 329,
+        "type": "image/svg+xml",
+        "name": "circle-alert.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/icons/circle-check.svg": {
+        "store": "blob",
+        "id": "d0ea8e6d0570d371ce38e1bb8a51eed2",
+        "sha256": "8eb00c5d2233f7526e18d2d1a4d0edd3f26839d1fc53435e366214cbe03ccc9e",
+        "bytes": 270,
+        "type": "image/svg+xml",
+        "name": "circle-check.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/icons/clipboard-list.svg": {
+        "store": "blob",
+        "id": "70548fa1c087ade7272e89e7e0cef1b7",
+        "sha256": "c32737461bba10ba86549e1826ef75be3376c1590a9d36140ff65cc3557b5641",
+        "bytes": 462,
+        "type": "image/svg+xml",
+        "name": "clipboard-list.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/icons/clock.svg": {
+        "store": "blob",
+        "id": "ca031da0a86def1c533455b426597e8f",
+        "sha256": "13e66796329138db8142077f17aed1a5826e3277421bf38e599a2c4eb59e01b4",
+        "bytes": 263,
+        "type": "image/svg+xml",
+        "name": "clock.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/icons/credit-card.svg": {
+        "store": "blob",
+        "id": "eb1e93ede37bd35b720e5765105beff3",
+        "sha256": "326baebc2bc47c98fd869803edd8654a7d2e058aa40c65bb1d947de76c4c33c0",
+        "bytes": 321,
+        "type": "image/svg+xml",
+        "name": "credit-card.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/icons/dollar-sign.svg": {
+        "store": "blob",
+        "id": "66a1452190bf0ec25392f03bb37c6c8e",
+        "sha256": "3fcd0ac9df6b2c6f33c62013cf8588ea0ea0cb147cb528f182a042c96707e7f3",
+        "bytes": 305,
+        "type": "image/svg+xml",
+        "name": "dollar-sign.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/icons/download.svg": {
+        "store": "blob",
+        "id": "6046ca2c0d5f913f13557f5eff835991",
+        "sha256": "73fa8059a050390f110ebf0cac63582f8e196f2e5876111d828b5fcace9d2b8f",
+        "bytes": 313,
+        "type": "image/svg+xml",
+        "name": "download.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/icons/ellipsis.svg": {
+        "store": "blob",
+        "id": "c17cbfcf051ff64bb6902e2af26bd024",
+        "sha256": "95e91bb5a0c97bff6a6cd16081739c5bcc22087c49253a17e8812eb93f696eaf",
+        "bytes": 313,
+        "type": "image/svg+xml",
+        "name": "ellipsis.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/icons/external-link.svg": {
+        "store": "blob",
+        "id": "8b545ee80463848c6521d625232141be",
+        "sha256": "8e466893a7a392e9d36af59142002d0839c87f2246e84bc19a5bb2ff79eb0584",
+        "bytes": 327,
+        "type": "image/svg+xml",
+        "name": "external-link.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/icons/eye.svg": {
+        "store": "blob",
+        "id": "3aad6b23289b78a3929188049894dfc4",
+        "sha256": "2c03d63589c55b7098dd7d88164b755c6377b5dcc2ffdcd67b257e869e5b336a",
+        "bytes": 352,
+        "type": "image/svg+xml",
+        "name": "eye.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/icons/file-text.svg": {
+        "store": "blob",
+        "id": "7b07724390e37ae6db0ab68472a96ca9",
+        "sha256": "19f286f5910854e4c625564d46074c6163f3c4b9ad839140f6e6d2f44dae4fb8",
+        "bytes": 449,
+        "type": "image/svg+xml",
+        "name": "file-text.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/icons/flame.svg": {
+        "store": "blob",
+        "id": "a171fb0eb88fbd2483d16096212d60f7",
+        "sha256": "7c407be92a14d7993e2c41985ad3ccc97d4aa6fe867715aec22262efc0aab766",
+        "bytes": 299,
+        "type": "image/svg+xml",
+        "name": "flame.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/icons/globe.svg": {
+        "store": "blob",
+        "id": "da715f9f1faf228b261ae068ecd9c7bb",
+        "sha256": "617433534a250c203523b4ee95624062e2750b3902add95ae8e95d004cf786c1",
+        "bytes": 328,
+        "type": "image/svg+xml",
+        "name": "globe.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/icons/heart.svg": {
+        "store": "blob",
+        "id": "ca62c5063d025c48b59837a33527e4fc",
+        "sha256": "14895ec08ef4a188605c2a7d452064226c8f76b734b60c811d0a9ef015226caf",
+        "bytes": 358,
+        "type": "image/svg+xml",
+        "name": "heart.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/icons/house.svg": {
+        "store": "blob",
+        "id": "fddb53cc22c883bfc35fa123ce7f6d74",
+        "sha256": "29d4beee9e8a721b0c7f84798113325e0485c767331e2ec04984f3a058d6a9c1",
+        "bytes": 373,
+        "type": "image/svg+xml",
+        "name": "house.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/icons/info.svg": {
+        "store": "blob",
+        "id": "f5b2aeff581a44a5aa4f5beb149a8e55",
+        "sha256": "eeec12b9ba5c653b848b49be1945aabd4d038aabc9b6ef426ee600e4233afa87",
+        "bytes": 291,
+        "type": "image/svg+xml",
+        "name": "info.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/icons/layout-dashboard.svg": {
+        "store": "blob",
+        "id": "87a7c721b2969385a927a883476d44fb",
+        "sha256": "4b6ead3f9c3c6e49c9bc84294a794dce26263af4b2ae87d58db297a2ede3d41b",
+        "bytes": 416,
+        "type": "image/svg+xml",
+        "name": "layout-dashboard.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/icons/leaf.svg": {
+        "store": "blob",
+        "id": "81b69cd77648868dd5b25de957bb95c8",
+        "sha256": "f243e6c3c5624441d353616bd5f82d1f945bbfc9f5eb09792cfa12012b9813b9",
+        "bytes": 394,
+        "type": "image/svg+xml",
+        "name": "leaf.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/icons/list.svg": {
+        "store": "blob",
+        "id": "f67a8a8f87e9e8bca7cd55eecdab52a7",
+        "sha256": "dde3bb3b6f728f7fea6caf093378a042b8c1cb0fd8a95da83260b82f8d172a8e",
+        "bytes": 363,
+        "type": "image/svg+xml",
+        "name": "list.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/icons/loader-circle.svg": {
+        "store": "blob",
+        "id": "13a84454afa942598c6545ac2570d1db",
+        "sha256": "b037cf1aadff54f4e0999223a6dd997476f0897989274d3dfdc7855b2785f9f6",
+        "bytes": 236,
+        "type": "image/svg+xml",
+        "name": "loader-circle.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/icons/lock.svg": {
+        "store": "blob",
+        "id": "360e950836ee4142c4c85c13342e8f98",
+        "sha256": "3274b88fe4aa1e97ba37139d79993a000a8ae397235187483c207dc345beea03",
+        "bytes": 299,
+        "type": "image/svg+xml",
+        "name": "lock.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/icons/log-out.svg": {
+        "store": "blob",
+        "id": "2534383a7946edd8cef002a2e605eb61",
+        "sha256": "139129b6d8efa8380d23ad74f2d07dab607b6928be713f4bde00573760c30eb2",
+        "bytes": 312,
+        "type": "image/svg+xml",
+        "name": "log-out.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/icons/mail.svg": {
+        "store": "blob",
+        "id": "a29e63f38ca934a2ceffa4bfa3552456",
+        "sha256": "bb103294d314cb6fe4b69897d889a50868f044b6dca91c06de60190a3ef8fd9c",
+        "bytes": 306,
+        "type": "image/svg+xml",
+        "name": "mail.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/icons/map-pin.svg": {
+        "store": "blob",
+        "id": "ba774625740b0e58f4efd819ce0a6428",
+        "sha256": "fa5f198fbb509245ac7e126b0eae48dff28a44ce9accd693b3236e82438b4758",
+        "bytes": 351,
+        "type": "image/svg+xml",
+        "name": "map-pin.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/icons/menu.svg": {
+        "store": "blob",
+        "id": "7eac882c77f8fc80431b6a044d145247",
+        "sha256": "4ca2edaf2407b357c30fe7659aee71d4c8547369bf4af9c5eae0bd82e8c5848a",
+        "bytes": 274,
+        "type": "image/svg+xml",
+        "name": "menu.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/icons/message-circle.svg": {
+        "store": "blob",
+        "id": "0befaf3480eff0583e62b3716a3dc30f",
+        "sha256": "977bb292d287e6b21b347288c4e28cc0b666bc375e1b259d6d8b742f9be7ffe7",
+        "bytes": 332,
+        "type": "image/svg+xml",
+        "name": "message-circle.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/icons/minus.svg": {
+        "store": "blob",
+        "id": "143c20084375f5833c20bd9a6a6df356",
+        "sha256": "b228c4f6393547c4197e914d757b03a0b9a4625bc110d09d733560a28ac0ceee",
+        "bytes": 217,
+        "type": "image/svg+xml",
+        "name": "minus.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/icons/navigation.svg": {
+        "store": "blob",
+        "id": "1da72a1defa0650a337229f36c781e2f",
+        "sha256": "b38771026a0f5e0cbca9cc42c663a9045c73cdabfc2a2e1d3b738e004b49da47",
+        "bytes": 246,
+        "type": "image/svg+xml",
+        "name": "navigation.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/icons/package.svg": {
+        "store": "blob",
+        "id": "11ed212d71f10301330a29f752dfbc28",
+        "sha256": "16184398b055ff5247410fcf13350cbf85215e00fe818f8b41e0fa0765af0385",
+        "bytes": 450,
+        "type": "image/svg+xml",
+        "name": "package.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/icons/phone.svg": {
+        "store": "blob",
+        "id": "24046b83416d14187f71dcbc86188970",
+        "sha256": "39fa2d72be304dde7acdbee242ffea03da7bcfd53f3f81c4bce953efde35d4dd",
+        "bytes": 422,
+        "type": "image/svg+xml",
+        "name": "phone.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/icons/plus.svg": {
+        "store": "blob",
+        "id": "15447916ec704338ef6ef7b4e309d387",
+        "sha256": "7b2fd5dcdba4554dd50f5d6906f703116abadea70a949c6f829793a92cbe56c9",
+        "bytes": 246,
+        "type": "image/svg+xml",
+        "name": "plus.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/icons/printer.svg": {
+        "store": "blob",
+        "id": "0c27a10b82a6fd5524ed18ef28de1198",
+        "sha256": "40b17e09701c16748aaea5f1b84550a72b72d989ae0f1f0f6f6ffaf13a9368cf",
+        "bytes": 401,
+        "type": "image/svg+xml",
+        "name": "printer.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/icons/receipt.svg": {
+        "store": "blob",
+        "id": "2e9ddd990ac6eca584e5a2f10b4d2459",
+        "sha256": "5fb6f495ed62e8b766db587cfe026d803b7833613d31ab7d7078c155ebf7a4a4",
+        "bytes": 736,
+        "type": "image/svg+xml",
+        "name": "receipt.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/icons/refresh-cw.svg": {
+        "store": "blob",
+        "id": "150ee95bd5eb6c79fbea7a32b986784f",
+        "sha256": "49757dc485f709fa50e0d8557dfe4a080e03608502bc4e5fcd7a471553a25aef",
+        "bytes": 392,
+        "type": "image/svg+xml",
+        "name": "refresh-cw.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/icons/route.svg": {
+        "store": "blob",
+        "id": "bd46b58a83ff838cbf04a41f71914f12",
+        "sha256": "3cf96398bcf2b40d16f5afd548c3c65f027f63571f9158cadc0dab5c81d310d5",
+        "bytes": 343,
+        "type": "image/svg+xml",
+        "name": "route.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/icons/search.svg": {
+        "store": "blob",
+        "id": "78d1b1a6e63e0341a8fd59f2eb877183",
+        "sha256": "fb967d004167abe936542ba221e2930046b00590f4f77d5fb31fed5ba160712c",
+        "bytes": 267,
+        "type": "image/svg+xml",
+        "name": "search.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/icons/settings.svg": {
+        "store": "blob",
+        "id": "e320ef4d58c024102a4274275893439f",
+        "sha256": "0b40d85d1af57f718237ee06d0e2d5c081715f69da6c5364c2930a81cdf2e7aa",
+        "bytes": 578,
+        "type": "image/svg+xml",
+        "name": "settings.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/icons/shopping-bag.svg": {
+        "store": "blob",
+        "id": "89e91c6b7a02887b0a07365a112ff979",
+        "sha256": "acf0cacb7937113e2d66d9b880db8df9aad350d424f5f02e072f362d99aeb852",
+        "bytes": 417,
+        "type": "image/svg+xml",
+        "name": "shopping-bag.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/icons/sliders-horizontal.svg": {
+        "store": "blob",
+        "id": "4513354302eabe4143ed1a3edf68ddbe",
+        "sha256": "cf14c94b4bf394bcecfaf359dc7b7e04d0e6e30e7548220b6e6decbb934eec28",
+        "bytes": 447,
+        "type": "image/svg+xml",
+        "name": "sliders-horizontal.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/icons/square-pen.svg": {
+        "store": "blob",
+        "id": "cac7e3ca99ab6c21c26f459bb546b91d",
+        "sha256": "bd36dfae304e88458ecf81e284c8f26c7e39d701a73091954c1e199d9102014f",
+        "bytes": 407,
+        "type": "image/svg+xml",
+        "name": "square-pen.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/icons/star.svg": {
+        "store": "blob",
+        "id": "b1d8caef73a479c32347d01b8d6a235a",
+        "sha256": "219d51ae1b767e634dad1d2d64502c9188e2efb9d8070baf128a0e74b61c07a5",
+        "bytes": 573,
+        "type": "image/svg+xml",
+        "name": "star.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/icons/store.svg": {
+        "store": "blob",
+        "id": "9008ceda53bb2a34bd25ec2bf3aabf6c",
+        "sha256": "736973297a93182fa302a61486edbf1a720542fcb09f5519be2421e7b9e3e453",
+        "bytes": 582,
+        "type": "image/svg+xml",
+        "name": "store.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/icons/ticket-percent.svg": {
+        "store": "blob",
+        "id": "cb5332a5dd8429dd77580217a991a6b5",
+        "sha256": "b574a1eac034c5ea0eb35991e7bdb7518f81b111c324adbb6eacc0f51be64d15",
+        "bytes": 400,
+        "type": "image/svg+xml",
+        "name": "ticket-percent.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/icons/timer.svg": {
+        "store": "blob",
+        "id": "9695ea68f1b24482dda3b1bac2ad3952",
+        "sha256": "a9f41dcc40e6acd25eff7ef5d280c2f57277c14a3f829f31768dda91f6360820",
+        "bytes": 324,
+        "type": "image/svg+xml",
+        "name": "timer.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/icons/trending-up.svg": {
+        "store": "blob",
+        "id": "cf9a5dca1b853448c37424633c64a604",
+        "sha256": "e4e76b5b127dca1170aca4e62f23211cfc3b47e5cd2e989475c4a5e99a0aa07c",
+        "bytes": 261,
+        "type": "image/svg+xml",
+        "name": "trending-up.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/icons/triangle-alert.svg": {
+        "store": "blob",
+        "id": "5b7b87a81a52958956b41c8b74819e97",
+        "sha256": "a89a6754bc7520eb782d961710122d7dd3788f3de5c82f6fe7eae15b1789233c",
+        "bytes": 340,
+        "type": "image/svg+xml",
+        "name": "triangle-alert.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/icons/truck.svg": {
+        "store": "blob",
+        "id": "c728cfe0341092d7fc9474192a7b715f",
+        "sha256": "06ae2be665bdeaa513e009a7077d6e1dc71a0ca90c7ff6e47a4f7ec5e363757b",
+        "bytes": 478,
+        "type": "image/svg+xml",
+        "name": "truck.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/icons/upload.svg": {
+        "store": "blob",
+        "id": "03abd4cb7f3722a691bb85b6cdc4d84f",
+        "sha256": "4b91b49ed0560d32a0720bc11feb22cf9f1b06d896c1c8b83478d7bf7379eb6e",
+        "bytes": 313,
+        "type": "image/svg+xml",
+        "name": "upload.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/icons/user.svg": {
+        "store": "blob",
+        "id": "2e657660a5eb0a08eb6cab928c58447e",
+        "sha256": "50394017179d765077a9d2c14e8568867c5fca7d0d8e1885155d0fa39cb4532e",
+        "bytes": 291,
+        "type": "image/svg+xml",
+        "name": "user.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/icons/users.svg": {
+        "store": "blob",
+        "id": "0afbb8a4c5a5b0f58aac7002160c6b41",
+        "sha256": "e7e5d9a0d32a0db40f1d3de5665bce2bb781152342c58efa2665e01afa1572f7",
+        "bytes": 385,
+        "type": "image/svg+xml",
+        "name": "users.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/icons/utensils.svg": {
+        "store": "blob",
+        "id": "5cfa4ac70463f692248a478708038929",
+        "sha256": "6a267d270aaaa2502e6034aa67f210df35fce5f77667fd4989dba93515122c18",
+        "bytes": 343,
+        "type": "image/svg+xml",
+        "name": "utensils.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/icons/wallet.svg": {
+        "store": "blob",
+        "id": "2982c8fb4dcf71be47b22d8264e061ca",
+        "sha256": "ad459b4c872a446b61d22bd49495d501fdbb6b8a63b46af145bb88f7d4aa86b5",
+        "bytes": 377,
+        "type": "image/svg+xml",
+        "name": "wallet.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      },
+      "assets/icons/x.svg": {
+        "store": "blob",
+        "id": "7d4f135be971b99dc1037e6f56d42d30",
+        "sha256": "6d2b9c8b22c2179a2bd49b160b8ae257c9fcfc3c2dcb8d61982e0bcbc5864ac6",
+        "bytes": 250,
+        "type": "image/svg+xml",
+        "name": "x.svg",
+        "addedAt": "2026-09-18T11:41:02.763Z",
+        "via": "standalone export"
+      }
+    },
+    "blobBytesUsed": 51847
+  }
+}

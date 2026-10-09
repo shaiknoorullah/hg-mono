@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Paused — Earnings</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+</style>
+</helmet>
+<div data-theme="dark" style="width: 390px; height: 844px; position: relative; overflow: hidden; display: flex; flex-direction: column; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="field" title-is-page-heading="{{no}}" title="Earnings"></x-import>
+
+<main style="flex-grow: 1; min-height: 0; overflow: hidden; padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-5)">
+<div style="position: relative; outline: 1.5px solid var(--color-viz-4); outline-offset: 3px; border-radius: var(--radius-md)"><span style="position: absolute; top: -9px; right: 10px; z-index: 2; color: var(--color-neutral-0); font-family: var(--font-mono); font-size: 10px; font-weight: var(--font-weight-semibold); line-height: 16px; padding: 0 var(--space-2); border-radius: var(--radius-xs); white-space: nowrap; background: var(--color-viz-4)">Proposed component: ErrorState</span><div style="display: flex; flex-direction: column; gap: var(--space-4); padding-top: var(--space-6)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="lock" size="xl" weight="linear" color="var(--text-primary)"></x-import><h1 style="margin: 0; font-size: var(--type-heading-xl-size); font-weight: var(--font-weight-bold); letter-spacing: -0.01em; line-height: var(--type-heading-xl-line); color: var(--text-primary)">Earnings aren't available while your account is paused</h1><p style="margin: 0; font-size: var(--type-body-lg-size); font-weight: var(--font-weight-regular); line-height: var(--type-body-lg-line); color: var(--text-secondary)">Money you've already earned is still paid out. Call support to find out more.</p><div style="display: flex; flex-direction: column; gap: var(--space-2)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="secondary" size="xl" full-width="{{yes}}">Call support</x-import><div style="position: relative; outline: 1.5px solid var(--color-viz-6); outline-offset: 3px; border-radius: var(--radius-sm)"><span style="position: absolute; top: -9px; right: 10px; z-index: 2; color: var(--color-neutral-0); font-family: var(--font-mono); font-size: 10px; font-weight: var(--font-weight-semibold); line-height: 16px; padding: 0 var(--space-2); border-radius: var(--radius-xs); white-space: nowrap; background: var(--color-viz-6)">Data: PublicConfig.support_hours</span><p style="margin: 0; font-size: var(--type-body-lg-size); font-weight: var(--font-weight-regular); line-height: var(--type-body-lg-line); color: var(--text-secondary); text-align: center">Support is open 9 am to 9 pm.</p></div></div></div></div><div style="font-family: var(--font-mono); font-size: 11px; line-height: 16px; color: var(--color-neutral-0); background: var(--color-viz-6); padding: var(--space-1) var(--space-2); border-radius: var(--radius-xs)">API: 403 ACCOUNT_NOT_ACTIVE (rider spec, authorisation rule 3). Every earnings and payouts call answers 403 while account_status is SUSPENDED or DEACTIVATED.</div><div style="font-family: var(--font-mono); font-size: 11px; line-height: 16px; color: var(--color-neutral-0); background: var(--color-viz-6); padding: var(--space-1) var(--space-2); border-radius: var(--radius-xs)">Opened from the Earnings tab on any paused board. No retry button: trying again gives the same 403 until the account is active. Read-only earnings while paused is Needs API (Reference: contract gaps).</div>
+</main>
+
+<div style="position: relative; outline: 1.5px solid var(--color-viz-4); outline-offset: 3px; border-radius: 0px"><span style="position: absolute; top: -9px; right: 10px; z-index: 2; color: var(--color-neutral-0); font-family: var(--font-mono); font-size: 10px; font-weight: var(--font-weight-semibold); line-height: 16px; padding: 0 var(--space-2); border-radius: var(--radius-xs); white-space: nowrap; background: var(--color-viz-4)">Component gap: Icon wallet (Earnings uses orders)</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.BottomNav" tone="field" label="Rider" active="earnings" items="{{navItems}}" on-change="{{noop}}"></x-import></div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var v = {"yes": true, "no": false, "nul": null, "size24": 24, "navItems": [{"key": "home", "label": "Home", "icon": "home"}, {"key": "earnings", "label": "Earnings", "icon": "orders"}, {"key": "account", "label": "Account", "icon": "profile"}], "vehicleOptions": [{"value": "CAR", "label": "Car", "description": "Licence, registration, insurance and a photo of you"}, {"value": "SCOOTER", "label": "Scooter", "description": "Licence, registration, insurance and a photo of you"}, {"value": "MOTORCYCLE", "label": "Motorcycle", "description": "Licence, registration, insurance and a photo of you"}, {"value": "BICYCLE", "label": "Bicycle", "description": "Government ID and a photo of you"}, {"value": "ON_FOOT", "label": "On foot", "description": "Government ID and a photo of you"}], "tzOptions": [{"value": "America/Toronto", "label": "Eastern time (Toronto)"}, {"value": "America/Winnipeg", "label": "Central time (Winnipeg)"}], "stateWords": {"on": "Online", "off": "Offline"}, "torchWords": {"on": "On", "off": "Off"}};
+    v.noop = function () {};
+    return v;
+  }
+}
+</script>
+</body>
+</html>

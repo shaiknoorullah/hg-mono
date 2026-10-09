@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Fix — edit plate</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+</style>
+</helmet>
+<div data-theme="dark" style="width: 390px; height: 844px; position: relative; overflow: hidden; display: flex; flex-direction: column; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+<div style="position: relative; outline: 1.5px solid var(--color-viz-4); outline-offset: 3px; border-radius: 0px"><span style="position: absolute; top: -9px; right: 10px; z-index: 2; color: var(--color-neutral-0); font-family: var(--font-mono); font-size: 10px; font-weight: var(--font-weight-semibold); line-height: 16px; padding: 0 var(--space-2); border-radius: var(--radius-xs); white-space: nowrap; background: var(--color-viz-4)">Component gap: AppBar back 56 (field)</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="field" title="Your vehicle" back-label="Back to Fix documents" on-back="{{noop}}"></x-import></div>
+
+<main style="flex-grow: 1; min-height: 0; overflow: hidden; padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-5)">
+<div style="display: flex; flex-direction: column; gap: var(--space-4)"><section style="display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-4) 0; border-top: 1px solid var(--border-decorative); border-bottom: 1px solid var(--border-decorative)"><div style="position: relative; outline: 1.5px solid var(--color-viz-4); outline-offset: 3px; border-radius: var(--radius-xs)"><span style="position: absolute; top: -9px; right: 10px; z-index: 2; color: var(--color-neutral-0); font-family: var(--font-mono); font-size: 10px; font-weight: var(--font-weight-semibold); line-height: 16px; padding: 0 var(--space-2); border-radius: var(--radius-xs); white-space: nowrap; background: var(--color-viz-4)">Proposed component: KeyValueList</span><dl style="margin: 0; display: flex; flex-direction: column; gap: var(--space-2)"><div style="display: flex; flex-direction: column; gap: var(--space-2)"><dt style="font-size: var(--type-label-lg-size); font-weight: var(--font-weight-semibold); line-height: var(--type-label-lg-line); color: var(--text-secondary)">Reviewer's note</dt><dd style="margin: 0"><p style="margin: 0; font-size: var(--type-body-lg-size); font-weight: var(--font-weight-regular); line-height: var(--type-body-lg-line); color: var(--text-primary)">“The plate on the registration is CJRA 240, not CJRA 204.”</p></dd></div></dl></div></section><h2 style="margin: 0; font-size: var(--type-heading-md-size); font-weight: var(--font-weight-semibold); line-height: var(--type-heading-md-line); color: var(--text-primary)">About your scooter</h2><div style="position: relative; outline: 1.5px solid var(--color-viz-4); outline-offset: 3px; border-radius: var(--radius-md)"><span style="position: absolute; top: -9px; right: 10px; z-index: 2; color: var(--color-neutral-0); font-family: var(--font-mono); font-size: 10px; font-weight: var(--font-weight-semibold); line-height: 16px; padding: 0 var(--space-2); border-radius: var(--radius-xs); white-space: nowrap; background: var(--color-viz-4)">Component gap: Input 56 (field)</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Licence plate" size="lg" required="{{yes}}" default-value="CJRA 204" max-length="8" helper-text="Match the plate on your registration."></x-import><span style="position: absolute; bottom: -9px; right: 10px; z-index: 2; color: var(--color-neutral-0); font-family: var(--font-mono); font-size: 10px; font-weight: var(--font-weight-semibold); line-height: 16px; padding: 0 var(--space-2); border-radius: var(--radius-xs); white-space: nowrap; background: var(--color-viz-4)">Component gap: FieldText helper (field)</span></div><p style="margin: 0; font-size: var(--type-body-lg-size); font-weight: var(--font-weight-regular); line-height: var(--type-body-lg-line); color: var(--text-secondary)">Next, take a new photo of your registration. We can only check it again with a new photo.</p></div>
+</main>
+<div style="flex-shrink: 0; padding: var(--space-4) var(--space-5) var(--space-6); border-top: 1px solid var(--border-decorative); background: var(--surface-base); display: flex; flex-direction: column; gap: var(--space-3)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="xl" full-width="{{yes}}" href="Capture-Camera.dc.html">Save and take a new photo</x-import><div style="display: flex; justify-content: center"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="xl">Call support</x-import></div></div>
+
+
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var v = {"yes": true, "no": false, "nul": null, "size24": 24, "navItems": [{"key": "home", "label": "Home", "icon": "home"}, {"key": "earnings", "label": "Earnings", "icon": "orders"}, {"key": "account", "label": "Account", "icon": "profile"}], "vehicleOptions": [{"value": "CAR", "label": "Car", "description": "Licence, registration, insurance and a photo of you"}, {"value": "SCOOTER", "label": "Scooter", "description": "Licence, registration, insurance and a photo of you"}, {"value": "MOTORCYCLE", "label": "Motorcycle", "description": "Licence, registration, insurance and a photo of you"}, {"value": "BICYCLE", "label": "Bicycle", "description": "Government ID and a photo of you"}, {"value": "ON_FOOT", "label": "On foot", "description": "Government ID and a photo of you"}], "tzOptions": [{"value": "America/Toronto", "label": "Eastern time (Toronto)"}, {"value": "America/Winnipeg", "label": "Central time (Winnipeg)"}], "stateWords": {"on": "Online", "off": "Offline"}, "torchWords": {"on": "On", "off": "Off"}};
+    v.noop = function () {};
+    return v;
+  }
+}
+</script>
+</body>
+</html>

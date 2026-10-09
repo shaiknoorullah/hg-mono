@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Business profile</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<section id="profile" aria-label="Business profile" style="width: {{w}}; box-sizing: border-box; font-family: var(--font-ui); color: var(--text-primary); display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap">
+<span style="font: var(--text-type-body-sm); color: var(--text-secondary); flex-grow: 1">{{editNote}}</span>
+<span style="padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">Proposed component: KeyValueList (owner-approved for the design system) · one group per card</span>
+<sc-if value="{{editable}}" hint-placeholder-val="{{true}}"><span style="padding: 2px 8px; border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--feedback-info-tint-text); background: var(--feedback-info-tint)">Needs API: partial update or a version check (today the last save wins)</span></sc-if>
+</div>
+<div style="display: grid; grid-template-columns: {{cols}}; gap: 12px; align-items: start">
+<sc-for list="{{groups}}" as="g" hint-placeholder-count="7">
+<section aria-labelledby="{{g.hid}}" style="box-sizing: border-box; display: flex; flex-direction: column; gap: 4px; padding: 4px 8px 12px 16px; border-radius: var(--radius-lg); border: 1px solid {{g.border}}; background: {{g.bg}}">
+<div style="display: flex; align-items: center; gap: 4px; min-height: 44px">
+<h3 id="{{g.hid}}" style="margin: 0; font: var(--text-type-heading-sm); flex-grow: 1">{{g.title}}</h3>
+<sc-if value="{{g.isEditing}}" hint-placeholder-val="{{false}}"><span style="font: var(--text-type-label-md); color: var(--text-secondary)">Editing in the panel</span></sc-if>
+<sc-if value="{{g.showEdit}}" hint-placeholder-val="{{true}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="sm" href="{{g.href}}" accessibility-label="{{g.editLabel}}">Edit</x-import></sc-if>
+<sc-if value="{{g.request}}" hint-placeholder-val="{{false}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="sm" href="{{g.requestHref}}" disabled="{{g.locked}}" aria-describedby="{{g.describedBy}}" accessibility-label="{{g.requestLabel}}">Request a change</x-import></sc-if>
+</div>
+<dl style="margin: 0; display: flex; flex-direction: column; gap: 6px">
+<sc-for list="{{g.rows}}" as="r" hint-placeholder-count="2">
+<div style="display: grid; grid-template-columns: 112px minmax(0, 1fr); column-gap: 12px">
+<dt style="display: flex; align-items: flex-start; gap: 4px; font: var(--text-type-body-sm); color: var(--text-secondary)">{{r.k}}<sc-if value="{{r.locked}}" hint-placeholder-val="{{false}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="lock" size="sm" accessibility-label="Locked: changes are checked again" style="flex-shrink: 0; margin-top: 2px"></x-import></sc-if></dt>
+<sc-if value="{{r.plain}}" hint-placeholder-val="{{true}}"><dd style="margin: 0; font: var(--text-type-body-sm); color: var(--text-primary)">{{r.v}}</dd></sc-if>
+<sc-if value="{{r.clamp}}" hint-placeholder-val="{{false}}"><dd style="margin: 0; font: var(--text-type-body-sm); color: var(--text-primary); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden">{{r.v}}</dd></sc-if>
+<sc-if value="{{r.mono}}" hint-placeholder-val="{{false}}"><dd style="margin: 0; font: var(--text-type-mono-md)">{{r.v}}</dd></sc-if>
+<sc-if value="{{r.missing}}" hint-placeholder-val="{{false}}"><dd style="margin: 0; display: flex; align-items: center; gap: 8px; flex-wrap: wrap"><span style="font: var(--text-type-body-sm)">Not set yet</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="sm" href="Edit-About.dc.html">Add a description</x-import></dd></sc-if>
+<sc-if value="{{r.needs}}" hint-placeholder-val="{{false}}"><dd style="margin: 0"><span style="display: inline-block; padding: 2px 8px; border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--feedback-info-tint-text); background: var(--feedback-info-tint)">{{r.v}}</span></dd></sc-if>
+</div>
+</sc-for>
+</dl>
+<sc-if value="{{g.pending}}" hint-placeholder-val="{{false}}">
+<div id="{{g.pendingId}}" style="margin-top: 6px; display: flex; align-items: flex-start; gap: 8px; padding: 8px 10px; border-radius: var(--radius-sm); background: var(--feedback-info-tint); border: 1px solid var(--feedback-info-border); color: var(--feedback-info-tint-text)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="clock" size="sm" color="var(--feedback-info-icon)" style="margin-top: 2px"></x-import>
+<span style="display: flex; flex-direction: column; gap: 2px; font: var(--text-type-body-sm)"><strong style="font: var(--text-type-label-md)">Change requested: {{g.pending}}</strong><span>In review since 28 September 2026. You can request another once this one is decided.</span></span>
+</div>
+<span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--feedback-info-tint-text); background: var(--feedback-info-tint)">Needs API: the pending change and its date on the profile</span>
+</sc-if>
+</section>
+</sc-for>
+</div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"editing":{"editor":"enum","options":["none","names","contact","address","kitchen","about","tax"],"default":"none"},"readOnly":{"editor":"boolean","default":false},"readOnlyReason":{"editor":"text","default":"Read-only while your account is suspended."},"incomplete":{"editor":"boolean","default":false},"pending":{"editor":"enum","options":["none","legal","address","about","tax"],"default":"none"},"width":{"editor":"int","default":840},"$preview":{"width":840,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var ro = !!this.props.readOnly;
+    var inc = !!this.props.incomplete;
+    var pend = this.props.pending || 'none';
+    // A sent request stays visible on its card until it is decided, and blocks a second one.
+    var PENDING = { legal: 'Zaytoun Grill & Mezze · Zaytoun Grill Ltd.', address: '2250 Kennedy Rd, Scarborough, Ontario M1T 3G5', about: 'new description', tax: '987654321RT0001' };
+    var w = this.props.width || 840;
+    var editing = this.props.editing || 'none';
+    function t(k, v) { return { k: k, v: v, plain: true }; }
+    function c(k, v) { return { k: k, v: v, clamp: true }; }
+    function l(k, v) { return { k: k, v: v, plain: true, locked: true }; }
+    function m(k, v) { return { k: k, v: v, mono: true }; }
+    function n(k, v) { return { k: k, v: v, needs: true }; }
+    function x(k) { return { k: k, v: '', missing: true }; }
+    // Legal name and address are locked: changing either sends the restaurant for re-verification (approved design decision).
+    // The name customers see, the description and the GST/HST number are reviewed changes too (owner decisions): only the owner name and phone numbers save at once.
+    // Why a change is checked again is explained in the request panel's "What happens next", not on the card.
+    var groups = [
+      { key: 'names', title: 'Names', href: 'Edit-Names.dc.html', editAria: 'Edit owner name', rows: [l('Customers see', 'Zaytoun Grill'), l('Legal name', 'Zaytoun Grill Holdings Inc.'), t('Owner', 'Rami Haddad')], request: !ro, requestHref: 'Edit-NamesReviewed.dc.html', requestLabel: 'Request a change to the name customers see or the legal name' },
+      { key: 'contact', title: 'Phone numbers', href: 'Edit-Contact.dc.html', rows: [t('For HalalGoes', '(416) 555-0134'), t('For customers', '(416) 555-0199')] },
+      { key: 'address', title: 'Address and location', href: null, rows: [l('Address', '14 Ellesmere Rd, Scarborough, Ontario M1R 4B5'), t('Rider pin', 'At your kitchen door')], request: !ro, requestHref: 'Edit-AddressAfter150.dc.html', requestLabel: 'Request an address change' },
+      { key: 'kitchen', title: 'Kitchen', href: 'Edit-Kitchen.dc.html', rows: [t('Preparation', '20 minutes on average'), t('Time zone', 'Eastern (America/Toronto)'), n('Cuisines', 'Needs API: cuisine names')] },
+      { key: 'about', title: 'About your restaurant', href: null, rows: [inc ? x('Description') : Object.assign(c('Description', 'Charcoal grills, shawarma and mezze from a family kitchen. Everything is cooked to order over real charcoal.'), { locked: true })], request: !ro && !inc, requestHref: 'Edit-About.dc.html', requestLabel: 'Request a description change' },
+      { key: 'tax', title: 'Tax', href: null, rows: [Object.assign(m('GST/HST', '123456789RT0001'), { locked: true })], request: !ro, requestHref: 'Edit-Tax.dc.html', requestLabel: 'Request a GST/HST number change' },
+      { key: 'set', title: 'Set by HalalGoes', href: null, rows: [t('Commission', '0% on orders'), t('Delivery radius', '5 km'), n('Logo and cover', 'Needs API: branding image upload')] }
+    ].map(function (g) {
+      var key = { names: 'legal', address: 'address', about: 'about', tax: 'tax' }[g.key] || null;
+      var p = key && key === pend ? PENDING[key] : null;
+      // The card being edited carries the selected tint, like the active section in the list, so it reads as linked to the open panel.
+      var on = g.key === editing;
+      return Object.assign({ request: false, requestHref: null, requestLabel: '' }, g, { hid: 'pg-' + g.key, showEdit: !ro && !!g.href, editLabel: g.editAria || 'Edit ' + g.title.toLowerCase(), isEditing: on, bg: on ? 'var(--state-selected-tint)' : 'var(--surface-raised)', border: on ? 'var(--border-brand)' : 'var(--border-decorative)', pending: p, locked: !!p, pendingId: key ? 'pending-' + key : undefined, requestHref: p ? undefined : g.requestHref, describedBy: p ? 'pending-' + key : undefined });
+    });
+    return {
+      w: w + 'px',
+      cols: w >= 600 ? 'repeat(2, minmax(0, 1fr))' : 'minmax(0, 1fr)',
+      groups: groups,
+      editable: !ro,
+      editNote: ro ? (this.props.readOnlyReason || 'Read-only while your account is suspended.') : 'Edit one card at a time. It opens in a panel beside the page.'
+    };
+  }
+}
+</script>
+</body>
+</html>

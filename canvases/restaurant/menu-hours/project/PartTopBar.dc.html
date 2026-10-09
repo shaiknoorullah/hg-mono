@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>App bar, service status and new orders (part)</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div style="width: {{w}}px; box-sizing: border-box; display: flex; flex-direction: column; font-family: var(--font-ui); color: var(--text-primary); background: var(--surface-base);">
+  <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="chrome" title="{{title}}" subtitle="Zaytoun Grill · 2150 Dundas St W, Mississauga" hint-size="100%,56px"></x-import>
+  <div role="region" aria-label="Service status" style="min-height: 52px; box-sizing: border-box; padding: var(--space-1) var(--space-4); display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border-decorative);">
+    <div style="display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; min-width: 0; flex-grow: 1;">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="{{s.connVariant}}" icon="{{s.connIcon}}" size="md" hint-size="170px,22px">{{s.conn}}</x-import>
+      <sc-if value="{{showHalal}}" hint-placeholder-val="{{true}}">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.HalalBadge" state="{{halal}}" surface="operational" size="md" hint-size="140px,24px"></x-import>
+      </sc-if>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="{{s.openVariant}}" icon="{{s.openIcon}}" size="md" hint-size="110px,22px">{{s.open}}</x-import>
+      <sc-if value="{{soundOff}}" hint-placeholder-val="{{false}}">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="warning" icon="bell" size="md" hint-size="100px,22px">Sound off</x-import>
+      </sc-if>
+      <sc-if value="{{plainReason}}" hint-placeholder-val="{{true}}">
+        <p style="margin: 0; font: var(--text-type-body-sm); line-height: var(--type-heading-md-line); color: var(--text-secondary);"><span style="color: var(--text-primary);">{{s.reason}}</span> {{s.who}}</p>
+      </sc-if>
+      <sc-if value="{{acct}}" hint-placeholder-val="{{false}}">
+        <p style="margin: 0; font: var(--text-type-body-sm); line-height: var(--type-heading-md-line); color: var(--text-primary);">{{acctText}} <a href="#account-banner" style="font-weight: var(--font-weight-semibold);">See what to do</a></p>
+      </sc-if>
+      <sc-if value="{{hidden}}" hint-placeholder-val="{{false}}">
+        <p style="margin: 0; font: var(--text-type-body-sm); line-height: var(--type-heading-md-line); color: var(--text-primary);">{{hiddenText}} <a href="#cert-banner" style="font-weight: var(--font-weight-semibold);">See what to do</a></p>
+      </sc-if>
+    </div>
+    <sc-if value="{{c.showResume}}" hint-placeholder-val="{{false}}">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" loading="{{resumeLoading}}" hint-size="130px,44px">Resume now</x-import>
+    </sc-if>
+    <sc-if value="{{c.showPause}}" hint-placeholder-val="{{true}}">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Menu" label="Pause new orders" trigger-text="Pause" trigger-variant="tonal" align="end" items="{{pauseItems}}" hint-size="100px,44px"></x-import>
+    </sc-if>
+    <sc-if value="{{c.showSwitch}}" hint-placeholder-val="{{true}}">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Switch" label="New orders" state-label="{{s.stateLabel}}" checked="{{s.accepting}}" disabled="{{s.locked}}" loading="{{switchLoading}}" size="md" hint-size="250px,44px"></x-import>
+    </sc-if>
+    <sc-if value="{{showBell}}" hint-placeholder-val="{{true}}">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.IconButton" icon="bell" accessibility-label="Notifications" badge="{{one}}" badge-noun="unread" hint-size="44px,44px"></x-import>
+    </sc-if>
+    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Menu" label="Account menu for Yusuf Rahman" icon="profile" align="end" items="{{accountItems}}" hint-size="44px,44px"></x-import>
+  </div>
+  <sc-if value="{{soundGate}}" hint-placeholder-val="{{false}}">
+    <div role="region" aria-labelledby="sound-gate-h" style="display: flex; align-items: center; gap: var(--space-4); padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--border-decorative); background: var(--feedback-warning-tint);">
+      <span style="display: inline-flex; color: var(--feedback-warning-icon);"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="bell" size="lg" hint-size="24px,24px"></x-import></span>
+      <div style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1;">
+        <h2 id="sound-gate-h" tabindex="-1" style="margin: 0; font: var(--text-type-label-lg); color: var(--feedback-warning-tint-text);">Turn on order sound to take orders</h2>
+        <span style="font: var(--text-type-body-sm); line-height: var(--type-caption-line); color: var(--feedback-warning-tint-text);">New orders ring on this device until each is accepted, rejected or expires. Your browser needs one tap to allow sound. Then New orders turns on.</span>
+        <span style="display: inline-flex; align-self: flex-start; padding: 0 6px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); background: var(--surface-base); font: var(--text-type-mono-sm); color: var(--text-secondary);">Proposed component: Banner (warning prompt; system Icon and Button)</span>
+      </div>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" hint-size="100px,44px">Not now</x-import>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md" icon-start="bell" hint-size="150px,44px">Turn on sound</x-import>
+    </div>
+  </sc-if>
+  <sc-if value="{{stripTop}}" hint-placeholder-val="{{true}}">
+    <dc-import name="PartOrderStrip" state="{{strip}}" place="header" w="{{w}}" hint-size="1216px,100px"></dc-import>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"title":{"editor":"text","default":"Menu"},"state":{"editor":"enum","options":["open","paused","paused_stale","closed_hours","closed_no_hours","closed_holiday","closed_toggle","auto_off","offline","suspended"],"default":"open"},"halal":{"editor":"enum","options":["CERTIFIED","EXPIRING_SOON","EXPIRED","UNVERIFIED","none"],"default":"CERTIFIED"},"controls":{"editor":"enum","options":["full","status"],"default":"full"},"switchLoading":{"editor":"boolean","default":false},"resumeLoading":{"editor":"boolean","default":false},"w":{"editor":"int","default":1216},"account":{"editor":"enum","options":["LIVE","DELISTED","DEACTIVATED"],"default":"LIVE"},"now":{"editor":"text","default":"19:10"},"closingAt":{"editor":"text","default":"22:00"},"overnightTo":{"editor":null},"noMoreHours":{"editor":"boolean","default":false},"sound":{"editor":"enum","options":["on","off"],"default":"on"},"soundGate":{"editor":"boolean","default":false},"strip":{"editor":"enum","options":["waiting","none","noscreen","focus","accepting","acceptfailed","rejecting","afterreject","expiring","expired","offline","many"],"default":"waiting"},"version":{"editor":"int","min":0,"max":2,"default":1},"stripPlace":{"editor":"enum","options":["header","footer"],"default":"header"},"$preview":{"width":1216,"height":208}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const state = this.props.state ?? 'open';
+    const live = { conn: 'Connected · checked in 12 s ago', connVariant: 'neutral', connIcon: 'refresh' };
+    const who = { RESTAURANT: 'You can change this.', ADMIN: 'Only HalalGoes support can change this.', TIME: 'This changes by itself.' };
+    const on = (s) => ({ on: s, off: 'Off – not accepting orders' });
+    const map = {
+      open: { ...live, open: 'Open', openVariant: 'outline', openIcon: 'check', reason: 'You are open and taking orders.', who: '', accepting: true, stateLabel: on('On – accepting orders') },
+      paused: { ...live, open: 'Paused', openVariant: 'warning', openIcon: 'clock', reason: 'Paused until 7:40 pm.', who: who.TIME + ' Or resume now.', accepting: true, stateLabel: on('On – paused until 7:40 pm') },
+      paused_stale: { ...live, open: 'Paused', openVariant: 'warning', openIcon: 'clock', reason: 'Paused until 7:05 pm.', who: 'That time has passed. Updating your status…', accepting: true, stateLabel: on('On – paused until 7:05 pm') },
+      closed_hours: { ...live, open: 'Closed', openVariant: 'neutral', openIcon: 'clock', reason: 'Outside your opening hours.', who: who.TIME, accepting: true, stateLabel: on('On – starts with your hours') },
+      closed_no_hours: { ...live, open: 'Closed', openVariant: 'neutral', openIcon: 'clock', reason: 'You have no opening hours set, so customers can’t order.', who: who.RESTAURANT, accepting: true, stateLabel: on('On – but you have no hours') },
+      closed_holiday: { ...live, open: 'Closed today', openVariant: 'neutral', openIcon: 'clock', reason: 'Closed today: Staff training (special date).', who: who.TIME, accepting: true, stateLabel: on('On – closed today') },
+      closed_toggle: { ...live, open: 'Not accepting orders', openVariant: 'neutral', openIcon: 'info', reason: 'New orders are switched off.', who: who.RESTAURANT, accepting: false, stateLabel: on('On – accepting orders') },
+      auto_off: { ...live, open: 'Not accepting orders', openVariant: 'neutral', openIcon: 'info', reason: 'New orders were switched off after 2 orders in a row timed out.', who: who.RESTAURANT, accepting: false, stateLabel: on('On – accepting orders') },
+      offline: { conn: 'Offline · last check-in 7:05 pm', connVariant: 'warning', connIcon: 'warning', open: 'Not receiving orders', openVariant: 'warning', openIcon: 'warning', reason: 'No order screen has checked in for 5 minutes.', who: who.RESTAURANT, accepting: true, stateLabel: on('On – no order screen') },
+      suspended: { ...live, open: 'Suspended', openVariant: 'neutral', openIcon: 'lock', reason: 'Your account is suspended.', who: who.ADMIN, accepting: true, locked: true, stateLabel: on('On – locked while suspended') },
+    };
+    const s = { locked: false, ...(map[state] || map.open) };
+    const now = this.props.now ?? '19:10';
+    const closingAt = this.props.closingAt ?? '22:00';
+    const overnightTo = this.props.overnightTo ?? null;
+    const noMore = !!this.props.noMoreHours;
+    const [hh, mm] = now.split(':').map(Number);
+    // Times read in 12-hour form everywhere (owner decision); props stay 24-hour data.
+    const t12 = (v) => { const [h, m] = String(v).split(':').map(Number); return ((h % 12) || 12) + ':' + String(m).padStart(2, '0') + ' ' + (h < 12 ? 'am' : 'pm'); };
+    const at = (add) => { const t = hh * 60 + mm + add; const d = t >= 1440; const x = t % 1440; return t12(Math.floor(x / 60) + ':' + (x % 60)) + (d ? ' tomorrow' : ''); };
+    // Owner decision: “until closing” replaces “the rest of today”. It needs an API change: the hours rule in the restaurant spec allows only 15, 30 or 60 minutes, or the end of today.
+    const pauseItems = [
+      { key: 'p15', label: 'Pause for 15 minutes (until ' + at(15) + ')' },
+      { key: 'p30', label: 'Pause for 30 minutes (until ' + at(30) + ')' },
+      { key: 'p60', label: 'Pause for 60 minutes (until ' + at(60) + ')' },
+      noMore ? { key: 'close', label: 'Pause until closing', disabled: true, disabledReason: 'You have no more hours today' }
+        : { key: 'close', label: 'Pause until closing (' + (overnightTo ? t12(overnightTo) + ' tomorrow' : t12(closingAt)) + ')' },
+    ];
+    const full = (this.props.controls ?? 'full') === 'full';
+    const c = { showSwitch: full, showPause: full && state === 'open', showResume: full && (state === 'paused' || state === 'paused_stale') };
+    const halal = this.props.halal ?? 'CERTIFIED';
+    const hidden = (halal === 'EXPIRED' || halal === 'UNVERIFIED') && state !== 'suspended';
+    const account = this.props.account ?? 'LIVE';
+    const acct = account === 'DELISTED' || account === 'DEACTIVATED';
+    if ((acct || hidden) && s.accepting) s.stateLabel = { on: 'On – hidden from customers', off: s.stateLabel.off };
+    const w = this.props.w ?? 1216;
+    const soundOff = (this.props.sound ?? 'on') === 'off';
+    return {
+      title: this.props.title ?? 'Menu', w, s, c, halal, hidden, acct, soundOff,
+      // A missing halal field renders no badge at all.
+      showHalal: halal !== 'none',
+      plainReason: !hidden && !acct,
+      hiddenText: halal === 'UNVERIFIED' ? 'Customers can’t see you until your certificate is verified.' : 'Customers can’t see you while your certificate is expired.',
+      acctText: account === 'DEACTIVATED' ? 'Your restaurant is deactivated, so customers can’t find you.' : 'Customers can’t find your restaurant right now.',
+      // Notifications (listNotifications) stay a later version, so no board draws the bell. Menu editing itself is now in launch (owner decision).
+      showBell: false,
+      one: 1, switchLoading: !!this.props.switchLoading, resumeLoading: !!this.props.resumeLoading,
+      pauseItems,
+      soundGate: !!this.props.soundGate,
+      strip: this.props.strip ?? 'waiting',
+      stripTop: (this.props.stripPlace ?? 'header') === 'header',
+      accountItems: [
+        { key: 'me', label: 'Yusuf Rahman · Owner', disabled: true, disabledReason: 'Signed in as' },
+        { type: 'separator' },
+        { key: 'security', label: 'Security settings' },
+        { key: 'signout', label: 'Sign out…' },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

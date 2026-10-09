@@ -1,0 +1,435 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Payouts</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}
+.hg-focus-inset:focus-visible{outline:2px solid transparent;outline-offset:-2px}
+/* Named exception: 200% text simulation, not a token change. Stands in for the text-scale mode requested from the design system (tokens.css [data-hg-text-scale]); removed once the system ships it. */
+[data-hg-text-scale="200"]{--type-body-lg-size:34px;--type-body-md-size:30px;--type-body-sm-size:26px;--type-heading-sm-size:36px;--type-heading-md-size:40px;--type-heading-lg-size:44px;--type-heading-xl-size:52px;--type-label-lg-size:30px;--type-label-md-size:26px;--type-label-sm-size:22px;--type-display-md-size:60px;--type-display-lg-size:72px;--type-mono-sm-size:22px;--type-mono-md-size:26px;--type-caption-size:24px}</style>
+</helmet>
+<div data-theme="{{theme}}" data-hg-text-scale="{{textScale}}" style="width: 390px; height: 844px; position: relative; overflow: hidden; display: flex; flex-direction: column; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui); font-size: var(--type-body-lg-size); line-height: 1.5;">
+  <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="field" title="Payouts" back-label="Back to Earnings" on-back="{{noop}}"></x-import>
+
+  <div style="flex-grow: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column;">
+    <div style="padding: 20px 20px 0; display: flex; flex-direction: column; gap: 20px;">
+
+    <sc-if value="{{isLarge}}" hint-placeholder-val="{{false}}">
+      <span style="align-self: flex-start; font-family: var(--font-mono); font-size: var(--type-mono-sm-size); padding: 2px 6px; border-radius: var(--radius-xs); background: var(--feedback-info-tint); color: var(--feedback-info-tint-text);">Drawn at 200% text, set by data-hg-text-scale="200" on the root (a 200% text simulation, not a token change) (display, mono and caption tokens doubled too). The payout row stacks: period, lines, status word, then the amount on its own line. Known truncation until the system gaps close: the AppBar title (nowrap + ellipsis) and "Show older payouts" (Button nowrap, ≈365px in a 350px column) overflow; see the design-system note.</span>
+    </sc-if>
+
+    <sc-if value="{{showOfflineSaved}}" hint-placeholder-val="{{false}}">
+      <div role="status" style="display: flex; gap: 12px; padding: 16px 20px; border-radius: var(--radius-lg); background: var(--feedback-info-tint);">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="info" size="lg" color="var(--feedback-info-icon)"></x-import>
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <strong style="font-size: var(--type-heading-sm-size);">You're offline</strong>
+          <span>These payouts are as saved at 9:05 pm today. They update when you're back online.</span>
+        </div>
+      </div>
+      <span style="align-self: flex-start; margin-top: -14px; font-family: var(--font-mono); font-size: var(--type-mono-sm-size); padding: 2px 6px; border-radius: var(--radius-xs); background: var(--feedback-info-tint); color: var(--feedback-info-tint-text);">Proposed component: InlineAlert (info, persistent)</span>
+    </sc-if>
+
+    <sc-for list="{{alerts}}" as="a" hint-placeholder-count="0">
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <div style="display: flex; gap: 12px; padding: 16px 20px; border-radius: var(--radius-lg); background: {{a.bg}};">
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="{{a.icon}}" size="lg" color="{{a.iconColor}}"></x-import>
+          <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px;">
+            <div role="status" style="display: flex; flex-direction: column; gap: 8px;">
+              <strong style="font-size: var(--type-heading-sm-size);">{{a.title}}</strong>
+              <sc-for list="{{a.lines}}" as="l" hint-placeholder-count="1"><span>{{l.text}}</span></sc-for>
+              <sc-if value="{{a.hasDetails}}" hint-placeholder-val="{{false}}"><span style="color: var(--text-secondary-field);">{{a.detailsLabel}} <span style="font-family: {{a.detailsFont}}; overflow-wrap: anywhere;">{{a.details}}</span></span></sc-if>
+            </div>
+            <sc-if value="{{a.hasPrimary}}" hint-placeholder-val="{{false}}">
+              <span style="display: flex;">
+                <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="{{a.primaryVariant}}" size="xl" full-width="{{yes}}" href="{{a.primaryHref}}">{{a.primaryLabel}}</x-import>
+              </span>
+            </sc-if>
+            <sc-if value="{{a.hasSecondary}}" hint-placeholder-val="{{false}}">
+              <span style="display: flex;">
+                <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="xl" full-width="{{yes}}" href="{{a.secondaryHref}}">{{a.secondaryLabel}}</x-import>
+              </span>
+            </sc-if>
+          </div>
+        </div>
+        <sc-for list="{{a.tags}}" as="t" hint-placeholder-count="1">
+          <span style="align-self: flex-start; font-family: var(--font-mono); font-size: var(--type-mono-sm-size); padding: 2px 6px; border-radius: var(--radius-xs); background: {{t.bg}}; color: {{t.fg}};">{{t.text}}</span>
+        </sc-for>
+      </div>
+    </sc-for>
+    <sc-if value="{{hasAlerts}}" hint-placeholder-val="{{false}}">
+      <span style="align-self: flex-start; margin-top: -14px; font-family: var(--font-mono); font-size: var(--type-mono-sm-size); padding: 2px 6px; border-radius: var(--radius-xs); background: var(--feedback-info-tint); color: var(--feedback-info-tint-text);">Proposed component: InlineAlert (persistent) · same banners, order and single Fix button as on Earnings · role=status on title + message only; buttons after it, outside the live region · Fix = Button primary xl (orange fill, dark label 4.63:1; owner decision: the rider 7:1 rule covers body text, not large bold button labels; fill 5.09:1 on the page), full width, label "Fix in Stripe"; "See this payout" = Button tertiary (border 3.04:1 in the dark warning banner) (the long label overflows the ≈274px banner column; Button is nowrap)</span>
+    </sc-if>
+
+    <sc-if value="{{showSummary}}" hint-placeholder-val="{{true}}">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" padding="20px">
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <sc-if value="{{s.hasNext}}" hint-placeholder-val="{{true}}">
+            <div style="display: flex; flex-direction: column; gap: 2px;">
+              <span style="color: var(--text-secondary-field);">Next payout, {{s.nextDate}}</span>
+              <span style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px;">
+                <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{s.nextCents}}" size="xl"></x-import>
+                <sc-if value="{{s.soFar}}" hint-placeholder-val="{{true}}"><span>so far</span></sc-if>
+              </span>
+              <sc-if value="{{s.hasNextNote}}" hint-placeholder-val="{{false}}"><strong>{{s.nextNote}}</strong></sc-if>
+            </div>
+          </sc-if>
+          <sc-if value="{{s.noNext}}" hint-placeholder-val="{{false}}"><span>{{s.noNextText}}</span></sc-if>
+          <div style="display: flex; flex-direction: column; gap: 2px; padding-top: 12px; border-top: 1px solid var(--border-decorative);">
+            <span style="color: var(--text-secondary-field);">Unpaid balance</span>
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{s.unpaid}}" size="lg"></x-import>
+            <sc-if value="{{s.hasPendingLine}}" hint-placeholder-val="{{true}}">
+              <span>Includes lines still pending. Pending lines go into a later payout once they're available.</span>
+            </sc-if>
+            <sc-if value="{{s.hasExtra}}" hint-placeholder-val="{{false}}">
+              <span style="display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 4px;">{{s.extraBefore}} <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{s.extraCents}}" size="md"></x-import> {{s.extraAfter}}</span>
+            </sc-if>
+            <sc-if value="{{s.isNegative}}" hint-placeholder-val="{{false}}">
+              <span style="display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 4px;">A <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{s.causeCents}}" size="md" sign="always"></x-import> correction on {{s.causeDate}} was larger than your available earnings. The difference is carried forward and comes off your next earnings.</span>
+              <strong>HalalGoes never takes money from your bank account.</strong>
+              <span style="display: flex; margin-top: 8px;">
+                <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="xl" full-width="{{yes}}" href="Entry-clawback-paid-from-payouts.dc.html">See this correction</x-import>
+              </span>
+            </sc-if>
+          </div>
+          <span>Weekly, every Monday. No minimum. Paid out through Stripe.</span>
+        </div>
+      </x-import>
+      <span style="align-self: flex-start; margin-top: -14px; font-family: var(--font-mono); font-size: var(--type-mono-sm-size); padding: 2px 6px; border-radius: var(--radius-xs); background: var(--feedback-info-tint); color: var(--feedback-info-tint-text);">Same two numbers, same order as Earnings: next payout = the first row's amount_cents (DRAFT/READY), date = next_payout_at; unpaid balance = unpaid_balance_cents</span>
+      <span style="align-self: flex-start; margin-top: -14px; font-family: var(--font-mono); font-size: var(--type-mono-sm-size); padding: 2px 6px; border-radius: var(--radius-xs); background: var(--feedback-warning-tint); color: var(--feedback-warning-tint-text);">Needs API: pending_cents on EarningsSummary (the pending line carries no amount until then)</span>
+      <sc-for list="{{s.tags}}" as="t" hint-placeholder-count="0">
+        <span style="align-self: flex-start; margin-top: -14px; font-family: var(--font-mono); font-size: var(--type-mono-sm-size); padding: 2px 6px; border-radius: var(--radius-xs); background: var(--feedback-warning-tint); color: var(--feedback-warning-tint-text);">{{t.text}}</span>
+      </sc-for>
+    </sc-if>
+    </div>
+
+    <sc-if value="{{showList}}" hint-placeholder-val="{{true}}">
+      <section aria-labelledby="po-h" style="display: flex; flex-direction: column; margin-top: 20px;">
+        <h2 id="po-h" style="margin: 0; padding: 0 20px 8px; font-size: var(--type-heading-md-size);">Past and upcoming payouts</h2>
+        <sc-for list="{{rows}}" as="r" hint-placeholder-count="4">
+          <a href="{{r.href}}" class="hg-focus-inset" style="display: flex; align-items: center; flex-wrap: {{rowWrap}}; gap: 8px 12px; min-height: 96px; padding: 12px 20px; border-top: 1px solid var(--border-decorative); color: var(--text-primary); text-decoration: none; box-shadow: {{r.ring}};">
+            <span style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;">
+              <span style="font-weight: 600;">{{r.period}}</span>
+              <span style="color: var(--text-secondary-field);">{{r.sub}}</span>
+              <span style="display: inline-flex; align-items: center; gap: 6px; font-weight: 600; color: {{r.sc}};">
+                <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="{{r.si}}" size="md" color="{{r.ic}}"></x-import>{{r.state}}
+              </span>
+            </span>
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{r.cents}}" size="lg"></x-import>
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="chevron-right" size="md"></x-import>
+          </a>
+        </sc-for>
+      </section>
+      <div style="display: flex; flex-direction: column; gap: 6px; padding: 8px 20px 0;">
+        <span style="align-self: flex-start; font-family: var(--font-mono); font-size: var(--type-mono-sm-size); padding: 2px 6px; border-radius: var(--radius-xs); background: var(--feedback-info-tint); color: var(--feedback-info-tint-text);">Rows sit on surface-base with border-decorative separators (no Card), as on Activity and Deliveries · Proposed component: ListRow (link, money + status, .hg-focus-inset inset ring; outline: 2px solid transparent, outline-offset −2px only on :focus-visible, for forced colours) · paging from meta next cursor</span>
+        <span style="align-self: flex-start; font-family: var(--font-mono); font-size: var(--type-mono-sm-size); padding: 2px 6px; border-radius: var(--radius-xs); background: var(--feedback-info-tint); color: var(--feedback-info-tint-text);">System gap: Badge needs a field size (label-lg 15px, ≥32px high) and a field theme: warning/info are raw ramp, not themed (warning 6.83:1 &lt; 7:1, info renders as a light chip in dark), outline on surface-raised 5.78:1. Until then the status is Icon + 17px word in text-secondary-field (8.35:1 here), never a 13px chip.</span>
+        <sc-if value="{{isMainList}}" hint-placeholder-val="{{true}}">
+          <span style="align-self: flex-start; font-family: var(--font-mono); font-size: var(--type-mono-sm-size); padding: 2px 6px; border-radius: var(--radius-xs); background: var(--feedback-info-tint); color: var(--feedback-info-tint-text);">Proposed component: StatusLabel (Icon md + label, 17px semibold; never brand orange or green; warning states use --feedback-warning-icon on the icon and --text-primary on the word, other states use --text-secondary-field) · stands in for Badge until Badge has a field size and a field theme (the long-term replacement)</span>
+        </sc-if>
+        <span style="align-self: flex-start; font-family: var(--font-mono); font-size: var(--type-mono-sm-size); padding: 2px 6px; border-radius: var(--radius-xs); background: var(--feedback-info-tint); color: var(--feedback-info-tint-text);">Icon gap: hourglass (Solar hourglass) for Being prepared; "more" is not used · System gap: AppBar tone=field back IconButton must be 56px (target.field)</span>
+        <sc-for list="{{listTags}}" as="t" hint-placeholder-count="0">
+          <span style="align-self: flex-start; font-family: var(--font-mono); font-size: var(--type-mono-sm-size); padding: 2px 6px; border-radius: var(--radius-xs); background: var(--feedback-warning-tint); color: var(--feedback-warning-tint-text);">{{t.text}}</span>
+        </sc-for>
+      </div>
+      <sc-if value="{{showMoreButton}}" hint-placeholder-val="{{true}}">
+        <div style="padding: 16px 20px 20px; display: flex; flex-direction: column; gap: 6px;">
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="xl" full-width="{{yes}}">Show older payouts</x-import>
+          <span style="align-self: flex-start; font-family: var(--font-mono); font-size: var(--type-mono-sm-size); padding: 2px 6px; border-radius: var(--radius-xs); background: var(--feedback-info-tint); color: var(--feedback-info-tint-text);">Paging focus: the button keeps focus while loading (loading in place), first new row on success, Try again on failure (boards: Payouts — loading older / older payouts failed)</span>
+        </div>
+      </sc-if>
+      <sc-if value="{{showOfflineMore}}" hint-placeholder-val="{{false}}">
+        <p style="margin: 0; padding: 16px 20px 20px; color: var(--text-secondary-field);">Older payouts load when you're back online.</p>
+      </sc-if>
+      <sc-if value="{{showPaging}}" hint-placeholder-val="{{false}}">
+        <div style="display: flex; flex-direction: column; gap: 8px; padding: 16px 20px 20px;">
+          <span style="display: flex; border-radius: var(--radius-md); box-shadow: 0 0 0 2px var(--focus-offset), 0 0 0 5px var(--focus-ring);">
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="xl" full-width="{{yes}}" loading="{{yes}}">Show older payouts</x-import>
+          </span>
+          <div aria-busy="true" style="display: flex; flex-direction: column; gap: 8px;">
+            <span style="display: block; height: 88px; border-radius: var(--radius-md); background: var(--skeleton-base);"></span>
+            <span role="status" style="color: var(--text-secondary-field);">Loading older payouts</span>
+          </div>
+          <span style="align-self: flex-start; font-family: var(--font-mono); font-size: var(--type-mono-sm-size); padding: 2px 6px; border-radius: var(--radius-xs); background: var(--feedback-info-tint); color: var(--feedback-info-tint-text);">"Show older payouts" stays in place with loading (Button loading: spinner, aria-busy, still focusable), so focus never falls back to the top of the page; skeleton rows below it. Drawn: focus kept on the button. On success focus moves to the first new row; on failure, to Try again</span>
+        </div>
+      </sc-if>
+      <sc-if value="{{showPagingError}}" hint-placeholder-val="{{false}}">
+        <div style="padding: 16px 20px 20px; display: flex; flex-direction: column; gap: 6px;">
+          <div style="display: flex; gap: 12px; padding: 16px 20px; border-radius: var(--radius-lg); background: var(--feedback-warning-tint);">
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="warning" size="lg" color="var(--feedback-warning-icon)"></x-import>
+            <div style="display: flex; flex-direction: column; gap: 8px; align-items: flex-start;">
+              <div role="status" style="display: flex; flex-direction: column; gap: 8px;">
+                <strong>We couldn't load older payouts</strong>
+                <span>The payouts above are up to date.</span>
+              </div>
+              <span style="display: flex; border-radius: var(--radius-md); box-shadow: 0 0 0 2px var(--focus-offset), 0 0 0 5px var(--focus-ring);">
+                <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="xl" icon-start="refresh">Try again</x-import>
+              </span>
+            </div>
+          </div>
+          <span style="align-self: flex-start; font-family: var(--font-mono); font-size: var(--type-mono-sm-size); padding: 2px 6px; border-radius: var(--radius-xs); background: var(--feedback-info-tint); color: var(--feedback-info-tint-text);">Proposed component: InlineAlert (paging error, keeps loaded rows) · role=status on the message only · focus moves from the loading "Show older payouts" to Try again (drawn); Try again then behaves like the button (loading in place, first new row on success)</span>
+        </div>
+      </sc-if>
+      <sc-if value="{{showEnd}}" hint-placeholder-val="{{false}}">
+        <p style="margin: 0; padding: 16px 20px 24px; color: var(--text-secondary-field);">That's every payout so far.</p>
+      </sc-if>
+      <sc-if value="{{isFocus}}" hint-placeholder-val="{{false}}">
+        <span style="align-self: flex-start; margin: 0 20px 20px; font-family: var(--font-mono); font-size: var(--type-mono-sm-size); padding: 2px 6px; border-radius: var(--radius-xs); background: var(--feedback-info-tint); color: var(--feedback-info-tint-text);">Drawn: keyboard/switch focus on the second row (inset ring)</span>
+      </sc-if>
+    </sc-if>
+
+    <div style="flex-grow: 1; padding: 0 20px 20px; display: flex; flex-direction: column;">
+    <sc-if value="{{isLoading}}" hint-placeholder-val="{{false}}">
+      <div aria-busy="true" style="display: flex; flex-direction: column; gap: 12px;">
+        <span role="status" class="hg-sr">Loading payouts</span>
+        <span style="display: block; height: 220px; border-radius: var(--radius-lg); background: var(--skeleton-base);"></span>
+        <span style="display: block; height: 96px; border-radius: var(--radius-md); background: var(--skeleton-base);"></span>
+        <span style="display: block; height: 96px; border-radius: var(--radius-md); background: var(--skeleton-base);"></span>
+        <span style="align-self: flex-start; font-family: var(--font-mono); font-size: var(--type-mono-sm-size); padding: 2px 6px; border-radius: var(--radius-xs); background: var(--feedback-info-tint); color: var(--feedback-info-tint-text);">Proposed component: Skeleton (hidden status line: "Loading payouts")</span>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{isFirstPayout}}" hint-placeholder-val="{{false}}">
+      <div style="display: flex; flex-direction: column; gap: 12px; padding-top: 20px;">
+        <h2 style="margin: 0; font-size: var(--type-heading-md-size);">No payouts yet</h2>
+        <p style="margin: 0;">{{firstPayoutText}}</p>
+        <p style="margin: 0;">Payouts go out every Monday. There is no minimum.</p>
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="xl" full-width="{{yes}}" href="Activity.dc.html">See earnings activity</x-import>
+        <span style="align-self: flex-start; font-family: var(--font-mono); font-size: var(--type-mono-sm-size); padding: 2px 6px; border-radius: var(--radius-xs); background: var(--feedback-info-tint); color: var(--feedback-info-tint-text);">Unpaid balance above zero, no payout rows yet (GET /riders/me/payouts data=[]): the rider has already earned, so no "Go online" and no Home button. Date = next_payout_at when present; when null: "Your first payout goes out on the Monday after your first lines are available." Nothing earned at all → Payouts — none yet</span>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{isEmpty}}" hint-placeholder-val="{{false}}">
+      <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 12px; padding-top: 20px;">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="clock" size="2xl" color="var(--text-secondary-field)"></x-import>
+        <h2 style="margin: 0; font-size: var(--type-heading-xl-size); line-height: 1.25;">No payouts yet</h2>
+        <p style="margin: 0;">Payouts go out every Monday once your earnings are available and your payout account is set up. There is no minimum.</p>
+        <p style="margin: 0;">Go online from Home to get offers.</p>
+        <div style="margin-top: auto; display: flex; flex-direction: column; gap: 6px;">
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="xl" full-width="{{yes}}" icon-start="home">Go to Home</x-import>
+          <span style="align-self: flex-start; font-family: var(--font-mono); font-size: var(--type-mono-sm-size); padding: 2px 6px; border-radius: var(--radius-xs); background: var(--feedback-info-tint); color: var(--feedback-info-tint-text);">Proposed component: EmptyState (action pinned in the bottom third) · nothing earned yet: unpaid_balance_cents = 0 and no payout rows, so the summary card is hidden</span>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{isErrorish}}" hint-placeholder-val="{{false}}">
+      <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 12px; padding-top: 32px;">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="{{err.icon}}" size="2xl" color="var(--text-secondary-field)"></x-import>
+        <div role="alert" style="display: flex; flex-direction: column; gap: 12px;">
+          <h2 style="margin: 0; font-size: var(--type-heading-xl-size); line-height: 1.25;">{{err.title}}</h2>
+          <p style="margin: 0;">{{err.body}}</p>
+        </div>
+        <sc-if value="{{err.hasWait}}" hint-placeholder-val="{{false}}"><p role="status" style="margin: 0; font-weight: 600;">You can try again in 30 seconds.</p></sc-if>
+        <div style="margin-top: auto; display: flex; flex-direction: column; gap: 12px;">
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="xl" full-width="{{yes}}" icon-start="{{err.btnIcon}}" disabled="{{err.disabled}}">{{err.btn}}</x-import>
+          <sc-if value="{{err.hasSupport}}" hint-placeholder-val="{{false}}">
+            <div style="display: flex; align-items: center; min-height: 60px; padding: 0 16px; border: 1px dashed var(--border-decorative); border-radius: var(--radius-md); color: var(--text-secondary-field);">Contact support (placeholder)</div>
+          </sc-if>
+          <sc-for list="{{err.tags}}" as="t" hint-placeholder-count="1">
+            <span style="align-self: flex-start; font-family: var(--font-mono); font-size: var(--type-mono-sm-size); padding: 2px 6px; border-radius: var(--radius-xs); background: {{t.bg}}; color: {{t.fg}};">{{t.text}}</span>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+    </div>
+  </div>
+
+  <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.BottomNav" tone="field" label="Rider" active="earnings" items="{{tabs}}"></x-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"variant":{"editor":"enum","default":"list","options":["list","ready","transferring","held","heldreview","heldcode","failed","failedcode","failedtransient","multi","multicause","negative","accountdue","account","accountmapped","paused","loading","empty","firstpayout","error","ratelimited","notactive","offline","offlinesaved","paging","pagingerror","end","focus","large"]},"theme":{"editor":"enum","default":"dark","options":["dark","light"]},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const variant = this.props.variant ?? 'list';
+    const theme = this.props.theme ?? 'dark';
+    const dark = theme !== 'light';
+    const isFocus = variant === 'focus';
+    const quiet = 'var(--text-secondary-field)';
+    // Status = Icon + word. Warning states: warning icon colour, word in text-primary.
+    const S = {
+      DRAFT: ['Being prepared', 'clock', quiet, quiet], READY: ['Scheduled', 'clock', quiet, quiet],
+      TRANSFERRING: ['Sending', 'refresh', quiet, quiet], TRANSFERRED: ['With Stripe', 'check', quiet, quiet],
+      PAID: ['Paid', 'check', quiet, quiet],
+      FAILED: ['Didn’t go through', 'warning', 'var(--text-primary)', 'var(--feedback-warning-icon)'],
+      HELD: ['On hold', 'lock', 'var(--text-primary)', 'var(--feedback-warning-icon)'],
+    };
+    let i = 0;
+    const row = (period, sub, cents, state, href) => {
+      const s = S[state];
+      const r = { period, sub, cents, href, state: s[0], si: s[1], sc: s[2], ic: s[3],
+        ring: isFocus && i === 1 ? 'inset 0 0 0 2px var(--focus-offset), inset 0 0 0 5px var(--focus-ring)' : 'none' };
+      i += 1;
+      return r;
+    };
+    const v = variant;
+    const failedLike = v === 'failed' || v === 'failedtransient' || v === 'failedcode';
+    const heldLike = v === 'held' || v === 'heldreview' || v === 'heldcode';
+    const multiLike = v === 'multi' || v === 'multicause';
+    let first;
+    if (v === 'ready') first = row('21 to 27 September', '70 lines', 34070, 'READY', 'Payout-ready.dc.html');
+    else if (v === 'transferring') first = row('21 to 27 September', '70 lines · being sent to Stripe', 34070, 'TRANSFERRING', 'Payout-transferring.dc.html');
+    else if (v === 'failedcode') first = row('21 to 27 September', '145 lines so far, including the 77 that came back', 72061, 'DRAFT', 'Payout-draft.dc.html');
+    else if (failedLike) first = row('21 to 27 September', '145 lines so far', 72061, 'DRAFT', 'Payout-draft.dc.html');
+    else if (v === 'multicause') first = row('21 to 27 September', '142 lines so far, including the 74 that came back', 69641, 'DRAFT', 'Payout-draft.dc.html');
+    else if (v === 'multi') first = row('21 to 27 September', '142 lines so far', 69641, 'DRAFT', 'Payout-draft.dc.html');
+    else first = row('21 to 27 September', '68 lines so far', 32831, 'DRAFT', 'Payout-draft.dc.html');
+    let second;
+    if (v === 'held' || multiLike) second = row('14 to 20 September', '77 lines · not paid yet', 39230, 'HELD', 'Payout-held.dc.html');
+    else if (v === 'heldcode') second = row('14 to 20 September', '77 lines · not paid yet', 39230, 'HELD', 'Payout-held-cause.dc.html');
+    else if (v === 'heldreview') second = row('14 to 20 September', '77 lines · not paid yet', 39230, 'HELD', 'Payout-held-review.dc.html');
+    else if (v === 'failed') second = row('14 to 20 September', '77 lines · back in your balance', 39230, 'FAILED', 'Payout-failed.dc.html');
+    else if (v === 'failedcode') second = row('14 to 20 September', '77 lines · back in your balance', 39230, 'FAILED', 'Payout-failed-cause.dc.html');
+    else if (v === 'failedtransient') second = row('14 to 20 September', '77 lines · back in your balance', 39230, 'FAILED', 'Payout-failed-transient.dc.html');
+    else second = row('14 to 20 September', '77 lines · paid out Monday 21 September', 39230, 'PAID', 'PayoutDetail.dc.html');
+    const third = multiLike ? row('7 to 13 September', '74 lines · back in your balance', 36810, 'FAILED', 'Payout-failed-7-to-13.dc.html')
+      : row('7 to 13 September', '74 lines · paid out Monday 14 September', 36810, 'PAID', 'PayoutDetail.dc.html');
+    const rows = [first, second, third, row('31 August to 6 September', '39 lines · paid out Monday 7 September', 18230, 'PAID', 'PayoutDetail.dc.html')]
+      .filter((r, k) => !(v === 'negative' && k === 0));
+
+    const info = (text) => ({ text, bg: 'var(--feedback-info-tint)', fg: 'var(--feedback-info-tint-text)' });
+    const need = (text) => ({ text, bg: 'var(--feedback-warning-tint)', fg: 'var(--feedback-warning-tint-text)' });
+    const L = (...xs) => xs.map((text) => ({ text }));
+    const banner = (o) => Object.assign({
+      bg: 'var(--feedback-warning-tint)', icon: 'warning', iconColor: 'var(--feedback-warning-icon)', lines: [], details: '', detailsLabel: 'Reason given:', detailsFont: 'var(--font-ui)',
+      hasPrimary: false, primaryLabel: '', primaryHref: '', primaryVariant: 'primary', hasSecondary: false, secondaryLabel: '', secondaryHref: '', tags: [],
+    }, o, { hasDetails: !!o.details });
+    const fix = { hasPrimary: true, primaryLabel: 'Fix in Stripe', primaryHref: 'PayoutAccount.dc.html', primaryVariant: 'primary' };
+    const stripe = { detailsLabel: 'Details from Stripe:', detailsFont: 'var(--font-mono)' };
+    const verbatim = info('currently_due / past_due shown exactly as returned (contract: verbatim, never paraphrased)');
+    const fixRule = info('Fix keyed on GET /connect/status (payouts_enabled=false or currently_due / past_due non-empty), not on a cause code');
+    const altCode = (text) => need('Alternative — Needs API: ' + text);
+    const onlineNeed = need('Needs API: going online must not depend on payouts_enabled (PUT /riders/me/availability returns 403 PAYOUT_ACCOUNT_INCOMPLETE today). Owner decision: riders keep taking offers while payouts are paused');
+    const mapNeed = need('Alternative — Needs API: requirement → rider copy mapping (contract change to the verbatim rule)');
+    const A = {
+      paused: [banner({ icon: 'lock', title: 'Your account is paused',
+        lines: L('You won’t get new offers until this is sorted out. Account shows why and what to do next.', 'Money you’ve already earned is always paid out, on the usual Monday payouts.'),
+        hasPrimary: true, primaryLabel: 'Go to Account', primaryHref: '', primaryVariant: 'primary',
+        tags: [info('Account paused (suspended or deactivated): offline for new offers only; payouts keep going out as listed (owner decision)'), need('Needs API: GET /riders/me/payouts readable while the account is paused (403 ACCOUNT_NOT_ACTIVE today; board: Payouts — account paused, current contract)')] })],
+      accountdue: [banner(Object.assign({ bg: 'var(--feedback-info-tint)', icon: 'info', iconColor: 'var(--feedback-info-icon)',
+        title: 'Stripe needs more information by Friday 2 October',
+        lines: L('Your payouts keep going until then. After Friday 2 October, payouts pause until it is done. You can keep taking deliveries either way.'),
+        details: 'external_account', tags: [info('payouts_enabled=true · currently_due · requirements.deadline'), verbatim] }, stripe, fix))],
+      account: [banner(Object.assign({ title: 'Payouts are paused',
+        lines: L('Stripe needs more information before it can send your payouts.', 'You can keep going online and taking deliveries. Your earnings keep adding up and are paid out once this is done.', 'Your payout on Monday 28 September is held until then.'),
+        details: 'external_account', tags: [info('payouts_enabled=false → next payout HELD · date = next_payout_at'), verbatim, onlineNeed] }, stripe, fix))],
+      accountmapped: [banner(Object.assign({ title: 'Payouts are paused',
+        lines: L('Your bank account: add or confirm it with Stripe.', 'You can keep taking deliveries. Your payout on Monday 28 September is held until this is fixed, then paid out.'),
+        details: 'external_account', tags: [mapNeed, onlineNeed] }, stripe, fix))],
+      held: [banner(Object.assign({ icon: 'lock', title: 'This payout is on hold',
+        lines: L('Payout for 14 to 20 September. Once the hold is lifted, it goes out on the next Monday payout. Your earnings are safe.', 'Stripe says your payout account needs attention.'),
+        details: 'This payout is held while Stripe confirms your updated bank details.',
+        hasSecondary: true, secondaryLabel: 'See this payout', secondaryHref: 'Payout-held.dc.html',
+        tags: [info('hold_reason word for word under "Reason given:" (platform-set free string, never credited to Stripe)'), fixRule,
+          info('Sample state: payouts_enabled=true with a non-empty currently_due (Fix shows); only this payout is held, so the Monday 28 September payout is not. payouts_enabled=false would also hold the next payout (platform payout rule): then "Held until your payout account is fixed." under Next payout plus the "Payouts are paused" banner, as on Earnings — two banners stacked')] }, fix))],
+      heldcode: [banner(Object.assign({ icon: 'lock', title: 'Your payout for 14 to 20 September is on hold',
+        lines: L('Stripe paused payouts to your account because it needs more information from you.', 'Once the hold is lifted, it goes out on the next Monday payout. Your earnings are safe.'),
+        details: 'Payouts are paused until your Stripe account is complete.',
+        hasSecondary: true, secondaryLabel: 'See this payout', secondaryHref: 'Payout-held-cause.dc.html',
+        tags: [altCode('hold_reason_code enum on Payout')] }, fix))],
+      heldreview: [banner({ icon: 'lock', title: 'Your payout for 14 to 20 September is on hold',
+        lines: L('HalalGoes is checking this payout before it is sent. There is nothing you need to fix.', 'Once the check is done, it goes out on the next Monday payout. Your earnings are safe.'),
+        hasPrimary: true, primaryLabel: 'See this payout', primaryHref: 'Payout-held-review.dc.html', primaryVariant: 'tertiary',
+        tags: [altCode('hold_reason_code (review, not a Stripe requirement)')] })],
+      failed: [banner(Object.assign({ title: 'This payout didn’t go through',
+        lines: L('Payout for 14 to 20 September. The money is back in your balance and goes into the Monday 28 September payout.', 'Stripe says your payout account needs attention.'),
+        details: 'The bank account has been closed.',
+        hasSecondary: true, secondaryLabel: 'See this payout', secondaryHref: 'Payout-failed.dc.html',
+        tags: [info('failure_message word for word under "Reason given:" (sample text; codes are never shown)'), fixRule] }, fix))],
+      failedcode: [banner(Object.assign({ title: 'Your payout for 14 to 20 September didn’t go through',
+        lines: L('Your bank account is closed, so the bank sent the money back.', 'The money is back in your balance and goes into the Monday 28 September payout. Fix your payout account first so it goes through.'),
+        details: 'The bank account has been closed.',
+        hasSecondary: true, secondaryLabel: 'See this payout', secondaryHref: 'Payout-failed-cause.dc.html',
+        tags: [altCode('failure_code enum on Payout (never rendered)')] }, fix))],
+      failedtransient: [banner({ title: 'Your payout for 14 to 20 September didn’t go through',
+        lines: L('Stripe or your bank had a temporary problem. There is nothing you need to fix.', 'The money is back in your balance and goes into the Monday 28 September payout.'),
+        details: 'The bank could not process this payout.',
+        hasPrimary: true, primaryLabel: 'See what happened', primaryHref: 'Payout-failed-transient.dc.html', primaryVariant: 'tertiary',
+        tags: [altCode('failure_code (transient, not an account cause)')] })],
+      multi: [
+        banner(Object.assign({ icon: 'lock', title: 'Two payouts need attention',
+          lines: L('14 to 20 September is on hold, and 7 to 13 September didn’t go through.', 'Stripe says your payout account needs attention. Fix it first; each payout below gives its own reason.'),
+          tags: [info('Several problem payouts: one banner, one Fix button (GET /connect/status); each payout is still its own row. Whether one fix clears both is not claimed without a cause code')] }, fix)),
+      ],
+      multicause: [
+        banner(Object.assign({ icon: 'lock', title: 'Two payouts need your payout account fixed',
+          lines: L('14 to 20 September is on hold, and 7 to 13 September didn’t go through because your bank account is closed.', 'Fixing your payout account clears both. Your earnings are safe.'),
+          details: 'The bank account has been closed.',
+          tags: [altCode('failure_code / hold_reason_code, to say one fix clears both · returned line count per payout')] }, fix)),
+      ],
+    };
+    const alerts = A[v] || [];
+    const pl = { hasPendingLine: true };
+    const base = { hasNext: true, nextDate: 'Monday 28 September', nextCents: 32831, soFar: true, hasNextNote: false, nextNote: '', noNext: false, noNextText: '', unpaid: 34070, hasExtra: false, isNegative: false, causeCents: 0, causeDate: '', tags: [] };
+    const fixFirst = { hasNextNote: true, nextNote: 'Fix your payout account first, or this payout won’t go through either.' };
+    const SUM = {
+      normal: Object.assign({}, base, pl),
+      ready: Object.assign({}, base, { nextCents: 34070, soFar: false, hasPendingLine: false }),
+      paused: Object.assign({}, base, pl, { hasNextNote: true, nextNote: 'Held until your payout account is fixed.' }),
+      held: Object.assign({}, base, pl, { hasExtra: true, extraBefore: '', extraCents: 39230, extraAfter: 'is on hold in the payout for 14 to 20 September. Once the hold is lifted, it goes out on the next Monday payout.',
+        tags: [{ text: 'Needs API: does unpaid_balance_cents include lines in a HELD payout? Until answered, no \u2018included\u2019 or \u2018not included\u2019 claim: only the HELD payout\u2019s own amount_cents and period' }] }),
+      failed: Object.assign({}, base, pl, fixFirst, { nextCents: 72061, unpaid: 73300,
+        tags: [{ text: 'After FAILED the lines return to AVAILABLE and join this week’s DRAFT: amount_cents 72061, entry_count 145, as the API returns them. The returned amount and count are on no field, so neither is stated' }] }),
+      failedcode: Object.assign({}, base, pl, fixFirst, { nextCents: 72061, unpaid: 73300, hasExtra: true, extraBefore: 'Includes', extraCents: 39230, extraAfter: 'back from the payout that didn’t go through.',
+        tags: [{ text: 'Alternative — Needs API: returned_from_payout_id / returned amount on Payout or EarningsSummary (the $392.30 and "the 77 that came back")' }] }),
+      failedtransient: Object.assign({}, base, pl, { nextCents: 72061, unpaid: 73300 }),
+      multi: Object.assign({}, base, pl, { nextCents: 69641, unpaid: 70880, hasNextNote: true, nextNote: 'Fix your payout account first, or this payout won’t go through either.', hasExtra: true, extraBefore: '', extraCents: 39230, extraAfter: 'is on hold in the payout for 14 to 20 September.',
+        tags: [{ text: 'Needs API: does unpaid_balance_cents include lines in a HELD payout? Until answered, no \u2018included\u2019 or \u2018not included\u2019 claim: only the HELD payout\u2019s own amount_cents and period' }] }),
+      negative: Object.assign({}, base, { hasNext: false, noNext: true, noNextText: 'No payout this Monday: there is nothing to send.', unpaid: -1250, hasPendingLine: false, isNegative: true,
+        causeCents: -1500, causeDate: 'Saturday 26 September',
+        tags: [{ text: 'Cause = the newest CLAWBACK from GET /riders/me/earnings/entries?type=CLAWBACK&limit=1 (−$15.00, Saturday 26, a correction of a paid bonus), linked straight to it; same block and data as Earnings — balance below zero (this week: +$2.50 tip, −$15.00 correction). "See this correction" is Button primary (a tertiary border is 2.85:1 inside a Card). Needs API: which line(s) caused the carry-forward when there are several' }] }),
+      firstpayout: Object.assign({}, base, pl, { hasNext: false, soFar: false, noNext: true, noNextText: 'Your first payout goes out Monday 28 September.', unpaid: 939 }),
+    };
+    let s = SUM.normal;
+    if (v === 'ready' || v === 'transferring') s = SUM.ready;
+    else if (heldLike) s = SUM.held;
+    else if (v === 'failedcode') s = SUM.failedcode;
+    else if (v === 'failedtransient') s = SUM.failedtransient;
+    else if (v === 'failed') s = SUM.failed;
+    else if (multiLike) s = SUM.multi;
+    else if (v === 'account' || v === 'accountmapped') s = SUM.paused;
+    else if (v === 'negative') s = SUM.negative;
+    else if (v === 'firstpayout') s = SUM.firstpayout;
+
+    const E = {
+      error: { icon: 'error', title: 'We couldn’t load your payouts', body: 'Your money is safe with HalalGoes and Stripe. Try again in a moment.', btn: 'Try again', btnIcon: 'refresh', disabled: false, hasWait: false, hasSupport: false,
+        tags: [info('Proposed component: ErrorState (recoverable) · action in the bottom third · role=alert on heading + message only')] },
+      offline: { icon: 'warning', title: 'You’re offline', body: 'Payouts load when you’re back online. Nothing is lost: your money is safe with HalalGoes and Stripe.', btn: 'Try again', btnIcon: 'refresh', disabled: false, hasWait: false, hasSupport: false,
+        tags: [info('Proposed component: ErrorState (offline, first open, no saved copy)')] },
+      ratelimited: { icon: 'clock', title: 'Too many tries in a row', body: 'Your money is safe with HalalGoes and Stripe. This screen just needs a short pause.', btn: 'Try again', btnIcon: 'refresh', disabled: true, hasWait: true, hasSupport: false,
+        tags: [info('429 RATE_LIMITED on GET /riders/me/payouts · wait from Retry-After, polite, updated at most every 10 s · aria-disabled until then')] },
+      notactive: { icon: 'lock', title: 'Your account is paused, so payouts can’t be shown', body: 'You can finish a delivery you’ve already started, but you won’t get new offers. Money you’ve earned is always paid out on the Monday payouts. Account shows why your account is paused and what to do next.', btn: 'Go to Account', btnIcon: 'profile', disabled: false, hasWait: false, hasSupport: true,
+        tags: [info('403 ACCOUNT_NOT_ACTIVE (SUSPENDED or DEACTIVATED; a Stripe payout restriction no longer pauses the account: owner decision, riders keep taking offers while payouts are paused) · Account → Suspended-* boards, Sign-in & Onboarding canvas · current contract; the owner-decided screen is Payouts — account paused, payouts still shown'), need('Needs API: earnings and payouts readable while the account is paused (owner decision: money already earned is always paid out, so the rider should still see it) · support ticket (rider delivery-history spec)')] },
+    };
+    const isLoading = v === 'loading', isEmpty = v === 'empty', isFirstPayout = v === 'firstpayout';
+    const err = E[v] || E.error;
+    const isErrorish = !!E[v];
+    const listy = ['list', 'ready', 'transferring', 'held', 'heldreview', 'heldcode', 'failed', 'failedcode', 'failedtransient', 'multi', 'multicause', 'negative', 'accountdue', 'account', 'accountmapped', 'paused', 'offlinesaved', 'paging', 'pagingerror', 'end', 'focus', 'large'];
+    const listTags = [];
+    if (failedLike || v === 'multi') listTags.push({ text: 'The DRAFT row shows only the amount_cents and entry_count the API returns after the failure. "including the 77 that came back" needs a returned count (alternative board)' });
+    if (v === 'ready' || v === 'transferring') listTags.push({ text: 'READY / TRANSFERRING appear only after the period closes (Monday): 70 final lines, no "so far"' });
+    const isLarge = v === 'large';
+    return {
+      theme, dark, yes: true, noop: () => {}, rows, isFocus, isMainList: v === 'list', alerts, hasAlerts: alerts.length > 0, s, err, isErrorish, listTags,
+      textScale: isLarge ? '200' : '100', isLarge, rowWrap: isLarge ? 'wrap' : 'nowrap',
+      tabs: [{ key: 'home', label: 'Home', icon: 'home' }, { key: 'earnings', label: 'Earnings', icon: 'orders' }, { key: 'account', label: 'Account', icon: 'profile' }],
+      showOfflineSaved: v === 'offlinesaved',
+      showSummary: !isLoading && !isErrorish && !isEmpty,
+      showList: listy.indexOf(v) >= 0,
+      showMoreButton: ['list', 'ready', 'transferring', 'held', 'heldreview', 'heldcode', 'failed', 'failedcode', 'failedtransient', 'multi', 'multicause', 'negative', 'accountdue', 'account', 'accountmapped', 'paused', 'focus', 'large'].indexOf(v) >= 0,
+      showOfflineMore: v === 'offlinesaved',
+      showPaging: v === 'paging', showPagingError: v === 'pagingerror',
+      showEnd: v === 'end',
+      isLoading, isEmpty, isFirstPayout, firstPayoutText: 'Your first payout goes out Monday 28 September. It holds the lines that are available by then; you can see each one in Earnings activity.',
+    };
+  }
+}
+</script>
+</body>
+</html>

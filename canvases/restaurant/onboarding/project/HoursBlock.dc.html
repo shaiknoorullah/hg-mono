@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Opening hours block</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+.hg-focus-field:not([aria-invalid="true"]):focus-visible{outline:2px solid transparent;border-color:var(--focus-ring) !important;box-shadow:inset 0 0 0 1px var(--focus-ring)}
+.hg-focus-field[aria-invalid="true"]:focus-visible{outline:2px solid transparent;box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+</style>
+</helmet>
+<section id="hours" aria-labelledby="hours-h" style="width: {{w}}; height: {{h}}; box-sizing: border-box; display: flex; flex-direction: column; gap: 16px; padding: 24px; border: 1px solid var(--border-decorative); border-radius: 16px; background: var(--surface-raised); font-family: var(--font-ui); color: var(--text-primary)">
+<div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap">
+<h2 id="hours-h" class="type-heading-md" style="margin: 0">2. Opening hours</h2>
+<sc-if value="{{hasBadge}}" hint-placeholder-val="{{true}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="{{badgeVariant}}" size="md" icon="{{badgeIcon}}" hint-size="90px,22px">{{badgeLabel}}</x-import></sc-if>
+<span style="flex-grow: 1"></span>
+<span class="type-body-sm" style="color: var(--text-secondary)">Eastern Time (Toronto)</span>
+</div>
+<p class="type-body-md" style="margin: 0; line-height: 1.5; color: var(--text-secondary)">Customers can only order while you're open. You can add holidays and one-off changes later in Hours.</p>
+
+<sc-if value="{{m.loading}}" hint-placeholder-val="{{false}}">
+<p role="status" class="type-body-md" style="margin: 0; line-height: 1.5; color: var(--text-secondary)">Loading your opening hours…</p>
+<div aria-busy="true" style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 4px; margin-top: 32px; display: flex; flex-direction: column; gap: 8px">
+<span aria-hidden="true" style="position: absolute; top: -32px; left: -4px; font: 500 12px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 4px 8px; border-radius: 4px; white-space: nowrap; z-index: 1">Proposed component: Skeleton</span>
+<div style="height: 40px; border-radius: 8px; background: var(--skeleton-base)"></div>
+<div style="height: 40px; border-radius: 8px; background: var(--skeleton-base)"></div>
+<div style="height: 40px; border-radius: 8px; background: var(--skeleton-base)"></div>
+</div>
+<span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">GET /v1/restaurant/hours in flight</span>
+</sc-if>
+
+<sc-if value="{{m.loaderror}}" hint-placeholder-val="{{false}}">
+<div role="alert" style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 4px; margin-top: 32px; display: flex; gap: 12px; align-items: flex-start; padding: 12px 16px; background: var(--feedback-danger-tint); color: var(--feedback-danger-tint-text); border: 1px solid var(--feedback-danger-border); border-radius: 12px"><span aria-hidden="true" style="position: absolute; top: -32px; left: -4px; font: 500 12px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 4px 8px; border-radius: 4px; white-space: nowrap; z-index: 1">Proposed component: InlineAlert</span><span style="display: inline-flex; color: var(--feedback-danger-icon)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="error" size="md" hint-size="20px,20px"></x-import></span><div class="type-body-md" style="flex-grow: 1; display: flex; flex-direction: column; gap: 4px; line-height: 1.5"><strong class="type-label-lg">We couldn't load your opening hours</strong><span>Your hours aren't lost. Check your connection and try again.</span></div><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" icon-start="refresh" hint-size="130px,44px">Try again</x-import></div>
+<span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">GET /v1/restaurant/hours failed. No empty week is shown, so nothing can be overwritten.</span>
+</sc-if>
+
+<sc-if value="{{m.empty}}" hint-placeholder-val="{{true}}">
+<div style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 4px; margin-top: 32px; display: flex; flex-direction: column; align-items: flex-start; gap: 12px; padding: 20px; border-radius: 12px; background: var(--surface-sunken)">
+<span aria-hidden="true" style="position: absolute; top: -32px; left: -4px; font: 500 12px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 4px 8px; border-radius: 4px; white-space: nowrap; z-index: 1">Proposed component: EmptyState</span>
+<span class="type-heading-sm">No opening hours yet</span>
+<span class="type-body-md" style="color: var(--text-secondary)">Set the days and times you take orders.</span>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="{{setVariant}}" size="{{setSize}}" icon-start="clock" hint-size="200px,52px">Set opening hours</x-import>
+<sc-if value="{{primary}}" hint-placeholder-val="{{false}}"><span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">blocking_reason hours_not_set: hours are the last open task, so this block sits above the item list and Set opening hours is the page’s one primary.</span></sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{m.error}}" hint-placeholder-val="{{false}}">
+<div role="alert" tabindex="-1" style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 4px; margin-top: 32px; display: flex; gap: 12px; align-items: flex-start; padding: 12px 16px; background: var(--feedback-danger-tint); color: var(--feedback-danger-tint-text); border: 1px solid var(--feedback-danger-border); border-radius: 12px"><span aria-hidden="true" style="position: absolute; top: -32px; left: -4px; font: 500 12px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 4px 8px; border-radius: 4px; white-space: nowrap; z-index: 1">Proposed component: Banner (error summary)</span><span style="display: inline-flex; color: var(--feedback-danger-icon)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="error" size="md" hint-size="20px,20px"></x-import></span><div class="type-body-md" style="flex-grow: 1; display: flex; flex-direction: column; gap: 4px; line-height: 1.5"><strong class="type-label-lg">Your hours weren't saved</strong><span>Fix the day marked below, then save again. Nothing else changed.</span><ul style="margin: 0; padding: 0; list-style: none"><li><a href="#fri-close-1" style="color: var(--feedback-danger-tint-text); font-weight: 600; min-height: 44px; display: inline-flex; align-items: center">Friday closing time</a></li></ul></div></div>
+<span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">422 on setRestaurantHours; field error mapped to Friday’s first closing time. The summary gets focus and links to the field.</span>
+</sc-if>
+
+<sc-if value="{{m.neterror}}" hint-placeholder-val="{{false}}">
+<div role="alert" tabindex="-1" style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 4px; margin-top: 32px; display: flex; gap: 12px; align-items: flex-start; padding: 12px 16px; background: var(--feedback-danger-tint); color: var(--feedback-danger-tint-text); border: 1px solid var(--feedback-danger-border); border-radius: 12px"><span aria-hidden="true" style="position: absolute; top: -32px; left: -4px; font: 500 12px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 4px 8px; border-radius: 4px; white-space: nowrap; z-index: 1">Proposed component: Banner</span><span style="display: inline-flex; color: var(--feedback-danger-icon)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="error" size="md" hint-size="20px,20px"></x-import></span><div class="type-body-md" style="flex-grow: 1; display: flex; flex-direction: column; gap: 4px; line-height: 1.5"><strong class="type-label-lg">Your hours weren't saved</strong><span>We couldn't reach HalalGoes, or something went wrong on our side. The times you entered are kept. Try again.</span></div></div>
+<span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">Network error or 5xx on setRestaurantHours</span>
+</sc-if>
+
+<sc-if value="{{m.form}}" hint-placeholder-val="{{false}}">
+<div style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 4px; margin-top: 32px; display: flex; flex-direction: column">
+<span aria-hidden="true" style="position: absolute; top: -32px; left: -4px; font: 500 12px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 4px 8px; border-radius: 4px; white-space: nowrap; z-index: 1">Proposed component: Weekly hours editor (per day: Closed, up to 3 time ranges; label for, aria-describedby for help and errors)</span>
+<p id="hours-time-help" class="type-body-md" style="margin: 0 0 8px; line-height: 1.5; color: var(--text-secondary)">Use 12-hour time with am or pm, for example 10:00 pm, or 12:30 am for half past midnight.</p>
+<sc-for list="{{days}}" as="d" hint-placeholder-count="7">
+<div role="group" aria-labelledby="{{d.key}}-lbl" style="padding: 8px 0; display: grid; grid-template-columns: 112px 112px minmax(0, 1fr); gap: 16px; align-items: start; border-top: {{d.rule}}">
+<span id="{{d.key}}-lbl" class="type-label-lg" style="padding-top: 34px">{{d.day}}</span>
+<div style="padding-top: 24px"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Checkbox" label="Closed" checked="{{d.closed}}" hint-size="112px,44px"></x-import></div>
+<div style="display: flex; flex-direction: column; gap: 8px; min-width: 0">
+<sc-if value="{{d.closed}}" hint-placeholder-val="{{false}}"><p class="type-body-md" style="margin: 0; padding-top: 34px; color: var(--text-secondary)">No times. Customers can’t order on {{d.plural}}.</p></sc-if>
+<sc-for list="{{d.ivs}}" as="v" hint-placeholder-count="1">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<div style="display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<label for="{{v.oid}}" class="type-label-md" style="color: var(--text-secondary)">{{v.openLbl}}</label>
+<input id="{{v.oid}}" value="{{v.opens}}" aria-describedby="hours-time-help" class="hg-focus-field type-body-md" style="border: 1.5px solid var(--control-border); height: 44px; width: 112px; box-sizing: border-box; border-radius: 12px; background: var(--control-bg); padding: 0 16px; font-variant-numeric: tabular-nums; color: var(--text-primary)">
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<label for="{{v.cid}}" class="type-label-md" style="color: var(--text-secondary)">Closes</label>
+<input id="{{v.cid}}" value="{{v.closes}}" aria-invalid="{{v.invalid}}" aria-describedby="{{v.cDesc}}" class="hg-focus-field type-body-md" style="border: {{v.border}}; height: 44px; width: 112px; box-sizing: border-box; border-radius: 12px; background: var(--control-bg); padding: 0 16px; font-variant-numeric: tabular-nums; color: var(--text-primary)">
+</div>
+<sc-if value="{{v.canRemove}}" hint-placeholder-val="{{false}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="md" accessibility-label="Remove: {{d.day}} {{v.opens}} to {{v.closes}}" hint-size="100px,44px">Remove</x-import></sc-if>
+<sc-if value="{{v.canAdd}}" hint-placeholder-val="{{false}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" icon-start="plus" accessibility-label="Add another time: {{d.day}}" hint-size="190px,44px">Add another time</x-import></sc-if>
+</div>
+<sc-if value="{{v.late}}" hint-placeholder-val="{{false}}"><div><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="neutral" size="sm" hint-size="100px,18px">Past midnight</x-import></div></sc-if>
+<sc-if value="{{v.hasErr}}" hint-placeholder-val="{{false}}"><span id="{{v.errId}}" role="alert" class="type-body-sm" style="display: flex; gap: 8px; align-items: flex-start; line-height: 1.5; color: var(--feedback-danger-text)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="error" size="sm" hint-size="16px,16px"></x-import>{{v.err}}</span></sc-if>
+</div>
+</sc-for>
+</div>
+</div>
+</sc-for>
+</div>
+<span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">Saved as RestaurantHoursInput.intervals: one TradingInterval per range (day_of_week, 0 = Sunday; crosses_midnight when it closes after midnight). A Closed day sends no interval. Up to 3 ranges a day, 21 in all. Remove only shows when a day has 2 or more ranges; Add another time only while it has fewer than 3.</span>
+<div style="display: flex; gap: 12px; align-items: center">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md" loading="{{saving}}" icon-start="{{saveIcon}}" hint-size="140px,44px">{{saveLabel}}</x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="md" hint-size="100px,44px">Cancel</x-import>
+</div>
+</sc-if>
+
+<sc-if value="{{m.set}}" hint-placeholder-val="{{false}}">
+<dl style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 4px; margin-top: 32px; margin-bottom: 0; display: flex; flex-direction: column; border: 1px solid var(--border-decorative); border-radius: 12px">
+<span aria-hidden="true" style="position: absolute; top: -32px; left: -4px; font: 500 12px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 4px 8px; border-radius: 4px; white-space: nowrap; z-index: 1">Proposed component: KeyValueList</span>
+<sc-for list="{{days}}" as="d" hint-placeholder-count="7">
+<div style="display: flex; gap: 16px; padding: 8px 16px; min-height: 40px; box-sizing: border-box; align-items: center; border-top: {{d.rule}}">
+<dt class="type-body-md" style="width: 140px; color: var(--text-secondary)">{{d.day}}</dt>
+<dd class="type-label-lg" style="margin: 0; font-variant-numeric: tabular-nums">{{d.summary}}</dd>
+<sc-if value="{{d.late}}" hint-placeholder-val="{{false}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="neutral" size="sm" hint-size="100px,18px">Past midnight</x-import></sc-if>
+</div>
+</sc-for>
+</dl>
+<div role="status" class="type-body-sm" style="color: var(--text-secondary)">Saved 2 October 2026, 10:14 am.</div>
+<sc-if value="{{canEdit}}" hint-placeholder-val="{{true}}"><div><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" hint-size="130px,44px">Edit hours</x-import></div></sc-if>
+</sc-if>
+<span style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; border: 1.5px dashed var(--color-info-600); background: var(--color-info-50); color: var(--color-info-700); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">Needs API: steps_completed.hours_set (the checklist reads GET /v1/restaurant/hours until then)</span>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"mode": {"editor": "enum", "options": ["empty", "editing", "saving", "error", "neterror", "set", "loading", "loaderror"], "default": "empty"}, "readonly": {"editor": "boolean", "default": false}, "primary": {"editor": "boolean", "default": false}, "w": {"editor": "text", "default": "832px"}, "$preview": {"width": 832, "height": 860}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const mode = this.props.mode ?? 'empty';
+    const readonly = !!this.props.readonly;
+    const names = [['mon', 'Monday', 'Mondays'], ['tue', 'Tuesday', 'Tuesdays'], ['wed', 'Wednesday', 'Wednesdays'], ['thu', 'Thursday', 'Thursdays'], ['fri', 'Friday', 'Fridays'], ['sat', 'Saturday', 'Saturdays'], ['sun', 'Sunday', 'Sundays']];
+    const t = { mon: [], tue: [['11:00', '22:00']], wed: [['11:00', '22:00']], thu: [['11:00', '22:00']], fri: [['11:00', '15:00'], ['17:00', '00:30']], sat: [['11:00', '00:30']], sun: [['12:00', '21:00']] };
+    const err = mode === 'error';
+    const OK = '1.5px solid var(--control-border)';
+    // Times read in 12-hour form everywhere (owner decision); the data stays 24-hour.
+    const t12 = (v) => { const [hh, mi] = String(v).split(':').map(Number); return ((hh % 12) || 12) + ':' + String(mi).padStart(2, '0') + ' ' + (hh < 12 ? 'am' : 'pm'); };
+    const days = names.map(([key, day, plural], i) => {
+      const list = t[key];
+      const ivs = list.map(([opens, closes], j) => {
+        const bad = err && key === 'fri' && j === 0;
+        if (bad) closes = '11:00';
+        const errId = key + '-err-' + (j + 1);
+        return { oid: key + '-open-' + (j + 1), cid: key + '-close-' + (j + 1), openLbl: j === 0 ? 'Opens' : 'Reopens', opens: t12(opens), closes: t12(closes), late: !bad && closes < opens,
+          hasErr: bad, err: 'Closing time can’t be the same as opening time.', errId, invalid: bad ? 'true' : 'false',
+          cDesc: bad ? 'hours-time-help ' + errId : 'hours-time-help',
+          border: bad ? '2px solid var(--feedback-danger-border)' : OK,
+          canRemove: list.length > 1, canAdd: j === list.length - 1 && list.length < 3 };
+      });
+      const summary = list.length ? list.map(([o, c]) => t12(o) + ' to ' + t12(c)).join(', ') : 'Closed';
+      return { key, day, plural, closed: list.length === 0, ivs, summary, late: list.some(([o, c]) => c < o), rule: i === 0 ? 'none' : '1px solid var(--border-decorative)' };
+    });
+    const bm = { empty: ['outline', null, 'Not set'], editing: ['info', null, 'Not saved'], saving: ['info', null, 'Saving'], error: ['warning', 'warning', 'Not saved'], neterror: ['warning', 'warning', 'Not saved'], set: ['neutral', 'check', 'Set'], loading: ['outline', null, ''], loaderror: ['outline', null, ''] }[mode];
+    return {
+      yes: true, w: this.props.w ?? '832px', days, h: ['editing', 'saving', 'error', 'neterror'].includes(mode) ? '1060px' : '860px', primary: !!this.props.primary, setVariant: this.props.primary ? 'primary' : 'secondary', setSize: this.props.primary ? 'lg' : 'md', saving: mode === 'saving', canEdit: !readonly,
+      saveLabel: mode === 'neterror' ? 'Try again' : 'Save hours', saveIcon: mode === 'neterror' ? 'refresh' : null,
+      m: { empty: mode === 'empty' && !readonly, form: ['editing', 'saving', 'error', 'neterror'].includes(mode), error: err, neterror: mode === 'neterror', set: mode === 'set', loading: mode === 'loading', loaderror: mode === 'loaderror' },
+      hasBadge: !['loading', 'loaderror'].includes(mode), badgeVariant: bm[0], badgeIcon: bm[1], badgeLabel: bm[2]
+    };
+  }
+}
+</script>
+</body>
+</html>

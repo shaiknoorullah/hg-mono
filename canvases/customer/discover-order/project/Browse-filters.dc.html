@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Filter restaurants</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:var(--color-neutral-100)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+.demo-focus .hg-focus,.demo-focus .hg-choice-ctl,.demo-focus .hg-row,.demo-focus > a{box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)!important}
+.demo-focus-field .hg-field{border-color:var(--focus-ring)!important;box-shadow:inset 0 0 0 calc(var(--focus-field-border-width) - 1px) var(--focus-ring)!important}
+
+</style>
+</helmet>
+<div style="width: 390px; height: 980px; position: relative; overflow: hidden; display: flex; flex-direction: column; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="cream" title="All restaurants" subtitle="Near Home" back-label="Back to Home" on-back="{{noop}}"></x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Sheet" open="{{yes}}" contained="{{yes}}" title="Filter restaurants" max-height="92%" on-close="{{noop}}">
+<div style="display: flex; flex-direction: column; gap: var(--space-5); padding-bottom: var(--space-4)">
+<div class="demo-focus"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Switch" label="Open now" checked="{{no}}" state-label="{{openLabel}}"></x-import></div>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Select" label="Distance" options="{{distance}}" value="any"></x-import>
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">No minimum-rating filter at launch: customers can only rate orders in a later release, so every restaurant would read New.</span>
+<fieldset style="border: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-1)">
+<legend style="font-size: var(--type-label-lg-size); font-weight: 600; margin-bottom: var(--space-1)">Price</legend>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--space-4)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Checkbox" label="Inexpensive"></x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Checkbox" label="Moderate"></x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Checkbox" label="Expensive"></x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Checkbox" label="Very expensive"></x-import><span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--color-info-700); background: var(--color-info-50)">Component gap: Checkbox visual suffix — the $ to $$$$ price glyphs render after the word, aria-hidden, so screen readers hear "Moderate", never "dollar dollar"</span>
+</div>
+</fieldset>
+<fieldset style="border: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-1)">
+<legend style="font-size: var(--type-label-lg-size); font-weight: 600; margin-bottom: var(--space-1)">Dietary</legend>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--space-4)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Checkbox" label="Vegetarian"></x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Checkbox" label="Vegan"></x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Checkbox" label="Gluten free"></x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Checkbox" label="Dairy free"></x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Checkbox" label="Nut free"></x-import>
+</div>
+</fieldset>
+<div style="display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-3); border-radius: var(--radius-md); outline: 1.5px dotted var(--border-strong); outline-offset: -2px">
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">Needs API: cuisine vocabulary with ids</span>
+<span style="font-size: var(--type-body-sm-size); color: var(--text-secondary)">Cuisine filter. Hidden until the contract returns cuisines with ids.</span>
+</div>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" full-width="{{yes}}">Show restaurants</x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="md" full-width="{{yes}}">Clear filters</x-import>
+</div>
+</x-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":980}}'>
+class Component extends DCLogic {
+renderVals() {
+return {
+yes: true,
+no: false,
+none: null,
+zero: 0,
+two: 2,
+noop: function () {},
+nav: [
+{ key: 'home', label: 'Home', icon: 'home' },
+{ key: 'search', label: 'Search', icon: 'search' },
+{ key: 'orders', label: 'Orders', icon: 'orders' },
+{ key: 'account', label: 'Account', icon: 'profile' }
+],
+openLabel: { on: 'Only open', off: 'Any time' },
+distance: [
+{ value: 'any', label: 'Any distance' },
+{ value: '2000', label: 'Within 2 km' },
+{ value: '5000', label: 'Within 5 km' },
+{ value: '10000', label: 'Within 10 km' }
+]
+};
+}
+}
+</script>
+</body>
+</html>

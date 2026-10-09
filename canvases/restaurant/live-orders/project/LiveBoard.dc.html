@@ -1,0 +1,1625 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Live orders</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div data-theme="light" style="width: {{w}}px; height: {{h}}px; position: relative; overflow: hidden; display: flex; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui); {{forcedCss}}">
+
+<sc-if value="{{skipVisible}}" hint-placeholder-val="{{false}}">
+<a href="#new-orders" style="position: absolute; left: 12px; top: 10px; z-index: 900; padding: 10px 16px; min-height: 44px; box-sizing: border-box; display: inline-flex; align-items: center; background: var(--surface-raised); color: var(--text-primary); border-radius: var(--radius-md); font-size: 15px; font-weight: 600; text-decoration: none; box-shadow: 0 0 0 2px var(--focus-offset), 0 0 0 5px var(--focus-ring), var(--elev-2)">Skip to new orders</a>
+</sc-if>
+<sc-if value="{{skipHidden}}" hint-placeholder-val="{{true}}">
+<a href="#new-orders" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap">Skip to new orders</a>
+</sc-if>
+
+<!-- ============ side navigation (collapsible) ============ -->
+<sc-if value="{{hasRail}}" hint-placeholder-val="{{true}}">
+<nav aria-label="Main" style="width: {{rail.w}}px; flex-shrink: 0; display: flex; flex-direction: column; background: var(--surface-chrome); color: var(--text-on-accent)">
+<div style="display: flex; flex-direction: column; gap: 4px; align-items: {{rail.align}}; padding: {{rail.pad}}">
+<img src="/_blob/d996313b7f78edd23554a2fe9790a17b" alt="HalalGoes" style="width: {{rail.logoW}}px; height: {{rail.logoH}}px">
+<sc-if value="{{rail.wide}}" hint-placeholder-val="{{false}}"><span style="font-size: 13px; font-weight: 500; color: var(--text-on-accent)">Restaurant partner</span></sc-if>
+</div>
+<ul style="list-style: none; margin: 0; padding: 8px; display: flex; flex-direction: column; gap: 4px; flex-grow: 1">
+<sc-for list="{{rail.items}}" as="n" hint-placeholder-count="6">
+<li>
+<a href="#{{n.key}}" aria-current="{{n.current}}" aria-label="{{n.aria}}" style="position: relative; display: flex; flex-direction: {{n.dir}}; align-items: center; justify-content: {{n.justify}}; gap: {{n.gap}}; min-height: {{n.minH}}px; box-sizing: border-box; padding: 6px 10px; border-radius: var(--radius-md); background: {{n.bg}}; box-shadow: {{n.shadow}}; color: {{n.color}}; text-decoration: none">
+<sc-if value="{{n.hasIcon}}" hint-placeholder-val="{{true}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="{{n.icon}}" weight="{{n.weight}}" size="lg" color="{{n.color}}"></x-import></sc-if>
+<span style="flex-grow: {{n.grow}}; font-size: {{n.fs}}px; font-weight: {{n.fw}}; text-align: center">{{n.label}}</span>
+<sc-if value="{{n.hasCount}}" hint-placeholder-val="{{false}}"><span style="position: {{n.countPos}}; top: 4px; right: 6px"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="brand" appearance="solid" size="sm">{{n.count}}</x-import></span></sc-if>
+</a>
+</li>
+</sc-for>
+</ul>
+<div style="display: flex; flex-direction: column; gap: 8px; align-items: {{rail.align}}; padding: 10px 8px 12px; border-top: 1px solid var(--border-strong)">
+<sc-if value="{{rail.wide}}" hint-placeholder-val="{{false}}">
+<span style="padding: 0 8px; font-size: 15px; font-weight: 600">Zaytoun Grill</span>
+<span style="padding: 0 8px; font-size: 13px; font-weight: 500">Scarborough, ON</span>
+</sc-if>
+<button type="button" aria-expanded="{{rail.expanded}}" aria-label="{{rail.toggleName}}" style="min-width: 44px; min-height: 44px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 0 10px; background: transparent; border: 1px solid var(--text-on-accent); border-radius: var(--radius-md); color: var(--text-on-accent); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; box-shadow: {{rail.toggleRing}}">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="{{rail.toggleIcon}}" size="md"></x-import>
+<sc-if value="{{rail.wide}}" hint-placeholder-val="{{false}}"><span>Collapse menu</span></sc-if>
+</button>
+</div>
+</nav>
+</sc-if>
+
+<!-- ============ main column ============ -->
+<div style="flex-grow: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; position: relative">
+
+<div class="hg-on-accent" style="flex-shrink: 0; display: flex; align-items: center; background: var(--surface-chrome); color: var(--text-on-accent)">
+<sc-if value="{{hasNavButton}}" hint-placeholder-val="{{false}}"><span style="flex-shrink: 0; display: inline-flex; padding-left: 8px; color: var(--text-on-accent)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.IconButton" icon="menu" aria-expanded="{{navSheetExpanded}}" accessibility-label="Open menu{{navButtonCount}}"></x-import></span></sc-if>
+<div style="flex-grow: 1; min-width: 0"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="chrome" title="{{title}}" subtitle="Zaytoun Grill · Scarborough" actions="{{appActions}}"></x-import></div>
+</div>
+
+<div role="region" aria-label="Service status" style="flex-shrink: 0; display: flex; align-items: center; gap: 8px 14px; flex-wrap: wrap; padding: 6px 16px; background: var(--surface-raised); border-bottom: 1px solid var(--border-decorative)">
+<button type="button" aria-expanded="{{health.expanded}}" aria-label="Screen health: {{health.label}}. Show details" style="min-height: 44px; padding: 0 4px; border: 0; background: transparent; border-radius: var(--radius-md); cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font: inherit; color: var(--text-secondary); box-shadow: {{health.ring}}">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="{{health.variant}}" icon="{{health.icon}}" size="lg">{{health.label}}</x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="chevron-right" size="sm"></x-import>
+</button>
+<sc-if value="{{ringing.show}}" hint-placeholder-val="{{false}}">
+<a href="#new-orders" aria-label="{{ringing.label}}. Go to new orders" style="min-height: 44px; display: inline-flex; align-items: center; gap: 4px; padding: 0 4px; border-radius: var(--radius-md); text-decoration: none; color: var(--text-primary)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="brand" icon="bell" size="lg">{{ringing.label}}</x-import>
+</a>
+</sc-if>
+<sc-if value="{{stale.show}}" hint-placeholder-val="{{false}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="warning" icon="clock" size="lg">{{stale.text}}</x-import></sc-if>
+<span style="flex-grow: 1"></span>
+<sc-if value="{{hasStatusTag}}" hint-placeholder-val="{{false}}"><span style="max-width: 340px; padding: 2px 6px; border-radius: var(--radius-xs); background: var(--feedback-info-tint); color: var(--feedback-info-tint-text); font-family: var(--font-mono); font-size: 12px">{{statusTag}}</span></sc-if>
+<sc-if value="{{hasHalal}}" hint-placeholder-val="{{true}}">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.HalalBadge" state="{{halal}}" surface="operational" size="md"></x-import>
+<span aria-hidden="true" style="width: 1px; height: 28px; background: var(--border-decorative)"></span>
+</sc-if>
+<sc-if value="{{halalMissing}}" hint-placeholder-val="{{false}}"><span style="padding: 2px 6px; border-radius: var(--radius-xs); background: var(--surface-sunken); color: var(--text-secondary); font-family: var(--font-mono); font-size: 12px">No badge: the halal field is missing, so nothing is drawn (client error reported)</span></sc-if>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="{{open.variant}}" size="lg">{{open.label}}</x-import>
+<sc-if value="{{open.hasReason}}" hint-placeholder-val="{{true}}"><span style="max-width: {{reasonMax}}px; font-size: 15px; color: var(--text-secondary)">{{open.reason}}</span></sc-if>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Switch" label="Orders" state-label="{{switchLabels}}" checked="{{sw.checked}}" loading="{{sw.loading}}" disabled="{{sw.disabled}}" description="{{sw.help}}" style="max-width: 280px"></x-import>
+<sc-if value="{{pause.isMenu}}" hint-placeholder-val="{{true}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Menu" label="Pause new orders" trigger-text="Pause" trigger-variant="tonal" align="end" items="{{pauseItems}}" open="{{pause.open}}" disabled="{{pause.disabled}}"></x-import></sc-if>
+<sc-if value="{{pause.isResume}}" hint-placeholder-val="{{false}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md">Resume now</x-import></sc-if>
+</div>
+
+<sc-for list="{{banners}}" as="b" hint-placeholder-count="0">
+<div role="{{b.role}}" style="flex-shrink: 0; margin: 10px 16px 0; display: flex; gap: 12px; align-items: flex-start; padding: 10px 14px; background: {{b.bg}}; border: {{b.bw}} {{b.bs}} {{b.border}}; border-radius: var(--radius-md)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="{{b.icon}}" size="lg" color="{{b.iconColor}}" style="flex-shrink: 0"></x-import>
+<div style="display: flex; flex-direction: column; gap: 3px; flex-grow: 1; min-width: 0">
+<span style="font-size: 17px; font-weight: 700; color: var(--text-primary)">{{b.title}}</span>
+<span style="font-size: 15px; line-height: 21px; color: var(--text-primary)">{{b.body}}</span>
+<sc-if value="{{b.hasLink}}" hint-placeholder-val="{{false}}"><a href="{{b.linkHref}}" style="align-self: flex-start; min-height: 44px; display: inline-flex; align-items: center; font-size: 15px; font-weight: 600; color: var(--text-link)">{{b.linkLabel}}</a></sc-if>
+<div style="display: flex; gap: 6px; flex-wrap: wrap">
+<span style="padding: 2px 6px; border-radius: var(--radius-xs); background: var(--surface-sunken); color: var(--text-secondary); font-family: var(--font-mono); font-size: 12px">{{b.prop}}</span>
+<sc-if value="{{b.hasApi}}" hint-placeholder-val="{{false}}"><span style="padding: 2px 6px; border-radius: var(--radius-xs); background: var(--feedback-info-tint); color: var(--feedback-info-tint-text); font-family: var(--font-mono); font-size: 12px">{{b.api}}</span></sc-if>
+</div>
+</div>
+<sc-if value="{{b.hasAction}}" hint-placeholder-val="{{false}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="{{b.actionVariant}}" size="lg">{{b.actionLabel}}</x-import></sc-if>
+</div>
+</sc-for>
+
+<sc-if value="{{confirm.show}}" hint-placeholder-val="{{false}}">
+<section role="group" aria-labelledby="inline-confirm-title" style="flex-shrink: 0; margin: 10px 16px 0; display: flex; align-items: center; gap: 16px; padding: 12px 16px; background: var(--surface-raised); border: 2px solid var(--border-strong); border-radius: var(--radius-md); box-shadow: var(--elev-1)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="{{confirm.icon}}" size="lg" color="var(--text-secondary)" style="flex-shrink: 0"></x-import>
+<div style="display: flex; flex-direction: column; gap: 3px; flex-grow: 1; min-width: 0">
+<h2 id="inline-confirm-title" style="margin: 0; font-size: 17px; font-weight: 700">{{confirm.title}}</h2>
+<span style="font-size: 15px; line-height: 21px">{{confirm.body}}</span>
+<span style="align-self: flex-start; padding: 2px 6px; border-radius: var(--radius-xs); background: var(--surface-sunken); color: var(--text-secondary); font-family: var(--font-mono); font-size: 12px">{{confirm.note}}</span>
+</div>
+<div style="display: flex; gap: 8px; flex-shrink: 0">
+<sc-for list="{{confirm.buttons}}" as="cb" hint-placeholder-count="2">
+<span style="display: inline-flex; border-radius: var(--radius-md); box-shadow: {{cb.ring}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="{{cb.variant}}" size="lg">{{cb.label}}</x-import></span>
+</sc-for>
+</div>
+</section>
+</sc-if>
+
+<sc-if value="{{stripTop}}" hint-placeholder-val="{{true}}">
+<div style="flex-shrink: 0; margin-top: 10px"><dc-import name="NewOrderStrip" strip="{{strip}}" hint-size="100%,186px"></dc-import></div>
+</sc-if>
+
+<!-- ============ panes: list -> order -> timeline ============ -->
+<div style="flex-grow: 1; min-height: 0; display: flex; gap: 12px; padding: 12px 16px; position: relative">
+
+<sc-if value="{{isGate}}" hint-placeholder-val="{{false}}">
+<div style="flex-grow: 1; display: flex; justify-content: center; align-items: center">
+<section aria-labelledby="gate-title" style="width: 560px; max-width: 100%; box-sizing: border-box; display: flex; flex-direction: column; gap: 14px; padding: 28px; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: var(--radius-xl); box-shadow: var(--elev-2)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="bell" size="2xl" weight="bold" color="var(--border-brand)"></x-import>
+<h2 id="gate-title" style="margin: 0; font-size: 24px; font-weight: 700; letter-spacing: -0.01em">Turn on order sound and go live</h2>
+<p style="margin: 0; font-size: 17px; line-height: 26px; color: var(--text-secondary)">New orders ring on this screen. Each one keeps ringing until it is accepted, declined or times out after 3 minutes.</p>
+<ol style="margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 6px; font-size: 15px; line-height: 21px">
+<li>We play a test chime. Check you can hear it over the kitchen.</li>
+<li>Your browser asks to show notifications. Choose Allow.</li>
+<li>You start accepting orders.</li>
+</ol>
+<sc-if value="{{gateDenied}}" hint-placeholder-val="{{false}}">
+<div role="status" style="display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; background: var(--feedback-warning-tint); border: 1px solid var(--feedback-warning-border); border-radius: var(--radius-md)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="warning" size="md" color="var(--feedback-warning-icon)" style="flex-shrink: 0; margin-top: 1px"></x-import>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 17px; font-weight: 700">Step 2: notifications are blocked</span>
+<span style="font-size: 15px; line-height: 21px">The chime worked, so orders still ring while this screen is open and in front. If you switch to another tab or app, you won’t get an alert. Allow notifications in the browser’s site settings, then check again.</span>
+<a href="#allow-notifications" style="align-self: flex-start; min-height: 44px; display: inline-flex; align-items: center; font-size: 15px; font-weight: 600; color: var(--text-link)">How to allow notifications</a>
+</div>
+</div>
+</sc-if>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="xl" full-width="{{true}}" icon-start="bell">{{gateCta}}</x-import>
+<sc-if value="{{gateDenied}}" hint-placeholder-val="{{false}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="lg" full-width="{{true}}" icon-start="refresh">Check notifications again</x-import></sc-if>
+<p style="margin: 0; font-size: 15px; color: var(--text-secondary)">Keep this screen open and on. If it closes or sleeps, new orders stop reaching you within 5 minutes.</p>
+</section>
+</div>
+</sc-if>
+
+<sc-if value="{{isFirstError}}" hint-placeholder-val="{{false}}">
+<div style="flex-grow: 1; display: flex; justify-content: center; align-items: center">
+<div role="alert" style="width: 520px; max-width: 100%; box-sizing: border-box; display: flex; flex-direction: column; gap: 12px; padding: 28px; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: var(--radius-xl); box-shadow: var(--elev-2)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="error" size="xl" color="var(--text-secondary)"></x-import>
+<h2 style="margin: 0; font-size: 20px; font-weight: 600">We couldn’t load your orders</h2>
+<p style="margin: 0; font-size: 15px; line-height: 22px; color: var(--text-secondary)">Nothing is lost: your orders are safe on the server. New orders can’t ring on this screen until it loads. Check the connection, then try again.</p>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" icon-start="refresh" style="align-self: flex-start">Try again</x-import>
+<span style="align-self: flex-start; padding: 2px 6px; border-radius: var(--radius-xs); background: var(--surface-sunken); color: var(--text-secondary); font-family: var(--font-mono); font-size: 12px">Proposed component: ErrorState · first load, nothing cached</span>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{showList}}" hint-placeholder-val="{{true}}">
+<section aria-labelledby="list-title" style="flex: 1 1 0; min-width: 0; min-height: 0; display: flex; flex-direction: column; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: var(--radius-lg); overflow: hidden">
+<header style="flex-shrink: 0; display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; padding: 12px 16px; border-bottom: 1px solid var(--border-decorative)">
+<h2 id="list-title" style="margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -0.01em">In progress</h2>
+<span style="font-size: 15px; color: var(--text-secondary); font-variant-numeric: tabular-nums">{{list.counts}}</span>
+<span style="flex-grow: 1"></span>
+<span style="font-size: 13px; color: var(--text-secondary)">{{list.sortNote}}</span>
+</header>
+<div style="flex-grow: 1; min-height: 0; overflow: auto">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.DataTable" caption="Orders in progress" hide-caption="{{true}}" columns="{{list.columns}}" rows="{{list.rows}}" density="comfortable" sticky-header="{{true}}" status="{{list.status}}" error-message="We couldn't load orders in progress. They are safe on the server." empty-state="{{list.empty}}" row-label="{{rowLabel}}" on-row-activate="{{noop}}" on-retry="{{noop}}"></x-import>
+</div>
+<footer style="flex-shrink: 0; display: flex; gap: 6px; flex-wrap: wrap; padding: 8px 12px; border-top: 1px solid var(--border-decorative)">
+<sc-for list="{{list.tags}}" as="t" hint-placeholder-count="2"><span style="padding: 2px 6px; border-radius: var(--radius-xs); background: {{t.bg}}; color: {{t.fg}}; font-family: var(--font-mono); font-size: 12px">{{t.text}}</span></sc-for>
+</footer>
+</section>
+</sc-if>
+
+<sc-if value="{{showHistory}}" hint-placeholder-val="{{false}}">
+<section aria-labelledby="hist-title" style="flex: 1 1 0; min-width: 0; min-height: 0; display: flex; flex-direction: column; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: var(--radius-lg); overflow: hidden">
+<header style="flex-shrink: 0; display: flex; flex-direction: column; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--border-decorative)">
+<h2 id="hist-title" style="margin: 0; font-size: 20px; font-weight: 600">Past orders</h2>
+<div role="group" aria-label="Filter past orders" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap">
+<sc-for list="{{chips}}" as="ch" hint-placeholder-count="5">
+<sc-if value="{{ch.isGroup}}" hint-placeholder-val="{{false}}"><span style="margin-left: 8px; font-size: 13px; font-weight: 700; color: var(--text-secondary)">{{ch.label}}</span></sc-if>
+<sc-if value="{{ch.isChip}}" hint-placeholder-val="{{true}}"><button type="button" aria-pressed="{{ch.pressed}}" style="min-height: 44px; padding: 0 14px; border-radius: var(--radius-full); border: 1.5px solid {{ch.border}}; background: {{ch.bg}}; color: var(--text-primary); font: inherit; font-size: 15px; font-weight: {{ch.fw}}; cursor: pointer">{{ch.label}}</button></sc-if>
+</sc-for>
+</div>
+</header>
+<div style="flex-grow: 1; min-height: 0; overflow: auto">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.DataTable" caption="{{hist.caption}}" hide-caption="{{true}}" columns="{{hist.columns}}" rows="{{hist.rows}}" density="compact" sticky-header="{{true}}" status="{{hist.status}}" error-message="We couldn't load past orders. Your records are safe on the server." has-more="{{hist.hasMore}}" loading-more="{{hist.loadingMore}}" filters-active="{{hist.filtered}}" empty-state="{{hist.empty}}" row-label="{{rowLabel}}" on-row-activate="{{noop}}" on-load-more="{{noop}}" on-clear-filters="{{noop}}" on-retry="{{noop}}"></x-import>
+<sc-if value="{{hist.loadMoreFail}}" hint-placeholder-val="{{false}}">
+<div role="alert" style="margin: 8px 12px; display: flex; gap: 10px; align-items: center; padding: 10px 12px; background: var(--feedback-danger-tint); border: 1px solid var(--feedback-danger-border); border-radius: var(--radius-md)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="error" size="md" color="var(--feedback-danger-icon)"></x-import>
+<span style="flex-grow: 1; font-size: 15px">We couldn’t load older orders. The ones above are up to date.</span>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" icon-start="refresh">Try again</x-import>
+</div>
+</sc-if>
+</div>
+<footer style="flex-shrink: 0; display: flex; gap: 6px; flex-wrap: wrap; padding: 8px 12px; border-top: 1px solid var(--border-decorative)">
+<sc-for list="{{hist.tags}}" as="t" hint-placeholder-count="2"><span style="padding: 2px 6px; border-radius: var(--radius-xs); background: {{t.bg}}; color: {{t.fg}}; font-family: var(--font-mono); font-size: 12px">{{t.text}}</span></sc-for>
+</footer>
+</section>
+</sc-if>
+
+<!-- ============ order detail: in-page panel ============ -->
+<sc-if value="{{panel.show}}" hint-placeholder-val="{{false}}">
+<aside aria-label="{{panel.aria}}" style="width: {{panel.w}}px; flex-shrink: 0; min-height: 0; display: flex; flex-direction: column; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: var(--radius-lg); overflow: hidden">
+
+<div style="flex-shrink: 0; display: flex; flex-direction: column; gap: 8px; padding: 8px 10px 8px 16px; border-bottom: 1px solid var(--border-decorative)">
+<div style="display: flex; align-items: center; gap: 8px">
+<sc-if value="{{panel.hasBack}}" hint-placeholder-val="{{false}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.IconButton" icon="back" accessibility-label="Back to orders in progress"></x-import></sc-if>
+<h2 tabindex="-1" style="margin: 0; font-family: {{panel.titleFont}}; font-size: 22px; line-height: 28px; font-weight: 600">{{panel.title}}</h2>
+<sc-if value="{{panel.hasBadge}}" hint-placeholder-val="{{true}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="{{panel.badgeVariant}}" icon="{{panel.badgeIcon}}" size="lg">{{panel.badgeLabel}}</x-import></sc-if>
+<span style="flex-grow: 1"></span>
+<sc-if value="{{panel.hasTimelineToggle}}" hint-placeholder-val="{{false}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" icon-end="chevron-right" accessibility-label="{{panel.timelineToggleName}}">{{panel.timelineToggleLabel}}</x-import></sc-if>
+<span style="display: inline-flex; border-radius: var(--radius-md); box-shadow: {{panel.closeRing}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.IconButton" icon="close" accessibility-label="{{panel.closeName}}"></x-import></span>
+</div>
+<sc-if value="{{panel.showCountdown}}" hint-placeholder-val="{{false}}">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Countdown" variant="bar" size="lg" expires-at="{{panel.cdExpires}}" server-now="{{panel.cdNow}}" window-seconds="180" label="left to answer" style="width: 100%"></x-import>
+</sc-if>
+</div>
+
+<div style="flex-grow: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; padding: 14px 16px">
+
+<sc-if value="{{panel.isMissing}}" hint-placeholder-val="{{false}}">
+<div role="{{panel.missRole}}" style="display: flex; flex-direction: column; gap: 12px; padding-top: 16px">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="{{panel.missIcon}}" size="xl" color="var(--text-secondary)"></x-import>
+<h3 style="margin: 0; font-size: 20px; font-weight: 600">{{panel.missTitle}}</h3>
+<p style="margin: 0; font-size: 15px; line-height: 22px; color: var(--text-secondary)">{{panel.missBody}}</p>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="lg" icon-start="{{panel.missActionIcon}}" style="align-self: flex-start">{{panel.missAction}}</x-import>
+</div>
+</sc-if>
+
+<sc-if value="{{panel.isLoading}}" hint-placeholder-val="{{false}}">
+<div role="status" style="display: flex; flex-direction: column; gap: 12px">
+<span style="font-size: 15px; color: var(--text-secondary)">Loading order {{panel.code}}…</span>
+<div aria-hidden="true" style="height: 40px; border-radius: var(--radius-sm); background: var(--skeleton-base)"></div>
+<div aria-hidden="true" style="height: 120px; border-radius: var(--radius-sm); background: var(--skeleton-highlight)"></div>
+<div aria-hidden="true" style="height: 90px; border-radius: var(--radius-sm); background: var(--skeleton-highlight)"></div>
+</div>
+</sc-if>
+
+<sc-if value="{{panel.isHealth}}" hint-placeholder-val="{{false}}">
+<sc-for list="{{panel.healthRows}}" as="r" hint-placeholder-count="4">
+<div style="display: flex; gap: 10px; align-items: flex-start; padding-bottom: 12px; border-bottom: 1px solid var(--border-decorative)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="{{r.icon}}" size="md" color="{{r.color}}" style="flex-shrink: 0; margin-top: 1px"></x-import>
+<div style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1"><span style="font-size: 15px; font-weight: 700">{{r.title}}</span><span style="font-size: 15px; line-height: 21px; color: var(--text-secondary)">{{r.body}}</span></div>
+<sc-if value="{{r.hasAction}}" hint-placeholder-val="{{false}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="{{r.actionVariant}}" size="md">{{r.action}}</x-import></sc-if>
+</div>
+</sc-for>
+</sc-if>
+
+<sc-if value="{{panel.isDecline}}" hint-placeholder-val="{{false}}">
+<p style="margin: 0; font-size: 15px; line-height: 22px">The customer is not charged and is told their order was declined. Pick a reason; the order keeps its timer while you choose.</p>
+<sc-for list="{{panel.newOffer}}" as="n" hint-placeholder-count="0">
+<div role="note" style="display: flex; gap: 10px; align-items: center; padding: 10px 12px; background: var(--state-selected-tint); border: 1px solid var(--border-brand); border-radius: var(--radius-md)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="bell" size="md" color="var(--border-brand)" style="flex-shrink: 0"></x-import>
+<div style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 700">{{n.title}}</span><span style="font-size: 15px; line-height: 21px">{{n.body}}</span></div>
+</div>
+</sc-for>
+<span style="display: block; border-radius: var(--radius-md); box-shadow: {{panel.groupRing}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.RadioGroup" label="Why are you declining?" name="decline-reason" required="{{true}}" value="{{panel.reason}}" error="{{panel.reasonError}}">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Radio" value="ITEM_UNAVAILABLE" label="An item is unavailable"></x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Radio" value="KITCHEN_AT_CAPACITY" label="Kitchen is too busy"></x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Radio" value="CLOSING_SOON" label="We are closing soon"></x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Radio" value="EQUIPMENT_FAILURE" label="Equipment isn’t working"></x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Radio" value="ADDRESS_OUT_OF_RANGE" label="Delivery address is too far"></x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Radio" value="SUSPECTED_FRAUD" label="The order looks suspicious"></x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Radio" value="OTHER" label="Something else"></x-import>
+</x-import></span>
+<fieldset id="decline-items" style="display: {{panel.itemsDisplay}}; margin: -8px 0 0 32px; padding: 8px 12px; border: 1px solid var(--border-brand); border-radius: var(--radius-md); flex-direction: column; gap: 2px">
+<legend style="padding: 0 4px; font-size: 15px; font-weight: 600">Which items are unavailable?</legend>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Checkbox" label="1 × Mixed charcoal grill (Large)" checked="{{true}}"></x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Checkbox" label="2 × Chicken shawarma wrap" checked="{{false}}"></x-import>
+<div style="margin-top: 6px; padding-top: 8px; border-top: 1px solid var(--border-decorative); display: flex; flex-direction: column; gap: 4px">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Checkbox" label="Also mark the ticked items out of stock until closing" description="Customers can't order them until you open next. Change it any time on the Menu page." checked="{{true}}"></x-import>
+<span style="align-self: flex-start; padding: 2px 6px; border-radius: var(--radius-xs); background: var(--surface-subtle); color: var(--text-secondary); font-family: var(--font-mono); font-size: 12px">setMenuItemAvailability, until closing (moved into launch, owner decision) · sent after the decline succeeds</span>
+</div>
+</fieldset>
+<div style="display: {{panel.otherDisplay}}; margin: -8px 0 0 32px; flex-direction: column; gap: 6px">
+<label for="decline-other" style="font-size: 15px; font-weight: 600">Add detail (20 to 500 characters)</label>
+<span class="hg-field" data-invalid="" style="display: flex; border-radius: var(--radius-md); background: var(--control-bg); box-shadow: {{panel.otherRing}}"><textarea id="decline-other" rows="3" aria-invalid="true" aria-describedby="decline-other-err decline-other-count" style="box-sizing: border-box; width: 100%; padding: 10px 12px; font-family: inherit; font-size: 17px; color: var(--text-primary); background: transparent; border: none; border-radius: var(--radius-md); resize: vertical">Grill is down</textarea></span>
+<div style="display: flex; justify-content: space-between; gap: 8px; font-size: 13px">
+<span id="decline-other-err" role="alert" style="display: inline-flex; gap: 6px; align-items: center; color: var(--feedback-danger-tint-text); font-weight: 600"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="error" size="sm"></x-import>Write at least 20 characters.</span>
+<span id="decline-other-count" style="color: var(--text-secondary); font-variant-numeric: tabular-nums">13 of 500 · 7 more to go</span>
+</div>
+<span style="align-self: flex-start; padding: 2px 6px; border-radius: var(--radius-xs); background: var(--surface-sunken); color: var(--text-secondary); font-family: var(--font-mono); font-size: 12px">Proposed component: Textarea (shadcn Textarea inside the design-system field wrapper) · the wrapper draws the danger border and, while focused, the focus ring; its transparent outline keeps focus visible in forced colors</span>
+</div>
+<sc-if value="{{panel.hasRevealTag}}" hint-placeholder-val="{{false}}"><span style="align-self: flex-start; padding: 2px 6px; border-radius: var(--radius-xs); background: var(--surface-sunken); color: var(--text-secondary); font-family: var(--font-mono); font-size: 12px">{{panel.revealTag}}</span></sc-if>
+<sc-for list="{{panel.declineNotices}}" as="n" hint-placeholder-count="0">
+<div role="{{n.role}}" style="display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; background: {{n.bg}}; border: {{n.bw}} {{n.bs}} {{n.border}}; border-radius: var(--radius-md)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="{{n.icon}}" size="md" color="{{n.iconColor}}" style="flex-shrink: 0; margin-top: 1px"></x-import>
+<div style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 17px; font-weight: 700">{{n.title}}</span><sc-if value="{{n.hasBody}}" hint-placeholder-val="{{true}}"><span style="font-size: 15px; line-height: 21px">{{n.body}}</span></sc-if></div>
+</div>
+</sc-for>
+</sc-if>
+
+<sc-if value="{{panel.isOrder}}" hint-placeholder-val="{{true}}">
+<sc-for list="{{panel.notices}}" as="n" hint-placeholder-count="0">
+<div role="{{n.role}}" style="display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; background: {{n.bg}}; border: {{n.bw}} {{n.bs}} {{n.border}}; border-radius: var(--radius-md)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="{{n.icon}}" size="md" color="{{n.iconColor}}" style="flex-shrink: 0; margin-top: 1px"></x-import>
+<div style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
+<span style="font-size: {{n.titleSize}}px; font-weight: 700">{{n.title}}</span>
+<sc-if value="{{n.hasBody}}" hint-placeholder-val="{{true}}"><span style="font-size: 15px; line-height: 21px">{{n.body}}</span></sc-if>
+<sc-if value="{{n.hasLink}}" hint-placeholder-val="{{false}}"><a href="{{n.linkHref}}" style="align-self: flex-start; min-height: 44px; display: inline-flex; align-items: center; font-size: 15px; font-weight: 600; color: var(--text-link)">{{n.linkLabel}}</a></sc-if>
+<sc-if value="{{n.hasLinkNote}}" hint-placeholder-val="{{false}}"><span style="font-size: 13px; color: var(--text-secondary)">{{n.linkNote}}</span></sc-if>
+<sc-if value="{{n.hasApi}}" hint-placeholder-val="{{false}}"><span style="align-self: flex-start; margin-top: 4px; padding: 2px 6px; border-radius: var(--radius-xs); background: var(--feedback-info-tint); color: var(--feedback-info-tint-text); font-family: var(--font-mono); font-size: 12px">{{n.api}}</span></sc-if>
+</div>
+</div>
+</sc-for>
+
+<sc-if value="{{panel.hasLate}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; align-items: center; gap: 8px; font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="clock" size="md" color="{{panel.lateIconColor}}"></x-import>
+<span>{{panel.lateText}}</span>
+</div>
+</sc-if>
+
+<sc-if value="{{panel.hasSpecial}}" hint-placeholder-val="{{false}}">
+<div role="note" aria-label="Customer note" style="display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; background: var(--feedback-warning-tint); border: 1px solid var(--feedback-warning-border); border-radius: var(--radius-md)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="warning" size="lg" color="var(--feedback-warning-icon)" style="flex-shrink: 0"></x-import>
+<div style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
+<span style="font-size: 15px; font-weight: 700; color: var(--feedback-warning-tint-text)">Customer note</span>
+<span style="font-size: 17px; font-weight: 600; line-height: 26px; color: var(--text-primary)">{{panel.special}}</span>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{panel.hasOrderNotes}}" hint-placeholder-val="{{false}}">
+<section aria-label="Notes on this order" style="display: flex; flex-direction: column; gap: 8px">
+<h3 style="margin: 0; font-size: 16px; font-weight: 600; color: var(--text-secondary)">Notes on this order</h3>
+<sc-for list="{{panel.orderNotes}}" as="n" hint-placeholder-count="1">
+<div role="note" style="display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; background: var(--feedback-info-tint); border: 1px solid var(--feedback-info-border); border-radius: var(--radius-md)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="{{n.icon}}" size="md" color="var(--feedback-info-icon)" style="flex-shrink: 0; margin-top: 1px"></x-import>
+<div style="display: flex; flex-direction: column; gap: 2px; min-width: 0"><span style="font-size: 15px; font-weight: 700">{{n.who}} · {{n.at}}</span><span style="font-size: 17px; line-height: 26px">{{n.text}}</span></div>
+</div>
+</sc-for>
+</section>
+</sc-if>
+
+<section aria-label="Items" style="display: flex; flex-direction: column; gap: 8px">
+<h3 style="margin: 0; font-size: 16px; font-weight: 600; color: var(--text-secondary)">Items</h3>
+<sc-for list="{{panel.lines}}" as="l" hint-placeholder-count="2">
+<div style="display: flex; gap: 10px; align-items: flex-start; font-size: 17px">
+<span style="min-width: 36px; font-weight: 700; font-variant-numeric: tabular-nums; text-decoration: {{l.decoration}}">{{l.qty}}</span>
+<span style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 600; text-decoration: {{l.decoration}}">{{l.name}}</span><sc-if value="{{l.hasExtra}}" hint-placeholder-val="{{false}}"><span style="font-size: 15px; color: var(--text-secondary)">{{l.extra}}</span></sc-if><sc-if value="{{l.hasRequest}}" hint-placeholder-val="{{false}}"><span style="align-self: flex-start; padding: 1px 6px; border-radius: var(--radius-xs); background: var(--feedback-warning-tint); font-size: 15px; font-weight: 600; color: var(--feedback-warning-tint-text)">Request: {{l.request}}</span></sc-if><sc-if value="{{l.struck}}" hint-placeholder-val="{{false}}"><span style="font-size: 13px; font-weight: 600; color: var(--text-secondary)">Removed from the order</span></sc-if></span>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{l.cents}}" size="md" strikethrough="{{l.struck}}"></x-import>
+</div>
+</sc-for>
+</section>
+
+<sc-if value="{{panel.noteOpen}}" hint-placeholder-val="{{false}}">
+<section aria-label="Note with your acceptance" style="display: flex; flex-direction: column; gap: 6px">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Note with your acceptance (optional)" value="{{panel.noteValue}}" max-length="200" character-count="{{true}}" disabled="{{panel.accepting}}" helper-text="Up to 200 characters. Sent when you accept."></x-import>
+<span style="align-self: flex-start; padding: 2px 6px; border-radius: var(--radius-xs); background: var(--feedback-info-tint); color: var(--feedback-info-tint-text); font-family: var(--font-mono); font-size: 12px">{{panel.noteTag}}</span>
+</section>
+</sc-if>
+
+<section aria-label="Money" style="display: flex; flex-direction: column; gap: 6px; padding-top: 12px; border-top: 1px solid var(--border-decorative)">
+<sc-for list="{{panel.money}}" as="m" hint-placeholder-count="2">
+<div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px; font-size: 15px; color: {{m.color}}">
+<span>{{m.label}}</span>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{m.cents}}" sign="{{m.sign}}" size="md"></x-import>
+</div>
+</sc-for>
+<sc-if value="{{panel.hasEarn}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px; font-size: 17px; font-weight: 700; padding-top: 6px">
+<span>{{panel.earnLabel}}</span>
+<span style="display: inline-flex; gap: 8px; align-items: baseline"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{panel.earn}}" size="lg"></x-import><sc-if value="{{panel.hasEarnNote}}" hint-placeholder-val="{{false}}"><span style="font-size: 15px; font-weight: 600; color: var(--text-secondary)">{{panel.earnNote}}</span></sc-if></span>
+</div>
+</sc-if>
+<sc-if value="{{panel.noPayout}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px; font-size: 17px; font-weight: 700; padding-top: 6px">
+<span>{{panel.earnLabel}}</span><span style="display: inline-flex; gap: 8px; align-items: baseline"><span aria-hidden="true">—</span><span style="font-size: 15px; font-weight: 600; color: var(--text-secondary)">{{panel.noPayoutText}}</span></span>
+</div>
+</sc-if>
+<sc-if value="{{panel.hasPayoutTag}}" hint-placeholder-val="{{false}}"><span style="align-self: flex-start; padding: 2px 6px; border-radius: var(--radius-xs); background: var(--feedback-info-tint); color: var(--feedback-info-tint-text); font-family: var(--font-mono); font-size: 12px">{{panel.payoutTag}}</span></sc-if>
+<span style="align-self: flex-start; padding: 2px 6px; border-radius: var(--radius-xs); background: var(--surface-sunken); color: var(--text-secondary); font-family: var(--font-mono); font-size: 12px">{{panel.moneyTag}}</span>
+</section>
+
+<section aria-label="Customer and delivery" style="display: flex; flex-direction: column; gap: 4px; font-size: 15px; color: var(--text-secondary)">
+<h3 style="margin: 0 0 4px; font-size: 16px; font-weight: 600; color: var(--text-secondary)">Customer and delivery</h3>
+<span><strong style="font-weight: 600; color: var(--text-primary)">{{panel.customer}}</strong><sc-if value="{{panel.hasPhone}}" hint-placeholder-val="{{true}}"> · <span style="font-family: var(--font-mono)">{{panel.phone}}</span></sc-if></span>
+<span>{{panel.place}}</span>
+<sc-if value="{{panel.hasPhoneNote}}" hint-placeholder-val="{{false}}">
+<span style="color: var(--text-primary)">Phone number and full address appear after you accept.</span>
+<span style="align-self: flex-start; padding: 2px 6px; border-radius: var(--radius-xs); background: var(--feedback-info-tint); color: var(--feedback-info-tint-text); font-family: var(--font-mono); font-size: 12px">Needs API: leave the masked phone out until the order is accepted (owner decision; the contract sends it before accept today)</span>
+</sc-if>
+<sc-if value="{{panel.hasInstructions}}" hint-placeholder-val="{{false}}"><span>Delivery instructions: {{panel.instructions}}</span></sc-if>
+<sc-if value="{{panel.hasContact}}" hint-placeholder-val="{{false}}">
+<span style="display: flex; align-items: center; gap: 0 6px; flex-wrap: wrap; margin-top: 4px; color: var(--text-primary)">Need to reach the customer? <a href="tel:{{support.e164}}" style="min-height: 44px; display: inline-flex; align-items: center; font-weight: 600; color: var(--text-link)">Call support on {{support.display}}</a> and quote {{panel.code}}.</span>
+<span>Calls go through HalalGoes; the customer’s full number is never shown.</span>
+<span style="align-self: flex-start; padding: 2px 6px; border-radius: var(--radius-xs); background: var(--feedback-info-tint); color: var(--feedback-info-tint-text); font-family: var(--font-mono); font-size: 12px">Needs API: a proxied call to the customer (the contract says contact is proxied; there is no endpoint yet)</span>
+</sc-if>
+<sc-if value="{{panel.contactNoSupport}}" hint-placeholder-val="{{false}}"><span>Contact with the customer goes through HalalGoes support, which is off right now.</span></sc-if>
+</section>
+
+<sc-if value="{{panel.hasRider}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; background: {{panel.riderBg}}; border: 1px solid {{panel.riderBorder}}; border-radius: var(--radius-md)">
+<span style="font-size: 15px; font-weight: 700">{{panel.riderName}}</span>
+<span style="font-size: 15px; font-variant-numeric: tabular-nums">{{panel.riderSub}}</span>
+<sc-if value="{{panel.hasRiderWas}}" hint-placeholder-val="{{false}}"><span style="font-size: 13px; color: var(--text-secondary)">{{panel.riderWas}}</span></sc-if>
+<sc-if value="{{panel.hasHandoff}}" hint-placeholder-val="{{false}}"><span style="font-size: 17px; font-weight: 700; line-height: 26px">{{panel.handoff}}</span></sc-if>
+<sc-if value="{{panel.hasPickupCode}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; gap: 4px; margin-top: 4px; padding: 12px 14px; border-radius: var(--radius-md); background: var(--surface-raised); border: 1px solid var(--border-interactive)">
+<span style="font-size: 15px; font-weight: 600; color: var(--text-secondary)">Pickup code</span>
+<span aria-label="{{panel.pickupCodeName}}" style="font-family: var(--font-mono); font-size: 40px; font-weight: 600; line-height: 48px; letter-spacing: 0.24em; font-variant-numeric: tabular-nums">{{panel.pickupCode}}</span>
+<span style="font-size: 15px; line-height: 22px">{{panel.pickupHelp}}</span>
+<span style="align-self: flex-start; padding: 2px 6px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font-family: var(--font-mono); font-size: 12px; color: var(--text-secondary)">Proposed component: PickupCode (text and tokens only)</span>
+</div>
+</sc-if>
+<sc-if value="{{panel.pickupCodeError}}" hint-placeholder-val="{{false}}">
+<div role="alert" style="display: flex; flex-direction: column; gap: 6px; margin-top: 4px; padding: 12px 14px; border-radius: var(--radius-md); background: var(--surface-raised); border: 1px solid var(--border-interactive)">
+<span style="font-size: 15px; font-weight: 600; color: var(--text-secondary)">Pickup code</span>
+<span style="display: inline-flex; align-items: center; gap: 8px; font-size: 17px; font-weight: 700"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="warning" size="md" color="var(--feedback-warning-icon)"></x-import>We couldn’t load the pickup code</span>
+<div style="display: flex"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" icon-start="refresh">Try again</x-import></div>
+<span style="font-size: 15px; line-height: 22px">Still missing? Call support, they can read it to you.</span>
+<sc-if value="{{panel.pickupSupport}}" hint-placeholder-val="{{true}}"><a href="{{panel.pickupSupportHref}}" style="align-self: flex-start; min-height: 44px; display: inline-flex; align-items: center; font-size: 15px; font-weight: 600; color: var(--text-link)">{{panel.pickupSupportLabel}}</a></sc-if>
+<span style="align-self: flex-start; padding: 2px 6px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font-family: var(--font-mono); font-size: 12px; color: var(--text-secondary)">Proposed component: PickupCode · error state: the code failed to load or is missing from the order view · Try again reloads the order</span>
+</div>
+</sc-if>
+<sc-if value="{{panel.hasRiderApi}}" hint-placeholder-val="{{false}}"><span style="align-self: flex-start; padding: 2px 6px; border-radius: var(--radius-xs); background: var(--feedback-info-tint); color: var(--feedback-info-tint-text); font-family: var(--font-mono); font-size: 12px">{{panel.riderApi}}</span></sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{panel.hasFootLine}}" hint-placeholder-val="{{false}}">
+<p style="margin: 0; padding-top: 12px; border-top: 1px solid var(--border-decorative); font-size: 15px; color: var(--text-secondary)">{{panel.footLine}}</p>
+</sc-if>
+</sc-if>
+
+<div style="display: flex; gap: 6px; flex-wrap: wrap; padding-top: 10px; border-top: 1px dashed var(--border-decorative)">
+<sc-for list="{{panel.tags}}" as="t" hint-placeholder-count="1"><span style="padding: 2px 6px; border-radius: var(--radius-xs); background: {{t.bg}}; color: {{t.fg}}; font-family: var(--font-mono); font-size: 12px">{{t.text}}</span></sc-for>
+</div>
+
+</div>
+
+<!-- footers -->
+<sc-if value="{{panel.footAccept}}" hint-placeholder-val="{{false}}">
+<div style="flex-shrink: 0; display: flex; flex-direction: column; gap: 10px; padding: 12px 16px; border-top: 1px solid var(--border-decorative); box-shadow: var(--elev-sticky)">
+<sc-for list="{{panel.actionNotices}}" as="n" hint-placeholder-count="0">
+<div role="{{n.role}}" style="display: flex; gap: 10px; align-items: flex-start; padding: 8px 12px; background: {{n.bg}}; border: {{n.bw}} {{n.bs}} {{n.border}}; border-radius: var(--radius-md)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="{{n.icon}}" size="md" color="{{n.iconColor}}" style="flex-shrink: 0; margin-top: 1px"></x-import>
+<div style="display: flex; flex-direction: column; gap: 2px; min-width: 0"><span style="font-size: 15px; font-weight: 700">{{n.title}}</span><sc-if value="{{n.hasBody}}" hint-placeholder-val="{{true}}"><span style="font-size: 15px; line-height: 21px">{{n.body}}</span></sc-if></div>
+</div>
+</sc-for>
+<div style="display: flex; align-items: center; gap: 12px">
+<div role="group" aria-label="Prep time for order {{panel.code}}" style="flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 2px">
+<span aria-hidden="true" style="font-size: 13px; font-weight: 600; line-height: 16px; color: var(--text-secondary)">Ready in</span>
+<div style="display: flex; align-items: center; gap: 2px">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.IconButton" icon="minus" variant="tonal" size="md" disabled="{{panel.minusOff}}" accessibility-label="Less prep time for order {{panel.code}}"></x-import>
+<output aria-live="polite" aria-label="Ready in {{panel.prepMin}} minutes" style="min-width: 54px; text-align: center; font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums">{{panel.prepMin}} min</output>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.IconButton" icon="plus" variant="tonal" size="md" disabled="{{panel.plusOff}}" accessibility-label="More prep time for order {{panel.code}}"></x-import>
+</div>
+</div>
+<span style="flex-grow: 1; min-width: 0; display: flex; border-radius: var(--radius-md); box-shadow: {{panel.acceptRing}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" critical="{{true}}" full-width="{{true}}" loading="{{panel.accepting}}" accessibility-label="{{panel.acceptName}}" style="flex-grow: 1">{{panel.acceptLabel}}</x-import></span>
+</div>
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: var(--space-4)">
+<sc-if value="{{panel.noteClosed}}" hint-placeholder-val="{{true}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="md" icon-start="plus" disabled="{{panel.accepting}}">Add a note</x-import></sc-if>
+<sc-if value="{{panel.noteOpen}}" hint-placeholder-val="{{false}}"><span style="font-size: 13px; color: var(--text-secondary)">Note above, sent with Accept</span></sc-if>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="md" disabled="{{panel.accepting}}" accessibility-label="Decline order {{panel.code}}, choose a reason">Decline…</x-import>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{panel.footDecline}}" hint-placeholder-val="{{false}}">
+<div style="flex-shrink: 0; display: flex; justify-content: space-between; gap: var(--space-6); padding: 12px 16px; border-top: 1px solid var(--border-decorative); box-shadow: var(--elev-sticky)">
+<span style="display: inline-flex; border-radius: var(--radius-md); box-shadow: {{panel.keepRing}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="lg" disabled="{{panel.sending}}">Keep order</x-import></span>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="danger" size="lg" destructive="{{true}}" loading="{{panel.sending}}" accessibility-label="{{panel.declineLabel}}, order {{panel.code}}">{{panel.declineLabel}}</x-import>
+</div>
+</sc-if>
+
+<sc-if value="{{panel.footPrep}}" hint-placeholder-val="{{false}}">
+<div style="flex-shrink: 0; display: flex; flex-direction: column; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--border-decorative); box-shadow: var(--elev-sticky)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="secondary" size="xl" full-width="{{true}}" icon-start="check" loading="{{panel.marking}}" disabled="{{panel.readyDisabled}}" accessibility-label="Mark order {{panel.code}} ready">Mark ready</x-import>
+<sc-if value="{{support.on}}" hint-placeholder-val="{{true}}">
+<p style="margin: 0; display: flex; align-items: center; gap: 0 6px; flex-wrap: wrap; font-size: 15px; color: var(--text-secondary)">{{panel.supportLead}} <a href="tel:{{support.e164}}" aria-label="Call support on {{support.display}}, quote order {{panel.code}}" style="min-height: 44px; display: inline-flex; align-items: center; font-weight: 600; color: var(--text-link)">Call support on {{support.display}}</a> and quote {{panel.code}}.</p>
+</sc-if>
+<span style="font-size: 13px; color: var(--text-secondary)">There is no cancel button after you accept; support cancels if it has to.</span>
+</div>
+</sc-if>
+
+<sc-if value="{{panel.footEnded}}" hint-placeholder-val="{{false}}">
+<div style="flex-shrink: 0; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; padding: 12px 16px; border-top: 1px solid var(--border-decorative); box-shadow: var(--elev-sticky)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="secondary" size="lg" icon-start="back">Back to new orders</x-import>
+<sc-if value="{{panel.endedRemove}}" hint-placeholder-val="{{false}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="lg" accessibility-label="Remove order {{panel.code}} from new orders">Remove</x-import></sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{panel.footHealth}}" hint-placeholder-val="{{false}}">
+<div style="flex-shrink: 0; padding: 12px 16px; border-top: 1px solid var(--border-decorative)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" icon-start="bell">Play test chime</x-import>
+</div>
+</sc-if>
+
+</aside>
+</sc-if>
+
+<!-- ============ third pane: timeline and more detail ============ -->
+<sc-if value="{{tl.show}}" hint-placeholder-val="{{false}}">
+<aside aria-label="Timeline for order {{tl.code}}" style="width: {{tl.w}}px; flex-shrink: 0; min-height: 0; display: flex; flex-direction: column; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: var(--radius-lg); overflow: hidden">
+<div style="flex-shrink: 0; display: flex; align-items: center; gap: 8px; padding: 8px 10px 8px 16px; border-bottom: 1px solid var(--border-decorative)">
+<h2 style="margin: 0; font-size: 20px; font-weight: 600; flex-grow: 1">Timeline <span style="font-family: var(--font-mono); font-weight: 600">{{tl.code}}</span></h2>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.IconButton" icon="close" accessibility-label="Close the timeline for order {{tl.code}}"></x-import>
+</div>
+<div style="flex-grow: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; padding: 14px 16px">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.StatusTimeline" audience="restaurant" state="{{tl.state}}" orientation="vertical" show-times="{{true}}" transitions="{{tl.transitions}}"></x-import>
+<span style="align-self: flex-start; padding: 2px 6px; border-radius: var(--radius-xs); background: var(--feedback-info-tint); color: var(--feedback-info-tint-text); font-family: var(--font-mono); font-size: 12px">Times from placed, accepted and ready times only · Needs API: picked-up and arrived times on the restaurant’s order view</span>
+<sc-if value="{{tl.hasNotes}}" hint-placeholder-val="{{false}}">
+<section aria-label="Notes on this order" style="display: flex; flex-direction: column; gap: 8px; padding-top: 12px; border-top: 1px solid var(--border-decorative)">
+<h3 style="margin: 0; font-size: 16px; font-weight: 600; color: var(--text-secondary)">Notes on this order</h3>
+<sc-for list="{{tl.notes}}" as="n" hint-placeholder-count="2">
+<div role="note" style="display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; background: var(--feedback-info-tint); border: 1px solid var(--feedback-info-border); border-radius: var(--radius-md)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="{{n.icon}}" size="md" color="var(--feedback-info-icon)" style="flex-shrink: 0; margin-top: 1px"></x-import>
+<div style="display: flex; flex-direction: column; gap: 2px; min-width: 0"><span style="font-size: 15px; font-weight: 700">{{n.who}} · {{n.at}}</span><span style="font-size: 17px; line-height: 26px">{{n.text}}</span></div>
+</div>
+</sc-for>
+<span style="align-self: flex-start; padding: 2px 6px; border-radius: var(--radius-xs); background: var(--feedback-info-tint); color: var(--feedback-info-tint-text); font-family: var(--font-mono); font-size: 12px">Live only · notes arrive by WebSocket, text verbatim · Needs API: notes on the restaurant’s order view (gone after a refresh)</span>
+</section>
+</sc-if>
+<p style="margin: 0; font-size: 15px; line-height: 22px; color: var(--text-secondary)">{{tl.next}}</p>
+</div>
+<div style="flex-shrink: 0; padding: 6px 12px 8px; border-top: 1px solid var(--border-decorative)"><span style="padding: 2px 6px; border-radius: var(--radius-xs); background: var(--surface-sunken); color: var(--text-secondary); font-family: var(--font-mono); font-size: 12px">Proposed component: DetailPanel, third pane · opens beside the order, collapses when closed</span></div>
+</aside>
+</sc-if>
+
+</div>
+
+<sc-if value="{{stripBottom}}" hint-placeholder-val="{{false}}">
+<div style="flex-shrink: 0"><dc-import name="NewOrderStrip" strip="{{strip}}" hint-size="100%,186px"></dc-import></div>
+</sc-if>
+
+</div>
+
+<!-- ============ 200% zoom: the side navigation as a side sheet ============ -->
+<sc-if value="{{navSheet.show}}" hint-placeholder-val="{{false}}">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Sheet" open="{{true}}" contained="{{true}}" variant="side" title="Menu" on-close="{{noop}}">
+<nav aria-label="Main" style="display: flex; flex-direction: column; gap: 10px">
+<ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px">
+<sc-for list="{{navSheet.items}}" as="n" hint-placeholder-count="5">
+<li><a href="#{{n.key}}" aria-current="{{n.current}}" aria-label="{{n.aria}}" style="display: flex; align-items: center; gap: 12px; min-height: 48px; box-sizing: border-box; padding: 6px 12px; border-radius: var(--radius-md); background: {{n.bg}}; box-shadow: {{n.shadow}}; color: var(--text-primary); text-decoration: none; font-size: 16px; font-weight: {{n.fw}}">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="{{n.icon}}" weight="{{n.weight}}" size="lg"></x-import>
+<span style="flex-grow: 1">{{n.label}}</span>
+<sc-if value="{{n.hasCount}}" hint-placeholder-val="{{false}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="brand" appearance="solid" size="sm">{{n.count}}</x-import></sc-if>
+</a></li>
+</sc-for>
+</ul>
+<span style="align-self: flex-start; padding: 2px 6px; border-radius: var(--radius-xs); background: var(--surface-sunken); color: var(--text-secondary); font-family: var(--font-mono); font-size: 12px">Proposed component: SideNav (collapsed to a sheet at 200%) · design-system Sheet, side · same links, aria-current and new-order count as the rail · Escape or Close returns focus to Open menu</span>
+</nav>
+</x-import>
+</sc-if>
+
+<!-- ============ blocking alert (signed out only) and toasts ============ -->
+<sc-if value="{{modal.show}}" hint-placeholder-val="{{false}}">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Modal" open="{{true}}" contained="{{true}}" dismissible="{{false}}" variant="alert" title="{{modal.title}}" description="{{modal.description}}" acknowledge-label="{{modal.ackLabel}}"></x-import>
+<div style="position: absolute; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 700; padding: 4px 8px; border-radius: var(--radius-xs); background: var(--surface-raised); color: var(--text-secondary); font-family: var(--font-mono); font-size: 12px">{{modal.note}}</div>
+</sc-if>
+
+<sc-if value="{{bottomStack.show}}" hint-placeholder-val="{{false}}">
+<div style="position: absolute; left: {{bottomStack.left}}px; bottom: {{bottomStack.bottom}}px; z-index: 650; width: {{bottomStack.w}}px; display: flex; flex-direction: column; gap: 8px; align-items: flex-start">
+<sc-for list="{{floats}}" as="t" hint-placeholder-count="1">
+<span style="padding: 3px 8px; border-radius: var(--radius-xs); background: {{t.bg}}; color: {{t.fg}}; font-family: var(--font-mono); font-size: 12px; box-shadow: var(--elev-1)">{{t.text}}</span>
+</sc-for>
+<sc-if value="{{toast.show}}" hint-placeholder-val="{{false}}">
+<span style="display: block; width: 100%"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Toast" variant="{{toast.variant}}" title="{{toast.title}}" description="{{toast.description}}" action="{{toast.action}}" on-dismiss="{{noop}}"></x-import></span>
+</sc-if>
+</div>
+</sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"scenario":{"editor":"enum","options":["busy","detailPrep","detailPrepNormal","detailTimeline","empty","quiet","loading","firstLoadError","error","gate","gateNotifDenied","soundBlocked","healthOpen","healthDegraded","healthOffline","signOut","signOutOff","sessionExpired","signedOutElsewhere","payoutsRestricted","reconnecting","reconnectRestDown","offline","paused","pauseMenu","resumeConfirm","pausedOffers","toggleOff","toggleOffOffers","confirmOff","autoOff","closedHours","closedHoliday","hoursOffers","suspended","switchFailed","switchOnLoading","switchOnFailed","certExpiring","certExpired","certUnverified","certRejected","certMissing","oneOffer","threeOffers","fourOffers","fourOffersFocus","offerLoading","keyboard","reducedMotion","accepting","acceptFail","acceptTooLate","timedOut","captureFailed","acceptedElsewhere","declinedElsewhere","withdrawn","withdrawnPayment","reconnectAccepting","reconnectAcceptOk","reconnectAcceptFail","acceptOk","declineUnset","declineOther","declineItem","declineNewOffer","declining","declineFail","declineTooLate","declineExpired","declineAvailFailed","late","riderWaitingPrep","riderUnassigned","markingReady","markReadyFail","readyWaiting","riderHere","riderHereCodeError","noRider","pickedUp","outDisputed","outEmpty","cancelled","cancelledRefreshed","readyCancelled","itemsAdjusted","noteAdded","etaUpdated","prepOverdue1","prepOverdueFinal","autoCancelled","otherScreen","refreshed","detailPending","detailAccepting","detailAcceptFail","detailAcceptNote","detailAcceptNoteFail","offerTimedOutOpen","offerWithdrawnOpen","detailCaptureFailed","detailPendingToast","stepperMin","stepperMax","detailItemsAdjusted","detailReady","detailOut","detailLoading","detailError","detail404","supportOn","supportOff","history","historyLoadingMore","historyLoadMoreFail","historyFiltered","historyFilterLoading","historyEmpty","historyLoading","historyError","detailTerminal","detailDeclined","detailCancelled","detailCaptureFailedHist","detailDeliveryResolved","detailTimedOutHist","detailWithdrawnHist","detailDisputed","detailResolved","detailHalalUpheld","detailHalalGoodwill","detailDelivered","focusStates","forcedColors","navSheet"],"default":"busy"},"device":{"editor":"enum","options":["desktop","tablet","zoom200"],"default":"desktop"},"strip":{"editor":"enum","options":["header","footer"],"default":"header"},"nav":{"editor":"enum","options":["collapsed","expanded"],"default":"collapsed"},"focus":{"editor":"enum","options":["none","skip"],"default":"none"},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  componentDidMount() { this._timer = setInterval(() => this.setState({ anchor: Date.now() }), 10000); }
+  componentWillUnmount() { clearInterval(this._timer); }
+  renderVals() {
+    const S = this.props.scenario ?? 'busy';
+    const device = this.props.device ?? 'desktop';
+    const stripAt = this.props.strip ?? 'header';
+    const navProp = this.props.nav ?? 'collapsed';
+    const focusProp = this.props.focus ?? 'none';
+    if (!this._anchor) this._anchor = Date.now();
+    const anchor = (this.state && this.state.anchor) || this._anchor;
+    const iso = (ms) => new Date(ms).toISOString();
+    const R = window.React;
+    const DS = window.HalalGoesDesignSystem_d11a47 || {};
+    const h = R ? R.createElement : null;
+    const tablet = device === 'tablet', zoom = device === 'zoom200', desktop = device === 'desktop';
+    const W = tablet ? 1024 : zoom ? 720 : 1440, H = tablet ? 768 : zoom ? 450 : 900; /* kitchen tablet: landscape 1024 × 768 and up (owner decision) */
+    const forced = S === 'forcedColors';
+    const RING = '0 0 0 2px var(--focus-offset), 0 0 0 5px var(--focus-ring)';
+    /* Simulated forced colors (Windows high contrast): the browser swaps every colour for system colours. Only on the Forced-colors board. */
+    const forcedCss = forced ? ['--surface-base: Canvas', '--surface-raised: Canvas', '--surface-subtle: Canvas', '--surface-sunken: Canvas', '--surface-chrome: Canvas', '--text-primary: CanvasText', '--text-secondary: CanvasText',
+      '--text-on-accent: CanvasText', '--text-link: LinkText', '--border-decorative: CanvasText', '--border-interactive: CanvasText', '--border-brand: Highlight', '--state-selected-tint: Canvas', '--focus-ring: Highlight',
+      '--feedback-warning-tint: Canvas', '--feedback-danger-tint: Canvas', '--feedback-info-tint: Canvas', '--feedback-info-tint-text: CanvasText', '--elev-1: none', '--elev-2: none', '--elev-sticky: none'].join('; ') : '';
+
+    /* ---------- tones: design-system feedback roles and halal colours only ---------- */
+    const TONE = {
+      neutral: { bg: 'var(--surface-subtle)', border: 'var(--border-decorative)', icon: 'var(--text-secondary)', text: 'var(--text-secondary)', bs: 'solid' },
+      info: { bg: 'var(--feedback-info-tint)', border: 'var(--feedback-info-border)', icon: 'var(--feedback-info-icon)', text: 'var(--feedback-info-tint-text)', bs: 'solid' },
+      warning: { bg: 'var(--feedback-warning-tint)', border: 'var(--feedback-warning-border)', icon: 'var(--feedback-warning-icon)', text: 'var(--feedback-warning-tint-text)', bs: 'solid' },
+      danger: { bg: 'var(--feedback-danger-tint)', border: 'var(--feedback-danger-border)', icon: 'var(--feedback-danger-icon)', text: 'var(--feedback-danger-tint-text)', bs: 'solid' },
+      success: { bg: 'var(--feedback-success-tint)', border: 'var(--feedback-success-border)', icon: 'var(--feedback-success-icon)', text: 'var(--feedback-success-tint-text)', bs: 'solid' },
+      brand: { bg: 'var(--state-selected-tint)', border: 'var(--border-brand)', icon: 'var(--border-brand)', text: 'var(--text-primary)', bs: 'solid' },
+      slate: { bg: 'var(--color-halal-expired-tint)', border: 'var(--color-halal-expired-border)', icon: 'var(--color-halal-expired-text)', text: 'var(--color-halal-expired-text)', bs: 'solid' },
+      expiring: { bg: 'var(--color-halal-expiring-tint)', border: 'var(--color-halal-expiring-border)', icon: 'var(--color-halal-expiring-icon)', text: 'var(--color-halal-expiring-text)', bs: 'solid' },
+      unverified: { bg: 'var(--surface-raised)', border: 'var(--color-halal-unverified-border)', icon: 'var(--color-halal-unverified-text)', text: 'var(--color-halal-unverified-text)', bs: 'dashed' }
+    };
+    const notice = (tone, role, icon, title, body, x) => {
+      const t = TONE[tone];
+      return Object.assign({ role: role, bg: t.bg, border: t.border, bs: t.bs, bw: t.bs === 'dashed' ? '1.5px' : '1px', iconColor: t.icon, icon: icon, title: title, titleSize: 17, hasBody: !!body, body: body || '',
+        hasLink: false, linkHref: '#', linkLabel: '', hasLinkNote: false, linkNote: '', hasApi: false, api: '' }, x || {});
+    };
+    const TAG_PROP = (text) => ({ text: text, bg: 'var(--surface-sunken)', fg: 'var(--text-secondary)' });
+    const TAG_API = (text) => ({ text: text, bg: 'var(--feedback-info-tint)', fg: 'var(--feedback-info-tint-text)' });
+
+    /* Support contact: support_phone_e164 and support_hours from GET /v1/config/public; hidden when support_enabled is false. */
+    const supportOn = S !== 'supportOff';
+    const SUP = { e164: '+18005550199', display: '+1 800 555 0199', hours: '[support_hours]' };
+    const supportLink = (code) => supportOn ? { hasLink: true, linkHref: 'tel:' + SUP.e164, linkLabel: 'Call support on ' + SUP.display + ' and quote ' + code, hasLinkNote: true, linkNote: 'Support hours: ' + SUP.hours } : {};
+
+    /* ---------- new-order tiles (the strip) ---------- */
+    const tile = (code, remain, o) => Object.assign({ code: code, remain: remain, cdExpires: iso(anchor + remain * 1000), cdNow: iso(anchor), earn: 0, earnReady: true, earnLoading: false, who: '', items: 0, prep: 20, hasNote: false,
+      hasLine: false, line: '', lineIcon: 'info', lineTone: 'neutral', selected: false, inPanel: false, accepting: false, acceptDisabled: false, declineDisabled: false, acceptLabel: '',
+      isLive: true, isOutcome: false, outIcon: 'clock', outTone: 'neutral', outBadge: '', outTitle: '', outBody: '', keep: false }, o || {});
+    const A7K2 = (r, o) => tile('A7K2', r, Object.assign({ earn: 3769, who: 'Aisha K.', items: 3, prep: 20, hasNote: true }, o));
+    const B3M9 = (r, o) => tile('B3M9', r, Object.assign({ earn: 2210, who: 'Omar S.', items: 2, prep: 15 }, o));
+    const C8T4 = (r, o) => tile('C8T4', r, Object.assign({ earn: 5697, who: 'Fatima R.', items: 7, prep: 25, hasNote: true }, o));
+    const D2P6 = (r, o) => tile('D2P6', r, Object.assign({ earn: 1349, who: 'Yusra M.', items: 1, prep: 10 }, o));
+    const ended = (t, tone, icon, badge, title, body, keep) => Object.assign(t, { isLive: false, isOutcome: true, outTone: tone, outIcon: icon, outBadge: badge, outTitle: title, outBody: body, keep: !!keep });
+    const lineOn = (t, tone, icon, text) => Object.assign(t, { hasLine: true, lineTone: tone, lineIcon: icon, line: text });
+    const RECONNECT_LINE = (t) => lineOn(t, 'warning', 'refresh', 'Accept still works while reconnecting');
+    const OFFLINE_LINE = (t) => lineOn(t, 'danger', 'error', 'Offline: accept may fail');
+
+    /* ---------- orders in progress (the list) ---------- */
+    const ST = {
+      prep: ['neutral', 'clock', 'Preparing'], late: ['warning', 'clock', 'Late'], ready: ['info', 'check', 'Ready'], here: ['brand', 'profile', 'Ready · rider here'],
+      herePrep: ['brand', 'profile', 'Rider here · not ready'], norider: ['warning', 'warning', 'Ready · no rider yet'], out: ['neutral', null, 'Out for delivery'],
+      cancelled: ['danger', 'error', 'Cancelled · stop'], cancelledKeep: ['danger', 'error', 'Cancelled · keep the bag aside'], changed: ['info', 'info', 'Order changed'],
+      failed: ['danger', 'error', 'Not marked ready'], marking: ['neutral', 'refresh', 'Marking ready…'], note: ['info', 'info', 'New note'], final: ['danger', 'warning', 'Cancels at 7:24 pm if not ready'],
+      unassigned: ['warning', 'profile', 'Rider unassigned'], other: ['info', 'check', 'Ready · marked on another screen'], blocked: ['neutral', 'info', 'Can’t mark ready now'],
+      just: ['brand', 'check', 'Just accepted'], disputed: ['warning', 'warning', 'Delivery problem · with support'], elsewhere: ['info', 'check', 'Accepted on another screen'], overdue: ['warning', 'clock', 'Late · new time 7:15 pm']
+    };
+    const ROW = {
+      K7J1: { st: 'here', readyBy: 'Ready 6:45 pm', items: '1 × Mixed charcoal grill', customer: 'Hana A.', rider: 'Daniel P. · Car · here since 6:51 pm', act: 'handoff' },
+      K7H3: { st: 'ready', readyBy: 'Ready 6:47 pm', items: '2 × Doner plate', customer: 'Zainab Q.', rider: 'Amir T. · Bike · about 1 km away', act: 'wait' },
+      K7M4: { st: 'late', readyBy: '6:44 pm · 4 min late', items: '2 × Adana kebab', customer: 'Sara K.', rider: 'Finding a rider', act: 'ready' },
+      K7L8: { st: 'prep', readyBy: '6:58 pm', items: '1 × Chicken shish plate', more: 1, customer: 'Bilal R.', rider: 'Yusuf A. · Bike · about 6:57 pm', act: 'ready' },
+      K7N1: { st: 'prep', readyBy: '7:05 pm', items: '1 × Lamb mandi', more: 1, note: true, customer: 'Maryam H.', rider: 'Finding a rider', act: 'ready' },
+      K7G5: { st: 'out', readyBy: 'Ready 6:27 pm', items: '1 × Falafel plate', customer: 'Leila F.', rider: 'Yusuf A. · Bike · picked up', act: 'read' },
+      K7F2: { st: 'out', readyBy: 'Ready 6:21 pm', items: '2 × Chicken shawarma wrap', customer: 'Ibrahim K.', rider: 'Daniel P. · Car · at the customer', act: 'read' },
+      A7K2: { st: 'just', readyBy: '7:08 pm', items: '1 × Mixed charcoal grill', more: 1, note: true, customer: 'Aisha K.', rider: 'Finding a rider', act: 'ready' },
+      B3M9: { st: 'just', readyBy: '7:04 pm', items: '1 × Falafel plate', more: 1, customer: 'Omar S.', rider: 'Finding a rider', act: 'ready' }
+    };
+    const row = (code, o) => Object.assign({ id: code, code: code, open: false, note: false, more: 0 }, ROW[code] || {}, o || {});
+    const baseRows = () => [row('K7J1'), row('K7M4'), row('K7L8'), row('K7N1'), row('K7G5'), row('K7F2')];
+    const setRow = (rows, code, o) => rows.map((r) => r.code === code ? Object.assign({}, r, o) : r);
+
+    /* ---------- orders as the panel shows them: money from the server, never computed here ---------- */
+    const TR = {
+      K7M4: [{ to_state: 'RESTAURANT_PENDING', at: '2026-09-28T22:25:12Z' }, { to_state: 'PREPARING', at: '2026-09-28T22:26:02Z' }],
+      K7L8: [{ to_state: 'RESTAURANT_PENDING', at: '2026-09-28T22:38:40Z' }, { to_state: 'PREPARING', at: '2026-09-28T22:39:05Z' }],
+      K7N1: [{ to_state: 'RESTAURANT_PENDING', at: '2026-09-28T22:43:30Z' }, { to_state: 'PREPARING', at: '2026-09-28T22:44:10Z' }],
+      K7J1: [{ to_state: 'RESTAURANT_PENDING', at: '2026-09-28T22:21:40Z' }, { to_state: 'PREPARING', at: '2026-09-28T22:22:05Z' }, { to_state: 'READY_FOR_PICKUP', at: '2026-09-28T22:45:10Z' }],
+      K7H3: [{ to_state: 'RESTAURANT_PENDING', at: '2026-09-28T22:24:00Z' }, { to_state: 'PREPARING', at: '2026-09-28T22:24:30Z' }, { to_state: 'READY_FOR_PICKUP', at: '2026-09-28T22:47:20Z' }],
+      K7F2: [{ to_state: 'RESTAURANT_PENDING', at: '2026-09-28T22:07:20Z' }, { to_state: 'PREPARING', at: '2026-09-28T22:08:00Z' }, { to_state: 'READY_FOR_PICKUP', at: '2026-09-28T22:21:30Z' }]
+    };
+    const ORD = {
+      A7K2: { state: 'RESTAURANT_PENDING', badge: ['brand', 'bell', 'New'], special: 'Sesame allergy. Please pack the sauces separately.',
+        lines: [{ qty: '1 ×', name: 'Mixed charcoal grill', extra: 'Large · + Extra garlic sauce', request: 'No onions', cents: 2499 }, { qty: '2 ×', name: 'Chicken shawarma wrap', extra: '+ Extra toum', cents: 1270 }],
+        money: [['Items subtotal', 3769]], earn: 3769, customer: 'Aisha K.', place: 'Scarborough · 2 to 4 km away', instructions: ['MEET_AT_DOOR'], pending: true, prepMin: 20 },
+      B3M9: { state: 'RESTAURANT_PENDING', badge: ['brand', 'bell', 'New'], lines: [{ qty: '1 ×', name: 'Falafel plate', cents: 1450 }, { qty: '1 ×', name: 'Mint lemonade', cents: 760 }],
+        money: [['Items subtotal', 2210]], earn: 2210, customer: 'Omar S.', place: 'Scarborough · under 2 km away', instructions: [], pending: true, prepMin: 15 },
+      K7M4: { state: 'PREPARING', badge: ['warning', 'clock', 'Preparing · late'], late: 'Ready by 6:44 pm · 4 min late', lines: [{ qty: '2 ×', name: 'Adana kebab', extra: 'Spicy', cents: 4398 }],
+        money: [['Items subtotal', 4398], ['Discount', -400]], earn: 3998, customer: 'Sara K.', phone: '+1 416 ••• 7710', place: 'Unit 3, 14 Birchmount Rd, Scarborough ON M1N 3J5', instructions: ['MEET_IN_LOBBY'],
+        rider: ['No rider assigned yet', 'We are finding one.'], foot: 'prep', v0late: true },
+      K7L8: { state: 'PREPARING', badge: ['neutral', 'clock', 'Preparing'], late: 'Ready by 6:58 pm', lines: [{ qty: '1 ×', name: 'Chicken shish plate', cents: 1850 }, { qty: '1 ×', name: 'Garlic potatoes', cents: 860 }],
+        money: [['Items subtotal', 2710]], earn: 2710, customer: 'Bilal R.', phone: '+1 647 ••• 5519', place: '220 Markham Rd, Scarborough ON M1J 3C5', instructions: [],
+        rider: ['Yusuf A. · Bike', 'Arriving about 6:57 pm'], foot: 'prep' },
+      K7N1: { state: 'PREPARING', badge: ['neutral', 'clock', 'Preparing'], late: 'Ready by 7:05 pm', special: 'No ice in the drinks, please.',
+        lines: [{ qty: '1 ×', name: 'Lamb mandi', cents: 2450 }, { qty: '2 ×', name: 'Mint lemonade', cents: 998 }], money: [['Items subtotal', 3448]], earn: 3448,
+        customer: 'Maryam H.', phone: '+1 647 ••• 2208', place: 'Apt 1204, 45 Lawrence Ave E, Toronto ON M4N 1S9', instructions: ['MEET_IN_LOBBY', 'DO_NOT_RING_BELL'],
+        rider: ['Finding a rider', 'Assigned riders appear here with their arrival time.'], foot: 'prep' },
+      K7J1: { state: 'READY_FOR_PICKUP', badge: ['brand', 'profile', 'Ready · rider here'], lines: [{ qty: '1 ×', name: 'Mixed charcoal grill', extra: 'Regular', cents: 2199 }], money: [['Items subtotal', 2199]], earn: 2199,
+        customer: 'Hana A.', phone: '+1 437 ••• 9016', place: '9 Midland Ave, Scarborough ON M1N 4A1', instructions: [],
+        rider: ['Daniel P. · Car', 'At your restaurant since 6:51 pm'], riderBrand: true, handoff: 'Hand bag K7J1 to Daniel P.',
+        pickupCode: '4827', pickupHelp: 'Read this code to Daniel P. as you hand over the bag. He types it into his app, and the order moves to out for delivery.',
+        riderApi: 'Rider at the restaurant comes from a live dispatch event · Needs API: rider phase on the restaurant’s order view (lost on refresh) · Needs API: the pickup code on the restaurant’s order view and the rider’s code entry (owner decision: no seals at launch)' },
+      K7H3: { state: 'READY_FOR_PICKUP', badge: ['info', 'check', 'Ready'], lines: [{ qty: '2 ×', name: 'Doner plate', cents: 3498 }], money: [['Items subtotal', 3498]], earn: 3498,
+        customer: 'Zainab Q.', phone: '+1 416 ••• 3321', place: '3 Brimley Rd, Scarborough ON M1M 3W3', instructions: [],
+        rider: ['Amir T. · Bike', 'About 1 km away · arriving about 6:52 pm'], pickupCode: '3916', pickupHelp: 'Read this code to Amir T. when he arrives and you hand over the bag. He types it into his app.',
+        riderApi: 'Distance from the rider’s coarse location, live only · Needs API: a distance band on the rider reference after a refresh · Needs API: the pickup code on the restaurant’s order view' },
+      K7F2: { state: 'ARRIVED', badge: ['neutral', null, 'At the customer'], lines: [{ qty: '2 ×', name: 'Chicken shawarma wrap', cents: 1270 }], money: [['Items subtotal', 1270]], earn: 1270,
+        customer: 'Ibrahim K.', phone: '+1 647 ••• 1182', place: '31 Eglinton Ave E, Scarborough', instructions: [], rider: ['Daniel P. · Car', 'Out for delivery'], footLine: 'Read only. Nothing to do; it leaves this list when delivered.' }
+    };
+    const P = (code, x) => Object.assign({ show: true, kind: 'order', code: code }, JSON.parse(JSON.stringify(ORD[code])), x || {});
+    const OFFER_PANEL = (code, remain, x) => P(code, Object.assign({ kind: 'offer', showCountdown: true, cdExpires: iso(anchor + remain * 1000), cdNow: iso(anchor) }, x || {}));
+    const DECLINE_PANEL = (code, remain, x) => P(code, Object.assign({ kind: 'decline', showCountdown: true, cdExpires: iso(anchor + remain * 1000), cdNow: iso(anchor) }, x || {}));
+
+    /* ---------- shell defaults ---------- */
+    let health = { variant: 'neutral', icon: 'check', label: 'Live', expanded: 'false', ring: 'none' };
+    let open = { variant: 'info', label: 'Open', reason: 'Taking orders until 11:00 pm', hasReason: true };
+    let sw = { checked: true, loading: false, disabled: false, help: '' };
+    let pause = { isMenu: true, isResume: false, disabled: false, open: false };
+    let halal = 'CERTIFIED', halalMissing = false;
+    let banners = [];
+    let confirm = { show: false };
+    let tiles = [B3M9(40), A7K2(132)];
+    let stripEmpty = null, stripRule = '', moreN = 0, lessN = 0, keysOn = false, stripLoading = false, stripHidden = false;
+    let rows = baseRows();
+    let listStatus = 'ready';
+    let stale = { show: false, text: '' };
+    let panel = { show: false };
+    let tl = { show: false };
+    let isGate = false, gateDenied = false, isFirstError = false, isHistory = false, signedOut = false, soundBlocked = false, reconnecting = false;
+    let toast = { show: false };
+    let floats = [];
+    let statusTag = null;
+    let modal = { show: false };
+    let histMode = 'populated', histSel = 'ALL';
+    let flashNote = '';
+    let railRing = -1, railToggleRing = false;
+    let swLabels = null, navSheetOpen = false;
+
+    const bannerOf = (tone, icon, title, body, action, x) => {
+      const t = TONE[tone];
+      return Object.assign({ role: 'status', bg: t.bg, border: t.border, bs: t.bs, bw: t.bs === 'dashed' ? '1.5px' : '1px', iconColor: t.icon, icon: icon, title: title, body: body,
+        hasAction: !!action, actionLabel: action ? action[0] : '', actionVariant: action ? action[1] : 'tertiary', hasLink: false, linkHref: '#', linkLabel: '',
+        prop: 'Proposed component: Banner (page-level, not dismissible)', hasApi: false, api: '' }, x || {});
+    };
+    const reconnectShell = () => {
+      reconnecting = true;
+      health = { variant: 'warning', icon: 'refresh', label: 'Reconnecting · since 6:46 pm', expanded: 'false', ring: 'none' };
+      banners = [bannerOf('warning', 'refresh', 'Reconnecting: new orders may not ring', 'This screen lost its live connection at 6:46 pm. Orders on screen are safe, the timers keep running, and Accept and Decline still work. It reconnects on its own.', null,
+        { hasApi: true, api: 'Assumes the REST API still answers while the socket is down; the both-down alternative has its own board' })];
+    };
+    const offlineShell = () => {
+      reconnecting = true;
+      health = { variant: 'danger', icon: 'error', label: 'Offline since 6:41 pm', expanded: 'false', ring: 'none' };
+      open = { variant: 'neutral', label: 'Unknown · this screen offline', reason: 'Can’t check while offline.', hasReason: true };
+      sw.help = 'On · can’t confirm while offline';
+      banners = [bannerOf('danger', 'error', 'This screen is offline', 'Offline for 5 minutes. If no other screen is open, HalalGoes has stopped sending you orders. You reopen automatically when a screen reconnects.', ['Reconnect now', 'tertiary'],
+        { role: 'alert', hasApi: true, api: 'Open state unknown here: the check-in is per restaurant and another screen may keep you open · “Closed · offline” only after reconnecting' })];
+    };
+    const closedStrip = (icon, title, body, action, variant) => ({ icon: icon, title: title, body: body, action: action || '', variant: variant || 'tertiary' });
+    const certTag = 'Open state CLOSED_SUSPENDED and reason from GET /v1/restaurant/availability, shown verbatim';
+    /* A halal certificate that isn't approved suspends the restaurant: the status bar says Closed with the server's reason, and nothing can be switched on. */
+    const certShell = (reason) => {
+      open = { variant: 'neutral', label: 'Closed', reason: reason, hasReason: true };
+      sw = { checked: false, loading: false, disabled: true, help: 'Customers can’t order until your certificate is approved' };
+      pause = { isMenu: true, isResume: false, disabled: true, open: false };
+    };
+    /* Nothing loaded yet: no open state, switch or pause is shown as if known. */
+    const unknownShell = (label) => {
+      open = { variant: 'neutral', label: label, reason: '', hasReason: false };
+      sw = { checked: false, loading: false, disabled: true, help: 'Available once orders load' };
+      pause = { isMenu: true, isResume: false, disabled: true, open: false };
+      swLabels = { on: label, off: label };
+    };
+
+    switch (S) {
+      /* ================= the working page ================= */
+      case 'busy': break;
+      case 'detailPrep': rows = setRow(rows, 'K7M4', { open: true }); panel = P('K7M4'); break;
+      case 'detailPrepNormal': rows = setRow(rows, 'K7L8', { open: true }); panel = P('K7L8'); break;
+      case 'detailTimeline':
+        rows = setRow(rows, 'K7N1', { open: true }); panel = P('K7N1', { timelineOpen: true });
+        tl = { show: true, code: 'K7N1', state: 'PREPARING', transitions: TR.K7N1, hasNotes: true,
+          notes: [{ who: 'From HalalGoes support', at: '6:52 pm', text: 'The customer asked for extra napkins.', icon: 'info' }, { who: 'From the rider', at: '6:55 pm', text: 'I’m at the side door on Lawrence Ave.', icon: 'profile' }],
+          next: 'Next: mark ready when the bag is packed. The rider is told automatically.' };
+        break;
+      case 'empty': tiles = []; rows = []; break;
+      case 'quiet': tiles = []; rows = [row('K7L8'), row('K7G5')]; break;
+      case 'loading':
+        tiles = []; stripLoading = true; rows = []; listStatus = 'loading';
+        health = { variant: 'neutral', icon: 'refresh', label: 'Connecting…', expanded: 'false', ring: 'none' };
+        unknownShell('Checking…');
+        break;
+      case 'firstLoadError':
+        tiles = []; stripHidden = true; isFirstError = true;
+        health = { variant: 'danger', icon: 'error', label: 'Not connected', expanded: 'false', ring: 'none' };
+        unknownShell('Unknown');
+        break;
+      case 'error':
+        stale = { show: true, text: 'Last updated 6:46 pm · may be out of date' };
+        banners = [bannerOf('warning', 'refresh', 'Couldn’t refresh', 'Your orders are safe on the server. Retrying on its own. New orders still ring while this screen stays connected.', ['Try now', 'tertiary'])];
+        break;
+      case 'gate':
+      case 'gateNotifDenied':
+        tiles = []; stripHidden = true; rows = []; isGate = true; gateDenied = S === 'gateNotifDenied';
+        health = { variant: 'warning', icon: 'warning', label: gateDenied ? 'Notifications blocked' : 'Sound off', expanded: 'false', ring: 'none' };
+        open = { variant: 'neutral', label: 'Closed', reason: 'Not accepting orders yet', hasReason: true };
+        sw = { checked: false, loading: false, disabled: true, help: '' }; pause = { isMenu: true, isResume: false, disabled: true, open: false };
+        break;
+      case 'soundBlocked':
+        soundBlocked = true; tiles = [A7K2(132)];
+        health = { variant: 'warning', icon: 'warning', label: 'Sound blocked', expanded: 'false', ring: 'none' };
+        banners = [bannerOf('warning', 'warning', 'Sound is blocked', 'Your browser stopped the order sound. New orders won’t ring until sound is back on.', ['Turn sound back on', 'tertiary'], { role: 'alert' })];
+        break;
+      case 'healthOpen':
+      case 'healthDegraded':
+      case 'healthOffline': {
+        let rowsH = [
+          { icon: 'check', title: 'Connection: live', body: 'Checked in with HalalGoes 12 s ago.' },
+          { icon: 'bell', title: 'Sound: on', body: 'Test chime played at 5:02 pm. Each new order rings until it is accepted, declined or times out.' },
+          { icon: 'check', title: 'Notifications: allowed', body: 'Alerts reach you on another tab too.' },
+          { icon: 'check', title: 'Screen: stays on', body: 'This screen won’t sleep while live orders is open.' }];
+        if (S === 'healthDegraded') {
+          reconnectShell(); banners = []; soundBlocked = true; tiles = [RECONNECT_LINE(A7K2(132))];
+          health = { variant: 'warning', icon: 'refresh', label: 'Reconnecting · sound blocked', expanded: 'true', ring: 'none' };
+          rowsH = [
+            { icon: 'refresh', color: TONE.warning.icon, title: 'Connection: reconnecting since 6:46 pm', body: 'Orders on screen are safe. Accept and Decline still work.' },
+            { icon: 'warning', color: TONE.warning.icon, title: 'Sound: blocked by the browser', body: 'New orders won’t ring until sound is back on.', hasAction: true, action: 'Turn sound on', actionVariant: 'tertiary' },
+            { icon: 'warning', color: TONE.warning.icon, title: 'Notifications: blocked', body: 'Allow them in the browser’s site settings.' },
+            { icon: 'check', title: 'Screen: stays on', body: 'This screen won’t sleep while live orders is open.' }];
+        }
+        if (S === 'healthOffline') {
+          offlineShell(); banners = []; tiles = [OFFLINE_LINE(A7K2(96))]; health.expanded = 'true';
+          rowsH = [
+            { icon: 'error', color: TONE.danger.icon, title: 'Connection: offline since 6:41 pm', body: 'If no other screen is open, HalalGoes stops sending new orders after 5 minutes without a check-in. This screen can’t tell until it reconnects.', hasAction: true, action: 'Reconnect now', actionVariant: 'tertiary' },
+            { icon: 'bell', title: 'Sound: on', body: 'Rings again as soon as orders reach this screen.' },
+            { icon: 'check', title: 'Screen: stays on', body: 'This screen won’t sleep while live orders is open.' }];
+        }
+        if (S === 'healthOpen') health.expanded = 'true';
+        panel = { show: true, kind: 'health', code: 'health', healthRows: rowsH };
+        break; }
+      case 'signOut':
+        confirm = { show: true, icon: 'warning', title: 'Stop orders before you sign out?', body: 'If you sign out while accepting, new orders can still come in for up to 5 minutes. Nobody will answer them, and customers wait 3 minutes each for nothing.',
+          buttons: [{ label: 'Stay signed in', variant: 'tertiary', ring: RING }, { label: 'Sign out anyway', variant: 'ghost', ring: 'none' }, { label: 'Stop accepting and sign out', variant: 'secondary', ring: 'none' }],
+          note: 'Opened from Account › Sign out · in the page, not a dialog · first focus: Stay signed in · Escape keeps you signed in · Stop accepting turns the switch off, then signs out' };
+        break;
+      case 'signOutOff':
+        open = { variant: 'neutral', label: 'Closed', reason: 'You turned off accepting orders.', hasReason: true };
+        sw = { checked: false, loading: false, disabled: false, help: '' }; pause = { isMenu: true, isResume: false, disabled: true, open: false }; tiles = [];
+        stripEmpty = closedStrip('info', 'You’re not accepting orders', 'No new orders will come. Orders in progress are not affected by signing out.');
+        confirm = { show: true, icon: 'info', title: 'Sign out of this screen?', body: 'You’re not accepting orders, so no new orders will come. Orders already accepted are not affected.',
+          buttons: [{ label: 'Stay signed in', variant: 'tertiary', ring: RING }, { label: 'Sign out', variant: 'secondary', ring: 'none' }], note: 'Accepting is already off: two buttons · first focus: Stay signed in · Escape keeps you signed in' };
+        break;
+      case 'sessionExpired':
+      case 'signedOutElsewhere':
+        signedOut = true;
+        health = { variant: 'danger', icon: 'lock', label: 'Signed out · not receiving orders', expanded: 'false', ring: 'none' };
+        modal = { show: true, title: S === 'sessionExpired' ? 'Sign in again to keep answering orders' : 'This screen was signed out from another device',
+          description: 'This screen has stopped receiving new orders. Orders already on it keep their timers on the server, but you can’t accept or decline them until you sign in. If no other screen is signed in, HalalGoes stops sending orders after 5 minutes.',
+          ackLabel: 'Sign in again', note: 'The one blocking dialog on this canvas: you can’t work until you sign in again · shown on any 401 · after sign-in the page reloads orders · nothing on screen is cleared' };
+        break;
+      case 'payoutsRestricted':
+        banners = [bannerOf('info', 'info', 'Stripe has paused your payouts', 'Keep taking orders: your earnings are kept and paid out once Stripe has what it needs. Stripe is asking for: [requirements from Stripe, shown verbatim].', ['Open Payouts', 'tertiary'],
+          { hasApi: true, api: 'GET /v1/connect/status: payouts_enabled false, requirements.currently_due and disabled_reason verbatim · the action opens Payouts, where Finish payout setup in Stripe calls POST /v1/connect/onboarding-link' })];
+        floats = [TAG_PROP('Owner decision: a Stripe restriction never stops orders once payouts have worked before (a restaurant that never finished Stripe setup cannot go live) · payout history moved into launch (owner decision), so Payouts is in the navigation and shows what is held')];
+        break;
+
+      /* ================= connection and open state ================= */
+      case 'reconnecting': reconnectShell(); tiles = [RECONNECT_LINE(B3M9(40)), RECONNECT_LINE(A7K2(132))]; break;
+      case 'reconnectRestDown':
+        reconnectShell();
+        banners = [bannerOf('warning', 'refresh', 'Reconnecting: Accept is paused', 'This screen can’t reach HalalGoes at all, so Accept and Decline are off until it reconnects. The timers are the server’s and keep running. Answer on another screen if you have one.', ['Reconnect now', 'tertiary'],
+          { role: 'alert', hasApi: true, api: 'Alternative: the REST API is down as well as the socket' })];
+        tiles = [lineOn(B3M9(40, { acceptLabel: 'Reconnect to accept', acceptDisabled: true, declineDisabled: true }), 'warning', 'refresh', 'Can’t reach HalalGoes'),
+          lineOn(A7K2(132, { acceptLabel: 'Reconnect to accept', acceptDisabled: true, declineDisabled: true }), 'warning', 'refresh', 'Can’t reach HalalGoes')];
+        break;
+      case 'offline': offlineShell(); tiles = [OFFLINE_LINE(B3M9(40)), OFFLINE_LINE(A7K2(118))]; break;
+      case 'paused':
+      case 'resumeConfirm':
+        open = { variant: 'warning', label: 'Paused', reason: 'Until 7:10 pm', hasReason: true };
+        pause = { isMenu: false, isResume: true, disabled: false, open: false }; tiles = [];
+        stripEmpty = closedStrip('clock', 'Paused until 7:10 pm', 'New orders resume at 7:10 pm. Orders in progress still need finishing.', S === 'paused' ? 'Resume now' : '', 'tertiary');
+        if (S === 'resumeConfirm') confirm = { show: true, icon: 'clock', title: 'Resume new orders now?', body: 'New orders start ringing on this screen straight away. Your pause was set to end at 7:10 pm.',
+          buttons: [{ label: 'Stay paused', variant: 'tertiary', ring: RING }, { label: 'Resume now', variant: 'secondary', ring: 'none' }], note: 'In the page, under the status bar · first focus: Stay paused (least change)' };
+        break;
+      case 'pauseMenu':
+        pause.open = true;
+        statusTag = 'Until closing: owner decision · Needs API: pause until today’s closing time (the server resolves the time)';
+        break;
+      case 'pausedOffers':
+        open = { variant: 'warning', label: 'Paused', reason: 'Until 7:10 pm', hasReason: true };
+        pause = { isMenu: false, isResume: true, disabled: false, open: false };
+        stripRule = 'Paused. These arrived before the pause and still need an answer.';
+        break;
+      case 'toggleOff':
+        open = { variant: 'neutral', label: 'Closed', reason: 'You turned off accepting orders.', hasReason: true };
+        sw = { checked: false, loading: false, disabled: false, help: '' }; pause = { isMenu: true, isResume: false, disabled: true, open: false }; tiles = [];
+        stripEmpty = closedStrip('info', 'You’re not accepting orders', 'Customers can see your menu but can’t order. Turn orders on when someone is at this screen.', 'Turn on', 'secondary');
+        break;
+      case 'toggleOffOffers':
+        open = { variant: 'neutral', label: 'Closed', reason: 'You turned off accepting orders.', hasReason: true };
+        sw = { checked: false, loading: false, disabled: false, help: '' }; pause = { isMenu: true, isResume: false, disabled: true, open: false };
+        tiles = [B3M9(40), A7K2(150)];
+        stripRule = 'Arrived before you turned orders off. Each keeps its full 3 minutes.';
+        break;
+      case 'confirmOff':
+        confirm = { show: true, icon: 'info', title: 'Stop accepting new orders?', body: 'Orders already waiting still need an answer. Customers can’t order until you turn this back on.',
+          buttons: [{ label: 'Keep accepting', variant: 'tertiary', ring: RING }, { label: 'Stop accepting', variant: 'secondary', ring: 'none' }], note: 'Opened by the Orders switch · in the page, not a dialog · first focus: Keep accepting (least change)' };
+        break;
+      case 'autoOff':
+        open = { variant: 'neutral', label: 'Closed', reason: 'Turned off after 2 orders in a row timed out.', hasReason: true };
+        sw = { checked: false, loading: false, disabled: false, help: '' }; tiles = [];
+        banners = [bannerOf('warning', 'clock', 'New orders stopped: 2 orders timed out in a row', 'We turned off accepting orders so customers aren’t kept waiting. The customers were not charged. Turn it back on when someone is at this screen.', null, { role: 'alert' })];
+        stripEmpty = closedStrip('info', 'New orders are off', 'Turn them on when someone is at this screen.', 'Turn on', 'secondary');
+        break;
+      case 'closedHours':
+      case 'closedHoliday': {
+        const hol = S === 'closedHoliday';
+        open = { variant: 'neutral', label: 'Closed', reason: hol ? 'Closed today: Thanksgiving.' : 'Closed by your weekly hours.', hasReason: true };
+        sw.help = hol ? 'On, but closed today by your date override' : 'On, but closed by your hours';
+        tiles = []; rows = [];
+        stripEmpty = closedStrip('clock', hol ? 'Closed today' : 'Closed by your hours', hol ? 'Closed today: Thanksgiving. New orders start when you next open.' : 'New orders start when you next open.', 'Edit hours', 'tertiary');
+        statusTag = 'Reason shown verbatim · Needs API: the next opening time on availability, for “Opens at …”';
+        break; }
+      case 'hoursOffers':
+        open = { variant: 'neutral', label: 'Closed', reason: 'Closed by your hours.', hasReason: true };
+        sw.help = 'On, but closed by your hours';
+        tiles = [A7K2(96)]; rows = [row('K7L8')];
+        stripRule = 'Arrived before closing. Answer it; no new orders will come.';
+        break;
+      case 'suspended':
+        open = { variant: 'neutral', label: 'Closed', reason: 'Suspended by HalalGoes.', hasReason: true };
+        sw = { checked: false, loading: false, disabled: true, help: '' }; pause = { isMenu: true, isResume: false, disabled: true, open: false }; tiles = [];
+        banners = [bannerOf('info', 'info', 'Your account is suspended', 'Reason from HalalGoes: repeated orders not handed to riders. Orders already in progress can still be finished. New orders are off until support resolves this.', null,
+          Object.assign({ role: 'alert', hasApi: true, api: 'Needs API: a structured suspension reason' }, supportOn ? { hasLink: true, linkHref: 'tel:' + SUP.e164, linkLabel: 'Call support on ' + SUP.display } : {}))];
+        stripEmpty = closedStrip('lock', 'New orders are off while your account is suspended', 'Finish the orders in progress. Support tells you when you can take orders again.');
+        break;
+      case 'switchFailed':
+        toast = { show: true, variant: 'danger', title: 'Couldn’t turn off orders', description: 'You’re still accepting orders. Check the connection and try again.' };
+        break;
+      case 'switchOnLoading':
+        open = { variant: 'neutral', label: 'Closed', reason: 'You turned off accepting orders.', hasReason: true };
+        sw = { checked: false, loading: true, disabled: false, help: 'Turning on…' }; tiles = [];
+        stripEmpty = closedStrip('refresh', 'Turning orders on', 'The switch moves when HalalGoes confirms.');
+        break;
+      case 'switchOnFailed':
+        open = { variant: 'neutral', label: 'Closed', reason: 'You turned off accepting orders.', hasReason: true };
+        sw = { checked: false, loading: false, disabled: false, help: '' }; tiles = [];
+        stripEmpty = closedStrip('info', 'You’re not accepting orders', 'Customers can see your menu but can’t order.', 'Turn on', 'secondary');
+        toast = { show: true, variant: 'danger', title: 'Couldn’t turn on orders', description: 'You’re still not accepting orders. Check the connection and try again.' };
+        break;
+
+      /* ================= your halal certificate (owner) ================= */
+      case 'certExpiring':
+        halal = 'EXPIRING_SOON';
+        banners = [bannerOf('expiring', 'clock', 'Your halal certificate expires on 14 October 2026', 'Upload the renewed certificate before then. We check it before it goes live, so customers can keep ordering without a gap. We remind you 30, 14, 7 and 1 days before it expires.', ['Upload renewal', 'tertiary'],
+          { hasApi: true, api: 'Date from the profile’s halal expiry · Upload renewal opens Settings › Documents (upload only) · the status bar badge reads “Halal certified · expires 14 Oct” (owner decision; HalalBadge label update requested in the design system)' })];
+        break;
+      case 'certExpired':
+        halal = 'EXPIRED'; statusTag = certTag; tiles = []; certShell('Suspended: halal certificate expired');
+        banners = [bannerOf('slate', 'info', 'We can’t currently vouch for your halal certificate', 'It expired on 20 September 2026, so customers can’t find or order from you. Orders already in progress can be finished. Upload the renewed certificate; we review documents within 3 business days.', ['Upload renewal', 'tertiary'],
+          { hasApi: true, api: 'Expired is cool slate, never red: our knowledge lapsed, not a ruling on the food' })];
+        stripEmpty = closedStrip('info', 'No new orders while your certificate is expired', 'Customers can’t find you until a renewed certificate is approved.');
+        break;
+      case 'certUnverified':
+        halal = 'UNVERIFIED'; statusTag = certTag; tiles = []; certShell('Suspended: halal certificate being checked');
+        banners = [bannerOf('unverified', 'clock', 'We’re checking your certificate', 'We review documents within 3 business days. Customers can’t find you until it’s approved; we’ll tell you as soon as it is.', null,
+          { hasApi: true, api: 'Copy chosen by the certificate record in GET /v1/restaurant/documents: status pending' })];
+        stripEmpty = closedStrip('clock', 'No new orders until your certificate is approved', 'Nothing to do now. We’ll tell you when it’s approved.');
+        break;
+      case 'certRejected':
+        halal = 'UNVERIFIED'; statusTag = certTag; tiles = []; certShell('Suspended: halal certificate not accepted');
+        banners = [bannerOf('unverified', 'info', 'Your certificate wasn’t accepted', 'Reason from HalalGoes: the certificate number doesn’t match the certifying body’s register. Customers can’t find you until a valid certificate is approved. Orders already in progress can be finished.', ['Upload a new certificate', 'tertiary'],
+          { role: 'alert', hasApi: true, api: 'Certificate record status rejected or revoked · reason text from the record, verbatim' })];
+        stripEmpty = closedStrip('info', 'No new orders until a valid certificate is approved', 'Upload a new certificate. We review documents within 3 business days.');
+        break;
+      case 'certMissing': halal = null; halalMissing = true; break;
+
+      /* ================= the new-order strip ================= */
+      case 'oneOffer':
+        tiles = [A7K2(132)]; rows = [row('K7L8'), row('K7G5')];
+        floats = [TAG_API('Code, items, first name and timer arrive with the ring · earnings and delivery area from GET /v1/restaurant/orders/{id}')];
+        break;
+      case 'threeOffers': tiles = [C8T4(15), B3M9(40), A7K2(132)]; break;
+      case 'fourOffers': tiles = [C8T4(15), B3M9(40), A7K2(132), D2P6(170)]; moreN = 1; break;
+      case 'fourOffersFocus':
+        tiles = [C8T4(15), B3M9(40), A7K2(132), D2P6(170, { selected: true })]; lessN = 1; keysOn = true;
+        floats = [TAG_PROP('Right arrow from A7K2 moved focus to D2P6; the strip scrolled so its Accept is fully in view · C8T4 sits behind “1 earlier”')];
+        break;
+      case 'offerLoading':
+        tiles = [B3M9(40), D2P6(178, { earnReady: false, earnLoading: true, who: 'Yusra', hasLine: true, lineTone: 'neutral', lineIcon: 'refresh', line: 'Loading the rest of this order…' })];
+        floats = [TAG_API('The ring’s frame has no earnings or area: the tile refetches GET /v1/restaurant/orders/{id} · Accept works before it arrives')];
+        break;
+      case 'keyboard':
+        tiles = [C8T4(15), B3M9(40, { selected: true }), A7K2(132)]; keysOn = true;
+        floats = [TAG_PROP('Keys act only on the order that has keyboard focus (ring and “Selected”) · A new order never takes focus · Re-sorting keeps focus on the same order, not the same place · Nothing happens when focus is elsewhere on the page')];
+        break;
+      case 'reducedMotion':
+        tiles = [C8T4(15), B3M9(40), A7K2(132)]; flashNote = 'Reduced motion: steady tint and outline, no flash; the numbers keep counting';
+        break;
+      case 'accepting':
+        tiles = [B3M9(40), lineOn(A7K2(118, { accepting: true, declineDisabled: true }), 'neutral', 'refresh', 'Confirming with HalalGoes. Don’t tap again.')];
+        break;
+      case 'acceptFail':
+        tiles = [B3M9(40), lineOn(A7K2(96, { acceptLabel: 'Try accept again' }), 'danger', 'error', 'Couldn’t confirm. Still waiting for you.')];
+        floats = [TAG_PROP('Trying again never charges the customer twice (the accept carries an idempotency key)')];
+        break;
+      case 'acceptTooLate': tiles = [B3M9(40), ended(A7K2(0), 'neutral', 'clock', 'Timed out', 'Too late to accept', 'The 3 minutes ran out first. The customer was not charged.')]; break;
+      case 'timedOut':
+        tiles = [B3M9(40), ended(A7K2(0), 'neutral', 'clock', 'Timed out', 'Nobody answered in 3 minutes', 'The customer was not charged.')];
+        banners = [bannerOf('warning', 'warning', '1 order timed out', 'One more in a row and new orders will stop until you turn them back on.', null)];
+        break;
+      case 'captureFailed':
+        tiles = [B3M9(40), ended(A7K2(0), 'danger', 'error', 'Cancelled', 'Payment didn’t go through', 'Don’t prepare this order. The customer was not charged.', true)];
+        floats = [TAG_PROP('Shown the moment Accept answers that capture failed (capture runs inside the accept)')];
+        break;
+      case 'acceptedElsewhere':
+        tiles = [B3M9(40)]; rows = [row('A7K2', { st: 'elsewhere' })].concat(baseRows());
+        toast = { show: true, variant: 'info', title: 'A7K2 was accepted on another screen', description: 'It’s in progress. Nothing else to do here.' };
+        break;
+      case 'declinedElsewhere':
+        tiles = [B3M9(40)];
+        toast = { show: true, variant: 'info', title: 'A7K2 was declined on another screen', description: 'Reason given: Kitchen is too busy. The customer was not charged. It’s in History.' };
+        floats = [TAG_API('Live only · Needs API: the decline reason on the restaurant’s order view (after a refresh History shows “Declined” with no reason)')];
+        break;
+      case 'withdrawn': tiles = [B3M9(40), ended(A7K2(0), 'neutral', 'info', 'Withdrawn', 'Customer cancelled', 'Nothing to prepare. The customer was not charged.')]; break;
+      case 'withdrawnPayment': tiles = [B3M9(40), ended(A7K2(0), 'neutral', 'info', 'Withdrawn', 'Payment didn’t go through', 'The payment failed before you answered, so the order was withdrawn.')]; break;
+      case 'reconnectAccepting':
+        reconnectShell();
+        tiles = [lineOn(B3M9(38, { accepting: true, declineDisabled: true }), 'neutral', 'refresh', 'Sending your accept. Don’t tap again.'), RECONNECT_LINE(A7K2(130))];
+        break;
+      case 'reconnectAcceptOk':
+        reconnectShell(); tiles = [RECONNECT_LINE(A7K2(128))]; rows = [row('B3M9')].concat(baseRows());
+        toast = { show: true, variant: 'success', title: 'B3M9 accepted', description: 'It’s in progress. The live connection is still coming back.' };
+        break;
+      case 'reconnectAcceptFail':
+        reconnectShell();
+        tiles = [lineOn(B3M9(22, { acceptLabel: 'Try accept again' }), 'danger', 'error', 'Couldn’t reach HalalGoes. Still waiting.'), RECONNECT_LINE(A7K2(118))];
+        break;
+      case 'acceptOk':
+        tiles = [B3M9(38, { selected: true })]; keysOn = true; rows = [row('A7K2')].concat(baseRows());
+        toast = { show: true, variant: 'success', title: 'A7K2 accepted · ready by 7:08 pm', description: 'It’s at the top of In progress.' };
+        floats = [TAG_PROP('Announced (polite): “A7K2 accepted, ready by 7:08 pm.” · focus moves to the next new order (B3M9); none left: the New orders heading')];
+        break;
+
+      /* ================= decline, in the panel ================= */
+      case 'declineUnset':
+      case 'declineOther':
+      case 'declineItem':
+      case 'declineNewOffer':
+      case 'declining':
+      case 'declineFail': {
+        const remain = { declineUnset: 104, declineOther: 88, declineItem: 92, declineNewOffer: 92, declining: 84, declineFail: 80 }[S];
+        tiles = [B3M9(40), A7K2(remain, { inPanel: true })];
+        if (S === 'declineNewOffer') tiles = [C8T4(178), B3M9(40), A7K2(remain, { inPanel: true })];
+        panel = DECLINE_PANEL('A7K2', remain, {
+          reason: S === 'declineUnset' ? null : S === 'declineOther' ? 'OTHER' : S === 'declineItem' ? 'ITEM_UNAVAILABLE' : 'KITCHEN_AT_CAPACITY',
+          reasonError: S === 'declineUnset' ? 'Choose a reason to decline' : null, groupRing: S === 'declineUnset' ? RING : 'none',
+          showItems: S === 'declineItem', showOther: S === 'declineOther', sending: S === 'declining',
+          declineLabel: S === 'declining' ? 'Declining…' : S === 'declineFail' ? 'Try decline again' : 'Decline order',
+          newOffer: S === 'declineNewOffer' ? [{ title: 'New order C8T4 just arrived · 2:58 left', body: 'It’s ringing in the strip above. Finish here, or choose Keep order to go back to it.' }] : [],
+          declineNotices: S === 'declineFail' ? [notice('danger', 'alert', 'error', 'We couldn’t send the decline', 'The order is still waiting for you. Check the connection and try again. It won’t be declined twice.')] : [] });
+        break; }
+      case 'declineTooLate':
+      case 'declineExpired':
+        tiles = [B3M9(40), ended(A7K2(0, { inPanel: true }), 'neutral', 'clock', 'Timed out', 'Nobody answered in 3 minutes', 'The customer was not charged.')];
+        panel = P('A7K2', { kind: 'ended', badge: ['neutral', 'clock', 'Timed out'], endedRemove: false,
+          outcome: [notice('neutral', 'alert', 'clock', S === 'declineTooLate' ? 'Too late to decline' : 'Timed out while you were declining', S === 'declineTooLate' ? 'The 3 minutes ran out before the decline was sent. The order timed out and the customer was not charged.' : 'The decline window closed on its own. The customer was not charged.')] });
+        break;
+
+      /* Declined, but the follow-up out-of-stock call failed: the decline stands, the item stays orderable. */
+      case 'declineAvailFailed':
+        tiles = [B3M9(40)];
+        toast = { show: true, variant: 'warning', title: 'Order declined. We couldn’t mark Mixed charcoal grill out of stock, so customers can still order it.', description: 'The customer was not charged. Mark it out of stock on the Menu page.', action: { label: 'Open Menu', onAction: () => {} } };
+        floats = [TAG_PROP('setMenuItemAvailability failed after rejectOrder succeeded · the decline is not undone · Open Menu goes to the Menu page with the item in view')];
+        break;
+
+      /* ================= in progress: preparing, ready, hand-off (no seal at launch) ================= */
+      case 'late': rows = setRow(rows, 'K7M4', { open: true }); panel = P('K7M4'); break;
+      case 'riderWaitingPrep':
+        tiles = [];
+        rows = setRow(rows, 'K7M4', { st: 'herePrep', rider: 'Daniel P. · Car · here since 6:49 pm', open: true });
+        panel = P('K7M4', { rider: ['Daniel P. · Car', 'At your restaurant since 6:49 pm'], riderBrand: true,
+          notices: [notice('brand', 'status', 'profile', 'Daniel P. is here and waiting', 'The food isn’t ready yet. Mark ready as soon as the bag is packed; the rider waits at the counter.', { hasApi: true, api: 'Rider at the restaurant comes from a live dispatch event · Needs API: rider phase on the restaurant’s order view' })] });
+        break;
+      case 'riderUnassigned':
+        tiles = [];
+        rows = setRow(rows, 'K7L8', { st: 'unassigned', rider: 'Finding another rider', open: true });
+        panel = P('K7L8', { rider: ['Finding another rider', 'The first rider cancelled.'], notices: [notice('warning', 'status', 'profile', 'Rider unassigned: the rider cancelled', 'We’re finding another rider. Keep preparing; nothing changes for you.')] });
+        break;
+      case 'markingReady':
+        tiles = []; rows = setRow(rows, 'K7L8', { st: 'marking', act: 'marking', open: true }); panel = P('K7L8', { marking: true });
+        break;
+      case 'markReadyFail':
+        tiles = [];
+        rows = setRow(setRow(rows, 'K7L8', { st: 'failed', act: 'retry', open: true }), 'K7N1', { st: 'blocked', act: 'blocked' });
+        panel = P('K7L8', { notices: [notice('danger', 'alert', 'error', 'We couldn’t mark K7L8 ready', 'The rider hasn’t been told yet. Check the connection and try again. It won’t be sent twice.')] });
+        floats = [TAG_API('K7N1: the server answered that it can’t move to ready (its allowed next steps come back with the error) · the list refreshes and shows why')];
+        break;
+      case 'readyWaiting':
+        tiles = []; rows = [row('K7H3', { open: true }), row('K7M4'), row('K7L8'), row('K7N1'), row('K7G5')]; panel = P('K7H3');
+        break;
+      case 'riderHere': tiles = []; rows = [row('K7J1', { open: true }), row('K7H3'), row('K7M4'), row('K7L8'), row('K7G5')]; panel = P('K7J1'); break;
+      /* The pickup code is the only way to picked up (owner decision), so a missing code gets its own state, never a blank slot. */
+      case 'riderHereCodeError': tiles = []; rows = [row('K7J1', { open: true }), row('K7H3'), row('K7M4'), row('K7L8'), row('K7G5')]; panel = P('K7J1', { pickupCode: '', pickupCodeError: true }); break;
+      case 'noRider':
+        tiles = [];
+        rows = [row('K7J1', { st: 'norider', rider: 'No rider found yet', act: 'wait', open: true }), row('K7M4'), row('K7L8'), row('K7N1')];
+        panel = P('K7J1', { badge: ['warning', 'warning', 'Ready · no rider yet'], rider: ['No rider found yet', 'Ready since 6:45 pm'], riderBrand: false, handoff: '', pickupCode: '', riderApi: '',
+          notices: [notice('warning', 'status', 'warning', 'We couldn’t find a rider yet', 'HalalGoes support has been told and is on it. Keep the bag on the pickup shelf. Nothing else to do unless support calls you.', supportLink('K7J1'))] });
+        break;
+      case 'pickedUp':
+        tiles = [];
+        rows = [row('K7H3'), row('K7M4'), row('K7L8'), row('K7N1'), row('K7J1', { st: 'out', readyBy: 'Ready 6:45 pm', rider: 'Daniel P. · Car · picked up', act: 'read' }), row('K7G5')];
+        toast = { show: true, variant: 'success', title: 'K7J1 picked up', description: 'Daniel P. entered the pickup code. It’s out for delivery.' };
+        floats = [TAG_API('Needs API before launch: the pickup code (owner decision: the kitchen reads a short code, the rider types it in). Today only the rider’s seal scan moves an order to picked up, and seals are out at launch.')];
+        break;
+      case 'outDisputed':
+        /* order.state_changed to DISPUTED (support opened an incident, or the delivery or handover ran past its deadline). The row keeps its place with its own status; it is never counted as out for delivery and never drops without a message. */
+        tiles = []; rows = [row('K7H3'), row('K7L8'), row('K7G5'), row('K7F2', { st: 'disputed', act: 'read', rider: 'Daniel P. · Car · with support', open: true })];
+        panel = P('K7F2', { state: 'DISPUTED', badge: ['warning', 'warning', 'Delivery problem'], rider: ['Daniel P. · Car', 'With support'],
+          notices: [notice('warning', 'status', 'warning', 'Support is handling this delivery', 'HalalGoes support is handling a problem with this delivery. Nothing to do unless support calls you.',
+            Object.assign({}, supportLink('K7F2'), { hasApi: true, api: 'Needs API: the dispute reason on the restaurant’s order view' }))],
+          footLine: 'Leaves this list; it stays in History under Open issues › Disputed.' });
+        toast = { show: true, variant: 'info', title: 'K7F2 moved to support: a delivery problem', description: 'It’s in History under Disputed.' };
+        floats = [TAG_PROP('Shown when order.state_changed arrives with DISPUTED · the status sorts after Out for delivery and is left out of the counts')];
+        break;
+      case 'outEmpty': tiles = []; rows = [row('K7H3'), row('K7L8'), row('K7N1')]; break;
+      case 'cancelled':
+      case 'cancelledRefreshed':
+        tiles = [];
+        rows = setRow(rows, 'K7N1', { st: 'cancelled', act: 'remove', open: true });
+        panel = P('K7N1', { badge: ['danger', 'error', 'Cancelled'], foot: 'none', rider: null, footLine: 'Stays in the list until you remove it. Kept in History.',
+          notices: [notice('danger', 'alert', 'error', 'Stop preparing: order cancelled', S === 'cancelled' ? 'Reason: the customer cancelled through support. You don’t need to hand anything over.' : 'You don’t need to hand anything over.',
+            S === 'cancelled' ? { hasApi: true, api: 'Live only · Needs API: the cancel reason on the restaurant’s order view (after a refresh the reason is gone)' } : {})] });
+        break;
+      case 'readyCancelled':
+        tiles = [];
+        rows = [row('K7H3', { st: 'cancelledKeep', act: 'remove', open: true }), row('K7J1'), row('K7M4'), row('K7L8')];
+        panel = P('K7H3', { badge: ['danger', 'error', 'Cancelled'], foot: 'none', rider: null, footLine: 'Stays in the list until you remove it. Kept in History.',
+          notices: [notice('danger', 'alert', 'error', 'Order cancelled after it was ready', 'Keep the bag aside; support will tell you what to do. Don’t give it to a rider.', { hasApi: true, api: 'Live only · Needs API: the cancel reason on the restaurant’s order view' })] });
+        break;
+      case 'itemsAdjusted':
+      case 'detailItemsAdjusted':
+        tiles = [];
+        rows = setRow(rows, 'K7N1', { st: 'changed', items: '1 × Lamb mandi', more: 0, open: true });
+        panel = P('K7N1', { lines: [{ qty: '1 ×', name: 'Lamb mandi', cents: 2450 }, { qty: '2 ×', name: 'Mint lemonade', cents: 998, struck: true }], money: [['Items subtotal', 2450]], earn: 2450,
+          notices: [notice('info', 'status', 'info', 'The order changed', 'Changed by HalalGoes support. Don’t prepare the removed item. You now earn $24.50.', { hasApi: true, api: 'After the items-adjusted event the panel refetches; “You earn” is the refreshed restaurant_net_cents' })] });
+        break;
+      case 'noteAdded':
+        tiles = [];
+        rows = setRow(rows, 'K7N1', { st: 'note', open: true });
+        panel = P('K7N1', { orderNotes: [{ who: 'From HalalGoes support', at: '6:52 pm', text: 'The customer asked for extra napkins.', icon: 'info' }] });
+        floats = [TAG_PROP('Announced (polite): “Note from support on K7N1.” · the note stays with the order until it leaves the list')];
+        break;
+      case 'etaUpdated':
+        tiles = [];
+        rows = setRow(rows, 'K7L8', { rider: 'Yusuf A. · Bike · about 7:02 pm (was 6:57 pm)', open: true });
+        panel = P('K7L8', { rider: ['Yusuf A. · Bike', 'Arriving about 7:02 pm'], riderWas: 'Was 6:57 pm · updated 6:53 pm', riderApi: 'Pickup time from the live ETA event · “about” always · after a refresh the rider’s eta_at' });
+        floats = [TAG_PROP('Not announced: pickup-time changes update silently; “rider here” is the only rider change spoken')];
+        break;
+      case 'prepOverdue1':
+      case 'prepOverdueFinal': {
+        tiles = [];
+        const fin = S === 'prepOverdueFinal';
+        rows = setRow(rows, 'K7M4', { st: fin ? 'final' : 'overdue', readyBy: fin ? '6:44 pm · 32 min late' : '6:44 pm · 14 min late', open: true });
+        panel = P('K7M4', { badge: fin ? ['danger', 'warning', 'Preparing · cancels at 7:24 pm'] : ['warning', 'clock', 'Preparing · late'], late: fin ? 'Ready by 6:44 pm · 32 min late · last check 7:24 pm' : 'Ready by 6:44 pm · 14 min late',
+          notices: [fin
+            ? notice('danger', 'alert', 'warning', 'Final warning: HalalGoes cancels K7M4 at 7:24 pm', 'It has been extended 3 times; there is no fourth. If it isn’t marked ready by 7:24 pm it’s cancelled and the customer gets a full refund. What you’re paid then follows HalalGoes policy.',
+              Object.assign({ hasApi: true, api: 'Deadline 7:24 pm from the order · Needs API: how many extensions have been used, and the payout policy' }, supportLink('K7M4')))
+            : notice('warning', 'status', 'clock', 'Late: the customer was told a new time, 7:15 pm', 'HalalGoes told the customer and alerted support. Next check at 7:04 pm. Mark ready as soon as the bag is packed.',
+              { hasApi: true, api: 'Extension 1 of 3 · next check = the order’s deadline · Needs API: extension count on the restaurant’s order view' })] });
+        break; }
+      case 'autoCancelled':
+        tiles = [];
+        rows = [row('K7M4', { st: 'cancelled', act: 'remove', open: true }), row('K7H3', { st: 'cancelledKeep', act: 'remove' }), row('K7J1'), row('K7L8'), row('K7N1')];
+        panel = P('K7M4', { badge: ['danger', 'error', 'Cancelled'], foot: 'none', rider: null, late: '', footLine: 'Stays in the list until you remove it. Kept in History.',
+          notices: [notice('danger', 'alert', 'error', 'Stop preparing: HalalGoes cancelled K7M4', 'It wasn’t ready after 3 extensions. The customer gets a full refund. What you’re paid for it follows HalalGoes policy and shows in History.',
+            { hasApi: true, api: 'Live only · cancel reason prep overdue · Needs API: the cancel reason after a refresh, and the payout outcome' })] });
+        floats = [TAG_PROP('K7H3: “HalalGoes cancelled K7H3: no rider could collect it. You’re paid in full. Keep the bag aside and don’t give it to a rider.” (opens in the panel)')];
+        break;
+      case 'otherScreen':
+        tiles = [];
+        rows = [row('K7L8', { st: 'other', readyBy: 'Ready 6:52 pm', act: 'wait' }), row('K7J1'), row('K7M4'), row('K7N1'), row('K7G5')];
+        toast = { show: true, variant: 'info', title: 'K7L8 was marked ready on another screen', description: 'It moved to Ready. Nothing to do here.' };
+        break;
+      case 'refreshed':
+        tiles = [B3M9(40)];
+        rows = [row('K7J1', { st: 'ready', rider: 'Daniel P. · Car · arriving about 6:51 pm', act: 'wait' }), row('K7M4'), row('K7L8', { st: 'cancelled', act: 'remove' }), row('K7N1'), row('K7G5', { rider: 'Yusuf A. · Bike' }), row('K7F2', { rider: 'Daniel P. · Car' })];
+        floats = [TAG_API('After a refresh: the rider phase, cancel reason, notes and pickup time are gone (all live only today) · Needs API: those fields on the restaurant’s order view')];
+        break;
+
+      /* ================= order detail panel ================= */
+      case 'detailPending':
+      case 'detailAccepting':
+      case 'detailAcceptFail':
+      case 'detailAcceptNote':
+      case 'detailAcceptNoteFail':
+      case 'detailPendingToast':
+        tiles = [B3M9(40), A7K2(120, { inPanel: true, accepting: S === 'detailAccepting', declineDisabled: S === 'detailAccepting' })];
+        if (S === 'detailPendingToast') tiles = [A7K2(120, { inPanel: true })];
+        panel = OFFER_PANEL('A7K2', 120, {
+          accepting: S === 'detailAccepting',
+          acceptLabel: S === 'detailAcceptFail' || S === 'detailAcceptNoteFail' ? 'Try accept again' : '',
+          noteOpen: S === 'detailAcceptNote' || S === 'detailAcceptNoteFail', noteValue: 'Sauces packed separately for the sesame allergy.',
+          noteTag: S === 'detailAcceptNoteFail' ? 'Note kept after the failure and sent again with the retry · Needs API: who reads the acceptance note (customer, rider, support)' : 'Up to 200 characters, sent with the accept · Needs API: who reads the acceptance note; once decided, the label names the reader',
+          actionNotices: S === 'detailAcceptFail' ? [notice('danger', 'alert', 'error', 'We couldn’t confirm this order', 'It is still waiting for you. Trying again won’t charge the customer twice.')]
+            : S === 'detailAcceptNoteFail' ? [notice('danger', 'alert', 'error', 'We couldn’t confirm this order', 'It is still waiting for you, and your note is kept. Trying again won’t charge the customer twice.')]
+            : S === 'detailAccepting' ? [notice('neutral', 'status', 'refresh', 'Confirming with HalalGoes. Don’t tap again.', null)] : [],
+          acceptRing: S === 'detailPendingToast' ? RING : 'none' });
+        if (S === 'detailPendingToast') toast = { show: true, variant: 'neutral', title: 'B3M9 declined', description: 'The customer was not charged. It’s in History.' };
+        break;
+      case 'stepperMin':
+      case 'stepperMax': {
+        const mn = S === 'stepperMin';
+        tiles = mn ? [B3M9(40, { inPanel: true }), A7K2(132)] : [B3M9(40), A7K2(132, { inPanel: true })];
+        panel = OFFER_PANEL(mn ? 'B3M9' : 'A7K2', mn ? 40 : 132, { prepMin: mn ? 1 : 120, minusOff: mn, plusOff: !mn, hasStepperTag: true,
+          stepperTag: mn ? 'At 1 min minus is off · going down from 15: 15, 10, 5, 1' : 'At 120 min plus is off · steps of 5, kept between 1 and 120 minutes (the contract’s limits)' });
+        break; }
+      case 'offerTimedOutOpen':
+      case 'offerWithdrawnOpen':
+      case 'detailCaptureFailed': {
+        const to = S === 'offerTimedOutOpen', wd = S === 'offerWithdrawnOpen';
+        const tone = to || wd ? 'neutral' : 'danger', icon = to ? 'clock' : wd ? 'info' : 'error', label = to ? 'Timed out' : wd ? 'Withdrawn' : 'Cancelled';
+        const title = to ? 'Timed out while you were reading' : wd ? 'The customer cancelled' : 'Payment didn’t go through';
+        const body = to ? 'Nobody answered in 3 minutes, so it can’t be accepted now. The customer was not charged.' : wd ? 'Nothing to prepare. The customer was not charged.' : 'Don’t prepare this order. The customer was not charged.';
+        tiles = [B3M9(40), ended(A7K2(0, { inPanel: true }), tone, icon, label, title, body, !to && !wd)];
+        panel = P('A7K2', { kind: 'ended', badge: [tone, icon, label], endedRemove: !to && !wd, outcome: [notice(tone, 'alert', icon, title, body)] });
+        break; }
+      case 'detailReady': tiles = []; rows = [row('K7J1', { open: true }), row('K7H3'), row('K7M4'), row('K7L8')]; panel = P('K7J1'); break;
+      case 'detailOut': tiles = []; rows = [row('K7H3'), row('K7L8'), row('K7G5'), row('K7F2', { open: true })]; panel = P('K7F2'); break;
+      case 'detailLoading': rows = setRow(rows, 'K7N1', { open: true }); panel = { show: true, kind: 'loading', code: 'K7N1' }; break;
+      case 'detailError': rows = setRow(rows, 'K7N1', { open: true }); panel = { show: true, kind: 'missing', code: 'K7N1', missIcon: 'error', missTitle: 'We couldn’t load this order', missBody: 'Check the connection. The list and new orders keep working while this panel retries.', missAction: 'Try again', missActionIcon: 'refresh' }; break;
+      case 'detail404': panel = { show: true, kind: 'missing', missRole: 'status', code: 'Order', missIcon: 'info', missTitle: 'We can’t show this order', missBody: 'It isn’t one of Zaytoun Grill’s orders, or the link is wrong. Nothing else is affected.', missAction: 'Close', missActionIcon: 'close' }; break;
+      case 'supportOn':
+      case 'supportOff':
+        tiles = []; rows = setRow(rows, 'K7M4', { open: true }); panel = P('K7M4');
+        floats = [supportOn ? TAG_API('GET /v1/config/public: support on · the support phone as a call link (44 px) · support hours verbatim · the order code to quote') : TAG_API('Support off (no support phone): every support line is hidden, never a link that goes nowhere')];
+        break;
+
+      /* ================= history ================= */
+      case 'history': isHistory = true; break;
+      case 'historyLoadingMore': isHistory = true; histMode = 'loadingMore'; break;
+      case 'historyLoadMoreFail': isHistory = true; histMode = 'loadMoreFail'; break;
+      case 'historyFiltered': isHistory = true; histMode = 'filtered'; histSel = 'RESOLVED'; break;
+      case 'historyFilterLoading': isHistory = true; histMode = 'loading'; histSel = 'CANCELLED'; break;
+      case 'historyEmpty': isHistory = true; histMode = 'empty'; break;
+      case 'historyLoading': isHistory = true; histMode = 'loading'; break;
+      case 'historyError': isHistory = true; histMode = 'error'; break;
+      case 'detailTerminal':
+      case 'detailDeclined':
+      case 'detailCancelled':
+      case 'detailCaptureFailedHist':
+      case 'detailDeliveryResolved':
+      case 'detailTimedOutHist':
+      case 'detailWithdrawnHist':
+      case 'detailDisputed':
+      case 'detailResolved':
+      case 'detailHalalUpheld':
+      case 'detailHalalGoodwill':
+      case 'detailDelivered': {
+        isHistory = true;
+        const HP = (x) => Object.assign({ show: true, kind: 'order', fromHistory: true, earnLabel: 'Order net', instructions: [] }, x);
+        const acc = S === 'detailCancelled';
+        const HIST = {
+          detailTerminal: HP({ code: 'K7B1', state: 'COMPLETED', badge: ['neutral', 'check', 'Completed'], lines: [{ qty: '1 ×', name: 'Doner plate', cents: 1749 }], money: [['Items subtotal', 1749]], earn: 1749,
+            customer: 'Noor T.', phone: '+1 416 ••• 4471', place: '61 Danforth Rd, Scarborough ON M1L 3W7', rider: ['Delivered by Yusuf A. · Bike', 'Delivered'], footLine: 'This order is finished. It stays in History.', sel: 'ALL' }),
+          detailDeclined: HP({ code: 'K79Q', state: 'REJECTED', badge: ['neutral', null, 'Declined'], lines: [{ qty: '2 ×', name: 'Mixed charcoal grill', extra: 'Large', cents: 4998 }], money: [['Items subtotal', 4998]], noPayout: true, noPayoutText: 'Not charged',
+            notices: [notice('neutral', 'note', 'info', 'Declined', null, { titleSize: 15, hasApi: true, api: 'Needs API: decline time, reason and who declined on the restaurant’s order view · with it: “Declined: Kitchen is too busy”' })],
+            customer: 'Ruqayya S.', place: 'Scarborough · 4 to 6 km', footLine: 'The customer was not charged. This order stays in History.', sel: 'ALL' }),
+          detailCancelled: HP({ code: acc ? 'K78T' : 'K78C', state: 'CANCELLED', badge: ['warning', 'info', 'Cancelled'], lines: [{ qty: '3 ×', name: 'Falafel plate', cents: 3897 }], money: [['Items subtotal', 3897]], earn: 3897, earnNote: 'Payout open',
+            payoutTag: 'Payout outcome: Needs API · the figure is restaurant_net_cents as returned', notices: [notice('neutral', 'note', 'info', 'Cancelled after you accepted', 'You didn’t need to hand anything over.', { titleSize: 15, hasApi: true, api: 'Needs API: cancel time, reason and who cancelled · with it: “Cancelled by support at the customer’s request”' })],
+            customer: 'Adam B.', phone: '+1 416 ••• 5512', place: '220 Kingston Rd, Scarborough', footLine: 'This order stays in History.', sel: 'CANCELLED' }),
+          detailCaptureFailedHist: HP({ code: 'K78C', state: 'CANCELLED', badge: ['warning', 'info', 'Cancelled'], lines: [{ qty: '3 ×', name: 'Falafel plate', cents: 3897 }], money: [['Items subtotal', 3897]], noPayout: true, noPayoutText: 'Not charged',
+            notices: [notice('neutral', 'note', 'info', 'Cancelled before it was accepted', 'Nothing was prepared. The customer was not charged.', { titleSize: 15, hasApi: true, api: 'Needs API: the cancel reason (capture failed) · with it: “Payment didn’t go through when you accepted”' })],
+            customer: 'Hiba W.', place: 'Scarborough · 2 to 4 km', footLine: 'This order stays in History.', sel: 'CANCELLED' }),
+          detailDeliveryResolved: HP({ code: 'K76W', state: 'RESOLVED', badge: ['neutral', 'check', 'Resolved'], lines: [{ qty: '1 ×', name: 'Lamb mandi', cents: 2450 }], money: [['Items subtotal', 2450]], earn: 2450,
+            payoutTag: 'Payout outcome: Needs API · the figure is restaurant_net_cents as returned',
+            notices: [notice('neutral', 'note', 'info', 'Support closed a delivery problem', 'The rider couldn’t complete the delivery after pickup, so HalalGoes support took it up with the customer and has closed it. Any change to your payout comes from support.', { titleSize: 15, hasApi: true, api: 'Needs API: the dispute reason and outcome, visible to the restaurant' })],
+            customer: 'Khalid A.', phone: '+1 647 ••• 7781', place: '8 Morningside Ave, Scarborough', footLine: 'Resolved. It stays in History.', sel: 'RESOLVED' }),
+          detailTimedOutHist: HP({ code: 'K75P', state: 'CANCELLED', badge: ['warning', 'info', 'Cancelled'], lines: [{ qty: '2 ×', name: 'Doner plate', cents: 3498 }], money: [['Items subtotal', 3498]], noPayout: true, noPayoutText: 'Not charged',
+            notices: [notice('neutral', 'note', 'info', 'Cancelled before it was accepted', 'Nothing was prepared. The customer was not charged.', { titleSize: 15, hasApi: true, api: 'Needs API: the cancel reason (timed out) · with it: badge “Timed out”, “Nobody answered in 3 minutes”' })],
+            customer: 'Musa K.', place: 'Scarborough · 2 to 4 km', footLine: 'This order stays in History.', sel: 'CANCELLED' }),
+          detailWithdrawnHist: HP({ code: 'K75M', state: 'CANCELLED', badge: ['warning', 'info', 'Cancelled'], lines: [{ qty: '2 ×', name: 'Doner plate', cents: 3498 }], money: [['Items subtotal', 3498]], noPayout: true, noPayoutText: 'Not charged',
+            notices: [notice('neutral', 'note', 'info', 'Cancelled before it was accepted', 'Nothing was prepared. The customer was not charged.', { titleSize: 15, hasApi: true, api: 'Needs API: the cancel reason (customer cancelled or payment expired) · with it: badge “Withdrawn”' })],
+            customer: 'Rania F.', place: 'Scarborough · 2 to 4 km', footLine: 'This order stays in History.', sel: 'CANCELLED' }),
+          detailDisputed: HP({ code: 'K77X', state: 'DISPUTED', badge: ['warning', 'warning', 'Disputed'], lines: [{ qty: '1 ×', name: 'Lamb mandi', cents: 2450 }, { qty: '1 ×', name: 'Garlic potatoes', cents: 860 }], money: [['Items subtotal', 3310]], earn: 3310, earnNote: 'Payout open',
+            payoutTag: 'Payout open · Needs API: the payout outcome · the figure is restaurant_net_cents as returned',
+            notices: [notice('warning', 'status', 'warning', 'The customer reported a problem', 'HalalGoes support is reviewing it and will tell you the outcome. You don’t need to do anything unless support contacts you.', { hasApi: true, api: 'Needs API: the dispute reason and outcome, visible to the restaurant' })],
+            customer: 'Yasin H.', phone: '+1 416 ••• 3390', place: '120 Ellesmere Rd, Scarborough', footLine: 'Open issue. It moves to Resolved when support closes it.', sel: 'DISPUTED' }),
+          detailResolved: HP({ code: 'K76A', state: 'RESOLVED', badge: ['neutral', 'check', 'Resolved'], lines: [{ qty: '2 ×', name: 'Chicken shish plate', cents: 2250 }], money: [['Items subtotal', 2250]], earn: 2250,
+            notices: [notice('neutral', 'note', 'info', 'Support closed the customer’s report', 'The outcome and any change to your payout come from support.', { titleSize: 15, hasApi: true, api: 'Needs API: the dispute outcome, visible to the restaurant' })],
+            customer: 'Salma N.', phone: '+1 416 ••• 6620', place: '14 Pharmacy Ave, Scarborough', footLine: 'Resolved. It stays in History.', sel: 'RESOLVED' }),
+          detailHalalUpheld: HP({ code: 'K74H', state: 'RESOLVED', badge: ['neutral', 'check', 'Resolved: halal concern'], lines: [{ qty: '1 ×', name: 'Lamb mandi', cents: 2450 }], money: [['Items subtotal', 2450]], earn: 2450,
+            payoutTag: 'Payout outcome: Needs API · the figure is restaurant_net_cents as returned · the amount taken off is the server’s cents from the payout entry, never worked out here',
+            notices: [notice('neutral', 'note', 'info', 'Resolved: halal concern', 'HalalGoes upheld a halal concern on this order. The item’s net price, $24.50, comes off your next payout.', { titleSize: 15, hasApi: true, api: 'Needs API: refund reason HALAL_CONCERN and substantiated flag on the restaurant’s order view' })],
+            customer: 'Rahim D.', phone: '+1 416 ••• 2087', place: '40 Lawrence Ave E, Scarborough', footLine: 'Resolved. It stays in History.', sel: 'RESOLVED' }),
+          detailHalalGoodwill: HP({ code: 'K74G', state: 'RESOLVED', badge: ['neutral', 'check', 'Resolved: halal concern'], lines: [{ qty: '1 ×', name: 'Chicken shish plate', cents: 1850 }], money: [['Items subtotal', 1850]], earn: 1850,
+            payoutTag: 'Payout outcome: Needs API · the figure is restaurant_net_cents as returned',
+            notices: [notice('neutral', 'note', 'info', 'Resolved: halal concern', 'HalalGoes refunded the customer as goodwill. Your payout isn’t affected.', { titleSize: 15, hasApi: true, api: 'Needs API: refund reason HALAL_CONCERN and substantiated flag on the restaurant’s order view' })],
+            customer: 'Huda M.', phone: '+1 647 ••• 4410', place: '77 Brimley Rd, Scarborough', footLine: 'Resolved. It stays in History.', sel: 'RESOLVED' }),
+          detailDelivered: HP({ code: 'K7C3', state: 'DELIVERED', badge: ['info', 'check', 'Delivered, settling'], lines: [{ qty: '1 ×', name: 'Chicken shish plate', cents: 1850 }], money: [['Items subtotal', 1850]], earn: 1850,
+            notices: [notice('neutral', 'note', 'info', 'Delivered · payment settling', 'Nothing to do. It moves to Completed once HalalGoes settles the payment, usually within a few minutes.', { titleSize: 15, hasApi: true, api: 'State delivered · Needs API: delivered time on the restaurant’s order view' })],
+            customer: 'Omar S.', phone: '+1 416 ••• 1201', place: '12 Warden Ave, Scarborough ON M1N 3C1', footLine: 'Delivered. It stays in History.', sel: 'DELIVERED' })
+        };
+        panel = HIST[S]; histSel = panel.sel || 'ALL';
+        break; }
+
+      /* ================= accessibility ================= */
+      case 'focusStates':
+        tiles = [B3M9(40, { selected: true }), A7K2(132)]; keysOn = true; railRing = 1; health.ring = RING;
+        rows = setRow(rows, 'K7L8', { open: true }); panel = P('K7L8', { closeRing: RING });
+        floats = [TAG_PROP('Focus drawn on four controls at once for review; only one shows at a time · offset in the container colour, then a 3px ring in the focus colour (white on forest)'),
+          TAG_PROP('Design-system issue: the orange Accept button draws a white ring on itself (1.05:1 on cream); drawn here on the tile instead')];
+        break;
+      case 'navSheet':
+        navSheetOpen = true;
+        floats = [TAG_PROP('200% zoom: Open menu (top left) opens the side navigation as a sheet · focus moves into the sheet, Escape returns it to Open menu')];
+        break;
+      case 'forcedColors':
+        floats = [TAG_PROP('Simulated forced colors (Windows high contrast): system colours only · the strip keeps a 2px Highlight outline · every state is also written in words')];
+        break;
+      default: break;
+    }
+
+    /* ---------- tiles: finish ---------- */
+    const pendingLive = tiles.filter((t) => t.isLive).length;
+    const railW = zoom ? 0 : navProp === 'expanded' ? 232 : 80;
+    const mainW = W - railW;
+    /* Tablet: no keyboard hints (a touch screen), so the heading column shrinks to 120 px and each tile gets the width back. */
+    const headW = tablet ? 120 : 168;
+    const tilesArea = mainW - 32 - headW - 16;
+    const shown = moreN > 0 ? tiles.slice(0, tiles.length - moreN) : lessN > 0 ? tiles.slice(lessN) : tiles;
+    const extra = moreN > 0 || lessN > 0 ? 100 : 0;
+    const cols = Math.max(1, Math.min(shown.length, 3));
+    const tw = Math.max(tablet ? 240 : 280, Math.min(420, Math.floor((tilesArea - extra - 12 * (cols - 1)) / cols)));
+    const toneText = { neutral: 'var(--text-secondary)', warning: TONE.warning.text, danger: TONE.danger.text, info: TONE.info.text };
+    const selIdx = shown.findIndex((t) => t.selected && t.isLive);
+    const rovingIdx = selIdx >= 0 ? selIdx : shown.findIndex((t) => t.isLive);
+    const money = (c) => '$' + (c / 100).toFixed(2);
+    const leftText = (sec) => { const m = Math.floor(sec / 60), x = sec % 60; return [m ? m + (m === 1 ? ' minute' : ' minutes') : '', x || !m ? x + (x === 1 ? ' second' : ' seconds') : ''].filter(Boolean).join(' ') + ' left'; };
+    const tilesOut = shown.map((t, i) => {
+      const acceptLabel = t.acceptLabel || ('Accept · ' + t.prep + ' min');
+      const dflt = acceptLabel.indexOf('Accept ·') === 0;
+      const outTone = TONE[t.outTone] || TONE.neutral;
+      return Object.assign({}, t, {
+        w: tw, summary: t.who + ' · ' + t.items + (t.items === 1 ? ' item' : ' items'), acceptLabel: acceptLabel,
+        acceptName: dflt ? 'Accept order ' + t.code + ', ready in ' + t.prep + ' minutes' : acceptLabel + ', order ' + t.code + ', ready in ' + t.prep + ' minutes',
+        declineName: 'Decline order ' + t.code + ', choose a reason', declineIcon: tablet, tabindex: i === rovingIdx ? '0' : '-1',
+        aria: 'New order ' + t.code + (t.isOutcome ? ', ' + t.outBadge : ', ' + leftText(t.remain) + (t.earnReady ? ', ' + money(t.earn) : '')), lineFg: toneText[t.lineTone] || 'var(--text-secondary)',
+        outIconColor: outTone.icon, outBadgeVariant: t.outTone === 'danger' ? 'danger' : 'neutral',
+        removeLabel: t.keep ? 'Remove' : 'Remove now', removeVariant: t.keep ? 'tertiary' : 'ghost', removeName: 'Remove order ' + t.code + ' from new orders',
+        leaveText: t.keep ? 'Stays until you remove it. Kept in History.' : 'Leaves by itself in 60 s. Kept in History.',
+        bg: t.isOutcome ? 'var(--surface-subtle)' : 'var(--surface-raised)',
+        border: t.inPanel ? '2px solid var(--border-brand)' : t.isOutcome ? '1px solid ' + outTone.border : '1px solid var(--border-decorative)',
+        ring: t.selected ? RING + ', var(--elev-1)' : t.isOutcome ? 'none' : 'var(--elev-1)'
+      });
+    });
+    const keyChip = (key, label) => ({ key: key, label: label, bg: keysOn ? 'var(--state-selected-tint)' : 'var(--surface-raised)', border: keysOn ? 'var(--border-brand)' : 'var(--border-interactive)' });
+    /* While the panel holds a new order (to accept or decline), the strip drops to its compact 88 px row so the panel keeps Accept and the items in view. */
+    const panelHoldsOffer = !zoom && panel.show && (panel.kind === 'offer' || panel.kind === 'decline') && tiles.length > 0;
+    const compact = (zoom && tiles.length > 0) || panelHoldsOffer;
+    const others = tiles.filter((t) => t.isLive && (!panelHoldsOffer || t.code !== panel.code));
+    const cdTile = panelHoldsOffer ? (others[0] || tiles[0]) : tiles[0];
+    const stripH = zoom || compact ? 88 : 186;
+    const strip = {
+      w: mainW, h: stripH, aria: pendingLive > 0 ? 'New orders, ' + pendingLive + ' waiting' : 'New orders',
+      bg: pendingLive > 0 ? 'var(--state-selected-tint)' : 'var(--surface-base)',
+      edgeTop: stripAt === 'footer' ? (pendingLive > 0 ? '2px solid var(--border-brand)' : '1px solid var(--border-decorative)') : '0',
+      edgeBottom: stripAt === 'header' ? (pendingLive > 0 ? '2px solid var(--border-brand)' : '1px solid var(--border-decorative)') : '0',
+      ring: forced && pendingLive > 0 ? 'inset 0 0 0 2px Highlight' : 'none',
+      isCompact: compact, isFull: !compact, headW: headW,
+      isLive: tiles.length > 0 && !stripLoading, isLoading: stripLoading, isEmpty: tiles.length === 0 && !stripLoading,
+      hasWaiting: pendingLive > 0, waitingLabel: pendingLive + ' waiting',
+      rule: stripRule || (pendingLive > 0 ? 'Answer within 3 minutes. Soonest deadline first.' : 'Each new order rings until it is answered or times out.'),
+      showKeys: tiles.length > 0 && !zoom && !tablet,
+      keys: [keyChip('Arrows', 'move'), keyChip('A', 'accept'), keyChip('D', 'decline'), keyChip('Enter', 'details')],
+      tiles: tilesOut, hasMore: moreN > 0 || lessN > 0, moreLabel: moreN > 0 ? '+' + moreN + ' more' : lessN + ' earlier', moreName: moreN > 0 ? 'Show ' + moreN + ' more new order' : 'Show ' + lessN + ' earlier new order',
+      emptyIcon: stripEmpty ? stripEmpty.icon : 'bell', emptyTitle: stripEmpty ? stripEmpty.title : 'No new orders',
+      emptyBody: stripEmpty ? stripEmpty.body : 'New orders ring and appear here. Each one stays until you accept, decline, or it times out.',
+      hasEmptyAction: !!(stripEmpty && stripEmpty.action), emptyAction: stripEmpty ? stripEmpty.action : '', emptyActionVariant: stripEmpty ? stripEmpty.variant : 'tertiary',
+      compactExpires: cdTile ? cdTile.cdExpires : iso(anchor), compactNow: iso(anchor),
+      compactTitle: pendingLive + ' new ' + (pendingLive === 1 ? 'order' : 'orders') + ' waiting',
+      compactBody: panelHoldsOffer ? (others.length ? panel.code + ' is open in the panel. Also waiting: ' + others.map((t) => t.code).join(', ') + ' (timer shown).' : panel.code + ' is open in the panel. Nothing else is waiting.')
+        : tiles.length ? tiles[0].code + ' is the most urgent. Answer opens it in the panel.' : '',
+      compactAction: panelHoldsOffer ? 'Show all' : 'Answer', compactActionVariant: panelHoldsOffer ? 'tertiary' : 'primary',
+      compactActionName: panelHoldsOffer ? 'Show all ' + pendingLive + ' new orders' : 'Answer the most urgent new order'
+    };
+
+    /* ---------- panel: finish ---------- */
+    const DI = { LEAVE_AT_DOOR: 'Leave at the door', DO_NOT_RING_BELL: 'Do not ring the bell', DO_NOT_CALL: 'Do not call', MEET_AT_DOOR: 'Meet at the door', MEET_IN_LOBBY: 'Meet in the lobby' };
+    const panelW = zoom ? mainW - 32 : tablet ? 380 : 460;
+    if (panel.show) {
+      const k = panel.kind;
+      const p = panel;
+      p.w = panelW;
+      p.isOrder = k === 'order' || k === 'offer' || k === 'ended';
+      p.isDecline = k === 'decline'; p.isHealth = k === 'health'; p.isLoading = k === 'loading'; p.isMissing = k === 'missing';
+      p.title = k === 'health' ? 'Screen health' : k === 'decline' ? 'Decline ' + p.code + '?' : p.code;
+      p.titleFont = k === 'health' || k === 'decline' ? 'var(--font-ui)' : 'var(--font-mono)';
+      p.aria = k === 'health' ? 'Screen health details' : 'Order ' + p.code + ' details';
+      p.closeName = k === 'health' ? 'Close screen health' : k === 'decline' ? 'Close, keep order ' + p.code : 'Close order ' + p.code + ' details';
+      p.hasBack = zoom && k !== 'health';
+      const b = k === 'decline' ? ['brand', 'bell', 'New'] : p.badge;
+      p.hasBadge = !!b; p.badgeVariant = b ? b[0] : 'neutral'; p.badgeIcon = b && b[1] ? b[1] : undefined; p.badgeLabel = b ? b[2] : '';
+      p.showCountdown = !!p.showCountdown; p.cdExpires = p.cdExpires || iso(anchor); p.cdNow = p.cdNow || iso(anchor);
+      p.closeRing = p.closeRing || 'none';
+      /* order content */
+      p.notices = (p.outcome || []).concat(p.notices || []);
+      p.hasLate = !!p.late && p.state === 'PREPARING'; p.lateText = p.late || ''; p.lateIconColor = b && (b[0] === 'warning' || b[0] === 'danger') ? TONE.warning.icon : 'var(--text-secondary)';
+      p.hasSpecial = !!p.special; p.special = p.special || '';
+      p.orderNotes = p.orderNotes || []; p.hasOrderNotes = p.orderNotes.length > 0 && !tl.show;
+      p.lines = (p.lines || []).map((l) => Object.assign({ extra: '', request: '', struck: false }, l, { hasExtra: !!l.extra, hasRequest: !!l.request, decoration: l.struck ? 'line-through' : 'none' }));
+      const mRows = (p.money || []).map((m) => ({ label: m[0], cents: m[1], sign: m[1] < 0 ? 'always' : 'auto', color: 'var(--text-primary)' }));
+      if (p.isOrder && k !== 'ended') mRows.push({ label: 'HalalGoes commission', cents: 0, sign: 'auto', color: 'var(--text-secondary)' });
+      p.money = mRows;
+      /* An order that ended before it was accepted pays nothing: the same “Not charged” row as History. */
+      if (k === 'ended') { p.noPayout = true; p.noPayoutText = 'Not charged'; }
+      p.noPayout = !!p.noPayout; p.hasEarn = p.isOrder && !p.noPayout; p.earn = p.earn || 0; p.earnLabel = p.earnLabel || 'You earn';
+      p.noPayoutText = p.noPayoutText || ''; p.earnNote = p.earnNote || ''; p.hasEarnNote = !!p.earnNote;
+      p.payoutTag = p.payoutTag || ''; p.hasPayoutTag = !!p.payoutTag;
+      p.moneyTag = p.fromHistory ? 'Order net = restaurant_net_cents as returned' : k === 'ended' ? 'Never accepted: no payout and no commission · the items stay so you can see what the order was' : 'You earn = restaurant_net_cents · commission = commission_cents (the rate is not shown)';
+      p.customer = p.customer || ''; p.place = p.place || '';
+      p.hasPhone = !!p.phone && k !== 'offer'; p.phone = p.phone || '';
+      p.hasPhoneNote = k === 'offer';
+      p.instructions = (p.instructions || []).map((x) => DI[x]).join(' · '); p.hasInstructions = !!p.instructions;
+      const live = p.isOrder && !p.fromHistory && ['PREPARING', 'READY_FOR_PICKUP', 'PICKED_UP', 'ARRIVED'].indexOf(p.state) >= 0;
+      p.hasContact = live && supportOn; p.contactNoSupport = live && !supportOn;
+      const rd = p.rider;
+      p.hasRider = !!rd && p.isOrder; p.riderName = rd ? rd[0] : ''; p.riderSub = rd ? rd[1] : '';
+      p.riderBg = p.riderBrand ? 'var(--state-selected-tint)' : 'var(--surface-subtle)'; p.riderBorder = p.riderBrand ? 'var(--border-brand)' : 'var(--border-decorative)';
+      p.hasHandoff = !!p.handoff; p.handoff = p.handoff || '';
+      /* Pickup without seals (owner decision): the kitchen reads this code to the rider, who types it into the rider app. */
+      p.pickupCodeError = !!p.pickupCodeError && p.isOrder; p.pickupSupport = supportOn; p.pickupSupportHref = 'tel:' + SUP.e164; p.pickupSupportLabel = 'Call support on ' + SUP.display;
+      p.pickupCode = p.pickupCode || ''; p.hasPickupCode = !!p.pickupCode && p.isOrder; p.pickupHelp = p.pickupHelp || ''; p.pickupCodeName = 'Pickup code ' + p.pickupCode.split('').join(' ');
+      p.riderApi = p.riderApi || ''; p.hasRiderApi = !!p.riderApi; p.riderWas = p.riderWas || ''; p.hasRiderWas = !!p.riderWas;
+      p.footLine = p.footLine || ''; p.hasFootLine = !!p.footLine;
+      /* footers */
+      p.footAccept = k === 'offer'; p.footDecline = k === 'decline'; p.footEnded = k === 'ended'; p.footHealth = k === 'health';
+      p.footPrep = k === 'order' && p.foot === 'prep' && p.state === 'PREPARING';
+      p.marking = !!p.marking; p.readyDisabled = false;
+      p.supportLead = p.v0late ? 'Running late, or can’t finish this order?' : 'Can’t finish this order?';
+      p.prepMin = p.prepMin || 20; p.minusOff = !!p.minusOff; p.plusOff = !!p.plusOff; p.hasStepperTag = !!p.hasStepperTag; p.stepperTag = p.stepperTag || '';
+      p.accepting = !!p.accepting; /* no note with an acceptance at launch (owner decision: nobody reads it) */ p.noteOpen = false; p.noteClosed = false; p.noteValue = p.noteValue || ''; p.noteTag = p.noteTag || '';
+      p.acceptLabel = p.acceptLabel || 'Accept · ' + p.prepMin + ' min';
+      p.acceptName = p.acceptLabel.indexOf('Accept ·') === 0 ? 'Accept order ' + p.code + ', ready in ' + p.prepMin + ' minutes' : p.acceptLabel + ', order ' + p.code;
+      p.actionNotices = p.actionNotices || []; p.acceptRing = p.acceptRing || 'none';
+      p.endedRemove = !!p.endedRemove;
+      /* decline */
+      p.newOffer = p.newOffer || []; p.declineNotices = p.declineNotices || []; p.groupRing = p.groupRing || 'none';
+      p.reason = p.reason === undefined ? null : p.reason; p.reasonError = p.reasonError || null;
+      p.showItems = !!p.showItems; p.showOther = !!p.showOther; p.sending = !!p.sending; p.declineLabel = p.declineLabel || 'Decline order';
+      p.itemsDisplay = p.showItems ? 'flex' : 'none'; p.otherDisplay = p.showOther ? 'flex' : 'none';
+      p.hasRevealTag = p.showItems || p.showOther;
+      p.revealTag = 'The follow-up question opens straight after the reason group, indented with a brand rule, and scrolls into view · it sits outside the radio group, so the group holds only the reasons · announced: “' + (p.showItems ? 'Which items are unavailable?' : 'Add detail') + '”';
+      p.otherRing = p.showOther ? 'inset 0 0 0 1px var(--color-danger-500), 0 0 0 2px var(--focus-offset), 0 0 0 5px var(--focus-ring)' : 'none';
+      p.keepRing = k === 'decline' && p.groupRing === 'none' && !p.sending && !p.showOther ? RING : 'none';
+      /* health */
+      p.healthRows = (p.healthRows || []).map((r) => Object.assign({ color: 'var(--text-secondary)', hasAction: false, action: '', actionVariant: 'tertiary' }, r));
+      /* missing */
+      ['missIcon', 'missTitle', 'missBody', 'missAction', 'missActionIcon'].forEach((x) => { if (!p[x]) p[x] = ''; });
+      /* A failed load interrupts (alert); an order that is not ours is news, not an error (status). Focus still lands on the panel heading. */
+      p.missRole = p.missRole || 'alert';
+      /* timeline toggle: desktop only, accepted orders */
+      p.hasTimelineToggle = desktop && k === 'order' && !p.fromHistory && p.state !== 'RESTAURANT_PENDING';
+      p.timelineToggleLabel = tl.show ? 'Timeline open' : 'Timeline';
+      p.timelineToggleName = (tl.show ? 'Timeline open for order ' : 'Show the timeline for order ') + p.code;
+      /* tags */
+      const tags = [];
+      if (k === 'health') tags.push(TAG_PROP('Screen health opens in the panel, not a popover · Proposed component: DetailPanel'));
+      else if (k === 'decline') { tags.push(TAG_PROP('Decline asks for a reason in the panel, not a dialog · first focus: ' + (p.groupRing !== 'none' ? 'the reason group (it shows its error)' : 'Keep order') + ' · closes itself if the timer runs out'));
+        tags.push(TAG_PROP('Proposed component: DeclineForm (design-system RadioGroup, Checkbox, Button; shadcn Textarea)')); }
+      else if (k === 'missing' || k === 'loading') tags.push(TAG_PROP('Proposed component: DetailPanel · Proposed component: ErrorState (Icon, heading, text, Button) · ' + (k === 'loading' ? 'loading: announced as a status' : p.missRole === 'status' ? 'announced as a status when it appears' : 'announced as an alert when it appears; focus stays on the panel heading')));
+      else if (p.fromHistory) tags.push(TAG_PROP('Opened from History row ' + p.code + ' · Close or Escape returns focus to that row · Proposed component: DetailPanel'));
+      else tags.push(TAG_PROP('Proposed component: DetailPanel (in-page, not modal: the list and the strip keep working) · Proposed component: KeyValueList (money, customer) · Proposed component: InlineNotice'));
+      if (k === 'offer' || k === 'ended') tags.push(TAG_PROP('The strip tile shows “Open in panel” · focus moves to this heading · Escape returns focus to the tile'));
+      if ((k === 'offer' || k === 'decline') && !zoom) tags.push(TAG_PROP('While a new order is open here the strip is its compact 88 px row (other orders’ soonest timer, Show all); it returns to full tiles when this panel closes'));
+      p.tags = tags;
+    }
+    if (tl.show) { tl.w = 340; if (!desktop) tl.show = false; }
+
+    /* ---------- the list: orders in progress (LyteNyte Grid, virtualised) ---------- */
+    const listSpace = mainW - 32 - (panel.show ? panelW + 12 : 0) - (tl.show ? 352 : 0);
+    /* Breakpoints from the fixed column sums plus at least 200 px for Items: full 1050 + 200, mid 670 + 200. */
+    const listMode = listSpace >= 1260 ? 'full' : listSpace >= 880 ? 'mid' : 'narrow';
+    const bdg = (b, size) => h && DS.Badge ? h(DS.Badge, Object.assign({ variant: b[0], size: size || 'md' }, b[1] ? { icon: b[1] } : {}), b[2]) : b[2];
+    const cellCode = (r) => h ? h('span', { style: { display: 'inline-flex', alignItems: 'center', gap: '8px' } }, h('span', { style: { fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: '17px' } }, r.code), r.open && DS.Badge ? h(DS.Badge, { variant: 'brand', size: 'sm' }, 'Open') : null) : r.code;
+    const cellItems = (r) => h ? h('span', { style: { display: 'inline-flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' } }, h('span', null, r.items + (r.more ? ' + ' + r.more + ' more' : '')), r.note ? bdg(['warning', 'warning', 'Customer note'], 'sm') : null) : r.items;
+    const soft = (t, strong) => h ? h('span', { style: { color: strong ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: strong ? 700 : 400 } }, t) : t;
+    const btn = (variant, label, name, x) => h && DS.Button ? h(DS.Button, Object.assign({ variant: variant, size: 'md', accessibilityLabel: name }, x || {}), label) : label;
+    const cellAct = (r) => {
+      if (r.act === 'ready') return btn('tertiary', 'Mark ready', 'Mark order ' + r.code + ' ready');
+      if (r.act === 'marking') return btn('tertiary', 'Mark ready', 'Mark order ' + r.code + ' ready', { loading: true });
+      if (r.act === 'retry') return btn('tertiary', 'Try again', 'Try marking order ' + r.code + ' ready again', { iconStart: 'refresh' });
+      if (r.act === 'remove') return btn('ghost', 'Remove', 'Remove order ' + r.code + ' from the list');
+      if (r.act === 'handoff') return soft('Read the pickup code to the rider', true);
+      if (r.act === 'wait') return soft('Waiting for pickup');
+      if (r.act === 'blocked') return soft('List refreshing');
+      return soft('Read only');
+    };
+    const C = {
+      code: { key: 'code', label: 'Order', mono: true, width: 120, render: cellCode },
+      st: { key: 'st', label: 'Status', width: 230, render: (r) => bdg(ST[r.st]) },
+      readyBy: { key: 'readyBy', label: 'Ready by', width: 160, numeric: true },
+      items: { key: 'items', label: 'Items', render: cellItems },
+      customer: { key: 'customer', label: 'Customer', width: 130 },
+      rider: { key: 'rider', label: 'Rider', width: 250, render: (r) => soft(r.rider) },
+      act: { key: 'act', label: 'Action', width: 160, align: 'end', render: cellAct }
+    };
+    const listColumns = listMode === 'full' ? [C.code, C.st, C.readyBy, C.items, C.customer, C.rider, C.act] : listMode === 'mid' ? [C.code, C.st, C.readyBy, C.items, C.act] : [C.code, C.st, C.readyBy];
+    const order = { here: 0, norider: 0, ready: 1, other: 1, cancelledKeep: 1, just: 2, elsewhere: 2, final: 2, late: 2, overdue: 2, herePrep: 2, failed: 2, marking: 2, blocked: 2, changed: 2, note: 2, unassigned: 2, cancelled: 2, prep: 3, out: 5, disputed: 6 };
+    const counts = { prep: 0, ready: 0, out: 0 };
+    rows.forEach((r) => { const o = order[r.st]; if (r.st === 'cancelled' || r.st === 'cancelledKeep' || r.st === 'disputed') return; if (o <= 1) counts.ready++; else if (o === 5) counts.out++; else counts.prep++; });
+    const list = {
+      counts: 'Preparing ' + counts.prep + ' · Ready ' + counts.ready + ' · Out for delivery ' + counts.out,
+      sortNote: listMode === 'narrow' ? '' : 'Ready first, then soonest ready time',
+      columns: listColumns, rows: rows, status: listStatus,
+      empty: { title: 'Nothing in progress', description: 'Orders you accept appear here, soonest ready time first. Ready orders stay until the rider picks them up.' },
+      tags: [TAG_PROP('Renderer: LyteNyte Grid, virtualised: only visible rows render; this list scrolls, the page never does'),
+        TAG_PROP('Row opens the order in the panel · Mark ready here is secondary; the panel holds the full action')]
+    };
+    if (listMode !== 'full') list.tags = [list.tags[0]];
+
+    /* ---------- history grid ---------- */
+    const statusTone = { COMPLETED: ['neutral', 'Completed'], DELIVERED: ['info', 'Delivered, settling'], CANCELLED: ['warning', 'Cancelled'], REJECTED: ['neutral', 'Declined'], DISPUTED: ['warning', 'Disputed'], RESOLVED: ['neutral', 'Resolved'] };
+    const hr = (id, code, time, customer, items, prep, promised, st, cents, acc, late) => ({ id: id, code: code, time: time, customer: customer, items: items, prep: prep, promised: promised, st: st, cents: cents, acc: !!acc, late: !!late });
+    const allRows = [
+      hr('0', 'K7C3', 'Today 6:04 pm', 'Omar S.', 1, 15, 20, 'DELIVERED', 1850, true, false), hr('1', 'K7B1', 'Today 6:02 pm', 'Noor T.', 1, 16, 20, 'COMPLETED', 1749, true, false),
+      hr('2', 'K79Z', 'Today 5:48 pm', 'Imran D.', 4, 24, 20, 'COMPLETED', 4120, true, true), hr('3', 'K79Q', 'Today 5:31 pm', 'Ruqayya S.', 2, null, null, 'REJECTED', 4998, false, false),
+      hr('4', 'K78T', 'Today 5:12 pm', 'Adam B.', 3, null, 25, 'CANCELLED', 3897, true, false), hr('4b', 'K78C', 'Today 5:05 pm', 'Hiba W.', 3, null, null, 'CANCELLED', 3897, false, false),
+      hr('5', 'K78M', 'Today 4:55 pm', 'Leila F.', 2, 18, 20, 'COMPLETED', 2875, true, false), hr('6', 'K77X', 'Today 4:20 pm', 'Yasin H.', 2, 21, 25, 'DISPUTED', 3310, true, false),
+      hr('7', 'K76W', 'Today 3:02 pm', 'Khalid A.', 1, 18, 20, 'RESOLVED', 2450, true, false), hr('8', 'K76A', 'Yest. 9:38 pm', 'Salma N.', 2, 19, 20, 'RESOLVED', 2250, true, false),
+      hr('9', 'K75R', 'Yest. 9:05 pm', 'Hamza J.', 5, 31, 25, 'COMPLETED', 5340, true, true), hr('9b', 'K75P', 'Yest. 8:50 pm', 'Musa K.', 2, null, null, 'CANCELLED', 3498, false, false),
+      hr('10', 'K75K', 'Yest. 8:41 pm', 'Amina P.', 2, 14, 15, 'COMPLETED', 2640, true, false), hr('11', 'K74V', 'Yest. 8:12 pm', 'Tariq M.', 3, 22, 20, 'COMPLETED', 3185, true, true)
+    ];
+    const openCode = panel.show && panel.fromHistory ? panel.code : null;
+    const srOnly = { position: 'absolute', width: '1px', height: '1px', overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' };
+    const dashCell = (visible, spoken) => h ? h('span', { style: { display: 'inline-flex', gap: '6px', color: 'var(--text-secondary)' } }, h('span', { 'aria-hidden': 'true' }, '—'), visible ? h('span', null, visible) : h('span', { style: srOnly }, spoken)) : (visible || spoken);
+    const meter = (r) => {
+      if (r.prep == null) return dashCell(null, 'Not prepared');
+      const pct = Math.min(100, Math.round((r.prep / r.promised) * 100));
+      if (!h) return r.prep + ' of ' + r.promised + ' min';
+      return h('span', { style: { display: 'inline-flex', alignItems: 'center', gap: '8px', fontVariantNumeric: 'tabular-nums' } },
+        h('span', { 'aria-hidden': 'true', style: { width: '64px', height: '8px', borderRadius: 'var(--radius-full)', background: 'var(--surface-sunken)', boxShadow: 'inset 0 0 0 1px var(--border-decorative)', overflow: 'hidden', display: 'inline-block' } },
+          h('span', { style: { display: 'block', height: '100%', width: pct + '%', background: r.late ? 'var(--feedback-warning-border)' : 'var(--border-interactive)' } })),
+        h('span', null, r.prep + ' of ' + r.promised + ' min'), r.late && DS.Badge ? h(DS.Badge, { variant: 'warning', size: 'sm' }, 'Late') : null);
+    };
+    const histCode = (r) => h ? h('span', { style: { display: 'inline-flex', alignItems: 'center', gap: '8px' } }, h('span', { style: { fontFamily: 'var(--font-mono)', fontWeight: 600 } }, r.code), r.code === openCode && DS.Badge ? h(DS.Badge, { variant: 'brand', size: 'sm' }, 'Open') : null) : r.code;
+    const histMid = listSpace < 1060;
+    const histColumns = [
+      { key: 'code', label: 'Order', mono: true, width: 120, render: histCode },
+      { key: 'time', label: 'Placed', width: 110, numeric: true },
+      { key: 'customer', label: 'Customer' }
+    ].concat(histMid ? [] : [{ key: 'items', label: 'Items', align: 'end', numeric: true, width: 64 }, { key: 'prep', label: 'Prep', width: 210, render: meter }]).concat([
+      { key: 'st', label: 'Status', width: 170, render: (r) => bdg([statusTone[r.st][0], null, statusTone[r.st][1]]) },
+      { key: 'cents', label: 'Order net', align: 'end', numeric: true, width: 180, render: (r) => {
+        if (!r.acc) return dashCell('Not charged');
+        const price = h && DS.Price ? h(DS.Price, { cents: r.cents }) : '';
+        if (r.st === 'CANCELLED' || r.st === 'DISPUTED') return h ? h('span', { style: { display: 'inline-flex', gap: '6px', alignItems: 'baseline' } }, price, h('span', { style: { fontSize: '13px', color: 'var(--text-secondary)' } }, 'Payout open')) : price;
+        return price;
+      } }]);
+    let histRows = histSel === 'ALL' ? allRows : allRows.filter((r) => r.st === histSel);
+    let histStatus = 'ready', histHasMore = histSel === 'ALL';
+    let histEmpty = { title: 'No past orders yet', description: 'Finished, cancelled and declined orders appear here after service.' };
+    if (histMode === 'filtered') { histRows = []; histHasMore = false; histEmpty = { title: 'No resolved orders', description: 'Choose another status, or show all past orders.' }; }
+    if (histMode === 'empty') { histRows = []; histHasMore = false; }
+    if (histMode === 'loading') { histRows = []; histStatus = 'loading'; histHasMore = false; }
+    if (histMode === 'error') { histRows = []; histStatus = 'error'; histHasMore = false; }
+    if (histMode === 'loadMoreFail') histHasMore = false;
+    const hist = { caption: histSel === 'ALL' ? 'Past orders' : 'Past orders: ' + statusTone[histSel][1], columns: histColumns, rows: histRows, status: histStatus, hasMore: histHasMore,
+      loadingMore: histMode === 'loadingMore', filtered: histSel !== 'ALL', empty: histEmpty, loadMoreFail: histMode === 'loadMoreFail',
+      tags: [TAG_PROP('Renderer: LyteNyte Grid, compact 44 px rows, virtualised · Proposed component: FilterChip · each chip reloads from the server by state'),
+        TAG_API('Needs API: per-status counts, date range, search and export · the payout outcome per order · decline and cancel reasons (today the status comes from the state only)')] };
+    const chipDefs = [['ALL', 'All past orders'], ['DELIVERED', 'Delivered, settling'], ['COMPLETED', 'Completed'], ['RESOLVED', 'Resolved'], ['REJECTED', 'Declined'], ['CANCELLED', 'Cancelled']];
+    const mkChip = (d) => ({ isChip: true, isGroup: false, label: d[1], pressed: histSel === d[0] ? 'true' : 'false', bg: histSel === d[0] ? 'var(--state-selected-tint)' : 'var(--surface-raised)', border: histSel === d[0] ? 'var(--border-brand)' : 'var(--border-interactive)', fw: histSel === d[0] ? 700 : 500 });
+    const chips = chipDefs.map(mkChip).concat([{ isChip: false, isGroup: true, label: 'Open issues', pressed: 'false', bg: '', border: '', fw: 500 }, mkChip(['DISPUTED', 'Disputed'])]);
+
+    /* ---------- side navigation (owner only at launch: no Staff) ---------- */
+    const wide = navProp === 'expanded';
+    const navDefs = [['orders', 'Orders', 'Live orders', 'orders', !isHistory], ['history', 'History', 'History', null, isHistory], ['menu', 'Menu', 'Menu', 'menu', false],
+      ['hours', 'Hours', 'Hours', 'clock', false], ['payouts', 'Payouts', 'Payouts', null, false], ['settings', 'Settings', 'Settings', null, false]];
+    const rail = {
+      w: railW, wide: wide, align: wide ? 'stretch' : 'center', pad: wide ? '20px 20px 12px' : '16px 8px 8px', logoW: wide ? 108 : 60, logoH: wide ? 36 : 20,
+      expanded: wide ? 'true' : 'false', toggleIcon: wide ? 'back' : 'chevron-right', toggleName: wide ? 'Collapse menu' : 'Expand menu',
+      toggleRing: railToggleRing ? '0 0 0 2px var(--surface-chrome), 0 0 0 5px var(--focus-ring-on-accent)' : 'none',
+      items: navDefs.map((d, i) => ({ key: d[0], label: wide ? d[2] : d[1], aria: d[2] + (d[0] === 'orders' && pendingLive > 0 ? ', ' + pendingLive + ' new' : ''), icon: d[3] || 'home', hasIcon: !!d[3],
+        current: d[4] ? 'page' : 'false', weight: d[4] ? 'bold' : 'linear', fw: d[4] ? 700 : 500,
+        bg: d[4] ? 'var(--text-on-accent)' : 'transparent', color: d[4] ? 'var(--surface-chrome)' : 'var(--text-on-accent)',
+        shadow: railRing === i ? '0 0 0 2px var(--surface-chrome), 0 0 0 5px var(--focus-ring-on-accent)' : 'none',
+        hasCount: d[0] === 'orders' && pendingLive > 0, count: pendingLive, countPos: wide ? 'static' : 'absolute',
+        dir: wide ? 'row' : 'column', justify: wide ? 'flex-start' : 'center', gap: wide ? '12px' : '2px', minH: wide ? 48 : 60, fs: wide ? 16 : 13, grow: wide ? 1 : 0 }))
+    };
+
+    /* ---------- 200% zoom: no rail, so the same links sit behind Open menu in a side sheet ---------- */
+    const navSheet = { show: zoom && navSheetOpen, items: navDefs.map((d) => ({ key: d[0], label: d[2], aria: d[2] + (d[0] === 'orders' && pendingLive > 0 ? ', ' + pendingLive + ' new' : ''), icon: d[3] || 'home',
+      current: d[4] ? 'page' : 'false', weight: d[4] ? 'bold' : 'linear', fw: d[4] ? 700 : 500, bg: d[4] ? 'var(--state-selected-tint)' : 'transparent',
+      shadow: 'none', hasCount: d[0] === 'orders' && pendingLive > 0, count: pendingLive })) };
+
+    /* ---------- app bar: account menu only (one restaurant per login) ---------- */
+    const appActions = h && DS.Menu ? h(DS.Menu, { label: 'Account: Karim Haddad, owner', icon: 'profile', align: 'end', items: [
+      { key: 'who', label: 'Karim Haddad · Owner', disabled: true, disabledReason: 'You are signed in as this person' }, { type: 'separator' }, { key: 'settings', label: 'Settings' }, { key: 'signout', label: 'Sign out…' }] }) : null;
+
+    /* ---------- toasts and review notes: bottom-left of the list, never over the panel or the strip ---------- */
+    if (flashNote) floats.push(TAG_PROP(flashNote));
+    if (pendingLive > 0 && !flashNote && ['busy', 'threeOffers', 'oneOffer'].indexOf(S) >= 0) floats.push(TAG_PROP('While orders wait the strip tint pulses once a second (the outline stays steady); a reduced-motion board shows it steady'));
+    if (S === 'busy' && stripAt === 'footer') floats.unshift(TAG_PROP('Alternative: new orders in a footer strip. Recommended: header. The header sits where eyes land after the status bar, keeps clear of the panel’s action footer and toasts, and matches the tablet.'));
+    const stripBottomH = stripAt === 'footer' && !stripHidden ? stripH : 0;
+    const bottomStack = { show: floats.length > 0 || !!toast.show, left: railW + 28, bottom: stripBottomH + 24, w: Math.min(460, Math.max(300, listSpace - 32)) };
+
+    const ringing = { show: pendingLive > 0 && !signedOut && !soundBlocked && !isGate && !reconnecting, label: 'Ringing · ' + pendingLive + ' waiting' };
+    return {
+      w: W, h: H, forcedCss: forcedCss, skipVisible: focusProp === 'skip', skipHidden: focusProp !== 'skip',
+      hasRail: !zoom, rail: rail, hasNavButton: zoom, navSheet: navSheet, navSheetExpanded: navSheet.show ? 'true' : 'false', navButtonCount: pendingLive > 0 ? ', ' + pendingLive + ' new orders' : '', title: isHistory ? 'History' : 'Live orders', appActions: appActions,
+      health: health, ringing: ringing, stale: stale, hasStatusTag: !!statusTag && !zoom, statusTag: statusTag || '',
+      hasHalal: !!halal, halal: halal, halalMissing: halalMissing, open: open, reasonMax: tablet ? 150 : zoom ? 120 : 240,
+      sw: sw, switchLabels: swLabels || { on: 'Accepting orders', off: 'Not accepting orders' }, pause: pause,
+      pauseItems: [{ key: '15', label: 'Pause for 15 minutes' }, { key: '30', label: 'Pause for 30 minutes' }, { key: '60', label: 'Pause for 1 hour' }, { type: 'separator' }, { key: 'closing', label: 'Pause until closing (11:00 pm)' }],
+      banners: banners, confirm: Object.assign({ show: false, icon: 'info', title: '', body: '', buttons: [], note: '' }, confirm),
+      stripTop: stripAt === 'header' && !stripHidden, stripBottom: stripAt === 'footer' && !stripHidden, strip: strip,
+      isGate: isGate, gateDenied: gateDenied, gateCta: gateDenied ? 'Go live without notifications' : 'Turn on sound and go live', isFirstError: isFirstError,
+      showList: !isGate && !isFirstError && !isHistory && !(zoom && panel.show), list: list,
+      showHistory: isHistory && !(zoom && panel.show), hist: hist, chips: chips, rowLabel: (r) => 'order ' + r.code,
+      panel: panel, tl: tl, support: { on: supportOn, off: !supportOn, e164: SUP.e164, display: SUP.display, hours: SUP.hours },
+      declineOptions: [{ value: 'ITEM_UNAVAILABLE', label: 'An item is unavailable' }, { value: 'KITCHEN_AT_CAPACITY', label: 'Kitchen is too busy' }, { value: 'CLOSING_SOON', label: 'We are closing soon' },
+        { value: 'EQUIPMENT_FAILURE', label: 'Equipment isn’t working' }, { value: 'ADDRESS_OUT_OF_RANGE', label: 'Delivery address is too far' }, { value: 'SUSPECTED_FRAUD', label: 'The order looks suspicious' }, { value: 'OTHER', label: 'Something else' }],
+      modal: Object.assign({ show: false, title: '', description: '', ackLabel: 'OK', note: '' }, modal),
+      toast: Object.assign({ show: false, variant: 'neutral', title: '', description: '' }, toast), floats: floats, bottomStack: bottomStack,
+      noop: () => {}
+    };
+  }
+}
+</script>
+</body>
+</html>

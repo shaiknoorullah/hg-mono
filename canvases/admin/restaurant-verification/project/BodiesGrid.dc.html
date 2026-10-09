@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Issuing bodies grid</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div style="width: {{wcss}}; height: {{hcss}}; box-sizing: border-box; display: flex; flex-direction: column; gap: 12px; min-height: 0; font-family: var(--font-ui); color: var(--text-primary)">
+  <div role="search" aria-label="Filter issuing bodies" style="display: flex; align-items: flex-end; gap: 16px; padding: 12px 16px; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: 12px">
+    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Select" label="Status" value="{{filter}}" options="{{filters}}" style="width: 320px"></x-import>
+    <span style="flex-grow: 1; display: flex; flex-direction: column; align-items: flex-end; gap: 2px">
+      <span style="font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums">{{countLine}}</span>
+      <span style="display: inline-flex; padding: 2px 8px; border-radius: 4px; background: var(--color-info-50); color: var(--color-info-700); font-size: 12px; font-weight: 600">Proposed component: FilterBar</span>
+    </span>
+  </div>
+  <section id="table" aria-labelledby="bg-cap" aria-busy="{{sectionBusy}}" style="flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: 12px; overflow: hidden">
+    <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--border-decorative)">
+      <h2 id="bg-cap" style="margin: 0; font-size: 16px; font-weight: 600">{{caption}}</h2>
+      <span style="display: inline-flex; padding: 2px 8px; border-radius: 4px; background: var(--color-info-50); color: var(--color-info-700); font-size: 12px; font-weight: 600">Proposed component: LyteNyte grid (virtualised, 44px rows)</span>
+    </div>
+      <sc-if value="{{isRows}}" hint-placeholder-val="{{true}}"><div style="flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column">
+        <div role="grid" aria-labelledby="bg-cap" aria-rowcount="{{ariaRowCount}}" style="flex: 1 1 auto; min-height: 0; overflow: auto; display: flex; flex-direction: column">
+        <div role="rowgroup">
+          <div role="row" aria-rowindex="1" style="position: sticky; top: 0; z-index: 1; display: grid; grid-template-columns: {{cols}}; gap: 12px; align-items: center; min-height: 40px; padding: 0 16px; background: var(--surface-sunken); border-bottom: 1px solid var(--border-decorative); font-size: 13px; font-weight: 600; color: var(--text-secondary)">
+            <span role="columnheader">Issuing body</span><span role="columnheader">Status</span><span role="columnheader">Passes Issuer accepted</span><span role="columnheader">Issuer confirmation</span><span role="columnheader">Region</span><span role="columnheader">{{lastHead}}</span>
+          </div>
+        </div>
+          <div role="rowgroup">
+            <sc-for list="{{rows}}" as="r" hint-placeholder-count="7">
+              <div role="row" aria-rowindex="{{r.idx}}" style="display: grid; grid-template-columns: {{cols}}; gap: 12px; align-items: center; min-height: 44px; padding: 0 16px; border-bottom: 1px solid var(--border-decorative); font-size: 13px">
+                <span role="gridcell" class="hg-focus-inset" tabindex="{{r.tab}}" style="display: flex; flex-direction: column; line-height: 1.25"><span style="font-weight: 600">{{r.name}}</span><span style="font-size: 13px; color: var(--text-secondary)">{{r.alias}}</span></span>
+                <span role="gridcell"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="{{r.sv}}" size="sm">{{r.status}}</x-import></span>
+                <span role="gridcell">{{r.h2}}</span>
+                <span role="gridcell">{{r.conf}}</span>
+                <span role="gridcell">{{r.region}}</span>
+                <span role="gridcell">
+                  <sc-if value="{{r.hasAction}}" hint-placeholder-val="{{false}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="{{r.actionVariant}}" size="sm" href="{{r.actionHref}}">{{r.action}}</x-import></sc-if>
+                  <sc-if value="{{r.noAction}}" hint-placeholder-val="{{true}}"><span style="color: var(--text-secondary)">{{r.note}}</span></sc-if>
+                </span>
+              </div>
+            </sc-for>
+          </div>
+      </div>
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 16px; font-size: 13px; color: var(--text-secondary)">
+          <span>{{footLine}}</span><span>No more pages</span>
+        </div>
+      </div></sc-if>
+      <sc-if value="{{isLoading}}" hint-placeholder-val="{{false}}">
+        <div aria-busy="true" style="display: flex; flex-direction: column">
+          <sc-for list="{{skel}}" as="k" hint-placeholder-count="5">
+            <div style="display: grid; grid-template-columns: {{cols}}; gap: 12px; align-items: center; height: 44px; padding: 0 16px; border-bottom: 1px solid var(--border-decorative)">
+              <span class="hg-skel" style="display: block; height: 12px; width: 80%"></span><span class="hg-skel" style="display: block; height: 18px; width: 60%"></span><span class="hg-skel" style="display: block; height: 12px; width: 40%"></span><span class="hg-skel" style="display: block; height: 12px; width: 60%"></span><span class="hg-skel" style="display: block; height: 12px; width: 50%"></span><span class="hg-skel" style="display: block; height: 12px; width: 60%"></span>
+            </div>
+          </sc-for>
+          <span role="status" style="padding: 8px 16px; font-size: 13px; color: var(--text-secondary)">Loading issuing bodies</span>
+        </div>
+      </sc-if>
+      <sc-if value="{{isMessage}}" hint-placeholder-val="{{false}}">
+        <div role="{{msgRole}}" style="display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 56px 24px; text-align: center">
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="{{msgIcon}}" size="xl" color="var(--text-secondary)"></x-import>
+          <h3 style="margin: 0; font-size: 18px; font-weight: 600">{{msgTitle}}</h3>
+          <p style="margin: 0; max-width: 480px; font-size: 15px; line-height: 1.5; color: var(--text-secondary)">{{msgBody}}</p>
+          <sc-if value="{{msgRetry}}" hint-placeholder-val="{{false}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" icon-start="refresh">Try again</x-import></sc-if>
+          <sc-if value="{{msgClear}}" hint-placeholder-val="{{false}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" icon-start="close" href="Bodies.dc.html">Show every status</x-import></sc-if>
+          <span style="display: inline-flex; padding: 2px 8px; border-radius: 4px; background: var(--color-info-50); color: var(--color-info-700); font-size: 12px; font-weight: 600">Proposed component: EmptyState / ErrorState inside the grid body</span>
+        </div>
+      </sc-if>
+  </section>
+  <div aria-label="Annotations" style="display: flex; flex-wrap: wrap; gap: 6px">
+    <span style="display: inline-flex; padding: 2px 8px; border-radius: 4px; background: var(--surface-sunken); border: 1px solid var(--border-strong); font-size: 12px; font-weight: 600">Needs API: who proposed a body and why, on HalalIssuingBody</span>
+    <span style="display: inline-flex; padding: 2px 8px; border-radius: 4px; background: var(--surface-sunken); border: 1px solid var(--border-strong); font-size: 12px; font-weight: 600">Needs API: count of certificates naming each body</span>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"variant":{"editor":"enum","options":["superadmin","admin","support","loading","error","noproposed"],"default":"superadmin"},"$preview":{"width":1152,"height":820},"w":{"editor":null,"default":1152},"h":{"editor":null,"default":820}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const v = this.props.variant ?? 'superadmin';
+    const sup = v === 'superadmin';
+    const support = v === 'support';
+    // Only ACCEPTED passes H2. Status badges never use red: Rejected and Suspended are neutral.
+    const B = (name, alias, status, sv, conf, region, note) => ({ name, alias, status, sv, h2: status === 'Accepted' ? 'Yes' : 'No', conf, region, note });
+    let base = [
+      B('Halal Certification Council of Ontario (HCCO)', 'Printed as “HCCO”', 'Proposed', 'info', 'Not set', 'ON', 'Waiting for a super admin'),
+      B('Halal Monitoring Authority (HMA Canada)', 'Printed as “HMA”, “Halal Monitoring Authority”', 'Accepted', 'outline', 'Not needed', 'Canada', ''),
+      B('Islamic Society of North America Canada (ISNA Canada)', 'Printed as “ISNA Halal”', 'Accepted', 'outline', 'Not needed', 'Canada', ''),
+      B('Halal Assurance Board of Canada (HABC)', 'Printed as “HABC”', 'Accepted', 'outline', 'Needed before each approval', 'Canada', ''),
+      B('Halal Food Standards Alliance of America (HFSAA)', 'Printed as “HFSAA”', 'Suspended', 'neutral', 'Not needed', 'US', ''),
+      B('Canadian Halal Review Board (CHRB)', 'Printed as “CHRB”', 'Retired', 'neutral', 'Not needed', 'Canada', ''),
+      B('Global Halal Mark (GHM)', 'Printed as “GHM”', 'Rejected', 'neutral', 'Not needed', 'Unknown', ''),
+    ];
+    if (support) base = base.map((r) => Object.assign({}, r, { alias: '', conf: '', region: '', h2: '' }));
+    const rows = base.map((r, i) => Object.assign({}, r, {
+      idx: i + 2, tab: i === 0 ? '0' : '-1',
+      hasAction: sup, noAction: !sup,
+      action: r.status === 'Proposed' ? 'Review…' : 'Change status…',
+      actionVariant: r.status === 'Proposed' ? 'secondary' : 'ghost',
+      actionHref: r.status === 'Proposed' ? 'Bodies-Review.dc.html' : undefined,
+      note: support ? '' : (r.note || 'Super admins change status'),
+    }));
+    const msgs = {
+      error: { role: 'alert', icon: 'error', title: 'Issuing bodies didn’t load', body: 'The server didn’t respond. Nothing was changed.', retry: true },
+      noproposed: { role: 'status', icon: 'check', title: 'No proposed bodies are waiting', body: 'When an admin proposes an issuer from a certificate, it appears here for review.', clear: true },
+    };
+    const m = msgs[v];
+    const hasRows = ['superadmin', 'admin', 'support'].includes(v);
+    return {
+      wcss: (this.props.w ?? 1152) + 'px', hcss: (this.props.h ?? 820) + 'px',
+      sectionBusy: (v === 'loading') ? 'true' : undefined,
+      cols: support ? '2.6fr 1fr 0fr 0fr 0fr 1fr' : '2.4fr 0.9fr 0.7fr 1.3fr 0.7fr 1.2fr',
+      filter: v === 'noproposed' ? 'PROPOSED' : 'ALL',
+      filters: [{ value: 'ALL', label: 'Every status' }, { value: 'PROPOSED', label: 'Proposed, waiting for review' }, { value: 'ACCEPTED', label: 'Accepted' }, { value: 'SUSPENDED', label: 'Suspended' }, { value: 'RETIRED', label: 'Retired' }, { value: 'REJECTED', label: 'Rejected' }],
+      caption: support ? 'Issuing bodies (support agents see name and status only)' : 'Issuing bodies, proposed first, then by name',
+      lastHead: sup ? 'Action' : 'Note',
+      countLine: hasRows ? 'Showing ' + rows.length : v === 'loading' ? 'Loading' : v === 'error' ? '' : 'Showing 0',
+      isRows: hasRows, rows, ariaRowCount: rows.length + 1,
+      footLine: sup ? 'Accepting or reinstating a body widens what HalalGoes will call halal: each change needs a written justification.' : 'Only super admins change a body’s status.',
+      isLoading: v === 'loading', skel: [1, 2, 3, 4, 5],
+      isMessage: !!m, msgRole: m ? m.role : 'status', msgIcon: m ? m.icon : 'info', msgTitle: m ? m.title : '', msgBody: m ? m.body : '', msgRetry: !!(m && m.retry), msgClear: !!(m && m.clear),
+    };
+  }
+}
+</script>
+</body>
+</html>

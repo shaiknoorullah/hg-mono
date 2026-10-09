@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Deliveries</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}
+.hg-focus-inset:focus-visible{outline:2px solid transparent;outline-offset:-2px}
+/* Named exception: 200% text simulation, not a token change. Stands in for the text-scale mode requested from the design system (tokens.css [data-hg-text-scale]); removed once the system ships it. */
+[data-hg-text-scale="200"]{--type-body-lg-size:34px;--type-body-md-size:30px;--type-body-sm-size:26px;--type-heading-sm-size:36px;--type-heading-md-size:40px;--type-heading-lg-size:44px;--type-heading-xl-size:52px;--type-label-lg-size:30px;--type-label-md-size:26px;--type-label-sm-size:22px;--type-display-md-size:60px;--type-display-lg-size:72px;--type-mono-sm-size:22px;--type-mono-md-size:26px;--type-caption-size:24px}</style>
+</helmet>
+<div data-theme="{{theme}}" data-hg-text-scale="{{textScale}}" style="width: 390px; height: 844px; position: relative; overflow: hidden; display: flex; flex-direction: column; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui); font-size: var(--type-body-lg-size); line-height: 1.5;">
+  <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="field" title="Deliveries" back-label="Back to Earnings" on-back="{{noop}}"></x-import>
+
+  <div style="flex-grow: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column;">
+
+    <sc-if value="{{showList}}" hint-placeholder-val="{{true}}">
+      <sc-if value="{{isOfflineSaved}}" hint-placeholder-val="{{false}}">
+        <div style="padding: 20px 20px 0; display: flex; flex-direction: column; gap: 6px;">
+          <div role="status" style="display: flex; gap: 12px; padding: 16px 20px; border-radius: var(--radius-lg); background: var(--feedback-info-tint);">
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="info" size="lg" color="var(--feedback-info-icon)"></x-import>
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+              <strong style="font-size: var(--type-heading-sm-size);">You're offline</strong>
+              <span>These deliveries are as saved at 9:05 pm today.</span>
+            </div>
+          </div>
+          <span style="align-self: flex-start; font-family: var(--font-mono); font-size: var(--type-mono-sm-size); padding: 2px 6px; border-radius: var(--radius-xs); background: var(--feedback-info-tint); color: var(--feedback-info-tint-text);">Proposed component: InlineAlert (info, persistent) · same saved-copy pattern as Earnings activity (same ledger endpoint, type=DELIVERY) · the no-copy error is only for a first open</span>
+        </div>
+      </sc-if>
+      <sc-if value="{{isLarge}}" hint-placeholder-val="{{false}}">
+        <span style="align-self: flex-start; margin: 20px 20px 0; font-family: var(--font-mono); font-size: var(--type-mono-sm-size); padding: 2px 6px; border-radius: var(--radius-xs); background: var(--feedback-info-tint); color: var(--feedback-info-tint-text);">Drawn at 200% text, set by data-hg-text-scale="200" on the root (a 200% text simulation, not a token change) (all type tokens doubled): the amount moves under the two text lines, the row grows. Known truncation until the system gaps close: "Show older deliveries" (Button nowrap) overflows its column; see the design-system note</span>
+      </sc-if>
+      <div style="padding: 20px 20px 0; display: flex; flex-direction: column; gap: 6px;">
+        <span style="color: var(--text-secondary-field);">Completed deliveries, newest first. Tap one for its times, addresses and items.</span>
+        <div aria-hidden="true" style="display: flex; flex-direction: column; gap: 2px; padding: 12px 16px; border: 1px dashed var(--border-decorative); border-radius: var(--radius-md); color: var(--text-secondary-field);">
+          <span style="font-weight: 600;">[Restaurant name] · [drop-off area]</span>
+          <span><span style="font-family: var(--font-mono);">HG-4K2M-9T</span> · 9:12 pm · 4.4 km</span>
+        </div>
+        <span style="align-self: flex-start; font-family: var(--font-mono); font-size: var(--type-mono-sm-size); padding: 2px 6px; border-radius: var(--radius-xs); background: var(--feedback-warning-tint); color: var(--feedback-warning-tint-text);">Proposed row once Needs API #148 lands: restaurant_name, dropoff_area on history rows (rider delivery-history spec). Riders recall a job by restaurant and area, not by code. Until then rows lead with time and distance, code second.</span>
+        <span style="align-self: flex-start; font-family: var(--font-mono); font-size: var(--type-mono-sm-size); padding: 2px 6px; border-radius: var(--radius-xs); background: var(--feedback-warning-tint); color: var(--feedback-warning-tint-text);">Needs API #148: cancelled, returned and reassigned jobs · search · filters</span>
+      </div>
+      <sc-for list="{{groups}}" as="g" hint-placeholder-count="3">
+        <section style="display: flex; flex-direction: column;">
+          <h2 style="margin: 0; padding: 20px 20px 8px; font-size: var(--type-heading-sm-size); color: var(--text-secondary-field);">{{g.day}}</h2>
+          <sc-for list="{{g.rows}}" as="r" hint-placeholder-count="2">
+            <sc-if value="{{r.isLink}}" hint-placeholder-val="{{true}}">
+              <a href="{{r.href}}" class="hg-focus-inset" style="display: flex; align-items: center; flex-wrap: {{rowWrap}}; gap: 8px 12px; min-height: 72px; padding: 12px 20px; border-top: 1px solid var(--border-decorative); color: var(--text-primary); text-decoration: none; box-shadow: {{r.ring}};">
+                <span style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column;">
+                  <span style="font-weight: 600;">{{r.sub}}</span>
+                  <span style="font-family: var(--font-mono); color: var(--text-secondary-field);">{{r.code}}</span>
+                  <sc-if value="{{r.isReversed}}" hint-placeholder-val="{{false}}">
+                    <span style="display: inline-flex; align-items: center; gap: 6px; font-weight: 600; color: var(--text-secondary-field);"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="minus" size="md" color="var(--text-secondary-field)"></x-import>Reversed</span>
+                  </sc-if>
+                </span>
+                <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{r.cents}}" size="lg"></x-import>
+                <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="chevron-right" size="md"></x-import>
+              </a>
+            </sc-if>
+            <sc-if value="{{r.isUndrawn}}" hint-placeholder-val="{{false}}">
+              <div style="display: flex; align-items: center; flex-wrap: {{rowWrap}}; gap: 8px 12px; min-height: 72px; padding: 12px 20px; border-top: 1px solid var(--border-decorative);">
+                <span style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column;">
+                  <span style="font-weight: 600;">{{r.sub}}</span>
+                  <span style="font-family: var(--font-mono); color: var(--text-secondary-field);">{{r.code}}</span>
+                  <sc-if value="{{r.isReversed}}" hint-placeholder-val="{{false}}">
+                    <span style="display: inline-flex; align-items: center; gap: 6px; font-weight: 600; color: var(--text-secondary-field);"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="minus" size="md" color="var(--text-secondary-field)"></x-import>Reversed</span>
+                  </sc-if>
+                </span>
+                <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{r.cents}}" size="lg"></x-import>
+              </div>
+            </sc-if>
+            <sc-if value="{{r.isStatic}}" hint-placeholder-val="{{false}}">
+              <div style="display: flex; align-items: center; gap: 12px; min-height: 72px; padding: 12px 20px; border-top: 1px solid var(--border-decorative);">
+                <span style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column;">
+                  <span style="font-weight: 600;">{{r.sub}}</span>
+                  <span style="color: var(--text-secondary-field);">{{r.note}}</span>
+                </span>
+                <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{r.cents}}" size="lg"></x-import>
+              </div>
+            </sc-if>
+          </sc-for>
+        </section>
+      </sc-for>
+      <div style="display: flex; flex-direction: column; gap: 6px; padding: 8px 20px 0;">
+        <span style="align-self: flex-start; font-family: var(--font-mono); font-size: var(--type-mono-sm-size); padding: 2px 6px; border-radius: var(--radius-xs); background: var(--feedback-info-tint); color: var(--feedback-info-tint-text);">Proposed component: ListRow (72, whole row one link, .hg-focus-inset inset ring; outline: 2px solid transparent, outline-offset −2px only on :focus-visible, for forced colours) · rows = GET /earnings/entries?type=DELIVERY · order code second, in secondary text</span>
+        <span style="align-self: flex-start; font-family: var(--font-mono); font-size: var(--type-mono-sm-size); padding: 2px 6px; border-radius: var(--radius-xs); background: var(--feedback-warning-tint); color: var(--feedback-warning-tint-text);">Needs API #147: per-order final earnings. The row shows the DELIVERY line's gross only (the delivery fee the customer paid plus any tip given at checkout; rider pay is a pure pass-through, decision R-02). No row says it was corrected until the API gives a correcting entry id (never matched by order code on the phone)</span>
+        <sc-if value="{{isReversedBoard}}" hint-placeholder-val="{{false}}">
+          <span style="align-self: flex-start; font-family: var(--font-mono); font-size: var(--type-mono-sm-size); padding: 2px 6px; border-radius: var(--radius-xs); background: var(--feedback-info-tint); color: var(--feedback-info-tint-text);">Proposed component: StatusLabel (Icon md + label, 17px semibold; never brand orange or green; warning states use --feedback-warning-icon on the icon and --text-primary on the word, other states use --text-secondary-field) · stands in for Badge until Badge has a field size and a field theme (the long-term replacement)</span>
+          <span style="align-self: flex-start; font-family: var(--font-mono); font-size: var(--type-mono-sm-size); padding: 2px 6px; border-radius: var(--radius-xs); background: var(--feedback-info-tint); color: var(--feedback-info-tint-text);">A DELIVERY entry with status REVERSED shows its status word (Icon + 17px word, same as Earnings activity) under the code, so a reversed delivery never looks paid. The amount stays as returned (no strikethrough). Other statuses are not repeated here · Icon gap: undo (Solar undo-left); "minus" is the stand-in</span>
+          <span style="align-self: flex-start; font-family: var(--font-mono); font-size: var(--type-mono-sm-size); padding: 2px 6px; border-radius: var(--radius-xs); background: var(--feedback-warning-tint); color: var(--feedback-warning-tint-text);">Needs API #147: a link from a reversed delivery to its correction line. Settled by the owner: the delivery stays counted and its correction line offsets it</span>
+        </sc-if>
+        <span style="align-self: flex-start; font-family: var(--font-mono); font-size: var(--type-mono-sm-size); padding: 2px 6px; border-radius: var(--radius-xs); background: var(--feedback-info-tint); color: var(--feedback-info-tint-text);">On this canvas a row links only to the Delivery board drawn for that same order (HG-4K2M-9T, HG-6R1N-3K). Rows with no board of their own are drawn plain, with no chevron, so none opens another order's delivery. In the build every row with an assignment_id opens its own Delivery screen</span>
+        <sc-if value="{{showNoDetailTag}}" hint-placeholder-val="{{false}}">
+          <span style="align-self: flex-start; font-family: var(--font-mono); font-size: var(--type-mono-sm-size); padding: 2px 6px; border-radius: var(--radius-xs); background: var(--feedback-info-tint); color: var(--feedback-info-tint-text);">A DELIVERY entry with null assignment_id or order_code: a plain row, no link, no chevron</span>
+        </sc-if>
+        <span style="align-self: flex-start; font-family: var(--font-mono); font-size: var(--type-mono-sm-size); padding: 2px 6px; border-radius: var(--radius-xs); background: var(--feedback-info-tint); color: var(--feedback-info-tint-text);">System gap: AppBar tone=field back IconButton must be 56px (target.field)</span>
+      </div>
+
+      <sc-if value="{{showLoadButton}}" hint-placeholder-val="{{true}}">
+        <div style="padding: 16px 20px 20px;">
+          <span style="display: flex; border-radius: var(--radius-md); box-shadow: {{buttonRing}};">
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="xl" full-width="{{yes}}">Show older deliveries</x-import>
+          </span>
+        </div>
+      </sc-if>
+      <sc-if value="{{showLoadingMore}}" hint-placeholder-val="{{false}}">
+        <div style="display: flex; flex-direction: column; gap: 8px; padding: 16px 20px 20px;">
+          <span style="display: flex; border-radius: var(--radius-md); box-shadow: 0 0 0 2px var(--focus-offset), 0 0 0 5px var(--focus-ring);">
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="xl" full-width="{{yes}}" loading="{{yes}}">Show older deliveries</x-import>
+          </span>
+          <div aria-busy="true" style="display: flex; flex-direction: column; gap: 8px;">
+            <span style="display: block; height: 72px; border-radius: var(--radius-md); background: var(--skeleton-base);"></span>
+            <span style="display: block; height: 72px; border-radius: var(--radius-md); background: var(--skeleton-base);"></span>
+            <span role="status" style="color: var(--text-secondary-field);">Loading older deliveries</span>
+          </div>
+          <span style="align-self: flex-start; font-family: var(--font-mono); font-size: var(--type-mono-sm-size); padding: 2px 6px; border-radius: var(--radius-xs); background: var(--feedback-info-tint); color: var(--feedback-info-tint-text);">"Show older deliveries" stays in place with loading (Button loading: spinner, aria-busy, still focusable), so focus keeps its place at the bottom of the list; skeleton rows below it. Drawn: focus kept on the button. Success: focus to the first new row. Failure: focus to Try again</span>
+        </div>
+      </sc-if>
+      <sc-if value="{{showPagingError}}" hint-placeholder-val="{{false}}">
+        <div style="padding: 16px 20px 20px; display: flex; flex-direction: column; gap: 4px;">
+          <div style="display: flex; gap: 12px; padding: 16px 20px; border-radius: var(--radius-lg); background: var(--feedback-warning-tint);">
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="warning" size="lg" color="var(--feedback-warning-icon)"></x-import>
+            <div style="display: flex; flex-direction: column; gap: 8px; align-items: flex-start;">
+              <div role="status" style="display: flex; flex-direction: column; gap: 8px;">
+                <strong>We couldn't load older deliveries</strong>
+                <span>The deliveries above are up to date.</span>
+              </div>
+              <span style="display: flex; border-radius: var(--radius-md); box-shadow: 0 0 0 2px var(--focus-offset), 0 0 0 5px var(--focus-ring);">
+                <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="xl" icon-start="refresh">Try again</x-import>
+              </span>
+            </div>
+          </div>
+          <span style="align-self: flex-start; font-family: var(--font-mono); font-size: var(--type-mono-sm-size); padding: 2px 6px; border-radius: var(--radius-xs); background: var(--feedback-info-tint); color: var(--feedback-info-tint-text);">Proposed component: InlineAlert (paging error, keeps loaded rows; design audit: paging finding 6) · role=status on the message only, Try again outside it · focus moves from the loading "Show older deliveries" to Try again (drawn)</span>
+        </div>
+      </sc-if>
+      <sc-if value="{{isOfflineSaved}}" hint-placeholder-val="{{false}}">
+        <p style="margin: 0; padding: 16px 20px 24px; color: var(--text-secondary-field);">Older deliveries load when you're back online.</p>
+      </sc-if>
+      <sc-if value="{{showEnd}}" hint-placeholder-val="{{false}}">
+        <p style="margin: 0; padding: 16px 20px 24px; color: var(--text-secondary-field);">That's every delivery so far.</p>
+      </sc-if>
+      <sc-if value="{{hasFocusNote}}" hint-placeholder-val="{{false}}">
+        <span style="align-self: flex-start; margin: 0 20px 20px; font-family: var(--font-mono); font-size: var(--type-mono-sm-size); padding: 2px 6px; border-radius: var(--radius-xs); background: var(--feedback-info-tint); color: var(--feedback-info-tint-text);">{{focusText}}</span>
+      </sc-if>
+    </sc-if>
+
+    <sc-if value="{{isLoading}}" hint-placeholder-val="{{false}}">
+      <div aria-busy="true" style="padding: 20px; display: flex; flex-direction: column; gap: 12px;">
+        <span role="status" class="hg-sr">Loading deliveries</span>
+        <span style="display: block; height: 20px; width: 300px; border-radius: var(--radius-sm); background: var(--skeleton-base);"></span>
+        <span style="display: block; height: 20px; width: 180px; margin-top: 16px; border-radius: var(--radius-sm); background: var(--skeleton-base);"></span>
+        <span style="display: block; height: 72px; border-radius: var(--radius-md); background: var(--skeleton-base);"></span>
+        <span style="display: block; height: 72px; border-radius: var(--radius-md); background: var(--skeleton-base);"></span>
+        <span style="display: block; height: 20px; width: 180px; margin-top: 16px; border-radius: var(--radius-sm); background: var(--skeleton-base);"></span>
+        <span style="display: block; height: 72px; border-radius: var(--radius-md); background: var(--skeleton-base);"></span>
+        <span style="align-self: flex-start; font-family: var(--font-mono); font-size: var(--type-mono-sm-size); padding: 2px 6px; border-radius: var(--radius-xs); background: var(--feedback-info-tint); color: var(--feedback-info-tint-text);">Proposed component: Skeleton (hidden status line: "Loading deliveries")</span>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{isEmpty}}" hint-placeholder-val="{{false}}">
+      <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 12px; padding: 52px 20px 20px;">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="map" size="2xl" color="var(--text-secondary-field)"></x-import>
+        <h2 style="margin: 0; font-size: var(--type-heading-xl-size); line-height: 1.25;">No deliveries yet</h2>
+        <p style="margin: 0;">Each delivery you complete shows here, grouped by day, with what it earned.</p>
+        <p style="margin: 0;">Go online from Home to get offers.</p>
+        <div style="margin-top: auto; display: flex; flex-direction: column; gap: 6px;">
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="xl" full-width="{{yes}}" icon-start="home">Go to Home</x-import>
+          <span style="align-self: flex-start; font-family: var(--font-mono); font-size: var(--type-mono-sm-size); padding: 2px 6px; border-radius: var(--radius-xs); background: var(--feedback-info-tint); color: var(--feedback-info-tint-text);">Proposed component: EmptyState (action pinned in the bottom third)</span>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{isError}}" hint-placeholder-val="{{false}}">
+      <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 12px; padding: 52px 20px 20px;">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="{{errIcon}}" size="2xl" color="var(--text-secondary-field)"></x-import>
+        <div role="alert" style="display: flex; flex-direction: column; gap: 12px;">
+          <h2 style="margin: 0; font-size: var(--type-heading-xl-size); line-height: 1.25;">{{errTitle}}</h2>
+          <p style="margin: 0;">{{errBody}}</p>
+        </div>
+        <sc-if value="{{isRateLimited}}" hint-placeholder-val="{{false}}"><p role="status" style="margin: 0; font-weight: 600;">You can try again in 30 seconds.</p></sc-if>
+        <div style="margin-top: auto; display: flex; flex-direction: column; gap: 6px;">
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="xl" full-width="{{yes}}" icon-start="refresh" disabled="{{isRateLimited}}">Try again</x-import>
+          <span style="align-self: flex-start; font-family: var(--font-mono); font-size: var(--type-mono-sm-size); padding: 2px 6px; border-radius: var(--radius-xs); background: var(--feedback-info-tint); color: var(--feedback-info-tint-text);">{{errTag}}</span>
+        </div>
+      </div>
+    </sc-if>
+    <sc-if value="{{isNotActive}}" hint-placeholder-val="{{false}}">
+      <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 12px; padding: 52px 20px 20px;">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="lock" size="2xl" color="var(--text-secondary-field)"></x-import>
+        <div role="alert" style="display: flex; flex-direction: column; gap: 12px;">
+          <h2 style="margin: 0; font-size: var(--type-heading-xl-size); line-height: 1.25;">Your account is paused, so deliveries can't be shown</h2>
+          <p style="margin: 0;">You can finish a delivery you've already started, but you won't get new offers. Money you've earned is always paid out on the Monday payouts. Account shows why your account is paused and what to do next.</p>
+        </div>
+        <div style="margin-top: auto; display: flex; flex-direction: column; gap: 12px;">
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="xl" full-width="{{yes}}" icon-start="profile">Go to Account</x-import>
+          <div style="display: flex; align-items: center; min-height: 60px; padding: 0 16px; border: 1px dashed var(--border-decorative); border-radius: var(--radius-md); color: var(--text-secondary-field);">Contact support (placeholder)</div>
+          <span style="align-self: flex-start; font-family: var(--font-mono); font-size: var(--type-mono-sm-size); padding: 2px 6px; border-radius: var(--radius-xs); background: var(--feedback-info-tint); color: var(--feedback-info-tint-text);">403 ACCOUNT_NOT_ACTIVE on GET /earnings/entries?type=DELIVERY (SUSPENDED or DEACTIVATED; a Stripe payout restriction no longer pauses the account: owner decision, riders keep taking offers while payouts are paused) · same state as Earnings activity — account paused · Account → Suspended-* boards, Sign-in &amp; Onboarding canvas · role=alert on heading + message only</span>
+          <span style="align-self: flex-start; font-family: var(--font-mono); font-size: var(--type-mono-sm-size); padding: 2px 6px; border-radius: var(--radius-xs); background: var(--feedback-warning-tint); color: var(--feedback-warning-tint-text);">Needs API: earnings and payouts readable while the account is paused (owner decision: money already earned is always paid out, so the rider should still see it) · support ticket (rider delivery-history spec)</span>
+        </div>
+      </div>
+    </sc-if>
+  </div>
+
+  <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.BottomNav" tone="field" label="Rider" active="earnings" items="{{tabs}}"></x-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"variant":{"editor":"enum","default":"list","options":["list","loading","empty","error","ratelimited","notactive","offline","offlinefirst","loadingmore","pagingerror","end","nodetail","reversed","focus","focusmore","large"]},"theme":{"editor":"enum","default":"dark","options":["dark","light"]},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const variant = this.props.variant ?? 'list';
+    const theme = this.props.theme ?? 'dark';
+    const dark = theme !== 'light';
+    const isFocus = variant === 'focus', isFocusMore = variant === 'focusmore';
+    const isLarge = variant === 'large';
+    let first = true;
+    // Each row links only to a Delivery board drawn for that same order; a row with no board of its own is a plain row (code kept, no chevron).
+    const BOARD = { 'HG-4K2M-9T': 'DeliveryDetail.dc.html', 'HG-6R1N-3K': 'Delivery-no-handover.dc.html' };
+    const r = (code, time, km, cents, note) => {
+      const href = note === 'REVERSED' ? '' : (BOARD[code] || '');
+      const x = { code, sub: time + ' · ' + km, cents, href, isLink: !!href, isStatic: false, isUndrawn: !href, hasNote: !!note, note: note || '', isReversed: note === 'REVERSED',
+        ring: isFocus && first ? 'inset 0 0 0 2px var(--focus-offset), inset 0 0 0 5px var(--focus-ring)' : 'none' };
+      first = false;
+      return x;
+    };
+    const plain = (time, km, cents) => ({ code: '', sub: time + ' · ' + km, cents, isLink: false, isStatic: true, isUndrawn: false, hasNote: true, note: 'Details aren’t available for this one.', isReversed: false, ring: 'none' });
+    const sat = [r('HG-6R1N-3K', '7:02 pm', '6.1 km', 909), r('HG-0V3T-6M', '6:20 pm', '0.9 km', 389)];
+    if (variant === 'nodetail') sat.push(plain('5:44 pm', '2.7 km', 569));
+    const groups = [
+      { day: 'Sunday 27 September', rows: [r('HG-4K2M-9T', '9:12 pm', '4.4 km', 939), r('HG-7PQ3-2D', '7:58 pm', '3.3 km', 779)] },
+      { day: 'Saturday 26 September', rows: sat },
+      { day: 'Friday 25 September', rows: variant === 'reversed' ? [r('HG-2M8X-5R', '7:46 pm', '4.9 km', 789), r('HG-5P2N-8C', '6:33 pm', '5.7 km', 1019, 'REVERSED')] : [r('HG-2M8X-5R', '7:46 pm', '4.9 km', 789)] },
+    ];
+    const offline = variant === 'offlinefirst';
+    const isRateLimited = variant === 'ratelimited';
+    const listy = ['list', 'offline', 'loadingmore', 'pagingerror', 'end', 'nodetail', 'focus', 'focusmore', 'large', 'reversed'];
+    const focusText = isFocus ? 'Drawn: keyboard/switch focus on the first row (inset ring; the transparent outline is set only on :focus-visible, for forced colours). One focused element per board.'
+      : isFocusMore ? 'Drawn: focus on "Show older deliveries" (outer two-layer ring). After it loads, focus moves to the first new row. One focused element per board.' : '';
+    return {
+      theme, dark, yes: true, noop: () => {}, groups, isFocus, isLarge, textScale: isLarge ? '200' : '100', rowWrap: isLarge ? 'wrap' : 'nowrap',
+      hasFocusNote: !!focusText, focusText, isReversedBoard: variant === 'reversed', isNotActive: variant === 'notactive',
+      tabs: [{ key: 'home', label: 'Home', icon: 'home' }, { key: 'earnings', label: 'Earnings', icon: 'orders' }, { key: 'account', label: 'Account', icon: 'profile' }],
+      showList: listy.indexOf(variant) >= 0,
+      showLoadButton: ['list', 'nodetail', 'focus', 'focusmore', 'large', 'reversed'].indexOf(variant) >= 0,
+      showLoadingMore: variant === 'loadingmore', showPagingError: variant === 'pagingerror', showEnd: variant === 'end',
+      showNoDetailTag: variant === 'nodetail',
+      buttonRing: isFocusMore ? '0 0 0 2px var(--focus-offset), 0 0 0 5px var(--focus-ring)' : 'none',
+      isOfflineSaved: variant === 'offline', isRateLimited,
+      isLoading: variant === 'loading', isEmpty: variant === 'empty', isError: variant === 'error' || offline || isRateLimited,
+      errIcon: offline ? 'warning' : isRateLimited ? 'clock' : 'error',
+      errTitle: offline ? 'You’re offline' : isRateLimited ? 'Too many tries in a row' : 'We couldn’t load your deliveries',
+      errBody: offline ? 'Deliveries load when you’re back online. What you earned is not affected.' : isRateLimited ? 'What you earned is not affected. This screen just needs a short pause.' : 'Your signal may be weak. What you earned is not affected. Try again in a moment.',
+      errTag: offline ? 'Proposed component: ErrorState (offline on a first open, no saved copy yet) · action bottom third · role=alert on heading + message only' : isRateLimited ? '429 RATE_LIMITED on GET /earnings/entries?type=DELIVERY · wait from Retry-After, polite · aria-disabled until then' : 'Proposed component: ErrorState (recoverable: network, timeout, 5xx) · action bottom third · role=alert on heading + message only',
+    };
+  }
+}
+</script>
+</body>
+</html>

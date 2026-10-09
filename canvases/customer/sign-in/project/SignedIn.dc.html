@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>After sign-in: where next_route lands</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<link rel="stylesheet" href="hg-current.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="scr" data-theme="{{theme}}" style="width: {{w}}px; height: 844px; font-family: var(--font-ui); color: var(--text-primary)">
+
+  <sc-if value="{{f.home}}" hint-placeholder-val="{{true}}">
+    <div data-change="">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="cream" title="14 Ellesmere Rd" subtitle="Deliver to" actions="{{changeButton}}"></x-import>
+    </div>
+    <sc-if value="{{f.changeFocus}}" hint-placeholder-val="{{false}}">
+      <div style="display: flex; flex-direction: column; gap: var(--space-1); padding: var(--space-2) var(--space-4) 0">
+        <span class="anno-tag">Change is focused: the two-layer ring (focus-indicator.md). Accessible name 'Change delivery address, now 14 Ellesmere Rd'. It opens the address switcher sheet; focus moves to the selected address and returns here when the sheet closes.</span>
+        <span class="anno-tag">Chosen over a tappable title: the DS AppBar title and subtitle render as a heading and text, not a button. If Discover wants the whole header tappable, that is Proposed component: AppBar address trigger.</span>
+      </div>
+    </sc-if>
+    <sc-if value="{{f.restored}}" hint-placeholder-val="{{false}}">
+      <div style="display: flex; flex-direction: column; gap: var(--space-1); padding: var(--space-2) var(--space-4) 0">
+        <span class="api-tag" style="white-space: normal">Needs API: AccountStatus has no PENDING_DELETION, and it says any status other than ACTIVE blocks new sessions. The spec's rule that signing in during the 7-day deletion grace period restores the account cannot happen on the contract today, so this board is a placeholder, not live copy.</span>
+        <span class="anno-tag">Contract today: a DELETED status under next_route SUSPENDED, or 403 ACCOUNT_NOT_ACTIVE / ACCOUNT_DEACTIVATED from verifyOtp, opens the neutral fallback 'This account isn't available' (Routes row). Once the contract adds PENDING_DELETION and restore on verifyOtp, this board replaces that fallback for accounts in the 7-day grace period.</span>
+      </div>
+    </sc-if>
+    <div class="handoff" aria-hidden="true">
+      <span class="t-sec">next_route = HOME</span>
+      <p class="t-small">{{handoffText}}</p>
+    </div>
+    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.BottomNav" label="Main" active="home" items="{{nav}}" on-change="{{noop}}"></x-import>
+    <sc-if value="{{f.homeToast}}" hint-placeholder-val="{{true}}">
+      <div class="toast-dock">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Toast" variant="{{toastVariant}}" title="{{toastTitle}}" description="{{toastDesc}}" on-dismiss="{{noop}}"></x-import>
+      </div>
+    </sc-if>
+    <sc-if value="{{f.restored}}" hint-placeholder-val="{{false}}">
+      <div class="toast-dock">
+        <div class="api-box">
+          <span class="api-tag" style="white-space: normal">Needs API: PENDING_DELETION status and restore on verifyOtp. Toast placeholder, not shown to customers</span>
+          <p class="t-small">Intended copy once the contract supports it: 'Welcome back, your account is restored. We've cancelled the deletion. Your addresses are as you left them.'</p>
+        </div>
+      </div>
+    </sc-if>
+  </sc-if>
+
+  <sc-if value="{{f.tracking}}" hint-placeholder-val="{{false}}">
+    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="cream" title="Order A7Q2" subtitle="Zaytoun Grill" on-back="{{noop}}" back-label="Back to Home"></x-import>
+    <div class="handoff" aria-hidden="true">
+      <span class="t-sec">next_route = ORDER_TRACKING</span>
+      <p class="t-small">Order tracking, designed by the Track team. Someone who signs in while an order is active goes straight to it, not to Home. Back goes to Home.</p>
+    </div>
+    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.BottomNav" label="Main" active="orders" items="{{navOrders}}" on-change="{{noop}}"></x-import>
+    <div class="toast-dock">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Toast" variant="neutral" title="You're signed in" description="Here's the order you have on the way." on-dismiss="{{noop}}"></x-import>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{f.address}}" hint-placeholder-val="{{false}}">
+    <main class="body" style="padding: var(--space-12) var(--space-4) var(--space-4); gap: var(--space-6)">
+      <div style="flex: 1 1 auto; display: flex; flex-direction: column; justify-content: center; gap: var(--space-4)">
+        <span class="gap-tag">Proposed component: EmptyState (full-screen variant)</span>
+        <span style="width: 56px; height: 56px; display: grid; place-items: center; border-radius: var(--radius-full); background: var(--surface-sunken); color: var(--text-secondary); width: 64px; height: 64px">
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="map" size="xl"></x-import>
+        </span>
+        <h1 class="t-h1">Where should we deliver?</h1>
+        <p class="t-body" style="color: var(--text-primary)">Search for your address, then drag the pin onto your door. You don't need to be there.</p>
+        <p class="t-body">Then we'll show the restaurants that deliver to you, each with a halal certificate we've checked.</p>
+      </div>
+    </main>
+    <footer class="foot">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" full-width="{{yes}}" icon-start="plus" href="https://claude.ai/artifact/MYT5tBoEHpPuRegpMusYHV">Add your address</x-import>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="lg" full-width="{{yes}}" href="SignedIn-noaddress.dc.html">Not now</x-import>
+      <p class="t-small" style="text-align: center">You can look at restaurants now. You'll need an address before adding food to your cart.</p>
+    </footer>
+  </sc-if>
+
+  <sc-if value="{{f.noAddress}}" hint-placeholder-val="{{false}}">
+    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="cream" title="Set your delivery address" subtitle="Deliver to" actions="{{changeButton}}"></x-import>
+    <main class="body" style="gap: var(--space-4)">
+      <span class="anno-tag">Choose in the AppBar actions slot (DS ghost Button, name 'Choose a delivery address') opens the address switcher (Switcher sheet, no address). The sheet stays closed until then.</span>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg">
+        <div style="display: flex; flex-direction: column; gap: var(--space-3)">
+          <h2 class="t-h2">See restaurants near you</h2>
+          <p class="t-body">Add your address to see who delivers to you and to order.</p>
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md" icon-start="plus" href="https://claude.ai/artifact/MYT5tBoEHpPuRegpMusYHV">Add your delivery address</x-import>
+        </div>
+      </x-import>
+      <div class="handoff" aria-hidden="true" style="margin: 0">
+        <span class="t-sec">Home, no address (Discover team)</span>
+        <p class="t-small">Home's own 'Set your delivery address' state. The inline prompt above is this team's hand-off; the restaurant list below it is drawn by Discover. Restaurants still load (listRestaurants returns NO_ADDRESS); add-to-cart asks for an address.</p>
+      </div>
+    </main>
+    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.BottomNav" label="Main" active="home" items="{{nav}}" on-change="{{noop}}"></x-import>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["home","firstaddress","changefocus","restored","tracking","address","noaddress"],"default":"home"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"w":{"editor":"int","min":320,"max":430,"default":390},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  componentDidMount() {
+    this.t = setTimeout(() => {
+      try {
+        if ((this.props.state ?? 'home') === 'changefocus') {
+          const el = document.querySelector('[data-change] [data-testid="AppBar"] button, [data-change] header button:last-of-type');
+          const btns = Array.from(document.querySelectorAll('[data-change] button')).filter((b) => (b.textContent || '').trim() === 'Change');
+          const target = btns[0] || el;
+          if (target) target.focus({ preventScroll: true });
+        }
+      } catch (e) {}
+    }, 500);
+  }
+  componentWillUnmount() { clearTimeout(this.t); }
+  renderVals() {
+    const raw = this.props.state ?? 'home';
+    const s = (raw === 'changefocus' || raw === 'restored' || raw === 'firstaddress') ? 'home' : raw;
+    const first = raw === 'firstaddress';
+    const h = window.React.createElement;
+    const DS = window.HalalGoesDesignSystem_d11a47 || {};
+    const none = s === 'noaddress';
+    const changeButton = DS.Button ? h(DS.Button, { variant: 'ghost', size: 'sm', accessibilityLabel: none ? 'Choose a delivery address' : 'Change delivery address, now 14 Ellesmere Rd', onPress: () => {} }, none ? 'Choose' : 'Change') : null;
+    const nav = [
+      { key: 'home', label: 'Home', icon: 'home' },
+      { key: 'search', label: 'Search', icon: 'search' },
+      { key: 'orders', label: 'Orders', icon: 'orders' },
+      { key: 'account', label: 'Account', icon: 'profile' },
+    ];
+    return {
+      f: { home: s === 'home', tracking: s === 'tracking', address: s === 'address', noAddress: s === 'noaddress', changeFocus: raw === 'changefocus', restored: raw === 'restored', homeToast: raw !== 'changefocus' && raw !== 'restored' },
+      yes: true, noop: () => {}, changeButton,
+      toastTitle: first ? 'Address saved' : "You're signed in",
+      toastDesc: first ? 'Showing restaurants that deliver to 14 Ellesmere Rd.' : 'Welcome back, Aisha.',
+      toastVariant: first ? 'success' : 'neutral',
+      handoffText: first
+        ? 'Home (the restaurant list from listRestaurants), designed by the Discover team. A new customer lands here after saving their first address from Add your address; the toast confirms the address, not a sign-in. Welcome back is only for next_route HOME straight after the code.'
+        : 'Home (the restaurant list from listRestaurants), designed by the Discover team. A returning customer lands here straight after the code, with their default address already chosen.',
+      theme: this.props.theme === 'dark' ? 'dark' : 'light',
+      w: this.props.w ?? 390,
+      nav,
+      navOrders: nav.map((n) => n.key === 'orders' ? Object.assign({}, n, { badge: 1, badgeNoun: 'active' }) : n),
+    };
+  }
+}
+</script>
+</body>
+</html>

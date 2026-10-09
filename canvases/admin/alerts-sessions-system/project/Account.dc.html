@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Your account</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.skip-link{position:absolute;left:var(--space-4);top:-120px;z-index:60;display:inline-flex;align-items:center;min-height:44px;padding:0 var(--space-4);border-radius:var(--radius-sm);background:var(--surface-raised);color:var(--text-primary);font-family:var(--font-ui);font-size:var(--type-body-md-size);font-weight:600;text-decoration:none}
+.skip-link:focus,.skip-link[data-shown]{top:12px;outline:2px solid transparent;box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+.tag{font-size:var(--type-mono-sm-size);line-height:1.4;font-family:var(--font-mono);color:var(--text-secondary)}
+</style>
+</helmet>
+<div data-theme="light" data-density="compact" style="width: 1440px; height: 900px; position: relative; overflow: hidden; display: grid; grid-template-columns: 264px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+<a class="skip-link" href="#main">Skip to main content</a>
+<div style="background: var(--surface-chrome)">
+<dc-import name="AdminSidebar" active="account" viewer="admin" has-new="{{no}}" counts="live" wn-expanded="{{no}}" focus-demo="none" hint-size="264px,900px"></dc-import>
+</div>
+<div style="display: flex; flex-direction: column; min-width: 0; min-height: 0">
+<main id="main" tabindex="-1" style="flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; outline: none">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" role="none" tone="raised" sticky="{{yes}}" title="Your account" subtitle="Change your password, or sign out everywhere"></x-import>
+<div style="flex: 1; min-height: 0; padding: var(--space-5) var(--space-6); display: flex; gap: var(--space-5); min-width: 0; overflow: hidden">
+<section aria-labelledby="me-h" style="flex: 0 0 320px; display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-5); border: 1px solid var(--border-decorative); border-radius: var(--radius-lg); background: var(--surface-raised)">
+<h2 id="me-h" style="margin: 0; font-size: var(--type-heading-md-size); font-weight: 600">Signed in as</h2>
+<p style="margin: 0; font-size: var(--type-body-md-size)">Admin</p>
+<span class="tag">Needs API: your name and work email on the session (the session carries the role only)</span>
+<p style="margin: 0; font-size: var(--type-body-sm-size); line-height: 1.45; color: var(--text-secondary)">Staff sessions end after 30 minutes without activity, and always 12 hours after you sign in.</p>
+<p style="margin: 0; font-size: var(--type-body-sm-size); line-height: 1.45; color: var(--text-secondary)">Lost your authenticator app? A super admin resets it after calling you back on the phone number on your account and checking two account details.</p>
+</section>
+<section aria-labelledby="pw-h" style="flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-5); border: 1px solid var(--border-decorative); border-radius: var(--radius-lg); background: var(--surface-raised)">
+<h2 id="pw-h" style="margin: 0; font-size: var(--type-heading-md-size); font-weight: 600">Change password</h2>
+
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Current password" variant="password" required="{{yes}}" value="" auto-complete="current-password" error-text=""></x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="New password" variant="password" required="{{yes}}" value="" auto-complete="new-password" helper-text="At least 12 characters. We check it against passwords exposed in data breaches." error-text=""></x-import>
+<p style="margin: 0; font-size: var(--type-body-sm-size); line-height: 1.45; color: var(--text-secondary)">Saving keeps you signed in here and signs you out on every other device.</p>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" loading="{{no}}" style="align-self: flex-start">Save new password</x-import>
+<span class="tag">changePassword (current and new password). The calling session is re-issued; every other session ends. Contract change: it moves to launch (owner decision, round 2); the contract still marks it a later version.</span>
+</section>
+<section aria-labelledby="so-h" style="flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-5); border: 1px solid var(--border-decorative); border-radius: var(--radius-lg); background: var(--surface-raised)">
+<h2 id="so-h" style="margin: 0; font-size: var(--type-heading-md-size); font-weight: 600">Sign out everywhere</h2>
+<p style="margin: 0; font-size: var(--type-body-md-size); line-height: 1.5">Lost a phone or laptop, or think someone else is using your account? This ends every session on your account, including this one, within 10 seconds. Then sign in again.</p>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="secondary" size="md" aria-expanded="false" aria-controls="so-panel" style="align-self: flex-start">Sign out everywhere…</x-import>
+<p style="margin: 0; font-size: var(--type-body-sm-size); line-height: 1.45; color: var(--text-secondary)">Seeing each device and signing out just one comes in a later version (My sessions).</p>
+<span class="tag">logoutAll (every role). Confirm, in flight and outcome-unknown work as on the My sessions boards. Contract change: it moves to launch (owner decision, round 2). Needs API: confirm “family” means every session on the account.</span>
+</section>
+</div>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { yes: true, no: false, nothing: null, noop: function () {} };
+  }
+}
+</script>
+</body>
+</html>

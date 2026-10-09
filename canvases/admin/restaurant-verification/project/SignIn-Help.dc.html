@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Can’t sign in</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:var(--surface-base);color:var(--text-primary);font-family:var(--font-ui)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+textarea.hg-ta:focus{outline:none;border:var(--focus-field-border-width) solid var(--focus-ring)}
+textarea.hg-ta[aria-invalid="true"]{border:var(--focus-field-border-width) solid var(--color-danger-500)}
+textarea.hg-ta[aria-invalid="true"]:focus{box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+.skip{position:absolute;left:-10000px;top:8px;z-index:900;padding:12px 16px;background:var(--surface-raised);color:var(--text-primary);border-radius:8px;font-weight:600}
+.skip:focus{left:16px;outline:none;box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; position: relative; background: var(--surface-base); font-family: var(--font-ui); color: var(--text-primary)">
+<div style="width: 1440px; height: 900px; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px">
+  <a class="skip" href="#help">Skip to main content</a>
+  <div style="display: flex; flex-direction: column; align-items: center; gap: 6px">
+    <div data-gap="Wordmark" role="img" aria-label="HalalGoes" style="width: 96px; height: 32px; box-sizing: border-box; border: 1px solid var(--border-strong); border-radius: 4px"></div>
+    <span style="font-size: 15px; color: var(--text-secondary)">Operations</span>
+  </div>
+  <main id="help" style="width: 480px">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="elevated" radius="lg" padding="32px">
+<div style="display: flex; flex-direction: column; gap: 16px">
+    <h1 style="margin: 0; font-size: 24px; font-weight: 700; letter-spacing: -0.01em">Can’t sign in?</h1>
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <strong style="font-size: 15px">Forgotten your password?</strong>
+      <span style="font-size: 15px; line-height: 1.5">Reset it yourself. We email a link that works for 30 minutes.</span>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="secondary" size="md" href="SignIn-Forgot.dc.html" style="align-self: flex-start">Reset my password</x-import>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border-radius: 12px; background: var(--surface-sunken); font-size: 15px; line-height: 1.5">
+      <strong>Lost the phone with your authenticator app?</strong>
+      <span>Ask a super admin. They call you back on the phone number on your account and check two account details before they reset it. Then you sign in with your password and set up your authenticator app again.</span>
+    </div>
+    <p style="margin: 0; font-size: 13px; line-height: 1.45; color: var(--text-secondary)">There are no recovery codes. HalalGoes staff accounts use a password and an authenticator code every time.</p>
+    <span style="display: inline-flex; align-self: flex-start; padding: 2px 8px; border-radius: 4px; background: var(--surface-sunken); border: 1px solid var(--border-strong); font-size: 12px; font-weight: 600">Needs API: a super admin resets a staff member’s authenticator, or password, by hand after the call-back check; a phone number on staff accounts to call back</span>
+    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" full-width="{{yes}}" href="Main.dc.html">Back to sign in</x-import>
+  </div>
+</x-import>
+  </main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { yes: true, no: false, noop: () => {} };
+  }
+}
+</script>
+</body>
+</html>

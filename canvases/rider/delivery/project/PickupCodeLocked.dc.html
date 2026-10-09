@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Too many wrong pickup codes</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+[data-rider]{font-family:var(--font-ui)}
+.offer-chrome{background:var(--surface-raised)}
+[data-theme="dark"] .offer-chrome,[data-theme="dark"].offer-chrome{background:var(--surface-chrome)}
+</style>
+</helmet>
+<div data-rider="" data-theme="{{theme}}" style="width: 390px; height: 844px; position: relative; overflow: hidden; display: flex; flex-direction: column; background: var(--surface-base); color: var(--text-primary)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="field" title="Pickup" subtitle="Step 2 of 4 · At the restaurant"></x-import><main style="flex: 1 1 auto; overflow-y: auto; padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-4)"><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Too many wrong pickup codes on PICKED_UP (Needs API) · the pickup is not recorded and the code field is gone</span><section style="padding: var(--space-5); border: 1.5px dashed var(--border-strong); border-radius: var(--radius-lg); background: var(--surface-raised); display: flex; flex-direction: column; gap: var(--space-2)"><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Proposed component: StatusPanel (ErrorState/InlineAlert, slate)</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="lock" size="xl"></x-import><h2 style="margin: 0; font-size: var(--type-heading-xl-size); font-weight: var(--type-heading-xl-weight); letter-spacing: var(--type-heading-xl-tracking); line-height: 1.25">Too many wrong codes</h2><p style="margin: 0; font-size: var(--type-body-lg-size); line-height: 1.5">Ask Zaytoun Grill to check the code on order <span style="font-family: var(--font-mono); font-weight: var(--font-weight-semibold)">HG-4K2M-9T</span>, then call HalalGoes support to finish the pickup.</p></section><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--text-link); color: var(--text-link)">Needs API: the tries limit, its error code (for example 423 PICKUP_CODE_LOCKED) and how support releases the pickup</span><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Call Zaytoun Grill dials pickup.phone_alias (tel:) · hidden when null</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="xl" full-width="{{yes}}" href="tel:+16475550190">Call Zaytoun Grill</x-import><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="xl" full-width="{{yes}}" icon-start="warning" href="SomethingWrongPickup.dc.html">Something's wrong</x-import></main><footer style="flex: 0 0 auto; padding: var(--space-3) var(--space-5) var(--space-5); border-top: 1px solid var(--border-decorative); background: var(--surface-base); display: flex; flex-direction: column; gap: var(--space-2)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="xl" full-width="{{yes}}" href="tel:+18005550142">Call HalalGoes support</x-import><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">tel: PublicConfig.support_phone_e164 · hidden when support_enabled is false</span></footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["dark","light"],"default":"dark"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const theme = this.props.theme ?? 'dark';
+    return { theme: theme, onDark: theme === 'dark', yes: true, no: false, four: 4, noop: () => {}, twentyFour: 24, activeTab: 'home',
+      onOff: { on: 'On', off: 'Off' },
+      tabs: [{ key: 'home', label: 'Home', icon: 'home' }, { key: 'earnings', label: 'Earnings', icon: 'orders' }, { key: 'account', label: 'Account', icon: 'profile' }] };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+<!-- @dsCard group="Forms" height=220 subtitle="Visible state text; loading holds the old position until the server confirms" -->
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Switch</title>
+<style>body{margin:0;padding:16px;background:var(--surface-base);color:var(--text-primary);font-family:var(--font-ui)}
+.row{display:flex;flex-wrap:wrap;align-items:center;gap:12px}.col{display:grid;gap:12px}.g2{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;align-items:start}
+.lbl{font-size:var(--type-label-sm-size);letter-spacing:var(--type-label-sm-tracking);font-weight:var(--font-weight-semibold);color:var(--text-tertiary);min-inline-size:88px}
+.stage{position:relative;block-size:200px;border:1px dashed var(--border-decorative);border-radius:var(--radius-lg);overflow:hidden;background:var(--surface-sunken)}</style>
+</head><body><div id="root"></div>
+<script>
+(function () {
+  var h = React.createElement, F = React.Fragment, DS = window.HalalGoesDesignSystem_d11a47;
+  function L(t) { return h('span', { className: 'lbl' }, t); }
+
+  function Demo() {
+    var a = React.useState(true), b = React.useState(false), c = React.useState(false);
+    function slow(v) { c[1](true); setTimeout(function () { b[1](v); c[1](false); }, 1500); }
+    return h('div', { className: 'col', style: { maxInlineSize: 480 } },
+      h(DS.Switch, { label: 'Accepting orders', description: 'Customers can order from your storefront', stateLabel: { on: 'Open', off: 'Closed' }, checked: a[0], onCheckedChange: a[1] }),
+      h(DS.Switch, { label: 'Online for deliveries', stateLabel: { on: 'Online', off: 'Offline' }, checked: b[0], loading: c[0], onCheckedChange: slow }),
+      h(DS.Switch, { label: 'Item available', stateLabel: { on: 'Available', off: 'Sold out' }, checked: false, disabled: true }));
+  }
+  ReactDOM.createRoot(document.getElementById('root')).render(h(Demo));
+})();
+</script></body></html>

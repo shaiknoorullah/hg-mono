@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Service status: halal variants</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div style="width: 1216px; height: 1300px; box-sizing: border-box; padding: var(--space-6) 0; display: flex; flex-direction: column; gap: var(--space-5); background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui);">
+  <p style="margin: 0 var(--space-6); font: var(--text-type-body-md); color: var(--text-secondary);">The seal comes straight from the server’s halal display state. Expired is cool slate, never red. When the field is missing there is no badge and no placeholder: silence is never a halal claim.</p>
+  <sc-for list="{{states}}" as="s" hint-placeholder-count="5">
+    <div style="display: flex; flex-direction: column; gap: 6px;">
+      <span style="margin: 0 var(--space-6); font: var(--text-type-label-md); color: var(--text-secondary);">{{s.label}}</span>
+      <dc-import name="PartTopBar" title="Menu" state="open" halal="{{s.v}}" strip="none" hint-size="1216px,196px"></dc-import>
+    </div>
+  </sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1216,"height":1300}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { states: [
+      { v: 'CERTIFIED', label: 'Certified' },
+      { v: 'EXPIRING_SOON', label: 'Certificate expiring soon (still certified)' },
+      { v: 'EXPIRED', label: 'Certificate expired (slate)' },
+      { v: 'UNVERIFIED', label: 'Not verified' },
+      { v: 'none', label: 'Field missing: no badge at all' },
+    ] };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Issuing bodies, review a proposal</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:var(--surface-base);color:var(--text-primary);font-family:var(--font-ui)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+textarea.hg-ta:focus{outline:none;border:var(--focus-field-border-width) solid var(--focus-ring)}
+textarea.hg-ta[aria-invalid="true"]{border:var(--focus-field-border-width) solid var(--color-danger-500)}
+textarea.hg-ta[aria-invalid="true"]:focus{box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+.skip{position:absolute;left:-10000px;top:8px;z-index:900;padding:12px 16px;background:var(--surface-raised);color:var(--text-primary);border-radius:8px;font-weight:600}
+.skip:focus{left:80px;outline:none;box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; display: grid; grid-template-columns: 64px minmax(0, 1fr); background: var(--surface-base); position: relative; overflow: hidden; font-family: var(--font-ui); color: var(--text-primary)">
+  <dc-import name="SideNav" active="bodies" role="SUPER_ADMIN" collapsed="{{yes}}" h="900" hint-size="64px,900px"></dc-import>
+  <div style="display: flex; flex-direction: column; min-width: 0; min-height: 0; position: relative">
+    <a class="skip" href="#main">Skip to main content</a>
+    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="raised" title="Issuing bodies" subtitle="The registry the Issuer accepted check uses"></x-import>
+    <main id="main" data-density="compact" style="flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 12px; padding: 12px; overflow: hidden">
+      <div style="flex: 1 1 auto; min-height: 0; display: flex"><dc-import name="BodiesGrid" variant="superadmin" w="880" h="820" hint-size="880px,820px"></dc-import><div role="separator" aria-orientation="vertical" aria-label="Resize the detail panel" aria-controls="pane-detail" aria-valuenow="34" aria-valuemin="25" aria-valuemax="60" aria-valuetext="34 percent of the width. Left and Right arrows resize." tabindex="0" class="hg-focus hg-hit" style="flex: 0 0 12px; cursor: col-resize; align-self: stretch; display: flex; align-items: center; justify-content: center; border-radius: 4px"><span aria-hidden="true" style="display: block; width: 4px; height: 40px; border-radius: 2px; background: var(--border-interactive)"></span></div><section id="pane-detail" role="region" aria-labelledby="dp-h" style="flex: 0 0 460px; box-sizing: border-box; min-width: 0; min-height: 0; display: flex; flex-direction: column; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: 12px; overflow: hidden; border-color: var(--border-strong); box-shadow: var(--elev-1)"><div style="flex: 0 0 auto; display: flex; align-items: flex-start; gap: 8px; padding: 10px 8px 10px 16px; border-bottom: 1px solid var(--border-decorative)"><div style="flex: 1 1 auto; display: flex; flex-direction: column; gap: 4px; min-width: 0; padding-top: 4px"><h2 id="dp-h" tabindex="-1" style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em">Review a proposed issuing body: HCCO</h2></div><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.IconButton" icon="close" accessibility-label="Close this panel. Nothing is sent." variant="plain" size="md"></x-import></div><div style="flex: 1 1 auto; min-height: 0; overflow: auto; padding: 14px 16px; display: flex; flex-direction: column; gap: 14px"><div style="display: flex; flex-direction: column; gap: 16px; font-family: var(--font-ui); color: var(--text-primary)">
+      <span style="font-size: 15px; color: var(--text-secondary)">Proposed for the Karahi House certificate</span>
+      <p style="margin: 0; font-size: 15px; line-height: 1.5; font-weight: 500">1 application is waiting on HCCO (Karahi House). When you save, it returns to the top of the restaurant queue.</p>
+      <span style="display: inline-flex; align-self: flex-start; padding: 2px 8px; border-radius: 4px; background: var(--surface-sunken); border: 1px solid var(--border-strong); font-size: 12px; font-weight: 600">Needs API: the applications waiting on this body (the waiting-on-certifying-body state, owner decision round 2)</span>
+      <dl style="margin: 0; display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 6px 12px; font-size: 15px; line-height: 1.45">
+        <dt style="color: var(--text-secondary)">Name</dt><dd style="margin: 0; font-weight: 500">Halal Certification Council of Ontario</dd>
+        <dt style="color: var(--text-secondary)">Printed as</dt><dd style="margin: 0">HCCO</dd>
+        <dt style="color: var(--text-secondary)">Region</dt><dd style="margin: 0">Ontario, CA</dd>
+        <dt style="color: var(--text-secondary)">Website</dt><dd style="margin: 0">None given</dd>
+        <dt style="color: var(--text-secondary)">Accreditation</dt><dd style="margin: 0">None given</dd>
+        <dt style="color: var(--text-secondary)">Why proposed</dt><dd style="margin: 0">“Issuer of the certificate for Karahi House. No accreditation reference on the certificate.”</dd>
+      </dl>
+      <span style="display: inline-flex; align-self: flex-start; padding: 2px 8px; border-radius: 4px; background: var(--surface-sunken); border: 1px solid var(--border-strong); font-size: 12px; font-weight: 600">Needs API: the proposer’s justification and who proposed it, on HalalIssuingBody</span>
+      <dc-import name="InlineAlert" tone="neutral" heading="Accepting widens what HalalGoes calls halal" body="Every certificate from HCCO would then pass the Issuer accepted check. Check the body independently before you accept it." icon="info" w="426" hint-size="426px,120px"></dc-import>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.RadioGroup" label="Your decision" value="{{nothing}}" options="{{choices}}" required="{{yes}}"></x-import>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Checkbox" label="Each certificate needs the issuer’s confirmation before approval" checked="{{no}}"></x-import>
+      <span style="font-size: 13px; line-height: 1.45; color: var(--text-secondary); margin-top: -8px">Only with Accept. Each certificate from this body must then be confirmed with the issuer before approval.</span>
+      <dc-import name="Textarea" tid="bd-why" label="Justification (required)" helper="At least 20 characters. Recorded with your account in the audit log." value="" count="0 of 2000 characters · minimum 20" error="" rows="3" w="426" hint-size="426px,170px"></dc-import>
+      <div style="display: flex; justify-content: flex-end; gap: 12px">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="md">Cancel</x-import>
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md" disabled="{{yes}}" accessibility-label="Save decision, unavailable: choose a decision and write a justification">Save decision</x-import>
+      </div>
+      <span style="display: inline-flex; align-self: flex-start; padding: 2px 8px; border-radius: 4px; background: var(--surface-sunken); border: 1px solid var(--border-strong); font-size: 12px; font-weight: 600; max-width: 100%">Annotation: Save decision sends POST /v1/admin/halal-issuing-bodies/{id}/status with ACCEPTED or REJECTED and the justification; the checkbox sets requires_issuer_confirmation.</span>
+    </div></div></section></div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { yes: true, no: false, nothing: null, noop: () => {}, choices: [ { value: 'ACCEPTED', label: 'Accept: certificates from it pass the Issuer accepted check' }, { value: 'REJECTED', label: 'Reject: certificates from it fail the Issuer accepted check' } ] };
+  }
+}
+</script>
+</body>
+</html>

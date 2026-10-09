@@ -1,0 +1,506 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Add or edit an address</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<link rel="stylesheet" href="hg-current.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="scr {{ltClass}} {{kbdClass}}" data-theme="{{theme}}" style="width: {{w}}px; height: {{h}}px; font-family: var(--font-ui); color: var(--text-primary)">
+  <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="cream" title="{{title}}" on-back="{{noop}}" back-label="{{backLabel}}" loading="{{f.editLoading}}"></x-import>
+
+  <sc-if value="{{f.editLoading}}" hint-placeholder-val="{{false}}">
+    <main class="body" style="padding-top: var(--space-2); gap: var(--space-5)">
+      <div role="status"><span class="sr">Loading address</span></div>
+      <span class="gap-tag" style="white-space: normal">Proposed component: Skeleton. Pattern for the design-system components issue (<a href="https://github.com/shaiknoorullah/hg-mono/issues/109" style="color: inherit">GitHub #109</a>): a role=status region with a visually hidden name, outside the busy region; aria-busy on the container that will receive the content; the skeleton itself aria-hidden.</span>
+      <div aria-busy="true" style="display: flex; flex-direction: column; gap: var(--space-4)">
+        <div aria-hidden="true" style="display: flex; flex-direction: column; gap: var(--space-4)">
+          <span style="display: block; background: var(--skeleton-base); border-radius: var(--radius-xs); width: 30%; height: 18px"></span>
+          <span style="display: block; background: var(--skeleton-base); border-radius: var(--radius-xs); width: 100%; height: 52px; border-radius: var(--radius-md)"></span>
+          <span style="display: block; background: var(--skeleton-base); border-radius: var(--radius-xs); width: 100%; height: 52px; border-radius: var(--radius-md)"></span>
+          <span style="display: block; background: var(--skeleton-base); border-radius: var(--radius-xs); width: 60%; height: 52px; border-radius: var(--radius-md)"></span>
+          <span style="display: block; background: var(--skeleton-base); border-radius: var(--radius-xs); width: 100%; height: 200px; border-radius: var(--radius-lg)"></span>
+        </div>
+      </div>
+    </main>
+  </sc-if>
+
+  <sc-if value="{{f.edit404}}" hint-placeholder-val="{{false}}">
+    <main class="body" style="padding-top: var(--space-2)">
+      <div role="alert" style="flex: 1 1 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: var(--space-3); padding: var(--space-8) var(--space-5)">
+        <span class="gap-tag">Proposed component: EmptyState</span>
+        <span style="width: 56px; height: 56px; display: grid; place-items: center; border-radius: var(--radius-full); background: var(--surface-sunken); color: var(--text-secondary)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="map" size="lg"></x-import></span>
+        <h2 style="margin: 0; font-size: var(--type-heading-md-size); line-height: var(--type-heading-md-line); font-weight: 600; color: var(--text-primary)">This address was deleted</h2>
+        <p style="margin: 0; max-width: 320px; font-size: var(--type-body-md-size); line-height: var(--type-body-md-line); color: var(--text-secondary)">It may have been deleted on another device. Your other saved addresses haven't changed.</p>
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="secondary" size="md" href="Addresses.dc.html">Back to Addresses</x-import>
+      </div>
+    </main>
+  </sc-if>
+
+  <sc-if value="{{f.form}}" hint-placeholder-val="{{true}}">
+  <main class="body" style="padding-top: var(--space-2); gap: var(--space-6); overflow: hidden">
+
+    <sc-if value="{{f.primaryNote}}" hint-placeholder-val="{{false}}">
+      <span class="anno-tag">PRIMARY (owner decision): search moves the map, then the customer drags the pin onto the entrance. Latitude and longitude come from the pin, so an address can be added from anywhere, with location on or off. Address search and filling the fields from the pin move into launch as operations on our server, which forwards to Mapbox (owner decision, 1 October; address-search API issue, <a href="https://github.com/shaiknoorullah/hg-mono/issues/150" style="color: inherit">GitHub #150</a>); until they are in the contract the customer drags the pin and types the fields, and the address still saves on today's contract.</span>
+    </sc-if>
+
+    <sc-if value="{{f.offline}}" hint-placeholder-val="{{false}}">
+      <span class="gap-tag">Proposed component: Banner</span>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="md" padding="var(--space-3) var(--space-4)" dc-props="{{alert.neutral}}" role="status"><div style="display: flex; gap: var(--space-3); align-items: flex-start; font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-line)">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="info" size="md"></x-import>
+        <div style="display: flex; flex-direction: column; gap: 2px">
+          <span style="font-size: var(--type-label-lg-size); line-height: var(--type-label-lg-line); font-weight: 600; color: var(--text-primary)">You're offline</span>
+          <span id="offline-why">{{offlineBody}}</span>
+        </div>
+      </div></x-import>
+    </sc-if>
+
+    <sc-if value="{{f.server422}}" hint-placeholder-val="{{false}}">
+      <span class="gap-tag">Proposed component: Banner</span>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="md" padding="var(--space-3) var(--space-4)" dc-props="{{alert.warning}}" role="alert"><div style="display: flex; gap: var(--space-3); align-items: flex-start; font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-line)">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="warning" size="md"></x-import>
+        <div style="display: flex; flex-direction: column; gap: 2px">
+          <span style="font-size: var(--type-label-lg-size); line-height: var(--type-label-lg-line); font-weight: 600">Check the postal code</span>
+          <span>We couldn't save this address because the postal code wasn't accepted. Everything else you typed is still here.</span>
+        </div>
+      </div></x-import>
+      <span class="anno-tag">Server 422 VALIDATION_FAILED on createAddress: the field named in details gets the error, focus moves to it. Distinct from the checks made before Save.</span>
+    </sc-if>
+
+    <sc-if value="{{f.conflict}}" hint-placeholder-val="{{false}}">
+      <span class="gap-tag">Proposed component: Banner</span>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="md" padding="var(--space-3) var(--space-4)" dc-props="{{alert.warning}}" role="alert"><div style="display: flex; gap: var(--space-3); align-items: flex-start; font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-line)">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="warning" size="md"></x-import>
+        <div style="display: flex; flex-direction: column; gap: var(--space-2)">
+          <span style="font-size: var(--type-label-lg-size); line-height: var(--type-label-lg-line); font-weight: 600">We couldn't save this address</span>
+          <span>Your saved addresses changed while you were saving, maybe on another device. Everything you typed is still here. Try again.</span>
+        </div>
+      </div></x-import>
+      <span class="api-tag" style="white-space: normal">Needs API: error codes for a createAddress 409 other than the 20-address limit</span>
+    </sc-if>
+
+    <sc-if value="{{f.notServed}}" hint-placeholder-val="{{false}}">
+      <span class="gap-tag">Proposed component: Banner</span>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="md" padding="var(--space-3) var(--space-4)" dc-props="{{alert.warning}}" role="alert"><div style="display: flex; gap: var(--space-3); align-items: flex-start; font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-line)">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="map" size="md"></x-import>
+        <div style="display: flex; flex-direction: column; gap: var(--space-2)">
+          <span style="font-size: var(--type-label-lg-size); line-height: var(--type-label-lg-line); font-weight: 600">We deliver in Ontario only for now</span>
+          <span id="notserved-why">The address you found is in Quebec, so we can't deliver there yet. Search for an Ontario address instead.</span>
+          <div style="align-self: flex-start">
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="sm" on-press="{{noop}}">Search for another address</x-import>
+          </div>
+        </div>
+      </div></x-import>
+      <span class="api-tag" style="white-space: normal">Only for a searched or pasted address outside PublicConfig.served_provinces. Needs API: createAddress to reject provinces we don't serve, or confirm such an address may be saved and then fail at quote.</span>
+      <span class="anno-tag">While the address is outside PublicConfig.served_provinces, Save address is disabled and points at this message (aria-describedby). Search for another address clears the search field and moves focus into it. Back to Addresses stays only in the AppBar back button.</span>
+    </sc-if>
+
+    <sc-if value="{{f.saveError}}" hint-placeholder-val="{{false}}">
+      <span class="gap-tag">Proposed component: Banner</span>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="md" padding="var(--space-3) var(--space-4)" dc-props="{{alert.warning}}" role="alert"><div style="display: flex; gap: var(--space-3); align-items: flex-start; font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-line)">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="warning" size="md"></x-import>
+        <div style="display: flex; flex-direction: column; gap: 2px">
+          <span style="font-size: var(--type-label-lg-size); line-height: var(--type-label-lg-line); font-weight: 600">We couldn't save this address</span>
+          <span>Everything you typed is still here, pin included. Check your connection and try again.</span>
+        </div>
+      </div></x-import>
+    </sc-if>
+
+    <sc-if value="{{f.limit}}" hint-placeholder-val="{{false}}">
+      <span class="gap-tag">Proposed component: Banner</span>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="md" padding="var(--space-3) var(--space-4)" dc-props="{{alert.warning}}" role="alert"><div style="display: flex; gap: var(--space-3); align-items: flex-start; font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-line)">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="warning" size="md"></x-import>
+        <div style="display: flex; flex-direction: column; gap: var(--space-2)">
+          <span style="font-size: var(--type-label-lg-size); line-height: var(--type-label-lg-line); font-weight: 600">You already have 20 saved addresses</span>
+          <span>That's the most you can keep. Delete one you no longer use, then save this one. What you typed is still here.</span>
+          <div style="align-self: flex-start">
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="sm" href="Addresses.dc.html">Go to Addresses</x-import>
+          </div>
+        </div>
+      </div></x-import>
+      <span class="api-tag" style="white-space: normal">Needs API: an error code for the 20-address limit on createAddress (the contract lists only a generic 409/422)</span>
+    </sc-if>
+
+    <sc-if value="{{f.notKbd}}" hint-placeholder-val="{{true}}">
+    <section aria-labelledby="find-h" style="display: flex; flex-direction: column; gap: var(--space-3)">
+      <h2 id="find-h" class="t-h2">{{findTitle}}</h2>
+      <span class="gap-tag" style="white-space: normal">Proposed component: AddressMapPicker. Parts: DS Input (search), Proposed component MapView (below), DS Buttons (Use my current location, Move pin). Add to the design system after owner approval, once MapView is approved.</span>
+      <p id="pin-help" class="t-small">{{pinHelp}}</p>
+      <sc-if value="{{f.showSearch}}" hint-placeholder-val="{{true}}">
+        <sc-if value="{{f.geoDown}}" hint-placeholder-val="{{false}}">
+          <span class="gap-tag">Proposed component: Banner</span>
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="md" padding="var(--space-3) var(--space-4)" dc-props="{{alert.neutral}}" role="status"><div style="display: flex; gap: var(--space-3); align-items: flex-start; font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-line)">
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="info" size="md"></x-import>
+            <div style="display: flex; flex-direction: column; gap: 2px">
+              <span style="font-size: var(--type-label-lg-size); line-height: var(--type-label-lg-line); font-weight: 600; color: var(--text-primary)">Address search isn't working right now</span>
+              <span>Drag the map until the pin sits on your door, then type the address in the fields below.</span>
+            </div>
+          </div></x-import>
+        </sc-if>
+        <sc-if value="{{f.geoUp}}" hint-placeholder-val="{{true}}">
+          <div data-autofocus-search="" style="display: flex; flex-direction: column; gap: var(--space-2)">
+            <span class="api-tag" style="white-space: normal">Needs API: address search on the map (autocomplete and place lookup), approved for launch through our server and Mapbox (1 October) but not in the contract yet; tracked as the address-search API issue, <a href="https://github.com/shaiknoorullah/hg-mono/issues/150" style="color: inherit">GitHub #150</a></span>
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Search for an address" variant="search" auto-complete="street-address" default-value="{{searchValue}}" helper-text="Type a street and number, like 14 Ellesmere Rd. The map moves there."></x-import>
+          </div>
+        </sc-if>
+      </sc-if>
+      <span class="gap-tag" style="white-space: normal">Proposed component: MapView. The customer app's map view (@rnmapbox/maps MapView) inside a DS Card, with a draggable pin drawn with the DS Icon map in the customer pin colour and a 2 px ring in text.primary. Drawn here as a placeholder region, not the real map. Add to the design system after owner approval. Mapbox wordmark bottom-left and attribution (i) control must stay visible; never covered by sheets, cards or zoom buttons (move zoom controls up 32 px).</span>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg" padding="0" role="img" aria-label="{{mapLabel}}" dc-props="{{mapCard}}">
+        <div style="position: relative; height: 240px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-2); background: var(--surface-sunken); border-radius: inherit; color: var(--text-secondary)">
+          <span aria-hidden="true" style="width: 32px; height: 32px; display: grid; place-items: center; border-radius: var(--radius-full); background: var(--color-map-pin-customer); color: var(--text-on-accent); box-shadow: 0 0 0 2px var(--text-primary)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="map" size="md"></x-import></span>
+          <span class="t-small" style="color: var(--text-primary); text-align: center; padding: 0 var(--space-4)">{{pinText}}</span>
+        </div>
+      </x-import>
+      <sc-if value="{{f.pinDsIssue}}" hint-placeholder-val="{{false}}">
+        <span class="gap-tag" style="white-space: normal">DS issue: color.map.pin.customer needs a dark-theme value or outline; 1.72:1 on dark surface.sunken. Drawn here with a 2 px text.primary ring so the pin passes 3:1.</span>
+      </sc-if>
+      <sc-if value="{{pinErr}}" hint-placeholder-val="{{false}}">
+        <p id="pin-err" class="t-small" role="alert" style="display: flex; gap: var(--space-2); align-items: flex-start; color: var(--feedback-danger-text)">
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="error" size="sm" style="margin-top: 2px"></x-import>
+          <span>{{pinErr}}</span>
+        </p>
+      </sc-if>
+      <sc-if value="{{f.outside}}" hint-placeholder-val="{{false}}">
+        <div class="api-box">
+          <span class="api-tag" style="white-space: normal">Needs API: delivery-area check on createAddress</span>
+          <p class="t-small">No server check exists for this today, so the customer sees nothing here. If the contract adds one, the message goes under the map, linked to it, in amber, never as a danger error.</p>
+        </div>
+      </sc-if>
+      <sc-if value="{{f.locDenied}}" hint-placeholder-val="{{false}}">
+        <span class="gap-tag">Proposed component: Banner</span>
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="md" padding="var(--space-3) var(--space-4)" dc-props="{{alert.neutral}}" role="status"><div style="display: flex; gap: var(--space-3); align-items: flex-start; font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-line)">
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="info" size="md"></x-import>
+          <div style="display: flex; flex-direction: column; gap: var(--space-2)">
+            <span style="font-size: var(--type-label-lg-size); line-height: var(--type-label-lg-line); font-weight: 600; color: var(--text-primary)">Location is off for HalalGoes</span>
+            <span id="loc-why">You can still add this address: search for it or drag the map. The map starts in central Toronto.</span>
+            <div style="align-self: flex-start">
+              <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="sm" on-press="{{noop}}">Open phone settings</x-import>
+            </div>
+          </div>
+        </div></x-import>
+      </sc-if>
+      <div style="display: flex; flex-wrap: wrap; gap: var(--space-2)">
+        <div data-locbtn="">
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" icon-start="map" disabled="{{f.locDenied}}" aria-describedby="{{locDesc}}" on-press="{{noop}}">Use my current location</x-import>
+        </div>
+        <div data-move="">
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" aria-expanded="{{moveOpen}}" aria-describedby="{{pinDesc}}" on-press="{{noop}}">Move pin</x-import>
+        </div>
+      </div>
+      <span class="gap-tag" style="white-space: normal">Component gap: Icon move. Move pin is a text Button until Solar move is in the design system.</span>
+      <sc-if value="{{f.ltBtn}}" hint-placeholder-val="{{false}}">
+        <span class="gap-tag" style="white-space: normal">DS issue: Button label nowrap clips at 200% text. Not approved as drawn. Needs white-space normal, centred text, same minBlockSize.</span>
+      </sc-if>
+      <sc-if value="{{f.mapFocus}}" hint-placeholder-val="{{false}}">
+        <div role="group" aria-labelledby="nudge-h" style="display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-3); border: 1px solid var(--border-decorative); border-radius: var(--radius-md)">
+          <span id="nudge-h" class="t-sec">Move the pin</span>
+          <span class="t-sec" aria-hidden="true">Step size</span>
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.SegmentedControl" label="Step size" size="md" full-width="{{yes}}" value="{{step}}" options="{{stepOptions}}" on-change="{{noop}}"></x-import>
+          <div data-nudge="" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2)">
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="secondary" size="md" full-width="{{yes}}" accessibility-label="{{moveName.n}}" on-press="{{noop}}">Move north</x-import>
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="secondary" size="md" full-width="{{yes}}" accessibility-label="{{moveName.s}}" on-press="{{noop}}">Move south</x-import>
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="secondary" size="md" full-width="{{yes}}" accessibility-label="{{moveName.w}}" on-press="{{noop}}">Move west</x-import>
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="secondary" size="md" full-width="{{yes}}" accessibility-label="{{moveName.e}}" on-press="{{noop}}">Move east</x-import>
+          </div>
+          <p class="t-small">Each press moves the pin by the step size you choose.</p>
+          <span class="anno-tag">Step size (DS SegmentedControl, 1 m or 10 m, starts at 10 m) works the same for keyboard, switch, VoiceOver and TalkBack; no key needs holding. Each Move button's name carries the step, for example 'Move north 10 m'.</span>
+        </div>
+        <span class="anno-tag">Dragging is the touch path; these buttons are the same move for keyboard, switch and screen-reader users. The map is role=img, never a focus stop: in a screen reader's browse mode arrow keys go to the virtual cursor. Note for the proposed MapView component.</span>
+      </sc-if>
+    </section>
+    </sc-if>
+
+    <section aria-labelledby="addr-h" style="display: flex; flex-direction: column; gap: var(--space-4)">
+      <h2 id="addr-h" class="t-h2">Address</h2>
+      <sc-if value="{{f.darkErr}}" hint-placeholder-val="{{false}}">
+        <span class="gap-tag" style="white-space: normal">DS issue: form field error text is hard-coded danger-600, 2.32:1 on the dark background; should be feedback.danger.text. Not recoloured here.</span>
+      </sc-if>
+      <sc-if value="{{f.geocoding}}" hint-placeholder-val="{{false}}">
+        <p class="t-small" role="status">Filling in the address from your pin.</p>
+        <span class="api-tag" style="white-space: normal">Needs API: fill in the address from the pin (reverse geocode), approved for launch through our server and Mapbox (1 October) but not in the contract yet; tracked as the address-search API issue, <a href="https://github.com/shaiknoorullah/hg-mono/issues/150" style="color: inherit">GitHub #150</a>. Until then the customer types it. Reverse geocoding for saved addresses uses Mapbox permanent geocoding (results are stored).</span>
+      </sc-if>
+      <div data-autofocus="" class="{{line1Class}}">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Street address" required="{{yes}}" auto-complete="address-line1" max-length="{{n200}}" default-value="{{v.line1}}" read-only="{{f.saving}}" loading="{{f.geocoding}}" error-text="{{e.line1}}"></x-import>
+      </div>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Building or complex name (optional)" auto-complete="address-line2" max-length="{{n200}}" default-value="{{v.line2}}" read-only="{{f.saving}}"></x-import>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="City" required="{{yes}}" auto-complete="address-level2" max-length="{{n100}}" default-value="{{v.city}}" read-only="{{f.saving}}" loading="{{f.geocoding}}" error-text="{{e.city}}"></x-import>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Province" read-only="{{yes}}" default-value="{{provName}}" helper-text="{{provHelp}}"></x-import>
+      <span class="anno-tag">Options come from PublicConfig.served_provinces. With one entry, Province is read-only; with more, it becomes a Select of only those.</span>
+      <div data-kbd-focus="">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Postal code" required="{{yes}}" auto-complete="postal-code" max-length="{{n7}}" default-value="{{v.postal}}" read-only="{{f.saving}}" loading="{{f.geocoding}}" helper-text="{{postalHelp}}" error-text="{{e.postal}}" style="max-width: 200px"></x-import>
+      </div>
+      <span class="gap-tag" style="white-space: normal">DS issue: Input helper text and character count use text.tertiary, 4.18:1 on cream; should be text.secondary. Not approved as drawn. (Search, Province and Postal code helpers; the Name for this address count.)</span>
+    </section>
+
+    <sc-if value="{{f.notKbd}}" hint-placeholder-val="{{true}}">
+    <section aria-labelledby="door-h" style="display: flex; flex-direction: column; gap: var(--space-4)">
+      <h2 id="door-h" class="t-h2">Getting to your door</h2>
+      <p class="t-small">Riders offered your delivery see only your general area before they accept. The rider who accepts sees your full address, including unit, buzzer and notes. The restaurant sees it once it starts preparing your order; before that, only your area.</p>
+      <span class="anno-tag" style="white-space: normal">Copy follows the owner decision of 1 October (approximate area before a rider accepts, full address once accepted), with the restaurant line the owner asked for. Restaurant: OrderRestaurantView.delivery_area before accept; OrderRestaurantView.delivery_address from acceptance, which is when it starts preparing. delivery_address is a full Address (unit, buzzer and delivery_notes included), so the restaurant sees the same details as the rider. Riders: today the pre-accept projection DispatchOffer.dropoff carries the street and neighbourhood plus the door pin, sent to every rider in each dispatch wave; the decision narrows it to an approximate area. Unit, buzzer, notes and the phone alias arrive only on acceptOffer.</span>
+      <span class="api-tag" style="white-space: normal">Needs API: the dispatch offer's drop-off as an approximate area only, with the full address from acceptOffer (owner decision, 1 October; the contract still sends the street and pin before acceptance)</span>
+      <div class="pair {{pairClass}}">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Unit (optional)" max-length="{{n32}}" default-value="{{v.unit}}" read-only="{{f.saving}}"></x-import>
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Buzzer (optional)" max-length="{{n32}}" default-value="{{v.buzzer}}" read-only="{{f.saving}}"></x-import>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: var(--space-1)">
+        <span class="gap-tag" style="white-space: normal">Proposed component: Textarea. Built from the React Native Reusables Textarea part with the DS Input's label, border, radius, control.bg and focus border: multi-line, 3 rows (96 px) growing to 6, count underneath in text.secondary. Add to the design system after owner approval.</span>
+        <div data-testid="Textarea" style="display: grid; gap: var(--space-1)">
+          <label for="notes-field" style="font-size: var(--type-label-md-size); font-weight: var(--font-weight-semibold); color: var(--text-secondary)">Delivery notes (optional)</label>
+          <textarea id="notes-field" rows="3" maxlength="200" aria-describedby="notes-why notes-count" readonly="{{notesReadOnly}}" style="box-sizing: border-box; width: 100%; min-height: 96px; max-height: calc(6 * var(--type-body-md-line) + 2 * var(--space-3) + 2px); resize: none; overflow-y: auto; padding: var(--space-3); border: 1px solid var(--control-border); border-radius: var(--radius-md); background: var(--control-bg); color: var(--text-primary); font-family: var(--font-ui); font-size: var(--type-body-md-size); line-height: var(--type-body-md-line); white-space: pre-wrap; overflow-wrap: anywhere">{{v.notes}}</textarea>
+          <span id="notes-count" style="font-size: var(--type-caption-size); color: var(--text-secondary); text-align: end; font-variant-numeric: var(--numeric-tabular)">{{notesCount}}/200</span>
+        </div>
+        <p id="notes-why" class="t-small">The restaurant and your rider see these. For example: side door, second buzzer from the top.</p>
+        <span class="anno-tag">The privacy line is a t-small paragraph (text.secondary), not Input helper text, and is linked to the field with aria-describedby="notes-why". The count is announced near the limit, as the DS Input does.</span>
+      </div>
+    </section>
+
+    <section aria-labelledby="label-h" style="display: flex; flex-direction: column; gap: var(--space-4)">
+      <h2 id="label-h" class="t-h2">Address name</h2>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.RadioGroup" label="Save this address as" orientation="horizontal" value="{{v.labelKind}}" options="{{labels}}" on-value-change="{{noop}}"></x-import>
+      <sc-if value="{{f.otherLabel}}" hint-placeholder-val="{{false}}">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Name for this address" max-length="{{n30}}" character-count="{{yes}}" default-value="{{v.label}}" read-only="{{f.saving}}"></x-import>
+      </sc-if>
+      <p class="t-small">{{labelHelp}}</p>
+      <sc-if value="{{f.isEdit}}" hint-placeholder-val="{{false}}">
+        <span class="api-tag" style="white-space: normal">Needs API: allow clearing label (null) on updateAddress</span>
+      </sc-if>
+      <sc-if value="{{f.defaultBox}}" hint-placeholder-val="{{true}}">
+        <div style="display: flex; flex-direction: column; gap: var(--space-1)">
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Checkbox" label="Make this my default address" checked="{{v.makeDefault}}" aria-describedby="default-why" on-checked-change="{{noop}}"></x-import>
+          <p id="default-why" class="t-small" style="padding-left: calc(20px + var(--space-3))">We'll use it first on Home and at checkout.</p>
+        </div>
+        <span class="gap-tag" style="white-space: normal">DS issue: Checkbox description is text.tertiary, 4.18:1 on cream. The sentence is a t-small paragraph (text.secondary) under the Checkbox, linked with aria-describedby="default-why", as on Profile.</span>
+      </sc-if>
+      <sc-if value="{{f.firstDefault}}" hint-placeholder-val="{{false}}">
+        <p class="t-small" style="color: var(--text-primary)">This will be your default address. We use it first on Home and at checkout.</p>
+        <span class="anno-tag">No saved addresses yet: no checkbox, because the only address has to be the default.</span>
+      </sc-if>
+    </section>
+
+    <sc-if value="{{f.showConfirm}}" hint-placeholder-val="{{false}}">
+      <section aria-labelledby="confirm-h" style="display: flex; flex-direction: column; gap: var(--space-3); padding-top: var(--space-6); border-top: 1px solid var(--border-decorative)">
+        <h2 id="confirm-h" class="t-h2">Check the pin</h2>
+        <p class="t-small" style="color: var(--text-primary)">{{confirmQuestion}}</p>
+        <div data-confirm="">
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Checkbox" label="{{confirmBoxLabel}}" checked="{{v.confirmed}}" error="{{confirmErr}}" on-checked-change="{{noop}}"></x-import>
+        </div>
+        <sc-if value="{{f.gateNote}}" hint-placeholder-val="{{false}}">
+          <span class="anno-tag">Order: search and the map first, then the Address fields, then this check, just above the sticky Save. The question and the box name the typed Street address, so the customer compares the pin with what they entered. Save is gated on this box: pressed while unticked, Save stops, the box shows its error and takes focus (board: pin not confirmed). Hidden until Street address has a value and the pin is placed.</span>
+        </sc-if>
+      </section>
+    </sc-if>
+
+    </sc-if>
+
+    <sc-if value="{{f.isEdit}}" hint-placeholder-val="{{false}}">
+      <section aria-labelledby="def-h" style="display: flex; flex-direction: column; gap: var(--space-3); margin-top: var(--space-4); padding-top: var(--space-6); border-top: 1px solid var(--border-decorative)">
+        <h2 id="def-h" class="t-h2">Default address</h2>
+        <sc-if value="{{v.isDefault}}" hint-placeholder-val="{{false}}">
+          <p class="t-small">This is your default address. We use it first on Home and at checkout. To change it, open another address and make that one the default.</p>
+        </sc-if>
+        <sc-if value="{{f.canMakeDefault}}" hint-placeholder-val="{{false}}">
+          <p class="t-small">Changes right away. You don't need to press Save changes.</p>
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" full-width="{{yes}}" loading="{{f.settingDefault}}" disabled="{{f.offline}}" aria-describedby="{{offlineDesc}}" on-press="{{noop}}">{{defaultLabel}}</x-import>
+        </sc-if>
+      </section>
+      <section aria-labelledby="del-h" style="display: flex; flex-direction: column; gap: var(--space-3); padding-top: var(--space-6); border-top: 1px solid var(--border-decorative)">
+        <h2 id="del-h" class="t-h2">Delete</h2>
+        <p class="t-small">Past orders keep the address they were delivered to.</p>
+        <div data-delete="">
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" destructive="{{yes}}" full-width="{{yes}}" disabled="{{f.offline}}" aria-describedby="{{offlineDesc}}" on-press="{{noop}}">Delete this address</x-import>
+        </div>
+        <sc-if value="{{f.deleteFail}}" hint-placeholder-val="{{false}}">
+          <span class="anno-tag">deleteAddress failed (network or 5xx): the dialog closes, focus returns to Delete this address, and the toast says the address is still saved. 409 ADDRESS_IN_USE has its own board.</span>
+        </sc-if>
+      </section>
+    </sc-if>
+  </main>
+
+  <footer class="foot foot-sticky">
+    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" full-width="{{yes}}" loading="{{f.saving}}" disabled="{{saveDisabled}}" aria-describedby="{{saveDesc}}" href="{{saveHref}}">{{saveLabel}}</x-import>
+    <sc-if value="{{f.offline}}" hint-placeholder-val="{{false}}">
+      <p id="save-why" class="t-small" style="text-align: center">Connect to the internet to save.</p>
+    </sc-if>
+  </footer>
+  <sc-if value="{{kbd}}" hint-placeholder-val="{{false}}"><div class="kbd" aria-hidden="true"><span class="anno-tag">Phone keyboard, drawn by the OS (291 px)</span></div></sc-if>
+  </sc-if>
+
+  <sc-if value="{{f.defaultDone}}" hint-placeholder-val="{{false}}">
+    <div class="toast-dock">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Toast" variant="success" title="Mum's place is now your default" description="We'll use it first on Home and at checkout." on-dismiss="{{noop}}"></x-import>
+    </div>
+  </sc-if>
+  <sc-if value="{{f.defaultFail}}" hint-placeholder-val="{{false}}">
+    <div class="toast-dock">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Toast" variant="warning" title="We couldn't make Mum's place your default" description="Home is still your default. Check your connection and try again." action="{{retryAction}}" on-dismiss="{{noop}}"></x-import>
+    </div>
+  </sc-if>
+  <sc-if value="{{f.deleteFail}}" hint-placeholder-val="{{false}}">
+    <div class="toast-dock">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Toast" variant="warning" title="We couldn't delete this address" description="Home is still saved. Check your connection and try again." action="{{retryAction}}" on-dismiss="{{noop}}"></x-import>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{f.confirm}}" hint-placeholder-val="{{false}}">
+    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Modal" open="{{yes}}" contained="{{yes}}" variant="confirm" destructive="{{yes}}" title="Delete this address?" description="{{confirmDesc}}" confirm-label="Delete address" cancel-label="Keep address" confirm-loading="{{f.deleting}}" on-confirm="{{noop}}" on-close="{{noop}}" size="sm"></x-import>
+    <div style="position: absolute; top: var(--space-2); left: var(--space-2); right: var(--space-2); z-index: 2000; display: flex; flex-direction: column; gap: var(--space-1)">
+      <span class="api-tag" style="white-space: normal">Needs API: confirm deleteAddress makes another address the default, as the spec says. Copy follows the spec until the contract says.</span>
+    </div>
+  </sc-if>
+  <sc-if value="{{f.inUse}}" hint-placeholder-val="{{false}}">
+    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Modal" open="{{yes}}" contained="{{yes}}" variant="confirm" title="You can't delete this address yet" description="An order that isn't finished yet still uses this address. You can delete it once that order is finished." confirm-label="View order" cancel-label="OK" on-confirm="{{noop}}" on-close="{{noop}}" size="sm"></x-import>
+    <div style="position: absolute; top: var(--space-2); left: var(--space-2); right: var(--space-2); z-index: 2000; display: flex; flex-direction: column; gap: var(--space-1)">
+      <span class="api-tag" style="white-space: normal">Needs API: order_id in ADDRESS_IN_USE error details</span>
+      <span class="anno-tag">409 ADDRESS_IN_USE carries no order id or state, and any non-terminal order blocks it (RESTAURANT_PENDING and DISPUTED too), so the copy names no state. View order finds the order with listOrders?status_group=ACTIVE (ACTIVE_ORDER_EXISTS allows one) and opens its screen. OK closes.</span>
+    </div>
+  </sc-if>
+  <sc-if value="{{f.unsaved}}" hint-placeholder-val="{{false}}">
+    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Modal" open="{{yes}}" contained="{{yes}}" variant="confirm" destructive="{{yes}}" title="Discard your changes?" description="You changed this address but haven't saved it. If you leave now, the changes are lost." confirm-label="Discard changes" cancel-label="Keep editing" on-confirm="{{noop}}" on-close="{{noop}}" size="sm"></x-import>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["new","first","today","filled","unconfirmed","validation","invalidfocus","manualfocus","geocoding","geodown","locdenied","mapfocus","notserved","outside","offline","saving","saveerror","server422","conflict","limit","edit","repin","editloading","edit404","editother","editoffline","settingdefault","defaultdone","defaultfail","deleteconfirm","deleting","deletefail","inuse","unsaved"],"default":"new"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"lt":{"editor":"boolean","default":false},"kbd":{"editor":"boolean","default":false},"w":{"editor":"int","min":320,"max":430,"default":390},"h":{"editor":"int","min":844,"max":4000,"default":1960},"$preview":{"width":390,"height":1960}}'>
+class Component extends DCLogic {
+  componentDidMount() {
+    this.t = setTimeout(() => {
+      try {
+        const s = this.props.state ?? 'new';
+        let el = null;
+        if (s === 'new' || s === 'first') el = document.querySelector('[data-autofocus-search] input');
+        if (s === 'invalidfocus' || s === 'manualfocus') el = document.querySelector('[data-autofocus] input');
+        if (this.props.kbd) el = document.querySelector('[data-kbd-focus] input');
+        if (s === 'mapfocus') el = document.querySelector('[data-nudge] button, [data-nudge] a');
+        if (s === 'unconfirmed') el = document.querySelector('[data-confirm] input');
+        if (s === 'deletefail') el = document.querySelector('[data-delete] button, [data-delete] a');
+        if (s === 'deleteconfirm' || s === 'unsaved') {
+          const want = s === 'unsaved' ? 'Keep editing' : 'Keep address';
+          el = Array.from(document.querySelectorAll('[role=alertdialog] button, [role=dialog] button')).find((b) => (b.textContent || '').trim() === want) || null;
+        }
+        if (el) el.focus({ preventScroll: true });
+      } catch (e) {}
+    }, 500);
+  }
+  componentWillUnmount() { clearTimeout(this.t); }
+  renderVals() {
+    const s = this.props.state ?? 'new';
+    const editStates = ['edit', 'repin', 'editloading', 'edit404', 'editother', 'editoffline', 'settingdefault', 'defaultdone', 'defaultfail', 'deleteconfirm', 'deleting', 'deletefail', 'inuse', 'unsaved'];
+    const dark = this.props.theme === 'dark';
+    const f = {
+      isEdit: editStates.includes(s), saving: s === 'saving', saveError: s === 'saveerror', limit: s === 'limit',
+      notServed: s === 'notserved', outside: s === 'outside', settingDefault: s === 'settingdefault', defaultDone: s === 'defaultdone',
+      defaultFail: s === 'defaultfail', deleteFail: s === 'deletefail',
+      confirm: s === 'deleteconfirm' || s === 'deleting', deleting: s === 'deleting', inUse: s === 'inuse', unsaved: s === 'unsaved',
+      geocoding: s === 'geocoding', geoDown: s === 'geodown', locDenied: s === 'locdenied', mapFocus: s === 'mapfocus',
+      editLoading: s === 'editloading', edit404: s === 'edit404', server422: s === 'server422', conflict: s === 'conflict',
+      offline: s === 'offline' || s === 'editoffline',
+    };
+    f.notKbd = !this.props.kbd;
+    f.isNew = !f.isEdit;
+    f.showSearch = f.isNew;
+    f.primaryNote = (s === 'new' || s === 'first') && !this.props.kbd;
+    f.ltBtn = !!this.props.lt;
+    f.pinDsIssue = dark;
+    f.geoUp = !f.geoDown;
+    f.form = !f.editLoading && !f.edit404;
+    f.firstDefault = s === 'first';
+    f.defaultBox = f.isNew && !f.firstDefault;
+    const blank = { line1: '', line2: '', city: '', province: 'ON', postal: '', unit: '', buzzer: '', notes: '', labelKind: 'NONE', label: '', makeDefault: false, isDefault: false, pinned: false, repinned: false, confirmed: false };
+    const home = { line1: '14 Ellesmere Rd', line2: '', city: 'Toronto', province: 'ON', postal: 'M1R 4E7', unit: '402', buzzer: '402', notes: 'Leave at the door, please.', labelKind: 'HOME', label: 'Home', makeDefault: true, isDefault: true, pinned: true, repinned: false, confirmed: true };
+    const other = { line1: '88 Dundas St W', line2: 'Parkside Towers', city: 'Mississauga', province: 'ON', postal: 'L5B 1H6', unit: '1204', buzzer: '1204', notes: 'Visitor parking is off Kariya Dr.', labelKind: 'OTHER', label: "Mum's place", makeDefault: false, isDefault: false, pinned: true, repinned: false, confirmed: true };
+    let v = blank;
+    const newHome = { ...home, isDefault: false, makeDefault: false };
+    if (['filled', 'saving', 'saveerror', 'outside', 'limit', 'mapfocus', 'conflict', 'offline'].includes(s)) v = newHome;
+    if (s === 'today' || s === 'unconfirmed') v = { ...newHome, confirmed: false };
+    if (s === 'server422') v = { ...newHome, postal: 'M1R 9Z9' };
+    if (s === 'filled') v = { ...newHome, notes: 'Side door on the left of the building, second buzzer from the top. If no one answers, call me and I will come down. Please do not leave it in the lobby.' };
+    if (s === 'manualfocus') v = { ...blank };
+    if (s === 'validation' || s === 'invalidfocus') v = { ...blank, city: 'Toronto', postal: 'M1R 4' };
+    if (s === 'geocoding') v = { ...blank, pinned: true };
+    if (s === 'geodown') v = { ...blank, line1: '14 Ellesmere Rd', city: 'Toronto' };
+    if (s === 'locdenied') v = { ...blank };
+    if (s === 'notserved') v = { ...home, line1: '1450 Rue Sainte-Catherine O', city: 'Montréal', province: 'QC', postal: 'H3G 1R8', unit: '', buzzer: '', notes: '', labelKind: 'NONE', isDefault: false };
+    if (['edit', 'deleteconfirm', 'deleting', 'deletefail', 'inuse', 'editoffline'].includes(s)) v = home;
+    if (s === 'repin') v = { ...home, repinned: true, confirmed: false };
+    if (s === 'unsaved') v = { ...home, notes: 'Leave at the side door, please.' };
+    if (['editother', 'settingdefault', 'defaultfail'].includes(s)) v = other;
+    if (s === 'defaultdone') v = { ...other, isDefault: true };
+    f.otherLabel = v.labelKind === 'OTHER';
+    f.canMakeDefault = f.isEdit && !v.isDefault;
+    f.showConfirm = v.pinned && !!v.line1 && (f.isNew || v.repinned) && !this.props.kbd;
+    f.gateNote = s === 'today';
+    const e = { line1: null, city: null, province: null, postal: null };
+    if (s === 'validation' || s === 'invalidfocus') { e.line1 = 'Enter the street address, like 14 Ellesmere Rd.'; e.postal = 'Enter a full postal code, like M1R 4E7.'; }
+    if (s === 'server422') e.postal = "This postal code wasn't accepted. Check it, like M1R 4E7.";
+    f.darkErr = dark && !!(e.line1 || e.city || e.postal);
+    let pinErr = null;
+    if ((s === 'validation' || s === 'invalidfocus') && !this.props.kbd) pinErr = 'Drag the pin onto your entrance so your rider can find you.';
+    const confirmErr = s === 'unconfirmed' ? "Check the pin, then tick this box. If the pin isn't on the entrance of " + v.line1 + ", drag it there first." : null;
+    const confirmLabel = v.label || v.line1;
+    const addrShort = v.line1 || 'no address yet';
+    let pinText;
+    if (f.geocoding) pinText = 'Pin dropped. Finding the address';
+    else if (!v.pinned) pinText = f.locDenied ? 'Map at central Toronto. Drag it to your door' : 'Drag the map to your door';
+    else if (v.repinned) pinText = 'Pin moved. Check it before you save';
+    else if (f.isEdit) pinText = 'Pin saved for this address';
+    else pinText = 'Pin on ' + (v.line1 || 'your door');
+    const saveDisabled = f.offline || f.notServed;
+    return {
+      alert: { neutral: { style: { background: 'var(--surface-sunken)', color: 'var(--text-secondary)', borderColor: 'var(--border-decorative)' } }, info: { style: { background: 'var(--feedback-info-tint)', color: 'var(--feedback-info-tint-text)', borderColor: 'var(--feedback-info-border)' } }, warning: { style: { background: 'var(--feedback-warning-tint)', color: 'var(--feedback-warning-tint-text)', borderColor: 'var(--feedback-warning-border)' } } }, rowLink: { className: 'hg-focus-inset', style: { border: 'none', borderRadius: 0, background: 'transparent' } }, rowStatic: { style: { border: 'none', borderRadius: 0, background: 'transparent' } },
+      f, v, e, pinErr, confirmErr, pinText, yes: true, noop: () => {},
+      confirmQuestion: 'Is the pin on the entrance of ' + (v.line1 || '') + '? Look at the map above before you save.',
+      confirmBoxLabel: 'The pin is on the entrance of ' + (v.line1 || ''),
+      n200: 200, n100: 100, n32: 32, n30: 30, n7: 7,
+      theme: dark ? 'dark' : 'light',
+      ltClass: this.props.lt ? 'lt' : '',
+      w: this.props.w ?? 390,
+      h: this.props.h ?? 1960,
+      title: f.isEdit ? 'Edit address' : (s === 'first' ? 'Your delivery address' : 'New address'),
+      backLabel: s === 'first' ? 'Back' : 'Back to Addresses',
+      searchValue: s === 'filled' ? '14 Ellesmere Rd, Toronto' : '',
+      line1Class: s === 'invalidfocus' ? 'drawn-invalid-focus' : '',
+      mapCard: pinErr ? { style: { border: '2px solid var(--feedback-danger-border)' } } : {},
+      mapLabel: 'Map. ' + pinText + '. ' + addrShort + '.',
+      moveOpen: f.mapFocus ? 'true' : 'false',
+      step: '10',
+      stepOptions: [{ value: '1', label: '1 m' }, { value: '10', label: '10 m' }],
+      moveName: { n: 'Move north 10 m', s: 'Move south 10 m', w: 'Move west 10 m', e: 'Move east 10 m' },
+      notesCount: (v.notes || '').length,
+      notesReadOnly: f.saving ? true : undefined,
+      provName: v.province === 'QC' ? 'Quebec' : 'Ontario',
+      provHelp: f.notServed ? null : 'We deliver in Ontario only for now.',
+      pinDesc: pinErr ? 'pin-help pin-err' : 'pin-help',
+      locDesc: f.locDenied ? 'loc-why' : undefined,
+      findTitle: f.isEdit ? 'Pin on your entrance' : 'Find your door on the map',
+      pairClass: (this.props.lt || (this.props.w ?? 390) < 375) ? 'stack' : '',
+      kbd: !!this.props.kbd, kbdClass: this.props.kbd ? 'kbd-open' : '',
+      pinHelp: f.isEdit
+        ? 'Your rider goes to this pin. To move it, drag the map until the pin sits on the right door.'
+        : "Search for the address, then drag the map until the pin sits on the door your rider should use. You don't need to be there. We save the pin's position, even if it differs from the typed address.",
+      labelHelp: f.isEdit ? "You can rename this address, but not remove its name." : 'Optional. Home and Work save those words as the name, Other lets you type your own, and No name shows the street instead.',
+      postalHelp: e.postal ? null : 'Like M1R 4E7',
+      labels: f.isEdit ? [{ value: 'HOME', label: 'Home' }, { value: 'WORK', label: 'Work' }, { value: 'OTHER', label: 'Other' }]
+        : [{ value: 'NONE', label: 'No name' }, { value: 'HOME', label: 'Home' }, { value: 'WORK', label: 'Work' }, { value: 'OTHER', label: 'Other' }],
+      defaultLabel: f.settingDefault ? 'Making it your default' : 'Make this my default address',
+      saveLabel: f.saving ? 'Saving address' : (f.isEdit ? 'Save changes' : 'Save address'),
+      saveDisabled,
+      saveDesc: f.offline ? 'save-why offline-why' : (f.notServed ? 'notserved-why' : undefined),
+      offlineDesc: f.offline ? 'offline-why' : undefined,
+      offlineBody: f.isEdit ? 'Showing this address as saved on this phone. What you change stays here; connect to save it.' : 'What you type stays here. Connect to Wi-Fi or mobile data to save this address.',
+      saveHref: (f.saving || saveDisabled) ? undefined : (s === 'first' ? 'https://claude.ai/artifact/HdmzQ4h2D22cMZvJ17a8cX' : 'Addresses.dc.html'),
+      retryAction: { label: 'Try again', onAction: () => {} },
+      confirmDesc: '“' + confirmLabel + '”, ' + v.line1 + ', will be removed from your saved addresses.' + (v.isDefault ? ' It is your default, so another saved address will become your default.' : ''),
+    };
+  }
+}
+</script>
+</body>
+</html>

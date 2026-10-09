@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Step 1, transcription</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div style="display: {{tagWrap}}; flex-direction: column; gap: 6px">
+<sc-if value="{{showTag}}" hint-placeholder-val="{{false}}"><span style="display: inline-flex; align-self: flex-start; padding: 2px 8px; border-radius: 4px; background: var(--color-info-50); color: var(--color-info-700); font-size: 12px; font-weight: 600">Proposed component: Transcription (DS Input, Select, Checkbox and Button, the proposed Textarea and InlineAlert)</span></sc-if>
+<div style="width: {{wcss}}; box-sizing: border-box; font-family: var(--font-ui); color: var(--text-primary)">
+<section aria-labelledby="tr-h" style="display: flex; flex-direction: column; gap: 12px">
+  <div style="display: flex; flex-direction: column; gap: 6px">
+    <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px">
+      <div style="display: flex; align-items: center; gap: 10px">
+        <span aria-hidden="true" style="display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 9999px; background: {{stepBg}}; color: {{stepFg}}; font-size: 13px; font-weight: 700">1</span>
+        <h2 id="tr-h" tabindex="-1" style="margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.01em"><span class="hg-sr">Step 1: </span>Transcribe the certificate</h2>
+      </div>
+      <span style="font-size: 13px; color: var(--text-secondary)">{{savedLine}}</span>
+    </div>
+    <p style="margin: 0; font-size: 13px; line-height: 1.45; color: var(--text-secondary)">{{intro}}</p>
+  </div>
+
+  <sc-if value="{{hasTop}}" hint-placeholder-val="{{false}}">
+    <dc-import name="InlineAlert" tone="{{topTone}}" blocking="{{topBlocking}}" heading="{{topTitle}}" body="{{topBody}}" w="{{innerW}}" hint-size="{{innerW}}px,130px"></dc-import>
+  </sc-if>
+
+  <sc-if value="{{isNoDoc}}" hint-placeholder-val="{{false}}">
+    <dc-import name="InlineAlert" tone="neutral" icon="info" heading="Nothing to transcribe" body="There’s no certificate document on this record. Ask the restaurant for a new certificate from the checks pane." w="{{innerW}}" hint-size="{{innerW}}px,120px"></dc-import>
+  </sc-if>
+
+  <sc-if value="{{isLoading}}" hint-placeholder-val="{{false}}">
+    <div aria-busy="true" style="display: flex; flex-direction: column; gap: 16px">
+      <span class="hg-skel" style="display: block; height: 66px"></span>
+      <span class="hg-skel" style="display: block; height: 66px"></span>
+      <span class="hg-skel" style="display: block; height: 66px"></span>
+      <span class="hg-skel" style="display: block; height: 96px"></span>
+      <span class="hg-skel" style="display: block; height: 66px"></span>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{notLoading}}" hint-placeholder-val="{{true}}">
+    <div style="display: flex; flex-direction: column; gap: 16px">
+      <div style="display: flex; flex-direction: column; gap: 4px">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Certificate number" default-value="{{number}}" read-only="{{ro}}" required="{{yes}}" max-length="{{hundred}}" helper-text="Exactly as printed, including dashes." error-text="{{numberError}}"></x-import>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 4px">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Select" label="Issuing body" variant="listbox" searchable="{{yes}}" required="{{yes}}" value="{{issuer}}" options="{{bodies}}" disabled="{{issuerOff}}" placeholder="Choose the body printed on the certificate" helper-text="{{issuerHelp}}" error-text="{{issuerError}}"></x-import>
+      </div>
+      <sc-if value="{{canPropose}}" hint-placeholder-val="{{true}}">
+        <a href="Verify-Propose.dc.html" style="display: inline-flex; align-items: center; align-self: flex-start; min-height: 44px; margin-top: -8px; font-size: 15px; font-weight: 600">The issuer isn’t listed. Propose an issuing body</a>
+      </sc-if>
+
+      <sc-if value="{{isPropose}}" hint-placeholder-val="{{false}}">
+        <div role="region" aria-labelledby="pr-h" style="display: flex; flex-direction: column; gap: 12px; padding: 12px; border-radius: 12px; background: var(--surface-sunken); border: 1px solid var(--border-interactive)">
+          <h3 id="pr-h" style="margin: 0; font-size: 16px; font-weight: 600">Propose an issuing body</h3>
+          <p style="margin: 0; font-size: 15px; line-height: 1.5; color: var(--text-secondary)">A super admin reviews it. Once sent, it’s chosen as the issuing body so you can save the transcription. Until it’s accepted, H2 Issuer accepted is suggested as Fail and the certificate can’t be approved.</p>
+          <sc-if value="{{isDup}}" hint-placeholder-val="{{false}}">
+            <dc-import name="InlineAlert" tone="warning" blocking="{{yes}}" heading="This issuing body is already in the registry" body="“Halal Certification Council of Ontario” was proposed earlier and is waiting for a super admin. Nothing new was sent. Choose it from Issuing body: it saves, and Issuer accepted is suggested as Fail until it’s accepted." w="{{nestedW}}" hint-size="{{nestedW}}px,150px"></dc-import>
+          </sc-if>
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Name, as printed on the certificate" default-value="Halal Certification Council of Ontario" required="{{yes}}"></x-import>
+          <dc-import name="Textarea" tid="pr-just" label="Why HalalGoes should consider it (required)" helper="" value="Issuer of the certificate for Karahi House. No accreditation reference on the certificate." count="93 of 1000 characters" rows="3" w="{{innerW}}" hint-size="{{innerW}}px,150px"></dc-import>
+          <div style="display: grid; grid-template-columns: repeat(1, minmax(0, 1fr)); gap: 12px">
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Website (optional)" default-value=""></x-import>
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Accreditation reference (optional)" default-value=""></x-import>
+          </div>
+          <div style="display: flex; gap: 12px; justify-content: flex-end">
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="md">Cancel</x-import>
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md" href="Verify-ProposalSent.dc.html">Send for review</x-import>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{isProposed}}" hint-placeholder-val="{{false}}">
+        <dc-import name="InlineAlert" tone="neutral" icon="clock" heading="HCCO proposed and chosen for this certificate" body="A super admin reviews it. While it’s only proposed, H2 Issuer accepted is suggested as Fail, so the certificate can’t be approved." foot="Your next step: reject with the reason Issuer not accepted, or wait for the super admin and review it again later." w="{{innerW}}" hint-size="{{innerW}}px,170px"></dc-import>
+      </sc-if>
+
+      <sc-if value="{{isConfirm}}" hint-placeholder-val="{{false}}">
+        <div id="issuer-confirm" tabindex="-1" role="group" aria-labelledby="oob-h" style="display: flex; flex-direction: column; gap: 12px; padding: 12px; border-radius: 12px; background: var(--surface-raised); border: 1.5px solid var(--border-interactive)">
+          <h3 id="oob-h" style="margin: 0; font-size: 16px; font-weight: 600">Confirm this certificate with the issuer</h3>
+          <p style="margin: 0; font-size: 15px; line-height: 1.5; color: var(--text-secondary)">HABC is accepted with a condition: the registry says each certificate must be confirmed with the issuer, outside HalalGoes, before approval. Approve stays off until the confirmation is recorded here.</p>
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Checkbox" label="HABC confirmed this certificate was issued to Karahi House Restaurant Inc." checked="{{confirmed}}"></x-import>
+          <dc-import name="Textarea" tid="oob-how" label="How and when you confirmed (required)" helper="Who you spoke to or wrote to, and the date. At least 20 characters. Kept with the audit record." value="{{oobValue}}" count="{{oobCount}}" rows="2" w="{{nestedW}}" hint-size="{{nestedW}}px,170px"></dc-import>
+          <div style="display: flex; justify-content: flex-end">
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="secondary" size="md" disabled="{{oobOff}}">Record confirmation</x-import>
+          </div>
+          <span style="display: inline-flex; align-self: flex-start; padding: 2px 8px; border-radius: 4px; background: var(--surface-sunken); border: 1px solid var(--border-strong); font-size: 12px; font-weight: 600">Needs API: record the issuer’s out-of-band confirmation on a certificate (requires_issuer_confirmation)</span>
+        </div>
+      </sc-if>
+
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Certified legal name" default-value="{{legal}}" required="{{yes}}" read-only="{{ro}}" error-text="{{legalError}}"></x-import>
+
+      <dc-import name="Textarea" tid="tr-addr" label="Certified address" required="{{yes}}" helper="Up to 300 characters, as printed." value="{{addr}}" count="{{addrCount}}" error="{{addrError}}" rows="2" ro="{{ro}}" w="{{innerW}}" hint-size="{{innerW}}px,150px"></dc-import>
+
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+        <div style="display: flex; flex-direction: column; gap: 4px">
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Issued on" default-value="{{issued}}" required="{{yes}}" read-only="{{ro}}" helper-text="YYYY-MM-DD" error-text="{{dateError}}"></x-import>
+          <span style="font-size: 13px; font-weight: 600">{{issuedWords}}</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 4px">
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Expires on" default-value="{{expires}}" required="{{yes}}" read-only="{{ro}}" helper-text="YYYY-MM-DD" error-text="{{expiresError}}"></x-import>
+          <span style="font-size: 13px; font-weight: 600">{{expiresWords}}</span>
+        </div>
+      </div>
+
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Select" label="Scope" required="{{yes}}" value="{{scope}}" options="{{scopes}}" disabled="{{ro}}" placeholder="Choose the scope printed" helper-text="As printed. Only Whole establishment and Kitchen only pass Scope sufficient." error-text="{{scopeError}}"></x-import>
+
+      <sc-if value="{{editable}}" hint-placeholder-val="{{true}}">
+        <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px 12px; padding-top: 4px">
+          <span role="status" style="flex: 1 1 180px; font-size: 13px; line-height: 1.45; color: var(--text-secondary)">{{footer}}</span>
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="{{saveVariant}}" size="md" loading="{{saving}}" disabled="{{saveOff}}" accessibility-label="{{saveLabel}}">Save transcription</x-import>
+        </div>
+      </sc-if>
+    </div>
+  </sc-if>
+</section>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"mode":{"editor":"enum","options":["edit","dirty","empty","readonly","proposedro","loading","propose","proposedup","proposed","confirm","suspended","supplier","dateError","required","server422","saving","savefail","saved","future","locklost","nodoc"],"default":"edit"},"who":{"editor":"enum","options":["karahi","zaytoun","noor"],"default":"karahi"},"tag":{"editor":"boolean","default":true},"$preview":{"width":356,"height":928},"w":{"editor":null,"default":356}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const m = this.props.mode ?? 'edit';
+    const ro = m === 'readonly' || m === 'proposedro';
+    // locklost: the fields keep what was typed, but nothing can be sent after the claim ended.
+    const lost = m === 'locklost';
+    const zay = this.props.who === 'zaytoun';
+    // noor: Noor Grill's current certificate (read-only, approved 20 October 2025).
+    const noor = this.props.who === 'noor';
+    const blank = m === 'empty' || m === 'required' || m === 'propose' || m === 'proposedup';
+    // Every registry body, with its status as the option description. Saving with a body that
+    // isn't Accepted is allowed: the server then suggests H2 as Fail and Reject opens with
+    // Issuer not accepted.
+    const bodies = [
+      { value: 'hma', label: 'Halal Monitoring Authority (HMA Canada)', description: 'Accepted' },
+      { value: 'isna', label: 'Islamic Society of North America Canada (ISNA Canada)', description: 'Accepted' },
+      { value: 'habc', label: 'Halal Assurance Board of Canada (HABC)', description: 'Accepted · the issuer’s confirmation is needed before approval' },
+      { value: 'hcco', label: 'Halal Certification Council of Ontario (HCCO)', description: 'Proposed, waiting for a super admin · doesn’t pass Issuer accepted' },
+      { value: 'hfsaa', label: 'Halal Food Standards Alliance of America (HFSAA)', description: 'Suspended · doesn’t pass Issuer accepted' },
+      { value: 'chrb', label: 'Canadian Halal Review Board (CHRB)', description: 'Retired · doesn’t pass Issuer accepted' },
+      { value: 'ghm', label: 'Global Halal Mark (GHM)', description: 'Rejected · doesn’t pass Issuer accepted' },
+    ];
+    const tops = {
+      required: [false, 'warning', 'The transcription wasn’t saved: 7 fields are empty', 'Fill in the certificate number, issuing body, legal name, certified address, issued on, expires on and scope. The fields are marked below. Nothing was changed.'],
+      // Only 422s the contract can return: issuing_body_id is required and must be a registry id.
+      server422: [true, 'warning', 'The server didn’t accept 1 field', 'Fix the marked field and save again. Nothing was changed.'],
+      savefail: [true, 'warning', 'The transcription wasn’t saved', 'The connection dropped before the server answered. Everything you typed is still here. Save again when you’re back online.'],
+      saved: [false, 'info', 'Transcription saved at 2:07 pm', 'The suggested issuer, name and address checks and the computed Dates valid and Unique, not reused are updated below, from the server’s answer to this save.'],
+      // A future issue date is not a transcription error: it saves, and H5 is then computed as Fail.
+      future: [false, 'info', 'Transcription saved at 2:07 pm', 'H5 Dates valid, computed: Fail. Issued 15 November 2026, after today. No one can override this check. The server computes it.'],
+    }[m];
+    const addr = blank ? '' : noor ? '1880 Eglinton Avenue East, Toronto ON M1L 2L1' : zay ? '8 Queen Street East, Unit 2, Brampton ON L6V 1A2' : '3025 Kennedy Road, Unit 4, Scarborough ON M1V 1S3';
+    const footers = {
+      saving: 'Saving. The server answers with updated suggestions for the issuer, name and address checks and recomputes Dates valid and Unique, not reused.',
+      saved: 'Saved at 2:07 pm. Step 2 below shows the updated suggestions.',
+      dirty: 'You changed the scope. Save to update the suggestions and computed checks.',
+      supplier: 'Saved with the scope Supplier chain only. It doesn’t pass Scope sufficient: step 2 offers only Fail or Not assessed for that check.',
+      future: 'Saved at 2:07 pm. Issued 15 November 2026, after today: Dates valid is computed as Fail.',
+      suspended: 'Saved with HFSAA, which is Suspended in the registry. Issuer accepted can’t pass.',
+      proposed: 'Saved with HCCO, a proposed body. Issuer accepted is suggested as Fail until it’s accepted.',
+      confirm: 'Saved. HABC is accepted, with the issuer’s confirmation needed before approval.',
+      propose: 'Send the proposal first, or choose a body from the list.',
+      proposedup: 'Choose HCCO from the list to save with it.',
+    };
+    const unsaved = ['empty', 'dirty', 'required', 'server422', 'savefail', 'dateError', 'saving'].includes(m);
+    const w = this.props.w ?? 356;
+    return { showTag: !!this.props.tag, tagWrap: this.props.tag ? 'flex' : 'contents', 
+      wcss: w + 'px', innerW: w, nestedW: w - 26,
+      isNoDoc: m === 'nodoc',
+      yes: true, ro, hundred: 100,
+      saveVariant: unsaved ? 'primary' : 'secondary',
+      isConfirm: m === 'confirm', confirmed: false, oobValue: '', oobCount: '0 of 1000 characters · minimum 20', oobOff: true,
+      stepBg: ro ? 'var(--surface-sunken)' : 'var(--surface-chrome)',
+      stepFg: ro ? 'var(--text-secondary)' : 'var(--text-on-accent)',
+      isLoading: m === 'loading', notLoading: m !== 'loading' && m !== 'nodoc',
+      editable: !ro && m !== 'nodoc',
+      canPropose: !ro && m !== 'nodoc' && !['propose', 'proposedup', 'proposed', 'confirm'].includes(m),
+      isPropose: m === 'propose' || m === 'proposedup', isDup: m === 'proposedup', isProposed: m === 'proposed',
+      intro: m === 'nodoc' ? 'No document, so there is nothing to type in.' : ro ? 'Read-only. The fields as last saved.' : 'Type exactly what the certificate says. Nothing is filled in for you. Save the transcription before step 2: the system suggestions and the computed checks depend on it.',
+      savedLine: m === 'loading' || m === 'nodoc' ? '' : ro ? (noor ? 'Saved 10:40 am, 20 October 2025' : 'Saved 1:58 pm, 28 September 2026') : blank ? 'Not saved yet' : m === 'dirty' ? 'Unsaved changes' : (m === 'saved' || m === 'future') ? 'Last saved by you at 2:07 pm' : m === 'proposed' ? 'Last saved by you at 2:10 pm' : 'Last saved by you at 1:58 pm',
+      hasTop: !!tops,
+      topBlocking: tops ? tops[0] : false, topTone: tops ? tops[1] : 'info', topTitle: tops ? tops[2] : '', topBody: tops ? tops[3] : '',
+      number: blank ? '' : noor ? 'HMA-ON-2025-0981' : zay ? 'HMA-ON-2026-0533' : m === 'suspended' ? 'HFSAA-2026-3310' : 'HMA-ON-2026-0417',
+      numberError: m === 'required' ? 'Enter the certificate number as printed.' : null,
+      bodies, issuer: blank || m === 'server422' ? null : (m === 'proposed' || m === 'proposedro') ? 'hcco' : m === 'confirm' ? 'habc' : m === 'suspended' ? 'hfsaa' : 'hma',
+      issuerOff: ro,
+      issuerHelp: ['propose', 'proposedup'].includes(m) ? 'The issuer on this certificate isn’t in the registry. Propose it below; no free text.' : 'Choose the body printed on the certificate. Only Accepted bodies pass Issuer accepted.',
+      issuerError: m === 'required' ? 'Choose the issuing body.' : m === 'server422' ? 'The server didn’t find this issuing body in the registry. Choose it again from the list.' : null,
+      legal: blank ? '' : noor ? 'Noor Grill Inc.' : zay ? 'Zaytoun Grill Ltd.' : 'Karahi House Restaurant Inc.',
+      legalError: m === 'required' ? 'Enter the certified legal name.' : null,
+      addr, addrCount: addr.length + ' of 300 characters',
+      addrError: m === 'required' ? 'Enter the certified address as printed.' : '',
+      issued: m === 'dateError' ? '2027-01-15' : m === 'future' ? '2026-11-15' : blank ? '' : noor ? '2025-10-20' : zay ? '2026-03-31' : '2026-01-15',
+      issuedWords: m === 'dateError' ? 'Reads as 15 January 2027' : m === 'future' ? 'Reads as 15 November 2026' : blank ? '' : noor ? 'Reads as 20 October 2025' : zay ? 'Reads as 31 March 2026' : 'Reads as 15 January 2026',
+      dateError: m === 'dateError' ? 'The issue date is after the expiry date. Check the day and month.' : m === 'required' ? 'Enter the date printed on the certificate.' : null,
+      expires: blank ? '' : noor ? '2026-10-19' : zay ? '2027-03-30' : '2027-01-14',
+      expiresWords: blank ? '' : noor ? 'Reads as 19 October 2026' : zay ? 'Reads as 30 March 2027' : 'Reads as 14 January 2027',
+      expiresError: m === 'required' ? 'Enter the date printed on the certificate.' : null,
+      scope: blank ? null : m === 'dirty' ? 'KITCHEN_ONLY' : m === 'supplier' ? 'SUPPLIER_CHAIN_ONLY' : 'WHOLE_ESTABLISHMENT',
+      scopeError: m === 'required' ? 'Choose the scope printed on the certificate.' : null,
+      scopes: [
+        { value: 'WHOLE_ESTABLISHMENT', label: 'Whole establishment' },
+        { value: 'KITCHEN_ONLY', label: 'Kitchen only' },
+        { value: 'SPECIFIC_MENU_ITEMS', label: 'Specific menu items' },
+        { value: 'SUPPLIER_CHAIN_ONLY', label: 'Supplier chain only' },
+      ],
+      saving: m === 'saving',
+      saveOff: lost ? true : undefined,
+      saveLabel: lost ? 'Save transcription, unavailable: your claim ended at 2:48 pm' : undefined,
+      footer: lost ? 'Saving is off: your claim ended at 2:48 pm. What you typed stays on this page until you leave.' : footers[m] || 'Saving updates the suggested issuer, name and address checks and recomputes Dates valid and Unique, not reused.',
+    };
+  }
+}
+</script>
+</body>
+</html>

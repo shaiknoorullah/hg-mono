@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Right now: every open state</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div style="width: 1440px; height: 2200px; box-sizing: border-box; padding: var(--space-10) var(--space-12); background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui); display: flex; flex-direction: column; gap: var(--space-5);">
+  <div style="display: flex; flex-direction: column; gap: 6px;">
+    <h1 style="margin: 0; font: var(--text-type-heading-xl); letter-spacing: -0.01em;">Right now: one card per open state</h1>
+    <p style="margin: 0; font: var(--text-type-body-md); color: var(--text-secondary); max-width: 1000px;">Top of the Hours screen. The badge names the state. The first sentence is the server’s reason, word for word; the second says who can change it. Only a pause shows a time, because only the pause end is sent. The switch keeps its stored value and says what it means in this state.</p>
+  </div>
+  <sc-for list="{{cards}}" as="c" hint-placeholder-count="12">
+    <div style="display: flex; flex-direction: column; gap: 6px;">
+      <span style="font: var(--text-type-label-md); color: var(--text-secondary);">{{c.label}}</span>
+      <dc-import name="PartNowCard" state="{{c.state}}" w="{{cw}}" hint-size="1344px,110px"></dc-import>
+    </div>
+  </sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":2200}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { cw: 1344, cards: [
+      { state: 'open', label: 'Open' }, { state: 'paused', label: 'Paused' }, { state: 'paused_until_close', label: 'Paused until closing (needs the API change)' },
+      { state: 'closed_toggle', label: 'New orders switched off by you' }, { state: 'auto_off', label: 'New orders switched off after missed orders' },
+      { state: 'offline', label: 'No order screen connected' }, { state: 'closed_hours', label: 'Outside opening hours' },
+      { state: 'closed_cutoff', label: 'Past the last-order time (9:40 pm, before a 10:00 pm close)' },
+      { state: 'closed_holiday', label: 'Closed for a special date' }, { state: 'closed_no_hours', label: 'No hours set' },
+      { state: 'suspended', label: 'Account suspended' }, { state: 'paused_stale', label: 'Pause time passed, status not updated yet' },
+    ] };
+  }
+}
+</script>
+</body>
+</html>

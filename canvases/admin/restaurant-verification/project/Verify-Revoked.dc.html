@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Halal certificate, revoked</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:var(--surface-base);color:var(--text-primary);font-family:var(--font-ui)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+textarea.hg-ta:focus{outline:none;border:var(--focus-field-border-width) solid var(--focus-ring)}
+textarea.hg-ta[aria-invalid="true"]{border:var(--focus-field-border-width) solid var(--color-danger-500)}
+textarea.hg-ta[aria-invalid="true"]:focus{box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+.skip{position:absolute;left:-10000px;top:8px;z-index:900;padding:12px 16px;background:var(--surface-raised);color:var(--text-primary);border-radius:8px;font-weight:600}
+.skip:focus{left:80px;outline:none;box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; display: grid; grid-template-columns: 64px minmax(0, 1fr); background: var(--surface-base); position: relative; overflow: hidden; font-family: var(--font-ui); color: var(--text-primary)">
+  <dc-import name="SideNav" active="halal" role="SUPER_ADMIN" collapsed="{{yes}}" h="900" hint-size="64px,900px"></dc-import>
+  <div style="display: flex; flex-direction: column; min-width: 0; min-height: 0; position: relative">
+    <a class="skip" href="#main">Skip to main content</a>
+    <a class="skip" href="#certificate">Skip to certificate</a>
+    <a class="skip" href="#checks">Skip to checks</a>
+    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="raised" title="Halal certificate" subtitle="Halal certificates · Noor Grill (live)" back-label="Back to halal certificates" on-back="{{noop}}"></x-import>
+    <main id="main" data-density="compact" style="flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 12px; padding: 12px; overflow: hidden">
+      <dc-import name="VerifyHeader" variant="revoked" restaurant="Noor Grill" number="HMA-ON-2025-0981" w="1352" hint-size="1352px,56px"></dc-import>
+      <div style="flex: 1 1 auto; min-height: 0; display: flex">
+        <section id="pane-list" aria-label="Halal certificates · 7 need attention, collapsed" style="flex: 0 0 48px; box-sizing: border-box; min-width: 0; min-height: 0; display: flex; flex-direction: column; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: 12px; overflow: hidden; align-items: center; gap: 8px; padding: 4px 0"><a href="Halal-ListOpen.dc.html" aria-label="Show the halal certificates list" class="hg-focus" style="display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 8px; color: var(--text-secondary)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="chevron-right" size="md"></x-import></a><span aria-hidden="true" style="writing-mode: vertical-rl; transform: rotate(180deg); font-size: 13px; font-weight: 600; white-space: nowrap">Halal certificates · 7 need attention</span></section>
+        <div role="separator" aria-orientation="vertical" aria-label="Resize the halal certificates list" aria-controls="pane-list" aria-valuenow="4" aria-valuemin="0" aria-valuemax="40" aria-valuetext="4 percent of the width. Left and Right arrows resize." tabindex="0" class="hg-focus hg-hit" style="flex: 0 0 12px; cursor: col-resize; align-self: stretch; display: flex; align-items: center; justify-content: center; border-radius: 4px"><span aria-hidden="true" style="display: block; width: 4px; height: 40px; border-radius: 2px; background: var(--border-interactive)"></span></div>
+        <dc-import name="CertPane" state="ready" w="372" h="752" collapsible="{{yes}}" hint-size="372px,752px"></dc-import>
+        <div role="separator" aria-orientation="vertical" aria-label="Resize the certificate pane" aria-controls="certificate" aria-valuenow="32" aria-valuemin="20" aria-valuemax="50" aria-valuetext="32 percent of the width. Left and Right arrows resize." tabindex="0" class="hg-focus hg-hit" style="flex: 0 0 12px; cursor: col-resize; align-self: stretch; display: flex; align-items: center; justify-content: center; border-radius: 4px"><span aria-hidden="true" style="display: block; width: 4px; height: 40px; border-radius: 2px; background: var(--border-interactive)"></span></div>
+        <section aria-label="Transcription and the application" style="flex: 0 0 380px; box-sizing: border-box; min-width: 0; min-height: 0; display: flex; flex-direction: column; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: 12px; overflow: hidden"><div style="flex: 1 1 auto; min-height: 0; overflow: auto; padding: 12px; display: flex; flex-direction: column; gap: 12px"><dc-import name="AppFacts" who="noor" w="354" hint-size="354px,110px"></dc-import><dc-import name="Transcription" mode="readonly" who="noor" w="354" hint-size="354px,700px"></dc-import></div></section>
+        <div role="separator" aria-orientation="vertical" aria-label="Resize the checks pane" aria-controls="pane-checks" aria-valuenow="38" aria-valuemin="30" aria-valuemax="60" aria-valuetext="38 percent of the width. Left and Right arrows resize." tabindex="0" class="hg-focus hg-hit" style="flex: 0 0 12px; cursor: col-resize; align-self: stretch; display: flex; align-items: center; justify-content: center; border-radius: 4px"><span aria-hidden="true" style="display: block; width: 4px; height: 40px; border-radius: 2px; background: var(--border-interactive)"></span></div>
+        <section id="pane-checks" aria-label="Checks and decision" style="flex: 1 1 auto; box-sizing: border-box; min-width: 0; min-height: 0; display: flex; flex-direction: column; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: 12px; overflow: hidden"><div style="flex: 1 1 auto; min-height: 0; overflow: auto; padding: 12px; display: flex; flex-direction: column; gap: 10px"><dc-import name="InlineAlert" tone="neutral" heading="Certificate revoked" body="Noor Grill is off the app. Orders already in progress continue. Those customers get an informational notice. New orders stop now. Your message was sent word for word." icon="info" w="490" hint-size="490px,150px"></dc-import><dc-import name="Checks" variant="readonly" who="noor" w="490" hint-size="490px,600px"></dc-import></div></section>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { yes: true, no: false, noop: () => {} };
+  }
+}
+</script>
+</body>
+</html>

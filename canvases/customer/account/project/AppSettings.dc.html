@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>App settings</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<link rel="stylesheet" href="hg-current.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="scr {{ltClass}}" data-theme="{{theme}}" style="width: {{w}}px; height: {{h}}px; font-family: var(--font-ui); color: var(--text-primary)">
+  <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="cream" title="App settings" on-back="{{noop}}" back-label="Back to Account"></x-import>
+  <main class="body" style="padding-top: var(--space-2); gap: var(--space-6); overflow: hidden">
+    <span class="anno-tag">Nothing here calls the API: location is the phone's permission and appearance follows the phone, so this screen has no loading or error state.</span>
+
+    <section aria-labelledby="loc-h" style="display: flex; flex-direction: column; gap: var(--space-3)">
+      <h2 id="loc-h" class="t-h2">Location</h2>
+      <p class="t-small">We use your phone's location to start the map where you are when you add an address. You can always search or drag the pin instead. Restaurants near you come from your delivery address.</p>
+      <span class="gap-tag">Proposed component: ListRow</span>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg" padding="0">
+        <div style="display: flex; flex-direction: column">
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="none" padding="var(--space-2) var(--space-4)" dc-props="{{rowStatic}}"><div style="display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-3); min-height: calc(var(--density-row-height) - var(--space-4))">
+            <span style="width: 36px; height: 36px; flex: 0 0 auto; display: grid; place-items: center; border-radius: var(--radius-md); background: var(--surface-sunken); color: var(--text-secondary)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="map" size="md"></x-import></span>
+            <span style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px"><span style="font-size: var(--type-label-lg-size); line-height: var(--type-label-lg-line); font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap">Location for HalalGoes</span><span style="font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-line); color: var(--text-secondary)">{{c.sub}}</span></span>
+          </div></x-import>
+        </div>
+      </x-import>
+      <sc-if value="{{f.off}}" hint-placeholder-val="{{false}}">
+        <p class="t-small">Without location you can still add an address: search for it or drag the pin on the map.</p>
+      </sc-if>
+      <div data-primary="">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="{{c.variant}}" size="lg" full-width="{{yes}}" on-press="{{noop}}">{{c.action}}</x-import>
+      </div>
+    </section>
+
+    <section aria-labelledby="look-h" style="display: flex; flex-direction: column; gap: var(--space-3)">
+      <h2 id="look-h" class="t-h2">Appearance</h2>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg">
+        <p class="t-body" style="color: var(--text-primary)">HalalGoes follows your phone's light or dark setting.</p>
+      </x-import>
+      <span class="anno-tag">Owner decision: the customer app follows the phone's light or dark setting, with no in-app choice.</span>
+    </section>
+
+    <section aria-labelledby="more-h" style="display: flex; flex-direction: column; gap: var(--space-3)">
+      <h2 id="more-h" class="t-h2">Notifications</h2>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg" padding="0">
+        <div style="display: flex; flex-direction: column">
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="none" padding="var(--space-2) var(--space-4)" dc-props="{{rowLink}}" href="NotificationSettings.dc.html"><div style="display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-3); min-height: calc(var(--density-row-height) - var(--space-4))">
+            <span style="width: 36px; height: 36px; flex: 0 0 auto; display: grid; place-items: center; border-radius: var(--radius-md); background: var(--surface-sunken); color: var(--text-secondary)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="bell" size="md"></x-import></span>
+            <span style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px"><span style="font-size: var(--type-label-lg-size); line-height: var(--type-label-lg-line); font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap">Notification settings</span><span style="font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-line); color: var(--text-secondary)">Push and email</span></span>
+            <span style="flex: 0 0 auto; color: var(--text-secondary); display: flex; align-items: center; gap: var(--space-2)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="chevron-right" size="md"></x-import></span>
+          </div></x-import>
+        </div>
+      </x-import>
+    </section>
+  </main>
+  <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.BottomNav" label="Main" active="account" items="{{nav}}" on-change="{{noop}}"></x-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["default","notasked","off"],"default":"default"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"lt":{"editor":"boolean","default":false},"focus":{"editor":"boolean","default":false},"w":{"editor":"int","min":320,"max":430,"default":390},"h":{"editor":"int","min":844,"max":2400,"default":844},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  componentDidMount() {
+    this.t = setTimeout(() => {
+      try {
+        if (this.props.focus) {
+          const el = document.querySelector('[data-primary] button, [data-primary] a');
+          if (el) el.focus({ preventScroll: true });
+        }
+      } catch (e) {}
+    }, 400);
+  }
+  componentWillUnmount() { clearTimeout(this.t); }
+  renderVals() {
+    const s = this.props.state ?? 'default';
+    const C = {
+      default: { sub: 'Allowed while using the app', badge: 'On', badgeIcon: 'check', action: 'Open phone settings', variant: 'tertiary' },
+      notasked: { sub: 'Not asked yet', badge: 'Off', badgeIcon: undefined, action: 'Turn on location', variant: 'primary' },
+      off: { sub: 'Turned off in your phone settings', badge: 'Off', badgeIcon: undefined, action: 'Open phone settings', variant: 'primary' },
+    };
+    return {
+      alert: { neutral: { style: { background: 'var(--surface-sunken)', color: 'var(--text-secondary)', borderColor: 'var(--border-decorative)' } }, info: { style: { background: 'var(--feedback-info-tint)', color: 'var(--feedback-info-tint-text)', borderColor: 'var(--feedback-info-border)' } }, warning: { style: { background: 'var(--feedback-warning-tint)', color: 'var(--feedback-warning-tint-text)', borderColor: 'var(--feedback-warning-border)' } } }, rowLink: { className: 'hg-focus-inset', style: { border: 'none', borderRadius: 0, background: 'transparent' } }, rowStatic: { style: { border: 'none', borderRadius: 0, background: 'transparent' } },
+      f: { off: s === 'off' || s === 'notasked' },
+      c: C[s] || C.default, yes: true, noop: () => {},
+      theme: this.props.theme === 'dark' ? 'dark' : 'light',
+      ltClass: this.props.lt ? 'lt' : '',
+      w: this.props.w ?? 390,
+      h: this.props.h ?? 844,
+      nav: [
+        { key: 'home', label: 'Home', icon: 'home' },
+        { key: 'search', label: 'Search', icon: 'search' },
+        { key: 'orders', label: 'Orders', icon: 'orders' },
+        { key: 'account', label: 'Account', icon: 'profile' },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

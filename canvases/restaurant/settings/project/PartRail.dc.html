@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Side navigation (collapsible)</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<nav aria-label="Restaurant" class="hg-on-accent" style="width: {{wpx}}; height: {{hpx}}; flex-shrink: 0; box-sizing: border-box; background: var(--surface-chrome); color: var(--text-on-accent); font-family: var(--font-ui); display: flex; flex-direction: column; gap: 8px; padding: {{pad}}; transition: width var(--duration-moderate) var(--ease-standard)">
+<sc-if value="{{expanded}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; flex-direction: column; gap: 4px; padding: 0 8px 16px">
+<img src="/_blob/7b80a257423d82e01fbbb637ffe83ff1" alt="HalalGoes" style="width: 96px; height: 32px">
+<span style="font: var(--text-type-body-sm); color: var(--text-on-accent)">Restaurant partner</span>
+</div>
+</sc-if>
+<sc-if value="{{collapsed}}" hint-placeholder-val="{{false}}">
+<div style="height: 52px"></div>
+</sc-if>
+<sc-for list="{{items}}" as="it" hint-placeholder-count="5">
+<a href="{{it.href}}" class="hg-focus" aria-current="{{it.current}}" aria-label="{{it.aria}}" style="position: relative; display: flex; flex-direction: {{it.dir}}; align-items: center; justify-content: {{it.justify}}; gap: {{it.gap}}; min-height: {{it.minH}}; padding: {{it.pad}}; border-radius: var(--radius-sm); background: {{it.bg}}; color: {{it.fg}}; text-decoration: none; font: {{it.font}}; font-weight: {{it.weight}}">
+<sc-if value="{{it.iconSlot}}" hint-placeholder-val="{{true}}"><span aria-hidden="true" style="width: 20px; height: 20px; display: inline-flex; flex-shrink: 0">
+<sc-if value="{{it.icon}}" hint-placeholder-val="{{true}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="{{it.icon}}" weight="{{it.iconWeight}}" size="md"></x-import></sc-if>
+</span></sc-if>
+<sc-if value="{{expanded}}" hint-placeholder-val="{{true}}"><span style="flex-grow: 1">{{it.label}}</span></sc-if>
+<sc-if value="{{collapsed}}" hint-placeholder-val="{{false}}"><span style="font: {{it.shortFont}}; font-weight: {{it.weight}}; text-align: center; line-height: 1.2">{{it.label}}</span></sc-if>
+<sc-if value="{{it.countWide}}" hint-placeholder-val="{{false}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="brand" appearance="solid" size="md">{{it.count}}</x-import></sc-if>
+<sc-if value="{{it.countNarrow}}" hint-placeholder-val="{{false}}"><span aria-hidden="true" style="position: absolute; top: 4px; right: 4px; display: inline-flex"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="brand" appearance="solid" size="sm">{{it.count}}</x-import></span></sc-if>
+</a>
+</sc-for>
+<div style="flex-grow: 1"></div>
+<sc-if value="{{expanded}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; flex-direction: column; gap: 6px; padding: 12px 8px 4px">
+<span style="font: var(--text-type-label-md)">Zaytoun Grill</span>
+<span style="font: var(--text-type-body-sm)">Signed in as the owner</span>
+<sc-if value="{{annotate}}" hint-placeholder-val="{{true}}">
+<span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--text-on-accent); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-on-accent)">Proposed component: SideNav (collapsible) · owner-approved to add</span>
+<span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--text-on-accent); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-on-accent)">Icon dependency: the design system's icon map has no Solar glyph for Menu, Payouts or Settings yet (proposed: Document List, Wallet Money, Settings; linear, bold when current). Until they are added, collapsed items show their name under the icon, so no two look alike.</span>
+</sc-if>
+</div>
+</sc-if>
+<button type="button" class="hg-focus" aria-expanded="{{ariaExpanded}}" aria-label="{{toggleLabel}}" style="display: flex; align-items: center; justify-content: {{toggleJustify}}; gap: 12px; min-height: 48px; padding: {{togglePad}}; border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--text-on-accent); font: var(--text-type-body-md); font-weight: 500; cursor: pointer">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="{{toggleIcon}}" size="md"></x-import>
+<sc-if value="{{expanded}}" hint-placeholder-val="{{true}}"><span>Collapse</span></sc-if>
+</button>
+</nav>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"active":{"editor":"enum","options":["orders","menu","hours","payouts","settings","none"],"default":"payouts"},"collapsed":{"editor":"boolean","default":false},"ordersCount":{"editor":"int","default":0},"annotate":{"editor":"boolean","default":true},"height":{"editor":"int","default":900},"$preview":{"width":232,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var active = this.props.active || 'payouts';
+    var collapsed = !!this.props.collapsed;
+    var count = this.props.ordersCount || 0;
+    // Owner-only at launch: one role, one set of items. Icon gap: the Solar map has no glyph for Menu, Payouts or Settings yet,
+    // so a collapsed item always shows its name under the icon (never a blank or placeholder box).
+    var defs = [
+      { key: 'orders', label: 'Orders', icon: 'orders', href: '#orders' },
+      { key: 'menu', label: 'Menu', icon: null, href: '#menu' },
+      { key: 'hours', label: 'Hours', icon: 'clock', href: '#hours' },
+      { key: 'payouts', label: 'Payouts', icon: null, href: 'https://claude.ai/artifact/Djdm2j2nZaE3ULnyVudcjw' },
+      { key: 'settings', label: 'Settings', icon: null, href: 'Settings-Overview.dc.html' }
+    ];
+    return {
+      wpx: collapsed ? '72px' : '232px',
+      hpx: (this.props.height || 900) + 'px',
+      pad: collapsed ? '20px 4px 16px' : '20px 12px 16px',
+      expanded: !collapsed,
+      collapsed: collapsed,
+      annotate: this.props.annotate !== false,
+      ariaExpanded: collapsed ? 'false' : 'true',
+      toggleLabel: collapsed ? 'Expand navigation' : 'Collapse navigation',
+      toggleIcon: collapsed ? 'chevron-right' : 'back',
+      toggleJustify: collapsed ? 'center' : 'flex-start',
+      togglePad: collapsed ? '0' : '0 12px',
+      items: defs.map(function (d) {
+        var on = d.key === active;
+        var n = d.key === 'orders' && count > 0 ? count : null;
+        return {
+          label: d.label, icon: d.icon, iconSlot: !!d.icon || !collapsed, href: d.href,
+          dir: collapsed ? 'column' : 'row', gap: collapsed ? '4px' : '12px', minH: collapsed ? '56px' : '48px',
+          shortFont: d.icon ? 'var(--text-type-caption)' : 'var(--text-type-label-md)',
+          active: on, current: on ? 'page' : null,
+          iconWeight: on ? 'bold' : 'linear',
+          font: on ? 'var(--text-type-label-lg)' : 'var(--text-type-body-md)',
+          weight: on ? 700 : 500,
+          justify: collapsed ? 'center' : 'flex-start',
+          // Current item on the chrome: an inverted tile (chrome ink as the fill, chrome colour for label and icon),
+          // bold label, bold icon and aria-current="page". No side bar, so no extra start padding.
+          bg: on ? 'var(--text-on-accent)' : 'transparent',
+          fg: on ? 'var(--surface-chrome)' : 'var(--text-on-accent)',
+          pad: collapsed ? '6px 2px' : '0 12px',
+          aria: n ? d.label + ', ' + n + ' waiting' : null,
+          count: n,
+          countWide: !!n && !collapsed,
+          countNarrow: !!n && collapsed
+        };
+      })
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+<!-- @dsCard group="Forms" height=330 subtitle="Label required; focus = own 2px brand border; error = danger border + ring" -->
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Input</title>
+<style>body{margin:0;padding:16px;background:var(--surface-base);color:var(--text-primary);font-family:var(--font-ui)}
+.row{display:flex;flex-wrap:wrap;align-items:center;gap:12px}.col{display:grid;gap:12px}.g2{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;align-items:start}
+.lbl{font-size:var(--type-label-sm-size);letter-spacing:var(--type-label-sm-tracking);font-weight:var(--font-weight-semibold);color:var(--text-tertiary);min-inline-size:88px}
+.stage{position:relative;block-size:200px;border:1px dashed var(--border-decorative);border-radius:var(--radius-lg);overflow:hidden;background:var(--surface-sunken)}</style>
+</head><body><div id="root"></div>
+<script>
+(function () {
+  var h = React.createElement, F = React.Fragment, DS = window.HalalGoesDesignSystem_d11a47;
+  function L(t) { return h('span', { className: 'lbl' }, t); }
+
+  function Demo() {
+    var o = React.useState('');
+    return h('div', { className: 'g2' },
+      h(DS.Input, { label: 'Mobile number', variant: 'tel', placeholder: '(416) 555-0134', helperText: 'We text a code to sign you in.', required: true }),
+      h(DS.Input, { label: 'Email', variant: 'email', defaultValue: 'chef@zaytoun', errorText: 'Enter a valid email address' }),
+      h(DS.Input, { label: 'Search', variant: 'search', placeholder: 'Biryani, shawarma, grill' }),
+      h(DS.Input, { label: 'Sign-in code', variant: 'otp', value: o[0], onValueChange: o[1], helperText: 'Six digits. Paste works.' }),
+      h(DS.Input, { label: 'Promo code', defaultValue: 'EID2026', success: true }),
+      h(DS.Input, { label: 'Delivery instructions', maxLength: 40, characterCount: true, defaultValue: 'Side door, ring twice', loading: true }),
+      h(DS.Input, { label: 'Restaurant ID', defaultValue: 'rst_01JBX7Q2', readOnly: true }),
+      h(DS.Input, { label: 'Legal name', disabled: true, defaultValue: 'Zaytoun Grill Inc.' }));
+  }
+  ReactDOM.createRoot(document.getElementById('root')).render(h(Demo));
+})();
+</script></body></html>

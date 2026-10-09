@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sign in: phone number</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<link rel="stylesheet" href="hg-current.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="scr {{ltClass}} {{kbdClass}}" data-theme="{{theme}}" style="width: {{w}}px; height: {{h}}px; font-family: var(--font-ui); color: var(--text-primary)">
+  <main class="body" style="padding: var(--space-12) var(--space-4) var(--space-4); gap: var(--space-6)">
+    <div style="display: flex; flex-direction: column; gap: var(--space-2)">
+      <img src="{{wordmark}}" alt="HalalGoes" style="width: 96px; height: 32px; display: block">
+    </div>
+
+    <sc-if value="{{f.signedOut}}" hint-placeholder-val="{{false}}">
+      <span class="gap-tag">Proposed component: Banner</span>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="md" padding="var(--space-3) var(--space-4)" dc-props="{{alert.neutral}}" role="status"><div style="display: flex; gap: var(--space-3); align-items: flex-start; font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-line)">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="info" size="md"></x-import>
+        <div style="display: flex; flex-direction: column; gap: 2px">
+          <span style="font-size: var(--type-label-lg-size); line-height: var(--type-label-lg-line); font-weight: 600; color: var(--text-primary)">You're signed out</span>
+          <span>Your addresses are saved to your account. Sign in with your number to order again.</span>
+          <sc-if value="{{f.signedOutPending}}" hint-placeholder-val="{{false}}">
+            <span>We'll finish signing this phone out on our side when you're back online.</span>
+          </sc-if>
+        </div>
+      </div></x-import>
+      <sc-if value="{{f.signedOutPending}}" hint-placeholder-val="{{false}}">
+        <span class="anno-tag">Sign out always works on this phone. Offline or when logout fails (network or 5xx), the app clears the local session and tokens at once and lands here, same as a clean sign out. The refresh token is revoked best-effort (logout retried) when the phone reconnects. No toast that keeps the customer signed in; the neutral line above is the only trace of the failure.</span>
+      </sc-if>
+    </sc-if>
+    <sc-if value="{{f.signedOutFirst}}" hint-placeholder-val="{{false}}">
+      <span class="gap-tag">Proposed component: Banner</span>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="md" padding="var(--space-3) var(--space-4)" dc-props="{{alert.neutral}}" role="status"><div style="display: flex; gap: var(--space-3); align-items: flex-start; font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-line)">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="info" size="md"></x-import>
+        <div style="display: flex; flex-direction: column; gap: 2px">
+          <span style="font-size: var(--type-label-lg-size); line-height: var(--type-label-lg-line); font-weight: 600; color: var(--text-primary)">You're signed out</span>
+          <span>Enter the right mobile number to continue.</span>
+        </div>
+      </div></x-import>
+    </sc-if>
+
+    <div style="display: flex; flex-direction: column; gap: var(--space-2)">
+      <h1 class="t-h1">Sign in or create an account</h1>
+      <p class="t-body">Enter your mobile number and we'll send a 6-digit code. New to HalalGoes? The same code creates your account.</p>
+    </div>
+
+    <sc-if value="{{f.limited}}" hint-placeholder-val="{{false}}">
+      <span class="gap-tag">Proposed component: Banner</span>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="md" padding="var(--space-3) var(--space-4)" dc-props="{{alert.warning}}" role="status"><div style="display: flex; gap: var(--space-3); align-items: flex-start; font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-line)">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="clock" size="md"></x-import>
+        <div style="display: flex; flex-direction: column; gap: 2px">
+          <span style="font-size: var(--type-label-lg-size); line-height: var(--type-label-lg-line); font-weight: 600">{{limitedTitle}}</span>
+          <span>{{limitedBody}}</span>
+        </div>
+      </div></x-import>
+      <div style="display: flex; flex-direction: column; gap: var(--space-1)">
+        <p class="t-small" id="wait-why">You can ask for a new code at <span class="t-num t-strong">6:48 pm</span>.</p>
+        <span class="anno-tag">Static time = when the 429 arrived + Retry-After (299 s). No ticking Countdown: its info.500 numeral is 4.40:1 even on surface.base and 3.91:1 in dark. role=timer only after the DS fix. Send code points here with aria-describedby.</span>
+      </div>
+      <sc-if value="{{f.lockedWait}}" hint-placeholder-val="{{false}}">
+        <span class="api-tag" style="white-space: normal">Needs API: confirm requestOtp after attempts_remaining 0 opens a new challenge. Until then the app starts again here, and a 429 shows this wait.</span>
+      </sc-if>
+    </sc-if>
+
+    <sc-if value="{{f.unavailable}}" hint-placeholder-val="{{false}}">
+      <span class="gap-tag">Proposed component: Banner</span>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="md" padding="var(--space-3) var(--space-4)" dc-props="{{alert.warning}}" role="alert"><div style="display: flex; gap: var(--space-3); align-items: flex-start; font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-line)">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="warning" size="md"></x-import>
+        <div style="display: flex; flex-direction: column; gap: 2px">
+          <span style="font-size: var(--type-label-lg-size); line-height: var(--type-label-lg-line); font-weight: 600">We can't send codes right now</span>
+          <span>The problem is on our side, not with your number. Try again in a few minutes.</span>
+        </div>
+      </div></x-import>
+      <sc-if value="{{f.noSupport}}" hint-placeholder-val="{{false}}">
+        <p class="t-small">Our phone line is closed right now. It's open [support_hours].</p>
+        <span class="anno-tag">Owner decision: phone support during set hours only. The server turns support off outside them (support_enabled false, decided 1 October), so there is no Call support button and no other channel, and the app shows the support_hours text as written; the hours line drops when support_hours is absent. No open-now API.</span>
+      </sc-if>
+    </sc-if>
+
+    <sc-if value="{{f.offline}}" hint-placeholder-val="{{false}}">
+      <span class="gap-tag">Proposed component: Banner</span>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="md" padding="var(--space-3) var(--space-4)" dc-props="{{alert.neutral}}" role="status"><div style="display: flex; gap: var(--space-3); align-items: flex-start; font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-line)">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="info" size="md"></x-import>
+        <div style="display: flex; flex-direction: column; gap: 2px">
+          <span style="font-size: var(--type-label-lg-size); line-height: var(--type-label-lg-line); font-weight: 600; color: var(--text-primary)">You're offline</span>
+          <span id="wait-why">Connect to Wi-Fi or mobile data to get your code.</span>
+        </div>
+      </div></x-import>
+    </sc-if>
+
+    <sc-if value="{{f.sendFail}}" hint-placeholder-val="{{false}}">
+      <span class="gap-tag">Proposed component: Banner</span>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="md" padding="var(--space-3) var(--space-4)" dc-props="{{alert.warning}}" role="alert"><div style="display: flex; gap: var(--space-3); align-items: flex-start; font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-line)">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="warning" size="md"></x-import>
+        <div style="display: flex; flex-direction: column; gap: 2px">
+          <span style="font-size: var(--type-label-lg-size); line-height: var(--type-label-lg-line); font-weight: 600">We couldn't send your code</span>
+          <span>The connection dropped or something went wrong on our side. Your number is still here, so try again.</span>
+        </div>
+      </div></x-import>
+      <span class="anno-tag">requestOtp failed: network drop mid-request, or a 5xx other than 503 RATE_LIMITER_UNAVAILABLE (that one has its own board). The primary becomes Try again and resends the same number. A retry may re-send the same code; the code step says so.</span>
+    </sc-if>
+
+    <div data-autofocus="" class="{{fieldClass}}" style="display: flex; flex-direction: column; gap: var(--space-2)">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Mobile number" variant="tel" input-mode="tel" auto-complete="tel-national" size="lg" required="{{yes}}" default-value="{{phone}}" read-only="{{f.sending}}" helper-text="{{helper}}" error-text="{{err}}"></x-import>
+      <sc-if value="{{f.helperTag}}" hint-placeholder-val="{{true}}">
+        <span class="gap-tag" style="white-space: normal">DS issue: Input helper text and character count use text.tertiary, 4.18:1 on cream; should be text.secondary. Not approved as drawn.</span>
+      </sc-if>
+      <sc-if value="{{f.unsupported}}" hint-placeholder-val="{{false}}">
+        <span class="anno-tag">The field is tel-national with a fixed +1, so +44 can't be typed. It arrives only by paste or autofill; the app keeps the pasted international number as shown, instead of forcing +1 onto it, and shows the same error.</span>
+      </sc-if>
+    </div>
+
+    <sc-if value="{{f.limitedOver}}" hint-placeholder-val="{{false}}">
+      <p class="t-small" role="status">You can ask for a code again.</p>
+    </sc-if>
+
+    <sc-if value="{{f.channel}}" hint-placeholder-val="{{false}}">
+      <div class="api-box">
+        <span class="api-tag">Needs API: OTP channel in OtpRequestInput</span>
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.RadioGroup" label="Send the code by" orientation="horizontal" value="WHATSAPP" options="{{channels}}" on-value-change="{{noop}}"></x-import>
+        <p class="t-small">Exploration only. Today the server picks one channel for everyone (Twilio Verify, set at deploy), so the app cannot offer this choice.</p>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{f.notChannel}}" hint-placeholder-val="{{true}}">
+      <p class="t-small" style="display: flex; gap: var(--space-2); align-items: flex-start">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="info" size="sm" style="margin-top: 2px"></x-import>
+        <span>The code comes by WhatsApp or text message. Standard message rates may apply.</span>
+      </p>
+    </sc-if>
+  </main>
+
+  <footer class="foot">
+    <sc-if value="{{f.unavailable}}" hint-placeholder-val="{{false}}">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" full-width="{{yes}}" icon-start="refresh" on-press="{{noop}}">Try again</x-import>
+      <sc-if value="{{f.support}}" hint-placeholder-val="{{true}}">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="lg" full-width="{{yes}}" href="#support_phone_e164">Call support</x-import>
+        <p class="t-small" style="text-align: center">Support hours: [support_hours]</p>
+      </sc-if>
+    </sc-if>
+    <sc-if value="{{f.notUnavailable}}" hint-placeholder-val="{{true}}">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" full-width="{{yes}}" icon-start="{{sendIcon}}" loading="{{f.sending}}" disabled="{{blocked}}" aria-describedby="{{blockedDesc}}" href="{{next}}">{{sendLabel}}</x-import>
+    </sc-if>
+    <p class="t-small" style="text-align: center">By signing in you agree to our Terms of use and Privacy policy.</p>
+    <div style="align-self: center">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="sm" href="Legal-terms-signedout.dc.html">Terms and privacy</x-import>
+    </div>
+    <span class="api-tag" style="align-self: center">Needs API: record terms_version acceptance</span>
+  </footer>
+  <sc-if value="{{kbd}}" hint-placeholder-val="{{false}}"><div class="kbd" aria-hidden="true"><span class="anno-tag">Phone keyboard, drawn by the OS (291 px)</span></div></sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["default","ready","sending","sendfail","invalid","invalidfocus","unsupported","limited","limitedover","unavailable","unavailablenosupport","offline","channel","dark","signedout","signedoutpending","signedoutfirst","lockedwait"],"default":"default"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"lt":{"editor":"boolean","default":false},"kbd":{"editor":"boolean","default":false},"w":{"editor":"int","min":320,"max":430,"default":390},"h":{"editor":"int","min":844,"max":2400,"default":844},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  componentDidMount() {
+    this.t = setTimeout(() => {
+      try {
+        const s = this.props.state ?? 'default';
+        if (s === 'default' || s === 'dark' || s === 'invalidfocus' || s === 'signedoutfirst' || this.props.kbd) {
+          const el = document.querySelector('[data-autofocus] input');
+          if (el) el.focus({ preventScroll: true });
+        }
+      } catch (e) {}
+    }, 400);
+  }
+  componentWillUnmount() { clearTimeout(this.t); }
+  renderVals() {
+    const s = this.props.state ?? 'default';
+    const f = {
+      default: s === 'default', ready: s === 'ready', sending: s === 'sending', invalid: s === 'invalid' || s === 'invalidfocus',
+      unsupported: s === 'unsupported', limited: s === 'limited' || s === 'lockedwait', lockedWait: s === 'lockedwait', limitedOver: s === 'limitedover',
+      unavailable: s === 'unavailable' || s === 'unavailablenosupport', noSupport: s === 'unavailablenosupport', signedOutFirst: s === 'signedoutfirst',
+      offline: s === 'offline', channel: s === 'channel', signedOut: s === 'signedout' || s === 'signedoutpending', signedOutPending: s === 'signedoutpending',
+      sendFail: s === 'sendfail',
+    };
+    f.helperTag = s === 'default';
+    f.notChannel = !f.channel;
+    f.notUnavailable = !f.unavailable;
+    f.support = !f.noSupport;
+    const dark = s === 'dark' || this.props.theme === 'dark';
+    const phone = { default: '', dark: '', signedout: '', signedoutpending: '', signedoutfirst: '', invalid: '416 555 01', invalidfocus: '416 555 01', unsupported: '+44 7700 900123' }[s] ?? '416 555 0134';
+    const err = f.invalid ? 'Enter all 10 digits of your mobile number, like 416 555 0134.'
+      : f.unsupported ? 'HalalGoes works with Canadian mobile numbers (+1) only for now.' : null;
+    return {
+      alert: { neutral: { style: { background: 'var(--surface-sunken)', color: 'var(--text-secondary)', borderColor: 'var(--border-decorative)' } }, info: { style: { background: 'var(--feedback-info-tint)', color: 'var(--feedback-info-tint-text)', borderColor: 'var(--feedback-info-border)' } }, warning: { style: { background: 'var(--feedback-warning-tint)', color: 'var(--feedback-warning-tint-text)', borderColor: 'var(--feedback-warning-border)' } } }, rowLink: { className: 'hg-focus-inset', style: { border: 'none', borderRadius: 0, background: 'transparent' } }, rowStatic: { style: { border: 'none', borderRadius: 0, background: 'transparent' } },
+      f, yes: true, noop: () => {}, zero: 0, retryAfter: 299,
+      theme: dark ? 'dark' : 'light',
+      ltClass: this.props.lt ? 'lt' : '',
+      kbd: !!this.props.kbd, kbdClass: this.props.kbd ? 'kbd-open' : '',
+      limitedTitle: f.lockedWait ? 'Wait before asking for a new code' : 'Too many codes asked for',
+      limitedBody: f.lockedWait ? 'You entered the wrong code too many times. For your security, wait before we send a new one.' : 'For your security, wait before asking for another code.',
+      w: this.props.w ?? 390,
+      h: this.props.h ?? 844,
+      wordmark: dark ? '/_blob/843ebf06b5228cfa7692cb421908d434' : '/_blob/d30db9859e3d16adcb42d3b151c41784',
+      phone, err,
+      fieldClass: s === 'invalidfocus' ? 'drawn-invalid-focus' : '',
+      helper: err ? null : 'Canadian mobile numbers only.',
+      blocked: f.limited || f.offline,
+      blockedDesc: (f.limited || f.offline) ? 'wait-why' : undefined,
+      sendLabel: f.sending ? 'Sending code' : (f.sendFail ? 'Try again' : 'Send code'),
+      sendIcon: f.sendFail ? 'refresh' : undefined,
+      next: (f.ready || f.channel || f.limitedOver || f.sendFail) ? 'https://claude.ai/artifact/HdmzQ4h2D22cMZvJ17a8cX' : undefined,
+      channels: [{ value: 'WHATSAPP', label: 'WhatsApp' }, { value: 'SMS', label: 'Text message' }],
+    };
+  }
+}
+</script>
+</body>
+</html>

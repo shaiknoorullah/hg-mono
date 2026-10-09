@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Get help with this order</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<link rel="stylesheet" href="hg-roles.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:var(--surface-base)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+</style>
+</helmet>
+<div style="width: 390px; height: 1024px; position: relative; display: flex; flex-direction: column; overflow: hidden; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+<div class="hg-gap" style="margin: 12px 16px; flex-shrink: 0"><span class="hg-tag">Annotation: text at 200%</span><span class="hg-gap-note">A real 200% view with no token overridden: the screen is laid out 195 px wide (390 ÷ 2) and scaled 2×, the same as 200% browser zoom, so the wrapping and stacking below are what a customer sees. Shown: one phone screen (844 ÷ 2 = 422 px of layout). Review that money rows, the halal label and the ETA wrap or stack and never truncate. Native Dynamic Type still needs a text-scale token (design system gap).</span></div>
+<div style="width: 390px; height: 844px; flex-shrink: 0; overflow: hidden"><div style="width: 195px; height: 422px; transform: scale(2); transform-origin: 0 0; position: relative; display: flex; flex-direction: column; overflow: hidden; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" title-is-page-heading="{{ no }}" tone="cream" title="Order HG-8F3K2Q" subtitle="Zaytoun Grill" back-label="Back to Orders" on-back="{{ noop }}"></x-import><main style="flex-grow: 1; display: flex; flex-direction: column; gap: 12px; padding: 4px 16px 16px; overflow: hidden"><div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 12px"><h1 style="margin: 0; display: flex; flex-direction: column; gap: 2px"><span class="type-label-lg" aria-hidden="true" style="color: var(--text-secondary)">On the way · Arriving</span><span class="type-display-md hg-num" aria-hidden="true">7:10–7:20 pm</span><span class="hg-vh">On the way, arriving between 7:10 and 7:20 pm</span></h1><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="info" size="md" appearance="dot">Live</x-import></div><div class="hg-gap" style="height: 300px"><span class="hg-tag">Component gap: MapView</span></div>
+</main><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.BottomNav" label="Main" active="orders" items="{{ nav }}"></x-import><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Sheet" open="{{ yes }}" contained="{{ yes }}" title="Get help with this order" on-close="{{ noop }}" max-height="82%"><div style="display: flex; flex-direction: column; gap: 8px"><span class="hg-tag">Proposed component: ListItem</span><nav aria-label="Help topics" style="display: flex; flex-direction: column"><a href="GetHelp-Late.dc.html" class="hg-focus-drawn" style="min-height: 56px; display: flex; align-items: center; gap: 12px; padding: 8px 4px; text-decoration: none; color: var(--text-primary); border-bottom: 1px solid var(--border-decorative)"><div style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1; min-width: 0"><span class="type-label-lg">My order is late</span><span class="type-body-sm" style="color: var(--text-secondary)">See the latest arrival time and what happens next</span></div><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="chevron-right" size="md" color="var(--text-secondary)"></x-import></a><a href="GetHelp-Report-Early.dc.html" style="min-height: 56px; display: flex; align-items: center; gap: 12px; padding: 8px 4px; text-decoration: none; color: var(--text-primary); border-bottom: 1px solid var(--border-decorative)"><div style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1; min-width: 0"><span class="type-label-lg">Report a problem</span><span class="type-body-sm" style="color: var(--text-secondary)">Very late, wrong address, or you want to cancel</span></div><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="chevron-right" size="md" color="var(--text-secondary)"></x-import></a><a href="GetHelp-HalalEarly.dc.html" style="min-height: 56px; display: flex; align-items: center; gap: 12px; padding: 8px 4px; text-decoration: none; color: var(--text-primary); border-bottom: 1px solid var(--border-decorative)"><div style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1; min-width: 0"><span class="type-label-lg">A halal concern</span><span class="type-body-sm" style="color: var(--text-secondary)">What we check, and how to report after delivery</span></div><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="chevron-right" size="md" color="var(--text-secondary)"></x-import></a><a href="GetHelp-Contact.dc.html" style="min-height: 56px; display: flex; align-items: center; gap: 12px; padding: 8px 4px; text-decoration: none; color: var(--text-primary)"><div style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1; min-width: 0"><span class="type-label-lg">Something else</span><span class="type-body-sm" style="color: var(--text-secondary)">Call us</span></div><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="chevron-right" size="md" color="var(--text-secondary)"></x-import></a></nav><div class="hg-gap"><span class="hg-tag">Annotation: which rows show</span><span class="hg-gap-note">Before delivery. PICKED_UP and ARRIVED: late, report a problem, halal concern, something else. PREPARING and READY_FOR_PICKUP: the same rows, and "My order is late" reads the prep deadline (next board). No seal row: packages carry no tamper seal at launch. A wrong address is a reason inside Report a problem (owner decision, 1 October: Get help opens from acceptance); nothing in the app changes the address itself. Every "Get help" on the tracking screens opens this sheet.</span></div></div></x-import>
+</div></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1024}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const t = (s, at, a) => ({ to_state: s, at: '2026-09-28T' + at + ':00-04:00', actor_kind: a || 'SYSTEM' });
+    const all = [t('AUTHORIZED', '18:42', 'CUSTOMER'), t('RESTAURANT_PENDING', '18:42'), t('PREPARING', '18:44', 'RESTAURANT'), t('READY_FOR_PICKUP', '18:59', 'RESTAURANT'), t('PICKED_UP', '19:02', 'RIDER'), t('ARRIVED', '19:12', 'RIDER'), t('DELIVERED', '19:13', 'RIDER'), t('COMPLETED', '19:43')];
+    const upTo = (n) => all.slice(0, n);
+    return {
+      yes: true, no: false, none: null, zero: 0, noop: () => {},
+      nav: [{ key: 'home', label: 'Home', icon: 'home' }, { key: 'search', label: 'Search', icon: 'search' }, { key: 'orders', label: 'Orders', icon: 'orders', badge: 1, badgeNoun: 'active' }, { key: 'account', label: 'Account', icon: 'profile' }],
+      ok: true
+    };
+  }
+}
+</script>
+</body>
+</html>

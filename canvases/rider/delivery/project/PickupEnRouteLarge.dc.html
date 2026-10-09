@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>200% Go to the restaurant</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+[data-rider]{font-family:var(--font-ui)}
+.offer-chrome{background:var(--surface-raised)}
+[data-theme="dark"] .offer-chrome,[data-theme="dark"].offer-chrome{background:var(--surface-chrome)}
+</style>
+</helmet>
+<div data-rider="" data-theme="{{theme}}" style="width: 390px; height: 844px; position: relative; overflow: hidden; display: flex; flex-direction: column; background: var(--surface-base); color: var(--text-primary)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="field" title="Pickup" subtitle="Step 1 of 4 · Go to the restaurant"></x-import>
+<main style="flex: 1 1 auto; overflow-y: auto; padding: var(--space-4) var(--space-5) var(--space-5); display: flex; flex-direction: column; gap: var(--space-4)"><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Dynamic type 2.0× · only this screen's own text is doubled, inline with calc(… * 2); design-system components (AppBar, Button, Radio, Price, StatusTimeline) stay at their real size · content scrolls, the footer action stays pinned · Design-system issue: DS Button, AppBar and Radio labels do not follow dynamic type</span>
+<div style="display: flex; flex-direction: column; gap: var(--space-2)">
+<span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Proposed component: ProgressSteps (AssignmentState) · role=progressbar, name "Step N of 4, &lt;step&gt;" · needs a fill token, not text-primary</span>
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-1)" aria-hidden="true"><span style="height: 6px; border-radius: var(--radius-full); background: var(--text-primary)"></span><span style="height: 6px; border-radius: var(--radius-full); background: var(--border-interactive)"></span><span style="height: 6px; border-radius: var(--radius-full); background: var(--border-interactive)"></span><span style="height: 6px; border-radius: var(--radius-full); background: var(--border-interactive)"></span></div>
+</div>
+<div style="height: 132px; flex: 0 0 auto; border: 1.5px dashed var(--border-strong); border-radius: var(--radius-md); background: var(--surface-sunken); padding: var(--space-2) var(--space-3); display: flex; flex-direction: column; justify-content: space-between">
+<span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Proposed component: MapView · pins only · pins use the map-pin tokens with a light outline in dark mode (owner decision: a lighter step with a light outline) · tokens.css has no dark-mode pin values yet, so the fills are the light-theme pins</span>
+<div style="display: flex; justify-content: space-between; align-items: flex-end; gap: var(--space-2)">
+<span style="display: inline-flex; gap: var(--space-3); font-size: calc(var(--type-body-lg-size) * 2)"><span style="display: inline-flex; align-items: center; gap: var(--space-2)"><span style="width: 14px; height: 14px; border-radius: 50%; background: var(--color-map-pin-rider); border: 2px solid var(--text-primary); box-sizing: border-box"></span>You</span><span style="display: inline-flex; align-items: center; gap: var(--space-2)"><span style="width: 14px; height: 14px; border-radius: 50%; background: var(--color-map-pin-restaurant); border: 2px solid var(--text-primary); box-sizing: border-box"></span>Restaurant</span></span>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="xl" icon-start="map">Navigate</x-import>
+</div>
+</div>
+<section style="display: flex; flex-direction: column; gap: var(--space-1)">
+<h2 style="margin: 0; font-size: calc(var(--type-heading-xl-size) * 2); font-weight: var(--type-heading-xl-weight); letter-spacing: var(--type-heading-xl-tracking); line-height: 1.25">Go to Zaytoun Grill</h2>
+<span style="font-size: calc(var(--type-body-lg-size) * 2); line-height: 1.5">14 Ellesmere Rd, Scarborough, ON</span>
+</section>
+<div style="display: flex; flex-direction: column; gap: var(--space-1)"><span style="font-size: calc(var(--type-label-lg-size) * 2); font-weight: var(--font-weight-semibold); color: var(--text-secondary-field)">Drop-off</span><span style="font-size: calc(var(--type-heading-md-size) * 2); font-weight: var(--font-weight-semibold)">88 Brimley Rd, Scarborough, ON</span><span style="font-size: calc(var(--type-body-lg-size) * 2); color: var(--text-secondary-field)">Unit 402</span></div>
+
+<div style="display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-4) var(--space-4); border: 1px solid var(--border-decorative); border-radius: var(--radius-md)"><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Proposed component: FoodStatusPanel (Icon + StatusTimeline in Card)</span>
+<div style="display: flex; justify-content: space-between; align-items: center"><span style="font-size: calc(var(--type-label-lg-size) * 2); font-weight: var(--font-weight-semibold); color: var(--text-secondary-field)">Food</span><span style="display: inline-flex; align-items: center; gap: var(--space-2); font-size: calc(var(--type-heading-md-size) * 2); font-weight: var(--font-weight-semibold)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="clock" size="md"></x-import>Preparing</span></div>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.StatusTimeline" audience="rider" state="PREPARING" orientation="compact"></x-import>
+</div>
+<div style="display: flex; flex-direction: column; gap: var(--space-2)">
+<span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Approved design-system component, not yet in the library: KeyValueList</span>
+<div style="display: flex; flex-direction: column; gap: var(--space-1)"><span style="font-size: calc(var(--type-label-lg-size) * 2); font-weight: var(--font-weight-semibold); color: var(--text-secondary-field)">Order code</span><span style="font-family: var(--font-mono); font-size: calc(var(--type-body-lg-size) * 2); font-weight: var(--font-weight-semibold)">HG-4K2M-9T</span></div>
+<div style="display: flex; flex-direction: column; gap: var(--space-1)"><span style="font-size: calc(var(--type-label-lg-size) * 2); font-weight: var(--font-weight-semibold); color: var(--text-secondary-field)">Pickup notes</span><span style="font-size: calc(var(--type-body-lg-size) * 2); line-height: 1.5">Collect at the side counter. Ask for the order code.</span></div>
+<div style="display: flex; flex-direction: column; gap: var(--space-1)"><span style="font-size: calc(var(--type-label-lg-size) * 2); font-weight: var(--font-weight-semibold); color: var(--text-secondary-field)">Estimated earnings</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{earn}}" size="lg" on-dark="{{onDark}}"></x-import></div>
+</div>
+<div style="padding: var(--space-3) var(--space-4); border: 1px solid var(--border-decorative); border-radius: var(--radius-md); display: flex; flex-direction: column; gap: var(--space-1)"><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Proposed component: MessagePreview (Card outlined + ghost Button) · latest order.note_added · hidden when there are none</span><span style="font-size: calc(var(--type-label-lg-size) * 2); font-weight: var(--font-weight-semibold)">From Zaytoun Grill · 9:41 pm</span><span style="font-size: calc(var(--type-body-lg-size) * 2); line-height: 1.5">Two more minutes on the grill. Sorry for the wait.</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="xl" icon-end="chevron-right" href="ContactBeforePickup.dc.html">See all messages</x-import><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--text-link); color: var(--text-link)">Needs API: order notes history · the full list can't be rebuilt after a restart</span></div>
+<div style="display: flex; flex-direction: column; gap: var(--space-2)"><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Call dials pickup.phone_alias (tel:) · hidden when null</span><div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="xl" full-width="{{yes}}" href="tel:+16475550190">Call restaurant</x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="xl" full-width="{{yes}}" icon-start="warning" href="SomethingWrongPickup.dc.html">Something's wrong</x-import>
+</div></div>
+</main>
+<footer style="flex: 0 0 auto; padding: var(--space-3) var(--space-5) var(--space-5); border-top: 1px solid var(--border-decorative); background: var(--surface-base)">
+<span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Prototype branches: <a href="PickupArriving.dc.html" style="color: var(--text-link)">sending</a> · <a href="PickupWaiting.dc.html" style="color: var(--text-link)">food preparing</a> · <a href="PickupGeofence.dc.html" style="color: var(--text-link)">422 geofence</a> · <a href="PickupArriveFailed.dc.html" style="color: var(--text-link)">failed</a></span>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="xl" full-width="{{yes}}" href="PickupWaiting.dc.html">I'm at the restaurant</x-import>
+</footer>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.BottomNav" tone="field" label="Rider" active="home" items="{{tabs}}"></x-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["dark","light"],"default":"dark"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const theme = this.props.theme ?? 'dark';
+    return { theme: theme, onDark: theme === 'dark', yes: true, earn: 944,
+      tabs: [{ key: 'home', label: 'Home', icon: 'home' }, { key: 'earnings', label: 'Earnings', icon: 'orders' }, { key: 'account', label: 'Account', icon: 'profile' }] };
+  }
+}
+</script>
+</body>
+</html>

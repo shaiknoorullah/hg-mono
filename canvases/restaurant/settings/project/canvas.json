@@ -1,0 +1,1486 @@
+{
+ "v": 3,
+ "createdOnFiles": {
+  "v": 1,
+  "at": "2026-10-01T02:08:22Z"
+ },
+ "title": "HalalGoes Restaurant — Settings",
+ "launch": {
+  "view": "canvas"
+ },
+ "pages": [
+  {
+   "id": "launch",
+   "name": "Launch"
+  }
+ ],
+ "boards": {
+  "WhatsNew-Error.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 10640,
+   "y": 12060
+  },
+  "Support-Halal.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 12160,
+   "y": 8040
+  },
+  "Settings-RenewNotYet.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 1520,
+   "y": 0
+  },
+  "Settings-HalalExpiring.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 0,
+   "y": 2680
+  },
+  "Renew-WrongType.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 10640,
+   "y": 6700
+  },
+  "Settings-Closed.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 9120,
+   "y": 4020
+  },
+  "Edit-KitchenError.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 25840,
+   "y": 5360
+  },
+  "Renew-TypeMismatch.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 13680,
+   "y": 6700
+  },
+  "Settings-Documents.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 15200,
+   "y": 0
+  },
+  "Renewal-InReview.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 3040,
+   "y": 8040
+  },
+  "Settings-HalalExpiring7.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 3040,
+   "y": 2680
+  },
+  "Edit-Kitchen.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 24320,
+   "y": 5360
+  },
+  "Settings-Offline.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 9120,
+   "y": 1340
+  },
+  "Docs-Loading.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 12160,
+   "y": 9380
+  },
+  "Edit-Conflict.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 15200,
+   "y": 5360
+  },
+  "Edit-NamesInvalid.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 1520,
+   "y": 5360,
+   "title": "Edit-NamesInvalid (name request: name too short)"
+  },
+  "Settings-Account.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 12160,
+   "y": 0
+  },
+  "Docs-FileLinkError.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 15200,
+   "y": 9380
+  },
+  "Settings-Error.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 6080,
+   "y": 0
+  },
+  "Settings-HalalExpired.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 6080,
+   "y": 2680
+  },
+  "Settings-HalalExpiring1.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 4560,
+   "y": 2680
+  },
+  "Support-Sheet.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "title": "Support-Sheet (now an in-page panel)",
+   "w": 1440,
+   "x": 9120,
+   "y": 0
+  },
+  "Settings-Suspended.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 4560,
+   "y": 4020
+  },
+  "Docs-Error.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 13680,
+   "y": 9380
+  },
+  "Edit-ContactError.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 18240,
+   "y": 5360
+  },
+  "Reflow-Settings-320.dc.html": {
+   "h": 3300,
+   "page": "launch",
+   "w": 320,
+   "x": 0,
+   "y": 13400
+  },
+  "Settings-Loading.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 4560,
+   "y": 0
+  },
+  "Edit-Contact.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 16720,
+   "y": 5360
+  },
+  "Reflow-Settings-720.dc.html": {
+   "h": 3300,
+   "page": "launch",
+   "w": 720,
+   "x": 400,
+   "y": 13400
+  },
+  "Renewal-Early.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 0,
+   "y": 8040
+  },
+  "Device-NotificationsAsking.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 6080,
+   "y": 10720
+  },
+  "WhatsNew-UpToDate.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 9120,
+   "y": 12060
+  },
+  "Doc-UploadLicence.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 4560,
+   "y": 9380
+  },
+  "Settings-PauseChoose.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 1520,
+   "y": 1340
+  },
+  "Renew-First.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 0,
+   "y": 6700
+  },
+  "Edit-UnknownField.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 13680,
+   "y": 5360
+  },
+  "Renew-Ready.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 15200,
+   "y": 6700
+  },
+  "Renew-AfterExpiry.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 3040,
+   "y": 6700
+  },
+  "Edit-NamesSent.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 39520,
+   "y": 5360,
+   "title": "Edit-NamesSent (name change sent for review)"
+  },
+  "Renew-SendFailed.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 18240,
+   "y": 6700
+  },
+  "Settings-HalalRevoked.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 7600,
+   "y": 2680
+  },
+  "Settings-HalalExpiring14.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 1520,
+   "y": 2680
+  },
+  "Settings-Overview.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 0,
+   "y": 0
+  },
+  "Settings-AutoOffline.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 10640,
+   "y": 1340
+  },
+  "Settings-HalalNotVerified.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 9120,
+   "y": 2680
+  },
+  "Device-SoundBlocked.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 3040,
+   "y": 10720
+  },
+  "Docs-FoodExpiring.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 7600,
+   "y": 9380
+  },
+  "Renew-TooEarly.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 25840,
+   "y": 6700
+  },
+  "Renew-FromExpiring.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 1520,
+   "y": 6700
+  },
+  "Renew-Locked.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 24320,
+   "y": 6700
+  },
+  "Settings-Pending.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 3040,
+   "y": 4020
+  },
+  "Doc-Sent.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 3040,
+   "y": 9380
+  },
+  "Edit-NamesFailed.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 3040,
+   "y": 5360,
+   "title": "Edit-NamesFailed (name request: send failed)"
+  },
+  "Edit-Saving.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 27360,
+   "y": 5360
+  },
+  "Settings-Deactivated.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 7600,
+   "y": 4020
+  },
+  "Edit-AboutError.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 38000,
+   "y": 5360,
+   "title": "Edit-AboutError (description request: too short)"
+  },
+  "Device-NotificationsBlocked.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 7600,
+   "y": 10720
+  },
+  "Edit-Discard.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 28880,
+   "y": 5360
+  },
+  "Settings-Holiday.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 6080,
+   "y": 1340
+  },
+  "Settings-Security.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 7600,
+   "y": 0
+  },
+  "Renewal-InReviewExpiring.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 4560,
+   "y": 8040
+  },
+  "Renew-Choose.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 4560,
+   "y": 6700
+  },
+  "Docs-History.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 10640,
+   "y": 9380
+  },
+  "Renewal-ApprovedEarly.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 15200,
+   "y": 8040
+  },
+  "Edit-SavedAbout.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 33440,
+   "y": 5360,
+   "title": "Edit-SavedAbout (description change sent for review)"
+  },
+  "Support-Account.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 10640,
+   "y": 0
+  },
+  "Doc-UploadOwnerId.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 6080,
+   "y": 9380
+  },
+  "Doc-Upload.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 0,
+   "y": 9380
+  },
+  "Device-SoundPlaying.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 1520,
+   "y": 10720
+  },
+  "Edit-AddressSent.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 10640,
+   "y": 5360
+  },
+  "Renewal-Rejected.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 7600,
+   "y": 8040
+  },
+  "Settings-Device.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 10640,
+   "y": 10720
+  },
+  "Edit-Saved.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 30400,
+   "y": 5360,
+   "title": "Edit-Saved (owner name saved)"
+  },
+  "Edit-TaxError.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 21280,
+   "y": 5360,
+   "title": "Edit-TaxError (GST/HST request: number not valid)"
+  },
+  "Settings-HalalNoCertificate.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 10640,
+   "y": 2680
+  },
+  "Settings-Profile.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 13680,
+   "y": 0
+  },
+  "Docs-FoodRejected.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 9120,
+   "y": 9380
+  },
+  "Renew-Certifier.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 22800,
+   "y": 6700
+  },
+  "Device-NoWakeLock.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 9120,
+   "y": 10720
+  },
+  "Edit-OtherCardInvalid.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 12160,
+   "y": 5360
+  },
+  "Edit-AddressAfter150Failed.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "title": "Edit-AddressAfter150Failed (address request failed)",
+   "w": 1440,
+   "x": 9120,
+   "y": 5360
+  },
+  "Edit-Names.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 0,
+   "y": 5360,
+   "title": "Edit-Names (owner name; saves at once)"
+  },
+  "WhatsNew-Interrupted.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "title": "WhatsNew-Interrupted (an order arrives; the panel stays)",
+   "w": 1440,
+   "x": 1520,
+   "y": 12060
+  },
+  "Edit-Tax.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 19760,
+   "y": 5360,
+   "title": "Edit-Tax (request a GST/HST number change)"
+  },
+  "WhatsNew-FirstRun.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 4560,
+   "y": 12060
+  },
+  "Renew-TooLarge.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 12160,
+   "y": 6700
+  },
+  "Edit-SavedKitchen.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 31920,
+   "y": 5360
+  },
+  "Renewal-RejectedDuplicate.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 10640,
+   "y": 8040
+  },
+  "Edit-SavedTax.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 36480,
+   "y": 5360,
+   "title": "Edit-SavedTax (GST/HST number change sent for review)"
+  },
+  "Renewal-Approved.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 13680,
+   "y": 8040
+  },
+  "Renew-UploadFailed.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 9120,
+   "y": 6700
+  },
+  "Settings-ProfileIncomplete.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 3040,
+   "y": 0
+  },
+  "Edit-AddressPin.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 7600,
+   "y": 5360
+  },
+  "Renew-Sending.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 16720,
+   "y": 6700
+  },
+  "WhatsNew-AfterUpdate.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 0,
+   "y": 12060
+  },
+  "Renewal-RejectedStillValid.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 9120,
+   "y": 8040
+  },
+  "Doc-Ready.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 1520,
+   "y": 9380
+  },
+  "Settings-PausedUntilClosing.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 3040,
+   "y": 1340
+  },
+  "Edit-SavedContact.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 34960,
+   "y": 5360
+  },
+  "Settings-Delisted.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 0,
+   "y": 4020
+  },
+  "Settings-Paused.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 0,
+   "y": 1340
+  },
+  "Renewal-Submitted.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 1520,
+   "y": 8040
+  },
+  "Edit-About.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 22800,
+   "y": 5360,
+   "title": "Edit-About (request a description change)"
+  },
+  "Settings-FoodSafetyExpired.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 1520,
+   "y": 4020
+  },
+  "Edit-NamesReviewed.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "title": "Edit-NamesReviewed (request a change to the name customers see or the legal name)",
+   "w": 1440,
+   "x": 4560,
+   "y": 5360
+  },
+  "Device-NotificationsAsk.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 4560,
+   "y": 10720
+  },
+  "Renew-Invalid.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 19760,
+   "y": 6700
+  },
+  "Settings-ClosedByHours.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 4560,
+   "y": 1340
+  },
+  "WhatsNew-Page.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 6080,
+   "y": 12060
+  },
+  "WhatsNew-OnOrders.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 3040,
+   "y": 12060
+  },
+  "Renew-Cancel.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 7600,
+   "y": 6700
+  },
+  "WhatsNew-Loading.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 7600,
+   "y": 12060
+  },
+  "Settings-HalalNone.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 12160,
+   "y": 2680
+  },
+  "Renew-Uploading.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 6080,
+   "y": 6700
+  },
+  "Settings-ClosedToggle.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 7600,
+   "y": 1340
+  },
+  "Renew-AlreadyExpired.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 21280,
+   "y": 6700
+  },
+  "Edit-AddressAfter150.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "title": "Edit-AddressAfter150 (address: search, then drag the pin)",
+   "w": 1440,
+   "x": 6080,
+   "y": 5360
+  },
+  "Renewal-InReviewExpiryDay.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 6080,
+   "y": 8040
+  },
+  "Settings-Banned.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 6080,
+   "y": 4020
+  },
+  "Device-SoundOff.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 0,
+   "y": 10720
+  },
+  "ScreenPhone.dc.html": {
+   "h": 844,
+   "page": "launch",
+   "w": 390,
+   "x": 3040,
+   "y": 17140
+  },
+  "PartEditPanel.dc.html": {
+   "h": 700,
+   "page": "launch",
+   "w": 440,
+   "x": 9630,
+   "y": 17140
+  },
+  "PartProfile.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 840,
+   "x": 8710,
+   "y": 17140
+  },
+  "PartHalalCard.dc.html": {
+   "h": 440,
+   "page": "launch",
+   "w": 840,
+   "x": 6870,
+   "y": 17140
+  },
+  "PartRenewalForm.dc.html": {
+   "h": 760,
+   "page": "launch",
+   "w": 440,
+   "x": 10150,
+   "y": 17140
+  },
+  "PartTop.dc.html": {
+   "h": 124,
+   "page": "launch",
+   "w": 1208,
+   "x": 3822,
+   "y": 17140
+  },
+  "PartRail.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 232,
+   "x": 3510,
+   "y": 17140
+  },
+  "PartDevice.dc.html": {
+   "h": 520,
+   "page": "launch",
+   "w": 840,
+   "x": 10670,
+   "y": 17140
+  },
+  "PartWhatsNew.dc.html": {
+   "h": 800,
+   "page": "launch",
+   "w": 440,
+   "x": 11590,
+   "y": 17140
+  },
+  "PartNotifications.dc.html": {
+   "h": 860,
+   "page": "launch",
+   "w": 440,
+   "x": 14374,
+   "y": 17140
+  },
+  "PartNewOrders.dc.html": {
+   "h": 216,
+   "page": "launch",
+   "w": 1208,
+   "x": 5110,
+   "y": 17140
+  },
+  "ScreenPayouts.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 0,
+   "y": 17140
+  },
+  "ScreenSettings.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 1520,
+   "y": 17140
+  },
+  "PartDocuments.dc.html": {
+   "h": 640,
+   "page": "launch",
+   "w": 840,
+   "x": 7790,
+   "y": 17140
+  },
+  "PartPayoutTable.dc.html": {
+   "h": 520,
+   "page": "launch",
+   "w": 1144,
+   "x": 12630,
+   "y": 17140
+  },
+  "PartSupport.dc.html": {
+   "h": 820,
+   "page": "launch",
+   "w": 440,
+   "x": 12110,
+   "y": 17140
+  },
+  "PartPayoutDetail.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 440,
+   "x": 13854,
+   "y": 17140
+  },
+  "PartRejectReason.dc.html": {
+   "h": 640,
+   "page": "launch",
+   "w": 392,
+   "x": 6398,
+   "y": 17140
+  },
+  "Security-ChangePassword.dc.html": {
+   "x": 16720,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Security-ChangePassword (change password in the panel)",
+   "page": "launch"
+  },
+  "Security-PasswordError.dc.html": {
+   "x": 18240,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Security-PasswordError (current password not accepted)",
+   "page": "launch"
+  },
+  "Security-PasswordSaved.dc.html": {
+   "x": 19760,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Security-PasswordSaved (password changed, other devices signed out)",
+   "page": "launch"
+  },
+  "Security-PasswordSaving.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 21280,
+   "y": 0,
+   "title": "Security-PasswordSaving (change password, sending)"
+  },
+  "Security-PasswordFailed.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 22800,
+   "y": 0,
+   "title": "Security-PasswordFailed (network or server failure, nothing changed)"
+  },
+  "Security-NewPasswordRejected.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 24320,
+   "y": 0,
+   "title": "Security-NewPasswordRejected (new password refused, 422)"
+  },
+  "Edit-NamesSending.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 41040,
+   "y": 5360,
+   "title": "Edit-NamesSending (name change request, sending)"
+  },
+  "Edit-AboutSending.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 42560,
+   "y": 5360,
+   "title": "Edit-AboutSending (description request, sending)"
+  },
+  "Edit-AboutFailed.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 44080,
+   "y": 5360,
+   "title": "Edit-AboutFailed (description request couldn't send)"
+  },
+  "Edit-TaxSending.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 45600,
+   "y": 5360,
+   "title": "Edit-TaxSending (GST/HST number request, sending)"
+  },
+  "Edit-TaxFailed.dc.html": {
+   "h": 900,
+   "page": "launch",
+   "w": 1440,
+   "x": 47120,
+   "y": 5360,
+   "title": "Edit-TaxFailed (GST/HST number request couldn't send)"
+  },
+  "Tablet-Settings.dc.html": {
+   "h": 768,
+   "page": "launch",
+   "w": 1024,
+   "x": 0,
+   "y": 18480,
+   "title": "Tablet-Settings (overview, 1024 × 768)"
+  },
+  "Tablet-SettingsEdit.dc.html": {
+   "h": 768,
+   "page": "launch",
+   "w": 1024,
+   "x": 1104,
+   "y": 18480,
+   "title": "Tablet-SettingsEdit (business profile with the edit panel open)"
+  },
+  "Tablet-SettingsRenew.dc.html": {
+   "h": 768,
+   "page": "launch",
+   "w": 1024,
+   "x": 2208,
+   "y": 18480,
+   "title": "Tablet-SettingsRenew (halal certificate upload panel)"
+  }
+ },
+ "order": [
+  "Settings-Overview.dc.html",
+  "Settings-RenewNotYet.dc.html",
+  "Settings-ProfileIncomplete.dc.html",
+  "Settings-Loading.dc.html",
+  "Settings-Error.dc.html",
+  "Settings-Security.dc.html",
+  "Support-Sheet.dc.html",
+  "Support-Account.dc.html",
+  "Settings-Account.dc.html",
+  "Settings-Profile.dc.html",
+  "Settings-Documents.dc.html",
+  "Settings-Paused.dc.html",
+  "Settings-PauseChoose.dc.html",
+  "Settings-PausedUntilClosing.dc.html",
+  "Settings-ClosedByHours.dc.html",
+  "Settings-Holiday.dc.html",
+  "Settings-ClosedToggle.dc.html",
+  "Settings-Offline.dc.html",
+  "Settings-AutoOffline.dc.html",
+  "Settings-HalalExpiring.dc.html",
+  "Settings-HalalExpiring14.dc.html",
+  "Settings-HalalExpiring7.dc.html",
+  "Settings-HalalExpiring1.dc.html",
+  "Settings-HalalExpired.dc.html",
+  "Settings-HalalRevoked.dc.html",
+  "Settings-HalalNotVerified.dc.html",
+  "Settings-HalalNoCertificate.dc.html",
+  "Settings-HalalNone.dc.html",
+  "Settings-Delisted.dc.html",
+  "Settings-FoodSafetyExpired.dc.html",
+  "Settings-Pending.dc.html",
+  "Settings-Suspended.dc.html",
+  "Settings-Banned.dc.html",
+  "Settings-Deactivated.dc.html",
+  "Settings-Closed.dc.html",
+  "Edit-Names.dc.html",
+  "Edit-NamesInvalid.dc.html",
+  "Edit-NamesFailed.dc.html",
+  "Edit-NamesReviewed.dc.html",
+  "Edit-AddressAfter150.dc.html",
+  "Edit-AddressPin.dc.html",
+  "Edit-AddressAfter150Failed.dc.html",
+  "Edit-AddressSent.dc.html",
+  "Edit-OtherCardInvalid.dc.html",
+  "Edit-UnknownField.dc.html",
+  "Edit-Conflict.dc.html",
+  "Edit-Contact.dc.html",
+  "Edit-ContactError.dc.html",
+  "Edit-Tax.dc.html",
+  "Edit-TaxError.dc.html",
+  "Edit-About.dc.html",
+  "Edit-Kitchen.dc.html",
+  "Edit-KitchenError.dc.html",
+  "Edit-Saving.dc.html",
+  "Edit-Discard.dc.html",
+  "Edit-Saved.dc.html",
+  "Edit-SavedKitchen.dc.html",
+  "Edit-SavedAbout.dc.html",
+  "Edit-SavedContact.dc.html",
+  "Edit-SavedTax.dc.html",
+  "Edit-AboutError.dc.html",
+  "Edit-NamesSent.dc.html",
+  "Edit-NamesSending.dc.html",
+  "Edit-AboutSending.dc.html",
+  "Edit-AboutFailed.dc.html",
+  "Edit-TaxSending.dc.html",
+  "Edit-TaxFailed.dc.html",
+  "Renew-First.dc.html",
+  "Renew-FromExpiring.dc.html",
+  "Renew-AfterExpiry.dc.html",
+  "Renew-Choose.dc.html",
+  "Renew-Uploading.dc.html",
+  "Renew-Cancel.dc.html",
+  "Renew-UploadFailed.dc.html",
+  "Renew-WrongType.dc.html",
+  "Renew-TooLarge.dc.html",
+  "Renew-TypeMismatch.dc.html",
+  "Renew-Ready.dc.html",
+  "Renew-Sending.dc.html",
+  "Renew-SendFailed.dc.html",
+  "Renew-Invalid.dc.html",
+  "Renew-AlreadyExpired.dc.html",
+  "Renew-Certifier.dc.html",
+  "Renew-Locked.dc.html",
+  "Renew-TooEarly.dc.html",
+  "Renewal-Early.dc.html",
+  "Renewal-Submitted.dc.html",
+  "Renewal-InReview.dc.html",
+  "Renewal-InReviewExpiring.dc.html",
+  "Renewal-InReviewExpiryDay.dc.html",
+  "Renewal-Rejected.dc.html",
+  "Renewal-RejectedStillValid.dc.html",
+  "Renewal-RejectedDuplicate.dc.html",
+  "Support-Halal.dc.html",
+  "Renewal-Approved.dc.html",
+  "Renewal-ApprovedEarly.dc.html",
+  "Doc-Upload.dc.html",
+  "Doc-Ready.dc.html",
+  "Doc-Sent.dc.html",
+  "Doc-UploadLicence.dc.html",
+  "Doc-UploadOwnerId.dc.html",
+  "Docs-FoodExpiring.dc.html",
+  "Docs-FoodRejected.dc.html",
+  "Docs-History.dc.html",
+  "Docs-Loading.dc.html",
+  "Docs-Error.dc.html",
+  "Docs-FileLinkError.dc.html",
+  "Device-SoundOff.dc.html",
+  "Device-SoundPlaying.dc.html",
+  "Device-SoundBlocked.dc.html",
+  "Device-NotificationsAsk.dc.html",
+  "Device-NotificationsAsking.dc.html",
+  "Device-NotificationsBlocked.dc.html",
+  "Device-NoWakeLock.dc.html",
+  "Settings-Device.dc.html",
+  "WhatsNew-AfterUpdate.dc.html",
+  "WhatsNew-Interrupted.dc.html",
+  "WhatsNew-OnOrders.dc.html",
+  "WhatsNew-FirstRun.dc.html",
+  "WhatsNew-Page.dc.html",
+  "WhatsNew-Loading.dc.html",
+  "WhatsNew-UpToDate.dc.html",
+  "WhatsNew-Error.dc.html",
+  "Reflow-Settings-320.dc.html",
+  "Reflow-Settings-720.dc.html",
+  "ScreenPayouts.dc.html",
+  "ScreenSettings.dc.html",
+  "ScreenPhone.dc.html",
+  "PartRail.dc.html",
+  "PartTop.dc.html",
+  "PartNewOrders.dc.html",
+  "PartRejectReason.dc.html",
+  "PartHalalCard.dc.html",
+  "PartDocuments.dc.html",
+  "PartProfile.dc.html",
+  "PartEditPanel.dc.html",
+  "PartRenewalForm.dc.html",
+  "PartDevice.dc.html",
+  "PartWhatsNew.dc.html",
+  "PartSupport.dc.html",
+  "PartPayoutTable.dc.html",
+  "PartPayoutDetail.dc.html",
+  "PartNotifications.dc.html",
+  "Security-ChangePassword.dc.html",
+  "Security-PasswordError.dc.html",
+  "Security-PasswordSaved.dc.html",
+  "Security-PasswordSaving.dc.html",
+  "Security-PasswordFailed.dc.html",
+  "Security-NewPasswordRejected.dc.html",
+  "Tablet-Settings.dc.html",
+  "Tablet-SettingsEdit.dc.html",
+  "Tablet-SettingsRenew.dc.html"
+ ],
+ "notes": {
+  "t-settings": {
+   "kind": "title1",
+   "maxW": 8000,
+   "page": "launch",
+   "text": "Settings: one section at a time, details in a panel beside it",
+   "w": 240,
+   "x": 0,
+   "y": -300
+  },
+  "n-settings": {
+   "fill": "gray",
+   "maxH": 900,
+   "page": "launch",
+   "size": 24,
+   "text": "Settings layout\n\nSection list on the left with a one-line summary each; the chosen section beside it; edits, uploads, support and pausing open in a panel on the right. While a panel is open the side navigation collapses to icons and the section list keeps its titles only, so the section beside it keeps its two columns; the card being edited carries the selected tint.\n\nConfirmations (discard changes, cancel an upload) happen inside the panel, not in a dialog.\n\nEach section in the list opens its normal state. At launch restaurants sign in with email and password, and can change their password under Sign-in and security (changePassword moved into launch, owner decision). Two-step sign-in for restaurants stays on the Later version page.",
+   "w": 520,
+   "x": -620,
+   "y": 0
+  },
+  "t-avail": {
+   "kind": "title1",
+   "maxW": 8000,
+   "page": "launch",
+   "text": "Orders right now: pause, closed, off and offline",
+   "w": 240,
+   "x": 0,
+   "y": 1040
+  },
+  "n-pause": {
+   "fill": "gray",
+   "maxH": 900,
+   "page": "launch",
+   "size": 24,
+   "text": "Pausing\n\nPause new orders offers 15 minutes, 30 minutes, 1 hour and Until closing. Until closing needs an API change: the server works out today's closing time, so the browser never does (owner decision, tagged Needs API).\n\nThe panel opens with no length chosen and Pause new orders disabled until one is picked, so a quick click can't pause for the whole evening.",
+   "w": 520,
+   "x": -620,
+   "y": 1340
+  },
+  "t-halal": {
+   "kind": "title1",
+   "maxW": 8000,
+   "page": "launch",
+   "text": "Halal certification states (reminders at 30, 14, 7 and 1 days)",
+   "w": 240,
+   "x": 0,
+   "y": 2380
+  },
+  "n-halal": {
+   "fill": "green",
+   "maxH": 1000,
+   "page": "launch",
+   "size": 24,
+   "text": "Halal copy rules on this canvas\n\n• A missing halal field shows no badge and no claim either way (Settings-HalalNone).\n• Not verified, no certificate and a withdrawal show no HalalBadge in Settings or the app bar.\n• Expired is cool slate, never red. Only HalalBadge and HalalCertificationPanel paint the halal colours.\n• Reminders at 30, 14, 7 and 1 days before expiry (owner decision); the 3-day artboard is gone.\n• The standing line is \"Certification verified by HalalGoes on {date}. HalalGoes does not itself certify food.\" HalalGoes is one word; the spec and server string change with it.",
+   "w": 520,
+   "x": -620,
+   "y": 2680
+  },
+  "t-account": {
+   "kind": "title1",
+   "maxW": 8000,
+   "page": "launch",
+   "text": "Account states",
+   "w": 240,
+   "x": 0,
+   "y": 3720
+  },
+  "t-edit": {
+   "kind": "title1",
+   "maxW": 8000,
+   "page": "launch",
+   "text": "Editing the business profile in a panel; names, address, description and GST/HST number are requested changes",
+   "w": 240,
+   "x": 0,
+   "y": 5060
+  },
+  "n-edit": {
+   "fill": "blue",
+   "maxH": 900,
+   "page": "launch",
+   "size": 24,
+   "text": "Reviewed changes (owner decisions)\n\nLocked, with Request a change: the name customers see and the legal name (one request covers either or both), the address, the description and the GST/HST number. A name or description can make a halal claim, and the GST/HST number prints on receipts, so HalalGoes reviews each one before it applies; the current value stays meanwhile and the card shows the pending change. The owner name, phone numbers and kitchen details still save at once.\n\nThe address request is typed into a map search, then the pin is dragged to the kitchen door for precision (owner decision). Riders go to the pin. Address search goes through our API, which forwards to Mapbox (owner decision).\n\nNeeds API: address search, place details and reverse geocoding through our API (approved for launch, not yet in the contract), and a reviewed change for each of these fields. Map tiles come straight from Mapbox. Today submitRestaurantProfile applies changes at once and replaces the whole profile.",
+   "w": 520,
+   "x": -620,
+   "y": 5360
+  },
+  "t-upload": {
+   "kind": "title1",
+   "maxW": 8000,
+   "page": "launch",
+   "text": "Halal certificate upload: in the app, private to you and HalalGoes reviewers",
+   "w": 240,
+   "x": 0,
+   "y": 6400
+  },
+  "n-renew": {
+   "fill": "orange",
+   "maxH": 1000,
+   "page": "launch",
+   "size": 24,
+   "text": "Halal certificate: upload only\n\nThe certificate is uploaded in the app to a private store and opened only through short-lived links, never emailed. The email-to-support path is gone.\n\nNeeds API: the list of accepted certifying bodies readable by restaurants (today admins only), and review of a single document after onboarding.\n\nRestaurants are told reviews take up to 3 business days (owner decision).",
+   "w": 520,
+   "x": -620,
+   "y": 6700
+  },
+  "t-review": {
+   "kind": "title1",
+   "maxW": 8000,
+   "page": "launch",
+   "text": "After sending: review (within 3 business days)",
+   "w": 240,
+   "x": 0,
+   "y": 7740
+  },
+  "t-docs": {
+   "kind": "title1",
+   "maxW": 8000,
+   "page": "launch",
+   "text": "Other documents",
+   "w": 240,
+   "x": 0,
+   "y": 9080
+  },
+  "t-device": {
+   "kind": "title1",
+   "maxW": 8000,
+   "page": "launch",
+   "text": "This device",
+   "w": 240,
+   "x": 0,
+   "y": 10420
+  },
+  "t-whatsnew": {
+   "kind": "title1",
+   "maxW": 8000,
+   "page": "launch",
+   "text": "What's new",
+   "w": 240,
+   "x": 0,
+   "y": 11760
+  },
+  "n-wn": {
+   "fill": "gray",
+   "maxH": 900,
+   "page": "launch",
+   "size": 24,
+   "text": "What's new\n\nOpens in the panel beside the page after an update. It no longer waits for the order queue to empty: a new order goes to the strip, and the panel stays open (WhatsNew-Interrupted).\n\nThe bell is not in launch (listNotifications is a later-version operation), so unseen release notes mark the account menu's What's new item.\n\nSigned in on a new device with no record of the last version seen: only the latest release's notes show (owner decision).",
+   "w": 520,
+   "x": -620,
+   "y": 12060
+  },
+  "t-phone": {
+   "kind": "title1",
+   "maxW": 1200,
+   "page": "launch",
+   "text": "Reflow checks at 400% and 200% zoom (320 and 720 CSS px): settings",
+   "w": 240,
+   "x": 0,
+   "y": 13100
+  },
+  "t-blocks": {
+   "kind": "title1",
+   "maxW": 8000,
+   "page": "launch",
+   "text": "Building blocks reused by the artboards above",
+   "w": 240,
+   "x": 0,
+   "y": 16840
+  },
+  "legend": {
+   "fill": "gray",
+   "maxH": 1000,
+   "page": "launch",
+   "size": 24,
+   "text": "How to read this canvas\n\n• Components are the real HalalGoes design-system components. A dashed grey tag \"Proposed component: <name>\" marks a composite built only from library parts and design-system components, for the owner to approve into the design system.\n• A dashed blue tag \"Needs API: <what>\" marks data or actions the contract does not provide. Nothing marked so is designed as real.\n• Every amount is server integer cents through Price. Nothing is added up in the browser. No tax line.\n• Colours are role tokens from the design system's own tokens.css; the canvas has no local token overrides.\n• Desktop working pages fit 1440 × 900 and never scroll as a page. Long lists scroll inside their own region. Details open in a panel beside the page, never over it.\n• The restaurant web ships light only, and at launch every restaurant login is its owner.\n• Artboards that need later-version operations are on the page \"Later version (not in launch)\" of HalalGoes Restaurant — Payouts & Settings: https://claude.ai/artifact/Djdm2j2nZaE3ULnyVudcjw",
+   "w": 520,
+   "x": -620,
+   "y": -1300
+  },
+  "n-split": {
+   "fill": "blue",
+   "page": "launch",
+   "size": 24,
+   "w": 520,
+   "maxH": 700,
+   "x": -1220,
+   "y": -1300,
+   "text": "Split from HalalGoes Restaurant — Payouts & Settings: https://claude.ai/artifact/Djdm2j2nZaE3ULnyVudcjw\n\nThis canvas holds the Settings sections: settings overview, orders right now (pause, closed, offline), halal certification states, account states, editing the business profile, halal certificate upload and review, other documents, this device, what's new, and the settings reflow (400% zoom) artboards. Orders strip, payouts and the later-version page stay on the original."
+  },
+  "t-tablet": {
+   "kind": "title1",
+   "maxW": 3232,
+   "page": "launch",
+   "text": "Tablet, landscape 1024 × 768",
+   "w": 240,
+   "x": 0,
+   "y": 18180
+  },
+  "n-tablet": {
+   "fill": "gray",
+   "maxH": 700,
+   "page": "launch",
+   "size": 24,
+   "text": "Kitchen tablet, landscape 1024 × 768 and up (owner decision)\n\nThe same sections as desktop. The side navigation stays collapsed to icons and the panel beside the page is 380 px, as on Live Orders. While a panel is open the section list hides so the section keeps room; closing the panel brings it back. No portrait or phone layout.",
+   "w": 520,
+   "x": -620,
+   "y": 18480
+  }
+ },
+ "attachments": {},
+ "designSystems": [
+  {
+   "title": "HalalGoes design system",
+   "namespace": "halalgoesdesignsystem-d11a47",
+   "artifact": "https://claude.ai/artifact/1GwGVZz8Ju9wcz4HfCnzbv",
+   "version": "1790605103-3266",
+   "copiedAt": "2026-10-01T02:08:22Z"
+  }
+ ]
+}

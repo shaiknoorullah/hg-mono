@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Zaytoun Grill, menu error</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:var(--color-neutral-100)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+.demo-focus .hg-focus,.demo-focus .hg-choice-ctl,.demo-focus .hg-row,.demo-focus > a{box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)!important}
+.demo-focus-field .hg-field{border-color:var(--focus-ring)!important;box-shadow:inset 0 0 0 calc(var(--focus-field-border-width) - 1px) var(--focus-ring)!important}
+
+</style>
+</helmet>
+<div style="width: 390px; height: 1420px; position: relative; overflow: hidden; display: flex; flex-direction: column; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+<div style="height: 200px; flex-shrink: 0; position: relative; display: flex; align-items: center; justify-content: center; background: var(--surface-sunken); outline: 1.5px dotted var(--color-info-500); outline-offset: -4px">
+<span style="font-size: var(--type-caption-size); font-weight: 600; color: var(--text-secondary)">No image</span>
+<span style="position: absolute; bottom: 8px; left: 8px; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--color-info-700); background: var(--color-info-50)">Component gap: MediaFrame (hero)</span>
+<div style="position: absolute; top: 0; left: 0; right: 0; height: 72px; padding: var(--space-2) var(--space-3); box-sizing: border-box; display: flex; align-items: flex-start">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.IconButton" icon="back" accessibility-label="Back to Home" variant="tonal" shape="circle" size="md"></x-import>
+</div>
+</div>
+<main style="flex-grow: 1; display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-4)">
+
+<div style="display: flex; flex-direction: column; gap: var(--space-2)">
+<h1 style="margin: 0; font-size: var(--type-heading-xl-size); font-weight: 700; letter-spacing: -0.01em">Zaytoun Grill</h1>
+<div style="display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.HalalBadge" state="CERTIFIED" size="md" surface="card"></x-import>
+<a href="Restaurant-cert-sheet.dc.html" class="hg-focus" aria-label="View certification: halal certificate for Zaytoun Grill" style="min-height: 44px; display: inline-flex; align-items: center; gap: var(--space-1); padding: 0 var(--space-1); border-radius: var(--radius-xs); font: var(--text-type-label-lg); color: var(--text-link); text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px">View certification<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="chevron-right" size="sm"></x-import></a>
+</div>
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--color-info-700); background: var(--color-info-50); border: 1px dashed var(--color-info-500)">Proposed component: RestaurantHalalStatus: HalalBadge (md) + an expiry chip when the certificate is expiring + a View certification button that opens the certification Sheet. With no halal data nothing renders: no badge, no button.</span>
+<div style="display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; font-size: var(--type-body-sm-size); color: var(--text-secondary)">
+<span>Levantine · Grill · $$</span>
+</div>
+<div style="display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; font-size: var(--type-body-sm-size); color: var(--text-secondary)">
+<span style="display: inline-flex; align-items: center; gap: var(--space-1); font-variant-numeric: tabular-nums"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="clock" size="sm"></x-import>25–35 min · open until 10:00 pm · <a href="#hours" style="min-height: 44px; display: inline-flex; align-items: center; font-weight: 600">Hours</a></span>
+<span style="display: inline-flex; align-items: center; gap: var(--space-1)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{c.fee}}" size="sm"></x-import>delivery (estimate)</span>
+<span style="display: inline-flex; align-items: center; gap: var(--space-1)">Min. order <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{c.min}}" size="sm"></x-import></span>
+</div>
+</div>
+
+
+
+<details id="hours" style="border-radius: var(--radius-md); outline: 1.5px dotted var(--color-info-500); outline-offset: 3px">
+<summary style="min-height: 44px; display: flex; align-items: center; gap: var(--space-2); cursor: pointer; font-size: var(--type-label-lg-size); font-weight: 600; list-style: none"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="clock" size="md" color="var(--text-secondary)"></x-import><span style="flex-grow: 1">Opening hours · today 11:00 am–10:00 pm</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="chevron-down" size="sm"></x-import></summary>
+<dl style="margin: 0 0 var(--space-2); padding-left: 28px; display: grid; grid-template-columns: max-content 1fr; column-gap: var(--space-4); row-gap: var(--space-1); font-size: var(--type-body-md-size)"><dt style="font-weight: 700">Monday (today)</dt><dd style="margin: 0; font-weight: 700; font-variant-numeric: tabular-nums">11:00 am–10:00 pm</dd><dt style="font-weight: 400">Tuesday</dt><dd style="margin: 0; font-weight: 400; font-variant-numeric: tabular-nums">11:00 am–10:00 pm</dd><dt style="font-weight: 400">Wednesday</dt><dd style="margin: 0; font-weight: 400; font-variant-numeric: tabular-nums">11:00 am–10:00 pm</dd><dt style="font-weight: 400">Thursday</dt><dd style="margin: 0; font-weight: 400; font-variant-numeric: tabular-nums">11:00 am–10:00 pm</dd><dt style="font-weight: 400">Friday</dt><dd style="margin: 0; font-weight: 400; font-variant-numeric: tabular-nums">1:00 pm–11:00 pm</dd><dt style="font-weight: 400">Saturday</dt><dd style="margin: 0; font-weight: 400; font-variant-numeric: tabular-nums">11:00 am–11:00 pm</dd><dt style="font-weight: 400">Sunday</dt><dd style="margin: 0; font-weight: 400; font-variant-numeric: tabular-nums">12:00 pm–10:00 pm</dd></dl>
+</details>
+<div style="display: flex; gap: var(--space-2); flex-wrap: wrap; margin-top: calc(var(--space-2) * -1)"><span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--color-info-700); background: var(--color-info-50)">Component gap: Disclosure</span><span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">Bound: RestaurantDetail.hours[] in the restaurant timezone</span></div>
+<section role="alert" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-4); padding: var(--space-8) var(--space-4); text-align: center; outline: 1.5px dotted var(--color-info-500); outline-offset: -2px; border-radius: var(--radius-lg); position: relative">
+<span style="position: absolute; top: 8px; left: 8px; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--color-info-700); background: var(--color-info-50)">Component gap: ErrorState</span>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="error" size="2xl" color="var(--text-secondary)"></x-import>
+<h2 style="margin: 0; font-size: var(--type-heading-lg-size); font-weight: 600">We couldn't load the menu</h2>
+<p style="margin: 0; max-width: 300px; font-size: var(--type-body-md-size); line-height: var(--type-body-md-line); color: var(--text-secondary)">The restaurant details above are current. Try the menu again.</p>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" full-width="{{yes}}" icon-start="refresh">Try again</x-import>
+</section>
+
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1420}}'>
+class Component extends DCLogic {
+renderVals() {
+return {
+yes: true,
+no: false,
+none: null,
+zero: 0,
+two: 2,
+noop: function () {},
+nav: [
+{ key: 'home', label: 'Home', icon: 'home' },
+{ key: 'search', label: 'Search', icon: 'search' },
+{ key: 'orders', label: 'Orders', icon: 'orders' },
+{ key: 'account', label: 'Account', icon: 'profile' }
+],
+r: { z: 4.8, zc: 212, k: 4.6, kc: 486, a: null, ac: 0, l: 4.3, lc: 97, s: 4.7, sc: 140, n: null, nc: 0, b: 4.4, bc: 61 },
+c: { fee: 299, min: 1500, kfee: 399, kmin: 2000, nfee: 499, nmin: 1500, grill: 2499, adana: 2199, wrap: 1249, falafel: 1099, karahi: 1899, plate: 1650, lahmacun: 950, tikka: 1599, koob: 2250, mandi: 2299 },
+cert: {
+display_state: 'CERTIFIED',
+certifying_body_name: 'Halal Monitoring Authority (HMA Canada)',
+certificate_number: 'HMA-ON-24-0183',
+scope: 'WHOLE_ESTABLISHMENT',
+issued_on: '2026-04-01',
+expires_on: '2027-03-31',
+verified_at: '2026-09-04T14:02:00Z',
+certificate_viewable: true,
+disclaimer: 'Certification verified by HalalGoes on 4 September 2026. HalalGoes does not itself certify food.'
+}
+};
+}
+}
+</script>
+</body>
+</html>

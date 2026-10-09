@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<!-- @template name="Waitlist hero" description="Pre-launch dual-audience hero: forest nav, cream ground, orange CTA, verification seal card." -->
+<helmet>
+<script src="./ds-base.js"></script>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<style>body{margin:0;background:#FFFAEA;font-family:"Inter",system-ui,sans-serif}a{color:#0959B8}a:hover{color:#07458F}</style>
+</helmet>
+<div style="background:#FFFAEA;min-height:100%">
+<header style="position:sticky;top:0;z-index:100;background:#1B3B31;color:#FFFAEA;box-shadow:0 2px 4px rgba(0,0,0,.06),0 4px 8px rgba(0,0,0,.08)">
+<div style="max-width:1180px;margin:0 auto;padding:0 32px;height:72px;display:flex;align-items:center;gap:24px">
+<span style="font-family:'Plus Jakarta Sans',system-ui,sans-serif;font-weight:800;font-size:22px;letter-spacing:-.03em">Halal Goes</span>
+<nav style="margin:0 auto;display:flex;gap:2px;padding:3px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.16);border-radius:9999px">
+<span style="display:inline-flex;align-items:center;height:44px;padding:0 18px;background:#FFFFFF;color:#0F241C;font-size:15px;font-weight:600;border-radius:9999px;box-shadow:0 1px 2px rgba(0,0,0,.06)">Order food</span>
+<span style="display:inline-flex;align-items:center;height:44px;padding:0 18px;color:rgba(255,255,255,.82);font-size:15px;font-weight:600;border-radius:9999px">List your restaurant</span>
+</nav>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" hint-size="160px,44px">Join the waitlist</x-import>
+</div>
+</header>
+<section style="max-width:1180px;margin:0 auto;padding:72px 32px 88px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:56px;align-items:center">
+<div style="display:grid;gap:24px">
+<span style="justify-self:start;display:inline-flex;align-items:center;height:24px;padding:0 10px;background:#E7EDEA;color:#143026;border:1px solid #C6D3CC;border-radius:9999px;font-size:11px;font-weight:600;letter-spacing:.04em">Launching in Ontario</span>
+<h1 style="margin:0;font-family:'Plus Jakarta Sans',system-ui,sans-serif;font-size:60px;line-height:1.05;letter-spacing:-.03em;font-weight:800;color:#1B3B31">Verified halal,<br>delivered.</h1>
+<p style="margin:0;font-size:20px;line-height:1.5;color:#4A4E48;max-width:460px">Every restaurant checked seven ways before it reaches you.</p>
+<div style="display:flex;gap:10px;align-items:flex-start;max-width:460px">
+<span style="flex:1"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" size="lg" type="tel" placeholder="(416) 555-0134" leftIcon="phone" hint-size="100%,56px"></x-import></span>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" size="lg" hint-size="140px,56px">Notify me</x-import>
+</div>
+<div style="display:flex;align-items:center;gap:14px;padding-top:4px">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.HalalBadge" state="certified" size="sm" hint-size="150px,26px"></x-import>
+<span style="font-size:14px;color:#6E7C77">[XX] certified restaurants ready for launch day</span>
+</div>
+</div>
+<div style="position:relative;display:grid;place-items:center;padding:24px">
+<div style="width:100%;height:420px;background:#F6EFDD;border-radius:16px;box-shadow:inset 0 0 0 1px #E6E0D4;display:grid;place-items:center;color:#B9B0A0;font-size:12px;letter-spacing:.04em;font-weight:600">FOOD PHOTOGRAPHY</div>
+<div style="position:absolute;bottom:44px;left:0;display:flex;align-items:center;gap:14px;background:#FFFFFF;padding:14px 18px;border-radius:16px;box-shadow:0 8px 16px rgba(0,0,0,.10),0 16px 32px rgba(0,0,0,.12)">
+<span style="width:52px;height:52px;display:grid;place-items:center;border-radius:12px;background:#0F7A43;box-shadow:inset 0 0 0 2px #C9A24B">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.HalalShield" size="32" checkColor="#0F7A43" color="#FFFFFF" hint-size="32px,32px"></x-import>
+</span>
+<span>
+<span style="display:block;font-size:15px;font-weight:700;color:#0C4A2A">Halal certified</span>
+<span style="display:block;font-size:13px;color:#6E7C77">Checked seven ways · certified by [body]</span>
+</span>
+</div>
+</div>
+</section>
+</div>
+</x-dc>
+</body>
+</html>

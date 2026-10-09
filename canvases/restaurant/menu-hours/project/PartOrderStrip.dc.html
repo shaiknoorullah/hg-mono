@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>New orders strip (part)</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}.strip-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}</style>
+</helmet>
+<section aria-labelledby="strip-h" style="{{rootStyle}}">
+  <div style="width: 176px; flex-shrink: 0; display: flex; flex-direction: column; gap: 2px;">
+    <div style="display: flex; align-items: center; gap: var(--space-2);">
+      <span style="display: inline-flex; color: {{bellColor}};"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="bell" weight="{{bellWeight}}" size="md" hint-size="20px,20px"></x-import></span>
+      <h2 id="strip-h" style="margin: 0; font: var(--text-type-label-lg);">New orders</h2>
+      <sc-if value="{{hasCount}}" hint-placeholder-val="{{true}}">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="brand" appearance="solid" size="sm" label="{{count}}" hint-size="22px,18px"></x-import>
+        <span class="strip-sr">waiting for an answer</span>
+      </sc-if>
+    </div>
+    <span style="font: var(--text-type-body-sm); line-height: var(--type-heading-md-line); color: var(--text-secondary);">{{sub}}</span>
+    <sc-if value="{{hasCount}}" hint-placeholder-val="{{true}}">
+      <span style="font: var(--text-type-body-sm); line-height: var(--type-heading-md-line); color: var(--text-secondary);">Arrows move · A accepts · R rejects</span>
+    </sc-if>
+  </div>
+
+  <sc-if value="{{isNone}}" hint-placeholder-val="{{false}}">
+    <p role="status" style="margin: 0; flex-grow: 1; font: var(--text-type-body-md); line-height: var(--type-body-sm-line); color: var(--text-secondary);">No orders waiting. A new order appears here with its 3-minute countdown and rings until you accept or reject it, or it expires.</p>
+  </sc-if>
+
+  <sc-if value="{{isNoScreen}}" hint-placeholder-val="{{false}}">
+    <p role="status" style="margin: 0; flex-grow: 1; font: var(--text-type-body-md); line-height: var(--type-body-sm-line); color: var(--text-secondary);">No orders waiting. Orders only reach a screen with the Orders page open.</p>
+  </sc-if>
+
+  <sc-if value="{{isOffline}}" hint-placeholder-val="{{false}}">
+    <div role="status" style="flex-grow: 1; display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: var(--radius-md); background: var(--feedback-warning-tint); border: 1px solid var(--feedback-warning-border);">
+      <span style="display: inline-flex; color: var(--feedback-warning-icon);"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="warning" size="md" hint-size="20px,20px"></x-import></span>
+      <span style="font: var(--text-type-body-md); line-height: var(--type-caption-line); color: var(--feedback-warning-tint-text);">Reconnecting. Orders may be waiting that this screen can’t show yet. Their countdowns keep running on the server.</span>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{hasOrders}}" hint-placeholder-val="{{true}}">
+    <ul aria-label="Orders waiting for an answer, most urgent first" style="list-style: none; margin: 0; padding: 6px; display: flex; align-items: center; gap: var(--space-3); flex-grow: 1; min-width: 0; overflow-x: auto;">
+      <sc-for list="{{fulls}}" as="o" hint-placeholder-count="1">
+        <li tabindex="0" role="group" aria-labelledby="{{o.sumId}}" style="{{o.cardStyle}}">
+          <span id="{{o.sumId}}" class="strip-sr">{{o.aria}}</span>
+          <div aria-hidden="true" style="display: flex; flex-direction: column; gap: 2px; min-width: 0; flex-grow: 1;">
+            <span style="display: flex; align-items: baseline; gap: var(--space-2); min-width: 0;">
+              <span style=" font: var(--text-type-mono-md); font-weight: var(--font-weight-semibold);">{{o.code}}</span>
+              <span style="font: var(--text-type-body-sm); color: var(--text-secondary); white-space: nowrap;">{{o.customer}}</span>
+            </span>
+            <span style="font: var(--text-type-body-sm); line-height: var(--type-heading-lg-line); color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{o.items}}</span>
+            <sc-if value="{{o.plain}}" hint-placeholder-val="{{true}}">
+              <span style="display: flex; align-items: baseline; gap: 6px; font: var(--text-type-body-sm); color: var(--text-secondary);">You receive <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{o.net}}" size="sm" hint-size="56px,18px"></x-import></span>
+            </sc-if>
+            <sc-if value="{{o.failed}}" hint-placeholder-val="{{false}}">
+              <span role="alert" style="display: flex; gap: var(--space-1); align-items: center; font: var(--text-type-body-sm); line-height: var(--type-heading-lg-line); color: var(--feedback-danger-text);"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="error" size="sm" hint-size="16px,16px"></x-import>Couldn’t accept. Try again.</span>
+            </sc-if>
+            <sc-if value="{{o.rejecting}}" hint-placeholder-val="{{false}}">
+              <span style="font: var(--text-type-label-md); color: var(--text-primary);">Choose a reason in the panel</span>
+            </sc-if>
+          </div>
+          <sc-if value="{{o.live}}" hint-placeholder-val="{{true}}">
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Countdown" variant="ring" size="sm" expires-at="{{o.expiresAt}}" server-now="{{serverNow}}" window-seconds="{{oneEighty}}" label="left" on-expire="{{noop}}" hint-size="48px,48px"></x-import>
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" disabled="{{o.busy}}" accessibility-label="{{o.rejectLabel}}" hint-size="80px,44px">Reject</x-import>
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" critical="{{yes}}" loading="{{o.accepting}}" disabled="{{o.rejecting}}" accessibility-label="{{o.acceptLabel}}" hint-size="136px,72px">{{o.acceptText}}</x-import>
+          </sc-if>
+          <sc-if value="{{o.expired}}" hint-placeholder-val="{{false}}">
+            <div style="display: flex; flex-direction: column; gap: 2px; align-items: flex-start;">
+              <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="neutral" icon="clock" size="md" hint-size="90px,22px">Timed out</x-import>
+              <span style="font: var(--text-type-body-sm); line-height: var(--type-heading-lg-line); color: var(--text-secondary);">The customer wasn’t charged.</span>
+            </div>
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="md" accessibility-label="{{o.dismissLabel}}" hint-size="90px,44px">Dismiss</x-import>
+          </sc-if>
+        </li>
+      </sc-for>
+      <sc-for list="{{compacts}}" as="o" hint-placeholder-count="1">
+        <li tabindex="-1" role="group" aria-labelledby="{{o.sumId}}" style="display: flex; align-items: center; gap: 10px; height: 60px; box-sizing: border-box; flex-shrink: 0; width: 196px; padding: 0 10px 0 var(--space-3); border-radius: var(--radius-md); border: 1px solid var(--border-interactive); background: var(--surface-raised);">
+          <span id="{{o.sumId}}" class="strip-sr">{{o.aria}}</span>
+          <div aria-hidden="true" style="display: flex; flex-direction: column; gap: 2px; min-width: 0; flex-grow: 1;">
+            <span style=" font: var(--text-type-mono-md); font-weight: var(--font-weight-semibold);">{{o.code}}</span>
+            <span style="font: var(--text-type-body-sm); color: var(--text-secondary); white-space: nowrap;">{{o.count}}</span>
+          </div>
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Countdown" variant="ring" size="sm" expires-at="{{o.expiresAt}}" server-now="{{serverNow}}" window-seconds="{{oneEighty}}" label="left" on-expire="{{noop}}" hint-size="48px,48px"></x-import>
+        </li>
+      </sc-for>
+      <sc-if value="{{hasMore}}" hint-placeholder-val="{{false}}">
+        <li style="display: flex; align-items: center; flex-shrink: 0;">
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" href="#" hint-size="150px,44px">{{moreText}}</x-import>
+        </li>
+      </sc-if>
+    </ul>
+  </sc-if>
+
+  <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="md" href="#" icon-end="chevron-right" style="flex-shrink: 0;" hint-size="140px,44px">Open Orders</x-import>
+  <span style="position: absolute; {{chipPos}}; right: 16px; padding: 1px var(--space-2); border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); background: var(--surface-base); font: var(--text-type-mono-sm); color: var(--text-secondary);">Proposed component: NewOrdersStrip ({{placeName}}). Built from the system Countdown, Button (critical), Badge and Price</span>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["waiting","none","noscreen","focus","accepting","acceptfailed","rejecting","afterreject","expiring","expired","offline","many"],"default":"waiting"},"place":{"editor":"enum","options":["header","footer"],"default":"header"},"w":{"editor":"int","default":1216},"$preview":{"width":1216,"height":100}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const state = this.props.state ?? 'waiting';
+    const place = this.props.place ?? 'header';
+    const w = this.props.w ?? 1216;
+    // Countdowns read each order's deadline_at against the server clock (Countdown needs both); never a local timer.
+    const nowMs = Date.now();
+    const iso = (ms) => new Date(ms).toISOString();
+    const base = [
+      { code: 'HG-8F3K2Q', customer: 'Aisha K.', items: '3 items · Chicken shawarma plate, Lamb mandi', count: '3 items', net: 5640, left: 161 },
+      { code: 'HG-2M7PXR', customer: 'Omar S.', items: '1 item · Mixed grill', count: '1 item', net: 4200, left: 118 },
+      { code: 'HG-9QW4ZT', customer: 'Fatima R.', items: '2 items · Beef kofta plate, Mango lassi', count: '2 items', net: 2349, left: 170 },
+    ];
+    const words = (s) => { const m = Math.floor(s / 60); const x = s % 60; return (m ? m + (m === 1 ? ' minute ' : ' minutes ') : '') + x + ' seconds left'; };
+    let list = ['none', 'noscreen', 'offline'].includes(state) ? [] : base.slice(0, 2);
+    if (state === 'expiring') list = [{ ...base[0], left: 14 }, base[1]];
+    if (state === 'many') list = base.slice(0, 2);
+    if (state === 'afterreject') list = [base[1]];
+    const ring = 'box-shadow: 0 0 0 var(--focus-offset-width) var(--focus-offset), 0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)';
+    const fulls = list.slice(0, 1).map((o) => {
+      const expired = state === 'expired';
+      const accepting = state === 'accepting';
+      const failed = state === 'acceptfailed';
+      const rejecting = state === 'rejecting';
+      const cardStyle = [
+        'display: flex', 'align-items: center', 'gap: var(--space-3)', 'min-height: 84px', 'box-sizing: border-box', 'flex-shrink: 0', 'width: 476px',
+        'padding: 0 var(--space-2) 0 var(--space-3)', 'border-radius: var(--radius-md)',
+        rejecting ? 'background: var(--state-selected-tint)' : 'background: var(--surface-raised)',
+        'border: 1px solid var(--border-interactive)',
+        // The 2px focus-colour border is reserved for keyboard focus; the order being rejected is marked with the selected tint alone, never a side bar.
+        state === 'focus' ? ring : 'box-shadow: none',
+      ].join('; ');
+      return {
+        ...o, cardStyle, expired, accepting, failed, rejecting, live: !expired, busy: accepting || rejecting, plain: !failed && !rejecting,
+        sumId: 'strip-sum-' + o.code, aria: 'Order ' + o.code + ', ' + o.items + (expired ? ', timed out' : ', ' + words(o.left)) + '. A accepts, R rejects.',
+        expiresAt: iso(nowMs + o.left * 1000),
+        acceptText: accepting ? 'Accepting…' : 'Accept order',
+        acceptLabel: 'Accept order ' + o.code, rejectLabel: 'Reject order ' + o.code, dismissLabel: 'Dismiss order ' + o.code,
+      };
+    });
+    const compacts = list.slice(1).map((o) => ({ ...o, sumId: 'strip-sum-' + o.code, expiresAt: iso(nowMs + o.left * 1000), aria: 'Order ' + o.code + ', ' + o.items + ', ' + words(o.left) + '. Arrow keys bring it forward.' }));
+    const live = fulls.filter((o) => o.live).length + compacts.length;
+    const count = state === 'many' ? 5 : live;
+    const header = place === 'header';
+    const rootStyle = [
+      'width: ' + w + 'px', 'height: 100px', 'box-sizing: border-box', 'padding: 0 var(--space-4)', 'display: flex', 'align-items: center', 'gap: var(--space-4)',
+      'position: relative', 'font-family: var(--font-ui)', 'color: var(--text-primary)', 'background: var(--surface-base)',
+      header ? 'border-bottom: 1px solid var(--border-decorative)' : 'border-top: 1px solid var(--border-decorative)',
+      header ? 'box-shadow: none' : 'box-shadow: var(--elev-sticky)',
+    ].join('; ');
+    const subs = { none: 'Nothing waiting', noscreen: 'No order screen open', offline: 'Connection lost' };
+    return {
+      rootStyle, fulls, compacts, count: String(count), hasCount: count > 0,
+      isNone: state === 'none', isNoScreen: state === 'noscreen', isOffline: state === 'offline', hasOrders: list.length > 0,
+      hasMore: state === 'many', moreText: '3 more waiting',
+      sub: subs[state] || 'Rings until each is answered',
+      bellColor: count > 0 ? 'var(--border-brand)' : 'var(--text-secondary)',
+      bellWeight: count > 0 ? 'bold' : 'linear',
+      serverNow: iso(nowMs), oneEighty: 180, yes: true, noop: () => {},
+      chipPos: header ? 'bottom: -9px' : 'top: -9px',
+      placeName: header ? 'in the header, under the app bar (owner decision)' : 'footer placement, not used',
+    };
+  }
+}
+</script>
+</body>
+</html>

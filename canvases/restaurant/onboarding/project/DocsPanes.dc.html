@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Documents step (panes)</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: {{w}}; height: {{h}}; box-sizing: border-box; display: flex; flex-direction: column; gap: 14px; font-family: var(--font-ui); color: var(--text-primary)">
+<div style="display: flex; align-items: flex-end; gap: 24px">
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: 4px"><h1 class="type-heading-xl" style="margin: 0">Documents</h1><p class="type-body-md" style="margin: 0; line-height: 1.45; color: var(--text-secondary)">Upload a clear copy of every page of each document, then add its details. A person at HalalGoes checks every document within 3 business days. Nothing is approved automatically.</p></div>
+</div>
+<sc-if value="{{showReason}}" hint-placeholder-val="{{true}}"><div role="status" style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 3px; display: flex; gap: 12px; align-items: flex-start; padding: 10px 14px; background: var(--feedback-info-tint); color: var(--feedback-info-tint-text); border: 1px solid var(--feedback-info-border); border-radius: 12px"><span aria-hidden="true" style="position: absolute; top: -11px; right: 12px; z-index: 3; font: 500 11px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 3px 6px; border-radius: 4px; white-space: nowrap">Proposed component: Banner</span><span style="display: inline-flex; padding-top: 2px; color: var(--feedback-info-icon)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="info" size="md" hint-size="20px,20px"></x-import></span><div class="type-body-md" style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px; line-height: 1.45"><strong class="type-label-lg">What’s needed now</strong><span>{{reasonBody}}</span></div></div></sc-if>
+<sc-if value="{{incomplete}}" hint-placeholder-val="{{false}}"><div role="alert" tabindex="-1" style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 3px; display: flex; gap: 12px; align-items: flex-start; padding: 10px 14px; background: var(--feedback-warning-tint); color: var(--feedback-warning-tint-text); border: 1px solid var(--feedback-warning-border); border-radius: 12px"><span aria-hidden="true" style="position: absolute; top: -11px; right: 12px; z-index: 3; font: 500 11px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 3px 6px; border-radius: 4px; white-space: nowrap">Proposed component: Banner (error summary)</span><span style="display: inline-flex; padding-top: 2px; color: var(--feedback-warning-icon)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="warning" size="md" hint-size="20px,20px"></x-import></span><div class="type-body-md" style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px; line-height: 1.45"><strong class="type-label-lg">Your documents weren’t sent</strong><span>One required document is missing: <a href="#owner-id" onClick="{{goMissing}}" style="color: var(--feedback-warning-tint-text); font-weight: 600">Owner ID</a>. Add it, then send again. Nothing you added is lost. <span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 3px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">422 INCOMPLETE_DOCUMENT_PACK; focus moves here. The Owner ID link selects that row, opens it on the right and moves focus to its heading.</span></span></div></div></sc-if>
+<sc-if value="{{sendError}}" hint-placeholder-val="{{false}}"><div role="alert" tabindex="-1" style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 3px; display: flex; gap: 12px; align-items: flex-start; padding: 10px 14px; background: var(--feedback-danger-tint); color: var(--feedback-danger-tint-text); border: 1px solid var(--feedback-danger-border); border-radius: 12px"><span aria-hidden="true" style="position: absolute; top: -11px; right: 12px; z-index: 3; font: 500 11px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 3px 6px; border-radius: 4px; white-space: nowrap">Proposed component: Banner</span><span style="display: inline-flex; padding-top: 2px; color: var(--feedback-danger-icon)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="error" size="md" hint-size="20px,20px"></x-import></span><div class="type-body-md" style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px; line-height: 1.45"><strong class="type-label-lg">Your documents weren’t sent</strong><span>We couldn’t reach HalalGoes, or something went wrong on our side. Nothing you added is lost. Sending again is safe.</span></div><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" icon-start="refresh" hint-size="130px,44px">Try again</x-import></div></sc-if>
+<sc-if value="{{cancelled}}" hint-placeholder-val="{{false}}"><p role="status" class="type-body-md" style="margin: 0">Upload of food-handler-certificate.jpg cancelled. Nothing was saved. <span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 3px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">The upload was stopped; the row is back to Not added.</span></p></sc-if>
+<sc-if value="{{stepNA}}" hint-placeholder-val="{{false}}"><div role="status" style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 3px; display: flex; gap: 12px; align-items: flex-start; padding: 10px 14px; background: var(--surface-sunken); color: var(--text-primary); border: 1px solid var(--border-strong); border-radius: 12px"><span aria-hidden="true" style="position: absolute; top: -11px; right: 12px; z-index: 3; font: 500 11px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 3px 6px; border-radius: 4px; white-space: nowrap">Proposed component: Inline alert</span><span style="display: inline-flex; padding-top: 2px; color: var(--text-primary)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="lock" size="md" hint-size="20px,20px"></x-import></span><div class="type-body-md" style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px; line-height: 1.45"><strong class="type-label-lg">This step isn’t open right now</strong><span>Your documents were sent for review from another device, so they can’t be changed here. Refresh to open the review page.</span></div><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md" icon-start="refresh" hint-size="130px,44px">Refresh</x-import></div></sc-if>
+<sc-if value="{{loading}}" hint-placeholder-val="{{false}}">
+<p role="status" class="type-body-md" style="margin: 0; color: var(--text-secondary)">Loading your documents…</p>
+<div aria-busy="true" style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 3px; flex-grow: 1; display: flex; gap: 16px"><span aria-hidden="true" style="position: absolute; top: -11px; right: 12px; z-index: 3; font: 500 11px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 3px 6px; border-radius: 4px; white-space: nowrap">Proposed component: Skeleton</span>
+<div style="width: 380px; display: flex; flex-direction: column; gap: 10px"><span style="display: block; width: 100%; height: 52px; border-radius: 8px; background: var(--skeleton-base)"></span><span style="display: block; width: 100%; height: 64px; border-radius: 8px; background: var(--skeleton-base)"></span><span style="display: block; width: 100%; height: 64px; border-radius: 8px; background: var(--skeleton-base)"></span><span style="display: block; width: 100%; height: 64px; border-radius: 8px; background: var(--skeleton-base)"></span><span style="display: block; width: 100%; height: 64px; border-radius: 8px; background: var(--skeleton-base)"></span></div>
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: 12px"><span style="display: block; width: 100%; height: 64px; border-radius: 8px; background: var(--skeleton-base)"></span><span style="display: block; width: 100%; height: 220px; border-radius: 16px; background: var(--skeleton-base)"></span><span style="display: block; width: 200px; height: 52px; border-radius: 8px; background: var(--skeleton-base)"></span></div>
+</div>
+</sc-if>
+<sc-if value="{{loadError}}" hint-placeholder-val="{{false}}"><div role="alert" style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 3px; display: flex; gap: 12px; align-items: flex-start; padding: 10px 14px; background: var(--feedback-danger-tint); color: var(--feedback-danger-tint-text); border: 1px solid var(--feedback-danger-border); border-radius: 12px"><span aria-hidden="true" style="position: absolute; top: -11px; right: 12px; z-index: 3; font: 500 11px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 3px 6px; border-radius: 4px; white-space: nowrap">Proposed component: Inline alert</span><span style="display: inline-flex; padding-top: 2px; color: var(--feedback-danger-icon)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="error" size="md" hint-size="20px,20px"></x-import></span><div class="type-body-md" style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px; line-height: 1.45"><strong class="type-label-lg">We couldn’t load your documents</strong><span>Nothing you added is lost. Check your connection and try again. <span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 3px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">GET /v1/restaurant/documents failed; no rows are guessed</span></span></div><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md" icon-start="refresh" hint-size="130px,44px">Try again</x-import></div></sc-if>
+<sc-if value="{{showRows}}" hint-placeholder-val="{{true}}">
+<div style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 3px; flex-grow: 1; min-height: 0; display: flex; align-items: stretch"><span aria-hidden="true" style="position: absolute; top: -11px; right: 12px; z-index: 3; font: 500 11px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 3px 6px; border-radius: 4px; white-space: nowrap">Proposed component: Split panes (resizable)</span><section aria-labelledby="docs-list-h" style="display: flex; flex-direction: column; min-height: 0; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: 16px; overflow: hidden; width: 380px; flex-shrink: 0">
+<div style="display: flex; align-items: center; gap: 12px; min-height: 52px; box-sizing: border-box; padding: 8px 16px; border-bottom: 1px solid var(--border-decorative)"><h2 id="docs-list-h" class="type-heading-sm" style="margin: 0; flex-grow: 1">Required documents</h2><span class="type-body-sm" style="color: var(--text-secondary); font-variant-numeric: tabular-nums">{{countText}}</span></div>
+<ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column">
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="4">
+<li style="border-top: {{r.rule}}">
+<button type="button" id="{{r.id}}" class="row" aria-current="{{r.cur}}" aria-controls="doc-detail" onClick="{{r.pick}}" style="display: flex; flex-direction: column; gap: 4px; min-height: 64px; padding: 10px 16px; background: {{r.rowBg}}">
+<span style="display: flex; align-items: center; gap: 8px; width: 100%">
+<span class="type-label-lg" style="flex-grow: 1">{{r.title}}</span>
+<sc-if value="{{r.hasBadge}}" hint-placeholder-val="{{true}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="{{r.badgeVariant}}" size="sm" icon="{{r.badgeIcon}}" hint-size="96px,18px">{{r.badgeLabel}}</x-import></sc-if>
+<sc-if value="{{r.hasPlain}}" hint-placeholder-val="{{false}}"><span class="type-label-md">{{r.plainStatus}}</span></sc-if>
+</span>
+<span class="type-body-sm" style="width: 100%; color: {{r.lineColor}}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{r.line}}</span>
+<sc-if value="{{r.showProgress}}" hint-placeholder-val="{{false}}"><span aria-hidden="true" style="display: block; width: 100%; height: 6px; border-radius: 9999px; background: var(--border-decorative); overflow: hidden"><span style="display: block; height: 6px; width: {{r.pctW}}; border-radius: 9999px; background: var(--text-secondary)"></span></span></sc-if>
+</button>
+</li>
+</sc-for>
+</ul>
+<div style="margin-top: auto; display: flex; flex-direction: column; gap: 6px; padding: 12px 16px; border-top: 1px solid var(--border-decorative)">
+<span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 3px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">Liability insurance hidden until V2, owner decision</span>
+<span style="align-self: flex-start; display: inline-flex; align-items: center; padding: 3px 8px; border: 1.5px dashed var(--color-info-600); background: var(--color-info-50); color: var(--color-info-700); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">Needs API: accepted file types and size limit for documents</span>
+<span style="align-self: flex-start; display: inline-flex; align-items: center; padding: 3px 8px; border: 1.5px dashed var(--color-info-600); background: var(--color-info-50); color: var(--color-info-700); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">Needs API: accepted-certifier registry readable by restaurants</span>
+</div>
+</section><div class="handle" role="separator" aria-orientation="vertical" aria-label="Resize the two panes" aria-valuenow="36" aria-valuemin="25" aria-valuemax="60" tabindex="0" style="width: 16px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; cursor: col-resize; border-radius: 8px"><span aria-hidden="true" style="width: 4px; height: 40px; border-radius: 9999px; background: var(--border-strong)"></span></div><section id="doc-detail" aria-labelledby="doc-detail-h" style="display: flex; flex-direction: column; min-height: 0; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: 16px; overflow: hidden; flex-grow: 1; min-width: 0">
+<div style="display: flex; align-items: center; gap: 12px; min-height: 52px; box-sizing: border-box; padding: 8px 16px; border-bottom: 1px solid var(--border-decorative); align-items: flex-start; padding: 12px 16px">
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px"><h2 id="doc-detail-h" tabindex="-1" class="type-heading-md" style="margin: 0">{{d.title}}</h2><span class="type-body-sm" style="color: var(--text-secondary); line-height: 1.45">{{d.purpose}}</span></div>
+<sc-if value="{{d.hasBadge}}" hint-placeholder-val="{{true}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="{{d.badgeVariant}}" size="md" icon="{{d.badgeIcon}}" hint-size="120px,22px">{{d.badgeLabel}}</x-import></sc-if>
+<sc-if value="{{d.hasPlain}}" hint-placeholder-val="{{false}}"><span class="type-label-lg">{{d.plainStatus}}</span></sc-if>
+</div>
+<div style="flex-grow: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 12px; padding: 16px">
+<sc-if value="{{d.hasError}}" hint-placeholder-val="{{false}}">
+<div role="alert" style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 3px; display: flex; gap: 12px; align-items: flex-start; padding: 10px 14px; border-radius: 12px; background: var(--feedback-warning-tint); color: var(--feedback-warning-tint-text); border: 1px solid var(--feedback-warning-border)"><span aria-hidden="true" style="position: absolute; top: -11px; right: 12px; z-index: 3; font: 500 11px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 3px 6px; border-radius: 4px; white-space: nowrap">Proposed component: Inline alert</span>
+<span style="display: inline-flex; padding-top: 2px; color: var(--feedback-warning-icon)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="warning" size="md" hint-size="20px,20px"></x-import></span>
+<div class="type-body-md" style="flex-grow: 1; display: flex; flex-direction: column; gap: 4px; line-height: 1.45"><strong class="type-label-lg">{{d.errTitle}}</strong><span>{{d.error}}</span>
+<sc-if value="{{d.hasVerbatim}}" hint-placeholder-val="{{false}}"><span class="type-body-sm" style="font-family: var(--font-mono)">{{d.verbatim}}</span></sc-if>
+<span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 3px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">{{d.errCode}}</span></div>
+<sc-if value="{{d.errRetry}}" hint-placeholder-val="{{false}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" icon-start="refresh" accessibility-label="{{d.errBtn}}: {{d.lc}}" hint-size="130px,44px">{{d.errBtn}}</x-import></sc-if>
+</div>
+</sc-if>
+<sc-if value="{{d.showSummary}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 12px; background: var(--surface-sunken)">
+<div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px"><span class="type-label-lg" style="font-family: var(--font-mono)">{{d.fileName}}</span><span class="type-body-sm" style="color: var(--text-secondary)">{{d.summary}}</span></div>
+<sc-if value="{{d.canView}}" hint-placeholder-val="{{true}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="sm" accessibility-label="Download file: {{d.lc}}" hint-size="130px,44px">Download file</x-import></sc-if>
+<sc-if value="{{d.canReplace}}" hint-placeholder-val="{{true}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="sm" accessibility-label="Replace {{d.lc}}" hint-size="100px,44px">Replace</x-import></sc-if>
+</div>
+<sc-if value="{{d.canView}}" hint-placeholder-val="{{true}}"><span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 3px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">Download: a new link is made on each click (createDocumentDownloadUrl, 2 minutes); the file downloads.</span></sc-if>
+</sc-if>
+<sc-if value="{{d.showProgress}}" hint-placeholder-val="{{false}}">
+<div style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 3px; display: flex; align-items: center; gap: 14px; padding: 12px 14px; border-radius: 12px; background: var(--surface-sunken)"><span aria-hidden="true" style="position: absolute; top: -11px; right: 12px; z-index: 3; font: 500 11px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 3px 6px; border-radius: 4px; white-space: nowrap">Proposed component: FileDrop (uploading)</span>
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; justify-content: space-between; gap: 12px"><span class="type-label-lg" style="font-family: var(--font-mono)">{{d.upName}}</span><span class="type-body-sm" style="color: var(--text-secondary); font-variant-numeric: tabular-nums">{{d.progressText}}</span></div>
+<div role="progressbar" aria-label="Uploading {{d.upName}}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{d.pct}}" style="height: 8px; box-sizing: border-box; border-radius: 9999px; background: var(--border-decorative); outline: 1px solid var(--border-interactive); overflow: hidden"><div style="height: 8px; width: {{d.pctW}}; border-radius: 9999px; background: var(--text-secondary)"></div></div>
+</div>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="sm" accessibility-label="Cancel upload of {{d.lc}}" hint-size="90px,44px">Cancel</x-import>
+</div>
+<sc-if value="{{d.hasSummaryNote}}" hint-placeholder-val="{{false}}"><span class="type-body-sm" style="color: var(--text-secondary)">{{d.summary}}</span></sc-if>
+</sc-if>
+<sc-if value="{{d.showRetry}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; align-items: center; gap: 14px; padding: 12px 14px; border-radius: 12px; background: var(--surface-sunken)">
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px"><span class="type-label-lg" style="font-family: var(--font-mono)">{{d.upName}}</span><span class="type-body-sm" style="color: var(--text-secondary)">Not uploaded</span></div>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md" icon-start="{{d.retryIcon}}" accessibility-label="{{d.retryLabel}}: {{d.lc}}" hint-size="180px,44px">{{d.retryLabel}}</x-import>
+</div>
+</sc-if>
+<sc-if value="{{d.hasStatus}}" hint-placeholder-val="{{false}}"><p class="type-body-md" style="margin: 0; line-height: 1.5">{{d.statusLine}}</p></sc-if>
+<sc-if value="{{d.showForm}}" hint-placeholder-val="{{false}}"><form novalidate style="display: flex; flex-direction: column; gap: 12px; padding: 14px; border-radius: 12px; border: 1px solid var(--border-decorative)">
+<div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap"><span class="type-label-lg" style="font-family: var(--font-mono)">{{d.upName}}</span><span class="type-body-sm" style="color: var(--text-secondary)">{{d.formNote}}</span></div>
+<sc-if value="{{d.isHalal}}" hint-placeholder-val="{{false}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Select" label="Issuing body" variant="listbox" required="{{yes}}" options="{{bodies}}" value="{{d.issuer}}" placeholder="Choose the body that issued your certificate" helper-text="{{d.issuerHelp}}" hint-size="100%,96px"></x-import></sc-if>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; align-items: start">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="{{d.numberLabel}}" default-value="{{d.number}}" hint-size="100%,72px"></x-import>
+<div style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 3px; grid-column: span 2; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: start">
+<span aria-hidden="true" style="position: absolute; top: -11px; right: 12px; z-index: 3; font: 500 11px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 3px 6px; border-radius: 4px; white-space: nowrap">Proposed component: Date field</span>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<label for="{{d.id}}-issued" class="type-label-lg">Issue date (optional)</label>
+<input id="{{d.id}}-issued" class="hg-focus-field type-body-md" value="{{d.issued}}" aria-describedby="{{d.id}}-issued-help" style="height: 44px; box-sizing: border-box; border: 1.5px solid var(--control-border); border-radius: 12px; background: var(--control-bg); padding: 0 14px; color: var(--text-primary)">
+<span id="{{d.id}}-issued-help" class="type-body-sm" style="color: var(--text-secondary)">For example, 15 March 2026</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<label for="{{d.id}}-valid" class="type-label-lg">{{d.validLabel}}</label>
+<input id="{{d.id}}-valid" class="hg-focus-field type-body-md" value="{{d.valid}}" aria-invalid="{{d.validInvalid}}" aria-describedby="{{d.validDesc}}" style="height: 44px; box-sizing: border-box; border: {{d.validBorder}}; border-radius: 12px; background: var(--control-bg); padding: 0 14px; color: var(--text-primary)">
+<span id="{{d.id}}-valid-help" class="type-body-sm" style="color: var(--text-secondary)">For example, 14 March 2027</span>
+<sc-if value="{{d.hasValidError}}" hint-placeholder-val="{{false}}"><span id="{{d.id}}-valid-error" role="alert" class="type-body-sm" style="display: flex; gap: 6px; align-items: flex-start; line-height: 1.45; color: {{d.validErrColor}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="{{d.validErrIcon}}" size="sm" hint-size="16px,16px"></x-import>{{d.validError}}</span></sc-if>
+</div>
+</div>
+</div>
+<div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" loading="{{d.saving}}" accessibility-label="Save document: {{d.lc}}" hint-size="180px,52px">Save document</x-import>
+<sc-if value="{{d.chooseOther}}" hint-placeholder-val="{{false}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="secondary" size="md" icon-start="plus" accessibility-label="Choose another file: {{d.lc}}" hint-size="200px,44px">Choose another file</x-import></sc-if>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="md" accessibility-label="Remove file: {{d.lc}}" hint-size="120px,44px">Remove file</x-import>
+</div>
+</form></sc-if>
+<sc-if value="{{d.showUpload}}" hint-placeholder-val="{{true}}">
+<div style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 3px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; min-height: 180px; padding: 20px; border: 2px dashed var(--border-interactive); border-radius: 16px; background: var(--surface-base); text-align: center">
+<span aria-hidden="true" style="position: absolute; top: -11px; right: 12px; z-index: 3; font: 500 11px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 3px 6px; border-radius: 4px; white-space: nowrap">Proposed component: FileDrop (approved for the design system)</span>
+<span style="width: 44px; height: 44px; border-radius: 12px; background: var(--surface-sunken); display: inline-flex; align-items: center; justify-content: center"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="plus" size="lg" hint-size="24px,24px"></x-import></span>
+<span class="type-heading-sm">Drop the {{d.lc}} here, or</span>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="{{d.upVariant}}" size="lg" icon-start="plus" accessibility-label="Upload file: {{d.lc}}" hint-size="170px,52px">Upload file</x-import>
+<span class="type-body-sm" style="color: var(--text-secondary)">[Accepted file types], up to [size limit]. Every page, clear and readable.</span>
+</div>
+</sc-if>
+</div>
+</section></div>
+</sc-if>
+<sc-if value="{{showFoot}}" hint-placeholder-val="{{true}}">
+<div role="region" aria-label="Send for review" style="display: flex; align-items: center; gap: 16px; padding: 12px 16px; border-radius: 16px; background: var(--surface-sunken)">
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px"><span class="type-heading-sm" style="font-variant-numeric: tabular-nums">{{countText}}</span><span class="type-body-sm" style="color: var(--text-secondary); line-height: 1.45">{{sendNote}}</span></div>
+<span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 3px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">Never disabled; primary only at 4 of 4 with nothing uploading. Picking a row moves focus to the detail heading; only the status and alert messages announce.</span>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="{{sendVariant}}" size="lg" hint-size="190px,52px">Send for review</x-import>
+</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"mode": {"editor": "enum", "options": ["none", "uploading", "errors", "uploaderrors", "scanrejected", "locked", "ready", "incomplete", "replacing", "loading", "loaderror", "viewerror", "viewgone", "cancelled", "senderror"], "default": "none"}, "w": {"editor": "text", "default": "1096px"}, "h": {"editor": "text", "default": "796px"}, "$preview": {"width": 1096, "height": 796}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const mode = this.props.mode ?? 'none';
+    const W = '2px solid var(--feedback-warning-border)';
+    const base = {
+      showSummary: false, showProgress: false, showRetry: false, showForm: false, showUpload: false, isHalal: false,
+      hasError: false, errTitle: '', error: '', errCode: '', hasVerbatim: false, verbatim: '',
+      hasValidError: false, validError: '', validInvalid: 'false', validErrColor: 'var(--feedback-danger-text)', validErrIcon: 'error',
+      fileName: '', upName: '', summary: '', progressText: '', pct: 0, pctW: '0%', retryLabel: 'Try again', retryIcon: 'refresh',
+      issuer: null, issuerHelp: 'Only accepted certifying bodies are listed. If yours isn’t, call partner support.',
+      number: '', issued: '', valid: '', formNote: 'Uploaded. Add the details to save it.', saving: false,
+      validBorder: '1.5px solid var(--control-border)',
+      badgeVariant: 'outline', badgeIcon: null, badgeLabel: 'Not added',
+      upVariant: 'tertiary', chooseOther: false, canView: true, hasBadge: true, hasPlain: false, plainStatus: '', errRetry: false, hasStatus: false, statusLine: '', canReplace: true, errBtn: 'Try again', hasSummaryNote: false
+    };
+    const defs = [
+      { id: 'business-licence', lc: 'business licence', title: 'Business licence', purpose: 'Your municipal business or food premises licence, showing your legal name and address.', numberLabel: 'Licence number (optional)', validLabel: 'Valid until (optional)' },
+      { id: 'halal-certificate', lc: 'halal certificate', title: 'Halal certificate', isHalal: true, purpose: 'From an accepted certifying body. A reviewer checks the issuing body, your legal name and address, what it covers and its dates.', numberLabel: 'Certificate number (optional)', validLabel: 'Valid until' },
+      { id: 'food-safety', lc: 'food safety certificate', title: 'Food safety certificate', purpose: 'A current food handler or food safety certificate for the person in charge of your kitchen.', numberLabel: 'Certificate number (optional)', validLabel: 'Valid until' },
+      { id: 'owner-id', lc: 'owner ID', title: 'Owner ID', purpose: 'Government photo ID for the owner named on your profile. Only you and HalalGoes reviewers can download it.', numberLabel: 'ID number (optional)', validLabel: 'Valid until' }
+    ];
+    const added = (fileName, summary) => ({ showSummary: true, fileName, summary, badgeVariant: 'neutral', badgeIcon: 'check', badgeLabel: 'Added' });
+    const notAdded = () => ({ showUpload: true });
+    const form = (o) => Object.assign({ showForm: true, badgeVariant: 'info', badgeLabel: 'Details needed' }, o);
+    const warn = (o) => Object.assign({ hasError: true, badgeVariant: 'warning', badgeIcon: 'warning' }, o);
+    const fieldErr = (msg) => ({ hasValidError: true, validError: msg, validInvalid: 'true', validBorder: '2px solid var(--feedback-danger-border)', validErrColor: 'var(--feedback-danger-text)' });
+    const HC = { issuer: 'hma', number: 'HMA-2026-00481', issued: '15 March 2026', valid: '14 March 2027' };
+    const readyRows = () => [
+      added('business-licence-2026.pdf', 'Added 28 September 2026 · Version 1'),
+      added('halal-certificate-hma.pdf', 'HMA Canada · Certificate HMA-2026-00481 · Valid until 14 March 2027'),
+      added('food-handler-certificate.jpg', 'Certificate FH-551903 · Valid until 9 August 2029'),
+      added('ontario-driver-licence.jpg', 'Valid until 21 May 2030')
+    ];
+    const upErrs = () => [
+      warn({ showRetry: true, upName: 'business-licence.heic', retryLabel: 'Choose another file', retryIcon: 'plus', errTitle: 'This type of file isn’t accepted', error: 'Choose a file in one of the accepted types: [accepted file types].', errCode: 'CONTENT_TYPE_MISMATCH', badgeLabel: 'Not uploaded' }),
+      warn(form(Object.assign({ upName: 'halal-certificate-hma.pdf', errTitle: 'We don’t accept certificates from this body yet', error: 'The list of accepted bodies changed while you were adding this. Choose your issuing body again. If it isn’t listed, call partner support.', errCode: '422 UNRECOGNISED_CERTIFIER', badgeVariant: 'warning', badgeIcon: 'warning', badgeLabel: 'Not saved' }, HC, { issuer: null }))),
+      warn({ showRetry: true, upName: 'food-safety-scan.pdf', retryLabel: 'Choose another file', retryIcon: 'plus', errTitle: 'This file is too large', error: 'The limit is [size limit]. Choose a smaller file, or scan it at a lower resolution.', errCode: '413 PAYLOAD_TOO_LARGE', badgeLabel: 'Not uploaded' }),
+      warn({ showRetry: true, upName: 'ontario-driver-licence.jpg', errTitle: 'The file didn’t arrive intact', error: 'Something changed it on the way. Try again with the same file.', errCode: '422 CHECKSUM_MISMATCH on confirmUpload', badgeLabel: 'Not uploaded' })
+    ];
+    const per = {
+      none: [Object.assign(notAdded(), { upVariant: 'primary' }), notAdded(), notAdded(), notAdded()],
+      uploading: [
+        added('business-licence-2026.pdf', 'Added 28 September 2026 · Version 1'),
+        form(Object.assign({ upName: 'halal-certificate-hma.pdf' }, HC)),
+        { showProgress: true, upName: 'food-handler-certificate.jpg', progressText: 'Uploading, 64%', pct: 64, pctW: '64%', badgeVariant: 'info', badgeLabel: 'Uploading' },
+        notAdded()
+      ],
+      errors: [
+        warn({ showRetry: true, upName: 'business-licence-2026.pdf', errTitle: 'The upload didn’t finish', error: 'Check your connection and try again. Your file is still selected.', errCode: 'Network error during the upload', badgeLabel: 'Upload failed' }),
+        warn(form(Object.assign({ upName: 'halal-certificate-hma.pdf', errTitle: 'The details weren’t saved', error: 'We couldn’t reach HalalGoes. Your file is uploaded and what you typed is kept.', errCode: 'Network error or 5xx on attachRestaurantDocument', errRetry: true, badgeVariant: 'warning', badgeIcon: 'warning', badgeLabel: 'Not saved' }, HC))),
+        warn(form(Object.assign({ upName: 'food-handler-certificate.jpg', number: 'FH-448120', issued: '2 June 2021', valid: '2 June 2026', errTitle: 'Not saved', error: 'Check the date marked below.', errCode: '422 DOCUMENT_ALREADY_EXPIRED', badgeVariant: 'warning', badgeIcon: 'warning', badgeLabel: 'Not saved', chooseOther: true }, fieldErr('This date has passed. Choose the current certificate instead.')))),
+        warn(form(Object.assign({ upName: 'ontario-driver-licence.jpg', valid: '', errTitle: 'Not saved', error: 'Check the date marked below.', errCode: '422 VALIDATION_FAILED: valid_until is required for Owner ID', badgeVariant: 'warning', badgeIcon: 'warning', badgeLabel: 'Not saved' }, fieldErr('Enter the date this ID is valid until.'))))
+      ],
+      uploaderrors: upErrs(),
+      scanrejected: (() => { const r = upErrs(); r[3] = warn({ showRetry: true, upName: 'owner-id-scan.pdf', retryLabel: 'Choose another file', retryIcon: 'plus', errTitle: 'Our file check rejected this file', error: 'The reason it gave:', hasVerbatim: true, verbatim: 'Embedded script content is not allowed', errCode: 'Upload state REJECTED; the reason is shown verbatim', badgeLabel: 'Not uploaded' }); return r; })(),
+      locked: (() => { const r = readyRows(); r.forEach(x => Object.assign(x, { badgeVariant: 'info', badgeIcon: 'clock', badgeLabel: 'In review', canReplace: false })); Object.assign(r[1], { hasStatus: true, statusLine: 'With a reviewer. If they need a new copy, we’ll ask you.' }); return r; })(),
+      viewerror: (() => { const r = readyRows(); Object.assign(r[1], { hasError: true, errRetry: true, errTitle: 'That download link expired', error: 'Download links last 2 minutes. Try again and we’ll make a new one. The document itself is fine.', errCode: 'Link past its 2 minutes, or the download failed. Try again makes a new one.' }); return r; })(),
+      viewgone: (() => { const r = readyRows(); Object.assign(r[1], { hasError: true, errRetry: true, errBtn: 'Refresh', errTitle: 'We couldn’t open this file', error: 'Refresh the page. If it keeps happening, call partner support.', errCode: '404 on createDocumentDownloadUrl. The row keeps its state (Added); only Download failed.' }); return r; })(),
+      cancelled: [added('business-licence-2026.pdf', 'Added 28 September 2026 · Version 1'), form(Object.assign({ upName: 'halal-certificate-hma.pdf' }, HC)), Object.assign(notAdded(), { upVariant: 'primary' }), notAdded()],
+      senderror: readyRows(), ready: readyRows(),
+      incomplete: (() => { const r = readyRows(); r[3] = warn({ showUpload: true, upVariant: 'primary', errTitle: 'Required', error: 'Add the owner’s photo ID to send your documents.', errCode: 'details.missing includes OWNER_ID', badgeLabel: 'Missing' }); return r; })(),
+      replacing: (() => { const r = readyRows(); Object.assign(r[0], { showSummary: false, showProgress: true, upName: 'business-licence-2026-renewed.pdf', progressText: 'Replacing, 40%', pct: 40, pctW: '40%', badgeVariant: 'info', badgeIcon: null, badgeLabel: 'Replacing', summary: 'Version 1 stays on file until the new one is saved.', hasSummaryNote: true }); return r; })(),
+      loading: [], loaderror: []
+    };
+    const pick0 = { none: 0, uploading: 1, errors: 1, uploaderrors: 1, scanrejected: 3, locked: 1, viewerror: 1, viewgone: 1, cancelled: 2, senderror: 1, ready: 1, incomplete: 3, replacing: 0 };
+    const sel = (this.state && this.state.sel !== undefined) ? this.state.sel : (pick0[mode] ?? 0);
+    const focusId = (id) => setTimeout(() => { const el = document.getElementById(id); if (el) el.focus(); }, 0);
+    const rows = (per[mode] || []).map((o, i) => {
+      const r = Object.assign({}, base, defs[i], o);
+      r.validDesc = r.id + '-valid-help' + (r.hasValidError ? ' ' + r.id + '-valid-error' : '');
+      r.cur = i === sel ? 'true' : 'false';
+      r.rowBg = i === sel ? 'var(--surface-sunken)' : 'transparent';
+      r.rule = i === 0 ? 'none' : '1px solid var(--border-decorative)';
+      r.line = r.hasError ? r.errTitle : (r.showProgress ? r.progressText : (r.showForm ? r.upName + ' · details needed' : (r.fileName || 'Not added yet')));
+      r.lineColor = r.hasError ? 'var(--text-primary)' : 'var(--text-secondary)';
+      r.pick = () => this.setState({ sel: i }, () => focusId('doc-detail-h'));
+      return r;
+    });
+    const d = rows[sel] || Object.assign({}, base, defs[0]);
+    const counts = { none: 0, uploading: 1, errors: 0, uploaderrors: 0, scanrejected: 0, locked: 4, ready: 4, incomplete: 3, replacing: 4, viewerror: 4, viewgone: 4, cancelled: 1, senderror: 4 };
+    const list = mode !== 'loading' && mode !== 'loaderror';
+    const done4 = ['ready', 'viewerror', 'viewgone', 'senderror'].includes(mode);
+    const uploadingAny = mode === 'replacing' || mode === 'uploading';
+    const sendPrimary = done4 && !d.showForm;
+    return {
+      yes: true, w: this.props.w ?? '1096px', h: this.props.h ?? '796px', rows, d, skeleton: [1, 2, 3, 4],
+      bodies: [{ value: 'hma', label: 'HMA Canada' }, { value: 'hfsaa', label: 'HFSAA' }, { value: 'isna', label: 'ISNA Canada' }],
+      showReason: ['none', 'uploading', 'errors', 'uploaderrors', 'scanrejected', 'ready', 'replacing', 'viewerror', 'viewgone', 'cancelled'].includes(mode),
+      goMissing: (e) => { if (e && e.preventDefault) e.preventDefault(); this.setState({ sel: 3 }, () => focusId('doc-detail-h')); },
+      reasonBody: mode === 'replacing' ? 'Wait for the business licence to finish uploading, then send your documents for review.' : (counts[mode] || 0) >= 4 ? 'All four required documents are added. Send them for review.' : 'Add the four required documents, then send them for review.',
+      sendError: mode === 'senderror', cancelled: mode === 'cancelled', sendVariant: sendPrimary ? 'primary' : 'secondary',
+      incomplete: mode === 'incomplete', stepNA: mode === 'locked',
+      loading: mode === 'loading', loadError: mode === 'loaderror', showRows: list,
+      showFoot: list && mode !== 'locked', countText: (counts[mode] || 0) + ' of 4 required documents added',
+      sendNote: mode === 'replacing' ? 'Wait for the business licence to finish uploading, then send.'
+        : done4 || mode === 'incomplete'
+        ? 'Once sent, your documents are locked while a reviewer checks them, within 3 business days. We’ll update this page and email you.'
+        : 'If a required document is missing when you send, we’ll show you which one.'
+    };
+  }
+}
+</script>
+</body>
+</html>

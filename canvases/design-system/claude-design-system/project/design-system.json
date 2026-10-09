@@ -1,0 +1,469 @@
+{
+ "v": 3,
+ "assetGroups": {
+  "Other": {
+   "files": {},
+   "name": "Other",
+   "order": []
+  },
+  "Uploads": {
+   "files": {},
+   "name": "Uploads",
+   "order": []
+  },
+  "notes": {
+   "files": {},
+   "name": "notes",
+   "order": []
+  },
+  "Brand": {
+   "name": "Brand",
+   "tile": "l",
+   "order": [
+    "halalgoes-wordmark-light.svg",
+    "halalgoes-wordmark-dark.svg",
+    "halalgoes-app-icon.svg",
+    "halal-shield-solid.svg",
+    "halal-shield-solid-clock.svg",
+    "halal-shield-outline.svg",
+    "halal-shield-dashed.svg"
+   ],
+   "files": {
+    "halal-shield-dashed.svg": {
+     "name": "halal-shield-dashed.svg",
+     "blob": "92f5f217e38d6f88a3a13178f9393101",
+     "size": 505,
+     "type": "image/svg+xml"
+    },
+    "halal-shield-outline.svg": {
+     "name": "halal-shield-outline.svg",
+     "blob": "89c89dffc766a18952834d2f580f3c20",
+     "size": 452,
+     "type": "image/svg+xml"
+    },
+    "halal-shield-solid-clock.svg": {
+     "name": "halal-shield-solid-clock.svg",
+     "blob": "ce7a08971a466325b401fb6aa48192ce",
+     "size": 554,
+     "type": "image/svg+xml"
+    },
+    "halal-shield-solid.svg": {
+     "name": "halal-shield-solid.svg",
+     "blob": "efee3fe0444b312f7195502493977354",
+     "size": 455,
+     "type": "image/svg+xml"
+    },
+    "halalgoes-app-icon.svg": {
+     "name": "halalgoes-app-icon.svg",
+     "blob": "2bf2e88de01a60ced2d8651237b824d3",
+     "size": 4106,
+     "type": "image/svg+xml"
+    },
+    "halalgoes-wordmark-dark.svg": {
+     "name": "halalgoes-wordmark-dark.svg",
+     "blob": "f35fe7cd030d8622ce4bc435125bc093",
+     "size": 12847,
+     "type": "image/svg+xml"
+    },
+    "halalgoes-wordmark-light.svg": {
+     "name": "halalgoes-wordmark-light.svg",
+     "blob": "706f6302783d78628ddd4407e28f2f31",
+     "size": 12847,
+     "type": "image/svg+xml"
+    }
+   }
+  },
+  "Icons": {
+   "name": "Icons",
+   "tile": "xs",
+   "order": [
+    "back-bold.svg",
+    "back-linear.svg",
+    "bell-bold.svg",
+    "bell-linear.svg",
+    "cart-bold.svg",
+    "cart-linear.svg",
+    "check-bold.svg",
+    "check-linear.svg",
+    "chevron-down-bold.svg",
+    "chevron-down-linear.svg",
+    "chevron-right-bold.svg",
+    "chevron-right-linear.svg",
+    "clock-bold.svg",
+    "clock-linear.svg",
+    "close-bold.svg",
+    "close-linear.svg",
+    "error-bold.svg",
+    "error-linear.svg",
+    "home-bold.svg",
+    "home-linear.svg",
+    "info-bold.svg",
+    "info-linear.svg",
+    "lock-bold.svg",
+    "lock-linear.svg",
+    "map-bold.svg",
+    "map-linear.svg",
+    "menu-bold.svg",
+    "menu-linear.svg",
+    "minus-bold.svg",
+    "minus-linear.svg",
+    "more-bold.svg",
+    "more-linear.svg",
+    "orders-bold.svg",
+    "orders-linear.svg",
+    "plus-bold.svg",
+    "plus-linear.svg",
+    "profile-bold.svg",
+    "profile-linear.svg",
+    "refresh-bold.svg",
+    "refresh-linear.svg",
+    "search-bold.svg",
+    "search-linear.svg",
+    "star-bold.svg",
+    "star-linear.svg",
+    "warning-bold.svg",
+    "warning-linear.svg"
+   ],
+   "files": {
+    "back-bold.svg": {
+     "name": "back-bold.svg",
+     "blob": "87a9960b7c34f0dc68b38613f450fcef",
+     "size": 309,
+     "type": "image/svg+xml"
+    },
+    "back-linear.svg": {
+     "name": "back-linear.svg",
+     "blob": "4ddfcf9e17053c38c44105d84bf34be0",
+     "size": 218,
+     "type": "image/svg+xml"
+    },
+    "bell-bold.svg": {
+     "name": "bell-bold.svg",
+     "blob": "746260b39b279a862ae2a4cfee0214f3",
+     "size": 638,
+     "type": "image/svg+xml"
+    },
+    "bell-linear.svg": {
+     "name": "bell-linear.svg",
+     "blob": "a7f5be6251aafc0a03b1acc8a7ca01cb",
+     "size": 653,
+     "type": "image/svg+xml"
+    },
+    "cart-bold.svg": {
+     "name": "cart-bold.svg",
+     "blob": "78db43437d2393fa0067228458fe106f",
+     "size": 1624,
+     "type": "image/svg+xml"
+    },
+    "cart-linear.svg": {
+     "name": "cart-linear.svg",
+     "blob": "38e0ceb4284bddfe4cfce895b073d357",
+     "size": 897,
+     "type": "image/svg+xml"
+    },
+    "check-bold.svg": {
+     "name": "check-bold.svg",
+     "blob": "6d5f927fc5504d35480fdd7437c97a62",
+     "size": 609,
+     "type": "image/svg+xml"
+    },
+    "check-linear.svg": {
+     "name": "check-linear.svg",
+     "blob": "d2024e64fbbcb121994c0ed46b21b8bc",
+     "size": 277,
+     "type": "image/svg+xml"
+    },
+    "chevron-down-bold.svg": {
+     "name": "chevron-down-bold.svg",
+     "blob": "612dd928f7bd23c24e2458ad7d09fda5",
+     "size": 303,
+     "type": "image/svg+xml"
+    },
+    "chevron-down-linear.svg": {
+     "name": "chevron-down-linear.svg",
+     "blob": "31972dd30090cf1b3a0d1f20e0889eb1",
+     "size": 217,
+     "type": "image/svg+xml"
+    },
+    "chevron-right-bold.svg": {
+     "name": "chevron-right-bold.svg",
+     "blob": "3cee462c4d7f350b8e799d6573ee6f0b",
+     "size": 304,
+     "type": "image/svg+xml"
+    },
+    "chevron-right-linear.svg": {
+     "name": "chevron-right-linear.svg",
+     "blob": "2b0e24d366e535aa40c2490ddcced375",
+     "size": 217,
+     "type": "image/svg+xml"
+    },
+    "clock-bold.svg": {
+     "name": "clock-bold.svg",
+     "blob": "90dda46cc8434e82f3e2c023e2c27443",
+     "size": 530,
+     "type": "image/svg+xml"
+    },
+    "clock-linear.svg": {
+     "name": "clock-linear.svg",
+     "blob": "be45fd5b002d9ae5c6459598982d0b6f",
+     "size": 267,
+     "type": "image/svg+xml"
+    },
+    "close-bold.svg": {
+     "name": "close-bold.svg",
+     "blob": "01c872e82e5c9e8599bf32356c2b985a",
+     "size": 628,
+     "type": "image/svg+xml"
+    },
+    "close-linear.svg": {
+     "name": "close-linear.svg",
+     "blob": "c28992ce7efe7348ede04d0c3201cada",
+     "size": 234,
+     "type": "image/svg+xml"
+    },
+    "error-bold.svg": {
+     "name": "error-bold.svg",
+     "blob": "5e5523e0eaf9152432a038dc5d1fff2c",
+     "size": 552,
+     "type": "image/svg+xml"
+    },
+    "error-linear.svg": {
+     "name": "error-linear.svg",
+     "blob": "55d52f26886052c6bf22040ed1b9a951",
+     "size": 312,
+     "type": "image/svg+xml"
+    },
+    "home-bold.svg": {
+     "name": "home-bold.svg",
+     "blob": "5ec1c5954c5a089ae5f6adce94109982",
+     "size": 759,
+     "type": "image/svg+xml"
+    },
+    "home-linear.svg": {
+     "name": "home-linear.svg",
+     "blob": "2352b7a5f4230524d1ae05a04558d295",
+     "size": 643,
+     "type": "image/svg+xml"
+    },
+    "info-bold.svg": {
+     "name": "info-bold.svg",
+     "blob": "1137e08d7c27f91636d83fd3e81d07df",
+     "size": 549,
+     "type": "image/svg+xml"
+    },
+    "info-linear.svg": {
+     "name": "info-linear.svg",
+     "blob": "e961a3e82a2ab4f8002d21963b0c1cef",
+     "size": 312,
+     "type": "image/svg+xml"
+    },
+    "lock-bold.svg": {
+     "name": "lock-bold.svg",
+     "blob": "c229631d079f357f9621fb1cb74c1a2e",
+     "size": 811,
+     "type": "image/svg+xml"
+    },
+    "lock-linear.svg": {
+     "name": "lock-linear.svg",
+     "blob": "125897ac8c56d45392c5169768aed644",
+     "size": 572,
+     "type": "image/svg+xml"
+    },
+    "map-bold.svg": {
+     "name": "map-bold.svg",
+     "blob": "b4f54af0b2212844b74062f4766fce71",
+     "size": 462,
+     "type": "image/svg+xml"
+    },
+    "map-linear.svg": {
+     "name": "map-linear.svg",
+     "blob": "b80410ae1645bf827462069f847b7aa0",
+     "size": 396,
+     "type": "image/svg+xml"
+    },
+    "menu-bold.svg": {
+     "name": "menu-bold.svg",
+     "blob": "7c30537e097edbe89edefde8efb9958f",
+     "size": 897,
+     "type": "image/svg+xml"
+    },
+    "menu-linear.svg": {
+     "name": "menu-linear.svg",
+     "blob": "49838c473bb521555dac5b7843884161",
+     "size": 252,
+     "type": "image/svg+xml"
+    },
+    "minus-bold.svg": {
+     "name": "minus-bold.svg",
+     "blob": "c88f043a754bad44866ac79b602018ae",
+     "size": 434,
+     "type": "image/svg+xml"
+    },
+    "minus-linear.svg": {
+     "name": "minus-linear.svg",
+     "blob": "9768ec23150b4c8ef973e7faa451f2e7",
+     "size": 233,
+     "type": "image/svg+xml"
+    },
+    "more-bold.svg": {
+     "name": "more-bold.svg",
+     "blob": "40a832c1a2b93de079d024d35b0091a3",
+     "size": 513,
+     "type": "image/svg+xml"
+    },
+    "more-linear.svg": {
+     "name": "more-linear.svg",
+     "blob": "361448158975af151c07e2e371908ab3",
+     "size": 260,
+     "type": "image/svg+xml"
+    },
+    "orders-bold.svg": {
+     "name": "orders-bold.svg",
+     "blob": "36e99acd8d021fdc26a352fc834db9ba",
+     "size": 1735,
+     "type": "image/svg+xml"
+    },
+    "orders-linear.svg": {
+     "name": "orders-linear.svg",
+     "blob": "c6430ca312531bdb6d2cbc5cf12069e7",
+     "size": 453,
+     "type": "image/svg+xml"
+    },
+    "plus-bold.svg": {
+     "name": "plus-bold.svg",
+     "blob": "a55b587477bbfa61e1326d76d3cc97d3",
+     "size": 520,
+     "type": "image/svg+xml"
+    },
+    "plus-linear.svg": {
+     "name": "plus-linear.svg",
+     "blob": "ad8b093aa17342280097e709b4aa70ea",
+     "size": 240,
+     "type": "image/svg+xml"
+    },
+    "profile-bold.svg": {
+     "name": "profile-bold.svg",
+     "blob": "e34adfc0c3c57dd49cbb1b281a97c786",
+     "size": 649,
+     "type": "image/svg+xml"
+    },
+    "profile-linear.svg": {
+     "name": "profile-linear.svg",
+     "blob": "cd5f7a5a475bdb6570632754be3ce993",
+     "size": 348,
+     "type": "image/svg+xml"
+    },
+    "refresh-bold.svg": {
+     "name": "refresh-bold.svg",
+     "blob": "e43b9b944c9f878c7aeceae98ac66520",
+     "size": 895,
+     "type": "image/svg+xml"
+    },
+    "refresh-linear.svg": {
+     "name": "refresh-linear.svg",
+     "blob": "76c3f77e8a18f162885b18cebe680338",
+     "size": 455,
+     "type": "image/svg+xml"
+    },
+    "search-bold.svg": {
+     "name": "search-bold.svg",
+     "blob": "2859482db5f274ce1e083b6bb8c0060e",
+     "size": 505,
+     "type": "image/svg+xml"
+    },
+    "search-linear.svg": {
+     "name": "search-linear.svg",
+     "blob": "24d6d8858d6636f5c5f3e390dca16684",
+     "size": 246,
+     "type": "image/svg+xml"
+    },
+    "star-bold.svg": {
+     "name": "star-bold.svg",
+     "blob": "bf653a8ce732c57df3408b786242d1a7",
+     "size": 1220,
+     "type": "image/svg+xml"
+    },
+    "star-linear.svg": {
+     "name": "star-linear.svg",
+     "blob": "20ee9f02eb3cf65925b814630ed2ceb6",
+     "size": 1253,
+     "type": "image/svg+xml"
+    },
+    "warning-bold.svg": {
+     "name": "warning-bold.svg",
+     "blob": "b271b5f635c624f2e10107f2c33c4c7b",
+     "size": 732,
+     "type": "image/svg+xml"
+    },
+    "warning-linear.svg": {
+     "name": "warning-linear.svg",
+     "blob": "4886e245126c445c52550f06f4e2e9fd",
+     "size": 583,
+     "type": "image/svg+xml"
+    }
+   }
+  }
+ },
+ "blobs": {
+  "assets/halal-shield.svg": {
+   "blob": "e862d5e937fc7577dc3a7560ff6dfd16",
+   "name": "assets/halal-shield.svg",
+   "sha256": "a150d90d6eee4d093319da9cb851b1c2f5487bc96bb9334fddc2d392288665b9",
+   "size": 8108,
+   "type": "image/svg+xml"
+  }
+ },
+ "createdOnFiles": {
+  "at": "2026-09-18T11:41:02.763Z",
+  "v": 1
+ },
+ "docs": {
+  "readme": "project/README.md",
+  "sections": [
+   "project/ui_kits/admin-web/README.md",
+   "project/ui_kits/customer-app/README.md",
+   "project/ui_kits/marketing-site/README.md",
+   "project/ui_kits/restaurant-web/README.md",
+   "project/ui_kits/rider-app/README.md",
+   "project/uploads/claude-design-brief.md"
+  ]
+ },
+ "groups": [
+  "Brand",
+  "Icons",
+  "Uploads",
+  "Other",
+  "notes"
+ ],
+ "layout": "files",
+ "libraries": [
+  {
+   "file": "components/lib/react.production.min.js",
+   "global": "React",
+   "name": "react",
+   "version": "18.3.1"
+  },
+  {
+   "file": "components/lib/react-dom.production.min.js",
+   "global": "ReactDOM",
+   "name": "react-dom",
+   "version": "18.3.1"
+  }
+ ],
+ "namespace": "HalalGoesDesignSystem_d11a47",
+ "sections": {},
+ "source": {
+  "app": "claude-design",
+  "exportedAt": "2026-09-18T11:41:02.763Z",
+  "projectId": "d11a47e7-e232-4f29-9517-6564c794ec56",
+  "url": "https://claude.ai/design/p/d11a47e7-e232-4f29-9517-6564c794ec56",
+  "v": 1
+ },
+ "title": "HalalGoes Design System",
+ "lastChange": {
+  "by": "Shaik Noorullah",
+  "at": "2026-09-28T00:21:11Z",
+  "via": "Claude Code",
+  "note": "Design audit fixes (#107): 167 approved findings across tokens, brand book, components and screen kits; HalalGoes name and wordmark; Solar icons; IBM Plex Mono."
+ }
+}

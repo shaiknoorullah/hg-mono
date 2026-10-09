@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Offer small phone</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+[data-rider]{font-family:var(--font-ui)}
+.offer-chrome{background:var(--surface-raised)}
+[data-theme="dark"] .offer-chrome,[data-theme="dark"].offer-chrome{background:var(--surface-chrome)}
+</style>
+</helmet>
+<div data-rider="" data-theme="{{theme}}" style="width: 360px; height: 640px; position: relative; overflow: hidden; background: var(--surface-base); color: var(--text-primary)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Sheet" open="{{yes}}" contained="{{yes}}" variant="full" dismissible="{{no}}" title="Delivery offer" footer="{{offerFooter}}"><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Proposed variant: Sheet tone=field (surface-chrome in dark) · drawn here with the library Sheet variant=full and its own surface until approved · dismissible=false: its focus trap, title wiring and Back / Escape handling</span>
+<div style="display: flex; flex-direction: column; gap: var(--space-3); min-height: 100%">
+<span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Fit check: total, route and both buttons without scrolling; breakdown may scroll under the fixed Accept</span>
+<div style="display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-3)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Countdown" variant="ring" size="lg" label="to answer" on-dark="{{onDark}}" expires-at="{{expiresAt}}" server-now="{{serverNow}}" window-seconds="{{windowSeconds}}"></x-import>
+<div style="display: flex; flex-direction: column; align-items: flex-end; gap: var(--space-1)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="xl" critical="{{yes}}">Decline</x-import>
+</div>
+</div>
+<div style="display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-2)">
+<span style="font-size: var(--type-label-lg-size); font-weight: var(--font-weight-semibold); color: var(--text-primary)">Estimated earnings</span>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{o.total}}" size="xl" on-dark="{{onDark}}"></x-import><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Proposed variant: Price size display-lg (rider offer) · drawn at xl until it exists</span>
+</div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-2); padding-top: var(--space-2); border-top: 1px solid var(--border-decorative); font-size: var(--type-heading-md-size); font-weight: var(--font-weight-semibold); font-variant-numeric: tabular-nums">
+<span>4.8 km trip</span><span>about 14 min</span><span>3 items</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: var(--space-1); padding-top: var(--space-2); border-top: 1px solid var(--border-decorative); font-size: var(--type-body-lg-size); line-height: 1.35">
+<span><strong style="font-weight: var(--font-weight-semibold)">Pickup</strong> Zaytoun Grill, Ellesmere Rd</span>
+<span><strong style="font-weight: var(--font-weight-semibold)">Drop-off area</strong> South Scarborough</span>
+<span style="color: var(--text-primary)">Full address when you accept</span>
+</div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--space-4); row-gap: var(--space-1); padding-top: var(--space-2); border-top: 1px solid var(--border-decorative); font-size: var(--type-body-lg-size)">
+<div style="display: flex; justify-content: space-between"><span style="color: var(--text-primary)">Base</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{o.base}}" size="lg" on-dark="{{onDark}}"></x-import></div>
+<div style="display: flex; justify-content: space-between"><span style="color: var(--text-primary)">Distance pay</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{o.distance}}" size="lg" on-dark="{{onDark}}"></x-import></div>
+<sc-if value="{{showSurge}}" hint-placeholder-val="{{false}}"><div style="display: flex; justify-content: space-between"><span style="color: var(--text-primary)">Busy time</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{o.surge}}" size="lg" on-dark="{{onDark}}"></x-import></div></sc-if>
+<sc-if value="{{showTip}}" hint-placeholder-val="{{true}}"><div style="display: flex; justify-content: space-between"><span style="color: var(--text-primary)">Tip so far</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{o.tip}}" size="lg" on-dark="{{onDark}}"></x-import></div></sc-if>
+</div>
+<div style="flex: 1 1 auto"></div>
+<span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Proposed variant: Button critical, large bold label · the Accept label is drawn at heading-lg (20px) weight 700 (bold), so text.onBrand on action.primary (4.63:1) counts as large text (18.66px bold or more) and the owner's ruling (the 7:1 rule covers body text, not large bold button labels) applies · the library Button critical renders its label at 18px semibold today, which is not large text: the ruling is not met until this variant is added to the design system</span><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">The main action sits in the DS Sheet footer (sticky, never under the keyboard) · no sticky hack</span>
+</div>
+</x-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["dark","light"],"default":"dark"},"$preview":{"width":360,"height":640}}'>
+class Component extends DCLogic {
+  componentDidMount() { this._iv = setInterval(() => { this._t = Date.now(); this.forceUpdate(); }, 8000); }
+  componentWillUnmount() { clearInterval(this._iv); }
+  renderVals() {
+    const theme = this.props.theme ?? 'dark';
+    if (!this._t) this._t = Date.now();
+    return { showTip: true /* tip_cents != null && tip_cents > 0 */,  offerFooter: (function () { const DS = window.HalalGoesDesignSystem_d11a47; const h = window.React && window.React.createElement; return (DS && h) ? h(DS.Button, { variant: 'primary', size: 'xl', critical: true, fullWidth: true }, h('span', { style: { fontSize: 'var(--type-heading-lg-size)', fontWeight: 'var(--font-weight-bold)' } }, "Accept")) : null; })(),  showSurge: false,
+      theme: theme, onDark: theme === 'dark', yes: true, no: false, windowSeconds: 29,
+      serverNow: new Date(this._t).toISOString(), expiresAt: new Date(this._t + 24000).toISOString(),
+      o: { total: 944, base: 350, distance: 384, tip: 210 }
+    };
+  }
+}
+</script>
+</body>
+</html>

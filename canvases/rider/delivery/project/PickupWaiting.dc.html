@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>At the restaurant food not ready</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+[data-rider]{font-family:var(--font-ui)}
+.offer-chrome{background:var(--surface-raised)}
+[data-theme="dark"] .offer-chrome,[data-theme="dark"].offer-chrome{background:var(--surface-chrome)}
+</style>
+</helmet>
+<div data-rider="" data-theme="{{theme}}" style="width: 390px; height: 844px; position: relative; overflow: hidden; display: flex; flex-direction: column; background: var(--surface-base); color: var(--text-primary)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="field" title="Pickup" subtitle="Step 2 of 4 · At the restaurant"></x-import>
+<main style="flex: 1 1 auto; overflow-y: auto; padding: var(--space-4) var(--space-5) var(--space-5); display: flex; flex-direction: column; gap: var(--space-4)">
+<span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Proposed component: ProgressSteps (AssignmentState) · role=progressbar, name "Step N of 4, &lt;step&gt;" · needs a fill token, not text-primary</span>
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-1)" aria-hidden="true"><span style="height: 6px; border-radius: var(--radius-full); background: var(--text-primary)"></span><span style="height: 6px; border-radius: var(--radius-full); background: var(--text-primary)"></span><span style="height: 6px; border-radius: var(--radius-full); background: var(--border-interactive)"></span><span style="height: 6px; border-radius: var(--radius-full); background: var(--border-interactive)"></span></div>
+<section style="display: flex; flex-direction: column; gap: var(--space-2)">
+<h2 style="margin: 0; font-size: var(--type-heading-xl-size); font-weight: var(--type-heading-xl-weight); letter-spacing: var(--type-heading-xl-tracking); line-height: 1.25">Wait for the food</h2>
+<p style="margin: 0; font-size: var(--type-body-lg-size); line-height: 1.5">Show the order code at the side counter. We'll tell you when the restaurant marks it ready.</p>
+</section>
+<div style="display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-4) var(--space-4); border: 1px solid var(--border-decorative); border-radius: var(--radius-md)"><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Proposed component: FoodStatusPanel (Icon + StatusTimeline in Card)</span>
+<div style="display: flex; justify-content: space-between; align-items: center"><span style="font-size: var(--type-label-lg-size); font-weight: var(--font-weight-semibold); color: var(--text-secondary-field)">Food</span><span style="display: inline-flex; align-items: center; gap: var(--space-2); font-size: var(--type-heading-md-size); font-weight: var(--font-weight-semibold)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="clock" size="md"></x-import>Preparing</span></div>
+<div style="display: flex; justify-content: space-between; align-items: baseline"><span style="font-size: var(--type-body-lg-size)">You've waited</span><strong style="font-size: var(--type-heading-md-size); font-weight: var(--font-weight-semibold); font-variant-numeric: tabular-nums">6 min</strong></div>
+<span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Wait timer from arrived_pickup_at · at 20 min → PickupLongWait (spec 04-rider: LONG_WAIT &gt; 20 min)</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: var(--space-1)"><span style="font-size: var(--type-label-lg-size); font-weight: var(--font-weight-semibold); color: var(--text-secondary-field)">Drop-off</span><span style="font-size: var(--type-heading-md-size); font-weight: var(--font-weight-semibold)">88 Brimley Rd, Scarborough, ON</span><span style="font-size: var(--type-body-lg-size); color: var(--text-secondary-field)">Unit 402</span></div>
+<div style="display: flex; flex-direction: column; gap: var(--space-1)"><span style="font-size: var(--type-label-lg-size); font-weight: var(--font-weight-semibold); color: var(--text-secondary-field)">Order code</span><span style="font-family: var(--font-mono); font-size: var(--type-heading-md-size); font-weight: var(--font-weight-semibold)">HG-4K2M-9T</span></div>
+<div style="display: flex; flex-direction: column">
+<span style="font-size: var(--type-label-lg-size); font-weight: var(--font-weight-semibold); color: var(--text-secondary-field); padding-bottom: var(--space-1)">3 items to collect</span>
+<div style="min-height: 72px; display: flex; flex-direction: column; justify-content: center; border-bottom: 1px solid var(--border-decorative); font-size: var(--type-body-lg-size)"><strong style="font-weight: var(--font-weight-semibold)">1 × Mixed charcoal grill</strong><span>For two · Extra garlic sauce</span></div>
+<div style="min-height: 72px; display: flex; flex-direction: column; justify-content: center; border-bottom: 1px solid var(--border-decorative); font-size: var(--type-body-lg-size)"><strong style="font-weight: var(--font-weight-semibold)">2 × Chicken shawarma wrap</strong><span>Note: No pickles</span></div>
+</div>
+<div style="padding: var(--space-3) var(--space-4); border: 1px solid var(--border-decorative); border-radius: var(--radius-md); display: flex; flex-direction: column; gap: var(--space-1)"><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Proposed component: MessagePreview (Card outlined + ghost Button) · latest order.note_added · hidden when there are none</span><span style="font-size: var(--type-label-lg-size); font-weight: var(--font-weight-semibold)">From Zaytoun Grill · 9:41 pm</span><span style="font-size: var(--type-body-lg-size); line-height: 1.5">Two more minutes on the grill. Sorry for the wait.</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="xl" icon-end="chevron-right" href="ContactBeforePickup.dc.html">See all messages</x-import><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--text-link); color: var(--text-link)">Needs API: order notes history · the full list can't be rebuilt after a restart</span></div>
+<div style="display: flex; flex-direction: column; gap: var(--space-2)"><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Call dials pickup.phone_alias (tel:) · hidden when null</span><div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="xl" full-width="{{yes}}" href="tel:+16475550190">Call restaurant</x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="xl" full-width="{{yes}}" icon-start="warning" href="SomethingWrongPickup.dc.html">Something's wrong</x-import>
+</div></div>
+</main>
+<footer style="flex: 0 0 auto; padding: var(--space-3) var(--space-5) var(--space-5); border-top: 1px solid var(--border-decorative); background: var(--surface-base); display: flex; flex-direction: column; gap: var(--space-2)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="xl" full-width="{{yes}}" disabled="{{yes}}">Check the items</x-import><p style="margin: 0; font-size: var(--type-body-lg-size); line-height: 1.5">Turns on when the restaurant marks the food ready.</p>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="xl" full-width="{{yes}}" href="PickupNotMarkedReady.dc.html">They've handed it over, but it isn't marked ready</x-import>
+<span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Prototype branches: <a href="PickupItems.dc.html" style="color: var(--text-link)">order.state_changed → READY_FOR_PICKUP</a> · <a href="PickupLongWait.dc.html" style="color: var(--text-link)">20 min</a></span>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["dark","light"],"default":"dark"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const theme = this.props.theme ?? 'dark';
+    return { theme: theme, yes: true,
+      tabs: [{ key: 'home', label: 'Home', icon: 'home' }, { key: 'earnings', label: 'Earnings', icon: 'orders' }, { key: 'account', label: 'Account', icon: 'profile' }] };
+  }
+}
+</script>
+</body>
+</html>

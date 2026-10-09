@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Certificate details at larger text</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:var(--color-neutral-100)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+.demo-focus .hg-focus,.demo-focus .hg-choice-ctl,.demo-focus .hg-row,.demo-focus > a{box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)!important}
+.demo-focus-field .hg-field{border-color:var(--focus-ring)!important;box-shadow:inset 0 0 0 calc(var(--focus-field-border-width) - 1px) var(--focus-ring)!important}
+
+</style>
+</helmet>
+<div style="width: 390px; height: 1500px; position: relative; overflow: hidden; display: flex; flex-direction: column; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+<div style="display: flex; flex-direction: column; gap: var(--space-5); padding: var(--space-4)">
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">Certificate details at 1.3×</span>
+<div style="zoom: 1.3; width: 275px"><dl style="margin: 0; display: grid; grid-template-columns: max-content 1fr; column-gap: var(--space-4); row-gap: var(--space-1); font-size: var(--type-body-md-size)">
+<dt style="font-weight: 600; color: var(--text-secondary)">Certified by</dt><dd style="margin: 0">Halal Monitoring Authority (HMA Canada)</dd>
+<dt style="font-weight: 600; color: var(--text-secondary)">Certificate</dt><dd style="margin: 0; font-family: var(--font-mono)">HMA-ON-24-0183</dd>
+<dt style="font-weight: 600; color: var(--text-secondary)">Issued</dt><dd style="margin: 0"><time datetime="2026-04-01">1 April 2026</time></dd>
+<dt style="font-weight: 600; color: var(--text-secondary)">Valid until</dt><dd style="margin: 0"><time datetime="2027-03-31">31 March 2027</time></dd>
+<dt style="font-weight: 600; color: var(--text-secondary)">Scope</dt><dd style="margin: 0">The whole restaurant</dd>
+</dl><p style="margin: var(--space-2) 0 0; font-size: var(--type-body-md-size); line-height: var(--type-body-md-line); color: var(--text-primary)">Certification verified by HalalGoes on 4 September 2026. HalalGoes does not itself certify food.</p></div>
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">Bound: certification.disclaimer (verbatim), exactly as on Certificate — open: fixed, reviewed copy from the API, never re-authored on the client.</span>
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">Certificate details at 2.0× — terms stack above values in one column; nothing truncates</span>
+<div style="zoom: 2; width: 179px"><dl style="margin: 0; display: grid; grid-template-columns: minmax(0, 1fr); column-gap: var(--space-4); row-gap: var(--space-1); font-size: var(--type-body-md-size)">
+<dt style="font-weight: 600; color: var(--text-secondary)">Certified by</dt><dd style="margin: 0">Halal Monitoring Authority (HMA Canada)</dd>
+<dt style="font-weight: 600; color: var(--text-secondary)">Certificate</dt><dd style="margin: 0; font-family: var(--font-mono)">HMA-ON-24-0183</dd>
+<dt style="font-weight: 600; color: var(--text-secondary)">Issued</dt><dd style="margin: 0"><time datetime="2026-04-01">1 April 2026</time></dd>
+<dt style="font-weight: 600; color: var(--text-secondary)">Valid until</dt><dd style="margin: 0"><time datetime="2027-03-31">31 March 2027</time></dd>
+<dt style="font-weight: 600; color: var(--text-secondary)">Scope</dt><dd style="margin: 0">The whole restaurant</dd>
+</dl><p style="margin: var(--space-2) 0 0; font-size: var(--type-body-md-size); line-height: var(--type-body-md-line); color: var(--text-primary)">Certification verified by HalalGoes on 4 September 2026. HalalGoes does not itself certify food.</p></div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1500}}'>
+class Component extends DCLogic {
+renderVals() {
+return {
+yes: true,
+no: false,
+none: null,
+zero: 0,
+two: 2,
+noop: function () {},
+nav: [
+{ key: 'home', label: 'Home', icon: 'home' },
+{ key: 'search', label: 'Search', icon: 'search' },
+{ key: 'orders', label: 'Orders', icon: 'orders' },
+{ key: 'account', label: 'Account', icon: 'profile' }
+]
+};
+}
+}
+</script>
+</body>
+</html>

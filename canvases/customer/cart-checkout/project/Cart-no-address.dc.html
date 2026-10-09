@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Your cart, no address</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:var(--color-neutral-100)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+.demo-focus .hg-focus,.demo-focus .hg-choice-ctl,.demo-focus .hg-row,.demo-focus > a{box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)!important}
+.demo-focus-field .hg-field{border-color:var(--focus-ring)!important;box-shadow:inset 0 0 0 calc(var(--focus-field-border-width) - 1px) var(--focus-ring)!important}
+
+</style>
+</helmet>
+<div style="width: 390px; height: 1100px; position: relative; overflow: hidden; display: flex; flex-direction: column; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="cream" title="Your cart" back-label="Back to Zaytoun Grill" on-back="{{noop}}"></x-import>
+<main style="flex-grow: 1; display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-2) var(--space-4); overflow: hidden">
+<div role="status" style="display: flex; gap: var(--space-3); align-items: flex-start; padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); background: var(--surface-raised); border: 1px solid var(--border-interactive); outline: 1.5px dotted var(--color-info-500); outline-offset: 3px">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="map" size="md" color="var(--text-secondary)"></x-import>
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: var(--space-2)">
+<strong style="font-size: var(--type-label-lg-size); color: var(--text-primary)">Add a delivery address</strong>
+<span style="font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-line); color: var(--text-primary)">We price delivery and fees for your address before you pay.</span>
+
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--color-info-700); background: var(--color-info-50)">Component gap: Banner</span>
+</div>
+</div><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg">
+<div style="display: flex; flex-direction: column; gap: var(--space-2)">
+<div style="display: flex; align-items: center; gap: var(--space-2)"><strong style="flex-grow: 1; font-size: var(--type-heading-md-size)">Zaytoun Grill</strong><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="sm" destructive="{{yes}}" href="Cart-clear-confirm.dc.html">Clear cart</x-import></div>
+<div style="display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.HalalBadge" state="CERTIFIED" size="md" surface="card"></x-import>
+<span style="font-size: var(--type-body-sm-size); color: var(--text-secondary)">Halal Monitoring Authority (HMA Canada)</span>
+</div>
+
+</div></x-import><section aria-label="Items" style="display: flex; flex-direction: column">
+<div style="display: flex; gap: var(--space-3); padding: var(--space-3) 0; border-bottom: 1px solid var(--border-decorative); ">
+<div aria-hidden="true" style="width: 56px; height: 56px; flex-shrink: 0; border-radius: var(--radius-md); background: var(--surface-sunken); outline: 1.5px dotted var(--color-info-500); outline-offset: -3px"></div>
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: var(--space-1)">
+<div style="display: flex; align-items: baseline; gap: var(--space-2)"><strong style="flex-grow: 1; font-size: var(--type-body-md-size); font-weight: 600">Mixed charcoal grill</strong><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{c.l1}}" size="md"></x-import></div>
+<span style="font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-line); color: var(--text-secondary)">For one · Extra garlic sauce × 1</span>
+<span style="font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-line); color: var(--text-secondary)">"No onions please"</span>
+<div style="display: flex; align-items: center; justify-content: space-between; gap: var(--space-2)"><span style="display: inline-flex; align-items: center; gap: var(--space-1); font-size: var(--type-body-sm-size); color: var(--text-secondary)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{c.u1}}" size="sm"></x-import>each</span><div role="group" aria-label="Quantity for Mixed charcoal grill" style="display: flex; align-items: center; gap: var(--space-2); outline: 1.5px dotted var(--color-info-500); outline-offset: 3px; outline-offset: 2px; border-radius: var(--radius-full)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.IconButton" icon="close" accessibility-label="Remove Mixed charcoal grill" variant="tonal" shape="circle" size="sm"></x-import>
+<span role="status" aria-live="polite" style="min-width: 28px; text-align: center; font-size: var(--type-body-md-size); font-weight: 600; font-variant-numeric: tabular-nums"><span class="hg-sr">Quantity </span>1</span>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.IconButton" icon="plus" accessibility-label="Increase quantity of Mixed charcoal grill" variant="tonal" shape="circle" size="sm"></x-import>
+</div></div>
+<div style="align-self: flex-start"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="sm" href="Cart-edit-line.dc.html" accessibility-label="Edit Mixed charcoal grill">Edit</x-import></div>
+</div>
+</div>
+<div style="display: flex; gap: var(--space-3); padding: var(--space-3) 0; ">
+<div aria-hidden="true" style="width: 56px; height: 56px; flex-shrink: 0; border-radius: var(--radius-md); background: var(--surface-sunken); outline: 1.5px dotted var(--color-info-500); outline-offset: -3px"></div>
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: var(--space-1)">
+<div style="display: flex; align-items: baseline; gap: var(--space-2)"><strong style="flex-grow: 1; font-size: var(--type-body-md-size); font-weight: 600">Chicken shawarma wrap</strong><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{c.l2}}" size="md"></x-import></div>
+
+
+<div style="display: flex; align-items: center; justify-content: space-between; gap: var(--space-2)"><span style="display: inline-flex; align-items: center; gap: var(--space-1); font-size: var(--type-body-sm-size); color: var(--text-secondary)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{c.u2}}" size="sm"></x-import>each</span><div role="group" aria-label="Quantity for Chicken shawarma wrap" style="display: flex; align-items: center; gap: var(--space-2); outline: 1.5px dotted var(--color-info-500); outline-offset: 3px; outline-offset: 2px; border-radius: var(--radius-full)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.IconButton" icon="minus" accessibility-label="Decrease quantity of Chicken shawarma wrap" variant="tonal" shape="circle" size="sm"></x-import>
+<span role="status" aria-live="polite" style="min-width: 28px; text-align: center; font-size: var(--type-body-md-size); font-weight: 600; font-variant-numeric: tabular-nums"><span class="hg-sr">Quantity </span>2</span>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.IconButton" icon="plus" accessibility-label="Increase quantity of Chicken shawarma wrap" variant="tonal" shape="circle" size="sm"></x-import>
+</div></div>
+<div style="align-self: flex-start"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="sm" href="Cart-edit-line.dc.html" accessibility-label="Edit Chicken shawarma wrap">Edit</x-import></div>
+</div>
+</div>
+
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--color-info-700); background: var(--color-info-50); align-self: flex-end; margin-top: var(--space-1)">Component gap: QuantityStepper (at 1 the minus becomes Remove; group named without the number; value is role=status with visible N plus hidden "Quantity ", no aria-label), MediaFrame</span>
+</section>
+</main>
+<footer style="display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-4); background: var(--surface-raised); box-shadow: var(--elev-sticky)">
+<div style="display: flex; justify-content: space-between; align-items: baseline; font-size: var(--type-body-md-size)"><span style="color: var(--text-secondary)">Items (estimate)</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{c.sub}}" size="md"></x-import></div>
+<p style="margin: 0; font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-line); color: var(--text-secondary)">Delivery and fees are priced for your address before you pay.</p>
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">Bound: cart.indicative_subtotal_cents (cart not quotable)</span><p style="margin: 0; font-size: var(--type-body-md-size); line-height: var(--type-body-md-line); color: var(--text-primary)">Add a delivery address to check out.</p><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" full-width="{{yes}}" icon-start="map" href="Checkout-address-sheet.dc.html">Choose a delivery address</x-import>
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">Opens the address picker sheet: saved addresses first (listAddresses), "Add an address" as the last row, as on Checkout — choose address. Only when the customer has no saved addresses does it go straight to Add an address (Checkout — no saved addresses). Same action as Checkout — no address selected.</span>
+</footer>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1100}}'>
+class Component extends DCLogic {
+renderVals() {
+return {
+yes: true,
+no: false,
+none: null,
+zero: 0,
+two: 2,
+noop: function () {},
+nav: [
+{ key: 'home', label: 'Home', icon: 'home' },
+{ key: 'search', label: 'Search', icon: 'search' },
+{ key: 'orders', label: 'Orders', icon: 'orders' },
+{ key: 'account', label: 'Account', icon: 'profile' }
+],
+c: { l1: 2649, u1: 2649, l2: 2498, u2: 1249, u2new: 1299, l2new: 2598, l1x20: 52980, sub: 5147, subnew: 5247, min: 1500, short: 251, one: 1249, grill: 2499, adana: 2199 },
+q: { sub: 5147, del: 299, svc: 0, total: 5446, subnew: 5247, totalnew: 5546, l2new: 2598 }
+};
+}
+}
+</script>
+</body>
+</html>

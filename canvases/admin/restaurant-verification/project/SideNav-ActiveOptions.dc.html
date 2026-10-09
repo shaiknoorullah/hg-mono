@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Side navigation, ways to show the current page</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div style="width: 408px; box-sizing: border-box; padding: 20px; display: flex; flex-direction: column; gap: 24px; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+  <div style="display: flex; flex-direction: column; gap: 4px">
+    <h1 style="margin: 0; font-size: 18px; font-weight: 700">Showing the current page in the side navigation</h1>
+    <p style="margin: 0; font-size: 13px; line-height: 1.45; color: var(--text-secondary)">Four ways, drawn on the real chrome. A is now used on every board. Each one also sets aria-current="page", bold text and the bold icon.</p>
+  </div>
+  <sc-for list="{{options}}" as="o" hint-placeholder-count="4">
+    <section style="display: flex; flex-direction: column; gap: 8px">
+      <div style="display: flex; align-items: center; gap: 8px">
+        <h2 style="margin: 0; font-size: 15px; font-weight: 600">{{o.title}}</h2>
+        <sc-if value="{{o.chosen}}" hint-placeholder-val="{{false}}"><span style="display: inline-flex; padding: 2px 8px; border-radius: 4px; background: var(--color-info-50); color: var(--color-info-700); font-size: 12px; font-weight: 600">Applied</span></sc-if>
+      </div>
+      <div style="width: 264px; box-sizing: border-box; padding: 8px 12px; border-radius: 8px; background: var(--surface-chrome); display: flex; flex-direction: column; gap: 2px">
+        <sc-for list="{{o.items}}" as="it" hint-placeholder-count="3">
+          <span style="display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 44px; box-sizing: border-box; padding: {{it.pad}}; border-inline-start: {{it.bar}}; border-radius: 8px; background: {{it.bg}}; color: {{it.fg}}; font-size: 15px; font-weight: {{it.fw}}">
+            <span style="display: inline-flex; align-items: center; gap: 10px"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="{{it.icon}}" weight="{{it.weight}}" size="md"></x-import>{{it.label}}</span>
+            <span style="display: inline-flex; align-items: center; gap: 8px">
+              <sc-if value="{{it.dot}}" hint-placeholder-val="{{false}}"><span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 999px; background: var(--action-primary)"></span></sc-if>
+              <sc-if value="{{it.hasCount}}" hint-placeholder-val="{{false}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="neutral" appearance="solid" size="sm">5</x-import></sc-if>
+            </span>
+          </span>
+        </sc-for>
+      </div>
+      <p style="margin: 0; font-size: 13px; line-height: 1.45; color: var(--text-secondary)">{{o.note}}</p>
+    </section>
+  </sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":408,"height":1120}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const rows = [
+      { key: 'find', label: 'Find a restaurant', icon: 'search' },
+      { key: 'apps', label: 'Restaurant applications', icon: 'orders', hasCount: true },
+      { key: 'riders', label: 'Rider applications', icon: 'profile' },
+    ];
+    const build = (style) => rows.map((r) => {
+      const on = r.key === 'apps';
+      const base = { ...r, hasCount: !!r.hasCount, fw: on ? '700' : '500', weight: on ? 'bold' : 'linear', pad: '0 12px', bar: '0', bg: 'transparent', fg: 'var(--text-on-accent)', dot: false };
+      if (!on) return base;
+      if (style === 'invert') return { ...base, bg: 'var(--text-on-accent)', fg: 'var(--surface-chrome)' };
+      if (style === 'quiet') return { ...base, bg: 'var(--action-secondary-pressed)' };
+      if (style === 'dot') return { ...base, dot: true };
+      return { ...base, pad: '0 12px 0 9px', bar: '3px solid var(--focus-on-color)' };
+    });
+    return {
+      options: [
+        { title: 'A. Inverted tile (applied)', chosen: true, items: build('invert'),
+          note: 'The current page swaps the chrome’s colours: a light tile with the label in the chrome green. Tile against chrome 12.2:1, label on tile 12.2:1. Reads at a glance, works the same in the collapsed rail, and matches how shadcn’s Sidebar marks the active item with a fill.' },
+        { title: 'B. Quiet tile', chosen: false, items: build('quiet'),
+          note: 'A darker green tile. Calmer, but the tile is only 1.3:1 against the chrome, so bold text carries the whole signal. Easy to miss on a dim screen.' },
+        { title: 'C. Bold label and an orange dot', chosen: false, items: build('dot'),
+          note: 'No fill; a small dot marks the page. The dot is 3.5:1, and orange means “do this” everywhere else in HalalGoes, so it reads like an alert.' },
+        { title: 'D. Left bar (before)', chosen: false, items: build('bar'),
+          note: 'The 3px white bar the boards used before. Kept here only for comparison.' },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

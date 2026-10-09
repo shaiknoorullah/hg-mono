@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Decline failed</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+[data-rider]{font-family:var(--font-ui)}
+.offer-chrome{background:var(--surface-raised)}
+[data-theme="dark"] .offer-chrome,[data-theme="dark"].offer-chrome{background:var(--surface-chrome)}
+</style>
+</helmet>
+<div data-rider="" data-theme="{{theme}}" style="width: 390px; height: 844px; position: relative; overflow: hidden; background: var(--surface-base); color: var(--text-primary)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Sheet" open="{{yes}}" contained="{{yes}}" variant="full" dismissible="{{no}}" title="Delivery offer"><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Proposed variant: Sheet tone=field (surface-chrome in dark) · drawn here with the library Sheet variant=full and its own surface until approved · dismissible=false: its focus trap, title wiring and Back / Escape handling</span><div style="display: flex; flex-direction: column; gap: var(--space-4); min-height: 100%"><div style="display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-4)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Countdown" variant="ring" size="lg" label="to answer" on-dark="{{onDark}}" expires-at="{{expiresAt}}" server-now="{{serverNow}}" window-seconds="{{windowSeconds}}"></x-import><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="xl" critical="{{yes}}" disabled="{{yes}}">Decline</x-import></div><div style="display: flex; flex-direction: column; gap: var(--space-1)"><span style="font-size: var(--type-label-lg-size); font-weight: var(--font-weight-semibold); color: var(--text-primary)">Estimated earnings</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{o.total}}" size="xl" on-dark="{{onDark}}"></x-import><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Proposed variant: Price size display-lg (rider offer) · drawn at xl until it exists</span></div></div></x-import><div style="position: absolute; inset: 0; z-index: calc(var(--z-offer-sheet) + 1)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Sheet" open="{{yes}}" contained="{{yes}}" title="Why are you declining?" max-height="84%" dismissible="{{no}}"><div style="display: flex; flex-direction: column; gap: var(--space-2)"><div style="display: flex; align-items: center; gap: var(--space-3); font-size: var(--type-body-lg-size)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Countdown" variant="text" size="md" on-dark="{{onDark}}" expires-at="{{expiresAt}}" server-now="{{serverNow}}" window-seconds="{{windowSeconds}}"></x-import><span style="flex: 1 1 auto">left</span><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">No close X: Keep the offer is the way back</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="xl" critical="{{yes}}" href="OfferLive.dc.html">Keep the offer</x-import></div><div style="border: 1.5px dashed var(--border-strong); border-radius: var(--radius-md); background: var(--surface-raised); padding: var(--space-4) var(--space-4); display: flex; flex-direction: column; gap: var(--space-2)"><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Proposed component: InlineAlert · network / 5xx on reject · retry reuses the Idempotency-Key</span><div style="display: flex; gap: var(--space-3); align-items: flex-start"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="warning" size="lg"></x-import><div style="display: flex; flex-direction: column; gap: var(--space-1)"><strong style="font-size: var(--type-heading-md-size); font-weight: var(--font-weight-semibold)">Your decline didn't reach us</strong><span style="font-size: var(--type-body-lg-size); line-height: 1.5">The offer is still open. Tap your reason again, or keep the offer.</span></div></div></div><div role="group" aria-label="Why are you declining?" style="display: flex; flex-direction: column; gap: var(--space-2)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="xl" critical="{{yes}}" full-width="{{yes}}" style="justify-content: flex-start">Pickup is too far</x-import><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="xl" critical="{{yes}}" full-width="{{yes}}" style="justify-content: flex-start">Drop-off is too far</x-import><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="xl" critical="{{yes}}" full-width="{{yes}}" style="justify-content: flex-start">Earnings are too low</x-import><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="xl" critical="{{yes}}" full-width="{{yes}}" style="justify-content: flex-start">Ending my shift</x-import><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="xl" critical="{{yes}}" full-width="{{yes}}" style="justify-content: flex-start">Taking a break</x-import></div></div></x-import></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["dark","light"],"default":"dark"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const theme = this.props.theme ?? 'dark';
+    if (!this._t) this._t = Date.now();
+    return { theme: theme, onDark: theme === 'dark', yes: true, no: false, noop: () => {}, twentyFour: 24, activeTab: 'home',
+      onOff: { on: 'On', off: 'Off' },
+      tabs: [{ key: 'home', label: 'Home', icon: 'home' }, { key: 'earnings', label: 'Earnings', icon: 'orders' }, { key: 'account', label: 'Account', icon: 'profile' }], windowSeconds: 29, serverNow: new Date(this._t).toISOString(), expiresAt: new Date(this._t + 14000).toISOString(), o: { total: 944, base: 350, distance: 384, tip: 210 } };
+  }
+}
+</script>
+</body>
+</html>

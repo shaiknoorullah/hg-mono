@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Phone line closed</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<link rel="stylesheet" href="hg-roles.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:var(--surface-base)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+</style>
+</helmet>
+<div style="width: 390px; height: 900px; position: relative; display: flex; flex-direction: column; overflow: hidden; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" title-is-page-heading="{{ no }}" tone="cream" title="Get help" subtitle="Order HG-8F3K2Q · Zaytoun Grill" back-label="Back to order HG-8F3K2Q" on-back="{{ noop }}"></x-import><main style="flex-grow: 1; display: flex; flex-direction: column; gap: 16px; padding: 8px 16px 16px; overflow: hidden">
+<div style="display: flex; flex-direction: column; gap: 6px"><div class="hg-focus-drawn"><h1 tabindex="-1" class="type-heading-xl">Our phone line is closed</h1></div><span class="type-body-md" style="color: var(--text-secondary)">We answer calls every day, 11:00 am to 11:00 pm. Until then, these can help with order HG-8F3K2Q.</span></div><div style="display: flex; flex-direction: column; gap: 4px"><span class="hg-tag">Proposed component: ListItem</span><nav aria-label="Help you can use now" style="display: flex; flex-direction: column"><a href="GetHelp-Late.dc.html" style="min-height: 56px; display: flex; align-items: center; gap: 12px; padding: 8px 4px; text-decoration: none; color: var(--text-primary); border-bottom: 1px solid var(--border-decorative)"><div style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1; min-width: 0"><span class="type-label-lg">My order is late</span><span class="type-body-sm" style="color: var(--text-secondary)">See the latest arrival time. If it passes the deadline, our team steps in without you asking</span></div><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="chevron-right" size="md" color="var(--text-secondary)"></x-import></a><a href="GetHelp-HalalEarly.dc.html" style="min-height: 56px; display: flex; align-items: center; gap: 12px; padding: 8px 4px; text-decoration: none; color: var(--text-primary); border-bottom: 1px solid var(--border-decorative)"><div style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1; min-width: 0"><span class="type-label-lg">A halal concern</span><span class="type-body-sm" style="color: var(--text-secondary)">What we check, and how to report it once it's delivered</span></div><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="chevron-right" size="md" color="var(--text-secondary)"></x-import></a><a href="GetHelp-Report-Early.dc.html" style="min-height: 56px; display: flex; align-items: center; gap: 12px; padding: 8px 4px; text-decoration: none; color: var(--text-primary)"><div style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1; min-width: 0"><span class="type-label-lg">Report a problem</span><span class="type-body-sm" style="color: var(--text-secondary)">Very late, wrong address, or you want to cancel</span></div><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="chevron-right" size="md" color="var(--text-secondary)"></x-import></a></nav></div><div class="hg-gap"><span class="hg-tag">Annotation: launch variant, phone line closed</span><span class="hg-gap-note">Owner decision (1 October): the server turns support off outside the phone hours, so this screen shows whenever PublicConfig.support_enabled is false and support_hours has text. The hours line is support_hours as written; the app never works out whether the line is open. No contract change.</span></div><div class="hg-gap"><span class="hg-tag">Annotation: outside phone hours</span><span class="hg-gap-note">Owner decision: phone during set hours, self-serve outside. The closed screen never ends in a dead end: it lists the self-serve help for the order's state. Before delivery (this board): the late explainer, the halal explainer and Report a problem (GetHelp-Report-Early; owner decision, 1 October: open from acceptance, at any hour). After delivery (DELIVERED, COMPLETED) the rows are the after-delivery report list from GetHelp-Delivered, which works at any hour. Focus lands on the heading on arrival. The hours line is support_hours; the number is not shown while the line is closed.</span></div><div style="display: flex; flex-direction: column; gap: 8px; margin-top: auto"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="secondary" size="lg" full-width="{{ yes }}" href="Main.dc.html">Back to order</x-import></div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const t = (s, at, a) => ({ to_state: s, at: '2026-09-28T' + at + ':00-04:00', actor_kind: a || 'SYSTEM' });
+    const all = [t('AUTHORIZED', '18:42', 'CUSTOMER'), t('RESTAURANT_PENDING', '18:42'), t('PREPARING', '18:44', 'RESTAURANT'), t('READY_FOR_PICKUP', '18:59', 'RESTAURANT'), t('PICKED_UP', '19:02', 'RIDER'), t('ARRIVED', '19:12', 'RIDER'), t('DELIVERED', '19:13', 'RIDER'), t('COMPLETED', '19:43')];
+    const upTo = (n) => all.slice(0, n);
+    return {
+      yes: true, no: false, none: null, zero: 0, noop: () => {},
+      nav: [{ key: 'home', label: 'Home', icon: 'home' }, { key: 'search', label: 'Search', icon: 'search' }, { key: 'orders', label: 'Orders', icon: 'orders', badge: 1, badgeNoun: 'active' }, { key: 'account', label: 'Account', icon: 'profile' }],
+      ok: true
+    };
+  }
+}
+</script>
+</body>
+</html>

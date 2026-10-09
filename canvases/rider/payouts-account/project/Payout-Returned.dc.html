@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Payouts — returned</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+</style>
+</helmet>
+<div data-theme="dark" style="width: 390px; height: 1000px; position: relative; overflow: hidden; display: flex; flex-direction: column; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="field" title-is-page-heading="{{no}}" title="Your application" subtitle="Payouts"></x-import>
+
+<main style="flex-grow: 1; min-height: 0; overflow: hidden; padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-5)">
+<div style="display: flex; flex-direction: column; gap: var(--space-6)"><div style="position: relative; outline: 1.5px solid var(--color-viz-4); outline-offset: 3px; border-radius: var(--radius-sm)"><span style="position: absolute; top: -9px; right: 10px; z-index: 2; color: var(--color-neutral-0); font-family: var(--font-mono); font-size: 10px; font-weight: var(--font-weight-semibold); line-height: 16px; padding: 0 var(--space-2); border-radius: var(--radius-xs); white-space: nowrap; background: var(--color-viz-4)">Proposed component: ProgressSteps</span><div style="display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-1) 0"><div style="display: flex; align-items: center; gap: var(--space-3)"><span style="font-size: var(--type-label-lg-size); font-weight: var(--font-weight-semibold); color: var(--text-primary)">Step 5 of 5: payouts</span><span style="margin-left: auto; font-size: var(--type-label-lg-size); color: var(--text-secondary); font-variant-numeric: tabular-nums">80% done</span></div><ol aria-label="Step 5 of 5: payouts" style="margin: 0; padding: 0; display: flex; align-items: flex-start; gap: var(--space-2)"><li aria-label="Your details, done" style="flex: 1 1 0; list-style: none; display: flex; flex-direction: column; gap: var(--space-1); align-items: center"><div style="width: 100%; height: 6px; border-radius: var(--radius-full); background: var(--text-secondary)"></div><div style="height: 16px"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="check" size="sm" weight="bold" color="var(--text-primary)"></x-import></div></li><li aria-label="How you deliver, done" style="flex: 1 1 0; list-style: none; display: flex; flex-direction: column; gap: var(--space-1); align-items: center"><div style="width: 100%; height: 6px; border-radius: var(--radius-full); background: var(--text-secondary)"></div><div style="height: 16px"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="check" size="sm" weight="bold" color="var(--text-primary)"></x-import></div></li><li aria-label="Documents, done" style="flex: 1 1 0; list-style: none; display: flex; flex-direction: column; gap: var(--space-1); align-items: center"><div style="width: 100%; height: 6px; border-radius: var(--radius-full); background: var(--text-secondary)"></div><div style="height: 16px"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="check" size="sm" weight="bold" color="var(--text-primary)"></x-import></div></li><li aria-label="We check your documents, done" style="flex: 1 1 0; list-style: none; display: flex; flex-direction: column; gap: var(--space-1); align-items: center"><div style="width: 100%; height: 6px; border-radius: var(--radius-full); background: var(--text-secondary)"></div><div style="height: 16px"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="check" size="sm" weight="bold" color="var(--text-primary)"></x-import></div></li><li aria-current="step" aria-label="Payouts, current" style="flex: 1 1 0; list-style: none; display: flex; flex-direction: column; gap: var(--space-1); align-items: center"><div style="width: 100%; height: 10px; border-radius: var(--radius-full); background: var(--text-primary)"></div><div style="height: 16px"></div></li></ol></div></div><div style="display: flex; flex-direction: column; gap: var(--space-2)"><h1 style="margin: 0; font-size: var(--type-heading-xl-size); font-weight: var(--font-weight-bold); letter-spacing: -0.01em; line-height: var(--type-heading-xl-line); color: var(--text-primary)">Stripe isn't finished yet</h1><p style="margin: 0; font-size: var(--type-body-lg-size); font-weight: var(--font-weight-regular); line-height: var(--type-body-lg-line); color: var(--text-secondary)">You left Stripe before the end. Nothing is lost. Carry on where you stopped; it opens a fresh, secure link.</p></div></div>
+</main>
+<div style="flex-shrink: 0; padding: var(--space-4) var(--space-5) var(--space-6); border-top: 1px solid var(--border-decorative); background: var(--surface-base); display: flex; flex-direction: column; gap: var(--space-3)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="xl" full-width="{{yes}}">Continue with Stripe</x-import><div style="display: flex; justify-content: center"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="xl">Call support</x-import></div></div>
+
+
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var v = {"yes": true, "no": false, "nul": null, "size24": 24, "navItems": [{"key": "home", "label": "Home", "icon": "home"}, {"key": "earnings", "label": "Earnings", "icon": "orders"}, {"key": "account", "label": "Account", "icon": "profile"}], "vehicleOptions": [{"value": "CAR", "label": "Car", "description": "Licence, registration, insurance and a photo of you"}, {"value": "SCOOTER", "label": "Scooter", "description": "Licence, registration, insurance and a photo of you"}, {"value": "MOTORCYCLE", "label": "Motorcycle", "description": "Licence, registration, insurance and a photo of you"}, {"value": "BICYCLE", "label": "Bicycle", "description": "Government ID and a photo of you"}, {"value": "ON_FOOT", "label": "On foot", "description": "Government ID and a photo of you"}], "tzOptions": [{"value": "America/Toronto", "label": "Eastern time (Toronto)"}, {"value": "America/Winnipeg", "label": "Central time (Winnipeg)"}], "stateWords": {"on": "Online", "off": "Offline"}, "torchWords": {"on": "On", "off": "Off"}};
+    v.noop = function () {};
+    return v;
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,1212 @@
+{
+  "v": 3,
+  "attachments": {},
+  "boards": {
+    "EditorApproved.dc.html": {
+      "h": 900,
+      "title": "Item editor — approved item, price change only",
+      "w": 1440,
+      "x": 19760,
+      "y": 4680
+    },
+    "EditorConflict.dc.html": {
+      "h": 900,
+      "title": "Item editor — changed elsewhere meanwhile",
+      "w": 1440,
+      "x": 4560,
+      "y": 6000
+    },
+    "EditorDiscard.dc.html": {
+      "h": 900,
+      "title": "Item editor — closing with unsaved changes (asks in the panel footer)",
+      "w": 1440,
+      "x": 22800,
+      "y": 6000
+    },
+    "EditorDiscardNew.dc.html": {
+      "h": 900,
+      "title": "Item editor — closing a half-filled new item",
+      "w": 1440,
+      "x": 24320,
+      "y": 6000
+    },
+    "EditorErrors.dc.html": {
+      "h": 900,
+      "title": "Item editor — price out of range, checked on this screen",
+      "w": 1440,
+      "x": 0,
+      "y": 6000
+    },
+    "EditorErrorsProhibited.dc.html": {
+      "h": 900,
+      "title": "Item editor — server refused: prohibited ingredient",
+      "w": 1440,
+      "x": 1520,
+      "y": 6000
+    },
+    "EditorFirstReview.dc.html": {
+      "h": 900,
+      "title": "Item editor — new item waiting for its first review",
+      "w": 1440,
+      "x": 7600,
+      "y": 4680
+    },
+    "EditorLoadFailed.dc.html": {
+      "h": 900,
+      "title": "Item editor — couldn’t open",
+      "w": 1440,
+      "x": 9120,
+      "y": 6000
+    },
+    "EditorLoading.dc.html": {
+      "h": 900,
+      "title": "Item editor — opening an item",
+      "w": 1440,
+      "x": 7600,
+      "y": 6000
+    },
+    "EditorMoveInactive.dc.html": {
+      "h": 900,
+      "title": "Item editor — moving an item to an inactive category",
+      "w": 1440,
+      "x": 21280,
+      "y": 4680
+    },
+    "EditorNew.dc.html": {
+      "h": 900,
+      "title": "Item editor — new item, not submitted yet",
+      "w": 1440,
+      "x": 0,
+      "y": 4680
+    },
+    "EditorNotFound.dc.html": {
+      "h": 900,
+      "title": "Item editor — item removed",
+      "w": 1440,
+      "x": 10640,
+      "y": 6000
+    },
+    "EditorPending.dc.html": {
+      "h": 900,
+      "title": "Item editor — change under review, nothing to submit yet",
+      "w": 1440,
+      "x": 3040,
+      "y": 4680
+    },
+    "EditorPendingPrice.dc.html": {
+      "h": 900,
+      "title": "Item editor — under review, only the price changed",
+      "w": 1440,
+      "x": 4560,
+      "y": 4680
+    },
+    "EditorPhotoChecking.dc.html": {
+      "h": 900,
+      "title": "Item editor — photo uploaded, checking before it’s ready",
+      "w": 1440,
+      "x": 16720,
+      "y": 6000
+    },
+    "EditorPhotoExpired.dc.html": {
+      "h": 900,
+      "title": "Item editor — photo upload link expired",
+      "w": 1440,
+      "x": 19760,
+      "y": 6000
+    },
+    "EditorPhotoFailed.dc.html": {
+      "h": 900,
+      "title": "Item editor — photo upload failed",
+      "w": 1440,
+      "x": 18240,
+      "y": 6000
+    },
+    "EditorPhotoInvalid.dc.html": {
+      "h": 900,
+      "title": "Item editor — photo wrong type or too large",
+      "w": 1440,
+      "x": 21280,
+      "y": 6000
+    },
+    "EditorPhotoUploading.dc.html": {
+      "h": 900,
+      "title": "Item editor — photo uploading",
+      "w": 1440,
+      "x": 15200,
+      "y": 6000
+    },
+    "EditorRejected.dc.html": {
+      "h": 900,
+      "title": "Item editor — change not approved, flagged description, approved text shown",
+      "w": 1440,
+      "x": 9120,
+      "y": 4680
+    },
+    "EditorRejectedAllergen.dc.html": {
+      "h": 900,
+      "title": "Item editor — not approved, allergens flagged",
+      "w": 1440,
+      "x": 18240,
+      "y": 4680
+    },
+    "EditorRejectedNew.dc.html": {
+      "h": 900,
+      "title": "Item editor — new item not approved, not on the menu",
+      "w": 1440,
+      "x": 10640,
+      "y": 4680
+    },
+    "EditorRejectedOffensive.dc.html": {
+      "h": 900,
+      "title": "Item editor — not approved, offensive content: name and description flagged",
+      "w": 1440,
+      "x": 13680,
+      "y": 4680
+    },
+    "EditorRejectedOther.dc.html": {
+      "h": 900,
+      "title": "Item editor — not approved, reason Other: the note is the instruction",
+      "w": 1440,
+      "x": 12160,
+      "y": 4680
+    },
+    "EditorRejectedPhoto.dc.html": {
+      "h": 900,
+      "title": "Item editor — not approved, photo flagged",
+      "w": 1440,
+      "x": 16720,
+      "y": 4680
+    },
+    "EditorRejectedProhibited.dc.html": {
+      "h": 900,
+      "title": "Item editor — item not allowed, can’t be resubmitted",
+      "w": 1440,
+      "x": 15200,
+      "y": 4680
+    },
+    "EditorSaveFailed.dc.html": {
+      "h": 900,
+      "title": "Item editor — submit failed, edits kept",
+      "w": 1440,
+      "x": 6080,
+      "y": 6000
+    },
+    "EditorServerErrors.dc.html": {
+      "h": 900,
+      "title": "Item editor — field errors from the server",
+      "w": 1440,
+      "x": 3040,
+      "y": 6000
+    },
+    "EditorServerRefused.dc.html": {
+      "h": 900,
+      "title": "Item editor — out-of-date screen refused: “Halal certified”",
+      "w": 1440,
+      "x": 25840,
+      "y": 6000
+    },
+    "EditorSubmitting.dc.html": {
+      "h": 900,
+      "title": "Item editor — submitting",
+      "w": 1440,
+      "x": 1520,
+      "y": 4680
+    },
+    "EditorSuperseded.dc.html": {
+      "h": 900,
+      "title": "Item editor — earlier change replaced",
+      "w": 1440,
+      "x": 6080,
+      "y": 4680
+    },
+    "EditorViewBlocked.dc.html": {
+      "h": 900,
+      "title": "Item editor — blocked item, view only",
+      "w": 1440,
+      "x": 12160,
+      "y": 6000
+    },
+    "EditorViewHidden.dc.html": {
+      "h": 900,
+      "title": "Item editor — hidden item, view only",
+      "w": 1440,
+      "x": 13680,
+      "y": 6000
+    },
+    "EditorWithdrawn.dc.html": {
+      "h": 900,
+      "title": "Item editor — change withdrawn",
+      "w": 1440,
+      "x": 22800,
+      "y": 4680
+    },
+    "FocusStates.dc.html": {
+      "h": 1960,
+      "title": "Keyboard focus — grid, switch, side navigation, panels, error summary, new orders strip",
+      "w": 1440,
+      "x": 4560,
+      "y": 11280
+    },
+    "HoursAutoOff.dc.html": {
+      "h": 900,
+      "title": "Hours — new orders switched off live (event toast)",
+      "w": 1440,
+      "x": 15200,
+      "y": 7320
+    },
+    "HoursClosedHours.dc.html": {
+      "h": 900,
+      "title": "Hours — closed, and why the switch doesn’t open you",
+      "w": 1440,
+      "x": 12160,
+      "y": 7320
+    },
+    "HoursClosesNow.dc.html": {
+      "h": 900,
+      "title": "Hours — saving closes you now (asks in the save bar)",
+      "w": 1440,
+      "x": 10640,
+      "y": 8640
+    },
+    "HoursConflict.dc.html": {
+      "h": 900,
+      "title": "Hours — hours changed elsewhere while editing",
+      "w": 1440,
+      "x": 15200,
+      "y": 8640
+    },
+    "HoursDayClosed.dc.html": {
+      "h": 900,
+      "title": "Hours — 3 ranges on a day, a day switched to closed",
+      "w": 1440,
+      "x": 7600,
+      "y": 8640
+    },
+    "HoursEdit.dc.html": {
+      "h": 900,
+      "title": "Hours — editing, no changes yet",
+      "w": 1440,
+      "x": 0,
+      "y": 8640
+    },
+    "HoursError.dc.html": {
+      "h": 900,
+      "title": "Hours — couldn’t load",
+      "w": 1440,
+      "x": 30400,
+      "y": 7320
+    },
+    "HoursHolidayEdit.dc.html": {
+      "h": 900,
+      "title": "Hours — editing today’s special date while it’s in effect",
+      "w": 1440,
+      "x": 21280,
+      "y": 7320
+    },
+    "HoursHolidayRemoved.dc.html": {
+      "h": 900,
+      "title": "Hours — today’s special date removed, open again",
+      "w": 1440,
+      "x": 22800,
+      "y": 7320
+    },
+    "HoursHolidayToday.dc.html": {
+      "h": 900,
+      "title": "Hours — closed today for a special date",
+      "w": 1440,
+      "x": 19760,
+      "y": 7320
+    },
+    "HoursLimits.dc.html": {
+      "h": 900,
+      "title": "Hours — 21 time ranges and 90 special dates used",
+      "w": 1440,
+      "x": 9120,
+      "y": 8640
+    },
+    "HoursLoading.dc.html": {
+      "h": 900,
+      "title": "Hours — loading",
+      "w": 1440,
+      "x": 28880,
+      "y": 7320
+    },
+    "HoursNone.dc.html": {
+      "h": 900,
+      "title": "Hours — no hours set yet",
+      "w": 1440,
+      "x": 10640,
+      "y": 7320
+    },
+    "HoursOffline.dc.html": {
+      "h": 900,
+      "title": "Hours — no order screen connected",
+      "w": 1440,
+      "x": 13680,
+      "y": 7320
+    },
+    "HoursOpenStates.dc.html": {
+      "h": 2200,
+      "title": "Hours — Right now card, every open state",
+      "w": 1440,
+      "x": 0,
+      "y": 11280
+    },
+    "HoursOverlap.dc.html": {
+      "h": 900,
+      "title": "Hours — overlapping times",
+      "w": 1440,
+      "x": 3040,
+      "y": 8640
+    },
+    "HoursOverlapNight.dc.html": {
+      "h": 900,
+      "title": "Hours — late hours run into the next day (Fri→Sat, Sun→Mon)",
+      "w": 1440,
+      "x": 4560,
+      "y": 8640
+    },
+    "HoursOverride24.dc.html": {
+      "h": 900,
+      "title": "Hours — special date open 24 hours",
+      "w": 1440,
+      "x": 7600,
+      "y": 9960
+    },
+    "HoursOverrideClosed.dc.html": {
+      "h": 900,
+      "title": "Hours — special date, closed all day",
+      "w": 1440,
+      "x": 1520,
+      "y": 9960
+    },
+    "HoursOverrideDuplicate.dc.html": {
+      "h": 900,
+      "title": "Hours — special date already exists, missing time",
+      "w": 1440,
+      "x": 4560,
+      "y": 9960
+    },
+    "HoursOverrideEdit.dc.html": {
+      "h": 900,
+      "title": "Hours — edit a special date",
+      "w": 1440,
+      "x": 9120,
+      "y": 9960
+    },
+    "HoursOverrideErrors.dc.html": {
+      "h": 900,
+      "title": "Hours — special date: missing date and opening time",
+      "w": 1440,
+      "x": 3040,
+      "y": 9960
+    },
+    "HoursOverrideFromView.dc.html": {
+      "h": 900,
+      "title": "Hours — add a special date straight from the view",
+      "w": 1440,
+      "x": 27360,
+      "y": 7320
+    },
+    "HoursOverrideModal.dc.html": {
+      "h": 900,
+      "title": "Hours — add a special date",
+      "w": 1440,
+      "x": 0,
+      "y": 9960
+    },
+    "HoursOverrideNight.dc.html": {
+      "h": 900,
+      "title": "Hours — special date closing past midnight",
+      "w": 1440,
+      "x": 6080,
+      "y": 9960
+    },
+    "HoursOverrideRemove.dc.html": {
+      "h": 900,
+      "title": "Hours — remove a special date: confirmed in its panel, removed now",
+      "w": 1440,
+      "x": 10640,
+      "y": 9960
+    },
+    "HoursPastDates.dc.html": {
+      "h": 900,
+      "title": "Hours — past special dates kept, shown on request",
+      "w": 1440,
+      "x": 1520,
+      "y": 7320
+    },
+    "HoursPauseMenu.dc.html": {
+      "h": 2000,
+      "title": "Hours — pause choices name their end time: 15, 30 or 60 minutes, or until closing",
+      "w": 1440,
+      "x": 3040,
+      "y": 11280
+    },
+    "HoursPauseStale.dc.html": {
+      "h": 900,
+      "title": "Hours — pause time passed, status not updated yet",
+      "w": 1440,
+      "x": 9120,
+      "y": 7320
+    },
+    "HoursPaused.dc.html": {
+      "h": 900,
+      "title": "Hours — paused",
+      "w": 1440,
+      "x": 6080,
+      "y": 7320
+    },
+    "HoursPausedUntilClose.dc.html": {
+      "h": 900,
+      "title": "Hours — paused until closing on a late night (needs the API change)",
+      "w": 1440,
+      "x": 7600,
+      "y": 7320
+    },
+    "HoursSaveFailed.dc.html": {
+      "h": 900,
+      "title": "Hours — save failed, edits kept",
+      "w": 1440,
+      "x": 16720,
+      "y": 8640
+    },
+    "HoursSaved.dc.html": {
+      "h": 900,
+      "title": "Hours — saved",
+      "w": 1440,
+      "x": 25840,
+      "y": 7320
+    },
+    "HoursSaving.dc.html": {
+      "h": 900,
+      "title": "Hours — saving",
+      "w": 1440,
+      "x": 12160,
+      "y": 8640
+    },
+    "HoursServerError.dc.html": {
+      "h": 900,
+      "title": "Hours — server refused a special date, shown in its panel",
+      "w": 1440,
+      "x": 13680,
+      "y": 8640
+    },
+    "HoursSoundGate.dc.html": {
+      "h": 900,
+      "title": "Hours — turning on new orders asks for sound first (in the page, not a dialog)",
+      "w": 1440,
+      "x": 4560,
+      "y": 7320
+    },
+    "HoursSoundOff.dc.html": {
+      "h": 900,
+      "title": "Hours — switched off, order sound off on this device",
+      "w": 1440,
+      "x": 3040,
+      "y": 7320
+    },
+    "HoursSpecialEmpty.dc.html": {
+      "h": 900,
+      "title": "Hours — no special dates",
+      "w": 1440,
+      "x": 16720,
+      "y": 7320
+    },
+    "HoursSpecialEmptyEdit.dc.html": {
+      "h": 900,
+      "title": "Hours — editing, no special dates",
+      "w": 1440,
+      "x": 1520,
+      "y": 8640
+    },
+    "HoursSpecialNight.dc.html": {
+      "h": 900,
+      "title": "Hours — special dates next to late hours, and past midnight",
+      "w": 1440,
+      "x": 18240,
+      "y": 7320
+    },
+    "HoursSuspended.dc.html": {
+      "h": 900,
+      "title": "Hours — account suspended: hours can still be edited",
+      "w": 1440,
+      "x": 24320,
+      "y": 7320
+    },
+    "HoursToggleStates.dc.html": {
+      "h": 2100,
+      "title": "Hours — switching off and back on, pausing, resuming: in flight and failed",
+      "w": 1440,
+      "x": 1520,
+      "y": 11280
+    },
+    "HoursTwentyFour.dc.html": {
+      "h": 900,
+      "title": "Hours — same opening and closing time: open 24 hours",
+      "w": 1440,
+      "x": 6080,
+      "y": 8640
+    },
+    "HoursUnsaved.dc.html": {
+      "h": 900,
+      "title": "Hours — leaving with unsaved changes (asks in the save bar)",
+      "w": 1440,
+      "x": 18240,
+      "y": 8640
+    },
+    "HoursView.dc.html": {
+      "h": 900,
+      "title": "Hours — view, late hours, 1 missed order",
+      "w": 1440,
+      "x": 0,
+      "y": 7320
+    },
+    "Main.dc.html": {
+      "h": 900,
+      "title": "Menu — every item state (owner)",
+      "w": 1440,
+      "x": 0,
+      "y": 0
+    },
+    "MenuAllOut.dc.html": {
+      "h": 900,
+      "title": "Menu — every item out of stock",
+      "w": 1440,
+      "x": 4560,
+      "y": 3360
+    },
+    "MenuAvailability.dc.html": {
+      "h": 900,
+      "title": "Menu — availability: saving, failed change, blocked refusal, stored end time",
+      "w": 1440,
+      "x": 6080,
+      "y": 0
+    },
+    "MenuAvailabilityNoHours.dc.html": {
+      "h": 900,
+      "title": "Menu — availability with no hours left today: until closing is off",
+      "w": 1440,
+      "x": 7600,
+      "y": 0
+    },
+    "MenuAvailabilitySwitch.dc.html": {
+      "h": 900,
+      "title": "Menu — availability switch turned off: out of stock until closing, length menu open (late night)",
+      "w": 1440,
+      "x": 4560,
+      "y": 0
+    },
+    "MenuCategoryCreated.dc.html": {
+      "h": 900,
+      "title": "Menu — category added, empty and selected",
+      "w": 1440,
+      "x": 9120,
+      "y": 1320
+    },
+    "MenuCategoryFailed.dc.html": {
+      "h": 900,
+      "title": "Menu — adding a category failed, text kept",
+      "w": 1440,
+      "x": 6080,
+      "y": 1320
+    },
+    "MenuCategoryLimit.dc.html": {
+      "h": 900,
+      "title": "Menu — 40 categories, limit reached",
+      "w": 1440,
+      "x": 7600,
+      "y": 1320
+    },
+    "MenuCategoryOut.dc.html": {
+      "h": 900,
+      "title": "Menu — a whole category out of stock",
+      "w": 1440,
+      "x": 9120,
+      "y": 0
+    },
+    "MenuCategorySaving.dc.html": {
+      "h": 900,
+      "title": "Menu — adding a category",
+      "w": 1440,
+      "x": 4560,
+      "y": 1320
+    },
+    "MenuCategoryTaken.dc.html": {
+      "h": 900,
+      "title": "Menu — category name already used",
+      "w": 1440,
+      "x": 3040,
+      "y": 1320
+    },
+    "MenuCertificateExpired.dc.html": {
+      "h": 900,
+      "title": "Menu — halal certificate expired: customers can’t find you",
+      "w": 1440,
+      "x": 12160,
+      "y": 3360
+    },
+    "MenuCertificateExpiredNoDate.dc.html": {
+      "h": 900,
+      "title": "Menu — certificate expired, no expiry date sent",
+      "w": 1440,
+      "x": 13680,
+      "y": 3360
+    },
+    "MenuCertificateExpiring.dc.html": {
+      "h": 900,
+      "title": "Menu — halal certificate expiring soon",
+      "w": 1440,
+      "x": 16720,
+      "y": 3360
+    },
+    "MenuCertificateExpiringNoDate.dc.html": {
+      "h": 900,
+      "title": "Menu — certificate expiring soon, no expiry date sent",
+      "w": 1440,
+      "x": 18240,
+      "y": 3360
+    },
+    "MenuCertificateSuspended.dc.html": {
+      "h": 900,
+      "title": "Menu — certificate expired and account suspended",
+      "w": 1440,
+      "x": 19760,
+      "y": 3360
+    },
+    "MenuCertificateUnverified.dc.html": {
+      "h": 900,
+      "title": "Menu — halal certificate not verified yet",
+      "w": 1440,
+      "x": 15200,
+      "y": 3360
+    },
+    "MenuCreateCategory.dc.html": {
+      "h": 900,
+      "title": "Menu — add a category (in-page panel)",
+      "w": 1440,
+      "x": 1520,
+      "y": 1320
+    },
+    "MenuDeactivated.dc.html": {
+      "h": 900,
+      "title": "Menu — deactivated: reactivate through support",
+      "w": 1440,
+      "x": 22800,
+      "y": 3360
+    },
+    "MenuDelisted.dc.html": {
+      "h": 900,
+      "title": "Menu — delisted: a document expired or nothing approved yet",
+      "w": 1440,
+      "x": 21280,
+      "y": 3360
+    },
+    "MenuError.dc.html": {
+      "h": 900,
+      "title": "Menu — couldn’t load",
+      "w": 1440,
+      "x": 6080,
+      "y": 3360
+    },
+    "MenuFilteredEmpty.dc.html": {
+      "h": 900,
+      "title": "Menu — search and filter, no results",
+      "w": 1440,
+      "x": 3040,
+      "y": 3360
+    },
+    "MenuFirstRun.dc.html": {
+      "h": 900,
+      "title": "Menu — first run, no categories yet: add your first category",
+      "w": 1440,
+      "x": 1520,
+      "y": 3360
+    },
+    "MenuLiveChanges.dc.html": {
+      "h": 900,
+      "title": "Menu — changed elsewhere, back in stock by itself, change limit",
+      "w": 1440,
+      "x": 12160,
+      "y": 0
+    },
+    "MenuLoading.dc.html": {
+      "h": 900,
+      "title": "Menu — loading",
+      "w": 1440,
+      "x": 0,
+      "y": 3360
+    },
+    "MenuOptionUnavailable.dc.html": {
+      "h": 900,
+      "title": "Menu — item details: sizes and add-ons, some unavailable",
+      "w": 1440,
+      "x": 3040,
+      "y": 0
+    },
+    "MenuRejectOther.dc.html": {
+      "h": 900,
+      "title": "Menu — rejecting a new order: Something else (note required, at least 20 characters)",
+      "w": 1440,
+      "x": 12160,
+      "y": 1320
+    },
+    "MenuRejectPanel.dc.html": {
+      "h": 900,
+      "title": "Menu — rejecting a new order from the strip: reasons in an in-page panel",
+      "w": 1440,
+      "x": 0,
+      "y": 1320
+    },
+    "MenuRejected.dc.html": {
+      "h": 900,
+      "title": "Menu — order rejected: mark the ticked item out of stock?",
+      "w": 1440,
+      "x": 13680,
+      "y": 1320
+    },
+    "MenuRowDetails.dc.html": {
+      "h": 900,
+      "title": "Menu — list → item details panel (not approved, add-ons)",
+      "w": 1440,
+      "x": 1520,
+      "y": 0
+    },
+    "MenuSaved.dc.html": {
+      "h": 900,
+      "title": "Menu — new item submitted, price saved",
+      "w": 1440,
+      "x": 10640,
+      "y": 0
+    },
+    "MenuSearchResults.dc.html": {
+      "h": 900,
+      "title": "Menu — search matches in several categories",
+      "w": 1440,
+      "x": 13680,
+      "y": 0
+    },
+    "MenuStale.dc.html": {
+      "h": 900,
+      "title": "Menu — refresh failed, last loaded shown",
+      "w": 1440,
+      "x": 7600,
+      "y": 3360
+    },
+    "MenuSuspended.dc.html": {
+      "h": 900,
+      "title": "Menu — read-only while suspended (certificate valid)",
+      "w": 1440,
+      "x": 9120,
+      "y": 3360
+    },
+    "MenuSuspendedRefused.dc.html": {
+      "h": 900,
+      "title": "Menu — change refused: account suspended (stale tab)",
+      "w": 1440,
+      "x": 10640,
+      "y": 3360
+    },
+    "OrderStripStates.dc.html": {
+      "h": 1900,
+      "title": "New orders strip — every state (in the header, owner decision)",
+      "w": 1440,
+      "x": 10640,
+      "y": 1320
+    },
+    "PartItemPanel.dc.html": {
+      "h": 592,
+      "title": "Part — item details panel (in-page)",
+      "w": 420,
+      "x": 3920,
+      "y": 13900
+    },
+    "PartMenuGrid.dc.html": {
+      "h": 560,
+      "title": "Part — menu items grid (region that scrolls on its own)",
+      "w": 944,
+      "x": 2896,
+      "y": 13900
+    },
+    "PartNowCard.dc.html": {
+      "h": 140,
+      "title": "Part — Right now card",
+      "w": 1184,
+      "x": 4420,
+      "y": 13900
+    },
+    "PartOrderStrip.dc.html": {
+      "h": 88,
+      "title": "Part — new orders strip",
+      "w": 1216,
+      "x": 1600,
+      "y": 13900
+    },
+    "PartRail.dc.html": {
+      "h": 900,
+      "title": "Part — side navigation (collapsible)",
+      "w": 224,
+      "x": 0,
+      "y": 13900
+    },
+    "PartStatusHalal.dc.html": {
+      "h": 1300,
+      "title": "Part — service status, halal variants",
+      "w": 1216,
+      "x": 5684,
+      "y": 13900
+    },
+    "PartTopBar.dc.html": {
+      "h": 196,
+      "title": "Part — app bar, service status and new orders strip",
+      "w": 1216,
+      "x": 304,
+      "y": 13900
+    },
+    "Tablet-Hours.dc.html": {
+      "h": 768,
+      "title": "Tablet — hours",
+      "w": 1024,
+      "x": 4416,
+      "y": 15620
+    },
+    "Tablet-HoursEdit.dc.html": {
+      "h": 768,
+      "title": "Tablet — editing hours",
+      "w": 1024,
+      "x": 5520,
+      "y": 15620
+    },
+    "Tablet-ItemEditor.dc.html": {
+      "h": 768,
+      "title": "Tablet — item editor, new item",
+      "w": 1024,
+      "x": 3312,
+      "y": 15620
+    },
+    "Tablet-Menu.dc.html": {
+      "h": 768,
+      "title": "Tablet — menu",
+      "w": 1024,
+      "x": 0,
+      "y": 15620
+    },
+    "Tablet-MenuAvailability.dc.html": {
+      "h": 768,
+      "title": "Tablet — out of stock until closing, length menu open",
+      "w": 1024,
+      "x": 2208,
+      "y": 15620
+    },
+    "Tablet-MenuDetails.dc.html": {
+      "h": 768,
+      "title": "Tablet — item details panel",
+      "w": 1024,
+      "x": 1104,
+      "y": 15620
+    }
+  },
+  "createdOnFiles": {
+    "at": "2026-09-28T16:00:00Z",
+    "v": 1
+  },
+  "designSystems": [
+    {
+      "artifact": "https://claude.ai/artifact/1GwGVZz8Ju9wcz4HfCnzbv",
+      "copiedAt": "2026-09-28T14:52:10Z",
+      "namespace": "halalgoesdesignsystem-d11a47",
+      "title": "HalalGoes design system",
+      "version": "1790605103-3266"
+    }
+  ],
+  "launch": {
+    "view": "canvas"
+  },
+  "notes": {
+    "noteBannedClosed": {
+      "fill": "gray",
+      "maxH": 320,
+      "text": "account_state BANNED and CLOSED never reach this screen: sign-in is blocked (403 ACCOUNT_BANNED for BANNED; CLOSED is terminal and blocked too, 05-admin §account_state). No Menu or Hours board is drawn for them. DELISTED and DEACTIVATED keep full login and are drawn to the left.",
+      "w": 360,
+      "x": 24320,
+      "y": 3360
+    },
+    "rowCats": {
+      "kind": "title1",
+      "maxW": 8000,
+      "text": "Menu — new orders strip, reject reasons, add a category",
+      "w": 240,
+      "x": 0,
+      "y": 1020
+    },
+    "rowEditor": {
+      "kind": "title1",
+      "maxW": 8000,
+      "text": "Item editor — in-page panel, review states (in launch, owner decision)",
+      "w": 240,
+      "x": 0,
+      "y": 4380
+    },
+    "rowEditorErr": {
+      "kind": "title1",
+      "maxW": 8000,
+      "text": "Item editor — errors, loading, view only, photo, leaving",
+      "w": 240,
+      "x": 0,
+      "y": 5700
+    },
+    "rowEditorPhoto": {
+      "kind": "title1",
+      "maxW": 6000,
+      "text": "Right now card, pause, focus",
+      "w": 240,
+      "x": 0,
+      "y": 10980
+    },
+    "rowHours": {
+      "kind": "title1",
+      "maxW": 8000,
+      "text": "Hours — editing the weekly schedule",
+      "w": 240,
+      "x": 0,
+      "y": 8340
+    },
+    "rowHoursMore": {
+      "kind": "title1",
+      "maxW": 8000,
+      "text": "Hours — special dates (in-page panel)",
+      "w": 240,
+      "x": 0,
+      "y": 9660
+    },
+    "rowHoursStates": {
+      "kind": "title1",
+      "maxW": 8000,
+      "text": "Hours — view and open states",
+      "w": 240,
+      "x": 0,
+      "y": 7020
+    },
+    "rowMenu": {
+      "kind": "title1",
+      "maxW": 8000,
+      "text": "Menu — list, availability, details, live changes",
+      "w": 240,
+      "x": 0,
+      "y": -300
+    },
+    "rowMenuStates": {
+      "kind": "title1",
+      "maxW": 8000,
+      "text": "Menu — loading, empty, error, read-only, certificate, account",
+      "w": 240,
+      "x": 0,
+      "y": 3060
+    },
+    "rowParts": {
+      "kind": "title1",
+      "maxW": 6900,
+      "text": "Shared parts (imported by every screen)",
+      "w": 240,
+      "x": 0,
+      "y": 13600
+    },
+    "rowTablet": {
+      "kind": "title1",
+      "maxW": 6544,
+      "text": "Kitchen tablet, landscape 1024 × 768 and up (owner decision; no portrait or phone)",
+      "w": 240,
+      "x": 0,
+      "y": 15320
+    },
+    "stickyComponents": {
+      "fill": "purple",
+      "maxH": 1100,
+      "text": "Proposed components (labelled on each board; added to the design system after owner approval)\n\n- Approved by the owner, not yet in the system: SideNav, KeyValueList, FileDrop\n- New for the desktop layout rules: NewOrdersStrip; StatusCard (the Right now card: system Badge, Switch, Menu and Button); DetailPanel (in-page, collapsible; editor variant and task variant for reject reasons, add category and special date); ResizableSplit (shadcn Resizable); collapsible side navigation. Usage rule for the system: on desktop web, no overlay sheets or modals for working tasks.\n- Still missing from the system: Banner, EmptyState, ErrorState, Skeleton, Textarea, DateField, TimeField, ListRow, ActionBar, Disclosure, ProgressBar\n\nDesign-system issues (reported, not overridden here)\n\n- Text tertiary #6E7C77 inside system components (Checkbox and Radio descriptions, disabled reasons, Input character count, Select empty text, timeline times): 4.36:1 on white, 4.18:1 on cream, 3.80:1 on the subtle surface. Under 4.5:1.\n- The component bundle reads --type-*-size and --type-*-tracking variables that tokens.css never defines, so those texts fall back to the inherited size.\n- A disabled Menu item dims its reason to about 2.3:1.\n- Menu keeps its label only on icon triggers; Input drops an outside aria-describedby.\n- Menu has no menuitemradio or aria-checked support: a ticked choice is shown by an aria-hidden check icon only. The boards add a visually hidden “, current” to the ticked label until Menu supports it.\n- tokens.css publishes the type as font shorthands (--text-type-*), line heights and weights, but no size or tracking variables; the boards use the shorthands and keep the heading-xl tracking (-0.01em) as a literal.",
+      "w": 520,
+      "x": -620,
+      "y": 3360
+    },
+    "stickyEditor": {
+      "fill": "gray",
+      "maxH": 1000,
+      "text": "Item editor decisions (in launch, owner decision)\n\n- The editor is an in-page panel beside the items list: no side sheet, no modal. Opening it collapses the side navigation and the categories pane; the list stays visible and the row being edited is marked Editing. The divider resizes the two.\n- Closing with unsaved changes asks inside the panel footer: Keep editing or Discard.\n- Sections: Live immediately (price, prep, position, category), Options (read-only until #149), Customers see these only after review.\n- A rejection points at its field and the reason links to it. Other: the reviewer’s note is the instruction. Not allowed on HalalGoes: read-only, Contact support.\n- Submit stays off until something changed, with its reason. A price-only change on an item under review says Save changes.\n- Photo: uploading → checking → ready. Submit is off until it’s ready.\n- Drafts were dropped for 1.0: nothing is saved until you submit.\n- Owner only at launch: there is no staff view.",
+      "w": 520,
+      "x": -620,
+      "y": 4680
+    },
+    "stickyGaps": {
+      "fill": "blue",
+      "maxH": 1800,
+      "text": "Still open for the owner\n\n- Answered on 1 October 2026: item availability and self-editing are in launch, hours can be edited while suspended (read-only once deactivated), and a 1024 × 768 landscape tablet pass is drawn.\n- Can a deactivated restaurant still edit its menu? Drawn view only.\n\nNeeds API (listed once)\n\n- the admin’s block reason and the hidden reason on each item, and on a refused change to a blocked item\n- next closing, next opening, next change and last-order times on the service status\n- who switched new orders off, on the service status (page loads)\n- “pause until closing” (owner decision; waits for this change)\n- suspension reason; confirm menu changes are refused while suspended\n- item availability and item update events on the restaurant live stream\n- field and matched words on a prohibited-ingredient refusal\n- version checks on item edits and hours saves; when and by whom hours last changed; who submitted a change\n- replaced change and last availability change on each item\n- allergens declared, even when none apply\n- switch a size or add-on off yourself (planned for version 2)\n- special dates crossing midnight, same times meaning 24 hours, overlaps past midnight into the next day\n- which rule covers midnight to 2:00 am on a closed special date after a late night\n- whether customers see a special date’s reason, or a category with no approved item\n- #149: withdraw a change, delete an item, category edits, bulk availability, sizes and add-ons\n- the service status doesn’t reflect halal visibility or delisting\n- confirm hours saves accept past special dates and whether they count toward the 90\n- a reactivate operation for a deactivated restaurant\n- the customer’s masked phone is hidden until acceptance (owner decision); the order payload still sends it",
+      "w": 520,
+      "x": -620,
+      "y": 1320
+    },
+    "stickyHours": {
+      "fill": "gray",
+      "maxH": 1000,
+      "text": "Hours decisions\n\n- Desktop 1440 × 900, no page scroll: Right now card on top; weekly hours and special dates side by side, each scrolling on its own.\n- Special dates open in an in-page panel that replaces the list (list → date). Removing one confirms inside that panel.\n- Saving hours that close you now, and leaving with unsaved changes, confirm in the save bar at the bottom of the weekly pane.\n- Turning New orders on while order sound is off shows the sound prompt under the service status, not a dialog.\n- Pause: 15, 30 or 60 minutes, or until closing (owner decision; needs the API change). Until closing replaces the rest of today (owner decision). Each names its end time.\n- Suspended: hours stay editable, so they are ready when the account is reinstated; read-only once deactivated (owner decision).\n- Special dates save straight away and never wait for Save hours. Saving weekly hours replaces them.\n- Same opening and closing time means open 24 hours. Late hours that run into the next day’s first range are an overlap.\n- Orders stop your average prep time before closing.\n- The restaurant app is light only (owner decision).",
+      "w": 520,
+      "x": -620,
+      "y": 7320
+    },
+    "stickyMenu": {
+      "fill": "gray",
+      "maxH": 1000,
+      "text": "Menu decisions\n\n- Desktop 1440 × 900. The page never scrolls: the items grid is a LyteNyte region that scrolls on its own; panels open beside it, never over it.\n- Overview → detail → more detail: categories (collapsible) → items → item details panel → editor panel. Opening a panel collapses the categories pane; the divider resizes list and panel.\n- Availability is the approved Switch (owner decision). Turning it off marks the item out of stock until closing at once, then opens the length menu beside it with that choice ticked: Until closing, For 1 hour, Until you turn it back on. Escape or clicking away keeps until closing, so a missed second choice never leaves the item orderable. The switch moves when HalalGoes confirms. Back to Available is one tap.\n- With no hours left today, Until closing is off with its reason and turning the switch off means For 1 hour.\n- Rows are compact 44px; a row that must explain a state grows to fit its words.\n- Review column is about review only: Approved, Under review, Waiting for first review, Not approved, Withdrawn. Drafts were dropped for 1.0 (owner decision).\n- Hidden is set by the system; Blocked is the only admin state. The screen never sends a change to learn why an item is blocked.\n- An expired or unverified certificate hides the restaurant: the status strip keeps the open badge and says customers can’t see you, with a link to the neutral banner. No field, no seal, no banner. Never red.\n- Launch (owner decisions): restaurants edit their own menu, every new item and reviewed field goes through the HalalGoes review queue, and marking items out of stock is in launch. The view-only launch boards are gone.\n- New orders live in a strip in the header, under the app bar, on every page (owner decision). The Kanban board and pinned New column are gone.\n- Times are 12-hour everywhere (owner decision): 7:10 pm, 2:00 am.\n- Desktop 1440 × 900 and landscape tablets from 1024 × 768 (owner decision): see the tablet row.",
+      "w": 520,
+      "x": -620,
+      "y": 0
+    },
+    "stickyRemoved": {
+      "fill": "gray",
+      "maxH": 700,
+      "text": "Removed on 28 September 2026\n\n- Dark-theme boards: the restaurant app is light only (owner decision).\n- Staff boards and the staff kitchen-tablet boards: owner only at launch (owner decision).\n- The draft item editor and every draft state: drafts dropped for 1.0 (owner decision).\n- The Menu-trigger availability option: the switch is approved (owner decision).\n- 768 portrait and phone (390) layouts of Menu and Hours (owner decision). A landscape 1024 × 768 tablet pass is back: see the tablet row.\n- The local token overrides (roles.css): the design system now publishes the approved tokens.\n\nRemoved on 1 October 2026 (owner answers)\n\n- Menu — launch (version 0) view only, its item details and empty state, and the reject prompt sending you to support: restaurants edit their menu and mark items out of stock at launch.\n- Menu — new orders strip in the footer: the strip sits in the header.\n- Hours — paused for the rest of today, and on a late night: until closing replaces the rest of today.",
+      "w": 520,
+      "x": -1200,
+      "y": 0
+    },
+    "stickyStates": {
+      "fill": "gray",
+      "maxH": 900,
+      "text": "Open-state keys (for the build)\n\nOpen = OPEN\nPaused = PAUSED (until a time, or until closing once the API allows it)\nSwitched off = CLOSED_TOGGLE, with the server’s reason as sent. Who switched it off is known only from the live status-changed event, never inferred from missed orders\nNo order screen = CLOSED_OFFLINE\nOutside hours = CLOSED_HOURS\nNo hours set = CLOSED_HOURS with no time ranges\nSpecial date = CLOSED_HOLIDAY\nSuspended = CLOSED_SUSPENDED\n\nPrecedence: suspended → offline → switched off → paused → special date → hours → open.",
+      "w": 520,
+      "x": -620,
+      "y": 11280
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "MenuRowDetails.dc.html",
+    "MenuOptionUnavailable.dc.html",
+    "MenuAvailabilitySwitch.dc.html",
+    "MenuAvailability.dc.html",
+    "MenuAvailabilityNoHours.dc.html",
+    "MenuCategoryOut.dc.html",
+    "MenuSaved.dc.html",
+    "MenuLiveChanges.dc.html",
+    "MenuSearchResults.dc.html",
+    "MenuRejectPanel.dc.html",
+    "MenuRejectOther.dc.html",
+    "MenuRejected.dc.html",
+    "MenuCreateCategory.dc.html",
+    "MenuCategoryTaken.dc.html",
+    "MenuCategorySaving.dc.html",
+    "MenuCategoryFailed.dc.html",
+    "MenuCategoryLimit.dc.html",
+    "MenuCategoryCreated.dc.html",
+    "OrderStripStates.dc.html",
+    "MenuLoading.dc.html",
+    "MenuFirstRun.dc.html",
+    "MenuFilteredEmpty.dc.html",
+    "MenuAllOut.dc.html",
+    "MenuError.dc.html",
+    "MenuStale.dc.html",
+    "MenuSuspended.dc.html",
+    "MenuSuspendedRefused.dc.html",
+    "MenuCertificateExpired.dc.html",
+    "MenuCertificateExpiredNoDate.dc.html",
+    "MenuCertificateUnverified.dc.html",
+    "MenuCertificateExpiring.dc.html",
+    "MenuCertificateExpiringNoDate.dc.html",
+    "MenuCertificateSuspended.dc.html",
+    "MenuDelisted.dc.html",
+    "MenuDeactivated.dc.html",
+    "EditorNew.dc.html",
+    "EditorSubmitting.dc.html",
+    "EditorPending.dc.html",
+    "EditorPendingPrice.dc.html",
+    "EditorSuperseded.dc.html",
+    "EditorFirstReview.dc.html",
+    "EditorRejected.dc.html",
+    "EditorRejectedNew.dc.html",
+    "EditorRejectedOther.dc.html",
+    "EditorRejectedOffensive.dc.html",
+    "EditorRejectedProhibited.dc.html",
+    "EditorRejectedPhoto.dc.html",
+    "EditorRejectedAllergen.dc.html",
+    "EditorApproved.dc.html",
+    "EditorMoveInactive.dc.html",
+    "EditorWithdrawn.dc.html",
+    "EditorErrors.dc.html",
+    "EditorErrorsProhibited.dc.html",
+    "EditorServerErrors.dc.html",
+    "EditorServerRefused.dc.html",
+    "EditorConflict.dc.html",
+    "EditorSaveFailed.dc.html",
+    "EditorLoading.dc.html",
+    "EditorLoadFailed.dc.html",
+    "EditorNotFound.dc.html",
+    "EditorViewBlocked.dc.html",
+    "EditorViewHidden.dc.html",
+    "EditorPhotoUploading.dc.html",
+    "EditorPhotoChecking.dc.html",
+    "EditorPhotoFailed.dc.html",
+    "EditorPhotoExpired.dc.html",
+    "EditorPhotoInvalid.dc.html",
+    "EditorDiscard.dc.html",
+    "EditorDiscardNew.dc.html",
+    "HoursView.dc.html",
+    "HoursPastDates.dc.html",
+    "HoursSoundOff.dc.html",
+    "HoursSoundGate.dc.html",
+    "HoursPaused.dc.html",
+    "HoursPausedUntilClose.dc.html",
+    "HoursPauseStale.dc.html",
+    "HoursNone.dc.html",
+    "HoursClosedHours.dc.html",
+    "HoursOffline.dc.html",
+    "HoursAutoOff.dc.html",
+    "HoursSpecialEmpty.dc.html",
+    "HoursSpecialNight.dc.html",
+    "HoursHolidayToday.dc.html",
+    "HoursHolidayEdit.dc.html",
+    "HoursHolidayRemoved.dc.html",
+    "HoursSuspended.dc.html",
+    "HoursSaved.dc.html",
+    "HoursOverrideFromView.dc.html",
+    "HoursLoading.dc.html",
+    "HoursError.dc.html",
+    "HoursEdit.dc.html",
+    "HoursSpecialEmptyEdit.dc.html",
+    "HoursOverlap.dc.html",
+    "HoursOverlapNight.dc.html",
+    "HoursTwentyFour.dc.html",
+    "HoursDayClosed.dc.html",
+    "HoursLimits.dc.html",
+    "HoursClosesNow.dc.html",
+    "HoursSaving.dc.html",
+    "HoursServerError.dc.html",
+    "HoursConflict.dc.html",
+    "HoursSaveFailed.dc.html",
+    "HoursUnsaved.dc.html",
+    "HoursOverrideModal.dc.html",
+    "HoursOverrideClosed.dc.html",
+    "HoursOverrideErrors.dc.html",
+    "HoursOverrideDuplicate.dc.html",
+    "HoursOverrideNight.dc.html",
+    "HoursOverride24.dc.html",
+    "HoursOverrideEdit.dc.html",
+    "HoursOverrideRemove.dc.html",
+    "HoursOpenStates.dc.html",
+    "HoursToggleStates.dc.html",
+    "HoursPauseMenu.dc.html",
+    "FocusStates.dc.html",
+    "PartRail.dc.html",
+    "PartTopBar.dc.html",
+    "PartOrderStrip.dc.html",
+    "PartMenuGrid.dc.html",
+    "PartItemPanel.dc.html",
+    "PartNowCard.dc.html",
+    "PartStatusHalal.dc.html",
+    "Tablet-Menu.dc.html",
+    "Tablet-MenuDetails.dc.html",
+    "Tablet-MenuAvailability.dc.html",
+    "Tablet-ItemEditor.dc.html",
+    "Tablet-Hours.dc.html",
+    "Tablet-HoursEdit.dc.html"
+  ],
+  "pages": [],
+  "title": "HalalGoes Restaurant — Menu & Hours"
+}

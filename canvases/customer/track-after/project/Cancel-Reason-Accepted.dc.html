@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Cancel this order</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<link rel="stylesheet" href="hg-roles.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:var(--surface-base)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; display: flex; flex-direction: column; overflow: hidden; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" title-is-page-heading="{{ no }}" tone="cream" title="Order HG-8F3K2Q" subtitle="Zaytoun Grill · placed 6:42 pm" back-label="Back to Orders" on-back="{{ noop }}"></x-import><main style="flex-grow: 1; display: flex; flex-direction: column; gap: 8px; padding: 8px 16px; overflow: hidden">
+<div style="display: flex; flex-direction: column; gap: 8px"><h1 class="type-heading-xl">Zaytoun Grill is preparing your order</h1></div>
+</main><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Sheet" open="{{ yes }}" contained="{{ yes }}" title="Zaytoun Grill has accepted your order" on-close="{{ noop }}" max-height="70%"><div style="display: flex; flex-direction: column; gap: 16px"><div role="alert" style="display: flex; flex-direction: column; gap: 8px"><p class="type-body-md">They accepted it while you were choosing, so it can no longer be cancelled here. Your card has been charged for this order.</p><p class="type-body-md" style="color: var(--text-secondary)">If something is wrong, get help and our team will look at it.</p></div><div style="display: flex; flex-direction: column; gap: 12px; padding-top: 8px"><div class="hg-focus-drawn"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" full-width="{{ yes }}" href="Track-Preparing.dc.html">Back to my order</x-import></div><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="md" full-width="{{ yes }}" href="GetHelp-Sheet-Preparing.dc.html">Get help</x-import></div><div class="hg-gap"><span class="hg-tag">Annotation: accepted while the sheet is open</span><span class="hg-gap-note">When order.state_changed to PREPARING (or can_cancel false on a refetch) arrives while the cancel sheet is open, the sheet does not close under the customer's finger: its content is replaced in place by this message, announced once (role="alert"), and focus moves to "Back to my order". The reason list and the danger button are removed, so nothing can be pressed by mistake. Charge copy follows capture on acceptance (01-platform). If the push is missed and the customer presses Cancel, the 409 board Cancel-WindowClosed still covers it.</span></div></div></x-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const t = (s, at, a) => ({ to_state: s, at: '2026-09-28T' + at + ':00-04:00', actor_kind: a || 'SYSTEM' });
+    const all = [t('AUTHORIZED', '18:42', 'CUSTOMER'), t('RESTAURANT_PENDING', '18:42'), t('PREPARING', '18:44', 'RESTAURANT'), t('READY_FOR_PICKUP', '18:59', 'RESTAURANT'), t('PICKED_UP', '19:02', 'RIDER'), t('ARRIVED', '19:12', 'RIDER'), t('DELIVERED', '19:13', 'RIDER'), t('COMPLETED', '19:43')];
+    const upTo = (n) => all.slice(0, n);
+    return {
+      yes: true, no: false, none: null, zero: 0, noop: () => {},
+      nav: [{ key: 'home', label: 'Home', icon: 'home' }, { key: 'search', label: 'Search', icon: 'search' }, { key: 'orders', label: 'Orders', icon: 'orders', badge: 1, badgeNoun: 'active' }, { key: 'account', label: 'Account', icon: 'profile' }],
+      window: 180, reasons: [{ value: 'ORDERED_BY_MISTAKE', label: 'I ordered by mistake' }, { value: 'TOO_LONG_WAIT', label: 'It is taking too long' }, { value: 'WRONG_ADDRESS', label: 'The delivery address is wrong' }, { value: 'CHANGED_MIND', label: 'I changed my mind' }, { value: 'DUPLICATE_ORDER', label: 'I placed the same order twice' }, { value: 'OTHER', label: 'Something else', description: 'You will be asked to say what' }]
+    };
+  }
+}
+</script>
+</body>
+</html>

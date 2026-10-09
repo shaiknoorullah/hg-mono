@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Profile edit panel body</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div style="width: {{w}}; min-height: 600px; box-sizing: border-box; font-family: var(--font-ui); color: var(--text-primary); background: var(--surface-raised); display: flex; flex-direction: column; gap: 20px">
+
+<sc-if value="{{failed}}" hint-placeholder-val="{{false}}">
+<div role="alert" style="display: flex; gap: 12px; padding: 12px 16px; border-radius: var(--radius-md); background: var(--feedback-danger-tint); border: 1px solid var(--feedback-danger-border); color: var(--feedback-danger-tint-text)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="error" size="md" color="var(--feedback-danger-icon)"></x-import>
+<span style="display: flex; flex-direction: column; gap: 6px"><span style="font: var(--text-type-body-md); line-height: 1.5">{{failText}}</span>
+<span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">Proposed component: Banner (inline danger)</span></span>
+</div>
+</sc-if>
+<sc-if value="{{conflict}}" hint-placeholder-val="{{false}}">
+<div role="alert" style="display: flex; flex-direction: column; gap: 8px; padding: 12px 16px; border-radius: var(--radius-md); background: var(--feedback-warning-tint); border: 1px solid var(--feedback-warning-border); color: var(--feedback-warning-tint-text)">
+<strong style="font: var(--text-type-label-lg)">Your profile changed while you were editing</strong>
+<span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">Proposed component: Banner (inline warning)</span>
+<span style="font: var(--text-type-body-md); line-height: 1.5">A change was saved from another device or by HalalGoes support at 5:02 pm. Load the latest profile, then make your change again so neither is lost.</span>
+<div style="display: flex"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="sm" icon-start="refresh">Load the latest profile</x-import></div>
+<span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--feedback-info-tint-text); background: var(--feedback-info-tint)">Needs API: version check on the profile (today the last save wins silently)</span>
+</div>
+</sc-if>
+
+<sc-if value="{{otherCard}}" hint-placeholder-val="{{false}}">
+<div role="alert" style="display: flex; flex-direction: column; gap: 8px; padding: 12px 16px; border-radius: var(--radius-md); background: var(--feedback-warning-tint); border: 1px solid var(--feedback-warning-border); color: var(--feedback-warning-tint-text)">
+<strong style="font: var(--text-type-label-lg)">Couldn't save. Your restaurant description needs at least 20 characters first.</strong>
+<span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">Proposed component: Banner (inline warning)</span>
+<span style="font: var(--text-type-body-md); line-height: 1.5">Your changes here are kept. Send a description for review, then save this again.</span>
+<div style="display: flex"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="sm" href="Edit-About.dc.html">Add a description</x-import></div>
+<span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">422 VALIDATION_FAILED on a field outside this panel (description minLength 20, or phone_e164 required)</span>
+</div>
+</sc-if>
+<sc-if value="{{unknown}}" hint-placeholder-val="{{false}}">
+<div role="alert" style="display: flex; flex-direction: column; gap: 8px; padding: 12px 16px; border-radius: var(--radius-md); background: var(--feedback-danger-tint); border: 1px solid var(--feedback-danger-border); color: var(--feedback-danger-tint-text)">
+<strong style="font: var(--text-type-label-lg)">Couldn't save this change</strong>
+<span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">Proposed component: Banner (inline danger)</span>
+<span style="font: var(--text-type-body-md); line-height: 1.5">Something in this form wasn't accepted, and nothing was changed. Reload the page and try again. If it keeps happening, contact support.</span>
+<div style="display: flex; gap: 8px; flex-wrap: wrap"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="sm" icon-start="refresh">Reload the page</x-import><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="sm" href="Support-Sheet.dc.html">Contact support</x-import></div>
+<span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">422 UNKNOWN_FIELD, or any other 4xx without a field error (usually an outdated app)</span>
+</div>
+</sc-if>
+
+<sc-if value="{{g.names}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; flex-direction: column; gap: 20px">
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Owner first name" default-value="Rami" max-length="{{50}}" read-only="{{saving}}"></x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Owner last name" default-value="Haddad" max-length="{{50}}" read-only="{{saving}}"></x-import>
+</div>
+<p style="margin: 0; font: var(--text-type-body-sm); color: var(--text-secondary)">HalalGoes uses the owner's name when we contact you. Customers don't see it.</p>
+<div style="display: flex; flex-direction: column; gap: 4px; padding: 12px 16px; border-radius: var(--radius-md); background: var(--surface-subtle)">
+<span style="display: flex; align-items: center; gap: 6px; font: var(--text-type-label-lg)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="lock" size="sm"></x-import>Name customers see and legal name</span>
+<span style="font: var(--text-type-body-md)">Zaytoun Grill · Zaytoun Grill Holdings Inc.</span>
+<span style="font: var(--text-type-body-sm); color: var(--text-secondary)">HalalGoes reviews a change to either name before it applies. Use Request a change on the Names card.</span>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{g.legal}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; gap: 20px">
+<p style="margin: 0; font: var(--text-type-body-md); line-height: 1.5">Change one name or both. Leave a name as it is to keep it.</p>
+<div style="display: flex; flex-direction: column; gap: 4px"><span style="font: var(--text-type-body-sm); color: var(--text-secondary)">Name customers see now</span><span style="font: var(--text-type-body-md)">Zaytoun Grill</span></div>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Name customers see" default-value="{{displayName}}" max-length="{{120}}" error-text="{{nameError}}" read-only="{{saving}}" aria-describedby="display-rule"></x-import>
+<span id="display-rule" style="margin-top: -12px; font: var(--text-type-body-sm); color: var(--text-secondary)">Shown on your restaurant page. A name can make a halal claim, so HalalGoes reviews it first.</span>
+<div style="display: flex; flex-direction: column; gap: 4px"><span style="font: var(--text-type-body-sm); color: var(--text-secondary)">Legal name now</span><span style="font: var(--text-type-body-md)">Zaytoun Grill Holdings Inc.</span></div>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Legal name" default-value="{{legalName}}" max-length="{{120}}" read-only="{{saving}}" aria-describedby="legal-rule"></x-import>
+<span id="legal-rule" style="margin-top: -12px; font: var(--text-type-body-sm); color: var(--text-secondary)">Write it exactly as it appears on your halal certificate and business licence.</span>
+<section aria-labelledby="legal-next-h" style="display: flex; flex-direction: column; gap: 6px; padding-top: 16px; border-top: 1px solid var(--border-decorative)">
+<h3 id="legal-next-h" style="margin: 0; font: var(--text-type-heading-sm)">What happens next</h3>
+<ol style="margin: 0; padding-left: 20px; font: var(--text-type-body-md); line-height: 1.5; display: flex; flex-direction: column; gap: 4px">
+<li>HalalGoes reviews the name customers see, so it can't carry a halal claim nobody has checked, and checks a new legal name against your halal certificate and business licence.</li>
+<li>Reviews take up to 3 business days.</li>
+<li>Your current names stay until the change is approved. Orders carry on as normal.</li>
+<li>If your certificates show the old legal name, we ask you to upload updated ones.</li>
+</ol>
+</section>
+<span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--feedback-info-tint-text); background: var(--feedback-info-tint)">Needs API: a reviewed change for the name customers see and the legal name (today submitRestaurantProfile applies both at once)</span>
+</div>
+</sc-if>
+
+<sc-if value="{{g.contact}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; gap: 20px">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Phone for HalalGoes" variant="tel" default-value="{{phone}}" required="{{yes}}" helper-text="We call this number about orders and your account. Customers never see it." error-text="{{phoneError}}" read-only="{{saving}}"></x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Phone shown to customers" variant="tel" default-value="(416) 555-0199" helper-text="Optional." read-only="{{saving}}"></x-import>
+</div>
+</sc-if>
+
+<sc-if value="{{g.address}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 4px"><span style="font: var(--text-type-body-sm); color: var(--text-secondary)">Current address</span><span style="font: var(--text-type-body-md)">14 Ellesmere Rd, Scarborough, Ontario M1R 4B5</span></div>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Search for the new address" variant="search" default-value="2250 Kennedy Rd" read-only="{{saving}}" helper-text="Type the street address, then choose it from the list." role="combobox" aria-autocomplete="list" aria-expanded="{{addr.expanded}}" aria-controls="addr-list" aria-activedescendant="{{addr.active}}"></x-import>
+<sc-if value="{{addr.results}}" hint-placeholder-val="{{true}}">
+<ul id="addr-list" role="listbox" aria-label="Addresses found" style="margin: 0; padding: 4px; list-style: none; display: flex; flex-direction: column; border: 1px solid var(--border-decorative); border-radius: var(--radius-sm); background: var(--surface-raised); box-shadow: var(--elev-2)">
+<li id="addr-opt-1" role="option" aria-selected="true" style="min-height: 44px; display: flex; flex-direction: column; justify-content: center; padding: 4px 12px; border-radius: var(--radius-xs); background: var(--state-selected-tint)"><span style="font: var(--text-type-label-lg)">2250 Kennedy Rd</span><span style="font: var(--text-type-body-sm); color: var(--text-secondary)">Scarborough, Ontario M1T 3G5</span></li>
+<li id="addr-opt-2" role="option" aria-selected="false" style="min-height: 44px; display: flex; flex-direction: column; justify-content: center; padding: 4px 12px"><span style="font: var(--text-type-label-lg)">2250 Kennedy Rd, Unit 4</span><span style="font: var(--text-type-body-sm); color: var(--text-secondary)">Scarborough, Ontario M1T 3G5</span></li>
+</ul>
+</sc-if>
+<span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">Proposed component: AddressCombobox · shadcn/ui Command in a Popover around the design system's Input · the input is role="combobox" with aria-expanded, aria-controls on the list and aria-activedescendant on the highlighted option; up and down arrows move, Enter chooses, Escape closes</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span style="font: var(--text-type-label-lg)">Put the pin on your kitchen door</span>
+<div role="application" tabindex="0" class="hg-focus" aria-label="Map. Use the arrow keys to move the pin; each press moves it 5 metres." aria-describedby="pin-pos" style="position: relative; height: 200px; border-radius: var(--radius-md); border: 1px solid var(--border-interactive); background: var(--surface-subtle); display: flex; align-items: center; justify-content: center">
+<span style="position: absolute; left: {{addr.pinX}}; top: 64px; display: inline-flex; flex-direction: column; align-items: center; color: var(--color-map-pin-restaurant)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="map" weight="bold" size="xl"></x-import></span>
+<span style="position: absolute; left: 12px; bottom: 12px; padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">Proposed component: MapPinPicker (map tiles and a draggable pin) · one Tab stop with the two-layer focus ring; arrow keys move the pin and the position below is announced</span>
+</div>
+<div id="pin-pos" role="status" aria-live="polite" style="display: flex; flex-direction: column; gap: 2px">
+<span style="font: var(--text-type-body-sm); color: var(--text-secondary)">{{addr.pinNote}}</span>
+<span style="font: var(--text-type-body-sm); color: var(--text-secondary)">Pin at <span style="font-family: var(--font-mono)">{{addr.coords}}</span></span>
+</div>
+</div>
+<section aria-labelledby="addr-next-h" style="display: flex; flex-direction: column; gap: 6px; padding-top: 16px; border-top: 1px solid var(--border-decorative)">
+<h3 id="addr-next-h" style="margin: 0; font: var(--text-type-heading-sm)">What happens next</h3>
+<span style="font: var(--text-type-body-md); line-height: 1.5">Moving changes where riders pick up and what your certificate must show, so a change is checked again before it applies. HalalGoes checks the new address against your halal certificate and business licence within 3 business days. Your current address and pin stay until it's approved.</span>
+</section>
+<span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--feedback-info-tint-text); background: var(--feedback-info-tint)">Needs API: address search, place details and reverse geocoding through our API (owner decision: it forwards to Mapbox; three launch operations not yet in the contract), and a reviewed address change · map tiles come from Mapbox · the request carries the pin's latitude and longitude</span>
+</div>
+</sc-if>
+
+<sc-if value="{{g.tax}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; gap: 20px">
+<div style="display: flex; flex-direction: column; gap: 4px"><span style="font: var(--text-type-body-sm); color: var(--text-secondary)">GST/HST number now</span><span style="font: var(--text-type-mono-md)">123456789RT0001</span></div>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="New GST/HST number" default-value="{{gst}}" error-text="{{gstError}}" read-only="{{saving}}" aria-describedby="gst-rule"></x-import>
+<span id="gst-rule" style="margin-top: -12px; font: var(--text-type-body-sm); color: var(--text-secondary)">Nine digits, RT, then four digits, for example 987654321RT0001.</span>
+<section aria-labelledby="tax-next-h" style="display: flex; flex-direction: column; gap: 6px; padding-top: 16px; border-top: 1px solid var(--border-decorative)">
+<h3 id="tax-next-h" style="margin: 0; font: var(--text-type-heading-sm)">What happens next</h3>
+<span style="font: var(--text-type-body-md); line-height: 1.5">The number prints on customer receipts, so HalalGoes checks it before it applies, within 3 business days. Receipts keep your current number until the change is approved.</span>
+</section>
+<span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--feedback-info-tint-text); background: var(--feedback-info-tint)">Needs API: a reviewed GST/HST number change (today submitRestaurantProfile applies it at once)</span>
+</div>
+</sc-if>
+
+<sc-if value="{{g.kitchen}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; gap: 20px">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Average preparation time" variant="numeric" default-value="{{prep}}" suffix="minutes" required="{{yes}}" error-text="{{prepError}}" read-only="{{saving}}" aria-describedby="prep-rule"></x-import>
+<span id="prep-rule" style="margin-top: -12px; font: var(--text-type-body-sm); color: var(--text-secondary)">5 to 120 minutes. Used to tell customers when to expect their order.</span>
+<div style="display: flex; flex-direction: column; gap: 4px"><span style="font: var(--text-type-label-lg)">Time zone</span><span style="font: var(--text-type-body-md)">Eastern Time (America/Toronto)</span><span style="font: var(--text-type-body-sm); color: var(--text-secondary)">Ontario only for now. Your hours and order times use this zone.</span></div>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span style="font: var(--text-type-label-lg)">Cuisines</span>
+<span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--feedback-info-tint-text); background: var(--feedback-info-tint)">Needs API: cuisine lookup (names for cuisine_ids) · read-only until then</span>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{g.about}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px"><span style="font: var(--text-type-body-sm); color: var(--text-secondary)">Description customers see now</span><span style="font: var(--text-type-body-md); line-height: 1.5">Charcoal grills, shawarma and mezze from a family kitchen. Everything is cooked to order over real charcoal.</span></div>
+<label for="about" style="font: var(--text-type-label-lg)">New description <span style="font-weight: 400; color: var(--text-secondary)">(required)</span></label>
+<sc-if value="{{ab.def}}" hint-placeholder-val="{{false}}"><span class="hg-field" style="display: block; border-radius: var(--radius-sm); background: var(--control-bg)"><textarea id="about" aria-describedby="about-help" style="box-sizing: border-box; display: block; width: 100%; min-height: 178px; padding: 12px; border: 0; background: transparent; font: var(--text-type-body-md); line-height: 1.5; color: var(--text-primary); resize: vertical">Charcoal grills, shawarma and mezze from a family kitchen.</textarea></span></sc-if>
+<sc-if value="{{ab.focus}}" hint-placeholder-val="{{false}}"><span class="hg-field" style="display: block; border-radius: var(--radius-sm); background: var(--control-bg); border-color: var(--border-brand); box-shadow: inset 0 0 0 1px var(--border-brand)"><textarea id="about" aria-describedby="about-help" style="box-sizing: border-box; display: block; width: 100%; min-height: 178px; padding: 12px; border: 0; background: transparent; font: var(--text-type-body-md); line-height: 1.5; color: var(--text-primary); resize: vertical">Charcoal grills, shawarma and mezze from a family kitchen.</textarea></span></sc-if>
+<sc-if value="{{ab.err}}" hint-placeholder-val="{{true}}"><span class="hg-field" data-invalid="" style="display: block; border-radius: var(--radius-sm); background: var(--control-bg)"><textarea id="about" aria-invalid="true" aria-describedby="about-help about-err" style="box-sizing: border-box; display: block; width: 100%; min-height: 178px; padding: 12px; border: 0; background: transparent; font: var(--text-type-body-md); line-height: 1.5; color: var(--text-primary); resize: vertical">Charcoal grills.</textarea></span></sc-if>
+<div style="display: flex; justify-content: space-between; gap: 12px; font: var(--text-type-body-sm)">
+<sc-if value="{{ab.err}}" hint-placeholder-val="{{true}}"><span id="about-err" role="alert" style="display: inline-flex; align-items: center; gap: 6px; color: var(--feedback-danger-text); font-weight: 600"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="error" size="sm"></x-import>Write at least 20 characters.</span></sc-if>
+<span style="flex-grow: 1"></span>
+<span id="about-help" style="color: var(--text-secondary); font-variant-numeric: tabular-nums">{{ab.count}} of 1000</span>
+</div>
+<span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">Proposed component: Textarea · shadcn/ui Textarea inside the design system's field wrapper (hg-field, the same chrome as Input) · focus is the wrapper's own border, 2px in the focus colour (the focused example draws exactly what :focus-within produces) · invalid keeps the 2px danger border and adds the two-layer ring when focused · no inline border or outline, so forced-colors mode keeps its outline</span>
+<p style="margin: 0; font: var(--text-type-body-sm); color: var(--text-secondary)">Customers see this on your restaurant page. 20 to 1000 characters.</p>
+<section aria-labelledby="about-next-h" style="display: flex; flex-direction: column; gap: 6px; padding-top: 16px; border-top: 1px solid var(--border-decorative)">
+<h3 id="about-next-h" style="margin: 0; font: var(--text-type-heading-sm)">What happens next</h3>
+<span style="font: var(--text-type-body-md); line-height: 1.5">A description can make a halal claim, so HalalGoes reviews it before customers see it, within 3 business days. Your current description stays until the change is approved.</span>
+</section>
+<span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--feedback-info-tint-text); background: var(--feedback-info-tint)">Needs API: a reviewed description change (today submitRestaurantProfile applies it at once)</span>
+</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"group":{"editor":"enum","options":["names","legal","contact","address","tax","about","kitchen"],"default":"names"},"state":{"editor":"enum","options":["default","error","saving","failed","invalid","conflict","othercard","unknown","pin"],"default":"default"},"aboutState":{"editor":"enum","options":["default","focus","error"],"default":"default"},"width":{"editor":"int","default":440},"$preview":{"width":440,"height":820}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var grp = this.props.group || 'names';
+    var st = this.props.state || 'default';
+    var err = st === 'error';
+    var g = {}; g[grp] = true;
+    var a = this.props.aboutState || 'default';
+    return {
+      yes: true,
+      w: (this.props.width || 440) + 'px',
+      g: g,
+      saving: st === 'saving',
+      failed: st === 'failed',
+      failText: (grp === 'legal' || grp === 'address' || grp === 'about' || grp === 'tax') ? "Couldn't send your request. Nothing was changed. Check your connection and try again." : "Couldn't save. Nothing was changed. Check your connection and try again.",
+      legalName: st === 'invalid' ? 'Zaytoun Grill Holdings Inc.' : 'Zaytoun Grill Ltd.',
+      conflict: st === 'conflict',
+      otherCard: st === 'othercard',
+      unknown: st === 'unknown',
+      addr: st === 'pin' ? { results: false, expanded: 'false', active: undefined, pinX: '58%', pinNote: 'Pin moved 18 metres from the address you chose. Riders are sent to the pin, not the street address.', coords: '43.78102, -79.28817' } : { results: true, expanded: 'true', active: 'addr-opt-1', pinX: '46%', pinNote: 'Drag the pin, or use the arrow keys, to put it where riders should arrive. Riders are sent to the pin.', coords: '43.78095, -79.28840' },
+      displayName: st === 'invalid' ? 'Z' : 'Zaytoun Grill & Mezze',
+      nameError: st === 'invalid' ? 'Enter at least 2 characters.' : null,
+      phone: err ? '+44 20 7946 0958' : '(416) 555-0134',
+      phoneError: err && grp === 'contact' ? 'Enter a Canadian phone number. Numbers from other countries are not accepted.' : null,
+      gst: err ? '98765432RT001' : '987654321RT0001',
+      gstError: err && grp === 'tax' ? "This isn't a valid GST/HST number. Check it against your CRA business number." : null,
+      prep: err && grp === 'kitchen' ? '150' : '20',
+      prepError: err && grp === 'kitchen' ? 'Enter a time from 5 to 120 minutes.' : null,
+      zones: [{ value: 'America/Toronto', label: 'Eastern Time (America/Toronto)' }],
+      ab: { def: a === 'default', focus: a === 'focus', err: a === 'error', count: a === 'error' ? 16 : 58 }
+    };
+  }
+}
+</script>
+</body>
+</html>

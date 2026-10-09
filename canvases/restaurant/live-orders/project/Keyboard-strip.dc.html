@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Keyboard for new orders</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0;background:var(--surface-base)}</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px; padding: 36px 44px; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<h1 style="margin: 0; font-size: 24px; line-height: 30px; font-weight: 700">Keyboard for the new-order strip, and the stray-key guard</h1>
+<p style="margin: 0; font-size: 17px; line-height: 26px; color: var(--text-secondary)">Accept stays the one orange action on each order. Keys speed it up for a keyboard user without letting a stray press accept an order nobody is looking at.</p>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 28px; align-items: start">
+
+<section aria-labelledby="kb-keys" style="display: flex; flex-direction: column; gap: 10px; padding: 18px 20px; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: var(--radius-lg)">
+<h2 id="kb-keys" style="margin: 0; font-size: 20px; font-weight: 600">Keys</h2>
+<dl style="margin: 0; display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 10px 16px; font-size: 15px; line-height: 22px">
+<sc-for list="{{keys}}" as="k" hint-placeholder-count="6">
+<dt><kbd style="padding: 1px 6px; font-family: var(--font-mono); font-size: 15px; font-weight: 600; background: var(--surface-subtle); border: 1px solid var(--border-interactive); border-radius: var(--radius-xs)">{{k.key}}</kbd></dt><dd style="margin: 0">{{k.does}}</dd>
+</sc-for>
+</dl>
+</section>
+
+<section aria-labelledby="kb-guard" style="display: flex; flex-direction: column; gap: 10px; padding: 18px 20px; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: var(--radius-lg)">
+<h2 id="kb-guard" style="margin: 0; font-size: 20px; font-weight: 600">The stray-key guard</h2>
+<ol style="margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 8px; font-size: 15px; line-height: 22px">
+<li>A and D act only on the tile that has keyboard focus. The tile itself is the focus stop (tabindex 0 on the active tile, −1 on the others, named “New order A7K2, 2 minutes 12 seconds left, $37.69”), and the focus ring and “Selected” show which one. There is no page-wide shortcut.</li>
+<li>A new order never takes focus. It rings and joins the strip; the kitchen reaches it with Skip to new orders, the Ringing badge or Tab.</li>
+<li>When the strip re-sorts (a new order with an earlier deadline arrives), focus stays on the same order, not the same position. The tile under your focus never changes without you moving.</li>
+<li>When the focused order ends (timed out, withdrawn, accepted on another screen), focus moves to the tile’s own note, not to the next Accept. The next A press does nothing until you move.</li>
+<li>A in a text field (the decline detail) types a letter. Keys only work on a tile.</li>
+<li>Decline never completes from the keyboard shortcut: D opens the reason form in the panel, and Decline order still needs a reason.</li>
+</ol>
+</section>
+
+<section aria-labelledby="kb-where" style="display: flex; flex-direction: column; gap: 10px; padding: 18px 20px; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: var(--radius-lg)">
+<h2 id="kb-where" style="margin: 0; font-size: 20px; font-weight: 600">Header or footer: recommendation</h2>
+<p style="margin: 0; font-size: 15px; line-height: 22px">Both are drawn (the footer as an alternative board). <strong>Recommended: header.</strong> It sits directly under the status bar where the eye lands after the ring, keeps clear of the panel’s action footer and the toasts at the bottom, matches the tablet where the bottom edge is closest to the counter and gets knocked, and keeps Skip to new orders the first stop after the navigation.</p>
+<p style="margin: 0; font-size: 15px; line-height: 22px">The footer keeps the list higher on the page, but splits attention between the top status and the bottom strip and competes with the panel footer for the same corner.</p>
+</section>
+
+<section aria-labelledby="kb-size" style="display: flex; flex-direction: column; gap: 10px; padding: 18px 20px; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: var(--radius-lg)">
+<h2 id="kb-size" style="margin: 0; font-size: 20px; font-weight: 600">Sizes</h2>
+<ul style="margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 8px; font-size: 15px; line-height: 22px">
+<li>Accept on every tile is the 72 px critical size; Decline is a 44 px ghost button, 24 px from Accept. On the tablet Decline is a 44 px close icon button (named “Decline order A7K2, choose a reason”), still 24 px away, and the key hints are hidden.</li>
+<li>Up to three tiles show in full on a 1440 screen and on the 1180 tablet; a fourth sits behind a “+1 more” control that scrolls the strip, so no Accept is ever half hidden.</li>
+<li>The strip is its own region: it scrolls sideways; the page never scrolls.</li>
+</ul>
+</section>
+
+</div>
+<span style="align-self: flex-start; padding: 2px 6px; border-radius: var(--radius-xs); background: var(--surface-sunken); color: var(--text-secondary); font-family: var(--font-mono); font-size: 12px">Proposed component: NewOrderStrip (roving focus over OfferTile; built on the design system’s Countdown, Price, Badge and Button) · Proposed component: OfferTile (the tile is the focus stop: role group, roving tabindex, aria-keyshortcuts A D Enter, ring from :focus-visible)</span>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { keys: [
+      { key: 'Tab', does: 'Enters the strip on the most urgent order; Tab again moves into that tile’s Decline and Accept buttons, then out of the strip.' },
+      { key: 'Left, Right', does: 'Move between orders in the strip. The strip scrolls so the focused order’s Accept is fully in view.' },
+      { key: 'A', does: 'Accepts the focused order at its shown prep time. Same as pressing its Accept button, with the same loading and retry states.' },
+      { key: 'D', does: 'Opens the focused order in the panel on the reason form. Decline still needs a reason.' },
+      { key: 'Enter', does: 'Opens the focused order in the panel: items, customer note and prep time.' },
+      { key: 'Escape', does: 'Closes the panel and returns focus to the tile it came from.' }
+    ] };
+  }
+}
+</script>
+</body>
+</html>

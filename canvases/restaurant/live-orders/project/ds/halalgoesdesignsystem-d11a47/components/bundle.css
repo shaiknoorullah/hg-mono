@@ -1,0 +1,166 @@
+@import url("https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&family=IBM+Plex+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap");
+
+/* ── styles.css ── */
+/* Halal Goes — global CSS entry point. Imports only; never declare rules here. */
+/* ── tokens/fonts.css ── */
+/* Webfonts, served from Google Fonts (no binaries in this system). The families match
+   tokens.json type.families and hg-mono:
+   Plus Jakarta Sans 400-700 = product UI (--font-ui; docs/design/tokens.json font.family.ui).
+   Bricolage Grotesque, variable opsz + wght = marketing display ONLY (--font-display;
+     apps/marketing). Never used in the product apps.
+   IBM Plex Mono 400-600 = mono for product AND marketing (--font-mono; owner decision B-10).
+   IBM Plex Sans Arabic (--font-rtl) is NOT loaded: en-CA only at launch. */
+
+
+/* ── styles.css ── */
+
+/* ── tokens/colors.css ── */
+/* Base colour ramps. Components consume the semantic roles in theme.css, never these steps (lint L-2). */
+:root{
+}
+
+/* ── styles.css ── */
+
+/* ── tokens/theme.css ── */
+/* Semantic ROLES. Every component reads these. Light is the default; [data-theme="dark"] swaps. */
+:root{
+}
+/* tokens.json cannot theme a non-colour token, so the dark disabled opacity lives here. */
+[data-theme="dark"]{
+--state-disabled-opacity:.5;
+}
+
+/* ── styles.css ── */
+
+/* ── tokens/typography.css ── */
+:root{ /* @kind other */
+
+/* Type scale: size / weight / tracking per style, for components that compose type
+   from parts. Line-heights (--type-*-line, unitless web) and the RN px line-heights
+   (--type-*-line-px) come from tokens.json lineHeight; the .type-* classes carry the
+   complete styles. Mono styles use --font-mono; marketing styles use --font-display. */
+--type-display-lg-size:36px;--type-display-lg-weight:700;--type-display-lg-tracking:-0.02em;
+--type-display-md-size:30px;--type-display-md-weight:700;--type-display-md-tracking:-0.02em;
+--type-heading-xl-size:24px;--type-heading-xl-weight:700;--type-heading-xl-tracking:-0.01em;
+--type-heading-lg-size:20px;--type-heading-lg-weight:600;--type-heading-lg-tracking:-0.01em;
+--type-heading-md-size:18px;--type-heading-md-weight:600;--type-heading-md-tracking:0;
+--type-heading-sm-size:16px;--type-heading-sm-weight:600;--type-heading-sm-tracking:0;
+--type-body-lg-size:17px;--type-body-lg-weight:400; /* rider app default body */
+--type-body-md-size:15px;--type-body-md-weight:400; /* default body */
+--type-body-sm-size:13px;--type-body-sm-weight:400; /* floor for decision-critical text */
+--type-label-lg-size:15px;--type-label-lg-weight:600;
+--type-label-md-size:13px;--type-label-md-weight:600;--type-label-md-tracking:0.01em;
+--type-label-sm-size:11px;--type-label-sm-weight:600;--type-label-sm-tracking:0.04em; /* badge + seal label; sentence case, never all-caps */
+--type-caption-size:12px;--type-caption-weight:400;
+--type-mono-md-size:13px;--type-mono-md-weight:400;
+--type-mono-sm-size:11px;--type-mono-sm-weight:400;
+
+/* Marketing type (halalgoes.com only; font-family var(--font-display), except the
+   eyebrow, which the site sets in --font-mono, uppercase). Values match
+   docs/design/tokens.json typography.marketing.* and apps/marketing marketing-tokens.css. */
+--type-marketing-hero-size:118px;--type-marketing-hero-weight:650;--type-marketing-hero-tracking:-0.03em;
+--type-marketing-hero-phone-size:72px;--type-marketing-hero-phone-weight:800;--type-marketing-hero-phone-tracking:-0.045em;
+--type-marketing-section-size:60px;--type-marketing-section-weight:700;--type-marketing-section-tracking:-0.03em;
+--type-marketing-section-phone-size:34px;--type-marketing-section-phone-weight:700;--type-marketing-section-phone-tracking:-0.03em;
+--type-marketing-lede-size:26px;--type-marketing-lede-weight:500;--type-marketing-lede-tracking:-0.01em;
+--type-marketing-lede-phone-size:20px;--type-marketing-lede-phone-weight:500;--type-marketing-lede-phone-tracking:-0.01em;
+--type-marketing-eyebrow-size:13px;--type-marketing-eyebrow-weight:600;--type-marketing-eyebrow-tracking:0.16em;
+--type-marketing-eyebrow-phone-size:12px;--type-marketing-eyebrow-phone-weight:600;--type-marketing-eyebrow-phone-tracking:0.14em;
+}
+
+/* ── styles.css ── */
+
+/* ── tokens/space.css ── */
+:root{
+}
+/* Density is its own axis, NOT a colour theme: it swaps only the three active density
+   tokens, from the per-mode values in tokens.json spacing. [data-hg-density] matches the
+   repo; [data-density] is kept for existing screens. Default (no attribute) = comfortable. */
+[data-hg-density="comfortable"],[data-density="comfortable"]{--density-row-height:var(--density-comfortable-row-height);--density-card-padding:var(--density-comfortable-card-padding);--density-gutter:var(--density-comfortable-gutter)}
+[data-hg-density="compact"],[data-density="compact"]{--density-row-height:var(--density-compact-row-height);--density-card-padding:var(--density-compact-card-padding);--density-gutter:var(--density-compact-gutter)}
+[data-hg-density="roomy"],[data-density="roomy"]{--density-row-height:var(--density-roomy-row-height);--density-card-padding:var(--density-roomy-card-padding);--density-gutter:var(--density-roomy-gutter)}
+
+/* ── styles.css ── */
+
+/* ── tokens/radius.css ── */
+:root{
+}
+
+/* ── styles.css ── */
+
+/* ── tokens/elevation.css ── */
+/* Light themes use shadow; dark themes ignore shadow and step the surface instead (see theme.css). */
+:root{ /* floating cart bar, sticky checkout footer — shadow points UP */
+}
+
+/* ── styles.css ── */
+
+/* ── tokens/motion.css ── */
+:root{ /* @kind other */
+}
+/* Reduced motion collapses the durations to 0 and nothing else: no cross-fade fallback.
+   The base (non-reduced) durations are in tokens.json motion. */
+@media (prefers-reduced-motion:reduce){:root{
+--duration-instant:0ms; /* @kind other */
+--duration-fast:0ms; /* @kind other */
+--duration-base:0ms; /* @kind other */
+--duration-moderate:0ms; /* @kind other */
+--duration-slow:0ms; /* @kind other */
+--duration-deliberate:0ms; /* @kind other */
+}}
+
+/* ── styles.css ── */
+
+/* ── tokens/layout.css ── */
+:root{
+}
+
+/* ── styles.css ── */
+
+/* ── tokens/base.css ── */
+/* Minimal element defaults so any page linking styles.css starts on-brand. */
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--surface-base);color:var(--text-primary);font-family:var(--font-ui);font-size:var(--type-body-md-size);line-height:var(--type-body-md-line);-webkit-font-smoothing:antialiased}
+a{color:var(--text-link);text-decoration-thickness:1px;text-underline-offset:2px}
+a:hover{color:var(--text-link-hover)}
+/* Focus (docs/decisions/focus-indicator.md). A zero-specificity FALLBACK for plain elements
+   only; the components draw their own focus (.hg-focus / .hg-row / .hg-choice / .hg-field)
+   and win over this. Colour = --focus-ring (brand-600 light / brand-400 dark), never info blue.
+   Borderless: page-coloured offset layer + ring. The transparent outline survives
+   forced-colors mode, which strips box-shadows. */
+:where(:focus-visible){outline:2px solid transparent;outline-offset:2px;box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+/* Inside a component field (.hg-field) the wrapper's own 2px border IS the indicator, so the
+   inner input/select/textarea/trigger gets no ring on top. The visually hidden choice input
+   hands its ring to the drawn control. */
+:where(.hg-field :focus-visible,.hg-choice-input:focus-visible){box-shadow:none}
+/* Plain bordered fields outside a component: focus is the field's own border, 2px in the focus
+   colour, no ring. The second pixel is an inset shadow so layout never shifts (1px border). */
+:where(textarea,select,input:not([type=checkbox],[type=radio],[type=range],[type=button],[type=submit],[type=reset],[type=color],[type=file],[type=image])):not(.hg-field *):focus-visible{border-color:var(--focus-ring);box-shadow:inset 0 0 0 calc(var(--focus-field-border-width) - 1px) var(--focus-ring)}
+.hg-tabular{font-variant-numeric:var(--numeric-tabular)}
+@keyframes hg-spin{to{transform:rotate(360deg)}}
+@keyframes hg-seal-in{from{transform:scale(.9);opacity:0}to{transform:scale(1);opacity:1}}
+@keyframes hg-sheet-up{from{transform:translateY(16px);opacity:.6}to{transform:none;opacity:1}}
+
+/* ── styles.css ── */
+
+
+/* ── tokens/fonts.css ── */
+
+/* ── tokens/colors.css ── */
+
+/* ── tokens/theme.css ── */
+
+/* ── tokens/typography.css ── */
+
+/* ── tokens/space.css ── */
+
+/* ── tokens/radius.css ── */
+
+/* ── tokens/elevation.css ── */
+
+/* ── tokens/motion.css ── */
+
+/* ── tokens/layout.css ── */
+
+/* ── tokens/base.css ── */
+

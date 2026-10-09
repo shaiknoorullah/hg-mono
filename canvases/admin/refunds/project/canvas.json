@@ -1,0 +1,537 @@
+{
+ "v": 3,
+ "createdOnFiles": {
+  "v": 1,
+  "at": "2026-10-01T02:08:21Z"
+ },
+ "title": "HalalGoes Admin — Refunds",
+ "launch": {
+  "view": "canvas"
+ },
+ "pages": [],
+ "boards": {
+  "OrderDetail.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Order workspace — preparing, rider assigned (admin)",
+   "w": 1440,
+   "x": 0,
+   "y": 0
+  },
+  "AdminNav.dc.html": {
+   "h": 900,
+   "title": "Shell — admin sidebar (child)",
+   "w": 264,
+   "x": 1520,
+   "y": 0
+  },
+  "LiveMapPane.dc.html": {
+   "h": 790,
+   "title": "Live map pane (child) — opened by widening More detail in the order workspace",
+   "w": 760,
+   "x": 1864,
+   "y": 0
+  },
+  "Refunds.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Refunds — failed refunds first, then look up one order",
+   "w": 1440,
+   "x": 0,
+   "y": 1280
+  },
+  "RefundsSearching.dc.html": {
+   "h": 900,
+   "title": "Refunds — finding the order",
+   "w": 1440,
+   "x": 1520,
+   "y": 1280
+  },
+  "RefundsNotFound.dc.html": {
+   "h": 900,
+   "title": "Refunds — no order has that code",
+   "w": 1440,
+   "x": 3040,
+   "y": 1280
+  },
+  "RefundsLookupError.dc.html": {
+   "h": 900,
+   "title": "Refunds — lookup failed (network or server)",
+   "w": 1440,
+   "x": 4560,
+   "y": 1280
+  },
+  "RefundsOffline.dc.html": {
+   "h": 900,
+   "title": "Refunds — offline",
+   "w": 1440,
+   "x": 6080,
+   "y": 1280
+  },
+  "RefundsNoFailed.dc.html": {
+   "h": 900,
+   "title": "Refunds — no failed refunds",
+   "w": 1440,
+   "x": 7600,
+   "y": 1280
+  },
+  "RefundsFailedLoading.dc.html": {
+   "h": 900,
+   "title": "Refunds — failed refunds loading",
+   "w": 1440,
+   "x": 9120,
+   "y": 1280
+  },
+  "RefundsFailedError.dc.html": {
+   "h": 900,
+   "title": "Refunds — failed refunds didn’t load",
+   "w": 1440,
+   "x": 10640,
+   "y": 1280
+  },
+  "RefundsSupportLookup.dc.html": {
+   "h": 900,
+   "title": "Refunds — support agent lookup",
+   "w": 1440,
+   "x": 12160,
+   "y": 1280
+  },
+  "RefundFull.dc.html": {
+   "h": 900,
+   "title": "Refund — whole order, food quality (panel in the order workspace)",
+   "w": 1440,
+   "x": 0,
+   "y": 2560
+  },
+  "RefundReasons.dc.html": {
+   "h": 900,
+   "title": "Refund — reasons by scope (halal concern for staff; packaging tamper not offered)",
+   "w": 1440,
+   "x": 1520,
+   "y": 2560
+  },
+  "RefundItems.dc.html": {
+   "h": 900,
+   "title": "Refund — selected items",
+   "w": 1440,
+   "x": 3040,
+   "y": 2560
+  },
+  "RefundFeesOnly.dc.html": {
+   "h": 900,
+   "title": "Refund — fees only is off for staff refunds (needs API)",
+   "w": 1440,
+   "x": 4560,
+   "y": 2560
+  },
+  "RefundGoodwill.dc.html": {
+   "h": 900,
+   "title": "Refund — goodwill amount",
+   "w": 1440,
+   "x": 6080,
+   "y": 2560
+  },
+  "RefundRetry.dc.html": {
+   "h": 900,
+   "title": "Refund — new refund after a failure",
+   "w": 1440,
+   "x": 7600,
+   "y": 2560
+  },
+  "RefundRunning.dc.html": {
+   "h": 900,
+   "title": "Refund — order still being prepared",
+   "w": 1440,
+   "x": 13680,
+   "y": 2560
+  },
+  "RefundDisputed.dc.html": {
+   "h": 900,
+   "title": "Refund — disputed order, reason from what went wrong",
+   "w": 1440,
+   "x": 15200,
+   "y": 2560
+  },
+  "RefundsNoHalal.dc.html": {
+   "h": 900,
+   "title": "Refund — restaurant with no halal status on file",
+   "w": 1440,
+   "x": 16720,
+   "y": 2560
+  },
+  "RefundsSupport.dc.html": {
+   "h": 900,
+   "title": "Refund — support agent form",
+   "w": 1440,
+   "x": 18240,
+   "y": 2560
+  },
+  "RefundConfirm.dc.html": {
+   "h": 900,
+   "title": "Refund — review in the panel before money moves (no earlier refunds)",
+   "w": 1440,
+   "x": 19760,
+   "y": 2560
+  },
+  "RefundSubmitting.dc.html": {
+   "h": 900,
+   "title": "Refund — sending",
+   "w": 1440,
+   "x": 21280,
+   "y": 2560
+  },
+  "RefundTimeout.dc.html": {
+   "h": 900,
+   "title": "Refund — no answer, try the same request",
+   "w": 1440,
+   "x": 22800,
+   "y": 2560
+  },
+  "RefundFieldErrors.dc.html": {
+   "h": 900,
+   "title": "Refund — fields need fixing (422)",
+   "w": 1440,
+   "x": 24320,
+   "y": 2560
+  },
+  "RefundGoodwillErrors.dc.html": {
+   "h": 900,
+   "title": "Refund — amount not in whole cents (checked before sending)",
+   "w": 1440,
+   "x": 25840,
+   "y": 2560
+  },
+  "RefundForbidden.dc.html": {
+   "h": 900,
+   "title": "Refund — support agent, goodwill refused (403)",
+   "w": 1440,
+   "x": 27360,
+   "y": 2560
+  },
+  "RefundsReauth.dc.html": {
+   "h": 900,
+   "title": "Refund — session ended, draft kept (401)",
+   "w": 1440,
+   "x": 28880,
+   "y": 2560
+  },
+  "RefundNothingCaptured.dc.html": {
+   "h": 900,
+   "title": "Refund — nothing captured yet, cancel instead",
+   "w": 1440,
+   "x": 30400,
+   "y": 2560
+  },
+  "RefundIssued.dc.html": {
+   "h": 900,
+   "title": "Refund — whole order issued (201)",
+   "w": 1440,
+   "x": 0,
+   "y": 3840
+  },
+  "RefundIssuedNoSplit.dc.html": {
+   "h": 900,
+   "title": "Refund — issued, split not returned",
+   "w": 1440,
+   "x": 1520,
+   "y": 3840
+  },
+  "RefundItemsIssued.dc.html": {
+   "h": 900,
+   "title": "Refund — selected items issued (201)",
+   "w": 1440,
+   "x": 3040,
+   "y": 3840
+  },
+  "RefundGoodwillIssued.dc.html": {
+   "h": 900,
+   "title": "Refund — goodwill issued (201)",
+   "w": 1440,
+   "x": 4560,
+   "y": 3840
+  },
+  "RefundFeesOnlyIssued.dc.html": {
+   "h": 900,
+   "title": "Refund — fees only issued (once the API has it)",
+   "w": 1440,
+   "x": 6080,
+   "y": 3840
+  },
+  "RefundDisputedIssued.dc.html": {
+   "h": 900,
+   "title": "Refund — disputed order, dispute still open (201)",
+   "w": 1440,
+   "x": 7600,
+   "y": 3840
+  },
+  "RefundApproval.dc.html": {
+   "h": 900,
+   "title": "Refund — support agent above limit, sent for approval (202)",
+   "w": 1440,
+   "x": 9120,
+   "y": 3840
+  },
+  "RefundApprovalAdmin.dc.html": {
+   "h": 900,
+   "title": "Refund — admin goodwill above $50, second approver (202)",
+   "w": 1440,
+   "x": 10640,
+   "y": 3840
+  },
+  "RefundConflict.dc.html": {
+   "h": 900,
+   "title": "Refund — another refund landed first (409)",
+   "w": 1440,
+   "x": 12160,
+   "y": 3840
+  },
+  "RefundGoodwillExceeds.dc.html": {
+   "h": 900,
+   "title": "Refund — goodwill above what’s left (409)",
+   "w": 1440,
+   "x": 13680,
+   "y": 3840
+  },
+  "RefundDailyCap.dc.html": {
+   "h": 900,
+   "title": "Refund — daily limit reached (409)",
+   "w": 1440,
+   "x": 15200,
+   "y": 3840
+  },
+  "RefundSelfApproval.dc.html": {
+   "h": 900,
+   "title": "Refund — can’t approve your own (409)",
+   "w": 1440,
+   "x": 16720,
+   "y": 3840
+  },
+  "RefundNotRefundable.dc.html": {
+   "h": 900,
+   "title": "Refund — payment changed while sending (409)",
+   "w": 1440,
+   "x": 18240,
+   "y": 3840
+  },
+  "RefundFailed.dc.html": {
+   "h": 900,
+   "title": "Refund — failed at the provider",
+   "w": 1440,
+   "x": 19760,
+   "y": 3840
+  },
+  "RefundRowStates.dc.html": {
+   "h": 900,
+   "title": "Refund panel — refund rows in every state, beside the order",
+   "w": 1440,
+   "x": 21280,
+   "y": 3840
+  },
+  "RefundApprovalsQueue.dc.html": {
+   "h": 900,
+   "title": "Refund approvals — needs API",
+   "w": 1440,
+   "x": 22800,
+   "y": 3840
+  },
+  "RefundsNothingRejected.dc.html": {
+   "h": 900,
+   "title": "Refunds — rejected order, nothing charged",
+   "w": 1440,
+   "x": 15200,
+   "y": 1280
+  },
+  "RefundsNothingVoided.dc.html": {
+   "h": 900,
+   "title": "Refunds — cancelled before acceptance, voided",
+   "w": 1440,
+   "x": 16720,
+   "y": 1280
+  },
+  "RefundsNothingFailed.dc.html": {
+   "h": 900,
+   "title": "Refunds — payment failed, nothing charged",
+   "w": 1440,
+   "x": 18240,
+   "y": 1280
+  },
+  "RefundsFullyRefunded.dc.html": {
+   "h": 900,
+   "title": "Refunds — already fully refunded, nothing left",
+   "w": 1440,
+   "x": 19760,
+   "y": 1280
+  },
+  "RefundConfirmAfterPartial.dc.html": {
+   "h": 900,
+   "title": "Refund — Whole order after an earlier refund (needs API, reference only)",
+   "w": 1440,
+   "x": 33440,
+   "y": 2560
+  },
+  "RefundRateLimited.dc.html": {
+   "h": 900,
+   "title": "Refund — too many requests (429)",
+   "w": 1440,
+   "x": 34960,
+   "y": 2560
+  },
+  "RefundsHalalConcern.dc.html": {
+   "h": 900,
+   "title": "Refund lookup — customer's halal concern refund",
+   "w": 1440,
+   "x": 36480,
+   "y": 2560
+  },
+  "RefundHalalConcernStaff.dc.html": {
+   "h": 900,
+   "title": "Refund — staff file a customer’s halal concern: the restaurant pays only if the evidence backs it up",
+   "w": 1440,
+   "x": 38000,
+   "y": 2560
+  },
+  "RefundsRetry.dc.html": {
+   "h": 900,
+   "title": "Refunds — new refund after a failure, from the failed-refunds queue",
+   "w": 1440,
+   "x": 21280,
+   "y": 1280
+  },
+  "RefundItemsAfterConflict.dc.html": {
+   "h": 900,
+   "title": "Refund — switched to selected items after another refund landed (same order)",
+   "w": 1440,
+   "x": 9120,
+   "y": 2560
+  },
+  "HalalState.dc.html": {
+   "h": 32,
+   "title": "Halal state badge (child, proposed HalalState): expiring soon in amber with the certificate’s date; other states on the system’s HalalBadge",
+   "w": 220,
+   "x": 3244,
+   "y": 0
+  }
+ },
+ "order": [
+  "AdminNav.dc.html",
+  "OrderDetail.dc.html",
+  "Refunds.dc.html",
+  "RefundsSearching.dc.html",
+  "RefundsNotFound.dc.html",
+  "RefundsLookupError.dc.html",
+  "RefundsOffline.dc.html",
+  "RefundsNoFailed.dc.html",
+  "RefundsFailedLoading.dc.html",
+  "RefundsFailedError.dc.html",
+  "RefundsSupportLookup.dc.html",
+  "RefundFull.dc.html",
+  "RefundReasons.dc.html",
+  "RefundItems.dc.html",
+  "RefundFeesOnly.dc.html",
+  "RefundGoodwill.dc.html",
+  "RefundRetry.dc.html",
+  "RefundRunning.dc.html",
+  "RefundDisputed.dc.html",
+  "RefundsNoHalal.dc.html",
+  "RefundsSupport.dc.html",
+  "RefundConfirm.dc.html",
+  "RefundSubmitting.dc.html",
+  "RefundTimeout.dc.html",
+  "RefundFieldErrors.dc.html",
+  "RefundGoodwillErrors.dc.html",
+  "RefundForbidden.dc.html",
+  "RefundsReauth.dc.html",
+  "RefundNothingCaptured.dc.html",
+  "RefundIssued.dc.html",
+  "RefundIssuedNoSplit.dc.html",
+  "RefundItemsIssued.dc.html",
+  "RefundGoodwillIssued.dc.html",
+  "RefundFeesOnlyIssued.dc.html",
+  "RefundDisputedIssued.dc.html",
+  "RefundApproval.dc.html",
+  "RefundApprovalAdmin.dc.html",
+  "RefundConflict.dc.html",
+  "RefundGoodwillExceeds.dc.html",
+  "RefundDailyCap.dc.html",
+  "RefundSelfApproval.dc.html",
+  "RefundNotRefundable.dc.html",
+  "RefundFailed.dc.html",
+  "RefundRowStates.dc.html",
+  "RefundApprovalsQueue.dc.html",
+  "RefundsNothingRejected.dc.html",
+  "RefundsNothingVoided.dc.html",
+  "RefundsNothingFailed.dc.html",
+  "RefundsFullyRefunded.dc.html",
+  "RefundConfirmAfterPartial.dc.html",
+  "RefundRateLimited.dc.html",
+  "RefundsHalalConcern.dc.html",
+  "RefundHalalConcernStaff.dc.html",
+  "LiveMapPane.dc.html",
+  "RefundsRetry.dc.html",
+  "RefundItemsAfterConflict.dc.html",
+  "HalalState.dc.html"
+ ],
+ "notes": {
+  "t_refunds": {
+   "kind": "title1",
+   "maxW": 8000,
+   "text": "Refunds — failed refunds first, then look up one order",
+   "w": 240,
+   "x": 0,
+   "y": 1020
+  },
+  "s_refunds": {
+   "fill": "gray",
+   "text": "The Refunds page is for its own work only: the failed-refunds queue and looking up a code. Refunding from an order happens in the order workspace.\n\nRefunds are per order: there is no list of all refunds (Needs API). The one work queue, failed refunds from listRefunds with state Failed, sits first. Each row names its order by id until the code loads; Issue a new refund and Open order are in the row's Actions menu. A row stays after a replacement is issued, since a Refund has no replaced-by link (Needs API).\n\nNothing to refund is caught at lookup: nothing captured yet, rejected, cancelled before acceptance, payment failed, or already fully refunded.\n\nA lookup that fails is never shown as 'no order'. A missing halal field shows plain text on the order card, never a badge.",
+   "w": 460,
+   "x": 22800,
+   "y": 1280
+  },
+  "t_refundform": {
+   "kind": "title1",
+   "maxW": 8000,
+   "text": "Refund form — scope, reason, evidence, confirm",
+   "w": 240,
+   "x": 0,
+   "y": 2300
+  },
+  "s_refundform": {
+   "fill": "gray",
+   "text": "Reasons follow the scope. Whole order: order-level reasons. Selected items adds Item missing and Wrong item. Fees only: Late delivery, Platform error, Pricing error. Disputed orders add Before a chargeback (admin only); the reason is what went wrong, never Dispute resolution.\n\nHalal concern is offered to staff for a customer's halal complaint, with evidence. Owner decision (round 2): the restaurant pays the item's net price only when the evidence backs the concern up; otherwise it is goodwill paid by the platform. Staff record which in the form; that field, and the server honouring it, are Needs API (today the server charges the restaurant whatever is attached). Packaging tamper isn't offered at launch: with no package seal, nobody can tell whether the restaurant or the delivery opened it.\n\nThe form, the review step and the result all live in one in-page panel in the order workspace, in place of More detail; there is no confirm dialog, and Done on a result closes the panel.\n\nWhole order is off on any order that already has a live refund, until the API defines what it does there. Contract gaps, drawn as Needs API: the staff refund route has no Fees only scope and no evidence ids; the general refund route has both but no case id or reason text, so Fees only is drawn off with its tag. Uploads have no purpose for refund evidence, so Add photos is off and the review step says evidence isn't sent.",
+   "w": 460,
+   "x": 39520,
+   "y": 2560
+  },
+  "t_refundresults": {
+   "kind": "title1",
+   "maxW": 8000,
+   "text": "Refund results — 201, 202, 409 and provider failure",
+   "w": 240,
+   "x": 0,
+   "y": 3580
+  },
+  "s_refundresults": {
+   "fill": "gray",
+   "text": "202 is a first-class result, not a toast. Each 409 names what happened and the next step. Results announce one line to screen readers and move focus to the panel heading.\n\nThe server's amount is never explained by the page; a breakdown is Needs API.\n\nRecovery stays on the same order: after a conflict, Switch to selected items keeps the draft on that order with the refund that landed listed; Reload the order reloads that order.",
+   "w": 460,
+   "x": 27360,
+   "y": 3840
+  },
+  "split_from": {
+   "x": 2704,
+   "y": 0,
+   "w": 460,
+   "fill": "blue",
+   "text": "Split from HalalGoes Admin — Orders & Refunds: https://claude.ai/artifact/LUWY7aLqsxxkWWnkGRJos8\n\nThe order workspace, the admin sidebar and the live map pane are shared components the refund boards import; they also stay on the original canvas."
+  }
+ },
+ "designSystems": [
+  {
+   "title": "HalalGoes design system",
+   "namespace": "halalgoesdesignsystem-d11a47",
+   "artifact": "https://claude.ai/artifact/1GwGVZz8Ju9wcz4HfCnzbv",
+   "version": "1790605103-3266",
+   "copiedAt": "2026-10-01T02:08:21Z"
+  }
+ ]
+}

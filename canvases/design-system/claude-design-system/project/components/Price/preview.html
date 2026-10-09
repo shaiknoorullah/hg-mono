@@ -1,0 +1,26 @@
+<!-- @dsCard group="Data" height=140 subtitle="Integer cents only; a missing value renders nothing, never $0.00" -->
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Price</title>
+<style>body{margin:0;padding:16px;background:var(--surface-base);color:var(--text-primary);font-family:var(--font-ui)}
+.row{display:flex;flex-wrap:wrap;align-items:center;gap:12px}.col{display:grid;gap:12px}.g2{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;align-items:start}
+.lbl{font-size:var(--type-label-sm-size);letter-spacing:var(--type-label-sm-tracking);font-weight:var(--font-weight-semibold);color:var(--text-tertiary);min-inline-size:88px}
+.stage{position:relative;block-size:200px;border:1px dashed var(--border-decorative);border-radius:var(--radius-lg);overflow:hidden;background:var(--surface-sunken)}</style>
+</head><body><div id="root"></div>
+<script>
+(function () {
+  var h = React.createElement, F = React.Fragment, DS = window.HalalGoesDesignSystem_d11a47;
+  function L(t) { return h('span', { className: 'lbl' }, t); }
+
+  function Demo() {
+    return h('div', { className: 'col' },
+      h('div', { className: 'row', style: { alignItems: 'baseline' } }, L('sizes'),
+        h(DS.Price, { cents: 1249, size: 'sm' }), h(DS.Price, { cents: 1249 }), h(DS.Price, { cents: 4187, size: 'lg' }), h(DS.Price, { cents: 4187, size: 'xl' })),
+      h('div', { className: 'row', style: { alignItems: 'baseline' } }, L('forms'),
+        h('span', null, h(DS.Price, { cents: 2799, announceAs: 'now' }), ' ', h(DS.Price, { cents: 3299, strikethrough: true })),
+        h(DS.Price, { cents: 0, free: 'Free delivery' }), h(DS.Price, { cents: -300 }), h(DS.Price, { cents: 1850, sign: 'always' }), h(DS.Price, { cents: 4187, showCode: true })),
+      h('div', { className: 'row', style: { alignItems: 'baseline' } }, L('states'),
+        h(DS.Price, { cents: 4187, loading: true, size: 'lg' }),
+        h('span', { style: { fontSize: 'var(--type-caption-size)', color: 'var(--text-tertiary)' } }, 'cents={undefined} → '), h(DS.Price, {}), h('span', { style: { fontSize: 'var(--type-caption-size)', color: 'var(--text-tertiary)' } }, '(nothing rendered, error reported)')));
+  }
+  ReactDOM.createRoot(document.getElementById('root')).render(h(Demo));
+})();
+</script></body></html>

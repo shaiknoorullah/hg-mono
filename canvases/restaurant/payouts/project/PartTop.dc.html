@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>App bar</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div style="width: {{wpx}}; height: {{rootH}}; display: flex; flex-direction: column; gap: 8px; font-family: var(--font-ui)">
+<div class="hg-on-accent" style="width: {{wpx}}; height: 72px; flex-shrink: 0; box-sizing: border-box; background: var(--surface-chrome); display: flex; align-items: center">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="chrome" title="{{title}}" subtitle="Zaytoun Grill" actions="{{actions}}" style="width: 100%"></x-import>
+</div>
+<sc-if value="{{annotate}}" hint-placeholder-val="{{true}}">
+<span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--feedback-info-tint-text); background: var(--feedback-info-tint)">Halal badge only from RestaurantProfile.halal.display_state, none while it is loading, failed or missing · the Orders switch is not on this forest bar: it sits on the raised orders strip below, where its label, state and track meet contrast · no bell at launch: the inbox (listNotifications) is a later-version operation</span>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"title":{"editor":"text","default":"Payouts"},"width":{"editor":"int","default":1208},"conn":{"editor":"enum","options":["live","offline"],"default":"live"},"halal":{"editor":"enum","options":["CERTIFIED","EXPIRING_SOON","EXPIRED","UNVERIFIED","none"],"default":"none"},"mode":{"editor":"enum","options":["open","off","hidden","readonly"],"default":"open"},"accepting":{"editor":"boolean","default":true},"sound":{"editor":"enum","options":["on","off"],"default":"on"},"bell":{"editor":"boolean","default":false},"unread":{"editor":"int","default":0},"wnNew":{"editor":"boolean","default":false},"annotate":{"editor":"boolean","default":true},"$preview":{"width":1208,"height":112}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var R = window.React;
+    var DS = window.HalalGoesDesignSystem_d11a47 || {};
+    function h(c, p) { if (!R || !c) return null; return R.createElement.apply(R, [c, p].concat([].slice.call(arguments, 2))); }
+    var p = this.props;
+    var conn = p.conn || 'live';
+    var mode = p.mode || 'open';
+    // No data, no badge: screens pass RestaurantProfile.halal.display_state, or none while it is loading, failed or missing.
+    var halal = p.halal || 'none';
+    var annotate = p.annotate !== false;
+    var unread = p.unread || 0;
+    var sound = p.sound || 'on';
+    var wnNew = !!p.wnNew;
+    // The Orders switch moved to the orders strip (PartNewOrders): the design-system Switch draws dark text and a dark
+    // off track, which fail contrast on the forest chrome. mode and accepting are kept so existing screens still pass them.
+    var actions = R ? h(R.Fragment, null,
+      conn === 'offline'
+        ? h(DS.Badge, { variant: 'warning', icon: 'warning', size: 'md' }, 'Offline · connection lost 6:41 pm')
+        : h(DS.Badge, { variant: 'info', icon: 'refresh', size: 'md' }, 'Live · checked in 12 s ago'),
+      sound === 'off'
+        ? h(DS.Badge, { variant: 'warning', icon: 'warning', size: 'md' }, 'Order sound off')
+        : h(DS.Badge, { variant: 'neutral', icon: 'bell', size: 'md' }, 'Sound on'),
+      halal !== 'none' ? h(DS.HalalBadge, { state: halal, surface: 'operational', size: 'sm' }) : null,
+      p.bell ? h(DS.IconButton, {
+        icon: 'bell', variant: 'plain',
+        accessibilityLabel: unread ? 'Notifications, ' + unread + ' unread' : 'Notifications',
+        badge: unread || undefined, badgeNoun: 'unread'
+      }) : null,
+      h(DS.Menu, {
+        label: 'Account menu', icon: 'profile', align: 'end',
+        items: [
+          { key: 'settings', label: 'Settings' },
+          { key: 'whatsnew', label: wnNew ? "What's new · new notes" : "What's new", icon: wnNew ? 'info' : undefined },
+          { type: 'separator' },
+          { key: 'signout', label: 'Sign out…' }
+        ]
+      })
+    ) : null;
+    var w = p.width || 1208;
+    return { title: p.title || 'Payouts', actions: actions, annotate: annotate, wpx: w + 'px', rootH: annotate ? '124px' : '72px' };
+  }
+}
+</script>
+</body>
+</html>

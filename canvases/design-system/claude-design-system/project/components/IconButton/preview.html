@@ -1,0 +1,31 @@
+<!-- @dsCard group="Core" height=150 subtitle="Name is required; a count is folded into it ('Cart, 3 items')" -->
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>IconButton</title>
+<style>body{margin:0;padding:16px;background:var(--surface-base);color:var(--text-primary);font-family:var(--font-ui)}
+.row{display:flex;flex-wrap:wrap;align-items:center;gap:12px}.col{display:grid;gap:12px}.g2{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;align-items:start}
+.lbl{font-size:var(--type-label-sm-size);letter-spacing:var(--type-label-sm-tracking);font-weight:var(--font-weight-semibold);color:var(--text-tertiary);min-inline-size:88px}
+.stage{position:relative;block-size:200px;border:1px dashed var(--border-decorative);border-radius:var(--radius-lg);overflow:hidden;background:var(--surface-sunken)}</style>
+</head><body><div id="root"></div>
+<script>
+(function () {
+  var h = React.createElement, F = React.Fragment, DS = window.HalalGoesDesignSystem_d11a47;
+  function L(t) { return h('span', { className: 'lbl' }, t); }
+
+  function Demo() {
+    return h('div', { className: 'col' },
+      h('div', { className: 'row' }, L('variants'),
+        h(DS.IconButton, { icon: 'search', accessibilityLabel: 'Search' }),
+        h(DS.IconButton, { icon: 'plus', accessibilityLabel: 'Add item', variant: 'filled' }),
+        h(DS.IconButton, { icon: 'bell', accessibilityLabel: 'Notifications', variant: 'tonal', badge: true }),
+        h(DS.IconButton, { icon: 'cart', accessibilityLabel: 'Cart', badgeNoun: 'items', badge: 3, variant: 'tonal', shape: 'circle' })),
+      h('div', { className: 'row' }, L('sizes'),
+        h(DS.IconButton, { icon: 'close', accessibilityLabel: 'Close', size: 'sm' }),
+        h(DS.IconButton, { icon: 'close', accessibilityLabel: 'Close', size: 'md' }),
+        h(DS.IconButton, { icon: 'close', accessibilityLabel: 'Close', size: 'lg' })),
+      h('div', { className: 'row' }, L('states'),
+        h(DS.IconButton, { icon: 'star', accessibilityLabel: 'Save to favourites', weight: 'bold' }),
+        h(DS.IconButton, { icon: 'refresh', accessibilityLabel: 'Refresh', loading: true, variant: 'tonal' }),
+        h(DS.IconButton, { icon: 'plus', accessibilityLabel: 'Add item', disabled: true, variant: 'filled' })));
+  }
+  ReactDOM.createRoot(document.getElementById('root')).render(h(Demo));
+})();
+</script></body></html>

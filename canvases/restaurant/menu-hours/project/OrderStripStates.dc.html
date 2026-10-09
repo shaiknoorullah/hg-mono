@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>New orders strip states</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div style="width: 1440px; height: 1900px; box-sizing: border-box; padding: var(--space-10) var(--space-12); background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui); display: flex; flex-direction: column; gap: 22px;">
+  <div style="display: flex; flex-direction: column; gap: 6px;">
+    <h1 style="margin: 0; font: var(--text-type-heading-xl); letter-spacing: -0.01em;">New orders strip: every state</h1>
+    <p style="margin: 0; font: var(--text-type-body-md); color: var(--text-secondary); max-width: 1100px;">Replaces the Kanban board and the pinned New column. Every restaurant page carries it under the service status, so an order waiting for an answer is never off screen. Most urgent first. It rings until each order is accepted, rejected or expires; the 3-minute countdown comes from the server’s deadline.</p>
+    <p style="margin: 0; font: var(--text-type-body-md); color: var(--text-secondary); max-width: 1100px;"><strong style="font-weight: var(--font-weight-semibold); color: var(--text-primary);">In the header, under the app bar (owner decision).</strong> It sits where the eye starts, directly under the switch that controls new orders, and it never competes with the pane footers (save bar, editor actions) at the bottom of the page.</p>
+  </div>
+  <sc-for list="{{rows}}" as="r" hint-placeholder-count="11">
+    <div style="display: flex; flex-direction: column; gap: 6px;">
+      <span style="font: var(--text-type-label-md); color: var(--text-secondary);">{{r.label}}</span>
+      <div style="border: 1px solid var(--border-decorative); border-radius: var(--radius-md); overflow: hidden; width: 1216px;">
+        <dc-import name="PartOrderStrip" state="{{r.state}}" w="{{w}}" hint-size="1216px,100px"></dc-import>
+      </div>
+    </div>
+  </sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { w: 1216, rows: [
+      { state: 'none', label: '1. Nothing waiting: the strip stays, so the page never jumps when an order arrives' },
+      { state: 'waiting', label: '2. Two orders: the most urgent shows its actions; the next one waits beside it' },
+      { state: 'focus', label: '3. Keyboard focus on the strip: arrows move, A accepts, R rejects the focused order only' },
+      { state: 'accepting', label: '4. Accepting: the button holds its place and shows progress' },
+      { state: 'acceptfailed', label: '5. Accept failed: the order stays with its countdown and says so' },
+      { state: 'rejecting', label: '6. Reject pressed: the reason panel is open beside the page; accept is off until it closes' },
+      { state: 'afterreject', label: '7. After a reject: the order leaves the strip; the next one moves up with its actions' },
+      { state: 'expiring', label: '8. Under 10% of the window left: the countdown turns critical' },
+      { state: 'expired', label: '9. Timed out: the customer wasn’t charged; the card can be dismissed' },
+      { state: 'many', label: '10. More than fit: the most urgent two, then a link to the rest on Orders' },
+      { state: 'offline', label: '11. Connection lost: the strip can’t vouch for what is waiting. Shown on every page whose order screen is offline, never beside live orders' },
+    ] };
+  }
+}
+</script>
+</body>
+</html>

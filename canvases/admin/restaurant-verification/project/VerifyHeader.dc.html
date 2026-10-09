@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Verification header</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div style="display: {{tagWrap}}; flex-direction: column; gap: 6px">
+<sc-if value="{{showTag}}" hint-placeholder-val="{{false}}"><span style="display: inline-flex; align-self: flex-start; padding: 2px 8px; border-radius: 4px; background: var(--color-info-50); color: var(--color-info-700); font-size: 12px; font-weight: 600">Proposed component: VerifyHeader (DS Countdown, Button and Icon, the proposed HalalState)</span></sc-if>
+<div role="region" aria-label="Certificate and claim" style="width: {{wcss}}; box-sizing: border-box; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; min-height: 56px; padding: 6px 12px 6px 16px; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: 12px; font-family: var(--font-ui); color: var(--text-primary)">
+  <div style="display: flex; align-items: center; gap: 10px; min-width: 0">
+    <h2 style="margin: 0; font-size: 18px; font-weight: 700; letter-spacing: -0.01em; white-space: nowrap">{{restaurant}}</h2>
+    <sc-if value="{{hasHalal}}" hint-placeholder-val="{{true}}"><dc-import name="HalalState" state="{{halal}}" expires="{{halalExp}}" expires-full="{{halalExpFull}}" size="md" hint-size="210px,24px"></dc-import></sc-if>
+    <sc-if value="{{isLoading}}" hint-placeholder-val="{{false}}"><span class="hg-skel" aria-hidden="true" style="display: block; width: 112px; height: 24px; border-radius: 8px"></span></sc-if>
+    <sc-if value="{{noHalal}}" hint-placeholder-val="{{false}}"><span style="font-size: 13px; color: var(--text-secondary)">No badge: the profile has no halal status</span></sc-if>
+  </div>
+  <span style="font-size: 13px; white-space: nowrap"><span style="color: var(--text-secondary)">Certificate </span><span style="font-family: var(--font-mono); font-weight: 500">{{number}}</span></span>
+  <span style="font-size: 13px; white-space: nowrap"><span style="color: var(--text-secondary)">Status </span><strong>{{status}}</strong></span>
+  <sc-if value="{{showRollup}}" hint-placeholder-val="{{true}}">
+    <span style="display: inline-flex; align-items: center; gap: 8px">
+      <span role="img" aria-label="{{rollup}}" style="display: inline-flex; gap: 3px">
+        <sc-for list="{{segments}}" as="s" hint-placeholder-count="7"><span style="display: block; box-sizing: border-box; width: 14px; height: 8px; border-radius: 3px; background: {{s.fill}}; border: {{s.border}}"></span></sc-for>
+      </span>
+      <span aria-hidden="true" style="font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap">{{rollup}}</span>
+    </span>
+  </sc-if>
+  <span style="flex-grow: 1"></span>
+
+  <sc-if value="{{isMine}}" hint-placeholder-val="{{true}}">
+    <span style="display: inline-flex; align-items: center; gap: 8px; padding: 4px 10px; border-radius: 10px; border: 1px solid var(--border-strong)">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="lock" size="md" color="var(--text-secondary)"></x-import>
+      <span style="display: flex; flex-direction: column; line-height: 1.25">
+        <span style="display: inline-flex; align-items: baseline; gap: 6px; font-size: 13px; font-weight: 600">Claimed by you ·
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Countdown" variant="text" size="sm" expires-at="2026-09-28T14:48:00-04:00" server-now="2026-09-28T14:06:00-04:00" window-seconds="{{hour}}" urgent-threshold="{{urgent}}" critical-threshold="{{zero}}" label="left"></x-import>
+        </span>
+        <span style="font: var(--text-type-body-sm); color: var(--text-secondary)">Ends at 2:48 pm, can’t be extended</span>
+      </span>
+    </span>
+    <span style="display: inline-flex; padding: 2px 8px; border-radius: 4px; background: var(--surface-sunken); border: 1px solid var(--border-strong); font-size: 12px; font-weight: 600; max-width: 300px">Needs API: certificate writes require the application review lock (409 REVIEW_LOCK_LOST)</span>
+  </sc-if>
+
+  <sc-if value="{{isWarn}}" hint-placeholder-val="{{false}}">
+    <div role="status" style="display: inline-flex; align-items: center; gap: 10px; padding: 4px 6px 4px 10px; border-radius: 10px; background: var(--feedback-warning-tint); border: 1px solid var(--feedback-warning-border); color: var(--feedback-warning-tint-text)">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="warning" size="md" color="var(--feedback-warning-icon)"></x-import>
+      <span style="display: flex; flex-direction: column; line-height: 1.25; font-size: 13px"><strong>Your claim ends soon: 9 minutes left</strong><span>At 2:48 pm it goes back to the queue. Unsaved changes stay here but can’t be sent after 2:48 pm.</span></span>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="secondary" size="sm" href="#checks">Record Address match now</x-import>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{isOther}}" hint-placeholder-val="{{false}}">
+    <span style="display: inline-flex; align-items: center; gap: 8px; padding: 4px 10px; border-radius: 10px; background: var(--surface-sunken); border: 1px solid var(--border-strong)">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="{{otherIcon}}" size="md" color="var(--text-secondary)"></x-import>
+      <span style="display: flex; flex-direction: column; line-height: 1.25; max-width: 460px">
+        <span style="font-size: 13px; font-weight: 600">{{otherTitle}}</span>
+        <span style="font-size: 12px; color: var(--text-secondary)">{{otherSub}}</span>
+      </span>
+    </span>
+    <sc-if value="{{hasOtherNeeds}}" hint-placeholder-val="{{false}}"><span style="display: inline-flex; padding: 2px 8px; border-radius: 4px; background: var(--surface-sunken); border: 1px solid var(--border-strong); font-size: 12px; font-weight: 600; max-width: 320px">{{otherNeeds}}</span></sc-if>
+  </sc-if>
+
+  <sc-if value="{{isLoading}}" hint-placeholder-val="{{false}}">
+    <span class="hg-skel" aria-hidden="true" style="display: block; width: 240px; height: 40px; border-radius: 10px"></span>
+  </sc-if>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"variant":{"editor":"enum","options":["mine","untranscribed","nohalal","warn","other","unclaimed","lost","approved","support","loading","rejected","allpass","onefail","errors","blocked","saving","savefail","proposed","waitingbody","h5fail","h7fail","h2fail","expiring","current","override","confirm","renewal","revoked","inspect","waiting","withdrawn"],"default":"mine"},"w":{"editor":null,"default":1352},"restaurant":{"editor":null,"default":"Karahi House"},"number":{"editor":null,"default":""},"tag":{"editor":"boolean","default":true},"$preview":{"width":1352,"height":108}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const v = this.props.variant ?? 'mine';
+    // Roll-up rule: "recorded" counts every saved result, including Not assessed, and names
+    // each kind: "5 of 7 recorded · 4 pass · 0 fail · 1 not assessed".
+    const roll = {
+      mine: [5, '5 of 7 recorded · 5 pass · 0 fail'], warn: [5, '5 of 7 recorded · 5 pass · 0 fail'], lost: [5, '5 of 7 recorded · 5 pass · 0 fail'],
+      saving: [5, '5 of 7 recorded · 5 pass · 0 fail'], savefail: [5, '5 of 7 recorded · 5 pass · 0 fail'],
+      untranscribed: [0, '0 of 7 recorded'], nohalal: [0, '0 of 7 recorded'], proposed: [2, '2 of 7 recorded · 2 pass · 0 fail'], waitingbody: [2, '2 of 7 recorded · 2 pass · 0 fail'], blocked: [0, '0 of 7 recorded'],
+      override: [5, '5 of 7 recorded · 5 pass · 0 fail'], inspect: [5, '5 of 7 recorded · 5 pass · 0 fail'], waiting: [7, '7 of 7 recorded · 7 pass · 0 fail'], withdrawn: [5, '5 of 7 recorded · 5 pass · 0 fail'], confirm: [7, '7 of 7 recorded · 7 pass · 0 fail'], unclaimed: [3, '3 of 7 recorded · 3 pass · 0 fail'], renewal: [0, '0 of 7 recorded'],
+      other: [3, '3 of 7 recorded · 3 pass · 0 fail'], approved: [7, '7 of 7 recorded · 7 pass · 0 fail'], current: [7, '7 of 7 recorded · 7 pass · 0 fail'], expiring: [7, '7 of 7 recorded · 7 pass · 0 fail'], allpass: [7, '7 of 7 recorded · 7 pass · 0 fail'],
+      onefail: [7, '7 of 7 recorded · 6 pass · 1 fail'], h5fail: [7, '7 of 7 recorded · 6 pass · 1 fail'], h7fail: [7, '7 of 7 recorded · 6 pass · 1 fail'], h2fail: [7, '7 of 7 recorded · 6 pass · 1 fail'],
+      errors: [5, '5 of 7 recorded · 4 pass · 0 fail · 1 not assessed'],
+      rejected: [7, '7 of 7 recorded · 6 pass · 1 fail'], revoked: [7, '7 of 7 recorded · 7 pass · 0 fail'], loading: [0, 'Loading results'], support: [0, ''],
+    }[v];
+    // MeterCell: filled segments in text-secondary until a meter.fill role exists (token gap),
+    // empty segments a 1px border-interactive outline with no fill. Never green, never a ramp step.
+    const segments = [];
+    for (let i = 0; i < 7; i++) segments.push(i < roll[0] ? { fill: 'var(--text-secondary)', border: '1px solid var(--text-secondary)' } : { fill: 'transparent', border: '1px solid var(--border-interactive)' });
+    const other = {
+      other: ['lock', 'Another reviewer holds this until 2:32 pm', 'Read-only for you. After 2:32 pm it returns to the queue in its place.'],
+      lost: ['lock', 'Your claim ended at 2:48 pm', 'Saving and deciding are off on this page.'],
+      approved: ['check', 'Approved at 2:21 pm, 28 September 2026', 'Verified by Aminah Rahman'],
+      expiring: ['clock', 'Approved at 2:21 pm, 28 September 2026', 'Verified by Aminah Rahman · renewal window open'],
+      // current: a live restaurant's current certificate, approved last year (Noor Grill from the register).
+      current: ['clock', 'Approved at 11:05 am, 20 October 2025', 'Verified by Aminah Rahman · a renewal is waiting for review'],
+      unclaimed: ['info', 'Not claimed · You are inspecting', 'Recording and deciding need the claim on the application. Only Take next claims.'],
+      inspect: ['info', 'Not claimed · You are inspecting', 'Recording and deciding need the claim on the application. Only Take next claims.'],
+      waiting: ['clock', 'Waiting on the restaurant', 'Changes requested 27 September 2026, 3:10 pm. Read-only until they resubmit.'],
+      waitingbody: ['clock', 'Waiting on certifying body: HCCO', 'You released your claim at 2:12 pm. It comes back to the top of the queue when a super admin accepts or rejects HCCO.', 'Needs API: a “waiting on certifying body” application state, and releasing your claim'],
+      withdrawn: ['info', 'Withdrawn', 'The restaurant withdrew this application on 27 September 2026. Read-only.'],
+      renewal: ['info', 'Renewal for a live restaurant · not claimed', 'No application claim applies to a renewal.', 'Needs API: a review claim on a certificate outside an application (pairs with: certificate writes require the review lock)'],
+      rejected: ['info', 'Rejected at 2:21 pm, 28 September 2026', 'Reason sent to the restaurant word for word'],
+      revoked: ['info', 'Revoked at 2:31 pm, 28 September 2026', 'Verification withdrawn for cause. Karahi House is off the app.', 'Needs API: revoked_at and revoked_by on HalalCertificate'],
+      support: ['lock', 'Read-only summary', 'Support agents see status, expiry and issuer only'],
+    }[v];
+    const rest = this.props.restaurant ?? 'Karahi House';
+    // The revoked line names this certificate's restaurant, never a default one.
+    if (v === 'revoked') other[2] = 'Verification withdrawn for cause. ' + rest + ' is off the app.';
+    // profile.halal.display_state, per variant, straight from the fixture. No fallback: a variant
+    // without a value renders no badge (never an optimistic or default one).
+    const PENDING_APP = 'UNVERIFIED';
+    const profileHalal = {
+      mine: PENDING_APP, untranscribed: PENDING_APP, warn: PENDING_APP, other: PENDING_APP, unclaimed: PENDING_APP, lost: PENDING_APP,
+      rejected: PENDING_APP, allpass: PENDING_APP, onefail: PENDING_APP, errors: PENDING_APP, blocked: PENDING_APP, saving: PENDING_APP,
+      savefail: PENDING_APP, proposed: PENDING_APP, h5fail: PENDING_APP, h7fail: PENDING_APP, h2fail: PENDING_APP, override: PENDING_APP,
+      confirm: PENDING_APP, support: PENDING_APP, inspect: PENDING_APP, waiting: PENDING_APP, waitingbody: PENDING_APP, withdrawn: PENDING_APP,
+      approved: 'CERTIFIED', expiring: 'EXPIRING_SOON', current: 'EXPIRING_SOON', renewal: 'EXPIRING_SOON', revoked: 'UNVERIFIED',
+      nohalal: null, loading: null,
+    };
+    const halal = profileHalal[v];
+    const isLoading = v === 'loading';
+    const w = this.props.w ?? 1352;
+    // Claim strip on surface.raised: the DS Countdown text variant draws info-500, 4.59:1 on white
+    // (4.0:1 on surface.sunken fails). DS enhancement filed: Countdown text uses info-700.
+    // A missing profile.halal renders no badge, never an optimistic one.
+    return { showTag: !!this.props.tag, tagWrap: this.props.tag ? 'flex' : 'contents', 
+      wcss: /^\d+$/.test(String(w)) ? w + 'px' : String(w),
+      hour: 3600, urgent: 0.1667, zero: 0,
+      restaurant: rest,
+      halal,
+      // The amber badge names the current certificate’s expiry (owner decision): Noor Grill’s 19 October 2026.
+      halalExp: this.props.halalExpires ?? '19 Oct', halalExpFull: this.props.halalExpiresFull ?? '19 October 2026',
+      hasHalal: !isLoading && typeof halal === 'string', noHalal: !isLoading && typeof halal !== 'string',
+      // The certificate number is this certificate's own: a caller passes `number` for any
+      // restaurant other than Karahi House, and the H2 (HFSAA) variant uses the HFSAA number.
+      number: ['loading', 'untranscribed', 'nohalal', 'blocked', 'renewal'].includes(v) ? 'Not transcribed yet' : (this.props.number || (v === 'h2fail' ? 'HFSAA-2026-3310' : 'HMA-ON-2026-0417')),
+      status: { approved: 'Approved', expiring: 'Approved', current: 'Approved', rejected: 'Rejected', revoked: 'Revoked', loading: 'Loading' }[v] || 'Pending review',
+      isMine: ['mine', 'allpass', 'onefail', 'errors', 'blocked', 'saving', 'savefail', 'untranscribed', 'nohalal', 'proposed', 'h5fail', 'h7fail', 'h2fail', 'override', 'confirm'].includes(v),
+      isWarn: v === 'warn',
+      isOther: !!other,
+      otherIcon: other ? other[0] : 'info', otherTitle: other ? other[1] : '', otherSub: other ? other[2] : '',
+      hasOtherNeeds: !!(other && other[3]), otherNeeds: other && other[3] ? other[3] : '',
+      isLoading,
+      showRollup: v !== 'support',
+      rollup: roll[1], segments,
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Saved addresses</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<link rel="stylesheet" href="hg-current.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="scr {{ltClass}}" data-theme="{{theme}}" style="width: {{w}}px; height: {{h}}px; font-family: var(--font-ui); color: var(--text-primary)">
+  <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="cream" title="Addresses" on-back="{{noop}}" back-label="Back to Account" loading="{{f.loading}}"></x-import>
+  <main class="body" style="padding-top: var(--space-2); overflow: hidden">
+
+    <sc-if value="{{f.offline}}" hint-placeholder-val="{{false}}">
+      <span class="gap-tag">Proposed component: Banner</span>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="md" padding="var(--space-3) var(--space-4)" dc-props="{{alert.neutral}}" role="status"><div style="display: flex; gap: var(--space-3); align-items: flex-start; font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-line)">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="info" size="md"></x-import>
+        <div style="display: flex; flex-direction: column; gap: 2px">
+          <span style="font-size: var(--type-label-lg-size); line-height: var(--type-label-lg-line); font-weight: 600; color: var(--text-primary)">You're offline</span>
+          <span>Showing addresses saved on this phone at 6:31 pm. Connect to add or change one.</span>
+        </div>
+      </div></x-import>
+    </sc-if>
+
+    <sc-if value="{{f.list}}" hint-placeholder-val="{{true}}">
+      <div style="display: flex; flex-direction: column; gap: var(--space-2)">
+        <sc-if value="{{f.deletedDefault}}" hint-placeholder-val="{{false}}">
+          <span class="api-tag" style="white-space: normal">Needs API: confirm deleteAddress makes another address the default, as the spec says</span>
+          <span class="anno-tag">After a delete the list and the toast come from the refreshed listAddresses and getCustomerProfile. The toast names an address only if one now has is_default true; if default_address_id is null, see the next board.</span>
+        </sc-if>
+        <sc-if value="{{f.noDefault}}" hint-placeholder-val="{{false}}">
+          <div style="display: flex; flex-direction: column; gap: var(--space-1)">
+            <h2 class="t-h2">Choose a default address</h2>
+            <p class="t-small">Your default was deleted. Open an address and make it your default, and we'll use it first on Home and at checkout.</p>
+          </div>
+        </sc-if>
+        <div style="display: flex; flex-wrap: wrap; gap: var(--space-1)">
+          <span class="gap-tag">Proposed component: ListRow</span>
+          <span class="gap-tag">Component gap: Icon case (Work)</span>
+          <sc-if value="{{f.dark}}" hint-placeholder-val="{{false}}">
+            <span class="gap-tag" style="white-space: normal">DS issue: Badge neutral tint 'Default' is 1.87:1 in dark; should be a themed tint pair that reaches 4.5:1 in dark. Not recoloured here.</span>
+          </sc-if>
+        </div>
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg" padding="0">
+          <div style="display: flex; flex-direction: column">
+            <sc-for list="{{rows}}" as="r" hint-placeholder-count="4">
+              <sc-if value="{{r.sep}}" hint-placeholder-val="{{true}}"><hr aria-hidden="true" style="margin: 0; border: 0; border-top: 1px solid var(--border-decorative)"></sc-if><div class="{{r.focusClass}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="none" padding="var(--space-2) var(--space-4)" dc-props="{{rowLink}}" href="{{r.href}}" aria-label="{{r.aria}}"><div style="display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-3); min-height: calc(var(--density-row-height) - var(--space-4))">
+                <span style="width: 36px; height: 36px; flex: 0 0 auto; display: grid; place-items: center; border-radius: var(--radius-md); background: var(--surface-sunken); color: var(--text-secondary)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="{{r.icon}}" size="md"></x-import></span>
+                <span style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+                  <span style="font-size: var(--type-label-lg-size); line-height: var(--type-label-lg-line); font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap">{{r.title}} <sc-if value="{{r.isDefault}}" hint-placeholder-val="{{false}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="neutral" size="sm">Default</x-import></sc-if></span>
+                  <span style="font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-line); color: var(--text-secondary)">{{r.sub1}}</span>
+                  <span style="font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-line); color: var(--text-secondary)">{{r.sub2}}</span>
+                </span>
+                <span style="flex: 0 0 auto; color: var(--text-secondary); display: flex; align-items: center; gap: var(--space-2)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="chevron-right" size="md"></x-import></span>
+              </div></x-import></div>
+            </sc-for>
+          </div>
+        </x-import>
+        <sc-if value="{{f.unitNote}}" hint-placeholder-val="{{true}}">
+          <span class="anno-tag">Unit line: shown as stored when it already starts with a unit word (Unit, Apt, Suite, #), as '300 Borough Dr, Apt 4211'; otherwise prefixed 'Unit '. Stored values already hold the word, so never 'Unit Unit 4211'.</span>
+        </sc-if>
+        <sc-if value="{{f.offline}}" hint-placeholder-val="{{false}}">
+          <span class="anno-tag">Offline, rows still open Edit address, which shows its own offline state: Save, Make default and Delete disabled with the reason (board: Edit address, offline).</span>
+        </sc-if>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{f.loading}}" hint-placeholder-val="{{false}}">
+      <div role="status"><span class="sr">Loading addresses</span></div>
+      <span class="gap-tag" style="white-space: normal">Proposed component: Skeleton. For the design-system components issue (<a href="https://github.com/shaiknoorullah/hg-mono/issues/109" style="color: inherit">GitHub #109</a>): role=status with a visually hidden name ('Loading addresses'), outside the busy region; aria-busy on the container that receives the content; the skeleton aria-hidden.</span>
+      <div aria-busy="true" style="display: contents">
+      <div aria-hidden="true" style="display: flex; flex-direction: column; gap: var(--space-2)">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg" padding="0">
+          <div style="display: flex; flex-direction: column">
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="none" padding="var(--space-2) var(--space-4)" dc-props="{{rowStatic}}"><div style="display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-3); min-height: calc(var(--density-row-height) - var(--space-4))"><span style="display: block; background: var(--skeleton-base); border-radius: var(--radius-xs); width: 36px; height: 36px; border-radius: var(--radius-md)"></span><span style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; gap: var(--space-2)"><span style="display: block; background: var(--skeleton-base); border-radius: var(--radius-xs); width: 40%; height: 14px"></span><span style="display: block; background: var(--skeleton-base); border-radius: var(--radius-xs); width: 75%; height: 12px"></span></span></div></x-import>
+            <hr aria-hidden="true" style="margin: 0; border: 0; border-top: 1px solid var(--border-decorative)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="none" padding="var(--space-2) var(--space-4)" dc-props="{{rowStatic}}"><div style="display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-3); min-height: calc(var(--density-row-height) - var(--space-4))"><span style="display: block; background: var(--skeleton-base); border-radius: var(--radius-xs); width: 36px; height: 36px; border-radius: var(--radius-md)"></span><span style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; gap: var(--space-2)"><span style="display: block; background: var(--skeleton-base); border-radius: var(--radius-xs); width: 30%; height: 14px"></span><span style="display: block; background: var(--skeleton-base); border-radius: var(--radius-xs); width: 65%; height: 12px"></span></span></div></x-import>
+          </div>
+        </x-import>
+      </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{f.empty}}" hint-placeholder-val="{{false}}">
+      <div style="flex: 1 1 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: var(--space-3); padding: var(--space-8) var(--space-5)">
+        <span class="gap-tag">Proposed component: EmptyState</span>
+        <span style="width: 56px; height: 56px; display: grid; place-items: center; border-radius: var(--radius-full); background: var(--surface-sunken); color: var(--text-secondary)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="map" size="lg"></x-import></span>
+        <h2 style="margin: 0; font-size: var(--type-heading-md-size); line-height: var(--type-heading-md-line); font-weight: 600; color: var(--text-primary)">No saved addresses</h2>
+        <p style="margin: 0; max-width: 320px; font-size: var(--type-body-md-size); line-height: var(--type-body-md-line); color: var(--text-secondary)">Search for an address and drag the pin onto the door your rider should use. You don't need to be there.</p>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{f.error}}" hint-placeholder-val="{{false}}">
+      <div role="alert" style="flex: 1 1 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: var(--space-3); padding: var(--space-8) var(--space-5)">
+        <span class="gap-tag">Proposed component: ErrorState</span>
+        <span style="width: 56px; height: 56px; display: grid; place-items: center; border-radius: var(--radius-full); background: var(--surface-sunken); color: var(--text-secondary); background: var(--feedback-warning-tint); color: var(--feedback-warning-tint-text)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="refresh" size="lg"></x-import></span>
+        <h2 style="margin: 0; font-size: var(--type-heading-md-size); line-height: var(--type-heading-md-line); font-weight: 600; color: var(--text-primary)">We couldn't load your addresses</h2>
+        <p style="margin: 0; max-width: 320px; font-size: var(--type-body-md-size); line-height: var(--type-body-md-line); color: var(--text-secondary)">Check your connection and try again. Your saved addresses are safe.</p>
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="secondary" size="md" icon-start="refresh" on-press="{{noop}}">Try again</x-import>
+      </div>
+    </sc-if>
+  </main>
+
+  <sc-if value="{{f.showAdd}}" hint-placeholder-val="{{true}}">
+    <div style="padding: 0 var(--space-4) var(--space-4); display: flex; flex-direction: column; gap: var(--space-2)">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="{{addVariant}}" size="lg" full-width="{{yes}}" icon-start="plus" disabled="{{addBlocked}}" aria-describedby="{{addDesc}}" href="{{addHref}}">Add address</x-import>
+      <sc-if value="{{f.limit}}" hint-placeholder-val="{{false}}">
+        <p class="t-small" id="add-why">You've saved 20, the most you can keep. Delete one to add another.</p>
+      </sc-if>
+      <sc-if value="{{f.offline}}" hint-placeholder-val="{{false}}">
+        <p class="t-small" id="add-why">You're offline. Connect to add an address.</p>
+      </sc-if>
+      <sc-if value="{{f.whyNote}}" hint-placeholder-val="{{false}}">
+        <span class="anno-tag">The disabled button points at this reason with aria-describedby="add-why". The DS Button passes aria-* through to the rendered button.</span>
+      </sc-if>
+    </div>
+  </sc-if>
+
+  <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.BottomNav" label="Main" active="account" items="{{nav}}" on-change="{{noop}}"></x-import>
+
+  <sc-if value="{{f.toast}}" hint-placeholder-val="{{false}}">
+    <div class="toast-dock" style="bottom: 152px">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Toast" variant="neutral" title="Address deleted" description="{{toastDesc}}" on-dismiss="{{noop}}"></x-import>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["default","focus","loading","empty","error","offline","limit","deletedlast","deleteddefault","deletednodefault"],"default":"default"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"lt":{"editor":"boolean","default":false},"w":{"editor":"int","min":320,"max":430,"default":390},"h":{"editor":"int","min":844,"max":2400,"default":844},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const s = this.props.state ?? 'default';
+    const f = {
+      loading: s === 'loading', empty: s === 'empty' || s === 'deletedlast', error: s === 'error',
+      offline: s === 'offline', limit: s === 'limit', toast: s === 'deletedlast' || s === 'deleteddefault' || s === 'deletednodefault',
+      deletedDefault: s === 'deleteddefault' || s === 'deletednodefault', noDefault: s === 'deletednodefault',
+    };
+    f.list = ['default', 'focus', 'offline', 'limit', 'deleteddefault', 'deletednodefault'].includes(s);
+    f.showAdd = !f.error;
+    f.dark = this.props.theme === 'dark';
+    f.unitNote = s === 'default';
+    f.whyNote = f.limit || f.offline;
+    // Icon is chosen by exact match on the label string; label null uses line1 as the title.
+    // Unit: shown verbatim when it already starts with a unit word, else prefixed 'Unit '.
+    const unitText = (u) => (/^(unit|apt|suite|#)/i.test(u) ? u : 'Unit ' + u);
+    const editHref = f.offline ? 'AddressForm-editoffline.dc.html' : 'AddressForm-edit.dc.html';
+    const mk = (label, line1, unit, cityLine, isDefault) => {
+      const title = label || line1;
+      const icon = label === 'Home' ? 'home' : 'map';
+      const u = unit ? unitText(unit) : '';
+      return {
+      alert: { neutral: { style: { background: 'var(--surface-sunken)', color: 'var(--text-secondary)', borderColor: 'var(--border-decorative)' } }, info: { style: { background: 'var(--feedback-info-tint)', color: 'var(--feedback-info-tint-text)', borderColor: 'var(--feedback-info-border)' } }, warning: { style: { background: 'var(--feedback-warning-tint)', color: 'var(--feedback-warning-tint-text)', borderColor: 'var(--feedback-warning-border)' } } }, rowLink: { className: 'hg-focus-inset', style: { border: 'none', borderRadius: 0, background: 'transparent' } }, rowStatic: { style: { border: 'none', borderRadius: 0, background: 'transparent' } },
+        title, icon, isDefault,
+        sub1: label ? line1 + (u ? ', ' + u : '') : (u ? u : cityLine),
+        sub2: label ? cityLine : (u ? cityLine : ''),
+        aria: (label ? label + ', ' : '') + (isDefault ? 'default address, ' : '') + line1 + (u ? ', ' + u : '') + ', ' + cityLine + '. Edit',
+        href: editHref, focusClass: '',
+      };
+    };
+    let rows = [
+      mk('Home', '14 Ellesmere Rd', '402', 'Toronto, ON M1R 4E7', true),
+      mk('Work', '2075 Kennedy Rd', '', 'Toronto, ON M1T 3V3', false),
+      mk("Mum's place", '88 Dundas St W', '1204', 'Mississauga, ON L5B 1H6', false),
+      mk(null, '300 Borough Dr', 'Apt 4211', 'Toronto, ON M1P 4P5', false),
+    ];
+    if (s === 'deleteddefault') {
+      rows = rows.slice(1);
+      rows[0].isDefault = true;
+      rows[0].aria = 'Work, default address, 2075 Kennedy Rd, Toronto, ON M1T 3V3. Edit';
+    }
+    if (s === 'deletednodefault') rows = rows.slice(1);
+    // Toast text is built from the refreshed data: name the address only if one is now the default.
+    const nowDefault = rows.find((r) => r.isDefault);
+    if (s === 'focus') rows[0].focusClass = 'is-focused';
+    rows.forEach((r, i) => { r.sep = i > 0; });
+    const dark = this.props.theme === 'dark';
+    return {
+      f, rows, yes: true, noop: () => {},
+      theme: dark ? 'dark' : 'light',
+      ltClass: this.props.lt ? 'lt' : '',
+      w: this.props.w ?? 390,
+      h: this.props.h ?? 844,
+      addVariant: f.empty ? 'primary' : 'tertiary',
+      addBlocked: f.offline || f.limit || f.loading,
+      addHref: (f.offline || f.limit || f.loading) ? undefined : (f.empty ? 'AddressForm-first.dc.html' : 'AddressForm-today.dc.html'),
+      addDesc: (f.offline || f.limit) ? 'add-why' : undefined,
+      toastDesc: s === 'deletedlast' ? 'You have no saved addresses now.'
+        : nowDefault ? nowDefault.title + ' is now your default address.'
+        : 'You have no default address now.',
+      nav: [
+        { key: 'home', label: 'Home', icon: 'home' },
+        { key: 'search', label: 'Search', icon: 'search' },
+        { key: 'orders', label: 'Orders', icon: 'orders' },
+        { key: 'account', label: 'Account', icon: 'profile' },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

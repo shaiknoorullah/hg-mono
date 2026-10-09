@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>New orders switch states</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div style="width: 1440px; height: 2100px; box-sizing: border-box; padding: var(--space-10) var(--space-12); background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui); display: flex; flex-direction: column; gap: var(--space-6); position: relative;">
+  <div style="display: flex; flex-direction: column; gap: 6px;">
+    <h1 style="margin: 0; font: var(--text-type-heading-xl); letter-spacing: -0.01em;">Turning new orders off and back on, pausing and resuming</h1>
+    <p style="margin: 0; font: var(--text-type-body-md); color: var(--text-secondary); max-width: 1000px;">The switch holds its old position with a spinner until the server returns the saved status, then shows what it read back. A failure leaves everything as it was and says so.</p>
+  </div>
+  <div style="display: flex; flex-direction: column; gap: var(--space-4);">
+    <sc-for list="{{cards}}" as="c" hint-placeholder-count="11">
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <span style="font: var(--text-type-label-md); color: var(--text-secondary);">{{c.label}}</span>
+        <dc-import name="PartNowCard" state="{{c.state}}" inflight="{{c.inflight}}" result="{{c.result}}" sound="{{c.sound}}" w="{{cw}}" hint-size="1184px,120px"></dc-import>
+      </div>
+    </sc-for>
+  </div>
+  <div style="width: 420px; display: flex; flex-direction: column; gap: var(--space-2);">
+    <span style="font: var(--text-type-label-md); color: var(--text-secondary);">With a failure, a toast also appears</span>
+    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Toast" variant="danger" title="Couldn’t turn off new orders" description="You are still accepting orders. Check your connection and try again." action="{{retry}}" on-dismiss="{{noop}}" hint-size="420px,96px"></x-import>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":2100}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const noop = () => {};
+    return { cw: 1344, noop, retry: { label: 'Try again', onAction: noop }, cards: [
+      { state: 'open', inflight: 'switch_off', result: 'none', label: '1. Turning off: waiting for the server' },
+      { state: 'open', inflight: 'none', result: 'switched_off', label: '2. Turned off: read back from the server' },
+      { state: 'open', inflight: 'none', result: 'switch_failed', label: '3. Couldn’t turn off' },
+      { state: 'open', inflight: 'pause', result: 'none', label: '4. Pausing: waiting for the server' },
+      { state: 'open', inflight: 'none', result: 'pause_failed', label: '5. Couldn’t pause' },
+      { state: 'paused', inflight: 'resume', result: 'none', label: '6. Resuming: waiting for the server' },
+      { state: 'paused', inflight: 'none', result: 'resume_failed', label: '7. Couldn’t resume' },
+      { state: 'auto_off', inflight: 'none', result: 'none', sound: 'off', label: '8. Switched off after missed orders, order sound off on this device' },
+      { state: 'auto_off', inflight: 'switch_on', result: 'none', label: '9. Turning back on (sound just turned on): waiting for the server' },
+      { state: 'auto_off', inflight: 'none', result: 'switched_on', label: '10. Turned back on: read back from the server' },
+      { state: 'auto_off', inflight: 'none', result: 'switch_on_failed', label: '11. Couldn’t turn back on' },
+    ].map((c) => ({ sound: 'on', ...c })) };
+  }
+}
+</script>
+</body>
+</html>

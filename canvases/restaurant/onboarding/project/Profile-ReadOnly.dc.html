@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Profile — read-only, change waiting for a reviewer</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:var(--surface-base);color:var(--text-primary);font-family:var(--font-ui)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+.skip{position:absolute;left:16px;top:-80px;z-index:10}.skip:focus{top:8px}
+form{margin:0}
+.row{appearance:none;-webkit-appearance:none;border:0;margin:0;width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer;box-sizing:border-box}
+.row:hover{background:var(--surface-sunken)}
+.row:focus-visible,.handle:focus-visible{outline:2px solid transparent;box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+.navlink:focus-visible{box-shadow:0 0 0 var(--focus-offset-width) var(--surface-chrome),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring-on-accent)}
+.hg-focus-field:not([aria-invalid="true"]):focus-visible{outline:2px solid transparent;border-color:var(--focus-ring) !important;box-shadow:inset 0 0 0 1px var(--focus-ring)}
+.hg-focus-field[aria-invalid="true"]:focus-visible{outline:2px solid transparent;box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+.gap{position:relative;outline:1.5px dashed var(--color-neutral-500);outline-offset:3px}
+.gap::before{content:"Proposed component: " attr(data-gap);position:absolute;top:-11px;right:12px;z-index:3;font:500 11px/1 var(--font-mono);color:var(--color-neutral-800);background:var(--color-neutral-100);padding:3px 6px;border-radius:4px;white-space:nowrap}
+.api{display:inline-flex;align-items:center;gap:8px;padding:4px 8px;border:1.5px dashed var(--color-info-600);background:var(--color-info-50);color:var(--color-info-700);font:500 12px/1.4 var(--font-mono);border-radius:4px}
+.note{display:inline-flex;align-items:center;padding:4px 8px;background:var(--color-neutral-100);color:var(--color-neutral-800);font:500 12px/1.4 var(--font-mono);border-radius:4px}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; background: var(--surface-base); display: flex; flex-direction: column; font-family: var(--font-ui); color: var(--text-primary); position: relative; overflow: hidden">
+<dc-import name="OnbTop" hint-size="1440px,64px"></dc-import>
+<div style="height: 836px; display: flex">
+<dc-import name="OnbSide" current="PAYOUT" done="1111000" percent="65" cycle="1" halal="CERTIFIED" body="HMA Canada" until="14 March 2027" hint-size="288px,836px"></dc-import>
+<main id="main" style="flex-grow: 1; min-width: 0; box-sizing: border-box; padding: 20px 28px; display: flex; flex-direction: column; gap: 14px">
+<a href="Payout-NotStarted.dc.html" class="type-body-md" style="align-self: flex-start; font-weight: 500; min-height: 44px; display: inline-flex; align-items: center; gap: 8px"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="back" size="md" hint-size="20px,20px"></x-import>Back to setup</a>
+<h1 class="type-heading-xl" style="margin: 0">Business profile</h1>
+<div style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 3px; flex-grow: 1; min-height: 0; display: flex; align-items: stretch"><span aria-hidden="true" style="position: absolute; top: -11px; right: 12px; z-index: 3; font: 500 11px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 3px 6px; border-radius: 4px; white-space: nowrap">Proposed component: Split panes (resizable)</span><section aria-labelledby="ro-h" style="display: flex; flex-direction: column; min-height: 0; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: 16px; overflow: hidden; width: 640px; flex-shrink: 0">
+<div style="display: flex; align-items: center; gap: 12px; min-height: 52px; box-sizing: border-box; padding: 8px 16px; border-bottom: 1px solid var(--border-decorative)"><h2 id="ro-h" class="type-heading-sm" style="margin: 0">What reviewers approved</h2></div>
+<dl class="gap" data-gap="KeyValueList (approved for the design system)" style="margin: 0; display: flex; flex-direction: column; outline-offset: -3px"><div style="display: flex; gap: 16px; align-items: center; min-height: 52px; box-sizing: border-box; padding: 4px 16px; border-top: none"><dt class="type-body-md" style="width: 200px; flex-shrink: 0; color: var(--text-secondary)">Name customers see</dt><dd class="type-label-lg" style="margin: 0; flex-grow: 1">Zaytoun Grill</dd></div><div style="display: flex; gap: 16px; align-items: center; min-height: 52px; box-sizing: border-box; padding: 4px 16px; border-top: 1px solid var(--border-decorative)"><dt class="type-body-md" style="width: 200px; flex-shrink: 0; color: var(--text-secondary)">Legal business name</dt><dd class="type-label-lg" style="margin: 0; flex-grow: 1">Zaytoun Grill Inc.</dd><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="sm" accessibility-label="Request a change: Legal business name" hint-size="160px,44px">Request a change</x-import></div><div style="display: flex; gap: 16px; align-items: center; min-height: 52px; box-sizing: border-box; padding: 4px 16px; border-top: 1px solid var(--border-decorative)"><dt class="type-body-md" style="width: 200px; flex-shrink: 0; color: var(--text-secondary)">Owner</dt><dd class="type-label-lg" style="margin: 0; flex-grow: 1">Samir Haddad</dd></div><div style="display: flex; gap: 16px; align-items: center; min-height: 52px; box-sizing: border-box; padding: 4px 16px; border-top: 1px solid var(--border-decorative)"><dt class="type-body-md" style="width: 200px; flex-shrink: 0; color: var(--text-secondary)">Business phone</dt><dd class="type-label-lg" style="margin: 0; flex-grow: 1">(416) 555-0182</dd></div><div style="display: flex; gap: 16px; align-items: center; min-height: 52px; box-sizing: border-box; padding: 4px 16px; border-top: 1px solid var(--border-decorative)"><dt class="type-body-md" style="width: 200px; flex-shrink: 0; color: var(--text-secondary)">Address</dt><dd class="type-label-lg" style="margin: 0; flex-grow: 1">2872 Eglinton Ave E, Unit 4, Toronto ON M1J 2E1</dd><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="sm" accessibility-label="Request a change: Address" hint-size="160px,44px">Request a change</x-import></div><div style="display: flex; gap: 16px; align-items: center; min-height: 52px; box-sizing: border-box; padding: 4px 16px; border-top: 1px solid var(--border-decorative)"><dt class="type-body-md" style="width: 200px; flex-shrink: 0; color: var(--text-secondary)">Pin for riders</dt><dd class="type-label-lg" style="margin: 0; flex-grow: 1">43.7309, -79.2641</dd></div><div style="display: flex; gap: 16px; align-items: center; min-height: 52px; box-sizing: border-box; padding: 4px 16px; border-top: 1px solid var(--border-decorative)"><dt class="type-body-md" style="width: 200px; flex-shrink: 0; color: var(--text-secondary)">GST/HST number</dt><dd class="type-label-lg" style="margin: 0; flex-grow: 1">123456789RT0001</dd><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="sm" accessibility-label="Request a change: GST/HST number" hint-size="160px,44px">Request a change</x-import></div><div style="display: flex; gap: 16px; align-items: center; min-height: 52px; box-sizing: border-box; padding: 4px 16px; border-top: 1px solid var(--border-decorative)"><dt class="type-body-md" style="width: 200px; flex-shrink: 0; color: var(--text-secondary)">Time zone</dt><dd class="type-label-lg" style="margin: 0; flex-grow: 1">Eastern Time (Toronto)</dd></div></dl>
+<div style="margin-top: auto; padding: 10px 16px; border-top: 1px solid var(--border-decorative)"><span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 3px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">Request a change shows only on reviewed fields (legal name, address, GST/HST) and triggers re-verification.</span></div>
+</section><div class="handle" role="separator" aria-orientation="vertical" aria-label="Resize the two panes" aria-valuenow="36" aria-valuemin="25" aria-valuemax="60" tabindex="0" style="width: 16px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; cursor: col-resize; border-radius: 8px"><span aria-hidden="true" style="width: 4px; height: 40px; border-radius: 9999px; background: var(--border-strong)"></span></div><section aria-labelledby="ro-pending-h" class="gap" data-gap="Detail panel (in page)" style="display: flex; flex-direction: column; min-height: 0; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: 16px; overflow: hidden; flex-grow: 1; min-width: 0">
+<div style="display: flex; align-items: center; gap: 12px; min-height: 52px; box-sizing: border-box; padding: 8px 16px; border-bottom: 1px solid var(--border-decorative)"><h2 id="ro-pending-h" class="type-heading-sm" style="margin: 0">Changes waiting for a reviewer</h2></div>
+<div style="flex-grow: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 12px; padding: 16px">
+<div role="status" style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 3px; display: flex; gap: 12px; align-items: flex-start; padding: 10px 14px; background: var(--surface-sunken); color: var(--text-primary); border: 1px solid var(--border-strong); border-radius: 12px"><span aria-hidden="true" style="position: absolute; top: -11px; right: 12px; z-index: 3; font: 500 11px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 3px 6px; border-radius: 4px; white-space: nowrap">Proposed component: Inline alert</span><span style="display: inline-flex; padding-top: 2px; color: var(--text-primary)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="clock" size="md" hint-size="20px,20px"></x-import></span><div class="type-body-md" style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px; line-height: 1.45"><strong class="type-label-lg">A change is waiting for a reviewer</strong><span>Address: 2880 Eglinton Ave E, Unit 2. Sent 3 October 2026. Reviewers use the current address until this is approved.</span></div><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" hint-size="180px,44px">Cancel this change</x-import></div>
+<p class="type-body-sm" style="margin: 0; line-height: 1.5; color: var(--text-secondary)">Once you’re live, your name, phone, description and preparation time can be changed in Settings. Legal name, address and GST/HST changes are checked by a reviewer first, because they’re what your documents prove.</p>
+<span style="align-self: flex-start; display: inline-flex; align-items: center; padding: 3px 8px; border: 1.5px dashed var(--color-info-600); background: var(--color-info-50); color: var(--color-info-700); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">Needs API: profile change requests: create, list pending, state, cancel</span>
+</div>
+</section></div>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 1440, "height": 900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { yes: true, no: false };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,32 @@
+<!-- @dsCard group="Brand" viewport="700x690" name="Voice — exact strings" subtitle="Fixed copy that must never be paraphrased, with the spoken labels and the date rule" -->
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Voice</title>
+<link rel="stylesheet" href="../styles.css">
+<style>body{margin:0;padding:16px 18px;background:var(--surface-base);font-family:var(--font-ui);height:690px;box-sizing:border-box;overflow:hidden}
+.row{display:flex;gap:10px;align-items:baseline}.col{display:grid;gap:8px}
+.k{font-size:var(--type-label-sm-size);letter-spacing:var(--type-label-sm-tracking);font-weight:600;color:var(--text-tertiary)}
+.note{font-size:11px;line-height:1.4;color:var(--text-tertiary);margin:0}
+.s{font-size:13px;font-weight:600;flex:1}
+.w{width:250px}
+</style></head><body>
+<div class="col" style="gap:7px">
+  <div class="k">Badge labels · visible, then spoken</div>
+  <div class="row"><span class="s">“Halal certified”</span><span class="note w">certified and expiring soon; spoken the same</span></div>
+  <div class="row"><span class="s">“Certification expired”</span><span class="note w">spoken: “Halal certification expired. This restaurant cannot take orders.” Never “not halal”.</span></div>
+  <div class="row"><span class="s">“Not verified”</span><span class="note w">spoken: “Halal certification not verified.” Restaurant and admin (operational) surfaces only; customer cards and pages render nothing</span></div>
+  <div class="row"><span class="s">No value at all</span><span class="note w">renders nothing and logs an error; never a guessed badge</span></div>
+
+  <div class="k" style="margin-top:6px">Certification panel</div>
+  <div class="row"><span class="s">“Certified by [body]”</span><span class="note w">the body's name exactly as verified; never ranked or compared</span></div>
+  <div class="row"><span class="s">“Valid until 14 March 2027”</span><span class="note w">expiry is always an absolute date, never “expires in 7 months”, on screen or spoken</span></div>
+  <div class="row"><span class="s">“Certificate renews {date}”</span><span class="note w">expiring-soon note inside the panel only; the card badge does not change</span></div>
+  <div class="row"><span class="s">“View certificate”</span><span class="note w">opens the certificate through a link that expires after 5 minutes</span></div>
+  <div class="row"><span class="s">“Certification verified by HalalGoes on {date}. HalalGoes does not itself certify food.”</span><span class="note w">the standing line: always shown, never collapsed, never reworded</span></div>
+  <div class="row"><span class="s">“HalalGoes does not itself certify food.”</span><span class="note w">what the standing line becomes when there is no verification date; a “{date}” placeholder is never shown to anyone</span></div>
+  <p class="note">Dates are written day, full month, year: “4 September 2026”, never “4 Sept 2026” or “09/04/2026”. The business name is always HalalGoes, one word.</p>
+
+  <div class="k" style="margin-top:6px">Marketing lines</div>
+  <div class="row"><span class="s">“Verified halal, delivered.”</span><span class="note w">customer headline</span></div>
+  <div class="row"><span class="s">“Seven checks on every restaurant, before it reaches you.”</span><span class="note w">customer lede; say “seven checks”, never “seven-point”</span></div>
+  <div class="row"><span class="s">“0% commission at launch.”</span><span class="note w">restaurant headline</span></div>
+  <p class="note" style="margin-top:4px">Never “guaranteed halal”, never “100% halal”, never a religious ruling. Never red for a halal state. The platform verifies certificates; certifying bodies certify food.</p>
+</div></body></html>

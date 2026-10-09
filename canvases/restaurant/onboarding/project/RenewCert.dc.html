@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Renewed halal certificate</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<section aria-labelledby="renew-h" style="width: {{w}}; height: {{h}}; box-sizing: border-box; display: flex; flex-direction: column; gap: 12px; font-family: var(--font-ui); color: var(--text-primary)">
+<div style="display: flex; align-items: center; gap: 12px"><h2 id="renew-h" class="type-heading-md" style="margin: 0; flex-grow: 1">Renewed halal certificate</h2><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="{{badgeVariant}}" size="md" icon="{{badgeIcon}}" hint-size="120px,22px">{{badgeLabel}}</x-import></div>
+<sc-if value="{{m.idle}}" hint-placeholder-val="{{false}}"><div style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 3px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; min-height: 180px; padding: 20px; border: 2px dashed var(--border-interactive); border-radius: 16px; background: var(--surface-base); text-align: center"><span aria-hidden="true" style="position: absolute; top: -11px; right: 12px; z-index: 3; font: 500 11px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 3px 6px; border-radius: 4px; white-space: nowrap">Proposed component: FileDrop (approved for the design system)</span><span class="type-heading-sm">Drop your renewed certificate here, or</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" icon-start="plus" hint-size="280px,52px">Upload renewed certificate</x-import><span class="type-body-sm" style="color: var(--text-secondary)">[Accepted file types], up to [size limit]. Every page.</span></div></sc-if>
+<sc-if value="{{m.uploading}}" hint-placeholder-val="{{false}}"><div style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 3px; display: flex; align-items: center; gap: 14px; padding: 12px 14px; border-radius: 12px; background: var(--surface-sunken)"><span aria-hidden="true" style="position: absolute; top: -11px; right: 12px; z-index: 3; font: 500 11px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 3px 6px; border-radius: 4px; white-space: nowrap">Proposed component: FileDrop (uploading)</span>
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: 8px"><div style="display: flex; justify-content: space-between; gap: 12px"><span class="type-label-lg" style="font-family: var(--font-mono)">halal-certificate-hma-2026-renewed.pdf</span><span class="type-body-sm" style="color: var(--text-secondary); font-variant-numeric: tabular-nums">Uploading, 58%</span></div>
+<div role="progressbar" aria-label="Uploading halal-certificate-hma-2026-renewed.pdf" aria-valuemin="0" aria-valuemax="100" aria-valuenow="58" style="height: 8px; box-sizing: border-box; border-radius: 9999px; background: var(--border-decorative); outline: 1px solid var(--border-interactive); overflow: hidden"><div style="height: 8px; width: 58%; border-radius: 9999px; background: var(--text-secondary)"></div></div></div>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="sm" accessibility-label="Cancel upload of renewed halal certificate" hint-size="90px,44px">Cancel</x-import></div>
+<span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 3px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">Upload intent, then the file, then confirm, as in Documents. Cancel stops the upload; nothing is saved.</span></sc-if>
+<sc-if value="{{m.form}}" hint-placeholder-val="{{false}}">
+<sc-if value="{{m.failed}}" hint-placeholder-val="{{false}}"><div role="alert" tabindex="-1" style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 3px; display: flex; gap: 12px; align-items: flex-start; padding: 10px 14px; background: var(--feedback-danger-tint); color: var(--feedback-danger-tint-text); border: 1px solid var(--feedback-danger-border); border-radius: 12px"><span aria-hidden="true" style="position: absolute; top: -11px; right: 12px; z-index: 3; font: 500 11px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 3px 6px; border-radius: 4px; white-space: nowrap">Proposed component: Banner</span><span style="display: inline-flex; padding-top: 2px; color: var(--feedback-danger-icon)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="error" size="md" hint-size="20px,20px"></x-import></span><div class="type-body-md" style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px; line-height: 1.45"><strong class="type-label-lg">Your renewed certificate wasn’t sent</strong><span>We couldn’t reach HalalGoes, or something went wrong on our side. Your file and details are kept. Try again.</span></div></div></sc-if>
+<form novalidate style="display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap"><span class="type-label-lg" style="font-family: var(--font-mono)">halal-certificate-hma-2026-renewed.pdf</span><span class="type-body-sm" style="color: var(--text-secondary)">Uploaded. Check the details, then send it.</span></div>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Select" label="Issuing body" variant="listbox" required="{{yes}}" options="{{bodies}}" value="hma" helper-text="Filled in from your expired certificate. Change it if the renewed one is from a different body." hint-size="100%,96px"></x-import>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; align-items: start">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Certificate number (optional)" default-value="HMA-2026-01344" read-only="{{m.sending}}" hint-size="100%,72px"></x-import>
+<div style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 3px; grid-column: span 2; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: start"><span aria-hidden="true" style="position: absolute; top: -11px; right: 12px; z-index: 3; font: 500 11px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 3px 6px; border-radius: 4px; white-space: nowrap">Proposed component: Date field</span>
+<div style="display: flex; flex-direction: column; gap: 6px"><label for="renew-issued" class="type-label-lg">Issue date (optional)</label><input id="renew-issued" class="hg-focus-field type-body-md" value="1 October 2026" aria-describedby="renew-issued-help" style="height: 44px; box-sizing: border-box; border: 1.5px solid var(--control-border); border-radius: 12px; background: var(--control-bg); padding: 0 14px; color: var(--text-primary)"><span id="renew-issued-help" class="type-body-sm" style="color: var(--text-secondary)">For example, 1 October 2026</span></div>
+<div style="display: flex; flex-direction: column; gap: 6px"><label for="renew-valid" class="type-label-lg">Valid until</label><input id="renew-valid" class="hg-focus-field type-body-md" value="{{valid}}" aria-invalid="{{validInvalid}}" aria-describedby="{{validDesc}}" style="height: 44px; box-sizing: border-box; border: {{validBorder}}; border-radius: 12px; background: var(--control-bg); padding: 0 14px; color: var(--text-primary)"><span id="renew-valid-help" class="type-body-sm" style="color: var(--text-secondary)">For example, 30 September 2027</span>
+<sc-if value="{{m.detailsError}}" hint-placeholder-val="{{false}}"><span id="renew-valid-error" role="alert" class="type-body-sm" style="display: flex; gap: 6px; align-items: flex-start; line-height: 1.45; color: var(--text-primary)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="clock" size="sm" hint-size="16px,16px"></x-import>This date has already passed. Upload the renewed certificate, not the one that expired.</span></sc-if></div>
+</div>
+</div>
+<div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" type="submit" loading="{{m.sending}}" icon-start="{{sendIcon}}" hint-size="260px,52px">{{sendLabel}}</x-import><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="md" hint-size="120px,44px">Remove file</x-import></div>
+</form>
+<sc-if value="{{hasCode}}" hint-placeholder-val="{{true}}"><span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 3px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">{{formCode}}</span></sc-if>
+</sc-if>
+<sc-if value="{{m.sent}}" hint-placeholder-val="{{false}}">
+<div role="status" style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 3px; display: flex; gap: 12px; align-items: flex-start; padding: 10px 14px; background: var(--surface-sunken); color: var(--text-primary); border: 1px solid var(--border-strong); border-radius: 12px"><span aria-hidden="true" style="position: absolute; top: -11px; right: 12px; z-index: 3; font: 500 11px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 3px 6px; border-radius: 4px; white-space: nowrap">Proposed component: Inline alert</span><span style="display: inline-flex; padding-top: 2px; color: var(--text-primary)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="clock" size="md" hint-size="20px,20px"></x-import></span><div class="type-body-md" style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px; line-height: 1.45"><strong class="type-label-lg">Sent. Waiting for a reviewer</strong><span>A person at HalalGoes checks your renewed certificate within 3 business days. {{sentNext}}</span></div></div>
+<div style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 12px; background: var(--surface-sunken)"><div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px"><span class="type-label-lg" style="font-family: var(--font-mono)">halal-certificate-hma-2026-renewed.pdf</span><span class="type-body-sm" style="color: var(--text-secondary)">HMA Canada · Certificate HMA-2026-01344 · Valid until 30 September 2027 · Sent 2 October 2026</span></div><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="sm" accessibility-label="Download file: renewed halal certificate" hint-size="130px,44px">Download file</x-import></div>
+<span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 3px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">No seal here: the seal stays bound to the profile’s halal state (expired, slate) until the server changes it.</span>
+</sc-if>
+<span style="align-self: flex-start; display: inline-flex; align-items: center; padding: 3px 8px; border: 1.5px dashed var(--color-info-600); background: var(--color-info-50); color: var(--color-info-700); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">Needs API: renewed-certificate upload after setup (drawn as attach, then submit)</span>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"mode": {"editor": "enum", "options": ["idle", "uploading", "details", "detailserror", "sending", "sendfailed", "sent"], "default": "details"}, "ctx": {"editor": "enum", "options": ["live", "setup"], "default": "live"}, "w": {"editor": "text", "default": "640px"}, "h": {"editor": "text", "default": "auto"}, "$preview": {"width": 640, "height": 560}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const mode = this.props.mode ?? 'details';
+    const form = ['details', 'detailserror', 'sending', 'sendfailed'].includes(mode);
+    const err = mode === 'detailserror';
+    const badge = { uploading: ['info', null, 'Uploading'], details: ['info', null, 'Details needed'], detailserror: ['outline', 'clock', 'Not sent'], sending: ['info', null, 'Sending'], sendfailed: ['outline', null, 'Not sent'], sent: ['info', 'clock', 'In review'], idle: ['outline', null, 'Not added'] }[mode];
+    const codes = { details: 'Sent as a new version of the halal certificate, then submitted (see the chip below).', detailserror: '422 DOCUMENT_ALREADY_EXPIRED. Slate with a clock: an expired halal date is never red or amber.', sending: 'In flight: fields read-only, button busy.', sendfailed: 'Network or 5xx. Try again reuses the Idempotency-Key, so nothing is sent twice.' };
+    return {
+      yes: true, w: this.props.w ?? '640px', h: this.props.h ?? 'auto',
+      sentNext: (this.props.ctx ?? 'live') === 'setup' ? 'Setup carries on by itself once it’s approved, and we’ll email you.' : 'Your listing comes back by itself once it’s approved, and we’ll email you.',
+      m: { idle: mode === 'idle', uploading: mode === 'uploading', form, detailsError: err, sending: mode === 'sending', failed: mode === 'sendfailed', sent: mode === 'sent' },
+      badgeVariant: badge[0], badgeIcon: badge[1], badgeLabel: badge[2],
+      valid: err ? '30 September 2026' : '30 September 2027', validInvalid: err ? 'true' : 'false', validDesc: err ? 'renew-valid-help renew-valid-error' : 'renew-valid-help',
+      validBorder: err ? '2px solid var(--border-strong)' : '1.5px solid var(--control-border)',
+      sendLabel: mode === 'sendfailed' ? 'Try again' : 'Send renewed certificate', sendIcon: mode === 'sendfailed' ? 'refresh' : null,
+      formCode: codes[mode] || '', hasCode: !!codes[mode],
+      bodies: [{ value: 'hma', label: 'HMA Canada' }, { value: 'hfsaa', label: 'HFSAA' }, { value: 'isna', label: 'ISNA Canada' }]
+    };
+  }
+}
+</script>
+</body>
+</html>

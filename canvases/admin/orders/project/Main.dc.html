@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Orders and refunds overview</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+</style>
+</helmet>
+<div style="width: 1440px; height: 2080px; box-sizing: border-box; padding: var(--space-12) var(--space-16); background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui); display: flex; flex-direction: column; gap: var(--space-8)">
+  <div style="display: flex; flex-direction: column; gap: var(--space-2); max-width: 920px">
+    <div style="font-size: var(--type-label-md-size); font-weight: var(--font-weight-semibold); color: var(--text-secondary)">HalalGoes admin · desktop 1440 × 900 · compact density</div>
+    <h1 style="margin: 0; font-size: var(--type-display-md-size); font-weight: var(--font-weight-bold); letter-spacing: -0.02em">Orders and refunds</h1>
+    <p style="margin: 0; font-size: var(--type-body-md-size); line-height: 1.5; color: var(--text-secondary)">Find any order, see exactly where it stands and what money moved, and act on it: cancel, reveal the delivery address with a reason, or refund by reason with the split the server computes. Everything drawn as real comes from the API contract. Anything the contract lacks is a labelled placeholder.</p>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-6)">
+    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" padding="var(--space-6)" radius="lg">
+      <section aria-labelledby="layout-h" style="display: flex; flex-direction: column; gap: var(--space-3)">
+        <h2 id="layout-h" style="margin: 0; font-size: var(--type-heading-md-size); font-weight: var(--font-weight-semibold)">How every working page is laid out</h2>
+        <ul style="margin: 0; padding-left: var(--space-5); display: flex; flex-direction: column; gap: var(--space-2); font-size: var(--type-body-md-size); line-height: 1.5">
+          <li><strong>The page never scrolls.</strong> Each board is the whole 1440 × 900 window. Long lists scroll inside their own region (the grid virtualises its rows); the page stays still.</li>
+          <li><strong>Overview, then detail, then more detail, side by side.</strong> Orders grid or Disputes → the list you came from + order + More detail (timeline, map, event log, ledger). The Refunds page is for its own work only: the failed-refunds queue and looking up a code.</li>
+          <li><strong>No dialogs for working tasks.</strong> Cancel, reveal the address and issuing a refund (form, review and result) open as an in-page panel that takes the place of More detail; Close or Done brings More detail back. The live map widens More detail over the list. Sign in again is the one dialog, because nothing can continue without it.</li>
+          <li><strong>Collapsible navigation and panes.</strong> The sidebar folds to an icon rail when an order is open; the list and More detail panes collapse or widen.</li>
+        </ul>
+      </section>
+    </x-import>
+    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" padding="var(--space-6)" radius="lg">
+      <section aria-labelledby="dec-h" style="display: flex; flex-direction: column; gap: var(--space-3)">
+        <h2 id="dec-h" style="margin: 0; font-size: var(--type-heading-md-size); font-weight: var(--font-weight-semibold)">Owner decisions drawn here</h2>
+        <ul style="margin: 0; padding-left: var(--space-5); display: flex; flex-direction: column; gap: var(--space-2); font-size: var(--type-body-sm-size); line-height: 1.5">
+          <li><strong>Cancel works at launch with an optional case id</strong>, before and after the restaurant accepts. Support agents cancel only before acceptance. The contract still requires a case id (Needs API).</li>
+          <li><strong>No package seals at launch.</strong> No seal step on the timeline; the packaging-tamper refund reason isn't offered. Staff file a customer's halal complaint as Halal concern, with evidence. The restaurant pays only when the evidence backs it up; otherwise it is goodwill paid by the platform.</li>
+          <li><strong>A goodwill refund above $50.00 needs a second approver</strong>, for every role.</li>
+          <li><strong>Dates:</strong> short in table cells (28 Sep, 6:52 pm), the full date in the tooltip and on detail views.</li>
+          <li><strong>Expiring soon</strong> shows its amber tint, never the solid seal, labelled with the certificate’s own date: <dc-import name="HalalState" state="EXPIRING_SOON" size="sm" expires="19 Oct" expires-full="19 October 2026" hint-size="210px,20px"></dc-import> Drawn with the proposed HalalState composite (Proposed component: HalalState) until the design system’s badge has this look.</li>
+          <li><strong>No recovery codes:</strong> a lost authenticator is reset only by a super admin, after calling the person back on the phone number on file and matching two account details.</li>
+          <li><strong>Later-version features are out:</strong> rider ratings and My sessions. Staff management and the menu review queue now ship at launch (owner decision, round 2), on their own canvases.</li>
+          <li><strong>Light theme only</strong> for release 1.0 (owner decision); the dark boards are gone.</li>
+          <li><strong>Times are 12-hour</strong> everywhere (6:52 pm).</li>
+          <li><strong>On-call for failed refunds</strong> is named with a phone number and links the runbook from issue #66 (name and phone to come).</li>
+        </ul>
+      </section>
+    </x-import>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-6)">
+    <div style="grid-column: span 2">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" padding="var(--space-6)" radius="lg">
+        <section aria-labelledby="flows-h" style="display: flex; flex-direction: column; gap: var(--space-4)">
+          <h2 id="flows-h" style="margin: 0; font-size: var(--type-heading-md-size); font-weight: var(--font-weight-semibold)">Flows on this canvas</h2>
+          <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4) var(--space-8); font-size: var(--type-body-md-size); line-height: 1.5">
+            <div style="display: flex; flex-direction: column; gap: var(--space-1)"><a href="OrdersGrid.dc.html" style="font-weight: var(--font-weight-semibold)">Orders grid</a><span style="color: var(--text-secondary)">All 14 states, next deadlines with what happens at zero, filters with More filters and applied chips, zero results, a bad code, support agent, session ended, reduced motion.</span></div>
+            <div style="display: flex; flex-direction: column; gap: var(--space-1)"><a href="DisputesOpen.dc.html" style="font-weight: var(--font-weight-semibold)">Disputes</a><span style="color: var(--text-secondary)">Every open dispute loaded first, then sorted by next deadline. Loading, a page that fails, offline, session ended, a bad code, no match, support agent.</span></div>
+            <div style="display: flex; flex-direction: column; gap: var(--space-1)"><a href="OrderDetail.dc.html" style="font-weight: var(--font-weight-semibold)">Order workspace</a><span style="color: var(--text-secondary)">The list you came from, the order and More detail side by side. Every order and dispatch state, system cancels, three kinds of dispute, automatic resolution, refund rows in every state.</span></div>
+            <div style="display: flex; flex-direction: column; gap: var(--space-1)"><a href="CancelProposed.dc.html" style="font-weight: var(--font-weight-semibold)">Cancel, reveal and re-auth panels</a><span style="color: var(--text-secondary)">Cancel before and after acceptance, results, errors, conflicts, the support-agent cases, the justified address reveal and a session that ends mid-form.</span></div>
+            <div style="display: flex; flex-direction: column; gap: var(--space-1)"><a href="LiveMap.dc.html" style="font-weight: var(--font-weight-semibold)">Live map</a><span style="color: var(--text-secondary)">Opens by widening More detail beside the order. Deadline, rider estimate and current leg on top; your connection and the rider's signal kept apart.</span></div>
+            <div style="display: flex; flex-direction: column; gap: var(--space-1)"><a href="LiveAlerts.dc.html" style="font-weight: var(--font-weight-semibold)">Live alerts</a><span style="color: var(--text-secondary)">No rider found, ledger mismatches and ops alerts as they arrive. Connecting, refused, session ended, reconnecting, a critical alert while you work.</span></div>
+            <div style="display: flex; flex-direction: column; gap: var(--space-1)"><a href="https://claude.ai/artifact/NDbFfhcv4MwRgwjmFtpxrx" style="font-weight: var(--font-weight-semibold)">Refunds</a><span style="color: var(--text-secondary)">The refund panel in the order workspace: scope and reasons, evidence, the review step, every result and refusal. The Refunds page keeps the failed-refunds queue and code lookup.</span></div>
+            <div style="display: flex; flex-direction: column; gap: var(--space-1)"><a href="FocusStates.dc.html" style="font-weight: var(--font-weight-semibold)">Keyboard focus</a><span style="color: var(--text-secondary)">Skip links, roving grid rows, menus, fields, buttons, map controls, the collapsible nav and where focus goes when a panel opens and closes.</span></div>
+          </div>
+        </section>
+      </x-import>
+    </div>
+    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" padding="var(--space-6)" radius="lg">
+      <section aria-labelledby="legend-h" style="display: flex; flex-direction: column; gap: var(--space-4)">
+        <h2 id="legend-h" style="margin: 0; font-size: var(--type-heading-md-size); font-weight: var(--font-weight-semibold)">Placeholders</h2>
+        <div style="display: flex; flex-direction: column; gap: var(--space-2)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="info" size="sm" icon="info" style="align-self: flex-start">Needs API</x-import><span style="font-size: var(--type-body-sm-size); line-height: 1.45; color: var(--text-secondary)">Data or an action the contract doesn't provide. Never drawn with sample data.</span></div>
+        <div style="display: flex; flex-direction: column; gap: var(--space-2)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="outline" size="sm" style="align-self: flex-start">Proposed component: Name</x-import><span style="font-size: var(--type-body-sm-size); line-height: 1.45; color: var(--text-secondary)">A composite built only from design-system parts and shadcn/ui, labelled so it can join the system after owner approval.</span></div>
+        <div style="display: flex; flex-direction: column; gap: var(--space-2)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="outline" size="sm" style="align-self: flex-start">Note</x-import><span style="font-size: var(--type-caption-size); font-style: italic; line-height: 1.45; color: var(--text-secondary)">Designer annotation, in italics. Never shipped as product copy.</span></div>
+      </section>
+    </x-import>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-6)">
+    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" padding="var(--space-6)" radius="lg">
+      <section aria-labelledby="gaps-h" style="display: flex; flex-direction: column; gap: var(--space-3)">
+        <h2 id="gaps-h" style="margin: 0; font-size: var(--type-heading-md-size); font-weight: var(--font-weight-semibold)">Proposed components</h2>
+        <ul style="margin: 0; padding-left: var(--space-5); display: flex; flex-direction: column; gap: var(--space-2); font-size: var(--type-body-sm-size); line-height: 1.45">
+          <li><strong>Approved for the system:</strong> SideNav (collapsible, with an icon rail), StatCard, KeyValueList, FileDrop.</li>
+          <li><strong>Layout:</strong> ResizablePanels (shadcn Resizable) and DetailPanel, the in-page panel that stands in for dialogs on desktop.</li>
+          <li><strong>DataGrid</strong> on LyteNyte: 44px rows, rich cells, virtualised inside its region, pinned Order column. Drawn on DataTable until it exists.</li>
+          <li><strong>FilterBar</strong>, <strong>FilterChip</strong>, <strong>MultiSelect</strong> for state, <strong>DateInput</strong>.</li>
+          <li><strong>MoneyInput</strong>, <strong>Textarea with counter</strong>, <strong>Stepper</strong>, <strong>Select option groups</strong>.</li>
+          <li><strong>Banner</strong>, <strong>EmptyState</strong>, <strong>ErrorState</strong>, <strong>Skeleton</strong> outside tables, <strong>EventLog</strong>.</li>
+          <li><strong>MapView</strong> and <strong>MapPin</strong>; <strong>Wordmark on dark</strong>.</li>
+        </ul>
+      </section>
+    </x-import>
+    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" padding="var(--space-6)" radius="lg">
+      <section aria-labelledby="needs-h" style="display: flex; flex-direction: column; gap: var(--space-3)">
+        <h2 id="needs-h" style="margin: 0; font-size: var(--type-heading-md-size); font-weight: var(--font-weight-semibold)">Needs API (to file)</h2>
+        <ul style="margin: 0; padding-left: var(--space-5); display: flex; flex-direction: column; gap: var(--space-2); font-size: var(--type-body-sm-size); line-height: 1.45">
+          <li><strong>Cancel</strong>: make the case id optional (owner approved); which refund reason each cancel reason becomes.</li>
+          <li><strong>Support cases</strong>: handing a cancel to an admin, opening an incident mid-delivery, noting refunds against a dispute.</li>
+          <li><strong>Disputes</strong>: reason in the list, evidence, resolving with Dispute resolution, escalation count and history, server sort by deadline, and whether automatic resolution refunds.</li>
+          <li><strong>Card chargebacks</strong> on the admin order view: disputed amount, evidence deadline, evidence sent, payout holds.</li>
+          <li><strong>Refunds</strong>: Fees only on the staff refund route, with a case id (the staff route has no Fees only scope; the general refund route has it but carries no case id or reason text); an upload purpose for refund evidence, and evidence ids on the staff route; refunded quantity per line; Whole order after a partial refund; order code and requester on each refund; replaced-by link; the grievance a Halal concern opens; preview and breakdown; 24-hour limit left; step-up code.</li>
+          <li><strong>Approval requests</strong>: read on the order, list, approve, decline.</li>
+          <li><strong>Order view</strong>: reassigning a delivery to another rider by hand, including when a rider is suspended mid-delivery (owner decision, round 2); customer name and masked phone; restaurant phone, address and preparation estimate; rider phone or proxy and account id; pickup estimate; click-to-call; staff audit events; halal state at the time of the order.</li>
+          <li><strong>Grid</strong>: restaurant picker by name; search by phone, email or name (issue #148); time in state; a sort parameter.</li>
+          <li><strong>Map and privacy</strong>: a coarse destination while the address is masked, and the exact destination kept out of the masked view.</li>
+          <li><strong>Alerts</strong>: history, acknowledge, order code and severity on every event.</li>
+          <li><strong>Other</strong>: staff name and email on the session; an incident record for ledger mismatches.</li>
+        </ul>
+      </section>
+    </x-import>
+  </div>
+
+  <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" padding="var(--space-6)" radius="lg">
+    <section aria-labelledby="rules-h" style="display: flex; flex-direction: column; gap: var(--space-4)">
+      <h2 id="rules-h" style="margin: 0; font-size: var(--type-heading-md-size); font-weight: var(--font-weight-semibold)">What these screens hold to</h2>
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-4) var(--space-8); font-size: var(--type-body-sm-size); line-height: 1.5; color: var(--text-secondary)">
+        <span><strong style="color: var(--text-primary)">Money is the server's.</strong> Every amount is integer cents in CAD from the API, drawn by Price. Nothing is added, split or estimated here. No tax is charged while HST registration is open, so orders show only the quote's lines, which add up to the total, and the ledger has no tax postings; every batch sums to zero.</span>
+        <span><strong style="color: var(--text-primary)">Halal is never guessed.</strong> Admin screens use the operational badge. A missing field shows plain "No status on file", never a badge. Expired is slate, never red. Expiring soon is amber, labelled with its certificate’s date (“Halal certified · expires 19 Oct”), drawn with the proposed HalalState composite. Solid green is the seal alone.</span>
+        <span><strong style="color: var(--text-primary)">Don't invite the wrong action.</strong> Where the system will cancel and refund on its own, refund and cancel sit in More actions and the page says so. A disputed order says refunding won't close the dispute.</span>
+        <span><strong style="color: var(--text-primary)">Role-aware.</strong> A support agent never sees a control the server would refuse, or sees it off with the reason.</span>
+        <span><strong style="color: var(--text-primary)">Nothing is lost.</strong> A failed action says "Nothing was changed". A session that ends mid-form keeps the draft in its panel.</span>
+        <span><strong style="color: var(--text-primary)">Plain words.</strong> No raw codes or protocol terms in copy. Codes and ids in IBM Plex Mono.</span>
+      </div>
+    </section>
+  </x-import>
+
+  <div style="display: flex; gap: var(--space-6); font-size: var(--type-body-sm-size); line-height: 1.5; color: var(--text-secondary)">
+    <span>Support agent views: <a href="OrdersSupport.dc.html">orders</a>, <a href="DisputesSupport.dc.html">disputes</a>, <a href="OrderDetailSupport.dc.html">order</a>, <a href="OrderDetailDisputedSupport.dc.html">disputed order</a>, <a href="LiveAlertsSupport.dc.html">live alerts</a>, <a href="CancelSupportBefore.dc.html">cancel before acceptance</a>, <a href="CancelSupportBlocked.dc.html">cancel refused after acceptance</a>, <a href="https://claude.ai/artifact/NDbFfhcv4MwRgwjmFtpxrx">refund panel</a>, <a href="https://claude.ai/artifact/NDbFfhcv4MwRgwjmFtpxrx">goodwill refused</a>, <a href="LiveMapSupport.dc.html">live map</a>.</span>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":2080}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

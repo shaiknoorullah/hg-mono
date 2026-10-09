@@ -1,0 +1,872 @@
+<!-- @dsCard group="Restaurant web" height=860 subtitle="Sign-in, onboarding, live order queue (180 s accept window), menu review, hours, payouts, staff, settings" page -->
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>HalalGoes — restaurant</title>
+<style>
+html,body{margin:0;min-height:100%;background:var(--color-neutral-100)}
+#root{min-height:100vh}
+/* "Show component gaps": every placeholder for a component the system lacks (#109) */
+.show-gaps [data-gap]{outline:1.5px dashed var(--color-info-500);outline-offset:2px}
+</style></head><body><div id="root"></div>
+<script>
+/* Compiled from Index4/Kit.jsx, customer-app/Photo.jsx, Index4/Data.jsx, Index4/RestaurantShell.jsx, Index4/AuthScreens.jsx, Index4/QueueScreen.jsx, Index4/MenuScreen.jsx, Index4/HoursScreen.jsx, Index4/PayoutsScreen.jsx, Index4/StaffScreen.jsx, Index4/SettingsScreen.jsx, Index4/RestaurantApp.jsx (JSX precompiled with esbuild; the viewer blocks
+   relative script URLs, so the kit is inlined). Components come from window.HalalGoesDesignSystem_d11a47. */
+/* Index4/Kit.jsx */
+(() => {
+  const { Button, Icon, IconButton, Card, Select, SegmentedControl, Switch, Badge } = window.HalalGoesDesignSystem_d11a47;
+  function Gap({ name, as = "div", style, children, ...rest }) {
+    const Tag = as;
+    return /* @__PURE__ */ React.createElement(Tag, { "data-gap": name, title: "Component gap: " + name + " (placeholder until #109)", style, ...rest }, children);
+  }
+  function GapWordmark({ size = 20, tone = "ink", sub }) {
+    const color = tone === "onDark" ? "var(--color-neutral-0)" : tone === "text" ? "var(--text-primary)" : "var(--color-accent-600)";
+    return /* @__PURE__ */ React.createElement(Gap, { name: "Wordmark", as: "span", style: { display: "inline-grid", gap: 2 } }, /* @__PURE__ */ React.createElement("span", { style: { fontFamily: "var(--font-display)", fontWeight: 800, fontSize: size, letterSpacing: "-.03em", color, lineHeight: 1.1 } }, "HalalGoes"), sub && /* @__PURE__ */ React.createElement("span", { style: { fontSize: "var(--type-caption-size)", color: tone === "onDark" ? "var(--text-on-accent)" : "var(--text-tertiary)", opacity: tone === "onDark" ? 0.8 : 1 } }, sub));
+  }
+  function GapSkeleton({ rows = 3, height = 72, media = false, style }) {
+    const bar = (w, h = 12) => /* @__PURE__ */ React.createElement("span", { style: { display: "block", width: w, height: h, borderRadius: "var(--radius-xs)", background: "var(--surface-sunken)" } });
+    return /* @__PURE__ */ React.createElement(Gap, { name: "Skeleton", "aria-busy": "true", "aria-label": "Loading", style: { display: "grid", gap: 12, ...style } }, Array.from({ length: rows }).map((_, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { display: "grid", gap: 8, padding: "var(--space-4)", minHeight: height, borderRadius: "var(--radius-lg)", border: "1px solid var(--border-decorative)", background: "var(--surface-raised)" } }, media && /* @__PURE__ */ React.createElement("span", { style: { display: "block", height: 96, borderRadius: "var(--radius-md)", background: "var(--surface-sunken)" } }), bar("55%", 14), bar("80%"), bar("35%"))));
+  }
+  function GapEmptyState({ icon = "search", title, body, action, onAction, secondary, onSecondary, style }) {
+    return /* @__PURE__ */ React.createElement(Gap, { name: "EmptyState", style: { display: "grid", justifyItems: "center", textAlign: "center", gap: 10, padding: "var(--space-8) var(--space-5)", ...style } }, /* @__PURE__ */ React.createElement("span", { style: { width: 56, height: 56, display: "grid", placeItems: "center", borderRadius: "var(--radius-full)", background: "var(--surface-sunken)", color: "var(--text-tertiary)" } }, icon ? /* @__PURE__ */ React.createElement(Icon, { name: icon, size: "lg" }) : null), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "var(--type-heading-md-size)", fontWeight: 600, color: "var(--text-primary)" } }, title), body && /* @__PURE__ */ React.createElement("p", { style: { margin: 0, maxWidth: 320, fontSize: "var(--type-body-sm-size)", lineHeight: "var(--type-body-sm-line)", color: "var(--text-secondary)" } }, body), (action || secondary) && /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, marginTop: 4, flexWrap: "wrap", justifyContent: "center" } }, action && /* @__PURE__ */ React.createElement(Button, { size: "md", onPress: onAction }, action), secondary && /* @__PURE__ */ React.createElement(Button, { size: "md", variant: "ghost", onPress: onSecondary }, secondary)));
+  }
+  function GapErrorState({ title = "Something went wrong", body, retry = "Try again", onRetry, terminal = false, exit, onExit, code, style }) {
+    return /* @__PURE__ */ React.createElement(Gap, { name: "ErrorState", role: "alert", style: { display: "grid", justifyItems: "center", textAlign: "center", gap: 10, padding: "var(--space-8) var(--space-5)", ...style } }, /* @__PURE__ */ React.createElement("span", { style: { width: 56, height: 56, display: "grid", placeItems: "center", borderRadius: "var(--radius-full)", background: "var(--feedback-warning-tint)", color: "var(--feedback-warning-tint-text)" } }, /* @__PURE__ */ React.createElement(Icon, { name: terminal ? "error" : "refresh", size: "lg" })), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "var(--type-heading-md-size)", fontWeight: 600, color: "var(--text-primary)" } }, title), body && /* @__PURE__ */ React.createElement("p", { style: { margin: 0, maxWidth: 320, fontSize: "var(--type-body-sm-size)", lineHeight: "var(--type-body-sm-line)", color: "var(--text-secondary)" } }, body), code && /* @__PURE__ */ React.createElement("span", { style: { fontFamily: "var(--font-mono)", fontSize: "var(--type-mono-sm-size)", color: "var(--text-tertiary)" } }, code), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 8, marginTop: 4 } }, !terminal && /* @__PURE__ */ React.createElement(Button, { size: "md", variant: "secondary", iconStart: "refresh", onPress: onRetry }, retry), exit && /* @__PURE__ */ React.createElement(Button, { size: "md", variant: "ghost", onPress: onExit }, exit)));
+  }
+  function GapBanner({ tone = "info", icon, title, children, action, style }) {
+    const T = {
+      info: ["var(--feedback-info-tint)", "var(--feedback-info-tint-text)", "var(--feedback-info-border)", "info"],
+      warning: ["var(--feedback-warning-tint)", "var(--feedback-warning-tint-text)", "var(--feedback-warning-border)", "warning"],
+      neutral: ["var(--surface-sunken)", "var(--text-secondary)", "var(--border-decorative)", "info"],
+      success: ["var(--feedback-success-tint)", "var(--feedback-success-tint-text)", "var(--feedback-success-border)", "check"],
+      danger: ["var(--feedback-danger-tint)", "var(--feedback-danger-tint-text)", "var(--feedback-danger-border)", "error"]
+    }[tone];
+    return /* @__PURE__ */ React.createElement(Gap, { name: "InlineAlert", role: "status", style: { display: "flex", gap: 10, alignItems: "flex-start", padding: "12px 14px", background: T[0], color: T[1], border: "1px solid " + T[2], borderRadius: "var(--radius-md)", ...style } }, /* @__PURE__ */ React.createElement("span", { style: { marginTop: 1 } }, /* @__PURE__ */ React.createElement(Icon, { name: icon || T[3], size: "md" })), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, display: "grid", gap: 2, fontSize: "var(--type-body-sm-size)", lineHeight: "var(--type-body-sm-line)" } }, title && /* @__PURE__ */ React.createElement("strong", { style: { fontWeight: 600, fontSize: "var(--type-label-lg-size)" } }, title), children && /* @__PURE__ */ React.createElement("span", null, children)), action);
+  }
+  function GapListRow({ icon, title, sub, right, onClick, chevron = !!onClick, style }) {
+    return /* @__PURE__ */ React.createElement(Gap, { name: "ListRow", onClick, style: { display: "flex", alignItems: "center", gap: 12, minHeight: "var(--target-field)", padding: "8px 0", borderTop: "1px solid var(--border-decorative)", cursor: onClick ? "pointer" : void 0, ...style } }, icon && /* @__PURE__ */ React.createElement("span", { style: { width: 36, height: 36, display: "grid", placeItems: "center", flex: "0 0 auto", borderRadius: "var(--radius-md)", background: "var(--surface-sunken)", color: "var(--text-secondary)" } }, /* @__PURE__ */ React.createElement(Icon, { name: icon, size: "md" })), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: 0, display: "grid", gap: 2 } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "var(--type-body-md-size)", fontWeight: 500, color: "var(--text-primary)" } }, title), sub && /* @__PURE__ */ React.createElement("div", { style: { fontSize: "var(--type-body-sm-size)", color: "var(--text-secondary)" } }, sub)), right, chevron && /* @__PURE__ */ React.createElement(Icon, { name: "chevron-right", size: "md", color: "var(--text-tertiary)" }));
+  }
+  function GapKeyValue({ rows, labelWidth = 140, style }) {
+    return /* @__PURE__ */ React.createElement(Gap, { name: "KeyValueList", as: "dl", style: { margin: 0, display: "grid", gap: 6, fontSize: "var(--type-body-sm-size)", ...style } }, rows.filter(Boolean).map(([k, v, o]) => /* @__PURE__ */ React.createElement("div", { key: k, style: { display: "flex", gap: 10, alignItems: "baseline" } }, /* @__PURE__ */ React.createElement("dt", { style: { width: labelWidth, flex: "0 0 auto", color: "var(--text-secondary)" } }, k), /* @__PURE__ */ React.createElement("dd", { style: { margin: 0, flex: 1, minWidth: 0, fontFamily: o && o.mono ? "var(--font-mono)" : "inherit", fontSize: o && o.mono ? "var(--type-mono-sm-size)" : "inherit", color: "var(--text-primary)", overflowWrap: "anywhere" } }, v))));
+  }
+  function GapChip({ label, selected, onClick, icon }) {
+    return /* @__PURE__ */ React.createElement(Gap, { name: "Chip", as: "span", style: { display: "inline-flex" } }, /* @__PURE__ */ React.createElement(
+      Button,
+      {
+        size: "sm",
+        variant: selected ? "secondary" : "tertiary",
+        iconStart: icon,
+        onPress: onClick,
+        style: { borderRadius: "var(--radius-full)" }
+      },
+      label
+    ));
+  }
+  function GapStepper({ value, onChange, min = 1, max = 20, label = "Quantity" }) {
+    return /* @__PURE__ */ React.createElement(Gap, { name: "QuantityStepper", role: "group", "aria-label": label, style: { display: "inline-flex", alignItems: "center", gap: 12 } }, /* @__PURE__ */ React.createElement(IconButton, { icon: "minus", accessibilityLabel: "One fewer", variant: "tonal", shape: "circle", disabled: value <= min, onPress: () => onChange(Math.max(min, value - 1)) }), /* @__PURE__ */ React.createElement("span", { "aria-live": "polite", style: { minWidth: 20, textAlign: "center", fontSize: "var(--type-heading-md-size)", fontWeight: 600, fontVariantNumeric: "var(--numeric-tabular)" } }, value), /* @__PURE__ */ React.createElement(IconButton, { icon: "plus", accessibilityLabel: "One more", variant: "tonal", shape: "circle", disabled: value >= max, onPress: () => onChange(Math.min(max, value + 1)) }));
+  }
+  function GapMap({ height = 180, pins = [], caption, style }) {
+    const colors = { restaurant: "var(--color-map-pin-restaurant)", rider: "var(--color-map-pin-rider)", customer: "var(--color-map-pin-customer)" };
+    return /* @__PURE__ */ React.createElement(Gap, { name: "MapView", style: { position: "relative", height, background: "var(--surface-sunken)", overflow: "hidden", ...style } }, /* @__PURE__ */ React.createElement("div", { style: { position: "absolute", inset: 0, display: "grid", placeItems: "center", color: "var(--text-tertiary)", fontSize: "var(--type-caption-size)", textAlign: "center", padding: 16 } }, /* @__PURE__ */ React.createElement("span", { style: { display: "grid", justifyItems: "center", gap: 6 } }, /* @__PURE__ */ React.createElement(Icon, { name: "map", size: "lg" }), /* @__PURE__ */ React.createElement("span", null, caption || "Map: pins from the payload"), /* @__PURE__ */ React.createElement("span", { style: { display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" } }, pins.map((p) => /* @__PURE__ */ React.createElement("span", { key: p.kind, style: { display: "inline-flex", alignItems: "center", gap: 5 } }, /* @__PURE__ */ React.createElement("span", { style: { width: 10, height: 10, borderRadius: "var(--radius-full)", background: colors[p.kind] } }), /* @__PURE__ */ React.createElement("span", { style: { fontFamily: "var(--font-mono)", fontSize: "var(--type-mono-sm-size)" } }, p.label)))))));
+  }
+  function GapFileUpload({ label, hint, state = "idle", fileName, error, onChoose }) {
+    return /* @__PURE__ */ React.createElement(Gap, { name: "FileUpload", style: { display: "grid", gap: 6 } }, label && /* @__PURE__ */ React.createElement("span", { style: { fontSize: "var(--type-label-md-size)", fontWeight: 600, color: "var(--text-secondary)" } }, label), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 12, padding: "var(--space-4)", border: "1.5px dashed " + (state === "error" ? "var(--feedback-danger-border)" : "var(--border-interactive)"), borderRadius: "var(--radius-md)", color: "var(--text-secondary)", background: "var(--surface-raised)" } }, /* @__PURE__ */ React.createElement(Icon, { name: state === "done" ? "check" : state === "uploading" ? "refresh" : "plus", size: "md" }), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, fontSize: "var(--type-body-sm-size)" } }, state === "done" ? fileName : state === "uploading" ? "Uploading " + (fileName || "") + "\u2026" : hint || "PDF, JPG or PNG"), /* @__PURE__ */ React.createElement(Button, { variant: "tertiary", size: "sm", loading: state === "uploading", onPress: onChoose }, state === "done" ? "Replace" : "Choose file")), error && /* @__PURE__ */ React.createElement("span", { style: { display: "flex", gap: 5, alignItems: "center", fontSize: "var(--type-caption-size)", color: "var(--feedback-danger-text)" } }, /* @__PURE__ */ React.createElement(Icon, { name: "error", size: "sm" }), error));
+  }
+  function GapSideNav({ items, value, onChange }) {
+    return /* @__PURE__ */ React.createElement(Gap, { name: "SideNav", as: "nav", "data-theme": "dark", style: { display: "grid", gap: 2, alignContent: "start", padding: "0 8px", background: "transparent" } }, items.map((n) => /* @__PURE__ */ React.createElement(
+      Button,
+      {
+        key: n.value,
+        variant: n.value === value ? "secondary" : "ghost",
+        iconStart: n.icon,
+        onPress: () => onChange(n.value),
+        accessibilityLabel: n.count != null ? n.label + ", " + n.count + " waiting" : void 0,
+        style: { justifyContent: "flex-start", width: "100%", color: "var(--text-on-accent)" }
+      },
+      /* @__PURE__ */ React.createElement("span", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, minWidth: 176 } }, /* @__PURE__ */ React.createElement("span", { style: { textAlign: "start" } }, n.label), n.count != null && /* @__PURE__ */ React.createElement(Badge, { variant: "brand", appearance: "solid", size: "sm" }, n.count))
+    )));
+  }
+  function GapStat({ label, children, sub }) {
+    return /* @__PURE__ */ React.createElement(Gap, { name: "StatCard" }, /* @__PURE__ */ React.createElement(Card, { radius: "lg", variant: "outlined" }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "var(--type-label-md-size)", color: "var(--text-tertiary)", fontWeight: 600 } }, label), /* @__PURE__ */ React.createElement("div", { style: { margin: "6px 0 2px" } }, children), sub && /* @__PURE__ */ React.createElement("div", { style: { fontSize: "var(--type-body-sm-size)", color: "var(--text-secondary)" } }, sub)));
+  }
+  function GapAvatar({ name = "", src, size = 44 }) {
+    const initials = name.split(" ").map((s) => s[0]).join("").slice(0, 2);
+    return /* @__PURE__ */ React.createElement(Gap, { name: "Avatar", as: "span", style: { width: size, height: size, flex: "0 0 auto", display: "grid", placeItems: "center", borderRadius: "var(--radius-full)", background: "var(--surface-sunken)", color: "var(--text-secondary)", fontWeight: 600, fontSize: size / 2.8, overflow: "hidden" } }, src ? /* @__PURE__ */ React.createElement("img", { src, alt: "", style: { width: "100%", height: "100%", objectFit: "cover" } }) : initials);
+  }
+  function GapAccordion({ items, open, onToggle }) {
+    return /* @__PURE__ */ React.createElement(Gap, { name: "Accordion", style: { display: "grid", gap: 10 } }, items.map(([q, a], i) => /* @__PURE__ */ React.createElement(Card, { key: q, radius: "lg", variant: "outlined", padding: "0" }, /* @__PURE__ */ React.createElement(
+      Button,
+      {
+        variant: "ghost",
+        fullWidth: true,
+        iconEnd: "chevron-down",
+        onPress: () => onToggle(open === i ? -1 : i),
+        accessibilityLabel: q + (open === i ? ", expanded" : ", collapsed"),
+        style: { justifyContent: "space-between", minHeight: 64, padding: "0 24px", whiteSpace: "normal", textAlign: "start" }
+      },
+      q
+    ), open === i && /* @__PURE__ */ React.createElement("p", { style: { margin: 0, padding: "0 24px 22px", fontSize: 15, lineHeight: 1.65, color: "var(--text-secondary)", maxWidth: 680 } }, a))));
+  }
+  const STATE_LABEL = { populated: "Populated", loading: "Loading", empty: "Empty", error: "Error" };
+  function readHash() {
+    try {
+      return Object.fromEntries(new URLSearchParams((location.hash || "").slice(1)));
+    } catch (e) {
+      return {};
+    }
+  }
+  function KitFrame({ title, screens, device = "phone", theme = "light", initial }) {
+    const h = readHash();
+    window.__KIT = screens.map((x) => ({ id: x.id, variants: x.variants ? x.variants.map((v) => v.id) : [null], states: x.states || ["populated", "loading", "empty", "error"] }));
+    const first = screens.find((s) => s.id === (h.screen || initial)) || screens[0];
+    const [screenId, setScreenId] = React.useState(first.id);
+    const screen = screens.find((s) => s.id === screenId) || screens[0];
+    const [variant, setVariant] = React.useState(h.variant || (screen.variants ? screen.variants[0].id : null));
+    const [state, setState] = React.useState(h.state || "populated");
+    const [showGaps, setShowGaps] = React.useState(h.gaps !== "0");
+    const states = screen.states || ["populated", "loading", "empty", "error"];
+    const go = (id, v) => {
+      const s = screens.find((x) => x.id === id);
+      setScreenId(id);
+      setState("populated");
+      setVariant(v || (s && s.variants ? s.variants[0].id : null));
+    };
+    const pick = (id) => go(id);
+    const ctx = { state: states.includes(state) ? state : "populated", variant: variant || (screen.variants ? screen.variants[0].id : null), go };
+    const body = screen.render(ctx);
+    return /* @__PURE__ */ React.createElement("div", { className: showGaps ? "kit show-gaps" : "kit", style: { display: "grid", gridTemplateRows: "auto 1fr", minHeight: "100%", background: "var(--color-neutral-100)" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "flex-end", gap: 12, flexWrap: "wrap", padding: "10px 16px", background: "var(--surface-raised)", borderBottom: "1px solid var(--border-decorative)" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gap: 2, marginRight: 8 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: "var(--type-label-sm-size)", color: "var(--text-tertiary)", fontWeight: 600, letterSpacing: ".04em" } }, title), /* @__PURE__ */ React.createElement("span", { style: { fontSize: "var(--type-caption-size)", color: "var(--text-tertiary)" } }, screens.length, " artboards")), /* @__PURE__ */ React.createElement(Select, { label: "Screen", value: screenId, onValueChange: pick, options: screens.map((s) => ({ value: s.id, label: s.label })), style: { minWidth: 220 } }), screen.variants && /* @__PURE__ */ React.createElement(Select, { label: "Variant", value: ctx.variant, onValueChange: (v) => {
+      setVariant(v);
+      setState("populated");
+    }, options: screen.variants.map((v) => ({ value: v.id, label: v.label })), style: { minWidth: 220 } }), states.length > 1 && /* @__PURE__ */ React.createElement(SegmentedControl, { label: "Artboard state", size: "sm", value: ctx.state, onChange: setState, options: states.map((s) => ({ value: s, label: STATE_LABEL[s] || s })) }), /* @__PURE__ */ React.createElement("div", { style: { marginLeft: "auto" } }, /* @__PURE__ */ React.createElement(Switch, { size: "sm", label: "Show component gaps", stateLabel: { on: "On", off: "Off" }, checked: showGaps, onCheckedChange: setShowGaps }))), device === "phone" ? /* @__PURE__ */ React.createElement("div", { style: { display: "grid", placeItems: "start center", padding: "12px 0 20px" } }, /* @__PURE__ */ React.createElement("div", { "data-theme": theme === "dark" ? "dark" : void 0, style: { width: 390, height: 820, background: "var(--surface-base)", color: "var(--text-primary)", borderRadius: 34, overflow: "hidden", boxShadow: "var(--elev-4)", position: "relative", display: "grid", gridTemplateRows: "auto 1fr" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", height: 28, padding: "0 18px", fontSize: 11, fontWeight: 600, fontVariantNumeric: "tabular-nums", color: "var(--text-primary)" } }, /* @__PURE__ */ React.createElement("span", null, "18:47"), /* @__PURE__ */ React.createElement("span", { style: { display: "flex", gap: 6 } }, /* @__PURE__ */ React.createElement("span", null, "5G"), /* @__PURE__ */ React.createElement("span", null, "84%"))), /* @__PURE__ */ React.createElement("div", { style: { position: "relative", overflow: "hidden", minHeight: 0 } }, body))) : /* @__PURE__ */ React.createElement("div", { "data-theme": theme === "dark" ? "dark" : void 0, style: { position: "relative", minHeight: 780, background: "var(--surface-base)" } }, body));
+  }
+  function Stateful({ state, loading, empty, error, children }) {
+    if (state === "loading") return loading || /* @__PURE__ */ React.createElement(GapSkeleton, null);
+    if (state === "empty") return empty || /* @__PURE__ */ React.createElement(GapEmptyState, { title: "Nothing here yet" });
+    if (state === "error") return error || /* @__PURE__ */ React.createElement(GapErrorState, null);
+    return children;
+  }
+  Object.assign(window, {
+    Gap,
+    GapWordmark,
+    GapSkeleton,
+    GapEmptyState,
+    GapErrorState,
+    GapBanner,
+    GapListRow,
+    GapKeyValue,
+    GapChip,
+    GapStepper,
+    GapMap,
+    GapFileUpload,
+    GapSideNav,
+    GapStat,
+    GapAvatar,
+    GapAccordion,
+    KitFrame,
+    Stateful
+  });
+})();
+
+/* customer-app/Photo.jsx */
+(() => {
+  function Photo({ src = null, alt = "", height = 160, aspect, radius = "lg", style }) {
+    const r = typeof radius === "string" ? "var(--radius-" + radius + ")" : radius;
+    return /* @__PURE__ */ React.createElement("div", { "data-gap": "MediaFrame", title: "Component gap: MediaFrame (placeholder until #109)", style: {
+      position: "relative",
+      height: aspect ? void 0 : height,
+      aspectRatio: aspect,
+      background: "var(--surface-sunken)",
+      borderRadius: r,
+      display: "grid",
+      placeItems: "center",
+      overflow: "hidden",
+      boxShadow: "inset 0 0 0 1px var(--border-decorative)",
+      ...style
+    } }, src ? /* @__PURE__ */ React.createElement("img", { src, alt, style: { width: "100%", height: "100%", objectFit: "cover" } }) : /* @__PURE__ */ React.createElement("span", { role: "img", "aria-label": alt ? alt + " (no image)" : "No image", style: { color: "var(--text-tertiary)", fontSize: "var(--type-caption-size)", fontWeight: 600, letterSpacing: ".02em" } }, typeof height === "number" && height < 56 ? "" : "No image"));
+  }
+  Object.assign(window, { Photo });
+})();
+
+/* Index4/Data.jsx */
+(() => {
+  const SERVER_TIME = "2026-09-12T18:48:00-04:00";
+  const secondsUntil = (iso) => Math.max(0, Math.round((Date.parse(iso) - Date.parse(SERVER_TIME)) / 1e3));
+  const hhmm = (iso) => iso ? iso.slice(11, 16) : "\u2014";
+  const RESTAURANT = {
+    id: "0191c2d4-5e7a-7f3b-8c21-4a9d0e6b2f11",
+    display_name: "Zaytoun Grill",
+    legal_name: "Zaytoun Grill Holdings Inc.",
+    address: "14 Ellesmere Rd, Scarborough, ON M1R 4B5",
+    phone: "(416) 555-0134",
+    cuisines: ["Levantine", "Grill"]
+  };
+  const AVAILABILITY = {
+    live: { open_state: "OPEN", is_accepting_orders: true, last_heartbeat_at: "2026-09-12T18:47:48-04:00", missed_order_count: 0 },
+    missed: { open_state: "OPEN", is_accepting_orders: true, last_heartbeat_at: "2026-09-12T18:47:48-04:00", missed_order_count: 2 },
+    offline: { open_state: "CLOSED_OFFLINE", is_accepting_orders: true, last_heartbeat_at: "2026-09-12T18:41:02-04:00", missed_order_count: 0 },
+    paused: { open_state: "PAUSED", is_accepting_orders: true, pause_until: "2026-09-12T19:10:00-04:00", last_heartbeat_at: "2026-09-12T18:47:48-04:00", missed_order_count: 0 }
+  };
+  const ORDERS = [
+    {
+      id: "0192f3a4-7c1e-7b2d-9a41-3c5e8f0b1d27",
+      code: "K7Q2",
+      state: "RESTAURANT_PENDING",
+      customer: "Aisha M.",
+      placed_at: "2026-09-12T18:47:36-04:00",
+      deadline_at: "2026-09-12T18:49:36-04:00",
+      total_cents: 4187,
+      lines: [{ quantity: 1, name: "Mixed charcoal grill", note: "No onions" }, { quantity: 2, name: "Chicken shawarma wrap", addon_names: ["Extra toum"] }]
+    },
+    {
+      id: "0192f3a4-6b0d-7a1c-8e30-2b4d7e9a0c16",
+      code: "K7P9",
+      state: "RESTAURANT_PENDING",
+      customer: "Omar S.",
+      placed_at: "2026-09-12T18:46:40-04:00",
+      deadline_at: "2026-09-12T18:49:40-04:00",
+      total_cents: 2650,
+      lines: [{ quantity: 1, name: "Falafel plate" }, { quantity: 1, name: "Mint lemonade" }]
+    },
+    {
+      id: "0192f3a3-9f2c-7e4b-a153-1c3b6d8f9e05",
+      code: "K7M4",
+      state: "PREPARING",
+      customer: "Sara K.",
+      placed_at: "2026-09-12T18:38:02-04:00",
+      seal_code: null,
+      total_cents: 3199,
+      lines: [{ quantity: 2, name: "Adana kebab" }]
+    },
+    {
+      id: "0192f3a3-5a1b-7d3a-b042-0b2a5c7e8d94",
+      code: "K7L8",
+      state: "PREPARING",
+      customer: "Bilal R.",
+      placed_at: "2026-09-12T18:34:10-04:00",
+      seal_code: "HG-48213",
+      total_cents: 1899,
+      lines: [{ quantity: 1, name: "Chicken shish plate" }]
+    },
+    {
+      id: "0192f3a2-e4f0-7c29-8f31-fa19b4d6c783",
+      code: "K7J1",
+      state: "READY_FOR_PICKUP",
+      customer: "Hana A.",
+      placed_at: "2026-09-12T18:29:44-04:00",
+      seal_code: "HG-48207",
+      total_cents: 2499,
+      lines: [{ quantity: 1, name: "Mixed charcoal grill" }]
+    },
+    {
+      id: "0192f3a2-2d9e-7b18-9e20-e908a3c5b672",
+      code: "K7G5",
+      state: "PICKED_UP",
+      customer: "Noor T.",
+      placed_at: "2026-09-12T18:12:20-04:00",
+      picked_up_at: "2026-09-12T18:31:05-04:00",
+      seal_code: "HG-48199",
+      total_cents: 1749,
+      lines: [{ quantity: 1, name: "Doner plate" }]
+    }
+  ];
+  const REJECT_REASONS = [
+    ["ITEM_UNAVAILABLE", "An item is unavailable"],
+    ["KITCHEN_AT_CAPACITY", "Kitchen at capacity"],
+    ["CLOSING_SOON", "Closing soon"],
+    ["EQUIPMENT_FAILURE", "Equipment failure"],
+    ["ADDRESS_OUT_OF_RANGE", "Address out of range"],
+    ["SUSPECTED_FRAUD", "Suspected fraud"],
+    ["OTHER", "Other"]
+  ];
+  const DELAY_REASONS = [
+    ["HIGH_VOLUME", "High volume"],
+    ["INGREDIENT_PREP", "Ingredient prep"],
+    ["EQUIPMENT_ISSUE", "Equipment issue"],
+    ["STAFF_SHORTAGE", "Staff shortage"],
+    ["ORDER_COMPLEXITY", "Order complexity"],
+    ["OTHER", "Other"]
+  ];
+  const MENU = [
+    { category: "Charcoal grills", items: [
+      { id: "0191c2d5-0a11-7c01-9d10-5e2f1a3b4c01", name: "Mixed charcoal grill", image_url: null, price_cents: 2499, availability_state: "AVAILABLE", dietary_tags: [], review: "APPROVED" },
+      { id: "0191c2d5-0a11-7c01-9d10-5e2f1a3b4c02", name: "Adana kebab", image_url: null, price_cents: 2199, availability_state: "OUT_OF_STOCK", out_of_stock_until: "2026-09-12T20:30:00-04:00", dietary_tags: ["SPICY"], review: "APPROVED" }
+    ] },
+    { category: "Wraps", items: [
+      { id: "0191c2d5-0a11-7c01-9d10-5e2f1a3b4c03", name: "Chicken shawarma wrap", image_url: null, price_cents: 1249, availability_state: "AVAILABLE", dietary_tags: [], review: "PENDING_REVIEW", pending_note: "Description and allergens edited" }
+    ] },
+    { category: "Plates", items: [
+      { id: "0191c2d5-0a11-7c01-9d10-5e2f1a3b4c04", name: "Falafel plate", image_url: null, price_cents: 1399, availability_state: "AVAILABLE", dietary_tags: ["VEGETARIAN"], review: "REJECTED", rejection_reason_code: "INCORRECT_DIETARY_TAG", review_note: "Tagged VEGAN but served with yoghurt sauce." },
+      { id: "0191c2d5-0a11-7c01-9d10-5e2f1a3b4c05", name: "Lamb mandi", image_url: null, price_cents: 2299, availability_state: "BLOCKED", dietary_tags: [], review: "APPROVED" }
+    ] },
+    { category: "Drinks", items: [
+      { id: "0191c2d5-0a11-7c01-9d10-5e2f1a3b4c06", name: "Mint lemonade", image_url: null, price_cents: 449, availability_state: "HIDDEN", dietary_tags: ["VEGAN"], review: "APPROVED" }
+    ] }
+  ];
+  const HOURS = {
+    timezone: "America/Toronto",
+    intervals: [
+      [1, "11:00", "23:00"],
+      [2, "11:00", "23:00"],
+      [3, "11:00", "23:00"],
+      [4, "11:00", "23:00"],
+      [5, "12:00", "01:00", true],
+      [6, "12:00", "01:00", true],
+      [0, "12:00", "22:00"]
+    ],
+    overrides: [
+      { date: "2026-10-12", is_closed: true, reason: "Thanksgiving" },
+      { date: "2026-12-24", is_closed: false, opens_at: "12:00", closes_at: "18:00", reason: "Early close" }
+    ]
+  };
+  const DAY = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const PAYOUTS = [
+    { id: "0192f1c0-11aa-7e00-8b10-000000000004", period: "7\u201313 Sept 2026", amount_cents: 289400, entry_count: 126, state: "READY" },
+    { id: "0192f1c0-11aa-7e00-8b10-000000000003", period: "31 Aug\u20136 Sept 2026", amount_cents: 412300, entry_count: 184, state: "TRANSFERRING" },
+    { id: "0192f1c0-11aa-7e00-8b10-000000000002", period: "24\u201330 Aug 2026", amount_cents: 338700, entry_count: 151, state: "HELD", hold_reason: "Open dispute on order K5X2 \u2014 held until resolved" },
+    { id: "0192f1c0-11aa-7e00-8b10-000000000001", period: "17\u201323 Aug 2026", amount_cents: 305100, entry_count: 143, state: "FAILED", failure_message: "The bank rejected the transfer: account closed" },
+    { id: "0192f1c0-11aa-7e00-8b10-000000000000", period: "10\u201316 Aug 2026", amount_cents: 297800, entry_count: 139, state: "PAID", paid_at: "17 Aug 2026" }
+  ];
+  const CONNECT = { payouts_enabled: true, charges_enabled: true, details_submitted: true, bank_last4: "4821", payout_interval: "weekly" };
+  const STAFF = [
+    { id: "0191c2d6-3b21-7a10-8c00-7d1e2f3a4b51", full_name: "Samir Haddad", email: "samir@zaytoungrill.ca", role: "RESTAURANT_MANAGER", status: "ACTIVE", last_login_at: "Today 17:02" },
+    { id: "0191c2d6-3b21-7a10-8c00-7d1e2f3a4b52", full_name: "Layla Nasser", email: "layla@zaytoungrill.ca", role: "RESTAURANT_STAFF", status: "ACTIVE", last_login_at: "Today 11:14" },
+    { id: "0191c2d6-3b21-7a10-8c00-7d1e2f3a4b53", full_name: "Yousef Karam", email: "yousef@zaytoungrill.ca", role: "RESTAURANT_STAFF", status: "INVITED", last_login_at: null }
+  ];
+  const DOC_TYPES = [
+    ["HALAL_CERTIFICATE", "Halal certificate", true],
+    ["BUSINESS_LICENCE", "Business licence", true],
+    ["FOOD_SAFETY", "Food safety certificate", true],
+    ["OWNER_ID", "Owner ID", true],
+    ["LIABILITY_INSURANCE", "Liability insurance", false]
+  ];
+  const DOCS = {
+    HALAL_CERTIFICATE: { state: "APPROVED", file: "halal-certificate-2026.pdf", valid_until: "12 Nov 2026", version: 2 },
+    BUSINESS_LICENCE: { state: "APPROVED", file: "business-licence.pdf", version: 1 },
+    FOOD_SAFETY: { state: "APPROVED", file: "dinesafe-2026.pdf", version: 1 },
+    OWNER_ID: { state: "APPROVED", file: "owner-id.jpg", version: 1 },
+    LIABILITY_INSURANCE: null
+  };
+  const DOC_STATE_BADGE = {
+    SUBMITTED: ["neutral", "Submitted"],
+    IN_REVIEW: ["info", "In review"],
+    APPROVED: ["neutral", "Approved"],
+    REJECTED: ["warning", "Needs a new upload"],
+    EXPIRED: ["neutral", "Expired"],
+    SUPERSEDED: ["neutral", "Superseded"]
+  };
+  Object.assign(window, {
+    SERVER_TIME,
+    secondsUntil,
+    hhmm,
+    RESTAURANT,
+    AVAILABILITY,
+    ORDERS,
+    REJECT_REASONS,
+    DELAY_REASONS,
+    MENU,
+    HOURS,
+    DAY,
+    PAYOUTS,
+    CONNECT,
+    STAFF,
+    DOC_TYPES,
+    DOCS,
+    DOC_STATE_BADGE
+  });
+})();
+
+/* Index4/RestaurantShell.jsx */
+(() => {
+  const { AppBar, Switch, Badge, Button } = window.HalalGoesDesignSystem_d11a47;
+  const RESTAURANT_NAV = [
+    { value: "orders", label: "Orders", icon: "orders" },
+    { value: "menu", label: "Menu" },
+    { value: "hours", label: "Hours", icon: "clock" },
+    { value: "payouts", label: "Payouts" },
+    { value: "staff", label: "Staff", icon: "profile" },
+    { value: "settings", label: "Settings" }
+  ];
+  function HeartbeatStatus({ availability }) {
+    const a = availability;
+    if (a.open_state === "CLOSED_OFFLINE") return /* @__PURE__ */ React.createElement(Badge, { variant: "warning", icon: "warning" }, "Offline \xB7 last check-in ", hhmm(a.last_heartbeat_at));
+    if (a.open_state === "PAUSED") return /* @__PURE__ */ React.createElement(Badge, { variant: "neutral", icon: "clock" }, "Paused until ", hhmm(a.pause_until));
+    return /* @__PURE__ */ React.createElement(Badge, { variant: "info", icon: "refresh" }, "Live \xB7 checked in ", Math.round((Date.parse(SERVER_TIME) - Date.parse(a.last_heartbeat_at)) / 1e3), " s ago");
+  }
+  function RestaurantShell({ view, onNav, availability = AVAILABILITY.live, children, title }) {
+    const [accepting, setAccepting] = React.useState(availability.is_accepting_orders && availability.open_state !== "PAUSED");
+    const current = RESTAURANT_NAV.find((n) => n.value === view);
+    return /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "236px 1fr", minHeight: 780, background: "var(--surface-base)" } }, /* @__PURE__ */ React.createElement("aside", { style: { background: "var(--surface-chrome)", color: "var(--text-on-accent)", display: "grid", gridTemplateRows: "auto 1fr auto" } }, /* @__PURE__ */ React.createElement("div", { style: { padding: "18px 18px 14px" } }, /* @__PURE__ */ React.createElement(GapWordmark, { size: 19, tone: "onDark", sub: "Restaurant partner" })), /* @__PURE__ */ React.createElement(GapSideNav, { items: RESTAURANT_NAV.map((n) => n.value === "orders" ? { ...n, count: ORDERS.filter((o) => o.state === "RESTAURANT_PENDING").length } : n), value: view, onChange: (v) => onNav && onNav(v) }), /* @__PURE__ */ React.createElement("div", { style: { padding: 16, borderTop: "1px solid var(--border-decorative)", fontSize: "var(--type-caption-size)", color: "var(--text-on-accent)", opacity: 0.8 } }, RESTAURANT.display_name)), /* @__PURE__ */ React.createElement("main", { style: { display: "grid", gridTemplateRows: "auto 1fr", minWidth: 0 } }, /* @__PURE__ */ React.createElement(
+      AppBar,
+      {
+        tone: "raised",
+        title: title || current && current.label,
+        subtitle: RESTAURANT.display_name + " \xB7 " + RESTAURANT.address,
+        actions: /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(HeartbeatStatus, { availability }), /* @__PURE__ */ React.createElement(Switch, { size: "sm", label: "Orders", stateLabel: { on: "Accepting orders", off: "Paused" }, checked: accepting, onCheckedChange: setAccepting }))
+      }
+    ), /* @__PURE__ */ React.createElement("div", { style: { overflowY: "auto", padding: "var(--space-6)", display: "grid", gap: "var(--space-4)", alignContent: "start" } }, availability.missed_order_count > 0 && /* @__PURE__ */ React.createElement(GapBanner, { tone: "warning", title: availability.missed_order_count + " orders timed out this week" }, "They were not accepted within 3 minutes, so the customers' payments were released. Keep this screen open and sound on while you are accepting orders."), children)));
+  }
+  Object.assign(window, { RestaurantShell, RESTAURANT_NAV, HeartbeatStatus });
+})();
+
+/* Index4/AuthScreens.jsx */
+(() => {
+  const { Card, Input, Button, Checkbox, Badge, Icon } = window.HalalGoesDesignSystem_d11a47;
+  function GapOnboardingSteps({ steps, current }) {
+    return /* @__PURE__ */ React.createElement(Gap, { name: "Stepper", as: "ol", "aria-label": "Onboarding progress", style: { listStyle: "none", margin: 0, padding: 0, display: "grid", gridTemplateColumns: "repeat(" + steps.length + ", minmax(0,1fr))", gap: 8 } }, steps.map((st, i) => /* @__PURE__ */ React.createElement("li", { key: st.label, "aria-current": i === current ? "step" : void 0, style: { display: "grid", gap: 6 } }, /* @__PURE__ */ React.createElement("span", { style: { height: 4, borderRadius: "var(--radius-full)", background: i < current ? "var(--action-secondary-bg)" : i === current ? "var(--action-primary-bg)" : "var(--border-decorative)" } }), /* @__PURE__ */ React.createElement("span", { style: { display: "flex", alignItems: "center", gap: 4, fontSize: "var(--type-label-md-size)", fontWeight: i === current ? 600 : 500, color: i <= current ? "var(--text-primary)" : "var(--text-tertiary)" } }, i < current && /* @__PURE__ */ React.createElement(Icon, { name: "check", size: "sm" }), st.label))));
+  }
+  function AuthFrame({ children, width = 440 }) {
+    return /* @__PURE__ */ React.createElement("div", { style: { minHeight: 780, display: "grid", placeItems: "start center", padding: "var(--space-12) var(--space-4)", background: "var(--surface-base)" } }, /* @__PURE__ */ React.createElement("div", { style: { width: "100%", maxWidth: width, display: "grid", gap: "var(--space-5)" } }, /* @__PURE__ */ React.createElement(GapWordmark, { size: 24, sub: "Restaurant partner" }), children));
+  }
+  function LoginScreen({ state, variant }) {
+    const totp = variant === "totp";
+    return /* @__PURE__ */ React.createElement(AuthFrame, null, /* @__PURE__ */ React.createElement(Card, { radius: "lg", variant: "elevated" }, /* @__PURE__ */ React.createElement("h1", { style: { margin: "0 0 var(--space-4)", fontSize: "var(--type-heading-lg-size)", fontWeight: 600 } }, totp ? "Enter your code" : "Sign in"), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gap: "var(--space-4)" } }, state === "error" && /* @__PURE__ */ React.createElement(GapBanner, { tone: "danger", title: totp ? "That code didn't work" : "Email or password is incorrect" }, totp ? "Codes change every 30 seconds. Use the newest one." : "Check both and try again."), totp ? /* @__PURE__ */ React.createElement(Input, { label: "6-digit code from your authenticator app", variant: "otp", autoComplete: "one-time-code", errorText: state === "error" ? "Code not accepted" : void 0 }) : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Input, { label: "Email", variant: "email", defaultValue: "samir@zaytoungrill.ca", autoComplete: "username" }), /* @__PURE__ */ React.createElement(Input, { label: "Password", variant: "password", defaultValue: "correct-horse", autoComplete: "current-password" })), /* @__PURE__ */ React.createElement(Button, { size: "lg", fullWidth: true, loading: state === "loading" }, totp ? "Verify" : "Continue"), !totp && /* @__PURE__ */ React.createElement(Button, { variant: "ghost", size: "sm" }, "Forgot password?"))), !totp && /* @__PURE__ */ React.createElement("p", { style: { margin: 0, textAlign: "center", fontSize: "var(--type-body-sm-size)", color: "var(--text-secondary)" } }, "New to HalalGoes? ", /* @__PURE__ */ React.createElement(Button, { variant: "ghost", size: "sm", href: "#screen=register" }, "Register your restaurant")));
+  }
+  function RegisterScreen({ state, variant }) {
+    const [agree, setAgree] = React.useState(false);
+    if (variant === "verify") {
+      return /* @__PURE__ */ React.createElement(AuthFrame, null, /* @__PURE__ */ React.createElement(Card, { radius: "lg", variant: "elevated" }, /* @__PURE__ */ React.createElement(
+        GapEmptyState,
+        {
+          title: "Check your email",
+          body: "We sent a verification link to samir@zaytoungrill.ca. Open it to continue to your restaurant profile.",
+          action: "Resend email",
+          secondary: "Change email address"
+        }
+      )));
+    }
+    return /* @__PURE__ */ React.createElement(AuthFrame, null, /* @__PURE__ */ React.createElement(Card, { radius: "lg", variant: "elevated" }, /* @__PURE__ */ React.createElement("h1", { style: { margin: "0 0 var(--space-4)", fontSize: "var(--type-heading-lg-size)", fontWeight: 600 } }, "Register your restaurant"), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gap: "var(--space-4)" } }, state === "error" && /* @__PURE__ */ React.createElement(GapBanner, { tone: "danger", title: "An account already uses this email" }, "Sign in instead, or use a different email."), /* @__PURE__ */ React.createElement(Input, { label: "Your full name", defaultValue: "Samir Haddad", autoComplete: "name" }), /* @__PURE__ */ React.createElement(Input, { label: "Work email", variant: "email", defaultValue: "samir@zaytoungrill.ca", errorText: state === "error" ? "Already registered" : void 0 }), /* @__PURE__ */ React.createElement(Input, { label: "Password", variant: "password", autoComplete: "new-password", helperText: "At least 12 characters." }), /* @__PURE__ */ React.createElement(Checkbox, { label: "I agree to the partner terms", checked: agree, onCheckedChange: setAgree }), /* @__PURE__ */ React.createElement(Button, { size: "lg", fullWidth: true, loading: state === "loading", disabled: !agree }, "Create account"))));
+  }
+  const ONBOARD_STEPS = [{ label: "Profile" }, { label: "Documents" }, { label: "Review" }, { label: "Payouts" }];
+  const ONBOARD_STEP_INDEX = { PROFILE_PENDING: 0, DOCUMENTS_PENDING: 1, DOCUMENTS_REJECTED: 1, DOCUMENTS_REVIEW: 2, PAYOUT_PENDING: 3 };
+  function OnboardingScreen({ state, variant }) {
+    const step = ONBOARD_STEP_INDEX[variant] || 0;
+    const body = (() => {
+      if (state === "loading") return /* @__PURE__ */ React.createElement(GapSkeleton, { rows: 2, height: 120 });
+      if (state === "error") return /* @__PURE__ */ React.createElement(GapErrorState, { title: "Couldn't save this step", body: "Nothing you entered is lost. Try again.", onRetry: () => {
+      } });
+      if (variant === "PROFILE_PENDING") return /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gap: "var(--space-4)" } }, /* @__PURE__ */ React.createElement(Input, { label: "Legal business name", helperText: "Exactly as on your halal certificate and business licence.", defaultValue: RESTAURANT.legal_name }), /* @__PURE__ */ React.createElement(Input, { label: "Display name", defaultValue: RESTAURANT.display_name }), /* @__PURE__ */ React.createElement(Input, { label: "Street address", iconStart: "map", defaultValue: RESTAURANT.address, helperText: "Ontario only at launch. Must match the address on your certificate." }), /* @__PURE__ */ React.createElement(Input, { label: "Phone", variant: "tel", defaultValue: RESTAURANT.phone }), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Button, { size: "lg", iconEnd: "chevron-right" }, "Save and continue")));
+      if (variant === "DOCUMENTS_PENDING" || variant === "DOCUMENTS_REJECTED") {
+        const rejected = variant === "DOCUMENTS_REJECTED" ? { HALAL_CERTIFICATE: { state: "REJECTED", file: "certificate.jpg", rejection_reason_code: "ILLEGIBLE", review_note: "Page 2 is cut off and the expiry date is unreadable. Upload the full certificate." } } : null;
+        const docs = variant === "DOCUMENTS_PENDING" ? { HALAL_CERTIFICATE: { state: "SUBMITTED", file: "halal-certificate-2026.pdf" } } : DOCS;
+        return /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gap: "var(--space-4)" } }, rejected && /* @__PURE__ */ React.createElement(GapBanner, { tone: "warning", title: "One document needs a new upload" }, "Fix the document below and resubmit. The rest of your application is kept."), /* @__PURE__ */ React.createElement(DocumentList, { docs, rejected }), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Button, { size: "lg", disabled: variant === "DOCUMENTS_PENDING" }, rejected ? "Resubmit for review" : "Submit for review")), variant === "DOCUMENTS_PENDING" && /* @__PURE__ */ React.createElement("span", { style: { fontSize: "var(--type-caption-size)", color: "var(--text-tertiary)" } }, "Upload the four required documents to submit."));
+      }
+      if (variant === "DOCUMENTS_REVIEW") return /* @__PURE__ */ React.createElement(
+        GapEmptyState,
+        {
+          icon: "clock",
+          title: "Your documents are being reviewed",
+          body: "A HalalGoes reviewer checks your halal certificate against seven points and verifies your other documents. Nothing is approved automatically; this page updates when the review is done.",
+          secondary: "View what you submitted"
+        }
+      );
+      return /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gap: "var(--space-4)" } }, /* @__PURE__ */ React.createElement(GapBanner, { tone: "neutral", icon: "check", title: "Documents approved" }, "Last step: connect a bank account so we can pay you every Monday."), /* @__PURE__ */ React.createElement("p", { style: { margin: 0, fontSize: "var(--type-body-md-size)", color: "var(--text-secondary)" } }, "Payouts are handled by Stripe. You will leave HalalGoes to enter your bank details and come back here when done."), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Button, { size: "lg", iconEnd: "chevron-right" }, "Continue to Stripe")));
+    })();
+    return /* @__PURE__ */ React.createElement(AuthFrame, { width: 720 }, /* @__PURE__ */ React.createElement(GapOnboardingSteps, { current: step, steps: ONBOARD_STEPS }), /* @__PURE__ */ React.createElement(Card, { radius: "lg", variant: "elevated" }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: "var(--space-4)" } }, /* @__PURE__ */ React.createElement("h1", { style: { margin: 0, fontSize: "var(--type-heading-lg-size)", fontWeight: 600 } }, ["Restaurant profile", "Documents", "Review", "Payouts"][step]), /* @__PURE__ */ React.createElement("span", { style: { marginLeft: "auto" } }, /* @__PURE__ */ React.createElement(Badge, { variant: "neutral", size: "sm" }, variant))), body));
+  }
+  Object.assign(window, { LoginScreen, RegisterScreen, OnboardingScreen });
+})();
+
+/* Index4/QueueScreen.jsx */
+(() => {
+  const { Card, Button, Badge, Price, Countdown, Icon, Modal, RadioGroup, Select, Input, StatusTimeline } = window.HalalGoesDesignSystem_d11a47;
+  const QUEUE_COLS = [
+    { key: "RESTAURANT_PENDING", label: "New", hint: "Accept within 3 min" },
+    { key: "PREPARING", label: "Preparing" },
+    { key: "READY_FOR_PICKUP", label: "Ready for pickup" },
+    { key: "PICKED_UP", label: "Collected", hint: "Rider scan" }
+  ];
+  function OrderLines({ lines }) {
+    return /* @__PURE__ */ React.createElement("ul", { style: { listStyle: "none", margin: 0, padding: 0, display: "grid", gap: 4 } }, lines.map((i) => /* @__PURE__ */ React.createElement("li", { key: i.name, style: { display: "flex", gap: 8, fontSize: "var(--type-body-sm-size)" } }, /* @__PURE__ */ React.createElement("span", { style: { fontVariantNumeric: "var(--numeric-tabular)", color: "var(--text-tertiary)", width: 18 } }, i.quantity, "\xD7"), /* @__PURE__ */ React.createElement("span", { style: { flex: 1 } }, i.name, i.addon_names && /* @__PURE__ */ React.createElement("span", { style: { display: "block", color: "var(--text-tertiary)" } }, "+ ", i.addon_names.join(", ")), i.note && /* @__PURE__ */ React.createElement("span", { style: { display: "block", color: "var(--text-secondary)", fontStyle: "italic" } }, "\u201C", i.note, "\u201D")))));
+  }
+  function RejectDialog({ order, onClose, onConfirm }) {
+    const [reason, setReason] = React.useState("");
+    return /* @__PURE__ */ React.createElement(
+      Modal,
+      {
+        open: true,
+        contained: true,
+        title: "Decline order #" + order.code + "?",
+        onClose,
+        description: "The customer's payment is released \u2014 they are not charged. Declines count toward your 7-day decline rate.",
+        actions: /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Button, { variant: "tertiary", onPress: onClose }, "Keep order"), /* @__PURE__ */ React.createElement(Button, { variant: "danger", destructive: true, disabled: !reason, onPress: () => onConfirm(reason) }, "Decline order #", order.code))
+      },
+      /* @__PURE__ */ React.createElement(
+        RadioGroup,
+        {
+          label: "Reason (required)",
+          name: "reject-" + order.code,
+          required: true,
+          value: reason || null,
+          onValueChange: setReason,
+          options: REJECT_REASONS.map(([value, label]) => ({ value, label }))
+        }
+      )
+    );
+  }
+  function DelayDialog({ order, onClose }) {
+    const [mins, setMins] = React.useState("10");
+    const [reason, setReason] = React.useState("HIGH_VOLUME");
+    return /* @__PURE__ */ React.createElement(
+      Modal,
+      {
+        open: true,
+        contained: true,
+        title: "Add a delay to #" + order.code,
+        onClose,
+        description: "The customer sees the new time. The rider is dispatched against it.",
+        actions: /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Button, { variant: "tertiary", onPress: onClose }, "Cancel"), /* @__PURE__ */ React.createElement(Button, { onPress: onClose }, "Add delay"))
+      },
+      /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gap: 12 } }, /* @__PURE__ */ React.createElement(Select, { label: "Reason", defaultValue: "HIGH_VOLUME", value: reason, onValueChange: setReason, options: DELAY_REASONS.map(([value, label]) => ({ value, label })) }), /* @__PURE__ */ React.createElement(
+        RadioGroup,
+        {
+          label: "Extra time",
+          name: "delay-" + order.code,
+          orientation: "horizontal",
+          value: mins,
+          onValueChange: setMins,
+          options: ["5", "10", "15"].map((m) => ({ value: m, label: m + " min" }))
+        }
+      ))
+    );
+  }
+  function SealBindRow({ order }) {
+    const [code, setCode] = React.useState("");
+    const [bound, setBound] = React.useState(order.seal_code);
+    if (bound) return /* @__PURE__ */ React.createElement(Badge, { variant: "neutral", icon: "lock" }, "Sealed \xB7 ", bound);
+    return /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gap: 8, gridTemplateColumns: "minmax(0,1fr)" } }, /* @__PURE__ */ React.createElement(Input, { label: "Seal code", placeholder: "Scan or type the code", value: code, onValueChange: setCode, style: { gridTemplateColumns: "minmax(0,1fr)" } }), /* @__PURE__ */ React.createElement(Button, { variant: "tertiary", size: "md", iconStart: "lock", onPress: () => setBound(code || "HG-48220") }, "Bind seal"));
+  }
+  function OrderCard({ o, expired, onReject, onDelay }) {
+    return /* @__PURE__ */ React.createElement(Card, { radius: "lg", variant: o.state === "RESTAURANT_PENDING" ? "elevated" : "outlined", padding: "0" }, /* @__PURE__ */ React.createElement("div", { style: { padding: "var(--space-4)", display: "grid", gap: 10 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: "var(--type-label-lg-size)", fontWeight: 700, fontVariantNumeric: "var(--numeric-tabular)" } }, "#", o.code), /* @__PURE__ */ React.createElement(Badge, { variant: "neutral", size: "sm" }, hhmm(o.placed_at))), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "var(--type-heading-sm-size)", fontWeight: 600 } }, o.customer), /* @__PURE__ */ React.createElement(OrderLines, { lines: o.lines }), /* @__PURE__ */ React.createElement("div", { style: { paddingTop: 8, borderTop: "1px solid var(--border-decorative)" } }, /* @__PURE__ */ React.createElement(Price, { cents: o.total_cents, size: "md" })), o.state !== "RESTAURANT_PENDING" && /* @__PURE__ */ React.createElement(StatusTimeline, { audience: "restaurant", state: o.state, orientation: "compact" }), o.state === "RESTAURANT_PENDING" && !expired && /* @__PURE__ */ React.createElement(Countdown, { expiresAt: o.deadline_at, serverNow: SERVER_TIME, windowSeconds: 180, variant: "bar", size: "sm", label: "to accept \xB7 server deadline" })), /* @__PURE__ */ React.createElement("div", { style: { padding: "0 var(--space-4) var(--space-4)", display: "grid", gap: 8 } }, o.state === "RESTAURANT_PENDING" && expired && /* @__PURE__ */ React.createElement(GapBanner, { tone: "warning", icon: "clock", title: "Timed out \u2014 payment released" }, "Nobody accepted #", o.code, " within 3 minutes. The customer was not charged and it counts as a missed order."), o.state === "RESTAURANT_PENDING" && !expired && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Button, { variant: "primary", critical: true, fullWidth: true, iconStart: "check", accessibilityLabel: "Accept order #" + o.code }, "Accept"), /* @__PURE__ */ React.createElement("div", { style: { height: 24 }, "aria-hidden": "true" }), /* @__PURE__ */ React.createElement(Button, { variant: "ghost", size: "sm", onPress: () => onReject(o), accessibilityLabel: "Decline order #" + o.code, style: { justifySelf: "center" } }, "Decline\u2026")), o.state === "PREPARING" && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(SealBindRow, { order: o }), /* @__PURE__ */ React.createElement(Button, { variant: "secondary", iconStart: "check", fullWidth: true, disabled: !o.seal_code }, "Mark ready"), !o.seal_code && /* @__PURE__ */ React.createElement("span", { style: { fontSize: "var(--type-caption-size)", color: "var(--text-tertiary)" } }, "Bind the seal first."), /* @__PURE__ */ React.createElement(Button, { variant: "ghost", size: "sm", iconStart: "clock", onPress: () => onDelay(o) }, "Add delay")), o.state === "READY_FOR_PICKUP" && /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gap: 6, fontSize: "var(--type-body-sm-size)", color: "var(--text-secondary)" } }, /* @__PURE__ */ React.createElement(Badge, { variant: "neutral", icon: "lock", size: "sm" }, "Sealed \xB7 ", o.seal_code), /* @__PURE__ */ React.createElement("span", { style: { display: "flex", gap: 6, alignItems: "center", color: "var(--text-tertiary)" } }, /* @__PURE__ */ React.createElement(Icon, { name: "clock", size: "sm" }), "Waiting for the rider to scan the seal")), o.state === "PICKED_UP" && /* @__PURE__ */ React.createElement("span", { style: { display: "flex", gap: 6, alignItems: "center", fontSize: "var(--type-body-sm-size)", color: "var(--text-tertiary)" } }, /* @__PURE__ */ React.createElement(Icon, { name: "check", size: "sm" }), " Picked up ", hhmm(o.picked_up_at), " \xB7 rider scanned ", o.seal_code)));
+  }
+  function QueueBoard({ orders, expired }) {
+    const [rejecting, setRejecting] = React.useState(null);
+    const [delaying, setDelaying] = React.useState(null);
+    return /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(4, minmax(0,1fr))", gap: "var(--space-4)", alignItems: "start" } }, QUEUE_COLS.map((c) => {
+      const list = orders.filter((o) => o.state === c.key);
+      return /* @__PURE__ */ React.createElement("section", { key: c.key, style: { display: "grid", gap: "var(--space-3)", alignContent: "start", minWidth: 0, gridTemplateColumns: "minmax(0,1fr)" } }, /* @__PURE__ */ React.createElement("header", { style: { display: "flex", alignItems: "baseline", gap: 8 } }, /* @__PURE__ */ React.createElement("h2", { style: { margin: 0, fontSize: "var(--type-heading-sm-size)", fontWeight: 600 } }, c.label), /* @__PURE__ */ React.createElement("span", { style: { fontSize: "var(--type-label-md-size)", color: "var(--text-tertiary)", fontVariantNumeric: "var(--numeric-tabular)" } }, list.length), c.hint && /* @__PURE__ */ React.createElement("span", { style: { marginLeft: "auto", fontSize: "var(--type-caption-size)", color: "var(--text-tertiary)" } }, c.hint)), list.map((o) => /* @__PURE__ */ React.createElement(OrderCard, { key: o.id, o, expired, onReject: setRejecting, onDelay: setDelaying })), list.length === 0 && /* @__PURE__ */ React.createElement(GapEmptyState, { icon: "orders", title: "Nothing here", style: { padding: "var(--space-6) var(--space-3)", border: "1px dashed var(--border-decorative)", borderRadius: "var(--radius-lg)" } }));
+    }), rejecting && /* @__PURE__ */ React.createElement(RejectDialog, { order: rejecting, onClose: () => setRejecting(null), onConfirm: () => setRejecting(null) }), delaying && /* @__PURE__ */ React.createElement(DelayDialog, { order: delaying, onClose: () => setDelaying(null) }));
+  }
+  function SoundGate() {
+    return /* @__PURE__ */ React.createElement(Card, { radius: "lg", variant: "elevated", style: { maxWidth: 520, justifySelf: "center", marginTop: "var(--space-8)" } }, /* @__PURE__ */ React.createElement(
+      GapEmptyState,
+      {
+        icon: "bell",
+        title: "Turn on order alerts to go live",
+        body: "New orders ring on this screen. You have 3 minutes to accept each one, so keep this tab open with sound on.",
+        action: "Enable sound and go live"
+      }
+    ));
+  }
+  function QueueScreen({ state, variant }) {
+    if (variant === "sound") return /* @__PURE__ */ React.createElement(SoundGate, null);
+    return /* @__PURE__ */ React.createElement(
+      Stateful,
+      {
+        state,
+        loading: /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(4,minmax(0,1fr))", gap: 16 } }, [0, 1, 2, 3].map((i) => /* @__PURE__ */ React.createElement(GapSkeleton, { key: i, rows: 2 }))),
+        empty: /* @__PURE__ */ React.createElement(GapEmptyState, { icon: "orders", title: "No live orders", body: "New orders appear here and ring. Keep this screen open: it checks in with the server so you keep receiving them." }),
+        error: /* @__PURE__ */ React.createElement(GapErrorState, { title: "Couldn't load the queue", body: "Your orders are safe on the server. The screen retries on its own; if it keeps failing you will stop receiving new orders after 5 minutes.", onRetry: () => {
+        } })
+      },
+      /* @__PURE__ */ React.createElement(React.Fragment, null, variant === "offline" && /* @__PURE__ */ React.createElement(GapBanner, { tone: "warning", title: "Connection lost \u2014 you are not receiving new orders" }, "This screen has not checked in since ", hhmm(AVAILABILITY.offline.last_heartbeat_at), ". Reconnecting\u2026 Orders already accepted are unaffected."), /* @__PURE__ */ React.createElement(QueueBoard, { orders: ORDERS, expired: variant === "expired" }))
+    );
+  }
+  Object.assign(window, { QueueScreen });
+})();
+
+/* Index4/MenuScreen.jsx */
+(() => {
+  const { Card, Button, Badge, Price, Icon, IconButton, DataTable, Menu, Select } = window.HalalGoesDesignSystem_d11a47;
+  const AVAIL_OPTIONS = [
+    { value: "AVAILABLE", label: "Available" },
+    { value: "OUT_OF_STOCK", label: "Out of stock" },
+    { value: "HIDDEN", label: "Hidden from menu" }
+  ];
+  function AvailabilityCell({ item }) {
+    const [v, setV] = React.useState(item.availability_state);
+    if (item.availability_state === "BLOCKED") {
+      return /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gap: 2 } }, /* @__PURE__ */ React.createElement(Badge, { variant: "neutral", icon: "lock", size: "sm" }, "Blocked by HalalGoes"), /* @__PURE__ */ React.createElement("span", { style: { fontSize: "var(--type-caption-size)", color: "var(--text-tertiary)", whiteSpace: "normal" } }, "Contact support to unblock"));
+    }
+    return /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gap: 4, minWidth: 170 } }, /* @__PURE__ */ React.createElement(Select, { label: "Availability of " + item.name, value: v, onValueChange: setV, options: AVAIL_OPTIONS }), v === "OUT_OF_STOCK" && /* @__PURE__ */ React.createElement("span", { style: { fontSize: "var(--type-caption-size)", color: "var(--text-tertiary)" } }, "Back at ", item.out_of_stock_until ? hhmm(item.out_of_stock_until) : "end of day"));
+  }
+  function ReviewCell({ item }) {
+    if (item.review === "PENDING_REVIEW") return /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gap: 2, whiteSpace: "normal", maxWidth: 240 } }, /* @__PURE__ */ React.createElement(Badge, { variant: "info", icon: "clock", size: "sm" }, "Change in review"), /* @__PURE__ */ React.createElement("span", { style: { fontSize: "var(--type-caption-size)", color: "var(--text-tertiary)" } }, item.pending_note, " \xB7 live version still shown"));
+    if (item.review === "REJECTED") return /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gap: 2, whiteSpace: "normal", maxWidth: 240 } }, /* @__PURE__ */ React.createElement(Badge, { variant: "warning", icon: "warning", size: "sm" }, "Change not approved"), /* @__PURE__ */ React.createElement("span", { style: { fontSize: "var(--type-caption-size)", color: "var(--text-secondary)" } }, /* @__PURE__ */ React.createElement("span", { style: { fontFamily: "var(--font-mono)" } }, item.rejection_reason_code), " \u2014 ", item.review_note));
+    return /* @__PURE__ */ React.createElement("span", { style: { color: "var(--text-tertiary)" } }, "Live");
+  }
+  function MenuScreen({ state }) {
+    const count = MENU.reduce((n, c) => n + c.items.length, 0);
+    return /* @__PURE__ */ React.createElement(
+      Stateful,
+      {
+        state,
+        loading: /* @__PURE__ */ React.createElement(GapSkeleton, { rows: 4, height: 56 }),
+        empty: /* @__PURE__ */ React.createElement(GapEmptyState, { icon: "orders", title: "Your menu is empty", body: "Add your first item. Names, descriptions, dietary and allergen tags are reviewed by HalalGoes before they go live.", action: "Add item" }),
+        error: /* @__PURE__ */ React.createElement(GapErrorState, { title: "Couldn't load your menu", body: "Nothing has changed on your storefront. Try again.", onRetry: () => {
+        } })
+      },
+      /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gap: "var(--space-4)", maxWidth: 1040 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 12 } }, /* @__PURE__ */ React.createElement(Button, { iconStart: "plus" }, "Add item"), /* @__PURE__ */ React.createElement("span", { style: { marginLeft: "auto", fontSize: "var(--type-body-sm-size)", color: "var(--text-tertiary)" } }, count, " items in ", MENU.length, " categories")), /* @__PURE__ */ React.createElement(GapBanner, { tone: "info", title: "Claim-bearing edits are reviewed" }, "Changes to a name, description, ingredients, dietary or allergen tags, or photo go live after HalalGoes approves them. Price and availability change at once."), MENU.map((cat) => /* @__PURE__ */ React.createElement("section", { key: cat.category, style: { display: "grid", gap: 8 } }, /* @__PURE__ */ React.createElement("h2", { style: { margin: 0, fontSize: "var(--type-heading-sm-size)", fontWeight: 600 } }, cat.category), /* @__PURE__ */ React.createElement(
+        DataTable,
+        {
+          caption: cat.category + " items",
+          hideCaption: true,
+          density: "comfortable",
+          rows: cat.items,
+          rowLabel: (r) => r.name,
+          rowActions: (r) => r.availability_state === "BLOCKED" ? [{ label: "Edit item", disabled: true, disabledReason: "Blocked by HalalGoes \u2014 contact support" }] : [{ label: "Edit item" }],
+          columns: [
+            { key: "name", label: "Item", render: (r) => /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 12 } }, /* @__PURE__ */ React.createElement(Photo, { src: r.image_url, alt: r.name, height: 40, radius: "sm", style: { width: 40 } }), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "var(--type-label-lg-size)", fontWeight: 600 } }, r.name)) },
+            { key: "tags", label: "Dietary", render: (r) => r.dietary_tags.length ? /* @__PURE__ */ React.createElement("span", { style: { display: "flex", gap: 4 } }, r.dietary_tags.map((t) => /* @__PURE__ */ React.createElement(Badge, { key: t, variant: "neutral", size: "sm" }, t.toLowerCase()))) : /* @__PURE__ */ React.createElement("span", { style: { color: "var(--text-tertiary)" } }, "\u2014") },
+            { key: "price", label: "Price", align: "end", numeric: true, render: (r) => /* @__PURE__ */ React.createElement(Price, { cents: r.price_cents, size: "sm" }) },
+            { key: "avail", label: "Availability", render: (r) => /* @__PURE__ */ React.createElement(AvailabilityCell, { item: r }) },
+            { key: "review", label: "Review", render: (r) => /* @__PURE__ */ React.createElement(ReviewCell, { item: r }) }
+          ]
+        }
+      ))), /* @__PURE__ */ React.createElement(Card, { radius: "lg", variant: "outlined" }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 12, alignItems: "flex-start" } }, /* @__PURE__ */ React.createElement("span", { style: { color: "var(--text-tertiary)" } }, /* @__PURE__ */ React.createElement(Icon, { name: "info", size: "md" })), /* @__PURE__ */ React.createElement("p", { style: { margin: 0, fontSize: "var(--type-body-sm-size)", color: "var(--text-secondary)", lineHeight: "var(--type-body-sm-line)" } }, "Dietary tags describe the dish. They never describe certification \u2014 your halal status comes from your approved certificate, not from a tag you can set."))))
+    );
+  }
+  Object.assign(window, { MenuScreen });
+})();
+
+/* Index4/HoursScreen.jsx */
+(() => {
+  const { Card, Button, Badge, DataTable } = window.HalalGoesDesignSystem_d11a47;
+  function HoursScreen({ state }) {
+    const order = [1, 2, 3, 4, 5, 6, 0];
+    const rows = order.map((d) => {
+      const iv = HOURS.intervals.find((i) => i[0] === d);
+      return { id: "d" + d, day: DAY[d], opens: iv ? iv[1] : null, closes: iv ? iv[2] : null, crosses: iv && iv[3] };
+    });
+    return /* @__PURE__ */ React.createElement(
+      Stateful,
+      {
+        state,
+        loading: /* @__PURE__ */ React.createElement(GapSkeleton, { rows: 2, height: 120 }),
+        empty: /* @__PURE__ */ React.createElement(GapEmptyState, { icon: "clock", title: "No opening hours yet", body: "Customers can't order until you set your weekly hours.", action: "Set weekly hours" }),
+        error: /* @__PURE__ */ React.createElement(GapErrorState, { title: "Couldn't load your hours", body: "Your storefront keeps its current hours. Try again.", onRetry: () => {
+        } })
+      },
+      /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: "var(--space-6)", alignItems: "start", maxWidth: 1040 } }, /* @__PURE__ */ React.createElement(Card, { radius: "lg", variant: "outlined" }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "baseline", gap: 10, marginBottom: "var(--space-3)" } }, /* @__PURE__ */ React.createElement("h3", { style: { margin: 0, fontSize: "var(--type-heading-md-size)", fontWeight: 600 } }, "Weekly hours"), /* @__PURE__ */ React.createElement("span", { style: { fontSize: "var(--type-caption-size)", color: "var(--text-tertiary)" } }, HOURS.timezone), /* @__PURE__ */ React.createElement(Button, { variant: "tertiary", size: "sm", style: { marginInlineStart: "auto" } }, "Edit week")), /* @__PURE__ */ React.createElement(DataTable, { caption: "Weekly opening hours", hideCaption: true, density: "compact", rows, columns: [
+        { key: "day", label: "Day" },
+        { key: "hours", label: "Hours", numeric: true, render: (r) => r.opens ? r.opens + " \u2013 " + r.closes : /* @__PURE__ */ React.createElement("span", { style: { color: "var(--text-tertiary)" } }, "Closed") },
+        { key: "note", label: "", render: (r) => r.crosses ? /* @__PURE__ */ React.createElement(Badge, { variant: "neutral", size: "sm" }, "Past midnight") : null }
+      ] })), /* @__PURE__ */ React.createElement(Card, { radius: "lg", variant: "outlined" }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "baseline", gap: 10, marginBottom: "var(--space-3)" } }, /* @__PURE__ */ React.createElement("h3", { style: { margin: 0, fontSize: "var(--type-heading-md-size)", fontWeight: 600 } }, "Date overrides"), /* @__PURE__ */ React.createElement(Button, { variant: "tertiary", size: "sm", iconStart: "plus", style: { marginInlineStart: "auto" } }, "Add date")), HOURS.overrides.length === 0 ? /* @__PURE__ */ React.createElement(GapEmptyState, { icon: "clock", title: "No overrides", body: "Add holidays and special hours here." }) : HOURS.overrides.map((o) => /* @__PURE__ */ React.createElement(
+        GapListRow,
+        {
+          key: o.date,
+          icon: "clock",
+          title: o.date + (o.reason ? " \xB7 " + o.reason : ""),
+          sub: o.is_closed ? "Closed all day" : o.opens_at + " \u2013 " + o.closes_at,
+          right: /* @__PURE__ */ React.createElement(Button, { variant: "ghost", size: "sm" }, "Edit")
+        }
+      ))))
+    );
+  }
+  Object.assign(window, { HoursScreen });
+})();
+
+/* Index4/PayoutsScreen.jsx */
+(() => {
+  const { DataTable, Price, Badge, Button, Icon } = window.HalalGoesDesignSystem_d11a47;
+  const PAYOUT_BADGE = {
+    DRAFT: ["neutral", "Accruing"],
+    READY: ["neutral", "Scheduled for Monday"],
+    TRANSFERRING: ["info", "On its way"],
+    TRANSFERRED: ["info", "Sent to bank"],
+    PAID: ["neutral", "Paid"],
+    HELD: ["warning", "Held"],
+    FAILED: ["danger", "Failed"]
+  };
+  function PayoutsScreen({ state, variant }) {
+    if (variant === "not-enabled") {
+      return /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gap: "var(--space-4)", maxWidth: 720 } }, /* @__PURE__ */ React.createElement(
+        GapBanner,
+        {
+          tone: "warning",
+          title: "Payouts are not enabled yet",
+          action: /* @__PURE__ */ React.createElement(Button, { size: "sm", iconEnd: "chevron-right" }, "Finish Stripe setup")
+        },
+        "Stripe still needs a few details before it can send your money (payouts_enabled is false). Nothing can be paid out until setup is complete."
+      ), /* @__PURE__ */ React.createElement(GapEmptyState, { icon: "clock", title: "No payouts yet" }));
+    }
+    return /* @__PURE__ */ React.createElement(
+      Stateful,
+      {
+        state,
+        loading: /* @__PURE__ */ React.createElement(GapSkeleton, { rows: 3, height: 48 }),
+        empty: /* @__PURE__ */ React.createElement(GapEmptyState, { icon: "clock", title: "No payouts yet", body: "Your first payout is sent on the Monday after the week of your first order." }),
+        error: /* @__PURE__ */ React.createElement(GapErrorState, { title: "Couldn't load payouts", body: "Your payouts are not affected. Try again.", onRetry: () => {
+        } })
+      },
+      /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gap: "var(--space-5)", maxWidth: 1040 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: "var(--space-4)" } }, /* @__PURE__ */ React.createElement(GapStat, { label: "Next payout", sub: "Monday \xB7 for 7\u201313 Sept" }, /* @__PURE__ */ React.createElement(Price, { cents: PAYOUTS[0].amount_cents, size: "xl" })), /* @__PURE__ */ React.createElement(GapStat, { label: "Paid to", sub: "Weekly, every Monday" }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: "var(--type-heading-lg-size)", fontWeight: 600, fontVariantNumeric: "var(--numeric-tabular)" } }, "Bank \u2022\u2022\u2022\u2022 ", CONNECT.bank_last4))), /* @__PURE__ */ React.createElement(DataTable, { caption: "Payouts, newest first", hideCaption: true, density: "comfortable", rows: PAYOUTS, columns: [
+        { key: "period", label: "Period" },
+        { key: "entry_count", label: "Entries", align: "end", numeric: true },
+        { key: "amount", label: "Amount", align: "end", numeric: true, render: (r) => /* @__PURE__ */ React.createElement(Price, { cents: r.amount_cents, size: "sm" }) },
+        { key: "state", label: "Status", render: (r) => /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gap: 2, whiteSpace: "normal", maxWidth: 320 } }, /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement(Badge, { variant: PAYOUT_BADGE[r.state][0], size: "sm" }, PAYOUT_BADGE[r.state][1])), r.hold_reason && /* @__PURE__ */ React.createElement("span", { style: { fontSize: "var(--type-caption-size)", color: "var(--text-secondary)" } }, r.hold_reason), r.failure_message && /* @__PURE__ */ React.createElement("span", { style: { fontSize: "var(--type-caption-size)", color: "var(--text-secondary)" } }, r.failure_message, " \u2014 update your bank details in Stripe."), r.paid_at && /* @__PURE__ */ React.createElement("span", { style: { fontSize: "var(--type-caption-size)", color: "var(--text-tertiary)" } }, r.paid_at)) }
+      ] }), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: 10, alignItems: "center", color: "var(--text-tertiary)", fontSize: "var(--type-caption-size)" } }, /* @__PURE__ */ React.createElement(Icon, { name: "info", size: "sm" }), " Amounts are computed by HalalGoes from your settled orders. Entries are the ledger lines in the period."))
+    );
+  }
+  Object.assign(window, { PayoutsScreen });
+})();
+
+/* Index4/StaffScreen.jsx */
+(() => {
+  const { DataTable, Badge, Button } = window.HalalGoesDesignSystem_d11a47;
+  const ROLE_LABEL = { RESTAURANT_MANAGER: "Manager", RESTAURANT_STAFF: "Staff" };
+  const STATUS_TONE = { ACTIVE: "neutral", INVITED: "info", SUSPENDED: "warning", DEACTIVATED: "neutral" };
+  function StaffScreen({ state }) {
+    return /* @__PURE__ */ React.createElement(
+      Stateful,
+      {
+        state,
+        loading: /* @__PURE__ */ React.createElement(GapSkeleton, { rows: 3, height: 48 }),
+        empty: /* @__PURE__ */ React.createElement(GapEmptyState, { icon: "profile", title: "Only you so far", body: "Invite managers and kitchen staff. Staff can run the order queue; managers can also edit the menu and hours.", action: "Invite staff" }),
+        error: /* @__PURE__ */ React.createElement(GapErrorState, { title: "Couldn't load your team", onRetry: () => {
+        } })
+      },
+      /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gap: "var(--space-4)", maxWidth: 1040 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex" } }, /* @__PURE__ */ React.createElement(Button, { iconStart: "plus" }, "Invite staff")), /* @__PURE__ */ React.createElement(
+        DataTable,
+        {
+          caption: "Restaurant staff",
+          hideCaption: true,
+          density: "comfortable",
+          rows: STAFF,
+          rowLabel: (r) => r.full_name,
+          rowActions: (r) => [
+            { label: "Change role" },
+            ...r.status === "INVITED" ? [{ label: "Resend invite" }] : [],
+            { type: "separator" },
+            { label: "Deactivate " + r.full_name.split(" ")[0], destructive: true }
+          ],
+          columns: [
+            { key: "full_name", label: "Name" },
+            { key: "email", label: "Email", muted: true },
+            { key: "role", label: "Role", render: (r) => ROLE_LABEL[r.role] },
+            { key: "status", label: "Status", render: (r) => /* @__PURE__ */ React.createElement(Badge, { variant: STATUS_TONE[r.status], size: "sm" }, r.status === "INVITED" ? "Invite sent" : r.status.toLowerCase()) },
+            { key: "last", label: "Last sign-in", muted: true, render: (r) => r.last_login_at || "\u2014" }
+          ]
+        }
+      ))
+    );
+  }
+  Object.assign(window, { StaffScreen });
+})();
+
+/* Index4/SettingsScreen.jsx */
+(() => {
+  const { Card, Input, Button, Badge, Icon, Modal } = window.HalalGoesDesignSystem_d11a47;
+  function DocumentList({ docs, rejected }) {
+    return /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gap: "var(--space-4)" } }, DOC_TYPES.map(([type, label, required]) => {
+      const d = rejected && rejected[type] ? rejected[type] : docs[type];
+      const badge = d ? DOC_STATE_BADGE[d.state] : null;
+      return /* @__PURE__ */ React.createElement("div", { key: type, style: { display: "grid", gap: 6, paddingTop: "var(--space-3)", borderTop: "1px solid var(--border-decorative)" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: 8 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: "var(--type-label-lg-size)", fontWeight: 600 } }, label), !required && /* @__PURE__ */ React.createElement("span", { style: { fontSize: "var(--type-caption-size)", color: "var(--text-tertiary)" } }, "Optional"), /* @__PURE__ */ React.createElement("span", { style: { marginLeft: "auto" } }, badge ? /* @__PURE__ */ React.createElement(Badge, { variant: badge[0], size: "sm" }, badge[1]) : /* @__PURE__ */ React.createElement(Badge, { variant: "neutral", size: "sm" }, "Not uploaded"))), d && d.state === "REJECTED" && /* @__PURE__ */ React.createElement(GapBanner, { tone: "warning", title: d.rejection_reason_code === "UNRECOGNISED_CERTIFIER" ? "We could not accept this issuer" : "Please upload a new copy" }, /* @__PURE__ */ React.createElement("span", { style: { fontFamily: "var(--font-mono)" } }, d.rejection_reason_code), " \u2014 ", d.review_note), /* @__PURE__ */ React.createElement(
+        GapFileUpload,
+        {
+          state: d && d.state !== "REJECTED" ? "done" : "idle",
+          fileName: d && d.file,
+          hint: type === "HALAL_CERTIFICATE" ? "The full certificate, every page. PDF, JPG or PNG." : "PDF, JPG or PNG"
+        }
+      ));
+    }));
+  }
+  function SettingsScreen({ state, variant }) {
+    const [asking, setAsking] = React.useState(false);
+    const cert = DOCS.HALAL_CERTIFICATE;
+    const locked = /* @__PURE__ */ React.createElement(Icon, { name: "lock", size: "sm", color: "var(--text-tertiary)" });
+    return /* @__PURE__ */ React.createElement(
+      Stateful,
+      {
+        state,
+        loading: /* @__PURE__ */ React.createElement(GapSkeleton, { rows: 2, height: 160 }),
+        empty: /* @__PURE__ */ React.createElement(GapEmptyState, { title: "Profile not set up", body: "Finish onboarding to set up your storefront.", action: "Continue onboarding" }),
+        error: /* @__PURE__ */ React.createElement(GapErrorState, { title: "Couldn't load your settings", onRetry: () => {
+        } })
+      },
+      /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: "var(--space-6)", alignItems: "start", maxWidth: 1080 } }, /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gap: "var(--space-4)" } }, /* @__PURE__ */ React.createElement(Card, { radius: "lg", variant: "outlined" }, /* @__PURE__ */ React.createElement("h3", { style: { margin: "0 0 var(--space-4)", fontSize: "var(--type-heading-md-size)", fontWeight: 600 } }, "Business details"), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gap: "var(--space-4)" } }, /* @__PURE__ */ React.createElement(Input, { label: "Legal name", value: RESTAURANT.legal_name, readOnly: true, suffix: locked, helperText: "Locked: matches your halal certificate (check H3)." }), /* @__PURE__ */ React.createElement(Input, { label: "Address", value: RESTAURANT.address, readOnly: true, suffix: locked, iconStart: "map", helperText: "Locked: matches your halal certificate (check H4)." }), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Button, { variant: "tertiary", size: "sm", onPress: () => setAsking(true) }, "Request a change")))), /* @__PURE__ */ React.createElement(Card, { radius: "lg", variant: "outlined" }, /* @__PURE__ */ React.createElement("h3", { style: { margin: "0 0 var(--space-4)", fontSize: "var(--type-heading-md-size)", fontWeight: 600 } }, "Storefront"), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gap: "var(--space-4)" } }, /* @__PURE__ */ React.createElement(Input, { label: "Display name", defaultValue: RESTAURANT.display_name }), /* @__PURE__ */ React.createElement(Input, { label: "Phone", variant: "tel", defaultValue: RESTAURANT.phone }), /* @__PURE__ */ React.createElement(Input, { label: "Cuisines", defaultValue: RESTAURANT.cuisines.join(", ") }), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(Button, null, "Save changes"))))), /* @__PURE__ */ React.createElement(Card, { radius: "lg", variant: "outlined" }, /* @__PURE__ */ React.createElement("h3", { style: { margin: "0 0 var(--space-2)", fontSize: "var(--type-heading-md-size)", fontWeight: 600 } }, "Documents"), /* @__PURE__ */ React.createElement("p", { style: { margin: "0 0 var(--space-3)", fontSize: "var(--type-body-sm-size)", color: "var(--text-secondary)", lineHeight: "var(--type-body-sm-line)" } }, "Upload the document. HalalGoes reads it and records the details; you don't type them in."), variant === "expiring" && /* @__PURE__ */ React.createElement(GapBanner, { tone: "warning", icon: "clock", title: "Your halal certificate expires " + cert.valid_until, style: { marginBottom: "var(--space-3)" } }, "Upload the renewed certificate before then. If it lapses your storefront is hidden from customers until the new one is approved."), /* @__PURE__ */ React.createElement(DocumentList, { docs: DOCS })), asking && /* @__PURE__ */ React.createElement(
+        Modal,
+        {
+          open: true,
+          contained: true,
+          title: "Request a change to your legal name or address",
+          onClose: () => setAsking(false),
+          description: "Both are checked against your halal certificate. Changing either sends your certificate back to HalalGoes for re-verification before the change takes effect.",
+          actions: /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Button, { variant: "tertiary", onPress: () => setAsking(false) }, "Cancel"), /* @__PURE__ */ React.createElement(Button, { onPress: () => setAsking(false) }, "Send request"))
+        },
+        /* @__PURE__ */ React.createElement(Input, { label: "What should change?", placeholder: "New legal name or address" })
+      ))
+    );
+  }
+  Object.assign(window, { SettingsScreen, DocumentList });
+})();
+
+/* Index4/RestaurantApp.jsx */
+(() => {
+  function inShell(view, ctx, node, availability) {
+    return /* @__PURE__ */ React.createElement(RestaurantShell, { view, onNav: (v) => ctx.go(v), availability }, node);
+  }
+  const RESTAURANT_SCREENS = [
+    {
+      id: "login",
+      label: "Sign in",
+      states: ["populated", "loading", "error"],
+      variants: [{ id: "password", label: "Email + password" }, { id: "totp", label: "Authenticator code (TOTP)" }],
+      render: (ctx) => /* @__PURE__ */ React.createElement(LoginScreen, { state: ctx.state, variant: ctx.variant })
+    },
+    {
+      id: "register",
+      label: "Register",
+      states: ["populated", "loading", "error"],
+      variants: [{ id: "form", label: "Form (REGISTERED)" }, { id: "verify", label: "Verify email" }],
+      render: (ctx) => /* @__PURE__ */ React.createElement(RegisterScreen, { state: ctx.state, variant: ctx.variant })
+    },
+    {
+      id: "onboarding",
+      label: "Onboarding",
+      states: ["populated", "loading", "error"],
+      variants: [
+        { id: "PROFILE_PENDING", label: "1 \xB7 Profile" },
+        { id: "DOCUMENTS_PENDING", label: "2 \xB7 Documents" },
+        { id: "DOCUMENTS_REJECTED", label: "2 \xB7 Fix documents (DOCUMENTS_REJECTED)" },
+        { id: "DOCUMENTS_REVIEW", label: "3 \xB7 Awaiting review" },
+        { id: "PAYOUT_PENDING", label: "4 \xB7 Payouts (Stripe)" }
+      ],
+      render: (ctx) => /* @__PURE__ */ React.createElement(OnboardingScreen, { state: ctx.state, variant: ctx.variant })
+    },
+    {
+      id: "orders",
+      label: "Orders (queue)",
+      variants: [
+        { id: "live", label: "Live" },
+        { id: "sound", label: "Sound gate (before going live)" },
+        { id: "offline", label: "Connection lost (CLOSED_OFFLINE)" },
+        { id: "expired", label: "Accept window ran out" },
+        { id: "missed", label: "Missed-orders notice" },
+        { id: "paused", label: "Paused" }
+      ],
+      render: (ctx) => inShell(
+        "orders",
+        ctx,
+        /* @__PURE__ */ React.createElement(QueueScreen, { state: ctx.state, variant: ctx.variant }),
+        AVAILABILITY[ctx.variant === "offline" ? "offline" : ctx.variant === "missed" ? "missed" : ctx.variant === "paused" ? "paused" : "live"]
+      )
+    },
+    { id: "menu", label: "Menu", render: (ctx) => inShell("menu", ctx, /* @__PURE__ */ React.createElement(MenuScreen, { state: ctx.state })) },
+    { id: "hours", label: "Hours", render: (ctx) => inShell("hours", ctx, /* @__PURE__ */ React.createElement(HoursScreen, { state: ctx.state })) },
+    {
+      id: "payouts",
+      label: "Payouts",
+      variants: [{ id: "enabled", label: "Stripe ready" }, { id: "not-enabled", label: "Payouts not enabled" }],
+      render: (ctx) => inShell("payouts", ctx, /* @__PURE__ */ React.createElement(PayoutsScreen, { state: ctx.state, variant: ctx.variant }))
+    },
+    { id: "staff", label: "Staff", render: (ctx) => inShell("staff", ctx, /* @__PURE__ */ React.createElement(StaffScreen, { state: ctx.state })) },
+    {
+      id: "settings",
+      label: "Settings (profile + documents)",
+      variants: [{ id: "current", label: "Certificate current" }, { id: "expiring", label: "Certificate expiring" }],
+      render: (ctx) => inShell("settings", ctx, /* @__PURE__ */ React.createElement(SettingsScreen, { state: ctx.state, variant: ctx.variant }))
+    }
+  ];
+  function RestaurantApp() {
+    return /* @__PURE__ */ React.createElement(KitFrame, { title: "RESTAURANT WEB", device: "desktop", screens: RESTAURANT_SCREENS, initial: "orders" });
+  }
+  ReactDOM.createRoot(document.getElementById("root")).render(/* @__PURE__ */ React.createElement(RestaurantApp, null));
+})();
+
+</script></body></html>

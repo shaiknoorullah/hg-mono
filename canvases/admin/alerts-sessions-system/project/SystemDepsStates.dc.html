@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>System status, configured vs actual states</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.skip-link{position:absolute;left:var(--space-4);top:-120px;z-index:60;display:inline-flex;align-items:center;min-height:44px;padding:0 var(--space-4);border-radius:var(--radius-sm);background:var(--surface-raised);color:var(--text-primary);font-family:var(--font-ui);font-size:var(--type-body-md-size);font-weight:600;text-decoration:none}
+.skip-link:focus,.skip-link[data-shown]{top:12px;outline:2px solid transparent;box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+.skip-link+.skip-link:focus{top:64px}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+</style>
+</helmet>
+<div data-theme="light" data-density="compact" style="width: 1440px; height: 900px; position: relative; overflow: hidden; display: grid; grid-template-columns: 264px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+<a class="skip-link" href="#main">Skip to main content</a>
+<div style="background: var(--surface-chrome)">
+<dc-import name="AdminSidebar" active="system" viewer="super" has-new="{{no}}" counts="live" wn-expanded="{{no}}" focus-demo="none" hint-size="264px,900px"></dc-import>
+</div>
+<div style="display: flex; flex-direction: column; min-width: 0; min-height: 0">
+
+<main id="main" tabindex="-1" style="flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; outline: none">
+
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" role="none" tone="raised" sticky="{{yes}}" title="System status" subtitle="Checked 28 Sep 2026, 9:14:05 am EDT · checks again every 30 seconds"></x-import>
+<div style="padding: var(--space-1) var(--space-6) 0"><span style="font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary)">Component gap: AppBar needs a role prop; role="none" here so main holds no nested banner. The h1 title stays.</span></div>
+<div style="flex: 1; min-height: 0; padding: var(--space-5) var(--space-6); display: flex; flex-direction: column; gap: var(--space-4); min-width: 0">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" padding="16px">
+<div style="display: flex; align-items: center; gap: var(--space-6)">
+<div style="display: flex; flex-direction: column; gap: 6px; flex-grow: 1">
+<div style="display: flex; align-items: center; gap: var(--space-3)">
+<h2 style="margin: 0; font-size: var(--type-heading-md-size); font-weight: 600">The API is ready to serve requests</h2>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="outline" size="md" icon="check">Ready</x-import>
+</div>
+<p style="margin: 0; font-size: var(--type-body-md-size); line-height: 1.5; color: var(--text-secondary)">API version <span style="font-family: var(--font-mono); color: var(--text-primary)">0.18.3</span> · running since 27 Sep 2026, 10:10 pm</p>
+
+</div>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" icon-start="refresh">Check again</x-import>
+</div>
+</x-import>
+<span style="font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary)">Readiness table omitted on this board: all Ready, as on System — all ready.</span>
+<div style="flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: minmax(0, 1fr); gap: var(--space-5)">
+<div style="min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: var(--space-3)">
+<p style="margin: 0; font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary); font-weight: 600; text-transform: none">State 1 — loading</p>
+<section aria-labelledby="cfg-h" style="display: flex; flex-direction: column; gap: var(--space-3); padding-top: var(--space-2); border-top: 1px solid var(--border-decorative)">
+<div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap">
+<h2 id="cfg-h" style="margin: 0; font-size: var(--type-heading-md-size); font-weight: 600">Dependencies as connected</h2>
+<span style="display: inline-flex; padding: 2px 8px; border-radius: 4px; background: var(--surface-sunken); border: 1px solid var(--border-strong); font-size: 12px; font-weight: 600">Later version: not on the launch System page (owner decision, round 2). At launch this page uses the readiness check only.</span>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="neutral" size="md">Environment: production</x-import>
+<span style="font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary)">Needs API: browser-reachable DependencyReport (/internal/deps is host-only)</span>
+<span style="font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary)">Needs API: configured address per dependency in DependencyReport</span>
+</div>
+<p style="margin: 0; font-size: var(--type-body-md-size); line-height: 1.5; color: var(--text-secondary)">What the API actually connected to, and the checks it ran at start-up. Admins and super admins only.</p>
+<span style="font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary)">Component gap: DataTable static rows (first row gets tabIndex=0 with no onRowActivate; it must get none). These tables are read-only; Tab skips them.</span>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.DataTable" id="deps-actual" caption="Resolved addresses" density="compact" rows="{{nothingRows}}" columns="{{actualCols}}" status="loading"></x-import>
+<p role="status" style="margin: 0; font-size: var(--type-body-sm-size); color: var(--text-secondary)">Loading the start-up checks…</p>
+</section>
+</div>
+<div style="min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: var(--space-3)">
+<p style="margin: 0; font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary); font-weight: 600; text-transform: none">State 2 — failed to load</p>
+<section aria-labelledby="cfg-h" style="display: flex; flex-direction: column; gap: var(--space-3); padding-top: var(--space-2); border-top: 1px solid var(--border-decorative)">
+<div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap">
+<h2 id="cfg-h" style="margin: 0; font-size: var(--type-heading-md-size); font-weight: 600">Dependencies as connected</h2>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="neutral" size="md">Environment: production</x-import>
+<span style="font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary)">Needs API: browser-reachable DependencyReport (/internal/deps is host-only)</span>
+<span style="font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary)">Needs API: configured address per dependency in DependencyReport</span>
+</div>
+<p style="margin: 0; font-size: var(--type-body-md-size); line-height: 1.5; color: var(--text-secondary)">What the API actually connected to, and the checks it ran at start-up. Admins and super admins only.</p>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.DataTable" id="deps-actual" caption="Resolved addresses" density="compact" rows="{{nothingRows}}" columns="{{actualCols}}" status="error" error-message="The dependency report didn't load. The server didn't answer in time." on-retry="{{noop}}"></x-import>
+</section>
+</div>
+<div style="min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: var(--space-3)">
+<p style="margin: 0; font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary); font-weight: 600; text-transform: none">State 3 — 403 (role changed mid-session). Support agents never see this section at all.</p>
+<section aria-labelledby="cfg-h" style="display: flex; flex-direction: column; gap: var(--space-3); padding-top: var(--space-2); border-top: 1px solid var(--border-decorative)">
+<div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap">
+<h2 id="cfg-h" style="margin: 0; font-size: var(--type-heading-md-size); font-weight: 600">Dependencies as connected</h2>
+
+<span style="font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary)">Needs API: browser-reachable DependencyReport (/internal/deps is host-only)</span>
+<span style="font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary)">Needs API: configured address per dependency in DependencyReport</span>
+</div>
+<p style="margin: 0; font-size: var(--type-body-md-size); line-height: 1.5; color: var(--text-secondary)">What the API actually connected to, and the checks it ran at start-up. Admins and super admins only.</p>
+<div style="display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-4); border: 1px solid var(--border-decorative); border-radius: var(--radius-md); background: var(--surface-raised)">
+<p style="margin: 0; font-size: var(--type-body-md-size); font-weight: 600">You no longer have access to this report</p>
+<p style="margin: 0; font-size: var(--type-body-md-size); line-height: 1.5; color: var(--text-secondary)">Your role may have changed while this page was open. Sign in again to refresh it.</p>
+<div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" href="SessionSignInAgain.dc.html">Sign in again</x-import><span style="font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary)">Annotation only: 403 from getDependencyStatus</span></div>
+</div>
+</section>
+</div>
+</div>
+</div>
+</main>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const DS = window.HalalGoesDesignSystem_d11a47 || {};
+    const h = window.React.createElement;
+    const muted = function (t) { return h('span', { style: { color: 'var(--text-secondary)' } }, t); };
+    const fullDate = function (iso) { var d = new Date(iso); if (isNaN(d.getTime())) return iso; return iso.length > 10 ? d.toLocaleString('en-CA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/Toronto', timeZoneName: 'short' }) : d.toLocaleDateString('en-CA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }); };
+    const at = function (iso, label) { return h('time', { dateTime: iso, title: fullDate(iso) }, label); };
+    const tag = function (t) { return h('span', { style: { fontSize: 'var(--type-mono-sm-size)', lineHeight: 1.4, fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' } }, t); };
+    let v = {};
+
+    const DEPS = {
+      postgres: ['Postgres', 'Database. The only source of truth.'],
+      redis: ['Redis', 'Cache, live updates, sign-in limits and staff sessions'],
+      minio: ['MinIO', 'Private storage for documents, certificates and images'],
+      stripe: ['Stripe', 'Payments, refunds and payouts']
+    };
+    const depRows = function (states, details) {
+      return ['postgres', 'redis', 'minio', 'stripe'].map(function (k) { return { id: k, name: DEPS[k][0], role: DEPS[k][1], state: states[k] || 'ready', detail: (details || {})[k] || null }; });
+    };
+    const allUnknown = { postgres: 'unknown', redis: 'unknown', minio: 'unknown', stripe: 'unknown' };
+    const allStale = { postgres: 'stale', redis: 'stale', minio: 'stale', stripe: 'stale' };
+    const depCols = [
+      { key: 'name', label: 'Dependency', render: function (r) { return h('span', { style: { fontWeight: 600 } }, r.name); } },
+      { key: 'role', label: 'What it does' },
+      { key: 'state', label: 'Status', render: function (r) {
+        if (r.state === 'down') return h(DS.Badge, { variant: 'warning', size: 'md', icon: 'warning' }, 'Not ready');
+        if (r.state === 'unknown') return h(DS.Badge, { variant: 'neutral', size: 'md', icon: 'info' }, 'Not reported');
+        if (r.state === 'stale') return h(DS.Badge, { variant: 'neutral', size: 'md', icon: 'clock' }, 'Ready at last check');
+        return h(DS.Badge, { variant: 'outline', size: 'md', icon: 'check' }, 'Ready');
+      } },
+      { key: 'detail', label: 'Message from the server', render: function (r) { return r.detail || muted('None'); } }
+    ];
+    const depId = function (r) { return r.id; };
+    const depLabel = function (r) { return r.name; };
+    const actualRows = [
+      { id: 'a1', name: 'postgres', addr: '10.0.4.12:5432', ok: true },
+      { id: 'a2', name: 'redis', addr: '10.0.4.21:6379', ok: true },
+      { id: 'a3', name: 'minio', addr: '10.0.4.30:9000', ok: true },
+      { id: 'a4', name: 'stripe', addr: 'api.stripe.com:443 (54.187.174.169)', ok: true }
+    ];
+    const actualCols = [
+      { key: 'name', label: 'Dependency', mono: true },
+      { key: 'addr', label: 'Resolved address', mono: true },
+      { key: 'ok', label: 'Connected', render: function (r) { return r.ok ? h(DS.Badge, { variant: 'outline', size: 'md', icon: 'check' }, 'Connected') : h(DS.Badge, { variant: 'warning', size: 'md', icon: 'warning' }, 'Not connected'); } }
+    ];
+    v = { rows: depRows({}), cols: depCols, depId: depId, depLabel: depLabel, actualRows: actualRows, actualCols: actualCols, rowsB: [], nothingRows: [] };
+    return Object.assign({ yes: true, no: false, nothing: null, noop: function () {} }, v);
+  }
+}
+</script>
+</body>
+</html>

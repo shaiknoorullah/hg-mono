@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Cancel, window closed</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<link rel="stylesheet" href="hg-roles.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:var(--surface-base)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+</style>
+</helmet>
+<div style="width: 390px; height: 960px; position: relative; display: flex; flex-direction: column; overflow: hidden; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" title-is-page-heading="{{ no }}" tone="cream" title="Order HG-8F3K2Q" subtitle="Zaytoun Grill · placed 6:42 pm" back-label="Back to Orders" on-back="{{ noop }}"></x-import><main style="flex-grow: 1; display: flex; flex-direction: column; gap: 16px; padding: 8px 16px 16px; overflow: hidden">
+<div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 12px"><h1 style="margin: 0; display: flex; flex-direction: column; gap: 2px"><span class="type-label-lg" aria-hidden="true" style="color: var(--text-secondary)">Being prepared · Arriving</span><span class="type-display-md hg-num" aria-hidden="true">7:14–7:24 pm</span><span class="hg-vh">Being prepared, arriving between 7:14 and 7:24 pm</span></h1></div><div style="display: flex; flex-direction: column; gap: 6px"><span class="hg-tag">Proposed component: InlineAlert</span><div class="hg-focus-drawn" tabindex="-1"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="md" padding="var(--space-3) var(--space-4)"><div role="alert" style="display: flex; flex-direction: column; gap: 8px"><div style="display: flex; gap: 12px; align-items: flex-start"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="info" size="lg" color="var(--text-primary)"></x-import><div style="display: flex; flex-direction: column; gap: 4px"><strong class="type-label-lg">It's too late to cancel here</strong><span class="type-body-md" style="color: var(--text-secondary)">Zaytoun Grill accepted your order at 6:44 pm, just before your request reached us. Your card has now been charged. If you still need to change something, get help.</span></div></div></div></x-import></div></div><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg"><div style="display: flex; justify-content: space-between; align-items: baseline; gap: 12px"><strong class="type-label-lg">Charged to Visa •••• 4242</strong><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{ captured }}" size="md"></x-import></div></x-import><div class="hg-gap"><span class="hg-tag">Annotation: the charge</span><span class="hg-gap-note">The amount is OrderPayment.amount_captured_cents, fetched after the 409 CANCELLATION_WINDOW_CLOSED, so the moment money moved is always explicit. The banner is an alert and takes focus when this screen replaces the sheet, as on Cancel-Error, so a screen-reader user hears first why the cancel failed and that the card was charged.</span></div><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.StatusTimeline" audience="customer" state="PREPARING" transitions="{{ tl }}" show-times="{{ yes }}" estimated-at="2026-09-28T19:14:00-04:00" connection="live" now="{{ now }}"></x-import></x-import><span class="hg-tag" style="align-self: flex-start; white-space: normal">Component gap: StatusTimeline time format (renders "p.m.")</span><div style="display: flex; flex-direction: column; gap: 8px; margin-top: auto"><div><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" full-width="{{ yes }}" href="GetHelp-Sheet-Preparing.dc.html">Get help</x-import></div><span class="type-body-sm" style="color: var(--text-secondary); text-align: center">Cancelling is only free before the restaurant accepts.</span></div>
+</main><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.BottomNav" label="Main" active="orders" items="{{ nav }}"></x-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":960}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const t = (s, at, a) => ({ to_state: s, at: '2026-09-28T' + at + ':00-04:00', actor_kind: a || 'SYSTEM' });
+    const all = [t('AUTHORIZED', '18:42', 'CUSTOMER'), t('RESTAURANT_PENDING', '18:42'), t('PREPARING', '18:44', 'RESTAURANT'), t('READY_FOR_PICKUP', '18:59', 'RESTAURANT'), t('PICKED_UP', '19:02', 'RIDER'), t('ARRIVED', '19:12', 'RIDER'), t('DELIVERED', '19:13', 'RIDER'), t('COMPLETED', '19:43')];
+    const upTo = (n) => all.slice(0, n);
+    return {
+      yes: true, no: false, none: null, zero: 0, noop: () => {},
+      nav: [{ key: 'home', label: 'Home', icon: 'home' }, { key: 'search', label: 'Search', icon: 'search' }, { key: 'orders', label: 'Orders', icon: 'orders', badge: 1, badgeNoun: 'active' }, { key: 'account', label: 'Account', icon: 'profile' }],
+      captured: 6425, tl: upTo(3), now: Date.parse('2026-09-28T18:44:20-04:00')
+    };
+  }
+}
+</script>
+</body>
+</html>

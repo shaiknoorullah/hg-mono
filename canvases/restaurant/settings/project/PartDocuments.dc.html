@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Documents card</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}details>summary{list-style:none}details>summary::-webkit-details-marker{display:none}details[open]>summary .hg-disc-chev{transform:rotate(90deg)}</style>
+</helmet>
+<section id="documents" aria-labelledby="docs-h" style="width: {{w}}; box-sizing: border-box; font-family: var(--font-ui); color: var(--text-primary)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg" padding="24px">
+<div style="display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; align-items: center; gap: 12px">
+<h3 id="docs-h" style="margin: 0; font: var(--text-type-heading-lg); letter-spacing: -0.01em; flex-grow: 1">Your documents</h3>
+<span style="padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">Proposed component: ListRow</span>
+<span style="padding: 2px 8px; border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--feedback-info-tint-text); background: var(--feedback-info-tint)">Needs API: original file name</span>
+</div>
+<p style="margin: 0; font: var(--text-type-body-md); color: var(--text-secondary)">Only you and HalalGoes reviewers can open these files. Each file opens through a private link that stops working after a few minutes. Reviews take up to 3 business days.</p>
+
+<sc-if value="{{isLoading}}" hint-placeholder-val="{{false}}">
+<div aria-busy="true" style="display: flex; flex-direction: column; gap: 12px">
+<span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">Proposed component: Skeleton</span>
+<sc-for list="{{five}}" as="k" hint-placeholder-count="5">
+<div style="display: flex; align-items: center; gap: 12px; min-height: 60px; border-top: 1px solid var(--border-decorative)">
+<div style="display: flex; flex-direction: column; gap: 6px; flex-grow: 1"><div style="width: 40%; height: 16px; border-radius: var(--radius-xs); background: var(--skeleton-base)"></div><div style="width: 60%; height: 12px; border-radius: var(--radius-xs); background: var(--skeleton-base)"></div></div>
+<div style="width: 96px; height: 22px; border-radius: var(--radius-full); background: var(--skeleton-base)"></div>
+</div>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{isError}}" hint-placeholder-val="{{false}}">
+<div role="alert" style="display: flex; flex-direction: column; gap: 12px; padding: 24px 0; border-top: 1px solid var(--border-decorative)">
+<strong style="font: var(--text-type-heading-sm)">Couldn't load your documents</strong>
+<span style="font: var(--text-type-body-md); color: var(--text-secondary)">Your documents are safe; only this list didn't load. Nothing has been sent for review.</span>
+<div style="display: flex"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" icon-start="refresh">Try again</x-import></div>
+</div>
+</sc-if>
+
+<sc-if value="{{isList}}" hint-placeholder-val="{{true}}">
+<ul style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column">
+<sc-for list="{{docs}}" as="d" hint-placeholder-count="5">
+<li style="display: flex; align-items: center; gap: 12px; min-height: 60px; padding: 8px 0; border-top: 1px solid var(--border-decorative)">
+<div style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1">
+<span style="font: var(--text-type-label-lg)">{{d.name}} <span style="font-weight: 400; color: var(--text-secondary)">· {{d.req}}</span></span>
+<span style="font: var(--text-type-body-sm); color: var(--text-secondary)">{{d.meta}}</span>
+<sc-if value="{{d.note}}" hint-placeholder-val="{{false}}"><span style="font: var(--text-type-body-sm); line-height: 1.45">{{d.note}}</span></sc-if>
+<sc-if value="{{d.tag}}" hint-placeholder-val="{{false}}"><span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">{{d.tag}}</span></sc-if>
+</div>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="{{d.tone}}" size="md" icon="{{d.icon}}">{{d.label}}</x-import>
+<sc-if value="{{d.isHalal}}" hint-placeholder-val="{{false}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="sm" href="Settings-Overview.dc.html">Manage in Halal certification</x-import></sc-if>
+<sc-if value="{{d.canView}}" hint-placeholder-val="{{true}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="sm" accessibility-label="{{d.viewLabel}}">View file</x-import></sc-if>
+<sc-if value="{{d.canUpload}}" hint-placeholder-val="{{true}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="sm" href="{{d.href}}" accessibility-label="{{d.uploadA11y}}">{{d.uploadLabel}}</x-import></sc-if>
+<sc-if value="{{d.locked}}" hint-placeholder-val="{{false}}"><span style="display: inline-flex; align-items: center; gap: 6px; font: var(--text-type-body-sm); color: var(--text-secondary)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="lock" size="sm"></x-import>Locked while a reviewer checks it</span></sc-if>
+</li>
+</sc-for>
+</ul>
+</sc-if>
+
+<sc-if value="{{showHistory}}" hint-placeholder-val="{{false}}">
+<details open="open" style="font: var(--text-type-body-md); border-top: 1px solid var(--border-decorative)">
+<summary style="min-height: 44px; display: flex; align-items: center; gap: 8px; font-weight: 600; cursor: pointer"><span class="hg-disc-chev" aria-hidden="true" style="display: inline-flex"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="chevron-right" size="sm"></x-import></span>Earlier versions of your halal certificate</summary>
+<span style="display: inline-block; margin-bottom: 8px; padding: 2px 8px; border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--feedback-info-tint-text); background: var(--feedback-info-tint)">Future state · Needs API: earlier versions of each document · today only the current document of each type is returned, so the live list has no history</span>
+<ul style="margin: 0; padding: 0 0 8px; list-style: none; display: flex; flex-direction: column; gap: 8px">
+<li style="display: flex; align-items: center; gap: 12px; min-height: 44px"><span style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px"><span style="font: var(--text-type-label-lg)">Version 2</span><span style="font: var(--text-type-body-sm); color: var(--text-secondary)">Valid until 12 November 2026 · replaced on 27 September 2026</span></span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="outline" icon="clock" size="md">Replaced</x-import><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="sm" accessibility-label="View file: halal certificate version 2">View file</x-import></li>
+<li style="display: flex; align-items: center; gap: 12px; min-height: 44px"><span style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px"><span style="font: var(--text-type-label-lg)">Version 1</span><span style="font: var(--text-type-body-sm); color: var(--text-secondary)">Valid until 12 November 2025 · replaced on 3 March 2026</span></span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="outline" icon="clock" size="md">Replaced</x-import><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="sm" accessibility-label="View file: halal certificate version 1">View file</x-import></li>
+</ul>
+<span style="display: inline-block; margin-bottom: 8px; padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">KycDocumentState SUPERSEDED, read-only history · Proposed component: Disclosure (chevron-right Icon, rotated 90° when open)</span>
+</details>
+</sc-if>
+</div>
+</x-import>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"variant":{"editor":"enum","options":["approved","expired","submitted","review","rejected","renewed","nocert","foodExpiring","foodExpired","foodRejected","foodSubmitted","history","loading","error"],"default":"approved"},"readOnly":{"editor":"boolean","default":false},"width":{"editor":"int","default":840},"$preview":{"width":840,"height":640}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var v = this.props.variant || 'approved';
+    var ro = !!this.props.readOnly;
+    var H = {
+      approved: { tone: 'neutral', label: 'Approved', icon: 'check', meta: 'Version 2 · Valid until 12 November 2026 · Reviewed 3 March 2026' },
+      expired: { tone: 'neutral', label: 'Expired', icon: 'clock', meta: 'Version 2 · Expired on 12 September 2026' },
+      submitted: { tone: 'info', label: 'Submitted', icon: 'clock', meta: 'Version 3 · Valid until 12 September 2027 · Sent 26 September 2026' },
+      review: { tone: 'info', label: 'In review', icon: 'lock', meta: 'Version 3 · Valid until 12 September 2027 · Sent 26 September 2026' },
+      rejected: { tone: 'warning', label: 'Needs a new upload', icon: 'warning', meta: 'Version 3 · Reviewed 27 September 2026' },
+      renewed: { tone: 'neutral', label: 'Approved', icon: 'check', meta: 'Version 3 · Valid until 12 September 2027 · Reviewed 27 September 2026' },
+      nocert: { tone: 'outline', label: 'Not uploaded', icon: 'info', meta: 'Required to sell on HalalGoes', none: true }
+    };
+    var hx = H[v] || H.approved;
+    var HREF = { 'business licence': 'Doc-UploadLicence.dc.html', 'food safety certificate': 'Doc-Upload.dc.html', 'owner ID': 'Doc-UploadOwnerId.dc.html' };
+    function row(name, req, noun, x) {
+      return {
+        href: HREF[noun] || null,
+        name: name, req: req, tone: x.tone, label: x.label, icon: x.icon || undefined, meta: x.meta, note: x.note || null, tag: x.tag || null,
+        isHalal: !!x.halal,
+        canView: !x.none && !x.halal,
+        canUpload: !ro && !x.halal && !x.locked,
+        uploadLabel: x.none ? 'Upload' : (x.cta || 'Upload new version'),
+        uploadA11y: (x.none ? 'Upload' : (x.cta || 'Upload new version')) + ': ' + noun,
+        viewLabel: 'View file: ' + noun,
+        locked: !!x.locked
+      };
+    }
+    var food = { tone: 'neutral', label: 'Approved', icon: 'check', meta: 'Version 1 · Valid until 30 June 2027 · Reviewed 3 March 2026' };
+    if (v === 'foodExpired') food = { tone: 'neutral', label: 'Expired', icon: 'clock', meta: 'Version 1 · Expired on 20 September 2026' };
+    if (v === 'foodExpiring') food = { tone: 'warning', label: 'Expires soon', icon: 'clock', meta: 'Version 1 · Expires on 12 October 2026', note: 'Upload the renewed certificate before then. If it expires, customers can\'t see your restaurant until a reviewer approves a new one.', cta: 'Upload renewed certificate', tag: 'valid_until within the reminder window · reminders at 30, 14, 7 and 1 days, as for the halal certificate' };
+    if (v === 'foodRejected') food = { tone: 'warning', label: 'Needs a new upload', icon: 'warning', meta: 'Version 2 · Reviewed 27 September 2026', note: 'Reviewer\'s note: "The inspection date on the certificate is not readable. Upload a clearer photo or the PDF from Toronto Public Health."', cta: 'Upload a new version', tag: 'DocumentRejectionReasonCode ILLEGIBLE + review note, shown verbatim' };
+    if (v === 'foodSubmitted') food = { tone: 'info', label: 'Submitted', icon: 'clock', meta: 'Version 2 · Valid until 30 June 2027 · Sent 28 September 2026', locked: false };
+    var docs = [
+      row('Halal certificate', 'Required', 'halal certificate', Object.assign({ halal: true }, (v.indexOf('food') === 0 || v === 'loading' || v === 'error') ? H.approved : (v === 'history' ? H.renewed : hx))),
+      row('Business licence', 'Required', 'business licence', { tone: 'neutral', label: 'Approved', icon: 'check', meta: 'Version 1 · Reviewed 3 March 2026' }),
+      row('Food safety certificate', 'Required', 'food safety certificate', food),
+      row('Owner ID', 'Required', 'owner ID', { tone: 'neutral', label: 'Approved', icon: 'check', meta: 'Version 1 · Valid until 4 May 2030 · Reviewed 3 March 2026' })
+    ];
+    return {
+      w: (this.props.width || 840) + 'px',
+      docs: docs,
+      five: [1, 2, 3, 4, 5],
+      isLoading: v === 'loading',
+      isError: v === 'error',
+      isList: v !== 'loading' && v !== 'error',
+      showHistory: v === 'history'
+    };
+  }
+}
+</script>
+</body>
+</html>

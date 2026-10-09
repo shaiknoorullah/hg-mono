@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Keyboard focus</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div data-hg-density="compact" style="width: 1440px; height: 1960px; box-sizing: border-box; padding: var(--space-10) var(--space-12); background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui); display: flex; flex-direction: column; gap: 28px;">
+  <div style="display: flex; flex-direction: column; gap: 6px;">
+    <h1 style="margin: 0; font: var(--text-type-heading-xl); letter-spacing: -0.01em;">Keyboard focus on Menu and Hours</h1>
+    <p style="margin: 0; font: var(--text-type-body-md); color: var(--text-secondary); max-width: 1040px;">One indicator, in the theme’s brand colour (docs/decisions/focus-indicator.md): borderless controls get a 2px gap in the page colour and a 3px brand ring; bordered fields show focus as their own 2px border. Rings are drawn here to show where focus sits; in the build they come from the system on keyboard focus.</p>
+    <span style="display: inline-flex; align-self: flex-start; padding: 2px var(--space-2); border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); background: var(--feedback-info-tint); font: var(--text-type-mono-sm); color: var(--feedback-info-tint-text);">Items grid: Tab enters the grid once; arrow keys move between rows; Tab moves through a row’s controls (details, availability switch, Change, Edit); Escape returns to the row. Rows are not activatable: the details button or Edit opens a panel.</span>
+  </div>
+  <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-8);">
+    <section style="display: flex; flex-direction: column; gap: 10px;">
+      <h2 style="margin: 0; font: var(--text-type-body-lg); font-weight: var(--font-weight-semibold);">1. Details button in a grid row</h2>
+      <div style="display: flex; align-items: center; gap: var(--space-4); padding: var(--space-2) var(--space-4); border: 1px solid var(--border-decorative); background: var(--surface-raised);">
+        <span style="display: inline-flex; box-shadow: 0 0 0 var(--focus-offset-width) var(--focus-offset), 0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring); border-radius: var(--radius-sm);"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.IconButton" icon="chevron-right" accessibility-label="Show details for Chicken biryani" hint-size="44px,44px"></x-import></span>
+        <span style="flex-grow: 1; font: var(--text-type-label-lg);">Chicken biryani</span>
+      </div>
+      <p style="margin: 0; font: var(--text-type-body-sm); color: var(--text-secondary);">Enter opens the details panel beside the list; focus moves to the panel’s heading.</p>
+    </section>
+    <section style="display: flex; flex-direction: column; gap: 10px;">
+      <h2 style="margin: 0; font: var(--text-type-body-lg); font-weight: var(--font-weight-semibold);">2. Availability switch in the selected row (tinted)</h2>
+      <div style="display: flex; align-items: center; gap: var(--space-4); padding: var(--space-2) var(--space-4); border: 1px solid var(--border-decorative); background: var(--state-selected-tint);">
+        <span style="flex-grow: 1; font: var(--text-type-label-lg);">Beef kofta plate</span>
+        <span style="display: inline-flex; padding: 2px; box-shadow: 0 0 0 var(--focus-offset-width) var(--focus-offset), 0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring); border-radius: var(--radius-full);"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Switch" label="Beef kofta plate available" state-label="{{avail}}" checked="{{yes}}" hint-size="170px,44px"></x-import></span>
+      </div>
+      <p style="margin: 0; font: var(--text-type-body-sm); color: var(--text-secondary);">Space turns it off: the item goes out of stock until closing and the length menu opens with focus on the ticked choice. Escape keeps it.</p>
+    </section>
+    <section style="display: flex; flex-direction: column; gap: 10px;">
+      <h2 style="margin: 0; font: var(--text-type-body-lg); font-weight: var(--font-weight-semibold);">3. Side navigation link on the forest chrome</h2>
+      <div class="hg-on-accent" style="padding: var(--space-3); background: var(--surface-chrome); border-radius: var(--radius-md); width: 224px; box-sizing: border-box; display: flex; flex-direction: column; gap: var(--space-3);">
+        <a href="#" class="hg-focus" style="display: flex; align-items: center; gap: var(--space-3); min-height: 48px; padding: 0 var(--space-3); border-radius: var(--radius-md); color: var(--text-on-accent); text-decoration: none; font: var(--text-type-body-md); font-weight: var(--font-weight-medium); box-shadow: 0 0 0 var(--focus-offset-width) var(--action-secondary), 0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-on-color);"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="clock" size="md" hint-size="20px,20px"></x-import>Hours</a>
+        <span style="display: inline-flex; align-self: flex-start; color: var(--text-on-accent); border-radius: var(--radius-sm); box-shadow: 0 0 0 var(--focus-offset-width) var(--action-secondary), 0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-on-color);"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.IconButton" icon="back" accessibility-label="Collapse navigation" variant="plain" size="md" hint-size="44px,44px"></x-import></span>
+      </div>
+      <p style="margin: 0; font: var(--text-type-body-sm); color: var(--text-secondary);">On the forest chrome the ring flips to white, for the links and the Collapse navigation button alike. It comes from the system: the rail carries the on-accent focus class and every control in it uses the system focus class. No local focus rule.</p>
+    </section>
+    <section style="display: flex; flex-direction: column; gap: 10px;">
+      <h2 style="margin: 0; font: var(--text-type-body-lg); font-weight: var(--font-weight-semibold);">4. Opening and closing an in-page panel</h2>
+      <ol style="margin: 0; padding-left: var(--space-5); display: flex; flex-direction: column; gap: 6px; font: var(--text-type-body-md);">
+        <li>Edit or the details button opens the panel beside the list. Focus moves to the panel’s heading, “Edit Beef kofta plate”.</li>
+        <li>Focus is not trapped: the panel is part of the page, so Tab can reach the list and the New orders strip.</li>
+        <li>The close button or Escape inside the panel closes it. Focus returns to the control that opened it.</li>
+        <li>After a failed submit, focus moves to the error summary (5).</li>
+        <li>The divider between the list and the panel is a 44px-wide resize handle. It is one tab stop and announces the list’s share of the width (30 to 70 percent). Left and Right arrows resize in steps of 5 percent; Home and End go to the narrowest and widest list.</li>
+      </ol>
+      <div style="padding: var(--space-3) var(--space-4); background: var(--surface-raised); border: 1px solid var(--border-decorative);">
+        <h3 tabindex="-1" style="margin: 0; display: inline-block; padding: 2px var(--space-1); font: var(--text-type-heading-lg); box-shadow: 0 0 0 var(--focus-offset-width) var(--focus-offset), 0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring); border-radius: var(--radius-sm);">Edit Beef kofta plate</h3>
+      </div>
+    </section>
+    <section style="display: flex; flex-direction: column; gap: 10px;">
+      <h2 style="margin: 0; font: var(--text-type-body-lg); font-weight: var(--font-weight-semibold);">5. Error summary takes focus</h2>
+      <div role="alert" tabindex="-1" style="display: flex; flex-direction: column; gap: 6px; padding: var(--space-3) 14px; border-radius: var(--radius-md); background: var(--feedback-danger-tint); border: 1px solid var(--feedback-danger-border); box-shadow: 0 0 0 var(--focus-offset-width) var(--focus-offset), 0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring);">
+        <span style="font: var(--text-type-label-lg); color: var(--feedback-danger-tint-text);">2 things to fix before you can submit</span>
+        <a href="#" style="font: var(--text-type-body-md);">Price is outside the allowed range</a>
+        <a href="#" style="font: var(--text-type-body-md);">Ingredients include something that can’t be sold</a>
+      </div>
+      <span style="display: inline-flex; align-self: flex-start; padding: 1px var(--space-2); border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); background: var(--surface-base); font: var(--text-type-mono-sm); color: var(--text-secondary);">Proposed component: Banner (danger)</span>
+    </section>
+    <section style="display: flex; flex-direction: column; gap: 10px;">
+      <h2 style="margin: 0; font: var(--text-type-body-lg); font-weight: var(--font-weight-semibold);">6. A text field: its own border, no ring</h2>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Price" variant="numeric" prefix="$" value="18.50" helper-text="Between $0.50 and $500.00." style="width: 280px;" hint-size="280px,96px"></x-import>
+      <p style="margin: 0; font: var(--text-type-body-sm); color: var(--text-secondary);">On focus the field’s border becomes 2px in the focus colour. An invalid field keeps its 2px danger border and gets the ring instead.</p>
+    </section>
+    <section style="grid-column: 1 / -1; display: flex; flex-direction: column; gap: 10px;">
+      <h2 style="margin: 0; font: var(--text-type-body-lg); font-weight: var(--font-weight-semibold);">7. New orders strip: card, then Reject, then Accept; arrows move between cards; keys act only on the focused card</h2>
+      <div style="display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-4); border: 1px solid var(--border-decorative); background: var(--surface-base);">
+        <div style="display: flex; align-items: center; gap: var(--space-3); width: 476px; min-height: 84px; box-sizing: border-box; padding: 0 var(--space-2) 0 var(--space-3); border-radius: var(--radius-md); border: 1px solid var(--border-interactive); background: var(--surface-raised); box-shadow: 0 0 0 var(--focus-offset-width) var(--focus-offset), 0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring);">
+          <div style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1;">
+            <span style=" font: var(--text-type-mono-md); font-weight: var(--font-weight-semibold);">HG-8F3K2Q</span>
+            <span style="font: var(--text-type-body-sm); color: var(--text-secondary);">3 items · Chicken shawarma plate…</span>
+          </div>
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" accessibility-label="Reject order HG-8F3K2Q" hint-size="80px,44px">Reject</x-import>
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" critical="{{yes}}" accessibility-label="Accept order HG-8F3K2Q" hint-size="136px,72px">Accept order</x-import>
+        </div>
+        <div style="display: flex; align-items: center; width: 196px; height: 60px; box-sizing: border-box; padding: 0 var(--space-3); border-radius: var(--radius-md); border: 1px solid var(--border-interactive); background: var(--surface-raised);">
+          <span style=" font: var(--text-type-mono-md); font-weight: var(--font-weight-semibold);">HG-2M7PXR</span>
+        </div>
+      </div>
+      <ul style="margin: 0; padding-left: var(--space-5); display: flex; flex-direction: column; gap: var(--space-1); font: var(--text-type-body-md);">
+        <li>Tab order: the most urgent order card, then its Reject button, then its Accept order button, then Open Orders. Both buttons stay in the tab order. The other cards are not tab stops: Left and Right arrows, from a focused card, move to the next card and bring it forward with its buttons.</li>
+        <li>A accepts and R opens the reject reasons, but only while an order card has keyboard focus. Nothing listens to keys anywhere else on the page, so a stray key while typing a menu item can never accept an order.</li>
+        <li>Accept is the one primary action and the 72px critical target. Reject opens its reason panel beside the page content; the countdown keeps running there.</li>
+        <li>Each card is a group named by a visually hidden summary: “Order HG-8F3K2Q, 3 items, 2 minutes 41 seconds left. A accepts, R rejects.” The countdown number itself is not announced every second.</li>
+        <li>The card leaves at least 6px around the 72px Accept button, and the list leaves 6px around the card, so both two-layer rings show in full.</li>
+      </ul>
+    </section>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1960}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { yes: true, avail: { on: 'Available', off: 'Out of stock' } };
+  }
+}
+</script>
+</body>
+</html>

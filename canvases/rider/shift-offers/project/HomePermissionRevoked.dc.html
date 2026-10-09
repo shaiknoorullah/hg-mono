@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Home location permission turned off</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+[data-rider]{font-family:var(--font-ui)}
+.offer-chrome{background:var(--surface-raised)}
+[data-theme="dark"] .offer-chrome,[data-theme="dark"].offer-chrome{background:var(--surface-chrome)}
+</style>
+</helmet>
+<div data-rider="" data-theme="{{theme}}" style="width: 390px; height: 844px; position: relative; overflow: hidden; display: flex; flex-direction: column; background: var(--surface-base); color: var(--text-primary)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="field" title="Online" subtitle="Offers may stop"></x-import>
+<main style="flex: 1 1 auto; overflow-y: auto; padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-5)">
+<div style="border: 1.5px dashed var(--border-strong); border-radius: var(--radius-md); background: var(--surface-raised); padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-3)">
+<span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Proposed component: InlineAlert · BACKGROUND_LOCATION_PERMISSION, revoked mid-shift</span>
+<div style="display: flex; gap: var(--space-3); align-items: flex-start">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="warning" size="lg"></x-import>
+<div style="display: flex; flex-direction: column; gap: var(--space-1)"><strong style="font-size: var(--type-heading-md-size); font-weight: var(--font-weight-semibold)">Location was changed to "While using"</strong><span style="font-size: var(--type-body-lg-size); line-height: 1.5">Offers stop when your screen turns off. In Settings, set location for HalalGoes to "Always".</span></div>
+</div>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="xl" full-width="{{yes}}">Open Settings</x-import>
+</div>
+<div style="border: 1.5px dashed var(--border-strong); border-radius: var(--radius-md); background: var(--surface-raised); padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-3)">
+<span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Proposed component: InlineAlert · client-side, low battery</span>
+<div style="display: flex; gap: var(--space-3); align-items: flex-start">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="info" size="lg"></x-import>
+<div style="display: flex; flex-direction: column; gap: var(--space-1)"><strong style="font-size: var(--type-heading-md-size); font-weight: var(--font-weight-semibold)">Power saving: tracking less often</strong><span style="font-size: var(--type-body-lg-size); line-height: 1.5">Your battery is low, so we send your location less often. Plug in if you can.</span></div>
+</div>
+</div>
+<section style="display: flex; flex-direction: column; gap: var(--space-2)">
+<div style="display: flex; align-items: center; gap: var(--space-2)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="clock" size="xl"></x-import>
+<h2 style="margin: 0; font-size: var(--type-heading-xl-size); font-weight: var(--type-heading-xl-weight); letter-spacing: var(--type-heading-xl-tracking); line-height: 1.25">Waiting for offers</h2>
+</div>
+</section>
+</main>
+<footer style="flex: 0 0 auto; padding: var(--space-3) var(--space-5) var(--space-5); border-top: 1px solid var(--border-decorative); background: var(--surface-base); display: flex; flex-direction: column; gap: var(--space-2)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="xl" full-width="{{yes}}">Go offline</x-import>
+</footer>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.BottomNav" tone="field" label="Rider" active="home" items="{{tabs}}"></x-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["dark","light"],"default":"dark"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const theme = this.props.theme ?? 'dark';
+    return { theme: theme, yes: true,
+      tabs: [{ key: 'home', label: 'Home', icon: 'home' }, { key: 'earnings', label: 'Earnings', icon: 'orders' }, { key: 'account', label: 'Account', icon: 'profile' }] };
+  }
+}
+</script>
+</body>
+</html>

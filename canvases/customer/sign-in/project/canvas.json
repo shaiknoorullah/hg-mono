@@ -1,0 +1,878 @@
+{
+  "v": 3,
+  "attachments": {},
+  "boards": {
+    "Blocked-360.dc.html": {
+      "h": 844,
+      "title": "360 wide — SUSPENDED",
+      "w": 360,
+      "x": 9370,
+      "y": 5184
+    },
+    "Blocked-banned-dark.dc.html": {
+      "h": 844,
+      "title": "Dark — ACCOUNT_BANNED",
+      "w": 390,
+      "x": 6110,
+      "y": 5184
+    },
+    "Blocked-banned-focus.dc.html": {
+      "h": 844,
+      "title": "ACCOUNT_BANNED — initial focus on the title",
+      "w": 390,
+      "x": 6580,
+      "y": 5184
+    },
+    "Blocked-banned-nosupport.dc.html": {
+      "h": 844,
+      "title": "Route — ACCOUNT_BANNED, phone line closed or support off",
+      "w": 390,
+      "x": 2350,
+      "y": 5184
+    },
+    "Blocked-banned.dc.html": {
+      "h": 844,
+      "title": "Route — ACCOUNT_BANNED",
+      "w": 390,
+      "x": 940,
+      "y": 5184
+    },
+    "Blocked-dark.dc.html": {
+      "h": 844,
+      "title": "Dark — SUSPENDED",
+      "w": 390,
+      "x": 5640,
+      "y": 5184
+    },
+    "Blocked-expired-dark.dc.html": {
+      "h": 844,
+      "title": "Dark — SESSION_EXPIRED",
+      "w": 390,
+      "x": 8460,
+      "y": 5184
+    },
+    "Blocked-expired.dc.html": {
+      "h": 844,
+      "title": "Route — SESSION_EXPIRED",
+      "w": 390,
+      "x": 4700,
+      "y": 5184
+    },
+    "Blocked-lt.dc.html": {
+      "h": 1500,
+      "title": "200% text — SUSPENDED",
+      "w": 390,
+      "x": 10720,
+      "y": 5184
+    },
+    "Blocked-midcheckout.dc.html": {
+      "h": 844,
+      "title": "Route — 403 ACCOUNT_SUSPENDED from checkout (quote or createOrder)",
+      "w": 390,
+      "x": 11660,
+      "y": 5184
+    },
+    "Blocked-midsession-focus.dc.html": {
+      "h": 844,
+      "title": "Mid-session route — initial focus on the title",
+      "w": 390,
+      "x": 1410,
+      "y": 5184
+    },
+    "Blocked-midsession.dc.html": {
+      "h": 844,
+      "title": "Route — 403 ACCOUNT_SUSPENDED mid-session (any call but checkout)",
+      "w": 390,
+      "x": 470,
+      "y": 5184
+    },
+    "Blocked-nosupport.dc.html": {
+      "h": 844,
+      "title": "Route — SUSPENDED, phone line closed or support off",
+      "w": 390,
+      "x": 1880,
+      "y": 5184
+    },
+    "Blocked-revoked-360.dc.html": {
+      "h": 844,
+      "title": "360 wide — SESSION_REVOKED",
+      "w": 360,
+      "x": 9810,
+      "y": 5184
+    },
+    "Blocked-revoked-dark.dc.html": {
+      "h": 844,
+      "title": "Dark — SESSION_REVOKED",
+      "w": 390,
+      "x": 7990,
+      "y": 5184
+    },
+    "Blocked-revoked-focus.dc.html": {
+      "h": 844,
+      "title": "SESSION_REVOKED — initial focus on the title",
+      "w": 390,
+      "x": 11190,
+      "y": 5184
+    },
+    "Blocked-revoked-nosupport.dc.html": {
+      "h": 844,
+      "title": "Route — SESSION_REVOKED, phone line closed or support off",
+      "w": 390,
+      "x": 13070,
+      "y": 5184
+    },
+    "Blocked-revoked.dc.html": {
+      "h": 844,
+      "title": "Route — SESSION_REVOKED / WS 4401 (no cause given), with Call support",
+      "w": 390,
+      "x": 4230,
+      "y": 5184
+    },
+    "Blocked-security-dark.dc.html": {
+      "h": 844,
+      "title": "Dark — REFRESH_REUSE_DETECTED",
+      "w": 390,
+      "x": 7520,
+      "y": 5184
+    },
+    "Blocked-security-nosupport.dc.html": {
+      "h": 844,
+      "title": "Route — REFRESH_REUSE_DETECTED, phone line closed or support off",
+      "w": 390,
+      "x": 3760,
+      "y": 5184
+    },
+    "Blocked-security.dc.html": {
+      "h": 844,
+      "title": "Route — REFRESH_REUSE_DETECTED",
+      "w": 390,
+      "x": 3290,
+      "y": 5184
+    },
+    "Blocked-unavailable-nosupport.dc.html": {
+      "h": 844,
+      "title": "Route — fallback, phone line closed or support off",
+      "w": 390,
+      "x": 12600,
+      "y": 5184
+    },
+    "Blocked-unavailable.dc.html": {
+      "h": 844,
+      "title": "Route — fallback: DELETED or other non-ACTIVE status, 403 ACCOUNT_NOT_ACTIVE / ACCOUNT_DEACTIVATED",
+      "w": 390,
+      "x": 12130,
+      "y": 5184
+    },
+    "Blocked-update-360.dc.html": {
+      "h": 844,
+      "title": "360 wide — update required",
+      "w": 360,
+      "x": 8930,
+      "y": 5184
+    },
+    "Blocked-update-dark.dc.html": {
+      "h": 844,
+      "title": "Dark — update required",
+      "w": 390,
+      "x": 7050,
+      "y": 5184
+    },
+    "Blocked-update-focus.dc.html": {
+      "h": 844,
+      "title": "Update — primary action focused",
+      "w": 390,
+      "x": 5170,
+      "y": 5184
+    },
+    "Blocked-update-lt.dc.html": {
+      "h": 1500,
+      "title": "200% text — update required",
+      "w": 390,
+      "x": 10250,
+      "y": 5184
+    },
+    "Blocked-update.dc.html": {
+      "h": 844,
+      "title": "Route — APP_UPDATE_REQUIRED or unknown",
+      "w": 390,
+      "x": 2820,
+      "y": 5184
+    },
+    "Blocked.dc.html": {
+      "h": 844,
+      "title": "Route — SUSPENDED (at sign-in)",
+      "w": 390,
+      "x": 0,
+      "y": 5184
+    },
+    "Code-360.dc.html": {
+      "h": 844,
+      "title": "Code — 360 wide, error",
+      "w": 360,
+      "x": 7990,
+      "y": 1880
+    },
+    "Code-changefocus.dc.html": {
+      "h": 844,
+      "title": "Code — Change number focused (44 px hit area)",
+      "w": 390,
+      "x": 470,
+      "y": 1880
+    },
+    "Code-dark.dc.html": {
+      "h": 844,
+      "title": "Code — dark, warning banner + api tag",
+      "w": 390,
+      "x": 7520,
+      "y": 1880
+    },
+    "Code-expired.dc.html": {
+      "h": 844,
+      "title": "Code — OTP_INVALID_OR_EXPIRED (send again)",
+      "w": 390,
+      "x": 2820,
+      "y": 1880
+    },
+    "Code-incorrect.dc.html": {
+      "h": 844,
+      "title": "Code — OTP_INCORRECT",
+      "w": 390,
+      "x": 1880,
+      "y": 1880
+    },
+    "Code-invalidfocus.dc.html": {
+      "h": 844,
+      "title": "Code — incorrect + focused (focus ring over the error border)",
+      "w": 390,
+      "x": 2350,
+      "y": 1880
+    },
+    "Code-kbd.dc.html": {
+      "h": 844,
+      "title": "Code — keyboard open, error and Verify visible",
+      "w": 390,
+      "x": 7050,
+      "y": 1880
+    },
+    "Code-limit.dc.html": {
+      "h": 844,
+      "title": "Code — resend refused, 429 (3 sends)",
+      "w": 390,
+      "x": 5170,
+      "y": 1880
+    },
+    "Code-locked.dc.html": {
+      "h": 844,
+      "title": "Code — attempts_remaining = 0: Start again (Needs API)",
+      "w": 390,
+      "x": 3290,
+      "y": 1880
+    },
+    "Code-lt.dc.html": {
+      "h": 1700,
+      "title": "Code — 200% text",
+      "w": 390,
+      "x": 8430,
+      "y": 1880
+    },
+    "Code-offline.dc.html": {
+      "h": 844,
+      "title": "Code — offline",
+      "w": 390,
+      "x": 6580,
+      "y": 1880
+    },
+    "Code-resend.dc.html": {
+      "h": 844,
+      "title": "Code — resend available",
+      "w": 390,
+      "x": 4230,
+      "y": 1880
+    },
+    "Code-resendfail.dc.html": {
+      "h": 844,
+      "title": "Code — resend failed (503 RATE_LIMITER_UNAVAILABLE)",
+      "w": 390,
+      "x": 6110,
+      "y": 1880
+    },
+    "Code-resent.dc.html": {
+      "h": 844,
+      "title": "Code — resent (same code), toast clear of the footer",
+      "w": 390,
+      "x": 4700,
+      "y": 1880
+    },
+    "Code-short.dc.html": {
+      "h": 844,
+      "title": "Code — fewer than 6 digits (after Verify)",
+      "w": 390,
+      "x": 940,
+      "y": 1880
+    },
+    "Code-timedout.dc.html": {
+      "h": 844,
+      "title": "Code — challenge timed out (15 min)",
+      "w": 390,
+      "x": 3760,
+      "y": 1880
+    },
+    "Code-verifyfail.dc.html": {
+      "h": 844,
+      "title": "Code — verify failed (network or 5xx)",
+      "w": 390,
+      "x": 5640,
+      "y": 1880
+    },
+    "Code-verifying.dc.html": {
+      "h": 844,
+      "title": "Code — verifying",
+      "w": 390,
+      "x": 1410,
+      "y": 1880
+    },
+    "Code-verifylimit.dc.html": {
+      "h": 844,
+      "title": "Code — verify refused, 429",
+      "w": 390,
+      "x": 8900,
+      "y": 1880
+    },
+    "Main-notyou.dc.html": {
+      "h": 844,
+      "title": "Result — Not you? from Your details (first run)",
+      "w": 390,
+      "x": 7050,
+      "y": 0
+    },
+    "Main-signedout.dc.html": {
+      "h": 844,
+      "title": "Result — signed out (from Account)",
+      "w": 390,
+      "x": 6580,
+      "y": 0
+    },
+    "Main.dc.html": {
+      "h": 844,
+      "title": "Sign in — phone, focused (empty)",
+      "w": 390,
+      "x": 0,
+      "y": 0
+    },
+    "Profile-360.dc.html": {
+      "h": 844,
+      "title": "Profile — 360 wide, errors",
+      "w": 360,
+      "x": 4700,
+      "y": 7064
+    },
+    "Profile-dark.dc.html": {
+      "h": 844,
+      "title": "Profile — dark, info banner",
+      "w": 390,
+      "x": 4230,
+      "y": 7064
+    },
+    "Profile-emailrejected.dc.html": {
+      "h": 844,
+      "title": "Profile — 422 VALIDATION_FAILED on email",
+      "w": 390,
+      "x": 1880,
+      "y": 7064
+    },
+    "Profile-error.dc.html": {
+      "h": 844,
+      "title": "Profile — save failed",
+      "w": 390,
+      "x": 2820,
+      "y": 7064
+    },
+    "Profile-filled.dc.html": {
+      "h": 844,
+      "title": "Profile — filled, consent unticked",
+      "w": 390,
+      "x": 470,
+      "y": 7064
+    },
+    "Profile-fromcart.dc.html": {
+      "h": 844,
+      "title": "Profile — PROFILE_INCOMPLETE from cart (Back to cart)",
+      "w": 390,
+      "x": 3760,
+      "y": 7064
+    },
+    "Profile-invalidfocus.dc.html": {
+      "h": 844,
+      "title": "Profile — invalid + focused (focus ring over the error border)",
+      "w": 390,
+      "x": 1410,
+      "y": 7064
+    },
+    "Profile-kbd.dc.html": {
+      "h": 844,
+      "title": "Profile — keyboard open, email error and Save visible",
+      "w": 390,
+      "x": 5140,
+      "y": 7064
+    },
+    "Profile-lt.dc.html": {
+      "h": 1700,
+      "title": "Profile — 200% text, errors",
+      "w": 390,
+      "x": 5610,
+      "y": 7064
+    },
+    "Profile-offline.dc.html": {
+      "h": 844,
+      "title": "Profile — offline",
+      "w": 390,
+      "x": 3290,
+      "y": 7064
+    },
+    "Profile-saving.dc.html": {
+      "h": 844,
+      "title": "Profile — saving",
+      "w": 390,
+      "x": 2350,
+      "y": 7064
+    },
+    "Profile-validation-dark.dc.html": {
+      "h": 844,
+      "title": "Profile — validation errors, dark (DS issue tagged)",
+      "w": 390,
+      "x": 6080,
+      "y": 7064
+    },
+    "Profile-validation.dc.html": {
+      "h": 844,
+      "title": "Profile — validation errors (after Save)",
+      "w": 390,
+      "x": 940,
+      "y": 7064
+    },
+    "ProfileCapture.dc.html": {
+      "h": 844,
+      "title": "Profile — focused, empty",
+      "w": 390,
+      "x": 0,
+      "y": 7064
+    },
+    "SignIn-360.dc.html": {
+      "h": 844,
+      "title": "Sign in — 360 wide, error",
+      "w": 360,
+      "x": 8460,
+      "y": 0
+    },
+    "SignIn-channel.dc.html": {
+      "h": 844,
+      "title": "Sign in — channel picker (Needs API)",
+      "w": 390,
+      "x": 6110,
+      "y": 0
+    },
+    "SignIn-dark.dc.html": {
+      "h": 844,
+      "title": "Sign in — dark scheme",
+      "w": 390,
+      "x": 7990,
+      "y": 0
+    },
+    "SignIn-invalid.dc.html": {
+      "h": 844,
+      "title": "Sign in — INVALID_PHONE (after pressing Send code)",
+      "w": 390,
+      "x": 1410,
+      "y": 0
+    },
+    "SignIn-invalidfocus.dc.html": {
+      "h": 844,
+      "title": "Sign in — invalid + focused (focus ring over the error border)",
+      "w": 390,
+      "x": 1880,
+      "y": 0
+    },
+    "SignIn-kbd.dc.html": {
+      "h": 844,
+      "title": "Sign in — keyboard open, error and Send code visible",
+      "w": 390,
+      "x": 5170,
+      "y": 0
+    },
+    "SignIn-limited.dc.html": {
+      "h": 844,
+      "title": "Sign in — 429, wait from Retry-After",
+      "w": 390,
+      "x": 2820,
+      "y": 0
+    },
+    "SignIn-limitedover.dc.html": {
+      "h": 844,
+      "title": "Sign in — 429 wait reached 0:00",
+      "w": 390,
+      "x": 3290,
+      "y": 0
+    },
+    "SignIn-lockedwait.dc.html": {
+      "h": 844,
+      "title": "Sign in — after 5 wrong codes, 429 wait (Needs API)",
+      "w": 390,
+      "x": 4700,
+      "y": 0
+    },
+    "SignIn-lt.dc.html": {
+      "h": 1500,
+      "title": "Sign in — 200% text",
+      "w": 390,
+      "x": 8900,
+      "y": 0
+    },
+    "SignIn-offline.dc.html": {
+      "h": 844,
+      "title": "Sign in — offline",
+      "w": 390,
+      "x": 5640,
+      "y": 0
+    },
+    "SignIn-ready.dc.html": {
+      "h": 844,
+      "title": "Sign in — number entered",
+      "w": 390,
+      "x": 470,
+      "y": 0
+    },
+    "SignIn-sendfail.dc.html": {
+      "h": 844,
+      "title": "Sign in — requestOtp failed (network or 5xx)",
+      "w": 390,
+      "x": 9370,
+      "y": 0
+    },
+    "SignIn-sending.dc.html": {
+      "h": 844,
+      "title": "Sign in — sending code",
+      "w": 390,
+      "x": 940,
+      "y": 0
+    },
+    "SignIn-unavailable-nosupport.dc.html": {
+      "h": 844,
+      "title": "Sign in — 503, phone line closed (support switched off outside its hours), hours shown",
+      "w": 390,
+      "x": 4230,
+      "y": 0
+    },
+    "SignIn-unavailable.dc.html": {
+      "h": 844,
+      "title": "Sign in — 503 codes unavailable",
+      "w": 390,
+      "x": 3760,
+      "y": 0
+    },
+    "SignIn-unsupported.dc.html": {
+      "h": 844,
+      "title": "Sign in — UNSUPPORTED_COUNTRY (+44 number pasted or autofilled)",
+      "w": 390,
+      "x": 2350,
+      "y": 0
+    },
+    "SignInCode.dc.html": {
+      "h": 844,
+      "title": "Code — focused, typing",
+      "w": 390,
+      "x": 0,
+      "y": 1880
+    },
+    "SignedIn-address.dc.html": {
+      "h": 844,
+      "title": "New customer, no address yet (search or drag the pin)",
+      "w": 390,
+      "x": 940,
+      "y": 3960
+    },
+    "SignedIn-changefocus.dc.html": {
+      "h": 844,
+      "title": "Home header — Change address focused",
+      "w": 390,
+      "x": 2350,
+      "y": 3960
+    },
+    "SignedIn-firstaddress.dc.html": {
+      "h": 844,
+      "title": "After the first address — Home with 'Address saved' (not Welcome back)",
+      "w": 390,
+      "x": 2820,
+      "y": 3960
+    },
+    "SignedIn-noaddress.dc.html": {
+      "h": 844,
+      "title": "Not now: Home, set your delivery address (sheet closed)",
+      "w": 390,
+      "x": 1410,
+      "y": 3960
+    },
+    "SignedIn-restored.dc.html": {
+      "h": 844,
+      "title": "Sign-in in deletion grace — account restored (Needs API; deletion is a later version)",
+      "w": 390,
+      "x": 1880,
+      "y": 3960
+    },
+    "SignedIn-tracking.dc.html": {
+      "h": 844,
+      "title": "next_route ORDER_TRACKING",
+      "w": 390,
+      "x": 470,
+      "y": 3960
+    },
+    "SignedIn.dc.html": {
+      "h": 844,
+      "title": "next_route HOME — returning customer",
+      "w": 390,
+      "x": 0,
+      "y": 3960
+    }
+  },
+  "createdOnFiles": {
+    "at": "2026-09-28T19:30:00Z",
+    "v": 1
+  },
+  "designSystems": [
+    {
+      "artifact": "https://claude.ai/artifact/1GwGVZz8Ju9wcz4HfCnzbv",
+      "copiedAt": "2026-09-28T14:29:59Z",
+      "namespace": "halalgoesdesignsystem-d11a47",
+      "title": "HalalGoes Design System",
+      "version": "1790605103-3266"
+    }
+  ],
+  "launch": {
+    "view": "canvas"
+  },
+  "notes": {
+    "ds_issues": {
+      "fill": "orange",
+      "maxH": 1300,
+      "size": 24,
+      "text": "DS issues raised here: (1) Every text.tertiary text role in the DS fails 4.5:1 (4.18:1 on cream, 3.80:1 on sunken): Checkbox, Radio and Switch description, disabledReason, Input helper, character count. All should be text.secondary. A disabled Checkbox also wraps its description in the 0.5 disabled opacity (about 2:1). Profile capture draws the consent reason, and Notification settings the email Switch reason, as a t-small paragraph outside the control, linked with aria-describedby. The address switcher puts the street in the Radio label, not the description. (2) Modal confirm gap between cancel and destructive confirm is 12 px; target.spacing needs ≥24 px or stacked actions at 390. (3) Proposed components, drawn on the boards from library parts and DS components (list in the Proposed components note): Skeleton, EmptyState (incl. a 64 px full-screen variant used by Blocked, Email link and the address step, so the design-system components issue, GitHub #109, builds one component), ErrorState, ListRow, Banner, Avatar, MapView, Textarea. (4) Resolved: tokens.css is now compiled from the approved tokens.json (Plus Jakarta Sans, IBM Plex Mono, brand focus ring, dark label on the orange button, real motion durations); the canvas overlay is gone. (5) Countdown 'normal' numeral is info.500: 4.14:1 on feedback.warning.tint (light), 2.89:1 on warning-900 (dark), 4.40:1 on surface.base. Should use feedback.info.text (info.600 light, info.300 dark). Moving it outside the banner does not fix it (4.40:1 light, 3.91:1 dark), so no ticking numeral is drawn: every wait shows the static clock time in t-small text.secondary ('You can ask for a new code at 6:48 pm'), announced once. role=timer comes back only after the DS fix. (6) BottomNav inactive label and icon use text.tertiary: 4.36:1 on white, 4.18:1 on cream, 3.38:1 on dark surface.raised, failing 4.5:1 for label.md. Should be text.secondary (8.1:1 light, 5.8:1 dark raised). Component kept as is on the canvas. (7) Corrected: Button spreads ...rest onto the rendered button or link, so aria-describedby already passes through. Disabled controls point at their reason with it (Add address, Save, Send code, Resend code). (8) Badge appearance='dot' needs a word; the inbox unread marker is drawn as a brand dot Badge with 'New', aria-hidden, and ', unread' stays in the row name. (9) FieldText error text is hard-coded --color-danger-600: 2.32:1 on dark surface.base. Should be feedback.danger.text (danger-600 light, danger-300 dark). Tagged on AddressForm-dark, Profile-validation-dark and Account-editinvalid-dark; not recoloured here. (10) Badge tints are hard-coded light ramp steps: the neutral tint (neutral-100 with text.secondary) is 1.87:1 in dark ('Default', 'This phone', 'On'); info, warning, danger and brand tints are the same. Should be themed role pairs that reach 4.5:1 in both themes (neutral: surface.sunken with text.secondary). (11) Input helper text and character count use text.tertiary at caption size: 4.18:1 on cream, 4.36:1 on white. Should be text.secondary (7.4:1). Tagged on Sign in and Code. (12) BottomNav renders tablist/tab with roving tabindex: screen readers say 'tab 1 of 4' with no panel and only the active item is in the Tab order. Should be links (or buttons with aria-current='page') inside the nav, each in the Tab order, no tab roles. (13) Button hard-codes white-space: nowrap, so at 200% text a long label (label.lg x2 = 30 px) runs past a full-width button and is clipped: 'Not you? Use a different number', 'Use a different number', 'Place the pin again from my location'. Should wrap (white-space normal, text-align center, keep minBlockSize). Tagged on Profile-lt, Blocked-lt and AddressForm-lt; not approved as drawn. (14) color.map.pin.customer (#1b3b31) has no dark-theme value: 1.72:1 on dark surface.sunken (#000000), below the 3:1 a graphic needs. Needs a dark-theme value or an outline. AddressForm draws the pin with a 2 px text.primary ring (neutral-100 in dark) so it passes; tagged on AddressForm-dark.",
+      "w": 900,
+      "x": 2260,
+      "y": -1500
+    },
+    "icon_gaps": {
+      "fill": "blue",
+      "maxH": 420,
+      "size": 24,
+      "text": "Icon gap register (the DS Icon set has 23 names). Missing Solar icons, each tagged on its row: card (Payment methods), receipt (Refunds), phone (Call support, Phone support), gift (What's new), document (Terms), settings (App settings), user-block (Suspended, Banned), download (Update), case (Work), move (Move pin, drawn as a text Button). A row or state whose icon is missing shows an empty icon slot, never a borrowed glyph: Refunds and What's new rows, the What's new empty state and the Blocked on-hold, banned and update screens are empty and tagged. lock stays only on the security and signed-out screens, where it means what it says. 'map' is Solar map-point, so the pin and location rows are right. info appears on the halal-certificates row and on CERTIFICATION_LAPSED notices, never a check or shield: the shield is reserved for HalalShield.",
+      "w": 900,
+      "x": 1280,
+      "y": -1500
+    },
+    "legend": {
+      "fill": "gray",
+      "maxH": 420,
+      "size": 24,
+      "text": "HalalGoes customer: Sign-in and Account. One artboard per screen and state, in rows per flow. Blue dashed tag = Proposed component (a composite built only from React Native Reusables parts and design-system components, to be added to the design system after owner approval) or Component gap (an icon missing from the Solar set). Amber dashed tag = Needs API (placeholder, never shown as real). Grey dashed tag = open owner decision. Dotted grey tag = reviewer annotation, never product copy. 'PRIMARY' in a board name = the launch path. Suffixes: -dark, -360 (narrow phone), -lt (200% text; AppBar and BottomNav capped at 1.6x), -kbd (keyboard open), -focus (drawn focus). href on action buttons (Send code, Verify, Save) is prototype-only; the build uses onPress, and type=submit on form saves. Colours, fonts, focus and motion come only from the installed design system's tokens.css; hg-current.css holds layout classes, text roles and review tags only, no overrides and no component rules. Later-version features are off this canvas: the notifications inbox and Home bell (hidden until Alerts ships), signed-in devices and Sign out everywhere.",
+      "w": 1200,
+      "x": 0,
+      "y": -1500
+    },
+    "n_after": {
+      "fill": "blue",
+      "maxH": 820,
+      "size": 24,
+      "text": "verifyOtp returns next_route. HOME and ORDER_TRACKING land on screens owned by Discover and Track; this canvas draws only the hand-off and the welcome toast. Sign-in comes first: nobody browses before signing in (owner decision). PROFILE_CAPTURE goes to Your details; after Save, a profile with default_address_id null gets the address step (shown only then). The address step says the customer can search for the address and drag the pin from anywhere (owner decision): 'Add your address' or 'Not now', which lands on Home's own 'Set your delivery address' state with the sheet closed. Without an address the customer can still look at restaurants (listRestaurants returns availability NO_ADDRESS and browsing works); only add-to-cart asks for an address. The Home feed (getHomeFeed) is a later-version operation and is not on launch screens. The switcher opens from Change (or Choose) in the AppBar actions slot, a DS ghost Button, never from the title. Signing in during a deletion's 7-day grace should restore the account, but the contract has no PENDING_DELETION and blocks every non-ACTIVE status, and the spec schedules deletion for a later version, so that board is a Needs API placeholder; today a DELETED status opens the neutral fallback in Routes.",
+      "w": 480,
+      "x": -600,
+      "y": 3960
+    },
+    "n_code": {
+      "fill": "blue",
+      "maxH": 820,
+      "size": 24,
+      "text": "Contract: code valid 5 min, resend cooldown resend_after_s (60 s), at most 3 sends, 15 min window, 5 tries. A resend re-sends the SAME code. Resend keeps a fixed label, disabled while waiting, with a static time under it ('You can resend the code at 6:45 pm'): time the requestOtp response was received + resend_after_s, serverNow from the response Date header (OtpChallenge has no created_at). At attempts_remaining 0 the action is Start again (back to the phone step) until the API confirms requestOtp opens a new challenge; a 429 there shows the Sign in wait. Code-limit's Start again returns with the number filled in. verifyOtp's own 429 (AUTH) keeps the typed code, disables Verify and links it to a static 'try again at' time. The resent toast docks at the top so it never covers the footer (WCAG 2.4.11).",
+      "w": 480,
+      "x": -600,
+      "y": 1880
+    },
+    "n_profile": {
+      "fill": "blue",
+      "maxH": 820,
+      "size": 24,
+      "text": "first_name required; last_name and email optional. Save validates on press. A rejected email is 422 VALIDATION_FAILED (customer emails are not unique). Consent is unticked and disabled until an email is typed; once ticked it is recorded straight away and nothing is sent until the email is confirmed (owner decision); the reason is a t-small paragraph under the box, linked with aria-describedby, outside the dimmed Checkbox (DS issue 1, tagged). From the cart: Back to cart in the AppBar, and the primary says 'Save and go to checkout'. 'Not you?' signs out to Sign in with a first-run banner.",
+      "w": 480,
+      "x": -600,
+      "y": 7064
+    },
+    "n_routes": {
+      "fill": "blue",
+      "maxH": 820,
+      "size": 24,
+      "text": "Full screen, no BottomNav. When a route replaces the open screen, focus moves to its h1 (tabindex -1), then the body, then the footer buttons in order; the update screen focuses its primary. Suspended and banned give no reason because the contract returns none. Mapping: sign-in routes by next_route, and NextRoute has only SUSPENDED, so the kind of block comes from principal.status. next_route SUSPENDED + status SUSPENDED: on hold. + BANNED: the banned board ('This account can't be used'). + DELETED or any other non-ACTIVE status: the neutral fallback 'This account isn't available'. 403 ACCOUNT_NOT_ACTIVE or ACCOUNT_DEACTIVATED from verifyOtp also open the fallback. Deletion-grace restore is Needs API (no PENDING_DELETION; AccountStatus says non-ACTIVE blocks new sessions). With support: Call support, hours, 'Use a different number'. Phone line closed (the server turns support off outside its hours, so support_enabled is false): no Call support (on hold, banned, fallback and security); the line says when it opens; one exit only, Sign out (or Sign in again for security), never 'try again later'. Owner decision: no other support channel at launch. 403 ACCOUNT_SUSPENDED on any mid-session call routes to the same screen and replaces what was open. Only when it came from quote or createOrder does it add 'That order wasn't placed.' SESSION_REVOKED / 4401 copy names no cause and never points at Sign out everywhere (a later version); it tells a customer who didn't expect it to call support, so the footer carries Call support and the hours, and a no-support variant drops that sentence and the button. SESSION_EXPIRED has its own artboard. An unknown next_route shows the update screen (dark, 360 and 200% drawn).",
+      "w": 480,
+      "x": -600,
+      "y": 5184
+    },
+    "n_signin": {
+      "fill": "blue",
+      "maxH": 820,
+      "size": 24,
+      "text": "One flow signs in and creates the account (verifyOtp finds or creates by phone), so the heading says both. No channel picker: OtpRequestInput has no channel field. Send code stays enabled and validates on press; only offline and the 429 wait block it, and their banners say why. Tel field: tel-national, fixed +1 prefix; a +44 number only arrives by paste or autofill. The 429 wait is a static clock time on its own line ('You can ask for a new code at 6:48 pm'), linked to the disabled Send code (no ticking numeral: the DS Countdown numeral fails 4.5:1, DS issue 5 in the DS issues note). A requestOtp network drop or 5xx other than 503 has its own board with Try again. Terms and privacy is one 44 px ghost Button, not two inline links; it opens the signed-out Terms (no BottomNav, back to Sign in). Support is a phone line during set hours only (owner decision): the server turns support off outside them (support_enabled false, decided 1 October), so Call support drops and the hours line shows the support_hours text. The app never works out opening times itself. 'Not you?' on first-run details lands on the plain signed-out banner; 'addresses are saved' copy is only for sign-out from Account. Nothing here is green.",
+      "w": 480,
+      "x": -600,
+      "y": 0
+    },
+    "proposed_components": {
+      "fill": "blue",
+      "maxH": 900,
+      "size": 24,
+      "text": "Proposed components (each tagged 'Proposed component: <Name>' on its boards; none is in the design system yet, so each goes to the owner for approval, then into Claude Design). Built only from library parts and design-system components: Banner = React Native Reusables Alert (drawn with the DS Card, outlined, radius md, in a neutral, info or warning tint role) + DS Icon + text roles, optional DS Button. ListRow = DS Card as the pressable link (href, 64 px, inset focus ring) with the DS Icon in a 36 px slot, title and subline text roles and the DS Icon chevron-right; rows are split by the React Native Reusables Separator; a row with no destination is the same Card without href. EmptyState and ErrorState = DS Icon in a 56 px (64 px full-screen) circle + heading and body text roles + DS Button. Skeleton = React Native Reusables Skeleton (static skeleton.base block, reduced-motion safe) with a role=status name outside the busy region. Avatar = React Native Reusables Avatar with AvatarFallback (initials). MapView = the customer app's @rnmapbox/maps MapView inside a DS Card, pin drawn with the DS Icon map in color.map.pin.customer with a 2 px text.primary ring. AddressMapPicker = DS Input (search) + Proposed MapView + DS Buttons (Use my current location, Move pin). Textarea = React Native Reusables Textarea part with the DS Input's label, border, radius, control.bg and focus border; 3 rows (96 px) growing to 6, character count underneath in text.secondary (Delivery notes). The canvas cannot mount React Native Reusables, so their parts are drawn from tokens inside the DS components; hg-current.css holds no rules for any of them.",
+      "w": 900,
+      "x": 3240,
+      "y": -1500
+    },
+    "t_after": {
+      "kind": "title1",
+      "maxW": 2740,
+      "text": "After the code: where next_route lands",
+      "w": 240,
+      "x": 0,
+      "y": 3700
+    },
+    "t_code": {
+      "kind": "title1",
+      "maxW": 8000,
+      "text": "Sign in: code",
+      "w": 240,
+      "x": 0,
+      "y": 1620
+    },
+    "t_profile": {
+      "kind": "title1",
+      "maxW": 6470,
+      "text": "Profile capture",
+      "w": 240,
+      "x": 0,
+      "y": 6804
+    },
+    "t_routes": {
+      "kind": "title1",
+      "maxW": 8000,
+      "text": "Routes the server can force",
+      "w": 240,
+      "x": 0,
+      "y": 4924
+    },
+    "t_signin": {
+      "kind": "title1",
+      "maxW": 8000,
+      "text": "Sign in: phone number",
+      "w": 240,
+      "x": 0,
+      "y": -260
+    },
+    "moved_to": {
+      "x": 4240,
+      "y": -1500,
+      "w": 600,
+      "maxH": 520,
+      "fill": "gray",
+      "size": 24,
+      "text": "Moved to HalalGoes Customer — Account: https://claude.ai/artifact/MYT5tBoEHpPuRegpMusYHV — Saved addresses and the switcher; Add or edit an address; Account and settings; Pages opened from Account (How we check, Terms, Email link); Notification settings; App settings; What's new."
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "SignIn-ready.dc.html",
+    "SignIn-sending.dc.html",
+    "SignIn-invalid.dc.html",
+    "SignIn-invalidfocus.dc.html",
+    "SignIn-unsupported.dc.html",
+    "SignIn-limited.dc.html",
+    "SignIn-limitedover.dc.html",
+    "SignIn-unavailable.dc.html",
+    "SignIn-unavailable-nosupport.dc.html",
+    "SignIn-lockedwait.dc.html",
+    "SignIn-kbd.dc.html",
+    "SignIn-offline.dc.html",
+    "SignIn-channel.dc.html",
+    "Main-signedout.dc.html",
+    "Main-notyou.dc.html",
+    "SignIn-dark.dc.html",
+    "SignIn-360.dc.html",
+    "SignIn-lt.dc.html",
+    "SignInCode.dc.html",
+    "Code-changefocus.dc.html",
+    "Code-short.dc.html",
+    "Code-verifying.dc.html",
+    "Code-incorrect.dc.html",
+    "Code-invalidfocus.dc.html",
+    "Code-expired.dc.html",
+    "Code-locked.dc.html",
+    "Code-timedout.dc.html",
+    "Code-resend.dc.html",
+    "Code-resent.dc.html",
+    "Code-limit.dc.html",
+    "Code-verifyfail.dc.html",
+    "Code-resendfail.dc.html",
+    "Code-offline.dc.html",
+    "Code-kbd.dc.html",
+    "Code-dark.dc.html",
+    "Code-360.dc.html",
+    "Code-lt.dc.html",
+    "SignedIn.dc.html",
+    "SignedIn-tracking.dc.html",
+    "SignedIn-address.dc.html",
+    "SignedIn-noaddress.dc.html",
+    "SignedIn-firstaddress.dc.html",
+    "Blocked.dc.html",
+    "Blocked-midsession.dc.html",
+    "Blocked-banned.dc.html",
+    "Blocked-midsession-focus.dc.html",
+    "Blocked-nosupport.dc.html",
+    "Blocked-banned-nosupport.dc.html",
+    "Blocked-update.dc.html",
+    "Blocked-security.dc.html",
+    "Blocked-security-nosupport.dc.html",
+    "Blocked-revoked.dc.html",
+    "Blocked-revoked-nosupport.dc.html",
+    "Blocked-expired.dc.html",
+    "Blocked-update-focus.dc.html",
+    "Blocked-dark.dc.html",
+    "Blocked-banned-dark.dc.html",
+    "Blocked-banned-focus.dc.html",
+    "Blocked-update-dark.dc.html",
+    "Blocked-security-dark.dc.html",
+    "Blocked-revoked-dark.dc.html",
+    "Blocked-expired-dark.dc.html",
+    "Blocked-update-360.dc.html",
+    "Blocked-360.dc.html",
+    "Blocked-revoked-360.dc.html",
+    "Blocked-update-lt.dc.html",
+    "Blocked-lt.dc.html",
+    "ProfileCapture.dc.html",
+    "Profile-filled.dc.html",
+    "Profile-validation.dc.html",
+    "Profile-invalidfocus.dc.html",
+    "Profile-emailrejected.dc.html",
+    "Profile-saving.dc.html",
+    "Profile-error.dc.html",
+    "Profile-offline.dc.html",
+    "Profile-fromcart.dc.html",
+    "Profile-dark.dc.html",
+    "Profile-360.dc.html",
+    "Profile-kbd.dc.html",
+    "Profile-lt.dc.html",
+    "SignIn-sendfail.dc.html",
+    "SignedIn-restored.dc.html",
+    "SignedIn-changefocus.dc.html",
+    "Blocked-revoked-focus.dc.html",
+    "Profile-validation-dark.dc.html",
+    "Blocked-midcheckout.dc.html",
+    "Code-verifylimit.dc.html",
+    "Blocked-unavailable.dc.html",
+    "Blocked-unavailable-nosupport.dc.html"
+  ],
+  "pages": [],
+  "title": "HalalGoes Customer — Sign-in & Account"
+}

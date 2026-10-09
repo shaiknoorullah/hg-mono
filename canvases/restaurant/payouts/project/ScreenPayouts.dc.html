@@ -1,0 +1,414 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Payouts</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div style="position: relative; width: {{rootW}}; height: {{rootH}}; overflow: hidden; display: flex; background: var(--surface-base); font-family: var(--font-ui); color: var(--text-primary)">
+<dc-import name="PartRail" active="{{railActive}}" collapsed="{{railCollapsed}}" orders-count="{{ordersCount}}" annotate="{{no}}" height="{{H}}" hint-size="232px,900px"></dc-import>
+<div style="flex-grow: 1; min-width: 0; height: {{rootH}}; display: flex; flex-direction: column">
+<dc-import name="PartTop" title="{{pageTitle}}" width="{{colW}}" halal="{{topHalal}}" mode="{{topMode}}" bell="{{bell}}" annotate="{{no}}" unread="{{unread}}" wn-new="{{no}}" hint-size="1208px,72px"></dc-import>
+<dc-import name="PartNewOrders" state="{{strip}}" orders-mode="{{topMode}}" annotate="{{no}}" width="{{colW}}" hint-size="1208px,64px"></dc-import>
+<div style="flex-grow: 1; min-height: 0; display: flex">
+<main style="flex-grow: 1; min-width: 0; box-sizing: border-box; padding: 24px 32px; display: flex; flex-direction: column; gap: 16px; overflow: hidden">
+
+<sc-if value="{{isOrders}}" hint-placeholder-val="{{false}}">
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: 12px; align-items: center; justify-content: center; border: 2px dashed var(--border-interactive); border-radius: var(--radius-lg); background: var(--surface-raised)">
+<span style="font: var(--text-type-heading-md)">Orders page</span>
+<span style="padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">Placeholder: the orders list, order and timeline panes are designed on the Orders canvas (desktop 1440 and kitchen tablet 1024×768)</span>
+</div>
+</sc-if>
+
+<sc-for list="{{banners}}" as="b" hint-placeholder-count="0">
+<section aria-labelledby="{{b.id}}" style="flex-shrink: 0; display: flex; align-items: flex-start; gap: 16px; padding: 16px 20px; border-radius: var(--radius-md); background: {{b.bg}}; border: 1px solid {{b.border}}">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="{{b.icon}}" size="lg" color="{{b.iconColor}}"></x-import>
+<div style="display: flex; flex-direction: column; gap: 8px; flex-grow: 1; min-width: 0">
+<h2 id="{{b.id}}" style="margin: 0; font: var(--text-type-heading-sm)">{{b.title}}</h2>
+<sc-if value="{{b.live}}" hint-placeholder-val="{{false}}"><span role="status" aria-live="polite" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap">{{b.live}}</span></sc-if>
+<sc-for list="{{b.lines}}" as="ln" hint-placeholder-count="1">
+<p style="margin: 0; font: var(--text-type-body-md); line-height: 1.5; font-weight: {{ln.weight}}">{{ln.text}}</p>
+</sc-for>
+<sc-if value="{{b.hasActions}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap">
+<sc-for list="{{b.actions}}" as="a" hint-placeholder-count="1">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="{{a.variant}}" size="md" icon-end="{{a.iconEnd}}" loading="{{a.loading}}" disabled="{{a.disabled}}" aria-describedby="{{a.describedBy}}" href="{{a.href}}">{{a.label}}</x-import>
+</sc-for>
+<sc-if value="{{b.opens}}" hint-placeholder-val="{{false}}"><span style="font: var(--text-type-body-sm); color: var(--text-secondary)">{{b.opens}}</span></sc-if>
+</div>
+</sc-if>
+<sc-if value="{{b.alert}}" hint-placeholder-val="{{false}}">
+<div role="alert" id="{{b.alertId}}" style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap">
+<span style="display: flex; align-items: center; gap: 6px; font: var(--text-type-label-md); color: {{b.alertColor}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="{{b.alertIcon}}" size="sm"></x-import>{{b.alert}}</span>
+<sc-if value="{{b.alertRetry}}" hint-placeholder-val="{{false}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="sm" icon-start="refresh">Try again</x-import></sc-if>
+<sc-if value="{{b.alertSupport}}" hint-placeholder-val="{{false}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md" href="https://claude.ai/artifact/VkGvVQsxmCHp8CGnCLVKga">Contact support</x-import></sc-if>
+</div>
+</sc-if>
+</div>
+<div style="width: 220px; flex-shrink: 0; display: flex; flex-direction: column; gap: 6px; align-items: flex-end">
+<span style="padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">Proposed component: Banner</span>
+<sc-for list="{{b.tags}}" as="t" hint-placeholder-count="1"><span style="padding: 2px 8px; border: 1px dashed {{t.border}}; border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: {{t.color}}; background: {{t.bg}}">{{t.text}}</span></sc-for>
+</div>
+</section>
+</sc-for>
+
+<sc-if value="{{isLaunch}}" hint-placeholder-val="{{true}}">
+<div style="display: grid; grid-template-columns: {{gridCols}}; gap: 16px; align-items: start">
+<section aria-labelledby="acct-h">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg" padding="24px">
+<div aria-busy="{{acct.loading}}" style="display: flex; flex-direction: column; gap: 16px; min-height: 184px">
+<h2 id="acct-h" style="margin: 0; font: var(--text-type-heading-lg); letter-spacing: -0.01em">Payout account</h2>
+<sc-if value="{{acct.loading}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; gap: 12px">
+<div style="width: 120px; height: 22px; border-radius: var(--radius-full); background: var(--skeleton-base)"></div>
+<div style="width: 70%; height: 16px; border-radius: var(--radius-xs); background: var(--skeleton-base)"></div>
+<div style="width: 55%; height: 16px; border-radius: var(--radius-xs); background: var(--skeleton-base)"></div>
+<div style="width: 45%; height: 16px; border-radius: var(--radius-xs); background: var(--skeleton-base)"></div>
+</div>
+</sc-if>
+<sc-if value="{{acct.error}}" hint-placeholder-val="{{false}}">
+<div role="alert" style="display: flex; flex-direction: column; gap: 8px">
+<strong style="font: var(--text-type-heading-sm)">Couldn't load your payout account</strong>
+<span style="font: var(--text-type-body-md); line-height: 1.5; color: var(--text-secondary)">Your payouts themselves are not affected, and orders keep coming in.</span>
+<div style="display: flex"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" icon-start="refresh">Try again</x-import></div>
+</div>
+</sc-if>
+<sc-if value="{{acct.ready}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="{{acct.tone}}" icon="{{acct.icon}}" size="md">{{acct.badge}}</x-import>
+<span style="font: var(--text-type-body-md)">{{acct.sentence}}</span>
+</div>
+<dl style="margin: 0; display: grid; grid-template-columns: 136px minmax(0, 1fr); row-gap: 10px; column-gap: 16px; font: var(--text-type-body-md)">
+<sc-for list="{{acct.rows}}" as="r" hint-placeholder-count="3">
+<dt style="color: var(--text-secondary)">{{r.k}}</dt><dd style="margin: 0">{{r.v}}</dd>
+</sc-for>
+</dl>
+</div>
+</sc-if>
+</div>
+</x-import>
+</section>
+
+<section aria-labelledby="req-h">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg" padding="24px">
+<div style="display: flex; flex-direction: column; gap: 16px; min-height: 184px">
+<h2 id="req-h" style="margin: 0; font: var(--text-type-heading-lg); letter-spacing: -0.01em">What Stripe needs from you</h2>
+<sc-if value="{{req.loading}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; gap: 12px"><div style="width: 60%; height: 16px; border-radius: var(--radius-xs); background: var(--skeleton-base)"></div><div style="width: 40%; height: 16px; border-radius: var(--radius-xs); background: var(--skeleton-base)"></div></div>
+</sc-if>
+<sc-if value="{{req.text}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; align-items: flex-start; gap: 10px">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="{{req.icon}}" size="md" color="var(--text-secondary)" style="margin-top: 2px"></x-import>
+<span style="display: flex; flex-direction: column; gap: 4px"><span style="font: var(--text-type-label-lg)">{{req.title}}</span><span style="font: var(--text-type-body-sm); line-height: 1.45; color: var(--text-secondary)">{{req.sub}}</span></span>
+</div>
+</sc-if>
+<sc-if value="{{req.list}}" hint-placeholder-val="{{false}}">
+<dl style="margin: 0; display: grid; grid-template-columns: minmax(0, 1fr) 48px; row-gap: 10px; column-gap: 16px; font: var(--text-type-body-md)">
+<sc-for list="{{req.rows}}" as="r" hint-placeholder-count="3">
+<dt>{{r.k}}</dt><dd style="margin: 0; text-align: end; font-variant-numeric: tabular-nums; font-weight: 600">{{r.v}}</dd>
+</sc-for>
+</dl>
+<div style="display: flex"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" icon-end="chevron-right" href="Payouts-SetupList.dc.html">See Stripe's exact list</x-import></div>
+</sc-if>
+</div>
+</x-import>
+</section>
+</div>
+<div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" icon-end="chevron-right" href="Payouts-History.dc.html">See your payouts</x-import>
+<p style="margin: 0; font: var(--text-type-body-sm); color: var(--text-secondary); max-width: 720px">Orders never wait on payouts. If Stripe later needs something from a working payout account, you keep taking orders, and what you earn is kept on record until it can be paid out.</p>
+</div>
+<div style="display: flex; gap: 8px; flex-wrap: wrap">
+<span style="padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">Proposed component: KeyValueList (owner-approved to add) · getConnectStatus: payouts_enabled, bank_last4, payout_interval, requirements (counted from the lists, never added up from money; each code kept as a secondary reference)</span>
+<span style="padding: 2px 8px; border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--feedback-info-tint-text); background: var(--feedback-info-tint)">Needs API: payout weekday and next payout date</span>
+</div>
+</sc-if>
+
+<sc-if value="{{isHistory}}" hint-placeholder-val="{{false}}">
+<div style="flex-shrink: 0; display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: var(--radius-md); border: 1px solid var(--border-decorative); background: var(--surface-raised)">
+<span style="font: var(--text-type-label-lg)">Payout account</span>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="{{acct.tone}}" icon="{{acct.icon}}" size="sm">{{acct.badge}}</x-import>
+<span style="font: var(--text-type-body-md); flex-grow: 1">{{acct.short}}</span>
+<sc-if value="{{acct.finish}}" hint-placeholder-val="{{false}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md" icon-end="chevron-right" href="Payouts-StripeReturn-Checking.dc.html">Finish payout setup in Stripe</x-import></sc-if>
+</div>
+<sc-if value="{{attention}}" hint-placeholder-val="{{false}}">
+<section aria-labelledby="attn-h" style="flex-shrink: 0; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 8px 16px; border-radius: var(--radius-md); background: var(--feedback-warning-tint); border: 1px solid var(--feedback-warning-border)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="warning" size="md" color="var(--feedback-warning-icon)"></x-import>
+<h2 id="attn-h" style="margin: 0; font: var(--text-type-label-lg)">Need your attention:</h2>
+<sc-for list="{{attnRows}}" as="a" hint-placeholder-count="2">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="md" icon-end="chevron-right" href="{{a.href}}">{{a.label}}</x-import>
+</sc-for>
+<span style="padding: 2px 8px; border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--feedback-info-tint-text); background: var(--feedback-info-tint)">Loaded rows only · Needs API: count of failed and held payouts</span>
+</section>
+</sc-if>
+<dc-import name="PartPayoutTable" variant="{{tableVariant}}" width="{{tableW}}" height="{{tableH}}" hint-size="1144px,480px"></dc-import>
+</sc-if>
+</main>
+
+<sc-if value="{{panel.show}}" hint-placeholder-val="{{false}}">
+<aside aria-labelledby="panel-h" style="width: {{panelWpx}}; flex-shrink: 0; box-sizing: border-box; display: flex; flex-direction: column; background: var(--surface-raised); border-left: 1px solid var(--border-decorative)">
+<div style="flex-shrink: 0; display: flex; align-items: center; gap: 8px; min-height: 64px; padding: 0 12px 0 24px; border-bottom: 1px solid var(--border-decorative)">
+<h2 id="panel-h" tabindex="-1" style="margin: 0; flex-grow: 1; font: var(--text-type-heading-md)">{{panel.title}}</h2>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.IconButton" icon="close" variant="plain" accessibility-label="{{panel.closeLabel}}"></x-import>
+</div>
+<div style="flex-grow: 1; min-height: 0; overflow: auto; padding: 20px 24px; display: flex; flex-direction: column; gap: 12px">
+<sc-if value="{{panel.detail}}" hint-placeholder-val="{{false}}"><dc-import name="PartPayoutDetail" state="{{detailState}}" payouts-enabled="{{detailPayoutsEnabled}}" width="{{panelInnerW}}" height="{{panelBodyH}}" hint-size="392px,600px"></dc-import></sc-if>
+<sc-if value="{{panel.support}}" hint-placeholder-val="{{false}}"><dc-import name="PartSupport" context="payout" width="{{panelInnerW}}" height="{{panelBodyH}}" hint-size="392px,600px"></dc-import></sc-if>
+<sc-if value="{{panel.bell}}" hint-placeholder-val="{{false}}"><dc-import name="PartNotifications" state="{{bellState}}" width="{{panelInnerW}}" height="{{panelBodyH}}" hint-size="392px,600px"></dc-import></sc-if>
+<sc-if value="{{panel.wn}}" hint-placeholder-val="{{false}}"><dc-import name="PartWhatsNew" mode="{{panel.wnMode}}" width="{{panelInnerW}}" height="{{panelBodyH}}" hint-size="392px,600px"></dc-import></sc-if>
+<sc-if value="{{panel.reject}}" hint-placeholder-val="{{false}}"><dc-import name="PartRejectReason" expired="{{panel.rejectExpired}}" width="{{panelInnerW}}" height="{{panelBodyH}}" hint-size="392px,600px"></dc-import></sc-if>
+<sc-if value="{{panel.items}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 8px; padding: 12px 16px; border-radius: var(--radius-md); background: var(--surface-subtle)">
+<div style="display: flex; align-items: baseline; gap: 8px"><span style="font: var(--text-type-mono-md); font-family: var(--font-mono); font-weight: 500">HG-10482</span><span style="font: var(--text-type-body-sm); color: var(--text-secondary)">Amina K. · Scarborough, under 3 km</span></div>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Countdown" expires-at="2026-09-28T18:02:22-04:00" server-now="2026-09-28T18:00:20-04:00" window-seconds="{{180}}" variant="bar" size="sm" label="Time left to accept"></x-import>
+<span style="font: var(--text-type-body-sm); line-height: 1.45">Accept or reject it from the strip above. The time keeps running while this is open.</span>
+</div>
+<ul aria-label="Items in order HG-10482" style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column">
+<sc-for list="{{orderLines}}" as="l" hint-placeholder-count="2">
+<li style="display: flex; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border-decorative)">
+<span style="font: var(--text-type-label-lg); font-variant-numeric: tabular-nums; min-width: 32px">{{l.qty}} ×</span>
+<span style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px"><span style="font: var(--text-type-label-lg)">{{l.name}}</span><sc-if value="{{l.mods}}" hint-placeholder-val="{{false}}"><span style="font: var(--text-type-body-sm); color: var(--text-secondary)">{{l.mods}}</span></sc-if><sc-if value="{{l.request}}" hint-placeholder-val="{{false}}"><span style="font: var(--text-type-body-sm)">Request: "{{l.request}}"</span></sc-if></span>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{l.cents}}" size="sm"></x-import>
+</li>
+</sc-for>
+</ul>
+<div style="display: flex; align-items: center; gap: 12px"><span style="font: var(--text-type-label-lg); flex-grow: 1">Subtotal</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{4250}}" size="md"></x-import></div>
+<div style="display: flex; flex-direction: column; gap: 4px; padding: 12px 16px; border-radius: var(--radius-md); border: 1px solid var(--border-interactive)"><span style="font: var(--text-type-label-lg)">Note from the customer</span><span style="font: var(--text-type-body-md); line-height: 1.5">"Please cut the shawarma in half."</span></div>
+<span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">OrderRestaurantView.lines (quantity, name, variant_name, addons, special_request, line_total_cents) and special_instructions, verbatim · subtotal = money.subtotal_cents from the server</span>
+</div>
+</sc-if>
+<sc-if value="{{panel.list}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; gap: 16px">
+<p style="margin: 0; font: var(--text-type-body-md); line-height: 1.5">Stripe explains each item when you open it. The Stripe reference under each one is for HalalGoes support.</p>
+<sc-for list="{{reqGroups}}" as="g" hint-placeholder-count="3">
+<div style="display: flex; flex-direction: column; gap: 10px; padding-top: 12px; border-top: 1px solid var(--border-decorative)">
+<h3 style="margin: 0; font: var(--text-type-label-lg)">{{g.title}}</h3>
+<ul style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px">
+<sc-for list="{{g.items}}" as="c" hint-placeholder-count="1"><li style="display: flex; flex-direction: column; gap: 2px"><span style="font: var(--text-type-body-md)">{{c.name}}</span><span style="font: var(--text-type-body-sm); color: var(--text-secondary)">Stripe reference: <span lang="zxx" style="font-family: var(--font-mono); overflow-wrap: anywhere">{{c.code}}</span></span></li></sc-for>
+</ul>
+</div>
+</sc-for>
+<span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--feedback-info-tint-text); background: var(--feedback-info-tint)">Needs API: plain-language names for Stripe requirement codes (ConnectStatus.requirements returns Stripe's codes only; the contract forbids the app guessing them)</span>
+<span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">ConnectStatus.requirements · Past due = past_due · Needed by = currently_due minus past_due, date from deadline · Not needed yet = eventually_due minus currently_due · the code is secondary, marked lang="zxx" so screen readers don't spell out its punctuation</span>
+</div>
+</sc-if>
+<span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">Proposed component: DetailPanel (in-page, no scrim; opens beside the page and closes back to the item that opened it)</span>
+</div>
+<sc-if value="{{panel.hasFooter}}" hint-placeholder-val="{{false}}">
+<div style="flex-shrink: 0; display: flex; flex-direction: column; gap: 10px; padding: 16px 24px; border-top: 1px solid var(--border-decorative)">
+<sc-if value="{{panel.reason}}" hint-placeholder-val="{{false}}"><span id="panel-reason" style="font: var(--text-type-body-sm); color: var(--text-secondary)">{{panel.reason}}</span></sc-if>
+<div style="display: flex; gap: 12px; justify-content: flex-end">
+<sc-for list="{{panel.footer}}" as="f" hint-placeholder-count="1">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="{{f.variant}}" size="md" href="{{f.href}}" destructive="{{f.destructive}}" disabled="{{f.disabled}}" aria-describedby="{{f.describedBy}}">{{f.label}}</x-import>
+</sc-for>
+</div>
+</div>
+</sc-if>
+</aside>
+</sc-if>
+</div>
+</div>
+
+<sc-if value="{{toast.show}}" hint-placeholder-val="{{false}}">
+<div style="position: absolute; right: 24px; bottom: 24px; width: 420px; z-index: 600">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Toast" variant="{{toast.variant}}" title="{{toast.title}}" description="{{toast.description}}" on-dismiss="{{noop}}"></x-import>
+</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"variant":{"editor":"enum","options":["populated","loading","connect-error","noaccount","noaccount-creating","noaccount-notapproved","noaccount-error","setup","setup-list","stripe-opening","stripe-error","stripe-409","stripe-return-checking","stripe-return-on","stripe-return-still","setup-due-soon","account-suspended","account-banned","strip-one","strip-several","strip-items","strip-reject","strip-accepting","strip-expired","strip-accepted","strip-paymentfailed","strip-reject-expired","strip-offline","whatsnew","whatsnew-interrupted","orders-wn-owner","orders-first-owner","history","history-loading","history-empty","history-error","loadmore","loadmore-error","end","live-failed","live-sending","detail-DRAFT","detail-READY","detail-TRANSFERRING","detail-TRANSFERRED","detail-PAID","detail-PAID_NOCOUNT","detail-FAILED","detail-FAILED_NOMSG","detail-HELD","detail-HELD_NOMSG","detail-HELDSETUP_SEP","detail-HELDSETUP_AUG","detail-HELD_SUSPENDED","detail-HELD_BANNED","detail-REVERSAL_LATER","detail-ADJ_HALAL","detail-SEARCHING","detail-NOTFOUND","detail-ERROR","support-payout","bell","bell-empty","bell-loading","bell-error"],"default":"populated"},"device":{"editor":"enum","options":["desktop","tablet"],"default":"desktop"},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    function inList(x, l) { return l.indexOf(x) >= 0; }
+    var v = this.props.variant || 'populated';
+    // Kitchen tablet: landscape 1024 × 768 and up (owner decision). The side navigation stays collapsed and the panel is 380 px, as on Live Orders.
+    var tablet = this.props.device === 'tablet';
+    var W = tablet ? 1024 : 1440, H = tablet ? 768 : 900, panelW = tablet ? 380 : 440;
+    var WARN = { bg: 'var(--feedback-warning-tint)', border: 'var(--feedback-warning-border)', iconColor: 'var(--feedback-warning-icon)' };
+    var INFO = { bg: 'var(--feedback-info-tint)', border: 'var(--feedback-info-border)', iconColor: 'var(--feedback-info-icon)' };
+    var OK = { bg: 'var(--feedback-success-tint)', border: 'var(--feedback-success-border)', iconColor: 'var(--feedback-success-icon)' };
+    var SLATE = { bg: 'var(--surface-subtle)', border: 'var(--border-decorative)', iconColor: 'var(--text-secondary)' };
+    function tag(text) { return { text: text, border: 'var(--border-interactive)', color: 'var(--text-secondary)', bg: 'var(--surface-raised)' }; }
+    function api(text) { return { text: text, border: 'var(--feedback-info-border)', color: 'var(--feedback-info-tint-text)', bg: 'var(--feedback-info-tint)' }; }
+    function line(text, o) { return Object.assign({ text: text, weight: 400, code: null }, o || {}); }
+
+    // ---- which family of variant this is
+    var isDetail = v.indexOf('detail-') === 0;
+    var liveDetail = v === 'live-failed' || v === 'live-sending';
+    var historyLike = isDetail || liveDetail || inList(v, ['history', 'history-loading', 'history-empty', 'history-error', 'loadmore', 'loadmore-error', 'end', 'support-payout']) || v.indexOf('bell') === 0;
+    var isOrders = v.indexOf('orders-') === 0;
+    var heldSetupDetail = v === 'detail-HELDSETUP_SEP' || v === 'detail-HELDSETUP_AUG';
+    var setupLike = inList(v, ['setup', 'setup-list', 'stripe-opening', 'stripe-error', 'stripe-409']);
+    var retLike = v.indexOf('stripe-return') === 0;
+    var naLike = v.indexOf('noaccount') === 0;
+    var acctKind = inList(v, ['account-suspended', 'detail-HELD_SUSPENDED']) ? 'suspended' : (inList(v, ['account-banned', 'detail-HELD_BANNED']) ? 'banned' : null);
+    var stripVariant = v.indexOf('strip-') === 0;
+
+    // ---- the orders strip (every page). Suspended, banned, not approved: nothing can be offered, so it is empty.
+    var STRIP = { 'strip-accepted': 'accepted', 'strip-paymentfailed': 'paymentfailed', 'strip-reject-expired': 'expired', 'strip-one': 'one', 'strip-items': 'one', 'strip-several': 'several', 'strip-reject': 'reject', 'strip-accepting': 'accepting', 'strip-expired': 'expired', 'strip-offline': 'offline', 'whatsnew-interrupted': 'one' };
+    var strip = STRIP[v] || 'empty';
+    var ordersCount = { one: 1, several: 3, reject: 1, accepting: 1, expired: 0 }[strip] || 0;
+
+    // ---- panel (in-page, beside the page; never over it)
+    var PERIOD_FULL = { HELDSETUP_SEP: '7–13 September 2026', HELDSETUP_AUG: '31 August – 6 September 2026', HELD_SUSPENDED: '7–13 September 2026', HELD_BANNED: '7–13 September 2026' };
+    var PERIOD = { ADJ: '14–20 September 2026', REVERSAL: '14–20 September 2026', DRAFT: '14–20 September 2026', READY: '7–13 September 2026', TRANSFERRING: '31 August – 6 September 2026', TRANSFERRED: '24–30 August 2026', PAID: '3–9 August 2026', FAILED: '10–16 August 2026', HELD: '17–23 August 2026', LIVE: v === 'live-failed' ? '24–30 August 2026' : '7–13 September 2026' };
+    var detailState = isDetail ? v.slice(7) : (v === 'live-failed' ? 'LIVE_FAILED' : (v === 'live-sending' ? 'LIVE_SENDING' : 'HELD'));
+    var bellState = { bell: 'list', 'bell-empty': 'empty', 'bell-loading': 'loading', 'bell-error': 'error' }[v];
+    var panel = { show: false, detail: false, support: false, bell: false, wn: false, reject: false, rejectExpired: false, items: false, list: false, hasFooter: false, footer: [], reason: null, title: '', closeLabel: 'Close panel', wnMode: 'since' };
+    if (isDetail || liveDetail) panel = Object.assign(panel, { show: true, detail: true, title: detailState === 'SEARCHING' || detailState === 'NOTFOUND' || detailState === 'ERROR' ? 'Payout' : 'Payout for ' + (PERIOD_FULL[detailState] || (liveDetail || detailState.indexOf('LIVE') === 0 ? PERIOD.LIVE : PERIOD[detailState.split('_')[0]])), closeLabel: 'Close payout' });
+    if (v === 'support-payout') panel = Object.assign(panel, { show: true, support: true, title: 'Contact support', closeLabel: 'Close contact support', hasFooter: true, footer: [{ variant: 'tertiary', label: 'Back to the payout', href: 'PayoutDetail-Failed.dc.html' }] });
+    if (bellState) panel = Object.assign(panel, { show: true, bell: true, title: 'Notifications', closeLabel: 'Close notifications' });
+    if (inList(v, ['whatsnew', 'whatsnew-interrupted', 'orders-wn-owner'])) panel = Object.assign(panel, { show: true, wn: true, wnMode: 'since', title: "What's new since you last looked", closeLabel: "Close what's new", hasFooter: true, footer: [{ variant: 'primary', label: 'Got it', href: isOrders ? '#orders' : 'Main.dc.html' }] });
+    if (v === 'orders-first-owner') panel = Object.assign(panel, { show: true, wn: true, wnMode: 'first', title: 'Get set up', closeLabel: 'Close get set up', hasFooter: true, footer: [{ variant: 'primary', label: 'Got it', href: '#orders' }] });
+    // Nothing is preselected: Reject order stays disabled until a reason is chosen, and says why before the button.
+    if (v === 'strip-reject') panel = Object.assign(panel, { show: true, reject: true, title: 'Reject order HG-10482', closeLabel: 'Close without rejecting', hasFooter: true, reason: 'Choose a reason to reject.', footer: [{ variant: 'tertiary', label: 'Keep the order', href: 'Orders-Strip-One.dc.html' }, { variant: 'danger', label: 'Reject order', destructive: true, disabled: true, describedBy: 'panel-reason' }] });
+    // Time ran out while the reason panel was open: rejectOrder returns 409, the order was already turned down automatically.
+    if (v === 'strip-reject-expired') panel = Object.assign(panel, { show: true, reject: true, rejectExpired: true, title: 'Reject order HG-10482', closeLabel: 'Close', hasFooter: true, reason: 'This order was already turned down automatically.', footer: [{ variant: 'tertiary', label: 'Close', href: 'Orders-Strip-Expired.dc.html' }, { variant: 'danger', label: 'Reject order', destructive: true, disabled: true, describedBy: 'panel-reason' }] });
+    if (v === 'strip-items') panel = Object.assign(panel, { show: true, items: true, title: 'Order HG-10482 · 3 items', closeLabel: 'Close order items', hasFooter: true, footer: [{ variant: 'tertiary', label: 'Close', href: 'Orders-Strip-One.dc.html' }] });
+    if (v === 'setup-list') panel = Object.assign(panel, { show: true, list: true, title: "Stripe's exact list", closeLabel: "Close Stripe's list", hasFooter: true, footer: [{ variant: 'primary', label: 'Finish payout setup in Stripe', href: 'Payouts-StripeReturn-Checking.dc.html' }] });
+
+    // A panel needs room: the rail collapses to icons while one is open, and for the busy strip.
+    var railCollapsed = tablet || panel.show || v === 'strip-several';
+    var railW = railCollapsed ? 72 : 232;
+    var colW = W - railW;
+    var stripH = strip === 'empty' || strip === 'offline' ? 64 : 112;
+    var bodyH = H - 72 - stripH;
+    panel.footer = panel.footer.map(function (f) { return Object.assign({ href: undefined, destructive: undefined, disabled: false, describedBy: undefined }, f); });
+    var panelBodyH = bodyH - 64 - 40 - (panel.hasFooter ? (panel.reason ? 105 : 77) : 0) - 40;
+
+    // ---- banners (launch)
+    var banners = [];
+    var Q12 = line('You can keep taking orders. What you earn is kept on record and paid out once Stripe has what it needs.', { weight: 600 });
+    // 409 on createConnectOnboardingLink: the contract gives no reason, and an account exists (so documents are already approved). Finish is disabled; support is the way forward.
+    var FINISH = { variant: v === 'stripe-409' ? 'tertiary' : 'primary', label: 'Finish payout setup in Stripe', iconEnd: 'chevron-right', href: v === 'stripe-409' ? undefined : 'Payouts-StripeReturn-Checking.dc.html', loading: v === 'stripe-opening', disabled: v === 'stripe-409', describedBy: v === 'stripe-409' ? 'b-setup-alert' : undefined };
+    var LIST = { variant: 'tertiary', label: "See Stripe's exact list", iconEnd: 'chevron-right', href: 'Payouts-SetupList.dc.html', loading: undefined, disabled: false };
+    if (acctKind && !isDetail) banners.push(Object.assign({ id: 'b-acct', icon: 'info', title: acctKind === 'banned' ? 'No payouts while this account is banned' : 'No payouts while your account is suspended', lines: [line(acctKind === 'banned' ? 'No payouts are created while this account is banned. Earnings already on record stay on record. Contact support about them.' : "No payouts are created while your account is suspended. Earnings keep adding up and are paid when it's reinstated.")], actions: [{ variant: 'tertiary', label: 'Contact support', href: 'https://claude.ai/artifact/VkGvVQsxmCHp8CGnCLVKga' }], tags: [tag('account_state ' + (acctKind === 'banned' ? 'BANNED' : 'SUSPENDED') + ' · no payout is created while it lasts')] }, SLATE));
+    if (v === 'setup-due-soon') banners.push(Object.assign({ id: 'b-due', icon: 'warning', title: 'Stripe needs 2 things from you by 3 October 2026', lines: [line("Payouts are on for now. If Stripe doesn't have these by 3 October 2026, it pauses payouts until they're done."), Q12], actions: [FINISH, LIST], opens: "Opens Stripe. You come back here when you're done.", tags: [tag('payouts_enabled true · currently_due 2 · past_due empty · deadline in the future'), api('Applies only to a restaurant whose payouts worked before (owner decision): a restaurant that never finished Stripe setup cannot go live · Needs API: tell "never set up" apart from "restricted later"')] }, WARN));
+    if (setupLike) banners.push(Object.assign({ id: 'b-setup', icon: 'warning', title: 'Stripe needs 3 things from you before it can pay you', lines: [line("One is already past due; the others are needed by 3 October 2026. Payouts are on hold until they're done."), Q12, line('Why payouts are off: something Stripe asked for is past its due date.')],
+      // While Stripe's list is open in the panel, the panel footer holds the one primary action; the banner drops its buttons.
+      actions: v === 'setup-list' ? [] : (v === 'stripe-409' ? [FINISH] : [FINISH, LIST]), opens: v === 'setup-list' || v === 'stripe-409' ? null : "Opens Stripe. You come back here when you're done.", alertId: 'b-setup-alert',
+      alert: v === 'stripe-error' ? "Couldn't open Stripe. Check your connection and try again." : (v === 'stripe-409' ? "Payout setup can't be opened right now. Contact HalalGoes support." : null),
+      alertColor: v === 'stripe-409' ? 'var(--feedback-warning-tint-text)' : 'var(--feedback-danger-text)', alertIcon: v === 'stripe-409' ? 'info' : 'error', alertRetry: v === 'stripe-error', alertSupport: v === 'stripe-409',
+      tags: [tag('payouts_enabled false · count = currently_due.length'), api('Applies only to a restaurant whose payouts worked before (owner decision): a restaurant that never finished Stripe setup cannot go live · Needs API: tell "never set up" apart from "restricted later"'), api('Needs API: a plain-language reason for disabled_reason (today Stripe\'s code, for example requirements.past_due)'), v === 'stripe-409' ? api('createConnectOnboardingLink 409 · reason not specified in the contract · Needs API: a reason code for this 409') : tag('createConnectOnboardingLink')] }, WARN));
+    var RET = {
+      'stripe-return-checking': Object.assign({ icon: 'refresh', title: 'Checking with Stripe…', live: 'Checking with Stripe', lines: [line("Welcome back. Stripe tells HalalGoes when it has checked your details, and this page updates by itself. It usually takes a minute or two. You can leave this page; nothing is lost.")], tags: [tag('Waiting for connect.requirements_changed')] }, INFO),
+      'stripe-return-on': Object.assign({ icon: 'check', title: 'Payouts are on', live: 'Payouts are on', lines: [line('Stripe has what it needs. Earnings kept on record go out with your next payout, into the bank account ending 4821.')], tags: [tag('payouts_enabled true · success tint only, never a solid green')] }, OK),
+      'stripe-return-still': Object.assign({ icon: 'warning', title: 'Stripe still needs 1 thing from you', live: 'Stripe still needs 1 thing from you', lines: [line('Stripe checked your details and needs one more before it can pay you. Payouts stay on hold until it is done.'), Q12], actions: [FINISH], tags: [tag('payouts_enabled false · currently_due 1'), api('Applies only to a restaurant whose payouts worked before (owner decision): a restaurant that never finished Stripe setup cannot go live · Needs API: tell "never set up" apart from "restricted later"')] }, WARN)
+    };
+    if (RET[v]) banners.push(Object.assign({ id: 'b-ret' }, RET[v]));
+    if (naLike) {
+      var notApproved = v === 'noaccount-notapproved';
+      banners.push(Object.assign({ id: 'b-na', icon: 'info', title: 'Set up payouts so HalalGoes can pay you', lines: [line('Stripe holds your bank details and sends your payouts. It takes about 10 minutes and needs your bank account and photo ID.')].concat(notApproved ? [line('Payout setup opens once HalalGoes approves your documents.', { weight: 600 })] : []),
+        actions: [{ variant: 'primary', label: v === 'noaccount-creating' ? 'Setting up with Stripe' : 'Set up payouts with Stripe', iconEnd: 'chevron-right', loading: v === 'noaccount-creating', disabled: notApproved, href: undefined }].concat(notApproved ? [{ variant: 'tertiary', label: 'See onboarding status', href: '#onboarding' }] : []),
+        opens: notApproved ? "Your restaurant is still being checked. We'll let you know when you can set this up." : (v === 'noaccount-creating' ? 'Creating your payout account. Stripe opens in a moment.' : "Opens Stripe. You come back here when you're done."),
+        alert: v === 'noaccount-error' ? "Couldn't start payout setup. Check your connection and try again." : null, alertColor: 'var(--feedback-danger-text)', alertIcon: 'error',
+        tags: [tag(notApproved ? 'createConnectAccount 409 STEP_NOT_AVAILABLE · button disabled up front' : 'getConnectStatus 404 · createConnectAccount, then createConnectOnboardingLink')] }, INFO));
+    }
+    banners = banners.map(function (b) {
+      var acts = (b.actions || []).map(function (a) { return Object.assign({ iconEnd: undefined, loading: undefined, disabled: false, href: undefined, describedBy: undefined }, a); });
+      return Object.assign({ live: null, opens: null, alert: null, alertId: undefined, alertRetry: false, alertSupport: false, alertColor: '', alertIcon: 'info', tags: [] }, b, { actions: acts, hasActions: acts.length > 0 });
+    });
+
+    // ---- payout account card (getConnectStatus)
+    var held = setupLike || v === 'stripe-return-checking' || v === 'stripe-return-still' || heldSetupDetail;
+    var acct;
+    if (v === 'loading') acct = { loading: true };
+    else if (v === 'connect-error') acct = { error: true };
+    else if (naLike) acct = { tone: 'outline', icon: 'info', badge: 'Not set up', sentence: 'No payout account yet.', short: 'No payout account yet', rows: [{ k: 'Paid into', v: 'Not set yet' }, { k: 'Paid by', v: 'Stripe, for HalalGoes' }] };
+    else if (held) acct = { tone: 'warning', icon: 'warning', badge: 'Payouts on hold', sentence: 'Stripe needs more from you first.', short: 'Stripe needs more from you before it can pay you', finish: true, rows: [{ k: 'Paid into', v: 'No bank account yet' }, { k: 'How often', v: 'Weekly' }, { k: 'Paid by', v: 'Stripe, for HalalGoes' }] };
+    else if (acctKind) acct = { tone: 'outline', icon: 'info', badge: 'No new payouts', sentence: 'Nothing new is paid while your account is ' + acctKind + '.', short: 'Nothing new is paid while your account is ' + acctKind, rows: [{ k: 'Paid into', v: 'Bank account ending 4821' }, { k: 'How often', v: 'Weekly' }, { k: 'Paid by', v: 'Stripe, for HalalGoes' }] };
+    else acct = { tone: 'neutral', icon: 'check', badge: 'Payouts on', sentence: 'Stripe pays you automatically.', short: 'Bank account ending 4821 · Weekly', rows: [{ k: 'Paid into', v: 'Bank account ending 4821' }, { k: 'How often', v: 'Weekly' }, { k: 'Paid by', v: 'Stripe, for HalalGoes' }] };
+    acct = Object.assign({ loading: false, error: false, ready: !acct.loading && !acct.error, finish: false, tone: 'neutral', icon: undefined, badge: '', sentence: '', short: '', rows: [] }, acct);
+
+    // ---- what Stripe needs (requirements), counted from Stripe's lists
+    var req;
+    if (v === 'loading') req = { loading: true };
+    else if (v === 'connect-error') req = { text: true, icon: 'info', title: 'Shown once your payout account loads', sub: 'Nothing here changes your orders.' };
+    else if (naLike) req = { text: true, icon: 'info', title: 'Your bank account and photo ID', sub: 'Stripe asks for them when you set up payouts.' };
+    else if (setupLike || v === 'stripe-return-checking') req = { list: true, rows: [{ k: 'Past due', v: '1' }, { k: 'Needed by 3 October 2026', v: '2' }, { k: 'Not needed yet', v: '1' }] };
+    else if (v === 'setup-due-soon') req = { list: true, rows: [{ k: 'Needed by 3 October 2026', v: '2' }, { k: 'Not needed yet', v: '1' }] };
+    else if (v === 'stripe-return-still') req = { list: true, rows: [{ k: 'Needed now', v: '1' }] };
+    else req = { text: true, icon: 'check', title: 'Nothing right now', sub: "If Stripe asks for anything, it shows here with the date it's needed by." };
+    req = Object.assign({ loading: false, text: false, list: false, icon: 'check', title: '', sub: '', rows: [] }, req);
+
+    // ---- payout history (listRestaurantPayouts moved into launch, owner decision; the contract still marks it V1)
+    var tableVariant = v === 'detail-REVERSAL_LATER' ? 'reversal' : acctKind ? 'acct-' + acctKind : heldSetupDetail ? 'held' : ({ history: 'populated', 'history-loading': 'loading', 'history-empty': 'empty', 'history-error': 'error' }[v] || (inList(v, ['loadmore', 'loadmore-error', 'end', 'live-failed', 'live-sending']) ? v : 'populated'));
+    var attnRows = [
+      { label: '17–23 August (on hold)', href: 'PayoutDetail-OnHold.dc.html' },
+      { label: '10–16 August (failed)', href: 'PayoutDetail-Failed.dc.html' }
+    ];
+    if (acctKind) attnRows = [{ label: '7–13 September (on hold)', href: acctKind === 'banned' ? 'PayoutDetail-OnHoldBanned.dc.html' : 'PayoutDetail-OnHoldSuspended.dc.html' }].concat(attnRows);
+    if (v === 'live-failed') attnRows = [{ label: '24–30 August (failed)', href: 'Payouts-LiveFailed.dc.html' }].concat(attnRows);
+    var attention = historyLike && !heldSetupDetail && !inList(v, ['history-loading', 'history-empty', 'history-error']);
+    var mainW = colW - (panel.show ? panelW : 0) - 64;
+    var tableH = bodyH - 48 - 66 - (attention ? 76 : 0) - 16;
+
+    // Accepting, rejecting and expiry all confirm inside the strip itself; the page raises no toast for them.
+    var toast = { show: false };
+
+    var topMode = acctKind ? 'readonly' : (v === 'noaccount-notapproved' ? 'hidden' : 'open');
+    return {
+      yes: true,
+      no: false,
+      noop: function () {},
+      rootW: W + 'px',
+      rootH: H + 'px',
+      H: H,
+      panelWpx: panelW + 'px',
+      panelInnerW: panelW - 48,
+      railActive: isOrders ? 'orders' : 'payouts',
+      railCollapsed: railCollapsed,
+      ordersCount: ordersCount,
+      colW: colW,
+      pageTitle: isOrders ? 'Orders' : 'Payouts',
+      topHalal: v === 'noaccount-notapproved' ? 'none' : 'CERTIFIED',
+      topMode: topMode,
+      // The bell stays a later version (listNotifications); payout history is in launch, so history pages show no bell.
+      bell: !!bellState,
+      unread: bellState ? 3 : 0,
+      strip: strip,
+      isOrders: isOrders,
+      isLaunch: !isOrders && !historyLike,
+      isHistory: historyLike,
+      gridCols: panel.show ? 'minmax(0, 1fr)' : 'repeat(2, minmax(0, 1fr))',
+      banners: isOrders || historyLike ? [] : banners,
+      acct: acct,
+      req: req,
+      // Plain names first; Stripe's code stays as a secondary reference for support (Needs API: the names).
+      reqGroups: [
+        { title: 'Past due', items: [{ name: 'Your website address', code: 'business_profile.url' }] },
+        { title: 'Needed by 3 October 2026', items: [{ name: 'Bank account for payouts', code: 'external_account' }, { name: 'Photo ID for the owner', code: 'individual.verification.document' }] },
+        { title: 'Not needed yet', items: [{ name: 'Business tax number', code: 'company.tax_id' }] }
+      ],
+      orderLines: [
+        { qty: 2, name: 'Chicken shawarma plate', mods: 'Large · Extra garlic sauce', request: null, cents: 3350 },
+        { qty: 1, name: 'Lentil soup', mods: null, request: 'No lemon', cents: 900 }
+      ],
+      attention: attention,
+      attnRows: attnRows,
+      tableVariant: tableVariant,
+      tableW: mainW,
+      tableH: tableH,
+      panel: panel,
+      panelBodyH: panelBodyH,
+      detailState: detailState,
+      detailPayoutsEnabled: !heldSetupDetail,
+      bellState: bellState || 'list',
+      toast: toast
+    };
+  }
+}
+</script>
+</body>
+</html>

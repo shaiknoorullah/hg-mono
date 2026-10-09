@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Mixed charcoal grill, sauce required</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:var(--color-neutral-100)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+.demo-focus .hg-focus,.demo-focus .hg-choice-ctl,.demo-focus .hg-row,.demo-focus > a{box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)!important}
+.demo-focus-field .hg-field{border-color:var(--focus-ring)!important;box-shadow:inset 0 0 0 calc(var(--focus-field-border-width) - 1px) var(--focus-ring)!important}
+
+</style>
+</helmet>
+<div style="width: 390px; height: 1260px; position: relative; overflow: hidden; display: flex; flex-direction: column; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+<div style="height: 200px; flex-shrink: 0; background: var(--surface-sunken)"></div>
+<p aria-hidden="true" style="margin: var(--space-4); font-size: var(--type-heading-xl-size); font-weight: 700">Zaytoun Grill</p>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Sheet" open="{{yes}}" contained="{{yes}}" title="Mixed charcoal grill" max-height="92%" on-close="{{noop}}">
+<div style="display: flex; flex-direction: column; gap: var(--space-4)">
+<div style="height: 140px; border-radius: var(--radius-lg); background: var(--surface-sunken); display: flex; align-items: center; justify-content: center; outline: 1.5px dotted var(--color-info-500); outline-offset: 3px; outline-offset: -3px"><span style="font-size: var(--type-caption-size); font-weight: 600; color: var(--text-secondary)">No image</span></div>
+<div style="display: flex; flex-direction: column; gap: var(--space-2)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{c.base}}" size="lg"></x-import>
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">Bound: Header Price = chosen variant's price_cents (ABSOLUTE), or the item price_cents before a choice. Never base + delta on the phone.</span>
+<p style="margin: 0; font-size: var(--type-body-md-size); line-height: var(--type-body-md-line); color: var(--text-secondary)">Chicken shish, kofta and lamb cubes with garlic sauce and two breads. Usually ready in about 20 minutes.</p>
+<p style="margin: 0; font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-line); color: var(--text-secondary)">Ingredients: chicken, beef, lamb, garlic, oil, flatbread.</p>
+</div>
+<div style="display: flex; flex-direction: column; gap: var(--space-2)">
+<strong style="font-size: var(--type-label-lg-size)">Allergens</strong>
+<div style="display: flex; gap: var(--space-2); flex-wrap: wrap"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="warning" size="md">Wheat</x-import><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="warning" size="md">Sesame</x-import><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="warning" size="md">Eggs</x-import></div>
+</div>
+<div style="display: flex; flex-direction: column; gap: var(--space-1)">
+<div style="display: grid; outline: 1.5px dotted var(--color-info-500); outline-offset: 3px; border-radius: var(--radius-sm)"><div style="grid-area: 1 / 1"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.RadioGroup" label="Size (required)" required="{{yes}}" value="v1" options="{{sizes}}"></x-import></div><div aria-hidden="true" style="grid-area: 1 / 1; align-self: end; justify-self: end; display: flex; flex-direction: column; pointer-events: none"><div style="height: 44px; display: flex; align-items: center"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{c.base}}" size="md"></x-import></div><div style="height: 44px; display: flex; align-items: center"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{c.v2}}" size="md"></x-import></div></div></div>
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--color-info-700); background: var(--color-info-50)">Component gap: RadioGroup option price (ABSOLUTE: Price of variant.price_cents per option, drawn right-aligned in each row; in code it joins the option label so the accessible name reads "For one, 24 dollars 99 cents")</span>
+</div>
+<fieldset style="border: none; margin: 0; padding: 0; display: flex; flex-direction: column">
+<legend style="font-size: var(--type-label-lg-size); font-weight: 600; margin-bottom: var(--space-1)">Sauce (required) · choose 1 or 2</legend>
+<p style="margin: 0 0 var(--space-1); font-size: var(--type-body-sm-size); color: var(--text-secondary)">Choose at least 1.</p>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Checkbox" label="Garlic sauce (toum)" price-delta-cents="{{c.toum}}"></x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Checkbox" label="Tahini" price-delta-cents="{{c.tahini}}"></x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Checkbox" label="Chilli sauce"></x-import>
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--color-info-700); background: var(--color-info-50)">Component gap: Checkbox group with required min_select and a group-level error</span>
+</fieldset>
+<fieldset style="border: none; margin: 0; padding: 0; display: flex; flex-direction: column">
+<legend style="font-size: var(--type-label-lg-size); font-weight: 600; margin-bottom: var(--space-1)">Extras · choose up to 2</legend>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Checkbox" label="Extra garlic sauce" price-delta-cents="{{c.garlic}}"></x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Checkbox" label="Pickled turnips" price-delta-cents="{{c.turnip}}"></x-import>
+
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Checkbox" label="Extra bread" price-delta-cents="{{c.bread}}" disabled="{{yes}}" disabled-reason="Out of stock"></x-import>
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--color-info-700); background: var(--color-info-50)">Component gap: Checkbox disabledReason contrast (text-tertiary is 4.36:1 light, 3.38:1 dark; needs text-secondary)</span>
+</fieldset>
+<div style="display: flex; flex-direction: column; gap: var(--space-1); padding-top: var(--space-3); border-top: 1px solid var(--border-decorative)">
+<div style="display: flex; align-items: center; justify-content: space-between">
+<strong style="font-size: var(--type-label-lg-size)">Quantity</strong>
+<div role="group" aria-label="Quantity for Mixed charcoal grill" style="display: flex; align-items: center; gap: var(--space-2); outline: 1.5px dotted var(--color-info-500); outline-offset: 3px; outline-offset: 2px; border-radius: var(--radius-full)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.IconButton" icon="minus" accessibility-label="Decrease quantity of Mixed charcoal grill" variant="tonal" shape="circle" disabled="{{yes}}"></x-import>
+<span role="status" aria-live="polite" style="min-width: 28px; text-align: center; font-size: var(--type-heading-md-size); font-weight: 600; font-variant-numeric: tabular-nums"><span class="hg-sr">Quantity </span>1</span>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.IconButton" icon="plus" accessibility-label="Increase quantity of Mixed charcoal grill" variant="tonal" shape="circle"></x-import>
+</div>
+</div>
+
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--color-info-700); background: var(--color-info-50); align-self: flex-end">Component gap: QuantityStepper (group named without the number; the value node is role=status holding visible N plus visually hidden "Quantity ", no aria-label; describedby reason at the limit)</span>
+</div>
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">Same rule as a required size: while min_select is unmet, Add is disabled with the reason linked (not an error after the tap).</span>
+<div style="position: sticky; bottom: 0; display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-3) 0 var(--space-2); background: var(--surface-raised); box-shadow: var(--elev-sticky)">
+<div style="display: flex; flex-direction: column; gap: var(--space-2)"><p id="add-reason" style="margin: 0; font-size: var(--type-body-md-size); line-height: var(--type-body-md-line); color: var(--text-primary)">Choose at least 1 sauce to add this to your cart</p>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" full-width="{{yes}}" icon-start="cart" disabled="{{yes}}" aria-describedby="add-reason">Add to cart</x-import></div>
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">Code: Sheet footer prop (sticky, above the keyboard)</span>
+</div>
+</div>
+</x-import>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1260}}'>
+class Component extends DCLogic {
+renderVals() {
+return {
+yes: true,
+no: false,
+none: null,
+zero: 0,
+two: 2,
+noop: function () {},
+nav: [
+{ key: 'home', label: 'Home', icon: 'home' },
+{ key: 'search', label: 'Search', icon: 'search' },
+{ key: 'orders', label: 'Orders', icon: 'orders' },
+{ key: 'account', label: 'Account', icon: 'profile' }
+],
+c: { base: 2499, v2: 4599, garlic: 150, turnip: 100, chilli: 125, bread: 150, wrap: 1249, falafel: 1099, large: 250, plate: 1650, tikka: 1599, koob: 2250, adana: 2199, toum: 50, tahini: 50 },
+sizes: [
+{ value: 'v1', label: 'For one' },
+{ value: 'v2', label: 'For two' }
+],
+sizesOut: [
+{ value: 'v1', label: 'For one' },
+{ value: 'v2', label: 'For two', disabled: true, disabledReason: 'Sold out' }
+],
+falafelSizes: [
+{ value: 'r', label: 'Regular' },
+{ value: 'l', label: 'Large', priceDeltaCents: 250 }
+]
+};
+}
+}
+</script>
+</body>
+</html>

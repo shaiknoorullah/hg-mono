@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>On the application</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div style="display: {{tagWrap}}; flex-direction: column; gap: 6px">
+<sc-if value="{{showTag}}" hint-placeholder-val="{{false}}"><span style="display: inline-flex; align-self: flex-start; padding: 2px 8px; border-radius: 4px; background: var(--color-info-50); color: var(--color-info-700); font-size: 12px; font-weight: 600">Proposed component: AppFacts (built on the owner-approved KeyValueList, DS Icon)</span></sc-if>
+<section aria-labelledby="af-h" style="width: {{wcss}}; box-sizing: border-box; display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border-radius: 12px; background: var(--surface-sunken); border: 1px solid var(--border-decorative); font-family: var(--font-ui); color: var(--text-primary)">
+  <h2 id="af-h" style="margin: 0; font-size: 13px; font-weight: 600; color: var(--text-secondary)">On the application: compare for Name match and Address match</h2>
+  <dl style="margin: 0; display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 2px 10px; font-size: 13px; line-height: 1.4">
+    <dt style="color: var(--text-secondary)">Legal name</dt><dd style="margin: 0; font-weight: 600">{{legal}}</dd>
+    <dt style="color: var(--text-secondary)">Display name</dt><dd style="margin: 0; font-weight: 600">{{display}}</dd>
+    <dt style="color: var(--text-secondary)">Premises</dt><dd style="margin: 0; font-weight: 600">{{address}}</dd>
+  </dl>
+  <sc-if value="{{hasPin}}" hint-placeholder-val="{{false}}">
+    <span style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-secondary)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="warning" size="sm" color="var(--text-secondary)"></x-import>The map pin is more than 5 km from the postal code’s centre.</span>
+  </sc-if>
+</section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"who":{"editor":"enum","options":["karahi","zaytoun","noor"],"default":"karahi"},"w":{"editor":null,"default":356},"tag":{"editor":"boolean","default":true},"$preview":{"width":356,"height":148}}'>
+class Component extends DCLogic {
+  renderVals() {
+    // Always this certificate's restaurant, read from GET /restaurant-applications/{restaurantId}.
+    const who = this.props.who ?? 'karahi';
+    const d = {
+      karahi: ['Karahi House Restaurant Inc.', 'Karahi House', '3025 Kennedy Rd, Unit 4, Toronto ON M1V 1S3', true],
+      zaytoun: ['Zaytoun Grill Ltd.', 'Zaytoun Grill', '8 Queen St E, Unit 2, Brampton ON L6V 1A2', false],
+      noor: ['Noor Grill Inc.', 'Noor Grill', '1880 Eglinton Ave E, Toronto ON M1L 2L1', false],
+    }[who] || ['', '', '', false];
+    return { showTag: !!this.props.tag, tagWrap: this.props.tag ? 'flex' : 'contents',  wcss: (this.props.w ?? 356) + 'px', legal: d[0], display: d[1], address: d[2], hasPin: d[3] };
+  }
+}
+</script>
+</body>
+</html>

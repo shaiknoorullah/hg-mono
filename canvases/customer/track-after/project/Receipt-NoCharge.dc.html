@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>No receipt, not charged</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<link rel="stylesheet" href="hg-roles.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:var(--surface-base)}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; display: flex; flex-direction: column; overflow: hidden; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" title-is-page-heading="{{ no }}" tone="cream" title="Receipt" subtitle="Order HG-P9T4WB" back-label="Back to order HG-P9T4WB" on-back="{{ noop }}"></x-import>
+<main style="flex-grow: 1; display: flex; flex-direction: column; justify-content: center; gap: 16px; padding: 24px">
+<span class="hg-tag">Proposed component: EmptyState</span>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="info" size="2xl" color="var(--text-primary)"></x-import>
+<div class="hg-focus-drawn"><h1 tabindex="-1" class="type-heading-xl" style="margin: 0">No receipt for this order</h1></div>
+<p class="type-body-md" style="margin: 0; color: var(--text-secondary)">You weren't charged, so there is nothing to show. The hold on your card was released when the order didn't go ahead.</p>
+<div class="hg-gap"><span class="hg-tag">Annotation: copy by amount_authorized_cents</span><span class="hg-gap-note">This 409 covers every never-captured order. The second sentence is chosen by OrderPayment.amount_authorized_cents: above 0 (a hold existed) it is the hold sentence drawn here; 0 (FAILED, PAYMENT_EXPIRED, a CREATED cancel) it reads "Your payment didn't go through, so nothing was charged." for FAILED and PAYMENT_EXPIRED, and "Nothing was charged." for a CREATED cancel.</span></div>
+<div style="margin-top: 8px">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" full-width="{{ yes }}" href="Orders-Default.dc.html">Back to Orders</x-import>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      no: false, yes: true, noop: () => {} };
+  }
+}
+</script>
+</body>
+</html>

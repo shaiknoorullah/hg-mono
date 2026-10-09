@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Edit a menu item for a restaurant</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:var(--surface-base);color:var(--text-primary);font-family:var(--font-ui)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+textarea.hg-ta{box-sizing:border-box;width:100%;min-height:96px;padding:10px 12px;border:1px solid var(--border-interactive);border-radius:8px;background:var(--surface-raised);color:var(--text-primary);font:inherit;font-size:15px;line-height:1.5;resize:vertical}
+textarea.hg-ta:focus{outline:none;border:var(--focus-field-border-width) solid var(--focus-ring)}
+textarea.hg-ta[aria-invalid="true"]{border:var(--focus-field-border-width) solid var(--color-danger-500)}
+.skip{position:absolute;left:-10000px;top:8px;z-index:900;padding:12px 16px;background:var(--surface-raised);color:var(--text-primary);border-radius:8px;font-weight:600}
+.skip:focus{left:80px;outline:none;box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+.napi{display:inline-flex;align-self:flex-start;padding:2px 8px;border-radius:4px;background:var(--surface-sunken);border:1px solid var(--border-strong);font-size:12px;font-weight:600;line-height:1.4}
+.prop{display:inline-flex;align-self:flex-start;padding:2px 8px;border-radius:4px;background:var(--color-info-50);color:var(--color-info-700);font-size:12px;font-weight:600;line-height:1.4}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; display: grid; grid-template-columns: 64px minmax(0, 1fr); background: var(--surface-base); position: relative; overflow: hidden; font-family: var(--font-ui); color: var(--text-primary)">
+  <dc-import name="SideNav" active="find" role="ADMIN" collapsed="{{yes}}" h="900" hint-size="64px,900px"></dc-import>
+  <div style="display: flex; flex-direction: column; min-width: 0; min-height: 0; position: relative">
+    <a class="skip" href="#main">Skip to main content</a>
+    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="raised" title="Zaytoun Grill · Menu" subtitle="Opened from Find a restaurant · admins and super admins only"></x-import>
+    <main id="main" data-density="compact" style="flex: 1 1 auto; min-height: 0; display: flex; gap: 12px; padding: 12px; overflow: hidden">
+      <section aria-labelledby="ob-h" style="flex: 1 1 auto; min-width: 0; min-height: 0; display: flex; flex-direction: column; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: 12px; overflow: hidden">
+        <div style="flex: 1 1 auto; min-height: 0; overflow: auto; padding: 16px 20px; display: flex; flex-direction: column; gap: 14px">
+          <div style="display: flex; flex-direction: column; gap: 4px">
+            <h2 id="ob-h" tabindex="-1" style="margin: 0; font-size: 20px; font-weight: 700">Edit Chicken shawarma plate for Zaytoun Grill</h2>
+            <span style="font-size: 13px; color: var(--text-secondary)">For when a restaurant asks HalalGoes to fix something it can’t, or support needs a dish off the menu now. Your edit goes live when you save and is recorded with your name.</span>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 20px">
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Name" required="{{yes}}" default-value="Chicken shawarma plate" helper-text="2 to 80 characters"></x-import>
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Price" variant="numeric" input-mode="decimal" prefix="$" suffix="CAD" default-value="16.99" helper-text="$0.50 to $500.00. Customers see the new price on their next quote."></x-import>
+          </div>
+          <dc-import name="Textarea" tid="ob-desc" label="Description" helper="Up to 600 characters. No halal claim beyond what the restaurant’s certificate covers." value="Charcoal-grilled chicken, garlic sauce, pickles and rice." count="57 of 600 characters" error="" required="{{no}}" rows="3" w="1310" hint-size="1310px,170px"></dc-import>
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Ingredients" default-value="Chicken thigh, garlic, lemon, yoghurt, spices, basmati rice, turnip pickles."></x-import>
+          <div style="display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border-radius: 12px; background: var(--surface-sunken)">
+            <strong style="font-size: 15px">Remove from the menu</strong>
+            <span style="font-size: 13px; line-height: 1.45; color: var(--text-secondary)">Customers stop seeing it at once. Orders already placed keep the item exactly as they bought it.</span>
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" style="align-self: flex-start">Remove this item…</x-import>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <span class="napi">Needs API: change or remove a menu item on a restaurant’s behalf (owner decision, round 2: an admin operation at launch). Today only createMenuItemOnBehalf exists</span>
+            <span class="napi">Needs API: dietary and allergen tags and the photo on this form, once the admin operation defines them</span>
+          </div>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 16px; padding: 10px 16px; border-top: 1px solid var(--border-strong)">
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md">Cancel</x-import>
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md">Save and publish</x-import>
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { yes: true, no: false, noop: () => {} };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Report a problem</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<link rel="stylesheet" href="hg-roles.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:var(--surface-base)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+</style>
+</helmet>
+<div aria-busy="true" style="width: 390px; height: 1400px; position: relative; display: flex; flex-direction: column; overflow: hidden; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="cream" title="Report a problem" subtitle="Order HG-8F3K2Q · Zaytoun Grill" back-label="Back to order HG-8F3K2Q" on-back="{{ noop }}" loading="{{ yes }}"></x-import><main style="flex-grow: 1; display: flex; flex-direction: column; gap: 20px; padding: 8px 16px 24px; overflow: hidden">
+<p class="type-body-md" style="color: var(--text-secondary)">Tell us what went wrong. A person reviews every report and we work out any refund from your order, so you don't enter an amount.</p><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.RadioGroup" label="What went wrong?" name="reason" value="HALAL_CONCERN" options="{{ reasons }}" required="{{ yes }}" disabled="{{ yes }}"></x-import><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.RadioGroup" label="Which part of the order?" name="kind" value="FULL" options="{{ kinds }}" required="{{ yes }}" disabled="{{ yes }}"></x-import><div style="display: flex; flex-direction: column; gap: 6px"><span class="hg-tag">Proposed component: Textarea (read-only while sending)</span><label class="type-label-md" for="note">Tell us more (optional)</label><span class="type-body-sm" id="note-help" style="color: var(--text-secondary)">Only our team sees this.</span><textarea id="note" name="note" maxlength="1000" aria-describedby="note-help" readonly="readonly" class="type-body-md" style="display: block; width: 100%; min-height: 88px; box-sizing: border-box; margin: 0; padding: 12px; resize: vertical; border-radius: var(--radius-md); background: var(--surface-raised); color: var(--text-primary); font-family: var(--font-ui); border: 1.5px solid var(--border-interactive)">The label on the bag didn't match the restaurant.</textarea><div style="display: flex; justify-content: space-between; gap: 12px"><span></span><span id="note-count" class="type-body-sm hg-num" style="color: var(--text-secondary)">49 / 1000</span></div></div><div style="display: flex; flex-direction: column; gap: 6px"><span class="type-label-md">Photos (optional, up to 3)</span><div class="hg-gap"><span class="hg-tag">Component gap: FileUpload</span><span class="hg-tag hg-tag-api">Needs API: customer evidence upload purpose</span><span class="hg-gap-note">"The whole order" here was chosen by the customer: the kind question always opens with nothing chosen (GetHelp-Refund-KindInvalid shows the error). evidence_object_ids needs an upload purpose a customer may use; POD is rider-only.</span></div></div>
+</main><div style="padding: 12px 16px 24px; display: flex; flex-direction: column; gap: 8px; background: var(--surface-raised); box-shadow: var(--elev-sticky)"><span class="hg-tag">Proposed component: StickyFooter</span><div class="hg-focus-drawn"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" full-width="{{ yes }}" loading="{{ yes }}">Sending report</x-import></div></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1400}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const t = (s, at, a) => ({ to_state: s, at: '2026-09-28T' + at + ':00-04:00', actor_kind: a || 'SYSTEM' });
+    const all = [t('AUTHORIZED', '18:42', 'CUSTOMER'), t('RESTAURANT_PENDING', '18:42'), t('PREPARING', '18:44', 'RESTAURANT'), t('READY_FOR_PICKUP', '18:59', 'RESTAURANT'), t('PICKED_UP', '19:02', 'RIDER'), t('ARRIVED', '19:12', 'RIDER'), t('DELIVERED', '19:13', 'RIDER'), t('COMPLETED', '19:43')];
+    const upTo = (n) => all.slice(0, n);
+    return {
+      yes: true, no: false, none: null, zero: 0, noop: () => {},
+      nav: [{ key: 'home', label: 'Home', icon: 'home' }, { key: 'search', label: 'Search', icon: 'search' }, { key: 'orders', label: 'Orders', icon: 'orders', badge: 1, badgeNoun: 'active' }, { key: 'account', label: 'Account', icon: 'profile' }],
+      reasons: [{ value: 'NEVER_DELIVERED', label: 'It never arrived' }, { value: 'MISSING_ITEMS', label: 'Something is missing' }, { value: 'WRONG_ITEMS', label: 'I got the wrong items' }, { value: 'FOOD_QUALITY', label: 'The food wasn\'t right' }, { value: 'LATE_DELIVERY', label: 'It arrived very late' }, { value: 'DAMAGED_SPILLED', label: 'It arrived damaged or spilled' }, { value: 'HALAL_CONCERN', label: 'A halal concern', description: 'We check the order\'s records and the restaurant\'s certificate' }, { value: 'CHARGED_INCORRECTLY', label: 'I was charged the wrong amount' }, { value: 'OTHER', label: 'Something else' }], kinds: [{ value: 'FULL', label: 'The whole order' }, { value: 'PARTIAL_ITEMS', label: 'Some items', description: 'Choose which ones below' }]
+    };
+  }
+}
+</script>
+</body>
+</html>

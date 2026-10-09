@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Can't deliver</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+[data-rider]{font-family:var(--font-ui)}
+.offer-chrome{background:var(--surface-raised)}
+[data-theme="dark"] .offer-chrome,[data-theme="dark"].offer-chrome{background:var(--surface-chrome)}
+</style>
+</helmet>
+<div data-rider="" data-theme="{{theme}}" style="width: 390px; height: 844px; position: relative; overflow: hidden; display: flex; flex-direction: column; background: var(--surface-base); color: var(--text-primary)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="field" title="Drop-off" subtitle="Step 4 of 4 · Hand it over"></x-import><main style="flex: 1 1 auto; overflow-y: auto; padding: var(--space-4) var(--space-5) var(--space-5); display: flex; flex-direction: column; gap: var(--space-3)"><div style="display: flex; flex-direction: column; gap: var(--space-1)"><h2 style="margin: 0; font-size: var(--type-heading-xl-size); font-weight: var(--type-heading-xl-weight); letter-spacing: var(--type-heading-xl-tracking); line-height: 1.25">Go to Aisha M.</h2><span style="font-size: var(--type-body-lg-size); line-height: 1.5">88 Brimley Rd, Scarborough, ON</span></div></main><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Sheet" open="{{yes}}" contained="{{yes}}" title="Can't deliver this order?" on-close="{{noop}}" max-height="90%"><div style="display: flex; flex-direction: column; gap: var(--space-3)"><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Proposed variant: Sheet (rider) close IconButton size lg (56) · the DS close is 44</span><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">dropoff.delivery_instructions contains LEAVE_AT_DOOR → "{customer_display_name} asked for it to be left at the door." (keyed on delivery_instructions only, never a pronoun: the contract has no gender) and leaving it with a photo and a statement is the main answer (owner decision; rider spec: incident reporting) · without LEAVE_AT_DOOR only "Return it to the restaurant" shows · at the door only (after ARRIVED_AT_DROPOFF); on the way → CantDeliverEnRoute</span><p style="margin: 0; font-size: var(--type-body-lg-size); line-height: 1.5">Tried to reach Aisha M. and can't hand it over? Aisha M. asked for it to be left at the door.</p><div style="border: 1.5px dashed var(--text-link); border-radius: var(--radius-md); padding: var(--space-3) var(--space-4); display: flex; flex-direction: column; gap: var(--space-2)"><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--text-link); color: var(--text-link)">Needs API (rider incident reporting): call-attempt count before Return it to the restaurant</span><span style="font-size: var(--type-body-lg-size); line-height: 1.5; color: var(--text-secondary-field)">Two call attempts would be tracked here before you return it. Leaving it at the door, as Aisha M. asked, has no wait.</span></div><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="xl" full-width="{{yes}}" href="tel:+16475550117">Call Aisha M.</x-import><div style="display: flex; flex-direction: column; gap: var(--space-2)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="xl" full-width="{{yes}}" href="tel:+18005550142">Call HalalGoes support</x-import><span style="font-size: var(--type-body-lg-size); line-height: 1.5; color: var(--text-secondary-field)">1 800 555 0142 · Every day, 8 am to 2 am</span><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">tel: PublicConfig.support_phone_e164 · helper line = the number + support_hours verbatim · whole row hidden when support_enabled is false</span></div><div style="position: sticky; bottom: calc(var(--space-5) * -1); margin: var(--space-1) calc(var(--space-5) * -1) calc(var(--space-5) * -1); padding: var(--space-3) var(--space-5) var(--space-5); background: var(--surface-raised); border-top: 1px solid var(--border-decorative); display: flex; flex-direction: column; gap: var(--space-3)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="xl" full-width="{{yes}}" href="PodAttestationLeftAtDoor.dc.html">Leave it at the door with a photo and a statement</x-import><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Owner decision: when the customer chose LEAVE_AT_DOOR and the rider can't hand it over, the rider leaves it with a photo and a statement → PodAttestationLeftAtDoor (PHOTO_WITH_ATTESTATION, handover_method LEFT_AT_DOOR) · shown only with LEAVE_AT_DOOR</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="xl" full-width="{{yes}}" href="CantDeliverSending.dc.html">Return it to the restaurant</x-import><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Return = POST /transitions {to_state: UNDELIVERABLE, latitude, longitude, accuracy_m, occurred_at} → RETURNING</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="xl" full-width="{{yes}}" href="DropoffArrived.dc.html">Keep trying</x-import></div></div></x-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme": {"editor": "enum", "options": ["dark", "light"], "default": "dark"}, "$preview": {"width": 390, "height": 844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const theme = this.props.theme ?? 'dark';
+    return { theme: theme, onDark: theme === 'dark', yes: true, no: false, noop: () => {}, twentyFour: 24, four: 4, twoHundred: 200, activeTab: 'home',
+      tabs: [{ key: 'home', label: 'Home', icon: 'home' }, { key: 'earnings', label: 'Earnings', icon: 'orders' }, { key: 'account', label: 'Account', icon: 'profile' }] };
+  }
+}
+</script>
+</body>
+</html>

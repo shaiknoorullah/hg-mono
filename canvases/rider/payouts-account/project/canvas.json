@@ -1,0 +1,990 @@
+{
+ "v": 3,
+ "createdOnFiles": {
+  "v": 1,
+  "at": "2026-10-01T01:58:26Z"
+ },
+ "title": "HalalGoes Rider — Payouts & Account",
+ "launch": {
+  "view": "canvas"
+ },
+ "pages": [],
+ "boards": {
+  "Account-Delete-Confirm.dc.html": {
+   "h": 1000,
+   "is_interactive": true,
+   "title": "Later version (in the app, before the store release) — Delete account — confirm",
+   "w": 390,
+   "x": 470,
+   "y": 9060
+  },
+  "Account-Delete-Done.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Later version (in the app, before the store release) — Delete account — done",
+   "w": 390,
+   "x": 2350,
+   "y": 9060
+  },
+  "Account-Delete-Failed.dc.html": {
+   "h": 1180,
+   "is_interactive": true,
+   "title": "Later version (in the app, before the store release) — Delete account — failed",
+   "w": 390,
+   "x": 1410,
+   "y": 9060
+  },
+  "Account-Delete-OnDelivery.dc.html": {
+   "h": 1000,
+   "is_interactive": true,
+   "title": "Later version (in the app, before the store release) — Delete account — on a delivery",
+   "w": 390,
+   "x": 1880,
+   "y": 9060
+  },
+  "Account-Delete-Working.dc.html": {
+   "h": 1000,
+   "is_interactive": true,
+   "title": "Later version (in the app, before the store release) — Delete account — deleting",
+   "w": 390,
+   "x": 940,
+   "y": 9060
+  },
+  "Account-Delete.dc.html": {
+   "h": 1000,
+   "is_interactive": true,
+   "title": "Later version (in the app, before the store release) — Delete account",
+   "w": 390,
+   "x": 0,
+   "y": 9060
+  },
+  "Account-DocView-Error.dc.html": {
+   "h": 844,
+   "title": "Document — couldn't get a download link (404 or error)",
+   "w": 390,
+   "x": 2820,
+   "y": 5400
+  },
+  "Account-DocView-Expired.dc.html": {
+   "h": 844,
+   "title": "Document — download link expired",
+   "w": 390,
+   "x": 3290,
+   "y": 5400
+  },
+  "Account-DocView-Loading.dc.html": {
+   "h": 844,
+   "title": "Document — loading",
+   "w": 390,
+   "x": 3760,
+   "y": 5400
+  },
+  "Account-DocView.dc.html": {
+   "h": 1000,
+   "title": "Document — details and download",
+   "w": 390,
+   "x": 2350,
+   "y": 5400
+  },
+  "Account-Documents-Empty.dc.html": {
+   "h": 844,
+   "title": "Documents — none on file (list returns empty)",
+   "w": 390,
+   "x": 1880,
+   "y": 5400
+  },
+  "Account-Documents-Error.dc.html": {
+   "h": 844,
+   "title": "Documents — couldn't load the list",
+   "w": 390,
+   "x": 1410,
+   "y": 5400
+  },
+  "Account-Documents-Expired.dc.html": {
+   "h": 1000,
+   "title": "Documents — expired, replacement in review",
+   "w": 390,
+   "x": 470,
+   "y": 5400
+  },
+  "Account-Documents-Loading.dc.html": {
+   "h": 844,
+   "title": "Documents — loading",
+   "w": 390,
+   "x": 940,
+   "y": 5400
+  },
+  "Account-Documents.dc.html": {
+   "h": 1000,
+   "is_interactive": true,
+   "title": "Documents — expiring soon",
+   "w": 390,
+   "x": 0,
+   "y": 5400
+  },
+  "Account-Error.dc.html": {
+   "h": 844,
+   "title": "Account — could not load",
+   "w": 390,
+   "x": 1410,
+   "y": 3620
+  },
+  "Account-Loading.dc.html": {
+   "h": 844,
+   "title": "Account — loading",
+   "w": 390,
+   "x": 940,
+   "y": 3620
+  },
+  "Account-Overview-NoSupport.dc.html": {
+   "h": 1240,
+   "title": "Account — overview, support_enabled false",
+   "w": 390,
+   "x": 470,
+   "y": 3620
+  },
+  "Account-Overview-ReplaceInReview.dc.html": {
+   "h": 1240,
+   "title": "Account — overview while a replacement is in review (can go online)",
+   "w": 390,
+   "x": 7520,
+   "y": 5400
+  },
+  "Account-Overview.dc.html": {
+   "h": 1240,
+   "is_interactive": true,
+   "title": "Account — overview (scrolled)",
+   "w": 390,
+   "x": 0,
+   "y": 3620
+  },
+  "Account-Payouts-Due.dc.html": {
+   "h": 1200,
+   "title": "Payouts — on, Stripe needs 1 thing by a deadline (past_due, payouts still enabled)",
+   "w": 390,
+   "x": 6580,
+   "y": 3620
+  },
+  "Account-Payouts-Error.dc.html": {
+   "h": 844,
+   "title": "Payouts — couldn't load (GET /connect/status failed)",
+   "w": 390,
+   "x": 5170,
+   "y": 3620
+  },
+  "Account-Payouts-Eventually.dc.html": {
+   "h": 1160,
+   "title": "Payouts — on, Stripe will ask later (eventually_due only)",
+   "w": 390,
+   "x": 6110,
+   "y": 3620
+  },
+  "Account-Payouts-Loading.dc.html": {
+   "h": 844,
+   "title": "Payouts — loading",
+   "w": 390,
+   "x": 4700,
+   "y": 3620
+  },
+  "Account-Payouts-NotSetUp.dc.html": {
+   "h": 844,
+   "title": "Payouts — not set up (payouts_enabled false, bank_last4 null)",
+   "w": 390,
+   "x": 5640,
+   "y": 3620
+  },
+  "Account-Payouts.dc.html": {
+   "h": 844,
+   "title": "Payouts — healthy",
+   "w": 390,
+   "x": 4230,
+   "y": 3620
+  },
+  "Account-Profile-Alt.dc.html": {
+   "h": 1000,
+   "title": "Alternative — once GET rider profile exists (date of birth, email)",
+   "w": 390,
+   "x": 8930,
+   "y": 3620
+  },
+  "Account-Profile-Error.dc.html": {
+   "h": 844,
+   "title": "Account — your details, couldn't load",
+   "w": 390,
+   "x": 2820,
+   "y": 3620
+  },
+  "Account-Profile-Loading.dc.html": {
+   "h": 844,
+   "title": "Account — your details, loading",
+   "w": 390,
+   "x": 2350,
+   "y": 3620
+  },
+  "Account-Profile.dc.html": {
+   "h": 1000,
+   "title": "Account — your details (RiderMe fields only)",
+   "w": 390,
+   "x": 1880,
+   "y": 3620
+  },
+  "Account-Replace-Added.dc.html": {
+   "h": 1000,
+   "title": "Replace — added, not sent yet (Send for review)",
+   "w": 390,
+   "x": 7990,
+   "y": 5400
+  },
+  "Account-Replace-Confirm.dc.html": {
+   "h": 1000,
+   "title": "Document — replace an approved document (confirm; keep riding while checked)",
+   "w": 390,
+   "x": 4230,
+   "y": 5400
+  },
+  "Account-Replace-Cooldown.dc.html": {
+   "h": 1000,
+   "title": "Replace — send limit (429 Retry-After)",
+   "w": 390,
+   "x": 8930,
+   "y": 5400
+  },
+  "Account-Replace-InReview-Alt.dc.html": {
+   "h": 1000,
+   "title": "Alternative — if supersede-on-approval lands (Needs API)",
+   "w": 390,
+   "x": 5170,
+   "y": 5400
+  },
+  "Account-Replace-InReview.dc.html": {
+   "h": 1000,
+   "title": "Document — replacement in review (you can keep riding)",
+   "w": 390,
+   "x": 4700,
+   "y": 5400
+  },
+  "Account-Replace-LinkExpired.dc.html": {
+   "h": 1000,
+   "title": "Replace — upload link expired (300 s)",
+   "w": 390,
+   "x": 7050,
+   "y": 5400
+  },
+  "Account-Replace-Rejected.dc.html": {
+   "h": 1180,
+   "title": "Document — replacement turned down while active (keep riding until the current one expires)",
+   "w": 390,
+   "x": 5640,
+   "y": 5400
+  },
+  "Account-Replace-Sending.dc.html": {
+   "h": 1000,
+   "title": "Replace — sending for review",
+   "w": 390,
+   "x": 8460,
+   "y": 5400
+  },
+  "Account-Replace-TooLarge.dc.html": {
+   "h": 1000,
+   "title": "Replace — chosen file too large (413)",
+   "w": 390,
+   "x": 6580,
+   "y": 5400
+  },
+  "Account-Replace-TooSmall.dc.html": {
+   "h": 1000,
+   "title": "Replace — too small (IMAGE_TOO_SMALL)",
+   "w": 390,
+   "x": 6110,
+   "y": 5400
+  },
+  "Account-Replace-TooSoon.dc.html": {
+   "h": 1000,
+   "title": "Replace — expiry too soon (422 DOCUMENT_EXPIRES_TOO_SOON)",
+   "w": 390,
+   "x": 9400,
+   "y": 5400
+  },
+  "Account-SignOut-Active.dc.html": {
+   "h": 1240,
+   "title": "Sign out — during a delivery",
+   "w": 390,
+   "x": 7520,
+   "y": 3620
+  },
+  "Account-SignOut-Failed.dc.html": {
+   "h": 1380,
+   "title": "Sign out — failed or offline",
+   "w": 390,
+   "x": 8460,
+   "y": 3620
+  },
+  "Account-SignOut-Working.dc.html": {
+   "h": 1240,
+   "title": "Sign out — in progress",
+   "w": 390,
+   "x": 7990,
+   "y": 3620
+  },
+  "Account-SignOut.dc.html": {
+   "h": 1240,
+   "title": "Sign out — confirm",
+   "w": 390,
+   "x": 7050,
+   "y": 3620
+  },
+  "Account-Terms-Alt.dc.html": {
+   "h": 844,
+   "title": "Alternative — once terms acceptance is recorded (version and date)",
+   "w": 390,
+   "x": 9400,
+   "y": 3620
+  },
+  "Account-Terms.dc.html": {
+   "h": 844,
+   "title": "Account — terms and privacy (read again)",
+   "w": 390,
+   "x": 3760,
+   "y": 3620
+  },
+  "Account-Vehicle-Error.dc.html": {
+   "h": 844,
+   "title": "Vehicle — couldn't load",
+   "w": 390,
+   "x": 940,
+   "y": 7040
+  },
+  "Account-Vehicle-Loading.dc.html": {
+   "h": 844,
+   "title": "Vehicle — loading",
+   "w": 390,
+   "x": 470,
+   "y": 7040
+  },
+  "Account-VehicleChange-Blocked.dc.html": {
+   "h": 1000,
+   "title": "Change vehicle — blocked (ON_DELIVERY)",
+   "w": 390,
+   "x": 4230,
+   "y": 7040
+  },
+  "Account-VehicleChange.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Vehicle — read-only; change is by support until the API exists",
+   "w": 390,
+   "x": 0,
+   "y": 7040
+  },
+  "Account-VehicleDocs.dc.html": {
+   "h": 1000,
+   "title": "Change vehicle — documents for the new vehicle (Needs API)",
+   "w": 390,
+   "x": 5640,
+   "y": 7040
+  },
+  "Account-VehicleError.dc.html": {
+   "h": 1000,
+   "title": "Change vehicle — couldn't save (offline or error)",
+   "w": 390,
+   "x": 5170,
+   "y": 7040
+  },
+  "Account-VehicleForm-Motor.dc.html": {
+   "h": 1620,
+   "title": "Change vehicle — car, with plate fields (Needs API)",
+   "w": 390,
+   "x": 1880,
+   "y": 7040
+  },
+  "Account-VehicleForm-PlateInUse.dc.html": {
+   "h": 1000,
+   "title": "Change vehicle — plate in use (409 PLATE_IN_USE)",
+   "w": 390,
+   "x": 2820,
+   "y": 7040
+  },
+  "Account-VehicleForm-Required.dc.html": {
+   "h": 1000,
+   "title": "Change vehicle — plate required (422 FIELD_REQUIRED)",
+   "w": 390,
+   "x": 3290,
+   "y": 7040
+  },
+  "Account-VehicleForm-YearRange.dc.html": {
+   "h": 1180,
+   "title": "Change vehicle — year out of range (min 1990)",
+   "w": 390,
+   "x": 3760,
+   "y": 7040
+  },
+  "Account-VehicleForm.dc.html": {
+   "h": 1000,
+   "title": "Change vehicle — bicycle (Needs API)",
+   "w": 390,
+   "x": 1410,
+   "y": 7040
+  },
+  "Account-VehicleSaveConfirm.dc.html": {
+   "h": 1000,
+   "title": "Change vehicle — confirm on save, naming both vehicles",
+   "w": 390,
+   "x": 2350,
+   "y": 7040
+  },
+  "Account-VehicleSaving.dc.html": {
+   "h": 1000,
+   "title": "Change vehicle — saving",
+   "w": 390,
+   "x": 4700,
+   "y": 7040
+  },
+  "Legal-Document-Error.dc.html": {
+   "h": 844,
+   "title": "Rider terms — couldn't open",
+   "w": 390,
+   "x": 10810,
+   "y": 3620
+  },
+  "Legal-Document-Loading.dc.html": {
+   "h": 844,
+   "title": "Rider terms — loading",
+   "w": 390,
+   "x": 10340,
+   "y": 3620
+  },
+  "Legal-Document.dc.html": {
+   "h": 844,
+   "title": "Rider terms or privacy notice — in-app document (URLs are Needs API)",
+   "w": 390,
+   "x": 9870,
+   "y": 3620
+  },
+  "Payout-Checking.dc.html": {
+   "h": 1000,
+   "is_interactive": true,
+   "title": "Payouts — back from Stripe, checking",
+   "w": 390,
+   "x": 1880,
+   "y": 300
+  },
+  "Payout-CheckingSlow.dc.html": {
+   "h": 1000,
+   "title": "Payouts — Stripe still checking (after 2 minutes, or on return)",
+   "w": 390,
+   "x": 2350,
+   "y": 300
+  },
+  "Payout-CreateFailed.dc.html": {
+   "h": 1000,
+   "title": "Payouts — couldn't create the payout account (POST /connect/account 5xx)",
+   "w": 390,
+   "x": 1410,
+   "y": 300
+  },
+  "Payout-Due-Details.dc.html": {
+   "h": 1520,
+   "title": "Payouts — due, 'For support' open",
+   "w": 390,
+   "x": 3760,
+   "y": 300
+  },
+  "Payout-Due.dc.html": {
+   "h": 1380,
+   "title": "Payouts — Stripe needs more (count, then the 'What Stripe needs' list; raw keys only in For support)",
+   "w": 390,
+   "x": 3290,
+   "y": 300
+  },
+  "Payout-LinkFailed.dc.html": {
+   "h": 1000,
+   "title": "Payouts — couldn't open Stripe (onboarding-link failed)",
+   "w": 390,
+   "x": 6110,
+   "y": 300
+  },
+  "Payout-Loading.dc.html": {
+   "h": 844,
+   "title": "Payouts — loading status",
+   "w": 390,
+   "x": 6580,
+   "y": 300
+  },
+  "Payout-NotYet.dc.html": {
+   "h": 1000,
+   "title": "Payouts — not available yet (409 STEP_NOT_AVAILABLE from either call)",
+   "w": 390,
+   "x": 940,
+   "y": 300
+  },
+  "Payout-Offline.dc.html": {
+   "h": 1000,
+   "title": "Payouts — offline",
+   "w": 390,
+   "x": 7520,
+   "y": 300
+  },
+  "Payout-Opening.dc.html": {
+   "h": 1000,
+   "title": "Payouts — creating the account and opening Stripe",
+   "w": 390,
+   "x": 470,
+   "y": 300
+  },
+  "Payout-PastDue.dc.html": {
+   "h": 1400,
+   "title": "Payouts — past due during onboarding: the deadline has passed (never enabled)",
+   "w": 390,
+   "x": 4230,
+   "y": 300
+  },
+  "Payout-Ready.dc.html": {
+   "h": 844,
+   "title": "Payouts — ready (next_route HOME)",
+   "w": 390,
+   "x": 5640,
+   "y": 300
+  },
+  "Payout-Rejected.dc.html": {
+   "h": 1000,
+   "title": "Payouts — Stripe rejected the account (disabled_reason rejected.*)",
+   "w": 390,
+   "x": 5170,
+   "y": 300
+  },
+  "Payout-Restricted.dc.html": {
+   "h": 1200,
+   "title": "Payouts — paused (Account, payouts_enabled false)",
+   "w": 390,
+   "x": 4700,
+   "y": 300
+  },
+  "Payout-Returned.dc.html": {
+   "h": 1000,
+   "title": "Payouts — closed Stripe before finishing (refresh URL)",
+   "w": 390,
+   "x": 2820,
+   "y": 300
+  },
+  "Payout-Start.dc.html": {
+   "h": 1000,
+   "is_interactive": true,
+   "title": "Payouts — not started; also the approval on a cold start (status 404)",
+   "w": 390,
+   "x": 0,
+   "y": 300
+  },
+  "Payout-StatusError.dc.html": {
+   "h": 1000,
+   "title": "Payouts — status couldn't load (5xx or network; 404 is not an error)",
+   "w": 390,
+   "x": 7050,
+   "y": 300
+  },
+  "Profile-Locked.dc.html": {
+   "h": 1000,
+   "title": "Account — details locked after approval (Needs API: which fields the profile call accepts after approval)",
+   "w": 390,
+   "x": 3290,
+   "y": 3620
+  },
+  "Suspended-Added.dc.html": {
+   "h": 1000,
+   "title": "Paused — new insurance added, not sent (Send for review)",
+   "w": 390,
+   "x": 4230,
+   "y": 2220
+  },
+  "Suspended-Closed-OnDelivery.dc.html": {
+   "h": 844,
+   "title": "Account closed — arrives during an active delivery (active_assignment_id not null)",
+   "w": 390,
+   "x": 5170,
+   "y": 2220
+  },
+  "Suspended-Closed.dc.html": {
+   "h": 844,
+   "title": "Paused — account closed, no active delivery (next call 403 or /riders/me refetch)",
+   "w": 390,
+   "x": 1880,
+   "y": 2220
+  },
+  "Suspended-DocExpired.dc.html": {
+   "h": 1000,
+   "is_interactive": true,
+   "title": "Paused — document expired (blocking_reasons DOCUMENT_EXPIRED + EXPIRED KycDocument)",
+   "w": 390,
+   "x": 940,
+   "y": 2220
+  },
+  "Suspended-Earnings.dc.html": {
+   "h": 844,
+   "title": "Paused — Earnings tab (403 ACCOUNT_NOT_ACTIVE)",
+   "w": 390,
+   "x": 4700,
+   "y": 2220
+  },
+  "Suspended-Error.dc.html": {
+   "h": 1000,
+   "title": "Paused — couldn't load",
+   "w": 390,
+   "x": 2820,
+   "y": 2220
+  },
+  "Suspended-Generic-NoSupport.dc.html": {
+   "h": 1000,
+   "title": "Paused — support_enabled false",
+   "w": 390,
+   "x": 470,
+   "y": 2220
+  },
+  "Suspended-Generic-Reason-Alt.dc.html": {
+   "h": 1000,
+   "title": "Alternative — paused with reason (Needs API: admin suspension reason)",
+   "w": 390,
+   "x": 3760,
+   "y": 2220
+  },
+  "Suspended-Generic.dc.html": {
+   "h": 1000,
+   "title": "Paused — facts only (ACCOUNT_NOT_ACTIVE, no document reason)",
+   "w": 390,
+   "x": 0,
+   "y": 2220
+  },
+  "Suspended-InReview.dc.html": {
+   "h": 1000,
+   "title": "Paused — new insurance sent, in review",
+   "w": 390,
+   "x": 1410,
+   "y": 2220
+  },
+  "Suspended-Loading.dc.html": {
+   "h": 1000,
+   "title": "Paused — loading",
+   "w": 390,
+   "x": 2350,
+   "y": 2220
+  },
+  "Suspended-OnDelivery.dc.html": {
+   "h": 844,
+   "title": "Paused — arrives during an active delivery",
+   "w": 390,
+   "x": 3290,
+   "y": 2220
+  },
+  "Payout-PastDue-Light.dc.html": {
+   "h": 1400,
+   "title": "Light — payouts, Stripe needed 1 thing by a date that has passed (onboarding)",
+   "w": 390,
+   "x": 0,
+   "y": 10640
+  },
+  "Payout-Ready-Light.dc.html": {
+   "h": 844,
+   "title": "Light — ready to ride",
+   "w": 390,
+   "x": 470,
+   "y": 10640
+  },
+  "Suspended-DocExpired-Light.dc.html": {
+   "h": 1000,
+   "title": "Light — paused, document expired",
+   "w": 390,
+   "x": 940,
+   "y": 10640
+  },
+  "Account-Overview-Light.dc.html": {
+   "h": 1240,
+   "title": "Light — account overview",
+   "w": 390,
+   "x": 1410,
+   "y": 10640
+  },
+  "Account-SignOut-Active-Light.dc.html": {
+   "h": 1240,
+   "title": "Light — sign out during a delivery",
+   "w": 390,
+   "x": 1880,
+   "y": 10640
+  },
+  "Account-Documents-Light.dc.html": {
+   "h": 1000,
+   "title": "Light — account documents",
+   "w": 390,
+   "x": 2350,
+   "y": 10640
+  },
+  "Account-VehicleChange-Light.dc.html": {
+   "h": 844,
+   "title": "Light — account vehicle",
+   "w": 390,
+   "x": 2820,
+   "y": 10640
+  },
+  "Payout-Due-LargeText.dc.html": {
+   "h": 3040,
+   "title": "Text at 200% — payouts, Stripe needs more (keys wrap)",
+   "w": 390,
+   "x": 3290,
+   "y": 10640
+  },
+  "Account-Delete-Request.dc.html": {
+   "x": 2820,
+   "y": 9060,
+   "w": 390,
+   "h": 1000,
+   "title": "Delete account — by request (launch: call or email support)"
+  }
+ },
+ "order": [
+  "Payout-Start.dc.html",
+  "Payout-Opening.dc.html",
+  "Payout-NotYet.dc.html",
+  "Payout-CreateFailed.dc.html",
+  "Payout-Checking.dc.html",
+  "Payout-CheckingSlow.dc.html",
+  "Payout-Returned.dc.html",
+  "Payout-Due.dc.html",
+  "Payout-Due-Details.dc.html",
+  "Payout-PastDue.dc.html",
+  "Payout-Restricted.dc.html",
+  "Payout-Rejected.dc.html",
+  "Payout-Ready.dc.html",
+  "Payout-LinkFailed.dc.html",
+  "Payout-Loading.dc.html",
+  "Payout-StatusError.dc.html",
+  "Payout-Offline.dc.html",
+  "Suspended-Generic.dc.html",
+  "Suspended-Generic-NoSupport.dc.html",
+  "Suspended-DocExpired.dc.html",
+  "Suspended-InReview.dc.html",
+  "Suspended-Closed.dc.html",
+  "Suspended-Loading.dc.html",
+  "Suspended-Error.dc.html",
+  "Suspended-OnDelivery.dc.html",
+  "Suspended-Closed-OnDelivery.dc.html",
+  "Account-Overview.dc.html",
+  "Account-Overview-NoSupport.dc.html",
+  "Account-Loading.dc.html",
+  "Account-Error.dc.html",
+  "Account-Profile.dc.html",
+  "Account-Profile-Loading.dc.html",
+  "Account-Profile-Error.dc.html",
+  "Profile-Locked.dc.html",
+  "Account-Terms.dc.html",
+  "Account-Payouts.dc.html",
+  "Account-Payouts-Loading.dc.html",
+  "Account-Payouts-Error.dc.html",
+  "Account-Payouts-NotSetUp.dc.html",
+  "Account-Payouts-Eventually.dc.html",
+  "Account-Payouts-Due.dc.html",
+  "Account-SignOut.dc.html",
+  "Account-SignOut-Active.dc.html",
+  "Account-SignOut-Working.dc.html",
+  "Account-SignOut-Failed.dc.html",
+  "Account-Documents.dc.html",
+  "Account-Documents-Expired.dc.html",
+  "Account-Documents-Loading.dc.html",
+  "Account-Documents-Error.dc.html",
+  "Account-Documents-Empty.dc.html",
+  "Account-DocView.dc.html",
+  "Account-DocView-Error.dc.html",
+  "Account-DocView-Expired.dc.html",
+  "Account-DocView-Loading.dc.html",
+  "Account-Replace-Confirm.dc.html",
+  "Account-Replace-InReview.dc.html",
+  "Account-Replace-InReview-Alt.dc.html",
+  "Account-Replace-Rejected.dc.html",
+  "Account-Replace-TooSmall.dc.html",
+  "Account-Replace-TooLarge.dc.html",
+  "Account-Replace-LinkExpired.dc.html",
+  "Account-VehicleChange.dc.html",
+  "Account-Vehicle-Loading.dc.html",
+  "Account-Vehicle-Error.dc.html",
+  "Account-VehicleForm.dc.html",
+  "Account-VehicleForm-Motor.dc.html",
+  "Account-VehicleSaveConfirm.dc.html",
+  "Account-VehicleForm-PlateInUse.dc.html",
+  "Account-VehicleForm-Required.dc.html",
+  "Account-VehicleForm-YearRange.dc.html",
+  "Account-VehicleChange-Blocked.dc.html",
+  "Account-VehicleSaving.dc.html",
+  "Account-VehicleError.dc.html",
+  "Account-VehicleDocs.dc.html",
+  "Account-Delete.dc.html",
+  "Account-Delete-Confirm.dc.html",
+  "Account-Delete-Working.dc.html",
+  "Account-Delete-Failed.dc.html",
+  "Account-Delete-OnDelivery.dc.html",
+  "Account-Delete-Done.dc.html",
+  "Payout-PastDue-Light.dc.html",
+  "Payout-Ready-Light.dc.html",
+  "Suspended-DocExpired-Light.dc.html",
+  "Account-Overview-Light.dc.html",
+  "Account-SignOut-Active-Light.dc.html",
+  "Account-Documents-Light.dc.html",
+  "Account-VehicleChange-Light.dc.html",
+  "Payout-Due-LargeText.dc.html",
+  "Suspended-Generic-Reason-Alt.dc.html",
+  "Account-Profile-Alt.dc.html",
+  "Account-Terms-Alt.dc.html",
+  "Legal-Document.dc.html",
+  "Legal-Document-Loading.dc.html",
+  "Legal-Document-Error.dc.html",
+  "Account-Overview-ReplaceInReview.dc.html",
+  "Suspended-Added.dc.html",
+  "Suspended-Earnings.dc.html",
+  "Account-Replace-Added.dc.html",
+  "Account-Replace-Sending.dc.html",
+  "Account-Replace-Cooldown.dc.html",
+  "Account-Replace-TooSoon.dc.html",
+  "Account-Delete-Request.dc.html"
+ ],
+ "notes": {
+  "t_payout": {
+   "kind": "title1",
+   "maxW": 4000,
+   "text": "F3 · Step 5: payouts with Stripe Connect",
+   "w": 240,
+   "x": 0,
+   "y": 50
+  },
+  "n_payout": {
+   "fill": "gray",
+   "size": 24,
+   "text": "Sequence: GET /connect/status → 404 means no account: Payouts — not started (never the error). Continue to Stripe → POST /connect/account (Idempotency-Key) → POST /connect/onboarding-link → open it. 409 STEP_NOT_AVAILABLE → not available yet; a 5xx on account creation → couldn't set up. Requirements: a count ('Stripe needs 2 more things from you'), then a visible 'What Stripe needs' list straight under it, needed now first and needed later after. Each row is the server's label for a Stripe requirement key (Needs API: the contract forbids the app from paraphrasing Stripe). Past due says the deadline has passed ('Stripe needed this by …'); a future deadline is only for currently_due. Continue to Stripe is the footer primary. 'For support' holds only 'Copy details for support', which puts the raw keys on the clipboard; raw keys never show. Stripe still checking: 'We'll let you know when Stripe finishes' (connect.requirements_changed → rider push and email; the screen updates on open). Owner decision: when Stripe restricts an approved rider's payouts, the rider keeps taking offers and earnings go out on the next Monday payout once Stripe is fixed; this covers only riders whose payouts worked before (Payouts — paused by Stripe). The contract still blocks going online without payouts_enabled: Needs API.",
+   "w": 420,
+   "x": 8030,
+   "y": 300
+  },
+  "t_status": {
+   "kind": "title1",
+   "maxW": 3760,
+   "text": "Account paused (next_route SUSPENDED)",
+   "w": 240,
+   "x": 0,
+   "y": 1970
+  },
+  "n_status": {
+   "fill": "gray",
+   "size": 24,
+   "text": "Term: 'Account paused'. The reason comes from blocking_reasons: DOCUMENT_EXPIRED (with the EXPIRED KycDocument and valid_until) → Paused — document expired; ACCOUNT_NOT_ACTIVE alone → facts only, no Why. Owner decisions: a paused or closed rider finishes the delivery they are on unless HalalGoes contacts them (operations may move it to another rider), gets no new offers, and money already earned is always paid out, so every paused and closed screen says so. A Stripe payout restriction no longer pauses the account (the rider keeps taking offers), so Paused — payouts incomplete is removed. An admin's own reason is Needs API (alternative). Earnings answers 403 ACCOUNT_NOT_ACTIVE while paused (Paused — Earnings). No socket event carries account_status: a closed account shows the closed alert on the next 403 or /riders/me refetch, then Account closed, only when RiderMe.active_assignment_id is null. During an active delivery it shows Account closed — during a delivery (Back to delivery); sign-out waits until the assignment ends. Finishing a delivery while paused or closed also needs the rider spec's 403 rule to allow the in-flight assignment (Needs API). Expired insurance: add it (Added), Send for review, then in review; that screen updates when a person decides; a single document sends no push, but reinstating the account does (owner decision). Slate, never red.",
+   "w": 420,
+   "x": 5640,
+   "y": 2220
+  },
+  "t_account": {
+   "kind": "title1",
+   "maxW": 4000,
+   "text": "F15 · Account: overview, details, terms, payouts, sign out",
+   "w": 240,
+   "x": 0,
+   "y": 3370
+  },
+  "n_account": {
+   "fill": "gray",
+   "size": 24,
+   "text": "One status line under the name ('Approved · can go online'). Your details shows RiderMe fields only (name, mobile, time zone); date of birth and email are the tagged alternative. Help is the same Call support ghost button with support_hours under it. Terms and privacy: read the terms again at any time; the accepted version and date are a tagged alternative. Payouts show only ConnectStatus. Sign out: Modal confirm, focus on Cancel. Delete account sits under Terms and privacy and opens Delete account — by request (owner decision); Signed-in devices is gone (a later-version contract call).",
+   "w": 420,
+   "x": 11280,
+   "y": 3620
+  },
+  "t_account_docs": {
+   "kind": "title1",
+   "maxW": 4000,
+   "text": "F15 · Account: documents",
+   "w": 240,
+   "x": 0,
+   "y": 5150
+  },
+  "n_account_docs": {
+   "fill": "gray",
+   "size": 24,
+   "text": "Replacing a document: the rider spec keeps an ACTIVE rider ONLINE-capable while a replacement is reviewed, as long as the current one hasn't expired. The confirm, the in-review alert and the Account overview status line all say so. attachRiderDocument marks the earlier row Replaced at once; the 'stays valid until approved' version stays a tagged alternative. A replacement turned down shows the reviewer note and the remedy. Owner decision: the rider keeps riding until the current document expires and is asked for a new upload; the expiry date still takes them offline if it lapses. Upload errors while replacing: too small, over 15 MB, link expired. A replacement reads Added until Send for review (submitRiderDocuments, Needs API after approval); sending, the 429 limit and 422 too-soon are drawn.",
+   "w": 420,
+   "x": 9870,
+   "y": 5400
+  },
+  "t_account_vehicle": {
+   "kind": "title1",
+   "maxW": 4000,
+   "text": "F15 · Account: vehicle (change is Needs API)",
+   "w": 240,
+   "x": 0,
+   "y": 6790
+  },
+  "n_account_vehicle": {
+   "fill": "gray",
+   "size": 24,
+   "text": "Changing vehicle after approval is Needs API: the contract's vehicle call is an onboarding step. Primary today: a read-only vehicle summary with 'Call support to change your vehicle'. The tagged flow opens the form first; the destructive confirm comes on Save vehicle and names both vehicles; backing out before saving changes nothing. Motorised form, PLATE_IN_USE, FIELD_REQUIRED and year range drawn for when the API lands.",
+   "w": 420,
+   "x": 6150,
+   "y": 7040
+  },
+  "t_account_delete": {
+   "kind": "title1",
+   "maxW": 3200,
+   "text": "F15 · Account: delete account — by request at launch, in the app later",
+   "w": 240,
+   "x": 0,
+   "y": 8810
+  },
+  "n_account_delete": {
+   "text": "Owner decision: at launch an account is deleted on request by phone or email (Delete account — by request). Account's 'Delete account' row opens it; Email support needs a support email address in PublicConfig (Needs API). In-app deletion stays in a later version and ships before the store release: the six 'Later version' boards keep that flow (explain, confirm, deleting, failed, on a delivery, done), each with its blue Needs API tag. The record retention period is still an open owner decision, so the retention line is a placeholder. Delete is a destructive tertiary button, never the orange primary; the confirm's initial focus is Keep my account. On a delivery: finish it first. Money already earned is always paid out (owner decision).",
+   "w": 420,
+   "x": 3290,
+   "y": 9060
+  },
+  "t_light_a11y": {
+   "kind": "title1",
+   "maxW": 3680,
+   "text": "Light theme and text at 200%",
+   "w": 240,
+   "x": 0,
+   "y": 10390
+  },
+  "n_light": {
+   "fill": "gray",
+   "size": 24,
+   "text": "Owner decision: the rider app follows the phone's light or dark setting; there is no in-app theme switch. Every light board uses the same generator as its dark twin, so copy and structure match (Apply to ride — start has no consent checkbox and five steps). Light covers vehicle, capture and account documents too.",
+   "w": 420,
+   "x": 3760,
+   "y": 10640
+  },
+  "n_a11y": {
+   "fill": "gray",
+   "size": 24,
+   "text": "200% text (simulated by doubling the type tokens): the body scrolls, the footer stays pinned, button labels wrap inside taller buttons and never truncate (every type token doubled, the ones DS components read too), rows wrap and the Add button drops below the text. Keyboard open: the footer rides above the keyboard and the focused field scrolls into view above it (WCAG 2.4.11).",
+   "w": 420,
+   "x": 4260,
+   "y": 10640
+  },
+  "n_ref": {
+   "fill": "purple",
+   "size": 24,
+   "text": "Legend: purple = Component gap (a missing size or prop on an existing design-system component) or Proposed component (a composite built from library parts and design-system components, waiting for owner approval; drawn with design-system tokens because the canvas can mount only the design-system bundle). Blue = Needs API (the contract lacks it). Grey = Data (bound to a contract field, never hardcoded) or an annotation of behaviour and screen-reader text. The boards render the installed design system as published, with no local token overrides. Orange primary button: dark label, accent-800 on brand-500 at 4.63:1. Owner decision: the rider 7:1 target covers body text, not large bold button labels, which meet 4.5:1. Where a design-system part still falls short (field helper and error text, DateInput sub-field invalid, button label wrap at 200% text) it is drawn as the system ships it with a purple Component gap tag, and listed in Reference — contract gaps.",
+   "w": 420,
+   "x": 8530,
+   "y": 300
+  },
+  "n_moved": {
+   "fill": "blue",
+   "size": 24,
+   "w": 420,
+   "x": -520,
+   "y": 50,
+   "text": "Split from HalalGoes Rider — Sign-in & Onboarding: https://claude.ai/artifact/Und8nB7Jz3Zvap4YWdvFXX (sign in, routing, apply to ride steps 1 to 4, document capture, fix documents, and the reference boards stay there). Links to those screens open that canvas."
+  }
+ },
+ "designSystems": [
+  {
+   "title": "HalalGoes design system",
+   "namespace": "halalgoesdesignsystem-d11a47",
+   "artifact": "https://claude.ai/artifact/1GwGVZz8Ju9wcz4HfCnzbv",
+   "version": "1790605103-3266",
+   "copiedAt": "2026-10-01T01:58:26Z"
+  }
+ ],
+ "attachments": {}
+}

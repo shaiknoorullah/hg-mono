@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Right now card (part)</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<section aria-labelledby="{{hid}}" style="position: relative; width: {{w}}px; box-sizing: border-box; padding: 14px var(--space-5); display: flex; align-items: center; gap: var(--space-6); flex-wrap: wrap; font-family: var(--font-ui); color: var(--text-primary); background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: var(--radius-lg);">
+  <div style="display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; flex: 1 1 520px;">
+    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+      <h2 id="{{hid}}" style="margin: 0; font: var(--text-type-heading-md);">Right now</h2>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="{{s.variant}}" icon="{{s.icon}}" size="lg" hint-size="100px,26px">{{s.badge}}</x-import>
+      <span style="display: inline-flex; padding: 0 6px; border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); background: var(--feedback-info-tint); font: var(--text-type-mono-sm); color: var(--feedback-info-tint-text);">{{s.reasonNote}}</span>
+    </div>
+    <p style="margin: 0; font: var(--text-type-body-md); line-height: var(--type-body-sm-line);">{{s.reason}} <span style="color: var(--text-secondary);">{{s.who}}</span></p>
+    <sc-if value="{{s.showWhyLine}}" hint-placeholder-val="{{false}}">
+      <p style="margin: 0; font: var(--text-type-body-sm); line-height: var(--type-caption-line); color: var(--text-secondary);">New orders is on. You’re closed because it’s outside your opening hours.</p>
+    </sc-if>
+    <sc-if value="{{s.overnightLine}}" hint-placeholder-val="{{false}}">
+      <p style="margin: 0; font: var(--text-type-body-sm); line-height: var(--type-caption-line); color: var(--text-secondary);">{{s.overnightText}}</p>
+    </sc-if>
+    <sc-if value="{{s.extra}}" hint-placeholder-val="{{false}}">
+      <p style="margin: 0; font: var(--text-type-body-sm); line-height: var(--type-caption-line); color: var(--text-secondary);">{{s.extraText}}</p>
+    </sc-if>
+    <sc-if value="{{missedOne}}" hint-placeholder-val="{{false}}">
+      <p style="margin: 0; display: flex; gap: 6px; align-items: center; font: var(--text-type-body-sm); line-height: var(--type-caption-line);"><span style="color: var(--feedback-warning-icon); display: inline-flex;"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="warning" size="sm" hint-size="16px,16px"></x-import></span>1 order timed out without an answer. One more in a row and new orders stop. Answer each order in the New orders strip within 3 minutes.</p>
+    </sc-if>
+    <sc-if value="{{offMsg}}" hint-placeholder-val="{{false}}">
+      <p role="status" style="margin: 0; font: var(--text-type-body-sm); line-height: var(--type-caption-line);">{{offMsgText}}</p>
+    </sc-if>
+    <sc-if value="{{soundLine}}" hint-placeholder-val="{{false}}">
+      <p style="margin: 0; display: flex; gap: 6px; align-items: center; font: var(--text-type-body-sm); line-height: var(--type-caption-line);"><span style="color: var(--feedback-warning-icon); display: inline-flex;"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="bell" size="sm" hint-size="16px,16px"></x-import></span>Order sound is off on this device. Turning on New orders asks you to turn it on first, so no order waits in silence.</p>
+    </sc-if>
+    <sc-if value="{{errMsg}}" hint-placeholder-val="{{false}}">
+      <p role="alert" style="margin: 0; display: flex; gap: 6px; align-items: center; font: var(--text-type-body-sm); line-height: var(--type-caption-line); color: var(--feedback-danger-text);"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="error" size="sm" hint-size="16px,16px"></x-import>{{errMsgText}}</p>
+    </sc-if>
+    <sc-if value="{{s.needs}}" hint-placeholder-val="{{false}}">
+      <span style="display: inline-flex; align-self: flex-start; padding: 0 6px; border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); background: var(--feedback-info-tint); font: var(--text-type-mono-sm); color: var(--feedback-info-tint-text);">{{s.needsText}}</span>
+    </sc-if>
+  </div>
+
+  <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; justify-content: flex-end;">
+    <sc-if value="{{s.goOrders}}" hint-placeholder-val="{{false}}">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="{{s.goVariant}}" size="md" href="#" hint-size="220px,44px">{{s.goText}}</x-import>
+    </sc-if>
+    <sc-if value="{{s.editHours}}" hint-placeholder-val="{{false}}">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="md" href="#" hint-size="150px,44px">{{s.editText}}</x-import>
+    </sc-if>
+    <sc-if value="{{s.refresh}}" hint-placeholder-val="{{false}}">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" icon-start="refresh" hint-size="120px,44px">Refresh</x-import>
+    </sc-if>
+    <sc-if value="{{s.support}}" hint-placeholder-val="{{false}}">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" href="#" hint-size="160px,44px">Contact support</x-import>
+    </sc-if>
+    <sc-if value="{{s.resume}}" hint-placeholder-val="{{false}}">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" loading="{{resumeLoading}}" hint-size="130px,44px">{{resumeText}}</x-import>
+    </sc-if>
+    <sc-if value="{{s.pause}}" hint-placeholder-val="{{true}}">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Menu" label="Pause new orders" trigger-text="{{pauseText}}" trigger-variant="tonal" align="end" items="{{pauseItems}}" open="{{pauseOpen}}" disabled="{{pauseLoading}}" hint-size="180px,44px"></x-import>
+    </sc-if>
+    <sc-if value="{{hasSwitch}}" hint-placeholder-val="{{true}}">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Switch" label="New orders" state-label="{{s.stateLabel}}" checked="{{checked}}" disabled="{{s.locked}}" loading="{{switchLoading}}" hint-size="280px,44px"></x-import>
+    </sc-if>
+  </div>
+
+  <span style="position: absolute; top: -9px; right: 16px; padding: 0 var(--space-2); border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); background: var(--surface-base); font: var(--text-type-mono-sm); color: var(--text-secondary);">Proposed component: StatusCard (Right now; built from the system Badge, Switch, Menu, Button)</span>
+  <sc-if value="{{showWhy}}" hint-placeholder-val="{{false}}">
+    <details style="flex-basis: 100%; border-top: 1px solid var(--border-decorative); padding-top: var(--space-2);">
+      <summary style="min-height: 44px; display: flex; align-items: center; font: var(--text-type-label-lg); cursor: pointer;">Why switching on doesn’t open you</summary>
+      <p style="margin: 0 0 6px; font: var(--text-type-body-sm); color: var(--text-secondary);">HalalGoes checks these in order and stops at the first one that applies. New orders is already on. You’re closed because of step 6.</p>
+      <ol style="margin: 0; padding-left: 22px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px var(--space-6); font: var(--text-type-body-sm); line-height: var(--type-body-md-line);">
+        <sc-for list="{{steps}}" as="st" hint-placeholder-count="7">
+          <li style="{{st.style}}">{{st.text}}</li>
+        </sc-for>
+      </ol>
+      <span style="display: inline-flex; margin-top: 6px; padding: 0 6px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); background: var(--surface-base); font: var(--text-type-mono-sm); color: var(--text-secondary);">Proposed component: Disclosure (shadcn Collapsible), collapsed by default</span>
+    </details>
+  </sc-if>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["open","paused","paused_until_close","paused_stale","closed_hours","closed_cutoff","closed_no_hours","closed_holiday","closed_toggle","auto_off","offline","suspended"],"default":"open"},"missed":{"editor":"int","default":0},"inflight":{"editor":"enum","options":["none","switch_off","switch_on","pause","resume"],"default":"none"},"result":{"editor":"enum","options":["none","switched_off","switch_failed","switched_on","switch_on_failed","pause_failed","resume_failed"],"default":"none"},"sound":{"editor":"enum","options":["on","off"],"default":"on"},"showWhy":{"editor":"boolean","default":false},"pauseOpen":{"editor":"boolean","default":false},"now":{"editor":"text","default":"19:10"},"closingAt":{"editor":"text","default":"22:00"},"overnightTo":{"editor":null},"noMoreHours":{"editor":"boolean","default":false},"w":{"editor":"int","default":1184},"$preview":{"width":1184,"height":140}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const state = this.props.state ?? 'open';
+    const inflight = this.props.inflight ?? 'none';
+    const result = this.props.result ?? 'none';
+    const w = this.props.w ?? 1184;
+    const who = { RESTAURANT: 'You can change this.', ADMIN: 'Only HalalGoes support can change this.', TIME: 'This changes by itself.' };
+    const on = (s) => ({ on: s, off: 'Off – not accepting orders' });
+    const S = {
+      open: { badge: 'Open', variant: 'outline', icon: 'check', reason: 'You are open and taking orders.', who: 'You can pause new orders for a short time, or switch them off.', pause: true, stateLabel: on('On – accepting orders'), needs: true, needsText: 'Needs API: next change and last-order time on the service status, to say when orders stop today' },
+      paused: { badge: 'Paused', variant: 'warning', icon: 'clock', reason: 'Paused until 7:40 pm.', who: who.TIME + ' Resume now to take orders straight away.', resume: true, stateLabel: on('On – paused until 7:40 pm') },
+      paused_stale: { badge: 'Paused', variant: 'warning', icon: 'clock', reason: 'Your pause ended at 7:05 pm. Updating this screen…', clientReason: true, who: 'If this doesn’t change within a minute, refresh.', refresh: true, stateLabel: on('On – paused until 7:05 pm') },
+      paused_until_close: { badge: 'Paused', variant: 'warning', icon: 'clock', reason: 'Paused until closing, 2:00 am tomorrow.', who: who.TIME + ' Resume now to take orders straight away.', resume: true, stateLabel: on('On – paused until 2:00 am'), needs: true, needsText: 'Needs API: a “pause until closing” value that the server resolves to tonight’s closing time, including past midnight' },
+      closed_hours: { badge: 'Closed', variant: 'neutral', icon: 'clock', reason: 'Outside your opening hours.', who: who.TIME, editHours: true, editText: 'See your hours', stateLabel: on('On – starts with your hours'), needs: true, needsText: 'Needs API: next opening time on the service status, to say when you open' },
+      closed_cutoff: { badge: 'Closed', variant: 'neutral', icon: 'clock', reason: 'Outside your opening hours.', who: who.TIME, extra: true, extraText: 'New orders stopped at 9:40 pm, 20 minutes before your 10:00 pm closing (your average prep time).', editHours: true, editText: 'See your hours', stateLabel: on('On – starts with your hours'), needs: true, needsText: 'Orders stop your average prep time before closing. 9:40 pm is worked out on this screen from today’s closing time. Needs API: last-order time on the service status' },
+      closed_no_hours: { badge: 'Closed', variant: 'neutral', icon: 'clock', reason: 'You have no opening hours set, so customers can’t order.', who: who.RESTAURANT, extra: true, extraText: 'New orders are switched on, but you have no hours, so none can arrive.', noControls: true, stateLabel: on('On') },
+      closed_holiday: { badge: 'Closed today', variant: 'neutral', icon: 'clock', reason: 'Closed today: Staff training (special date).', who: who.TIME, editHours: true, editText: 'See special dates', stateLabel: on('On – closed today') },
+      closed_toggle: { badge: 'Not accepting orders', variant: 'neutral', icon: 'info', reason: 'New orders are switched off. Turn on New orders to open.', who: who.RESTAURANT, stateLabel: on('On – accepting orders') },
+      auto_off: { badge: 'Not accepting orders', variant: 'neutral', icon: 'info', reason: 'New orders were switched off after 2 orders in a row timed out.', who: who.RESTAURANT, stateLabel: on('On – accepting orders'), needs: true, needsText: 'The server’s reason, word for word (example text). The card never guesses who switched it off. Needs API: who switched it off, on the service status' },
+      offline: { badge: 'Not receiving orders', variant: 'warning', icon: 'warning', reason: 'No order screen has checked in for 5 minutes.', who: who.RESTAURANT + ' Orders only reach a screen with the Orders page open. Open it here to make this device your order screen.', goOrders: true, goVariant: 'primary', goText: 'Open Orders on this device', stateLabel: on('On – no order screen') },
+      suspended: { badge: 'Suspended', variant: 'neutral', icon: 'lock', reason: 'Your account is suspended.', who: who.ADMIN + ' Orders already in progress still complete.', support: true, locked: true, stateLabel: on('On – locked while suspended') },
+    };
+    const s = { refresh: false, overnightLine: false, clientReason: false, pause: false, resume: false, locked: false, extra: false, goOrders: false, editHours: false, support: false, needs: false, needsText: '', extraText: '', editText: '', goVariant: 'tertiary', goText: 'Go to Orders', ...(S[state] || S.open) };
+    s.reasonNote = s.clientReason ? 'Written on this screen: the pause time has passed and the status hasn’t refreshed yet' : 'Server’s reason, word for word; second sentence from who can change it';
+    s.showWhyLine = state === 'closed_hours';
+    s.overnightText = '';
+    let checked = !['closed_toggle', 'auto_off'].includes(state);
+    let offMsg = false, offMsgText = '', errMsg = false, errMsgText = '';
+    if (result === 'switched_off') {
+      Object.assign(s, S.closed_toggle, { pause: false, resume: false, needs: false, extra: false });
+      s.reason = 'New orders are switched off.';
+      checked = false; offMsg = true; offMsgText = 'Orders already waiting keep their countdown in the New orders strip. Answer them before it runs out.';
+    }
+    if (inflight === 'switch_off') { offMsg = true; offMsgText = 'Turning off new orders… The switch moves when HalalGoes confirms.'; }
+    if (inflight === 'switch_on') { offMsg = true; offMsgText = 'Order sound is on. Turning on new orders… The switch moves when HalalGoes confirms.'; }
+    if (result === 'switched_on') {
+      Object.assign(s, S.open, { pause: true, needs: false });
+      checked = true; offMsg = true; offMsgText = 'New orders are on again. Answer each order in the New orders strip within 3 minutes.';
+    }
+    if (result === 'switch_on_failed') { errMsg = true; errMsgText = 'Couldn’t turn on new orders. You are still not accepting orders. Order sound stays on.'; }
+    if (result === 'switch_failed') { errMsg = true; errMsgText = 'Couldn’t turn off new orders. You are still accepting orders.'; }
+    if (result === 'pause_failed') { errMsg = true; errMsgText = 'Couldn’t pause new orders. You are still taking orders.'; }
+    if (result === 'resume_failed') { errMsg = true; errMsgText = 'Couldn’t resume. You are still paused until 7:40 pm.'; }
+    const order = [
+      ['CLOSED_SUSPENDED', 'Your account is suspended'], ['CLOSED_OFFLINE', 'No order screen has checked in for 5 minutes'], ['CLOSED_TOGGLE', 'New orders are switched off'],
+      ['PAUSED', 'You paused new orders'], ['CLOSED_HOLIDAY', 'A special date closes you today'], ['CLOSED_HOURS', 'You are outside your opening hours, or past your last-order time'], ['OPEN', 'Otherwise, you are open'],
+    ];
+    const steps = order.map(([k, text]) => {
+      const cur = k === 'CLOSED_HOURS';
+      return { text: cur ? text + ' — this is why you are closed now' : text, style: cur ? 'font-weight: var(--font-weight-bold); color: var(--text-primary);' : 'color: var(--text-secondary);' };
+    });
+    const now = this.props.now ?? '19:10';
+    const closingAt = this.props.closingAt ?? '22:00';
+    const overnightTo = this.props.overnightTo ?? null;
+    const noMore = !!this.props.noMoreHours;
+    const [hh, mm] = now.split(':').map(Number);
+    // Times read in 12-hour form everywhere (owner decision); props stay 24-hour data.
+    const t12 = (v) => { const [h, m] = String(v).split(':').map(Number); return ((h % 12) || 12) + ':' + String(m).padStart(2, '0') + ' ' + (h < 12 ? 'am' : 'pm'); };
+    const at = (add) => { const t = hh * 60 + mm + add; const d = t >= 1440; const x = t % 1440; return t12(Math.floor(x / 60) + ':' + (x % 60)) + (d ? ' tomorrow' : ''); };
+    const pauseItems = [
+      { key: 'p15', label: 'Pause for 15 minutes (until ' + at(15) + ')' },
+      { key: 'p30', label: 'Pause for 30 minutes (until ' + at(30) + ')' },
+      { key: 'p60', label: 'Pause for 60 minutes (until ' + at(60) + ')' },
+      noMore ? { key: 'close', label: 'Pause until closing', disabled: true, disabledReason: 'You have no more hours today' }
+        : { key: 'close', label: 'Pause until closing (' + (overnightTo ? t12(overnightTo) + ' tomorrow' : t12(closingAt)) + ')' },
+    ];
+    return {
+      w, s, checked, offMsg, offMsgText, errMsg, errMsgText, steps,
+      hasSwitch: !s.noControls,
+      hid: 'now-' + state,
+      missedOne: Number(this.props.missed ?? 0) === 1 && state === 'open',
+      soundLine: (this.props.sound ?? 'on') === 'off' && !checked && inflight === 'none',
+      showWhy: !!this.props.showWhy,
+      switchLoading: inflight === 'switch_off' || inflight === 'switch_on',
+      pauseLoading: inflight === 'pause',
+      resumeLoading: inflight === 'resume',
+      pauseText: inflight === 'pause' ? 'Pausing…' : 'Pause new orders',
+      resumeText: inflight === 'resume' ? 'Resuming…' : 'Resume now',
+      pauseOpen: !!this.props.pauseOpen,
+      pauseItems,
+    };
+  }
+}
+</script>
+</body>
+</html>

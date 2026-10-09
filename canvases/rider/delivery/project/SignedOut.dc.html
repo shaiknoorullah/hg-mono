@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Signed out mid-delivery</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+[data-rider]{font-family:var(--font-ui)}
+.offer-chrome{background:var(--surface-raised)}
+[data-theme="dark"] .offer-chrome,[data-theme="dark"].offer-chrome{background:var(--surface-chrome)}
+</style>
+</helmet>
+<div data-rider="" data-theme="{{theme}}" style="width: 390px; height: 844px; position: relative; overflow: hidden; display: flex; flex-direction: column; background: var(--surface-base); color: var(--text-primary)">
+<main style="flex: 1 1 auto; overflow-y: auto; padding: var(--space-8) var(--space-5) var(--space-5); display: flex; flex-direction: column; gap: var(--space-4)">
+<span style="align-self: flex-start; font: var(--text-type-mono-md); padding: var(--space-1) var(--space-2); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Proposed component: Wordmark (asset exists)</span>
+<div style="border: 1.5px dashed var(--border-strong); border-radius: var(--radius-md); background: var(--surface-raised); padding: var(--space-4) var(--space-4); display: flex; flex-direction: column; gap: var(--space-2)">
+<span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Session revoked (4401) or refresh failed · InlineAlert gap</span>
+<div style="display: flex; gap: var(--space-3); align-items: flex-start">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="lock" size="lg"></x-import>
+<div style="display: flex; flex-direction: column; gap: var(--space-1)"><strong style="font-size: var(--type-heading-md-size); font-weight: var(--font-weight-semibold)">You were signed out</strong><span style="font-size: var(--type-body-lg-size); line-height: 1.5">Your delivery <span style="font-family: var(--font-mono); font-weight: var(--font-weight-semibold)">HG-4K2M-9T</span> is still yours. Sign in to carry on from the same step.</span></div>
+</div>
+</div>
+<h1 style="margin: 0; font-size: var(--type-heading-xl-size); font-weight: var(--type-heading-xl-weight); letter-spacing: var(--type-heading-xl-tracking); line-height: 1.25">Sign in with your phone</h1>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Mobile number" variant="tel" size="lg" required="{{yes}}" default-value="416 555 0134" helper-text="Canadian numbers only. We'll text you a 6-digit code."></x-import><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Proposed variant: Input size xl (56, body-lg) · focused = the field's own 2px border.brand border, no outer ring (docs/decisions/focus-indicator.md)</span>
+</main>
+<footer style="flex: 0 0 auto; padding: var(--space-3) var(--space-5) var(--space-5); border-top: 1px solid var(--border-decorative); background: var(--surface-base); display: flex; flex-direction: column; gap: var(--space-2)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="xl" full-width="{{yes}}">Send code</x-import>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["dark","light"],"default":"dark"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return { theme: this.props.theme ?? 'dark', yes: true }; }
+}
+</script>
+</body>
+</html>

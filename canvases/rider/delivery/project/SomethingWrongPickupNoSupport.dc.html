@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>What's wrong at pickup, no support line</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+[data-rider]{font-family:var(--font-ui)}
+.offer-chrome{background:var(--surface-raised)}
+[data-theme="dark"] .offer-chrome,[data-theme="dark"].offer-chrome{background:var(--surface-chrome)}
+</style>
+</helmet>
+<div data-rider="" data-theme="{{theme}}" style="width: 390px; height: 844px; position: relative; overflow: hidden; display: flex; flex-direction: column; background: var(--surface-base); color: var(--text-primary)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="field" title="Pickup" subtitle="Step 2 of 4 · At the restaurant"></x-import><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Sheet" open="{{yes}}" contained="{{yes}}" title="What's wrong?" on-close="{{noop}}" max-height="88%"><div style="display: flex; flex-direction: column; gap: var(--space-3)"><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Proposed variant: Sheet (rider) close IconButton size lg (56) · the DS close is 44</span><div style="display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-3); border: 1px solid var(--border-strong); border-radius: var(--radius-md)"><strong style="font-size: var(--type-heading-md-size); font-weight: var(--font-weight-semibold)">In danger or hurt? Call 911 first.</strong><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="danger" size="xl" full-width="{{yes}}" href="tel:911">Call 911</x-import><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Live: tel:911 opens the dialler, no API</span></div><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">support_enabled = false → the support row is not drawn at all: no number, no disabled button · 911 and the call to the other party stay</span><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Current contract · call dials pickup.phone_alias (tel:) · hidden when null</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="xl" full-width="{{yes}}" href="tel:+16475550190">Call Zaytoun Grill</x-import><div style="border: 1.5px dashed var(--text-link); border-radius: var(--radius-md); padding: var(--space-3) var(--space-4); display: flex; flex-direction: column; gap: var(--space-2)"><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--text-link); color: var(--text-link)">Needs API (rider incident reporting): I can't pick this up — RESTAURANT_CLOSED, ORDER_NOT_READY_TIMEOUT, VEHICLE_BREAKDOWN, RIDER_UNWELL release</span><span style="font-size: var(--type-body-lg-size); line-height: 1.5; color: var(--text-secondary-field)">Restaurant closed, food never made after 25 minutes, vehicle broken down or you feel unwell: releasing the order from here needs the exception endpoint. Until then, call HalalGoes support; only HalalGoes can move the order to another rider (Reassigned).</span></div><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">No "I can't deliver" before PICKED_UP: the rider doesn't have the food yet</span><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Prototype branches: <a href="SomethingWrongReasonsAlt.dc.html" style="color: var(--text-link)">coded reasons (Needs API, rider incident reporting)</a></span><div style="position: sticky; bottom: calc(var(--space-5) * -1); margin: var(--space-1) calc(var(--space-5) * -1) calc(var(--space-5) * -1); padding: var(--space-3) var(--space-5) var(--space-5); background: var(--surface-raised); border-top: 1px solid var(--border-decorative); display: flex; flex-direction: column; gap: var(--space-3)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="xl" full-width="{{yes}}" href="PickupWaiting.dc.html">Back to the delivery</x-import></div></div></x-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme": {"editor": "enum", "options": ["dark", "light"], "default": "dark"}, "$preview": {"width": 390, "height": 844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const theme = this.props.theme ?? 'dark';
+    return { theme: theme, onDark: theme === 'dark', yes: true, no: false, noop: () => {}, twentyFour: 24, four: 4, twoHundred: 200, activeTab: 'home',
+      tabs: [{ key: 'home', label: 'Home', icon: 'home' }, { key: 'earnings', label: 'Earnings', icon: 'orders' }, { key: 'account', label: 'Account', icon: 'profile' }] };
+  }
+}
+</script>
+</body>
+</html>

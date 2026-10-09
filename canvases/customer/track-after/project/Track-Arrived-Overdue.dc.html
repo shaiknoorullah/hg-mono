@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Rider still waiting</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<link rel="stylesheet" href="hg-roles.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:var(--surface-base)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+</style>
+</helmet>
+<div style="width: 390px; height: 1252px; position: relative; display: flex; flex-direction: column; overflow: hidden; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" title-is-page-heading="{{ no }}" tone="cream" title="Order HG-8F3K2Q" subtitle="Zaytoun Grill" back-label="Back to Orders" on-back="{{ noop }}"></x-import><main style="flex-grow: 1; display: flex; flex-direction: column; gap: 14px; padding: 4px 16px 16px; overflow: hidden">
+<div style="display: flex; flex-direction: column; gap: 4px"><h1 class="type-display-md">Yusuf is still waiting for you</h1><span class="type-body-md" style="color: var(--text-secondary)">Yusuf has been at your door since 7:12 pm and can't hand over your order yet.</span></div><div style="display: flex; flex-direction: column; gap: 6px"><span class="hg-tag">Proposed component: InlineAlert</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="md" padding="var(--space-3) var(--space-4)"><div role="status" style="display: flex; flex-direction: column; gap: 8px"><div style="display: flex; gap: 12px; align-items: flex-start"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="clock" size="lg" color="var(--text-primary)"></x-import><div style="display: flex; flex-direction: column; gap: 4px"><strong class="type-label-lg">Please meet Yusuf at your door, unit 402</strong><span class="type-body-md" style="color: var(--text-secondary)">If you can't meet Yusuf by <span class="hg-num">7:37 pm</span>, our team will step in.</span></div></div></div></x-import></div><div class="hg-gap" style="gap: 10px; padding: 16px"><span class="hg-tag hg-tag-api">Needs API: delivery code on the customer order view (owner decision: in launch; field and arrival push not in the contract yet)</span><span class="type-heading-md" style="color: var(--text-primary)">Read this code to Yusuf</span><span class="type-display-lg hg-mono hg-num" aria-hidden="true" style="letter-spacing: 0.35em; color: var(--text-primary)">4826</span><span class="hg-vh">Delivery code: 4, 8, 2, 6</span><span class="hg-gap-note">Met handovers (MEET_AT_DOOR, MEET_IN_LOBBY) need the 4-digit code the rider types (ProofOfDeliveryInput.otp_code). Owner decision (1 October): the customer sees it on the order and tracking screens at launch, from one new field on the customer order view plus a push when the rider arrives; neither is in the contract yet. Above the fold, no scrolling. The digits are aria-hidden; a visually hidden sibling reads them one by one.</span></div><div class="hg-gap"><span class="hg-tag hg-tag-api">Needs API: masked rider contact</span><span class="hg-gap-note">"Call Yusuf" and "Message Yusuf" sit here, side by side, 44 px tall, through a masked number. The contract has no masked contact, so no button is drawn as real. This is where the customer most needs the rider.</span></div><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.StatusTimeline" audience="customer" state="ARRIVED" orientation="compact" transitions="{{ tl }}" connection="live" now="{{ now }}"></x-import><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg"><div style="display: flex; align-items: center; justify-content: space-between; gap: 12px"><span class="type-label-lg">Zaytoun Grill</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.HalalBadge" state="CERTIFIED" surface="card" size="sm"></x-import></div></x-import><div class="hg-gap"><span class="hg-tag">Annotation: HANDOVER_OVERDUE</span><span class="hg-gap-note">ARRIVED deadline_at is arrived_at + 15 min (7:27 pm). At the deadline the customer is notified and it re-arms +10 min (7:37 pm), then the order moves to DISPUTED as a support case. "By 7:37 pm" is the current deadline_at. Where to meet comes from OrderCustomerView.delivery_instructions: MEET_AT_DOOR "at your door, unit 402"; MEET_IN_LOBBY "in the lobby".</span></div><div style="display: flex; flex-direction: column; gap: 8px; margin-top: auto"><div class="hg-focus-drawn"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" full-width="{{ yes }}" href="GetHelp-Sheet.dc.html">Get help</x-import></div></div>
+</main><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.BottomNav" label="Main" active="orders" items="{{ nav }}"></x-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1252}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const t = (s, at, a) => ({ to_state: s, at: '2026-09-28T' + at + ':00-04:00', actor_kind: a || 'SYSTEM' });
+    const all = [t('AUTHORIZED', '18:42', 'CUSTOMER'), t('RESTAURANT_PENDING', '18:42'), t('PREPARING', '18:44', 'RESTAURANT'), t('READY_FOR_PICKUP', '18:59', 'RESTAURANT'), t('PICKED_UP', '19:02', 'RIDER'), t('ARRIVED', '19:12', 'RIDER'), t('DELIVERED', '19:13', 'RIDER'), t('COMPLETED', '19:43')];
+    const upTo = (n) => all.slice(0, n);
+    return {
+      yes: true, no: false, none: null, zero: 0, noop: () => {},
+      nav: [{ key: 'home', label: 'Home', icon: 'home' }, { key: 'search', label: 'Search', icon: 'search' }, { key: 'orders', label: 'Orders', icon: 'orders', badge: 1, badgeNoun: 'active' }, { key: 'account', label: 'Account', icon: 'profile' }],
+      tl: upTo(6), now: Date.parse('2026-09-28T19:28:00-04:00')
+    };
+  }
+}
+</script>
+</body>
+</html>

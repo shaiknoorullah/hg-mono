@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Focus on every control</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0;background:var(--surface-base)}</style>
+</helmet>
+<div data-theme="light" style="width: 1440px; height: 900px; box-sizing: border-box; display: flex; flex-direction: column; gap: 18px; padding: 32px 40px; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<h1 style="margin: 0; font-size: 24px; font-weight: 700">Focus on every live-orders control (light only)</h1>
+<span style="font-size: 15px; color: var(--text-secondary)">Per the one-focus-indicator decision: borderless controls get a 2px offset in the container colour, then a 3px ring in the focus colour (brand 600); on forest chrome the ring is white. Fields turn their own border 2px in the focus colour. Every ring is drawn at once here for review; only one shows at a time.</span>
+</div>
+
+<div style="display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 20px; align-items: start">
+
+<section aria-label="Side navigation on forest" style="display: flex; flex-direction: column; gap: 8px; padding: 16px 10px; background: var(--surface-chrome); color: var(--text-on-accent); border-radius: var(--radius-lg)">
+<h2 style="margin: 0 0 4px; padding: 0 6px; font-size: 15px; font-weight: 700">Side navigation</h2>
+<a href="#orders" aria-current="page" style="display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 6px 10px; border-radius: var(--radius-md); background: var(--text-on-accent); color: var(--surface-chrome); text-decoration: none; font-weight: 700"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="orders" weight="bold" size="lg" color="var(--surface-chrome)"></x-import>Live orders</a>
+<a href="#history" style="display: flex; align-items: center; min-height: 48px; padding: 6px 10px; border-radius: var(--radius-md); color: var(--text-on-accent); text-decoration: none; font-weight: 500; box-shadow: 0 0 0 2px var(--surface-chrome), 0 0 0 5px var(--focus-ring-on-accent)">History</a>
+<a href="#menu" style="display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 6px 10px; border-radius: var(--radius-md); color: var(--text-on-accent); text-decoration: none; font-weight: 500"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="menu" size="lg"></x-import>Menu</a>
+<button type="button" aria-expanded="true" style="margin-top: 8px; min-height: 44px; display: inline-flex; align-items: center; gap: 8px; padding: 0 10px; background: transparent; border: 1px solid var(--color-accent-300); border-radius: var(--radius-md); color: var(--text-on-accent); font: inherit; font-size: 13px; font-weight: 600; box-shadow: 0 0 0 2px var(--surface-chrome), 0 0 0 5px var(--focus-ring-on-accent)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="back" size="md"></x-import>Collapse menu</button>
+<span style="padding: 2px 6px; border-radius: var(--radius-xs); background: var(--surface-sunken); color: var(--text-secondary); font-family: var(--font-mono); font-size: 12px">Proposed component: SideNav (collapsible)</span>
+</section>
+
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px">
+
+<section aria-label="Status bar" style="display: flex; flex-direction: column; gap: 10px; padding: 16px; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: var(--radius-lg)">
+<h2 style="margin: 0; font-size: 15px; font-weight: 700">Status bar</h2>
+<span style="align-self: flex-start; display: inline-flex; border-radius: var(--radius-md); box-shadow: 0 0 0 2px var(--focus-offset), 0 0 0 5px var(--focus-ring)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="neutral" icon="check" size="lg">Live</x-import></span>
+<span style="align-self: flex-start"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Switch" label="Orders" state-label="{{switchLabels}}" checked="{{true}}"></x-import></span>
+<span style="align-self: flex-start"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Menu" label="Pause new orders" trigger-text="Pause" trigger-variant="tonal" items="{{pauseItems}}"></x-import></span>
+<span style="font-size: 13px; color: var(--text-secondary)">Screen health button ring drawn · the switch and menu draw their own focus.</span>
+</section>
+
+<section aria-label="New-order tile" style="display: flex; flex-direction: column; gap: 10px; padding: 16px; background: var(--state-selected-tint); border: 2px solid var(--border-brand); border-radius: var(--radius-lg)">
+<h2 style="margin: 0; font-size: 15px; font-weight: 700">New-order tile (keyboard focus)</h2>
+<dc-import name="OfferTile" tile="{{tileFocused}}" hint-size="372px,166px"></dc-import>
+<span style="font-size: 13px; color: var(--text-secondary)">The tile takes the ring and shows “Selected”; A and D act on this tile only.</span>
+</section>
+
+<section aria-label="Panel controls" style="display: flex; flex-direction: column; gap: 10px; padding: 16px; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: var(--radius-lg)">
+<h2 style="margin: 0; font-size: 15px; font-weight: 700">Panel header</h2>
+<div style="display: flex; align-items: center; gap: 8px">
+<span style="font-family: var(--font-mono); font-size: 22px; font-weight: 600; flex-grow: 1">K7N1</span>
+<span style="display: inline-flex; border-radius: var(--radius-md); box-shadow: 0 0 0 2px var(--focus-offset), 0 0 0 5px var(--focus-ring)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" icon-end="chevron-right">Timeline</x-import></span>
+<span style="display: inline-flex; border-radius: var(--radius-md); box-shadow: 0 0 0 2px var(--focus-offset), 0 0 0 5px var(--focus-ring)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.IconButton" icon="close" accessibility-label="Close order K7N1 details"></x-import></span>
+</div>
+<span style="display: flex; border-radius: var(--radius-md); box-shadow: 0 0 0 2px var(--focus-offset), 0 0 0 5px var(--focus-ring)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="secondary" size="xl" full-width="{{true}}" icon-start="check">Mark ready</x-import></span>
+</section>
+
+<section aria-label="Decline reasons" style="display: flex; flex-direction: column; gap: 10px; padding: 16px; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: var(--radius-lg)">
+<h2 style="margin: 0; font-size: 15px; font-weight: 700">Decline reason group, in the panel</h2>
+<span style="display: block"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.RadioGroup" label="Why are you declining?" name="focus-decline" value="KITCHEN_AT_CAPACITY" options="{{declineOptions}}"></x-import></span>
+<span style="font-size: 13px; color: var(--text-secondary)">Arrow keys move the choice; the radio draws its own ring.</span>
+</section>
+
+<section aria-label="Inline confirm" style="display: flex; flex-direction: column; gap: 10px; padding: 16px; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: var(--radius-lg)">
+<h2 style="margin: 0; font-size: 15px; font-weight: 700">Inline confirm (turn orders off)</h2>
+<div style="display: flex; gap: 8px; flex-wrap: wrap">
+<span style="display: inline-flex; border-radius: var(--radius-md); box-shadow: 0 0 0 2px var(--focus-offset), 0 0 0 5px var(--focus-ring)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="lg">Keep accepting</x-import></span>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="secondary" size="lg">Stop accepting</x-import>
+</div>
+<span style="font-size: 13px; color: var(--text-secondary)">First focus on the least-change button.</span>
+</section>
+
+<section aria-label="History filter chips" style="display: flex; flex-direction: column; gap: 10px; padding: 16px; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: var(--radius-lg)">
+<h2 style="margin: 0; font-size: 15px; font-weight: 700">History filter chips</h2>
+<div role="group" aria-label="Filter past orders" style="display: flex; gap: 8px; flex-wrap: wrap">
+<button type="button" aria-pressed="true" style="min-height: 44px; padding: 0 14px; border-radius: var(--radius-full); border: 1.5px solid var(--border-brand); background: var(--state-selected-tint); font: inherit; font-size: 15px; font-weight: 700; color: var(--text-primary)">All past orders</button>
+<button type="button" aria-pressed="false" style="min-height: 44px; padding: 0 14px; border-radius: var(--radius-full); border: 1.5px solid var(--border-interactive); background: var(--surface-raised); font: inherit; font-size: 15px; font-weight: 500; color: var(--text-primary); box-shadow: 0 0 0 2px var(--focus-offset), 0 0 0 5px var(--focus-ring)">Cancelled</button>
+</div>
+<span style="padding: 2px 6px; align-self: flex-start; border-radius: var(--radius-xs); background: var(--surface-sunken); color: var(--text-secondary); font-family: var(--font-mono); font-size: 12px">Proposed component: FilterChip</span>
+</section>
+
+</div>
+</div>
+
+<section aria-label="Design-system focus issue" style="display: flex; gap: 20px; align-items: center; padding: 16px 20px; background: var(--surface-raised); border: 1px dashed var(--border-interactive); border-radius: var(--radius-lg)">
+<div style="display: flex; flex-direction: column; gap: 6px; flex-grow: 1">
+<h2 style="margin: 0; font-size: 17px; font-weight: 700">Design-system issue: the orange button’s own focus ring</h2>
+<span style="font-size: 15px; line-height: 22px">Primary Button (also IconButton filled and the filled Menu trigger) gives itself the on-brand focus colours: a 2px orange offset and a 3px white ring. On the cream page the white ring measures 1.05:1, on a white panel 1.00:1, so the visible change is only the 2px orange band. The focus decision gives brand 600 on cream, 4.29:1. Tab to the button on the right to see it.</span>
+</div>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" critical="{{true}}">Accept · 20 min</x-import>
+</section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    if (!this._a) this._a = Date.now();
+    const iso = (ms) => new Date(ms).toISOString();
+    return {
+      switchLabels: { on: 'Accepting orders', off: 'Not accepting orders' },
+      pauseItems: [{ key: '15', label: 'Pause for 15 minutes' }, { key: '30', label: 'Pause for 30 minutes' }, { key: '60', label: 'Pause for 1 hour' }, { type: 'separator' }, { key: 'closing', label: 'Pause until closing (11:00 pm)' }],
+      declineOptions: [{ value: 'ITEM_UNAVAILABLE', label: 'An item is unavailable' }, { value: 'KITCHEN_AT_CAPACITY', label: 'Kitchen is too busy' }, { value: 'CLOSING_SOON', label: 'We are closing soon' }],
+      tileFocused: { code: 'B3M9', w: 340, cdExpires: iso(this._a + 40000), cdNow: iso(this._a), earn: 2210, summary: 'Omar S. · 2 items', hasNote: false, selected: true,
+        acceptLabel: 'Accept · 15 min', acceptName: 'Accept order B3M9, ready in 15 minutes', declineName: 'Decline order B3M9, choose a reason', aria: 'New order B3M9',
+        bg: 'var(--surface-raised)', border: '1px solid var(--border-decorative)', ring: '0 0 0 2px var(--focus-offset), 0 0 0 5px var(--focus-ring), var(--elev-1)' }
+    };
+  }
+}
+</script>
+</body>
+</html>

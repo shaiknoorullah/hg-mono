@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Application not approved (final)</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: {{w}}; height: {{h}}; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px; font-family: var(--font-ui); color: var(--text-primary)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="elevated" radius="lg" padding="{{pad}}" hint-size="100%,560px">
+<div style="display: flex; flex-direction: column; gap: 20px">
+<span style="width: 48px; height: 48px; border-radius: 12px; background: var(--surface-sunken); color: var(--text-primary); display: inline-flex; align-items: center; justify-content: center"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="info" size="lg" hint-size="24px,24px"></x-import></span>
+<div style="display: flex; flex-direction: column; gap: 8px"><h1 class="type-heading-xl" style="margin: 0">Zaytoun Grill wasn’t approved</h1><p class="type-body-md" style="margin: 0; line-height: 1.5; color: var(--text-secondary)">{{lead}}</p></div>
+<sc-if value="{{showReason}}" hint-placeholder-val="{{true}}">
+<section aria-labelledby="nr-h" style="display: flex; flex-direction: column; gap: 12px; padding: 16px; border-radius: 12px; background: var(--surface-sunken); border: 1px solid var(--border-strong)">
+<div style="display: flex; flex-direction: column; gap: 4px"><span class="type-label-md" style="color: var(--text-secondary)">Reason</span><h2 id="nr-h" class="type-heading-sm" style="margin: 0">{{reasonTitle}}</h2><span class="type-body-md" style="line-height: 1.5">{{reasonBody}}</span></div>
+<div style="display: flex; flex-direction: column; gap: 4px"><span class="type-label-md" style="color: var(--text-secondary)">Reviewer’s note, 3 October 2026</span><blockquote class="type-body-md" style="margin: 0; line-height: 1.5">{{note}}</blockquote></div>
+</section>
+<span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">RestaurantDecisionInput decision REJECT: reason_code ({{code}}, RestaurantRejectApplicationReasonCode) mapped through Ref-Rejections table 3; unknown code or null → “A reviewer left a note”. reason_text shown verbatim. Slate throughout, never red, including HALAL_CERTIFICATION_INVALID. No upload action: REJECT is final for this application (the admin spec makes a rejection final).</span>
+</sc-if>
+<sc-if value="{{isStaff}}" hint-placeholder-val="{{false}}"><span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">Staff see the outcome only. The reason and reviewer’s note are for the owner and managers.</span></sc-if>
+<sc-if value="{{showSupport}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; flex-direction: column; gap: 4px; padding: 16px; border-radius: 12px; background: var(--surface-sunken)"><span class="type-label-md" style="color: var(--text-secondary)">Questions about this decision? Partner support</span><a href="tel:[support phone]" class="type-heading-sm" style="align-self: flex-start; min-height: 44px; display: inline-flex; align-items: center">[support phone]</a><span class="type-body-sm" style="color: var(--text-secondary)">[support hours]</span></div>
+<span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">Renders only when PublicConfig.support_enabled is true (number = support_phone_e164); otherwise the Ref-SupportUnavailable fallback replaces this card.</span>
+</sc-if>
+<div><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" hint-size="120px,44px">Sign out</x-import></div>
+</div>
+</x-import>
+<span style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; border: 1.5px dashed var(--color-info-600); background: var(--color-info-50); color: var(--color-info-700); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">Needs API: how a REJECTED application surfaces in RestaurantOnboardingStatus (onboarding_state / current_step value); neither enum has a REJECTED member</span>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"code": {"editor": "enum", "options": ["HALAL_CERTIFICATION_INVALID", "DOCUMENTS_INSUFFICIENT", "IDENTITY_UNVERIFIED", "OUTSIDE_SERVICE_AREA", "PROHIBITED_CUISINE_OR_PRODUCT", "SUSPECTED_FRAUD", "DUPLICATE_APPLICATION", "OTHER"], "default": "HALAL_CERTIFICATION_INVALID"}, "w": {"editor": "text", "default": "560px"}, "$preview": {"width": 560, "height": 900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const role = this.props.role ?? 'Owner';
+    const code = this.props.code ?? 'HALAL_CERTIFICATION_INVALID';
+    const R = {
+      HALAL_CERTIFICATION_INVALID: ['We couldn’t accept your halal certification', 'We can’t list Zaytoun Grill as halal-certified with the certification we received.'],
+      DOCUMENTS_INSUFFICIENT: ['The documents weren’t enough to approve this application', 'The reviewer’s note below says what was missing.'],
+      IDENTITY_UNVERIFIED: ['We couldn’t confirm who owns the restaurant', 'The identity documents didn’t let us confirm the owner.'],
+      OUTSIDE_SERVICE_AREA: ['Zaytoun Grill is outside the area we serve', 'HalalGoes delivers in Ontario at launch.'],
+      PROHIBITED_CUISINE_OR_PRODUCT: ['We can’t list what Zaytoun Grill sells', 'Some of what the restaurant sells can’t be listed on HalalGoes.'],
+      SUSPECTED_FRAUD: ['We couldn’t verify your application', 'We couldn’t confirm the details you sent.'],
+      DUPLICATE_APPLICATION: ['This restaurant already has an application', 'We’re already reviewing, or have reviewed, another application for this restaurant.']
+    };
+    const r = R[code] || ['A reviewer left a note', ''];
+    const staff = role === 'Staff';
+    const notes = { HALAL_CERTIFICATION_INVALID: 'The certificate names a different legal entity and address, and HMA Canada could not confirm it was issued to Zaytoun Grill Inc.' };
+    return {
+      w: this.props.w ?? '560px', h: staff ? '560px' : '900px', pad: parseInt(this.props.w ?? '560px', 10) < 400 ? '20px' : '32px',
+      lead: staff ? 'HalalGoes decided not to approve this application, so setup has ended. The owner has the details.' : 'A reviewer at HalalGoes decided not to approve this application. The decision is final for this application, so there is nothing to upload or send again.',
+      showReason: !staff, isStaff: staff, showSupport: !staff, code,
+      reasonTitle: r[0], reasonBody: r[1], note: notes[code] || 'The reviewer’s note appears here exactly as written.'
+    };
+  }
+}
+</script>
+</body>
+</html>

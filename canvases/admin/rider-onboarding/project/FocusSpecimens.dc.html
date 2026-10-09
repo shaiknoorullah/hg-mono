@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Keyboard focus specimens</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<link rel="stylesheet" href="composites.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div data-density="compact" style="position: relative; width: 1440px; height: 1180px; overflow: hidden; box-sizing: border-box; display: grid; grid-template-columns: 264px minmax(0, 1fr); background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui);">
+  <a href="#specimens" class="hg-skip is-shown" style="left: var(--space-2); top: var(--space-2); z-index: 1;">Skip to the application</a>
+  <dc-import name="SideNav" active="riders" role="admin" height="1180" rider-count="5" focus-specimen="{{yes}}" hint-size="264px,1180px"></dc-import>
+  <main style="position: relative; display: flex; flex-direction: column; gap: var(--space-5); padding: var(--space-8); min-width: 0;">
+    <div style="margin-top: var(--space-10); display: flex; flex-direction: column; gap: var(--space-1);">
+      <h1 class="type-heading-xl" style="margin: 0;">Keyboard focus</h1>
+      <p class="type-body-md" style="margin: 0; color: var(--text-secondary);">Every specimen is drawn with the DS’s own :focus-visible rules (.hg-focus, .hg-choice, .hg-row), so it shows what ships. Plain elements that aren’t DS components carry the DS .hg-focus class.</p>
+    </div>
+    <div id="specimens" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-5);">
+      <section aria-labelledby="f1">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined">
+          <div style="display: flex; flex-direction: column; gap: var(--space-3);">
+            <h2 id="f1" class="type-heading-sm" style="margin: 0;">Queue row</h2>
+            <div class="hg-sim-row">
+              <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.DataTable" caption="Focus specimen rows" hide-caption="{{yes}}" density="compact" columns="{{columns}}" rows="{{rows}}" status="ready" on-row-activate="{{noop}}" row-label="{{rowLabel}}"></x-import>
+            </div>
+            <span class="type-body-sm" style="color: var(--text-secondary);">The DS row ring (.hg-row:focus-visible, inset) on the second row. Arrow keys move between rows; Enter opens the application.</span>
+          </div>
+        </x-import>
+      </section>
+      <section aria-labelledby="f2">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined">
+          <div style="display: flex; flex-direction: column; gap: var(--space-3);">
+            <h2 id="f2" class="type-heading-sm" style="margin: 0;">Buttons, as the DS renders them</h2>
+            <div class="hg-sim-focus" style="display: flex; gap: var(--space-5); align-items: center; flex-wrap: wrap; padding: var(--space-3);">
+              <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" on-press="{{noop}}">Approve rider…</x-import>
+              <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="secondary" size="lg" on-press="{{noop}}">Secondary</x-import>
+              <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="danger" size="lg" destructive="{{yes}}" on-press="{{noop}}">Reject application</x-import>
+              <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="lg" on-press="{{noop}}">Request changes…</x-import>
+            </div>
+            <span class="type-body-sm" style="color: var(--text-secondary);">Filled buttons carry .hg-on-brand / .hg-on-accent / .hg-on-danger, which flip the ring to white on a gap in the fill colour. The white ring measures 1.04:1 against the cream page, so it reads as a slightly bigger button.</span>
+            <span class="hg-napi">Design-system issue, not fixed on this canvas: the Button still flips its ring to white on filled buttons. The focus decision flips only where the brand ring measures under 3:1 against what it touches; here the white ring touches the cream page.</span>
+          </div>
+        </x-import>
+      </section>
+      <section aria-labelledby="f3">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined">
+          <div style="display: flex; flex-direction: column; gap: var(--space-3);">
+            <h2 id="f3" class="type-heading-sm" style="margin: 0;">Plain controls: bordered trigger and scan region</h2>
+            <div style="display: flex; gap: var(--space-5); align-items: flex-end; flex-wrap: wrap; padding: var(--space-3);">
+              <div class="hg-sim-focus" style="display: flex; flex-direction: column; gap: var(--space-1); width: 260px;">
+                <span id="fs-filter-label" class="type-label-md">Onboarding state</span>
+                <button type="button" class="hg-field hg-trigger" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="fs-filter-label fs-filter-value"><span id="fs-filter-value">Documents review</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="chevron-down" size="md"></x-import></button>
+              </div>
+              <div role="region" aria-roledescription="document viewer" aria-keyshortcuts="PageUp PageDown Plus Minus" tabindex="0" aria-label="Vehicle insurance version 2, page 1" class="hg-scan is-focused" style="width: 160px; height: 96px; border-radius: var(--radius-md); background: var(--surface-sunken); border: 1px solid var(--border-decorative); display: flex; align-items: center; justify-content: center; color: var(--text-secondary);"><span class="type-body-sm">Scan region</span></div>
+            </div>
+            <span class="type-body-sm" style="color: var(--text-secondary);">The MultiSelect trigger is a bordered field, so its focus is its own border in --border-brand with an inset second pixel (DS .hg-field), not a ring. The viewer’s scan region is a region with aria-roledescription “document viewer” and aria-keyshortcuts (focusable, so the viewer keys only work inside it). Page thumbnails are gone until page_count exists.</span>
+          </div>
+        </x-import>
+      </section>
+      <section aria-labelledby="f4">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined">
+          <div style="display: flex; flex-direction: column; gap: var(--space-3);">
+            <h2 id="f4" class="type-heading-sm" style="margin: 0;">Fields: focused, and focused while invalid</h2>
+            <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4);">
+              <label class="type-label-md" style="display: flex; flex-direction: column; gap: var(--space-1);">Review note<textarea class="hg-field is-focused" rows="2">Plate matches.</textarea></label>
+              <label class="type-label-md" style="display: flex; flex-direction: column; gap: var(--space-1);">Note to the rider<textarea class="hg-field is-focused" aria-invalid="true" rows="2">Wrong policy</textarea></label>
+              <div class="hg-sim-focus"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Select" label="Reason" required="{{yes}}" value="{{nothing}}" placeholder="Choose a reason" options="{{reasons}}" error-text="Choose a reason."></x-import></div>
+              <div class="hg-sim-focus"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Checkbox" label="Driver’s licence" description="Approved · version 2"></x-import></div>
+            </div>
+            <span class="hg-gap">Proposed component: Textarea</span>
+          </div>
+        </x-import>
+      </section>
+    </div>
+    <section aria-labelledby="f6">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined">
+        <div style="display: flex; flex-direction: column; gap: var(--space-3);">
+          <h2 id="f6" class="type-heading-sm" style="margin: 0;">Panes: resize handle, folded pane, section header</h2>
+          <div style="display: flex; gap: var(--space-8); align-items: center; flex-wrap: wrap; padding: var(--space-3);">
+            <div style="display: flex; align-items: stretch; height: 96px; gap: 0;">
+              <div style="width: 120px; border-radius: var(--radius-sm); background: var(--surface-sunken);"></div>
+              <div class="hg-split" role="separator" tabindex="0" aria-orientation="vertical" aria-label="Resize the application pane" style="box-shadow: 0 0 0 var(--focus-offset-width) var(--focus-offset), 0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring);"><span class="hg-split-grip"></span></div>
+              <div style="width: 120px; border-radius: var(--radius-sm); background: var(--surface-sunken);"></div>
+            </div>
+            <button type="button" class="hg-strip-btn" aria-label="Show the queue" aria-expanded="false" style="box-shadow: 0 0 0 var(--focus-offset-width) var(--focus-offset), 0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring);"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="chevron-right" size="md"></x-import></button>
+            <div class="hg-disclosure" style="width: 320px;"><button type="button" class="hg-disclosure-btn" aria-expanded="false" style="box-shadow: inset 0 0 0 var(--focus-offset-width) var(--focus-offset), inset 0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring);"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="chevron-right" size="md"></x-import><span style="flex-grow: 1;">Rider details</span></button></div>
+          </div>
+          <span class="type-body-sm" style="color: var(--text-secondary);">Proposed components SplitPanes, folded-pane strip and Disclosure use the design system’s brand ring (brand 600, 4.30:1 on the cream page). The handle is a separator: arrow keys resize, Enter folds or restores the pane before it. The primary button label is now dark forest ink on orange, 4.63:1, straight from the design system’s tokens.</span>
+        </div>
+      </x-import>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1180}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      yes: true, nothing: null, noop: () => {},
+      columns: [
+        { key: 'name', label: 'Applicant', width: 160 },
+        { key: 'state', label: 'State', width: 170 },
+        { key: 'claim', label: 'Claim' }
+      ],
+      rows: [
+        { id: 'a', name: 'Musa Ibrahim', state: 'Documents review', claim: 'Claimed by another reviewer' },
+        { id: 'b', name: 'Fatima Noor', state: 'Documents review', claim: 'Unclaimed' },
+        { id: 'c', name: 'Yusuf Ahmed', state: 'Documents review', claim: 'Unclaimed' }
+      ],
+      reasons: [{ value: 'ILLEGIBLE', label: 'Illegible' }, { value: 'INCOMPLETE_PAGES', label: 'Pages missing' }],
+      rowLabel: (r) => 'rider application ' + r.name
+    };
+  }
+}
+</script>
+</body>
+</html>

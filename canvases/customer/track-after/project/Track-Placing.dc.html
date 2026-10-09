@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Waiting for the restaurant</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<link rel="stylesheet" href="hg-roles.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:var(--surface-base)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+</style>
+</helmet>
+<div style="width: 390px; height: 960px; position: relative; display: flex; flex-direction: column; overflow: hidden; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" title-is-page-heading="{{ no }}" tone="cream" title="Order HG-8F3K2Q" subtitle="Zaytoun Grill · placed 6:42 pm" back-label="Back to Orders" on-back="{{ noop }}" loading="{{ yes }}"></x-import><main style="flex-grow: 1; display: flex; flex-direction: column; gap: 16px; padding: 8px 16px 16px; overflow: hidden">
+<div style="display: flex; flex-direction: column; gap: 8px"><div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px"><h1 class="type-heading-xl">Waiting for Zaytoun Grill to accept</h1><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="info" size="md" appearance="dot" style="flex-shrink: 0">Live</x-import></div><p class="type-body-md" style="color: var(--text-secondary)">Placing a hold on your Visa •••• 4242. Nothing is charged until Zaytoun Grill accepts.</p></div><div style="height: 56px; display: flex; flex-direction: column; justify-content: center"></div><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.StatusTimeline" audience="customer" state="CREATED" orientation="compact" transitions="{{ tl }}" connection="live" now="{{ now }}"></x-import><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg"><div style="display: flex; align-items: center; justify-content: space-between; gap: 12px"><div style="display: flex; flex-direction: column; gap: 6px"><span class="type-label-lg">Zaytoun Grill</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.HalalBadge" state="CERTIFIED" surface="card" size="sm"></x-import></div><div style="display: flex; flex-direction: column; gap: 2px; align-items: flex-end"><span class="type-body-sm" style="color: var(--text-secondary)">Total</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{ total }}" size="md"></x-import></div></div></x-import><div class="hg-gap"><span class="hg-tag">Annotation: one layout, one H1</span><span class="hg-gap-note">CREATED, AUTHORIZED and RESTAURANT_PENDING share this screen. CREATED to AUTHORIZED is usually a few seconds; AUTHORIZED can last up to about 4 minutes, because OFFER_RESTAURANT retries every 60 s up to 3 times before cancelling (RESTAURANT_CLOSED). See the slow-sending board. Only the timeline step and the one line under the H1 change, announced politely once. The cancel sheet's money line is chosen by OrderCustomerView.state, never by which screen opened it: CREATED opens Cancel-Reason-Created ("Your order is cancelled and nothing is charged"), AUTHORIZED and RESTAURANT_PENDING open Cancel-Reason ("The hold on your card is released"). The 56 px slot under the H1 stays empty until deadline_at arrives, then holds the countdown, so nothing moves.</span></div><div style="display: flex; flex-direction: column; gap: 8px; margin-top: auto"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" full-width="{{ yes }}" href="Cancel-Reason-Created.dc.html">Cancel order</x-import><span class="type-body-sm" style="color: var(--text-secondary); text-align: center">Free to cancel until the restaurant accepts.</span></div>
+</main><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.BottomNav" label="Main" active="orders" items="{{ nav }}"></x-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":960}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const t = (s, at, a) => ({ to_state: s, at: '2026-09-28T' + at + ':00-04:00', actor_kind: a || 'SYSTEM' });
+    const all = [t('AUTHORIZED', '18:42', 'CUSTOMER'), t('RESTAURANT_PENDING', '18:42'), t('PREPARING', '18:44', 'RESTAURANT'), t('READY_FOR_PICKUP', '18:59', 'RESTAURANT'), t('PICKED_UP', '19:02', 'RIDER'), t('ARRIVED', '19:12', 'RIDER'), t('DELIVERED', '19:13', 'RIDER'), t('COMPLETED', '19:43')];
+    const upTo = (n) => all.slice(0, n);
+    return {
+      yes: true, no: false, none: null, zero: 0, noop: () => {},
+      nav: [{ key: 'home', label: 'Home', icon: 'home' }, { key: 'search', label: 'Search', icon: 'search' }, { key: 'orders', label: 'Orders', icon: 'orders', badge: 1, badgeNoun: 'active' }, { key: 'account', label: 'Account', icon: 'profile' }],
+      total: 6425, authorised: 6425, window: 180, tl: [{ to_state: 'CREATED', at: '2026-09-28T18:42:10-04:00', actor_kind: 'CUSTOMER' }], now: Date.parse('2026-09-28T18:42:11-04:00')
+    };
+  }
+}
+</script>
+</body>
+</html>

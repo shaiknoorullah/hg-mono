@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Forced colours specimen</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<link rel="stylesheet" href="composites.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div style="width: 1440px; height: 900px; overflow: hidden; box-sizing: border-box; padding: var(--space-8); display: flex; flex-direction: column; gap: var(--space-5); background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui);">
+  <div style="display: flex; flex-direction: column; gap: var(--space-1);">
+    <h1 class="type-heading-xl" style="margin: 0;">Forced colours (Windows high contrast)</h1>
+    <p class="type-body-md" style="margin: 0; color: var(--text-secondary); max-width: 960px;">Box-shadow rings and tinted fills disappear in forced colours. Each panel below is drawn in CSS system colours (Canvas, CanvasText, ButtonText, Highlight, Mark) to show what remains. Every custom focus style also sets an outline in a system colour: the DS does this for .hg-focus, .hg-row and choices; composites.css (the proposed components on this canvas, built from DS tokens only) adds it for the skip link, the nav, the scan region, pane handles, panels, disclosures, text areas, banners and Needs API chips.</p>
+    <span class="hg-gap">Specimen only: simulated with system colours, not product UI</span>
+  </div>
+  <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-5);">
+    <section aria-labelledby="fc1" style="display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-5); background: Canvas; color: CanvasText; border: 1px solid CanvasText; border-radius: var(--radius-lg);">
+      <h2 id="fc1" class="type-heading-sm" style="margin: 0;">Focus</h2>
+      <div style="display: flex; gap: var(--space-5); align-items: center; flex-wrap: wrap;">
+        <button type="button" style="min-height: 52px; padding: 0 var(--space-5); font: var(--text-type-label-lg); background: ButtonFace; color: ButtonText; border: 1px solid ButtonText; border-radius: var(--radius-sm); outline: 2px solid CanvasText; outline-offset: 2px;">Approve rider… (focused)</button>
+        <button type="button" style="min-height: 52px; padding: 0 var(--space-5); font: var(--text-type-label-lg); background: ButtonFace; color: ButtonText; border: 1px solid ButtonText; border-radius: var(--radius-sm);">Request changes…</button>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: var(--space-1); width: 360px;">
+        <span class="type-label-md">Note to the rider</span>
+        <span style="min-height: 64px; padding: var(--space-2) var(--space-3); border: 2px solid Mark; border-radius: var(--radius-sm); outline: 2px solid CanvasText; outline-offset: 2px; font: var(--text-type-body-md);">Wrong policy</span>
+        <span class="type-body-sm">Invalid and focused: the Mark border keeps the error, the CanvasText outline marks focus.</span>
+      </div>
+      <div style="min-height: 44px; display: flex; align-items: center; padding: 0 var(--space-3); border: 1px solid CanvasText; outline: 2px solid CanvasText; outline-offset: -4px; font: var(--text-type-body-md);">Fatima Noor · Documents review · Unclaimed (focused row)</div>
+    </section>
+    <section aria-labelledby="fc2" style="display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-5); background: Canvas; color: CanvasText; border: 1px solid CanvasText; border-radius: var(--radius-lg);">
+      <h2 id="fc2" class="type-heading-sm" style="margin: 0;">Banner, blockers and chips</h2>
+      <div role="status" style="display: flex; flex-direction: column; gap: var(--space-1); padding: var(--space-3) var(--space-4); border: 1px solid CanvasText; border-radius: var(--radius-md); font: var(--text-type-body-md);">
+        <strong>8 minutes left on your claim</strong>
+        <span>The warning tint is gone; the border and the icon carry the tone. The icon is text-coloured, so it survives.</span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: var(--space-1); padding: var(--space-2) var(--space-3); border: 1px solid CanvasText; border-radius: var(--radius-sm); font: var(--text-type-body-md);">
+        <strong>2 things stop approval</strong>
+        <span>Vehicle insurance isn’t approved yet · Work eligibility isn’t approved yet</span>
+      </div>
+      <span style="align-self: flex-start; padding: var(--space-1) var(--space-2); border: 1px dashed CanvasText; border-radius: var(--radius-xs); font: 600 12px/1.35 var(--font-mono);">Needs API: page_count on KycDocument</span>
+      <span style="align-self: flex-start; padding: 0 var(--space-2); border: 1px solid CanvasText; border-radius: var(--radius-full); font: var(--text-type-label-md);">Target missed</span>
+      <span class="type-body-sm">Badges and the “Target missed” status keep their text and icon, so the meaning never rests on the tint.</span>
+    </section>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

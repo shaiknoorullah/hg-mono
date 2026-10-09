@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Payouts — paused, orders continue (live restaurant)</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:var(--surface-base);color:var(--text-primary);font-family:var(--font-ui)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+.skip{position:absolute;left:16px;top:-80px;z-index:10}.skip:focus{top:8px}
+form{margin:0}
+.row{appearance:none;-webkit-appearance:none;border:0;margin:0;width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer;box-sizing:border-box}
+.row:hover{background:var(--surface-sunken)}
+.row:focus-visible,.handle:focus-visible{outline:2px solid transparent;box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+.navlink:focus-visible{box-shadow:0 0 0 var(--focus-offset-width) var(--surface-chrome),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring-on-accent)}
+.hg-focus-field:not([aria-invalid="true"]):focus-visible{outline:2px solid transparent;border-color:var(--focus-ring) !important;box-shadow:inset 0 0 0 1px var(--focus-ring)}
+.hg-focus-field[aria-invalid="true"]:focus-visible{outline:2px solid transparent;box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+.gap{position:relative;outline:1.5px dashed var(--color-neutral-500);outline-offset:3px}
+.gap::before{content:"Proposed component: " attr(data-gap);position:absolute;top:-11px;right:12px;z-index:3;font:500 11px/1 var(--font-mono);color:var(--color-neutral-800);background:var(--color-neutral-100);padding:3px 6px;border-radius:4px;white-space:nowrap}
+.api{display:inline-flex;align-items:center;gap:8px;padding:4px 8px;border:1.5px dashed var(--color-info-600);background:var(--color-info-50);color:var(--color-info-700);font:500 12px/1.4 var(--font-mono);border-radius:4px}
+.note{display:inline-flex;align-items:center;padding:4px 8px;background:var(--color-neutral-100);color:var(--color-neutral-800);font:500 12px/1.4 var(--font-mono);border-radius:4px}
+summary:focus-visible{outline:2px solid transparent;box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; background: var(--surface-base); display: flex; font-family: var(--font-ui); color: var(--text-primary); position: relative; overflow: hidden">
+<a href="#main" class="skip type-label-lg" style="min-height: 44px; display: inline-flex; align-items: center; padding: 0 16px; border-radius: 12px; background: var(--surface-raised); border: 1.5px solid var(--border-strong)">Skip to main content</a>
+<div style="width: 88px; flex-shrink: 0; display: flex; flex-direction: column; background: var(--surface-chrome)"><nav id="main-nav" aria-label="Main" class="gap" data-gap="SideNav (approved for the design system)" style="flex-grow: 1; color: var(--text-on-accent); display: flex; flex-direction: column; align-items: stretch; gap: 4px; padding: 12px 8px; outline-offset: -4px"><a href="#orders" class="navlink type-label-md" style="min-height: 60px; border-radius: 12px; color: var(--text-on-accent); text-decoration: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-weight: 500; background: transparent"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="orders" size="lg" hint-size="24px,24px"></x-import>Orders</a><a href="#menu" class="navlink type-label-md" style="min-height: 60px; border-radius: 12px; color: var(--text-on-accent); text-decoration: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-weight: 500; background: transparent"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="menu" size="lg" hint-size="24px,24px"></x-import>Menu</a><a href="#hours" class="navlink type-label-md" style="min-height: 60px; border-radius: 12px; color: var(--text-on-accent); text-decoration: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-weight: 500; background: transparent"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="clock" size="lg" hint-size="24px,24px"></x-import>Hours</a><a href="#payouts" class="navlink type-label-md" aria-current="page" style="min-height: 60px; border-radius: 12px; color: var(--text-on-accent); text-decoration: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-weight: 600; background: var(--action-secondary-bg-pressed)"><span aria-hidden="true" style="width: 24px; height: 24px; box-sizing: border-box; border: 1.5px dashed var(--text-on-accent); border-radius: 4px"></span>Payouts</a><a href="#settings" class="navlink type-label-md" style="min-height: 60px; border-radius: 12px; color: var(--text-on-accent); text-decoration: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-weight: 500; background: transparent"><span aria-hidden="true" style="width: 24px; height: 24px; box-sizing: border-box; border: 1.5px dashed var(--text-on-accent); border-radius: 4px"></span>Settings</a><span style="flex-grow: 1"></span><div style="display: flex; justify-content: center; color: var(--text-on-accent); --hg-ring-offset: var(--surface-chrome); --hg-ring: var(--focus-ring-on-accent)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.IconButton" icon="chevron-right" variant="plain" size="md" accessibility-label="Expand navigation" aria-expanded="false" aria-controls="main-nav" hint-size="44px,44px"></x-import></div></nav></div>
+<div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="chrome" title="Payouts" subtitle="Zaytoun Grill" hint-size="100%,64px"></x-import>
+<div role="region" aria-labelledby="strip-h" class="gap" data-gap="New-orders strip (header)" style="display: flex; align-items: center; gap: 16px; min-height: 96px; box-sizing: border-box; padding: 12px 28px; background: var(--surface-sunken); border-bottom: 1px solid var(--border-decorative)"><h2 id="strip-h" class="type-label-lg" style="margin: 0; white-space: nowrap">Awaiting acceptance <span style="font-variant-numeric: tabular-nums">1</span></h2><ul aria-label="New orders awaiting acceptance" style="list-style: none; margin: 0; padding: 0; display: flex; gap: 12px"><li style="display: flex; align-items: center; gap: 12px; padding: 0 8px 0 14px; border-radius: 12px; background: var(--surface-raised); border: 2px solid var(--border-brand)"><strong class="type-heading-sm" style="font-family: var(--font-mono)">B3QX</strong><span class="type-body-sm" style="color: var(--text-secondary)">2 items</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="3450" size="md" hint-size="70px,20px"></x-import><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Countdown" variant="text" size="sm" expires-at="{{ord.exp}}" server-now="{{ord.now}}" window-seconds="180" label="left to accept" hint-size="70px,20px"></x-import><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" critical="{{yes}}" accessibility-label="Accept order B3QX" hint-size="120px,72px">Accept</x-import><span aria-hidden="true" style="width: 12px; flex-shrink: 0"></span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" accessibility-label="Reject order B3QX" hint-size="90px,44px">Reject</x-import></li></ul><span class="type-body-sm" style="color: var(--text-secondary)">Arrow keys move between the Accept buttons. A accepts and R rejects the focused order only.</span></div>
+<main id="main" style="flex-grow: 1; min-height: 0; display: flex; flex-direction: column; gap: 12px; padding: 16px 28px 16px">
+
+
+<div style="flex-grow: 1; min-height: 0; display: flex; flex-direction: column"><dc-import name="PayoutPanes" mode="pastdue_active" w="100%" h="100%" hint-size="100%,620px"></dc-import></div>
+<div style="display: flex; gap: 8px; flex-wrap: wrap"><span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 3px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">Accept is the 72 px critical target and sits 36 px from Reject: accepting is timed and can’t be undone.</span><span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 3px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">A live restaurant whose payouts Stripe restricted: new orders keep arriving in the strip above (owner decision).</span><span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 3px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">Icon gap: wallet (Payouts) and settings (Settings) are Solar glyphs still to add (wallet-linear, settings-linear).</span><span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 3px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">Each order is a plain list item, not a focusable card: focus lands on its Accept and Reject buttons, and arrow keys move between the Accept buttons.</span></div>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 1440, "height": 900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const now = Date.now();
+    return { yes: true, no: false, switchLabel: { on: 'Accepting orders', off: 'Not accepting orders' }, ord: { exp: new Date(now + 134 * 1000).toISOString(), now: new Date(now).toISOString() } };
+  }
+}
+</script>
+</body>
+</html>

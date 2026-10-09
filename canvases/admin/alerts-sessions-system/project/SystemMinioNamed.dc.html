@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>System status, MinIO not ready, named in the 503</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.skip-link{position:absolute;left:var(--space-4);top:-120px;z-index:60;display:inline-flex;align-items:center;min-height:44px;padding:0 var(--space-4);border-radius:var(--radius-sm);background:var(--surface-raised);color:var(--text-primary);font-family:var(--font-ui);font-size:var(--type-body-md-size);font-weight:600;text-decoration:none}
+.skip-link:focus,.skip-link[data-shown]{top:12px;outline:2px solid transparent;box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+.skip-link+.skip-link:focus{top:64px}
+.resize-handle{position:absolute;top:0;bottom:0;width:44px;z-index:5;display:flex;align-items:center;justify-content:center;cursor:col-resize;outline:2px solid transparent;touch-action:none}
+.resize-grip{display:flex;align-items:center;justify-content:center;gap:2px;width:14px;height:32px;box-sizing:border-box;border:1px solid var(--border-interactive);border-radius:var(--radius-xs);background:var(--surface-raised)}
+.resize-grip span{width:1px;height:14px;background:var(--text-secondary)}
+.resize-handle:focus-visible .resize-grip,.resize-handle[data-focus-demo] .resize-grip{box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+</style>
+</helmet>
+<div data-theme="light" data-density="compact" style="width: 1440px; height: 900px; position: relative; overflow: hidden; display: grid; grid-template-columns: 264px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+<a class="skip-link" href="#main">Skip to main content</a>
+<a class="skip-link" href="#deps-table-alt">Skip to table</a>
+<div style="background: var(--surface-chrome)">
+<dc-import name="AdminSidebar" active="system" viewer="super" has-new="{{no}}" counts="live" wn-expanded="{{no}}" focus-demo="none" hint-size="264px,900px"></dc-import>
+</div>
+<div style="display: flex; flex-direction: column; min-width: 0; min-height: 0">
+
+<main id="main" tabindex="-1" style="flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; outline: none">
+
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" role="none" tone="raised" sticky="{{yes}}" title="System status" subtitle="Checked 28 Sep 2026, 9:14:05 am EDT · checks again every 30 seconds"></x-import>
+<div style="padding: var(--space-1) var(--space-6) 0"><span style="font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary)">Component gap: AppBar needs a role prop; role="none" here so main holds no nested banner. The h1 title stays.</span></div>
+<div style="flex: 1; min-height: 0; padding: var(--space-5) var(--space-6); display: flex; flex-direction: column; gap: var(--space-4); min-width: 0">
+<div style="flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 5fr) 24px minmax(0, 6fr); grid-template-rows: minmax(0, 1fr); gap: 0">
+<div id="status-pane" style="min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: var(--space-4); padding-bottom: var(--space-2)">
+<p style="margin: 0; font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary); font-weight: 600; text-transform: none">B — Alternative, pending the API: the 503 names what failed</p>
+<div data-slot="alert" style="display: flex; align-items: center; gap: var(--space-3); min-height: 44px; padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4); border-radius: var(--radius-md); border: 1px solid var(--feedback-warning-border); background: var(--feedback-warning-tint); color: var(--feedback-warning-tint-text)">
+<span style="display: inline-flex; color: var(--feedback-warning-icon)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="warning" size="md"></x-import></span>
+<div style="margin: 0; flex-grow: 1; font-size: var(--type-body-md-size); line-height: 1.45"><h2 style="margin: 0 0 var(--space-1); font-size: var(--type-heading-md-size); font-weight: 600">The API is not ready: MinIO can't be reached</h2>
+<p style="margin: 0 0 var(--space-1)">Halal certificates and documents can't be opened, so certificate reviews should wait.</p>
+<p style="margin: 0 0 var(--space-2)"><strong style="font-weight: 600">What to do:</strong> Call the platform on-call engineer and give them the time of the last check, 28 Sep 2026, 9:14:05 am EDT. Keep this page open; it checks again every 30 seconds.</p>
+<div style="display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" href="tel:[ON-CALL PHONE]" accessibility-label="Call [ON-CALL NAME] · [ON-CALL PHONE], platform on-call engineer">Call [ON-CALL NAME] · [ON-CALL PHONE]</x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="md" href="https://github.com/shaiknoorullah/hg-mono/issues/66">Open the platform runbook</x-import>
+<span style="font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary)">Proposed component: OnCallContact. Name and phone: the owner names the platform on-call person before launch. Runbook: the link recorded in <a href="https://github.com/shaiknoorullah/hg-mono/issues/66">issue 66</a>.</span>
+</div>
+<p role="status" class="hg-sr">MinIO not ready, 9:14:05 am</p>
+<span style="font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary)">Announced once, on change only: “MinIO not ready, 9:14:05 am”</span></div>
+<span style="font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary)">Proposed component: Banner (shadcn Alert + design system Icon/Button)</span>
+
+</div>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" padding="16px">
+<div style="display: flex; align-items: center; gap: var(--space-6)">
+<div style="display: flex; flex-direction: column; gap: 6px; flex-grow: 1">
+<div style="display: flex; align-items: center; gap: var(--space-3)">
+<h2 style="margin: 0; font-size: var(--type-heading-md-size); font-weight: 600">Readiness check</h2>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="warning" size="md" icon="warning">Not ready</x-import>
+</div>
+<p style="margin: 0; font-size: var(--type-body-md-size); line-height: 1.5; color: var(--text-secondary)">The server answered 503 and named what failed.</p>
+<p style="margin: 0; font-size: var(--type-body-md-size); line-height: 1.5; color: var(--text-secondary)">The replica that answered is taken out of rotation until it's ready again. If every replica reports this, the API stops taking requests and this page will show that the API didn't answer.</p>
+<p style="margin: 0; font-size: var(--type-body-md-size); line-height: 1.5; color: var(--text-secondary)">API version <span style="font-family: var(--font-mono); color: var(--text-primary)">0.18.3</span> · running since 27 Sep 2026, 10:10 pm (the liveness check still answers)</p>
+
+</div>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" icon-start="refresh">Check again</x-import>
+</div>
+</x-import>
+</div>
+<div style="position: relative"><div class="resize-handle" role="separator" tabindex="0" aria-orientation="vertical" aria-controls="status-pane" aria-label="Resize status pane" aria-valuenow="45" aria-valuemin="30" aria-valuemax="70" aria-valuetext="Status pane 45% of the width" style="left: -10px"><span class="resize-grip" aria-hidden="true"><span></span><span></span></span></div></div>
+<div style="min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: var(--space-4); padding-bottom: var(--space-2)">
+<span style="font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary)">Needs API: documented 503 body for getReadiness (per-dependency ready + detail)</span>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.DataTable" id="deps-table-alt" caption="What the API needs to work" density="compact" rows="{{rowsB}}" columns="{{cols}}" get-row-id="{{depId}}" row-label="{{depLabel}}" status="ready" ></x-import>
+<span style="font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary)">Proposed component: SplitPane (shadcn Resizable). Status on the left, what the API depends on on the right; each pane scrolls on its own and the page stays still. Resize handle: shadcn ResizableHandle withHandle, a focusable separator (Left and Right arrow keys resize, Home and End jump to the limits), 44 px hit area centred on the edge, grip in the middle, standard two-layer focus ring.</span>
+</div>
+</div>
+</div>
+</main>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const DS = window.HalalGoesDesignSystem_d11a47 || {};
+    const h = window.React.createElement;
+    const muted = function (t) { return h('span', { style: { color: 'var(--text-secondary)' } }, t); };
+    const fullDate = function (iso) { var d = new Date(iso); if (isNaN(d.getTime())) return iso; return iso.length > 10 ? d.toLocaleString('en-CA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/Toronto', timeZoneName: 'short' }) : d.toLocaleDateString('en-CA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }); };
+    const at = function (iso, label) { return h('time', { dateTime: iso, title: fullDate(iso) }, label); };
+    const tag = function (t) { return h('span', { style: { fontSize: 'var(--type-mono-sm-size)', lineHeight: 1.4, fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' } }, t); };
+    let v = {};
+
+    const DEPS = {
+      postgres: ['Postgres', 'Database. The only source of truth.'],
+      redis: ['Redis', 'Cache, live updates, sign-in limits and staff sessions'],
+      minio: ['MinIO', 'Private storage for documents, certificates and images'],
+      stripe: ['Stripe', 'Payments, refunds and payouts']
+    };
+    const depRows = function (states, details) {
+      return ['postgres', 'redis', 'minio', 'stripe'].map(function (k) { return { id: k, name: DEPS[k][0], role: DEPS[k][1], state: states[k] || 'ready', detail: (details || {})[k] || null }; });
+    };
+    const allUnknown = { postgres: 'unknown', redis: 'unknown', minio: 'unknown', stripe: 'unknown' };
+    const allStale = { postgres: 'stale', redis: 'stale', minio: 'stale', stripe: 'stale' };
+    const depCols = [
+      { key: 'name', label: 'Dependency', render: function (r) { return h('span', { style: { fontWeight: 600 } }, r.name); } },
+      { key: 'role', label: 'What it does' },
+      { key: 'state', label: 'Status', render: function (r) {
+        if (r.state === 'down') return h(DS.Badge, { variant: 'warning', size: 'md', icon: 'warning' }, 'Not ready');
+        if (r.state === 'unknown') return h(DS.Badge, { variant: 'neutral', size: 'md', icon: 'info' }, 'Not reported');
+        if (r.state === 'stale') return h(DS.Badge, { variant: 'neutral', size: 'md', icon: 'clock' }, 'Ready at last check');
+        return h(DS.Badge, { variant: 'outline', size: 'md', icon: 'check' }, 'Ready');
+      } },
+      { key: 'detail', label: 'Message from the server', render: function (r) { return r.detail || muted('None'); } }
+    ];
+    const depId = function (r) { return r.id; };
+    const depLabel = function (r) { return r.name; };
+    const actualRows = [
+      { id: 'a1', name: 'postgres', addr: '10.0.4.12:5432', ok: true },
+      { id: 'a2', name: 'redis', addr: '10.0.4.21:6379', ok: true },
+      { id: 'a3', name: 'minio', addr: '10.0.4.30:9000', ok: true },
+      { id: 'a4', name: 'stripe', addr: 'api.stripe.com:443 (54.187.174.169)', ok: true }
+    ];
+    const actualCols = [
+      { key: 'name', label: 'Dependency', mono: true },
+      { key: 'addr', label: 'Resolved address', mono: true },
+      { key: 'ok', label: 'Connected', render: function (r) { return r.ok ? h(DS.Badge, { variant: 'outline', size: 'md', icon: 'check' }, 'Connected') : h(DS.Badge, { variant: 'warning', size: 'md', icon: 'warning' }, 'Not connected'); } }
+    ];
+    const st = Object.assign({}, allUnknown); const dt = {};
+    st['minio'] = 'down'; dt['minio'] = 'Document storage is unreachable.';
+    v = { rows: depRows(allUnknown), rowsB: depRows(st, dt), cols: depCols, depId: depId, depLabel: depLabel };
+    return Object.assign({ yes: true, no: false, nothing: null, noop: function () {} }, v);
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Restaurant profile changes</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:var(--surface-base);color:var(--text-primary);font-family:var(--font-ui)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+textarea.hg-ta{box-sizing:border-box;width:100%;min-height:96px;padding:10px 12px;border:1px solid var(--border-interactive);border-radius:8px;background:var(--surface-raised);color:var(--text-primary);font:inherit;font-size:15px;line-height:1.5;resize:vertical}
+textarea.hg-ta:focus{outline:none;border:var(--focus-field-border-width) solid var(--focus-ring)}
+textarea.hg-ta[aria-invalid="true"]{border:var(--focus-field-border-width) solid var(--color-danger-500)}
+.skip{position:absolute;left:-10000px;top:8px;z-index:900;padding:12px 16px;background:var(--surface-raised);color:var(--text-primary);border-radius:8px;font-weight:600}
+.skip:focus{left:80px;outline:none;box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+.napi{display:inline-flex;align-self:flex-start;padding:2px 8px;border-radius:4px;background:var(--surface-sunken);border:1px solid var(--border-strong);font-size:12px;font-weight:600;line-height:1.4}
+.prop{display:inline-flex;align-self:flex-start;padding:2px 8px;border-radius:4px;background:var(--color-info-50);color:var(--color-info-700);font-size:12px;font-weight:600;line-height:1.4}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; display: grid; grid-template-columns: 64px minmax(0, 1fr); background: var(--surface-base); position: relative; overflow: hidden; font-family: var(--font-ui); color: var(--text-primary)">
+  <dc-import name="SideNav" active="changes" role="ADMIN" collapsed="{{yes}}" h="900" hint-size="64px,900px"></dc-import>
+  <div style="display: flex; flex-direction: column; min-width: 0; min-height: 0; position: relative">
+    <a class="skip" href="#main">Skip to main content</a>
+    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="raised" title="Profile changes" subtitle="Changes restaurants asked for that HalalGoes reviews before customers see them"></x-import>
+    <main id="main" data-density="compact" style="flex: 1 1 auto; min-height: 0; display: flex; gap: 12px; padding: 12px; overflow: hidden">
+      <section aria-labelledby="pc-list-h" style="flex: 0 0 380px; min-height: 0; display: flex; flex-direction: column; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: 12px; overflow: hidden">
+        <div style="display: flex; flex-direction: column; gap: 4px; padding: 12px 16px; border-bottom: 1px solid var(--border-decorative)">
+          <h2 id="pc-list-h" style="margin: 0; font-size: 16px; font-weight: 600">Requested changes, oldest first</h2>
+          <span style="font-size: 13px; color: var(--text-secondary)">Showing {{count}}</span>
+        </div>
+        <ul role="listbox" aria-labelledby="pc-list-h" style="flex: 1 1 auto; min-height: 0; overflow: auto; margin: 0; padding: 6px; list-style: none; display: flex; flex-direction: column; gap: 4px">
+          <sc-for list="{{rows}}" as="r" hint-placeholder-count="4">
+            <li role="option" aria-selected="{{r.sel}}" tabindex="{{r.tab}}" class="hg-focus" style="display: flex; flex-direction: column; gap: 2px; min-height: 44px; padding: 8px 12px; border-radius: 8px; background: {{r.bg}}; cursor: pointer">
+              <span style="display: flex; justify-content: space-between; gap: 8px; font-size: 15px; font-weight: {{r.fw}}"><span>{{r.restaurant}}</span><span style="font-size: 13px; font-weight: 500; color: var(--text-secondary); white-space: nowrap">{{r.asked}}</span></span>
+              <span style="font-size: 13px; color: var(--text-secondary)">{{r.field}}</span>
+            </li>
+          </sc-for>
+        </ul>
+        <div style="display: flex; flex-direction: column; gap: 6px; padding: 8px 12px; border-top: 1px solid var(--border-decorative)">
+          <span class="napi">Needs API: a reviewed change request on the restaurant profile, and this queue</span>
+          <span class="prop">Proposed component: LyteNyte grid (the selected row is a filled tile, never a side bar)</span>
+        </div>
+      </section>
+      <div role="separator" aria-orientation="vertical" aria-label="Resize the list" tabindex="0" class="hg-focus" style="flex: 0 0 12px; cursor: col-resize; align-self: stretch; display: flex; align-items: center; justify-content: center; border-radius: 4px"><span aria-hidden="true" style="display: block; width: 4px; height: 40px; border-radius: 2px; background: var(--border-interactive)"></span></div>
+      <section aria-labelledby="pc-h" style="flex: 1 1 auto; min-width: 0; min-height: 0; display: flex; flex-direction: column; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: 12px; overflow: hidden">
+        <div style="flex: 1 1 auto; min-height: 0; overflow: auto; padding: 16px 20px; display: flex; flex-direction: column; gap: 14px">
+          <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 16px">
+            <div style="display: flex; flex-direction: column; gap: 4px">
+              <h2 id="pc-h" tabindex="-1" style="margin: 0; font-size: 20px; font-weight: 700">{{c.restaurant}}: {{c.fieldLower}}</h2>
+              <span style="font-size: 13px; color: var(--text-secondary)">Asked by the owner {{c.askedFull}}. Nothing changes for customers until you approve.</span>
+            </div>
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="info" size="md" icon="clock">Waiting for review</x-import>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px">
+            <section aria-labelledby="pc-now" style="display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--border-decorative)">
+              <h3 id="pc-now" style="margin: 0; font-size: 13px; font-weight: 600; color: var(--text-secondary)">Now</h3>
+              <p style="margin: 0; font-size: 15px; line-height: 1.5">{{c.before}}</p>
+            </section>
+            <section aria-labelledby="pc-new" style="display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border-radius: 12px; background: var(--surface-sunken)">
+              <h3 id="pc-new" style="margin: 0; font-size: 13px; font-weight: 600; color: var(--text-secondary)">Asked for</h3>
+              <p style="margin: 0; font-size: 15px; line-height: 1.5">{{c.after}}</p>
+            </section>
+          </div>
+          <dc-import name="InlineAlert" tone="info" heading="{{c.watchTitle}}" body="{{c.watch}}" w="900" hint-size="900px,96px"></dc-import>
+          <dl style="margin: 0; display: grid; grid-template-columns: 160px minmax(0, 1fr); gap: 8px 16px; font-size: 15px; line-height: 1.5">
+            <dt style="color: var(--text-secondary)">Reviewed at</dt><dd style="margin: 0">Display name, description, legal name, address and GST/HST number (owner decision, round 2)</dd>
+            <dt style="color: var(--text-secondary)">Saved at once</dt><dd style="margin: 0">Phone numbers, hours, kitchen preparation time</dd>
+          </dl>
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <span class="napi">Needs API: the requested change with its before and after, who asked and when; approve and decline with a note</span>
+            <span class="napi">Needs API: today submitRestaurantProfile applies every profile change at once and replaces the whole profile</span>
+          </div>
+        </div>
+        <div role="region" aria-label="Decide" style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 10px 16px; border-top: 1px solid var(--border-strong)">
+          <span style="font-size: 13px; line-height: 1.45; color: var(--text-secondary); max-width: 560px">Approving applies the change at once. Declining keeps things as they are and sends the owner your note word for word.</span>
+          <div style="display: flex; gap: 24px">
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" href="ProfileChanges-States.dc.html">Decline…</x-import>
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md">Approve change</x-import>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+
+    const changes = [
+      { id: 'c1', restaurant: 'Zaytoun Grill', field: 'Description', asked: '27 Sep', askedFull: 'on Sunday 27 September 2026 at 4:20 pm EDT',
+        before: 'Charcoal grills, shawarma and mezze from a family kitchen in Scarborough.',
+        after: 'Charcoal grills, shawarma and mezze from a family kitchen in Scarborough. Every dish 100% zabiha, hand-slaughtered.',
+        watchTitle: 'Check it against the certificate', watch: 'A description customers read can carry a halal claim. Approve only what Zaytoun Grill’s approved certificate backs up; “every dish 100% zabiha, hand-slaughtered” is a claim about slaughter method that its kitchen-scope certificate doesn’t cover.' },
+      { id: 'c2', restaurant: 'Karahi House', field: 'Display name', asked: '28 Sep', askedFull: 'on Monday 28 September 2026 at 9:05 am EDT',
+        before: 'Karahi House', after: 'Karahi House Halal Kitchen', watchTitle: 'Names can make claims too', watch: 'A name that adds “Halal” makes a claim on every card customers see. It must match a restaurant with an approved certificate.' },
+      { id: 'c3', restaurant: 'Noor Grill', field: 'GST/HST number', asked: '28 Sep', askedFull: 'on Monday 28 September 2026 at 10:40 am EDT',
+        before: '81234 5678 RT0001', after: '81234 5678 RT0002', watchTitle: 'It prints on every receipt', watch: 'Check the number against the restaurant’s registration before approving. A wrong number would print on customer receipts.' },
+      { id: 'c4', restaurant: 'Medina Bakery', field: 'Address', asked: '28 Sep', askedFull: 'on Monday 28 September 2026 at 11:15 am EDT',
+        before: '220 Dundas St W, Mississauga, Ontario', after: '245 Dundas St W, Mississauga, Ontario', watchTitle: 'The certificate names an address', watch: 'A new address must match the certified address, or the restaurant needs a new certificate first.' },
+    ];
+    const sel = this.props.sel ?? 'c1';
+    const rows = changes.map((r) => Object.assign({}, r, { sel: r.id === sel ? 'true' : 'false', tab: r.id === sel ? '0' : '-1', bg: r.id === sel ? 'var(--surface-sunken)' : 'transparent', fw: r.id === sel ? '700' : '500' }));
+    const cur = changes.find((r) => r.id === sel) || changes[0];
+    const c = Object.assign({}, cur, { fieldLower: cur.field.charAt(0) === 'G' ? cur.field : cur.field.toLowerCase() });
+    return { yes: true, no: false, noop: () => {}, rows, count: rows.length, c };
+  }
+}
+</script>
+</body>
+</html>

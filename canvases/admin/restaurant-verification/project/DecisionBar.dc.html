@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Step 3, decide</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div role="region" aria-labelledby="dec-step" style="width: {{wcss}}; box-sizing: border-box; display: flex; flex-direction: column; gap: 6px; padding: 8px 12px 12px; background: var(--surface-raised); border-top: 1px solid var(--border-strong); font-family: var(--font-ui); color: var(--text-primary)">
+  <div style="display: flex; align-items: flex-start; gap: 8px">
+    <span aria-hidden="true" style="flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 9999px; background: var(--surface-chrome); color: var(--text-on-accent); font-size: 13px; font-weight: 700">3</span>
+    <p id="why" style="margin: 0; font-size: 13px; line-height: 1.45"><strong id="dec-step" style="font-size: 15px"><span class="hg-sr">Step 3: </span>Decide.</strong> {{reason}}<sc-if value="{{hasList}}" hint-placeholder-val="{{false}}"> Still open: <sc-for list="{{items}}" as="i" hint-placeholder-count="2"><a href="{{i.href}}" style="font-weight: 600"><span style="font-family: var(--font-mono)">{{i.key}}</span> {{i.name}}</a> ({{i.state}}){{i.sep}}</sc-for>.</sc-if> <sc-if value="{{hasStep1}}" hint-placeholder-val="{{false}}"><a href="#tr-h" style="font-weight: 600">Go to step 1</a></sc-if><sc-if value="{{hasConfirmLink}}" hint-placeholder-val="{{false}}"><a href="#issuer-confirm" style="font-weight: 600">Go to the issuer confirmation</a></sc-if></p>
+  </div>
+  <sc-if value="{{hasRejLine}}" hint-placeholder-val="{{true}}">
+    <p id="why-rej" style="margin: 0 0 0 32px; font-size: 13px; line-height: 1.45; color: var(--text-secondary)">{{rejectWhy}}</p>
+  </sc-if>
+  <sc-if value="{{showTag}}" hint-placeholder-val="{{false}}"><span style="display: inline-flex; align-self: flex-start; padding: 2px 8px; border-radius: 4px; background: var(--color-info-50); color: var(--color-info-700); font-size: 12px; font-weight: 600">Proposed component: DecisionBar (DS Button ×3 and DS type styles)</span></sc-if>
+  <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px">
+    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="{{askVariant}}" size="md" href="{{askHref}}" disabled="{{askOff}}" accessibility-label="{{askLabel}}">Ask for a new certificate…</x-import>
+    <sc-if value="{{hasRelease}}" hint-placeholder-val="{{false}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md" href="Verify-WaitingOnBody.dc.html">Release and wait for the body</x-import></sc-if>
+    <sc-if value="{{approveLeads}}" hint-placeholder-val="{{true}}"><div style="display: flex; gap: 24px">
+      <sc-if value="{{showReject}}" hint-placeholder-val="{{true}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" disabled="{{rejectOff}}" href="{{rejectHref}}" accessibility-label="{{rejectLabel}}">Reject…</x-import></sc-if>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md" disabled="{{approveOff}}" href="{{approveHref}}" accessibility-label="{{approveLabel}}">Approve…</x-import>
+    </div></sc-if>
+    <sc-if value="{{rejectLeads}}" hint-placeholder-val="{{false}}"><div style="display: flex; gap: 24px">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" disabled="{{approveOff}}" href="{{approveHref}}" accessibility-label="{{approveLabel}}">Approve…</x-import>
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md" disabled="{{rejectOff}}" href="{{rejectHref}}" accessibility-label="{{rejectLabel}}">Reject…</x-import>
+    </div></sc-if>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"variant":{"editor":"enum","options":["untranscribed","renewal","panel","progress","warn","saving","savefail","allpass","onefail","loading","locklost","errors","blocked","proposed","waitingbody","h5fail","h7fail","h2fail","other","unclaimed","inspect","override","confirm","confirmed"],"default":"progress"},"w":{"editor":null,"default":516},"tag":{"editor":"boolean","default":true},"$preview":{"width":516,"height":178}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const v = this.props.variant ?? 'progress';
+    // One vocabulary everywhere (header roll-up, Checks alert, this bar): recorded, pass, fail, not assessed.
+    // Reject… is on only when you hold the claim and at least one check is recorded as Fail
+    // (A-15: rejection needs at least one FAIL and a reason code). The Fail preselects its reason.
+    // With no document there is no Reject at all: the only action is Ask for a new certificate.
+    const it = (key, name, state) => ({ key, name, state, href: '#checks' });
+    const H4n = it('H4', 'Address match', 'not recorded');
+    const H4c = it('H4', 'Address match', 'chosen, not recorded');
+    const H4o = it('H4', 'Address match', 'chosen, needs a note');
+    const H6n = it('H6', 'Scope sufficient', 'not recorded');
+    const H7a = it('H7', 'Unique, not reused', 'not assessed');
+    const noFail = 'Reject opens once a check is recorded as Fail.';
+    const noFailName = 'record the check that fails first';
+    const r5 = '5 of 7 recorded · 5 pass · 0 fail';
+    const d = {
+      untranscribed: { rollup: '0 of 7 recorded', items: [], reason: 'Start with step 1: save the transcription. Approve needs all seven as Pass.', step1: true, approveOff: true, rejectOff: true, rejectWhy: noFail },
+      // A renewal for a live restaurant has no application: Ask opens the renewal-only panel (no document checklist, no claim).
+      renewal: { rollup: '0 of 7 recorded', items: [], reason: 'Start with step 1: save the transcription. Approve needs all seven as Pass. The current certificate stays in place until you decide.', step1: true, approveOff: true, rejectOff: true, rejectWhy: noFail, askTo: 'Verify-RenewalAsk.dc.html' },
+      // A decision panel is open beside the checks: its own button is the page's only primary, so every action here is off.
+      panel: { rollup: '', items: [], reason: 'Finish or cancel the panel on the left.', approveOff: true, approveWhy: 'finish or cancel the panel on the left', rejectOff: true, rejectName: 'finish or cancel the panel on the left', askOff: true, askName: 'finish or cancel the panel on the left' },
+      // Owner decision (round 2): while a super admin decides on a proposed body, the reviewer releases the
+      // claim and the application waits on the certifying body, then returns at the top of the queue.
+      proposed: { rollup: '2 of 7 recorded · 2 pass · 0 fail', items: [], reason: 'Issuer accepted (H2) can’t pass: HCCO is only proposed. Release your claim: the application waits on the certifying body and comes back to the top of the queue when a super admin decides on HCCO.', approveOff: true, approveWhy: 'Issuer accepted can’t pass while HCCO is only proposed', rejectOff: true, rejectWhy: 'Rejecting the restaurant for a body HalalGoes hasn’t reviewed yet isn’t offered.', rejectName: 'HCCO is still being reviewed by a super admin', release: true },
+      waitingbody: { rollup: '2 of 7 recorded · 2 pass · 0 fail', items: [], reason: 'Waiting on the certifying body. Nothing can be decided until a super admin accepts or rejects HCCO; the application then comes back to the top of the queue.', approveOff: true, approveWhy: 'the application is waiting on the certifying body', rejectOff: true, rejectWhy: 'Reject is off for the same reason.', rejectName: 'the application is waiting on the certifying body', askOff: true, askName: 'the application is waiting on the certifying body' },
+      progress: { rollup: r5, items: [H4n, H6n], reason: 'Approve needs all seven as Pass. 2 checks still needed.', approveOff: true, rejectOff: true, rejectWhy: noFail },
+      override: { rollup: r5, items: [H4o, H6n], reason: 'Approve needs all seven as Pass. 2 checks still needed.', approveOff: true, rejectOff: true, rejectWhy: noFail },
+      warn: { rollup: r5, items: [H4c, H6n], reason: 'Approve needs all seven as Pass. 2 checks still needed.', approveOff: true, rejectOff: true, rejectWhy: noFail },
+      saving: { rollup: r5, items: [it('H4', 'Address match', 'recording now'), H6n], reason: 'Approve needs all seven as Pass.', approveOff: true, rejectOff: true, rejectWhy: noFail },
+      savefail: { rollup: r5, items: [H4c, H6n], reason: 'Address match wasn’t recorded. Record it again from the checks.', approveOff: true, rejectOff: true, rejectWhy: noFail },
+      allpass: { rollup: '7 of 7 recorded · 7 pass · 0 fail', items: [], reason: 'All seven checks pass. You can approve the certificate.', approveOff: false, rejectOff: true, rejectWhy: noFail },
+      // The outstanding confirmation is listed like a check and links to the block in step 1 (#issuer-confirm).
+      confirm: { rollup: '7 of 7 recorded · 7 pass · 0 fail', items: [{ key: '', name: 'Issuer confirmation', state: 'not recorded', href: '#issuer-confirm' }], reason: 'All seven pass, but HABC needs the issuer’s confirmation recorded before approval.', approveOff: true, approveWhy: 'the issuer’s confirmation isn’t recorded', rejectOff: true, rejectWhy: noFail, confirmLink: true },
+      confirmed: { rollup: '7 of 7 recorded · 7 pass · 0 fail', items: [], reason: 'All seven pass and the issuer’s confirmation is recorded. You can approve the certificate.', approveOff: false, rejectOff: true, rejectWhy: noFail },
+      onefail: { rejectPrimary: true, rollup: '7 of 7 recorded · 6 pass · 1 fail', items: [it('H6', 'Scope sufficient', 'recorded as Fail')], failName: 'H6 Scope sufficient is recorded as Fail', reason: 'Approve is unavailable because a check failed.', approveOff: true, rejectOff: false, rejectWhy: 'Reject… opens with the reason Scope doesn’t cover this restaurant already chosen.' },
+      h5fail: { rejectPrimary: true, rollup: '7 of 7 recorded · 6 pass · 1 fail', items: [it('H5', 'Dates valid', 'computed as Fail')], failName: 'H5 Dates valid is computed as Fail', reason: 'Approve is unavailable: Dates valid (H5) failed; the certificate expires in 16 days.', approveOff: true, rejectOff: false, rejectWhy: 'Reject… opens with the reason Expired or expiring already chosen.', rejectTo: 'Verify-RejectH5.dc.html' },
+      h7fail: { rejectPrimary: true, rollup: '7 of 7 recorded · 6 pass · 1 fail', items: [it('H7', 'Unique, not reused', 'computed as Fail')], failName: 'H7 Unique, not reused is computed as Fail', reason: 'Approve is unavailable: the server computed Unique, not reused (H7) as Fail.', approveOff: true, rejectOff: false, rejectWhy: 'Reject… opens with the reason Already used by another restaurant already chosen.', rejectTo: 'Verify-RejectH7.dc.html' },
+      h2fail: { rejectPrimary: true, rollup: '7 of 7 recorded · 6 pass · 1 fail', items: [it('H2', 'Issuer accepted', 'recorded as Fail')], failName: 'H2 Issuer accepted is recorded as Fail', reason: 'Approve is unavailable: Issuer accepted (H2) is recorded as Fail. It can’t pass: HFSAA is Suspended in the registry.', approveOff: true, rejectOff: false, rejectWhy: 'Reject… opens with the reason Issuer not accepted already chosen.', rejectTo: 'Verify-RejectH2.dc.html' },
+      loading: { rollup: 'Loading results', items: [], reason: 'Deciding is unavailable while the checks load.', approveOff: true, rejectOff: true, rejectWhy: 'Reject is unavailable while the checks load.', askOff: true },
+      locklost: { rollup: r5, items: [H4c, H6n], reason: 'Your claim ended at 2:48 pm. Saving and deciding are off on this page.', approveOff: true, approveWhy: 'your claim ended at 2:48 pm', rejectOff: true, rejectWhy: 'Reject is off because your claim ended.', rejectName: 'your claim ended at 2:48 pm', askOff: true },
+      other: { rollup: '3 of 7 recorded · 3 pass · 0 fail', items: [], reason: 'Deciding is off while another reviewer holds this application.', approveOff: true, approveWhy: 'another reviewer holds this application', rejectOff: true, rejectWhy: 'Reject is off for the same reason.', rejectName: 'another reviewer holds this application', askOff: true },
+      unclaimed: { rollup: '3 of 7 recorded · 3 pass · 0 fail', items: [], reason: 'Deciding needs the claim on this application. Only Take next claims, oldest first.', approveOff: true, approveWhy: 'nobody has claimed this application', rejectOff: true, rejectWhy: 'Reject is off for the same reason.', rejectName: 'nobody has claimed this application', askOff: true },
+      inspect: { rollup: r5, items: [], reason: 'Deciding needs the claim on this application. Only Take next claims, oldest first.', approveOff: true, approveWhy: 'nobody has claimed this application', rejectOff: true, rejectWhy: 'Reject is off for the same reason.', rejectName: 'nobody has claimed this application', askOff: true },
+      errors: { rollup: '5 of 7 recorded · 4 pass · 0 fail · 1 not assessed', items: [H4n, H6n, H7a], needed: 2, notPass: 1, reason: 'Approve is unavailable until all seven are Pass.', approveOff: true, rejectOff: true, rejectWhy: noFail },
+      blocked: { rollup: '0 of 7 recorded', items: [], reason: 'There is no certificate document, so nothing can be checked, approved or rejected. Ask the restaurant for a new certificate.', approveOff: true, approveWhy: 'there is no certificate document', rejectOff: true, noReject: true, askPrimary: true },
+    }[v];
+    const w = this.props.w ?? 516;
+    const offWhy = d.reason.replace(/\.$/, '');
+    // One vocabulary: recorded, pass, fail, not assessed. Pluralise; a Fail is named, never "needed".
+    const plural = (n, one, many) => n + ' ' + (n === 1 ? one : many);
+    const stillNeeded = d.needed != null ? d.needed : d.items.filter((i) => /not recorded|needs a note|recording now/.test(i.state)).length;
+    let approveWhy;
+    if (d.approveWhy) approveWhy = d.approveWhy;
+    else if (d.failName) approveWhy = d.failName;
+    else if (d.notPass) approveWhy = plural(stillNeeded, 'check', 'checks') + ' still needed, ' + plural(d.notPass, 'check', 'checks') + ' not assessed';
+    else if (stillNeeded) approveWhy = plural(stillNeeded, 'check still needed', 'checks still needed');
+    else approveWhy = offWhy.charAt(0).toLowerCase() + offWhy.slice(1);
+    return {
+      wcss: /^\d+$/.test(String(w)) ? w + 'px' : String(w),
+      rollup: d.rollup, items: d.items.map((it, i) => Object.assign({}, it, { sep: i < d.items.length - 1 ? ', ' : '' })), hasList: d.items.length > 0, reason: d.reason,
+      hasStep1: !!d.step1, hasConfirmLink: !!d.confirmLink,
+      approveOff: d.approveOff, rejectOff: d.rejectOff, rejectWhy: d.rejectWhy || '', hasRejLine: !!d.rejectWhy,
+      approveHref: d.approveOff ? undefined : 'Verify-Approve.dc.html',
+      rejectHref: d.rejectOff ? undefined : (d.rejectTo || 'Verify-Reject.dc.html'),
+      // Until the DS Button forwards aria-describedby, the visible reason is part of the accessible name.
+      approveLabel: d.approveOff ? 'Approve…, unavailable: ' + approveWhy : 'Approve…',
+      // rejectName is a reason that stands alone in the accessible name; the visible line may
+      // lean on the text above it ("for the same reason"), the name can't.
+      rejectLabel: d.rejectOff ? 'Reject…, unavailable: ' + (d.rejectName || (d.rejectWhy === noFail ? noFailName : (d.rejectWhy || 'there is no certificate document').replace(/\.$/, ''))) : 'Reject…',
+      showReject: !d.noReject,
+      hasRelease: !!d.release,
+      // Once a check fails, Reject… is the only decision left: it becomes the bar's primary (the orange
+      // primary, never a danger style) and Approve… drops to tertiary, still unavailable with its reason.
+      // Same pattern as the blocked variant, where Ask is promoted.
+      // While a proposed body is under review, Release is the only action; Approve… and Reject… step aside
+      // (their reasons stay in the bar's text above).
+      rejectLeads: !!d.rejectPrimary && !d.release, approveLeads: !d.rejectPrimary && !d.release,
+      askVariant: d.askPrimary ? 'primary' : 'ghost',
+      askOff: !!d.askOff,
+      askHref: d.askOff ? undefined : (d.askTo || 'Verify-RequestChanges.dc.html'),
+      askLabel: d.askOff ? 'Ask for a new certificate…, unavailable: ' + (d.askName || offWhy.charAt(0).toLowerCase() + offWhy.slice(1)) : 'Ask for a new certificate…',
+      showTag: !!this.props.tag,
+    };
+  }
+}
+</script>
+</body>
+</html>

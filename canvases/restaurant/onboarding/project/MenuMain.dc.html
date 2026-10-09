@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>First menu step</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="width: {{w}}; height: {{h}}; box-sizing: border-box; display: flex; flex-direction: column; gap: 24px; font-family: var(--font-ui); color: var(--text-primary)">
+<sc-if value="{{showBanner}}" hint-placeholder-val="{{true}}"><div style="display: flex; flex-direction: column; gap: 8px">
+<div role="status" style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 4px; margin-top: 32px; display: flex; gap: 12px; align-items: flex-start; padding: 12px 16px; background: {{bBg}}; color: {{bFg}}; border: 1px solid {{bBd}}; border-radius: 12px">
+<span aria-hidden="true" style="position: absolute; top: -32px; left: -4px; font: 500 12px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 4px 8px; border-radius: 4px; white-space: nowrap; z-index: 1">Proposed component: Banner</span><span style="display: inline-flex; color: {{bIc}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="{{bIcon}}" size="md" hint-size="20px,20px"></x-import></span>
+<div class="type-body-md" style="display: flex; flex-direction: column; gap: 4px; line-height: 1.5"><strong class="type-label-lg">{{bTitle}}</strong><span>{{bText}}</span></div>
+</div>
+<span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">Copy mapped from blocking_reason code: {{bCode}}</span>
+</div></sc-if>
+<div style="display: flex; align-items: flex-end; gap: 16px">
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: 8px">
+<h1 class="type-heading-xl" style="margin: 0">Your first menu and opening hours</h1>
+<p class="type-body-md" style="margin: 0; line-height: 1.5; color: var(--text-secondary); max-width: 680px">{{intro}}</p>
+</div>
+<sc-if value="{{showHeadAdd}}" hint-placeholder-val="{{false}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" icon-start="plus" hint-size="150px,44px">Add category</x-import></sc-if>
+</div>
+
+<section aria-label="What's left" style="display: flex; flex-direction: column; border: 1px solid var(--border-decorative); border-radius: 16px; background: var(--surface-raised)">
+<sc-for list="{{tasks}}" as="t" hint-placeholder-count="3">
+<div style="display: flex; gap: 16px; align-items: center; min-height: 56px; box-sizing: border-box; padding: 8px 20px; border-top: {{t.rule}}">
+<sc-if value="{{t.done}}" hint-placeholder-val="{{false}}"><span style="width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="check" weight="bold" size="lg" hint-size="24px,24px"></x-import></span></sc-if>
+<sc-if value="{{t.todo}}" hint-placeholder-val="{{true}}"><span aria-hidden="true" style="width: 20px; height: 20px; margin: 2px; box-sizing: border-box; border-radius: 9999px; border: 2px solid var(--border-interactive)"></span></sc-if>
+<span class="type-label-lg" style="width: 240px">{{t.label}}</span>
+<span class="type-body-md" style="flex-grow: 1; color: var(--text-secondary)">{{t.status}}</span>
+<sc-if value="{{t.hasLink}}" hint-placeholder-val="{{false}}"><a href="#hours" class="type-body-md" style="font-weight: 500; min-height: 44px; display: inline-flex; align-items: center">{{t.link}}</a></sc-if>
+</div>
+</sc-for>
+</section>
+<div style="display: flex; gap: 8px; flex-wrap: wrap">
+<sc-if value="{{v1}}" hint-placeholder-val="{{true}}"><span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">Self-serve menu in launch (owner decision): createMenuCategory, createMenuItem and updateMenuItem moved into launch with the menu review queue; the contract still marks them a later version. getOwnMenu and setRestaurantHours are already in launch.</span></sc-if>
+<span style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; border: 1.5px dashed var(--color-info-600); background: var(--color-info-50); color: var(--color-info-700); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">Needs API: menu item review event (menu_item.review_decided is only in the spec); until then this page refetches getOwnMenu on focus and every 60 s</span>
+</div>
+
+<sc-if value="{{hoursFirst}}" hint-placeholder-val="{{false}}"><dc-import name="HoursBlock" mode="{{hoursMode}}" primary="{{hoursFirst}}" w="{{w}}" hint-size="832px,860px"></dc-import></sc-if>
+
+<sc-if value="{{m.loading}}" hint-placeholder-val="{{false}}">
+<p role="status" class="type-body-md" style="margin: 0; line-height: 1.5; color: var(--text-secondary)">Loading your menu…</p>
+<div aria-busy="true" style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 4px; margin-top: 32px; display: flex; flex-direction: column; gap: 12px">
+<span aria-hidden="true" style="position: absolute; top: -32px; left: -4px; font: 500 12px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 4px 8px; border-radius: 4px; white-space: nowrap; z-index: 1">Proposed component: Skeleton</span>
+<div style="height: 56px; border-radius: 12px; background: var(--skeleton-base)"></div>
+<div style="height: 64px; border-radius: 12px; background: var(--skeleton-base)"></div>
+<div style="height: 64px; border-radius: 12px; background: var(--skeleton-base)"></div>
+</div>
+</sc-if>
+
+<sc-if value="{{m.loaderror}}" hint-placeholder-val="{{false}}">
+<div role="alert" style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 4px; margin-top: 32px; display: flex; gap: 12px; align-items: flex-start; padding: 12px 16px; background: var(--feedback-danger-tint); color: var(--feedback-danger-tint-text); border: 1px solid var(--feedback-danger-border); border-radius: 12px"><span aria-hidden="true" style="position: absolute; top: -32px; left: -4px; font: 500 12px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 4px 8px; border-radius: 4px; white-space: nowrap; z-index: 1">Proposed component: InlineAlert</span><span style="display: inline-flex; color: var(--feedback-danger-icon)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="error" size="md" hint-size="20px,20px"></x-import></span><div class="type-body-md" style="flex-grow: 1; display: flex; flex-direction: column; gap: 4px; line-height: 1.5"><strong class="type-label-lg">We couldn't load your menu</strong><span>Nothing you added is lost. Check your connection and try again.</span></div><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" icon-start="refresh" hint-size="130px,44px">Try again</x-import></div>
+</sc-if>
+
+<sc-if value="{{m.v0}}" hint-placeholder-val="{{false}}">
+<div role="status" style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 4px; margin-top: 32px; display: flex; gap: 12px; align-items: flex-start; padding: 12px 16px; background: var(--feedback-info-tint); color: var(--feedback-info-tint-text); border: 1px solid var(--feedback-info-border); border-radius: 12px"><span aria-hidden="true" style="position: absolute; top: -32px; left: -4px; font: 500 12px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 4px 8px; border-radius: 4px; white-space: nowrap; z-index: 1">Proposed component: InlineAlert</span><span style="display: inline-flex; color: var(--feedback-info-icon)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="info" size="md" hint-size="20px,20px"></x-import></span><div class="type-body-md" style="flex-grow: 1; display: flex; flex-direction: column; gap: 4px; line-height: 1.5"><strong class="type-label-lg">HalalGoes is adding your first menu with you</strong><span>A HalalGoes team member adds your categories and items from the menu you send them. Items they add are live straight away. To change an item, call partner support.</span></div></div>
+<span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">V0 variant: items created on the restaurant's behalf (createMenuCategoryOnBehalf / createMenuItemOnBehalf, admin), read here with getOwnMenu (V0). Hours are set by the restaurant (setRestaurantHours, V0).</span>
+<span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">createMenuItemOnBehalf (openapi): “An item created by an admin is created already approved, because the reviewer and the author are the same accountable person.” So on-behalf items render APPROVED/Live, never Under review. Tasks and banner derive from getOwnMenu exactly as in firstlive: Menu published = Yes once one item exists, then hours_not_set.</span>
+</sc-if>
+
+<sc-if value="{{m.firstCat}}" hint-placeholder-val="{{true}}">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg" padding="32px" hint-size="832px,360px">
+<div style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 4px; margin-top: 32px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px; padding: 24px 0 8px">
+<span aria-hidden="true" style="position: absolute; top: -32px; left: -4px; font: 500 12px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 4px 8px; border-radius: 4px; white-space: nowrap; z-index: 1">Proposed component: EmptyState (first run)</span>
+<span style="width: 48px; height: 48px; border-radius: 12px; background: var(--surface-sunken); display: inline-flex; align-items: center; justify-content: center"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="menu" size="lg" hint-size="24px,24px"></x-import></span>
+<h2 class="type-heading-md" style="margin: 0">1. Add your first item</h2>
+<p class="type-body-md" style="margin: 0; line-height: 1.5; color: var(--text-secondary); max-width: 460px">Items live in categories. Start with one, like Mains or Drinks. You'll add an item to it next.</p>
+<sc-if value="{{catNet}}" hint-placeholder-val="{{false}}">
+<div style="width: 560px; text-align: left"><div role="alert" style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 4px; margin-top: 32px; display: flex; gap: 12px; align-items: flex-start; padding: 12px 16px; background: var(--feedback-danger-tint); color: var(--feedback-danger-tint-text); border: 1px solid var(--feedback-danger-border); border-radius: 12px"><span aria-hidden="true" style="position: absolute; top: -32px; left: -4px; font: 500 12px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 4px 8px; border-radius: 4px; white-space: nowrap; z-index: 1">Proposed component: InlineAlert</span><span style="display: inline-flex; color: var(--feedback-danger-icon)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="error" size="md" hint-size="20px,20px"></x-import></span><div class="type-body-md" style="flex-grow: 1; display: flex; flex-direction: column; gap: 4px; line-height: 1.5"><strong class="type-label-lg">We couldn't add the category</strong><span>We couldn't reach HalalGoes. What you typed is kept. Try again.</span></div></div></div>
+</sc-if>
+<form novalidate style="display: flex; gap: 12px; align-items: flex-start; width: 560px; text-align: left; margin-top: 8px">
+<div style="flex-grow: 1"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Category name" default-value="{{catValue}}" read-only="{{catSaving}}" error-text="{{catError}}" hint-size="100%,96px"></x-import></div>
+<div style="padding-top: 28px"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md" icon-start="plus" loading="{{catSaving}}" type="submit" hint-size="150px,44px">Add category</x-import></div>
+</form>
+<sc-if value="{{catNote}}" hint-placeholder-val="{{false}}"><span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">{{catNoteText}}</span></sc-if>
+</div>
+</x-import>
+</sc-if>
+
+<sc-if value="{{m.noItems}}" hint-placeholder-val="{{false}}">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg" padding="0" hint-size="832px,300px">
+<section aria-labelledby="cat-mains-empty" style="display: flex; flex-direction: column">
+<div style="display: flex; align-items: center; gap: 12px; padding: 16px 24px; border-bottom: 1px solid var(--border-decorative)">
+<h2 id="cat-mains-empty" class="type-heading-md" style="margin: 0">Mains</h2>
+<span class="type-body-md" style="color: var(--text-secondary); font-variant-numeric: tabular-nums">0 items</span>
+</div>
+<div style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 4px; margin-top: 32px; margin: 40px 24px 24px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px; padding: 24px 0">
+<span aria-hidden="true" style="position: absolute; top: -32px; left: -4px; font: 500 12px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 4px 8px; border-radius: 4px; white-space: nowrap; z-index: 1">Proposed component: EmptyState</span>
+<h3 class="type-heading-sm" style="margin: 0">No items in Mains yet</h3>
+<p class="type-body-md" style="margin: 0; line-height: 1.5; color: var(--text-secondary); max-width: 460px">Add your first dish. You'll give it a price, the allergens it contains and a photo, then send it for review.</p>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" icon-start="plus" href="#" hint-size="160px,52px">Add item</x-import>
+</div>
+</section>
+</x-import>
+</sc-if>
+
+<sc-if value="{{m.list}}" hint-placeholder-val="{{false}}">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg" padding="0" hint-size="832px,420px">
+<section aria-labelledby="cat-mains" style="display: flex; flex-direction: column">
+<div style="display: flex; align-items: center; gap: 12px; padding: 16px 24px; border-bottom: 1px solid var(--border-decorative)">
+<h2 id="cat-mains" class="type-heading-md" style="margin: 0">Mains</h2>
+<span class="type-body-md" style="color: var(--text-secondary); font-variant-numeric: tabular-nums">3 items</span>
+<span style="flex-grow: 1"></span>
+<sc-if value="{{canEdit}}" hint-placeholder-val="{{true}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="secondary" size="sm" icon-start="plus" href="#" hint-size="120px,44px">Add item</x-import></sc-if>
+</div>
+<ul style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 4px; margin-top: 32px; list-style: none; margin: 40px 0 0; padding: 0; display: flex; flex-direction: column">
+<span aria-hidden="true" style="position: absolute; top: -32px; left: -4px; font: 500 12px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 4px 8px; border-radius: 4px; white-space: nowrap; z-index: 1">Proposed component: ListRow</span>
+<sc-for list="{{items}}" as="i" hint-placeholder-count="3">
+<li style="box-sizing: border-box; display: flex; flex-direction: column; gap: 12px; padding: 12px 24px; min-height: 64px; justify-content: center; border-top: {{i.rule}}">
+<div style="display: flex; align-items: center; gap: 16px">
+<span class="type-label-lg" style="flex-grow: 1">{{i.name}}</span>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{i.cents}}" size="md" hint-size="70px,20px"></x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="{{i.bv}}" size="md" icon="{{i.bi}}" hint-size="120px,22px">{{i.bl}}</x-import>
+</div>
+<sc-if value="{{i.rej}}" hint-placeholder-val="{{false}}">
+<div style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 4px; margin-top: 32px; display: flex; flex-direction: column; gap: 8px; padding: 12px 16px; border-radius: 12px; background: var(--feedback-warning-tint); color: var(--feedback-warning-tint-text); border: 1px solid var(--feedback-warning-border)">
+<span aria-hidden="true" style="position: absolute; top: -32px; left: -4px; font: 500 12px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 4px 8px; border-radius: 4px; white-space: nowrap; z-index: 1">Proposed component: InlineAlert</span>
+<span class="type-label-lg">Missing allergen</span>
+<blockquote class="type-body-md" style="margin: 0; line-height: 1.5">Sesame is in the tahini but isn't listed under allergens.</blockquote>
+<span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">rejection_reason_code MISSING_ALLERGEN (mapped label) + review_note verbatim</span>
+<sc-if value="{{canEdit}}" hint-placeholder-val="{{true}}"><div><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="sm" href="#" accessibility-label="Edit and resubmit: Falafel wrap" hint-size="150px,44px">Edit and resubmit</x-import></div></sc-if>
+</div>
+</sc-if>
+</li>
+</sc-for>
+</ul>
+</section>
+</x-import>
+<sc-if value="{{canEdit}}" hint-placeholder-val="{{true}}"><span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">Add item and Edit and resubmit open the item editor inside setup, which has Back to setup. List shows PENDING_REVIEW, REJECTED and APPROVED only: there is no restaurant endpoint that saves a draft (see Alternative — save as draft).</span></sc-if>
+</sc-if>
+<sc-if value="{{readonly}}" hint-placeholder-val="{{false}}"><p class="type-body-md" style="margin: 0; color: var(--text-secondary)">You can see the menu and hours. Only the owner can change them.</p></sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"mode": {"editor": "enum", "options": ["none", "taken", "catsaving", "caterror", "noitems", "inreview", "firstlive", "loading", "loaderror", "v0"], "default": "none"}, "hours": {"editor": "enum", "options": ["notset", "set"], "default": "notset"}, "readonly": {"editor": "boolean", "default": false}, "hoursMode": {"editor": "enum", "options": ["", "empty", "editing", "saving", "error", "neterror", "loading", "loaderror"], "default": ""}, "w": {"editor": "text", "default": "832px"}, "$preview": {"width": 832, "height": 1240}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const mode = this.props.mode ?? 'none';
+    const hoursSet = (this.props.hours ?? 'notset') === 'set';
+    const readonly = !!this.props.readonly;
+    const B = { profile_incomplete: "Finish your business profile.", documents_missing: "Add the four required documents, then send them for review.", documents_in_review: "A reviewer is checking your documents. You don’t need to do anything yet.", documents_rejected: "A document needs a new upload. Replace it, then send it for review again.", payout_not_started: "Connect a bank account with Stripe. You can’t take orders until Stripe turns on payouts.", payout_requirements_due: "Stripe needs more details before it can turn on payouts.", payout_verifying: "Stripe is checking your details. This page updates when it’s done.", payouts_disabled: "Stripe has turned payouts off. Continue on Stripe to see what it needs.", payout_owner_required: "The restaurant owner needs to connect a bank account.", document_expired_in_review: "A document expired while it was waiting for review. Upload the current one.", menu_and_hours_pending: "Add at least one menu item and set your opening hours. Items go live once a reviewer approves them.", no_live_menu_item: "Add at least one menu item. It goes live once a reviewer approves it.", menu_in_review: "Your items are waiting for a reviewer. You go live when the first one is approved.", hours_not_set: "Set your opening hours so customers know when they can order.", account_suspended: "Your restaurant is suspended. Setup is paused until partner support lifts it.", certificate_expired: "Your halal certificate has expired, so your listing is hidden. Upload the renewed certificate to show it again." } /* one source: Ref-BlockingReasons */;
+    const TONES = {
+      info: ['var(--feedback-info-tint)', 'var(--feedback-info-tint-text)', 'var(--feedback-info-border)', 'var(--feedback-info-icon)', 'info'],
+      warning: ['var(--feedback-warning-tint)', 'var(--feedback-warning-tint-text)', 'var(--feedback-warning-border)', 'var(--feedback-warning-icon)', 'warning'],
+      slate: ['var(--surface-sunken)', 'var(--text-primary)', 'var(--border-strong)', 'var(--text-primary)', 'clock']
+    };
+    const bt = (tone) => { const t = TONES[tone]; return { bBg: t[0], bFg: t[1], bBd: t[2], bIc: t[3], bIcon: t[4] }; };
+    const first = ['none', 'taken', 'catsaving', 'caterror'].includes(mode);
+    const listed = mode === 'inreview' || mode === 'firstlive' || mode === 'v0';
+    const m = { loading: mode === 'loading', loaderror: mode === 'loaderror', firstCat: first && !readonly, noItems: mode === 'noitems' && !readonly, list: listed, v0: mode === 'v0' };
+    const live = mode === 'firstlive' || mode === 'v0';
+    let code = hoursSet ? 'no_live_menu_item' : 'menu_and_hours_pending';
+    if (mode === 'inreview') code = hoursSet ? 'menu_in_review' : 'hours_not_set';
+    if (live) code = hoursSet ? '' : 'hours_not_set';
+    const rule = (i) => i === 0 ? 'none' : '1px solid var(--border-decorative)';
+    const itemStatus = mode === 'v0' ? 'Done. HalalGoes added 3 items; they’re live.' : live ? 'Done. Chicken shawarma plate is live.' : (listed ? 'Sent. Waiting for a reviewer to approve the first one.' : 'Not done yet.');
+    const tasks = [
+      { label: '1. Add your first item', status: itemStatus, done: live, todo: !live, hasLink: false, link: '', rule: rule(0) },
+      { label: '2. Set opening hours', status: hoursSet ? 'Done. Monday to Sunday, Eastern Time.' : 'Not set yet.', done: hoursSet, todo: !hoursSet, hasLink: !readonly, link: hoursSet ? 'Check hours' : 'Set hours', rule: rule(1) },
+      { label: 'Menu published', status: mode === 'v0' ? 'Yes, since 2 October 2026, 11:02 am. It happened when HalalGoes added your first item.' : live ? 'Yes, since 2 October 2026, 11:02 am. It happened when a reviewer approved your first item.' : 'Not yet. This happens by itself when a reviewer approves your first item.', done: live, todo: !live, hasLink: false, link: '', rule: rule(2) }
+    ];
+    const items = [
+      { name: 'Chicken shawarma plate', cents: 1850, bv: live ? 'neutral' : 'info', bi: live ? 'check' : 'clock', bl: live ? 'Live' : 'Under review', rej: false, rule: rule(0) },
+      { name: 'Falafel wrap', cents: 1100, bv: 'warning', bi: 'warning', bl: 'Not approved', rej: true, rule: rule(1) },
+      { name: 'Lamb kofta', cents: 2100, bv: 'info', bi: 'clock', bl: 'Under review', rej: false, rule: rule(2) }
+    ];
+    if (mode === 'v0') { items[1] = { name: 'Falafel wrap', cents: 1100, bv: 'neutral', bi: 'check', bl: 'Live', rej: false, rule: rule(1) }; items[2] = { name: 'Lamb kofta', cents: 2100, bv: 'neutral', bi: 'check', bl: 'Live', rej: false, rule: rule(2) }; }
+    const catNotes = { taken: '409 CATEGORY_NAME_TAKEN', catsaving: 'createMenuCategory in flight: field read-only, button busy', caterror: 'Network error or 5xx on createMenuCategory; Idempotency-Key makes the retry safe' };
+    const hoursMode = this.props.hoursMode ?? '';
+    const hoursFirst = code === 'hours_not_set' && hoursMode !== '' && !readonly;
+    return Object.assign({
+      w: this.props.w ?? '832px', h: hoursFirst ? (['editing', 'saving', 'error', 'neterror'].includes(hoursMode) ? '2324px' : '2124px') : '1240px', hoursFirst, hoursMode: hoursMode || 'empty', hoursH: ['editing', 'saving', 'error', 'neterror'].includes(hoursMode) ? '1060px' : '860px',
+      intro: mode === 'v0' ? 'Two things to do. HalalGoes adds your menu with you, and the items they add are live straight away. Customers can order once your opening hours are set.' : 'Two things to do. Customers can order once a reviewer approves at least one item and your opening hours are set. Prices, preparation times and availability go live straight away. Names, descriptions, ingredients, allergens and photos are checked first.',
+      m, tasks, items, readonly, canEdit: !readonly && mode !== 'v0', v1: mode !== 'v0',
+      showHeadAdd: (mode === 'noitems' || mode === 'inreview' || mode === 'firstlive') && !readonly,
+      showBanner: !['loading', 'loaderror'].includes(mode) && code !== '',
+      catValue: mode === 'none' ? '' : 'Mains', catSaving: mode === 'catsaving', catNet: mode === 'caterror',
+      catError: mode === 'taken' ? 'You already have a category called Mains. Choose another name.' : null,
+      catNote: !!catNotes[mode], catNoteText: catNotes[mode] || '',
+      bCode: code || 'none', bTitle: 'What’s needed now', bText: B[code] || 'Something still needs doing. Refresh, or call partner support.'
+    }, bt('info'));
+  }
+}
+</script>
+</body>
+</html>

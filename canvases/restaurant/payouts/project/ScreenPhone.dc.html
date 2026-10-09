@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Phone width</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div style="position: relative; width: {{wpx}}; height: {{hpx}}; overflow: hidden; display: flex; flex-direction: column; background: var(--surface-base); font-family: var(--font-ui); color: var(--text-primary)">
+<div class="hg-on-accent" style="background: var(--surface-chrome)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="chrome" title="{{title}}" subtitle="Zaytoun Grill" actions="{{barActions}}" style="width: 100%"></x-import>
+</div>
+<section aria-labelledby="ph-strip-h" style="flex-shrink: 0; display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 16px; background: var(--surface-raised); border-bottom: 1px solid var(--border-decorative)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="orders" size="sm" color="var(--text-secondary)"></x-import>
+<h2 id="ph-strip-h" style="margin: 0; font: var(--text-type-label-md)">No orders waiting</h2>
+</section>
+<main style="flex-grow: 1; min-height: 0; overflow: hidden; box-sizing: border-box; padding: 16px; display: flex; flex-direction: column; gap: 16px">
+<span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">Below 768 px the side navigation becomes a menu button, the orders strip becomes this one-line row, and panels open full screen · Proposed component: SideNav (drawer)</span>
+<sc-if value="{{reflowNote}}" hint-placeholder-val="{{false}}"><span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--feedback-info-tint-text); background: var(--feedback-info-tint)">{{reflowNote}}</span></sc-if>
+
+<sc-if value="{{p.show}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; flex-direction: column; gap: 16px">
+<sc-if value="{{p.noAccount}}" hint-placeholder-val="{{false}}">
+<section aria-labelledby="ph-na-h" style="display: flex; flex-direction: column; gap: 8px; padding: 12px 16px; border-radius: var(--radius-md); background: var(--feedback-info-tint); border: 1px solid var(--feedback-info-border)">
+<h2 id="ph-na-h" style="margin: 0; font: var(--text-type-label-lg)">Set up payouts so HalalGoes can pay you</h2>
+<p style="margin: 0; font: var(--text-type-body-sm); line-height: 1.45">Stripe holds your bank details and sends your payouts. It takes about 10 minutes and needs your bank account and photo ID.</p>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md" full-width="{{yes}}" icon-end="chevron-right">Set up payouts with Stripe</x-import>
+</section>
+</sc-if>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg" padding="16px">
+<div style="display: flex; flex-direction: column; gap: 10px">
+<h2 style="margin: 0; font: var(--text-type-heading-md)">Payout account</h2>
+<sc-if value="{{p.loading}}" hint-placeholder-val="{{false}}"><div aria-busy="true" style="display: flex; flex-direction: column; gap: 8px"><div style="width: 40%; height: 20px; border-radius: var(--radius-full); background: var(--skeleton-base)"></div><div style="width: 70%; height: 16px; border-radius: var(--radius-xs); background: var(--skeleton-base)"></div><div style="width: 55%; height: 16px; border-radius: var(--radius-xs); background: var(--skeleton-base)"></div></div></sc-if>
+<sc-if value="{{p.error}}" hint-placeholder-val="{{false}}"><div role="alert" style="display: flex; flex-direction: column; gap: 8px"><strong style="font: var(--text-type-heading-sm)">Couldn't load your payout account</strong><span style="font: var(--text-type-body-md); line-height: 1.5; color: var(--text-secondary)">Your payouts themselves are not affected, and orders keep coming in.</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" full-width="{{yes}}" icon-start="refresh">Try again</x-import></div></sc-if>
+<sc-if value="{{p.ready}}" hint-placeholder-val="{{true}}">
+<div style="display: flex"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="{{p.tone}}" icon="{{p.icon}}" size="md">{{p.badge}}</x-import></div>
+<dl style="margin: 0; display: flex; flex-direction: column; gap: 8px">
+<sc-for list="{{p.rows}}" as="r" hint-placeholder-count="3"><div style="display: flex; flex-direction: column; gap: 2px"><dt style="font: var(--text-type-body-sm); color: var(--text-secondary)">{{r.k}}</dt><dd style="margin: 0; font: var(--text-type-body-md)">{{r.v}}</dd></div></sc-for>
+</dl>
+</sc-if>
+</div>
+</x-import>
+<sc-if value="{{p.ready}}" hint-placeholder-val="{{true}}">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg" padding="16px">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<h2 style="margin: 0; font: var(--text-type-heading-md)">What Stripe needs from you</h2>
+<span style="font: var(--text-type-label-lg)">{{p.reqTitle}}</span>
+<span style="font: var(--text-type-body-sm); line-height: 1.45; color: var(--text-secondary)">{{p.reqSub}}</span>
+</div>
+</x-import>
+</sc-if>
+<p style="margin: 0; font: var(--text-type-body-sm); line-height: 1.45; color: var(--text-secondary)">Orders never wait on payouts. If Stripe later needs something from a working payout account, you keep taking orders, and what you earn is kept on record until it can be paid out.</p>
+</div>
+</sc-if>
+
+<sc-if value="{{h.show}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; gap: 16px">
+<section aria-labelledby="ph-attn-h" style="display: flex; flex-direction: column; gap: 8px; padding: 12px 16px; border-radius: var(--radius-md); background: var(--feedback-warning-tint); border: 1px solid var(--feedback-warning-border)">
+<h2 id="ph-attn-h" style="margin: 0; font: var(--text-type-label-lg); min-height: 32px; display: flex; align-items: center">Payouts below need your attention</h2>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" full-width="{{yes}}" href="PayoutDetail-OnHold.dc.html">Open 17–23 August payout (on hold)</x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" full-width="{{yes}}" href="PayoutDetail-Failed.dc.html">Open 10–16 August payout (failed)</x-import>
+</section>
+<h2 style="margin: 0; font: var(--text-type-heading-md)">Payout history</h2>
+<ul style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; border-top: 1px solid var(--border-decorative)">
+<sc-for list="{{payouts}}" as="r" hint-placeholder-count="5">
+<li style="border-bottom: 1px solid var(--border-decorative)">
+<a href="{{r.href}}" style="display: flex; align-items: center; gap: 12px; min-height: 64px; color: var(--text-primary); text-decoration: none">
+<span style="display: flex; flex-direction: column; gap: 4px; flex-grow: 1"><span style="font: var(--text-type-label-lg)">{{r.period}}</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="{{r.tone}}" size="sm" icon="{{r.icon}}" style="align-self: flex-start">{{r.label}}</x-import></span>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{r.cents}}" size="md"></x-import>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="chevron-right" size="md"></x-import>
+</a>
+</li>
+</sc-for>
+</ul>
+<span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">listRestaurantPayouts (moved into launch, owner decision) · each row's name comes from its visible text · Proposed component: DataTable stacked rows (phone)</span>
+</div>
+</sc-if>
+
+<sc-if value="{{se.show}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; gap: 16px">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Select" label="Jump to section" value="halal" options="{{sections}}"></x-import>
+<sc-if value="{{se.banner}}" hint-placeholder-val="{{false}}">
+<section aria-labelledby="ph-sys-h" style="display: flex; flex-direction: column; gap: 8px; padding: 12px 16px; border-radius: var(--radius-md); background: {{se.bg}}; border: 1px solid {{se.border}}">
+<h2 id="ph-sys-h" style="margin: 0; font: var(--text-type-label-lg)">{{se.title}}</h2>
+<p style="margin: 0; font: var(--text-type-body-sm); line-height: 1.45">{{se.body}}</p>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md" full-width="{{yes}}" href="https://claude.ai/artifact/VkGvVQsxmCHp8CGnCLVKga">Upload renewed certificate</x-import>
+</section>
+</sc-if>
+<sc-if value="{{se.panel}}" hint-placeholder-val="{{true}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.HalalCertificationPanel" restaurant-id="0191c2d6-3b21-7a10-8c00-7d1e2f3a4b00" status="{{se.panelStatus}}" certification="{{cert}}" error-message="We couldn't load your halal certification status. Reload the page. If this keeps happening, contact support." on-retry="{{noop}}" on-view-certificate="{{noop}}" heading-level="{{2}}"></x-import></sc-if>
+<sc-if value="{{se.loading}}" hint-placeholder-val="{{false}}">
+<div aria-busy="true" style="display: flex; flex-direction: column; gap: 12px">
+<sc-for list="{{four}}" as="k" hint-placeholder-count="4"><div style="height: 96px; border-radius: var(--radius-lg); background: var(--skeleton-base)"></div></sc-for>
+<span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">Proposed component: Skeleton (page-shaped) · the halal section uses the panel's own loading state</span>
+</div>
+</sc-if>
+<sc-if value="{{se.error}}" hint-placeholder-val="{{false}}">
+<div role="alert"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg" padding="16px"><div style="display: flex; flex-direction: column; gap: 8px">
+<h2 style="margin: 0; font: var(--text-type-heading-md)">Couldn't load your settings</h2>
+<p style="margin: 0; font: var(--text-type-body-md); line-height: 1.5; color: var(--text-secondary)">Your restaurant and your orders are not affected. Check your connection and try again.</p>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" full-width="{{yes}}" icon-start="refresh">Try again</x-import>
+<span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">Proposed component: ErrorState</span>
+</div></x-import>
+</div>
+</sc-if>
+<sc-if value="{{se.full}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; flex-direction: column; gap: 16px">
+<section aria-labelledby="ph-acct-h"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg" padding="16px"><div style="display: flex; flex-direction: column; gap: 8px">
+<h2 id="ph-acct-h" style="margin: 0; font: var(--text-type-heading-md)">Account</h2>
+<div style="display: flex"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="neutral" icon="check" size="lg">Live</x-import></div>
+<span style="font: var(--text-type-body-sm)">Customers can find your restaurant and order.</span>
+<span style="font: var(--text-type-body-sm); color: var(--text-secondary)">Orders right now: Open. Your hours today end at 11:00 pm.</span>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" full-width="{{yes}}" icon-start="clock">Pause new orders</x-import>
+</div></x-import>
+</section>
+<h2 style="margin: 0; font: var(--text-type-heading-md)">Business profile</h2>
+<sc-for list="{{profile}}" as="g" hint-placeholder-count="6">
+<section><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg" padding="16px"><div style="display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; align-items: center; gap: 8px; min-height: 44px"><h3 style="margin: 0; font: var(--text-type-heading-sm); flex-grow: 1">{{g.title}}</h3><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="sm" href="{{g.href}}" accessibility-label="{{g.a11y}}">{{g.cta}}</x-import></div>
+<span style="display: flex; align-items: center; gap: 6px; font: var(--text-type-body-sm); color: var(--text-secondary)">{{g.k}}<sc-if value="{{g.locked}}" hint-placeholder-val="{{false}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="lock" size="sm" accessibility-label="Locked"></x-import></sc-if></span>
+<span style="font: var(--text-type-body-md); line-height: 1.5">{{g.v}}</span>
+</div></x-import>
+</section>
+</sc-for>
+<section aria-labelledby="ph-docs-h"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg" padding="16px"><div style="display: flex; flex-direction: column; gap: 4px">
+<h2 id="ph-docs-h" style="margin: 0 0 8px; font: var(--text-type-heading-md)">Documents</h2>
+<ul style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column">
+<sc-for list="{{docs}}" as="d" hint-placeholder-count="4">
+<li style="display: flex; flex-direction: column; gap: 8px; padding: 12px 0; border-top: 1px solid var(--border-decorative)">
+<div style="display: flex; align-items: center; gap: 8px; min-height: 28px"><span style="flex-grow: 1; font: var(--text-type-label-lg)">{{d.name}}</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="{{d.tone}}" size="sm" icon="{{d.icon}}">{{d.label}}</x-import></div>
+<span style="font: var(--text-type-body-sm); color: var(--text-secondary)">{{d.meta}}</span>
+<sc-if value="{{d.isHalal}}" hint-placeholder-val="{{false}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" full-width="{{yes}}" href="https://claude.ai/artifact/VkGvVQsxmCHp8CGnCLVKga">Manage in Halal certification</x-import></sc-if>
+<sc-if value="{{d.canView}}" hint-placeholder-val="{{true}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="md" full-width="{{yes}}" accessibility-label="{{d.viewLabel}}">View file</x-import></sc-if>
+<sc-if value="{{d.canUpload}}" hint-placeholder-val="{{true}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" full-width="{{yes}}" href="{{d.href}}" accessibility-label="{{d.uploadA11y}}">Upload new version</x-import></sc-if>
+</li>
+</sc-for>
+</ul>
+<span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">Mirrors the desktop Documents list · View file opens a short-lived private link · Proposed component: ListRow</span>
+</div></x-import>
+</section>
+<section aria-labelledby="ph-dev-h"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg" padding="16px"><div style="display: flex; flex-direction: column; gap: 12px">
+<h2 id="ph-dev-h" style="margin: 0; font: var(--text-type-heading-md)">This device</h2>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Switch" label="Order sound" state-label="{{onOff}}" checked="{{yes}}" aria-describedby="ph-sound-what"></x-import>
+<span id="ph-sound-what" style="font: var(--text-type-body-sm); color: var(--text-secondary)">Rings until each new order is accepted, rejected or expires.</span>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Switch" label="Keep the screen on" state-label="{{onOff}}" checked="{{yes}}" aria-describedby="ph-wake-what"></x-import>
+<span id="ph-wake-what" style="font: var(--text-type-body-sm); color: var(--text-secondary)">Stops the screen dimming while this page is open.</span>
+<span style="font: var(--text-type-body-sm); color: var(--text-secondary)">Browser notifications: Allowed</span>
+</div></x-import>
+</section>
+<section aria-labelledby="ph-sec-h"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg" padding="16px"><div style="display: flex; flex-direction: column; gap: 8px">
+<h2 id="ph-sec-h" style="margin: 0; font: var(--text-type-heading-md)">Sign-in details</h2>
+<span style="font: var(--text-type-body-sm); line-height: 1.45"><strong style="font: var(--text-type-label-md)">How you sign in:</strong> with your email address and password.</span>
+<span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">Password, two-step sign-in (enrollTotp, V1) and device management are later-version operations, drawn on the Later version page</span>
+</div></x-import>
+</section>
+<section aria-labelledby="ph-wn-h"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg" padding="16px"><div style="display: flex; align-items: center; gap: 12px">
+<h2 id="ph-wn-h" style="margin: 0; flex-grow: 1; font: var(--text-type-heading-md)">What's new</h2>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="sm" href="https://claude.ai/artifact/VkGvVQsxmCHp8CGnCLVKga">Release notes</x-import>
+</div></x-import>
+</section>
+</div>
+</sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{wnPage}}" hint-placeholder-val="{{false}}">
+<dc-import name="PartWhatsNew" mode="{{wnMode}}" width="{{inner}}" height="{{600}}" hint-size="358px,600px"></dc-import>
+</sc-if>
+</main>
+
+<sc-if value="{{sheet.show}}" hint-placeholder-val="{{false}}">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Sheet" open="{{yes}}" variant="full" contained="{{yes}}" title="{{sheet.title}}" footer="{{sheetFooter}}" on-close="{{noop}}">
+<sc-if value="{{sheet.detail}}" hint-placeholder-val="{{false}}"><dc-import name="PartPayoutDetail" state="{{detailState}}" width="{{inner}}" height="{{1100}}" hint-size="358px,1100px"></dc-import></sc-if>
+<sc-if value="{{sheet.support}}" hint-placeholder-val="{{false}}"><dc-import name="PartSupport" context="payout" width="{{inner}}" height="{{820}}" hint-size="358px,820px"></dc-import></sc-if>
+<sc-if value="{{sheet.renew}}" hint-placeholder-val="{{false}}"><dc-import name="PartRenewalForm" variant="{{renewVariant}}" doc-type="{{docType}}" context="{{renewContext}}" width="{{inner}}" hint-size="358px,700px"></dc-import></sc-if>
+<sc-if value="{{sheet.edit}}" hint-placeholder-val="{{false}}"><dc-import name="PartEditPanel" group="names" state="default" width="{{inner}}" hint-size="358px,640px"></dc-import></sc-if>
+<sc-if value="{{sheet.wn}}" hint-placeholder-val="{{false}}"><dc-import name="PartWhatsNew" mode="since" width="{{inner}}" height="{{600}}" hint-size="358px,600px"></dc-import></sc-if>
+</x-import>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"screen":{"editor":"enum","options":["payouts","payouts-loading","payouts-noaccount","payouts-error","payout-history","payout-detail","payout-detail-failed","payout-detail-sending","payout-detail-sent","payout-detail-draft","payout-detail-ready","support-payout","settings","settings-loading","settings-error","settings-expiring","settings-expired","settings-edit","renew-choose","renew-uploadfailed","renew-sendfailed","doc-upload","doc-upload-licence","doc-upload-ownerid","whatsnew-sheet","whatsnew-page","whatsnew-loading","whatsnew-error"],"default":"payouts"},"width":{"editor":"int","default":390},"height":{"editor":"int","default":844},"reflow":{"editor":"text","default":""},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var R = window.React;
+    var DS = window.HalalGoesDesignSystem_d11a47 || {};
+    function h(c, p) { if (!R || !c) return null; return R.createElement.apply(R, [c, p].concat([].slice.call(arguments, 2))); }
+    var s = this.props.screen || 'payouts';
+    var W = this.props.width || 390;
+    var inner = W - 32;
+    var isRenew = s.indexOf('renew-') === 0 || s.indexOf('doc-upload') === 0;
+    var historyLike = s.indexOf('payout-') === 0 || s === 'support-payout';
+    var area = isRenew ? 'settings' : (s.indexOf('payout') === 0 || s === 'support-payout' ? 'payouts' : (s.indexOf('settings') === 0 ? 'settings' : 'whatsnew'));
+    var LABEL = { DRAFT: ['neutral', 'Accruing'], READY: ['neutral', 'Ready to send'], TRANSFERRING: ['info', 'Sending to Stripe'], TRANSFERRED: ['info', 'Sent to Stripe'], PAID: ['neutral', 'Paid', 'check'], FAILED: ['danger', 'Failed'], HELD: ['warning', 'On hold'] };
+    var P = [
+      ['14–20 September 2026', 186450, 'DRAFT', 'PayoutDetail-Draft.dc.html'],
+      ['7–13 September 2026', 289400, 'READY', 'PayoutDetail-Ready.dc.html'],
+      ['31 August – 6 September 2026', 412300, 'TRANSFERRING', 'PayoutDetail-Sending.dc.html'],
+      ['24–30 August 2026', 338700, 'TRANSFERRED', 'PayoutDetail-SentToStripe.dc.html'],
+      ['17–23 August 2026', 305100, 'HELD', 'PayoutDetail-OnHold.dc.html'],
+      ['10–16 August 2026', 297800, 'FAILED', 'PayoutDetail-Failed.dc.html']
+    ].map(function (x) { var l = LABEL[x[2]]; return { period: x[0], cents: x[1], tone: l[0], label: l[1], icon: l[2], href: x[3] }; });
+    // Launch payouts page: the payout account (getConnectStatus) only.
+    var pv = { payouts: 'ok', 'payouts-loading': 'loading', 'payouts-noaccount': 'none', 'payouts-error': 'error' }[s];
+    var p = { show: !!pv, loading: pv === 'loading', error: pv === 'error', ready: pv === 'ok' || pv === 'none', noAccount: pv === 'none' };
+    if (pv === 'none') Object.assign(p, { tone: 'outline', icon: undefined, badge: 'Not set up', rows: [{ k: 'Paid into', v: 'Not set yet' }, { k: 'Paid by', v: 'Stripe, for HalalGoes' }], reqTitle: 'Your bank account and photo ID', reqSub: 'Stripe asks for them when you set up payouts.' });
+    else Object.assign(p, { tone: 'neutral', icon: 'check', badge: 'Payouts on', rows: [{ k: 'Paid into', v: 'Bank account ending 4821' }, { k: 'How often', v: 'Weekly' }, { k: 'Paid by', v: 'Stripe, for HalalGoes' }], reqTitle: 'Nothing right now', reqSub: "If Stripe asks for anything, it shows here with the date it's needed by." });
+    var halalState = s === 'settings-expired' ? 'EXPIRED' : (s === 'settings-expiring' ? 'EXPIRING_SOON' : 'CERTIFIED');
+    var topHalal = s === 'settings-loading' || s === 'settings-error' ? 'none' : halalState;
+    var expires = halalState === 'EXPIRED' ? '2026-09-12' : (halalState === 'EXPIRING_SOON' ? '2026-10-12' : '2026-11-12');
+    var SE_B = {
+      'settings-expiring': { title: 'Your halal certificate expires on 12 October 2026', body: 'Upload the renewed certificate before then so customers can keep finding you.', bg: 'var(--feedback-warning-tint)', border: 'var(--feedback-warning-border)' },
+      'settings-expired': { title: "Customers can't see your restaurant right now", body: 'Your halal certificate expired on 12 September 2026. Your restaurant comes back when a reviewer approves the renewed one.', bg: 'var(--surface-subtle)', border: 'var(--border-decorative)' }
+    }[s];
+    var detailStates = { 'payout-detail': ['HELD', 'Payout for 17–23 August 2026'], 'payout-detail-failed': ['FAILED', 'Payout for 10–16 August 2026'], 'payout-detail-sending': ['TRANSFERRING', 'Payout for 31 August – 6 September 2026'], 'payout-detail-sent': ['TRANSFERRED', 'Payout for 24–30 August 2026'], 'payout-detail-draft': ['DRAFT', 'Payout for 14–20 September 2026'], 'payout-detail-ready': ['READY', 'Payout for 7–13 September 2026'] };
+    var sheetKind = detailStates[s] ? 'detail' : ({ 'support-payout': 'support', 'settings-edit': 'edit', 'whatsnew-sheet': 'wn' }[s] || (isRenew ? 'renew' : undefined));
+    var renewVariant = { 'renew-choose': 'choose', 'renew-uploadfailed': 'failed', 'renew-sendfailed': 'sendfailed', 'doc-upload': 'choose', 'doc-upload-licence': 'choose', 'doc-upload-ownerid': 'choose' }[s] || 'choose';
+    var docType = { 'doc-upload': 'FOOD_SAFETY', 'doc-upload-licence': 'BUSINESS_LICENCE', 'doc-upload-ownerid': 'OWNER_ID' }[s] || 'HALAL_CERTIFICATE';
+    var DOC_TITLE = { FOOD_SAFETY: 'Upload food safety certificate', BUSINESS_LICENCE: 'Upload business licence', OWNER_ID: 'Upload owner ID' };
+    var SHEET_TITLE = { detail: detailStates[s] ? detailStates[s][1] : '', support: 'Contact support', edit: 'Edit names', wn: "What's new since you last looked", renew: DOC_TITLE[docType] || 'Upload renewed halal certificate' };
+    var full = { flexGrow: 1 };
+    var footer = null;
+    if (R && sheetKind === 'detail') footer = h(DS.Button, { variant: 'tertiary', size: 'md', fullWidth: true, href: 'Payouts-History.dc.html' }, 'Close');
+    if (R && sheetKind === 'support') footer = h(DS.Button, { variant: 'tertiary', size: 'md', fullWidth: true, href: 'PayoutDetail-Failed.dc.html' }, 'Back to the payout');
+    if (R && sheetKind === 'edit') footer = h('div', { style: { display: 'flex', gap: 12 } }, h(DS.Button, { variant: 'tertiary', size: 'md', href: 'https://claude.ai/artifact/VkGvVQsxmCHp8CGnCLVKga', style: full }, 'Cancel'), h(DS.Button, { variant: 'primary', size: 'md', href: 'https://claude.ai/artifact/VkGvVQsxmCHp8CGnCLVKga', style: full }, 'Save'));
+    if (R && sheetKind === 'wn') footer = h(DS.Button, { variant: 'primary', size: 'md', fullWidth: true, href: 'Main.dc.html' }, 'Got it');
+    if (R && sheetKind === 'renew') {
+      var ready = renewVariant === 'sendfailed';
+      footer = h('div', { style: { display: 'flex', flexDirection: 'column', gap: 12 } },
+        ready ? null : h('span', { id: 'ph-send-reason', style: { font: 'var(--text-type-body-sm)', color: 'var(--text-secondary)' } }, 'Upload the file' + (docType === 'BUSINESS_LICENCE' ? '' : ' and enter its expiry date') + ' to send it.'),
+        h('div', { style: { display: 'flex', gap: 12 } },
+          h(DS.Button, { variant: 'tertiary', size: 'md', href: 'https://claude.ai/artifact/VkGvVQsxmCHp8CGnCLVKga', style: full }, 'Cancel'),
+          h(DS.Button, { variant: 'primary', size: 'md', disabled: !ready, 'aria-describedby': ready ? undefined : 'ph-send-reason', href: ready ? 'https://claude.ai/artifact/VkGvVQsxmCHp8CGnCLVKga' : undefined, style: full }, 'Send for review')));
+    }
+    var seShow = area === 'settings';
+    var seLoading = s === 'settings-loading', seError = s === 'settings-error';
+    return {
+      yes: true,
+      noop: function () {},
+      wpx: W + 'px',
+      inner: inner,
+      hpx: (this.props.height || 844) + 'px',
+      reflowNote: this.props.reflow || '',
+      title: { payouts: 'Payouts', settings: 'Settings', whatsnew: "What's new" }[area],
+      barActions: R ? h(R.Fragment, null,
+        topHalal !== 'none' ? h(DS.HalalBadge, { state: topHalal, surface: 'operational', size: 'sm' }) : null,
+        h(DS.IconButton, { icon: 'menu', variant: 'plain', accessibilityLabel: 'Open navigation' })) : null,
+      four: [1, 2, 3, 4],
+      p: p,
+      h: { show: s === 'payout-history' || (historyLike && s !== 'payout-history') },
+      payouts: P,
+      se: { show: seShow, panel: !seError, panelStatus: seLoading ? 'loading' : 'ready', loading: seLoading, error: seError, full: s === 'settings' || s === 'settings-edit' || isRenew, banner: !!SE_B, title: SE_B ? SE_B.title : '', body: SE_B ? SE_B.body : '', bg: SE_B ? SE_B.bg : '', border: SE_B ? SE_B.border : '' },
+      wnPage: s === 'whatsnew-page' || s === 'whatsnew-loading' || s === 'whatsnew-error',
+      wnMode: { 'whatsnew-loading': 'loading', 'whatsnew-error': 'error' }[s] || 'all',
+      onOff: { on: 'On', off: 'Off' },
+      sections: [
+        { value: 'halal', label: 'Halal certification' }, { value: 'account', label: 'Account' }, { value: 'profile', label: 'Business profile' },
+        { value: 'documents', label: 'Documents' }, { value: 'device', label: 'This device' }, { value: 'security', label: 'Sign-in and security' }, { value: 'whatsnew', label: "What's new" }
+      ],
+      profile: [
+        { title: 'Names', k: 'Name customers see', v: 'Zaytoun Grill', href: 'https://claude.ai/artifact/VkGvVQsxmCHp8CGnCLVKga', a11y: 'Edit names', cta: 'Edit' },
+        { title: 'Phone numbers', k: 'Phone for HalalGoes', v: '(416) 555-0134', href: 'https://claude.ai/artifact/VkGvVQsxmCHp8CGnCLVKga', a11y: 'Edit phone numbers', cta: 'Edit' },
+        { title: 'Address and location', k: 'Address', v: '14 Ellesmere Rd, Scarborough, Ontario M1R 4B5', href: 'https://claude.ai/artifact/VkGvVQsxmCHp8CGnCLVKga', a11y: 'Request an address change', cta: 'Request a change', locked: true },
+        { title: 'Kitchen', k: 'Average preparation time', v: '20 minutes', href: 'https://claude.ai/artifact/VkGvVQsxmCHp8CGnCLVKga', a11y: 'Edit kitchen', cta: 'Edit' },
+        { title: 'About your restaurant', k: 'Description', v: 'Charcoal grills, shawarma and mezze from a family kitchen.', href: 'https://claude.ai/artifact/VkGvVQsxmCHp8CGnCLVKga', a11y: 'Edit about your restaurant', cta: 'Edit' },
+        { title: 'Tax', k: 'GST/HST number', v: '123456789RT0001', href: 'https://claude.ai/artifact/VkGvVQsxmCHp8CGnCLVKga', a11y: 'Edit tax details', cta: 'Edit' }
+      ].map(function (g) { return Object.assign({ locked: false }, g); }),
+      docs: [
+        ['Halal certificate', 'halal certificate', { halal: true, meta: 'Version 2 · Valid until 12 November 2026 · Reviewed 3 March 2026' }],
+        ['Business licence', 'business licence', { meta: 'Version 1 · Reviewed 3 March 2026', href: 'https://claude.ai/artifact/VkGvVQsxmCHp8CGnCLVKga' }],
+        ['Food safety certificate', 'food safety certificate', { meta: 'Version 1 · Valid until 30 June 2027 · Reviewed 3 March 2026', href: 'https://claude.ai/artifact/VkGvVQsxmCHp8CGnCLVKga' }],
+        ['Owner ID', 'owner ID', { meta: 'Version 1 · Valid until 4 May 2030 · Reviewed 3 March 2026', href: 'https://claude.ai/artifact/VkGvVQsxmCHp8CGnCLVKga' }]
+      ].map(function (x) {
+        var d = x[2];
+        return { name: x[0], tone: 'neutral', label: 'Approved', icon: 'check', meta: d.meta, isHalal: !!d.halal, canView: !d.halal, canUpload: !d.halal, uploadA11y: 'Upload new version: ' + x[1], viewLabel: 'View file: ' + x[1], href: d.href || null };
+      }),
+      cert: { display_state: halalState, certifying_body_name: 'HMA Canada', certificate_number: 'HMA-2025-03317', issued_on: '2025-11-12', expires_on: expires, verified_at: '2026-03-03', certificate_viewable: true, disclaimer: 'Certification verified by HalalGoes on 3 March 2026. HalalGoes does not itself certify food.' },
+      detailState: detailStates[s] ? detailStates[s][0] : 'HELD',
+      renewVariant: renewVariant,
+      docType: docType,
+      renewContext: 'renewal',
+      sheet: { show: !!sheetKind, title: SHEET_TITLE[sheetKind] || '', detail: sheetKind === 'detail', support: sheetKind === 'support', renew: sheetKind === 'renew', edit: sheetKind === 'edit', wn: sheetKind === 'wn' },
+      sheetFooter: footer
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Contact support body</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div style="width: {{w}}; min-height: {{hh}}; box-sizing: border-box; font-family: var(--font-ui); color: var(--text-primary); background: var(--surface-raised); display: flex; flex-direction: column; gap: 20px">
+<p style="margin: 0; font: var(--text-type-body-md); line-height: 1.5">{{intro}}</p>
+<div style="display: flex; flex-direction: column; gap: 8px; padding: 16px; border-radius: var(--radius-md); background: var(--surface-subtle)">
+<strong style="font: var(--text-type-label-lg)">Quote these so we can find you</strong>
+<dl style="margin: 0; display: grid; grid-template-columns: 140px minmax(0, 1fr); row-gap: 8px; column-gap: 12px; font: var(--text-type-body-md)">
+<dt style="color: var(--text-secondary)">Restaurant</dt><dd style="margin: 0">Zaytoun Grill</dd>
+<dt style="color: var(--text-secondary)">Restaurant ID</dt><dd style="margin: 0; font: var(--text-type-mono-md); font-family: var(--font-mono); overflow-wrap: anywhere">0191c2d6-3b21-7a10-8c00-7d1e2f3a4b00</dd>
+<sc-if value="{{hasPayout}}" hint-placeholder-val="{{false}}"><dt style="color: var(--text-secondary)">Payout reference</dt></sc-if>
+<sc-if value="{{hasPayout}}" hint-placeholder-val="{{false}}"><dd style="margin: 0; font: var(--text-type-mono-md); font-family: var(--font-mono); overflow-wrap: anywhere">{{payoutRef}}</dd></sc-if>
+<sc-if value="{{hasTopic}}" hint-placeholder-val="{{false}}"><dt style="color: var(--text-secondary)">About</dt></sc-if>
+<sc-if value="{{hasTopic}}" hint-placeholder-val="{{false}}"><dd style="margin: 0">{{topic}}</dd></sc-if>
+</dl>
+<div style="display: flex"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="sm">Copy these details</x-import></div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px; padding-top: 16px; border-top: 1px solid var(--border-decorative)">
+<h3 style="margin: 0; font: var(--text-type-heading-sm)">Email</h3>
+<span style="font: var(--text-type-body-md); line-height: 1.5">{{emailLine}}</span>
+<div style="display: flex"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="{{emailVariant}}" size="md" href="{{mailto}}">Email support@halalgoes.ca</x-import></div>
+<span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--feedback-info-tint-text); background: var(--feedback-info-tint)">Sample address · Needs API: support email address in PublicConfig · the subject line carries the details above</span>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px; padding-top: 16px; border-top: 1px solid var(--border-decorative)">
+<h3 style="margin: 0; font: var(--text-type-heading-sm)">Phone</h3>
+<span style="font: var(--text-type-body-md)">Every day, 10:00 am to 10:00 pm Eastern Time</span>
+<div style="display: flex"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" href="tel:+16475550100">Call (647) 555-0100</x-import></div>
+<span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">sample values · support_phone_e164 and support_hours from getPublicConfig · the whole Phone block is hidden when support_enabled is false</span>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px; padding: 16px; border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-md); background: var(--feedback-info-tint)">
+<span style="font: var(--text-type-label-lg); color: var(--feedback-info-tint-text)">Send a message from here and track the reply</span>
+<span style="font: var(--text-type-body-sm); color: var(--feedback-info-tint-text)">Needs API: restaurant support messages. Not designed as real until then.</span>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"context":{"editor":"enum","options":["general","payout","halal","account"],"default":"general"},"width":{"editor":"int","default":440},"height":{"editor":"int","default":820},"$preview":{"width":440,"height":820}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var c = this.props.context || 'general';
+    var TOPIC = { halal: 'Halal certificate already in use', account: 'Account status', payout: null, general: null };
+    var INTRO = {
+      general: 'Talk to a person at HalalGoes. Email or call; both reach the same team.',
+      payout: 'Talk to a person at HalalGoes about this payout. The payout reference is filled in for you.',
+      halal: "Tell us why this certificate is yours, and we look into it. Please don't email the certificate itself: upload it under Halal certification, where it stays private.",
+      account: 'Talk to a person at HalalGoes about your account status.'
+    };
+    var subj = { general: 'Zaytoun Grill (0191c2d6-3b21-7a10-8c00-7d1e2f3a4b00)', payout: 'Payout 0192f1c0-11aa-7e00-8b10-000000000002 – Zaytoun Grill', halal: 'Halal certificate already in use – Zaytoun Grill (0191c2d6-3b21-7a10-8c00-7d1e2f3a4b00)', account: 'Account status – Zaytoun Grill (0191c2d6-3b21-7a10-8c00-7d1e2f3a4b00)' }[c];
+    return {
+      w: (this.props.width || 440) + 'px',
+      hh: (this.props.height || 820) + 'px',
+      intro: INTRO[c],
+      hasPayout: c === 'payout',
+      payoutRef: '0192f1c0-11aa-7e00-8b10-000000000002',
+      hasTopic: !!TOPIC[c],
+      topic: TOPIC[c] || '',
+      emailLine: 'The subject line already carries the details above. Never attach certificates or ID to an email; upload them in Settings, where only HalalGoes reviewers can open them.',
+      emailVariant: 'tertiary',
+      mailto: 'mailto:support@halalgoes.ca?subject=' + encodeURIComponent(subj)
+    };
+  }
+}
+</script>
+</body>
+</html>

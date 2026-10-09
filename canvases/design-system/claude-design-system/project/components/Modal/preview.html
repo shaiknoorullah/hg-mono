@@ -1,0 +1,27 @@
+<!-- @dsCard group="Feedback" height=300 subtitle="dialog · confirm (alertdialog, focus on the least destructive action) · alert" -->
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Modal</title>
+<style>body{margin:0;padding:16px;background:var(--surface-base);color:var(--text-primary);font-family:var(--font-ui)}
+.row{display:flex;flex-wrap:wrap;align-items:center;gap:12px}.col{display:grid;gap:12px}.g2{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;align-items:start}
+.lbl{font-size:var(--type-label-sm-size);letter-spacing:var(--type-label-sm-tracking);font-weight:var(--font-weight-semibold);color:var(--text-tertiary);min-inline-size:88px}
+.stage{position:relative;block-size:280px;border:1px dashed var(--border-decorative);border-radius:var(--radius-lg);overflow:hidden;background:var(--surface-sunken)}</style>
+</head><body><div id="root"></div>
+<script>
+(function () {
+  var h = React.createElement, F = React.Fragment, DS = window.HalalGoesDesignSystem_d11a47;
+  function L(t) { return h('span', { className: 'lbl' }, t); }
+
+  function Demo() {
+    var s = React.useState('confirm'), open = s[0], setOpen = s[1];
+    return h('div', { className: 'col' },
+      h('div', { className: 'row' },
+        h(DS.Button, { variant: 'tertiary', onPress: function () { setOpen('dialog'); } }, 'Open dialog'),
+        h(DS.Button, { variant: 'tertiary', onPress: function () { setOpen('confirm'); } }, 'Open confirm'),
+        h(DS.Button, { variant: 'tertiary', onPress: function () { setOpen('alert'); } }, 'Open alert')),
+      h('div', { className: 'stage' },
+        h(DS.Modal, { contained: true, open: open === 'dialog', variant: 'dialog', title: 'Delivery instructions', description: 'Shown to your rider at the door.', onClose: function () { setOpen(null); }, actions: h(DS.Button, { onPress: function () { setOpen(null); } }, 'Save') }),
+        h(DS.Modal, { contained: true, open: open === 'confirm', variant: 'confirm', destructive: true, title: 'Cancel this order?', description: 'The authorisation on your card is released. This cannot be undone.', confirmLabel: 'Cancel order', cancelLabel: 'Keep order', onConfirm: function () { setOpen(null); }, onClose: function () { setOpen(null); } }),
+        h(DS.Modal, { contained: true, open: open === 'alert', variant: 'alert', title: 'Store closed', description: 'Zaytoun Grill stopped taking orders a moment ago.', onClose: function () { setOpen(null); } })));
+  }
+  ReactDOM.createRoot(document.getElementById('root')).render(h(Demo));
+})();
+</script></body></html>

@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Search rows at larger text</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:var(--color-neutral-100)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+.demo-focus .hg-focus,.demo-focus .hg-choice-ctl,.demo-focus .hg-row,.demo-focus > a{box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)!important}
+.demo-focus-field .hg-field{border-color:var(--focus-ring)!important;box-shadow:inset 0 0 0 calc(var(--focus-field-border-width) - 1px) var(--focus-ring)!important}
+
+</style>
+</helmet>
+<div style="width: 390px; height: 1700px; position: relative; overflow: hidden; display: flex; flex-direction: column; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+<div style="display: flex; flex-direction: column; gap: var(--space-5); padding: var(--space-4)">
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">Text size 1.3×</span>
+<div style="zoom: 1.3; width: 275px; display: flex; flex-direction: column; gap: 12px"><a href="Item-simple.dc.html" aria-label="Chicken shawarma wrap, 12 dollars and 49 cents, from Zaytoun Grill, Halal certified." style="min-height: 64px; display: flex; align-items: center; gap: var(--space-3); padding: var(--space-2) 0; border-bottom: 1px solid var(--border-decorative); text-decoration: none; color: var(--text-primary)">
+<div aria-hidden="true" style="width: 56px; height: 56px; flex-shrink: 0; border-radius: var(--radius-md); background: var(--surface-sunken); outline: 1.5px dotted var(--color-info-500); outline-offset: -3px"></div>
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: var(--space-1)">
+<strong style="font-size: var(--type-body-md-size); font-weight: 600">Chicken shawarma wrap</strong>
+<span style="display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; font-size: var(--type-body-sm-size); color: var(--text-secondary)">Zaytoun Grill<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.HalalBadge" state="CERTIFIED" size="sm" surface="card"></x-import></span>
+
+</div>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{c.wrap}}" size="md"></x-import>
+</a><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" radius="lg" href="Restaurant-open.dc.html" accessibility-label="Zaytoun Grill. Halal certified by Halal Monitoring Authority (HMA Canada). Levantine, Grill. Moderately priced. 25 to 35 minutes, 1.8 kilometres. Delivery about 2 dollars and 99 cents, estimate. Minimum order 15 dollars.">
+<div style="display: flex; gap: var(--space-3); align-items: flex-start">
+<div aria-hidden="true" style="width: 72px; height: 72px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border-radius: var(--radius-md); background: var(--surface-sunken)"><span style="font-size: var(--type-caption-size); font-weight: 600; color: var(--text-secondary)">No image</span></div>
+<div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--space-1)">
+<h3 style="margin: 0; font-size: var(--type-heading-sm-size); font-weight: 600">Zaytoun Grill</h3>
+<span style="font-size: var(--type-body-sm-size); color: var(--text-secondary)">Levantine · Grill · $$</span>
+<div style="display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.HalalBadge" state="CERTIFIED" size="sm" surface="card"></x-import><span style="font-size: var(--type-body-sm-size); color: var(--text-secondary)">Halal Monitoring Authority (HMA Canada)</span></div>
+<div style="display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; font-size: var(--type-body-sm-size); color: var(--text-secondary)"><span style="font-variant-numeric: tabular-nums">25–35 min · 1.8 km</span><span style="display: inline-flex; align-items: center; gap: var(--space-1)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{c.zfee}}" size="sm"></x-import>delivery</span><span style="display: inline-flex; align-items: center; gap: var(--space-1)">Min. <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{c.zmin}}" size="sm"></x-import></span></div>
+</div>
+</div>
+</x-import></div>
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">Text size 2.0× — name, restaurant and badge wrap; the price moves under the text, never truncates</span>
+<div style="zoom: 2; width: 179px; display: flex; flex-direction: column; gap: 12px"><a href="Item-simple.dc.html" aria-label="Chicken shawarma wrap, 12 dollars and 49 cents, from Zaytoun Grill, Halal certified." style="min-height: 64px; display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); padding: var(--space-2) 0; border-bottom: 1px solid var(--border-decorative); text-decoration: none; color: var(--text-primary)">
+<div aria-hidden="true" style="width: 56px; height: 56px; flex-shrink: 0; border-radius: var(--radius-md); background: var(--surface-sunken); outline: 1.5px dotted var(--color-info-500); outline-offset: -3px"></div>
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: var(--space-1)">
+<strong style="font-size: var(--type-body-md-size); font-weight: 600">Chicken shawarma wrap</strong>
+<span style="display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; font-size: var(--type-body-sm-size); color: var(--text-secondary)">Zaytoun Grill<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.HalalBadge" state="CERTIFIED" size="sm" surface="card"></x-import></span>
+
+</div>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{c.wrap}}" size="md"></x-import>
+</a><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" radius="lg" href="Restaurant-open.dc.html" accessibility-label="Zaytoun Grill. Halal certified by Halal Monitoring Authority (HMA Canada). Levantine, Grill. Moderately priced. 25 to 35 minutes, 1.8 kilometres. Delivery about 2 dollars and 99 cents, estimate. Minimum order 15 dollars.">
+<div style="display: flex; gap: var(--space-3); align-items: flex-start">
+<div aria-hidden="true" style="width: 72px; height: 72px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border-radius: var(--radius-md); background: var(--surface-sunken)"><span style="font-size: var(--type-caption-size); font-weight: 600; color: var(--text-secondary)">No image</span></div>
+<div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--space-1)">
+<h3 style="margin: 0; font-size: var(--type-heading-sm-size); font-weight: 600">Zaytoun Grill</h3>
+<span style="font-size: var(--type-body-sm-size); color: var(--text-secondary)">Levantine · Grill · $$</span>
+<div style="display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.HalalBadge" state="CERTIFIED" size="sm" surface="card"></x-import><span style="font-size: var(--type-body-sm-size); color: var(--text-secondary)">Halal Monitoring Authority (HMA Canada)</span></div>
+<div style="display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; font-size: var(--type-body-sm-size); color: var(--text-secondary)"><span style="font-variant-numeric: tabular-nums">25–35 min · 1.8 km</span><span style="display: inline-flex; align-items: center; gap: var(--space-1)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{c.zfee}}" size="sm"></x-import>delivery</span><span style="display: inline-flex; align-items: center; gap: var(--space-1)">Min. <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Price" cents="{{c.zmin}}" size="sm"></x-import></span></div>
+</div>
+</div>
+</x-import></div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1700}}'>
+class Component extends DCLogic {
+renderVals() {
+return {
+yes: true,
+no: false,
+none: null,
+zero: 0,
+two: 2,
+noop: function () {},
+nav: [
+{ key: 'home', label: 'Home', icon: 'home' },
+{ key: 'search', label: 'Search', icon: 'search' },
+{ key: 'orders', label: 'Orders', icon: 'orders' },
+{ key: 'account', label: 'Account', icon: 'profile' }
+],
+c: { zfee: 299, zmin: 1500, kfee: 399, kmin: 2000, nfee: 499, nmin: 1500, wrap: 1249, plate: 1699, beef: 1450, toum: 399, naan: 349, tikka: 1599 }
+};
+}
+}
+</script>
+</body>
+</html>

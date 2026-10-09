@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Side navigation</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<nav aria-label="Admin" data-collapsed="{{collapsedAttr}}" style="width: {{wpx}}; height: {{h}}px; box-sizing: border-box; display: flex; flex-direction: column; background: var(--surface-chrome); color: var(--text-on-accent); font-family: var(--font-ui); position: relative">
+  <sc-if value="{{expanded}}" hint-placeholder-val="{{true}}">
+    <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; padding: 12px 8px 8px 20px">
+      <div style="display: flex; flex-direction: column; gap: 4px">
+        <div data-gap="Wordmark" role="img" aria-label="HalalGoes" style="width: 96px; height: 32px; box-sizing: border-box; border: 1px dashed var(--text-on-accent); border-radius: 4px"></div>
+        <span style="font-size: 13px; color: var(--text-on-accent)">Operations · Ontario</span>
+      </div>
+      <button type="button" class="hg-focus hg-on-accent" aria-label="Collapse the navigation" aria-expanded="true" style="display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border: 0; border-radius: 8px; background: transparent; color: var(--text-on-accent); cursor: pointer"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="back" size="md"></x-import></button>
+    </div>
+    <div style="flex-grow: 1; min-height: 0; display: flex; flex-direction: column; gap: 12px; padding: 4px 12px; overflow: auto">
+      <sc-for list="{{groups}}" as="g" hint-placeholder-count="3">
+        <div style="display: flex; flex-direction: column; gap: 2px">
+          <h2 style="margin: 0 0 2px; padding: 0 12px; font-size: 13px; font-weight: 600; color: var(--text-on-accent)">{{g.name}}</h2>
+          <sc-for list="{{g.items}}" as="it" hint-placeholder-count="3">
+            <sc-if value="{{it.inCanvas}}" hint-placeholder-val="{{true}}">
+            <a href="{{it.href}}" aria-current="{{it.current}}" class="hg-focus hg-on-accent" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 44px; padding: 0 12px; border-radius: 8px; text-decoration: none; background: {{it.bg}}; color: {{it.fg}}; font-size: 15px; font-weight: {{it.fw}}; box-shadow: {{it.ring}}">
+              <span style="display: inline-flex; align-items: center; gap: 10px"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="{{it.icon}}" weight="{{it.weight}}" size="md"></x-import>{{it.label}}<sc-if value="{{it.hasCount}}" hint-placeholder-val="{{false}}"><span class="hg-sr">, {{it.countLabel}}</span></sc-if></span>
+              <sc-if value="{{it.hasCount}}" hint-placeholder-val="{{false}}">
+                <span aria-hidden="true"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="neutral" appearance="solid" size="sm" max="{{ninetyNine}}">{{it.count}}</x-import></span>
+              </sc-if>
+            </a>
+            </sc-if>
+            <sc-if value="{{it.outside}}" hint-placeholder-val="{{false}}">
+            <span style="display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 44px; padding: 0 12px; color: var(--text-on-accent); font-size: 15px; font-weight: 500">
+              <span style="display: inline-flex; align-items: center; gap: 10px"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="{{it.icon}}" size="md"></x-import>{{it.label}}</span>
+              <span style="display: inline-flex; padding: 2px 6px; border-radius: 4px; background: var(--color-info-50); color: var(--color-info-700); font-size: 12px; font-weight: 600">Other canvas</span>
+            </span>
+            </sc-if>
+          </sc-for>
+        </div>
+      </sc-for>
+    </div>
+    <div style="padding: 10px 20px 12px; border-top: 1px solid var(--border-strong); display: flex; flex-direction: column; gap: 4px">
+      <span style="font-size: 13px; color: var(--text-on-accent)">Signed in as</span>
+      <span style="font-size: 15px; font-weight: 600; color: var(--text-on-accent)">{{who}}</span>
+      <sc-if value="{{isSupport}}" hint-placeholder-val="{{false}}">
+        <span style="display: inline-flex; align-self: flex-start; padding: 2px 8px; border-radius: 4px; background: var(--surface-sunken); color: var(--text-primary); border: 1px solid var(--border-strong); font-size: 12px; font-weight: 600">Needs API: own name on /auth/me (support agents)</span>
+      </sc-if>
+      <button type="button" class="hg-focus hg-on-accent" style="display: inline-flex; align-items: center; align-self: flex-start; min-height: 44px; padding: 0 12px; margin-left: -12px; border: 0; border-radius: 8px; background: transparent; color: var(--text-on-accent); font: inherit; font-size: 15px; font-weight: 600; cursor: pointer">Sign out</button>
+    </div>
+  </sc-if>
+  <sc-if value="{{collapsed}}" hint-placeholder-val="{{false}}">
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 10px 0 8px">
+      <button type="button" class="hg-focus hg-on-accent" aria-label="Expand the navigation" aria-expanded="false" style="display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border: 0; border-radius: 8px; background: transparent; color: var(--text-on-accent); cursor: pointer"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="menu" size="md"></x-import></button>
+      <div data-gap="Wordmark" role="img" aria-label="HalalGoes" style="width: 36px; height: 24px; box-sizing: border-box; border: 1px dashed var(--text-on-accent); border-radius: 4px"></div>
+    </div>
+    <ul aria-label="Pages" style="flex-grow: 1; min-height: 0; margin: 0; padding: 4px 0; list-style: none; display: flex; flex-direction: column; align-items: center; gap: 4px; overflow: auto">
+      <sc-for list="{{flat}}" as="it" hint-placeholder-count="6">
+        <li style="position: relative">
+          <sc-if value="{{it.inCanvas}}" hint-placeholder-val="{{true}}">
+            <a href="{{it.href}}" aria-current="{{it.current}}" aria-label="{{it.railLabel}}" title="{{it.label}}" class="hg-focus hg-on-accent" style="display: flex; align-items: center; justify-content: center; width: 48px; height: 44px; box-sizing: border-box; border-radius: 8px; color: {{it.fg}}; background: {{it.bg}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="{{it.icon}}" weight="{{it.weight}}" size="md"></x-import></a>
+          </sc-if>
+          <sc-if value="{{it.outside}}" hint-placeholder-val="{{false}}">
+            <span aria-label="{{it.label}}, on another canvas" title="{{it.label}}" style="display: flex; align-items: center; justify-content: center; width: 48px; height: 44px; color: var(--text-on-accent)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="{{it.icon}}" size="md"></x-import></span>
+          </sc-if>
+          <sc-if value="{{it.hasCount}}" hint-placeholder-val="{{false}}">
+            <span aria-hidden="true" style="position: absolute; top: -2px; right: -4px"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="neutral" appearance="solid" size="sm" max="{{ninetyNine}}">{{it.count}}</x-import></span>
+          </sc-if>
+        </li>
+      </sc-for>
+    </ul>
+    <div style="display: flex; flex-direction: column; align-items: center; padding: 8px 0 12px; border-top: 1px solid var(--border-strong)">
+      <button type="button" class="hg-focus hg-on-accent" aria-label="Sign out, {{whoShort}}" title="Sign out" style="display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 44px; border: 0; border-radius: 8px; background: transparent; color: var(--text-on-accent); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer">{{initials}}</button>
+    </div>
+  </sc-if>
+</nav>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"active":{"editor":"enum","options":["applications","find","riders","halal","bodies","menu","changes","orders","alerts","none"],"default":"applications"},"role":{"editor":"enum","options":["ADMIN","SUPER_ADMIN","SUPPORT_AGENT"],"default":"ADMIN"},"collapsed":{"editor":"boolean","default":false},"focus":{"editor":"enum","options":["none","applications","find","riders","halal","bodies","menu","changes","orders","alerts"],"default":"none"},"h":{"editor":"int","default":900},"restaurants":{"editor":"int","default":5},"$preview":{"width":264,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const active = this.props.active ?? 'applications';
+    const focus = this.props.focus ?? 'none';
+    const role = this.props.role ?? 'ADMIN';
+    const collapsed = !!this.props.collapsed;
+    const support = role === 'SUPPORT_AGENT';
+    const superAdmin = role === 'SUPER_ADMIN';
+    const r = this.props.restaurants ?? 5;
+    // Selected on chrome: the item inverts. Its fill takes the chrome's ink (--text-on-accent) and its
+    // label and icon take the chrome colour (--surface-chrome), with bold weight, the bold Solar weight
+    // and aria-current="page". 12.2:1 tile against the chrome; 12.2:1 label on the tile.
+    // Focus on chrome flips the ring to --focus-on-color.
+    // Launch scope (owner decision, round 2): Menu reviews ship at launch with restaurant self-editing, and
+    // restaurant profile changes are reviewed here too. My sessions stays a later version. Staff is on its own canvas.
+    const item = (key, label, href, icon, count, noun) => ({
+      label, href, icon,
+      current: key === active ? 'page' : undefined,
+      fw: key === active ? '700' : '500',
+      weight: key === active ? 'bold' : 'linear',
+      inCanvas: href !== '#', outside: href === '#',
+      bg: key === active ? 'var(--text-on-accent)' : 'transparent',
+      fg: key === active ? 'var(--surface-chrome)' : 'var(--text-on-accent)',
+      ring: key === focus ? '0 0 0 2px var(--action-secondary), 0 0 0 5px var(--focus-on-color)' : 'none',
+      hasCount: typeof count === 'number' && count > 0,
+      count, countLabel: count + ' ' + noun,
+      railLabel: label + (typeof count === 'number' && count > 0 ? ', ' + count + ' ' + noun : ''),
+    });
+    const review = [
+      item('find', 'Find a restaurant', 'Find.dc.html', 'search'),
+      item('applications', 'Restaurant applications', 'Queue.dc.html', 'orders', r, 'waiting'),
+    ];
+    // Owner decision (round 2): support agents have no rider queue; they open a rider's application from its support case.
+    if (!support) review.push(item('riders', 'Rider applications', '#', 'profile'));
+    if (!support) review.push(item('halal', 'Halal certificates', 'Halal-Register.dc.html', 'check'));
+    review.push(item('bodies', 'Issuing bodies', 'Bodies.dc.html', 'info'));
+    if (!support) review.push(item('menu', 'Menu reviews', 'MenuReview.dc.html', 'orders'));
+    if (!support) review.push(item('changes', 'Profile changes', 'ProfileChanges.dc.html', 'home'));
+    const operate = [item('orders', 'Orders', '#', 'cart'), item('alerts', 'Live alerts', '#', 'bell')];
+    // Platform (owner decision, round 2): Staff for admins and super admins, Your account for every role. Both on other canvases.
+    const platform = [];
+    if (!support) platform.push(item('staff', 'Staff', '#', 'profile'));
+    platform.push(item('account', 'Your account', '#', 'profile'));
+    const who = superAdmin ? 'Farida Haddad · Super admin' : support ? 'Support agent' : 'Aminah Rahman · Admin';
+    return {
+      h: this.props.h ?? 900,
+      wpx: collapsed ? '64px' : '264px',
+      collapsed, expanded: !collapsed, collapsedAttr: collapsed ? 'true' : 'false',
+      ninetyNine: 99,
+      who, whoShort: superAdmin ? 'Farida Haddad' : support ? 'support agent' : 'Aminah Rahman',
+      initials: superAdmin ? 'FH' : support ? 'SA' : 'AR',
+      isSupport: support,
+      groups: [{ name: 'Review', items: review }, { name: 'Operate', items: operate }, { name: 'Platform', items: platform }],
+      flat: review.concat(operate, platform),
+    };
+  }
+}
+</script>
+</body>
+</html>

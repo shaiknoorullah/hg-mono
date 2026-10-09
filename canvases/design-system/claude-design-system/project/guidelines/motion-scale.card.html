@@ -1,0 +1,26 @@
+<!-- @dsCard group="Spacing" viewport="700x330" name="Motion" subtitle="Durations, easings, and the one place easing is forbidden" -->
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Motion</title>
+<link rel="stylesheet" href="../styles.css">
+<style>body{margin:0;padding:16px 18px;background:var(--surface-base);font-family:var(--font-ui);height:330px;box-sizing:border-box;overflow:hidden}
+.row{display:flex;gap:10px}.col{display:grid;gap:8px}
+.k{font-size:var(--type-label-sm-size);letter-spacing:var(--type-label-sm-tracking);font-weight:600;color:var(--text-tertiary)}
+.note{font-size:11px;line-height:1.4;color:var(--text-tertiary)}
+.mono{font-family:var(--font-mono);font-size:10px}
+</style></head><body>
+<style>
+@keyframes slide{0%,12%{transform:translateX(0)}70%,100%{transform:translateX(148px)}}
+.t{height:12px;width:34px;border-radius:var(--radius-full);background:var(--color-accent-600);animation:slide 2.6s infinite}
+</style>
+<div class="col" style="gap:7px">
+
+  <div class="row" style="align-items:center;gap:10px"><span class="k" style="width:80px">instant</span><span class="mono" style="width:44px">75ms</span><span style="width:190px;background:var(--surface-sunken);border-radius:var(--radius-full);padding:2px"><span class="t" style="animation-duration:2.6s;animation-timing-function:cubic-bezier(.2,0,0,1)"></span></span><span class="note">standard</span></div>
+  <div class="row" style="align-items:center;gap:10px"><span class="k" style="width:80px">fast</span><span class="mono" style="width:44px">120ms</span><span style="width:190px;background:var(--surface-sunken);border-radius:var(--radius-full);padding:2px"><span class="t" style="animation-duration:2.6s;animation-timing-function:cubic-bezier(.2,0,0,1)"></span></span><span class="note">standard</span></div>
+  <div class="row" style="align-items:center;gap:10px"><span class="k" style="width:80px">base</span><span class="mono" style="width:44px">180ms</span><span style="width:190px;background:var(--surface-sunken);border-radius:var(--radius-full);padding:2px"><span class="t" style="animation-duration:2.6s;animation-timing-function:cubic-bezier(.2,0,0,1)"></span></span><span class="note">standard</span></div>
+  <div class="row" style="align-items:center;gap:10px"><span class="k" style="width:80px">moderate</span><span class="mono" style="width:44px">240ms</span><span style="width:190px;background:var(--surface-sunken);border-radius:var(--radius-full);padding:2px"><span class="t" style="animation-duration:2.6s;animation-timing-function:cubic-bezier(.2,0,0,1)"></span></span><span class="note">decelerate</span></div>
+  <div class="row" style="align-items:center;gap:10px"><span class="k" style="width:80px">slow</span><span class="mono" style="width:44px">320ms</span><span style="width:190px;background:var(--surface-sunken);border-radius:var(--radius-full);padding:2px"><span class="t" style="animation-duration:2.6s;animation-timing-function:cubic-bezier(.2,0,0,1)"></span></span><span class="note">standard</span></div>
+  <div class="row" style="align-items:center;gap:10px"><span class="k" style="width:80px">deliberate</span><span class="mono" style="width:44px">480ms</span><span style="width:190px;background:var(--surface-sunken);border-radius:var(--radius-full);padding:2px"><span class="t" style="animation-duration:2.6s;animation-timing-function:cubic-bezier(.2,0,0,1)"></span></span><span class="note">emphasized · step advance; the seal's first reveal with its card, apps only</span></div>
+  <div class="row" style="align-items:center;gap:10px"><span class="k" style="width:80px">spring</span><span class="mono" style="width:44px">easing</span><span style="width:190px;background:var(--surface-sunken);border-radius:var(--radius-full);padding:2px"><span class="t" style="animation-duration:2.6s;animation-timing-function:cubic-bezier(.34,1.56,.64,1)"></span></span><span class="note">marketing site only · slight overshoot · transform and opacity only, never layout</span></div>
+</div>
+<p class="note" style="margin:8px 0 0">Six easings: standard, decelerate, accelerate, emphasized, linear, and spring (marketing only). Countdowns and progress use linear only — easing a deadline misrepresents remaining time. Reduced motion collapses every duration to 0 and cross-fades; countdown numerals keep updating.</p>
+<p class="note" style="margin:6px 0 0"><strong>The seal never performs.</strong> In the apps it may appear with its card, but it never animates on scroll, never pulses, never shimmers. On halalgoes.com the seal never moves at all: no stamp, pulse, shimmer or ring-draw, in any state or at any breakpoint. A moving trust mark reads as an advertisement.</p>
+</body></html>

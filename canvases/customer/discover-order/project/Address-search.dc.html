@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Address search states</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:var(--color-neutral-100)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+.demo-focus .hg-focus,.demo-focus .hg-choice-ctl,.demo-focus .hg-row,.demo-focus > a{box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)!important}
+.demo-focus-field .hg-field{border-color:var(--focus-ring)!important;box-shadow:inset 0 0 0 calc(var(--focus-field-border-width) - 1px) var(--focus-ring)!important}
+</style>
+</helmet>
+<div style="width: 1298px; height: 916px; position: relative; overflow: hidden; display: flex; gap: 40px; padding: 24px; box-sizing: border-box; color: var(--text-primary); font-family: var(--font-ui); background: var(--surface-sunken)">
+<div style="display: flex; flex-direction: column; gap: var(--space-2)"><span style="font-family: var(--font-mono); font-size: 12px; font-weight: 600; color: var(--text-secondary)">Typing: suggestions</span>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; display: flex; flex-direction: column; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui); border-radius: var(--radius-sm); outline: 1px solid var(--border-decorative)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="cream" title="Add an address" back-label="Back" on-back="{{noop}}"></x-import>
+<div class="demo-focus-field" style="padding: var(--space-3) var(--space-4); background: var(--surface-base)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Search for your address" variant="search" placeholder="Street and number, or a place" default-value="14 Elles"></x-import></div>
+<ul aria-label="Address suggestions" style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; background: var(--surface-base)">
+<li style="display: flex; flex-direction: column"><button type="button" style="width: 100%; min-height: 64px; display: flex; align-items: center; gap: var(--space-3); background: none; border: none; border-bottom: 1px solid var(--border-decorative); padding: 0 var(--space-4); text-align: left; font-family: inherit; color: var(--text-primary)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="map" size="md" color="var(--text-secondary)"></x-import><span style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px"><span style="font-size: var(--type-body-md-size); font-weight: 600">14 Ellesmere Rd</span><span style="font-size: var(--type-body-sm-size); color: var(--text-secondary)">Toronto ON M1R 4E7</span></span></button></li>
+<li style="display: flex; flex-direction: column"><button type="button" style="width: 100%; min-height: 64px; display: flex; align-items: center; gap: var(--space-3); background: none; border: none; border-bottom: 1px solid var(--border-decorative); padding: 0 var(--space-4); text-align: left; font-family: inherit; color: var(--text-primary)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="map" size="md" color="var(--text-secondary)"></x-import><span style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px"><span style="font-size: var(--type-body-md-size); font-weight: 600">14 Ellesmere Rd</span><span style="font-size: var(--type-body-sm-size); color: var(--text-secondary)">Scarborough ON M1P 2V4</span></span></button></li>
+<li style="display: flex; flex-direction: column"><button type="button" style="width: 100%; min-height: 64px; display: flex; align-items: center; gap: var(--space-3); background: none; border: none; border-bottom: 1px solid var(--border-decorative); padding: 0 var(--space-4); text-align: left; font-family: inherit; color: var(--text-primary)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="map" size="md" color="var(--text-secondary)"></x-import><span style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px"><span style="font-size: var(--type-body-md-size); font-weight: 600">1400 Ellesmere Rd</span><span style="font-size: var(--type-body-sm-size); color: var(--text-secondary)">Toronto ON M1P 2X5</span></span></button></li>
+</ul>
+<p role="status" aria-live="polite" style="margin: 0; padding: var(--space-2) var(--space-4); font-size: var(--type-body-sm-size); color: var(--text-secondary)">3 suggestions in Canada</p>
+<div style="padding: 0 var(--space-4) var(--space-2)"><span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--color-info-700); background: var(--color-info-50); border: 1px dashed var(--color-info-500)">Proposed component: AddressSuggestionList: DS Input (search) plus a plain list (ul, "Address suggestions") of 64 px suggestion buttons with a map Icon, on React Native Reusables. Not a listbox: each suggestion is an ordinary button in tab order, and the count is announced once in a polite status ("3 suggestions").</span></div>
+<div style="padding: 0 var(--space-4); display: flex; flex-direction: column; gap: var(--space-1)"><span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">Needs API: address search on the map: suggestions, place details and reverse geocoding. Owner decision (1 October): these move into launch as three operations on our server, which forwards to Mapbox (the spec names /geo/autocomplete, /geo/place and /geo/reverse). They are not in the contract yet; until they are, the typed search cannot fill the address. Reverse geocoding for saved addresses uses Mapbox permanent geocoding (results are stored).</span><span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">Choosing a suggestion moves the map and the pin there; the customer can still drag the pin before Use this location.</span></div>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: var(--space-2)"><span style="font-family: var(--font-mono); font-size: 12px; font-weight: 600; color: var(--text-secondary)">No matches</span>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; display: flex; flex-direction: column; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui); border-radius: var(--radius-sm); outline: 1px solid var(--border-decorative)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="cream" title="Add an address" back-label="Back" on-back="{{noop}}"></x-import>
+<div style="padding: var(--space-3) var(--space-4); background: var(--surface-base)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Search for your address" variant="search" placeholder="Street and number, or a place" default-value="88 Nowhere Cres"></x-import></div>
+<div role="status" style="display: flex; flex-direction: column; align-items: center; gap: var(--space-3); padding: var(--space-8) var(--space-4); text-align: center"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="search" size="2xl" color="var(--text-secondary)"></x-import><h2 style="margin: 0; font-size: var(--type-heading-lg-size); font-weight: 600">No matches for "88 Nowhere Cres"</h2><p style="margin: 0; font-size: var(--type-body-md-size); line-height: var(--type-body-md-line); color: var(--text-secondary)">Check the spelling, drag the pin on the map, or enter the address yourself.</p><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" full-width="{{yes}}" href="Address-add.dc.html">Place the pin on the map</x-import><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="md" full-width="{{yes}}" href="Address-manual.dc.html">Enter the address yourself</x-import><span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--color-info-700); background: var(--color-info-50)">Component gap: EmptyState</span></div>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: var(--space-2)"><span style="font-family: var(--font-mono); font-size: 12px; font-weight: 600; color: var(--text-secondary)">Search unavailable</span>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; display: flex; flex-direction: column; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui); border-radius: var(--radius-sm); outline: 1px solid var(--border-decorative)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="cream" title="Add an address" back-label="Back" on-back="{{noop}}"></x-import>
+<div style="padding: var(--space-3) var(--space-4); background: var(--surface-base)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Search for your address" variant="search" placeholder="Street and number, or a place" default-value="14 Ellesmere"></x-import></div>
+<div style="padding: 0 var(--space-4)"><div role="status" style="display: flex; gap: var(--space-3); align-items: flex-start; padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); background: var(--surface-raised); border: 1px solid var(--border-interactive)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="warning" size="md" color="var(--text-secondary)"></x-import>
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: var(--space-2)">
+<strong style="font-size: var(--type-label-lg-size); color: var(--text-primary)">Address search isn't working right now</strong>
+<span style="font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-line); color: var(--text-primary)">Drag the pin to your door, or enter the address yourself. Nothing you typed is lost.</span>
+<span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--color-info-700); background: var(--color-info-50)">Component gap: Banner</span>
+</div>
+</div></div>
+<div role="application" aria-label="Map. The pin is on the default address. Drag the map to move the pin; arrow keys move it 5 metres." tabindex="0" style="height: 300px; flex-shrink: 0; position: relative; display: flex; align-items: center; justify-content: center; background: var(--surface-sunken); outline: 1.5px dotted var(--color-info-500); outline-offset: -3px">
+<div aria-hidden="true" style="display: flex; flex-direction: column; align-items: center; gap: 2px">
+<div style="width: 36px; height: 36px; border-radius: var(--radius-full) var(--radius-full) var(--radius-full) 0; transform: rotate(-45deg); background: var(--action-primary); border: 3px solid var(--surface-raised); box-shadow: var(--elev-2)"></div>
+<div style="width: 10px; height: 4px; border-radius: var(--radius-full); background: var(--text-secondary); opacity: 0.5"></div>
+</div>
+<span style="position: absolute; top: 8px; left: 8px; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--color-info-700); background: var(--color-info-50)">Component gap: MapPicker (draggable pin; the Solar map-point glyph is not in the DS icon set yet). Mapbox wordmark bottom-left and attribution (i) control must stay visible; never covered by sheets, cards or zoom buttons (move zoom controls up 32 px).</span>
+
+</div>
+<div style="padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-2)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg" full-width="{{yes}}" href="Address-confirm-pin.dc.html">Use this location</x-import><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="md" full-width="{{yes}}" href="Address-manual.dc.html">Enter the address yourself</x-import><span style="align-self: flex-start; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: var(--radius-xs); color: var(--text-on-inverse); background: var(--surface-inverse)">Search provider down or rate-limited: address entry never becomes impossible. The pin and the manual form still work.</span></div>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1298,"height":916}}'>
+class Component extends DCLogic {
+renderVals() {
+return {
+yes: true,
+no: false,
+none: null,
+zero: 0,
+two: 2,
+three: 3,
+noop: function () {},
+nav: [
+{ key: 'home', label: 'Home', icon: 'home' },
+{ key: 'search', label: 'Search', icon: 'search' },
+{ key: 'orders', label: 'Orders', icon: 'orders' },
+{ key: 'account', label: 'Account', icon: 'profile' }
+],
+c: { zfee: 299, zmin: 1500, kfee: 399, kmin: 2000, nfee: 499, nmin: 1500, fee: 299, min: 1500, grill: 2499, adana: 2199, wrap: 1249, falafel: 1099, karahi: 1899, plate: 1650, lahmacun: 950, tikka: 1599, koob: 2250, mandi: 2299 },
+sortItems: [
+{ key: 'recommended', label: 'Recommended' },
+{ key: 'eta', label: 'Delivery time' },
+{ key: 'distance', label: 'Distance' }
+]
+};
+}
+}
+</script>
+</body>
+</html>

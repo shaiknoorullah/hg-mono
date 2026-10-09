@@ -1,0 +1,1415 @@
+{
+ "v": 3,
+ "attachments": {},
+ "boards": {
+  "DecisionAlreadyDecided.dc.html": {
+   "h": 900,
+   "title": "Decision — already decided (409)",
+   "w": 1440,
+   "x": 1520,
+   "y": 6600
+  },
+  "DecisionApprove.dc.html": {
+   "h": 900,
+   "title": "Approve rider panel — default: valid, confirm on (drawn after the approval contract change)",
+   "w": 1440,
+   "x": 15200,
+   "y": 5280
+  },
+  "DecisionApproveAge422.dc.html": {
+   "h": 900,
+   "title": "Approve rider panel — server says under 18",
+   "w": 1440,
+   "x": 21280,
+   "y": 5280
+  },
+  "DecisionApproveFailed.dc.html": {
+   "h": 900,
+   "title": "Approve rider panel — failed, message kept (after the contract change)",
+   "w": 1440,
+   "x": 19760,
+   "y": 5280
+  },
+  "DecisionApproveInvalid.dc.html": {
+   "h": 900,
+   "title": "Approve rider panel — message too short (after the contract change)",
+   "w": 1440,
+   "x": 16720,
+   "y": 5280
+  },
+  "DecisionApproveSubmitting.dc.html": {
+   "h": 900,
+   "title": "Approve rider panel — submitting (after the contract change)",
+   "w": 1440,
+   "x": 18240,
+   "y": 5280
+  },
+  "DecisionApproved.dc.html": {
+   "h": 900,
+   "title": "Decision — approved, payout pending (after the contract change)",
+   "w": 1440,
+   "x": 3040,
+   "y": 6600
+  },
+  "DecisionChangesRequested.dc.html": {
+   "h": 900,
+   "title": "Decision — changes requested (what was sent)",
+   "w": 1440,
+   "x": 6080,
+   "y": 6600
+  },
+  "DecisionDeactivated.dc.html": {
+   "h": 900,
+   "title": "Decision — attempt 4 rejected, account deactivated (only support can re-open)",
+   "w": 1440,
+   "x": 9120,
+   "y": 6600
+  },
+  "DecisionOutcomeTakeNextEmpty.dc.html": {
+   "h": 900,
+   "title": "Decision — Take next from the outcome found nothing",
+   "w": 1440,
+   "x": 4560,
+   "y": 6600
+  },
+  "DecisionPreconditionNotMet.dc.html": {
+   "h": 900,
+   "title": "Decision — not approved: work eligibility re-uploaded (422)",
+   "w": 1440,
+   "x": 0,
+   "y": 6600
+  },
+  "DecisionReject.dc.html": {
+   "h": 900,
+   "title": "Reject application panel — default (no reason, empty message)",
+   "w": 1440,
+   "x": 30400,
+   "y": 5280
+  },
+  "DecisionRejectChanged.dc.html": {
+   "h": 900,
+   "title": "Reject application panel — not sent: application changed (422), message kept",
+   "w": 1440,
+   "x": 53200,
+   "y": 5280
+  },
+  "DecisionRejectClaimEnded.dc.html": {
+   "h": 900,
+   "title": "Reject application panel — not sent: claim ended (409), message kept",
+   "w": 1440,
+   "x": 50160,
+   "y": 5280
+  },
+  "DecisionRejectDecided.dc.html": {
+   "h": 900,
+   "title": "Reject application panel — not sent: already decided (409), message kept",
+   "w": 1440,
+   "x": 51680,
+   "y": 5280
+  },
+  "DecisionRejectDocument.dc.html": {
+   "h": 900,
+   "title": "Reject document panel — default (legibility check fails; no reason preselected, note starts empty)",
+   "w": 1440,
+   "x": 0,
+   "y": 5280
+  },
+  "DecisionRejectDocumentCommercial.dc.html": {
+   "h": 900,
+   "title": "Reject document panel — commercial use excluded (insert my note to the rider)",
+   "w": 1440,
+   "x": 7600,
+   "y": 5280
+  },
+  "DecisionRejectDocumentExpired.dc.html": {
+   "h": 900,
+   "title": "Reject document panel — under 14 days, Expired preselected",
+   "w": 1440,
+   "x": 6080,
+   "y": 5280
+  },
+  "DecisionRejectDocumentFailed.dc.html": {
+   "h": 900,
+   "title": "Reject document panel — failed, note kept",
+   "w": 1440,
+   "x": 10640,
+   "y": 5280
+  },
+  "DecisionRejectDocumentForgery.dc.html": {
+   "h": 900,
+   "title": "Flag suspected forgery panel — check recorded as Fail, note for the Super Admin, claim released",
+   "w": 1440,
+   "x": 4560,
+   "y": 5280
+  },
+  "DecisionRejectDocumentInvalid.dc.html": {
+   "h": 900,
+   "title": "Reject document panel — no reason chosen (focused, invalid)",
+   "w": 1440,
+   "x": 1520,
+   "y": 5280
+  },
+  "DecisionRejectDocumentOffline.dc.html": {
+   "h": 900,
+   "title": "Reject document panel — offline, not sent",
+   "w": 1440,
+   "x": 12160,
+   "y": 5280
+  },
+  "DecisionRejectDocumentOtherShort.dc.html": {
+   "h": 900,
+   "title": "Reject document panel — Other note too short",
+   "w": 1440,
+   "x": 3040,
+   "y": 5280
+  },
+  "DecisionRejectDocumentPlate.dc.html": {
+   "h": 900,
+   "title": "Reject document panel — registration, plate doesn’t match (reasons filtered by doc type)",
+   "w": 1440,
+   "x": 41040,
+   "y": 5280
+  },
+  "DecisionRejectDocumentSubmitting.dc.html": {
+   "h": 900,
+   "title": "Reject document panel — submitting",
+   "w": 1440,
+   "x": 9120,
+   "y": 5280
+  },
+  "DecisionRejectFailed.dc.html": {
+   "h": 900,
+   "title": "Reject application panel — failed, message kept",
+   "w": 1440,
+   "x": 38000,
+   "y": 5280
+  },
+  "DecisionRejectFinal.dc.html": {
+   "h": 900,
+   "title": "Reject application panel — attempt 4 of 4: rejecting deactivates (fixable-reason callout shown)",
+   "w": 1440,
+   "x": 48640,
+   "y": 5280
+  },
+  "DecisionRejectInvalid.dc.html": {
+   "h": 900,
+   "title": "Reject application panel — no reason (focused), message too short",
+   "w": 1440,
+   "x": 34960,
+   "y": 5280
+  },
+  "DecisionRejectRemediable.dc.html": {
+   "h": 900,
+   "title": "Reject application panel — fixable reason, request changes instead",
+   "w": 1440,
+   "x": 33440,
+   "y": 5280
+  },
+  "DecisionRejectSubmitting.dc.html": {
+   "h": 900,
+   "title": "Reject application panel — submitting",
+   "w": 1440,
+   "x": 36480,
+   "y": 5280
+  },
+  "DecisionRejectUnder18.dc.html": {
+   "h": 900,
+   "title": "Reject application panel — under 18 on the ID: Date of birth doesn’t match",
+   "w": 1440,
+   "x": 39520,
+   "y": 5280
+  },
+  "DecisionRejected.dc.html": {
+   "h": 900,
+   "title": "Decision — application rejected (what was sent)",
+   "w": 1440,
+   "x": 7600,
+   "y": 6600
+  },
+  "DecisionRequestChanges.dc.html": {
+   "h": 900,
+   "title": "Request changes panel — default (your rejections pre-ticked)",
+   "w": 1440,
+   "x": 22800,
+   "y": 5280
+  },
+  "DecisionRequestChangesBicycle.dc.html": {
+   "h": 900,
+   "title": "Request changes panel — bicycle rider (Government ID set)",
+   "w": 1440,
+   "x": 24320,
+   "y": 5280
+  },
+  "DecisionRequestChangesChanged.dc.html": {
+   "h": 900,
+   "title": "Request changes panel — not sent: application changed (422), message kept",
+   "w": 1440,
+   "x": 47120,
+   "y": 5280
+  },
+  "DecisionRequestChangesClaimEnded.dc.html": {
+   "h": 900,
+   "title": "Request changes panel — not sent: claim ended (409), message kept",
+   "w": 1440,
+   "x": 44080,
+   "y": 5280
+  },
+  "DecisionRequestChangesDecided.dc.html": {
+   "h": 900,
+   "title": "Request changes panel — not sent: already decided (409), message kept",
+   "w": 1440,
+   "x": 45600,
+   "y": 5280
+  },
+  "DecisionRequestChangesFailed.dc.html": {
+   "h": 900,
+   "title": "Request changes panel — failed, message kept",
+   "w": 1440,
+   "x": 28880,
+   "y": 5280
+  },
+  "DecisionRequestChangesFinal.dc.html": {
+   "h": 900,
+   "title": "Request changes panel — attempt 3 of 4 (one last upload)",
+   "w": 1440,
+   "x": 42560,
+   "y": 5280
+  },
+  "DecisionRequestChangesInvalid.dc.html": {
+   "h": 900,
+   "title": "Request changes panel — nothing picked, message too short",
+   "w": 1440,
+   "x": 25840,
+   "y": 5280
+  },
+  "DecisionRequestChangesSubmitting.dc.html": {
+   "h": 900,
+   "title": "Request changes panel — submitting",
+   "w": 1440,
+   "x": 27360,
+   "y": 5280
+  },
+  "DecisionSuperAdmin.dc.html": {
+   "h": 900,
+   "title": "Super Admin — reverse rejection panel",
+   "w": 1440,
+   "x": 16720,
+   "y": 3960
+  },
+  "DecisionSupportReopen.dc.html": {
+   "h": 900,
+   "title": "Support — re-open panel (Needs API)",
+   "w": 1440,
+   "x": 7600,
+   "y": 3960
+  },
+  "DetailActive.dc.html": {
+   "h": 900,
+   "title": "Rider application — Active (decided, read only)",
+   "w": 1440,
+   "x": 30400,
+   "y": 2640
+  },
+  "DetailBicycle.dc.html": {
+   "h": 900,
+   "title": "Rider application — bicycle rider",
+   "w": 1440,
+   "x": 16720,
+   "y": 2640
+  },
+  "DetailChecksFail.dc.html": {
+   "h": 900,
+   "title": "Checklist — commercial use excluded (a check fails)",
+   "w": 1440,
+   "x": 10640,
+   "y": 2640
+  },
+  "DetailChecksForgery.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Checklist — “No sign of editing or forgery” fails (flag it for a Super Admin)",
+   "w": 1440,
+   "x": 48640,
+   "y": 2640
+  },
+  "DetailChecksPass.dc.html": {
+   "h": 900,
+   "title": "Checklist — all checks pass, Approve document on",
+   "w": 1440,
+   "x": 9120,
+   "y": 2640
+  },
+  "DetailClaimTakenWhileReading.dc.html": {
+   "h": 900,
+   "title": "Rider application — taken by another reviewer while you read",
+   "w": 1440,
+   "x": 12160,
+   "y": 1320
+  },
+  "DetailCopied.dc.html": {
+   "h": 900,
+   "title": "Rider application — rider ID copied (toast only)",
+   "w": 1440,
+   "x": 28880,
+   "y": 1320
+  },
+  "DetailDecide403.dc.html": {
+   "h": 900,
+   "title": "Rider application — role changed mid-claim (403 on review)",
+   "w": 1440,
+   "x": 27360,
+   "y": 1320
+  },
+  "DetailDoc404.dc.html": {
+   "h": 900,
+   "title": "Document — replaced while open (404), answers kept, open the new version",
+   "w": 1440,
+   "x": 42560,
+   "y": 2640
+  },
+  "DetailDocApproved.dc.html": {
+   "h": 900,
+   "title": "Document — approved, viewer moves to the next",
+   "w": 1440,
+   "x": 1520,
+   "y": 2640
+  },
+  "DetailDocFailed.dc.html": {
+   "h": 900,
+   "title": "Document — approve failed, answers and note kept",
+   "w": 1440,
+   "x": 6080,
+   "y": 2640
+  },
+  "DetailDocHistory.dc.html": {
+   "h": 900,
+   "title": "Documents — expired, superseded, under 14 days, compare (fits 900)",
+   "w": 1440,
+   "x": 15200,
+   "y": 2640
+  },
+  "DetailDocLockLost.dc.html": {
+   "h": 900,
+   "title": "Document — claim lost during review (Needs API 409)",
+   "w": 1440,
+   "x": 7600,
+   "y": 2640
+  },
+  "DetailDocRejected.dc.html": {
+   "h": 900,
+   "title": "Document — rejected, viewer moves to the next",
+   "w": 1440,
+   "x": 3040,
+   "y": 2640
+  },
+  "DetailDocSubmitting.dc.html": {
+   "h": 900,
+   "title": "Document — approving (pending, checklist read-only)",
+   "w": 1440,
+   "x": 0,
+   "y": 2640
+  },
+  "DetailEmailHiddenAgain.dc.html": {
+   "h": 900,
+   "title": "Email reveal — hidden again after 5 minutes",
+   "w": 1440,
+   "x": 39520,
+   "y": 3960
+  },
+  "DetailEmailReveal.dc.html": {
+   "h": 900,
+   "title": "Email reveal — reason (default)",
+   "w": 1440,
+   "x": 28880,
+   "y": 3960
+  },
+  "DetailEmailRevealFailed.dc.html": {
+   "h": 900,
+   "title": "Email reveal — failed (network)",
+   "w": 1440,
+   "x": 33440,
+   "y": 3960
+  },
+  "DetailEmailRevealInvalid.dc.html": {
+   "h": 900,
+   "title": "Email reveal — no reason chosen (focused, invalid)",
+   "w": 1440,
+   "x": 30400,
+   "y": 3960
+  },
+  "DetailEmailRevealRateLimited.dc.html": {
+   "h": 900,
+   "title": "Email reveal — rate limited (Needs API 429)",
+   "w": 1440,
+   "x": 36480,
+   "y": 3960
+  },
+  "DetailEmailRevealRefused.dc.html": {
+   "h": 900,
+   "title": "Email reveal — refused (403)",
+   "w": 1440,
+   "x": 34960,
+   "y": 3960
+  },
+  "DetailEmailRevealSubmitting.dc.html": {
+   "h": 900,
+   "title": "Email reveal — submitting",
+   "w": 1440,
+   "x": 31920,
+   "y": 3960
+  },
+  "DetailEmailRevealed.dc.html": {
+   "h": 900,
+   "title": "Email reveal — revealed (recorded)",
+   "w": 1440,
+   "x": 38000,
+   "y": 3960
+  },
+  "DetailError.dc.html": {
+   "h": 900,
+   "title": "Rider application — failed to load",
+   "w": 1440,
+   "x": 4560,
+   "y": 1320
+  },
+  "DetailForbidden.dc.html": {
+   "h": 900,
+   "title": "Rider application — no access (403)",
+   "w": 1440,
+   "x": 7600,
+   "y": 1320
+  },
+  "DetailForgeryHold.dc.html": {
+   "h": 900,
+   "title": "Rider application — suspected forgery hold (read-only; only a Super Admin decides)",
+   "w": 1440,
+   "x": 22800,
+   "y": 2640
+  },
+  "DetailInsuranceApproved.dc.html": {
+   "h": 900,
+   "title": "Insurance — approved with the commercial-use confirmation (recorded)",
+   "w": 1440,
+   "x": 12160,
+   "y": 2640
+  },
+  "DetailInsuranceRejected.dc.html": {
+   "h": 900,
+   "title": "Insurance — rejected, commercial use excluded (recorded)",
+   "w": 1440,
+   "x": 13680,
+   "y": 2640
+  },
+  "DetailLastDocApproveOn.dc.html": {
+   "h": 900,
+   "title": "Document — last one approved, focus on Approve rider (after the approval contract change)",
+   "w": 1440,
+   "x": 44080,
+   "y": 2640
+  },
+  "DetailLastDocApproved.dc.html": {
+   "h": 900,
+   "title": "Document — last one (work eligibility) approved, focus moves to the status line (approval not available yet)",
+   "w": 1440,
+   "x": 4560,
+   "y": 2640
+  },
+  "DetailLicence.dc.html": {
+   "h": 900,
+   "title": "Driver’s licence — full rider checklist, all answered",
+   "w": 1440,
+   "x": 34960,
+   "y": 2640
+  },
+  "DetailLicenceClassFail.dc.html": {
+   "h": 900,
+   "title": "Driver’s licence — class fails for a motorcycle rider",
+   "w": 1440,
+   "x": 36480,
+   "y": 2640
+  },
+  "DetailLinkExpired.dc.html": {
+   "h": 900,
+   "title": "Rider application — document link expired",
+   "w": 1440,
+   "x": 16720,
+   "y": 1320
+  },
+  "DetailLinkFailed.dc.html": {
+   "h": 900,
+   "title": "Rider application — document link refused (403)",
+   "w": 1440,
+   "x": 18240,
+   "y": 1320
+  },
+  "DetailLinkLoading.dc.html": {
+   "h": 900,
+   "title": "Rider application — getting a document link",
+   "w": 1440,
+   "x": 15200,
+   "y": 1320
+  },
+  "DetailLoading.dc.html": {
+   "h": 900,
+   "title": "Rider application — loading",
+   "w": 1440,
+   "x": 3040,
+   "y": 1320
+  },
+  "DetailLockLost.dc.html": {
+   "h": 900,
+   "title": "Rider application — claim lost (409): earlier document decisions kept",
+   "w": 1440,
+   "x": 22800,
+   "y": 1320
+  },
+  "DetailLockWarning.dc.html": {
+   "h": 900,
+   "title": "Rider application — claim ending (10 min or less)",
+   "w": 1440,
+   "x": 21280,
+   "y": 1320
+  },
+  "DetailLockedByOther.dc.html": {
+   "h": 900,
+   "title": "Rider application — claimed by another reviewer",
+   "w": 1440,
+   "x": 24320,
+   "y": 1320
+  },
+  "DetailNarrow1024.dc.html": {
+   "h": 900,
+   "title": "Rider application — 1024 px (nav collapsed, bar wraps)",
+   "w": 1024,
+   "x": 31760,
+   "y": 1320
+  },
+  "DetailNarrow1280.dc.html": {
+   "h": 900,
+   "title": "Rider application — 1280 px",
+   "w": 1280,
+   "x": 30400,
+   "y": 1320
+  },
+  "DetailNotFound.dc.html": {
+   "h": 900,
+   "title": "Rider application — not found (404)",
+   "w": 1440,
+   "x": 6080,
+   "y": 1320
+  },
+  "DetailOffline.dc.html": {
+   "h": 900,
+   "title": "Rider application — offline mid-review",
+   "w": 1440,
+   "x": 25840,
+   "y": 1320
+  },
+  "DetailOnFootAgeNotComputed.dc.html": {
+   "h": 900,
+   "title": "Rider application — on foot, age from an ID not yet approved",
+   "w": 1440,
+   "x": 18240,
+   "y": 2640
+  },
+  "DetailPayoutPending.dc.html": {
+   "h": 900,
+   "title": "Rider application — Payout pending (decided, read only)",
+   "w": 1440,
+   "x": 28880,
+   "y": 2640
+  },
+  "DetailPreSubmission.dc.html": {
+   "h": 900,
+   "title": "Rider application — Documents pending, no documents (no viewer, no bar)",
+   "w": 1440,
+   "x": 25840,
+   "y": 2640
+  },
+  "DetailReady.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Rider application — ready to decide (approval not available yet: needs the approval contract change)",
+   "w": 1440,
+   "x": 1520,
+   "y": 1320
+  },
+  "DetailRegistered.dc.html": {
+   "h": 900,
+   "title": "Rider application — Registered only",
+   "w": 1440,
+   "x": 27360,
+   "y": 2640
+  },
+  "DetailRegistration.dc.html": {
+   "h": 900,
+   "title": "Vehicle registration — checklist, owner consent doesn’t apply",
+   "w": 1440,
+   "x": 38000,
+   "y": 2640
+  },
+  "DetailRegistrationPlateMismatch.dc.html": {
+   "h": 900,
+   "title": "Vehicle registration — plate doesn’t match",
+   "w": 1440,
+   "x": 39520,
+   "y": 2640
+  },
+  "DetailReview.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Rider application — in review, claimed by you (1440 × 900)",
+   "w": 1440,
+   "x": 0,
+   "y": 1320
+  },
+  "DetailSessionExpired.dc.html": {
+   "h": 900,
+   "title": "Rider application — session expired (401)",
+   "w": 1440,
+   "x": 9120,
+   "y": 1320
+  },
+  "DetailSuperAdmin.dc.html": {
+   "h": 900,
+   "title": "Super Admin — rejected application, reverse and override (Needs API)",
+   "w": 1440,
+   "x": 13680,
+   "y": 3960
+  },
+  "DetailSuperClaim.dc.html": {
+   "h": 900,
+   "title": "Super Admin — another reviewer’s claim: release or reassign (Needs API)",
+   "w": 1440,
+   "x": 41040,
+   "y": 3960
+  },
+  "DetailSuperPast30.dc.html": {
+   "h": 900,
+   "title": "Super Admin — past the 30-day reversal window",
+   "w": 1440,
+   "x": 15200,
+   "y": 3960
+  },
+  "DetailSupportCase.dc.html": {
+   "h": 900,
+   "title": "Support — opened from a support case (limited read)",
+   "w": 1440,
+   "x": 1520,
+   "y": 3960
+  },
+  "DetailSupportError.dc.html": {
+   "h": 900,
+   "title": "Support — application failed to load",
+   "w": 1440,
+   "x": 4560,
+   "y": 3960
+  },
+  "DetailSupportLoading.dc.html": {
+   "h": 900,
+   "title": "Support — application loading",
+   "w": 1440,
+   "x": 3040,
+   "y": 3960
+  },
+  "DetailSupportReopen.dc.html": {
+   "h": 900,
+   "title": "Support — re-open a rejected application (Needs API)",
+   "w": 1440,
+   "x": 6080,
+   "y": 3960
+  },
+  "DetailSupportReopenRefused.dc.html": {
+   "h": 900,
+   "title": "Support — re-open refused (403)",
+   "w": 1440,
+   "x": 12160,
+   "y": 3960
+  },
+  "DetailSwitched.dc.html": {
+   "h": 900,
+   "title": "Rider application — Take next claimed a different application",
+   "w": 1440,
+   "x": 13680,
+   "y": 1320
+  },
+  "DetailTargetMissed.dc.html": {
+   "h": 900,
+   "title": "Rider application — review target missed (strip shows it)",
+   "w": 1440,
+   "x": 32864,
+   "y": 1320
+  },
+  "DetailUnclaimed.dc.html": {
+   "h": 900,
+   "title": "Rider application — opened from a row, unclaimed: queue, application and document side by side (checks folded)",
+   "w": 1440,
+   "x": 10640,
+   "y": 1320
+  },
+  "DetailUnder18.dc.html": {
+   "h": 900,
+   "title": "Rider application — ID gives age 17, date of birth doesn’t match the profile (check fails)",
+   "w": 1440,
+   "x": 19760,
+   "y": 2640
+  },
+  "DetailUnder18IdApproved.dc.html": {
+   "h": 900,
+   "title": "Rider application — ID rejected for date of birth, age 17 on the ID (Reject primary)",
+   "w": 1440,
+   "x": 45600,
+   "y": 2640
+  },
+  "DetailVehicleChanged.dc.html": {
+   "h": 900,
+   "title": "Rider application — vehicle type changed after submission",
+   "w": 1440,
+   "x": 24320,
+   "y": 2640
+  },
+  "DetailVehicleChangedAfterApproval.dc.html": {
+   "h": 900,
+   "title": "Rider application — vehicle changed after approval (forced offline)",
+   "w": 1440,
+   "x": 47120,
+   "y": 2640
+  },
+  "DetailViewerUnreadable.dc.html": {
+   "h": 900,
+   "title": "Rider application — file can’t be shown (damaged or unsupported, link fine)",
+   "w": 1440,
+   "x": 34384,
+   "y": 1320
+  },
+  "DetailWorkEligibilityCitizen.dc.html": {
+   "h": 900,
+   "title": "Work eligibility — citizen, expiry doesn’t apply (NOT_ASSESSED)",
+   "w": 1440,
+   "x": 41040,
+   "y": 2640
+  },
+  "DetailZoomed.dc.html": {
+   "h": 900,
+   "title": "Rider application — viewer at 200 %, rotated, scan focused",
+   "w": 1440,
+   "x": 19760,
+   "y": 1320
+  },
+  "FocusSpecimens.dc.html": {
+   "h": 1180,
+   "title": "Keyboard focus specimens (as the DS renders them)",
+   "w": 1440,
+   "x": 344,
+   "y": 7920
+  },
+  "ForcedColors.dc.html": {
+   "h": 900,
+   "title": "Forced colours (Windows high contrast) specimen",
+   "w": 1440,
+   "x": 1864,
+   "y": 7920
+  },
+  "Main.dc.html": {
+   "h": 900,
+   "is_interactive": true,
+   "title": "Rider queue — admin, populated (no claim held)",
+   "w": 1440,
+   "x": 0,
+   "y": 0
+  },
+  "PanelDecision.dc.html": {
+   "h": 740,
+   "title": "Proposed component: DetailPanel — application decision (shown alone, 924 × 740 slot)",
+   "w": 924,
+   "x": 580,
+   "y": 9520
+  },
+  "PanelRejectDocument.dc.html": {
+   "h": 740,
+   "title": "Proposed component: DetailPanel — reject document (shown alone, 500 × 740 slot)",
+   "w": 500,
+   "x": 0,
+   "y": 9520
+  },
+  "QueueAllStates.dc.html": {
+   "h": 900,
+   "title": "Rider queue — all 10 states and an ended claim",
+   "w": 1440,
+   "x": 33440,
+   "y": 0
+  },
+  "QueueClaimEnded.dc.html": {
+   "h": 900,
+   "title": "Rider queue — your claim ended while on the queue",
+   "w": 1440,
+   "x": 24320,
+   "y": 0
+  },
+  "QueueClaimEnding.dc.html": {
+   "h": 900,
+   "title": "Rider queue — your claim is about to end (1 min)",
+   "w": 1440,
+   "x": 22800,
+   "y": 0
+  },
+  "QueueDrained.dc.html": {
+   "h": 900,
+   "title": "Rider queue — Take next returned nothing (result banner)",
+   "w": 1440,
+   "x": 6080,
+   "y": 0
+  },
+  "QueueEmpty.dc.html": {
+   "h": 900,
+   "title": "Rider queue — nothing waiting for review (default filter)",
+   "w": 1440,
+   "x": 3040,
+   "y": 0
+  },
+  "QueueEndOfList.dc.html": {
+   "h": 900,
+   "title": "Rider queue — end of list (has_more false)",
+   "w": 1440,
+   "x": 43504,
+   "y": 0
+  },
+  "QueueError.dc.html": {
+   "h": 900,
+   "title": "Rider queue — failed to load",
+   "w": 1440,
+   "x": 9120,
+   "y": 0
+  },
+  "QueueFilterOpen.dc.html": {
+   "h": 900,
+   "title": "Rider queue — Onboarding state multi-select open (keyboard on an option)",
+   "w": 1440,
+   "x": 34960,
+   "y": 0
+  },
+  "QueueFiltered.dc.html": {
+   "h": 900,
+   "title": "Rider queue — state filter matches nothing",
+   "w": 1440,
+   "x": 4560,
+   "y": 0
+  },
+  "QueueForbidden.dc.html": {
+   "h": 900,
+   "title": "Rider queue — no access (403), including support agents",
+   "w": 1440,
+   "x": 13680,
+   "y": 0
+  },
+  "QueueHoldingClaim.dc.html": {
+   "h": 900,
+   "title": "Rider queue — you already hold a claim",
+   "w": 1440,
+   "x": 21280,
+   "y": 0
+  },
+  "QueueLoadMoreFailed.dc.html": {
+   "h": 900,
+   "title": "Rider queue — loading more rows failed (retry)",
+   "w": 1440,
+   "x": 41984,
+   "y": 0
+  },
+  "QueueLoading.dc.html": {
+   "h": 900,
+   "title": "Rider queue — loading",
+   "w": 1440,
+   "x": 1520,
+   "y": 0
+  },
+  "QueueLoadingMore.dc.html": {
+   "h": 900,
+   "title": "Rider queue — loading more rows",
+   "w": 1440,
+   "x": 31920,
+   "y": 0
+  },
+  "QueueNarrow1024.dc.html": {
+   "h": 900,
+   "title": "Rider queue — 1024 px (nav collapsed, Vehicle and Attempt folded into Applicant)",
+   "w": 1024,
+   "x": 40880,
+   "y": 0
+  },
+  "QueueNarrow1280.dc.html": {
+   "h": 900,
+   "title": "Rider queue — 1280 px",
+   "w": 1280,
+   "x": 39520,
+   "y": 0
+  },
+  "QueueOffline.dc.html": {
+   "h": 900,
+   "title": "Rider queue — offline",
+   "w": 1440,
+   "x": 10640,
+   "y": 0
+  },
+  "QueuePaged.dc.html": {
+   "h": 900,
+   "title": "Rider queue — more pages, no total",
+   "w": 1440,
+   "x": 30400,
+   "y": 0
+  },
+  "QueueRowFocus.dc.html": {
+   "h": 900,
+   "title": "Rider queue — keyboard focus on a row",
+   "w": 1440,
+   "x": 36480,
+   "y": 0
+  },
+  "QueueSessionExpired.dc.html": {
+   "h": 900,
+   "title": "Rider queue — session expired (401)",
+   "w": 1440,
+   "x": 12160,
+   "y": 0
+  },
+  "QueueTakeNextAllClaimed.dc.html": {
+   "h": 900,
+   "title": "Rider queue — Take next returned nothing, every row claimed by others",
+   "w": 1440,
+   "x": 7600,
+   "y": 0
+  },
+  "QueueTakeNextFailed.dc.html": {
+   "h": 900,
+   "title": "Rider queue — take next failed",
+   "w": 1440,
+   "x": 27360,
+   "y": 0
+  },
+  "QueueTakeNextPending.dc.html": {
+   "h": 900,
+   "title": "Rider queue — take next in progress",
+   "w": 1440,
+   "x": 25840,
+   "y": 0
+  },
+  "QueueTakeNextWhileHolding.dc.html": {
+   "h": 900,
+   "title": "Rider queue — take next while holding a claim",
+   "w": 1440,
+   "x": 28880,
+   "y": 0
+  },
+  "SideNav.dc.html": {
+   "h": 900,
+   "title": "Proposed component: SideNav (approved by the owner; expanded, focused link shown; folds to a 56 px rail on working pages",
+   "w": 264,
+   "x": 0,
+   "y": 7920
+  },
+  "SuperOverride.dc.html": {
+   "h": 900,
+   "title": "Super Admin — override document decision panel (beside the viewer, no decision preselected)",
+   "w": 1440,
+   "x": 22800,
+   "y": 3960
+  },
+  "SuperOverrideFailed.dc.html": {
+   "h": 900,
+   "title": "Super Admin — override panel, failed",
+   "w": 1440,
+   "x": 27360,
+   "y": 3960
+  },
+  "SuperOverrideInvalid.dc.html": {
+   "h": 900,
+   "title": "Super Admin — override panel, reason too short",
+   "w": 1440,
+   "x": 24320,
+   "y": 3960
+  },
+  "SuperOverrideNoDecision.dc.html": {
+   "h": 900,
+   "title": "Super Admin — override panel, nothing chosen (focus on the decision group)",
+   "w": 1440,
+   "x": 47120,
+   "y": 3960
+  },
+  "SuperOverrideReject.dc.html": {
+   "h": 900,
+   "title": "Super Admin — override panel, Rejected chosen (reason select, nothing preselected)",
+   "w": 1440,
+   "x": 48640,
+   "y": 3960
+  },
+  "SuperOverrideSubmitting.dc.html": {
+   "h": 900,
+   "title": "Super Admin — override panel, submitting",
+   "w": 1440,
+   "x": 25840,
+   "y": 3960
+  },
+  "SuperReleaseClaim.dc.html": {
+   "h": 900,
+   "title": "Super Admin — release claim panel",
+   "w": 1440,
+   "x": 42560,
+   "y": 3960
+  },
+  "SuperReverseFailed.dc.html": {
+   "h": 900,
+   "title": "Super Admin — reverse rejection panel, failed",
+   "w": 1440,
+   "x": 21280,
+   "y": 3960
+  },
+  "SuperReverseInvalid.dc.html": {
+   "h": 900,
+   "title": "Super Admin — reverse rejection panel, reason too short",
+   "w": 1440,
+   "x": 18240,
+   "y": 3960
+  },
+  "SuperReverseSubmitting.dc.html": {
+   "h": 900,
+   "title": "Super Admin — reverse rejection panel, submitting",
+   "w": 1440,
+   "x": 19760,
+   "y": 3960
+  },
+  "SupportReopenFailed.dc.html": {
+   "h": 900,
+   "title": "Support — re-open panel, failed",
+   "w": 1440,
+   "x": 10640,
+   "y": 3960
+  },
+  "SupportReopenInvalid.dc.html": {
+   "h": 900,
+   "title": "Support — re-open panel, no document picked",
+   "w": 1440,
+   "x": 44080,
+   "y": 3960
+  },
+  "SupportReopenOffline.dc.html": {
+   "h": 900,
+   "title": "Support — re-open panel, offline, not sent",
+   "w": 1440,
+   "x": 45600,
+   "y": 3960
+  },
+  "SupportReopenSubmitting.dc.html": {
+   "h": 900,
+   "title": "Support — re-open panel, submitting",
+   "w": 1440,
+   "x": 9120,
+   "y": 3960
+  }
+ },
+ "createdOnFiles": {
+  "at": "2026-09-28T15:00:00Z",
+  "v": 1
+ },
+ "designSystems": [
+  {
+   "artifact": "https://claude.ai/artifact/1GwGVZz8Ju9wcz4HfCnzbv",
+   "copiedAt": "2026-09-28T20:00:00Z",
+   "namespace": "halalgoesdesignsystem-d11a47",
+   "title": "HalalGoes Design System",
+   "version": "1790605103-3266"
+  }
+ ],
+ "launch": {
+  "view": "canvas"
+ },
+ "notes": {
+  "dsDefects": {
+   "fill": "red",
+   "maxH": 900,
+   "size": 24,
+   "text": "Design-system issues still open (not fixed on this canvas). The admin app ships light only for release 1.0 (owner decision), so the dark-theme items below don’t block launch.\nThe canvas now uses the design system’s tokens.css as published (Plus Jakarta Sans / IBM Plex Mono, dark label on the orange button, brand focus ring, real motion). Every local token override and drift banner is gone; composites.css holds only the proposed components, built from DS tokens.\n• Button focus on filled buttons: .hg-on-brand / .hg-on-accent / .hg-on-danger draw the ring in --focus-on-color (#FFFFFF) on a gap in the fill colour. White ring against --surface-base #FFFAEA: 1.04:1; against --surface-raised #FFFFFF (the decision bar): 1.00:1. tokens.css now defines --focus-ring-on-brand and friends, but the Button bundle doesn’t read them, and in light they are still white.\n• Dark --border-interactive (neutral 600, #6E7C77) on dark --surface-raised (#33352F): 2.85:1, under 3:1 for a control boundary (Input, Select, Checkbox, Radio, tertiary Button inside cards and panels).\n• Badge neutral in dark: --text-secondary (#B9B0A0) on the fixed --color-neutral-100 tint (#F6EFDD): 1.87:1. Badge tints don’t follow the theme.\n• Button ghost on --surface-chrome: --text-primary #232323 on #1B3B31 is 1.28:1. The SideNav draws Sign out as its own nav row instead.\n• Density: tokens.css has compact values but no density selector, so page roots map --density-row-height and friends to --density-compact-* (owner decision: 44 px rows).\nResolved by the new tokens: the primary label is now 4.63:1 (dark forest ink on orange); fonts, focus colour and focus widths come from tokens.css.",
+   "w": 520,
+   "x": 4804,
+   "y": 7920
+  },
+  "needsApiList": {
+   "fill": "blue",
+   "maxH": 1180,
+   "size": 24,
+   "text": "Needs API on this canvas\n• Approval without a rejection code (open owner decision, blocker)\n• Rider check_key values (names only; answers fit checks[])\n• RiderApplicationBlocker { code enum, doc_type?, params }\n• Server enforcement of the 14-day rule on reviewRiderDocument (422)\n• REVIEW_LOCK_LOST (409) and a claim requirement on reviewRiderDocument\n• Per-document reason on request changes\n• Superseded versions in documents[] and supersedes_document_id on KycDocument\n• page_count on KycDocument; inline content-disposition for the admin viewer\n• When computed_age_years is populated\n• Required document set per vehicle_type; vehicle-change event\n• Distinct REJECTED and CHANGES_REQUESTED onboarding states; re-apply cooldown\n• decided_by / decided_at on RiderApplication; reviewer name for assigned_admin_id\n• Forgery hold and case link, recorded from a failed check and releasing the claim; rejection reason on RiderApplication\n• listRiderApplications refuses support agents (owner decision: support reads an application only from a case)\n• Commercial-use-excluded reason code (an age-requirement code would be clearer than Date of birth doesn’t match)\n• case_id context on getRiderApplication for SUPPORT_AGENT\n• Masked email and a justified reveal, reveal lifetime, 429 on reveal\n• Support re-open; Super Admin reversal (30 days) and document override\n• sla_breached filter; search by name or phone; per-document status on the summary\n• Meaning of submitted_at before submission; profile, submitted_at and sla_due_at nullable on RiderApplication before Documents review\n• Take-next behaviour while holding a claim\n• Queue count on the nav (admin dashboard proposal, issue #117); staff name on Principal\n• Role-scoped RiderApplication projection for SUPPORT_AGENT (no DOB, email, plate or document numbers); server-masked email\n• Deactivation outcome on RiderApplication (account_status DEACTIVATED, VERIFICATION_EXHAUSTED); support re-open of a deactivated account\n• account_state OFFLINE_FORCED for a vehicle change after approval (RiderAccountStatus has no such value)\n• Super Admin release and reassign of a claim; staff list for assignment\n• Content type and size on KycDocument (unreadable file vs unsupported format)\n• supersedes_document_id to name the new version after a 404 on reviewRiderDocument\n• Keep a document’s rejection reason and note out of getRiderOnboardingStatus until Request changes or Reject application is sent (owner: only the application decision tells the rider)",
+   "w": 620,
+   "x": 4104,
+   "y": 7920
+  },
+  "ownerDecisions": {
+   "fill": "orange",
+   "maxH": 900,
+   "size": 24,
+   "text": "Owner decisions on this canvas\nSettled (28 Sep):\n• Rejecting one rider document doesn’t notify the rider; only Request changes or Reject application does. Copy says so; a Needs API tag records that the contract still shows the rejection at once.\n• Table cells use the short date form; the full absolute date is in the tooltip and the detail view.\n• SideNav and KeyValueList join the design system (approved, not in it yet); drawn here as proposed components.\n• Desktop web layout: the page never scrolls; no overlay modals for working tasks; collapsible navigation and panes; overview → detail → more detail side by side. Applied to every board: the modal boards are now in-page panel boards at 1440 × 900 and the 1480 px scrolling board is gone.\nSettled (round 2, 1 Oct):\n• Support agents open a rider application only from a support case; the queue boards for support are gone and the contract narrows.\n• A suspected forgery is never rejected by the reviewer: they record the matching check as Fail with a note for the Super Admin and the claim is released. Only a Super Admin decides during the hold; the page is read-only for reviewers.\n• After three resubmissions, approve or reject only (drawn).\n• Light theme only for release 1.0: the dark boards are gone.\n• Times are 12-hour everywhere.\nStill open:\n• BLOCKER for build hand-off: what does Approve send as reason_code? RiderDecisionInput requires it and types it as a document rejection code, which has no approval value. Until the contract changes, Approve rider stays off (“Approval isn’t available yet.”) with a Needs API tag.",
+   "w": 560,
+   "x": 3464,
+   "y": 7920
+  },
+  "rowDecision": {
+   "kind": "title1",
+   "maxW": 8000,
+   "text": "5 · Decision panels in the page (reject document, approve, request changes, reject): every state",
+   "w": 240,
+   "x": 0,
+   "y": 4980
+  },
+  "rowDetail": {
+   "kind": "title1",
+   "maxW": 8000,
+   "text": "2 · Rider application: application, document and checks side by side at 1440 × 900",
+   "w": 240,
+   "x": 0,
+   "y": 1020
+  },
+  "rowDocs": {
+   "kind": "title1",
+   "maxW": 8000,
+   "text": "3 · Document review, checklists and rider variants",
+   "w": 240,
+   "x": 0,
+   "y": 2340
+  },
+  "rowOutcome": {
+   "kind": "title1",
+   "maxW": 8000,
+   "text": "6 · After a decision",
+   "w": 240,
+   "x": 0,
+   "y": 6300
+  },
+  "rowPanels": {
+   "kind": "title1",
+   "maxW": 1840,
+   "text": "8 · Proposed components shown alone: in-page decision panels",
+   "w": 240,
+   "x": 0,
+   "y": 9220
+  },
+  "rowQueue": {
+   "kind": "title1",
+   "maxW": 8000,
+   "text": "1 · Rider application queue (overview pane; the page never scrolls)",
+   "w": 240,
+   "x": 0,
+   "y": -300
+  },
+  "rowRoles": {
+   "kind": "title1",
+   "maxW": 8000,
+   "text": "4 · Support agent, Super Admin and email reveal",
+   "w": 240,
+   "x": 0,
+   "y": 3660
+  },
+  "rowShell": {
+   "kind": "title1",
+   "maxW": 3304,
+   "text": "7 · Shared shell, keyboard focus and forced colours",
+   "w": 240,
+   "x": 0,
+   "y": 7620
+  },
+  "specDetail": {
+   "fill": "blue",
+   "maxH": 900,
+   "size": 24,
+   "text": "Detail behaviour\n• Panes, left to right (owner rule: overview → detail → more detail, side by side; nothing overlays the work): the side navigation folds to a 56 px rail; the queue folds to a 48 px strip (Show the queue expands it); the application pane (368 px: banner, Decision readiness, Documents, Rider details); the document pane (viewer, then the checks pane, 500 px). Handles between panes resize them (proposed SplitPanes, shadcn Resizable); arrow keys resize, Enter folds or restores.\n• The page never scrolls. At 1440 × 900 the scan, every check (seven for a Government ID), the note to the rider and Approve / Reject document are on screen together. A pane scrolls inside itself only if its content is longer than the viewport.\n• The application’s state, attempt, review target and claim countdown sit in the app bar, so no pane loses height to them.\n• Application pane sections fold to their header (proposed Disclosure): Rider details is folded while reviewing and opens for the email reveal.\n• At 1024 px the application pane folds to a strip too; at 1280 px the panes narrow.\n• Opening a row never claims. Deciding needs a claim from Take next, which may return a different application (DetailSwitched explains the switch).\n• Buttons that open a panel carry aria-expanded and aria-controls (they open a region of the page, not a dialog). A disabled Approve rider stays focusable and is described by the bar’s reason, plus the blocker list when it is shown.\n• Each document’s checks are answers sent as checks[]. Passes or Fails is required, except on checks the spec marks conditional (work-permit expiry; owner consent on a registration), which also offer “Doesn’t apply”. The age row is computed and read only. Approve document turns on when every answer passes or doesn’t apply.\n• Two kinds of note, never mixed: the note to the rider (review_note, shown word for word) and each check’s internal note (recorded, never sent).\n• Owner answer (28 Sep): rejecting one document only records it; the rider is told only when you send Request changes or Reject application. The contract doesn’t keep that promise yet, so the copy carries a Needs API tag (getRiderOnboardingStatus shows a document’s rejection at once).\n• Viewer keys (Page Up / Page Down, + / −) work only while focus is inside the scan region, so typing in a note never zooms.\n• When the last document is approved and Approve rider is still blocked (approval needs a contract change), focus goes to the decision bar’s status line, never to a disabled button. After the contract change, focus goes to the enabled Approve rider.",
+   "w": 520,
+   "x": 35904,
+   "y": 1320
+  },
+  "specDialogs": {
+   "fill": "blue",
+   "maxH": 900,
+   "size": 24,
+   "text": "Decision panel behaviour (was: dialogs)\n• Owner rule for desktop web: no overlay sheets or modals for working tasks. Every decision opens as an in-page panel (proposed DetailPanel): Reject document and Super Admin override open in the checks pane, beside the scan; Reject application, Request changes, Approve rider, Super Admin reverse and release, and support re-open replace the document pane while open. The application pane and the decision bar stay visible.\n• Opening moves focus to the panel title. Cancel, the close button or Escape closes it (not while sending) and returns focus to the button that opened it. No focus trap: the rest of the page stays usable. One decision panel at a time; the other decision buttons are off until it closes.\n• Confirm with an invalid field keeps the panel open, shows the error under the field and moves focus to the first invalid field.\n• No reason is ever preselected on a rejection, except Expired when the policy has under 14 days left. The consequence line follows the reason: fixable reasons (illegible, expired, wrong type, pages missing) say support can re-open; the rest say only a Super Admin can reverse, within 30 days.\n• Reason lists are filtered by document type (see the reason note).\n• The reject-document note to the rider starts empty; “Insert my note to the rider from the checks” copies the checks pane’s note in for editing. Internal check notes never reach the rider.\n• If the claim ends, another reviewer decides or the application changes while a panel is open, the panel turns into “Not sent: …”, the typed message kept read only with Copy message, and one action, Reload the application.\n• Attempts: riders get 3 resubmissions; the 4th rejection deactivates the account and only support can re-open it. Attempt 3: Request changes says the rider gets one last upload. Attempt 4: Reject application warns that rejecting deactivates the account.\n• Neither Request changes nor Reject application offers Suspected forgery or Suspected alteration (owner decision, round 2). When “No sign of editing or forgery” fails, the reviewer flags the document: the check and a note go to a Super Admin, the claim is released, and the application is on hold and read-only until a Super Admin decides.\n• Reject document turns on only once a check is marked Fails. Every rider checklist opens with “Legible, every page present”.\n• Submitting: confirm shows loading, fields are read only, Escape doesn’t close. Failure keeps everything typed; Try again resends the same Idempotency-Key. Offline: nothing is queued.\n• Approve rider opens its panel only once the contract allows an approval without a rejection code. Until then the bar’s Approve rider is off with “Approval isn’t available yet.” and a Needs API tag.",
+   "w": 520,
+   "x": 56240,
+   "y": 5280
+  },
+  "specQueue": {
+   "fill": "blue",
+   "maxH": 900,
+   "size": 24,
+   "text": "Queue behaviour\n• Layout (owner rule for desktop web): the working page never scrolls. The grid is a LyteNyte grid that virtualises inside its own region; the page stays still. Opening a row (Enter) opens the application in a pane beside the list, never an overlay, and never claims it.\n• Take next is a POST with an Idempotency-Key: the button shows loading, ignores repeat presses, and a retry reuses the key, so it can never claim two. Its helper sits beside it (“Claims the oldest unclaimed application for 60 minutes. Opening a row only reads it.”) and describes it, so a disabled Take next still gives its reason.\n• Order is fixed, oldest first (no sort parameter; the rider onboarding spec makes the queue first in, first out).\n• The only server filter is onboarding state (several at once). One empty state for the default filter (“Nothing waiting for review” + Show all states). “Nothing to take” is a result banner after Take next returns nothing, never an empty-table state; when rows remain it explains they are all claimed and when the first claim ends.\n• Dates (owner answer, 28 Sep): table cells use the short form (26 Sep, 5:55 pm; the year only when it isn’t this year). The full absolute date shows in a tooltip on the cell and in the detail view.\n• The count line and the nav count use the page total only when the server sends it; otherwise “Showing N · more below” and no nav count.\n• Two-line cells: 18 px + 16 px (body-sm, the 13 px floor) inside the 44 px compact row (owner decision: compact 44 px rows).\n• Names are display_name exactly as sent. States before Documents review read “Not submitted yet” (Needs API: meaning of submitted_at before submission).\n• A row whose claim expired reads “Unclaimed (previous claim ended …)”, with no lock icon.",
+   "w": 520,
+   "x": 45024,
+   "y": 0
+  },
+  "specReasons": {
+   "fill": "blue",
+   "maxH": 900,
+   "size": 24,
+   "text": "Rejection reasons by document type (rider)\n• Never offered for riders: Address doesn’t match (a rider profile has no address) and Issuer not recognised (the halal-certifier reason).\n• Government ID, driver’s licence: Illegible, Expired, Wrong document type, Name doesn’t match, Date of birth doesn’t match, Suspected forgery, Suspected alteration, Pages missing, Other.\n• Vehicle registration, vehicle insurance: Illegible, Expired, Wrong document type, Name doesn’t match, Plate doesn’t match, Suspected forgery, Suspected alteration, Pages missing, Other.\n• Work eligibility: Illegible, Expired, Wrong document type, Name doesn’t match, Date of birth doesn’t match, Suspected forgery, Suspected alteration, Pages missing, Other.\n• Profile photo: Illegible, Wrong document type, Suspected alteration, Other.\n• Suspected forgery and Suspected alteration are offered only in the flag panel, after “No sign of editing or forgery” fails; they put the application on hold for a Super Admin and are never a reviewer’s rejection (owner decision, round 2).\n• Reject application and Request changes: the union for the rider’s vehicle type, without Suspected forgery and Suspected alteration (Plate doesn’t match only when the vehicle has a plate).\n• Other needs a 20-character note on a document rejection. The application message is always 10 to 1,000 characters.",
+   "w": 560,
+   "x": 56840,
+   "y": 5280
+  }
+ },
+ "order": [
+  "Main.dc.html",
+  "QueueLoading.dc.html",
+  "QueueEmpty.dc.html",
+  "QueueFiltered.dc.html",
+  "QueueDrained.dc.html",
+  "QueueTakeNextAllClaimed.dc.html",
+  "QueueError.dc.html",
+  "QueueOffline.dc.html",
+  "QueueSessionExpired.dc.html",
+  "QueueForbidden.dc.html",
+  "QueueHoldingClaim.dc.html",
+  "QueueClaimEnding.dc.html",
+  "QueueClaimEnded.dc.html",
+  "QueueTakeNextPending.dc.html",
+  "QueueTakeNextFailed.dc.html",
+  "QueueTakeNextWhileHolding.dc.html",
+  "QueuePaged.dc.html",
+  "QueueLoadingMore.dc.html",
+  "QueueAllStates.dc.html",
+  "QueueFilterOpen.dc.html",
+  "QueueRowFocus.dc.html",
+  "QueueNarrow1280.dc.html",
+  "QueueNarrow1024.dc.html",
+  "DetailReview.dc.html",
+  "DetailReady.dc.html",
+  "DetailLoading.dc.html",
+  "DetailError.dc.html",
+  "DetailNotFound.dc.html",
+  "DetailForbidden.dc.html",
+  "DetailSessionExpired.dc.html",
+  "DetailUnclaimed.dc.html",
+  "DetailClaimTakenWhileReading.dc.html",
+  "DetailSwitched.dc.html",
+  "DetailLinkLoading.dc.html",
+  "DetailLinkExpired.dc.html",
+  "DetailLinkFailed.dc.html",
+  "DetailZoomed.dc.html",
+  "DetailLockWarning.dc.html",
+  "DetailLockLost.dc.html",
+  "DetailLockedByOther.dc.html",
+  "DetailOffline.dc.html",
+  "DetailDecide403.dc.html",
+  "DetailCopied.dc.html",
+  "DetailNarrow1280.dc.html",
+  "DetailNarrow1024.dc.html",
+  "DetailDocSubmitting.dc.html",
+  "DetailDocApproved.dc.html",
+  "DetailDocRejected.dc.html",
+  "DetailLastDocApproved.dc.html",
+  "DetailDocFailed.dc.html",
+  "DetailDocLockLost.dc.html",
+  "DetailChecksPass.dc.html",
+  "DetailChecksFail.dc.html",
+  "DetailInsuranceApproved.dc.html",
+  "DetailInsuranceRejected.dc.html",
+  "DetailDocHistory.dc.html",
+  "DetailBicycle.dc.html",
+  "DetailOnFootAgeNotComputed.dc.html",
+  "DetailUnder18.dc.html",
+  "DetailForgeryHold.dc.html",
+  "DetailVehicleChanged.dc.html",
+  "DetailPreSubmission.dc.html",
+  "DetailRegistered.dc.html",
+  "DetailPayoutPending.dc.html",
+  "DetailActive.dc.html",
+  "DetailSupportCase.dc.html",
+  "DetailSupportLoading.dc.html",
+  "DetailSupportError.dc.html",
+  "DetailSupportReopen.dc.html",
+  "DecisionSupportReopen.dc.html",
+  "SupportReopenSubmitting.dc.html",
+  "SupportReopenFailed.dc.html",
+  "DetailSupportReopenRefused.dc.html",
+  "DetailSuperAdmin.dc.html",
+  "DetailSuperPast30.dc.html",
+  "DecisionSuperAdmin.dc.html",
+  "SuperReverseInvalid.dc.html",
+  "SuperReverseSubmitting.dc.html",
+  "SuperReverseFailed.dc.html",
+  "SuperOverride.dc.html",
+  "SuperOverrideInvalid.dc.html",
+  "SuperOverrideSubmitting.dc.html",
+  "SuperOverrideFailed.dc.html",
+  "DetailEmailReveal.dc.html",
+  "DetailEmailRevealInvalid.dc.html",
+  "DetailEmailRevealSubmitting.dc.html",
+  "DetailEmailRevealFailed.dc.html",
+  "DetailEmailRevealRefused.dc.html",
+  "DetailEmailRevealRateLimited.dc.html",
+  "DetailEmailRevealed.dc.html",
+  "DetailEmailHiddenAgain.dc.html",
+  "DecisionRejectDocument.dc.html",
+  "DecisionRejectDocumentInvalid.dc.html",
+  "DecisionRejectDocumentOtherShort.dc.html",
+  "DecisionRejectDocumentForgery.dc.html",
+  "DecisionRejectDocumentExpired.dc.html",
+  "DecisionRejectDocumentCommercial.dc.html",
+  "DecisionRejectDocumentSubmitting.dc.html",
+  "DecisionRejectDocumentFailed.dc.html",
+  "DecisionRejectDocumentOffline.dc.html",
+  "DecisionApprove.dc.html",
+  "DecisionApproveInvalid.dc.html",
+  "DecisionApproveSubmitting.dc.html",
+  "DecisionApproveFailed.dc.html",
+  "DecisionApproveAge422.dc.html",
+  "DecisionRequestChanges.dc.html",
+  "DecisionRequestChangesBicycle.dc.html",
+  "DecisionRequestChangesInvalid.dc.html",
+  "DecisionRequestChangesSubmitting.dc.html",
+  "DecisionRequestChangesFailed.dc.html",
+  "DecisionReject.dc.html",
+  "DecisionRejectRemediable.dc.html",
+  "DecisionRejectInvalid.dc.html",
+  "DecisionRejectSubmitting.dc.html",
+  "DecisionRejectFailed.dc.html",
+  "DecisionRejectUnder18.dc.html",
+  "DecisionPreconditionNotMet.dc.html",
+  "DecisionAlreadyDecided.dc.html",
+  "DecisionApproved.dc.html",
+  "DecisionOutcomeTakeNextEmpty.dc.html",
+  "DecisionChangesRequested.dc.html",
+  "DecisionRejected.dc.html",
+  "SideNav.dc.html",
+  "FocusSpecimens.dc.html",
+  "ForcedColors.dc.html",
+  "QueueLoadMoreFailed.dc.html",
+  "QueueEndOfList.dc.html",
+  "DetailTargetMissed.dc.html",
+  "DetailViewerUnreadable.dc.html",
+  "DetailLicence.dc.html",
+  "DetailLicenceClassFail.dc.html",
+  "DetailRegistration.dc.html",
+  "DetailRegistrationPlateMismatch.dc.html",
+  "DetailWorkEligibilityCitizen.dc.html",
+  "DetailDoc404.dc.html",
+  "DetailLastDocApproveOn.dc.html",
+  "DetailUnder18IdApproved.dc.html",
+  "DetailVehicleChangedAfterApproval.dc.html",
+  "DetailSuperClaim.dc.html",
+  "SuperReleaseClaim.dc.html",
+  "SupportReopenInvalid.dc.html",
+  "SupportReopenOffline.dc.html",
+  "DecisionRejectDocumentPlate.dc.html",
+  "DecisionRequestChangesFinal.dc.html",
+  "DecisionRequestChangesClaimEnded.dc.html",
+  "DecisionRequestChangesDecided.dc.html",
+  "DecisionRequestChangesChanged.dc.html",
+  "DecisionRejectFinal.dc.html",
+  "DecisionRejectClaimEnded.dc.html",
+  "DecisionRejectDecided.dc.html",
+  "DecisionRejectChanged.dc.html",
+  "DecisionDeactivated.dc.html",
+  "SuperOverrideNoDecision.dc.html",
+  "SuperOverrideReject.dc.html",
+  "DetailChecksForgery.dc.html",
+  "PanelRejectDocument.dc.html",
+  "PanelDecision.dc.html"
+ ],
+ "pages": [],
+ "title": "HalalGoes Admin — Rider Onboarding"
+}

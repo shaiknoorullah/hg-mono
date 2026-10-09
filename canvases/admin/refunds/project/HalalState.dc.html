@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Halal state badge</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<span style="display: inline-flex; align-items: center; font-family: var(--font-ui)">
+  <sc-if value="{{useDs}}" hint-placeholder-val="{{true}}">
+    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.HalalBadge" state="{{state}}" surface="operational" size="{{size}}"></x-import>
+  </sc-if>
+  <sc-if value="{{expiring}}" hint-placeholder-val="{{false}}">
+    <span role="img" aria-label="{{expLabel}}" data-halal-render="expiring" style="display: inline-flex; align-items: center; gap: 4px; box-sizing: border-box; height: {{hpx}}; padding: 0 8px; border-radius: var(--radius-md); background: var(--color-halal-expiring-tint); border: 1px solid var(--color-halal-expiring-border); color: var(--color-halal-expiring-text); font-size: var(--type-label-sm-size); font-weight: var(--font-weight-semibold); letter-spacing: var(--type-label-sm-tracking); line-height: 1; white-space: nowrap">
+      <span aria-hidden="true" style="display: inline-flex; color: var(--color-halal-expiring-icon)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.HalalShield" variant="solid-clock" size="var(--icon-sm)" knockout="var(--color-halal-expiring-tint)"></x-import></span>
+      <span aria-hidden="true">{{expText}}</span>
+    </span>
+  </sc-if>
+</span>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["CERTIFIED","EXPIRING_SOON","EXPIRED","UNVERIFIED"],"default":"EXPIRING_SOON"},"size":{"editor":"enum","options":["sm","md","lg"],"default":"md"},"expires":{"editor":"text","default":""},"expiresFull":{"editor":"text","default":""},"$preview":{"width":220,"height":32}}'>
+class Component extends DCLogic {
+  renderVals() {
+    // Owner decision: an expiring-soon certificate shows the amber tint (redesign constitution §3),
+    // not the solid seal. The DS HalalBadge still draws EXPIRING_SOON exactly like CERTIFIED, so this
+    // composite draws that one state from the DS HalalShield and the color.halal.expiring tokens and
+    // hands every other state to the DS HalalBadge untouched. A missing state renders nothing.
+    const s = this.props.state;
+    const known = ['CERTIFIED', 'EXPIRING_SOON', 'EXPIRED', 'UNVERIFIED'].includes(s);
+    const size = this.props.size ?? 'md';
+    // Owner decision (round 2): the amber badge keeps the claim and adds the date that explains the
+    // amber, short form on the badge: “Halal certified · expires 20 Oct”. The full date is read out.
+    // No date passed: “Halal certified” with no date. A halal claim never carries an invented expiry.
+    const exp = this.props.expires ?? '';
+    const expFull = this.props.expiresFull ?? exp;
+    return {
+      state: s, size,
+      useDs: known && s !== 'EXPIRING_SOON',
+      expiring: s === 'EXPIRING_SOON',
+      hpx: ({ sm: 20, md: 24, lg: 32 }[size] || 24) + 'px',
+      expText: exp ? 'Halal certified · expires ' + exp : 'Halal certified',
+      expLabel: exp ? 'Halal certified, expires ' + expFull + '.' : 'Halal certified.',
+    };
+  }
+}
+</script>
+</body>
+</html>

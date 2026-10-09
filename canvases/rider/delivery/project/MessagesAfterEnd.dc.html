@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Messages after the delivery ended</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+[data-rider]{font-family:var(--font-ui)}
+.offer-chrome{background:var(--surface-raised)}
+[data-theme="dark"] .offer-chrome,[data-theme="dark"].offer-chrome{background:var(--surface-chrome)}
+</style>
+</helmet>
+<div data-rider="" data-theme="{{theme}}" style="width: 390px; height: 844px; position: relative; overflow: hidden; display: flex; flex-direction: column; background: var(--surface-base); color: var(--text-primary)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="field" title="Messages" subtitle="Order HG-4K2M-9T · you're off this order" on-back="{{noop}}" back-label="Back"></x-import><div aria-hidden="true" style="position: absolute; top: var(--space-1); left: var(--space-1); width: 56px; height: 56px; border: 1.5px dashed var(--text-link); border-radius: var(--radius-sm); pointer-events: none; z-index: 5"></div>
+<main style="flex: 1 1 auto; overflow-y: auto; padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-4)"><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Proposed variant: AppBar tone=field with IconButton size lg (56) · the DS back control is 44; the 56 hit area is outlined top left</span>
+<span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">terminal state: customer call hidden · read-only messages view opened from REASSIGNED, CANCELLED_BY_PLATFORM, DELIVERED or RETURNED · no Call customer, no customer name or unit (address cut back to street level) · restaurant and HalalGoes support calls stay on the screen the rider came from</span>
+<section style="display: flex; flex-direction: column; gap: var(--space-2)">
+<span style="font-size: var(--type-label-lg-size); font-weight: var(--font-weight-semibold); color: var(--text-secondary-field)">Messages about this order</span>
+<span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">order.note_added · read-only, newest last · Proposed component: ListRow</span><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--text-link); color: var(--text-link)">Needs API: order notes history (for example GET /v1/riders/me/assignments/{id}/notes) · today notes arrive only live as order.note_added</span>
+<div style="padding: var(--space-4) var(--space-4); border: 1px solid var(--border-decorative); border-radius: var(--radius-md); display: flex; flex-direction: column; gap: var(--space-1)"><span style="font-size: var(--type-label-lg-size); font-weight: var(--font-weight-semibold)">From Zaytoun Grill · 9:41 pm</span><span style="font-size: var(--type-body-lg-size); line-height: 1.5">Two more minutes on the grill. Sorry for the wait.</span></div>
+
+<p style="margin: 0; font-size: var(--type-body-lg-size); line-height: 1.5; color: var(--text-secondary-field)">Messages sent while the app was closed aren't shown here.</p></section>
+<p style="margin: 0; font-size: var(--type-body-lg-size); line-height: 1.5">You can read these, but you can't call the customer now. You're no longer on this order.</p>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["dark","light"],"default":"dark"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return { theme: this.props.theme ?? 'dark', yes: true, noop: () => {} }; }
+}
+</script>
+</body>
+</html>

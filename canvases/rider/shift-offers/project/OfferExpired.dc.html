@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Offer expired</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+[data-rider]{font-family:var(--font-ui)}
+.offer-chrome{background:var(--surface-raised)}
+[data-theme="dark"] .offer-chrome,[data-theme="dark"].offer-chrome{background:var(--surface-chrome)}
+</style>
+</helmet>
+<div data-rider="" data-theme="{{theme}}" style="width: 390px; height: 844px; position: relative; overflow: hidden; display: flex; flex-direction: column; background: var(--surface-raised); color: var(--text-primary)">
+<main style="flex: 1 1 auto; padding: var(--space-8) var(--space-5); display: flex; flex-direction: column; justify-content: center; gap: var(--space-4)"><span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Prototype branches: <a href="OfferReplacesResult.dc.html" style="color: var(--text-link)">next offer arrives while this shows</a></span>
+<span style="align-self: flex-start; font: var(--text-type-mono-md); padding: 0 var(--space-1); border-radius: var(--radius-xs); border: 1px dashed var(--border-strong); color: var(--text-secondary)">Reached expires_at · stays until "Back to waiting" or the next offer (no auto-close, WCAG 2.2.1) · focus to h1, heading announced once (polite) · neutral tone + double pulse</span>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="clock" size="2xl"></x-import>
+<h1 tabindex="-1" style="margin: 0; font-size: var(--type-heading-xl-size); font-weight: var(--type-heading-xl-weight); letter-spacing: var(--type-heading-xl-tracking); line-height: 1.25">This offer expired</h1>
+<p style="margin: 0; font-size: var(--type-body-lg-size); line-height: 1.5">You're still online and can get the next one.</p>
+<p style="margin: 0; font-size: var(--type-body-lg-size); line-height: 1.5">If 3 offers in a row expire, we set you offline.</p>
+</main>
+<footer style="flex: 0 0 auto; padding: var(--space-3) var(--space-5) var(--space-5); border-top: 1px solid var(--border-decorative); display: flex; flex-direction: column; gap: var(--space-2)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="secondary" size="xl" full-width="{{yes}}" href="HomeWaiting.dc.html">Back to waiting</x-import>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["dark","light"],"default":"dark"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return { theme: this.props.theme ?? 'dark', yes: true }; }
+}
+</script>
+</body>
+</html>

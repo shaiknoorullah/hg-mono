@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sign in — locked until support unlocks it (423)</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:var(--surface-base);color:var(--text-primary);font-family:var(--font-ui)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+.skip{position:absolute;left:16px;top:-80px;z-index:10}.skip:focus{top:8px}
+form{margin:0}
+.gap{position:relative;outline:1.5px dashed var(--color-neutral-500);outline-offset:4px}
+.gap::before{content:"Proposed component: " attr(data-gap);position:absolute;top:-28px;left:-4px;font:500 12px/1 var(--font-mono);color:var(--color-neutral-800);background:var(--color-neutral-100);padding:4px 8px;border-radius:4px;white-space:nowrap}
+.api{display:inline-flex;align-items:center;gap:8px;padding:4px 8px;border:1.5px dashed var(--color-info-600);background:var(--color-info-50);color:var(--color-info-700);font:500 12px/1.4 var(--font-mono);border-radius:4px}
+.note{display:inline-flex;align-items:center;padding:4px 8px;background:var(--color-neutral-100);color:var(--color-neutral-800);font:500 12px/1.4 var(--font-mono);border-radius:4px}
+</style>
+</helmet>
+<div style="width: 1440px; height: 960px; box-sizing: border-box; background: var(--surface-base); display: flex; flex-direction: column; font-family: var(--font-ui); color: var(--text-primary); position: relative; overflow: hidden">
+<dc-import name="AuthTop" w="1440px" hint-size="1440px,80px"></dc-import>
+<main style="flex-grow: 1; display: flex; justify-content: center; padding: 48px 16px 0">
+<div style="width: 480px; max-width: 100%; display: flex; flex-direction: column; gap: 24px">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="elevated" radius="lg" padding="32px" hint-size="480px,420px">
+<div style="display: flex; flex-direction: column; gap: 20px">
+<span style="width: 48px; height: 48px; border-radius: 12px; background: var(--surface-sunken); color: var(--text-primary); display: inline-flex; align-items: center; justify-content: center"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="lock" size="lg" hint-size="24px,24px"></x-import></span><div style="display: flex; flex-direction: column; gap: 8px"><h1 class="type-heading-xl" style="margin: 0">This account is locked</h1><p class="type-body-md" style="margin: 0; line-height: 1.5; color: var(--text-secondary)">For your security, only partner support can unlock samir@zaytoungrill.ca. They'll check who you are first. Resetting your password won't unlock it.</p></div><div style="display: flex; flex-direction: column; gap: 4px; padding: 16px; border-radius: 12px; background: var(--surface-sunken)"><span class="type-label-md" style="color: var(--text-secondary)">Partner support</span><a href="tel:[support phone]" class="type-heading-sm" style="align-self: flex-start; min-height: 44px; display: inline-flex; align-items: center">[support phone]</a><span class="type-body-sm" style="color: var(--text-secondary)">[support hours]</span></div><span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">Renders only when PublicConfig.support_enabled is true; otherwise see Ref-SupportUnavailable</span><a href="Main.dc.html" class="type-body-md" style="align-self: flex-start; font-weight: 500; min-height: 44px; display: inline-flex; align-items: center">Back to sign in</a><span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 4px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">423 ACCOUNT_LOCKED (permanent; ACCOUNT_TEMPORARILY_LOCKED is the timed one)</span>
+</div>
+</x-import>
+
+</div>
+</main>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 1440, "height": 960}}'>
+class Component extends DCLogic {
+  renderVals() {
+return { yes: true, no: false };
+  }
+}
+</script>
+</body>
+</html>

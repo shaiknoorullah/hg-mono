@@ -1,0 +1,23 @@
+<!-- @dsCard group="Forms" height=260 subtitle="Always in a RadioGroup: one tab stop, arrows select, group-level error" -->
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Radio</title>
+<style>body{margin:0;padding:16px;background:var(--surface-base);color:var(--text-primary);font-family:var(--font-ui)}
+.row{display:flex;flex-wrap:wrap;align-items:center;gap:12px}.col{display:grid;gap:12px}.g2{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;align-items:start}
+.lbl{font-size:var(--type-label-sm-size);letter-spacing:var(--type-label-sm-tracking);font-weight:var(--font-weight-semibold);color:var(--text-tertiary);min-inline-size:88px}
+.stage{position:relative;block-size:200px;border:1px dashed var(--border-decorative);border-radius:var(--radius-lg);overflow:hidden;background:var(--surface-sunken)}</style>
+</head><body><div id="root"></div>
+<script>
+(function () {
+  var h = React.createElement, F = React.Fragment, DS = window.HalalGoesDesignSystem_d11a47;
+  function L(t) { return h('span', { className: 'lbl' }, t); }
+
+  function Demo() {
+    var t = React.useState('15'), p = React.useState(null);
+    return h('div', { className: 'g2' },
+      h(DS.RadioGroup, { label: 'Tip for your rider', value: t[0], onValueChange: t[1], options: [
+        { value: '10', label: '10%' }, { value: '15', label: '15%', description: 'Most chosen' }, { value: '20', label: '20%', description: 'Goes entirely to your rider' }] }),
+      h(DS.RadioGroup, { label: 'Size', required: true, value: p[0], onValueChange: p[1], error: p[0] ? null : 'Choose a size', options: [
+        { value: 'r', label: 'Regular', priceDeltaCents: 0 }, { value: 'l', label: 'Large', priceDeltaCents: 250 }, { value: 'f', label: 'Family', priceDeltaCents: 900, disabled: true, disabledReason: 'Out of stock' }] }));
+  }
+  ReactDOM.createRoot(document.getElementById('root')).render(h(Demo));
+})();
+</script></body></html>

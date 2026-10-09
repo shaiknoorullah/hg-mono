@@ -1,0 +1,23 @@
+<!-- @dsCard group="Navigation" height=330 subtitle="default · large · search · contextual · transparent; title is the h1" -->
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>AppBar</title>
+<style>body{margin:0;padding:16px;background:var(--surface-base);color:var(--text-primary);font-family:var(--font-ui)}
+.row{display:flex;flex-wrap:wrap;align-items:center;gap:12px}.col{display:grid;gap:12px}.g2{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;align-items:start}
+.lbl{font-size:var(--type-label-sm-size);letter-spacing:var(--type-label-sm-tracking);font-weight:var(--font-weight-semibold);color:var(--text-tertiary);min-inline-size:88px}
+.stage{position:relative;block-size:200px;border:1px dashed var(--border-decorative);border-radius:var(--radius-lg);overflow:hidden;background:var(--surface-sunken)}</style>
+</head><body><div id="root"></div>
+<script>
+(function () {
+  var h = React.createElement, F = React.Fragment, DS = window.HalalGoesDesignSystem_d11a47;
+  function L(t) { return h('span', { className: 'lbl' }, t); }
+
+  function Demo() {
+    var wrap = function (c, k) { return h('div', { key: k, style: { border: '1px solid var(--border-decorative)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' } }, c); };
+    return h('div', { className: 'col' },
+      wrap(h(DS.AppBar, { title: 'Zaytoun Grill', subtitle: 'Scarborough, ON', backLabel: 'Back to Home', onBack: function () {}, titleIsPageHeading: false, actions: h(F, null, h(DS.IconButton, { icon: 'search', accessibilityLabel: 'Search the menu' }), h(DS.IconButton, { icon: 'cart', accessibilityLabel: 'Cart', badge: 2, badgeNoun: 'items' })) }), 'a'),
+      wrap(h(DS.AppBar, { tone: 'chrome', title: 'Order queue', subtitle: 'Zaytoun Grill · 3 waiting', titleIsPageHeading: false, loading: true, elevated: true, actions: h(DS.IconButton, { icon: 'bell', accessibilityLabel: 'Alerts', badge: true, style: { color: 'inherit' } }) }), 'b'),
+      wrap(h(DS.AppBar, { variant: 'contextual', title: '3 selected', onBack: function () {}, titleIsPageHeading: false, actions: h(DS.Button, { variant: 'ghost', size: 'sm' }, 'Approve') }), 'c'),
+      wrap(h(DS.AppBar, { variant: 'search', onBack: function () {}, backLabel: 'Back to Home', search: h(DS.Input, { label: 'Search restaurants', variant: 'search', placeholder: 'Biryani, shawarma…' }) }), 'd'));
+  }
+  ReactDOM.createRoot(document.getElementById('root')).render(h(Demo));
+})();
+</script></body></html>

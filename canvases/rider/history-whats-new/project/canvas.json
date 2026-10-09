@@ -1,0 +1,560 @@
+{
+ "v": 3,
+ "createdOnFiles": {
+  "v": 1,
+  "at": "2026-10-01T02:08:54Z"
+ },
+ "title": "HalalGoes Rider — Delivery history & What's new",
+ "launch": {
+  "view": "canvas"
+ },
+ "pages": [],
+ "boards": {
+  "Deliveries.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Deliveries — list",
+   "w": 390,
+   "x": 0,
+   "y": 0
+  },
+  "Deliveries-loading.dc.html": {
+   "h": 844,
+   "title": "Deliveries — loading",
+   "w": 390,
+   "x": 470,
+   "y": 0
+  },
+  "Deliveries-empty.dc.html": {
+   "h": 844,
+   "title": "Deliveries — none yet",
+   "w": 390,
+   "x": 940,
+   "y": 0
+  },
+  "Deliveries-error.dc.html": {
+   "h": 844,
+   "title": "Deliveries — couldn't load",
+   "w": 390,
+   "x": 1410,
+   "y": 0
+  },
+  "Deliveries-offline.dc.html": {
+   "h": 844,
+   "title": "Deliveries — offline, saved copy",
+   "w": 390,
+   "x": 1880,
+   "y": 0
+  },
+  "Deliveries-loading-more.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Deliveries — loading older",
+   "w": 390,
+   "x": 2350,
+   "y": 0
+  },
+  "Deliveries-paging-error.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Deliveries — older deliveries failed",
+   "w": 390,
+   "x": 2820,
+   "y": 0
+  },
+  "Deliveries-end.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Deliveries — end of the list",
+   "w": 390,
+   "x": 3290,
+   "y": 0
+  },
+  "Deliveries-no-detail.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Deliveries — a row with no assignment",
+   "w": 390,
+   "x": 3760,
+   "y": 0
+  },
+  "Deliveries-focus.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Deliveries — focus on the first row",
+   "w": 390,
+   "x": 4230,
+   "y": 0
+  },
+  "Deliveries-light.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Deliveries — light (sunlight test)",
+   "w": 390,
+   "x": 4700,
+   "y": 0
+  },
+  "DeliveryDetail.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Delivery — delivered",
+   "w": 390,
+   "x": 0,
+   "y": 1300
+  },
+  "Delivery-cancelled.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Delivery — order cancelled before pickup (Back to Deliveries)",
+   "w": 390,
+   "x": 470,
+   "y": 1300
+  },
+  "Delivery-undeliverable.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Delivery — couldn't be delivered (not reachable until #147/#148)",
+   "w": 390,
+   "x": 940,
+   "y": 1300
+  },
+  "Delivery-returned.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Delivery — returned to the restaurant (not reachable until #147/#148)",
+   "w": 390,
+   "x": 1410,
+   "y": 1300
+  },
+  "Delivery-unavailable.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Delivery — no longer available (REASSIGNED / 404)",
+   "w": 390,
+   "x": 1880,
+   "y": 1300
+  },
+  "Delivery-loading.dc.html": {
+   "h": 844,
+   "title": "Delivery — loading",
+   "w": 390,
+   "x": 2350,
+   "y": 1300
+  },
+  "Delivery-error.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Delivery — couldn't load",
+   "w": 390,
+   "x": 2820,
+   "y": 1300
+  },
+  "Delivery-light.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Delivery — light (sunlight test)",
+   "w": 390,
+   "x": 3290,
+   "y": 1300
+  },
+  "WhatsNew.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "What's new — after an update",
+   "w": 390,
+   "x": 0,
+   "y": 2600
+  },
+  "WhatsNew-focus.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "What's new — focus on the sheet title (open, and after an offer)",
+   "w": 390,
+   "x": 470,
+   "y": 2600
+  },
+  "WhatsNew-deferred.dc.html": {
+   "h": 844,
+   "title": "What's new — waits during a delivery",
+   "w": 390,
+   "x": 940,
+   "y": 2600
+  },
+  "WhatsNew-offer.dc.html": {
+   "h": 844,
+   "title": "What’s new — covered by an incoming offer (declined / expired: comes back)",
+   "w": 390,
+   "x": 1410,
+   "y": 2600
+  },
+  "WhatsNew-account-row.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "What's new — the Account row that reopens it",
+   "w": 390,
+   "x": 1880,
+   "y": 2600
+  },
+  "WhatsNew-page.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "What's new — reopened from Account",
+   "w": 390,
+   "x": 2350,
+   "y": 2600
+  },
+  "WhatsNew-loading.dc.html": {
+   "h": 844,
+   "title": "What's new — loading",
+   "w": 390,
+   "x": 2820,
+   "y": 2600
+  },
+  "WhatsNew-empty.dc.html": {
+   "h": 844,
+   "title": "What's new — nothing yet",
+   "w": 390,
+   "x": 3290,
+   "y": 2600
+  },
+  "WhatsNew-error.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "What's new — couldn't open notes",
+   "w": 390,
+   "x": 3760,
+   "y": 2600
+  },
+  "WhatsNew-light.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "What's new — light (sunlight test)",
+   "w": 390,
+   "x": 4230,
+   "y": 2600
+  },
+  "Deliveries-offline-first.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Deliveries — offline on first open (nothing saved)",
+   "w": 390,
+   "x": 5170,
+   "y": 0
+  },
+  "Deliveries-rate-limited.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Deliveries — too many tries (429)",
+   "w": 390,
+   "x": 5640,
+   "y": 0
+  },
+  "Delivery-no-handover.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Delivery — no handover method, no wait time",
+   "w": 390,
+   "x": 3760,
+   "y": 1300
+  },
+  "Delivery-offline.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Delivery — offline",
+   "w": 390,
+   "x": 4230,
+   "y": 1300
+  },
+  "Delivery-rate-limited.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Delivery — too many tries (429)",
+   "w": 390,
+   "x": 4700,
+   "y": 1300
+  },
+  "Delivery-focus.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Delivery — focus on the earnings row",
+   "w": 390,
+   "x": 5170,
+   "y": 1300
+  },
+  "Delivery-cancelled-light.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Delivery cancelled — light (sunlight test)",
+   "w": 390,
+   "x": 5640,
+   "y": 1300
+  },
+  "WhatsNew-single.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "What's new — one version (most common; also a new device: latest release only)",
+   "w": 390,
+   "x": 4700,
+   "y": 2600
+  },
+  "WhatsNew-long.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "What's new — long notes under the sticky footer",
+   "w": 390,
+   "x": 5170,
+   "y": 2600
+  },
+  "WhatsNew-dismissed.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "What's new — closed without Got it",
+   "w": 390,
+   "x": 5640,
+   "y": 2600
+  },
+  "WhatsNew-account-focus.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "What's new — focus on the Account row",
+   "w": 390,
+   "x": 6110,
+   "y": 2600
+  },
+  "WhatsNew-large-text.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "What's new — 200% text",
+   "w": 390,
+   "x": 6580,
+   "y": 2600
+  },
+  "WhatsNew-page-light.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "What's new page — light (sunlight test)",
+   "w": 390,
+   "x": 7050,
+   "y": 2600
+  },
+  "Deliveries-reversed.dc.html": {
+   "h": 844,
+   "title": "Deliveries — a reversed delivery row",
+   "w": 390,
+   "x": 6110,
+   "y": 0
+  },
+  "Deliveries-not-active.dc.html": {
+   "h": 844,
+   "title": "Deliveries — account paused (403)",
+   "w": 390,
+   "x": 6580,
+   "y": 0
+  },
+  "Deliveries-focus-more.dc.html": {
+   "h": 844,
+   "title": "Deliveries — focus on Show older deliveries",
+   "w": 390,
+   "x": 7050,
+   "y": 0
+  },
+  "Deliveries-large-text.dc.html": {
+   "h": 844,
+   "title": "Deliveries — 200% text",
+   "w": 390,
+   "x": 7520,
+   "y": 0
+  },
+  "Delivery-from-entry.dc.html": {
+   "h": 844,
+   "title": "Delivery — opened from Entry (Back to Delivery earnings)",
+   "w": 390,
+   "x": 6110,
+   "y": 1300
+  },
+  "Delivery-not-active.dc.html": {
+   "h": 844,
+   "title": "Delivery — account paused (403)",
+   "w": 390,
+   "x": 6580,
+   "y": 1300
+  },
+  "Delivery-large-text.dc.html": {
+   "h": 844,
+   "title": "Delivery — 200% text",
+   "w": 390,
+   "x": 7050,
+   "y": 1300
+  },
+  "WhatsNew-offer-accepted.dc.html": {
+   "h": 844,
+   "title": "What’s new — offer accepted while open (not seen, waits)",
+   "w": 390,
+   "x": 7520,
+   "y": 2600
+  },
+  "Delivery-left-at-door-attested.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Delivery — HG-5P2N-8C left at the door with photo and statement (customer chose leave at door)",
+   "w": 390,
+   "x": 7520,
+   "y": 1300
+  },
+  "Delivery-left-at-door-from-entry.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Delivery — HG-5P2N-8C, opened from its earnings line (Back to Delivery earnings)",
+   "w": 390,
+   "x": 7990,
+   "y": 1300
+  },
+  "Delivery-no-handover-from-entry.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Delivery — HG-6R1N-3K, opened from its earnings line (Back to Delivery earnings)",
+   "w": 390,
+   "x": 8460,
+   "y": 1300
+  },
+  "Delivery-no-handover-from-tip.dc.html": {
+   "h": 844,
+   "is_interactive": true,
+   "title": "Delivery — HG-6R1N-3K, opened from its tip (Back to Tip)",
+   "w": 390,
+   "x": 8930,
+   "y": 1300
+  }
+ },
+ "order": [
+  "Deliveries.dc.html",
+  "Deliveries-loading.dc.html",
+  "Deliveries-empty.dc.html",
+  "Deliveries-error.dc.html",
+  "Deliveries-offline.dc.html",
+  "Deliveries-loading-more.dc.html",
+  "Deliveries-paging-error.dc.html",
+  "Deliveries-end.dc.html",
+  "Deliveries-no-detail.dc.html",
+  "Deliveries-focus.dc.html",
+  "Deliveries-light.dc.html",
+  "DeliveryDetail.dc.html",
+  "Delivery-cancelled.dc.html",
+  "Delivery-undeliverable.dc.html",
+  "Delivery-returned.dc.html",
+  "Delivery-unavailable.dc.html",
+  "Delivery-loading.dc.html",
+  "Delivery-error.dc.html",
+  "Delivery-light.dc.html",
+  "WhatsNew.dc.html",
+  "WhatsNew-focus.dc.html",
+  "WhatsNew-deferred.dc.html",
+  "WhatsNew-offer.dc.html",
+  "WhatsNew-account-row.dc.html",
+  "WhatsNew-page.dc.html",
+  "WhatsNew-loading.dc.html",
+  "WhatsNew-empty.dc.html",
+  "WhatsNew-error.dc.html",
+  "WhatsNew-light.dc.html",
+  "Deliveries-offline-first.dc.html",
+  "Deliveries-rate-limited.dc.html",
+  "Delivery-no-handover.dc.html",
+  "Delivery-offline.dc.html",
+  "Delivery-rate-limited.dc.html",
+  "Delivery-focus.dc.html",
+  "Delivery-cancelled-light.dc.html",
+  "WhatsNew-single.dc.html",
+  "WhatsNew-long.dc.html",
+  "WhatsNew-dismissed.dc.html",
+  "WhatsNew-account-focus.dc.html",
+  "WhatsNew-large-text.dc.html",
+  "WhatsNew-page-light.dc.html",
+  "Deliveries-reversed.dc.html",
+  "Deliveries-not-active.dc.html",
+  "Deliveries-focus-more.dc.html",
+  "Deliveries-large-text.dc.html",
+  "Delivery-from-entry.dc.html",
+  "Delivery-not-active.dc.html",
+  "Delivery-large-text.dc.html",
+  "WhatsNew-offer-accepted.dc.html",
+  "Delivery-left-at-door-attested.dc.html",
+  "Delivery-left-at-door-from-entry.dc.html",
+  "Delivery-no-handover-from-entry.dc.html",
+  "Delivery-no-handover-from-tip.dc.html"
+ ],
+ "notes": {
+  "t-deliveries": {
+   "kind": "title1",
+   "maxW": 7910,
+   "text": "Delivery history · Delivery history — ledger DELIVERY entries, then GET /riders/me/assignments/{id}",
+   "w": 240,
+   "x": 0,
+   "y": -300
+  },
+  "t-delivery": {
+   "kind": "title1",
+   "maxW": 8000,
+   "text": "Delivery history · One delivery — the redacted terminal view of an assignment",
+   "w": 240,
+   "x": 0,
+   "y": 1000
+  },
+  "t-whatsnew": {
+   "kind": "title1",
+   "maxW": 7910,
+   "text": "What's new (#100) — release-notes.json shipped in the app (#97)",
+   "w": 240,
+   "x": 0,
+   "y": 2300
+  },
+  "n-deliveries": {
+   "fill": "gray",
+   "size": 24,
+   "text": "History = GET /earnings/entries?type=DELIVERY, grouped by day.\n\n- Rows lead with time and distance; the order code is second, in secondary text. Proposed row (Needs API #148): restaurant name · drop-off area.\n- No row says it was corrected (Needs API: correcting entry id / #147). A REVERSED delivery shows its status word so it never looks paid; it stays counted and its correction line offsets it (owner decision).\n- 403 ACCOUNT_NOT_ACTIVE and 200% text drawn.\n- Offline: saved copy like Earnings activity; the no-copy error only on a first open.\n- Empty: Go to Home. 429 drawn.\n- A row links only to the Delivery board drawn for that same order (HG-4K2M-9T, HG-6R1N-3K). Rows with no board of their own are plain rows (code kept, no chevron), never a link to another order.\n- Cancelled, undeliverable and returned jobs are not in this list (#148).\n- Times use the 12-hour clock, for example 9:12 pm (owner decision).",
+   "w": 480,
+   "x": -560,
+   "y": 0
+  },
+  "n-delivery": {
+   "fill": "gray",
+   "size": 24,
+   "text": "GET /riders/me/assignments/{assignment_id}: the redacted terminal view.\n\n- Hero: restaurant name leads; order code once (not in the AppBar).\n- Earnings row only when a real EarningEntry for this assignment is known, linked to that entry. Undeliverable / returned: \"See Earnings activity\" placeholder (Needs API #147), no amount.\n- Never rendered here: unit, buzzer, special_instructions, customer_display_name, phone_alias. Drop-off street only, after pickup.\n- handover_method null: no Handover card; pickup_wait_seconds null: \"Wait time wasn't recorded\".\n- Entry points and back labels: Deliveries (\"Back to Deliveries\"), Entry — delivery (\"Back to Delivery earnings\"), Entry — tip (\"Back to Tip\"); focus returns to the row that opened it. A board opened from an entry or a tip is the same order as that line (HG-5P2N-8C, HG-6R1N-3K); lines with no Delivery board of their own leave \"Delivery details\" off. Undeliverable / returned not reachable until #147 / #148.\n- Order cancelled after the rider reached the restaurant: no earnings amount (rider cancellation pay is V1, decision R-09); the earnings row only points to Earnings activity, and the note says only that the order was cancelled.\n- \"Problem with this delivery?\" placeholder (rider delivery-history spec). Offline, 429 drawn.\n- Left at the door with a photo and the rider’s statement (owner decision: only when the customer chose leave at door; drawn as HG-5P2N-8C, Friday 25 September, 5.7 km, $10.19, matching its earnings line and the Deliveries row): Handover reads \"Left at the door\" and \"Photo and your statement recorded.\" The photo and statement are not on the record (Needs API).",
+   "w": 480,
+   "x": -560,
+   "y": 1300
+  },
+  "n-whatsnew": {
+   "fill": "gray",
+   "size": 24,
+   "text": "Shown once after an update, for every version since the last one seen on this device. Most often one version. A new device with no saved version shows only the latest release's notes (owner decision).\n\n- Never during a delivery. An offer covers it: declined or expired, it comes back with focus on its title; accepted, it closes without being marked seen and waits for Home after the delivery.\n- Focus: the Sheet's own title h2 (tabindex=-1), never a duplicate heading.\n- \"Got it\" = Button secondary xl in the sticky footer; long notes scroll under it.\n- Close, swipe, scrim tap or back = seen, same as Got it. App closed or an offer on top = not seen.\n- Reopen from Account › What's new.\n- Sample copy until release-notes.json (#97).",
+   "w": 480,
+   "x": -560,
+   "y": 2600
+  },
+  "n-system": {
+   "fill": "gray",
+   "size": 24,
+   "text": "Design system: HalalGoes (tokens 1790605103-3266, compiled from the approved tokens.json: Plus Jakarta Sans and IBM Plex Mono, dark label on the orange primary button, brand-coloured focus ring, real motion durations). Boards read semantic roles only, never raw ramp steps. No local token overrides on this canvas, with one named exception: 200% text simulation, not a token change. The 200% boards set data-hg-text-scale=\"200\" on the root, and the source boards carry that one scaling block until the system ships a text-scale mode.\n\nOwner decisions applied:\n- Rider main actions are Button primary (orange fill, dark label 4.63:1): the rider 7:1 rule covers body text, not large bold button labels. Fill 5.09:1 on the page, 3.77:1 in a dark warning banner, 3.53:1 on surface-raised.\n- Buttons that were ghost in banners and error screens are Button tertiary, so each has a visible border.\n- StatCard and KeyValueList are approved for the design system (drawn from tokens here until they land). BarChart is deferred: no chart at launch.\n\nSystem gaps raised:\n- Button secondary: its fill (accent-600) is 1.47:1 on the dark page and 1.09:1 in a dark warning banner, with no border, so it is not used on dark rider surfaces.\n- Button tertiary: its only boundary, --border-interactive (neutral-600), is 2.85:1 on surface-raised (inside a Card), under 3:1. Boards keep tertiary buttons out of Cards or use primary there.\n- Badge: needs a field size (label-lg 15px, ≥32px) and a field theme (warning/info tints are raw ramp steps: warning 6.83:1, info a light chip in dark). Status drawn with the proposed StatusLabel until then; Badge with a field size stays the long-term replacement.\n- SegmentedControl needs 56px; AppBar field back button and Sheet close must be 56px (both 44).\n- BottomNav should be nav > links with aria-current=\"page\", not tablist/tab.\n- Price: no display-lg; announceAs has no \"not counted\".\n- Sheet: focusable title; footer can’t be passed on the canvas.\n- Icons missing from the Solar set in the system: wallet, undo, external link, hourglass, hand-money, stars. (Previous uses Icon \"back\" = Solar alt-arrow-left-linear.)\n- AppBar title must wrap (max 2 lines) at large text: today nowrap + ellipsis truncates \"Earnings activity\" at 200%.\n- Button label must wrap in field sizes: nowrap overflows \"Show older lines\" and \"Fix payout account in Stripe\" at 200%. Banner Fix buttons read \"Fix in Stripe\" meanwhile.\n- Text scale: tokens.css needs a text-scale mode built like density, e.g. [data-hg-text-scale=\"200\"]{--type-body-lg-size:34px; …}, so the 200% text boards set one attribute instead of carrying their own scaling block.\n- Forced colours: the bundle’s forced-colors outline rule does not include .hg-focus-inset; add .hg-focus-inset:focus-visible{outline:2px solid CanvasText;outline-offset:-2px}.\n\nProposed components (composites built only from library parts and system components, labelled \"Proposed component\" on the boards, for owner approval): ListRow, InlineAlert, Skeleton, EmptyState / ErrorState (rider: action in the bottom third; role=alert on heading + message only), ActiveJobBar, StatusLabel (Icon md + label, 17px semibold; never brand orange or green; warning states use --feedback-warning-icon on the icon and --text-primary on the word, other states use --text-secondary-field).",
+   "w": 480,
+   "x": -1100,
+   "y": 0
+  },
+  "n-split": {
+   "x": -1100,
+   "y": 1300,
+   "w": 480,
+   "fill": "blue",
+   "size": 24,
+   "text": "Split from HalalGoes Rider — Earnings & History: https://claude.ai/artifact/Bmjz5bZDtEbhypv1sTTx2D"
+  }
+ },
+ "designSystems": [
+  {
+   "title": "HalalGoes design system",
+   "namespace": "halalgoesdesignsystem-d11a47",
+   "artifact": "https://claude.ai/artifact/1GwGVZz8Ju9wcz4HfCnzbv",
+   "version": "1790605103-3266",
+   "copiedAt": "2026-10-01T02:08:54Z"
+  }
+ ]
+}

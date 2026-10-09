@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Setup checklist rail</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="display: flex; height: {{h}}">
+<sc-if value="{{open}}" hint-placeholder-val="{{true}}">
+<aside id="setup-rail" aria-label="Your setup" style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 3px; outline-offset: -3px; width: 288px; height: {{h}}; box-sizing: border-box; flex-shrink: 0; display: flex; flex-direction: column; gap: 14px; padding: 16px 16px 16px 20px; border-right: 1px solid var(--border-decorative); background: var(--surface-base); font-family: var(--font-ui); color: var(--text-primary)">
+<span aria-hidden="true" style="position: absolute; bottom: 8px; right: 12px; z-index: 3; font: 500 11px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 3px 6px; border-radius: 4px; white-space: nowrap">Proposed component: Collapsible sidebar</span>
+<div style="display: flex; align-items: center; gap: 8px">
+<h2 class="type-heading-md" style="margin: 0; flex-grow: 1">Your setup</h2>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.IconButton" icon="back" variant="plain" size="md" accessibility-label="Collapse the setup checklist" aria-expanded="true" aria-controls="setup-rail" onClick="{{toggle}}" hint-size="44px,44px"></x-import>
+</div>
+<sc-if value="{{active}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; flex-direction: column; gap: 2px"><span class="type-label-md" style="color: var(--text-secondary)">Now</span><span class="type-heading-sm">{{currentLabel}}</span></div>
+</sc-if>
+<sc-if value="{{paused}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; gap: 8px; align-items: center; color: var(--text-secondary)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="lock" size="md" hint-size="20px,20px"></x-import><span class="type-heading-sm">{{pausedLabel}}</span></div>
+</sc-if>
+<div style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 3px; display: flex; flex-direction: column; gap: 6px">
+<span aria-hidden="true" style="position: absolute; top: -11px; right: 12px; z-index: 3; font: 500 11px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 3px 6px; border-radius: 4px; white-space: nowrap">Proposed component: Progress bar</span>
+<div role="progressbar" aria-label="Setup progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{percent}}" style="height: 8px; box-sizing: border-box; border-radius: 9999px; background: var(--border-decorative); outline: 1px solid var(--border-interactive); overflow: hidden"><div style="height: 8px; border-radius: 9999px; background: var(--text-secondary); width: {{pctWidth}}"></div></div>
+<span class="type-body-sm" style="color: var(--text-secondary); font-variant-numeric: tabular-nums">{{percent}}% complete</span>
+<sc-if value="{{isFix}}" hint-placeholder-val="{{false}}"><span class="type-body-sm" style="line-height: 1.45">Progress went back because a document needs replacing. Approved documents stay approved.</span></sc-if>
+</div>
+<div style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 3px; display: flex; flex-direction: column; gap: 6px">
+<span aria-hidden="true" style="position: absolute; top: -11px; right: 12px; z-index: 3; font: 500 11px/1 var(--font-mono); color: var(--color-neutral-800); background: var(--color-neutral-100); padding: 3px 6px; border-radius: 4px; white-space: nowrap">Proposed component: Setup checklist</span>
+<ol style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: 12px; overflow: hidden">
+<sc-for list="{{items}}" as="item" hint-placeholder-count="7">
+<li aria-current="{{item.ariaCurrent}}" style="min-height: 44px; box-sizing: border-box; padding: 4px 12px; display: flex; align-items: center; gap: 10px; border-top: {{item.rule}}; background: {{item.bg}}">
+<sc-if value="{{item.gDone}}" hint-placeholder-val="{{true}}"><span style="width: 24px; height: 24px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="check" size="lg" weight="bold" hint-size="24px,24px"></x-import></span></sc-if>
+<sc-if value="{{item.gNow}}" hint-placeholder-val="{{false}}"><span style="width: 24px; height: 24px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; color: var(--border-brand)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="chevron-right" size="lg" weight="bold" hint-size="24px,24px"></x-import></span></sc-if>
+<sc-if value="{{item.gWait}}" hint-placeholder-val="{{false}}"><span style="width: 24px; height: 24px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; color: var(--feedback-info-text)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="clock" size="lg" hint-size="24px,24px"></x-import></span></sc-if>
+<sc-if value="{{item.gWarn}}" hint-placeholder-val="{{false}}"><span style="width: 24px; height: 24px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; color: var(--feedback-warning-icon)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="warning" size="lg" hint-size="24px,24px"></x-import></span></sc-if>
+<sc-if value="{{item.gSlate}}" hint-placeholder-val="{{false}}"><span style="width: 24px; height: 24px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; color: var(--text-primary)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="clock" size="lg" hint-size="24px,24px"></x-import></span></sc-if>
+<sc-if value="{{item.gTodo}}" hint-placeholder-val="{{false}}"><span aria-hidden="true" style="width: 20px; height: 20px; margin: 2px; flex-shrink: 0; box-sizing: border-box; border-radius: 9999px; border: 2px solid var(--border-interactive)"></span></sc-if>
+<span style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column">
+<sc-if value="{{item.link}}" hint-placeholder-val="{{false}}"><a href="{{item.href}}" class="type-body-md" style="font-weight: 500; min-height: 44px; display: inline-flex; align-items: center">{{item.label}}</a></sc-if>
+<sc-if value="{{item.plain}}" hint-placeholder-val="{{true}}"><span class="type-body-md" style="font-weight: {{item.weight}}">{{item.label}}</span></sc-if>
+</span>
+<sc-if value="{{item.warnStatus}}" hint-placeholder-val="{{false}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="warning" size="sm" hint-size="96px,18px">{{item.status}}</x-import></sc-if>
+<sc-if value="{{item.outlineStatus}}" hint-placeholder-val="{{false}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="outline" size="sm" icon="clock" hint-size="120px,18px">{{item.status}}</x-import></sc-if>
+<sc-if value="{{item.textStatus}}" hint-placeholder-val="{{true}}"><span class="type-body-sm" style="color: {{item.statusColor}}; font-weight: {{item.statusWeight}}; text-align: right; white-space: nowrap">{{item.status}}</span></sc-if>
+</li>
+</sc-for>
+</ol>
+<span style="align-self: flex-start; display: inline-flex; align-items: center; padding: 3px 8px; border: 1.5px dashed var(--color-info-600); background: var(--color-info-50); color: var(--color-info-700); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">Needs API: steps_completed.hours_set (the Opening hours row reads the hours until then)</span>
+</div>
+<sc-if value="{{hasCycle}}" hint-placeholder-val="{{false}}"><span class="type-body-sm" style="color: var(--text-secondary)">Review round {{cycle}}: sent again after changes</span></sc-if>
+<div style="display: flex; flex-direction: column; gap: 6px; padding-top: 12px; border-top: 1px solid var(--border-decorative)">
+<h3 class="type-heading-sm" style="margin: 0">Halal certification</h3>
+<sc-if value="{{hasHalal}}" hint-placeholder-val="{{false}}"><div style="display: flex; flex-direction: column; gap: 6px; align-items: flex-start"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.HalalBadge" state="{{halal}}" surface="operational" size="md" hint-size="160px,24px"></x-import><span class="type-body-sm" style="color: var(--text-secondary); line-height: 1.45">{{halalLine}}</span></div></sc-if>
+<sc-if value="{{noHalal}}" hint-placeholder-val="{{true}}"><span class="type-body-sm" style="color: var(--text-secondary); line-height: 1.45">No halal certificate on record yet.</span></sc-if>
+<span aria-hidden="true" style="align-self: flex-start; display: inline-flex; align-items: center; padding: 3px 8px; background: var(--color-neutral-100); color: var(--color-neutral-800); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">Seal bound to RestaurantProfile.halal; nothing renders when it is null.</span>
+</div>
+<sc-if value="{{showWithdraw}}" hint-placeholder-val="{{true}}">
+<div style="margin-top: auto; display: flex; flex-direction: column; gap: 4px; align-items: flex-start; padding-bottom: 20px">
+<a href="Withdraw-Confirm.dc.html" class="type-body-md" style="font-weight: 500; min-height: 44px; display: inline-flex; align-items: center">Withdraw application</a>
+<span style="align-self: flex-start; display: inline-flex; align-items: center; padding: 3px 8px; border: 1.5px dashed var(--color-info-600); background: var(--color-info-50); color: var(--color-info-700); font: 500 12px/1.4 var(--font-mono); border-radius: 4px">Needs API: withdraw onboarding</span>
+</div>
+</sc-if>
+</aside>
+</sc-if>
+<sc-if value="{{shut}}" hint-placeholder-val="{{false}}">
+<aside id="setup-rail-c" aria-label="Your setup, collapsed" style="position: relative; outline: 1.5px dashed var(--color-neutral-500); outline-offset: 3px; outline-offset: -3px; width: 72px; height: {{h}}; box-sizing: border-box; flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 16px 0; border-right: 1px solid var(--border-decorative); background: var(--surface-base); font-family: var(--font-ui); color: var(--text-primary)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.IconButton" icon="chevron-right" variant="plain" size="md" accessibility-label="Expand the setup checklist" aria-expanded="false" aria-controls="setup-rail-c" onClick="{{toggle}}" hint-size="44px,44px"></x-import>
+<span class="type-label-md" style="font-variant-numeric: tabular-nums; color: var(--text-secondary)">{{percent}}%</span>
+<ol aria-label="Setup steps" style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0">
+<sc-for list="{{items}}" as="item" hint-placeholder-count="7">
+<li aria-current="{{item.ariaCurrent}}" aria-label="{{item.label}}: {{item.status}}" title="{{item.label}}: {{item.status}}" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border-radius: 12px; background: {{item.bg}}">
+<sc-if value="{{item.gDone}}" hint-placeholder-val="{{true}}"><span style="width: 24px; height: 24px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="check" size="lg" weight="bold" hint-size="24px,24px"></x-import></span></sc-if>
+<sc-if value="{{item.gNow}}" hint-placeholder-val="{{false}}"><span style="width: 24px; height: 24px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; color: var(--border-brand)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="chevron-right" size="lg" weight="bold" hint-size="24px,24px"></x-import></span></sc-if>
+<sc-if value="{{item.gWait}}" hint-placeholder-val="{{false}}"><span style="width: 24px; height: 24px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; color: var(--feedback-info-text)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="clock" size="lg" hint-size="24px,24px"></x-import></span></sc-if>
+<sc-if value="{{item.gWarn}}" hint-placeholder-val="{{false}}"><span style="width: 24px; height: 24px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; color: var(--feedback-warning-icon)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="warning" size="lg" hint-size="24px,24px"></x-import></span></sc-if>
+<sc-if value="{{item.gSlate}}" hint-placeholder-val="{{false}}"><span style="width: 24px; height: 24px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; color: var(--text-primary)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="clock" size="lg" hint-size="24px,24px"></x-import></span></sc-if>
+<sc-if value="{{item.gTodo}}" hint-placeholder-val="{{false}}"><span aria-hidden="true" style="width: 20px; height: 20px; margin: 2px; flex-shrink: 0; box-sizing: border-box; border-radius: 9999px; border: 2px solid var(--border-interactive)"></span></sc-if>
+</li>
+</sc-for>
+</ol>
+</aside>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"current": {"editor": "enum", "options": ["PROFILE", "DOCUMENTS", "AWAITING_REVIEW", "FIX_DOCUMENTS", "PAYOUT", "MENU", "DONE"], "default": "PROFILE"}, "done": {"editor": "text", "default": "0000000"}, "percent": {"editor": "int", "default": 0}, "cycle": {"editor": "int", "default": 1}, "payoutWaiting": {"editor": "boolean", "default": false}, "account": {"editor": "enum", "options": ["LIVE", "PENDING", "SUSPENDED", "DEACTIVATED", "WITHDRAWN"], "default": "PENDING"}, "halal": {"editor": "enum", "options": ["", "CERTIFIED", "EXPIRING_SOON", "EXPIRED", "UNVERIFIED"], "default": ""}, "cert": {"editor": "enum", "options": ["", "replaced", "expired", "docexpired"], "default": ""}, "body": {"editor": "text", "default": "HMA Canada"}, "until": {"editor": "text", "default": "14 March 2027"}, "collapsed": {"editor": "boolean", "default": false}, "h": {"editor": "text", "default": "836px"}, "$preview": {"width": 288, "height": 836}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const labels = ['Business profile', 'Documents added', 'Sent for review', 'Documents approved', 'Payout account', 'Opening hours', 'Menu published'];
+    const hrefs = ['Profile-ReadOnly.dc.html', '', '', 'Review-AllApproved.dc.html', '', '', ''];
+    const stepLabel = { PROFILE: 'Business profile', DOCUMENTS: 'Documents', AWAITING_REVIEW: 'Waiting for review', FIX_DOCUMENTS: 'Fix documents', PAYOUT: 'Payout setup', MENU: 'First menu and opening hours', DONE: 'Ready to take orders' };
+    const current = this.props.current ?? 'PROFILE';
+    const done = String(this.props.done ?? '0000000');
+    const account = this.props.account ?? 'PENDING';
+    const percent = Number(this.props.percent ?? 0);
+    const cycle = Number(this.props.cycle ?? 1);
+    const halal = this.props.halal ?? '';
+    const body = this.props.body ?? 'HMA Canada';
+    const until = this.props.until ?? '14 March 2027';
+    const propShut = String(this.props.collapsed ?? 'false') === 'true';
+    const shut = (this.state && this.state.shut !== undefined) ? this.state.shut : propShut;
+    const paused = ['SUSPENDED', 'DEACTIVATED'].includes(account);
+    const nowRows = { PROFILE: [0], DOCUMENTS: [1], AWAITING_REVIEW: [3], FIX_DOCUMENTS: [1], PAYOUT: [4], MENU: [5, 6], DONE: [] }[current] || [];
+    const items = labels.map((label, i) => {
+      const d = done.charAt(i) === '1';
+      const isNow = !d && !paused && nowRows.includes(i);
+      let status = d ? 'Done' : 'Not yet', g = d ? 'done' : 'todo', warn = false, outline = false;
+      const certP = this.props.cert ?? '';
+      if (isNow) {
+        status = 'In progress'; g = 'now';
+        if (current === 'AWAITING_REVIEW') { status = 'With reviewer'; g = 'wait'; }
+        if (current === 'FIX_DOCUMENTS') { status = 'New upload'; g = 'warn'; warn = true; }
+        /* An expired halal certificate is a halal state: slate clock and an outline badge, never the amber warning. */
+        if (current === 'AWAITING_REVIEW' && certP === 'expired') { status = 'Renew certificate'; g = 'slate'; outline = true; }
+        /* A non-halal document expired in review: the rail asks for the upload the page asks for. */
+        if (current === 'AWAITING_REVIEW' && certP === 'docexpired') { status = 'Upload needed'; g = 'now'; }
+        if (current === 'PAYOUT' && String(this.props.payoutWaiting) === 'true') { status = 'With Stripe'; g = 'wait'; }
+      }
+      const link = d && !!hrefs[i];
+      return {
+        label, status, href: hrefs[i], link, plain: !link,
+        gDone: g === 'done', gNow: g === 'now', gWait: g === 'wait', gWarn: g === 'warn', gSlate: g === 'slate', gTodo: g === 'todo',
+        warnStatus: warn, outlineStatus: outline, textStatus: !warn && !outline, ariaCurrent: isNow ? 'step' : 'false',
+        weight: isNow ? 600 : (d ? 500 : 400), statusWeight: isNow ? 600 : 400,
+        statusColor: isNow ? 'var(--text-primary)' : 'var(--text-secondary)',
+        bg: isNow ? 'var(--surface-sunken)' : 'transparent',
+        rule: i === 0 ? 'none' : '1px solid var(--border-decorative)'
+      };
+    });
+    const pausedLabel = { SUSPENDED: 'Paused: account suspended', DEACTIVATED: 'Paused: account deactivated' }[account] || '';
+    const cert = this.props.cert ?? '';
+    const unverified = paused ? 'Not verified. Review is paused while your account is.'
+      : cert === 'expired' ? 'Expired on ' + until + ' before it was checked. Upload the renewed certificate.'
+      : current === 'DOCUMENTS' ? 'Not verified yet. A reviewer checks it after you send your documents.'
+      : current === 'AWAITING_REVIEW' ? 'With a reviewer. Reviews take up to 3 business days.'
+      : current === 'FIX_DOCUMENTS' ? (cert === 'replaced' ? 'New certificate added. It is checked after you send it.' : 'Not approved. Upload a new certificate to be checked again.')
+      : '';
+    const halalLine = { CERTIFIED: body + ' · Valid until ' + until, EXPIRING_SOON: body + ' · Valid until ' + until, EXPIRED: body + ' · Ended ' + until, UNVERIFIED: unverified }[halal] || '';
+    const showWithdraw = current !== 'DONE' && !['SUSPENDED', 'DEACTIVATED', 'WITHDRAWN'].includes(account);
+    return {
+      h: this.props.h ?? '836px', open: !shut, shut, toggle: () => this.setState({ shut: !shut }),
+      items, percent, pctWidth: percent + '%', cycle, hasCycle: cycle >= 2,
+      active: !paused, paused, pausedLabel, currentLabel: stepLabel[current] || 'Business profile',
+      isFix: current === 'FIX_DOCUMENTS', halal, hasHalal: halal !== '', noHalal: halal === '', halalLine, showWithdraw
+    };
+  }
+}
+</script>
+</body>
+</html>

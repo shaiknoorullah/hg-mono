@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Blocking reasons copy</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+[data-rider]{font-family:var(--font-ui)}
+.offer-chrome{background:var(--surface-raised)}
+[data-theme="dark"] .offer-chrome,[data-theme="dark"].offer-chrome{background:var(--surface-chrome)}
+</style>
+</helmet>
+<div data-rider="" data-theme="{{theme}}" style="width: 800px; height: 844px; box-sizing: border-box; padding: var(--space-6); overflow: hidden; display: flex; flex-direction: column; gap: var(--space-4); background: var(--surface-base); color: var(--text-primary)">
+<div style="display: flex; flex-direction: column; gap: var(--space-1)">
+<h1 style="margin: 0; font-size: var(--type-heading-xl-size); font-weight: var(--type-heading-xl-weight); letter-spacing: var(--type-heading-xl-tracking)">Why you can't go online: one row per code</h1>
+<p style="margin: 0; font-size: var(--type-body-lg-size); color: var(--text-secondary-field)">RiderAvailability.blocking_reasons[] and dashboard.blocking_reasons[]. Each code shows as its own banner with its own fix. Copy is keyed on the code, never on error.message.</p>
+</div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3)">
+<sc-for list="{{reasons}}" as="r" hint-placeholder-count="9">
+<div style="border: 1px solid var(--border-decorative); border-radius: var(--radius-md); background: var(--surface-raised); padding: var(--space-3) var(--space-4); display: flex; flex-direction: column; gap: var(--space-1)">
+<span style="font: var(--text-type-mono-md); color: var(--text-secondary)">{{r.code}}</span>
+<strong style="font-size: var(--type-heading-sm-size); font-weight: var(--font-weight-semibold)">{{r.title}}</strong>
+<span style="font-size: var(--type-body-md-size); line-height: 1.45">{{r.body}}</span>
+<span style="font-size: var(--type-label-lg-size); font-weight: var(--font-weight-semibold); color: var(--text-secondary-field)">Fix: {{r.fix}}</span>
+</div>
+</sc-for>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["dark","light"],"default":"dark"},"$preview":{"width":800,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const theme = this.props.theme ?? 'dark';
+    return { theme: theme, reasons: [
+      { code: 'ONBOARDING_INCOMPLETE', title: 'Finish getting set up', body: 'Some sign-up steps aren’t done yet. See what’s left.', fix: 'Opens the step in GET /riders/me next_step' },
+      { code: 'ACCOUNT_NOT_ACTIVE', title: 'Your account is not active', body: 'You can’t take deliveries right now. Your account page says why.', fix: 'See account status' },
+      { code: 'PAYOUT_ACCOUNT_INCOMPLETE', title: 'Finish your payout account', body: 'Stripe needs a few more details before we can pay you. Only while you set up payouts: if Stripe pauses payouts later, you keep working.', fix: 'Finish payout setup' },
+      { code: 'DOCUMENT_EXPIRED', title: 'A document has expired', body: 'Upload a current one. We check it before you can go online.', fix: 'Upload a new document' },
+      { code: 'STALE_LOCATION_FIX', title: 'We can’t get your location', body: 'Step outside or away from tall buildings, then try again.', fix: 'Try again' },
+      { code: 'FOREGROUND_LOCATION_PERMISSION', title: 'Location is off for HalalGoes', body: 'We need your location to send you offers near you.', fix: 'Allow location' },
+      { code: 'BACKGROUND_LOCATION_PERMISSION', title: 'Location is set to “While using”', body: 'Set it to “Always” so offers reach you when the screen is off.', fix: 'Open location settings' },
+      { code: 'NOTIFICATION_PERMISSION', title: 'Notifications are off', body: 'Offers arrive as a notification with sound. Without it you will miss them.', fix: 'Allow notifications' },
+      { code: 'CONTINUOUS_ONLINE_CAP', title: 'You’ve been online 12 hours', body: 'Take an 8-hour rest, then you can go online again. Needs API: the time the rest ends.', fix: 'None; the rest is required' }
+    ] };
+  }
+}
+</script>
+</body>
+</html>

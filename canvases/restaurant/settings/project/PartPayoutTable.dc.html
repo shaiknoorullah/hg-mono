@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Payouts table</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div style="width: {{w}}; height: {{hh}}; box-sizing: border-box; font-family: var(--font-ui); color: var(--text-primary); display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap">
+<h2 id="payouts-h" tabindex="-1" style="margin: 0; font: var(--text-type-heading-lg); letter-spacing: -0.01em">Payout history</h2>
+<span style="font: var(--text-type-body-sm); color: var(--text-secondary)">Newest first · updates live</span>
+<span style="flex-grow: 1"></span>
+<span style="padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">DataTable on LyteNyte, virtualised inside its own region · cells: Text, Money, Status, Time · the Period cell is a ghost Button link to the payout (accessible name "Open payout for {period}, {status}"); the row click stays for pointer users · Status shows the badge only; the reason is on the payout · Paid is neutral with a check: only the halal seal is solid green · compact 44 px rows</span>
+</div>
+<div data-hg-density="compact"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.DataTable" caption="Payouts, newest first" hide-caption="{{yes}}" density="compact" sticky-header="{{yes}}" rows="{{rows}}" columns="{{cols}}" get-row-id="{{rowId}}" row-label="{{rowLabel}}" on-row-activate="{{noop}}" status="{{status}}" error-message="Couldn't load your payouts. Your money isn't affected; this is only the list." on-retry="{{noop}}" has-more="{{more}}" loading-more="{{loadingMore}}" on-load-more="{{noop}}" empty-state="{{empty}}" style="width: 100%"></x-import></div>
+<sc-if value="{{moreError}}" hint-placeholder-val="{{false}}">
+<div role="alert" style="display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: var(--radius-md); background: var(--feedback-danger-tint); border: 1px solid var(--feedback-danger-border); color: var(--feedback-danger-tint-text)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="error" size="md" color="var(--feedback-danger-icon)"></x-import>
+<span style="font: var(--text-type-body-md); flex-grow: 1">Couldn't load older payouts. The payouts above are up to date.</span>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="sm" icon-start="refresh">Try again</x-import>
+<span style="padding: 2px 8px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--text-secondary); background: var(--surface-raised)">Proposed component: DataTable load-more error</span>
+</div>
+</sc-if>
+<sc-if value="{{isAcct}}" hint-placeholder-val="{{false}}">
+<span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--feedback-info-tint-text); background: var(--feedback-info-tint)">Spec payout rule: no payout row while SUSPENDED or BANNED · no Accruing row for the open period · 7–13 September was created before the account was {{acctWord}} and is held (hold_reason sample) · rows below were all created before</span>
+</sc-if>
+<sc-if value="{{isReversal}}" hint-placeholder-val="{{false}}">
+<span style="align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--feedback-info-border); border-radius: var(--radius-xs); font: var(--text-type-caption); font-weight: 600; color: var(--feedback-info-tint-text); background: var(--feedback-info-tint)">"Includes a failed payout" needs the payout's entries · Needs API: payout detail with entries · the Failed row keeps its amount and status; the money appears once, in the later payout</span>
+</sc-if>
+<sc-if value="{{atEnd}}" hint-placeholder-val="{{false}}">
+<p style="margin: 0; font: var(--text-type-body-sm); color: var(--text-secondary)">That's every payout since you joined HalalGoes.</p>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"variant":{"editor":"enum","options":["populated","loading","empty","error","held","loadmore","loadmore-error","end","live-failed","live-sending","reversal","acct-suspended","acct-banned"],"default":"populated"},"width":{"editor":"int","default":1144},"height":{"editor":"int","default":520},"$preview":{"width":1144,"height":520}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var R = window.React;
+    var DS = window.HalalGoesDesignSystem_d11a47 || {};
+    function h(c, p) { if (!R || !c) return null; return R.createElement.apply(R, [c, p].concat([].slice.call(arguments, 2))); }
+    var v = this.props.variant || 'populated';
+    var LABEL = {
+      DRAFT: ['neutral', 'Accruing'], READY: ['neutral', 'Ready to send'], TRANSFERRING: ['info', 'Sending to Stripe'],
+      TRANSFERRED: ['info', 'Sent to Stripe'], PAID: ['neutral', 'Paid', 'check'], FAILED: ['danger', 'Failed'], HELD: ['warning', 'On hold']
+    };
+    var all = [
+      { id: '0192f1c0-11aa-7e00-8b10-000000000007', period: '14–20 September 2026', amount_cents: 186450, state: 'DRAFT' },
+      { id: '0192f1c0-11aa-7e00-8b10-000000000006', period: '7–13 September 2026', amount_cents: 289400, state: 'READY' },
+      { id: '0192f1c0-11aa-7e00-8b10-000000000005', period: '31 August – 6 September 2026', amount_cents: 412300, state: 'TRANSFERRING' },
+      { id: '0192f1c0-11aa-7e00-8b10-000000000004', period: '24–30 August 2026', amount_cents: 338700, state: 'TRANSFERRED' },
+      { id: '0192f1c0-11aa-7e00-8b10-000000000003', period: '17–23 August 2026', amount_cents: 305100, state: 'HELD', hold_reason: 'Held while HalalGoes reviews a disputed order from this period.' },
+      { id: '0192f1c0-11aa-7e00-8b10-000000000002', period: '10–16 August 2026', amount_cents: 297800, state: 'FAILED', failure_message: 'The bank returned the transfer.' },
+      { id: '0192f1c0-11aa-7e00-8b10-000000000001', period: '3–9 August 2026', amount_cents: 281200, state: 'PAID', paid_at: '11 August 2026' }
+    ];
+    var older = [
+      { id: '0192f1c0-11aa-7e00-8b10-000000000000', period: '27 July – 2 August 2026', amount_cents: 264900, state: 'PAID', paid_at: '4 August 2026' }
+    ];
+    var held = [
+      { id: '0192f1c0-11aa-7e00-8b10-000000000012', period: '14–20 September 2026', amount_cents: 186450, state: 'DRAFT' },
+      { id: '0192f1c0-11aa-7e00-8b10-000000000011', period: '7–13 September 2026', amount_cents: 289400, state: 'HELD', hold_reason: 'Payouts are not enabled on your Stripe account yet.' },
+      { id: '0192f1c0-11aa-7e00-8b10-000000000010', period: '31 August – 6 September 2026', amount_cents: 212300, state: 'HELD', hold_reason: 'Payouts are not enabled on your Stripe account yet.' }
+    ];
+    // live-failed: restaurant.payout_updated moved 24–30 August from TRANSFERRED to FAILED. live-sending: 7–13 September READY to TRANSFERRING.
+    var live = all.map(function (r) {
+      if (v === 'live-failed' && r.state === 'TRANSFERRED') return Object.assign({}, r, { state: 'FAILED', justChanged: true });
+      if (v === 'live-sending' && r.state === 'READY') return Object.assign({}, r, { state: 'TRANSFERRING', justChanged: true });
+      return r;
+    });
+    // Sample server value: the open period's amount already includes the 297800 reversal (186450 + 297800 = 484250). Not added up here.
+    if (v === 'reversal') live = all.map(function (r) { return r.state === 'DRAFT' ? Object.assign({}, r, { amount_cents: 484250, includesReversal: true }) : r; });
+    // Suspended or banned: nothing new is created, so the open period has no DRAFT row; the READY payout made before is held.
+    var acctKind = v === 'acct-suspended' ? 'suspended' : (v === 'acct-banned' ? 'banned' : null);
+    if (acctKind) live = all.filter(function (r) { return r.state !== 'DRAFT'; }).map(function (r) {
+      return r.state === 'READY' ? Object.assign({}, r, { state: 'HELD', hold_reason: 'Held while this account is ' + acctKind + '.', acct: acctKind }) : r;
+    });
+    var rows = acctKind ? live : v === 'reversal' ? live : v === 'held' ? held : (['populated', 'loadmore', 'loadmore-error'].indexOf(v) >= 0 ? all : (v === 'end' ? all.concat(older) : (v.indexOf('live-') === 0 ? live : [])));
+    // Each row's detail artboard. The Period cell is the keyboard and screen-reader path to it.
+    function hrefOf(r) {
+      if (r.justChanged) return v === 'live-failed' ? 'https://claude.ai/artifact/Djdm2j2nZaE3ULnyVudcjw' : 'https://claude.ai/artifact/Djdm2j2nZaE3ULnyVudcjw';
+      if (r.includesReversal) return 'https://claude.ai/artifact/Djdm2j2nZaE3ULnyVudcjw';
+      if (r.acct) return r.acct === 'banned' ? 'https://claude.ai/artifact/Djdm2j2nZaE3ULnyVudcjw' : 'https://claude.ai/artifact/Djdm2j2nZaE3ULnyVudcjw';
+      if (v === 'held' && r.state === 'HELD') return r.period.indexOf('7–13') === 0 ? 'https://claude.ai/artifact/Djdm2j2nZaE3ULnyVudcjw' : 'https://claude.ai/artifact/Djdm2j2nZaE3ULnyVudcjw';
+      return { DRAFT: 'https://claude.ai/artifact/Djdm2j2nZaE3ULnyVudcjw', READY: 'https://claude.ai/artifact/Djdm2j2nZaE3ULnyVudcjw', TRANSFERRING: 'https://claude.ai/artifact/Djdm2j2nZaE3ULnyVudcjw', TRANSFERRED: 'https://claude.ai/artifact/Djdm2j2nZaE3ULnyVudcjw', PAID: 'https://claude.ai/artifact/Djdm2j2nZaE3ULnyVudcjw', FAILED: 'https://claude.ai/artifact/Djdm2j2nZaE3ULnyVudcjw', HELD: 'https://claude.ai/artifact/Djdm2j2nZaE3ULnyVudcjw' }[r.state];
+    }
+    var cols = [
+      { key: 'period', label: 'Period', render: function (r) {
+        return h('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 8 } },
+          h(DS.Button, { variant: 'ghost', size: 'sm', href: hrefOf(r), accessibilityLabel: 'Open payout for ' + r.period + ', ' + LABEL[r.state][1], style: { fontWeight: 600 } }, r.period),
+          r.justChanged ? h(DS.Badge, { variant: 'outline', size: 'sm' }, 'Just changed') : null,
+          r.includesReversal ? h(DS.Badge, { variant: 'outline', size: 'sm' }, 'Includes a failed payout') : null);
+      } },
+      { key: 'amount', label: 'Amount', align: 'end', numeric: true, width: 160, render: function (r) {
+        return h(DS.Price, { cents: r.amount_cents });
+      } },
+      { key: 'state', label: 'Status', width: 200, render: function (r) {
+        var b = LABEL[r.state];
+        return h(DS.Badge, { variant: b[0], size: 'sm', icon: b[2] }, b[1]);
+      } },
+      { key: 'paid', label: 'Paid into your bank', width: 220, render: function (r) {
+        if (r.paid_at) return r.paid_at;
+        var t = r.state === 'FAILED' ? 'Not paid' : (r.state === 'HELD' ? 'On hold' : 'Not yet');
+        return h('span', { style: { color: 'var(--text-secondary)' } }, t);
+      } }
+    ];
+    return {
+      yes: true,
+      w: (this.props.width || 1144) + 'px',
+      hh: (this.props.height || 520) + 'px',
+      rows: rows,
+      cols: cols,
+      rowId: function (r) { return r.id; },
+      rowLabel: function (r) { return 'payout for ' + r.period + ', ' + LABEL[r.state][1]; },
+      status: v === 'loading' ? 'loading' : (v === 'error' ? 'error' : 'ready'),
+      more: v === 'populated' || v === 'loadmore' || v === 'reversal' || !!acctKind || v.indexOf('live-') === 0,
+      loadingMore: v === 'loadmore',
+      moreError: v === 'loadmore-error',
+      atEnd: v === 'end',
+      isReversal: v === 'reversal',
+      isAcct: !!acctKind,
+      acctWord: acctKind || '',
+      noop: function () {},
+      empty: { title: 'No payouts yet', description: 'Each payout is the total of your settled orders for its period. Your first one appears here after your first settled order.' }
+    };
+  }
+}
+</script>
+</body>
+</html>

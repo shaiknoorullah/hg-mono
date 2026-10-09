@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Account and settings</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<link rel="stylesheet" href="hg-current.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="scr {{ltClass}}" data-theme="{{theme}}" style="width: {{w}}px; height: {{h}}px; font-family: var(--font-ui); color: var(--text-primary)">
+  <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="cream" title="Account" loading="{{f.loading}}"></x-import>
+  <main class="body" style="padding-top: var(--space-2); gap: var(--space-6); overflow: hidden">
+
+    <sc-if value="{{f.content}}" hint-placeholder-val="{{true}}">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg">
+        <div style="display: flex; flex-direction: column; gap: var(--space-4)">
+          <div style="display: flex; gap: var(--space-3); align-items: center; flex-wrap: wrap">
+            <span style="position: relative; display: inline-flex; flex-direction: column; align-items: center; gap: 2px">
+              <span aria-hidden="true" style="width: 56px; height: 56px; flex: 0 0 auto; display: grid; place-items: center; border-radius: var(--radius-full); background: var(--surface-sunken); color: var(--text-primary); font-size: var(--type-heading-md-size); font-weight: 600">AM</span>
+              <span class="gap-tag">Proposed component: Avatar</span>
+            </span>
+            <div style="flex: 1 1 140px; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+              <span style="font-size: var(--type-heading-md-size); line-height: var(--type-heading-md-line); font-weight: 600">Aisha Malik</span>
+              <span class="t-small t-num">+1 416 555 0134</span>
+            </div>
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="sm" accessibility-label="Edit your details" on-press="{{noop}}">Edit</x-import>
+          </div>
+          <sc-if value="{{f.hasEmail}}" hint-placeholder-val="{{true}}">
+            <div style="display: flex; flex-direction: column; gap: var(--space-2); padding-top: var(--space-3); border-top: 1px solid var(--border-decorative)">
+              <div style="display: flex; gap: var(--space-2); align-items: center; flex-wrap: wrap">
+                <span class="t-body" style="color: var(--text-primary)">{{shownEmail}}</span>
+                <sc-if value="{{f.unverified}}" hint-placeholder-val="{{false}}">
+                  <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="warning" size="sm" icon="warning">Not confirmed</x-import>
+                </sc-if>
+              </div>
+              <sc-if value="{{f.unverified}}" hint-placeholder-val="{{false}}">
+                <p class="t-small">{{unverifiedText}}</p>
+                <div style="align-self: flex-start">
+                  <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="sm" loading="{{f.resending}}" disabled="{{f.resendLimited}}" aria-describedby="{{resendDesc}}" on-press="{{noop}}">Send the link again</x-import>
+                </div>
+                <sc-if value="{{f.resendMinute}}" hint-placeholder-val="{{false}}">
+                  <p class="t-small" role="status" id="resend-why">You can ask for a new link at <span class="t-num t-strong">6:44 pm</span>.</p>
+                  <span class="anno-tag">Static time = when the 429 arrived + Retry-After, announced once. No ticking Countdown until it uses feedback.info.text; then role=timer, outside any live region. The button label never ticks.</span>
+                </sc-if>
+                <sc-if value="{{f.resendDay}}" hint-placeholder-val="{{false}}">
+                  <p class="t-small" role="status" id="resend-why">You've asked 5 times today. Try again tomorrow.</p>
+                </sc-if>
+              </sc-if>
+              <sc-if value="{{f.pending}}" hint-placeholder-val="{{false}}">
+                <span class="api-tag" style="white-space: normal">Needs API: pending_email and previous_email on CustomerProfile. The spec's intended behaviour: the old verified address stays in use, and if the link runs out (24 h, 410) the email reverts to it. Today the contract replaces the email at once, sets email_verified false and cannot show either address.</span>
+              </sc-if>
+            </div>
+          </sc-if>
+          <sc-if value="{{f.noEmail}}" hint-placeholder-val="{{false}}">
+            <div style="display: flex; flex-direction: column; gap: var(--space-2); padding-top: var(--space-3); border-top: 1px solid var(--border-decorative)">
+              <p class="t-small">No email on your account. Add one if you'd like to hear from us by email.</p>
+              <div style="align-self: flex-start">
+                <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="sm" icon-start="plus" href="Account-addemail.dc.html">Add an email</x-import>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </x-import>
+
+      <section style="display: flex; flex-direction: column; gap: var(--space-2)">
+        <h2 class="group-label">Ordering</h2>
+        <span class="gap-tag">Proposed component: ListRow</span>
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg" padding="0">
+          <div style="display: flex; flex-direction: column">
+            <div class="{{focusClass}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="none" padding="var(--space-2) var(--space-4)" dc-props="{{rowLink}}" href="Addresses.dc.html"><div style="display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-3); min-height: calc(var(--density-row-height) - var(--space-4))">
+              <span style="width: 36px; height: 36px; flex: 0 0 auto; display: grid; place-items: center; border-radius: var(--radius-md); background: var(--surface-sunken); color: var(--text-secondary)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="map" size="md"></x-import></span>
+              <span style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px"><span style="font-size: var(--type-label-lg-size); line-height: var(--type-label-lg-line); font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap">Addresses</span><span style="font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-line); color: var(--text-secondary)">Home · 14 Ellesmere Rd</span></span>
+              <span style="flex: 0 0 auto; color: var(--text-secondary); display: flex; align-items: center; gap: var(--space-2)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="chevron-right" size="md"></x-import></span>
+            </div></x-import></div>
+            <hr aria-hidden="true" style="margin: 0; border: 0; border-top: 1px solid var(--border-decorative)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="none" padding="var(--space-2) var(--space-4)" dc-props="{{rowLink}}" href="#payment-methods"><div style="display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-3); min-height: calc(var(--density-row-height) - var(--space-4))">
+              <span aria-hidden="true" style="width: 36px; height: 36px; flex: 0 0 auto; display: grid; place-items: center; border-radius: var(--radius-md); background: var(--surface-sunken); color: var(--text-secondary)"></span>
+              <span style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px"><span style="font-size: var(--type-label-lg-size); line-height: var(--type-label-lg-line); font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap">Payment methods</span>
+                <sc-if value="{{sub.ok}}" hint-placeholder-val="{{true}}"><span style="font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-line); color: var(--text-secondary)">Visa •••• 4242</span></sc-if>
+                <sc-if value="{{sub.loading}}" hint-placeholder-val="{{false}}"><span aria-hidden="true" style="display: block; background: var(--skeleton-base); border-radius: var(--radius-xs); width: 45%; height: 12px; margin-top: 4px"></span><span class="sr">Loading</span></sc-if>
+                <sc-if value="{{sub.error}}" hint-placeholder-val="{{false}}"><span style="font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-line); color: var(--text-secondary)">Couldn't load your cards. Open to try again.</span></sc-if>
+                <span class="gap-tag">Component gap: Icon card</span></span>
+              <span style="flex: 0 0 auto; color: var(--text-secondary); display: flex; align-items: center; gap: var(--space-2)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="chevron-right" size="md"></x-import></span>
+            </div></x-import>
+            <hr aria-hidden="true" style="margin: 0; border: 0; border-top: 1px solid var(--border-decorative)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="none" padding="var(--space-2) var(--space-4)" dc-props="{{rowLink}}" href="#refunds"><div style="display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-3); min-height: calc(var(--density-row-height) - var(--space-4))">
+              <span aria-hidden="true" style="width: 36px; height: 36px; flex: 0 0 auto; display: grid; place-items: center; border-radius: var(--radius-md); background: var(--surface-sunken); color: var(--text-secondary)"></span>
+              <span style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px"><span style="font-size: var(--type-label-lg-size); line-height: var(--type-label-lg-line); font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap">Refunds</span><span style="font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-line); color: var(--text-secondary)">Requests and where they are</span><span class="gap-tag">Component gap: Icon receipt</span></span>
+              <span style="flex: 0 0 auto; color: var(--text-secondary); display: flex; align-items: center; gap: var(--space-2)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="chevron-right" size="md"></x-import></span>
+            </div></x-import>
+          </div>
+        </x-import>
+        <sc-if value="{{sub.note}}" hint-placeholder-val="{{false}}">
+          <span class="anno-tag">{{sub.note}}</span>
+        </sc-if>
+      </section>
+
+      <section style="display: flex; flex-direction: column; gap: var(--space-2)">
+        <h2 class="group-label">Notifications and privacy</h2>
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg" padding="0">
+          <div style="display: flex; flex-direction: column">
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="none" padding="var(--space-2) var(--space-4)" dc-props="{{rowLink}}" href="NotificationSettings.dc.html"><div style="display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-3); min-height: calc(var(--density-row-height) - var(--space-4))">
+              <span style="width: 36px; height: 36px; flex: 0 0 auto; display: grid; place-items: center; border-radius: var(--radius-md); background: var(--surface-sunken); color: var(--text-secondary)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="bell" size="md"></x-import></span>
+              <span style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px"><span style="font-size: var(--type-label-lg-size); line-height: var(--type-label-lg-line); font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap">Notification settings</span><span style="font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-line); color: var(--text-secondary)">Push on · News by email off</span></span>
+              <span style="flex: 0 0 auto; color: var(--text-secondary); display: flex; align-items: center; gap: var(--space-2)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="chevron-right" size="md"></x-import></span>
+            </div></x-import>
+            <hr aria-hidden="true" style="margin: 0; border: 0; border-top: 1px solid var(--border-decorative)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="none" padding="var(--space-2) var(--space-4)" dc-props="{{rowLink}}" href="AppSettings.dc.html"><div style="display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-3); min-height: calc(var(--density-row-height) - var(--space-4))">
+              <span aria-hidden="true" style="width: 36px; height: 36px; flex: 0 0 auto; display: grid; place-items: center; border-radius: var(--radius-md); background: var(--surface-sunken); color: var(--text-secondary)"></span>
+              <span style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px"><span style="font-size: var(--type-label-lg-size); line-height: var(--type-label-lg-line); font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap">App settings</span><span style="font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-line); color: var(--text-secondary)">Location and appearance</span><span class="gap-tag">Component gap: Icon settings</span></span>
+              <span style="flex: 0 0 auto; color: var(--text-secondary); display: flex; align-items: center; gap: var(--space-2)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="chevron-right" size="md"></x-import></span>
+            </div></x-import>
+          </div>
+        </x-import>
+      </section>
+
+      <section style="display: flex; flex-direction: column; gap: var(--space-2)">
+        <h2 class="group-label">Help and about</h2>
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg" padding="0">
+          <div style="display: flex; flex-direction: column">
+            <sc-if value="{{f.support}}" hint-placeholder-val="{{true}}">
+              <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="none" padding="var(--space-2) var(--space-4)" dc-props="{{rowLink}}" href="#support_phone_e164"><div style="display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-3); min-height: calc(var(--density-row-height) - var(--space-4))">
+                <span aria-hidden="true" style="width: 36px; height: 36px; flex: 0 0 auto; display: grid; place-items: center; border-radius: var(--radius-md); background: var(--surface-sunken); color: var(--text-secondary)"></span>
+                <span style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px"><span style="font-size: var(--type-label-lg-size); line-height: var(--type-label-lg-line); font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap">Call support</span><span style="font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-line); color: var(--text-secondary)">[support_hours]. Have your order code ready.</span><span class="gap-tag">Component gap: Icon phone</span></span>
+                <span style="flex: 0 0 auto; color: var(--text-secondary); display: flex; align-items: center; gap: var(--space-2)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="chevron-right" size="md"></x-import></span>
+              </div></x-import>
+            </sc-if>
+            <sc-if value="{{f.supportClosed}}" hint-placeholder-val="{{false}}">
+              <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="none" padding="var(--space-2) var(--space-4)" dc-props="{{rowLink}}" href="#orders"><div style="display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-3); min-height: calc(var(--density-row-height) - var(--space-4))">
+                <span aria-hidden="true" style="width: 36px; height: 36px; flex: 0 0 auto; display: grid; place-items: center; border-radius: var(--radius-md); background: var(--surface-sunken); color: var(--text-secondary)"></span>
+                <span style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px"><span style="font-size: var(--type-label-lg-size); line-height: var(--type-label-lg-line); font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap">Phone support is closed now</span><span style="font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-line); color: var(--text-secondary)">Open [support_hours]. For a problem with an order, open it in Orders and choose Get help, then Report a problem.</span><span class="gap-tag">Component gap: Icon phone</span></span>
+                <span style="flex: 0 0 auto; color: var(--text-secondary); display: flex; align-items: center; gap: var(--space-2)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="chevron-right" size="md"></x-import></span>
+              </div></x-import>
+            </sc-if>
+            <sc-if value="{{f.noSupport}}" hint-placeholder-val="{{false}}">
+              <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="none" padding="var(--space-2) var(--space-4)" dc-props="{{rowLink}}" href="#orders"><div style="display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-3); min-height: calc(var(--density-row-height) - var(--space-4))">
+                <span aria-hidden="true" style="width: 36px; height: 36px; flex: 0 0 auto; display: grid; place-items: center; border-radius: var(--radius-md); background: var(--surface-sunken); color: var(--text-secondary)"></span>
+                <span style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px"><span style="font-size: var(--type-label-lg-size); line-height: var(--type-label-lg-line); font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap">Phone support isn't available right now</span><span style="font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-line); color: var(--text-secondary)">For a problem with an order, open it in Orders and choose Get help, then Report a problem.</span><span class="gap-tag">Component gap: Icon phone</span></span>
+                <span style="flex: 0 0 auto; color: var(--text-secondary); display: flex; align-items: center; gap: var(--space-2)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="chevron-right" size="md"></x-import></span>
+              </div></x-import>
+            </sc-if>
+            <hr aria-hidden="true" style="margin: 0; border: 0; border-top: 1px solid var(--border-decorative)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="none" padding="var(--space-2) var(--space-4)" dc-props="{{rowLink}}" href="Legal.dc.html"><div style="display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-3); min-height: calc(var(--density-row-height) - var(--space-4))">
+              <span style="width: 36px; height: 36px; flex: 0 0 auto; display: grid; place-items: center; border-radius: var(--radius-md); background: var(--surface-sunken); color: var(--text-secondary)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="info" size="md"></x-import></span>
+              <span style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px"><span style="font-size: var(--type-label-lg-size); line-height: var(--type-label-lg-line); font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap">How we check halal certificates</span><span style="font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-line); color: var(--text-secondary)">What we verify, and what we don't</span></span>
+              <span style="flex: 0 0 auto; color: var(--text-secondary); display: flex; align-items: center; gap: var(--space-2)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="chevron-right" size="md"></x-import></span>
+            </div></x-import>
+            <hr aria-hidden="true" style="margin: 0; border: 0; border-top: 1px solid var(--border-decorative)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="none" padding="var(--space-2) var(--space-4)" dc-props="{{rowLink}}" href="WhatsNew-page.dc.html"><div style="display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-3); min-height: calc(var(--density-row-height) - var(--space-4))">
+              <span aria-hidden="true" style="width: 36px; height: 36px; flex: 0 0 auto; display: grid; place-items: center; border-radius: var(--radius-md); background: var(--surface-sunken); color: var(--text-secondary)"></span>
+              <span style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px"><span style="font-size: var(--type-label-lg-size); line-height: var(--type-label-lg-line); font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap">What's new</span><span style="font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-line); color: var(--text-secondary)">Version 1.2.0</span><span class="gap-tag">Component gap: Icon gift</span></span>
+              <span style="flex: 0 0 auto; color: var(--text-secondary); display: flex; align-items: center; gap: var(--space-2)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="chevron-right" size="md"></x-import></span>
+            </div></x-import>
+            <hr aria-hidden="true" style="margin: 0; border: 0; border-top: 1px solid var(--border-decorative)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="none" padding="var(--space-2) var(--space-4)" dc-props="{{rowLink}}" href="Legal-terms.dc.html"><div style="display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-3); min-height: calc(var(--density-row-height) - var(--space-4))">
+              <span aria-hidden="true" style="width: 36px; height: 36px; flex: 0 0 auto; display: grid; place-items: center; border-radius: var(--radius-md); background: var(--surface-sunken); color: var(--text-secondary)"></span>
+              <span style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px"><span style="font-size: var(--type-label-lg-size); line-height: var(--type-label-lg-line); font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap">Terms and privacy</span><span class="gap-tag">Component gap: Icon document</span></span>
+              <span style="flex: 0 0 auto; color: var(--text-secondary); display: flex; align-items: center; gap: var(--space-2)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="chevron-right" size="md"></x-import></span>
+            </div></x-import>
+          </div>
+        </x-import>
+        <span class="anno-tag">Owner decision: at launch support is a phone line during set hours only; outside them the customer helps themselves. The server turns support off outside the hours (support_enabled false, decided 1 October): with support_hours set the row says the line is closed and shows the hours as written (Account — phone line closed); with no hours it says support isn't available. No open-now API. Both rows open Orders, where a report is started from the order's Get help (Report a problem, from acceptance; owner decision, 1 October; createRefund takes the order). The Refunds row above only tracks requests already made. No chat or message thread.</span>
+        <div class="api-box">
+          <span class="api-tag" style="white-space: normal">Needs API: self-serve help. No endpoints in the contract, so not drawn as rows:</span>
+          <p class="t-small">Help centre and questions · Complaints form</p>
+        </div>
+      </section>
+
+      <div style="display: flex; flex-direction: column; gap: var(--space-6)">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="lg" full-width="{{yes}}" on-press="{{noop}}">Sign out</x-import>
+        <div style="display: flex; flex-direction: column; gap: var(--space-1)">
+          <h2 class="group-label">Delete your account</h2>
+          <p class="t-small" style="color: var(--text-primary)">To delete your account, call us during phone hours or email us at [support email]. We'll check it's really you, then delete it.</p>
+          <span class="api-tag" style="white-space: normal">Needs API: support email address in PublicConfig (only support_phone_e164 is there)</span>
+          <span class="anno-tag" style="white-space: normal">Owner decision (1 October): in-app deletion stays a later version and ships before the store release; at launch, deletion is done by request by phone or email. No contract work at launch, so no in-app delete button is drawn.</span>
+        </div>
+        <p class="t-small" style="text-align: center">HalalGoes <span class="t-num">1.2.0</span></p>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{f.loading}}" hint-placeholder-val="{{false}}">
+      <div role="status"><span class="sr">Loading your account</span></div>
+      <span class="gap-tag" style="white-space: normal">Proposed component: Skeleton. For the design-system components issue (<a href="https://github.com/shaiknoorullah/hg-mono/issues/109" style="color: inherit">GitHub #109</a>): role=status with a visually hidden name ('Loading your account'), outside the busy region; aria-busy on the container that receives the content; the skeleton aria-hidden.</span>
+      <div aria-busy="true" style="display: contents">
+      <div aria-hidden="true" style="display: flex; flex-direction: column; gap: var(--space-4)">
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg">
+          <div style="display: flex; gap: var(--space-3); align-items: center">
+            <span style="display: block; background: var(--skeleton-base); border-radius: var(--radius-xs); width: 56px; height: 56px; border-radius: var(--radius-full)"></span>
+            <span style="flex: 1; display: flex; flex-direction: column; gap: var(--space-2)"><span style="display: block; background: var(--skeleton-base); border-radius: var(--radius-xs); width: 50%; height: 16px"></span><span style="display: block; background: var(--skeleton-base); border-radius: var(--radius-xs); width: 40%; height: 12px"></span></span>
+          </div>
+        </x-import>
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="lg" padding="0">
+          <div style="display: flex; flex-direction: column">
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="none" padding="var(--space-2) var(--space-4)" dc-props="{{rowStatic}}"><div style="display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-3); min-height: calc(var(--density-row-height) - var(--space-4))"><span style="display: block; background: var(--skeleton-base); border-radius: var(--radius-xs); width: 36px; height: 36px; border-radius: var(--radius-md)"></span><span style="display: block; background: var(--skeleton-base); border-radius: var(--radius-xs); width: 45%; height: 14px"></span></div></x-import>
+            <hr aria-hidden="true" style="margin: 0; border: 0; border-top: 1px solid var(--border-decorative)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="none" padding="var(--space-2) var(--space-4)" dc-props="{{rowStatic}}"><div style="display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-3); min-height: calc(var(--density-row-height) - var(--space-4))"><span style="display: block; background: var(--skeleton-base); border-radius: var(--radius-xs); width: 36px; height: 36px; border-radius: var(--radius-md)"></span><span style="display: block; background: var(--skeleton-base); border-radius: var(--radius-xs); width: 55%; height: 14px"></span></div></x-import>
+            <hr aria-hidden="true" style="margin: 0; border: 0; border-top: 1px solid var(--border-decorative)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="none" padding="var(--space-2) var(--space-4)" dc-props="{{rowStatic}}"><div style="display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-3); min-height: calc(var(--density-row-height) - var(--space-4))"><span style="display: block; background: var(--skeleton-base); border-radius: var(--radius-xs); width: 36px; height: 36px; border-radius: var(--radius-md)"></span><span style="display: block; background: var(--skeleton-base); border-radius: var(--radius-xs); width: 35%; height: 14px"></span></div></x-import>
+          </div>
+        </x-import>
+      </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{f.error}}" hint-placeholder-val="{{false}}">
+      <div role="alert" style="flex: 1 1 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: var(--space-3); padding: var(--space-8) var(--space-5)">
+        <span class="gap-tag">Proposed component: ErrorState</span>
+        <span style="width: 56px; height: 56px; display: grid; place-items: center; border-radius: var(--radius-full); background: var(--surface-sunken); color: var(--text-secondary); background: var(--feedback-warning-tint); color: var(--feedback-warning-tint-text)"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="refresh" size="lg"></x-import></span>
+        <h2 style="margin: 0; font-size: var(--type-heading-md-size); line-height: var(--type-heading-md-line); font-weight: 600; color: var(--text-primary)">We couldn't load your account</h2>
+        <p style="margin: 0; max-width: 320px; font-size: var(--type-body-md-size); line-height: var(--type-body-md-line); color: var(--text-secondary)">Check your connection and try again. You can still sign out.</p>
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="secondary" size="md" icon-start="refresh" on-press="{{noop}}">Try again</x-import>
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="ghost" size="md" on-press="{{noop}}">Sign out</x-import>
+      </div>
+    </sc-if>
+  </main>
+
+  <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.BottomNav" label="Main" active="account" items="{{nav}}" on-change="{{noop}}"></x-import>
+
+  <sc-if value="{{f.toast}}" hint-placeholder-val="{{false}}">
+    <div class="toast-dock">
+      <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Toast" variant="{{toast.variant}}" title="{{toast.title}}" description="{{toast.desc}}" action="{{toast.action}}" on-dismiss="{{noop}}"></x-import>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{f.sheet}}" hint-placeholder-val="{{false}}">
+    <div class="{{sheetWrap}}">
+    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Sheet" open="{{yes}}" contained="{{yes}}" title="Your details" on-close="{{noop}}" max-height="88%" footer="{{sheetFooter}}">
+      <div style="display: flex; flex-direction: column; gap: var(--space-4); font-family: var(--font-ui)" data-sheet="">
+        <sc-if value="{{f.sheetError}}" hint-placeholder-val="{{false}}">
+          <span class="gap-tag">Proposed component: Banner</span>
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="md" padding="var(--space-3) var(--space-4)" dc-props="{{alert.warning}}" role="alert"><div style="display: flex; gap: var(--space-3); align-items: flex-start; font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-line)">
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="warning" size="md"></x-import>
+            <span>We couldn't save your changes. What you typed is still here.</span>
+          </div></x-import>
+        </sc-if>
+        <sc-if value="{{f.sheetOffline}}" hint-placeholder-val="{{false}}">
+          <span class="gap-tag">Proposed component: Banner</span>
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Card" variant="outlined" radius="md" padding="var(--space-3) var(--space-4)" dc-props="{{alert.neutral}}" role="status"><div style="display: flex; gap: var(--space-3); align-items: flex-start; font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-line)">
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="info" size="md"></x-import>
+            <span id="sheet-offline-why">You're offline. What you type stays here; connect to save it.</span>
+          </div></x-import>
+        </sc-if>
+        <sc-if value="{{f.darkErr}}" hint-placeholder-val="{{false}}">
+          <span class="gap-tag" style="white-space: normal">DS issue: form field error text is hard-coded danger-600, 2.32:1 on the dark background; should be feedback.danger.text. Not recoloured here.</span>
+        </sc-if>
+        <div class="{{firstClass}}">
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="First name" required="{{yes}}" auto-complete="given-name" max-length="{{n50}}" default-value="{{sheetFirst}}" read-only="{{f.saving}}" error-text="{{firstErr}}"></x-import>
+        </div>
+        <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Last name" auto-complete="family-name" max-length="{{n50}}" default-value="Malik" read-only="{{f.saving}}"></x-import>
+        <div data-email="">
+          <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Input" label="Email" variant="email" auto-complete="email" max-length="{{n254}}" default-value="{{sheetEmail}}" read-only="{{f.saving}}" helper-text="{{emailHelp}}" error-text="{{emailErr}}"></x-import>
+        </div>
+        <sc-if value="{{f.addEmail}}" hint-placeholder-val="{{false}}">
+          <span class="anno-tag">Opened from Add an email (Account or Notification settings): the sheet opens with focus in the empty Email field. The helper says before saving that an email, once added, can be changed but not removed (today's contract).</span>
+        </sc-if>
+        <div style="display: flex; flex-direction: column; gap: var(--space-1)">
+          <span class="t-sec">Mobile number</span>
+          <span class="t-body t-num" style="color: var(--text-primary)">+1 416 555 0134</span>
+          <span class="t-small">Your number is how you sign in, so it can't be changed here.</span>
+        </div>
+        <span class="api-tag" style="white-space: normal">Last name and email can't be cleared once set (CustomerProfileUpdateInput: last_name minLength 1, email not null). Needs API to allow it.</span>
+      </div>
+    </x-import>
+    </div>
+    <sc-if value="{{kbd}}" hint-placeholder-val="{{false}}"><div class="kbd kbd-abs" aria-hidden="true"><span class="anno-tag">Phone keyboard, drawn by the OS (291 px). The sheet and its Save footer sit above it.</span></div></sc-if>
+  </sc-if>
+
+  <sc-if value="{{f.signout}}" hint-placeholder-val="{{false}}">
+    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Modal" open="{{yes}}" contained="{{yes}}" variant="confirm" title="Sign out of HalalGoes?" description="Your addresses stay saved to your account. To sign in again, we'll send a code to your phone." confirm-label="{{signoutLabel}}" cancel-label="Stay signed in" confirm-loading="{{f.signingOut}}" on-confirm="{{noop}}" on-close="{{noop}}" size="sm"></x-import>
+  </sc-if>
+  <sc-if value="{{f.unsaved}}" hint-placeholder-val="{{false}}">
+    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Modal" open="{{yes}}" contained="{{yes}}" variant="confirm" destructive="{{yes}}" title="Discard your changes?" description="You changed your details but haven't saved them. If you close now, the changes are lost." confirm-label="Discard changes" cancel-label="Keep editing" on-confirm="{{noop}}" on-close="{{noop}}" size="sm"></x-import>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["default","focus","loading","error","sublinesloading","sublineserror","unverified","resending","resent","resendlimited","resendday","pendingemail","noemail","nosupport","supportclosed","edit","addemail","editfocus","editemail","editinvalid","editfirstempty","editoffline","editsaving","editerror","editunsaved","signout","signoutfocus","signingout","signoutfail"],"default":"default"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"lt":{"editor":"boolean","default":false},"kbd":{"editor":"boolean","default":false},"w":{"editor":"int","min":320,"max":430,"default":390},"h":{"editor":"int","min":844,"max":4000,"default":1560},"$preview":{"width":390,"height":1560}}'>
+class Component extends DCLogic {
+  componentDidMount() {
+    this.t = setTimeout(() => {
+      try {
+        let s = this.props.state ?? 'default';
+        let el = null;
+        if (s === 'edit' || s === 'editfocus' || s === 'editfirstempty') el = document.querySelector('[data-sheet] input');
+        if (s === 'addemail') el = document.querySelector('[data-email] input');
+        if (s === 'signout' || s === 'signoutfocus') el = Array.from(document.querySelectorAll('[role=alertdialog] button')).find((b) => (b.textContent || '').trim() === 'Stay signed in') || null;
+        if (el) el.focus({ preventScroll: true });
+      } catch (e) {}
+    }, 500);
+  }
+  componentWillUnmount() { clearTimeout(this.t); }
+  renderVals() {
+    let s = this.props.state ?? 'default';
+    if (s === 'editinuse') s = 'editinvalid';
+    const sheetStates = ['edit', 'addemail', 'editfocus', 'editemail', 'editinvalid', 'editfirstempty', 'editoffline', 'editsaving', 'editerror', 'editunsaved'];
+    const f = {
+      loading: s === 'loading', error: s === 'error',
+      unverified: ['unverified', 'resending', 'resent', 'resendlimited', 'resendday', 'pendingemail'].includes(s),
+      resending: s === 'resending', resendLimited: s === 'resendlimited' || s === 'resendday', resendMinute: s === 'resendlimited', resendDay: s === 'resendday', pending: s === 'pendingemail',
+      noEmail: s === 'noemail' || s === 'addemail', addEmail: s === 'addemail', noSupport: s === 'nosupport', supportClosed: s === 'supportclosed',
+      sheet: sheetStates.includes(s), saving: s === 'editsaving', sheetError: s === 'editerror', sheetOffline: s === 'editoffline',
+      unsaved: s === 'editunsaved',
+      signout: ['signout', 'signoutfocus', 'signingout'].includes(s), signingOut: s === 'signingout',
+    };
+    f.content = !f.loading && !f.error;
+    f.hasEmail = !f.noEmail;
+    f.darkErr = this.props.theme === 'dark' && (s === 'editinvalid' || s === 'editfirstempty');
+    const sub = {
+      ok: s !== 'sublinesloading' && s !== 'sublineserror', loading: s === 'sublinesloading', error: s === 'sublineserror',
+      note: s === 'sublinesloading' ? 'listPaymentMethods loads after getCustomerProfile. Until it answers, the Payment methods subline is a skeleton bar (read as Loading); the row is already a live link.'
+        : s === 'sublineserror' ? "If listPaymentMethods fails, the row stays a live link and its subline drops to a static description, with no card number guessed. The screen it opens has its own error and retry." : null,
+    };
+    f.support = !f.noSupport && !f.supportClosed;
+    const toasts = {
+      resent: { variant: 'success', title: 'Link sent', desc: 'Check aisha.malik@example.com. The link works for 24 hours.', action: undefined },
+      pendingemail: { variant: 'success', title: 'Details saved', desc: 'We sent a link to aisha.m@example.ca. Open it to confirm your new email.', action: undefined },
+      signoutfail: { variant: 'warning', title: "We couldn't sign you out", desc: "You're still signed in. Check your connection and try again.", action: { label: 'Try again', onAction: () => {} } },
+    };
+    f.toast = !!toasts[s];
+    const emailErr = s === 'editinvalid' ? "We couldn't use this email. Check it's typed correctly." : null;
+    const newEmail = ['editemail', 'editinvalid', 'editsaving'].includes(s);
+    const h = window.React.createElement;
+    const DS = window.HalalGoesDesignSystem_d11a47 || {};
+    const saveLabel = f.saving ? 'Saving' : 'Save changes';
+    const sheetFooter = DS.Button ? h(DS.Button, { variant: 'primary', size: 'lg', fullWidth: true, loading: f.saving, disabled: f.sheetOffline, 'aria-describedby': f.sheetOffline ? 'sheet-offline-why' : undefined, onPress: () => {} }, saveLabel) : null;
+    return {
+      alert: { neutral: { style: { background: 'var(--surface-sunken)', color: 'var(--text-secondary)', borderColor: 'var(--border-decorative)' } }, info: { style: { background: 'var(--feedback-info-tint)', color: 'var(--feedback-info-tint-text)', borderColor: 'var(--feedback-info-border)' } }, warning: { style: { background: 'var(--feedback-warning-tint)', color: 'var(--feedback-warning-tint-text)', borderColor: 'var(--feedback-warning-border)' } } }, rowLink: { className: 'hg-focus-inset', style: { border: 'none', borderRadius: 0, background: 'transparent' } }, rowStatic: { style: { border: 'none', borderRadius: 0, background: 'transparent' } },
+      f, sub, yes: true, noop: () => {}, n50: 50, n254: 254,
+      resendDesc: f.resendLimited ? 'resend-why' : undefined,
+      theme: this.props.theme === 'dark' ? 'dark' : 'light',
+      ltClass: this.props.lt ? 'lt' : '',
+      w: this.props.w ?? 390,
+      h: this.props.h ?? 1560,
+      focusClass: s === 'focus' ? 'is-focused' : '',
+      toast: toasts[s] || toasts.resent,
+      shownEmail: f.pending ? 'aisha.m@example.ca' : 'aisha.malik@example.com',
+      unverifiedText: f.pending ? "Open the link we emailed to this new address to confirm it. Until then we won't send email here." : 'Open the link we emailed you to confirm this address.',
+      sixty: 60, zero: 0,
+      kbd: !!this.props.kbd, sheetWrap: this.props.kbd ? 'kbd-above' : '',
+      sheetFirst: s === 'editfirstempty' ? '' : 'Aisha',
+      firstErr: s === 'editfirstempty' ? 'Enter your first name.' : null,
+      firstClass: s === 'editfirstempty' ? 'drawn-invalid-focus' : '',
+      sheetEmail: f.addEmail ? '' : newEmail ? (s === 'editinvalid' ? 'aisha.m@example' : 'aisha.m@example.ca') : 'aisha.malik@example.com',
+      emailErr,
+      emailHelp: emailErr ? null : f.addEmail ? "We'll email a link to confirm it. Once added, you can change it but not remove it." : (newEmail ? "We'll email a link to this new address. You can change your email but not remove it." : 'You can change your email but not remove it.'),
+      sheetFooter,
+      signoutLabel: f.signingOut ? 'Signing out' : 'Sign out',
+      nav: [
+        { key: 'home', label: 'Home', icon: 'home' },
+        { key: 'search', label: 'Search', icon: 'search' },
+        { key: 'orders', label: 'Orders', icon: 'orders' },
+        { key: 'account', label: 'Account', icon: 'profile' },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

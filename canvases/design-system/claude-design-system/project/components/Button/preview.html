@@ -1,0 +1,33 @@
+<!-- @dsCard group="Core" height=250 subtitle="Primary · secondary · tertiary · ghost · danger; loading keeps colour and width" -->
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Button</title>
+<style>body{margin:0;padding:16px;background:var(--surface-base);color:var(--text-primary);font-family:var(--font-ui)}
+.row{display:flex;flex-wrap:wrap;align-items:center;gap:12px}.col{display:grid;gap:12px}.g2{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;align-items:start}
+.lbl{font-size:var(--type-label-sm-size);letter-spacing:var(--type-label-sm-tracking);font-weight:var(--font-weight-semibold);color:var(--text-tertiary);min-inline-size:88px}
+.stage{position:relative;block-size:200px;border:1px dashed var(--border-decorative);border-radius:var(--radius-lg);overflow:hidden;background:var(--surface-sunken)}</style>
+</head><body><div id="root"></div>
+<script>
+(function () {
+  var h = React.createElement, F = React.Fragment, DS = window.HalalGoesDesignSystem_d11a47;
+  function L(t) { return h('span', { className: 'lbl' }, t); }
+
+  function Demo() {
+    var s = React.useState(false), busy = s[0], setBusy = s[1];
+    return h('div', { className: 'col' },
+      h('div', { className: 'row' }, L('variants'),
+        h(DS.Button, { variant: 'primary', iconStart: 'cart' }, 'Add to order'),
+        h(DS.Button, { variant: 'secondary' }, 'View menu'),
+        h(DS.Button, { variant: 'tertiary' }, 'Track order'),
+        h(DS.Button, { variant: 'ghost' }, 'Skip'),
+        h(DS.Button, { variant: 'danger', destructive: true }, 'Cancel order')),
+      h('div', { className: 'row' }, L('sizes'),
+        h(DS.Button, { size: 'sm' }, 'sm 36 (44 hit)'), h(DS.Button, { size: 'md' }, 'md 44'),
+        h(DS.Button, { size: 'lg' }, 'lg 52'), h(DS.Button, { size: 'xl' }, 'xl 60'), h(DS.Button, { critical: true }, 'Accept · 72')),
+      h('div', { className: 'row' }, L('states'),
+        h(DS.Button, { disabled: true, type: 'submit' }, 'Disabled (focusable)'),
+        h(DS.Button, { loading: busy, onPress: function () { setBusy(true); setTimeout(function () { setBusy(false); }, 1500); } }, busy ? 'Placing order' : 'Place order'),
+        h(DS.Button, { loading: true, iconStart: 'check' }, 'Saving'),
+        h(DS.Button, { variant: 'tertiary', href: '#menu', iconEnd: 'chevron-right' }, 'Link mode')));
+  }
+  ReactDOM.createRoot(document.getElementById('root')).render(h(Demo));
+})();
+</script></body></html>

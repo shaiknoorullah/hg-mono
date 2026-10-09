@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>New orders strip</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<section id="new-orders" tabindex="-1" aria-label="{{s.aria}}" style="width: {{s.w}}px; height: {{s.h}}px; box-sizing: border-box; display: flex; gap: 16px; align-items: stretch; padding: 10px 16px; background: {{s.bg}}; border-top: {{s.edgeTop}}; border-bottom: {{s.edgeBottom}}; box-shadow: {{s.ring}}; font-family: var(--font-ui); color: var(--text-primary); overflow: hidden">
+
+<sc-if value="{{s.isCompact}}" hint-placeholder-val="{{false}}">
+<div style="flex-grow: 1; min-width: 0; display: flex; align-items: center; gap: 12px">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Countdown" variant="text" size="md" expires-at="{{s.compactExpires}}" server-now="{{s.compactNow}}" window-seconds="180" style="flex-shrink: 0"></x-import>
+<div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column">
+<span style="font-size: 17px; font-weight: 700">{{s.compactTitle}}</span>
+<span style="font-size: 15px; color: var(--text-secondary)">{{s.compactBody}}</span>
+</div>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="{{s.compactActionVariant}}" size="lg" accessibility-label="{{s.compactActionName}}">{{s.compactAction}}</x-import>
+</div>
+</sc-if>
+
+<sc-if value="{{s.isFull}}" hint-placeholder-val="{{true}}">
+<div style="width: {{s.headW}}px; flex-shrink: 0; display: flex; flex-direction: column; gap: 6px; justify-content: center">
+<h2 style="margin: 0; font-size: 17px; line-height: 22px; font-weight: 700">New orders</h2>
+<sc-if value="{{s.hasWaiting}}" hint-placeholder-val="{{true}}"><span style="align-self: flex-start"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="brand" icon="bell" size="md">{{s.waitingLabel}}</x-import></span></sc-if>
+<span style="font-size: 13px; line-height: 17px; color: var(--text-secondary)">{{s.rule}}</span>
+<sc-if value="{{s.showKeys}}" hint-placeholder-val="{{true}}">
+<div aria-hidden="true" style="display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; font-size: 13px; line-height: 17px; color: var(--text-secondary)">
+<sc-for list="{{s.keys}}" as="k" hint-placeholder-count="4">
+<span style="display: inline-flex; gap: 4px; align-items: center"><kbd style="min-width: 20px; box-sizing: border-box; padding: 0 5px; text-align: center; font-family: var(--font-mono); font-size: 13px; font-weight: 600; color: var(--text-primary); background: {{k.bg}}; border: 1px solid {{k.border}}; border-radius: var(--radius-xs)">{{k.key}}</kbd>{{k.label}}</span>
+</sc-for>
+</div>
+</sc-if>
+</div>
+
+<sc-if value="{{s.isLive}}" hint-placeholder-val="{{true}}">
+<div role="group" aria-label="New orders, soonest deadline first. Left and right arrow keys move between orders." style="flex-grow: 1; min-width: 0; display: flex; gap: 12px; align-items: center; overflow-x: auto; overflow-y: hidden">
+<sc-for list="{{s.tiles}}" as="t" hint-placeholder-count="2">
+<dc-import name="OfferTile" tile="{{t}}" hint-size="372px,166px"></dc-import>
+</sc-for>
+<sc-if value="{{s.hasMore}}" hint-placeholder-val="{{false}}">
+<button type="button" aria-label="{{s.moreName}}" style="flex-shrink: 0; width: 88px; height: 166px; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 8px; background: var(--surface-raised); border: 1.5px solid var(--border-interactive); border-radius: var(--radius-lg); font: inherit; font-size: 15px; font-weight: 700; color: var(--text-primary); cursor: pointer"><span>{{s.moreLabel}}</span><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="chevron-right" size="md"></x-import></button>
+</sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{s.isLoading}}" hint-placeholder-val="{{false}}">
+<div role="status" aria-label="Loading new orders" style="flex-grow: 1; min-width: 0; display: flex; gap: 12px; align-items: center">
+<div aria-hidden="true" style="width: 372px; height: 166px; border-radius: var(--radius-lg); background: var(--skeleton-base)"></div>
+<div aria-hidden="true" style="width: 372px; height: 166px; border-radius: var(--radius-lg); background: var(--skeleton-highlight)"></div>
+<span style="font-size: 15px; color: var(--text-secondary)">Loading new orders…</span>
+</div>
+</sc-if>
+
+<sc-if value="{{s.isEmpty}}" hint-placeholder-val="{{false}}">
+<div role="status" style="flex-grow: 1; min-width: 0; display: flex; align-items: center; gap: 16px; padding: 0 20px; background: var(--surface-raised); border: 1px dashed var(--border-decorative); border-radius: var(--radius-lg)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="{{s.emptyIcon}}" size="xl" color="var(--text-secondary)"></x-import>
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px">
+<span style="font-size: 17px; font-weight: 700">{{s.emptyTitle}}</span>
+<span style="font-size: 15px; color: var(--text-secondary)">{{s.emptyBody}}</span>
+</div>
+<sc-if value="{{s.hasEmptyAction}}" hint-placeholder-val="{{false}}"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="{{s.emptyActionVariant}}" size="lg">{{s.emptyAction}}</x-import></sc-if>
+</div>
+</sc-if>
+</sc-if>
+
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"strip":{"editor":null,"tsType":"object"},"$preview":{"width":1360,"height":186}}'>
+class Component extends DCLogic {
+  renderVals() {
+    if (!this._anchor) this._anchor = Date.now();
+    const a = this._anchor;
+    const iso = (ms) => new Date(ms).toISOString();
+    const keys = [{ key: 'Arrows', label: 'move', bg: 'var(--surface-raised)', border: 'var(--border-interactive)' }, { key: 'A', label: 'accept', bg: 'var(--surface-raised)', border: 'var(--border-interactive)' },
+      { key: 'D', label: 'decline', bg: 'var(--surface-raised)', border: 'var(--border-interactive)' }, { key: 'Enter', label: 'details', bg: 'var(--surface-raised)', border: 'var(--border-interactive)' }];
+    /* Standalone preview: two offers waiting. Inside the board the strip object comes from LiveBoard. */
+    const tile = (code, remain, earn, summary, note) => ({ code: code, w: 372, cdExpires: iso(a + remain * 1000), cdNow: iso(a), earn: earn, earnReady: true, earnLoading: false, summary: summary, hasNote: note,
+      acceptLabel: 'Accept · 20 min', acceptName: 'Accept order ' + code + ', ready in 20 minutes', declineName: 'Decline order ' + code + ', choose a reason', aria: 'New order ' + code, isLive: true, isOutcome: false });
+    const base = {
+      w: 1360, h: 186, aria: 'New orders, 2 waiting', bg: 'var(--state-selected-tint)', edgeTop: '0', edgeBottom: '2px solid var(--border-brand)', ring: 'none',
+      isFull: true, isCompact: false, isLive: true, isLoading: false, isEmpty: false, hasWaiting: true, waitingLabel: '2 waiting', rule: 'Answer within 3 minutes. Soonest deadline first.',
+      showKeys: true, keys: keys, tiles: [tile('B3M9', 40, 2210, 'Omar S. · 2 items', false), tile('A7K2', 132, 3769, 'Aisha K. · 3 items', true)],
+      hasMore: false, moreLabel: '', moreName: '', emptyIcon: 'bell', emptyTitle: '', emptyBody: '', hasEmptyAction: false, emptyAction: '', emptyActionVariant: 'tertiary',
+      compactExpires: iso(a + 40000), compactNow: iso(a), compactTitle: '', compactBody: '', compactAction: 'Answer', compactActionVariant: 'primary', compactActionName: 'Answer the most urgent new order', headW: 168
+    };
+    const s = Object.assign({}, base, this.props.strip || {});
+    return { s: s };
+  }
+}
+</script>
+</body>
+</html>

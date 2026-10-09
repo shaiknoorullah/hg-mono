@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>What's new, support agent</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.skip-link{position:absolute;left:var(--space-4);top:-120px;z-index:60;display:inline-flex;align-items:center;min-height:44px;padding:0 var(--space-4);border-radius:var(--radius-sm);background:var(--surface-raised);color:var(--text-primary);font-family:var(--font-ui);font-size:var(--type-body-md-size);font-weight:600;text-decoration:none}
+.skip-link:focus,.skip-link[data-shown]{top:12px;outline:2px solid transparent;box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+.skip-link+.skip-link:focus{top:64px}
+.resize-handle{position:absolute;top:0;bottom:0;width:44px;z-index:5;display:flex;align-items:center;justify-content:center;cursor:col-resize;outline:2px solid transparent;touch-action:none}
+.resize-grip{display:flex;align-items:center;justify-content:center;gap:2px;width:14px;height:32px;box-sizing:border-box;border:1px solid var(--border-interactive);border-radius:var(--radius-xs);background:var(--surface-raised)}
+.resize-grip span{width:1px;height:14px;background:var(--text-secondary)}
+.resize-handle:focus-visible .resize-grip,.resize-handle[data-focus-demo] .resize-grip{box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+</style>
+</helmet>
+<div data-theme="light" data-density="compact" style="width: 1440px; height: 900px; position: relative; overflow: hidden; display: grid; grid-template-columns: 80px minmax(0, 1fr) 480px; grid-template-rows: minmax(0, 1fr); background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+<a class="skip-link" href="#main">Skip to main content</a>
+<div style="background: var(--surface-chrome)">
+<dc-import name="AdminSidebar" collapsed="{{yes}}" active="alerts" viewer="support" has-new="{{yes}}" counts="live" wn-expanded="{{yes}}" focus-demo="none" hint-size="80px,900px"></dc-import>
+</div>
+<div style="display: flex; flex-direction: column; min-width: 0; min-height: 0">
+
+<main id="main" tabindex="-1" style="flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; outline: none">
+
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" role="none" tone="raised" sticky="{{yes}}" title="Live alerts"></x-import>
+<div style="padding: var(--space-1) var(--space-6) 0"><span style="font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary)">Component gap: AppBar needs a role prop; role="none" here so main holds no nested banner. The h1 title stays.</span></div>
+<div style="flex: 1; min-height: 0; padding: var(--space-5) var(--space-6); display: flex; flex-direction: column; gap: var(--space-4); min-width: 0">
+<div style="height: 760px; border: 1px dashed var(--border-interactive); border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center"><span style="font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary)">Page content: Live alerts (beside the panel)</span></div>
+</div>
+</main>
+</div>
+<aside id="detail-panel" aria-labelledby="panel-title" style="position: relative; display: flex; flex-direction: column; min-width: 0; min-height: 0; border-left: 1px solid var(--border-decorative); background: var(--surface-raised)">
+<div class="resize-handle" role="separator" tabindex="0" aria-orientation="vertical" aria-controls="detail-panel" aria-label="Resize panel" aria-valuenow="35" aria-valuemin="25" aria-valuemax="60" aria-valuetext="Panel 480 pixels wide, 35% of the page" style="left: -22px"><span class="resize-grip" aria-hidden="true"><span></span><span></span></span></div>
+<div style="display: flex; align-items: center; gap: var(--space-2); min-height: 64px; padding: var(--space-2) var(--space-2) var(--space-2) var(--space-5); border-bottom: 1px solid var(--border-decorative)">
+<h2 id="panel-title" style="margin: 0; flex-grow: 1; min-width: 0; font-size: var(--type-heading-md-size); font-weight: 600">What's new</h2>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.IconButton" icon="close" variant="plain" size="md" accessibility-label="Close What's new" on-press="{{noop}}"></x-import>
+</div>
+<div style="flex: 1; min-height: 0; overflow: auto; padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-4)">
+<div style="display: flex; flex-direction: column; gap: var(--space-6); font-family: var(--font-ui)">
+<p style="margin: 0; font-size: var(--type-body-md-size); line-height: 1.5; color: var(--text-secondary)">You last looked on console version <span style="font-family: var(--font-mono); color: var(--text-primary)">1.2.0</span>. Showing changes for support agents, newest first.</p>
+<span style="font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary)">Example copy — real notes come from release-notes.json, filtered to your role</span>
+<span style="font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary)">Needs decision: a roles field per note in release-notes.json (#97)</span>
+<section style="display: flex; flex-direction: column; gap: var(--space-2)">
+<div style="display: flex; align-items: baseline; gap: var(--space-3)">
+<h3 style="margin: 0; font-size: var(--type-heading-sm-size); font-weight: 600">Console version <span style="font-family: var(--font-mono)">1.4.0</span></h3>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="brand" size="sm">New</x-import>
+</div>
+<p style="margin: 0; font-size: var(--type-body-sm-size); color: var(--text-secondary)">Released 28 Sep 2026</p>
+<ul style="margin: 0; padding-left: var(--space-5); display: flex; flex-direction: column; gap: 6px; font-size: var(--type-body-md-size); line-height: 1.5">
+<li>Live alerts now show recent alerts when you open the page (at most the last 7 days), so a reload no longer empties the list.</li>
+<li>Dispatch failures and reconciliation exceptions link straight to their order.</li>
+</ul>
+</section>
+<section style="display: flex; flex-direction: column; gap: var(--space-2)">
+<div style="display: flex; align-items: baseline; gap: var(--space-3)">
+<h3 style="margin: 0; font-size: var(--type-heading-sm-size); font-weight: 600">Console version <span style="font-family: var(--font-mono)">1.3.0</span></h3>
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Badge" variant="brand" size="sm">New</x-import>
+</div>
+<p style="margin: 0; font-size: var(--type-body-sm-size); color: var(--text-secondary)">Released 14 Sep 2026</p>
+<ul style="margin: 0; padding-left: var(--space-5); display: flex; flex-direction: column; gap: 6px; font-size: var(--type-body-md-size); line-height: 1.5">
+<li>Fixed: System status now says when a check timed out instead of showing an error.</li>
+</ul>
+</section>
+</div>
+</div>
+<div style="display: flex; justify-content: flex-end; gap: var(--space-3); padding: var(--space-3) var(--space-5); border-top: 1px solid var(--border-decorative)">
+<x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md" on-press="{{noop}}">Done</x-import>
+</div>
+<div style="padding: var(--space-2) var(--space-5) var(--space-3)"><span style="font-size: var(--type-mono-sm-size); line-height: 1.4; font-family: var(--font-mono); color: var(--text-secondary)">Proposed component: DetailPanel (shadcn Resizable + ScrollArea). Opens beside the list, never over it; drag the edge to resize. Resize handle: shadcn ResizableHandle withHandle, a focusable separator (Left and Right arrow keys resize, Home and End jump to the limits), 44 px hit area centred on the edge, grip in the middle, standard two-layer focus ring. Close or Escape collapses it and focus returns to what opened it.</span></div>
+</aside>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const DS = window.HalalGoesDesignSystem_d11a47 || {};
+    const h = window.React.createElement;
+    const muted = function (t) { return h('span', { style: { color: 'var(--text-secondary)' } }, t); };
+    const fullDate = function (iso) { var d = new Date(iso); if (isNaN(d.getTime())) return iso; return iso.length > 10 ? d.toLocaleString('en-CA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/Toronto', timeZoneName: 'short' }) : d.toLocaleDateString('en-CA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }); };
+    const at = function (iso, label) { return h('time', { dateTime: iso, title: fullDate(iso) }, label); };
+    const tag = function (t) { return h('span', { style: { fontSize: 'var(--type-mono-sm-size)', lineHeight: 1.4, fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' } }, t); };
+    let v = {};
+    v = {};
+    const btnRow = function (kids) { return h('div', { style: { display: 'flex', justifyContent: 'flex-end', gap: 'var(--space-3)' } }, kids); };
+    const close = function () {};
+    Object.assign(v, {
+      doneFooter: btnRow([h(DS.Button, { key: 'd', variant: 'primary', size: 'md', onPress: close }, 'Done')]),
+      closeFooter: btnRow([h(DS.Button, { key: 'c', variant: 'tertiary', size: 'md', onPress: close }, 'Close')]),
+      errorFooter: btnRow([h(DS.Button, { key: 'c', variant: 'ghost', size: 'md', onPress: close }, 'Close'), h(DS.Button, { key: 't', variant: 'tertiary', size: 'md', iconStart: 'refresh' }, 'Try again')])
+    });
+
+    return Object.assign({ yes: true, no: false, nothing: null, noop: function () {} }, v);
+  }
+}
+</script>
+</body>
+</html>

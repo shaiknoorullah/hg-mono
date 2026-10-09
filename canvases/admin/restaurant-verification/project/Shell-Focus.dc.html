@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Focus states</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:var(--surface-base);color:var(--text-primary);font-family:var(--font-ui)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+textarea.hg-ta:focus{outline:none;border:var(--focus-field-border-width) solid var(--focus-ring)}
+textarea.hg-ta[aria-invalid="true"]{border:var(--focus-field-border-width) solid var(--color-danger-500)}
+textarea.hg-ta[aria-invalid="true"]:focus{box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+.skip{position:absolute;left:-10000px;top:8px;z-index:900;padding:12px 16px;background:var(--surface-raised);color:var(--text-primary);border-radius:8px;font-weight:600}
+.skip:focus{left:16px;outline:none;box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+</style>
+</helmet>
+<div style="width: 1440px; height: 2600px; box-sizing: border-box; position: relative; background: var(--surface-base); font-family: var(--font-ui); color: var(--text-primary)">
+<div style="width: 1440px; box-sizing: border-box; padding: 32px 40px; display: flex; flex-direction: column; gap: 24px">
+  <div style="display: flex; flex-direction: column; gap: 6px">
+    <h1 style="margin: 0; font-size: 24px; font-weight: 700; letter-spacing: -0.01em">Focus states</h1>
+    <p style="margin: 0; max-width: 900px; font-size: 15px; line-height: 1.5; color: var(--text-secondary)">One indicator, in the focus-ring colour (brand 600 in light, brand 400 in dark). Bordered fields turn their own border 2px; everything else gets a 2px offset in the page colour and a 3px ring. On the forest chrome the ring flips to focus-on-color (white).</p>
+  </div>
+  <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; align-items: start">
+    <div style="display: flex; flex-direction: column; gap: 10px">
+      <h2 style="margin: 0; font-size: 16px; font-weight: 600">Text area in focus</h2>
+      <dc-import name="Textarea" tid="f1" label="Message to the restaurant" helper="Sent word for word." value="Please upload the food safety certificate for 3025 Kennedy Rd." count="61 of 1000 characters · minimum 10" error="" rows="3" w="400" focused="{{yes}}" hint-size="400px,170px"></dc-import>
+      <span style="font-size: 13px; color: var(--text-secondary)">Input and Select behave the same: a 2px border in the focus colour, no ring.</span>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 10px">
+      <h2 style="margin: 0; font-size: 16px; font-weight: 600">Invalid field in focus</h2>
+      <dc-import name="Textarea" tid="f2" label="Message to the restaurant" helper="Sent word for word." value="Too short" count="9 of 1000 characters · minimum 10" error="Add at least 1 more character." rows="3" w="400" focused="{{yes}}" hint-size="400px,170px"></dc-import>
+      <span style="font-size: 13px; color: var(--text-secondary)">Keeps the 2px danger border and adds the two-layer ring.</span>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 10px">
+      <h2 style="margin: 0; font-size: 16px; font-weight: 600">Button and link in focus</h2>
+      <div style="display: flex; gap: 16px; align-items: center"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="lg">Approve…</x-import><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md">Open verification</x-import><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.IconButton" icon="close" accessibility-label="Close" variant="plain" size="md"></x-import></div>
+      <div style="display: flex; gap: 16px; align-items: flex-start"><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Select" label="Reason" value="{{nothing}}" placeholder="Choose a reason" options="{{opts}}" style="width: 220px"></x-import><x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Checkbox" label="I understand" checked="{{no}}"></x-import></div>
+      <a href="#" class="skip" style="position: static; align-self: flex-start; box-shadow: 0 0 0 2px var(--surface-base), 0 0 0 5px var(--focus-ring)">Skip to main content</a>
+      <span style="font-size: 13px; color: var(--text-secondary)">Captured from the real Button, IconButton, Select and Checkbox (Tab to them in Play): the ring is theirs, not the canvas’s. The recompiled tokens.css sets that ring to brand 600, so they show it now. The skip link (drawn in focus) gets the 2px page-colour offset and the 3px ring.</span>
+    </div>
+  </div>
+  <div style="display: grid; grid-template-columns: 264px minmax(0, 1fr); gap: 24px; align-items: start">
+    <div style="display: flex; flex-direction: column; gap: 10px">
+      <h2 style="margin: 0; font-size: 16px; font-weight: 600">Navigation link on chrome</h2>
+      <dc-import name="SideNav" active="applications" focus="halal" role="ADMIN" h="560" hint-size="264px,560px"></dc-import>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 16px">
+      <h2 style="margin: 0; font-size: 16px; font-weight: 600">Grid cell in focus (LyteNyte default: focus on the active gridcell), and the grid keyboard map</h2>
+      <dc-import name="QueueGrid" variant="focus" w="1072" h="520" hint-size="1072px,520px"></dc-import>
+      <table style="border-collapse: collapse; font-size: 15px; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: 12px; max-width: 760px">
+        <caption style="text-align: left; padding: 0 0 8px; font-weight: 600">LyteNyte grids: role grid, header and body rowgroups, aria-rowcount = data rows + 1, roving tabindex on gridcells</caption>
+        <tr><th scope="row" style="text-align: left; padding: 8px 12px; font-family: var(--font-mono); font-weight: 600; border-top: 1px solid var(--border-decorative)">Tab</th><td style="padding: 8px 12px; border-top: 1px solid var(--border-decorative)">Moves into the grid once, onto the active cell. The grid is one Tab stop.</td></tr><tr><th scope="row" style="text-align: left; padding: 8px 12px; font-family: var(--font-mono); font-weight: 600; border-top: 1px solid var(--border-decorative)">Arrow keys</th><td style="padding: 8px 12px; border-top: 1px solid var(--border-decorative)">Move the active cell between cells and rows. The ring is on the cell.</td></tr><tr><th scope="row" style="text-align: left; padding: 8px 12px; font-family: var(--font-mono); font-weight: 600; border-top: 1px solid var(--border-decorative)">Home, End</th><td style="padding: 8px 12px; border-top: 1px solid var(--border-decorative)">First or last cell in the row.</td></tr><tr><th scope="row" style="text-align: left; padding: 8px 12px; font-family: var(--font-mono); font-weight: 600; border-top: 1px solid var(--border-decorative)">Ctrl+Home, Ctrl+End</th><td style="padding: 8px 12px; border-top: 1px solid var(--border-decorative)">First or last cell in the grid.</td></tr><tr><th scope="row" style="text-align: left; padding: 8px 12px; font-family: var(--font-mono); font-weight: 600; border-top: 1px solid var(--border-decorative)">Enter</th><td style="padding: 8px 12px; border-top: 1px solid var(--border-decorative)">Opens the row (applications, menu versions, certificates) or reviews the document (documents grid).</td></tr><tr><th scope="row" style="text-align: left; padding: 8px 12px; font-family: var(--font-mono); font-weight: 600; border-top: 1px solid var(--border-decorative)">Space</th><td style="padding: 8px 12px; border-top: 1px solid var(--border-decorative)">Selects the row where rows are selectable (documents, menu versions); those rows carry aria-selected.</td></tr><tr><th scope="row" style="text-align: left; padding: 8px 12px; font-family: var(--font-mono); font-weight: 600; border-top: 1px solid var(--border-decorative)">Escape</th><td style="padding: 8px 12px; border-top: 1px solid var(--border-decorative)">Leaves cell editing; never closes the page.</td></tr>
+      </table>
+      <div style="display: flex; align-items: center; gap: 12px">
+        <span style="display: inline-flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px; border-radius: 8px; box-shadow: 0 0 0 2px var(--surface-base), 0 0 0 5px var(--focus-ring); ; font-size: 13px; font-weight: 600"><span style="display: block; width: 84px; height: 108px; background: var(--surface-raised); border: 1px solid var(--border-strong)"></span>Page 2</span>
+        <span style="font-size: 13px; color: var(--text-secondary)">Viewer page thumbnail (a button) in focus.</span>
+      </div>
+      <h2 style="margin: 0; font-size: 16px; font-weight: 600">Certificate page in focus: arrow keys pan</h2>
+      <dc-import name="CertPane" state="focused" w="432" h="600" hint-size="432px,600px"></dc-import>
+    </div>
+  </div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":2600}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { yes: true, no: false, nothing: null, noop: () => {}, opts: [{ value: 'A', label: 'Illegible' }] };
+  }
+}
+</script>
+</body>
+</html>

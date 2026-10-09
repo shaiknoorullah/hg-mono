@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Profile changes: states</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:var(--surface-base);color:var(--text-primary);font-family:var(--font-ui)}
+a{color:var(--text-link)}a:hover{color:var(--text-link-hover)}
+textarea.hg-ta{box-sizing:border-box;width:100%;min-height:96px;padding:10px 12px;border:1px solid var(--border-interactive);border-radius:8px;background:var(--surface-raised);color:var(--text-primary);font:inherit;font-size:15px;line-height:1.5;resize:vertical}
+textarea.hg-ta:focus{outline:none;border:var(--focus-field-border-width) solid var(--focus-ring)}
+textarea.hg-ta[aria-invalid="true"]{border:var(--focus-field-border-width) solid var(--color-danger-500)}
+.skip{position:absolute;left:-10000px;top:8px;z-index:900;padding:12px 16px;background:var(--surface-raised);color:var(--text-primary);border-radius:8px;font-weight:600}
+.skip:focus{left:80px;outline:none;box-shadow:0 0 0 var(--focus-offset-width) var(--focus-offset),0 0 0 calc(var(--focus-offset-width) + var(--focus-ring-width)) var(--focus-ring)}
+.napi{display:inline-flex;align-self:flex-start;padding:2px 8px;border-radius:4px;background:var(--surface-sunken);border:1px solid var(--border-strong);font-size:12px;font-weight:600;line-height:1.4}
+.prop{display:inline-flex;align-self:flex-start;padding:2px 8px;border-radius:4px;background:var(--color-info-50);color:var(--color-info-700);font-size:12px;font-weight:600;line-height:1.4}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; display: grid; grid-template-columns: 64px minmax(0, 1fr); background: var(--surface-base); position: relative; overflow: hidden; font-family: var(--font-ui); color: var(--text-primary)">
+  <dc-import name="SideNav" active="changes" role="ADMIN" collapsed="{{yes}}" h="900" hint-size="64px,900px"></dc-import>
+  <div style="display: flex; flex-direction: column; min-width: 0; min-height: 0; position: relative">
+    <a class="skip" href="#main">Skip to main content</a>
+    <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.AppBar" tone="raised" title="Profile changes" subtitle="Loading, nothing waiting, didn’t load and the decline panel"></x-import>
+    <main id="main" data-density="compact" style="flex: 1 1 auto; min-height: 0; display: flex; gap: 12px; padding: 12px; overflow: hidden">
+      <div style="flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(2, minmax(0, 1fr)); gap: 12px">
+        <section aria-labelledby="ps-load" style="min-height: 0; display: flex; flex-direction: column; gap: 10px; padding: 16px; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: 12px">
+          <h2 id="ps-load" style="margin: 0; font-size: 13px; font-weight: 600; color: var(--text-secondary)">Loading</h2>
+          <div aria-busy="true" style="display: flex; flex-direction: column; gap: 8px">
+            <span class="hg-skel" style="display: block; height: 44px"></span><span class="hg-skel" style="display: block; height: 44px"></span><span class="hg-skel" style="display: block; height: 44px"></span>
+            <span role="status" style="font-size: 13px; color: var(--text-secondary)">Loading requested changes</span>
+          </div>
+        </section>
+        <section aria-labelledby="ps-empty" style="min-height: 0; display: flex; flex-direction: column; gap: 10px; padding: 16px; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: 12px">
+          <h2 id="ps-empty" style="margin: 0; font-size: 13px; font-weight: 600; color: var(--text-secondary)">Nothing waiting</h2>
+          <div role="status" style="display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 24px; text-align: center">
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="check" size="xl" color="var(--text-secondary)"></x-import>
+            <h3 style="margin: 0; font-size: 18px; font-weight: 600">No changes waiting</h3>
+            <p style="margin: 0; max-width: 420px; font-size: 15px; line-height: 1.5; color: var(--text-secondary)">Every name, description, address and tax number change restaurants asked for has a decision.</p>
+            <span class="prop">Proposed component: EmptyState</span>
+          </div>
+        </section>
+        <section aria-labelledby="ps-error" style="min-height: 0; display: flex; flex-direction: column; gap: 10px; padding: 16px; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: 12px">
+          <h2 id="ps-error" style="margin: 0; font-size: 13px; font-weight: 600; color: var(--text-secondary)">Didn’t load</h2>
+          <div role="alert" style="display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 24px; text-align: center">
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Icon" name="error" size="xl" color="var(--text-secondary)"></x-import>
+            <h3 style="margin: 0; font-size: 18px; font-weight: 600">Requested changes didn’t load</h3>
+            <p style="margin: 0; max-width: 420px; font-size: 15px; line-height: 1.5; color: var(--text-secondary)">The server didn’t respond. Nothing was changed.</p>
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" icon-start="refresh">Try again</x-import>
+          </div>
+        </section>
+        <section aria-labelledby="ps-decline" style="min-height: 0; display: flex; flex-direction: column; gap: 10px; padding: 16px; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: 12px">
+          <h2 id="ps-decline" style="margin: 0; font-size: 13px; font-weight: 600; color: var(--text-secondary)">Decline panel (in the page, in place of the before and after)</h2>
+          <h3 tabindex="-1" style="margin: 0; font-size: 18px; font-weight: 700">Decline Zaytoun Grill’s description</h3>
+          <p style="margin: 0; font-size: 13px; line-height: 1.45; color: var(--text-secondary)">The current description stays. The owner sees your note word for word and can ask again.</p>
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <label for="ps-note" style="font-size: 13px; font-weight: 600">Note to the owner <span style="font-weight: 400; color: var(--text-secondary)">(required, 20 to 1,000 characters)</span></label>
+            <textarea id="ps-note" class="hg-ta" rows="3">Please remove “every dish 100% zabiha, hand-slaughtered”: your certificate covers the kitchen, not the slaughter method.</textarea>
+          </div>
+          <div style="display: flex; justify-content: flex-end; gap: 16px">
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="tertiary" size="md" href="ProfileChanges.dc.html">Cancel</x-import>
+            <x-import component-from-global-scope="HalalGoesDesignSystem_d11a47.Button" variant="primary" size="md">Decline change</x-import>
+          </div>
+          <span class="napi">Needs API: decline a profile change with a note</span>
+        </section>
+      </div>
+
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { yes: true, no: false, noop: () => {} };
+  }
+}
+</script>
+</body>
+</html>

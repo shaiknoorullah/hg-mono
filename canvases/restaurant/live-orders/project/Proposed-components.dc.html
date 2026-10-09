@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Proposed components</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/tokens.css">
+<link rel="stylesheet" href="ds/halalgoesdesignsystem-d11a47/components/bundle.css">
+<script src="ds/halalgoesdesignsystem-d11a47/components/bundle.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap">
+<style>body{margin:0;background:var(--surface-base)}</style>
+</helmet>
+<div style="width: 1440px; height: 1500px; box-sizing: border-box; display: flex; flex-direction: column; gap: 22px; padding: 36px 44px; background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui)">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<h1 style="margin: 0; font-size: 24px; font-weight: 700">Proposed components on this canvas</h1>
+<p style="margin: 0; font-size: 17px; line-height: 26px; color: var(--text-secondary)">Each is composed only from shadcn/ui parts and design-system components and tokens. None is in the design system yet: each goes to the owner for approval, then into the design system before code uses it.</p>
+</div>
+
+<table style="width: 100%; border-collapse: collapse; font-size: 15px; line-height: 21px; background: var(--surface-raised); border: 1px solid var(--border-decorative); border-radius: var(--radius-lg)">
+<caption style="text-align: left; padding: 0 0 8px; font-size: 17px; font-weight: 700">Composites, what they are built from, and where they are used</caption>
+<thead>
+<tr>
+<th scope="col" style="text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border-decorative); width: 200px">Proposed component</th>
+<th scope="col" style="text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border-decorative)">Built from</th>
+<th scope="col" style="text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border-decorative); width: 330px">Used on</th>
+<th scope="col" style="text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border-decorative); width: 210px">Status</th>
+</tr>
+</thead>
+<tbody>
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="14">
+<tr>
+<th scope="row" style="text-align: left; vertical-align: top; padding: 9px 14px; border-bottom: 1px solid var(--border-decorative); font-weight: 700">{{r.name}}</th>
+<td style="vertical-align: top; padding: 9px 14px; border-bottom: 1px solid var(--border-decorative)">{{r.parts}}</td>
+<td style="vertical-align: top; padding: 9px 14px; border-bottom: 1px solid var(--border-decorative); color: var(--text-secondary)">{{r.used}}</td>
+<td style="vertical-align: top; padding: 9px 14px; border-bottom: 1px solid var(--border-decorative)">{{r.status}}</td>
+</tr>
+</sc-for>
+</tbody>
+</table>
+
+<section aria-labelledby="tile-states" style="display: flex; flex-direction: column; gap: 12px">
+<h2 id="tile-states" style="margin: 0; font-size: 20px; font-weight: 600">OfferTile states</h2>
+<div style="display: grid; grid-template-columns: repeat(4, 340px); gap: 16px 18px">
+<sc-for list="{{tiles}}" as="t" hint-placeholder-count="8">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 13px; font-weight: 700; color: var(--text-secondary)">{{t.caption}}</span>
+<dc-import name="OfferTile" tile="{{t}}" hint-size="340px,166px"></dc-import>
+</div>
+</sc-for>
+</div>
+</section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1500}}'>
+class Component extends DCLogic {
+  renderVals() {
+    if (!this._a) this._a = Date.now();
+    const a = this._a;
+    const iso = (ms) => new Date(ms).toISOString();
+    const RING = '0 0 0 2px var(--focus-offset), 0 0 0 5px var(--focus-ring)';
+    const t = (caption, remain, x) => Object.assign({ caption: caption, code: 'A7K2', w: 340, cdExpires: iso(a + remain * 1000), cdNow: iso(a), earn: 3769, earnReady: true, earnLoading: false,
+      summary: 'Aisha K. · 3 items', hasNote: true, hasLine: false, line: '', lineIcon: 'info', lineFg: 'var(--text-secondary)', selected: false, inPanel: false, accepting: false, acceptDisabled: false, declineDisabled: false,
+      acceptLabel: 'Accept · 20 min', acceptName: 'Accept order A7K2, ready in 20 minutes', declineName: 'Decline order A7K2, choose a reason', aria: 'New order A7K2', isLive: true, isOutcome: false,
+      bg: 'var(--surface-raised)', border: '1px solid var(--border-decorative)', ring: 'var(--elev-1)' }, x || {});
+    const out = (caption, badge, title, body, danger, keep) => t(caption, 0, { isLive: false, isOutcome: true, outIcon: danger ? 'error' : 'clock', outIconColor: danger ? 'var(--feedback-danger-icon)' : 'var(--text-secondary)',
+      outBadge: badge, outBadgeVariant: danger ? 'danger' : 'neutral', outTitle: title, outBody: body, removeLabel: keep ? 'Remove' : 'Remove now', removeVariant: keep ? 'tertiary' : 'ghost',
+      removeName: 'Remove order A7K2 from new orders', leaveText: keep ? 'Stays until you remove it.' : 'Leaves by itself in 60 s.', bg: 'var(--surface-subtle)', border: '1px solid ' + (danger ? 'var(--feedback-danger-border)' : 'var(--border-decorative)'), ring: 'none' });
+    return {
+      rows: [
+        { name: 'NewOrderStrip', parts: 'OfferTile per waiting order · Badge (brand) · keyboard hints · shadcn ScrollArea for sideways overflow · roving focus', used: 'Every live-orders board, in the header under the app bar (owner decision)', status: 'New: the owner’s persistent strip' },
+        { name: 'OfferTile', parts: 'Countdown (ring) · Price · Badge · Button primary critical (Accept) · Button ghost (Decline…, 24 px from Accept; a close IconButton on the tablet) · Icon · the tile is the roving focus stop: role group, tabindex 0 on the active tile and −1 on the others, aria-label with code, time left and earnings, aria-keyshortcuts A D Enter, ring from :focus-visible', used: 'The strip; states below', status: 'New' },
+        { name: 'DetailPanel', parts: 'shadcn Resizable panel · IconButton (close) · Badge · Countdown (bar) · Button · StatusTimeline (third pane)', used: 'Order detail, decline form, screen health, History detail, the timeline pane', status: 'Owner-requested for the design system (in-page detail panel)' },
+        { name: 'SplitPanes', parts: 'shadcn Resizable (ResizablePanelGroup, ResizableHandle)', used: 'List, order and timeline side by side', status: 'Owner-requested for the design system' },
+        { name: 'SideNav', parts: 'shadcn Sidebar (collapsible to icons) · Icon · Badge · at 200% zoom: design-system Sheet (side) behind an Open menu IconButton', used: 'Every board; at 200% zoom it collapses to a sheet (Zoom-200 boards)', status: 'Approved for the design system; not built yet' },
+        { name: 'KeyValueList', parts: 'Definition list · Price', used: 'Money and customer sections of the panel', status: 'Approved for the design system; not built yet' },
+        { name: 'InlineNotice', parts: 'Icon · text · design-system feedback tint roles (info, warning, danger, neutral) and halal tints', used: 'Panel notices, customer note, tile lines (with a line, the tile folds the customer note into its summary row)', status: 'New' },
+        { name: 'Banner', parts: 'Icon · text · Button · feedback and halal tint roles; dashed border for not verified', used: 'Connection, certificate, payouts, auto-off, suspended', status: 'New' },
+        { name: 'InlineConfirm', parts: 'Icon · text · Button (tertiary first, secondary decisive)', used: 'Turn orders off, resume, sign out: in the page, not a dialog', status: 'New: replaces confirm dialogs on the working page' },
+        { name: 'DeclineForm', parts: 'RadioGroup (radios only) · the follow-up (Checkbox fieldset or Textarea) as a sibling straight after the group · Button (tertiary, danger), 24 px apart · Countdown (bar)', used: 'Decline boards, in the panel', status: 'New: replaces the decline dialog' },
+        { name: 'Textarea', parts: 'shadcn Textarea inside the design-system field wrapper, which draws the border, the invalid state and the focus ring, and keeps a transparent outline for forced colors', used: 'Decline detail', status: 'New' },
+        { name: 'FilterChip', parts: 'shadcn Toggle (aria-pressed) · design-system border and selected tint', used: 'History filters', status: 'New' },
+        { name: 'ErrorState', parts: 'Icon · heading · text · Button', used: 'First load failed, panel error, not found', status: 'New' },
+        { name: 'PageAnnouncer', parts: 'One polite and one assertive live region, rate-limited queue', used: 'Every live board (not visible)', status: 'New' },
+        { name: 'PickupCode', parts: 'Text on design-system tokens: label, the code in the mono face at 40 px with wide letter spacing, one line of help · the code’s accessible name reads it digit by digit · error state: “We couldn’t load the pickup code”, a Try again tertiary button and a call-support line', used: 'Order panel when the rider is at the restaurant or on the way (Ready boards, Tablet rider here); error state on Ready-rider-here-code-error', status: 'New: owner decision, the kitchen reads the code to the rider' },
+        { name: 'Skeleton', parts: 'shadcn Skeleton on the design-system skeleton tokens', used: 'Loading strip, panel loading', status: 'New' }
+      ],
+      tiles: [
+        t('Waiting, 2:12 left', 132), t('Keyboard focus (Selected)', 40, { selected: true, ring: RING + ', var(--elev-1)' }), t('Urgent, under 10%', 15), t('Open in the panel', 120, { inPanel: true, border: '2px solid var(--border-brand)' }),
+        t('Tablet: Decline as a close icon', 110, { declineIcon: true }),
+        t('Accepting', 118, { accepting: true, declineDisabled: true, hasLine: true, lineIcon: 'refresh', line: 'Confirming with HalalGoes. Don’t tap again.' }),
+        t('Accept failed', 96, { acceptLabel: 'Try accept again', hasLine: true, lineIcon: 'error', lineFg: 'var(--feedback-danger-tint-text)', line: 'Couldn’t confirm. Still waiting for you.' }),
+        out('Timed out', 'Timed out', 'Nobody answered in 3 minutes', 'The customer was not charged.', false, false),
+        out('Payment failed at accept', 'Cancelled', 'Payment didn’t go through', 'Don’t prepare this order. The customer was not charged.', true, true)
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>
