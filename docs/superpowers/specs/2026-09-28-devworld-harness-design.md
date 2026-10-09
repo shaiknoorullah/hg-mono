@@ -5,7 +5,7 @@ covers:
   - services/hg/migrations/devworld/**
   - apps/restaurant/.claude/skills/**
   - docs/playbooks/**
-reviewed: 2026-10-05
+reviewed: 2026-10-09
 ---
 
 # Dev world — seeded personas, live scenarios, journey simulation, playbooks
@@ -146,6 +146,8 @@ These are the seed for the customer, rider and admin coverage tables that [exten
 - Rush places one order for each of the two seeded customers, a few seconds apart, then a further order for the first customer. The API refuses that third order while one is still active. The five-order rush in the table waits until more customers exist.
 - Menu approve and reject sign in as `admin-seed`, take the oldest version waiting in the menu review queue for the `menu` persona, and decide it. Reset seeds that persona with two versions waiting for review (Draft Stew and Draft Soup), so each scenario runs once per reset, in either order; a third run says to reset. They do not call the restaurant save: it numbers the next version from the live version only and saves `DRAFT`, never `PENDING_REVIEW`, so it cannot put a version in the queue ([#594](https://github.com/shaiknoorullah/hg-mono/issues/594)). Reset also closes the running API's database sessions, whose prepared statements point at the dropped schema, and waits for it to reconnect.
 
+- Order history runs the customer cancel, the restaurant rejection, a pending order left to the 180-second restaurant deadline and the journey (`auto=all`, `speed=max`) one after another, so `amina` ends with a past order in each end state, and it has ten minutes instead of five ([#682](https://github.com/shaiknoorullah/hg-mono/issues/682)).
+
 `journey` is `devworld journey`. Arrival at the restaurant is a step inside that command, not a separate scenario. Default target is `bismillah-grill`.
 
 ### 6.1 Catalogue
@@ -162,6 +164,7 @@ These are the seed for the customer, rider and admin coverage tables that [exten
 | `menu-approve` / `menu-reject` | `admin-seed` decides the pending menu version | review badge resolves |
 | `onboard-restaurant` | a new restaurant signs up and completes onboarding; `admin-seed` approves its documents, halal certificate, application and first menu item | the new restaurant is `ACTIVE` and its approved item is on the customer menu ([playbook](../../playbooks/restaurant/onboarding.md)) |
 | `onboard-rider` | a new rider signs in with a fresh number, submits profile, bicycle and documents; `admin-seed` approves them and the application; the rider sets up payouts and goes online | the new rider is `ACTIVE` and online beside `bismillah-grill` ([playbook](../../playbooks/rider/onboarding.md)) |
+| `order-history` | `customer-cancels`, `restaurant-rejected`, one order left to the restaurant deadline, then the journey to `COMPLETED`; checks the customer, restaurant and admin order lists | `amina` has four past orders (cancelled by her, rejected, cancelled by the deadline, completed with a receipt) and no active order |
 | `journey` | see [journey](#63-journey) | one live order through delivery when the rider is driven |
 
 ### 6.2 Bootstrap (not run by `reset`)

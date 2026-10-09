@@ -17,7 +17,11 @@ func main() {
 		usage()
 		os.Exit(2)
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	timeout := 5 * time.Minute
+	if os.Args[1] == "scenario" && len(os.Args) > 2 {
+		timeout = devworld.ScenarioTimeout(os.Args[2])
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	env := os.Getenv("HG_ENV")
 	dsn := os.Getenv("HG_POSTGRES_DSN")
