@@ -11,7 +11,7 @@ covers:
   - packages/ui-native/src/content/**
   - packages/ui-native/src/feedback/**
   - packages/ui-native/src/navigation/**
-reviewed: 2026-10-05
+reviewed: 2026-10-09
 ---
 
 # HalalGoes — Component Inventory
@@ -21,6 +21,15 @@ reviewed: 2026-10-05
 **Read with:** [`03-patterns.md`](./03-patterns.md) (where these get composed), [`04-accessibility.md`](./04-accessibility.md) (the rules every entry below defers to)
 
 **41 components** in five tiers. No implementation code — this is what four app agents build against.
+
+### The redesign surface on native: `@hg/ui-native/ds` and `/proposed`
+
+Redesigned customer and rider screens (behind `EXPO_PUBLIC_HG_REDESIGN`) import only from:
+
+- **`@hg/ui-native/ds`**: the live design system's components, with the names and props of its `index.d.ts` ([Claude Design](https://claude.ai/artifact/1GwGVZz8Ju9wcz4HfCnzbv)). Today each entry adapts those props onto the legacy component below; the rebuild on React Native Reusables ([#111](https://github.com/shaiknoorullah/hg-mono/issues/111)) swaps the internals without changing the API. Native differs from the web `.d.ts` in four ways: `style` is a `StyleProp`, `onChange` receives the value, money is the branded `Cents`, and labels are strings. `Icon` also takes the live extension names (`chevron-down`, `chevron-right`, `minus`, `lock`, `info`, `warning`, `error`, `more`, `refresh`); an unknown name renders nothing and reports `ICON_NAME_UNKNOWN`. A non-integer `Price` renders nothing and reports `MONEY_NOT_INTEGER_CENTS`.
+- **`@hg/ui-native/proposed`**: composites drawn on the approved canvases but not yet approved as components ([#191](https://github.com/shaiknoorullah/hg-mono/issues/191)–[#198](https://github.com/shaiknoorullah/hg-mono/issues/198)). Owner decision, 9 Oct 2026: allowed on `main` for flagged screens only.
+
+The package root stays what the released apps use until the post-launch cut-over.
 
 ---
 
