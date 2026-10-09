@@ -38,6 +38,9 @@ reality:                            # optional, applied in order
   - theme: dark
   - font-scale: 1.3
 flows: [ "tools/e2e/native/rider/redesign/<flow>.yaml" ]
+build:                              # optional: EXPO_PUBLIC_* build env and a note for the lab
+  env: { EXPO_PUBLIC_HG_REDESIGN: "1" }
+  note: "Clear the Metro cache when building."
 explore: "Optional free-form instructions for the lab agent to explore and screenshot."
 ```
 
@@ -80,8 +83,11 @@ helpers' tests.
 
 ### How the lab runs a mission
 
-1. Build the dev APK from the mission's branch with `EXPO_PUBLIC_HG_REDESIGN=1` and install it on
-   the mission's AVD.
+1. Build the dev APK from the mission's branch with `EXPO_PUBLIC_HG_REDESIGN=1`, plus any
+   `build.env` the mission sets, and install it on the mission's AVD. `EXPO_PUBLIC_*` values are
+   inlined when Metro transforms the code, so clear the Metro cache (`expo start --clear` or a
+   fresh `expo export`) whenever the flag differs from the last build: a warm cache serves the
+   legacy app.
 2. `cd services/hg && <each setup command>` (for `api: devworld`), or `pnpm mock` (for `api: mock`).
 3. `node tools/e2e/reality/apply-mission.mjs <mission> --serial <emulator>`; check first with
    `--dry-run`.

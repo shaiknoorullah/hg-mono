@@ -105,6 +105,19 @@
         "pattern": "^tools/e2e/native/(customer|rider)/redesign/(?!missions/)([a-z0-9._-]+/)*[a-z0-9._-]+\\.ya?ml$"
       }
     },
+    "build": {
+      "description": "Optional: how the lab builds the dev APK for this mission. env sets build-time public variables (EXPO_PUBLIC_* only, inlined into the bundle, so the lab clears the Metro cache when it sets any); note is free text for the lab. Without build, the lab builds the redesign APK with EXPO_PUBLIC_HG_REDESIGN=1.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "env": {
+          "type": "object",
+          "propertyNames": { "pattern": "^EXPO_PUBLIC_[A-Z0-9_]+$" },
+          "additionalProperties": { "type": "string", "maxLength": 200 }
+        },
+        "note": { "type": "string", "maxLength": 1000 }
+      }
+    },
     "explore": {
       "description": "Optional free-form instructions for the lab agent to explore with maestro mcp or mobile-mcp, screenshotting every state it reaches.",
       "type": "string",
