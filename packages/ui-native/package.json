@@ -18,7 +18,8 @@
     "./lib": "./src/lib/index.ts",
     "./global.customer.css": "./src/tokens/generated/global.customer.css",
     "./global.rider.css": "./src/tokens/generated/global.rider.css",
-    "./lint": "./src/lint/index.js"
+    "./lint": "./src/lint/index.js",
+    "./build-config": "./build-config.cjs"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

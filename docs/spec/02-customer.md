@@ -76,7 +76,7 @@ The rules in this spec apply to both. With the flag on:
 
 ### 0.6 Redesign build flag (design system, Oct 2026)
 
-`EXPO_PUBLIC_HG_REDESIGN=1` builds the app with the rebuilt design system: NativeWind 4 and React Native Reusables components from `@hg/ui-native/lib`. The flag is read when the app is built. Without it, `App.tsx` exports its usual root and the bundle has the same modules as before: no NativeWind, no css-interop, no Reanimated JavaScript. With it, `src/redesign/RedesignRoot.tsx` wraps the app. It loads the generated `global.customer.css`, adds the `@rn-primitives/portal` host that overlays render into, and keeps NativeWind's colour scheme in step with `ThemeProvider`. Only `src/redesign/**` and `packages/ui-native/src/lib/**` compile their JSX through NativeWind (`babel.config.js`). The native Reanimated and Worklets libraries are linked into every APK; the full end-to-end run covers them.
+`EXPO_PUBLIC_HG_REDESIGN=1` builds the app with the rebuilt design system: NativeWind 4 and React Native Reusables components from `@hg/ui-native/lib`. The flag is read when the app is built. Without it, `index.js` mounts the usual `App.tsx` and the bundle contains no redesign module: no NativeWind, no css-interop, no Reanimated JavaScript. With it, `index.js` mounts `src/redesign/RedesignApp.tsx`. That root loads the generated `global.customer.css`, adds the `@rn-primitives/portal` host that overlays render into, and keeps NativeWind's colour scheme in step with `ThemeProvider`: both follow the phone. Only `src/redesign/**` and `packages/ui-native/src/lib/**` compile their JSX through NativeWind (`babel.config.js`). The native Reanimated and Worklets libraries are linked into every APK; the full end-to-end run covers them.
 
 ---
 
