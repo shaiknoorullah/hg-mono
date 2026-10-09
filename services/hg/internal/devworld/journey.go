@@ -16,6 +16,13 @@ type JourneyOptions struct {
 	Speed       string
 	Auto        string
 	ManualRider bool
+	// NoRefundRequest leaves out the customer's closing refund request, and
+	// EndShift takes the rider offline after the delivery. Neither has a
+	// flag: the refund-decisions scenario sets them, so it can ask for the
+	// refund it then decides, and leaves rider-sim as the persona table
+	// expects it (scenario_refunds.go).
+	NoRefundRequest bool
+	EndShift        bool
 }
 
 // ParseJourneyArgs reads journey flags. Omitted flags select the short route,
@@ -200,7 +207,11 @@ func RunJourney(ctx context.Context, baseURL string, opts JourneyOptions) error 
 	if serr == nil && seen.ID != "" {
 		order = seen
 	}
-	return deliverLeg(ctx, cust, kitchen, riderClient, order, assignmentID, pickupAt)
+	err = deliverLeg(ctx, cust, kitchen, riderClient, order, assignmentID, pickupAt, !opts.NoRefundRequest)
+	if opts.EndShift {
+		err = errors.Join(err, riderClient.goOffline(ctx))
+	}
+	return err
 }
 
 func howLabel(how string) string {
@@ -324,6 +335,16 @@ func (c *apiClient) goOnline(ctx context.Context, p routePoint) error {
 		return fmt.Errorf("devworld: go online: %w", err)
 	}
 	c.positionNotBefore = time.Now()
+	return nil
+}
+
+func (c *apiClient) goOffline(ctx context.Context) error {
+	if _, _, err := c.call(ctx, http.MethodPut, "/v1/riders/me/availability", map[string]any{
+		"is_online": false,
+	}, false); err != nil {
+		return fmt.Errorf("devworld: go offline: %w", err)
+	}
+	fmt.Println("rider offline")
 	return nil
 }
 
