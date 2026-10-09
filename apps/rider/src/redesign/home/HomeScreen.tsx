@@ -29,6 +29,7 @@ import { fetchPayoutLink, goOffline, goOnline, setGoOfflineAfterDelivery } from 
 import {
   BLOCKING_REASON_COPY,
   WAITING_BODY,
+  WAITING_BODY_DEGRADED,
   blockedHeading,
   knownReasons,
   modeWord,
@@ -37,7 +38,15 @@ import {
   type BlockingReason,
   type FixKind,
 } from './copy';
-import { claimTripOpen, isOnlineMode, useRiderDashboard, type Assignment, type RiderDashboard } from './dashboard';
+import {
+  claimTripOpen,
+  isOnlineMode,
+  useRiderDashboard,
+  type Assignment,
+  type RiderAvailabilityState,
+  type RiderDashboard,
+  type RiderDashboardView,
+} from './dashboard';
 import { openPhoneSettings, useNotificationsOff } from './permissions';
 import { stepLine } from './step';
 
@@ -111,7 +120,7 @@ export function HomeScreen(): React.ReactElement {
   );
 
   if (dash.status === 'loading') return <HomeLoading />;
-  if (dash.status === 'error' || !dash.data) return <HomeError retry={dash.refetch} />;
+  if (dash.status === 'error' || !dash.data) return <HomeError dash={dash} />;
 
   const data = dash.data;
   const lastKnown = `Last known: ${modeWord(data.mode)} · ${formatTime(dash.updatedAt)}`;
@@ -128,6 +137,13 @@ export function HomeScreen(): React.ReactElement {
         <TodayCard today={data.today} savedAt={saved} />
       </Frame>
     );
+  }
+
+  // A later read failed while the phone has a connection: HomeError with the cached status
+  // (SH/HomeError "Last known" row). A request the rider just made, or a delivery in hand, keeps
+  // its own screen.
+  if (dash.error && !dash.pending && !dash.notice && !dash.onDelivery) {
+    return <HomeError dash={dash} lastKnown={{ mode: dash.mode ?? data.mode, at: dash.updatedAt }} />;
   }
 
   const errorBanner = actionError ? <Banner variant="neutral" title={actionError.title} description={actionError.message} testID="home-banner-action-error" /> : null;
@@ -271,7 +287,7 @@ export function HomeScreen(): React.ReactElement {
         />
       ) : null}
       {/* ds-request(native): WaitingState — SH/HomeWaiting (drawn as a heading and body until it ships) */}
-      <Heading title="Waiting for offers" body={WAITING_BODY} />
+      <Heading title="Waiting for offers" body={data.tracking_health === 'DEGRADED' ? WAITING_BODY_DEGRADED : WAITING_BODY} />
       <TodayCard today={data.today} />
     </Frame>
   );
@@ -531,27 +547,73 @@ function HomeLoading(): React.ReactElement {
   );
 }
 
-function HomeError({ retry }: { retry: () => Promise<void> }): React.ReactElement {
+function HomeError({
+  dash,
+  lastKnown,
+}: {
+  dash: RiderDashboardView;
+  /** The cached dashboard mode and when it arrived; absent when nothing is cached. */
+  lastKnown?: { mode: RiderAvailabilityState; at: number };
+}): React.ReactElement {
+  const theme = useTheme();
+  const subtitle = lastKnown ? `Last known: ${modeWord(lastKnown.mode)} · ${formatTime(lastKnown.at)}` : undefined;
+  // Go offline works without the dashboard, so its own outcome is said here too.
+  const offlineNow = dash.pending === null && dash.mode === 'OFFLINE';
   return (
     <Frame
       title="Home"
+      subtitle={subtitle}
       footer={
         <>
-          <Button variant="primary" size="xl" fullWidth onPress={() => void retry()}>
+          <Button variant="primary" size="xl" fullWidth onPress={() => void dash.refetch()}>
             Try again
           </Button>
           {/* Works without the dashboard: PUT availability {is_online: false}. */}
-          <Button variant="tertiary" size="xl" fullWidth onPress={() => void goOffline()}>
+          <Button
+            variant="tertiary"
+            size="xl"
+            fullWidth
+            loading={dash.pending === 'offline'}
+            disabled={dash.pending !== null}
+            onPress={() => void goOffline()}
+          >
             Go offline
           </Button>
         </>
       }
     >
+      {dash.notice?.kind === 'offline-failed' ? (
+        <Banner
+          variant="neutral"
+          title="We couldn't set you offline"
+          description="You're still online and offers can still reach you. Try again."
+          testID="home-banner-offline-failed"
+        />
+      ) : null}
+      {dash.notice?.kind === 'offline-refused' ? (
+        <Banner
+          variant="neutral"
+          title="You can't go offline in the middle of a delivery"
+          description="Finish this one first."
+          testID="home-banner-offline-refused"
+        />
+      ) : null}
+      {offlineNow ? (
+        <Banner variant="neutral" title="You're offline" description="You won't get offers" testID="home-banner-offline-confirmed" />
+      ) : null}
+      {/* ds-request(native): StatusPanel (ErrorState, recoverable, slate) — SH/HomeError */}
       <Heading
         title="We couldn't load Home"
         body="If you were online, you still are, and offers can still reach you. Try again, or go offline to stop offers."
       />
-      {/* "Last known" row is hidden: nothing is cached on a first load that failed. */}
+      {lastKnown ? (
+        // ds-request(native): QueuedStepRow (ListRow 56) — SH/HomeError "Last known" row
+        <Card variant="filled" testID="home-last-known">
+          <Text style={[typeStyle(theme, 'body.lg'), { color: theme.color.text.primary }]}>
+            {`Last known: ${modeWord(lastKnown.mode)}, ${formatTime(lastKnown.at)}`}
+          </Text>
+        </Card>
+      ) : null}
     </Frame>
   );
 }

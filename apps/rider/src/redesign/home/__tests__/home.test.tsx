@@ -456,3 +456,85 @@ describe.each(SCHEMES)('Resume strip (%s)', (scheme) => {
     expect(screen.queryByTestId('resume-strip')).toBeNull();
   });
 });
+
+describe.each(SCHEMES)('Home, review fixes (%s)', (scheme) => {
+  it('a later read fails with a connection: HomeError with the last known status and its time', async () => {
+    renderHome(scheme, {
+      getRiderDashboard: (_c, nth) => (nth === 0 ? dashboard({ mode: 'ONLINE_IDLE' }) : 'error_internal_error'),
+    });
+    await screen.findByText(WAITING_BODY);
+    const saved = formatTime(getHomeState().query.updatedAt);
+    await act(async () => {
+      await getHomeState().query.refetch();
+    });
+    await screen.findByText("We couldn't load Home");
+    expect(screen.getByText(`Last known: online · ${saved}`)).toBeTruthy();
+    expect(screen.getByText(`Last known: online, ${saved}`)).toBeTruthy();
+    expect(screen.getByText('Try again')).toBeTruthy();
+  });
+
+  it('first load failed: no Last known row; Go offline says when it fails and when it worked', async () => {
+    renderHome(scheme, {
+      getRiderDashboard: 'error_internal_error',
+      setRiderAvailability: (_c, nth) => (nth === 0 ? 'error_internal_error' : 'rider_availability_offline'),
+    });
+    await screen.findByText("We couldn't load Home");
+    expect(screen.queryByTestId('home-last-known')).toBeNull();
+    fireEvent.press(screen.getByText('Go offline'));
+    await screen.findByText("We couldn't set you offline");
+    fireEvent.press(screen.getByText('Go offline'));
+    await screen.findByText("You're offline");
+    expect(screen.queryByText("We couldn't set you offline")).toBeNull();
+    expect(api.callsTo('setRiderAvailability').map((c) => c.body)).toEqual([{ is_online: false }, { is_online: false }]);
+  });
+
+  it("tracking DEGRADED uses the board's shorter waiting line", async () => {
+    renderHome(scheme, { getRiderDashboard: dashboard({ mode: 'ONLINE_IDLE', tracking_health: 'DEGRADED' }) });
+    await screen.findByText('You can lock your phone. An offer fills the screen and plays a sound.');
+    expect(screen.queryByText(WAITING_BODY)).toBeNull();
+  });
+
+  it('a 409 refusal clears once the server shows no delivery', async () => {
+    renderHome(scheme, {
+      getRiderDashboard: dashboard({ mode: 'ONLINE_IDLE' }),
+      setRiderAvailability: apiError(409, 'ACTIVE_DELIVERY_IN_PROGRESS'),
+    });
+    fireEvent.press(await screen.findByText('Go offline'));
+    // The read the 409 asks for shows no delivery: the refusal is moot, Home is waiting again.
+    await waitFor(() => expect(api.callsTo('getRiderDashboard').length).toBeGreaterThanOrEqual(2));
+    await waitFor(() => expect(getHomeState().notice).toBeNull());
+    expect(screen.getByText(WAITING_BODY)).toBeTruthy();
+    expect(screen.queryByText("You can't go offline in the middle of a delivery")).toBeNull();
+  });
+
+  it('go offline after this delivery: the delivery ends, then the server sets offline; never "HalalGoes set you offline"', async () => {
+    const reads = [
+      'rider_dashboard_active',
+      dashboard({ mode: 'ONLINE_IDLE' }), // the delivery has ended, not offline yet
+      dashboard({ mode: 'OFFLINE' }),
+    ];
+    renderHome(scheme, {
+      getRiderDashboard: (_c, nth) => reads[Math.min(nth, reads.length - 1)]!,
+      setRiderAvailability: { status: 200, body: { data: { ...payload('rider_availability_on_delivery'), go_offline_after_delivery: true } } },
+    });
+    fireEvent.press(await screen.findByText('Go offline after this delivery'));
+    await screen.findByText('Going offline after this one');
+    while (api.callsTo('getRiderDashboard').length < reads.length) {
+      await act(async () => {
+        await getHomeState().query.refetch();
+      });
+    }
+    await screen.findByText("You're offline");
+    expect(screen.queryByText('HalalGoes set you offline')).toBeNull();
+    expect(getHomeState().goOfflineAfter).toBe(false);
+  });
+
+  it('an applicant has no shift: the dashboard is not polled while the application flow is open', async () => {
+    api = mockApi({ getRiderDashboard: dashboard({ mode: 'OFFLINE' }) });
+    renderRedesign(<DashboardPoller />, { scheme, nav: { initialFlow: { name: 'application', params: { step: 'profile' } } } });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(api.callsTo('getRiderDashboard')).toHaveLength(0);
+  });
+});

@@ -97,6 +97,9 @@ export function blockedHeading(n: number): string {
 export const WAITING_BODY =
   'You can lock your phone. When an offer arrives, it fills the screen and plays a sound. You have 30 seconds to answer.';
 
+/** SH/HomeDegraded: the shorter line under "Waiting for offers" when tracking is weak. */
+export const WAITING_BODY_DEGRADED = 'You can lock your phone. An offer fills the screen and plays a sound.';
+
 /** Today's figures as the dashboard returns them, never summed on the phone. */
 export function tripsLabel(trips: number): string {
   return `${trips} ${trips === 1 ? 'trip' : 'trips'}`;

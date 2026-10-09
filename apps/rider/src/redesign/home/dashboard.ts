@@ -25,6 +25,7 @@ import { registerForPush } from '../../push';
 import { rider } from '../data/client';
 import type { RiderError } from '../data/errors';
 import { useApiQuery, type QueryResult } from '../data/query';
+import { useNav } from '../nav/Navigator';
 import type { BlockingReason } from './copy';
 
 export type RiderDashboard = Schema['RiderDashboard'];
@@ -165,11 +166,25 @@ function publish(query: QueryResult<RiderDashboard>): void {
     query,
     confirmed: prev.confirmed && prev.confirmed.at >= query.updatedAt ? prev.confirmed : null,
     forcedOffline: data.mode === 'OFFLINE' ? prev.forcedOffline || forced : false,
-    goOfflineAfter: onDelivery ? prev.goOfflineAfter : false,
-    // The refusal stands until the delivery it was about has ended.
-    notice: prev.notice?.kind === 'offline-refused' && wasOnDelivery && !onDelivery ? null : prev.notice,
+    // Kept through the one read where the delivery has ended but the server has not yet set the
+    // rider offline, so that read's successor is not mistaken for "HalalGoes set you offline".
+    goOfflineAfter: onDelivery ? prev.goOfflineAfter : data.mode !== 'OFFLINE' && wasOnDelivery && prev.goOfflineAfter,
+    notice: staleNotice(prev.notice, data, onDelivery) ? null : prev.notice,
   };
   emit();
+}
+
+/**
+ * A notice the server's newer answer has overtaken: the delivery a refusal (or a failed "after
+ * this delivery") was about has ended, or a failed Go offline is moot because the rider is now
+ * offline. Left in place, it would hide the no-connection screen and come back on the next
+ * delivery.
+ */
+function staleNotice(notice: AvailabilityNotice | null, data: RiderDashboard, onDelivery: boolean): boolean {
+  if (!notice) return false;
+  if (notice.kind === 'offline-refused' || notice.kind === 'after-failed') return !onDelivery;
+  if (notice.kind === 'offline-failed') return data.mode === 'OFFLINE';
+  return false;
 }
 
 export function fetchRiderDashboard(): Promise<RiderDashboard> {
@@ -229,7 +244,11 @@ let pushAsked = false;
  * The one poller, mounted as a layer for the life of the signed-in shell. Renders nothing.
  */
 export function DashboardPoller(): null {
+  // An applicant (the application flow is open) has no shift: no dashboard to poll.
+  const nav = useNav();
+  const applying = nav.flow?.[0]?.name === 'application';
   const query = useApiQuery('rider-dashboard', fetchRiderDashboard, {
+    enabled: !applying,
     pollMs: (d) => (d && d.mode !== 'OFFLINE' ? ONLINE_POLL_MS : OFFLINE_POLL_MS),
   });
 
