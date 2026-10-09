@@ -15,6 +15,9 @@
     "./primitives": "./src/primitives/index.ts",
     "./fonts": "./src/tokens/useHgFonts.ts",
     "./preset": "./src/tokens/generated/nativewind-preset.cjs",
+    "./lib": "./src/lib/index.ts",
+    "./global.customer.css": "./src/tokens/generated/global.customer.css",
+    "./global.rider.css": "./src/tokens/generated/global.rider.css",
     "./lint": "./src/lint/index.js"
   },
   "scripts": {
