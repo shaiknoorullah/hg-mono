@@ -22,7 +22,9 @@
     "./styles.css": "./src/styles/globals.css",
     "./tokens.css": "./src/tokens/tokens.css",
     "./theme.css": "./src/tokens/theme.css",
-    "./grid-theme.css": "./src/tokens/grid-theme.css"
+    "./grid-theme.css": "./src/tokens/grid-theme.css",
+    "./ds": "./src/ds/index.ts",
+    "./proposed": "./src/proposed/index.ts"
   },
   "scripts": {
     "generate:tokens": "node scripts/generate-tokens.mjs",
