@@ -3,5 +3,6 @@
  * One line per WP folder; a route whose module is not listed falls back to the legacy screen.
  */
 import './earnings';
+import './signin';
 
 export {};
