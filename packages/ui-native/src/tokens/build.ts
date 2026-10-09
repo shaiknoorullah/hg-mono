@@ -372,6 +372,48 @@ export function rnUiFontFamilies(weights: Record<string, number>): Record<string
   return out;
 }
 
+/**
+ * Role groups the className tier needs that `vars.ts` (the StyleSheet tier's map) never carried:
+ * the semantic feedback set (`--hg-feedback-danger-tint`, …) and the skeleton shimmer. Written
+ * to `global.<theme>.css` only, so `themeVars` and everything the released apps bundle stay as
+ * they were (one value differs on purpose: the dark skeleton base, see below). A `null` role is skipped, not emitted: `feedback.success.solid` is `null` (RULE
+ * H-1), so `bg-feedback-success-solid` has no variable behind it and paints nothing.
+ */
+export function cssOnlyRoleVars(
+  color: ThemeColorsLoose,
+  scheme: 'light' | 'dark',
+  ramps: Record<string, Record<string, string>>,
+): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [name, role] of Object.entries(color.feedback ?? {})) {
+    for (const [leaf, value] of Object.entries(role as Record<string, unknown>)) {
+      if (typeof value === 'string') out[`--hg-feedback-${name}-${kebab(leaf)}`] = value;
+    }
+  }
+  for (const [leaf, value] of Object.entries(color.skeleton ?? {})) {
+    if (typeof value === 'string') out[`--hg-skeleton-${kebab(leaf)}`] = value;
+  }
+  // #167: the dark base `neutral.800` is the raised surface itself (1.0:1 on a card), so the
+  // className tier's skeleton steps down to `neutral.700`. The StyleSheet tier keeps its value.
+  if (scheme === 'dark' && ramps.neutral?.['700']) out['--hg-skeleton-base'] = ramps.neutral['700'];
+  return out;
+}
+
+/** Tailwind colour utilities for `cssOnlyRoleVars` (`bg-feedback-danger-tint`, `bg-skeleton-base`). */
+function cssOnlyRoleColors(color: ThemeColorsLoose): Record<string, unknown> {
+  const feedback: Record<string, Record<string, string>> = {};
+  for (const [name, role] of Object.entries(color.feedback ?? {})) {
+    const leaves = Object.entries(role as Record<string, unknown>).filter(([, v]) => typeof v === 'string');
+    feedback[name] = Object.fromEntries(
+      leaves.map(([leaf]) => [kebab(leaf), `var(--hg-feedback-${name}-${kebab(leaf)})`]),
+    );
+  }
+  const skeleton = Object.fromEntries(
+    Object.keys(color.skeleton ?? {}).map((leaf) => [kebab(leaf), `var(--hg-skeleton-${kebab(leaf)})`]),
+  );
+  return { feedback, skeleton };
+}
+
 /* ----------------------------------------------------------------- builder */
 
 export function buildFiles(doc: Dtcg): Record<string, string> {
@@ -575,9 +617,13 @@ export function buildFiles(doc: Dtcg): Record<string, string> {
 
   for (const themeName of Object.keys(THEME_SPEC)) {
     const t = themes[themeName] as any;
+    const withRoles = (scheme: 'light' | 'dark') => ({
+      ...(varsOut[themeName]![scheme] as Record<string, string>),
+      ...cssOnlyRoleVars(t[scheme].color, scheme, tokens.color),
+    });
     files[`global.${themeName}.css`] = nativewindGlobalCss(
       themeName,
-      varsOut[themeName] as Record<'light' | 'dark', Record<string, string>>,
+      { light: withRoles('light'), dark: withRoles('dark') },
       { light: t.light.color, dark: t.dark.color },
     );
   }
@@ -601,6 +647,7 @@ export function buildFiles(doc: Dtcg): Record<string, string> {
    * bare `bg-accent` is shadcn's selected wash, `--accent`).
    */
   Object.assign(presetColors, RNR_PRESET_COLORS);
+  Object.assign(presetColors, cssOnlyRoleColors((themes.customer as any).light.color));
   presetColors.border = { DEFAULT: 'var(--border)', ...(presetColors.border as object) };
   presetColors.accent = {
     ...(presetColors.accent as object),
