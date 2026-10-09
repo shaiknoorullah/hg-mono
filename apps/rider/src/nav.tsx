@@ -42,8 +42,17 @@ interface NavContextValue {
 
 const NavContext = React.createContext<NavContextValue | null>(null);
 
-export function NavProvider({ children }: { children: React.ReactNode }): React.ReactElement {
-  const [stack, setStack] = React.useState<StackEntry[]>([{ name: 'home', params: undefined }]);
+export function NavProvider({
+  children,
+  initial,
+}: {
+  children: React.ReactNode;
+  /** The first screen. Defaults to `home`; the redesign's per-route legacy fallback sets it. */
+  initial?: StackEntry;
+}): React.ReactElement {
+  const [stack, setStack] = React.useState<StackEntry[]>(() =>
+    initial && initial.name !== 'home' ? [{ name: 'home', params: undefined }, initial] : [{ name: 'home', params: undefined }],
+  );
 
   const push = React.useCallback<NavContextValue['push']>((name, params) => {
     setStack((s) => [...s, { name, params } as StackEntry]);
