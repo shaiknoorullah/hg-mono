@@ -13,7 +13,9 @@
  *   only while a live tile ITSELF has focus. Nowhere else do these keys do anything;
  * - a new order never takes focus; a re-sort keeps focus on the same order;
  * - when the focused order ends, focus moves to its outcome note (A is then inert); when it
- *   leaves the strip, focus moves to the next live order, else the "New orders" heading.
+ *   leaves the strip, focus moves to the "New orders" heading, never onto another live order
+ *   (a stray A would accept an order the user never moved to). The one exception is the
+ *   caller's `advanceFocusFrom`: after the user's own accept, focus moves to the next order.
  */
 import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { Button, Icon, type IconName } from '@hg/ui-web/primitives';
@@ -61,6 +63,11 @@ export interface NewOrderStripProps {
   isDesktop: boolean;
   /** Strip tint pulse (1 Hz) while ringing; reduced motion keeps it steady. */
   flash?: boolean;
+  /**
+   * The focused tile left the strip: may focus move on to the next live tile? Only for the
+   * user's own accept (spec §8). Otherwise, and by default, focus goes to the heading.
+   */
+  advanceFocusFrom?: (id: string) => boolean;
   testId?: string;
 }
 
@@ -75,7 +82,7 @@ function GlyphIcon({ name, size, className }: { name: GlyphName; size: number; c
   return g ? <Icon name={g} size={size} className={className} /> : null;
 }
 
-export function NewOrderStrip({ status, rule, tiles, empty, compact, now, isDesktop, flash, testId }: NewOrderStripProps) {
+export function NewOrderStrip({ status, rule, tiles, empty, compact, now, isDesktop, flash, advanceFocusFrom, testId }: NewOrderStripProps) {
   const rootRef = useRef<HTMLElement>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const tileRefs = useRef(new Map<string, HTMLDivElement>());
@@ -135,8 +142,9 @@ export function NewOrderStrip({ status, rule, tiles, empty, compact, now, isDesk
         if (lost) {
           const oldIdx = prevOrder.current.indexOf(fid);
           const after = prevOrder.current.slice(oldIdx + 1);
-          const next =
-            tiles.find((t) => t.live && after.includes(t.id)) ?? tiles.find((t) => t.live) ?? null;
+          const next = advanceFocusFrom?.(fid)
+            ? (tiles.find((t) => t.live && after.includes(t.id)) ?? tiles.find((t) => t.live) ?? null)
+            : null;
           if (next) {
             setActiveId(next.id);
             pendingFocus.current = next.id;

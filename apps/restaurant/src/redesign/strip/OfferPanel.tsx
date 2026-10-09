@@ -160,6 +160,9 @@ export function OfferPanel({ params }: ShellPanelProps) {
   const outcome = offer.outcome ? OUTCOME_TILE[offer.outcome] : null;
   const label = acceptLabelOf(offer, conn);
   const accepting = offer.phase === 'accepting';
+  // An accept that went out under this order's Idempotency-Key keeps its body: a retry with
+  // another prep time would be IDEMPOTENCY_KEY_REUSE (409). The time is locked once sent.
+  const prepLocked = accepting || offer.phase === 'accept-failed';
 
   const footer = ended ? (
     <div ref={noticeRef} className="flex flex-wrap gap-3">
@@ -209,7 +212,7 @@ export function OfferPanel({ params }: ShellPanelProps) {
               }
               variant="tonal"
               accessibilityLabel={`Less prep time for order ${code}`}
-              disabled={offer.prep <= PREP_MIN || accepting}
+              disabled={offer.prep <= PREP_MIN || prepLocked}
               onPress={() => api.setPrep(offer.id, prepStep(offer.prep, -1))}
             />
             <output aria-live="polite" aria-label={`Ready in ${offer.prep} minutes`} className="min-w-[54px] text-center text-[17px] font-bold tabular-nums">
@@ -219,7 +222,7 @@ export function OfferPanel({ params }: ShellPanelProps) {
               icon={<Icon name="plus" size={20} />}
               variant="tonal"
               accessibilityLabel={`More prep time for order ${code}`}
-              disabled={offer.prep >= PREP_MAX || accepting}
+              disabled={offer.prep >= PREP_MAX || prepLocked}
               onPress={() => api.setPrep(offer.id, prepStep(offer.prep, 1))}
             />
           </div>

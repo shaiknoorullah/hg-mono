@@ -180,6 +180,7 @@ export function StripView() {
         now={serverNow}
         isDesktop={isDesktop}
         flash={live.length > 0 && tick % 2 === 0}
+        advanceFocusFrom={api.acceptedHere}
         testId="new-order-strip"
       />
     </>

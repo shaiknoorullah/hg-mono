@@ -48,6 +48,11 @@ export interface DeclineFormProps {
   noteMin?: number;
   noteMax?: number;
   disabled?: boolean;
+  /**
+   * The fields are read-only but the form still submits (a retry of a decline that was sent:
+   * its Idempotency-Key must go out with the same body).
+   */
+  locked?: boolean;
   /** Notices above the group (intro, a new order ringing meanwhile). */
   before?: ReactNode;
   /** Notices after the follow-up (the decline failed). */
@@ -65,6 +70,7 @@ export function DeclineForm({
   noteMin = 20,
   noteMax = 500,
   disabled,
+  locked,
   before,
   after,
   onSubmit,
@@ -134,7 +140,7 @@ export function DeclineForm({
           required
           options={reasons.map((r) => ({ value: r.value, label: r.label }))}
           value={reason}
-          disabled={disabled}
+          disabled={disabled || locked}
           onChange={(v) => {
             setReason(v);
             setReasonError(false);
@@ -152,7 +158,7 @@ export function DeclineForm({
                 key={item.key}
                 label={item.label}
                 checked={ticked.has(item.key)}
-                disabled={disabled}
+                disabled={disabled || locked}
                 onChange={(on) =>
                   setTicked((prev) => {
                     const next = new Set(prev);
@@ -168,7 +174,7 @@ export function DeclineForm({
               label="Also mark the ticked items out of stock until closing"
               description="Customers can't order them until you open next. Change it any time on the Menu page."
               checked={markOut}
-              disabled={disabled}
+              disabled={disabled || locked}
               onChange={setMarkOut}
             />
           </fieldset>
@@ -184,7 +190,7 @@ export function DeclineForm({
             rows={3}
             value={note}
             maxLength={noteMax}
-            disabled={disabled}
+            disabled={disabled || locked}
             onChange={(v) => setNote(v.slice(0, noteMax))}
             errorText={noteError ? `Write at least ${noteMin} characters.` : undefined}
             aria-invalid={noteError && short ? true : undefined}

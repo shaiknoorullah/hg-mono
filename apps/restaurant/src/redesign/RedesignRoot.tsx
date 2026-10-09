@@ -14,7 +14,6 @@ import { getSession, setSession, setUnauthorizedOverride } from '../lib/api';
 import { client, onSignedOut, refreshAccessToken, resetSignedOut, type SignedOutReason } from './data/client';
 import { ConsoleProvider, consoleRoute, useConsole } from './data/console';
 import { AvailabilityProvider } from './data/availability';
-import { useHeartbeat } from './data/heartbeat';
 import { ConsoleRealtime } from './data/realtime';
 import { ConsoleLayout } from './shell/ConsoleLayout';
 import { ConsoleStatus } from './shell/ConsoleStatus';
@@ -69,8 +68,7 @@ function RequireSession({ children }: { children: ReactNode }) {
 function ConsoleGate({ children }: { children: ReactNode }) {
   const { core } = useConsole();
   const route = consoleRoute(core);
-  const live = route.kind === 'console';
-  useHeartbeat(live);
+  // The heartbeat starts in NewOrdersProvider once the go-live gate has passed.
   if (route.kind === 'onboarding') return <Navigate to="/onboarding" replace />;
   if (route.kind !== 'console') return <ConsoleStatus route={route} onRetry={core.reload} />;
   return <>{children}</>;

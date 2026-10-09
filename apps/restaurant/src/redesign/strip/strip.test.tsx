@@ -379,6 +379,10 @@ describe('decline', () => {
     fireEvent.change(note, { target: { value: text } });
     fireEvent.click(within(panel).getByRole('button', { name: 'Decline order, order A7K2' }));
     expect(await within(panel).findByText('We couldn’t send the decline')).toBeTruthy();
+    // The decline went out under this form's key: its body is locked for the retry (a new
+    // reason under the same key would be IDEMPOTENCY_KEY_REUSE).
+    expect((note as HTMLTextAreaElement).disabled).toBe(true);
+    expect(within(panel).getByRole('radio', { name: 'Kitchen is too busy' }).hasAttribute('disabled')).toBe(true);
     const retry = within(panel).getByRole('button', { name: 'Try decline again, order A7K2' });
     api.set(route, 'restaurant_order_rejected');
     fireEvent.click(retry);
@@ -712,5 +716,151 @@ describe('strip around the board', () => {
     act(() => sock().push(frameOn(1, 'restaurant.order_offer_expired', { order_id: o.id, reason: 'timeout' })));
     expect(await screen.findByText('1 order timed out')).toBeTruthy();
     expect(screen.getByText('One more in a row and new orders will stop until you turn them back on.')).toBeTruthy();
+  });
+});
+
+// ── review fixes: stray keys, lost responses, own frames ─────────────────────────────────
+
+const ACCEPT = (o: Order) => `POST /v1/restaurant/orders/${o.id}/accept`;
+const settle = () => new Promise((r) => setTimeout(r, 50));
+
+describe('a removal never puts focus on another live order', () => {
+  it('the focused order accepted on another screen: focus goes to the heading, and A accepts nothing', async () => {
+    const [a, b] = [pending('A7K2', 120), pending('B3M9', 150)];
+    const { api, sock } = await withSocket([a, b], { [ACCEPT(a)]: accepted(a), [ACCEPT(b)]: accepted(b) });
+    const tile = await findTile('A7K2');
+    act(() => tile.focus());
+    act(() => sock().push(frameOn(1, 'restaurant.order_accepted', { order_id: a.id, accepted_by: 'x', prep_eta_minutes: 20 })));
+    await waitFor(() => expect(tileOf('A7K2')).toBeNull());
+    await waitFor(() => expect(document.activeElement?.textContent).toBe('New orders'));
+    key(document.activeElement!, 'a');
+    await settle();
+    expect(api.callsTo(ACCEPT(b))).toHaveLength(0);
+    expect(api.callsTo(ACCEPT(a))).toHaveLength(0);
+    expect(tileOf('B3M9')).not.toBeNull();
+  });
+
+  it('the focused outcome tile leaving after 60 s: focus goes to the heading, and A accepts nothing', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const [a, b] = [pending('A7K2', 120), pending('B3M9', 170)];
+    const { api, sock } = await withSocket([a, b], { [ACCEPT(b)]: accepted(b) });
+    const tile = await findTile('A7K2');
+    act(() => tile.focus());
+    act(() => sock().push(frameOn(1, 'restaurant.order_offer_expired', { order_id: a.id, reason: 'timeout' })));
+    const note = await screen.findByText('Nobody answered in 3 minutes');
+    await waitFor(() => expect(document.activeElement).toBe(note));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(61_000);
+    });
+    await waitFor(() => expect(tileOf('A7K2')).toBeNull());
+    await waitFor(() => expect(document.activeElement?.textContent).toBe('New orders'));
+    key(document.activeElement!, 'a');
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(50);
+    });
+    expect(api.callsTo(ACCEPT(b))).toHaveLength(0);
+  });
+
+  it('after the user’s own accept, focus moves on to the next order', async () => {
+    const [a, b] = [pending('A7K2', 120), pending('B3M9', 150)];
+    installFakeApi(routesFor([a, b], { [ACCEPT(a)]: accepted(a) }));
+    await renderRedesign('/orders/history');
+    const tile = await findTile('A7K2');
+    act(() => tile.focus());
+    key(tile, 'a');
+    await waitFor(() => expect(tileOf('A7K2')).toBeNull());
+    await waitFor(() => expect(document.activeElement).toBe(tileOf('B3M9')));
+  });
+});
+
+describe('an accept whose response is lost', () => {
+  it('a 5xx re-reads the order first: accepted and paid shows as accepted, never as a failure', async () => {
+    const o = pending('A7K2', 120);
+    installFakeApi(
+      routesFor([o], {
+        [ACCEPT(o)]: { status: 502, body: errorBody('SERVICE_UNAVAILABLE') },
+        [`GET /v1/restaurant/orders/${o.id}`]: accepted(o),
+      }),
+    );
+    await renderRedesign('/orders/history');
+    const tile = await findTile('A7K2');
+    fireEvent.click(within(tile).getByRole('button', { name: /^Accept order A7K2/ }));
+    expect(await screen.findByText('A7K2 accepted · ready by 2:51 pm')).toBeTruthy();
+    expect(screen.queryByText('Couldn’t confirm. Still waiting for you.')).toBeNull();
+    expect(screen.queryByText('A7K2 was accepted on another screen')).toBeNull();
+    await waitFor(() => expect(tileOf('A7K2')).toBeNull());
+  });
+
+  it('the order_accepted frame that beat a lost response counts as this screen’s accept', async () => {
+    const o = pending('A7K2', 120);
+    let push: (f: unknown) => void = () => {};
+    const { sock } = await withSocket([o], {
+      [ACCEPT(o)]: async () => {
+        push(frameOn(1, 'restaurant.order_accepted', { order_id: o.id, accepted_by: 'me', prep_eta_minutes: 20 }));
+        await settle();
+        return { status: 503, body: errorBody('SERVICE_UNAVAILABLE') };
+      },
+      // The re-read cannot reach the server either: the frame alone settles it.
+      [`GET /v1/restaurant/orders/${o.id}`]: { status: 503, body: errorBody('SERVICE_UNAVAILABLE') },
+    });
+    push = (f) => act(() => sock().push(f as never));
+    const tile = await findTile('A7K2');
+    fireEvent.click(within(tile).getByRole('button', { name: /^Accept order A7K2/ }));
+    expect(await screen.findByText('A7K2 accepted')).toBeTruthy();
+    expect(screen.queryByText('A7K2 was accepted on another screen')).toBeNull();
+    expect(screen.queryByText('Couldn’t confirm. Still waiting for you.')).toBeNull();
+  });
+
+  it('an accept-failed order is re-read at its deadline: accepted is never called a timeout', async () => {
+    const o = pending('A7K2', 2);
+    const api = installFakeApi(routesFor([o], { [ACCEPT(o)]: { status: 503, body: errorBody('SERVICE_UNAVAILABLE') } }));
+    await renderRedesign('/orders/history');
+    const tile = await findTile('A7K2');
+    fireEvent.click(within(tile).getByRole('button', { name: /^Accept order A7K2/ }));
+    expect(await within(tile).findByText('Couldn’t confirm. Still waiting for you.')).toBeTruthy();
+    // The accept had gone through; only its response was lost.
+    api.set(`GET /v1/restaurant/orders/${o.id}`, accepted(o));
+    expect(await screen.findByText('A7K2 accepted · ready by 2:51 pm', undefined, { timeout: 4000 })).toBeTruthy();
+    expect(screen.queryByText('Nobody answered in 3 minutes')).toBeNull();
+  });
+
+  it('locks the prep time once an accept has gone out under its key', async () => {
+    const o = pending('A7K2', 120);
+    const api = installFakeApi(routesFor([o], { [ACCEPT(o)]: { status: 503, body: errorBody('SERVICE_UNAVAILABLE') } }));
+    await renderRedesign(`/orders/history?panel=offer&order=${o.id}`);
+    const panel = await screen.findByRole('complementary', { name: 'Order A7K2 details' });
+    fireEvent.click(await within(panel).findByRole('button', { name: 'Accept order A7K2, ready in 20 minutes' }));
+    expect(await within(panel).findByText('We couldn’t confirm this order')).toBeTruthy();
+    expect(within(panel).getByRole('button', { name: 'Less prep time for order A7K2' }).getAttribute('aria-disabled')).toBe('true');
+    expect(within(panel).getByRole('button', { name: 'More prep time for order A7K2' }).getAttribute('aria-disabled')).toBe('true');
+    api.set(ACCEPT(o), accepted(o));
+    fireEvent.click(within(panel).getByRole('button', { name: 'Try accept again, order A7K2, ready in 20 minutes' }));
+    await waitFor(() => expect(api.callsTo(ACCEPT(o))).toHaveLength(2));
+    const calls = api.callsTo(ACCEPT(o));
+    expect(calls[1]!.headers.get('Idempotency-Key')).toBe(calls[0]!.headers.get('Idempotency-Key'));
+    for (const c of calls) expect(await c.json()).toEqual({ prep_eta_minutes: 20 });
+  });
+});
+
+describe('a decline from this screen', () => {
+  it('its own order_rejected frame arriving first is not "declined on another screen"', async () => {
+    const o = pending('A7K2', 120);
+    const route = `POST /v1/restaurant/orders/${o.id}/reject`;
+    let push: (f: unknown) => void = () => {};
+    const { sock } = await withSocket([o], {
+      [route]: async () => {
+        push(frameOn(1, 'restaurant.order_rejected', { order_id: o.id, rejected_by: 'me', reason_code: 'KITCHEN_AT_CAPACITY' }));
+        await settle();
+        return { body: fixture('restaurant_order_rejected') };
+      },
+    });
+    push = (f) => act(() => sock().push(f as never));
+    await findTile('A7K2');
+    fireEvent.click(within(tileOf('A7K2')!).getByRole('button', { name: 'Decline order A7K2, choose a reason' }));
+    const panel = await screen.findByRole('complementary', { name: 'Order A7K2 details' });
+    fireEvent.click(within(panel).getByRole('radio', { name: 'Kitchen is too busy' }));
+    fireEvent.click(within(panel).getByRole('button', { name: 'Decline order, order A7K2' }));
+    expect(await screen.findByText('A7K2 declined')).toBeTruthy();
+    expect(screen.queryByText('A7K2 was declined on another screen')).toBeNull();
   });
 });

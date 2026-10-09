@@ -132,11 +132,15 @@ function DeclinePanel({ params }: ShellPanelProps) {
       const failed = toMark.length ? await api.markOutOfStock(toMark.map((i) => ({ menuItemId: i.menuItemId, label: i.name }))) : [];
       if (failed.length) {
         const one = failed.length === 1;
+        // "Open Menu" brings the (first) item still on sale into view: `/menu?item=<id>`.
+        // The Menu page (WP8) scrolls to and highlights `item`; until WP8 merges, the legacy
+        // Menu screen ignores the parameter and opens at the top.
+        const menuUrl = `/menu?item=${encodeURIComponent(failed[0]!.menuItemId)}`;
         toast.show({
           variant: 'warning',
-          title: `Order declined. We couldn’t mark ${joinNames(failed)} out of stock, so customers can still order ${one ? 'it' : 'them'}.`,
+          title: `Order declined. We couldn’t mark ${joinNames(failed.map((f) => f.label))} out of stock, so customers can still order ${one ? 'it' : 'them'}.`,
           description: `The customer was not charged. Mark ${one ? 'it' : 'them'} out of stock on the Menu page.`,
-          action: { label: 'Open Menu', onAction: () => navigate('/menu') },
+          action: { label: 'Open Menu', onAction: () => navigate(menuUrl) },
         });
       } else {
         toast.show({ variant: 'neutral', title: `${code} declined`, description: 'The customer was not charged. It’s in History.' });
@@ -198,6 +202,9 @@ function DeclinePanel({ params }: ShellPanelProps) {
         itemReason="ITEM_UNAVAILABLE"
         items={items}
         disabled={sending}
+        // A decline that went out under this form's key keeps its body: retrying with the same
+        // key and a different reason would be IDEMPOTENCY_KEY_REUSE (409) on every try.
+        locked={phase === 'failed'}
         onSubmit={(v) => void submit(v)}
         before={
           <>

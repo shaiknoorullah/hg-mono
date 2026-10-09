@@ -99,14 +99,21 @@ async function servePending(page: Page, pending: Pending[]) {
 /** /orders → go-live gate → History (a quiet page, so the strip is what's on screen). */
 async function goLive(page: Page, info: TestInfo) {
   await page.context().grantPermissions(['notifications']);
+  const beats: Request[] = [];
+  page.on('request', (r) => {
+    if (r.method() === 'POST' && r.url().endsWith('/v1/restaurant/heartbeat')) beats.push(r);
+  });
   await openSignedIn(page, '/orders');
   const gate = page.getByRole('region', { name: 'Turn on order sound and go live' });
   await expect(gate).toBeVisible();
   // The strip is hidden behind the gate on this page.
   await expect(page.getByTestId('new-order-strip')).toHaveCount(0);
   await shot(page, info, 'gate');
+  // A screen on the gate cannot ring, so it must not keep the restaurant online.
+  expect(beats, 'no heartbeat before the gate gesture').toHaveLength(0);
   await page.getByRole('button', { name: 'Turn on sound and go live' }).click();
   await expect(gate).toHaveCount(0);
+  await expect.poll(() => beats.length, { message: 'the heartbeat starts after the gate' }).toBeGreaterThan(0);
   await page.getByTestId('console-rail').getByRole('link', { name: /^History/ }).click();
 }
 
