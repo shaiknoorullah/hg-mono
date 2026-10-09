@@ -1,7 +1,7 @@
 ---
 covers:
   - services/hg/migrations/**
-reviewed: 2026-10-08
+reviewed: 2026-10-09
 ---
 
 # HalalGoes — database schema
