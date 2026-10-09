@@ -1,0 +1,18 @@
+# W1 Core: side-by-side screenshots
+
+Evidence for the W1 Core pull request (`claude/redesign-ds-web-w1-core`). Each image is the
+`preview:shoot` report page at 1440px: the live design system's own preview on the left, the
+rebuilt `@hg/ui-web` component on the right, paired by state.
+
+KeyValueList, StatCard and the proposed parts (Skeleton, Spinner, Separator, Tooltip) have no
+live preview page yet, so they show the candidate only.
+
+- Button.png
+- IconButton.png
+- Icon.png
+- Badge.png
+- Card.png
+- Price.png
+- KeyValueList.png
+- StatCard.png
+- ProposedCore.png (Skeleton, Spinner, Separator, Tooltip)
