@@ -549,3 +549,15 @@ Ordered by when they block. O1–O6 are for the Sat 09:00 session.
 - API gaps per app: each manifest's §5.
 - Per-WP test and journey tables: each manifest's §6.
 - Risks and cut lists: each manifest's §7. The DS cut order is `design-system.md` §6.2.
+
+---
+
+## 7. Owner answers, Fri 9 Oct 2026 18:10 UTC
+
+- **O1: yes.** Proposed composites merge to `main` under `@hg/ui-*/proposed`, used only by flagged redesign screens.
+- **O3: absorb.** #625, #634, #635, #639, #649 go to draft, their logic and tests are ported into the customer redesign track, and they stay out of 1.0.
+- **O5: ship codes in 1.0.** #290 + #315 merge together with #311 (legacy rider sends the pickup code) and the legacy restaurant code display, before Sat 09:00.
+- **O6: fallback allowed.** If NativeWind is not green by Sat 15:00, RNR primitives styled with StyleSheet tokens.
+- **Merging:** the orchestrator session merges every PR that is green (CI + Claude Approvals). Track sessions open PRs and do not merge.
+- **Release date:** 1.0 is now **Monday 12 Oct 2026**.
+- **Device lab:** the owner's own machine via Remote Control (`plan/DEVICE-LAB-RUNBOOK.md`). Cloud containers cannot run an emulator (`plan/DEVICE-LAB.md`).
