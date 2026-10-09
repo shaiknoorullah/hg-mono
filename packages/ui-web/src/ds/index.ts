@@ -21,7 +21,6 @@ export { setHalalClientErrorReporter } from '../certification/index.js';
 
 /* Adapters over legacy components: live props, legacy rendering. */
 export {
-  AppBar,
   Button,
   Checkbox,
   Icon,
@@ -33,7 +32,6 @@ export {
   Switch,
 } from './compat.js';
 export type {
-  AppBarProps,
   ButtonProps,
   CheckboxProps,
   DsIconName,
@@ -90,6 +88,13 @@ export type {
   HalalShieldProps,
 } from '../certification/index.js';
 
-/* Owner-approved desktop layout (decision log, 28 Sep): rebuilt in W2. */
-export { SideNav } from '../navigation/index.js';
-export type { SideNavGroup, SideNavItem, SideNavProps } from '../navigation/index.js';
+/* Rebuilt in W2 (layout and shell): the live AppBar, and the owner-approved desktop layout
+   (decision log, 28 Sep): SideNav, DetailPanel and SplitPanes. */
+export { AppBar } from './AppBar.js';
+export type { AppBarProps } from './AppBar.js';
+export { SideNav } from './SideNav.js';
+export type { SideNavGroup, SideNavItem, SideNavProps } from './SideNav.js';
+export { DetailPanel } from './DetailPanel.js';
+export type { DetailPanelProps, DetailPanelStatus } from './DetailPanel.js';
+export { FOLDED_STRIP_PX, SplitPanes } from './SplitPanes.js';
+export type { SplitPane, SplitPanesProps } from './SplitPanes.js';
