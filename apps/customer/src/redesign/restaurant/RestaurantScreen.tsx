@@ -53,13 +53,14 @@ import {
   Tabs,
   elevationStyle,
   formatPrice,
+  reportClientError,
   spokenPrice,
   useTheme,
   useTypeStyle,
 } from '../ds';
 import { useNav } from '../navigation/context';
 import { useConnectivity } from '../lib/connectivity';
-import { CERTIFICATE_UNAVAILABLE, type HalalPresentation } from '../lib/halal';
+import { CERTIFICATE_UNAVAILABLE, OFFLINE_HALAL_LINE, halalCacheFresh, type HalalPresentation } from '../lib/halal';
 import { useNow } from '../lib/now';
 import { useQuery, type Query } from '../lib/query';
 import { formatShortDate, formatTime } from '../lib/time';
@@ -71,9 +72,12 @@ import {
   cuisineLine,
   dietaryBadges,
   formatPhone,
+  halalReport,
   hoursRows,
   hoursSummary,
+  isLapsed,
   isNotFound,
+  isOffline,
   isUnlisted,
   itemCountText,
   loadCart,
@@ -235,9 +239,14 @@ function ReadyPage({
   });
   const [readFailed, setReadFailed] = React.useState(false);
   const [readRecord, setReadRecord] = React.useState<CertificationPanel | null>(null);
+  const quietRecord = quietCert.kind === 'ready' ? quietCert.data : null;
+  /** The record the page is showing, whichever read it came from (null: none found). */
+  const shownRecord = readRecord ?? embedded ?? quietRecord;
 
   const halal: HalalRow = React.useMemo(() => {
     const ctx = { online, asOf, now };
+    // Offline past the 15-minute halal maximum age, the offline line wins over everything else.
+    if (!halalCacheFresh(ctx)) return { kind: 'stale', line: OFFLINE_HALAL_LINE };
     if (readFailed) return { kind: 'failed' };
     if (readRecord) return pageHalal(readRecord, ctx);
     if (embedded) return pageHalal(embedded, ctx);
@@ -248,12 +257,24 @@ function ReadyPage({
     return pageHalal(quietCert.data, ctx);
   }, [readFailed, readRecord, embedded, quietCert, online, asOf, now]);
 
+  // Missing halal data is never swallowed: the neutral line shows, and the client reports it once
+  // per restaurant and set of missing fields (contract `HalalBadge`; board DO/Restaurant-cert-missing).
+  const report = halal.kind === 'unavailable' ? halalReport(shownRecord) : null;
+  const reportKey = report ? `${report.code}:${report.missing}` : null;
+  React.useEffect(() => {
+    if (!report) return;
+    reportClientError(report.code, { restaurantId, surface: 'restaurant-page', missing: report.missing || undefined });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [restaurantId, reportKey]);
+
   const [certOpen, setCertOpen] = React.useState(false);
   const [scrolled, setScrolled] = React.useState(false);
   const [hoursOpen, setHoursOpen] = React.useState(false);
   const [barHeight, setBarHeight] = React.useState(0);
 
   const scrollRef = React.useRef<ScrollView>(null);
+  const mainY = React.useRef(0);
+  const hoursY = React.useRef(0);
   const menuY = React.useRef(0);
   const sectionY = React.useRef<Record<string, number>>({});
   const [activeCategory, setActiveCategory] = React.useState<string | null>(null);
@@ -293,7 +314,17 @@ function ReadyPage({
     if (top !== undefined) scrollRef.current?.scrollTo({ y: Math.max(0, menuY.current + top - 8), animated: true });
   };
 
+  const showHours = (): void => {
+    setHoursOpen(true);
+    scrollRef.current?.scrollTo({ y: Math.max(0, mainY.current + hoursY.current - 8), animated: true });
+  };
+
   const itemCount = cart?.item_count ?? 0;
+  const hasHours = online && (detail.hours ?? []).length > 0;
+
+  // A fresh read says the certificate lapsed after the page loaded: the restaurant is no longer
+  // listed, so the page becomes the not-available page (never a page with no halal row).
+  if (isLapsed(readRecord ?? quietRecord)) return <NotAvailable onBack={nav.back} onHome={() => nav.open({ name: 'home' })} />;
 
   return (
     <View style={[styles.fill, { backgroundColor: theme.color.surface.base }]} testID="Restaurant">
@@ -310,7 +341,7 @@ function ReadyPage({
         {/* 0: hero, header, notices, hours */}
         <View>
           <Media uri={detail.hero_image_url} aspect={16 / 9} testID="Restaurant-hero" />
-          <View style={styles.main}>
+          <View style={styles.main} onLayout={(e) => (mainY.current = e.nativeEvent.layout.y)}>
             {!online ? (
               <Banner
                 variant="neutral"
@@ -325,6 +356,7 @@ function ReadyPage({
               online={online}
               asOf={asOf}
               titleRef={titleRef}
+              onShowHours={hasHours ? showHours : undefined}
               onViewCertification={() => setCertOpen(true)}
               onRetryCertification={() => {
                 setReadFailed(false);
@@ -333,12 +365,20 @@ function ReadyPage({
                 else
                   void loadCertification(restaurantId)
                     .then((c) => setReadRecord(c))
-                    .catch((e: unknown) => setReadFailed(!isNotFound(e)));
+                    .catch((e: unknown) => setReadFailed(!isNotFound(e) && !isOffline(e)));
               }}
             />
             {banner ? (
               <Banner
-                variant={detail.availability.state === 'OUT_OF_RANGE' || detail.availability.state === 'NO_ADDRESS' ? 'info' : 'neutral'}
+                // Every availability board draws the same neutral banner; only the glyph differs.
+                variant="neutral"
+                icon={
+                  <Icon
+                    name={detail.availability.state === 'OUT_OF_RANGE' || detail.availability.state === 'NO_ADDRESS' ? 'map' : 'clock'}
+                    size={22}
+                    color={theme.color.text.secondary}
+                  />
+                }
                 title={banner.title}
                 description={banner.description}
                 action={{
@@ -349,8 +389,10 @@ function ReadyPage({
                 testID="Restaurant-availability"
               />
             ) : null}
-            {online && (detail.hours ?? []).length > 0 ? (
-              <Hours detail={detail} now={now} open={hoursOpen} onToggle={() => setHoursOpen((o) => !o)} />
+            {hasHours ? (
+              <View onLayout={(e) => (hoursY.current = e.nativeEvent.layout.y)}>
+                <Hours detail={detail} now={now} open={hoursOpen} onToggle={() => setHoursOpen((o) => !o)} />
+              </View>
             ) : null}
           </View>
         </View>
@@ -417,6 +459,9 @@ function ReadyPage({
         <CertificationSheet
           restaurantId={restaurantId}
           name={detail.name}
+          // Offline within the 15-minute halal maximum age, the sheet shows the record the page
+          // already holds and makes no read (board DO/Restaurant-offline). The button is gone past it.
+          cached={!online && halalCacheFresh({ online, asOf, now }) ? shownRecord : null}
           onClose={() => setCertOpen(false)}
           onRead={(result) => {
             if (result.ok) {
@@ -442,6 +487,7 @@ function Header({
   online,
   asOf,
   titleRef,
+  onShowHours,
   onViewCertification,
   onRetryCertification,
 }: {
@@ -450,6 +496,8 @@ function Header({
   online: boolean;
   asOf: number;
   titleRef: React.RefObject<Text | null>;
+  /** Jumps to the opening-hours disclosure and expands it (the OPEN line's "Hours" link). */
+  onShowHours?: () => void;
   onViewCertification: () => void;
   onRetryCertification: () => void;
 }): React.ReactElement {
@@ -470,7 +518,16 @@ function Header({
       <HalalStatus name={detail.name} restaurantId={detail.id} halal={halal} onView={onViewCertification} onRetry={onRetryCertification} />
 
       {cuisine ? <Text style={secondary}>{cuisine}</Text> : null}
-      {line ? (
+      {line && online && a.state === 'OPEN' && onShowHours ? (
+        <View style={styles.wrap}>
+          <Text style={[secondary, styles.tabular, styles.shrink]} testID="Restaurant-availabilityLine">
+            {`${line} ·`}
+          </Text>
+          <Button variant="tertiary" size="md" onPress={onShowHours} testID="Restaurant-hoursLink">
+            Hours
+          </Button>
+        </View>
+      ) : line ? (
         <Text style={[secondary, styles.tabular]} testID="Restaurant-availabilityLine">
           {line}
         </Text>
@@ -573,7 +630,8 @@ function HalalStatus({
         </Text>
       );
     default:
-      // `expired` and `none` never reach a listed restaurant (they are the 404 page).
+      // `expired` and `none` never reach here: an EXPIRED or UNVERIFIED record, embedded or read
+      // later, turns the whole page into the not-available page (`isUnlisted`, `isLapsed`).
       return null;
   }
 }
@@ -838,30 +896,41 @@ type ReadResult = { ok: true; record: CertificationPanel } | { ok: false; failed
 function CertificationSheet({
   restaurantId,
   name,
+  cached,
   onClose,
   onRead,
   onViewCertificate,
 }: {
   restaurantId: string;
   name: string;
+  /** Offline and still fresh: show this record and make no read. */
+  cached: CertificationPanel | null;
   onClose: () => void;
   onRead: (result: ReadResult) => void;
   onViewCertificate: () => void;
 }): React.ReactElement {
   const theme = useTheme();
   const body = useTypeStyle('body.sm');
-  const { query, reload } = useQuery<CertificationPanel>(() => loadCertification(restaurantId), [restaurantId]);
+  // Decided once, when the sheet opens: a sheet opened on the cached record stays on it.
+  const [fromCache] = React.useState(cached);
+  const { query: read, reload } = useQuery<CertificationPanel>(() => loadCertification(restaurantId), [restaurantId], {
+    enabled: fromCache === null,
+  });
+  const query: Query<CertificationPanel> = fromCache ? { kind: 'ready', data: fromCache, asOf: 0, refreshing: false } : read;
   const failed = React.useRef(false);
 
   React.useEffect(() => {
-    if (query.kind === 'ready') {
+    if (fromCache) return;
+    if (read.kind === 'ready') {
       failed.current = false;
-      onRead({ ok: true, record: query.data });
-    } else if (query.kind === 'error') {
-      failed.current = !isNotFound(query.error);
+      onRead({ ok: true, record: read.data });
+    } else if (read.kind === 'error') {
+      // Only an answer from the API is a failed read. A transport failure (offline) says nothing
+      // about the certificate, so the page keeps what it has.
+      failed.current = !isNotFound(read.error) && !isOffline(read.error);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query]);
+  }, [read, fromCache]);
 
   const close = (): void => {
     if (failed.current) onRead({ ok: false, failed: true });
@@ -891,6 +960,7 @@ function CertificationSheet({
           <HalalCertificationPanel
             restaurantId={restaurantId}
             certification={query.data}
+            // Offline, the viewer says it needs a connection (board DO/Cert-offline).
             onViewCertificate={onViewCertificate}
             testID="Restaurant-certPanel"
           />

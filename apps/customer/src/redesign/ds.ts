@@ -49,5 +49,5 @@ export {
 export type { BottomNavItem, Theme } from '@hg/ui-native';
 
 // WP4 (restaurant page, certification sheet, certificate viewer).
-export { elevationStyle } from '@hg/ui-native';
-export type { TabSpec } from '@hg/ui-native';
+export { elevationStyle, reportClientError, resetClientErrorReporter, setClientErrorReporter } from '@hg/ui-native';
+export type { ClientErrorReporter, TabSpec } from '@hg/ui-native';

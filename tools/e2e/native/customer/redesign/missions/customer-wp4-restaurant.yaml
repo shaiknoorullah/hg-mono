@@ -2,7 +2,8 @@ id: customer-wp4-restaurant
 app: customer
 avd: hg_customer
 api: devworld
-# Build the dev APK from this branch with EXPO_PUBLIC_HG_REDESIGN=1.
+# Build the dev APK from this branch with EXPO_PUBLIC_HG_REDESIGN=1. Run the flow with
+# `-e CERT_LINK_EXPIRED_ONCE=true` once devworld can refuse the first certificate link (w0-request).
 setup: [ "make dev-reset" ]
 flows: [ "tools/e2e/native/customer/redesign/4-restaurant.yaml" ]
 reality:
@@ -19,6 +20,9 @@ explore: >
   (the disclaimer must be the API's sentence word for word). Tap View certificate, wait on the viewer for more than
   five minutes without the image loading (or kill the network before it loads) and confirm "This link has expired"
   then "Open again" shows the image with a new link (the API log shows a second createCertificateViewUrl).
+  The certificate is read into memory and shown from a data: URI: after viewing it, list the app's cache
+  (`adb shell run-as com.halalgoes.customer.dev ls -R cache`) and confirm no image_cache / http-cache entry holds it.
+  With the phone's clock set ten minutes fast (`adb shell date`), the certificate must still open first time.
   Network loss: on the restaurant page `adb shell svc wifi disable && adb shell svc data disable`, pull the page
   (reopen it from Home), screenshot the "You're offline" banner and the halal row; then use the dev clock override
   (useNow, +16 minutes) and confirm the badge and View certification are gone and the line reads "We can't check the

@@ -159,6 +159,32 @@ export function pageHalal(
   return presentHalal(record ?? null, ctx);
 }
 
+const KNOWN_DISPLAY_STATES = new Set(['CERTIFIED', 'EXPIRING_SOON', 'EXPIRED', 'UNVERIFIED']);
+
+/**
+ * What the client must report when the page falls back to "Certificate details unavailable"
+ * because halal data is missing (contract `HalalBadge`: "renders no badge and reports a client
+ * error"; board `DO/Restaurant-cert-missing`). `null` when there is nothing to report.
+ */
+export function halalReport(
+  record: Pick<CertificationPanel, 'display_state' | 'certifying_body_name' | 'expires_on'> | null | undefined,
+): { code: 'HALAL_DISPLAY_STATE_MISSING' | 'HALAL_DISPLAY_STATE_UNKNOWN'; missing: string } | null {
+  if (!record) return { code: 'HALAL_DISPLAY_STATE_MISSING', missing: 'certification' };
+  if (!record.display_state) return { code: 'HALAL_DISPLAY_STATE_MISSING', missing: 'display_state' };
+  if (!KNOWN_DISPLAY_STATES.has(record.display_state)) return { code: 'HALAL_DISPLAY_STATE_UNKNOWN', missing: '' };
+  if (record.display_state !== 'CERTIFIED' && record.display_state !== 'EXPIRING_SOON') return null;
+  const missing = [
+    record.certifying_body_name?.trim() ? null : 'certifying_body_name',
+    record.expires_on ? null : 'expires_on',
+  ].filter((f): f is string => f !== null);
+  return missing.length ? { code: 'HALAL_DISPLAY_STATE_MISSING', missing: missing.join(',') } : null;
+}
+
+/** A fresh read that says the restaurant is no longer listed (it lapsed after the page loaded). */
+export function isLapsed(record: Pick<CertificationPanel, 'display_state'> | null | undefined): boolean {
+  return record?.display_state === 'EXPIRED' || record?.display_state === 'UNVERIFIED';
+}
+
 /** The certificate viewer's "Scope" value (board `DO/Cert-open`). The enum name is never shown. */
 export const SCOPE_TEXT: Readonly<Record<string, string>> = {
   WHOLE_ESTABLISHMENT: 'The whole restaurant',
@@ -426,4 +452,85 @@ export function itemCountText(n: number): string {
 /** Whether a presigned link is a PDF (the viewer only shows images in the app today). */
 export function isPdfUrl(url: string): boolean {
   return /\.pdf$/i.test(url.split(/[?#]/)[0] ?? '');
+}
+
+/* ------------------------------------------------------ certificate bytes */
+
+/** The contract's ceiling for a certificate link (`PresignedDownload.expires_at`: 300 s). */
+export const CERT_LINK_MAX_TTL_MS = 300_000;
+
+/**
+ * How long a link just minted may be waited on, in device time from the moment it arrived.
+ *
+ * `expires_at` is the server's clock and the phone's may be minutes off. A phone running fast
+ * would see every fresh link as already expired and loop on "Open again", so the client never
+ * judges a link expired on arrival: it takes the time left when that is believable (0–300 s) and
+ * otherwise the contract's 300 s. The real expiry signal is storage refusing the link (403).
+ */
+export function linkLifetimeMs(expiresAt: string, now: number): number {
+  const left = Date.parse(expiresAt) - now;
+  return Number.isFinite(left) && left > 0 && left <= CERT_LINK_MAX_TTL_MS ? left : CERT_LINK_MAX_TTL_MS;
+}
+
+export type CertificateBytes = { kind: 'image'; dataUri: string } | { kind: 'pdf' };
+
+/** Storage refused or failed the presigned link. 403 is how an expired presigned link answers. */
+export class CertificateFetchError extends Error {
+  constructor(
+    readonly status: number,
+    readonly expired: boolean,
+  ) {
+    super(`certificate fetch failed: ${status}`);
+  }
+}
+
+/**
+ * Loads the certificate into memory and hands back a `data:` URI (P-28, contract
+ * `createCertificateViewUrl`: "never cached to disk by the client").
+ *
+ * The presigned URL is never given to `<Image>`: the platform image pipelines keep a disk cache
+ * (Fresco on Android stores network images on disk whatever `cache` says; iOS `cache: 'reload'`
+ * only skips reading). A `data:` URI is decoded locally and only ever held in the memory cache.
+ *
+ * The request asks every cache not to store it (`Cache-Control: no-store`). It does not pass
+ * fetch's `cache: 'no-store'` option: React Native's fetch polyfill implements that by appending
+ * `_=<timestamp>` to the URL, which breaks a presigned URL's signature.
+ *
+ * A PDF is not read at all: the app cannot draw one until DocumentViewer lands.
+ */
+export async function loadCertificateBytes(url: string, signal?: AbortSignal): Promise<CertificateBytes> {
+  if (isPdfUrl(url)) return { kind: 'pdf' };
+  const res = await fetch(url, {
+    method: 'GET',
+    headers: { 'Cache-Control': 'no-store', Pragma: 'no-cache' },
+    signal,
+  });
+  if (!res.ok) throw new CertificateFetchError(res.status, res.status === 403);
+  const type = (res.headers.get('content-type') ?? '').split(';')[0]!.trim().toLowerCase();
+  if (type === 'application/pdf') return { kind: 'pdf' };
+  if (type !== '' && !type.startsWith('image/')) throw new CertificateFetchError(415, false);
+  const blob = await res.blob();
+  try {
+    return { kind: 'image', dataUri: await blobToDataUri(blob, type || 'image/jpeg') };
+  } finally {
+    // React Native keeps blob bytes in native memory until closed.
+    (blob as Blob & { close?: () => void }).close?.();
+  }
+}
+
+async function blobToDataUri(blob: Blob, type: string): Promise<string> {
+  if (typeof FileReader !== 'undefined') {
+    const raw = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = () => reject(reader.error ?? new Error('read failed'));
+      reader.readAsDataURL(blob);
+    });
+    return raw.replace(/^data:[^;,]*/, `data:${type}`);
+  }
+  // No FileReader (a plain JS runtime): encode the bytes ourselves.
+  const bytes = new Uint8Array(await blob.arrayBuffer());
+  let bin = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return `data:${type};base64,${btoa(bin)}`;
 }

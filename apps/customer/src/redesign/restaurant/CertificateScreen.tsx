@@ -3,17 +3,23 @@
  *
  * The certificate is a private document. It is reached only through `createCertificateViewUrl`:
  * a presigned link that lasts five minutes, minted for this view and never prefetched, stored or
- * reused. The image is loaded into memory with `cache: 'reload'` (no HTTP cache, no prefetch, no
- * file): offline there is no copy to show, by design (P-28).
+ * reused. The bytes are read into memory (`loadCertificateBytes`) and shown from a `data:` URI;
+ * the presigned URL never reaches `<Image>`, whose platform pipelines keep a disk cache. Offline
+ * there is no copy to show, by design (P-28).
  *
  * States: getting a secure link · image open (zoom with buttons, never only gestures) · link
  * expired ("Open again" mints a new one) · failed · offline · not viewable
  * (`certificate_viewable=false`) · not found (404) · PDF.
  *
+ * Expiry is measured in device time from the moment the link arrived (`linkLifetimeMs`), never by
+ * comparing the server's `expires_at` with a phone clock that may be fast; storage refusing the
+ * link (403) is what says it expired.
+ *
  * DocumentViewer is a design-system gap (manifest §4): the image, its zoom controls and the
  * details block are composed here from design-system exports. A PDF cannot be drawn in the app
- * until DocumentViewer lands (cut list item 3), so a PDF shows the verified details and says the
- * document isn't viewable here; it is never handed to another app, which could write it to disk.
+ * until DocumentViewer lands (cut list item 3: PDF is cut for now), so a PDF shows the verified
+ * details and says so plainly; it is never downloaded, and never handed to another app, which
+ * could write it to disk.
  */
 import * as React from 'react';
 import { Image, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
@@ -24,10 +30,12 @@ import { getNow } from '../lib/now';
 import { useQuery } from '../lib/query';
 import { formatDate } from '../lib/time';
 import {
+  CertificateFetchError,
   SCOPE_TEXT,
   isNotFound,
   isOffline,
-  isPdfUrl,
+  linkLifetimeMs,
+  loadCertificateBytes,
   loadCertification,
   mintCertificateUrl,
   restaurantNameFor,
@@ -40,10 +48,16 @@ export const LOG_NOTE =
 /** Zoom steps. 1 is "fitted to the screen". */
 export const ZOOM_STEPS = [1, 1.5, 2, 3] as const;
 
+/** Copy for a PDF certificate while DocumentViewer is cut (manifest §7 cut list item 3). */
+export const PDF_TITLE = 'Halal certificate, PDF';
+export const PDF_DESCRIPTION =
+  "This certificate is a PDF, which the app can't show yet. The details below are what HalalGoes verified.";
+
 type Link =
   | { kind: 'idle' }
   | { kind: 'minting' }
-  | { kind: 'open'; url: string; expiresAt: number; loaded: boolean }
+  | { kind: 'open'; dataUri: string }
+  | { kind: 'pdf' }
   | { kind: 'expired' }
   | { kind: 'failed' }
   | { kind: 'offline' }
@@ -58,22 +72,62 @@ export function CertificateScreen({ restaurantId }: { restaurantId: string }): R
   const { query: cert, reload: reloadCert } = useQuery<CertificationPanel>(() => loadCertification(restaurantId), [restaurantId]);
   const [link, setLink] = React.useState<Link>({ kind: 'idle' });
   const attempt = React.useRef(0);
+  const pending = React.useRef<{ timer: ReturnType<typeof setTimeout>; abort: AbortController } | null>(null);
+
+  const stopPending = React.useCallback((): void => {
+    if (!pending.current) return;
+    clearTimeout(pending.current.timer);
+    pending.current.abort.abort();
+    pending.current = null;
+  }, []);
 
   const mint = React.useCallback(() => {
     const n = ++attempt.current;
+    stopPending();
     setLink({ kind: 'minting' });
-    mintCertificateUrl(restaurantId)
-      .then((d) => {
+    void (async () => {
+      let url: string;
+      let lifetime: number;
+      try {
+        const d = await mintCertificateUrl(restaurantId);
+        url = d.url;
+        lifetime = linkLifetimeMs(d.expires_at, getNow());
+      } catch (e: unknown) {
+        if (n === attempt.current) setLink({ kind: isNotFound(e) ? 'notFound' : isOffline(e) ? 'offline' : 'failed' });
+        return;
+      }
+      if (n !== attempt.current) return;
+      // A link that runs out before its bytes arrive is expired, not broken.
+      const abort = new AbortController();
+      const timer = setTimeout(() => {
         if (n !== attempt.current) return;
-        const expiresAt = Date.parse(d.expires_at);
-        if (!Number.isFinite(expiresAt) || expiresAt <= getNow()) setLink({ kind: 'expired' });
-        else setLink({ kind: 'open', url: d.url, expiresAt, loaded: false });
-      })
-      .catch((e: unknown) => {
+        attempt.current++;
+        stopPending();
+        setLink({ kind: 'expired' });
+      }, lifetime);
+      pending.current = { timer, abort };
+      try {
+        const bytes = await loadCertificateBytes(url, abort.signal);
         if (n !== attempt.current) return;
-        setLink({ kind: isNotFound(e) ? 'notFound' : isOffline(e) ? 'offline' : 'failed' });
-      });
-  }, [restaurantId]);
+        stopPending();
+        // Once in memory the link is spent: no timer shows (board DO/Cert-pdf).
+        setLink(bytes.kind === 'pdf' ? { kind: 'pdf' } : { kind: 'open', dataUri: bytes.dataUri });
+      } catch (e: unknown) {
+        if (n !== attempt.current) return;
+        stopPending();
+        setLink({ kind: e instanceof CertificateFetchError && e.expired ? 'expired' : 'failed' });
+      }
+    })();
+  }, [restaurantId, stopPending]);
+
+  // Leaving the viewer drops any read in flight; nothing lands after unmount.
+  React.useEffect(
+    () => () => {
+      attempt.current++;
+      stopPending();
+    },
+    [stopPending],
+  );
 
   // Mint once the details say the certificate is viewable. A failed details read still tries:
   // the details block is extra, the document is the point.
@@ -82,15 +136,6 @@ export function CertificateScreen({ restaurantId }: { restaurantId: string }): R
   React.useEffect(() => {
     if (link.kind === 'idle' && viewable && !certNotFound) mint();
   }, [link.kind, viewable, certNotFound, mint]);
-
-  // A link that runs out before its image arrives is expired, not broken.
-  React.useEffect(() => {
-    if (link.kind !== 'open' || link.loaded) return;
-    const id = setTimeout(() => {
-      setLink((l) => (l.kind === 'open' && !l.loaded ? { kind: 'expired' } : l));
-    }, Math.max(0, link.expiresAt - getNow()));
-    return () => clearTimeout(id);
-  }, [link]);
 
   const tryAgain = (): void => {
     if (cert.kind === 'error') reloadCert();
@@ -160,31 +205,23 @@ export function CertificateScreen({ restaurantId }: { restaurantId: string }): R
         testID="Cert-failed"
       />
     );
-  } else if (link.kind === 'open' && isPdfUrl(link.url)) {
+  } else if (link.kind === 'pdf') {
     content = (
       <ScrollView contentContainerStyle={styles.page} testID="Cert-pdf">
         <EmptyState
           variant="inline"
           headingLevel={1}
           autoFocus
-          title="The certificate image isn't available to view"
-          description="The details on the restaurant page are what HalalGoes verified."
+          title={PDF_TITLE}
+          description={PDF_DESCRIPTION}
+          primaryAction={{ label: backLabel, onPress: nav.back, testID: 'Cert-pdfBack' }}
         />
         {details ? <Details cert={details} /> : null}
         <LogNote />
       </ScrollView>
     );
   } else if (link.kind === 'open') {
-    content = (
-      <Viewer
-        url={link.url}
-        cert={details}
-        onLoad={() => setLink((l) => (l.kind === 'open' ? { ...l, loaded: true } : l))}
-        onError={() =>
-          setLink((l) => (l.kind !== 'open' ? l : getNow() >= l.expiresAt ? { kind: 'expired' } : { kind: 'failed' }))
-        }
-      />
-    );
+    content = <Viewer dataUri={link.dataUri} cert={details} onError={() => setLink({ kind: 'failed' })} />;
   } else {
     content = <Minting />;
   }
@@ -236,14 +273,13 @@ export function zoomAnnouncement(scale: number): string {
 }
 
 function Viewer({
-  url,
+  dataUri,
   cert,
-  onLoad,
   onError,
 }: {
-  url: string;
+  /** The certificate's bytes, in memory. Never the presigned URL. */
+  dataUri: string;
   cert: CertificationPanel | null;
-  onLoad: () => void;
   onError: () => void;
 }): React.ReactElement {
   const theme = useTheme();
@@ -297,14 +333,13 @@ function Viewer({
       >
         <ScrollView nestedScrollEnabled style={{ maxHeight: frame * 1.414 }}>
           <Image
-            // In memory only: `cache: 'reload'` skips the HTTP cache, and nothing prefetches it.
-            source={{ uri: url, cache: 'reload' }}
+            // In memory only: a `data:` URI is decoded locally, never fetched or disk-cached.
+            source={{ uri: dataUri }}
             style={{ width: size, height: size * 1.414 }}
             resizeMode="contain"
             accessible
             accessibilityRole="image"
             accessibilityLabel={`${certificateAltText(cert)} ${zoomAnnouncement(scale)}`}
-            onLoad={onLoad}
             onError={onError}
             testID="Cert-image"
           />

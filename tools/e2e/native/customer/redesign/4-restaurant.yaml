@@ -10,6 +10,10 @@ name: customer redesign, restaurant and certificate
 env:
   PHONE: "+15550100101"
   CODE: "000000"
+  # Set to "true" once devworld can make storage refuse the first certificate link of a session
+  # with 403, the way an expired presigned link answers (w0-request in PR; the API's 300 s TTL is
+  # fixed, and a link loads in about a second, so the flow cannot wait one out).
+  CERT_LINK_EXPIRED_ONCE: "false"
 ---
 - launchApp:
     clearState: true
@@ -65,6 +69,28 @@ env:
 - tapOn: "Fit to screen"
 - assertVisible: "100%"
 - back
+
+# J7, link expired: the viewer says so and "Open again" mints a new link (manifest §6, WP4 b).
+- runFlow:
+    when:
+      true: ${CERT_LINK_EXPIRED_ONCE == "true"}
+    commands:
+      - tapOn: "View certification"
+      - extendedWaitUntil:
+          visible: "Halal certification"
+          timeout: 15000
+      - tapOn: "View certificate"
+      - extendedWaitUntil:
+          visible: "This link has expired"
+          timeout: 30000
+      - assertVisible: "Certificate links last five minutes.*"
+      - takeScreenshot: redesign-wp4-03b-certificate-link-expired
+      - tapOn: "Open again"
+      - extendedWaitUntil:
+          visible: "Fit to screen"
+          timeout: 30000
+      - assertVisible: "100%"
+      - back
 
 # Expiring: the badge carries its date.
 - openLink: "hgcustomer://restaurant/b0000000-0000-4000-8000-000000000209"

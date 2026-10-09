@@ -8,6 +8,7 @@
 import * as React from 'react';
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react-native';
 
+import { resetClientErrorReporter, setClientErrorReporter } from '../../ds';
 import { resetConnectivity } from '../../lib/connectivity';
 import { setNowOverride } from '../../lib/now';
 import { mockApi, payloadOf, type MockApi } from '../../test/mockApi';
@@ -19,6 +20,7 @@ const ID: string = DETAIL.id;
 
 let mock: MockApi;
 let nav: NavSpy;
+let reported: jest.Mock;
 
 function detailWith(patch: Record<string, unknown>): { status: number; body: unknown } {
   return { status: 200, body: { data: { ...payloadOf('restaurant_detail_certified'), ...patch } } };
@@ -55,9 +57,12 @@ beforeEach(() => {
     getRestaurantMenu: 'menu_full',
     getRestaurantCertification: 'certification_panel_certified',
   });
+  reported = jest.fn();
+  setClientErrorReporter(reported);
 });
 
 afterEach(() => {
+  resetClientErrorReporter();
   mock.restore();
   setNowOverride(null);
   resetConnectivity();
@@ -73,7 +78,8 @@ describe('D5 restaurant page: halal display states', () => {
     expect(screen.getByLabelText('View certification: halal certificate for Karachi Kitchen')).toBeTruthy();
     // "Halal" as a cuisine word is dropped: halal is shown only by the seal.
     expect(screen.getByText('Pakistani · Biryani · $$')).toBeTruthy();
-    expect(screen.getByText('25–40 min · open until 6:00 pm')).toBeTruthy();
+    expect(screen.getByText('25–40 min · open until 6:00 pm ·')).toBeTruthy();
+    expect(screen.getByTestId('Restaurant-hoursLink')).toBeTruthy();
     // The page is judged against the selected address (the default, Home).
     const call = mock.callsTo('getRestaurant')[0]!;
     expect(call.url).toContain('delivery_address_id=b7b6c797-5584-44b3-ac8d-9af8e9572de8');
@@ -127,6 +133,13 @@ describe('D5 restaurant page: halal display states', () => {
     // Adding stays open: the menu is listed as usual.
     await menuReady();
     expect(screen.getByText('Chicken Biryani')).toBeTruthy();
+    // The missing fields are reported, once, never swallowed.
+    expect(reported).toHaveBeenCalledTimes(1);
+    expect(reported).toHaveBeenCalledWith('HALAL_DISPLAY_STATE_MISSING', {
+      restaurantId: ID,
+      surface: 'restaurant-page',
+      missing: 'certifying_body_name,expires_on',
+    });
   });
 
   it('missing record: the quiet read finds none, so the neutral line and nothing else', async () => {
@@ -137,6 +150,18 @@ describe('D5 restaurant page: halal display states', () => {
     expect(await screen.findByText('Certificate details unavailable')).toBeTruthy();
     expect(screen.queryByTestId('Restaurant-halalBadge')).toBeNull();
     expect(screen.queryByText('Try again')).toBeNull();
+    expect(reported).toHaveBeenCalledWith('HALAL_DISPLAY_STATE_MISSING', {
+      restaurantId: ID,
+      surface: 'restaurant-page',
+      missing: 'certification',
+    });
+  });
+
+  it('a complete record reports nothing', async () => {
+    show();
+    await ready();
+    await menuReady();
+    expect(reported).not.toHaveBeenCalled();
   });
 
   it('failed read: the neutral line with Try again, and the badge returns when a read succeeds', async () => {
@@ -154,6 +179,15 @@ describe('D5 restaurant page: halal display states', () => {
 });
 
 describe('D5 restaurant page: availability states', () => {
+  it('OPEN: the "Hours" link opens the opening-hours disclosure', async () => {
+    show();
+    await ready();
+    expect(screen.queryByTestId('Restaurant-hoursList')).toBeNull();
+    fireEvent.press(screen.getByTestId('Restaurant-hoursLink'));
+    expect(screen.getByTestId('Restaurant-hoursList')).toBeTruthy();
+    expect(screen.getByTestId('Restaurant-hours').props.accessibilityState).toMatchObject({ expanded: true });
+  });
+
   it('OPEN: no banner, fee and minimum from the server', async () => {
     show();
     await ready();
@@ -333,6 +367,38 @@ describe('D5 restaurant page: loading, errors, offline, cart', () => {
     expect(screen.getByText("We can't check the certification while you're offline.")).toBeTruthy();
   });
 
+  it('offline within 15 minutes, View certification opens the cached details with no read; the badge stays', async () => {
+    const t0 = Date.parse('2026-08-10T18:00:00Z');
+    show();
+    await ready();
+    await menuReady();
+    act(() => {
+      resetConnectivity({ online: false, lastOnlineAt: t0 });
+      setNowOverride({ at: t0 + 10 * 60 * 1000 });
+    });
+    mock.answer('getRestaurantCertification', 'offline');
+    fireEvent.press(screen.getByTestId('Restaurant-viewCertification'));
+    expect(await screen.findByText('Halal Monitoring Authority (HMA Canada)')).toBeTruthy();
+    expect(screen.queryByText("We couldn't load the certificate details.")).toBeNull();
+    expect(mock.callsTo('getRestaurantCertification')).toHaveLength(0);
+    fireEvent.press(screen.getByTestId('Restaurant-certSheet-close'));
+    await waitFor(() => expect(screen.queryByTestId('Restaurant-certSheet')).toBeNull());
+    expect(screen.getByTestId('Restaurant-halalBadge')).toBeTruthy();
+    expect(screen.queryByTestId('Restaurant-halalRetry')).toBeNull();
+  });
+
+  it('a sheet read lost to the network never drops the page badge', async () => {
+    mock.answer('getRestaurantCertification', 'offline');
+    show();
+    await ready();
+    fireEvent.press(screen.getByTestId('Restaurant-viewCertification'));
+    expect(await screen.findByText("We couldn't load the certificate details.")).toBeTruthy();
+    fireEvent.press(screen.getByTestId('Restaurant-certSheet-close'));
+    await waitFor(() => expect(screen.queryByTestId('Restaurant-certSheet')).toBeNull());
+    expect(screen.getByTestId('Restaurant-halalBadge')).toBeTruthy();
+    expect(screen.queryByTestId('Restaurant-halalRetry')).toBeNull();
+  });
+
   it('shows the View cart bar from the server cart, and none for an empty cart', async () => {
     show();
     await ready();
@@ -392,6 +458,16 @@ describe('D6 certification sheet', () => {
       await screen.findByText("The certificate image isn't available to view. The details above are what HalalGoes verified."),
     ).toBeTruthy();
     expect(screen.queryByText('View certificate')).toBeNull();
+  });
+
+  it('a sheet read that finds the certificate lapsed turns the page into the not-available page', async () => {
+    mock.answer('getRestaurantCertification', 'certification_panel_expired');
+    show();
+    await ready();
+    fireEvent.press(screen.getByTestId('Restaurant-viewCertification'));
+    expect(await screen.findByText(NOT_AVAILABLE_TITLE)).toBeTruthy();
+    expect(screen.queryByTestId('Restaurant-halalBadge')).toBeNull();
+    expect(screen.queryByTestId('Restaurant-menuLoading')).toBeNull();
   });
 
   it('failed: one retry; closing drops the page badge for the neutral line until a read succeeds', async () => {
