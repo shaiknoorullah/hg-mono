@@ -621,9 +621,18 @@ importers:
       '@radix-ui/react-tooltip':
         specifier: ^1.2.8
         version: 1.2.16(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      class-variance-authority:
+        specifier: 0.7.1
+        version: 0.7.1
+      clsx:
+        specifier: 2.1.1
+        version: 2.1.1
       lucide-react:
         specifier: ^0.475.0
         version: 0.475.0(react@19.1.0)
+      tailwind-merge:
+        specifier: 3.7.0
+        version: 3.7.0
     devDependencies:
       '@iconify-json/solar':
         specifier: ^1.2.2
@@ -631,6 +640,9 @@ importers:
       '@iconify/utils':
         specifier: ^2.3.0
         version: 2.3.0
+      '@tailwindcss/vite':
+        specifier: ^4.3.3
+        version: 4.3.3(vite@7.3.6(@types/node@22.20.1)(jiti@2.7.0)(lightningcss@1.33.0)(sass@1.104.1)(terser@5.49.2)(tsx@4.23.12)(yaml@2.9.0))
       '@testing-library/dom':
         specifier: ^10.4.0
         version: 10.4.1
@@ -679,6 +691,9 @@ importers:
       typescript:
         specifier: ^5.9.0
         version: 5.9.3
+      vite:
+        specifier: ^7.0.0
+        version: 7.3.6(@types/node@22.20.1)(jiti@2.7.0)(lightningcss@1.33.0)(sass@1.104.1)(terser@5.49.2)(tsx@4.23.12)(yaml@2.9.0)
       vitest:
         specifier: ^3.0.0
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.1)(jiti@2.7.0)(jsdom@26.1.0)(lightningcss@1.33.0)(sass@1.104.1)(terser@5.49.2)(tsx@4.23.12)(yaml@2.9.0)
@@ -12176,6 +12191,13 @@ snapshots:
       '@tailwindcss/oxide': 4.3.3
       postcss: 8.5.26
       tailwindcss: 4.3.3
+
+  '@tailwindcss/vite@4.3.3(vite@7.3.6(@types/node@22.20.1)(jiti@2.7.0)(lightningcss@1.33.0)(sass@1.104.1)(terser@5.49.2)(tsx@4.23.12)(yaml@2.9.0))':
+    dependencies:
+      '@tailwindcss/node': 4.3.3
+      '@tailwindcss/oxide': 4.3.3
+      tailwindcss: 4.3.3
+      vite: 7.3.6(@types/node@22.20.1)(jiti@2.7.0)(lightningcss@1.33.0)(sass@1.104.1)(terser@5.49.2)(tsx@4.23.12)(yaml@2.9.0)
 
   '@tailwindcss/vite@4.3.3(vite@7.3.6(@types/node@24.13.4)(jiti@2.7.0)(lightningcss@1.33.0)(sass@1.104.1)(terser@5.49.2)(tsx@4.23.12)(yaml@2.9.0))':
     dependencies:
