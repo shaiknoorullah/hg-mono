@@ -31,7 +31,7 @@ function profileWith(halal: unknown) {
 
 async function bar(routes: Record<string, Handler> = {}) {
   const api = installFakeApi(consoleRoutes({ 'GET /v1/restaurant/availability': { body: open() }, ...routes }));
-  await renderRedesign('/orders');
+  await renderRedesign('/orders', { live: true });
   const region = await screen.findByRole('region', { name: 'Service status' });
   await waitFor(() => expect(within(region).getByTestId('open-state-badge').textContent).not.toBe('Checking…'));
   return { api, region };
@@ -133,14 +133,14 @@ describe('open state, switch and pause', () => {
     installFakeApi(
       consoleRoutes({ 'GET /v1/restaurant/availability': { body: open({ open_state: 'CLOSED_TOGGLE', is_accepting_orders: false, missed_order_count: 2, reason: 'Turned off after 2 orders in a row timed out.' }) } }),
     );
-    await renderRedesign('/orders');
+    await renderRedesign('/orders', { live: true });
     const auto = await screen.findByTestId('banner-auto-off');
     expect(auto.getAttribute('role')).toBe('alert');
     expect(within(auto).getByText('New orders stopped: 2 orders timed out in a row')).toBeTruthy();
     cleanup();
 
     installFakeApi(consoleRoutes({ 'GET /v1/restaurant/availability': { body: open({ open_state: 'CLOSED_SUSPENDED', is_accepting_orders: false, reason: 'Repeated orders not handed to riders' }) } }));
-    await renderRedesign('/orders');
+    await renderRedesign('/orders', { live: true });
     const sus = await screen.findByTestId('banner-suspended');
     expect(within(sus).getByText('Your account is suspended')).toBeTruthy();
     expect(within(sus).getByText(/^Reason from HalalGoes: Repeated orders not handed to riders\. Orders already in progress can still be finished\./)).toBeTruthy();
@@ -151,7 +151,7 @@ describe('open state, switch and pause', () => {
 
   it('first load of the open state failed: Unknown, nothing shown as if known', async () => {
     installFakeApi(consoleRoutes({ 'GET /v1/restaurant/availability': { status: 500, body: errorBody('INTERNAL_ERROR') } }));
-    await renderRedesign('/orders');
+    await renderRedesign('/orders', { live: true });
     const region = await screen.findByRole('region', { name: 'Service status' });
     await waitFor(() => expect(within(region).getByTestId('open-state-badge').textContent).toBe('Unknown'));
     expect(within(region).getByTestId('health-badge').textContent).toBe('Not connected');
@@ -178,7 +178,7 @@ describe('screen health', () => {
     const api = installFakeApi(
       consoleRoutes({ 'GET /v1/restaurant/availability': { body: open() }, 'POST /v1/restaurant/heartbeat': { status: 503, body: errorBody('SERVICE_UNAVAILABLE') } }),
     );
-    await renderRedesign('/orders');
+    await renderRedesign('/orders', { live: true });
     const region = await screen.findByRole('region', { name: 'Service status' });
     await waitFor(() => expect(api.callsTo('POST /v1/restaurant/heartbeat').length).toBeGreaterThan(0));
     // A single 503: not offline, no banner telling the kitchen orders stopped.

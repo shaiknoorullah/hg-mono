@@ -58,13 +58,20 @@ function boardRoutes(b: Board, extra: Record<string, Handler> = {}): Record<stri
 const listRegion = () => screen.getByRole('region', { name: 'In progress' });
 const codeButton = (code: string) => within(listRegion()).getByRole('button', { name: code });
 
+
+/** The board's list reads (the strip's pending-list reads share the route). */
+function boardListCalls(api: { callsTo: (route: string) => Request[] }): Request[] {
+  return api.callsTo('GET /v1/restaurant/orders').filter((r) => new URL(r.url).searchParams.get('state') !== 'RESTAURANT_PENDING');
+}
+
 describe('In progress list', () => {
   it('#601: always sends the state filter and drops rows outside the live set', async () => {
     const b = board();
     const api = installFakeApi(boardRoutes(b));
-    await renderRedesign('/orders');
+    await renderRedesign('/orders', { live: true });
     await waitFor(() => expect(codeButton('K7L8')).toBeTruthy());
-    const url = new URL(api.callsTo('GET /v1/restaurant/orders')[0]!.url);
+    // The strip (WP3) reads the pending list on the same route; the board's call is the other one.
+    const url = new URL(boardListCalls(api)[0]!.url);
     expect(url.searchParams.get('state')).toBe('PREPARING,READY_FOR_PICKUP,PICKED_UP,ARRIVED,DISPUTED');
     const list = listRegion();
     expect(within(list).queryByText('DONE1')).toBeNull();
@@ -83,7 +90,7 @@ describe('In progress list', () => {
 
   it('shows each row’s state and action in words', async () => {
     installFakeApi(boardRoutes(board()));
-    await renderRedesign('/orders');
+    await renderRedesign('/orders', { live: true });
     await waitFor(() => expect(codeButton('K7J1')).toBeTruthy());
     const row = (code: string) => codeButton(code).closest('tr')!;
     expect(within(row('K7J1')).getByText('Ready')).toBeTruthy();
@@ -100,21 +107,21 @@ describe('In progress list', () => {
 
   it('empty: says nothing is in progress and how orders arrive', async () => {
     installFakeApi(consoleRoutes({ 'GET /v1/restaurant/orders': 'restaurant_order_queue_empty' }));
-    await renderRedesign('/orders');
+    await renderRedesign('/orders', { live: true });
     expect(await screen.findByText('Nothing in progress')).toBeTruthy();
     expect(screen.getByText('Orders you accept appear here, soonest ready time first. Ready orders stay until the rider picks them up.')).toBeTruthy();
   });
 
   it('loading: skeleton rows under the header', async () => {
     installFakeApi(consoleRoutes({ 'GET /v1/restaurant/orders': () => new Promise(() => {}) }));
-    await renderRedesign('/orders');
+    await renderRedesign('/orders', { live: true });
     await waitFor(() => expect(screen.getByTestId('in-progress').getAttribute('data-state')).toBe('loading'));
     expect(screen.getAllByTestId('in-progress-skeleton-row').length).toBeGreaterThan(0);
   });
 
   it('first load failed: a way out that recovers', async () => {
     const api = installFakeApi(consoleRoutes({ 'GET /v1/restaurant/orders': { status: 500, body: errorBody('INTERNAL_ERROR') } }));
-    await renderRedesign('/orders');
+    await renderRedesign('/orders', { live: true });
     expect(await screen.findByRole('heading', { name: 'We couldn’t load your orders' })).toBeTruthy();
     // Board-first-load-error: the status bar can't show anything as known (availability answered).
     const bar = screen.getByRole('region', { name: 'Service status' });
@@ -131,7 +138,7 @@ describe('In progress list', () => {
   it('refresh failed: keeps the rows, says so in the bar and a banner, and Try now recovers', async () => {
     const b = board();
     const api = installFakeApi(boardRoutes(b));
-    await renderRedesign('/orders');
+    await renderRedesign('/orders', { live: true });
     await waitFor(() => expect(codeButton('K7L8')).toBeTruthy());
     api.set('GET /v1/restaurant/orders', { status: 503, body: errorBody('SERVICE_UNAVAILABLE') });
     act(() => {
@@ -151,7 +158,7 @@ describe('In progress list', () => {
 describe('Order detail panel', () => {
   it('preparing: heading takes focus; money, contact and the forest Mark ready; Escape returns to the row', async () => {
     installFakeApi(boardRoutes(board()));
-    await renderRedesign('/orders');
+    await renderRedesign('/orders', { live: true });
     await waitFor(() => expect(codeButton('K7M4')).toBeTruthy());
     fireEvent.click(codeButton('K7M4'));
     const panel = await screen.findByRole('complementary', { name: 'Order K7M4 details' });
@@ -181,7 +188,7 @@ describe('Order detail panel', () => {
   it('before acceptance: no phone and no address', async () => {
     const b = board();
     installFakeApi(boardRoutes(b));
-    await renderRedesign(`/orders?order=${ids.pending}`);
+    await renderRedesign(`/orders?order=${ids.pending}`, { live: true });
     const panel = await screen.findByRole('complementary', { name: 'Order A7K2 details' });
     await within(panel).findByText('Phone number and full address appear after you accept.');
     expect(within(panel).queryByText(b.pending.customer.phone_masked)).toBeNull();
@@ -192,7 +199,7 @@ describe('Order detail panel', () => {
     const b = board();
     const ended = { ...b.pending, state: 'CANCELLED', accepted_at: null };
     installFakeApi(boardRoutes(b, { [`GET /v1/restaurant/orders/${ids.pending}`]: { body: ended } }));
-    await renderRedesign(`/orders?order=${ids.pending}`);
+    await renderRedesign(`/orders?order=${ids.pending}`, { live: true });
     const panel = await screen.findByRole('complementary', { name: 'Order A7K2 details' });
     await within(panel).findByText('Not charged');
     expect(within(panel).queryByText(b.pending.customer.phone_masked)).toBeNull();
@@ -202,7 +209,7 @@ describe('Order detail panel', () => {
 
   it('out for delivery: read only, no footer', async () => {
     installFakeApi(boardRoutes(board()));
-    await renderRedesign(`/orders?order=${ids.out}`);
+    await renderRedesign(`/orders?order=${ids.out}`, { live: true });
     const panel = await screen.findByRole('complementary', { name: 'Order K7G5 details' });
     await within(panel).findByText('Read only. Nothing to do; it leaves this list when delivered.');
     expect(within(panel).queryByRole('button', { name: /Mark order/ })).toBeNull();
@@ -212,7 +219,7 @@ describe('Order detail panel', () => {
     const b = board();
     const lines = b.prep.lines.map((l: Record<string, unknown>, i: number) => (i === 0 ? { ...l, variant_name: 'Large, Spicy', variants: [{ name: 'Large' }, { name: 'Spicy' }] } : l));
     installFakeApi(boardRoutes(b, { [`GET /v1/restaurant/orders/${ids.prep}`]: { body: { ...b.prep, lines } } }));
-    await renderRedesign(`/orders?order=${ids.prep}`);
+    await renderRedesign(`/orders?order=${ids.prep}`, { live: true });
     const panel = await screen.findByRole('complementary', { name: 'Order K7L8 details' });
     expect(await within(panel).findByText('Large · Spicy')).toBeTruthy();
     expect(within(panel).getByText('Full')).toBeTruthy();
@@ -228,7 +235,7 @@ describe('Order detail panel', () => {
           }),
       }),
     );
-    await renderRedesign('/orders?order=99999999-9999-4999-8999-999999999999');
+    await renderRedesign('/orders?order=99999999-9999-4999-8999-999999999999', { live: true });
     expect(await screen.findByText(/^Loading order/)).toBeTruthy();
     act(() => release());
     const panel = await screen.findByRole('complementary', { name: 'Order details' });
@@ -241,7 +248,7 @@ describe('Order detail panel', () => {
   it('load error: says the list keeps working, Try again recovers', async () => {
     const b = board();
     const api = installFakeApi(boardRoutes(b, { [`GET /v1/restaurant/orders/${ids.prep}`]: { status: 500, body: errorBody('INTERNAL_ERROR') } }));
-    await renderRedesign(`/orders?order=${ids.prep}`);
+    await renderRedesign(`/orders?order=${ids.prep}`, { live: true });
     const title = await screen.findByText('We couldn’t load this order');
     const alert = title.closest('[role="alert"]') as HTMLElement;
     expect(alert).toBeTruthy();
@@ -255,7 +262,7 @@ describe('Order detail panel', () => {
     installFakeApi(
       boardRoutes(board(), { 'GET /v1/config/public': { body: { ...fixture('public_config'), support_enabled: false, support_phone_e164: null, support_hours: null } } }),
     );
-    await renderRedesign(`/orders?order=${ids.prep}`);
+    await renderRedesign(`/orders?order=${ids.prep}`, { live: true });
     const panel = await screen.findByRole('complementary', { name: 'Order K7L8 details' });
     expect(await within(panel).findByText('Contact with the customer goes through HalalGoes support, which is off right now.')).toBeTruthy();
     expect(within(panel).queryByRole('link', { name: /Call support/ })).toBeNull();
@@ -275,7 +282,7 @@ describe('Mark ready', () => {
         },
       }),
     );
-    await renderRedesign('/orders');
+    await renderRedesign('/orders', { live: true });
     await waitFor(() => expect(codeButton('K7L8')).toBeTruthy());
     fireEvent.click(within(codeButton('K7L8').closest('tr')!).getByRole('button', { name: 'Mark order K7L8 ready' }));
     await waitFor(() => expect(within(codeButton('K7L8').closest('tr')!).getByText('Not marked ready')).toBeTruthy());
@@ -292,7 +299,7 @@ describe('Mark ready', () => {
     const b = board();
     const accepted = { ...b.prep, id: ids.pending, code: 'A7K2', promised_ready_at: inMinutes(30) } as unknown as Order;
     const api = installFakeApi(boardRoutes(b, { [`POST /v1/restaurant/orders/${ids.pending}/ready`]: { status: 503, body: errorBody('SERVICE_UNAVAILABLE') } }));
-    await renderRedesign('/orders');
+    await renderRedesign('/orders', { live: true });
     await waitFor(() => expect(codeButton('K7L8')).toBeTruthy());
     act(() => noteAcceptedHere(accepted));
     const row = () => codeButton('A7K2').closest('tr')!;
@@ -319,9 +326,32 @@ describe('Mark ready', () => {
     expect(codes().at(-1)).toBe('B3M9');
   });
 
+  it('accepting in the strip puts the order at the top of the board as "Just accepted"', async () => {
+    const b = board();
+    const offer = { ...b.pending, state: 'RESTAURANT_PENDING', deadline_at: new Date(Date.now() + 120_000).toISOString() };
+    const accepted = { ...b.prep, id: ids.pending, code: 'A7K2', promised_ready_at: inMinutes(20) };
+    installFakeApi(
+      boardRoutes(b, {
+        'GET /v1/restaurant/orders': (req) =>
+          new URL(req.url).searchParams.get('state') === 'RESTAURANT_PENDING' ? { body: [offer] } : { body: [b.prep, b.ready] },
+        [`GET /v1/restaurant/orders/${ids.pending}`]: { body: offer },
+        [`POST /v1/restaurant/orders/${ids.pending}/accept`]: { body: accepted },
+      }),
+    );
+    await renderRedesign('/orders', { live: true });
+    await waitFor(() => expect(codeButton('K7L8')).toBeTruthy());
+    const accept = await screen.findByRole('button', { name: /^Accept order A7K2/ });
+    fireEvent.click(accept);
+    await waitFor(() => expect(codeButton('A7K2')).toBeTruthy());
+    const row = codeButton('A7K2').closest('tr')!;
+    expect(within(row).getByText('Just accepted')).toBeTruthy();
+    const codes = within(listRegion()).getAllByRole('button').map((x) => x.textContent).filter((t) => /^[A-Z0-9]{4,5}$/.test(t ?? ''));
+    expect(codes[0]).toBe('A7K2');
+  });
+
   it('the panel says the rider has not been told when marking fails', async () => {
     installFakeApi(boardRoutes(board(), { [`POST /v1/restaurant/orders/${ids.prep}/ready`]: { status: 503, body: errorBody('SERVICE_UNAVAILABLE') } }));
-    await renderRedesign(`/orders?order=${ids.prep}`);
+    await renderRedesign(`/orders?order=${ids.prep}`, { live: true });
     const panel = await screen.findByRole('complementary', { name: 'Order K7L8 details' });
     fireEvent.click(await within(panel).findByRole('button', { name: 'Mark order K7L8 ready' }));
     expect(await within(panel).findByText('We couldn’t mark K7L8 ready')).toBeTruthy();
@@ -334,7 +364,9 @@ describe('Mark ready', () => {
     let listCalls = 0;
     const api = installFakeApi(
       boardRoutes(b, {
-        'GET /v1/restaurant/orders': () => {
+        'GET /v1/restaurant/orders': (req) => {
+          // The strip's pending-list reads are not the board's.
+          if (new URL(req.url).searchParams.get('state') === 'RESTAURANT_PENDING') return { body: [] };
           listCalls += 1;
           if (listCalls === 1) return { body: [b.prep, b.ready] };
           return new Promise((resolve) => {
@@ -344,7 +376,7 @@ describe('Mark ready', () => {
         [`POST /v1/restaurant/orders/${ids.prep}/ready`]: { status: 409, body: { error: { code: 'ILLEGAL_TRANSITION', message: 'no', request_id: 't', details: [] } } },
       }),
     );
-    await renderRedesign('/orders');
+    await renderRedesign('/orders', { live: true });
     await waitFor(() => expect(codeButton('K7L8')).toBeTruthy());
     fireEvent.click(within(codeButton('K7L8').closest('tr')!).getByRole('button', { name: 'Mark order K7L8 ready' }));
     const row = () => codeButton('K7L8').closest('tr')!;
@@ -352,7 +384,7 @@ describe('Mark ready', () => {
     expect(within(row()).getByText('List refreshing')).toBeTruthy();
     act(() => release());
     await waitFor(() => expect(within(row()).getByText('Ready')).toBeTruthy());
-    expect(api.callsTo('GET /v1/restaurant/orders').length).toBeGreaterThanOrEqual(2);
+    expect(boardListCalls(api).length).toBeGreaterThanOrEqual(2);
   });
 });
 
@@ -389,7 +421,7 @@ describe('hand-off and live events', () => {
   it('rider here on a ready order: hand-off line and the pickup code (#290 shape)', async () => {
     const b = board();
     withSocket(b, { [`GET /v1/restaurant/orders/${ids.ready}`]: { body: { ...b.ready, pickup_code: '4827' } } });
-    await renderRedesign('/orders');
+    await renderRedesign('/orders', { live: true });
     await waitFor(() => expect(codeButton('K7J1')).toBeTruthy());
     const sock = await liveSocket();
     await waitFor(() => expect(screen.getByTestId('health-badge').textContent).toBe('Live'));
@@ -407,7 +439,7 @@ describe('hand-off and live events', () => {
   it('rider here but no pickup code yet: the code-error state, never a blank slot', async () => {
     const b = board();
     withSocket(b);
-    await renderRedesign('/orders');
+    await renderRedesign('/orders', { live: true });
     await waitFor(() => expect(codeButton('K7J1')).toBeTruthy());
     const sock = await liveSocket();
     push(sock, `order:${ids.ready}`, 'dispatch.state_changed', { order_id: ids.ready, from: 'ASSIGNED', to: 'AT_RESTAURANT', at: new Date().toISOString() });
@@ -426,7 +458,7 @@ describe('hand-off and live events', () => {
   it('no pickup code before the rider is here', async () => {
     const b = board();
     withSocket(b, { [`GET /v1/restaurant/orders/${ids.ready}`]: { body: { ...b.ready, pickup_code: '4827' } } });
-    await renderRedesign(`/orders?order=${ids.ready}`);
+    await renderRedesign(`/orders?order=${ids.ready}`, { live: true });
     const panel = await screen.findByRole('complementary', { name: 'Order K7J1 details' });
     await within(panel).findByText('Bilal S. · Scooter');
     expect(within(panel).queryByRole('group', { name: /^Pickup code/ })).toBeNull();
@@ -436,7 +468,7 @@ describe('hand-off and live events', () => {
   it('cancelled while preparing: stop, with Remove; ready on another screen says so', async () => {
     const b = board();
     withSocket(b);
-    await renderRedesign('/orders');
+    await renderRedesign('/orders', { live: true });
     await waitFor(() => expect(codeButton('K7L8')).toBeTruthy());
     const sock = await liveSocket();
     push(sock, `order:${ids.prep}`, 'order.cancelled', { order_id: ids.prep, reason_code: 'CUSTOMER_CANCELLED', by: 'SUPPORT', refund: null });
