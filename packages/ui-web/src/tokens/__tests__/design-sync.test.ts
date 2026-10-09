@@ -1,5 +1,6 @@
 // @vitest-environment node
-import { readFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
@@ -11,7 +12,7 @@ import {
   type AllowEntry,
   type DtcgSnapshot,
 } from '../../../../../scripts/design-sync.mjs';
-import { findRawElements } from '../../lint/composition.js';
+import { findRawElements, lintComposition } from '../../lint/composition.js';
 
 /**
  * The live Claude Design tokens against what @hg/ui-web ships.
@@ -114,5 +115,41 @@ describe('composition lint', () => {
       { line: 3, element: '<input>' },
       { line: 4, element: '<a onClick>' },
     ]);
+  });
+
+  it('reports new component files and raw elements outside the legacy baselines, and nothing inside', () => {
+    const repo = mkdtempSync(join(tmpdir(), 'hg-composition-'));
+    const put = (path: string, text: string): void => {
+      mkdirSync(dirname(join(repo, path)), { recursive: true });
+      writeFileSync(join(repo, path), text);
+    };
+    try {
+      put('apps/admin/src/components/Legacy.tsx', 'export const A = () => <button>x</button>;');
+      put('apps/admin/src/components/New.tsx', 'export const B = () => null;');
+      put('apps/restaurant/src/routes/Fresh.tsx', 'export const C = () => <input />;');
+      put('apps/restaurant/src/redesign/Board.tsx', 'export const D = () => <select />;');
+      put('packages/ui-web/src/lib/ui/button.tsx', 'export const E = () => <button />;');
+
+      const findings = lintComposition(repo, {
+        files: ['apps/admin/src/components/Legacy.tsx'],
+        // A redesign file is reported even if someone lists it in the baseline.
+        rawElementFiles: ['apps/admin/src/components/Legacy.tsx', 'apps/restaurant/src/redesign/Board.tsx'],
+      });
+      expect(findings.map((f) => `${f.rule} ${f.file}`).sort()).toEqual([
+        'C-1 apps/admin/src/components/New.tsx',
+        'C-2 apps/restaurant/src/redesign/Board.tsx',
+        'C-2 apps/restaurant/src/routes/Fresh.tsx',
+      ]);
+    } finally {
+      rmSync(repo, { recursive: true, force: true });
+    }
+  });
+
+  it('pins the raw-element baseline taken when the lint landed: 8 admin and restaurant files', () => {
+    // Warn mode: live findings are not asserted here, so a new raw element warns, never fails.
+    const baseline = JSON.parse(read('packages/ui-web/src/lint/composition-baseline.json')) as {
+      rawElementFiles: string[];
+    };
+    expect(baseline.rawElementFiles).toHaveLength(8);
   });
 });

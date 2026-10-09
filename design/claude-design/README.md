@@ -41,4 +41,5 @@ pnpm --filter @hg/ui-web lint:composition
 This is step 4 of [#112](https://github.com/shaiknoorullah/hg-mono/issues/112), in warn mode: it prints its findings and always exits 0. It reports:
 
 - new files under `apps/{restaurant,admin}/src/components/`, which are files not in `packages/ui-web/src/lint/composition-baseline.json`;
-- raw `<button>`, `<input>`, `<select>`, `<textarea>` or `<a onClick>` in any app's `src/redesign/` folder, and in the new `@hg/ui-web` code under its `src/ds/` and `src/proposed/` folders. Raw elements belong only in `src/lib/`.
+- raw `<button>`, `<input>`, `<select>`, `<textarea>` or `<a onClick>` in any file of `apps/{restaurant,admin}/src/` other than the 8 legacy files listed under `rawElementFiles` in that baseline;
+- the same raw elements in any app's `src/redesign/` folder, with no baseline, and in the new `@hg/ui-web` code under its `src/ds/` and `src/proposed/` folders. Raw elements belong only in `src/lib/`.

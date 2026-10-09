@@ -1,5 +1,5 @@
 {
-  "$description": "Legacy files under apps/{restaurant,admin}/src/components when the composition lint landed. Rule C-1 reports any file not listed here. Regenerate with lint:composition --write-baseline.",
+  "$description": "Legacy files when the composition lint landed. files: apps/{restaurant,admin}/src/components, rule C-1 reports any file not listed. rawElementFiles: app files that already held a raw button/input/select/textarea or <a onClick>, rule C-2 reports any other. Regenerate with lint:composition --write-baseline.",
   "files": [
     "apps/admin/src/components/AuthFrame.tsx",
     "apps/admin/src/components/DocumentReviewActions.tsx",
@@ -20,5 +20,15 @@
     "apps/restaurant/src/components/SealBindRow.tsx",
     "apps/restaurant/src/components/Shell.tsx",
     "apps/restaurant/src/components/StatusChip.tsx"
+  ],
+  "rawElementFiles": [
+    "apps/admin/src/App.tsx",
+    "apps/admin/src/screens/OrdersAdminScreen.tsx",
+    "apps/restaurant/src/components/Shell.tsx",
+    "apps/restaurant/src/routes/HoursPage.tsx",
+    "apps/restaurant/src/routes/LoginPage.tsx",
+    "apps/restaurant/src/routes/MenuPage.tsx",
+    "apps/restaurant/src/routes/onboarding/DocumentsStep.tsx",
+    "apps/restaurant/src/routes/onboarding/OnboardingPage.tsx"
   ]
 }

@@ -9,7 +9,9 @@
  *        is reported. The baseline is the legacy code the rebuild replaces.
  *   C-2  no raw interactive elements outside the library layer. Reported:
  *        - `<button>`, `<input>`, `<select>`, `<textarea>` or `<a onClick>` anywhere in
- *          apps/<app>/src/redesign/**;
+ *          the web apps' src/** (restaurant, admin), except in the legacy files that
+ *          already had one when this lint landed (the raw-element baseline: 8 files);
+ *        - the same anywhere in apps/<app>/src/redesign/**, baseline or not;
  *        - the same inside @hg/ui-web, but only in the new code: src/ds/** and
  *          src/proposed/**. src/lib/** is the library layer where raw elements belong,
  *          and the legacy tiers are left alone until they are rebuilt.
@@ -59,6 +61,16 @@ export function findRawElements(source: string): Array<{ line: number; element: 
   return out.sort((a, b) => a.line - b.line);
 }
 
+/**
+ * The two baselines the lint compares against, both repo-relative file lists:
+ * `files` for C-1 (legacy src/components files) and `rawElementFiles` for C-2 (legacy
+ * app files that already held a raw interactive element).
+ */
+export interface CompositionBaseline {
+  files: readonly string[];
+  rawElementFiles?: readonly string[];
+}
+
 /** Every source file under `root` (absolute paths); none if it does not exist. */
 export function listSources(root: string, into: string[] = []): string[] {
   if (!existsSync(root)) return into;
@@ -82,6 +94,15 @@ export function componentFiles(repo: string): string[] {
   ).sort();
 }
 
+/** The web-app files that hold a raw interactive element today, repo-relative. */
+export function rawElementFiles(repo: string): string[] {
+  return WEB_APPS.flatMap((app) =>
+    listSources(join(repo, 'apps', app, 'src'))
+      .filter((f) => findRawElements(readFileSync(f, 'utf8')).length > 0)
+      .map((f) => rel(repo, f)),
+  ).sort();
+}
+
 function rawFindings(repo: string, files: string[], where: string): CompositionFinding[] {
   const out: CompositionFinding[] = [];
   for (const file of files) {
@@ -97,9 +118,10 @@ function rawFindings(repo: string, files: string[], where: string): CompositionF
   return out;
 }
 
-/** Run both rules over a repo checkout. `baseline` is the C-1 list of legacy files. */
-export function lintComposition(repo: string, baseline: readonly string[]): CompositionFinding[] {
-  const known = new Set(baseline);
+/** Run both rules over a repo checkout against the legacy baselines. */
+export function lintComposition(repo: string, baseline: CompositionBaseline): CompositionFinding[] {
+  const known = new Set(baseline.files);
+  const legacyRaw = new Set(baseline.rawElementFiles ?? []);
   const findings: CompositionFinding[] = [];
 
   for (const file of componentFiles(repo)) {
@@ -112,6 +134,17 @@ export function lintComposition(repo: string, baseline: readonly string[]): Comp
     });
   }
 
+  // Web apps: every file outside src/redesign/ (checked below) and the legacy baseline.
+  const isRedesign = (file: string): boolean => /^apps\/[^/]+\/src\/redesign\//.test(file);
+  for (const app of WEB_APPS) {
+    const files = listSources(join(repo, 'apps', app, 'src')).filter((f) => {
+      const path = rel(repo, f);
+      return !isRedesign(path) && !legacyRaw.has(path);
+    });
+    findings.push(...rawFindings(repo, files, `apps/${app}/src`));
+  }
+
+  // Redesign folders in any app: no exceptions.
   const appsDir = join(repo, 'apps');
   const apps = existsSync(appsDir) ? readdirSync(appsDir) : [];
   for (const app of apps) {
