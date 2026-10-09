@@ -40,7 +40,8 @@ import { subscribe, isAuthed } from './src/api/token';
 
 type Phase = 'phone' | 'code';
 
-function LoginGate(): React.ReactElement {
+/** Exported for the redesign shell's sign-in fallback until the redesigned sign-in (WP1) merges. */
+export function LoginGate(): React.ReactElement {
   // The gate renders inside ThemeProvider (see the root below), so its colours
   // come from the register like every other surface. They used to be raw hexes
   // because this branch mounted OUTSIDE the provider and had no theme to read.

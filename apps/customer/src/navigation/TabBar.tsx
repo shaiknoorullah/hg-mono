@@ -21,6 +21,13 @@ import { useNavigation, type Route, type RouteName } from './stack';
 
 type TabKey = 'discovery' | 'orders' | 'notifications' | 'profile';
 
+/**
+ * True when a legacy tab screen is rendered inside the redesign shell, which draws its own bottom
+ * navigation (Home · Search · Orders · Account). False everywhere else, so the legacy app is
+ * unchanged.
+ */
+export const EmbeddedInRedesignContext = React.createContext(false);
+
 const TABS: readonly BottomNavItem[] = [
   {
     key: 'discovery',
@@ -55,13 +62,15 @@ export function CustomerTabBar({
   active: RouteName;
   /** Folded into the Alerts tab's accessible name, e.g. "Alerts, 3 new" — never a bare node. */
   unreadCount?: number;
-}): React.ReactElement {
+}): React.ReactElement | null {
   const nav = useNavigation();
+  const embedded = React.useContext(EmbeddedInRedesignContext);
   const items = React.useMemo(
     () =>
       TABS.map((t) => (t.key === 'notifications' && unreadCount > 0 ? { ...t, badge: unreadCount } : t)),
     [unreadCount],
   );
+  if (embedded) return null;
   return (
     <BottomNav
       items={items}
