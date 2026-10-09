@@ -1,6 +1,6 @@
 ---
 covers: []
-reviewed: 2026-10-05
+reviewed: 2026-10-09
 ---
 
 # Restaurant Playbook: Staff Roles & Financial Privacy
@@ -11,12 +11,13 @@ This playbook tests role-based permission boundaries across Owner, Manager, and 
 
 ## 1. Owner Role: Full Operational and Financial Access
 
-1. **Setup command** (terminal):
+1. **Setup command** (terminal, from `services/hg`):
    ```bash
-   cmd/devworld totp bismillah-grill
+   make dev-reset
    ```
+   Every login below uses the password `Seed!2026` and no authenticator code.
 2. **Browser action**:
-   - Sign in as the restaurant owner (`owner@restaurant.ca`).
+   - Sign in as the restaurant owner (`bismillah-grill@seed.hg`).
    - Navigate to `/payouts`.
 3. **Visible assertion**:
    - Header **Payouts** is visible with weekly settlement details.
@@ -30,16 +31,11 @@ This playbook tests role-based permission boundaries across Owner, Manager, and 
 
 ## 2. Manager Role: Operations Permitted, Payouts Restricted
 
-1. **Setup command**:
-   ```bash
-   # Use manager credentials or switch role session
-   cmd/devworld totp bismillah-manager
-   ```
-2. **Browser action**:
-   - Sign in with manager credentials.
+1. **Browser action**:
+   - Sign in as the manager (`bismillah-manager@seed.hg`).
    - Verify ability to view `/orders`, update `/menu`, and edit `/hours`.
    - Navigate to `/payouts`.
-3. **Visible assertion**:
+2. **Visible assertion**:
    - The payouts table is **not shown**.
    - Screen displays the financial privacy state:
      > **Payouts are visible to the account owner**
@@ -51,7 +47,7 @@ This playbook tests role-based permission boundaries across Owner, Manager, and 
 ## 3. Staff Role: Kitchen Operations Only
 
 1. **Browser action**:
-   - Sign in with kitchen staff credentials.
+   - Sign in as kitchen staff (`bismillah-staff@seed.hg`).
    - Navigate to `/orders`.
 2. **Visible assertion**:
    - Live orders are visible with Accept and Ready controls.

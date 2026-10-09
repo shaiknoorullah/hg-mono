@@ -124,7 +124,7 @@ Reset also seeds 14 live, certified restaurants within 8 km of both the Danforth
 
 - **Menu** — 3 categories; one item per review state the portal shows (APPROVED, PENDING_REVIEW, REJECTED with `UNSUBSTANTIATED_HALAL_CLAIM`, DRAFT); one item per availability state (AVAILABLE, OUT_OF_STOCK, HIDDEN); at least one item with variants and add-ons so order lines carry them.
 - **Hours** — weekday standard, Friday/Saturday overnight (11:00–01:00), one closed-holiday override and one late-opening override, dated relative to now.
-- **Staff** — `bismillah-manager@seed.hg` (RESTAURANT_MANAGER, ACTIVE), `bismillah-staff@seed.hg` (RESTAURANT_STAFF, ACTIVE), one INVITED, one SUSPENDED. Manager and staff can sign in to test the role matrix.
+- **Staff** — `bismillah-manager@seed.hg` (RESTAURANT_MANAGER, ACTIVE), `bismillah-staff@seed.hg` (RESTAURANT_STAFF, ACTIVE), `bismillah-invited@seed.hg` (INVITED, no password yet), `bismillah-suspended@seed.hg` (SUSPENDED, its account refused at sign-in). Manager and staff can sign in to test the role matrix. *Seeded by reset, with the two overrides below, and checked by `verify` ([#683](https://github.com/shaiknoorullah/hg-mono/issues/683)): opening late at 14:00 three days ahead and closed all day seven days ahead, counted from today in Toronto.*
 - **Payouts** — one per state (DRAFT, READY, TRANSFERRING, TRANSFERRED, PAID, FAILED, HELD). See the payout-seeds risk in [risks to settle in planning](#12-risks-to-settle-in-planning).
 - **Order history** — produced by bootstrap scenarios, not SQL (see [bootstrap](#62-bootstrap-not-run-by-reset)).
 
