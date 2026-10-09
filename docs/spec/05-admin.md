@@ -2507,7 +2507,9 @@ documents lapse cannot go on shift, but is not punished.
 - **SOW trace**: *"Order Issues: Resolve order-related issues (e.g., incorrect orders, payment disputes)."* · *"Order Support: Assist customers with order placement, tracking, and refunds."* · *"Delivery Issues: Resolve delivery-related issues."*
 - **Behaviour**: A single order-detail surface used by all three roles, showing: order header
   (reference, placed-at, status, current ETA), customer (masked per A-42), restaurant, rider, full
-  line items with variants and add-ons and their prices, the complete pricing breakdown with the
+  line items with variants and add-ons and their prices (each line of `GET /v1/admin/orders/{orderId}`
+  lists every chosen variant with its group in `variants`, one per variant group,
+  [#628](https://github.com/shaiknoorullah/hg-mono/issues/628)), the complete pricing breakdown with the
   setting versions used, payment and refund history, the delivery address and instructions, the status
   timeline with actor attribution, the rider's route events, all linked cases, and the WebSocket event
   log for the order. From here, role-gated interventions are available: `RESEND_RECEIPT`,

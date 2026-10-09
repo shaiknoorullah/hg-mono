@@ -1,0 +1,23 @@
+{
+  "scenario": "error_variant_unavailable",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`409` · `VARIANT_UNAVAILABLE`. The chosen variant is on the item but switched off. `details.variant_id` names it, so the item sheet can say which choice ran out. The cart is unchanged.",
+  "operations": [
+    "addCartLine"
+  ],
+  "status": 409,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "VARIANT_UNAVAILABLE",
+      "message": "A choice on this item is no longer available.",
+      "request_id": "2MW26K6C4EY23ZWKHVH5N42FKS",
+      "details": {
+        "variant_id": "76de3dfc-2e61-467c-a1e7-7ae628b6d8ae"
+      }
+    }
+  }
+}
