@@ -18,6 +18,7 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '../utils';
 import { TextClassContext } from './text';
 
+/** Container classes per `variant` × `size`: fill, border and the touch-target height. */
 export const buttonVariants = cva('flex-row items-center justify-center gap-2 rounded-md', {
   variants: {
     variant: {
@@ -35,7 +36,8 @@ export const buttonVariants = cva('flex-row items-center justify-center gap-2 ro
   defaultVariants: { variant: 'default', size: 'default' },
 });
 
-export const buttonTextVariants = cva('text-label-md', {
+/** Label classes per `variant` × `size`, handed to the child `Text` through `TextClassContext`. */
+export const buttonTextVariants = cva('font-sans-semibold text-label-md', {
   variants: {
     variant: {
       default: 'text-primary-foreground',
@@ -52,9 +54,14 @@ export const buttonTextVariants = cva('text-label-md', {
   defaultVariants: { variant: 'default', size: 'default' },
 });
 
+/** A react-native `Pressable`'s props plus the cva `variant` / `size` and a `className`. */
 export type ButtonProps = React.ComponentProps<typeof Pressable> &
   VariantProps<typeof buttonVariants> & { className?: string };
 
+/**
+ * The RNR-style button: a `Pressable` styled by `buttonVariants`, publishing its label classes
+ * to any `Text` child. `disabled` dims it and is announced through `accessibilityState`.
+ */
 export function Button({ className, variant, size, disabled, ...props }: ButtonProps): React.ReactElement {
   return (
     <TextClassContext.Provider value={buttonTextVariants({ variant, size })}>

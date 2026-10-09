@@ -23,6 +23,7 @@ const twMerge = extendTailwindMerge({
   },
 });
 
+/** Joins class values (clsx) and resolves Tailwind conflicts, last one winning (tailwind-merge). */
 export function cn(...inputs: ClassValue[]): string {
   return twMerge(clsx(inputs));
 }

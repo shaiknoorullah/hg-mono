@@ -11,3 +11,4 @@ export { Button, buttonVariants, buttonTextVariants } from './ui/button';
 export type { ButtonProps } from './ui/button';
 export { Text, TextClassContext } from './ui/text';
 export type { TextProps } from './ui/text';
+export { useHgColorScheme, HgColorSchemeBridge } from './useHgColorScheme';

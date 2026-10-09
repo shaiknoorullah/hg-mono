@@ -14,15 +14,18 @@ import { Slot } from '@rn-primitives/slot';
 
 import { cn } from '../utils';
 
+/** Classes a parent (e.g. `Button`) hands to every `Text` beneath it; merged under the child's own. */
 export const TextClassContext = React.createContext<string | undefined>(undefined);
 
+/** A react-native `Text`'s props plus `className` and `asChild` (style the child via Slot). */
 export type TextProps = React.ComponentProps<typeof RNText> & {
   className?: string;
   asChild?: boolean;
 };
 
+/** Body text in the foreground colour and Plus Jakarta Sans, overridable by context and `className`. */
 export function Text({ className, asChild = false, ...props }: TextProps): React.ReactElement {
   const inherited = React.useContext(TextClassContext);
   const Component = (asChild ? Slot : RNText) as typeof RNText;
-  return <Component className={cn('text-body-md text-foreground', inherited, className)} {...props} />;
+  return <Component className={cn('font-sans text-body-md text-foreground', inherited, className)} {...props} />;
 }
