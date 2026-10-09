@@ -47,3 +47,7 @@ export {
   useReducedMotion,
 } from '@hg/ui-native';
 export type { BottomNavItem, Theme } from '@hg/ui-native';
+
+// WP2 (Home, address switcher, How we check): spacing and radius tokens for composing Home's
+// cards and rows from the components above.
+export { radius, space } from '@hg/ui-native';

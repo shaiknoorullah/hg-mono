@@ -1,0 +1,28 @@
+id: customer-wp2-home
+app: customer
+avd: hg_customer
+api: devworld
+# Build the dev APK from this branch with EXPO_PUBLIC_HG_REDESIGN=1.
+setup: [ "make dev-reset" ]
+flows: [ "tools/e2e/native/customer/redesign/2-home.yaml" ]
+reality:
+  - theme: dark
+  - font-scale: 2.0
+  - network: offline
+  - network: restore
+explore: >
+  After the flow, on Home as amina: (1) screenshot Home in dark mode and at 200% text; report any
+  card whose name, halal badge or "expires" date is clipped, any target smaller than 44 dp, and
+  whether "Bamyan Kebab House" shows the dated badge and "Devworld Expired" never appears.
+  (2) Turn the network off (`adb shell svc wifi disable && adb shell svc data disable`), pull to
+  refresh on Home, screenshot: expect "You're offline" and "Showing restaurants as of <time>" with
+  the badges still drawn. Leave it offline for 16 minutes (or move the dev clock 16 minutes),
+  screenshot again: every card must lose its badge and read "We can't check the certification
+  while you're offline.", never red, never greyed. Turn the network back on and pull to refresh:
+  the badges return. (3) Open the address switcher (map button in the bar), screenshot it in dark
+  and at 200% text; pick the address already chosen and confirm the sheet closes with nothing
+  changed. (4) Add a cart item from Bismillah Grill, go back to Home and screenshot the View cart
+  bar above the bottom navigation ("View cart · 1 item ·" and a price). (5) Deep link
+  `adb shell am start -W -a android.intent.action.VIEW -d "hgcustomer://restaurant/b0000000-0000-4000-8000-000000000208"`
+  and back: Home must still show the same address. (6) With amina's active order (devworld
+  journey), screenshot the "order in progress" strip and tap it: it must open that order's tracking.
