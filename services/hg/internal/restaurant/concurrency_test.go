@@ -43,7 +43,7 @@ func acceptOnce(t *testing.T, h interface {
 // one PREPARING transition row must exist afterwards.
 func TestIntegration_AcceptOrder_DoubleAccept_SequentialIdempotent(t *testing.T) {
 	pool := testPool(t)
-	f := seedFixtures(t, pool)
+	f := seedOrderableFixtures(t, pool)
 	orderID := seedOrder(t, pool, f.restaurantID, f.menuItemID, "RESTAURANT_PENDING", "now() + interval '3 minutes'")
 	h := newHandler(pool)
 
@@ -85,7 +85,7 @@ func TestIntegration_AcceptOrder_DoubleAccept_SequentialIdempotent(t *testing.T)
 // interleaving may both succeed or two transition rows be written.
 func TestIntegration_AcceptOrder_ConcurrentAccept_SingleEffect(t *testing.T) {
 	pool := testPool(t)
-	f := seedFixtures(t, pool)
+	f := seedOrderableFixtures(t, pool)
 	orderID := seedOrder(t, pool, f.restaurantID, f.menuItemID, "RESTAURANT_PENDING", "now() + interval '3 minutes'")
 	h := newHandler(pool)
 

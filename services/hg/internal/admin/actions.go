@@ -51,4 +51,11 @@ const (
 	// admin confirms a pickup or a met handover whose code cannot be used — the
 	// only way past a handover code (https://github.com/shaiknoorullah/hg-mono/issues/310).
 	ActionOrderHandoverOverride httpx.Action = "order.handover_override"
+
+	// The platform-wide pause on new orders
+	// (https://github.com/shaiknoorullah/hg-mono/issues/244). Reading it is for
+	// every staff role; changing it is for ADMIN and SUPER_ADMIN only
+	// (ordering_pause.go says why).
+	ActionOrderingPauseRead httpx.Action = "ordering_pause.read"
+	ActionOrderingPauseSet  httpx.Action = "ordering_pause.set"
 )

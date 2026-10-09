@@ -24,7 +24,7 @@ import (
 func TestOverrideHandoverStoreProvesTheActorAndTheState(t *testing.T) {
 	pool := dialTestPool(t)
 	ctx := context.Background()
-	repo := NewOrdersRepo(pool)
+	repo := NewOrdersRepo(pool, nil)
 
 	orderID, customerID := seedOrderForAdmin(t, pool, "READY_FOR_PICKUP")
 	rider := hoStoreAccount(t, pool)

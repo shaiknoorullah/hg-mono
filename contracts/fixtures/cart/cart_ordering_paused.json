@@ -1,0 +1,186 @@
+{
+  "scenario": "cart_ordering_paused",
+  "domain": "cart",
+  "schema": "Cart",
+  "describes": "A cart that would be quotable, while staff have paused new orders platform-wide: `is_quotable` is false and `blocking_reasons` names `ORDERING_PAUSED`.",
+  "operations": [
+    "getCart"
+  ],
+  "status": 200,
+  "tags": [
+    "edge",
+    "degraded"
+  ],
+  "payload": {
+    "id": "febc4423-41c4-4919-ac41-a84c10f6f600",
+    "restaurant": {
+      "id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+      "name": "Karachi Kitchen",
+      "slug": "karachi-kitchen",
+      "hero_image_url": "https://cdn.halalgoes.ca/img/restaurant/hero/karachi-kitchen.webp",
+      "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/karachi-kitchen.webp",
+      "cuisines": [
+        "Pakistani",
+        "Biryani",
+        "Halal"
+      ],
+      "rating_avg": 4.8,
+      "rating_count": 412,
+      "price_band": "$$",
+      "halal": {
+        "display_state": "CERTIFIED",
+        "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+        "expires_on": "2027-03-09"
+      },
+      "availability": {
+        "state": "OPEN",
+        "opens_at": "2026-08-10T12:24:11.412Z",
+        "closes_at": "2026-08-10T22:00:11.412Z",
+        "eta_min_minutes": 25,
+        "eta_max_minutes": 40,
+        "indicative_delivery_fee_cents": 449,
+        "minimum_order_cents": 1500,
+        "distance_m": 1200,
+        "out_of_range_reason": null
+      }
+    },
+    "delivery_address_id": "926a8c05-3beb-4be0-af96-caf04f7299df",
+    "lines": [
+      {
+        "id": "ae693610-f412-40ed-adbd-a49c112bb708",
+        "menu_item_id": "c5ec6eae-ceb5-4957-a9e2-0e1ab3a4ef1c",
+        "name": "Mixed Charcoal Grill Platter",
+        "image_url": "https://cdn.halalgoes.ca/img/dish/lamb-shawarma-platter.webp",
+        "variant": {
+          "variant_id": "a0991ce2-569f-40c1-af0c-b67be721eb64",
+          "name": "Family (serves 4)",
+          "pricing_mode": "ABSOLUTE"
+        },
+        "addons": [
+          {
+            "addon_id": "43558166-60e5-4262-a969-0f2100759962",
+            "name": "Garlic naan",
+            "quantity": 4
+          },
+          {
+            "addon_id": "3bc085fa-3dfa-44c5-a514-e2237fd764fe",
+            "name": "Garlic toum",
+            "quantity": 2
+          },
+          {
+            "addon_id": "4a068b65-49b3-486e-a168-d302f91117b1",
+            "name": "Extra seekh kebab",
+            "quantity": 1
+          }
+        ],
+        "quantity": 2,
+        "special_request": "No coriander on anything, please — allergy in the house.",
+        "unit_price_cents": 10192,
+        "line_total_cents": 20384,
+        "currency": "CAD",
+        "availability": {
+          "is_available": true,
+          "reason": null,
+          "current_price_cents": null
+        }
+      },
+      {
+        "id": "7edef483-68cf-4340-a7b7-9aaa29400695",
+        "menu_item_id": "e3723319-f51b-42f0-a693-8c9eb954bb0f",
+        "name": "Chicken Biryani",
+        "image_url": "https://cdn.halalgoes.ca/img/dish/chicken-biryani.webp",
+        "variant": null,
+        "addons": [],
+        "quantity": 1,
+        "special_request": null,
+        "unit_price_cents": 1695,
+        "line_total_cents": 1695,
+        "currency": "CAD",
+        "availability": {
+          "is_available": true,
+          "reason": null,
+          "current_price_cents": null
+        }
+      },
+      {
+        "id": "effb7ebb-dbb2-48e3-ac2f-24bbf6d1a2f5",
+        "menu_item_id": "260778de-cee3-4a79-ad10-f79f5e9ab98e",
+        "name": "Beef Nihari",
+        "image_url": "https://cdn.halalgoes.ca/img/dish/beef-nihari.webp",
+        "variant": null,
+        "addons": [],
+        "quantity": 2,
+        "special_request": null,
+        "unit_price_cents": 2145,
+        "line_total_cents": 4290,
+        "currency": "CAD",
+        "availability": {
+          "is_available": true,
+          "reason": null,
+          "current_price_cents": null
+        }
+      },
+      {
+        "id": "58a70265-1c28-47ab-a538-20a0e4e4e723",
+        "menu_item_id": "456616ee-e1fc-4a94-aa83-3b1c726ff23d",
+        "name": "Chicken Karahi (Half)",
+        "image_url": "https://cdn.halalgoes.ca/img/dish/chicken-karahi-half.webp",
+        "variant": null,
+        "addons": [],
+        "quantity": 3,
+        "special_request": null,
+        "unit_price_cents": 1899,
+        "line_total_cents": 5697,
+        "currency": "CAD",
+        "availability": {
+          "is_available": true,
+          "reason": null,
+          "current_price_cents": null
+        }
+      },
+      {
+        "id": "e77594b8-c960-4e7b-a50e-7041ce598ce1",
+        "menu_item_id": "e3723319-f51b-42f0-a693-8c9eb954bb0f",
+        "name": "Chicken Biryani",
+        "image_url": "https://cdn.halalgoes.ca/img/dish/chicken-biryani.webp",
+        "variant": null,
+        "addons": [],
+        "quantity": 1,
+        "special_request": null,
+        "unit_price_cents": 1695,
+        "line_total_cents": 1695,
+        "currency": "CAD",
+        "availability": {
+          "is_available": true,
+          "reason": null,
+          "current_price_cents": null
+        }
+      },
+      {
+        "id": "3627a408-2e38-4dae-ac00-cd7121e2d149",
+        "menu_item_id": "260778de-cee3-4a79-ad10-f79f5e9ab98e",
+        "name": "Beef Nihari",
+        "image_url": "https://cdn.halalgoes.ca/img/dish/beef-nihari.webp",
+        "variant": null,
+        "addons": [],
+        "quantity": 2,
+        "special_request": null,
+        "unit_price_cents": 2145,
+        "line_total_cents": 4290,
+        "currency": "CAD",
+        "availability": {
+          "is_available": true,
+          "reason": null,
+          "current_price_cents": null
+        }
+      }
+    ],
+    "item_count": 11,
+    "indicative_subtotal_cents": 38051,
+    "currency": "CAD",
+    "is_quotable": false,
+    "blocking_reasons": [
+      "ORDERING_PAUSED"
+    ]
+  }
+}

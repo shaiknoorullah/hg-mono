@@ -128,16 +128,20 @@ func (s *Store) RiderAssignedToOrder(ctx context.Context, riderAccountID, orderI
 }
 
 // PodObjectReady reports whether objectID is a READY, POD-purpose stored_object
-// scoped to orderID — the same check dispatch.RecordPod uses for proof of
-// delivery, reused here because migration 00027 deliberately did not add a
-// HANDOFF-specific bucket/purpose ("reuse the stored_object shape").
-func (s *Store) PodObjectReady(ctx context.Context, objectID, orderID string) (bool, error) {
+// scoped to orderID and uploaded by uploaderID, the account attaching it — the
+// same check dispatch.RecordPod uses for proof of delivery, reused here because
+// migration 00027 deliberately did not add a HANDOFF-specific bucket/purpose
+// ("reuse the stored_object shape"). A photo someone else took is never
+// attached as this account's evidence
+// (https://github.com/shaiknoorullah/hg-mono/issues/359).
+func (s *Store) PodObjectReady(ctx context.Context, objectID, orderID, uploaderID string) (bool, error) {
 	var ok bool
 	err := s.pool.QueryRow(ctx, `
 		SELECT EXISTS (
 		  SELECT 1 FROM stored_object
-		   WHERE id = $1 AND state = 'READY' AND purpose = 'POD' AND order_id = $2)`,
-		objectID, orderID).Scan(&ok)
+		   WHERE id = $1 AND state = 'READY' AND purpose = 'POD' AND order_id = $2
+		     AND uploaded_by = $3 AND deleted_at IS NULL)`,
+		objectID, orderID, uploaderID).Scan(&ok)
 	if err != nil {
 		return false, fmt.Errorf("handoff: check pod object: %w", err)
 	}

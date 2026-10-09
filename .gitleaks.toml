@@ -36,3 +36,49 @@ regexes = [
   '''^f3c2a1d0e9b8a7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b9c8d7e6f5a4b3c2$''',
   '''^hgseal\.[0-9a-f-]+\.[0-9a-f-]+$''',
 ]
+
+# The conformance harness sends a Request's IdemKey as the Idempotency-Key
+# header, so its values are the same made-up request ids that the Idempotency-Key
+# entry allows. Only in the conformance tests.
+[[allowlists]]
+description = "IdemKey values in the conformance tests are Idempotency-Key header values"
+condition = "AND"
+paths = ['''^services/hg/internal/conformance/''']
+regexTarget = "line"
+regexes = ['''\bIdemKey:\s*"''']
+
+# The local persona password. It is the same for every @seed.hg account so a
+# developer can sign in after make dev-reset. Exact value, and only in the
+# devworld package, so a copy pasted anywhere else is still caught.
+[[allowlists]]
+description = "shared local persona password"
+condition = "AND"
+paths = ['''^services/hg/internal/devworld/''']
+regexTarget = "secret"
+regexes = ['''^Seed!2026$''']
+
+# The email-link page tests (issue #329): a made-up link token, its letters and
+# digits in sequence, and a made-up new password. Matched by exact value, and
+# only in those tests, so a real token pasted anywhere is still caught.
+[[allowlists]]
+description = "made-up link token and password in the email-link page tests"
+condition = "AND"
+paths = [
+  '''^apps/(admin|restaurant)/smoke/''',
+  '''^packages/ui-web/src/emailLinks/__tests__/''',
+]
+regexTarget = "secret"
+regexes = [
+  '''^tok_A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6Q7r8$''',
+  '''^kettle-orchard-violet-41$''',
+]
+
+# The sample WebSocket key from RFC 6455 section 1.3 ("the sample nonce" in
+# base64). The realtime tests send it in a handshake because the RFC gives the
+# accept value it must produce. Exact value, and only in the realtime tests.
+[[allowlists]]
+description = "RFC 6455 sample Sec-WebSocket-Key in the realtime tests"
+condition = "AND"
+paths = ['''^services/hg/internal/realtime/[^/]+_test\.go$''']
+regexTarget = "secret"
+regexes = ['''^dGhlIHNhbXBsZSBub25jZQ==$''']

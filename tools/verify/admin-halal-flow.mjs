@@ -7,23 +7,14 @@
 //
 // Run from repo root: node tools/verify/admin-halal-flow.mjs
 import { chromium } from 'playwright';
-import { execSync } from 'node:child_process';
+import { requireEnv, totpNow as totp } from './env.mjs';
 
 const APP = process.env.APP_URL ?? 'http://localhost:5181';
 const BASE = process.env.API_BASE ?? 'http://localhost:8095';
-const EMAIL = process.env.SEED_EMAIL ?? 'admin@demo.hg';
-const PASSWORD = process.env.SEED_PASSWORD ?? 'Admin@1234';
+const EMAIL = requireEnv('SEED_EMAIL');
+const PASSWORD = requireEnv('SEED_PASSWORD');
 const RESTAURANT_ID = process.env.RESTAURANT_ID ?? '';
 const CERT_ID = process.env.CERT_ID ?? '';
-
-function totp() {
-  return execSync(
-    'SECRET=$(cat /tmp/hg-admin-totp-secret.txt) go run ./cmd/totpnow',
-    { cwd: '/home/devsupreme/work/hg-mono/services/hg', shell: '/bin/bash' },
-  )
-    .toString()
-    .trim();
-}
 
 const calls = [];
 const consoleErrors = [];

@@ -160,6 +160,18 @@ ERRORS = [
         "Was `restaurant_closed`. Pairs with `restaurant_availability_closed_hours`.",
     ),
     (
+        "restaurant_unavailable",
+        409,
+        "RESTAURANT_UNAVAILABLE",
+        "This restaurant cannot take orders: it is not listed, or its halal certification is "
+        "not current. Your cart is saved.",
+        None,
+        "From `addCartLine`, `createQuote` and `createOrder` when the restaurant is not listed "
+        "and live, or its halal certificate is not current as of the request, computed from "
+        "admin-verified certificate data. The apps show the halal copy and keep the cart. "
+        "Pairs with `cart_restaurant_unavailable`.",
+    ),
+    (
         "below_minimum_order",
         422,
         "BELOW_MINIMUM_ORDER",
@@ -231,8 +243,87 @@ ERRORS = [
 # (docs/decisions/README.md, "Settled — redesign decisions, round 2", "Launch scope and
 # contract"). Same tuple as ERRORS plus the operations each one is registered for, so the
 # mock lists them under the operation that returns them. Codes and messages match what
-# services/hg returns today.
+# services/hg returns today. verifyEmail's link errors are here too: its success is a bare
+# 204 with no session (https://github.com/shaiknoorullah/hg-mono/issues/356), so its
+# errors are its only fixtures.
 LAUNCH_ERRORS = [
+    (
+        "refund_self_approval_forbidden",
+        409,
+        "SELF_APPROVAL_FORBIDDEN",
+        "Nobody may approve their own refund request.",
+        None,
+        "The person who asked for a refund, or who sent it up for a second person, tried to "
+        "approve it. A goodwill refund above CAD 50.00 always needs someone else.",
+        ["approveRefund", "issueRefund"],
+    ),
+    (
+        "refund_already_decided",
+        409,
+        "ALREADY_DECIDED",
+        "This refund is not waiting for a decision; it is AUTHORISED.",
+        None,
+        "Someone else decided it first, or it was never waiting. Reload the queue.",
+        ["approveRefund", "declineRefund"],
+    ),
+    (
+        "refund_approver_over_daily_limit",
+        409,
+        "DAILY_CAP_EXCEEDED",
+        "Approving this would take you past your 24-hour refund limit; a super admin can approve it.",
+        None,
+        "A second approver's own rolling 24-hour limit counts too. The request stays in the "
+        "queue for someone with room.",
+        ["approveRefund"],
+    ),
+    (
+        "refund_mfa_required",
+        403,
+        "MFA_REQUIRED",
+        "Refunds need a session signed in with your authenticator code. Sign in again with it.",
+        None,
+        "Money actions need a session signed in with an authenticator code (staff MFA for money "
+        "actions).",
+        ["approveRefund", "issueRefund"],
+    ),
+    (
+        "refund_needs_higher_role",
+        403,
+        "FORBIDDEN",
+        "This refund needs approval from someone with the ADMIN role.",
+        None,
+        "An approval request is decided by the role it was sent up to, or a super admin.",
+        ["approveRefund", "declineRefund"],
+    ),
+    (
+        "chargeback_closed",
+        409,
+        "ALREADY_DECIDED",
+        "Stripe has closed this chargeback (lost); it takes no more evidence.",
+        None,
+        "Evidence notes are for open chargebacks only.",
+        ["addChargebackEvidenceNote"],
+    ),
+    (
+        "verification_token_expired",
+        410,
+        "VERIFICATION_TOKEN_EXPIRED",
+        "This verification link has expired.",
+        None,
+        "`verifyEmail` with a token older than 24 hours. A token that never existed gets the "
+        "same code. The page offers \"Send a new link\" (`resendEmailVerification`).",
+        ["verifyEmail"],
+    ),
+    (
+        "verification_token_used",
+        410,
+        "VERIFICATION_TOKEN_USED",
+        "This verification link has already been used.",
+        None,
+        "`verifyEmail` with a token that was already used: the email is verified, so the page "
+        "sends the owner to sign in. Using the link never signs anyone in.",
+        ["verifyEmail"],
+    ),
     (
         "reset_token_not_valid",
         400,
@@ -324,6 +415,16 @@ LAUNCH_ERRORS = [
         ["createMenuCategory", "updateMenuCategory", "createMenuCategoryOnBehalf"],
     ),
     (
+        "category_not_empty",
+        409,
+        "CATEGORY_NOT_EMPTY",
+        "Move or delete the 3 items in Desserts before deleting it.",
+        {"item_count": 3},
+        "`deleteMenuCategory` on a category that still holds items. Deleting a category "
+        "never deletes an item, so nothing changed; `details.item_count` says how many.",
+        ["deleteMenuCategory"],
+    ),
+    (
         "item_blocked_by_admin",
         403,
         "ITEM_BLOCKED_BY_ADMIN",
@@ -360,6 +461,64 @@ LAUNCH_ERRORS = [
         None,
         "The item was removed (`deleteMenuItemOnBehalf`) while its version waited for review.",
         ["decideMenuVersion"],
+    ),
+    # The menu lock: while a restaurant is SUSPENDED or BANNED nobody changes its menu,
+    # its own staff and admins acting on its behalf alike, and a version waiting for
+    # review stays as it is. A DELISTED restaurant is not locked
+    # (docs/decisions/README.md, round 2, "A suspended or banned restaurant's menu";
+    # https://github.com/shaiknoorullah/hg-mono/issues/256).
+    (
+        "menu_locked",
+        403,
+        "MENU_LOCKED",
+        "This restaurant's menu is locked while the restaurant is suspended.",
+        {"account_state": "SUSPENDED"},
+        "A menu change while the restaurant is suspended, by its own staff or by an admin "
+        "on its behalf. The menu still reads normally; every edit control shows the "
+        "locked-menu state. Opening hours stay editable. Nothing was written.",
+        [
+            "createMenuCategory",
+            "updateMenuCategory",
+            "deleteMenuCategory",
+            "createMenuItem",
+            "updateMenuItem",
+            "deleteMenuItem",
+            "setMenuItemAvailability",
+            "createMenuCategoryOnBehalf",
+            "createMenuItemOnBehalf",
+            "updateMenuItemOnBehalf",
+            "deleteMenuItemOnBehalf",
+            "decideMenuVersion",
+        ],
+    ),
+    (
+        "menu_locked_banned",
+        403,
+        "MENU_LOCKED",
+        "This restaurant's menu is locked while the restaurant is banned.",
+        {"account_state": "BANNED"},
+        "An admin changing a banned restaurant's menu, or deciding one of its versions "
+        "waiting for review. A banned restaurant's own staff cannot sign in, so only "
+        "admins meet this one.",
+        [
+            "createMenuCategoryOnBehalf",
+            "createMenuItemOnBehalf",
+            "updateMenuItemOnBehalf",
+            "deleteMenuItemOnBehalf",
+            "decideMenuVersion",
+        ],
+    ),
+    (
+        "receipt_not_ready",
+        409,
+        "RECEIPT_NOT_READY",
+        "This order does not have a receipt yet.",
+        None,
+        "`getOrderReceipt` before the order reaches COMPLETED: the receipt is written once "
+        "at COMPLETED (docs/spec/01-platform.md, \"P-10 — Fee breakdown presented to the "
+        "customer\"). The customer app shows the receipt as not ready yet rather than as an "
+        "error; an order that never captured never gets one.",
+        ["getOrderReceipt"],
     ),
 ]
 

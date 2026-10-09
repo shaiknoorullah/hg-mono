@@ -1,14 +1,15 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Schema } from '@hg/api-client';
 import { Button, Card, EmptyState, ErrorState, Icon } from '@hg/ui-web';
 import { api, unwrapOrThrow } from '../lib/apiHelpers';
-import { useAsync } from '../lib/useAsync';
 import { DeadlineTimer } from '../components/DeadlineTimer';
 import { PageLoading } from '../components/PageLoading';
 import { StatusChip } from '../components/StatusChip';
 import { RejectDialog, type RejectableOrder } from '../components/RejectDialog';
 import { SealBindRow } from '../components/SealBindRow';
+import { RiderApproachMap } from '../components/RiderApproachMap';
 import { idempotencyKey, isApiError } from '@hg/api-client';
+import { useRealtimeChannel, useRealtimeChannels, useRealtimeStatus, type ChannelSignal } from '@hg/ui-web/live';
 
 const STATE_LABEL: Partial<Record<Schema['OrderState'], string>> = {
   RESTAURANT_PENDING: 'Awaiting response',
@@ -28,16 +29,164 @@ function money(value: unknown) {
   return new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD' }).format(Number(value) / 100);
 }
 
-export function OrdersPage() {
-  const { status, data, error, reload } = useAsync(
-    () =>
-      unwrapOrThrow(
-        api.GET('/v1/restaurant/orders', {
-          params: { query: { state: ['RESTAURANT_PENDING', 'PREPARING', 'READY_FOR_PICKUP'] } },
-        }),
-      ),
-    [],
+const POLL_MS = 7_000;
+
+/**
+ * The `restaurant:{id}` events that mean the queue changed (websocket.md "Restaurant"). Each is
+ * only a signal to refetch: the list is always re-read over REST, never patched from a payload.
+ */
+const QUEUE_EVENTS: ReadonlySet<string> = new Set([
+  'restaurant.order_offered',
+  'restaurant.order_offer_expired',
+  'restaurant.order_offer_withdrawn',
+  'restaurant.order_accepted',
+  'restaurant.order_rejected',
+]);
+
+/** True when a `restaurant:{id}` signal should refetch the queue. */
+function isQueueSignal(signal: ChannelSignal) {
+  return signal.kind === 'refetch' || QUEUE_EVENTS.has(signal.event.type);
+}
+
+/** True when an `order:{id}` signal should refetch the queue — state changes only, never `rider.location`. */
+function isOrderStateSignal(signal: ChannelSignal) {
+  return signal.kind === 'refetch' || signal.event.type === 'order.state_changed';
+}
+
+/** Short two-tone chime; best-effort (browsers block audio until the page has had a gesture). */
+function chime() {
+  try {
+    const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    const ctx = new Ctx();
+    [880, 1175].forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.15, ctx.currentTime + i * 0.18);
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + i * 0.18 + 0.16);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(ctx.currentTime + i * 0.18);
+      osc.stop(ctx.currentTime + i * 0.18 + 0.17);
+    });
+    window.setTimeout(() => void ctx.close(), 800);
+  } catch {
+    /* no audio available */
+  }
+}
+
+type OrderList = Awaited<ReturnType<typeof fetchOrders>>;
+function fetchOrders() {
+  return unwrapOrThrow(
+    api.GET('/v1/restaurant/orders', {
+      params: { query: { state: ['RESTAURANT_PENDING', 'PREPARING', 'READY_FOR_PICKUP'] } },
+    }),
   );
+}
+
+export function OrdersPage() {
+  const [data, setData] = useState<OrderList | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [status, setStatus] = useState<'loading' | 'error' | 'ready'>('loading');
+  const [fresh, setFresh] = useState<Set<string>>(new Set());
+  const seen = useRef<Set<string> | null>(null);
+  // Socket events and polling can overlap; a response older than one already shown is dropped,
+  // so a slow request never puts back an order a newer one removed.
+  const started = useRef(0);
+  const shown = useRef(0);
+
+  // Polling every POLL_MS while the tab is visible; paused when hidden and refreshed
+  // immediately on focus. The socket below only makes a refetch happen sooner — the polling
+  // runs whatever the socket does. New RESTAURANT_PENDING ids ring and highlight.
+  const reload = useCallback(async () => {
+    const request = ++started.current;
+    try {
+      const list = await fetchOrders();
+      if (request < shown.current) return;
+      shown.current = request;
+      setData(list);
+      setError(null);
+      setStatus('ready');
+      const pendingIds = list.filter((o) => o.state === 'RESTAURANT_PENDING').map((o) => o.id);
+      if (seen.current) {
+        const added = pendingIds.filter((id) => !seen.current!.has(id));
+        if (added.length) {
+          chime();
+          setFresh((f) => new Set([...f, ...added]));
+        }
+      }
+      seen.current = new Set([...(seen.current ?? []), ...pendingIds]);
+    } catch (e) {
+      // Keep showing the last good list on a transient poll failure.
+      if (!seen.current) {
+        setError(isApiError(e) ? e.message : 'Could not reach the server. Check your connection and try again.');
+        setStatus('error');
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    let timer: number | undefined;
+    const stop = () => {
+      if (timer !== undefined) window.clearInterval(timer);
+      timer = undefined;
+    };
+    const start = () => {
+      stop();
+      void reload();
+      timer = window.setInterval(() => void reload(), POLL_MS);
+    };
+    const onVisibility = () => (document.hidden ? stop() : start());
+    if (!document.hidden) start();
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('focus', onVisibility);
+    return () => {
+      stop();
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('focus', onVisibility);
+    };
+  }, [reload]);
+  // The restaurant's own coordinates, for the "rider approaching" map, and its id, for the
+  // realtime channel. Best-effort: without them the map still shows the rider's approximate
+  // area, and the queue keeps polling.
+  const [restaurantSpot, setRestaurantSpot] = useState<{ name: string; latitude: number; longitude: number } | null>(null);
+  const [restaurantId, setRestaurantId] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    unwrapOrThrow(api.GET('/v1/restaurant/profile', {}))
+      .then((p) => {
+        if (cancelled) return;
+        setRestaurantId(p.id);
+        setRestaurantSpot({ name: p.display_name, latitude: p.address.latitude, longitude: p.address.longitude });
+      })
+      .catch(() => {
+        /* the map degrades to the rider alone */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Realtime: new offers, expired or withdrawn offers and other tablets' actions arrive on
+  // `restaurant:{id}`; later state changes arrive on each shown order's `order:{id}`. Every one
+  // refetches the queue over REST (events are signals, REST is the truth), as does every
+  // (re)connect, which covers anything missed while the socket was down.
+  const live = useRealtimeStatus();
+  useRealtimeChannel(restaurantId ? `restaurant:${restaurantId}` : null, (signal) => {
+    if (isQueueSignal(signal)) void reload();
+  });
+  useRealtimeChannels(
+    (data ?? []).map((o) => `order:${o.id}`),
+    (signal) => {
+      if (isOrderStateSignal(signal)) void reload();
+    },
+  );
+  const wasOpen = useRef(false);
+  useEffect(() => {
+    const open = live === 'open';
+    if (open && !wasOpen.current) void reload();
+    wasOpen.current = open;
+  }, [live, reload]);
+
   const [busyId, setBusyId] = useState<string | null>(null);
   const [rejectTarget, setRejectTarget] = useState<RejectableOrder | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -46,7 +195,7 @@ export function OrdersPage() {
   if (status === 'error') {
     return (
       <div className="p-6">
-        <ErrorState description={error ?? undefined} onRetry={reload} />
+        <ErrorState description={error ?? undefined} onRetry={() => void reload()} />
       </div>
     );
   }
@@ -79,8 +228,13 @@ export function OrdersPage() {
         <div>
           <h1 className="text-heading-md font-extrabold text-fg-primary">Live orders</h1>
           <p className="text-body-sm text-fg-secondary">Sorted by the most urgent deadline first.</p>
+          {(live === 'reconnecting' || live === 'offline') && (
+            <p role="status" className="mt-1 text-caption text-fg-tertiary">
+              Live updates paused, refreshing every few seconds.
+            </p>
+          )}
         </div>
-        <Button variant="secondary" onPress={reload}>
+        <Button variant="secondary" onPress={() => void reload()}>
           Refresh
         </Button>
       </header>
@@ -101,7 +255,12 @@ export function OrdersPage() {
       ) : (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
           {pending.map((order) => (
-            <Card key={order.id} className="hg-fade-up border-line-brand">
+            <div
+              key={order.id}
+              data-new-order={fresh.has(order.id) ? 'true' : undefined}
+              className={fresh.has(order.id) ? 'rounded-lg ring-4 ring-action-primary-bg' : undefined}
+            >
+            <Card className="hg-fade-up border-line-brand">
               <div className="mb-3 flex items-center justify-between">
                 <span className="text-label-md font-extrabold text-fg-primary">#{order.code}</span>
                 <DeadlineTimer deadlineAt={order.deadline_at} />
@@ -137,6 +296,7 @@ export function OrdersPage() {
                 </Button>
               </div>
             </Card>
+            </div>
           ))}
 
           {inKitchen.map((order) => (
@@ -185,6 +345,14 @@ export function OrdersPage() {
               )}
               {(order.state === 'PREPARING' || order.state === 'READY_FOR_PICKUP') && (
                 <SealBindRow orderId={order.id} />
+              )}
+              {order.rider && (order.state === 'PREPARING' || order.state === 'READY_FOR_PICKUP') && (
+                <RiderApproachMap
+                  orderId={order.id}
+                  rider={order.rider}
+                  restaurant={restaurantSpot}
+                  onOrderChanged={() => void reload()}
+                />
               )}
             </Card>
           ))}

@@ -3,7 +3,7 @@ covers:
   - packages/ui-web/src/certification/**
   - packages/ui-native/src/certification/**
   - packages/ui-web/src/styles/**
-reviewed: 2026-09-28
+reviewed: 2026-10-09
 ---
 
 # HalalGoes — Accessibility Standard
@@ -103,6 +103,8 @@ These strings are **fixed, reviewed, and not templatable by callers** (C-12 R7 f
 | `UNVERIFIED` | *(customer: nothing)* | *(customer: nothing)* · operational: **"Halal certification not verified."** |
 | `null` / absent / unknown | *(nothing)* | *(nothing)* + `reportClientError('HALAL_DISPLAY_STATE_MISSING')` |
 
+On native, the redesign surface's `HalalCertificationPanel` (`@hg/ui-native/ds`) applies the same rule to the whole panel: a missing or unknown `display_state` renders nothing and reports `CERTIFICATION_PANEL_STATE_MISSING`, and `UNVERIFIED` renders nothing. The same client-error reporter also carries two non-halal codes from that surface: `ICON_NAME_UNKNOWN` and `MONEY_NOT_INTEGER_CENTS`.
+
 C-12 acceptance criterion 2 asserts the exact string "Halal certified" is present as an accessible label on all six card surfaces (feed, search, favourites, order history, receipt, detail header). That assertion is a snapshot test and it is the reason the label is not parameterised.
 
 ### 3.2 The three channels (A-0 in practice)
@@ -194,7 +196,7 @@ control edge
 | Key | Behaviour |
 |---|---|
 | `Tab` / `Shift+Tab` | forward/back through interactive elements in DOM order |
-| `Arrow` | within composites: `RadioGroup`, `Tabs`, `BottomNav`, `DataTable` grid, `Select` list, chip rows |
+| `Arrow` | within composites: `RadioGroup`, `Tabs`, `BottomNav`, `DataTable` grid, `Select` list, chip rows, the one-time-code boxes of `Input` |
 | `Home` / `End` | first/last within a composite |
 | `Enter` / `Space` | activate (`Space` on buttons/checkboxes, `Enter` on links) |
 | `Escape` | close dismissible sheet/modal/popover, clear a search field |

@@ -1,6 +1,8 @@
+import { useEffect } from 'react';
 import { useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { AppShell, Icon, SideNav, Wordmark, cx, type IconName, type SideNavItem } from '@hg/ui-web';
 import { useAuth } from '../lib/auth';
+import { api } from '../lib/api';
 import { IconMenuBook, IconWallet, IconUsers, IconSettings, IconLogout } from '../lib/icons';
 
 /**
@@ -48,8 +50,23 @@ function navGlyph(icon: (typeof NAV)[number]['icon'], active: boolean) {
   }
 }
 
+/** Keeps the restaurant "online": without a heartbeat in 5 minutes it computes to CLOSED_OFFLINE. */
+const HEARTBEAT_MS = 60_000;
+
 export function Shell() {
   const { logout, principal } = useAuth();
+
+  useEffect(() => {
+    const beat = () => {
+      api.POST('/v1/restaurant/heartbeat', {}).catch(() => {
+        /* transient; the next tick retries */
+      });
+    };
+    beat();
+    const id = window.setInterval(beat, HEARTBEAT_MS);
+    return () => window.clearInterval(id);
+  }, []);
+
   const location = useLocation();
   const navigate = useNavigate();
   const activeKey = NAV.find((item) => location.pathname.startsWith(item.to))?.key;
@@ -105,7 +122,10 @@ export function Shell() {
 
       {/* Narrow viewports: no persistent rail, a detached glass-pill bottom bar instead.
           `@hg/ui-web` ships no web bottom-nav (`BottomNav` is native-only by design), so this
-          stays a small local composition, retoned onto the shared tokens. */}
+          stays a small local composition, retoned onto the shared tokens. Its current page is
+          the same filled tile as `SideNav`'s: the selected tint, a bold label (the others are
+          the label's own semibold) and `aria-current="page"`, never colour alone and never an
+          edge bar (rule 12 in docs/design/02-components.md; issue #405). */}
       <nav
         aria-label="Primary"
         className="fixed inset-x-3 bottom-3 z-(--hg-z-sticky) flex items-center justify-around rounded-full border border-line-decorative bg-surface-base/92 px-2 py-2 shadow-e3 backdrop-blur-md md:hidden"
@@ -119,8 +139,8 @@ export function Shell() {
               aria-current={active ? 'page' : undefined}
               onClick={() => navigate(item.to)}
               className={cx(
-                'flex flex-col items-center gap-0.5 rounded-full px-4 py-1.5 text-label-sm font-bold hg-focus-inset',
-                active ? 'text-action-primary-bg' : 'text-fg-secondary',
+                'flex flex-col items-center gap-0.5 rounded-full px-4 py-1.5 text-label-sm hg-focus-inset',
+                active ? 'bg-[var(--hg-state-selected-tint)] font-bold text-fg-primary' : 'text-fg-secondary',
               )}
             >
               {navGlyph(item.icon, active)}

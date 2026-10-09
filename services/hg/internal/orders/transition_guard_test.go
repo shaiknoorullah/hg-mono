@@ -45,6 +45,13 @@ func writesOrderState(sql string) bool {
 // literal, or constant concatenation of literals, that writes order.state.
 func orderStateWrites(t *testing.T, fset *token.FileSet, filename string, src any) []int {
 	t.Helper()
+	return sqlWrites(t, fset, filename, src, writesOrderState)
+}
+
+// sqlWrites returns the line of every string literal, or constant
+// concatenation of literals, in one Go file that matches.
+func sqlWrites(t *testing.T, fset *token.FileSet, filename string, src any, matches func(string) bool) []int {
+	t.Helper()
 	f, err := parser.ParseFile(fset, filename, src, parser.SkipObjectResolution)
 	if err != nil {
 		t.Fatalf("parse %s: %v", filename, err)
@@ -55,13 +62,13 @@ func orderStateWrites(t *testing.T, fset *token.FileSet, filename string, src an
 		case *ast.BinaryExpr:
 			// "UPDATE \"order\" " + "SET state = …" is one query.
 			if s, ok := constString(x); ok {
-				if writesOrderState(s) {
+				if matches(s) {
 					lines = append(lines, fset.Position(x.Pos()).Line)
 				}
 				return false
 			}
 		case *ast.BasicLit:
-			if s, ok := constString(x); ok && writesOrderState(s) {
+			if s, ok := constString(x); ok && matches(s) {
 				lines = append(lines, fset.Position(x.Pos()).Line)
 			}
 		}
@@ -114,14 +121,11 @@ func moduleRoot(t *testing.T) string {
 	}
 }
 
-// TestOnlyTransitionWritesOrderState fails when any production Go file other
-// than the transition function's own writes order.state directly.
-func TestOnlyTransitionWritesOrderState(t *testing.T) {
-	root := moduleRoot(t)
-	fset := token.NewFileSet()
-	var offenders []string
-	scanned := 0
-	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+// walkProductionGo calls fn for every production (non-test) Go file under root,
+// with its path relative to root, skipping hidden, vendor, testdata and
+// node_modules directories. The guard tests below share it.
+func walkProductionGo(root string, fn func(path, rel string) error) error {
+	return filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -139,7 +143,18 @@ func TestOnlyTransitionWritesOrderState(t *testing.T) {
 		if err != nil {
 			return err
 		}
-		rel = filepath.ToSlash(rel)
+		return fn(path, filepath.ToSlash(rel))
+	})
+}
+
+// TestOnlyTransitionWritesOrderState fails when any production Go file other
+// than the transition function's own writes order.state directly.
+func TestOnlyTransitionWritesOrderState(t *testing.T) {
+	root := moduleRoot(t)
+	fset := token.NewFileSet()
+	var offenders []string
+	scanned := 0
+	err := walkProductionGo(root, func(path, rel string) error {
 		scanned++
 		if rel == orderStateWriter {
 			return nil
@@ -185,6 +200,85 @@ func TestOrderStateGuardCatchesDirectWrites(t *testing.T) {
 
 	got := orderStateWrites(t, token.NewFileSet(), "x.go", src)
 	want := []int{2, 7, 11, 12, 13}
+	if len(got) != len(want) {
+		t.Fatalf("flagged lines %v, want %v", got, want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("flagged lines %v, want %v", got, want)
+		}
+	}
+}
+
+var (
+	// assignsDeadline finds an assignment to deadline_at in a SET list.
+	assignsDeadline = regexp.MustCompile(`(?i)(?:^|[\s,(])(?:[a-z_][a-z0-9_]*\.)?"?deadline_at"?\s*=`)
+	// insertsTransition finds an INSERT into the order's transition log.
+	insertsTransition = regexp.MustCompile(`(?i)\bINSERT\s+INTO\s+(?:"?public"?\.)?"?order_transition"?\b`)
+)
+
+// writesOrderDeadlineOrLog reports whether a SQL string sets an order's
+// deadline_at or appends to its transition log.
+func writesOrderDeadlineOrLog(sql string) bool {
+	if insertsTransition.MatchString(sql) {
+		return true
+	}
+	for _, m := range updateOrderSQL.FindAllStringSubmatch(sql, -1) {
+		if assignsDeadline.MatchString(m[1]) {
+			return true
+		}
+	}
+	return false
+}
+
+// TestOnlyOrdersWritesDeadlineAndTransitionLog fails when production code
+// outside internal/orders sets an order's deadline or writes its transition
+// log. The restaurant's delay once did both itself, so the customer was never
+// told (https://github.com/shaiknoorullah/hg-mono/issues/351); it now calls
+// Store.DelayInTx.
+func TestOnlyOrdersWritesDeadlineAndTransitionLog(t *testing.T) {
+	root := moduleRoot(t)
+	fset := token.NewFileSet()
+	var offenders []string
+	inOrders := 0
+	err := walkProductionGo(root, func(path, rel string) error {
+		lines := sqlWrites(t, fset, path, nil, writesOrderDeadlineOrLog)
+		if strings.HasPrefix(rel, "internal/orders/") {
+			inOrders += len(lines)
+			return nil
+		}
+		for _, line := range lines {
+			offenders = append(offenders, rel+":"+strconv.Itoa(line))
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("walk %s: %v", root, err)
+	}
+	if len(offenders) > 0 {
+		t.Fatalf("an order's deadline or transition log is written outside internal/orders; go through the orders module:\n  %s",
+			strings.Join(offenders, "\n  "))
+	}
+	// The orders module's own writes must still be found, or the patterns have
+	// gone blind and the check above proves nothing.
+	if inOrders == 0 {
+		t.Fatal("the guard no longer recognises the deadline and transition-log writes in internal/orders")
+	}
+}
+
+// TestDeadlineGuardCatchesDirectWrites pins the detector on the restaurant's
+// old delay and on the writes that are not the deadline or the log.
+func TestDeadlineGuardCatchesDirectWrites(t *testing.T) {
+	const src = "package x\n" +
+		"const delay = `\n\t\tUPDATE \"order\" SET deadline_at=$2, updated_at=now() WHERE id=$1`\n" + // line 2
+		"const log = `\n\t\tINSERT INTO order_transition (order_id, from_state, to_state) VALUES ($1,$2,$3)`\n" + // line 4
+		"const aliased = `UPDATE \"order\" o SET o.deadline_at = NULL WHERE o.id = $1`\n" + // line 6
+		"const prep = `UPDATE \"order\" SET promised_ready_at=$2 WHERE id=$1 AND deadline_at > now()`\n" +
+		"const other = `UPDATE assignment SET deadline_at = $2 WHERE id = $1`\n" +
+		"const read = `SELECT reason FROM order_transition WHERE order_id = $1`\n"
+
+	got := sqlWrites(t, token.NewFileSet(), "x.go", src, writesOrderDeadlineOrLog)
+	want := []int{2, 4, 6}
 	if len(got) != len(want) {
 		t.Fatalf("flagged lines %v, want %v", got, want)
 	}

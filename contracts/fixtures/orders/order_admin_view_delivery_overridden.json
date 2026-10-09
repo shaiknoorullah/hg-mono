@@ -311,6 +311,31 @@
       ],
       "currency": "CAD"
     },
-    "pii_revealed": false
+    "pii_revealed": false,
+    "chargebacks": [],
+    "money_timeline": [
+      {
+        "kind": "PAYMENT_AUTHORISED",
+        "at": "2026-08-10T18:11:11.412Z",
+        "amount_cents": 10684,
+        "currency": "CAD",
+        "actor_kind": "SYSTEM",
+        "actor_account_id": null,
+        "refund_id": null,
+        "chargeback_id": null,
+        "reason": null
+      },
+      {
+        "kind": "PAYMENT_CAPTURED",
+        "at": "2026-08-10T18:13:11.412Z",
+        "amount_cents": 10684,
+        "currency": "CAD",
+        "actor_kind": "SYSTEM",
+        "actor_account_id": null,
+        "refund_id": null,
+        "chargeback_id": null,
+        "reason": null
+      }
+    ]
   }
 }

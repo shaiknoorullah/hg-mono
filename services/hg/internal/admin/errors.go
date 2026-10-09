@@ -39,7 +39,8 @@ const (
 	CodeMFARequired httpx.ErrorCode = "MFA_REQUIRED"
 
 	// Menu (A-19).
-	CodeCategoryNameTaken httpx.ErrorCode = "CATEGORY_NAME_TAKEN"
-	CodePriceOutOfRange   httpx.ErrorCode = "PRICE_OUT_OF_RANGE"
-	CodeFieldNotWritable  httpx.ErrorCode = "FIELD_NOT_WRITABLE"
+	CodeCategoryNameTaken  httpx.ErrorCode = "CATEGORY_NAME_TAKEN"
+	CodePriceOutOfRange    httpx.ErrorCode = "PRICE_OUT_OF_RANGE"
+	CodeFieldNotWritable   httpx.ErrorCode = "FIELD_NOT_WRITABLE"
+	CodeMenuVersionPending httpx.ErrorCode = "MENU_VERSION_PENDING"
 )

@@ -65,6 +65,11 @@ type tokenInput struct {
 type resetPasswordInput struct {
 	Token       string `json:"token"`
 	NewPassword string `json:"new_password"`
+	TOTPCode    string `json:"totp_code"`
+}
+
+type inviteTotpInput struct {
+	Token string `json:"token"`
 }
 
 type refreshInput struct {
@@ -93,9 +98,9 @@ func clientSurface(r *http.Request) (ClientSurface, bool) {
 }
 
 // clientIPPtr is the client's address as resolved by the router's RealIP stage
-// (internal/httpx/realip.go), never Traefik's: every request arrives through
-// it, so keying a per-IP limit on the TCP peer would make one limit for the
-// whole platform.
+// (internal/httpx/realip.go): the forwarded address when the peer is a trusted
+// proxy, never Traefik's own. It keys every per-IP limit (through ipSubject);
+// keying a limit on the TCP peer would make one limit for the whole platform.
 func clientIPPtr(r *http.Request) *string {
 	host := httpx.ClientIP(r)
 	if host == "" {
@@ -126,6 +131,33 @@ func userAgentPtr(r *http.Request) *string {
 		ua = ua[:512]
 	}
 	return &ua
+}
+
+// failHashBusy answers 503 when every password-hashing slot of the request's
+// gate stayed taken (hashgate.go). Nothing was executed, so the client may
+// retry after Retry-After seconds. TIMEOUT is the contract's code for "the
+// server could not do this in time" (contracts/openapi.yaml, ErrorCode).
+//
+// Every rejection writes one WARN line naming the gate and the operation, with
+// the gate's running total, so ops can see a flood and which form it targets
+// rather than a bare 503 in the request log (#216).
+func (h *Handler) failHashBusy(w http.ResponseWriter, r *http.Request, err error, operationID string) {
+	retry := DefaultHashWait
+	gate, reason := "unknown", "unknown"
+	var busy *HashBusyError
+	if errors.As(err, &busy) {
+		retry, gate, reason = busy.RetryAfter, busy.Gate, busy.Reason
+	}
+	secs := int64((retry + time.Second - 1) / time.Second)
+	if secs < 1 {
+		secs = 1
+	}
+	h.svc.log.WarnContext(r.Context(), "password hashing at capacity",
+		"gate", gate, "reason", reason, "operation_id", operationID,
+		"retry_after_s", secs, "rejected_total", PasswordHashingRejections()[gate])
+	w.Header().Set("Retry-After", strconv.FormatInt(secs, 10))
+	httpx.Fail(w, r, http.StatusServiceUnavailable, httpx.CodeTimeout,
+		"The server is busy. Please try again in a moment.", nil)
 }
 
 // ---- OTP request (P-02) -----------------------------------------------------
@@ -227,8 +259,10 @@ func (h *Handler) VerifyOTP(w http.ResponseWriter, r *http.Request) {
 
 // Login implements login. Argon2id verification, status check, TOTP where
 // enrolled, Postgres-backed lockout. Per-IP and per-email request limits answer
-// 429 with Retry-After; they fail open when Redis is down (the lockout does not
-// live in Redis), so login never answers 503.
+// 429 with Retry-After; when Redis is down they count in this replica's memory
+// instead (FallBackLocally; the lockout does not live in Redis), so the limiter
+// never makes login answer 503. The only 503 is password hashing at capacity,
+// which is reached only after the limits pass.
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	client, ok := clientSurface(r)
 	if !ok {
@@ -277,6 +311,9 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	case errors.Is(err, ErrRateLimited):
 		failRateLimited(w, r, err, "Too many sign-in attempts. Please wait before trying again.")
 		return
+	case errors.Is(err, ErrPasswordHashBusy):
+		h.failHashBusy(w, r, err, "login")
+		return
 	case err != nil:
 		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError,
 			"The server failed to process this request.", nil)
@@ -314,10 +351,17 @@ func (h *Handler) RegisterRestaurant(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	reg, err := h.svc.RegisterRestaurant(r.Context(), in.Email, in.Password, in.BusinessName, clientIPPtr(r))
+	reg, err := h.svc.RegisterRestaurant(r.Context(), in.Email, in.Password, in.BusinessName,
+		httpx.RateLimitKey(httpx.ClientIP(r)))
 	switch {
 	case errors.Is(err, ErrRateLimited):
 		failRateLimited(w, r, err, "Too many sign-ups from this network. Please wait before trying again.")
+		return
+	case errors.Is(err, ErrLimiterUnavailable):
+		// Only the email limits fail closed here (email_limits.go): with no
+		// counter, no verification email, so no account is created either.
+		httpx.Fail(w, r, http.StatusServiceUnavailable, httpx.CodeRateLimiterUnavailable,
+			"Sign-up is briefly unavailable. Please try again shortly.", nil)
 		return
 	case errors.Is(err, ErrEmailInUse):
 		httpx.Fail(w, r, http.StatusConflict, CodeEmailAlreadyRegistered,
@@ -326,6 +370,9 @@ func (h *Handler) RegisterRestaurant(w http.ResponseWriter, r *http.Request) {
 	case errors.Is(err, errBreachedPassword):
 		httpx.Fail(w, r, http.StatusUnprocessableEntity, CodeBreachedPassword,
 			"This password has appeared in a data breach. Choose another.", nil)
+		return
+	case errors.Is(err, ErrPasswordHashBusy):
+		h.failHashBusy(w, r, err, "registerRestaurant")
 		return
 	case err != nil:
 		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError,
@@ -341,7 +388,10 @@ func (h *Handler) RegisterRestaurant(w http.ResponseWriter, r *http.Request) {
 
 // ---- email verification (R-02) ---------------------------------------------
 
-// VerifyEmail implements verifyEmail. Consumes the token and issues a session.
+// VerifyEmail implements verifyEmail. Consumes the token and answers 204: no
+// session, no cookie. An emailed link must never sign anyone in
+// (https://github.com/shaiknoorullah/hg-mono/issues/356); the owner signs in
+// with Login.
 func (h *Handler) VerifyEmail(w http.ResponseWriter, r *http.Request) {
 	var in tokenInput
 	if err := decodeJSON(r, &in); err != nil || len(in.Token) < 32 || len(in.Token) > 128 {
@@ -349,11 +399,7 @@ func (h *Handler) VerifyEmail(w http.ResponseWriter, r *http.Request) {
 			"A valid token is required.", nil)
 		return
 	}
-	client, _ := clientSurface(r)
-	if !client.valid() {
-		client = ClientRestaurantWeb
-	}
-	issued, err := h.svc.VerifyEmail(r.Context(), in.Token, client, userAgentPtr(r), clientIPPtr(r))
+	err := h.svc.VerifyEmail(r.Context(), in.Token)
 	switch {
 	case errors.Is(err, errTokenExpired):
 		httpx.Fail(w, r, http.StatusGone, CodeVerifyTokenExpired,
@@ -372,7 +418,7 @@ func (h *Handler) VerifyEmail(w http.ResponseWriter, r *http.Request) {
 			"The server failed to process this request.", nil)
 		return
 	}
-	h.writeSessionGrant(w, r, issued, http.StatusOK)
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // ---- resend email verification / forgot password (acknowledgement) ---------
@@ -386,7 +432,7 @@ func (h *Handler) ResendEmailVerification(w http.ResponseWriter, r *http.Request
 			"A valid email is required.", nil)
 		return
 	}
-	if err := h.svc.ResendEmailVerification(r.Context(), in.Email); errors.Is(err, ErrRateLimited) {
+	if err := h.svc.ResendEmailVerification(r.Context(), in.Email, httpx.RateLimitKey(httpx.ClientIP(r))); errors.Is(err, ErrRateLimited) {
 		failRateLimited(w, r, err, "Please wait before requesting another email.")
 		return
 	}
@@ -402,12 +448,14 @@ func (h *Handler) RequestPasswordReset(w http.ResponseWriter, r *http.Request) {
 			"A valid email is required.", nil)
 		return
 	}
-	_ = h.svc.RequestPasswordReset(r.Context(), in.Email)
+	_ = h.svc.RequestPasswordReset(r.Context(), in.Email, httpx.RateLimitKey(httpx.ClientIP(r)))
 	httpx.Respond(w, r, http.StatusOK, wireAcknowledgement{Acknowledged: true})
 }
 
 // ResetPassword implements resetPassword. Sets the password and revokes every
-// session in the account's family, then 204.
+// session in the account's family, then 204: no session, no cookie, also for a
+// staff invitation's first password
+// (https://github.com/shaiknoorullah/hg-mono/issues/356).
 func (h *Handler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	var in resetPasswordInput
 	if err := decodeJSON(r, &in); err != nil || len(in.Token) < 32 || len(in.Token) > 128 {
@@ -420,8 +468,25 @@ func (h *Handler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 			"Password must be between 12 and 256 characters.", nil)
 		return
 	}
-	err := h.svc.ResetPassword(r.Context(), in.Token, in.NewPassword)
+	if in.TOTPCode != "" && !totpDigits.MatchString(in.TOTPCode) {
+		httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
+			"totp_code must be a 6-digit number.",
+			[]httpx.FieldError{{Field: "totp_code", Code: "format", Message: "must be 6 digits"}})
+		return
+	}
+	err := h.svc.ResetPassword(r.Context(), in.Token, in.NewPassword, in.TOTPCode, clientIPPtr(r))
 	switch {
+	case errors.Is(err, errTOTPNotEnrolled):
+		httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
+			"No authenticator enrolment was started for this link. Call startInviteTotpEnrolment first.", nil)
+		return
+	case errors.Is(err, errTOTPInvalidCode):
+		httpx.Fail(w, r, http.StatusUnprocessableEntity, CodeInvalidCredentials,
+			"The authenticator code is incorrect.", nil)
+		return
+	case errors.Is(err, ErrRateLimited):
+		failRateLimited(w, r, err, "Too many password resets from this network. Please wait before trying again.")
+		return
 	case errors.Is(err, errTokenExpired), errors.Is(err, errTokenUsed), errors.Is(err, ErrNotFound):
 		httpx.Fail(w, r, http.StatusBadRequest, CodeTokenConsumed,
 			"This reset link is not valid.", nil)
@@ -430,12 +495,47 @@ func (h *Handler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, r, http.StatusUnprocessableEntity, CodeBreachedPassword,
 			"This password has appeared in a data breach. Choose another.", nil)
 		return
+	case errors.Is(err, ErrPasswordHashBusy):
+		h.failHashBusy(w, r, err, "resetPassword")
+		return
 	case err != nil:
 		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError,
 			"The server failed to process this request.", nil)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// StartInviteTOTP implements startInviteTotpEnrolment: an invited staff member,
+// who has no session yet, starts the authenticator enrolment their role needs,
+// authorised by the invitation link (#170). resetPassword with totp_code
+// confirms it.
+func (h *Handler) StartInviteTOTP(w http.ResponseWriter, r *http.Request) {
+	var in inviteTotpInput
+	if err := decodeJSON(r, &in); err != nil || len(in.Token) < 32 || len(in.Token) > 128 {
+		httpx.Fail(w, r, http.StatusBadRequest, httpx.CodeValidationFailed,
+			"A valid token is required.", nil)
+		return
+	}
+	enrolment, err := h.svc.StartInviteTOTP(r.Context(), in.Token, clientIPPtr(r))
+	switch {
+	case errors.Is(err, ErrRateLimited):
+		failRateLimited(w, r, err, "Too many attempts from this network. Please wait before trying again.")
+		return
+	case errors.Is(err, errTokenExpired), errors.Is(err, errTokenUsed), errors.Is(err, ErrNotFound):
+		httpx.Fail(w, r, http.StatusBadRequest, CodeTokenConsumed,
+			"This link is not valid.", nil)
+		return
+	case errors.Is(err, errInviteTOTPNotAvailable):
+		httpx.Fail(w, r, http.StatusConflict, codeStepNotAvailable,
+			"This account needs no authenticator set-up here.", nil)
+		return
+	case err != nil:
+		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError,
+			"The server failed to process this request.", nil)
+		return
+	}
+	httpx.Respond(w, r, http.StatusOK, enrolment)
 }
 
 // ---- refresh (P-04) ---------------------------------------------------------

@@ -179,7 +179,7 @@ func (s *Service) DeliveryScan(ctx context.Context, riderAccountID, orderID stri
 // verifyProof runs the checks shared by both scans: the rider holds the live
 // assignment for this order (P-07), the token's signature verifies, its
 // order_id matches the path, and — when a photo was attached — it is a READY
-// POD object scoped to this order.
+// POD object scoped to this order and uploaded by this rider.
 func (s *Service) verifyProof(ctx context.Context, riderAccountID, orderID string, in scanInput) (SealClaims, error) {
 	assigned, err := s.store.RiderAssignedToOrder(ctx, riderAccountID, orderID)
 	if err != nil {
@@ -196,7 +196,7 @@ func (s *Service) verifyProof(ctx context.Context, riderAccountID, orderID strin
 		return SealClaims{}, newError(http.StatusUnprocessableEntity, CodeSealOrderMismatch, "This seal belongs to a different order.", nil)
 	}
 	if in.PhotoObjectID != nil {
-		ready, err := s.store.PodObjectReady(ctx, *in.PhotoObjectID, orderID)
+		ready, err := s.store.PodObjectReady(ctx, *in.PhotoObjectID, orderID, riderAccountID)
 		if err != nil {
 			return SealClaims{}, err
 		}
@@ -225,7 +225,7 @@ func (s *Service) TamperReport(ctx context.Context, customerAccountID, orderID, 
 	if scope.AccountID != customerAccountID {
 		return HandoffScanResult{}, newError(http.StatusNotFound, httpxNotFound, "No such order.", nil)
 	}
-	ready, err := s.store.PodObjectReady(ctx, photoObjectID, orderID)
+	ready, err := s.store.PodObjectReady(ctx, photoObjectID, orderID, customerAccountID)
 	if err != nil {
 		return HandoffScanResult{}, err
 	}

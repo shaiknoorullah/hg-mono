@@ -28,30 +28,69 @@ type QuoteRequest struct {
 // read FOR SHARE so a concurrent price edit cannot interleave (P-09 step 1).
 //
 // It enforces ownership: the cart must belong to the account. It fails loudly
-// (typed errors) on an unavailable item, a closed restaurant, or a province with
-// no effective tax rate — never silently zeroing (I-09.7).
+// (typed errors) on an unavailable item, a restaurant that cannot take orders
+// (ErrRestaurantUnavailable), a closed restaurant, or a province with no
+// effective tax rate — never silently zeroing (I-09.7).
 func (s *Store) resolve(ctx context.Context, tx pgx.Tx, req QuoteRequest) (resolvedContext, error) {
 	var rc resolvedContext
 
-	// Cart header + restaurant, owned by the account.
-	var restaurantID, province, taxRole string
-	var commissionBps int
-	var acceptingOrders bool
-	var accountState string
+	// The cart, owned by the account. A cart never changes restaurant: adding
+	// from another restaurant deletes it and starts a new one.
+	var restaurantID string
 	err := tx.QueryRow(ctx, `
-		SELECT c.restaurant_id, r.account_state, r.is_accepting_orders,
-		       COALESCE(r.province::text, ''), r.commission_rate_bps, r.tax_role
-		  FROM cart c
-		  JOIN restaurant r ON r.id = c.restaurant_id
-		 WHERE c.id = $1 AND c.account_id = $2 AND c.deleted_at IS NULL`,
-		req.CartID, req.AccountID).Scan(&restaurantID, &accountState, &acceptingOrders, &province, &commissionBps, &taxRole)
+		SELECT restaurant_id FROM cart
+		 WHERE id = $1 AND account_id = $2 AND deleted_at IS NULL`,
+		req.CartID, req.AccountID).Scan(&restaurantID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return rc, ErrCartNotFound
 	}
 	if err != nil {
 		return rc, fmt.Errorf("resolve cart: %w", err)
 	}
-	if accountState != "LIVE" || !acceptingOrders {
+	// Quoting and createOrder both resolve here, inside their own transaction,
+	// so a restaurant that cannot take orders is refused in the transaction
+	// that would create the order, and its row stays locked FOR SHARE until
+	// that transaction commits: a concurrent suspension either came first and
+	// is refused here, or waits for the order and then settles it
+	// (orderable.go). Unavailable outranks closed.
+	// https://github.com/shaiknoorullah/hg-mono/issues/292
+	// https://github.com/shaiknoorullah/hg-mono/issues/328
+	//
+	// The cart's menu items are locked FOR SHARE before the restaurant (they
+	// are read again below). An admin approving a menu item updates the item
+	// and then locks the restaurant row FOR UPDATE (restaurant.RecomputeOnboarding);
+	// taking the two in the same order here means the two cannot deadlock.
+	if _, err := tx.Exec(ctx, `
+		SELECT 1 FROM cart_line cl JOIN menu_item mi ON mi.id = cl.menu_item_id
+		 WHERE cl.cart_id = $1
+		 ORDER BY mi.id
+		 FOR SHARE OF mi`, req.CartID); err != nil {
+		return rc, fmt.Errorf("lock cart items: %w", err)
+	}
+	if err := LockOrderableRestaurant(ctx, tx, restaurantID); err != nil {
+		return rc, err
+	}
+
+	// The restaurant, read under that lock.
+	var province, taxRole string
+	var commissionBps int
+	var acceptingOrders, negativeBalanceBlock bool
+	// negativeBalanceBlock: the weekly payout run blocks new orders for a
+	// restaurant whose payout balance has stayed below zero too long
+	// (restaurant_collection, internal/payments/payout_run.go). Whether to
+	// block at all is the owner's open question, so the limit is
+	// HG_RESTAURANT_NEGATIVE_BALANCE_BLOCK_DAYS:
+	// https://github.com/shaiknoorullah/hg-mono/issues/164.
+	err = tx.QueryRow(ctx, `
+		SELECT is_accepting_orders, COALESCE(province::text, ''), commission_rate_bps, tax_role,
+		       EXISTS (SELECT 1 FROM restaurant_collection rc
+		                WHERE rc.restaurant_id = restaurant.id AND rc.closed_at IS NULL)
+		  FROM restaurant WHERE id = $1`,
+		restaurantID).Scan(&acceptingOrders, &province, &commissionBps, &taxRole, &negativeBalanceBlock)
+	if err != nil {
+		return rc, fmt.Errorf("resolve restaurant: %w", err)
+	}
+	if !acceptingOrders || negativeBalanceBlock {
 		return rc, ErrRestaurantClosed
 	}
 	rc.cartID = req.CartID
@@ -80,11 +119,12 @@ func (s *Store) resolve(ctx context.Context, tx pgx.Tx, req QuoteRequest) (resol
 	}
 	jurisdiction := "CA-" + jurProvince
 
-	// Cart lines with prices read FOR SHARE. A line whose item is not AVAILABLE
-	// or whose restaurant differs fails loudly.
+	// Cart lines with prices read FOR SHARE. A line whose item is deleted, not
+	// AVAILABLE, or from another restaurant fails loudly. Both quote and order
+	// creation resolve through here, so a deleted item can reach neither.
 	rows, err := tx.Query(ctx, `
 		SELECT cl.id, cl.menu_item_id, mi.live_version_id, mi.price_cents, mi.availability_state,
-		       mi.tax_category::text, mi.restaurant_id,
+		       mi.deleted_at IS NOT NULL, mi.tax_category::text, mi.restaurant_id,
 		       COALESCE(miv.name, ''), cl.variant_id, cl.quantity, cl.special_request
 		  FROM cart_line cl
 		  JOIN menu_item mi ON mi.id = cl.menu_item_id
@@ -103,6 +143,7 @@ func (s *Store) resolve(ctx context.Context, tx pgx.Tx, req QuoteRequest) (resol
 		priceCents                           int64
 		availability, taxCat, itemRestaurant string
 		itemName                             string
+		deleted                              bool
 		variantID                            *string
 		quantity                             int
 		specialRequest                       *string
@@ -111,7 +152,7 @@ func (s *Store) resolve(ctx context.Context, tx pgx.Tx, req QuoteRequest) (resol
 	for rows.Next() {
 		var rl rawLine
 		if err := rows.Scan(&rl.lineID, &rl.menuItemID, &rl.versionID, &rl.priceCents,
-			&rl.availability, &rl.taxCat, &rl.itemRestaurant, &rl.itemName, &rl.variantID,
+			&rl.availability, &rl.deleted, &rl.taxCat, &rl.itemRestaurant, &rl.itemName, &rl.variantID,
 			&rl.quantity, &rl.specialRequest); err != nil {
 			return rc, fmt.Errorf("scan line: %w", err)
 		}
@@ -130,7 +171,7 @@ func (s *Store) resolve(ctx context.Context, tx pgx.Tx, req QuoteRequest) (resol
 		if rl.itemRestaurant != restaurantID {
 			return rc, ErrDifferentRestaurant
 		}
-		if rl.availability != "AVAILABLE" {
+		if rl.deleted || rl.availability != "AVAILABLE" {
 			return rc, fmt.Errorf("%w: %s", ErrItemUnavailable, rl.menuItemID)
 		}
 		li := pricing.LineInput{

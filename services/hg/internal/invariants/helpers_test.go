@@ -25,6 +25,7 @@ import (
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders/machine"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/payments"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/restaurant"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/testseed"
 )
 
 func testPool(t *testing.T) *pgxpool.Pool {
@@ -66,7 +67,7 @@ func seedBasics(t *testing.T, pool *pgxpool.Pool) basics {
 
 	if err := pool.QueryRow(ctx, `
 		INSERT INTO account (email, status)
-		VALUES ('inv-'||substr(uuid_generate_v7()::text,1,12)||'@test.local', 'ACTIVE') RETURNING id`,
+		VALUES ('inv-'||right(uuid_generate_v7()::text, 12)||'@test.local', 'ACTIVE') RETURNING id`,
 	).Scan(&b.accountID); err != nil {
 		t.Fatalf("seed account: %v", err)
 	}
@@ -77,7 +78,7 @@ func seedBasics(t *testing.T, pool *pgxpool.Pool) basics {
 			location, onboarding_state, account_state, is_accepting_orders,
 			commission_rate_bps, tax_role, minimum_order_cents
 		) VALUES (
-			'inv-'||substr(uuid_generate_v7()::text,1,8), 'Invariant Test Co', 'Invariant Kitchen',
+			'inv-'||right(uuid_generate_v7()::text, 12), 'Invariant Test Co', 'Invariant Kitchen',
 			'ON', 'Toronto', '1 King St', 'M5J0C3',
 			ST_SetSRID(ST_MakePoint(-79.3810, 43.6412), 4326)::geography,
 			'ACTIVE', 'LIVE', true, 0, 'RESTAURANT_IS_SUPPLIER', 0
@@ -125,6 +126,10 @@ func seedBasics(t *testing.T, pool *pgxpool.Pool) basics {
 		_, _ = pool.Exec(c, `DELETE FROM restaurant WHERE id=$1`, b.restaurantID)
 		_, _ = pool.Exec(c, `DELETE FROM account WHERE id=$1`, b.accountID)
 	})
+	// Certified through the real chain (an admin-verified certificate): the
+	// order path refuses a restaurant the platform cannot vouch for.
+	// https://github.com/shaiknoorullah/hg-mono/issues/292
+	testseed.CertifyRestaurant(t, pool, b.restaurantID, 300)
 	return b
 }
 

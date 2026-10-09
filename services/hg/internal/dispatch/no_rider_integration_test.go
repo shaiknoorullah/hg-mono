@@ -5,11 +5,14 @@ import (
 	"encoding/json"
 	"errors"
 	"math/rand"
+	"slices"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/realtime"
 )
 
 // The tests in this file pin https://github.com/shaiknoorullah/hg-mono/issues/294:
@@ -293,10 +296,13 @@ func TestNoRider_WidensToTenKmThenEndsWithinBudget(t *testing.T) {
 		f["radius_m"] != float64(10000) || f["riders_offered"] != float64(0) {
 		t.Fatalf("admin.dispatch_failure = %v", f)
 	}
+	// The order's channel hears the search start (the first wave) and end,
+	// once each (events.go).
 	changes := eventPayloads(t, pool, o.id, "dispatch.state_changed")
-	if len(changes) != 1 || changes[0]["_channel"] != "order:"+o.id ||
-		changes[0]["from"] != "SEARCHING" || changes[0]["to"] != "NO_RIDER_FOUND" {
-		t.Fatalf("dispatch.state_changed events = %v, want one SEARCHING -> NO_RIDER_FOUND on order:%s", changes, o.id)
+	if len(changes) != 2 ||
+		changes[0]["_channel"] != "order:"+o.id || changes[0]["from"] != "PENDING" || changes[0]["to"] != "SEARCHING" ||
+		changes[1]["_channel"] != "order:"+o.id || changes[1]["from"] != "SEARCHING" || changes[1]["to"] != "NO_RIDER_FOUND" {
+		t.Fatalf("dispatch.state_changed events = %v, want PENDING -> SEARCHING then SEARCHING -> NO_RIDER_FOUND on order:%s", changes, o.id)
 	}
 
 	// The order itself is untouched: still ready, on its own pickup deadline,
@@ -326,6 +332,97 @@ func TestNoRider_WidensToTenKmThenEndsWithinBudget(t *testing.T) {
 	}
 }
 
+// TestNoRider_EventsAreProjectedForTheirRoles: the realtime projection fails
+// closed (an event type or role with no serializer sends nothing), so the two
+// events that end a search must each have a serializer for every role that
+// should see them, and only those. dispatch.state_changed goes to the order's
+// customer, restaurant and rider and to support, with the contract's four
+// fields; admin.dispatch_failure goes to support alone, with its four
+// (contracts/websocket.md, sections 4.5 and 4.7).
+func TestNoRider_EventsAreProjectedForTheirRoles(t *testing.T) {
+	pool := openPool(t)
+	clk := newTestClock()
+	svc := newClockedService(pool, clk)
+	runner := NewDispatchRunner(svc, newTestLogger(), 3000, 5*time.Second)
+	ctx := context.Background()
+	o := seedRemoteReadyOrder(t, pool)
+
+	if _, err := svc.RunWave(ctx, o.id, 1, 3000); err != nil {
+		t.Fatalf("first wave: %v", err)
+	}
+	for i := 0; i < 10 && readDispatch(t, pool, o.id).state == "SEARCHING"; i++ {
+		clk.Advance(untilNextWave)
+		if err := runner.EscalateAndExpire(ctx); err != nil {
+			t.Fatalf("EscalateAndExpire: %v", err)
+		}
+	}
+	if d := readDispatch(t, pool, o.id); d.state != "NO_RIDER_FOUND" {
+		t.Fatalf("dispatch = %+v, want NO_RIDER_FOUND", d)
+	}
+
+	sees := map[string]map[realtime.Viewer]bool{
+		"dispatch.state_changed": {realtime.ViewCustomer: true, realtime.ViewRestaurant: true, realtime.ViewRider: true, realtime.ViewSupport: true},
+		"admin.dispatch_failure": {realtime.ViewSupport: true},
+	}
+	fields := map[string][]string{
+		"dispatch.state_changed": {"at", "from", "order_id", "to"},
+		"admin.dispatch_failure": {"order_id", "radius_m", "riders_offered", "waves"},
+	}
+	rows, err := pool.Query(ctx, `
+SELECT type, audience, payload FROM realtime_event
+ WHERE order_id = $1 AND type = ANY($2) AND payload->>'to' IS DISTINCT FROM 'SEARCHING'`,
+		o.id, []string{"dispatch.state_changed", "admin.dispatch_failure"})
+	if err != nil {
+		t.Fatalf("read events: %v", err)
+	}
+	defer rows.Close()
+	seen := map[string]int{}
+	for rows.Next() {
+		var typ string
+		var audience []string
+		var payload []byte
+		if err := rows.Scan(&typ, &audience, &payload); err != nil {
+			t.Fatal(err)
+		}
+		seen[typ]++
+		for _, v := range realtime.Viewers() {
+			out, ok := realtime.Project(typ, v, audience, payload)
+			if ok != sees[typ][v] {
+				t.Errorf("%s for %s: projected %v, want %v", typ, v, ok, sees[typ][v])
+				continue
+			}
+			if !ok {
+				continue
+			}
+			var got map[string]any
+			if err := json.Unmarshal(out, &got); err != nil {
+				t.Fatalf("%s for %s: %v", typ, v, err)
+			}
+			var keys []string
+			for k := range got {
+				keys = append(keys, k)
+			}
+			slices.Sort(keys)
+			if !slices.Equal(keys, fields[typ]) || got["order_id"] != o.id {
+				t.Errorf("%s for %s = %v, want the fields %v for order %s", typ, v, got, fields[typ], o.id)
+			}
+			if typ == "dispatch.state_changed" && (got["from"] != "SEARCHING" || got["to"] != "NO_RIDER_FOUND") {
+				t.Errorf("%s for %s = %v, want SEARCHING -> NO_RIDER_FOUND", typ, v, got)
+			}
+			if typ == "admin.dispatch_failure" &&
+				(got["waves"] != float64(maxWaves) || got["riders_offered"] != float64(0) || got["radius_m"] != float64(10000)) {
+				t.Errorf("%s = %v, want %d waves, 0 riders offered, 10000 m", typ, got, maxWaves)
+			}
+		}
+	}
+	if err := rows.Err(); err != nil {
+		t.Fatal(err)
+	}
+	if seen["dispatch.state_changed"] != 1 || seen["admin.dispatch_failure"] != 1 {
+		t.Fatalf("events that end the search = %v, want one of each", seen)
+	}
+}
+
 // TestNoRider_TimeBudgetEndsTheSearch: the search also ends at its time budget
 // (max_total_seconds), even with waves to spare.
 func TestNoRider_TimeBudgetEndsTheSearch(t *testing.T) {
@@ -339,8 +436,10 @@ func TestNoRider_TimeBudgetEndsTheSearch(t *testing.T) {
 	if _, err := svc.RunWave(ctx, o.id, 1, 3000); err != nil {
 		t.Fatalf("first wave: %v", err)
 	}
-	// The search started the budget ago (on the test clock).
-	mustExec(t, pool, `UPDATE dispatch SET created_at=$2 WHERE order_id=$1`, o.id, clk.Now().Add(-maxTotalSearch))
+	// The search started the budget ago (on the test clock). The budget is
+	// counted from state_since, when the search last entered SEARCHING
+	// (ClaimWavesToEscalate).
+	mustExec(t, pool, `UPDATE dispatch SET state_since=$2 WHERE order_id=$1`, o.id, clk.Now().Add(-maxTotalSearch))
 	clk.Advance(untilNextWave)
 	if err := runner.EscalateAndExpire(ctx); err != nil {
 		t.Fatalf("EscalateAndExpire: %v", err)
@@ -563,8 +662,9 @@ func TestNoRider_TwoReplicasRunEachWaveOnce(t *testing.T) {
 	if n := len(eventPayloads(t, poolA, o.id, "admin.dispatch_failure")); n != 1 {
 		t.Fatalf("admin.dispatch_failure events = %d, want 1", n)
 	}
-	if n := len(eventPayloads(t, poolA, o.id, "dispatch.state_changed")); n != 1 {
-		t.Fatalf("dispatch.state_changed events = %d, want 1", n)
+	// The search started once and ended once, however many replicas ran it.
+	if n := len(eventPayloads(t, poolA, o.id, "dispatch.state_changed")); n != 2 {
+		t.Fatalf("dispatch.state_changed events = %d, want 2 (the search's start and its end)", n)
 	}
 }
 

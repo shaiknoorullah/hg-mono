@@ -60,6 +60,15 @@ export interface AppBarProps {
   selection?: { count: number; onExit: () => void; exitLabel?: string };
   /** The page's h1 on web. `false` where the screen already has a visible h1 below the bar. */
   isPageHeading?: boolean;
+  /**
+   * The theme surface (live design system `tone`). Unset keeps the chrome bar every legacy
+   * screen has today; `cream` and `raised` put primary ink on the light surfaces.
+   */
+  tone?: 'cream' | 'raised' | 'chrome' | 'field';
+  /** The back button's full name ("Back to Orders"); wins over `back.previousTitle`. */
+  backLabel?: string;
+  /** Arbitrary trailing actions (IconButtons with real labels), after `actions`. */
+  actionsSlot?: ReactNode;
   style?: ViewStyle;
   testID?: string;
 }
@@ -79,6 +88,9 @@ export function AppBar({
   searchSlot,
   selection,
   isPageHeading = true,
+  tone,
+  backLabel,
+  actionsSlot,
   style,
   testID = 'AppBar',
 }: AppBarProps) {
@@ -91,11 +103,16 @@ export function AppBar({
   const transparent = variant === 'transparent';
   const large = variant === 'large' && !scrolled;
 
+  const light = tone === 'cream' || tone === 'raised';
   const background = transparent
     ? 'transparent'
     : contextual
       ? theme.color.surface.inverse
-      : theme.color.surface.chrome;
+      : tone === 'cream'
+        ? theme.color.surface.base
+        : tone === 'raised'
+          ? theme.color.surface.raised
+          : theme.color.surface.chrome;
   // `surface.chrome` is DARK in both schemes (#1B3B31 light, #0A1913 dark), but the
   // foreground here was `text.primary`, which is only light in the dark scheme. On the
   // light scheme that put #232323 on #1B3B31 — measured 1.28:1 for the customer app's
@@ -106,7 +123,11 @@ export function AppBar({
   // explicitly per scheme. Both resolve to #F6EFDD, which is 11.6:1 on the light
   // chrome. The `transparent` variant sits over `surface.scrim` and wants the same.
   const onChrome = theme.scheme === 'dark' ? theme.color.text.primary : theme.color.text.onInverse;
-  const foreground = contextual ? theme.color.text.onInverse : onChrome;
+  const foreground = contextual
+    ? theme.color.text.onInverse
+    : light && !transparent
+      ? theme.color.text.primary
+      : onChrome;
 
   const control = Math.max(theme.target.min, 44);
 
@@ -158,7 +179,9 @@ export function AppBar({
           </BarButton>
         ) : back ? (
           <BarButton
-            accessibilityLabel={back.previousTitle ? `Back to ${back.previousTitle}` : 'Back'}
+            accessibilityLabel={
+              backLabel ?? (back.previousTitle ? `Back to ${back.previousTitle}` : 'Back')
+            }
             onPress={back.onPress}
             size={control}
             testID={`${testID}-back`}
@@ -223,6 +246,7 @@ export function AppBar({
               ) : null}
             </BarButton>
           ))}
+          {actionsSlot}
         </View>
       </View>
 

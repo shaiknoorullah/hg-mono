@@ -1206,7 +1206,7 @@ def _auth_and_config(reg, synth) -> None:
         "A customer session issued by phone OTP, with `next_route` telling the app where to "
         "land — the client contains no branching tree of its own (P-04).",
         synth.make("SessionGrant", "session-customer"),
-        operations=["verifyOtp", "login", "refreshSession", "verifyEmail"],
+        operations=["verifyOtp", "login", "refreshSession"],
         tags=["platform", "auth"],
     )
 
@@ -1257,6 +1257,26 @@ def _auth_and_config(reg, synth) -> None:
             ],
         },
         operations=["enrollTotp"],
+        tags=["platform", "auth"],
+    )
+    reg.add(
+        "totp_invite_enrolment",
+        "platform",
+        "TotpEnrolment",
+        "An invited admin, who has no session yet, starts the authenticator from the invitation "
+        "link (`startInviteTotpEnrolment`, issue #170). The link stays usable; `resetPassword` "
+        "with the link, the first password and the first code as `totp_code` confirms it.",
+        {
+            "provisioning_uri": (
+                "otpauth://totp/HalalGoes:new.admin%40halalgoes.ca"
+                "?secret=KRSXG5CTMVRXEZLUKN2XAZLSKNSWG4TF&issuer=HalalGoes&digits=6"
+            ),
+            "recovery_codes": [
+                f"{int_for(f'invite-recovery:{i}:a', 1000, 9999)}-{int_for(f'invite-recovery:{i}:b', 1000, 9999)}"
+                for i in range(10)
+            ],
+        },
+        operations=["startInviteTotpEnrolment"],
         tags=["platform", "auth"],
     )
 

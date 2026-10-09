@@ -109,12 +109,22 @@ func (h *Handler) Search(w http.ResponseWriter, r *http.Request) {
 	writeEnvelope(w, r, http.StatusOK, results, meta)
 }
 
-// cardFor builds a RestaurantCard from a row given address context and the clock.
+// cardFor builds a RestaurantCard from a row given address context and the
+// clock. The open state comes from the row's hours in its timezone, its toggle,
+// pause and heartbeat (openhours.go); opens_at carries the next opening when it
+// is outside its hours and closes_at the end of the hours it is inside.
 func (h *Handler) cardFor(rr restaurantRow, hasAddress bool, now time.Time) RestaurantCard {
-	verdict := deriveOpenState(availabilityRow{
-		accountState: "LIVE", isAcceptingOrders: true, lastHeartbeatAt: &now,
-	}, now, true, false)
+	hv := evaluateHours(rr.weeklyHours, rr.hoursOverrides, rr.timezone, now)
+	verdict := cardOpenState(rr.trading, rr.collectionBlock, hv, now)
 	info := buildAvailabilityInfo(rr, verdict, hasAddress)
+	if hv.within && verdict.state == OpenStateOpen && hv.closesAt != nil {
+		s := httpx.Timestamp(*hv.closesAt)
+		info.ClosesAt = &s
+	}
+	if !hv.within && hv.opensAt != nil {
+		s := httpx.Timestamp(*hv.opensAt)
+		info.OpensAt = &s
+	}
 	return toCard(rr, info, h.media)
 }
 

@@ -27,10 +27,10 @@ import (
 // an event for a payment this database never saw (it was created after the
 // backup), and a payment this database voided that Stripe reports captured.
 //
-// Two are routine and must raise nothing: a decline event that arrives after
-// the order's deadline voided the payment (a late event, not a conflict), and
-// a dispute event, which has no handler yet and so must stay pending for the
-// one that will own it rather than be marked done with no effect.
+// Two are routine and must raise no exception: a decline event that arrives
+// after the order's deadline voided the payment (a late event, not a
+// conflict), and a dispute on the captured payment, which opens its
+// chargeback through the same handler the webhook worker uses (#249).
 //
 // The first run must apply each of these exactly once; the second must change
 // nothing and still list both payments that need a person, because nothing
@@ -46,10 +46,12 @@ func TestIntegration_CatchUp_AppliesMissedEventsOnceAndARerunChangesNothing(t *t
 	capturedEvt, ghostEvt := "evt_cu_cap_"+run, "evt_cu_ghost_"+run
 	declinedEvt, disputeEvt := "evt_cu_declined_"+run, "evt_cu_dispute_"+run
 	pis := []string{capturedPI, canceledPI, voidedHerePI, declinedPI, ghostPI}
+	disputeID := "dp_cu_" + run
 	t.Cleanup(func() {
 		c := context.Background()
 		_, _ = pool.Exec(c, `DELETE FROM webhook_event WHERE stripe_event_id = ANY($1)`,
 			[]string{capturedEvt, ghostEvt, declinedEvt, disputeEvt})
+		_, _ = pool.Exec(c, `DELETE FROM chargeback WHERE stripe_dispute_id = $1`, disputeID)
 		_, _ = pool.Exec(c, `DELETE FROM reconciliation_exception WHERE stripe_object_id = ANY($1)`, pis)
 		_, _ = pool.Exec(c, `DELETE FROM payment_intent WHERE stripe_payment_intent_id = ANY($1)`, pis)
 	})
@@ -70,7 +72,10 @@ func TestIntegration_CatchUp_AppliesMissedEventsOnceAndARerunChangesNothing(t *t
 		paymentIntentEvent(capturedEvt, "payment_intent.succeeded", capturedPI, 3919, since.Add(time.Minute)),
 		paymentIntentEvent(ghostEvt, "payment_intent.amount_capturable_updated", ghostPI, 0, since.Add(2*time.Minute)),
 		paymentIntentEvent(declinedEvt, "payment_intent.payment_failed", declinedPI, 0, since.Add(3*time.Minute)),
-		paymentIntentEvent(disputeEvt, "charge.dispute.created", capturedPI, 0, since.Add(4*time.Minute)),
+		listedEvent(disputeEvt, "charge.dispute.created", since.Add(4*time.Minute), map[string]any{
+			"id": disputeID, "object": "dispute", "amount": 3919, "payment_intent": capturedPI,
+			"reason": "fraudulent", "status": "needs_response",
+		}),
 	}
 	onStripe := map[string]*StripeIntent{
 		capturedPI:   {ID: capturedPI, Status: "succeeded", AmountReceivedCents: 3919},
@@ -140,26 +145,32 @@ func TestIntegration_CatchUp_AppliesMissedEventsOnceAndARerunChangesNothing(t *t
 		t.Error("a rerun with unresolved mismatches reports no work left, so the command would exit zero")
 	}
 
-	// Exactly once, in the database itself: one row per event, each
-	// payment_intent event applied, and one CAPTURE batch however many times
-	// the capture was seen. One exception per payment for a person, however
-	// many runs saw it.
+	// Rows other suites left in the shared database fail the read-back by
+	// design (GetIntentFn); none of this test's own may fail.
+	if f := append(ours(first.Failures, run), ours(second.Failures, run)...); len(f) != 0 {
+		t.Errorf("failures for this test's events and payments: %v; want none", f)
+	}
+
+	// Exactly once, in the database itself: one row per event, each event
+	// applied, and one CAPTURE batch however many times the capture was seen.
+	// One exception per payment for a person, however many runs saw it.
 	var rows, processed int
 	if err := pool.QueryRow(ctx, `
 		SELECT count(*), count(processed_at) FROM webhook_event WHERE stripe_event_id = ANY($1)`,
-		[]string{capturedEvt, ghostEvt, declinedEvt}).Scan(&rows, &processed); err != nil {
+		[]string{capturedEvt, ghostEvt, declinedEvt, disputeEvt}).Scan(&rows, &processed); err != nil {
 		t.Fatalf("count webhook events: %v", err)
 	}
-	if rows != 3 || processed != 3 {
-		t.Errorf("webhook_event: %d rows, %d applied; want 3 and 3", rows, processed)
+	if rows != 4 || processed != 4 {
+		t.Errorf("webhook_event: %d rows, %d applied; want 4 and 4", rows, processed)
 	}
-	var disputePending bool
-	if err := pool.QueryRow(ctx, `SELECT processed_at IS NULL FROM webhook_event WHERE stripe_event_id = $1`,
-		disputeEvt).Scan(&disputePending); err != nil {
-		t.Fatalf("read the dispute event: %v", err)
+	var chargebacks int
+	if err := pool.QueryRow(ctx, `
+		SELECT count(*) FROM chargeback WHERE stripe_dispute_id = $1 AND order_id = $2 AND outcome IS NULL`,
+		disputeID, capturedOrder).Scan(&chargebacks); err != nil {
+		t.Fatalf("count chargebacks: %v", err)
 	}
-	if !disputePending {
-		t.Error("the dispute event was marked applied, though nothing applies a dispute yet; its handler would never see it")
+	if chargebacks != 1 {
+		t.Errorf("the dispute opened %d chargebacks on the captured order, want 1", chargebacks)
 	}
 	var exceptions int
 	if err := pool.QueryRow(ctx, `
@@ -206,11 +217,23 @@ func ours(lines []string, run string) []string {
 // do), and the batch balances, so the ledger-wide zero sum still holds.
 func seedAuthorisedOrder(t *testing.T, pool *pgxpool.Pool, stripeID string) string {
 	t.Helper()
+	return seedOrderWithIntent(t, pool, stripeID, "COMPLETED", "REQUIRES_CAPTURE")
+}
+
+// seedOrderWithIntent adds a $39.19 order in orderState with its payment
+// intent in piState, on a fresh account, with the deadlines the CHECKs ask of
+// a state that is not final.
+func seedOrderWithIntent(t *testing.T, pool *pgxpool.Pool, stripeID, orderState, piState string) string {
+	t.Helper()
 	ctx := context.Background()
+	orderDeadline := map[string]string{"CREATED": "EXPIRE_PAYMENT", "RESTAURANT_PENDING": "RESTAURANT_TIMEOUT",
+		"PREPARING": "PREP_OVERDUE"}[orderState]
 	var accountID, orderID string
+	// The whole random UUID: a version 7 UUID's first characters are its
+	// millisecond, which two seeds in a row share (#304).
 	if err := pool.QueryRow(ctx, `
 		INSERT INTO account (email, status)
-		VALUES ('catchup-'||substr(uuid_generate_v7()::text,1,12)||'@test.local', 'ACTIVE') RETURNING id`,
+		VALUES ('catchup-'||gen_random_uuid()::text||'@test.local', 'ACTIVE') RETURNING id`,
 	).Scan(&accountID); err != nil {
 		t.Fatalf("seed account: %v", err)
 	}
@@ -227,18 +250,22 @@ func seedAuthorisedOrder(t *testing.T, pool *pgxpool.Pool, stripeID string) stri
 		  RETURNING id)
 		INSERT INTO "order" (code, quote_id, account_id, restaurant_id, delivery_address_id, fulfilment,
 		                     state, subtotal_cents, delivery_fee_cents, tip_cents, total_cents,
-		                     restaurant_net_cents, delivered_at)
+		                     restaurant_net_cents, delivered_at, deadline_at, deadline_action)
 		SELECT 'HG-'||upper(substr(md5($3),1,8)), q.id, $1, $2, '22222222-2222-4222-8222-222222222222',
-		       'DELIVERY', 'COMPLETED', 3000, 419, 500, 3919, 3000, now()
+		       'DELIVERY', $4::order_state, 3000, 419, 500, 3919, 3000,
+		       CASE WHEN $4 = 'COMPLETED' THEN now() END,
+		       CASE WHEN $5 <> '' THEN now() + interval '15 minutes' END, nullif($5, '')
 		  FROM q RETURNING id`,
-		accountID, fxRestaurant, stripeID).Scan(&orderID); err != nil {
+		accountID, fxRestaurant, stripeID, orderState, orderDeadline).Scan(&orderID); err != nil {
 		t.Fatalf("seed order: %v", err)
 	}
 	if _, err := pool.Exec(ctx, `
 		INSERT INTO payment_intent (order_id, stripe_payment_intent_id, state, amount_authorized_cents,
 		                            authorized_at, deadline_at, deadline_action)
-		VALUES ($1, $2, 'REQUIRES_CAPTURE', 3919, now(), now() + interval '20 minutes', 'await_capture')`,
-		orderID, stripeID); err != nil {
+		VALUES ($1, $2, $3::payment_state, 3919,
+		        CASE WHEN $3 = 'REQUIRES_CAPTURE' THEN now() END,
+		        now() + interval '20 minutes', 'await_capture')`,
+		orderID, stripeID, piState); err != nil {
 		t.Fatalf("seed payment_intent: %v", err)
 	}
 	return orderID
@@ -246,11 +273,16 @@ func seedAuthorisedOrder(t *testing.T, pool *pgxpool.Pool, stripeID string) stri
 
 // paymentIntentEvent is a Stripe event as the events API returns it.
 func paymentIntentEvent(id, typ, piID string, amountReceived int64, created time.Time) StripeEvent {
+	return listedEvent(id, typ, created, map[string]any{
+		"id": piID, "object": "payment_intent", "amount_received": amountReceived,
+	})
+}
+
+// listedEvent is a Stripe event carrying object, as the events API returns it.
+func listedEvent(id, typ string, created time.Time, object map[string]any) StripeEvent {
 	raw, _ := json.Marshal(map[string]any{
 		"id": id, "object": "event", "type": typ, "created": created.Unix(), "livemode": false,
-		"data": map[string]any{"object": map[string]any{
-			"id": piID, "object": "payment_intent", "amount_received": amountReceived,
-		}},
+		"data": map[string]any{"object": object},
 	})
 	return StripeEvent{ID: id, Type: typ, Created: created.Unix(), RawPayload: raw}
 }

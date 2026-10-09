@@ -71,18 +71,20 @@ type orderTransitionDTO struct {
 // ---- getOrderReceipt ----
 // The receipt is stored as a frozen JSONB snapshot. We unmarshal it into a
 // typed struct so the handler can re-marshal it into the contract envelope,
-// ensuring no extra fields leak through even if the snapshot has extras.
+// ensuring no extra fields leak through even if the snapshot has extras. The
+// snapshot is written from this same struct at COMPLETED (receipt.go), so the
+// stored shape and the served shape are one type.
 
 type receiptSnapshotDTO struct {
 	OrderID                         string            `json:"order_id"`
 	OrderCode                       string            `json:"order_code"`
 	ReceiptNumber                   string            `json:"receipt_number"`
 	IssuedAt                        string            `json:"issued_at"`
-	PlatformLegalName               string            `json:"platform_legal_name"`
+	PlatformLegalName               string            `json:"platform_legal_name,omitempty"`
 	PlatformTaxRegistrationNumber   *string           `json:"platform_tax_registration_number"`
 	RestaurantLegalName             string            `json:"restaurant_legal_name"`
 	RestaurantTaxRegistrationNumber *string           `json:"restaurant_tax_registration_number"`
-	DeliveryAddress                 *json.RawMessage  `json:"delivery_address"`
+	DeliveryAddress                 *publicAddressDTO `json:"delivery_address"`
 	Lines                           []receiptLineDTO  `json:"lines"`
 	Money                           receiptMoneyDTO   `json:"money"`
 	Payment                         receiptPaymentDTO `json:"payment"`
@@ -92,16 +94,16 @@ type receiptSnapshotDTO struct {
 }
 
 type receiptLineDTO struct {
-	LineNo         int               `json:"line_no"`
-	MenuItemID     string            `json:"menu_item_id"`
-	Name           string            `json:"name"`
-	VariantName    *string           `json:"variant_name"`
-	Addons         []json.RawMessage `json:"addons"`
-	Quantity       int               `json:"quantity"`
-	SpecialRequest *string           `json:"special_request"`
-	UnitPriceCents int64             `json:"unit_price_cents"`
-	LineTotalCents int64             `json:"line_total_cents"`
-	Currency       string            `json:"currency"`
+	LineNo         int                 `json:"line_no"`
+	MenuItemID     string              `json:"menu_item_id"`
+	Name           string              `json:"name"`
+	VariantName    *string             `json:"variant_name"`
+	Addons         []quoteLineAddonDTO `json:"addons"`
+	Quantity       int                 `json:"quantity"`
+	SpecialRequest *string             `json:"special_request"`
+	UnitPriceCents int64               `json:"unit_price_cents"`
+	LineTotalCents int64               `json:"line_total_cents"`
+	Currency       string              `json:"currency"`
 }
 
 type receiptMoneyDTO struct {
@@ -109,7 +111,7 @@ type receiptMoneyDTO struct {
 	DiscountCents    int64             `json:"discount_cents"`
 	DeliveryFeeCents int64             `json:"delivery_fee_cents"`
 	ServiceFeeCents  int64             `json:"service_fee_cents"`
-	TaxLines         []json.RawMessage `json:"tax_lines"`
+	TaxLines         []quoteTaxLineDTO `json:"tax_lines"`
 	TaxTotalCents    int64             `json:"tax_total_cents"`
 	TipCents         int64             `json:"tip_cents"`
 	TotalCents       int64             `json:"total_cents"`
@@ -122,6 +124,18 @@ type receiptPaymentDTO struct {
 	Wallet             *string `json:"wallet"`
 	AmountChargedCents int64   `json:"amount_charged_cents"`
 	Currency           string  `json:"currency"`
+}
+
+// publicAddressDTO is the contract PublicAddress: where the order went, with
+// no buzzer, unit, notes or label.
+type publicAddressDTO struct {
+	Line1      string  `json:"line1"`
+	Line2      *string `json:"line2"`
+	City       string  `json:"city"`
+	Province   string  `json:"province"`
+	PostalCode string  `json:"postal_code"`
+	Latitude   float64 `json:"latitude"`
+	Longitude  float64 `json:"longitude"`
 }
 
 // normalizeArrays guarantees the contract-required array fields render as `[]`
@@ -139,11 +153,11 @@ func (r *receiptSnapshotDTO) normalizeArrays() {
 		r.Lines = []receiptLineDTO{}
 	}
 	if r.Money.TaxLines == nil {
-		r.Money.TaxLines = []json.RawMessage{}
+		r.Money.TaxLines = []quoteTaxLineDTO{}
 	}
 	for i := range r.Lines {
 		if r.Lines[i].Addons == nil {
-			r.Lines[i].Addons = []json.RawMessage{}
+			r.Lines[i].Addons = []quoteLineAddonDTO{}
 		}
 	}
 }

@@ -25,6 +25,7 @@ package conformance
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -35,6 +36,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/admin"
@@ -50,11 +52,18 @@ import (
 // move the real order.
 type riderLifecycle struct{ store *orders.Store }
 
-func (a riderLifecycle) ConfirmPickup(ctx context.Context, orderID, riderAccountID string) error {
-	return a.store.Transition(ctx, orders.TransitionRequest{
-		OrderID: orderID, To: machine.StatePickedUp, Actor: machine.ActorRider,
-		ActorAccountID: riderAccountID, Reason: "rider confirmed pickup",
-	})
+// ConfirmPickupTx mirrors cmd/hg/pickup.go: the order moves to PICKED_UP in
+// the rider's step's own transaction, and a refusal refuses the step.
+func (a riderLifecycle) ConfirmPickupTx(ctx context.Context, tx pgx.Tx, orderID, riderAccountID string) error {
+	err := a.store.PickUpTx(ctx, tx, orderID, riderAccountID)
+	var illegal *orders.IllegalTransitionError
+	switch {
+	case errors.As(err, &illegal):
+		return &dispatch.OrderNotCollectableError{OrderState: string(illegal.From)}
+	case errors.Is(err, orders.ErrRiderDoesNotHoldOrder):
+		return dispatch.ErrRiderDoesNotHoldOrder
+	}
+	return err
 }
 
 func (a riderLifecycle) MarkArrived(ctx context.Context, orderID, riderAccountID string) error {
@@ -86,7 +95,7 @@ func newHandoverHarness(t *testing.T, pool *pgxpool.Pool) *Harness {
 	ordersStore := orders.NewStore(pool)
 	orders.Routes(router, orders.NewHandler(ordersStore, nil, nil))
 	restaurant.Routes(router, restaurant.NewHandler(restaurant.NewRepo(pool), nil, nil))
-	admin.Routes(router, admin.NewHandler(admin.NewRepo(pool), admin.DefaultConfig()).WithOrderStore(ordersStore))
+	admin.Routes(router, admin.NewHandler(admin.NewRepo(pool).WithOrdersStore(ordersStore), admin.DefaultConfig()))
 	dispatch.Routes(router, dispatch.NewHandler(dispatch.NewService(dispatch.NewStore(pool), riderLifecycle{store: ordersStore})))
 	if err := router.Verify(); err != nil {
 		t.Fatalf("handover harness router verify: %v", err)

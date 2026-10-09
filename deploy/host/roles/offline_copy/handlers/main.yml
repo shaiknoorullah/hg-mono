@@ -1,0 +1,10 @@
+- name: Reload systemd
+  ansible.builtin.systemd_service:
+    daemon_reload: true
+  ignore_errors: "{{ ansible_check_mode }}"
+
+- name: Restart the watcher
+  community.docker.docker_compose_v2:
+    project_src: "{{ hg_offline_dir }}/watcher"
+    state: restarted
+  ignore_errors: "{{ ansible_check_mode }}"

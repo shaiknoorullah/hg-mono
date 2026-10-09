@@ -173,7 +173,7 @@ leaked. `403` means "you can see this resource but may not perform this action".
 ### Versioning
 
 Every operation carries `x-version`: `V0` (in the 43-feature launch cut) or `V1` (needed to make
-a V0 screen coherent, but not itself launch-blocking). Current counts: **140 V0, 16 V1**
+a V0 screen coherent, but not itself launch-blocking). Current counts: **151 V0, 19 V1**
 (`pnpm validate:contract` prints them).
 
 On 2026-10-01 the owner moved into launch the operations launch screens depend on, and added
@@ -192,6 +192,14 @@ issue [#182](https://github.com/shaiknoorullah/hg-mono/issues/182)):
 | **New:** a restaurant renames, reorders, deactivates or reactivates its own category | `updateMenuCategory` |
 | The menu review queue | `listMenuReviewQueue`, `decideMenuVersion` |
 | **New:** an admin updates or removes a menu item on a restaurant's behalf | `updateMenuItemOnBehalf`, `deleteMenuItemOnBehalf` |
+
+Then, for launch, staff review refunds and see chargebacks ([#172](https://github.com/shaiknoorullah/hg-mono/issues/172)):
+
+| What | Operations |
+|---|---|
+| **New:** the refund review queue; approve a refund (within the approver's 24-hour limit, or sent up for a second person) or decline it with a reason | `listRefundsAdmin`, `approveRefund`, `declineRefund` |
+| **New:** chargebacks (disputes raised with the customer's bank) and the evidence notes staff keep for them | `listChargebacks`, `getChargeback`, `addChargebackEvidenceNote` |
+| **Widened:** the admin order view carries the order's money timeline and its chargebacks | `getOrderAdmin` |
 
 Still later-version: turning two-step sign-in off, listing and ending single sessions,
 dependency status, the in-app inbox, restaurant staff, ratings, the home feed and a restaurant
@@ -333,6 +341,7 @@ either way, but the **values** need a human before launch:
 | `x-roles` and `x-version` present | Any operation omits either — this is the deny-by-default gate expressed in the contract |
 | Money invariant | A `_cents` field is not `integer/int64`, or a money-shaped field lacks the suffix, or a `number`-typed field has a money-shaped name |
 | Mass-assignment invariant | A request body contains a price-shaped field outside the three-item allowlist |
+| Menu lock declared | A write under a menu path (`/menu`, `/menu/…`, `/menu-reviews/…`) has no `403` naming `MENU_LOCKED`, the refusal while the restaurant is suspended or banned ([menu lock](../docs/decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01), [#256](https://github.com/shaiknoorullah/hg-mono/issues/256)) |
 | Component reachability | A schema, parameter or response is declared and never referenced |
 | Contract drift | The document generated from the route registry differs from the committed one |
 | Fixture validity | Any fixture under `contracts/fixtures/` does not validate against its named schema (`pnpm validate:fixtures`) |

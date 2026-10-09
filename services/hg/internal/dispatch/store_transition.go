@@ -3,6 +3,7 @@ package dispatch
 import (
 	"context"
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -68,7 +69,11 @@ type TransitionInput struct {
 // The returned bool reports whether a real forward transition was persisted;
 // it is false for the idempotent no-op (repeating the current state) so the
 // caller can skip firing the OrderLifecycle bridge on a duplicate request.
-func (s *Store) Transition(ctx context.Context, riderAccountID, assignmentID string, in TransitionInput, now time.Time) (*Assignment, bool, error) {
+//
+// pickup moves the order for a PICKED_UP step in this same transaction
+// (pickup.go); a refusal rolls the step back. A nil pickup (no OrderLifecycle
+// wired) leaves the order alone.
+func (s *Store) Transition(ctx context.Context, riderAccountID, assignmentID string, in TransitionInput, now time.Time, pickup pickupStep) (*Assignment, bool, error) {
 	tx, err := s.db.Begin(ctx)
 	if err != nil {
 		return nil, false, err
@@ -201,6 +206,18 @@ VALUES ($1, $2, $3, 'RIDER', $4, $5, $6)`,
 	}
 	_ = geofenceOK // flagged-for-ops signalling is emitted via the outbox in a later slice.
 
+	// PICKED_UP moves the order in this transaction, after the assignment row:
+	// the lock order every pickup path uses. The orders module checks that this
+	// rider holds the order's delivery and that the kitchen marked it ready; an
+	// order still PREPARING is refused until the kitchen's pickup code is
+	// checked (https://github.com/shaiknoorullah/hg-mono/issues/413). A refusal
+	// rolls the step back (pickup.go).
+	if in.ToState == "PICKED_UP" && pickup != nil {
+		if err := pickup(ctx, tx, orderID); err != nil {
+			return nil, false, pickupRefusal(err, cur)
+		}
+	}
+
 	// Terminal ⇒ restore availability in the same transaction (D-10). The rider
 	// returns to ONLINE_IDLE, or OFFLINE if they asked to end the shift.
 	if terminalAssignment(in.ToState) {
@@ -208,13 +225,25 @@ VALUES ($1, $2, $3, 'RIDER', $4, $5, $6)`,
 			return nil, false, err
 		}
 		// Advance the dispatch row to COMPLETED on DELIVERED so the rider is no
-		// longer counted as holding a live dispatch. Other terminal reasons leave
-		// the platform-side reassignment to ops; dispatch never cancels an order.
+		// longer counted as holding a live dispatch. Any other end takes the
+		// row off the rider (release.go); dispatch never cancels an order.
+		if in.ToState != "DELIVERED" {
+			if err := releaseRiderTx(ctx, tx, orderID, riderAccountID, strings.ToLower(in.ToState)); err != nil {
+				return nil, false, err
+			}
+		}
 		if in.ToState == "DELIVERED" {
+			prevDispatch, err := dispatchStateFor(ctx, tx, orderID)
+			if err != nil {
+				return nil, false, err
+			}
 			if _, err := tx.Exec(ctx, `
 UPDATE dispatch SET state = 'COMPLETED', state_since = now(),
                     deadline_at = NULL, deadline_action = NULL
  WHERE order_id = $1 AND rider_account_id = $2`, orderID, riderAccountID); err != nil {
+				return nil, false, err
+			}
+			if err := emitDispatchState(ctx, tx, orderID, prevDispatch, "COMPLETED", now); err != nil {
 				return nil, false, err
 			}
 		}
@@ -244,10 +273,12 @@ RETURNING 'ON_DELIVERY', availability_state::text`, riderAccountID).Scan(&from, 
 	if err != nil {
 		return err
 	}
-	_, err = tx.Exec(ctx, `
+	if _, err = tx.Exec(ctx, `
 INSERT INTO rider_availability_event (account_id, from_state, to_state, reason, actor_kind)
-VALUES ($1, $2, $3, 'ASSIGNMENT_TERMINAL', 'SYSTEM')`, riderAccountID, from, to)
-	return err
+VALUES ($1, $2, $3, 'ASSIGNMENT_TERMINAL', 'SYSTEM')`, riderAccountID, from, to); err != nil {
+		return err
+	}
+	return emitAvailability(ctx, tx, riderAccountID)
 }
 
 func timestampColumn(state string) string {
@@ -403,13 +434,18 @@ FROM assignment WHERE id = $1 AND rider_account_id = $2 FOR UPDATE`,
 		if in.PhotoObjectID == nil {
 			return nil, newError(422, CodePodRequired, "A proof photo is required.", nil)
 		}
-		// The object must be READY, purpose POD, uploaded by this rider.
+		// The object must be READY, purpose POD, uploaded by this rider for
+		// this delivery's order: never another account's photo. Every other
+		// object gets the same answer, so it says nothing about whether the
+		// object exists (https://github.com/shaiknoorullah/hg-mono/issues/359).
 		var ok bool
 		if err := tx.QueryRow(ctx, `
 SELECT EXISTS (
   SELECT 1 FROM stored_object so
-   WHERE so.id = $1 AND so.state = 'READY' AND so.purpose = 'POD')`,
-			*in.PhotoObjectID).Scan(&ok); err != nil {
+   WHERE so.id = $1 AND so.state = 'READY' AND so.purpose = 'POD' AND so.deleted_at IS NULL
+     AND so.uploaded_by = $2
+     AND so.order_id = (SELECT order_id FROM assignment WHERE id = $3))`,
+			*in.PhotoObjectID, riderAccountID, assignmentID).Scan(&ok); err != nil {
 			return nil, err
 		}
 		if !ok {
@@ -434,11 +470,24 @@ UPDATE assignment
 // Reconciliation sweep (D-10). Backstop, not the mechanism.
 // ---------------------------------------------------------------------------
 
-// ReconcileAvailability returns any rider stuck in ON_DELIVERY whose assignment
-// is no longer in a non-terminal state to ONLINE_IDLE/OFFLINE, and logs the
-// anomaly count. Idempotent; safe to run every 60s from a single leader.
-func (s *Store) ReconcileAvailability(ctx context.Context) (int64, error) {
-	tag, err := s.db.Exec(ctx, `
+// ReconcileAvailability returns every rider stuck in ON_DELIVERY with no live
+// assignment (one is live until its terminated_at is set) to ONLINE_IDLE, or
+// OFFLINE if they asked to go offline after the delivery. Each one is an anomaly, since an
+// assignment's terminal step restores its rider in the same transaction
+// (restoreAvailabilityTx), so each is written to rider_availability_event with
+// reason RECONCILED and sent rider.availability_changed (events.go), in the
+// transaction that moves it. It returns the riders it
+// restored. Idempotent: a restored rider no longer matches, so a second run
+// restores nobody. AvailabilitySweeper runs it every 60 s
+// (availability_sweeper.go, https://github.com/shaiknoorullah/hg-mono/issues/255).
+func (s *Store) ReconcileAvailability(ctx context.Context) ([]string, error) {
+	tx, err := s.db.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx) //nolint:errcheck
+
+	rows, err := tx.Query(ctx, `
 UPDATE rider_profile rp
    SET availability_state = (CASE WHEN rp.go_offline_after_delivery THEN 'OFFLINE' ELSE 'ONLINE_IDLE' END)::rider_availability_state,
        is_online = NOT rp.go_offline_after_delivery,
@@ -447,26 +496,85 @@ UPDATE rider_profile rp
    AND NOT EXISTS (
          SELECT 1 FROM assignment a
           WHERE a.rider_account_id = rp.account_id
-            AND a.terminated_at IS NULL)`)
+            AND a.terminated_at IS NULL)
+RETURNING rp.account_id::text, rp.availability_state::text`)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
-	return tag.RowsAffected(), nil
+	var ids, states []string
+	for rows.Next() {
+		var id, to string
+		if err := rows.Scan(&id, &to); err != nil {
+			rows.Close()
+			return nil, err
+		}
+		ids, states = append(ids, id), append(states, to)
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	for i, id := range ids {
+		if _, err := tx.Exec(ctx, `
+INSERT INTO rider_availability_event (account_id, from_state, to_state, reason, actor_kind)
+VALUES ($1, 'ON_DELIVERY', $2, 'RECONCILED', 'SYSTEM')`, id, states[i]); err != nil {
+			return nil, err
+		}
+		// The rider app hears of the restore like any other availability
+		// change, in this transaction
+		// (https://github.com/shaiknoorullah/hg-mono/issues/379).
+		if err := emitAvailability(ctx, tx, id); err != nil {
+			return nil, err
+		}
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
+	}
+	return ids, nil
 }
 
 // SweepStaleOnline moves ONLINE_IDLE riders whose location fix is older than the
 // staleness window to ONLINE_STALE (D-10: not dispatchable, still "online").
+// Each rider moved is sent rider.availability_changed in the same transaction
+// (events.go).
 func (s *Store) SweepStaleOnline(ctx context.Context, staleAfter time.Duration, now time.Time) (int64, error) {
-	tag, err := s.db.Exec(ctx, `
+	tx, err := s.db.Begin(ctx)
+	if err != nil {
+		return 0, err
+	}
+	defer tx.Rollback(ctx)
+	rows, err := tx.Query(ctx, `
 UPDATE rider_profile rp
    SET availability_state = 'ONLINE_STALE', availability_changed_at = now()
  WHERE rp.availability_state = 'ONLINE_IDLE'
    AND NOT EXISTS (
          SELECT 1 FROM rider_position pos
           WHERE pos.account_id = rp.account_id
-            AND pos.received_at > $1)`, now.Add(-staleAfter))
+            AND pos.received_at > $1)
+RETURNING rp.account_id::text`, now.Add(-staleAfter))
 	if err != nil {
 		return 0, err
 	}
-	return tag.RowsAffected(), nil
+	var ids []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			rows.Close()
+			return 0, err
+		}
+		ids = append(ids, id)
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return 0, err
+	}
+	for _, id := range ids {
+		if err := emitAvailability(ctx, tx, id); err != nil {
+			return 0, err
+		}
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return 0, err
+	}
+	return int64(len(ids)), nil
 }

@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -48,11 +47,11 @@ type Gateway struct {
 	log   *slog.Logger
 	auth  Reauthenticator
 
-	// maxSockets caps the live sockets on this replica; sockets counts them.
-	// An upgrade beyond the cap is closed with 1013 so the client retries and
-	// can land on the other replica.
-	maxSockets int64
-	sockets    atomic.Int64
+	// limits caps the live sockets on this replica (in total, per account and
+	// per session) and the request rates the handler enforces; slots counts the
+	// live sockets against them (slots.go).
+	limits Limits
+	slots  socketSlots
 
 	mu    sync.RWMutex
 	conns map[*connection]struct{}
@@ -72,36 +71,29 @@ type Reauthenticator interface {
 	Reauth(ctx context.Context, accessToken string) (sessionID string, err error)
 }
 
-// NewGateway builds a Gateway that holds at most maxSockets live sockets. Call
-// Run to start the Redis fan-out loop.
-func NewGateway(store *Store, rdb *redis.Client, log *slog.Logger, auth Reauthenticator, maxSockets int) *Gateway {
+// NewGateway builds a Gateway that holds at most limits.MaxSockets live
+// sockets, and at most the per-account and per-session caps for any one
+// caller. A zero field takes its default (Limits). Call Run to start the Redis
+// fan-out loop.
+func NewGateway(store *Store, rdb *redis.Client, log *slog.Logger, auth Reauthenticator, limits Limits) *Gateway {
 	if auth == nil {
 		auth = NoopReauthenticator{}
 	}
 	return &Gateway{
-		store:      store,
-		rdb:        rdb,
-		log:        log,
-		auth:       auth,
-		maxSockets: int64(maxSockets),
-		conns:      map[*connection]struct{}{},
-		index:      map[string]map[*connection]struct{}{},
-		done:       make(chan struct{}),
+		store:  store,
+		rdb:    rdb,
+		log:    log,
+		auth:   auth,
+		limits: limits.withDefaults(),
+		slots: socketSlots{
+			perAccount: map[string]int{},
+			perSession: map[string]int{},
+		},
+		conns: map[*connection]struct{}{},
+		index: map[string]map[*connection]struct{}{},
+		done:  make(chan struct{}),
 	}
 }
-
-// admit reserves a socket slot on this replica. It reports false when the
-// replica is full; a true result must be paired with exactly one release.
-func (g *Gateway) admit() bool {
-	if g.sockets.Add(1) > g.maxSockets {
-		g.sockets.Add(-1)
-		return false
-	}
-	return true
-}
-
-// release frees a slot taken by admit.
-func (g *Gateway) release() { g.sockets.Add(-1) }
 
 // Run starts the Redis pub/sub fan-out. It blocks until ctx is cancelled and
 // reconnects on error: a Redis outage costs live fan-out, never a lost event —
@@ -178,22 +170,31 @@ func (g *Gateway) dispatch(redisChannel string, payload []byte) {
 	}
 	g.mu.RUnlock()
 
-	// Each subscriber gets the §5 projection for its viewer relation, and only if
-	// it is in the event's audience. A principal can never receive an event for a
-	// channel it is not subscribed to (index gate) nor one it is not an audience
-	// of (audience gate).
+	// Each subscriber gets the per-role projection (contracts/websocket.md
+	// section 5) for the one role its subscription was granted as, and only if
+	// that role's allow-list has a serializer for the event (projection.go). A
+	// principal can never receive an event for a channel it is not subscribed
+	// to (index gate) nor one its role may not see (allow-list gate); anything
+	// the projection cannot place is dropped and logged, never forwarded as
+	// stored.
 	for _, c := range targets {
 		viewer, ok := c.viewerFor(channel)
 		if !ok {
 			continue
 		}
-		projected, deliver := Project(env.Type, viewer, msg.Audience, env.Data)
+		projected, deliver := c.project(channel, env.Type, viewer, msg.Audience, env.Data)
 		if !deliver {
 			continue
 		}
 		out := env
 		out.Data = projected
 		c.enqueue(out)
+	}
+
+	// The order's rider may have changed: re-check the riders still subscribed
+	// (revalidate.go).
+	if participantChange[env.Type] {
+		g.revalidateRiders(channel, targets)
 	}
 }
 

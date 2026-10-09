@@ -66,6 +66,32 @@ type restaurantRow struct {
 	// lat/lng of the premises for the detail address block.
 	latitude  *float64
 	longitude *float64
+	// trading state for the card's open state (openhours.go), read in the
+	// same query as the card: hours and overrides are aggregated per row, so
+	// a list of cards is one statement, not one per card.
+	trading         availabilityRow
+	collectionBlock bool
+	weeklyHours     []weeklySlot
+	hoursOverrides  []hoursOverride
+}
+
+// cardTargets are the scan targets for cardColumns, in order, ending with
+// tradingColumns'.
+func (rr *restaurantRow) cardTargets() []any {
+	return []any{
+		&rr.id, &rr.slug, &rr.displayName, &rr.description,
+		&rr.line1, &rr.line2, &rr.city, &rr.province, &rr.postalCode, &rr.timezone,
+		&rr.publicPhone,
+		&rr.ratingAvg, &rr.ratingCount, &rr.priceBand, &rr.halalStatus,
+		&rr.minimumOrderCents, &rr.avgPrepMinutes, &rr.deliveryRadiusM,
+		&rr.logoObjectID, &rr.coverObjectID,
+		&rr.logoObjectBucket, &rr.logoObjectKey,
+		&rr.coverObjectBucket, &rr.coverObjectKey,
+		&rr.cuisines,
+		&rr.certifyingBody, &rr.certExpiresOn,
+		&rr.trading.accountState, &rr.trading.isAcceptingOrders, &rr.trading.pauseUntil,
+		&rr.trading.lastHeartbeatAt, &rr.collectionBlock, &rr.weeklyHours, &rr.hoursOverrides,
+	}
 }
 
 // cardColumns is the shared SELECT list for a restaurant card. It never includes
@@ -86,7 +112,28 @@ const cardColumns = `
 		 WHERE rc.restaurant_id = r.id AND cu.is_active
 	), '{}') AS cuisines,
 	b.name AS certifying_body,
-	c.expires_on AS cert_expires_on`
+	c.expires_on AS cert_expires_on,` + tradingColumns
+
+// tradingColumns read what the card's open state is derived from: the toggle,
+// pause and heartbeat, the open payout collection that blocks quoting
+// (orders/quote_store.go), the weekly hours, and the overrides for the dates
+// around today (evaluateHours looks one day back and hoursHorizonDays ahead).
+const tradingColumns = `
+	r.account_state::text, r.is_accepting_orders, r.pause_until, r.last_heartbeat_at,
+	EXISTS (SELECT 1 FROM restaurant_collection rcl
+	         WHERE rcl.restaurant_id = r.id AND rcl.closed_at IS NULL) AS collection_block,
+	COALESCE((
+		SELECT json_agg(json_build_object('day', h.day_of_week,
+		         'opens', to_char(h.opens_at, 'HH24:MI'), 'closes', to_char(h.closes_at, 'HH24:MI'),
+		         'crosses_midnight', h.crosses_midnight))
+		  FROM restaurant_hours h WHERE h.restaurant_id = r.id
+	), '[]') AS weekly_hours,
+	COALESCE((
+		SELECT json_agg(json_build_object('date', o.on_date::text, 'closed', o.is_closed,
+		         'opens', to_char(o.opens_at, 'HH24:MI'), 'closes', to_char(o.closes_at, 'HH24:MI')))
+		  FROM restaurant_hours_override o
+		 WHERE o.restaurant_id = r.id AND o.on_date BETWEEN current_date - 2 AND current_date + 10
+	), '[]') AS hours_overrides`
 
 // cardJoins joins the active halal certificate and its issuing body so the badge
 // carries the certifying body name and expiry. LEFT JOIN because a visible
@@ -103,18 +150,7 @@ const cardJoins = `
 // caller supplies whether the distance/geo columns are present.
 func scanCard(row pgx.Row, withDistance, withGeo bool) (restaurantRow, error) {
 	var rr restaurantRow
-	dest := []any{
-		&rr.id, &rr.slug, &rr.displayName, &rr.description,
-		&rr.line1, &rr.line2, &rr.city, &rr.province, &rr.postalCode, &rr.timezone,
-		&rr.publicPhone,
-		&rr.ratingAvg, &rr.ratingCount, &rr.priceBand, &rr.halalStatus,
-		&rr.minimumOrderCents, &rr.avgPrepMinutes, &rr.deliveryRadiusM,
-		&rr.logoObjectID, &rr.coverObjectID,
-		&rr.logoObjectBucket, &rr.logoObjectKey,
-		&rr.coverObjectBucket, &rr.coverObjectKey,
-		&rr.cuisines,
-		&rr.certifyingBody, &rr.certExpiresOn,
-	}
+	dest := rr.cardTargets()
 	if withGeo {
 		dest = append(dest, &rr.latitude, &rr.longitude)
 	}
@@ -331,4 +367,25 @@ func (rp *Repo) getHours(ctx context.Context, id string) ([]hoursRow, error) {
 		out = append(out, h)
 	}
 	return out, rows.Err()
+}
+
+// addressPoint returns the point of one of the caller's saved addresses, or nils when the
+// address is not theirs, deleted or unlocated. getRestaurant takes the customer's address by id
+// (`delivery_address_id`), so the availability verdict and distance are computed against the same
+// place the cart and quote use; an address that is not the caller's reads as no address at all,
+// never as someone else's location.
+func (rp *Repo) addressPoint(ctx context.Context, accountID, addressID string) (lat, lng *float64, err error) {
+	var la, lo float64
+	err = rp.db.QueryRow(ctx, `
+		SELECT ST_Y(location::geometry), ST_X(location::geometry)
+		  FROM address
+		 WHERE id = $1 AND account_id = $2 AND deleted_at IS NULL AND location IS NOT NULL`,
+		addressID, accountID).Scan(&la, &lo)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil, nil
+	}
+	if err != nil {
+		return nil, nil, fmt.Errorf("address point: %w", err)
+	}
+	return &la, &lo, nil
 }

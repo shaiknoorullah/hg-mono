@@ -6,7 +6,7 @@ description: Run, start, launch, drive, smoke-test or screenshot the HalalGoes r
 # run-restaurant
 
 The restaurant operator console (`@hg/restaurant`) is a Vite + React SPA. Locally it runs
-against the contract mock server (`tools/mock-server`, :4010). There is no Go backend in the loop.
+against the contract mock server (`tools/mock-server`, :4010) by default, or against the local Go stack with `--backend local`.
 You drive it headlessly with **`agent-browser`** through `driver.sh`. That script starts both
 servers, signs in, takes screenshots, clicks Accept and dumps the network calls and console
 errors.
@@ -23,10 +23,12 @@ Paths below are relative to `apps/restaurant/`.
 
 ```bash
 D=.claude/skills/run-restaurant/driver.sh
-$D smoke          # start mock + vite if down, sign in, screenshot orders/menu/hours, click Accept, print network + console errors
-$D shot /payouts  # screenshot any route with the signed-in session (/staff, /settings, /onboarding, /login ...)
-$D up             # only start the servers (the browser part is yours: agent-browser --session hg-restaurant ...)
-$D down           # close the browser, kill whatever listens on 4010 and 5183
+$D smoke                           # start mock + vite if down, sign in, screenshot orders/menu/hours, click Accept, print network + console errors
+$D --backend local smoke           # local Go stack on :8080: `make up` if it is down, then `make dev-reset`, sign in as bismillah-grill
+RESET=0 $D --backend local up      # same, but keep the current dev world (e.g. mid-journey)
+$D shot /payouts                   # screenshot any route with the signed-in session (/staff, /settings, /onboarding, /login ...)
+$D up                              # only start the servers (the browser part is yours: agent-browser --session hg-restaurant ...)
+$D down                            # close the browser, kill whatever listens on 4010 and 5183
 ```
 
 - Screenshots and logs go to `/tmp/hg-restaurant-run/` (override with `OUT=...`): `orders.png`, `menu.png`, `hours.png`, `mock.log`, `vite.log`. **Open the PNGs and look at them.**
@@ -70,7 +72,7 @@ Run `./node_modules/.bin/vite` here and `./node_modules/.bin/tsx src/index.ts` i
 - **`/login` still renders when signed in.** It doesn't redirect, so `shot /login` gives the sign-in form.
 - **Killing the servers by command name fails.** tsx re-execs as `node --require .../tsx/dist/preflight.cjs ... src/index.ts` and vite as `node ./node_modules/.bin/../vite/bin/vite.js`, so `pkill -f "<launch cmd>"` matches nothing. `down` kills by listening port (`ss -ltnp`) instead.
 - **zsh doesn't word-split variables.** `A="agent-browser --session x"; $A open ...` fails with "command not found". Use a function (`ab(){ agent-browser --session x "$@"; }`) or the driver.
-- The API base is `VITE_API_BASE_URL` (default `http://localhost:4010`). Point it at the Go stack to run against the real backend. That path is not verified here.
+- The API base is `VITE_API_BASE_URL` (default `http://localhost:4010`). `--backend local` points it at `http://localhost:8080`, starts the Go stack with `make up` in `services/hg` when `/health/ready` does not answer, and runs `make dev-reset` (which also applies the migrations). Logs go to `$OUT/stack.log` and `$OUT/dev-reset.log`. `down` stops only vite and the mock; the Go stack keeps running (`make down` in `services/hg`). A fresh `deploy/.env` needs `HG_OTP_PEPPER`, `HG_AUTH_SIGNING_KEY_SEED` and `HG_APP_DATA_KEY` set before the API boots and the admin persona can sign in.
 
 ## Troubleshooting
 

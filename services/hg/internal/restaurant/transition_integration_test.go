@@ -161,7 +161,7 @@ func assertOutboxEvent(t *testing.T, pool *pgxpool.Pool, orderID, state string) 
 // deadline table and emit the realtime event; accept still captures once.
 func TestRestaurantSteps_AcceptAndReadyGoThroughTransition(t *testing.T) {
 	pool := testPool(t)
-	f := seedFixtures(t, pool)
+	f := seedOrderableFixtures(t, pool) // accept refuses a restaurant that cannot take orders
 	orderID := stepOrder(t, pool, f)
 
 	em := &recordingEmitter{}
@@ -257,7 +257,7 @@ func TestRestaurantSteps_RejectGoesThroughTransitionAndVoids(t *testing.T) {
 // not move, no transition row is left, and nothing is captured.
 func TestRestaurantSteps_EventFailureRollsBackTheMove(t *testing.T) {
 	pool := testPool(t)
-	f := seedFixtures(t, pool)
+	f := seedOrderableFixtures(t, pool) // accept refuses a restaurant that cannot take orders
 	orderID := stepOrder(t, pool, f)
 
 	em := &recordingEmitter{fail: errors.New("outbox unavailable")}
