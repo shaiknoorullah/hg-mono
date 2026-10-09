@@ -75,5 +75,6 @@ func main() {
 func usage() {
 	fmt.Fprintln(os.Stderr, "usage: devworld reset | seed | verify | list | totp | scenario <name|list> | journey [--route=short|long|early-rider] [--speed=1x|4x|max] [--auto=none|restaurant|all] [--manual=rider]")
 	fmt.Fprintln(os.Stderr, "reset and seed require HG_ENV=local and a local HG_POSTGRES_DSN.")
-	fmt.Fprintln(os.Stderr, "scenario and journey call HG_API_URL (default http://127.0.0.1:8080).")
+	fmt.Fprintln(os.Stderr, "scenario and journey call HG_API_URL (default http://127.0.0.1:8080). `scenario list` prints every scenario and the state it leaves.")
+	fmt.Fprintln(os.Stderr, "scenarios that move a clock (offer-timeout, no-rider, no-rider-cancelled, cert-lapse-mid-order, order-completed, refund-approve) also need HG_ENV=local and a local HG_POSTGRES_DSN, which make dev-scenario sets.")
 }
