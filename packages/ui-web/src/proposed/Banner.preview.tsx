@@ -38,7 +38,7 @@ export function InlineTones() {
       </InlineAlert>
       <InlineAlert tone="info" title="Changes go live when you save" />
       <InlineAlert tone="neutral">Tip: press A to accept the focused order.</InlineAlert>
-      <HalalBanner tone="slate" title="We can't currently vouch for this restaurant">
+      <HalalBanner placement="inline" tone="slate" title="We can't currently vouch for this restaurant">
         The certificate on file is not current.
       </HalalBanner>
     </div>
@@ -51,7 +51,15 @@ export function States() {
     <div className="hg-specimen-col" style={{ width: 480 }}>
       <InlineAlert tone="info" title="You are offline" action={{ label: 'Retry', onPress: noop, loading: true }} />
       <InlineAlert tone="info" title="Menu synced" dismissible />
-      <Banner tone="danger" emphasis="prominent" title="Not receiving new orders" description="Accept still works while reconnecting." />
+      <Banner placement="inline" tone="danger" emphasis="prominent" title="Not receiving new orders" description="Accept still works while reconnecting." />
+      <InlineAlert
+        tone="warning"
+        title="This restaurant cannot be approved yet"
+        items={[
+          { id: 'h4', code: 'H4', content: 'The certificate number is not recorded.' },
+          { id: 'h6', code: 'H6', content: 'The issuer is not on the accepted list.' },
+        ]}
+      />
     </div>
   );
 }

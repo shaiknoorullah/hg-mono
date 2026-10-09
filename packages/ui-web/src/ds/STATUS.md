@@ -47,7 +47,7 @@ Work packages: `plan/design-system.md` §4.1 on the read-only `claude/redesign-c
 
 | Export | Today | Rebuilt in |
 |---|---|---|
-| Banner + InlineAlert + HalalBanner (one family with `placement`; slate tone; halal props exclude danger) | rebuilt | W4 |
+| Banner + InlineAlert + HalalBanner (one family with `placement`: Banner defaults to the page bar, InlineAlert to inline; slate tone; halal props exclude danger) | rebuilt | W4 |
 | EmptyState, ErrorState | rebuilt | W4 |
 | Skeleton, Spinner | legacy | W1 |
 | Textarea | legacy | W3 |

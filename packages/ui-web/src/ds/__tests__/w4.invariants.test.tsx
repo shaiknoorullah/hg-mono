@@ -21,7 +21,7 @@ import userEvent from '@testing-library/user-event';
 import { useEffect } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { Countdown, Menu, Modal, StatusTimeline, Toast, setClientErrorReporter } from '../index';
+import { Countdown, Menu, Modal, StatusTimeline, Toast, resolveTimeline, setClientErrorReporter } from '../index';
 import { formatTime12h } from '../time';
 import {
   Banner,
@@ -241,6 +241,13 @@ describe('StatusTimeline', () => {
     const placed = screen.getAllByRole('listitem')[0]!;
     expect(placed).toHaveAccessibleName(`Placed, done, ${formatTime12h('2026-10-10T18:42:00Z')}`);
     expect(formatTime12h('2026-10-10T18:42:00Z')).toMatch(/^\d{1,2}:\d{2} (am|pm)$/);
+  });
+
+  it('draws a rejection on the step where it happened, and nothing after it looks like progress', () => {
+    const { steps, failed } = resolveTimeline({ audience: 'customer', state: 'REJECTED' });
+    expect(failed).toBe(true);
+    expect(steps.map((s) => s.state)).toEqual(['complete', 'failed', 'unreached', 'unreached', 'unreached']);
+    expect(steps[1]!.detail).toMatch(/rejected/i);
   });
 });
 
