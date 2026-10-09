@@ -19,12 +19,15 @@
     "./link-token": "./src/emailLinks/linkToken.ts",
     "./lint": "./src/lint/index.ts",
     "./testing": "./src/testing/index.ts",
+    "./lib/utils": "./src/lib/utils.ts",
+    "./lib/ui/*": "./src/lib/ui/*.tsx",
     "./styles.css": "./src/styles/globals.css",
     "./tokens.css": "./src/tokens/tokens.css",
     "./theme.css": "./src/tokens/theme.css",
     "./grid-theme.css": "./src/tokens/grid-theme.css",
     "./ds": "./src/ds/index.ts",
-    "./proposed": "./src/proposed/index.ts"
+    "./proposed": "./src/proposed/index.ts",
+    "./shadcn.css": "./src/tokens/shadcn-aliases.css"
   },
   "scripts": {
     "generate:tokens": "node scripts/generate-tokens.mjs",
@@ -32,9 +35,13 @@
     "generate:icons": "node scripts/generate-icons.mjs",
     "generate:icons:check": "node scripts/generate-icons.mjs --check",
     "lint": "tsx src/lint/run.ts",
+    "lint:composition": "tsx src/lint/composition-run.ts",
+    "design:parity": "node ../../scripts/design-sync.mjs --check",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "preview": "vite --config preview/vite.config.ts",
+    "preview:shoot": "node preview/shoot.mjs"
   },
   "dependencies": {
     "@fontsource-variable/plus-jakarta-sans": "^5.2.5",
@@ -44,17 +51,30 @@
     "@radix-ui/react-alert-dialog": "^1.1.6",
     "@radix-ui/react-avatar": "^1.1.10",
     "@radix-ui/react-checkbox": "^1.3.3",
+    "@radix-ui/react-collapsible": "1.1.20",
+    "@radix-ui/react-dialog": "1.1.23",
     "@radix-ui/react-dropdown-menu": "^2.1.6",
+    "@radix-ui/react-label": "2.1.15",
     "@radix-ui/react-popover": "^1.1.15",
+    "@radix-ui/react-progress": "1.1.16",
     "@radix-ui/react-radio-group": "^1.3.8",
+    "@radix-ui/react-scroll-area": "1.2.18",
     "@radix-ui/react-select": "^2.2.6",
     "@radix-ui/react-separator": "^1.1.7",
     "@radix-ui/react-slot": "^1.2.3",
     "@radix-ui/react-switch": "^1.2.6",
     "@radix-ui/react-tabs": "^1.1.3",
     "@radix-ui/react-toast": "^1.2.15",
+    "@radix-ui/react-toggle": "1.1.18",
+    "@radix-ui/react-toggle-group": "1.1.19",
     "@radix-ui/react-tooltip": "^1.2.8",
-    "lucide-react": "^0.475.0"
+    "class-variance-authority": "0.7.1",
+    "clsx": "2.1.1",
+    "cmdk": "1.1.1",
+    "input-otp": "1.5.0",
+    "lucide-react": "^0.475.0",
+    "react-resizable-panels": "4.13.3",
+    "tailwind-merge": "3.7.0"
   },
   "peerDependencies": {
     "react": "^19.0.0",
@@ -63,6 +83,7 @@
   "devDependencies": {
     "@iconify-json/solar": "^1.2.2",
     "@iconify/utils": "^2.3.0",
+    "@tailwindcss/vite": "^4.3.3",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "^6.6.0",
     "@testing-library/react": "^16.2.0",
@@ -79,6 +100,7 @@
     "tailwindcss": "^4.1.14",
     "tsx": "^4.20.6",
     "typescript": "^5.9.0",
+    "vite": "^7.0.0",
     "vitest": "^3.0.0"
   },
   "description": "HalalGoes web component library \u2014 tokens, primitives, certification, content, navigation, feedback and data tiers.",
