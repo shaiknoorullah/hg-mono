@@ -12,12 +12,11 @@
 // Feedback (N5): every screen's empty, loading and error states.
 export { Banner, EmptyState, ErrorState, ERROR_COPY, GENERIC_COPY, OFFLINE_COPY, copyForCode } from '../feedback';
 export type { BannerProps, BannerVariant, EmptyStateProps, ErrorStateProps, ErrorCopy } from '../feedback';
-export { Skeleton, Spinner } from '../primitives';
-export type { SkeletonProps, SpinnerProps } from '../primitives';
-
-// Core (N1).
-export { Divider as Separator, Avatar, Wordmark } from '../primitives';
-export type { DividerProps as SeparatorProps, AvatarProps, WordmarkProps } from '../primitives';
+// Core (N1): rebuilt on the React Native Reusables tier (`lib/`); the props are unchanged.
+export { Text, Skeleton, Spinner, Separator, Avatar } from '../ds/Core';
+export type { TextProps, SkeletonProps, SpinnerProps, SeparatorProps, AvatarProps } from '../ds/Core';
+export { Wordmark } from '../primitives';
+export type { WordmarkProps } from '../primitives';
 
 // Forms (N3): customer item sheet.
 export { QuantityStepper } from '../content';
