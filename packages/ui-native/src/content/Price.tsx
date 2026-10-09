@@ -49,6 +49,8 @@ export interface PriceProps {
   loading?: boolean;
   /** Colour override, e.g. a struck-through original or an earnings credit. */
   color?: string;
+  /** Overrides the spoken name (the `/ds` surface prefixes "now" this way). */
+  accessibilityLabel?: string;
   style?: StyleProp<TextStyle>;
   testID?: string;
 }
@@ -125,6 +127,7 @@ export function Price({
   free,
   loading = false,
   color,
+  accessibilityLabel,
   style,
   testID = 'Price',
 }: PriceProps): React.ReactElement {
@@ -149,7 +152,7 @@ export function Price({
   return (
     <Text
       testID={testID}
-      accessibilityLabel={spokenPrice(cents, { free, strikethrough })}
+      accessibilityLabel={accessibilityLabel ?? spokenPrice(cents, { free, strikethrough })}
       style={[
         textStyle,
         tabularNumbers,
