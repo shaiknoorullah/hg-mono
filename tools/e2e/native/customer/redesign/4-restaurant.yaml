@@ -1,0 +1,93 @@
+# Customer redesign WP4 (#656): restaurant page (D5), certification sheet (D6), certificate
+# viewer (D7). Built with EXPO_PUBLIC_HG_REDESIGN=1 against devworld (`make dev-reset`).
+# amina (+15550100101, test code 000000) signs in, then each restaurant opens by deep link:
+#   bismillah-grill  b0000000-0000-4000-8000-000000000208  certified, open
+#   expiring-halal   b0000000-0000-4000-8000-000000000209  certified, expiring (dated badge)
+#   expired-halal    b0000000-0000-4000-8000-000000000210  never listed: the not-available page
+#   paused           b0000000-0000-4000-8000-000000000211  paused banner
+appId: com.halalgoes.customer.dev
+name: customer redesign, restaurant and certificate
+env:
+  PHONE: "+15550100101"
+  CODE: "000000"
+---
+- launchApp:
+    clearState: true
+    permissions:
+      all: allow
+- extendedWaitUntil:
+    visible: "Sign in"
+    timeout: 90000
+- tapOn:
+    below: "Phone number .*"
+    above: "Send code"
+- inputText: ${PHONE}
+- tapOn: "Send code"
+- extendedWaitUntil:
+    visible: "Enter the code sent to.*"
+    timeout: 30000
+- tapOn:
+    below: "Enter the code sent to.*"
+    above: "Verify"
+- inputText: ${CODE}
+- tapOn: "Verify"
+- extendedWaitUntil:
+    visible: "Account"
+    timeout: 30000
+
+# J7: certified restaurant, certification sheet, certificate image.
+- openLink: "hgcustomer://restaurant/b0000000-0000-4000-8000-000000000208"
+- extendedWaitUntil:
+    visible: "Bismillah Grill"
+    timeout: 30000
+- assertVisible: "Halal certified"
+- assertVisible: "View certification"
+- assertVisible: "Opening hours · today .*"
+- takeScreenshot: redesign-wp4-01-restaurant-open
+- tapOn: "View certification"
+- extendedWaitUntil:
+    visible: "Halal certification"
+    timeout: 15000
+- takeScreenshot: redesign-wp4-02-cert-sheet
+- tapOn: "View certificate"
+- extendedWaitUntil:
+    visible: "Fit to screen"
+    timeout: 30000
+- assertVisible: "100%"
+- assertVisible: "Certified by"
+- assertVisible: "We log who opens certificates.*"
+- takeScreenshot: redesign-wp4-03-certificate-open
+- tapOn: "Zoom in"
+- assertVisible: "150%"
+- tapOn: "Zoom in"
+- assertVisible: "200%"
+- takeScreenshot: redesign-wp4-04-certificate-zoomed
+- tapOn: "Fit to screen"
+- assertVisible: "100%"
+- back
+
+# Expiring: the badge carries its date.
+- openLink: "hgcustomer://restaurant/b0000000-0000-4000-8000-000000000209"
+- extendedWaitUntil:
+    visible: "Bamyan Kebab House"
+    timeout: 30000
+- assertVisible: "expires .*"
+- takeScreenshot: redesign-wp4-05-restaurant-expiring
+
+# Paused: the banner with its way forward.
+- openLink: "hgcustomer://restaurant/b0000000-0000-4000-8000-000000000211"
+- extendedWaitUntil:
+    visible: "Galata Pide & Grill"
+    timeout: 30000
+- assertVisible: "Not taking orders right now"
+- assertVisible: "Find an open restaurant"
+- takeScreenshot: redesign-wp4-06-restaurant-paused
+
+# Expired: never listed, no halal reason given.
+- openLink: "hgcustomer://restaurant/b0000000-0000-4000-8000-000000000210"
+- extendedWaitUntil:
+    visible: "This restaurant isn't available right now"
+    timeout: 30000
+- assertNotVisible: "Halal certified"
+- takeScreenshot: redesign-wp4-07-restaurant-not-available
+- tapOn: "Back to Home"

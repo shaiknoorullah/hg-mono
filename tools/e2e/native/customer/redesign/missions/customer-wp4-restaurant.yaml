@@ -1,0 +1,28 @@
+id: customer-wp4-restaurant
+app: customer
+avd: hg_customer
+api: devworld
+# Build the dev APK from this branch with EXPO_PUBLIC_HG_REDESIGN=1.
+setup: [ "make dev-reset" ]
+flows: [ "tools/e2e/native/customer/redesign/4-restaurant.yaml" ]
+reality:
+  - theme: dark
+  - font-scale: 2.0
+  - network: offline
+  - network: restore
+explore: >
+  After the flow, with the phone in dark mode and 200% text, open bismillah-grill by deep link
+  (`adb shell am start -W -a android.intent.action.VIEW -d "hgcustomer://restaurant/b0000000-0000-4000-8000-000000000208"`).
+  Screenshot the header (badge, View certification, availability line), expand "Opening hours", scroll until the
+  category tabs stick under the app bar and tap each tab; report any clipped or truncated text, any tab that does not
+  jump to its section, and any touch target under 44 dp. Open View certification and screenshot the sheet in dark
+  (the disclaimer must be the API's sentence word for word). Tap View certificate, wait on the viewer for more than
+  five minutes without the image loading (or kill the network before it loads) and confirm "This link has expired"
+  then "Open again" shows the image with a new link (the API log shows a second createCertificateViewUrl).
+  Network loss: on the restaurant page `adb shell svc wifi disable && adb shell svc data disable`, pull the page
+  (reopen it from Home), screenshot the "You're offline" banner and the halal row; then use the dev clock override
+  (useNow, +16 minutes) and confirm the badge and View certification are gone and the line reads "We can't check the
+  certification while you're offline." On the viewer while offline, tap Open again / Try again and screenshot
+  "You're offline". Restore with `adb shell svc wifi enable && adb shell svc data enable`. Also open
+  expiring-halal (…0209, dated badge), paused (…0211, banner, "Find an open restaurant" lands on Browse with Open now),
+  and expired-halal (…0210, the not-available page with no halal reason). Never a red halal state anywhere.
