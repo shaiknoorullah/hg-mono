@@ -58,7 +58,7 @@ The fixed code works only for `+15550100100` to `+15550100199` and only when `HG
 |---|---|---|---|---|
 | [C-01](spec/02-customer.md#c-01--registration--phone-otp-verification) | Sign up with a new phone number and a code | Customer app: an unused number from `+15550100100` to `+15550100159`, code `000000`; the profile step follows | Covered | — |
 | [C-02](spec/02-customer.md#c-02--login-logout-session-lifecycle) | Sign in, stay signed in, sign out | `amina` | Covered | — |
-| [C-03](spec/02-customer.md#c-03--profile-management-personal-information) | Edit name and email | `amina` (Amina Rahman) | Covered | — |
+| [C-03](spec/02-customer.md#c-03--profile-management-personal-information) | Edit name and email | `amina` | Covered | — |
 | [C-04](spec/02-customer.md#c-04--preferences) | Preferences | — | Not in V1 | — |
 | [C-05](spec/02-customer.md#c-05--account-deletion) | Delete my account | No operation yet | Not in V1 | [#187](https://github.com/shaiknoorullah/hg-mono/issues/187) |
 | [C-06](spec/02-customer.md#c-06--help-centre--faq) | Help centre and FAQ | No operation yet; support is a phone line | Not in V1 | [#190](https://github.com/shaiknoorullah/hg-mono/issues/190) |
