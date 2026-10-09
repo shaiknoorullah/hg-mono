@@ -16,6 +16,8 @@ import { OrdersScreen } from '../../screens/OrdersScreen';
 import { ProfileScreen } from '../../screens/ProfileScreen';
 import { AddressesScreen } from '../../screens/AddressesScreen';
 import { AddressFormScreen } from '../../screens/AddressFormScreen';
+import { OrdersScreen as RedesignedOrdersScreen } from '../orders/OrdersScreen';
+import { ReceiptScreen } from '../orders/ReceiptScreen';
 import { toLegacy } from './LegacyBridge';
 import type { Route, RouteName } from './routes';
 
@@ -23,7 +25,11 @@ type ScreenFor<N extends RouteName> = (route: Extract<Route, { name: N }>) => Re
 type Registry = { [N in RouteName]?: ScreenFor<N> };
 
 /** Redesigned screens, by route. Each WP registers its own. */
-export const REDESIGNED: Registry = {};
+export const REDESIGNED: Registry = {
+  // WP9: Orders history (T9) and Receipt (T10).
+  orders: () => <RedesignedOrdersScreen />,
+  receipt: (route) => <ReceiptScreen orderId={route.orderId} />,
+};
 
 export function redesignedScreen(route: Route): React.ReactElement | null {
   const render = REDESIGNED[route.name] as ((r: Route) => React.ReactElement) | undefined;
