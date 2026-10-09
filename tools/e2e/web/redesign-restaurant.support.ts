@@ -101,6 +101,17 @@ export async function openSignedIn(page: Page, path: string): Promise<void> {
   await page.goto(path);
 }
 
+/**
+ * Opens a console page signed in and passes the go-live gate on /orders the way a person does
+ * (one click: test chime, notifications, screen kept awake), so the board under it shows.
+ */
+export async function openLive(page: Page, path: string): Promise<void> {
+  await page.context().grantPermissions(['notifications']);
+  await openSignedIn(page, path);
+  await page.getByRole('button', { name: 'Turn on sound and go live' }).click();
+  await page.getByTestId('go-live-gate').waitFor({ state: 'detached' });
+}
+
 /** The page never scrolls: the document is exactly the viewport (manifest WP1 DONE). */
 export async function documentScrolls(page: Page): Promise<{ scrollHeight: number; innerHeight: number; scrollWidth: number; innerWidth: number }> {
   return page.evaluate(() => ({

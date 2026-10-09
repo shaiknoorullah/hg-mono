@@ -9,9 +9,10 @@
  * restaurant's channels).
  */
 import { expect, test, type Page, type Route } from '@playwright/test';
-import { MOCK_API, MODE, documentScrolls, openSignedIn } from './redesign-restaurant.support';
+import { execSync } from 'node:child_process';
+import { resolve } from 'node:path';
+import { MOCK_API, MODE, REAL_API, documentScrolls, openLive, openSignedIn } from './redesign-restaurant.support';
 
-test.skip(MODE !== 'mock', 'WP4 board states are driven from fixtures in mock mode');
 
 const SHOTS = process.env.WP4_SHOTS_DIR;
 
@@ -70,6 +71,10 @@ async function routeBoard(page: Page, board: Board, overrides: Record<string, an
   const byId = new Map(rows.map((o) => [o.id, { ...o, ...(overrides[o.id] ?? {}) }]));
   const listUrls: string[] = [];
   await page.route('**/v1/restaurant/orders?**', (route) => {
+    // The strip's pending-list reads share this route: nothing is waiting in these tests.
+    if (new URL(route.request().url()).searchParams.get('state') === 'RESTAURANT_PENDING') {
+      return route.fulfill({ json: { data: [], meta: { next_cursor: null, has_more: false } } });
+    }
     listUrls.push(route.request().url());
     return route.fulfill({ json: { data: [...byId.values()], meta: { next_cursor: null, has_more: false } } });
   });
@@ -101,10 +106,11 @@ async function fakeSocket(page: Page) {
 }
 
 test.describe('Live orders: In progress list', () => {
+  test.skip(MODE !== 'mock', 'board states are driven from fixtures in mock mode');
   test('busy board: guarded, sorted, counted; never scrolls the page', async ({ page }) => {
     const board = await busyBoard(page);
     const { listUrls } = await routeBoard(page, board);
-    await openSignedIn(page, '/orders');
+    await openLive(page, '/orders');
 
     const list = page.getByRole('region', { name: 'In progress' });
     await expect(list.getByRole('button', { name: 'K7J1', exact: true })).toBeVisible();
@@ -135,7 +141,7 @@ test.describe('Live orders: In progress list', () => {
 
   test('empty board says so', async ({ page }) => {
     await page.route('**/v1/restaurant/orders?**', (route) => route.fulfill({ json: { data: [], meta: { next_cursor: null, has_more: false } } }));
-    await openSignedIn(page, '/orders');
+    await openLive(page, '/orders');
     await expect(page.getByText('Nothing in progress')).toBeVisible();
     await expect(page.getByText('Orders you accept appear here, soonest ready time first. Ready orders stay until the rider picks them up.')).toBeVisible();
     await expectNoDocumentScroll(page);
@@ -149,7 +155,7 @@ test.describe('Live orders: In progress list', () => {
         ? route.fulfill({ status: 500, json: { error: { code: 'INTERNAL_ERROR', message: 'boom', request_id: 'e2e' } } })
         : route.fulfill({ json: { data: [], meta: { next_cursor: null, has_more: false } } }),
     );
-    await openSignedIn(page, '/orders');
+    await openLive(page, '/orders');
     await expect(page.getByRole('heading', { name: 'We couldn’t load your orders' })).toBeVisible();
     // Board-first-load-error: health "Not connected" and open state "Unknown" beside it.
     const bar = page.getByRole('region', { name: 'Service status' });
@@ -164,10 +170,11 @@ test.describe('Live orders: In progress list', () => {
 });
 
 test.describe('Live orders: detail panel and Mark ready', () => {
+  test.skip(MODE !== 'mock', 'board states are driven from fixtures in mock mode');
   test('opens a preparing order, focuses its heading, Escape returns to the row', async ({ page }) => {
     const board = await busyBoard(page);
     await routeBoard(page, board);
-    await openSignedIn(page, '/orders');
+    await openLive(page, '/orders');
     const list = page.getByRole('region', { name: 'In progress' });
     await list.getByRole('button', { name: 'K7M4', exact: true }).click();
 
@@ -198,7 +205,7 @@ test.describe('Live orders: detail panel and Mark ready', () => {
       if (keys.length === 1) return route.abort('failed');
       return route.fulfill({ json: { data: { ...board.preparing, ...ready, id: board.preparing.id, code: 'K7L8', state: 'READY_FOR_PICKUP', ready_at: new Date().toISOString() } } });
     });
-    await openSignedIn(page, '/orders?order=' + board.preparing.id);
+    await openLive(page, '/orders?order=' + board.preparing.id);
     const panel = page.getByRole('complementary', { name: 'Order K7L8 details' });
     await panel.getByRole('button', { name: 'Mark order K7L8 ready' }).click();
     await expect(panel.getByText('We couldn’t mark K7L8 ready')).toBeVisible();
@@ -219,7 +226,7 @@ test.describe('Live orders: detail panel and Mark ready', () => {
     const socket = await fakeSocket(page);
     // `pickup_code` arrives with PR #290; until then the view has none → code-error state.
     await routeBoard(page, board);
-    await openSignedIn(page, '/orders');
+    await openLive(page, '/orders');
     const list = page.getByRole('region', { name: 'In progress' });
     await expect(list.getByRole('button', { name: 'K7J1', exact: true })).toBeVisible();
     await expect(page.getByTestId('health-badge')).toHaveText('Live');
@@ -245,10 +252,12 @@ test.describe('Live orders: detail panel and Mark ready', () => {
     const board = await busyBoard(page);
     const socket = await fakeSocket(page);
     await routeBoard(page, board, { [board.ready.id]: { pickup_code: '4827' } });
-    await openSignedIn(page, '/orders');
+    await openLive(page, '/orders');
     await expect(page.getByTestId('health-badge')).toHaveText('Live');
-    await socket.push(`order:${board.ready.id}`, 'dispatch.state_changed', { order_id: board.ready.id, from: 'ASSIGNED', to: 'AT_RESTAURANT', at: new Date().toISOString() });
     const list = page.getByRole('region', { name: 'In progress' });
+    // The board mounts after the go-live gate; push once it is listening to the order's channel.
+    await expect(list.getByRole('button', { name: 'K7J1', exact: true })).toBeVisible();
+    await socket.push(`order:${board.ready.id}`, 'dispatch.state_changed', { order_id: board.ready.id, from: 'ASSIGNED', to: 'AT_RESTAURANT', at: new Date().toISOString() });
     await expect(list.getByText('Ready · rider here')).toBeVisible();
     await list.getByRole('button', { name: 'K7J1', exact: true }).click();
     const panel = page.getByRole('complementary', { name: 'Order K7J1 details' });
@@ -260,9 +269,10 @@ test.describe('Live orders: detail panel and Mark ready', () => {
 });
 
 test.describe('Status bar and halal', () => {
+  test.skip(MODE !== 'mock', 'board states are driven from fixtures in mock mode');
   test('turning orders off confirms in the page, first focus on Keep accepting', async ({ page }) => {
     await page.route('**/v1/restaurant/orders?**', (route) => route.fulfill({ json: { data: [], meta: { next_cursor: null, has_more: false } } }));
-    await openSignedIn(page, '/orders');
+    await openLive(page, '/orders');
     const bar = page.getByRole('region', { name: 'Service status' });
     await bar.getByRole('switch', { name: 'Orders' }).click();
     const confirm = page.getByRole('group', { name: 'Stop accepting new orders?' });
@@ -283,7 +293,7 @@ test.describe('Status bar and halal', () => {
     // Stands in for a CLOSED_SUSPENDED availability with the halal reason (fixture requested in #676).
     await page.route('**/v1/restaurant/availability', (route) => route.fulfill({ json: { data: { ...suspended, reason: 'Suspended: halal certificate expired' } } }));
     await page.route('**/v1/restaurant/orders?**', (route) => route.fulfill({ json: { data: [], meta: { next_cursor: null, has_more: false } } }));
-    await openSignedIn(page, '/orders');
+    await openLive(page, '/orders');
     const banner = page.getByTestId('banner-halal');
     await expect(banner.getByText('We can’t currently vouch for your halal certificate')).toBeVisible();
     await expect(banner).toHaveAttribute('data-tone', 'halal-expired');
@@ -293,5 +303,65 @@ test.describe('Status bar and halal', () => {
     await expect(bar.getByRole('switch', { name: 'Orders' })).toBeDisabled();
     await expectNoDocumentScroll(page);
     await shot(page, 'cert-expired');
+  });
+});
+
+/**
+ * Real API (devworld): `services/hg` with the bismillah-grill owner. A full journey first (its
+ * finished order must never show in In progress: the server still ignores the state filter,
+ * #601), then an order the scenario leaves PREPARING, marked ready from the board.
+ */
+const SERVICES_HG = process.env.E2E_SERVICES_HG ?? resolve(process.cwd(), '../../services/hg');
+
+function make(target: string, timeout = 300_000): string {
+  if (process.env.E2E_RESET_LIMITS_CMD) execSync(process.env.E2E_RESET_LIMITS_CMD, { stdio: 'ignore' });
+  return execSync(`make ${target} 2>&1`, { cwd: SERVICES_HG, encoding: 'utf8', timeout });
+}
+
+async function restaurantOrders(page: Page): Promise<{ code: string; state: string }[]> {
+  const token = await page.evaluate(() => JSON.parse(localStorage.getItem('hg_restaurant_session_v1') ?? '{}').accessToken as string);
+  const res = await page.request.get(`${REAL_API}/v1/restaurant/orders?limit=50`, {
+    headers: { Authorization: `Bearer ${token}`, 'X-HG-Client': 'restaurant-web' },
+  });
+  return ((await res.json()).data ?? []) as { code: string; state: string }[];
+}
+
+test.describe('Live orders · real API', () => {
+  test.skip(MODE !== 'real', 'drives devworld journeys against services/hg');
+  test.describe.configure({ mode: 'serial' });
+  let finished = '';
+
+  test.beforeAll(() => {
+    make('dev-reset');
+    const out = make('dev-journey route=short speed=max auto=all', 400_000);
+    finished = /state\s+(\S+)\s+COMPLETED/.exec(out)?.[1] ?? '';
+    if (!finished) throw new Error(`dev-journey did not complete an order:\n${out}`);
+  });
+
+  test('a completed order never shows in In progress (#601), even after a reload', async ({ page }) => {
+    await openLive(page, '/orders');
+    expect((await restaurantOrders(page)).find((o) => o.code === finished)?.state).toBe('COMPLETED');
+    const list = page.getByRole('region', { name: 'In progress' });
+    await expect(list).toBeVisible();
+    await expect(page.getByText(finished)).toHaveCount(0);
+    await page.reload();
+    await page.getByRole('button', { name: 'Turn on sound and go live' }).click();
+    await expect(list).toBeVisible();
+    await expect(page.getByText(finished)).toHaveCount(0);
+    await shot(page, 'real-board');
+  });
+
+  test('Mark ready on a preparing order moves it to Ready on the server', async ({ page }) => {
+    const out = make('dev-scenario s=order-preparing');
+    const code = /order\s+(\S+)\s+PREPARING/.exec(out)?.[1];
+    if (!code) throw new Error(`order-preparing left no preparing order:\n${out}`);
+    await openLive(page, '/orders');
+    const list = page.getByRole('region', { name: 'In progress' });
+    await expect(list.getByRole('button', { name: code, exact: true })).toBeVisible({ timeout: 20_000 });
+    await shot(page, 'real-preparing');
+    await list.getByRole('button', { name: `Mark order ${code} ready` }).click();
+    await expect.poll(async () => (await restaurantOrders(page)).find((o) => o.code === code)?.state, { timeout: 20_000 }).toBe('READY_FOR_PICKUP');
+    await expect(list.getByRole('button', { name: code, exact: true }).locator('xpath=ancestor::tr')).toContainText('Ready');
+    await shot(page, 'real-ready');
   });
 });
