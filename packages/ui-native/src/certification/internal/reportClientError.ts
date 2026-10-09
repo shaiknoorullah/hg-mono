@@ -14,7 +14,10 @@
 export type ClientErrorCode =
   | 'HALAL_DISPLAY_STATE_MISSING'
   | 'HALAL_DISPLAY_STATE_UNKNOWN'
-  | 'CERTIFICATION_PANEL_STATE_MISSING';
+  | 'CERTIFICATION_PANEL_STATE_MISSING'
+  // Reported by the `@hg/ui-native/ds` surface (live index.d.ts error codes).
+  | 'ICON_NAME_UNKNOWN'
+  | 'MONEY_NOT_INTEGER_CENTS';
 
 export type ClientErrorContext = Readonly<Record<string, string | number | boolean | undefined>>;
 
