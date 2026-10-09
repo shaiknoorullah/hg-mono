@@ -1,0 +1,19 @@
+# Rider redesign WP3 variant: let the offer run out → "This offer expired" stays (no auto-close)
+# until "Back to waiting" → Home, still online and waiting. Needs a fresh ready order
+# (`make dev-reset` and `make dev-scenario s=order-ready` first).
+appId: com.halalgoes.rider.dev
+name: rider redesign, offer expired
+---
+- runFlow: 3-offer-online.yaml
+- extendedWaitUntil:
+    visible: "This offer expired"
+    timeout: 45000
+- assertVisible: "You're still online and can get the next one."
+- assertVisible: "If 3 offers in a row expire, we set you offline."
+- takeScreenshot: rider-wp3-04-expired
+- tapOn: "Back to waiting"
+- extendedWaitUntil:
+    visible: "Waiting for offers"
+    timeout: 15000
+- assertNotVisible: "Delivery offer"
+- takeScreenshot: rider-wp3-05-back-to-waiting
