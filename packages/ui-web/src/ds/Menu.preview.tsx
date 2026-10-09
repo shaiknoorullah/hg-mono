@@ -28,6 +28,7 @@ export function Full() {
           label="Sort orders"
           triggerText="Sort"
           open
+          contained
           onOpenChange={() => undefined}
           items={[
             { key: 'new', label: 'Newest first' },
@@ -45,7 +46,7 @@ export function Full() {
 export function ItemStates() {
   return (
     <div style={{ minHeight: 320 }}>
-      <Menu label="Actions for Lentil soup" items={ITEMS} open onOpenChange={() => undefined} />
+      <Menu label="Actions for Lentil soup" items={ITEMS} open contained onOpenChange={() => undefined} />
     </div>
   );
 }
@@ -59,6 +60,7 @@ export function Radio() {
         triggerText="Pause"
         triggerVariant="tonal"
         open
+        contained
         onOpenChange={() => undefined}
         items={[
           { type: 'radio', key: '15', label: '15 minutes', checked: false },

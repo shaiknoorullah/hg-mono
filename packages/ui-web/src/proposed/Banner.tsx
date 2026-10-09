@@ -21,7 +21,7 @@
  * `testId`) all still work.
  */
 
-import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
+import { isValidElement, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 
 import { Alert, AlertDescription, AlertTitle, alertIconTone } from '../lib/ui/alert.js';
 import { cn } from '../lib/utils.js';
@@ -42,10 +42,28 @@ export type BannerPlacement = 'page' | 'inline';
 /** The banner's one action, a tertiary button. */
 export interface BannerAction {
   label: string;
-  onPress: () => void;
+  /** Optional when `href` makes it a link (admin stub shape). */
+  onPress?: () => void;
   href?: string;
   /** Keeps the label and shows the button busy. */
   loading?: boolean;
+}
+
+/** One row of the list slot. `code` is shown in mono before the content ("H4"). */
+export interface BannerListItem {
+  id: string;
+  code?: string;
+  content: ReactNode;
+}
+
+function isBannerAction(value: unknown): value is BannerAction {
+  return (
+    typeof value === 'object' && value !== null && !isValidElement(value) && typeof (value as BannerAction).label === 'string'
+  );
+}
+
+function isListItem(value: unknown): value is BannerListItem {
+  return typeof value === 'object' && value !== null && !isValidElement(value) && 'content' in value && 'id' in value;
 }
 
 /** Props every member of the family shares. */
@@ -59,7 +77,15 @@ export interface BannerBaseProps {
   description?: ReactNode;
   /** A design-system icon name, or (pre-rebuild) a node. Defaults to the tone's icon. */
   icon?: DsIconName | ReactNode;
-  action?: BannerAction;
+  /** One action: `{ label, onPress | href }` drawn as a tertiary Button, or any node (Buttons). */
+  action?: BannerAction | ReactNode;
+  /** List slot under the body: findings such as failed checks ("H4 …"). */
+  items?: Array<BannerListItem | ReactNode>;
+  /**
+   * A blocking message (admin `App-Blocked`, `Verify-Errors`): `role="alert"`, `tabIndex=-1`,
+   * and it takes focus when it mounts, so the reason a task cannot continue is read first.
+   */
+  blocking?: boolean;
   dismissible?: boolean;
   onDismiss?: () => void;
   /** A change brings a dismissed banner back: a new disconnect is a new event. */
@@ -68,6 +94,9 @@ export interface BannerBaseProps {
   emphasis?: 'default' | 'prominent';
   /** Live region politeness. Default: assertive for danger, polite otherwise. */
   live?: 'polite' | 'assertive' | 'off';
+  /** The admin stub's name for `live`: status = polite, alert = assertive, none = off. */
+  announce?: 'status' | 'alert' | 'none';
+  id?: string;
   className?: string;
   /** data-testid; defaults to the component name (02-components.md rule 11). */
   testId?: string;
@@ -127,11 +156,21 @@ function BannerImpl({
   conditionKey,
   emphasis = 'default',
   live,
+  announce,
+  items,
+  blocking = false,
+  id,
   className,
   testId,
   style,
 }: BannerBaseProps & { tone: Tone; halal: boolean; testId: string }) {
   const [dismissed, setDismissed] = useState(false);
+  const box = useRef<HTMLDivElement | null>(null);
+
+  // A blocking message takes focus once, when it appears.
+  useEffect(() => {
+    if (blocking) box.current?.focus();
+  }, [blocking]);
 
   // A change of condition resurrects a dismissed banner.
   useEffect(() => {
@@ -147,7 +186,8 @@ function BannerImpl({
 
   if (dismissed) return null;
 
-  const politeness = live ?? (drawn === 'danger' ? 'assertive' : 'polite');
+  const fromAnnounce = announce === 'none' ? 'off' : announce === 'alert' ? 'assertive' : announce === 'status' ? 'polite' : undefined;
+  const politeness = blocking ? 'assertive' : (live ?? fromAnnounce ?? (drawn === 'danger' ? 'assertive' : 'polite'));
   const role = politeness === 'off' ? undefined : politeness === 'assertive' ? 'alert' : 'status';
   const glyph = renderIcon(icon, drawn);
   const body = (
@@ -159,9 +199,19 @@ function BannerImpl({
   const hasBody = Boolean(description) || (children !== undefined && children !== null && children !== false);
   const word = <span className="sr-only">{TONE_WORD[drawn]}: </span>;
   const label = typeof title === 'string' ? title : 'message';
+  const actionNode = isBannerAction(action) ? (
+    <Button variant="tertiary" size="sm" onPress={action.onPress} href={action.href} loading={action.loading}>
+      {action.label}
+    </Button>
+  ) : (
+    (action as ReactNode)
+  );
 
   return (
     <Alert
+      ref={box}
+      id={id}
+      tabIndex={blocking ? -1 : undefined}
       role={role}
       tone={drawn}
       placement={placement}
@@ -171,7 +221,8 @@ function BannerImpl({
       data-variant={drawn}
       data-placement={placement}
       data-halal={halal || undefined}
-      className={cn(placement === 'page' && 'items-center', className)}
+      data-blocking={blocking || undefined}
+      className={cn(placement === 'page' && 'items-center', blocking && 'hg-focus', className)}
       style={style}
     >
       {glyph ? (
@@ -192,19 +243,23 @@ function BannerImpl({
             {body}
           </AlertDescription>
         ) : null}
-        {action && placement === 'inline' ? (
-          <div className="mt-2">
-            <Button variant="tertiary" size="sm" onPress={action.onPress} href={action.href} loading={action.loading}>
-              {action.label}
-            </Button>
-          </div>
+        {items && items.length > 0 ? (
+          <ul className="m-0 mt-2 grid list-none gap-1 p-0 text-body-sm text-fg-primary">
+            {items.map((item, i) =>
+              isListItem(item) ? (
+                <li key={item.id} className="flex gap-2">
+                  {item.code ? <span className="font-mono text-mono-sm text-fg-secondary">{item.code}</span> : null}
+                  <span className="min-w-0">{item.content}</span>
+                </li>
+              ) : (
+                <li key={i}>{item}</li>
+              ),
+            )}
+          </ul>
         ) : null}
+        {action && placement === 'inline' ? <div className="mt-2 flex flex-wrap gap-2">{actionNode}</div> : null}
       </div>
-      {action && placement === 'page' ? (
-        <Button variant="tertiary" size="sm" onPress={action.onPress} href={action.href} loading={action.loading}>
-          {action.label}
-        </Button>
-      ) : null}
+      {action && placement === 'page' ? actionNode : null}
       {dismissible ? (
         <IconButton
           icon="close"

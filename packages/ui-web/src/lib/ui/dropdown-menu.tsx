@@ -38,6 +38,8 @@ export const dropdownMenuTriggerVariants = cva(
         plain: 'border-transparent bg-transparent text-fg-primary hover:bg-[var(--hg-state-hover-overlay)]',
         tonal: 'border-transparent bg-surface-subtle text-fg-primary hover:bg-[var(--hg-state-hover-overlay)]',
         filled: 'border-transparent bg-action-primary-bg text-action-primary-fg hover:bg-action-primary-bg-pressed',
+        /** On the forest chrome (restaurant top bar). */
+        chrome: 'border-transparent bg-transparent text-fg-on-accent hover:bg-[var(--hg-state-hover-overlay)]',
       },
       text: {
         true: 'border-line-interactive px-3',

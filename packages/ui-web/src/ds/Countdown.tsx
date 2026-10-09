@@ -54,6 +54,8 @@ export interface CountdownProps {
   /** data-testid; defaults to the component name (02-components.md rule 11). */
   testId?: string;
   style?: CSSProperties;
+  /** Extra classes on the root (the admin adapter's prop). */
+  className?: string;
 }
 
 /** normal · urgent · critical · expired, by the remaining fraction of the window. */
@@ -162,6 +164,7 @@ export function Countdown({
   barOnly = false,
   testId = 'Countdown',
   style,
+  className,
 }: CountdownProps) {
   const anchor = useMemo(() => makeAnchor(expiresAt, serverNow), [expiresAt, serverNow]);
   const [ms, setMs] = useState(() => remainingMs(anchor));
@@ -286,6 +289,7 @@ export function Countdown({
         'inline-grid gap-1',
         shape === 'ring' ? 'justify-items-center' : 'justify-items-start',
         bar && 'min-w-30',
+        className,
       )}
       style={style}
     >

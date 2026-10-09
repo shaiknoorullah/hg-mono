@@ -14,6 +14,7 @@ export { Banner, HalalBanner, InlineAlert } from './Banner.js';
 export type {
   BannerAction,
   BannerBaseProps,
+  BannerListItem,
   BannerPlacement,
   BannerProps,
   BannerTone,
@@ -35,8 +36,15 @@ export type {
 } from './ErrorState.js';
 export { ProgressBar } from './ProgressBar.js';
 export type { ProgressBarProps } from './ProgressBar.js';
-export { PageAnnouncer, PageAnnouncerProvider, useAnnounce } from './PageAnnouncer.js';
-export type { Announce, AnnounceOptions, AnnouncePoliteness, PageAnnouncerProviderProps } from './PageAnnouncer.js';
+export { PageAnnouncer, PageAnnouncerProvider, useAnnounce, usePageAnnouncer } from './PageAnnouncer.js';
+export type {
+  Announce,
+  AnnounceOptions,
+  AnnouncePoliteness,
+  PageAnnouncerApi,
+  PageAnnouncerProviderProps,
+  Politeness,
+} from './PageAnnouncer.js';
 
 export { Skeleton, Spinner, Textarea, Tooltip, TooltipProvider } from '../primitives/index.js';
 export type { SkeletonProps, SpinnerProps, TextareaProps, TooltipProps } from '../primitives/index.js';

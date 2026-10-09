@@ -49,6 +49,8 @@ export interface ErrorStateProps {
   retrying?: boolean;
   /** Any extra action node, after Retry. */
   secondaryAction?: ReactNode;
+  /** The admin stub's name for `secondaryAction`; both render if both are set. */
+  action?: ReactNode;
   variant?: ErrorStateVariant;
   /** The stable code. Drives the copy. */
   errorCode?: ErrorStateCode | (string & {});
@@ -92,6 +94,7 @@ export function ErrorState({
   onRetry,
   retrying = false,
   secondaryAction,
+  action,
   variant = 'region',
   errorCode,
   retryLabel = 'Try again',
@@ -173,7 +176,7 @@ export function ErrorState({
       </Heading>
       <div className="text-body-md text-fg-secondary">{description ?? copy.description}</div>
       {children}
-      {showRetry || onSupport || secondaryAction ? (
+      {showRetry || onSupport || secondaryAction || action ? (
         <div className={cn('mt-2 flex flex-wrap items-center gap-3', layout !== 'inline' && 'justify-center')}>
           {showRetry ? (
             <Button variant="primary" loading={retrying} onPress={() => onRetry?.()}>
@@ -186,6 +189,7 @@ export function ErrorState({
             </Button>
           ) : null}
           {secondaryAction}
+          {action}
         </div>
       ) : null}
       {detailLines.length ? (

@@ -10,7 +10,8 @@
  *   polite message per `politeIntervalMs` (default 1.5 s).
  * - **Pre-emption:** a queued assertive message goes before any queued polite one.
  * - **Dedupe:** a message with a `dedupeKey` already spoken (or queued) is dropped, so the
- *   same order on its tile and in the panel is announced once per threshold.
+ *   same order on its tile and in the panel is announced once per threshold. Without a key, the
+ *   same text is not repeated within `dedupeWindowMs` (default 5 s; restaurant request #675).
  *
  * The regions are visually hidden and always mounted, so the first message is not lost to a
  * region that appeared at the same moment as its text.
@@ -21,6 +22,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type ReactNode,
@@ -47,6 +49,8 @@ export interface PageAnnouncerProviderProps {
   minIntervalMs?: number;
   /** Minimum gap between two polite messages, in ms. Default 1500. */
   politeIntervalMs?: number;
+  /** The same text (without a `dedupeKey`) is dropped if it was announced this recently, in ms. Default 5000. */
+  dedupeWindowMs?: number;
   /** data-testid of the hidden regions' wrapper; defaults to the component name. */
   testId?: string;
 }
@@ -71,18 +75,22 @@ export function PageAnnouncerProvider({
   children,
   minIntervalMs = 5000,
   politeIntervalMs = 1500,
+  dedupeWindowMs = 5000,
   testId = 'PageAnnouncer',
 }: PageAnnouncerProviderProps) {
   const [polite, setPolite] = useState('');
   const [assertive, setAssertive] = useState('');
   const queue = useRef<Queued[]>([]);
   const seen = useRef<string[]>([]);
+  const recent = useRef(new Map<string, number>());
   const last = useRef<Record<AnnouncePoliteness, number>>({ polite: -Infinity, assertive: -Infinity });
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mounted = useRef(true);
 
   const intervals = useRef({ polite: politeIntervalMs, assertive: minIntervalMs });
   intervals.current = { polite: politeIntervalMs, assertive: minIntervalMs };
+  const windowMs = useRef(dedupeWindowMs);
+  windowMs.current = dedupeWindowMs;
 
   const pump = useCallback(() => {
     timer.current = null;
@@ -128,6 +136,12 @@ export function PageAnnouncerProvider({
         if (seen.current.includes(key)) return;
         seen.current.push(key);
         if (seen.current.length > DEDUPE_MEMORY) seen.current.shift();
+      } else {
+        const now = Date.now();
+        const said = recent.current.get(text);
+        if (said !== undefined && now - said < windowMs.current) return;
+        recent.current.set(text, now);
+        for (const [m, at] of recent.current) if (now - at >= windowMs.current) recent.current.delete(m);
       }
       queue.current.push({ message: text, politeness: options.politeness ?? 'polite', key });
       if (timer.current) clearTimeout(timer.current);
@@ -164,3 +178,17 @@ export function useAnnounce(): Announce {
 /** The provider and the hook, as one name for the barrel and the docs. */
 export const PageAnnouncer = { Provider: PageAnnouncerProvider, useAnnounce } as const;
 
+
+/** Politeness under the restaurant stub's name (`Politeness`), kept so its seam can switch over. */
+export type Politeness = AnnouncePoliteness;
+
+/** The object API the restaurant stub offered: `announce(message, politeness)`. */
+export interface PageAnnouncerApi {
+  announce: (message: string, politeness?: AnnouncePoliteness) => void;
+}
+
+/** `usePageAnnouncer().announce(message, politeness)`: the same queue as `useAnnounce()`. */
+export function usePageAnnouncer(): PageAnnouncerApi {
+  const announce = useAnnounce();
+  return useMemo(() => ({ announce: (message, politeness) => announce(message, { politeness }) }), [announce]);
+}

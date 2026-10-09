@@ -7,9 +7,12 @@
  *   `silent` renders no live region at all.
  * - Toast: danger and action toasts are persistent; the timer pauses on hover and focus.
  * - Modal: confirm puts focus on the least destructive action.
- * - Menu: a disabled item stays focusable, cannot be chosen, and its reason is read.
+ * - Menu: a disabled item stays focusable, cannot be chosen, and its reason is read; `checked`
+ *   items are menuitemradio.
  * - StatusTimeline: a passed deadline makes the current step `stalled`.
- * - PageAnnouncer: at most one assertive message per interval, and a dedupe key speaks once.
+ * - PageAnnouncer: at most one assertive message per interval, a dedupe key speaks once, and
+ *   the same text is not repeated within 5 s.
+ * - InlineAlert: a blocking alert takes focus and is assertive.
  * - Halal: a halal message cannot be danger, at the type level and at run time (invariant 9).
  */
 
@@ -23,8 +26,10 @@ import { formatTime12h } from '../time';
 import {
   Banner,
   HalalBanner,
+  InlineAlert,
   PageAnnouncerProvider,
   useAnnounce,
+  usePageAnnouncer,
   type HalalBannerProps,
   type HalalMessageTone,
 } from '../../proposed/index';
@@ -168,9 +173,10 @@ describe('Menu', () => {
     screen.getByRole('button', { name: 'Actions for Chicken shawarma plate' }).focus();
     await user.keyboard('{Enter}');
     expect(screen.getByRole('menuitem', { name: 'Edit item' })).toHaveFocus();
-    const locked = screen.getByRole('menuitem', { name: 'Change price Locked while an order is open' });
+    // The visible reason is part of the item's accessible name (#675).
+    const locked = screen.getByRole('menuitem', { name: /^Change price/ });
+    expect(locked).toHaveAccessibleName(/^Change price,\s*Locked while an order is open$/);
     expect(locked).toHaveAttribute('aria-disabled', 'true');
-    expect(locked).toHaveAccessibleDescription('Locked while an order is open');
     await user.keyboard('{ArrowDown}');
     expect(locked).toHaveFocus();
     await user.keyboard('{Enter}');
@@ -178,6 +184,32 @@ describe('Menu', () => {
     expect(screen.getByRole('menuitem', { name: 'Remove item' })).toHaveAttribute('data-destructive', 'true');
     await user.click(screen.getByRole('menuitem', { name: 'Edit item' }));
     expect(onSelect).toHaveBeenCalledWith('edit', expect.objectContaining({ label: 'Edit item' }));
+  });
+
+  it('an item with `checked` is a menuitemradio with aria-checked (restaurant pause menu)', async () => {
+    vi.useRealTimers();
+    const user = userEvent.setup();
+    const onSelect = vi.fn();
+    render(
+      <Menu
+        label="Pause new orders"
+        trigger="Pause"
+        variant="tonal"
+        onSelect={onSelect}
+        items={[
+          { key: '15', label: '15 minutes', checked: true },
+          { key: '30', label: '30 minutes', checked: false },
+          { key: 'close', label: 'Until closing', checked: false, separatorBefore: true },
+        ]}
+      />,
+    );
+    await user.click(screen.getByRole('button', { name: 'Pause' }));
+    expect(screen.getByRole('menu', { name: 'Pause new orders' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitemradio', { name: '15 minutes' })).toHaveAttribute('aria-checked', 'true');
+    expect(screen.getByRole('menuitemradio', { name: '30 minutes' })).toHaveAttribute('aria-checked', 'false');
+    expect(screen.getAllByRole('separator')).toHaveLength(1);
+    await user.click(screen.getByRole('menuitemradio', { name: '30 minutes' }));
+    expect(onSelect).toHaveBeenCalledWith('30', expect.objectContaining({ label: '30 minutes' }));
   });
 
   it('reports two triggers with the same name', () => {
@@ -240,6 +272,31 @@ describe('PageAnnouncer', () => {
     act(() => vi.advanceTimersByTime(1_100));
     expect(assertive).toHaveTextContent('B3M9, 18 seconds left to accept.');
   });
+
+  it('does not repeat the same text within 5 seconds, but says it again after (#675)', () => {
+    let announce: ReturnType<typeof usePageAnnouncer>['announce'] = () => undefined;
+    function Grab() {
+      announce = usePageAnnouncer().announce;
+      return null;
+    }
+    render(
+      <PageAnnouncerProvider politeIntervalMs={0}>
+        <Grab />
+      </PageAnnouncerProvider>,
+    );
+    const polite = screen.getByRole('status');
+    act(() => announce('New order A7K2.'));
+    expect(polite).toHaveTextContent('New order A7K2.');
+    act(() => announce('Order B3M9 accepted.'));
+    act(() => vi.advanceTimersByTime(10));
+    act(() => announce('New order A7K2.'));
+    act(() => vi.advanceTimersByTime(10));
+    expect(polite).toHaveTextContent('Order B3M9 accepted.');
+    act(() => vi.advanceTimersByTime(5_000));
+    act(() => announce('New order A7K2.'));
+    act(() => vi.advanceTimersByTime(10));
+    expect(polite).toHaveTextContent('New order A7K2.');
+  });
 });
 
 describe('halal messages are never danger (invariant 9)', () => {
@@ -264,5 +321,26 @@ describe('halal messages are never danger (invariant 9)', () => {
     expect(banner).toHaveAttribute('data-tone', 'slate');
     expect(banner.className).not.toMatch(/danger/);
     expect(report).toHaveBeenCalledWith('HALAL_TONE_DANGER', { component: 'Banner' });
+  });
+});
+
+describe('InlineAlert', () => {
+  it('a blocking alert takes focus on mount, is assertive, and lists its findings (#699)', () => {
+    render(
+      <InlineAlert
+        blocking
+        tone="warning"
+        title="Approval is blocked"
+        items={[
+          { id: 'h4', code: 'H4', content: 'The certificate number does not match the issuer register.' },
+          { id: 'h6', code: 'H6', content: 'The supplier list is missing.' },
+        ]}
+      />,
+    );
+    const alert = screen.getByRole('alert');
+    expect(alert).toHaveFocus();
+    expect(alert).toHaveAttribute('tabindex', '-1');
+    expect(screen.getAllByRole('listitem')).toHaveLength(2);
+    expect(screen.getByText('H4')).toBeInTheDocument();
   });
 });

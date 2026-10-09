@@ -25,8 +25,11 @@ export interface EmptyStateAction {
   loading?: boolean;
 }
 
-/** Where the empty state sits. `page`/`inline`/`table` are the pre-rebuild names. */
-export type EmptyStateVariant = 'region' | 'fullscreen' | 'grid-body' | 'filtered' | 'page' | 'inline' | 'table';
+/**
+ * Where the empty state sits. `page`/`inline`/`table` are the pre-rebuild names; `first-run` is
+ * the admin stub's name for the default region layout.
+ */
+export type EmptyStateVariant = 'region' | 'fullscreen' | 'grid-body' | 'filtered' | 'first-run' | 'page' | 'inline' | 'table';
 
 /** `neutral`: nothing here yet. `positive`: a drained queue. */
 export type EmptyStateTone = 'neutral' | 'positive';

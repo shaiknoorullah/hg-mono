@@ -201,10 +201,31 @@ export interface ToastProviderProps {
   children?: ReactNode;
   /** The viewport landmark's name. Default "Notifications". */
   label?: string;
+  /**
+   * Which bottom corner the stack sits in (logical). Default `bottom-end`. The restaurant console
+   * uses `bottom-start` so toasts land at the bottom left of the panes, never over the
+   * DetailPanel or the new-order strip (#675).
+   */
+  placement?: 'bottom-end' | 'bottom-start';
+  /**
+   * `fixed` (default) pins the stack to the viewport; `contained` positions it inside the nearest
+   * positioned ancestor, so a pane area can host it.
+   */
+  position?: 'fixed' | 'contained';
+  /** Extra classes and inline style for the viewport, e.g. an inline-start offset past a side nav. */
+  viewportClassName?: string;
+  viewportStyle?: CSSProperties;
 }
 
 /** Wrap the app once; `useToast()` below it raises toasts into one labelled viewport. */
-export function ToastProvider({ children, label = 'Notifications' }: ToastProviderProps) {
+export function ToastProvider({
+  children,
+  label = 'Notifications',
+  placement = 'bottom-end',
+  position = 'fixed',
+  viewportClassName,
+  viewportStyle,
+}: ToastProviderProps) {
   const [toasts, setToasts] = useState<Array<ToastOptions & { id: string }>>([]);
 
   const dismiss = useCallback((id: string) => {
@@ -223,7 +244,15 @@ export function ToastProvider({ children, label = 'Notifications' }: ToastProvid
   return (
     <ToastContext.Provider value={api}>
       {children}
-      <ToastViewport aria-label={label} data-testid="hg-toast-viewport">
+      <ToastViewport
+        aria-label={label}
+        data-testid="hg-toast-viewport"
+        data-placement={placement}
+        placement={placement}
+        contained={position === 'contained'}
+        className={viewportClassName}
+        style={viewportStyle}
+      >
         {toasts.map(({ id, onDismiss, ...toast }) => (
           <Toast
             key={id}

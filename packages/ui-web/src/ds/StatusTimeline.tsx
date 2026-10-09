@@ -46,6 +46,8 @@ export interface StatusTimelineProps {
   /** data-testid; defaults to the component name (02-components.md rule 11). */
   testId?: string;
   style?: CSSProperties;
+  /** Extra classes on the root (the admin adapter's prop). */
+  className?: string;
 }
 
 /** The word each step state is spoken as. */
@@ -109,6 +111,7 @@ export function StatusTimeline({
   now,
   testId = 'StatusTimeline',
   style,
+  className,
 }: StatusTimelineProps) {
   const timeline = loading || state === undefined ? null : resolveTimeline({ audience, state, transitions, deadlineAt, now });
   const [announcement, setAnnouncement] = useState('');
@@ -136,7 +139,7 @@ export function StatusTimeline({
   if (!timeline) {
     const count = orientation === 'compact' ? 1 : timelineLength(audience);
     return (
-      <div data-testid={testId} data-orientation={orientation} aria-busy="true" className="grid gap-3" style={style}>
+      <div data-testid={testId} data-orientation={orientation} aria-busy="true" className={cn('grid gap-3', className)} style={style}>
         <span className="sr-only">Loading order status.</span>
         {Array.from({ length: count }, (_, i) => (
           <div key={i} className="flex items-center gap-3">
@@ -173,7 +176,7 @@ export function StatusTimeline({
     const word = `${current.label}, ${STEP_STATE_WORD[current.state]}`;
     const fill = current.state === 'failed' ? 'bg-feedback-danger-solid' : current.state === 'stalled' ? 'bg-feedback-warning-solid' : 'bg-action-primary-bg';
     return (
-      <div data-testid={testId} data-orientation="compact" className="grid gap-2" style={style}>
+      <div data-testid={testId} data-orientation="compact" className={cn('grid gap-2', className)} style={style}>
         {notice}
         <div
           role="progressbar"
@@ -196,7 +199,7 @@ export function StatusTimeline({
 
   const vertical = orientation !== 'horizontal';
   return (
-    <div data-testid={testId} data-orientation={orientation} style={style}>
+    <div data-testid={testId} data-orientation={orientation} className={className} style={style}>
       {notice}
       <ol role="list" className={cn('m-0 list-none p-0', vertical ? 'grid' : 'flex items-start gap-2')}>
         {timeline.steps.map((step, i) => (
