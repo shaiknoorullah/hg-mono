@@ -96,7 +96,7 @@ export type { SideNavGroup, SideNavItem, SideNavProps } from '../navigation/inde
 export { Countdown, COUNTDOWN_ANNOUNCE_AT, COUNTDOWN_SKEW_LIMIT_MS } from './Countdown.js';
 export type { CountdownProps, CountdownState } from './Countdown.js';
 export { Menu } from './Menu.js';
-export type { MenuActionItem, MenuItem, MenuProps, MenuRadioItem, MenuTriggerVariant } from './Menu.js';
+export type { MenuActionItem, MenuItem, MenuItemDef, MenuProps, MenuRadioItem, MenuTriggerVariant } from './Menu.js';
 export { Dialog, Modal } from './Modal.js';
 export type { ModalProps } from './Modal.js';
 export { Toast, TOAST_DEFAULT_DURATION, isPersistentToast } from './Toast.js';

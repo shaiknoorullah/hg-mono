@@ -68,7 +68,7 @@ function isListItem(value: unknown): value is BannerListItem {
 
 /** Props every member of the family shares. */
 export interface BannerBaseProps {
-  /** Default `inline`. `page` is the full-width bar. */
+  /** `Banner` defaults to `page` (the full-width bar it always was); `InlineAlert` to `inline`. */
   placement?: BannerPlacement;
   title?: ReactNode;
   /** The message body (packet P1). */
@@ -145,7 +145,7 @@ function renderIcon(icon: BannerBaseProps['icon'], tone: Tone): ReactNode {
 function BannerImpl({
   tone,
   halal,
-  placement = 'inline',
+  placement = 'page',
   title,
   children,
   description,
@@ -264,7 +264,7 @@ function BannerImpl({
         <IconButton
           icon="close"
           variant="plain"
-          size="sm"
+          size="md"
           accessibilityLabel={`Dismiss: ${label}`}
           onPress={() => {
             setDismissed(true);
@@ -286,9 +286,12 @@ export function Banner(props: BannerProps) {
   return <BannerImpl {...rest} tone={tone ?? variant ?? 'info'} halal={Boolean(halal)} testId={testId ?? 'Banner'} />;
 }
 
-/** The same component, placed in the flow of a region. */
+/** The same component, placed in the flow of a region. Defaults to the neutral tone (admin stub). */
 export function InlineAlert(props: InlineAlertProps) {
-  return <Banner placement="inline" testId="InlineAlert" {...props} />;
+  const p = props as BannerBaseProps & { tone?: Tone; variant?: BannerVariant; halal?: boolean };
+  const tone = p.tone ?? p.variant ?? 'neutral';
+  const merged = { placement: 'inline', testId: 'InlineAlert', ...props, tone } as BannerProps;
+  return <Banner {...merged} />;
 }
 
 /** A halal message (expired, missing or lapsed certificate, delisted): slate or warning, never danger. */

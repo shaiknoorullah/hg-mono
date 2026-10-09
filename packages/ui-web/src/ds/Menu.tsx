@@ -56,6 +56,9 @@ export interface MenuActionItem {
   separatorBefore?: boolean;
 }
 
+/** The restaurant stub's name for an action row, kept so its seam can switch over. */
+export type MenuItemDef = MenuActionItem;
+
 /** A `menuitemradio` row (addition): one choice of a set, `checked` marks the current one. */
 export interface MenuRadioItem {
   type: 'radio';

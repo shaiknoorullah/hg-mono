@@ -178,7 +178,6 @@ export function useAnnounce(): Announce {
 /** The provider and the hook, as one name for the barrel and the docs. */
 export const PageAnnouncer = { Provider: PageAnnouncerProvider, useAnnounce } as const;
 
-
 /** Politeness under the restaurant stub's name (`Politeness`), kept so its seam can switch over. */
 export type Politeness = AnnouncePoliteness;
 
