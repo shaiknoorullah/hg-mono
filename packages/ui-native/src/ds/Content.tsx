@@ -1,14 +1,28 @@
+import * as React from 'react';
 import { Linking, type StyleProp, type TextStyle, View } from 'react-native';
 import type { Cents } from '@hg/api-client';
 
 import { reportClientError } from '../certification/internal/reportClientError';
-import { Card as LegacyCard, type CardVariant } from '../content/Card';
-import { Price as LegacyPrice, spokenPrice } from '../content/Price';
+import type { CardVariant } from '../content/Card';
+import { formatPrice, spokenPrice } from '../content/Price';
 import { Rating as LegacyRating, type RatingSize, type RatingVariant } from '../content/Rating';
-import { Badge as LegacyBadge, type BadgeSize, type BadgeStyle, type BadgeVariant } from '../primitives/Badge';
-import { radius as radii, useTheme } from '../tokens';
-import { Icon } from './Icon';
-import { type AnyIconName, type DsCommon, resolveTestId } from './shared';
+import {
+  Badge as LibBadge,
+  Card as LibCard,
+  KeyValueList as LibKeyValueList,
+  PriceText,
+  StatCard as LibStatCard,
+  type KeyValueRow,
+} from '../lib';
+import type { BadgeSize, BadgeStyle, BadgeVariant } from '../primitives/Badge';
+import { elevationStyle, useTheme } from '../tokens';
+import { type AnyIconName, type DsCommon, isFieldTheme, resolveTestId } from './shared';
+
+/*
+ * Badge, Card, Price (design-system N1) and the approved KeyValueList and StatCard: the live
+ * props, rendered by the React Native Reusables tier (`lib/ui/*`). This file keeps React's own
+ * JSX runtime and only maps props; every `className` is applied inside `lib/`.
+ */
 
 /* ───── Badge ───── */
 
@@ -21,7 +35,7 @@ export interface BadgeProps extends DsCommon {
   variant?: BadgeVariant;
   /** tint (default) · solid · dot. The live API's name for the spec's `style` prop. */
   appearance?: BadgeStyle;
-  /** sm 18 · md 22 · lg 26. */
+  /** sm 18 · md 22 · lg 26; 32 on the rider (field) theme. */
   size?: BadgeSize;
   icon?: AnyIconName;
   /** For numeric content: above `max` renders "{max}+". */
@@ -32,15 +46,16 @@ export interface BadgeProps extends DsCommon {
 export function Badge(props: BadgeProps) {
   const { children, label, variant, appearance = 'tint', size, icon, max, style } = props;
   const theme = useTheme();
-  const text = String(label ?? children ?? '');
+  const raw = label ?? children ?? '';
+  const text = typeof raw === 'number' && max !== undefined && raw > max ? `${max}+` : String(raw);
   const badge = (
-    <LegacyBadge
-      label={text}
+    <LibBadge
+      text={text}
       variant={variant}
-      style={appearance}
+      appearance={appearance}
       size={size}
-      max={max}
-      icon={icon ? <Icon name={icon} size="sm" color={theme.color.text.secondary} /> : undefined}
+      field={isFieldTheme(theme)}
+      icon={icon}
       testID={resolveTestId(props, 'Badge')}
     />
   );
@@ -79,17 +94,31 @@ function points(value: number | string | undefined): number | undefined {
 
 /** The generic surface; one press target when `onPress` or `href` is set. */
 export function Card(props: CardProps) {
-  const { href, onPress, padding, radius, testId: _t, testID: _T, ...rest } = props;
+  const { href, onPress, padding, radius = 'lg', style, ...rest } = props;
+  const theme = useTheme();
   const press = onPress ?? (href ? () => void Linking.openURL(href) : undefined);
+  const variant = rest.variant ?? (press ? 'interactive' : 'elevated');
+  // Light carries depth with a shadow from the elevation tokens; dark steps the surface (the
+  // elevation helper returns the raised step there).
+  const depth = variant === 'elevated' || variant === 'interactive' ? elevationStyle(theme, '1') : undefined;
   return (
-    <LegacyCard
-      {...rest}
-      variant={rest.variant ?? (press ? 'interactive' : 'elevated')}
+    <LibCard
+      variant={variant}
+      radius={radius}
+      disabled={rest.disabled}
+      padding={points(padding) ?? theme.density.cardPadding}
+      media={rest.media}
+      header={rest.header}
+      footer={rest.footer}
       onPress={press}
-      padding={points(padding)}
-      radius={radius ? radii[radius] : undefined}
+      accessibilityRole={href && !onPress ? 'link' : 'button'}
+      accessibilityLabel={rest.accessibilityLabel}
+      accessibilityHint={rest.accessibilityHint}
+      style={[depth, style]}
       testID={resolveTestId(props, 'Card')}
-    />
+    >
+      {rest.children}
+    </LibCard>
   );
 }
 
@@ -122,24 +151,67 @@ export interface PriceProps {
 
 /** The ONLY component permitted to render money. */
 export function Price(props: PriceProps) {
-  const { cents, announceAs, onDark, strikethrough = false, free, testId: _t, testID: _T, ...rest } = props;
-  const theme = useTheme();
+  const { cents, announceAs, onDark, strikethrough = false, free, sign, showCode, currency, size, loading, style } = props;
   if (typeof cents !== 'number' || !Number.isInteger(cents)) {
     reportClientError('MONEY_NOT_INTEGER_CENTS', { value: String(cents) });
     return null;
   }
   const spoken = spokenPrice(cents, { free, strikethrough: strikethrough || announceAs === 'was' });
   return (
-    <LegacyPrice
-      {...rest}
-      cents={cents}
-      free={free}
+    <PriceText
+      glyphs={formatPrice(cents, { sign, showCode, free, currency })}
+      spoken={announceAs === 'now' ? `now ${spoken}` : spoken}
+      size={size}
       strikethrough={strikethrough}
-      color={onDark ? theme.color.text.onInverse : undefined}
-      accessibilityLabel={announceAs === 'now' ? `now ${spoken}` : spoken}
+      loading={loading}
+      onDark={onDark}
+      style={style}
       testID={resolveTestId(props, 'Price')}
     />
   );
+}
+
+/* ───── KeyValueList and StatCard (approved, decisions row 28 Sep) ───── */
+
+/** One KeyValueList row: an object, or the canvases' `[label, value, { mono }]` tuple. */
+export type KeyValueListRow = KeyValueRow | readonly [string, React.ReactNode, { mono?: boolean }?];
+
+/** Props of `KeyValueList` (shape taken from the approved canvases' drawing). */
+export interface KeyValueListProps extends DsCommon {
+  /** Rows in reading order; `null`, `false` and `undefined` are skipped. */
+  rows: ReadonlyArray<KeyValueListRow | null | false | undefined>;
+  /** Width of the label column in points. Default 140; the label stacks at large font scales. */
+  labelWidth?: number;
+}
+
+/** Label-and-value rows: order facts, rider details, certificate fields. */
+export function KeyValueList(props: KeyValueListProps) {
+  const rows = props.rows.map((row) =>
+    Array.isArray(row) ? { label: row[0] as string, value: row[1] as React.ReactNode, mono: row[2]?.mono } : row,
+  ) as ReadonlyArray<KeyValueRow | null | false | undefined>;
+  const list = <LibKeyValueList rows={rows} labelWidth={props.labelWidth} testID={resolveTestId(props, 'KeyValueList')} />;
+  return props.style ? <View style={props.style}>{list}</View> : list;
+}
+
+/** Props of `StatCard` (shape taken from the approved canvases' drawing). */
+export interface StatCardProps extends DsCommon {
+  /** What the number is ("Today's earnings"). */
+  label: string;
+  /** The value, usually a `Price`. */
+  children: React.ReactNode;
+  /** A secondary line ("12 deliveries"). */
+  sub?: string;
+}
+
+/** An outlined tile: label, value, optional secondary line. */
+export function StatCard(props: StatCardProps) {
+  const theme = useTheme();
+  const card = (
+    <LibStatCard label={props.label} sub={props.sub} padding={theme.density.cardPadding} testID={resolveTestId(props, 'StatCard')}>
+      {props.children}
+    </LibStatCard>
+  );
+  return props.style ? <View style={props.style}>{card}</View> : card;
 }
 
 /* ───── Rating ───── */
