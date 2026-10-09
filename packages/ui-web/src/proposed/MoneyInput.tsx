@@ -32,8 +32,17 @@ export interface MoneyInputProps {
   maxCents?: Cents;
   helperText?: string;
   errorText?: string | null;
+  /**
+   * Show the built-in format and over-the-limit errors (default true). The admin seam passes
+   * false until submit; the caller still receives null for an invalid amount either way.
+   */
+  showErrors?: boolean;
+  /** Replaces the built-in "Enter dollars and cents, like 12.50." message. */
+  formatErrorText?: string;
   required?: boolean;
   disabled?: boolean;
+  /** Shown, focusable and not editable. */
+  readOnly?: boolean;
   size?: 'md' | 'lg' | 'field';
   id?: string;
   name?: string;
@@ -81,8 +90,11 @@ export function MoneyInput({
   maxCents,
   helperText,
   errorText,
+  showErrors = true,
+  formatErrorText,
   required = false,
   disabled = false,
+  readOnly = false,
   size = 'md',
   id,
   name,
@@ -100,9 +112,10 @@ export function MoneyInput({
   }, [valueCents]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const overMax = parsed.kind === 'ok' && typeof maxCents === 'number' && parsed.cents > maxCents;
-  const ownError =
-    parsed.kind === 'invalid'
-      ? 'Enter dollars and cents, like 12.50.'
+  const ownError = !showErrors
+    ? null
+    : parsed.kind === 'invalid'
+      ? (formatErrorText ?? 'Enter dollars and cents, like 12.50.')
       : overMax
         ? `The most you can enter is $${formatCentsPlain(maxCents!)}.`
         : null;
@@ -111,7 +124,7 @@ export function MoneyInput({
   const limitId = `${ids.control}-limit`;
 
   const change = (next: string) => {
-    if (disabled) return;
+    if (disabled || readOnly) return;
     setText(next);
     const p = parseMoneyInput(next);
     const over = p.kind === 'ok' && typeof maxCents === 'number' && p.cents > maxCents;
@@ -138,7 +151,7 @@ export function MoneyInput({
           inputMode="decimal"
           autoComplete="off"
           value={text}
-          readOnly={disabled}
+          readOnly={disabled || readOnly}
           required={required}
           aria-required={required || undefined}
           aria-invalid={invalid || undefined}
@@ -156,7 +169,7 @@ export function MoneyInput({
       </div>
       <FieldMessage id={ids.helper}>{helperText}</FieldMessage>
       {typeof maxCents === 'number' ? (
-        <p id={limitId} className="m-0 flex items-center gap-1 text-body-sm text-fg-secondary">
+        <p id={limitId} className="m-0 text-body-sm text-fg-secondary">
           Up to <Price cents={maxCents} size="sm" />
         </p>
       ) : null}

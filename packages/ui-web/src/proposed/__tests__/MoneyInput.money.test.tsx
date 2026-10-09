@@ -76,6 +76,14 @@ describe('MoneyInput emits integer cents only', () => {
     expect(input).toHaveValue('50.00');
   });
 
+  it('with showErrors={false} withholds the message but still emits null for invalid text', () => {
+    const onValueChange = vi.fn();
+    render(<MoneyInput label="Goodwill" valueCents={500 as Cents} showErrors={false} onValueChange={onValueChange} />);
+    fireEvent.change(screen.getByRole('textbox', { name: 'Goodwill' }), { target: { value: '5.005' } });
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(onValueChange).toHaveBeenLastCalledWith(null);
+  });
+
   it('formats cents with integer division only', () => {
     expect(formatCentsPlain(5)).toBe('0.05');
     expect(formatCentsPlain(1250)).toBe('12.50');

@@ -104,7 +104,13 @@ export function Select(props: SelectProps) {
 function Chevron({ open = false }: { open?: boolean }) {
   return (
     <span aria-hidden="true" className="pointer-events-none absolute end-3 inline-flex text-fg-tertiary">
-      <Icon name="chevron-down" size="md" weight={open ? 'bold' : 'linear'} />
+      {/* Drawn, not the Icon: `chevron-down` has no glyph in the repo map until W1 (#198). */}
+      <span
+        className={cn(
+          'mb-1 inline-block size-2 rotate-45 border-current border-e-[1.5px] border-b-[1.5px]',
+          open && 'border-e-2 border-b-2',
+        )}
+      />
     </span>
   );
 }

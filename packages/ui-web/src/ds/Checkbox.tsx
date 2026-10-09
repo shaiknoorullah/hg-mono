@@ -51,7 +51,7 @@ export interface CheckboxProps {
 /** The signed price delta beside an add-on or variant row. */
 export function PriceDelta({ cents }: { cents: number }) {
   return (
-    <span className="shrink-0 text-body-sm text-fg-secondary">
+    <span className="shrink-0 text-body-sm font-semibold text-fg-primary">
       <Price cents={cents as Cents} sign="always" size="sm" />
     </span>
   );

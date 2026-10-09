@@ -51,6 +51,8 @@ interface TextareaOwnProps {
   characterCount?: boolean;
   /** Enforced by the counter and announced; never by a silent disable. */
   minLength?: number;
+  /** Replaces the "{n} more characters needed" line (the admin seam's name). */
+  minLengthHint?: string;
   maxLength?: number;
   /** Minimum height in px (P18 default 140). */
   minHeight?: number;
@@ -82,6 +84,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function 
     autoGrow = false,
     characterCount = false,
     minLength,
+    minLengthHint,
     maxLength,
     minHeight = 140,
     loading = false,
@@ -157,7 +160,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function 
       ) : null}
       {short ? (
         <p id={ids.count} className="m-0 justify-self-end text-body-sm text-feedback-warning-text tabular-nums">
-          {`${minLength - current.length} more character${minLength - current.length === 1 ? '' : 's'} needed`}
+          {minLengthHint ?? `${minLength - current.length} more character${minLength - current.length === 1 ? '' : 's'} needed`}
         </p>
       ) : counted && maxLength ? (
         <CharacterCounter id={ids.count} length={current.length} limit={maxLength} />

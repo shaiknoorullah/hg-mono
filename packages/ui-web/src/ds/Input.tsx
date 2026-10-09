@@ -76,6 +76,8 @@ export interface InputProps {
   autoFocus?: boolean;
   /** `otp` only: 6 cells (sign-in, default) or 4 (rider handover). */
   otpLength?: 4 | 6;
+  /** Alias of `otpLength` (the approval packet's name, P19). */
+  length?: 4 | 6;
   /** Extra ids to describe the field by, merged with the helper, error and counter. */
   'aria-describedby'?: string;
   onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
@@ -130,7 +132,8 @@ export function Input({
   id,
   name,
   autoFocus,
-  otpLength = 6,
+  otpLength: otpLengthProp,
+  length: lengthAlias,
   'aria-describedby': extraDescribedBy,
   onBlur,
   onFocus,
@@ -138,6 +141,7 @@ export function Input({
   style,
 }: InputProps) {
   if (!label) reportDsClientError('FIELD_UNLABELLED', { component: 'Input' });
+  const otpLength = otpLengthProp ?? lengthAlias ?? 6;
   const ids = useFieldIds(id, 'input');
   const [inner, setInner] = useState(defaultValue ?? '');
   const current = value ?? inner;
@@ -199,8 +203,8 @@ export function Input({
         }}
         containerClassName={cn(
           fieldShellVariants({ size, invalid, disabled }),
-          'w-fit gap-2 px-2',
-          size === 'md' ? 'py-0' : 'py-1',
+          'gap-2 px-2',
+          size === 'md' ? 'py-1.5' : 'py-2',
         )}
       >
         {Array.from({ length: otpLength }, (_, i) => (

@@ -42,7 +42,7 @@ export function InputOTPSlot({
       data-slot="input-otp-slot"
       data-active={slot?.isActive || undefined}
       className={cn(
-        'relative flex h-11 w-10 items-center justify-center rounded-sm border bg-surface-sunken',
+        'relative flex h-8 min-w-0 max-w-10 flex-1 items-center justify-center rounded-sm border bg-surface-sunken',
         'font-ui text-heading-md text-fg-primary tabular-nums',
         invalid ? 'border-feedback-danger-border' : 'border-transparent',
         'data-active:border-(--hg-focus-ring-color) data-active:shadow-[inset_0_0_0_1px_var(--hg-focus-ring-color)]',

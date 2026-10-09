@@ -25,8 +25,8 @@ import {
 
 import { Label } from '../lib/ui/label.js';
 import { TextLink } from '../lib/ui/text-link.js';
-import { FieldMessage, describedBy, useFieldIds } from '../ds/field-parts.js';
-import { Icon } from '../ds/index.js';
+import { ErrorGlyph, FieldMessage, describedBy, useFieldIds } from '../ds/field-parts.js';
+
 
 /** What `Field` hands its control. */
 export interface FieldControlProps {
@@ -123,7 +123,7 @@ export function ErrorSummary({ errors, title, focusOnShow = true, testId, style 
     >
       <p id={headingId} className="m-0 flex items-center gap-2 text-heading-sm text-fg-primary">
         <span className="inline-flex text-feedback-danger-icon">
-          <Icon name="error" size="md" />
+          <ErrorGlyph size="md" />
         </span>
         {heading}
       </p>

@@ -35,6 +35,14 @@ export interface DateInputProps {
   errorText?: string | null;
   required?: boolean;
   disabled?: boolean;
+  /** Shown, focusable and not editable. */
+  readOnly?: boolean;
+  /** Visually hides the legend (it still names the group), e.g. in a filter row. */
+  hideLabel?: boolean;
+  /** Adds a hidden form input carrying the YYYY-MM-DD value. */
+  name?: string;
+  /** Base id; the parts are `{id}-day`, `{id}-month`, `{id}-year`. Defaults to a useId() value. */
+  id?: string;
   size?: 'md' | 'lg' | 'field';
   testId?: string;
   style?: CSSProperties;
@@ -112,11 +120,15 @@ export function DateInput({
   errorText,
   required = false,
   disabled = false,
+  readOnly = false,
+  hideLabel = false,
+  name,
+  id,
   size = 'md',
   testId,
   style,
 }: DateInputProps) {
-  const ids = useFieldIds(undefined, 'dateinput');
+  const ids = useFieldIds(id, 'dateinput');
   const [parts, setParts] = useState<Parts>(() => split(value));
   const check = checkDateParts(parts, min, max);
 
@@ -129,7 +141,7 @@ export function DateInput({
   const invalidParts = errorText ? (['day', 'month', 'year'] as PartKey[]) : check.invalid;
 
   const update = (key: PartKey, raw: string, length: number) => {
-    if (disabled) return;
+    if (disabled || readOnly) return;
     const next = { ...parts, [key]: raw.replace(/\D+/g, '').slice(0, length) };
     setParts(next);
     const result = checkDateParts(next, min, max).value;
@@ -146,7 +158,7 @@ export function DateInput({
       className="m-0 grid min-w-0 gap-1 border-0 p-0"
       style={style}
     >
-      <legend id={ids.label} className="mb-1 p-0 text-label-md font-semibold text-fg-secondary">
+      <legend id={ids.label} className={cn('mb-1 p-0 text-label-md font-semibold text-fg-secondary', hideLabel && 'sr-only')}>
         {label}
         {required ? (
           <span aria-hidden="true" className="text-line-brand">
@@ -175,7 +187,7 @@ export function DateInput({
                   maxLength={p.length}
                   placeholder={p.placeholder}
                   value={parts[p.key]}
-                  readOnly={disabled}
+                  readOnly={disabled || readOnly}
                   required={required}
                   aria-required={required || undefined}
                   aria-invalid={bad || undefined}
@@ -194,6 +206,7 @@ export function DateInput({
           {message}
         </FieldMessage>
       ) : null}
+      {name ? <input type="hidden" name={name} value={check.value ?? ''} /> : null}
     </fieldset>
   );
 }

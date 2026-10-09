@@ -25,12 +25,14 @@ Work packages: `plan/design-system.md` §4.1 on the read-only `claude/redesign-c
 | Price | legacy | W1 | no `onDark`, `testId`, `style` |
 | AppBar | adapter (over `TopBar`) | W2 | `tone`, `large`, `transparent`, `sticky` are accepted and ignored |
 | SideNav | legacy (approved) | W2 | — |
-| Input | adapter | W3 | `otp` is the legacy 6-cell row |
-| Select | adapter | W3 | `onChange` receives the value, not an event |
-| Checkbox | adapter | W3 | use `onCheckedChange`; `onChange(event)` is not offered |
-| RadioGroup | adapter | W3 | `options` only (no `<Radio>` children); `onChange(value)` without an event |
-| Switch | adapter | W3 | `size` ignored |
-| SegmentedControl | missing | W3 | — |
+| Input | rebuilt | W3 | `otp` is one input-otp group (6 cells, or 4 with `otpLength`/`length`); `size="field"` (56px) added |
+| Select | rebuilt | W3 | native `onChange` receives the event, listbox the value (live `index.d.ts`); `onValueChange` receives the value in both |
+| Checkbox | rebuilt | W3 | — |
+| RadioGroup (+ Radio) | rebuilt | W3 | `roomy` (72px rows) added |
+| Switch | rebuilt | W3 | — |
+| SegmentedControl | rebuilt | W3 | — |
+| FileDrop (approved composite) | rebuilt | W3 | — |
+| formatTime12h | rebuilt | W3 | the one 12-hour time formatter (`src/ds/time.ts`) |
 | Countdown | missing | W4 | — |
 | Menu | missing | W4 | — |
 | Modal | missing | W4 | confirm and alert only on web |
@@ -50,7 +52,13 @@ Work packages: `plan/design-system.md` §4.1 on the read-only `claude/redesign-c
 | Banner (+ InlineAlert, slate tone) | legacy `Banner` | W4 |
 | EmptyState, ErrorState | legacy | W4 |
 | Skeleton, Spinner | legacy | W1 |
-| Textarea | legacy | W3 |
+| Textarea | rebuilt (keeps the legacy props) | W3 |
+| Field, ErrorSummary | rebuilt | W3 |
+| CheckboxGroup | rebuilt | W3 |
+| DateInput, TimeField | rebuilt | W3 |
+| MoneyInput (integer cents only) | rebuilt | W3 |
+| Stepper | rebuilt | W3 |
+| InlineConfirm | rebuilt | W3 |
 | Tooltip | legacy | W1 |
 | ToastProvider, useToast | legacy | W4 |
 | DocumentViewer | legacy | W7b |

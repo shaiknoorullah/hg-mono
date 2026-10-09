@@ -557,7 +557,7 @@ describe('W3 Forms behaviour', () => {
     expect(screen.getByRole('textbox', { name: 'Name' })).toHaveFocus();
   });
 
-  it('InlineConfirm focuses the decisive button, cancels on Escape and returns focus', () => {
+  it('InlineConfirm focuses the least-change button, cancels on Escape and returns focus', () => {
     function Host() {
       const [asking, setAsking] = useState(false);
       return (
@@ -573,10 +573,25 @@ describe('W3 Forms behaviour', () => {
     const trigger = screen.getByRole('button', { name: 'Turn off new orders' });
     trigger.focus();
     fireEvent.click(trigger);
-    expect(screen.getByRole('button', { name: 'Turn off' })).toHaveFocus();
+    expect(screen.getByRole('button', { name: 'Cancel' })).toHaveFocus();
     fireEvent.keyDown(screen.getByRole('group', { name: 'Turn off new orders?' }), { key: 'Escape' });
     expect(screen.queryByRole('group', { name: 'Turn off new orders?' })).toBeNull();
     expect(trigger).toHaveFocus();
+  });
+
+  it('InlineConfirm can put first focus on the confirm, and is named by its title', () => {
+    render(
+      <proposed.InlineConfirm
+        title="Sign out?"
+        prompt="New orders stop ringing on this device."
+        confirmLabel="Sign out"
+        initialFocus="confirm"
+        onConfirm={noop}
+        onCancel={noop}
+      />,
+    );
+    expect(screen.getByRole('group', { name: 'Sign out?' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Sign out' })).toHaveFocus();
   });
 
   it('Textarea keeps the pre-rebuild onChange(value, event) signature', () => {

@@ -17,7 +17,9 @@ import type { CSSProperties } from 'react';
 
 import { Progress } from '../lib/ui/progress.js';
 import { cn } from '../lib/utils.js';
-import { Button, Icon } from '../ds/index.js';
+import { RowButton } from '../lib/ui/row-button.js';
+import { ErrorGlyph } from '../ds/field-parts.js';
+import { Icon } from '../ds/index.js';
 
 /** One step. */
 export interface StepperStep {
@@ -92,7 +94,7 @@ export function Stepper({ steps, variant = 'full', onStepPress, label = 'Progres
                 step.status === 'error' && 'bg-feedback-danger-tint text-feedback-danger-icon',
               )}
             >
-              {step.status === 'done' ? <Icon name="check" size="sm" /> : step.status === 'error' ? <Icon name="error" size="sm" /> : i + 1}
+              {step.status === 'done' ? <Icon name="check" size="sm" /> : step.status === 'error' ? <ErrorGlyph size="sm" /> : i + 1}
             </span>
           );
           const text = (
@@ -110,12 +112,10 @@ export function Stepper({ steps, variant = 'full', onStepPress, label = 'Progres
               className={cn('flex min-h-11 items-center gap-3 rounded-md px-2', step.status === 'current' && 'bg-accent')}
             >
               {pressable ? (
-                <Button variant="ghost" size="md" onPress={() => onStepPress?.(step.id)} style={{ justifyContent: 'flex-start', paddingInline: 0 }}>
-                  <span className="flex items-center gap-3">
-                    {marker}
-                    {text}
-                  </span>
-                </Button>
+                <RowButton onClick={() => onStepPress?.(step.id)}>
+                  {marker}
+                  {text}
+                </RowButton>
               ) : (
                 <>
                   {marker}
