@@ -20,8 +20,10 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 
+/** C-1: an app defines a component. C-2: a raw interactive element outside src/lib/. */
 export type CompositionRule = 'C-1' | 'C-2';
 
+/** One warning from the composition lint. */
 export interface CompositionFinding {
   rule: CompositionRule;
   /** Repo-relative, forward slashes. */
