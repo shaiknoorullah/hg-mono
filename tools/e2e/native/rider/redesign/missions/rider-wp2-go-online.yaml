@@ -8,10 +8,10 @@ build:
 setup: [ "make dev-reset" ]
 reality:
   - theme: light
-  - location: { latitude: 43.6815, longitude: -79.3310, note: "Bismillah Grill, 1240 Danforth Avenue (setLocation in the flow)" }
-  - network: "airplane mode on, then off, inside the flow (setAirplaneMode)"
 flows: [ "tools/e2e/native/rider/redesign/2-go-online.yaml" ]
 explore: >
+  The flow sets the location (setLocation) and switches airplane mode (setAirplaneMode) itself
+  where it needs to; the reality steps above only set the theme.
   After the flow passes, with rider-sim still signed in:
   (1) Go online again and wait for "Waiting for offers". Revoke the location permission:
   `adb shell pm revoke com.halalgoes.rider.dev android.permission.ACCESS_FINE_LOCATION` and
