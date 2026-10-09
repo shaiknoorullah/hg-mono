@@ -16,6 +16,8 @@ import { OrdersScreen } from '../../screens/OrdersScreen';
 import { ProfileScreen } from '../../screens/ProfileScreen';
 import { AddressesScreen } from '../../screens/AddressesScreen';
 import { AddressFormScreen } from '../../screens/AddressFormScreen';
+import { HomeScreen } from '../discover/HomeScreen';
+import { HowWeCheckScreen } from '../discover/HowWeCheckScreen';
 import { CertificateScreen } from '../restaurant/CertificateScreen';
 import { RestaurantScreen as RedesignedRestaurantScreen } from '../restaurant/RestaurantScreen';
 import { AddressStepScreen } from '../signin/AddressStepScreen';
@@ -30,6 +32,9 @@ type Registry = { [N in RouteName]?: ScreenFor<N> };
 
 /** Redesigned screens, by route. Each WP registers its own. */
 export const REDESIGNED: Registry = {
+  // WP2: Home, address switcher (a sheet owned by Home), How we check.
+  home: () => <HomeScreen />,
+  howWeCheck: () => <HowWeCheckScreen />,
   // WP4: restaurant page (with its certification sheet) and the certificate viewer.
   restaurant: (r) => <RedesignedRestaurantScreen restaurantId={r.restaurantId} />,
   certificate: (r) => <CertificateScreen restaurantId={r.restaurantId} />,
