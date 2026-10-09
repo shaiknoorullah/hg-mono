@@ -18,7 +18,16 @@
     "isolatedModules": true,
     "verbatimModuleSyntax": true,
     "resolveJsonModule": true,
-    "types": ["node", "vitest/globals", "@testing-library/jest-dom"]
+    "types": ["node", "vitest/globals", "@testing-library/jest-dom"],
+    // components.json's shadcn aliases. Apps resolve the same names through
+    // package.json "exports"; vitest and the preview alias them in their configs.
+    "paths": { "@hg/ui-web/lib/*": ["./src/lib/*"] }
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "vitest.config.ts"]
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "vitest.config.ts",
+    "preview/**/*.ts",
+    "preview/**/*.tsx"
+  ]
 }

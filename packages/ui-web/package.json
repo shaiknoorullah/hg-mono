@@ -19,10 +19,13 @@
     "./link-token": "./src/emailLinks/linkToken.ts",
     "./lint": "./src/lint/index.ts",
     "./testing": "./src/testing/index.ts",
+    "./lib/utils": "./src/lib/utils.ts",
+    "./lib/ui/*": "./src/lib/ui/*.tsx",
     "./styles.css": "./src/styles/globals.css",
     "./tokens.css": "./src/tokens/tokens.css",
     "./theme.css": "./src/tokens/theme.css",
-    "./grid-theme.css": "./src/tokens/grid-theme.css"
+    "./grid-theme.css": "./src/tokens/grid-theme.css",
+    "./shadcn.css": "./src/tokens/shadcn-aliases.css"
   },
   "scripts": {
     "generate:tokens": "node scripts/generate-tokens.mjs",
@@ -32,7 +35,9 @@
     "lint": "tsx src/lint/run.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "preview": "vite --config preview/vite.config.ts",
+    "preview:shoot": "node preview/shoot.mjs"
   },
   "dependencies": {
     "@fontsource-variable/plus-jakarta-sans": "^5.2.5",
