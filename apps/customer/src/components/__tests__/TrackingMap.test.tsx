@@ -64,7 +64,7 @@ beforeEach(() => {
 });
 
 test('no native Mapbox module: only the ETA text, no crash', () => {
-  mockSnapshot = { tracking: base as never, rider: null, link: 'polling', error: false };
+  mockSnapshot = { tracking: base as never, rider: null, link: 'polling', error: false, orderEvents: 0, updatedAtMs: null };
   renderMap();
   expect(screen.getByText(/Arriving/)).toBeTruthy();
   expect(screen.queryByLabelText(/Live map/)).toBeNull();
@@ -73,14 +73,14 @@ test('no native Mapbox module: only the ETA text, no crash', () => {
 test('native module but no public token: only the ETA text', () => {
   mockMapbox = fakeMapbox;
   delete process.env.EXPO_PUBLIC_MAPBOX_TOKEN;
-  mockSnapshot = { tracking: base as never, rider: null, link: 'polling', error: false };
+  mockSnapshot = { tracking: base as never, rider: null, link: 'polling', error: false, orderEvents: 0, updatedAtMs: null };
   renderMap();
   expect(screen.queryByLabelText(/Live map/)).toBeNull();
 });
 
 test('with the module and token: the map, pins for the restaurant and drop-off, and the rider once known', () => {
   mockMapbox = fakeMapbox;
-  mockSnapshot = { tracking: base as never, rider: null, link: 'live', error: false };
+  mockSnapshot = { tracking: base as never, rider: null, link: 'live', error: false, orderEvents: 0, updatedAtMs: null };
   const { unmount } = renderMap();
   expect(screen.getByLabelText(/Live map/)).toBeTruthy();
   expect(screen.getAllByText('marker')).toHaveLength(2);
@@ -91,6 +91,8 @@ test('with the module and token: the map, pins for the restaurant and drop-off, 
     rider: { latitude: 43.66, longitude: -79.39, headingDeg: null, recordedAtMs: Date.now() },
     link: 'live',
     error: false,
+    orderEvents: 0,
+    updatedAtMs: null,
   };
   renderMap();
   expect(screen.getAllByText('marker')).toHaveLength(3);
@@ -104,19 +106,21 @@ test('a rider fix older than 30 s says how old it is', () => {
     rider: { latitude: 43.66, longitude: -79.39, headingDeg: null, recordedAtMs: Date.now() - 45_000 },
     link: 'polling',
     error: false,
+    orderEvents: 0,
+    updatedAtMs: null,
   };
   renderMap();
-  expect(screen.getByText(/Rider location updated 4\ds ago/)).toBeTruthy();
+  expect(screen.getByText(/Rider location updated 4\d seconds ago/)).toBeTruthy();
 });
 
 test('error before any data: says so and offers a retry; loading renders nothing', () => {
-  mockSnapshot = { tracking: null, rider: null, link: 'polling', error: true };
+  mockSnapshot = { tracking: null, rider: null, link: 'polling', error: true, orderEvents: 0, updatedAtMs: null };
   const { unmount } = renderMap();
   expect(screen.getByText(/isn't available/)).toBeTruthy();
   expect(screen.getByText('Try again')).toBeTruthy();
   unmount();
 
-  mockSnapshot = { tracking: null, rider: null, link: 'polling', error: false };
+  mockSnapshot = { tracking: null, rider: null, link: 'polling', error: false, orderEvents: 0, updatedAtMs: null };
   renderMap();
   expect(screen.queryByText(/isn't available/)).toBeNull();
 });

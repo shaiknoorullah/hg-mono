@@ -13,7 +13,7 @@
  * with the payment sheet (src/payments). The intent is manual-capture: confirming authorises,
  * the server captures when the restaurant accepts.
  */
-import { idempotencyKey, isApiError, unwrap } from '@hg/api-client';
+import { cents, idempotencyKey, isApiError, unwrap } from '@hg/api-client';
 import type { Schema } from '@hg/api-client';
 
 import { api } from './client';
@@ -28,11 +28,18 @@ export type OrderStatusGroup = Schema['OrderStatusGroup'];
 export type PageMeta = Schema['PageMeta'];
 export type Receipt = Schema['Receipt'];
 
+/**
+ * `tipCents` is the one customer-chosen amount in the system (QuoteInput): the rider's tip, in
+ * integer cents. The server validates it and prices everything else. No other money is sent.
+ */
 export async function createQuote(input: {
   cartId: string;
   fulfilment: Fulfilment;
   deliveryAddressId?: string | null;
+  tipCents?: number;
 }): Promise<Quote> {
+  const tip = input.tipCents ?? 0;
+  if (!Number.isSafeInteger(tip) || tip < 0) throw new RangeError(`tip must be whole cents ≥ 0`);
   const body = await unwrap(
     api.POST('/v1/quotes', {
       params: { header: { 'Idempotency-Key': idempotencyKey() } },
@@ -40,6 +47,7 @@ export async function createQuote(input: {
         cart_id: input.cartId,
         fulfilment: input.fulfilment,
         delivery_address_id: input.deliveryAddressId ?? null,
+        tip_cents: cents(tip),
       },
     }),
   );

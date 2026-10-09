@@ -3,7 +3,7 @@ covers:
   - apps/customer/**
   - services/hg/internal/account/**
   - services/hg/internal/addresses/**
-reviewed: 2026-10-05
+reviewed: 2026-10-09
 ---
 
 # HalalGoes — CUSTOMER Domain Specification
@@ -418,7 +418,7 @@ These exist so that individual features do not have to re-litigate them. Anythin
 - **Rules**:
   1. Hours crossing midnight (e.g. 17:00→02:00) are supported and evaluated against the restaurant's local time. A restaurant with `opening_time == closing_time` is treated as 24 h.
   2. ETA range = `restaurants.avg_prep_minutes` (default 25) `+ travel_minutes ± 20%`, where `travel_minutes = ceil(distance_km / platform_config.avg_speed_kmh * 60)` with `avg_speed_kmh` default **22**. The result is rounded outward to the nearest 5 minutes and always presented as a range (e.g. "30–40 min"). **No hardcoded ETA string may exist in the app** — enforced by a lint rule banning the literals `45 min` and `25-35 min`.
-  3. Add-to-cart is blocked for any state other than `OPEN`: the control is disabled and the reason is shown inline. Checkout re-validates and returns `409 RESTAURANT_UNAVAILABLE` with `details.state`.
+  3. Add-to-cart is blocked for any state other than `OPEN`: the control is disabled and the reason is shown inline. Checkout re-validates and returns `409 RESTAURANT_UNAVAILABLE` with `details.state`. When the cart's restaurant reads `PAUSED` (paused, its accepting-orders switch off or its order screen not checking in for more than 5 minutes), a quote or order refused with `409 RESTAURANT_CLOSED` says "{name} is temporarily not accepting orders" and "Please try again later. Your cart is saved and nothing was charged.", and the cart says "Temporarily not accepting orders, please try again later." rather than "closed"; outside its hours it stays "just closed" (owner decision 2026-10-09).
   4. `CLOSED_HOURS` cards show "Opens {time}" using `opens_at`; the restaurant remains browsable and its menu readable.
   5. Minimum order is compared against `item_total` **before** fees and discounts. Below minimum, checkout returns `409 BELOW_MINIMUM_ORDER` with `details.shortfall_cents`, and the cart screen shows "Add ${x} more to order".
   6. `NO_ADDRESS` never blocks browsing; it blocks add-to-cart with a prompt to add an address.
@@ -538,6 +538,9 @@ These exist so that individual features do not have to re-litigate them. Anythin
   6. Carts idle for **7 days** are deleted by a nightly job.
   7. The cart badge shows `Σ quantity`, not the line count; there is no cart tab in the bottom navigation.
   8. Cart survives logout only in the sense that it is server-side: after logout the local copy is cleared and re-fetched on next login.
+  9. As built, each cart line shows its variant, every add-on with its count and its special request, so two lines of the same dish never look identical.
+  10. As built, once the cart is quotable and has an address, the cart prices it with `createQuote` (tip 0) and shows the same rows as checkout; until then it shows the indicative items subtotal and says fees come at checkout.
+  11. As built, a quantity change that fails keeps the cart on screen, says the change did not go through and re-reads the server's cart, and "Clear cart" asks for confirmation first.
 - **Acceptance criteria**:
   1. Given a cart with lines A(2) and B(3), when the badge renders, then it shows `5`.
   2. Given `PATCH /cart/lines/:id {quantity: 0}`, then `400 VALIDATION_FAILED` and the cart is unchanged.
@@ -658,6 +661,10 @@ These exist so that individual features do not have to re-litigate them. Anythin
   7. `orders.short_code` = 6-character Crockford base-32, unique per day, shown to the customer and used in support.
   8. When an unpaid order is cancelled, expires or fails payment, the app offers "Put these items back in your cart": it re-adds the lines through the cart operations, and the server prices them again ([cart after an unpaid order](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
   9. While staff have paused new orders platform-wide ([#244](https://github.com/shaiknoorullah/hg-mono/issues/244)), the app reads `ordering.paused` from `getPublicConfig` at launch and on every return to the foreground, says plainly that ordering is paused for now on home, the restaurant page, the cart and checkout, and offers no checkout; the cart shows the same when `blocking_reasons` contains `ORDERING_PAUSED`, and a `409 ORDERING_PAUSED` from `createQuote` or `createOrder` shows that message and that nothing was charged, never a generic error ([#388](https://github.com/shaiknoorullah/hg-mono/issues/388)).
+  10. As built, every refusal from `createQuote` or `createOrder` (address out of range, province not served, restaurant closed or unavailable, items ran out, below minimum, active order, profile incomplete) is a neutral notice with one next step, never red and never a crash.
+  11. As built, an expired or stale quote at Place order prices the order again and asks the customer to check the new total before placing it.
+  12. As built, the address is a "Deliver to" card whose Change opens a sheet of saved addresses, and changing it prices the order again.
+  13. As built, the order screens sit inside an error boundary, so an unexpected render error shows "Try again" instead of closing the app.
 - **Acceptance criteria**:
   1. Given a valid cart and a working payment method, when Place order is pressed, then exactly one `orders` row exists, the cart row is deleted, and the app shows the pending screen only after the server responds.
   2. Given the payment authorisation fails, when the response returns, then `orders.status='PAYMENT_FAILED'`, the customer remains on checkout with a retry affordance, and the app offers "Put these items back in your cart".
@@ -703,6 +710,8 @@ These exist so that individual features do not have to re-litigate them. Anythin
 ### C-25 — Payment execution and 3DS
 - **SOW trace**: *"Secure Payments: Integration with secure payment gateways for seamless and safe transactions."*
 - **Behaviour**: On order creation the server creates a provider PaymentIntent for `amount_to_pay_cents` with `capture_method=manual` (authorise now, capture later). If the provider requires 3-D Secure, the server returns `requires_action` with a client secret; the app presents the provider's challenge sheet and confirms. **Capture occurs when the restaurant accepts** (`AWAITING_RESTAURANT → CONFIRMED`). Authorisation is **voided** on rejection, timeout, no-rider, or customer cancellation before capture.
+
+  **V0 build (customer app):** the card is confirmed on web with the Stripe.js Payment Element in a sheet (`redirect: 'if_required'`; Stripe.js loads on the first payment) and on iOS and Android with the Stripe SDK's payment sheet, both keyed by `EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY`. A build without that key takes no card and says so at checkout, keeping the order for **Retry payment**; a decline, a failed challenge or a closed sheet also keeps the order, and a retry never places a second one. After a confirmed card the app reads `GET /v1/orders/{orderId}/payment` once, so the order moves on even where no webhook can reach the API ([card payments playbook](../playbooks/customer/card-payments.md)).
 - **Data**: `payments(id, order_id, user_id, payment_method_id, provider, provider_intent_id UNIQUE, amount_cents, currency, status, captured_at, voided_at, failure_code, created_at)`; `payment_events(id, payment_id, provider_event_id UNIQUE, type, payload jsonb, received_at)` for webhook idempotency; `refunds` (C-37).
 - **States**: `payments.status ∈ {REQUIRES_ACTION, AUTHORIZED, CAPTURED, VOIDED, FAILED, REFUND_PENDING, PARTIALLY_REFUNDED, REFUNDED}`.
   - `(new) → REQUIRES_ACTION|AUTHORIZED|FAILED` — intent creation/confirmation.
@@ -742,6 +751,8 @@ These exist so that individual features do not have to re-litigate them. Anythin
   4. **At most one active order per customer at a time.** A second checkout while an order is active returns `409 ACTIVE_ORDER_EXISTS` with the active order's id. An order under review after a problem report does not count as active ([new order while one is under review](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
   5. Past orders are retained and visible for 7 years (C-05 rule 3).
   6. Each row exposes: Reorder (C-28, V3), View receipt (C-27), Get help (C-08/C-39), Request refund (C-37, only within the eligibility window).
+  7. As built, Orders loads Active and Past separately, so a failed history keeps the active order on screen, and Past pages with "Show more orders".
+  8. As built, past rows that were rejected or failed say "Not charged", and cancelled or resolved rows say "See details for your money" instead of a total.
 - **Acceptance criteria**:
   1. Given an order in `ON_THE_WAY`, when the app is cold-started to home, then the resume banner is visible within 2 s and tapping it opens tracking for that order.
   2. Given an active order, when a second checkout is attempted, then `409 ACTIVE_ORDER_EXISTS` and the client offers to open the existing order.
@@ -882,6 +893,7 @@ These exist so that individual features do not have to re-litigate them. Anythin
   The stepper has **five** steps, mapped from `orders.status`: **Confirmed** (`AWAITING_RESTAURANT`, `CONFIRMED`) → **Preparing** (`PREPARING`) → **Ready / Rider assigned** (`READY_FOR_PICKUP`, `RIDER_ASSIGNED`) → **On the way** (`PICKED_UP`, `ON_THE_WAY`) → **Delivered** (`DELIVERED`). Terminal failures (`REJECTED`, `CANCELLED`, `NO_RIDER_FOUND`, `PAYMENT_FAILED`) replace the stepper with a full-screen outcome state.
   The map shows the restaurant marker, the delivery marker, and the rider marker once `RIDER_ASSIGNED`; a route polyline is drawn from the rider to the current leg's destination.
   **V0 build (customer app):** while the order is `PICKED_UP` or `ARRIVED` the screen shows a live native Mapbox map (`@rnmapbox/maps`) with the restaurant pin, the drop-off pin and the rider marker, plus the ETA text. The rider's position arrives on the realtime channel `order:{orderId}` as `rider.location` ([websocket contract](../../contracts/websocket.md)); when the socket is not open the screen polls `GET /v1/orders/{orderId}/tracking` every 5 s instead (its `rider_location`), and the newest fix wins on either path. The marker glides between fixes, the camera fits the three points, and a fix older than 30 s adds "Rider location updated N seconds ago". The rider is not exposed before pickup (the contract), so until then the map shows the restaurant and the drop-off. No route polyline yet. The map exists only in a build with the Mapbox native SDK and `EXPO_PUBLIC_MAPBOX_TOKEN` ([how the SDK is built or left out](../release/README.md)); without either, the ETA text remains. If the first read fails the card says live tracking is unavailable and offers "Try again".
+  **As built (redesign):** the screen has one layout per state family: waiting for the restaurant (with a neutral bar and "replies by" time, no countdown), on its way (state and ETA window as the heading, rider card once assigned), delivered and complete (what was charged, then the receipt), and a full outcome for cancelled, rejected and failed orders that says what happened to the money. One socket serves the map, header and timeline; every `order.*` or `payment.*` event re-reads the order, and while the socket is down the order is re-read every 15 s and the header says when it last updated.
 - **Data**: `orders`, `order_status_events`, `riders` (via the slim projection in C-18 rule 3), Redis `rider:{id}:location`, socket topic `order:{orderId}`.
 - **States**: as C-23. The client subscribes to `order:{orderId}` and receives typed events: `order.status_changed`, `order.rider_assigned`, `order.rider_location`, `order.eta_updated`, `order.cancelled`.
 - **Rules**:
@@ -978,6 +990,7 @@ These exist so that individual features do not have to re-litigate them. Anythin
 ### C-36 — Tipping the rider
 - **SOW trace**: not in SOW 9–17; present in the current app as four disabled buttons whose value is added to the displayed total but never sent to the backend. Specified here because a tip shown in the UI and never paid is a live consumer-harm defect.
 - **Behaviour**: On checkout, tip options **$0 / $2 / $3 / $5 / Custom** (custom 0–2000 cents… see rules). The selected tip is a first-class line in the C-22 breakdown and is included in `amount_to_pay_cents`. It is captured with the order and passed through to the rider's earnings in full.
+- **As built**: checkout offers No tip, $2, $3, $5 and Other, sends the choice as `tip_cents` on `createQuote` and shows the re-priced total; a tip the server refuses shows on the field and blocks Place order until fixed.
 - **Data**: `orders.tip_cents` (replacing `delivery_partner_tip @db.Money`), included in the pricing snapshot and the receipt; `rider_earnings.tip_cents` (rider domain, referenced only).
 - **States**: none. The tip is fixed at capture; there is no post-delivery adjustment at this version.
 - **Rules**:
