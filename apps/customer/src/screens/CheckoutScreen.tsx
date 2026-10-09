@@ -136,6 +136,7 @@ function CheckoutView(): React.ReactElement {
 
   const cart = setup.kind === 'ready' || setup.kind === 'no-address' ? setup.cart : null;
   const restaurantName = cart?.restaurant?.name ?? null;
+  const availabilityState = cart?.restaurant?.availability?.state ?? null;
 
   /** Price the cart for this address and tip. Only the newest request may land. */
   const price = React.useCallback(
@@ -173,7 +174,16 @@ function CheckoutView(): React.ReactElement {
           void price(forCart, forAddress, 0);
           return;
         }
-        setPricing({ kind: 'refused', code, problem: checkoutProblem(code, forCart.restaurant?.name) });
+        setPricing({
+          kind: 'refused',
+          code,
+          problem: checkoutProblem(
+            code,
+            forCart.restaurant?.name,
+            'quote',
+            forCart.restaurant?.availability?.state,
+          ),
+        });
       }
     },
     [markPaused],
@@ -270,7 +280,7 @@ function CheckoutView(): React.ReactElement {
           markPaused();
           return;
         }
-        const problem = checkoutProblem(code, restaurantName, 'place');
+        const problem = checkoutProblem(code, restaurantName, 'place', availabilityState);
         if (problem.action === 'requote') {
           // Price again and let the customer check the new total before placing it.
           void price(setup.cart, addressId, tipCents ?? 0, { repricedTitle: problem.title });
@@ -296,7 +306,20 @@ function CheckoutView(): React.ReactElement {
     } finally {
       if (live.current) setPlacing(false);
     }
-  }, [placing, unpaid, pay, pricing, setup, addressId, markPaused, restaurantName, price, tipCents, nav]);
+  }, [
+    placing,
+    unpaid,
+    pay,
+    pricing,
+    setup,
+    addressId,
+    markPaused,
+    restaurantName,
+    availabilityState,
+    price,
+    tipCents,
+    nav,
+  ]);
 
   const showPaused = !unpaid && (configPaused || refusedPaused);
   const address =

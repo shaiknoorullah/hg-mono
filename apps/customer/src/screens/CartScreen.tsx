@@ -319,7 +319,9 @@ function ReadyBody({
   const restaurant = cart.restaurant ?? null;
   const quoteCode = quote.kind === 'failed' ? quote.code : null;
   const quoteProblem =
-    quoteCode && quoteCode !== ORDERING_PAUSED ? checkoutProblem(quoteCode, restaurant?.name) : null;
+    quoteCode && quoteCode !== ORDERING_PAUSED
+      ? checkoutProblem(quoteCode, restaurant?.name, 'quote', restaurant?.availability?.state)
+      : null;
   // A cart with no delivery address is not quotable, but checkout is where the address is
   // chosen, so that alone does not stop the customer going on.
   const needsAddressOnly =
@@ -394,7 +396,10 @@ function ReadyBody({
         ) : needsAddressOnly ? null : !cart.is_quotable ? (
           <Notice
             title="Not ready to check out"
-            body={blockingCopy(cart.blocking_reasons?.[0] ?? null)}
+            body={blockingCopy(
+              cart.blocking_reasons?.[0] ?? null,
+              restaurant?.availability?.state ?? null,
+            )}
           />
         ) : quoteProblem ? (
           <Notice title={quoteProblem.title} body={quoteProblem.body} />
@@ -609,10 +614,13 @@ function availabilityCopy(reason: string | null): string {
   }
 }
 
-function blockingCopy(code: string | null): string {
+function blockingCopy(code: string | null, availabilityState: string | null): string {
   switch (code) {
     case 'RESTAURANT_CLOSED':
-      return 'The restaurant is closed right now. Your cart is saved.';
+      // Paused, switch off or order screen offline reads PAUSED, never "closed" (owner, 2026-10-09).
+      return availabilityState === 'PAUSED'
+        ? 'Temporarily not accepting orders, please try again later. Your cart is saved.'
+        : 'The restaurant is closed right now. Your cart is saved.';
     case 'RESTAURANT_UNAVAILABLE':
       return "The restaurant can't take orders right now. Your cart is saved.";
     case 'CART_HAS_UNAVAILABLE_ITEMS':

@@ -15,6 +15,7 @@ import type { Cents, Schema } from '@hg/api-client';
 type CartLine = Schema['CartLine'];
 type QuoteLine = Schema['QuoteLine'];
 type OrderLine = Schema['OrderLine'];
+type AvailabilityState = Schema['RestaurantAvailabilityInfo']['state'];
 
 export function safeCents(value: unknown): Cents | null {
   return typeof value === 'number' && Number.isSafeInteger(value) ? (value as Cents) : null;
@@ -83,12 +84,15 @@ export interface CheckoutProblem {
 /**
  * Copy for each refusal, from the approved Checkout boards (blocked, cannot-deliver,
  * unavailable, quote-stale, error). Every one says nothing was charged; none of them is red.
- * An unknown code is the generic "couldn't price" problem, never a throw.
+ * An unknown code is the generic "couldn't price" problem, never a throw. `availabilityState` is
+ * the cart's restaurant card: a PAUSED restaurant (paused, switch off or order screen offline)
+ * is "temporarily not accepting orders", never "just closed" (owner decision 2026-10-09).
  */
 export function checkoutProblem(
   code: string | null,
   restaurantName: string | null = null,
   stage: 'quote' | 'place' = 'quote',
+  availabilityState: AvailabilityState | null = null,
 ): CheckoutProblem {
   const name = restaurantName ?? 'The restaurant';
   switch (code) {
@@ -105,6 +109,13 @@ export function checkoutProblem(
         action: 'address',
       };
     case 'RESTAURANT_CLOSED':
+      if (availabilityState === 'PAUSED') {
+        return {
+          title: `${name} is temporarily not accepting orders`,
+          body: 'Please try again later. Your cart is saved and nothing was charged.',
+          action: 'cart',
+        };
+      }
       return {
         title: `${name} just closed`,
         body: 'Your cart is saved and nothing was charged.',

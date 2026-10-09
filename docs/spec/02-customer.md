@@ -3,7 +3,7 @@ covers:
   - apps/customer/**
   - services/hg/internal/account/**
   - services/hg/internal/addresses/**
-reviewed: 2026-10-05
+reviewed: 2026-10-09
 ---
 
 # HalalGoes — CUSTOMER Domain Specification
@@ -418,7 +418,7 @@ These exist so that individual features do not have to re-litigate them. Anythin
 - **Rules**:
   1. Hours crossing midnight (e.g. 17:00→02:00) are supported and evaluated against the restaurant's local time. A restaurant with `opening_time == closing_time` is treated as 24 h.
   2. ETA range = `restaurants.avg_prep_minutes` (default 25) `+ travel_minutes ± 20%`, where `travel_minutes = ceil(distance_km / platform_config.avg_speed_kmh * 60)` with `avg_speed_kmh` default **22**. The result is rounded outward to the nearest 5 minutes and always presented as a range (e.g. "30–40 min"). **No hardcoded ETA string may exist in the app** — enforced by a lint rule banning the literals `45 min` and `25-35 min`.
-  3. Add-to-cart is blocked for any state other than `OPEN`: the control is disabled and the reason is shown inline. Checkout re-validates and returns `409 RESTAURANT_UNAVAILABLE` with `details.state`.
+  3. Add-to-cart is blocked for any state other than `OPEN`: the control is disabled and the reason is shown inline. Checkout re-validates and returns `409 RESTAURANT_UNAVAILABLE` with `details.state`. When the cart's restaurant reads `PAUSED` (paused, its accepting-orders switch off or its order screen not checking in for more than 5 minutes), a quote or order refused with `409 RESTAURANT_CLOSED` says "{name} is temporarily not accepting orders" and "Please try again later. Your cart is saved and nothing was charged.", and the cart says "Temporarily not accepting orders, please try again later." rather than "closed"; outside its hours it stays "just closed" (owner decision 2026-10-09).
   4. `CLOSED_HOURS` cards show "Opens {time}" using `opens_at`; the restaurant remains browsable and its menu readable.
   5. Minimum order is compared against `item_total` **before** fees and discounts. Below minimum, checkout returns `409 BELOW_MINIMUM_ORDER` with `details.shortfall_cents`, and the cart screen shows "Add ${x} more to order".
   6. `NO_ADDRESS` never blocks browsing; it blocks add-to-cart with a prompt to add an address.
