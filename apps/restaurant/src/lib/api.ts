@@ -44,6 +44,17 @@ export function setSession(next: StoredSession | null) {
 
 const BASE_URL = import.meta.env['VITE_API_BASE_URL'] ?? 'http://localhost:4010';
 
+/**
+ * The redesign (behind `VITE_HG_REDESIGN`) installs its own 401 handling here, so legacy
+ * screens it still hosts refresh the session instead of redirecting away from live orders.
+ * Nothing sets it when the flag is off.
+ */
+let unauthorizedOverride: ((response: Response) => Promise<boolean>) | null = null;
+
+export function setUnauthorizedOverride(fn: ((response: Response) => Promise<boolean>) | null) {
+  unauthorizedOverride = fn;
+}
+
 export const api: HgClient = createHgClient({
   baseUrl: BASE_URL,
   clientSurface: 'restaurant-web',
@@ -51,7 +62,8 @@ export const api: HgClient = createHgClient({
   getToken: () => session?.accessToken ?? null,
   // A 401 on an authenticated request means the token is dead: clear it and go to /login.
   // (A bad-password 401 on the login form has no session yet, so it is left alone.)
-  onUnauthorized: () => {
+  onUnauthorized: (response) => {
+    if (unauthorizedOverride) return unauthorizedOverride(response);
     if (session) {
       setSession(null);
       if (!window.location.pathname.startsWith('/login')) window.location.assign('/login');
