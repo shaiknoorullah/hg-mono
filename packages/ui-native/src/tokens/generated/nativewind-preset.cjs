@@ -292,6 +292,18 @@ module.exports = {
           'Liberation Mono',
           'monospace',
         ],
+        sans: [
+          'PlusJakartaSans_400Regular',
+        ],
+        'sans-medium': [
+          'PlusJakartaSans_500Medium',
+        ],
+        'sans-semibold': [
+          'PlusJakartaSans_600SemiBold',
+        ],
+        'sans-bold': [
+          'PlusJakartaSans_700Bold',
+        ],
       },
       fontWeight: {
         regular: '400',

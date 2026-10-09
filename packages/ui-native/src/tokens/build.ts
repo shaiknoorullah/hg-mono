@@ -271,6 +271,7 @@ function derivedRoles(color: any, scheme: 'light' | 'dark') {
  * `--primary-foreground` is `text.onBrand` (#0F241C), never white (1.62:1 on brand 500).
  */
 type ThemeColorsLoose = Record<string, Record<string, any>>;
+/** shadcn/RNR variable name -> the role it aliases, read from one theme × scheme's colours. */
 export const RNR_ALIASES: Record<string, (c: ThemeColorsLoose) => string> = {
   '--background': (c) => c.surface!.base,
   '--foreground': (c) => c.text!.primary,
@@ -343,6 +344,32 @@ export function nativewindGlobalCss(
     block(':root', 'light'),
     block('.dark:root', 'dark'),
   ].join('\n');
+}
+
+/**
+ * React Native has no font fallback chain and takes one static face per weight, so the web
+ * stack in `font.family.ui` is useless to NativeWind. These utilities name the four
+ * `@expo-google-fonts/plus-jakarta-sans` faces that `useHgFonts()` registers and
+ * `ThemeProvider`'s `UI_FAMILY_BY_WEIGHT` uses: `font-sans` (regular), `font-sans-medium`,
+ * `font-sans-semibold`, `font-sans-bold`. Derived from `font.weight`, so a weight added to the
+ * tokens without a face here fails the build instead of rendering the system font.
+ */
+const RN_UI_FACE_SUFFIX: Record<number, string> = {
+  400: '400Regular',
+  500: '500Medium',
+  600: '600SemiBold',
+  700: '700Bold',
+};
+
+/** `font.weight` -> `{ sans, 'sans-medium', … }` Tailwind font families naming the RN faces. */
+export function rnUiFontFamilies(weights: Record<string, number>): Record<string, string[]> {
+  const out: Record<string, string[]> = {};
+  for (const [name, weight] of Object.entries(weights)) {
+    const suffix = RN_UI_FACE_SUFFIX[weight];
+    if (!suffix) throw new Error(`no Plus Jakarta Sans face for font.weight.${name} (${weight})`);
+    out[name === 'regular' ? 'sans' : `sans-${name}`] = [`PlusJakartaSans_${suffix}`];
+  }
+  return out;
 }
 
 /* ----------------------------------------------------------------- builder */
@@ -592,7 +619,7 @@ export function buildFiles(doc: Dtcg): Record<string, string> {
         borderRadius: Object.fromEntries(
           Object.entries(tokens.radius as Record<string, number>).map(([k, v]) => [k, `${v}px`]),
         ),
-        fontFamily: tokens.font.family,
+        fontFamily: { ...tokens.font.family, ...rnUiFontFamilies(tokens.font.weight) },
         fontWeight: Object.fromEntries(
           Object.entries(tokens.font.weight as Record<string, number>).map(([k, v]) => [
             k,
