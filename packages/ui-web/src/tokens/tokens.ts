@@ -810,7 +810,9 @@ export const roles = {
       "onBrand": "#0F241C",
       "onInverse": "#F6EFDD",
       "onAccent": "#FFFFFF",
-      "link": "#0959B8"
+      "link": "#0959B8",
+      "linkHover": "#07458F",
+      "secondaryField": "#4A4E48"
     },
     "border": {
       "decorative": "#E6E0D4",
@@ -908,6 +910,17 @@ export const roles = {
     "skeleton": {
       "base": "#D8D0BF",
       "highlight": "#E6E0D4"
+    },
+    "elev": {
+      "surface": {
+        "0": "#FFFAEA",
+        "1": "#FFFFFF",
+        "2": "#FFFFFF",
+        "3": "#FFFFFF",
+        "4": "#FFFFFF",
+        "sticky": "#FFFFFF"
+      },
+      "hairline": "transparent"
     }
   },
   "dark": {
@@ -929,7 +942,9 @@ export const roles = {
       "onBrand": "#0F241C",
       "onInverse": "#232323",
       "onAccent": "#FFFFFF",
-      "link": "#6FA9F2"
+      "link": "#6FA9F2",
+      "linkHover": "#CBDFFC",
+      "secondaryField": "#D8D0BF"
     },
     "border": {
       "decorative": "#33352F",
@@ -1027,8 +1042,31 @@ export const roles = {
     "skeleton": {
       "base": "#33352F",
       "highlight": "#4A4E48"
+    },
+    "elev": {
+      "surface": {
+        "0": "#171717",
+        "1": "#232323",
+        "2": "#232323",
+        "3": "#33352F",
+        "4": "#33352F",
+        "sticky": "#33352F"
+      },
+      "hairline": "#33352F"
     }
   }
+} as const;
+
+/**
+ * Flat aliases the live Claude Design file names next to the structured roles.
+ * Each is a CSS custom property that forwards to the role on the right.
+ */
+export const roleAliases = {
+  "action-primary": "action-primary-bg",
+  "action-primary-pressed": "action-primary-bg-pressed",
+  "action-secondary": "action-secondary-bg",
+  "action-secondary-pressed": "action-secondary-bg-pressed",
+  "action-track-on": "control-track-on"
 } as const;
 
 export const tokens = {

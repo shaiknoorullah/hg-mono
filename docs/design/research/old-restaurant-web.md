@@ -1,10 +1,17 @@
 ---
 covers:
   - apps/restaurant/src/**
-reviewed: 2026-10-05
+reviewed: 2026-10-09
 ---
 
 # What the old restaurant web app teaches the redesign
+
+> **2026-10-09:** the redesign is being built in `apps/restaurant/src/redesign/`, behind the
+> `VITE_HG_REDESIGN` build flag (off in release builds), from the owner-approved canvases
+> ([#89](https://github.com/shaiknoorullah/hg-mono/issues/89), tracking
+> [#658](https://github.com/shaiknoorullah/hg-mono/issues/658)). Until a redesigned screen lands, the
+> redesign hosts the legacy screen for that route inside the new shell. This brief still describes
+> the old Next.js app and what the redesign takes from it; nothing below changes.
 
 > **2026-10-05:** the new app adds what the old one never had — a live "rider approaching" map on
 > accepted orders, drawn from the coarse realtime position

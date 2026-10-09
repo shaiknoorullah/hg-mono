@@ -2,7 +2,7 @@
 covers:
   - apps/rider/**
   - services/hg/internal/rider/**
-reviewed: 2026-10-05
+reviewed: 2026-10-09
 ---
 
 # HalalGoes — RIDER Domain Specification

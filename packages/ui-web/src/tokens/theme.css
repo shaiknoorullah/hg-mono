@@ -257,6 +257,8 @@
   --color-fg-on-inverse: var(--hg-text-on-inverse);
   --color-fg-on-accent: var(--hg-text-on-accent);
   --color-fg-link: var(--hg-text-link);
+  --color-fg-link-hover: var(--hg-text-link-hover);
+  --color-fg-secondary-field: var(--hg-text-secondary-field);
   --color-line-decorative: var(--hg-border-decorative);
   --color-line-interactive: var(--hg-border-interactive);
   --color-line-strong: var(--hg-border-strong);
@@ -308,6 +310,18 @@
   --color-feedback-info-on-solid: var(--hg-feedback-info-on-solid);
   --color-skeleton-base: var(--hg-skeleton-base);
   --color-skeleton-highlight: var(--hg-skeleton-highlight);
+  --color-elev-surface-0: var(--hg-elev-surface-0);
+  --color-elev-surface-1: var(--hg-elev-surface-1);
+  --color-elev-surface-2: var(--hg-elev-surface-2);
+  --color-elev-surface-3: var(--hg-elev-surface-3);
+  --color-elev-surface-4: var(--hg-elev-surface-4);
+  --color-elev-surface-sticky: var(--hg-elev-surface-sticky);
+  --color-elev-hairline: var(--hg-elev-hairline);
+  --color-action-primary: var(--hg-action-primary);
+  --color-action-primary-pressed: var(--hg-action-primary-pressed);
+  --color-action-secondary: var(--hg-action-secondary);
+  --color-action-secondary-pressed: var(--hg-action-secondary-pressed);
+  --color-action-track-on: var(--hg-action-track-on);
   --color-focus-ring: var(--hg-focus-ring);
   --color-transparent: transparent;
   --color-current: currentColor;

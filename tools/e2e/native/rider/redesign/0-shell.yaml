@@ -1,0 +1,52 @@
+# Rider redesign WP0: cold start, sign in, land on the three-tab shell; then the phone in dark
+# mode. Built with EXPO_PUBLIC_HG_REDESIGN=1 (and a cleared Metro cache: `expo export --clear`
+# or `expo run:android --no-build-cache`, since EXPO_PUBLIC_* is inlined at transform time).
+#
+# Until WP1 merges, sign-in is the legacy screen (per-route fallback, MASTER-PLAN §0.3), so the
+# first steps use its copy. WP1 rewrites them to "Sign in or apply to ride".
+# Env: PHONE (default rider-sim +15550100151; dev codes for +1 555 010 01xx are always 000000).
+appId: com.halalgoes.rider.dev
+name: rider redesign, shell
+env:
+  PHONE: "+15550100151"
+---
+- launchApp:
+    clearState: true
+    permissions:
+      all: allow
+- extendedWaitUntil:
+    visible: "Rider sign in|Sign in or apply to ride"
+    timeout: 90000
+- takeScreenshot: rider-redesign-00-cold-start
+- tapOn:
+    text: "Phone number.*|Mobile number"
+    optional: true
+- tapOn:
+    below: "Phone number .*"
+    above: "Send code"
+    optional: true
+- inputText: ${PHONE}
+- tapOn: "Send code"
+- extendedWaitUntil:
+    visible: "Enter the code sent to.*|Enter your code"
+    timeout: 30000
+- tapOn:
+    below: "Enter the code sent to.*"
+    above: "Verify"
+    optional: true
+- inputText: "000000"
+- tapOn:
+    text: "Verify"
+    optional: true
+# The redesigned shell: three tabs, Home, Earnings, Account (rider decision "Rider navigation").
+- extendedWaitUntil:
+    visible: "Earnings"
+    timeout: 60000
+- assertVisible: "Account"
+- takeScreenshot: rider-redesign-01-home-tab
+- tapOn: "Earnings"
+- takeScreenshot: rider-redesign-02-earnings-tab
+- tapOn: "Account"
+- takeScreenshot: rider-redesign-03-account-tab
+- tapOn: "Home"
+- assertVisible: "Earnings"
