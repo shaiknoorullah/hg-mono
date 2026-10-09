@@ -128,6 +128,43 @@ describe.each(SCHEMES)('code step (%s)', (scheme) => {
     expect(screen.getByText('Use the latest one. If it has expired, you can ask for a new code in 11 minutes.')).toBeTruthy();
   });
 
+  it('Back and Send code again inside the cooldown is not a send: no false resend limit', async () => {
+    await toCode({ verifyOtp: 'pending' });
+    for (let i = 0; i < 3; i += 1) {
+      fireEvent.press(screen.getByLabelText('Back to phone number'));
+      fireEvent.press(await screen.findByTestId('send-code'));
+      await screen.findByText('Enter your code');
+    }
+    expect(api.callsTo('requestOtp')).toHaveLength(4);
+    expect(screen.queryByText("We've sent 3 codes")).toBeNull();
+    expect(screen.getByText(/You can ask for a new code in \d+ s\./)).toBeTruthy();
+  });
+
+  it('tries used, then a 429 on Send a new code: the limit replaces the offer, and lifts when its wait ends', async () => {
+    const realNow = Date.now.bind(Date);
+    let skew = 0;
+    const clock = jest.spyOn(Date, 'now').mockImplementation(() => realNow() + skew);
+    try {
+      await toCode({
+        requestOtp: (_c, nth) => (nth === 0 ? 'otp_challenge' : nth === 1 ? rateLimited(11 * 60) : 'otp_challenge'),
+        verifyOtp: otpIncorrect(0),
+      });
+      typeCode('482913');
+      expect(await screen.findByText('That code no longer works')).toBeTruthy();
+      fireEvent.press(screen.getByText('Send a new code'));
+      expect(await screen.findByText("We've sent 3 codes")).toBeTruthy();
+      expect(screen.getByText('Use the latest one. If it has expired, you can ask for a new code in 11 minutes.')).toBeTruthy();
+      expect(screen.queryByText('Send a new code')).toBeNull();
+      expect(disabled('verify')).toBe(true);
+      skew = 12 * 60_000;
+      expect(await screen.findByText('Send a new code', {}, { timeout: 2500 })).toBeTruthy();
+      expect(screen.queryByText("We've sent 3 codes")).toBeNull();
+      expect(screen.getByText('That code no longer works')).toBeTruthy();
+    } finally {
+      clock.mockRestore();
+    }
+  });
+
   it('429 on verify: sign-in paused, no Verify', async () => {
     await toCode({ verifyOtp: rateLimited(14 * 60) });
     typeCode('482913');

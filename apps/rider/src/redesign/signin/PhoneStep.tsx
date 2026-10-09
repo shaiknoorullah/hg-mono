@@ -161,9 +161,11 @@ export function PhoneStep({ digits, onDigits, signedOut, online, support, onSent
           {alert?.kind === 'unavailable' ? PHONE.tryAgain : PHONE.send}
         </Button>
         {support.phone ? (
-          <Button testID="call-support" variant="ghost" size="xl" onPress={() => callSupport(support)}>
-            {CALL_SUPPORT}
-          </Button>
+          <View style={{ alignItems: 'center' }}>
+            <Button testID="call-support" variant="ghost" size="xl" onPress={() => callSupport(support)}>
+              {CALL_SUPPORT}
+            </Button>
+          </View>
         ) : null}
       </View>
     </KeyboardAvoidingView>

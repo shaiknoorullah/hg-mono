@@ -14,6 +14,7 @@ import { HgApiError, type Schema } from '@hg/api-client';
 import { registerForPush } from '../../push';
 import { getToken, setToken } from '../../token';
 import { rider } from '../data/client';
+import { isOnline } from '../data/connectivity';
 import { toRiderError, type RiderError } from '../data/errors';
 
 export type OtpChallenge = Schema['OtpChallenge'];
@@ -71,7 +72,9 @@ export async function requestCode(phoneE164: string): Promise<RequestOutcome> {
       body: { phone_e164: phoneE164, purpose: 'SIGN_IN' },
     });
   } catch {
-    return { ok: false, kind: 'offline' };
+    // A transport failure has already marked the app offline (data/client.ts); anything else
+    // thrown on the way (a body that is not JSON) is our problem, not the rider's signal.
+    return isOnline() ? { ok: false, kind: 'unavailable' } : { ok: false, kind: 'offline' };
   }
   const { data, error, response } = result;
   if (data) return { ok: true, challenge: data.data };
@@ -96,7 +99,9 @@ export async function verifyCode(challengeId: string, code: string): Promise<Ver
       body: { challenge_id: challengeId, code },
     });
   } catch {
-    return { ok: false, kind: 'offline' };
+    // A transport failure has already marked the app offline (data/client.ts); anything else
+    // thrown on the way (a body that is not JSON) is our problem, not the rider's signal.
+    return isOnline() ? { ok: false, kind: 'unavailable' } : { ok: false, kind: 'offline' };
   }
   const { data, error, response } = result;
   if (data) {
