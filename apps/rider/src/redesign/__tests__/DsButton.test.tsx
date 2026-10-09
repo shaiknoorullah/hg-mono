@@ -89,11 +89,11 @@ describe('RNR Button styled by NativeWind from the generated rider tokens', () =
     }
   });
 
-  it('the scheme follows ThemeProvider through the useHgColorScheme bridge', () => {
+  it('the bridge puts NativeWind on the scheme given to ThemeProvider', () => {
     try {
       render(
         <ThemeProvider theme="rider" scheme="dark">
-          <HgColorSchemeBridge />
+          <HgColorSchemeBridge scheme="dark" />
           <Button variant="outline">
             <Text>Details</Text>
           </Button>

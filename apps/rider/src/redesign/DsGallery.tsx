@@ -1,6 +1,6 @@
 /**
- * Design-system gallery (redesign, N0 spike) — mounted only when the build sets
- * `EXPO_PUBLIC_HG_REDESIGN=1` (see `RedesignRoot.tsx` and `App.tsx`).
+ * Design-system gallery (redesign, N0) — mounted only in a redesign build that also sets
+ * `EXPO_PUBLIC_HG_DS_GALLERY=1` (see `DsGalleryRoot.tsx` and `RedesignApp.tsx`).
  *
  * It proves, on a device, the three things the spike is about:
  *   1. NativeWind resolves `className` against the generated `global.rider.css` (role
@@ -12,7 +12,7 @@
 import * as React from 'react';
 import { ScrollView, View } from 'react-native';
 import { Portal } from '@rn-primitives/portal';
-import { Button, Text, useHgColorScheme } from '@hg/ui-native/lib';
+import { Button, Text } from '@hg/ui-native/lib';
 
 const VARIANTS = ['default', 'secondary', 'outline', 'ghost', 'destructive'] as const;
 
@@ -24,22 +24,25 @@ const SWATCHES = [
   ['bg-surface-chrome', 'surface-chrome (role)'],
 ] as const;
 
+/** The gallery screen: every Button variant and size, swatches, a scheme toggle, a portal demo. */
 export function DsGallery({
+  scheme,
   onClose,
   onToggleScheme,
 }: {
+  /** The scheme the enclosing ThemeProvider and NativeWind are on. */
+  scheme: 'light' | 'dark';
   onClose: () => void;
-  /** Flips the enclosing ThemeProvider's scheme; NativeWind follows through useHgColorScheme. */
+  /** Flips the enclosing ThemeProvider's scheme; NativeWind follows through the bridge. */
   onToggleScheme: () => void;
 }): React.ReactElement {
-  const colorScheme = useHgColorScheme();
   const [portalOpen, setPortalOpen] = React.useState(false);
 
   return (
     <ScrollView className="flex-1 bg-background" contentContainerClassName="gap-4 px-4 pb-12 pt-16">
       <Text className="text-heading-lg">Design system — N0 gallery</Text>
       <Text className="text-muted-foreground">
-        NativeWind {colorScheme} · rider theme · tokens from global.rider.css
+        NativeWind {scheme} · rider theme · tokens from global.rider.css
       </Text>
 
       {VARIANTS.map((variant) => (

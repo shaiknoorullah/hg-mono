@@ -1,46 +1,31 @@
 /**
- * Root for a redesign build (`EXPO_PUBLIC_HG_REDESIGN=1`, redesign N0 spike).
+ * The design-system gallery's root (redesign, N0): a dev tool, not a screen of the app.
  *
- * The ONLY place the rider app touches NativeWind: it imports the compiled tokens
- * (`global.rider.css`), and this directory is the only app code Babel compiles with
- * NativeWind's JSX runtime (babel.config.js). `App.tsx` requires this module inside the flag
- * branch alone, so a flag-off build contains none of it.
- *
- * Opens on the design-system gallery under its own `ThemeProvider` — the scheme source of
- * truth, bridged to NativeWind by `useHgColorScheme` — and "Continue to the app" hands over to
- * the unchanged app tree. `<PortalHost />` sits last, above everything, so
- * `@rn-primitives/portal` content renders over the whole app.
+ * `RedesignApp` opens on it only when the build also sets `EXPO_PUBLIC_HG_DS_GALLERY=1`, so
+ * the redesign shell and its e2e flows are unaffected. It owns its `ThemeProvider` scheme (the
+ * source of truth) and bridges it to NativeWind, so the toggle flips StyleSheet and `className`
+ * styling together. "Continue to the app" hands over to the redesign shell.
  */
-import '@hg/ui-native/global.rider.css';
-
 import * as React from 'react';
-import { View } from 'react-native';
-import { PortalHost } from '@rn-primitives/portal';
-import { ThemeProvider } from '@hg/ui-native';
-import { useHgFonts } from '@hg/ui-native/fonts';
+import { HgColorSchemeBridge } from '@hg/ui-native/lib';
 
+import { ThemeProvider } from './ds';
 import { DsGallery } from './DsGallery';
 
-export function RedesignRoot({ children }: { children: React.ReactNode }): React.ReactElement | null {
-  const [gallery, setGallery] = React.useState(true);
+/** Whether this build opens on the gallery (build-time, like the redesign flag). */
+export const DS_GALLERY_ENABLED = process.env.EXPO_PUBLIC_HG_DS_GALLERY === '1';
+
+/** The gallery under its own rider `ThemeProvider`, light first, with the NativeWind bridge. */
+export function DsGalleryRoot({ onClose }: { onClose: () => void }): React.ReactElement {
   const [scheme, setScheme] = React.useState<'light' | 'dark'>('light');
-  // The gallery mounts before AppRoot, which is where the faces are normally registered; the
-  // `font-sans*` utilities name them, and React Native has no fallback chain.
-  const { fontsLoaded } = useHgFonts();
-  if (!fontsLoaded) return null;
   return (
-    <View style={{ flex: 1 }}>
-      {gallery ? (
-        <ThemeProvider theme="rider" scheme={scheme}>
-          <DsGallery
-            onToggleScheme={() => setScheme((s) => (s === 'light' ? 'dark' : 'light'))}
-            onClose={() => setGallery(false)}
-          />
-        </ThemeProvider>
-      ) : (
-        children
-      )}
-      <PortalHost />
-    </View>
+    <ThemeProvider theme="rider" scheme={scheme}>
+      <HgColorSchemeBridge scheme={scheme} />
+      <DsGallery
+        scheme={scheme}
+        onToggleScheme={() => setScheme((s) => (s === 'light' ? 'dark' : 'light'))}
+        onClose={onClose}
+      />
+    </ThemeProvider>
   );
 }
