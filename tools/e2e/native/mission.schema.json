@@ -1,0 +1,134 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/shaiknoorullah/hg-mono/tools/e2e/native/mission.schema.json",
+  "title": "Device-lab mission",
+  "description": "One mission for the device lab: which APK, which emulator, which world, which reality steps, which Maestro flows. Lives at tools/e2e/native/<app>/redesign/missions/<id>.yaml. Checked by tools/e2e/native/check-missions.mjs, which also checks what a schema cannot: the id equals the file name and is unique, the app matches the folder, every referenced file exists, and every dev-scenario name is one devworld knows. How to write one: tools/e2e/native/README.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "app", "avd", "api", "flows"],
+  "properties": {
+    "id": {
+      "description": "Kebab-case, unique across every mission, equal to the file's base name. Ids starting with example- are examples the lab may skip.",
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+      "maxLength": 80
+    },
+    "app": { "enum": ["customer", "rider"] },
+    "avd": {
+      "description": "The emulator image the APK goes on: hg_customer for the customer app, hg_rider for the rider app.",
+      "enum": ["hg_customer", "hg_rider"]
+    },
+    "api": {
+      "description": "devworld: the local services/hg after make dev-reset. mock: pnpm mock on :4010.",
+      "enum": ["devworld", "mock"]
+    },
+    "setup": {
+      "description": "Commands run from services/hg before the flows, in order. Only these forms are allowed.",
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^(make dev-reset|make dev-admin|make dev-scenario s=[a-z0-9]+(-[a-z0-9]+)*|make dev-journey( (route=(short|long|early-rider)|speed=(1x|4x|max)|auto=(none|restaurant|all)|manual=rider))*)$"
+      }
+    },
+    "reality": {
+      "description": "Reality steps, applied in order by tools/e2e/reality/apply-mission.mjs. Each item has exactly one key.",
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "object", "additionalProperties": false, "required": ["geo-route"],
+            "properties": {
+              "geo-route": {
+                "description": "A GPX file under tools/e2e/native/routes/, played back at its own timestamps (about 1 Hz) in the background.",
+                "type": "string",
+                "pattern": "^tools/e2e/native/routes/[a-z0-9]+(-[a-z0-9]+)*\\.gpx$"
+              }
+            }
+          },
+          {
+            "type": "object", "additionalProperties": false, "required": ["network"],
+            "properties": { "network": { "enum": ["gsm", "edge", "umts", "full", "offline", "restore"] } }
+          },
+          {
+            "type": "object", "additionalProperties": false, "required": ["theme"],
+            "properties": { "theme": { "enum": ["light", "dark"] } }
+          },
+          {
+            "type": "object", "additionalProperties": false, "required": ["font-scale"],
+            "properties": { "font-scale": { "type": "number", "minimum": 0.85, "maximum": 2.0 } }
+          },
+          {
+            "type": "object", "additionalProperties": false, "required": ["deny-permission"],
+            "properties": { "deny-permission": { "enum": ["location", "camera", "notifications"] } }
+          },
+          {
+            "type": "object", "additionalProperties": false, "required": ["lock"],
+            "properties": {
+              "lock": {
+                "description": "true turns the screen off (KEYCODE_POWER); false wakes it and dismisses the keyguard.",
+                "type": "boolean"
+              }
+            }
+          },
+          {
+            "type": "object", "additionalProperties": false, "required": ["background-ms"],
+            "properties": {
+              "background-ms": {
+                "description": "Send the app home, wait this long, bring it back to the front.",
+                "type": "integer", "minimum": 1, "maximum": 600000
+              }
+            }
+          },
+          {
+            "type": "object", "additionalProperties": false, "required": ["airplane"],
+            "properties": { "airplane": { "enum": ["on", "off"] } }
+          },
+          {
+            "type": "object", "additionalProperties": false, "required": ["camera-media"],
+            "properties": {
+              "camera-media": {
+                "description": "A file under tools/e2e/native/media/, pushed to /sdcard/Pictures and media-scanned so the photo library shows it.",
+                "type": "string",
+                "pattern": "^tools/e2e/native/media/[A-Za-z0-9]+([._-][A-Za-z0-9]+)*\\.(jpg|jpeg|png|pdf)$"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "flows": {
+      "description": "Maestro flows run in order, under tools/e2e/native/<app>/redesign/ and never under missions/.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "pattern": "^tools/e2e/native/(customer|rider)/redesign/(?!missions/)([a-z0-9._-]+/)*[a-z0-9._-]+\\.ya?ml$"
+      }
+    },
+    "explore": {
+      "description": "Optional free-form instructions for the lab agent to explore with maestro mcp or mobile-mcp, screenshotting every state it reaches.",
+      "type": "string",
+      "maxLength": 4000
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "app": { "const": "customer" } }, "required": ["app"] },
+      "then": {
+        "properties": {
+          "avd": { "const": "hg_customer" },
+          "flows": { "items": { "pattern": "^tools/e2e/native/customer/redesign/" } }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "app": { "const": "rider" } }, "required": ["app"] },
+      "then": {
+        "properties": {
+          "avd": { "const": "hg_rider" },
+          "flows": { "items": { "pattern": "^tools/e2e/native/rider/redesign/" } }
+        }
+      }
+    }
+  ]
+}

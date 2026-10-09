@@ -2,7 +2,7 @@
 covers:
   - .github/workflows/e2e.yml
   - tools/e2e/**
-reviewed: 2026-10-05
+reviewed: 2026-10-09
 ---
 
 # End-to-end flows
@@ -161,7 +161,8 @@ on macOS runners and are not part of this workflow
 | [`stack/up.sh`](stack/up.sh) | Boots `deploy/docker-compose.yml` with throwaway secrets, migrates, waits until ready |
 | [`seed/`](seed/) | The world: `seed.sh`, `world.sql`, `world.mjs`, `verify.sql` |
 | [`web/`](web/) | `serve.sh`, the Playwright config and the restaurant and admin tests |
-| [`native/`](native/) | The Maestro flows for the customer and rider apps |
+| [`native/`](native/) | The Maestro flows for the customer and rider apps, and the device-lab missions, routes and result template ([native/README.md](native/README.md)) |
+| [`reality/`](reality/) | Allow-listed helpers that put the emulator into a mission's conditions: GPS route, network, theme, text size, permissions, lock ([reality/README.md](reality/README.md)) |
 | [`lib/`](lib/) | The API client, the sign-in code reader, the TOTP generator, the run summary |
 | [`android/allow-cleartext.sh`](android/allow-cleartext.sh) | Lets the emulator's APKs reach the runner over plain HTTP. The release-builds workflow also uses it, for a dev build given an `http://` `api_base_url` ([docs/release/README.md](../../docs/release/README.md#a-build-without-a-tag)). |
 | [`run.sh`](run.sh) | Runs the flows in order and records each result |
