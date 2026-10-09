@@ -51,3 +51,6 @@ export type { BottomNavItem, Theme } from '@hg/ui-native';
 // WP2 (Home, address switcher, How we check): spacing and radius tokens for composing Home's
 // cards and rows from the components above.
 export { radius, space } from '@hg/ui-native';
+// WP1 (sign-in, first run, forced routes): the wordmark on Sign in and the blocked screens, and
+// the spacing scale those pages lay out with.
+export { Wordmark, tokens } from '@hg/ui-native';

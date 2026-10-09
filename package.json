@@ -17,6 +17,7 @@
     "validate:fixtures": "pnpm --filter @hg/contract-tools validate:fixtures",
     "fixtures:build": "pnpm --filter @hg/contract-tools fixtures:build",
     "mock": "pnpm --filter @hg/mock-server start",
+    "e2e:missions:check": "node tools/e2e/native/routes/build-routes.mjs --check && node tools/e2e/native/check-missions.mjs && node --test tools/e2e/reality/apply-mission.test.mjs",
     "typecheck": "pnpm -r typecheck",
     "check": "pnpm validate:contract && pnpm validate:fixtures && pnpm generate:check && pnpm generate:tokens:check && pnpm emails:check && pnpm lint && pnpm typecheck && pnpm check:backend",
     "check:backend": "cd services/hg && make check",

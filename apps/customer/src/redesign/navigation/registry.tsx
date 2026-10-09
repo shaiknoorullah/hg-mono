@@ -18,6 +18,10 @@ import { AddressesScreen } from '../../screens/AddressesScreen';
 import { AddressFormScreen } from '../../screens/AddressFormScreen';
 import { HomeScreen } from '../discover/HomeScreen';
 import { HowWeCheckScreen } from '../discover/HowWeCheckScreen';
+import { AddressStepScreen } from '../signin/AddressStepScreen';
+import { SignInScreen } from '../signin/SignInScreen';
+import { TermsScreen } from '../signin/TermsScreen';
+import { YourDetailsScreen } from '../signin/YourDetailsScreen';
 import { toLegacy } from './LegacyBridge';
 import type { Route, RouteName } from './routes';
 
@@ -29,6 +33,13 @@ export const REDESIGNED: Registry = {
   // WP2: Home, address switcher (a sheet owned by Home), How we check.
   home: () => <HomeScreen />,
   howWeCheck: () => <HowWeCheckScreen />,
+  // WP1: sign-in, first run, forced routes. `signIn` owns the signed-out stack (code, terms,
+  // signed out); `signedOut` and `terms` also render on their own when opened from a tab.
+  signIn: () => <SignInScreen />,
+  signedOut: () => <SignInScreen />,
+  yourDetails: (r) => <YourDetailsScreen fromCart={r.fromCart} />,
+  addressStep: () => <AddressStepScreen />,
+  terms: (r) => <TermsScreen signedOut={r.signedOut} />,
 };
 
 export function redesignedScreen(route: Route): React.ReactElement | null {
