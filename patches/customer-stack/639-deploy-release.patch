@@ -1,0 +1,45 @@
+diff --git a/RELEASING.md b/RELEASING.md
+index 45838f78..bc1a803f 100644
+--- a/RELEASING.md
++++ b/RELEASING.md
+@@ -77,7 +77,9 @@ Each is a config change, not an eng sprint — the seams are built. Do them in t
+    in until this lands.*
+ 2. **Stripe live + Connect payouts.** `HG_STRIPE_SECRET_KEY` + `HG_STRIPE_WEBHOOK_SECRET`
+    (+ `HG_STRIPE_CONNECT_RETURN_URL` / `HG_STRIPE_CONNECT_REFRESH_URL` for rider onboarding).
+-   Empty keys = fake local gateway.
++   Empty keys = fake local gateway. The customer build's `EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY` must
++   be the `pk_live_…` key of the same account; a build without it takes no card payments and says
++   so at checkout ([release README](docs/release/README.md)).
+ 3. **HST / tax (O-01).** `HG_TAX_HST_REGISTRATION_NUMBER` + `HG_TAX_PLATFORM_LEGAL_NAME` — rendered
+    on receipts only when set. (Tax is already computed.)
+ 4. **Mapbox token(s)** — §2.
+diff --git a/apps/customer/.env.example b/apps/customer/.env.example
+index b652610f..b2f4f691 100644
+--- a/apps/customer/.env.example
++++ b/apps/customer/.env.example
+@@ -9,3 +9,10 @@ EXPO_PUBLIC_API_BASE_URL=http://localhost:8080
+ # Empty = no search; the form falls back to manual entry marked "location not verified".
+ # PUBLIC scopes only. Native tokens can't be URL-restricted — keep it minimal & rotate if abused.
+ EXPO_PUBLIC_MAPBOX_TOKEN=
++
++# Stripe PUBLISHABLE key (pk_test_… for development, pk_live_… only in a production build), from
++# the same Stripe account and mode as the API's HG_STRIPE_SECRET_KEY. Card payment on web (Stripe.js
++# Payment Element) and native (payment sheet). Empty = no card payments: checkout says
++# "Card payments are not configured in this build" and nothing crashes. Never an sk_ key.
++# How to test with Stripe test cards: docs/playbooks/customer/card-payments.md
++EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY=
+diff --git a/deploy/.env.example b/deploy/.env.example
+index 98281b66..45bafdab 100644
+--- a/deploy/.env.example
++++ b/deploy/.env.example
+@@ -267,6 +267,10 @@ HG_ADMIN_WEB_URL=http://localhost:5175
+ 
+ # --- Stripe live payments + Connect payouts ------------------------------
+ # Both empty => fake local gateway (Configured() is false). Set to go live.
++# Development: an sk_test_… key, and the customer app's EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY set
++# to the pk_test_… key of the same account. The webhook secret (whsec_…) is the endpoint's, or
++# the one `stripe listen` prints; without webhooks the order still moves on locally, when the
++# app reads its payment (docs/playbooks/customer/card-payments.md).
+ HG_STRIPE_SECRET_KEY=
+ HG_STRIPE_WEBHOOK_SECRET=
+ # Where Stripe returns/refreshes the rider during Connect onboarding.

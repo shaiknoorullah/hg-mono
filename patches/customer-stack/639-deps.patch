@@ -1,0 +1,142 @@
+diff --git a/apps/customer/package.json b/apps/customer/package.json
+index 5b7ba75e..ec77c949 100644
+--- a/apps/customer/package.json
++++ b/apps/customer/package.json
+@@ -19,6 +19,8 @@
+     "@hg/api-client": "workspace:*",
+     "@hg/ui-native": "workspace:*",
+     "@rnmapbox/maps": "^10.3.5",
++    "@stripe/react-stripe-js": "^7.0.0",
++    "@stripe/stripe-js": "^10.0.0",
+     "@stripe/stripe-react-native": "0.50.3",
+     "expo": "~54.0.0",
+     "expo-clipboard": "~8.0.7",
+diff --git a/pnpm-lock.yaml b/pnpm-lock.yaml
+index ea5d3128..2ce42e0f 100644
+--- a/pnpm-lock.yaml
++++ b/pnpm-lock.yaml
+@@ -103,6 +103,12 @@ importers:
+       '@rnmapbox/maps':
+         specifier: ^10.3.5
+         version: 10.3.5(expo@54.0.36)(react-dom@19.1.0(react@19.1.0))(react-native@0.81.4(@babel/core@7.29.7)(@react-native/metro-config@0.86.2(@babel/core@7.29.7))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
++      '@stripe/react-stripe-js':
++        specifier: ^7.0.0
++        version: 7.0.0(@stripe/stripe-js@10.0.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
++      '@stripe/stripe-js':
++        specifier: ^10.0.0
++        version: 10.0.0
+       '@stripe/stripe-react-native':
+         specifier: 0.50.3
+         version: 0.50.3(expo@54.0.36)(react-native@0.81.4(@babel/core@7.29.7)(@react-native/metro-config@0.86.2(@babel/core@7.29.7))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
+@@ -151,7 +157,7 @@ importers:
+     devDependencies:
+       '@testing-library/react-native':
+         specifier: ^13.2.0
+-        version: 13.3.3(jest@29.7.0(@types/node@24.13.4))(react-native@0.81.4(@babel/core@7.29.7)(@react-native/metro-config@0.86.2(@babel/core@7.29.7))(@types/react@19.1.17)(react@19.1.0))(react-test-renderer@19.1.0(react@19.1.0))(react@19.1.0)
++        version: 13.3.3(jest@29.7.0(@types/node@22.20.1))(react-native@0.81.4(@babel/core@7.29.7)(@react-native/metro-config@0.86.2(@babel/core@7.29.7))(@types/react@19.1.17)(react@19.1.0))(react-test-renderer@19.1.0(react@19.1.0))(react@19.1.0)
+       '@types/jest':
+         specifier: ^29.5.14
+         version: 29.5.14
+@@ -160,7 +166,7 @@ importers:
+         version: 19.1.17
+       jest:
+         specifier: ^29.7.0
+-        version: 29.7.0(@types/node@24.13.4)
++        version: 29.7.0(@types/node@22.20.1)
+       react-test-renderer:
+         specifier: 19.1.0
+         version: 19.1.0(react@19.1.0)
+@@ -382,7 +388,7 @@ importers:
+     devDependencies:
+       '@testing-library/react-native':
+         specifier: ^13.2.0
+-        version: 13.3.3(jest@29.7.0(@types/node@22.20.1))(react-native@0.81.4(@babel/core@7.29.7)(@react-native/metro-config@0.86.2(@babel/core@7.29.7))(@types/react@19.1.17)(react@19.1.0))(react-test-renderer@19.1.0(react@19.1.0))(react@19.1.0)
++        version: 13.3.3(jest@29.7.0(@types/node@24.13.4))(react-native@0.81.4(@babel/core@7.29.7)(@react-native/metro-config@0.86.2(@babel/core@7.29.7))(@types/react@19.1.17)(react@19.1.0))(react-test-renderer@19.1.0(react@19.1.0))(react@19.1.0)
+       '@types/jest':
+         specifier: ^29.5.14
+         version: 29.5.14
+@@ -391,7 +397,7 @@ importers:
+         version: 19.1.17
+       jest:
+         specifier: ^29.7.0
+-        version: 29.7.0(@types/node@22.20.1)
++        version: 29.7.0(@types/node@24.13.4)
+       react-test-renderer:
+         specifier: 19.1.0
+         version: 19.1.0(react@19.1.0)
+@@ -3542,6 +3548,17 @@ packages:
+   '@sinonjs/fake-timers@10.3.0':
+     resolution: {integrity: sha512-V4BG07kuYSUkTCSBHG8G8TNhM+F19jXFWnQtzj+we8DrkpSBCee9Z3Ms8yiGer/dlmhe35/Xdgyo3/0rQKg7YA==}
+ 
++  '@stripe/react-stripe-js@7.0.0':
++    resolution: {integrity: sha512-wKw6YM0p/IpGj7hcwdJL7UAb7s0hlO8kLJIXn0CezewYILQ8j/A7j55EHuHHjF6dV+cr4yZhbhg4QLRjovfM4A==}
++    peerDependencies:
++      '@stripe/stripe-js': '>=10.0.0 <11.0.0'
++      react: '>=16.8.0 <20.0.0'
++      react-dom: '>=16.8.0 <20.0.0'
++
++  '@stripe/stripe-js@10.0.0':
++    resolution: {integrity: sha512-y5LKFTtnz1ciM+IQfrDfHcpjGlsm5Ao4onaUn4scurI/B6rNhrmV+ScTPDo+3Ges5oF8ol4tBkBAIZyVXVBIXw==}
++    engines: {node: '>=12.16'}
++
+   '@stripe/stripe-react-native@0.50.3':
+     resolution: {integrity: sha512-nzOjqZXQKdM7y33Em2JZxCTAgf/q/J51IJQ50XtwIL0QT6Jt5WSmfKm9rGmBhoXxxG4DcXu/qxJeAHlhcPDGQg==}
+     peerDependencies:
+@@ -7092,6 +7109,9 @@ packages:
+     resolution: {integrity: sha512-NxNv/kLguCA7p3jE8oL2aEBsrJWgAakBpgmgK6lpPWV+WuOmY6r2/zbAVnP+T8bQlA0nzHXSJSJW0Hq7ylaD2Q==}
+     engines: {node: '>= 6'}
+ 
++  prop-types@15.8.1:
++    resolution: {integrity: sha512-oj87CgZICdulUohogVAR7AjlC0327U4el4L6eAvOqCeudMDVU0NThNaV+b9Df4dXgSP1gXMTnPdhfe/2qDH5cg==}
++
+   prosemirror-commands@1.7.2:
+     resolution: {integrity: sha512-q6Q6szxqdu9Xd6EcdKsqXghu5nQdZTpB4Q9yd04WRc7/jt763e/rT60Owh0L1GYY+T46o5rD+9lEN36dZS43tw==}
+ 
+@@ -7189,6 +7209,9 @@ packages:
+     peerDependencies:
+       react: ^19.1.0
+ 
++  react-is@16.13.1:
++    resolution: {integrity: sha512-24e6ynE2H+OKt4kqsOvNd8kBpV65zoxbA4BVsEOB3ARVWQki/DHzaUoC5KuON/BiccDaCCTZBuOcfZs70kR8bQ==}
++
+   react-is@17.0.2:
+     resolution: {integrity: sha512-w2GsyukL62IJnlaff/nRegPQR94C/XXamvMWmSHRJ4y7Ts/4ocGRmTHvOs8PSE6pB3dWOrD/nueuU5sduBsQ4w==}
+ 
+@@ -12065,6 +12088,15 @@ snapshots:
+     dependencies:
+       '@sinonjs/commons': 3.0.1
+ 
++  '@stripe/react-stripe-js@7.0.0(@stripe/stripe-js@10.0.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)':
++    dependencies:
++      '@stripe/stripe-js': 10.0.0
++      prop-types: 15.8.1
++      react: 19.1.0
++      react-dom: 19.1.0(react@19.1.0)
++
++  '@stripe/stripe-js@10.0.0': {}
++
+   '@stripe/stripe-react-native@0.50.3(expo@54.0.36)(react-native@0.81.4(@babel/core@7.29.7)(@react-native/metro-config@0.86.2(@babel/core@7.29.7))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)':
+     dependencies:
+       react: 19.1.0
+@@ -16723,6 +16755,12 @@ snapshots:
+       kleur: 3.0.3
+       sisteransi: 1.0.5
+ 
++  prop-types@15.8.1:
++    dependencies:
++      loose-envify: 1.4.0
++      object-assign: 4.1.1
++      react-is: 16.13.1
++
+   prosemirror-commands@1.7.2:
+     dependencies:
+       prosemirror-model: 1.25.11
+@@ -16905,6 +16943,8 @@ snapshots:
+       react: 19.1.0
+       scheduler: 0.26.0
+ 
++  react-is@16.13.1: {}
++
+   react-is@17.0.2: {}
+ 
+   react-is@18.3.1: {}

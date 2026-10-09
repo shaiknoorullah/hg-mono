@@ -1,0 +1,408 @@
+diff --git a/packages/ui-native/src/content/QuantityStepper.tsx b/packages/ui-native/src/content/QuantityStepper.tsx
+index 2820b9a8..377ce22c 100644
+--- a/packages/ui-native/src/content/QuantityStepper.tsx
++++ b/packages/ui-native/src/content/QuantityStepper.tsx
+@@ -20,10 +20,16 @@ import {
+   useTheme,
+ } from '../certification/internal/theme';
+ import type { TypeName } from '../certification/internal/theme';
+-import { Spinner } from '../primitives';
++import { Icon, Spinner } from '../primitives';
+ import { MinusGlyph, PlusGlyph, TrashGlyph } from './internal/glyphs';
+ 
+ export type QuantityStepperSize = 'sm' | 'md' | 'lg';
++/**
++ * `outlined` is the bordered segment the item sheet uses. `tonal` is the cart line's control as
++ * the approved Cart canvas draws it: two round tonal buttons either side of the number, no frame,
++ * and at the last unit the minus becomes a close glyph that removes the line.
++ */
++export type QuantityStepperVariant = 'outlined' | 'tonal';
+ 
+ export interface QuantityStepperProps {
+   value: number;
+@@ -31,6 +37,7 @@ export interface QuantityStepperProps {
+   max?: number;
+   onChange: (value: number) => void;
+   size?: QuantityStepperSize;
++  variant?: QuantityStepperVariant;
+   loading?: boolean;
+   disabled?: boolean;
+   /** At `value === min + 1` the `−` becomes a trash glyph and announces "Remove {item}". */
+@@ -56,6 +63,7 @@ export function QuantityStepper({
+   max,
+   onChange,
+   size = 'md',
++  variant = 'outlined',
+   loading = false,
+   disabled = false,
+   removeAtZero = false,
+@@ -75,6 +83,7 @@ export function QuantityStepper({
+   // `loading` is not `disabled`: the control keeps its accessible name, announces busy, and
+   // blocks re-entry by ignoring the event rather than going grey and losing its label.
+   const blocked = loading || disabled;
++  const tonal = variant === 'tonal';
+ 
+   const decrementLabel = willRemove
+     ? itemName
+@@ -89,13 +98,21 @@ export function QuantityStepper({
+       accessibilityLabel={itemName ? `Quantity for ${itemName}` : 'Quantity'}
+       style={[
+         styles.root,
+-        {
+-          height,
+-          borderRadius: radius.sm,
+-          borderColor: theme.color.border.interactive,
+-          backgroundColor: theme.color.surface.base,
+-          opacity: disabled ? theme.color.state.disabledOpacity : 1,
+-        },
++        tonal
++          ? {
++              height,
++              gap: 8,
++              borderWidth: 0,
++              overflow: 'visible',
++              opacity: disabled ? theme.color.state.disabledOpacity : 1,
++            }
++          : {
++              height,
++              borderRadius: radius.sm,
++              borderColor: theme.color.border.interactive,
++              backgroundColor: theme.color.surface.base,
++              opacity: disabled ? theme.color.state.disabledOpacity : 1,
++            },
+         style,
+       ]}
+     >
+@@ -105,20 +122,23 @@ export function QuantityStepper({
+         disabled={blocked || (atMin && !removeAtZero)}
+         busy={loading}
+         height={height}
++        tonal={tonal}
+         onPress={() => {
+           if (blocked) return;
+           if (atMin && !removeAtZero) return;
+           onChange(value - 1);
+         }}
+       >
+-        {willRemove ? (
++        {willRemove && tonal ? (
++          <Icon name="close" size={glyph} color={theme.color.text.primary} />
++        ) : willRemove ? (
+           <TrashGlyph size={glyph} color={theme.color.text.primary} />
+         ) : (
+           <MinusGlyph size={glyph} color={theme.color.text.primary} />
+         )}
+       </StepperButton>
+ 
+-      <View style={[styles.value, { minWidth: height }]}>
++      <View style={[styles.value, { minWidth: tonal ? 28 : height }]}>
+         {loading ? (
+           <Spinner testID={`${testID}-busy`} size="sm" label="Updating quantity" />
+         ) : (
+@@ -145,6 +165,7 @@ export function QuantityStepper({
+         disabled={blocked || atMax}
+         busy={loading}
+         height={height}
++        tonal={tonal}
+         onPress={() => {
+           if (blocked || atMax) return;
+           onChange(value + 1);
+@@ -163,6 +184,7 @@ function StepperButton({
+   disabled,
+   busy,
+   height,
++  tonal = false,
+   onPress,
+   children,
+ }: {
+@@ -172,6 +194,7 @@ function StepperButton({
+   disabled: boolean;
+   busy: boolean;
+   height: number;
++  tonal?: boolean;
+   onPress: () => void;
+   children: React.ReactNode;
+ }): React.ReactElement {
+@@ -195,6 +218,7 @@ function StepperButton({
+       style={({ pressed }) => [
+         styles.button,
+         { width: height, height, opacity: disabled ? theme.color.state.disabledOpacity : 1 },
++        tonal ? { borderRadius: height / 2, backgroundColor: theme.color.surface.subtle } : null,
+         pressed && !disabled ? { backgroundColor: theme.color.state.pressedOverlay } : null,
+         focused ? { borderWidth: 3, borderColor: theme.color.focus.ring } : null,
+       ]}
+diff --git a/packages/ui-native/src/content/__tests__/QuantityStepper.test.tsx b/packages/ui-native/src/content/__tests__/QuantityStepper.test.tsx
+new file mode 100644
+index 00000000..7b13dbe1
+--- /dev/null
++++ b/packages/ui-native/src/content/__tests__/QuantityStepper.test.tsx
+@@ -0,0 +1,35 @@
++/**
++ * The cart's `tonal` stepper: the canvas's round buttons, and at the last unit the minus is a
++ * remove action named for the dish. The value never moves until the server answers.
++ */
++import { fireEvent, screen } from '@testing-library/react-native';
++
++import { QuantityStepper } from '../QuantityStepper';
++import { renderThemed } from '../../primitives/__tests__/harness';
++
++describe('QuantityStepper — tonal', () => {
++  it('at one unit, the minus removes the line and says so', () => {
++    const onChange = jest.fn();
++    renderThemed(
++      <QuantityStepper
++        variant="tonal"
++        value={1}
++        min={0}
++        removeAtZero
++        itemName="Mango lassi"
++        onChange={onChange}
++      />,
++    );
++    const minus = screen.getByTestId('QuantityStepper-decrement');
++    expect(minus.props.accessibilityLabel).toBe('Remove Mango lassi');
++    fireEvent.press(minus);
++    expect(onChange).toHaveBeenCalledWith(0);
++  });
++
++  it('freezes while a change is in flight', () => {
++    const onChange = jest.fn();
++    renderThemed(<QuantityStepper variant="tonal" value={2} loading onChange={onChange} />);
++    fireEvent.press(screen.getByTestId('QuantityStepper-increment'));
++    expect(onChange).not.toHaveBeenCalled();
++  });
++});
+diff --git a/packages/ui-native/src/content/index.ts b/packages/ui-native/src/content/index.ts
+index 1fa5e01c..f9ca832d 100644
+--- a/packages/ui-native/src/content/index.ts
++++ b/packages/ui-native/src/content/index.ts
+@@ -16,7 +16,11 @@ export { Rating } from './Rating';
+ export type { RatingProps, RatingSize, RatingVariant } from './Rating';
+ 
+ export { QuantityStepper } from './QuantityStepper';
+-export type { QuantityStepperProps, QuantityStepperSize } from './QuantityStepper';
++export type {
++  QuantityStepperProps,
++  QuantityStepperSize,
++  QuantityStepperVariant,
++} from './QuantityStepper';
+ 
+ export {
+   RestaurantCard,
+diff --git a/packages/ui-native/src/feedback/__tests__/StatusTimeline.test.tsx b/packages/ui-native/src/feedback/__tests__/StatusTimeline.test.tsx
+index 3a6818a1..8d6bb7ff 100644
+--- a/packages/ui-native/src/feedback/__tests__/StatusTimeline.test.tsx
++++ b/packages/ui-native/src/feedback/__tests__/StatusTimeline.test.tsx
+@@ -104,6 +104,13 @@ describe('StatusTimeline', () => {
+     expect(r.steps.some((s) => s.state === 'skipped')).toBe(false);
+   });
+ 
++  it('never tells a customer a ready order is still being prepared', () => {
++    const label = (state: 'PREPARING' | 'READY_FOR_PICKUP') =>
++      resolveTimeline({ audience: 'customer', state }).steps.find((s) => s.key === 'preparing')?.label;
++    expect(label('PREPARING')).toBe('Preparing your food');
++    expect(label('READY_FOR_PICKUP')).toBe('Your food is ready');
++  });
++
+   it('marks the current step stalled once its deadline has passed', () => {
+     const now = Date.parse('2026-08-11T12:00:00Z');
+     const live = resolveTimeline({
+diff --git a/packages/ui-native/src/feedback/order-track.ts b/packages/ui-native/src/feedback/order-track.ts
+index 763c066d..b4f99489 100644
+--- a/packages/ui-native/src/feedback/order-track.ts
++++ b/packages/ui-native/src/feedback/order-track.ts
+@@ -68,6 +68,8 @@ export interface TrackStepDef {
+   label: string;
+   /** Label while the order is sitting in this step, when the present tense differs. */
+   currentLabel?: string;
++  /** A present-tense label for one of the step's states, where it reads differently. */
++  currentLabelByState?: Partial<Record<OrderState, string>>;
+   /** The contract states that collapse into this step. */
+   states: readonly OrderState[];
+ }
+@@ -87,9 +89,10 @@ export interface OrderTrack {
+  * step of its own — settlement is not a customer concern (02-components.md §23).
+  *
+  * `READY_FOR_PICKUP` has no entry in the specified five-word vocabulary. It stays inside the
+- * "Preparing" step with its own present-tense label rather than being promoted to a sixth step,
+- * because the step count is load-bearing: the loading skeleton renders the correct number of
+- * steps before the data arrives (03-patterns.md §1.7).
++ * "Preparing" step with its own present-tense label ("Your food is ready", the Track & After
++ * canvas's copy, so a ready order never reads "Preparing your food") rather than being promoted
++ * to a sixth step, because the step count is load-bearing: the loading skeleton renders the
++ * correct number of steps before the data arrives (03-patterns.md §1.7).
+  */
+ const CUSTOMER_TRACK: OrderTrack = {
+   audience: 'customer',
+@@ -106,6 +109,7 @@ const CUSTOMER_TRACK: OrderTrack = {
+       key: 'preparing',
+       label: 'Preparing',
+       currentLabel: 'Preparing your food',
++      currentLabelByState: { READY_FOR_PICKUP: 'Your food is ready' },
+       states: ['PREPARING', 'READY_FOR_PICKUP'],
+     },
+     { key: 'on_the_way', label: 'On the way', states: ['PICKED_UP', 'ARRIVED'] },
+@@ -529,7 +533,10 @@ export function resolveTimeline(input: ResolveTimelineInput): ResolvedTimeline {
+       stepState = failed ? 'unreached' : 'upcoming';
+     }
+ 
+-    const label = stepState === 'current' || stepState === 'stalled' ? (def.currentLabel ?? def.label) : def.label;
++    const label =
++      stepState === 'current' || stepState === 'stalled'
++        ? (def.currentLabelByState?.[state] ?? def.currentLabel ?? def.label)
++        : def.label;
+     return at ? { key: def.key, label, state: stepState, at } : { key: def.key, label, state: stepState };
+   });
+ 
+diff --git a/packages/ui-native/src/navigation/AppBar.tsx b/packages/ui-native/src/navigation/AppBar.tsx
+index 1c01b896..9cd6ad7b 100644
+--- a/packages/ui-native/src/navigation/AppBar.tsx
++++ b/packages/ui-native/src/navigation/AppBar.tsx
+@@ -18,6 +18,12 @@ import { ChevronGlyph, CloseGlyph } from '../feedback/internal/glyphs';
+ import { useTopInset } from './internal/insets';
+ 
+ export type AppBarVariant = 'default' | 'large' | 'search' | 'contextual' | 'transparent';
++/**
++ * The bar's surface. `chrome` is the dark brand bar. `cream` is the design system's default
++ * (`surface.base` with primary ink), which the approved customer Cart, Checkout, Track and
++ * Orders canvases use so the bar reads as part of the page.
++ */
++export type AppBarTone = 'chrome' | 'cream';
+ 
+ export interface AppBarAction {
+   key: string;
+@@ -44,6 +50,8 @@ export interface AppBarProps {
+   back?: AppBarBack;
+   actions?: readonly AppBarAction[];
+   variant?: AppBarVariant;
++  /** Defaults to `chrome`. */
++  tone?: AppBarTone;
+   /** Force the raised treatment. Otherwise `scrolled` decides. */
+   elevated?: boolean;
+   /** At rest there is no shadow; scrolled adds elevation 1 and a hairline. */
+@@ -72,6 +80,7 @@ export function AppBar({
+   back,
+   actions,
+   variant = 'default',
++  tone = 'chrome',
+   elevated,
+   scrolled = false,
+   loading = false,
+@@ -90,12 +99,15 @@ export function AppBar({
+   const contextual = variant === 'contextual';
+   const transparent = variant === 'transparent';
+   const large = variant === 'large' && !scrolled;
++  const cream = tone === 'cream' && !transparent && !contextual;
+ 
+   const background = transparent
+     ? 'transparent'
+     : contextual
+       ? theme.color.surface.inverse
+-      : theme.color.surface.chrome;
++      : cream
++        ? theme.color.surface.base
++        : theme.color.surface.chrome;
+   // `surface.chrome` is DARK in both schemes (#1B3B31 light, #0A1913 dark), but the
+   // foreground here was `text.primary`, which is only light in the dark scheme. On the
+   // light scheme that put #232323 on #1B3B31 — measured 1.28:1 for the customer app's
+@@ -106,7 +118,11 @@ export function AppBar({
+   // explicitly per scheme. Both resolve to #F6EFDD, which is 11.6:1 on the light
+   // chrome. The `transparent` variant sits over `surface.scrim` and wants the same.
+   const onChrome = theme.scheme === 'dark' ? theme.color.text.primary : theme.color.text.onInverse;
+-  const foreground = contextual ? theme.color.text.onInverse : onChrome;
++  const foreground = contextual
++    ? theme.color.text.onInverse
++    : cream
++      ? theme.color.text.primary
++      : onChrome;
+ 
+   const control = Math.max(theme.target.min, 44);
+ 
+@@ -192,7 +208,12 @@ export function AppBar({
+                   // Same reason as `onChrome`: `text.secondary` is dark ink on the light
+                   // scheme, and this sits on the dark chrome. 0.78 keeps the title/subtitle
+                   // hierarchy without dropping below AA (8.4:1 on the light chrome).
+-                  style={[type(theme, 'caption'), { color: foreground, opacity: contextual ? 1 : 0.78 }]}
++                  style={[
++                    type(theme, 'caption'),
++                    cream
++                      ? { color: theme.color.text.secondary }
++                      : { color: foreground, opacity: contextual ? 1 : 0.78 },
++                  ]}
+                 >
+                   {subtitle}
+                 </Text>
+diff --git a/packages/ui-native/src/navigation/index.ts b/packages/ui-native/src/navigation/index.ts
+index fabf01d9..09a948e8 100644
+--- a/packages/ui-native/src/navigation/index.ts
++++ b/packages/ui-native/src/navigation/index.ts
+@@ -10,7 +10,13 @@
+  */
+ 
+ export { AppBar } from './AppBar';
+-export type { AppBarProps, AppBarVariant, AppBarAction, AppBarBack } from './AppBar';
++export type {
++  AppBarProps,
++  AppBarVariant,
++  AppBarTone,
++  AppBarAction,
++  AppBarBack,
++} from './AppBar';
+ 
+ export { BottomNav } from './BottomNav';
+ export type { BottomNavProps, BottomNavItem } from './BottomNav';
+diff --git a/packages/ui-native/src/primitives/Input.tsx b/packages/ui-native/src/primitives/Input.tsx
+index e7a03630..c9ecb438 100644
+--- a/packages/ui-native/src/primitives/Input.tsx
++++ b/packages/ui-native/src/primitives/Input.tsx
+@@ -155,6 +155,15 @@ export function Input({
+     );
+   }
+ 
++  // A string prefix or suffix ("$", "kg") must sit in a Text: a bare string inside a View is a
++  // hard crash on iOS and Android ("Text strings must be rendered within a <Text>").
++  const affix = (node: ReactNode): ReactNode =>
++    typeof node === 'string' || typeof node === 'number' ? (
++      <Text style={{ ...bodyType, color: theme.color.text.secondary }}>{node}</Text>
++    ) : (
++      node
++    );
++
+   return (
+     <View testID={testID} style={{ gap: tokens.space['1'] }}>
+       <Text nativeID={labelId} style={{ ...labelType, color: theme.color.text.secondary }}>
+@@ -163,7 +172,7 @@ export function Input({
+       </Text>
+ 
+       <View style={field}>
+-        {prefix}
++        {affix(prefix)}
+         <TextInput
+           testID={`${testID}-field`}
+           value={variant === 'tel' ? formatTel(value) : value}
+@@ -199,7 +208,7 @@ export function Input({
+             {'✓'}
+           </Text>
+         ) : null}
+-        {suffix}
++        {affix(suffix)}
+         {/* Focus is the field's own border (2px border.brand, above). The ring is drawn
+             only on an invalid field, whose danger border cannot also mean "focused" —
+             docs/decisions/focus-indicator.md. */}
+diff --git a/packages/ui-native/src/primitives/__tests__/Input.test.tsx b/packages/ui-native/src/primitives/__tests__/Input.test.tsx
+index 8dfa05fd..443f7e33 100644
+--- a/packages/ui-native/src/primitives/__tests__/Input.test.tsx
++++ b/packages/ui-native/src/primitives/__tests__/Input.test.tsx
+@@ -4,6 +4,12 @@ import { Input, formatTel } from '../Input';
+ import { getHidden, renderThemed, styleOf, themes } from './harness';
+ 
+ describe('Input', () => {
++  // A bare string inside a View crashes iOS and Android; a "$" prefix must sit in a Text.
++  it('wraps a string prefix in a Text node', () => {
++    renderThemed(<Input label="Tip amount" value="" onChange={() => {}} prefix="$" />);
++    expect(screen.getByText('$').type).toBe('Text');
++  });
++
+   it('renders the label as a real visible node, never as a placeholder', () => {
+     renderThemed(<Input label="Delivery address" value="" onChange={() => {}} placeholder="123 Main St" />);
+     expect(screen.getByText('Delivery address')).toBeTruthy();
