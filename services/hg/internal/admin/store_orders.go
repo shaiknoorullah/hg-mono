@@ -21,9 +21,17 @@ type OrdersRepo struct {
 	st   *orders.Store
 }
 
-// NewOrdersRepo builds the admin order repository.
-func NewOrdersRepo(pool *pgxpool.Pool) *OrdersRepo {
-	return &OrdersRepo{pool: pool, st: orders.NewStore(pool)}
+// NewOrdersRepo builds the admin order repository. st is the orders module's
+// store wired with its notification emitter in cmd/hg/main.go, so a staff
+// cancel tells the customer in the cancel's own transaction
+// (https://github.com/shaiknoorullah/hg-mono/issues/352). With a nil st the
+// cancel still moves through the one transition function and writes its
+// realtime events, but sends no notification, which is right only for tests.
+func NewOrdersRepo(pool *pgxpool.Pool, st *orders.Store) *OrdersRepo {
+	if st == nil {
+		st = orders.NewStore(pool)
+	}
+	return &OrdersRepo{pool: pool, st: st}
 }
 
 // adminOrderSummaryRow is a raw projection from the database used to build
@@ -82,6 +90,10 @@ type adminOrderRow struct {
 
 	// Refunds for the order, requested-at ascending.
 	Refunds []adminRefundRow
+
+	// Money is the order's payment, refund and chargeback history, read by the
+	// payments module, which owns those tables (#172).
+	Money payments.MoneyHistory
 
 	// dispatch_state from the order's dispatch row (nil until the restaurant
 	// accepts and a dispatch machine exists for the order).
@@ -400,6 +412,10 @@ SELECT id, kind::text, scope::text, reason_code::text,
 		return nil, err
 	}
 
+	if v.Money, err = payments.OrderMoneyHistory(ctx, r.pool, orderID); err != nil {
+		return nil, fmt.Errorf("load money history: %w", err)
+	}
+
 	return &v, nil
 }
 
@@ -602,8 +618,11 @@ SELECT coalesce(sum(amount_cents),0) FROM refund
 		return fmt.Errorf("refusing to post unbalanced cancel-refund batch (residual=%d)", batch.Residual())
 	}
 
-	// Insert the refund row (AUTHORISED, on a clock: deadline required by the
-	// refund_deadline_required CHECK for non-terminal states).
+	// Insert the refund row: AUTHORISED, approved by the member of staff who
+	// cancelled (the schema refuses a refund that moves money with no
+	// approver, refund_money_needs_approver), and due to the payments refund
+	// sender at once, which sends it to Stripe (payments/refund_sender.go,
+	// #318).
 	requestedBy := actor.staffID
 	if requestedBy == "" {
 		// requested_by is NOT NULL; fall back to the system account. This never
@@ -615,16 +634,21 @@ SELECT coalesce(sum(amount_cents),0) FROM refund
 INSERT INTO refund (order_id, payment_intent_id, kind, scope, reason_code, note,
                     amount_cents, tax_cents,
                     restaurant_chargeback_cents, rider_chargeback_cents, platform_absorbed_cents,
-                    state, requested_by, deadline_at, deadline_action)
+                    state, approval_status, requested_by, approved_by, approved_at, deadline_at, deadline_action)
 VALUES ($1,$2,'FULL','FULL',$3::refund_reason_code,$4,
         $5,$6,$7,$8,$9,
-        'AUTHORISED',$10, now() + interval '2 minutes','SUBMIT_REFUND')
+        'AUTHORISED','APPROVED',$10,$10, now(), now(),$11)
 RETURNING id::text`,
 		orderID, intentID, reversalReason, in.ReasonText,
 		refundCents, taxCents,
 		split.RestaurantChargebackCents, split.RiderChargebackCents, split.PlatformAbsorbedCents,
-		requestedBy).Scan(&refundID); err != nil {
+		requestedBy, payments.RefundActionSubmit).Scan(&refundID); err != nil {
 		return fmt.Errorf("insert cancel refund: %w", err)
+	}
+	// The customer sees the refund on the order's channel, in this
+	// transaction (contracts/websocket.md section 4.3, refund.created).
+	if err := payments.EmitRefundCreated(ctx, tx, refundID); err != nil {
+		return err
 	}
 
 	// Post the balanced ledger batch and its entries, tied to the refund.

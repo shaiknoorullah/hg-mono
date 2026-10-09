@@ -3,7 +3,7 @@ covers:
   - packages/ui-web/src/certification/**
   - packages/ui-native/src/certification/**
   - packages/ui-web/src/styles/**
-reviewed: 2026-09-28
+reviewed: 2026-10-05
 ---
 
 # HalalGoes — Accessibility Standard
@@ -194,7 +194,7 @@ control edge
 | Key | Behaviour |
 |---|---|
 | `Tab` / `Shift+Tab` | forward/back through interactive elements in DOM order |
-| `Arrow` | within composites: `RadioGroup`, `Tabs`, `BottomNav`, `DataTable` grid, `Select` list, chip rows |
+| `Arrow` | within composites: `RadioGroup`, `Tabs`, `BottomNav`, `DataTable` grid, `Select` list, chip rows, the one-time-code boxes of `Input` |
 | `Home` / `End` | first/last within a composite |
 | `Enter` / `Space` | activate (`Space` on buttons/checkboxes, `Enter` on links) |
 | `Escape` | close dismissible sheet/modal/popover, clear a search field |

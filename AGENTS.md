@@ -19,7 +19,7 @@ This repo replaces three older ones (`hg-api`, `halal-goes`, `hg-docker`). It is
 ```
 Traefik  →  hg (ONE Go binary: HTTP + WebSocket, 2 replicas)
                 ├── Postgres + PostGIS   ← the only source of truth
-                ├── Redis                ← cache, pub/sub, rate limits — DISPOSABLE
+                ├── Valkey (Redis)       ← cache, pub/sub, rate limits — DISPOSABLE
                 └── Silo (MinIO fork)    ← documents, images — private buckets only
 ```
 
@@ -59,6 +59,7 @@ Each exists because it was violated in the previous system and cost real money o
 | `contracts/` | **Single source of truth for every API shape.** OpenAPI + WebSocket + 311 fixtures |
 | `packages/api-client/` | Generated TS client. **Hand-editing generated files is forbidden** |
 | `packages/ui-native/`, `ui-web/` | 81 components, both themes |
+| `packages/emails/` | Transactional email templates (React Email), exported to static HTML and text that `services/hg` embeds |
 | `services/hg/` | The Go binary |
 | `deploy/` | docker compose + Traefik |
 
@@ -71,6 +72,8 @@ pnpm install
 pnpm check                              # contract + fixtures + drift + typecheck — the gate
 pnpm -r test
 pnpm mock                               # mock API on :4010, WS on /v1/ws
+pnpm emails:build                       # re-export the email templates (packages/emails) the Go service embeds
+pnpm emails:check                       # fail if that export is stale (also: pnpm --filter @hg/emails build:check)
 cd services/hg && make up && make migrate && make run
 ```
 
@@ -112,7 +115,7 @@ Refund liability, launch province and self-declared halal restaurants are [settl
 
 ## 8. Known gaps
 
-- The compose stack **booted from an empty volume and ran healthy**: Traefik, 2× API, Postgres/PostGIS, Redis and MinIO, with `/health` and `/health/ready` returning 200 through the published port. **It cannot start on a new host today:** the pinned MinIO images can no longer be pulled ([#202](https://github.com/shaiknoorullah/hg-mono/issues/202)). Object storage moves to [Silo, the maintained fork of MinIO](docs/decisions/README.md#settled--platform-decisions-owner-2026-10-01); the compose file keeps the old MinIO pin until #202 lands.
+- The compose stack **boots from an empty volume and runs healthy**: Traefik, 2× API, Postgres/PostGIS, Valkey (the Redis-compatible cache) and [Silo, the maintained fork of MinIO](docs/decisions/README.md#settled--platform-decisions-owner-2026-10-01), with `/health` and `/health/ready` returning 200 through the published port. The MinIO images it used to pin can no longer be pulled; Silo and Valkey are pinned by release and digest on Docker Hub, and mirroring them into a registry we control is still to do ([#202](https://github.com/shaiknoorullah/hg-mono/issues/202)).
 - No standby server until next month ([#210](https://github.com/shaiknoorullah/hg-mono/issues/210)): a lost production server is rebuilt from backups, hours to a day offline, losing changes since the last off-server backup ([incident runbook](docs/ops/runbook.md)).
 - Object storage is more exposed than the [architecture](#2-architecture-in-one-picture) says: the compose file publishes the console and S3 API ports and the media bucket is public-read ([#200](https://github.com/shaiknoorullah/hg-mono/issues/200)), and presigned links are signed with the root user ([#203](https://github.com/shaiknoorullah/hg-mono/issues/203)).
 - Notifications (push, SMS and email) go to fake senders; only sign-in codes go through Twilio Verify. Real SMS, and email through Resend: [#59](https://github.com/shaiknoorullah/hg-mono/issues/59).

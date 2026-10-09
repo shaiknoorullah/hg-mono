@@ -1,0 +1,20 @@
+{
+  "scenario": "error_receipt_not_ready",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`409` · `RECEIPT_NOT_READY`. `getOrderReceipt` before the order reaches COMPLETED: the receipt is written once at COMPLETED (docs/spec/01-platform.md, \"P-10 — Fee breakdown presented to the customer\"). The customer app shows the receipt as not ready yet rather than as an error; an order that never captured never gets one.",
+  "operations": [
+    "getOrderReceipt"
+  ],
+  "status": 409,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "RECEIPT_NOT_READY",
+      "message": "This order does not have a receipt yet.",
+      "request_id": "NE5GV4BD4M8NF5JS9QWS9ZW3F1"
+    }
+  }
+}

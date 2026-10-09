@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/notify"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/session"
 )
 
@@ -28,6 +29,22 @@ type Service struct {
 	// UsePhoneVerifier; never mutated after boot.
 	verifier      PhoneVerifier
 	verifyChannel string
+
+	// env is the process environment ("local", "staging", "production").
+	// It gates the reserved development sign-in range. Empty refuses that
+	// range. Set once from NewModule.
+	env string
+
+	// notify is the notification outbox the email flows enqueue into
+	// (notifications.go). Nil sends nothing; set once at wiring time.
+	notify notify.TxEnqueuer
+	// linkEmailDelay is how long an unauthenticated email request takes
+	// whatever happens (email_limits.go); tests shorten it.
+	linkEmailDelay time.Duration
+	// beforeResetRedeem, when set, runs in ResetPassword after the
+	// authenticator code is checked and before the link is spent. Tests use
+	// it to start a second enrolment in that window; nil in production.
+	beforeResetRedeem func()
 }
 
 // UsePhoneVerifier switches this service onto the PhoneVerifier (Twilio Verify)
@@ -43,6 +60,13 @@ func (s *Service) UsePhoneVerifier(v PhoneVerifier, channel string) {
 	s.verifyChannel = channel
 }
 
+// SetEnvironment records the process environment. The reserved development
+// phone range accepts a fixed code only when env is local or staging.
+// Called once from NewModule, before the service is serving.
+func (s *Service) SetEnvironment(env string) {
+	s.env = env
+}
+
 // NewService wires the service.
 func NewService(store *Store, rl *RateLimiter, sms SMSSender, issuer *session.Issuer, deny *session.DenySet, secrets *Secrets, log *slog.Logger) *Service {
 	if log == nil {
@@ -51,6 +75,7 @@ func NewService(store *Store, rl *RateLimiter, sms SMSSender, issuer *session.Is
 	return &Service{
 		store: store, rl: rl, sms: sms, issuer: issuer, deny: deny,
 		secrets: secrets, log: log, now: func() time.Time { return time.Now().UTC() },
+		linkEmailDelay: uniformLinkDelay,
 	}
 }
 

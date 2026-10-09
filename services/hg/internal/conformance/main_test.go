@@ -107,10 +107,23 @@ var expectedCovered = []string{
 	"listAddresses", "listNotifications",
 	// admin (replaces handler_orders_conformance_test.go / handler_menu_conformance_test.go)
 	"listOrdersAdmin", "getOrderAdmin", "listMenuReviewQueue",
+	// menu edits that had no handler (https://github.com/shaiknoorullah/hg-mono/issues/502)
+	"updateMenuCategory", "updateMenuItemOnBehalf", "deleteMenuItemOnBehalf",
+	// a restaurant deletes its own items and empty categories
+	// (https://github.com/shaiknoorullah/hg-mono/issues/239)
+	"deleteMenuItem", "deleteMenuCategory",
 	// gap-closers (conformance_gaps_test.go): the full checkout money path against
 	// the local fake payment gateway, the dispatch accept/assignment pair, the
 	// realtime ticket (seeded session), and the signed Stripe webhook.
 	"createQuote", "createOrder", "cancelOrder",
 	"acceptOffer", "getAssignment",
 	"createRealtimeTicket", "receiveStripeWebhook",
+	// admin payout runs (conformance_payout_runs_test.go, issue #251)
+	"createPayoutRun", "getPayoutRun", "listPayoutRuns",
+	// refund review and chargebacks (#172; conformance_refund_review_test.go)
+	"listRefundsAdmin", "approveRefund", "declineRefund",
+	"listChargebacks", "getChargeback", "addChargebackEvidenceNote",
+	// the platform-wide pause on new orders, on a database of its own
+	// (conformance_ordering_pause_test.go; https://github.com/shaiknoorullah/hg-mono/issues/244).
+	"getOrderingPause", "setOrderingPause",
 }

@@ -33,6 +33,7 @@ func Routes(r *httpx.Router, h *Handler) {
 	r.Post("/v1/auth/refresh", public("refreshSession"), h.Refresh)
 	r.Post("/v1/auth/password/forgot", public("requestPasswordReset"), h.RequestPasswordReset)
 	r.Post("/v1/auth/password/reset", public("resetPassword"), h.ResetPassword)
+	r.Post("/v1/auth/invite/totp", public("startInviteTotpEnrolment"), h.StartInviteTOTP)
 
 	// Authenticated, self-scoped operations.
 	r.Post("/v1/auth/logout", revoke("logout"), h.Logout)
@@ -65,6 +66,7 @@ func PublicRouteAllowlist() []string {
 	return []string{
 		"POST /v1/auth/email/resend",
 		"POST /v1/auth/email/verify",
+		"POST /v1/auth/invite/totp",
 		"POST /v1/auth/login",
 		"POST /v1/auth/otp/request",
 		"POST /v1/auth/otp/verify",

@@ -1,0 +1,320 @@
+name: e2e
+
+# The HalalGoes apps driven end to end against the real API, built from this commit, with a small
+# seeded world: the customer and rider APKs on an Android emulator (Maestro), the restaurant and
+# admin web apps in Chromium (Playwright). One order goes through three apps. Screenshots of every
+# step, Playwright traces on failure and the stack's logs are uploaded as artifacts.
+# Goal: release 1.0 (#257). Emulator runs: #77. The regression pass: #91.
+# How to run it, what each flow covers, what it costs: tools/e2e/README.md.
+#
+#   Run workflow (workflow_dispatch)      every flow (or the web flows only), on the branch picked
+#   nightly at 05:30 UTC                  every flow, on main; skipped when main has not changed
+#                                         since the last nightly run
+#   a pull request labelled e2e           the web flows only: no APK build, no emulator
+#   a pull request labelled e2e-full      every flow: the by-hand run for a PR, since a workflow
+#                                         can only be dispatched once it is on main
+#
+# The emulator runs cost the most runner minutes (tools/e2e/README.md, "What it costs"), so they
+# run only nightly and by hand (Run workflow, or the e2e-full label).
+#
+# Trust rules:
+# - Read-only token (contents: read; the plan job also reads past runs). No job reads a secret:
+#   the API uses its fake payment client and logs sign-in codes, so nothing sends an SMS or
+#   charges a card.
+# - No pull_request_target. A PR from a fork runs with the fork's permissions and no secrets.
+# - Every action is pinned to a commit. Maestro is downloaded at a pinned version and checked
+#   against its published SHA-256.
+# - Inputs reach scripts only through env, after an allow-list check.
+
+on:
+  workflow_dispatch:
+    inputs:
+      flows:
+        description: 'Which flows: all (emulator and browser) or web (browser only, about a third of the minutes)'
+        type: choice
+        options: [all, web]
+        default: all
+  schedule:
+    - cron: '30 5 * * *'
+  pull_request:
+    types: [labeled, opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+concurrency:
+  # A run started by adding some other label does nothing, and must not cancel a real run: it
+  # gets a group of its own.
+  group: >-
+    e2e-${{ github.event.pull_request.number || github.ref }}-${{
+    github.event.action == 'labeled' && !startsWith(github.event.label.name, 'e2e') && github.run_id || 'run' }}
+  cancel-in-progress: true
+
+env:
+  EXPO_NO_TELEMETRY: 1
+  # The emulator reaches the runner at 10.0.2.2; Traefik publishes the API on 8080.
+  E2E_DEVICE_API_URL: http://10.0.2.2:8080
+  MAESTRO_VERSION: 2.10.0
+  MAESTRO_SHA256: 29b675e10cc12080e445e9bfb2e2b4e4dfb9c0f2e30d5884120d258b5e1cd991
+
+jobs:
+  # Decides what this run does: all (APKs, emulator and browser), web (browser only) or none.
+  # On a pull request without an e2e label nothing runs at all, so it costs no minutes; nor
+  # when some other label is added to a labelled one.
+  plan:
+    if: >-
+      github.event_name != 'pull_request' ||
+      ((contains(github.event.pull_request.labels.*.name, 'e2e') ||
+      contains(github.event.pull_request.labels.*.name, 'e2e-full')) &&
+      (github.event.action != 'labeled' || startsWith(github.event.label.name, 'e2e')))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      mode: ${{ steps.plan.outputs.mode }}
+    steps:
+      - id: plan
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          IN_FLOWS: ${{ inputs.flows }}
+          FULL_LABEL: ${{ contains(github.event.pull_request.labels.*.name, 'e2e-full') }}
+        run: |
+          mode=none
+          case "$EVENT" in
+            workflow_dispatch)
+              case "$IN_FLOWS" in all|web) mode="$IN_FLOWS" ;; *) echo "::error::flows must be all or web"; exit 1 ;; esac ;;
+            pull_request)
+              if [ "$FULL_LABEL" = true ]; then mode=all; else mode=web; fi ;;
+            schedule)
+              # The last nightly that finished, this one excepted. A failure is not retried every
+              # night on the same commit: run it by hand, or push a fix.
+              last="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow e2e.yml --event schedule \
+                --status completed --limit 1 --json headSha --jq '.[0].headSha // ""')"
+              if [ "$last" = "$GITHUB_SHA" ]; then
+                echo "main is still at ${GITHUB_SHA::7}, which the last nightly run already tested: nothing to do."
+              else
+                mode=all
+              fi ;;
+          esac
+          echo "mode=$mode" >>"$GITHUB_OUTPUT"
+          echo "Flows this run: **$mode**" >>"$GITHUB_STEP_SUMMARY"
+
+  apk:
+    needs: plan
+    if: needs.plan.outputs.mode == 'all'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [customer, rider]
+    env:
+      APP: ${{ matrix.app }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Restore an APK built from the same sources
+        id: cache
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: out/
+          # Bump the leading version when the build steps below change.
+          key: e2e-apk-v1-${{ matrix.app }}-${{ hashFiles(format('apps/{0}/**', matrix.app), 'packages/**', 'scripts/release/app-env.cjs', 'pnpm-lock.yaml', 'tools/e2e/android/**') }}
+
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
+        if: steps.cache.outputs.cache-hit != 'true'
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        if: steps.cache.outputs.cache-hit != 'true'
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.9.1
+        if: steps.cache.outputs.cache-hit != 'true'
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@748248ddd2a24f49513d8f472f81c3a07d4d50e1 # v4.4.4
+        if: steps.cache.outputs.cache-hit != 'true'
+        with:
+          # main's nightly run writes the Gradle cache; branches and PRs only read it.
+          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
+
+      - name: Install
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: pnpm install --frozen-lockfile
+
+      - name: Point the build at the runner's API
+        if: steps.cache.outputs.cache-hit != 'true'
+        env:
+          API_BASE_URL: ${{ env.E2E_DEVICE_API_URL }}
+        run: node scripts/release/app-env.cjs dev --print | tee -a "$GITHUB_ENV"
+
+      - name: Generate the native project
+        if: steps.cache.outputs.cache-hit != 'true'
+        working-directory: apps/${{ matrix.app }}
+        run: |
+          pnpm exec expo prebuild --platform android --no-install
+          printf '\norg.gradle.jvmargs=-Xmx3g -XX:MaxMetaspaceSize=1g -XX:+HeapDumpOnOutOfMemoryError\norg.gradle.workers.max=2\n' \
+            >>android/gradle.properties
+          bash ../../tools/e2e/android/allow-cleartext.sh android
+
+      - name: Build the APK
+        if: steps.cache.outputs.cache-hit != 'true'
+        working-directory: apps/${{ matrix.app }}/android
+        run: |
+          ./gradlew assembleRelease --stacktrace \
+            -PreactNativeArchitectures=x86_64 \
+            -Pandroid.injected.signing.store.file="$PWD/app/debug.keystore" \
+            -Pandroid.injected.signing.store.password=android \
+            -Pandroid.injected.signing.key.alias=androiddebugkey \
+            -Pandroid.injected.signing.key.password=android
+
+      - name: Check the APK
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          apk="apps/$APP/android/app/build/outputs/apk/release/app-release.apk"
+          tools="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
+          fail() { echo "::error title=APK check failed::$*"; exit 1; }
+          badging="$("$tools/aapt2" dump badging "$apk" | sed -n 1p)"
+          echo "$badging"
+          [[ "$badging" == *"name='com.halalgoes.$APP.dev'"* ]] || fail "expected package com.halalgoes.$APP.dev"
+          unzip -p "$apk" assets/index.android.bundle | grep -aqF "$EXPO_PUBLIC_API_BASE_URL" \
+            || fail "the bundle does not contain $EXPO_PUBLIC_API_BASE_URL"
+          "$tools/aapt2" dump xmltree --file AndroidManifest.xml "$apk" | grep -q 'usesCleartextTraffic.*=true' \
+            || fail "the APK does not allow cleartext HTTP to $EXPO_PUBLIC_API_BASE_URL"
+          mkdir -p out
+          cp "$apk" "out/$APP.apk"
+
+      - name: Keep the APK for the next run with the same sources
+        if: steps.cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: out/
+          key: ${{ steps.cache.outputs.cache-primary-key }}
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: e2e-apk-${{ matrix.app }}
+          path: out/${{ matrix.app }}.apk
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 3
+
+  # One runner, one stack, for every flow: the API, the web apps and the emulator. The flows run
+  # in order, because they share one order: the customer places it, the restaurant accepts it and
+  # marks it ready, the rider is offered it, the admin opens it.
+  flows:
+    needs: [plan, apk]
+    if: >-
+      !cancelled() && needs.plan.outputs.mode != 'none' &&
+      (needs.plan.outputs.mode == 'web' || needs.apk.result == 'success')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      E2E_OUT: ${{ github.workspace }}/e2e-out
+      E2E_MODE: ${{ needs.plan.outputs.mode }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Let the emulator use KVM
+        if: env.E2E_MODE == 'all'
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: pnpm
+      # For cmd/seedpw and cmd/seedtotp, which the seed runs. Maestro uses the runner's Java 17.
+      - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
+        with:
+          go-version-file: services/hg/go.mod
+          cache-dependency-path: services/hg/go.sum
+
+      - name: Install
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm --filter @hg/e2e exec playwright install --with-deps chromium
+
+      - name: Install Maestro
+        if: env.E2E_MODE == 'all'
+        run: |
+          dir="$RUNNER_TEMP/maestro-dl"
+          mkdir -p "$dir"
+          curl -fsSL -o "$dir/maestro.zip" \
+            "https://github.com/mobile-dev-inc/maestro/releases/download/cli-$MAESTRO_VERSION/maestro.zip"
+          echo "$MAESTRO_SHA256  $dir/maestro.zip" | sha256sum -c -
+          unzip -q "$dir/maestro.zip" -d "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/maestro/bin" >>"$GITHUB_PATH"
+
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        if: env.E2E_MODE == 'all'
+        with:
+          pattern: e2e-apk-*
+          path: ${{ env.E2E_OUT }}/apk
+          merge-multiple: true
+
+      - name: Boot the stack
+        run: bash tools/e2e/stack/up.sh
+
+      - name: Seed the world
+        run: bash tools/e2e/seed/seed.sh
+
+      - name: Build and serve the web apps
+        run: bash tools/e2e/web/serve.sh
+
+      - name: Run the web flows
+        if: env.E2E_MODE == 'web'
+        run: bash tools/e2e/run.sh
+
+      - name: Run every flow, on the emulator and in the browser
+        if: env.E2E_MODE == 'all'
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          profile: pixel_6
+          ram-size: 3072M
+          disk-size: 4096M
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          # One command: the action runs each line of `script` as its own shell. A system
+          # "isn't responding" dialog (the launcher, under load) must never cover the app under
+          # test, so error dialogs are hidden first; more memory keeps the launcher responsive.
+          script: adb shell settings put global hide_error_dialogs 1 && bash tools/e2e/run.sh
+
+      - name: Collect the stack's logs
+        if: always()
+        run: |
+          . tools/e2e/stack/compose.sh
+          mkdir -p "$E2E_OUT/logs"
+          compose ps -a >"$E2E_OUT/logs/compose-ps.txt" 2>&1 || true
+          compose logs --no-color --timestamps >"$E2E_OUT/logs/compose.log" 2>&1 || true
+          # Never upload the run's throwaway secrets.
+          rm -f "$E2E_OUT/world.json"
+
+      - name: Summary
+        if: always()
+        run: node tools/e2e/lib/summary.mjs >>"$GITHUB_STEP_SUMMARY" || true
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: e2e-screenshots-and-traces
+          path: |
+            ${{ env.E2E_OUT }}
+            !${{ env.E2E_OUT }}/apk
+          if-no-files-found: warn
+          retention-days: 14

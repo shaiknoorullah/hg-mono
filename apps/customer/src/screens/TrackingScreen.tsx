@@ -7,8 +7,12 @@
  * flow through that one component, including the terminal ones, so a cancelled or failed order
  * renders correctly rather than as a stuck spinner.
  *
- * The receipt block re-uses the order's own `money` decomposition, every figure through `Price`.
- * Loading, empty (no active order) and error are all present.
+ * Until the order is delivered, the "Order total" block re-uses the order's own `money`
+ * decomposition, every figure through `Price`. Once delivered, `OrderReceipt` loads the receipt the
+ * server saved at completion. Loading, empty (no active order) and error are all present.
+ *
+ * Before the restaurant accepts, the customer can cancel for free (`CancelOrder`; customer
+ * cancellation, docs/spec/02-customer.md "C-29 — Order cancellation by the customer").
  */
 import * as React from 'react';
 import { ScrollView, Text, View } from 'react-native';
@@ -17,6 +21,7 @@ import { cents } from '@hg/api-client';
 import type { Schema } from '@hg/api-client';
 import {
   AppBar,
+  Banner,
   Button,
   Divider,
   EmptyState,
@@ -32,13 +37,39 @@ import {
 import { getOrder } from '../api/orders';
 import { errorCodeOf } from '../api/async';
 import { useNavigation } from '../navigation/stack';
+import { CancelOrder } from '../components/CancelOrder';
+import { OrderReceipt } from '../components/OrderReceipt';
 import { TamperReportCard } from '../components/TamperReportCard';
+import { TrackingMap } from '../components/TrackingMap';
 
 // Delivery-phase states where the customer has (or has just received) the sealed bag and can
 // report a broken seal.
 const DELIVERY_PHASE: ReadonlySet<string> = new Set(['PICKED_UP', 'ARRIVED', 'DELIVERED']);
 
+// The contract's five terminal states (OrderState); polling stops at these.
+const TERMINAL_STATES: ReadonlySet<string> = new Set([
+  'COMPLETED',
+  'CANCELLED',
+  'REJECTED',
+  'FAILED',
+  'RESOLVED',
+]);
+const POLL_MS = 10_000;
+
+// Delivered orders have a receipt, or will within minutes: the server saves it when the order
+// completes, and answers 409 until then.
+const HAS_RECEIPT: ReadonlySet<string> = new Set(['DELIVERED', 'COMPLETED']);
+
+// Out for delivery: the rider has the bag. Only then does the map poll.
+const ON_ITS_WAY: ReadonlySet<string> = new Set(['PICKED_UP', 'ARRIVED']);
+
+// Before the restaurant accepts: the card is only authorised, so cancelling voids it.
+const CANCELLABLE: ReadonlySet<string> = new Set(['CREATED', 'AUTHORIZED', 'RESTAURANT_PENDING']);
+
 type Order = Schema['OrderCustomerView'];
+
+// The outcome of the customer's own cancel, shown above the order it changed.
+type CancelNotice = 'cancelled' | 'window-closed' | null;
 
 type State =
   | { kind: 'loading' }
@@ -52,6 +83,7 @@ export function TrackingScreen({ orderId }: { orderId: string }): React.ReactEle
   const nav = useNavigation();
 
   const [state, setState] = React.useState<State>({ kind: 'loading' });
+  const [notice, setNotice] = React.useState<CancelNotice>(null);
 
   const load = React.useCallback(() => {
     setState({ kind: 'loading' });
@@ -61,6 +93,36 @@ export function TrackingScreen({ orderId }: { orderId: string }): React.ReactEle
   }, [orderId]);
 
   React.useEffect(() => load(), [load]);
+
+  // Poll every 10 s until the order is terminal. A failed poll keeps the last good order on
+  // screen (the next tick retries); the cleanup stops the timer when the screen closes.
+  const terminal = state.kind === 'ready' && TERMINAL_STATES.has(state.order.state);
+  React.useEffect(() => {
+    if (state.kind !== 'ready' || terminal) return;
+    let live = true;
+    const timer = setInterval(() => {
+      getOrder(orderId)
+        .then((order) => {
+          if (live && order) setState({ kind: 'ready', order });
+        })
+        .catch(() => undefined);
+    }, POLL_MS);
+    return () => {
+      live = false;
+      clearInterval(timer);
+    };
+  }, [orderId, state.kind, terminal]);
+
+  // The restaurant accepted first: say so, then show the order as it now stands without
+  // replacing the screen with a spinner.
+  const onWindowClosed = React.useCallback(() => {
+    setNotice('window-closed');
+    getOrder(orderId)
+      .then((order) => {
+        if (order) setState({ kind: 'ready', order });
+      })
+      .catch(() => undefined);
+  }, [orderId]);
 
   const title =
     state.kind === 'ready' ? `Order ${state.order.code}` : 'Your order';
@@ -97,6 +159,22 @@ export function TrackingScreen({ orderId }: { orderId: string }): React.ReactEle
           contentContainerStyle={{ padding: 16, paddingBottom: 24 + insets.bottom, gap: 16 }}
         >
           <StateHeader order={state.order} />
+          {notice === 'cancelled' && state.order.state === 'CANCELLED' ? (
+            <Banner
+              variant="info"
+              title="Order cancelled. You were not charged."
+              description="The restaurant hadn't accepted it, so the hold on your card was released, not charged."
+              testID="CancelNotice"
+            />
+          ) : notice === 'window-closed' ? (
+            <Banner
+              variant="info"
+              title="The restaurant has already started your order"
+              description={`It can no longer be cancelled in the app. To ask about it, contact support with order code ${state.order.code}.`}
+              testID="CancelNotice"
+            />
+          ) : null}
+          {ON_ITS_WAY.has(state.order.state) ? <TrackingMap orderId={orderId} /> : null}
 
           <View
             style={{
@@ -116,10 +194,25 @@ export function TrackingScreen({ orderId }: { orderId: string }): React.ReactEle
             />
           </View>
 
-          <Receipt order={state.order} />
+          {state.order.state !== 'COMPLETED' ? <OrderTotal order={state.order} /> : null}
+          {HAS_RECEIPT.has(state.order.state) ? (
+            // Keyed on state so the receipt reloads when a polled DELIVERED order completes.
+            <OrderReceipt key={state.order.state} orderId={orderId} />
+          ) : null}
 
           {DELIVERY_PHASE.has(state.order.state) ? (
             <TamperReportCard orderId={orderId} />
+          ) : null}
+
+          {CANCELLABLE.has(state.order.state) && state.order.can_cancel !== false ? (
+            <CancelOrder
+              orderId={orderId}
+              onCancelled={(order) => {
+                setNotice('cancelled');
+                setState({ kind: 'ready', order });
+              }}
+              onWindowClosed={onWindowClosed}
+            />
           ) : null}
 
           <Button variant="secondary" onPress={load}>
@@ -148,7 +241,7 @@ function StateHeader({ order }: { order: Order }): React.ReactElement {
   );
 }
 
-function Receipt({ order }: { order: Order }): React.ReactElement {
+function OrderTotal({ order }: { order: Order }): React.ReactElement {
   const theme = useTheme();
   const heading = useTypeStyle('heading.sm');
   const { money } = order;
@@ -164,7 +257,7 @@ function Receipt({ order }: { order: Order }): React.ReactElement {
         borderColor: theme.color.border.decorative,
       }}
     >
-      <Text style={[heading, { color: theme.color.text.primary }]}>Receipt</Text>
+      <Text style={[heading, { color: theme.color.text.primary }]}>Order total</Text>
 
       <Row label="Subtotal" value={money.subtotal_cents} />
       {(money.tax_lines ?? []).map((tax) => (

@@ -168,6 +168,19 @@ jobs:
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f roles/roles.sql
           goose -dir . postgres "$MIGRATOR_URL" up
 
+      # 8. The local persona world resets, re-seeds, and checks itself.
+      #    reset drops the schema, so this stays after the rollback proof.
+      - name: dev world personas reset and re-seed
+        working-directory: services/hg
+        env:
+          HG_ENV: local
+          HG_POSTGRES_DSN: postgres://hg:hg@localhost:55432/hg?sslmode=disable
+          GOTOOLCHAIN: auto
+        run: |
+          go run ./cmd/devworld reset
+          go run ./cmd/devworld seed
+          go run ./cmd/devworld verify
+
       # The Postgres service container is removed by the runner. This removes any psql
       # container a cancelled step left running.
       - name: remove this job's containers

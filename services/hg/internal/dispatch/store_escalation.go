@@ -11,12 +11,21 @@ import (
 // waveToEscalate is a dispatch whose current offer wave has lapsed and which is
 // still searching for a rider.
 type waveToEscalate struct {
-	OrderID  string
-	Wave     int
-	RadiusM  int
-	ElapsedS int // seconds since the dispatch row was created (D-15 max_total_seconds)
+	OrderID string
+	Wave    int // the last wave's number; the next wave is Wave+1
+	RadiusM int
+	// RoundWaves and ElapsedS measure the search against its wave and time
+	// budget (docs/spec/04-rider.md, "D-15 — Offer expiry, wave escalation,
+	// and the no-rider-found path") since it last entered SEARCHING: from the
+	// first wave, or from ResumeSearchTx re-opening a search that found no
+	// rider.
+	RoundWaves int
+	ElapsedS   int
 	// LastWaveEmpty is set when the lapsed wave found nobody within RadiusM,
-	// so the next wave searches one rung wider (escalateOne).
+	// so the next wave searches one rung wider (escalateOne). It looks only at
+	// this round's waves: a search ResumeSearchTx re-opened has run none yet,
+	// so its first wave searches RadiusM, the nearest rung, again, even when
+	// the round before ended on an empty wave at the widest.
 	LastWaveEmpty bool
 }
 
@@ -51,9 +60,12 @@ UPDATE dispatch d
   FROM due
  WHERE d.order_id = due.order_id
 RETURNING d.order_id::text, d.wave, d.radius_m,
-       GREATEST(0, EXTRACT(EPOCH FROM ($1::timestamptz - d.created_at))::int),
+       (SELECT count(*)::int FROM dispatch_wave w
+         WHERE w.order_id = d.order_id AND w.started_at >= d.state_since),
+       GREATEST(0, EXTRACT(EPOCH FROM ($1::timestamptz - d.state_since))::int),
        COALESCE((SELECT w.offers_sent = 0 FROM dispatch_wave w
-                  WHERE w.order_id = d.order_id AND w.wave_no = d.wave), false)`,
+                  WHERE w.order_id = d.order_id AND w.wave_no = d.wave
+                    AND w.started_at >= d.state_since), false)`,
 		now, gap.Seconds(), escalationLease.Seconds(), owner)
 	if err != nil {
 		return nil, err
@@ -62,7 +74,7 @@ RETURNING d.order_id::text, d.wave, d.radius_m,
 	var out []waveToEscalate
 	for rows.Next() {
 		var w waveToEscalate
-		if err := rows.Scan(&w.OrderID, &w.Wave, &w.RadiusM, &w.ElapsedS, &w.LastWaveEmpty); err != nil {
+		if err := rows.Scan(&w.OrderID, &w.Wave, &w.RadiusM, &w.RoundWaves, &w.ElapsedS, &w.LastWaveEmpty); err != nil {
 			return nil, err
 		}
 		out = append(out, w)
@@ -86,8 +98,8 @@ RETURNING d.order_id::text, d.wave, d.radius_m,
 // The customer, the restaurant and ops hear of it in the same transaction:
 // dispatch.state_changed on the order's channel and admin.dispatch_failure on
 // admin:ops (docs/spec/01-platform.md, "P-32 — Rider search and offer",
-// acceptance criterion 3; events_no_rider.go). Only the call that
-// moves the row writes them, so a second replica's call says nothing.
+// acceptance criterion 3; events.go). Only the call that moves the row writes
+// them, so a second replica's call says nothing.
 func (s *Store) MarkNoRiderFound(ctx context.Context, orderID string) error {
 	tx, err := s.db.Begin(ctx)
 	if err != nil {
@@ -174,6 +186,9 @@ RETURNING rp.account_id::text`)
 		if _, err := tx.Exec(ctx, `
 INSERT INTO rider_availability_event (account_id, from_state, to_state, reason, actor_kind)
 VALUES ($1, 'ONLINE_IDLE', 'OFFLINE', 'UNRESPONSIVE', 'SYSTEM')`, id); err != nil {
+			return 0, err
+		}
+		if err := emitAvailability(ctx, tx, id); err != nil {
 			return 0, err
 		}
 	}

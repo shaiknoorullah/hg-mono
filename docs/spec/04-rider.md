@@ -2,7 +2,7 @@
 covers:
   - apps/rider/**
   - services/hg/internal/rider/**
-reviewed: 2026-10-04
+reviewed: 2026-10-05
 ---
 
 # HalalGoes — RIDER Domain Specification
@@ -174,6 +174,7 @@ The rebuild **must not** reintroduce: Redis keys `riders:available:locations`, `
 - **Behaviour**: After phone verification the rider supplies `email`, `first_name`, `last_name`, `date_of_birth` via `POST /api/v1/riders/:id/onboarding/profile`. Age is computed server-side as full years at request time. **Age verification is two-stage**: (1) declared DOB gate at signup; (2) admin confirmation that the DOB on the uploaded government photo ID / driver's licence matches the declared DOB (D-06). A mismatch is a rejection reason, not a silent pass.
 - **Data**: `rider.first_name, last_name, date_of_birth (date), email, email_verified_at`; `rider_profile_photo_document_id` (FK to `rider_document`).
 - **States**: `PHONE_VERIFIED → PROFILE_PENDING → VEHICLE_PENDING` on success.
+  Phone sign-up creates no rider profile: until the first profile submission creates it, the onboarding status answers `PHONE_VERIFIED` with the profile step next.
 - **Rules**:
   - `date_of_birth` must yield age ≥ **18** years and ≤ 80 at submission. Below ⇒ `422 UNDERAGE` with `details.min_age`. The client mirrors the rule but the server is authoritative.
   - Names: 1–50 chars, letters/space/hyphen/apostrophe, trimmed, NFC-normalised.
@@ -223,10 +224,11 @@ The rebuild **must not** reintroduce: Redis keys `riders:available:locations`, `
   2. Client `PUT`s the bytes directly to `upload_url`.
   3. `POST /api/v1/riders/:id/documents/:document_id/confirm {expires_on?}` → server HEADs the object, verifies size + content-type + magic bytes, stores metadata, sets `status=UPLOADED`.
   Then `POST /api/v1/riders/:id/onboarding/documents` submits the complete set for review.
+  A document takes only the rider's own `READY` `KYC_DOCUMENT` upload that is not already another subject's document; any other file is `404`, the same as one that does not exist ([who may attach an upload](01-platform.md#p-28--presigned-upload-and-download)).
 - **Data**: `rider_document(id, rider_id, document_type, object_key, bucket, file_name, content_type, size_bytes, sha256, expires_on, status, uploaded_at, reviewed_at, reviewed_by, rejection_code, rejection_note, superseded_by, version, created_at)`
   - `document_type ∈ {DRIVERS_LICENCE, VEHICLE_REGISTRATION, VEHICLE_INSURANCE, PROFILE_PHOTO, GOVERNMENT_ID}`
   - `status ∈ {PENDING_UPLOAD, UPLOADED, UNDER_REVIEW, APPROVED, REJECTED, EXPIRED, SUPERSEDED}`
-- **States**: document lifecycle above; rider `DOCUMENTS_PENDING → DOCUMENTS_REVIEW` when a complete set is submitted.
+- **States**: document lifecycle above; rider `DOCUMENTS_PENDING → DOCUMENTS_REVIEW` when a complete set is submitted. The same submission queues the rider's application for admin review; repeating it keeps the application's place in the queue.
 - **Rules**:
   - **Required set by vehicle type**:
     | vehicle_type | required documents |
@@ -235,7 +237,8 @@ The rebuild **must not** reintroduce: Redis keys `riders:available:locations`, `
     | BICYCLE / ON_FOOT | GOVERNMENT_ID (+expiry), PROFILE_PHOTO |
   - Accepted MIME: `image/jpeg`, `image/png`, `image/heic`, `application/pdf`. Max 15 MB per file, max 20 pages for PDF. Anything else ⇒ `415 UNSUPPORTED_MEDIA_TYPE`. Magic-byte check must match the declared content-type (`422 CONTENT_TYPE_MISMATCH`).
   - `expires_on` required for every type except `PROFILE_PHOTO`; must be ≥ 30 days in the future at submission (`422 DOCUMENT_EXPIRES_TOO_SOON`).
-  - Re-uploading a type marks the previous row `SUPERSEDED` and increments `version`; history is never deleted.
+  - Re-uploading a type marks the previous row `SUPERSEDED` and increments `version`; history is never deleted. The attach does this in one transaction, locked per rider and type so two files attached at once leave one pending row: a pending (`SUBMITTED` or `IN_REVIEW`) row of the type becomes `SUPERSEDED` and leaves the review queue, and the new row takes the latest row's `version` + 1 and points at it with `supersedes_id`. An `APPROVED` row stays in force until its replacement is approved ([a replacement document that is turned down](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01); [#358](https://github.com/shaiknoorullah/hg-mono/issues/358)).
+  - Attaching a file that is already attached as that type, including two attaches of it at once, returns the existing document and adds nothing. The database refuses a second document for one file ([#229](https://github.com/shaiknoorullah/hg-mono/issues/229)). A different file is a re-upload, as in the rule above ([#358](https://github.com/shaiknoorullah/hg-mono/issues/358)).
   - Objects live in a **private** bucket. Reads are only ever via a 5-minute presigned GET issued to the owning rider or to an admin/support principal, with an access-log row. No public URLs.
   - Submission is blocked with `422 DOCUMENTS_INCOMPLETE` and `details.missing[]` naming each missing type/expiry.
   - **Expiry enforcement**: a nightly job sets `status=EXPIRED` at `expires_on`. At `expires_on - 30d`, `-7d`, `-1d` the rider gets a push + inbox notice. On expiry the rider is forced `OFFLINE` and `account_status=SUSPENDED` with reason `DOCUMENT_EXPIRED` until a replacement is approved.
@@ -296,7 +299,7 @@ The rebuild **must not** reintroduce: Redis keys `riders:available:locations`, `
 ### D-08 — Payout account onboarding (Stripe Connect)
 
 - **SOW trace**: *"Earnings Support: Assist riders with payout related disputes/grievances."* (Support Agent) — the payout account is the precondition for every earnings feature in SOW Rider item 5.
-- **Behaviour**: After `DOCUMENTS_APPROVED` the rider enters `PAYOUT_PENDING`. `POST /api/v1/riders/:id/payout-account` creates a **Stripe Connect Express** account (country `CA`, currency `cad`, capability `transfers`) and returns a single-use Account Link URL, opened in an in-app browser (`expo-web-browser`). Stripe redirects back to `halalgoes-rider://payout/return` or `…/refresh`. The server does **not** trust the redirect: account readiness is set only from the `account.updated` webhook when `payouts_enabled=true && charges_enabled` and `requirements.currently_due` is empty. On readiness, `onboarding_state → ACTIVE` and `account_status → ACTIVE`.
+- **Behaviour**: After `DOCUMENTS_APPROVED` the rider enters `PAYOUT_PENDING`. `POST /api/v1/riders/:id/payout-account` creates a **Stripe Connect Express** account (country `CA`, currency `cad`, capability `transfers`) and returns a single-use Account Link URL, opened in an in-app browser (`expo-web-browser`). Stripe redirects back to `halalgoes-rider://payout/return` or `…/refresh`. The server does **not** trust the redirect: account readiness is set only from the `account.updated` webhook when `payouts_enabled=true && charges_enabled` and `requirements.currently_due` is empty. On readiness, `onboarding_state → ACTIVE` and `account_status → ACTIVE`. The rider's open app hears of it on their own `account:{id}` channel: `connect.requirements_changed` whenever what Stripe asks for changes, and `onboarding.state_changed` for `PAYOUT_PENDING → ACTIVE` ([realtime contract](../../contracts/websocket.md#4-event-catalogue)).
 - **Data**: `rider_payout_account(id, rider_id, provider='STRIPE', provider_account_id, payouts_enabled, first_enabled_at, requirements_due jsonb, disabled_reason, default_external_account_last4, created_at, updated_at)`; `webhook_event(id, provider, provider_event_id UNIQUE, type, payload, processed_at)`.
 - **States**: `PAYOUT_PENDING → ACTIVE` (readiness, which also sets `first_enabled_at`, never cleared). If Stripe later reports `payouts_enabled=false`, only transfers are held; `account_status` stays `ACTIVE`.
 - **Rules**:
@@ -394,6 +397,7 @@ The rebuild **must not** reintroduce: Redis keys `riders:available:locations`, `
 
 - **SOW trace**: *"Order Status Updates… in real-time"* · *"Distance Tracking: Track distance traveled for accurate payment calculations."*
 - **Behaviour**: On entering `ON_DELIVERY` the app starts a **background** location task (`expo-location` `startLocationUpdatesAsync` + `expo-task-manager`): Android — a **foreground service** with a persistent notification ("Delivery in progress — HalalGoes"), `foregroundService.killServiceOnDestroy=false`; iOS — `allowsBackgroundLocationUpdates=true`, `pausesUpdatesAutomatically=false`, `activityType=AutomotiveNavigation`, requires **Always** authorization. Cadence: every `5 s` or `25 m`, High accuracy. Points are queued locally (SQLite/AsyncStorage ring buffer) and flushed every 10 s in batches of ≤ 20; on network failure the buffer holds up to **500 points or 30 minutes**, whichever is smaller, and flushes on reconnect. The task stops when the assignment reaches a terminal state.
+  **V0 build (rider app, `apps/rider/src/location.ts`):** foreground only, no background task yet. While the signed-in app is open and the dashboard shows an assignment that is being worked (`ASSIGNED` through `ARRIVED_AT_DROPOFF`, and `RETURNING`), the app posts one High-accuracy fix to `POST /v1/riders/me/positions` every 5 s, tagged with `assignment_id` and carrying `heading_deg` and `speed_mps` when the device has them; when online and idle it posts one Balanced fix every 20 s. There is no local buffer: a failed report is replaced by the next one.
 - **Data**: as D-11 with `assignment_id` set; `assignment.last_location_at`; `rider_device(id, rider_id, platform, os_version, app_version, push_token, background_permission_status, battery_optimisation_exempt, last_seen_at)`.
 - **States**: introduces `assignment.tracking_health ∈ {HEALTHY, DEGRADED, LOST}` — `HEALTHY` < 60 s since last point, `DEGRADED` 60–300 s, `LOST` > 300 s.
 - **Rules**:
@@ -706,7 +710,8 @@ The rebuild **must not** reintroduce: Redis keys `riders:available:locations`, `
 ### D-22 — Navigation & maps
 
 - **SOW trace**: *"Real-Time Navigation: Integration with Google Maps or similar services for turn-by-turn directions and optimized routes."*
-- **Behaviour**: In-app the rider sees a map (Mapbox map tiles) with their position, the active waypoint (restaurant, then customer), and a route polyline with distance and ETA, refreshed every 30 s or on a >200 m deviation. Turn-by-turn is **handed off** to the rider's installed navigation app via a deep link (`google.navigation:q=lat,lng&mode=d|b|w`, iOS fallback `comgooglemaps://`, then Apple Maps `maps://`, then a universal `https://www.google.com/maps/dir/?api=1` URL). The route polyline and ETA come from **the server**: `GET /api/v1/riders/:id/assignments/:id/route?leg=PICKUP|DROPOFF` returns `{polyline, distance_m, duration_s, provider, computed_at}`.
+- **Behaviour**: In-app the rider sees a map (Mapbox map tiles; the native map SDK is linked only in a build made with the Mapbox download token, [how](../release/README.md)) with their position, the active waypoint (restaurant, then customer), and a route polyline with distance and ETA, refreshed every 30 s or on a >200 m deviation. Turn-by-turn is **handed off** to the rider's installed navigation app via a deep link (`google.navigation:q=lat,lng&mode=d|b|w`, iOS fallback `comgooglemaps://`, then Apple Maps `maps://`, then a universal `https://www.google.com/maps/dir/?api=1` URL). The route polyline and ETA come from **the server**: `GET /api/v1/riders/:id/assignments/:id/route?leg=PICKUP|DROPOFF` returns `{polyline, distance_m, duration_s, provider, computed_at}`.
+  **V0 build (rider app, `apps/rider/src/map/`):** the offer screen and the active-delivery screen show a live Mapbox map (`@rnmapbox/maps`): the rider's own position from the device, gliding between fixes; the restaurant and drop-off pins; and the road route with its distance and ETA. The offer previews rider → pickup → drop-off area; the active delivery routes to the restaurant until `PICKED_UP`, then to the customer. One **Navigate** button hands the current stop to the phone's maps app (Android `google.navigation:` then `geo:`; iOS `maps://` then Google Maps; then the https URL). Two launch-time departures from the behaviour above, on the owner's instruction of 5 Oct 2026: the route comes from the **Mapbox Directions API called from the app with the public `pk.` token** (there is no server route endpoint in the contract yet), refreshed on a change of stop and otherwise at most every 30 s once the rider has moved more than 200 m; and the profile is always `driving`, because the app does not know the rider's vehicle type on these screens. When Directions fails the map draws a dashed straight line labelled "Route unavailable: straight-line estimate" with haversine × 1.35 distance. A fix older than 30 s is labelled with its age (`Last updated 42s ago`). The distance-and-ETA text always renders under the map, and is all that renders on web or in a build without the Mapbox SDK linked (see [Releasing the apps](../release/README.md)).
 - **Data**: `assignment_route(id, assignment_id, leg, provider, polyline, distance_m, duration_s, computed_at)` — one row per recomputation, retained for distance auditing.
 - **States**: none.
 - **Rules**:
@@ -812,7 +817,7 @@ The rebuild **must not** reintroduce: Redis keys `riders:available:locations`, `
   delivery        = the order's delivery fee as priced at checkout              // $2.99 + $1.00/km
   gross           = round(delivery × surge_multiplier) + tip_cents + adjustment_cents
   ```
-  The delivery fee passes through in full: no rate card and no floor ([rider pay](../decisions/README.md#settled--reconciliations), [delivery fee](../decisions/README.md#settled--client-decisions)); `wait_cents` and `guarantee_topup_cents` stay at zero. `surge_multiplier` is the value frozen on the accepted offer (D-13); the surge model is still open, so it is 1.0 at launch and pay stays a pure pass-through ([open, non-blocking](../decisions/README.md#open--non-blocking)). `tip_cents` is 100 % pass-through and may increase after delivery (post-delivery tipping window of 24 h creates a second ledger entry of type `TIP`). Every component is stored, not just the total, and the formula version is stamped.
+  The delivery fee passes through in full: no rate card and no floor ([rider pay](../decisions/README.md#settled--reconciliations), [delivery fee](../decisions/README.md#settled--client-decisions)); `wait_cents` and `guarantee_topup_cents` stay at zero. `surge_multiplier` is the value frozen on the accepted offer (D-13); the surge model is still open, so it is 1.0 at launch and pay stays a pure pass-through ([open, non-blocking](../decisions/README.md#open--non-blocking)). `tip_cents` is 100 % pass-through and may increase after delivery (post-delivery tipping window of 24 h creates a second ledger entry of type `TIP`). Every component is stored, not just the total, and the formula version is stamped. Each component is its own line, mirroring one `RIDER_PAYABLE` ledger posting: a `DELIVERY` line for the delivery fee and a `TIP` line for the tip, written in the rider's own transition of the order to `DELIVERED`, for the rider whose assignment is `DELIVERED` with its proof of delivery ([#306](https://github.com/shaiknoorullah/hg-mono/issues/306)). Until the surge model is decided, the multiplier paid is 1.00.
 - **Data**: `earning_entry(id, rider_id, assignment_id, type, base_cents, distance_cents, wait_cents, surge_multiplier, subtotal_cents, guarantee_topup_cents, tip_cents, adjustment_cents, gross_cents, currency='CAD', formula_version, status, earned_at, payout_id, created_at)`
   - `type ∈ {DELIVERY, TIP, CANCELLATION_COMPENSATION, BONUS, ADJUSTMENT, CLAWBACK}`
   - `status ∈ {PENDING, AVAILABLE, PAID, REVERSED}`
@@ -825,7 +830,7 @@ The rebuild **must not** reintroduce: Redis keys `riders:available:locations`, `
   - Earnings are gross to the rider as an independent contractor; the platform withholds nothing and reports per the tax decision below.
   - Every entry is reproducible: given `formula_version` and the stored inputs, recomputation must yield the identical `gross_cents` (property test).
 - **Acceptance criteria**:
-  1. Given an order whose delivery fee is 799, `surge=1.0` and `tip=200`, When the entry is written, Then `gross_cents=999`, and `wait_cents` and `guarantee_topup_cents` are 0.
+  1. Given an order whose delivery fee is 799, `surge=1.0` and `tip=200`, When the entries are written, Then the `DELIVERY` line is 799 and the `TIP` line 200 (`gross_cents` 999 in all), and `wait_cents` and `guarantee_topup_cents` are 0.
   2. Given a 0.4 km trip, When the entry is written, Then `guarantee_topup_cents=0` and `gross` is the delivery fee plus tip: there is no floor.
   3. Given surge 1.5 frozen at offer time and surge 1.0 at delivery time, When the entry is written, Then `surge_multiplier=1.5` was applied.
   4. Given an order cancelled after `ARRIVED_AT_PICKUP`, When it terminates, Then no `CANCELLATION_COMPENSATION` entry is written at launch.
@@ -837,7 +842,7 @@ The rebuild **must not** reintroduce: Redis keys `riders:available:locations`, `
 
 > **DECISION REQUIRED — surge**: who sets the multiplier and how? · **Proposed default**: V1 ships a manual, admin-set surge per zone per time window (multiplier 1.0–2.5, 0.1 steps), frozen onto each offer; automatic demand-based surge is V3. · **Why**: an automatic surge engine needs demand data the platform will not have until it is live.
 
-> **Decided:** the offer shows the tip so far ([tip shown to riders](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)). Still open: whether the platform makes up a tip the customer later lowers.
+> **Decided:** the offer shows the tip so far ([tip shown to riders](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)). Still open: whether the platform makes up a tip the customer later lowers ([#164](https://github.com/shaiknoorullah/hg-mono/issues/164)). Until it is decided, it does not: `HG_RIDER_TIP_MAKEUP` is off.
 
 > **DECISION REQUIRED — contractor tax handling**: does the platform issue T4A slips and collect GST/HST numbers from riders? · **Proposed default**: collect an optional GST/HST number at payout onboarding, issue annual earnings summaries, no withholding; formal T4A generation deferred pending the client's accountant. · **Why**: it is a legal/accounting decision, but the data model must reserve the fields now.
 
@@ -978,7 +983,7 @@ The rebuild **must not** reintroduce: Redis keys `riders:available:locations`, `
 - **Rules**:
   - **A rider must always have a forward path that is not "falsely mark delivered".** Every screen from `ASSIGNED` onward exposes the exception action. This is the single most important rider-safety and data-integrity rule in the domain.
   - Unless the customer chose "leave at door", `CUSTOMER_UNREACHABLE` requires: ≥2 call attempts via `contact_session` at least 60 s apart, a 5-minute countdown that the server times (not the client), and a photo. Only then does the option to finish appear.
-  - `RETURNING` requires the rider to bring the food back to the restaurant; on `RETURNED` the rider is paid the full delivery earnings (they did the work) and the customer's refund is decided by the dispute policy.
+  - `RETURNING` requires the rider to bring the food back to the restaurant; on `RETURNED` the rider is paid the full delivery earnings (they did the work) and the customer's refund is decided by the dispute policy. Not paid automatically: the rider's own exception steps move no money (the rule below), so this pay waits for a server-side decision. Rider pay on interrupted deliveries is still open ([#164](https://github.com/shaiknoorullah/hg-mono/issues/164)).
   - Every exception notifies the customer with honest copy and updates their order status.
   - Ops receives every exception in a queue with the evidence attached; `ACCIDENT`/`UNSAFE_SITUATION` page immediately.
   - Exceptions are never resolvable by the rider alone when money moves — the rider triggers, the server decides.
@@ -1000,6 +1005,7 @@ The rebuild **must not** reintroduce: Redis keys `riders:available:locations`, `
 
 - **SOW trace**: *"Notification and Alerts: Order Alerts: Push notifications for new orders, order updates, and delivery confirmations."*
 - **Behaviour**: `expo-notifications` registers a device push token at login and on every app start; `POST /api/v1/riders/:id/devices {push_token, platform, os_version, app_version, timezone}` upserts on `push_token`. The server sends via FCM (Android) and APNs (iOS) with per-category configuration. An in-app inbox (`GET /api/v1/riders/:id/notifications?cursor=`) persists every notification server-side with read state — no locally seeded fixtures.
+  Built ([#58](https://github.com/shaiknoorullah/hg-mono/issues/58)): `apps/rider/src/push.ts` asks permission after sign-in, registers the Expo push token through the contract's `registerDevice` (`POST /v1/devices`, role `RIDER`) and removes it with `unregisterDevice` on sign-out; a refused permission, a missing EAS project id or token, or a failed request logs one line and never blocks sign-in.
 - **Data**: `rider_device(...)` (D-12); `notification(id, rider_id, category, title, body, data jsonb, deep_link, created_at, read_at, expires_at)`; `push_delivery(...)`.
 - **States**: notification `UNREAD → READ`; device token `ACTIVE → STALE` (on provider "unregistered" response).
 - **Rules**:

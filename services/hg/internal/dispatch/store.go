@@ -7,6 +7,8 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/realtime"
 )
 
 // Store is this module's data access. It owns only the tables the dispatch spec
@@ -149,6 +151,12 @@ func (s *Store) CreateWave(ctx context.Context, o *OrderDispatchInfo, waveNo, ra
 	}
 	defer tx.Rollback(ctx)
 
+	// The state before this wave, for dispatch.state_changed (events.go).
+	prevState, err := dispatchStateFor(ctx, tx, o.OrderID)
+	if err != nil {
+		return nil, err
+	}
+
 	// The dispatch row is the single source of truth for a live delivery and the
 	// load-bearing arbiter of the race-free accept (AcceptOffer locks and guards
 	// on it). A wave cannot exist without it, so upsert it here in SEARCHING —
@@ -159,6 +167,10 @@ func (s *Store) CreateWave(ctx context.Context, o *OrderDispatchInfo, waveNo, ra
 	// ON CONFLICT bumps wave/radius on a re-run while the order is still being
 	// searched, but never disturbs a row that has already been ASSIGNED (or is
 	// otherwise past SEARCHING/OFFERED/PENDING): the WHERE guard leaves it intact.
+	//
+	// It leaves state_since alone: the state does not change, and state_since is
+	// where the search's wave and time budget is counted from
+	// (ClaimWavesToEscalate).
 	//
 	// The guard also only moves the search forward a wave, and the wave's
 	// writer releases the escalation lease. Two replicas running the same wave
@@ -172,7 +184,7 @@ INSERT INTO dispatch (order_id, state, state_since, wave, radius_m, deadline_at,
 VALUES ($1, 'SEARCHING', now(), $2, $3, $4, 'NEXT_WAVE')
 ON CONFLICT (order_id) DO UPDATE
    SET wave = EXCLUDED.wave, radius_m = EXCLUDED.radius_m,
-       state_since = now(), deadline_at = EXCLUDED.deadline_at, deadline_action = 'NEXT_WAVE',
+       deadline_at = EXCLUDED.deadline_at, deadline_action = 'NEXT_WAVE',
        lease_until = NULL, lease_owner = NULL
  WHERE dispatch.state IN ('PENDING', 'SEARCHING', 'OFFERED')
    AND dispatch.rider_account_id IS NULL
@@ -214,6 +226,20 @@ RETURNING id`,
 		inserted = append(inserted, InsertedOffer{OfferID: offerID, RiderAccountID: r.RiderAccountID})
 	}
 
+	// The realtime events, in this transaction (events.go): the search state
+	// on the order's channel, and each offer on its rider's channel.
+	newState, err := dispatchStateFor(ctx, tx, o.OrderID)
+	if err != nil {
+		return nil, err
+	}
+	now := time.Now().UTC()
+	if err := emitDispatchState(ctx, tx, o.OrderID, prevState, newState, now); err != nil {
+		return nil, err
+	}
+	if err := emitOffers(ctx, tx, inserted, now); err != nil {
+		return nil, err
+	}
+
 	if err := tx.Commit(ctx); err != nil {
 		return nil, err
 	}
@@ -233,15 +259,34 @@ type offerRow struct {
 
 // ExpireDueOffers transitions every PENDING offer whose expires_at has passed to
 // EXPIRED, server-authoritatively (D-15). Returns the number expired. Idempotent.
+//
+// Each expired offer's rider is sent dispatch.offer_withdrawn ("expired") in the
+// same transaction (events.go).
 func (s *Store) ExpireDueOffers(ctx context.Context, now time.Time) (int64, error) {
-	tag, err := s.db.Exec(ctx, `
-UPDATE dispatch_offer
-   SET state = 'EXPIRED', outcome = 'EXPIRED', outcome_at = now()
- WHERE state = 'PENDING' AND expires_at <= $1`, now)
+	tx, err := s.db.Begin(ctx)
 	if err != nil {
 		return 0, err
 	}
-	return tag.RowsAffected(), nil
+	defer tx.Rollback(ctx)
+	rows, err := tx.Query(ctx, `
+UPDATE dispatch_offer
+   SET state = 'EXPIRED', outcome = 'EXPIRED', outcome_at = now()
+ WHERE state = 'PENDING' AND expires_at <= $1
+RETURNING id::text, order_id::text, rider_account_id::text`, now)
+	if err != nil {
+		return 0, err
+	}
+	expired, err := scanWithdrawn(rows)
+	if err != nil {
+		return 0, err
+	}
+	if err := emitWithdrawn(ctx, tx, expired, realtime.DispatchWithdrawnExpired); err != nil {
+		return 0, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return 0, err
+	}
+	return int64(len(expired)), nil
 }
 
 // ---------------------------------------------------------------------------
@@ -290,7 +335,8 @@ WHERE id = $1 AND rider_account_id = $2`, offerID, riderAccountID).Scan(&st.Stat
 	// touching any offer row. Every accept for this order now queues on this single
 	// row lock, so lock acquisition is globally ordered (dispatch row, then offer
 	// rows) and the Step 5 withdraw can never deadlock against a waiting loser.
-	if _, err := tx.Exec(ctx, `SELECT 1 FROM dispatch WHERE order_id = $1 FOR UPDATE`, st.OrderID); err != nil {
+	var prevDispatch string
+	if err := tx.QueryRow(ctx, `SELECT state::text FROM dispatch WHERE order_id = $1 FOR UPDATE`, st.OrderID).Scan(&prevDispatch); err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		return "", err
 	}
 
@@ -428,10 +474,30 @@ VALUES ($1, NULL, 'ASSIGNED', 'RIDER', $2, 'ACCEPTED')`, assignmentID, riderAcco
 	}
 
 	// Step 5: withdraw every other still-PENDING offer for this order (D-15).
-	if _, err := tx.Exec(ctx, `
+	rows, err := tx.Query(ctx, `
 UPDATE dispatch_offer
    SET state = 'WITHDRAWN', outcome = 'WITHDRAWN', outcome_at = now()
- WHERE order_id = $1 AND state = 'PENDING' AND id <> $2`, claimedOrder, dispatchOfferID); err != nil {
+ WHERE order_id = $1 AND state = 'PENDING' AND id <> $2
+RETURNING id::text, order_id::text, rider_account_id::text`, claimedOrder, dispatchOfferID)
+	if err != nil {
+		return "", err
+	}
+	taken, err := scanWithdrawn(rows)
+	if err != nil {
+		return "", err
+	}
+
+	// Step 6: the realtime events, in this transaction (events.go).
+	if err := emitAssigned(ctx, tx, claimedOrder); err != nil {
+		return "", err
+	}
+	if err := emitDispatchState(ctx, tx, claimedOrder, prevDispatch, dispatchState, now); err != nil {
+		return "", err
+	}
+	if err := emitWithdrawn(ctx, tx, taken, realtime.DispatchWithdrawnTaken); err != nil {
+		return "", err
+	}
+	if err := emitAvailability(ctx, tx, riderAccountID); err != nil {
 		return "", err
 	}
 

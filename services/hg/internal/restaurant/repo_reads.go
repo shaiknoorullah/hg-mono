@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders"
 )
 
 // ErrNotFound is returned when a queried entity does not exist or belongs to
@@ -47,6 +49,13 @@ var ErrDocumentAlreadyExpired = errors.New("document already expired")
 // ErrUnrecognisedCertifier is returned when a HALAL_CERTIFICATE names an
 // issuing body that is not in the registry (contract R-07, UNRECOGNISED_CERTIFIER).
 var ErrUnrecognisedCertifier = errors.New("unrecognised certifier")
+
+// ErrUploadNotFound is returned when an attach names a file the caller may not
+// use: no such upload, or one that is not the caller's own, not confirmed, not
+// uploaded for this use, or already attached somewhere else. All of these are
+// the same 404, so the answer says nothing about whether the file exists
+// (https://github.com/shaiknoorullah/hg-mono/issues/359).
+var ErrUploadNotFound = errors.New("upload not found")
 
 // GetOnboardingStatus returns the onboarding state and a coarse progress
 // percentage for the restaurant the account is scoped to.
@@ -91,6 +100,15 @@ func (r *Repo) GetOnboardingStatus(ctx context.Context, restaurantID string) (*O
 		   AND state = 'APPROVED' AND deleted_at IS NULL`,
 		restaurantID, requiredRestaurantDocTypes).Scan(&approvedDocs)
 
+	// Payout account: the same test RecomputeOnboarding applies (onboarding_state.go).
+	var payoutReady bool
+	_ = r.db.QueryRow(ctx, `
+		SELECT EXISTS(
+			SELECT 1 FROM connect_account
+			 WHERE owner_type = 'RESTAURANT' AND owner_id = $1
+			   AND payouts_enabled AND details_submitted)`,
+		restaurantID).Scan(&payoutReady)
+
 	// Menu published: at least one approved menu item version.
 	var menuPublished bool
 	_ = r.db.QueryRow(ctx, `
@@ -105,7 +123,7 @@ func (r *Repo) GetOnboardingStatus(ctx context.Context, restaurantID string) (*O
 		DocumentsUploaded:  distinctRequiredDocs > 0,
 		DocumentsSubmitted: submittedDocs >= required,
 		DocumentsApproved:  approvedDocs >= required,
-		PayoutAccount:      false,
+		PayoutAccount:      payoutReady,
 		MenuPublished:      menuPublished,
 	}
 
@@ -414,21 +432,45 @@ func (r *Repo) SetHours(ctx context.Context, restaurantID string, in hoursInputD
 		}
 	}
 
+	// Hours are one of the gates to ACTIVE (R-06): re-evaluate in this transaction.
+	if err := RecomputeOnboarding(ctx, tx, restaurantID); err != nil {
+		return nil, err
+	}
 	if err := tx.Commit(ctx); err != nil {
 		return nil, err
 	}
 	return r.GetHours(ctx, restaurantID)
 }
 
-// ListDocuments returns all KYC documents for the restaurant.
-func (r *Repo) ListDocuments(ctx context.Context, restaurantID string) ([]DocumentRow, error) {
-	rows, err := r.db.Query(ctx, `
-		SELECT d.id::text, d.subject_type::text, d.subject_id::text,
+// documentColumns is the KycDocument projection of a kyc_document row aliased d,
+// read by scanDocument.
+const documentColumns = `
+		       d.id::text, d.subject_type::text, d.subject_id::text,
 		       d.restaurant_doc_type::text, d.state::text,
 		       d.issuer, d.certificate_number,
 		       d.issued_on::text, d.valid_until::text, d.version,
 		       d.rejection_reason_code::text, d.review_note, d.reviewed_at,
-		       d.created_at
+		       d.created_at`
+
+// scanDocument reads one row of documentColumns.
+func scanDocument(row pgx.Row) (DocumentRow, error) {
+	var d DocumentRow
+	var reviewedAt *time.Time
+	var createdAt time.Time
+	if err := row.Scan(&d.ID, &d.SubjectType, &d.SubjectID, &d.DocType, &d.State,
+		&d.Issuer, &d.CertificateNumber, &d.IssuedOn, &d.ValidUntil, &d.Version,
+		&d.RejectionReasonCode, &d.ReviewNote, &reviewedAt, &createdAt); err != nil {
+		return DocumentRow{}, err
+	}
+	d.ReviewedAt = tsStrPtr(reviewedAt)
+	d.CreatedAt = tsStr(createdAt)
+	return d, nil
+}
+
+// ListDocuments returns all KYC documents for the restaurant.
+func (r *Repo) ListDocuments(ctx context.Context, restaurantID string) ([]DocumentRow, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT `+documentColumns+`
 		  FROM kyc_document d
 		 WHERE d.subject_id = $1 AND d.subject_type = 'RESTAURANT'
 		   AND d.deleted_at IS NULL
@@ -439,16 +481,10 @@ func (r *Repo) ListDocuments(ctx context.Context, restaurantID string) ([]Docume
 	defer rows.Close()
 	var out []DocumentRow
 	for rows.Next() {
-		var d DocumentRow
-		var reviewedAt *time.Time
-		var createdAt time.Time
-		if err := rows.Scan(&d.ID, &d.SubjectType, &d.SubjectID, &d.DocType, &d.State,
-			&d.Issuer, &d.CertificateNumber, &d.IssuedOn, &d.ValidUntil, &d.Version,
-			&d.RejectionReasonCode, &d.ReviewNote, &reviewedAt, &createdAt); err != nil {
+		d, err := scanDocument(rows)
+		if err != nil {
 			return nil, err
 		}
-		d.ReviewedAt = tsStrPtr(reviewedAt)
-		d.CreatedAt = tsStr(createdAt)
 		out = append(out, d)
 	}
 	if out == nil {
@@ -470,7 +506,22 @@ func (r *Repo) ListDocuments(ctx context.Context, restaurantID string) ([]Docume
 //
 // Re-attaching HALAL_CERTIFICATE supersedes the prior PENDING certificate rather
 // than mutating it; full history is retained.
-func (r *Repo) AttachDocument(ctx context.Context, restaurantID string, in documentInputDTO) (*DocumentRow, error) {
+//
+// The file must be the caller's own confirmed compliance upload, not yet
+// attached to anyone else (claimComplianceUpload); anything else is
+// ErrUploadNotFound and nothing is written. A download link is granted to
+// whoever owns the document, so attaching another account's file would hand
+// its bytes to this restaurant
+// (https://github.com/shaiknoorullah/hg-mono/issues/359).
+//
+// One file is attached once per document type. When a live row for the same
+// (restaurant, doc_type, file) exists, that row is returned and nothing is
+// written: no second review item, and no second halal certificate superseding
+// the first. The database holds the rule (unique index
+// kyc_document_restaurant_file_once, migration 00051), so two attaches of the
+// same file at once cannot both insert
+// (https://github.com/shaiknoorullah/hg-mono/issues/360).
+func (r *Repo) AttachDocument(ctx context.Context, accountID, restaurantID string, in documentInputDTO) (*DocumentRow, error) {
 	isHalal := in.DocType == "HALAL_CERTIFICATE"
 
 	// A halal certificate must name a registry issuing body, a certificate number
@@ -498,9 +549,13 @@ func (r *Repo) AttachDocument(ctx context.Context, restaurantID string, in docum
 	}
 	defer tx.Rollback(ctx) //nolint:errcheck
 
+	if err := claimComplianceUpload(ctx, tx, accountID, restaurantID, in.StoredObjectID); err != nil {
+		return nil, err
+	}
+
+	// The conflict target names the partial index's predicate so Postgres
+	// matches kyc_document_restaurant_file_once.
 	var id string
-	var version int
-	var createdAt time.Time
 	err = tx.QueryRow(ctx, `
 		INSERT INTO kyc_document (subject_type, subject_id, restaurant_doc_type, stored_object_id,
 			issuer, halal_issuing_body_id, certificate_number, issued_on, valid_until,
@@ -508,36 +563,88 @@ func (r *Repo) AttachDocument(ctx context.Context, restaurantID string, in docum
 		VALUES ('RESTAURANT', $1, $2::restaurant_doc_type, $3,
 			$4, $5::uuid, $6, $7::date, $8::date,
 			'SUBMITTED', now()+interval '72h', 'ESCALATE')
-		RETURNING id::text, version, created_at`,
+		ON CONFLICT (subject_id, restaurant_doc_type, stored_object_id)
+		   WHERE subject_type = 'RESTAURANT' AND deleted_at IS NULL
+		   DO NOTHING
+		RETURNING id::text`,
 		restaurantID, in.DocType, in.StoredObjectID,
-		in.Issuer, in.IssuerBodyID, in.CertificateNumber, in.IssuedOn, in.ValidUntil).Scan(&id, &version, &createdAt)
-	if err != nil {
+		in.Issuer, in.IssuerBodyID, in.CertificateNumber, in.IssuedOn, in.ValidUntil).Scan(&id)
+	switch {
+	case errors.Is(err, pgx.ErrNoRows):
+		// Already attached as this type: hand back that document. A separate
+		// statement, so it sees a row a concurrent attach committed after the
+		// INSERT began.
+		if err := tx.QueryRow(ctx, `
+			SELECT id::text FROM kyc_document
+			 WHERE subject_type = 'RESTAURANT' AND subject_id = $1
+			   AND restaurant_doc_type = $2::restaurant_doc_type AND stored_object_id = $3
+			   AND deleted_at IS NULL`,
+			restaurantID, in.DocType, in.StoredObjectID).Scan(&id); err != nil {
+			return nil, fmt.Errorf("read attached document: %w", err)
+		}
+	case err != nil:
 		return nil, fmt.Errorf("attach document: %w", err)
-	}
-
-	if isHalal {
+	case isHalal:
 		if err := r.createHalalCertificateTx(ctx, tx, restaurantID, id, in); err != nil {
 			return nil, err
 		}
 	}
 
+	doc, err := scanDocument(tx.QueryRow(ctx, `SELECT `+documentColumns+` FROM kyc_document d WHERE d.id = $1`, id))
+	if err != nil {
+		return nil, fmt.Errorf("read attached document: %w", err)
+	}
 	if err := tx.Commit(ctx); err != nil {
 		return nil, err
 	}
+	return &doc, nil
+}
 
-	return &DocumentRow{
-		ID:                id,
-		SubjectType:       "RESTAURANT",
-		SubjectID:         restaurantID,
-		DocType:           in.DocType,
-		State:             "SUBMITTED",
-		Issuer:            in.Issuer,
-		CertificateNumber: in.CertificateNumber,
-		IssuedOn:          in.IssuedOn,
-		ValidUntil:        in.ValidUntil,
-		Version:           version,
-		CreatedAt:         tsStr(createdAt),
-	}, nil
+// claimComplianceUpload checks that objectID is a file the caller may attach as
+// one of this restaurant's compliance documents, and locks it for the rest of
+// the attach transaction. The file must be:
+//
+//   - uploaded by the caller. A compliance upload records no restaurant (the
+//     upload keys it under the account), so the uploader is the one fact that
+//     ties it to this attach, and the rule matches the rider attach;
+//   - confirmed (READY) and not deleted, so an unverified upload never reaches
+//     review;
+//   - uploaded as a KYC_DOCUMENT, into the private compliance bucket;
+//   - not attached to another subject's documents. One upload backs one
+//     subject's documents; attaching it again to this restaurant is the
+//     idempotent case the caller handles.
+//
+// Anything else is ErrUploadNotFound
+// (https://github.com/shaiknoorullah/hg-mono/issues/359).
+func claimComplianceUpload(ctx context.Context, tx pgx.Tx, accountID, restaurantID, objectID string) error {
+	// The row lock makes two attaches of one file take turns, so the check
+	// below sees the other attach's committed row.
+	var ok bool
+	err := tx.QueryRow(ctx, `
+		SELECT true FROM stored_object
+		 WHERE id = $1 AND uploaded_by = $2
+		   AND purpose = 'KYC_DOCUMENT' AND state = 'READY' AND deleted_at IS NULL
+		   FOR NO KEY UPDATE`, objectID, accountID).Scan(&ok)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return ErrUploadNotFound
+	}
+	if err != nil {
+		return fmt.Errorf("check upload: %w", err)
+	}
+	// A separate statement, so its snapshot is taken after the lock is held.
+	var elsewhere bool
+	if err := tx.QueryRow(ctx, `
+		SELECT EXISTS (
+		  SELECT 1 FROM kyc_document
+		   WHERE stored_object_id = $1 AND deleted_at IS NULL
+		     AND (subject_type <> 'RESTAURANT' OR subject_id <> $2))`,
+		objectID, restaurantID).Scan(&elsewhere); err != nil {
+		return fmt.Errorf("check upload is unattached: %w", err)
+	}
+	if elsewhere {
+		return ErrUploadNotFound
+	}
+	return nil
 }
 
 // halalChecklistVersion is the closed seven-check list version at V0 (A-15). It
@@ -630,6 +737,39 @@ func composeAddress(line1, line2, city, province, postal *string) string {
 		return "Address not transcribed"
 	}
 	return out
+}
+
+// checkMenuImage checks that objectID, when given, may be the photo of one of
+// this restaurant's menu items. The file must be a confirmed (READY), live
+// MENU_IMAGE upload, and it must belong to this restaurant: uploaded by the
+// caller, or by someone who holds or held a grant here, or already the photo of
+// one of this restaurant's menu items (an update re-sends the current photo,
+// which an admin may have uploaded). Anything else is ErrUploadNotFound, so a
+// menu item can never carry another account's upload
+// (https://github.com/shaiknoorullah/hg-mono/issues/359).
+func checkMenuImage(ctx context.Context, tx pgx.Tx, accountID, restaurantID string, objectID *string) error {
+	if objectID == nil {
+		return nil
+	}
+	var ok bool
+	if err := tx.QueryRow(ctx, `
+		SELECT EXISTS (
+		  SELECT 1 FROM stored_object so
+		   WHERE so.id = $1 AND so.purpose = 'MENU_IMAGE' AND so.state = 'READY' AND so.deleted_at IS NULL
+		     AND (so.uploaded_by = $2
+		          OR so.restaurant_id = $3
+		          OR EXISTS (SELECT 1 FROM account_role ar
+		                      WHERE ar.account_id = so.uploaded_by
+		                        AND ar.scope_type = 'RESTAURANT' AND ar.scope_id = $3)
+		          OR EXISTS (SELECT 1 FROM menu_item_version v
+		                      WHERE v.image_object_id = so.id AND v.restaurant_id = $3)))`,
+		*objectID, accountID, restaurantID).Scan(&ok); err != nil {
+		return fmt.Errorf("check menu image: %w", err)
+	}
+	if !ok {
+		return ErrUploadNotFound
+	}
+	return nil
 }
 
 // CheckDocumentPack verifies all required document types are present.
@@ -837,6 +977,15 @@ func (r *Repo) hydrateMenuItem(ctx context.Context, item *MenuItemView, liveVid,
 	if pendingVid != nil {
 		if v, err := r.loadItemVersion(ctx, *pendingVid); err == nil {
 			item.PendingVersion = v
+			// A new item has no live version until it is approved; its owner
+			// still sees what they wrote (customers never read this view).
+			if item.LiveVersion == nil {
+				item.Name = v.Name
+				item.Description = v.Description
+				item.IngredientsText = v.IngredientsText
+				item.DietaryTags = v.DietaryTags
+				item.AllergenTags = v.AllergenTags
+			}
 		}
 	}
 }
@@ -869,14 +1018,25 @@ func (r *Repo) loadItemVersion(ctx context.Context, versionID string) (*MenuItem
 }
 
 // CreateCategory creates a new menu category and returns its view.
-// Returns ErrCategoryNameTaken if a category with the same name exists.
+// Returns ErrCategoryNameTaken if a category with the same name exists, and
+// ErrMenuLocked while the restaurant is suspended or banned (menu_lock.go).
 func (r *Repo) CreateCategory(ctx context.Context, restaurantID string, in categoryInputDTO) (*MenuCategoryView, error) {
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx) //nolint:errcheck
+
+	if err := LockMenuForWrite(ctx, tx, restaurantID); err != nil {
+		return nil, err
+	}
+
 	var id string
 	sortOrder := 0
 	if in.SortOrder != nil {
 		sortOrder = *in.SortOrder
 	}
-	err := r.db.QueryRow(ctx, `
+	err = tx.QueryRow(ctx, `
 		INSERT INTO menu_category (restaurant_id, name, description, sort_order)
 		VALUES ($1, $2, $3, $4)
 		RETURNING id::text`,
@@ -886,6 +1046,9 @@ func (r *Repo) CreateCategory(ctx context.Context, restaurantID string, in categ
 			return nil, ErrCategoryNameTaken
 		}
 		return nil, fmt.Errorf("create category: %w", err)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
 	}
 	return &MenuCategoryView{
 		ID:          id,
@@ -897,28 +1060,237 @@ func (r *Repo) CreateCategory(ctx context.Context, restaurantID string, in categ
 	}, nil
 }
 
-// CreateMenuItem creates a new menu item + initial DRAFT version.
-// The version is always DRAFT (never auto-approved per R-05 / halal gate).
-func (r *Repo) CreateMenuItem(ctx context.Context, restaurantID string, in menuItemInputDTO) (*MenuItemView, error) {
+// UpdateCategory renames, reorders, deactivates or reactivates one of the
+// restaurant's categories (updateMenuCategory, R-14). Every field is optional.
+// A new sort_order moves the category to that position, and the restaurant's
+// categories are rewritten as a dense 0..n-1 sequence in the same transaction.
+// Returns ErrNotFound when the category is not on this restaurant's menu,
+// ErrCategoryNameTaken for a name another of its categories uses (ignoring
+// case), and ErrMenuLocked while the restaurant is suspended or banned.
+func (r *Repo) UpdateCategory(ctx context.Context, restaurantID, categoryID string, in categoryUpdateDTO) (*MenuCategoryView, error) {
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer tx.Rollback(ctx) //nolint:errcheck
 
+	if err := LockMenuForWrite(ctx, tx, restaurantID); err != nil {
+		return nil, err
+	}
+
+	// Lock every category of the menu, in id order, so two reorders of the same
+	// menu queue behind each other instead of interleaving their rewrites.
+	if _, err := tx.Exec(ctx, `
+		SELECT 1 FROM menu_category
+		 WHERE restaurant_id = $1 AND deleted_at IS NULL
+		 ORDER BY id FOR UPDATE`, restaurantID); err != nil {
+		return nil, fmt.Errorf("lock categories: %w", err)
+	}
+
+	tag, err := tx.Exec(ctx, `
+		UPDATE menu_category
+		   SET name        = COALESCE($3, name),
+		       description = COALESCE($4, description),
+		       is_active   = COALESCE($5, is_active)
+		 WHERE id = $1 AND restaurant_id = $2 AND deleted_at IS NULL`,
+		categoryID, restaurantID, in.Name, in.Description, in.IsActive)
+	if err != nil {
+		if isUniqueViolation(err) {
+			return nil, ErrCategoryNameTaken
+		}
+		return nil, fmt.Errorf("update category: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return nil, ErrNotFound
+	}
+
+	if in.SortOrder != nil {
+		if err := moveCategory(ctx, tx, restaurantID, categoryID, *in.SortOrder); err != nil {
+			return nil, err
+		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
+	}
+
+	var c MenuCategoryView
+	if err := r.db.QueryRow(ctx, `
+		SELECT id::text, name, description, sort_order, is_active
+		  FROM menu_category WHERE id = $1`, categoryID).Scan(
+		&c.ID, &c.Name, &c.Description, &c.SortOrder, &c.IsActive); err != nil {
+		return nil, err
+	}
+	if c.Items, err = r.loadCategoryItems(ctx, restaurantID, categoryID); err != nil {
+		return nil, err
+	}
+	return &c, nil
+}
+
+// moveCategory puts the category at position (clamped to the menu) in the order
+// the menu is shown in (sort_order, then name), and rewrites sort_order for the
+// restaurant's categories as the dense sequence 0..n-1. The caller holds the
+// categories' row locks.
+func moveCategory(ctx context.Context, tx pgx.Tx, restaurantID, categoryID string, position int) error {
+	rows, err := tx.Query(ctx, `
+		SELECT id::text FROM menu_category
+		 WHERE restaurant_id = $1 AND deleted_at IS NULL
+		 ORDER BY sort_order, name, id`, restaurantID)
+	if err != nil {
+		return fmt.Errorf("read category order: %w", err)
+	}
+	ids, err := pgx.CollectRows(rows, pgx.RowTo[string])
+	if err != nil {
+		return fmt.Errorf("read category order: %w", err)
+	}
+	order := make([]string, 0, len(ids))
+	for _, id := range ids {
+		if id != categoryID {
+			order = append(order, id)
+		}
+	}
+	position = max(0, min(position, len(order)))
+	order = append(order[:position], append([]string{categoryID}, order[position:]...)...)
+	if _, err := tx.Exec(ctx, `
+		UPDATE menu_category c SET sort_order = o.ord - 1
+		  FROM unnest($1::uuid[]) WITH ORDINALITY AS o(id, ord)
+		 WHERE c.id = o.id AND c.sort_order <> o.ord - 1`, order); err != nil {
+		return fmt.Errorf("rewrite category order: %w", err)
+	}
+	return nil
+}
+
+// lockOwnedCategory is the IDOR guard for filing an item under a category: the
+// category must be on this restaurant's menu and not deleted, else ErrNotFound
+// (never a 403 that would confirm a foreign category). It takes a FOR KEY SHARE
+// lock, so a delete of the category that is counting its items (DeleteCategory)
+// either finishes first, and this re-reads the row and finds it deleted, or waits
+// until this transaction has filed the item and then counts it.
+func lockOwnedCategory(ctx context.Context, tx pgx.Tx, restaurantID, categoryID string) error {
+	var one int
+	err := tx.QueryRow(ctx, `
+		SELECT 1 FROM menu_category
+		 WHERE id = $1 AND restaurant_id = $2 AND deleted_at IS NULL
+		   FOR KEY SHARE`, categoryID, restaurantID).Scan(&one)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return ErrNotFound
+	}
+	if err != nil {
+		return fmt.Errorf("verify category ownership: %w", err)
+	}
+	return nil
+}
+
+// CategoryNotEmptyError is returned when a category still holds items that are
+// not deleted, so it cannot be deleted (R-14: deleting a category never deletes
+// an item).
+type CategoryNotEmptyError struct{ ItemCount int }
+
+// Error names the count, for logs; the handler sends ItemCount as details.
+func (e *CategoryNotEmptyError) Error() string {
+	return fmt.Sprintf("category not empty: %d items", e.ItemCount)
+}
+
+// DeleteCategory soft-deletes one of the restaurant's categories (deleteMenuCategory).
+// Returns ErrNotFound when it is not on this restaurant's menu or already deleted,
+// *CategoryNotEmptyError while it holds items, and ErrMenuLocked while the
+// restaurant is suspended or banned.
+func (r *Repo) DeleteCategory(ctx context.Context, restaurantID, categoryID string) error {
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx) //nolint:errcheck
+
+	if err := LockMenuForWrite(ctx, tx, restaurantID); err != nil {
+		return err
+	}
+	// The category row is locked before its items are counted. The restaurant's own
+	// item writes file an item under a category through lockOwnedCategory, whose
+	// lock waits for this one, so none lands in it between the count and the delete.
+	var exists bool
+	if err := tx.QueryRow(ctx, `
+		SELECT true FROM menu_category
+		 WHERE id = $1 AND restaurant_id = $2 AND deleted_at IS NULL
+		   FOR UPDATE`, categoryID, restaurantID).Scan(&exists); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return ErrNotFound
+		}
+		return fmt.Errorf("lock category: %w", err)
+	}
+	var items int
+	if err := tx.QueryRow(ctx, `
+		SELECT count(*) FROM menu_item WHERE category_id = $1 AND deleted_at IS NULL`,
+		categoryID).Scan(&items); err != nil {
+		return fmt.Errorf("count category items: %w", err)
+	}
+	if items > 0 {
+		return &CategoryNotEmptyError{ItemCount: items}
+	}
+	if _, err := tx.Exec(ctx,
+		`UPDATE menu_category SET deleted_at = now() WHERE id = $1`, categoryID); err != nil {
+		return fmt.Errorf("delete category: %w", err)
+	}
+	return tx.Commit(ctx)
+}
+
+// DeleteMenuItem soft-deletes one of the restaurant's items (deleteMenuItem). Order
+// lines keep their own snapshot, so nothing already bought changes. A version
+// waiting for review is withdrawn. Returns ErrNotFound when the item is not on
+// this restaurant's menu or already deleted, and ErrMenuLocked while the
+// restaurant is suspended or banned.
+func (r *Repo) DeleteMenuItem(ctx context.Context, restaurantID, itemID string) error {
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx) //nolint:errcheck
+
+	if err := LockMenuForWrite(ctx, tx, restaurantID); err != nil {
+		return err
+	}
+	tag, err := tx.Exec(ctx, `
+		UPDATE menu_item SET deleted_at = now(), pending_version_id = NULL
+		 WHERE id = $1 AND restaurant_id = $2 AND deleted_at IS NULL`, itemID, restaurantID)
+	if err != nil {
+		return fmt.Errorf("delete menu item: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	if _, err := tx.Exec(ctx, `
+		UPDATE menu_item_version SET review_status = 'WITHDRAWN'
+		 WHERE menu_item_id = $1 AND review_status IN ('PENDING_REVIEW', 'DRAFT')`, itemID); err != nil {
+		return fmt.Errorf("withdraw pending versions: %w", err)
+	}
+	return tx.Commit(ctx)
+}
+
+// CreateMenuItem creates a new menu item and its first version, waiting for
+// review (R-17): the item has no live version, so customers do not see it,
+// until an admin approves it. Never auto-approved (the halal and dietary
+// claims are what the review vouches for).
+func (r *Repo) CreateMenuItem(ctx context.Context, accountID, restaurantID string, in menuItemInputDTO) (*MenuItemView, error) {
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx) //nolint:errcheck
+
+	// ErrMenuLocked while the restaurant is suspended or banned (menu_lock.go).
+	if err := LockMenuForWrite(ctx, tx, restaurantID); err != nil {
+		return nil, err
+	}
+	if err := checkMenuImage(ctx, tx, accountID, restaurantID, in.ImageObjectID); err != nil {
+		return nil, err
+	}
+
 	// IDOR guard: the target category must belong to THIS restaurant. The FK on
 	// menu_item.category_id references menu_category(id) globally, so without this
 	// check a caller could attach an item to another tenant's category. A
 	// foreign or non-existent category is indistinguishable → 404 (never 403).
-	var ownedCat bool
-	if err := tx.QueryRow(ctx, `
-		SELECT EXISTS(SELECT 1 FROM menu_category
-		 WHERE id = $1 AND restaurant_id = $2 AND deleted_at IS NULL)`,
-		in.CategoryID, restaurantID).Scan(&ownedCat); err != nil {
-		return nil, fmt.Errorf("verify category ownership: %w", err)
-	}
-	if !ownedCat {
-		return nil, ErrNotFound
+	if err := lockOwnedCategory(ctx, tx, restaurantID, in.CategoryID); err != nil {
+		return nil, err
 	}
 
 	var itemID string
@@ -955,20 +1327,26 @@ func (r *Repo) CreateMenuItem(ctx context.Context, restaurantID string, in menuI
 			(menu_item_id, restaurant_id, version, name, description, ingredients_text,
 			 dietary_tags, allergen_tags, allergens_declared, image_object_id, review_status)
 		VALUES ($1, $2, 1, $3, $4, $5,
-		        $6::dietary_tag[], $7::allergen_tag[], $8, $9::uuid, 'DRAFT')
+		        $6::dietary_tag[], $7::allergen_tag[], $8, $9::uuid, 'PENDING_REVIEW')
 		RETURNING id::text`,
 		itemID, restaurantID, in.Name, in.Description, in.IngredientsText,
 		dietaryTags, allergenTags, allergensDeclared, in.ImageObjectID).Scan(&versionID)
 	if err != nil {
 		return nil, fmt.Errorf("create menu_item_version: %w", err)
 	}
+	if _, err := tx.Exec(ctx, `UPDATE menu_item_version SET submitted_at = now() WHERE id = $1`, versionID); err != nil {
+		return nil, fmt.Errorf("submit menu_item_version: %w", err)
+	}
 
-	// Set both live_version_id and pending_version_id to the draft (R-05:
-	// never auto-approved; live_version_id makes the item queryable,
-	// pending_version_id signals it is awaiting review).
-	if _, err := tx.Exec(ctx, `UPDATE menu_item SET live_version_id=$1, pending_version_id=$1 WHERE id=$2`,
+	// Only pending: the item goes live when an admin approves this version.
+	if _, err := tx.Exec(ctx, `UPDATE menu_item SET pending_version_id=$1 WHERE id=$2`,
 		versionID, itemID); err != nil {
-		return nil, fmt.Errorf("set live_version_id: %w", err)
+		return nil, fmt.Errorf("set pending_version_id: %w", err)
+	}
+
+	// A live item is one of the gates to ACTIVE (R-17): re-evaluate in this transaction.
+	if err := RecomputeOnboarding(ctx, tx, restaurantID); err != nil {
+		return nil, err
 	}
 
 	if err := tx.Commit(ctx); err != nil {
@@ -978,27 +1356,37 @@ func (r *Repo) CreateMenuItem(ctx context.Context, restaurantID string, in menuI
 	return r.getMenuItemByID(ctx, restaurantID, itemID)
 }
 
-// UpdateMenuItem creates a new PENDING_REVIEW version for an existing item
-// (or DRAFT when carrying halal-bearing tags). Validates ownership.
-func (r *Repo) UpdateMenuItem(ctx context.Context, restaurantID, itemID string, in menuItemUpdateDTO) (*MenuItemView, error) {
+// UpdateMenuItem applies the operational fields (price, category, prep time)
+// at once and sends a change to any reviewed field (name, description,
+// ingredients, dietary and allergen tags, image) to review as a new
+// PENDING_REVIEW version (R-17). The live version is untouched until an admin
+// approves; a newer pending version withdraws the older one. Fields not sent
+// keep the latest version's value. Validates ownership.
+func (r *Repo) UpdateMenuItem(ctx context.Context, accountID, restaurantID, itemID string, in menuItemUpdateDTO) (*MenuItemView, error) {
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer tx.Rollback(ctx) //nolint:errcheck
 
-	// Load current item (ownership check in WHERE clause).
-	var currentCategoryID string
-	var currentPrice int64
-	var currentVersionNo int
-	var currentLiveVersionID *string
+	// ErrMenuLocked while the restaurant is suspended or banned (menu_lock.go): no
+	// price, photo or other field changes, and a version waiting for review stays.
+	if err := LockMenuForWrite(ctx, tx, restaurantID); err != nil {
+		return nil, err
+	}
+	if err := checkMenuImage(ctx, tx, accountID, restaurantID, in.ImageObjectID); err != nil {
+		return nil, err
+	}
+
+	// Load the item (ownership check in WHERE clause) and the version a change
+	// builds on: the one waiting for review, else the live one.
+	var baseVersionID *string
 	err = tx.QueryRow(ctx, `
-		SELECT mi.category_id::text, mi.price_cents,
-		       COALESCE(miv.version, 0), mi.live_version_id::text
+		SELECT COALESCE(mi.pending_version_id, mi.live_version_id)::text
 		  FROM menu_item mi
-		  LEFT JOIN menu_item_version miv ON miv.id = mi.live_version_id
-		 WHERE mi.id = $1 AND mi.restaurant_id = $2 AND mi.deleted_at IS NULL`,
-		itemID, restaurantID).Scan(&currentCategoryID, &currentPrice, &currentVersionNo, &currentLiveVersionID)
+		 WHERE mi.id = $1 AND mi.restaurant_id = $2 AND mi.deleted_at IS NULL
+		   FOR UPDATE`,
+		itemID, restaurantID).Scan(&baseVersionID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -1006,7 +1394,7 @@ func (r *Repo) UpdateMenuItem(ctx context.Context, restaurantID, itemID string, 
 		return nil, fmt.Errorf("load menu_item for update: %w", err)
 	}
 
-	// Apply price + category updates to the item row.
+	// Operational fields apply at once.
 	if in.PriceCents != nil {
 		if _, err := tx.Exec(ctx, `UPDATE menu_item SET price_cents=$1, updated_at=now() WHERE id=$2`,
 			*in.PriceCents, itemID); err != nil {
@@ -1015,15 +1403,8 @@ func (r *Repo) UpdateMenuItem(ctx context.Context, restaurantID, itemID string, 
 	}
 	if in.CategoryID != nil {
 		// IDOR guard: the destination category must belong to THIS restaurant.
-		var ownedCat bool
-		if err := tx.QueryRow(ctx, `
-			SELECT EXISTS(SELECT 1 FROM menu_category
-			 WHERE id = $1 AND restaurant_id = $2 AND deleted_at IS NULL)`,
-			*in.CategoryID, restaurantID).Scan(&ownedCat); err != nil {
-			return nil, fmt.Errorf("verify category ownership: %w", err)
-		}
-		if !ownedCat {
-			return nil, ErrNotFound
+		if err := lockOwnedCategory(ctx, tx, restaurantID, *in.CategoryID); err != nil {
+			return nil, err
 		}
 		if _, err := tx.Exec(ctx, `UPDATE menu_item SET category_id=$1::uuid, updated_at=now() WHERE id=$2`,
 			*in.CategoryID, itemID); err != nil {
@@ -1037,54 +1418,77 @@ func (r *Repo) UpdateMenuItem(ctx context.Context, restaurantID, itemID string, 
 		}
 	}
 
-	// Create a new version for the claim-bearing descriptive fields.
-	newVersion := currentVersionNo + 1
-	name := ""
-	if currentLiveVersionID != nil {
-		// Inherit from live.
-		_ = tx.QueryRow(ctx, `SELECT name FROM menu_item_version WHERE id=$1`, *currentLiveVersionID).Scan(&name)
-	}
-	if in.Name != nil {
-		name = *in.Name
-	}
-	if name == "" {
-		name = "Unnamed"
+	reviewed := in.Name != nil || in.Description != nil || in.IngredientsText != nil ||
+		in.DietaryTags != nil || in.AllergenTags != nil || in.AllergensDeclared != nil || in.ImageObjectID != nil
+	if reviewed {
+		// Start from the base version's claims, then overlay what was sent.
+		var name string
+		var description, ingredients, imageID *string
+		dietaryTags, allergenTags := []string{}, []string{}
+		allergensDeclared := false
+		if baseVersionID != nil {
+			if err := tx.QueryRow(ctx, `
+				SELECT name, description, ingredients_text, dietary_tags::text[], allergen_tags::text[],
+				       allergens_declared, image_object_id::text
+				  FROM menu_item_version WHERE id = $1`, *baseVersionID).Scan(
+				&name, &description, &ingredients, &dietaryTags, &allergenTags, &allergensDeclared, &imageID); err != nil {
+				return nil, fmt.Errorf("load base version: %w", err)
+			}
+		}
+		if in.Name != nil {
+			name = *in.Name
+		}
+		if name == "" {
+			name = "Unnamed"
+		}
+		if in.Description != nil {
+			description = in.Description
+		}
+		if in.IngredientsText != nil {
+			ingredients = in.IngredientsText
+		}
+		if in.DietaryTags != nil {
+			dietaryTags = in.DietaryTags
+		}
+		if in.AllergenTags != nil {
+			allergenTags = in.AllergenTags
+		}
+		if in.AllergensDeclared != nil {
+			allergensDeclared = *in.AllergensDeclared
+		}
+		if in.ImageObjectID != nil {
+			imageID = in.ImageObjectID
+		}
+
+		// One version waiting per item: the newer change withdraws the older.
+		if _, err := tx.Exec(ctx, `
+			UPDATE menu_item_version SET review_status = 'WITHDRAWN'
+			 WHERE menu_item_id = $1 AND review_status IN ('PENDING_REVIEW', 'DRAFT')`, itemID); err != nil {
+			return nil, fmt.Errorf("withdraw pending version: %w", err)
+		}
+		var newVersionID string
+		err = tx.QueryRow(ctx, `
+			INSERT INTO menu_item_version
+				(menu_item_id, restaurant_id, version, name, description, ingredients_text,
+				 dietary_tags, allergen_tags, allergens_declared, image_object_id, review_status, submitted_at)
+			SELECT $1, $2, COALESCE(MAX(version), 0) + 1, $3, $4, $5,
+			       $6::dietary_tag[], $7::allergen_tag[], $8, $9::uuid, 'PENDING_REVIEW', now()
+			  FROM menu_item_version WHERE menu_item_id = $1
+			RETURNING id::text`,
+			itemID, restaurantID, name, description, ingredients,
+			dietaryTags, allergenTags, allergensDeclared, imageID).Scan(&newVersionID)
+		if err != nil {
+			return nil, fmt.Errorf("create updated version: %w", err)
+		}
+		if _, err := tx.Exec(ctx, `UPDATE menu_item SET pending_version_id=$1, updated_at=now() WHERE id=$2`,
+			newVersionID, itemID); err != nil {
+			return nil, fmt.Errorf("set pending_version: %w", err)
+		}
 	}
 
-	dietaryTags := in.DietaryTags
-	if dietaryTags == nil {
-		dietaryTags = []string{}
+	if err := RecomputeOnboarding(ctx, tx, restaurantID); err != nil {
+		return nil, err
 	}
-	allergenTags := in.AllergenTags
-	if allergenTags == nil {
-		allergenTags = []string{}
-	}
-
-	allergensDeclared := false
-	if in.AllergensDeclared != nil {
-		allergensDeclared = *in.AllergensDeclared
-	}
-
-	var newVersionID string
-	err = tx.QueryRow(ctx, `
-		INSERT INTO menu_item_version
-			(menu_item_id, restaurant_id, version, name, description, ingredients_text,
-			 dietary_tags, allergen_tags, allergens_declared, image_object_id, review_status)
-		VALUES ($1, $2, $3, $4, $5, $6,
-		        $7::dietary_tag[], $8::allergen_tag[], $9, $10::uuid, 'DRAFT')
-		RETURNING id::text`,
-		itemID, restaurantID, newVersion, name, in.Description, in.IngredientsText,
-		dietaryTags, allergenTags, allergensDeclared, in.ImageObjectID).Scan(&newVersionID)
-	if err != nil {
-		return nil, fmt.Errorf("create updated version: %w", err)
-	}
-
-	// Point live_version_id at the new draft so the item appears with the new name.
-	if _, err := tx.Exec(ctx, `UPDATE menu_item SET live_version_id=$1, updated_at=now() WHERE id=$2`,
-		newVersionID, itemID); err != nil {
-		return nil, fmt.Errorf("set live_version: %w", err)
-	}
-
 	if err := tx.Commit(ctx); err != nil {
 		return nil, err
 	}
@@ -1092,6 +1496,8 @@ func (r *Repo) UpdateMenuItem(ctx context.Context, restaurantID, itemID string, 
 }
 
 // SetMenuItemAvailability sets a menu item's availability state. Validates ownership.
+// ErrMenuLocked while the restaurant is suspended or banned (menu_lock.go): an item
+// cannot be marked out of stock or back in stock.
 func (r *Repo) SetMenuItemAvailability(ctx context.Context, restaurantID, itemID string, in availabilityInputDTO) (*MenuItemView, error) {
 	// availability_state is the contract enum [AVAILABLE, OUT_OF_STOCK]; the
 	// handler validates it before we reach the ::menu_item_availability_state cast.
@@ -1105,7 +1511,17 @@ func (r *Repo) SetMenuItemAvailability(ctx context.Context, restaurantID, itemID
 		}
 	}
 
-	tag, err := r.db.Exec(ctx, `
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx) //nolint:errcheck
+
+	if err := LockMenuForWrite(ctx, tx, restaurantID); err != nil {
+		return nil, err
+	}
+
+	tag, err := tx.Exec(ctx, `
 		UPDATE menu_item SET availability_state=$2::menu_item_availability_state,
 		       out_of_stock_until=$3, updated_at=now()
 		 WHERE id=$1 AND restaurant_id=$4 AND deleted_at IS NULL`,
@@ -1115,6 +1531,9 @@ func (r *Repo) SetMenuItemAvailability(ctx context.Context, restaurantID, itemID
 	}
 	if tag.RowsAffected() == 0 {
 		return nil, ErrNotFound
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
 	}
 	return r.getMenuItemByID(ctx, restaurantID, itemID)
 }
@@ -1322,14 +1741,27 @@ func maskPhone(p *string) string {
 }
 
 // AcceptOrder transitions RESTAURANT_PENDING → PREPARING.
-// Returns ErrOfferExpired if the deadline has passed; ErrIllegalTransition if
-// the order is not in RESTAURANT_PENDING.
+// Returns orders.ErrRestaurantUnavailable if the restaurant cannot take orders
+// now; ErrOfferExpired if the deadline has passed; ErrIllegalTransition if the
+// order is not in RESTAURANT_PENDING.
 func (r *Repo) AcceptOrder(ctx context.Context, restaurantID, orderID, actorAccountID string, promisedReadyMinutes *int) (*OrderRestaurantView, error) {
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer tx.Rollback(ctx) //nolint:errcheck
+
+	// A restaurant that is not LIVE, or whose halal certificate is not current
+	// now, cannot take an order by accepting one either. The order stays
+	// RESTAURANT_PENDING until its deadline cancels it and releases the
+	// authorisation, so nothing is captured. The restaurant row is locked FOR
+	// SHARE before the order is locked FOR UPDATE, the same order an
+	// account-state action takes, so a suspension either committed first and
+	// is refused here, or waits for this accept and then settles the PREPARING
+	// order. https://github.com/shaiknoorullah/hg-mono/issues/328
+	if err := orders.LockOrderableRestaurant(ctx, tx, restaurantID); err != nil {
+		return nil, err
+	}
 
 	var state string
 	var deadlineAt *time.Time
@@ -1463,65 +1895,37 @@ func (r *Repo) DelayOrder(ctx context.Context, restaurantID, orderID, actorAccou
 	}
 	defer tx.Rollback(ctx) //nolint:errcheck
 
-	var state string
-	var currentDeadline *time.Time
-	var acceptedAt *time.Time
-	err = tx.QueryRow(ctx, `SELECT state::text, deadline_at, accepted_at FROM "order" WHERE id=$1 AND restaurant_id=$2 FOR UPDATE`,
-		orderID, restaurantID).Scan(&state, &currentDeadline, &acceptedAt)
+	// Ownership first: the order must be this restaurant's.
+	var exists bool
+	err = tx.QueryRow(ctx, `SELECT true FROM "order" WHERE id=$1 AND restaurant_id=$2 FOR UPDATE`,
+		orderID, restaurantID).Scan(&exists)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
 	}
 	if err != nil {
 		return nil, err
 	}
-	if state != "PREPARING" {
+
+	// The orders module checks the limits (R-26: at most 3 delays and 45
+	// minutes in total), moves the deadline, logs the delay and tells the
+	// customer, in this transaction
+	// (https://github.com/shaiknoorullah/hg-mono/issues/351).
+	err = r.orders.DelayInTx(ctx, tx, orders.DelayRequest{
+		OrderID:        orderID,
+		AddedMinutes:   delayMinutes,
+		ReasonCode:     reason,
+		ActorAccountID: actorAccountID,
+	})
+	var illegal *orders.IllegalTransitionError
+	switch {
+	case errors.As(err, &illegal):
 		return nil, ErrIllegalTransition
-	}
-
-	// R-26: at most 3 delays AND at most +45 minutes cumulative per order.
-	// Count prior delay transitions and sum their added minutes. The added
-	// minutes are encoded as "delay:<minutes>:<reason>" in the transition reason.
-	var delayCount, cumulativeMinutes int
-	_ = tx.QueryRow(ctx, `
-		SELECT count(*),
-		       COALESCE(SUM((split_part(reason,':',2))::int),0)
-		  FROM order_transition
-		 WHERE order_id=$1 AND from_state='PREPARING' AND to_state='PREPARING'
-		   AND reason LIKE 'delay:%'`,
-		orderID).Scan(&delayCount, &cumulativeMinutes)
-
-	// An order that was never properly accepted (accepted_at IS NULL) means
-	// it was not transitioned through the restaurant acceptance flow. Such orders
-	// count as having exhausted delays (they are not in a delayable state).
-	if acceptedAt == nil || delayCount >= 3 {
+	case errors.Is(err, orders.ErrDelayLimitReached):
 		return nil, ErrDelayLimitReached
-	}
-	// Enforce the cumulative +45-minute cap: this delay must not push the running
-	// total past 45. Three 20-minute delays (60 min) must NOT all succeed.
-	if cumulativeMinutes+delayMinutes > 45 {
-		return nil, ErrDelayLimitReached
-	}
-
-	// Extend the deadline.
-	base := time.Now().UTC()
-	if currentDeadline != nil && currentDeadline.After(base) {
-		base = *currentDeadline
-	}
-	newDeadline := base.Add(time.Duration(delayMinutes) * time.Minute)
-
-	_, err = tx.Exec(ctx, `
-		UPDATE "order" SET deadline_at=$2, updated_at=now() WHERE id=$1`,
-		orderID, newDeadline)
-	if err != nil {
-		return nil, fmt.Errorf("extend deadline: %w", err)
-	}
-
-	_, err = tx.Exec(ctx, `
-		INSERT INTO order_transition (order_id, from_state, to_state, actor_kind, actor_account_id, reason)
-		VALUES ($1,'PREPARING','PREPARING','RESTAURANT',$2,$3)`,
-		orderID, actorAccountID, fmt.Sprintf("delay:%d:%s", delayMinutes, reason))
-	if err != nil {
-		return nil, fmt.Errorf("insert delay transition: %w", err)
+	case errors.Is(err, orders.ErrOrderNotFound):
+		return nil, ErrNotFound
+	case err != nil:
+		return nil, fmt.Errorf("delay order: %w", err)
 	}
 
 	if err := tx.Commit(ctx); err != nil {

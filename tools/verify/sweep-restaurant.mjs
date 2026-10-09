@@ -1,7 +1,8 @@
 import { chromium } from 'playwright';
+import { requireEnv, VERIFY_OUT } from './env.mjs';
 
 const APP = 'http://localhost:5183';
-const OUT = '/home/devsupreme/work/hg-mono/.claude/worktrees/wf_35632bc9-df9-4/tools/verify';
+const OUT = VERIFY_OUT;
 
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
@@ -16,8 +17,8 @@ await page.screenshot({ path: `${OUT}/sweep-restaurant-login.png`, fullPage: tru
 console.log('[sweep] login screenshot saved. url=', page.url());
 
 console.log('[sweep] phase: submit sign-in (mock server)');
-await page.fill('#email', 'owner@demo.hg');
-await page.fill('#password', 'Password123!');
+await page.fill('#email', requireEnv('SEED_EMAIL'));
+await page.fill('#password', requireEnv('SEED_PASSWORD'));
 await page.click('button[type="submit"]');
 await page.waitForResponse((r) => r.url().includes('/v1/auth/login'), { timeout: 10000 }).catch((e) => console.log('[sweep] login response wait failed:', e.message));
 await page.waitForTimeout(1500);

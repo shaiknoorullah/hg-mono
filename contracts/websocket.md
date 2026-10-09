@@ -50,6 +50,11 @@ GET  wss://…/v1/ws?ticket=<t>&client=<surface>&v=1
   **Zero rows ⇒ the upgrade is refused with HTTP 401 before any frame is exchanged**, and a
   `realtime.ticket_reuse` audit event is written.
 * Origin is checked against the CORS allowlist on upgrade.
+* Upgrade attempts are counted per client address (an IPv6 address is counted with the rest of
+  its /64) before the ticket is looked up. **Over the limit ⇒ HTTP 429 `RATE_LIMITED` with
+  `Retry-After` before any frame is exchanged**, and the ticket is not consumed.
+* `createRealtimeTicket` is also counted per session; over the limit it returns 429
+  `RATE_LIMITED` and mints nothing.
 
 ### 1.2 Native alternative
 
@@ -81,9 +86,11 @@ The server validates it exactly as the HTTP path does. Both paths converge on th
 | Inbound frames | 20 / second (soft: `error{code:"RATE_LIMITED"}`, socket stays open) |
 | Inbound flood | 100 / second ⇒ close `4429` |
 | Subscriptions per connection | 50 |
-| Connections per session | 4 |
-| Connections per account | 10 |
+| Connections per session | 4 on each replica (`HG_REALTIME_MAX_SOCKETS_PER_SESSION`) ⇒ close `1013 connection_limit` |
+| Connections per account | 10 on each replica (`HG_REALTIME_MAX_SOCKETS_PER_ACCOUNT`) ⇒ close `1013 connection_limit` |
 | Connections per server replica | 2,000 by default (`HG_REALTIME_MAX_SOCKETS`) ⇒ close `1013 at_capacity` |
+| Upgrade attempts per client address (IPv6: per /64) | 120 / minute (`HG_REALTIME_UPGRADES_PER_ADDRESS_PER_MINUTE`) ⇒ HTTP 429 `RATE_LIMITED`, no frame |
+| Ticket mints per session | 30 / minute (`HG_REALTIME_TICKETS_PER_SESSION_PER_MINUTE`) ⇒ HTTP 429 `RATE_LIMITED` |
 | Unsent server frames per connection | 64 ⇒ close `1013 slow_consumer` |
 | Heartbeat | server `ping` every 25 s; client must `pong` within 10 s |
 
@@ -93,7 +100,7 @@ The server validates it exactly as the HTTP path does. Both paths converge on th
 |---|---|---|
 | `1000` | Normal closure | Reconnect if the app is still foregrounded |
 | `1001` | Server going away (deploy) | Reconnect with backoff |
-| `1013` | Try again later: `slow_consumer` (the client fell 64 frames behind) or `at_capacity` (this replica is full) | Reconnect with backoff, then `resume` every channel from its `last_seq` ([gap detection](#63-gap-detection--the-clients-contract)). Nothing is lost: missed events are in Postgres |
+| `1013` | Try again later: `slow_consumer` (the client fell 64 frames behind), `at_capacity` (this replica is full) or `connection_limit` (this account or session already holds its maximum sockets on this replica) | Reconnect with backoff, then `resume` every channel from its `last_seq` ([gap detection](#63-gap-detection--the-clients-contract)). Nothing is lost: missed events are in Postgres |
 | `4400` | Malformed frame or unknown field | Fix the client; do not retry blindly |
 | `4401` | `session_revoked`, `reauth_timeout`, or ticket invalid | Re-authenticate over REST, mint a new ticket |
 | `4403` | Origin not allowed | Fatal; do not retry |

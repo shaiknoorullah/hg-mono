@@ -143,6 +143,9 @@ MAPPED_IN_MIGRATION = {
     "HandoffEventType":                   ("handoff_event_type", "00027_handoff.sql"),
     "HandoffActor":                       ("handoff_actor", "00027_handoff.sql"),
     "HandoffMethod":                      ("handoff_method", "00027_handoff.sql"),
+    "PayoutRunKind":                      ("payout_run_kind", "00030_payout_run.sql"),
+    "PayoutRunState":                     ("payout_run_state", "00030_payout_run.sql"),
+    "PayoutRunOutcome":                   ("payout_run_outcome", "00030_payout_run.sql"),
 }
 
 # Contract enums with no persisted counterpart. Each needs a reason.
@@ -203,8 +206,22 @@ EXCLUSIONS = {
     "RefundApprovalRequest/properties/status":
         "Approval sub-state of refund_state; stored on refund.approval_status as a "
         "CHECK-constrained text to avoid a near-duplicate type.",
+    "RefundRequesterKind":
+        "Derived per read: CUSTOMER when refund.requested_by is the order's own account, "
+        "STAFF otherwise. Not stored.",
+    "ChargebackStatus":
+        "Stripe's dispute status, stored as Stripe sends it (lower case text) on "
+        "chargeback.state and chargeback.outcome; upper-cased at the API boundary.",
+    "MoneyEventKind":
+        "The admin order view's money timeline, derived per read from payment_intent, "
+        "refund, chargeback and audit_event rows. Not stored.",
+    "MoneyEvent/properties/actor_kind":
+        "audit_event.actor_kind's CHECK-constrained text values, read through. Not a type.",
     "RestaurantStaffUser/properties/role":
         "Restaurant-scoped subset of role_name; stored as an account_role grant.",
+    "PayoutPayeeType":
+        "Stored as CHECK-constrained text, matching connect_account.owner_type, "
+        "which predates it.",
     "FoodRating/properties/tags/items":
         "Rating tag vocabulary. Stored as free text[] on the rating row; the "
         "allowed set is enforced at the API boundary.",

@@ -4,7 +4,7 @@ covers:
   - scripts/release/**
   - apps/customer/app.config.js
   - apps/rider/app.config.js
-reviewed: 2026-10-04
+reviewed: 2026-10-05
 ---
 
 # Releasing the apps
@@ -95,6 +95,13 @@ The files are on the run's page under Artifacts for 14 days. Dev builds run from
 builds run from `main` only (choose `main` in "Use workflow from"); use one to try a prod build
 before tagging it.
 
+A dev build can talk to another API with `-f api_base_url=…`. For example, point it at a dev world
+on your laptop (`make up`, `make migrate`, `make dev-reset` in `services/hg`), using the laptop's
+address on your Wi-Fi: `-f api_base_url=http://192.168.1.8:8080`. The phone must be on the same
+network, and an emulator on that laptop can use the same address. An `http://` address also allows
+plain HTTP in that APK. Prod builds refuse the input. The dev world's personas sign in with phone
+numbers `+1 555 0100 1xx` and the code `000000`; `go run ./cmd/devworld list` names them.
+
 ### What each build checks
 
 - The APK's package, version name and version code are the ones expected for its environment.
@@ -153,8 +160,59 @@ A dev build can be pointed at another API with `API_BASE_URL`, for example an AP
 machine as an emulator sees it: `API_BASE_URL=http://10.0.2.2:8080`.
 
 The Mapbox public token is `EXPO_PUBLIC_MAPBOX_TOKEN` (in CI, the repo secret
-`MAPBOX_PUBLIC_TOKEN_MOBILE`). No Mapbox download token is needed: Mapbox serves the native SDK
-without one.
+`MAPBOX_PUBLIC_TOKEN_MOBILE`). The rider app also calls the Mapbox Directions API with it for the
+route line. Both apps' configs record only whether it was set (`extra.mapboxPublicTokenConfigured`);
+the token itself is inlined into the JS bundle, as a public token is meant to be.
+
+**The live map needs a second, secret Mapbox token to build for Android.** Mapbox's Maven
+repository serves the native SDK (`@rnmapbox/maps`) only with a download token: a secret `sk.`
+token with the `DOWNLOADS:READ` scope, given to the build as `RNMAPBOX_MAPS_DOWNLOAD_TOKEN` (in CI,
+the repo secret of the same name, passed to the Android project-generation and build steps only). Without it
+Gradle fails with "Could not find com.mapbox.maps:android-ndk27" ([#468](https://github.com/shaiknoorullah/hg-mono/issues/468)),
+so the build leaves the SDK out instead:
+
+| `RNMAPBOX_MAPS_DOWNLOAD_TOKEN` | The build | The customer app | The rider app |
+|---|---|---|---|
+| set | links `@rnmapbox/maps` and adds its config plugin | live tracking map | live map on the offer and the active delivery |
+| not set | `react-native.config.js` excludes it from autolinking; no plugin | ETA text only | distance and ETA text only |
+
+Both builds pass; a build without the token prints a notice saying the map is left out. The switch
+is `scripts/release/mapbox.cjs`, read by each app's `app.config.js` (the plugin) and
+`react-native.config.js` (autolinking), for the customer and rider apps alike. The plugin reads the
+token from the environment while Gradle runs, so it is never written into a config file, a
+generated file or the JS bundle. `node scripts/release/` tests run it both ways.
+
+For a local `eas build`, the customer's `eas.json` `preview` and `production` profiles set
+`EXPO_PUBLIC_API_BASE_URL` to the placeholder `https://api.halalgoes.com`. To point a build at
+another API, change that profile's `env` value.
+
+The customer app pays with Stripe's payment sheet, which needs the PUBLIC key
+`EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY` (`pk_test_…` or `pk_live_…`; in CI, the repo secret
+`STRIPE_PUBLISHABLE_KEY_MOBILE`). It must be from the same Stripe account and mode as the API's
+`HG_STRIPE_SECRET_KEY`, or the sheet cannot confirm the payment. On web the same key loads
+Stripe.js and the Payment Element in a sheet; a build without the key takes no card payments and
+says so at checkout instead of crashing. When the API runs its local fake gateway (`HG_ENV=local`,
+no Stripe key) it returns `pi_fake_…` client secrets and the app skips the sheet. Testing with
+Stripe test cards: [card payments playbook](../playbooks/customer/card-payments.md).
+
+The customer app registers for push notifications only when the build has `EAS_PROJECT_ID`
+(`apps/customer/app.config.js` writes it into `extra.eas.projectId`) and, on Android, the Expo
+project has FCM credentials; otherwise it gets no push token and works without push.
+
+## Building with EAS instead
+
+The rider's `eas.json` `preview` and `production` profiles set `EXPO_PUBLIC_API_BASE_URL` to the
+placeholder `https://api.halalgoes.com`. To point a build elsewhere, edit that value in
+`apps/rider/eas.json`, or override it for one build with
+`EXPO_PUBLIC_API_BASE_URL=https://… eas build -p android --profile preview` (a variable set in
+your shell wins over the profile's `env`).
+
+`extra.eas.projectId` is only written into the app config when `EAS_PROJECT_ID` is set, so a local
+`npx expo prebuild` or Gradle build never needs EAS. Using EAS Build is an owner step: run
+`eas init` once, then export the id it prints as `EAS_PROJECT_ID` (or set it in the profile's `env`).
+Push notifications need that id too: without it an app with the `expo-notifications` plugin (the
+rider app, `apps/rider/app.config.js`) gets no push token and carries on without push, and Android
+also needs the project's FCM credentials uploaded to Expo.
 
 ## The release key
 

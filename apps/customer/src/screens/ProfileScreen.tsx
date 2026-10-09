@@ -29,7 +29,7 @@ import { getProfile, updateProfile, type CustomerProfile } from '../api/profile'
 import { useAsync } from '../api/async';
 import { useNavigation } from '../navigation/stack';
 import { CustomerTabBar } from '../navigation/TabBar';
-import { setToken } from '../api/token';
+import { logout } from '../api/auth';
 
 export function ProfileScreen(): React.ReactElement {
   const theme = useTheme();
@@ -56,7 +56,7 @@ export function ProfileScreen(): React.ReactElement {
             bottomInset={insets.bottom}
             onOpenAddresses={() => nav.push({ name: 'addresses' })}
             onOpenOrders={() => nav.reset({ name: 'orders' })}
-            onSignOut={() => setToken(null)}
+            onSignOut={logout}
           />
         )}
       </View>

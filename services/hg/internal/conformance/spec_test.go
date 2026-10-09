@@ -21,16 +21,24 @@ func TestConformance_SpecLoadsAndEnumerates(t *testing.T) {
 	// the tamper-evident seal chain of custody that gates PICKED_UP/DELIVERED) +
 	// updateMenuItemOnBehalf/deleteMenuItemOnBehalf (an admin edits or removes a
 	// menu item for a restaurant — the owner's launch-scope decision of 2026-10-01,
-	// docs/decisions/README.md "Launch scope and contract"; no handler yet) +
+	// docs/decisions/README.md "Launch scope and contract") +
 	// updateMenuCategory (a restaurant renames, reorders, deactivates or
 	// reactivates its own menu category — the round-2 decision that restaurants
 	// edit their own menu from launch, docs/decisions/README.md "How restaurants
-	// get their menu onto HalalGoes and change it"; no handler yet) +
+	// get their menu onto HalalGoes and change it") +
+	// createPayoutRun/listPayoutRuns/getPayoutRun (issue #251) +
+	// listRefundsAdmin/approveRefund/declineRefund and
+	// listChargebacks/getChargeback/addChargebackEvidenceNote (staff review
+	// refund requests and keep evidence on chargebacks, #172) +
+	// getOrderingPause/setOrderingPause (staff pause and resume new orders
+	// platform-wide during an incident, https://github.com/shaiknoorullah/hg-mono/issues/244) +
+	// deleteMenuItem/deleteMenuCategory (a restaurant deletes its own items and
+	// empty categories, https://github.com/shaiknoorullah/hg-mono/issues/239) +
 	// overrideHandoverCode (support or an admin confirms a pickup or a met handover
 	// whose code cannot be used, with a reason, a case and an audit record — the only
 	// way past a handover code, security review on #183:
 	// https://github.com/shaiknoorullah/hg-mono/issues/183; no handler yet).
-	const wantOps = 156
+	const wantOps = 170
 	if got := len(spec.Operations); got != wantOps {
 		ids := make([]string, 0, len(spec.Operations))
 		for id := range spec.Operations {

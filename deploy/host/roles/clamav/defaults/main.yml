@@ -1,0 +1,14 @@
+# ClamAV runs on hg_clamav_host only (group_vars/all.yml). Moving it to the standby is that
+# one setting plus standby.yml: it starts there, on the WireGuard address, and stops here.
+hg_clamav_enabled: "{{ hg_clamav_host == inventory_hostname }}"
+hg_clamav_on_standby: "{{ inventory_hostname in groups['standby'] | default([]) }}"
+hg_clamav_memory: 4g
+hg_clamav_max_threads: 2
+# KYC files are up to 15 MiB. An upload over hg_clamav_stream_max is refused with an
+# "INSTREAM size limit exceeded" error, which the API's scanner (#218) treats as not clean.
+hg_clamav_stream_max: 16M
+# What clamd may unpack from one upload. It counts extracted, decompressed content, not the
+# upload: a clean 15 MiB scanned PDF can unpack past 16 MiB and, at 16M, would come back FOUND
+# (Heuristics.Limits.Exceeded). The production compose file used 100M for the same reason.
+hg_clamav_max_scan: 100M
+hg_clamav_signature_checks_per_day: 4

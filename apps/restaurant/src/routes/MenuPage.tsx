@@ -1,7 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useId, useMemo, useState } from 'react';
 import * as Switch from '@radix-ui/react-switch';
 import { isApiError, type Schema } from '@hg/api-client';
-import { Button, Card, EmptyState, ErrorState, Icon, IconButton, cx } from '@hg/ui-web';
+import { Button, Card, EmptyState, ErrorState, HG_FOCUS, Icon, IconButton, cx } from '@hg/ui-web';
 import { api, unwrapOrThrow } from '../lib/apiHelpers';
 import { useAsync } from '../lib/useAsync';
 import { PageLoading } from '../components/PageLoading';
@@ -9,6 +9,12 @@ import { StatusChip } from '../components/StatusChip';
 import { IconEdit, IconMenuBook } from '../lib/icons';
 import { AddItemDialog } from '../components/AddItemDialog';
 import { EditItemDialog, type EditableMenuItem } from '../components/EditItemDialog';
+import {
+  MenuLockedNotice,
+  menuLockFromAccountState,
+  menuLockFromError,
+  type MenuLockState,
+} from '../components/MenuLockedNotice';
 
 /**
  * See the note in `OrdersPage.tsx`: values read back through `unwrapOrThrow` lose the
@@ -20,11 +26,25 @@ function money(value: unknown) {
 }
 
 export function MenuPage() {
-  const { status, data, error, reload } = useAsync(() => unwrapOrThrow(api.GET('/v1/restaurant/menu', {})), []);
+  // The profile's `account_state` says whether the menu is locked before any save is tried.
+  const { status, data, error, reload } = useAsync(
+    () =>
+      Promise.all([unwrapOrThrow(api.GET('/v1/restaurant/menu', {})), unwrapOrThrow(api.GET('/v1/restaurant/profile', {}))]).then(
+        ([menu, profile]) => ({ ...menu, lock: menuLockFromAccountState(profile.account_state) }),
+      ),
+    [],
+  );
+  // A save refused with `MENU_LOCKED` (it raced a suspension) locks the page the same way.
+  const [refusedLock, setRefusedLock] = useState<MenuLockState | null>(null);
+  const lock = refusedLock ?? data?.lock ?? null;
+  const locked = lock !== null;
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [busyItem, setBusyItem] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [editItem, setEditItem] = useState<EditableMenuItem | null>(null);
+  // Each availability switch is named by its item's visible name plus a hidden "available", so a
+  // screen reader hears "Chicken Biryani available, switch, on" (issue #401).
+  const ids = useId();
 
   const categories = data?.categories ?? [];
   const selected = useMemo(
@@ -53,6 +73,11 @@ export function MenuPage() {
       );
       reload();
     } catch (e) {
+      const refused = menuLockFromError(e);
+      if (refused) {
+        setRefusedLock(refused);
+        return;
+      }
       // Surfaced inline rather than a global toast — keeps the failing row identifiable.
       alert(isApiError(e) ? e.message : 'Could not update availability.'); // eslint-disable-line no-alert
     } finally {
@@ -67,17 +92,26 @@ export function MenuPage() {
           <h1 className="text-heading-md font-extrabold text-fg-primary">Menu</h1>
           <p className="text-body-sm text-fg-secondary">Out-of-stock and hidden items stay listed — they just can't be added to a cart.</p>
         </div>
-        <Button iconStart={<Icon name="plus" size={15} />} onPress={() => setAddOpen(true)}>
+        <Button iconStart={<Icon name="plus" size={15} />} disabled={locked} onPress={() => setAddOpen(true)}>
           Add item
         </Button>
       </header>
+
+      {lock && (
+        <div className="mb-6">
+          <MenuLockedNotice state={lock} />
+        </div>
+      )}
+      <span id={`${ids}-available`} hidden>
+        available
+      </span>
 
       {categories.length === 0 ? (
         <EmptyState
           illustration={<IconMenuBook size={32} />}
           title="No categories yet"
-          description="Add your first category and item to get one step closer to going live."
-          primaryAction={{ label: 'Add your first item', onPress: () => setAddOpen(true) }}
+          description={locked ? 'There is nothing on your menu yet.' : 'Add your first category and item to get one step closer to going live.'}
+          primaryAction={locked ? undefined : { label: 'Add your first item', onPress: () => setAddOpen(true) }}
         />
       ) : (
         <div className="flex gap-6">
@@ -104,13 +138,19 @@ export function MenuPage() {
 
           <div className="min-w-0 flex-1 space-y-3">
             {(selected?.items ?? []).length === 0 && (
-              <EmptyState title="No items in this category" description="Add an item to fill it in." variant="inline" />
+              <EmptyState
+                title="No items in this category"
+                description={locked ? 'Nothing can be added while the menu is locked.' : 'Add an item to fill it in.'}
+                variant="inline"
+              />
             )}
             {(selected?.items ?? []).map((item) => (
               <Card key={item.id} className="flex items-center gap-4">
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <p className="truncate text-label-lg font-bold text-fg-primary">{item.name}</p>
+                    <p id={`${ids}-item-${item.id}`} className="truncate text-label-lg font-bold text-fg-primary">
+                      {item.name}
+                    </p>
                     {item.availability_state === 'BLOCKED' && <StatusChip tone="danger">Blocked by admin</StatusChip>}
                     {item.availability_state === 'HIDDEN' && <StatusChip tone="neutral">Hidden</StatusChip>}
                     {/* Not `HalalBadge`: every listing on this platform is already halal-certified
@@ -134,9 +174,15 @@ export function MenuPage() {
                   </span>
                   <Switch.Root
                     checked={item.availability_state === 'AVAILABLE'}
-                    disabled={busyItem === item.id || item.availability_state === 'BLOCKED' || item.availability_state === 'HIDDEN'}
+                    disabled={locked || busyItem === item.id || item.availability_state === 'BLOCKED' || item.availability_state === 'HIDDEN'}
                     onCheckedChange={() => toggleAvailability(item)}
-                    className="relative h-6 w-11 rounded-full bg-surface-subtle outline-none transition-colors data-[state=checked]:bg-action-primary-bg disabled:opacity-50"
+                    aria-labelledby={`${ids}-item-${item.id} ${ids}-available`}
+                    className={cx(
+                      'relative h-6 w-11 rounded-full bg-surface-subtle transition-colors data-[state=checked]:bg-action-primary-bg disabled:opacity-50',
+                      // The two-layer focus ring on the card, as on the design-system Switch
+                      // (docs/decisions/focus-indicator.md, issue #401).
+                      HG_FOCUS,
+                    )}
                   >
                     <Switch.Thumb className="block h-5 w-5 translate-x-0.5 rounded-full bg-white shadow-e1 transition-transform duration-200 data-[state=checked]:translate-x-[22px]" />
                   </Switch.Root>
@@ -145,6 +191,7 @@ export function MenuPage() {
                     size="sm"
                     accessibilityLabel={`Edit ${item.name}`}
                     icon={<IconEdit size={16} />}
+                    disabled={locked}
                     onPress={() => setEditItem(item)}
                   />
                 </div>
@@ -158,6 +205,10 @@ export function MenuPage() {
         <AddItemDialog
           categories={categories}
           onClose={() => setAddOpen(false)}
+          onLocked={(refused) => {
+            setAddOpen(false);
+            setRefusedLock(refused);
+          }}
           onCreated={() => {
             setAddOpen(false);
             reload();
@@ -169,6 +220,10 @@ export function MenuPage() {
         <EditItemDialog
           item={editItem}
           onClose={() => setEditItem(null)}
+          onLocked={(refused) => {
+            setEditItem(null);
+            setRefusedLock(refused);
+          }}
           onSaved={() => {
             setEditItem(null);
             reload();

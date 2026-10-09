@@ -1,0 +1,20 @@
+#!/bin/bash
+# hg-sshd-validate <candidate> <drop-in name>
+# Checks sshd's whole configuration as it would be with <candidate> installed as
+# /etc/ssh/sshd_config.d/<drop-in name>, without installing it. Ansible's validate step,
+# so a bad drop-in never reaches the folder sshd reads at its next start.
+# Managed by Ansible (deploy/host/roles/ssh).
+set -euo pipefail
+candidate=$1
+name=$2
+tmp=$(mktemp -d)
+trap 'rm -rf "$tmp"' EXIT
+mkdir "$tmp/d"
+cp -a /etc/ssh/sshd_config.d/. "$tmp/d/" 2>/dev/null || true
+cp "$candidate" "$tmp/d/$name"
+sed "s#^Include /etc/ssh/sshd_config.d/\*\.conf#Include $tmp/d/*.conf#" /etc/ssh/sshd_config > "$tmp/sshd_config"
+if ! grep -q "^Include $tmp/d/" "$tmp/sshd_config"; then
+  echo "/etc/ssh/sshd_config does not include sshd_config.d/*.conf" >&2
+  exit 1
+fi
+/usr/sbin/sshd -t -f "$tmp/sshd_config"

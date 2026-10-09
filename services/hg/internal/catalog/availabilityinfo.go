@@ -46,11 +46,14 @@ func buildAvailabilityInfo(rr restaurantRow, verdict openStateVerdict, hasAddres
 	switch verdict.state {
 	case OpenStateOpen:
 		info.State = availOpen
-	case OpenStatePaused:
+	case OpenStatePaused, OpenStateClosedToggle, OpenStateClosedOffline:
+		// Inside its hours but not taking orders, for a reason on the
+		// restaurant's side: C-14's PAUSED. cardOpenState only lets these
+		// through inside hours.
 		info.State = availPaused
 	default:
-		// Every other closed reason collapses to CLOSED_HOURS on the customer
-		// card: the customer-facing enum has no OFFLINE/TOGGLE/SUSPENDED member,
+		// Hours, holiday and suspension collapse to CLOSED_HOURS on the
+		// customer card: the customer-facing enum has no other closed member,
 		// and the card only needs "you cannot order now".
 		info.State = availClosedHours
 	}

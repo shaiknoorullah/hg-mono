@@ -1,6 +1,6 @@
 # HalalGoes API — developer entry points.
 #
-#   make up        bring the whole stack up (Traefik, Postgres+PostGIS, Redis, MinIO, 2× API)
+#   make up        bring the whole stack up (Traefik, Postgres+PostGIS, Valkey, Silo, 2× API)
 #   make run       run the API on the host against the compose dependencies, as hg_app
 #   make test      go test ./...
 #   make lint      gofmt check, go vet, golangci-lint when installed
@@ -13,8 +13,14 @@ SHELL := /bin/bash
 .DEFAULT_GOAL := help
 
 DEPLOY_DIR := ../../deploy
-COMPOSE    := docker compose --project-directory $(DEPLOY_DIR) -f $(DEPLOY_DIR)/docker-compose.yml
 ENV_FILE   := $(DEPLOY_DIR)/.env
+# HG_ENV as compose reads it: from the shell if set there, else from deploy/.env. Expanded when
+# a recipe runs, after ensure-env has written the file.
+STACK_ENV   = $(or $(HG_ENV),$(shell sed -n 's/^HG_ENV=//p' $(ENV_FILE) 2>/dev/null | tail -n1 | tr -d '"[:space:]'))
+# With HG_ENV=local only, docker-compose.local.yml lets this machine reach /internal and /debug
+# through the published port (issue #487). Any other HG_ENV gets the base file alone, as the
+# server does (it runs docker-compose.yml with docker-compose.server.yml, never this Makefile).
+COMPOSE     = docker compose --project-directory $(DEPLOY_DIR) -f $(DEPLOY_DIR)/docker-compose.yml$(if $(filter local,$(STACK_ENV)), -f $(DEPLOY_DIR)/docker-compose.local.yml)
 
 GO         ?= go
 BIN_DIR    := bin
@@ -45,6 +51,7 @@ build: ## Compile the binary into ./bin/hg
 run: ensure-env ## Run the API on the host against the compose dependencies
 	@set -a; . $(ENV_FILE); set +a; \
 	HG_ENV=$${HG_ENV:-local} \
+	HG_DEVWORLD_TABLETS=$${HG_DEVWORLD_TABLETS:-$$([ "$${HG_ENV:-local}" = local ] && echo on || echo off)} \
 	HG_SERVICE_VERSION=$(VERSION) \
 	HG_HTTP_ADDR=$${HG_HTTP_ADDR:-:8080} \
 	HG_POSTGRES_DSN="postgres://hg_app:$${HG_DB_APP_PASSWORD}@localhost:$(HOST_POSTGRES_PORT)/$${POSTGRES_DB}?sslmode=disable" \
@@ -122,7 +129,7 @@ up: ensure-env ## Build and start the whole stack
 	@echo "stack up. Traefik fronts 2 API replicas:"
 	@echo "  API        http://localhost:$${HG_HTTP_PORT:-8080}/health"
 	@echo "  readiness  http://localhost:$${HG_HTTP_PORT:-8080}/health/ready"
-	@echo "  deps       docker compose exec -it \$$(docker compose ps -q api | head -1) — /debug/deps is blocked at the edge"
+	@echo "  deps       http://localhost:$${HG_HTTP_PORT:-8080}/debug/deps (with HG_ENV=local, from this machine)"
 	@echo "  dashboard  http://localhost:$${TRAEFIK_DASHBOARD_PORT:-8081}/dashboard/"
 
 .PHONY: down
@@ -219,6 +226,37 @@ dev-admin: ensure-env ## Provision a login-able dev SUPER_ADMIN (email+password+
 	echo "    TOTP     secret written to /tmp/hg-admin-totp-secret.txt"; \
 	echo "    code now $$(cd $(CURDIR) && SECRET="$$SECRET" $(GO) run ./cmd/totpnow)"; \
 	echo "  drive it:  APP_URL=http://localhost:5173 SEED_EMAIL=$$EMAIL SEED_PASSWORD='$$PASSWORD' node ../../tools/verify/admin-full-drive.mjs"
+
+.PHONY: dev-reset
+dev-reset: ## Wipe and re-seed a local database with the stable personas and the Toronto catalogue
+	@if [ -f $(ENV_FILE) ]; then set -a; . $(ENV_FILE); set +a; fi; \
+	export HG_ENV="$${HG_ENV:-local}"; \
+	export HG_POSTGRES_DSN="postgres://$${POSTGRES_USER:-hg}:$${POSTGRES_PASSWORD:-hg}@127.0.0.1:$${POSTGRES_PORT:-$(HOST_POSTGRES_PORT)}/$${POSTGRES_DB:-hg}?sslmode=disable"; \
+	export HG_REDIS_ADDR="127.0.0.1:$${REDIS_PORT:-$(HOST_REDIS_PORT)}"; \
+	export HG_REDIS_PASSWORD="$${REDIS_PASSWORD:-}"; \
+	export HG_REDIS_DB="$${HG_REDIS_DB:-0}"; \
+	export HG_MINIO_ENDPOINT="127.0.0.1:$${MINIO_API_PORT:-$(HOST_MINIO_PORT)}"; \
+	export HG_MINIO_ACCESS_KEY="$${MINIO_ROOT_USER:-}"; \
+	export HG_MINIO_SECRET_KEY="$${MINIO_ROOT_PASSWORD:-}"; \
+	$(GO) run ./cmd/devworld reset
+
+.PHONY: dev-totp
+dev-totp: ## Print the current local admin sign-in code
+	@$(GO) run ./cmd/devworld totp
+
+.PHONY: dev-scenario
+dev-scenario: ## Drive one API scenario against a running local API (s=new-order)
+	@if [ -f $(ENV_FILE) ]; then set -a; . $(ENV_FILE); set +a; fi; \
+	export HG_ENV="$${HG_ENV:-local}"; \
+	export HG_POSTGRES_DSN="postgres://$${POSTGRES_USER:-hg}:$${POSTGRES_PASSWORD:-hg}@127.0.0.1:$${POSTGRES_PORT:-$(HOST_POSTGRES_PORT)}/$${POSTGRES_DB:-hg}?sslmode=disable"; \
+	s="$${s:-new-order}"; \
+	HG_API_URL="$${HG_API_URL:-http://127.0.0.1:8080}" $(GO) run ./cmd/devworld scenario "$$s"
+
+.PHONY: dev-journey
+dev-journey: ## Drive one live order against a running local API (route=short speed=1x auto=none)
+	@args="--route=$${route:-short} --speed=$${speed:-1x} --auto=$${auto:-none}"; \
+	if [ "$${manual:-}" = "rider" ]; then args="$$args --manual=rider"; fi; \
+	HG_API_URL="$${HG_API_URL:-http://127.0.0.1:8080}" $(GO) run ./cmd/devworld journey $$args
 
 # ---------------------------------------------------------------------------
 # Diagnostics
