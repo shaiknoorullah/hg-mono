@@ -12,6 +12,9 @@
  * N1 adds the core design-system parts at the top (`CoreSection`): `/ds` Button, IconButton,
  * Badge, Card, Price, KeyValueList, StatCard and `/proposed` Text, Skeleton, Spinner, Separator,
  * Avatar, as the redesigned screens will use them.
+ * N5 adds the feedback family from `@hg/ui-native/proposed` (Banner, InlineAlert in every tone
+ * including the halal slate, ErrorState, EmptyState, loading and status indicators), so each
+ * can be seen in both schemes.
  */
 import * as React from 'react';
 import { ScrollView, View } from 'react-native';
@@ -20,8 +23,27 @@ import { Button, Text } from '@hg/ui-native/lib';
 import * as ds from '@hg/ui-native/ds';
 import * as proposed from '@hg/ui-native/proposed';
 import { cents } from '@hg/api-client';
+import {
+  Banner,
+  EmptyState,
+  ErrorState,
+  InlineAlert,
+  ProgressBar,
+  ProgressSteps,
+  Skeleton,
+  Spinner,
+  StatusLabel,
+  WaitingState,
+  WaitProgress,
+} from '@hg/ui-native/proposed';
 
 const VARIANTS = ['default', 'secondary', 'outline', 'ghost', 'destructive'] as const;
+
+const TONES = ['neutral', 'info', 'warning', 'danger', 'slate'] as const;
+
+/** A reply-by deadline three minutes after the gallery opens, on a server clock equal to the device's. */
+const WAIT_START = new Date();
+const WAIT_DEADLINE = new Date(WAIT_START.getTime() + 180_000);
 
 const SWATCHES = [
   ['bg-background', 'background'],
@@ -129,6 +151,50 @@ export function DsGallery({
           </View>
         ))}
       </View>
+
+      <Text className="text-heading-lg">Feedback and status (N5)</Text>
+      <Banner tone="info" title="You're offline" description="Showing what we last saw." announce={false} />
+      {TONES.map((tone) => (
+        <InlineAlert
+          key={tone}
+          tone={tone}
+          title={`InlineAlert · ${tone}`}
+          description="Cause, then what to do next."
+          dismissible
+          announce={false}
+        />
+      ))}
+      <InlineAlert
+        halal
+        title="This restaurant's certification has lapsed"
+        description="We can't currently vouch for it."
+        action={{ label: 'View certification', onPress: () => undefined }}
+        announce={false}
+      />
+      <ErrorState errorCode="TIMEOUT" onRetry={() => undefined} autoFocus={false} />
+      <ErrorState errorCode="RESTAURANT_UNAVAILABLE" autoFocus={false} />
+      <EmptyState
+        placement="inline"
+        title="No trips yet today"
+        description="Go online to start getting offers."
+        primaryAction={{ label: 'Go online', onPress: () => undefined }}
+      />
+      <WaitingState description="You can lock your phone. When an offer arrives, it fills the screen and plays a sound. You have 30 seconds to answer." />
+      <ProgressSteps step={2} label="Go to the restaurant" showCaption />
+      <WaitProgress
+        deadlineAt={WAIT_DEADLINE.toISOString()}
+        serverNow={WAIT_START.toISOString()}
+        windowSeconds={180}
+        label="Waiting for Zaytoun Grill to reply"
+      />
+      <ProgressBar value={40} label="Uploading your licence" />
+      <ProgressBar indeterminate label="Checking" />
+      <View className="flex-row gap-4">
+        <StatusLabel icon="clock" label="Pending" tone="warning" />
+        <StatusLabel icon="check" label="Paid" />
+      </View>
+      <Spinner label="Loading your earnings" />
+      <Skeleton variant="card" />
 
       <Button variant="outline" onPress={onToggleScheme}>
         <Text>Toggle dark scheme</Text>
