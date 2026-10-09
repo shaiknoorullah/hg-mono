@@ -6,12 +6,7 @@
 import * as React from 'react';
 import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 
-jest.mock('react-native-safe-area-context', () => {
-  const mod = require('react-native-safe-area-context/jest/mock');
-  return mod.default ?? mod;
-});
-jest.mock('expo-clipboard', () => ({ setStringAsync: jest.fn(async () => true) }));
-jest.mock('../../../push', () => ({ registerForPush: jest.fn(), unregisterForPush: jest.fn(), takeRegisteredDeviceId: jest.fn(() => null) }));
+import './mocks';
 
 import { isAuthed, setToken } from '../../../token';
 import { consumeVoluntarySignOut } from '../../session/signOut';

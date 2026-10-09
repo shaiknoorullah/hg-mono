@@ -9,12 +9,7 @@ import * as React from 'react';
 import { AppState, Linking, Text } from 'react-native';
 import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 
-jest.mock('react-native-safe-area-context', () => {
-  const mod = require('react-native-safe-area-context/jest/mock');
-  return mod.default ?? mod;
-});
-jest.mock('expo-clipboard', () => ({ setStringAsync: jest.fn(async () => true) }));
-jest.mock('../../../push', () => ({ registerForPush: jest.fn(), unregisterForPush: jest.fn(), takeRegisteredDeviceId: jest.fn(() => null) }));
+import './mocks';
 
 import * as Clipboard from 'expo-clipboard';
 import { reportTransportFailure, resetConnectivity } from '../../data/connectivity';
