@@ -5,7 +5,7 @@ covers:
   - services/hg/migrations/devworld/**
   - apps/restaurant/.claude/skills/**
   - docs/playbooks/**
-reviewed: 2026-10-05
+reviewed: 2026-10-09
 ---
 
 # Dev world — seeded personas, live scenarios, journey simulation, playbooks
@@ -162,6 +162,7 @@ These are the seed for the customer, rider and admin coverage tables that [exten
 | `menu-approve` / `menu-reject` | `admin-seed` decides the pending menu version | review badge resolves |
 | `onboard-restaurant` | a new restaurant signs up and completes onboarding; `admin-seed` approves its documents, halal certificate, application and first menu item | the new restaurant is `ACTIVE` and its approved item is on the customer menu ([playbook](../../playbooks/restaurant/onboarding.md)) |
 | `onboard-rider` | a new rider signs in with a fresh number, submits profile, bicycle and documents; `admin-seed` approves them and the application; the rider sets up payouts and goes online | the new rider is `ACTIVE` and online beside `bismillah-grill` ([playbook](../../playbooks/rider/onboarding.md)) |
+| `application-in-review` / `application-reject` | the first half of `onboard-restaurant` stops once the documents are submitted; then `admin-seed` approves the documents, records the halal seven-check with the address check failing, sees approval refused, and rejects the certificate and the application ([#678](https://github.com/shaiknoorullah/hg-mono/issues/678)) | a new restaurant waits in `DOCUMENTS_REVIEW` with a pending certificate and no checks recorded, second in the console's take-next after `docs-review`; then it is `DOCUMENTS_REJECTED` and its owner has the reason as a notification, and `verify` counts both |
 | `journey` | see [journey](#63-journey) | one live order through delivery when the rider is driven |
 
 ### 6.2 Bootstrap (not run by `reset`)
