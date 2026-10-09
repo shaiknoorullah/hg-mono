@@ -39,31 +39,36 @@ const { OrderingPauseProvider } = require('../../ordering/orderingPause') as typ
 const { ThemeProvider } = require('@hg/ui-native') as typeof import('@hg/ui-native');
 const stack = require('../../navigation/stack') as typeof import('../../navigation/stack');
 
+/** Serves the public config and the cart, then renders the cart screen with its providers. */
+function renderCart(config: unknown, cart: unknown): void {
+  fetchSpy.mockImplementation(async (input) => {
+    const url = input instanceof Request ? input.url : String(input);
+    if (url.endsWith('/v1/config/public')) return stubOk({ data: config });
+    if (url.endsWith('/v1/cart')) return stubOk({ data: cart });
+    throw new Error(`unexpected fetch: ${url}`);
+  });
+  jest.spyOn(stack, 'useNavigation').mockReturnValue({
+    current: { name: 'cart' },
+    canGoBack: true,
+    push: jest.fn(),
+    replace: jest.fn(),
+    back: jest.fn(),
+    popTo: jest.fn(),
+    reset: jest.fn(),
+  });
+
+  render(
+    <ThemeProvider theme="customer" scheme="light">
+      <OrderingPauseProvider>
+        <CartScreen />
+      </OrderingPauseProvider>
+    </ThemeProvider>,
+  );
+}
+
 describe('CartScreen — ordering paused', () => {
   it('says ordering is paused and offers no checkout when the public config is paused', async () => {
-    fetchSpy.mockImplementation(async (input) => {
-      const url = input instanceof Request ? input.url : String(input);
-      if (url.endsWith('/v1/config/public')) return stubOk({ data: publicConfigPaused.payload });
-      if (url.endsWith('/v1/cart')) return stubOk({ data: quotableCart });
-      throw new Error(`unexpected fetch: ${url}`);
-    });
-    jest.spyOn(stack, 'useNavigation').mockReturnValue({
-      current: { name: 'cart' },
-      canGoBack: true,
-      push: jest.fn(),
-      replace: jest.fn(),
-      back: jest.fn(),
-      popTo: jest.fn(),
-      reset: jest.fn(),
-    });
-
-    render(
-      <ThemeProvider theme="customer" scheme="light">
-        <OrderingPauseProvider>
-          <CartScreen />
-        </OrderingPauseProvider>
-      </ThemeProvider>,
-    );
+    renderCart(publicConfigPaused.payload, quotableCart);
 
     await waitFor(() => expect(screen.getByText('Ordering is paused for now')).toBeTruthy());
     expect(screen.getByText(quotableCart.lines[0]!.name)).toBeTruthy();
@@ -74,29 +79,7 @@ describe('CartScreen — ordering paused', () => {
 
 describe('CartScreen — a line with several variant groups', () => {
   it('names every chosen variant and add-on, since the deprecated `variant` is null for such a line', async () => {
-    fetchSpy.mockImplementation(async (input) => {
-      const url = input instanceof Request ? input.url : String(input);
-      if (url.endsWith('/v1/config/public')) return stubOk({ data: publicConfig.payload });
-      if (url.endsWith('/v1/cart')) return stubOk({ data: cartMultiVariant.payload });
-      throw new Error(`unexpected fetch: ${url}`);
-    });
-    jest.spyOn(stack, 'useNavigation').mockReturnValue({
-      current: { name: 'cart' },
-      canGoBack: true,
-      push: jest.fn(),
-      replace: jest.fn(),
-      back: jest.fn(),
-      popTo: jest.fn(),
-      reset: jest.fn(),
-    });
-
-    render(
-      <ThemeProvider theme="customer" scheme="light">
-        <OrderingPauseProvider>
-          <CartScreen />
-        </OrderingPauseProvider>
-      </ThemeProvider>,
-    );
+    renderCart(publicConfig.payload, cartMultiVariant.payload);
 
     const line = cartMultiVariant.payload.lines[0]!;
     await waitFor(() => expect(screen.getByText(line.name)).toBeTruthy());
