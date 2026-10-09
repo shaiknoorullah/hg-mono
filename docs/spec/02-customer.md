@@ -31,7 +31,7 @@ These exist so that individual features do not have to re-litigate them. Anythin
 | Locale | `en-CA` only at V1. No i18n layer; all copy is English. |
 | Time | All timestamps stored UTC (`timestamptz`). Restaurant opening/closing hours evaluated in the restaurant's own `restaurants.timezone` (IANA string, e.g. `America/Toronto`). Customer-facing times rendered in the device timezone, always in 12-hour form ("7:42 pm") ([time format](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)). |
 | Theme | The app follows the phone's light or dark setting ([dark theme](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)). |
-| Navigation | Bottom tabs: Home · Search · Orders · Account. The alerts bell stays hidden until Alerts ships ([bottom navigation](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)). |
+| Navigation | Bottom tabs: Home · Search · Orders · Account. The alerts bell stays hidden until Alerts ships ([bottom navigation](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)). As built, the app shows Home · Orders · Account on a full-width bar, with the floating cart bar above it, until the Search screen exists ([#624](https://github.com/shaiknoorullah/hg-mono/issues/624)). |
 
 ### 0.2 API shape
 

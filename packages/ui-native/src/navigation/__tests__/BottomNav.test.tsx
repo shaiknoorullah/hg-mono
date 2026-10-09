@@ -1,5 +1,5 @@
 /**
- * `BottomNav` — the glass pill and its detached primary action.
+ * `BottomNav` — the raised bar and its detached primary action.
  *
  * Two things worth pinning beyond the existing hidden/badge behaviour (which has no dedicated
  * suite because nothing about it changed here): the action button is a SOFT TINT, never the
@@ -27,7 +27,11 @@ describe('BottomNav — action button', () => {
         items={ITEMS}
         active="browse"
         onChange={() => {}}
-        action={{ label: 'New order', icon: <Text>plus</Text>, onPress: () => {} }}
+        action={{
+          label: 'New order',
+          icon: <Text>plus</Text>,
+          onPress: () => {},
+        }}
       />,
     );
     const action = screen.getByTestId('BottomNav-action');
@@ -44,7 +48,11 @@ describe('BottomNav — action button', () => {
         items={ITEMS}
         active="browse"
         onChange={() => {}}
-        action={{ label: 'New order', icon: <Text>plus</Text>, onPress: () => {} }}
+        action={{
+          label: 'New order',
+          icon: <Text>plus</Text>,
+          onPress: () => {},
+        }}
       />,
     );
     const style = styleOf(screen.getByTestId('BottomNav-action'));
@@ -81,10 +89,47 @@ describe('BottomNav — action button', () => {
         active="browse"
         onChange={() => {}}
         hidden
-        action={{ label: 'New order', icon: <Text>plus</Text>, onPress: () => {} }}
+        action={{
+          label: 'New order',
+          icon: <Text>plus</Text>,
+          onPress: () => {},
+        }}
       />,
     );
     expect(screen.queryByTestId('BottomNav')).toBeNull();
     expect(screen.queryByTestId('BottomNav-action')).toBeNull();
+  });
+});
+
+describe('BottomNav — the bar', () => {
+  it('is the raised full-width bar, not the dark chrome pill', () => {
+    const theme = themes.customer.light;
+    renderThemed(<BottomNav items={ITEMS} active="browse" onChange={() => {}} />);
+    const style = styleOf(screen.getByTestId('BottomNav-bar'));
+    expect(style.backgroundColor).toBe(theme.color.surface.raised);
+    expect(style.backgroundColor).not.toBe(theme.color.surface.chrome);
+    expect(style.borderRadius).toBeUndefined();
+  });
+
+  it('marks only the active tab, in the brand colour', () => {
+    const theme = themes.customer.light;
+    renderThemed(<BottomNav items={ITEMS} active="orders" onChange={() => {}} />);
+    expect(
+      styleOf(
+        screen.getByTestId('BottomNav-indicator-orders', {
+          includeHiddenElements: true,
+        }),
+      ).backgroundColor,
+    ).toBe(theme.color.border.brand);
+    expect(
+      styleOf(
+        screen.getByTestId('BottomNav-indicator-browse', {
+          includeHiddenElements: true,
+        }),
+      ).backgroundColor,
+    ).toBe('transparent');
+    expect(screen.getByTestId('BottomNav-tab-orders').props.accessibilityState).toMatchObject({
+      selected: true,
+    });
   });
 });
