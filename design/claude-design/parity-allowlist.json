@@ -1,0 +1,15 @@
+{
+  "$description": "Differences between the live Claude Design tokens (design/claude-design/tokens.json) and what @hg/ui-web generates that are held deliberately. `node scripts/design-sync.mjs --check` prints these but does not fail on them. Every entry needs a reason; remove an entry once the difference is gone (the check reports stale entries). Value changes to released apps wait for the owner's answer O4: no token value changes before launch.",
+  "entries": [
+    {
+      "name": "color-map-pin-rider",
+      "scheme": "*",
+      "reason": "Held until after launch (owner answer O4). The live file moved pinRider to forest #1B3B31; the repo keeps #0F7A43, a registered exception to lint L-4. Adopting live also removes that exception (design-system.md section 3.3)."
+    },
+    {
+      "kind": "font",
+      "name": "font-mono",
+      "reason": "Held until after launch (owner answer O4). The live file's mono is IBM Plex Mono; the repo still ships JetBrains Mono. Changing it changes what the released apps show."
+    }
+  ]
+}

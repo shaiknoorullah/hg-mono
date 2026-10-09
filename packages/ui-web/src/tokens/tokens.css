@@ -329,6 +329,8 @@
   --hg-text-on-inverse: #F6EFDD;
   --hg-text-on-accent: #FFFFFF;
   --hg-text-link: #0959B8;
+  --hg-text-link-hover: #07458F;
+  --hg-text-secondary-field: #4A4E48;
   --hg-border-decorative: #E6E0D4;
   --hg-border-interactive: #8B8578;
   --hg-border-strong: #4A4E48;
@@ -394,6 +396,18 @@
   --hg-feedback-info-on-solid: #FFFFFF;
   --hg-skeleton-base: #D8D0BF;
   --hg-skeleton-highlight: #E6E0D4;
+  --hg-elev-surface-0: #FFFAEA;
+  --hg-elev-surface-1: #FFFFFF;
+  --hg-elev-surface-2: #FFFFFF;
+  --hg-elev-surface-3: #FFFFFF;
+  --hg-elev-surface-4: #FFFFFF;
+  --hg-elev-surface-sticky: #FFFFFF;
+  --hg-elev-hairline: transparent;
+  --hg-action-primary: var(--hg-action-primary-bg);
+  --hg-action-primary-pressed: var(--hg-action-primary-bg-pressed);
+  --hg-action-secondary: var(--hg-action-secondary-bg);
+  --hg-action-secondary-pressed: var(--hg-action-secondary-bg-pressed);
+  --hg-action-track-on: var(--hg-control-track-on);
   --hg-focus-ring-color: var(--hg-focus-ring);
   --hg-focus-ring-offset: var(--hg-focus-offset);
 }
@@ -418,6 +432,8 @@
     --hg-text-on-inverse: #232323;
     --hg-text-on-accent: #FFFFFF;
     --hg-text-link: #6FA9F2;
+    --hg-text-link-hover: #CBDFFC;
+    --hg-text-secondary-field: #D8D0BF;
     --hg-border-decorative: #33352F;
     --hg-border-interactive: #6E7C77;
     --hg-border-strong: #8B8578;
@@ -483,6 +499,18 @@
     --hg-feedback-info-on-solid: #FFFFFF;
     --hg-skeleton-base: #33352F;
     --hg-skeleton-highlight: #4A4E48;
+    --hg-elev-surface-0: #171717;
+    --hg-elev-surface-1: #232323;
+    --hg-elev-surface-2: #232323;
+    --hg-elev-surface-3: #33352F;
+    --hg-elev-surface-4: #33352F;
+    --hg-elev-surface-sticky: #33352F;
+    --hg-elev-hairline: #33352F;
+    --hg-action-primary: var(--hg-action-primary-bg);
+    --hg-action-primary-pressed: var(--hg-action-primary-bg-pressed);
+    --hg-action-secondary: var(--hg-action-secondary-bg);
+    --hg-action-secondary-pressed: var(--hg-action-secondary-bg-pressed);
+    --hg-action-track-on: var(--hg-control-track-on);
     --hg-focus-ring-color: var(--hg-focus-ring);
     --hg-focus-ring-offset: var(--hg-focus-offset);
   }
@@ -513,6 +541,8 @@
   --hg-text-on-inverse: #232323;
   --hg-text-on-accent: #FFFFFF;
   --hg-text-link: #6FA9F2;
+  --hg-text-link-hover: #CBDFFC;
+  --hg-text-secondary-field: #D8D0BF;
   --hg-border-decorative: #33352F;
   --hg-border-interactive: #6E7C77;
   --hg-border-strong: #8B8578;
@@ -578,6 +608,18 @@
   --hg-feedback-info-on-solid: #FFFFFF;
   --hg-skeleton-base: #33352F;
   --hg-skeleton-highlight: #4A4E48;
+  --hg-elev-surface-0: #171717;
+  --hg-elev-surface-1: #232323;
+  --hg-elev-surface-2: #232323;
+  --hg-elev-surface-3: #33352F;
+  --hg-elev-surface-4: #33352F;
+  --hg-elev-surface-sticky: #33352F;
+  --hg-elev-hairline: #33352F;
+  --hg-action-primary: var(--hg-action-primary-bg);
+  --hg-action-primary-pressed: var(--hg-action-primary-bg-pressed);
+  --hg-action-secondary: var(--hg-action-secondary-bg);
+  --hg-action-secondary-pressed: var(--hg-action-secondary-bg-pressed);
+  --hg-action-track-on: var(--hg-control-track-on);
   --hg-focus-ring-color: var(--hg-focus-ring);
   --hg-focus-ring-offset: var(--hg-focus-offset);
 }
