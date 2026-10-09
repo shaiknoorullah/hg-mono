@@ -5,6 +5,7 @@ name: ci
 #
 #   contract-kit  the client, the fixtures and the mock cannot drift from contracts/openapi.yaml:
 #                 every one of them is regenerated here and any difference fails the build.
+#                 Also checks the device-lab missions (pnpm e2e:missions:check), when they change.
 #   js            lint and every JS unit-test suite. No baseline: a known-failing test stays red
 #                 until it is fixed, not hidden.
 #   go            go vet and the Go test suite, against a migrated, seeded Postgres service
@@ -60,6 +61,7 @@ jobs:
       go: ${{ steps.filter.outputs.go }}
       js: ${{ steps.filter.outputs.js }}
       coverage: ${{ steps.filter.outputs.coverage }}
+      missions: ${{ steps.filter.outputs.missions }}
     steps:
       # A push is compared with the commit before it, which needs the history.
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -89,6 +91,14 @@ jobs:
               - '.npmrc'
               - 'tsconfig.json'
               - '.github/workflows/ci.yml'
+            # Device-lab missions, routes and reality helpers (tools/e2e/native/README.md).
+            # scenario.go: the checker reads devworld's scenario names from it.
+            missions:
+              - 'tools/e2e/native/**'
+              - 'tools/e2e/reality/**'
+              - 'services/hg/internal/devworld/scenario.go'
+              - 'package.json'
+              - '.github/workflows/ci.yml'
             coverage:
               - 'services/hg/**'
               - 'apps/**'
@@ -106,7 +116,7 @@ jobs:
     needs: changes
     if: >-
       (github.event_name == 'pull_request' || github.event_name == 'push') &&
-      needs.changes.outputs.js == 'true' &&
+      (needs.changes.outputs.js == 'true' || needs.changes.outputs.missions == 'true') &&
       (
        (github.event_name == 'schedule' ||
         (contains(fromJSON(vars.HG_CI_TRUSTED_ACTORS || '["shaiknoorullah"]'), github.actor) &&
@@ -189,6 +199,12 @@ jobs:
       # or a template changed without re-exporting, fails here.
       - name: email templates are not hand-edited
         run: pnpm emails:check
+
+      # 4b. Device-lab missions are valid: schema, allow-listed setup and reality steps, referenced
+      #     flows, routes and media exist; the GPX routes match their generator; the reality
+      #     helpers' allow-list tests pass. No emulator needed.
+      - name: device-lab missions
+        run: pnpm e2e:missions:check
 
       # 5. The mock actually boots and serves the contract. It runs in its own process
       #    group, so the cleanup step below stops all of it.
