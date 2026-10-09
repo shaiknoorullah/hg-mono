@@ -18,25 +18,27 @@ export interface HeartbeatHealth {
   lastOkAt: number | null;
   /** When beats started failing (network error or 5xx), or null while they succeed. */
   failingSince: number | null;
+  /** Consecutive failed beats; one blip is not "offline" (see `connectionView`). */
+  failures: number;
 }
 
-let health: HeartbeatHealth = { lastOkAt: null, failingSince: null };
+let health: HeartbeatHealth = { lastOkAt: null, failingSince: null, failures: 0 };
 const listeners = new Set<() => void>();
 
 function setHealth(next: HeartbeatHealth) {
-  if (next.lastOkAt === health.lastOkAt && next.failingSince === health.failingSince) return;
+  if (next.lastOkAt === health.lastOkAt && next.failingSince === health.failingSince && next.failures === health.failures) return;
   health = next;
   listeners.forEach((l) => l());
 }
 
 export function recordHeartbeat(ok: boolean, at: number = Date.now()): void {
-  if (ok) setHealth({ lastOkAt: at, failingSince: null });
-  else setHealth({ lastOkAt: health.lastOkAt, failingSince: health.failingSince ?? at });
+  if (ok) setHealth({ lastOkAt: at, failingSince: null, failures: 0 });
+  else setHealth({ lastOkAt: health.lastOkAt, failingSince: health.failingSince ?? at, failures: health.failures + 1 });
 }
 
 /** For tests. */
 export function resetHeartbeatHealth(): void {
-  setHealth({ lastOkAt: null, failingSince: null });
+  setHealth({ lastOkAt: null, failingSince: null, failures: 0 });
 }
 
 export function useHeartbeatHealth(): HeartbeatHealth {

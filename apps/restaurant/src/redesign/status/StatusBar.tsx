@@ -23,7 +23,7 @@ import { useConnection, type ConnectionView } from '../data/connection';
 import { serverNow } from '../data/serverClock';
 import { formatTime } from '../format/time';
 import { useConsoleLayout } from '../shell/layout';
-import { useStale } from '../shell/stale';
+import { useFirstLoadFailed, useStale } from '../shell/stale';
 import { halalConsoleView } from './halal';
 import { openStateView } from './openState';
 
@@ -57,6 +57,7 @@ export function StatusBar() {
   const availability = useAvailability();
   const connection = useConnection();
   const stale = useStale();
+  const pageLoadFailed = useFirstLoadFailed();
   const toast = useToast();
   const { setConfirm } = useConsoleLayout();
   const [params, setParams] = useSearchParams();
@@ -92,8 +93,12 @@ export function StatusBar() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [missingHalal]);
 
-  const view = openStateView(availability.data, { status: availability.status, halalBlocked: halal?.blocksOrdering });
-  const health = healthBadge(connection, availability.status === 'error', timezone);
+  // A page whose first read failed (Board-first-load-error) makes the whole bar unknown: the
+  // open state can't be shown as known beside "We couldn’t load your orders".
+  const view = pageLoadFailed
+    ? openStateView(null, { status: 'error' })
+    : openStateView(availability.data, { status: availability.status, halalBlocked: halal?.blocksOrdering });
+  const health = healthBadge(connection, availability.status === 'error' || pageLoadFailed, timezone);
   const healthOpen = params.get('panel') === 'health';
 
   const toggleHealth = () => {

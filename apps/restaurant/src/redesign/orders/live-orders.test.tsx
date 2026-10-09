@@ -8,6 +8,8 @@ import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-libra
 import { FakeRealtimeSocket } from '@hg/ui-web/testing';
 import { consoleRoutes, errorBody, fixture, installFakeApi, type Handler } from '../test/fakeApi';
 import { renderRedesign } from '../test/render';
+import { noteAcceptedHere } from './acceptedHere';
+import type { Order } from './model';
 
 afterEach(() => {
   cleanup();
@@ -114,9 +116,16 @@ describe('In progress list', () => {
     const api = installFakeApi(consoleRoutes({ 'GET /v1/restaurant/orders': { status: 500, body: errorBody('INTERNAL_ERROR') } }));
     await renderRedesign('/orders');
     expect(await screen.findByRole('heading', { name: 'We couldn’t load your orders' })).toBeTruthy();
+    // Board-first-load-error: the status bar can't show anything as known (availability answered).
+    const bar = screen.getByRole('region', { name: 'Service status' });
+    await waitFor(() => expect(within(bar).getByTestId('health-badge').textContent).toBe('Not connected'));
+    expect(within(bar).getByTestId('open-state-badge').textContent).toBe('Unknown');
+    expect(within(bar).getByRole('switch', { name: /^Orders/ }).hasAttribute('disabled')).toBe(true);
     api.set('GET /v1/restaurant/orders', 'restaurant_order_queue_empty');
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
     expect(await screen.findByText('Nothing in progress')).toBeTruthy();
+    await waitFor(() => expect(within(bar).getByTestId('open-state-badge').textContent).not.toBe('Unknown'));
+    expect(within(bar).getByTestId('health-badge').textContent).not.toBe('Not connected');
   });
 
   it('refresh failed: keeps the rows, says so in the bar and a banner, and Try now recovers', async () => {
@@ -176,6 +185,18 @@ describe('Order detail panel', () => {
     const panel = await screen.findByRole('complementary', { name: 'Order A7K2 details' });
     await within(panel).findByText('Phone number and full address appear after you accept.');
     expect(within(panel).queryByText(b.pending.customer.phone_masked)).toBeNull();
+    expect(within(panel).getByText(b.pending.delivery_area)).toBeTruthy();
+  });
+
+  it('an offer that ended before acceptance (CANCELLED, accepted_at null): no phone, no address, not charged', async () => {
+    const b = board();
+    const ended = { ...b.pending, state: 'CANCELLED', accepted_at: null };
+    installFakeApi(boardRoutes(b, { [`GET /v1/restaurant/orders/${ids.pending}`]: { body: ended } }));
+    await renderRedesign(`/orders?order=${ids.pending}`);
+    const panel = await screen.findByRole('complementary', { name: 'Order A7K2 details' });
+    await within(panel).findByText('Not charged');
+    expect(within(panel).queryByText(b.pending.customer.phone_masked)).toBeNull();
+    expect(within(panel).queryByText('HalalGoes commission')).toBeNull();
     expect(within(panel).getByText(b.pending.delivery_area)).toBeTruthy();
   });
 
@@ -265,6 +286,37 @@ describe('Mark ready', () => {
     const k1 = calls[0]!.headers.get('Idempotency-Key');
     expect(k1).toBeTruthy();
     expect(calls[1]!.headers.get('Idempotency-Key')).toBe(k1);
+  });
+
+  it('just accepted: drawn at the top, a mark-ready failure still shows, and a refresh lets it sort normally', async () => {
+    const b = board();
+    const accepted = { ...b.prep, id: ids.pending, code: 'A7K2', promised_ready_at: inMinutes(30) } as unknown as Order;
+    const api = installFakeApi(boardRoutes(b, { [`POST /v1/restaurant/orders/${ids.pending}/ready`]: { status: 503, body: errorBody('SERVICE_UNAVAILABLE') } }));
+    await renderRedesign('/orders');
+    await waitFor(() => expect(codeButton('K7L8')).toBeTruthy());
+    act(() => noteAcceptedHere(accepted));
+    const row = () => codeButton('A7K2').closest('tr')!;
+    await waitFor(() => expect(within(row()).getByText('Just accepted')).toBeTruthy());
+    const codes = () => within(listRegion()).getAllByRole('button').map((x) => x.textContent).filter((t) => /^[A-Z0-9]{4,5}$/.test(t ?? ''));
+    expect(codes()[0]).toBe('A7K2');
+    // Mark ready fails: the failure is not hidden behind "Just accepted".
+    fireEvent.click(within(row()).getByRole('button', { name: 'Mark order A7K2 ready' }));
+    await waitFor(() => expect(within(row()).getByText('Not marked ready')).toBeTruthy());
+    expect(within(row()).getByRole('button', { name: 'Try marking order A7K2 ready again' })).toBeTruthy();
+    expect(within(row()).queryByText('Just accepted')).toBeNull();
+    // Another order accepted here is pinned at the top until the next list refresh, then sorts
+    // by its ready time like any other preparing row.
+    const second = { ...b.prep, id: ids.done, code: 'B3M9', promised_ready_at: inMinutes(40) } as unknown as Order;
+    act(() => noteAcceptedHere(second));
+    await waitFor(() => expect(codes()[0]).toBe('B3M9'));
+    api.set('GET /v1/restaurant/orders', { body: [b.prep, b.late, b.ready, accepted, second] });
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    await waitFor(() => expect(codes()[0]).not.toBe('B3M9'));
+    const secondRow = codeButton('B3M9').closest('tr')!;
+    expect(within(secondRow).getByText('Preparing')).toBeTruthy();
+    expect(codes().at(-1)).toBe('B3M9');
   });
 
   it('the panel says the rider has not been told when marking fails', async () => {

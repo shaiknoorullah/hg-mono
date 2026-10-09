@@ -3,8 +3,8 @@
  * connection banners (LO `Board-reconnecting`, `Board-closed-offline`; wp1 spec §6, inference
  * Q-C1): the socket is an optimisation, REST is the truth.
  *
- * - REST failing (heartbeats fail, or the browser says it is offline) → `offline`, since the
- *   last successful heartbeat;
+ * - REST failing (two heartbeats in a row fail, or the browser says it is offline) → `offline`,
+ *   since the last successful heartbeat. One failed beat is a blip, not "offline";
  * - socket not open but REST answering, after it had been open → `reconnecting`, since the
  *   moment it dropped;
  * - socket never open yet → `connecting`;
@@ -32,13 +32,29 @@ export interface ConnectionInputs {
   browserOnline: boolean;
 }
 
+/** Failed beats in a row before the screen reads as offline (beats are 30 s apart). */
+export const OFFLINE_AFTER_FAILURES = 2;
+/** The server computes CLOSED_OFFLINE after this long without a check-in. */
+export const SERVER_OFFLINE_AFTER_MS = 5 * 60_000;
+
 export function connectionView(i: ConnectionInputs): ConnectionView {
-  if (!i.browserOnline || i.heartbeat.failingSince !== null) {
+  if (!i.browserOnline || (i.heartbeat.failingSince !== null && i.heartbeat.failures >= OFFLINE_AFTER_FAILURES)) {
     return { kind: 'offline', since: i.heartbeat.lastOkAt ?? i.heartbeat.failingSince };
   }
   if (i.realtime === 'open') return { kind: 'live', since: null };
   if (!i.everOpen) return { kind: 'connecting', since: null };
   return { kind: 'reconnecting', since: i.droppedAt };
+}
+
+/**
+ * Offline long enough that the server has stopped offering orders (`Board-closed-offline`):
+ * five minutes since the last good check-in, or the server itself said CLOSED_OFFLINE. Before
+ * that the screen is offline but orders still flow to it (or to another screen).
+ */
+export function pastServerCutoff(view: ConnectionView, now: number, serverSaysOffline = false): boolean {
+  if (view.kind !== 'offline') return false;
+  if (serverSaysOffline) return true;
+  return view.since !== null && now - view.since >= SERVER_OFFLINE_AFTER_MS;
 }
 
 function useBrowserOnline(): boolean {

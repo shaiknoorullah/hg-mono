@@ -8,7 +8,9 @@ import { fixture } from '../test/fakeApi';
 import {
   LIVE_STATES,
   countRows,
+  endedBeforeAccept,
   guardLiveRows,
+  isAccepted,
   lineExtra,
   pickupCodeOf,
   readyByText,
@@ -62,6 +64,11 @@ describe('row status: every visible state is distinct and labelled', () => {
     ['marking', order({ code: 'A' }), {}, 'sending', 'Marking ready…', 'mark-ready'],
     ['mark failed', order({ code: 'A' }), {}, 'failed', 'Not marked ready', 'try-again'],
     ['mark refused', order({ code: 'A' }), {}, 'refused', 'Can’t mark ready now', 'refreshing'],
+    // A never-cut action's failure must not hide behind "Just accepted".
+    ['just accepted, mark failed', order({ code: 'A' }), { justAccepted: true }, 'failed', 'Not marked ready', 'try-again'],
+    ['just accepted, marking', order({ code: 'A' }), { justAccepted: true }, 'sending', 'Marking ready…', 'mark-ready'],
+    ['just accepted, mark refused', order({ code: 'A' }), { justAccepted: true }, 'refused', 'Can’t mark ready now', 'refreshing'],
+    ['just accepted, cleared', order({ code: 'A', promised_ready_at: at(10) }), { justAccepted: false }, null, 'Preparing', 'mark-ready'],
     ['items adjusted', order({ code: 'A' }), { removedLines: [{ line_no: 2, name: 'Beef Nihari', qty: 1 }] }, null, 'Order changed', 'mark-ready'],
     ['note added', order({ code: 'A' }), { notes: [{ author_kind: 'SUPPORT', text: 'Napkins', at: at(0) }] }, null, 'New note', 'mark-ready'],
     ['ready', order({ code: 'A', state: 'READY_FOR_PICKUP', rider }), {}, null, 'Ready', 'waiting'],
@@ -148,5 +155,27 @@ describe('fields the contract does not carry yet', () => {
     expect(lineExtra({ ...line, variant_name: null, addons: [{ addon_id: 'a', addon_name: 'Extra garlic sauce', addon_quantity: 1, addon_price_cents: 50 as never }] })).toBe(
       '+ Extra garlic sauce',
     );
+  });
+});
+
+describe('acceptance: phone and full address only once accepted', () => {
+  const pending = fixture('restaurant_order_restaurant_pending') as Order;
+  it('an offer that ended before acceptance (CANCELLED, accepted_at null) is not accepted and was not charged', () => {
+    for (const state of ['RESTAURANT_PENDING', 'CANCELLED', 'REJECTED'] as const) {
+      const o = { ...pending, state, accepted_at: null };
+      expect(isAccepted(o)).toBe(false);
+    }
+    expect(endedBeforeAccept({ ...pending, state: 'CANCELLED', accepted_at: null })).toBe(true);
+    expect(endedBeforeAccept({ ...pending, state: 'RESTAURANT_PENDING', accepted_at: null })).toBe(false);
+  });
+  it('accepted orders, including one cancelled after acceptance', () => {
+    const preparing = fixture('restaurant_order_preparing') as Order;
+    expect(isAccepted(preparing)).toBe(true);
+    const cancelledLater = { ...preparing, state: 'CANCELLED' as const };
+    expect(isAccepted(cancelledLater)).toBe(true);
+    expect(endedBeforeAccept(cancelledLater)).toBe(false);
+    for (const state of ['READY_FOR_PICKUP', 'PICKED_UP', 'ARRIVED', 'DELIVERED', 'COMPLETED', 'DISPUTED', 'RESOLVED'] as const) {
+      expect(isAccepted({ ...preparing, state, accepted_at: null })).toBe(true);
+    }
   });
 });

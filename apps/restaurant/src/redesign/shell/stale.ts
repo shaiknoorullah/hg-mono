@@ -41,3 +41,30 @@ export function useStale(): StaleInfo | null {
     () => snapshot,
   );
 }
+
+/**
+ * "First load failed" (LO `Board-first-load-error`): a page whose first read failed (nothing on
+ * screen) publishes it, and the status bar reads health "Not connected" and open state
+ * "Unknown" even when the availability read itself answered.
+ */
+const failedSources = new Set<string>();
+let failedSnapshot = false;
+const failedListeners = new Set<() => void>();
+
+export function publishFirstLoadFailed(key: string, failed: boolean): void {
+  if (failed === failedSources.has(key)) return;
+  if (failed) failedSources.add(key);
+  else failedSources.delete(key);
+  failedSnapshot = failedSources.size > 0;
+  failedListeners.forEach((l) => l());
+}
+
+export function useFirstLoadFailed(): boolean {
+  return useSyncExternalStore(
+    (l) => {
+      failedListeners.add(l);
+      return () => failedListeners.delete(l);
+    },
+    () => failedSnapshot,
+  );
+}

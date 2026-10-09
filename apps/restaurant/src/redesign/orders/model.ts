@@ -99,10 +99,13 @@ export function rowStatus(o: Order, facts: LiveFacts = {}, mark: MarkPhase | nul
     return { badge: { label: 'Ready', variant: 'info', icon: 'check' }, action: 'waiting', rank: 1 };
   }
   // PREPARING (and anything unrecognised that slipped through the guard).
-  if (facts.justAccepted) return { badge: { label: 'Just accepted', variant: 'brand', icon: 'check' }, action: 'mark-ready', rank: -1 };
+  // A mark-ready attempt in flight, failed or refused outranks every other fact: its failure
+  // state must never hide behind "Just accepted" (a never-cut action stays visible).
   if (mark === 'refused') return { badge: { label: 'Can’t mark ready now', variant: 'neutral' }, action: 'refreshing', rank: 2 };
   if (mark === 'failed') return { badge: { label: 'Not marked ready', variant: 'danger' }, action: 'try-again', rank: 2 };
   if (mark === 'sending') return { badge: { label: 'Marking ready…', variant: 'neutral' }, action: 'mark-ready', rank: 2 };
+  // Drawn at the top only until the page clears the fact (next list refresh or a short timeout).
+  if (facts.justAccepted) return { badge: { label: 'Just accepted', variant: 'brand', icon: 'check' }, action: 'mark-ready', rank: -1 };
   if (facts.riderPhase === 'here') return { badge: { label: 'Rider here · not ready', variant: 'brand', icon: 'profile' }, action: 'mark-ready', rank: 2 };
   if (facts.unassigned) return { badge: { label: 'Rider unassigned', variant: 'warning', icon: 'profile' }, action: 'mark-ready', rank: 2 };
   if (facts.removedLines?.length) return { badge: { label: 'Order changed', variant: 'info' }, action: 'mark-ready', rank: 2 };
@@ -227,9 +230,22 @@ export function panelBadge(o: Order, facts: LiveFacts = {}, now: number = Date.n
   }
 }
 
-/** True once the restaurant has accepted: phone and full address may show (never before). */
+/** States only an accepted order can reach. */
+const ACCEPTED_STATES = new Set<OrderState>(['PREPARING', 'READY_FOR_PICKUP', 'PICKED_UP', 'ARRIVED', 'DELIVERED', 'COMPLETED', 'DISPUTED', 'RESOLVED']);
+
+/**
+ * True once the restaurant has accepted: phone and full address may show (never before).
+ * Based on acceptance evidence, not on whether the state is terminal: an offer that timed out
+ * or was withdrawn ends in CANCELLED with `accepted_at` null, and must stay pre-accept.
+ */
 export function isAccepted(o: Order): boolean {
-  return !['CREATED', 'AUTHORIZED', 'RESTAURANT_PENDING', 'REJECTED', 'FAILED'].includes(o.state);
+  if (o.accepted_at) return o.state !== 'REJECTED';
+  return o.state !== 'CANCELLED' && ACCEPTED_STATES.has(o.state);
+}
+
+/** An order that ended before anyone accepted it: no commission row, "You earn — Not charged". */
+export function endedBeforeAccept(o: Order): boolean {
+  return (o.state === 'CANCELLED' || o.state === 'REJECTED' || o.state === 'FAILED') && !isAccepted(o);
 }
 
 const INSTRUCTION: Record<string, string> = {

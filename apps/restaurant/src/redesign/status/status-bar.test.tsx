@@ -6,10 +6,11 @@
  * expired, the absence reported).
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { setHalalClientErrorReporter } from '@hg/ui-web/certification';
 import { consoleRoutes, errorBody, fixture, installFakeApi, type Handler } from '../test/fakeApi';
 import { renderRedesign } from '../test/render';
+import { recordHeartbeat } from '../data/heartbeat';
 
 afterEach(() => {
   cleanup();
@@ -173,12 +174,50 @@ describe('screen health', () => {
     await waitFor(() => expect(document.activeElement).toBe(within(region).getByRole('button', { name: /^Screen health/ })));
   });
 
-  it('failing heartbeats read as offline with a banner', async () => {
-    await bar({ 'POST /v1/restaurant/heartbeat': { status: 503, body: errorBody('SERVICE_UNAVAILABLE') } });
+  it('one failed heartbeat is a blip; two in a row read as offline, and “stopped sending” waits for 5 minutes', async () => {
+    const api = installFakeApi(
+      consoleRoutes({ 'GET /v1/restaurant/availability': { body: open() }, 'POST /v1/restaurant/heartbeat': { status: 503, body: errorBody('SERVICE_UNAVAILABLE') } }),
+    );
+    await renderRedesign('/orders');
+    const region = await screen.findByRole('region', { name: 'Service status' });
+    await waitFor(() => expect(api.callsTo('POST /v1/restaurant/heartbeat').length).toBeGreaterThan(0));
+    // A single 503: not offline, no banner telling the kitchen orders stopped.
+    expect(screen.queryByTestId('banner-offline')).toBeNull();
+    expect(within(region).getByTestId('health-badge').textContent).not.toMatch(/^Offline/);
+
+    // The next beat fails too (last good check-in a minute ago): offline, orders not stopped yet.
+    act(() => {
+      recordHeartbeat(true, Date.now() - 60_000);
+      recordHeartbeat(false);
+      recordHeartbeat(false);
+    });
     const banner = await screen.findByTestId('banner-offline');
     expect(banner.getAttribute('role')).toBe('alert');
     expect(within(banner).getByText('This screen is offline')).toBeTruthy();
-    expect(screen.getByTestId('health-badge').textContent).toMatch(/^Offline/);
+    expect(within(banner).getByText(/stops sending new orders after 5 minutes without a check-in/)).toBeTruthy();
+    expect(within(banner).queryByText(/has stopped sending you orders/)).toBeNull();
+    expect(within(region).getByTestId('health-badge').textContent).toMatch(/^Offline since/);
+  });
+
+  it('5 minutes without a check-in: the banner says HalalGoes has stopped sending orders', async () => {
+    await bar({ 'POST /v1/restaurant/heartbeat': { status: 503, body: errorBody('SERVICE_UNAVAILABLE') } });
+    act(() => {
+      recordHeartbeat(true, Date.now() - 6 * 60_000);
+      recordHeartbeat(false);
+      recordHeartbeat(false);
+    });
+    const banner = await screen.findByTestId('banner-offline');
+    expect(
+      within(banner).getByText('Offline for 5 minutes. If no other screen is open, HalalGoes has stopped sending you orders. You reopen automatically when a screen reconnects.'),
+    ).toBeTruthy();
+  });
+
+  it('CLOSED_OFFLINE: Pause is not offered (it would turn orders on)', async () => {
+    const { region } = await bar({
+      'GET /v1/restaurant/availability': { body: open({ open_state: 'CLOSED_OFFLINE', is_accepting_orders: false, reason: null }) },
+    });
+    expect(within(region).getByTestId('open-state-badge').textContent).toBe('Unknown · this screen offline');
+    expect(within(region).getByRole('button', { name: 'Pause' }).hasAttribute('disabled')).toBe(true);
   });
 });
 

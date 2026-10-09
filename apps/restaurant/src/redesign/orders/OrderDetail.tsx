@@ -19,6 +19,7 @@ import { formatPhone, telHref } from '../format/phone';
 import {
   deliveryInstructions,
   formatAddress,
+  endedBeforeAccept,
   isAccepted,
   isLate,
   lineExtra,
@@ -133,6 +134,7 @@ export function OrderDetail({ orderId, resource, facts, mark, onMarkReady, onClo
   const out = order.state === 'PICKED_UP' || order.state === 'ARRIVED';
   const liveState = ['PREPARING', 'READY_FOR_PICKUP', 'PICKED_UP', 'ARRIVED'].includes(order.state) && !cancelled;
   const accepted = isAccepted(order);
+  const notCharged = endedBeforeAccept(order);
   const rider = order.rider ?? null;
   const riderName = rider?.display_name ?? '';
   const riderHere = facts.riderPhase === 'here';
@@ -401,13 +403,22 @@ export function OrderDetail({ orderId, resource, facts, mark, onMarkReady, onClo
               <Price cents={negateCents(money.discount_cents as Cents)} size="sm" sign="always" />
             </div>
           ) : null}
-          <div className="flex justify-between text-fg-secondary">
-            <span>HalalGoes commission</span>
-            <Price cents={money.commission_cents} size="sm" />
-          </div>
+          {notCharged ? null : (
+            <div className="flex justify-between text-fg-secondary">
+              <span>HalalGoes commission</span>
+              <Price cents={money.commission_cents} size="sm" />
+            </div>
+          )}
           <div className="mt-1 flex items-center justify-between text-[17px] font-bold">
             <span>You earn</span>
-            <Price cents={money.restaurant_net_cents} size="lg" />
+            {notCharged ? (
+              <span className="flex items-center gap-2" data-testid="not-charged">
+                <span aria-hidden="true">—</span>
+                <span className="text-[15px] font-semibold text-fg-secondary">Not charged</span>
+              </span>
+            ) : (
+              <Price cents={money.restaurant_net_cents} size="lg" />
+            )}
           </div>
         </section>
 

@@ -151,6 +151,10 @@ test.describe('Live orders: In progress list', () => {
     );
     await openSignedIn(page, '/orders');
     await expect(page.getByRole('heading', { name: 'We couldn’t load your orders' })).toBeVisible();
+    // Board-first-load-error: health "Not connected" and open state "Unknown" beside it.
+    const bar = page.getByRole('region', { name: 'Service status' });
+    await expect(bar.getByTestId('health-badge')).toHaveText('Not connected');
+    await expect(bar.getByTestId('open-state-badge')).toHaveText('Unknown');
     await expectNoDocumentScroll(page);
     await shot(page, 'first-load-error');
     fail = false;

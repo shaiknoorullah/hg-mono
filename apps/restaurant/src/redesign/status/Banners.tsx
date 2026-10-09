@@ -7,13 +7,13 @@
  * While the screen-health panel is open the connection banners step aside: the panel is the
  * explainer (wp1 §7).
  */
-import type { ReactElement } from 'react';
+import { useEffect, useState, type ReactElement } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import type { Schema } from '@hg/api-client';
 import { PageBanner, type PageBannerTone } from '../ds';
 import { useConsole } from '../data/console';
 import { useAvailability } from '../data/availability';
-import { useConnection } from '../data/connection';
+import { pastServerCutoff, useConnection } from '../data/connection';
 import { sendHeartbeat } from '../data/heartbeat';
 import { client } from '../data/client';
 import { call } from '../data/call';
@@ -67,18 +67,35 @@ export function Banners() {
   const support = cfg?.support_enabled && cfg.support_phone_e164 ? { display: formatPhone(cfg.support_phone_e164), href: telHref(cfg.support_phone_e164) } : null;
   const healthOpen = params.get('panel') === 'health';
 
+  // While offline, re-check every 15 s whether the 5-minute server cutoff has passed: only then
+  // has HalalGoes stopped sending orders (Board-closed-offline). Before it, say what will happen.
+  const offline = connection.kind === 'offline';
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!offline) return;
+    setNow(Date.now());
+    const id = window.setInterval(() => setNow(Date.now()), 15_000);
+    return () => window.clearInterval(id);
+  }, [offline]);
+  // `since` is this screen's own clock (last good heartbeat), so elapsed time uses it too.
+  const stoppedOrders = pastServerCutoff(connection, now, availability.data?.open_state === 'CLOSED_OFFLINE');
+
   const banners: ReactElement[] = [];
 
-  if (!healthOpen && connection.kind === 'offline') {
+  if (!healthOpen && offline) {
     banners.push(
       <PageBanner
-        key="offline"
+        key={stoppedOrders ? 'offline-closed' : 'offline'}
         testId="banner-offline"
         tone="danger"
         role="alert"
         icon="error"
         title="This screen is offline"
-        body="Offline for 5 minutes. If no other screen is open, HalalGoes has stopped sending you orders. You reopen automatically when a screen reconnects."
+        body={
+          stoppedOrders
+            ? 'Offline for 5 minutes. If no other screen is open, HalalGoes has stopped sending you orders. You reopen automatically when a screen reconnects.'
+            : 'If no other screen is open, HalalGoes stops sending new orders after 5 minutes without a check-in. This screen can’t tell until it reconnects.'
+        }
         action={{
           label: 'Reconnect now',
           onPress: () => {

@@ -116,7 +116,9 @@ export function openStateView(a: Availability | null, ctx: OpenStateContext): Op
         badge: { label: 'Unknown · this screen offline', variant: 'neutral' },
         reason: 'Can’t check while offline.',
         orders: { checked, disabled: false, help: checked ? 'On · can’t confirm while offline' : null, stateLabel: LABELS },
-        pause: 'menu',
+        // Spec §3.1: Pause is "—" here. Pausing sends is_accepting_orders: true, which would
+        // silently turn orders back on when the toggle is off.
+        pause: 'menu-disabled',
       };
     default:
       // An open state this build doesn't know: say so, never guess (assertNever fallback).

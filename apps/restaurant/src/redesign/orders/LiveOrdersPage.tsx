@@ -26,7 +26,7 @@ import { useConnection } from '../data/connection';
 import { serverNow } from '../data/serverClock';
 import { errorStatus, useServerResource } from '../data/useServerResource';
 import { usePagePanelOpen } from '../shell/layout';
-import { publishStale } from '../shell/stale';
+import { publishFirstLoadFailed, publishStale } from '../shell/stale';
 import { onAcceptedHere, wasAcceptedHere } from './acceptedHere';
 import { OrderDetail } from './OrderDetail';
 import {
@@ -66,6 +66,9 @@ async function markReadyCall(id: string, key: string): Promise<Order> {
     client.POST('/v1/restaurant/orders/{orderId}/ready', { params: { path: { orderId: id }, header: { 'Idempotency-Key': key } } }),
   )) as unknown as Order;
 }
+
+/** How long a just-accepted order stays pinned at the top if no refresh comes first. */
+const JUST_ACCEPTED_MS = 60_000;
 
 type WidthMode = 'full' | 'mid' | 'narrow';
 
@@ -137,7 +140,14 @@ export function LiveOrdersPage() {
   useEffect(() => {
     publishStale('orders', list.status === 'stale' && lastOk.current ? { lastOkAt: lastOk.current, retry: () => void refreshList() } : null);
   }, [list.status, refreshList]);
-  useEffect(() => () => publishStale('orders', null), []);
+  useEffect(() => publishFirstLoadFailed('orders', list.status === 'error'), [list.status]);
+  useEffect(
+    () => () => {
+      publishStale('orders', null);
+      publishFirstLoadFailed('orders', false);
+    },
+    [],
+  );
 
   // ── Polling: always on; faster whenever the socket is not live ───────────────────────────
   usePolling(() => refreshList(), connection.kind === 'live' ? 60_000 : 15_000, list.status !== 'loading' && list.status !== 'error', { immediate: false });
@@ -148,15 +158,45 @@ export function LiveOrdersPage() {
     [mutateList],
   );
 
-  // A just-accepted order from the strip (WP3) goes to the top with "Just accepted".
-  useEffect(
-    () =>
-      onAcceptedHere((order) => {
-        mutateList((prev) => [order, ...(prev ?? []).filter((o) => o.id !== order.id)]);
-        setFact(order.id, { justAccepted: true });
+  // A just-accepted order from the strip (WP3) goes to the top with "Just accepted", then sorts
+  // normally (§1.2): the fact clears on the next server refresh of the list, when the kitchen
+  // marks it ready, or after JUST_ACCEPTED_MS, whichever comes first.
+  const clearJustAccepted = useCallback(
+    (id?: string) =>
+      setFacts((f) => {
+        let changed = false;
+        const next: Record<string, LiveFacts> = {};
+        for (const [k, v] of Object.entries(f)) {
+          if (v.justAccepted && (id === undefined || id === k)) {
+            next[k] = { ...v, justAccepted: false };
+            changed = true;
+          } else next[k] = v;
+        }
+        return changed ? next : f;
       }),
-    [mutateList, setFact],
+    [],
   );
+  useEffect(() => {
+    const timers = new Set<number>();
+    const off = onAcceptedHere((order) => {
+      mutateList((prev) => [order, ...(prev ?? []).filter((o) => o.id !== order.id)]);
+      setFact(order.id, { justAccepted: true });
+      const t = window.setTimeout(() => {
+        timers.delete(t);
+        clearJustAccepted(order.id);
+      }, JUST_ACCEPTED_MS);
+      timers.add(t);
+    });
+    return () => {
+      off();
+      timers.forEach((t) => window.clearTimeout(t));
+    };
+  }, [mutateList, setFact, clearJustAccepted]);
+  const wasRefreshing = useRef(false);
+  useEffect(() => {
+    if (wasRefreshing.current && !list.refreshing && list.status === 'ready') clearJustAccepted();
+    wasRefreshing.current = list.refreshing;
+  }, [list.refreshing, list.status, clearJustAccepted]);
 
   // ── Realtime ─────────────────────────────────────────────────────────────────────────────
   const channels = useMemo(
@@ -270,6 +310,7 @@ export function LiveOrdersPage() {
       const key = keys.current.get(id) ?? idempotencyKey();
       keys.current.set(id, key);
       readyHere.current.add(id);
+      clearJustAccepted(id);
       setMarks((m) => ({ ...m, [id]: 'sending' }));
       try {
         const next = await markReadyCall(id, key);
@@ -291,7 +332,7 @@ export function LiveOrdersPage() {
         }
       }
     },
-    [patchRow, refreshList],
+    [patchRow, refreshList, clearJustAccepted],
   );
 
   // ── Panel ────────────────────────────────────────────────────────────────────────────────

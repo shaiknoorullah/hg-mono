@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest';
 import { fixture } from '../test/fakeApi';
 import { OPEN_STATE_PRECEDENCE, openStateView, type Availability } from './openState';
 import { halalConsoleView } from './halal';
-import { connectionView } from '../data/connection';
+import { SERVER_OFFLINE_AFTER_MS, connectionView, pastServerCutoff } from '../data/connection';
 
 describe('open state: one pure function, every value', () => {
   const REASON = 'Reason sent by the server.';
@@ -18,7 +18,8 @@ describe('open state: one pure function, every value', () => {
     ['closed_toggle', 'Closed', 'neutral', false, 'menu-disabled'],
     ['closed_hours', 'Closed', 'neutral', false, 'menu'],
     ['closed_holiday', 'Closed', 'neutral', false, 'menu'],
-    ['closed_offline', 'Unknown · this screen offline', 'neutral', false, 'menu'],
+    // Pause is "—" while offline: it would send is_accepting_orders: true behind the user's back.
+    ['closed_offline', 'Unknown · this screen offline', 'neutral', false, 'menu-disabled'],
     ['closed_suspended', 'Closed', 'neutral', true, 'menu-disabled'],
   ];
 
@@ -116,16 +117,27 @@ describe('halal on the console', () => {
 });
 
 describe('connection state', () => {
-  const ok = { lastOkAt: 1_000, failingSince: null };
+  const ok = { lastOkAt: 1_000, failingSince: null, failures: 0 };
   it('live, connecting, reconnecting, offline', () => {
     expect(connectionView({ realtime: 'open', everOpen: true, droppedAt: null, heartbeat: ok, browserOnline: true }).kind).toBe('live');
     expect(connectionView({ realtime: 'connecting', everOpen: false, droppedAt: null, heartbeat: ok, browserOnline: true }).kind).toBe('connecting');
     expect(connectionView({ realtime: 'reconnecting', everOpen: true, droppedAt: 5_000, heartbeat: ok, browserOnline: true })).toEqual({ kind: 'reconnecting', since: 5_000 });
     // Heartbeats failing beats a socket that looks fine: REST is the truth.
-    expect(connectionView({ realtime: 'open', everOpen: true, droppedAt: null, heartbeat: { lastOkAt: 1_000, failingSince: 9_000 }, browserOnline: true })).toEqual({
+    // One failed beat is a blip, not offline.
+    expect(connectionView({ realtime: 'open', everOpen: true, droppedAt: null, heartbeat: { lastOkAt: 1_000, failingSince: 9_000, failures: 1 }, browserOnline: true }).kind).toBe('live');
+    expect(connectionView({ realtime: 'open', everOpen: true, droppedAt: null, heartbeat: { lastOkAt: 1_000, failingSince: 9_000, failures: 2 }, browserOnline: true })).toEqual({
       kind: 'offline',
       since: 1_000,
     });
     expect(connectionView({ realtime: 'open', everOpen: true, droppedAt: null, heartbeat: ok, browserOnline: false }).kind).toBe('offline');
+  });
+
+  it('orders have stopped only 5 minutes after the last check-in, or when the server says CLOSED_OFFLINE', () => {
+    const offline = { kind: 'offline' as const, since: 1_000 };
+    expect(pastServerCutoff(offline, 1_000 + SERVER_OFFLINE_AFTER_MS - 1)).toBe(false);
+    expect(pastServerCutoff(offline, 1_000 + SERVER_OFFLINE_AFTER_MS)).toBe(true);
+    expect(pastServerCutoff(offline, 2_000, true)).toBe(true);
+    expect(pastServerCutoff({ kind: 'offline', since: null }, 10 * SERVER_OFFLINE_AFTER_MS)).toBe(false);
+    expect(pastServerCutoff({ kind: 'live', since: null }, 10 * SERVER_OFFLINE_AFTER_MS, true)).toBe(false);
   });
 });
