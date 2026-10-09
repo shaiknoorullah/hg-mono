@@ -2,7 +2,7 @@
 # Built with EXPO_PUBLIC_HG_REDESIGN=1 against devworld. The mission's setup completes one delivery
 # for amina (`make dev-journey route=short speed=4x auto=all`) and runs `restaurant-rejected`, so her
 # history holds a Completed order and a Not accepted one. amina (test code 000000) signs in, opens
-# Orders, sees the completed order under Past orders, opens its row menu (View receipt and Get help;
+# Orders, sees the completed order under Past orders, opens its row menu (View receipt and Get help with this order;
 # no Order again, no Rate) and reads the receipt. Until WP1 merges, sign-in is the legacy screen.
 appId: com.halalgoes.customer.dev
 name: customer redesign, Orders history and receipt
@@ -58,7 +58,7 @@ env:
 - extendedWaitUntil:
     visible: "View receipt"
     timeout: 10000
-- assertVisible: "Get help"
+- assertVisible: "Get help with this order"
 - assertNotVisible: "Order again"
 - takeScreenshot: redesign-wp9-03-row-menu
 - tapOn: "View receipt"

@@ -11,7 +11,8 @@
  * Active rows: Track and Get help, plus the arrival window from `getOrderTracking`. An order under
  * review (DISPUTED) lists under Active with its answer-by time and Details, and does not block a new
  * order. Past rows: Details and a row menu ("Actions for order {code} from {restaurant}") holding
- * View receipt (completed orders only) and Get help; no Rate, no Order again.
+ * View receipt (completed or resolved orders) and Get help with this order; no Rate, no Order
+ * again. Every Get help opens the order page with its Get help sheet (`sheet: 'getHelp'`).
  *
  * No halal badge on any row: the restaurant's state now is not its state at order time. Money:
  * only REJECTED and FAILED say "Not charged"; CANCELLED and RESOLVED say "See details for your
@@ -106,9 +107,14 @@ export function useOrderSection(group: OrderStatusGroup) {
       });
   }, [group]);
 
-  const loadMore = React.useCallback(() => {
+  /**
+   * Loads the next page. Scrolling and a short first page call it automatically; after a failure
+   * only the error's Try again (`manual`) loads again, so a failed page never retries in a loop.
+   */
+  const loadMore = React.useCallback((opts?: { manual?: boolean }) => {
     const s = current.current;
     if (s.kind !== 'ready' || !s.cursor || s.more === 'loading') return;
+    if (s.more === 'failed' && !opts?.manual) return;
     const cursor = s.cursor;
     const next: Section = { ...s, more: 'loading' };
     current.current = next;
@@ -179,6 +185,7 @@ export function OrdersScreen(): React.ReactElement {
   };
 
   const open = (order: OrderSummary) => nav.push({ name: 'tracking', orderId: order.id });
+  const help = (order: OrderSummary) => nav.push({ name: 'tracking', orderId: order.id, sheet: 'getHelp' });
 
   let body: React.ReactElement;
   if (loading) {
@@ -246,7 +253,15 @@ export function OrdersScreen(): React.ReactElement {
           <>
             <SectionHeading>{ORDERS_COPY.active}</SectionHeading>
             {a.orders.map((o) => (
-              <OrderRow key={o.id} order={o} section="active" now={now} onOpen={() => open(o)} onMenu={() => setMenuFor(o)} />
+              <OrderRow
+                key={o.id}
+                order={o}
+                section="active"
+                now={now}
+                onOpen={() => open(o)}
+                onHelp={() => help(o)}
+                onMenu={() => setMenuFor(o)}
+              />
             ))}
           </>
         ) : null}
@@ -274,7 +289,15 @@ export function OrdersScreen(): React.ReactElement {
           <>
             <SectionHeading>{ORDERS_COPY.past}</SectionHeading>
             {p.orders.map((o) => (
-              <OrderRow key={o.id} order={o} section="past" now={now} onOpen={() => open(o)} onMenu={() => setMenuFor(o)} />
+              <OrderRow
+                key={o.id}
+                order={o}
+                section="past"
+                now={now}
+                onOpen={() => open(o)}
+                onHelp={() => help(o)}
+                onMenu={() => setMenuFor(o)}
+              />
             ))}
             {p.more === 'loading' ? (
               <View testID="Orders-more-loading" accessibilityLabel="Loading more orders" aria-busy>
@@ -286,7 +309,7 @@ export function OrdersScreen(): React.ReactElement {
                 autoFocus={p.moreAttempts > 1}
                 title={ORDERS_COPY.moreFailed}
                 description={ORDERS_COPY.moreFailedBody}
-                onRetry={past.loadMore}
+                onRetry={() => past.loadMore({ manual: true })}
                 testID="Orders-more-error"
               />
             ) : !p.cursor ? (
@@ -327,12 +350,14 @@ function OrderRow({
   section,
   now,
   onOpen,
+  onHelp,
   onMenu,
 }: {
   order: OrderSummary;
   section: 'active' | 'past';
   now: number;
   onOpen: () => void;
+  onHelp: () => void;
   onMenu: () => void;
 }): React.ReactElement {
   const theme = useTheme();
@@ -354,8 +379,7 @@ function OrderRow({
           {badge ? <Badge label={badge.label} variant={badge.variant} size="sm" testID={`OrderRow-${order.id}-badge`} /> : null}
         </View>
 
-        {live ? <ArrivalLine orderId={order.id} /> : null}
-        {live ? <StatusTimeline audience="customer" state={order.state} orientation="compact" deadlineAt={null} now={now} /> : null}
+        {live ? <LiveProgress order={order} now={now} /> : null}
         {disputed && order.deadline_at ? (
           <View>
             <Text style={[small, { color: theme.color.text.secondary }]}>{ORDERS_COPY.reviewBy}</Text>
@@ -384,7 +408,12 @@ function OrderRow({
               <Button variant="primary" size="sm" onPress={onOpen} accessibilityLabel={`Track order ${order.code} from ${restaurant}`}>
                 Track
               </Button>
-              <Button variant="secondary" size="sm" onPress={onOpen} accessibilityLabel={`Get help with order ${order.code}`}>
+              <Button
+                variant="secondary"
+                size="sm"
+                onPress={onHelp}
+                accessibilityLabel={`Get help with order ${order.code} from ${restaurant}`}
+              >
                 Get help
               </Button>
             </>
@@ -414,25 +443,52 @@ function OrderRow({
   );
 }
 
-/** "Arriving 7:10–7:20 pm" for a live order, when the server has an ETA. Static, never ticking. */
-function ArrivalLine({ orderId }: { orderId: string }): React.ReactElement | null {
+/**
+ * "Arriving 7:40–7:50 pm": `eta_window_minutes` is the window's total width, centred on `eta_at`
+ * (spec C-32 rule 3, a ±5 min window). Static, never ticking.
+ */
+export function arrivalText(etaAt: string, windowMinutes: number | null | undefined): string {
+  if (!windowMinutes || windowMinutes <= 0) return formatTime(etaAt);
+  const half = windowMinutes * 30;
+  return formatTimeWindow(timeAfter(etaAt, -half), timeAfter(etaAt, half));
+}
+
+/**
+ * A live row's arrival line and compact timeline, from one `getOrderTracking` read. The timeline
+ * takes the tracking transitions and the row's deadline. Step times stay off: the DS timeline
+ * formats them itself ("p.m."), and times here go through lib/time only (ds-request in §4).
+ */
+function LiveProgress({ order, now }: { order: OrderSummary; now: number }): React.ReactElement {
   const theme = useTheme();
   const small = useTypeStyle('body.sm');
   const strong = useTypeStyle('label.lg');
-  const { query } = useQuery(() => getOrderTracking(orderId), [orderId]);
-  if (query.kind !== 'ready' || !query.data.eta_at) return null;
-  const at = query.data.eta_at;
-  const win = query.data.eta_window_minutes;
-  const text = win && win > 0 ? formatTimeWindow(at, timeAfter(at, win * 60)) : formatTime(at);
+  const { query } = useQuery(() => getOrderTracking(order.id), [order.id]);
+  const tracking = query.kind === 'ready' ? query.data : null;
   return (
-    <View style={styles.rowBaseline} testID={`OrderRow-${orderId}-eta`}>
-      <Text style={[small, { color: theme.color.text.secondary }]}>{ORDERS_COPY.arriving}</Text>
-      <Text style={[strong, { color: theme.color.text.primary }]}>{text}</Text>
-    </View>
+    <>
+      {tracking?.eta_at ? (
+        <View style={styles.rowBaseline} testID={`OrderRow-${order.id}-eta`}>
+          <Text style={[small, { color: theme.color.text.secondary }]}>{ORDERS_COPY.arriving}</Text>
+          <Text style={[strong, { color: theme.color.text.primary }]}>
+            {arrivalText(tracking.eta_at, tracking.eta_window_minutes)}
+          </Text>
+        </View>
+      ) : null}
+      <StatusTimeline
+        audience="customer"
+        state={order.state}
+        orientation="compact"
+        transitions={tracking?.timeline}
+        deadlineAt={order.deadline_at ?? null}
+        showTimes={false}
+        now={now}
+        testID={`OrderRow-${order.id}-timeline`}
+      />
+    </>
   );
 }
 
-/** The row menu: View receipt (completed orders) and Get help. Nothing is shown disabled. */
+/** The row menu: View receipt (completed or resolved orders) and Get help. Nothing is shown disabled. */
 function RowMenu({ order, onClose }: { order: OrderSummary | null; onClose: () => void }): React.ReactElement | null {
   const nav = useNav();
   if (!order) return null;
@@ -449,8 +505,13 @@ function RowMenu({ order, onClose }: { order: OrderSummary | null; onClose: () =
             View receipt
           </Button>
         ) : null}
-        <Button variant="tertiary" size="md" fullWidth onPress={() => go({ name: 'tracking', orderId: order.id })}>
-          Get help
+        <Button
+          variant="tertiary"
+          size="md"
+          fullWidth
+          onPress={() => go({ name: 'tracking', orderId: order.id, sheet: 'getHelp' })}
+        >
+          Get help with this order
         </Button>
       </View>
     </Sheet>

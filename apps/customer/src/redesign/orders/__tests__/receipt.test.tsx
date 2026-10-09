@@ -82,8 +82,9 @@ describe('Receipt (T10)', () => {
     renderReceipt({ getOrderReceipt: 'receipt_standard' });
     await screen.findByTestId('Receipt-body');
     expect(screen.getByText('HST (13%)')).toBeTruthy();
-    expect(screen.getByTestId('Receipt-platformTax')).toBeTruthy();
-    expect(screen.getByTestId('Receipt-restaurantTax')).toBeTruthy();
+    // The numbers as sent, with no label the boards do not give.
+    expect(textOf('Receipt-platformTax')).toBe('701234567RT0001');
+    expect(textOf('Receipt-restaurantTax')).toBe('812345678RT0001');
   });
 
   it('leaves the zero delivery fee and tip out of a pickup receipt', async () => {
@@ -220,7 +221,7 @@ describe('Receipt (T10)', () => {
     expect(await screen.findByText("We couldn't load your receipt")).toBeTruthy();
     expect(screen.getByText("Check your connection and try again. Your receipt is kept safely and won't change.")).toBeTruthy();
     fireEvent.press(screen.getByText('Get help'));
-    expect(nav.log).toContainEqual({ action: 'push', route: { name: 'tracking', orderId: ORDER_ID } });
+    expect(nav.log).toContainEqual({ action: 'push', route: { name: 'tracking', orderId: ORDER_ID, sheet: 'getHelp' } });
     fireEvent.press(screen.getByText('Try again'));
     await waitFor(() => expect(screen.getByTestId('Receipt-body')).toBeTruthy());
   });

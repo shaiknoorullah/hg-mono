@@ -88,8 +88,8 @@ describe('Orders row money', () => {
     expect(notCharged).toEqual(['REJECTED', 'FAILED']);
   });
 
-  it('offers View receipt only for a completed order', () => {
-    expect(ALL_STATES.filter(hasReceipt)).toEqual(['COMPLETED']);
+  it('offers View receipt for a completed order and a resolved one (completed, then disputed)', () => {
+    expect(ALL_STATES.filter(hasReceipt).sort()).toEqual(['COMPLETED', 'RESOLVED']);
   });
 });
 
@@ -190,6 +190,12 @@ describe('which "no receipt" page a 409 means', () => {
   it('not ready yet: DELIVERED, before COMPLETED', () => {
     expect(chooseNoReceipt({ state: 'DELIVERED', completed_at: null }, captured)).toEqual({ kind: 'notReady' });
     expect(chooseNoReceipt({ state: 'DELIVERED', completed_at: null }, null)).toEqual({ kind: 'notReady' });
+  });
+
+  it('never says "reviewed" for an order cancelled, rejected or failed after capture', () => {
+    for (const state of ['CANCELLED', 'REJECTED', 'FAILED']) {
+      expect(chooseNoReceipt({ state, completed_at: null }, captured)).toBeNull();
+    }
   });
 
   it('cannot tell without the order or the payment', () => {

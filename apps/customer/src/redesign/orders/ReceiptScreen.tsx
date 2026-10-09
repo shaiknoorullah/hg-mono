@@ -121,7 +121,7 @@ export function ReceiptScreen({ orderId }: { orderId: string }): React.ReactElem
   const theme = useTheme();
   const nav = useNav();
   const { query, reload } = useQuery(() => loadReceipt(orderId), [orderId]);
-  const getHelp = () => nav.push({ name: 'tracking', orderId });
+  const getHelp = () => nav.push({ name: 'tracking', orderId, sheet: 'getHelp' });
   const backToOrder = () => nav.replace({ name: 'tracking', orderId });
 
   const receipt = query.kind === 'ready' && query.data.kind === 'receipt' ? query.data.receipt : null;
@@ -257,7 +257,7 @@ function ReceiptBody({
         <View style={styles.gap10}>
           {receipt.platform_legal_name ? <Text style={[headingSm, primary]}>{receipt.platform_legal_name}</Text> : null}
           {receipt.platform_tax_registration_number ? (
-            <Text style={[bodySm, secondary]} testID="Receipt-platformTax">{`HST ${receipt.platform_tax_registration_number}`}</Text>
+            <Text style={[bodySm, secondary]} testID="Receipt-platformTax">{receipt.platform_tax_registration_number}</Text>
           ) : null}
           {facts.map(([label, value, isCode]) => (
             <View key={label} style={styles.rowBetween}>
@@ -276,7 +276,7 @@ function ReceiptBody({
                 <Text style={[bodySm, secondary]}>{RECEIPT_COPY.from}</Text>
                 <Text style={[labelLg, primary]}>{receipt.restaurant_legal_name}</Text>
                 {receipt.restaurant_tax_registration_number ? (
-                  <Text style={[bodySm, secondary]} testID="Receipt-restaurantTax">{`HST ${receipt.restaurant_tax_registration_number}`}</Text>
+                  <Text style={[bodySm, secondary]} testID="Receipt-restaurantTax">{receipt.restaurant_tax_registration_number}</Text>
                 ) : null}
               </>
             ) : null}

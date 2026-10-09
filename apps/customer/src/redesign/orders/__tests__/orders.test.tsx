@@ -66,10 +66,16 @@ describe('Orders (T9)', () => {
     const row = within(screen.getByTestId(`OrderRow-${active.id}`));
     expect(row.getByText('Being prepared')).toBeTruthy();
     expect(row.getByText('3 items · Chicken Biryani, Beef Nihari')).toBeTruthy();
-    expect(await row.findByText('2:55–3:05 pm')).toBeTruthy();
+    // eta_at 18:55Z with a 10-minute window: centred, 2:50–3:00 pm (Toronto).
+    expect(await row.findByText('2:50–3:00 pm')).toBeTruthy();
+    // One tracking read feeds both the arrival line and the compact timeline.
+    expect(row.getByTestId(`OrderRow-${active.id}-timeline`)).toBeTruthy();
+    expect(mock.callsTo('getOrderTracking')).toHaveLength(1);
     fireEvent.press(row.getByLabelText(`Track order ${active.code} from Karachi Kitchen`));
     expect(nav.log).toContainEqual({ action: 'push', route: { name: 'tracking', orderId: active.id } });
-    expect(row.getByLabelText(`Get help with order ${active.code}`)).toBeTruthy();
+    // Get help opens the order page with its Get help sheet, not the same page as Track.
+    fireEvent.press(row.getByLabelText(`Get help with order ${active.code} from Karachi Kitchen`));
+    expect(nav.log).toContainEqual({ action: 'push', route: { name: 'tracking', orderId: active.id, sheet: 'getHelp' } });
     // Orders and receipts carry no halal badge.
     expect(screen.queryByText(/Halal certified/)).toBeNull();
   });
@@ -220,6 +226,31 @@ describe('Orders (T9)', () => {
     expect(cursors.slice(-2)).toEqual(['cursor-2', 'cursor-2']);
   });
 
+  it('does not retry a failed page on its own: only Try again loads it again', async () => {
+    renderOrders([page([]), page(pastList, 'cursor-2'), SERVER_ERROR, page([])]);
+    const list = await screen.findByTestId('Orders-list');
+    await screen.findByText('Past orders');
+    const nearEnd = {
+      nativeEvent: { contentOffset: { y: 700 }, contentSize: { height: 1000, width: 390 }, layoutMeasurement: { height: 300, width: 390 } },
+    };
+    act(() => {
+      fireEvent.scroll(list, nearEnd);
+    });
+    expect(await screen.findByText("Couldn't load more orders")).toBeTruthy();
+    const before = mock.callsTo('listOrders').length;
+    // The error changes the content size, and the list is still near its end.
+    act(() => {
+      fireEvent(list, 'layout', { nativeEvent: { layout: { x: 0, y: 0, width: 390, height: 800 } } });
+      fireEvent(list, 'contentSizeChange', 390, 600);
+      fireEvent.scroll(list, nearEnd);
+    });
+    expect(mock.callsTo('listOrders')).toHaveLength(before);
+    expect(screen.getByTestId('Orders-more-error')).toBeTruthy();
+    fireEvent.press(within(screen.getByTestId('Orders-more-error')).getByText('Try again'));
+    expect(await screen.findByText("That's all your orders")).toBeTruthy();
+    expect(mock.callsTo('listOrders')).toHaveLength(before + 1);
+  });
+
   it('opens the row menu with View receipt and Get help only: no reorder, no rating', async () => {
     const completed = pastList.find((o) => o.state === 'COMPLETED')!;
     const rejected = pastList.find((o) => o.state === 'REJECTED')!;
@@ -231,9 +262,9 @@ describe('Orders (T9)', () => {
     fireEvent.press(screen.getByTestId(`OrderRow-${rejected.id}-menu`));
     let menu = within(await screen.findByTestId('Orders-rowMenu'));
     expect(menu.queryByText('View receipt')).toBeNull();
-    expect(menu.getByText('Get help')).toBeTruthy();
-    fireEvent.press(menu.getByText('Get help'));
-    expect(nav.log).toContainEqual({ action: 'push', route: { name: 'tracking', orderId: rejected.id } });
+    expect(menu.getByText('Get help with this order')).toBeTruthy();
+    fireEvent.press(menu.getByText('Get help with this order'));
+    expect(nav.log).toContainEqual({ action: 'push', route: { name: 'tracking', orderId: rejected.id, sheet: 'getHelp' } });
 
     fireEvent.press(screen.getByTestId(`OrderRow-${completed.id}-menu`));
     menu = within(await screen.findByTestId('Orders-rowMenu'));

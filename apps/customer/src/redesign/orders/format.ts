@@ -103,9 +103,14 @@ export function isLiveState(state: string): boolean {
   return INFO_STATES.has(state as OrderState) && state !== 'DELIVERED';
 }
 
-/** The row menu's View receipt shows only when a receipt exists: a completed order. */
+/**
+ * Whether the row menu offers View receipt. A COMPLETED order has one. A RESOLVED order has one when
+ * it completed before the dispute (COMPLETED → DISPUTED → RESOLVED, the refund receipt). OrderSummary
+ * has no `completed_at` (API gap), so RESOLVED always offers it; one that never completed lands on
+ * the receipt's "There's no receipt for this order" page.
+ */
 export function hasReceipt(state: string): boolean {
-  return state === 'COMPLETED';
+  return state === 'COMPLETED' || state === 'RESOLVED';
 }
 
 /* ------------------------------------------------------------------ Payment card */
@@ -210,7 +215,7 @@ export function refundNote(reason: string): string {
 export type NoReceipt =
   /** DELIVERED (or earlier): the snapshot is written at COMPLETED. */
   | { kind: 'notReady' }
-  /** DISPUTED/RESOLVED (or ended after capture) without `completed_at`: never issued. */
+  /** DISPUTED/RESOLVED without `completed_at`: never issued. */
   | { kind: 'neverCompleted' }
   /** Never captured: nothing was charged. The second sentence depends on the hold. */
   | { kind: 'noCharge'; second: string };
@@ -271,8 +276,10 @@ export function chooseNoReceipt(
     case 'CANCELLED':
     case 'REJECTED':
     case 'FAILED':
-      // Ended without completing. Whether money moved needs the payment; without it, say nothing.
-      return payment ? { kind: 'neverCompleted' } : null;
+      // Ended after capture without completing (a cancel after acceptance). No board gives copy for
+      // this, and "reviewed before it was complete" would be false; the screen shows its error with
+      // Get help rather than guess (board gap).
+      return null;
     default:
       return { kind: 'notReady' };
   }
