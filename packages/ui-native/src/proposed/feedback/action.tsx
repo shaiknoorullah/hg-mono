@@ -12,8 +12,6 @@ import { Spinner } from '../../lib/ui/spinner';
 import { Text } from '../../lib/ui/text';
 import type { ActionSpec } from './shared';
 
-const noop = () => undefined;
-
 /** The RNR Button for one action: 44pt, or 56pt in the rider register. */
 export function FeedbackAction({
   action,
@@ -32,9 +30,9 @@ export function FeedbackAction({
       variant={action.destructive ? 'destructive' : variant}
       size={field ? 'field' : 'default'}
       disabled={!!action.disabled}
-      onPress={busy ? noop : action.onPress}
+      loading={busy}
+      onPress={action.onPress}
       accessibilityLabel={action.accessibilityLabel ?? action.label}
-      accessibilityState={{ disabled: !!action.disabled, busy }}
       testID={action.testID}
       className={fullWidth ? 'self-stretch' : 'self-start'}
     >
