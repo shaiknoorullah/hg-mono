@@ -1,0 +1,24 @@
+{
+  "$description": "Legacy files under apps/{restaurant,admin}/src/components when the composition lint landed. Rule C-1 reports any file not listed here. Regenerate with lint:composition --write-baseline.",
+  "files": [
+    "apps/admin/src/components/AuthFrame.tsx",
+    "apps/admin/src/components/DocumentReviewActions.tsx",
+    "apps/admin/src/components/HalalTranscriptionForm.tsx",
+    "apps/admin/src/components/HealthPill.tsx",
+    "apps/admin/src/components/KeysetGrid.tsx",
+    "apps/admin/src/components/LiveMapBox.tsx",
+    "apps/admin/src/components/OrderingPausePanel.tsx",
+    "apps/restaurant/src/components/AddItemDialog.tsx",
+    "apps/restaurant/src/components/AddressSearch.tsx",
+    "apps/restaurant/src/components/AuthFrame.tsx",
+    "apps/restaurant/src/components/DeadlineTimer.tsx",
+    "apps/restaurant/src/components/EditItemDialog.tsx",
+    "apps/restaurant/src/components/MenuLockedNotice.tsx",
+    "apps/restaurant/src/components/PageLoading.tsx",
+    "apps/restaurant/src/components/RejectDialog.tsx",
+    "apps/restaurant/src/components/RiderApproachMap.tsx",
+    "apps/restaurant/src/components/SealBindRow.tsx",
+    "apps/restaurant/src/components/Shell.tsx",
+    "apps/restaurant/src/components/StatusChip.tsx"
+  ]
+}

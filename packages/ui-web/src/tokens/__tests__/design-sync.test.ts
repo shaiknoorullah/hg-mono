@@ -1,0 +1,118 @@
+// @vitest-environment node
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { describe, expect, it } from 'vitest';
+import {
+  compareParity,
+  normalise,
+  resolveGeneratedCss,
+  resolveSnapshot,
+  type AllowEntry,
+  type DtcgSnapshot,
+} from '../../../../../scripts/design-sync.mjs';
+import { findRawElements } from '../../lint/composition.js';
+
+/**
+ * The live Claude Design tokens against what @hg/ui-web ships.
+ *
+ * Two things must hold: the sync script reads the live file's nested {light, dark}
+ * values as the same-scheme value (a wrong flatten would silently swap a light role
+ * for a dark one), and every live action, control, feedback and focus-ring-on role
+ * exists in the generated CSS with the live value, in both themes.
+ */
+
+const HERE = dirname(fileURLToPath(import.meta.url));
+const REPO = join(HERE, '..', '..', '..', '..', '..');
+const read = (path: string): string => readFileSync(join(REPO, path), 'utf8');
+
+describe('design-sync normalise', () => {
+  const live = {
+    color: {
+      tokens: [
+        { name: 'color-ink-100', value: '#111111' },
+        { name: 'color-ink-900', value: '#999999' },
+        { name: 'text-primary', value: { light: '{color-ink-900}', dark: '{color-ink-100}' } },
+        // A role that references a themed role: resolves to a nested pair.
+        { name: 'control-fg', value: { light: '{text-primary}', dark: '{text-primary}' } },
+        // A value written nested outright.
+        {
+          name: 'action-fg',
+          value: {
+            light: { light: '{color-ink-900}', dark: '{color-ink-100}' },
+            dark: { light: '{color-ink-900}', dark: '{color-ink-100}' },
+          },
+        },
+        { name: 'surface-base', value: { light: '{color-ink-100}', dark: '{color-ink-900}' } },
+      ],
+    },
+  };
+
+  it('flattens nested {light, dark} values to light.light and dark.dark, and reports them', () => {
+    const { dtcg, malformed } = normalise(live);
+    expect(malformed.map((m) => m.name)).toEqual(['control-fg', 'action-fg']);
+
+    const resolved = resolveSnapshot(dtcg);
+    expect(resolved.light['control-fg']).toBe('#999999');
+    expect(resolved.dark['control-fg']).toBe('#111111');
+    expect(resolved.light['action-fg']).toBe('#999999');
+    expect(resolved.dark['action-fg']).toBe('#111111');
+    // A plain role is not reported.
+    expect(resolved.dark['surface-base']).toBe('#999999');
+  });
+
+  it('flags exactly the 15 malformed tokens in the pinned live snapshot', () => {
+    const snapshot = JSON.parse(read('design/claude-design/tokens.json')) as DtcgSnapshot;
+    const meta = snapshot.$extensions?.['com.halalgoes.design-sync'] as { flattened: string[] };
+    expect(meta.flattened).toHaveLength(15);
+    expect(meta.flattened).toContain('elev-surface-0');
+  });
+});
+
+describe('web output parity with the live design system', () => {
+  const snapshot = JSON.parse(read('design/claude-design/tokens.json')) as DtcgSnapshot;
+  const live = resolveSnapshot(snapshot);
+  const web = resolveGeneratedCss(read('packages/ui-web/src/tokens/tokens.css'));
+  const allowlist = (JSON.parse(read('design/claude-design/parity-allowlist.json')) as { entries: AllowEntry[] })
+    .entries;
+
+  it.each(['light', 'dark'] as const)(
+    'emits every live action, control, feedback and focus-ring-on role with its live value (%s)',
+    (scheme) => {
+      const roles = Object.keys(live[scheme]).filter((n) =>
+        /^(action|control|feedback|focus-ring-on)-/.test(n),
+      );
+      expect(roles.length).toBeGreaterThan(50);
+      for (const role of roles) {
+        expect({ role, value: web[scheme][role] }).toEqual({ role, value: live[scheme][role] });
+      }
+    },
+  );
+
+  it('has no unexplained drift and no stale allow-list entry', () => {
+    const result = compareParity(live, web, allowlist);
+    expect(result.drift).toEqual([]);
+    expect(result.stale).toEqual([]);
+  });
+});
+
+describe('composition lint', () => {
+  it('finds raw interactive elements, including a multi-line <a onClick>, and nothing composed', () => {
+    const source = [
+      '<Button onClick={go}>Go</Button>',
+      '<button type="button">x</button>',
+      '<input value={v} />',
+      '<a',
+      '  href="#"',
+      '  onClick={() => go()}',
+      '>link</a>',
+      '<a href="/plain">plain</a>',
+      '<Select />',
+    ].join('\n');
+    expect(findRawElements(source)).toEqual([
+      { line: 2, element: '<button>' },
+      { line: 3, element: '<input>' },
+      { line: 4, element: '<a onClick>' },
+    ]);
+  });
+});

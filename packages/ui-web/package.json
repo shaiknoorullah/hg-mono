@@ -30,6 +30,8 @@
     "generate:icons": "node scripts/generate-icons.mjs",
     "generate:icons:check": "node scripts/generate-icons.mjs --check",
     "lint": "tsx src/lint/run.ts",
+    "lint:composition": "tsx src/lint/composition-run.ts",
+    "design:parity": "node ../../scripts/design-sync.mjs --check",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest"
