@@ -96,10 +96,14 @@ export function routeFor(state: AssignmentState): TripRoute {
   }
 }
 
-/** The server's state advanced by the steps still waiting to send (up to the first refused one). */
-export function effectiveState(server: AssignmentState, entries: readonly OutboxEntry[]): AssignmentState {
+/**
+ * The server's state advanced by the steps still waiting to send (up to the first refused one),
+ * and by `floor`: the furthest step the outbox has already replayed, which the next poll has not
+ * caught up with yet (so a replay never bounces the rider back a screen for up to 5 s).
+ */
+export function effectiveState(server: AssignmentState, entries: readonly OutboxEntry[], floor?: AssignmentState): AssignmentState {
   if (ENDED.has(server)) return server;
-  let state = server;
+  let state = floor && RANK[floor] > RANK[server] ? floor : server;
   for (const entry of entries) {
     if (entry.status === 'rejected') break;
     const next = entry.input.to_state;
@@ -129,17 +133,37 @@ function subscribe(fn: () => void): () => void {
   };
 }
 
-/** Keep a newer answer for an assignment (a poll, a transition's 200, the dashboard's copy). */
-export function putAssignment(a: Assignment, at: number = Date.now()): void {
-  const prev = cache.get(a.id);
-  if (prev && prev.at > at) return;
-  cache.set(a.id, { data: a, at });
+/**
+ * Keep a newer answer for an assignment (a poll, a transition's 200, the dashboard's copy), under
+ * the id it was asked for. The machine only moves forward, so an answer behind the one kept (a
+ * poll that left before a step's 200 and landed after it) is dropped rather than shown.
+ */
+export function putAssignment(a: Assignment, at: number = Date.now(), id: string = a.id): void {
+  const prev = cache.get(id);
+  if (prev && (prev.at > at || RANK[a.state] < RANK[prev.data.state])) return;
+  cache.set(id, { data: a, at });
   emit();
 }
 
 export function cachedAssignment(id: string): Assignment | undefined {
   return cache.get(id)?.data;
 }
+
+/* Steps the outbox replayed: a pending entry that left the queue was accepted (a refused one is
+ * marked `rejected` first, and `dismiss` only drops refused ones). */
+const floors = new Map<string, AssignmentState>();
+let lastEntries: readonly OutboxEntry[] = outbox.snapshot();
+outbox.subscribe(() => {
+  const now = outbox.snapshot();
+  const still = new Set(now.map((e) => e.id));
+  for (const gone of lastEntries) {
+    if (gone.status === 'rejected' || still.has(gone.id)) continue;
+    const prev = floors.get(gone.assignmentId);
+    if (!prev || RANK[gone.input.to_state] > RANK[prev]) floors.set(gone.assignmentId, gone.input.to_state);
+  }
+  lastEntries = now;
+  emit();
+});
 
 /** What a 409 left for the next screen to say (DL/TripOutOfDate). */
 export interface TripNotice {
@@ -167,6 +191,8 @@ export function useTripNotice(id: string): TripNotice | null {
 export function resetTripState(): void {
   cache.clear();
   notices.clear();
+  floors.clear();
+  lastEntries = outbox.snapshot();
   autoStarted.clear();
   emit();
 }
@@ -179,6 +205,8 @@ export async function fetchAssignment(id: string): Promise<Assignment> {
 }
 
 export interface TripAssignmentView {
+  /** The assignment asked for (the route's id: key every per-trip store by this, not `assignment.id`). */
+  id: string | null;
   status: 'loading' | 'error' | 'success';
   /** The server's last answer. */
   assignment: Assignment | undefined;
@@ -203,19 +231,25 @@ export function useTripAssignment(assignmentId: string | null): TripAssignmentVi
     pollMs: (d) => (d && ENDED.has(d.state) ? null : TRIP_POLL_MS),
   });
   React.useEffect(() => {
-    if (query.data && query.updatedAt) putAssignment(query.data, query.updatedAt);
-  }, [query.data, query.updatedAt]);
+    if (query.data && query.updatedAt) putAssignment(query.data, query.updatedAt, id);
+  }, [query.data, query.updatedAt, id]);
   const cached = React.useSyncExternalStore(
     subscribe,
     () => cache.get(id),
     () => cache.get(id),
   );
   const saved = useOutbox(id);
+  const floor = React.useSyncExternalStore(
+    subscribe,
+    () => floors.get(id),
+    () => floors.get(id),
+  );
   const assignment = cached?.data ?? query.data;
   return {
+    id: assignmentId,
     status: assignment ? 'success' : query.status,
     assignment,
-    state: assignment ? effectiveState(assignment.state, saved) : undefined,
+    state: assignment ? effectiveState(assignment.state, saved, floor) : undefined,
     saved,
     error: query.error,
     updatedAt: cached?.at ?? query.updatedAt,
@@ -267,7 +301,7 @@ export async function prepareStep(input: Omit<TripStepInput, 'occurred_at'>): Pr
 /** Send a prepared step (or queue it offline). A 200 shows at once. */
 export async function sendStep(assignmentId: string, step: PreparedStep): Promise<SendResult> {
   const result = await outbox.send(assignmentId, step.input as TransitionInput, { key: step.key });
-  if (!result.queued) putAssignment(result.assignment);
+  if (!result.queued) putAssignment(result.assignment, Date.now(), assignmentId);
   return result;
 }
 
@@ -283,7 +317,7 @@ export async function postNow(assignmentId: string, step: PreparedStep): Promise
     }),
   );
   const assignment = (body as { data: Assignment }).data;
-  putAssignment(assignment);
+  putAssignment(assignment, Date.now(), assignmentId);
   return assignment;
 }
 

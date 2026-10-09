@@ -1,0 +1,27 @@
+id: rider-wp4-pickup-offline
+app: rider
+avd: hg_rider
+api: devworld
+build:
+  env: { EXPO_PUBLIC_HG_REDESIGN: "1" }
+  note: "Clear the Metro cache when building (EXPO_PUBLIC_* is inlined at transform time). The replayed pickup code is only checked once contract #290 and backend #315 merge."
+setup:
+  - "make dev-reset"
+  # Needs #315 so the saved pickup's code is checked when it replays.
+  - "make dev-journey route=short auto=restaurant manual=rider"
+reality:
+  - geo-route: tools/e2e/native/routes/rider-to-restaurant.gpx
+  - network: gsm
+  - theme: light
+  - font-scale: 2.0
+flows: [ "tools/e2e/native/rider/redesign/4b-pickup-offline.yaml" ]
+explore: >
+  The flow switches airplane mode itself (setAirplaneMode) around "I've got the food": the pickup
+  is saved ("Not sent yet", "Picked up · <time>"), the rider goes on to the customer, and the
+  pickup replays when the phone is back online, with the time of the tap (check the API log:
+  one PICKED_UP with the original occurred_at and the Idempotency-Key of the first try).
+  Then, on a fresh journey: type a wrong code, airplane on, "I've got the food", airplane off:
+  "The pickup code you saved wasn't accepted" opens over the drop-off with the time of the tap;
+  type the right code and "Send the code": the board closes and the trip carries on. Repeat
+  until the lock (five wrong codes): the board turns into "Too many wrong codes" with "Call
+  HalalGoes support". Screenshot each, in light and dark (`theme: dark`).

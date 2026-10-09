@@ -10,7 +10,7 @@
  * #290 and these literals then become `mockApi` scenario names.
  */
 import * as React from 'react';
-import { Linking, Text } from 'react-native';
+import { AppState, Linking, Text } from 'react-native';
 
 jest.mock('react-native-safe-area-context', () => {
   const mod = require('react-native-safe-area-context/jest/mock');
@@ -90,7 +90,7 @@ export const INVALID_TRANSITION = (current: string) => apiError(409, 'INVALID_TR
 export const SUPPORT_OFF: Answer = { status: 200, body: { data: { ...payload('public_config'), support_enabled: false } } };
 
 /** Drop-off and endings are WP5/WP6: a probe stands in so a test can see the route it reached. */
-function RouteProbe({ params }: ScreenProps<'tripDropoff'>) {
+function RouteProbe({ params }: ScreenProps<'tripDropoff'> | ScreenProps<'tripEnded'>) {
   const nav = useNav();
   return <Text testID="route-probe">{`${nav.current.name}:${params.assignmentId}`}</Text>;
 }
@@ -124,6 +124,9 @@ export function renderTrip(scheme: Scheme, choices: Record<string, ScenarioChoic
 }
 
 beforeEach(() => {
+  // The jest preset leaves `AppState.currentState` a mock function, which reads as "not in the
+  // foreground" and pauses every poll: the phone is in the rider's hand here.
+  Object.defineProperty(AppState, 'currentState', { value: 'active', configurable: true });
   resetTripState();
   outbox.useStore(memoryStore());
 });
@@ -134,6 +137,11 @@ afterEach(() => {
   current = null;
   resetConnectivity();
 });
+
+/** The phone loses signal: every read fails as well as the step (a real dead zone). */
+export function goOffline(api: MockApi): void {
+  for (const op of ['getAssignment', 'getPublicConfig', 'getRiderMe', 'getRiderDashboard']) api.set(op, 'offline');
+}
 
 /** Every transition body the screens sent. */
 export function transitions(api: MockApi): Record<string, unknown>[] {

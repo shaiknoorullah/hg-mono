@@ -16,6 +16,7 @@ import {
   PICKUP_CODE_LOCKED,
   SUPPORT_OFF,
   assignment,
+  goOffline,
   keys,
   renderTrip,
   transitions,
@@ -175,8 +176,10 @@ describe.each(SCHEMES)('step 1, go to the restaurant (%s)', (scheme) => {
   });
 
   it('offline: the arrival is saved, the rider moves on with "Not sent yet"', async () => {
-    renderTrip(scheme, { getAssignment: PREPARING_AS('EN_ROUTE_TO_PICKUP'), createAssignmentTransition: 'offline' });
-    fireEvent.press(await screen.findByText("I'm at the restaurant"));
+    const { api } = renderTrip(scheme, { getAssignment: PREPARING_AS('EN_ROUTE_TO_PICKUP'), createAssignmentTransition: 'offline' });
+    const arrive = await screen.findByText("I'm at the restaurant");
+    goOffline(api); // the phone loses signal: every request fails, not just the step
+    fireEvent.press(arrive);
     await screen.findByText('Wait for the food');
     expect(screen.getByText(/^I'm at the restaurant · \d/)).toBeTruthy();
     expect(screen.getAllByText('Not sent yet').length).toBeGreaterThan(0);
@@ -184,12 +187,31 @@ describe.each(SCHEMES)('step 1, go to the restaurant (%s)', (scheme) => {
     expect(outbox.pendingFor(ID)).toHaveLength(1);
   });
 
+  it('a saved arrival that replays never sends the rider back a step before the next poll', async () => {
+    const { api } = renderTrip(scheme, { getAssignment: PREPARING_AS('EN_ROUTE_TO_PICKUP'), createAssignmentTransition: 'offline' });
+    const arrive = await screen.findByText("I'm at the restaurant");
+    goOffline(api);
+    fireEvent.press(arrive);
+    await screen.findByText('Wait for the food');
+    api.set('createAssignmentTransition', PREPARING());
+    await act(async () => {
+      await outbox.drain();
+    });
+    expect(outbox.pendingFor(ID)).toHaveLength(0);
+    expect(transitions(api)).toHaveLength(2);
+    expect(keys(api)[1]).toBe(keys(api)[0]); // the replay is the same request
+    expect(screen.getByText('Wait for the food')).toBeTruthy();
+    expect(screen.queryByText("I'm at the restaurant")).toBeNull();
+  });
+
   it('409 INVALID_TRANSITION: re-reads the delivery and says it had moved on', async () => {
-    renderTrip(scheme, {
-      getAssignment: (_c, nth) => (nth === 0 ? 'assignment_en_route_to_pickup' : PREPARING()),
+    const { api } = renderTrip(scheme, {
+      getAssignment: 'assignment_en_route_to_pickup',
       createAssignmentTransition: INVALID_TRANSITION('ARRIVED_AT_PICKUP'),
     });
-    fireEvent.press(await screen.findByText("I'm at the restaurant"));
+    const arrive = await screen.findByText("I'm at the restaurant");
+    api.set('getAssignment', PREPARING()); // the restaurant's tablet recorded the arrival meanwhile
+    fireEvent.press(arrive);
     await screen.findByText('This delivery had already moved on');
     expect(screen.getByText("We have it as at the restaurant, so we've moved you to this step. Nothing was lost.")).toBeTruthy();
     expect(screen.getByText('Wait for the food')).toBeTruthy();
@@ -237,14 +259,33 @@ describe.each(SCHEMES)('step 2, at the restaurant (%s)', (scheme) => {
   it('the restaurant marks it ready on the next poll: Check the items turns on', async () => {
     jest.useFakeTimers({ doNotFake: ['nextTick', 'setImmediate'] });
     try {
-      renderTrip(scheme, { getAssignment: (_c, nth) => (nth === 0 ? PREPARING() : 'assignment_arrived_at_pickup') });
+      const { api } = renderTrip(scheme, { getAssignment: PREPARING() });
       await screen.findByText('Preparing');
+      api.set('getAssignment', 'assignment_arrived_at_pickup'); // the restaurant taps Ready
       await act(async () => {
         jest.advanceTimersByTime(5_000);
       });
       await screen.findByText('Ready for pickup');
       fireEvent.press(screen.getByText('Check the items'));
       await screen.findByText('Check the bag has 3 items');
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('a poll fails while online: the polling form of TripSocketLost; the last answer stays', async () => {
+    jest.useFakeTimers({ doNotFake: ['nextTick', 'setImmediate'] });
+    try {
+      const { api } = renderTrip(scheme, { getAssignment: PREPARING() });
+      await screen.findByText('Preparing');
+      api.set('getAssignment', 'error_internal_error');
+      await act(async () => {
+        jest.advanceTimersByTime(5_000);
+      });
+      await screen.findByText('Updates may be delayed');
+      expect(screen.getByText("We'll keep checking the food status. Your steps still send.")).toBeTruthy();
+      expect(screen.getByText('Wait for the food')).toBeTruthy();
+      expect(screen.queryByText('No internet connection')).toBeNull();
     } finally {
       jest.useRealTimers();
     }
@@ -299,9 +340,8 @@ describe.each(SCHEMES)('step 2, at the restaurant (%s)', (scheme) => {
     await screen.findByText('Check the bag has 3 items');
     fireEvent.changeText(screen.getByTestId('trip-pickup-code-field'), '7314');
     fireEvent.press(screen.getByText("I've got the food"));
-    await screen.findByText(
-      "That isn't the pickup code for this order. Ask the kitchen to read it again from order HG-PIUP-9X. 3 tries left.",
-    );
+    // The field's error line carries the DS warning glyph before the words.
+    await screen.findByText(/That isn't the pickup code for this order\. Ask the kitchen to read it again from order HG-PIUP-9X\. 3 tries left\.$/);
     expect(screen.getByTestId('trip-pickup-code-field').props.value).toBe('7314');
   });
 
@@ -380,7 +420,9 @@ describe.each(SCHEMES)('offline pickup and the replay (%s)', (scheme) => {
     ).toBeTruthy();
     fireEvent.changeText(screen.getByTestId('trip-rejected-code-input-field'), '7341');
     fireEvent.press(screen.getByText('Send the code'));
-    await waitFor(() => expect(screen.queryByText("The pickup code you saved wasn't accepted")).toBeNull());
+    // Accepted: the board closes and the delivery moves on to the drop-off.
+    expect((await screen.findByTestId('route-probe', {}, { timeout: 3000 })).props.children).toBe(`tripDropoff:${ID}`);
+    expect(screen.queryByText("The pickup code you saved wasn't accepted")).toBeNull();
     const sent = transitions(api);
     expect(sent).toHaveLength(3);
     expect(sent[2]).toMatchObject({ to_state: 'PICKED_UP', pickup_code: '7341', occurred_at: savedAt });
@@ -406,12 +448,13 @@ describe.each(SCHEMES)('offline pickup and the replay (%s)', (scheme) => {
   });
 
   it('another saved step refused on replay: QueuedRejected, Continue from here drops it', async () => {
-    renderTrip(scheme, {
-      getAssignment: (_c, nth) => (nth === 0 ? 'assignment_en_route_to_pickup' : 'assignment_picked_up'),
+    const { api } = renderTrip(scheme, {
+      getAssignment: 'assignment_en_route_to_pickup',
       createAssignmentTransition: (_c, nth) => (nth === 0 ? 'offline' : INVALID_TRANSITION('PICKED_UP')),
     });
     fireEvent.press(await screen.findByText("I'm at the restaurant"));
-    await screen.findByText('Wait for the food', {}, { timeout: 3000 }).catch(() => screen.findByText('Check the bag has 3 items'));
+    await screen.findByText('Check the bag has 3 items');
+    api.set('getAssignment', 'assignment_picked_up'); // the restaurant's side moved it on meanwhile
     await act(async () => {
       await outbox.drain();
     });

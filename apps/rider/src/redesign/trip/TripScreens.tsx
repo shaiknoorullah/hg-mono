@@ -410,8 +410,10 @@ export function AtRestaurantScreen({ params }: ScreenProps<'tripAtRestaurant'>):
   const id = params.assignmentId;
   const view = useTripAssignment(id);
   const [pickup, setPickup] = React.useState<Pickup>({ status: 'idle' });
-  // A pickup saved offline holds this board until the rider moves on (DL/PickupRecordQueued).
-  useFollowTrip(id, view, 'tripAtRestaurant', pickup.status === 'queued');
+  // A pickup saved offline holds this board until the rider moves on (DL/PickupRecordQueued), or
+  // until it sends: once it is accepted there is nothing left to say here.
+  const pickupWaiting = view.saved.some((e) => e.input.to_state === 'PICKED_UP' && e.status === 'pending');
+  useFollowTrip(id, view, 'tripAtRestaurant', pickup.status === 'queued' && pickupWaiting);
   const a = view.assignment;
   const nav = useNav();
   const support = useSupport();
@@ -939,7 +941,8 @@ function StepPending({ view }: { view: TripAssignmentView }): React.ReactElement
 function TripBanners({ view }: { view: TripAssignmentView }): React.ReactElement {
   const online = useOnline();
   const a = view.assignment!;
-  const notice = useTripNotice(a.id);
+  const id = view.id ?? a.id;
+  const notice = useTripNotice(id);
   const tracking = a.tracking_health;
   // A refetch failed while the last good answer stays on screen: the polling equivalent of
   // DL/TripSocketLost (manifest §5 conflict 4).
@@ -953,7 +956,7 @@ function TripBanners({ view }: { view: TripAssignmentView }): React.ReactElement
           title={OUT_OF_DATE.title}
           description={OUT_OF_DATE.body(STATE_WORDS[notice.state])}
           dismissible
-          onDismiss={() => setTripNotice(a.id, null)}
+          onDismiss={() => setTripNotice(id, null)}
           testID="trip-out-of-date"
         />
       ) : null}
@@ -1159,10 +1162,11 @@ function Actions({ actions }: { actions: readonly ActionSpec[] }): React.ReactEl
     <View style={{ gap: space['2'] }}>
       {actions.map((act) => (
         <View key={act.label} style={{ gap: space['1'] }}>
-          {/* Irreversible actions: ds-request(native): Button size 2xl (72px) — DL/PickupItems "I've got the food"; xl (60) until then */}
+          {/* Irreversible under time pressure ("I've got the food", "Send the code"): the 72px critical target. */}
           <Button
             variant={act.variant}
             size="xl"
+            critical={act.irreversible}
             fullWidth
             disabled={act.disabled}
             loading={act.loading}
