@@ -12,9 +12,11 @@ import type { Page } from '@playwright/test';
 
 export const MODE = (process.env.E2E_MODE ?? 'mock') as 'mock' | 'real';
 export const MOCK_API = process.env.E2E_API_URL ?? 'http://localhost:4010';
+/** The real API (`make run`, or the compose stack through Traefik). */
+export const REAL_API = process.env.E2E_REAL_API_URL ?? 'http://localhost:8080';
 
 /** devworld's live restaurant persona (services/hg/internal/devworld/personas.go). */
-export const LIVE_OWNER = { email: process.env.E2E_RESTAURANT_EMAIL ?? 'owner@bismillahgrill.test', password: 'Seed!2026' };
+export const LIVE_OWNER = { email: process.env.E2E_RESTAURANT_EMAIL ?? 'bismillah-grill@seed.hg', password: 'Seed!2026' };
 
 const SESSION_KEY = 'hg_restaurant_session_v1';
 
@@ -35,6 +37,25 @@ async function restaurantPrincipal(page: Page) {
   };
 }
 
+type Grant = { access_token: string; principal: { account_id: string } };
+let grantOnce: Promise<Grant> | null = null;
+
+/**
+ * One sign-in per test worker: the API rate-limits sign-in per account (10 a window), and
+ * an access token outlives a spec file.
+ */
+function realGrant(page: Page): Promise<Grant> {
+  grantOnce ??= (async () => {
+    const res = await page.request.post(`${REAL_API}/v1/auth/login`, {
+      headers: { 'X-HG-Client': 'restaurant-web', 'Content-Type': 'application/json' },
+      data: { email: LIVE_OWNER.email, password: LIVE_OWNER.password },
+    });
+    if (!res.ok()) throw new Error(`sign-in as ${LIVE_OWNER.email} failed: ${res.status()} ${await res.text()}`);
+    return (await res.json()).data as Grant;
+  })();
+  return grantOnce;
+}
+
 /** Opens `path` signed in as the live restaurant's owner. */
 export async function openSignedIn(page: Page, path: string): Promise<void> {
   if (MODE === 'mock') {
@@ -47,12 +68,14 @@ export async function openSignedIn(page: Page, path: string): Promise<void> {
     await page.goto(path);
     return;
   }
-  await page.goto('/login');
-  await page.getByLabel(/email/i).fill(LIVE_OWNER.email);
-  await page.getByLabel(/password/i).fill(LIVE_OWNER.password);
-  await page.getByRole('button', { name: /sign in/i }).click();
-  await page.waitForURL(/\/(orders|onboarding)/);
-  if (!path.startsWith('/orders') || path !== '/orders') await page.goto(path);
+  // Real mode signs in through the API (the sign-in screen has its own spec), then opens the
+  // page with that session, exactly as a reload after signing in would.
+  const grant = await realGrant(page);
+  await page.addInitScript(
+    ([key, token, account]) => window.localStorage.setItem(key!, JSON.stringify({ accessToken: token, accountId: account })),
+    [SESSION_KEY, grant.access_token, grant.principal.account_id],
+  );
+  await page.goto(path);
 }
 
 /** The page never scrolls: the document is exactly the viewport (manifest WP1 DONE). */
