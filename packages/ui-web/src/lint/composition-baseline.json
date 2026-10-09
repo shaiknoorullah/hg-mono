@@ -1,0 +1,34 @@
+{
+  "$description": "Legacy files when the composition lint landed. files: apps/{restaurant,admin}/src/components, rule C-1 reports any file not listed. rawElementFiles: app files that already held a raw button/input/select/textarea or <a onClick>, rule C-2 reports any other. Regenerate with lint:composition --write-baseline.",
+  "files": [
+    "apps/admin/src/components/AuthFrame.tsx",
+    "apps/admin/src/components/DocumentReviewActions.tsx",
+    "apps/admin/src/components/HalalTranscriptionForm.tsx",
+    "apps/admin/src/components/HealthPill.tsx",
+    "apps/admin/src/components/KeysetGrid.tsx",
+    "apps/admin/src/components/LiveMapBox.tsx",
+    "apps/admin/src/components/OrderingPausePanel.tsx",
+    "apps/restaurant/src/components/AddItemDialog.tsx",
+    "apps/restaurant/src/components/AddressSearch.tsx",
+    "apps/restaurant/src/components/AuthFrame.tsx",
+    "apps/restaurant/src/components/DeadlineTimer.tsx",
+    "apps/restaurant/src/components/EditItemDialog.tsx",
+    "apps/restaurant/src/components/MenuLockedNotice.tsx",
+    "apps/restaurant/src/components/PageLoading.tsx",
+    "apps/restaurant/src/components/RejectDialog.tsx",
+    "apps/restaurant/src/components/RiderApproachMap.tsx",
+    "apps/restaurant/src/components/SealBindRow.tsx",
+    "apps/restaurant/src/components/Shell.tsx",
+    "apps/restaurant/src/components/StatusChip.tsx"
+  ],
+  "rawElementFiles": [
+    "apps/admin/src/App.tsx",
+    "apps/admin/src/screens/OrdersAdminScreen.tsx",
+    "apps/restaurant/src/components/Shell.tsx",
+    "apps/restaurant/src/routes/HoursPage.tsx",
+    "apps/restaurant/src/routes/LoginPage.tsx",
+    "apps/restaurant/src/routes/MenuPage.tsx",
+    "apps/restaurant/src/routes/onboarding/DocumentsStep.tsx",
+    "apps/restaurant/src/routes/onboarding/OnboardingPage.tsx"
+  ]
+}
