@@ -9,9 +9,10 @@
  * answers from `restaurant_order_preparing`, errors from `error_capture_failed`.
  */
 import { expect, test, type Page, type Request, type TestInfo } from '@playwright/test';
+import { execSync } from 'node:child_process';
 import { copyFileSync, mkdirSync } from 'node:fs';
-import { join } from 'node:path';
-import { MOCK_API, documentScrolls, openSignedIn } from './redesign-restaurant.support';
+import { join, resolve } from 'node:path';
+import { MOCK_API, MODE, REAL_API, documentScrolls, openSignedIn } from './redesign-restaurant.support';
 
 const SHOTS = process.env.WP3_SHOTS_DIR;
 
@@ -126,6 +127,7 @@ async function noDocumentScroll(page: Page) {
 const tile = (page: Page, code: string) => page.locator(`[data-offer-tile][aria-label^="New order ${code}"]`);
 
 test.describe('restaurant redesign · new-order strip', () => {
+  test.skip(MODE !== 'mock', 'mock-mode strip states; the real-API journeys are below');
   test('go-live gate: notifications denied offers to go live without them', async ({ page }, info) => {
     await servePending(page, []);
     await page.context().clearPermissions();
@@ -294,4 +296,77 @@ test.describe('restaurant redesign · new-order strip', () => {
     await out.getByRole('button', { name: 'Remove order A7K2 from new orders' }).click();
     await expect(out).toHaveCount(0);
   });
+});
+
+/**
+ * Real API (devworld): `make dev-scenario s=new-order` places an order at bismillah-grill as
+ * the customer persona; the strip rings, and the owner answers it from the keyboard.
+ */
+const SERVICES_HG = process.env.E2E_SERVICES_HG ?? resolve(process.cwd(), '../../services/hg');
+
+function placeOrder(): string {
+  // Each scenario signs the customer persona in by phone code, and those are rate-limited.
+  // Locally, point this at a Valkey flush (rate limits live only there; Redis is disposable
+  // by design). Unset in CI, where every run starts from a fresh world.
+  if (process.env.E2E_RESET_LIMITS_CMD) execSync(process.env.E2E_RESET_LIMITS_CMD, { stdio: 'ignore' });
+  const out = execSync('make dev-scenario s=new-order 2>&1', { cwd: SERVICES_HG, encoding: 'utf8', timeout: 120_000 });
+  // The scenario is idempotent: with an order already waiting it reports that one (`already`).
+  const code = /(?:placed|already)\s+(\S+)\s+RESTAURANT_PENDING/.exec(out)?.[1];
+  if (!code) throw new Error(`dev-scenario new-order placed nothing:\n${out}`);
+  return code;
+}
+
+async function orderState(page: Page, code: string): Promise<string | undefined> {
+  const token = await page.evaluate(() => JSON.parse(localStorage.getItem('hg_restaurant_session_v1') ?? '{}').accessToken as string);
+  const res = await page.request.get(`${REAL_API}/v1/restaurant/orders?limit=50`, {
+    headers: { Authorization: `Bearer ${token}`, 'X-HG-Client': 'restaurant-web' },
+  });
+  const rows = ((await res.json()).data ?? []) as { code: string; state: string }[];
+  return rows.find((r) => r.code === code)?.state;
+}
+
+test.describe('restaurant redesign · new-order strip · real API', () => {
+  test.skip(MODE !== 'real', 'drives devworld scenarios against services/hg');
+  test.describe.configure({ mode: 'serial' });
+
+  // The customer persona may hold one active order, so each run starts from a fresh world:
+  // the decline leaves a terminal order, then the accept leaves one in PREPARING.
+  test.beforeAll(() => {
+    execSync('make dev-reset 2>&1', { cwd: SERVICES_HG, encoding: 'utf8', timeout: 300_000 });
+  });
+
+  test('"Something else" declines with the note, on the real API (#604)', async ({ page }, info) => {
+    await goLive(page, info);
+    const code = placeOrder();
+    const t = tile(page, code);
+    await expect(t).toBeVisible({ timeout: 30_000 });
+    await t.focus();
+    await page.keyboard.press('d');
+    const panel = page.getByRole('complementary', { name: `Order ${code} details` });
+    await expect(panel.getByRole('heading', { name: `Decline ${code}?` })).toBeVisible();
+    await panel.getByRole('radio', { name: 'Something else' }).click();
+    await panel.getByRole('textbox', { name: /Add detail/ }).fill('The tandoor is being serviced tonight.');
+    await panel.getByRole('button', { name: `Decline order, order ${code}` }).click();
+    await expect(page.getByTestId('hg-toast').getByText(`${code} declined`)).toBeVisible({ timeout: 20_000 });
+    await expect.poll(() => orderState(page, code), { timeout: 20_000 }).toBe('REJECTED');
+    await shot(page, info, 'real-declined');
+  });
+  test('a new order rings in the strip and A on the focused tile accepts it', async ({ page }, info) => {
+    await goLive(page, info);
+    const code = placeOrder();
+    const t = tile(page, code);
+    await expect(t).toBeVisible({ timeout: 30_000 });
+    await shot(page, info, 'real-offer');
+    // A stray key with nothing focused does nothing.
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+    await page.keyboard.press('a');
+    await page.waitForTimeout(500);
+    expect(await orderState(page, code)).toBe('RESTAURANT_PENDING');
+    await t.focus();
+    await page.keyboard.press('a');
+    await expect(page.getByTestId('hg-toast').getByText(new RegExp(`^${code} accepted · ready by \\d{1,2}:\\d{2} (am|pm)$`))).toBeVisible({ timeout: 20_000 });
+    await expect.poll(() => orderState(page, code)).toBe('PREPARING');
+    await shot(page, info, 'real-accepted');
+  });
+
 });
