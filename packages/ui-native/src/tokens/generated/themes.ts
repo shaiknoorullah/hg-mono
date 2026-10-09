@@ -47,6 +47,8 @@ export const themes = {
           onInverse: '#F6EFDD',
           onAccent: '#FFFFFF',
           link: '#0959B8',
+          linkHover: '#07458F',
+          secondaryField: '#4A4E48',
         },
         border: {
           decorative: '#E6E0D4',
@@ -517,6 +519,8 @@ export const themes = {
           onInverse: '#232323',
           onAccent: '#FFFFFF',
           link: '#6FA9F2',
+          linkHover: '#CBDFFC',
+          secondaryField: '#D8D0BF',
         },
         border: {
           decorative: '#33352F',
@@ -989,6 +993,8 @@ export const themes = {
           onInverse: '#F6EFDD',
           onAccent: '#FFFFFF',
           link: '#0959B8',
+          linkHover: '#07458F',
+          secondaryField: '#4A4E48',
         },
         border: {
           decorative: '#E6E0D4',
@@ -1459,6 +1465,8 @@ export const themes = {
           onInverse: '#232323',
           onAccent: '#FFFFFF',
           link: '#6FA9F2',
+          linkHover: '#CBDFFC',
+          secondaryField: '#D8D0BF',
         },
         border: {
           decorative: '#33352F',
