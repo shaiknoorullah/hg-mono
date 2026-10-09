@@ -11,7 +11,7 @@ package lands; the props do not change, so app code does not either.
 - **missing**: not exported yet. Build against the planned props in the live `index.d.ts`, and
   file a `ds-request(web): <Component>` issue if your WP needs it before the listed WP.
 
-Work packages: [plan/design-system.md §4.1](https://github.com/shaiknoorullah/hg-mono/blob/claude/redesign-canvases/plan/design-system.md#41-web-track-hg-ui-web-on-shadcnui-and-lytenyte-restaurant-admin).
+Work packages: `plan/design-system.md` §4.1 on the read-only `claude/redesign-canvases` branch; progress is tracked in [#661](https://github.com/shaiknoorullah/hg-mono/issues/661).
 
 ## `@hg/ui-web/ds`
 
