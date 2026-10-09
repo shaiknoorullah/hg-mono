@@ -5,7 +5,7 @@ covers:
   - services/hg/migrations/devworld/**
   - apps/restaurant/.claude/skills/**
   - docs/playbooks/**
-reviewed: 2026-10-05
+reviewed: 2026-10-09
 ---
 
 # Dev world — seeded personas, live scenarios, journey simulation, playbooks
@@ -231,6 +231,8 @@ Adding customer, rider or admin coverage is additive — no change to the [archi
 4. **Run skill** — `apps/<app>/.claude/skills/run-<app>/` with a `--backend` mode (the customer and rider apps are Expo; their web target is the automation surface).
 
 One GitHub issue per app tracks this.
+
+Which journeys of each app, and which features of the specification, the dev world reproduces today, and the issue for each gap, is in the [dev world coverage map](../../devworld-coverage.md).
 
 ## 11. Relationship to the realtime feature
 
