@@ -11,7 +11,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { useState, type ReactElement } from 'react';
+import { createRef, useState, type ReactElement } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
 import { AppBar, DetailPanel, SideNav, SplitPanes, type SideNavGroup } from '../index';
@@ -300,6 +300,151 @@ describe('SkipLink and Disclosure', () => {
     fireEvent.click(summary);
     expect(summary).toHaveAttribute('aria-expanded', 'true');
     expect(screen.getByText('Vehicle: bicycle')).toBeVisible();
+  });
+});
+
+describe('app requests (#675 restaurant, #699 admin)', () => {
+  it('DetailPanel: busy blocks Escape and Close (Close stays focusable), and returns focus to returnFocusRef', () => {
+    const onClose = vi.fn();
+    const row = createRef<HTMLButtonElement>();
+    function Harness({ busy }: { busy: boolean }) {
+      const [open, setOpen] = useState(true);
+      return (
+        <>
+          <button type="button" ref={row}>
+            Row B3M9
+          </button>
+          <DetailPanel
+            open={open}
+            busy={busy}
+            title="Refund B3M9"
+            width="panel"
+            returnFocusRef={row}
+            onClose={() => {
+              onClose();
+              setOpen(false);
+            }}
+          >
+            Body
+          </DetailPanel>
+        </>
+      );
+    }
+    const { rerender } = render(<Harness busy />);
+    const panel = screen.getByRole('complementary', { name: 'Refund B3M9' });
+    expect(panel).toHaveAttribute('aria-busy', 'true');
+    expect(panel.className).toMatch(/w-\[380px\]/);
+    expect(panel.className).toMatch(/xl:w-\[460px\]/);
+    const close = screen.getByRole('button', { name: 'Close Refund B3M9' });
+    expect(close).toHaveAttribute('aria-disabled', 'true');
+    fireEvent.click(close);
+    fireEvent.keyDown(screen.getByRole('heading', { name: 'Refund B3M9' }), { key: 'Escape' });
+    expect(onClose).not.toHaveBeenCalled();
+    rerender(<Harness busy={false} />);
+    fireEvent.keyDown(screen.getByRole('heading', { name: 'Refund B3M9' }), { key: 'Escape' });
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('complementary')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Row B3M9' })).toHaveFocus();
+  });
+
+  it('SideNav: the admin names work (count, countLabel, current, heading, onNavigate, onCollapsedChange)', () => {
+    const onNavigate = vi.fn();
+    const onCollapsedChange = vi.fn();
+    render(
+      <SideNav
+        collapsed={false}
+        onCollapsedChange={onCollapsedChange}
+        onNavigate={onNavigate}
+        groups={[
+          {
+            key: 'review',
+            heading: 'Review',
+            items: [
+              {
+                key: 'apps',
+                label: 'Restaurant applications',
+                shortLabel: 'Restaurant',
+                href: '/apps',
+                count: 4,
+                countLabel: 'waiting',
+                countTone: 'warning',
+                current: true,
+              },
+              { key: 'orders', label: 'Orders', href: '/orders', count: null },
+              { key: 'refunds', label: 'Refunds', href: '/refunds', count: 0 },
+            ],
+          },
+        ]}
+      />,
+    );
+    expect(screen.getByRole('heading', { name: 'Review' })).toBeInTheDocument();
+    const current = screen.getByRole('link', { name: 'Restaurant applications, 4 waiting' });
+    expect(current).toHaveAttribute('aria-current', 'page');
+    expect(current.querySelector('[data-tone="warning"]')).not.toBeNull();
+    expect(screen.getByRole('link', { name: 'Orders' })).not.toHaveAttribute('aria-current');
+    expect(screen.getByRole('link', { name: 'Refunds' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('link', { name: 'Orders' }), { button: 0 });
+    expect(onNavigate).toHaveBeenCalledWith('/orders', expect.objectContaining({ key: 'orders' }), expect.anything());
+    fireEvent.click(screen.getByRole('button', { name: 'Collapse menu' }));
+    expect(onCollapsedChange).toHaveBeenCalledWith(true);
+  });
+
+  it('SideNav rail: 80px wide, labels wrap under the icon instead of truncating', () => {
+    render(<SideNav groups={groups} activeKey="orders" collapsed />);
+    const nav = screen.getByRole('navigation', { name: 'Main' });
+    expect(nav.className).toMatch(/\bw-20\b/);
+    const label = within(screen.getByRole('link', { name: 'Live orders, 3 new' })).getByText('Orders');
+    expect(label.className).toMatch(/max-w-18/);
+    expect(label.className).not.toMatch(/\btruncate\b/);
+  });
+
+  it('SplitPanes: px units, a fill pane and a controlled 48px strip', () => {
+    const onCollapsedChange = vi.fn();
+    const panes = (collapsed: boolean) => [
+      { id: 'list', label: 'Orders', content: 'list', defaultSize: 360, collapsible: true, collapsed, onCollapsedChange },
+      { id: 'detail', label: 'Order', content: 'detail', fill: true },
+    ];
+    const { rerender } = render(<SplitPanes units="px" panes={panes(false)} />);
+    expect(screen.getByRole('separator', { name: 'Resize Orders and Order' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Show Orders' })).toBeNull();
+    rerender(<SplitPanes units="px" panes={panes(true)} />);
+    expect(screen.getByRole('complementary', { name: 'Orders, folded' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Show Orders' }));
+    expect(onCollapsedChange).toHaveBeenCalledTimes(1);
+    expect(onCollapsedChange).toHaveBeenCalledWith(false);
+  });
+
+  it('NavDrawer with the app’s own trigger returns focus to it', async () => {
+    function Harness() {
+      const [open, setOpen] = useState(false);
+      return (
+        <>
+          <button type="button" aria-controls="nav-drawer" onClick={() => setOpen(true)}>
+            Open navigation
+          </button>
+          <NavDrawer hideTrigger id="nav-drawer" open={open} onClose={() => setOpen(false)} title="Navigation">
+            <SideNav groups={groups} activeKey="orders" collapsible={false} />
+          </NavDrawer>
+        </>
+      );
+    }
+    render(<Harness />);
+    expect(screen.queryByRole('button', { name: 'Open menu' })).toBeNull();
+    const trigger = screen.getByRole('button', { name: 'Open navigation' });
+    trigger.focus();
+    fireEvent.click(trigger);
+    const dialog = await screen.findByRole('dialog', { name: 'Navigation' });
+    expect(dialog).toHaveAttribute('id', 'nav-drawer');
+    await act(async () => {
+      fireEvent.keyDown(dialog, { key: 'Escape' });
+    });
+    expect(screen.queryByRole('dialog')).toBeNull();
+    await waitFor(() => expect(trigger).toHaveFocus());
+  });
+
+  it('Disclosure accepts the admin’s title and meta', () => {
+    render(<Disclosure title="Documents" meta="3 files">Licence</Disclosure>);
+    expect(screen.getByRole('button', { name: /Documents/ })).toHaveTextContent('3 files');
   });
 });
 

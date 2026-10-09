@@ -24,9 +24,9 @@ Work packages: `plan/design-system.md` §4.1 on the read-only `claude/redesign-c
 | Card | legacy | W1 | no `href` |
 | Price | legacy | W1 | no `onDark`, `testId`, `style` |
 | AppBar | rebuilt | W2 | additions `leading`, `brand`, `role`, `loadingLabel`; `titleAs`/`onTitlePress` (packet P19) not yet |
-| SideNav | rebuilt | W2 | count pill is drawn in place until W1's Badge lands; on-chrome tile uses on-accent until `surface-chrome-selected` (packet T7) exists |
-| DetailPanel | rebuilt | W2 | — |
-| SplitPanes | rebuilt | W2 | horizontal only |
+| SideNav | rebuilt | W2 | count pill is drawn in place until W1's Badge lands; on-chrome tile uses on-accent until `surface-chrome-selected` (packet T7) exists. Admin names (#699) accepted as aliases |
+| DetailPanel | rebuilt | W2 | additions `open`, `busy`, `returnFocusRef`, `label`, `id`, `width="panel"` (380/460px) for #675 and #699 |
+| SplitPanes | rebuilt | W2 | horizontal only; additions `units="px"`, `fill`, controlled `collapsed`, `onResize` (#699) |
 | Input | adapter | W3 | `otp` is the legacy 6-cell row |
 | Select | adapter | W3 | `onChange` receives the value, not an event |
 | Checkbox | adapter | W3 | use `onCheckedChange`; `onChange(event)` is not offered |

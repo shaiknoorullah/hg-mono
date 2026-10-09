@@ -12,11 +12,16 @@
  * - Sign out sits on the chrome at the foot of the rail (`onSignOut`).
  * - No arrow-key roving: a list of links is not a composite widget; Tab order is the order.
  *
+ * The admin stub's names (#699) are accepted as aliases: `count`/`countLabel`/`countTone`,
+ * `current`, a group's `heading`, `onCollapsedChange`, `railHeader`, `onNavigate`,
+ * `collapseLabel`/`expandLabel` and `id`. A rail label may wrap (at most 72px wide) rather than
+ * spill past the rail.
+ *
  * The props of the pre-redesign `SideNav` (`groups`, `activeKey`, `collapsed`,
  * `onToggleCollapsed`, `header`, `footer`, `className`, `testId`) keep working unchanged.
  */
 
-import { useId, useState, type CSSProperties, type ReactNode } from 'react';
+import { useId, useState, type CSSProperties, type MouseEvent, type ReactNode } from 'react';
 
 import {
   Sidebar,
@@ -54,6 +59,14 @@ export interface SideNavItem {
   disabled?: boolean;
   /** Why it is disabled; read through `aria-describedby`. */
   disabledReason?: string;
+  /** Alias of `badge` (admin): `null`/undefined = not known yet, 0 shows nothing. */
+  count?: number | null;
+  /** Alias of `badgeNoun` (admin). */
+  countLabel?: string;
+  /** `neutral` (default) or `warning` for a breached or overdue count. Never red. */
+  countTone?: 'neutral' | 'warning';
+  /** Alias of `activeKey === key` (admin): this item is the current page. */
+  current?: boolean;
 }
 
 /** A titled group of items. */
@@ -61,6 +74,8 @@ export interface SideNavGroup {
   key: string;
   /** Visible heading (hidden on the collapsed rail, where a rule separates groups). */
   label?: string;
+  /** Alias of `label` (admin). */
+  heading?: string;
   items: readonly SideNavItem[];
 }
 
@@ -74,6 +89,20 @@ export interface SideNavProps {
   /** Uncontrolled initial state. */
   defaultCollapsed?: boolean;
   onToggleCollapsed?: (collapsed: boolean) => void;
+  /** Alias of `onToggleCollapsed` (admin). */
+  onCollapsedChange?: (collapsed: boolean) => void;
+  /** The toggle's names. Defaults "Collapse menu" and "Expand menu". */
+  collapseLabel?: string;
+  expandLabel?: string;
+  /** Shown at the top of the collapsed rail instead of `brand` (a compact mark). */
+  railHeader?: ReactNode;
+  /**
+   * Client-side navigation: called on a plain left click of an `href` item (no modifier keys),
+   * after the default is prevented, so a router can navigate. Other clicks follow the href.
+   */
+  onNavigate?: (href: string, item: SideNavItem, event: MouseEvent<HTMLAnchorElement>) => void;
+  /** The landmark's id. */
+  id?: string;
   /** Shows the Collapse/Expand control. Default: true when uncontrolled or `onToggleCollapsed` is set. */
   collapsible?: boolean;
   /** `chrome` (restaurant and admin, default) or `light` (the pre-redesign glass rail). */
@@ -96,11 +125,20 @@ export interface SideNavProps {
   style?: CSSProperties;
 }
 
+function countOf(item: SideNavItem): number | 'dot' | undefined {
+  if (item.badge !== undefined) return item.badge;
+  return typeof item.count === 'number' ? item.count : undefined;
+}
+
 function accessibleName(item: SideNavItem): string {
-  if (item.badge === undefined) return item.label;
-  if (item.badge === 'dot') return `${item.label}, has updates`;
-  if (item.badge <= 0) return item.label;
-  return `${item.label}, ${item.badge} ${item.badgeNoun ?? 'waiting'}`;
+  const badge = countOf(item);
+  const noun = item.badgeNoun ?? item.countLabel;
+  if (badge === undefined) return item.label;
+  if (badge === 'dot') return `${item.label}, has updates`;
+  if (badge <= 0) return item.label;
+  // The admin's `count` without a noun reads "Orders, 4"; `badge` keeps its "waiting" default.
+  if (noun === undefined && item.badge === undefined) return `${item.label}, ${badge}`;
+  return `${item.label}, ${badge} ${noun ?? 'waiting'}`;
 }
 
 function glyph(icon: SideNavItem['icon'], active: boolean): ReactNode {
@@ -119,6 +157,12 @@ export function SideNav({
   collapsed: collapsedProp,
   defaultCollapsed = false,
   onToggleCollapsed,
+  onCollapsedChange,
+  collapseLabel = 'Collapse menu',
+  expandLabel = 'Expand menu',
+  railHeader,
+  onNavigate,
+  id,
   collapsible,
   tone = 'chrome',
   label = 'Main',
@@ -134,17 +178,21 @@ export function SideNav({
   const [own, setOwn] = useState(defaultCollapsed);
   const controlled = collapsedProp !== undefined;
   const collapsed = controlled ? collapsedProp : own;
-  const showToggle = collapsible ?? (!controlled || onToggleCollapsed !== undefined);
+  const showToggle =
+    collapsible ?? (!controlled || onToggleCollapsed !== undefined || onCollapsedChange !== undefined);
+  const top = collapsed && railHeader !== undefined ? railHeader : brand;
   const listId = useId();
 
   const toggle = (): void => {
     const next = !collapsed;
     if (!controlled) setOwn(next);
     onToggleCollapsed?.(next);
+    onCollapsedChange?.(next);
   };
 
   return (
     <Sidebar
+      id={id}
       aria-label={label}
       tone={tone}
       collapsed={collapsed}
@@ -152,36 +200,41 @@ export function SideNav({
       className={className}
       style={style}
     >
-      {brand || (header && !collapsed) ? (
+      {top || (header && !collapsed) ? (
         <SidebarHeader className={cn(collapsed && 'items-center px-2')}>
-          {brand}
+          {top}
           {header && !collapsed ? <div className="text-body-sm">{header}</div> : null}
         </SidebarHeader>
       ) : null}
 
-      <SidebarContent id={listId}>
-        {groups.map((group, index) => (
+      <SidebarContent id={listId} className={cn(collapsed && 'px-0.5')}>
+        {groups.map((group, index) => {
+          const groupLabel = group.label ?? group.heading;
+          return (
           <SidebarGroup key={group.key}>
-            {group.label && !collapsed ? <SidebarGroupLabel>{group.label}</SidebarGroupLabel> : null}
+            {groupLabel && !collapsed ? <SidebarGroupLabel>{groupLabel}</SidebarGroupLabel> : null}
             {collapsed && index > 0 ? (
               <span aria-hidden="true" className="mx-2 my-1 h-px bg-current opacity-40" />
             ) : null}
-            <SidebarMenu aria-label={group.label}>
+            <SidebarMenu aria-label={groupLabel}>
               {group.items.map((item) => {
-                const active = item.key === activeKey;
+                const active = item.current ?? item.key === activeKey;
+                const badge = countOf(item);
                 const name = accessibleName(item);
                 const reasonId = item.disabledReason ? `${testId}-${item.key}-reason` : undefined;
                 const visible = collapsed ? (item.shortLabel ?? item.label) : item.label;
                 const count =
-                  typeof item.badge === 'number' && item.badge > 0 ? (
-                    <SidebarMenuBadge collapsed={collapsed}>{item.badge > 99 ? '99+' : item.badge}</SidebarMenuBadge>
-                  ) : item.badge === 'dot' ? (
-                    <SidebarMenuBadge collapsed={collapsed} className="size-2 min-w-2 p-0" />
+                  typeof badge === 'number' && badge > 0 ? (
+                    <SidebarMenuBadge collapsed={collapsed} tone={item.countTone}>
+                      {badge > 99 ? '99+' : badge}
+                    </SidebarMenuBadge>
+                  ) : badge === 'dot' ? (
+                    <SidebarMenuBadge collapsed={collapsed} tone={item.countTone} className="size-2 min-w-2 p-0" />
                   ) : null;
                 const content = (
                   <>
                     {glyph(item.icon, active)}
-                    <span className={cn('min-w-0', collapsed ? 'max-w-full truncate' : 'flex-1 truncate')}>{visible}</span>
+                    <span className={cn('min-w-0', collapsed ? 'max-w-18 hyphens-auto [overflow-wrap:anywhere] leading-tight' : 'flex-1 truncate')}>{visible}</span>
                     {count}
                   </>
                 );
@@ -197,7 +250,19 @@ export function SideNav({
                 return (
                   <SidebarMenuItem key={item.key}>
                     {item.href && !item.disabled ? (
-                      <SidebarMenuButton {...shared} href={item.href} onClick={() => item.onSelect?.(item.key)}>
+                      <SidebarMenuButton
+                        {...shared}
+                        href={item.href}
+                        onClick={(event) => {
+                          item.onSelect?.(item.key);
+                          const plain =
+                            event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey;
+                          if (onNavigate && item.href && plain) {
+                            event.preventDefault();
+                            onNavigate(item.href, item, event);
+                          }
+                        }}
+                      >
                         {content}
                       </SidebarMenuButton>
                     ) : (
@@ -221,7 +286,8 @@ export function SideNav({
               })}
             </SidebarMenu>
           </SidebarGroup>
-        ))}
+          );
+        })}
       </SidebarContent>
 
       {footer || onSignOut || showToggle ? (
@@ -238,14 +304,14 @@ export function SideNav({
               emphasis="plain"
               aria-expanded={!collapsed}
               aria-controls={listId}
-              aria-label={collapsed ? 'Expand menu' : undefined}
+              aria-label={collapsed ? expandLabel : collapseLabel}
               data-testid={`${testId}-collapse`}
               onClick={toggle}
             >
               <span aria-hidden="true" className={cn('inline-flex', collapsed && '-scale-x-100 rtl:scale-x-100')}>
                 <Icon name="back" size="md" />
               </span>
-              {collapsed ? null : <span>Collapse menu</span>}
+              {collapsed ? null : <span aria-hidden="true">{collapseLabel}</span>}
             </SidebarFooterButton>
           ) : null}
         </SidebarFooter>

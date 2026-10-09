@@ -8,10 +8,13 @@
  *   ("Open menu, 3 new orders"); it carries `aria-expanded`.
  * - Inside: the same links, `aria-current` and counts as the rail (pass a `SideNav`).
  * - Escape, the Close button or the scrim close it, and focus returns to "Open menu".
+ * - An app that draws its own "Open navigation" button passes `hideTrigger`, `open` and
+ *   `onClose` (the admin's names, #699); focus then returns to whatever was focused when it
+ *   opened. `id` goes on the drawer, for that button's `aria-controls`.
  * - It is navigation only. Working tasks never open in an overlay (DetailPanel instead).
  */
 
-import { useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '../lib/ui/sheet.js';
 import { cn } from '../lib/utils.js';
@@ -25,6 +28,12 @@ export interface NavDrawerProps {
   open?: boolean;
   defaultOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
+  /** Called when the drawer asks to close (admin alias; also gets `onOpenChange(false)`). */
+  onClose?: () => void;
+  /** Render no trigger: the app draws its own "Open navigation" and controls `open`. */
+  hideTrigger?: boolean;
+  /** The drawer's id (for the app trigger's `aria-controls`). */
+  id?: string;
   /** The drawer's heading. Default "Menu". */
   title?: string;
   /** The trigger's name. Default "Open menu". */
@@ -48,6 +57,9 @@ export function NavDrawer({
   open: openProp,
   defaultOpen = false,
   onOpenChange,
+  onClose,
+  hideTrigger = false,
+  id,
   title = 'Menu',
   triggerLabel = 'Open menu',
   triggerCount,
@@ -61,34 +73,47 @@ export function NavDrawer({
   const controlled = openProp !== undefined;
   const open = controlled ? openProp : own;
   const trigger = useRef<HTMLSpanElement>(null);
+  const opener = useRef<HTMLElement | null>(null);
+
+  // Before Radix moves focus into the drawer, remember where it was (the app's own trigger).
+  useLayoutEffect(() => {
+    if (open && typeof document !== 'undefined') opener.current = document.activeElement as HTMLElement | null;
+  }, [open]);
 
   const setOpen = (next: boolean): void => {
     if (!controlled) setOwn(next);
     onOpenChange?.(next);
+    if (!next) onClose?.();
   };
   const name =
     triggerCount !== undefined && triggerCount > 0 ? `${triggerLabel}, ${triggerCount} ${triggerCountNoun}` : triggerLabel;
 
   return (
     <>
-      <span ref={trigger} className="inline-flex [&_button]:text-current" data-testid={testId} style={style}>
-        <IconButton
-          icon="menu"
-          accessibilityLabel={name}
-          variant="plain"
-          size="md"
-          onPress={() => setOpen(!open)}
-          testId={`${testId}-trigger`}
-        />
-      </span>
+      {hideTrigger ? null : (
+        <span ref={trigger} className="inline-flex [&_button]:text-current" data-testid={testId} style={style}>
+          <IconButton
+            icon="menu"
+            accessibilityLabel={name}
+            variant="plain"
+            size="md"
+            onPress={() => setOpen(!open)}
+            testId={`${testId}-trigger`}
+          />
+        </span>
+      )}
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent
           side="left"
+          id={id}
           data-testid={`${testId}-content`}
           onCloseAutoFocus={(event) => {
-            // Return focus to "Open menu" (the trigger is a design-system IconButton, not a Radix Trigger).
+            // Return focus to "Open menu" (the trigger is a design-system IconButton, not a Radix
+            // Trigger), or to the app's own trigger when there is none here.
             event.preventDefault();
-            trigger.current?.querySelector('button')?.focus();
+            const own = trigger.current?.querySelector('button');
+            const to = own ?? opener.current;
+            if (to && to.isConnected) to.focus();
           }}
           className={cn(
             tone === 'chrome'

@@ -101,3 +101,25 @@ export function Error() {
     </Box>
   );
 }
+
+/** Busy, at the restaurant's `width="panel"` (380px, 460px from 1280px): Close and Escape wait. */
+export function Busy() {
+  return (
+    <div style={{ height: 420, display: 'flex' }}>
+      <DetailPanel
+        title="Refund B3M9"
+        width="panel"
+        busy
+        onClose={() => undefined}
+        focusOnOpen={false}
+        footer={
+          <Button variant="primary" loading>
+            Send refund
+          </Button>
+        }
+      >
+        <p style={{ margin: 0 }}>Refunding $42.18 to the card ending 4242.</p>
+      </DetailPanel>
+    </div>
+  );
+}

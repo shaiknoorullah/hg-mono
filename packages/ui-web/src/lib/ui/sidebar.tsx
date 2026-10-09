@@ -152,14 +152,24 @@ export function SidebarMenuAction({
 }
 
 /** The count pill (decorative: the count is already in the item's accessible name). */
-export function SidebarMenuBadge({ className, collapsed, ...props }: ComponentProps<'span'> & { collapsed?: boolean }) {
+export function SidebarMenuBadge({
+  className,
+  collapsed,
+  tone = 'neutral',
+  ...props
+}: ComponentProps<'span'> & { collapsed?: boolean; tone?: 'neutral' | 'warning' }) {
   return (
     <span
       aria-hidden="true"
       data-slot="sidebar-menu-badge"
+      data-tone={tone}
       className={cn(
-        'inline-flex min-w-5 items-center justify-center rounded-full bg-action-primary-bg px-1.5',
-        'text-label-sm font-semibold text-action-primary-fg tabular-nums',
+        'inline-flex min-w-5 items-center justify-center rounded-full px-1.5',
+        'text-label-sm font-semibold tabular-nums',
+        // Warning is a tint (a breached or overdue count); a count is never red.
+        tone === 'warning'
+          ? 'bg-feedback-warning-tint text-feedback-warning-tint-text'
+          : 'bg-action-primary-bg text-action-primary-fg',
         collapsed ? 'absolute end-1 top-1' : 'ms-auto shrink-0',
         className,
       )}

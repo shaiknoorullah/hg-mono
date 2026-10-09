@@ -121,3 +121,42 @@ export function LightTone() {
     </Tall>
   );
 }
+
+const adminRail: SideNavGroup[] = [
+  {
+    key: 'review',
+    heading: 'Review',
+    items: [
+      {
+        key: 'restaurants',
+        label: 'Restaurant applications',
+        shortLabel: 'Restaurant',
+        icon: 'home',
+        href: '#r',
+        count: 4,
+        countLabel: 'waiting',
+        current: true,
+      },
+      {
+        key: 'certificates',
+        label: 'Certificates',
+        shortLabel: 'Certificates',
+        icon: 'orders',
+        href: '#c',
+        count: 2,
+        countLabel: 'overdue',
+        countTone: 'warning',
+      },
+      { key: 'riders', label: 'Rider applications', shortLabel: 'Riders', icon: 'profile', href: '#ri', count: null },
+    ],
+  },
+];
+
+/** Admin rail (#699): 80px, a label under every item, a warning-tint overdue count, Sign out. */
+export function AdminRail() {
+  return (
+    <Tall>
+      <SideNav groups={adminRail} collapsed onCollapsedChange={() => undefined} onSignOut={() => undefined} />
+    </Tall>
+  );
+}

@@ -13,10 +13,24 @@
  *   (announced as an alert). Each has a plain default, so no state renders blank.
  * - Closing (button or Escape inside the panel) returns focus to where it was before the panel
  *   opened.
- * - Inside `SplitPanes` its edge is the resize handle; on its own it takes `width`.
+ * - Inside `SplitPanes` its edge is the resize handle; on its own it takes `width`
+ *   (`width="panel"`: 380px on tablet, 460px from 1280px, as the restaurant console draws it).
+ * - While `busy` (a decision is sending) Escape and Close do nothing; the panel is `aria-busy`
+ *   and Close stays focusable with `aria-disabled` (admin, #699).
+ * - `open` (default true) lets an app keep the panel mounted: false renders nothing and returns
+ *   focus, true focuses the heading again. `returnFocusRef` names the opener explicitly.
  */
 
-import { useEffect, useId, useRef, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react';
+import {
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  type CSSProperties,
+  type KeyboardEvent,
+  type ReactNode,
+  type RefObject,
+} from 'react';
 
 import { ScrollArea } from '../lib/ui/scroll-area.js';
 import { cn } from '../lib/utils.js';
@@ -37,6 +51,8 @@ export interface DetailPanelProps {
   closeLabel?: string;
   /** Extra header controls (IconButtons with real labels), before Close. */
   actions?: ReactNode;
+  /** Alias of `actions` (the admin stub's name). */
+  headerActions?: ReactNode;
   /** The panel's action area, pinned under the scrolling body. */
   footer?: ReactNode;
   children?: ReactNode;
@@ -52,8 +68,21 @@ export interface DetailPanelProps {
   focusOnOpen?: boolean;
   /** Return focus to the previously focused element when the panel unmounts. Default true. */
   returnFocus?: boolean;
-  /** Fixed width when not inside SplitPanes (px or any CSS length). */
-  width?: number | string;
+  /**
+   * Fixed width when not inside SplitPanes (px or any CSS length). Presets: `panel` is 380px on
+   * tablet and 460px from 1280px (restaurant, #675); `pane` is 340px.
+   */
+  width?: number | string | 'panel' | 'pane';
+  /** Addition: shown while true (default); false renders nothing and returns focus. */
+  open?: boolean;
+  /** Addition: a decision is sending. Escape and Close do nothing; sets aria-busy. */
+  busy?: boolean;
+  /** Addition: the element focus returns to on close (default: whatever was focused on open). */
+  returnFocusRef?: RefObject<HTMLElement | null>;
+  /** Addition: names the region directly instead of by its heading. */
+  label?: string;
+  /** Addition: the region's id. */
+  id?: string;
   className?: string;
   /** data-testid; defaults to the component name. */
   testId?: string;
@@ -68,6 +97,7 @@ export function DetailPanel({
   onClose,
   closeLabel,
   actions,
+  headerActions,
   footer,
   children,
   status = 'ready',
@@ -77,6 +107,11 @@ export function DetailPanel({
   focusOnOpen = true,
   returnFocus = true,
   width,
+  open = true,
+  busy = false,
+  returnFocusRef,
+  label,
+  id,
   className,
   testId = 'DetailPanel',
   style,
@@ -86,21 +121,44 @@ export function DetailPanel({
   const Heading = headingLevel === 3 ? 'h3' : 'h2';
   const name = closeLabel ?? (typeof title === 'string' ? `Close ${title}` : 'Close panel');
 
-  useEffect(() => {
-    const previous = typeof document === 'undefined' ? null : (document.activeElement as HTMLElement | null);
-    if (focusOnOpen) heading.current?.focus();
+  const opener = useRef<HTMLElement | null>(null);
+  const restoreRef = useRef({ returnFocus, returnFocusRef });
+  restoreRef.current = { returnFocus, returnFocusRef };
+
+  // Layout effect: capture the opener before anything inside the panel takes focus.
+  useLayoutEffect(() => {
+    if (!open) return undefined;
+    opener.current = typeof document === 'undefined' ? null : (document.activeElement as HTMLElement | null);
     return () => {
-      if (returnFocus && previous && previous !== document.body && previous.isConnected) previous.focus();
+      const { returnFocus: restore, returnFocusRef: target } = restoreRef.current;
+      const to = target?.current ?? opener.current;
+      if (restore && to && to !== document.body && to.isConnected) to.focus();
     };
-    // Mount and unmount only: the panel's lifetime is one opening.
-  }, []);
+    // One opening per `open` = true; unmount counts as a close.
+  }, [open]);
+
+  useEffect(() => {
+    if (open && focusOnOpen) heading.current?.focus();
+    // Each opening, not each render.
+  }, [open]);
+
+  if (!open) return null;
+
+  const close = (): void => {
+    if (busy || !onClose) return;
+    onClose();
+  };
 
   const onKeyDown = (event: KeyboardEvent<HTMLElement>): void => {
     if (event.key === 'Escape' && onClose && !event.defaultPrevented) {
       event.preventDefault();
-      onClose();
+      event.stopPropagation();
+      close();
     }
   };
+
+  const extra = actions ?? headerActions;
+  const preset = width === 'panel' || width === 'pane' ? width : undefined;
 
   let body: ReactNode;
   if (status === 'loading') {
@@ -123,17 +181,22 @@ export function DetailPanel({
 
   return (
     <aside
-      aria-labelledby={headingId}
-      aria-busy={status === 'loading' || undefined}
+      id={id}
+      aria-label={label}
+      aria-labelledby={label ? undefined : headingId}
+      aria-busy={status === 'loading' || busy || undefined}
       data-testid={testId}
       data-status={status}
+      data-busy={busy || undefined}
       onKeyDown={onKeyDown}
       className={cn(
         'flex h-full w-full min-h-0 min-w-0 flex-col overflow-hidden bg-surface-raised text-fg-primary',
         'border border-line-brand',
+        preset === 'panel' && 'w-[380px] shrink-0 xl:w-[460px]',
+        preset === 'pane' && 'w-[340px] shrink-0',
         className,
       )}
-      style={{ ...(width === undefined ? null : { width, flexShrink: 0 }), ...style }}
+      style={{ ...(width === undefined || preset ? null : { width, flexShrink: 0 }), ...style }}
     >
       <div className="flex min-h-13 shrink-0 items-center gap-2 border-b border-line-decorative py-1 ps-4 pe-2">
         <div className="grid min-w-0 flex-1 gap-px">
@@ -148,9 +211,17 @@ export function DetailPanel({
           </Heading>
           {subtitle ? <p className="m-0 truncate text-body-sm text-fg-secondary">{subtitle}</p> : null}
         </div>
-        {actions ? <div className="flex shrink-0 items-center gap-1">{actions}</div> : null}
+        {extra ? <div className="flex shrink-0 items-center gap-1">{extra}</div> : null}
         {onClose ? (
-          <IconButton icon="close" accessibilityLabel={name} variant="plain" size="md" onPress={() => onClose()} testId={`${testId}-close`} />
+          <IconButton
+            icon="close"
+            accessibilityLabel={name}
+            variant="plain"
+            size="md"
+            disabled={busy}
+            onPress={close}
+            testId={`${testId}-close`}
+          />
         ) : null}
       </div>
 
