@@ -219,7 +219,7 @@ const styles = StyleSheet.create({
 // Root
 // ---------------------------------------------------------------------------
 
-function AppRoot(): React.ReactElement | null {
+export default function App(): React.ReactElement | null {
   const authed = React.useSyncExternalStore(subscribe, isAuthed, isAuthed);
   // Plus Jakarta Sans (the design system's `--hg-font-ui` counterpart), loaded once at the root
   // before anything renders — `ThemeProvider`'s `typeStyle()` emits these exact face names.
@@ -269,26 +269,3 @@ function AppRoot(): React.ReactElement | null {
     </StripeRoot>
   );
 }
-
-// ---------------------------------------------------------------------------
-// Redesign flag
-// ---------------------------------------------------------------------------
-
-/**
- * `EXPO_PUBLIC_HG_REDESIGN=1` builds wrap the app in the redesign root (redesign N0: the
- * NativeWind stylesheet, the `@rn-primitives/portal` host, the colour-scheme bridge). Every other
- * build exports `AppRoot` itself, so a flag-off build mounts exactly the tree it did before. The
- * redesign module is required inside the branch, never imported at the top, so Metro drops it
- * (and NativeWind with it) from a flag-off bundle.
- */
-function RedesignApp(): React.ReactElement {
-  const { RedesignRoot } =
-    require('./src/redesign/RedesignRoot') as typeof import('./src/redesign/RedesignRoot');
-  return (
-    <RedesignRoot>
-      <AppRoot />
-    </RedesignRoot>
-  );
-}
-
-export default process.env.EXPO_PUBLIC_HG_REDESIGN === '1' ? RedesignApp : AppRoot;
