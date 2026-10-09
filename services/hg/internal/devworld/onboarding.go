@@ -400,12 +400,37 @@ func (c *apiClient) reviewRestaurantApplication(ctx context.Context, restaurantI
 	if app.HalalCertificate == nil {
 		return errors.New("devworld: the application has no halal certificate")
 	}
-	cert := "/v1/admin/halal-certificates/" + app.HalalCertificate.ID
+	if err := c.passHalalCertificate(ctx, app.HalalCertificate.ID, halalTranscript{
+		number: certNumber, bodyID: bodyID, legalName: "Devworld Onboard " + suffix + " Inc.",
+		address: "1240 Danforth Avenue, Toronto", expiresOn: validUntil,
+	}); err != nil {
+		return err
+	}
+	if _, _, err := c.call(ctx, http.MethodPost, "/v1/admin/restaurant-applications/"+restaurantID+"/decision", map[string]any{
+		"decision": "APPROVE", "reason_code": "ALL_CHECKS_PASSED",
+		"reason_text": "Dev world onboarding: every document and the halal certificate checked.",
+	}, true); err != nil {
+		return fmt.Errorf("devworld: decideRestaurantApplication: %w", err)
+	}
+	fmt.Println("admin  application approved")
+	return nil
+}
+
+// halalTranscript is what the admin reads off a certificate.
+type halalTranscript struct {
+	number, bodyID, legalName, address, expiresOn string
+}
+
+// passHalalCertificate is the seven-check instrument in the admin console:
+// transcribe the certificate, record the checks a person makes (the other two
+// are computed) and approve it.
+func (c *apiClient) passHalalCertificate(ctx context.Context, certID string, t halalTranscript) error {
+	cert := "/v1/admin/halal-certificates/" + certID
 	if _, _, err := c.call(ctx, http.MethodPut, cert+"/transcription", map[string]any{
-		"certificate_number": certNumber, "issuing_body_id": bodyID,
-		"certified_legal_name": "Devworld Onboard " + suffix + " Inc.", "certified_address": "1240 Danforth Avenue, Toronto",
+		"certificate_number": t.number, "issuing_body_id": t.bodyID,
+		"certified_legal_name": t.legalName, "certified_address": t.address,
 		"scope": "WHOLE_ESTABLISHMENT", "issued_on": time.Now().AddDate(0, -1, 0).Format("2006-01-02"),
-		"expires_on": validUntil,
+		"expires_on": t.expiresOn,
 	}, true); err != nil {
 		return fmt.Errorf("devworld: transcribeHalalCertificate: %w", err)
 	}
@@ -420,12 +445,5 @@ func (c *apiClient) reviewRestaurantApplication(ctx context.Context, restaurantI
 		return fmt.Errorf("devworld: decideHalalCertificate: %w", err)
 	}
 	fmt.Println("admin  halal certificate passed all seven checks")
-	if _, _, err := c.call(ctx, http.MethodPost, "/v1/admin/restaurant-applications/"+restaurantID+"/decision", map[string]any{
-		"decision": "APPROVE", "reason_code": "ALL_CHECKS_PASSED",
-		"reason_text": "Dev world onboarding: every document and the halal certificate checked.",
-	}, true); err != nil {
-		return fmt.Errorf("devworld: decideRestaurantApplication: %w", err)
-	}
-	fmt.Println("admin  application approved")
 	return nil
 }
