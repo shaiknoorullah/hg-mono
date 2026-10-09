@@ -5,7 +5,7 @@ covers:
   - services/hg/migrations/devworld/**
   - apps/restaurant/.claude/skills/**
   - docs/playbooks/**
-reviewed: 2026-10-05
+reviewed: 2026-10-09
 ---
 
 # Dev world — seeded personas, live scenarios, journey simulation, playbooks
@@ -63,7 +63,8 @@ dev-reset                                         (make dev-reset)
           as the same local superuser (new orders start open: migrating recreates the
           ordering-pause row switched off)
        3. load the reference seed
-       4. load migrations/devworld/001_personas.sql, then the Toronto catalogue
+       4. load migrations/devworld/001_personas.sql, then the other files there in name
+          order, then the Toronto catalogue
           (internal/devworld/catalogue.go) and its pictures
        5. set one shared password hash. The admin authenticator is enrolled only when
           HG_APP_DATA_KEY is set. The fresh restaurant email stays unverified.
@@ -80,7 +81,7 @@ The reset does not re-run `roles/roles.sql` and does not migrate as `hg_migrator
 
 | Unit | Location | Responsibility | Depends on |
 |---|---|---|---|
-| World SQL | `migrations/devworld/001_personas.sql` | Static personas and their data, fixed UUIDs, idempotent | reference seed |
+| World SQL | `migrations/devworld/001_personas.sql`, then the other `migrations/devworld/*.sql` in name order | Static personas and their data, fixed UUIDs, idempotent | reference seed |
 | `devworld` command | `cmd/devworld/` | `reset` / `seed` / `scenario` / `journey` / `totp` / `list` / `verify` | pgx, auth credential helpers |
 | Scenario client | `internal/devworld/scenario.go` | HTTP calls that sign in as personas and place orders | auth sign-in |
 | Scenario registry | `internal/devworld/scenario.go` | Named scenarios the command accepts | scenario client |
@@ -131,7 +132,8 @@ Reset also seeds 14 live, certified restaurants within 8 km of both the Danforth
 
 | Persona | Role | Purpose |
 |---|---|---|
-| `customer-amina` | CUSTOMER, phone `+15550100101`, 3 saved addresses (near, far, unit/buzzer) | places every scenario order |
+| `customer-amina` | CUSTOMER, phone `+15550100101`, 3 saved addresses: `Home` (default, beside `bismillah-grill`), `Work` downtown (unit, buzzer and delivery instructions) and `Cottage` in Huntsville, outside every restaurant's delivery range | places every scenario order, from `Home`; `verify` checks the address book ([#681](https://github.com/shaiknoorullah/hg-mono/issues/681)) |
+| `nour` | CUSTOMER, phone `+15550100102`, no saved address | the empty address book |
 | `rider-sim` | RIDER, ACTIVE, Connect enabled, phone `+15550100151` | the journey's rider |
 | `admin-seed` | SUPER_ADMIN, email + password + TOTP | admin-decision scenarios |
 
