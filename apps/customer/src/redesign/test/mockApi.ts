@@ -107,10 +107,10 @@ export function payloadOf<T = any>(scenario: string): T {
 export type MockAnswer =
   /** A fixture scenario name. */
   | string
-  /** An error envelope that has no fixture yet. */
-  | { status: number; code: string; message?: string; details?: unknown }
+  /** An error envelope that has no fixture yet (optionally with response headers, e.g. Retry-After). */
+  | { status: number; code: string; message?: string; details?: unknown; headers?: Record<string, string> }
   /** A raw body. */
-  | { status: number; body: unknown }
+  | { status: number; body: unknown; headers?: Record<string, string> }
   /** Never answers (loading states). */
   | 'hang'
   /** A transport failure (offline). */
@@ -134,10 +134,10 @@ export interface MockApi {
   restore: () => void;
 }
 
-function json(status: number, body: unknown): Response {
+function json(status: number, body: unknown, headers: Record<string, string> = {}): Response {
   return new Response(status === 204 ? null : JSON.stringify(body), {
     status,
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...headers },
   });
 }
 
@@ -166,10 +166,12 @@ export function mockApi(answers: Record<string, MockAnswer> = {}): MockApi {
     if (answer === 'hang') return new Promise<Response>(() => {});
     if (answer === 'offline') throw new TypeError('Network request failed');
     if (answer && typeof answer === 'object' && !Array.isArray(answer)) {
-      if ('body' in answer) return json(answer.status, answer.body);
-      return json(answer.status, {
-        error: { code: answer.code, message: answer.message ?? answer.code, request_id: 'TEST', details: answer.details },
-      });
+      if ('body' in answer) return json(answer.status, answer.body, answer.headers);
+      return json(
+        answer.status,
+        { error: { code: answer.code, message: answer.message ?? answer.code, request_id: 'TEST', details: answer.details } },
+        answer.headers,
+      );
     }
     const m = loadManifest();
     const scenario =
