@@ -1,0 +1,37 @@
+id: rider-wp10-earnings
+app: rider
+avd: hg_rider
+api: devworld
+build:
+  env: { EXPO_PUBLIC_HG_REDESIGN: "1" }
+  note: "Clear the Metro cache when building (EXPO_PUBLIC_* is inlined at transform time; a warm cache from a flag-off build serves the legacy app)."
+setup:
+  - "make dev-reset"
+  # One delivery driven end to end so rider-sim has a ledger line (a seeded ledger history with
+  # payouts in every state is a missing seed; see the WP10 fixture requests).
+  - "make dev-journey route=short speed=max auto=all"
+reality:
+  - theme: light
+  - network: "airplane mode on and off by hand in explore step (2)"
+flows: [ "tools/e2e/native/rider/redesign/10-earnings.yaml" ]
+explore: >
+  After the flow passes, with rider-sim still signed in:
+  (1) Earnings: compare every amount with the API (curl GET /v1/riders/me/earnings/summary?period=WEEK
+  and /v1/riders/me/payouts with the rider's token from the API log): gross, the four "What it's
+  made of" rows, Unpaid balance and Next payout must be the response's *_cents exactly; nothing is
+  a sum. Times read 12-hour ("9:12 pm").
+  (2) Airplane mode on (`adb shell cmd connectivity airplane-mode enable`), pull to the Earnings tab
+  again: "You're offline" with the saved time and the numbers kept; Earnings activity shows its
+  offline banner and no "Show older lines". Airplane mode off: "You're back online", then the
+  numbers refresh in place.
+  (3) Tap a By-day row: the summary switches to that day with "Back to <week>"; Week and Month from
+  there open the period that contains the day.
+  (4) Payout account: if `GET /v1/connect/status` reports payouts_enabled=false or a non-empty
+  currently_due, Earnings shows one "Fix in Stripe" button and Payout shows the sticky
+  "Fix payout account in Stripe"; tapping opens the Stripe test link (HG_ENV=local fake).
+  (5) Dark mode: `adb shell cmd uimode night yes`, relaunch, screenshot Earnings, Activity, a line,
+  Payouts. Nothing is solid green, no state is red, no halal badge anywhere.
+  (6) `adb shell settings put system font_scale 2.0`: rows grow and money wraps under its label;
+  report clipped AppBar titles (a known DS gap). Reset font_scale and night mode afterwards.
+  (7) Paused account: set rider-sim SUSPENDED (admin console or SQL; no devworld scenario yet) and
+  reopen Earnings: "Your account is paused, so earnings can't be shown" with "Go to Account".
