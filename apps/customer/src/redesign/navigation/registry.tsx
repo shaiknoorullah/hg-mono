@@ -16,6 +16,14 @@ import { OrdersScreen } from '../../screens/OrdersScreen';
 import { ProfileScreen } from '../../screens/ProfileScreen';
 import { AddressesScreen } from '../../screens/AddressesScreen';
 import { AddressFormScreen } from '../../screens/AddressFormScreen';
+import { HomeScreen } from '../discover/HomeScreen';
+import { HowWeCheckScreen } from '../discover/HowWeCheckScreen';
+import { CertificateScreen } from '../restaurant/CertificateScreen';
+import { RestaurantScreen as RedesignedRestaurantScreen } from '../restaurant/RestaurantScreen';
+import { AddressStepScreen } from '../signin/AddressStepScreen';
+import { SignInScreen } from '../signin/SignInScreen';
+import { TermsScreen } from '../signin/TermsScreen';
+import { YourDetailsScreen } from '../signin/YourDetailsScreen';
 import { toLegacy } from './LegacyBridge';
 import type { Route, RouteName } from './routes';
 
@@ -23,7 +31,21 @@ type ScreenFor<N extends RouteName> = (route: Extract<Route, { name: N }>) => Re
 type Registry = { [N in RouteName]?: ScreenFor<N> };
 
 /** Redesigned screens, by route. Each WP registers its own. */
-export const REDESIGNED: Registry = {};
+export const REDESIGNED: Registry = {
+  // WP2: Home, address switcher (a sheet owned by Home), How we check.
+  home: () => <HomeScreen />,
+  howWeCheck: () => <HowWeCheckScreen />,
+  // WP4: restaurant page (with its certification sheet) and the certificate viewer.
+  restaurant: (r) => <RedesignedRestaurantScreen restaurantId={r.restaurantId} />,
+  certificate: (r) => <CertificateScreen restaurantId={r.restaurantId} />,
+  // WP1: sign-in, first run, forced routes. `signIn` owns the signed-out stack (code, terms,
+  // signed out); `signedOut` and `terms` also render on their own when opened from a tab.
+  signIn: () => <SignInScreen />,
+  signedOut: () => <SignInScreen />,
+  yourDetails: (r) => <YourDetailsScreen fromCart={r.fromCart} />,
+  addressStep: () => <AddressStepScreen />,
+  terms: (r) => <TermsScreen signedOut={r.signedOut} />,
+};
 
 export function redesignedScreen(route: Route): React.ReactElement | null {
   const render = REDESIGNED[route.name] as ((r: Route) => React.ReactElement) | undefined;
