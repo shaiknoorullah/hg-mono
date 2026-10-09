@@ -54,6 +54,7 @@ import (
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders/machine"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/payments"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/testseed"
 )
 
 // ─── orders harness wired with the local fake payment gateway ────────────────
@@ -190,6 +191,9 @@ func TestConformance_Gaps_OrderLifecycle(t *testing.T) {
 	t.Cleanup(func() { writeCoverage(t, h) })
 
 	acct, addr := gapsSeedCustomerWithAddress(t, pool)
+	// The fixture restaurant's order screen checks in now: the order path
+	// refuses a restaurant that is not open (https://github.com/shaiknoorullah/hg-mono/issues/648).
+	testseed.OpenRestaurant(t, pool, "33333333-3333-4333-8333-333333333333")
 
 	// Seed the cart via the real addCartLine handler: one unit of the fixture
 	// restaurant's AVAILABLE menu item (5555…), which binds the cart to the

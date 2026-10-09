@@ -1,7 +1,7 @@
 ---
 covers:
   - services/hg/migrations/**
-reviewed: 2026-10-05
+reviewed: 2026-10-09
 ---
 
 # HalalGoes — database schema
@@ -16,7 +16,9 @@ migrations/
   roles/roles.sql    the database roles; the superuser runs it before goose
   seed/              launch data — tax table, halal issuing bodies, fee config
   lint/schema_lint.sql   the money + geography lints, runnable standalone
-  test/              invariant tests: 111 assertions about what the DB refuses
+  test/              invariant tests: 111 assertions about what the DB refuses, and
+                     fixtures.sql, the fixed-UUID rows the Go tests read (its restaurant
+                     trades 24 hours a day; a test that orders refreshes its heartbeat)
   tools/             contract-enum generator and checker
   devworld/          local personas; loaded only by cmd/devworld
 ```

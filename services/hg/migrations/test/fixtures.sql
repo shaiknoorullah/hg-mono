@@ -103,6 +103,16 @@ VALUES ('33333333-3333-4333-8333-333333333333', 'karachi-kitchen', 'Karachi Kitc
         'ACTIVE', 'LIVE', true, 0)
 ON CONFLICT (id) DO NOTHING;
 
+-- Open 24 hours every day, so the order path's hours check passes at any time a
+-- test runs (internal/orders/open_now.go). Its order-screen heartbeat cannot be
+-- a fixture, since it goes stale after 5 minutes: a test that orders here calls
+-- testseed.OpenRestaurant first. https://github.com/shaiknoorullah/hg-mono/issues/648
+INSERT INTO restaurant_hours (restaurant_id, day_of_week, opens_at, closes_at, crosses_midnight)
+SELECT '33333333-3333-4333-8333-333333333333', d, time '00:00', time '00:00', true
+  FROM generate_series(0, 6) AS d
+ WHERE NOT EXISTS (SELECT 1 FROM restaurant_hours h
+                    WHERE h.restaurant_id = '33333333-3333-4333-8333-333333333333' AND h.day_of_week = d);
+
 -- Karachi Kitchen's certificate: APPROVED, from a seeded ACCEPTED issuing body,
 -- with all seven checks at PASS. The certificate insert fires the sync trigger,
 -- which sets restaurant.halal_status = CERTIFIED and links the certificate.

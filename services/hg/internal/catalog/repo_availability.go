@@ -8,12 +8,9 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/contract"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/openhours"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/realtime"
 )
-
-// staleHeartbeat is the R-22 heartbeat gate: a restaurant whose order screen has
-// not checked in for 5 minutes computes to CLOSED_OFFLINE.
-const staleHeartbeat = 5 * time.Minute
 
 // availabilityRow is the restaurant-facing trading state read straight from the
 // row (R-22). open_state is derived from these fields, never stored.
@@ -24,19 +21,37 @@ type availabilityRow struct {
 	lastHeartbeatAt   *time.Time
 	missedOrderCount  int32
 	timezone          string
+	// weekly and overrides are the restaurant's hours (availabilityColumns),
+	// so its open state says CLOSED_HOURS outside them.
+	weekly    []weeklySlot
+	overrides []hoursOverride
+}
+
+// availabilityColumns read an availabilityRow from a `restaurant` aliased r, in
+// the order scanTargets expects.
+const availabilityColumns = `r.account_state::text, r.is_accepting_orders, r.pause_until,
+	r.last_heartbeat_at, r.missed_order_count, r.timezone,` + openhours.HoursColumns
+
+func (a *availabilityRow) scanTargets() []any {
+	return []any{&a.accountState, &a.isAcceptingOrders, &a.pauseUntil,
+		&a.lastHeartbeatAt, &a.missedOrderCount, &a.timezone, &a.weekly, &a.overrides}
+}
+
+// openState is the restaurant's open state at now, with its hours evaluated in
+// its own timezone (openhours.Evaluate).
+func (a availabilityRow) openState(now time.Time) openStateVerdict {
+	hv := evaluateHours(a.weekly, a.overrides, a.timezone, now)
+	return deriveOpenState(a, now, hv.Within, hv.Holiday)
 }
 
 // getAvailability loads the trading state for a restaurant by id.
 func (rp *Repo) getAvailability(ctx context.Context, restaurantID string) (availabilityRow, error) {
 	const q = `
-		SELECT account_state::text, is_accepting_orders, pause_until,
-		       last_heartbeat_at, missed_order_count, timezone
-		  FROM restaurant
-		 WHERE id = $1::uuid AND deleted_at IS NULL`
+		SELECT ` + availabilityColumns + `
+		  FROM restaurant r
+		 WHERE r.id = $1::uuid AND r.deleted_at IS NULL`
 	var a availabilityRow
-	err := rp.db.QueryRow(ctx, q, restaurantID).Scan(
-		&a.accountState, &a.isAcceptingOrders, &a.pauseUntil,
-		&a.lastHeartbeatAt, &a.missedOrderCount, &a.timezone)
+	err := rp.db.QueryRow(ctx, q, restaurantID).Scan(a.scanTargets()...)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return availabilityRow{}, errNotFound
 	}
@@ -62,23 +77,20 @@ func (rp *Repo) setAcceptingOrders(ctx context.Context, restaurantID string, acc
 	}
 	defer tx.Rollback(ctx) //nolint:errcheck
 	const q = `
-		UPDATE restaurant
+		UPDATE restaurant r
 		   SET is_accepting_orders = $2,
 		       pause_until = $3
-		 WHERE id = $1::uuid AND deleted_at IS NULL
-		 RETURNING account_state::text, is_accepting_orders, pause_until,
-		           last_heartbeat_at, missed_order_count, timezone`
+		 WHERE r.id = $1::uuid AND r.deleted_at IS NULL
+		 RETURNING ` + availabilityColumns
 	var a availabilityRow
-	err = tx.QueryRow(ctx, q, restaurantID, accepting, pause).Scan(
-		&a.accountState, &a.isAcceptingOrders, &a.pauseUntil,
-		&a.lastHeartbeatAt, &a.missedOrderCount, &a.timezone)
+	err = tx.QueryRow(ctx, q, restaurantID, accepting, pause).Scan(a.scanTargets()...)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return availabilityRow{}, errNotFound
 	}
 	if err != nil {
 		return availabilityRow{}, err
 	}
-	verdict := deriveOpenState(a, now, true, false)
+	verdict := a.openState(now)
 	// The staff member who flipped the switch, by display name ("Hamza K.").
 	by, err := realtime.StaffName(ctx, tx, changedBy)
 	if err != nil {
@@ -101,15 +113,12 @@ func (rp *Repo) setAcceptingOrders(ctx context.Context, restaurantID string, acc
 // current open state can be recomputed. It never mutates is_accepting_orders.
 func (rp *Repo) recordHeartbeat(ctx context.Context, restaurantID string) (availabilityRow, time.Time, error) {
 	const q = `
-		UPDATE restaurant
+		UPDATE restaurant r
 		   SET last_heartbeat_at = now()
-		 WHERE id = $1::uuid AND deleted_at IS NULL
-		 RETURNING account_state::text, is_accepting_orders, pause_until,
-		           last_heartbeat_at, missed_order_count, timezone`
+		 WHERE r.id = $1::uuid AND r.deleted_at IS NULL
+		 RETURNING ` + availabilityColumns
 	var a availabilityRow
-	err := rp.db.QueryRow(ctx, q, restaurantID).Scan(
-		&a.accountState, &a.isAcceptingOrders, &a.pauseUntil,
-		&a.lastHeartbeatAt, &a.missedOrderCount, &a.timezone)
+	err := rp.db.QueryRow(ctx, q, restaurantID).Scan(a.scanTargets()...)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return availabilityRow{}, time.Time{}, errNotFound
 	}

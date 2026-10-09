@@ -117,12 +117,12 @@ func (h *Handler) cardFor(rr restaurantRow, hasAddress bool, now time.Time) Rest
 	hv := evaluateHours(rr.weeklyHours, rr.hoursOverrides, rr.timezone, now)
 	verdict := cardOpenState(rr.trading, rr.collectionBlock, hv, now)
 	info := buildAvailabilityInfo(rr, verdict, hasAddress)
-	if hv.within && verdict.state == OpenStateOpen && hv.closesAt != nil {
-		s := httpx.Timestamp(*hv.closesAt)
+	if hv.Within && verdict.state == OpenStateOpen && hv.ClosesAt != nil {
+		s := httpx.Timestamp(*hv.ClosesAt)
 		info.ClosesAt = &s
 	}
-	if !hv.within && hv.opensAt != nil {
-		s := httpx.Timestamp(*hv.opensAt)
+	if !hv.Within && hv.OpensAt != nil {
+		s := httpx.Timestamp(*hv.OpensAt)
 		info.OpensAt = &s
 	}
 	return toCard(rr, info, h.media)

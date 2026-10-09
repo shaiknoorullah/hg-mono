@@ -2,12 +2,15 @@ package devworld
 
 import (
 	"context"
+	"errors"
 	"math"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/openhours"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/testseed"
 )
@@ -142,7 +145,7 @@ func TestIntegrationCatalogueIsOrderable(t *testing.T) {
 	defer pool.Close()
 	st := orders.NewStore(pool)
 	const amina, aminaAddress = "a0000000-0000-4000-8000-000000000101", addressAminaNear
-	quoted := 0
+	quoted, closed := 0, 0
 
 	for _, r := range Catalogue {
 		var halal, account string
@@ -157,6 +160,26 @@ func TestIntegrationCatalogueIsOrderable(t *testing.T) {
 		}
 		if !accepting {
 			continue // the paused persona: visible, not taking orders
+		}
+		// Some catalogue restaurants are closed by their hours (closed today, or
+		// afternoons only before noon): the order path refuses them, by the
+		// rule their card shows (https://github.com/shaiknoorullah/hg-mono/issues/648).
+		var open openhours.Restaurant
+		var now time.Time
+		if err := pool.QueryRow(ctx, `SELECT now(), r.timezone, `+openhours.Columns+` FROM restaurant r WHERE r.id = $1`, r.ID).
+			Scan(append([]any{&now, &open.Timezone}, open.ScanTargets()...)...); err != nil {
+			t.Fatalf("%s: open state: %v", r.Slug, err)
+		}
+		if state, _ := open.State(now); state != openhours.StateOpen {
+			in, _ := orderLine(r, firstAvailable(r))
+			if _, err := st.AddCartLine(ctx, amina, r.ID, in, true); !errors.Is(err, orders.ErrRestaurantClosed) {
+				t.Errorf("%s is %s: add to cart: err = %v, want ErrRestaurantClosed", r.Slug, state, err)
+			}
+			closed++
+			continue
+		}
+		if r.Hours == hoursClosedToday {
+			t.Errorf("%s has no hours today but reads open", r.Slug)
 		}
 		var want int64
 		lines := 0
@@ -189,9 +212,22 @@ func TestIntegrationCatalogueIsOrderable(t *testing.T) {
 		}
 		quoted++
 	}
-	if quoted < 12 {
-		t.Errorf("%d catalogue restaurants quoted, want at least 12", quoted)
+	if quoted+closed < 12 || quoted < 10 {
+		t.Errorf("%d catalogue restaurants quoted and %d closed by their hours, want at least 12 in all and 10 quoted",
+			quoted, closed)
 	}
+}
+
+// firstAvailable is the restaurant's first item that is in stock.
+func firstAvailable(r CatalogueRestaurant) Item {
+	for _, c := range r.Categories {
+		for _, it := range c.Items {
+			if !it.OutOfStock {
+				return it
+			}
+		}
+	}
+	return Item{}
 }
 
 // orderLine picks the last available variant and the first available add-ons
