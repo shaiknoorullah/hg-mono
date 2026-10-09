@@ -9,6 +9,8 @@ This playbook tests the restaurant operator onboarding flow across every lifecyc
 
 The reset also seeds a [Toronto catalogue](../../superpowers/specs/2026-09-28-devworld-harness-design.md#51a-toronto-catalogue) of live restaurants. Its owners sign in as `<slug>@seed.hg` with the same password. Their restaurants are already live, so they skip onboarding. You don't need to keep a restaurant console open for them to read open to customers: `make run` sends their heartbeat once a minute, and it leaves `paused` alone.
 
+Every persona below uses its email and the password `Seed!2026` alone: restaurant personas have no authenticator, so no code is asked for (`make dev-totp` prints only the admin's code). Each step's setup is only `make dev-reset`; no per-persona command is needed. `go run ./cmd/devworld list` (from `services/hg`) prints every persona.
+
 ---
 
 ## 1. Unverified Email Gate (`fresh` persona)
@@ -17,8 +19,7 @@ Proves that an account created without email verification is blocked from procee
 
 1. **Setup command** (terminal):
    ```bash
-   # Reset or select the fresh persona
-   cmd/devworld totp fresh
+   cd services/hg && make dev-reset
    ```
 2. **Browser action**:
    - Open `/login`
@@ -36,7 +37,7 @@ Proves the initial profile data entry screen where legal name, address, cuisine,
 
 1. **Setup command**:
    ```bash
-   cmd/devworld totp profile
+   cd services/hg && make dev-reset
    ```
 2. **Browser action**:
    - Open `/login` and sign in as `profile@seed.hg` / `Seed!2026`
@@ -54,7 +55,7 @@ Proves document upload requirements: Business Licence, Food Safety Certificate, 
 
 1. **Setup command**:
    ```bash
-   cmd/devworld totp docs-todo
+   cd services/hg && make dev-reset
    ```
 2. **Browser action**:
    - Sign in as `docs-todo@seed.hg` / `Seed!2026`
@@ -72,14 +73,14 @@ Proves the pending state while platform staff reviews compliance documents and t
 
 1. **Setup command**:
    ```bash
-   cmd/devworld totp docs-review
+   cd services/hg && make dev-reset
    ```
 2. **Browser action**:
    - Sign in as `docs-review@seed.hg` / `Seed!2026`
    - Open `/onboarding`
 3. **Visible assertion**:
    - Screen displays **Application under review**.
-   - Explanatory copy explains that verification is in progress (Rule 8: silence is never consent).
+   - Explanatory copy explains that verification is in progress ([silence is never consent on a halal claim (invariant 8)](../../../AGENTS.md#3-non-negotiable-invariants)).
    - Operational navigation tabs (Orders, Menu, Hours) remain locked or redirect to review status.
 
 ---
@@ -90,7 +91,7 @@ Proves the remediation flow when an admin rejects a document with a reason code.
 
 1. **Setup command**:
    ```bash
-   cmd/devworld totp docs-rejected
+   cd services/hg && make dev-reset
    ```
 2. **Browser action**:
    - Sign in as `docs-rejected@seed.hg` / `Seed!2026`
@@ -101,20 +102,20 @@ Proves the remediation flow when an admin rejects a document with a reason code.
 
 ---
 
-## 6. Stripe Connect Payout Setup (`payout-todo` persona)
+## 6. Stripe Connect Payout Setup (`payout` persona)
 
 Proves the Stripe Connect onboarding handover step once documents are approved.
 
 1. **Setup command**:
    ```bash
-   cmd/devworld totp payout-todo
+   cd services/hg && make dev-reset
    ```
 2. **Browser action**:
-   - Sign in as `payout-todo@seed.hg` / `Seed!2026`
+   - Sign in as `payout@seed.hg` / `Seed!2026`
    - Open `/onboarding`
    - Click **Set up payouts**
 3. **Visible assertion**:
-   - Browser navigates to Stripe's hosted Express onboarding page or return handler.
+   - Browser navigates to Stripe's hosted Express onboarding page when the API has a Stripe test key. Without one, the local API's stand-in Stripe returns the placeholder link `https://connect.local.fake/onboarding`, which does not load.
 
 ---
 
@@ -124,11 +125,10 @@ Proves that an approved, onboarded restaurant bypasses onboarding and lands dire
 
 1. **Setup command**:
    ```bash
-   cmd/devworld totp bismillah-grill
+   cd services/hg && make dev-reset
    ```
 2. **Browser action**:
-   - Sign in as `owner@restaurant.ca` (or `bismillah-grill@seed.hg`)
-   - Land on `/login` and submit
+   - Open `/login` and sign in as `bismillah-grill@seed.hg` / `Seed!2026`
 3. **Visible assertion**:
    - User is redirected to `/orders` immediately.
    - Heading **Live orders** is displayed with live queue controls and sidebar navigation.
