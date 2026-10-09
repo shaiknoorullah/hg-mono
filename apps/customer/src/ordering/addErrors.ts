@@ -9,7 +9,7 @@
 import { isApiError } from '@hg/api-client';
 
 export type AddFailure =
-  | { kind: 'differentRestaurant'; restaurantName: string | null; lineCount: number | null }
+  | { kind: 'differentRestaurant'; restaurantName: string | null; itemCount: number | null }
   | { kind: 'restaurantClosed' }
   | { kind: 'restaurantUnavailable' }
   | { kind: 'itemUnavailable' }
@@ -33,11 +33,15 @@ export function classifyAddError(e: unknown): AddFailure {
   if (!isApiError(e)) return { kind: 'other' };
   switch (e.code) {
     case 'DIFFERENT_RESTAURANT': {
-      const count = detail(e, 'current_line_count');
+      // "Your cart has 3 items from …" counts items (the sum of quantities); a server that
+      // predates current_item_count sends only the line count.
+      const items = detail(e, 'current_item_count');
+      const lines = detail(e, 'current_line_count');
+      const count = typeof items === 'number' ? items : lines;
       return {
         kind: 'differentRestaurant',
         restaurantName: str(detail(e, 'current_restaurant_name')),
-        lineCount: typeof count === 'number' ? count : null,
+        itemCount: typeof count === 'number' ? count : null,
       };
     }
     case 'RESTAURANT_CLOSED':

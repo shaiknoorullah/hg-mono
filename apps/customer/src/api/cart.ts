@@ -49,8 +49,16 @@ export async function addCartLine(
   return body.data as unknown as Cart;
 }
 
-export async function addToCart(menuItemId: string, quantity = 1): Promise<Cart> {
-  return addCartLine({ menu_item_id: menuItemId, quantity });
+/**
+ * Adds an item with its chosen variants, one per variant group (`variant_ids`), so a dish with
+ * a size and a rice choice keeps both (#628). No variants: the bare item.
+ */
+export async function addToCart(menuItemId: string, quantity = 1, variantIds: string[] = []): Promise<Cart> {
+  return addCartLine({
+    menu_item_id: menuItemId,
+    quantity,
+    ...(variantIds.length ? { variant_ids: variantIds } : {}),
+  });
 }
 
 export async function setLineQuantity(lineId: string, quantity: number): Promise<Cart> {

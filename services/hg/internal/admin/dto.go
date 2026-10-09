@@ -1,6 +1,9 @@
 package admin
 
-import "github.com/shaiknoorullah/hg-mono/services/hg/internal/payments"
+import (
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/payments"
+)
 
 // Wire DTOs. Every shape here is the contract's schema verbatim
 // (contracts/openapi.yaml) with additionalProperties:false honoured by not
@@ -314,15 +317,17 @@ type adminOrderSummary struct {
 
 // adminOrderLine is one line in the admin order view.
 type adminOrderLine struct {
-	LineNo         int     `json:"line_no"`
-	MenuItemID     string  `json:"menu_item_id"`
-	Name           string  `json:"name"`
-	VariantName    *string `json:"variant_name"`
-	Quantity       int     `json:"quantity"`
-	SpecialRequest *string `json:"special_request"`
-	UnitPriceCents int64   `json:"unit_price_cents"`
-	LineTotalCents int64   `json:"line_total_cents"`
-	Currency       string  `json:"currency"`
+	LineNo      int     `json:"line_no"`
+	MenuItemID  string  `json:"menu_item_id"`
+	Name        string  `json:"name"`
+	VariantName *string `json:"variant_name"`
+	// Variants is every chosen variant with its group (contract OrderLine).
+	Variants       []orders.LineVariantDTO `json:"variants"`
+	Quantity       int                     `json:"quantity"`
+	SpecialRequest *string                 `json:"special_request"`
+	UnitPriceCents int64                   `json:"unit_price_cents"`
+	LineTotalCents int64                   `json:"line_total_cents"`
+	Currency       string                  `json:"currency"`
 }
 
 // adminOrderMoney is the customer-visible money breakdown.
