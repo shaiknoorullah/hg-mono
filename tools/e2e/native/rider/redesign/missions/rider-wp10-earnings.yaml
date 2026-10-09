@@ -12,9 +12,10 @@ setup:
   - "make dev-journey route=short speed=max auto=all"
 reality:
   - theme: light
-  - network: "airplane mode on and off by hand in explore step (2)"
 flows: [ "tools/e2e/native/rider/redesign/10-earnings.yaml" ]
 explore: >
+  The flow sets the location (setLocation) and switches airplane mode (setAirplaneMode) itself
+  where it needs to; the reality steps above only set the theme.
   After the flow passes, with rider-sim still signed in:
   (1) Earnings: compare every amount with the API (curl GET /v1/riders/me/earnings/summary?period=WEEK
   and /v1/riders/me/payouts with the rider's token from the API log): gross, the four "What it's
