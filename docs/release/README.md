@@ -4,7 +4,7 @@ covers:
   - scripts/release/**
   - apps/customer/app.config.js
   - apps/rider/app.config.js
-reviewed: 2026-10-05
+reviewed: 2026-10-09
 ---
 
 # Releasing the apps
@@ -158,6 +158,13 @@ cd android && node ../../../scripts/release/app-env.cjs dev -- ./gradlew assembl
 `app-env.cjs` sets `APP_ENV`, `APP_VERSION` and the `EXPO_PUBLIC_*` API addresses for every step.
 A dev build can be pointed at another API with `API_BASE_URL`, for example an API on your own
 machine as an emulator sees it: `API_BASE_URL=http://10.0.2.2:8080`.
+
+**Redesign builds.** The rebuilt rider app ships behind `EXPO_PUBLIC_HG_REDESIGN`. Release builds
+never set it, so they show the current app. A dev build with `EXPO_PUBLIC_HG_REDESIGN=1` mounts the
+redesign and lets the app follow the phone into dark mode (`userInterfaceStyle: automatic` in
+`apps/rider/app.config.js`; the release build stays light). Clear Metro's cache when switching the
+flag (`npx expo export --clear`, or a fresh native build): `EXPO_PUBLIC_*` values are inlined when a file
+is transformed, so a warm cache from a flag-off build still serves the current app.
 
 The Mapbox public token is `EXPO_PUBLIC_MAPBOX_TOKEN` (in CI, the repo secret
 `MAPBOX_PUBLIC_TOKEN_MOBILE`). The rider app also calls the Mapbox Directions API with it for the
