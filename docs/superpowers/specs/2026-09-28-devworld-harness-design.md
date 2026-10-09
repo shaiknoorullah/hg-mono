@@ -5,7 +5,7 @@ covers:
   - services/hg/migrations/devworld/**
   - apps/restaurant/.claude/skills/**
   - docs/playbooks/**
-reviewed: 2026-10-05
+reviewed: 2026-10-09
 ---
 
 # Dev world — seeded personas, live scenarios, journey simulation, playbooks
@@ -143,6 +143,7 @@ These are the seed for the customer, rider and admin coverage tables that [exten
 
 - A customer cancel ends in `CANCELLED`.
 - A restaurant rejection ends in `REJECTED`.
+- A declined card (`payment-failed`) ends in `FAILED`, and an unpaid order (`payment-unpaid`) waits in `CREATED`; `devworld verify` prints how many orders `amina` has in each state, so either can be read back.
 - Rush places one order for each of the two seeded customers, a few seconds apart, then a further order for the first customer. The API refuses that third order while one is still active. The five-order rush in the table waits until more customers exist.
 - Menu approve and reject sign in as `admin-seed`, take the oldest version waiting in the menu review queue for the `menu` persona, and decide it. Reset seeds that persona with two versions waiting for review (Draft Stew and Draft Soup), so each scenario runs once per reset, in either order; a third run says to reset. They do not call the restaurant save: it numbers the next version from the live version only and saves `DRAFT`, never `PENDING_REVIEW`, so it cannot put a version in the queue ([#594](https://github.com/shaiknoorullah/hg-mono/issues/594)). Reset also closes the running API's database sessions, whose prepared statements point at the dropped schema, and waits for it to reconnect.
 
@@ -162,6 +163,8 @@ These are the seed for the customer, rider and admin coverage tables that [exten
 | `menu-approve` / `menu-reject` | `admin-seed` decides the pending menu version | review badge resolves |
 | `onboard-restaurant` | a new restaurant signs up and completes onboarding; `admin-seed` approves its documents, halal certificate, application and first menu item | the new restaurant is `ACTIVE` and its approved item is on the customer menu ([playbook](../../playbooks/restaurant/onboarding.md)) |
 | `onboard-rider` | a new rider signs in with a fresh number, submits profile, bicycle and documents; `admin-seed` approves them and the application; the rider sets up payouts and goes online | the new rider is `ACTIVE` and online beside `bismillah-grill` ([playbook](../../playbooks/rider/onboarding.md)) |
+| `payment-failed` | `amina` places an order with the local fake payment client's declined-card payment method (`pm_fake_declined`), after cancelling an order of hers still waiting for payment ([#680](https://github.com/shaiknoorullah/hg-mono/issues/680)) | her newest order `FAILED`, no payment, no ledger batch, no active order |
+| `payment-unpaid` | `amina` places an order with the fake's unpaid payment method (`pm_fake_unpaid`); the intent is created but never confirmed, and reading it back does not authorise it | an active `CREATED` order with its 15-minute deadline; left alone, the deadline runner cancels it |
 | `journey` | see [journey](#63-journey) | one live order through delivery when the rider is driven |
 
 ### 6.2 Bootstrap (not run by `reset`)

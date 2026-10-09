@@ -159,6 +159,9 @@ func verifyTo(ctx context.Context, dsn string, out io.Writer) error {
 		return fmt.Errorf("devworld: connect count: %w", err)
 	}
 	fmt.Fprintf(out, "connect stand-ins %d (not real payout accounts)\n", connects)
+	if err := printPersonaOrders(ctx, conn, out); err != nil {
+		return err
+	}
 
 	catProblems, err := verifyCatalogue(ctx, conn, out)
 	if err != nil {

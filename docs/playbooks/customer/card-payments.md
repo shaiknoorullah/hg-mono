@@ -1,6 +1,6 @@
 ---
 covers: []
-reviewed: 2026-10-05
+reviewed: 2026-10-09
 ---
 
 # Customer Playbook: Paying with Stripe Test Cards
@@ -20,6 +20,7 @@ Use the test-mode keys of one Stripe account. Never commit a key.
 | `EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY` | `apps/customer/.env` (copied from `.env.example`), or the shell that starts Expo | `pk_test_…` from the same account |
 
 - With no `HG_STRIPE_SECRET_KEY` and `HG_ENV=local`, the API uses its fake gateway: orders are authorised at once and the app shows no card form.
+  To see a declined card or an unpaid order without keys, run `make dev-scenario s=payment-failed` or `s=payment-unpaid` from `services/hg` ([#680](https://github.com/shaiknoorullah/hg-mono/issues/680)).
 - With no publishable key, the app still runs. Checkout says `Card payments aren't available right now. Please try again later.` (the console logs that `EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY` is missing), keeps the order, and offers **Retry payment**.
 - Restart Expo after changing an `EXPO_PUBLIC_` variable: it is bundled at build time.
 

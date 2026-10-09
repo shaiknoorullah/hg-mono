@@ -321,7 +321,9 @@ func (g orderPaymentGateway) CreateOrderIntent(ctx context.Context, in orders.Cr
 	if err != nil {
 		return orders.CreateIntentResult{}, err
 	}
-	if g.advanceLocal {
+	// Only an authorised intent advances: the fake's switch can leave one
+	// unconfirmed (fake_stripe_switch.go), and that order waits in CREATED.
+	if g.advanceLocal && payments.PaymentState(row.State) == payments.StateRequiresCapture {
 		_ = g.store.Transition(ctx, orders.TransitionRequest{
 			OrderID: in.OrderID, To: machine.StateAuthorized, Actor: machine.ActorSystem,
 			Reason: "payment authorised (local fake)",
