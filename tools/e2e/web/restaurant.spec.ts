@@ -108,6 +108,8 @@ test('restaurant: mark the customer\'s order ready for pickup', { tag: '@cross-r
     await waitForOrder(page, code);
     await orderCard(page, code).getByRole('button', { name: 'Mark ready for pickup' }).click();
     await expect(orderCard(page, code).getByText('Ready for pickup', { exact: true })).toBeVisible();
+    // The kitchen reads this code to the rider, who must type it to pick up (issue #659).
+    await expect(orderCard(page, code).getByTestId('pickup-code')).toContainText(/[0-9]{4}/);
   });
 
   expect((await adminOrder(id)).state).toBe('READY_FOR_PICKUP');
