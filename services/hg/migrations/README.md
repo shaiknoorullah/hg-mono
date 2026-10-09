@@ -1,7 +1,7 @@
 ---
 covers:
   - services/hg/migrations/**
-reviewed: 2026-10-05
+reviewed: 2026-10-09
 ---
 
 # HalalGoes — database schema
@@ -24,7 +24,8 @@ migrations/
 `devworld/` is not a goose migration. `make migrate`, `make seed`, the reference
 loader, and a deploy never apply it. `make dev-reset` (or `go run ./cmd/devworld reset`
 from `services/hg`) is the only loader, and it refuses every environment other
-than local and every database that is not on this machine.
+than local and every database that is not on this machine. It loads
+`001_personas.sql` first, then every other file in `devworld/` in name order.
 
 ## Running
 

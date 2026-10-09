@@ -5,7 +5,7 @@ covers:
   - services/hg/migrations/devworld/**
   - apps/restaurant/.claude/skills/**
   - docs/playbooks/**
-reviewed: 2026-10-05
+reviewed: 2026-10-09
 ---
 
 # Dev world — seeded personas, live scenarios, journey simulation, playbooks
@@ -133,6 +133,7 @@ Reset also seeds 14 live, certified restaurants within 8 km of both the Danforth
 |---|---|---|
 | `customer-amina` | CUSTOMER, phone `+15550100101`, 3 saved addresses (near, far, unit/buzzer) | places every scenario order |
 | `rider-sim` | RIDER, ACTIVE, Connect enabled, phone `+15550100151` | the journey's rider |
+| `rider-sim-2` | RIDER, ACTIVE, bicycle, Connect stand-in, offline, phone `+15550100155` | the second rider of the offer scenarios |
 | `admin-seed` | SUPER_ADMIN, email + password + TOTP | admin-decision scenarios |
 
 These are the seed for the customer, rider and admin coverage tables that [extending to another app](#10-extending-to-another-app) adds.
@@ -145,6 +146,8 @@ These are the seed for the customer, rider and admin coverage tables that [exten
 - A restaurant rejection ends in `REJECTED`.
 - Rush places one order for each of the two seeded customers, a few seconds apart, then a further order for the first customer. The API refuses that third order while one is still active. The five-order rush in the table waits until more customers exist.
 - Menu approve and reject sign in as `admin-seed`, take the oldest version waiting in the menu review queue for the `menu` persona, and decide it. Reset seeds that persona with two versions waiting for review (Draft Stew and Draft Soup), so each scenario runs once per reset, in either order; a third run says to reset. They do not call the restaurant save: it numbers the next version from the live version only and saves `DRAFT`, never `PENDING_REVIEW`, so it cannot put a version in the queue ([#594](https://github.com/shaiknoorullah/hg-mono/issues/594)). Reset also closes the running API's database sessions, whose prepared statements point at the dropped schema, and waits for it to reconnect.
+
+The four offer scenarios ([#684](https://github.com/shaiknoorullah/hg-mono/issues/684)) wait on the running dispatch runner, a 30-second offer and the next wave, and never move a deadline; they start from an order no rider has been offered, so a second run needs `make dev-reset`, and three ignored offers in a row take `rider-sim` offline, as the spec's unresponsive-rider rule says. The loser of `offer-race` is told `OFFER_EXPIRED` where the spec says `OFFER_ALREADY_TAKEN` ([#696](https://github.com/shaiknoorullah/hg-mono/issues/696)); the scenario prints which.
 
 `journey` is `devworld journey`. Arrival at the restaurant is a step inside that command, not a separate scenario. Default target is `bismillah-grill`.
 
@@ -162,6 +165,10 @@ These are the seed for the customer, rider and admin coverage tables that [exten
 | `menu-approve` / `menu-reject` | `admin-seed` decides the pending menu version | review badge resolves |
 | `onboard-restaurant` | a new restaurant signs up and completes onboarding; `admin-seed` approves its documents, halal certificate, application and first menu item | the new restaurant is `ACTIVE` and its approved item is on the customer menu ([playbook](../../playbooks/restaurant/onboarding.md)) |
 | `onboard-rider` | a new rider signs in with a fresh number, submits profile, bicycle and documents; `admin-seed` approves them and the application; the rider sets up payouts and goes online | the new rider is `ACTIVE` and online beside `bismillah-grill` ([playbook](../../playbooks/rider/onboarding.md)) |
+| `offer-reject` | only `rider-sim` is online when the order is ready; it rejects the offer, `rider-sim-2` comes online and accepts the next wave's offer | READY_FOR_PICKUP, assigned to `rider-sim-2` |
+| `offer-ignored` | as `offer-reject`, but `rider-sim` lets the offer expire | READY_FOR_PICKUP, assigned to `rider-sim-2` |
+| `offer-race` | both riders are online, both get the first wave's offer and accept at once | one assignment; the other accept is refused with a 409 |
+| `no-rider` | both riders offline; the order is made ready and the search runs to `NO_RIDER_FOUND` (about two minutes) | READY_FOR_PICKUP with no rider; prints the pickup deadline, 15 minutes after ready |
 | `journey` | see [journey](#63-journey) | one live order through delivery when the rider is driven |
 
 ### 6.2 Bootstrap (not run by `reset`)
