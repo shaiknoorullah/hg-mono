@@ -66,8 +66,8 @@ dev-reset                                         (make dev-reset)
        4. load migrations/devworld/001_personas.sql, then the other files there in name
           order, then the Toronto catalogue
           (internal/devworld/catalogue.go) and its pictures
-       5. set one shared password hash. The admin authenticator is enrolled only when
-          HG_APP_DATA_KEY is set. The fresh restaurant email stays unverified.
+       5. set one shared password hash. The staff authenticators (`admin-seed`, `ops-admin`,
+          `support-seed`) are enrolled only when HG_APP_DATA_KEY is set. The fresh restaurant email stays unverified.
        6. flush Redis only when HG_REDIS_ADDR is local. A connection failure does not fail the reset.
        7. verify: every persona in its declared state, or a non-zero exit
 
@@ -135,6 +135,7 @@ Reset also seeds 14 live, certified restaurants within 8 km of both the Danforth
 | `customer-amina` | CUSTOMER, phone `+15550100101`, 3 saved addresses (near, far, unit/buzzer) | places every scenario order |
 | `rider-sim` | RIDER, ACTIVE, Connect enabled, phone `+15550100151` | the journey's rider |
 | `admin-seed` | SUPER_ADMIN, email + password + TOTP | admin-decision scenarios |
+| `ops-admin`, `support-seed` | ADMIN and SUPPORT_AGENT, email + password + TOTP | the staff role matrix: after a reset all three staff roles sign in to the admin console, and `verify` checks each one's role and authenticator ([#677](https://github.com/shaiknoorullah/hg-mono/issues/677)) |
 
 These are the seed for the customer, rider and admin coverage tables that [extending to another app](#10-extending-to-another-app) adds.
 

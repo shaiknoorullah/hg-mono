@@ -75,3 +75,24 @@ func TestAdminTOTPSecretIsStable(t *testing.T) {
 		t.Fatal("different emails derived the same secret")
 	}
 }
+
+// One staff persona per staff role, each in the manifest, so the admin console's
+// role matrix can be walked after a reset (#677).
+func TestStaffCoversEveryStaffRole(t *testing.T) {
+	inWorld := map[string]bool{}
+	for _, id := range World {
+		inWorld[id.Slug+"|"+id.Email] = true
+	}
+	roles := map[string]int{}
+	for _, s := range Staff {
+		roles[s.Role]++
+		if !inWorld[s.Slug+"|"+s.Email] {
+			t.Errorf("staff persona %s (%s) is not in World", s.Slug, s.Email)
+		}
+	}
+	for _, role := range []string{"SUPER_ADMIN", "ADMIN", "SUPPORT_AGENT"} {
+		if roles[role] != 1 {
+			t.Errorf("staff role %s has %d personas, want 1", role, roles[role])
+		}
+	}
+}

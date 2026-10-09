@@ -12,7 +12,8 @@ import (
 )
 
 // ApplyCredentials sets the shared local password on every email persona and,
-// when HG_APP_DATA_KEY is set, enrols the admin persona's authenticator.
+// when HG_APP_DATA_KEY is set, enrols the authenticator of every staff persona
+// (see Staff).
 // Email verification is left as the persona SQL recorded it.
 func ApplyCredentials(ctx context.Context, dsn string) error {
 	hash, err := auth.HashPassword(ctx, PersonaPassword)
@@ -58,30 +59,10 @@ func ApplyCredentials(ctx context.Context, dsn string) error {
 		return err
 	}
 	if !ok {
-		fmt.Fprintln(os.Stderr, "devworld: admin authenticator skipped (HG_APP_DATA_KEY is not set)")
+		fmt.Fprintln(os.Stderr, "devworld: staff authenticators skipped (HG_APP_DATA_KEY is not set)")
 		return nil
 	}
-	secret, err := AdminTOTPSecret(AdminEmail)
-	if err != nil {
-		return err
-	}
-	sealed, err := auth.SealAESGCM(key, []byte(secret))
-	if err != nil {
-		return fmt.Errorf("devworld: seal admin authenticator: %w", err)
-	}
-	tag, err = conn.Exec(ctx, `
-		UPDATE account
-		   SET totp_secret_enc = $2,
-		       totp_enrolled_at = COALESCE(totp_enrolled_at, now())
-		 WHERE email = $1`, AdminEmail, sealed)
-	if err != nil {
-		return fmt.Errorf("devworld: enrol admin authenticator: %w", err)
-	}
-	if tag.RowsAffected() != 1 {
-		return fmt.Errorf("devworld: admin persona was not enrolled")
-	}
-	fmt.Fprintln(os.Stderr, "devworld: admin authenticator enrolled")
-	return nil
+	return enrolStaff(ctx, conn, key)
 }
 
 // PasswordMatches reports whether hash is the shared persona password.
