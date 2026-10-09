@@ -18,6 +18,10 @@ import { AddressesScreen } from '../../screens/AddressesScreen';
 import { AddressFormScreen } from '../../screens/AddressFormScreen';
 import { OrdersScreen as RedesignedOrdersScreen } from '../orders/OrdersScreen';
 import { ReceiptScreen } from '../orders/ReceiptScreen';
+import { AddressStepScreen } from '../signin/AddressStepScreen';
+import { SignInScreen } from '../signin/SignInScreen';
+import { TermsScreen } from '../signin/TermsScreen';
+import { YourDetailsScreen } from '../signin/YourDetailsScreen';
 import { toLegacy } from './LegacyBridge';
 import type { Route, RouteName } from './routes';
 
@@ -29,6 +33,13 @@ export const REDESIGNED: Registry = {
   // WP9: Orders history (T9) and Receipt (T10).
   orders: () => <RedesignedOrdersScreen />,
   receipt: (route) => <ReceiptScreen orderId={route.orderId} />,
+  // WP1: sign-in, first run, forced routes. `signIn` owns the signed-out stack (code, terms,
+  // signed out); `signedOut` and `terms` also render on their own when opened from a tab.
+  signIn: () => <SignInScreen />,
+  signedOut: () => <SignInScreen />,
+  yourDetails: (r) => <YourDetailsScreen fromCart={r.fromCart} />,
+  addressStep: () => <AddressStepScreen />,
+  terms: (r) => <TermsScreen signedOut={r.signedOut} />,
 };
 
 export function redesignedScreen(route: Route): React.ReactElement | null {

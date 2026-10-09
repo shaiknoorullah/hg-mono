@@ -1,0 +1,44 @@
+id: customer-wp1-sign-in
+app: customer
+avd: hg_customer
+api: devworld
+# Build the dev APK from this branch with EXPO_PUBLIC_HG_REDESIGN=1.
+# Personas: amina +15550100101 (returning, has a name and an address); a reserved phone with no
+# account (+15550100141) for the first run. Test sign-in code 000000.
+setup: [ "make dev-reset" ]
+flows:
+  - "tools/e2e/native/customer/redesign/1-sign-in.yaml"
+  - "tools/e2e/native/customer/redesign/1-first-run.yaml"
+reality:
+  - theme: dark
+  - font-scale: 2.0
+  - network: offline
+  - network: restore
+explore: >
+  Run with the phone in dark mode and at 200% text, and screenshot every screen of the sign-in
+  flow (Sign in, Code, Your details, the address step, Terms and privacy from "Terms and privacy").
+  Report any clipped button label (DS issue 13: long labels such as "Not you? Use a different
+  number"), any text under 4.5:1 contrast, and any target under 44 dp.
+  Then, signed out:
+  (1) Network loss on Sign in: `adb shell svc wifi disable && adb shell svc data disable`, type
+  555 010 0101 and press Send code. Expect "You're offline" and a disabled Send code; restore with
+  `enable` and expect the banner to go by itself within about 5 seconds, then Send code works.
+  (2) Network loss on Code: get to the code step, go offline, press Verify and continue. Expect
+  "You're offline", the typed code kept, Verify and Resend disabled; restore and verify.
+  (3) Rate limit (J3): press Send code for amina four or more times from Sign in (Change number
+  between sends). Expect "Too many codes asked for" and "You can ask for a new code at h:mm am/pm"
+  as a static time that never ticks, and Send code disabled.
+  (4) Wrong code: enter 111111. Expect "That code isn't right." with the tries left when the
+  server sends attempts_remaining.
+  (5) Suspension (J4, needs the customer-suspend scenario, #335): with amina signed in, suspend her
+  from admin. The next call must replace the open screen with "Your account is on hold", no bottom
+  bar, focus on the title; with support closed only "Sign out" shows.
+  (6) Keyboard open on Sign in, Code and Your details: the primary button stays reachable above the
+  keyboard (boards SI/SignIn-kbd, SI/Code-kbd, SI/Profile-kbd).
+  (7) Send cap: on the code step wait for Resend code, press it, wait the minute, press it again.
+  The first resend shows "Code sent again"; the second (the third send) shows "No more resends for
+  this sign-in" instead, with no toast and no Resend code, and Verify and continue still there.
+  (8) TalkBack on: press Send code with 7 digits, Verify and continue with 5 digits, and Save on
+  Your details with no first name. Each time TalkBack must speak the field's error at once.
+  (9) Mid-checkout suspension (needs #335): suspend amina while she is on Checkout and place the
+  order. Expect "You can't place orders while your account is on hold. That order wasn't placed."
