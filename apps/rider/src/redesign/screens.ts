@@ -8,3 +8,4 @@ import './offer';
 import './signin';
 
 export {};
+import './account';

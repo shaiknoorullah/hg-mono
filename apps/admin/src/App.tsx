@@ -41,8 +41,9 @@ import { isAuthed, subscribe } from './lib/token';
  * Routing is a `HashRouter`: the production build is a static bundle served with no server
  * rewrite rules, so client-side paths live behind `#/` and deep links survive a refresh.
  *
- * The whole app tree sits behind a `LoginGate`. Admin auth requires email + password + TOTP
- * (`POST /v1/auth/login` returns 401 MFA_REQUIRED without a `totp_code`).
+ * The whole app tree sits behind a `LoginGate`. Admin auth is email + password, plus the
+ * authenticator code only when the account has turned two-step sign-in on (`POST /v1/auth/login`
+ * answers `403 MFA_REQUIRED` without a `totp_code` then).
  *
  * Icon per section, from the shared Solar semantic set (`solar-icon-map.json` — the curated
  * cross-platform subset, not the full catalogue). None of these are a literal match for
@@ -74,7 +75,8 @@ const PUBLIC_PAGES: Readonly<Record<string, () => React.ReactElement>> = {
 };
 
 /**
- * The sign-in gate. Admin sessions require email + password + TOTP; until one is held every
+ * The sign-in gate. Email + password, and the authenticator code only for an account that has
+ * turned two-step sign-in on (it is opt-in); until a session is held every
  * protected fetch would 401, so the whole app tree renders behind this form.
  */
 function LoginGate() {
@@ -136,7 +138,7 @@ function LoginGate() {
               maxLength={6}
               value={totpCode}
               onChange={setTotpCode}
-              required
+              helperText="Only if you have turned on two-step sign-in."
             />
 
             {error ? (
