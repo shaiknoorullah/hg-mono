@@ -48,6 +48,9 @@ export {
 } from '@hg/ui-native';
 export type { BottomNavItem, Theme } from '@hg/ui-native';
 
+// WP2 (Home, address switcher, How we check): spacing and radius tokens for composing Home's
+// cards and rows from the components above.
+export { radius, space } from '@hg/ui-native';
 // WP4 (restaurant page, certification sheet, certificate viewer).
 export { elevationStyle, reportClientError, resetClientErrorReporter, setClientErrorReporter } from '@hg/ui-native';
 export type { ClientErrorReporter, TabSpec } from '@hg/ui-native';

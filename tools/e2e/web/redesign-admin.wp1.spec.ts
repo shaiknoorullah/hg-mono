@@ -1,6 +1,13 @@
 import { expect, test, type Page, type Route } from '@playwright/test';
 
+import { E2E_MODE } from './mode';
 import { stepper } from './shots';
+
+// This spec drives the console against the mock server: it reads `login` from the mock and
+// rewrites the principal's role (below). On the e2e stack (E2E_MODE=real, what the `e2e` label
+// runs) the same request reaches the real API, whose answer has no such principal, so the file
+// runs in mock mode only: `E2E_MODE=mock`, see tools/e2e/README.md → Redesign.
+test.skip(E2E_MODE !== 'mock', 'written against the mock server; run with E2E_MODE=mock');
 
 /**
  * The redesigned admin console, work package 1 (issue #90): the shell and the public auth pages,
