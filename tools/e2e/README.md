@@ -2,7 +2,7 @@
 covers:
   - .github/workflows/e2e.yml
   - tools/e2e/**
-reviewed: 2026-10-09
+reviewed: 2026-10-10
 ---
 
 # End-to-end flows
@@ -46,7 +46,7 @@ flows run in this order, because steps 2 to 4 share one order (the cross-app smo
 | 1 | Restaurant | Playwright | The owner signs in with email and password, sees the live order queue, and accepts an order a second customer placed through the API |
 | 2 | Customer | Maestro | Signs in with a test phone and the code from the API's log, sees the certified restaurant and not the expired one, opens it, adds a dish, checks out and places the order |
 | 3 | Restaurant | Playwright | Accepts that order within its 180 seconds |
-| 4 | Rider and restaurant | Maestro and Playwright | The rider signs in, goes online standing at the restaurant and waits on the offer screen; meanwhile the restaurant marks the order ready for pickup, and the rider receives the dispatch offer for it |
+| 4 | Rider and restaurant | Maestro and Playwright | The rider signs in, goes online standing at the restaurant and waits on the offer screen; meanwhile the restaurant marks the order ready for pickup and sees its 4-digit pickup code, and the rider receives the dispatch offer for it |
 | 5 | Admin | Playwright | Signs in with email, password and the authenticator code, finds and opens the order, then opens the verification register: the review queue and the seven-check halal verification of each restaurant's certificate |
 
 Beyond the cross-app smoke, the browser specs walk the partner and admin apps' own journeys:

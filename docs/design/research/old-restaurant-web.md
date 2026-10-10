@@ -1,7 +1,7 @@
 ---
 covers:
   - apps/restaurant/src/**
-reviewed: 2026-10-09
+reviewed: 2026-10-10
 ---
 
 # What the old restaurant web app teaches the redesign
@@ -262,7 +262,7 @@ Loading shows skeleton cards shaped like the stat cards. An error shows an inlin
 
 **Live updates.**
 - The page polls every 30 seconds, even though an SSE connection was open elsewhere in the app. New orders could therefore take up to 30 seconds to appear.
-- *The rebuild (Oct 2026):* the queue (`apps/restaurant/src/routes/OrdersPage.tsx`) refetches the moment an order event arrives on the realtime socket, and keeps a 7-second poll underneath for when the socket is down.
+- *The rebuild (Oct 2026):* the queue (`apps/restaurant/src/routes/OrdersPage.tsx`) refetches the moment an order event arrives on the realtime socket, and keeps a 7-second poll underneath for when the socket is down. A ready order's card shows its 4-digit pickup code, large, for the kitchen to read out to the rider ([#659](https://github.com/shaiknoorullah/hg-mono/issues/659)).
 
 ### Recommendation
 
