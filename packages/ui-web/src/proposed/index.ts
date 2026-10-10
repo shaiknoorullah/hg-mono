@@ -8,16 +8,43 @@
  * so redesign code that imports from here keeps compiling.
  */
 
-/* Feedback states — every screen ships empty, loading and error (AGENTS.md "How to work here"). */
-export { Banner, EmptyState, ErrorState } from '../feedback/index.js';
+/* Feedback states — every screen ships empty, loading and error (AGENTS.md "How to work here").
+   Rebuilt in W4: Banner and InlineAlert are one family (packet P1); a halal message cannot be danger. */
+export { Banner, HalalBanner, InlineAlert } from './Banner.js';
 export type {
   BannerAction,
+  BannerBaseProps,
+  BannerListItem,
+  BannerPlacement,
   BannerProps,
+  BannerTone,
   BannerVariant,
-  EmptyStateAction,
-  EmptyStateProps,
+  HalalBannerProps,
+  HalalMessageTone,
+  InlineAlertProps,
+  Tone,
+} from './Banner.js';
+export { EmptyState } from './EmptyState.js';
+export type { EmptyStateAction, EmptyStateProps, EmptyStateTone, EmptyStateVariant } from './EmptyState.js';
+export { ErrorState } from './ErrorState.js';
+export type {
+  ClientErrorCode,
+  ErrorStateCode,
   ErrorStateProps,
-} from '../feedback/index.js';
+  ErrorStateVariant,
+  ErrorTechnicalDetail,
+} from './ErrorState.js';
+export { ProgressBar } from './ProgressBar.js';
+export type { ProgressBarProps } from './ProgressBar.js';
+export { PageAnnouncer, PageAnnouncerProvider, useAnnounce, usePageAnnouncer } from './PageAnnouncer.js';
+export type {
+  Announce,
+  AnnounceOptions,
+  AnnouncePoliteness,
+  PageAnnouncerApi,
+  PageAnnouncerProviderProps,
+  Politeness,
+} from './PageAnnouncer.js';
 
 /* Rebuilt on shadcn/ui (W1 Core); the pre-rebuild props still work. */
 export { Skeleton } from './Skeleton.js';
@@ -30,9 +57,9 @@ export { Tooltip, TooltipProvider } from './Tooltip.js';
 export type { TooltipProps } from './Tooltip.js';
 
 
-/* Toasts: a provider and a hook today; the live `Toast` component lands in W4. */
-export { ToastProvider, useToast } from '../primitives/index.js';
-export type { ToastOptions, ToastVariant } from '../primitives/index.js';
+/* Toasts: the provider and hook keep their API and now render the rebuilt `/ds` Toast (W4). */
+export { ToastProvider, useToast } from '../ds/Toast.js';
+export type { ToastApi, ToastOptions, ToastProviderProps, ToastVariant } from '../ds/Toast.js';
 
 export { DocumentViewer, FilterBar } from '../data/index.js';
 export type { DocumentViewerProps, DocumentViewerState } from '../data/index.js';

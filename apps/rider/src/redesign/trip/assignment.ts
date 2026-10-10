@@ -49,15 +49,17 @@ declare module '../nav/routes' {
 }
 
 /**
- * `PickupTransitionInput` from contract PR #290: PICKED_UP carries the 4-digit `pickup_code`.
- * Typed here as a narrow extension of the generated input until #290 merges and the client is
- * regenerated; then this becomes `Schema['PickupTransitionInput']`.
+ * One trip step, before its `occurred_at` is stamped: `AssignmentStepInput` (every step but
+ * PICKED_UP, with the geofence `override_reason`) or `PickupTransitionInput` (PICKED_UP with the
+ * 4-digit `pickup_code`, #290). Omit is applied to each shape, so neither loses its own fields.
  */
-export type TripStepInput = Omit<TransitionInput, 'occurred_at'> & {
-  occurred_at?: string;
-  /** Until #290 merges: `^[0-9]{4}$`, PICKED_UP only, never echoed back. */
-  pickup_code?: string;
-};
+type WithoutTime<T> = T extends unknown ? Omit<T, 'occurred_at'> & { occurred_at?: string } : never;
+export type TripStepInput = WithoutTime<TransitionInput>;
+
+/** The pickup code a prepared step carries, if it is the PICKED_UP step. */
+export function pickupCodeOf(input: TripStepInput): string | undefined {
+  return 'pickup_code' in input ? input.pickup_code : undefined;
+}
 
 export const TRIP_POLL_MS = 5_000;
 /** How long a step waits for a GPS fix before it goes without one (the fields are optional). */
@@ -298,7 +300,7 @@ async function currentFix(): Promise<Pick<TransitionInput, 'latitude' | 'longitu
 }
 
 /** Stamp a step with the time of the tap and a real position (when the phone has one). */
-export async function prepareStep(input: Omit<TripStepInput, 'occurred_at'>): Promise<PreparedStep> {
+export async function prepareStep(input: TripStepInput): Promise<PreparedStep> {
   const occurred_at = new Date().toISOString();
   const fix = await currentFix();
   return { key: idempotencyKey(), input: { ...fix, ...input, occurred_at } };
