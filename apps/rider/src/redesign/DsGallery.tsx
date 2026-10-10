@@ -12,6 +12,13 @@
  * N1 adds the core design-system parts at the top (`CoreSection`): `/ds` Button, IconButton,
  * Badge, Card, Price, KeyValueList, StatCard and `/proposed` Text, Skeleton, Spinner, Separator,
  * Avatar, as the redesigned screens will use them.
+ *
+ * N2 adds navigation and overlays (`NavSection`): every AppBar variant and tone, the rider and
+ * customer BottomNav, `/proposed` StickyFooter, and buttons that open a bottom and a side Sheet,
+ * a destructive confirm Modal, an alert, the five Toasts and the rider OFFER: a full,
+ * non-dismissible Sheet with a 30-second countdown and 72pt Accept and Decline, with the
+ * BottomNav hidden while it is up. The countdown here is a plain ticking label: the design
+ * system's Countdown is not in `/ds` yet (N5).
  */
 import * as React from 'react';
 import { ScrollView, View } from 'react-native';
@@ -85,6 +92,150 @@ function CoreSection(): React.ReactElement {
   );
 }
 
+const RIDER_TABS: ds.BottomNavItem[] = [
+  { key: 'home', label: 'Home', icon: 'home' },
+  // "wallet" is not in the icon set yet (#198); the boards use "orders" as the stand-in.
+  { key: 'earnings', label: 'Earnings', icon: 'orders', badge: 2, badgeNoun: 'new payouts' },
+  { key: 'account', label: 'Account', icon: 'profile' },
+];
+const CUSTOMER_TABS: ds.BottomNavItem[] = [
+  { key: 'home', label: 'Home', icon: 'home' },
+  { key: 'search', label: 'Search', icon: 'search' },
+  { key: 'orders', label: 'Orders', icon: 'orders', badge: 2, badgeNoun: 'active' },
+  { key: 'account', label: 'Account', icon: 'profile', badge: true },
+];
+const TOASTS = ['neutral', 'success', 'warning', 'danger', 'info'] as const;
+type Overlay = 'none' | 'offer' | 'sheet' | 'side' | 'confirm' | 'alert' | 'toasts';
+
+/** The rider offer: full, non-dismissible, a 30-second count and the two critical answers. */
+function OfferDemo({ onDone }: { onDone: () => void }): React.ReactElement {
+  const [left, setLeft] = React.useState(30);
+  React.useEffect(() => {
+    const t = setInterval(() => setLeft((s) => Math.max(0, s - 1)), 1000);
+    return () => clearInterval(t);
+  }, []);
+  return (
+    <ds.Sheet
+      open
+      variant="full"
+      dismissible={false}
+      title="Delivery offer"
+      footer={
+        <>
+          <ds.Button critical fullWidth onPress={onDone}>
+            Accept
+          </ds.Button>
+          <ds.Button critical fullWidth variant="tertiary" onPress={onDone}>
+            Decline
+          </ds.Button>
+        </>
+      }
+    >
+      <proposed.Text variant="display.md" accessibilityLabel={`${left} seconds left to answer`}>
+        {`0:${String(left).padStart(2, '0')}`}
+      </proposed.Text>
+      <ds.StatCard label="Estimated earnings" sub="Tip so far (can still change)">
+        <ds.Price cents={cents(1240)} size="xl" />
+      </ds.StatCard>
+      <ds.KeyValueList rows={[['Pickup', 'Zaytoun Grill, 1.2 km'], ['Drop-off area', 'Scarborough Village']]} />
+      <proposed.Text variant="body.md" tone="secondary">
+        You get the full address when you accept.
+      </proposed.Text>
+    </ds.Sheet>
+  );
+}
+
+/** The N2 navigation and overlay parts, in the states the canvases draw. */
+function NavSection({ overlay, setOverlay }: { overlay: Overlay; setOverlay: (o: Overlay) => void }): React.ReactElement {
+  const [tab, setTab] = React.useState('home');
+  const close = () => setOverlay('none');
+  return (
+    <View className="gap-4">
+      <proposed.Text variant="heading.md">N2 navigation and overlays</proposed.Text>
+      <View className="-mx-4 gap-3">
+        <ds.AppBar tone="field" title="Online" subtitle="Waiting for offers" onBack={() => {}} backLabel="Back to Home" />
+        <ds.AppBar tone="cream" title="Deliver to 12 Main St" subtitle="Scarborough, ON" onTitlePress={() => {}} actions={<ds.IconButton icon="cart" accessibilityLabel="Cart" badge={3} badgeNoun="items" />} />
+        <ds.AppBar tone="raised" title="Orders" loading elevated />
+        <ds.AppBar tone="chrome" title="Earnings" subtitle="This week" />
+        <ds.AppBar variant="large" tone="cream" title="Account" />
+        <ds.AppBar variant="contextual" title="2 selected" onBack={() => {}} />
+        <ds.AppBar variant="transparent" title="Zaytoun Grill" onBack={() => {}} backLabel="Back to Search" />
+      </View>
+      <View className="-mx-4 gap-3">
+        <ds.BottomNav label="Main" items={RIDER_TABS} active={tab} onChange={setTab} hidden={overlay === 'offer'} />
+        <ds.BottomNav label="Customer" tone="raised" items={CUSTOMER_TABS} active="orders" />
+      </View>
+      <proposed.StickyFooter>
+        <ds.Button fullWidth size="xl">
+          Go online
+        </ds.Button>
+      </proposed.StickyFooter>
+      <View className="flex-row flex-wrap gap-2">
+        <ds.Button size="sm" variant="primary" onPress={() => setOverlay('offer')}>
+          Open offer
+        </ds.Button>
+        <ds.Button size="sm" variant="tertiary" onPress={() => setOverlay('sheet')}>
+          Open sheet
+        </ds.Button>
+        <ds.Button size="sm" variant="tertiary" onPress={() => setOverlay('side')}>
+          Open side sheet
+        </ds.Button>
+        <ds.Button size="sm" variant="tertiary" onPress={() => setOverlay('confirm')}>
+          Open confirm
+        </ds.Button>
+        <ds.Button size="sm" variant="tertiary" onPress={() => setOverlay('alert')}>
+          Open alert
+        </ds.Button>
+        <ds.Button size="sm" variant="tertiary" onPress={() => setOverlay('toasts')}>
+          Show toasts
+        </ds.Button>
+      </View>
+
+      {overlay === 'offer' ? <OfferDemo onDone={close} /> : null}
+      <ds.Sheet
+        open={overlay === 'sheet' || overlay === 'side'}
+        variant={overlay === 'side' ? 'side' : 'bottom'}
+        title="What's new"
+        onClose={close}
+        footer={
+          <ds.Button fullWidth size="xl" variant="secondary" onPress={close}>
+            Got it
+          </ds.Button>
+        }
+      >
+        <proposed.Text>Offers now show the drop-off area before you accept.</proposed.Text>
+        <proposed.Text tone="secondary">Your earnings page groups payouts by week.</proposed.Text>
+      </ds.Sheet>
+      <ds.Modal
+        open={overlay === 'confirm'}
+        variant="confirm"
+        destructive
+        title="Sign out?"
+        description="You will stop receiving offers until you sign back in."
+        confirmLabel="Sign out"
+        cancelLabel="Stay signed in"
+        onConfirm={close}
+        onClose={close}
+      />
+      <ds.Modal open={overlay === 'alert'} variant="alert" title="Location is off" description="Turn it on to go online." onClose={close} />
+      {overlay === 'toasts'
+        ? TOASTS.map((variant, i) => (
+            <ds.Toast
+              key={variant}
+              variant={variant}
+              title={`${variant[0]!.toUpperCase()}${variant.slice(1)} toast`}
+              description={variant === 'danger' ? 'Persistent until dismissed.' : undefined}
+              placement="top"
+              offset={24 + i * 76}
+              duration={0}
+              onDismiss={close}
+            />
+          ))
+        : null}
+    </View>
+  );
+}
+
 /** The gallery screen: every Button variant and size, swatches, a scheme toggle, a portal demo. */
 export function DsGallery({
   scheme,
@@ -98,6 +249,7 @@ export function DsGallery({
   onToggleScheme: () => void;
 }): React.ReactElement {
   const [portalOpen, setPortalOpen] = React.useState(false);
+  const [overlay, setOverlay] = React.useState<Overlay>('none');
 
   return (
     <ScrollView className="flex-1 bg-background" contentContainerClassName="gap-4 px-4 pb-12 pt-16">
@@ -106,6 +258,7 @@ export function DsGallery({
         NativeWind {scheme} · rider theme · tokens from global.rider.css
       </Text>
 
+      <NavSection overlay={overlay} setOverlay={setOverlay} />
       <CoreSection />
 
       {VARIANTS.map((variant) => (
