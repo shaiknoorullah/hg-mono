@@ -72,6 +72,8 @@
   --hg-feedback-info-tint-border: #CBDFFC;
   --hg-skeleton-base: #D8D0BF;
   --hg-skeleton-highlight: #E6E0D4;
+  --hg-action-control: #F1521E;
+  --hg-action-track-on: #D8410F;
 
   --background: #FFFAEA;
   --foreground: #232323;
@@ -155,6 +157,8 @@
   --hg-feedback-info-tint-border: #04264F;
   --hg-skeleton-base: #4A4E48;
   --hg-skeleton-highlight: #8B8578;
+  --hg-action-control: #F1521E;
+  --hg-action-track-on: #D8410F;
 
   --background: #171717;
   --foreground: #F6EFDD;

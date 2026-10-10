@@ -12,6 +12,13 @@
  * N1 adds the core design-system parts at the top (`CoreSection`): `/ds` Button, IconButton,
  * Badge, Card, Price, KeyValueList, StatCard and `/proposed` Text, Skeleton, Spinner, Separator,
  * Avatar, as the redesigned screens will use them.
+ *
+ * N3 adds the forms (`FormsSection`): `/ds` Input (tel, the 6-cell sign-in code and the rider's
+ * 4-cell handover code at the 56 field size, error, password, search), a customer-style item
+ * option group (RadioGroup roomy 72 with prices, a disabled reason and the group error),
+ * Checkbox, Switch (loading holds), Select, SegmentedControl in both tones, and `/proposed`
+ * CheckboxGroup with a maximum, QuantityStepper (Remove at 1, the limit), DateInput, Textarea
+ * and ErrorSummary.
  */
 import * as React from 'react';
 import { ScrollView, View } from 'react-native';
@@ -85,6 +92,70 @@ function CoreSection(): React.ReactElement {
   );
 }
 
+/** The N3 form parts, in the states the canvases draw. */
+function FormsSection(): React.ReactElement {
+  const [phone, setPhone] = React.useState('4165550161');
+  const [signIn, setSignIn] = React.useState('1234');
+  const [handover, setHandover] = React.useState('');
+  const [size, setSize] = React.useState<string | null>(null);
+  const [addOns, setAddOns] = React.useState<string[]>(['hummus', 'garlic']);
+  const [qty, setQty] = React.useState(1);
+  const [online, setOnline] = React.useState(true);
+  const [period, setPeriod] = React.useState('week');
+  const [mode, setMode] = React.useState('delivery');
+  const [province, setProvince] = React.useState<string | null>('ON');
+  return (
+    <View className="gap-5">
+      <proposed.Text variant="heading.md">N3 forms</proposed.Text>
+      <proposed.ErrorSummary
+        errors={[{ message: 'Enter your date of birth' }, { message: 'Choose a size' }]}
+      />
+      <ds.Input label="Mobile number" variant="tel" value={phone} onValueChange={setPhone} helperText="We text a code to sign you in." required />
+      <ds.Input label="Sign-in code" variant="otp" value={signIn} onValueChange={setSignIn} helperText="Sent to +1 416 555 0161" />
+      <ds.Input label="Customer's code" variant="otp" cells={4} value={handover} onValueChange={setHandover} helperText="Ask the customer for their 4-digit code" />
+      <ds.Input label="Email" variant="email" defaultValue="bilal@" errorText="Enter an email address like name@example.com" announceError={false} />
+      <ds.Input label="Password" variant="password" defaultValue="hunter22" />
+      <ds.Input label="Search" variant="search" placeholder="Restaurants or dishes" />
+      <ds.RadioGroup
+        label="Size"
+        required
+        roomy
+        value={size}
+        onValueChange={setSize}
+        error={size ? null : 'Choose a size'}
+        options={[
+          { value: 'regular', label: 'Regular', description: 'Serves 1' },
+          { value: 'large', label: 'Large', description: 'Serves 2', priceDeltaCents: 250 },
+          { value: 'family', label: 'Family', priceDeltaCents: 900, disabled: true, disabledReason: 'Out of stock' },
+        ]}
+      />
+      <proposed.CheckboxGroup
+        label="Add-ons"
+        max={2}
+        value={addOns}
+        onValueChange={setAddOns}
+        options={[
+          { value: 'hummus', label: 'Hummus', priceDeltaCents: 200 },
+          { value: 'garlic', label: 'Garlic sauce', priceDeltaCents: 150 },
+          { value: 'pickles', label: 'Pickles' },
+        ]}
+      />
+      <ds.Checkbox label="Leave at the door" description="We’ll photograph the drop-off" checked />
+      <View className="flex-row flex-wrap items-start gap-4">
+        <proposed.QuantityStepper value={qty} min={0} max={3} removeAtZero itemName="Chicken shawarma" maxReason="Only 3 left today" onChange={setQty} />
+        <proposed.QuantityStepper variant="tonal" value={3} max={3} maxReason="Only 3 left today" onChange={() => {}} />
+      </View>
+      <ds.Switch label="Online for deliveries" stateLabel={{ on: 'Online', off: 'Offline' }} checked={online} onCheckedChange={setOnline} />
+      <ds.Switch label="Torch" stateLabel={{ on: 'On', off: 'Off' }} checked={false} loading />
+      <ds.Select label="Province" value={province} onValueChange={setProvince} options={[{ value: 'ON', label: 'Ontario' }, { value: 'QC', label: 'Quebec' }]} />
+      <ds.SegmentedControl label="Period" value={period} onValueChange={setPeriod} options={[{ value: 'day', label: 'Day' }, { value: 'week', label: 'Week' }, { value: 'month', label: 'Month' }]} />
+      <ds.SegmentedControl label="Fulfilment" tone="chrome" value={mode} onValueChange={setMode} options={[{ value: 'delivery', label: 'Delivery' }, { value: 'pickup', label: 'Pickup' }]} />
+      <proposed.DateInput label="Date of birth" defaultValue="1994-03-07" helperText="You must be 18 or over" max="2008-10-10" />
+      <proposed.Textarea label="Why are you overriding the geofence?" maxLength={500} defaultValue="The building entrance is on the side street." />
+    </View>
+  );
+}
+
 /** The gallery screen: every Button variant and size, swatches, a scheme toggle, a portal demo. */
 export function DsGallery({
   scheme,
@@ -107,6 +178,7 @@ export function DsGallery({
       </Text>
 
       <CoreSection />
+      <FormsSection />
 
       {VARIANTS.map((variant) => (
         <Button key={variant} variant={variant} accessibilityLabel={`${variant} button`}>

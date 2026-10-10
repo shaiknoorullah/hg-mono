@@ -8,11 +8,12 @@
  * `testID`, `onValueChange` is wired to the legacy `onChange`). The DS-native work packages
  * (N1–N7) replace the internals one entry at a time on React Native Reusables; the names and
  * props here do not change, so app code does not either. N1 (core) has landed: Button, IconButton,
- * Badge, Card and Price now render through the React Native Reusables tier (`../lib`).
+ * Badge, Card and Price now render through the React Native Reusables tier (`../lib`). N3 (forms)
+ * has landed: Input, Checkbox, RadioGroup/Radio, Switch, Select and the new SegmentedControl.
  *
  * Native differences from the web `.d.ts`, everywhere: `style` is a `StyleProp`, `onChange`
  * receives the value (there is no change event), money is the branded `Cents`, and labels are
- * strings. Not here yet: `Countdown`, `Menu`, `SegmentedControl` (N3/N5/N6 — build against the
+ * strings. Not here yet: `Countdown`, `Menu` (N5/N6 — build against the
  * live props with a typed TODO naming the issue); `HalalShield` stays internal to the halal
  * family; `DataTable` and `HalalChecklist` are web only.
  *
@@ -32,9 +33,12 @@ export type { BadgeProps, CardProps, PriceProps, RatingProps } from './Content';
 export { KeyValueList, StatCard } from './Content';
 export type { KeyValueListProps, KeyValueListRow, StatCardProps } from './Content';
 
-export { Input, Checkbox, RadioGroup, Radio, Switch, Select } from './Forms';
+export { Input, Checkbox, RadioGroup, Radio, Switch, Select, SegmentedControl } from './Forms';
 export type {
   InputProps,
+  InputVariant,
+  SegmentedControlProps,
+  SegmentedControlOption,
   CheckboxProps,
   RadioGroupProps,
   RadioProps,
