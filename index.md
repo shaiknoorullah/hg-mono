@@ -20,3 +20,5 @@ live preview page yet, so they show the candidate only.
 Update after merging `main` (the stack landed): KeyValueList.png, StatCard.png and
 ProposedCore.png are re-shot with the states added for the app tracks: dense rows with mono
 values, the warning StatCard tint, and the Skeleton rows and block layouts.
+
+Review update: Badge.png is re-shot after the tint borders moved to the reference's pale edge (the feedback border roles at 25%).
