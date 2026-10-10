@@ -1,0 +1,27 @@
+{
+  "scenario": "place_address_province_not_served",
+  "domain": "geo",
+  "schema": "GeocodedAddress",
+  "describes": "A Canadian address outside the provinces served at launch (Ontario only). It is returned, because search is Canada-wide; the client warns by comparing `province` with `getPublicConfig.served_provinces`, and saving it is `PROVINCE_NOT_SERVED`.",
+  "operations": [
+    "getPlaceAddress",
+    "reverseGeocode"
+  ],
+  "status": 200,
+  "tags": [
+    "geo",
+    "edge"
+  ],
+  "payload": {
+    "kind": "ADDRESS",
+    "name": null,
+    "line1": "1001 Rue Sherbrooke Ouest",
+    "city": "Montréal",
+    "province": "QC",
+    "postal_code": "H3A 1G5",
+    "country": "CA",
+    "latitude": 45.504,
+    "longitude": -73.577,
+    "formatted": "1001 Rue Sherbrooke Ouest, Montréal, Québec H3A 1G5"
+  }
+}

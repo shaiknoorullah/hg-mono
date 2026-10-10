@@ -87,3 +87,7 @@ Work packages: `plan/design-system.md` §4.1 on the read-only `claude/redesign-c
 | FilterChip | rebuilt | W6 |
 | ListPane, ListPaneRow | rebuilt | W6 |
 | EventLog | rebuilt | W6 |
+| NewOrdersStrip (= `NewOrderStrip`, the restaurant stub's name) + OfferTile (+ `OFFER_OUTCOMES`, `isLiveTile`) | rebuilt | W7a |
+| DeclineForm (+ `DECLINE_REASONS`, the contract's seven reject reasons) | rebuilt | W7a |
+| StatusCard (+ `statusFromOpenState`) | rebuilt | W7a |
+| PickupCode | rebuilt | W7a |

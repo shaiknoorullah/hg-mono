@@ -1,0 +1,16 @@
+{
+  "scenario": "address_suggestions_empty",
+  "domain": "geo",
+  "schema": "array<AddressSuggestion>",
+  "describes": "No match: `200` with an empty list, not an error. The list says nothing matched and keeps \"Enter address manually\" and the map pin one tap away.",
+  "operations": [
+    "suggestAddresses"
+  ],
+  "status": 200,
+  "tags": [
+    "geo",
+    "edge",
+    "empty"
+  ],
+  "payload": []
+}

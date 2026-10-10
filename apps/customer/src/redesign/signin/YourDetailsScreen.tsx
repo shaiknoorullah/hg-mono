@@ -91,7 +91,9 @@ export function YourDetailsScreen({ fromCart = false }: { fromCart?: boolean }):
       .then((res) => {
         if (!live) return;
         const p = res.data as CustomerProfile;
-        setFirst(p.first_name ?? '');
+        // First run starts with no first name: a new account's profile row holds the server's
+        // placeholder ("there", for "Hi there"), never a name the customer gave.
+        setFirst(fromCart ? (p.first_name ?? '') : '');
         setLast(p.last_name ?? '');
         setEmail(p.email ?? '');
         setLoadedEmail(p.email ?? null);
@@ -101,7 +103,7 @@ export function YourDetailsScreen({ fromCart = false }: { fromCart?: boolean }):
     return () => {
       live = false;
     };
-  }, []);
+  }, [fromCart]);
 
   const hasEmail = looksLikeEmail(email) && !errors.email;
 
