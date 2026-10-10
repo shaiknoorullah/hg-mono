@@ -16,7 +16,7 @@ migrations/
   roles/roles.sql    the database roles; the superuser runs it before goose
   seed/              launch data — tax table, halal issuing bodies, fee config
   lint/schema_lint.sql   the money + geography lints, runnable standalone
-  test/              invariant tests: 111 assertions about what the DB refuses
+  test/              invariant tests: 113 assertions about what the DB refuses
   tools/             contract-enum generator and checker
   devworld/          local personas; loaded only by cmd/devworld
 ```
@@ -96,6 +96,7 @@ These are the invariants. Each is enforced by the schema, and each has a test in
 | 15 | A refund the platform owes on its own (a ready order nobody collected, cancelled at the pickup cap, [#336](https://github.com/shaiknoorullah/hg-mono/issues/336)) still names who asked for it and who approved it. | The platform's own account (`00056`, `00000000-0000-7000-8000-00000000a001`) is both, so `refund.requested_by NOT NULL` and `refund_money_needs_approver` hold. It has no phone, password or TOTP, a `.invalid` address, no role, and is `SUSPENDED`: it can never sign in. |
 | 16 | A restaurant's prep delay is a record of its own, a canned 5, 10, 15 or 20 minutes, and its limits (3 delays, 45 minutes in total) are counted from those records, not from log text ([#351](https://github.com/shaiknoorullah/hg-mono/issues/351)). | `order_delay` (`00062`) with its `added_minutes` CHECK. `internal/orders` `Store.DelayInTx` is its only writer: it counts the rows under the order's row lock, then moves the deadline and writes the delay, the transition row and the event in one transaction. |
 | 17 | A partner's bank payout is asked of Stripe at most once at a time per payout, so a retry can never pay a payout out to the bank twice ([#301](https://github.com/shaiknoorullah/hg-mono/issues/301)). A payout past its transfer names the transfer. | `payout_bank_attempt` (`00068`): every attempt is recorded before the Stripe call, `UNIQUE (payout_id, attempt)`, and the partial unique index `payout_bank_attempt_one_live` allows one attempt that has not `FAILED` per payout; `REVOKE DELETE, TRUNCATE` from `hg_app`. `payout_transferred_has_transfer` CHECK on `payout`. |
+| 18 | A cart, quote or order line carries one chosen variant per variant group, and a quote or order line's `variant_part_cents` is its variants' money: the `ABSOLUTE` variant's price (else the base price) plus every `DELTA` ([#628](https://github.com/shaiknoorullah/hg-mono/issues/628)). | `00069_line_variants.sql`: `cart_line_variant`, `quote_line_variant`, `order_line_variant`, each `UNIQUE` per line and group with a foreign key to a real `(variant, group)` pair; the partial unique indexes `*_line_variant_one_absolute` allow one `ABSOLUTE` variant per line; the deferred constraint triggers `quote_line_variant_part_balanced` and `order_line_variant_part_balanced` (and their `*_rows_balanced` twins) refuse at commit a line whose part its variants do not add up to. `cart_line.variant_id` is empty (`cart_line_variant_moved`). |
 
 The two schema lints are also runnable on their own:
 
@@ -151,7 +152,7 @@ address search through Mapbox, is excluded as response-only: nothing stores it.
   Postgres + PostGIS database. `goose reset` rolls all of them back with no
   leftovers, and `up` again succeeds.
 - **Seeded**: `seed/seed.sql` applies and is idempotent.
-- **Tested**: 111 invariant assertions pass (`test/run_invariant_tests.sh`).
+- **Tested**: 113 invariant assertions pass (`test/run_invariant_tests.sh`).
 - **Environment caveat**: Docker was not available, so this was verified
   against a locally installed **Postgres 16.13 with PostGIS 3.4.2**, not the
   spec's Postgres 17 + PostGIS 3.6. Nothing here uses a 17-only or 3.6-only

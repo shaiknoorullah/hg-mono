@@ -2,14 +2,14 @@
   "generated_by": "contracts/fixtures/_build/build.py",
   "do_not_edit": "Every file under contracts/fixtures/ is generated. Run `pnpm fixtures:build`.",
   "frozen_clock": "2026-08-10T18:42:11.412Z",
-  "count": 482,
+  "count": 489,
   "counts_by_domain": {
     "admin": 35,
-    "cart": 15,
+    "cart": 17,
     "catalogue": 41,
     "dispatch": 32,
     "documents": 23,
-    "errors": 76,
+    "errors": 81,
     "geo": 11,
     "halal": 25,
     "handoff": 13,
@@ -615,7 +615,7 @@
       "scenario": "cart_many_lines",
       "domain": "cart",
       "schema": "Cart",
-      "describes": "Six lines including a family platter with a variant, three add-on groups and a special request. Tests the cart's densest row and the sticky total bar.",
+      "describes": "Six lines including a family platter with a variant from each of its three groups (size, rice, heat), three add-on groups and a special request. Tests the cart's densest row and the sticky total bar.",
       "operations": [
         "getCart"
       ],
@@ -624,6 +624,21 @@
         "dense"
       ],
       "file": "cart/cart_many_lines.json"
+    },
+    {
+      "scenario": "cart_multi_variant_line",
+      "domain": "cart",
+      "schema": "Cart",
+      "describes": "One line of a dish with three required variant groups, one choice from each: `For two` (ABSOLUTE $42.99 replaces the base), `No rice` (DELTA −$2.00) and `Medium` (DELTA $0.00), plus the one sauce the group requires. `unit_price_cents` = 4299 − 200 + 0 + 149. The deprecated `variant` is null because the line has more than one; render `variants`.",
+      "operations": [
+        "addCartLine",
+        "getCart"
+      ],
+      "status": 200,
+      "tags": [
+        "variants"
+      ],
+      "file": "cart/cart_multi_variant_line.json"
     },
     {
       "scenario": "cart_ordering_paused",
@@ -717,6 +732,22 @@
         "money"
       ],
       "file": "cart/quote_large_tip.json"
+    },
+    {
+      "scenario": "quote_multi_variant",
+      "domain": "cart",
+      "schema": "Quote",
+      "describes": "A platter line with one variant from each of three groups: `variant_part_cents` = 4299 (`For two`, ABSOLUTE, replaces the 2499 base) + 300 (`Kabuli pulao`, DELTA) + 0 (`Peshawari hot`, DELTA) = 4599, and `variants` carries each one with its snapshotted money. The deprecated `variant_id` and `variant_pricing_mode` are null; `variant_name` joins the three names.",
+      "operations": [
+        "createQuote",
+        "getQuote"
+      ],
+      "status": 200,
+      "tags": [
+        "variants",
+        "money"
+      ],
+      "file": "cart/quote_multi_variant.json"
     },
     {
       "scenario": "quote_pickup",
@@ -2250,6 +2281,20 @@
       "file": "errors/error_active_order_exists.json"
     },
     {
+      "scenario": "error_addon_unavailable",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `ADDON_UNAVAILABLE`. The chosen add-on is on the item but switched off: \"Paratha just ran out\". `details.addon_id` names it. The cart is unchanged.",
+      "operations": [
+        "addCartLine"
+      ],
+      "status": 409,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_addon_unavailable.json"
+    },
+    {
       "scenario": "error_application_already_decided",
       "domain": "errors",
       "schema": "ErrorEnvelope",
@@ -2326,6 +2371,20 @@
         "error-envelope"
       ],
       "file": "errors/error_cart_has_unavailable_items.json"
+    },
+    {
+      "scenario": "error_cart_line_variant_missing",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`422` · `VALIDATION_FAILED`. A line the menu does not allow: a required variant group with no choice, and an add-on group below its `min_select`. Every problem comes back at once, each with its field. Other codes: `not_on_item` (`variant_ids[i]`), `one_per_group`, `duplicate`, `max_select`. The cart is unchanged.",
+      "operations": [
+        "addCartLine"
+      ],
+      "status": 422,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_cart_line_variant_missing.json"
     },
     {
       "scenario": "error_category_name_taken",
@@ -2442,6 +2501,20 @@
         "error-envelope"
       ],
       "file": "errors/error_delivery_code_locked.json"
+    },
+    {
+      "scenario": "error_different_restaurant",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `DIFFERENT_RESTAURANT`. The \"Start a new cart?\" dialog names the cart's restaurant and its size from `details` (C-20): \"Your cart has 4 items from Karachi Kitchen\". `current_line_count` counts lines, `current_item_count` sums their quantities. \"Start a new cart\" retries with `replace=true`.",
+      "operations": [
+        "addCartLine"
+      ],
+      "status": 409,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_different_restaurant.json"
     },
     {
       "scenario": "error_documents_incomplete",
@@ -2568,6 +2641,20 @@
         "error-envelope"
       ],
       "file": "errors/error_internal_error.json"
+    },
+    {
+      "scenario": "error_invalid_addon",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`422` · `INVALID_ADDON`. An add-on id that is not one of the item's, typically from a stale menu. The cart is unchanged; reload the item.",
+      "operations": [
+        "addCartLine"
+      ],
+      "status": 422,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_invalid_addon.json"
     },
     {
       "scenario": "error_item_blocked_by_admin",
@@ -3226,6 +3313,20 @@
         "error-envelope"
       ],
       "file": "errors/error_validation_failed.json"
+    },
+    {
+      "scenario": "error_variant_unavailable",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `VARIANT_UNAVAILABLE`. The chosen variant is on the item but switched off. `details.variant_id` names it, so the item sheet can say which choice ran out. The cart is unchanged.",
+      "operations": [
+        "addCartLine"
+      ],
+      "status": 409,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_variant_unavailable.json"
     },
     {
       "scenario": "error_verification_token_expired",
@@ -7297,7 +7398,13 @@
       "restaurant_order_restaurant_pending"
     ],
     "addCartLine": [
-      "cart_single_line"
+      "cart_multi_variant_line",
+      "cart_single_line",
+      "error_addon_unavailable",
+      "error_cart_line_variant_missing",
+      "error_different_restaurant",
+      "error_invalid_addon",
+      "error_variant_unavailable"
     ],
     "addChargebackEvidenceNote": [
       "chargeback_evidence_note_added",
@@ -7423,6 +7530,7 @@
     "createQuote": [
       "error_ordering_paused",
       "quote_large_tip",
+      "quote_multi_variant",
       "quote_pickup",
       "quote_single_line_minimum",
       "quote_standard",
@@ -7573,6 +7681,7 @@
       "cart_empty",
       "cart_has_unavailable_items",
       "cart_many_lines",
+      "cart_multi_variant_line",
       "cart_ordering_paused",
       "cart_replaced_from_order",
       "cart_restaurant_unavailable",
@@ -7733,6 +7842,7 @@
     "getQuote": [
       "quote_expired",
       "quote_large_tip",
+      "quote_multi_variant",
       "quote_pickup",
       "quote_standard",
       "quote_with_discount",
@@ -8313,7 +8423,7 @@
   "defaults": {
     "acceptOffer": "assignment_assigned",
     "acceptOrder": "restaurant_order_preparing",
-    "addCartLine": "cart_single_line",
+    "addCartLine": "cart_multi_variant_line",
     "addChargebackEvidenceNote": "chargeback_evidence_note_added",
     "approveRefund": "admin_refund_authorised",
     "attachRestaurantDocument": "document_submitted",
