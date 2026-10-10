@@ -13,7 +13,7 @@
 import { execSync } from 'node:child_process';
 import { copyFileSync, mkdirSync } from 'node:fs';
 import { expect, test, type Page, type Route, type TestInfo } from '@playwright/test';
-import { documentScrolls, LIVE_OWNER, MOCK_API, MODE, REAL_API } from './redesign-restaurant.support';
+import { documentScrolls, LIVE_OWNER, MODE, REAL_API, restaurantPrincipal } from './redesign-restaurant.support';
 
 const SHOTS = process.env.WP2_SHOTS_DIR ?? '/tmp/claude-0/-home-user-hg-mono/d41301d3-8d3a-541d-a6f4-40d847c8b738/scratchpad/shots/wp2';
 
@@ -58,24 +58,11 @@ async function fillSignIn(page: Page, email: string, password: string) {
   await page.getByLabel(/^Password/).fill(password);
 }
 
-/** Mock: a restaurant owner's principal (the contract has only `principal_customer`). */
-async function ownerPrincipal(page: Page) {
-  const [principal, profile] = await Promise.all([
-    page.request.get(`${MOCK_API}/__mock/scenarios/principal_customer`).then((r) => r.json()),
-    page.request.get(`${MOCK_API}/__mock/scenarios/restaurant_profile`).then((r) => r.json()),
-  ]);
-  return {
-    ...principal.data.payload,
-    amr: 'pwd',
-    roles: [{ role: 'RESTAURANT_OWNER', scope_type: 'RESTAURANT', scope_id: profile.data.payload.id }],
-  };
-}
-
 test.describe('restaurant redesign · sign in (mock)', () => {
   test.skip(MODE === 'real', 'mock-mode states');
 
   test('Main: the board, Enter submits, and a restaurant owner lands on orders', async ({ page }, info) => {
-    const principal = await ownerPrincipal(page);
+    const principal = await restaurantPrincipal(page);
     await page.route('**/v1/auth/me', (route) => route.fulfill({ json: { data: principal } }));
     // Stands in for a restaurant owner's SessionGrant (fixture requested in #676).
     await page.route('**/v1/auth/login', async (route) => {

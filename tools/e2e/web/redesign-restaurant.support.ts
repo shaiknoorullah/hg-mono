@@ -45,7 +45,7 @@ const SESSION_KEY = 'hg_restaurant_session_v1';
  * (w0-request: a `principal_restaurant_owner` fixture), so this re-scopes it to the
  * restaurant of `restaurant_profile`.
  */
-async function restaurantPrincipal(page: Page) {
+export async function restaurantPrincipal(page: Page) {
   const [principal, profile] = await Promise.all([
     page.request.get(`${MOCK_API}/__mock/scenarios/principal_customer`).then((r) => r.json()),
     page.request.get(`${MOCK_API}/__mock/scenarios/restaurant_profile`).then((r) => r.json()),
