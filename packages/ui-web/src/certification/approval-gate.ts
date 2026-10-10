@@ -12,7 +12,8 @@
  *     export. No code outside this file can write an object literal that satisfies the type, so
  *     a gate cannot be forged, faked in a test, or cast into existence from a partial.
  *  2. The only way to obtain one is `openApprovalGate`, which returns `{open: false}` unless all
- *     seven keys are present, in the fixed A-15 order, each with `result === 'PASS'`.
+ *     seven keys are present, in the fixed A-15 order, each recorded (`checked_at`) with
+ *     `result === 'PASS'` (and, for H5/H7, an agreeing `computed_result`).
  *  3. The gate's `checks` field is a seven-element **tuple** whose members are narrowed to
  *     `result: 'PASS'`, so even inside this module a `FAIL` cannot be smuggled in.
  *  4. `HalalApproveAction` takes `gate` as a **required** prop, so the approve affordance cannot
@@ -131,11 +132,21 @@ export interface OpenApprovalGateInput {
 }
 
 /**
+ * True when the server has recorded this check (it has a `checked_at`). The single definition:
+ * the checks panel uses it to choose between a result and "Not recorded", and the gate uses it
+ * so a row shown as "Not recorded" can never count as passed.
+ */
+export function isCheckRecorded(check: HalalCheck | undefined): check is HalalCheck {
+  return Boolean(check && check.checked_at);
+}
+
+/**
  * The only constructor of a `HalalApprovalGate`.
  *
- * A key is outstanding when it is absent, when its recorded result is not `PASS`, or — for the
- * two server-computed keys — when the server's own `computed_result` is anything other than
- * `PASS`. That last clause is deliberate belt-and-braces: if a payload ever claimed
+ * A key is outstanding when it is absent, when it is not recorded (`checked_at` unset, which
+ * the checks panel shows as "Not recorded"), when its result is not `PASS`, or — for the two
+ * server-computed keys — when the server's own `computed_result` is anything other than `PASS`,
+ * including missing. That last clause is deliberate belt-and-braces: if a payload ever claimed
  * `result: 'PASS'` for `H5` while `computed_result` said `FAIL`, the client would still refuse
  * to show approve, and the server would still reject the call. Both layers have to fail before
  * an unverified certificate can be approved.
@@ -147,11 +158,14 @@ export function openApprovalGate(input: OpenApprovalGateInput): ApprovalGateResu
 
   for (const key of HALAL_CHECK_ORDER) {
     const check = byKey.get(key);
-    if (!check || check.result !== 'PASS') {
+    // Recorded (`checked_at` set, the rule SevenChecks shows as "Not recorded") and PASS.
+    if (!check || !isCheckRecorded(check) || check.result !== 'PASS') {
       outstanding.push(key);
       continue;
     }
-    if (isServerComputedCheck(key) && check.computed_result && check.computed_result !== 'PASS') {
+    // H5 and H7 are computed: the server's evaluation must be present and agree. Absent is not
+    // consent; a halal claim is never approved on silence.
+    if (isServerComputedCheck(key) && check.computed_result !== 'PASS') {
       outstanding.push(key);
       continue;
     }

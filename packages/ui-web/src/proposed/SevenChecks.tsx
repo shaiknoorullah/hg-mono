@@ -27,6 +27,7 @@ import { useEffect, useId, useRef, useState, type CSSProperties, type ReactNode 
 import {
   HALAL_CHECK_LOCK_REASON,
   HALAL_CHECK_ORDER,
+  isCheckRecorded,
   OVERRIDE_NOTE_MIN_LENGTH,
   isOverride,
   isServerComputedCheck,
@@ -86,10 +87,6 @@ export interface SevenChecksProps {
   className?: string;
 }
 
-/** True when the server has recorded this check (it has a `checked_at`). */
-function isRecorded(check: HalalCheck | undefined): check is HalalCheck {
-  return Boolean(check && check.checked_at);
-}
 
 /** "5 of 7 recorded · 5 pass · 0 fail" (plus "· 1 not assessed" when there is one). */
 export function sevenChecksRollup(checks: readonly HalalCheck[]): string {
@@ -97,7 +94,7 @@ export function sevenChecksRollup(checks: readonly HalalCheck[]): string {
   const n = { rec: 0, PASS: 0, FAIL: 0, NOT_ASSESSED: 0 };
   for (const key of HALAL_CHECK_ORDER) {
     const c = byKey.get(key);
-    if (!isRecorded(c)) continue;
+    if (!isCheckRecorded(c)) continue;
     n.rec += 1;
     n[c.result] += 1;
   }
@@ -229,7 +226,7 @@ export function SevenChecks({
   const setDraft = (key: HalalCheckKey, patch: Partial<Draft>) => {
     setDrafts((prev) => {
       const check = byKey.get(key);
-      const base = prev[key] ?? { result: isRecorded(check) ? check.result : null, note: check?.note ?? '' };
+      const base = prev[key] ?? { result: isCheckRecorded(check) ? check.result : null, note: check?.note ?? '' };
       return { ...prev, [key]: { ...base, ...patch } };
     });
     setNoteErrors((prev) => ({ ...prev, [key]: undefined }));
@@ -270,7 +267,7 @@ export function SevenChecks({
       >
         {HALAL_CHECK_ORDER.map((key) => {
           const check = byKey.get(key);
-          const recorded = isRecorded(check);
+          const recorded = isCheckRecorded(check);
           const code = halalCheckCode(key);
           const name = HALAL_CHECK_NAME[key];
           const serverLocked = isServerComputedCheck(key);
