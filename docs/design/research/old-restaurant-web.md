@@ -11,7 +11,9 @@ reviewed: 2026-10-10
 > ([#89](https://github.com/shaiknoorullah/hg-mono/issues/89), tracking
 > [#658](https://github.com/shaiknoorullah/hg-mono/issues/658)). Until a redesigned screen lands, the
 > redesign hosts the legacy screen for that route inside the new shell. This brief still describes
-> the old Next.js app and what the redesign takes from it; nothing below changes.
+> the old Next.js app and what the redesign takes from it; nothing below changes. The new-order
+> strip (accept, decline with a reason, the order sound and the go-live gate) is redesigned in
+> `src/redesign/strip/`.
 
 > **2026-10-05:** the new app adds what the old one never had — a live "rider approaching" map on
 > accepted orders, drawn from the coarse realtime position
