@@ -1,0 +1,27 @@
+{
+  "scenario": "error_invalid_addon",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`422` · `INVALID_ADDON`. An add-on id that is not one of the item's, typically from a stale menu. The cart is unchanged; reload the item.",
+  "operations": [
+    "addCartLine"
+  ],
+  "status": 422,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "INVALID_ADDON",
+      "message": "This item cannot be added with these choices.",
+      "request_id": "0CDCZWJ3S9RVDJ5Q4WC90EK98X",
+      "details": [
+        {
+          "field": "addons[0]",
+          "code": "not_on_item",
+          "message": "This add-on is not one of this item's."
+        }
+      ]
+    }
+  }
+}

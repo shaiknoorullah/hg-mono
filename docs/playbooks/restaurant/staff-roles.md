@@ -1,6 +1,6 @@
 ---
 covers: []
-reviewed: 2026-10-05
+reviewed: 2026-10-09
 ---
 
 # Restaurant Playbook: Staff Roles & Financial Privacy
@@ -13,14 +13,14 @@ This playbook tests role-based permission boundaries across Owner, Manager, and 
 
 1. **Setup command** (terminal):
    ```bash
-   cmd/devworld totp bismillah-grill
+   cd services/hg && make dev-reset
    ```
 2. **Browser action**:
-   - Sign in as the restaurant owner (`owner@restaurant.ca`).
+   - Sign in as the restaurant owner `bismillah-grill@seed.hg` / `Seed!2026` (no authenticator code).
    - Navigate to `/payouts`.
 3. **Visible assertion**:
    - Header **Payouts** is visible with weekly settlement details.
-   - Payout history table lists completed, transferred, or pending weekly settlements.
+   - After a reset the list is empty (**No payouts yet**). A history with completed, transferred or pending settlements waits on [a dev world payout run (#676)](https://github.com/shaiknoorullah/hg-mono/issues/676).
 4. **Browser action**:
    - Navigate to `/staff`.
 5. **Visible assertion**:
@@ -30,16 +30,13 @@ This playbook tests role-based permission boundaries across Owner, Manager, and 
 
 ## 2. Manager Role: Operations Permitted, Payouts Restricted
 
-1. **Setup command**:
-   ```bash
-   # Use manager credentials or switch role session
-   cmd/devworld totp bismillah-manager
-   ```
-2. **Browser action**:
+Waits on [manager and staff personas (#683)](https://github.com/shaiknoorullah/hg-mono/issues/683): the dev world seeds no manager login yet.
+
+1. **Browser action**:
    - Sign in with manager credentials.
    - Verify ability to view `/orders`, update `/menu`, and edit `/hours`.
    - Navigate to `/payouts`.
-3. **Visible assertion**:
+2. **Visible assertion**:
    - The payouts table is **not shown**.
    - Screen displays the financial privacy state:
      > **Payouts are visible to the account owner**
@@ -49,6 +46,8 @@ This playbook tests role-based permission boundaries across Owner, Manager, and 
 ---
 
 ## 3. Staff Role: Kitchen Operations Only
+
+Waits on [manager and staff personas (#683)](https://github.com/shaiknoorullah/hg-mono/issues/683): the dev world seeds no kitchen staff login yet.
 
 1. **Browser action**:
    - Sign in with kitchen staff credentials.
