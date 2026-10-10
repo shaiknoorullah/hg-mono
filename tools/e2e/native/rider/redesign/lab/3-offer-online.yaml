@@ -1,0 +1,65 @@
+# Rider redesign WP3, shared steps (not a mission flow on its own; run by 3-offer*.yaml):
+# sign in as rider-sim, stand at Bismillah Grill, go online and wait for the dispatch offer to
+# fill the screen (SH/OfferLive).
+#
+# The mission's setup runs `make dev-scenario s=order-ready` first. A search holds an empty wave
+# 20 s and keeps searching for up to 300 s (services/hg/internal/dispatch/types.go), so the
+# rider only has to be online within about five minutes of the setup.
+# Until WP1 merges, sign-in is the legacy screen (per-route fallback), so the sign-in steps accept
+# either copy, as in 0-shell.yaml and 2-go-online.yaml.
+appId: com.halalgoes.rider.dev
+name: rider redesign, online and offered
+env:
+  PHONE: "+15550100151"
+  LATITUDE: "43.6815"
+  LONGITUDE: "-79.3310"
+---
+- launchApp:
+    clearState: true
+    permissions:
+      all: allow
+- setLocation:
+    latitude: ${LATITUDE}
+    longitude: ${LONGITUDE}
+- extendedWaitUntil:
+    visible: "Rider sign in|Sign in or apply to ride"
+    timeout: 90000
+- tapOn:
+    text: "Phone number.*|Mobile number"
+    optional: true
+- tapOn:
+    below: "Phone number .*"
+    above: "Send code"
+    optional: true
+- inputText: ${PHONE}
+- tapOn: "Send code"
+- extendedWaitUntil:
+    visible: "Enter the code sent to.*|Enter your code"
+    timeout: 30000
+- tapOn:
+    below: "Enter the code sent to.*"
+    above: "Verify"
+    optional: true
+- inputText: "000000"
+- tapOn:
+    text: "Verify"
+    optional: true
+- extendedWaitUntil:
+    visible: "You're offline"
+    timeout: 60000
+- tapOn: "Go online"
+- tapOn:
+    text: "While using the app"
+    optional: true
+# The offer arrives on the next getCurrentOffer poll (every 3 s while waiting) once dispatch
+# finds rider-sim within 3 km of the ready order.
+- extendedWaitUntil:
+    visible: "Delivery offer"
+    timeout: 120000
+- assertVisible: "Estimated earnings"
+- assertVisible: "Drop-off area"
+- assertVisible: "You get the full address when you accept."
+- assertVisible: "to answer"
+- assertVisible: "Decline"
+- assertVisible: "Accept"
+- takeScreenshot: rider-wp3-01-offer

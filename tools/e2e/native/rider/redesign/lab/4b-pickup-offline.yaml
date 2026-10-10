@@ -1,0 +1,38 @@
+# Rider redesign WP4, offline pickup: at the counter with the right code typed, the phone loses
+# its connection, "I've got the food" saves the pickup on the phone (DL/PickupRecordQueued: "Not
+# sent yet", "Picked up · <time>") and the rider carries on; back online, the saved pickup replays
+# with its original time and the trip moves on by itself.
+#
+# Variant (explore, needs #290 + #315): type a wrong code before going offline-tapping; the replay
+# is answered 422 and DL/PickupCodeRejectedLater opens over the drop-off ("Send the code").
+# PICKUP_CODE: see 4-pickup.yaml.
+appId: com.halalgoes.rider.dev
+name: rider redesign, pickup offline
+env:
+  PICKUP_CODE: "0000"
+---
+- runFlow: 4-pickup-to-counter.yaml
+- tapOn:
+    id: "trip-pickup-code-field"
+- inputText: ${PICKUP_CODE}
+- hideKeyboard
+
+- setAirplaneMode: enabled
+- tapOn: "I've got the food"
+- extendedWaitUntil:
+    visible: "Not sent yet"
+    timeout: 30000
+- assertVisible: "Step 3 of 4 · Go to the customer"
+- assertVisible: "Picked up · .*"
+- assertVisible: "Go to the customer"
+- takeScreenshot: rider-wp4-08-pickup-saved
+- tapOn: "Go to the customer"
+
+- setAirplaneMode: disabled
+# The outbox replays when a request gets through; the step row goes once it is accepted.
+- extendedWaitUntil:
+    notVisible: "Picked up · .*"
+    timeout: 90000
+- assertNotVisible: "The pickup code you saved wasn't accepted"
+- assertNotVisible: "A step you saved offline wasn't accepted"
+- takeScreenshot: rider-wp4-09-pickup-replayed

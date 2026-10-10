@@ -6,11 +6,11 @@ The oracle: every covered operation had its live server response validated again
 `contracts/openapi.yaml` via kin-openapi (`openapi3filter.ValidateResponse`), which
 enforces `additionalProperties:false` + `required[]` + closed enums automatically.
 
-- **Total contract operations:** 169
-- **Validated (covered):** 167
-- **Not yet validated (uncovered):** 2
+- **Total contract operations:** 172
+- **Validated (covered):** 166
+- **Not yet validated (uncovered):** 6
 
-## Covered (167)
+## Covered (166)
 
 - `acceptOffer` — POST /v1/riders/me/offers/{offerId}/accept
 - `acceptOrder` — POST /v1/restaurant/orders/{orderId}/accept
@@ -158,7 +158,6 @@ enforces `additionalProperties:false` + `required[]` + closed enums automaticall
 - `setRestaurantAcceptingOrders` — PATCH /v1/restaurant/availability
 - `setRestaurantHours` — PUT /v1/restaurant/hours
 - `setRiderAvailability` — PUT /v1/riders/me/availability
-- `startInviteTotpEnrolment` — POST /v1/auth/invite/totp
 - `submitOrderRating` — PUT /v1/orders/{orderId}/rating
 - `submitProofOfDelivery` — POST /v1/riders/me/assignments/{assignmentId}/proof-of-delivery
 - `submitRestaurantDocuments` — POST /v1/restaurant/documents/submit
@@ -180,10 +179,14 @@ enforces `additionalProperties:false` + `required[]` + closed enums automaticall
 - `verifyOtp` — POST /v1/auth/otp/verify
 - `verifyTotpEnrolment` — POST /v1/auth/totp/verify
 
-## Uncovered (2)
+## Uncovered (6)
 
 Each uncovered operation is listed with its method/path. This list is emitted
 every run: an operation silently losing coverage becomes visible here.
 
 - `getDependencyStatus` — GET /internal/deps — needs Redis and the object store
+- `getPlaceAddress` — GET /v1/geo/places/{placeId} — unexplained gap
 - `getReadiness` — GET /health/ready — needs Redis and the object store
+- `overrideHandoverCode` — POST /v1/admin/orders/{orderId}/handover-override — no handler yet: the backend lands in #315
+- `reverseGeocode` — GET /v1/geo/reverse — unexplained gap
+- `suggestAddresses` — GET /v1/geo/autocomplete — unexplained gap

@@ -241,11 +241,14 @@ dev-reset: ## Wipe and re-seed a local database with the stable personas and the
 	$(GO) run ./cmd/devworld reset
 
 .PHONY: dev-totp
-dev-totp: ## Print the current local admin sign-in code
-	@$(GO) run ./cmd/devworld totp
+dev-totp: ## Print the current local admin sign-in code (email=… for a staff account an onboarding scenario made)
+	@if [ -f $(ENV_FILE) ]; then set -a; . $(ENV_FILE); set +a; fi; \
+	export HG_ENV="$${HG_ENV:-local}"; \
+	export HG_POSTGRES_DSN="postgres://$${POSTGRES_USER:-hg}:$${POSTGRES_PASSWORD:-hg}@127.0.0.1:$${POSTGRES_PORT:-$(HOST_POSTGRES_PORT)}/$${POSTGRES_DB:-hg}?sslmode=disable"; \
+	$(GO) run ./cmd/devworld totp $(email)
 
 .PHONY: dev-scenario
-dev-scenario: ## Drive one API scenario against a running local API (s=new-order)
+dev-scenario: ## Drive one API scenario against a running local API (s=new-order; s=list prints every name and what it leaves)
 	@if [ -f $(ENV_FILE) ]; then set -a; . $(ENV_FILE); set +a; fi; \
 	export HG_ENV="$${HG_ENV:-local}"; \
 	export HG_POSTGRES_DSN="postgres://$${POSTGRES_USER:-hg}:$${POSTGRES_PASSWORD:-hg}@127.0.0.1:$${POSTGRES_PORT:-$(HOST_POSTGRES_PORT)}/$${POSTGRES_DB:-hg}?sslmode=disable"; \

@@ -9,7 +9,7 @@ covers:
   - services/hg/internal/files/**
   - services/hg/internal/dispatch/**
   - services/hg/internal/httpx/**
-reviewed: 2026-10-05
+reviewed: 2026-10-10
 ---
 
 # HalalGoes — Cross-Cutting Platform Layer Specification
@@ -59,8 +59,8 @@ These are not capabilities; they are constraints on all of them. Violating one i
   | `CUSTOMER` | phone OTP | — |
   | `RIDER` | phone OTP | — |
   | `RESTAURANT_OWNER`, `RESTAURANT_MANAGER`, `RESTAURANT_STAFF` | email + password | optional TOTP |
-  | `SUPPORT_AGENT` | email + password | TOTP required |
-  | `ADMIN`, `SUPER_ADMIN` | email + password | TOTP required |
+  | `SUPPORT_AGENT` | email + password | optional TOTP; moving money needs it |
+  | `ADMIN`, `SUPER_ADMIN` | email + password | optional TOTP; moving money needs it |
 
   An account holding both `CUSTOMER` and `ADMIN` must authenticate with the admin method to receive an access token carrying the admin role; a phone-OTP session for that account carries `CUSTOMER` only. This is the `amr` claim's job (P-04).
 
@@ -138,7 +138,7 @@ CREATE TABLE admin_profile   (account_id uuid PRIMARY KEY REFERENCES account(id)
 
 > **Decided:** owner only at launch; manager and staff roles wait for a later version ([staff accounts](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28), [restaurant staff](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
 
-> **Decided:** TOTP mandatory for staff; no recovery codes; a super admin resets a lost authenticator after a call-back identity check ([manual reset](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
+> **Decided:** two-step sign-in (TOTP) is opt-in for every email account, staff included, and set up from the console with a QR code after sign-up or invitation; refund approvals and payout runs still need a session signed in with it ([two-step sign-in is opt-in](../decisions/README.md#settled--owner-decisions-2026-10-05)). No recovery codes; a super admin resets a lost authenticator after a call-back identity check ([manual reset](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
 
 ---
 
@@ -228,10 +228,10 @@ CREATE INDEX otp_challenge_open ON otp_challenge(phone_e164, purpose) WHERE cons
   - `POST /v1/auth/register/restaurant` `{email, password, business_name, terms_version}` → creates `account` (unverified) + `restaurant` in `onboarding_state='REGISTERED'` + `RESTAURANT_OWNER` grant. Sends verification email with a single-use token. **No session is issued until the email is verified.**
   - `POST /v1/auth/email/verify` `{token}` → sets `email_verified_at`, advances onboarding to `PROFILE_PENDING`, answers `204`. **Issues no session and sets no cookie**: an emailed link never signs anyone in, or an attacker could send someone the link for the attacker's own account and have them work in it ([#356](https://github.com/shaiknoorullah/hg-mono/issues/356)). The owner then signs in with `login`.
   - `POST /v1/auth/email/resend` — rate limited like the reset email below; a 429 only when the caller is over its own limits.
-  - `POST /v1/auth/login` `{email, password, totp_code?}` → verifies argon2id, checks `status`, checks role auth policy, checks TOTP when enrolled/required, issues session. Uniform failure `401 invalid_credentials` for wrong-email, wrong-password and unverified-email cases (unverified additionally returns `error.details.email_verification_required: true` only **after** correct credentials).
+  - `POST /v1/auth/login` `{email, password, totp_code?}` → verifies argon2id, checks `status`, checks role auth policy, checks TOTP when the account turned it on, issues session. Uniform failure `401 invalid_credentials` for wrong-email, wrong-password and unverified-email cases (unverified additionally returns `error.details.email_verification_required: true` only **after** correct credentials).
   - `POST /v1/auth/password/forgot` `{email}` → always 200; sends reset token if the account exists.
   - **Link email limits** (verification and reset alike, as built Oct 2026): 3 an hour per address and client address (an IPv4 address or an IPv6 /64), so an attacker cannot use up the owner's own quota; 10 an hour per client address over all addresses; and a last-resort cap of 10 an hour and 20 a day per address, which answers generically and logs an alert. Addresses are counted in lower case with any `+tag` removed. Both operations answer in the same content and time whether or not the account exists. A new link does not cancel the earlier ones; at most 3 are live per account, and using one ends the rest.
-  - `POST /v1/auth/password/reset` `{token, new_password}` → sets hash, **revokes every session in the account's family**, audit `session.revoked_all`, sends a security email. Answers `204` with no session and no cookie, also for a staff invitation setting a first password; the user then signs in with `login` (with the authenticator code where required). A staff invitee, whose role needs an authenticator, first calls `POST /v1/auth/invite/totp` `{token}` (`startInviteTotpEnrolment`) and then sends the first code as `totp_code` here, which sets the password and confirms the authenticator together; a wrong code leaves the link usable ([#170](https://github.com/shaiknoorullah/hg-mono/issues/170)).
+  - `POST /v1/auth/password/reset` `{token, new_password}` → sets hash, **revokes every session in the account's family**, audit `session.revoked_all`, sends a security email. Answers `204` with no session and no cookie, also for a staff invitation setting a first password; the user then signs in with `login` (with the authenticator code only if the account turned two-step sign-in on). Spending the link, setting the password and revoking the sessions happen in one transaction. A staff invitee signs in with the password alone and turns two-step sign-in on afterwards from the console; it is never set up from the invitation link, and the invitation-time enrolment of [#615](https://github.com/shaiknoorullah/hg-mono/pull/615) (`startInviteTotpEnrolment`, `totp_code` here) is withdrawn ([two-step sign-in is opt-in](../decisions/README.md#settled--owner-decisions-2026-10-05)).
   - `POST /v1/auth/password/change` `{current_password, new_password}` (authenticated) → same revocation, except the calling session which is re-issued. A wrong current password is `422 INVALID_CREDENTIALS`, never `401`: the session is valid, and the shared client answers every `401` by refreshing and retrying, which would count the wrong password twice ([#238](https://github.com/shaiknoorullah/hg-mono/issues/238)).
   - `POST /v1/auth/totp/enroll` / `verify` / `disable` (step-up required).
 
@@ -572,21 +572,20 @@ func (a Amount) MarshalJSON() ([]byte, error) // emits an integer, never a strin
 
   **The computation, in order. Each step is a pure function of DB state; none of it reads the request body for money.**
 
-  **Step 1 — line unit price.** For each cart line, with the menu item, chosen variant and chosen add-ons re-read from Postgres inside the quote transaction (`FOR SHARE` on the menu item so a concurrent price edit cannot interleave):
+  **Step 1 — line unit price.** For each cart line, with the menu item, chosen variants (one per variant group) and chosen add-ons re-read from Postgres inside the quote transaction (`FOR SHARE` on the menu item so a concurrent price edit cannot interleave):
 
   ```
   base            = menu_item.price_cents
-  variant_part    = CASE variant.pricing_mode
-                      WHEN 'ABSOLUTE' THEN variant.price_cents        -- replaces base
-                      WHEN 'DELTA'    THEN base + variant.delta_cents -- adjusts base
-                      WHEN none chosen THEN base
-                    END
+  variant_part    = (the chosen ABSOLUTE variant's price_cents, else base)  -- ABSOLUTE replaces base
+                  + Σ over chosen DELTA variants of delta_cents            -- DELTA adjusts base
   addons_part     = Σ over chosen addons of (addon.price_cents × addon_quantity)
   line_unit_cents = variant_part + addons_part
   line_total_cents = line_unit_cents × quantity
   ```
 
   This is the single definition. The cart, the order line and the receipt all display `line_unit_cents` from the quote; none of them recompute. `variant.pricing_mode` is a column on the variant, so a restaurant can express "Large = $14.99" and "Extra cheese = +$1.50" without ambiguity. The old system's cart-adds-variant-to-base vs order-replaces-base contradiction (B39) is resolved by making the mode explicit data.
+
+  A dish can have several variant groups (size, rice, heat level), and a cart line carries one chosen variant per group ([#628](https://github.com/shaiknoorullah/hg-mono/issues/628)); at most one chosen variant may be `ABSOLUTE`, and a combination the rule cannot price (two `ABSOLUTE` variants, or a part below zero) refuses the line with `409 ITEM_UNAVAILABLE` rather than guessing a price. Two `ABSOLUTE` variants can only come from two full-price groups, which the menu itself refuses (one full-price group per dish: [variants and modifier groups, R-20](03-restaurant.md#r-20--variants-and-modifier-groups)), so for them the `409` is a backstop. The quote and the order snapshot each chosen variant with its money (`quote_line_variant`, `order_line_variant`), and a deferred database trigger refuses at commit any line whose `variant_part_cents` its variants do not add up to.
 
   **Step 2 — subtotal.** `subtotal_cents = Σ line_total_cents`.
 
@@ -1265,6 +1264,7 @@ CREATE UNIQUE INDEX dispatch_offer_unique ON dispatch_offer(order_id, rider_acco
   - **I-15.4** `deadline_escalations` is monotonic and capped; reaching the cap always drives the row toward a terminal state or a human queue — never back into an unbounded loop.
   - **I-15.5** Deadline lag (`now() − deadline_at` at fire time) p99 < 5 s; an alert fires above 30 s.
   - **I-15.6** No timeout results in "money kept, no food, no refund": every cancelling action posts a refund/void batch in the same transaction as the transition.
+  - **I-15.7** Nothing in the server moves a deadline but the runner and the transitions. The local dev world's clock (`orders.BringDeadlineForward`, used by `make dev-scenario`) only brings a deadline earlier, only while the order is in the expected state and action, and refuses before touching the database unless `HG_ENV` is `local`. Tests pin that only `internal/devworld` calls it and that `cmd/hg` does not link `internal/devworld`.
 - **Acceptance criteria**:
   1. Given an attempt to insert an order in `PREPARING` with `deadline_at = NULL`, When committed, Then the statement fails with `order_deadline_required`.
   2. Given an order in `RESTAURANT_PENDING` and the restaurant never responds, When 180 s elapse, Then the order is `CANCELLED`, the PaymentIntent is cancelled, `SUM(ledger_entry) = 0` for the order, and the customer receives a push + email. (Old system: relied on a 15-minute workflow timeout that crashed without refunding — finding 4/§7.4.)
@@ -1860,14 +1860,7 @@ CREATE TABLE realtime_connection (
 
   Who receives them: the account's owner only. An event about a restaurant goes to each of its live owners and managers, never its other staff; one about a rider goes to the rider. `onboarding.state_changed` is sent for steps the subject did not take themselves (an admin's decision, Stripe turning payouts on, a menu approval); a step they take gets its new state in its own response. `document.review_state_changed` goes to restaurants only: a rider hears only the application decision ([one message per review](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)). `account.security_event` is sent for a sign-in from a device the account has not used before (never the first sign-in, and not on the web, which has no device id), a password changed or reset, and a session revoked other than by signing out of it. `notification.created` is sent for notifications that have an inbox row; a sign-in code has none.
 
-  **Admin (channel `admin:ops`)**
-
-  | Type | Payload |
-  |---|---|
-  | `admin.alert` | `{severity, kind, subject_type, subject_id, message, at}` |
-  | `admin.dispatch_failure` | `{order_id, waves, riders_offered, radius_m}` |
-  | `admin.reconciliation_exception` | `{kind, order_id, expected_cents, actual_cents}` |
-  | `admin.queue_depth` | `{pending_restaurant_reviews, pending_rider_reviews, open_disputes, failed_refunds}` |
+  **Admin (channel `admin:ops`)**: `admin.alert`, `admin.dispatch_failure`, `admin.reconciliation_exception` and `admin.queue_depth`. Their payloads, and which alert kinds exist, are listed once, in [the websocket contract's admin section](../../contracts/websocket.md#47-admin--channel-adminops).
 
   Payload schemas are generated from Go structs into a versioned JSON-Schema bundle served at `GET /v1/realtime/schema` and consumed by the generated TypeScript client, so a field rename cannot silently break four apps (which is exactly how the old `CHANNEL_JOIN`-wrapped-in-`order_request` mess arose, §7.16).
 
@@ -2760,6 +2753,8 @@ CREATE UNIQUE INDEX idempotency_unique ON idempotency_record(account_id, method,
   | `UPLOAD` | 20 / hour | 5 | account |
   | `REALTIME` (ticket issue) | 30 / min | 10 | account |
   | `SEARCH` | 60 / min | 20 | account or ip |
+  | `GEO_SUGGEST` (address suggestions as the user types, `suggestAddresses`; forwarded to Mapbox. Sized so one search typed a key at a time stays under it) | 60 / min | 20 | account |
+  | `GEO` (place details and reverse geocoding, `getPlaceAddress` and `reverseGeocode`; forwarded to Mapbox, each operation counted separately) | 30 / min | 10 | account |
   | `WEBHOOK` | 1000 / min | 200 | provider ip |
   | `POSITION` (rider position ingest) | 120 / min | 30 | account |
 
@@ -2895,7 +2890,7 @@ CREATE UNIQUE INDEX idempotency_unique ON idempotency_record(account_id, method,
 |---|---|---|---|
 | 1 | One account across roles | Can one person hold customer, rider and restaurant roles on one account? | One account, many roles |
 | 2 | Restaurant staff granularity | How many restaurant sub-roles at launch? | **Decided:** owner only at launch ([staff accounts](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)) |
-| 3 | Admin MFA | Mandatory TOTP for admin, super-admin, support? | **Decided:** mandatory; no recovery codes, a super admin resets a lost authenticator ([manual reset](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)) |
+| 3 | Admin MFA | Mandatory TOTP for admin, super-admin, support? | **Decided (2026-10-05):** opt-in; moving money still needs it ([two-step sign-in is opt-in](../decisions/README.md#settled--owner-decisions-2026-10-05)). No recovery codes; a super admin resets a lost authenticator ([manual reset](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)) |
 | 4 | Session lifetimes | Per-role idle and absolute TTLs? | **Decided** for staff: 30 min idle, 12 h total ([staff session length](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)); open: customer 30/180 d, restaurant 14/90 d |
 | 5 | Variant pricing semantics | Does a variant replace or adjust the base price? | Explicit per variant: `ABSOLUTE` \| `DELTA`, default `ABSOLUTE` |
 | 6 | Fee parameters | Launch delivery/service/commission values? | **Decided:** delivery $2.99 + $1.00/km, service fee $0.00, commission 0% ([delivery fee](../decisions/README.md#settled--client-decisions), [service fee](../decisions/README.md#settled--reconciliations)); open: included km, min/max, small-order surcharge |

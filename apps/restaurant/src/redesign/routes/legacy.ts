@@ -8,7 +8,6 @@ import { RegisterPage } from '../../routes/RegisterPage';
 import { VerifyEmailPage } from '../../routes/VerifyEmailPage';
 import { ResetPasswordPage } from '../../routes/ResetPasswordPage';
 import { OnboardingPage } from '../../routes/onboarding/OnboardingPage';
-import { OrdersPage } from '../../routes/OrdersPage';
 import { MenuPage } from '../../routes/MenuPage';
 import { PayoutsPage } from '../../routes/PayoutsPage';
 import { SettingsPage } from '../../routes/SettingsPage';
@@ -19,7 +18,6 @@ export const LEGACY = {
   VerifyEmail: VerifyEmailPage,
   ResetPassword: ResetPasswordPage,
   Onboarding: OnboardingPage,
-  Orders: OrdersPage,
   Menu: MenuPage,
   Payouts: PayoutsPage,
   Settings: SettingsPage,

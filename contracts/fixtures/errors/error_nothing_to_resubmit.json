@@ -1,0 +1,22 @@
+{
+  "scenario": "error_nothing_to_resubmit",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`409` · `NOTHING_TO_RESUBMIT`. Sending the document pack again with nothing replaced since the last review. Contract-only: `services/hg` does not return this code yet.",
+  "operations": [
+    "submitRiderDocuments"
+  ],
+  "status": 409,
+  "tags": [
+    "error-envelope",
+    "error-path",
+    "rider"
+  ],
+  "payload": {
+    "error": {
+      "code": "NOTHING_TO_RESUBMIT",
+      "message": "There are no changed documents to send.",
+      "request_id": "GNRXSRHN46RZ0CB4Z7Y5617R0Q"
+    }
+  }
+}

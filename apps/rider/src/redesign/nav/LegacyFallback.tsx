@@ -14,7 +14,15 @@ import { Router } from '../../Router';
 import { EmptyState } from '../ds';
 import type { Entry } from './routes';
 
+/**
+ * WP8's application screens (documents, review, fix documents; declared by WP7 in
+ * `application/routes.ts`): the legacy onboarding screen has them until they register. Plain
+ * strings, so this file does not depend on the WP7 declarations.
+ */
+const LEGACY_ONBOARDING = new Set<string>(['applicationDocuments', 'applicationReview', 'applicationFix']);
+
 function legacyEntryFor(entry: Entry): StackEntry | null {
+  if (LEGACY_ONBOARDING.has(entry.name)) return { name: 'onboarding', params: undefined };
   switch (entry.name) {
     case 'home':
       return { name: 'home', params: undefined };
@@ -27,6 +35,10 @@ function legacyEntryFor(entry: Entry): StackEntry | null {
       return entry.params.assignmentId
         ? { name: 'assignment', params: { assignmentId: entry.params.assignmentId } }
         : { name: 'home', params: undefined };
+    // WP4 routes the trip by state; the drop-off and the endings stay legacy until WP5/WP6.
+    case 'tripDropoff':
+    case 'tripEnded':
+      return { name: 'assignment', params: { assignmentId: entry.params.assignmentId } };
     case 'application':
       return { name: 'onboarding', params: undefined };
     default:

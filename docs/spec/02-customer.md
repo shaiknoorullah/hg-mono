@@ -478,8 +478,11 @@ The rules in this spec apply to both. With the flag on:
   1. **Variant price replaces the base price; add-on prices are added.** Line total = `(variant_price ?? item_price) + Σ(addon.price) ) × quantity`. This single formula is used by cart, pricing, and order creation. (Today the cart *adds* variant price to base while order creation *replaces* it — the two disagree, so cart, pricing and order totals can all differ.)
   2. If an item has variants, one group per `variant_type` is **required**; the `is_default_variant=true` option is pre-selected. If no default exists, nothing is pre-selected and add-to-cart is disabled. Silent auto-selection of `item_variants[0]` is prohibited.
   3. Unavailable variants/add-ons (`is_currently_available=false`) render disabled with "Unavailable", and are rejected server-side with `409 VARIANT_UNAVAILABLE` / `409 ADDON_UNAVAILABLE`.
-  4. `selected_addon_ids` is validated server-side against the item's linked add-ons; unknown ids ⇒ `400 INVALID_ADDON`. (Today it is an unconstrained uuid[] with no FK and the client always sends `[]`.)
-  5. Cart line identity = `(cart_id, food_item_id, selected_variant_id, sorted(selected_addon_ids), special_request)`. Two adds with identical identity increment quantity; any difference creates a distinct line.
+  4. `selected_addon_ids` is validated server-side against the item's linked add-ons; unknown ids ⇒ `422 INVALID_ADDON` with the field that is wrong (the contract's status; this rule said `400`). (Today it is an unconstrained uuid[] with no FK and the client always sends `[]`.)
+  5. Cart line identity = `(cart_id, food_item_id, sorted(selected_variant_ids), sorted(selected_addon_ids), special_request)`. Two adds with identical identity increment quantity; any difference creates a distinct line.
+  8. A dish may have several variant groups, and the add request carries one chosen variant per group (`variant_ids`; the single `variant_id` is still read, as a list of one). The server checks the line against the menu before the cart changes: a required group with no choice, two choices from one group, a variant of another item, or an add-on group outside its minimum and maximum is `422 VALIDATION_FAILED` with a field error for each problem ([#628](https://github.com/shaiknoorullah/hg-mono/issues/628), [#629](https://github.com/shaiknoorullah/hg-mono/issues/629)).
+  9. `409 VARIANT_UNAVAILABLE` and `409 ADDON_UNAVAILABLE` name the choice in `details` (`variant_id`, `addon_id`), so the app can say which one ran out.
+  10. The cart, quote, order and receipt lines list every chosen variant with its group (`variants`); the single `variant` field is set only for a one-variant line, and the order line's `variant_name` joins every chosen name for the restaurant's ticket.
   6. `order_food_items` **must** persist the variant and add-on selection. (Today the order table drops them, so the restaurant receives the wrong ticket.)
   7. Max **10 add-ons** per line; quantity per line 1–20 (the current cap of 99 is reduced).
 - **Acceptance criteria**:
@@ -487,7 +490,7 @@ The rules in this spec apply to both. With the flag on:
   2. Given base price $10, `Large` variant $14, and two add-ons at $1.50 each, quantity 2, then the displayed line total is $34.00 and the server-computed cart line total is 3400 cents.
   3. Given the same item added twice with different spice levels, when the cart renders, then there are two distinct lines.
   4. Given an order placed with variant `Large` and add-on `Extra cheese`, when the restaurant fetches the order, then `order_food_items` carries `selected_variant_id` and `selected_addon_ids` matching the cart.
-- **Out of scope**: nested/conditional add-on groups; add-on quantity > 1 per add-on; min/max selection rules per group beyond required-single-select; combo/meal builders; per-variant images.
+- **Out of scope**: nested/conditional add-on groups; add-on quantity > 1 per add-on; combo/meal builders; per-variant images. (Each add-on group's `min_select` and `max_select` are now checked on add, rule 8.)
 - **Version**: V1 · **Size**: M
 
 ---
@@ -567,7 +570,7 @@ The rules in this spec apply to both. With the flag on:
 - **Rules**:
   1. The constraint is enforced **server-side** as the authority. The client modal is a UX affordance, not the enforcement. (Today the only such logic lives in a dead React Context that nothing mounts, so a second restaurant's items silently join the cart.)
   2. "Start a new cart" is a **single atomic call** `POST /cart/lines?replace=true` — clear + add in one transaction. A two-call clear-then-add is prohibited (it can leave an empty cart on failure).
-  3. The modal names the current restaurant explicitly ("Your cart has 3 items from Al-Noor Grill").
+  3. The modal names the current restaurant explicitly ("Your cart has 3 items from Al-Noor Grill"), from the error's `details`: `current_restaurant_id`, `current_restaurant_name`, `current_line_count` (lines) and `current_item_count` (the sum of their quantities), so the app needs no second request ([#629](https://github.com/shaiknoorullah/hg-mono/issues/629)).
   4. Checkout re-asserts that every line belongs to `carts.restaurant_id`; a violation is a `500` class invariant failure, alarmed, never surfaced as a customer error.
   5. Order creation copies `carts.restaurant_id` to `orders.restaurant_id`; there is no path to a multi-restaurant order at any version.
 - **Acceptance criteria**:
@@ -866,15 +869,15 @@ The rules in this spec apply to both. With the flag on:
 
 ### C-31 — Address entry: autocomplete, geocoding and map pin
 - **SOW trace**: enabling requirement for *"Delivery Address Management"* — without it, every address is seven manual fields plus a mandatory map pin, which the current app requires.
-- **Behaviour**: Address entry starts with a **search-as-you-type** field. Suggestions come from Mapbox through our API (`GET /geo/autocomplete?q&session_token&lat&lng`), restricted to Canada and biased to the current location. Selecting a suggestion calls `GET /geo/place/:id` which returns the structured components and coordinates, pre-filling the form. The customer then confirms or adjusts the pin on a map and fills only unit/floor/instructions. Manual entry remains available via "Enter address manually", which requires dropping a pin. A denied location permission never blocks the form ([setting a location](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28); map picker: [#150](https://github.com/shaiknoorullah/hg-mono/issues/150)).
-- **Data**: no new persistent entity; writes into `delivery_addresses` (C-30). Redis cache `geo:auto:{sha256(q|geohash5)}` TTL 3600 s; `geo:place:{placeId}` TTL 30 days.
+- **Behaviour**: Address entry starts with a **search-as-you-type** field. Suggestions come from Mapbox through our API (`GET /v1/geo/autocomplete?q&session_token&latitude&longitude`, `suggestAddresses` in [the contract](../../contracts/openapi.yaml)), restricted to Canada and biased to the current location. Selecting a suggestion calls `GET /v1/geo/places/{placeId}` (`getPlaceAddress`) which returns the structured components and coordinates, pre-filling the form. The customer then confirms or adjusts the pin on a map and fills only unit/floor/instructions. Manual entry remains available via "Enter address manually", which requires dropping a pin. A denied location permission never blocks the form ([setting a location](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28); map picker: [#150](https://github.com/shaiknoorullah/hg-mono/issues/150)).
+- **Data**: no new persistent entity; writes into `delivery_addresses` (C-30). No Redis cache for suggestions: they are temporary Mapbox results, which [Mapbox does not allow to be stored or cached](https://docs.mapbox.com/api/search/geocoding/#storing-geocoding-results). The address and point that `getPlaceAddress` and `reverseGeocode` return are permanent results (Mapbox Geocoding v6 with `permanent=true`), because the save stores them; only a permanent result may be cached, and none is at launch. A `placeId` is never a cache key: it is short-lived ([permanent geocoding cost: #297](https://github.com/shaiknoorullah/hg-mono/issues/297)).
 - **States**: none.
 - **Rules**:
   1. The provider key lives **server-side only**. The app never holds a places/geocoding key; map tiles use a public Mapbox token ([#57](https://github.com/shaiknoorullah/hg-mono/issues/57)). (Today two Google keys are committed into the repo.)
-  2. Requests are proxied and rate-limited to **30 autocomplete calls per user per minute**; session tokens are used to keep provider billing on the session model.
+  2. Requests are proxied and rate-limited per user: suggestions at **60 calls per minute, burst 20** ([rate class `GEO_SUGGEST`](01-platform.md#p-38--rate-limiting)), so one search typed a key at a time stays under it; place details and reverse geocoding at **30 calls per minute, burst 10** each ([rate class `GEO`](01-platform.md#p-38--rate-limiting)). Session tokens are used to keep provider billing on the session model.
   3. Results are restricted to Canada in the provider request (`country=ca`); non-Canadian results are filtered server-side even if the provider returns them.
-  4. Reverse geocoding (`GET /geo/reverse?lat&lng`) fills the form when the customer drops a pin without searching.
-  5. If the provider is unavailable, the flow degrades to manual entry + map pin, with a visible notice — address entry never becomes impossible.
+  4. Reverse geocoding (`GET /v1/geo/reverse?latitude&longitude`, `reverseGeocode`) fills the form when the customer drops a pin without searching.
+  5. If the provider is unavailable (`503 GEOCODER_UNAVAILABLE`), the flow degrades to manual entry + map pin, with a visible notice — address entry never becomes impossible.
   6. The map picker's initial camera is: the customer's current GPS fix if permitted, else the current default address, else the launch city centre from `platform_config.default_map_center`. **No hardcoded Dubai or Hyderabad fallback.**
   7. The pin's final coordinates are what is stored, even if they differ from the geocoded result — the customer's pin wins.
 - **Acceptance criteria**:

@@ -309,8 +309,9 @@ func riderClientFor(ctx context.Context, base string) (*apiClient, error) {
 }
 
 type offerView struct {
-	OfferID string `json:"offer_id"`
-	OrderID string `json:"order_id"`
+	OfferID   string `json:"offer_id"`
+	OrderID   string `json:"order_id"`
+	ExpiresAt string `json:"expires_at"`
 }
 
 func (c *apiClient) goOnline(ctx context.Context, p routePoint) error {

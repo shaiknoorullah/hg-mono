@@ -18,8 +18,9 @@ DOMAIN_BLURB = {
     "dispatch": "Dispatch states, rider offers and assignments.",
     "documents": "KYC uploads, review states and every rejection reason.",
     "errors": "`{error}` envelopes for the codes an app actually branches on.",
+    "geo": "Address search through our API to Mapbox — suggestions, a picked place, a map pin, and the no-match and provider-down paths.",
     "halal": "Badges, certificates, checks and issuing bodies — the platform's core promise.",
-    "handoff": "The package-seal chain of custody — every `PackageSeal` status, `HandoffEvent` type, and the bind/pickup-scan/delivery-scan/tamper-report results.",
+    "handoff": "The package-seal chain of custody (later version: seals are not used at launch) — every `PackageSeal` status, `HandoffEvent` type, and the bind/pickup-scan/delivery-scan/tamper-report results.",
     "onboarding": "Restaurant and rider onboarding, profiles, vehicles and trading state.",
     "orders": "The 14 `OrderState` values, per-audience projections, tracking and receipts.",
     "payments": "The 8 `PaymentState` values, saved cards and setup intents.",
@@ -40,6 +41,10 @@ pnpm fixtures:build        # regenerate from contracts/openapi.yaml
 pnpm validate:fixtures     # assert every fixture against its schema
 pnpm mock                  # serve them all at http://localhost:4010
 ```
+
+**The naming rules, how the mock picks one fixture per operation, and which fixtures match
+each devworld scenario and persona are in [`SCENARIOS.md`](SCENARIOS.md)**, the one scenario
+vocabulary for mock screen tests and real-API journeys.
 
 ---
 
@@ -222,6 +227,8 @@ def write_readme(manifest: dict) -> None:
         "admin": "Admin/support-facing surface.",
         "documents": "KYC document surface.",
         "tracking": "The live order-tracking screen.",
+        "delivery-code": "The customer's 4-digit delivery code: shown, hidden, locked, overridden by support.",
+        "geo": "Address search: suggestions, a picked place, the address under a map pin.",
         "dense": "Deliberately busy — the worst case for a list or a card.",
         "degraded": "A partially-broken real-world condition (stale GPS, lost tracking).",
         "review-queue": "An admin review queue item.",

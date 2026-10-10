@@ -1,0 +1,25 @@
+{
+  "scenario": "error_onboarding_incomplete",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`403` · `ONBOARDING_INCOMPLETE`. A rider who has not finished onboarding tries to go online. `details.next_step` is the onboarding state to route to.",
+  "operations": [
+    "setRiderAvailability"
+  ],
+  "status": 403,
+  "tags": [
+    "error-envelope",
+    "error-path",
+    "rider"
+  ],
+  "payload": {
+    "error": {
+      "code": "ONBOARDING_INCOMPLETE",
+      "message": "Complete onboarding before going online.",
+      "request_id": "HF88X1PQMD95B0MNND1PRK7KF5",
+      "details": {
+        "next_step": "DOCUMENTS_PENDING"
+      }
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "scenario": "error_cannot_go_online_notification_permission",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`422` · `CANNOT_GO_ONLINE`. One blocking reason, `NOTIFICATION_PERMISSION`, so its row and deep link can be tested alone. Contract-only: `services/hg` sends only `STALE_LOCATION_FIX` in `blocking_reasons` today.",
+  "operations": [
+    "setRiderAvailability"
+  ],
+  "status": 422,
+  "tags": [
+    "error-envelope",
+    "error-path",
+    "rider"
+  ],
+  "payload": {
+    "error": {
+      "code": "CANNOT_GO_ONLINE",
+      "message": "You cannot go online yet.",
+      "request_id": "KP90K9G13YSXW0PASAHKB28Y12",
+      "details": {
+        "blocking_reasons": [
+          "NOTIFICATION_PERMISSION"
+        ]
+      }
+    }
+  }
+}

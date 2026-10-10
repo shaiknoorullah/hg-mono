@@ -2,7 +2,7 @@
   "scenario": "assignment_otp_pod_required",
   "domain": "dispatch",
   "schema": "Assignment",
-  "describes": "`MEET_AT_DOOR` maps to **OTP** proof of delivery (contradiction log #6), not a photo. The rider must be shown a code entry, and a photo must not satisfy it (`POD_METHOD_MISMATCH`).",
+  "describes": "`MEET_AT_DOOR` maps to **OTP** proof of delivery (contradiction log #6), not a photo. The rider must be shown a code entry, and neither a photo nor a photo with a statement satisfies it (`POD_METHOD_MISMATCH`), before or after the code locks. The assignment carries no code: the customer reads it out.",
   "operations": [
     "getAssignment",
     "submitProofOfDelivery"

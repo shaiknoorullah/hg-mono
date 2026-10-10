@@ -187,7 +187,8 @@ describe('Hours: Right now', () => {
     const { api } = setup({ availability: openAvailability({ open_state: 'PAUSED', pause_until: until, resolvable_by: 'TIME' }) });
     await openHours();
     expect(screen.getByText(`Paused until ${formatTime(until, TZ)}.`)).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Resume now' }));
+    // The Right now card's (the status bar on every console page has its own Resume now).
+    fireEvent.click(within(screen.getByTestId('right-now')).getByRole('button', { name: 'Resume now' }));
     const confirm = screen.getByRole('group', { name: 'Resume new orders now?' });
     expect(document.activeElement).toBe(within(confirm).getByRole('button', { name: 'Stay paused' }));
     api.set('PATCH /v1/restaurant/availability', { status: 503, body: errorBody('SERVICE_UNAVAILABLE') });

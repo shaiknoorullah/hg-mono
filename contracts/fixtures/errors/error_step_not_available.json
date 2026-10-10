@@ -1,0 +1,24 @@
+{
+  "scenario": "error_step_not_available",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`409` · `STEP_NOT_AVAILABLE`. Payout setup before the application is approved.",
+  "operations": [
+    "createConnectAccount",
+    "createConnectOnboardingLink"
+  ],
+  "status": 409,
+  "tags": [
+    "error-envelope",
+    "error-path",
+    "rider",
+    "restaurant"
+  ],
+  "payload": {
+    "error": {
+      "code": "STEP_NOT_AVAILABLE",
+      "message": "The partner must be approved before creating a payout account.",
+      "request_id": "DKH8Z71FJ3V8DK1637GZ53GNVD"
+    }
+  }
+}

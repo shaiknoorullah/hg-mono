@@ -1,0 +1,22 @@
+{
+  "scenario": "error_address_in_use",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`409` · `ADDRESS_IN_USE`. Deleting the address of an active order. Contract-only: `services/hg` does not return this code yet.",
+  "operations": [
+    "deleteAddress"
+  ],
+  "status": 409,
+  "tags": [
+    "error-envelope",
+    "error-path",
+    "customer"
+  ],
+  "payload": {
+    "error": {
+      "code": "ADDRESS_IN_USE",
+      "message": "This address is on an order in progress and cannot be deleted yet.",
+      "request_id": "P8B5Y3NE5GABX55H7QSEVT2H9Y"
+    }
+  }
+}
