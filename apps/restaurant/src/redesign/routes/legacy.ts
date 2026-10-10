@@ -10,7 +10,6 @@ import { ResetPasswordPage } from '../../routes/ResetPasswordPage';
 import { OnboardingPage } from '../../routes/onboarding/OnboardingPage';
 import { OrdersPage } from '../../routes/OrdersPage';
 import { MenuPage } from '../../routes/MenuPage';
-import { HoursPage } from '../../routes/HoursPage';
 import { PayoutsPage } from '../../routes/PayoutsPage';
 import { SettingsPage } from '../../routes/SettingsPage';
 
@@ -22,7 +21,6 @@ export const LEGACY = {
   Onboarding: OnboardingPage,
   Orders: OrdersPage,
   Menu: MenuPage,
-  Hours: HoursPage,
   Payouts: PayoutsPage,
   Settings: SettingsPage,
 };

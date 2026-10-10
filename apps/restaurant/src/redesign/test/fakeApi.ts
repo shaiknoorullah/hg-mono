@@ -108,7 +108,7 @@ export function consoleRoutes(overrides: Record<string, Handler> = {}): Record<s
     'GET /v1/restaurant/onboarding/status': 'restaurant_onboarding_active',
     'GET /v1/restaurant/profile': 'restaurant_profile',
     'GET /v1/config/public': 'public_config',
-    'GET /v1/restaurant/availability': 'restaurant_availability_open',
+    'GET /v1/restaurant/availability': 'restaurant_open_state_open',
     'POST /v1/restaurant/heartbeat': 'restaurant_heartbeat',
     'POST /v1/realtime/ticket': { status: 503, body: errorBody('SERVICE_UNAVAILABLE') },
     ...overrides,
