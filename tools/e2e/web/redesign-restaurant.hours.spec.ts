@@ -124,7 +124,8 @@ test.describe('Hours (mock)', () => {
     await hoursStore(page);
     const av = await availabilityStore(page, await openAv(page));
     await openSignedIn(page, '/hours');
-    await page.getByRole('button', { name: 'Pause new orders' }).click();
+    // The Right now card's controls (the status bar on every console page has its own Pause and Resume).
+    await page.getByTestId('right-now').getByRole('button', { name: 'Pause new orders' }).click();
     const menu = page.getByRole('menu', { name: 'Pause new orders' });
     const items = menu.getByRole('menuitem');
     await expect(items).toHaveCount(3);
@@ -142,7 +143,7 @@ test.describe('Hours (mock)', () => {
     expect(mins).toBeLessThan(31);
     await expect(page.getByTestId('right-now-badge')).toHaveText('Paused');
     await shot(page, 'paused');
-    await page.getByRole('button', { name: 'Resume now' }).click();
+    await page.getByTestId('right-now').getByRole('button', { name: 'Resume now' }).click();
     const confirm = page.getByRole('group', { name: 'Resume new orders now?' });
     await expect(confirm).toBeVisible();
     await expect(confirm.getByRole('button', { name: 'Stay paused' })).toBeFocused();
@@ -462,7 +463,7 @@ test.describe('Hours (real API)', () => {
         await page.reload();
         await expect(badge).toHaveText('Open');
       }
-      await page.getByRole('button', { name: 'Pause new orders' }).click();
+      await page.getByTestId('right-now').getByRole('button', { name: 'Pause new orders' }).click();
       const item = page.getByRole('menuitem', { name: /^Pause for 15 minutes \(until / });
       const label = (await item.textContent())!;
       const until = /until (\d{1,2}:\d{2} (?:am|pm))/.exec(label)![1];
@@ -471,7 +472,7 @@ test.describe('Hours (real API)', () => {
       // The label read back from the server names the same end time the menu item offered.
       await expect(page.getByTestId('right-now-reason')).toHaveText(`Paused until ${until}.`);
       await shot(page, 'real-paused');
-      await page.getByRole('button', { name: 'Resume now' }).click();
+      await page.getByTestId('right-now').getByRole('button', { name: 'Resume now' }).click();
       await page.getByRole('group', { name: 'Resume new orders now?' }).getByRole('button', { name: 'Resume now' }).click();
       await expect(badge).toHaveText('Open');
       await expect(page.getByTestId('right-now-reason')).toHaveText('Open and accepting orders.');
