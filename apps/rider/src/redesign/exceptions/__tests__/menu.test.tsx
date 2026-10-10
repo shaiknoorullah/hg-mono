@@ -84,6 +84,27 @@ describe.each(SCHEMES)("Something's wrong (%s)", (scheme) => {
     await screen.findByText("I'm at the restaurant");
   });
 
+  it("pickup items with a code typed: the step's own sheet opens, so the code survives Back", async () => {
+    const { api } = renderExceptions(scheme, 'assignment_arrived_at_pickup');
+    await screen.findByText('Check the bag has 3 items');
+    fireEvent.changeText(screen.getByTestId('trip-pickup-code-field'), '7314');
+    fireEvent.press(screen.getByText("Something's wrong"));
+    await screen.findByText("What's wrong?");
+    expect(screen.queryByTestId('ex-menu-screen')).toBeNull();
+    fireEvent.press(screen.getByText('Back to the delivery'));
+    await waitFor(() => expect(screen.queryByText("What's wrong?")).toBeNull());
+    expect(screen.getByTestId('trip-pickup-code-field').props.value).toBe('7314');
+    expect(transitions(api)).toHaveLength(0);
+  });
+
+  it('pickup items with no code typed: this menu opens over the step', async () => {
+    renderExceptions(scheme, 'assignment_arrived_at_pickup');
+    await screen.findByText('Check the bag has 3 items');
+    fireEvent.press(screen.getByText("Something's wrong"));
+    await screen.findByTestId('ex-menu-screen');
+    expect(screen.getByText('Step 2 of 4 · At the restaurant')).toBeTruthy();
+  });
+
   it('the delivery is cancelled while the sheet is open: the ending takes over', async () => {
     let cancelled = false;
     renderExceptions(scheme, () => (cancelled ? 'assignment_cancelled_by_platform' : EN_ROUTE));
@@ -156,13 +177,23 @@ describe.each(SCHEMES)("Can't deliver (%s)", (scheme) => {
     expect(keys(api)[1]).toBe(keys(api)[0]);
   });
 
-  it("5xx, then Something's wrong: back to the leg's sheet", async () => {
-    renderExceptions(scheme, EN_ROUTE, { createAssignmentTransition: 'error_internal_error' });
+  it("5xx, then Something's wrong: back to the leg's sheet; returning it again is still the same request", async () => {
+    let n = 0;
+    const answers = { ...RETURN_ANSWERS, UNDELIVERABLE: () => (n++ === 0 ? 'error_internal_error' : 'assignment_undeliverable') };
+    const { api } = renderExceptions(scheme, EN_ROUTE, { createAssignmentTransition: byState(answers) });
     await openCantDeliver('Go to Ayesha R.');
     fireEvent.press(screen.getByText('Return it to the restaurant'));
     await screen.findByText("We couldn't record that");
     fireEvent.press(screen.getByText("Something's wrong"));
     await screen.findByText("What's wrong?");
+    fireEvent.press(screen.getByText("I can't deliver this order"));
+    await screen.findByText("Can't deliver this order?");
+    fireEvent.press(screen.getByText('Return it to the restaurant'));
+    await screen.findByText('Take the food back to Karachi Kitchen');
+    const undeliverable = transitions(api).flatMap((t, i) => (t.to_state === 'UNDELIVERABLE' ? [{ t, key: keys(api)[i] }] : []));
+    expect(undeliverable).toHaveLength(2);
+    expect(undeliverable[1]!.t).toEqual(undeliverable[0]!.t);
+    expect(undeliverable[1]!.key).toBe(undeliverable[0]!.key);
   });
 
   it('offline: "Can\'t deliver" is saved with its time and the return leg opens; RETURNING queues behind it', async () => {

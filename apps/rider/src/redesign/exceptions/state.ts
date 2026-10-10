@@ -14,7 +14,7 @@ import { useRiderDashboard } from '../home';
 import { useNav } from '../nav/Navigator';
 import { useOptionalSession } from '../session/Session';
 import { STEP_SUBTITLE, orderSubtitle } from '../trip/copy';
-import type { Assignment, AssignmentState } from '../trip/assignment';
+import type { Assignment, AssignmentState, PreparedStep } from '../trip/assignment';
 import { TITLE } from './copy';
 
 /** UNDELIVERABLE and RETURNING: the food is going back (this WP's `tripReturn`). */
@@ -72,10 +72,27 @@ export function cantDeliverWasOpen(assignmentId: string): boolean {
   return cantDeliverOpen.has(assignmentId);
 }
 
+/**
+ * The return leg's last unsent attempts (RETURNING, RETURNED), kept per assignment: "Something's
+ * wrong" pushes the menu and the navigator draws only the top screen, so the return leg remounts
+ * on the way back. "Try again" after that is still the same request (same Idempotency-Key).
+ */
+const unsent = new Map<string, PreparedStep>();
+
+export function unsentStep(assignmentId: string, toState: 'RETURNING' | 'RETURNED'): PreparedStep | null {
+  return unsent.get(`${assignmentId}:${toState}`) ?? null;
+}
+
+export function keepUnsentStep(assignmentId: string, toState: 'RETURNING' | 'RETURNED', step: PreparedStep | null): void {
+  if (step) unsent.set(`${assignmentId}:${toState}`, step);
+  else unsent.delete(`${assignmentId}:${toState}`);
+}
+
 /** Test seam, and a sign-out. */
 export function resetExceptionState(): void {
   returningClaimed.clear();
   cantDeliverOpen.clear();
+  unsent.clear();
 }
 
 /* ------------------------------------------------------------------ the ledger and the way out */
@@ -109,6 +126,8 @@ export function useLeaveTrip(assignmentId: string): (options?: { keepSaved?: boo
         void outbox.clearAssignment(assignmentId);
         forgetDelivery(assignmentId);
         rememberCantDeliver(assignmentId, false);
+        keepUnsentStep(assignmentId, 'RETURNING', null);
+        keepUnsentStep(assignmentId, 'RETURNED', null);
         // The gate would reopen a trip it still thinks is live: only re-read it once it ended.
         void session?.refresh();
       }

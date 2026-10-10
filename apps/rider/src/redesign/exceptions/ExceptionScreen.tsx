@@ -80,31 +80,41 @@ export function ExceptionScreen({ params }: ScreenProps<'tripException'>): React
     nav.pop();
   };
 
-  /** One UNDELIVERABLE at a time; "Try again" resends the failed one (same key, same body). */
+  /**
+   * One UNDELIVERABLE at a time; "Try again" resends the failed one (same key, same body). The
+   * failed step outlives a detour through the menu (DL/CantDeliverFailed "Something's wrong"):
+   * tapping "Return it to the restaurant" again is the same request, not a new one.
+   */
   const busy = React.useRef(false);
+  const failedStep = React.useRef<PreparedStep | null>(null);
   const returnIt = async () => {
     if (busy.current) return;
     busy.current = true;
-    const retry = attempt.phase === 'failed' ? attempt.step : null;
+    const retry = attempt.phase === 'failed' ? attempt.step : failedStep.current;
     setAttempt({ phase: 'sending' });
     try {
       const step = retry ?? (await prepareStep({ to_state: 'UNDELIVERABLE' }));
       try {
         // Sent or saved offline: either way the food now goes back (DL/CantDeliverQueued).
         await sendStep(id, step);
+        failedStep.current = null;
         rememberCantDeliver(id, false);
         if (alive.current) nav.replace('tripReturn', { assignmentId: id });
       } catch (e) {
         const failure = classifyStepError(e);
-        if (!alive.current) return;
         if (failure.kind === 'out-of-date') {
-          setAttempt({ phase: 'idle' });
+          failedStep.current = null;
           rememberCantDeliver(id, false);
+          if (!alive.current) return;
+          setAttempt({ phase: 'idle' });
           await resyncAfterConflict(id, failure.state, view.refetch);
-          nav.pop(); // the step under the menu follows the delivery to where it is now
+          // The step under the menu follows the delivery to where it is now, unless the re-read
+          // already sent this screen on (cancelled, returning): a pop then would drop that screen.
+          if (alive.current) nav.pop();
           return;
         }
-        setAttempt({ phase: 'failed', step });
+        failedStep.current = step;
+        if (alive.current) setAttempt({ phase: 'failed', step });
       }
     } finally {
       busy.current = false;

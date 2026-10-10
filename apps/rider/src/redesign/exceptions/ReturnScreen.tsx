@@ -37,7 +37,7 @@ import { BUTTON, NOT_SENT, orderSubtitle, queuedBody, queuedRow } from '../trip/
 import { Actions, Facts, Lead, Line, SavedRow, Screen, StepPending, TripBanners, useAlive, type ActionSpec } from '../trip/TripScreens';
 import { REASON_MAX, REASON_MIN } from '../dropoff/proof';
 import { EX_BUTTON, RETURNING, RETURN_FAILED, RETURN_GEOFENCE, RETURN_SENDING, SAVED_NAME, TITLE } from './copy';
-import { RETURN_LEG, claimReturning } from './state';
+import { RETURN_LEG, claimReturning, keepUnsentStep, unsentStep } from './state';
 
 type Attempt = { phase: 'idle' } | { phase: 'sending' } | { phase: 'failed'; step: PreparedStep };
 
@@ -52,7 +52,11 @@ export function ReturnScreen({ params }: ScreenProps<'tripReturn'>): React.React
   const view = useTripAssignment(id);
   const nav = useNav();
   const alive = useAlive();
-  const [attempt, setAttempt] = React.useState<Attempt>({ phase: 'idle' });
+  // A RETURNED that failed before a detour through "Something's wrong" is still the one to retry.
+  const [attempt, setAttempt] = React.useState<Attempt>(() => {
+    const step = unsentStep(id, 'RETURNED');
+    return step ? { phase: 'failed', step } : { phase: 'idle' };
+  });
   const [geofence, setGeofence] = React.useState(false);
   const [reason, setReason] = React.useState('');
   const state = view.state;
@@ -70,11 +74,16 @@ export function ReturnScreen({ params }: ScreenProps<'tripReturn'>): React.React
       next.done = (async () => {
         const step = again ?? (await prepareStep({ to_state: 'RETURNING' }));
         next.step = step;
+        keepUnsentStep(id, 'RETURNING', step);
         return sendStep(id, step).then(
-          () => true,
+          () => {
+            keepUnsentStep(id, 'RETURNING', null);
+            return true;
+          },
           async (e: unknown) => {
             const failure = classifyStepError(e);
             if (failure.kind !== 'out-of-date') return false;
+            keepUnsentStep(id, 'RETURNING', null);
             await resyncAfterConflict(id, failure.state, view.refetch);
             return true;
           },
@@ -103,9 +112,11 @@ export function ReturnScreen({ params }: ScreenProps<'tripReturn'>): React.React
       const queued = outbox.pendingFor(id).some((e) => e.input.to_state === 'RETURNING');
       if (cachedAssignment(id)?.state === 'UNDELIVERABLE' && !queued) {
         const last = record.current;
-        const ok = await (last ? last.done.then((sent) => sent || goingBack(last.step ?? undefined)) : goingBack());
+        const earlier = unsentStep(id, 'RETURNING');
+        const ok = await (last ? last.done.then((sent) => sent || goingBack(last.step ?? undefined)) : goingBack(earlier ?? undefined));
         if (!ok) {
           const step = retry ?? (await make());
+          keepUnsentStep(id, 'RETURNED', step);
           if (alive.current) setAttempt({ phase: 'failed', step });
           return;
         }
@@ -113,9 +124,11 @@ export function ReturnScreen({ params }: ScreenProps<'tripReturn'>): React.React
       const step = retry ?? (await make());
       try {
         await sendStep(id, step);
+        keepUnsentStep(id, 'RETURNED', null);
         if (alive.current) setAttempt({ phase: 'idle' });
       } catch (e) {
         const failure = classifyStepError(e);
+        keepUnsentStep(id, 'RETURNED', failure.kind === 'geofence' || failure.kind === 'out-of-date' ? null : step);
         if (!alive.current) return;
         if (failure.kind === 'geofence') {
           setAttempt({ phase: 'idle' });
@@ -252,7 +265,7 @@ function restaurantLine(a: Assignment): ActionSpec[] {
  * DL/CantDeliverQueued: the "Can't deliver" saved offline, its row while it waits. The automatic
  * RETURNING behind it has no row (the boards list the steps the rider tapped).
  */
-export function SavedCantDeliver({ entries }: { entries: readonly OutboxEntry[] }): React.ReactElement | null {
+function SavedCantDeliver({ entries }: { entries: readonly OutboxEntry[] }): React.ReactElement | null {
   const saved = entries.find((e) => e.input.to_state === 'UNDELIVERABLE' && e.status === 'pending');
   if (!saved) return null;
   return (

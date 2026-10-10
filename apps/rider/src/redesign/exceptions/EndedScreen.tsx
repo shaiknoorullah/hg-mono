@@ -192,7 +192,8 @@ function AfterPickup({
         ...(supportFirst.length ? restaurant : []),
       ]}
     >
-      <Lead title={cancelled ? ENDED.cancelled : ENDED.moved} body={cancelled ? ENDED.dontDeliver : ENDED.keepBag} />
+      {/* DL/CancelledFoodConfirm draws "Don't deliver it" behind its sheet; the reassigned one keeps the heading. */}
+      <Lead title={cancelled ? (confirming ? CONFIRM.foodHeading : ENDED.cancelled) : ENDED.moved} body={cancelled ? ENDED.dontDeliver : ENDED.keepBag} />
       {/* Needs API (gap 24): the food disposition / hand-back instruction. */}
       <Line>{cancelled ? ENDED.foodInstruction : ENDED.bagInstruction}</Line>
       {cancelled ? <Line tone="secondary">{ENDED.newOffers}</Line> : null}

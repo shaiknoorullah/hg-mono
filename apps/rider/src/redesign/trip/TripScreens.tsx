@@ -229,7 +229,7 @@ export function PickupStepScreen({ params }: ScreenProps<'tripPickup'>): React.R
   const [start, setStart] = React.useState<Attempt>({ phase: 'idle' });
   const [arrive, setArrive] = React.useState<Attempt>({ phase: 'idle' });
   const [sheet, setSheet] = React.useState<'wrong' | 'geofence' | null>(null);
-  const openWrong = useOpenWrong(id, () => setSheet('wrong'));
+  const openWrong = useOpenWrong(id, () => setSheet('wrong'), start.phase === 'failed' || arrive.phase === 'failed');
   const [reason, setReason] = React.useState('');
 
   /** Send a step; `retry` reuses the failed attempt's key and body. */
@@ -466,7 +466,7 @@ export function AtRestaurantScreen({ params }: ScreenProps<'tripAtRestaurant'>):
   const alive = useAlive();
   const [code, setCode] = React.useState('');
   const [sheet, setSheet] = React.useState<'wrong' | 'help' | 'not-ready' | null>(null);
-  const openWrong = useOpenWrong(id, () => setSheet('wrong'));
+  const openWrong = useOpenWrong(id, () => setSheet('wrong'), code !== '' || pickup.status !== 'idle');
   const ready = a?.pickup.order_state === 'READY_FOR_PICKUP';
   // "I'm at the restaurant" lands on the items when the food is already ready, else on the wait.
   const [checking, setChecking] = React.useState<boolean | null>(null);
@@ -1152,9 +1152,12 @@ export function MessagesLink({ onPress }: { onPress: () => void }): React.ReactE
  * until then. Boards whose state must survive the trip there and back (the code lock, the
  * pickup saved offline) and the sheets inside a step keep the sheet below.
  */
-function useOpenWrong(assignmentId: string, fallback: () => void): () => void {
+function useOpenWrong(assignmentId: string, fallback: () => void, keep: boolean): () => void {
   const nav = useNav();
-  return () => (screenFor('tripException') ? nav.push('tripException', { assignmentId, leg: 'pickup' }) : fallback());
+  // The navigator draws only the top screen, so the trip there and back remounts this step: a
+  // typed code, a refused code's attempts or a failed step's Idempotency-Key would be lost. While
+  // the step holds one (`keep`), the sheet below opens instead.
+  return () => (!keep && screenFor('tripException') ? nav.push('tripException', { assignmentId, leg: 'pickup' }) : fallback());
 }
 
 /** "What's wrong?" for the pickup leg (DL/SomethingWrongPickup, SomethingWrongPickupNoSupport). */

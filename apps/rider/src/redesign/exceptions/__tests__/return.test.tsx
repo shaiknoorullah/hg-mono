@@ -87,6 +87,23 @@ describe.each(SCHEMES)('the return leg (%s)', (scheme) => {
     expect(keys(api)[1]).toBe(keys(api)[0]);
   });
 
+  it("5xx, then Something's wrong and back: still the failed return; Try again is the same request", async () => {
+    let n = 0;
+    const answers = { ...RETURN_ANSWERS, RETURNED: () => (n++ === 0 ? 'error_internal_error' : 'assignment_returned') };
+    const { api } = renderExceptions(scheme, RETURNING, { createAssignmentTransition: byState(answers) });
+    await screen.findByText('Take the food back to Karachi Kitchen');
+    fireEvent.press(screen.getByText("I've returned it"));
+    await screen.findByText("We couldn't record the return");
+    fireEvent.press(screen.getByText("Something's wrong"));
+    fireEvent.press(await screen.findByText('Back to the return'));
+    await screen.findByText("We couldn't record the return");
+    fireEvent.press(screen.getByText('Try again'));
+    await screen.findByText('Returned to Karachi Kitchen');
+    const [first, second] = returnedSteps(api);
+    expect(second).toEqual(first);
+    expect(keys(api)[1]).toBe(keys(api)[0]);
+  });
+
   it('422 GEOFENCE_REQUIRED: say what happened (5 characters at least), then it goes with the reason', async () => {
     let n = 0;
     const answers = { ...RETURN_ANSWERS, RETURNED: () => (n++ === 0 ? apiError(422, 'GEOFENCE_REQUIRED') : 'assignment_returned') };
