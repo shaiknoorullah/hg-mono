@@ -261,7 +261,7 @@ export function OrderDetail({ orderId, resource, facts, mark, onMarkReady, onClo
               <PickupCode
                 code={pickupCode}
                 testId="pickup-code"
-                help={`Read this code to ${riderName} as you hand over the bag. He types it into his app, and the order moves to out for delivery.`}
+                help={`Read this code to ${riderName} as you hand over the bag. The rider types it into the app, and the order moves to out for delivery.`}
               />
             ) : (
               <div role="alert" data-testid="pickup-code-error" className="rounded-md border border-feedback-warning-border bg-surface-raised px-3 py-2.5">
