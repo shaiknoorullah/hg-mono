@@ -61,8 +61,6 @@ export type { TooltipProps } from './Tooltip.js';
 export { ToastProvider, useToast } from '../ds/Toast.js';
 export type { ToastApi, ToastOptions, ToastProviderProps, ToastVariant } from '../ds/Toast.js';
 
-export { DocumentViewer } from '../data/index.js';
-export type { DocumentViewerProps, DocumentViewerState } from '../data/index.js';
 
 /* Forms (W3), rebuilt on shadcn/ui: approval packet P16 to P21. */
 export { Textarea } from './Textarea.js';
@@ -143,3 +141,24 @@ export { StatusCard, statusFromOpenState } from './StatusCard.js';
 export type { StatusCardBusy, StatusCardPauseOption, StatusCardProps, StatusCardStatus } from './StatusCard.js';
 export { PickupCode } from './PickupCode.js';
 export type { PickupCodeProps, PickupCodeSupport } from './PickupCode.js';
+
+/* Viewer, live map and address fields (W7b): admin WP-3 and WP-7, restaurant WP6 and WP10
+   (approval packet P32; AddressCombobox, MapPinPicker and LiveMap are proposed under #193, #197
+   and #198). Map engines are injected (`loadMapbox`), never imported. */
+export { DOCUMENT_ZOOM_STEPS, DocumentViewer } from './DocumentViewer.js';
+export type {
+  DocumentKind,
+  DocumentSource,
+  DocumentViewerMessages,
+  DocumentViewerProps,
+  DocumentViewerState,
+  DocumentViewerStatus,
+} from './DocumentViewer.js';
+export { LiveMap, riderSentence } from './LiveMap.js';
+export type { LiveMapPlace, LiveMapProps, LiveMapRider } from './LiveMap.js';
+export { AddressCombobox } from './AddressCombobox.js';
+export type { AddressComboboxProps, AddressComboboxStatus, AddressSuggestionOption } from './AddressCombobox.js';
+export { MapPinPicker } from './MapPinPicker.js';
+export type { MapPinMoveSource, MapPinPickerProps } from './MapPinPicker.js';
+export { distanceMetres, formatLatLng, offsetMetres } from './map-engine.js';
+export type { LatLng, MapboxModule, MapPhase } from './map-engine.js';
