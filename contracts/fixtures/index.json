@@ -2,14 +2,15 @@
   "generated_by": "contracts/fixtures/_build/build.py",
   "do_not_edit": "Every file under contracts/fixtures/ is generated. Run `pnpm fixtures:build`.",
   "frozen_clock": "2026-08-10T18:42:11.412Z",
-  "count": 449,
+  "count": 463,
   "counts_by_domain": {
     "admin": 35,
     "cart": 16,
     "catalogue": 41,
     "dispatch": 31,
     "documents": 23,
-    "errors": 66,
+    "errors": 69,
+    "geo": 11,
     "halal": 25,
     "handoff": 13,
     "onboarding": 35,
@@ -2508,6 +2509,53 @@
       "file": "errors/error_forbidden.json"
     },
     {
+      "scenario": "error_geocode_no_match",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`404` · `GEOCODE_NO_MATCH`. No Canadian address for the picked suggestion (its `place_id` is short-lived and may have expired) or near the pin (a lake, a field, across the border). The pin stays where it is and the user types the address.",
+      "operations": [
+        "getPlaceAddress",
+        "reverseGeocode"
+      ],
+      "status": 404,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_geocode_no_match.json"
+    },
+    {
+      "scenario": "error_geocode_rate_limited",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`429` · `RATE_LIMITED`. One account went over an address search limit: more than 60 suggestion requests in a minute (rate class `GEO_SUGGEST`, burst 20, which one search typed a key at a time stays under), or more than 30 place or pin lookups in a minute for one operation (rate class `GEO`, burst 10). Nothing was sent to the provider. The client stops searching as the user types until `Retry-After` passes, and the manual form still works.",
+      "operations": [
+        "suggestAddresses",
+        "getPlaceAddress",
+        "reverseGeocode"
+      ],
+      "status": 429,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_geocode_rate_limited.json"
+    },
+    {
+      "scenario": "error_geocoder_unavailable",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`503` · `GEOCODER_UNAVAILABLE`. Mapbox is down, timed out or refused our key. The client shows the manual address form and the map pin with a notice, so address entry never becomes impossible.",
+      "operations": [
+        "suggestAddresses",
+        "getPlaceAddress",
+        "reverseGeocode"
+      ],
+      "status": 503,
+      "tags": [
+        "error-envelope"
+      ],
+      "file": "errors/error_geocoder_unavailable.json"
+    },
+    {
       "scenario": "error_halal_tag_not_writable",
       "domain": "errors",
       "schema": "ErrorEnvelope",
@@ -3146,6 +3194,169 @@
         "error-envelope"
       ],
       "file": "errors/error_verification_token_used.json"
+    },
+    {
+      "scenario": "address_suggestions_broad",
+      "domain": "geo",
+      "schema": "array<AddressSuggestion>",
+      "describes": "The user typed a postal code area or a district, not a street address: a postcode, a neighbourhood and a city. None of these fills the whole form; the user drags the pin and types the street.",
+      "operations": [
+        "suggestAddresses"
+      ],
+      "status": 200,
+      "tags": [
+        "geo",
+        "edge"
+      ],
+      "file": "geo/address_suggestions_broad.json"
+    },
+    {
+      "scenario": "address_suggestions_empty",
+      "domain": "geo",
+      "schema": "array<AddressSuggestion>",
+      "describes": "No match: `200` with an empty list, not an error. The list says nothing matched and keeps \"Enter address manually\" and the map pin one tap away.",
+      "operations": [
+        "suggestAddresses"
+      ],
+      "status": 200,
+      "tags": [
+        "geo",
+        "edge",
+        "empty"
+      ],
+      "file": "geo/address_suggestions_empty.json"
+    },
+    {
+      "scenario": "address_suggestions_populated",
+      "domain": "geo",
+      "schema": "array<AddressSuggestion>",
+      "describes": "The user typed `88 Harb` with the device's location sent. Five Canadian results, nearest first, mixing an exact address, a building by name and a whole street. Picking one calls `getPlaceAddress` with its `place_id` and the same session token.",
+      "operations": [
+        "suggestAddresses"
+      ],
+      "status": 200,
+      "tags": [
+        "geo"
+      ],
+      "file": "geo/address_suggestions_populated.json"
+    },
+    {
+      "scenario": "address_suggestions_without_location",
+      "domain": "geo",
+      "schema": "array<AddressSuggestion>",
+      "describes": "Location permission denied and no location sent: results are ranked towards the default address or `default_map_center`, and `distance_m` is null on every row. A denied permission never blocks the address form.",
+      "operations": [
+        "suggestAddresses"
+      ],
+      "status": 200,
+      "tags": [
+        "geo",
+        "degraded"
+      ],
+      "file": "geo/address_suggestions_without_location.json"
+    },
+    {
+      "scenario": "place_address_full",
+      "domain": "geo",
+      "schema": "GeocodedAddress",
+      "describes": "A picked street address: every field the form needs is filled. The user adds the unit and buzzer, may drag the pin, and the pin's final position is what is saved.",
+      "operations": [
+        "getPlaceAddress"
+      ],
+      "status": 200,
+      "tags": [
+        "geo"
+      ],
+      "file": "geo/place_address_full.json"
+    },
+    {
+      "scenario": "place_address_poi",
+      "domain": "geo",
+      "schema": "GeocodedAddress",
+      "describes": "A picked building by name: `name` is set and the street address comes with it.",
+      "operations": [
+        "getPlaceAddress"
+      ],
+      "status": 200,
+      "tags": [
+        "geo"
+      ],
+      "file": "geo/place_address_poi.json"
+    },
+    {
+      "scenario": "place_address_postcode",
+      "domain": "geo",
+      "schema": "GeocodedAddress",
+      "describes": "A postal code area: no `line1`, the pin at the area's centre. The user types the street and drags the pin to the door.",
+      "operations": [
+        "getPlaceAddress"
+      ],
+      "status": 200,
+      "tags": [
+        "geo",
+        "edge"
+      ],
+      "file": "geo/place_address_postcode.json"
+    },
+    {
+      "scenario": "place_address_province_not_served",
+      "domain": "geo",
+      "schema": "GeocodedAddress",
+      "describes": "A Canadian address outside the provinces served at launch (Ontario only). It is returned, because search is Canada-wide; the client warns by comparing `province` with `getPublicConfig.served_provinces`, and saving it is `PROVINCE_NOT_SERVED`.",
+      "operations": [
+        "getPlaceAddress",
+        "reverseGeocode"
+      ],
+      "status": 200,
+      "tags": [
+        "geo",
+        "edge"
+      ],
+      "file": "geo/place_address_province_not_served.json"
+    },
+    {
+      "scenario": "place_address_street_only",
+      "domain": "geo",
+      "schema": "GeocodedAddress",
+      "describes": "A whole street with no number: `line1` is the street and `postal_code` is null, because a street spans many. The form asks for the number and postal code.",
+      "operations": [
+        "getPlaceAddress"
+      ],
+      "status": 200,
+      "tags": [
+        "geo",
+        "edge"
+      ],
+      "file": "geo/place_address_street_only.json"
+    },
+    {
+      "scenario": "reverse_geocode_address",
+      "domain": "geo",
+      "schema": "GeocodedAddress",
+      "describes": "The pin dropped on a building: the nearest street address fills the form. Its point is a few metres from the pin; the client keeps the pin, which is what is saved.",
+      "operations": [
+        "reverseGeocode"
+      ],
+      "status": 200,
+      "tags": [
+        "geo"
+      ],
+      "file": "geo/reverse_geocode_address.json"
+    },
+    {
+      "scenario": "reverse_geocode_street_only",
+      "domain": "geo",
+      "schema": "GeocodedAddress",
+      "describes": "The pin dropped in a park beside a street with no numbered building close by: the street alone, with no postal code. The user types the number and postal code.",
+      "operations": [
+        "reverseGeocode"
+      ],
+      "status": 200,
+      "tags": [
+        "geo",
+        "edge"
+      ],
+      "file": "geo/reverse_geocode_street_only.json"
     },
     {
       "scenario": "certification_panel_certified",
@@ -7217,6 +7428,16 @@
     "getPayoutRun": [
       "payout_run_detail_every_outcome"
     ],
+    "getPlaceAddress": [
+      "error_geocode_no_match",
+      "error_geocode_rate_limited",
+      "error_geocoder_unavailable",
+      "place_address_full",
+      "place_address_poi",
+      "place_address_postcode",
+      "place_address_province_not_served",
+      "place_address_street_only"
+    ],
     "getPublicConfig": [
       "public_config",
       "public_config_ordering_paused"
@@ -7557,6 +7778,14 @@
       "error_breached_password",
       "error_reset_token_not_valid"
     ],
+    "reverseGeocode": [
+      "error_geocode_no_match",
+      "error_geocode_rate_limited",
+      "error_geocoder_unavailable",
+      "place_address_province_not_served",
+      "reverse_geocode_address",
+      "reverse_geocode_street_only"
+    ],
     "reviewRestaurantDocument": [
       "document_approved",
       "document_expired",
@@ -7689,6 +7918,14 @@
       "rider_vehicle_on_foot",
       "rider_vehicle_scooter"
     ],
+    "suggestAddresses": [
+      "address_suggestions_broad",
+      "address_suggestions_empty",
+      "address_suggestions_populated",
+      "address_suggestions_without_location",
+      "error_geocode_rate_limited",
+      "error_geocoder_unavailable"
+    ],
     "takeNextRestaurantApplication": [
       "restaurant_application_none_to_take",
       "restaurant_application_pending_review"
@@ -7815,6 +8052,7 @@
     "getOrderingPause": "ordering_pause_open",
     "getOwnMenu": "owned_menu_with_pending_version",
     "getPayoutRun": "payout_run_detail_every_outcome",
+    "getPlaceAddress": "place_address_full",
     "getPublicConfig": "public_config",
     "getQuote": "quote_standard",
     "getReadiness": "readiness_ok",
@@ -7868,6 +8106,7 @@
     "reportRiderPositions": "rider_position_ack",
     "reportTamper": "handoff_tamper_report",
     "requestOtp": "otp_challenge",
+    "reverseGeocode": "reverse_geocode_address",
     "reviewRestaurantDocument": "document_approved",
     "reviewRiderDocument": "document_approved",
     "scanDelivery": "handoff_scan_delivery",
@@ -7889,6 +8128,7 @@
     "submitRiderDocuments": "rider_onboarding_documents_review",
     "submitRiderProfile": "rider_profile",
     "submitRiderVehicle": "rider_vehicle_scooter",
+    "suggestAddresses": "address_suggestions_populated",
     "takeNextRestaurantApplication": "restaurant_application_pending_review",
     "takeNextRiderApplication": "rider_application_pending_review",
     "transcribeHalalCertificate": "halal_certificate_status_pending",
