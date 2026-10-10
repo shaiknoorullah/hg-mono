@@ -18,6 +18,8 @@ import type { BottomNavItem } from '@hg/ui-native';
 
 import { useNav, type ScreenName } from './nav';
 import { Router } from './Router';
+import { DashboardProvider, isOnline, useDashboard } from './dashboard';
+import { useLocationReporting } from './location';
 
 const HIDDEN_ON: readonly ScreenName[] = ['offer', 'assignment', 'onboarding'];
 
@@ -29,7 +31,42 @@ const TAB_FOR: Partial<Record<ScreenName, string>> = {
   profile: 'profile',
 };
 
+/** Reports location while online and routes to the Offer / active delivery the poll finds. */
+function ShiftWatcher(): null {
+  const nav = useNav();
+  const dashboard = useDashboard();
+  // Every 5 s while an assignment is being worked, every 20 s when idle (location.ts).
+  useLocationReporting(isOnline(dashboard), dashboard?.active_assignment ?? null);
+
+  const offerId = dashboard?.current_offer?.offer_id ?? null;
+  const assignmentId = dashboard?.active_assignment?.id ?? null;
+  const screen = nav.current.name;
+  // One automatic open per offer / assignment, so backing out of a screen does not bounce back.
+  const opened = React.useRef<Set<string>>(new Set());
+
+  React.useEffect(() => {
+    if (screen === 'offer' || screen === 'assignment') return;
+    if (offerId && !opened.current.has(offerId)) {
+      opened.current.add(offerId);
+      nav.push('offer', undefined);
+    } else if (assignmentId && !opened.current.has(assignmentId)) {
+      opened.current.add(assignmentId);
+      nav.push('assignment', { assignmentId });
+    }
+  }, [offerId, assignmentId, screen, nav]);
+  return null;
+}
+
 export function RiderShell(): React.ReactElement {
+  return (
+    <DashboardProvider>
+      <ShiftWatcher />
+      <ShellFrame />
+    </DashboardProvider>
+  );
+}
+
+function ShellFrame(): React.ReactElement {
   const theme = useTheme();
   const nav = useNav();
 

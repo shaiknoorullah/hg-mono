@@ -1,14 +1,12 @@
 import { chromium } from 'playwright';
-import { execSync } from 'node:child_process';
+import { requireEnv, totpNow as totp } from './env.mjs';
 const APP = process.env.APP_URL ?? 'http://localhost:5175';
 const OUT = 'tools/verify';
-const totp = () => execSync('SECRET=$(cat /tmp/hg-admin-totp-secret.txt) go run ./cmd/totpnow',
-  { cwd: '/home/devsupreme/work/hg-mono/services/hg', shell: '/bin/bash' }).toString().trim();
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
 await page.goto(APP, { waitUntil: 'networkidle' });
-await page.fill('input[name="email"]', 'admin@demo.hg');
-await page.fill('input[name="password"]', 'Admin@1234');
+await page.fill('input[name="email"]', requireEnv('SEED_EMAIL'));
+await page.fill('input[name="password"]', requireEnv('SEED_PASSWORD'));
 // Segmented OTP: focus first box, type digits so each auto-advances.
 const code = totp();
 console.log('code len', code.length);

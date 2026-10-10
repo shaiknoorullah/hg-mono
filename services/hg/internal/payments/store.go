@@ -20,6 +20,8 @@ var ErrNotFound = errors.New("not found")
 // writes another module's table.
 type Repo struct {
 	pool *pgxpool.Pool
+	// outbox receives the payout notices (payout_notices.go); nil sends none.
+	outbox Outbox
 }
 
 // NewRepo builds a Repo over an existing pgx pool.
@@ -197,6 +199,10 @@ func (r *Repo) SetDefaultPaymentMethod(ctx context.Context, accountID, methodID 
 
 // IntentRow is the payment_intent row the module reads back.
 type IntentRow struct {
+	// ClientSecret is Stripe's client secret for the intent, passed straight
+	// from Stripe's answer to the caller that created the intent. It is never
+	// stored: GetOrderIntent and other reads leave it empty.
+	ClientSecret          string
 	ID                    string
 	OrderID               string
 	Kind                  string
@@ -246,70 +252,25 @@ func scanIntent(row pgx.Row) (IntentRow, error) {
 	return i, err
 }
 
-// AdvanceIntentState sets a payment_intent's state to `target` and stamps the
-// matching timestamp. It also clears the deadline when moving into a terminal
-// state so the deadline CHECK is satisfied. Returns applied=false when the row
-// was already in that state (idempotent re-application).
-func (r *Repo) AdvanceIntentState(ctx context.Context, stripeID string, target PaymentState) (bool, error) {
-	var authoredCol, canceledCol string
-	terminal := false
-	switch target {
-	case StateRequiresCapture:
-		authoredCol = "authorized_at = coalesce(authorized_at, now())"
-	case StateSucceeded:
-		terminal = true
-	case StateCanceled, StateFailed:
-		terminal = true
-		canceledCol = "canceled_at = coalesce(canceled_at, now())"
-	}
-	set := "state = $2"
-	if authoredCol != "" {
-		set += ", " + authoredCol
-	}
-	if canceledCol != "" {
-		set += ", " + canceledCol
-	}
-	if terminal {
-		set += ", deadline_at = NULL, deadline_action = NULL"
-	}
-	tag, err := r.pool.Exec(ctx,
-		`UPDATE payment_intent SET `+set+`, last_stripe_event_created_at = now()
-		 WHERE stripe_payment_intent_id = $1 AND state <> $2`, stripeID, string(target))
-	if err != nil {
-		return false, err
-	}
-	return tag.RowsAffected() == 1, nil
-}
-
-// RecordCapture stamps a captured amount and posts the CAPTURE ledger batch in
-// one transaction. Both the state move and the batch are idempotent: a
-// redelivered succeeded event captures once and posts one batch (I-17.1).
-func (r *Repo) RecordCapture(ctx context.Context, stripeID string, capturedCents int64, batch LedgerBatch) error {
-	return r.tx(ctx, func(tx pgx.Tx) error {
-		_, err := tx.Exec(ctx, `
-			UPDATE payment_intent
-			   SET state = 'SUCCEEDED',
-			       amount_captured_cents = $2,
-			       captured_at = coalesce(captured_at, now()),
-			       last_stripe_event_created_at = now(),
-			       deadline_at = NULL, deadline_action = NULL
-			 WHERE stripe_payment_intent_id = $1`, stripeID, capturedCents)
-		if err != nil {
-			return err
-		}
-		return insertBatch(ctx, tx, batch)
-	})
-}
-
 // ---------------------------------------------------------------------------
 // Orders (read-only) — for refund computation and ledger decomposition.
 // ---------------------------------------------------------------------------
 
+// rowQuerier is satisfied by *pgxpool.Pool and pgx.Tx alike, for a read that
+// may run inside a webhook's transaction or outside any.
+type rowQuerier interface {
+	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
+}
+
 // GetOrderMoney reads an order's decomposed money plus its account/restaurant.
 func (r *Repo) GetOrderMoney(ctx context.Context, orderID string) (OrderMoney, string, error) {
+	return getOrderMoney(ctx, r.pool, orderID)
+}
+
+func getOrderMoney(ctx context.Context, q rowQuerier, orderID string) (OrderMoney, string, error) {
 	var m OrderMoney
 	var accountID string
-	err := r.pool.QueryRow(ctx, `
+	err := q.QueryRow(ctx, `
 		SELECT o.id::text, o.restaurant_id::text, o.account_id::text,
 		       o.subtotal_cents, o.discount_cents, o.delivery_fee_cents, o.service_fee_cents,
 		       o.tax_total_cents, o.tip_cents, o.total_cents,
@@ -361,22 +322,6 @@ func (r *Repo) PriorRefundedCents(ctx context.Context, q querier, orderID string
 	return sum, err
 }
 
-// IssuedByOperatorSince returns the sum of refund amounts an operator has issued
-// (as requested_by) since `since`, over refunds that still count against the
-// cap. It is the numerator of the A-33 rolling authority window: the cap is a
-// 24-hour window, not a per-request limit, so many small refunds still trip it.
-// DECLINED and CANCELLED refunds never happened for the customer, so they do not
-// consume the window.
-func (r *Repo) IssuedByOperatorSince(ctx context.Context, operatorID string, since time.Time) (int64, error) {
-	var sum int64
-	err := r.pool.QueryRow(ctx, `
-		SELECT coalesce(sum(amount_cents),0) FROM refund
-		 WHERE requested_by = $1
-		   AND requested_at >= $2
-		   AND state NOT IN ('DECLINED','CANCELLED')`, operatorID, since).Scan(&sum)
-	return sum, err
-}
-
 // ---------------------------------------------------------------------------
 // Refunds — write path.
 // ---------------------------------------------------------------------------
@@ -397,67 +342,96 @@ type CreateRefundParams struct {
 	ApprovalStatus  string // "", PENDING, APPROVED, DECLINED
 	RequestedBy     string
 	ApprovedBy      string
-	DeadlineAction  string
-	Lines           []RefundLineAmount
-	Ledger          *LedgerBatch // nil until AUTHORISED
-	Money           OrderMoney
+	// EscalatedBy names who sent the refund up for a second person; they may
+	// not approve it (refund_second_person, 00048).
+	EscalatedBy string
+	// RequiredRole is the role that must decide an approval request
+	// (PENDING_APPROVAL); empty otherwise.
+	RequiredRole   string
+	DeadlineAction string
+	Lines          []RefundLineAmount
+	Ledger         *LedgerBatch // nil until AUTHORISED
+	Money          OrderMoney
 }
+
+// refundWaitForReview is how long a refund waiting for a person (a
+// customer's request, or an approval request) has before it is overdue: the
+// 24-hour review target in docs/spec/02-customer.md, "C-37 — Refund requests
+// and refund tracking".
+const refundWaitForReview = 24 * time.Hour
 
 // CreateRefund inserts the refund, its lines and (when provided) its balanced
 // ledger batch in a single transaction. The deferred triggers assert
-// refund≤captured and batch balance at COMMIT.
+// refund≤captured and batch balance at COMMIT. An authorised refund is due to
+// the sender at once (refund_sender.go); one waiting for a person is on the
+// review clock.
 func (r *Repo) CreateRefund(ctx context.Context, p CreateRefundParams) (string, error) {
 	var refundID string
 	err := r.tx(ctx, func(tx pgx.Tx) error {
-		var deadlineAt *time.Time
-		if !terminalRefund(p.State) {
-			d := time.Now().Add(2 * time.Minute)
-			deadlineAt = &d
-		}
-		var approval *string
-		if p.ApprovalStatus != "" {
-			approval = &p.ApprovalStatus
-		}
-		var approvedBy *string
-		if p.ApprovedBy != "" {
-			approvedBy = &p.ApprovedBy
-		}
-		var action *string
-		if p.DeadlineAction != "" {
-			action = &p.DeadlineAction
-		}
-		err := tx.QueryRow(ctx, `
-			INSERT INTO refund (order_id, payment_intent_id, kind, scope, reason_code, note,
-			                    amount_cents, tax_cents,
-			                    restaurant_chargeback_cents, rider_chargeback_cents, platform_absorbed_cents,
-			                    state, approval_status, requested_by, approved_by,
-			                    deadline_at, deadline_action)
-			VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
-			RETURNING id::text`,
-			p.OrderID, p.PaymentIntentID, string(p.Kind), string(p.Scope), p.ReasonCode, nullStr(p.Note),
-			p.AmountCents, p.TaxCents,
-			p.Split.RestaurantChargebackCents, p.Split.RiderChargebackCents, p.Split.PlatformAbsorbedCents,
-			string(p.State), approval, p.RequestedBy, approvedBy,
-			deadlineAt, action).Scan(&refundID)
-		if err != nil {
-			return err
-		}
-		for _, l := range p.Lines {
-			if _, err := tx.Exec(ctx, `
-				INSERT INTO refund_line (refund_id, order_line_no, quantity, amount_cents)
-				VALUES ($1,$2,$3,$4)`, refundID, l.OrderLineNo, l.Quantity, l.AmountCents); err != nil {
-				return err
-			}
-		}
-		if p.Ledger != nil {
-			p.Ledger.RefundID = refundID
-			if err := insertBatch(ctx, tx, *p.Ledger); err != nil {
-				return err
-			}
-		}
-		return nil
+		id, err := insertRefund(ctx, tx, p)
+		refundID = id
+		return err
 	})
 	return refundID, err
+}
+
+// insertRefund writes the refund, its lines and its ledger batch in the
+// caller's transaction. An approved refund is dated (approved_at, which its
+// approver's rolling 24-hour total counts) and one sent up for a second person
+// names who sent it.
+func insertRefund(ctx context.Context, tx pgx.Tx, p CreateRefundParams) (string, error) {
+	var deadlineIn *float64
+	if !terminalRefund(p.State) {
+		wait := refundWaitForReview.Seconds()
+		if p.State == RefundAuthorised {
+			wait = 0
+		}
+		deadlineIn = &wait
+	}
+	var refundID string
+	err := tx.QueryRow(ctx, `
+		INSERT INTO refund (order_id, payment_intent_id, kind, scope, reason_code, note,
+		                    amount_cents, tax_cents,
+		                    restaurant_chargeback_cents, rider_chargeback_cents, platform_absorbed_cents,
+		                    state, approval_status, requested_by, approved_by, approval_required_role,
+		                    deadline_at, deadline_action,
+		                    approved_at, escalated_by, escalated_at)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16::role_name,
+		        now() + make_interval(secs => $17::float8),$18,
+		        CASE WHEN $15::uuid IS NULL THEN NULL ELSE now() END,
+		        $19::uuid, CASE WHEN $19::uuid IS NULL THEN NULL ELSE now() END)
+		RETURNING id::text`,
+		p.OrderID, p.PaymentIntentID, string(p.Kind), string(p.Scope), p.ReasonCode, nullStr(p.Note),
+		p.AmountCents, p.TaxCents,
+		p.Split.RestaurantChargebackCents, p.Split.RiderChargebackCents, p.Split.PlatformAbsorbedCents,
+		string(p.State), nullStr(p.ApprovalStatus), p.RequestedBy, nullUUID(p.ApprovedBy), nullStr(p.RequiredRole),
+		deadlineIn, nullStr(p.DeadlineAction), nullUUID(p.EscalatedBy)).Scan(&refundID)
+	if err != nil {
+		return "", err
+	}
+	for _, l := range p.Lines {
+		if _, err := tx.Exec(ctx, `
+			INSERT INTO refund_line (refund_id, order_line_no, quantity, amount_cents)
+			VALUES ($1,$2,$3,$4)`, refundID, l.OrderLineNo, l.Quantity, l.AmountCents); err != nil {
+			return "", err
+		}
+	}
+	if err := EmitRefundCreated(ctx, tx, refundID); err != nil {
+		return "", err
+	}
+	if p.Ledger != nil {
+		p.Ledger.RefundID = refundID
+		posted, err := postBatchTx(ctx, tx, *p.Ledger)
+		if err != nil {
+			return "", err
+		}
+		// A rider chargeback reverses the rider's earnings with a CLAWBACK
+		// line in the same transaction (rider_earnings.go).
+		if err := writeRiderClawbacksTx(ctx, tx, *p.Ledger, posted); err != nil {
+			return "", err
+		}
+	}
+	return refundID, nil
 }
 
 // RefundRow is a refund read back for the API.
@@ -611,20 +585,19 @@ func (r *Repo) InsertWebhookEvent(ctx context.Context, ev StripeEvent) (inserted
 type storedEvent struct {
 	ID            string // webhook_event.id
 	StripeEventID string
-	Payload       []byte
 }
 
-// UnprocessedWebhookEventsSince lists the stored payment_intent events
-// created at or after since that have not been applied yet, oldest first.
-// Only the types with an effect here (intentEventTargets) are listed: any
-// other event stays pending for the handler that will own it.
+// UnprocessedWebhookEventsSince lists the stored events created at or after
+// since that have not been applied yet, oldest first, whatever their type:
+// every type has a handler now, or is applied as ignored (webhooks.go). A
+// dead-lettered event is listed too, so running the catch-up is also how an
+// operator retries one.
 func (r *Repo) UnprocessedWebhookEventsSince(ctx context.Context, since time.Time) ([]storedEvent, error) {
 	rows, err := r.pool.Query(ctx, `
-		SELECT id::text, stripe_event_id, payload
+		SELECT id::text, stripe_event_id
 		  FROM webhook_event
 		 WHERE provider = 'stripe' AND processed_at IS NULL AND event_created_at >= $1
-		   AND type = ANY($2)
-		 ORDER BY event_created_at, received_at`, since, intentEventTypes())
+		 ORDER BY event_created_at, received_at`, since)
 	if err != nil {
 		return nil, fmt.Errorf("list unprocessed webhook events: %w", err)
 	}
@@ -632,7 +605,7 @@ func (r *Repo) UnprocessedWebhookEventsSince(ctx context.Context, since time.Tim
 	var out []storedEvent
 	for rows.Next() {
 		var e storedEvent
-		if err := rows.Scan(&e.ID, &e.StripeEventID, &e.Payload); err != nil {
+		if err := rows.Scan(&e.ID, &e.StripeEventID); err != nil {
 			return nil, err
 		}
 		out = append(out, e)
@@ -640,59 +613,67 @@ func (r *Repo) UnprocessedWebhookEventsSince(ctx context.Context, since time.Tim
 	return out, rows.Err()
 }
 
-// MarkWebhookEventProcessed stamps an applied event. processed_at is what lets
-// the row drop its deadline (webhook_event_deadline_required). When applying
-// the event found something for a person, exc is filed in the same
-// transaction, so an event is never marked done without its exception.
-func (r *Repo) MarkWebhookEventProcessed(ctx context.Context, id string, exc *catchUpException) error {
+// catchUpException is a disagreement with Stripe left for a person, as a
+// reconciliation_exception row (docs/spec/01-platform.md, "P-17 — Webhooks,
+// idempotency and reconciliation"). The catch-up files the payment-intent
+// kinds; applying a stored event files the others (webhook_effects.go).
+type catchUpException struct {
+	Kind           string // one of catchUpExceptionKinds
+	StripeObjectID string // the Stripe object the disagreement is about
+	OrderID        string // empty when there is no order, or none this database knows
+	PayoutID       string // set for a transfer or bank-payout disagreement
+	ExpectedCents  *int64 // what this database holds, when an amount disagrees
+	ActualCents    *int64 // what Stripe reports
+}
+
+// FileCatchUpException files exc, and raises its alert, unless the same kind
+// is already open for the same Stripe object.
+func (r *Repo) FileCatchUpException(ctx context.Context, exc catchUpException) error {
 	return r.tx(ctx, func(tx pgx.Tx) error {
-		if _, err := tx.Exec(ctx, `
-			UPDATE webhook_event
-			   SET processed_at = now(), attempts = attempts + 1, last_error = NULL,
-			       deadline_at = NULL, deadline_action = NULL, lease_until = NULL, lease_owner = NULL
-			 WHERE id = $1 AND processed_at IS NULL`, id); err != nil {
-			return err
-		}
-		if exc == nil {
-			return nil
-		}
-		return fileException(ctx, tx, *exc)
+		_, err := fileException(ctx, tx, exc)
+		return err
 	})
 }
 
-// catchUpException is a disagreement with Stripe that the catch-up leaves for
-// a person, as a reconciliation_exception row (docs/spec/01-platform.md,
-// "P-17 — Webhooks, idempotency and reconciliation").
-type catchUpException struct {
-	Kind           string // one of catchUpExceptionKinds
-	StripeObjectID string // the PaymentIntent
-	OrderID        string // empty when this database has no row for it
-}
-
-// FileCatchUpException files exc unless the same kind is already open for the
-// same payment.
-func (r *Repo) FileCatchUpException(ctx context.Context, exc catchUpException) error {
-	return r.tx(ctx, func(tx pgx.Tx) error { return fileException(ctx, tx, exc) })
-}
-
-func fileException(ctx context.Context, tx pgx.Tx, exc catchUpException) error {
-	_, err := tx.Exec(ctx, `
-		INSERT INTO reconciliation_exception (kind, stripe_object_id, order_id)
-		SELECT $1, $2, $3::uuid
+// fileException files exc in the caller's transaction unless the same kind is
+// already open for the same Stripe object, and pages on-call for a new one in
+// the same transaction (the spec's "written to reconciliation_exception and
+// paged"). It reports whether it filed a new row.
+func fileException(ctx context.Context, tx pgx.Tx, exc catchUpException) (bool, error) {
+	var id string
+	err := tx.QueryRow(ctx, `
+		INSERT INTO reconciliation_exception (kind, stripe_object_id, order_id, payout_id, expected_cents, actual_cents)
+		SELECT $1, $2, $3::uuid, $4::uuid, $5, $6
 		 WHERE NOT EXISTS (SELECT 1 FROM reconciliation_exception
-		                    WHERE kind = $1 AND stripe_object_id = $2 AND resolved_at IS NULL)`,
-		exc.Kind, exc.StripeObjectID, nullUUID(exc.OrderID))
-	if err != nil {
-		return fmt.Errorf("file reconciliation exception %s for %s: %w", exc.Kind, exc.StripeObjectID, err)
+		                    WHERE kind = $1 AND stripe_object_id = $2 AND resolved_at IS NULL)
+		RETURNING id::text`,
+		exc.Kind, exc.StripeObjectID, nullUUID(exc.OrderID), nullUUID(exc.PayoutID),
+		exc.ExpectedCents, exc.ActualCents).Scan(&id)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return false, nil
 	}
-	return nil
+	if err != nil {
+		return false, fmt.Errorf("file reconciliation exception %s for %s: %w", exc.Kind, exc.StripeObjectID, err)
+	}
+	msg := exceptionMessages[exc.Kind]
+	if msg == "" {
+		msg = "Stripe and this database disagree; a person has to settle it."
+	}
+	if err := raiseOpsAlert(ctx, tx, opsAlert{
+		Severity: "high", Kind: exc.Kind, SubjectType: "reconciliation_exception", SubjectID: id,
+		Message: msg + " Stripe object " + exc.StripeObjectID + ".",
+	}); err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 // OpenCatchUpExceptions lists every unresolved exception of a kind the
-// catch-up files, oldest first.
+// catch-up or the webhook handlers file, oldest first.
 func (r *Repo) OpenCatchUpExceptions(ctx context.Context) ([]catchUpException, error) {
 	rows, err := r.pool.Query(ctx, `
-		SELECT kind, coalesce(stripe_object_id, ''), coalesce(order_id::text, '')
+		SELECT kind, coalesce(stripe_object_id, ''), coalesce(order_id::text, ''), coalesce(payout_id::text, ''),
+		       expected_cents, actual_cents
 		  FROM reconciliation_exception
 		 WHERE resolved_at IS NULL AND kind = ANY($1)
 		 ORDER BY detected_at, id`, catchUpExceptionKinds)
@@ -703,21 +684,12 @@ func (r *Repo) OpenCatchUpExceptions(ctx context.Context) ([]catchUpException, e
 	var out []catchUpException
 	for rows.Next() {
 		var e catchUpException
-		if err := rows.Scan(&e.Kind, &e.StripeObjectID, &e.OrderID); err != nil {
+		if err := rows.Scan(&e.Kind, &e.StripeObjectID, &e.OrderID, &e.PayoutID, &e.ExpectedCents, &e.ActualCents); err != nil {
 			return nil, err
 		}
 		out = append(out, e)
 	}
 	return out, rows.Err()
-}
-
-// RecordWebhookEventFailure counts a failed attempt and keeps the row pending,
-// deadline and all, so it is retried.
-func (r *Repo) RecordWebhookEventFailure(ctx context.Context, id, lastError string) error {
-	_, err := r.pool.Exec(ctx, `
-		UPDATE webhook_event SET attempts = attempts + 1, last_error = $2
-		 WHERE id = $1 AND processed_at IS NULL`, id, lastError)
-	return err
 }
 
 // IntentStripeIDsTouchedSince lists the Stripe ids of every payment_intent
@@ -751,17 +723,32 @@ func (r *Repo) PostBatch(ctx context.Context, b LedgerBatch) error {
 	return r.tx(ctx, func(tx pgx.Tx) error { return insertBatch(ctx, tx, b) })
 }
 
-// LedgerBatchPosted reports whether a batch with this idempotency key exists.
-func (r *Repo) LedgerBatchPosted(ctx context.Context, idempotencyKey string) (bool, error) {
+// ledgerBatchPosted reports whether a batch with this idempotency key exists.
+func ledgerBatchPosted(ctx context.Context, q rowQuerier, idempotencyKey string) (bool, error) {
 	var posted bool
-	err := r.pool.QueryRow(ctx,
+	err := q.QueryRow(ctx,
 		`SELECT EXISTS (SELECT 1 FROM ledger_batch WHERE idempotency_key = $1)`, idempotencyKey).Scan(&posted)
 	return posted, err
 }
 
 func insertBatch(ctx context.Context, tx pgx.Tx, b LedgerBatch) error {
+	_, err := postBatchTx(ctx, tx, b)
+	return err
+}
+
+// postedBatch is a batch this call wrote: its id and its entries' ids, in the
+// order of LedgerBatch.Entries.
+type postedBatch struct {
+	ID       string
+	EntryIDs []int64
+}
+
+// postBatchTx inserts a balanced batch and its entries. A batch whose
+// idempotency key is already posted is a no-op and returns nil, so a caller
+// that writes rows alongside the batch (rider earnings) writes them once.
+func postBatchTx(ctx context.Context, tx pgx.Tx, b LedgerBatch) (*postedBatch, error) {
 	if !b.Balanced() {
-		return fmt.Errorf("refusing to post unbalanced batch (residual=%d, entries=%d)", b.Residual(), len(b.Entries))
+		return nil, fmt.Errorf("refusing to post unbalanced batch (residual=%d, entries=%d)", b.Residual(), len(b.Entries))
 	}
 	var batchID string
 	err := tx.QueryRow(ctx, `
@@ -773,22 +760,26 @@ func insertBatch(ctx context.Context, tx pgx.Tx, b LedgerBatch) error {
 		b.IdempotencyKey, b.PostedBy, nullStr(b.Memo)).Scan(&batchID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		// Duplicate idempotency key: the batch is already posted. No-op.
-		return nil
+		return nil, nil
 	}
 	if err != nil {
-		return err
+		return nil, err
 	}
+	posted := &postedBatch{ID: batchID, EntryIDs: make([]int64, 0, len(b.Entries))}
 	for _, e := range b.Entries {
-		if _, err := tx.Exec(ctx, `
+		var id int64
+		if err := tx.QueryRow(ctx, `
 			INSERT INTO ledger_entry (batch_id, order_id, account, counterparty_type, counterparty_id,
 			                          amount_cents, component, memo)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+			RETURNING id`,
 			batchID, nullUUID(b.OrderID), string(e.Account), nullStr(string(e.CounterpartyType)),
-			nullUUID(e.CounterpartyID), e.AmountCents, string(e.Component), nullStr(e.Memo)); err != nil {
-			return err
+			nullUUID(e.CounterpartyID), e.AmountCents, string(e.Component), nullStr(e.Memo)).Scan(&id); err != nil {
+			return nil, err
 		}
+		posted.EntryIDs = append(posted.EntryIDs, id)
 	}
-	return nil
+	return posted, nil
 }
 
 // ---------------------------------------------------------------------------

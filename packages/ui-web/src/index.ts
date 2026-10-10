@@ -16,6 +16,7 @@
  *   ./navigation     Tier 4
  *   ./feedback       Tier 5
  *   ./data           admin data display
+ *   ./live           realtime socket + live map (restaurant and admin)
  *
  * The stylesheet is not re-exported. Import it once, in the app:
  *   import '@hg/ui-web/styles.css';
@@ -28,3 +29,4 @@ export * from './content/index.js';
 export * from './navigation/index.js';
 export * from './feedback/index.js';
 export * from './data/index.js';
+export * from './live/index.js';

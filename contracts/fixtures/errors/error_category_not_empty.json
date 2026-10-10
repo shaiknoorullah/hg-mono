@@ -1,0 +1,23 @@
+{
+  "scenario": "error_category_not_empty",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`409` · `CATEGORY_NOT_EMPTY`. `deleteMenuCategory` on a category that still holds items. Deleting a category never deletes an item, so nothing changed; `details.item_count` says how many.",
+  "operations": [
+    "deleteMenuCategory"
+  ],
+  "status": 409,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "CATEGORY_NOT_EMPTY",
+      "message": "Move or delete the 3 items in Desserts before deleting it.",
+      "request_id": "WQ1GPWY524Z29ES1SA07F6A7SZ",
+      "details": {
+        "item_count": 3
+      }
+    }
+  }
+}

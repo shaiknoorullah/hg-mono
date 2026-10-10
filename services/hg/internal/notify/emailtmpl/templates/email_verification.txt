@@ -1,0 +1,15 @@
+HalalGoes
+
+Confirm your email address
+
+Welcome to HalalGoes. Confirm this is your email address to keep setting up your restaurant.
+
+Confirm email {{.ActionURL}}
+
+The link works once, until {{.ExpiresAt}}. If you did not sign up for HalalGoes, you can ignore this email and nothing will happen.
+
+----------------------------------------
+
+You are receiving this because you have a HalalGoes account. It is a service message about that account, not marketing.
+
+HalalGoes · Halal food delivery in Ontario

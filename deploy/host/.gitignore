@@ -1,0 +1,11 @@
+# The real inventory names the server's address and the owner's keys: kept local.
+inventory/hosts.yml
+inventory/host_vars/
+# Collections installed by provision.sh
+.collections/
+# WireGuard peer configs written for the owner's devices (public keys only, but per-owner)
+out/
+# Never commit decrypted secrets. Encrypted ones live outside the repository (README, "Secrets").
+secrets/*
+!secrets/*.example.yaml
+!secrets/*.example.env

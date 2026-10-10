@@ -173,7 +173,7 @@ leaked. `403` means "you can see this resource but may not perform this action".
 ### Versioning
 
 Every operation carries `x-version`: `V0` (in the 43-feature launch cut) or `V1` (needed to make
-a V0 screen coherent, but not itself launch-blocking). Current counts: **143 V0, 16 V1**
+a V0 screen coherent, but not itself launch-blocking). Current counts: **153 V0, 19 V1**
 (`pnpm validate:contract` prints them).
 
 On 2026-10-01 the owner moved into launch the operations launch screens depend on, and added
@@ -192,6 +192,14 @@ issue [#182](https://github.com/shaiknoorullah/hg-mono/issues/182)):
 | **New:** a restaurant renames, reorders, deactivates or reactivates its own category | `updateMenuCategory` |
 | The menu review queue | `listMenuReviewQueue`, `decideMenuVersion` |
 | **New:** an admin updates or removes a menu item on a restaurant's behalf | `updateMenuItemOnBehalf`, `deleteMenuItemOnBehalf` |
+
+Then, for launch, staff review refunds and see chargebacks ([#172](https://github.com/shaiknoorullah/hg-mono/issues/172)):
+
+| What | Operations |
+|---|---|
+| **New:** the refund review queue; approve a refund (within the approver's 24-hour limit, or sent up for a second person) or decline it with a reason | `listRefundsAdmin`, `approveRefund`, `declineRefund` |
+| **New:** chargebacks (disputes raised with the customer's bank) and the evidence notes staff keep for them | `listChargebacks`, `getChargeback`, `addChargebackEvidenceNote` |
+| **Widened:** the admin order view carries the order's money timeline and its chargebacks | `getOrderAdmin` |
 
 Still later-version: turning two-step sign-in off, listing and ending single sessions,
 dependency status, the in-app inbox, restaurant staff, ratings, the home feed and a restaurant
@@ -229,37 +237,6 @@ codes are proof of presence, so the contract leaves the rider no way past them.
 - No rider-visible schema (offer, assignment, dashboard), no event on `order:{order_id}`, no push,
   SMS or email, and no error body carries a code. `pnpm validate:contract` fails if a response
   of a rider operation ever gains a `pickup_code`, `delivery_code` or `otp_code` property.
-
-#### Address search through our API
-
-On the same day (2026-10-01) the owner decided where the location picker's address search
-comes from: our API, which forwards to Mapbox
-([round-2 decisions, "Launch scope and contract", map address search](../docs/decisions/README.md#launch-scope-and-contract),
-issue [#179](https://github.com/shaiknoorullah/hg-mono/issues/179)). The secret key stays on
-the server, and the provider can change without a client release. Three launch operations,
-tag `geo`, for customers and for restaurant owners and managers:
-
-| Operation | What it does | No match | Provider down |
-|---|---|---|---|
-| `suggestAddresses` — `GET /v1/geo/autocomplete` | Up to 5 Canadian suggestions as the user types, ranked towards the location sent, else the default address or restaurant location, else `default_map_center`. Needs a client-made `session_token` | `200` with an empty list | `503 GEOCODER_UNAVAILABLE` |
-| `getPlaceAddress` — `GET /v1/geo/places/{placeId}` | The address and point of a picked suggestion; ends the search session | `404 GEOCODE_NO_MATCH` | `503 GEOCODER_UNAVAILABLE` |
-| `reverseGeocode` — `GET /v1/geo/reverse` | The nearest Canadian address to a map pin | `404 GEOCODE_NO_MATCH` | `503 GEOCODER_UNAVAILABLE` |
-
-`suggestAddresses` is rate class `GEO_SUGGEST`: 60 requests per account per minute, burst 20,
-so one search typed a key at a time stays under it. `getPlaceAddress` and `reverseGeocode` are
-rate class `GEO`: 30 requests per account per minute, burst 10, each counted separately
-([rate limiting](../docs/spec/01-platform.md#p-38--rate-limiting)). Over the limit is
-`429 RATE_LIMITED`. Results are Canada-only: the server asks the provider for
-Canadian results and drops any other. A result outside the served provinces is still
-returned, and saving it is `PROVINCE_NOT_SERVED`. The operations store nothing: the result
-prefills the form, and `createAddress` or `submitRestaurantProfile` saves what the user
-confirms, at the pin's final position. Because that saved address comes from Mapbox, the
-server gets it from Mapbox Geocoding v6 with `permanent=true`: Mapbox results are temporary by
-default, and a temporary result may not be stored or cached
-([Mapbox: storing geocoding results](https://docs.mapbox.com/api/search/geocoding/#storing-geocoding-results);
-cost: [#297](https://github.com/shaiknoorullah/hg-mono/issues/297)). Suggestions may stay
-temporary, and the server never caches them. When the provider is down or nothing matches, the manual form and the
-map pin still work.
 
 ---
 
@@ -364,6 +341,7 @@ either way, but the **values** need a human before launch:
 | `x-roles` and `x-version` present | Any operation omits either — this is the deny-by-default gate expressed in the contract |
 | Money invariant | A `_cents` field is not `integer/int64`, or a money-shaped field lacks the suffix, or a `number`-typed field has a money-shaped name |
 | Mass-assignment invariant | A request body contains a price-shaped field outside the three-item allowlist |
+| Menu lock declared | A write under a menu path (`/menu`, `/menu/…`, `/menu-reviews/…`) has no `403` naming `MENU_LOCKED`, the refusal while the restaurant is suspended or banned ([menu lock](../docs/decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01), [#256](https://github.com/shaiknoorullah/hg-mono/issues/256)) |
 | Component reachability | A schema, parameter or response is declared and never referenced |
 | Contract drift | The document generated from the route registry differs from the committed one |
 | Fixture validity | Any fixture under `contracts/fixtures/` does not validate against its named schema (`pnpm validate:fixtures`) |

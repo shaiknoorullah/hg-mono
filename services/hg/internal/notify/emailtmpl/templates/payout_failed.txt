@@ -1,0 +1,18 @@
+HalalGoes
+
+Your payout did not reach you
+
+Payout
+
+{{.Amount}} to {{.PayeeName}}
+For {{.PeriodText}}
+
+{{.NextStep}}
+
+You can see this payout under Payouts in HalalGoes.
+
+----------------------------------------
+
+You are receiving this because you have a HalalGoes account. It is a service message about that account, not marketing.
+
+HalalGoes · Halal food delivery in Ontario

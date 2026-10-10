@@ -7,7 +7,7 @@
  * matches on. `HgApiError` is unwrapped into a stable `{ code, message }` so the feedback
  * components can drive their copy off the code.
  */
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { HgApiError, isApiError } from '@hg/api-client';
 
 export interface AsyncError {
@@ -46,28 +46,49 @@ export async function unwrap<T>(result: Promise<FetchResult<T>> | FetchResult<T>
   return settled.data;
 }
 
-export function useLoad<T>(fetcher: () => Promise<T>): AsyncState<T> & { reload: () => void } {
+/**
+ * `reload` re-runs the request through the loading state; `refresh` re-runs it silently,
+ * keeping the current data on screen and on failure — the live screens' path, so a realtime
+ * signal or a poll never flashes a skeleton or replaces a good view with an error.
+ */
+export function useLoad<T>(fetcher: () => Promise<T>): AsyncState<T> & { reload: () => void; refresh: () => Promise<void> } {
   const [state, setState] = useState<AsyncState<T>>({
     status: 'loading',
     data: null,
     error: null,
   });
 
+  // Callers memoise `fetcher` on the route parameter it reads (useCallback with `[certificateId]`
+  // and the like), so a new fetcher means the screen moved to another record: load that one. Each
+  // run takes a ticket and only the newest may set state, so a slower answer for the record the
+  // screen left can never overwrite the one now on it.
+  const latest = useRef(0);
   const run = useCallback(async () => {
+    const ticket = ++latest.current;
     setState({ status: 'loading', data: null, error: null });
     try {
       const data = await fetcher();
-      setState({ status: 'ready', data, error: null });
+      if (ticket === latest.current) setState({ status: 'ready', data, error: null });
     } catch (err) {
-      setState({ status: 'error', data: null, error: toAsyncError(err) });
+      if (ticket === latest.current) setState({ status: 'error', data: null, error: toAsyncError(err) });
     }
-    // fetcher is provided fresh per render by callers via useCallback; intentionally excluded.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [fetcher]);
 
   useEffect(() => {
     void run();
   }, [run]);
 
-  return { ...state, reload: () => void run() };
+  // A silent refresh takes a ticket too: it refreshes the record now on screen, and an answer
+  // that arrives after the screen moved on (or after a newer run) is dropped.
+  const refresh = useCallback(async () => {
+    const ticket = ++latest.current;
+    try {
+      const data = await fetcher();
+      if (ticket === latest.current) setState({ status: 'ready', data, error: null });
+    } catch {
+      /* keep the last good view; the next signal or poll tries again */
+    }
+  }, [fetcher]);
+
+  return { ...state, reload: () => void run(), refresh };
 }

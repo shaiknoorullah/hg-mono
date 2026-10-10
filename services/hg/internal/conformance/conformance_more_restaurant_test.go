@@ -16,9 +16,12 @@ package conformance
 //	  attachRestaurantDocument    POST /v1/restaurant/documents
 //	  submitRestaurantDocuments   POST /v1/restaurant/documents/submit
 //	  createMenuCategory          POST /v1/restaurant/menu/categories
+//	  updateMenuCategory          PATCH /v1/restaurant/menu/categories/{categoryId}
 //	  createMenuItem              POST /v1/restaurant/menu/items
 //	  updateMenuItem              PATCH /v1/restaurant/menu/items/{itemId}
 //	  setMenuItemAvailability     PUT  /v1/restaurant/menu/items/{itemId}/availability
+//	  deleteMenuItem              DELETE /v1/restaurant/menu/items/{itemId}
+//	  deleteMenuCategory          DELETE /v1/restaurant/menu/categories/{categoryId}
 //	  markOrderReady              POST /v1/restaurant/orders/{orderId}/ready
 //
 //	Catalog module (restaurant trading state):
@@ -41,6 +44,8 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders/machine"
 )
 
 // ─── seed helpers (scoped to this file, mr* prefix) ──────────────────────────
@@ -368,6 +373,12 @@ func TestConformance_MoreRestaurant_Menu(t *testing.T) {
 		mrValidateReqThenResp(t, h, "POST", "/v1/restaurant/menu/categories", b.managerID, body, 201)
 	})
 
+	// updateMenuCategory — PATCH → MenuCategory (200).
+	t.Run("updateMenuCategory", func(t *testing.T) {
+		body := map[string]any{"name": "Mains & Grills", "sort_order": 0, "is_active": true}
+		mrValidateReqThenResp(t, h, "PATCH", "/v1/restaurant/menu/categories/"+b.categoryID, b.managerID, body, 200)
+	})
+
 	// createMenuItem — POST → MenuItem (201).
 	t.Run("createMenuItem", func(t *testing.T) {
 		body := map[string]any{
@@ -389,6 +400,27 @@ func TestConformance_MoreRestaurant_Menu(t *testing.T) {
 	t.Run("setMenuItemAvailability", func(t *testing.T) {
 		body := map[string]any{"availability_state": "OUT_OF_STOCK"}
 		mrValidateReqThenResp(t, h, "PUT", "/v1/restaurant/menu/items/"+b.itemID+"/availability", b.managerID, body, 200)
+	})
+
+	// deleteMenuItem — DELETE → 204, no body.
+	t.Run("deleteMenuItem", func(t *testing.T) {
+		h.CheckResponse(t, Request{Method: "DELETE", Path: "/v1/restaurant/menu/items/" + b.itemID,
+			AccountID: b.managerID, Roles: mrRoles}, 204)
+	})
+
+	// deleteMenuCategory — DELETE → 204 on an empty category, 409
+	// CATEGORY_NOT_EMPTY (an ErrorEnvelope) on one that still holds items.
+	t.Run("deleteMenuCategory", func(t *testing.T) {
+		var empty string
+		if err := pool.QueryRow(context.Background(), `
+			INSERT INTO menu_category (restaurant_id, name) VALUES ($1, 'Seasonal') RETURNING id`,
+			b.restaurantID).Scan(&empty); err != nil {
+			t.Fatalf("seed empty category: %v", err)
+		}
+		h.CheckResponse(t, Request{Method: "DELETE", Path: "/v1/restaurant/menu/categories/" + empty,
+			AccountID: b.managerID, Roles: mrRoles}, 204)
+		h.CheckResponse(t, Request{Method: "DELETE", Path: "/v1/restaurant/menu/categories/" + b.categoryID,
+			AccountID: b.managerID, Roles: mrRoles}, 409)
 	})
 }
 
@@ -437,6 +469,21 @@ func TestConformance_MoreRestaurant_OrderReady(t *testing.T) {
 
 	h.CheckResponse(t, Request{Method: "POST", Path: "/v1/restaurant/orders/" + orderID + "/ready",
 		AccountID: b.managerID, Roles: mrRoles, IdemKey: fmt.Sprintf("mr-ready-%d", time.Now().UnixNano())}, 200)
+
+	// The ready order carries the deadline action the deadline runner handles,
+	// with a fresh escalation count. A hand-written RIDER_NO_SHOW had no handler,
+	// and the order never moved (https://github.com/shaiknoorullah/hg-mono/issues/293).
+	spec, _ := machine.DeadlineFor(machine.StateReadyForPickup)
+	var action string
+	var escalations int
+	if err := pool.QueryRow(context.Background(),
+		`SELECT deadline_action, deadline_escalations FROM "order" WHERE id = $1`, orderID).
+		Scan(&action, &escalations); err != nil {
+		t.Fatalf("read the ready order's deadline: %v", err)
+	}
+	if action != spec.Action || escalations != 0 {
+		t.Errorf("ready order deadline_action = %q with %d escalations, want %q with 0", action, escalations, spec.Action)
+	}
 }
 
 // ─── shared helper ───────────────────────────────────────────────────────────

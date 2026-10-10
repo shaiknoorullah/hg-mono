@@ -1,0 +1,4 @@
+# Managed by Ansible (deploy/host/roles/aide). Data and churn that are not system files.
+{% for p in hg_aide_excludes %}
+!{{ p }}
+{% endfor %}

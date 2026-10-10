@@ -1,0 +1,27 @@
+{
+  "scenario": "error_menu_locked_banned",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`403` · `MENU_LOCKED`. An admin changing a banned restaurant's menu, or deciding one of its versions waiting for review. A banned restaurant's own staff cannot sign in, so only admins meet this one.",
+  "operations": [
+    "createMenuCategoryOnBehalf",
+    "createMenuItemOnBehalf",
+    "updateMenuItemOnBehalf",
+    "deleteMenuItemOnBehalf",
+    "decideMenuVersion"
+  ],
+  "status": 403,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "MENU_LOCKED",
+      "message": "This restaurant's menu is locked while the restaurant is banned.",
+      "request_id": "E1VHHAMTNFZ0YBB622BQ4C96RS",
+      "details": {
+        "account_state": "BANNED"
+      }
+    }
+  }
+}

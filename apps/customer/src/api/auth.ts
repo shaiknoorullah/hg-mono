@@ -6,7 +6,8 @@
  * X-HG-Client header at the call site as the operation requires.
  */
 import { api } from './client';
-import { setToken } from './token';
+import { disablePush, enablePush } from './push';
+import { getToken, setToken } from './token';
 
 /** Request a phone OTP challenge. Returns the challenge_id to pass to verifyOtp. */
 export async function requestOtp(phone: string): Promise<string> {
@@ -35,9 +36,13 @@ export async function verifyOtp(challengeId: string, code: string): Promise<void
       `OTP verification failed (${response.status})`;
     throw new Error(message);
   }
-  setToken(data.data.access_token);
+  setToken(data.data.access_token, data.data.refresh_token ?? null);
+  // Fire and forget: push must never hold up sign-in (src/api/push.ts).
+  void enablePush();
 }
 
+/** Sign out, taking this phone's push registration back first. */
 export function logout(): void {
+  disablePush(getToken());
   setToken(null);
 }

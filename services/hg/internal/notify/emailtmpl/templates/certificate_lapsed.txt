@@ -1,0 +1,20 @@
+HalalGoes
+
+Your halal certificate has expired
+
+Halal certificate
+
+Issued by {{.IssuerName}}
+Expired {{.ExpiredOn}}
+
+Because we can no longer vouch for {{.RestaurantName}}'s halal certification, it is hidden from customers and cannot take new orders. Orders already accepted still complete.
+
+Upload your renewed certificate. As soon as we approve it, {{.RestaurantName}} is listed again.
+
+Upload renewed certificate {{.ActionURL}}
+
+----------------------------------------
+
+You are receiving this because you have a HalalGoes account. It is a service message about that account, not marketing.
+
+HalalGoes · Halal food delivery in Ontario

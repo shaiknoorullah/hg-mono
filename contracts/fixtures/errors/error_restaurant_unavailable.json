@@ -1,0 +1,18 @@
+{
+  "scenario": "error_restaurant_unavailable",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`409` · `RESTAURANT_UNAVAILABLE`. From `addCartLine`, `createQuote` and `createOrder` when the restaurant is not listed and live, or its halal certificate is not current as of the request, computed from admin-verified certificate data. The apps show the halal copy and keep the cart. Pairs with `cart_restaurant_unavailable`.",
+  "operations": [],
+  "status": 409,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "RESTAURANT_UNAVAILABLE",
+      "message": "This restaurant cannot take orders: it is not listed, or its halal certification is not current. Your cart is saved.",
+      "request_id": "7AS8JCRF26ZGDCB446P9HQCTMB"
+    }
+  }
+}

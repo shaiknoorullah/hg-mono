@@ -9,13 +9,11 @@
  *
  * Both writes are idempotent and require an `Idempotency-Key`.
  *
- * Note on the mock: `createOrder` has no registered fixture in `tools/mock-server`, so against
- * the mock the POST resolves to `INTERNAL_ERROR`. The checkout screen treats that specific case
- * as the known mock gap and recovers the order to track from `getActiveOrder`, which *is* served
- * from a real fixture — so the flow stays demoable end-to-end against real data while still
- * issuing the real `POST /v1/orders`.
+ * The response carries the Stripe PaymentIntent `client_secret`; the checkout screen confirms it
+ * with the payment sheet (src/payments). The intent is manual-capture: confirming authorises,
+ * the server captures when the restaurant accepts.
  */
-import { idempotencyKey, unwrap } from '@hg/api-client';
+import { idempotencyKey, isApiError, unwrap } from '@hg/api-client';
 import type { Schema } from '@hg/api-client';
 
 import { api } from './client';
@@ -28,6 +26,7 @@ export type OrderCustomerView = Schema['OrderCustomerView'];
 export type OrderSummary = Schema['OrderSummary'];
 export type OrderStatusGroup = Schema['OrderStatusGroup'];
 export type PageMeta = Schema['PageMeta'];
+export type Receipt = Schema['Receipt'];
 
 export async function createQuote(input: {
   cartId: string;
@@ -57,6 +56,19 @@ export async function placeOrder(quoteId: string): Promise<OrderCreated> {
   return body.data as unknown as OrderCreated;
 }
 
+/**
+ * The order's payment state. `client_secret` is re-issued here only while the intent still needs
+ * an action, which is how a customer retries payment for an order that already exists.
+ */
+export async function getOrderPayment(
+  orderId: string,
+): Promise<Schema['OrderPayment']> {
+  const body = await unwrap(
+    api.GET('/v1/orders/{orderId}/payment', { params: { path: { orderId } } }),
+  );
+  return body.data as unknown as Schema['OrderPayment'];
+}
+
 export async function getActiveOrder(): Promise<OrderCustomerView | null> {
   const body = await unwrap(api.GET('/v1/orders/active'));
   // The active-order endpoint returns `{ data: null }` when there is none.
@@ -66,6 +78,53 @@ export async function getActiveOrder(): Promise<OrderCustomerView | null> {
 export async function getOrder(orderId: string): Promise<OrderCustomerView> {
   const body = await unwrap(
     api.GET('/v1/orders/{orderId}', { params: { path: { orderId } } }),
+  );
+  return body.data as unknown as OrderCustomerView;
+}
+
+/**
+ * The order's receipt (P-10 / C-27), read from the snapshot the server writes once at
+ * `COMPLETED`. Until then the server answers `409 RECEIPT_NOT_READY`, which `isReceiptNotReady`
+ * recognises.
+ */
+export async function getOrderReceipt(orderId: string): Promise<Receipt> {
+  const body = await unwrap(
+    api.GET('/v1/orders/{orderId}/receipt', { params: { path: { orderId } } }),
+  );
+  return body.data as unknown as Receipt;
+}
+
+/** Typed against the contract's `ErrorCode`, so the build breaks if the contract drops it. */
+const RECEIPT_NOT_READY: Schema['ErrorCode'] = 'RECEIPT_NOT_READY';
+
+/**
+ * True for the receipt's `409 RECEIPT_NOT_READY`: the order has not reached `COMPLETED`, so it
+ * has no receipt yet. Any other 409 is a real error, not "not ready".
+ */
+export function isReceiptNotReady(e: unknown): boolean {
+  return isApiError(e) && e.status === 409 && e.code === RECEIPT_NOT_READY;
+}
+
+export type OrderCancellationInput = Schema['OrderCancellationInput'];
+export type CustomerCancellationReasonCode = Schema['CustomerCancellationReasonCode'];
+
+/**
+ * Free cancellation before the restaurant accepts (customer cancellation, docs/spec/02-customer.md
+ * "C-29 — Order cancellation by the customer"): the server voids the card authorisation, so
+ * nothing was charged. The caller owns the `Idempotency-Key` so a retry after a dropped response
+ * replays the same request rather than starting a new one. A restaurant that accepted first
+ * answers `409 CANCELLATION_WINDOW_CLOSED`.
+ */
+export async function cancelOrder(
+  orderId: string,
+  input: OrderCancellationInput,
+  key: string,
+): Promise<OrderCustomerView> {
+  const body = await unwrap(
+    api.POST('/v1/orders/{orderId}/cancel', {
+      params: { path: { orderId }, header: { 'Idempotency-Key': key } },
+      body: input,
+    }),
   );
   return body.data as unknown as OrderCustomerView;
 }
@@ -114,4 +173,14 @@ export async function reorder(orderId: string): Promise<{ failedLines: string[] 
     }
   }
   return { failedLines };
+}
+
+export type OrderTracking = Schema['OrderTracking'];
+
+/** `GET /v1/orders/{orderId}/tracking` — the REST twin of the socket's tracking projection. */
+export async function getOrderTracking(orderId: string): Promise<OrderTracking> {
+  const body = await unwrap(
+    api.GET('/v1/orders/{orderId}/tracking', { params: { path: { orderId } } }),
+  );
+  return body.data as unknown as OrderTracking;
 }

@@ -14,11 +14,18 @@ type Message struct {
 	Body     string
 	DeepLink string
 	Data     map[string]any
+	// Priority is the notification's; the push sender sends HIGH and
+	// CRITICAL at high priority with a sound.
+	Priority Priority
 	// IdempotencyKey is stable across retries of the same (notification,
 	// channel) pair — it is notificationID+":"+channel. Real providers accept
 	// this as a client reference / idempotency key so a retried River job
 	// that actually landed upstream does not send twice.
 	IdempotencyKey string
+	// Email is the rendered email (subject, HTML and plain text) for the
+	// EMAIL channel; nil on every other channel. The worker renders it from
+	// the notification row just before sending (email.go).
+	Email *RenderedEmail
 }
 
 // ErrChannelNotConfigured is returned by Notifier.Send for a channel with no
@@ -30,6 +37,13 @@ var ErrChannelNotConfigured = errors.New("notify: no sender registered for chann
 // EMAIL. INAPP has no external sender — see Notifier.Send.
 type ChannelSender interface {
 	Send(ctx context.Context, target string, msg Message) (providerMessageID string, err error)
+}
+
+// BatchSender is a ChannelSender that can send one message to several targets
+// in one call: ExpoSender sends a push to every live device of an account in
+// one request.
+type BatchSender interface {
+	SendBatch(ctx context.Context, targets []string, msg Message) (providerMessageID string, err error)
 }
 
 // SMSSender is the seam auth's phone-OTP path (P-02) sends through — the
@@ -74,6 +88,14 @@ func (a EmailAdapter) Send(ctx context.Context, target string, msg Message) (str
 	return a.SendEmail(ctx, target, msg)
 }
 
+// Provider implements ProviderNamer when the wrapped sender does.
+func (a EmailAdapter) Provider() string {
+	if n, ok := a.EmailSender.(ProviderNamer); ok {
+		return n.Provider()
+	}
+	return ""
+}
+
 // Notifier is the multi-channel dispatcher: one registered ChannelSender per
 // Channel. It has no failover policy of its own — the worker walks a
 // notification's channel plan and calls Send once per channel; Notifier's
@@ -100,6 +122,14 @@ func (n *Notifier) Configured(ch Channel) bool {
 	return ok
 }
 
+// Provider names the provider registered for ch, or "" when it does not say.
+func (n *Notifier) Provider(ch Channel) string {
+	if p, ok := n.senders[ch].(ProviderNamer); ok {
+		return p.Provider()
+	}
+	return ""
+}
+
 // Send dispatches to the registered sender for ch.
 func (n *Notifier) Send(ctx context.Context, ch Channel, target string, msg Message) (string, error) {
 	s, ok := n.senders[ch]
@@ -107,4 +137,20 @@ func (n *Notifier) Send(ctx context.Context, ch Channel, target string, msg Mess
 		return "", fmt.Errorf("%w: %s", ErrChannelNotConfigured, ch)
 	}
 	return s.Send(ctx, target, msg)
+}
+
+// SendAll dispatches one message to every target on ch: in one call when the
+// sender is a BatchSender, otherwise to the first target only, as Send would.
+func (n *Notifier) SendAll(ctx context.Context, ch Channel, targets []string, msg Message) (string, error) {
+	s, ok := n.senders[ch]
+	if !ok {
+		return "", fmt.Errorf("%w: %s", ErrChannelNotConfigured, ch)
+	}
+	if b, ok := s.(BatchSender); ok && len(targets) > 1 {
+		return b.SendBatch(ctx, targets, msg)
+	}
+	if len(targets) == 0 {
+		return s.Send(ctx, "", msg)
+	}
+	return s.Send(ctx, targets[0], msg)
 }

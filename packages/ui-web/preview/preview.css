@@ -1,0 +1,126 @@
+/*
+ * The preview's stylesheet: the library as a redesign app loads it (styles.css
+ * then shadcn.css), plus the gallery's own layout. Gallery classes are plain
+ * CSS so the specimen files add nothing to the released apps' Tailwind output.
+ */
+@import '../src/styles/globals.css';
+@import '../src/tokens/shadcn-aliases.css';
+
+body {
+  margin: 0;
+  background: var(--hg-surface-base);
+  color: var(--hg-text-primary);
+  font-family: var(--hg-font-ui);
+}
+
+.hg-preview {
+  display: grid;
+  gap: 32px;
+  padding: 24px;
+}
+
+.hg-preview-component {
+  display: grid;
+  gap: 12px;
+}
+
+.hg-preview-component > h2 {
+  margin: 0;
+  font-size: var(--hg-text-heading-md-size);
+  font-weight: var(--hg-text-heading-md-weight);
+}
+
+.hg-preview-state {
+  display: grid;
+  gap: 6px;
+}
+
+.hg-preview-state > h3 {
+  margin: 0;
+  font-size: var(--hg-text-label-sm-size);
+  font-weight: var(--hg-text-label-sm-weight);
+  color: var(--hg-text-secondary);
+}
+
+/* The screenshotted box: shrink-wrapped, with room for focus rings. */
+.hg-specimen {
+  justify-self: start;
+  padding: 8px;
+}
+
+.hg-specimen-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.hg-specimen-col {
+  display: grid;
+  gap: 12px;
+}
+
+/* W1 specimen layouts (mirror the live previews' .g2 grid, icon tiles and captions). */
+.hg-specimen-baseline {
+  align-items: baseline;
+}
+
+.hg-specimen-top {
+  align-items: flex-start;
+}
+
+.hg-specimen-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+  gap: 8px;
+  inline-size: min(1360px, 92vw);
+}
+
+.hg-specimen-tile {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  padding: 8px;
+  border-radius: var(--hg-radius-md);
+  background: var(--hg-surface-raised);
+  border: 1px solid var(--hg-border-decorative);
+}
+
+.hg-specimen-tile-dashed {
+  border-style: dashed;
+}
+
+.hg-specimen-caption {
+  font-size: var(--hg-text-caption-size);
+  color: var(--hg-text-secondary);
+}
+
+.hg-specimen-title {
+  font-weight: 600;
+}
+
+.hg-specimen-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+  align-items: start;
+  inline-size: min(1360px, 92vw);
+}
+
+.hg-specimen-pane {
+  inline-size: 520px;
+  max-inline-size: 92vw;
+}
+
+/* A strip of forest chrome, for the on-chrome tone. */
+.hg-specimen-chrome {
+  padding: 12px;
+  border-radius: var(--hg-radius-md);
+  background: var(--hg-surface-chrome);
+}
+
+/* Room around tooltips held open (they are portalled and centred on the trigger). */
+.hg-specimen-tooltip {
+  padding: 8px 180px 72px;
+  gap: 320px;
+}

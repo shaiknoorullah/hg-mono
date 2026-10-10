@@ -1,7 +1,7 @@
 ---
 covers:
   - services/hg/migrations/**
-reviewed: 2026-10-04
+reviewed: 2026-10-10
 ---
 
 # HalalGoes — database schema
@@ -16,9 +16,15 @@ migrations/
   roles/roles.sql    the database roles; the superuser runs it before goose
   seed/              launch data — tax table, halal issuing bodies, fee config
   lint/schema_lint.sql   the money + geography lints, runnable standalone
-  test/              invariant tests: 88 assertions about what the DB refuses
+  test/              invariant tests: 111 assertions about what the DB refuses
   tools/             contract-enum generator and checker
+  devworld/          local personas; loaded only by cmd/devworld
 ```
+
+`devworld/` is not a goose migration. `make migrate`, `make seed`, the reference
+loader, and a deploy never apply it. `make dev-reset` (or `go run ./cmd/devworld reset`
+from `services/hg`) is the only loader, and it refuses every environment other
+than local and every database that is not on this machine.
 
 ## Running
 
@@ -74,12 +80,22 @@ These are the invariants. Each is enforced by the schema, and each has a test in
 | # | Invariant | Mechanism |
 |---|---|---|
 | 1 | Money is `BIGINT`, named `*_cents`. No `money`, `numeric`, `double precision` or `real` in any monetary column. | `lint_money_columns()` + `assert_schema_lints()`, called by `00023`. A migration that adds a float money column **cannot apply**. |
-| 2 | A non-terminal order carries a deadline and an action; a terminal one carries neither. | `order_deadline_required` CHECK on `"order"`, `dispatch_deadline_required` on `dispatch`, and the same shape on `payment_intent`, `refund`, `payout`, `kyc_document`, `stored_object`, `webhook_event`. "An order waits forever" is unrepresentable, not merely unlikely. |
+| 2 | A non-terminal order carries a deadline and an action; a terminal one carries neither. | `order_deadline_required` CHECK on `"order"`, `dispatch_deadline_required` on `dispatch`, and the same shape on `payment_intent`, `refund`, `payout`, `kyc_document`, `stored_object`, `webhook_event` and `chargeback` (on its evidence deadline until Stripe closes the dispute, `00034`). A Stripe webhook set aside after eight failed attempts is the one unprocessed row with no clock: it must carry the error that put it there, and it paged on-call when it was set aside (`00034`, [#231](https://github.com/shaiknoorullah/hg-mono/issues/231)). "An order waits forever" is unrepresentable, not merely unlikely. |
 | 3 | Every ledger batch sums to zero; `ledger_entry` is append-only. | Deferred constraint trigger `ledger_entry_batch_balanced` (fires at COMMIT, so rows may be written in any order) + `REVOKE UPDATE, DELETE, TRUNCATE` from `hg_app` + a `BEFORE UPDATE OR DELETE` trigger. Corrections are new `ADJUSTMENT` batches. |
 | 4 | The decomposition invariant is one query returning zero rows. | `SELECT * FROM ledger_order_residual;` — plus `ledger_batch_imbalance`, `ledger_global_residual`, `ledger_charge_identity_breach`, `ledger_tip_passthrough_breach`, and `assert_ledger_invariants()` which raises on any of them. |
 | 5 | The audit log is append-only and hash-chained, written in the same transaction as the change. | `audit_event_chain()` computes `seq`, `prev_hash` and `hash = sha256(prev_hash ‖ canonical_json(row))` in a `BEFORE INSERT` trigger — the application supplies none of them and cannot forge them. `verify_audit_chain(day)` returns the first broken link. |
 | 6 | One canonical location column per entity, `geography(Point,4326)`, with the GiST indexes dispatch needs. | `lint_location_columns()`. A second location column, a `geometry`, a bare `point`, or a column named `coords` all fail the gate. |
-| 7 | The API cannot switch any of the above off. | The API logs in as `hg_app`, which owns nothing and holds no `TRUNCATE`, `TRIGGER`, `CREATE` or `TEMPORARY` privilege (a temp table named `ledger_entry` would otherwise hide the real one from the zero-sum check); the ledger and audit trigger functions search `public` before the temporary schema; `hg_migrator` owns the schema ([`roles/roles.sql`](roles/roles.sql), `00032`). The hourly partition upkeep, the API's only DDL, goes through two `SECURITY DEFINER` functions owned by `hg_migrator` (`hg_partition_ensure`, `hg_partition_drop_before`, also `00032`): only the three partitioned tables, one whole UTC period per call, at most 400 days ahead, never a drop inside a table's retention by the database's clock, and never an `audit_event` partition. Section 12 of the invariant tests tries each way out as `hg_app`. |
+| 7 | A rider's uploaded file is attached once per document type, so two attaches of one file at once cannot make two review items ([#229](https://github.com/shaiknoorullah/hg-mono/issues/229)). | `kyc_document_rider_file_once` unique index (`00038`) on rider, document type and file, over rows that are not soft-deleted. The attach inserts with `ON CONFLICT` on it and returns the existing row. |
+| 8 | The API cannot switch any of the above off. | The API logs in as `hg_app`, which owns nothing and holds no `TRUNCATE`, `TRIGGER`, `CREATE` or `TEMPORARY` privilege (a temp table named `ledger_entry` would otherwise hide the real one from the zero-sum check); the ledger and audit trigger functions search `public` before the temporary schema; `hg_migrator` owns the schema ([`roles/roles.sql`](roles/roles.sql), `00032`). The hourly partition upkeep, the API's only DDL, goes through two `SECURITY DEFINER` functions owned by `hg_migrator` (`hg_partition_ensure`, `hg_partition_drop_before`, also `00032`): only the three partitioned tables, one whole UTC period per call, at most 400 days ahead, never a drop inside a table's retention by the database's clock, and never an `audit_event` partition. Section 12 of the invariant tests tries each way out as `hg_app`. |
+| 9 | A refund moves money only once a named member of staff approved it, and a goodwill refund above CAD 50 only once a second person did. A refund recorded as at Stripe carries Stripe's id. | `refund_money_needs_approver`, `refund_goodwill_second_approver` ([goodwill approval decision](../../../docs/decisions/README.md#settled--redesign-decisions-owner-2026-09-28)), `refund_at_stripe_has_id` and `refund_approval_names_role` CHECKs on `refund` (`00046`, [#318](https://github.com/shaiknoorullah/hg-mono/issues/318)). A customer's request and an approval request carry no approver, so the refund sender can never send one. |
+| 10 | A rider's earning line mirrors exactly one `RIDER_PAYABLE` posting; an order has at most one delivery line and one tip line; a payout's claim and payment reach the lines. | `00047_rider_earnings_follow_ledger.sql`: the `earning_entry_matches_ledger` trigger refuses a line whose rider, order or amount disagrees with its posting, the `earning_entry_once_per_order` unique index, and the `ledger_entry_stamps_earning` and `payout_pays_earnings` triggers. The lines are written with the posting when the order is delivered ([#306](https://github.com/shaiknoorullah/hg-mono/issues/306)). |
+| 11 | Whoever sent a refund up for a second person never approves it, and a declined refund says who declined it, when and why. | `refund_second_person` and `refund_decline_recorded` CHECKs on `refund` (`00048`, [#172](https://github.com/shaiknoorullah/hg-mono/issues/172)). The service refuses both first; the schema refuses them if it ever does not. |
+| 12 | A listed restaurant never carries an expired halal state. | `restaurant_live_not_halal_expired` CHECK (`00049`): a `LIVE` restaurant cannot be `EXPIRED`. `halal_refresh_restaurant_status(restaurant, at)` derives the state in the restaurant's timezone and delists on a lapse in the same `UPDATE`; the expiry job ([#252](https://github.com/shaiknoorullah/hg-mono/issues/252), `internal/halalexpiry`) runs it as dates pass. `halal_status_inconsistency` lists any certified or expiring-soon badge without a live certificate and must return zero rows. Each renewal reminder is a unique `(certificate, days_before)` row in `halal_certificate_reminder`, so it is sent once; only 30, 14, 7 and 1 days are accepted, inside the reminder's window. A NULL or past instant is refused rather than defaulted. |
+| 13 | The platform-wide pause on new orders ([#244](https://github.com/shaiknoorullah/hg-mono/issues/244)) is one row that always exists, and a pause always says when it began and why. | `ordering_pause` (`00050`): a boolean primary key that must be `true`, the row inserted by the migration, `REVOKE DELETE, TRUNCATE` from `hg_app`, and the `ordering_pause_explained` CHECK. `createOrder` reads the row `FOR SHARE` in the transaction that inserts the order, so no order commits after a pause did. |
+| 14 | Row 7's rule for restaurants: one attach per restaurant, document type and file, so a double attach cannot make two review items or two halal certificates ([#360](https://github.com/shaiknoorullah/hg-mono/issues/360)). | `kyc_document_restaurant_file_once` unique index (`00051`), over rows that are not soft-deleted; the attach upserts on it, as in row 7. |
+| 15 | A refund the platform owes on its own (a ready order nobody collected, cancelled at the pickup cap, [#336](https://github.com/shaiknoorullah/hg-mono/issues/336)) still names who asked for it and who approved it. | The platform's own account (`00056`, `00000000-0000-7000-8000-00000000a001`) is both, so `refund.requested_by NOT NULL` and `refund_money_needs_approver` hold. It has no phone, password or TOTP, a `.invalid` address, no role, and is `SUSPENDED`: it can never sign in. |
+| 16 | A restaurant's prep delay is a record of its own, a canned 5, 10, 15 or 20 minutes, and its limits (3 delays, 45 minutes in total) are counted from those records, not from log text ([#351](https://github.com/shaiknoorullah/hg-mono/issues/351)). | `order_delay` (`00062`) with its `added_minutes` CHECK. `internal/orders` `Store.DelayInTx` is its only writer: it counts the rows under the order's row lock, then moves the deadline and writes the delay, the transition row and the event in one transaction. |
+| 17 | A partner's bank payout is asked of Stripe at most once at a time per payout, so a retry can never pay a payout out to the bank twice ([#301](https://github.com/shaiknoorullah/hg-mono/issues/301)). A payout past its transfer names the transfer. | `payout_bank_attempt` (`00068`): every attempt is recorded before the Stripe call, `UNIQUE (payout_id, attempt)`, and the partial unique index `payout_bank_attempt_one_live` allows one attempt that has not `FAILED` per payout; `REVOKE DELETE, TRUNCATE` from `hg_app`. `payout_transferred_has_transfer` CHECK on `payout`. |
 
 The two schema lints are also runnable on their own:
 
@@ -122,13 +138,18 @@ byte-identical label set, or appears in `tools/enum_map.py:EXCLUSIONS` with a
 written reason. There is no third option: `check_enums.py` fails on anything
 unaccounted for, and `gen_enums.py` refuses to generate.
 
+A contract enum the backend does not store yet (one a contract change adds
+ahead of its backend) is excluded with the reason "contract-only until the
+backend lands" and the issue or pull request that will store it; that change
+moves it to `MAPPED_IN_MIGRATION` with its migration.
+
 ## Verification
 
 - **Applied**: `goose up` runs all 23 migrations against a real
   Postgres + PostGIS database. `goose reset` rolls all of them back with no
   leftovers, and `up` again succeeds.
 - **Seeded**: `seed/seed.sql` applies and is idempotent.
-- **Tested**: 88 invariant assertions pass (`test/run_invariant_tests.sh`).
+- **Tested**: 111 invariant assertions pass (`test/run_invariant_tests.sh`).
 - **Environment caveat**: Docker was not available, so this was verified
   against a locally installed **Postgres 16.13 with PostGIS 3.4.2**, not the
   spec's Postgres 17 + PostGIS 3.6. Nothing here uses a 17-only or 3.6-only

@@ -20,6 +20,11 @@ import (
 func (s *Store) CreateQuote(ctx context.Context, req QuoteRequest) (*Quote, error) {
 	var out *Quote
 	err := s.inTx(ctx, func(tx pgx.Tx) error {
+		// No new quotes while staff have paused new orders platform-wide
+		// (https://github.com/shaiknoorullah/hg-mono/issues/244).
+		if err := requireOrderingOpen(ctx, tx, false); err != nil {
+			return err
+		}
 		rc, err := s.resolve(ctx, tx, req)
 		if err != nil {
 			return err

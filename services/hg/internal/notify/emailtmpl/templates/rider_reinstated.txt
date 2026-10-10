@@ -1,0 +1,13 @@
+HalalGoes
+
+You can deliver again
+
+Hi {{.FirstName}},
+
+Your HalalGoes rider account is active again. Open the rider app and go online whenever you are ready to take deliveries.
+
+----------------------------------------
+
+You are receiving this because you have a HalalGoes account. It is a service message about that account, not marketing.
+
+HalalGoes · Halal food delivery in Ontario

@@ -10,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/realtime"
 )
 
 // errNotFound is the sentinel returned when a scoped query finds no matching
@@ -20,8 +21,15 @@ var errNotFound = errors.New("not found")
 // account's email (account.email is UNIQUE). It maps to 422 EMAIL_IN_USE.
 var errEmailInUse = errors.New("email in use")
 
-func isNotFound(err error) bool   { return errors.Is(err, errNotFound) }
-func isEmailInUse(err error) bool { return errors.Is(err, errEmailInUse) }
+// errUploadNotFound is returned when avatar_object_id names a file the caller
+// may not use: no such upload, or one that is not the caller's own confirmed
+// AVATAR upload. All of these are one 404, so the answer says nothing about
+// whether the file exists (https://github.com/shaiknoorullah/hg-mono/issues/359).
+var errUploadNotFound = errors.New("upload not found")
+
+func isNotFound(err error) bool       { return errors.Is(err, errNotFound) }
+func isEmailInUse(err error) bool     { return errors.Is(err, errEmailInUse) }
+func isUploadNotFound(err error) bool { return errors.Is(err, errUploadNotFound) }
 
 // pgUniqueViolation is the SQLSTATE for a unique-constraint violation (23505).
 const pgUniqueViolation = "23505"
@@ -62,6 +70,24 @@ func (r *Repo) UpdateCustomerProfile(ctx context.Context, callerID string, in cu
 		return customerProfileResponse{}, err
 	}
 	defer tx.Rollback(ctx) //nolint:errcheck // rollback after Commit is a no-op
+
+	// An avatar must be the caller's own confirmed avatar upload: never another
+	// account's file, and never a document or a delivery photo
+	// (https://github.com/shaiknoorullah/hg-mono/issues/359).
+	if in.AvatarObjectID != nil {
+		var usable bool
+		if err := tx.QueryRow(ctx, `
+			SELECT EXISTS (
+			  SELECT 1 FROM stored_object
+			   WHERE id = $1 AND uploaded_by = $2
+			     AND purpose = 'AVATAR' AND state = 'READY' AND deleted_at IS NULL)`,
+			*in.AvatarObjectID, callerID).Scan(&usable); err != nil {
+			return customerProfileResponse{}, err
+		}
+		if !usable {
+			return customerProfileResponse{}, errUploadNotFound
+		}
+	}
 
 	// Single UPDATE … RETURNING, scoped to the caller AND to a live (not
 	// soft-deleted) row. A CASE-based SET overwrites a column only when the
@@ -381,6 +407,20 @@ func (r *Repo) RevokeDevice(ctx context.Context, callerID, deviceID string) erro
 	return nil
 }
 
+// RevokePushToken revokes every live device holding token. The push sender
+// calls it when Expo reports the token as DeviceNotRegistered (the app was
+// uninstalled), so nothing is sent to it again; the app registers a fresh
+// token on its next sign-in.
+func (r *Repo) RevokePushToken(ctx context.Context, token string) error {
+	_, err := r.pool.Exec(ctx, `
+		UPDATE device
+		SET    revoked_at = now()
+		WHERE  expo_push_token = $1
+		  AND  revoked_at IS NULL
+	`, token)
+	return err
+}
+
 // ListNotifications returns the caller's inbox, newest-first, with keyset
 // pagination. cursor is the last-seen notification id (empty = first page).
 // unreadOnly filters to notifications where read_at IS NULL.
@@ -511,24 +551,45 @@ func (r *Repo) ListNotifications(
 // the IDOR guard: another account's notification is indistinguishable from
 // a non-existent one. Idempotent: marking an already-read notification is
 // a no-op that returns 204.
+//
+// The first read writes notification.read on the account's own channel, in
+// the same transaction, so the caller's other devices clear the badge
+// (contracts/websocket.md section 4.6). A repeat read writes nothing.
 func (r *Repo) MarkNotificationRead(ctx context.Context, callerID, notificationID string) error {
-	// Use UPDATE … WHERE read_at IS NULL OR read_at IS NOT NULL so that an
-	// already-read notification still matches (idempotency). The only way to
-	// get 0 rows is an unknown id or a different account's id.
-	tag, err := r.pool.Exec(ctx, `
-		UPDATE notification
-		SET    read_at    = COALESCE(read_at, now()),
-		       updated_at = now()
-		WHERE  id         = $1
-		  AND  account_id = $2
-	`, notificationID, callerID)
+	tx, err := r.pool.Begin(ctx)
 	if err != nil {
 		return err
 	}
-	if tag.RowsAffected() == 0 {
+	defer tx.Rollback(ctx) //nolint:errcheck
+	// An already-read notification still matches (idempotency). The only way
+	// to get no row is an unknown id or a different account's id.
+	var wasRead bool
+	var readAt time.Time
+	err = tx.QueryRow(ctx, `
+		WITH prev AS (
+		  SELECT id, read_at FROM notification WHERE id = $1 AND account_id = $2 FOR UPDATE
+		)
+		UPDATE notification n
+		SET    read_at    = COALESCE(n.read_at, now()),
+		       updated_at = now()
+		FROM   prev
+		WHERE  n.id = prev.id
+		RETURNING prev.read_at IS NOT NULL, n.read_at
+	`, notificationID, callerID).Scan(&wasRead, &readAt)
+	if errors.Is(err, pgx.ErrNoRows) {
 		return errNotFound
 	}
-	return nil
+	if err != nil {
+		return err
+	}
+	if !wasRead {
+		if err := realtime.EmitAccount(ctx, tx, callerID, realtime.NotificationRead{
+			NotificationID: notificationID, ReadAt: realtime.At(readAt),
+		}); err != nil {
+			return err
+		}
+	}
+	return tx.Commit(ctx)
 }
 
 // ─── helpers ─────────────────────────────────────────────────────────────────

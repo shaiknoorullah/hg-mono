@@ -2,10 +2,22 @@
 covers:
   - packages/ui-web/src/**
   - apps/admin/src/**
-reviewed: 2026-10-05
+reviewed: 2026-10-09
 ---
 
 # DataTable on LyteNyte Grid, and the cell component set — spec draft
+
+> **2026-10-05:** `packages/ui-web/src/live/` (the realtime socket and `LiveMap`) and the admin's
+> live operations map are outside this draft's scope; the operations map lists its orders as plain
+> text beneath the map rather than in a grid.
+>
+> **2026-10-09:** the legacy admin sign-in and invitation pages (`App.tsx`'s sign-in gate,
+> `lib/auth.ts`, `screens/AcceptInviteScreen.tsx`) are forms, not grids, and are outside this
+> draft's scope. Two-step sign-in is opt-in for staff ([#623](https://github.com/shaiknoorullah/hg-mono/pull/623)),
+> so the Staff grid's MFA column below reads "MFA on"/"MFA off" as a choice, not a compliance gap.
+>
+> **2026-10-05:** the System page's panel for pausing new orders ([#389](https://github.com/shaiknoorullah/hg-mono/issues/389)) shows one
+> record, not a list, so it uses no grid and is outside this draft's scope.
 
 _Draft for issue #141 (design-first, #108). Status: **draft for owner review in Claude Design**; #110 builds it in `@hg/ui-web`. Research date 28 Sep 2026, against `@1771technologies/lytenyte-core@2.2.1` (the version in `pnpm-lock.yaml`)._
 

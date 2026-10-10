@@ -1,0 +1,24 @@
+# First contact with a new server, as root over its public address: creates the admin
+# account (SSH key only; a console password) and nothing else. provision.sh runs it once,
+# when the admin account cannot log in yet; site.yml does everything after that, as ops.
+- name: Bootstrap the admin account on a new server
+  # provision.sh limits this to one server and connects as root (-e ansible_user=root).
+  hosts: hg_servers
+  gather_facts: true
+  pre_tasks:
+    - name: Load the secrets
+      ansible.builtin.include_role:
+        name: secrets
+      vars:
+        hg_secrets_env_files: []
+  tasks:
+    - name: Install sudo
+      ansible.builtin.apt:
+        name: sudo
+        state: present
+        update_cache: true
+
+    - name: Create the admin account
+      ansible.builtin.include_role:
+        name: base
+        tasks_from: admin_user

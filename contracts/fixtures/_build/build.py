@@ -25,6 +25,7 @@ import dom_errors  # noqa: E402
 import dom_geo  # noqa: E402
 import dom_handoff  # noqa: E402
 import dom_onboarding  # noqa: E402
+import dom_ordering_pause  # noqa: E402
 import dom_orders  # noqa: E402
 import dom_rider  # noqa: E402
 from content import Content  # noqa: E402
@@ -44,6 +45,7 @@ def main() -> int:
 
     dom_catalogue.build(reg, synth)
     dom_orders.build(reg, synth)
+    dom_ordering_pause.build(reg, synth)  # after dom_orders: copies its cart
     dom_rider.build(reg, synth)
     dom_onboarding.build(reg, synth)
     dom_errors.build(reg, synth)

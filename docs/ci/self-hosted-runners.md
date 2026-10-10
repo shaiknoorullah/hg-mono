@@ -6,7 +6,7 @@ covers:
   - .github/workflows/claude.yml
   - .github/workflows/claude-code-review.yml
   - scripts/ci/**
-reviewed: 2026-10-04
+reviewed: 2026-10-09
 ---
 
 # CI on self-hosted runners
@@ -52,6 +52,10 @@ Jobs that hold a secret or a write token never run on our machines.
 | [`ci`](../../.github/workflows/ci.yml) | `changes`, `contract-kit`, `js`, `go`, `coverage`, `gate` | `coverage-comment`, `coverage-baseline`, `coverage-issues`: write tokens |
 | [`docs`](../../.github/workflows/docs.yml) | `doc and PR checks` | `labels` and `weekly`: write tokens |
 | [`migrations`](../../.github/workflows/migrations.yml) | `schema` | |
+
+`contract-kit` also checks the device-lab missions (`pnpm e2e:missions:check`, [tools/e2e/native/README.md](../../tools/e2e/native/README.md)). It needs Node only: no emulator, no adb and no secret, so it stays on `HG_RUNS_ON`.
+
+The `schema` job applies migrations, runs the invariant tests, proves a full rollback, then resets and checks the local persona database on that job's Postgres. The reset command itself refuses every environment other than local.
 | any of the above, for an untrusted run | | `gate`, `doc and PR checks` and `schema` run only their first step, which fails (see below) |
 | [`release-builds`](../../.github/workflows/release-builds.yml) | | every job: the release signing secrets never reach our machines |
 | [`Claude Code`](../../.github/workflows/claude.yml), [`Claude Code Review`](../../.github/workflows/claude-code-review.yml) | | they need the Claude token |
@@ -122,9 +126,11 @@ runner in Settings → Actions → Runners.
 ### What a runner machine needs
 
 - Linux, x64 or arm64, with a systemd user manager and unprivileged user namespaces.
-- **Docker**, usable by the runner's user. The `migrations` job uses a Postgres service container,
-  and the Go tests start Postgres with testcontainers: in the `go` job, or in `coverage` for the
-  weekly scan. Without Docker those jobs fail.
+- **Docker**, usable by the runner's user. The `migrations` job and the `go` job each use a
+  Postgres service container (the `go` job's is the seeded database behind `HG_TEST_POSTGRES_DSN`,
+  on port 55433 so the two jobs can run side by side), and the Go tests also start Postgres with
+  testcontainers: in the `go` job, or in `coverage` for the weekly scan. Without Docker those
+  jobs fail.
 - No `psql`, Go, Node or Python setup is needed: jobs install Go and Node into the runner's own
   tool cache, use the machine's `python3` in a private venv, and run `psql` from the Postgres image.
 - **No KVM on the workstation** (`/dev/kvm` is missing), so it cannot boot an Android emulator.
@@ -163,7 +169,7 @@ that:
   container. Write only inside the workspace, `$RUNNER_TEMP` or the runner's own home.
 - Containers: label any container a step starts with the job, and remove it in an `if: always()`
   step (see the `migrations` job). Never turn off the testcontainers reaper. Publish ports other
-  than the defaults (Postgres on 55432, the mock on 54010): a developer's own stack may hold 5432
+  than the defaults (Postgres on 55432 and 55433, the mock on 54010): a developer's own stack may hold 5432
   and 4010.
 - Caches: on GitHub's runners, the Actions cache (keyed by `pnpm-lock.yaml` and `go.sum`); on ours,
   the runner's own home, never uploaded. Release builds run on GitHub's runners and restore no

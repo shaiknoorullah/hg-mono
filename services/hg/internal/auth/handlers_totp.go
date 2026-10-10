@@ -56,7 +56,12 @@ func (h *Handler) ChangePassword(w http.ResponseWriter, r *http.Request) {
 	issued, err := h.svc.ChangePassword(r.Context(), p, in.CurrentPassword, in.NewPassword, client)
 	switch {
 	case errors.Is(err, errInvalidCredentials):
-		httpx.Fail(w, r, http.StatusUnauthorized, CodeInvalidCredentials,
+		// 422, never 401: the session is valid, and the shared client answers
+		// every 401 by refreshing and sending the request again, which would
+		// count a wrong password twice toward the lockout or sign the person
+		// out (contracts/openapi.yaml, changePassword;
+		// https://github.com/shaiknoorullah/hg-mono/issues/238).
+		httpx.Fail(w, r, http.StatusUnprocessableEntity, CodeInvalidCredentials,
 			"The current password is incorrect.", nil)
 		return
 	case errors.Is(err, errBreachedPassword):
@@ -66,6 +71,12 @@ func (h *Handler) ChangePassword(w http.ResponseWriter, r *http.Request) {
 	case errors.Is(err, errWeakPassword):
 		httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
 			"new_password must be at least 12 characters.", nil)
+		return
+	case errors.Is(err, ErrRateLimited):
+		failRateLimited(w, r, err, "Too many password change attempts. Please wait before trying again.")
+		return
+	case errors.Is(err, ErrPasswordHashBusy):
+		h.failHashBusy(w, r, err, "changePassword")
 		return
 	case err != nil:
 		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError,
@@ -96,6 +107,11 @@ func (h *Handler) EnrollTOTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	enrolment, err := h.svc.EnrollTOTP(r.Context(), p.AccountID)
+	if errors.Is(err, errTOTPAlreadyEnrolled) {
+		httpx.Fail(w, r, http.StatusConflict, codeStepNotAvailable,
+			"Two-step sign-in is already on. Turn it off with a current code before setting it up again.", nil)
+		return
+	}
 	if err != nil {
 		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError,
 			"The server failed to process this request.", nil)
@@ -183,10 +199,6 @@ func (h *Handler) DisableTOTP(w http.ResponseWriter, r *http.Request) {
 
 	err := h.svc.DisableTOTP(r.Context(), p.AccountID, in.TOTPCode)
 	switch {
-	case errors.Is(err, errTOTPMandatory):
-		httpx.Fail(w, r, http.StatusForbidden, CodeMFARequired,
-			"TOTP is mandatory for your role and cannot be disabled.", nil)
-		return
 	case errors.Is(err, errTOTPNotEnrolled):
 		httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
 			"TOTP is not enabled on this account.", nil)
