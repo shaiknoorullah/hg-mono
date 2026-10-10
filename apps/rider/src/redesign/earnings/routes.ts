@@ -8,7 +8,8 @@
 import type { Schema } from '@hg/api-client';
 
 /** Where an Earnings line was opened from: sets the back label (EA/EntryDetail `BACK`). */
-export type LineFrom = 'activity' | 'payout' | 'earnings' | 'payouts';
+/** `delivery`: from "You earned" on that job's Delivery screen (WP11, HW/DeliveryDetail). */
+export type LineFrom = 'activity' | 'payout' | 'earnings' | 'payouts' | 'delivery';
 
 /** Where a Payout was opened from. */
 export type PayoutFrom = 'payouts' | 'earnings' | 'line';

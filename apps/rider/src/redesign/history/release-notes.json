@@ -1,0 +1,24 @@
+{
+  "_comment": "Rider release notes, newest first, shipped in the app (#97, #100). Sample copy from HW/WhatsNew until #97 fixes the shape and the owner writes the launch notes.",
+  "versions": [
+    {
+      "version": "1.4.0",
+      "date": "2026-09-27",
+      "notes": [
+        "Each earnings line shows the delivery fee and the tip.",
+        "Each payout lists the lines it is made of.",
+        "If a payout is on hold or does not go through, the Earnings tab tells you why and how to fix it."
+      ]
+    },
+    {
+      "version": "1.3.2",
+      "date": "2026-09-22",
+      "notes": ["The offer timer stays correct after your phone has been asleep."]
+    },
+    {
+      "version": "1.3.1",
+      "date": "2026-09-14",
+      "notes": ["Buzzer and unit numbers are larger and easier to read."]
+    }
+  ]
+}

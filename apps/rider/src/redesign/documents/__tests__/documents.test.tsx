@@ -174,8 +174,12 @@ describe.each(SCHEMES)('documents (%s)', (scheme) => {
       },
     });
     await openDocuments();
+    // The clock moves a millisecond on every read, as it can on a busy phone: still 24, never 25.
+    let t = Date.now();
+    const clock = jest.spyOn(Date, 'now').mockImplementation(() => (t += 1));
     await press('documents-submit');
     expect(await screen.findByText('You can send these in 24 minutes')).toBeTruthy();
+    clock.mockRestore();
     expect(screen.getByText('We limit how often documents are sent, so each set gets a full check.')).toBeTruthy();
     expect(screen.getByText('For a scooter we need these four, plus a work permit if you have one. Your documents are ready to go.')).toBeTruthy();
     expect(screen.getByTestId('documents-submit').props.accessibilityState).toMatchObject({ disabled: true });
