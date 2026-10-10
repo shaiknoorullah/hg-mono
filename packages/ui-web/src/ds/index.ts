@@ -93,3 +93,39 @@ export type {
 /* Owner-approved desktop layout (decision log, 28 Sep): rebuilt in W2. */
 export { SideNav } from '../navigation/index.js';
 export type { SideNavGroup, SideNavItem, SideNavProps } from '../navigation/index.js';
+
+/* Data (W6, #141): the DataTable on LyteNyte Grid Core and its cells. */
+export { DataTable } from './DataTable.js';
+export type {
+  DataTableColumn,
+  DataTableMenuItem,
+  DataTableProps,
+  DataTableSortState,
+} from './DataTable.js';
+export {
+  CountdownCell,
+  DateCell,
+  HALAL_STATE_MISSING_TEXT,
+  HalalStateCell,
+  IdCell,
+  MeterCell,
+  MissingValue,
+  MoneyCell,
+  StatusCell,
+  TextCell,
+  TimeCell,
+} from './cells.js';
+export type {
+  CountdownCellProps,
+  DateCellProps,
+  HalalStateCellProps,
+  HalalStateCellState,
+  IdCellProps,
+  MeterCellProps,
+  MeterVizToken,
+  MoneyCellProps,
+  StatusCellProps,
+  StatusCellVariant,
+  TextCellProps,
+  TimeCellProps,
+} from './cells.js';
