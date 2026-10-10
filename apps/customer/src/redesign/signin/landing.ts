@@ -22,6 +22,7 @@ import { logout, type SessionGrant } from '../api/auth';
 import type { Route, TabKey } from '../navigation/routes';
 import { forcedKindForStatus, raiseForced, type ForcedRoute } from '../session/forced';
 import { enterApp, enterProfileCapture, type Welcome } from '../session/session';
+import { givenFirstName } from '../../api/profileName';
 
 export type Landing =
   | { kind: 'profile' }
@@ -34,7 +35,7 @@ type ActiveOrder = Schema['OrderCustomerView'];
 async function firstNameOrNull(): Promise<string | null> {
   try {
     const body = await unwrap(api.GET('/v1/me/profile'));
-    return ((body.data as CustomerProfile).first_name ?? '').trim();
+    return givenFirstName((body.data as CustomerProfile).first_name);
   } catch {
     return null;
   }
