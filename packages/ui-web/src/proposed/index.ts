@@ -171,3 +171,40 @@ export type {
 } from './Support.js';
 export { WaitLine, resolveWaitDeadline, useWaitLine } from './WaitLine.js';
 export type { UseWaitLineResult, WaitDeadline, WaitLineProps, WaitSource } from './WaitLine.js';
+
+/* Restaurant hours and onboarding (W7b): the weekly hours editor (approval packet P23) with its
+   pure contract helpers, the special dates list, and the onboarding setup checklist. */
+export { WeeklyHoursEditor } from './WeeklyHoursEditor.js';
+export type { WeeklyHoursEditorProps } from './WeeklyHoursEditor.js';
+export {
+  MAX_RANGES_PER_DAY,
+  MAX_RANGES_PER_WEEK,
+  MAX_SPECIAL_DATES,
+  WEEKDAYS,
+  activeRanges,
+  changedDays,
+  checkWeeklyHours,
+  countRanges,
+  crossesMidnight,
+  emptyWeek,
+  formatRange,
+  isAllDay,
+  toRestaurantHoursInput,
+  weeklyHoursFromContract,
+  weeklyHoursToContract,
+} from './weekly-hours.js';
+export type {
+  CheckWeeklyHoursOptions,
+  DayHours,
+  HoursOverride,
+  HoursRange,
+  RestaurantHoursInput,
+  TradingInterval,
+  Weekday,
+  WeeklyHours,
+  WeeklyHoursIssue,
+} from './weekly-hours.js';
+export { SpecialDatesList, formatOverrideHours } from './SpecialDatesList.js';
+export type { SpecialDatesListProps } from './SpecialDatesList.js';
+export { SetupChecklist } from './SetupChecklist.js';
+export type { SetupChecklistProps, SetupChecklistStep, SetupStepStatus } from './SetupChecklist.js';
