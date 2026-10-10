@@ -1,0 +1,79 @@
+# Rider redesign WP6, can't deliver (DL/SomethingWrongDoor → CantDeliverConfirm → Returning →
+# Returned): the WP5 drop-off to Amina's door, then Something's wrong → I can't deliver this order
+# → Return it to the restaurant (UNDELIVERABLE, then RETURNING by itself), the ride back to
+# Bismillah Grill, and I've returned it (RETURNED) with the connection lost for that tap: the step
+# is saved ("Not sent yet", "Returned · <time>") and sends by itself once the phone is back
+# online, then the trip ends on "Returned to Bismillah Grill".
+#
+# Needs a live order: the mission runs `make dev-journey route=short auto=restaurant manual=rider`.
+# Built with EXPO_PUBLIC_HG_REDESIGN=1 and a cleared Metro cache (see 0-shell.yaml).
+appId: com.halalgoes.rider.dev
+name: rider redesign, can't deliver and return the food
+env:
+  # Amina's home pin and Bismillah Grill (devworld route.go), the ride back.
+  AMINA: "43.6825,-79.3300"
+  CORNER: "43.6815,-79.3300"
+  RESTAURANT: "43.6815,-79.3310"
+---
+- runFlow: 5-dropoff-to-door.yaml
+
+# DL/SomethingWrongDoor: 911 first, support (when on), the customer, I can't deliver.
+- tapOn: "Something's wrong"
+- extendedWaitUntil:
+    visible: "What's wrong\\?"
+    timeout: 15000
+- assertVisible: "In danger or hurt\\? Call 911 first\\."
+- assertVisible: "Call 911"
+- assertVisible: "Back to the delivery"
+- takeScreenshot: rider-wp6-11-something-wrong-door
+- tapOn: "I can't deliver this order"
+
+# DL/CantDeliverConfirm: leaving it at the door shows only when the customer asked for it.
+- extendedWaitUntil:
+    visible: "Can't deliver this order\\?"
+    timeout: 15000
+- assertVisible: "Tried to reach .* and can't hand it over\\?.*"
+- assertVisible: "Keep trying"
+- takeScreenshot: rider-wp6-12-cant-deliver
+- tapOn: "Return it to the restaurant"
+
+# DL/Returning: UNDELIVERABLE recorded, RETURNING posted by itself.
+- extendedWaitUntil:
+    visible: "Take the food back to Bismillah Grill"
+    timeout: 30000
+- assertVisible: "Return the food"
+- assertVisible: "Order code"
+- assertVisible: "I've returned it"
+- assertNotVisible: "Call (customer|Amina.*)"
+- takeScreenshot: rider-wp6-13-returning
+- travel:
+    points:
+      - ${AMINA}
+      - ${CORNER}
+      - ${RESTAURANT}
+    speed: 5
+
+# The connection drops for the last tap: RETURNED is saved with its time (DL/ReturnedQueued).
+- setAirplaneMode: enabled
+- tapOn: "I've returned it"
+- extendedWaitUntil:
+    visible: "Not sent yet"
+    timeout: 30000
+- assertVisible: "Returned · .*"
+- assertVisible: "Back to Home"
+- takeScreenshot: rider-wp6-14-returned-saved
+- setAirplaneMode: disabled
+
+# DL/Returned: the saved step sent; terminal, the street only, no promise of pay.
+- extendedWaitUntil:
+    visible: "Returned to Bismillah Grill"
+    timeout: 120000
+- assertVisible: "This delivery is closed\\."
+- assertVisible: "Was going to"
+- assertNotVisible: "Call restaurant"
+- assertNotVisible: "A step you saved offline wasn't accepted"
+- takeScreenshot: rider-wp6-16-returned
+- tapOn: "Back to Home"
+- extendedWaitUntil:
+    visible: "Earnings"
+    timeout: 30000

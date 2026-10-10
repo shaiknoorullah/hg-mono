@@ -1,0 +1,27 @@
+{
+  "scenario": "error_cannot_go_online_background_location_permission",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`422` · `CANNOT_GO_ONLINE`. One blocking reason, `BACKGROUND_LOCATION_PERMISSION`, so its row and deep link can be tested alone. Contract-only: `services/hg` sends only `STALE_LOCATION_FIX` in `blocking_reasons` today.",
+  "operations": [
+    "setRiderAvailability"
+  ],
+  "status": 422,
+  "tags": [
+    "error-envelope",
+    "error-path",
+    "rider"
+  ],
+  "payload": {
+    "error": {
+      "code": "CANNOT_GO_ONLINE",
+      "message": "You cannot go online yet.",
+      "request_id": "SDWAY8Q2TNTW5FVTW9A11ZV8WD",
+      "details": {
+        "blocking_reasons": [
+          "BACKGROUND_LOCATION_PERMISSION"
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "scenario": "error_profile_incomplete",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`422` · `PROFILE_INCOMPLETE`. Placing an order before profile capture. Contract-only: `services/hg` does not return this code yet; `next_route: PROFILE_CAPTURE` routes there first.",
+  "operations": [
+    "createOrder"
+  ],
+  "status": 422,
+  "tags": [
+    "error-envelope",
+    "error-path",
+    "customer"
+  ],
+  "payload": {
+    "error": {
+      "code": "PROFILE_INCOMPLETE",
+      "message": "Add your name before placing an order.",
+      "request_id": "VJ1ZCE3TH7CQG6BKACVQS8NSZD"
+    }
+  }
+}

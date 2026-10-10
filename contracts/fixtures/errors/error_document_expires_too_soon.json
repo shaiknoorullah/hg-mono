@@ -1,0 +1,22 @@
+{
+  "scenario": "error_document_expires_too_soon",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`422` · `DOCUMENT_EXPIRES_TOO_SOON`. A document whose expiry date is less than 30 days away.",
+  "operations": [
+    "attachRiderDocument"
+  ],
+  "status": 422,
+  "tags": [
+    "error-envelope",
+    "error-path",
+    "rider"
+  ],
+  "payload": {
+    "error": {
+      "code": "DOCUMENT_EXPIRES_TOO_SOON",
+      "message": "Document must be valid for at least 30 days.",
+      "request_id": "CE0V8P19H42X2T4QFVRT62FWJ9"
+    }
+  }
+}

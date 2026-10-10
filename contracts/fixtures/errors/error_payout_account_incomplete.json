@@ -1,0 +1,22 @@
+{
+  "scenario": "error_payout_account_incomplete",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`403` · `PAYOUT_ACCOUNT_INCOMPLETE`. Stripe payouts are not enabled for this rider yet. The app links to the payout step (`getConnectStatus`).",
+  "operations": [
+    "setRiderAvailability"
+  ],
+  "status": 403,
+  "tags": [
+    "error-envelope",
+    "error-path",
+    "rider"
+  ],
+  "payload": {
+    "error": {
+      "code": "PAYOUT_ACCOUNT_INCOMPLETE",
+      "message": "Finish setting up your payout account before going online.",
+      "request_id": "FQ830PE06TBZG98YK3EF72MDRK"
+    }
+  }
+}

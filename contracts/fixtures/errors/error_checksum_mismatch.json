@@ -1,0 +1,23 @@
+{
+  "scenario": "error_checksum_mismatch",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`422` · `CHECKSUM_MISMATCH`. The upload was cut off or changed in transit. Upload it again.",
+  "operations": [
+    "confirmUpload"
+  ],
+  "status": 422,
+  "tags": [
+    "error-envelope",
+    "error-path",
+    "rider",
+    "upload"
+  ],
+  "payload": {
+    "error": {
+      "code": "CHECKSUM_MISMATCH",
+      "message": "The uploaded bytes do not match the declared size or checksum.",
+      "request_id": "1KFTVK1PZHYMMER1PF6AHGXPVJ"
+    }
+  }
+}

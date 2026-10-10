@@ -13,7 +13,7 @@
  * - 429 on verify is "Too many tries" (locked); a closed account goes to `SignIn-Deactivated`.
  */
 import * as React from 'react';
-import { AccessibilityInfo, BackHandler, KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native';
+import { AccessibilityInfo, BackHandler, KeyboardAvoidingView, ScrollView, Text, View } from 'react-native';
 
 import { AppBar, Banner, Button, Icon, Input, space, typeStyle, useTheme } from '../ds';
 import { callSupport, type Support } from '../data/config';
@@ -201,7 +201,11 @@ export function CodeStep({ challenge, online, support, onChallenge, onBack, onDi
   const clock = <Icon name="clock" color={theme.color.text.primary} />;
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: theme.color.surface.base }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView
+      style={{ flex: 1, backgroundColor: theme.color.surface.base }}
+      // The footer rides above the keyboard on both platforms (SO Main-Keyboard). The app is
+      // edge-to-edge on Android, so the window no longer resizes for the keyboard there either.
+      behavior="padding">
       {/* ds-request(native): AppBar tone=field, back target 56 — SO SignIn-Code */}
       <AppBar title={CODE.appBar} isPageHeading={false} back={{ onPress: onBack, previousTitle: CODE.backTo }} />
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: space['5'], gap: space['5'] }} keyboardShouldPersistTaps="handled">

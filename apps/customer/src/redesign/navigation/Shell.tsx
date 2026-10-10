@@ -8,7 +8,7 @@
  * - Deep links open on the tab they belong to.
  */
 import * as React from 'react';
-import { Linking, StyleSheet, View } from 'react-native';
+import { BackHandler, Linking, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { unwrap } from '@hg/api-client';
 
@@ -99,6 +99,17 @@ function Tabs({
   React.useEffect(() => {
     if (pendingLink) dispatch({ type: 'open', route: pendingLink });
   }, [pendingLink]);
+
+  // Android's Back pops the tab's stack, like the page's own back; on a tab root it is the
+  // system's (it leaves the app).
+  React.useEffect(() => {
+    if (!back) return undefined;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      dispatch({ type: 'back' });
+      return true;
+    });
+    return () => sub.remove();
+  }, [back]);
 
   const nav = React.useMemo<Nav>(
     () => ({
