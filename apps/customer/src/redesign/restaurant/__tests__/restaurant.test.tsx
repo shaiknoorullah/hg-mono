@@ -402,7 +402,8 @@ describe('D5 restaurant page: loading, errors, offline, cart', () => {
   it('shows the View cart bar from the server cart, and none for an empty cart', async () => {
     show();
     await ready();
-    expect(screen.getByText('View cart · 11 items · $380.51')).toBeTruthy();
+    // The bar shows the server's indicative subtotal as given (cart_many_lines, after #644).
+    expect(screen.getByText('View cart · 11 items · $386.51')).toBeTruthy();
     fireEvent.press(screen.getByTestId('Restaurant-viewCart'));
     expect(nav.log).toContainEqual({ action: 'push', route: { name: 'cart' } });
   });
