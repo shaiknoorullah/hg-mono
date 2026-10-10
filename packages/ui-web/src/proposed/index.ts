@@ -19,8 +19,18 @@ export type {
   ErrorStateProps,
 } from '../feedback/index.js';
 
-export { Skeleton, Spinner, Textarea, Tooltip, TooltipProvider } from '../primitives/index.js';
-export type { SkeletonProps, SpinnerProps, TextareaProps, TooltipProps } from '../primitives/index.js';
+/* Rebuilt on shadcn/ui (W1 Core); the pre-rebuild props still work. */
+export { Skeleton } from './Skeleton.js';
+export type { SkeletonProps, SkeletonShape } from './Skeleton.js';
+export { Spinner } from './Spinner.js';
+export type { SpinnerProps } from './Spinner.js';
+export { Separator } from './Separator.js';
+export type { SeparatorProps } from './Separator.js';
+export { Tooltip, TooltipProvider } from './Tooltip.js';
+export type { TooltipProps } from './Tooltip.js';
+
+export { Textarea } from '../primitives/index.js';
+export type { TextareaProps } from '../primitives/index.js';
 
 /* Toasts: a provider and a hook today; the live `Toast` component lands in W4. */
 export { ToastProvider, useToast } from '../primitives/index.js';
@@ -28,6 +38,20 @@ export type { ToastOptions, ToastVariant } from '../primitives/index.js';
 
 export { DocumentViewer } from '../data/index.js';
 export type { DocumentViewerProps, DocumentViewerState } from '../data/index.js';
+
+/* Layout and shell (W2): proposed composites from #192 and #191 (packet P8, P12, P14, P15). */
+export { Disclosure } from './Disclosure.js';
+export type { DisclosureProps } from './Disclosure.js';
+export { SkipLink } from './SkipLink.js';
+export type { SkipLinkProps } from './SkipLink.js';
+export { SYSTEM_BANNER_SEVERITY, SystemBannerSlot, SystemBannerStack } from './SystemBannerSlot.js';
+export type { SystemBanner, SystemBannerSlotProps, SystemBannerStackProps } from './SystemBannerSlot.js';
+export { ActionBar, StickyFooter } from './StickyFooter.js';
+export type { ActionBarProps, StickyFooterProps } from './StickyFooter.js';
+export { NavDrawer } from './NavDrawer.js';
+export type { NavDrawerProps } from './NavDrawer.js';
+export { SectionNav } from './SectionNav.js';
+export type { SectionNavItem, SectionNavProps } from './SectionNav.js';
 
 /* Data composites (W6, packet P22 and the admin list pane). FilterBar keeps the pre-rebuild
    declarative props (`filters`, `value`, `onChange`, `onClear`) and adds the composed shape. */
