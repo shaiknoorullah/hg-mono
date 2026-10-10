@@ -2,7 +2,7 @@
 covers:
   - .github/workflows/e2e.yml
   - tools/e2e/**
-reviewed: 2026-10-09
+reviewed: 2026-10-10
 ---
 
 # End-to-end flows
@@ -160,7 +160,7 @@ on macOS runners and are not part of this workflow
 |---|---|
 | [`stack/up.sh`](stack/up.sh) | Boots `deploy/docker-compose.yml` with throwaway secrets, migrates, waits until ready |
 | [`seed/`](seed/) | The world: `seed.sh`, `world.sql`, `world.mjs`, `verify.sql` |
-| [`web/`](web/) | `serve.sh`, the Playwright config and the restaurant and admin tests. `redesign-<app>.*.spec.ts` are the redesign's specs (flag `VITE_HG_REDESIGN` on); `redesign-restaurant.support.ts` signs in for them, against the mock server (`E2E_MODE=mock`, the default) or the real API (`E2E_MODE=real`: it signs in as the devworld `bismillah-grill` owner once per test worker, because sign-in is rate-limited per account). The shared config runs them once it has the redesign projects |
+| [`web/`](web/) | `serve.sh`, the Playwright config and the restaurant and admin tests. `redesign-<app>.*.spec.ts` are the redesign's specs (flag `VITE_HG_REDESIGN` on); `redesign-restaurant.support.ts` signs in for them, against the mock server (`E2E_MODE=mock`, the default) or the real API (`E2E_MODE=real`: it signs in as the devworld `bismillah-grill` owner once per test worker, because sign-in is rate-limited per account). The shared config runs them once it has the redesign projects. `redesign-restaurant.menu.spec.ts` (WP8) answers `getOwnMenu` with a menu covering every row state in mock mode; in real mode it signs in as `bismillah-grill` and `suspended`, toggles an item, adds a category and an item, edits a price, and puts each change back at the end |
 | [`native/`](native/) | The Maestro flows for the customer and rider apps, and the device-lab missions, routes and result template ([native/README.md](native/README.md)) |
 | [`native/rider/redesign/`](native/rider/redesign/) | The rebuilt rider app's flows (a dev APK built with `EXPO_PUBLIC_HG_REDESIGN=1`) and their `missions/`: what the device lab on the owner's machine runs, with the reality steps (GPS route, network loss, camera, dark mode, font scale) for each. Not part of `run.sh` yet |
 | [`native/customer/redesign/`](native/customer/redesign/) | Flows for the redesigned customer app, built with `EXPO_PUBLIC_HG_REDESIGN=1`, and their device-lab missions (`missions/*.yaml`). They run on the owner's emulator, not in CI ([#656](https://github.com/shaiknoorullah/hg-mono/issues/656)) |
