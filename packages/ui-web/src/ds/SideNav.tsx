@@ -113,7 +113,7 @@ export interface SideNavProps {
   brand?: ReactNode;
   /** Extra content under the brand (product name, restaurant). Hidden when collapsed. */
   header?: ReactNode;
-  /** Content above Sign out (who is signed in). Hidden when collapsed. */
+  /** Content above Sign out (who is signed in). Shown in both widths, centred on the rail. */
   footer?: ReactNode;
   /** Renders the on-chrome Sign out button at the foot. */
   onSignOut?: () => void;
@@ -292,7 +292,13 @@ export function SideNav({
 
       {footer || onSignOut || showToggle ? (
         <SidebarFooter className={cn(tone === 'light' && 'border-line-decorative', collapsed && 'items-center')}>
-          {footer && !collapsed ? <div className="px-2 text-body-sm">{footer}</div> : null}
+          {/* Shown in both widths, as the pre-redesign SideNav and the admin stub do: the admin
+              puts System status and "Signed in as" here, and they must not vanish on the rail. */}
+          {footer ? (
+            <div className={cn('text-body-sm', collapsed ? 'flex w-full flex-col items-center gap-1 px-0.5 text-center' : 'px-2')}>
+              {footer}
+            </div>
+          ) : null}
           {onSignOut ? (
             <SidebarFooterButton tone={tone} data-testid={`${testId}-sign-out`} onClick={onSignOut}>
               {signOutLabel}

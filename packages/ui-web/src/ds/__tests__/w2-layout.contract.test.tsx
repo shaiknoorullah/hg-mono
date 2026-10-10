@@ -156,6 +156,12 @@ describe('SideNav', () => {
     expect(nav.className).toMatch(/\bextra\b/);
     expect(within(nav).getByText('Head')).toBeInTheDocument();
     expect(screen.getByTestId('side-nav-item-orders')).toBeInTheDocument();
+    expect(within(nav).getByText('Foot')).toBeInTheDocument();
+  });
+
+  it('keeps the footer on the collapsed rail (pre-redesign SideNav and the admin stub show it)', () => {
+    render(<SideNav groups={groups} collapsed footer="Signed in as Admin" testId="side-nav" />);
+    expect(within(screen.getByTestId('side-nav')).getByText('Signed in as Admin')).toBeInTheDocument();
   });
 });
 
@@ -247,9 +253,12 @@ describe('NavDrawer', () => {
       </NavDrawer>,
     );
     const trigger = screen.getByRole('button', { name: 'Open menu' });
+    expect(trigger).toHaveAttribute('aria-expanded', 'false');
     trigger.focus();
     fireEvent.click(trigger);
     const dialog = await screen.findByRole('dialog', { name: 'Menu' });
+    expect(trigger).toHaveAttribute('aria-expanded', 'true');
+    expect(trigger).toHaveAttribute('aria-controls', dialog.id);
     expect(within(dialog).getByRole('link', { name: 'Live orders, 3 new' })).toHaveAttribute('aria-current', 'page');
     await act(async () => {
       fireEvent.keyDown(dialog, { key: 'Escape' });

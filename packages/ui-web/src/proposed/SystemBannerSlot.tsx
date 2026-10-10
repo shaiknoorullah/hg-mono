@@ -88,7 +88,7 @@ export function SystemBannerSlot({
         <div className="flex min-h-11 items-center gap-3 border-b border-line-decorative bg-surface-raised px-6 py-1 text-body-sm text-fg-secondary">
           <span className="flex-1">{moreLabel(hidden)}</span>
           {onShowAll ? (
-            <Button variant="tertiary" size="sm" onPress={() => onShowAll()} testId={`${testId}-show-all`}>
+            <Button variant="tertiary" size="md" onPress={() => onShowAll()} testId={`${testId}-show-all`}>
               Show all
             </Button>
           ) : null}

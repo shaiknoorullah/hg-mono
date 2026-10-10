@@ -14,7 +14,7 @@
  * - It is navigation only. Working tasks never open in an overlay (DetailPanel instead).
  */
 
-import { useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '../lib/ui/sheet.js';
 import { cn } from '../lib/utils.js';
@@ -80,6 +80,20 @@ export function NavDrawer({
     if (open && typeof document !== 'undefined') opener.current = document.activeElement as HTMLElement | null;
   }, [open]);
 
+  const ownId = useId();
+  const drawerId = id ?? `${ownId}-drawer`;
+
+  // The design-system IconButton takes no ARIA pass-through, so the disclosure state is set on
+  // its button here: "Open menu" says whether the drawer is open and which element it opens.
+  useEffect(() => {
+    const button = trigger.current?.querySelector('button');
+    if (!button) return;
+    button.setAttribute('aria-expanded', open ? 'true' : 'false');
+    button.setAttribute('aria-haspopup', 'dialog');
+    if (open) button.setAttribute('aria-controls', drawerId);
+    else button.removeAttribute('aria-controls');
+  });
+
   const setOpen = (next: boolean): void => {
     if (!controlled) setOwn(next);
     onOpenChange?.(next);
@@ -105,7 +119,7 @@ export function NavDrawer({
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent
           side="left"
-          id={id}
+          id={drawerId}
           data-testid={`${testId}-content`}
           onCloseAutoFocus={(event) => {
             // Return focus to "Open menu" (the trigger is a design-system IconButton, not a Radix
