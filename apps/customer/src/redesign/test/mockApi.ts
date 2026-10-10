@@ -93,10 +93,25 @@ function loadManifest(): NonNullable<typeof manifest> {
   return manifest!;
 }
 
+/*
+ * Fixture text is read from disk once per test file. Every mocked request resolves a fixture,
+ * and an operation with no default looks through all its candidates, so reading and searching
+ * the manifest on each call made screen tests slow enough to time out on a loaded runner. Each
+ * call still parses a fresh copy, so a test that edits a payload never changes another's.
+ */
+const fixtureText = new Map<string, string>();
+let fileByScenario: Map<string, string> | null = null;
+
 export function fixture(scenario: string): FixtureFile {
-  const entry = loadManifest().fixtures.find((f) => f.scenario === scenario);
-  if (!entry) throw new Error(`mockApi: no fixture named ${scenario}`);
-  return JSON.parse(fs.readFileSync(path.join(FIXTURES, entry.file), 'utf8')) as FixtureFile;
+  fileByScenario ??= new Map(loadManifest().fixtures.map((f) => [f.scenario, f.file]));
+  const file = fileByScenario.get(scenario);
+  if (!file) throw new Error(`mockApi: no fixture named ${scenario}`);
+  let text = fixtureText.get(file);
+  if (text === undefined) {
+    text = fs.readFileSync(path.join(FIXTURES, file), 'utf8');
+    fixtureText.set(file, text);
+  }
+  return JSON.parse(text) as FixtureFile;
 }
 
 /** The fixture's payload, for building props or expectations in a test. */
@@ -107,10 +122,10 @@ export function payloadOf<T = any>(scenario: string): T {
 export type MockAnswer =
   /** A fixture scenario name. */
   | string
-  /** An error envelope that has no fixture yet. */
-  | { status: number; code: string; message?: string; details?: unknown }
+  /** An error envelope that has no fixture yet (optionally with response headers, e.g. Retry-After). */
+  | { status: number; code: string; message?: string; details?: unknown; headers?: Record<string, string> }
   /** A raw body. */
-  | { status: number; body: unknown }
+  | { status: number; body: unknown; headers?: Record<string, string> }
   /** Never answers (loading states). */
   | 'hang'
   /** A transport failure (offline). */
@@ -134,10 +149,10 @@ export interface MockApi {
   restore: () => void;
 }
 
-function json(status: number, body: unknown): Response {
+function json(status: number, body: unknown, headers: Record<string, string> = {}): Response {
   return new Response(status === 204 ? null : JSON.stringify(body), {
     status,
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...headers },
   });
 }
 
@@ -166,10 +181,12 @@ export function mockApi(answers: Record<string, MockAnswer> = {}): MockApi {
     if (answer === 'hang') return new Promise<Response>(() => {});
     if (answer === 'offline') throw new TypeError('Network request failed');
     if (answer && typeof answer === 'object' && !Array.isArray(answer)) {
-      if ('body' in answer) return json(answer.status, answer.body);
-      return json(answer.status, {
-        error: { code: answer.code, message: answer.message ?? answer.code, request_id: 'TEST', details: answer.details },
-      });
+      if ('body' in answer) return json(answer.status, answer.body, answer.headers);
+      return json(
+        answer.status,
+        { error: { code: answer.code, message: answer.message ?? answer.code, request_id: 'TEST', details: answer.details } },
+        answer.headers,
+      );
     }
     const m = loadManifest();
     const scenario =

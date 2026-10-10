@@ -1033,33 +1033,6 @@ func TestDisableTotp_NotEnrolled(t *testing.T) {
 	}
 }
 
-// TestDisableTotp_RoleRequiresTOTP verifies that roles for which TOTP is
-// mandatory (SUPPORT_AGENT, ADMIN, SUPER_ADMIN) cannot call disableTotp (403).
-func TestDisableTotp_RoleRequiresTOTP(t *testing.T) {
-	pool := openTestPool(t)
-	requiredRoles := []httpx.Role{
-		httpx.RoleSupportAgent,
-		httpx.RoleAdmin,
-		httpx.RoleSuperAdmin,
-	}
-	for _, role := range requiredRoles {
-		role := role
-		t.Run(string(role), func(t *testing.T) {
-			p := httpx.Principal{AccountID: "any-id", Roles: []httpx.Role{role}}
-			srv := buildTOTPTestServer(t, pool, p)
-			defer srv.Close()
-
-			resp := doJSON(t, srv, "/v1/auth/totp/disable", map[string]any{
-				"totp_code": "123456",
-			})
-			defer resp.Body.Close()
-			if resp.StatusCode != http.StatusForbidden {
-				t.Fatalf("role %s should be DENIED disableTotp (403), got %d", role, resp.StatusCode)
-			}
-		})
-	}
-}
-
 // TestDisableTotp_AuthzAllowedRoles verifies RESTAURANT_OWNER and RESTAURANT_MANAGER can call it.
 func TestDisableTotp_AuthzAllowedRoles(t *testing.T) {
 	pool := openTestPool(t)
@@ -1219,12 +1192,13 @@ func TestMatrixTOTPActions(t *testing.T) {
 	}
 
 	// disableTotp: RESTAURANT_OWNER, RESTAURANT_MANAGER ONLY
-	// NOT: SUPPORT_AGENT, ADMIN, SUPER_ADMIN, RESTAURANT_STAFF, CUSTOMER, RIDER
+	// NOT: RESTAURANT_STAFF, CUSTOMER, RIDER. Staff may turn two-step sign-in
+	// off: it is opt-in (docs/decisions/README.md, "Two-step sign-in is opt-in").
 	disableAllowed := []httpx.Role{
 		httpx.RoleRestaurantOwner, httpx.RoleRestaurantManager,
+		httpx.RoleSupportAgent, httpx.RoleAdmin, httpx.RoleSuperAdmin,
 	}
 	disableDenied := []httpx.Role{
-		httpx.RoleSupportAgent, httpx.RoleAdmin, httpx.RoleSuperAdmin,
 		httpx.RoleRestaurantStaff, httpx.RoleCustomer, httpx.RoleRider,
 	}
 
