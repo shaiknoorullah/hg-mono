@@ -1214,7 +1214,8 @@ async function run() {
 
   await step('restaurant-ready', 'Restaurant marks the order ready', async () => {
     const res = await restaurant.call('POST', `/v1/restaurant/orders/${ctx.orderId}/ready`, { expect: [200] });
-    return { state: res.data?.state || null };
+    ctx.pickupCode = res.data?.pickup_code || null;
+    return { state: res.data?.state || null, pickup_code_shown: Boolean(ctx.pickupCode) };
   }, { needs: ['restaurant', 'order', 'captured'] });
 
   await step('seal-bind', 'Restaurant binds a package seal', async () => {
@@ -1253,8 +1254,16 @@ async function run() {
 
   await step('rider-deliver', 'Rider arrives, picks up, and delivers', async () => {
     const assignmentId = ctx.assignmentId;
-    const pickup = ['EN_ROUTE_TO_PICKUP', 'ARRIVED_AT_PICKUP', 'PICKED_UP'];
-    for (const state of pickup) await transition(assignmentId, state, RESTAURANT_PIN);
+    for (const state of ['EN_ROUTE_TO_PICKUP', 'ARRIVED_AT_PICKUP']) await transition(assignmentId, state, RESTAURANT_PIN);
+    // The rider types in the code the kitchen reads out; only the restaurant's view carries it.
+    if (!ctx.pickupCode) {
+      const view = await restaurant.call('GET', `/v1/restaurant/orders/${ctx.orderId}`, { expect: [200] });
+      ctx.pickupCode = view.data?.pickup_code || null;
+    }
+    if (!ctx.pickupCode) {
+      throw new StepFail('the restaurant order view has no pickup code', { code: 'PICKUP_CODE_MISSING' });
+    }
+    await transition(assignmentId, 'PICKED_UP', { ...RESTAURANT_PIN, pickup_code: ctx.pickupCode });
     await transition(assignmentId, 'EN_ROUTE_TO_DROPOFF', CUSTOMER_PIN);
     await transition(assignmentId, 'ARRIVED_AT_DROPOFF', CUSTOMER_PIN);
     const host = await proveDelivery(assignmentId, ctx.orderId);
@@ -1266,7 +1275,7 @@ async function run() {
       await transition(assignmentId, 'DELIVERED', CUSTOMER_PIN);
     }
     return { assignment_id: assignmentId, pod_host: host, state: 'DELIVERED' };
-  }, { needs: ['rider-online', 'offer', 'order'] });
+  }, { needs: ['rider-online', 'offer', 'order', 'restaurant'] });
 
   await step('customer-delivered', 'Customer sees the order delivered', async () => {
     const seen = await watchOrder(
