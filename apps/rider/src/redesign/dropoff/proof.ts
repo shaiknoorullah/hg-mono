@@ -20,25 +20,14 @@ import { sha256HexBytes } from '../../sha256';
 import { rider } from '../data/client';
 import { toRiderError, type RiderError } from '../data/errors';
 import { postNow, prepareStep, putAssignment, type Assignment, type AssignmentState, type PreparedStep } from '../trip/assignment';
-import type { HandoverMethod, PodMethod } from './routes';
+import type { PodMethod } from './routes';
 
 export type EarningEntry = Schema['EarningEntry'];
 
-/*
- * `ProofOfDeliveryInput` from contract PR #290: one of three shapes, each requiring its proof.
- * Typed here until #290 merges and the client is regenerated; then these become
- * `Schema['OtpProofInput']`, `Schema['PhotoProofInput']`, `Schema['PhotoWithAttestationProofInput']`.
- * Each is a narrowing of today's generated `ProofOfDeliveryInput`, so the body type-checks against it.
- */
-export type OtpProofInput = Schema['ProofOfDeliveryInput'] & { method: 'OTP'; otp_code: string; handover_method?: HandoverMethod };
-export type PhotoProofInput = Schema['ProofOfDeliveryInput'] & { method: 'PHOTO'; photo_object_id: string; handover_method?: HandoverMethod };
-export type PhotoWithAttestationProofInput = Schema['ProofOfDeliveryInput'] & {
-  method: 'PHOTO_WITH_ATTESTATION';
-  photo_object_id: string;
-  handover_method?: HandoverMethod;
-  /** 5–500 characters (#290). */
-  attestation_reason: string;
-};
+/* `ProofOfDeliveryInput` (#290): one of three shapes, each requiring its proof. */
+export type OtpProofInput = Schema['OtpProofInput'];
+export type PhotoProofInput = Schema['PhotoProofInput'];
+export type PhotoWithAttestationProofInput = Schema['PhotoWithAttestationProofInput'];
 export type ProofBody = OtpProofInput | PhotoProofInput | PhotoWithAttestationProofInput;
 
 /** One attempt at a proof: its key and body are kept, so "Try again" is the same request. */

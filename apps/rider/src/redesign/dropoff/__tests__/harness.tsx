@@ -5,9 +5,8 @@
  * Import this file first in a test file: its `jest.mock` calls must run before the screens load.
  *
  * Answers the contract's fixtures do not have yet are literals derived from real fixtures, each
- * filed as a fixture request in the PR. The delivery-code errors are copied verbatim from contract
- * PR #290 (`contracts/fixtures/error_delivery_code_{incorrect,locked}.json` there); they land with
- * #290 and these literals then become `mockApi` scenario names.
+ * filed as a fixture request in the PR. The delivery-code errors are the contract's own fixtures
+ * (#290).
  */
 import * as React from 'react';
 import { Text } from 'react-native';
@@ -19,7 +18,7 @@ import { captureImage, type CaptureOutcome } from '../../../capture';
 import { useNav } from '../../nav/Navigator';
 import { registerScreen, type ScreenProps } from '../../nav/registry';
 import type { MockApi, ScenarioChoice } from '../../test/mockApi';
-import { payload } from '../../test/mockApi';
+import { fixture, payload } from '../../test/mockApi';
 import type { Scheme } from '../../test/render';
 import { resetDropoffState } from '..';
 
@@ -38,30 +37,11 @@ export const PROOF_RECORDED = (scenario = 'assignment_arrived_at_dropoff') => wi
 /** `assignment_arrived_at_dropoff` with `required_pod_method: PHOTO_WITH_ATTESTATION` (filed). */
 export const ATTESTATION_ASSIGNMENT = withDropoff('assignment_arrived_at_dropoff', { required_pod_method: 'PHOTO_WITH_ATTESTATION' });
 
-/** Verbatim from #290 `error_delivery_code_incorrect.json` (422). */
-export const DELIVERY_CODE_INCORRECT: Answer = {
-  status: 422,
-  body: {
-    error: {
-      code: 'DELIVERY_CODE_INCORRECT',
-      message: 'That delivery code is not right. 2 attempts remaining.',
-      request_id: 'TBY6JES0NYSV3AR3GY6989AKRY',
-      details: { attempts_remaining: 2 },
-    },
-  },
-};
-
-/** Verbatim from #290 `error_delivery_code_locked.json` (423). */
-export const DELIVERY_CODE_LOCKED: Answer = {
-  status: 423,
-  body: {
-    error: {
-      code: 'DELIVERY_CODE_LOCKED',
-      message: 'Too many wrong codes. HalalGoes support is taking over this delivery; please stay with the order.',
-      request_id: '9JSEBKQ9PBDC20C8T2RH984WVP',
-    },
-  },
-};
+const incorrect = fixture('error_delivery_code_incorrect');
+const locked = fixture('error_delivery_code_locked');
+/** `error_delivery_code_incorrect` (422, 2 attempts remaining) and `error_delivery_code_locked` (423). */
+export const DELIVERY_CODE_INCORRECT: Answer = { status: incorrect.status, body: incorrect.payload };
+export const DELIVERY_CODE_LOCKED: Answer = { status: locked.status, body: locked.payload };
 
 export const POD_REQUIRED = (required = 'PHOTO') => apiError(422, 'POD_REQUIRED', { required_pod_method: required });
 
