@@ -37,6 +37,11 @@ export function useSession(): SessionValue {
   return s;
 }
 
+/** The session when one is open, else `null` (a screen rendered alone in a test, or by the gate). */
+export function useOptionalSession(): SessionValue | null {
+  return React.useContext(SessionContext);
+}
+
 export const SLOW_MS = 10_000;
 
 export async function fetchRiderMe(): Promise<RiderMe> {

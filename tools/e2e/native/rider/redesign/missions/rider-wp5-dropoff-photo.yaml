@@ -1,0 +1,43 @@
+id: rider-wp5-dropoff-photo
+app: rider
+avd: hg_rider
+api: devworld
+build:
+  env: { EXPO_PUBLIC_HG_REDESIGN: "1" }
+  note: "Clear the Metro cache when building (EXPO_PUBLIC_* is inlined at transform time). The pickup code is only checked once contract #290 and backend #315 merge."
+setup:
+  - "make dev-reset"
+  # One live order on the short route: the restaurant accepts and marks it ready by itself, the
+  # rider is left to the app.
+  - "make dev-journey route=short auto=restaurant manual=rider"
+reality:
+  # The GPS rides from Bismillah Grill to Amina's door (about 45 s); the flow also moves it (travel).
+  - geo-route: tools/e2e/native/routes/restaurant-to-amina.gpx
+  # The sample bag-at-the-door photo, for the camera app's gallery view if it shows one. The app
+  # itself never offers the photo library: the emulator's virtual camera scene is the photo.
+  - camera-media: tools/e2e/native/media/pod-sample-door.png
+  - network: edge
+  - theme: dark
+  - font-scale: 2.0
+flows: [ "tools/e2e/native/rider/redesign/5-dropoff-photo.yaml" ]
+explore: >
+  Set the emulator's back camera to VirtualScene before the run (AVD settings), so the in-app
+  camera returns a picture. Set PICKUP_CODE as for rider-wp4-pickup. After the flow, with a fresh
+  journey each time, screenshot every state reached, in dark at font scale 2.0 (labels wrap,
+  nothing clipped, the 72 px "Mark as delivered" reachable):
+  (1) Camera denied: `deny-permission: camera` before launching, drive to the door, Take photo,
+  answer "Don't allow": "Camera is off for HalalGoes" with Open Settings; the photo library is
+  never offered. Grant it in Settings, come back, Take photo works.
+  (2) Upload: on `network: gsm` the "Uploading your photo" screen with its busy primary; then
+  `network: offline` during the upload: "Your photo didn't upload", Retake photo and Try
+  uploading again; restore and it goes through. Check the API log: createUpload with purpose POD
+  and the photo's sha256, a PUT to the presigned URL, confirmUpload, then submitProofOfDelivery
+  {method PHOTO}, then one DELIVERED transition, in that order.
+  (3) Delivered: "Delivered to <name>", "Photo proof recorded at <12-hour time>.", the estimate
+  until the ledger has the line; Back to Home lands on Home (online: waiting; with "Go offline
+  after this delivery" set beforehand: offline, and Delivered says "You're now offline" with Go
+  online).
+  (4) Geofence: stop the GPX 300 m short (tools/e2e/reality/geo-route.mjs stop) and tap "I'm
+  here": "We can't place you at the drop-off"; Continue stays off until 5 characters.
+  (5) "Something's wrong" on step 3 and step 4 opens the drop-off leg's sheet (WP6; the fallback
+  screen until it merges). No halal badge, no seal, nothing red anywhere on the leg.
