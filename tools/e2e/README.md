@@ -151,6 +151,7 @@ and `seed/` belong to the harness.
 | Web redesign specs | `web/redesign-<app>.<topic>.spec.ts` here (for example `redesign-admin.orders.spec.ts`) | the `VITE_HG_REDESIGN=1` build, desktop 1440x900 and tablet 1024x768 |
 | Native redesign flows | `native/<app>/redesign/*.yaml` here, in name order | the `EXPO_PUBLIC_HG_REDESIGN=1` APK |
 | Device-lab missions | `native/<app>/redesign/missions/<id>.yaml` here | the device lab only, never as flows |
+| Device-lab flows | `native/<app>/redesign/lab/*.yaml` here: flows that need devworld (`make dev-scenario`, `make dev-journey`), the emulator camera, or backend work that has not merged | the device lab only, through a mission; `run.sh` runs only the files directly in `redesign/` |
 
 **Native sign-in, once per run.** Each redesign flow gets the world's values (`PHONE`, and `CODE` when
 the app has a `redesign/1-ask-for-code.yaml`, which `run.sh` runs first). The e2e world's phones
