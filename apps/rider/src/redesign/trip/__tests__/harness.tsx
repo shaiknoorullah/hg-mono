@@ -5,9 +5,8 @@
  * Import this file first in a test file: its `jest.mock` calls must run before the screens load.
  *
  * Answers the contract's fixtures do not have yet are literals derived from real fixtures, each
- * filed as a fixture request in the PR. The pickup-code errors are copied verbatim from contract
- * PR #290 (`contracts/fixtures/error_pickup_code_{incorrect,locked}.json` there); they land with
- * #290 and these literals then become `mockApi` scenario names.
+ * filed as a fixture request in the PR. The pickup-code errors are the contract's own fixtures
+ * (#290).
  */
 import * as React from 'react';
 import { AppState, Linking, Text } from 'react-native';
@@ -34,7 +33,7 @@ import { memoryStore } from '../../data/storage';
 import { useNav } from '../../nav/Navigator';
 import { registerScreen, type ScreenProps } from '../../nav/registry';
 import { ScreenView } from '../../nav/Shell';
-import { mockApi, payload, type MockApi, type ScenarioChoice } from '../../test/mockApi';
+import { fixture, mockApi, payload, type MockApi, type ScenarioChoice } from '../../test/mockApi';
 import { renderRedesign, type Scheme } from '../../test/render';
 import { resetTripState } from '../assignment';
 import { SavedStepLayer } from '../TripScreens';
@@ -58,30 +57,15 @@ export function apiError(status: number, code: string, details?: Record<string, 
   return { status, body: p };
 }
 
-/** Verbatim from #290 `error_pickup_code_incorrect.json` (422). */
-export const PICKUP_CODE_INCORRECT: Answer = {
-  status: 422,
-  body: {
-    error: {
-      code: 'PICKUP_CODE_INCORRECT',
-      message: 'That pickup code is not right. 3 attempts remaining.',
-      request_id: '32X1PXN2ZXZWT0ZPG0VNN4RB9S',
-      details: { attempts_remaining: 3 },
-    },
-  },
-};
+/** A contract error fixture as a mockApi answer. */
+function errorFixture(scenario: string): Answer {
+  const f = fixture(scenario);
+  return { status: f.status, body: f.payload };
+}
 
-/** Verbatim from #290 `error_pickup_code_locked.json` (423). */
-export const PICKUP_CODE_LOCKED: Answer = {
-  status: 423,
-  body: {
-    error: {
-      code: 'PICKUP_CODE_LOCKED',
-      message: 'Too many wrong codes. HalalGoes support is taking over this pickup; please wait at the counter.',
-      request_id: 'KRPG0PB9P7Y07WJ96QMMAX4KP7',
-    },
-  },
-};
+/** `error_pickup_code_incorrect` (422, 3 attempts remaining) and `error_pickup_code_locked` (423). */
+export const PICKUP_CODE_INCORRECT: Answer = errorFixture('error_pickup_code_incorrect');
+export const PICKUP_CODE_LOCKED: Answer = errorFixture('error_pickup_code_locked');
 
 export const GEOFENCE_REQUIRED = () => apiError(422, 'GEOFENCE_REQUIRED');
 export const INVALID_TRANSITION = (current: string) => apiError(409, 'INVALID_TRANSITION', { current_state: current });
