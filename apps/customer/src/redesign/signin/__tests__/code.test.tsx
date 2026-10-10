@@ -4,6 +4,7 @@
  * landing, and a new customer is asked for a name before anything else.
  */
 import * as React from 'react';
+import { BackHandler } from 'react-native';
 import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 
 import { isAuthed, setToken } from '../../../api/token';
@@ -265,6 +266,26 @@ describe('S2 Code', () => {
     expect(isDisabled('Code-verify')).toBe(true);
     expect(isDisabled('Code-resend')).toBe(true);
     expect(screen.getByTestId('Code-input-field').props.value).toBe('482915');
+  });
+
+  it("Android's Back on the code page returns to Sign in with the number kept, not out of the app", async () => {
+    const add = jest.spyOn(BackHandler, 'addEventListener');
+    renderRedesign(<SignInScreen />);
+    await toCode();
+    const onBack = add.mock.calls.at(-1)![1];
+    let handled: boolean | null | undefined;
+    act(() => {
+      handled = onBack();
+    });
+    expect(handled).toBe(true);
+    expect(screen.getByText('Sign in or create an account')).toBeTruthy();
+    expect(screen.getByTestId('SignIn-phone-field').props.value).toContain('555');
+    // On Sign in itself Back is the system's: it leaves the app.
+    act(() => {
+      handled = onBack();
+    });
+    expect(handled).toBe(false);
+    add.mockRestore();
   });
 
   it('Change number goes back with the number filled', async () => {
