@@ -8,7 +8,7 @@
  *   (no button); "I'm at the restaurant" posts ARRIVED_AT_PICKUP; 422 GEOFENCE_REQUIRED opens the
  *   override sheet, so GPS never strands the rider.
  * - `tripAtRestaurant` (R21 + R22, step 2): wait until the restaurant marks the food ready, then
- *   check the items and type the 4-digit pickup code the kitchen reads out (contract PR #290).
+ *   check the items and type the 4-digit pickup code the kitchen reads out (#290).
  *   422 PICKUP_CODE_INCORRECT keeps the code and says the tries left; 423 PICKUP_CODE_LOCKED
  *   removes the field and hands over to support; offline, the pickup is saved and the rider
  *   carries on to the customer.
@@ -64,6 +64,7 @@ import {
   dial,
   itemCount,
   openDirections,
+  pickupCodeOf,
   postNow,
   prepareStep,
   putAssignment,
@@ -476,7 +477,7 @@ export function AtRestaurantScreen({ params }: ScreenProps<'tripAtRestaurant'>):
     if (code.length !== CODE_LENGTH || recording.current) return;
     recording.current = true;
     // "Try again" after a 5xx is the same request, unless the rider changed the code.
-    const previous = pickup.status === 'failed' && pickup.step.input.pickup_code === code ? pickup.step : null;
+    const previous = pickup.status === 'failed' && pickupCodeOf(pickup.step.input) === code ? pickup.step : null;
     setPickup({ status: 'sending', step: previous ?? undefined });
     let step = previous;
     try {
@@ -857,7 +858,7 @@ function CodeRejectedLater({ entry }: { entry: OutboxEntry }): React.ReactElemen
 
   const send = async () => {
     if (code.length !== CODE_LENGTH) return;
-    const previous = result.status === 'failed' && result.step.input.pickup_code === code ? result.step : null;
+    const previous = result.status === 'failed' && pickupCodeOf(result.step.input) === code ? result.step : null;
     // The pickup happened when the rider first tapped: keep that time and place, new code, new key.
     const step: PreparedStep = previous ?? { key: idempotencyKey(), input: { ...(entry.input as PreparedStep['input']), pickup_code: code } };
     setResult({ status: 'sending', step });
