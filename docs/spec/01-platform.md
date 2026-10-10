@@ -9,7 +9,7 @@ covers:
   - services/hg/internal/files/**
   - services/hg/internal/dispatch/**
   - services/hg/internal/httpx/**
-reviewed: 2026-10-09
+reviewed: 2026-10-10
 ---
 
 # HalalGoes — Cross-Cutting Platform Layer Specification
@@ -1264,6 +1264,7 @@ CREATE UNIQUE INDEX dispatch_offer_unique ON dispatch_offer(order_id, rider_acco
   - **I-15.4** `deadline_escalations` is monotonic and capped; reaching the cap always drives the row toward a terminal state or a human queue — never back into an unbounded loop.
   - **I-15.5** Deadline lag (`now() − deadline_at` at fire time) p99 < 5 s; an alert fires above 30 s.
   - **I-15.6** No timeout results in "money kept, no food, no refund": every cancelling action posts a refund/void batch in the same transaction as the transition.
+  - **I-15.7** Nothing in the server moves a deadline but the runner and the transitions. The local dev world's clock (`orders.BringDeadlineForward`, used by `make dev-scenario`) only brings a deadline earlier, only while the order is in the expected state and action, and refuses before touching the database unless `HG_ENV` is `local`. Tests pin that only `internal/devworld` calls it and that `cmd/hg` does not link `internal/devworld`.
 - **Acceptance criteria**:
   1. Given an attempt to insert an order in `PREPARING` with `deadline_at = NULL`, When committed, Then the statement fails with `order_deadline_required`.
   2. Given an order in `RESTAURANT_PENDING` and the restaurant never responds, When 180 s elapse, Then the order is `CANCELLED`, the PaymentIntent is cancelled, `SUM(ledger_entry) = 0` for the order, and the customer receives a push + email. (Old system: relied on a 15-minute workflow timeout that crashed without refunding — finding 4/§7.4.)
@@ -2752,6 +2753,8 @@ CREATE UNIQUE INDEX idempotency_unique ON idempotency_record(account_id, method,
   | `UPLOAD` | 20 / hour | 5 | account |
   | `REALTIME` (ticket issue) | 30 / min | 10 | account |
   | `SEARCH` | 60 / min | 20 | account or ip |
+  | `GEO_SUGGEST` (address suggestions as the user types, `suggestAddresses`; forwarded to Mapbox. Sized so one search typed a key at a time stays under it) | 60 / min | 20 | account |
+  | `GEO` (place details and reverse geocoding, `getPlaceAddress` and `reverseGeocode`; forwarded to Mapbox, each operation counted separately) | 30 / min | 10 | account |
   | `WEBHOOK` | 1000 / min | 200 | provider ip |
   | `POSITION` (rider position ingest) | 120 / min | 30 | account |
 

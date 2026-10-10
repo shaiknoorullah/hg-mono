@@ -144,6 +144,8 @@ A contract enum the backend does not store yet (one a contract change adds
 ahead of its backend) is excluded with the reason "contract-only until the
 backend lands" and the issue or pull request that will store it; that change
 moves it to `MAPPED_IN_MIGRATION` with its migration.
+An enum that only ever appears in a response forwarded from a provider, such as
+address search through Mapbox, is excluded as response-only: nothing stores it.
 
 ## Verification
 

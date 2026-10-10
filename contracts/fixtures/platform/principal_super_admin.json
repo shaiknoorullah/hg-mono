@@ -1,0 +1,31 @@
+{
+  "scenario": "principal_super_admin",
+  "domain": "platform",
+  "schema": "Principal",
+  "describes": "`GET /v1/auth/me` for a `SUPER_ADMIN` with an authenticator-code session: staff management, certificate revocation and refunds above every approver's limit. The account id is the devworld `admin-seed` persona's (`make dev-admin`).",
+  "operations": [
+    "getCurrentPrincipal"
+  ],
+  "status": 200,
+  "tags": [
+    "platform",
+    "auth",
+    "staff"
+  ],
+  "payload": {
+    "account_id": "a0000000-0000-4000-8000-000000000001",
+    "session_id": "29074233-663c-487a-affb-bbaa2616bdb7",
+    "roles": [
+      {
+        "role": "SUPER_ADMIN",
+        "scope_type": "GLOBAL",
+        "scope_id": null
+      }
+    ],
+    "amr": "pwd+totp",
+    "status": "ACTIVE",
+    "locale": "en-CA",
+    "timezone": "America/Toronto",
+    "next_route": "HOME"
+  }
+}

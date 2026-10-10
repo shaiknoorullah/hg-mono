@@ -108,6 +108,42 @@ export type { ListPaneProps, ListPaneRowProps } from './ListPaneRow.js';
 export { EventLog } from './EventLog.js';
 export type { EventLogEntry, EventLogProps } from './EventLog.js';
 
+/* Restaurant console composites (W7a, #674): the new-order strip, decline, "Right now" and the
+   pickup code (approval packet P33 to P35). */
+export { NewOrderStrip, NewOrdersStrip } from './NewOrdersStrip.js';
+export type {
+  NewOrderStripCompact,
+  NewOrderStripEmpty,
+  NewOrderStripProps,
+  NewOrderStripTile,
+  NewOrdersStripAction,
+  NewOrdersStripCompact,
+  NewOrdersStripEmpty,
+  NewOrdersStripError,
+  NewOrdersStripProps,
+  NewOrdersStripTile,
+  OrderOffer,
+} from './NewOrdersStrip.js';
+export { OfferTile, isLiveTile } from './OfferTile.js';
+export type { OfferLineTone, OfferOutcomeView, OfferStatusLine, OfferTileFields, OfferTileProps } from './OfferTile.js';
+export {
+  OFFER_ANNOUNCE_AT,
+  OFFER_OUTCOMES,
+  OFFER_WINDOW_SECONDS,
+  acceptLabel,
+  acceptName,
+  declineName,
+  liveTileName,
+  offerSummary,
+} from './new-orders-copy.js';
+export type { OfferDeadline } from './new-orders-copy.js';
+export { DECLINE_REASONS, DeclineForm } from './DeclineForm.js';
+export type { DeclineFormProps, DeclineItem, DeclineReason, DeclineReasonCode, DeclineValues } from './DeclineForm.js';
+export { StatusCard, statusFromOpenState } from './StatusCard.js';
+export type { StatusCardBusy, StatusCardPauseOption, StatusCardProps, StatusCardStatus } from './StatusCard.js';
+export { PickupCode } from './PickupCode.js';
+export type { PickupCodeProps, PickupCodeSupport } from './PickupCode.js';
+
 /* Restaurant sign-in composites (#737): links, the state card, partner support and the wait line. */
 export { TextLink } from './TextLink.js';
 export type { TextLinkProps, TextLinkRenderArgs, TextLinkTextStyle, TextLinkVariant } from './TextLink.js';

@@ -1,0 +1,27 @@
+{
+  "scenario": "error_cannot_go_online_onboarding_incomplete",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`422` · `CANNOT_GO_ONLINE`. One blocking reason, `ONBOARDING_INCOMPLETE`, so its row and deep link can be tested alone. Contract-only: `services/hg` sends only `STALE_LOCATION_FIX` in `blocking_reasons` today.",
+  "operations": [
+    "setRiderAvailability"
+  ],
+  "status": 422,
+  "tags": [
+    "error-envelope",
+    "error-path",
+    "rider"
+  ],
+  "payload": {
+    "error": {
+      "code": "CANNOT_GO_ONLINE",
+      "message": "You cannot go online yet.",
+      "request_id": "5YZJA2QPX16KTNNKAT07DFA3SK",
+      "details": {
+        "blocking_reasons": [
+          "ONBOARDING_INCOMPLETE"
+        ]
+      }
+    }
+  }
+}

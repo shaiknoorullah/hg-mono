@@ -1,0 +1,29 @@
+{
+  "scenario": "error_field_required",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`422` · `FIELD_REQUIRED`. A car, scooter or motorcycle without a plate.",
+  "operations": [
+    "submitRiderVehicle"
+  ],
+  "status": 422,
+  "tags": [
+    "error-envelope",
+    "error-path",
+    "rider"
+  ],
+  "payload": {
+    "error": {
+      "code": "FIELD_REQUIRED",
+      "message": "licence_plate is required for motorised vehicles.",
+      "request_id": "RKJ734QQ2TGVHYR1E7PSH51MH0",
+      "details": [
+        {
+          "field": "licence_plate",
+          "code": "required",
+          "message": "licence_plate is required for CAR, SCOOTER, MOTORCYCLE"
+        }
+      ]
+    }
+  }
+}

@@ -50,14 +50,23 @@ function errorEnvelope(code: string, message: string, details?: unknown) {
   return { error: { code, message, ...(details ? { details } : {}), request_id: ulid() } };
 }
 
-/** `?scenario=` wins over `X-Mock-Scenario:`, which wins over the `mock_scenario` cookie. */
+/**
+ * `?scenario=` wins over `X-Mock-Scenario:`, which wins over the `mock_scenario` cookie.
+ * Any of them may carry one name or a per-operation map (`parseScenarioRequest`).
+ */
 function requestedScenario(req: Request): string | undefined {
   const query = req.query.scenario;
   if (typeof query === 'string' && query) return query;
   const header = req.get('X-Mock-Scenario');
   if (header) return header;
   const cookie = /(?:^|;\s*)mock_scenario=([^;]+)/.exec(req.get('cookie') ?? '');
-  return cookie?.[1];
+  if (!cookie?.[1]) return undefined;
+  // A cookie library may have percent-encoded the map's `=` and `,`.
+  try {
+    return decodeURIComponent(cookie[1]);
+  } catch {
+    return cookie[1];
+  }
 }
 
 /* -------------------------------------------------------------------------- */
@@ -208,7 +217,9 @@ app.use((req: Request, res: Response, next: NextFunction) => {
       return;
     }
 
-    const status = requested ? fixture.status : route.successStatus;
+    // A fixture you asked for answers with its own status; a default (including one an
+    // operation fell back to inside a per-operation map) with the route's success status.
+    const status = source === 'scenario' ? fixture.status : route.successStatus;
     if (status === 204 || route.noContent) {
       res.status(204).end();
       return;

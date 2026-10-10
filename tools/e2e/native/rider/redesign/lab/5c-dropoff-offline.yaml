@@ -1,0 +1,56 @@
+# Rider redesign WP5, no connection at the door: proof never queues. At the door the phone goes
+# into airplane mode: the trip shows TripNoConnection ("Keep the bag until you're back online",
+# "Turns on when your connection is back." under a disabled Hand it over); nothing is saved for
+# later, there is no "Not sent yet" proof row. Back online, Hand it over turns on again and the
+# photo proof goes through.
+# Built with EXPO_PUBLIC_HG_REDESIGN=1 and a cleared Metro cache (see 0-shell.yaml).
+appId: com.halalgoes.rider.dev
+name: rider redesign, drop-off with no connection at the door
+---
+- runFlow: 5-dropoff-to-door.yaml
+
+- setAirplaneMode: enabled
+# The next poll (5 s) fails and the screen says so.
+- extendedWaitUntil:
+    visible: "Keep the bag until you're back online"
+    timeout: 30000
+- assertVisible: "No internet connection"
+- assertVisible: "Turns on when your connection is back."
+- assertNotVisible: "Proof saved · delivery not sent yet"
+- takeScreenshot: rider-wp5-21-no-connection-at-door
+
+- setAirplaneMode: disabled
+- extendedWaitUntil:
+    notVisible: "Keep the bag until you're back online"
+    timeout: 90000
+- tapOn: "Hand it over"
+- tapOn: "Leave it at the door"
+- tapOn: "Next: take the photo"
+- tapOn: "Take photo"
+- tapOn:
+    id: "com.android.camera2:id/shutter_button"
+    optional: true
+- tapOn:
+    id: "com.android.camera2:id/done_button"
+    optional: true
+- tapOn:
+    text: "OK|Done"
+    optional: true
+- extendedWaitUntil:
+    visible: "Check the photo"
+    timeout: 30000
+
+# Offline again at Mark as delivered: the photo stays on the phone, nothing is marked delivered.
+- setAirplaneMode: enabled
+- tapOn: "Mark as delivered"
+- extendedWaitUntil:
+    visible: "Your photo didn't upload|Keep the bag until you're back online"
+    timeout: 60000
+- assertNotVisible: "Delivered to .*"
+- takeScreenshot: rider-wp5-22-proof-offline
+- setAirplaneMode: disabled
+- tapOn: "Try uploading again|Try again"
+- extendedWaitUntil:
+    visible: "Delivered to .*"
+    timeout: 90000
+- takeScreenshot: rider-wp5-23-delivered-after-offline

@@ -1,0 +1,52 @@
+{
+  "scenario": "realtime_restaurant_offer_one",
+  "domain": "realtime",
+  "schema": "RealtimeEvent[]",
+  "describes": "One `restaurant.order_offered` with the full 180-second window: the strip rings and shows one tile. Pre-acceptance projection only (first name, no phone, no address). Pair with `restaurant_order_restaurant_pending` for the tile's detail.",
+  "operations": [],
+  "status": 200,
+  "tags": [
+    "realtime",
+    "script",
+    "restaurant"
+  ],
+  "payload": [
+    {
+      "id": "GJDAE2RQD8716KF5AWWTETZFM5",
+      "seq": 1,
+      "channel": "restaurant:a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+      "type": "restaurant.order_offered",
+      "v": 1,
+      "ts": "2026-08-10T18:42:11.412Z",
+      "data": {
+        "order_id": "11cd6318-418f-4301-af7e-3e7f33818fa8",
+        "code": "HG-A7K2-4M",
+        "expires_at": "2026-08-10T18:45:11.412Z",
+        "deadline_at": "2026-08-10T18:45:11.412Z",
+        "customer_first_name": "Ayesha",
+        "lines": [
+          {
+            "name": "Chicken Biryani",
+            "variant": null,
+            "addons": [],
+            "qty": 2,
+            "note": null
+          },
+          {
+            "name": "Garlic Naan",
+            "variant": null,
+            "addons": [],
+            "qty": 2,
+            "note": null
+          }
+        ],
+        "subtotal_cents": 3298,
+        "total_cents": 4369,
+        "currency": "CAD",
+        "prep_eta_suggestion_min": 20,
+        "fulfilment": "DELIVERY"
+      },
+      "_delay_ms": 0
+    }
+  ]
+}

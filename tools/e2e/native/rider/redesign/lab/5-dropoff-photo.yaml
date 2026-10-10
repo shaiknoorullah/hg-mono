@@ -1,0 +1,59 @@
+# Rider redesign WP5: drop-off with a photo (required_pod_method PHOTO, the devworld default for
+# Amina's address). Travel to the customer → I'm here → Hand it over → Leave it at the door →
+# take the photo with the in-app camera (the emulator's virtual camera scene; the photo library
+# is never offered) → Check the photo → Mark as delivered (upload presign → PUT → confirm, the
+# proof, then DELIVERED) → Delivered with the earnings line → Back to Home.
+# Built with EXPO_PUBLIC_HG_REDESIGN=1 and a cleared Metro cache (see 0-shell.yaml).
+appId: com.halalgoes.rider.dev
+name: rider redesign, drop-off with a photo
+---
+- runFlow: 5-dropoff-to-door.yaml
+- tapOn: "Hand it over"
+
+# DL/Handover: nothing pre-selected; the primary says what to do first.
+- extendedWaitUntil:
+    visible: "How will you hand it over\\?"
+    timeout: 15000
+- assertVisible: "Choose how you will hand it over"
+- takeScreenshot: rider-wp5-04-handover
+- tapOn: "Leave it at the door"
+- tapOn: "Next: take the photo"
+
+# DL/PodPhoto: the in-app camera.
+- extendedWaitUntil:
+    visible: "Take a photo of the bag at the door"
+    timeout: 15000
+- takeScreenshot: rider-wp5-05-camera
+- tapOn: "Take photo"
+# The system camera on the API 34 image: the shutter, then accept the shot. Ids differ between
+# camera apps, so each step is optional; the lab falls back to explore if none matches.
+- tapOn:
+    id: "com.android.camera2:id/shutter_button"
+    optional: true
+- tapOn:
+    id: "com.android.camera2:id/done_button"
+    optional: true
+- tapOn:
+    text: "OK|Done"
+    optional: true
+
+# DL/PodPhotoReview, then upload, proof and DELIVERED.
+- extendedWaitUntil:
+    visible: "Check the photo"
+    timeout: 30000
+- assertVisible: "Your photo, .*"
+- takeScreenshot: rider-wp5-06-check-photo
+- tapOn: "Mark as delivered"
+- extendedWaitUntil:
+    visible: "Delivered to .*"
+    timeout: 60000
+- assertVisible: "Photo proof recorded at .*"
+- assertVisible: "Estimated earnings for this delivery|Earnings for this delivery"
+- assertNotVisible: "Your photo didn't upload"
+- takeScreenshot: rider-wp5-07-delivered
+- tapOn: "Back to Home"
+- extendedWaitUntil:
+    visible: "Earnings"
+    timeout: 30000
+- assertNotVisible: "Step 4 of 4 .*"
+- takeScreenshot: rider-wp5-08-home

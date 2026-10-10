@@ -22,7 +22,9 @@
  * banner is slate (`Banner` neutral).
  *
  * Layout helpers below are local to this file on purpose: the app defines no components
- * (constitution §1). Each stand-in for a missing composite carries its `ds-request` line.
+ * (constitution §1). Each stand-in for a missing composite carries its `ds-request` line. The
+ * drop-off leg (WP5, `../dropoff`) lays its boards out with the same helpers, imported from here
+ * rather than copied, so the trip reads as one flow.
  */
 import * as React from 'react';
 import { AccessibilityInfo, ScrollView, Text, View, type TextStyle } from 'react-native';
@@ -981,13 +983,13 @@ function QueuedRejected({ entry }: { entry: OutboxEntry }): React.ReactElement {
 /* ================================================================== shared pieces of these boards */
 
 /** Before the assignment is known on a step screen (normally the host has loaded it). */
-function StepPending({ view }: { view: TripAssignmentView }): React.ReactElement {
+export function StepPending({ view }: { view: TripAssignmentView }): React.ReactElement {
   if (view.status === 'error') return <TripLoadFailed retry={() => void view.refetch()} offline={view.error?.kind === 'offline'} />;
   return <TripLoading />;
 }
 
 /** Slate banners every pickup step can carry: moved on, no connection, tracking, stale poll. */
-function TripBanners({ view }: { view: TripAssignmentView }): React.ReactElement {
+export function TripBanners({ view, offlineBody = NO_CONNECTION.body }: { view: TripAssignmentView; offlineBody?: string }): React.ReactElement {
   const online = useOnline();
   const a = view.assignment!;
   const id = view.id ?? a.id;
@@ -1011,7 +1013,7 @@ function TripBanners({ view }: { view: TripAssignmentView }): React.ReactElement
       ) : null}
       {!online ? (
         // ds-request(native): InlineAlert (persistent) — DL/TripNoConnection
-        <Banner variant="neutral" title={NO_CONNECTION.title} description={NO_CONNECTION.body} testID="trip-offline" />
+        <Banner variant="neutral" title={NO_CONNECTION.title} description={offlineBody} testID="trip-offline" />
       ) : null}
       {tracking === 'LOST' ? (
         <View style={{ gap: space['2'] }}>
@@ -1032,7 +1034,7 @@ function TripBanners({ view }: { view: TripAssignmentView }): React.ReactElement
 }
 
 /** Steps saved on the phone, not sent yet (DL/PickupStartQueued, TripNoConnection). */
-function SavedSteps({ entries }: { entries: readonly OutboxEntry[] }): React.ReactElement | null {
+export function SavedSteps({ entries }: { entries: readonly OutboxEntry[] }): React.ReactElement | null {
   const latest = entries[entries.length - 1];
   if (!latest) return null;
   const name = STEP_NAME[latest.input.to_state] ?? STATE_WORDS[latest.input.to_state];
@@ -1047,7 +1049,7 @@ function SavedSteps({ entries }: { entries: readonly OutboxEntry[] }): React.Rea
   );
 }
 
-function SavedRow({ label }: { label: string }): React.ReactElement {
+export function SavedRow({ label }: { label: string }): React.ReactElement {
   return (
     // ds-request(native): QueuedStepRow (ListRow 56, static, no live region) — DL/PickupStartQueued, PickupRecordQueued
     <Card variant="filled" accessibilityLabel={`${label}. ${NOT_SENT}`}>
@@ -1115,7 +1117,7 @@ function ItemList({ a }: { a: Assignment }): React.ReactElement {
 }
 
 /** Label / value pairs; rows with no value are left out (KeyValueList stand-in). */
-function Facts({ rows, mono = false }: { rows: [string, string | null][]; mono?: boolean }): React.ReactElement | null {
+export function Facts({ rows, mono = false }: { rows: [string, string | null][]; mono?: boolean }): React.ReactElement | null {
   const shown = rows.filter((row): row is [string, string] => !!row[1]);
   if (!shown.length) return null;
   return (
@@ -1133,7 +1135,7 @@ function Facts({ rows, mono = false }: { rows: [string, string | null][]; mono?:
   );
 }
 
-function MessagesLink({ onPress }: { onPress: () => void }): React.ReactElement {
+export function MessagesLink({ onPress }: { onPress: () => void }): React.ReactElement {
   // ds-request(native): MessagePreview (Card outlined + ghost Button) — DL/PickupEnRoute; notes are Needs API (gap 22)
   return (
     <Button variant="ghost" size="xl" fullWidth onPress={onPress} testID="trip-messages">
@@ -1178,7 +1180,7 @@ function WrongSheet({
 }
 
 /** "Call HalalGoes support" with its number and hours, or nothing when support is off. */
-function supportAction(support: Support, variant: ButtonVariant): ActionSpec[] {
+export function supportAction(support: Support, variant: ButtonVariant): ActionSpec[] {
   if (!support.phone) return [];
   return [
     {
@@ -1193,7 +1195,7 @@ function supportAction(support: Support, variant: ButtonVariant): ActionSpec[] {
 
 /* ------------------------------------------------------------------ layout */
 
-interface ActionSpec {
+export interface ActionSpec {
   label: string;
   variant: ButtonVariant;
   onPress: () => void;
@@ -1206,7 +1208,7 @@ interface ActionSpec {
   testID?: string;
 }
 
-function Actions({ actions }: { actions: readonly ActionSpec[] }): React.ReactElement {
+export function Actions({ actions }: { actions: readonly ActionSpec[] }): React.ReactElement {
   return (
     <View style={{ gap: space['2'] }}>
       {actions.map((act) => (
@@ -1236,7 +1238,7 @@ function Actions({ actions }: { actions: readonly ActionSpec[] }): React.ReactEl
   );
 }
 
-function Screen({
+export function Screen({
   title,
   subtitle,
   progress,
@@ -1249,7 +1251,8 @@ function Screen({
   subtitle?: string;
   /** Step N of 4. */
   progress?: number;
-  back?: { onPress: () => void };
+  /** `previousTitle` names where Back goes ("Back to handover"). */
+  back?: { onPress: () => void; previousTitle?: string };
   actions?: readonly ActionSpec[];
   testID: string;
   children: React.ReactNode;
@@ -1279,7 +1282,7 @@ function Overlay({ children }: { children: React.ReactNode }): React.ReactElemen
   );
 }
 
-function Lead({ title, body, level = 2 }: { title: string; body?: string; level?: 2 | 3 }): React.ReactElement {
+export function Lead({ title, body, level = 2 }: { title: string; body?: string; level?: 2 | 3 }): React.ReactElement {
   return (
     <View style={{ gap: space['2'] }}>
       <Line type={level === 2 ? 'heading.xl' : 'heading.md'} header>
@@ -1290,9 +1293,9 @@ function Lead({ title, body, level = 2 }: { title: string; body?: string; level?
   );
 }
 
-type LineType = 'heading.xl' | 'heading.md' | 'heading.sm' | 'body.lg' | 'body.md' | 'label.lg' | 'label.md' | 'mono.md';
+export type LineType = 'heading.xl' | 'heading.md' | 'heading.sm' | 'body.lg' | 'body.md' | 'label.lg' | 'label.md' | 'mono.md';
 
-function Line({
+export function Line({
   children,
   type = 'body.lg',
   tone = 'primary',
@@ -1318,7 +1321,7 @@ function Line({
 }
 
 /** `false` after unmount: a step answered after the screen moved on sets nothing. */
-function useAlive(): React.MutableRefObject<boolean> {
+export function useAlive(): React.MutableRefObject<boolean> {
   const alive = React.useRef(true);
   React.useEffect(() => {
     alive.current = true;
