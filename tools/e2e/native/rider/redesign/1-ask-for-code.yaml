@@ -4,10 +4,12 @@
 # same challenge, so 1-sign-in.yaml signs in with that CODE even after a relaunch.
 # Env: PHONE (E.164; the e2e world's rider, or devworld's rider-sim +15550100151 whose code is
 # always 000000).
+# Each default is written ${VAR || "…"}: a plain value under env: would override the -e values
+# run.sh passes, and CI would sign in devworld's rider-sim, who is not a rider in the e2e world.
 appId: com.halalgoes.rider.dev
 name: rider redesign, ask for a sign-in code
 env:
-  PHONE: "+15550100151"
+  PHONE: ${PHONE || "+15550100151"}
 ---
 - launchApp:
     clearState: true

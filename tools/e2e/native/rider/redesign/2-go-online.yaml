@@ -3,11 +3,13 @@
 # cleared Metro cache: EXPO_PUBLIC_* is inlined at transform time).
 # Env: LATITUDE/LONGITUDE (run.sh passes the e2e world's restaurant; the default is Bismillah
 # Grill, 1240 Danforth Avenue: dispatch only offers to riders within 3 km of a ready order).
+# Each default is written ${VAR || "…"}: a plain value under env: would override the -e values
+# run.sh passes, and CI would sign in devworld's rider-sim, who is not a rider in the e2e world.
 appId: com.halalgoes.rider.dev
 name: rider redesign, go online
 env:
-  LATITUDE: "43.6815"
-  LONGITUDE: "-79.3310"
+  LATITUDE: ${LATITUDE || "43.6815"}
+  LONGITUDE: ${LONGITUDE || "-79.3310"}
 ---
 # Signed in by 1-sign-in.yaml, which runs before this flow (flows run in name order). The app
 # keeps running between flows, so its in-memory session holds. Run alone, run 1-sign-in.yaml first.

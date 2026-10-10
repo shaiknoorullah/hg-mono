@@ -8,12 +8,14 @@
 # Env: PHONE (E.164) and CODE. In CI, run.sh passes the e2e world's rider and the code
 # 1-ask-for-code.yaml asked for; asking again inside that open challenge returns the same one.
 # The defaults are devworld's rider-sim, whose code is always 000000.
+# Each default is written ${VAR || "…"}: a plain value under env: would override the -e values
+# run.sh passes, and CI would sign in devworld's rider-sim, who is not a rider in the e2e world.
 appId: com.halalgoes.rider.dev
 name: rider redesign, sign in
 env:
-  PHONE: "+15550100151"
-  WRONG_CODE: "111111"
-  CODE: "000000"
+  PHONE: ${PHONE || "+15550100151"}
+  WRONG_CODE: ${WRONG_CODE || "111111"}
+  CODE: ${CODE || "000000"}
 ---
 - launchApp:
     clearState: true

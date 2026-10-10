@@ -159,7 +159,9 @@ are not in the reserved development range, so their codes are random: a flow sig
 `CODE`, never a fixed code. The rider's `1-sign-in.yaml` signs in once; the flows after it keep
 that session with `launchApp: { stopApp: false }`, because a relaunch or `clearState` loses it,
 and a fresh sign-in after the code is used needs a new one. Their missions list `1-sign-in.yaml`
-first for the same reason.
+first for the same reason. A default under a flow's `env:` is written `${PHONE || "+15550100151"}`: a plain
+value there overrides the `-e` values `run.sh` passes, so the flow would sign in someone who is
+not in the e2e world.
 
 **Playwright projects** are `<app>-<flag>-<viewport>`: `restaurant-legacy-desktop`,
 `restaurant-legacy-tablet`, `restaurant-redesign-desktop`, `restaurant-redesign-tablet`, and the
