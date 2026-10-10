@@ -486,7 +486,8 @@ paths:
       summary: Email + password sign-in (restaurants, admins, support)
       description: |
         P-03. Argon2id verification, account status check, role auth-policy check, TOTP
-        when enrolled or required. Wrong email, wrong password and unverified email all
+        when the account has turned it on (it is opt-in for every role; `403 MFA_REQUIRED`
+        asks for the code). Wrong email, wrong password and unverified email all
         return the same `401 INVALID_CREDENTIALS` body; the unverified case additionally
         sets `error.details.email_verification_required` **only after** the credentials
         were correct. Lockout truth lives in Postgres, so a Redis flush does not unlock.
@@ -724,15 +725,9 @@ paths:
 
         **Issues no session and sets no cookie**, also when the link is a staff invitation
         setting a first password. The user signs in afterwards with `login` (with the
-        authenticator code where the account requires one).
-
-        **Staff invitation with an authenticator.** A staff role needs an authenticator to sign
-        in, and enrolling one needs a session, so an invitee starts enrolment with
-        `startInviteTotpEnrolment` and sends the first code here as `totp_code`. The password is
-        set and the authenticator confirmed together. A wrong code answers `422
-        INVALID_CREDENTIALS` and leaves the link usable; a `totp_code` with no enrolment started
-        answers `422 VALIDATION_FAILED`. Without `totp_code` nothing changes
-        ([#170](https://github.com/shaiknoorullah/hg-mono/issues/170)).
+        authenticator code only if the account has turned two-step sign-in on). An invited staff
+        member signs in with the password alone and may turn two-step sign-in on afterwards with
+        `enrollTotp`; it is never set up from the invitation link.
       security: []
       x-roles: [PUBLIC]
       x-version: V0
@@ -752,10 +747,6 @@ paths:
                   maxLength: 128
                 new_password:
                   $ref: '#/components/schemas/Password'
-                totp_code:
-                  type: string
-                  pattern: '^[0-9]{6}$'
-                  description: 'The first code from the authenticator that `startInviteTotpEnrolment` set up for this link.'
       responses:
         '204':
           description: Password set; all sessions revoked. No session issued and no cookie set.
@@ -767,55 +758,6 @@ paths:
           $ref: '#/components/responses/RateLimited'
         '503':
           $ref: '#/components/responses/ServerBusy'
-        default:
-          $ref: '#/components/responses/Error'
-  /v1/auth/invite/totp:
-    post:
-      operationId: startInviteTotpEnrolment
-      tags: [auth]
-      summary: Start an invited staff member's authenticator enrolment
-      description: |
-        P-03/A-03. For an unused staff invitation (or reset) link whose account needs an
-        authenticator (`SUPPORT_AGENT`, `ADMIN`, `SUPER_ADMIN`) and has none yet. Returns the
-        provisioning URI; the link stays usable. `resetPassword` with the link, the new password
-        and the first code then confirms it. Calling again replaces the enrolment not yet
-        confirmed. An account that needs no authenticator or already has one answers `409
-        STEP_NOT_AVAILABLE` ([#170](https://github.com/shaiknoorullah/hg-mono/issues/170)).
-      security: []
-      x-roles: [PUBLIC]
-      x-version: V0
-      x-rate-class: AUTH
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              additionalProperties: false
-              required: [token]
-              properties:
-                token:
-                  type: string
-                  minLength: 32
-                  maxLength: 128
-      responses:
-        '200':
-          description: Enrolment started; confirm it with `resetPassword` and `totp_code`.
-          content:
-            application/json:
-              schema:
-                type: object
-                additionalProperties: false
-                required: [data]
-                properties:
-                  data:
-                    $ref: '#/components/schemas/TotpEnrolment'
-        '400':
-          $ref: '#/components/responses/Error'
-        '409':
-          $ref: '#/components/responses/Error'
-        '429':
-          $ref: '#/components/responses/RateLimited'
         default:
           $ref: '#/components/responses/Error'
   /v1/auth/password/change:
@@ -880,8 +822,13 @@ paths:
       tags: [auth]
       summary: Begin TOTP enrolment
       description: |
-        P-01/P-03/A-03. Mandatory for `SUPPORT_AGENT`, `ADMIN` and `SUPER_ADMIN`, optional
-        for restaurant staff. Returns the provisioning URI and recovery codes exactly once.
+        P-01/P-03/A-03. Opt-in for every email account, staff included: an invited admin or a
+        new restaurant signs in with the password alone and turns two-step sign-in on here
+        afterwards. Moving money still needs a session signed in with an authenticator code.
+        Returns the provisioning URI (shown as a QR code) and recovery codes exactly once.
+        While an authenticator is confirmed this answers `409 STEP_NOT_AVAILABLE`: turn it off
+        with `disableTotp` first, so a working authenticator is never replaced by an
+        unconfirmed one.
       x-roles: [RESTAURANT_OWNER, RESTAURANT_MANAGER, SUPPORT_AGENT, ADMIN, SUPER_ADMIN]
       x-version: V0
       responses:
@@ -927,8 +874,8 @@ paths:
       operationId: disableTotp
       tags: [auth]
       summary: Disable TOTP (step-up required)
-      description: 'Refused for roles whose policy requires TOTP (`403 MFA_REQUIRED`).'
-      x-roles: [RESTAURANT_OWNER, RESTAURANT_MANAGER]
+      description: 'Turns two-step sign-in off with a current authenticator code. Two-step sign-in is opt-in for every email account, so staff may turn it off too.'
+      x-roles: [RESTAURANT_OWNER, RESTAURANT_MANAGER, SUPPORT_AGENT, ADMIN, SUPER_ADMIN]
       x-version: V1
       requestBody:
         required: true
@@ -12816,7 +12763,7 @@ components:
           $ref: '#/components/schemas/StaffStatus'
         mfa_enrolled:
           type: boolean
-          description: 'Mandatory for `SUPPORT_AGENT`, `ADMIN` and `SUPER_ADMIN`; there is no grace period.'
+          description: 'Whether the staff member has turned two-step sign-in on. It is opt-in; moving money needs it.'
         last_login_at:
           type: [string, 'null']
           format: date-time

@@ -1184,31 +1184,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/auth/invite/totp": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Start an invited staff member's authenticator enrolment
-         * @description P-03/A-03. For an unused staff invitation (or reset) link whose account needs an
-         *     authenticator (`SUPPORT_AGENT`, `ADMIN`, `SUPER_ADMIN`) and has none yet. Returns the
-         *     provisioning URI; the link stays usable. `resetPassword` with the link, the new password
-         *     and the first code then confirms it. Calling again replaces the enrolment not yet
-         *     confirmed. An account that needs no authenticator or already has one answers `409
-         *     STEP_NOT_AVAILABLE` ([#170](https://github.com/shaiknoorullah/hg-mono/issues/170)).
-         */
-        post: operations["startInviteTotpEnrolment"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/v1/auth/login": {
         parameters: {
             query?: never;
@@ -1221,7 +1196,8 @@ export interface paths {
         /**
          * Email + password sign-in (restaurants, admins, support)
          * @description P-03. Argon2id verification, account status check, role auth-policy check, TOTP
-         *     when enrolled or required. Wrong email, wrong password and unverified email all
+         *     when the account has turned it on (it is opt-in for every role; `403 MFA_REQUIRED`
+         *     asks for the code). Wrong email, wrong password and unverified email all
          *     return the same `401 INVALID_CREDENTIALS` body; the unverified case additionally
          *     sets `error.details.email_verification_required` **only after** the credentials
          *     were correct. Lockout truth lives in Postgres, so a Redis flush does not unlock.
@@ -1417,15 +1393,9 @@ export interface paths {
          *
          *     **Issues no session and sets no cookie**, also when the link is a staff invitation
          *     setting a first password. The user signs in afterwards with `login` (with the
-         *     authenticator code where the account requires one).
-         *
-         *     **Staff invitation with an authenticator.** A staff role needs an authenticator to sign
-         *     in, and enrolling one needs a session, so an invitee starts enrolment with
-         *     `startInviteTotpEnrolment` and sends the first code here as `totp_code`. The password is
-         *     set and the authenticator confirmed together. A wrong code answers `422
-         *     INVALID_CREDENTIALS` and leaves the link usable; a `totp_code` with no enrolment started
-         *     answers `422 VALIDATION_FAILED`. Without `totp_code` nothing changes
-         *     ([#170](https://github.com/shaiknoorullah/hg-mono/issues/170)).
+         *     authenticator code only if the account has turned two-step sign-in on). An invited staff
+         *     member signs in with the password alone and may turn two-step sign-in on afterwards with
+         *     `enrollTotp`; it is never set up from the invitation link.
          */
         post: operations["resetPassword"];
         delete?: never;
@@ -1529,7 +1499,7 @@ export interface paths {
         put?: never;
         /**
          * Disable TOTP (step-up required)
-         * @description Refused for roles whose policy requires TOTP (`403 MFA_REQUIRED`).
+         * @description Turns two-step sign-in off with a current authenticator code. Two-step sign-in is opt-in for every email account, so staff may turn it off too.
          */
         post: operations["disableTotp"];
         delete?: never;
@@ -1549,8 +1519,13 @@ export interface paths {
         put?: never;
         /**
          * Begin TOTP enrolment
-         * @description P-01/P-03/A-03. Mandatory for `SUPPORT_AGENT`, `ADMIN` and `SUPER_ADMIN`, optional
-         *     for restaurant staff. Returns the provisioning URI and recovery codes exactly once.
+         * @description P-01/P-03/A-03. Opt-in for every email account, staff included: an invited admin or a
+         *     new restaurant signs in with the password alone and turns two-step sign-in on here
+         *     afterwards. Moving money still needs a session signed in with an authenticator code.
+         *     Returns the provisioning URI (shown as a QR code) and recovery codes exactly once.
+         *     While an authenticator is confirmed this answers `409 STEP_NOT_AVAILABLE`: turn it off
+         *     with `disableTotp` first, so a working authenticator is never replaced by an
+         *     unconfirmed one.
          */
         post: operations["enrollTotp"];
         delete?: never;
@@ -7369,7 +7344,7 @@ export interface components {
             id: string;
             /** Format: date-time */
             last_login_at?: string | null;
-            /** @description Mandatory for `SUPPORT_AGENT`, `ADMIN` and `SUPER_ADMIN`; there is no grace period. */
+            /** @description Whether the staff member has turned two-step sign-in on. It is opt-in; moving money needs it. */
             mfa_enrolled: boolean;
             role: components["schemas"]["Role"];
             status: components["schemas"]["StaffStatus"];
@@ -10056,38 +10031,6 @@ export interface operations {
             default: components["responses"]["Error"];
         };
     };
-    startInviteTotpEnrolment: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    token: string;
-                };
-            };
-        };
-        responses: {
-            /** @description Enrolment started; confirm it with `resetPassword` and `totp_code`. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        data: components["schemas"]["TotpEnrolment"];
-                    };
-                };
-            };
-            400: components["responses"]["Error"];
-            409: components["responses"]["Error"];
-            429: components["responses"]["RateLimited"];
-            default: components["responses"]["Error"];
-        };
-    };
     login: {
         parameters: {
             query?: never;
@@ -10344,8 +10287,6 @@ export interface operations {
                 "application/json": {
                     new_password: components["schemas"]["Password"];
                     token: string;
-                    /** @description The first code from the authenticator that `startInviteTotpEnrolment` set up for this link. */
-                    totp_code?: string;
                 };
             };
         };

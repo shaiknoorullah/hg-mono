@@ -19,13 +19,39 @@
 export { setClientErrorReporter } from './client-error.js';
 export { setHalalClientErrorReporter } from '../certification/index.js';
 
+/* Rebuilt on shadcn/ui (W1 Core). */
+export { Button } from './Button.js';
+export type { ButtonProps, ButtonSize, ButtonVariant } from './Button.js';
+export { IconButton } from './IconButton.js';
+export type { IconButtonProps } from './IconButton.js';
+export { Icon, ICON_MAP, ICON_NAMES, iconSize } from './Icon.js';
+export type {
+  DsIconName,
+  IconCanvasName,
+  IconExtensionName,
+  IconMapEntry,
+  IconName,
+  IconProps,
+  IconWeight,
+} from './Icon.js';
+export { Badge } from './Badge.js';
+export type { BadgeProps, BadgeVariant } from './Badge.js';
+export { Card } from './Card.js';
+export type { CardProps } from './Card.js';
+export { Price } from './Price.js';
+export type { PriceProps, PriceSize } from './Price.js';
+/* Owner-approved composites (decisions row, 28 Sep). */
+export { KeyValueList } from './KeyValueList.js';
+export type { KeyValueItem, KeyValueListProps } from './KeyValueList.js';
+export { StatCard } from './StatCard.js';
+export type { StatCardProps } from './StatCard.js';
+/* The one 12-hour time formatter (constitution gate item 10). */
+export { formatTime12h, DEFAULT_TIME_ZONE } from './time.js';
+export type { FormatTime12hOptions } from './time.js';
+
 /* Adapters over legacy components: live props, legacy rendering. */
 export {
-  AppBar,
-  Button,
   Checkbox,
-  Icon,
-  IconButton,
   Input,
   RadioGroup,
   Select,
@@ -33,15 +59,7 @@ export {
   Switch,
 } from './compat.js';
 export type {
-  AppBarProps,
-  ButtonProps,
   CheckboxProps,
-  DsIconName,
-  IconExtensionName,
-  IconName,
-  IconProps,
-  IconButtonProps,
-  IconWeight,
   InputProps,
   RadioGroupProps,
   RadioOption,
@@ -50,11 +68,10 @@ export type {
   StatusTimelineProps,
   SwitchProps,
 } from './compat.js';
-export { ICON_NAMES } from '../primitives/index.js';
 
 /* Legacy components whose shape already matches the live index. */
-export { Card, Price, Rating } from '../content/index.js';
-export type { CardProps, PriceProps, RatingProps } from '../content/index.js';
+export { Rating } from '../content/index.js';
+export type { RatingProps } from '../content/index.js';
 
 export { ORDER_STATE_LABELS } from '../feedback/index.js';
 export type { OrderState } from '@hg/api-client';
@@ -90,6 +107,13 @@ export type {
   HalalShieldProps,
 } from '../certification/index.js';
 
-/* Owner-approved desktop layout (decision log, 28 Sep): rebuilt in W2. */
-export { SideNav } from '../navigation/index.js';
-export type { SideNavGroup, SideNavItem, SideNavProps } from '../navigation/index.js';
+/* Rebuilt in W2 (layout and shell): the live AppBar, and the owner-approved desktop layout
+   (decision log, 28 Sep): SideNav, DetailPanel and SplitPanes. */
+export { AppBar } from './AppBar.js';
+export type { AppBarProps } from './AppBar.js';
+export { SideNav } from './SideNav.js';
+export type { SideNavGroup, SideNavItem, SideNavProps } from './SideNav.js';
+export { DetailPanel } from './DetailPanel.js';
+export type { DetailPanelProps, DetailPanelStatus } from './DetailPanel.js';
+export { FOLDED_STRIP_PX, SplitPanes } from './SplitPanes.js';
+export type { SplitPane, SplitPanesProps } from './SplitPanes.js';

@@ -11,7 +11,7 @@
  *
  * Native differences from the web `.d.ts`, everywhere: `style` is a `StyleProp`, `onChange`
  * receives the value (there is no change event), money is the branded `Cents`, and labels are
- * strings. Not here yet: `Countdown`, `Menu`, `SegmentedControl` (N3/N5/N6 — build against the
+ * strings. Not here yet: `Menu`, `SegmentedControl` (N3/N6 — build against the
  * live props with a typed TODO naming the issue); `HalalShield` stays internal to the halal
  * family; `DataTable` and `HalalChecklist` are web only.
  *
@@ -57,6 +57,9 @@ export type {
   HalalDisplayState,
 } from './Halal';
 export { HALAL_VISIBLE_LABEL, HALAL_ACCESSIBLE_LABEL } from '../certification';
+
+export { Countdown } from './Countdown';
+export type { CountdownProps, CountdownPhase } from './Countdown';
 
 export { StatusTimeline, ORDER_STATES, ORDER_STATE_LABELS, resolveTimeline } from './StatusTimeline';
 export type { StatusTimelineProps, OrderState, StepState } from './StatusTimeline';
