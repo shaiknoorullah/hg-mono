@@ -1,0 +1,104 @@
+# Devworld only: the device lab runs this through its mission (missions/). CI runs the flows directly
+# under redesign/, which sign in the seeded world once (see 1-sign-in.yaml there).
+# Customer redesign WP2 (#656): Home, the address switcher and How we check (manifest D1, D2, D8).
+# Built with EXPO_PUBLIC_HG_REDESIGN=1 against devworld. amina (test code 000000) signs in and lands
+# on Home for her default address, Home · 1250 Danforth Avenue. She sees bismillah-grill
+# ("Bismillah Grill") and expiring-halal ("Bamyan Kebab House", with its dated "expires" badge),
+# never expired-halal ("Devworld Expired").
+# Switching to a far address ("nothing in range") needs amina's out-of-range "Cottage" address in
+# the devworld seed (w0-request); until it lands, the mission's explore step (3) adds one by hand.
+appId: com.halalgoes.customer.dev
+name: customer redesign, Home, address switcher and How we check
+env:
+  PHONE: "5550100101"
+  CODE: "000000"
+---
+- launchApp:
+    clearState: true
+    permissions:
+      all: allow
+- extendedWaitUntil:
+    visible: "Sign in or create an account"
+    timeout: 90000
+- tapOn:
+    id: "SignIn-phone-field"
+- inputText: ${PHONE}
+- hideKeyboard
+- tapOn: "Send code"
+- extendedWaitUntil:
+    visible: "Enter the 6-digit code"
+    timeout: 30000
+- tapOn:
+    id: "Code-input-cell-0"
+- inputText: ${CODE}
+- hideKeyboard
+- tapOn: "Verify and continue"
+
+# D1 Home, populated
+- extendedWaitUntil:
+    visible: "Open now, closest first"
+    timeout: 30000
+- assertVisible: "Deliver to"
+- assertVisible: "Home · 1250 Danforth Avenue"
+- assertVisible: "Quickest delivery"
+- assertVisible: "How we check halal certificates"
+- assertVisible: "Bismillah Grill"
+- takeScreenshot: redesign-wp2-01-home
+- scrollUntilVisible:
+    element: "All restaurants"
+    direction: DOWN
+    timeout: 20000
+- scrollUntilVisible:
+    element: "Bamyan Kebab House"
+    direction: DOWN
+    timeout: 20000
+- assertVisible: "expires .*"
+- assertNotVisible: "Devworld Expired"
+- takeScreenshot: redesign-wp2-02-list-expiring
+- scrollUntilVisible:
+    element: "See all restaurants"
+    direction: DOWN
+    timeout: 20000
+- assertNotVisible: "Devworld Expired"
+- takeScreenshot: redesign-wp2-03-list-end
+- scrollUntilVisible:
+    element: "How we check halal certificates"
+    direction: UP
+    timeout: 20000
+
+# D8 How we check
+- tapOn: "How we check halal certificates"
+- extendedWaitUntil:
+    visible: "What we check"
+    timeout: 10000
+- assertVisible: "How we check"
+- assertVisible: "All seven must pass.*"
+- takeScreenshot: redesign-wp2-04-how-we-check
+- back
+- extendedWaitUntil:
+    visible: "Open now, closest first"
+    timeout: 10000
+
+# D2 Address switcher: session-only, never changes the default. Change is a word in the bar.
+- assertVisible:
+    id: "Home-changeAddress"
+    text: "Change"
+- tapOn: "Change"
+- extendedWaitUntil:
+    visible: "Home \\(default\\) · 1250 Danforth Avenue"
+    timeout: 10000
+- assertVisible: "This changes where we deliver and which restaurants you see. Your default address stays the same."
+- assertVisible: "Add address"
+- takeScreenshot: redesign-wp2-05-switcher
+- tapOn: "Home \\(default\\) · 1250 Danforth Avenue"
+- extendedWaitUntil:
+    notVisible: "Add address"
+    timeout: 10000
+
+# A card opens its restaurant
+- tapOn: "Bismillah Grill"
+- takeScreenshot: redesign-wp2-06-restaurant
+- back
+- extendedWaitUntil:
+    visible: "Open now, closest first"
+    timeout: 10000

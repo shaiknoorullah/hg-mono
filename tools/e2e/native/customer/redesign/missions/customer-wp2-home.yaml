@@ -4,7 +4,7 @@ avd: hg_customer
 api: devworld
 # Build the dev APK from this branch with EXPO_PUBLIC_HG_REDESIGN=1.
 setup: [ "make dev-reset" ]
-flows: [ "tools/e2e/native/customer/redesign/2-home.yaml" ]
+flows: [ "tools/e2e/native/customer/redesign/devworld/2-home.yaml" ]
 reality:
   - theme: dark
   - font-scale: 2.0

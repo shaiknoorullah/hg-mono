@@ -9,7 +9,7 @@ setup:
   - "make dev-reset"
   - "make dev-journey route=short speed=4x auto=all"
   - "make dev-scenario s=restaurant-rejected"
-flows: [ "tools/e2e/native/customer/redesign/9-orders.yaml" ]
+flows: [ "tools/e2e/native/customer/redesign/devworld/9-orders.yaml" ]
 reality:
   - theme: dark
   - font-scale: 2.0

@@ -1,10 +1,17 @@
-# Customer redesign WP1 (#656), CI, journey J1: the seeded customer (Amina) signs in. This is the
-# only flow here that uses CODE: 1-ask-for-code.yaml opened the challenge and run.sh read its code
-# from the API's log. Asking again inside the open challenge sends nothing new, so CODE still holds.
-# The session it leaves is the one 2-home, 4-restaurant and 9-orders reuse (they never clear state).
-# Env: PHONE, CODE.
+# Devworld only: the device lab runs this through its mission (missions/). CI runs the flows directly
+# under redesign/, which sign in the seeded world once (see 1-sign-in.yaml there).
+# Customer redesign WP1 (#656), journey J1: a returning customer signs in. Built with
+# EXPO_PUBLIC_HG_REDESIGN=1, against devworld (`make dev-reset`).
+# amina is a reserved dev phone (+1 555 010 0101) that accepts the test code 000000; she has a
+# name, so verifyOtp answers next_route HOME and she lands on Home with "You're signed in".
+# The sign-in strings are the Sign-in canvas copy (SI/Main, SI/SignInCode): "Sign in or create an
+# account", "Send code", "Enter the 6-digit code", "Verify and continue". The legacy flows
+# (1-ask-for-code, 2-sign-in-and-order) run on the flag-off build and keep the legacy strings.
 appId: com.halalgoes.customer.dev
 name: customer redesign, sign in (returning customer)
+env:
+  PHONE: "5550100101"
+  CODE: "000000"
 ---
 - launchApp:
     clearState: true
@@ -13,6 +20,8 @@ name: customer redesign, sign in (returning customer)
 - extendedWaitUntil:
     visible: "Sign in or create an account"
     timeout: 90000
+- assertNotVisible: "Account"
+- takeScreenshot: redesign-wp1-01-sign-in
 
 # Send code validates on press: a short number is refused with the board's message.
 - tapOn:
@@ -25,13 +34,14 @@ name: customer redesign, sign in (returning customer)
 - tapOn:
     id: "SignIn-phone-field"
 - eraseText: 20
-- inputText: ${PHONE.slice(-10)}
+- inputText: ${PHONE}
 - hideKeyboard
 - tapOn: "Send code"
 - extendedWaitUntil:
     visible: "Enter the 6-digit code"
     timeout: 30000
-- assertVisible: "We sent it to \\+1 .*\\."
+- assertVisible: "We sent it to \\+1 555 010 0101\\."
+- assertVisible: "You can resend the code at .* (am|pm)\\."
 - takeScreenshot: redesign-wp1-03-code
 
 # Too few digits: said on Verify, nothing sent.
@@ -48,7 +58,7 @@ name: customer redesign, sign in (returning customer)
 - hideKeyboard
 - tapOn: "Verify and continue"
 
-# next_route HOME: the four tabs (no Alerts) and the greeting toast.
+# next_route HOME: the four tabs and the greeting toast.
 - extendedWaitUntil:
     visible: "Account"
     timeout: 30000
@@ -56,11 +66,4 @@ name: customer redesign, sign in (returning customer)
 - assertVisible: "Home"
 - assertVisible: "Search"
 - assertVisible: "Orders"
-- assertNotVisible: "Alerts"
 - takeScreenshot: redesign-wp1-04-signed-in
-- tapOn: "Orders"
-- takeScreenshot: redesign-wp0-03-orders-tab
-- tapOn: "Account"
-- takeScreenshot: redesign-wp0-04-account-tab
-- tapOn: "Home"
-- takeScreenshot: redesign-wp0-05-back-home

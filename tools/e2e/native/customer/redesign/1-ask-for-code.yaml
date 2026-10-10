@@ -1,0 +1,23 @@
+# Customer redesign (#656), CI part 1: ask for Amina's sign-in code on the redesigned screen.
+# tools/e2e/run.sh runs this first, reads the code from the API's log and hands it to the other
+# flows here as CODE; it leaves the challenge open, and 1-sign-in.yaml signs in with it once.
+# Env: PHONE (the seeded customer's E.164 number; the field takes its ten national digits).
+appId: com.halalgoes.customer.dev
+name: customer redesign, ask for a sign-in code
+---
+- launchApp:
+    clearState: true
+    permissions:
+      all: allow
+- extendedWaitUntil:
+    visible: "Sign in or create an account"
+    timeout: 90000
+- tapOn:
+    id: "SignIn-phone-field"
+- inputText: ${PHONE.slice(-10)}
+- hideKeyboard
+- tapOn: "Send code"
+- extendedWaitUntil:
+    visible: "Enter the 6-digit code"
+    timeout: 30000
+- takeScreenshot: customer-redesign-01-code-sent
