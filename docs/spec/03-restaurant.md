@@ -1306,6 +1306,12 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
   modifier groups (add-ons with min/max selection counts, each option carrying a price delta). Both
   are captured on the order line's `options_json` and priced server-side.
 
+  A dish may now have several variant groups (size, rice, heat level), and an order line carries one
+  chosen variant per group ([#628](https://github.com/shaiknoorullah/hg-mono/issues/628); the price
+  rule is step 1 of the quote in the platform spec). The restaurant's order view
+  (`GET /v1/restaurant/orders/{orderId}`) lists every chosen variant with its group on each line
+  (`variants`), and `variant_name` joins the chosen names, so the ticket shows every choice.
+
 - **Data**:
   ```
   menu_item_variant_group(id, menu_item_id, name, is_required=true, sort_order)

@@ -1588,12 +1588,27 @@ export interface paths {
          * @description C-16 / C-19 / C-20. The request carries **item identifiers and quantities only** —
          *     no price field exists on this DTO (G-3).
          *
-         *     Line identity is `(menu_item_id, variant_id, sorted(addons), special_request)`; an
-         *     identical add increments quantity, any difference creates a distinct line, so two
+         *     Line identity is `(menu_item_id, sorted(variant_ids), sorted(addons), special_request)`;
+         *     an identical add increments quantity, any difference creates a distinct line, so two
          *     "Chicken Biryani" lines with different variants are representable.
          *
+         *     **Variants, one per group.** `variant_ids` carries one chosen variant per variant group
+         *     of the item: exactly one for every `required` group, at most one for any other. The
+         *     deprecated `variant_id` is read as a one-element `variant_ids`; sending both is
+         *     `422 VALIDATION_FAILED`. The server checks the line against the menu before it touches
+         *     the cart: a variant that is not one of the item's, a missing required group, two
+         *     variants from one group, or an add-on group outside its `min_select`..`max_select` is
+         *     `422 VALIDATION_FAILED`; an add-on that is not one of the item's is `422 INVALID_ADDON`.
+         *     Both carry `FieldError` details naming the field (`variant_ids[1]`, `addons[0]`,
+         *     `addons`). A variant or add-on that is on the item but unavailable is
+         *     `409 VARIANT_UNAVAILABLE` with `{variant_id}` or `409 ADDON_UNAVAILABLE` with
+         *     `{addon_id}`, so the app can say which choice ran out.
+         *
          *     Adding an item from a different restaurant returns `409 DIFFERENT_RESTAURANT` with
-         *     the current cart's restaurant and line count. `replace=true` performs clear + add as
+         *     the current cart's restaurant and line count in `details`
+         *     (`{current_restaurant_id, current_restaurant_name, current_line_count, current_item_count}`).
+         *     The menu is checked first, so the "Start a new cart?" dialog only appears for a line
+         *     that can be added. `replace=true` performs clear + add as
          *     **one atomic call** — a two-call clear-then-add is prohibited because it can leave an
          *     empty cart on failure.
          *
@@ -4195,7 +4210,14 @@ export interface components {
             quantity: number;
             special_request?: string | null;
             unit_price_cents: components["schemas"]["Cents"];
+            /**
+             * @deprecated
+             * @description Deprecated: read `variants`. The line's variant when it has exactly one; `null`
+             *     when it has none or several.
+             */
             variant?: components["schemas"]["SelectedVariant"] | null;
+            /** @description Every chosen variant, one per variant group, in the menu's group order. */
+            variants: components["schemas"]["LineVariant"][];
         };
         /**
          * @description R-19. The API annotates; it **never mutates the cart on the restaurant's behalf**.
@@ -4229,8 +4251,18 @@ export interface components {
             quantity: number;
             /** @description Advisory. Copied to the order line; never changes a price. */
             special_request?: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @deprecated
+             * @description Deprecated: send `variant_ids`. Read as a one-element `variant_ids`; sending both is
+             *     `422 VALIDATION_FAILED`.
+             */
             variant_id?: string | null;
+            /**
+             * @description One chosen variant per variant group of the item: exactly one for each `required`
+             *     group, at most one for any other. Order does not matter; line identity sorts them.
+             */
+            variant_ids?: string[];
         };
         /**
          * Format: int64
@@ -4632,7 +4664,11 @@ export interface components {
                  *     `VALIDATION_FAILED` → `[{field, code, message}]`;
                  *     `QUOTE_STALE` → `{quote: Quote}`;
                  *     `ILLEGAL_TRANSITION` → `{from, to, allowed: [OrderState]}`;
-                 *     `DIFFERENT_RESTAURANT` → `{current_restaurant_id, current_restaurant_name, current_line_count}`;
+                 *     `DIFFERENT_RESTAURANT` → `{current_restaurant_id, current_restaurant_name, current_line_count, current_item_count}`
+                 *     (`current_line_count` counts lines, `current_item_count` sums their quantities);
+                 *     `VARIANT_UNAVAILABLE` → `{variant_id}`;
+                 *     `ADDON_UNAVAILABLE` → `{addon_id}`;
+                 *     `INVALID_ADDON` → `[{field, code, message}]`;
                  *     `CART_HAS_UNAVAILABLE_ITEMS` → `{line_ids: [uuid]}`;
                  *     `INCOMPLETE_DOCUMENT_PACK` → `{missing: [doc_type]}`;
                  *     `MENU_LOCKED` → `{account_state}` (`SUSPENDED` or `BANNED`);
@@ -5019,6 +5055,28 @@ export interface components {
             currency: components["schemas"]["Currency"];
             memo?: string | null;
             posted_at: components["schemas"]["Timestamp"];
+        };
+        /**
+         * @description One chosen variant on a cart, quote or order line, with its group. On a quote or order
+         *     line the name and money are snapshotted, so a later menu edit never changes them; on a
+         *     cart line they are the menu's current values. The line's `variant_part_cents` is the
+         *     `ABSOLUTE` variant's `price_cents` (else the item's base price) plus every `DELTA`
+         *     variant's `delta_cents`.
+         */
+        LineVariant: {
+            /** @description Set when `pricing_mode` is `DELTA`: adjusts the item's base price. */
+            delta_cents: components["schemas"]["Cents"] | null;
+            /** @example Rice */
+            group_name: string;
+            /** @description Set when `pricing_mode` is `ABSOLUTE`: replaces the item's base price. */
+            price_cents: components["schemas"]["Cents"] | null;
+            pricing_mode: components["schemas"]["VariantPricingMode"];
+            /** Format: uuid */
+            variant_group_id: string;
+            /** Format: uuid */
+            variant_id: string;
+            /** @example Kabuli pulao */
+            variant_name: string;
         };
         LoginInput: {
             /** Format: email */
@@ -5552,7 +5610,13 @@ export interface components {
             quantity: number;
             special_request?: string | null;
             unit_price_cents: components["schemas"]["Cents"];
+            /**
+             * @description The chosen variants' names joined with ", " in group order, for a one-line ticket;
+             *     `null` when there is none. `variants` carries each one with its group.
+             */
             variant_name?: string | null;
+            /** @description Every chosen variant with its snapshotted price, in the menu's group order. */
+            variants: components["schemas"]["LineVariant"][];
         };
         /** @description The frozen copy of the quote's customer-facing decomposition. Renders in the fixed P-10 order. */
         OrderMoney: {
@@ -6320,6 +6384,9 @@ export interface components {
          *
          *     Identity: `line_unit_cents = variant_part_cents + addons_part_cents` and
          *     `line_total_cents = line_unit_cents × quantity`, both database `CHECK`s.
+         *     `variant_part_cents` is the chosen `ABSOLUTE` variant's `price_cents` (else
+         *     `base_price_cents`) plus every chosen `DELTA` variant's `delta_cents`, checked by a
+         *     database trigger against the snapshotted `variants`.
          */
         QuoteLine: {
             addons?: components["schemas"]["QuoteLineAddon"][];
@@ -6337,11 +6404,26 @@ export interface components {
             quantity: number;
             special_request?: string | null;
             tax_category: components["schemas"]["TaxCategory"];
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @deprecated
+             * @description Deprecated: read `variants`. Set only when the line has exactly one variant.
+             */
             variant_id?: string | null;
+            /**
+             * @deprecated
+             * @description Deprecated: read `variants`. The chosen variants' names joined with ", " in group
+             *     order (one name for a one-variant line); `null` when there is none.
+             */
             variant_name?: string | null;
             variant_part_cents: components["schemas"]["Cents"];
+            /**
+             * @deprecated
+             * @description Deprecated: read `variants`. Set only when the line has exactly one variant.
+             */
             variant_pricing_mode?: components["schemas"]["VariantPricingMode"] | null;
+            /** @description Every chosen variant with its snapshotted price, in the menu's group order. */
+            variants: components["schemas"]["LineVariant"][];
         };
         QuoteLineAddon: {
             /** Format: uuid */
@@ -7460,6 +7542,12 @@ export interface components {
          * @description C-16. Single-select. When a group is required and no variant is flagged default,
          *     nothing is pre-selected and add-to-cart stays disabled — silent auto-selection of the
          *     first option is prohibited.
+         *
+         *     An item may have several groups (size, rice, heat level); a cart line carries one
+         *     chosen variant per group in `CartLineInput.variant_ids`. Prices combine as P-09 step 1
+         *     says: the chosen `ABSOLUTE` variant, if any, replaces the base price and every chosen
+         *     `DELTA` variant adjusts it. At most one chosen variant may be `ABSOLUTE`; a combination
+         *     with two cannot be priced and is refused `409 ITEM_UNAVAILABLE`.
          */
         VariantGroup: {
             /** Format: uuid */
@@ -7661,6 +7749,7 @@ export type SchemaLatitude = components['schemas']['Latitude'];
 export type SchemaLedgerAccount = components['schemas']['LedgerAccount'];
 export type SchemaLedgerComponent = components['schemas']['LedgerComponent'];
 export type SchemaLedgerEntry = components['schemas']['LedgerEntry'];
+export type SchemaLineVariant = components['schemas']['LineVariant'];
 export type SchemaLoginInput = components['schemas']['LoginInput'];
 export type SchemaLongitude = components['schemas']['Longitude'];
 export type SchemaMenu = components['schemas']['Menu'];
@@ -10600,7 +10689,20 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            422: components["responses"]["Error"];
+            /**
+             * @description `VALIDATION_FAILED` (a malformed body, or a line the item's variant and add-on
+             *     groups do not allow), `INVALID_ADDON` (an add-on that is not one of the item's) or
+             *     `UNKNOWN_FIELD` (any field the DTO does not declare, such as a price). `details` is
+             *     a `FieldError` list. The cart is unchanged.
+             */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             default: components["responses"]["Error"];
         };
     };

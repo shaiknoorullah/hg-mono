@@ -1722,10 +1722,26 @@ func (r *Repo) GetOrder(ctx context.Context, restaurantID, orderID string) (*Ord
 		l.Currency = o.Money.Currency
 		o.Lines = append(o.Lines, l)
 	}
+	if err := lRows.Err(); err != nil {
+		return nil, err
+	}
+	lRows.Close()
 	if o.Lines == nil {
 		o.Lines = []OrderLineView{}
 	}
-	return &o, lRows.Err()
+
+	// Each line's chosen variants, so the ticket shows every choice.
+	variants, err := orders.OrderLineVariants(ctx, r.db, orderID)
+	if err != nil {
+		return nil, err
+	}
+	for i := range o.Lines {
+		o.Lines[i].Variants = variants[o.Lines[i].LineNo]
+		if o.Lines[i].Variants == nil {
+			o.Lines[i].Variants = []orders.LineVariantDTO{}
+		}
+	}
+	return &o, nil
 }
 
 // customerDisplayName renders "Aisha K." — first name plus last initial (P-07).
