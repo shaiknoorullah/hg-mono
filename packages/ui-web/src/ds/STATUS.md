@@ -47,7 +47,8 @@ Work packages: `plan/design-system.md` §4.1 on the read-only `claude/redesign-c
 | HalalCertificationPanel | **rebuilt** | W5 | — (adds `variant="restaurant"`, `density="compact"`, the `certificate_viewable=false` copy) |
 | Halal labels (`HALAL_CHECK_NAME`, `HALAL_REJECTION_REASONS`, `halalBadgeLabels`, …) | **rebuilt** (new) | W5 | — |
 | HalalChecklist (+ gate helpers) | legacy (kept) | W5 | the console uses `SevenChecks` + `DecisionBar`; the gate types are unchanged |
-| DataTable | missing | W6 (LyteNyte) | the legacy root `DataTable` has a different shape |
+| DataTable | rebuilt | W6 (LyteNyte) | `role="grid"` named by the caption (`aria-labelledby`), not `<table>`; the check, minus, sort-chevron and "more" glyphs are CSS-drawn in `lib/ui/data-grid` (today's Icon map lacks them); row actions use a Radix menu in `lib/ui/data-grid` until the W4 `Menu` is wired in |
+| TextCell, IdCell, MoneyCell, TimeCell, DateCell, CountdownCell, StatusCell, HalalStateCell, MeterCell | rebuilt | W6 | StatusCell draws its own tint chip until the W1 `Badge` is used; CountdownCell is the silent text form (the W4 `Countdown` is not used inside cells) |
 | Rating | legacy | — | out of launch scope; do not extend |
 | Sheet, BottomNav | not on web | — | working tasks use DetailPanel; phones only |
 
@@ -55,7 +56,6 @@ Work packages: `plan/design-system.md` §4.1 on the read-only `claude/redesign-c
 
 | Export | Today | Rebuilt in |
 |---|---|---|
-| Banner (+ InlineAlert, slate tone) | legacy `Banner` | W4 |
 | EmptyState, ErrorState | rebuilt | W4 |
 | Skeleton, Spinner | **rebuilt** | W1 |
 | Separator | **rebuilt** (new) | W1 |
@@ -72,7 +72,7 @@ Work packages: `plan/design-system.md` §4.1 on the read-only `claude/redesign-c
 | ProgressBar | rebuilt (Radix Progress) | W4 |
 | PageAnnouncerProvider, useAnnounce, usePageAnnouncer | rebuilt | W4 |
 | DocumentViewer | legacy | W7b |
-| FilterBar | legacy | W6 |
+| FilterBar | rebuilt (the declarative pre-rebuild props still work) | W6 |
 | Disclosure | rebuilt | W2 |
 | SkipLink | rebuilt | W2 |
 | SystemBannerSlot (= SystemBannerStack) | rebuilt | W2 |
@@ -84,3 +84,6 @@ Work packages: `plan/design-system.md` §4.1 on the read-only `claude/redesign-c
 | RiderChecklist | rebuilt (new, packet P29) | W5 |
 | JustifiedReveal | rebuilt (new, packet P30) | W5 |
 | IssuerCombobox (+ `ISSUER_STATUS_LABEL`) | rebuilt (new, packet P31; contract statuses) | W5 |
+| FilterChip | rebuilt | W6 |
+| ListPane, ListPaneRow | rebuilt | W6 |
+| EventLog | rebuilt | W6 |

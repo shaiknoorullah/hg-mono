@@ -61,7 +61,7 @@ export type { TooltipProps } from './Tooltip.js';
 export { ToastProvider, useToast } from '../ds/Toast.js';
 export type { ToastApi, ToastOptions, ToastProviderProps, ToastVariant } from '../ds/Toast.js';
 
-export { DocumentViewer, FilterBar } from '../data/index.js';
+export { DocumentViewer } from '../data/index.js';
 export type { DocumentViewerProps, DocumentViewerState } from '../data/index.js';
 
 /* Forms (W3), rebuilt on shadcn/ui: approval packet P16 to P21. */
@@ -107,3 +107,15 @@ export { ISSUER_STATUS_LABEL, IssuerCombobox } from './IssuerCombobox.js';
 export type { IssuerComboboxProps, IssuerOption, IssuerStatus } from './IssuerCombobox.js';
 export { JustifiedReveal } from './JustifiedReveal.js';
 export type { JustifiedRevealProps } from './JustifiedReveal.js';
+
+/* Data composites (W6, packet P22 and the admin list pane). FilterBar keeps the pre-rebuild
+   declarative props (`filters`, `value`, `onChange`, `onClear`) and adds the composed shape. */
+export { FilterBar } from './FilterBar.js';
+export type { ComposedFilterBarProps, FilterBarProps } from './FilterBar.js';
+export type { FilterDefinition, FilterOption, FilterValue, SavedView } from '../data/index.js';
+export { FilterChip } from './FilterChip.js';
+export type { FilterChipProps } from './FilterChip.js';
+export { ListPane, ListPaneRow } from './ListPaneRow.js';
+export type { ListPaneProps, ListPaneRowProps } from './ListPaneRow.js';
+export { EventLog } from './EventLog.js';
+export type { EventLogEntry, EventLogProps } from './EventLog.js';
