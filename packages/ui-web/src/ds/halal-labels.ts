@@ -36,9 +36,19 @@ const LONG_MONTH = [
   'July', 'August', 'September', 'October', 'November', 'December',
 ] as const;
 
-/** A wire date (`2026-10-20`) or date-time, or null when it is missing or unparseable. */
+/**
+ * A wire date (`2026-10-20`) or date-time, or null when it is missing or unparseable. An
+ * impossible calendar day (`2026-02-30`) is unparseable: `Date` would roll it over into
+ * 2 March, an expiry the server never sent.
+ */
 function parseHalalDate(value: string | null | undefined): Date | null {
   if (!value) return null;
+  const day = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
+  if (day) {
+    const [y, m, d] = [Number(day[1]), Number(day[2]) - 1, Number(day[3])];
+    const calendar = new Date(Date.UTC(y, m, d));
+    if (calendar.getUTCFullYear() !== y || calendar.getUTCMonth() !== m || calendar.getUTCDate() !== d) return null;
+  }
   const date = /^\d{4}-\d{2}-\d{2}$/.test(value) ? new Date(`${value}T00:00:00Z`) : new Date(value);
   return Number.isNaN(date.getTime()) ? null : date;
 }

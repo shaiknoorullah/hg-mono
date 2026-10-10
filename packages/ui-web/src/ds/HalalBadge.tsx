@@ -21,6 +21,7 @@ import { useEffect, type CSSProperties } from 'react';
 import type { HalalDisplayState } from '@hg/api-client';
 
 import { reportHalalClientError } from '../certification/index.js';
+import { SealButton } from '../lib/ui/seal-button.js';
 import { cn } from '../lib/utils.js';
 import { Tooltip } from '../proposed/Tooltip.js';
 import { halalBadgeLabels, isHalalDisplayState, type HalalSurface } from './halal-labels.js';
@@ -157,21 +158,16 @@ export function HalalBadge(props: HalalBadgeProps) {
 
   if (pressable) {
     return (
-      <button
-        type="button"
+      <SealButton
         data-testid={testId}
         data-halal-render={key}
         aria-label={labels.accessible}
         onClick={onPress}
         style={style}
-        className={cn(
-          box,
-          'hg-focus relative cursor-pointer',
-          "after:absolute after:top-1/2 after:left-1/2 after:min-h-11 after:min-w-11 after:size-full after:-translate-x-1/2 after:-translate-y-1/2 after:content-['']",
-        )}
+        className={box}
       >
         {seal}
-      </button>
+      </SealButton>
     );
   }
 

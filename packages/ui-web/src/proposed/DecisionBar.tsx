@@ -111,8 +111,15 @@ export function DecisionBar({
 
   const busy = submitting !== null;
   const off = Boolean(disabledReason);
-  // A gate that disappears (a check changed) closes its confirmation.
-  const shown = open === 'approve' && !approveGate ? null : open === 'reject' && !rejectGate ? null : open;
+  // A gate that disappears (a check changed) closes its confirmation, and so does deciding being
+  // switched off (claim ended, decided elsewhere): no confirm button outlives its reason.
+  const shown = off
+    ? null
+    : open === 'approve' && !approveGate
+      ? null
+      : open === 'reject' && !rejectGate
+        ? null
+        : open;
 
   useEffect(() => {
     if (shown) confirmHeading.current?.focus();

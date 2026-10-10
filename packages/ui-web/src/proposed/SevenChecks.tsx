@@ -296,7 +296,12 @@ export function SevenChecks({
                 : 'Computed by the server · locked';
           } else {
             const parts: string[] = [];
-            if (restricted) parts.push(`Pass isn’t offered.${reason ? ` ${reason}` : ''}`);
+            if (restricted) {
+              parts.push(`Pass isn’t offered.${reason ? ` ${reason}` : ''}`);
+              // A Pass recorded before the restriction (the issuer was suspended since) is not an
+              // option any more, so no radio shows it: say it, never let the row look unrecorded.
+              if (recorded && check.result === 'PASS') parts.push('Recorded as Pass, which no longer stands: record Fail or Not assessed');
+            }
             else if (locked) parts.push(reason ?? 'Locked');
             else if (recorded && check.computed_result && check.computed_result !== check.result) {
               parts.push(`Override of the suggestion (${HALAL_CHECK_RESULT_LABEL[check.computed_result]}), note saved`);

@@ -26,13 +26,13 @@ import { InlineAlert } from './Banner.js';
 export interface JustifiedRevealProps {
   /** The field's name in lower case for sentences ("email"). */
   fieldLabel: string;
-  /** The masked value as the server sent it. */
-  maskedValue: string;
+  /** The masked value as the server sent it. Without it a neutral mask shows (packet P30 has no such prop). */
+  maskedValue?: string;
   /** Justification codes. Default: the A-42 PII codes and their labels. */
   reasons?: SelectOption[];
   /** Asks the server for the value with the chosen code; resolves with the value. */
   onReveal: (reason: string) => Promise<string>;
-  /** A value revealed outside the component (controlled). */
+  /** A value revealed outside the component (controlled). It is time-boxed too: after `autoHideMs`, or on Hide, it is masked and `onHide` asks the parent to drop it. */
   revealed?: string | null;
   /** A failure to show (controlled); otherwise a rejected `onReveal` shows the default copy. */
   error?: string | null;
@@ -58,7 +58,7 @@ const DEFAULT_REASONS: SelectOption[] = PII_JUSTIFICATION_CODES.map((code) => ({
 /** A masked value that is revealed only with a recorded reason. */
 export function JustifiedReveal({
   fieldLabel,
-  maskedValue,
+  maskedValue = '••••••••',
   reasons = DEFAULT_REASONS,
   onReveal,
   revealed: revealedProp,
@@ -79,25 +79,43 @@ export function JustifiedReveal({
   const [failed, setFailed] = useState(false);
   const [value, setValue] = useState<string | null>(null);
   const [note, setNote] = useState('');
+  // A controlled value that was hidden (by the timer or by Hide) stays masked until the parent
+  // drops it or reveals a different one.
+  const [hiddenControlled, setHiddenControlled] = useState<string | null>(null);
   const heading = useRef<HTMLElement>(null);
-  const shown = revealedProp ?? value;
+  const onHideRef = useRef(onHide);
+  onHideRef.current = onHide;
+  const controlled = revealedProp && revealedProp !== hiddenControlled ? revealedProp : null;
+  const shown = controlled ?? value;
   const errorText = errorProp ?? (failed ? 'The connection dropped or the server had an error. Your reason is kept; trying again is safe.' : null);
 
   useEffect(() => {
     if (asking) heading.current?.focus();
   }, [asking]);
 
-  // Time-boxed exposure, cleared on unmount so a re-mount never inherits a reveal.
   useEffect(() => {
-    if (!value) return;
+    if (!revealedProp) setHiddenControlled(null);
+  }, [revealedProp]);
+
+  const hide = () => {
+    setValue(null);
+    if (revealedProp) setHiddenControlled(revealedProp);
+    onHideRef.current?.();
+  };
+
+  // Time-boxed exposure of whatever is shown, controlled or not, cleared on unmount so a re-mount
+  // never inherits a reveal. Keyed on the value alone: a parent re-rendering (a new inline
+  // `onHide`) never restarts the box.
+  useEffect(() => {
+    if (!shown) return;
     const timer = window.setTimeout(() => {
-      setValue(null);
       const at = formatTime12h(new Date());
       setNote(`Hidden again${at ? ` at ${at}` : ''}. Revealing again is recorded too.`);
-      onHide?.();
+      hide();
     }, autoHideMs);
     return () => window.clearTimeout(timer);
-  }, [value, autoHideMs, onHide]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `hide` reads refs and setters only.
+  }, [shown, autoHideMs]);
 
   const reveal = async () => {
     if (submitting || denied) return;
@@ -135,9 +153,8 @@ export function JustifiedReveal({
             size="md"
             accessibilityLabel={`Hide the full ${fieldLabel}`}
             onPress={() => {
-              setValue(null);
               setNote('');
-              onHide?.();
+              hide();
             }}
           >
             Hide
