@@ -6,6 +6,7 @@ import './application';
 import './documents';
 import './earnings';
 import './home';
+import './offer';
 import './signin';
 
 export {};
