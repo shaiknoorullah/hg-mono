@@ -1,0 +1,79 @@
+# Rider redesign WP8: capture with the camera not allowed (R09 Capture-CameraDenied,
+# Capture-Selfie-Denied), against devworld. A fresh number applies (details, scooter) → the app is
+# relaunched with the camera denied and the rider signs in again (the session is not kept between
+# runs) → Continue with documents → Add driver's licence → "Allow the camera to add documents"
+# with Open settings and Choose a PDF instead → back → Add photo of you → "Allow the camera to take
+# your photo" with no file option.
+#
+# Built with EXPO_PUBLIC_HG_REDESIGN=1 and a cleared Metro cache (see 0-shell.yaml).
+# Env: PHONE_DIGITS, an unused number in +1 555 010 0160–0199 (code 000000).
+appId: com.halalgoes.rider.dev
+name: rider redesign, camera not allowed
+env:
+  PHONE_DIGITS: "5550100195"
+---
+- runFlow:
+    file: 7-apply.yaml
+    env:
+      PHONE_DIGITS: ${PHONE_DIGITS}
+- extendedWaitUntil:
+    visible: "Add driver's licence"
+    timeout: 30000
+- launchApp:
+    stopApp: true
+    permissions:
+      camera: deny
+- extendedWaitUntil:
+    visible: "Sign in or apply to ride"
+    timeout: 90000
+- tapOn:
+    id: "phone-field"
+- inputText: ${PHONE_DIGITS}
+- hideKeyboard
+- tapOn: "Send code"
+- extendedWaitUntil:
+    visible: "Enter your code"
+    timeout: 30000
+- tapOn:
+    id: "code-cell-0"
+- inputText: "000000"
+- extendedWaitUntil:
+    visible: "Continue with documents"
+    timeout: 60000
+- tapOn:
+    id: "application-next"
+- extendedWaitUntil:
+    visible: "Add driver's licence"
+    timeout: 30000
+- tapOn:
+    id: "documents-next"
+# Android asks once; refuse it (the lab's deny-permission step already revoked it).
+- runFlow:
+    when:
+      visible: "(Don.t allow|Deny)"
+    commands:
+      - tapOn: "(Don.t allow|Deny)"
+- extendedWaitUntil:
+    visible: "Allow the camera to add documents"
+    timeout: 20000
+- assertVisible: "Open settings"
+- assertVisible: "Choose a PDF instead"
+- takeScreenshot: rider-wp8d-01-camera-denied
+- tapOn:
+    id: "AppBar-back"
+- scrollUntilVisible:
+    element:
+      id: "doc-add-PROFILE_PHOTO"
+- tapOn:
+    id: "doc-add-PROFILE_PHOTO"
+- runFlow:
+    when:
+      visible: "(Don.t allow|Deny)"
+    commands:
+      - tapOn: "(Don.t allow|Deny)"
+- extendedWaitUntil:
+    visible: "Allow the camera to take your photo"
+    timeout: 20000
+- assertNotVisible: "Choose a PDF instead"
+- assertVisible: "Back to documents"
+- takeScreenshot: rider-wp8d-02-selfie-denied

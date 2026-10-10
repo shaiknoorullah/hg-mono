@@ -36,6 +36,7 @@ import { ForgotPasswordScreen } from './auth/ForgotPasswordScreen';
 import { ResetPasswordScreen } from './auth/ResetPasswordScreen';
 import { NewOrdersProvider } from './strip/NewOrdersProvider';
 import { OrdersGate } from './orders/GoLiveGate';
+import { LiveOrdersPage } from './orders/LiveOrdersPage';
 
 // Legacy screens hosted by the redesign refresh on 401 too.
 setUnauthorizedOverride(async () => (getSession() ? refreshAccessToken() : false));
@@ -143,7 +144,7 @@ export function RedesignApp() {
     root.setAttribute('data-theme', 'light');
     root.style.colorScheme = 'light';
   }, []);
-  const { Onboarding, Orders, Menu, Hours, Payouts, Settings } = LEGACY;
+  const { Onboarding, Menu, Hours, Payouts, Settings } = LEGACY;
   return (
     <div {...themeAttributes('restaurant')} className="relative h-dvh overflow-hidden bg-surface-sunken text-fg-primary" data-redesign="">
       <AuthProvider>
@@ -176,14 +177,12 @@ export function RedesignApp() {
               </RequireSession>
             }
           >
-            {/* WP3: the go-live gate first; WP4 replaces the children with the live board. */}
+            {/* WP3's go-live gate first, then WP4's live board. */}
             <Route
               path="/orders"
               element={
                 <OrdersGate>
-                  <LegacyPane>
-                    <Orders />
-                  </LegacyPane>
+                  <LiveOrdersPage />
                 </OrdersGate>
               }
             />

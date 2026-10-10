@@ -32,7 +32,7 @@ export {
 } from '@hg/ui-web/primitives';
 export type { ButtonProps, IconName, RadioOption, SelectOption } from '@hg/ui-web/primitives';
 
-export { HalalBadge, formatAbsoluteDate } from '@hg/ui-web/certification';
+export { HalalBadge, formatAbsoluteDate, reportHalalClientError } from '@hg/ui-web/certification';
 export type { HalalBadgeProps } from '@hg/ui-web/certification';
 
 export { Card, Price } from '@hg/ui-web/content';
@@ -96,3 +96,8 @@ export { SupportBlock, SupportSentence } from './_stubs/SupportContact';
 export type { SupportBlockProps, SupportSentenceProps, SupportContactInfo } from './_stubs/SupportContact';
 export { WaitLine } from './_stubs/WaitLine';
 export type { WaitLineProps } from './_stubs/WaitLine';
+export { PageBanner } from './_stubs/PageBanner';
+export type { PageBannerProps, PageBannerTone } from './_stubs/PageBanner';
+export { PickupCode } from './_stubs/PickupCode';
+export type { PickupCodeProps } from './_stubs/PickupCode';
+export type { InlineNoticeTone } from './_stubs/InlineNotice';

@@ -35,6 +35,10 @@ function legacyEntryFor(entry: Entry): StackEntry | null {
       return entry.params.assignmentId
         ? { name: 'assignment', params: { assignmentId: entry.params.assignmentId } }
         : { name: 'home', params: undefined };
+    // WP4 routes the trip by state; the drop-off and the endings stay legacy until WP5/WP6.
+    case 'tripDropoff':
+    case 'tripEnded':
+      return { name: 'assignment', params: { assignmentId: entry.params.assignmentId } };
     case 'application':
       return { name: 'onboarding', params: undefined };
     default:
