@@ -395,6 +395,25 @@ describe('HalalCertificationPanel', () => {
     expect(onRetry).toHaveBeenCalledTimes(1);
   });
 
+  it('a CERTIFIED or EXPIRING_SOON claim without its certifying body or expiry draws nothing and reports', () => {
+    const cases: Array<Partial<CertificationPanel>> = [
+      { display_state: 'CERTIFIED', certifying_body_name: null, expires_on: null },
+      { display_state: 'CERTIFIED', certifying_body_name: null },
+      { display_state: 'CERTIFIED', expires_on: null },
+      { display_state: 'EXPIRING_SOON', expires_on: 'not a date' },
+    ];
+    for (const patch of cases) {
+      reports.length = 0;
+      renderNw(<HalalCertificationPanel restaurantId="r1" certification={{ ...PANEL, ...patch } as CertificationPanel} />);
+      expect(screen.queryByTestId('HalalCertificationPanel', { includeHiddenElements: true })).toBeNull();
+      expect(screen.queryByTestId('HalalCertificationPanel-badge', { includeHiddenElements: true })).toBeNull();
+      expect(reports).toContainEqual([
+        'CERTIFICATION_PANEL_STATE_MISSING',
+        expect.objectContaining({ restaurantId: 'r1', state: patch.display_state, missing: 'proof' }),
+      ]);
+    }
+  });
+
   it('loading and error sit on a neutral frame, never a halal tint', () => {
     const tints = [halal.certified.tint, halal.certified.tintDark, halal.expired.tint, halal.expired.tintDark].map(hex);
     for (const status of ['loading', 'error'] as const) {

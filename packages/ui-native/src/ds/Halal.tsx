@@ -172,9 +172,17 @@ export function HalalCertificationPanel(props: HalalCertificationPanelProps) {
   const ready = props.status !== 'loading' && props.status !== 'error';
   const state = ready ? (props as { certification?: CertificationPanel }).certification?.display_state : undefined;
   const missing = ready && !isHalalDisplayState(state);
+  // A certified or expiring claim is only made with its proof: the certifying body and a readable
+  // expiry. Without them the panel draws nothing rather than a seal nobody can check (invariant 8).
+  const proof = ready ? (props as { certification?: CertificationPanel }).certification : undefined;
+  const unproven =
+    ready &&
+    (state === 'CERTIFIED' || state === 'EXPIRING_SOON') &&
+    (!proof?.certifying_body_name || !parseWireDate(proof?.expires_on));
   React.useEffect(() => {
     if (missing) reportClientError('CERTIFICATION_PANEL_STATE_MISSING', { restaurantId, state: String(state) });
-  }, [missing, restaurantId, state]);
+    else if (unproven) reportClientError('CERTIFICATION_PANEL_STATE_MISSING', { restaurantId, state: String(state), missing: 'proof' });
+  }, [missing, unproven, restaurantId, state]);
 
   const frame = (tone: 'certified' | 'expired' | 'neutral', busy: boolean, children: React.ReactNode) => (
     <HalalPanelFrame
@@ -232,7 +240,7 @@ export function HalalCertificationPanel(props: HalalCertificationPanelProps) {
       </>,
     );
   }
-  if (missing || state === 'UNVERIFIED') return null;
+  if (missing || unproven || state === 'UNVERIFIED') return null;
 
   const c = (props as { certification: CertificationPanel }).certification;
   const issued = formatLongDate(c.issued_on);
