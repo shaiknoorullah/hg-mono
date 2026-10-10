@@ -63,8 +63,10 @@ import {
   createCartQuote,
   getActiveOrder,
   getCart,
+  lastQuote,
   listAddresses,
   quoteKeyFor,
+  quoteStaleAt,
   readQuote,
   rememberCart,
   rememberQuote,
@@ -103,8 +105,10 @@ type Load =
 type QuoteState =
   | { kind: 'none' }
   | { kind: 'loading' }
-  | { kind: 'ready'; quote: Quote }
-  | { kind: 'failed'; code: string | null };
+  /** `staleAt`: when this quote stops being a price, on the device clock (`quoteStaleAt`). */
+  | { kind: 'ready'; quote: Quote; staleAt: number }
+  /** `idem` is the failed request's key: Try again resends that same request with it. */
+  | { kind: 'failed'; code: string | null; idem: string };
 
 /** A refused quote that changes the board, on top of what the cart itself says. */
 type QuoteBlock = 'belowMinimum' | 'restaurantClosed' | 'restaurantUnavailable' | 'orderingPaused' | 'outOfRange' | 'province';
@@ -133,7 +137,8 @@ export function CartScreen(): React.ReactElement {
   const [mutationFailed, setMutationFailed] = React.useState(false);
   const [confirmClear, setConfirmClear] = React.useState(false);
   const [editLine, setEditLine] = React.useState<CartLine | null>(null);
-  const [removed, setRemoved] = React.useState<CartLine | null>(null);
+  /** The line just removed, and the Idempotency-Key its Undo uses (minted once, at removal). */
+  const [removed, setRemoved] = React.useState<{ line: CartLine; key: string } | null>(null);
   const [undoFailed, setUndoFailed] = React.useState<string | null>(null);
 
   const live = React.useRef(true);
@@ -144,12 +149,15 @@ export function CartScreen(): React.ReactElement {
     [],
   );
   const quoteSeq = React.useRef(0);
-  /** One Idempotency-Key per pricing attempt (cart, lines, quantities and address); a retry reuses it. */
-  const quoteKeys = React.useRef(new Map<string, string>());
+  const undoing = React.useRef(false);
   const lastTotal = React.useRef<number | null>(null);
   const activeRef = React.useRef<ActiveOrder | null>(null);
 
-  const price = React.useCallback((cart: Cart, active: ActiveOrder | null) => {
+  /**
+   * Prices the cart. Each call is a new pricing attempt with a new Idempotency-Key; `retryKey` is
+   * passed only by Try again, which resends the failed request with its own key.
+   */
+  const price = React.useCallback((cart: Cart, active: ActiveOrder | null, retryKey?: string) => {
     const seq = ++quoteSeq.current;
     const state = cartState(cart, active);
     const addressId = cart.delivery_address_id;
@@ -159,27 +167,25 @@ export function CartScreen(): React.ReactElement {
     }
     const key = quoteKeyFor(cart, addressId);
     setQuote({ kind: 'loading' });
-    const remembered = rememberedQuote(key, getNow());
-    const run = async (): Promise<Quote> => {
+    const remembered = retryKey ? null : rememberedQuote(key, getNow());
+    const idem = retryKey ?? idempotencyKey();
+    const run = async (): Promise<{ quote: Quote; staleAt: number }> => {
       if (remembered) {
         try {
-          return await readQuote(remembered.id);
+          // The same persisted row; it keeps the lifetime it had when it was first priced.
+          return { quote: await readQuote(remembered.quote.id), staleAt: remembered.staleAt };
         } catch {
           /* price it again below */
         }
       }
-      let idem = quoteKeys.current.get(key);
-      if (!idem) {
-        idem = idempotencyKey();
-        quoteKeys.current.set(key, idem);
-      }
-      return createCartQuote(cart, addressId, idem);
+      const q = await createCartQuote(cart, addressId, idem);
+      return { quote: q, staleAt: quoteStaleAt(q, getNow()) };
     };
     run()
-      .then((q) => {
+      .then(({ quote: q, staleAt }) => {
         if (!live.current || seq !== quoteSeq.current) return;
-        rememberQuote(key, q);
-        setQuote({ kind: 'ready', quote: q });
+        rememberQuote(key, q, staleAt);
+        setQuote({ kind: 'ready', quote: q, staleAt });
         const total = safeCents(q.total_cents);
         if (lastTotal.current !== null && total !== null && total !== lastTotal.current) {
           // "Total updated: …", once, when the new quote arrives (CC/Cart-line-updating).
@@ -189,7 +195,7 @@ export function CartScreen(): React.ReactElement {
       })
       .catch((e: unknown) => {
         if (!live.current || seq !== quoteSeq.current) return;
-        setQuote({ kind: 'failed', code: errorCodeOf(e) });
+        setQuote({ kind: 'failed', code: errorCodeOf(e), idem });
       });
   }, []);
 
@@ -224,6 +230,11 @@ export function CartScreen(): React.ReactElement {
         // Offline with a cart this session already read: show it, read only, "as of" its time.
         if (!isApiError(e) && cached) {
           setLoad({ kind: 'ready', cart: cached.cart, asOf: cached.asOf });
+          // The last quote for that cart, even if it has expired, as of the same time (`CC/Cart-offline`).
+          const addressId = cached.cart.delivery_address_id;
+          const last = addressId ? lastQuote(quoteKeyFor(cached.cart, addressId)) : null;
+          // Shown as the last quote only: it is already stale, so back online the cart is priced again.
+          setQuote(last ? { kind: 'ready', quote: last, staleAt: 0 } : { kind: 'none' });
           return;
         }
         setLoad({ kind: 'error', code: errorCodeOf(e) });
@@ -231,6 +242,12 @@ export function CartScreen(): React.ReactElement {
   }, [show]);
 
   React.useEffect(() => reload(), [reload]);
+
+  // A quote past its `expires_at` is not a price any more: online, price the cart again.
+  const now = useNow(30_000);
+  React.useEffect(() => {
+    if (online && load.kind === 'ready' && quote.kind === 'ready' && now >= quote.staleAt) price(load.cart, activeRef.current);
+  }, [online, load, quote, now, price]);
 
   /** Every write returns the recomputed cart; a failure keeps the screen, says so and re-reads. */
   const mutate = React.useCallback(
@@ -261,22 +278,28 @@ export function CartScreen(): React.ReactElement {
   const remove = React.useCallback(
     async (line: CartLine) => {
       setUndoFailed(null);
-      if (await mutate(line.id, () => removeLine(line.id))) setRemoved(line);
+      if (await mutate(line.id, () => removeLine(line.id))) setRemoved({ line, key: idempotencyKey() });
     },
     [mutate],
   );
 
+  /**
+   * Undo re-adds the removed line once. The ref is set before the await, so a second tap in the same
+   * frame sends nothing; the key was minted at removal, so any resend of this Undo reuses it.
+   */
   const undo = React.useCallback(async () => {
-    const line = removed;
+    const entry = removed;
+    if (!entry || undoing.current) return;
+    undoing.current = true;
     setRemoved(null);
-    if (!line) return;
     setMutating('__undo__');
     try {
-      const cart = await addCartLine(lineToCartLineInput(line), { idempotencyKey: idempotencyKey() });
+      const cart = await addCartLine(lineToCartLineInput(entry.line), { idempotencyKey: entry.key });
       if (live.current) show(cart);
     } catch (e) {
-      if (live.current) setUndoFailed(undoFailedCopy(line.name, errorCodeOf(e)));
+      if (live.current) setUndoFailed(undoFailedCopy(entry.line.name, errorCodeOf(e)));
     } finally {
+      undoing.current = false;
       if (live.current) setMutating(null);
     }
   }, [removed, show]);
@@ -338,7 +361,7 @@ export function CartScreen(): React.ReactElement {
           />
         </View>
         {undoFailed || removed ? (
-          <RemovedToasts removed={removed} undoFailed={undoFailed} onUndo={() => void undo()} onDismiss={() => {
+          <RemovedToasts removed={removed?.line ?? null} undoFailed={undoFailed} onUndo={() => void undo()} onDismiss={() => {
             setRemoved(null);
             setUndoFailed(null);
           }} />
@@ -363,7 +386,7 @@ export function CartScreen(): React.ReactElement {
         address={addresses.find((a) => a.id === cart.delivery_address_id) ?? null}
         mutating={mutating}
         mutationFailed={mutationFailed}
-        onRetryQuote={() => price(cart, activeOrder)}
+        onRetryQuote={() => price(cart, activeOrder, quote.kind === 'failed' ? quote.idem : undefined)}
         onQuantity={(line, q) => (q <= 0 ? void remove(line) : void mutate(line.id, () => setLineQuantity(line.id, q)))}
         onRemove={(line) => void remove(line)}
         onRemoveAll={(lines) =>
@@ -378,7 +401,7 @@ export function CartScreen(): React.ReactElement {
       />
 
       <RemovedToasts
-        removed={removed}
+        removed={removed?.line ?? null}
         undoFailed={undoFailed}
         onUndo={() => void undo()}
         onDismiss={() => {
@@ -733,7 +756,8 @@ function ReadyCart({
           testID: 'Cart-priceChanged',
         };
       }
-      action = { kind: 'checkout', enabled: quote.kind !== 'loading' };
+      // Checkout opens only on a current quote: never on a failed, missing or expired one.
+      action = { kind: 'checkout', enabled: quote.kind === 'ready' && now < quote.staleAt };
     }
   }
 
@@ -938,13 +962,20 @@ function RestaurantCard({
 
         {unavailable ? null : lapsed ? (
           <>
-            <View style={styles.inlineWrap} testID="Cart-halal">
-              {/* EXPIRED is the cool-slate seal: "we can't currently vouch", never red. */}
-              <HalalBadge state="EXPIRED" size="md" surface="card" restaurantId={r.id} testID="Cart-halalBadge" />
-              {r.halal?.certifying_body_name ? (
-                <Text style={[small, styles.shrink, { color: theme.color.text.secondary }]}>{r.halal.certifying_body_name}</Text>
-              ) : null}
-            </View>
+            {/* The seal is presentHalal's decision: the cool-slate EXPIRED seal ("we can't currently
+                vouch", never red) only while the record is fresh; offline past 15 minutes, the line. */}
+            {halal.kind === 'expired' ? (
+              <View style={styles.inlineWrap} testID="Cart-halal">
+                <HalalBadge state="EXPIRED" size="md" surface="card" restaurantId={r.id} testID="Cart-halalBadge" />
+                {halal.certifyingBody ? (
+                  <Text style={[small, styles.shrink, { color: theme.color.text.secondary }]}>{halal.certifyingBody}</Text>
+                ) : null}
+              </View>
+            ) : halal.kind === 'stale' || halal.kind === 'unavailable' ? (
+              <Text style={[small, { color: theme.color.text.secondary }]} testID="Cart-halalLine">
+                {halal.line}
+              </Text>
+            ) : null}
             <Banner variant="neutral" title={certSentence} testID="Cart-certLapsed" />
           </>
         ) : halal.kind === 'badge' ? (

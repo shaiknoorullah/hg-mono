@@ -2,11 +2,13 @@
  * WP5 D9: the item sheet against the contract's fixtures (boards `DO/Item-*`, `CC/Cart-edit-line`).
  *
  * DONE list (manifest §3 WP5): the request never carries a price; DIFFERENT_RESTAURANT → Dialog →
- * replace=true with the same Idempotency-Key, and its retry; every 409/422 code on its board; the
+ * replace=true with a new Idempotency-Key (board `DO/Item-different-restaurant`), and its retry
+ * with the replace's key; every 409/422 code on its board; the
  * ABSOLUTE vs DELTA header; plus loading, error, gone, out of stock, the availability gates,
  * offline, quantity at 20, the special request counter, edit line, and dark.
  */
 import * as React from 'react';
+import { AccessibilityInfo } from 'react-native';
 import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 
 import { markOffline, resetConnectivity } from '../../lib/connectivity';
@@ -118,8 +120,10 @@ describe('D9 item sheet: ready, choices and the header price', () => {
     expect(screen.getByTestId('ItemSheet-price')).toHaveTextContent('$21.45');
     fireEvent.press(screen.getByTestId('ItemSheet-variant-e2b1737f-75fc-43ed-af76-4bcfbb941301'));
     expect(screen.getByTestId('ItemSheet-price')).toHaveTextContent('$36.95');
-    // Each ABSOLUTE option shows its own price.
-    expect(screen.getAllByText('$36.95').length).toBeGreaterThanOrEqual(2);
+    // Each ABSOLUTE option shows its own price, and the option's accessible name joins it.
+    const option = screen.getByTestId('ItemSheet-variant-e2b1737f-75fc-43ed-af76-4bcfbb941301');
+    expect(option.props.accessibilityLabel).toMatch(/^.+, \$36\.95$/);
+    expect(option).toHaveTextContent(/\$36\.95/);
   });
 
   it('DELTA header: "From" + the base, unchanged when a size is chosen; options show +$x.xx', () => {
@@ -144,7 +148,22 @@ describe('D9 item sheet: ready, choices and the header price', () => {
     expect(screen.getByTestId('ItemSheet-price')).toHaveTextContent('$10.99');
     fireEvent.press(screen.getByTestId('ItemSheet-variant-v-l'));
     expect(screen.getByTestId('ItemSheet-price')).toHaveTextContent('$10.99');
-    expect(screen.getByText('+$2.50')).toBeTruthy();
+    // The DELTA option's accessible name joins its signed amount; a zero delta adds nothing.
+    expect(screen.getByTestId('ItemSheet-variant-v-l').props.accessibilityLabel).toBe('Large, +$2.50');
+    expect(screen.getByTestId('ItemSheet-variant-v-r').props.accessibilityLabel).toBe('Regular');
+  });
+
+  it('dietary tags sit under a "Dietary" heading; none, no heading', () => {
+    sheet({ item: { ...NIHARI, dietary_tags: ['VEGETARIAN'] as never } });
+    expect(screen.getByTestId('ItemSheet-dietary')).toHaveTextContent(/Dietary/);
+    screen.unmount();
+    sheet({ item: { ...NIHARI, dietary_tags: [] as never } });
+    expect(screen.queryByTestId('ItemSheet-dietary')).toBeNull();
+  });
+
+  it('no image: the sunken frame reads "No image"', () => {
+    sheet({ item: { ...NIHARI, image_url: null } });
+    expect(screen.getByTestId('ItemSheet-noImage', { includeHiddenElements: true })).toHaveTextContent('No image');
   });
 
   it('required size not chosen: nothing pre-selected and Add says why', () => {
@@ -178,11 +197,20 @@ describe('D9 item sheet: ready, choices and the header price', () => {
     expect(screen.getByTestId('ItemSheet-add')).toHaveTextContent('Add 20 to cart');
   });
 
-  it('special request: 140 at most, with a worded counter', () => {
+  it('special request: 140 at most; "N/140" on screen, the worded count to a screen reader', () => {
+    const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility');
     sheet({ item: NIHARI });
-    expect(screen.getByTestId('ItemSheet-specialCount')).toHaveTextContent('0 of 140 characters used');
+    const count = () => screen.getByTestId('ItemSheet-specialCount');
+    expect(count()).toHaveTextContent('0/140');
+    expect(count().props.accessibilityLabel).toBe('0 of 140 characters used');
     fireEvent.changeText(screen.getByTestId('ItemSheet-special-field'), 'Extra pickles please');
-    expect(screen.getByTestId('ItemSheet-specialCount')).toHaveTextContent('20 of 140 characters used');
+    expect(count()).toHaveTextContent('20/140');
+    expect(count().props.accessibilityLabel).toBe('20 of 140 characters used');
+    // "N characters left" is announced only from 20 left.
+    expect(announce).not.toHaveBeenCalledWith(expect.stringMatching(/characters left/));
+    fireEvent.changeText(screen.getByTestId('ItemSheet-special-field'), 'x'.repeat(125));
+    expect(announce).toHaveBeenCalledWith('15 characters left');
+    announce.mockRestore();
   });
 });
 
@@ -235,7 +263,7 @@ describe('D9 item sheet: adding', () => {
     expect(nav.log).toContainEqual({ action: 'push', route: { name: 'cart' } });
   });
 
-  it('DIFFERENT_RESTAURANT → "Start a new cart?" → replace=true with the same Idempotency-Key', async () => {
+  it('DIFFERENT_RESTAURANT → "Start a new cart?" → replace=true with a new Idempotency-Key', async () => {
     mock.answer('addCartLine', ['error_different_restaurant', 'cart_multi_variant_line']);
     const calls = sheet();
     await tickRaitaAndAdd();
@@ -248,8 +276,21 @@ describe('D9 item sheet: adding', () => {
     const [first, second] = mock.callsTo('addCartLine');
     expect(first!.url).not.toContain('replace=true');
     expect(second!.url).toContain('replace=true');
-    expect(header(second!, 'Idempotency-Key')).toBe(header(first!, 'Idempotency-Key'));
+    // A replay of the first key would return the stored 409: the replace is its own attempt.
+    expect(header(second!, 'Idempotency-Key')).toBeTruthy();
+    expect(header(second!, 'Idempotency-Key')).not.toBe(header(first!, 'Idempotency-Key'));
     expect(second!.body).toEqual(first!.body);
+  });
+
+  it('a double tap on Add sends one add', async () => {
+    const calls = sheet();
+    fireEvent.press(screen.getByTestId(`ItemSheet-addon-${RAITA}`));
+    await waitFor(() => expect(disabled('ItemSheet-add')).toBe(false));
+    const add = screen.getByTestId('ItemSheet-add');
+    fireEvent.press(add);
+    fireEvent.press(add);
+    await waitFor(() => expect(calls.added).toHaveBeenCalled());
+    expect(mock.callsTo('addCartLine')).toHaveLength(1);
   });
 
   it('"Keep my cart" closes the dialog and keeps the choices; nothing else is sent', async () => {
@@ -262,7 +303,7 @@ describe('D9 item sheet: adding', () => {
     expect(screen.getByTestId(`ItemSheet-addon-${RAITA}`).props.accessibilityState).toMatchObject({ checked: true });
   });
 
-  it('start a new cart failed: old cart intact; the retry is the same replace with the same key', async () => {
+  it('start a new cart failed: old cart intact; the retry is the same replace with the replace\'s key', async () => {
     mock.answer('addCartLine', ['error_different_restaurant', { status: 503, code: 'SERVICE_UNAVAILABLE' }, 'cart_multi_variant_line']);
     const calls = sheet();
     await tickRaitaAndAdd();
@@ -275,7 +316,8 @@ describe('D9 item sheet: adding', () => {
     const all = mock.callsTo('addCartLine');
     expect(all).toHaveLength(3);
     expect(all[2]!.url).toContain('replace=true');
-    expect(new Set(all.map((c) => header(c, 'Idempotency-Key'))).size).toBe(1);
+    expect(header(all[1]!, 'Idempotency-Key')).not.toBe(header(all[0]!, 'Idempotency-Key'));
+    expect(header(all[2]!, 'Idempotency-Key')).toBe(header(all[1]!, 'Idempotency-Key'));
     // Nothing ever cleared the cart separately.
     expect(mock.callsTo('clearCart')).toHaveLength(0);
   });
@@ -451,6 +493,21 @@ describe('CC/Cart-edit-line: remove + add (G5)', () => {
     const order = mock.calls.filter((c) => c.operationId === 'addCartLine' || c.operationId === 'removeCartLine').map((c) => c.operationId);
     expect(order).toEqual(['addCartLine', 'removeCartLine']);
     expect(mock.callsTo('removeCartLine')[0]!.url).toContain(line.id);
+  });
+
+  it('a sold-out size is not pre-filled: the group asks for another before Update', async () => {
+    const line = payloadOf('cart_multi_variant_line').lines[0];
+    const soldOut = {
+      ...PLATTER,
+      variant_groups: PLATTER.variant_groups!.map((g) => ({
+        ...g,
+        variants: g.variants.map((v) => (v.id === FOR_TWO ? { ...v, is_available: false } : v)),
+      })),
+    };
+    sheet({ item: soldOut, editLine: line });
+    expect(screen.getByTestId(`ItemSheet-variant-${FOR_TWO}`).props.accessibilityState).toMatchObject({ checked: false });
+    expect(screen.getByTestId('ItemSheet-reason')).toHaveTextContent(/^Choose a .+ to add this to your cart$/);
+    expect(disabled('ItemSheet-add')).toBe(true);
   });
 
   it('only the quantity changed: one updateCartLine, nothing removed', async () => {

@@ -23,14 +23,20 @@ export function safeCents(value: unknown): Cents | null {
   return typeof value === 'number' && Number.isSafeInteger(value) ? (value as Cents) : null;
 }
 
-/** "Platter size: For two · Rice: No rice · Mint raita × 1", or null for a plain line. */
+/**
+ * "Platter size: For two · Rice: No rice · Mint raita × 1", or null for a plain line. On a line
+ * whose extra ran out, the add-on is marked "(ran out)" (`CC/Cart-addon-unavailable`) when the line
+ * has only one, since the line's availability does not say which add-on it was.
+ */
 export function lineOptions(line: CartLine): string | null {
   const parts: string[] = [];
   for (const v of line.variants ?? []) {
     if (v?.variant_name) parts.push(v.group_name ? `${v.group_name}: ${v.variant_name}` : v.variant_name);
   }
-  for (const a of line.addons ?? []) {
-    if (a?.name) parts.push(`${a.name} × ${a.quantity ?? 1}`);
+  const addons = (line.addons ?? []).filter((a) => a?.name);
+  const ranOut = line.availability?.reason === 'ADDON_UNAVAILABLE' && addons.length === 1;
+  for (const a of addons) {
+    parts.push(`${a.name} × ${a.quantity ?? 1}${ranOut ? ' (ran out)' : ''}`);
   }
   return parts.length > 0 ? parts.join(' · ') : null;
 }
@@ -184,12 +190,40 @@ export function blockedLinesNotice(lines: readonly CartLine[]): { title: string;
     allOutOfStock && n === 1
       ? `${joined} is out of stock. Remove it to check out.`
       : `${joined} can't be ordered. Remove ${pronoun} to check out.`;
+  const why = blockedReasonsSentence(lines);
   return {
     title,
-    description: `Remove ${pronoun} to continue — we don't change your cart without asking.`,
+    description: `${why ? `${why} ` : ''}Remove ${pronoun} to continue — we don't change your cart without asking.`,
     footer,
     action: n === 1 ? `Remove ${names[0]}` : `Remove ${itemsText(n)}`,
   };
+}
+
+const COUNT_WORDS = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten'];
+
+function countWord(n: number, first: boolean): string {
+  const word = COUNT_WORDS[n] ?? String(n);
+  return first ? word : word.toLowerCase();
+}
+
+/**
+ * Why each blocked line can't be ordered, when the reasons differ (`CC/Cart-item-deleted`):
+ * "One is no longer on the menu and one isn't available right now." Null when every line has the
+ * same reason (the title already says it).
+ */
+export function blockedReasonsSentence(lines: readonly CartLine[]): string | null {
+  const deleted = lines.filter((l) => l.availability?.reason === 'ITEM_DELETED').length;
+  const outOfStock = lines.filter((l) => l.availability?.reason === 'OUT_OF_STOCK').length;
+  const other = lines.length - deleted - outOfStock;
+  const groups: [number, string, string][] = [
+    [deleted, 'is no longer on the menu', 'are no longer on the menu'],
+    [outOfStock, 'is out of stock', 'are out of stock'],
+    [other, "isn't available right now", "aren't available right now"],
+  ];
+  const parts = groups.filter(([n]) => n > 0);
+  if (parts.length < 2) return null;
+  const said = parts.map(([n, one, many], i) => `${countWord(n, i === 0)} ${n === 1 ? one : many}`);
+  return `${said.slice(0, -1).join(', ')} and ${said[said.length - 1]}.`;
 }
 
 /**

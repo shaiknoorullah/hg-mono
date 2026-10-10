@@ -10,13 +10,15 @@ reality:
   - font-scale: 2.0
   - network: offline
   - network: restore
+# J8's multi-variant dish needs a devworld dish with two or more variant groups (w0-request): until
+# then the flow uses Lamb Karahi (one group) and takes the quantity to 20 on it.
 explore: >
   After the flow, in dark mode at 200% text, open bismillah-grill by deep link
   (`adb shell am start -W -a android.intent.action.VIEW -d "hgcustomer://restaurant/b0000000-0000-4000-8000-000000000208"`)
   and open Lamb Karahi. Screenshot the item sheet top to bottom: the header price is the chosen portion's own price
   (Half, then Full after you choose it), never a sum; "Spice level (required) · choose 1"; the Add button carries the
   reason until a spice level is ticked; the quantity stops at 20 with "Maximum 20" and "Add 20 to cart"; the special
-  request counter reads "N of 140 characters used". Report clipped text, any target under 44 dp and any red halal state.
+  request counter reads "N/140" (TalkBack reads "N of 140 characters used", and "N characters left" from 20 left). Report clipped text, any target under 44 dp and any red halal state.
   Add the dish, then open the cart: confirm the lines read "Portion: Full (serves 3–4) · Spice level × 1"-style options,
   the totals read Items subtotal, Delivery fee, Service fee (even $0.00) and Total, and Go to checkout opens checkout.
   Tap Edit on the line: the sheet opens with the line's choices; change the spice level and Update item; the cart shows

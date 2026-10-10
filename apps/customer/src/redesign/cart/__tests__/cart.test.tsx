@@ -13,7 +13,7 @@ import { act, fireEvent, screen, waitFor, within } from '@testing-library/react-
 
 import { markOffline, resetConnectivity } from '../../lib/connectivity';
 import { setNowOverride } from '../../lib/now';
-import { rememberCart, resetCartMemory } from '../../ordering/cart';
+import { quoteKeyFor, rememberCart, rememberQuote, resetCartMemory } from '../../ordering/cart';
 import { mockApi, payloadOf, type MockApi } from '../../test/mockApi';
 import { navSpy, renderRedesign, type NavSpy } from '../../test/render';
 import { CartScreen, OFFLINE_FOOTER } from '../CartScreen';
@@ -132,6 +132,47 @@ describe('C1 cart: priced, estimate and the money rows', () => {
     expect(screen.getByTestId('Cart-checkout').props.accessibilityState).toMatchObject({ busy: true });
   });
 
+  it('each pricing is its own attempt: a changed cart gets a new Idempotency-Key, even back to the same contents', async () => {
+    const line = MULTI.lines[0];
+    mock.answer('updateCartLine', [
+      cartBody({ ...MULTI, lines: [{ ...line, quantity: 2 }] }),
+      cartBody(MULTI),
+    ]);
+    show();
+    await screen.findByTestId('Cart-total');
+    fireEvent.press(screen.getByTestId(`CartLine-stepper-${line.id}-increment`));
+    await waitFor(() => expect(mock.callsTo('createQuote')).toHaveLength(2));
+    await screen.findByTestId('Cart-total');
+    fireEvent.press(screen.getByTestId(`CartLine-stepper-${line.id}-increment`));
+    await waitFor(() => expect(mock.callsTo('createQuote').length + mock.callsTo('getQuote').length).toBeGreaterThanOrEqual(3));
+    const keys = mock.callsTo('createQuote').map((c) => c.headers['idempotency-key']);
+    expect(new Set(keys).size).toBe(keys.length);
+  });
+
+  it('a failed quote: checkout is off; Try again resends the same request with its key', async () => {
+    mock.answer('createQuote', [{ status: 503, code: 'SERVICE_UNAVAILABLE' }, 'quote_multi_variant']);
+    show();
+    expect(await screen.findByTestId('Cart-quoteFailed')).toBeTruthy();
+    expect(disabled('Cart-checkout')).toBe(true);
+    fireEvent.press(screen.getByTestId('Cart-retryQuote'));
+    expect(await screen.findByTestId('Cart-total')).toBeTruthy();
+    const [a, b] = mock.callsTo('createQuote');
+    expect(b!.headers['idempotency-key']).toBe(a!.headers['idempotency-key']);
+    expect(disabled('Cart-checkout')).toBe(false);
+  });
+
+  it('a quote past its lifetime is priced again with a new key, and checkout waits for it', async () => {
+    show();
+    await screen.findByTestId('Cart-total');
+    mock.answer('createQuote', 'hang');
+    // The quote lives 10 minutes from when it arrived; 11 minutes later it is not a price any more.
+    act(() => setNowOverride({ at: Date.parse('2026-08-10T18:11:00Z') }));
+    await waitFor(() => expect(mock.callsTo('createQuote')).toHaveLength(2));
+    const [a, b] = mock.callsTo('createQuote');
+    expect(b!.headers['idempotency-key']).not.toBe(a!.headers['idempotency-key']);
+    expect(disabled('Cart-checkout')).toBe(true);
+  });
+
   it('an unexpired quote for the same cart is re-read with getQuote, not priced again', async () => {
     const first = show();
     await screen.findByTestId('Cart-total');
@@ -185,12 +226,21 @@ describe('C1 cart: loading, empty, error, offline', () => {
     expect(screen.queryByTestId('Cart-clear')).toBeNull();
   });
 
-  it('offline on arrival: the cart this session already read, as of its time', async () => {
+  it('offline on arrival: the cart this session already read, as of its time, with its last quote', async () => {
     rememberCart(MULTI, Date.parse('2026-08-10T17:50:00Z'));
+    rememberQuote(quoteKeyFor(MULTI, MULTI.delivery_address_id), payloadOf('quote_multi_variant'));
     for (const op of ['getCart', 'listAddresses', 'getActiveOrder']) mock.answer(op, 'offline');
     show();
     expect(await screen.findByText(/Showing your cart as of 1:50 pm\./)).toBeTruthy();
     expect(screen.getByTestId('Cart-halalBadge')).toBeTruthy();
+    // The last quote's rows, not the estimate (`CC/Cart-offline`); checkout still waits.
+    expect(screen.getByText('Items subtotal')).toBeTruthy();
+    expect(screen.getByText('Delivery fee')).toBeTruthy();
+    expect(screen.getByText('Service fee')).toBeTruthy();
+    expect(screen.getByTestId('Cart-total-price')).toHaveTextContent('$142.86');
+    expect(screen.queryByText('Items (estimate)')).toBeNull();
+    expect(disabled('Cart-checkout')).toBe(true);
+    expect(mock.callsTo('createQuote')).toHaveLength(0);
   });
 
   it('offline past 15 minutes: the badge goes, the neutral line says why', async () => {
@@ -238,6 +288,18 @@ describe('C1 cart: lines', () => {
       variant_ids: line.variants.map((v: { variant_id: string }) => v.variant_id),
       addons: [{ addon_id: line.addons[0].addon_id, quantity: 1 }],
     });
+  });
+
+  it('a double tap on Undo re-adds the line once, with the key minted at removal', async () => {
+    const line = MULTI.lines[0];
+    mock.answer('removeCartLine', cartBody({ ...MULTI, lines: [], item_count: 0, indicative_subtotal_cents: 0 }));
+    show();
+    fireEvent.press(await screen.findByTestId(`CartLine-stepper-${line.id}-decrement`));
+    const undo = await screen.findByText('Undo');
+    fireEvent.press(undo);
+    fireEvent.press(undo);
+    expect(await screen.findByTestId(`CartLine-${line.id}`)).toBeTruthy();
+    expect(mock.callsTo('addCartLine')).toHaveLength(1);
   });
 
   it('Undo failed: a warning says why and the cart stays as it is', async () => {
@@ -305,12 +367,13 @@ describe('C1 cart: lines', () => {
     expect(await screen.findByText('Update item')).toBeTruthy();
   });
 
-  it('ADDON_UNAVAILABLE: "Extra ran out"', async () => {
+  it('ADDON_UNAVAILABLE: "Extra ran out", and the extra is marked "(ran out)"', async () => {
     const line = MULTI.lines[0];
     mock.answer('getCart', withCart({ lines: [lineWith(line, { reason: 'ADDON_UNAVAILABLE' })], is_quotable: false }, MULTI));
     show();
     expect(await screen.findByText('An extra you chose has run out')).toBeTruthy();
     expect(screen.getByTestId(`CartLine-flag-${line.id}`)).toHaveTextContent('Extra ran out');
+    expect(screen.getByTestId(`CartLine-options-${line.id}`)).toHaveTextContent(/Mint raita × 1 \(ran out\)$/);
     expect(screen.getByTestId('Cart-reason')).toHaveTextContent('Change or remove the item with the extra that ran out to check out.');
   });
 
@@ -319,6 +382,11 @@ describe('C1 cart: lines', () => {
     mock.answer('getCart', withCart({ lines: [lineWith(a, { reason: 'ITEM_DELETED' }), lineWith(b, { reason: 'CATEGORY_INACTIVE' })], is_quotable: false }));
     show();
     expect(await screen.findByText("2 items can't be ordered right now")).toBeTruthy();
+    expect(
+      screen.getByText(
+        "One is no longer on the menu and one isn't available right now. Remove them to continue — we don't change your cart without asking.",
+      ),
+    ).toBeTruthy();
     expect(screen.getByTestId(`CartLine-flag-${a.id}`)).toHaveTextContent('No longer on the menu');
     expect(screen.getByTestId(`CartLine-flag-${b.id}`)).toHaveTextContent('Not available right now');
     expect(screen.queryByTestId(`CartLine-edit-${a.id}`)).toBeNull();
@@ -382,6 +450,16 @@ describe('C1 cart: the restaurant and the order', () => {
     expect(screen.getByText('Find another restaurant')).toBeTruthy();
     expect(screen.getByTestId('Cart-clear')).toBeTruthy();
     expect(mock.callsTo('createQuote')).toHaveLength(0);
+  });
+
+  it('certification lapsed, offline past 15 minutes: presentHalal drops the seal for the offline line', async () => {
+    const lapsed = payloadOf('cart_restaurant_unavailable');
+    rememberCart(lapsed, Date.parse('2026-08-10T17:40:00Z'));
+    for (const op of ['getCart', 'listAddresses', 'getActiveOrder']) mock.answer(op, 'offline');
+    show();
+    expect(await screen.findByText("We can't check the certification while you're offline.")).toBeTruthy();
+    expect(screen.queryByTestId('Cart-halalBadge')).toBeNull();
+    expect(screen.getByTestId('Cart-certLapsed')).toBeTruthy();
   });
 
   it('below the minimum, from blocking_reasons: banner with the server minimum and "Add more items"', async () => {

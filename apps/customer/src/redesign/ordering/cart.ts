@@ -75,13 +75,11 @@ export async function createCartQuote(cart: Cart, addressId: string, idempotency
   return body.data as unknown as Quote;
 }
 
-/**
- * Re-reads a persisted quote. The contract's 200 schema for `getQuote` declares an `OrderSummary`
- * list (a contract defect, filed as a W0 request); the server and the fixtures return the `Quote`.
- */
+/** Re-reads a persisted quote (`getQuote`), the same row checkout renders. */
 export async function readQuote(quoteId: string): Promise<Quote> {
   const body = await unwrap(api.GET('/v1/quotes/{quoteId}', { params: { path: { quoteId } } }));
-  return (body as unknown as { data: Quote }).data;
+  // The response is `{ data: Quote }`; the cast only re-applies the Cents brand, as for every read here.
+  return body.data as unknown as Quote;
 }
 
 /** Saved addresses, to name the one the cart is priced for ("Pricing your order for Home…"). */
@@ -105,7 +103,7 @@ export async function getActiveOrder(): Promise<ActiveOrder | null> {
 interface Remembered {
   cart: Cart | null;
   cartAsOf: number | null;
-  quote: { key: string; quote: Quote } | null;
+  quote: { key: string; quote: Quote; staleAt: number } | null;
 }
 
 const memory: Remembered = { cart: null, cartAsOf: null, quote: null };
@@ -120,24 +118,45 @@ export function rememberedCart(): { cart: Cart; asOf: number } | null {
 }
 
 /**
- * What a quote is for: the cart, its lines and quantities, and the address. A different key means
- * a different pricing attempt (and a new Idempotency-Key); the same key is a retry.
+ * What a quote is for: the cart, its lines and quantities, and the address. It names the remembered
+ * quote only; the Idempotency-Key belongs to one pricing attempt, not to the cart's contents.
  */
 export function quoteKeyFor(cart: Cart, addressId: string): string {
   const lines = cart.lines.map((l) => `${l.id}x${l.quantity}`).join(',');
   return `${cart.id}|${addressId}|${lines}`;
 }
 
-export function rememberQuote(key: string, quote: Quote): void {
-  memory.quote = { key, quote };
+/** `staleAt` is when the quote stops being a price on the device clock (`quoteStaleAt`). */
+export function rememberQuote(key: string, quote: Quote, staleAt: number = quoteStaleAt(quote, getNow())): void {
+  memory.quote = { key, quote, staleAt };
 }
 
-/** The remembered quote for this cart and address, while the server says it has not expired. */
-export function rememberedQuote(key: string, now: number = getNow()): Quote | null {
+/** The remembered quote for this cart and address, while it is still a price. */
+export function rememberedQuote(key: string, now: number = getNow()): { quote: Quote; staleAt: number } | null {
   const q = memory.quote;
-  if (!q || q.key !== key) return null;
-  const expires = Date.parse(q.quote.expires_at);
-  return Number.isFinite(expires) && expires > now ? q.quote : null;
+  if (!q || q.key !== key || q.staleAt <= now) return null;
+  return { quote: q.quote, staleAt: q.staleAt };
+}
+
+/**
+ * The last quote for this cart and address, expired or not: the offline cart shows it as the last
+ * quote, "as of" the time the cart was read (`CC/Cart-offline`). Never used to check out.
+ */
+export function lastQuote(key: string): Quote | null {
+  const q = memory.quote;
+  return q && q.key === key ? q.quote : null;
+}
+
+/**
+ * When a quote received at `receivedAt` (device clock) stops being a price: its server lifetime
+ * (`expires_at` − `created_at`, both server times) after it arrived, so a phone clock that is off
+ * does not expire a fresh quote early. Falls back to `expires_at` when `created_at` is missing.
+ */
+export function quoteStaleAt(quote: Quote, receivedAt: number): number {
+  const expires = Date.parse(quote.expires_at);
+  const created = Date.parse(quote.created_at);
+  if (Number.isFinite(expires) && Number.isFinite(created) && expires > created) return receivedAt + (expires - created);
+  return Number.isFinite(expires) ? expires : receivedAt;
 }
 
 /** Tests only. */

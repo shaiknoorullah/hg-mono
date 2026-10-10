@@ -9,15 +9,17 @@
  * "gone" states.
  *
  * Writes: `addCartLine` with ids, quantities and the special request only (`toCartLineInput`);
- * never a price. One Idempotency-Key per add attempt, reused when the same attempt is retried and
- * for "Start a new cart" (`replace=true`) after `409 DIFFERENT_RESTAURANT`. Edit line is
+ * never a price. One Idempotency-Key per add attempt, reused only when that same request is retried.
+ * "Start a new cart" (`replace=true`) after `409 DIFFERENT_RESTAURANT` is a new attempt with its own
+ * key (a replay of the first key would return the stored 409); a retry of the replace reuses the
+ * replace's key (board `DO/Item-new-cart-failed`). Edit line is
  * remove + add today (API gap G5): the new line is added first and the old one removed only after.
  *
  * Money: the header is the chosen ABSOLUTE variant's `price_cents` or the base ("From" when a DELTA
  * choice can change it); options show their own amounts. No line price before Add (G13).
  */
 import * as React from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { AccessibilityInfo, Image, StyleSheet, Text, View } from 'react-native';
 import { cents, idempotencyKey } from '@hg/api-client';
 
 import {
@@ -246,8 +248,9 @@ function ReadySheet({
   const [unavailableNow, setUnavailableNow] = React.useState(false);
 
   /**
-   * The current attempt's Idempotency-Key, tied to what it sends. The same line sent again (a retry,
-   * or the replace after "Start a new cart") reuses it; a changed line is a new attempt.
+   * The current attempt's Idempotency-Key, tied to what it sends: the line and whether it replaces
+   * the cart. The same request sent again (a retry) reuses it; a changed line, or the replace after
+   * "Start a new cart", is a new attempt with a new key.
    */
   const attempt = React.useRef<{ signature: string; key: string } | null>(null);
   const keyFor = (signature: string): string => {
@@ -304,8 +307,12 @@ function ReadySheet({
   const frozen = closedNow || unavailableNow || (locked && availability?.state !== 'NO_ADDRESS');
   const reason = gate?.text || (!online ? OFFLINE_REASON : blockReason(item, sel, restock));
 
+  /** Set synchronously, so a second tap in the same frame cannot send a second add. */
+  const inFlight = React.useRef(false);
+
   async function submit(): Promise<void> {
-    if (adding || locked || reason) return;
+    if (inFlight.current || adding || locked || reason) return;
+    inFlight.current = true;
     const input = toCartLineInput(item, sel);
     setAdding(true);
     setFailure(null);
@@ -318,7 +325,7 @@ function ReadySheet({
           cart = input.quantity === editLine.quantity ? await getCart() : await setLineQuantity(editLine.id, input.quantity);
         } else {
           // G5: add the new line first, then remove the old one, so a failed add leaves the cart as it was.
-          cart = await addCartLine(input, { idempotencyKey: keyFor(JSON.stringify(input)) });
+          cart = await addCartLine(input, { idempotencyKey: keyFor(JSON.stringify({ input, replace: false })) });
           try {
             cart = await removeLine(editLine.id);
           } catch {
@@ -328,7 +335,7 @@ function ReadySheet({
         onAdded(cart, addedLine(cart.lines, input));
         return;
       }
-      const cart = await addCartLine(input, { idempotencyKey: keyFor(JSON.stringify(input)), replace: replacing });
+      const cart = await addCartLine(input, { idempotencyKey: keyFor(JSON.stringify({ input, replace: replacing })), replace: replacing });
       onAdded(cart, addedLine(cart.lines, input));
     } catch (e) {
       const f = classifyAddError(e);
@@ -362,6 +369,7 @@ function ReadySheet({
         setFailure(f);
       }
     } finally {
+      inFlight.current = false;
       setAdding(false);
     }
   }
@@ -372,7 +380,7 @@ function ReadySheet({
     setReplacing(true);
   }
 
-  // Fire the replace once the sheet has switched to it; the attempt's key is reused (same line).
+  // Fire the replace once the sheet has switched to it: a new attempt, so a new key.
   React.useEffect(() => {
     if (replacing && !replaceFailed) void submit();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -444,26 +452,21 @@ function ReadySheet({
       <Sheet open onClose={onClose} title={editLine ? `Edit ${item.name}` : item.name} snapPoints={[0.92]} footer={footer} testID="ItemSheet">
         {alert ? <InlineAlert icon={alert.icon} title={alert.title} body={alert.body} /> : null}
 
-        {item.image_url ? <ItemImage uri={item.image_url} /> : null}
+        <ItemImage uri={item.image_url ?? null} />
 
         <View style={styles.stack}>
           <View style={styles.inline} testID="ItemSheet-header">
             {price.from ? <Text style={[label, { color: theme.color.text.secondary }]}>From</Text> : null}
             <Price cents={cents(price.cents)} size="lg" testID="ItemSheet-price" />
           </View>
-          {stockLine || diet.length ? (
+          {stockLine ? (
             <View style={styles.wrap}>
-              {stockLine ? (
-                <Badge
-                  variant="neutral"
-                  size="md"
-                  label={stockLine}
-                  icon={<Icon name="clock" size={14} color={theme.color.text.secondary} />}
-                />
-              ) : null}
-              {diet.map((d) => (
-                <Badge key={d} variant="outline" size="md" label={d} />
-              ))}
+              <Badge
+                variant="neutral"
+                size="md"
+                label={stockLine}
+                icon={<Icon name="clock" size={14} color={theme.color.text.secondary} />}
+              />
             </View>
           ) : null}
           {item.description || item.prep_minutes ? (
@@ -477,6 +480,20 @@ function ReadySheet({
             <Text style={[bodySm, { color: theme.color.text.secondary }]}>{`Ingredients: ${item.ingredients_text}`}</Text>
           ) : null}
         </View>
+
+        {diet.length ? (
+          // Board `DO/Item-delta-variant`: a "Dietary" group, nothing shown when the list is empty.
+          <View style={styles.stack} testID="ItemSheet-dietary">
+            <Text accessibilityRole="header" style={[label, { color: theme.color.text.primary }]}>
+              Dietary
+            </Text>
+            <View style={styles.wrap}>
+              {diet.map((d) => (
+                <Badge key={d} variant="outline" size="md" label={d} />
+              ))}
+            </View>
+          </View>
+        ) : null}
 
         <View style={styles.stack}>
           <Text accessibilityRole="header" style={[label, { color: theme.color.text.primary }]}>
@@ -517,11 +534,11 @@ function ReadySheet({
                       <Radio
                         key={v.id}
                         value={v.id}
-                        label={v.name}
-                        // RadioGroup has no option Price slot yet (ds-request): the ABSOLUTE price is
-                        // the option's description, a server value through the DS formatter.
-                        description={v.pricing_mode === 'ABSOLUTE' && v.price_cents != null ? formatPrice(cents(v.price_cents)) : undefined}
-                        priceDeltaCents={v.pricing_mode === 'DELTA' && v.delta_cents ? v.delta_cents : undefined}
+                        // RadioGroup has no option Price slot yet (ds-request), and Radio names itself from
+                        // its label only: the option's own server amount joins the label, so the
+                        // accessible name reads "For one, $24.99" and the amount is drawn in
+                        // text.primary rather than a text.tertiary caption.
+                        label={variantOptionLabel(v)}
                         disabled={out}
                         disabledReason={out ? 'Sold out' : undefined}
                         testID={`ItemSheet-variant-${v.id}`}
@@ -616,14 +633,8 @@ function ReadySheet({
               disabled={closedNow}
               testID="ItemSheet-special"
             />
-            {/* Textarea with a worded counter is a design-system gap; the count is a server limit. */}
-            <Text
-              style={[bodySm, styles.end, { color: theme.color.text.secondary }]}
-              accessibilityLiveRegion={SPECIAL_REQUEST_MAX - sel.specialRequest.length <= 20 ? 'polite' : 'none'}
-              testID="ItemSheet-specialCount"
-            >
-              {`${sel.specialRequest.length} of ${SPECIAL_REQUEST_MAX} characters used`}
-            </Text>
+            {/* Textarea with a counter is a design-system gap; the count is a server limit. */}
+            <SpecialRequestCounter used={sel.specialRequest.length} />
           </View>
         ) : null}
       </Sheet>
@@ -669,19 +680,73 @@ function InlineAlert({ icon, title, body }: { icon: AlertIcon; title: string; bo
   );
 }
 
-/** MediaFrame is a design-system gap: the dish photo at 16:9, decorative. */
-function ItemImage({ uri }: { uri: string }): React.ReactElement | null {
+/**
+ * MediaFrame is a design-system gap: the dish photo at 16:9, decorative. With no `image_url`, or an
+ * image that fails to load, the sunken frame reads "No image" (boards `DO/Item-ready`, `-added`).
+ */
+function ItemImage({ uri }: { uri: string | null }): React.ReactElement {
   const theme = useTheme();
+  const caption = useTypeStyle('body.sm');
   const [failed, setFailed] = React.useState(false);
-  if (failed) return null;
+  const empty = !uri || failed;
   return (
     <View
-      style={[styles.image, { backgroundColor: theme.color.surface.sunken }]}
+      style={[styles.image, empty ? styles.imageEmpty : null, { backgroundColor: theme.color.surface.sunken }]}
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
+      testID={empty ? 'ItemSheet-noImage' : 'ItemSheet-image'}
     >
-      <Image source={{ uri }} style={StyleSheet.absoluteFill} resizeMode="cover" onError={() => setFailed(true)} />
+      {empty ? (
+        <Text style={[caption, { color: theme.color.text.secondary }]}>No image</Text>
+      ) : (
+        <Image source={{ uri }} style={StyleSheet.absoluteFill} resizeMode="cover" onError={() => setFailed(true)} />
+      )}
     </View>
+  );
+}
+
+type Variant = NonNullable<MenuItem['variant_groups']>[number]['variants'][number];
+
+/**
+ * A variant option's label with its own server amount: "For one, $24.99" (ABSOLUTE) or
+ * "Large, +$2.50" (DELTA, when it changes the price). Never summed with anything.
+ */
+function variantOptionLabel(v: Variant): string {
+  if (v.pricing_mode === 'ABSOLUTE' && v.price_cents != null) return `${v.name}, ${formatPrice(cents(v.price_cents))}`;
+  if (v.pricing_mode === 'DELTA' && v.delta_cents) return `${v.name}, ${formatPrice(cents(v.delta_cents), { sign: 'always' })}`;
+  return v.name;
+}
+
+/**
+ * The special request counter (board `DO/Item-ready`): "0/140" on screen, "0 of 140 characters
+ * used" to a screen reader, and "N characters left" announced politely only from 20 left.
+ */
+function SpecialRequestCounter({ used }: { used: number }): React.ReactElement {
+  const theme = useTheme();
+  const bodySm = useTypeStyle('body.sm');
+  const left = SPECIAL_REQUEST_MAX - used;
+  const first = React.useRef(true);
+  React.useEffect(() => {
+    if (first.current) {
+      first.current = false;
+      return;
+    }
+    if (left <= 20) {
+      try {
+        AccessibilityInfo.announceForAccessibility(`${left} characters left`);
+      } catch {
+        /* a renderer without announcements just skips it */
+      }
+    }
+  }, [left]);
+  return (
+    <Text
+      style={[bodySm, styles.end, { color: theme.color.text.secondary }]}
+      accessibilityLabel={`${used} of ${SPECIAL_REQUEST_MAX} characters used`}
+      testID="ItemSheet-specialCount"
+    >
+      {`${used}/${SPECIAL_REQUEST_MAX}`}
+    </Text>
   );
 }
 
@@ -721,4 +786,5 @@ const styles = StyleSheet.create({
   alertRow: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
   alertBody: { flex: 1, gap: 4 },
   image: { width: '100%', aspectRatio: 16 / 9, borderRadius: 16, overflow: 'hidden' },
+  imageEmpty: { alignItems: 'center', justifyContent: 'center' },
 });

@@ -49,15 +49,18 @@ export function initialSelection(item: MenuItem): ItemSelection {
 
 /**
  * The selection a cart line already holds, for the edit-line sheet (`CC/Cart-edit-line`): its
- * variants by group, its add-ons, quantity and special request. Ids the menu no longer has are
- * dropped, so the sheet never sends a choice it cannot show.
+ * variants by group, its add-ons, quantity and special request. Ids the menu no longer has, and
+ * variants that are no longer available, are dropped, so the sheet never sends a choice it cannot
+ * show or that the server would refuse.
  */
 export function selectionFromLine(item: MenuItem, line: CartLine): ItemSelection {
   const base = initialSelection(item);
   const variants: Record<string, string | null> = {};
   for (const g of item.variant_groups ?? []) {
     const chosen = (line.variants ?? []).find((v) => v.variant_group_id === g.id || g.variants.some((x) => x.id === v.variant_id));
-    variants[g.id] = chosen && g.variants.some((x) => x.id === chosen.variant_id) ? chosen.variant_id : null;
+    // A variant that has since sold out is not pre-filled: the group's reason asks for another
+    // ("Choose a size …"), so a sold-out choice is never sent again (`CC/Cart-variant-unavailable`).
+    variants[g.id] = chosen && g.variants.some((x) => x.id === chosen.variant_id && x.is_available) ? chosen.variant_id : null;
   }
   const addons: Record<string, string[]> = {};
   for (const g of item.addon_groups ?? []) {
