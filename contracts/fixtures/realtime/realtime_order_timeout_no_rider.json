@@ -145,7 +145,8 @@
       "data": {
         "order_id": "c622bd1b-2de3-40be-aa8f-9996517b6aed",
         "accepted_by": "Hamza K.",
-        "prep_eta_minutes": 20
+        "prep_eta_minutes": 20,
+        "pickup_code": "3051"
       },
       "_delay_ms": 12000
     },

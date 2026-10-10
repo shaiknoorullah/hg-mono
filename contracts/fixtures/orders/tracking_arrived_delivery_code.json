@@ -1,0 +1,97 @@
+{
+  "scenario": "tracking_arrived_delivery_code",
+  "domain": "orders",
+  "schema": "OrderTracking",
+  "describes": "The rider is in the lobby for a met handover. The screen leads with `delivery_code`; the customer reads it out.",
+  "operations": [
+    "getOrderTracking"
+  ],
+  "status": 200,
+  "tags": [
+    "tracking",
+    "delivery-code"
+  ],
+  "payload": {
+    "order_id": "1362e3e3-2975-4d34-a104-c54b647b6f5e",
+    "state": "ARRIVED",
+    "dispatch_state": "AT_CUSTOMER",
+    "eta_at": "2026-08-10T18:43:11.412Z",
+    "eta_window_minutes": 10,
+    "restaurant_location": {
+      "latitude": 43.6817,
+      "longitude": -79.3403
+    },
+    "destination_location": {
+      "latitude": 43.6412,
+      "longitude": -79.381
+    },
+    "rider_location": {
+      "latitude": 43.6413,
+      "longitude": -79.3808,
+      "heading_deg": 214.0,
+      "speed_mps": 0.0,
+      "accuracy_m": 12.0,
+      "recorded_at": "2026-08-10T18:42:03.412Z",
+      "is_coarse": false
+    },
+    "rider": {
+      "first_name": "Bilal",
+      "last_initial": "S",
+      "photo_url": "https://cdn.halalgoes.ca/img/avatar/rider-bilal.webp",
+      "vehicle_type": "SCOOTER",
+      "rating_avg": 4.9
+    },
+    "delivery_code": "4827",
+    "timeline": [
+      {
+        "from_state": null,
+        "to_state": "CREATED",
+        "actor_kind": "CUSTOMER",
+        "reason": null,
+        "at": "2026-08-10T18:10:11.412Z"
+      },
+      {
+        "from_state": "CREATED",
+        "to_state": "AUTHORIZED",
+        "actor_kind": "SYSTEM",
+        "reason": null,
+        "at": "2026-08-10T18:10:15.412Z"
+      },
+      {
+        "from_state": "AUTHORIZED",
+        "to_state": "RESTAURANT_PENDING",
+        "actor_kind": "SYSTEM",
+        "reason": null,
+        "at": "2026-08-10T18:11:11.412Z"
+      },
+      {
+        "from_state": "RESTAURANT_PENDING",
+        "to_state": "PREPARING",
+        "actor_kind": "RESTAURANT",
+        "reason": null,
+        "at": "2026-08-10T18:13:11.412Z"
+      },
+      {
+        "from_state": "PREPARING",
+        "to_state": "READY_FOR_PICKUP",
+        "actor_kind": "RESTAURANT",
+        "reason": null,
+        "at": "2026-08-10T18:28:11.412Z"
+      },
+      {
+        "from_state": "READY_FOR_PICKUP",
+        "to_state": "PICKED_UP",
+        "actor_kind": "RIDER",
+        "reason": null,
+        "at": "2026-08-10T18:31:11.412Z"
+      },
+      {
+        "from_state": "PICKED_UP",
+        "to_state": "ARRIVED",
+        "actor_kind": "RIDER",
+        "reason": null,
+        "at": "2026-08-10T18:39:11.412Z"
+      }
+    ]
+  }
+}

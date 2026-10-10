@@ -175,6 +175,15 @@ func orderNoteAddedPayload(s OrderNoteAdded) orderNoteAddedWire {
 	return orderNoteAddedWire{OrderID: s.OrderID, AuthorKind: s.AuthorKind, Text: s.Text, At: s.At}
 }
 
+type orderRiderArrivedWire struct {
+	OrderID string    `json:"order_id"`
+	At      Timestamp `json:"at"`
+}
+
+func orderRiderArrivedPayload(s OrderRiderArrived) orderRiderArrivedWire {
+	return orderRiderArrivedWire{OrderID: s.OrderID, At: s.At}
+}
+
 // ---------------------------------------------------------------------------
 // Section 4.3 — payment, on order:{order_id}.
 // ---------------------------------------------------------------------------
@@ -335,14 +344,36 @@ func restaurantOrderOfferWithdrawnPayload(s RestaurantOrderOfferWithdrawn) resta
 	return restaurantOrderOfferWithdrawnWire{OrderID: s.OrderID, Reason: s.Reason}
 }
 
+// restaurantOrderAcceptedWire is restaurant.order_accepted for the restaurant's
+// staff. PickupCode is the 4-digit code the kitchen reads to the rider at the
+// counter (contracts/websocket.md section 4.4). The source record holds no
+// code yet: the backend that issues and stores the codes is
+// https://github.com/shaiknoorullah/hg-mono/pull/315, so until it lands this
+// is always null and the restaurant reads the code from its own order view
+// (OrderRestaurantView.pickup_code), which is null too.
 type restaurantOrderAcceptedWire struct {
-	OrderID        string `json:"order_id"`
-	AcceptedBy     string `json:"accepted_by"`
-	PrepEtaMinutes int    `json:"prep_eta_minutes"`
+	OrderID        string  `json:"order_id"`
+	AcceptedBy     string  `json:"accepted_by"`
+	PrepEtaMinutes int     `json:"prep_eta_minutes"`
+	PickupCode     *string `json:"pickup_code"`
 }
 
 func restaurantOrderAcceptedPayload(s RestaurantOrderAccepted) restaurantOrderAcceptedWire {
 	return restaurantOrderAcceptedWire{OrderID: s.OrderID, AcceptedBy: s.AcceptedBy, PrepEtaMinutes: s.PrepEtaMinutes}
+}
+
+// restaurantOrderAcceptedForSupportWire is restaurant.order_accepted for
+// support and admin: the pickup code is withheld, so nobody at HalalGoes can
+// read a code out to a rider (contracts/websocket.md section 4.4).
+type restaurantOrderAcceptedForSupportWire struct {
+	OrderID        string   `json:"order_id"`
+	AcceptedBy     string   `json:"accepted_by"`
+	PrepEtaMinutes int      `json:"prep_eta_minutes"`
+	PickupCode     Withheld `json:"pickup_code"`
+}
+
+func restaurantOrderAcceptedForSupport(s RestaurantOrderAccepted) restaurantOrderAcceptedForSupportWire {
+	return restaurantOrderAcceptedForSupportWire{OrderID: s.OrderID, AcceptedBy: s.AcceptedBy, PrepEtaMinutes: s.PrepEtaMinutes}
 }
 
 type restaurantOrderRejectedWire struct {

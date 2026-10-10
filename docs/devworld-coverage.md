@@ -4,14 +4,14 @@ covers:
   - services/hg/internal/devworld/**
   - services/hg/migrations/devworld/**
   - docs/playbooks/**
-reviewed: 2026-10-09
+reviewed: 2026-10-10
 ---
 
 # Dev world coverage map
 
 For every journey in the four apps and every feature in the [specification](spec/00-overview.md), this page says whether a developer can reproduce it on a laptop with the [dev world](superpowers/specs/2026-09-28-devworld-harness-design.md), and how. Each gap that can be built locally has its own issue, labelled `harness`.
 
-Checked against `main` on 9 October 2026. Two open pull requests change what is covered: PR [#622](https://github.com/shaiknoorullah/hg-mono/pull/622) adds the `onboard-admin` scenario, and PR [#654](https://github.com/shaiknoorullah/hg-mono/pull/654) dates the persona certificates from Toronto's day. Their rows say "in PR".
+Checked against `main` on 10 October 2026, which includes [#622](https://github.com/shaiknoorullah/hg-mono/pull/622) (the `onboard-admin` scenario) and [#654](https://github.com/shaiknoorullah/hg-mono/pull/654) (persona certificates dated from Toronto's day).
 
 ## How to read it
 
@@ -49,7 +49,7 @@ The fixed code works only for `+15550100100` to `+15550100199` and only when `HG
 | Customer app | 16 | 7 | 0 | 13 | 4 |
 | Restaurant portal | 21 | 7 | 3 | 5 | 0 |
 | Rider app | 21 | 6 | 4 | 1 | 3 |
-| Admin console | 6 | 9 | 12 | 15 | 0 |
+| Admin console | 7 | 8 | 12 | 15 | 0 |
 | Platform | 26 | 10 | 0 | 0 | 3 |
 
 ## Customer app
@@ -182,9 +182,9 @@ The fixed code works only for `+15550100100` to `+15550100199` and only when `HG
 
 | Feature | Journey | How to reach it | Status | Gap |
 |---|---|---|---|---|
-| [A-01](spec/05-admin.md#a-01--staff-account-provisioning) | Invite a staff member | In the console as `admin-seed`; the invitation-to-sign-in scenario `onboard-admin` is in PR [#622](https://github.com/shaiknoorullah/hg-mono/pull/622) | Partial | in PR [#622](https://github.com/shaiknoorullah/hg-mono/pull/622) |
+| [A-01](spec/05-admin.md#a-01--staff-account-provisioning) | Invite a staff member | In the console as `admin-seed`; or the invitation-to-sign-in scenario `onboard-admin` | Covered | — |
 | [A-02](spec/05-admin.md#a-02--role-based-access-control-model) | Roles: what each staff role may do | Only `admin-seed` can sign in; `support-seed` has no authenticator, and no plain admin exists | Partial | [#677](https://github.com/shaiknoorullah/hg-mono/issues/677) |
-| [A-03](spec/05-admin.md#a-03--staff-authentication-mfa-and-session-policy) | Staff sign-in with a code | `admin-seed`, `make dev-totp`; or `make dev-admin` | Covered | in PR [#622](https://github.com/shaiknoorullah/hg-mono/pull/622) |
+| [A-03](spec/05-admin.md#a-03--staff-authentication-mfa-and-session-policy) | Staff sign-in with a code | `admin-seed`, `make dev-totp`; or `make dev-admin` | Covered | — |
 | [A-04](spec/05-admin.md#a-04--audit-log-append-only-hash-chained) | Audit trail is written | Every admin scenario writes rows; read them in the database | Covered | — |
 | [A-05](spec/05-admin.md#a-05--audit-log-viewer-and-export) | Read and export the audit trail | No operation yet | Missing | [#327](https://github.com/shaiknoorullah/hg-mono/issues/327) |
 | [A-06](spec/05-admin.md#a-06--global-platform-settings) | Platform settings | Only the ordering pause (`/v1/admin/ordering-pause`) | Partial | — |
@@ -278,8 +278,8 @@ The four states a customer can see a restaurant in. A restaurant that is not `CE
 | Feature | Journey | How to reach it | Status | Gap |
 |---|---|---|---|---|
 | [C-12](spec/02-customer.md#c-12--halal-certification-display-and-verification--critical) | `CERTIFIED` | `bismillah-grill` and the 11 other catalogue restaurants | Covered | — |
-| [C-12](spec/02-customer.md#c-12--halal-certification-display-and-verification--critical) | `EXPIRING_SOON` | `expiring-halal` (Bamyan Kebab House) | Covered | in PR [#654](https://github.com/shaiknoorullah/hg-mono/pull/654) |
-| [C-12](spec/02-customer.md#c-12--halal-certification-display-and-verification--critical) | `EXPIRED` | `expired-halal`, delisted and hidden from customers. Between midnight UTC and midnight in Toronto it reads expiring ([#653](https://github.com/shaiknoorullah/hg-mono/issues/653)) | Covered | in PR [#654](https://github.com/shaiknoorullah/hg-mono/pull/654) |
+| [C-12](spec/02-customer.md#c-12--halal-certification-display-and-verification--critical) | `EXPIRING_SOON` | `expiring-halal` (Bamyan Kebab House) | Covered | — |
+| [C-12](spec/02-customer.md#c-12--halal-certification-display-and-verification--critical) | `EXPIRED` | `expired-halal`, delisted and hidden from customers | Covered | — |
 | [C-12](spec/02-customer.md#c-12--halal-certification-display-and-verification--critical) | `UNVERIFIED` | `fresh`, `profile`, `docs-todo`, `docs-review`, `docs-rejected`; never listed | Covered | — |
 | [A-17](spec/05-admin.md#a-17--halal-certificate-expiry-monitoring-and-lapse-handling) | A certificate lapses as the days pass | Not produced without waiting a day | Missing | [#685](https://github.com/shaiknoorullah/hg-mono/issues/685) |
 | [A-17](spec/05-admin.md#a-17--halal-certificate-expiry-monitoring-and-lapse-handling) | Renewal reminders (30, 14, 7 and 1 days) | Not produced | Missing | [#685](https://github.com/shaiknoorullah/hg-mono/issues/685) |
