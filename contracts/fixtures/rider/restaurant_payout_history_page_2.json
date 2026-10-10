@@ -1,0 +1,93 @@
+{
+  "scenario": "restaurant_payout_history_page_2",
+  "domain": "rider",
+  "schema": "array<Payout>",
+  "describes": "The last page after `restaurant_payout_history_page_1`: six older paid weeks, `has_more: false`.",
+  "operations": [
+    "listRestaurantPayouts"
+  ],
+  "status": 200,
+  "tags": [
+    "restaurant",
+    "money"
+  ],
+  "meta": {
+    "next_cursor": null,
+    "has_more": false,
+    "total": null
+  },
+  "payload": [
+    {
+      "id": "50a1e725-e9a2-4c70-aea9-771bc53d4fdf",
+      "period_start": "2026-03-23T04:00:00.000Z",
+      "period_end": "2026-03-30T04:00:00.000Z",
+      "amount_cents": 189800,
+      "currency": "CAD",
+      "state": "PAID",
+      "hold_reason": null,
+      "entry_count": 57,
+      "paid_at": "2026-04-01T13:00:00.000Z",
+      "failure_message": null
+    },
+    {
+      "id": "efc866fe-22a0-4178-a46e-cfb87a4c7ad8",
+      "period_start": "2026-03-16T04:00:00.000Z",
+      "period_end": "2026-03-23T04:00:00.000Z",
+      "amount_cents": 190790,
+      "currency": "CAD",
+      "state": "PAID",
+      "hold_reason": null,
+      "entry_count": 57,
+      "paid_at": "2026-03-25T13:00:00.000Z",
+      "failure_message": null
+    },
+    {
+      "id": "19768fa7-a15e-4c9c-a680-e66fda8bca67",
+      "period_start": "2026-03-09T04:00:00.000Z",
+      "period_end": "2026-03-16T04:00:00.000Z",
+      "amount_cents": 191780,
+      "currency": "CAD",
+      "state": "PAID",
+      "hold_reason": null,
+      "entry_count": 57,
+      "paid_at": "2026-03-18T13:00:00.000Z",
+      "failure_message": null
+    },
+    {
+      "id": "fc605648-bfe3-4876-a4fd-f53b9c03c26c",
+      "period_start": "2026-03-02T04:00:00.000Z",
+      "period_end": "2026-03-09T04:00:00.000Z",
+      "amount_cents": 192770,
+      "currency": "CAD",
+      "state": "PAID",
+      "hold_reason": null,
+      "entry_count": 57,
+      "paid_at": "2026-03-11T13:00:00.000Z",
+      "failure_message": null
+    },
+    {
+      "id": "f1c3c2e2-02b7-4e13-a888-16c1b0d7f0e2",
+      "period_start": "2026-02-23T04:00:00.000Z",
+      "period_end": "2026-03-02T04:00:00.000Z",
+      "amount_cents": 193760,
+      "currency": "CAD",
+      "state": "PAID",
+      "hold_reason": null,
+      "entry_count": 57,
+      "paid_at": "2026-03-04T13:00:00.000Z",
+      "failure_message": null
+    },
+    {
+      "id": "fbbb27c5-cd46-47fd-ad30-98202ec9069a",
+      "period_start": "2026-02-16T04:00:00.000Z",
+      "period_end": "2026-02-23T04:00:00.000Z",
+      "amount_cents": 194750,
+      "currency": "CAD",
+      "state": "PAID",
+      "hold_reason": null,
+      "entry_count": 57,
+      "paid_at": "2026-02-25T13:00:00.000Z",
+      "failure_message": null
+    }
+  ]
+}

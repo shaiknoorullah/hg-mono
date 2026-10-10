@@ -1,0 +1,109 @@
+{
+  "scenario": "restaurant_order_cancelled_after_accept",
+  "domain": "orders",
+  "schema": "OrderRestaurantView",
+  "describes": "Cancelled by support after the kitchen accepted it (`accepted_at` set, the address already shown): stop preparing. The customer is refunded; the kitchen's compensation follows the refund's liability split.",
+  "operations": [
+    "getRestaurantOrder",
+    "listRestaurantOrders"
+  ],
+  "status": 200,
+  "tags": [
+    "restaurant",
+    "order-state-matrix",
+    "error-path"
+  ],
+  "payload": {
+    "id": "2f0bc714-8963-4122-aa18-5035e8df6104",
+    "code": "HG-4K2M-9T",
+    "state": "CANCELLED",
+    "deadline_at": null,
+    "promised_ready_at": null,
+    "customer": {
+      "display_name": "Ayesha R.",
+      "phone_masked": "+1 416 ••• 0142"
+    },
+    "delivery_area": "Greektown",
+    "delivery_address": {
+      "id": "926a8c05-3beb-4be0-af96-caf04f7299df",
+      "label": "Home",
+      "line1": "88 Harbour Street",
+      "line2": null,
+      "unit": "Unit 4211",
+      "buzzer": "4211",
+      "city": "Toronto",
+      "province": "ON",
+      "postal_code": "M5J 0C3",
+      "country": "CA",
+      "latitude": 43.6412,
+      "longitude": -79.381,
+      "timezone": "America/Toronto",
+      "delivery_notes": "Buzz the unit, then leave it at the door. Please don't knock.",
+      "is_default": true
+    },
+    "delivery_instructions": [
+      "LEAVE_AT_DOOR",
+      "DO_NOT_RING_BELL"
+    ],
+    "special_instructions": "Please leave it on the mat, not the shoe rack.",
+    "lines": [
+      {
+        "line_no": 1,
+        "menu_item_id": "e3723319-f51b-42f0-a693-8c9eb954bb0f",
+        "name": "Chicken Biryani",
+        "variant_name": null,
+        "addons": [],
+        "quantity": 1,
+        "special_request": null,
+        "unit_price_cents": 1695,
+        "line_total_cents": 1695,
+        "currency": "CAD"
+      },
+      {
+        "line_no": 2,
+        "menu_item_id": "260778de-cee3-4a79-ad10-f79f5e9ab98e",
+        "name": "Beef Nihari",
+        "variant_name": "Full",
+        "addons": [],
+        "quantity": 1,
+        "special_request": "Extra gravy on the side",
+        "unit_price_cents": 3695,
+        "line_total_cents": 3695,
+        "currency": "CAD"
+      },
+      {
+        "line_no": 3,
+        "menu_item_id": "456616ee-e1fc-4a94-aa83-3b1c726ff23d",
+        "name": "Chicken Karahi (Half)",
+        "variant_name": null,
+        "addons": [
+          {
+            "addon_id": "8e05bcf1-8b4f-4578-ac6d-92f90d1cdf6f",
+            "addon_name": "Garlic naan",
+            "addon_quantity": 2,
+            "addon_price_cents": 349
+          }
+        ],
+        "quantity": 1,
+        "special_request": null,
+        "unit_price_cents": 2597,
+        "line_total_cents": 2597,
+        "currency": "CAD"
+      }
+    ],
+    "money": {
+      "subtotal_cents": 7987,
+      "discount_cents": 0,
+      "commission_cents": 0,
+      "restaurant_net_cents": 7987,
+      "total_cents": 10684,
+      "currency": "CAD"
+    },
+    "rider": null,
+    "elapsed_seconds": 1920,
+    "is_late": false,
+    "placed_at": "2026-08-10T18:10:11.412Z",
+    "accepted_at": "2026-08-10T18:13:11.412Z",
+    "ready_at": null
+  }
+}

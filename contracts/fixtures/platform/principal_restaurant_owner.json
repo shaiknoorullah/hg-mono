@@ -1,0 +1,31 @@
+{
+  "scenario": "principal_restaurant_owner",
+  "domain": "platform",
+  "schema": "Principal",
+  "describes": "`GET /v1/auth/me` for the owner of the `restaurant_profile` restaurant: one `RESTAURANT_OWNER` grant scoped to that restaurant (`scope_type: RESTAURANT`, `scope_id` its id), signed in with email and password.",
+  "operations": [
+    "getCurrentPrincipal"
+  ],
+  "status": 200,
+  "tags": [
+    "platform",
+    "auth",
+    "restaurant"
+  ],
+  "payload": {
+    "account_id": "2fe03830-c55c-4fb0-a846-3bc960215f19",
+    "session_id": "727f78bb-ff11-4655-a95e-6c7a12de25c5",
+    "roles": [
+      {
+        "role": "RESTAURANT_OWNER",
+        "scope_type": "RESTAURANT",
+        "scope_id": "927cc55c-8ddd-4d9f-a353-353ba2a8982b"
+      }
+    ],
+    "amr": "pwd",
+    "status": "ACTIVE",
+    "locale": "en-CA",
+    "timezone": "America/Toronto",
+    "next_route": "HOME"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "scenario": "error_email_already_registered",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`409` · `EMAIL_ALREADY_REGISTERED`. Restaurant sign-up with an email that already has an account. The form offers \"Sign in instead\".",
+  "operations": [
+    "registerRestaurant"
+  ],
+  "status": 409,
+  "tags": [
+    "error-envelope",
+    "error-path",
+    "restaurant",
+    "auth"
+  ],
+  "payload": {
+    "error": {
+      "code": "EMAIL_ALREADY_REGISTERED",
+      "message": "An account with this email already exists.",
+      "request_id": "B7GQ239X35B3Y8Q6ZMDVB4Y1EY"
+    }
+  }
+}

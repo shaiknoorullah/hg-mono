@@ -107,6 +107,9 @@ DEFAULT_SCENARIO: dict[str, str] = {
     "confirmUpload": "stored_object_ready",
     # Batch 2 added certificate links that would otherwise win on name order.
     "createCertificateViewUrl": "presigned_download",
+    "getOwnMenu": "owned_menu_with_pending_version",
+    "getRestaurantHours": "restaurant_hours_standard",
+    "setRestaurantHours": "restaurant_hours_standard",
     # Staff principals and the restaurant profile matrix share these operations; the
     # plain customer and LIVE + CERTIFIED shapes stay the defaults.
     "getCurrentPrincipal": "principal_customer",

@@ -525,47 +525,48 @@ def _order_lists(reg) -> None:
     )
 
 
-def _restaurant_orders(reg, synth) -> None:
-    def restaurant_order(state: str, *, label: str | None = None, **over: Any) -> dict:
-        # `label` gives a distinct order (its own id). Without one, the id is the state's
-        # canonical order, the same one the customer, rider and payment fixtures show.
-        lines = standard_quote_lines()
-        priced = price_quote(lines, tip_cents=700)
-        base = customer_order(state, label=label)
-        accepted = base["accepted_at"] is not None
-        out = {
-            "id": base["id"],
-            "code": base["code"],
-            "state": state,
-            "deadline_at": base["deadline_at"],
-            "promised_ready_at": ts(9 * MINUTE) if accepted else None,
-            "customer": {"display_name": "Ayesha R.", "phone_masked": "+1 416 ••• 0142"},
-            "delivery_area": "Greektown",
-            # §5: the restaurant does NOT see the delivery address until ACCEPTED.
-            "delivery_address": address("home", 0) if accepted else None,
-            "delivery_instructions": ["LEAVE_AT_DOOR", "DO_NOT_RING_BELL"],
-            "special_instructions": "Please leave it on the mat, not the shoe rack.",
-            "lines": order_lines_from_quote(lines),
-            "money": restaurant_money(priced),
-            "rider": (
-                {
-                    "display_name": "Bilal S.",
-                    "photo_url": base["rider"]["photo_url"],
-                    "vehicle_type": "SCOOTER",
-                    "eta_at": ts(6 * MINUTE),
-                }
-                if base["rider"]
-                else None
-            ),
-            "elapsed_seconds": 100 if state == "RESTAURANT_PENDING" else 1920,
-            "is_late": state == "PREPARING",
-            "placed_at": base["placed_at"],
-            "accepted_at": base["accepted_at"],
-            "ready_at": base["ready_at"],
-        }
-        out.update(over)
-        return out
+def restaurant_order(state: str, *, label: str | None = None, **over: Any) -> dict:
+    # `label` gives a distinct order (its own id). Without one, the id is the state's
+    # canonical order, the same one the customer, rider and payment fixtures show.
+    lines = standard_quote_lines()
+    priced = price_quote(lines, tip_cents=700)
+    base = customer_order(state, label=label)
+    accepted = base["accepted_at"] is not None
+    out = {
+        "id": base["id"],
+        "code": base["code"],
+        "state": state,
+        "deadline_at": base["deadline_at"],
+        "promised_ready_at": ts(9 * MINUTE) if accepted else None,
+        "customer": {"display_name": "Ayesha R.", "phone_masked": "+1 416 ••• 0142"},
+        "delivery_area": "Greektown",
+        # §5: the restaurant does NOT see the delivery address until ACCEPTED.
+        "delivery_address": address("home", 0) if accepted else None,
+        "delivery_instructions": ["LEAVE_AT_DOOR", "DO_NOT_RING_BELL"],
+        "special_instructions": "Please leave it on the mat, not the shoe rack.",
+        "lines": order_lines_from_quote(lines),
+        "money": restaurant_money(priced),
+        "rider": (
+            {
+                "display_name": "Bilal S.",
+                "photo_url": base["rider"]["photo_url"],
+                "vehicle_type": "SCOOTER",
+                "eta_at": ts(6 * MINUTE),
+            }
+            if base["rider"]
+            else None
+        ),
+        "elapsed_seconds": 100 if state == "RESTAURANT_PENDING" else 1920,
+        "is_late": state == "PREPARING",
+        "placed_at": base["placed_at"],
+        "accepted_at": base["accepted_at"],
+        "ready_at": base["ready_at"],
+    }
+    out.update(over)
+    return out
 
+
+def _restaurant_orders(reg, synth) -> None:
     for state, note in [
         ("RESTAURANT_PENDING", "The incoming-order card with 80 s left on the 180 s window. "
                                "**No delivery address yet** — §5 withholds it until acceptance."),
@@ -627,47 +628,52 @@ def _restaurant_orders(reg, synth) -> None:
     )
 
 
+def order_admin_view(synth, state: str, **over: Any) -> dict:
+    """`OrderAdminView` of the state's canonical order (shared with batch 2)."""
+    lines = standard_quote_lines()
+    priced = price_quote(lines, tip_cents=700)
+    base = customer_order(state)
+    ledger = [
+        {
+            **synth.make("LedgerEntry", f"ledger-{state}-{i}"),
+            "account": acct,
+            "component": comp,
+            "amount_cents": amount,
+            "currency": "CAD",
+        }
+        for i, (acct, comp, amount) in enumerate(
+            [
+                ("CUSTOMER_CHARGES", "SUBTOTAL", -priced["total_cents"]),
+                ("RESTAURANT_PAYABLE", "SUBTOTAL", priced["subtotal_cents"]),
+                ("RIDER_PAYABLE", "TIP", priced["tip_cents"]),
+                ("PLATFORM_REVENUE", "SERVICE_FEE", priced["service_fee_cents"]),
+            ]
+        )
+    ]
+    out = {
+        **base,
+        "timeline": _timeline(state),
+        "dispatch_history": [
+            {"state": "PENDING", "wave": None, "radius_m": None, "rider_account_id": None, "offer_outcome": None, "at": ts(-29 * MINUTE)},
+            {"state": "SEARCHING", "wave": 1, "radius_m": 3000, "rider_account_id": None, "offer_outcome": None, "at": ts(-28 * MINUTE)},
+            {"state": "OFFERED", "wave": 1, "radius_m": 3000, "rider_account_id": uuid_for("account:rider:bilal"), "offer_outcome": "EXPIRED", "at": ts(-27 * MINUTE)},
+            {"state": "OFFERED", "wave": 2, "radius_m": 6000, "rider_account_id": uuid_for("account:rider:omar"), "offer_outcome": "ACCEPTED", "at": ts(-16 * MINUTE)},
+            {"state": "ASSIGNED", "wave": 2, "radius_m": 6000, "rider_account_id": uuid_for("account:rider:omar"), "offer_outcome": None, "at": ts(-16 * MINUTE)},
+        ],
+        "payment": _order_payment(state, priced),
+        "refunds": [],
+        "internal_money": internal_money(priced, ledger_entries=ledger),
+        "pii_revealed": False,
+        "chargebacks": [],
+    }
+    out["money_timeline"] = _money_timeline(out["payment"])
+    out.update(over)
+    return out
+
+
 def _admin_orders(reg, synth) -> None:
     def admin_order(state: str, **over: Any) -> dict:
-        lines = standard_quote_lines()
-        priced = price_quote(lines, tip_cents=700)
-        base = customer_order(state)
-        ledger = [
-            {
-                **synth.make("LedgerEntry", f"ledger-{state}-{i}"),
-                "account": acct,
-                "component": comp,
-                "amount_cents": amount,
-                "currency": "CAD",
-            }
-            for i, (acct, comp, amount) in enumerate(
-                [
-                    ("CUSTOMER_CHARGES", "SUBTOTAL", -priced["total_cents"]),
-                    ("RESTAURANT_PAYABLE", "SUBTOTAL", priced["subtotal_cents"]),
-                    ("RIDER_PAYABLE", "TIP", priced["tip_cents"]),
-                    ("PLATFORM_REVENUE", "SERVICE_FEE", priced["service_fee_cents"]),
-                ]
-            )
-        ]
-        out = {
-            **base,
-            "timeline": _timeline(state),
-            "dispatch_history": [
-                {"state": "PENDING", "wave": None, "radius_m": None, "rider_account_id": None, "offer_outcome": None, "at": ts(-29 * MINUTE)},
-                {"state": "SEARCHING", "wave": 1, "radius_m": 3000, "rider_account_id": None, "offer_outcome": None, "at": ts(-28 * MINUTE)},
-                {"state": "OFFERED", "wave": 1, "radius_m": 3000, "rider_account_id": uuid_for("account:rider:bilal"), "offer_outcome": "EXPIRED", "at": ts(-27 * MINUTE)},
-                {"state": "OFFERED", "wave": 2, "radius_m": 6000, "rider_account_id": uuid_for("account:rider:omar"), "offer_outcome": "ACCEPTED", "at": ts(-16 * MINUTE)},
-                {"state": "ASSIGNED", "wave": 2, "radius_m": 6000, "rider_account_id": uuid_for("account:rider:omar"), "offer_outcome": None, "at": ts(-16 * MINUTE)},
-            ],
-            "payment": _order_payment(state, priced),
-            "refunds": [],
-            "internal_money": internal_money(priced, ledger_entries=ledger),
-            "pii_revealed": False,
-            "chargebacks": [],
-        }
-        out["money_timeline"] = _money_timeline(out["payment"])
-        out.update(over)
-        return out
+        return order_admin_view(synth, state, **over)
 
     reg.add(
         "order_admin_view_completed",

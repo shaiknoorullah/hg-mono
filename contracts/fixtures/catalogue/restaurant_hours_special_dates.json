@@ -1,0 +1,92 @@
+{
+  "scenario": "restaurant_hours_special_dates",
+  "domain": "catalogue",
+  "schema": "RestaurantHours",
+  "describes": "The standard week plus four special dates: a closed day this Friday, shorter hours on Saturday, a late opening on 25 December with no reason given, and Eid closed.",
+  "operations": [
+    "getRestaurantHours",
+    "setRestaurantHours"
+  ],
+  "status": 200,
+  "tags": [
+    "restaurant",
+    "hours"
+  ],
+  "payload": {
+    "timezone": "America/Toronto",
+    "intervals": [
+      {
+        "day_of_week": 0,
+        "opens_at": "12:00",
+        "closes_at": "21:00",
+        "crosses_midnight": false
+      },
+      {
+        "day_of_week": 1,
+        "opens_at": "11:00",
+        "closes_at": "22:00",
+        "crosses_midnight": false
+      },
+      {
+        "day_of_week": 2,
+        "opens_at": "11:00",
+        "closes_at": "22:00",
+        "crosses_midnight": false
+      },
+      {
+        "day_of_week": 3,
+        "opens_at": "11:00",
+        "closes_at": "22:00",
+        "crosses_midnight": false
+      },
+      {
+        "day_of_week": 4,
+        "opens_at": "11:00",
+        "closes_at": "22:00",
+        "crosses_midnight": false
+      },
+      {
+        "day_of_week": 5,
+        "opens_at": "11:00",
+        "closes_at": "01:00",
+        "crosses_midnight": true
+      },
+      {
+        "day_of_week": 6,
+        "opens_at": "11:00",
+        "closes_at": "01:00",
+        "crosses_midnight": true
+      }
+    ],
+    "overrides": [
+      {
+        "date": "2026-08-14",
+        "is_closed": true,
+        "opens_at": null,
+        "closes_at": null,
+        "reason": "Closed for a family wedding"
+      },
+      {
+        "date": "2026-08-15",
+        "is_closed": false,
+        "opens_at": "15:00",
+        "closes_at": "23:00",
+        "reason": "Late opening"
+      },
+      {
+        "date": "2026-12-25",
+        "is_closed": false,
+        "opens_at": "16:00",
+        "closes_at": "22:00",
+        "reason": null
+      },
+      {
+        "date": "2027-03-20",
+        "is_closed": true,
+        "opens_at": null,
+        "closes_at": null,
+        "reason": "Closed for Eid al-Fitr"
+      }
+    ]
+  }
+}

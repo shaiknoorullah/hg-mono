@@ -2,23 +2,23 @@
   "generated_by": "contracts/fixtures/_build/build.py",
   "do_not_edit": "Every file under contracts/fixtures/ is generated. Run `pnpm fixtures:build`.",
   "frozen_clock": "2026-08-10T18:42:11.412Z",
-  "count": 569,
+  "count": 596,
   "counts_by_domain": {
     "admin": 35,
     "cart": 14,
-    "catalogue": 51,
+    "catalogue": 57,
     "dispatch": 31,
     "documents": 27,
-    "errors": 103,
+    "errors": 108,
     "halal": 29,
     "handoff": 13,
-    "onboarding": 47,
-    "orders": 47,
+    "onboarding": 49,
+    "orders": 56,
     "payments": 12,
-    "platform": 43,
-    "realtime": 20,
+    "platform": 44,
+    "realtime": 21,
     "refunds": 40,
-    "rider": 57
+    "rider": 60
   },
   "fixtures": [
     {
@@ -1093,6 +1093,56 @@
       "file": "catalogue/menu_with_hidden_and_blocked_items.json"
     },
     {
+      "scenario": "owned_menu_empty",
+      "domain": "catalogue",
+      "schema": "OwnedMenu",
+      "describes": "The restaurant's own menu before anything was added: no categories. The editor shows \"Add your first category\".",
+      "operations": [
+        "getOwnMenu"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "menu",
+        "edge",
+        "empty"
+      ],
+      "file": "catalogue/owned_menu_empty.json"
+    },
+    {
+      "scenario": "owned_menu_every_review_status",
+      "domain": "catalogue",
+      "schema": "OwnedMenu",
+      "describes": "Six items, one per `MenuReviewStatus` on its newest version: a draft, one waiting for review, one just approved, one rejected with its reason and note, one withdrawn and one superseded. Items whose newest version is withdrawn or superseded show only the live version.",
+      "operations": [
+        "getOwnMenu"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "menu",
+        "state-matrix"
+      ],
+      "file": "catalogue/owned_menu_every_review_status.json"
+    },
+    {
+      "scenario": "owned_menu_forty_categories",
+      "domain": "catalogue",
+      "schema": "OwnedMenu",
+      "describes": "Forty categories with one item each: the category rail scrolls and keeps the current one in view.",
+      "operations": [
+        "getOwnMenu"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "menu",
+        "dense",
+        "overflow"
+      ],
+      "file": "catalogue/owned_menu_forty_categories.json"
+    },
+    {
       "scenario": "owned_menu_with_pending_version",
       "domain": "catalogue",
       "schema": "OwnedMenu",
@@ -1297,6 +1347,57 @@
         "halal"
       ],
       "file": "catalogue/restaurant_detail_unverified.json"
+    },
+    {
+      "scenario": "restaurant_hours_none",
+      "domain": "catalogue",
+      "schema": "RestaurantHours",
+      "describes": "No opening hours set yet, and no special dates. The restaurant is `CLOSED_HOURS` all week until it adds some.",
+      "operations": [
+        "getRestaurantHours",
+        "setRestaurantHours"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "hours",
+        "edge",
+        "empty"
+      ],
+      "file": "catalogue/restaurant_hours_none.json"
+    },
+    {
+      "scenario": "restaurant_hours_special_dates",
+      "domain": "catalogue",
+      "schema": "RestaurantHours",
+      "describes": "The standard week plus four special dates: a closed day this Friday, shorter hours on Saturday, a late opening on 25 December with no reason given, and Eid closed.",
+      "operations": [
+        "getRestaurantHours",
+        "setRestaurantHours"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "hours"
+      ],
+      "file": "catalogue/restaurant_hours_special_dates.json"
+    },
+    {
+      "scenario": "restaurant_hours_split_past_midnight",
+      "domain": "catalogue",
+      "schema": "RestaurantHours",
+      "describes": "Three ranges every day: breakfast, lunch, and dinner until 02:00 the next morning (`crosses_midnight: true`). Friday's last range still counts as Friday.",
+      "operations": [
+        "getRestaurantHours",
+        "setRestaurantHours"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "hours",
+        "dense"
+      ],
+      "file": "catalogue/restaurant_hours_split_past_midnight.json"
     },
     {
       "scenario": "restaurant_hours_standard",
@@ -2481,6 +2582,23 @@
       "file": "errors/error_account_suspended.json"
     },
     {
+      "scenario": "error_account_temporarily_locked",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`429` · `ACCOUNT_TEMPORARILY_LOCKED`. Too many wrong passwords: the account is locked for 15 minutes (`Retry-After: 900`, a header a fixture cannot carry). `services/hg` answers 429, not 423.",
+      "operations": [
+        "login"
+      ],
+      "status": 429,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "restaurant",
+        "auth"
+      ],
+      "file": "errors/error_account_temporarily_locked.json"
+    },
+    {
       "scenario": "error_active_delivery_in_progress",
       "domain": "errors",
       "schema": "ErrorEnvelope",
@@ -2946,6 +3064,23 @@
       "file": "errors/error_documents_incomplete.json"
     },
     {
+      "scenario": "error_email_already_registered",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `EMAIL_ALREADY_REGISTERED`. Restaurant sign-up with an email that already has an account. The form offers \"Sign in instead\".",
+      "operations": [
+        "registerRestaurant"
+      ],
+      "status": 409,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "restaurant",
+        "auth"
+      ],
+      "file": "errors/error_email_already_registered.json"
+    },
+    {
       "scenario": "error_field_not_applicable",
       "domain": "errors",
       "schema": "ErrorEnvelope",
@@ -3078,6 +3213,40 @@
         "error-envelope"
       ],
       "file": "errors/error_internal_error.json"
+    },
+    {
+      "scenario": "error_invalid_credentials",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`401` · `INVALID_CREDENTIALS`. Wrong email or password. The same body whether the email exists or not, so the form never says which one was wrong.",
+      "operations": [
+        "login"
+      ],
+      "status": 401,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "restaurant",
+        "auth"
+      ],
+      "file": "errors/error_invalid_credentials.json"
+    },
+    {
+      "scenario": "error_invalid_credentials_email_verification_required",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`401` · `INVALID_CREDENTIALS`. The right password for an address that was never verified: the same 401, plus `details.email_verification_required: true`, so the form offers to resend the verification email.",
+      "operations": [
+        "login"
+      ],
+      "status": 401,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "restaurant",
+        "auth"
+      ],
+      "file": "errors/error_invalid_credentials_email_verification_required.json"
     },
     {
       "scenario": "error_invalid_phone",
@@ -3905,6 +4074,23 @@
         "restaurant"
       ],
       "file": "errors/error_step_not_available.json"
+    },
+    {
+      "scenario": "error_terms_version_stale",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `TERMS_VERSION_STALE`. Sign-up accepted an older version of the terms. `details.current` is the version to show and accept again.",
+      "operations": [
+        "registerRestaurant"
+      ],
+      "status": 409,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "restaurant",
+        "auth"
+      ],
+      "file": "errors/error_terms_version_stale.json"
     },
     {
       "scenario": "error_totp_code_incorrect",
@@ -4883,6 +5069,23 @@
       "file": "onboarding/restaurant_open_state_closed_toggle.json"
     },
     {
+      "scenario": "restaurant_open_state_closed_toggle_auto_off",
+      "domain": "onboarding",
+      "schema": "RestaurantAvailability",
+      "describes": "Ordering turned off by the platform after two offers in a row expired (`missed_order_count: 2`). The restaurant turns it back on itself. Contract-only: `services/hg` counts missed offers but does not turn ordering off by itself yet.",
+      "operations": [
+        "getRestaurantAvailability",
+        "setRestaurantAcceptingOrders"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "state-matrix",
+        "error-path"
+      ],
+      "file": "onboarding/restaurant_open_state_closed_toggle_auto_off.json"
+    },
+    {
       "scenario": "restaurant_open_state_open",
       "domain": "onboarding",
       "schema": "RestaurantAvailability",
@@ -4913,6 +5116,22 @@
         "state-matrix"
       ],
       "file": "onboarding/restaurant_open_state_paused.json"
+    },
+    {
+      "scenario": "restaurant_open_state_paused_until_closing",
+      "domain": "onboarding",
+      "schema": "RestaurantAvailability",
+      "describes": "Paused for the rest of the day: `pause_until` is tonight's closing time (22:00 Toronto). Ordering resumes by itself tomorrow at opening.",
+      "operations": [
+        "getRestaurantAvailability",
+        "setRestaurantAcceptingOrders"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "state-matrix"
+      ],
+      "file": "onboarding/restaurant_open_state_paused_until_closing.json"
     },
     {
       "scenario": "restaurant_profile",
@@ -5863,6 +6082,103 @@
       "file": "orders/receipt_with_refund.json"
     },
     {
+      "scenario": "restaurant_order_arrived",
+      "domain": "orders",
+      "schema": "OrderRestaurantView",
+      "describes": "The rider is at the customer's door. Nothing for the kitchen to do.",
+      "operations": [
+        "getRestaurantOrder",
+        "listRestaurantOrders"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "order-state-matrix"
+      ],
+      "file": "orders/restaurant_order_arrived.json"
+    },
+    {
+      "scenario": "restaurant_order_cancelled",
+      "domain": "orders",
+      "schema": "OrderRestaurantView",
+      "describes": "Cancelled by the customer while the offer was ringing, before acceptance: no delivery address was ever shown and nothing was charged.",
+      "operations": [
+        "getRestaurantOrder",
+        "listRestaurantOrders"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "order-state-matrix"
+      ],
+      "file": "orders/restaurant_order_cancelled.json"
+    },
+    {
+      "scenario": "restaurant_order_cancelled_after_accept",
+      "domain": "orders",
+      "schema": "OrderRestaurantView",
+      "describes": "Cancelled by support after the kitchen accepted it (`accepted_at` set, the address already shown): stop preparing. The customer is refunded; the kitchen's compensation follows the refund's liability split.",
+      "operations": [
+        "getRestaurantOrder",
+        "listRestaurantOrders"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "order-state-matrix",
+        "error-path"
+      ],
+      "file": "orders/restaurant_order_cancelled_after_accept.json"
+    },
+    {
+      "scenario": "restaurant_order_completed",
+      "domain": "orders",
+      "schema": "OrderRestaurantView",
+      "describes": "Terminal, happy. Shown in history, never in the live queue.",
+      "operations": [
+        "getRestaurantOrder",
+        "listRestaurantOrders"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "order-state-matrix"
+      ],
+      "file": "orders/restaurant_order_completed.json"
+    },
+    {
+      "scenario": "restaurant_order_delivered",
+      "domain": "orders",
+      "schema": "OrderRestaurantView",
+      "describes": "Handed over; settlement has not run yet.",
+      "operations": [
+        "getRestaurantOrder",
+        "listRestaurantOrders"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "order-state-matrix"
+      ],
+      "file": "orders/restaurant_order_delivered.json"
+    },
+    {
+      "scenario": "restaurant_order_disputed",
+      "domain": "orders",
+      "schema": "OrderRestaurantView",
+      "describes": "The customer disputed it after delivery; support owns it. The kitchen sees the state, not the case.",
+      "operations": [
+        "getRestaurantOrder",
+        "listRestaurantOrders"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "order-state-matrix"
+      ],
+      "file": "orders/restaurant_order_disputed.json"
+    },
+    {
       "scenario": "restaurant_order_picked_up",
       "domain": "orders",
       "schema": "OrderRestaurantView",
@@ -5934,6 +6250,36 @@
       "file": "orders/restaurant_order_queue_empty.json"
     },
     {
+      "scenario": "restaurant_order_queue_pending_four",
+      "domain": "orders",
+      "schema": "array<OrderRestaurantView>",
+      "describes": "Four offers waiting, sorted by `deadline_at` ascending (25, 70, 120 and 170 seconds left), the server's order. The same orders and codes as `realtime_restaurant_offer_burst`. No delivery address on any of them yet.",
+      "operations": [
+        "listRestaurantOrders"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "dense"
+      ],
+      "file": "orders/restaurant_order_queue_pending_four.json"
+    },
+    {
+      "scenario": "restaurant_order_queue_with_completed",
+      "domain": "orders",
+      "schema": "array<OrderRestaurantView>",
+      "describes": "A live queue that also carries a `COMPLETED` row. The live screen must leave a terminal order out (the client guard for issue #601), not render it as a ticket.",
+      "operations": [
+        "listRestaurantOrders"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "edge"
+      ],
+      "file": "orders/restaurant_order_queue_with_completed.json"
+    },
+    {
       "scenario": "restaurant_order_ready_for_pickup",
       "domain": "orders",
       "schema": "OrderRestaurantView",
@@ -5972,6 +6318,22 @@
         "order-state-matrix"
       ],
       "file": "orders/restaurant_order_rejected.json"
+    },
+    {
+      "scenario": "restaurant_order_resolved",
+      "domain": "orders",
+      "schema": "OrderRestaurantView",
+      "describes": "The dispute was settled. Terminal.",
+      "operations": [
+        "getRestaurantOrder",
+        "listRestaurantOrders"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "order-state-matrix"
+      ],
+      "file": "orders/restaurant_order_resolved.json"
     },
     {
       "scenario": "restaurant_order_restaurant_pending",
@@ -6601,6 +6963,22 @@
       "file": "platform/principal_customer.json"
     },
     {
+      "scenario": "principal_restaurant_owner",
+      "domain": "platform",
+      "schema": "Principal",
+      "describes": "`GET /v1/auth/me` for the owner of the `restaurant_profile` restaurant: one `RESTAURANT_OWNER` grant scoped to that restaurant (`scope_type: RESTAURANT`, `scope_id` its id), signed in with email and password.",
+      "operations": [
+        "getCurrentPrincipal"
+      ],
+      "status": 200,
+      "tags": [
+        "platform",
+        "auth",
+        "restaurant"
+      ],
+      "file": "platform/principal_restaurant_owner.json"
+    },
+    {
       "scenario": "principal_super_admin",
       "domain": "platform",
       "schema": "Principal",
@@ -7134,6 +7512,21 @@
         "error-path"
       ],
       "file": "realtime/realtime_payment_failed.json"
+    },
+    {
+      "scenario": "realtime_restaurant_auto_off",
+      "domain": "realtime",
+      "schema": "RealtimeEvent[]",
+      "describes": "Two offers in a row run out unanswered, and the platform turns ordering off: `restaurant.status_changed {is_accepting_orders: false, open_state: CLOSED_TOGGLE}` after the second `restaurant.order_offer_expired`. The tablet shows \"Ordering is off\" with a button to turn it back on. Contract-only: `services/hg` counts missed offers but does not turn ordering off by itself yet.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "realtime",
+        "script",
+        "restaurant",
+        "error-path"
+      ],
+      "file": "realtime/realtime_restaurant_auto_off.json"
     },
     {
       "scenario": "realtime_restaurant_offer_accepted_elsewhere",
@@ -8282,6 +8675,53 @@
       "file": "rider/restaurant_payout_history.json"
     },
     {
+      "scenario": "restaurant_payout_history_every_state",
+      "domain": "rider",
+      "schema": "array<Payout>",
+      "describes": "A restaurant's payouts with one in each `PayoutState`, newest first, including a `HELD` week with its reason and a `FAILED` week with its message.",
+      "operations": [
+        "listRestaurantPayouts"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "money",
+        "payout-state-matrix"
+      ],
+      "file": "rider/restaurant_payout_history_every_state.json"
+    },
+    {
+      "scenario": "restaurant_payout_history_page_1",
+      "domain": "rider",
+      "schema": "array<Payout>",
+      "describes": "The first page of a long payout history: 20 weeks, newest first, `has_more: true`. The next page is `restaurant_payout_history_page_2`.",
+      "operations": [
+        "listRestaurantPayouts"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "money",
+        "dense"
+      ],
+      "file": "rider/restaurant_payout_history_page_1.json"
+    },
+    {
+      "scenario": "restaurant_payout_history_page_2",
+      "domain": "rider",
+      "schema": "array<Payout>",
+      "describes": "The last page after `restaurant_payout_history_page_1`: six older paid weeks, `has_more: false`.",
+      "operations": [
+        "listRestaurantPayouts"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "money"
+      ],
+      "file": "rider/restaurant_payout_history_page_2.json"
+    },
+    {
       "scenario": "rider_availability_go_offline_after_delivery",
       "domain": "rider",
       "schema": "RiderAvailability",
@@ -9052,6 +9492,7 @@
       "principal_admin",
       "principal_admin_password_only",
       "principal_customer",
+      "principal_restaurant_owner",
       "principal_super_admin",
       "principal_support_agent"
     ],
@@ -9153,6 +9594,9 @@
       "ordering_pause_open"
     ],
     "getOwnMenu": [
+      "owned_menu_empty",
+      "owned_menu_every_review_status",
+      "owned_menu_forty_categories",
       "owned_menu_with_pending_version"
     ],
     "getPayoutRun": [
@@ -9208,8 +9652,10 @@
       "restaurant_open_state_closed_offline",
       "restaurant_open_state_closed_suspended",
       "restaurant_open_state_closed_toggle",
+      "restaurant_open_state_closed_toggle_auto_off",
       "restaurant_open_state_open",
-      "restaurant_open_state_paused"
+      "restaurant_open_state_paused",
+      "restaurant_open_state_paused_until_closing"
     ],
     "getRestaurantCertification": [
       "certification_panel_certified",
@@ -9220,6 +9666,9 @@
       "certification_panel_unverified"
     ],
     "getRestaurantHours": [
+      "restaurant_hours_none",
+      "restaurant_hours_special_dates",
+      "restaurant_hours_split_past_midnight",
       "restaurant_hours_standard"
     ],
     "getRestaurantMenu": [
@@ -9242,10 +9691,17 @@
       "restaurant_onboarding_withdrawn"
     ],
     "getRestaurantOrder": [
+      "restaurant_order_arrived",
+      "restaurant_order_cancelled",
+      "restaurant_order_cancelled_after_accept",
+      "restaurant_order_completed",
+      "restaurant_order_delivered",
+      "restaurant_order_disputed",
       "restaurant_order_picked_up",
       "restaurant_order_preparing",
       "restaurant_order_ready_for_pickup",
       "restaurant_order_rejected",
+      "restaurant_order_resolved",
       "restaurant_order_restaurant_pending"
     ],
     "getRestaurantProfile": [
@@ -9410,17 +9866,29 @@
       "restaurant_document_pack_incomplete"
     ],
     "listRestaurantOrders": [
+      "restaurant_order_arrived",
+      "restaurant_order_cancelled",
+      "restaurant_order_cancelled_after_accept",
+      "restaurant_order_completed",
+      "restaurant_order_delivered",
+      "restaurant_order_disputed",
       "restaurant_order_picked_up",
       "restaurant_order_preparing",
       "restaurant_order_queue_busy",
       "restaurant_order_queue_empty",
+      "restaurant_order_queue_pending_four",
+      "restaurant_order_queue_with_completed",
       "restaurant_order_ready_for_pickup",
       "restaurant_order_rejected",
+      "restaurant_order_resolved",
       "restaurant_order_restaurant_pending"
     ],
     "listRestaurantPayouts": [
       "payout_list_empty",
-      "restaurant_payout_history"
+      "restaurant_payout_history",
+      "restaurant_payout_history_every_state",
+      "restaurant_payout_history_page_1",
+      "restaurant_payout_history_page_2"
     ],
     "listRestaurantStaff": [
       "restaurant_staff_list"
@@ -9468,6 +9936,9 @@
     ],
     "login": [
       "error_account_not_active",
+      "error_account_temporarily_locked",
+      "error_invalid_credentials",
+      "error_invalid_credentials_email_verification_required",
       "session_grant_customer",
       "session_grant_staff",
       "session_next_route_active_delivery",
@@ -9523,7 +9994,9 @@
       "session_next_route_suspended_deleted"
     ],
     "registerRestaurant": [
+      "error_email_already_registered",
       "error_register_restaurant_rate_limited",
+      "error_terms_version_stale",
       "restaurant_registration"
     ],
     "rejectOrder": [
@@ -9616,10 +10089,15 @@
       "restaurant_open_state_closed_offline",
       "restaurant_open_state_closed_suspended",
       "restaurant_open_state_closed_toggle",
+      "restaurant_open_state_closed_toggle_auto_off",
       "restaurant_open_state_open",
-      "restaurant_open_state_paused"
+      "restaurant_open_state_paused",
+      "restaurant_open_state_paused_until_closing"
     ],
     "setRestaurantHours": [
+      "restaurant_hours_none",
+      "restaurant_hours_special_dates",
+      "restaurant_hours_split_past_midnight",
       "restaurant_hours_standard"
     ],
     "setRiderAvailability": [

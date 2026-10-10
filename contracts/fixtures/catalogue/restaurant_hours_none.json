@@ -1,0 +1,22 @@
+{
+  "scenario": "restaurant_hours_none",
+  "domain": "catalogue",
+  "schema": "RestaurantHours",
+  "describes": "No opening hours set yet, and no special dates. The restaurant is `CLOSED_HOURS` all week until it adds some.",
+  "operations": [
+    "getRestaurantHours",
+    "setRestaurantHours"
+  ],
+  "status": 200,
+  "tags": [
+    "restaurant",
+    "hours",
+    "edge",
+    "empty"
+  ],
+  "payload": {
+    "timezone": "America/Toronto",
+    "intervals": [],
+    "overrides": []
+  }
+}

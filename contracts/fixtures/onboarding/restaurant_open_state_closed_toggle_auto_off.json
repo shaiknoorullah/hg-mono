@@ -1,0 +1,25 @@
+{
+  "scenario": "restaurant_open_state_closed_toggle_auto_off",
+  "domain": "onboarding",
+  "schema": "RestaurantAvailability",
+  "describes": "Ordering turned off by the platform after two offers in a row expired (`missed_order_count: 2`). The restaurant turns it back on itself. Contract-only: `services/hg` counts missed offers but does not turn ordering off by itself yet.",
+  "operations": [
+    "getRestaurantAvailability",
+    "setRestaurantAcceptingOrders"
+  ],
+  "status": 200,
+  "tags": [
+    "restaurant",
+    "state-matrix",
+    "error-path"
+  ],
+  "payload": {
+    "open_state": "CLOSED_TOGGLE",
+    "is_accepting_orders": false,
+    "pause_until": null,
+    "last_heartbeat_at": "2026-08-10T18:41:46.412Z",
+    "missed_order_count": 2,
+    "reason": "Ordering was turned off after two orders in a row went unanswered.",
+    "resolvable_by": "RESTAURANT"
+  }
+}

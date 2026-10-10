@@ -58,6 +58,7 @@ def _week_start(weeks_ago: int) -> dt.datetime:
 def build(reg, synth) -> None:
     _rider(reg, synth)
     _customer(reg, synth)
+    _restaurant(reg, synth)
 
 
 # --------------------------------------------------------------------------- #
@@ -1156,4 +1157,420 @@ def _customer_orders(reg) -> None:
         operations=["listRefunds"],
         meta={"next_cursor": None, "has_more": False, "total": len(refunds)},
         tags=["customer", "money", "refund-state-matrix"],
+    )
+
+
+# =========================================================================== #
+# Restaurant (#676)
+# =========================================================================== #
+
+
+def _restaurant(reg, synth) -> None:
+    _restaurant_principal(reg)
+    _restaurant_realtime(reg)
+    _restaurant_orders(reg)
+    _restaurant_availability(reg)
+    _restaurant_login_errors(reg)
+    _restaurant_hours(reg)
+    _restaurant_owned_menu(reg)
+    _restaurant_payouts(reg)
+
+
+def _restaurant_principal(reg) -> None:
+    restaurant_id = reg.fixtures["restaurant_profile"].payload["id"]
+    reg.add(
+        "principal_restaurant_owner",
+        "platform",
+        "Principal",
+        "`GET /v1/auth/me` for the owner of the `restaurant_profile` restaurant: one "
+        "`RESTAURANT_OWNER` grant scoped to that restaurant (`scope_type: RESTAURANT`, "
+        "`scope_id` its id), signed in with email and password.",
+        {
+            "account_id": uuid_for("account:restaurant-owner:profile"),
+            "session_id": uuid_for("session:restaurant-owner:profile"),
+            "roles": [{"role": "RESTAURANT_OWNER", "scope_type": "RESTAURANT", "scope_id": restaurant_id}],
+            "amr": "pwd",
+            "status": "ACTIVE",
+            "locale": "en-CA",
+            "timezone": "America/Toronto",
+            "next_route": "HOME",
+        },
+        operations=["getCurrentPrincipal"],
+        tags=["platform", "auth", "restaurant"],
+    )
+
+
+def _restaurant_realtime(reg) -> None:
+    from dom_redesign import OFFERS, RESTAURANT_CHANNEL, RESTAURANT_ID, _event, _offered
+
+    a, b = OFFERS[0], OFFERS[1]
+    reg.add(
+        "realtime_restaurant_auto_off",
+        "realtime",
+        "RealtimeEvent[]",
+        "Two offers in a row run out unanswered, and the platform turns ordering off: "
+        "`restaurant.status_changed {is_accepting_orders: false, open_state: CLOSED_TOGGLE}` "
+        "after the second `restaurant.order_offer_expired`. The tablet shows \"Ordering is "
+        "off\" with a button to turn it back on. Contract-only: `services/hg` counts missed "
+        "offers but does not turn ordering off by itself yet.",
+        [
+            _offered(1, 0, a, window_s=12),
+            _event(2, RESTAURANT_CHANNEL, "restaurant.order_offer_expired", 12000, {
+                "order_id": uuid_for(f"order:{a[0]}"), "reason": "timeout",
+            }),
+            _offered(3, 15000, b, window_s=12),
+            _event(4, RESTAURANT_CHANNEL, "restaurant.order_offer_expired", 27000, {
+                "order_id": uuid_for(f"order:{b[0]}"), "reason": "timeout",
+            }),
+            _event(5, RESTAURANT_CHANNEL, "restaurant.status_changed", 27500, {
+                "restaurant_id": RESTAURANT_ID,
+                "is_accepting_orders": False,
+                "open_state": "CLOSED_TOGGLE",
+                "reason": "Ordering was turned off after two orders in a row went unanswered.",
+                "changed_by": "HalalGoes",
+            }),
+        ],
+        tags=["realtime", "script", "restaurant", "error-path"],
+    )
+
+
+def _restaurant_orders(reg) -> None:
+    from dom_orders import restaurant_order
+    from dom_redesign import OFFERS
+
+    ops = ["getRestaurantOrder", "listRestaurantOrders"]
+
+    def add(name, note, payload, extra_tags=()):
+        reg.add(name, "orders", "OrderRestaurantView", note, payload, operations=ops,
+                tags=["restaurant", "order-state-matrix", *extra_tags])
+
+    for state, note in [
+        ("ARRIVED", "The rider is at the customer's door. Nothing for the kitchen to do."),
+        ("DELIVERED", "Handed over; settlement has not run yet."),
+        ("COMPLETED", "Terminal, happy. Shown in history, never in the live queue."),
+        ("DISPUTED", "The customer disputed it after delivery; support owns it. The kitchen "
+                     "sees the state, not the case."),
+        ("RESOLVED", "The dispute was settled. Terminal."),
+    ]:
+        add(f"restaurant_order_{state.lower()}", note, restaurant_order(state))
+
+    add(
+        "restaurant_order_cancelled",
+        "Cancelled by the customer while the offer was ringing, before acceptance: no "
+        "delivery address was ever shown and nothing was charged.",
+        restaurant_order("CANCELLED"),
+    )
+    accepted = restaurant_order("PREPARING", label="cancelled-after-accept")
+    accepted.update(
+        {
+            "state": "CANCELLED",
+            "deadline_at": None,
+            "is_late": False,
+            "promised_ready_at": None,
+            "rider": None,
+        }
+    )
+    add(
+        "restaurant_order_cancelled_after_accept",
+        "Cancelled by support after the kitchen accepted it (`accepted_at` set, the address "
+        "already shown): stop preparing. The customer is refunded; the kitchen's "
+        "compensation follows the refund's liability split.",
+        accepted,
+        ("error-path",),
+    )
+
+    pending = []
+    for k, (offer, left) in enumerate(zip(OFFERS, [25, 70, 120, 170])):
+        order = restaurant_order("RESTAURANT_PENDING", label=offer[0], code=offer[1],
+                                 elapsed_seconds=180 - left, deadline_at=ts(left))
+        order["customer"] = {**order["customer"], "display_name": f"{offer[2]} {'RSKO'[k]}."}
+        pending.append(order)
+    reg.add(
+        "restaurant_order_queue_pending_four",
+        "orders",
+        "array<OrderRestaurantView>",
+        "Four offers waiting, sorted by `deadline_at` ascending (25, 70, 120 and 170 seconds "
+        "left), the server's order. The same orders and codes as "
+        "`realtime_restaurant_offer_burst`. No delivery address on any of them yet.",
+        pending,
+        operations=["listRestaurantOrders"],
+        meta={"next_cursor": None, "has_more": False, "total": len(pending)},
+        tags=["restaurant", "dense"],
+    )
+
+    with_completed = [
+        restaurant_order("PREPARING"),
+        restaurant_order("READY_FOR_PICKUP"),
+        restaurant_order("COMPLETED"),
+    ]
+    reg.add(
+        "restaurant_order_queue_with_completed",
+        "orders",
+        "array<OrderRestaurantView>",
+        "A live queue that also carries a `COMPLETED` row. The live screen must leave a "
+        "terminal order out (the client guard for issue #601), not render it as a ticket.",
+        with_completed,
+        operations=["listRestaurantOrders"],
+        meta={"next_cursor": None, "has_more": False, "total": len(with_completed)},
+        tags=["restaurant", "edge"],
+    )
+
+
+def _restaurant_availability(reg) -> None:
+    ops = ["getRestaurantAvailability", "setRestaurantAcceptingOrders"]
+    reg.add(
+        "restaurant_open_state_paused_until_closing",
+        "onboarding",
+        "RestaurantAvailability",
+        "Paused for the rest of the day: `pause_until` is tonight's closing time (22:00 "
+        "Toronto). Ordering resumes by itself tomorrow at opening.",
+        {
+            "open_state": "PAUSED",
+            "is_accepting_orders": True,
+            "pause_until": "2026-08-11T02:00:00.000Z",
+            "last_heartbeat_at": ts(-40),
+            "missed_order_count": 0,
+            "reason": "Paused until closing at 10:00 p.m.",
+            "resolvable_by": "TIME",
+        },
+        operations=ops,
+        tags=["restaurant", "state-matrix"],
+    )
+    reg.add(
+        "restaurant_open_state_closed_toggle_auto_off",
+        "onboarding",
+        "RestaurantAvailability",
+        "Ordering turned off by the platform after two offers in a row expired "
+        "(`missed_order_count: 2`). The restaurant turns it back on itself. Contract-only: "
+        "`services/hg` counts missed offers but does not turn ordering off by itself yet.",
+        {
+            "open_state": "CLOSED_TOGGLE",
+            "is_accepting_orders": False,
+            "pause_until": None,
+            "last_heartbeat_at": ts(-25),
+            "missed_order_count": 2,
+            "reason": "Ordering was turned off after two orders in a row went unanswered.",
+            "resolvable_by": "RESTAURANT",
+        },
+        operations=ops,
+        tags=["restaurant", "state-matrix", "error-path"],
+    )
+
+
+def _restaurant_login_errors(reg) -> None:
+    tags = ("restaurant", "auth")
+    _error(
+        reg, "error_invalid_credentials", 401, "INVALID_CREDENTIALS",
+        "Those credentials are not valid.",
+        "Wrong email or password. The same body whether the email exists or not, so the "
+        "form never says which one was wrong.",
+        ["login"], extra_tags=tags,
+    )
+    _error(
+        reg, "error_invalid_credentials_email_verification_required", 401, "INVALID_CREDENTIALS",
+        "Those credentials are not valid.",
+        "The right password for an address that was never verified: the same 401, plus "
+        "`details.email_verification_required: true`, so the form offers to resend the "
+        "verification email.",
+        ["login"], details={"email_verification_required": True}, extra_tags=tags,
+    )
+    _error(
+        reg, "error_account_temporarily_locked", 429, "ACCOUNT_TEMPORARILY_LOCKED",
+        "This account is temporarily locked after too many failed attempts.",
+        "Too many wrong passwords: the account is locked for 15 minutes (`Retry-After: "
+        "900`, a header a fixture cannot carry). `services/hg` answers 429, not 423.",
+        ["login"], extra_tags=tags,
+    )
+    _error(
+        reg, "error_email_already_registered", 409, "EMAIL_ALREADY_REGISTERED",
+        "An account with this email already exists.",
+        "Restaurant sign-up with an email that already has an account. The form offers "
+        "\"Sign in instead\".",
+        ["registerRestaurant"], extra_tags=tags,
+    )
+    _error(
+        reg, "error_terms_version_stale", 409, "TERMS_VERSION_STALE",
+        "The terms version is out of date.",
+        "Sign-up accepted an older version of the terms. `details.current` is the version "
+        "to show and accept again.",
+        ["registerRestaurant"], details={"current": "2026-05-01"}, extra_tags=tags,
+    )
+
+
+def _restaurant_hours(reg) -> None:
+    ops = ["getRestaurantHours", "setRestaurantHours"]
+
+    def add(name, note, payload, extra_tags=()):
+        reg.add(name, "catalogue", "RestaurantHours", note, payload, operations=ops,
+                tags=["restaurant", "hours", *extra_tags])
+
+    add(
+        "restaurant_hours_none",
+        "No opening hours set yet, and no special dates. The restaurant is `CLOSED_HOURS` "
+        "all week until it adds some.",
+        {"timezone": "America/Toronto", "intervals": [], "overrides": []},
+        ("edge", "empty"),
+    )
+
+    intervals = []
+    for dow in range(7):
+        intervals += [
+            {"day_of_week": dow, "opens_at": "06:00", "closes_at": "10:30", "crosses_midnight": False},
+            {"day_of_week": dow, "opens_at": "12:00", "closes_at": "15:00", "crosses_midnight": False},
+            {"day_of_week": dow, "opens_at": "18:00", "closes_at": "02:00", "crosses_midnight": True},
+        ]
+    add(
+        "restaurant_hours_split_past_midnight",
+        "Three ranges every day: breakfast, lunch, and dinner until 02:00 the next morning "
+        "(`crosses_midnight: true`). Friday's last range still counts as Friday.",
+        {"timezone": "America/Toronto", "intervals": intervals, "overrides": []},
+        ("dense",),
+    )
+
+    standard = copy.deepcopy(reg.fixtures["restaurant_hours_standard"].payload)
+    standard["overrides"] = [
+        {"date": "2026-08-14", "is_closed": True, "opens_at": None, "closes_at": None,
+         "reason": "Closed for a family wedding"},
+        {"date": "2026-08-15", "is_closed": False, "opens_at": "15:00", "closes_at": "23:00",
+         "reason": "Late opening"},
+        {"date": "2026-12-25", "is_closed": False, "opens_at": "16:00", "closes_at": "22:00",
+         "reason": None},
+        {"date": "2027-03-20", "is_closed": True, "opens_at": None, "closes_at": None,
+         "reason": "Closed for Eid al-Fitr"},
+    ]
+    add(
+        "restaurant_hours_special_dates",
+        "The standard week plus four special dates: a closed day this Friday, shorter hours "
+        "on Saturday, a late opening on 25 December with no reason given, and Eid closed.",
+        standard,
+    )
+
+
+def _restaurant_owned_menu(reg) -> None:
+    from dom_catalogue import KARACHI, _owner_view, _version
+    from world import menu_category, menu_item
+
+    restaurant_id = uuid_for(f"restaurant:{KARACHI}")
+    reg.add(
+        "owned_menu_empty",
+        "catalogue",
+        "OwnedMenu",
+        "The restaurant's own menu before anything was added: no categories. The editor "
+        "shows \"Add your first category\".",
+        {"restaurant_id": restaurant_id, "categories": []},
+        operations=["getOwnMenu"],
+        tags=["restaurant", "menu", "edge", "empty"],
+    )
+
+    statuses = [
+        ("DRAFT", None, None),
+        ("PENDING_REVIEW", None, None),
+        ("APPROVED", None, -2 * DAY),
+        ("REJECTED", "UNSUBSTANTIATED_HALAL_CLAIM", -1 * DAY),
+        ("WITHDRAWN", None, None),
+        ("SUPERSEDED", None, -3 * DAY),
+    ]
+    items = []
+    for k, (status, reason, reviewed) in enumerate(statuses):
+        item = menu_item(k)
+        live = _version(item, 1, "APPROVED", created=-30 * DAY, reviewed=-29 * DAY)
+        if status == "APPROVED":
+            live = _version(item, 2, "APPROVED", created=-3 * DAY, reviewed=reviewed)
+        version = _version(
+            item, 2, status, created=-(k + 1) * HOUR,
+            reviewed=reviewed if status in ("REJECTED", "SUPERSEDED") else None,
+            note=("We cannot show \"zabiha\" in a description without the certificate "
+                  "covering it. Remove the word or upload proof." if status == "REJECTED" else None),
+            rejection_reason_code=reason,
+            description=item["description"] + " Now with more saffron.",
+        )
+        pending = version if status in ("DRAFT", "PENDING_REVIEW", "REJECTED") else None
+        view = _owner_view(item, live=live, pending=pending, sort_order=k + 1)
+        items.append(view)
+    reg.add(
+        "owned_menu_every_review_status",
+        "catalogue",
+        "OwnedMenu",
+        "Six items, one per `MenuReviewStatus` on its newest version: a draft, one waiting "
+        "for review, one just approved, one rejected with its reason and note, one withdrawn "
+        "and one superseded. Items whose newest version is withdrawn or superseded show only "
+        "the live version.",
+        {"restaurant_id": restaurant_id, "categories": [{**menu_category(0, []), "item_count": len(items), "items": items}]},
+        operations=["getOwnMenu"],
+        tags=["restaurant", "menu", "state-matrix"],
+    )
+
+    categories = []
+    for k in range(40):
+        category = menu_category(k, [], id=uuid_for(f"category:owned-40:{k}"),
+                                 name=f"Section {k + 1:02d}", sort_order=k + 1)
+        dish = menu_item(k, restaurant_key=f"owned-40-{k}")
+        category["items"] = [_owner_view({**dish, "id": uuid_for(f"item:owned-40:{k}")}, live=None, pending=None)]
+        category["items"][0]["category_id"] = category["id"]
+        category["item_count"] = 1
+        categories.append(category)
+    reg.add(
+        "owned_menu_forty_categories",
+        "catalogue",
+        "OwnedMenu",
+        "Forty categories with one item each: the category rail scrolls and keeps the "
+        "current one in view.",
+        {"restaurant_id": restaurant_id, "categories": categories},
+        operations=["getOwnMenu"],
+        tags=["restaurant", "menu", "dense", "overflow"],
+    )
+
+
+def _restaurant_payouts(reg) -> None:
+    def payout(label, state, weeks_ago, amount, entries):
+        row = _payout(f"restaurant:{label}", state, weeks_ago, amount, entries)
+        if state == "HELD":
+            row["hold_reason"] = "Payouts are paused while Stripe checks the business details."
+        return row
+
+    every = [payout(*row) for row in [
+        ("every-draft", "DRAFT", 0, 0, 0),
+        ("every-ready", "READY", 1, 184250, 61),
+        ("every-transferring", "TRANSFERRING", 2, 201475, 67),
+        ("every-transferred", "TRANSFERRED", 3, 176830, 58),
+        ("every-held", "HELD", 4, 193115, 64),
+        ("every-failed", "FAILED", 5, 168940, 55),
+        ("every-paid", "PAID", 6, 188320, 62),
+    ]]
+    reg.add(
+        "restaurant_payout_history_every_state",
+        "rider",
+        "array<Payout>",
+        "A restaurant's payouts with one in each `PayoutState`, newest first, including a "
+        "`HELD` week with its reason and a `FAILED` week with its message.",
+        every,
+        operations=["listRestaurantPayouts"],
+        meta={"next_cursor": None, "has_more": False, "total": len(every)},
+        tags=["restaurant", "money", "payout-state-matrix"],
+    )
+
+    page_1 = [payout(f"page-1-{w}", "DRAFT" if w == 0 else "PAID", w, 0 if w == 0 else 180000 + w * 1375, 0 if w == 0 else 60)
+              for w in range(20)]
+    page_2 = [payout(f"page-2-{w}", "PAID", w, 170000 + w * 990, 57) for w in range(20, 26)]
+    reg.add(
+        "restaurant_payout_history_page_1",
+        "rider",
+        "array<Payout>",
+        "The first page of a long payout history: 20 weeks, newest first, `has_more: true`. "
+        "The next page is `restaurant_payout_history_page_2`.",
+        page_1,
+        operations=["listRestaurantPayouts"],
+        meta={"next_cursor": page_1[-1]["id"], "has_more": True, "total": None},
+        tags=["restaurant", "money", "dense"],
+    )
+    reg.add(
+        "restaurant_payout_history_page_2",
+        "rider",
+        "array<Payout>",
+        "The last page after `restaurant_payout_history_page_1`: six older paid weeks, "
+        "`has_more: false`.",
+        page_2,
+        operations=["listRestaurantPayouts"],
+        meta={"next_cursor": None, "has_more": False, "total": None},
+        tags=["restaurant", "money"],
     )
