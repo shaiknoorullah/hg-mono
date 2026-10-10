@@ -1,0 +1,31 @@
+{
+  "scenario": "staff_list_one_super_admin",
+  "domain": "admin",
+  "schema": "array<StaffUser>",
+  "describes": "The day-one console: one super admin and nobody else. Deactivating or demoting the last super admin is refused, so those actions are not offered on this row.",
+  "operations": [
+    "listStaff"
+  ],
+  "status": 200,
+  "tags": [
+    "admin",
+    "edge"
+  ],
+  "meta": {
+    "next_cursor": null,
+    "has_more": false,
+    "total": 1
+  },
+  "payload": [
+    {
+      "id": "25e6909d-03e1-4c64-a94f-da6f5f52a58a",
+      "email": "amina.siddiqui@halalgoes.ca",
+      "full_name": "Amina Siddiqui",
+      "role": "SUPER_ADMIN",
+      "status": "ACTIVE",
+      "mfa_enrolled": true,
+      "last_login_at": "2026-08-10T16:42:11.412Z",
+      "created_at": "2026-05-12T18:42:11.412Z"
+    }
+  ]
+}

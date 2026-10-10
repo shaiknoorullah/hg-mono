@@ -1,0 +1,108 @@
+{
+  "scenario": "halal_certificate_pending_transcribed_unchecked",
+  "domain": "halal",
+  "schema": "HalalCertificate",
+  "describes": "Transcribed, no check recorded yet: every `result` is `NOT_ASSESSED`, and the server's `computed_result` is already there for H2, H5, H6 and H7 (all PASS). H1, H3 and H4 are human judgement only. H5 and H7 are not overridable.",
+  "operations": [
+    "getHalalCertificate",
+    "recordHalalChecks",
+    "transcribeHalalCertificate",
+    "decideHalalCertificate"
+  ],
+  "status": 200,
+  "tags": [
+    "admin",
+    "halal",
+    "certificate"
+  ],
+  "payload": {
+    "id": "6e481835-b8f7-428f-a9bd-f9b5fd422bab",
+    "restaurant_id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+    "document_id": "386cde93-ef2a-4ba1-a59c-a4eb445e107d",
+    "certificate_number": "HMA-ON-40182",
+    "issuing_body": {
+      "id": "2a5c05d7-d3df-442b-a992-b6cce917d419",
+      "name": "Halal Monitoring Authority (HMA Canada)",
+      "aliases": [
+        "HMA",
+        "HMA Canada"
+      ],
+      "country": "CA",
+      "region": "ON",
+      "website": "https://www.hmacanada.org",
+      "accreditation_ref": null,
+      "requires_issuer_confirmation": false,
+      "status": "ACCEPTED",
+      "notes": null
+    },
+    "certified_legal_name": "Karachi Kitchen Inc.",
+    "certified_address": "1245 Danforth Avenue, Toronto, ON M4J 1M8",
+    "scope": "WHOLE_ESTABLISHMENT",
+    "issued_on": "2026-07-11",
+    "expires_on": "2027-07-11",
+    "status": "PENDING",
+    "checklist_version": 1,
+    "checks": [
+      {
+        "check_key": "H1_LEGIBLE_COMPLETE",
+        "result": "NOT_ASSESSED",
+        "computed_result": "NOT_ASSESSED",
+        "overridable": true,
+        "note": null,
+        "checked_at": null
+      },
+      {
+        "check_key": "H2_ISSUER_ACCEPTED",
+        "result": "NOT_ASSESSED",
+        "computed_result": "PASS",
+        "overridable": true,
+        "note": null,
+        "checked_at": null
+      },
+      {
+        "check_key": "H3_NAME_MATCH",
+        "result": "NOT_ASSESSED",
+        "computed_result": "NOT_ASSESSED",
+        "overridable": true,
+        "note": null,
+        "checked_at": null
+      },
+      {
+        "check_key": "H4_ADDRESS_MATCH",
+        "result": "NOT_ASSESSED",
+        "computed_result": "NOT_ASSESSED",
+        "overridable": true,
+        "note": null,
+        "checked_at": null
+      },
+      {
+        "check_key": "H5_DATES_VALID",
+        "result": "NOT_ASSESSED",
+        "computed_result": "PASS",
+        "overridable": false,
+        "note": null,
+        "checked_at": null
+      },
+      {
+        "check_key": "H6_SCOPE_SUFFICIENT",
+        "result": "NOT_ASSESSED",
+        "computed_result": "PASS",
+        "overridable": true,
+        "note": null,
+        "checked_at": null
+      },
+      {
+        "check_key": "H7_UNIQUE_NOT_REUSED",
+        "result": "NOT_ASSESSED",
+        "computed_result": "PASS",
+        "overridable": false,
+        "note": null,
+        "checked_at": null
+      }
+    ],
+    "rejection_reason_code": null,
+    "rejection_reason_text": null,
+    "verified_by": null,
+    "verified_at": null
+  }
+}

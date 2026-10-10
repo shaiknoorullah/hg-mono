@@ -2,22 +2,22 @@
   "generated_by": "contracts/fixtures/_build/build.py",
   "do_not_edit": "Every file under contracts/fixtures/ is generated. Run `pnpm fixtures:build`.",
   "frozen_clock": "2026-08-10T18:42:11.412Z",
-  "count": 596,
+  "count": 654,
   "counts_by_domain": {
-    "admin": 35,
+    "admin": 48,
     "cart": 14,
     "catalogue": 57,
     "dispatch": 31,
     "documents": 27,
-    "errors": 108,
-    "halal": 29,
+    "errors": 119,
+    "halal": 37,
     "handoff": 13,
     "onboarding": 49,
-    "orders": 56,
+    "orders": 75,
     "payments": 12,
-    "platform": 44,
-    "realtime": 21,
-    "refunds": 40,
+    "platform": 49,
+    "realtime": 22,
+    "refunds": 41,
     "rider": 60
   },
   "fixtures": [
@@ -315,6 +315,57 @@
       "file": "admin/restaurant_application_approved.json"
     },
     {
+      "scenario": "restaurant_application_changes_requested",
+      "domain": "admin",
+      "schema": "RestaurantApplication",
+      "describes": "Sent back for changes: the food safety certificate was rejected with its reason and the owner redoes exactly that document (`DOCUMENTS_REJECTED`).",
+      "operations": [
+        "getRestaurantApplication",
+        "takeNextRestaurantApplication"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "review-queue",
+        "error-path"
+      ],
+      "file": "admin/restaurant_application_changes_requested.json"
+    },
+    {
+      "scenario": "restaurant_application_claimed_by_other",
+      "domain": "admin",
+      "schema": "RestaurantApplication",
+      "describes": "In review and claimed by another admin: `assigned_admin_id` is someone else and `review_lock_expires_at` is 12 minutes away. Read only here; deciding would be `409 REVIEW_LOCK_LOST`. The blockers are the live ones `services/hg` computes.",
+      "operations": [
+        "getRestaurantApplication",
+        "takeNextRestaurantApplication"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "review-queue"
+      ],
+      "file": "admin/restaurant_application_claimed_by_other.json"
+    },
+    {
+      "scenario": "restaurant_application_no_certificate",
+      "domain": "admin",
+      "schema": "RestaurantApplication",
+      "describes": "No halal certificate uploaded at all: `halal_certificate: null`, no `HALAL_CERTIFICATE` document, and the profile has no `halal` object (no badge, never an optimistic one). Blocked until one is uploaded and approved.",
+      "operations": [
+        "getRestaurantApplication",
+        "takeNextRestaurantApplication"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "review-queue",
+        "halal",
+        "edge"
+      ],
+      "file": "admin/restaurant_application_no_certificate.json"
+    },
+    {
       "scenario": "restaurant_application_none_to_take",
       "domain": "admin",
       "schema": "RestaurantApplication|null",
@@ -378,6 +429,23 @@
       "file": "admin/restaurant_application_queue_empty.json"
     },
     {
+      "scenario": "restaurant_application_withdrawn",
+      "domain": "admin",
+      "schema": "RestaurantApplication",
+      "describes": "The owner withdrew the application (`WITHDRAWN`). Terminal: no lock, nothing to decide.",
+      "operations": [
+        "getRestaurantApplication",
+        "takeNextRestaurantApplication"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "review-queue",
+        "edge"
+      ],
+      "file": "admin/restaurant_application_withdrawn.json"
+    },
+    {
       "scenario": "restaurant_decision_input_approve",
       "domain": "admin",
       "schema": "RestaurantDecisionInput",
@@ -433,6 +501,57 @@
       "file": "admin/rider_application_approved.json"
     },
     {
+      "scenario": "rider_application_attempt_3",
+      "domain": "admin",
+      "schema": "RiderApplication",
+      "describes": "The third attempt: the rider was sent back twice before. The reviewer sees the attempt number next to the name.",
+      "operations": [
+        "getRiderApplication",
+        "takeNextRiderApplication"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "review-queue",
+        "rider"
+      ],
+      "file": "admin/rider_application_attempt_3.json"
+    },
+    {
+      "scenario": "rider_application_attempt_4",
+      "domain": "admin",
+      "schema": "RiderApplication",
+      "describes": "A fourth attempt. The contract sets no cap on attempts; the number is shown so the reviewer can judge a repeat applicant.",
+      "operations": [
+        "getRiderApplication",
+        "takeNextRiderApplication"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "review-queue",
+        "rider"
+      ],
+      "file": "admin/rider_application_attempt_4.json"
+    },
+    {
+      "scenario": "rider_application_bicycle",
+      "domain": "admin",
+      "schema": "RiderApplication",
+      "describes": "A bicycle courier: no plate, make or model, and the light document set (government ID, work eligibility, photo) instead of licence, registration and insurance.",
+      "operations": [
+        "getRiderApplication",
+        "takeNextRiderApplication"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "review-queue",
+        "rider"
+      ],
+      "file": "admin/rider_application_bicycle.json"
+    },
+    {
       "scenario": "rider_application_changes_requested",
       "domain": "admin",
       "schema": "RiderApplication",
@@ -450,6 +569,23 @@
       "file": "admin/rider_application_changes_requested.json"
     },
     {
+      "scenario": "rider_application_claimed_by_other",
+      "domain": "admin",
+      "schema": "RiderApplication",
+      "describes": "Claimed by another admin, whose lock runs for 9 more minutes. Read only here; deciding would be `409 REVIEW_LOCK_LOST`.",
+      "operations": [
+        "getRiderApplication",
+        "takeNextRiderApplication"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "review-queue",
+        "rider"
+      ],
+      "file": "admin/rider_application_claimed_by_other.json"
+    },
+    {
       "scenario": "rider_application_none_to_take",
       "domain": "admin",
       "schema": "RiderApplication|null",
@@ -464,6 +600,23 @@
         "empty"
       ],
       "file": "admin/rider_application_none_to_take.json"
+    },
+    {
+      "scenario": "rider_application_on_foot",
+      "domain": "admin",
+      "schema": "RiderApplication",
+      "describes": "A courier on foot: the vehicle row carries only its type, every vehicle field null, and the light document set.",
+      "operations": [
+        "getRiderApplication",
+        "takeNextRiderApplication"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "review-queue",
+        "rider"
+      ],
+      "file": "admin/rider_application_on_foot.json"
     },
     {
       "scenario": "rider_application_pending_review",
@@ -495,6 +648,24 @@
         "review-queue"
       ],
       "file": "admin/rider_application_queue.json"
+    },
+    {
+      "scenario": "rider_application_under_18",
+      "domain": "admin",
+      "schema": "RiderApplication",
+      "describes": "The ID's date of birth makes the rider 17 (`computed_age_years: 17`), so the first blocker is \"Rider is under 18\". Approval is refused and no role can override it (`error_rider_under_18`).",
+      "operations": [
+        "getRiderApplication",
+        "takeNextRiderApplication"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "review-queue",
+        "rider",
+        "error-path"
+      ],
+      "file": "admin/rider_application_under_18.json"
     },
     {
       "scenario": "rider_decision_input_approve",
@@ -549,6 +720,51 @@
         "state-matrix"
       ],
       "file": "admin/staff_list.json"
+    },
+    {
+      "scenario": "staff_list_edge_rows",
+      "domain": "admin",
+      "schema": "array<StaffUser>",
+      "describes": "Rows that break layouts: a very long name and email, an invitee who never signed in (`last_login_at: null`, no two-step sign-in), an active agent without two-step sign-in, a suspended admin and a long-deactivated agent.",
+      "operations": [
+        "listStaff"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "edge",
+        "overflow"
+      ],
+      "file": "admin/staff_list_edge_rows.json"
+    },
+    {
+      "scenario": "staff_list_one_super_admin",
+      "domain": "admin",
+      "schema": "array<StaffUser>",
+      "describes": "The day-one console: one super admin and nobody else. Deactivating or demoting the last super admin is refused, so those actions are not offered on this row.",
+      "operations": [
+        "listStaff"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "edge"
+      ],
+      "file": "admin/staff_list_one_super_admin.json"
+    },
+    {
+      "scenario": "staff_list_page_2",
+      "domain": "admin",
+      "schema": "array<StaffUser>",
+      "describes": "The second and last page of a long staff list: five more active members, `has_more: false`.",
+      "operations": [
+        "listStaff"
+      ],
+      "status": 200,
+      "tags": [
+        "admin"
+      ],
+      "file": "admin/staff_list_page_2.json"
     },
     {
       "scenario": "staff_user_invited",
@@ -2941,6 +3157,57 @@
       "file": "errors/error_chargeback_closed.json"
     },
     {
+      "scenario": "error_check_failed",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`422` · `CHECK_FAILED`. Approving with a check that failed. `details.check_keys` lists the failed checks; the certificate can only be rejected.",
+      "operations": [
+        "decideHalalCertificate"
+      ],
+      "status": 422,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "admin",
+        "halal"
+      ],
+      "file": "errors/error_check_failed.json"
+    },
+    {
+      "scenario": "error_check_not_overridable",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `CHECK_NOT_OVERRIDABLE`. `recordHalalChecks` setting H5 or H7 against the server's computation. `details.check_key` and `details.computed` say which check and what the server computed.",
+      "operations": [
+        "recordHalalChecks"
+      ],
+      "status": 409,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "admin",
+        "halal"
+      ],
+      "file": "errors/error_check_not_overridable.json"
+    },
+    {
+      "scenario": "error_checklist_incomplete",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`422` · `CHECKLIST_INCOMPLETE`. Approving before every check has a result. `details.check_keys` lists the checks still `NOT_ASSESSED`.",
+      "operations": [
+        "decideHalalCertificate"
+      ],
+      "status": 422,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "admin",
+        "halal"
+      ],
+      "file": "errors/error_checklist_incomplete.json"
+    },
+    {
       "scenario": "error_checksum_mismatch",
       "domain": "errors",
       "schema": "ErrorEnvelope",
@@ -3450,6 +3717,38 @@
       "file": "errors/error_onboarding_incomplete.json"
     },
     {
+      "scenario": "error_order_admin_cancel_illegal_transition",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `ILLEGAL_TRANSITION`. `cancelOrderAdmin` on an order that can no longer be cancelled (it was delivered or already ended). Nothing changed; the screen re-reads the order.",
+      "operations": [
+        "cancelOrderAdmin"
+      ],
+      "status": 409,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "admin"
+      ],
+      "file": "errors/error_order_admin_cancel_illegal_transition.json"
+    },
+    {
+      "scenario": "error_order_admin_cancel_rate_limited",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`429` · `RATE_LIMITED`. Cancelling too many orders too fast. `details.retry_after_seconds` is the wait. Contract-only: `services/hg` has no rate limit on this route yet.",
+      "operations": [
+        "cancelOrderAdmin"
+      ],
+      "status": 429,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "admin"
+      ],
+      "file": "errors/error_order_admin_cancel_rate_limited.json"
+    },
+    {
       "scenario": "error_ordering_paused",
       "domain": "errors",
       "schema": "ErrorEnvelope",
@@ -3644,6 +3943,22 @@
         "rider"
       ],
       "file": "errors/error_pod_required.json"
+    },
+    {
+      "scenario": "error_precondition_not_met",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `PRECONDITION_NOT_MET`. Approving a restaurant with live blockers. `details.blockers` is the list `services/hg` computes, verbatim; the screen lists them. (A rider application answers the same body with 422.)",
+      "operations": [
+        "decideRestaurantApplication"
+      ],
+      "status": 409,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "admin"
+      ],
+      "file": "errors/error_precondition_not_met.json"
     },
     {
       "scenario": "error_price_out_of_range",
@@ -3856,6 +4171,57 @@
       "file": "errors/error_refund_approver_over_daily_limit.json"
     },
     {
+      "scenario": "error_refund_conflict",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `REFUND_EXCEEDS_CAPTURED`. A partial refund on an order that has already been mostly refunded: this one would take the total past what was captured. Nothing was refunded; the screen shows what is left.",
+      "operations": [
+        "issueRefund"
+      ],
+      "status": 409,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "admin",
+        "money"
+      ],
+      "file": "errors/error_refund_conflict.json"
+    },
+    {
+      "scenario": "error_refund_daily_cap",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `DAILY_CAP_EXCEEDED`. Issuing a refund past the caller's 24-hour limit. Contract-only for `issueRefund`: `services/hg` escalates such a refund to an approval request (202, `refund_approval_request_pending`) instead; it answers this code when approving (`error_refund_approver_over_daily_limit`).",
+      "operations": [
+        "issueRefund"
+      ],
+      "status": 409,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "admin",
+        "money"
+      ],
+      "file": "errors/error_refund_daily_cap.json"
+    },
+    {
+      "scenario": "error_refund_goodwill_exceeds",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `REFUND_EXCEEDS_CAPTURED`. A goodwill amount larger than the order's captured payment. Goodwill is the only refund with a typed amount, and it is still capped by what was captured.",
+      "operations": [
+        "issueRefund"
+      ],
+      "status": 409,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "admin",
+        "money"
+      ],
+      "file": "errors/error_refund_goodwill_exceeds.json"
+    },
+    {
       "scenario": "error_refund_mfa_required",
       "domain": "errors",
       "schema": "ErrorEnvelope",
@@ -3884,6 +4250,24 @@
         "error-envelope"
       ],
       "file": "errors/error_refund_needs_higher_role.json"
+    },
+    {
+      "scenario": "error_refund_not_refundable",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `PAYMENT_NOT_REFUNDABLE`. A refund on an order whose payment was never captured (it was voided). There is nothing to refund; cancel the order instead.",
+      "operations": [
+        "issueRefund",
+        "createRefund"
+      ],
+      "status": 409,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "admin",
+        "money"
+      ],
+      "file": "errors/error_refund_not_refundable.json"
     },
     {
       "scenario": "error_refund_self_approval_forbidden",
@@ -3964,6 +4348,23 @@
         "error-envelope"
       ],
       "file": "errors/error_review_edit_window_closed.json"
+    },
+    {
+      "scenario": "error_review_lock_lost",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `REVIEW_LOCK_LOST`. Deciding after the review lock passed to someone else. Nothing was applied; the screen reloads the application read-only. Contract-only: `services/hg` defines the code but does not enforce the lock on decisions yet.",
+      "operations": [
+        "decideRestaurantApplication",
+        "decideRiderApplication"
+      ],
+      "status": 409,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "admin"
+      ],
+      "file": "errors/error_review_lock_lost.json"
     },
     {
       "scenario": "error_review_window_closed",
@@ -4398,6 +4799,124 @@
       "file": "halal/halal_certificate_expiring_within_30_days.json"
     },
     {
+      "scenario": "halal_certificate_pending_h5_computed_fail",
+      "domain": "halal",
+      "schema": "HalalCertificate",
+      "describes": "The certificate expires in 21 days, inside the 30-day minimum, so the server computes `H5_DATES_VALID: FAIL`. H5 cannot be overridden (`error_check_not_overridable`); the only way forward is a newer certificate.",
+      "operations": [
+        "getHalalCertificate",
+        "recordHalalChecks",
+        "transcribeHalalCertificate",
+        "decideHalalCertificate"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "halal",
+        "certificate",
+        "error-path"
+      ],
+      "file": "halal/halal_certificate_pending_h5_computed_fail.json"
+    },
+    {
+      "scenario": "halal_certificate_pending_h7_duplicate",
+      "domain": "halal",
+      "schema": "HalalCertificate",
+      "describes": "The same certificate number from the same issuer is already on another restaurant's approved certificate: `H7_UNIQUE_NOT_REUSED` computes FAIL. Not overridable; reject with `DUPLICATE_CERTIFICATE`.",
+      "operations": [
+        "getHalalCertificate",
+        "recordHalalChecks",
+        "transcribeHalalCertificate",
+        "decideHalalCertificate"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "halal",
+        "certificate",
+        "error-path"
+      ],
+      "file": "halal/halal_certificate_pending_h7_duplicate.json"
+    },
+    {
+      "scenario": "halal_certificate_pending_issuer_suspended",
+      "domain": "halal",
+      "schema": "HalalCertificate",
+      "describes": "Issued by a body that is `SUSPENDED` today, so `H2_ISSUER_ACCEPTED` computes FAIL at review time. Suspending a body blocks new certificates; it does not revoke old ones.",
+      "operations": [
+        "getHalalCertificate",
+        "recordHalalChecks",
+        "transcribeHalalCertificate",
+        "decideHalalCertificate"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "halal",
+        "certificate",
+        "error-path"
+      ],
+      "file": "halal/halal_certificate_pending_issuer_suspended.json"
+    },
+    {
+      "scenario": "halal_certificate_pending_scope_supplier_chain",
+      "domain": "halal",
+      "schema": "HalalCertificate",
+      "describes": "Scope `SUPPLIER_CHAIN_ONLY`: the certificate covers the meat supplier, not this kitchen, so `H6_SCOPE_SUFFICIENT` computes FAIL. The platform makes no item-level or supplier-level claim.",
+      "operations": [
+        "getHalalCertificate",
+        "recordHalalChecks",
+        "transcribeHalalCertificate",
+        "decideHalalCertificate"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "halal",
+        "certificate",
+        "error-path"
+      ],
+      "file": "halal/halal_certificate_pending_scope_supplier_chain.json"
+    },
+    {
+      "scenario": "halal_certificate_pending_transcribed_unchecked",
+      "domain": "halal",
+      "schema": "HalalCertificate",
+      "describes": "Transcribed, no check recorded yet: every `result` is `NOT_ASSESSED`, and the server's `computed_result` is already there for H2, H5, H6 and H7 (all PASS). H1, H3 and H4 are human judgement only. H5 and H7 are not overridable.",
+      "operations": [
+        "getHalalCertificate",
+        "recordHalalChecks",
+        "transcribeHalalCertificate",
+        "decideHalalCertificate"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "halal",
+        "certificate"
+      ],
+      "file": "halal/halal_certificate_pending_transcribed_unchecked.json"
+    },
+    {
+      "scenario": "halal_certificate_pending_untranscribed",
+      "domain": "halal",
+      "schema": "HalalCertificate",
+      "describes": "Just uploaded: the document is attached but nobody has typed in its fields yet. Number, issuer, names, scope and dates are null and no check has a result or a computed value. Transcribe first; the checks come after.",
+      "operations": [
+        "getHalalCertificate",
+        "recordHalalChecks",
+        "transcribeHalalCertificate",
+        "decideHalalCertificate"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "halal",
+        "certificate"
+      ],
+      "file": "halal/halal_certificate_pending_untranscribed.json"
+    },
+    {
       "scenario": "halal_certificate_status_approved",
       "domain": "halal",
       "schema": "HalalCertificate",
@@ -4506,6 +5025,23 @@
       "file": "halal/halal_certificate_status_superseded.json"
     },
     {
+      "scenario": "halal_certificate_support_projection",
+      "domain": "halal",
+      "schema": "HalalCertificate",
+      "describes": "What a `SUPPORT_AGENT` gets for an approved certificate, exactly as `services/hg` redacts it: status, expiry, the issuing body's id, name and status, the rejection reason, and nothing else. No document, number, address, scope, dates or checks (`checks: []`).",
+      "operations": [
+        "getHalalCertificate"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "halal",
+        "certificate",
+        "support"
+      ],
+      "file": "halal/halal_certificate_support_projection.json"
+    },
+    {
       "scenario": "halal_certificate_valid",
       "domain": "halal",
       "schema": "HalalCertificate",
@@ -4536,6 +5072,22 @@
         "blocking-decision"
       ],
       "file": "halal/halal_issuing_bodies_empty.json"
+    },
+    {
+      "scenario": "halal_issuing_bodies_every_status",
+      "domain": "halal",
+      "schema": "array<HalalIssuingBody>",
+      "describes": "One issuing body in each `HalalIssuingBodyStatus`: accepted, proposed, suspended, retired and rejected. Only `ACCEPTED` satisfies H2.",
+      "operations": [
+        "listHalalIssuingBodies"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "halal",
+        "state-matrix"
+      ],
+      "file": "halal/halal_issuing_bodies_every_status.json"
     },
     {
       "scenario": "halal_issuing_bodies_seed",
@@ -5563,6 +6115,112 @@
       "file": "onboarding/rider_vehicle_scooter.json"
     },
     {
+      "scenario": "order_admin_list_disputed_page_1",
+      "domain": "orders",
+      "schema": "array<OrderSummary>",
+      "describes": "`listOrdersAdmin?state=DISPUTED`, first page: 20 disputed orders, newest first, `has_more: true`. The next page is `order_admin_list_disputed_page_2`.",
+      "operations": [
+        "listOrdersAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "dense"
+      ],
+      "file": "orders/order_admin_list_disputed_page_1.json"
+    },
+    {
+      "scenario": "order_admin_list_disputed_page_2",
+      "domain": "orders",
+      "schema": "array<OrderSummary>",
+      "describes": "The last page of disputed orders: seven more, `has_more: false`.",
+      "operations": [
+        "listOrdersAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "admin"
+      ],
+      "file": "orders/order_admin_list_disputed_page_2.json"
+    },
+    {
+      "scenario": "order_admin_list_every_state",
+      "domain": "orders",
+      "schema": "array<OrderSummary>",
+      "describes": "`listOrdersAdmin` with one order in each of the 14 `OrderState` values. The restaurants' halal badges cover all four `HalalDisplayState` values (cancelled: expiring soon, rejected: expired, failed: unverified) and the resolved order's restaurant has no `halal` object at all: no badge, never an optimistic one, and never red.",
+      "operations": [
+        "listOrdersAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "order-state-matrix",
+        "halal-state-matrix",
+        "dense"
+      ],
+      "file": "orders/order_admin_list_every_state.json"
+    },
+    {
+      "scenario": "order_admin_view_arrived",
+      "domain": "orders",
+      "schema": "OrderAdminView",
+      "describes": "The staff projection of an order in `ARRIVED`. Rider is at the drop-off, proof of delivery not yet recorded.",
+      "operations": [
+        "getOrderAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "order-state-matrix"
+      ],
+      "file": "orders/order_admin_view_arrived.json"
+    },
+    {
+      "scenario": "order_admin_view_authorized",
+      "domain": "orders",
+      "schema": "OrderAdminView",
+      "describes": "The staff projection of an order in `AUTHORIZED`. Card authorised, not captured. The restaurant has not been asked yet. Cancellation is still free.",
+      "operations": [
+        "getOrderAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "order-state-matrix"
+      ],
+      "file": "orders/order_admin_view_authorized.json"
+    },
+    {
+      "scenario": "order_admin_view_cancelled",
+      "domain": "orders",
+      "schema": "OrderAdminView",
+      "describes": "The staff projection of an order in `CANCELLED`. Terminal. Cancelled by the customer before acceptance, so the authorisation was voided rather than captured and refunded.",
+      "operations": [
+        "getOrderAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "order-state-matrix"
+      ],
+      "file": "orders/order_admin_view_cancelled.json"
+    },
+    {
+      "scenario": "order_admin_view_chargeback",
+      "domain": "orders",
+      "schema": "OrderAdminView",
+      "describes": "A completed order with an open chargeback for the full amount, waiting for evidence (due in five days), with one evidence note.",
+      "operations": [
+        "getOrderAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "money"
+      ],
+      "file": "orders/order_admin_view_chargeback.json"
+    },
+    {
       "scenario": "order_admin_view_completed",
       "domain": "orders",
       "schema": "OrderAdminView",
@@ -5576,6 +6234,36 @@
         "admin"
       ],
       "file": "orders/order_admin_view_completed.json"
+    },
+    {
+      "scenario": "order_admin_view_created",
+      "domain": "orders",
+      "schema": "OrderAdminView",
+      "describes": "The staff projection of an order in `CREATED`. Order exists, payment not yet authorised. 3-D Secure lives here — the order stays CREATED under its 15-minute deadline while `payment.action_required` is outstanding.",
+      "operations": [
+        "getOrderAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "order-state-matrix"
+      ],
+      "file": "orders/order_admin_view_created.json"
+    },
+    {
+      "scenario": "order_admin_view_delivered",
+      "domain": "orders",
+      "schema": "OrderAdminView",
+      "describes": "The staff projection of an order in `DELIVERED`. Proof of delivery recorded. Not yet financially settled.",
+      "operations": [
+        "getOrderAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "order-state-matrix"
+      ],
+      "file": "orders/order_admin_view_delivered.json"
     },
     {
       "scenario": "order_admin_view_disputed",
@@ -5606,6 +6294,158 @@
         "error-path"
       ],
       "file": "orders/order_admin_view_failed_no_rider.json"
+    },
+    {
+      "scenario": "order_admin_view_ledger_residual",
+      "domain": "orders",
+      "schema": "OrderAdminView",
+      "describes": "An order whose ledger does not sum to zero (`ledger_residual_cents: 140`). The deferred `SUM = 0` trigger makes this unreachable in a healthy database, so the view flags it as a reconciliation exception, never hides it.",
+      "operations": [
+        "getOrderAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "money",
+        "edge"
+      ],
+      "file": "orders/order_admin_view_ledger_residual.json"
+    },
+    {
+      "scenario": "order_admin_view_masked",
+      "domain": "orders",
+      "schema": "OrderAdminView",
+      "describes": "The default staff view with `pii_revealed: false`: street only, no unit, buzzer, notes or special instructions. \"Reveal\" asks for a justification first. Contract-only: `services/hg` sends the same fields whatever `pii_revealed` says today.",
+      "operations": [
+        "getOrderAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "pii"
+      ],
+      "file": "orders/order_admin_view_masked.json"
+    },
+    {
+      "scenario": "order_admin_view_picked_up",
+      "domain": "orders",
+      "schema": "OrderAdminView",
+      "describes": "The staff projection of an order in `PICKED_UP`. Rider has the bag. This is when `rider.location` starts publishing to the customer and the map goes live.",
+      "operations": [
+        "getOrderAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "order-state-matrix"
+      ],
+      "file": "orders/order_admin_view_picked_up.json"
+    },
+    {
+      "scenario": "order_admin_view_pii_revealed",
+      "domain": "orders",
+      "schema": "OrderAdminView",
+      "describes": "`getOrderAdmin?reveal_pii=true&justification=...`: `pii_revealed: true`, the full delivery address with unit and buzzer, the delivery notes and the special instructions. The reveal and its justification are audited.",
+      "operations": [
+        "getOrderAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "pii"
+      ],
+      "file": "orders/order_admin_view_pii_revealed.json"
+    },
+    {
+      "scenario": "order_admin_view_preparing",
+      "domain": "orders",
+      "schema": "OrderAdminView",
+      "describes": "The staff projection of an order in `PREPARING`. Accepted and captured; the kitchen is cooking and dispatch is searching for a rider. Cancellation is no longer free.",
+      "operations": [
+        "getOrderAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "order-state-matrix"
+      ],
+      "file": "orders/order_admin_view_preparing.json"
+    },
+    {
+      "scenario": "order_admin_view_ready_for_pickup",
+      "domain": "orders",
+      "schema": "OrderAdminView",
+      "describes": "The staff projection of an order in `READY_FOR_PICKUP`. Food is on the pass, a rider is assigned and en route to the restaurant.",
+      "operations": [
+        "getOrderAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "order-state-matrix"
+      ],
+      "file": "orders/order_admin_view_ready_for_pickup.json"
+    },
+    {
+      "scenario": "order_admin_view_refund_failed_settlement_held",
+      "domain": "orders",
+      "schema": "OrderAdminView",
+      "describes": "A refund that Stripe refused, retried until it was set aside (`REFUND_SET_ASIDE`): the money is held for a person to settle and the customer has not been paid. The screen says so plainly; it never shows \"refunded\".",
+      "operations": [
+        "getOrderAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "money",
+        "error-path"
+      ],
+      "file": "orders/order_admin_view_refund_failed_settlement_held.json"
+    },
+    {
+      "scenario": "order_admin_view_rejected",
+      "domain": "orders",
+      "schema": "OrderAdminView",
+      "describes": "The staff projection of an order in `REJECTED`. Terminal. The restaurant rejected it — `reject_reason: ITEM_UNAVAILABLE`. The authorisation is voided; no money ever moved.",
+      "operations": [
+        "getOrderAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "order-state-matrix"
+      ],
+      "file": "orders/order_admin_view_rejected.json"
+    },
+    {
+      "scenario": "order_admin_view_resolved",
+      "domain": "orders",
+      "schema": "OrderAdminView",
+      "describes": "The staff projection of an order in `RESOLVED`. Terminal. The dispute was settled with a partial refund and the case closed.",
+      "operations": [
+        "getOrderAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "order-state-matrix"
+      ],
+      "file": "orders/order_admin_view_resolved.json"
+    },
+    {
+      "scenario": "order_admin_view_restaurant_pending",
+      "domain": "orders",
+      "schema": "OrderAdminView",
+      "describes": "The staff projection of an order in `RESTAURANT_PENDING`. The 180-second acceptance window is running (decision R-04). `deadline_at` is the only source of the countdown — never a local constant.",
+      "operations": [
+        "getOrderAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "order-state-matrix"
+      ],
+      "file": "orders/order_admin_view_restaurant_pending.json"
     },
     {
       "scenario": "order_arrived",
@@ -6855,6 +7695,20 @@
       "file": "platform/health_ok.json"
     },
     {
+      "scenario": "health_version",
+      "domain": "platform",
+      "schema": "HealthStatus",
+      "describes": "`/health` on a released build: `version` is the release the replica runs (`HG_SERVICE_VERSION`; `dev` locally), `started_at` when this process started. The console footer shows both.",
+      "operations": [
+        "getHealth"
+      ],
+      "status": 200,
+      "tags": [
+        "platform"
+      ],
+      "file": "platform/health_version.json"
+    },
+    {
       "scenario": "notifications_empty",
       "domain": "platform",
       "schema": "array<Notification>",
@@ -7055,6 +7909,22 @@
       "file": "platform/public_config_support_unavailable.json"
     },
     {
+      "scenario": "readiness_not_ready_503",
+      "domain": "platform",
+      "schema": "ReadinessStatus",
+      "describes": "`/health/ready` with Valkey unreachable: `503`, `ready: false`, the failing dependency named with its error. `services/hg` sends this `ReadinessStatus` body with the 503 (the status and the body always agree); the contract's 503 says error envelope, so a client reads `ready` from either.",
+      "operations": [
+        "getReadiness"
+      ],
+      "status": 503,
+      "tags": [
+        "platform",
+        "error-path",
+        "degraded"
+      ],
+      "file": "platform/readiness_not_ready_503.json"
+    },
+    {
       "scenario": "readiness_ok",
       "domain": "platform",
       "schema": "ReadinessStatus",
@@ -7082,6 +7952,23 @@
         "realtime"
       ],
       "file": "platform/realtime_ticket.json"
+    },
+    {
+      "scenario": "session_grant_admin",
+      "domain": "platform",
+      "schema": "SessionGrant",
+      "describes": "`login` on the web console for a `ADMIN`: the `principal_admin` principal, a 15-minute access token and `refresh_token: null` (the refresh token is the `hg_rt` cookie on web).",
+      "operations": [
+        "login",
+        "refreshSession"
+      ],
+      "status": 200,
+      "tags": [
+        "platform",
+        "auth",
+        "staff"
+      ],
+      "file": "platform/session_grant_admin.json"
     },
     {
       "scenario": "session_grant_customer",
@@ -7131,6 +8018,40 @@
         "staff"
       ],
       "file": "platform/session_grant_staff.json"
+    },
+    {
+      "scenario": "session_grant_super_admin",
+      "domain": "platform",
+      "schema": "SessionGrant",
+      "describes": "`login` on the web console for a `SUPER_ADMIN`: the `principal_super_admin` principal, a 15-minute access token and `refresh_token: null` (the refresh token is the `hg_rt` cookie on web).",
+      "operations": [
+        "login",
+        "refreshSession"
+      ],
+      "status": 200,
+      "tags": [
+        "platform",
+        "auth",
+        "staff"
+      ],
+      "file": "platform/session_grant_super_admin.json"
+    },
+    {
+      "scenario": "session_grant_support_agent",
+      "domain": "platform",
+      "schema": "SessionGrant",
+      "describes": "`login` on the web console for a `SUPPORT_AGENT`: the `principal_support_agent` principal, a 15-minute access token and `refresh_token: null` (the refresh token is the `hg_rt` cookie on web).",
+      "operations": [
+        "login",
+        "refreshSession"
+      ],
+      "status": 200,
+      "tags": [
+        "platform",
+        "auth",
+        "staff"
+      ],
+      "file": "platform/session_grant_support_agent.json"
     },
     {
       "scenario": "session_next_route_active_delivery",
@@ -7400,6 +8321,21 @@
         "error-path"
       ],
       "file": "realtime/realtime_admin_ops_reconciliation_exception.json"
+    },
+    {
+      "scenario": "realtime_admin_ops_truncated_resume",
+      "domain": "realtime",
+      "schema": "RealtimeEvent[]",
+      "describes": "The console comes back after a long sleep: the first `admin:ops` frame is `seq` 4812 where it last saw 2, it sends `resume {after_seq: 2}`, and the server answers `resume_complete {truncated: true, replayed: 0}` because the gap is older than the 7-day retention. The client refetches the queues over REST and resets its cursor; it never shows the gap as \"no alerts\".",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "realtime",
+        "script",
+        "admin",
+        "edge"
+      ],
+      "file": "realtime/realtime_admin_ops_truncated_resume.json"
     },
     {
       "scenario": "realtime_admin_ops_unknown_type",
@@ -7756,6 +8692,22 @@
         "empty"
       ],
       "file": "refunds/admin_refund_queue_empty.json"
+    },
+    {
+      "scenario": "admin_refund_queue_failed",
+      "domain": "refunds",
+      "schema": "array<AdminRefund>",
+      "describes": "`listRefundsAdmin?state=FAILED`: two refunds Stripe refused, each with its `failure_message`. The customer has not been paid on either.",
+      "operations": [
+        "listRefundsAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "money",
+        "error-path"
+      ],
+      "file": "refunds/admin_refund_queue_failed.json"
     },
     {
       "scenario": "admin_refund_requested",
@@ -9209,6 +10161,8 @@
       "order_restaurant_pending"
     ],
     "cancelOrderAdmin": [
+      "error_order_admin_cancel_illegal_transition",
+      "error_order_admin_cancel_rate_limited",
       "order_admin_view_completed"
     ],
     "changePassword": [
@@ -9314,6 +10268,7 @@
       "realtime_ticket"
     ],
     "createRefund": [
+      "error_refund_not_refundable",
       "refund_approved",
       "refund_authorised",
       "refund_cancelled",
@@ -9337,6 +10292,14 @@
       "presigned_upload"
     ],
     "decideHalalCertificate": [
+      "error_check_failed",
+      "error_checklist_incomplete",
+      "halal_certificate_pending_h5_computed_fail",
+      "halal_certificate_pending_h7_duplicate",
+      "halal_certificate_pending_issuer_suspended",
+      "halal_certificate_pending_scope_supplier_chain",
+      "halal_certificate_pending_transcribed_unchecked",
+      "halal_certificate_pending_untranscribed",
       "halal_certificate_status_approved",
       "halal_certificate_status_expired",
       "halal_certificate_status_pending",
@@ -9360,12 +10323,15 @@
       "error_application_already_decided",
       "error_decision_approval_reason_required",
       "error_decision_rejection_reason_required",
+      "error_precondition_not_met",
+      "error_review_lock_lost",
       "restaurant_application_approved"
     ],
     "decideRiderApplication": [
       "error_application_already_decided",
       "error_decision_approval_reason_required",
       "error_decision_rejection_reason_required",
+      "error_review_lock_lost",
       "error_rider_under_18",
       "rider_application_approved",
       "rider_application_changes_requested"
@@ -9506,16 +10472,24 @@
       "halal_certificate_expired",
       "halal_certificate_expiring_tomorrow",
       "halal_certificate_expiring_within_30_days",
+      "halal_certificate_pending_h5_computed_fail",
+      "halal_certificate_pending_h7_duplicate",
+      "halal_certificate_pending_issuer_suspended",
+      "halal_certificate_pending_scope_supplier_chain",
+      "halal_certificate_pending_transcribed_unchecked",
+      "halal_certificate_pending_untranscribed",
       "halal_certificate_status_approved",
       "halal_certificate_status_expired",
       "halal_certificate_status_pending",
       "halal_certificate_status_rejected",
       "halal_certificate_status_revoked",
       "halal_certificate_status_superseded",
+      "halal_certificate_support_projection",
       "halal_certificate_valid"
     ],
     "getHealth": [
-      "health_ok"
+      "health_ok",
+      "health_version"
     ],
     "getHomeFeed": [
       "feed_empty",
@@ -9552,9 +10526,25 @@
       "order_zero_tip"
     ],
     "getOrderAdmin": [
+      "order_admin_view_arrived",
+      "order_admin_view_authorized",
+      "order_admin_view_cancelled",
+      "order_admin_view_chargeback",
       "order_admin_view_completed",
+      "order_admin_view_created",
+      "order_admin_view_delivered",
       "order_admin_view_disputed",
-      "order_admin_view_failed_no_rider"
+      "order_admin_view_failed_no_rider",
+      "order_admin_view_ledger_residual",
+      "order_admin_view_masked",
+      "order_admin_view_picked_up",
+      "order_admin_view_pii_revealed",
+      "order_admin_view_preparing",
+      "order_admin_view_ready_for_pickup",
+      "order_admin_view_refund_failed_settlement_held",
+      "order_admin_view_rejected",
+      "order_admin_view_resolved",
+      "order_admin_view_restaurant_pending"
     ],
     "getOrderPayment": [
       "payment_canceled",
@@ -9616,6 +10606,7 @@
       "quote_zero_tip"
     ],
     "getReadiness": [
+      "readiness_not_ready_503",
       "readiness_ok"
     ],
     "getRefund": [
@@ -9644,7 +10635,11 @@
     ],
     "getRestaurantApplication": [
       "restaurant_application_approved",
-      "restaurant_application_pending_review"
+      "restaurant_application_changes_requested",
+      "restaurant_application_claimed_by_other",
+      "restaurant_application_no_certificate",
+      "restaurant_application_pending_review",
+      "restaurant_application_withdrawn"
     ],
     "getRestaurantAvailability": [
       "restaurant_open_state_closed_holiday",
@@ -9721,8 +10716,14 @@
     ],
     "getRiderApplication": [
       "rider_application_approved",
+      "rider_application_attempt_3",
+      "rider_application_attempt_4",
+      "rider_application_bicycle",
       "rider_application_changes_requested",
-      "rider_application_pending_review"
+      "rider_application_claimed_by_other",
+      "rider_application_on_foot",
+      "rider_application_pending_review",
+      "rider_application_under_18"
     ],
     "getRiderDashboard": [
       "rider_dashboard_active",
@@ -9778,7 +10779,11 @@
       "payout_detail_transferring"
     ],
     "issueRefund": [
+      "error_refund_conflict",
+      "error_refund_daily_cap",
+      "error_refund_goodwill_exceeds",
       "error_refund_mfa_required",
+      "error_refund_not_refundable",
       "error_refund_self_approval_forbidden",
       "refund_approval_request_pending",
       "refund_approved",
@@ -9803,6 +10808,7 @@
     ],
     "listHalalIssuingBodies": [
       "halal_issuing_bodies_empty",
+      "halal_issuing_bodies_every_status",
       "halal_issuing_bodies_seed",
       "halal_issuing_body_accepted",
       "halal_issuing_body_proposed",
@@ -9832,6 +10838,9 @@
       "order_list_past_page_2"
     ],
     "listOrdersAdmin": [
+      "order_admin_list_disputed_page_1",
+      "order_admin_list_disputed_page_2",
+      "order_admin_list_every_state",
       "order_list_active",
       "order_list_mixed_states",
       "order_list_past",
@@ -9854,7 +10863,8 @@
     ],
     "listRefundsAdmin": [
       "admin_refund_queue",
-      "admin_refund_queue_empty"
+      "admin_refund_queue_empty",
+      "admin_refund_queue_failed"
     ],
     "listRestaurantApplications": [
       "restaurant_application_queue",
@@ -9932,15 +10942,21 @@
       "payout_list_multi_problem"
     ],
     "listStaff": [
-      "staff_list"
+      "staff_list",
+      "staff_list_edge_rows",
+      "staff_list_one_super_admin",
+      "staff_list_page_2"
     ],
     "login": [
       "error_account_not_active",
       "error_account_temporarily_locked",
       "error_invalid_credentials",
       "error_invalid_credentials_email_verification_required",
+      "session_grant_admin",
       "session_grant_customer",
       "session_grant_staff",
+      "session_grant_super_admin",
+      "session_grant_support_agent",
       "session_next_route_active_delivery",
       "session_next_route_app_update_required",
       "session_next_route_home",
@@ -9967,6 +10983,13 @@
       "halal_issuing_body_suspended"
     ],
     "recordHalalChecks": [
+      "error_check_not_overridable",
+      "halal_certificate_pending_h5_computed_fail",
+      "halal_certificate_pending_h7_duplicate",
+      "halal_certificate_pending_issuer_suspended",
+      "halal_certificate_pending_scope_supplier_chain",
+      "halal_certificate_pending_transcribed_unchecked",
+      "halal_certificate_pending_untranscribed",
       "halal_certificate_status_approved",
       "halal_certificate_status_expired",
       "halal_certificate_status_pending",
@@ -9980,8 +11003,11 @@
       "error_refresh_reuse_detected",
       "error_session_expired",
       "error_session_revoked",
+      "session_grant_admin",
       "session_grant_customer",
       "session_grant_staff",
+      "session_grant_super_admin",
+      "session_grant_support_agent",
       "session_next_route_active_delivery",
       "session_next_route_app_update_required",
       "session_next_route_home",
@@ -10181,14 +11207,30 @@
       "rider_vehicle_scooter"
     ],
     "takeNextRestaurantApplication": [
+      "restaurant_application_changes_requested",
+      "restaurant_application_claimed_by_other",
+      "restaurant_application_no_certificate",
       "restaurant_application_none_to_take",
-      "restaurant_application_pending_review"
+      "restaurant_application_pending_review",
+      "restaurant_application_withdrawn"
     ],
     "takeNextRiderApplication": [
+      "rider_application_attempt_3",
+      "rider_application_attempt_4",
+      "rider_application_bicycle",
+      "rider_application_claimed_by_other",
       "rider_application_none_to_take",
-      "rider_application_pending_review"
+      "rider_application_on_foot",
+      "rider_application_pending_review",
+      "rider_application_under_18"
     ],
     "transcribeHalalCertificate": [
+      "halal_certificate_pending_h5_computed_fail",
+      "halal_certificate_pending_h7_duplicate",
+      "halal_certificate_pending_issuer_suspended",
+      "halal_certificate_pending_scope_supplier_chain",
+      "halal_certificate_pending_transcribed_unchecked",
+      "halal_certificate_pending_untranscribed",
       "halal_certificate_status_approved",
       "halal_certificate_status_expired",
       "halal_certificate_status_pending",

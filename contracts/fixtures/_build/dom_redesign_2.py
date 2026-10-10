@@ -59,6 +59,7 @@ def build(reg, synth) -> None:
     _rider(reg, synth)
     _customer(reg, synth)
     _restaurant(reg, synth)
+    _admin(reg, synth)
 
 
 # --------------------------------------------------------------------------- #
@@ -1573,4 +1574,880 @@ def _restaurant_payouts(reg) -> None:
         operations=["listRestaurantPayouts"],
         meta={"next_cursor": None, "has_more": False, "total": None},
         tags=["restaurant", "money"],
+    )
+
+
+# =========================================================================== #
+# Admin (#700)
+# =========================================================================== #
+
+OTHER_ADMIN = uuid_for("account:admin:other-reviewer")
+REVIEWER = uuid_for("account:admin:reviewer")
+
+
+def _admin(reg, synth) -> None:
+    _admin_sessions(reg)
+    _admin_ops_resume(reg)
+    _admin_halal(reg)
+    _admin_restaurant_applications(reg)
+    _admin_rider_applications(reg)
+    _admin_orders(reg, synth)
+    _admin_refunds(reg)
+    _admin_staff(reg)
+    _admin_system(reg)
+
+
+def _admin_sessions(reg) -> None:
+    base = reg.fixtures["session_grant_staff"].payload
+    for role, principal in [
+        ("super_admin", "principal_super_admin"),
+        ("admin", "principal_admin"),
+        ("support_agent", "principal_support_agent"),
+    ]:
+        grant = copy.deepcopy(base)
+        grant["principal"] = copy.deepcopy(reg.fixtures[principal].payload)
+        reg.add(
+            f"session_grant_{role}",
+            "platform",
+            "SessionGrant",
+            f"`login` on the web console for a `{role.upper()}`: the `{principal}` principal, "
+            "a 15-minute access token and `refresh_token: null` (the refresh token is the "
+            "`hg_rt` cookie on web).",
+            grant,
+            operations=["login", "refreshSession"],
+            tags=["platform", "auth", "staff"],
+        )
+
+
+def _admin_ops_resume(reg) -> None:
+    from dom_redesign import OPS, _event, _queue_depth
+
+    reg.add(
+        "realtime_admin_ops_truncated_resume",
+        "realtime",
+        "RealtimeEvent[]",
+        "The console comes back after a long sleep: the first `admin:ops` frame is `seq` 4812 "
+        "where it last saw 2, it sends `resume {after_seq: 2}`, and the server answers "
+        "`resume_complete {truncated: true, replayed: 0}` because the gap is older than the "
+        "7-day retention. The client refetches the queues over REST and resets its cursor; "
+        "it never shows the gap as \"no alerts\".",
+        [
+            _queue_depth(1, 0, 3, 5, 1, 0),
+            _event(2, OPS, "admin.alert", 2000, {
+                "severity": "high", "kind": "webhook_refused", "subject_type": "stripe_event",
+                "subject_id": "evt_3QkR7mE8xVn2LbQ1",
+                "message": "A Stripe webhook was refused: its signature did not verify.",
+                "at": ts(2),
+            }),
+            _queue_depth(4812, 6000, 2, 7, 0, 1),
+            {
+                "id": ulid_for("event:control:resume_complete:admin-ops"),
+                "seq": 0,
+                "channel": "",
+                "type": "resume_complete",
+                "v": 1,
+                "ts": ts(6.4),
+                "data": {"channel": OPS, "from_seq": 2, "to_seq": 4812, "replayed": 0, "truncated": True},
+                "_delay_ms": 6400,
+            },
+        ],
+        tags=["realtime", "script", "admin", "edge"],
+    )
+
+
+# --- Halal -------------------------------------------------------------------- #
+
+CHECK_KEYS = [
+    "H1_LEGIBLE_COMPLETE",
+    "H2_ISSUER_ACCEPTED",
+    "H3_NAME_MATCH",
+    "H4_ADDRESS_MATCH",
+    "H5_DATES_VALID",
+    "H6_SCOPE_SUFFICIENT",
+    "H7_UNIQUE_NOT_REUSED",
+]
+NON_OVERRIDABLE = {"H5_DATES_VALID", "H7_UNIQUE_NOT_REUSED"}
+
+
+def _issuing_body(name: str, status: str, aliases: list[str], **over) -> dict:
+    out = {
+        "id": uuid_for(f"issuing-body:{name}"),
+        "name": name,
+        "aliases": aliases,
+        "country": "CA",
+        "region": "ON",
+        "website": None,
+        "accreditation_ref": None,
+        "requires_issuer_confirmation": False,
+        "status": status,
+        "notes": None,
+    }
+    out.update(over)
+    return out
+
+
+HMA = _issuing_body("Halal Monitoring Authority (HMA Canada)", "ACCEPTED", ["HMA", "HMA Canada"],
+                    website="https://www.hmacanada.org")
+
+
+def _checks(computed: dict[str, str | None], results: dict[str, str] | None = None,
+            notes: dict[str, str] | None = None, checked: bool = False) -> list[dict]:
+    out = []
+    for key in CHECK_KEYS:
+        result = (results or {}).get(key, "NOT_ASSESSED")
+        out.append({
+            "check_key": key,
+            "result": result,
+            "computed_result": computed.get(key),
+            "overridable": key not in NON_OVERRIDABLE,
+            "note": (notes or {}).get(key),
+            "checked_at": ts(-20 * MINUTE) if checked or result != "NOT_ASSESSED" else None,
+        })
+    return out
+
+
+def _computed(**fails: str) -> dict[str, str | None]:
+    """The server's own evaluation: H1, H3 and H4 are human-only (NOT_ASSESSED)."""
+    out: dict[str, str | None] = {
+        "H1_LEGIBLE_COMPLETE": "NOT_ASSESSED",
+        "H2_ISSUER_ACCEPTED": "PASS",
+        "H3_NAME_MATCH": "NOT_ASSESSED",
+        "H4_ADDRESS_MATCH": "NOT_ASSESSED",
+        "H5_DATES_VALID": "PASS",
+        "H6_SCOPE_SUFFICIENT": "PASS",
+        "H7_UNIQUE_NOT_REUSED": "PASS",
+    }
+    out.update({f"{k}": v for k, v in fails.items()})
+    return out
+
+
+def _pending_cert(label: str, **over) -> dict:
+    out = {
+        "id": uuid_for(f"cert:{label}"),
+        "restaurant_id": uuid_for("restaurant:karachi-kitchen"),
+        "document_id": uuid_for(f"doc:restaurant:HALAL_CERTIFICATE:{label}"),
+        "certificate_number": "HMA-ON-40182",
+        "issuing_body": copy.deepcopy(HMA),
+        "certified_legal_name": "Karachi Kitchen Inc.",
+        "certified_address": "1245 Danforth Avenue, Toronto, ON M4J 1M8",
+        "scope": "WHOLE_ESTABLISHMENT",
+        "issued_on": day(-30),
+        "expires_on": day(335),
+        "status": "PENDING",
+        "checklist_version": 1,
+        "checks": _checks(_computed()),
+        "rejection_reason_code": None,
+        "rejection_reason_text": None,
+        "verified_by": None,
+        "verified_at": None,
+    }
+    out.update(over)
+    return out
+
+
+def _admin_halal(reg) -> None:
+    ops = ["getHalalCertificate", "recordHalalChecks", "transcribeHalalCertificate", "decideHalalCertificate"]
+
+    def add(name, note, payload, extra_tags=()):
+        reg.add(name, "halal", "HalalCertificate", note, payload, operations=ops,
+                tags=["admin", "halal", "certificate", *extra_tags])
+
+    add(
+        "halal_certificate_pending_untranscribed",
+        "Just uploaded: the document is attached but nobody has typed in its fields yet. "
+        "Number, issuer, names, scope and dates are null and no check has a result or a "
+        "computed value. Transcribe first; the checks come after.",
+        _pending_cert(
+            "untranscribed", certificate_number=None, issuing_body=None, certified_legal_name=None,
+            certified_address=None, scope=None, issued_on=None, expires_on=None,
+            checks=_checks({k: None for k in CHECK_KEYS}),
+        ),
+    )
+    add(
+        "halal_certificate_pending_transcribed_unchecked",
+        "Transcribed, no check recorded yet: every `result` is `NOT_ASSESSED`, and the "
+        "server's `computed_result` is already there for H2, H5, H6 and H7 (all PASS). H1, "
+        "H3 and H4 are human judgement only. H5 and H7 are not overridable.",
+        _pending_cert("transcribed"),
+    )
+    add(
+        "halal_certificate_pending_h5_computed_fail",
+        "The certificate expires in 21 days, inside the 30-day minimum, so the server "
+        "computes `H5_DATES_VALID: FAIL`. H5 cannot be overridden (`error_check_not_overridable`); "
+        "the only way forward is a newer certificate.",
+        _pending_cert(
+            "h5-fail", issued_on=day(-344), expires_on=day(21),
+            checks=_checks(_computed(H5_DATES_VALID="FAIL"), {"H5_DATES_VALID": "FAIL"}),
+        ),
+        ("error-path",),
+    )
+    add(
+        "halal_certificate_pending_h7_duplicate",
+        "The same certificate number from the same issuer is already on another restaurant's "
+        "approved certificate: `H7_UNIQUE_NOT_REUSED` computes FAIL. Not overridable; reject "
+        "with `DUPLICATE_CERTIFICATE`.",
+        _pending_cert(
+            "h7-duplicate", certificate_number="HMA-ON-40118",
+            checks=_checks(_computed(H7_UNIQUE_NOT_REUSED="FAIL"), {"H7_UNIQUE_NOT_REUSED": "FAIL"},
+                           {"H7_UNIQUE_NOT_REUSED": "Number already approved for Lahore Tikka Corner."}),
+        ),
+        ("error-path",),
+    )
+    suspended = _issuing_body("Halal Advisory Council of Ontario", "SUSPENDED", ["HACO"],
+                              notes="Suspended pending an accreditation review.")
+    add(
+        "halal_certificate_pending_issuer_suspended",
+        "Issued by a body that is `SUSPENDED` today, so `H2_ISSUER_ACCEPTED` computes FAIL "
+        "at review time. Suspending a body blocks new certificates; it does not revoke old "
+        "ones.",
+        _pending_cert(
+            "issuer-suspended", certificate_number="HACO-2026-0917", issuing_body=suspended,
+            checks=_checks(_computed(H2_ISSUER_ACCEPTED="FAIL")),
+        ),
+        ("error-path",),
+    )
+    add(
+        "halal_certificate_pending_scope_supplier_chain",
+        "Scope `SUPPLIER_CHAIN_ONLY`: the certificate covers the meat supplier, not this "
+        "kitchen, so `H6_SCOPE_SUFFICIENT` computes FAIL. The platform makes no item-level or "
+        "supplier-level claim.",
+        _pending_cert(
+            "supplier-chain", scope="SUPPLIER_CHAIN_ONLY",
+            checks=_checks(_computed(H6_SCOPE_SUFFICIENT="FAIL")),
+        ),
+        ("error-path",),
+    )
+    reg.add(
+        "halal_certificate_support_projection",
+        "halal",
+        "HalalCertificate",
+        "What a `SUPPORT_AGENT` gets for an approved certificate, exactly as `services/hg` "
+        "redacts it: status, expiry, the issuing body's id, name and status, the rejection "
+        "reason, and nothing else. No document, number, address, scope, dates or checks "
+        "(`checks: []`).",
+        {
+            "id": uuid_for("cert:valid"),
+            "restaurant_id": uuid_for("restaurant:karachi-kitchen"),
+            "issuing_body": {"id": HMA["id"], "name": HMA["name"], "status": "ACCEPTED"},
+            "expires_on": day(211),
+            "status": "APPROVED",
+            "checklist_version": 1,
+            "checks": [],
+        },
+        operations=["getHalalCertificate"],
+        tags=["admin", "halal", "certificate", "support"],
+    )
+
+    bodies = [
+        _issuing_body("Halal Monitoring Authority (HMA Canada)", "ACCEPTED", ["HMA", "HMA Canada"],
+                      website="https://www.hmacanada.org"),
+        _issuing_body("Islamic Food and Nutrition Council of Canada", "PROPOSED", ["IFANCC"],
+                      notes="Proposed by a reviewer on 8 August; not usable until accepted."),
+        suspended,
+        _issuing_body("Canadian Halal Certification Bureau", "RETIRED", ["CHCB"],
+                      notes="Stopped issuing in 2025. Existing certificates stand until they expire."),
+        _issuing_body("Toronto Halal Standards Office", "REJECTED", ["THSO"], country=None, region=None,
+                      notes="Could not verify an accreditation."),
+    ]
+    reg.add(
+        "halal_issuing_bodies_every_status",
+        "halal",
+        "array<HalalIssuingBody>",
+        "One issuing body in each `HalalIssuingBodyStatus`: accepted, proposed, suspended, "
+        "retired and rejected. Only `ACCEPTED` satisfies H2.",
+        bodies,
+        operations=["listHalalIssuingBodies"],
+        meta={"next_cursor": None, "has_more": False, "total": len(bodies)},
+        tags=["admin", "halal", "state-matrix"],
+    )
+
+    halal = ("admin", "halal")
+    _error(
+        reg, "error_check_not_overridable", 409, "CHECK_NOT_OVERRIDABLE",
+        "H5 and H7 are computed by the server and cannot be overridden.",
+        "`recordHalalChecks` setting H5 or H7 against the server's computation. "
+        "`details.check_key` and `details.computed` say which check and what the server "
+        "computed.",
+        ["recordHalalChecks"], details={"check_key": "H5_DATES_VALID", "computed": "FAIL"}, extra_tags=halal,
+    )
+    _error(
+        reg, "error_checklist_incomplete", 422, "CHECKLIST_INCOMPLETE",
+        "The seven checks are not all present and PASS.",
+        "Approving before every check has a result. `details.check_keys` lists the checks "
+        "still `NOT_ASSESSED`.",
+        ["decideHalalCertificate"],
+        details={"check_keys": ["H1_LEGIBLE_COMPLETE", "H3_NAME_MATCH", "H4_ADDRESS_MATCH"]}, extra_tags=halal,
+    )
+    _error(
+        reg, "error_check_failed", 422, "CHECK_FAILED",
+        "The seven checks are not all present and PASS.",
+        "Approving with a check that failed. `details.check_keys` lists the failed checks; "
+        "the certificate can only be rejected.",
+        ["decideHalalCertificate"], details={"check_keys": ["H2_ISSUER_ACCEPTED"]}, extra_tags=halal,
+    )
+
+
+# --- Applications ----------------------------------------------------------------- #
+
+def _restaurant_blockers(docs: list[dict], certified: bool) -> list[str]:
+    approved = {d["doc_type"] for d in docs if d["state"] == "APPROVED"}
+    out = [f"Required document not approved: {t}" for t in
+           ["BUSINESS_LICENCE", "HALAL_CERTIFICATE", "FOOD_SAFETY", "OWNER_ID"] if t not in approved]
+    if not certified:
+        out.append("No approved halal certificate")
+    return out
+
+
+def _admin_restaurant_applications(reg) -> None:
+    approved = reg.fixtures["restaurant_application_approved"].payload
+    ops = ["getRestaurantApplication", "takeNextRestaurantApplication"]
+
+    def application(label: str, state: str, doc_states: dict[str, str | None], *, cert: dict | None,
+                    halal: dict | None, **over) -> dict:
+        app = copy.deepcopy(approved)
+        docs = []
+        for doc in app["documents"]:
+            wanted = doc_states.get(doc["doc_type"], "IN_REVIEW")
+            if wanted is None:
+                continue
+            doc["state"] = wanted
+            doc["reviewed_at"] = None if wanted in ("SUBMITTED", "IN_REVIEW") else doc["reviewed_at"]
+            docs.append(doc)
+        app.update({
+            "onboarding_state": state,
+            "submitted_at": ts(-20 * HOUR),
+            "sla_due_at": ts(28 * HOUR),
+            "documents": docs,
+            "halal_certificate": cert,
+            "blockers": _restaurant_blockers(docs, certified=False),
+        })
+        app["profile"].update({
+            "onboarding_state": state,
+            "account_state": "PENDING",
+            "owner_first_name": "Karim",
+            "owner_last_name": "Haddad",
+            "avg_prep_minutes": 20,
+            "delivery_radius_m": 7000,
+        })
+        if halal is None:
+            app["profile"].pop("halal", None)
+        else:
+            app["profile"]["halal"] = halal
+        app.update(over)
+        return app
+
+    unverified = {"display_state": "UNVERIFIED", "certifying_body_name": None, "expires_on": None}
+    pending_cert = _pending_cert("application", restaurant_id=approved["restaurant_id"])
+
+    def add(name, note, payload, extra_tags=()):
+        reg.add(name, "admin", "RestaurantApplication", note, payload, operations=ops,
+                tags=["admin", "review-queue", *extra_tags])
+
+    add(
+        "restaurant_application_claimed_by_other",
+        "In review and claimed by another admin: `assigned_admin_id` is someone else and "
+        "`review_lock_expires_at` is 12 minutes away. Read only here; deciding would be "
+        "`409 REVIEW_LOCK_LOST`. The blockers are the live ones `services/hg` computes.",
+        application("claimed", "DOCUMENTS_REVIEW", {}, cert=pending_cert, halal=unverified,
+                    assigned_admin_id=OTHER_ADMIN, review_lock_expires_at=ts(12 * MINUTE)),
+    )
+    add(
+        "restaurant_application_withdrawn",
+        "The owner withdrew the application (`WITHDRAWN`). Terminal: no lock, nothing to decide.",
+        application("withdrawn", "WITHDRAWN", {}, cert=pending_cert, halal=unverified,
+                    assigned_admin_id=None, review_lock_expires_at=None),
+        ("edge",),
+    )
+    changes = application(
+        "changes", "DOCUMENTS_REJECTED",
+        {"BUSINESS_LICENCE": "APPROVED", "HALAL_CERTIFICATE": "APPROVED", "OWNER_ID": "APPROVED",
+         "LIABILITY_INSURANCE": "APPROVED", "FOOD_SAFETY": "REJECTED"},
+        cert=pending_cert, halal=unverified, assigned_admin_id=REVIEWER, review_lock_expires_at=None,
+        submission_count=1,
+    )
+    for doc in changes["documents"]:
+        if doc["doc_type"] == "FOOD_SAFETY":
+            doc.update({"rejection_reason_code": "EXPIRED",
+                        "review_note": "Your food safety certificate has expired. Upload the renewed one."})
+    add(
+        "restaurant_application_changes_requested",
+        "Sent back for changes: the food safety certificate was rejected with its reason and "
+        "the owner redoes exactly that document (`DOCUMENTS_REJECTED`).",
+        changes,
+        ("error-path",),
+    )
+    add(
+        "restaurant_application_no_certificate",
+        "No halal certificate uploaded at all: `halal_certificate: null`, no "
+        "`HALAL_CERTIFICATE` document, and the profile has no `halal` object (no badge, "
+        "never an optimistic one). Blocked until one is uploaded and approved.",
+        application("no-cert", "DOCUMENTS_REVIEW", {"HALAL_CERTIFICATE": None}, cert=None, halal=None,
+                    assigned_admin_id=REVIEWER, review_lock_expires_at=ts(25 * MINUTE)),
+        ("halal", "edge"),
+    )
+
+    _error(
+        reg, "error_review_lock_lost", 409, "REVIEW_LOCK_LOST",
+        "Your review lock expired and another admin has this application.",
+        "Deciding after the review lock passed to someone else. Nothing was applied; the "
+        "screen reloads the application read-only. Contract-only: `services/hg` defines the "
+        "code but does not enforce the lock on decisions yet.",
+        ["decideRestaurantApplication", "decideRiderApplication"], extra_tags=("admin",),
+    )
+    _error(
+        reg, "error_precondition_not_met", 409, "PRECONDITION_NOT_MET",
+        "The application is not yet approvable.",
+        "Approving a restaurant with live blockers. `details.blockers` is the list "
+        "`services/hg` computes, verbatim; the screen lists them. (A rider application "
+        "answers the same body with 422.)",
+        ["decideRestaurantApplication"],
+        details={"blockers": ["Required document not approved: FOOD_SAFETY", "No approved halal certificate"]},
+        extra_tags=("admin",),
+    )
+
+
+def _admin_rider_applications(reg) -> None:
+    approved = reg.fixtures["rider_application_approved"].payload
+    ops = ["getRiderApplication", "takeNextRiderApplication"]
+
+    def application(label, *, vehicle_type="CAR", vehicle=None, docs=None, age=32, **over):
+        app = copy.deepcopy(approved)
+        documents = []
+        for doc in (docs if docs is not None else app["documents"]):
+            doc = copy.deepcopy(doc)
+            doc["state"] = "IN_REVIEW"
+            doc["reviewed_at"] = None
+            documents.append(doc)
+        app.update({
+            "vehicle_type": vehicle_type,
+            "onboarding_state": "DOCUMENTS_REVIEW",
+            "assigned_admin_id": REVIEWER,
+            "review_lock_expires_at": ts(25 * MINUTE),
+            "submitted_at": ts(-20 * HOUR),
+            "sla_due_at": ts(28 * HOUR),
+            "documents": documents,
+            "computed_age_years": age,
+            # services/hg: no document approved yet is itself a blocker.
+            "blockers": (["Rider is under 18"] if age < 18 else []) + ["No approved identity/vehicle document"],
+        })
+        if vehicle is not None or vehicle_type != "CAR":
+            app["vehicle"] = vehicle
+        app.update(over)
+        return app
+
+    def add(name, note, payload, extra_tags=()):
+        reg.add(name, "admin", "RiderApplication", note, payload, operations=ops,
+                tags=["admin", "review-queue", "rider", *extra_tags])
+
+    template = approved["documents"]
+    by_type = {d["doc_type"]: d for d in template}
+
+    def light_docs():
+        out = []
+        for t in ("GOVERNMENT_ID", "WORK_ELIGIBILITY", "PROFILE_PHOTO"):
+            doc = copy.deepcopy(by_type.get(t) or by_type["WORK_ELIGIBILITY"])
+            doc["doc_type"] = t
+            doc["id"] = uuid_for(f"doc:rider:{t}:light")
+            if t == "PROFILE_PHOTO":
+                doc["valid_until"] = None
+            out.append(doc)
+        return out
+
+    def light_vehicle(kind):
+        return {"id": uuid_for(f"vehicle:{kind}"), "vehicle_type": kind, "make": None, "model": None,
+                "year": None, "colour": None, "licence_plate": None, "is_active": True}
+
+    young = application("under-18", vehicle_type="BICYCLE", vehicle=light_vehicle("BICYCLE"), docs=light_docs(), age=17)
+    young["profile"]["date_of_birth"] = "2009-05-02"
+    add(
+        "rider_application_under_18",
+        "The ID's date of birth makes the rider 17 (`computed_age_years: 17`), so the first "
+        "blocker is \"Rider is under 18\". Approval is refused and no role can override it "
+        "(`error_rider_under_18`).",
+        young,
+        ("error-path",),
+    )
+    for attempt, note in [
+        (3, "The third attempt: the rider was sent back twice before. The reviewer sees the "
+            "attempt number next to the name."),
+        (4, "A fourth attempt. The contract sets no cap on attempts; the number is shown so "
+            "the reviewer can judge a repeat applicant."),
+    ]:
+        add(f"rider_application_attempt_{attempt}", note, application(f"attempt-{attempt}", attempt_number=attempt))
+    add(
+        "rider_application_bicycle",
+        "A bicycle courier: no plate, make or model, and the light document set (government "
+        "ID, work eligibility, photo) instead of licence, registration and insurance.",
+        application("bicycle", vehicle_type="BICYCLE", vehicle=light_vehicle("BICYCLE"), docs=light_docs()),
+    )
+    add(
+        "rider_application_on_foot",
+        "A courier on foot: the vehicle row carries only its type, every vehicle field null, "
+        "and the light document set.",
+        application("on-foot", vehicle_type="ON_FOOT", vehicle=light_vehicle("ON_FOOT"), docs=light_docs()),
+    )
+    add(
+        "rider_application_claimed_by_other",
+        "Claimed by another admin, whose lock runs for 9 more minutes. Read only here; "
+        "deciding would be `409 REVIEW_LOCK_LOST`.",
+        application("claimed", assigned_admin_id=OTHER_ADMIN, review_lock_expires_at=ts(9 * MINUTE)),
+    )
+
+
+# --- Orders ----------------------------------------------------------------------- #
+
+def _admin_orders(reg, synth) -> None:
+    from dom_orders import (ADMIN_STAFF, ORDER_STATES, SUPPORT_AGENT, _money_event, _money_timeline,
+                            chargeback, customer_order, order_admin_view)
+    from world import halal_badge
+
+    halal_by_state = {"CANCELLED": "EXPIRING_SOON", "REJECTED": "EXPIRED", "FAILED": "UNVERIFIED"}
+    rows = []
+    for state in ORDER_STATES:
+        order = customer_order(state, label=f"admin-list-{state.lower()}")
+        order["code"] = customer_order(state)["code"]
+        row = _summary(order)
+        row["id"] = uuid_for(f"order:{state.lower()}")
+        if state in halal_by_state:
+            row["restaurant"]["halal"] = halal_badge(halal_by_state[state])
+        if state == "RESOLVED":
+            row["restaurant"].pop("halal", None)
+        rows.append(row)
+    reg.add(
+        "order_admin_list_every_state",
+        "orders",
+        "array<OrderSummary>",
+        "`listOrdersAdmin` with one order in each of the 14 `OrderState` values. The "
+        "restaurants' halal badges cover all four `HalalDisplayState` values (cancelled: "
+        "expiring soon, rejected: expired, failed: unverified) and the resolved order's "
+        "restaurant has no `halal` object at all: no badge, never an optimistic one, and "
+        "never red.",
+        rows,
+        operations=["listOrdersAdmin"],
+        meta={"next_cursor": None, "has_more": False, "total": len(rows)},
+        tags=["admin", "order-state-matrix", "halal-state-matrix", "dense"],
+    )
+
+    def disputed(k):
+        order = customer_order("DISPUTED", label=f"disputed-{k}")
+        order["code"] = f"HG-D{k:02d}K-{(k % 9) + 1}T"
+        order["placed_at"] = ts(-(k + 1) * 5 * HOUR)
+        return _summary(order)
+
+    page_1 = [disputed(k) for k in range(20)]
+    page_2 = [disputed(k) for k in range(20, 27)]
+    reg.add(
+        "order_admin_list_disputed_page_1",
+        "orders",
+        "array<OrderSummary>",
+        "`listOrdersAdmin?state=DISPUTED`, first page: 20 disputed orders, newest first, "
+        "`has_more: true`. The next page is `order_admin_list_disputed_page_2`.",
+        page_1,
+        operations=["listOrdersAdmin"],
+        meta={"next_cursor": "01K4SA2D7H8V7Q2R3T5Y6M8N9P", "has_more": True, "total": None},
+        tags=["admin", "dense"],
+    )
+    reg.add(
+        "order_admin_list_disputed_page_2",
+        "orders",
+        "array<OrderSummary>",
+        "The last page of disputed orders: seven more, `has_more: false`.",
+        page_2,
+        operations=["listOrdersAdmin"],
+        meta={"next_cursor": None, "has_more": False, "total": None},
+        tags=["admin"],
+    )
+
+    def dispatch(states):
+        out = []
+        for k, state in enumerate(states):
+            out.append({"state": state, "wave": None if state == "PENDING" else 1,
+                        "radius_m": None if state == "PENDING" else 3000, "rider_account_id": None,
+                        "offer_outcome": None, "at": ts(-(20 - k) * MINUTE)})
+        return out
+
+    early = {
+        "CREATED": [], "AUTHORIZED": [], "RESTAURANT_PENDING": ["PENDING"],
+        "PREPARING": ["PENDING", "SEARCHING"], "CANCELLED": ["PENDING"], "REJECTED": ["PENDING"],
+    }
+    notes = {state: describes for state, (_, _, _, describes) in ORDER_STATES.items()}
+    for state in ORDER_STATES:
+        if state in ("COMPLETED", "DISPUTED", "FAILED"):
+            continue  # order_admin_view_completed / _disputed / _failed_no_rider
+        over = {"dispatch_history": dispatch(early[state])} if state in early else {}
+        view = order_admin_view(synth, state, **over)
+        reg.add(
+            f"order_admin_view_{state.lower()}",
+            "orders",
+            "OrderAdminView",
+            f"The staff projection of an order in `{state}`. {notes[state]}",
+            view,
+            operations=["getOrderAdmin"],
+            tags=["admin", "order-state-matrix"],
+        )
+
+    residual = order_admin_view(synth, "COMPLETED")
+    residual["internal_money"]["ledger_residual_cents"] = 140
+    reg.add(
+        "order_admin_view_ledger_residual",
+        "orders",
+        "OrderAdminView",
+        "An order whose ledger does not sum to zero (`ledger_residual_cents: 140`). The "
+        "deferred `SUM = 0` trigger makes this unreachable in a healthy database, so the "
+        "view flags it as a reconciliation exception, never hides it.",
+        residual,
+        operations=["getOrderAdmin"],
+        tags=["admin", "money", "edge"],
+    )
+
+    held = order_admin_view(synth, "COMPLETED")
+    refund = copy.deepcopy(reg.fixtures["refund_failed"].payload)
+    refund["order_id"] = held["id"]
+    held["refunds"] = [refund]
+    held["payment"]["amount_refunded_cents"] = 0
+    held["money_timeline"] = _money_timeline(held["payment"], [
+        _money_event("REFUND_REQUESTED", ts(-40 * MINUTE), refund["amount_cents"] + refund["tax_cents"], "ACCOUNT",
+                     actor=uuid_for("account:customer:ayesha"), refund_id=refund["id"], reason=refund["note"]),
+        _money_event("REFUND_APPROVED", ts(-35 * MINUTE), refund["amount_cents"] + refund["tax_cents"], "ACCOUNT",
+                     actor=SUPPORT_AGENT, refund_id=refund["id"]),
+        _money_event("REFUND_SUBMITTED", ts(-34 * MINUTE), refund["amount_cents"] + refund["tax_cents"], "JOB",
+                     refund_id=refund["id"]),
+        _money_event("REFUND_FAILED", ts(-33 * MINUTE), refund["amount_cents"] + refund["tax_cents"], "WEBHOOK",
+                     refund_id=refund["id"], reason=refund["failure_message"]),
+        _money_event("REFUND_SET_ASIDE", ts(-2 * MINUTE), refund["amount_cents"] + refund["tax_cents"], "JOB",
+                     refund_id=refund["id"],
+                     reason="Failed eight times; set aside for a person to settle by hand. Ops was paged."),
+    ])
+    reg.add(
+        "order_admin_view_refund_failed_settlement_held",
+        "orders",
+        "OrderAdminView",
+        "A refund that Stripe refused, retried until it was set aside (`REFUND_SET_ASIDE`): "
+        "the money is held for a person to settle and the customer has not been paid. The "
+        "screen says so plainly; it never shows \"refunded\".",
+        held,
+        operations=["getOrderAdmin"],
+        tags=["admin", "money", "error-path"],
+    )
+
+    with_cb = order_admin_view(synth, "COMPLETED")
+    cb = chargeback("admin-view", "NEEDS_RESPONSE", notes=1, amount=with_cb["money"]["total_cents"])
+    cb["order_id"] = with_cb["id"]
+    cb["order_code"] = with_cb["code"]
+    with_cb["chargebacks"] = [cb]
+    with_cb["money_timeline"] = _money_timeline(with_cb["payment"], [
+        _money_event("CHARGEBACK_OPENED", cb["opened_at"], cb["amount_cents"], "WEBHOOK",
+                     chargeback_id=cb["id"], reason=cb["reason"]),
+        _money_event("CHARGEBACK_EVIDENCE_NOTE", cb["evidence_notes"][0]["created_at"], None, "ACCOUNT",
+                     actor=SUPPORT_AGENT, chargeback_id=cb["id"]),
+    ])
+    reg.add(
+        "order_admin_view_chargeback",
+        "orders",
+        "OrderAdminView",
+        "A completed order with an open chargeback for the full amount, waiting for evidence "
+        "(due in five days), with one evidence note.",
+        with_cb,
+        operations=["getOrderAdmin"],
+        tags=["admin", "money"],
+    )
+
+    revealed = order_admin_view(synth, "COMPLETED", pii_revealed=True)
+    reg.add(
+        "order_admin_view_pii_revealed",
+        "orders",
+        "OrderAdminView",
+        "`getOrderAdmin?reveal_pii=true&justification=...`: `pii_revealed: true`, the full "
+        "delivery address with unit and buzzer, the delivery notes and the special "
+        "instructions. The reveal and its justification are audited.",
+        revealed,
+        operations=["getOrderAdmin"],
+        tags=["admin", "pii"],
+    )
+    masked = order_admin_view(synth, "COMPLETED")
+    masked["delivery_address"].update({"line1": "Harbour Street", "unit": None, "buzzer": None, "delivery_notes": None})
+    masked["special_instructions"] = None
+    reg.add(
+        "order_admin_view_masked",
+        "orders",
+        "OrderAdminView",
+        "The default staff view with `pii_revealed: false`: street only, no unit, buzzer, "
+        "notes or special instructions. \"Reveal\" asks for a justification first. "
+        "Contract-only: `services/hg` sends the same fields whatever `pii_revealed` says today.",
+        masked,
+        operations=["getOrderAdmin"],
+        tags=["admin", "pii"],
+    )
+
+    _error(
+        reg, "error_order_admin_cancel_illegal_transition", 409, "ILLEGAL_TRANSITION",
+        "The order cannot be cancelled in its current state.",
+        "`cancelOrderAdmin` on an order that can no longer be cancelled (it was delivered or "
+        "already ended). Nothing changed; the screen re-reads the order.",
+        ["cancelOrderAdmin"], extra_tags=("admin",),
+    )
+    _error(
+        reg, "error_order_admin_cancel_rate_limited", 429, "RATE_LIMITED",
+        "Too many cancellations. Please wait before trying again.",
+        "Cancelling too many orders too fast. `details.retry_after_seconds` is the wait. "
+        "Contract-only: `services/hg` has no rate limit on this route yet.",
+        ["cancelOrderAdmin"], details={"retry_after_seconds": 30}, extra_tags=("admin",),
+    )
+
+
+def _admin_refunds(reg) -> None:
+    from dom_orders import _admin_refund
+
+    failed = [
+        _admin_refund("FAILED"),
+        {**_admin_refund("FAILED"), "id": uuid_for("admin-refund:failed-2"),
+         "order_id": uuid_for("order:failed-refund-2"), "order_code": "HG-F2RD-8K",
+         "failure_message": "Stripe refused the refund: the card account is closed.",
+         "requested_at": ts(-3 * HOUR)},
+    ]
+    reg.add(
+        "admin_refund_queue_failed",
+        "refunds",
+        "array<AdminRefund>",
+        "`listRefundsAdmin?state=FAILED`: two refunds Stripe refused, each with its "
+        "`failure_message`. The customer has not been paid on either.",
+        failed,
+        operations=["listRefundsAdmin"],
+        meta={"next_cursor": None, "has_more": False, "total": len(failed)},
+        tags=["admin", "money", "error-path"],
+    )
+
+    refunds = ("admin", "money")
+    _error(
+        reg, "error_refund_conflict", 409, "REFUND_EXCEEDS_CAPTURED",
+        "Refund of 1915 would exceed the captured 10684 (already refunded 9390).",
+        "A partial refund on an order that has already been mostly refunded: this one would "
+        "take the total past what was captured. Nothing was refunded; the screen shows "
+        "what is left.",
+        ["issueRefund"], extra_tags=refunds,
+    )
+    _error(
+        reg, "error_refund_goodwill_exceeds", 409, "REFUND_EXCEEDS_CAPTURED",
+        "Refund of 12000 would exceed the captured 10684 (already refunded 0).",
+        "A goodwill amount larger than the order's captured payment. Goodwill is the only "
+        "refund with a typed amount, and it is still capped by what was captured.",
+        ["issueRefund"], extra_tags=refunds,
+    )
+    _error(
+        reg, "error_refund_daily_cap", 409, "DAILY_CAP_EXCEEDED",
+        "This refund would take you past your 24-hour refund limit.",
+        "Issuing a refund past the caller's 24-hour limit. Contract-only for `issueRefund`: "
+        "`services/hg` escalates such a refund to an approval request (202, "
+        "`refund_approval_request_pending`) instead; it answers this code when approving "
+        "(`error_refund_approver_over_daily_limit`).",
+        ["issueRefund"], extra_tags=refunds,
+    )
+    _error(
+        reg, "error_refund_not_refundable", 409, "PAYMENT_NOT_REFUNDABLE",
+        "This order was never captured; cancel it instead of refunding.",
+        "A refund on an order whose payment was never captured (it was voided). There is "
+        "nothing to refund; cancel the order instead.",
+        ["issueRefund", "createRefund"], extra_tags=refunds,
+    )
+
+
+def _admin_staff(reg) -> None:
+    def member(label, name, email, role, status, *, mfa=True, last_login=-2 * HOUR, created=-90 * DAY):
+        return {
+            "id": uuid_for(f"staff:{label}"),
+            "email": email,
+            "full_name": name,
+            "role": role,
+            "status": status,
+            "mfa_enrolled": mfa,
+            "last_login_at": ts(last_login) if last_login is not None else None,
+            "created_at": ts(created),
+        }
+
+    only = [member("seed-super", "Amina Siddiqui", "amina.siddiqui@halalgoes.ca", "SUPER_ADMIN", "ACTIVE")]
+    reg.add(
+        "staff_list_one_super_admin",
+        "admin",
+        "array<StaffUser>",
+        "The day-one console: one super admin and nobody else. Deactivating or demoting the "
+        "last super admin is refused, so those actions are not offered on this row.",
+        only,
+        operations=["listStaff"],
+        meta={"next_cursor": None, "has_more": False, "total": 1},
+        tags=["admin", "edge"],
+    )
+
+    edge = [
+        member("edge-long", "Muhammad Abdul-Rahman ibn Khalid Al-Siddiqui Farooqui",
+               "muhammad.abdulrahman.alsiddiqui.farooqui@operations.halalgoes.ca", "ADMIN", "ACTIVE"),
+        member("edge-never", "Hamza Siddiqui", "hamza.siddiqui@halalgoes.ca", "SUPPORT_AGENT", "INVITED",
+               mfa=False, last_login=None, created=-15 * DAY),
+        member("edge-no-mfa", "Zainab Osman", "zainab.osman@halalgoes.ca", "SUPPORT_AGENT", "ACTIVE",
+               mfa=False, last_login=-26 * DAY),
+        member("edge-suspended", "Tariq Ali", "tariq.ali@halalgoes.ca", "ADMIN", "SUSPENDED", last_login=-40 * DAY),
+        member("edge-deactivated", "Rania Haddad", "rania.haddad@halalgoes.ca", "SUPPORT_AGENT", "DEACTIVATED",
+               last_login=-200 * DAY, created=-400 * DAY),
+    ]
+    reg.add(
+        "staff_list_edge_rows",
+        "admin",
+        "array<StaffUser>",
+        "Rows that break layouts: a very long name and email, an invitee who never signed "
+        "in (`last_login_at: null`, no two-step sign-in), an active agent without two-step "
+        "sign-in, a suspended admin and a long-deactivated agent.",
+        edge,
+        operations=["listStaff"],
+        meta={"next_cursor": None, "has_more": False, "total": len(edge)},
+        tags=["admin", "edge", "overflow"],
+    )
+
+    names = [("Imran Cheema", "SUPPORT_AGENT"), ("Khadija Nasser", "SUPPORT_AGENT"), ("Omar Farooq", "ADMIN"),
+             ("Sana Ibrahim", "SUPPORT_AGENT"), ("Yusuf Rahman", "SUPPORT_AGENT")]
+    page_2 = [member(f"page-2-{k}", name, name.lower().replace(" ", ".") + "@halalgoes.ca", role, "ACTIVE",
+                     last_login=-(k + 3) * HOUR, created=-(120 + k) * DAY)
+              for k, (name, role) in enumerate(names)]
+    reg.add(
+        "staff_list_page_2",
+        "admin",
+        "array<StaffUser>",
+        "The second and last page of a long staff list: five more active members, "
+        "`has_more: false`.",
+        page_2,
+        operations=["listStaff"],
+        meta={"next_cursor": None, "has_more": False, "total": None},
+        tags=["admin"],
+    )
+
+
+def _admin_system(reg) -> None:
+    reg.add(
+        "readiness_not_ready_503",
+        "platform",
+        "ReadinessStatus",
+        "`/health/ready` with Valkey unreachable: `503`, `ready: false`, the failing "
+        "dependency named with its error. `services/hg` sends this `ReadinessStatus` body "
+        "with the 503 (the status and the body always agree); the contract's 503 says error "
+        "envelope, so a client reads `ready` from either.",
+        {
+            "ready": False,
+            "dependencies": [
+                {"name": "postgres", "ready": True, "detail": None},
+                {"name": "redis", "ready": False, "detail": "dial tcp 10.0.1.12:6379: connect: connection refused"},
+                {"name": "minio", "ready": True, "detail": None},
+            ],
+        },
+        operations=["getReadiness"],
+        status=503,
+        tags=["platform", "error-path", "degraded"],
+    )
+    reg.add(
+        "health_version",
+        "platform",
+        "HealthStatus",
+        "`/health` on a released build: `version` is the release the replica runs "
+        "(`HG_SERVICE_VERSION`; `dev` locally), `started_at` when this process started. The "
+        "console footer shows both.",
+        {"status": "ok", "version": "1.0.0+a3268a23", "started_at": ts(-3 * DAY - 4 * HOUR)},
+        operations=["getHealth"],
+        tags=["platform"],
     )

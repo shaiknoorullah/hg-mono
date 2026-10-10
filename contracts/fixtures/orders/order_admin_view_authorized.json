@@ -1,0 +1,241 @@
+{
+  "scenario": "order_admin_view_authorized",
+  "domain": "orders",
+  "schema": "OrderAdminView",
+  "describes": "The staff projection of an order in `AUTHORIZED`. Card authorised, not captured. The restaurant has not been asked yet. Cancellation is still free.",
+  "operations": [
+    "getOrderAdmin"
+  ],
+  "status": 200,
+  "tags": [
+    "admin",
+    "order-state-matrix"
+  ],
+  "payload": {
+    "id": "21954fad-92ce-4c5d-ac11-69271e1a8e13",
+    "code": "HG-AUED-10X",
+    "state": "AUTHORIZED",
+    "state_since": "2026-08-10T18:40:41.412Z",
+    "deadline_at": "2026-08-10T18:55:11.412Z",
+    "quote_id": "5edd725c-a646-48e0-ae3e-21acc61518cf",
+    "restaurant": {
+      "id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+      "name": "Karachi Kitchen",
+      "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/karachi-kitchen.webp",
+      "halal": {
+        "display_state": "CERTIFIED",
+        "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+        "expires_on": "2027-03-09"
+      }
+    },
+    "lines": [
+      {
+        "line_no": 1,
+        "menu_item_id": "e3723319-f51b-42f0-a693-8c9eb954bb0f",
+        "name": "Chicken Biryani",
+        "variant_name": null,
+        "addons": [],
+        "quantity": 1,
+        "special_request": null,
+        "unit_price_cents": 1695,
+        "line_total_cents": 1695,
+        "currency": "CAD"
+      },
+      {
+        "line_no": 2,
+        "menu_item_id": "260778de-cee3-4a79-ad10-f79f5e9ab98e",
+        "name": "Beef Nihari",
+        "variant_name": "Full",
+        "addons": [],
+        "quantity": 1,
+        "special_request": "Extra gravy on the side",
+        "unit_price_cents": 3695,
+        "line_total_cents": 3695,
+        "currency": "CAD"
+      },
+      {
+        "line_no": 3,
+        "menu_item_id": "456616ee-e1fc-4a94-aa83-3b1c726ff23d",
+        "name": "Chicken Karahi (Half)",
+        "variant_name": null,
+        "addons": [
+          {
+            "addon_id": "8e05bcf1-8b4f-4578-ac6d-92f90d1cdf6f",
+            "addon_name": "Garlic naan",
+            "addon_quantity": 2,
+            "addon_price_cents": 349
+          }
+        ],
+        "quantity": 1,
+        "special_request": null,
+        "unit_price_cents": 2597,
+        "line_total_cents": 2597,
+        "currency": "CAD"
+      }
+    ],
+    "money": {
+      "subtotal_cents": 7987,
+      "discount_cents": 0,
+      "delivery_fee_cents": 449,
+      "service_fee_cents": 399,
+      "tax_lines": [
+        {
+          "jurisdiction_code": "CA-ON",
+          "tax_kind": "HST",
+          "statutory_label": "HST (13%)",
+          "rate": "0.13",
+          "base_cents": 8835,
+          "amount_cents": 1149,
+          "rebate_applied": false,
+          "remittable_by": "RESTAURANT"
+        }
+      ],
+      "tax_total_cents": 1149,
+      "tip_cents": 700,
+      "total_cents": 10684,
+      "currency": "CAD"
+    },
+    "delivery_address": {
+      "id": "926a8c05-3beb-4be0-af96-caf04f7299df",
+      "label": "Home",
+      "line1": "88 Harbour Street",
+      "line2": null,
+      "unit": "Unit 4211",
+      "buzzer": "4211",
+      "city": "Toronto",
+      "province": "ON",
+      "postal_code": "M5J 0C3",
+      "country": "CA",
+      "latitude": 43.6412,
+      "longitude": -79.381,
+      "timezone": "America/Toronto",
+      "delivery_notes": "Buzz the unit, then leave it at the door. Please don't knock.",
+      "is_default": true
+    },
+    "delivery_instructions": [
+      "LEAVE_AT_DOOR",
+      "DO_NOT_RING_BELL"
+    ],
+    "special_instructions": "Please leave it on the mat, not the shoe rack.",
+    "rider": null,
+    "dispatch_state": null,
+    "cancel_reason": null,
+    "reject_reason": null,
+    "eta_at": null,
+    "can_cancel": true,
+    "placed_at": "2026-08-10T18:10:11.412Z",
+    "accepted_at": null,
+    "ready_at": null,
+    "picked_up_at": null,
+    "delivered_at": null,
+    "completed_at": null,
+    "timeline": [
+      {
+        "from_state": null,
+        "to_state": "CREATED",
+        "actor_kind": "CUSTOMER",
+        "reason": null,
+        "at": "2026-08-10T18:10:11.412Z"
+      },
+      {
+        "from_state": "CREATED",
+        "to_state": "AUTHORIZED",
+        "actor_kind": "SYSTEM",
+        "reason": null,
+        "at": "2026-08-10T18:10:15.412Z"
+      }
+    ],
+    "dispatch_history": [],
+    "payment": {
+      "order_id": "21954fad-92ce-4c5d-ac11-69271e1a8e13",
+      "state": "REQUIRES_CAPTURE",
+      "kind": "ORDER",
+      "amount_authorized_cents": 10684,
+      "amount_captured_cents": 0,
+      "amount_refunded_cents": 0,
+      "currency": "CAD",
+      "card_brand": "visa",
+      "card_last4": "4242",
+      "wallet": null,
+      "failure_code": null,
+      "decline_code": null,
+      "client_secret": null,
+      "authorized_at": "2026-08-10T18:11:11.412Z",
+      "captured_at": null
+    },
+    "refunds": [],
+    "internal_money": {
+      "commission_cents": 0,
+      "restaurant_net_cents": 7987,
+      "rider_earnings_cents": 1149,
+      "platform_gross_cents": 399,
+      "ledger_residual_cents": 0,
+      "ledger_entries": [
+        {
+          "batch_id": "4c9dcdca-a846-4990-a59e-071d5e4734cc",
+          "batch_kind": "CAPTURE",
+          "account": "CUSTOMER_CHARGES",
+          "component": "SUBTOTAL",
+          "counterparty_type": "RESTAURANT",
+          "counterparty_id": "2207c761-e60a-464f-ace1-b4098f93af39",
+          "amount_cents": -10684,
+          "currency": "CAD",
+          "memo": "Memo",
+          "posted_at": "2026-08-10T18:32:11.412Z"
+        },
+        {
+          "batch_id": "5dad300e-723b-4394-a194-af4d4f5091f7",
+          "batch_kind": "CAPTURE",
+          "account": "RESTAURANT_PAYABLE",
+          "component": "SUBTOTAL",
+          "counterparty_type": "RESTAURANT",
+          "counterparty_id": "1360c189-e95a-4282-ae5c-bf5d88aaa52c",
+          "amount_cents": 7987,
+          "currency": "CAD",
+          "memo": "Memo",
+          "posted_at": "2026-08-10T18:32:11.412Z"
+        },
+        {
+          "batch_id": "471d65c3-3f8c-4a2b-a121-5e7c6ee37f15",
+          "batch_kind": "CAPTURE",
+          "account": "RIDER_PAYABLE",
+          "component": "TIP",
+          "counterparty_type": "RESTAURANT",
+          "counterparty_id": "c86875b4-4c1f-4c73-aa28-b175199354db",
+          "amount_cents": 700,
+          "currency": "CAD",
+          "memo": "Memo",
+          "posted_at": "2026-08-10T18:32:11.412Z"
+        },
+        {
+          "batch_id": "5cdf5fe6-c197-4ebe-a33e-d9bd4c536ccd",
+          "batch_kind": "CAPTURE",
+          "account": "PLATFORM_REVENUE",
+          "component": "SERVICE_FEE",
+          "counterparty_type": "RESTAURANT",
+          "counterparty_id": "4dbbc4c8-a022-455f-af22-5b05e41c28b0",
+          "amount_cents": 399,
+          "currency": "CAD",
+          "memo": "Memo",
+          "posted_at": "2026-08-10T18:32:11.412Z"
+        }
+      ],
+      "currency": "CAD"
+    },
+    "pii_revealed": false,
+    "chargebacks": [],
+    "money_timeline": [
+      {
+        "kind": "PAYMENT_AUTHORISED",
+        "at": "2026-08-10T18:11:11.412Z",
+        "amount_cents": 10684,
+        "currency": "CAD",
+        "actor_kind": "SYSTEM",
+        "actor_account_id": null,
+        "refund_id": null,
+        "chargeback_id": null,
+        "reason": null
+      }
+    ]
+  }
+}
