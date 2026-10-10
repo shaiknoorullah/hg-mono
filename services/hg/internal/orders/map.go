@@ -26,6 +26,7 @@ func quoteToDTO(q *Quote) quoteDTO {
 			Quantity: l.Quantity, BasePriceCents: l.BasePriceCents, VariantPartCents: l.VariantPartCents,
 			AddonsPartCents: l.AddonsPartCents, LineUnitCents: l.LineUnitCents, LineTotalCents: l.LineTotalCents,
 			SpecialRequest: l.SpecialRequest, TaxCategory: l.TaxCategory, Addons: []quoteLineAddonDTO{},
+			Variants: lineVariantsToDTO(l.Variants),
 		}
 		for _, a := range l.Addons {
 			ld.Addons = append(ld.Addons, quoteLineAddonDTO{
@@ -75,6 +76,7 @@ func cartToDTO(c *Cart) cartDTO {
 			ID: l.ID, MenuItemID: l.MenuItemID, Name: l.Name, ImageURL: l.ImageURL, Quantity: l.Quantity,
 			SpecialRequest: l.SpecialRequest, UnitPriceCents: l.UnitPriceCents,
 			LineTotalCents: l.LineTotalCents, Currency: l.Currency, Addons: []selectedAddonDTO{},
+			Variants:     lineVariantsToDTO(l.Variants),
 			Availability: cartAvailabilityDTO{IsAvailable: l.IsAvailable, Reason: l.UnavailReason, CurrentPriceCents: l.CurrentPriceCents},
 		}
 		if l.Variant != nil {
@@ -195,6 +197,7 @@ func orderViewToDTO(v *OrderView) orderCustomerViewDTO {
 			LineNo: l.LineNo, MenuItemID: l.MenuItemID, Name: l.Name, VariantName: l.VariantName,
 			Quantity: l.Quantity, SpecialRequest: l.SpecialRequest, UnitPriceCents: l.UnitPriceCents,
 			LineTotalCents: l.LineTotalCents, Currency: l.Currency, Addons: []quoteLineAddonDTO{},
+			Variants: lineVariantsToDTO(l.Variants),
 		}
 		for _, a := range l.Addons {
 			ld.Addons = append(ld.Addons, quoteLineAddonDTO{
