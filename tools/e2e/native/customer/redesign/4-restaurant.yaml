@@ -1,5 +1,5 @@
 # Customer redesign WP4 (#656), CI: the restaurant page (D5) and its certification sheet (D6) for
-# the seeded world. Amina is still signed in from 1-sign-in.yaml. RESTAURANT opens from Home; the
+# the seeded world. Amina is still signed in from 1-sign-in.yaml, in the same app process. RESTAURANT opens from Home; the
 # expired one opens by deep link (world.sql's fixed id) and is the not-available page, with no
 # halal reason. The seeded certificate has no file in storage, so the viewer (D7) is the device
 # lab's: devworld/4-restaurant.yaml.
@@ -12,9 +12,19 @@ env:
 # The legacy rider app, left online by the cross-app flow, opens its offer screen over this app
 # when an offer re-waves; stopped, it stays out of the way.
 - stopApp: com.halalgoes.rider.dev
+# The app holds its session in memory only (src/api/token.ts), so a relaunch signs out: bring the
+# running app back without restarting it, then step back to Home if a flow left it deeper.
 - launchApp:
-    permissions:
-      all: allow
+    stopApp: false
+- repeat:
+    while:
+      notVisible:
+        id: "Home-title"
+    times: 4
+    commands:
+      - tapOn:
+          id: "AppBar-back"
+          optional: true
 - extendedWaitUntil:
     visible:
       id: "Home-title"
@@ -36,8 +46,11 @@ env:
     visible: "Halal certification"
     timeout: 15000
 - takeScreenshot: redesign-wp4-02-cert-sheet
+# Back closes the sheet (a modal handles it); the page's own back returns to Home (Android's Back
+# on a pushed page leaves the app until #783).
 - back
-- back
+- tapOn:
+    id: "AppBar-back"
 
 # Expired: never listed, no halal reason given.
 - openLink: "hgcustomer://restaurant/${EXPIRED_RESTAURANT_ID}"

@@ -1,7 +1,8 @@
 # Customer redesign WP1 (#656), CI, journey J1: the seeded customer (Amina) signs in. This is the
 # only flow here that uses CODE: 1-ask-for-code.yaml opened the challenge and run.sh read its code
 # from the API's log. Asking again inside the open challenge sends nothing new, so CODE still holds.
-# The session it leaves is the one 2-home, 4-restaurant and 9-orders reuse (they never clear state).
+# The session it leaves lives in the app's memory only; the flows after it keep the app running
+# (launchApp stopApp: false) to reuse it.
 # Env: PHONE, CODE.
 appId: com.halalgoes.customer.dev
 name: customer redesign, sign in (returning customer)
