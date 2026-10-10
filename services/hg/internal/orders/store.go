@@ -171,6 +171,7 @@ var (
 	ErrActiveOrderExists   = errors.New("an active order already exists")
 	ErrIllegalTransition   = errors.New("illegal state transition")
 	ErrProvinceNotServed   = errors.New("province not served")
+	ErrAddressOutOfRange   = errors.New("delivery address is outside the restaurant's delivery radius")
 )
 
 // resolvedContext is everything Compute needs, read from Postgres inside the
