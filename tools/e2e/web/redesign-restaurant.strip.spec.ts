@@ -13,6 +13,7 @@ import { execSync } from 'node:child_process';
 import { copyFileSync, mkdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { DEVWORLD, MOCK_API, MODE, REAL_API, documentScrolls, openSignedIn } from './redesign-restaurant.support';
+import { projectMeta } from './mode';
 
 const SHOTS = process.env.WP3_SHOTS_DIR;
 
@@ -192,7 +193,7 @@ test.describe('restaurant redesign · new-order strip', () => {
     await goLive(page, info);
     const group = page.getByRole('group', { name: /^New orders, soonest deadline first/ });
     // Three in full at 1440; on the tablet two fit beside the overflow control.
-    const inFull = info.project.name === 'tablet' ? 2 : 3;
+    const inFull = projectMeta().viewport === 'tablet' ? 2 : 3;
     await expect(group.locator('[data-offer-tile]')).toHaveCount(inFull);
     const order = await group.locator('[data-offer-tile]').evaluateAll((els) => els.map((e) => e.getAttribute('aria-label')!.split(',')[0]));
     expect(order).toEqual(['New order C8T4', 'New order B3M9', 'New order A7K2'].slice(0, inFull));
