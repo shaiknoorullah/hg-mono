@@ -26,6 +26,10 @@ func TestConformance_SpecLoadsAndEnumerates(t *testing.T) {
 	// reactivates its own menu category — the round-2 decision that restaurants
 	// edit their own menu from launch, docs/decisions/README.md "How restaurants
 	// get their menu onto HalalGoes and change it") +
+	// suggestAddresses/getPlaceAddress/reverseGeocode (address search for the
+	// location picker, forwarded to Mapbox — the round-2 decision on map address
+	// search, docs/decisions/README.md "Launch scope and contract", issue #179;
+	// no handler yet) +
 	// createPayoutRun/listPayoutRuns/getPayoutRun (issue #251) +
 	// listRefundsAdmin/approveRefund/declineRefund and
 	// listChargebacks/getChargeback/addChargebackEvidenceNote (staff review
@@ -38,7 +42,7 @@ func TestConformance_SpecLoadsAndEnumerates(t *testing.T) {
 	// whose code cannot be used, with a reason, a case and an audit record — the only
 	// way past a handover code, security review on #183:
 	// https://github.com/shaiknoorullah/hg-mono/issues/183; no handler yet).
-	const wantOps = 169
+	const wantOps = 172
 	if got := len(spec.Operations); got != wantOps {
 		ids := make([]string, 0, len(spec.Operations))
 		for id := range spec.Operations {

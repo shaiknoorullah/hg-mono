@@ -4,6 +4,7 @@
  */
 import './application';
 import './dropoff';
+import './documents';
 import './earnings';
 import './home';
 import './offer';
