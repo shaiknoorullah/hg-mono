@@ -18,6 +18,7 @@ import { Glyph } from './icon';
 import { Spinner } from './spinner';
 import { Text } from './text';
 
+/** sm 36 (44 hit area) · md 44 · lg 56. */
 export type StepperSize = 'sm' | 'md' | 'lg';
 
 const button = cva('items-center justify-center', {
