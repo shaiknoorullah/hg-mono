@@ -1,0 +1,22 @@
+{
+  "scenario": "error_geocoder_unavailable",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`503` · `GEOCODER_UNAVAILABLE`. Mapbox is down, timed out or refused our key. The client shows the manual address form and the map pin with a notice, so address entry never becomes impossible.",
+  "operations": [
+    "suggestAddresses",
+    "getPlaceAddress",
+    "reverseGeocode"
+  ],
+  "status": 503,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "GEOCODER_UNAVAILABLE",
+      "message": "Address search isn't working right now. You can still type your address and place the pin.",
+      "request_id": "04KWDBWPNBT2M87R9JMBY80N44"
+    }
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "scenario": "place_address_poi",
+  "domain": "geo",
+  "schema": "GeocodedAddress",
+  "describes": "A picked building by name: `name` is set and the street address comes with it.",
+  "operations": [
+    "getPlaceAddress"
+  ],
+  "status": 200,
+  "tags": [
+    "geo"
+  ],
+  "payload": {
+    "kind": "POI",
+    "name": "CN Tower",
+    "line1": "290 Bremner Boulevard",
+    "city": "Toronto",
+    "province": "ON",
+    "postal_code": "M5V 3L9",
+    "country": "CA",
+    "latitude": 43.6426,
+    "longitude": -79.3871,
+    "formatted": "CN Tower, 290 Bremner Boulevard, Toronto, Ontario M5V 3L9"
+  }
+}
