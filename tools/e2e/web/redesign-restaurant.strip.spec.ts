@@ -12,7 +12,7 @@ import { expect, test, type Page, type Request, type TestInfo } from '@playwrigh
 import { execSync } from 'node:child_process';
 import { copyFileSync, mkdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-import { MOCK_API, MODE, REAL_API, documentScrolls, openSignedIn } from './redesign-restaurant.support';
+import { DEVWORLD, MOCK_API, MODE, REAL_API, documentScrolls, openSignedIn } from './redesign-restaurant.support';
 
 const SHOTS = process.env.WP3_SHOTS_DIR;
 
@@ -326,7 +326,7 @@ async function orderState(page: Page, code: string): Promise<string | undefined>
 }
 
 test.describe('restaurant redesign · new-order strip · real API', () => {
-  test.skip(MODE !== 'real', 'drives devworld scenarios against services/hg');
+  test.skip(MODE !== 'real' || !DEVWORLD, 'drives devworld scenarios: real API with a devworld database (E2E_DEVWORLD=1)');
   test.describe.configure({ mode: 'serial' });
 
   // The customer persona may hold one active order, so each run starts from a fresh world:
