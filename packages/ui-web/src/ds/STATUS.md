@@ -42,9 +42,11 @@ Work packages: `plan/design-system.md` §4.1 on the read-only `claude/redesign-c
 | Modal (+ deprecated `Dialog`) | rebuilt (Radix Dialog) | W4 | confirm and alert only on web |
 | Toast | rebuilt | W4 | not Radix `Toast.Root` (it also renders inline); the hover and focus pause is kept by hand |
 | StatusTimeline (+ `ORDER_STATES`, `resolveTimeline`) | rebuilt | W4 | — |
-| HalalBadge, HalalShield | legacy | W5 | — |
-| HalalCertificationPanel | legacy | W5 | no `headingLevel` |
-| HalalChecklist (+ gate helpers) | legacy | W5 | — |
+| HalalShield | **rebuilt** | W5 | — (a CSS-length `size` goes to the style, not the SVG `width` attribute: the legacy bug, fixed) |
+| HalalBadge | **rebuilt** | W5 | — (amber EXPIRING_SOON with "· expires {d Mon}"; `operational` adds a pointer Tooltip) |
+| HalalCertificationPanel | **rebuilt** | W5 | — (adds `variant="restaurant"`, `density="compact"`, the `certificate_viewable=false` copy) |
+| Halal labels (`HALAL_CHECK_NAME`, `HALAL_REJECTION_REASONS`, `halalBadgeLabels`, …) | **rebuilt** (new) | W5 | — |
+| HalalChecklist (+ gate helpers) | legacy (kept) | W5 | the console uses `SevenChecks` + `DecisionBar`; the gate types are unchanged |
 | DataTable | missing | W6 (LyteNyte) | the legacy root `DataTable` has a different shape |
 | Rating | legacy | — | out of launch scope; do not extend |
 | Sheet, BottomNav | not on web | — | working tasks use DetailPanel; phones only |
@@ -77,3 +79,8 @@ Work packages: `plan/design-system.md` §4.1 on the read-only `claude/redesign-c
 | StickyFooter (= ActionBar) | rebuilt | W2 |
 | NavDrawer | rebuilt | W2 |
 | SectionNav | rebuilt | W2 |
+| SevenChecks (+ `sevenChecksRollup`) | rebuilt (new, packet P28) | W5 |
+| DecisionBar | rebuilt (new, packet P28) | W5 |
+| RiderChecklist | rebuilt (new, packet P29) | W5 |
+| JustifiedReveal | rebuilt (new, packet P30) | W5 |
+| IssuerCombobox (+ `ISSUER_STATUS_LABEL`) | rebuilt (new, packet P31; contract statuses) | W5 |
