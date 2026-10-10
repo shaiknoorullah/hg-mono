@@ -10,7 +10,8 @@ import { act, fireEvent, screen, waitFor, within } from '@testing-library/react-
 
 import { reportReachable, reportTransportFailure } from '../../data/connectivity';
 import { SCHEMES } from '../../test/render';
-import { startUpload } from '../uploads';
+import { setToken } from '../../../token';
+import { startUpload, uploadFor } from '../uploads';
 import { BICYCLE, apiError, bodies, doc, docs, keys, openDocuments, press, puts, scooterSet, start, stop, type } from './harness';
 
 afterEach(stop);
@@ -374,6 +375,82 @@ describe.each(SCHEMES)('documents (%s)', (scheme) => {
     await waitFor(() => expect(bodies('attachRiderDocument')).toHaveLength(2));
     expect(bodies('attachRiderDocument')[1]).toEqual({ doc_type: 'DRIVERS_LICENCE', stored_object_id: 'e5055f4b-3859-4fbf-a4bd-427822520eb5', expires_on: t.iso });
     expect(await screen.findByTestId('documents')).toBeTruthy();
+  });
+
+  it('a double tap on "Use this photo" uploads once and stays on Documents', async () => {
+    const t = nextYear();
+    const api = start({
+      scheme,
+      api: {
+        getRiderOnboardingStatus: PENDING,
+        listRiderDocuments: docs(...scooterSet().filter((d) => d.doc_type !== 'DRIVERS_LICENCE')),
+        attachRiderDocument: 'pending',
+      },
+    });
+    await openDocuments();
+    await press('doc-add-DRIVERS_LICENCE');
+    await press('capture-take');
+    await screen.findByTestId('capture-review');
+    type('expiry-day', t.day);
+    type('expiry-month', t.month);
+    type('expiry-year', t.year);
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('capture-use'));
+      fireEvent.press(screen.getByTestId('capture-use'));
+    });
+    // One pop: still on Documents (a second pop would land on the application hub).
+    expect(await screen.findByTestId('documents')).toBeTruthy();
+    await waitFor(() => expect(api.callsTo('attachRiderDocument')).toHaveLength(1));
+    expect(api.callsTo('createUpload')).toHaveLength(1);
+    expect(screen.queryByText('Finish your application')).toBeNull();
+  });
+
+  it('a double tap on Submit for review sends one request', async () => {
+    const api = start({ scheme, api: { getRiderOnboardingStatus: PENDING, listRiderDocuments: docs(...scooterSet()), submitRiderDocuments: 'rider_onboarding_documents_review' } });
+    await openDocuments();
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('documents-submit'));
+      fireEvent.press(screen.getByTestId('documents-submit'));
+    });
+    expect(await screen.findByText('Get told when we decide on your application')).toBeTruthy();
+    expect(api.callsTo('submitRiderDocuments')).toHaveLength(1);
+  });
+
+  it('add the expiry date, 5xx: says so, keeps the typed date, Save resends with the same key', async () => {
+    const t = nextYear();
+    start({
+      scheme,
+      api: {
+        getRiderOnboardingStatus: PENDING,
+        listRiderDocuments: () => docs(doc('DRIVERS_LICENCE', { valid_until: bodies('attachRiderDocument').length < 3 ? null : t.iso })),
+        attachRiderDocument: (_c, nth) => (nth === 1 ? apiError(500, 'INTERNAL_ERROR', 'Something went wrong on our side.') : { status: 201, body: { data: doc('DRIVERS_LICENCE') } }),
+      },
+    });
+    await openDocuments();
+    act(() => startUpload('DRIVERS_LICENCE', FILE, null));
+    await waitFor(() => expect(row('DRIVERS_LICENCE').getByText('Needs a date')).toBeTruthy());
+    await press('doc-row-DRIVERS_LICENCE');
+    await screen.findByTestId('document-add-expiry');
+    type('expiry-day', t.day);
+    type('expiry-month', t.month);
+    type('expiry-year', t.year);
+    await press('save-expiry');
+    expect(await screen.findByText('Something went wrong on our side. Try again.')).toBeTruthy();
+    expect(screen.getByTestId('expiry-year-field').props.value).toBe(t.year);
+    await press('save-expiry');
+    expect(await screen.findByTestId('documents')).toBeTruthy();
+    const [, failed, again] = keys('attachRiderDocument');
+    expect(again).toBe(failed);
+  });
+
+  it('signing out drops every queued upload: nothing carries on under the next session', async () => {
+    const api = start({ scheme, api: { getRiderOnboardingStatus: PENDING, listRiderDocuments: docs(), createUpload: 'pending' } });
+    await openDocuments();
+    act(() => startUpload('PROFILE_PHOTO', FILE, null));
+    expect(uploadFor('PROFILE_PHOTO')).toBeTruthy();
+    act(() => setToken(null));
+    expect(uploadFor('PROFILE_PHOTO')).toBeUndefined();
+    expect(api.callsTo('attachRiderDocument')).toHaveLength(0);
   });
 
   it('Back returns to the application hub', async () => {

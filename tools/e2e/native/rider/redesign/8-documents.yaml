@@ -31,17 +31,17 @@ env:
 
 - runFlow:
     file: 8-add-document.yaml
-    env: { DOC_ID: DRIVERS_LICENCE, OPEN_ID: documents-next, EXPIRY_DAY: "14", EXPIRY_MONTH: "03", EXPIRY_YEAR: "2029", LANDED: "Expires 14 March 2029" }
+    env: { DOC_ID: DRIVERS_LICENCE, OPEN_ID: documents-next, EXPIRY_DAY: "14", EXPIRY_MONTH: "03", EXPIRY_YEAR: "2029" }
 - takeScreenshot: rider-wp8-02-documents-one-added
 - runFlow:
     file: 8-add-document.yaml
-    env: { DOC_ID: VEHICLE_REGISTRATION, OPEN_ID: documents-next, EXPIRY_DAY: "02", EXPIRY_MONTH: "06", EXPIRY_YEAR: "2027", LANDED: "Expires 2 June 2027" }
+    env: { DOC_ID: VEHICLE_REGISTRATION, OPEN_ID: documents-next, EXPIRY_DAY: "02", EXPIRY_MONTH: "06", EXPIRY_YEAR: "2027" }
 - runFlow:
     file: 8-add-document.yaml
-    env: { DOC_ID: VEHICLE_INSURANCE, OPEN_ID: documents-next, EXPIRY_DAY: "12", EXPIRY_MONTH: "01", EXPIRY_YEAR: "2027", LANDED: "Expires 12 January 2027" }
+    env: { DOC_ID: VEHICLE_INSURANCE, OPEN_ID: documents-next, EXPIRY_DAY: "12", EXPIRY_MONTH: "01", EXPIRY_YEAR: "2027" }
 - runFlow:
     file: 8-add-document.yaml
-    env: { DOC_ID: PROFILE_PHOTO, OPEN_ID: documents-next, LANDED: "No expiry" }
+    env: { DOC_ID: PROFILE_PHOTO, OPEN_ID: documents-next }
 
 # Every row reads Added: Submit for review is the primary.
 - scrollUntilVisible:
@@ -57,7 +57,7 @@ env:
       - takeScreenshot: rider-wp8-04-documents-incomplete
       - runFlow:
           file: 8-add-document.yaml
-          env: { DOC_ID: GOVERNMENT_ID, OPEN_ID: documents-next, EXPIRY_DAY: "03", EXPIRY_MONTH: "08", EXPIRY_YEAR: "2030", LANDED: "Expires 3 August 2030" }
+          env: { DOC_ID: GOVERNMENT_ID, OPEN_ID: documents-next, EXPIRY_DAY: "03", EXPIRY_MONTH: "08", EXPIRY_YEAR: "2030" }
       - tapOn:
           id: "documents-submit"
 

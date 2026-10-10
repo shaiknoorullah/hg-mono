@@ -27,7 +27,7 @@ import { TRY_AGAIN } from '../application/copy';
 import { fetchOnboardingStatus, optionalRoute } from '../application/data';
 import { Frame, LoadingBody, ProgressLine, SupportGhost, SupportHours } from '../application/ApplicationScreen';
 import { DOC, NOTIFY, REVIEW } from './copy';
-import { OPTIONAL_DOC, REVIEW_POLL_MS, currentDoc, dayDate, fetchDocuments, isSlow, rowTypes, type KycDocument } from './data';
+import { REVIEW_POLL_MS, currentDoc, dayDate, fetchDocuments, isSlow, rowTypes, shownTypes, type KycDocument } from './data';
 import { Alert, Heading, KeyValue, StateBadge, badgeFor } from './DocumentsScreen';
 
 // ───────────────────────────────────── R10 notifications ask ─────────────────────────────────────
@@ -189,7 +189,7 @@ export function ReviewScreen(): React.ReactElement {
 
   const list = docs.data ?? data.documents;
   const vehicle = session.me.vehicle?.vehicle_type ?? null;
-  const types = [...rowTypes(vehicle), OPTIONAL_DOC];
+  const types = shownTypes(rowTypes(vehicle), list);
   const rows = types.flatMap((t) => {
     const doc = currentDoc(list, t);
     return doc ? [doc] : [];
@@ -238,7 +238,8 @@ export function ReviewScreen(): React.ReactElement {
         {turnedDown.length > 0 && !slow ? <Text style={body}>{REVIEW.liveRejected(DOC[turnedDown[0]!.doc_type as keyof typeof DOC].label)}</Text> : null}
       </View>
       {notificationsOn ? (
-        <Text style={body}>{slow ? REVIEW.slowNotify : REVIEW.willNotify}</Text>
+        // Review-Partial and -LiveRejected drop the line once a document is decided.
+        slow || decided.length === 0 ? <Text style={body}>{slow ? REVIEW.slowNotify : REVIEW.willNotify}</Text> : null
       ) : (
         <View style={{ gap: space['1'] }}>
           <Alert testID="review-notifications-off" tone="neutral" glyph="info" title={REVIEW.notifOffTitle} body={REVIEW.notifOffBody} />
@@ -255,7 +256,7 @@ export function ReviewScreen(): React.ReactElement {
           <ReviewRow key={d.id} doc={d} />
         ))}
       </View>
-      {slow ? null : <Text style={body}>{REVIEW.closeApp}</Text>}
+      {slow || decided.length > 0 ? null : <Text style={body}>{REVIEW.closeApp}</Text>}
     </Frame>
   );
 }

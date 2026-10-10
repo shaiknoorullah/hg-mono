@@ -68,6 +68,10 @@ export function CaptureScreen({ params }: ScreenProps<'applicationCapture'>): Re
   const [phase, setPhase] = React.useState<Phase>(() => (stopped?.phase === 'failed' ? { kind: 'stopped' } : { kind: 'camera' }));
   const [date, setDate] = React.useState<DateValue>(EMPTY_DATE);
   const [dateError, setDateError] = React.useState<string | null>(null);
+  // A second tap lands before the re-render: one shot at a time, and the photo is handed over (and
+  // the screen popped) once, or a double tap on "Use this photo" would pop Documents too.
+  const shooting = React.useRef(false);
+  const handedOver = React.useRef(false);
 
   // Ask once; a refusal shows the denied board rather than asking again.
   React.useEffect(() => {
@@ -96,6 +100,8 @@ export function CaptureScreen({ params }: ScreenProps<'applicationCapture'>): Re
   }, []);
 
   const shoot = async () => {
+    if (shooting.current) return;
+    shooting.current = true;
     setShotFailed(false);
     try {
       // Camera photos are taken at a reduced quality so they stay well under the 15 MB cap.
@@ -106,20 +112,25 @@ export function CaptureScreen({ params }: ScreenProps<'applicationCapture'>): Re
       setPhase({ kind: 'review', file: { bytes: base64ToBytes(shot.base64), contentType: 'image/jpeg', name: null, uri: shot.uri } });
     } catch {
       setShotFailed(true);
+    } finally {
+      shooting.current = false;
     }
   };
 
+  /** Leave for Documents once, whatever the number of taps. */
+  const handOver = (fn: () => void) => {
+    if (handedOver.current) return;
+    handedOver.current = true;
+    fn();
+    nav.pop();
+  };
+
   const use = (file: PickedFile) => {
-    if (selfie) {
-      startUpload(docType, file, null);
-      nav.pop();
-      return;
-    }
+    if (selfie) return handOver(() => startUpload(docType, file, null));
     const check = checkExpiry(date.day, date.month, date.year);
     if (check.kind === 'invalid') return setDateError(CAPTURE.expiryInvalid);
     if (check.kind === 'too-soon') return setPhase({ kind: 'too-soon', file, iso: check.iso });
-    startUpload(docType, file, check.iso);
-    nav.pop();
+    handOver(() => startUpload(docType, file, check.iso));
   };
 
   const retake = () => {
@@ -158,10 +169,7 @@ export function CaptureScreen({ params }: ScreenProps<'applicationCapture'>): Re
       return frame(
         tooSmall ? 'capture-selfie-too-small' : 'capture-selfie-interrupted',
         <>
-          {tooSmall ? null : button('capture-try-again', TRY_AGAIN, () => {
-            retryUpload(docType);
-            nav.pop();
-          })}
+          {tooSmall ? null : button('capture-try-again', TRY_AGAIN, () => handOver(() => retryUpload(docType)))}
           {button('capture-retake', CAPTURE.retake, retake, tooSmall ? 'primary' : 'tertiary')}
         </>,
         <>

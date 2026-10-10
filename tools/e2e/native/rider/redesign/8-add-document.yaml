@@ -3,8 +3,9 @@
 # virtual scene, type the expiry (unless it is the photo of you) and use it, then wait until the
 # upload lands back on the list.
 #
-# Env: DOC_ID (a RiderDocType), OPEN_ID (the button that opens the camera), EXPIRY_DAY/MONTH/YEAR,
-# LANDED (text that shows once the row reads Added).
+# Env: DOC_ID (a RiderDocType), OPEN_ID (the button that opens the camera), EXPIRY_DAY/MONTH/YEAR.
+# The landed row is matched by its own label ("<document>, …, Added"), not by an "Expires …" line:
+# devworld's document answer leaves out valid_until today, so that line does not show.
 appId: com.halalgoes.rider.dev
 name: rider redesign, add one document
 env:
@@ -13,7 +14,6 @@ env:
   EXPIRY_DAY: "14"
   EXPIRY_MONTH: "03"
   EXPIRY_YEAR: "2029"
-  LANDED: "Expires 14 March 2029"
 ---
 - scrollUntilVisible:
     element:
@@ -50,5 +50,6 @@ env:
 # Back on the list: the row uploads (createUpload → PUT → confirmUpload → attach), then reads Added.
 - scrollUntilVisible:
     element:
-      text: ${LANDED}
+      id: doc-row-${DOC_ID}
+      text: ".*Added"
     timeout: 60000

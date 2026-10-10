@@ -104,6 +104,8 @@ export function DocumentsScreen(): React.ReactElement {
   const [incomplete, setIncomplete] = React.useState<{ extra: RiderDocType[]; noDate: Set<RiderDocType> } | null>(null);
   const [submit, setSubmit] = React.useState<Submit>({ phase: 'idle' });
   const key = React.useRef<string | null>(null);
+  // A second tap lands before the busy re-render: one submit in flight.
+  const sending = React.useRef(false);
   const [now, setNow] = React.useState(() => Date.now());
 
   // A document that lands answers the server's "no date" for it.
@@ -171,12 +173,14 @@ export function DocumentsScreen(): React.ReactElement {
   const open = (type: RiderDocType) => nav.push('applicationDocument', { docType: type });
 
   const send = async () => {
-    if (submit.phase === 'sending') return;
+    if (sending.current) return;
+    sending.current = true;
     key.current ??= idempotencyKey();
     setSubmit({ phase: 'sending' });
     try {
       await submitDocuments(key.current);
     } catch (e) {
+      sending.current = false;
       if (e instanceof Cooldown) {
         setNow(Date.now());
         setSubmit({ phase: 'cooldown', until: Date.now() + e.seconds * 1000 });
@@ -196,6 +200,7 @@ export function DocumentsScreen(): React.ReactElement {
       return;
     }
     key.current = null;
+    sending.current = false;
     nav.replace('applicationNotify');
   };
 
@@ -398,7 +403,10 @@ export function DocumentScreen({ params }: ScreenProps<'applicationDocument'>): 
   const [error, setError] = React.useState<string | null>(null);
   const [tooSoon, setTooSoon] = React.useState<string | null>(null);
   const [saving, setSaving] = React.useState(false);
+  const [saveFailed, setSaveFailed] = React.useState(false);
   const key = React.useRef<string | null>(null);
+  // One save in flight: a double tap would otherwise attach twice and pop past Documents.
+  const inFlight = React.useRef(false);
 
   if (docs.status === 'loading') {
     return (
@@ -417,19 +425,25 @@ export function DocumentScreen({ params }: ScreenProps<'applicationDocument'>): 
       setTooSoon(null);
       if (check.kind === 'invalid') return setError(CAPTURE.expiryInvalid);
       if (check.kind === 'too-soon') return setTooSoon(check.iso);
+      if (inFlight.current) return;
+      inFlight.current = true;
       setError(null);
+      setSaveFailed(false);
       setSaving(true);
       key.current ??= idempotencyKey();
       try {
         await attachExpiry(docType, check.iso, key.current);
       } catch (e) {
+        inFlight.current = false;
         setSaving(false);
         const err = toRiderError(e);
         if (err.code === 'DOCUMENT_EXPIRES_TOO_SOON') {
           key.current = null;
           setTooSoon(check.iso);
+        } else if (err.kind !== 'offline') {
+          setSaveFailed(true); // 5xx: say so; the typed date stays and Save resends with the same key
         }
-        return; // offline and 5xx keep the typed date
+        return; // offline shows the offline alert; both keep the typed date
       }
       nav.pop();
     };
@@ -458,6 +472,7 @@ export function DocumentScreen({ params }: ScreenProps<'applicationDocument'>): 
         }
       >
         {online ? null : <OfflineAlert body={DOCS.offlineBody} />}
+        {saveFailed && online ? <Alert testID="document-save-error" tone="warning" title={FAILURE.server.line} /> : null}
         <Heading text={DOC_VIEW.addExpiryTitle} />
         <Text style={{ ...typeStyle(theme, 'body.lg'), color: theme.color.text.primary }}>{object ? DOC_VIEW.addExpiryBody(copy.noun) : DOC_VIEW.addExpiryNoPhoto}</Text>
         {object ? (

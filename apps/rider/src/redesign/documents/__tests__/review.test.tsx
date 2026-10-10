@@ -108,6 +108,9 @@ describe.each(SCHEMES)('review (%s)', (scheme) => {
     expect(await screen.findByText('2 of 4 checked so far.')).toBeTruthy();
     expect(row('DRIVERS_LICENCE').getByText('Approved')).toBeTruthy();
     expect(row('VEHICLE_INSURANCE').getByText('In review')).toBeTruthy();
+    // Review-Partial: once a document is decided, the notification and close-the-app lines go.
+    expect(screen.queryByText("We'll send you a notification when we decide.")).toBeNull();
+    expect(screen.queryByText("You can close the app. You can't go online until your documents are approved.")).toBeNull();
   });
 
   it('a row turned down live: "needs a new upload", and no Fix button until the server decides', async () => {

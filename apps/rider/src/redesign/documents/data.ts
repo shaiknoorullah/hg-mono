@@ -100,6 +100,19 @@ export function rowTypes(vehicle: VehicleType | null | undefined, missing: reado
   return base;
 }
 
+/**
+ * The types a Review or Fix screen lists: the vehicle's set, any other rider type the server
+ * holds a document for (it may ask for more than the vehicle's set, e.g. a government ID from a
+ * motorised rider after 422 DOCUMENTS_INCOMPLETE), then the work permit. A turned-down document
+ * of a type outside the vehicle's set must still reach its Fix card, or the rider is stuck.
+ */
+export function shownTypes(base: readonly RiderDocType[], docs: readonly KycDocument[]): RiderDocType[] {
+  const out = base.filter((t) => t !== OPTIONAL_DOC);
+  for (const t of DOC_TYPES) if (t !== OPTIONAL_DOC && !out.includes(t) && docs.some((d) => d.doc_type === t)) out.push(t);
+  out.push(OPTIONAL_DOC);
+  return out;
+}
+
 /** The latest document of a type that still counts (attach supersedes the earlier row). */
 export function currentDoc(docs: readonly KycDocument[], type: RiderDocType): KycDocument | undefined {
   return docs

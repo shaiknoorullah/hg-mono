@@ -43,28 +43,29 @@ import { BACK_TO_FIX, BADGE, DOC, DOCS, FAILURE, FIX, FIX_EDIT, WHY } from './co
 import {
   Cooldown,
   LAST_ATTEMPT,
-  OPTIONAL_DOC,
   codeOf,
   currentDoc,
   longDate,
   needsFix,
   remedyFor,
   rowTypes,
+  shownTypes,
   submitDocuments,
   type KycDocument,
   type Remedy,
   type RiderDocType,
 } from './data';
 import { Alert, Announce, DateFields, Heading, KeyValue, StateBadge, useDocuments, type DateValue } from './DocumentsScreen';
-import { attachedObject, cancelUpload, retryUpload, useResumeWhenOnline, useUploads, type UploadEntry } from './uploads';
+import { attachedObject, cancelUpload, onSessionChange, retryUpload, useResumeWhenOnline, useUploads, type UploadEntry } from './uploads';
 
 /** Mismatches whose first step (details or plate) is saved, this run. */
 const firstStepDone = new Set<RiderDocType>();
 
-/** Test seam. */
+/** Test seam; also run on every sign-in and sign-out. */
 export function resetFixState(): void {
   firstStepDone.clear();
 }
+onSessionChange(resetFixState);
 
 type Send = { phase: 'idle' } | { phase: 'sending' } | { phase: 'error' } | { phase: 'offline' } | { phase: 'nothing' } | { phase: 'cooldown'; until: number };
 
@@ -93,6 +94,8 @@ export function FixScreen(): React.ReactElement {
   useResumeWhenOnline();
   const [send, setSend] = React.useState<Send>({ phase: 'idle' });
   const key = React.useRef<string | null>(null);
+  // A second tap lands before the busy re-render: one resend in flight.
+  const sending = React.useRef(false);
   const [now, setNow] = React.useState(() => Date.now());
   const data = status.data;
 
@@ -141,7 +144,7 @@ export function FixScreen(): React.ReactElement {
   }
 
   const list = docs.data && docs.data.length > 0 ? docs.data : data.documents;
-  const types = [...rowTypes(me.vehicle?.vehicle_type ?? null), OPTIONAL_DOC];
+  const types = shownTypes(rowTypes(me.vehicle?.vehicle_type ?? null), list);
   const latest = types.flatMap((t) => {
     const d = currentDoc(list, t);
     return d ? [d] : [];
@@ -169,12 +172,14 @@ export function FixScreen(): React.ReactElement {
   };
 
   const resend = async () => {
-    if (send.phase === 'sending') return;
+    if (sending.current) return;
+    sending.current = true;
     key.current ??= idempotencyKey();
     setSend({ phase: 'sending' });
     try {
       await submitDocuments(key.current);
     } catch (e) {
+      sending.current = false;
       if (e instanceof Cooldown) {
         setNow(Date.now());
         return setSend({ phase: 'cooldown', until: Date.now() + e.seconds * 1000 });
@@ -187,6 +192,7 @@ export function FixScreen(): React.ReactElement {
       return setSend({ phase: err.kind === 'offline' ? 'offline' : 'error' }); // same key on Try again
     }
     key.current = null;
+    sending.current = false;
     nav.replace('applicationReview');
   };
 

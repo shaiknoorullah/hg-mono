@@ -65,6 +65,16 @@ describe.each(SCHEMES)('fix documents (%s)', (scheme) => {
     expect(await screen.findByText('Fit the whole registration inside the frame')).toBeTruthy();
   });
 
+  it('a turned-down document outside the vehicle\'s set (a government ID for a scooter) still gets its card', async () => {
+    const list = decided({});
+    (list.body as { data: unknown[] }).data.push(doc('GOVERNMENT_ID', turnedDown('ILLEGIBLE', 'The photo is blurred and the expiry date cannot be read. Retake it flat, in good light.')));
+    await openFix(scheme, { listRiderDocuments: list });
+    expect(screen.getByText('Fix 1 document')).toBeTruthy();
+    expect(card('GOVERNMENT_ID').getByText("We couldn't read it")).toBeTruthy();
+    await press('fix-primary');
+    expect(await screen.findByText('Fit the whole ID inside the frame')).toBeTruthy();
+  });
+
   it('the fixture\'s rejection (INCOMPLETE_PAGES) from the status when the list has none', async () => {
     await openFix(scheme, { getRiderOnboardingStatus: 'rider_onboarding_documents_rejected', listRiderDocuments: docs() });
     expect(card('DRIVERS_LICENCE').getByText('Pages or corners are missing')).toBeTruthy();

@@ -17,6 +17,7 @@ import * as React from 'react';
 import { HgApiError, idempotencyKey } from '@hg/api-client';
 
 import { sha256HexBytes } from '../../sha256';
+import { subscribe as subscribeSession } from '../../token';
 import { reportReachable, reportTransportFailure, subscribeConnectivity, isOnline } from '../data/connectivity';
 import { toRiderError } from '../data/errors';
 import { attachDocument, confirmUpload, createUpload, MAX_FILE_BYTES, type RiderDocType } from './data';
@@ -237,7 +238,22 @@ export function useResumeWhenOnline(): void {
   React.useEffect(() => subscribeConnectivity(resumePaused), []);
 }
 
-/** Test seam. */
+/** Called on every sign-in and sign-out, with the uploads (Fix's first-step memory). */
+const sessionResets = new Set<() => void>();
+
+export function onSessionChange(fn: () => void): void {
+  sessionResets.add(fn);
+}
+
+// A rider's KYC photos never outlive their session: a sign-out (or another rider signing in on
+// this phone) drops every queued upload, so a paused licence photo cannot carry on under the next
+// account's token.
+subscribeSession(() => {
+  resetUploads();
+  for (const fn of sessionResets) fn();
+});
+
+/** Test seam; also run on every sign-in and sign-out. */
 export function resetUploads(): void {
   for (const job of jobs.values()) {
     job.gen += 1;
