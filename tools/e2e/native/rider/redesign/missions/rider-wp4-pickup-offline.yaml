@@ -14,7 +14,7 @@ reality:
   - network: gsm
   - theme: light
   - font-scale: 2.0
-flows: [ "tools/e2e/native/rider/redesign/4b-pickup-offline.yaml" ]
+flows: [ "tools/e2e/native/rider/redesign/lab/4b-pickup-offline.yaml" ]
 explore: >
   The flow switches airplane mode itself (setAirplaneMode) around "I've got the food": the pickup
   is saved ("Not sent yet", "Picked up · <time>"), the rider goes on to the customer, and the
