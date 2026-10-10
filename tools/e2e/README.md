@@ -152,6 +152,14 @@ and `seed/` belong to the harness.
 | Native redesign flows | `native/<app>/redesign/*.yaml` here, in name order | the `EXPO_PUBLIC_HG_REDESIGN=1` APK |
 | Device-lab missions | `native/<app>/redesign/missions/<id>.yaml` here | the device lab only, never as flows |
 
+**Native sign-in, once per run.** Each redesign flow gets the world's values (`PHONE`, and `CODE` when
+the app has a `redesign/1-ask-for-code.yaml`, which `run.sh` runs first). The e2e world's phones
+are not in the reserved development range, so their codes are random: a flow signs in with
+`CODE`, never a fixed code. The rider's `1-sign-in.yaml` signs in once; the flows after it keep
+that session with `launchApp: { stopApp: false }`, because a relaunch or `clearState` loses it,
+and a fresh sign-in after the code is used needs a new one. Their missions list `1-sign-in.yaml`
+first for the same reason.
+
 **Playwright projects** are `<app>-<flag>-<viewport>`: `restaurant-legacy-desktop`,
 `restaurant-legacy-tablet`, `restaurant-redesign-desktop`, `restaurant-redesign-tablet`, and the
 same for `admin`. `--project` takes wildcards (`'*-redesign-*'`). Every project uses `en-CA` and

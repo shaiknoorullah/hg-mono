@@ -1,0 +1,28 @@
+# Rider redesign: ask for a sign-in code. tools/e2e/run.sh runs this before the other redesign
+# flows, reads the code from the API's log and passes it to them as CODE (nothing is texted).
+# The challenge stays open until it is used, and asking again for the same phone returns the
+# same challenge, so 1-sign-in.yaml signs in with that CODE even after a relaunch.
+# Env: PHONE (E.164; the e2e world's rider, or devworld's rider-sim +15550100151 whose code is
+# always 000000).
+appId: com.halalgoes.rider.dev
+name: rider redesign, ask for a sign-in code
+env:
+  PHONE: "+15550100151"
+---
+- launchApp:
+    clearState: true
+    permissions:
+      all: allow
+- extendedWaitUntil:
+    visible: "Sign in or apply to ride"
+    timeout: 90000
+- tapOn:
+    id: "phone-field"
+# The field keeps the ten national digits: a leading +1 is dropped as it is typed.
+- inputText: ${PHONE}
+- hideKeyboard
+- tapOn: "Send code"
+- extendedWaitUntil:
+    visible: "Enter your code"
+    timeout: 30000
+- takeScreenshot: rider-redesign-01-code-asked

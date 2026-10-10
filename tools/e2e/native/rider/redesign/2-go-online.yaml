@@ -1,49 +1,37 @@
-# Rider redesign WP2: sign in, stand at the restaurant, go online, wait for offers, lose the
-# internet connection and get it back, then go offline. Built with EXPO_PUBLIC_HG_REDESIGN=1 (and a
+# Rider redesign WP2: stand at the restaurant, go online, wait for offers, lose the internet
+# connection and get it back, then go offline. Built with EXPO_PUBLIC_HG_REDESIGN=1 (and a
 # cleared Metro cache: EXPO_PUBLIC_* is inlined at transform time).
-#
-# Until WP1 merges, sign-in is the legacy screen (per-route fallback, MASTER-PLAN §0.3), so the
-# sign-in steps accept either copy, as in 0-shell.yaml.
-# Env: PHONE (default rider-sim +15550100151, ACTIVE, OFFLINE, payouts set up; dev codes for
-# +1 555 010 01xx are always 000000), LATITUDE/LONGITUDE (default Bismillah Grill, 1240 Danforth
-# Avenue: dispatch only offers to riders within 3 km of a ready order).
+# Env: LATITUDE/LONGITUDE (run.sh passes the e2e world's restaurant; the default is Bismillah
+# Grill, 1240 Danforth Avenue: dispatch only offers to riders within 3 km of a ready order).
 appId: com.halalgoes.rider.dev
 name: rider redesign, go online
 env:
-  PHONE: "+15550100151"
   LATITUDE: "43.6815"
   LONGITUDE: "-79.3310"
 ---
+# Signed in by 1-sign-in.yaml, which runs before this flow (flows run in name order). The app
+# keeps running between flows, so its in-memory session holds. Run alone, run 1-sign-in.yaml first.
 - launchApp:
-    clearState: true
-    permissions:
-      all: allow
+    stopApp: false
 - setLocation:
     latitude: ${LATITUDE}
     longitude: ${LONGITUDE}
 - extendedWaitUntil:
-    visible: "Rider sign in|Sign in or apply to ride"
-    timeout: 90000
-- tapOn:
-    text: "Phone number.*|Mobile number"
-    optional: true
-- tapOn:
-    below: "Phone number .*"
-    above: "Send code"
-    optional: true
-- inputText: ${PHONE}
-- tapOn: "Send code"
-- extendedWaitUntil:
-    visible: "Enter the code sent to.*|Enter your code"
+    visible: "Earnings"
     timeout: 30000
 - tapOn:
-    below: "Enter the code sent to.*"
-    above: "Verify"
-    optional: true
-- inputText: "000000"
-- tapOn:
-    text: "Verify"
-    optional: true
+    id: "tab-home"
+
+# Start offline. In CI the legacy rider flow runs first with the same rider and can leave them
+# online on the server, so go offline first when Home says Online.
+- extendedWaitUntil:
+    visible: "You're offline|Go offline"
+    timeout: 60000
+- runFlow:
+    when:
+      visible: "Go offline"
+    commands:
+      - tapOn: "Go offline"
 
 # Home, offline (SH/Main).
 - extendedWaitUntil:
