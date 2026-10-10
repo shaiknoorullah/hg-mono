@@ -104,7 +104,8 @@
       "data": {
         "order_id": "11cd6318-418f-4301-af7e-3e7f33818fa8",
         "accepted_by": "Hamza K.",
-        "prep_eta_minutes": 20
+        "prep_eta_minutes": 20,
+        "pickup_code": "4182"
       },
       "_delay_ms": 7000
     },
