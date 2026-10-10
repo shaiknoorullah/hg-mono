@@ -44,6 +44,8 @@ var ScenarioNames = []string{
 	"onboard-rider",
 	"payment-failed",
 	"payment-unpaid",
+	"capture-fails",
+	"payout-run",
 }
 
 // RunScenario signs in as the personas the scenario needs and calls the API
@@ -87,6 +89,10 @@ func RunScenario(ctx context.Context, baseURL, name string) error {
 		return scenarioPaymentFailed(ctx, baseURL)
 	case "payment-unpaid":
 		return scenarioPaymentUnpaid(ctx, baseURL)
+	case "capture-fails":
+		return scenarioCaptureFails(ctx, baseURL)
+	case "payout-run":
+		return scenarioPayoutRun(ctx, baseURL)
 	default:
 		return fmt.Errorf("devworld: unknown scenario %q", name)
 	}

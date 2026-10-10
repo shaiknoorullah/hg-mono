@@ -26,7 +26,10 @@ type Service struct {
 	cfg    config.Stripe
 	log    *slog.Logger
 	now    func() time.Time
-	orders OrderHooks
+	// localCaptureLedger: Capture posts the capture's ledger batch itself,
+	// because the local fake payment client sends no events (local_capture.go).
+	localCaptureLedger bool
+	orders             OrderHooks
 	// payouts queues admin payout runs; nil when Stripe is not configured.
 	payouts *PayoutRunner
 	outbox  Outbox

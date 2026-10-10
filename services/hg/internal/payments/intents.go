@@ -81,7 +81,14 @@ func (s *Service) Capture(ctx context.Context, orderID string, amountCents int64
 	if err != nil {
 		return IntentRow{}, err
 	}
-	return s.repo.UpsertOrderIntent(ctx, orderID, pi)
+	row, err := s.repo.UpsertOrderIntent(ctx, orderID, pi)
+	if err != nil || !s.localCaptureLedger {
+		return row, err
+	}
+	if err := s.recordLocalCapture(ctx, pi); err != nil {
+		return row, err
+	}
+	return s.repo.GetOrderIntent(ctx, orderID)
 }
 
 // Void cancels an uncaptured authorisation on reject or timeout (P-16 /
