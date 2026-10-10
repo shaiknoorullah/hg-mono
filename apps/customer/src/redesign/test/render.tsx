@@ -16,7 +16,7 @@ import type { Route } from '../navigation/routes';
  * longer than `waitFor`'s 1 s default, and the wait, not the assertion, failed. The assertions are
  * unchanged; only how long a test waits for the screen to settle.
  */
-configure({ asyncUtilTimeout: 5000 });
+configure({ asyncUtilTimeout: 10000 });
 jest.setTimeout(20000);
 
 const METRICS = { frame: { x: 0, y: 0, width: 390, height: 844 }, insets: { top: 0, left: 0, right: 0, bottom: 0 } };

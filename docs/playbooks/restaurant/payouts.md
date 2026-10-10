@@ -1,6 +1,6 @@
 ---
 covers: []
-reviewed: 2026-10-05
+reviewed: 2026-10-09
 ---
 
 # Restaurant Playbook: Weekly Payouts & Balance
@@ -12,7 +12,7 @@ This playbook tests the partner payouts interface, verifying weekly cadence, fin
 ## 1. Payout Cadence and Schedule Display
 
 1. **Browser action**:
-   - Sign in as the restaurant owner.
+   - Sign in as the restaurant owner `bismillah-grill@seed.hg` / `Seed!2026`.
    - Open `/payouts`.
 2. **Visible assertion**:
    - Header displays **Payouts**.
@@ -25,11 +25,10 @@ This playbook tests the partner payouts interface, verifying weekly cadence, fin
 
 1. **Setup command** (terminal):
    ```bash
-   # Persona with no settlement history yet
-   cmd/devworld totp payout-todo
+   cd services/hg && make dev-reset   # the reset seeds no payout rows
    ```
 2. **Browser action**:
-   - Sign in as a newly approved partner without completed settlement cycles.
+   - Sign in as `bismillah-grill@seed.hg` / `Seed!2026`. After a reset no restaurant has a payout yet.
    - Open `/payouts`.
 3. **Visible assertion**:
    - Empty state illustration with title **No payouts yet**.
@@ -39,8 +38,10 @@ This playbook tests the partner payouts interface, verifying weekly cadence, fin
 
 ## 3. Payout Settlement History & Status Tones
 
+Waits on [a dev world payout run (#676)](https://github.com/shaiknoorullah/hg-mono/issues/676): the reset seeds no payouts, so no seeded restaurant has a settlement history yet.
+
 1. **Browser action**:
-   - Sign in as `owner@restaurant.ca` (established partner with order history).
+   - Once #676 lands, sign in as `bismillah-grill@seed.hg` / `Seed!2026` after a payout run.
    - Open `/payouts`.
 2. **Visible assertion**:
    - Settlement table renders columns: **Period**, **Orders**, **Amount**, and **Status**.

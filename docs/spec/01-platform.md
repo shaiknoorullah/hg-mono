@@ -572,21 +572,20 @@ func (a Amount) MarshalJSON() ([]byte, error) // emits an integer, never a strin
 
   **The computation, in order. Each step is a pure function of DB state; none of it reads the request body for money.**
 
-  **Step 1 — line unit price.** For each cart line, with the menu item, chosen variant and chosen add-ons re-read from Postgres inside the quote transaction (`FOR SHARE` on the menu item so a concurrent price edit cannot interleave):
+  **Step 1 — line unit price.** For each cart line, with the menu item, chosen variants (one per variant group) and chosen add-ons re-read from Postgres inside the quote transaction (`FOR SHARE` on the menu item so a concurrent price edit cannot interleave):
 
   ```
   base            = menu_item.price_cents
-  variant_part    = CASE variant.pricing_mode
-                      WHEN 'ABSOLUTE' THEN variant.price_cents        -- replaces base
-                      WHEN 'DELTA'    THEN base + variant.delta_cents -- adjusts base
-                      WHEN none chosen THEN base
-                    END
+  variant_part    = (the chosen ABSOLUTE variant's price_cents, else base)  -- ABSOLUTE replaces base
+                  + Σ over chosen DELTA variants of delta_cents            -- DELTA adjusts base
   addons_part     = Σ over chosen addons of (addon.price_cents × addon_quantity)
   line_unit_cents = variant_part + addons_part
   line_total_cents = line_unit_cents × quantity
   ```
 
   This is the single definition. The cart, the order line and the receipt all display `line_unit_cents` from the quote; none of them recompute. `variant.pricing_mode` is a column on the variant, so a restaurant can express "Large = $14.99" and "Extra cheese = +$1.50" without ambiguity. The old system's cart-adds-variant-to-base vs order-replaces-base contradiction (B39) is resolved by making the mode explicit data.
+
+  A dish can have several variant groups (size, rice, heat level), and a cart line carries one chosen variant per group ([#628](https://github.com/shaiknoorullah/hg-mono/issues/628)); at most one chosen variant may be `ABSOLUTE`, and a combination the rule cannot price (two `ABSOLUTE` variants, or a part below zero) refuses the line with `409 ITEM_UNAVAILABLE` rather than guessing a price. The quote and the order snapshot each chosen variant with its money (`quote_line_variant`, `order_line_variant`), and a deferred database trigger refuses at commit any line whose `variant_part_cents` its variants do not add up to.
 
   **Step 2 — subtotal.** `subtotal_cents = Σ line_total_cents`.
 

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from content import DAY, DISHES, IMAGE_BASE, LONG_DISH_NAME, LONG_RESTAURANT_NAME, HOUR, MINUTE, ts
-from money import order_lines_from_quote, price_quote, quote_line
+from money import line_variant, order_lines_from_quote, price_quote, quote_line, variant_part
 from synth import uuid_for
 from world import (
     addon_group,
@@ -324,18 +324,21 @@ def _loaded_item() -> dict:
     return item
 
 
+def _nihari_portion() -> dict:
+    """Beef Nihari's one variant group, shared by the menu and the standard quote."""
+    return variant_group(
+        "nihari:size",
+        "Portion",
+        [
+            ("Half", "ABSOLUTE", 2145, None, True, True),
+            ("Full", "ABSOLUTE", 3695, None, False, True),
+        ],
+    )
+
+
 def _menus(reg, synth) -> None:
     grill = [menu_item(i) for i in (0, 1, 2)]
-    grill[1]["variant_groups"] = [
-        variant_group(
-            "nihari:size",
-            "Portion",
-            [
-                ("Half", "ABSOLUTE", 2145, None, True, True),
-                ("Full", "ABSOLUTE", 3695, None, False, True),
-            ],
-        )
-    ]
+    grill[1]["variant_groups"] = [_nihari_portion()]
     kebabs = [menu_item(i) for i in (3, 6, 7, 9, 10)]
     kebabs[0]["addon_groups"] = [
         addon_group("shawarma:extras", "Extras", [("Garlic toum", 149, True), ("Extra pickles", 99, True)])
@@ -686,6 +689,7 @@ def _cart_line(index: int, item: dict, quantity: int, **over) -> dict:
         "name": item["name"],
         "image_url": item["image_url"],
         "variant": None,
+        "variants": [],
         "addons": [],
         "quantity": quantity,
         "special_request": None,
@@ -844,22 +848,25 @@ def _cart(reg) -> None:
     )
 
     loaded = _loaded_item()
+    size, rice, heat = loaded["variant_groups"]
+    dense_variants = [
+        line_variant(size, "Family (serves 4)"),
+        line_variant(rice, "Kabuli pulao"),
+        line_variant(heat, "Hot"),
+    ]
+    dense_unit = variant_part(loaded["price_cents"], dense_variants) + 4 * 349 + 2 * 149 + 599
     dense = _cart_line(
         5,
         loaded,
         2,
-        variant={
-            "variant_id": uuid_for("variant:loaded:size:family-serves-4"),
-            "name": "Family (serves 4)",
-            "pricing_mode": "ABSOLUTE",
-        },
+        variants=dense_variants,
         addons=[
             {"addon_id": uuid_for("addon:loaded:breads:garlic-naan"), "name": "Garlic naan", "quantity": 4},
             {"addon_id": uuid_for("addon:loaded:sauces:garlic-toum"), "name": "Garlic toum", "quantity": 2},
             {"addon_id": uuid_for("addon:loaded:extras:extra-seekh-kebab"), "name": "Extra seekh kebab", "quantity": 1},
         ],
-        unit_price_cents=7899 + 4 * 349 + 2 * 149 + 599,
-        line_total_cents=2 * (7899 + 4 * 349 + 2 * 149 + 599),
+        unit_price_cents=dense_unit,
+        line_total_cents=2 * dense_unit,
         special_request="No coriander on anything, please — allergy in the house.",
     )
     other = [_cart_line(i, items[i % 3], (i % 3) + 1) for i in range(6, 11)]
@@ -867,8 +874,9 @@ def _cart(reg) -> None:
         "cart_many_lines",
         "cart",
         "Cart",
-        "Six lines including a family platter with a variant, three add-on groups and a "
-        "special request. Tests the cart's densest row and the sticky total bar.",
+        "Six lines including a family platter with a variant from each of its three groups "
+        "(size, rice, heat), three add-on groups and a special request. Tests the cart's "
+        "densest row and the sticky total bar.",
         {
             "id": uuid_for("cart:many"),
             "restaurant": card,
@@ -882,6 +890,45 @@ def _cart(reg) -> None:
         },
         operations=["getCart"],
         tags=["dense"],
+    )
+
+    platter_variants = [
+        line_variant(size, "For two"),
+        line_variant(rice, "No rice"),
+        line_variant(heat, "Medium"),
+    ]
+    platter_unit = variant_part(loaded["price_cents"], platter_variants) + 149
+    platter = _cart_line(
+        12,
+        loaded,
+        1,
+        variants=platter_variants,
+        addons=[{"addon_id": uuid_for("addon:loaded:sauces:mint-raita"), "name": "Mint raita", "quantity": 1}],
+        unit_price_cents=platter_unit,
+        line_total_cents=platter_unit,
+    )
+    reg.add(
+        "cart_multi_variant_line",
+        "cart",
+        "Cart",
+        "One line of a dish with three required variant groups, one choice from each: "
+        "`For two` (ABSOLUTE $42.99 replaces the base), `No rice` (DELTA −$2.00) and "
+        "`Medium` (DELTA $0.00), plus the one sauce the group requires. "
+        "`unit_price_cents` = 4299 − 200 + 0 + 149. The deprecated `variant` is null because "
+        "the line has more than one; render `variants`.",
+        {
+            "id": uuid_for("cart:multi-variant"),
+            "restaurant": card,
+            "delivery_address_id": uuid_for("address:home"),
+            "lines": [platter],
+            "item_count": 1,
+            "indicative_subtotal_cents": platter_unit,
+            "currency": "CAD",
+            "is_quotable": True,
+            "blocking_reasons": [],
+        },
+        operations=["addCartLine", "getCart"],
+        tags=["variants"],
     )
 
 
@@ -929,7 +976,7 @@ def standard_quote_lines() -> list[dict]:
             2,
             items[1],
             1,
-            variant=("Full", "ABSOLUTE", 1550),
+            variants=[line_variant(_nihari_portion(), "Full")],
             special_request="Extra gravy on the side",
         ),
         quote_line(3, items[2], 1, addons=[("Garlic naan", 2, 349)]),
@@ -1024,6 +1071,36 @@ def _quotes(reg) -> None:
         _quote("minimum", [quote_line(1, menu_item(12), 1)], tip_cents=0),
         operations=["createQuote"],
         tags=["edge", "boundary", "money"],
+    )
+
+    loaded = _loaded_item()
+    size, rice, heat = loaded["variant_groups"]
+    multi = [
+        quote_line(
+            1,
+            loaded,
+            2,
+            variants=[
+                line_variant(size, "For two"),
+                line_variant(rice, "Kabuli pulao"),
+                line_variant(heat, "Peshawari hot"),
+            ],
+            addons=[("Garlic toum", 1, 149)],
+        ),
+        quote_line(2, menu_item(0), 1),
+    ]
+    reg.add(
+        "quote_multi_variant",
+        "cart",
+        "Quote",
+        "A platter line with one variant from each of three groups: `variant_part_cents` = "
+        "4299 (`For two`, ABSOLUTE, replaces the 2499 base) + 300 (`Kabuli pulao`, DELTA) + "
+        "0 (`Peshawari hot`, DELTA) = 4599, and `variants` carries each one with its "
+        "snapshotted money. The deprecated `variant_id` and `variant_pricing_mode` are null; "
+        "`variant_name` joins the three names.",
+        _quote("multi-variant", multi, tip_cents=500),
+        operations=["createQuote", "getQuote"],
+        tags=["variants", "money"],
     )
 
 
