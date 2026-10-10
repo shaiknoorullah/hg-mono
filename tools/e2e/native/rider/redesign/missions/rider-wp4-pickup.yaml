@@ -16,7 +16,7 @@ reality:
   - network: edge
   - theme: dark
   - font-scale: 1.3
-flows: [ "tools/e2e/native/rider/redesign/4-pickup.yaml" ]
+flows: [ "tools/e2e/native/rider/redesign/lab/4-pickup.yaml" ]
 explore: >
   Set PICKUP_CODE for the flow to the 4 digits on the restaurant's order (GET the restaurant
   order as Bismillah Grill's owner: OrderRestaurantView.pickup_code, #290), or the journey log.
