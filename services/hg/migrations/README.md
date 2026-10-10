@@ -1,7 +1,7 @@
 ---
 covers:
   - services/hg/migrations/**
-reviewed: 2026-10-05
+reviewed: 2026-10-10
 ---
 
 # HalalGoes — database schema
@@ -96,6 +96,7 @@ These are the invariants. Each is enforced by the schema, and each has a test in
 | 15 | A refund the platform owes on its own (a ready order nobody collected, cancelled at the pickup cap, [#336](https://github.com/shaiknoorullah/hg-mono/issues/336)) still names who asked for it and who approved it. | The platform's own account (`00056`, `00000000-0000-7000-8000-00000000a001`) is both, so `refund.requested_by NOT NULL` and `refund_money_needs_approver` hold. It has no phone, password or TOTP, a `.invalid` address, no role, and is `SUSPENDED`: it can never sign in. |
 | 16 | A restaurant's prep delay is a record of its own, a canned 5, 10, 15 or 20 minutes, and its limits (3 delays, 45 minutes in total) are counted from those records, not from log text ([#351](https://github.com/shaiknoorullah/hg-mono/issues/351)). | `order_delay` (`00062`) with its `added_minutes` CHECK. `internal/orders` `Store.DelayInTx` is its only writer: it counts the rows under the order's row lock, then moves the deadline and writes the delay, the transition row and the event in one transaction. |
 | 17 | A partner's bank payout is asked of Stripe at most once at a time per payout, so a retry can never pay a payout out to the bank twice ([#301](https://github.com/shaiknoorullah/hg-mono/issues/301)). A payout past its transfer names the transfer. | `payout_bank_attempt` (`00068`): every attempt is recorded before the Stripe call, `UNIQUE (payout_id, attempt)`, and the partial unique index `payout_bank_attempt_one_live` allows one attempt that has not `FAILED` per payout; `REVOKE DELETE, TRUNCATE` from `hg_app`. `payout_transferred_has_transfer` CHECK on `payout`. |
+| 18 | A handover code — the 4-digit pickup code the kitchen reads to the rider, and the delivery code the customer reads at a met handover — takes at most five wrong tries, and a support override of a locked code is recorded once, with its reason, and never changed ([#310](https://github.com/shaiknoorullah/hg-mono/issues/310)). The codes are stored encrypted, never in plain text. | `00071_handover_codes`: `order_pickup_code_attempts_bounded` and `order_delivery_code_attempts_bounded` CHECKs (0 to 5) on `"order"`, backstopping the one conditional increment in `internal/handover`; `handover_override` with `handover_override_once` `UNIQUE (order_id, handover)`, `handover_override_state_matches`, a reason of 10 to 1000 characters and `actor_kind` `SUPPORT` or `ADMIN`; append-only by `REVOKE UPDATE, DELETE, TRUNCATE` from `hg_app` and a rejecting trigger. `HandoverCodeKind` maps to `handover_code_kind` in `tools/enum_map.py`. |
 
 The two schema lints are also runnable on their own:
 

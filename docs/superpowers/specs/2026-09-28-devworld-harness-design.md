@@ -5,7 +5,7 @@ covers:
   - services/hg/migrations/devworld/**
   - apps/restaurant/.claude/skills/**
   - docs/playbooks/**
-reviewed: 2026-10-05
+reviewed: 2026-10-10
 ---
 
 # Dev world — seeded personas, live scenarios, journey simulation, playbooks
@@ -176,7 +176,7 @@ Reset does not run the journey. A cancelled order and a rejected order are the s
 2. Restaurant steps default to waiting. The command prints the order state until someone accepts and marks it ready, or until the command's deadline. `--auto=restaurant` and `--auto=all` accept a pending order and mark a preparing order ready, including when the order becomes pending during the wait. A created order that is still unpaid after about 90 seconds stops the wait.
 3. `--route=early-rider` brings `rider-sim` online at the start of the approach before the kitchen marks the order ready, posts positions up to the door, and polls for an offer. Dispatch offers only a ready order, so none arrives. The command then marks the order ready. A rider transition does not mark a preparing order ready: the running pickup refuses that state ([early pickup](https://github.com/shaiknoorullah/hg-mono/issues/317)). If the order is already ready, the command says the early arrival cannot be shown and continues with the short approach.
 4. When `--auto=all` drives the rider, `rider-sim` is online at the route start before the order is marked ready, so the first sweep can see the rider. The command polls the current offer. It does not call the sweep itself. `--manual=rider`, and any run that does not pass `--auto=all`, stops once the order is ready and leaves the rider to a person.
-5. The simulator posts positions along the pickup leg. `1x` waits 5 seconds between posts, `4x` waits a quarter of that, and `max` does not wait and may send up to 10 points at once. At the restaurant it records en route and arrived. The restaurant then tries to bind a seal. The world has no issued seal, so the bind is refused, the command prints that status, and the ride continues. It does not insert a seal. The rider marks the order picked up, walks to the drop-off, uploads a proof-of-delivery photo, and records delivered.
+5. The simulator posts positions along the pickup leg. `1x` waits 5 seconds between posts, `4x` waits a quarter of that, and `max` does not wait and may send up to 10 points at once. At the restaurant it records en route and arrived. The restaurant then tries to bind a seal. The world has no issued seal, so the bind is refused, the command prints that status, and the ride continues. It does not insert a seal. The restaurant reads the order's pickup code from its order view, and the rider types it to mark the order picked up ([handover codes](https://github.com/shaiknoorullah/hg-mono/issues/310)); the code is never printed. The rider walks to the drop-off and records proof of delivery: at a met handover the customer's delivery code, read from the customer's order view, otherwise a photo. Then it records delivered.
 6. The command then waits for the order to complete. As the customer it reads the receipt, submits a food rating and a rider rating, and requests a full refund. As the restaurant it reads the order back. It keeps going through those reads when one of them is refused, and exits non-zero if any of them fails or the order never completes.
 
 Flags: `--route=short|long|early-rider`, `--speed=1x|4x|max` (default `1x`), `--auto=none|restaurant|all`, `--manual=rider`.

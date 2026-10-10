@@ -2,7 +2,7 @@
 covers:
   - apps/admin/**
   - services/hg/internal/admin/**
-reviewed: 2026-10-05
+reviewed: 2026-10-10
 ---
 
 # HalalGoes — ADMIN / SUPER ADMIN / SUPPORT AGENT Specification
@@ -2537,6 +2537,7 @@ documents lapse cannot go on shift, but is not punished.
   | Cancel order **before** restaurant acceptance | Allow | Allow | Allow |
   | Cancel order **after** acceptance | Deny — escalate | Allow | Allow |
   | Force an arbitrary status transition | Deny | Deny | Allow, with reason, audited |
+  | Confirm a pickup or met handover without its code | Allow, with reason and case, audited | Allow | Allow |
 
 - **States**: this feature does not own order states; it invokes legal transitions on the order state
   machine. `FORCE_STATUS` is the sole exception and is constrained to transitions the machine declares
@@ -2562,6 +2563,15 @@ documents lapse cannot go on shift, but is not punished.
     machine's one transition function, which writes the `order.state_changed` and `order.cancelled`
     realtime events and enqueues the customer's cancellation notification in the same
     transaction ([#352](https://github.com/shaiknoorullah/hg-mono/issues/352)).
+  - R8 Confirming a handover without its code (`overrideHandoverCode`) is the only way past a
+    pickup or delivery code, used when five wrong codes have locked it, the kitchen cannot show
+    it, or the customer cannot be reached at a met handover. It needs a reason of 10 to 1000
+    characters and a case, a session signed in with two-step sign-in (else `403 MFA_REQUIRED`),
+    and a caller who still holds a support or admin grant on an active account and is not a
+    party to the order (its customer, a rider it was assigned to, or its restaurant's staff).
+    It applies only to the handover the order is waiting on, once per handover; the order moves
+    through the one transition function, and the append-only `handover_override` record commits
+    in the same transaction ([#310](https://github.com/shaiknoorullah/hg-mono/issues/310)).
 - **Acceptance criteria**:
   1. Given a support agent and an order in `PREPARING`, when they attempt `CANCEL_ORDER`, then
      `403 FORBIDDEN_PERMISSION` and the UI offers "escalate to Tier 2" which creates the escalation.
@@ -2574,6 +2584,10 @@ documents lapse cannot go on shift, but is not punished.
      Tier 3 P3 review case is created.
   5. Given a support agent extends the ETA by 20 minutes twice on the same order, then the second
      attempt returns `409 ETA_EXTENSION_LIMIT` and escalation is offered.
+  6. Given an order whose pickup code five wrong codes have locked, when a support agent signed in
+     with two-step sign-in confirms the pickup with a reason and a case, then the order is
+     `PICKED_UP`, one `handover_override` row records the agent, the reason and the wrong tries,
+     and a second override of the same handover is refused.
 - **Out of scope**: editing order contents (adding/removing items after placement); changing the
   delivery address after pickup; splitting an order; re-charging a customer.
 - **Version**: V1 · **Size**: M

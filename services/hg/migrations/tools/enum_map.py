@@ -143,7 +143,7 @@ MAPPED_IN_MIGRATION = {
     "HandoffEventType":                   ("handoff_event_type", "00027_handoff.sql"),
     "HandoffActor":                       ("handoff_actor", "00027_handoff.sql"),
     "HandoffMethod":                      ("handoff_method", "00027_handoff.sql"),
-    "HandoverCodeKind":                   ("handover_code_kind", "00069_handover_codes.sql"),
+    "HandoverCodeKind":                   ("handover_code_kind", "00071_handover_codes.sql"),
     "PayoutRunKind":                      ("payout_run_kind", "00030_payout_run.sql"),
     "PayoutRunState":                     ("payout_run_state", "00030_payout_run.sql"),
     "PayoutRunOutcome":                   ("payout_run_outcome", "00030_payout_run.sql"),
