@@ -61,19 +61,24 @@ func openPool(t *testing.T) *pgxpool.Pool {
 // server, never the real boot path.
 type testAuthenticator struct{}
 
+// testRoles parses X-Test-Roles: comma-separated role names, blanks skipped.
+func testRoles(hdr string) []httpx.Role {
+	var roles []httpx.Role
+	for _, part := range strings.Split(hdr, ",") {
+		if part = strings.TrimSpace(part); part != "" {
+			roles = append(roles, httpx.Role(part))
+		}
+	}
+	return roles
+}
+
 func (testAuthenticator) Authenticate(_ context.Context, r *http.Request) (httpx.Principal, error) {
 	acct := r.Header.Get("X-Test-Account-ID")
 	rolesHdr := r.Header.Get("X-Test-Roles")
 	if acct == "" && rolesHdr == "" {
 		return httpx.AnonymousPrincipal(), nil
 	}
-	var roles []httpx.Role
-	for _, part := range strings.Split(rolesHdr, ",") {
-		part = strings.TrimSpace(part)
-		if part != "" {
-			roles = append(roles, httpx.Role(part))
-		}
-	}
+	roles := testRoles(rolesHdr)
 	// The session's sign-in method: two-step sign-in unless a test says
 	// otherwise (X-Test-AMR), e.g. a support agent who signed in with a
 	// password alone.
