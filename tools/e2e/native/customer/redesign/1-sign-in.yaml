@@ -48,7 +48,8 @@ name: customer redesign, sign in (returning customer)
     id: "Code-input-cell-0"
 - eraseText: 6
 - inputText: ${CODE}
-- hideKeyboard
+# No hideKeyboard here: the field kept its focus, so the tap above may not reopen the keyboard,
+# and hideKeyboard with none open sends Back, which leaves the app. Verify sits above the keyboard.
 - tapOn: "Verify and continue"
 
 # next_route HOME: the four tabs (no Alerts) and the greeting toast.
