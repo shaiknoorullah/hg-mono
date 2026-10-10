@@ -125,7 +125,7 @@ func (s *Store) resolve(ctx context.Context, tx pgx.Tx, req QuoteRequest) (resol
 	rows, err := tx.Query(ctx, `
 		SELECT cl.id, cl.menu_item_id, mi.live_version_id, mi.price_cents, mi.availability_state,
 		       mi.deleted_at IS NOT NULL, mi.tax_category::text, mi.restaurant_id,
-		       COALESCE(miv.name, ''), cl.variant_id, cl.quantity, cl.special_request
+		       COALESCE(miv.name, ''), cl.quantity, cl.special_request
 		  FROM cart_line cl
 		  JOIN menu_item mi ON mi.id = cl.menu_item_id
 		  LEFT JOIN menu_item_version miv ON miv.id = mi.live_version_id
@@ -144,7 +144,6 @@ func (s *Store) resolve(ctx context.Context, tx pgx.Tx, req QuoteRequest) (resol
 		availability, taxCat, itemRestaurant string
 		itemName                             string
 		deleted                              bool
-		variantID                            *string
 		quantity                             int
 		specialRequest                       *string
 	}
@@ -152,7 +151,7 @@ func (s *Store) resolve(ctx context.Context, tx pgx.Tx, req QuoteRequest) (resol
 	for rows.Next() {
 		var rl rawLine
 		if err := rows.Scan(&rl.lineID, &rl.menuItemID, &rl.versionID, &rl.priceCents,
-			&rl.availability, &rl.deleted, &rl.taxCat, &rl.itemRestaurant, &rl.itemName, &rl.variantID,
+			&rl.availability, &rl.deleted, &rl.taxCat, &rl.itemRestaurant, &rl.itemName,
 			&rl.quantity, &rl.specialRequest); err != nil {
 			return rc, fmt.Errorf("scan line: %w", err)
 		}
@@ -164,6 +163,14 @@ func (s *Store) resolve(ctx context.Context, tx pgx.Tx, req QuoteRequest) (resol
 	rows.Close()
 	if len(raws) == 0 {
 		return rc, ErrCartEmpty
+	}
+
+	// Every chosen variant of every line, in the menu's group order, read in
+	// this transaction. One that was switched off or removed since it was
+	// added fails the quote, as an unavailable item does.
+	lineVariants, variantGone, err := loadCartLineVariants(ctx, tx, req.CartID)
+	if err != nil {
+		return rc, err
 	}
 
 	var lines []pricing.LineInput
@@ -186,32 +193,25 @@ func (s *Store) resolve(ctx context.Context, tx pgx.Tx, req QuoteRequest) (resol
 		}
 		rc.stateRows = append(rc.stateRows, stateRow{Kind: "menu_item", ID: rl.menuItemID, Value: rl.priceCents})
 
-		// Variant: read its price/mode and resolve variant_part per P-09 step 1.
-		if rl.variantID != nil {
-			var mode string
-			var priceC, deltaC *int64
-			var varName string
-			var available bool
-			err = tx.QueryRow(ctx, `
-				SELECT pricing_mode::text, price_cents, delta_cents, name, is_available
-				  FROM variant WHERE id = $1 AND deleted_at IS NULL`, *rl.variantID).
-				Scan(&mode, &priceC, &deltaC, &varName, &available)
-			if errors.Is(err, pgx.ErrNoRows) || (err == nil && !available) {
-				return rc, fmt.Errorf("%w: variant %s", ErrItemUnavailable, *rl.variantID)
-			}
+		// Variants: P-09 step 1, the chosen ABSOLUTE variant's price (else the
+		// base price) plus every chosen DELTA variant's delta.
+		if variantGone[rl.lineID] {
+			return rc, fmt.Errorf("%w: a variant on %s", ErrItemUnavailable, rl.menuItemID)
+		}
+		if vs := lineVariants[rl.lineID]; len(vs) > 0 {
+			part, err := pricing.VariantPart(li.BasePriceCents, vs)
 			if err != nil {
-				return rc, fmt.Errorf("resolve variant: %w", err)
+				return rc, fmt.Errorf("%w: %s: %v", ErrItemUnavailable, rl.menuItemID, err)
 			}
-			li.VariantID = rl.variantID
-			li.VariantName = &varName
-			li.VariantPricingMode = &mode
-			switch mode {
-			case "ABSOLUTE":
-				li.VariantPartCents = money.Amount(*priceC)
-				rc.stateRows = append(rc.stateRows, stateRow{Kind: "variant", ID: *rl.variantID, Value: *priceC})
-			case "DELTA":
-				li.VariantPartCents = money.Amount(rl.priceCents + *deltaC)
-				rc.stateRows = append(rc.stateRows, stateRow{Kind: "variant", ID: *rl.variantID, Value: *deltaC})
+			li.Variants = vs
+			li.VariantPartCents = part
+			li.VariantID, li.VariantName, li.VariantPricingMode = pricing.VariantSummary(vs)
+			for _, v := range vs {
+				if v.PricingMode == pricing.PricingAbsolute {
+					rc.stateRows = append(rc.stateRows, stateRow{Kind: "variant", ID: v.VariantID, Value: v.PriceCents.Cents()})
+				} else {
+					rc.stateRows = append(rc.stateRows, stateRow{Kind: "variant", ID: v.VariantID, Value: v.DeltaCents.Cents()})
+				}
 			}
 		}
 

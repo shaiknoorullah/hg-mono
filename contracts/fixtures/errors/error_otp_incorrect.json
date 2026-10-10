@@ -2,7 +2,7 @@
   "scenario": "error_otp_incorrect",
   "domain": "errors",
   "schema": "ErrorEnvelope",
-  "describes": "`400` · `OTP_INCORRECT`. A wrong sign-in code; `details.attempts_remaining` is how many tries are left on this challenge (always sent by `services/hg`). **A collision case**: the proof-of-delivery `OTP_INCORRECT` (`422` from `createAssignmentTransition`) is the same member. Disambiguate by endpoint, not by code.",
+  "describes": "`400` · `OTP_INCORRECT`. A wrong sign-in code; `details.attempts_remaining` is how many tries are left on this challenge (always sent by `services/hg`). Sign-in only: proof of delivery now answers `DELIVERY_CODE_INCORRECT` (`error_delivery_code_incorrect`).",
   "operations": [
     "verifyOtp"
   ],

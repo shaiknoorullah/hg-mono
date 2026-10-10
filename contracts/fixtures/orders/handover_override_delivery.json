@@ -1,0 +1,26 @@
+{
+  "scenario": "handover_override_delivery",
+  "domain": "orders",
+  "schema": "HandoverOverride",
+  "describes": "**Admin override at a met handover.** The customer's phone died in the lobby, so they could not read their delivery code after two wrong guesses. Support reached the customer, who confirmed they had the order, and an admin confirmed the delivery: `ARRIVED` → `DELIVERED` with `actor_kind: ADMIN`. The rider could not have done this: a photo never replaces the code at a met handover.",
+  "operations": [
+    "overrideHandoverCode"
+  ],
+  "status": 200,
+  "tags": [
+    "admin",
+    "delivery-code"
+  ],
+  "payload": {
+    "id": "d92b9dc1-e6c4-49be-aca7-8896def1fa77",
+    "order_id": "1362e3e3-2975-4d34-a104-c54b647b6f5e",
+    "handover": "DELIVERY",
+    "reason": "Customer's phone died in the lobby. Reached them on the account email; they confirmed they have the order.",
+    "case_id": "c8840d35-bf30-4fa4-a9cb-b3185fc8d004",
+    "actor_account_id": "9f123a34-f530-4ece-a9b8-7590061072b9",
+    "actor_kind": "ADMIN",
+    "wrong_code_attempts": 2,
+    "order_state": "DELIVERED",
+    "created_at": "2026-08-10T18:40:11.412Z"
+  }
+}

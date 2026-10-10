@@ -27,6 +27,7 @@
     },
     "rider_location": null,
     "rider": null,
+    "delivery_code": null,
     "timeline": [
       {
         "from_state": null,

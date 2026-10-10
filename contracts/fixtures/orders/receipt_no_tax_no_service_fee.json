@@ -28,6 +28,7 @@
         "menu_item_id": "e3723319-f51b-42f0-a693-8c9eb954bb0f",
         "name": "Chicken Biryani",
         "variant_name": null,
+        "variants": [],
         "addons": [],
         "quantity": 1,
         "special_request": null,
@@ -40,6 +41,17 @@
         "menu_item_id": "260778de-cee3-4a79-ad10-f79f5e9ab98e",
         "name": "Beef Nihari",
         "variant_name": "Full",
+        "variants": [
+          {
+            "variant_group_id": "e85bf673-4e6a-48a3-a171-fa397e45e9dc",
+            "group_name": "Portion",
+            "variant_id": "e2b1737f-75fc-43ed-af76-4bcfbb941301",
+            "variant_name": "Full",
+            "pricing_mode": "ABSOLUTE",
+            "price_cents": 3695,
+            "delta_cents": null
+          }
+        ],
         "addons": [],
         "quantity": 1,
         "special_request": "Extra gravy on the side",
@@ -52,6 +64,7 @@
         "menu_item_id": "456616ee-e1fc-4a94-aa83-3b1c726ff23d",
         "name": "Chicken Karahi (Half)",
         "variant_name": null,
+        "variants": [],
         "addons": [
           {
             "addon_id": "8e05bcf1-8b4f-4578-ac6d-92f90d1cdf6f",

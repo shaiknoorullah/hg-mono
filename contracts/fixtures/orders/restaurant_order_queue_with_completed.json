@@ -56,6 +56,7 @@
           "menu_item_id": "e3723319-f51b-42f0-a693-8c9eb954bb0f",
           "name": "Chicken Biryani",
           "variant_name": null,
+          "variants": [],
           "addons": [],
           "quantity": 1,
           "special_request": null,
@@ -68,6 +69,17 @@
           "menu_item_id": "260778de-cee3-4a79-ad10-f79f5e9ab98e",
           "name": "Beef Nihari",
           "variant_name": "Full",
+          "variants": [
+            {
+              "variant_group_id": "e85bf673-4e6a-48a3-a171-fa397e45e9dc",
+              "group_name": "Portion",
+              "variant_id": "e2b1737f-75fc-43ed-af76-4bcfbb941301",
+              "variant_name": "Full",
+              "pricing_mode": "ABSOLUTE",
+              "price_cents": 3695,
+              "delta_cents": null
+            }
+          ],
           "addons": [],
           "quantity": 1,
           "special_request": "Extra gravy on the side",
@@ -80,6 +92,7 @@
           "menu_item_id": "456616ee-e1fc-4a94-aa83-3b1c726ff23d",
           "name": "Chicken Karahi (Half)",
           "variant_name": null,
+          "variants": [],
           "addons": [
             {
               "addon_id": "8e05bcf1-8b4f-4578-ac6d-92f90d1cdf6f",
@@ -104,6 +117,7 @@
         "currency": "CAD"
       },
       "rider": null,
+      "pickup_code": "3051",
       "elapsed_seconds": 1920,
       "is_late": true,
       "placed_at": "2026-08-10T18:10:11.412Z",
@@ -149,6 +163,7 @@
           "menu_item_id": "e3723319-f51b-42f0-a693-8c9eb954bb0f",
           "name": "Chicken Biryani",
           "variant_name": null,
+          "variants": [],
           "addons": [],
           "quantity": 1,
           "special_request": null,
@@ -161,6 +176,17 @@
           "menu_item_id": "260778de-cee3-4a79-ad10-f79f5e9ab98e",
           "name": "Beef Nihari",
           "variant_name": "Full",
+          "variants": [
+            {
+              "variant_group_id": "e85bf673-4e6a-48a3-a171-fa397e45e9dc",
+              "group_name": "Portion",
+              "variant_id": "e2b1737f-75fc-43ed-af76-4bcfbb941301",
+              "variant_name": "Full",
+              "pricing_mode": "ABSOLUTE",
+              "price_cents": 3695,
+              "delta_cents": null
+            }
+          ],
           "addons": [],
           "quantity": 1,
           "special_request": "Extra gravy on the side",
@@ -173,6 +199,7 @@
           "menu_item_id": "456616ee-e1fc-4a94-aa83-3b1c726ff23d",
           "name": "Chicken Karahi (Half)",
           "variant_name": null,
+          "variants": [],
           "addons": [
             {
               "addon_id": "8e05bcf1-8b4f-4578-ac6d-92f90d1cdf6f",
@@ -202,6 +229,7 @@
         "vehicle_type": "SCOOTER",
         "eta_at": "2026-08-10T18:48:11.412Z"
       },
+      "pickup_code": "3051",
       "elapsed_seconds": 1920,
       "is_late": false,
       "placed_at": "2026-08-10T18:10:11.412Z",
@@ -247,6 +275,7 @@
           "menu_item_id": "e3723319-f51b-42f0-a693-8c9eb954bb0f",
           "name": "Chicken Biryani",
           "variant_name": null,
+          "variants": [],
           "addons": [],
           "quantity": 1,
           "special_request": null,
@@ -259,6 +288,17 @@
           "menu_item_id": "260778de-cee3-4a79-ad10-f79f5e9ab98e",
           "name": "Beef Nihari",
           "variant_name": "Full",
+          "variants": [
+            {
+              "variant_group_id": "e85bf673-4e6a-48a3-a171-fa397e45e9dc",
+              "group_name": "Portion",
+              "variant_id": "e2b1737f-75fc-43ed-af76-4bcfbb941301",
+              "variant_name": "Full",
+              "pricing_mode": "ABSOLUTE",
+              "price_cents": 3695,
+              "delta_cents": null
+            }
+          ],
           "addons": [],
           "quantity": 1,
           "special_request": "Extra gravy on the side",
@@ -271,6 +311,7 @@
           "menu_item_id": "456616ee-e1fc-4a94-aa83-3b1c726ff23d",
           "name": "Chicken Karahi (Half)",
           "variant_name": null,
+          "variants": [],
           "addons": [
             {
               "addon_id": "8e05bcf1-8b4f-4578-ac6d-92f90d1cdf6f",
@@ -300,6 +341,7 @@
         "vehicle_type": "SCOOTER",
         "eta_at": "2026-08-10T18:48:11.412Z"
       },
+      "pickup_code": null,
       "elapsed_seconds": 1920,
       "is_late": false,
       "placed_at": "2026-08-10T18:10:11.412Z",

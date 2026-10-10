@@ -453,6 +453,8 @@ def _restaurant_offers(reg) -> None:
             _offered(2, 1000, d),
             _event(3, RESTAURANT_CHANNEL, "restaurant.order_accepted", 7000, {
                 "order_id": _order_id(a), "accepted_by": "Hamza K.", "prep_eta_minutes": 20,
+                # The kitchen reads it to the rider at the counter (restaurant channel only).
+                "pickup_code": "4182",
             }),
             _event(4, RESTAURANT_CHANNEL, "restaurant.order_rejected", 11000, {
                 "order_id": _order_id(d), "rejected_by": "Hamza K.", "reason_code": "KITCHEN_AT_CAPACITY",

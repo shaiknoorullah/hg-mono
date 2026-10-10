@@ -93,10 +93,25 @@ function loadManifest(): NonNullable<typeof manifest> {
   return manifest!;
 }
 
+/*
+ * Fixture text is read from disk once per test file. Every mocked request resolves a fixture,
+ * and an operation with no default looks through all its candidates, so reading and searching
+ * the manifest on each call made screen tests slow enough to time out on a loaded runner. Each
+ * call still parses a fresh copy, so a test that edits a payload never changes another's.
+ */
+const fixtureText = new Map<string, string>();
+let fileByScenario: Map<string, string> | null = null;
+
 export function fixture(scenario: string): FixtureFile {
-  const entry = loadManifest().fixtures.find((f) => f.scenario === scenario);
-  if (!entry) throw new Error(`mockApi: no fixture named ${scenario}`);
-  return JSON.parse(fs.readFileSync(path.join(FIXTURES, entry.file), 'utf8')) as FixtureFile;
+  fileByScenario ??= new Map(loadManifest().fixtures.map((f) => [f.scenario, f.file]));
+  const file = fileByScenario.get(scenario);
+  if (!file) throw new Error(`mockApi: no fixture named ${scenario}`);
+  let text = fixtureText.get(file);
+  if (text === undefined) {
+    text = fs.readFileSync(path.join(FIXTURES, file), 'utf8');
+    fixtureText.set(file, text);
+  }
+  return JSON.parse(text) as FixtureFile;
 }
 
 /** The fixture's payload, for building props or expectations in a test. */
