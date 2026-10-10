@@ -66,7 +66,6 @@ import {
   HANDOVER_TITLE,
   INSTRUCTION,
   KEEP_BAG,
-  NEXT_PROOF,
   PROOF_LABEL,
   PROOF_NEEDED,
   PROOF_NEEDED_NEXT,
@@ -429,7 +428,7 @@ export function HandoverScreen({ params }: ScreenProps<'tripHandover'>): React.R
           <Radio key={m} value={m} label={labels[m] ?? HANDOVER_LABEL[m]} testID={`dropoff-handover-${m}`} />
         ))}
       </RadioGroup>
-      <Facts rows={[[PROOF_NEEDED_NEXT, NEXT_PROOF[method]]]} />
+      <Facts rows={[[PROOF_NEEDED_NEXT, PROOF_LABEL[method]]]} />
     </Screen>
   );
 }

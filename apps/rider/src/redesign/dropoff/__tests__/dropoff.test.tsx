@@ -67,7 +67,7 @@ describe.each(SCHEMES)('step 3, go to the customer (%s)', (scheme) => {
     );
     await screen.findByText('Meet Ayesha R. in the lobby');
     expect(screen.getByText("Please don't call")).toBeTruthy();
-    expect(screen.getByText("The customer's 4-digit code")).toBeTruthy();
+    expect(screen.getByText("The customer's code")).toBeTruthy();
     expect(screen.getByText("They asked not to be called. Call only if you can't find them.")).toBeTruthy();
     expect(screen.queryByText('Call customer')).toBeNull();
     fireEvent.press(screen.getByText('Call Ayesha R.'));
@@ -138,7 +138,7 @@ describe.each(SCHEMES)('step 3, go to the customer (%s)', (scheme) => {
     });
     fireEvent.press(await screen.findByText("I'm here"));
     await screen.findByText("We can't place you at the drop-off");
-    expect(screen.getByText("Your location doesn't show you at 88 Harbour Street, Toronto, ON M5J 0C3. If you're there, say why and carry on.")).toBeTruthy();
+    expect(screen.getByText("Your location doesn't show you at 88 Harbour Street. If you're there, say why and carry on.")).toBeTruthy();
     expect(disabled('dropoff-geofence-continue')).toBe(true);
     fireEvent.changeText(screen.getByTestId('dropoff-geofence-reason-field'), 'Side door');
     expect(disabled('dropoff-geofence-continue')).toBe(false);

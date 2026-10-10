@@ -73,13 +73,19 @@ export const INSTRUCTION: Record<DeliveryInstruction, string> = {
 /** A sentence that ends on a name: "Aisha M." already carries its full stop. */
 const endSentence = (text: string) => (text.endsWith('.') ? text : `${text}.`);
 
+/** "88 Brimley Rd, Scarborough, ON" → "88 Brimley Rd". */
+export const street = (address: string) => address.split(',')[0]!.trim();
+
 /** `special_instructions`, verbatim and never truncated, in quotes as drawn. */
 export const quoted = (text: string) => `"${text}"`;
 
-/** "Proof needed" on step 3 (DL/DropoffEnRoute note). */
+/**
+ * "Proof needed" on step 3 and "Proof needed next" on the handover, from `required_pod_method`
+ * (DL/DropoffEnRoute note: OTP = "The customer's code"; DL/Handover, HandoverOtp).
+ */
 export const PROOF_LABEL: Record<PodMethod, string> = {
   PHOTO: 'A photo at the door',
-  OTP: "The customer's 4-digit code",
+  OTP: "The customer's code",
   PHOTO_WITH_ATTESTATION: 'A photo and a short statement',
 };
 
@@ -112,7 +118,8 @@ export const ARRIVE_FAILED = {
 /** DL/DropoffGeofence: 422 GEOFENCE_REQUIRED on ARRIVED_AT_DROPOFF. */
 export const GEOFENCE = {
   title: "We can't place you at the drop-off",
-  body: (address: string) => `Your location doesn't show you at ${address}. If you're there, say why and carry on.`,
+  /** The street only, as drawn ("at 88 Brimley Rd."): the address up to its first comma. */
+  body: (address: string) => `Your location doesn't show you at ${street(address)}. If you're there, say why and carry on.`,
   label: "Why you're continuing",
   /** Not drawn for the drop-off (the board names the helper only): the pickup sheet's line, at the door. */
   helper: "At least 5 characters. For example: GPS is off by a block; I'm at the door.",
@@ -148,13 +155,6 @@ export const HANDOVER_OTP_LABEL: Partial<Record<HandoverMethod, string>> = {
   HANDED_TO_CUSTOMER: 'The customer',
   HANDED_TO_OTHER_PERSON: 'Someone else at the address',
   LEFT_WITH_RECEPTION: 'Leave it with reception or concierge',
-};
-
-/** "Proof needed next" on the handover board. */
-export const NEXT_PROOF: Record<PodMethod, string> = {
-  PHOTO: 'A photo at the door',
-  OTP: "The customer's code",
-  PHOTO_WITH_ATTESTATION: 'A photo and a short statement',
 };
 
 /** The handover board's primary: what it opens, or what to do first. */

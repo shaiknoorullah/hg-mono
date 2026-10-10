@@ -119,7 +119,15 @@ export function storage(api: MockApi, answer: (nth: number) => 'ok' | 'fail' | '
 /** Something's wrong and the return leg are WP6: a probe shows the route and its params. */
 function Wp6Probe({ params }: ScreenProps<'tripException'> | ScreenProps<'tripReturn'>) {
   const nav = useNav();
-  return <Text testID="wp6-probe">{`${nav.current.name}:${JSON.stringify(params)}`}</Text>;
+  return (
+    <>
+      <Text testID="wp6-probe">{`${nav.current.name}:${JSON.stringify(params)}`}</Text>
+      {/* WP6's "Back to the delivery": the step under it opens again. */}
+      <Text testID="wp6-back" onPress={() => nav.pop()}>
+        Back to the delivery
+      </Text>
+    </>
+  );
 }
 registerScreen('tripException', { component: Wp6Probe, back: 'pop' });
 registerScreen('tripReturn', { component: Wp6Probe, back: 'none' });

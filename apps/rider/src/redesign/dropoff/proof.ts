@@ -72,9 +72,23 @@ export async function submitProof(assignmentId: string, proof: PreparedProof): P
   return assignment;
 }
 
-/** DELIVERED, after the proof: prepared once, so a retry is the same request (`postNow`, never the outbox). */
-export function prepareDelivered(): Promise<PreparedStep> {
-  return prepareStep({ to_state: 'DELIVERED' });
+const deliveredSteps = new Map<string, PreparedStep>();
+
+/**
+ * DELIVERED, after the proof: prepared once per delivery and kept, so every retry is the same
+ * request (`postNow`, never the outbox), even after the rider left the screen and came back.
+ */
+export async function prepareDelivered(assignmentId: string): Promise<PreparedStep> {
+  const kept = deliveredSteps.get(assignmentId);
+  if (kept) return kept;
+  const step = await prepareStep({ to_state: 'DELIVERED' });
+  deliveredSteps.set(assignmentId, step);
+  return step;
+}
+
+/** A refusal (4xx) is final for that request: the next DELIVERED is a new one, with a new key. */
+export function dropDeliveredStep(assignmentId: string): void {
+  deliveredSteps.delete(assignmentId);
 }
 
 /** Post DELIVERED straight to the server. */
@@ -203,8 +217,33 @@ export function claimEnRoute(assignmentId: string): boolean {
   return true;
 }
 
+/* ------------------------------------------------------------------ a locked code */
+
+const locked = new Set<string>();
+
+/**
+ * 423 DELIVERY_CODE_LOCKED is for good: the order is with support. Remembered per assignment so
+ * leaving the proof screen (Something's wrong, then back) never brings the code field back.
+ */
+export function markCodeLocked(assignmentId: string): void {
+  locked.add(assignmentId);
+}
+
+export function isCodeLocked(assignmentId: string): boolean {
+  return locked.has(assignmentId);
+}
+
+/** The delivery is over: forget what was kept for it on the phone (the photo's bytes). */
+export function forgetDelivery(assignmentId: string): void {
+  photos.delete(assignmentId);
+  locked.delete(assignmentId);
+  deliveredSteps.delete(assignmentId);
+}
+
 /** Test seam, and a sign-out. */
 export function resetDropoffState(): void {
   started.clear();
   photos.clear();
+  locked.clear();
+  deliveredSteps.clear();
 }

@@ -59,10 +59,13 @@ import {
   CODE_LENGTH,
   STATEMENT_MAX,
   STATEMENT_MIN,
-  UploadFailed,
   classifyProofError,
+  dropDeliveredStep,
   fetchDeliveryEntries,
+  forgetDelivery,
+  isCodeLocked,
   keepPhoto,
+  markCodeLocked,
   keptPhoto,
   prepareDelivered,
   prepareProof,
@@ -86,10 +89,16 @@ export function ProofScreen({ params }: ScreenProps<'tripProof'>): React.ReactEl
   // Held while the proof and DELIVERED are in flight: the answer moves the state, and this
   // screen, not the router, opens Delivered.
   const [finishing, setFinishing] = React.useState(false);
-  useFollowTrip(id, view, 'tripDropoff', finishing);
+  // The proof was already recorded when this screen opened (the rider left it after "Code
+  // accepted" or a failed DELIVERED, and came back): only "Mark as delivered" is left, never the
+  // proof again. Decided once, so the proof's own 200 below does not swap the screen mid-send.
+  const recordedAtOpen = React.useRef<boolean | null>(null);
+  if (view.assignment && recordedAtOpen.current === null) recordedAtOpen.current = !!view.assignment.pod_recorded;
+  useFollowTrip(id, view, 'tripDropoff', finishing || !!recordedAtOpen.current);
   const a = view.assignment;
   if (!a) return <StepPending view={view} />;
   const method: PodMethod = params.leftAtDoor ? 'PHOTO_WITH_ATTESTATION' : a.required_pod_method;
+  if (recordedAtOpen.current) return <MarkDeliveredScreen assignmentId={id} method={method} />;
   const ctx: ProofContext = { id, a, method, handover: params.handover, leftAtDoor: !!params.leftAtDoor, setFinishing };
   if (method === 'OTP') return <OtpProof ctx={ctx} />;
   return <PhotoProof ctx={ctx} />;
@@ -119,7 +128,10 @@ type ProofRun =
 function useProofRun(ctx: ProofContext) {
   const view = useTripAssignment(ctx.id);
   const alive = useAlive();
-  const [run, setRun] = React.useState<ProofRun>({ phase: 'idle' });
+  // A locked code stays locked (the order is with support): never the field again.
+  const [run, setRun] = React.useState<ProofRun>(() =>
+    ctx.method === 'OTP' && isCodeLocked(ctx.id) ? { phase: 'locked' } : { phase: 'idle' },
+  );
   const last = React.useRef<PreparedProof | null>(null);
   const send = async (body: ProofBody): Promise<Assignment | null> => {
     const proof = prepareProof(body, last.current);
@@ -137,6 +149,7 @@ function useProofRun(ctx: ProofContext) {
           setRun({ phase: 'wrong', attemptsRemaining: failure.attemptsRemaining });
           break;
         case 'locked':
+          markCodeLocked(ctx.id);
           setRun({ phase: 'locked' });
           break;
         case 'mismatch':
@@ -162,7 +175,7 @@ function useProofRun(ctx: ProofContext) {
 
 type Deliver =
   | { phase: 'idle' }
-  | { phase: 'marking'; step?: PreparedStep }
+  | { phase: 'marking' }
   | { phase: 'failed'; step: PreparedStep }
   | { phase: 'offline'; step: PreparedStep }
   | { phase: 'pod-required'; required: PodMethod | null };
@@ -174,17 +187,32 @@ function useDeliver(id: string, method: PodMethod, setFinishing: (on: boolean) =
   const alive = useAlive();
   const [deliver, setDeliver] = React.useState<Deliver>({ phase: 'idle' });
   const delivered = (a: Assignment) => nav.openFlow('tripDelivered', { assignmentId: id, method, at: a.delivered_at ?? new Date().toISOString() });
+  // One DELIVERED at a time: a second tap while the first waits for a GPS fix sends nothing
+  // (a fresh step would carry a fresh Idempotency-Key).
+  const inFlight = React.useRef(false);
   const markDelivered = async (proofAnswer?: Assignment) => {
+    if (inFlight.current) return;
+    inFlight.current = true;
+    try {
+      await deliverOnce(proofAnswer);
+    } finally {
+      inFlight.current = false;
+    }
+  };
+  const deliverOnce = async (proofAnswer?: Assignment) => {
     setFinishing(true);
     // Some servers commit DELIVERED with the proof: nothing left to send.
     if (proofAnswer?.state === 'DELIVERED') return delivered(proofAnswer);
-    const retry = deliver.phase === 'failed' || deliver.phase === 'offline' ? deliver.step : undefined;
-    setDeliver({ phase: 'marking', step: retry });
-    const step = retry ?? (await prepareDelivered());
+    setDeliver({ phase: 'marking' });
+    // The same step (key and body) as any earlier attempt that did not get a final answer.
+    const step = await prepareDelivered(id);
     try {
       delivered(await sendDelivered(id, step));
     } catch (e) {
       const failure = classifyProofError(e);
+      const final =
+        failure.kind === 'pod-required' || failure.kind === 'out-of-date' || (failure.kind === 'failed' && (failure.error.status ?? 500) < 500);
+      if (final) dropDeliveredStep(id);
       if (!alive.current) return;
       setFinishing(false);
       if (failure.kind === 'offline') return setDeliver({ phase: 'offline', step });
@@ -486,17 +514,25 @@ function PhotoProof({ ctx }: { ctx: ProofContext }): React.ReactElement {
   const statementOk = statement.trim().length >= STATEMENT_MIN;
   const ready = !!photo && (!attest || (statementOk && confirmed));
 
-  /** Mark as delivered: upload (once), the proof, then DELIVERED. */
+  /** Mark as delivered: upload (once), the proof, then DELIVERED. One run at a time. */
+  const running = React.useRef(false);
   const finish = async () => {
-    if (!photo || !ready || busy) return;
+    if (!photo || !ready || busy || running.current) return;
+    running.current = true;
+    try {
+      await finishOnce(photo);
+    } finally {
+      running.current = false;
+    }
+  };
+  const finishOnce = async (photo: DoorPhoto) => {
     setShot({ phase: 'uploading' });
     let objectId: string;
     try {
       objectId = await uploadPhoto(photo, a.order_id, () => undefined);
-    } catch (e) {
+    } catch {
       // Presign, PUT or confirm (`UploadFailed.phase`): the photo stays on the phone either way.
       if (alive.current) setShot({ phase: 'upload-failed' });
-      void (e as UploadFailed);
       return;
     }
     if (!alive.current) return;
@@ -780,12 +816,19 @@ export function DeliveredScreen({ params }: ScreenProps<'tripDelivered'>): React
     pollMs: (lines) => (lines && lines.length ? null : ENTRIES_POLL_MS),
   });
   const [goingOnline, setGoingOnline] = React.useState(false);
+  // The dashboard's mode decides "You're now offline" (go offline after this delivery): read it
+  // now rather than wait for the next poll, which may still say ON_DELIVERY.
+  React.useEffect(() => {
+    void dash.refetch();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const a = view.assignment;
   if (!a) return <StepPending view={view} />;
 
   const backHome = () => {
     // The delivery is over: nothing saved for it may replay, and the gate and Home re-read it.
     void outbox.clearAssignment(id);
+    forgetDelivery(id);
     void session?.refresh();
     void dash.refetch();
     nav.closeFlow();

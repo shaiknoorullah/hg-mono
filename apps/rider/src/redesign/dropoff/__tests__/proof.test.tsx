@@ -137,6 +137,18 @@ describe.each(SCHEMES)("proof: the customer's code (%s)", (scheme) => {
     expect(delivered(api)).toHaveLength(0);
   });
 
+  it('423 stays locked: leaving for "Something\'s wrong" and coming back never brings the field back', async () => {
+    const { api } = renderDropoff(scheme, OTP, { submitProofOfDelivery: DELIVERY_CODE_LOCKED });
+    await typeCode('4821');
+    fireEvent.press(screen.getByText('Check the code'));
+    await screen.findByText('The code is locked after 5 tries');
+    fireEvent.press(screen.getByText("Something's wrong"));
+    fireEvent.press(await screen.findByTestId('wp6-back'));
+    expect(await screen.findByText('The code is locked after 5 tries')).toBeTruthy();
+    expect(screen.queryByTestId('proof-otp-code-field')).toBeNull();
+    expect(proofs(api)).toHaveLength(1);
+  });
+
   it('5xx, then Try again: the same Idempotency-Key and body; a changed code is a new key', async () => {
     const { api } = renderDropoff(scheme, OTP, {
       submitProofOfDelivery: (_c, nth) => (nth < 2 ? 'error_internal_error' : PROOF_RECORDED(OTP)),
@@ -314,6 +326,34 @@ describe.each(SCHEMES)('proof: a photo (%s)', (scheme) => {
     expect(proofs(api)).toHaveLength(1);
   });
 
+  it('DELIVERED 5xx, away and back: only "Mark as delivered" is left, the same DELIVERED request, no second proof', async () => {
+    cameraGives(SHOT);
+    // The server says `pod_recorded` from the proof's 200 on, to every read.
+    let recorded = false;
+    const { api } = renderDropoff(scheme, () => (recorded ? PROOF_RECORDED() : PHOTO), {
+      submitProofOfDelivery: () => {
+        recorded = true;
+        return PROOF_RECORDED();
+      },
+      createAssignmentTransition: (_c, nth) => (nth === 0 ? 'error_internal_error' : 'assignment_delivered'),
+      listRiderEarningEntries: 'earning_entries_empty',
+    });
+    storage(api);
+    await toCamera();
+    fireEvent.press(await screen.findByText('Take photo'));
+    fireEvent.press(await screen.findByText('Mark as delivered'));
+    await screen.findByText('Stay nearby until this sends');
+    fireEvent.press(screen.getByText("Something's wrong"));
+    fireEvent.press(await screen.findByTestId('wp6-back'));
+    await screen.findByText('Proof saved · delivery not sent yet');
+    expect(screen.queryByText('Take a photo of the bag at the door')).toBeNull();
+    fireEvent.press(screen.getByText('Mark as delivered'));
+    await screen.findByText('Delivered to Ayesha R.');
+    expect(keys(api)[1]).toBe(keys(api)[0]);
+    expect(proofs(api)).toHaveLength(1);
+    expect(api.callsTo('createUpload')).toHaveLength(1);
+  });
+
   it('DELIVERED 422 POD_REQUIRED: "We need a photo before this counts as delivered", take it again', async () => {
     cameraGives(SHOT, SHOT);
     const { api } = renderDropoff(scheme, PHOTO, { submitProofOfDelivery: PROOF_RECORDED(), createAssignmentTransition: POD_REQUIRED() });
@@ -325,6 +365,12 @@ describe.each(SCHEMES)('proof: a photo (%s)', (scheme) => {
     expect(screen.getByText("This order needs a photo at the door. Take it now, then you're done.")).toBeTruthy();
     fireEvent.press(screen.getByText('Take the photo'));
     expect(await screen.findByText('Take a photo of the bag at the door')).toBeTruthy();
+    // A refused DELIVERED is final: the next one, after the new photo, is a new request.
+    api.set('createAssignmentTransition', 'assignment_delivered');
+    fireEvent.press(screen.getByText('Take photo'));
+    fireEvent.press(await screen.findByText('Mark as delivered'));
+    await screen.findByText('Delivered to Ayesha R.');
+    expect(keys(api)[1]).not.toBe(keys(api)[0]);
   });
 });
 
