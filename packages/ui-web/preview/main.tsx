@@ -39,14 +39,23 @@ interface Entry {
   specimens: Specimen[];
 }
 
-const entries: Entry[] = Object.entries(modules)
-  .map(([file, mod]) => {
-    const fallback = file.split('/').pop()!.replace('.preview.tsx', '');
-    const specimens = Object.entries(mod)
-      .filter(([name, value]) => name !== 'component' && typeof value === 'function')
-      .map(([name, value]) => ({ state: kebab(name), Render: value as ComponentType }));
-    return { component: mod.component ?? fallback, file, specimens };
-  })
+/** A rebuilt specimen (`src/ds`, `src/proposed`) supersedes a legacy one for the same component. */
+const isRebuilt = (file: string): boolean => /\/src\/(ds|proposed)\//.test(file);
+
+const allEntries: Entry[] = Object.entries(modules).map(([file, mod]) => {
+  const fallback = file.split('/').pop()!.replace('.preview.tsx', '');
+  const specimens = Object.entries(mod)
+    .filter(([name, value]) => name !== 'component' && typeof value === 'function')
+    .map(([name, value]) => ({ state: kebab(name), Render: value as ComponentType }));
+  return { component: mod.component ?? fallback, file, specimens };
+});
+
+// Two files for one component would give duplicate `<Component>/<state>` test ids, which the
+// shooter cannot pair. Once the rebuild has a specimen, the legacy one drops out.
+const entries: Entry[] = allEntries
+  .filter(
+    (e) => isRebuilt(e.file) || !allEntries.some((o) => o !== e && o.component === e.component && isRebuilt(o.file)),
+  )
   .sort((a, b) => a.component.localeCompare(b.component));
 
 const params = new URLSearchParams(window.location.search);

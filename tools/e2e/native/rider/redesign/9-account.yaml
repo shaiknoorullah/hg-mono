@@ -1,0 +1,83 @@
+# Rider redesign WP9: the Account tab. Sign in as rider-sim (ACTIVE, payouts set up), open
+# Account › Payouts, come back, sign out, and land on sign-in. Built with
+# EXPO_PUBLIC_HG_REDESIGN=1 and a cleared Metro cache (EXPO_PUBLIC_* is inlined at transform time).
+#
+# Sign-in uses either copy (legacy fallback until WP1 merges, or WP1's "Sign in or apply to ride").
+# Env: PHONE (default rider-sim +15550100151; dev codes for +1 555 010 01xx are always 000000).
+appId: com.halalgoes.rider.dev
+name: rider redesign, account and payouts
+env:
+  PHONE: "+15550100151"
+---
+- launchApp:
+    clearState: true
+    permissions:
+      all: allow
+- extendedWaitUntil:
+    visible: "Rider sign in|Sign in or apply to ride"
+    timeout: 90000
+- tapOn:
+    text: "Phone number.*|Mobile number"
+    optional: true
+- tapOn:
+    below: "Phone number .*"
+    above: "Send code"
+    optional: true
+- inputText: ${PHONE}
+- tapOn: "Send code"
+- extendedWaitUntil:
+    visible: "Enter the code sent to.*|Enter your code"
+    timeout: 30000
+- tapOn:
+    below: "Enter the code sent to.*"
+    above: "Verify"
+    optional: true
+- inputText: "000000"
+- tapOn:
+    text: "Verify"
+    optional: true
+- extendedWaitUntil:
+    visible: "Earnings"
+    timeout: 60000
+
+# Account overview (PA/Account-Overview).
+- tapOn:
+    id: "tab-account"
+- extendedWaitUntil:
+    visible: "Your details"
+    timeout: 30000
+- assertVisible: "Terms and privacy"
+- assertVisible: "Delete account"
+- takeScreenshot: rider-wp9-01-account
+
+# Account › Payouts (PA/Account-Payouts*): whatever Stripe's state, never the error.
+- tapOn:
+    id: "row-payouts"
+- extendedWaitUntil:
+    visible: "Payouts on|Payouts are not set up|Stripe .*|Checking with Stripe"
+    timeout: 30000
+- assertNotVisible: "We couldn't check your payouts"
+- takeScreenshot: rider-wp9-02-payouts
+- back
+- extendedWaitUntil:
+    visible: "Your details"
+    timeout: 15000
+
+# Sign out (PA/Account-SignOut): the confirm, then the sign-in screen.
+- scrollUntilVisible:
+    element:
+      id: "sign-out"
+    direction: DOWN
+- tapOn:
+    id: "sign-out"
+- extendedWaitUntil:
+    visible: "Sign out\\?|You are on a delivery"
+    timeout: 10000
+- takeScreenshot: rider-wp9-03-sign-out-confirm
+- tapOn:
+    id: "sign-out-confirm"
+- extendedWaitUntil:
+    visible: "Rider sign in|Sign in or apply to ride"
+    timeout: 30000
+- assertNotVisible: "You were signed out.*"
+- takeScreenshot: rider-wp9-04-signed-out

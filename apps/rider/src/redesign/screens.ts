@@ -9,3 +9,4 @@ import './home';
 import './signin';
 
 export {};
+import './account';
