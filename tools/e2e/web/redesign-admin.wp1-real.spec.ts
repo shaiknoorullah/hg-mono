@@ -7,6 +7,7 @@ import { OUT } from '../lib/paths.mjs';
 import { freshTotp } from '../lib/totp.mjs';
 import { E2E_MODE } from './mode';
 import { stepper } from './shots';
+import { signOutAndExpectNotice } from './redesign-admin.support';
 
 // The real-API twin of redesign-admin.wp1.spec.ts (which runs in mock mode only): the same
 // sign-in journey, but every request reaches services/hg, so the two-step branch is the server's
@@ -148,12 +149,6 @@ test('admin signs in against the real API with password and TOTP, sees the admin
   });
 
   await step(page, 'signed-out', async () => {
-    await page.getByRole('button', { name: /^Sign out/ }).click();
-    await expect(page.getByRole('heading', { level: 1, name: 'Sign in' })).toBeVisible();
-    await expect(page.getByText('You’re signed out')).toBeVisible();
-    await expect(page.getByText('You signed out of HalalGoes on this device. Sign in again to continue.')).toBeVisible();
-    await expect(nav(page)).toHaveCount(0);
-    // The email is remembered for the next sign-in.
-    await expect(emailField(page)).toHaveValue(admin.email);
+    await signOutAndExpectNotice(page, admin.email);
   });
 });
