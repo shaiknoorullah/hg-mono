@@ -179,6 +179,7 @@ type adminOrderLineRow struct {
 	MenuItemID     string
 	Name           string
 	VariantName    *string
+	Variants       []orders.LineVariantDTO
 	Quantity       int
 	SpecialRequest *string
 	UnitPriceCents int64
@@ -361,6 +362,17 @@ SELECT line_no, menu_item_id, name_snapshot, variant_name, quantity, special_req
 	}
 	if err := lRows.Err(); err != nil {
 		return nil, err
+	}
+	lRows.Close()
+	variants, err := orders.OrderLineVariants(ctx, r.pool, orderID)
+	if err != nil {
+		return nil, err
+	}
+	for i := range v.Lines {
+		v.Lines[i].Variants = variants[v.Lines[i].LineNo]
+		if v.Lines[i].Variants == nil {
+			v.Lines[i].Variants = []orders.LineVariantDTO{}
+		}
 	}
 
 	// Load the primary ORDER payment_intent (at most one per order). Absent for

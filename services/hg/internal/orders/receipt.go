@@ -114,7 +114,8 @@ func (s *Store) buildReceiptSnapshot(ctx context.Context, tx pgx.Tx, orderID str
 	for _, l := range v.Lines {
 		rl := receiptLineDTO{
 			LineNo: l.LineNo, MenuItemID: l.MenuItemID, Name: l.Name, VariantName: l.VariantName,
-			Addons: make([]quoteLineAddonDTO, 0, len(l.Addons)), Quantity: l.Quantity,
+			Variants: lineVariantsToDTO(l.Variants),
+			Addons:   make([]quoteLineAddonDTO, 0, len(l.Addons)), Quantity: l.Quantity,
 			SpecialRequest: l.SpecialRequest, UnitPriceCents: l.UnitPriceCents,
 			LineTotalCents: l.LineTotalCents, Currency: l.Currency,
 		}
