@@ -183,6 +183,9 @@ flow gets `PHONE` (the app's persona), `RESTAURANT`, `DISH`, `EXPIRED_RESTAURANT
 `LONGITUDE`, and `CODE` when the folder has a `1-ask-for-code.yaml` (run first, with the code read
 from the API's log). Each redesign spec runs twice against one world (desktop, then tablet), so it
 must not depend on state the other pass changed.
+Only the app under test is running on the emulator: `run.sh` force-stops the rider app once the
+cross-app flow has its offer, and the other app before each app's redesign flows. The cross-app
+rider stays online on the server, though, so a redesign flow must not assume no rider is online.
 
 **Run it locally:**
 
