@@ -233,6 +233,8 @@ Adding customer, rider or admin coverage is additive — no change to the [archi
 
 One GitHub issue per app tracks this.
 
+Which journeys of each app, and which features of the specification, the dev world reproduces today, and the issue for each gap, is in the [dev world coverage map](../../devworld-coverage.md).
+
 ## 11. Relationship to the realtime feature
 
 The harness produces real realtime events (order state changes, offers, `rider.location`) whether or not an app renders them. The restaurant realtime feature can be built and unit-tested against the scripted WebSocket playback of the mock (`ws://localhost:4010/v1/ws?scenario=realtime_order_happy_path`); its end-to-end acceptance uses this harness's `journey`. Neither blocks the other's construction.
