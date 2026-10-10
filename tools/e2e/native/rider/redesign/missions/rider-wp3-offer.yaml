@@ -9,7 +9,7 @@ setup: [ "make dev-reset", "make dev-scenario s=order-ready" ]
 reality:
   - theme: light
   - font-scale: 1.3
-flows: [ "tools/e2e/native/rider/redesign/3-offer.yaml" ]
+flows: [ "tools/e2e/native/rider/redesign/lab/3-offer.yaml" ]
 explore: >
   The flow signs in as rider-sim, sets the location to Bismillah Grill itself (setLocation),
   goes online and accepts the offer for the ready order. Dispatch keeps searching for about

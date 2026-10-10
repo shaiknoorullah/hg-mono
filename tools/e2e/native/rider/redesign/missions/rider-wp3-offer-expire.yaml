@@ -9,7 +9,7 @@ setup: [ "make dev-reset", "make dev-scenario s=order-ready" ]
 reality:
   - theme: dark
   - font-scale: 2.0
-flows: [ "tools/e2e/native/rider/redesign/3b-offer-expire.yaml" ]
+flows: [ "tools/e2e/native/rider/redesign/lab/3b-offer-expire.yaml" ]
 explore: >
   Dark mode and font scale 2.0. While the offer is live (before it runs out), scroll the whole
   sheet and screenshot it top to bottom: Decline, the countdown, the earnings, Pickup, Drop-off
