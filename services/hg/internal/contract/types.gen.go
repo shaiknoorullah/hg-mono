@@ -9171,7 +9171,7 @@ type StaffUser struct {
 	Id          openapi_types.UUID  `json:"id"`
 	LastLoginAt *time.Time          `json:"last_login_at,omitempty"`
 
-	// MfaEnrolled Mandatory for `SUPPORT_AGENT`, `ADMIN` and `SUPER_ADMIN`; there is no grace period.
+	// MfaEnrolled Whether the staff member has turned two-step sign-in on. It is opt-in; moving money needs it.
 	MfaEnrolled bool `json:"mfa_enrolled"`
 
 	// Role P-01. Roles are grants, not table membership. One person is one account no matter how
@@ -9766,11 +9766,6 @@ type VerifyEmailJSONBody struct {
 	Token string `json:"token"`
 }
 
-// StartInviteTotpEnrolmentJSONBody defines parameters for StartInviteTotpEnrolment.
-type StartInviteTotpEnrolmentJSONBody struct {
-	Token string `json:"token"`
-}
-
 // LoginParams defines parameters for Login.
 type LoginParams struct {
 	// XHGClient Registered client surface. Selects which role grant is created on first OTP sign-up
@@ -9817,9 +9812,6 @@ type ResetPasswordJSONBody struct {
 	// never present in an audit payload.
 	NewPassword *Password `json:"new_password,omitempty"`
 	Token       string    `json:"token"`
-
-	// TotpCode The first code from the authenticator that `startInviteTotpEnrolment` set up for this link.
-	TotpCode *string `json:"totp_code,omitempty"`
 }
 
 // RefreshSessionJSONBody defines parameters for RefreshSession.
@@ -10413,9 +10405,6 @@ type ResendEmailVerificationJSONRequestBody ResendEmailVerificationJSONBody
 
 // VerifyEmailJSONRequestBody defines body for VerifyEmail for application/json ContentType.
 type VerifyEmailJSONRequestBody VerifyEmailJSONBody
-
-// StartInviteTotpEnrolmentJSONRequestBody defines body for StartInviteTotpEnrolment for application/json ContentType.
-type StartInviteTotpEnrolmentJSONRequestBody StartInviteTotpEnrolmentJSONBody
 
 // LoginJSONRequestBody defines body for Login for application/json ContentType.
 type LoginJSONRequestBody = LoginInput

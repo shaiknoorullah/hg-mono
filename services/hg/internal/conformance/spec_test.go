@@ -38,7 +38,7 @@ func TestConformance_SpecLoadsAndEnumerates(t *testing.T) {
 	// whose code cannot be used, with a reason, a case and an audit record — the only
 	// way past a handover code, security review on #183:
 	// https://github.com/shaiknoorullah/hg-mono/issues/183; no handler yet).
-	const wantOps = 170
+	const wantOps = 169
 	if got := len(spec.Operations); got != wantOps {
 		ids := make([]string, 0, len(spec.Operations))
 		for id := range spec.Operations {
