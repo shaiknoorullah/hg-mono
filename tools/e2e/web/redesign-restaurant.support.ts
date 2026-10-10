@@ -9,14 +9,34 @@
  *   through the sign-in page.
  */
 import type { Page } from '@playwright/test';
+import { existsSync, readFileSync } from 'node:fs';
+import path from 'node:path';
+import { OUT } from '../lib/paths.mjs';
 
 export const MODE = (process.env.E2E_MODE ?? 'mock') as 'mock' | 'real';
 export const MOCK_API = process.env.E2E_API_URL ?? 'http://localhost:4010';
 /** The real API (`make run`, or the compose stack through Traefik). */
 export const REAL_API = process.env.E2E_REAL_API_URL ?? 'http://localhost:8080';
 
-/** devworld's live restaurant persona (services/hg/internal/devworld/personas.go). */
-export const LIVE_OWNER = { email: process.env.E2E_RESTAURANT_EMAIL ?? 'bismillah-grill@seed.hg', password: 'Seed!2026' };
+/**
+ * Who real mode signs in as. The e2e stack (tools/e2e/stack/up.sh + seed/seed.sh, what CI runs)
+ * seeds its own world and writes its owner and this run's password to $E2E_OUT/world.json; a local
+ * devworld (`make dev-reset`) has no world.json and uses its live restaurant persona
+ * (services/hg/internal/devworld/personas.go). E2E_RESTAURANT_EMAIL / E2E_RESTAURANT_PASSWORD
+ * override either.
+ */
+export const LIVE_OWNER = liveOwner();
+
+function liveOwner(): { email: string; password: string } {
+  const worldFile = path.join(OUT, 'world.json');
+  const seeded = existsSync(worldFile)
+    ? (JSON.parse(readFileSync(worldFile, 'utf8')) as { restaurant: { ownerEmail: string }; password: string })
+    : null;
+  return {
+    email: process.env.E2E_RESTAURANT_EMAIL ?? seeded?.restaurant.ownerEmail ?? 'bismillah-grill@seed.hg',
+    password: process.env.E2E_RESTAURANT_PASSWORD ?? seeded?.password ?? 'Seed!2026',
+  };
+}
 
 const SESSION_KEY = 'hg_restaurant_session_v1';
 
