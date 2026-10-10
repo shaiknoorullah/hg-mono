@@ -46,6 +46,8 @@ import {
 import { changedElsewhere, useOwnMenu, useRestockedBySelf, withCategory, withItem } from './useOwnMenu';
 
 type PanelKind = 'editor' | 'category' | 'details' | null;
+/** Where an availability change started, so its length menu opens beside the switch used. */
+type Surface = 'grid' | 'panel';
 
 function useIsDesktop(): boolean {
   const query = '(min-width: 1280px)';
@@ -58,6 +60,12 @@ function useIsDesktop(): boolean {
     return () => mql.removeEventListener?.('change', on);
   }, []);
   return match;
+}
+
+/** The control that was just pressed (EmptyState actions do not pass their event). */
+function activeElement(): HTMLElement | null {
+  const el = document.activeElement;
+  return el instanceof HTMLElement && el !== document.body ? el : null;
 }
 
 function supportHrefOf(config: Schema['PublicConfig'] | null): string {
@@ -78,7 +86,7 @@ export function MenuPage() {
   const [catsPref, setCatsPref] = useState<'auto' | 'open' | 'closed'>('auto');
   const [statuses, setStatuses] = useState<Record<string, RowStatus>>({});
   const [choices, setChoices] = useState<Record<string, LengthChoice>>({});
-  const [menuOpenFor, setMenuOpenFor] = useState<string | null>(null);
+  const [lengthMenu, setLengthMenu] = useState<{ id: string; surface: Surface } | null>(null);
   const [listPct, setListPct] = useState(42);
   const [now, setNow] = useState(() => serverNow());
   const opener = useRef<HTMLElement | null>(null);
@@ -92,6 +100,7 @@ export function MenuPage() {
   const p = profile.data;
   const accountState = p?.account_state;
   const halal = p?.halal ?? null;
+  // An unknown account state (profile failed or still loading) is view only: the lock fails closed.
   const access = accessOf(accountState, refusedLock);
   const canEdit = access === 'edit';
   const supportHref = supportHrefOf(config.data);
@@ -99,6 +108,7 @@ export function MenuPage() {
 
   const loading = menuRes.status === 'loading' || (profile.status === 'loading' && !p);
   const loadError = menuRes.status === 'error';
+  const accountUnknown = !loading && !accountState && !refusedLock;
   const firstRun = !loading && !loadError && menu !== null && menu.categories.length === 0;
   const atLimit = (menu?.categories.length ?? 0) >= MAX_CATEGORIES;
 
@@ -107,9 +117,18 @@ export function MenuPage() {
   const isNew = params.get('new') === '1';
   const itemParam = params.get('item');
   const categoryPanel = params.get('panel') === 'category';
-  const panel: PanelKind = isNew || editId ? 'editor' : categoryPanel && canEdit && !atLimit ? 'category' : itemParam ? 'details' : null;
+  // A new item needs a menu that can be edited and a category to put it in.
+  const newAllowed = canEdit && !loading && !loadError && !firstRun;
+  const panel: PanelKind = editId || (isNew && newAllowed) ? 'editor' : categoryPanel && canEdit && !atLimit ? 'category' : itemParam ? 'details' : null;
   usePagePanelOpen(panel !== null);
   useEffect(() => setCatsPref('auto'), [panel]);
+  // `?new=1` on a locked, view-only, failed or empty menu: drop it once that is known.
+  useEffect(() => {
+    if (!isNew || loading || newAllowed) return;
+    const u = new URLSearchParams(params);
+    u.delete('new');
+    setParams(u, { replace: true });
+  }, [isNew, loading, newAllowed, params, setParams]);
 
   const searching = q.trim() !== '' || show !== 'all';
   const categories = menu?.categories ?? [];
@@ -143,7 +162,9 @@ export function MenuPage() {
     setPanelParams({});
     const el = opener.current;
     window.setTimeout(() => {
+      // Back to the opener; when it is gone (or there was none), to the items list.
       if (el && el.isConnected) el.focus();
+      else document.getElementById('menu-grid-region')?.focus();
     }, 0);
   };
 
@@ -178,11 +199,17 @@ export function MenuPage() {
       return next;
     });
 
-  const runAvailability = async (row: GridRow, body: AvailabilityBody, intent: 'off' | 'on' | 'length', kind: LengthChoice['kind'] | null) => {
+  const runAvailability = async (
+    row: GridRow,
+    body: AvailabilityBody,
+    intent: 'off' | 'on' | 'length',
+    kind: LengthChoice['kind'] | null,
+    surface: Surface,
+  ) => {
     const id = row.item.id;
     const name = itemName(row.item);
     setStatus(id, { kind: 'saving' });
-    setMenuOpenFor(null);
+    setLengthMenu(null);
     try {
       const saved = await setItemAvailability(id, body);
       if (changedElsewhere(row.item, saved)) setLiveChanged(true);
@@ -191,7 +218,7 @@ export function MenuPage() {
       if (kind === 'indefinite') setChoices((c) => ({ ...c, [id]: { kind: 'indefinite' } }));
       if (intent === 'off' && saved.availability_state === 'OUT_OF_STOCK') {
         setStatus(id, { kind: 'just-off' });
-        setMenuOpenFor(id);
+        setLengthMenu({ id, surface });
       } else {
         setStatus(id, null);
       }
@@ -219,7 +246,7 @@ export function MenuPage() {
         setStatus(id, null);
         setLiveChanged(true);
       } else {
-        const retry = () => void runAvailability(row, body, intent, kind);
+        const retry = () => void runAvailability(row, body, intent, kind, surface);
         setStatus(id, { kind: 'failed', intent, retry });
         toast.show({
           variant: 'danger',
@@ -236,19 +263,31 @@ export function MenuPage() {
 
   const hourBody = (): AvailabilityBody => ({ availability_state: 'OUT_OF_STOCK', out_of_stock_until: new Date(serverNow() + ONE_HOUR_MS).toISOString() });
 
-  const onSwitch = (row: GridRow, on: boolean) => {
+  const onSwitch = (row: GridRow, on: boolean, surface: Surface) => {
     if (!canEdit) return;
-    if (on) void runAvailability(row, { availability_state: 'AVAILABLE', out_of_stock_until: null }, 'on', null);
+    if (on) void runAvailability(row, { availability_state: 'AVAILABLE', out_of_stock_until: null }, 'on', null, surface);
     // Until closing needs the next closing time (Needs API): turning off is For 1 hour (spec §2 fallback).
-    else void runAvailability(row, hourBody(), 'off', 'hour');
+    else void runAvailability(row, hourBody(), 'off', 'hour', surface);
   };
-  const onLength = (row: GridRow, c: 'hour' | 'indefinite') => {
+  const onLength = (row: GridRow, c: 'hour' | 'indefinite', surface: Surface) => {
     if (!canEdit) return;
-    void runAvailability(row, c === 'hour' ? hourBody() : { availability_state: 'OUT_OF_STOCK', out_of_stock_until: null }, 'length', c);
+    void runAvailability(row, c === 'hour' ? hourBody() : { availability_state: 'OUT_OF_STOCK', out_of_stock_until: null }, 'length', c, surface);
   };
-  const onMenuOpen = (id: string | null) => {
-    if (id === null && menuOpenFor && statuses[menuOpenFor]?.kind === 'just-off') setStatus(menuOpenFor, null);
-    setMenuOpenFor(id);
+  const onMenuOpen = (id: string | null, surface: Surface) => {
+    if (id === null) {
+      // Only the surface whose menu is open can close it.
+      if (!lengthMenu || lengthMenu.surface !== surface) return;
+      if (statuses[lengthMenu.id]?.kind === 'just-off') setStatus(lengthMenu.id, null);
+      setLengthMenu(null);
+      return;
+    }
+    setLengthMenu({ id, surface });
+  };
+  const menuOpenIn = (surface: Surface): string | null => (lengthMenu?.surface === surface ? lengthMenu.id : null);
+  /** "Out of stock now… press Escape" belongs to the surface whose length menu is open. */
+  const statusIn = (id: string, surface: Surface): RowStatus | undefined => {
+    const s = statuses[id];
+    return s?.kind === 'just-off' && lengthMenu?.id === id && lengthMenu.surface !== surface ? undefined : s;
   };
 
   // ── Grid content ───────────────────────────────────────────────────────────────────
@@ -319,7 +358,7 @@ export function MenuPage() {
       title={q.trim() ? `No ${filterNoun} match “${q.trim()}”` : `No ${filterNoun}`}
       description="Check the spelling, or clear the search and filter to see every item."
       primaryAction={{ label: 'Clear search and filter', onPress: clearSearch }}
-      secondaryAction={canEdit ? { label: 'Add item', onPress: () => openEditor(null, null) } : undefined}
+      secondaryAction={canEdit ? { label: 'Add item', onPress: () => openEditor(null, activeElement()) } : undefined}
     />
   ) : selected ? (
     <EmptyState
@@ -327,7 +366,7 @@ export function MenuPage() {
       headingLevel={3}
       title={`No items in ${selected.name} yet`}
       description="Add an item to fill this category. It goes to a HalalGoes reviewer before customers see it."
-      primaryAction={canEdit ? { label: `Add item to ${selected.name}`, onPress: () => openEditor(null, null) } : undefined}
+      primaryAction={canEdit ? { label: `Add item to ${selected.name}`, onPress: () => openEditor(null, activeElement()) } : undefined}
     />
   ) : null;
 
@@ -336,6 +375,7 @@ export function MenuPage() {
   if (loading) summary = 'Loading your menu…';
   else if (loadError || !menu) summary = 'Your menu didn’t load.';
   else if (firstRun) summary = 'Your menu is empty.';
+  else if (accountUnknown) summary = 'View only until your account loads.';
   else if (access === 'view-only') summary = 'View only while deactivated.';
   else if (searching) {
     summary = rows.length ? `${itemCountLabel(rows.length)} in ${categoryCountLabel(results.length)}. Categories with no match are left out.` : 'No matches.';
@@ -357,6 +397,7 @@ export function MenuPage() {
   const everyOut = menu ? menu.categories.flatMap((c) => c.items).length > 0 && menu.categories.flatMap((c) => c.items).every((i) => i.availability_state === 'OUT_OF_STOCK') : false;
   const banners = menuBanners({
     accountState: refusedLock && accountState !== 'BANNED' ? 'SUSPENDED' : accountState,
+    accountUnknown: accountUnknown ? { onRetry: () => profile.reload() } : null,
     halal,
     supportHref,
     stale: menuRes.status === 'stale' ? { at: menuRes.loadedAt, onRetry: () => void refresh() } : null,
@@ -423,12 +464,12 @@ export function MenuPage() {
             categoryActive={detailsRow.category.is_active}
             access={access}
             lockId={lockId}
-            status={statuses[detailsRow.item.id]}
+            status={statusIn(detailsRow.item.id, 'panel')}
             choice={choices[detailsRow.item.id]}
-            menuOpen={false}
-            onMenuOpenChange={() => {}}
-            onSwitch={(on) => onSwitch(detailsRow, on)}
-            onLength={(c) => onLength(detailsRow, c)}
+            menuOpen={menuOpenIn('panel') === detailsRow.item.id}
+            onMenuOpenChange={(open) => onMenuOpen(open ? detailsRow.item.id : null, 'panel')}
+            onSwitch={(on) => onSwitch(detailsRow, on, 'panel')}
+            onLength={(c) => onLength(detailsRow, c, 'panel')}
             restockedAt={restocked.get(detailsRow.item.id)}
             now={now}
             timeZone={timezone}
@@ -438,6 +479,7 @@ export function MenuPage() {
       />
     ) : panel === 'category' ? (
       <CategoryPanel
+        existingIds={categories.map((c) => c.id)}
         onClose={closePanel}
         onLocked={() => {
           lockMenu();
@@ -467,7 +509,11 @@ export function MenuPage() {
         supportHref={supportHref}
         onClose={closePanel}
         onSaved={onSaved}
-        onLocked={lockMenu}
+        onLocked={() => {
+          lockMenu();
+          // A new item has nothing to show read-only: close it (an existing one turns view only).
+          if (!editId) closePanel();
+        }}
         onReload={() => refresh()}
         onShowDetails={(id) => setPanelParams({ item: id })}
       />
@@ -594,6 +640,8 @@ export function MenuPage() {
                 u.set('category', id);
                 return `?${u.toString()}`;
               }}
+              // Choosing a category leaves search and filter, so the category opens.
+              onSelect={clearSearch}
             />
             <div
               className="flex min-h-0 min-w-0 flex-col"
@@ -613,12 +661,12 @@ export function MenuPage() {
                 lockId={lockId}
                 detailsFor={panel === 'details' ? itemParam : null}
                 editingId={editingId}
-                statusOf={(id) => statuses[id]}
+                statusOf={(id) => statusIn(id, 'grid')}
                 choiceOf={(id) => choices[id]}
-                menuOpenFor={menuOpenFor}
-                setMenuOpenFor={onMenuOpen}
-                onSwitch={onSwitch}
-                onLength={onLength}
+                menuOpenFor={menuOpenIn('grid')}
+                setMenuOpenFor={(id) => onMenuOpen(id, 'grid')}
+                onSwitch={(row, on) => onSwitch(row, on, 'grid')}
+                onLength={(row, c) => onLength(row, c, 'grid')}
                 onDetails={openDetails}
                 onEdit={(row, el) => openEditor(row.item.id, el)}
                 restocked={restocked}

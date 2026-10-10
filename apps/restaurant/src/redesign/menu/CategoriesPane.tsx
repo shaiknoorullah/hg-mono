@@ -18,9 +18,11 @@ export interface CategoriesPaneProps {
   onCollapse: () => void;
   onExpand: () => void;
   hrefFor: (categoryId: string) => string;
+  /** A category was chosen (the page leaves search and filter so it opens). */
+  onSelect?: (categoryId: string) => void;
 }
 
-export function CategoriesPane({ categories, countOf, selectedId, searching, collapsed, onCollapse, onExpand, hrefFor }: CategoriesPaneProps) {
+export function CategoriesPane({ categories, countOf, selectedId, searching, collapsed, onCollapse, onExpand, hrefFor, onSelect }: CategoriesPaneProps) {
   if (collapsed) {
     const selected = categories?.find((c) => c.id === selectedId);
     return (
@@ -61,6 +63,7 @@ export function CategoriesPane({ categories, countOf, selectedId, searching, col
                 <li key={c.id}>
                   <Link
                     to={hrefFor(c.id)}
+                    onClick={() => onSelect?.(c.id)}
                     aria-current={current ? 'true' : undefined}
                     className={`hg-focus flex min-h-11 items-center gap-2 rounded-md px-2.5 py-1.5 text-[15px] text-fg-primary hover:bg-surface-subtle ${
                       current ? 'bg-brand-50 font-bold' : ''

@@ -32,6 +32,8 @@ function actions(list: Action[]): ReactNode {
 
 export interface MenuBannersInput {
   accountState: AccountState | null | undefined;
+  /** The profile did not load, so the account state is unknown: the menu is view only (fails closed). */
+  accountUnknown: { onRetry: () => void } | null;
   halal: { display_state: HalalState; expires_on?: string | null } | null | undefined;
   supportHref: string;
   stale: { at: number | null; onRetry: () => void } | null;
@@ -43,8 +45,24 @@ export interface MenuBannersInput {
 
 /** The banners, in order: account, certificate, stale, live changes, all out. */
 export function menuBanners(input: MenuBannersInput): ReactNode[] {
-  const { accountState, halal, supportHref, stale, liveChanges, allOut, timeZone, onShowNotApproved } = input;
+  const { accountState, accountUnknown, halal, supportHref, stale, liveChanges, allOut, timeZone, onShowNotApproved } = input;
   const out: ReactNode[] = [];
+  if (accountUnknown) {
+    out.push(
+      <div id="account-banner" key="account-unknown">
+        <Banner
+          variant="neutral"
+          title="We couldn’t check your account, so your menu is view only for now."
+          description={
+            <>
+              Nothing on your menu has changed. Check your connection and try again to make changes.
+              {actions([{ label: 'Try again', variant: 'tertiary', onPress: accountUnknown.onRetry }])}
+            </>
+          }
+        />
+      </div>,
+    );
+  }
   const cert = halal?.display_state ?? null;
   const expires = halal?.expires_on ? formatCalendarDate(halal.expires_on, 'long') : null;
   const suspended = accountState === 'SUSPENDED' || accountState === 'BANNED';

@@ -239,7 +239,8 @@ export type MenuAccess = 'edit' | 'locked' | 'view-only';
 
 export function accessOf(state: AccountState | null | undefined, refusedLock: boolean): MenuAccess {
   if (refusedLock || state === 'SUSPENDED' || state === 'BANNED') return 'locked';
-  if (state === 'DEACTIVATED') return 'view-only';
+  // An unknown state (the profile has not loaded, or failed to) fails closed: never 'edit'.
+  if (state === 'DEACTIVATED' || !state) return 'view-only';
   return 'edit';
 }
 

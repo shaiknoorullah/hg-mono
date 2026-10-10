@@ -315,8 +315,9 @@ test.describe('restaurant redesign · menu (mock)', () => {
     await shot(page, info, 'filtered-empty');
   });
 
-  test('SUSPENDED: read-only, availability included', async ({ page }, info) => {
-    await openMock(page, '/menu', { profile: { account_state: 'SUSPENDED' } });
+  test('SUSPENDED: read-only, availability included, and ?new=1 opens no editor', async ({ page }, info) => {
+    await openMock(page, '/menu?new=1', { profile: { account_state: 'SUSPENDED' } });
+    await expect(page.getByRole('region', { name: 'New item' })).toHaveCount(0);
     await expect(page.getByText('Your menu is read-only while your account is suspended.')).toBeVisible();
     for (const sw of await page.getByRole('switch').all()) await expect(sw).toBeDisabled();
     await expect(page.getByRole('button', { name: 'Add item' })).toHaveCount(0);
@@ -334,10 +335,13 @@ test.describe('restaurant redesign · menu (mock)', () => {
     await shot(page, info, 'cert-expired');
   });
 
-  test('DEACTIVATED: view only', async ({ page }, info) => {
-    await openMock(page, '/menu', { profile: { account_state: 'DEACTIVATED' } });
+  test('DEACTIVATED: view only, and ?new=1 opens no editor', async ({ page }, info) => {
+    await openMock(page, '/menu?new=1', { profile: { account_state: 'DEACTIVATED' } });
     await expect(page.getByText('View only while deactivated.')).toBeVisible();
     await expect(page.getByRole('switch')).toHaveCount(0);
+    await expect(page.getByRole('region', { name: 'New item' })).toHaveCount(0);
+    await expect(page).not.toHaveURL(/new=1/);
+    await expectNoDocumentScroll(page);
     await shot(page, info, 'deactivated');
   });
 });

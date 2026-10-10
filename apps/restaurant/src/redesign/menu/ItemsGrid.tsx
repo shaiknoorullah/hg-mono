@@ -223,6 +223,7 @@ export function ItemsGrid(props: ItemsGridProps) {
         {explanation}
       </div>
       <div
+        id="menu-grid-region"
         role="region"
         aria-label={`${title} items, scrolls on its own`}
         tabIndex={-1}

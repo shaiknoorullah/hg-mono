@@ -8,16 +8,49 @@ import { idempotencyKey, type Schema } from '@hg/api-client';
 import { Banner, Button, DetailPanel, Input, Textarea } from '../ds';
 import { errorCode } from '../data/useServerResource';
 import { createCategory } from './api';
+import { loadOwnMenu } from './useOwnMenu';
 
 export interface CategoryPanelProps {
   onClose: () => void;
   onCreated: (category: Schema['MenuCategory']) => void;
   /** 403 MENU_LOCKED: the page goes read-only. */
   onLocked: () => void;
+  /** Category ids on the menu when the panel opened (to recognise one an earlier attempt created). */
+  existingIds: readonly string[];
 }
 
-export function CategoryPanel({ onClose, onCreated, onLocked }: CategoryPanelProps) {
+type CategoryBody = Schema['MenuCategoryInput'];
+
+export function CategoryPanel({ onClose, onCreated, onLocked, existingIds }: CategoryPanelProps) {
   const key = useRef(idempotencyKey());
+  /** The body last sent with `key`; a different body under the same key is 409 IDEMPOTENCY_KEY_REUSE. */
+  const sentWithKey = useRef<CategoryBody | null>(null);
+  const known = useRef(new Set(existingIds));
+
+  /**
+   * Create under this intent's key. On 409 IDEMPOTENCY_KEY_REUSE (the name or description changed
+   * after an attempt whose answer never arrived), re-read the menu: if that attempt created the
+   * category, that is the answer; otherwise the changed body is a new intent and gets a new key.
+   */
+  const createWithKey = async (body: CategoryBody): Promise<Schema['MenuCategory']> => {
+    sentWithKey.current = sentWithKey.current ?? body;
+    try {
+      return await createCategory(key.current, body);
+    } catch (error) {
+      if (errorCode(error) !== 'IDEMPOTENCY_KEY_REUSE') throw error;
+      const names = new Set([body.name, sentWithKey.current?.name]);
+      const fresh = await loadOwnMenu();
+      const found = fresh.categories.find((c) => !known.current.has(c.id) && names.has(c.name));
+      if (found) {
+        const { items: _items, ...category } = found;
+        void _items;
+        return category as Schema['MenuCategory'];
+      }
+      key.current = idempotencyKey();
+      sentWithKey.current = body;
+      return createCategory(key.current, body);
+    }
+  };
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [saving, setSaving] = useState(false);
@@ -35,7 +68,7 @@ export function CategoryPanel({ onClose, onCreated, onLocked }: CategoryPanelPro
     setMissing(false);
     setTakenName(null);
     try {
-      const created = await createCategory(key.current, {
+      const created = await createWithKey({
         name: trimmed,
         ...(description.trim() ? { description: description.trim() } : {}),
       });
@@ -47,6 +80,7 @@ export function CategoryPanel({ onClose, onCreated, onLocked }: CategoryPanelPro
         setTakenName(trimmed);
         // A new name is a new intent.
         key.current = idempotencyKey();
+        sentWithKey.current = null;
         setFailedFor(null);
       } else if (code === 'MENU_LOCKED') {
         onLocked();

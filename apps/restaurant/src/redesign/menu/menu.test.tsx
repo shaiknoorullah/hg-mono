@@ -123,7 +123,7 @@ describe('menu list', () => {
     expect(await screen.findByRole('heading', { level: 2, name: 'Mains' })).toBeTruthy();
   });
 
-  it('re-reads on window focus and every 60 s; a failed re-read keeps the menu and says it is stale', async () => {
+  it('re-reads on window focus; a failed re-read keeps the menu and says it is stale, a good one clears it', async () => {
     const api = installFakeApi(routes());
     await openMenu();
     const reads = () => api.callsTo(MENU).length;
@@ -136,13 +136,11 @@ describe('menu list', () => {
     expect(await screen.findByText(/^Showing your menu as it was at \d{1,2}:\d{2} [ap]m\.$/)).toBeTruthy();
     expect(screen.getByRole('heading', { level: 2, name: 'Mains' })).toBeTruthy();
     api.set(MENU, { body: richMenu() });
-    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
-    // The interval was armed before fake timers: re-arm by focusing once more, then advance.
     act(() => {
       window.dispatchEvent(new Event('focus'));
     });
+    await waitFor(() => expect(reads()).toBe(first + 2));
     await waitFor(() => expect(screen.queryByText(/^Showing your menu as it was/)).toBeNull());
-    vi.useRealTimers();
   });
 
   it('refreshes every 60 s', async () => {
@@ -170,6 +168,17 @@ describe('menu list', () => {
     expect(screen.getByText('No matches.')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Clear search and filter' }));
     expect(await screen.findByRole('heading', { level: 2, name: 'Mains' })).toBeTruthy();
+  });
+
+  it('choosing a category while searching leaves the search and opens the category', async () => {
+    installFakeApi(routes());
+    const nav = await openMenu();
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Search this menu' }), { target: { value: 'lassi' } });
+    expect(await screen.findByRole('heading', { level: 2, name: '1 item matches “lassi”' })).toBeTruthy();
+    fireEvent.click(within(nav).getByRole('link', { name: /^Wraps/ }));
+    expect(await screen.findByRole('heading', { level: 2, name: 'Wraps' })).toBeTruthy();
+    expect((screen.getByRole('searchbox', { name: 'Search this menu' }) as HTMLInputElement).value).toBe('');
+    expect(within(nav).getByRole('link', { name: /^Wraps/ }).getAttribute('aria-current')).toBe('true');
   });
 
   it('a category with everything out of stock says so; an inactive one explains itself', async () => {
@@ -355,7 +364,7 @@ describe('account and certificate states', () => {
     expect(await screen.findByRole('heading', { level: 2, name: 'Items not approved' })).toBeTruthy();
   });
 
-  it('an expired certificate is a neutral banner, never danger; no halal field → no certificate banner', async () => {
+  it('an expired certificate is a neutral banner, never danger; no halal field is never read as certified', async () => {
     installFakeApi(
       routes({ 'GET /v1/restaurant/profile': profile({ halal: { display_state: 'EXPIRED', expires_on: '2026-09-20', certifying_body_name: null } }) }),
     );
@@ -367,11 +376,56 @@ describe('account and certificate states', () => {
     expect(screen.getByRole('link', { name: 'Upload renewed certificate' })).toBeTruthy();
     expect(screen.getByText(/Customers can’t see it right now\.$/)).toBeTruthy();
     cleanup();
+    // Missing halal field: no certificate banner, and nothing that only a certificate allows.
+    // With the certified fixture the same item reads "Live on your menu" (the edit test below);
+    // without a halal field it must not.
+    const menu = richMenu();
     const p = fixture('restaurant_profile');
+    expect(p.halal.display_state).toBe('CERTIFIED');
     delete p.halal;
-    installFakeApi(routes({ 'GET /v1/restaurant/profile': { body: p } }));
-    await openMenu();
+    installFakeApi(routes({ 'GET /v1/restaurant/profile': { body: p } }, menu));
+    await openMenu(`/menu?edit=${byName(menu, 'Beef kofta plate').id}`);
+    const editor = await screen.findByRole('region', { name: 'Edit Beef kofta plate' });
     expect(document.getElementById('cert-banner')).toBeNull();
+    expect(within(editor).queryByText('Live on your menu')).toBeNull();
+    expect(within(editor).getByText('Approved')).toBeTruthy();
+  });
+
+  it('?new=1 never opens an editor on a suspended, deactivated or empty menu', async () => {
+    for (const account_state of ['SUSPENDED', 'DEACTIVATED']) {
+      const api = installFakeApi(routes({ 'GET /v1/restaurant/profile': profile({ account_state }) }));
+      await openMenu('/menu?new=1');
+      await waitFor(() => expect(screen.getByRole('navigation', { name: 'Menu categories' })).toBeTruthy());
+      expect(screen.queryByRole('region', { name: 'New item' })).toBeNull();
+      expect(screen.queryByRole('button', { name: 'Submit for review' })).toBeNull();
+      expect(api.callsTo('POST /v1/restaurant/menu/items')).toHaveLength(0);
+      cleanup();
+    }
+    installFakeApi(routes({}, { restaurant_id: 'x', categories: [] }));
+    await renderRedesign('/menu?new=1');
+    expect(await screen.findByRole('region', { name: 'Start your menu' })).toBeTruthy();
+    expect(screen.queryByRole('region', { name: 'New item' })).toBeNull();
+  });
+
+  it('the profile failed to load: the menu is view only (never editable) until Try again reads it', async () => {
+    let fail = true;
+    installFakeApi(
+      routes({
+        'GET /v1/restaurant/profile': () => (fail ? { status: 503, body: errorBody('SERVICE_UNAVAILABLE') } : profile()),
+      }),
+    );
+    await openMenu('/menu?new=1');
+    expect(await screen.findByText('We couldn’t check your account, so your menu is view only for now.')).toBeTruthy();
+    expect(screen.getByText('View only until your account loads.')).toBeTruthy();
+    expect(screen.queryAllByRole('switch')).toHaveLength(0);
+    expect(screen.queryByRole('button', { name: 'Add item' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Add category' })).toBeNull();
+    expect(screen.queryByRole('region', { name: 'New item' })).toBeNull();
+    fail = false;
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    expect(await screen.findByRole('switch', { name: 'Beef kofta plate available' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Add item' })).toBeTruthy();
+    expect(screen.queryByText('We couldn’t check your account, so your menu is view only for now.')).toBeNull();
   });
 });
 
@@ -410,6 +464,32 @@ describe('add a category', () => {
     expect(screen.queryByRole('heading', { name: 'Add a category' })).toBeNull();
   });
 
+  it('409 IDEMPOTENCY_KEY_REUSE after a lost answer: the menu is re-read and the category the first try made is shown', async () => {
+    const created = { ...fixture('menu_category_created'), id: '00000000-0000-4000-8000-000000000777', name: 'Grills' };
+    const api = installFakeApi(
+      routes({
+        'POST /v1/restaurant/menu/categories': (_req, n) =>
+          n === 1 ? { status: 503, body: errorBody('SERVICE_UNAVAILABLE') } : { status: 409, body: errorBody('IDEMPOTENCY_KEY_REUSE') },
+      }),
+    );
+    await openMenu('/menu?panel=category');
+    const panel = screen.getByRole('region', { name: 'Add a category' });
+    fireEvent.change(screen.getByRole('textbox', { name: /Category name/ }), { target: { value: 'Grills' } });
+    fireEvent.click(within(panel).getByRole('button', { name: 'Add category' }));
+    expect(await screen.findByText('We couldn’t add Grills.')).toBeTruthy();
+    // The first try did reach the server: the menu now has Grills.
+    const menu = richMenu();
+    menu.categories.push({ ...created, items: [] });
+    api.set(MENU, { body: menu });
+    fireEvent.change(screen.getByRole('textbox', { name: /Description/ }), { target: { value: 'Off the charcoal' } });
+    fireEvent.click(within(panel).getByRole('button', { name: 'Try again' }));
+    expect(await screen.findByText('Grills added')).toBeTruthy();
+    await waitFor(() => expect(screen.queryByRole('region', { name: 'Add a category' })).toBeNull());
+    // No second category: the 409 was answered from the menu, not by sending again.
+    expect(api.callsTo('POST /v1/restaurant/menu/categories')).toHaveLength(2);
+    expect(await screen.findByRole('heading', { name: 'No items in Grills yet' })).toBeTruthy();
+  });
+
   it('at 40 categories Add category is off and says why', async () => {
     const cats = Array.from({ length: 40 }, (_, i) => category(`Cat ${i + 1}`, [], { id: `00000000-0000-4000-8000-1000000000${String(i).padStart(2, '0')}` }));
     installFakeApi(routes({}, { restaurant_id: 'x', categories: cats }));
@@ -440,6 +520,21 @@ describe('item details panel', () => {
     fireEvent.click(within(panel).getByRole('button', { name: 'Close details for Beef kofta plate' }));
     await waitFor(() => expect(screen.queryByRole('complementary', { name: 'Beef kofta plate' })).toBeNull());
     await waitFor(() => expect((document.activeElement as HTMLElement).getAttribute('aria-label')).toBe('Show details for Beef kofta plate'));
+  });
+
+  it('turning an item off in the details panel opens the length menu in the panel, beside that switch', async () => {
+    const menu = richMenu();
+    const kofta = byName(menu, 'Beef kofta plate');
+    const route = `PUT /v1/restaurant/menu/items/${kofta.id}/availability`;
+    installFakeApi(routes({ [route]: async (req) => ({ body: { ...kofta, ...(await bodyOf(req)) } }) }, menu));
+    await openMenu(`/menu?item=${kofta.id}`);
+    const panel = await screen.findByRole('complementary', { name: 'Beef kofta plate' });
+    fireEvent.click(within(panel).getByRole('switch', { name: 'Beef kofta plate available' }));
+    const lengthMenu = await within(panel).findByRole('menu', { name: 'Change how long Beef kofta plate is out of stock' });
+    await waitFor(() => expect(lengthMenu.contains(document.activeElement)).toBe(true));
+    expect(within(panel).getByText('Out of stock now. Choose another length, or press Escape to keep this one.')).toBeTruthy();
+    expect(within(grid()).queryByRole('menu')).toBeNull();
+    expect(within(grid()).queryByText('Out of stock now. Choose another length, or press Escape to keep this one.')).toBeNull();
   });
 
   it('a not-approved item shows the reviewer’s note and Edit and resubmit', async () => {
@@ -591,6 +686,122 @@ describe('item editor', () => {
     expect(within(editor).getByText('Blocked by HalalGoes')).toBeTruthy();
     expect(within(editor).queryByRole('textbox')).toBeNull();
     expect(within(editor).getByRole('link', { name: 'Contact support about Falafel plate' })).toBeTruthy();
+  });
+
+  it('Add item from an empty category: closing the editor returns focus to that button', async () => {
+    installFakeApi(routes());
+    await openMenu(`/menu?category=${IDS.desserts}`);
+    const add = screen.getByRole('button', { name: 'Add item to Desserts' });
+    add.focus();
+    fireEvent.click(add);
+    const editor = await screen.findByRole('region', { name: 'New item' });
+    fireEvent.click(within(editor).getByRole('button', { name: 'Close New item' }));
+    await waitFor(() => expect(screen.queryByRole('region', { name: 'New item' })).toBeNull());
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Add item to Desserts' })));
+  });
+
+  it('403 MENU_LOCKED on a new item closes the editor and the page turns read-only', async () => {
+    const api = installFakeApi(routes({ 'POST /v1/restaurant/menu/items': 'error_menu_locked' }));
+    await openMenu('/menu?new=1');
+    const editor = await screen.findByRole('region', { name: 'New item' });
+    fireEvent.change(within(editor).getByRole('textbox', { name: /^Price/ }), { target: { value: '12.50' } });
+    fireEvent.change(within(editor).getByRole('textbox', { name: /^Name/ }), { target: { value: 'Halloumi plate' } });
+    fireEvent.click(within(editor).getByRole('button', { name: 'Submit for review' }));
+    await waitFor(() => expect(screen.queryByRole('region', { name: 'New item' })).toBeNull());
+    expect(screen.getByText('Your menu is read-only while your account is suspended.')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Add item' })).toBeNull();
+    expect(api.callsTo('POST /v1/restaurant/menu/items')).toHaveLength(1);
+  });
+
+  it('a changed body after a lost answer (409 IDEMPOTENCY_KEY_REUSE): nothing was made, so it is sent under a new key', async () => {
+    const created = { ...fixture('menu_item_created_pending_review'), name: 'Halloumi platter', category_id: IDS.mains };
+    const api = installFakeApi(
+      routes({
+        'POST /v1/restaurant/menu/items': (_req, n) =>
+          n === 1
+            ? { status: 503, body: errorBody('SERVICE_UNAVAILABLE') }
+            : n === 2
+              ? { status: 409, body: errorBody('IDEMPOTENCY_KEY_REUSE') }
+              : { status: 201, body: created },
+      }),
+    );
+    await openMenu('/menu?new=1');
+    const editor = await screen.findByRole('region', { name: 'New item' });
+    fireEvent.change(within(editor).getByRole('textbox', { name: /^Price/ }), { target: { value: '12.50' } });
+    fireEvent.change(within(editor).getByRole('textbox', { name: /^Name/ }), { target: { value: 'Halloumi plate' } });
+    fireEvent.click(within(editor).getByRole('button', { name: 'Submit for review' }));
+    expect(await within(editor).findByText('We couldn’t submit your changes')).toBeTruthy();
+    fireEvent.change(within(editor).getByRole('textbox', { name: /^Name/ }), { target: { value: 'Halloumi platter' } });
+    fireEvent.click(within(editor).getByRole('button', { name: 'Submit again' }));
+    expect(await screen.findByText('Halloumi platter sent for review')).toBeTruthy();
+    const calls = api.callsTo('POST /v1/restaurant/menu/items');
+    expect(calls).toHaveLength(3);
+    const keys = calls.map((r) => r.headers.get('Idempotency-Key'));
+    expect(keys[1]).toBe(keys[0]);
+    expect(keys[2]).not.toBe(keys[1]);
+    expect((await bodyOf(calls[2]!)).name).toBe('Halloumi platter');
+  });
+
+  it('422 VALIDATION_FAILED maps each field to its control; a cleared prep time or a non-number position is refused locally', async () => {
+    const menu = richMenu();
+    const kofta = byName(menu, 'Beef kofta plate');
+    const route = `PATCH /v1/restaurant/menu/items/${kofta.id}`;
+    const invalid = fixture('error_validation_failed');
+    invalid.error.details = [
+      { field: 'prep_minutes', code: 'maximum', message: 'Prep time is too long.' },
+      { field: 'name', code: 'maxLength', message: 'Use a shorter name' },
+    ];
+    const api = installFakeApi(routes({ [route]: { status: 422, body: invalid } }, menu));
+    await openMenu(`/menu?edit=${kofta.id}`);
+    const editor = await screen.findByRole('region', { name: 'Edit Beef kofta plate' });
+    const prep = within(editor).getByRole('textbox', { name: /^Prep time/ }) as HTMLInputElement;
+    expect(prep.value).toBe(String(kofta.prep_minutes));
+    // Cleared and junk: refused before anything is sent (an empty field would send nothing yet say "saved").
+    fireEvent.change(prep, { target: { value: '' } });
+    fireEvent.change(within(editor).getByRole('textbox', { name: /^Position in category/ }), { target: { value: 'top' } });
+    fireEvent.click(within(editor).getByRole('button', { name: 'Save changes' }));
+    const local = (await within(editor).findByText('2 things to fix before you can submit')).closest('[role="alert"]') as HTMLElement;
+    expect(within(local).getByRole('link', { name: 'Prep time must be from 1 to 120 minutes' })).toBeTruthy();
+    expect(within(local).getByRole('link', { name: 'Position must be a whole number' })).toBeTruthy();
+    expect(within(editor).getByText('Enter a whole number, such as 1.')).toBeTruthy();
+    expect(api.callsTo(route)).toHaveLength(0);
+    fireEvent.click(within(local).getByRole('link', { name: 'Position must be a whole number' }));
+    expect(document.activeElement?.id).toBe('position-input');
+    // Valid locally; the server's field errors land on their controls.
+    fireEvent.change(prep, { target: { value: '45' } });
+    fireEvent.change(within(editor).getByRole('textbox', { name: /^Position in category/ }), { target: { value: String(kofta.sort_order) } });
+    fireEvent.change(within(editor).getByRole('textbox', { name: /^Name/ }), { target: { value: 'Beef kofta plate with rice' } });
+    fireEvent.click(within(editor).getByRole('button', { name: 'Save changes' }));
+    const server = (await within(editor).findByText('We checked your changes. Fix the items below; nothing was saved.')).closest('[role="alert"]') as HTMLElement;
+    expect(within(server).getByText('2 things to fix before you can submit')).toBeTruthy();
+    expect(within(server).getByRole('link', { name: 'Prep time must be from 1 to 120 minutes' })).toBeTruthy();
+    expect(within(server).getByRole('link', { name: 'Use a shorter name' })).toBeTruthy();
+    expect(within(editor).getByText('Enter a prep time from 1 to 120 minutes.')).toBeTruthy();
+    expect(await bodyOf(api.callsTo(route)[0]!)).toEqual({ prep_minutes: 45, name: 'Beef kofta plate with rice' });
+  });
+
+  it('a change under review that appears while editing an item that had none is a conflict (EditorConflict)', async () => {
+    const menu = richMenu();
+    const kofta = byName(menu, 'Beef kofta plate');
+    const api = installFakeApi(routes({}, menu));
+    await openMenu(`/menu?edit=${kofta.id}`);
+    const editor = await screen.findByRole('region', { name: 'Edit Beef kofta plate' });
+    fireEvent.change(within(editor).getByRole('textbox', { name: /^Description/ }), { target: { value: 'Mine' } });
+    expect(within(editor).queryByText('Someone else changed this item while you were editing')).toBeNull();
+    const changed = richMenu();
+    byName(changed, 'Beef kofta plate').pending_version = {
+      ...byName(changed, 'Beef kofta plate').live_version,
+      id: '00000000-0000-4000-8000-000000009999',
+      review_status: 'PENDING_REVIEW',
+      submitted_at: '2026-09-27T18:12:00.000Z',
+      description: 'Theirs',
+    };
+    api.set(MENU, { body: changed });
+    act(() => {
+      window.dispatchEvent(new Event('focus'));
+    });
+    expect(await within(editor).findByText('Someone else changed this item while you were editing')).toBeTruthy();
+    expect((within(editor).getByRole('textbox', { name: /^Description/ }) as HTMLTextAreaElement).value).toBe('Mine');
   });
 
   it('an item that is no longer on the menu says so', async () => {

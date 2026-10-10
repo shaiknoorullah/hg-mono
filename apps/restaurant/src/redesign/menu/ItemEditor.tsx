@@ -12,7 +12,8 @@ import { cents, formatCents, idempotencyKey, isApiError, type HgApiError } from 
 import { Badge, Banner, Button, Checkbox, DetailPanel, Input, Price, Select, Skeleton, Textarea } from '../ds';
 import { errorCode } from '../data/useServerResource';
 import { formatLongDate, formatTime } from '../format/time';
-import { createItem, updateItem, type ItemUpdateBody } from './api';
+import { createItem, updateItem, type ItemCreateBody, type ItemUpdateBody } from './api';
+import { loadOwnMenu } from './useOwnMenu';
 import {
   ALLERGENS,
   DIETARY,
@@ -71,7 +72,7 @@ interface FormState {
   ack: boolean;
 }
 
-type ControlId = 'price-input' | 'prep-input' | 'name-input' | 'description-input' | 'ingredients-input' | 'diet-vegetarian' | 'allergen-peanuts' | 'photo-button';
+type ControlId = 'price-input' | 'prep-input' | 'position-input' | 'name-input' | 'description-input' | 'ingredients-input' | 'diet-vegetarian' | 'allergen-peanuts' | 'photo-button';
 
 interface Problem {
   control: ControlId;
@@ -141,10 +142,29 @@ function intOrNull(text: string): number | null {
   return /^\d+$/.test(t) ? Number(t) : null;
 }
 
+/**
+ * What the editor opened against, to notice a change made elsewhere (EditorConflict, §10.5):
+ * the pending version's id and submitted time, or `none` when there was no pending version.
+ */
+function pendingMark(item: MenuItem): string {
+  const p = item.pending_version;
+  return p ? `${p.id}|${p.submitted_at ?? ''}` : 'none';
+}
+
+const PREP_PROBLEM: Problem = { control: 'prep-input', link: 'Prep time must be from 1 to 120 minutes' };
+const PREP_ERROR = 'Enter a prep time from 1 to 120 minutes.';
+const POSITION_PROBLEM: Problem = { control: 'position-input', link: 'Position must be a whole number' };
+const POSITION_ERROR = 'Enter a whole number, such as 1.';
+
 export function ItemEditor(props: ItemEditorProps) {
   const { itemId, item, menuStatus, categories, defaultCategoryId, access, halal, timeZone, supportHref, onClose, onSaved, onLocked, onReload, onShowDetails } = props;
   const isNew = itemId === null;
   const key = useRef(idempotencyKey());
+  /** The body last sent with `key`: a different body is a new intent (else 409 IDEMPOTENCY_KEY_REUSE). */
+  const sentWithKey = useRef<ItemCreateBody | null>(null);
+  /** Item ids on the menu when the editor opened, to recognise one this editor already created. */
+  const knownIds = useRef<Set<string> | null>(null);
+  if (knownIds.current === null && categories.length) knownIds.current = new Set(categories.flatMap((c) => c.items.map((i) => i.id)));
   const [initial, setInitial] = useState<FormState>(() => initialForm(item, defaultCategoryId));
   const [form, setForm] = useState<FormState>(initial);
   const [seeded, setSeeded] = useState(isNew || Boolean(item));
@@ -154,7 +174,8 @@ export function ItemEditor(props: ItemEditorProps) {
   const [prohibited, setProhibited] = useState(false);
   const [outcome, setOutcome] = useState<Outcome>({ kind: 'none' });
   const [discarding, setDiscarding] = useState(false);
-  const openedPending = useRef<string | null>(item?.pending_version ? `${item.pending_version.id}|${item.pending_version.submitted_at ?? ''}` : null);
+  /** `null` until the item is known; then its pending mark (`none` when it had no pending version). */
+  const openedPending = useRef<string | null>(item ? pendingMark(item) : null);
   const summaryRef = useRef<HTMLDivElement>(null);
   const discardRef = useRef<HTMLHeadingElement>(null);
   const checkboxRefs = useRef(new Map<string, HTMLButtonElement | null>());
@@ -166,7 +187,7 @@ export function ItemEditor(props: ItemEditorProps) {
     setInitial(f);
     setForm(f);
     setSeeded(true);
-    openedPending.current = item.pending_version ? `${item.pending_version.id}|${item.pending_version.submitted_at ?? ''}` : null;
+    openedPending.current = pendingMark(item);
   }, [item, seeded, defaultCategoryId]);
 
   // A new item opened before the menu loaded: take the selected category once it is known.
@@ -193,7 +214,8 @@ export function ItemEditor(props: ItemEditorProps) {
   const blocked = item?.availability_state === 'BLOCKED';
   const hiddenInactive = item?.availability_state === 'HIDDEN' && category && !category.is_active;
   const isProhibited = review?.reason === 'PROHIBITED_ITEM';
-  const viewOnly = !isNew && (access !== 'edit' || blocked || hiddenInactive || isProhibited);
+  // A locked or view-only menu never edits, a new item included (the page closes a new one).
+  const viewOnly = access !== 'edit' || (!isNew && (blocked || hiddenInactive || isProhibited));
   const rejected = review?.kind === 'rejected' || review?.kind === 'rejected-new';
   const flagged = rejected ? flaggedFieldOf(review!.reason) : [];
   const newish = isNew || review?.kind === 'first-review' || review?.kind === 'rejected-new';
@@ -202,10 +224,7 @@ export function ItemEditor(props: ItemEditorProps) {
   const underReview = review?.kind === 'under-review';
   const opsOnly = dirty && changed.every((k) => OPERATIONAL.includes(k));
   const priceOnly = dirty && changed.length === 1 && changed[0] === 'price';
-  const conflict =
-    !isNew && item && openedPending.current !== null && dirty
-      ? openedPending.current !== (item.pending_version ? `${item.pending_version.id}|${item.pending_version.submitted_at ?? ''}` : null)
-      : false;
+  const conflict = !isNew && item && openedPending.current !== null && dirty ? openedPending.current !== pendingMark(item) : false;
 
   const close = () => {
     if (submitting) return;
@@ -240,9 +259,15 @@ export function ItemEditor(props: ItemEditorProps) {
       localErrors['price-input'] = 'Enter a price between $0.50 and $500.00.';
     }
     const prep = intOrNull(form.prep);
-    if (form.prep.trim() && prep === null) {
-      local.push({ control: 'prep-input', link: 'Prep time must be from 1 to 120 minutes' });
-      localErrors['prep-input'] = 'Enter a prep time from 1 to 120 minutes.';
+    // Typed but not 1–120, or cleared on an item that had one (clearing sends nothing, so refuse it).
+    if ((form.prep.trim() && (prep === null || prep < 1 || prep > 120)) || (!isNew && changed.includes('prep') && !form.prep.trim())) {
+      local.push(PREP_PROBLEM);
+      localErrors['prep-input'] = PREP_ERROR;
+    }
+    const position = intOrNull(form.position);
+    if ((form.position.trim() && position === null) || (!isNew && changed.includes('position') && !form.position.trim())) {
+      local.push(POSITION_PROBLEM);
+      localErrors['position-input'] = POSITION_ERROR;
     }
     setProhibited(false);
     if (local.length) {
@@ -251,40 +276,52 @@ export function ItemEditor(props: ItemEditorProps) {
       setOutcome({ kind: 'problems', server: false });
       return;
     }
-    setProblems([]);
-    setFieldErrors({});
-    setSubmitting(true);
-    setOutcome({ kind: 'none' });
-    try {
-      let saved: MenuItem;
-      if (isNew) {
-        saved = await createItem(key.current, {
+    // Built before sending: an edit whose body comes out empty sends nothing and says nothing saved.
+    const createBody: ItemCreateBody | null = isNew
+      ? {
           category_id: form.categoryId,
           name: form.name.trim(),
-          price_cents: priceCents!,
+          price_cents: priceCents! as never,
           ...(form.description.trim() ? { description: form.description.trim() } : {}),
           ...(form.ingredients.trim() ? { ingredients_text: form.ingredients.trim() } : {}),
           ...(form.diet.length ? { dietary_tags: form.diet } : {}),
           allergen_tags: form.allergens,
           ...(form.ack ? { allergens_declared: true } : {}),
           ...(prep !== null ? { prep_minutes: prep } : {}),
-          ...(intOrNull(form.position) !== null ? { sort_order: intOrNull(form.position)! } : {}),
-        });
-      } else {
-        const body: ItemUpdateBody = {};
-        for (const k of changed) {
-          if (k === 'price') body.price_cents = priceCents! as never;
-          if (k === 'prep' && prep !== null) body.prep_minutes = prep;
-          if (k === 'position' && intOrNull(form.position) !== null) body.sort_order = intOrNull(form.position)!;
-          if (k === 'categoryId') body.category_id = form.categoryId;
-          if (k === 'name') body.name = form.name.trim();
-          if (k === 'description') body.description = form.description.trim();
-          if (k === 'ingredients') body.ingredients_text = form.ingredients.trim();
-          if (k === 'diet') body.dietary_tags = form.diet;
-          if (k === 'allergens') body.allergen_tags = form.allergens;
-          if (k === 'ack' && form.ack) body.allergens_declared = true;
+          ...(position !== null ? { sort_order: position } : {}),
         }
-        saved = await updateItem(itemId!, body);
+      : null;
+    const updateBody: ItemUpdateBody = {};
+    if (!isNew) {
+      for (const k of changed) {
+        if (k === 'price') updateBody.price_cents = priceCents! as never;
+        if (k === 'prep' && prep !== null) updateBody.prep_minutes = prep;
+        if (k === 'position' && position !== null) updateBody.sort_order = position;
+        if (k === 'categoryId') updateBody.category_id = form.categoryId;
+        if (k === 'name') updateBody.name = form.name.trim();
+        if (k === 'description') updateBody.description = form.description.trim();
+        if (k === 'ingredients') updateBody.ingredients_text = form.ingredients.trim();
+        if (k === 'diet') updateBody.dietary_tags = form.diet;
+        if (k === 'allergens') updateBody.allergen_tags = form.allergens;
+        if (k === 'ack' && form.ack) updateBody.allergens_declared = true;
+      }
+      if (Object.keys(updateBody).length === 0) {
+        setProblems([]);
+        setFieldErrors({});
+        setOutcome({ kind: 'none' });
+        return;
+      }
+    }
+    setProblems([]);
+    setFieldErrors({});
+    setSubmitting(true);
+    setOutcome({ kind: 'none' });
+    try {
+      let saved: MenuItem;
+      if (createBody) {
+        saved = await createWithKey(createBody);
+      } else {
+        saved = await updateItem(itemId!, updateBody);
       }
       const savedCategory = categories.find((c) => c.id === saved.category_id)?.name ?? categoryName;
       onSaved({
@@ -329,6 +366,33 @@ export function ItemEditor(props: ItemEditorProps) {
         return;
       }
       setOutcome({ kind: 'save-failed' });
+    }
+  };
+
+  /**
+   * `createMenuItem` under this intent's Idempotency-Key. The key is reused on a retry of the
+   * same body. A 409 IDEMPOTENCY_KEY_REUSE means the body changed since an earlier attempt with
+   * this key: re-read the menu, and if that attempt created the item after all, that is the
+   * answer; otherwise the changed body is a new intent, so it is sent once more with a new key.
+   */
+  const createWithKey = async (body: ItemCreateBody): Promise<MenuItem> => {
+    sentWithKey.current = sentWithKey.current ?? body;
+    try {
+      return await createItem(key.current, body);
+    } catch (error) {
+      if (errorCode(error) !== 'IDEMPOTENCY_KEY_REUSE') throw error;
+      const earlier = sentWithKey.current;
+      const fresh = await loadOwnMenu();
+      void onReload();
+      const known = knownIds.current ?? new Set<string>();
+      const names = new Set([body.name, earlier?.name].filter(Boolean));
+      for (const c of fresh.categories) {
+        const found = c.items.find((i) => !known.has(i.id) && names.has(itemName(i)));
+        if (found) return found;
+      }
+      key.current = idempotencyKey();
+      sentWithKey.current = body;
+      return createItem(key.current, body);
     }
   };
 
@@ -698,7 +762,7 @@ export function ItemEditor(props: ItemEditorProps) {
                   const f = initialForm(item, defaultCategoryId);
                   setInitial(f);
                   setForm(f);
-                  openedPending.current = `${pending.id}|${pending.submitted_at ?? ''}`;
+                  openedPending.current = pendingMark(item!);
                 }}
               >
                 Discard my edits
@@ -753,6 +817,7 @@ export function ItemEditor(props: ItemEditorProps) {
               onChange={(v) => set('position', v)}
               readOnly={fieldsDisabled}
               helperText="1 shows first"
+              errorText={fieldErrors['position-input']}
             />
           </div>
           <Select
@@ -1036,6 +1101,9 @@ function mapValidation(details: { field?: string; message?: string }[]): { probl
     } else if (f === 'prep_minutes') {
       problems.push({ control: 'prep-input', link: 'Prep time must be from 1 to 120 minutes' });
       errors['prep-input'] = 'Enter a prep time from 1 to 120 minutes.';
+    } else if (f === 'sort_order') {
+      problems.push(POSITION_PROBLEM);
+      errors['position-input'] = POSITION_ERROR;
     } else if (f === 'name') {
       problems.push({ control: 'name-input', link: d.message || 'Check the name' });
       errors['name-input'] = d.message || 'Check the name.';
