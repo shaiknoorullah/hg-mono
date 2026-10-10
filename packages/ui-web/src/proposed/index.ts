@@ -8,23 +8,102 @@
  * so redesign code that imports from here keeps compiling.
  */
 
-/* Feedback states — every screen ships empty, loading and error (AGENTS.md "How to work here"). */
-export { Banner, EmptyState, ErrorState } from '../feedback/index.js';
+/* Feedback states — every screen ships empty, loading and error (AGENTS.md "How to work here").
+   Rebuilt in W4: Banner and InlineAlert are one family (packet P1); a halal message cannot be danger. */
+export { Banner, HalalBanner, InlineAlert } from './Banner.js';
 export type {
   BannerAction,
+  BannerBaseProps,
+  BannerListItem,
+  BannerPlacement,
   BannerProps,
+  BannerTone,
   BannerVariant,
-  EmptyStateAction,
-  EmptyStateProps,
+  HalalBannerProps,
+  HalalMessageTone,
+  InlineAlertProps,
+  Tone,
+} from './Banner.js';
+export { EmptyState } from './EmptyState.js';
+export type { EmptyStateAction, EmptyStateProps, EmptyStateTone, EmptyStateVariant } from './EmptyState.js';
+export { ErrorState } from './ErrorState.js';
+export type {
+  ClientErrorCode,
+  ErrorStateCode,
   ErrorStateProps,
-} from '../feedback/index.js';
+  ErrorStateVariant,
+  ErrorTechnicalDetail,
+} from './ErrorState.js';
+export { ProgressBar } from './ProgressBar.js';
+export type { ProgressBarProps } from './ProgressBar.js';
+export { PageAnnouncer, PageAnnouncerProvider, useAnnounce, usePageAnnouncer } from './PageAnnouncer.js';
+export type {
+  Announce,
+  AnnounceOptions,
+  AnnouncePoliteness,
+  PageAnnouncerApi,
+  PageAnnouncerProviderProps,
+  Politeness,
+} from './PageAnnouncer.js';
 
-export { Skeleton, Spinner, Textarea, Tooltip, TooltipProvider } from '../primitives/index.js';
-export type { SkeletonProps, SpinnerProps, TextareaProps, TooltipProps } from '../primitives/index.js';
+/* Rebuilt on shadcn/ui (W1 Core); the pre-rebuild props still work. */
+export { Skeleton } from './Skeleton.js';
+export type { SkeletonProps, SkeletonShape } from './Skeleton.js';
+export { Spinner } from './Spinner.js';
+export type { SpinnerProps } from './Spinner.js';
+export { Separator } from './Separator.js';
+export type { SeparatorProps } from './Separator.js';
+export { Tooltip, TooltipProvider } from './Tooltip.js';
+export type { TooltipProps } from './Tooltip.js';
 
-/* Toasts: a provider and a hook today; the live `Toast` component lands in W4. */
-export { ToastProvider, useToast } from '../primitives/index.js';
-export type { ToastOptions, ToastVariant } from '../primitives/index.js';
 
-export { DocumentViewer, FilterBar } from '../data/index.js';
+/* Toasts: the provider and hook keep their API and now render the rebuilt `/ds` Toast (W4). */
+export { ToastProvider, useToast } from '../ds/Toast.js';
+export type { ToastApi, ToastOptions, ToastProviderProps, ToastVariant } from '../ds/Toast.js';
+
+export { DocumentViewer } from '../data/index.js';
 export type { DocumentViewerProps, DocumentViewerState } from '../data/index.js';
+
+/* Forms (W3), rebuilt on shadcn/ui: approval packet P16 to P21. */
+export { Textarea } from './Textarea.js';
+export type { TextareaProps } from './Textarea.js';
+export { ErrorSummary, Field } from './Field.js';
+export type { ErrorSummaryItem, ErrorSummaryProps, FieldControlProps, FieldProps } from './Field.js';
+export { CheckboxGroup, rangeHint } from './CheckboxGroup.js';
+export type { CheckboxGroupOption, CheckboxGroupProps } from './CheckboxGroup.js';
+export { DateInput, checkDateParts, formatDateShort } from './DateInput.js';
+export type { DateCheck, DateInputProps } from './DateInput.js';
+export { TimeField, checkTimeParts, formatClockTime } from './TimeField.js';
+export type { TimeCheck, TimeFieldProps } from './TimeField.js';
+export { MoneyInput, formatCentsPlain, parseMoneyInput } from './MoneyInput.js';
+export type { MoneyInputProps, MoneyParse } from './MoneyInput.js';
+export { Stepper } from './Stepper.js';
+export type { StepperProps, StepperStep } from './Stepper.js';
+export { InlineConfirm } from './InlineConfirm.js';
+export type { InlineConfirmAction, InlineConfirmProps } from './InlineConfirm.js';
+
+/* Layout and shell (W2): proposed composites from #192 and #191 (packet P8, P12, P14, P15). */
+export { Disclosure } from './Disclosure.js';
+export type { DisclosureProps } from './Disclosure.js';
+export { SkipLink } from './SkipLink.js';
+export type { SkipLinkProps } from './SkipLink.js';
+export { SYSTEM_BANNER_SEVERITY, SystemBannerSlot, SystemBannerStack } from './SystemBannerSlot.js';
+export type { SystemBanner, SystemBannerSlotProps, SystemBannerStackProps } from './SystemBannerSlot.js';
+export { ActionBar, StickyFooter } from './StickyFooter.js';
+export type { ActionBarProps, StickyFooterProps } from './StickyFooter.js';
+export { NavDrawer } from './NavDrawer.js';
+export type { NavDrawerProps } from './NavDrawer.js';
+export { SectionNav } from './SectionNav.js';
+export type { SectionNavItem, SectionNavProps } from './SectionNav.js';
+
+/* Data composites (W6, packet P22 and the admin list pane). FilterBar keeps the pre-rebuild
+   declarative props (`filters`, `value`, `onChange`, `onClear`) and adds the composed shape. */
+export { FilterBar } from './FilterBar.js';
+export type { ComposedFilterBarProps, FilterBarProps } from './FilterBar.js';
+export type { FilterDefinition, FilterOption, FilterValue, SavedView } from '../data/index.js';
+export { FilterChip } from './FilterChip.js';
+export type { FilterChipProps } from './FilterChip.js';
+export { ListPane, ListPaneRow } from './ListPaneRow.js';
+export type { ListPaneProps, ListPaneRowProps } from './ListPaneRow.js';
+export { EventLog } from './EventLog.js';
+export type { EventLogEntry, EventLogProps } from './EventLog.js';

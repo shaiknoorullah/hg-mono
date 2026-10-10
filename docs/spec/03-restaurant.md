@@ -1306,6 +1306,20 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
   modifier groups (add-ons with min/max selection counts, each option carrying a price delta). Both
   are captured on the order line's `options_json` and priced server-side.
 
+  A dish may now have several variant groups (size, rice, heat level), and an order line carries one
+  chosen variant per group ([#628](https://github.com/shaiknoorullah/hg-mono/issues/628); the price
+  rule is step 1 of the quote in the platform spec). The restaurant's order view
+  (`GET /v1/restaurant/orders/{orderId}`) lists every chosen variant with its group on each line
+  (`variants`), and `variant_name` joins the chosen names, so the ticket shows every choice.
+
+  Only one of a dish's variant groups may set its full price (an `ABSOLUTE` variant); the others must
+  be add-on amounts (`DELTA`), and the database refuses a menu save that would give a dish a second
+  full-price group (owner decision, 2026-10-09; the `variant_group_one_full_price` index, migration
+  `00070`), so the customer's `409 ITEM_UNAVAILABLE` for such a dish remains only as a backstop. No
+  API edits variants yet (this feature is V2); when one does, it answers that refusal with
+  `422 VALIDATION_FAILED` and a field error on the group: "Only one option group can set the full
+  price; make the others add-on amounts."
+
 - **Data**:
   ```
   menu_item_variant_group(id, menu_item_id, name, is_required=true, sort_order)

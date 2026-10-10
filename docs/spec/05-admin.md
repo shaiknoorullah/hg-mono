@@ -2,7 +2,7 @@
 covers:
   - apps/admin/**
   - services/hg/internal/admin/**
-reviewed: 2026-10-05
+reviewed: 2026-10-09
 ---
 
 # HalalGoes — ADMIN / SUPER ADMIN / SUPPORT AGENT Specification
@@ -189,14 +189,13 @@ fails, the change is rolled back. This is a hard invariant, not a best effort.
   address is read from the invited account itself, the email quotes nothing the super admin typed
   (only the role, from a fixed list), and one account gets at most 3 invitations a day and one super
   admin sends at most 20. The invitee sets a first password through the reset-password operation, which
-  also marks the email verified, then enrols two-step sign-in. `staff_invitation` is not written yet,
+  also marks the email verified, then signs in with the password alone. `staff_invitation` is not written yet,
   and an expired link answers with the reset operation's expired-token error rather than
   `INVITATION_EXPIRED`: the acceptance flow is [#170](https://github.com/shaiknoorullah/hg-mono/issues/170).
   The console's pages for these emails exist ([#329](https://github.com/shaiknoorullah/hg-mono/issues/329)).
-  `/accept-invite` sets the first password and stops there, and the page says the inviting super
-  admin will set two-step sign-in up with the invitee. The API can now start that enrolment from the
-  link (`startInviteTotpEnrolment`) and confirm it with the first password (`resetPassword` with
-  `totp_code`); the page has not adopted it yet.
+  `/accept-invite` sets the first password and stops there; two-step sign-in is opt-in and set up
+  from the console with a QR code once signed in, never from the invitation link
+  ([two-step sign-in is opt-in](../decisions/README.md#settled--owner-decisions-2026-10-05)).
   `/reset-password` is both "Forgot your password?" on the sign-in gate and the page the reset email
   opens. Both take the token the way the restaurant app's link pages do (see
   [email verification, as built](03-restaurant.md#r-02--email-verification-and-account-activation)),
@@ -279,7 +278,7 @@ fails, the change is rolled back. This is a hard invariant, not a best effort.
     20 failed attempts per IP per 15 min → IP throttled. Lockout does not reveal account existence.
   - R2 Login response is identical (timing-normalised, same error `401 INVALID_CREDENTIALS`) for
     unknown email, wrong password, and non-`ACTIVE` account.
-  - R3 MFA is mandatory for all three roles. An account without `mfa_enrolled` cannot reach `ACTIVE`.
+  - R3 MFA is opt-in for all three roles ([two-step sign-in is opt-in](../decisions/README.md#settled--owner-decisions-2026-10-05)): a staff member signs in with the password alone until they turn it on from the console with a QR code, and may turn it off with a current code. MONEY permissions still require a session signed in with it (R4).
   - R4 `mfa_verified_at` is stamped at login and re-stamped by a step-up prompt; MONEY/DESTRUCTIVE
     permissions require it within 12 hours (A-02 R4).
   - R5 Password change or reset revokes all other sessions for that account.
@@ -2507,7 +2506,9 @@ documents lapse cannot go on shift, but is not punished.
 - **SOW trace**: *"Order Issues: Resolve order-related issues (e.g., incorrect orders, payment disputes)."* · *"Order Support: Assist customers with order placement, tracking, and refunds."* · *"Delivery Issues: Resolve delivery-related issues."*
 - **Behaviour**: A single order-detail surface used by all three roles, showing: order header
   (reference, placed-at, status, current ETA), customer (masked per A-42), restaurant, rider, full
-  line items with variants and add-ons and their prices, the complete pricing breakdown with the
+  line items with variants and add-ons and their prices (each line of `GET /v1/admin/orders/{orderId}`
+  lists every chosen variant with its group in `variants`, one per variant group,
+  [#628](https://github.com/shaiknoorullah/hg-mono/issues/628)), the complete pricing breakdown with the
   setting versions used, payment and refund history, the delivery address and instructions, the status
   timeline with actor attribution, the rider's route events, all linked cases, and the WebSocket event
   log for the order. From here, role-gated interventions are available: `RESEND_RECEIPT`,

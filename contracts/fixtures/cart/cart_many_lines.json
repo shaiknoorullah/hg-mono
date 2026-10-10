@@ -2,7 +2,7 @@
   "scenario": "cart_many_lines",
   "domain": "cart",
   "schema": "Cart",
-  "describes": "Six lines including a family platter with a variant, three add-on groups and a special request. Tests the cart's densest row and the sticky total bar.",
+  "describes": "Six lines including a family platter with a variant from each of its three groups (size, rice, heat), three add-on groups and a special request. Tests the cart's densest row and the sticky total bar.",
   "operations": [
     "getCart"
   ],
@@ -50,11 +50,36 @@
         "menu_item_id": "c5ec6eae-ceb5-4957-a9e2-0e1ab3a4ef1c",
         "name": "Mixed Charcoal Grill Platter",
         "image_url": "https://cdn.halalgoes.ca/img/dish/lamb-shawarma-platter.webp",
-        "variant": {
-          "variant_id": "a0991ce2-569f-40c1-af0c-b67be721eb64",
-          "name": "Family (serves 4)",
-          "pricing_mode": "ABSOLUTE"
-        },
+        "variant": null,
+        "variants": [
+          {
+            "variant_group_id": "ec4c482e-beea-41f7-ac67-ff52bac02aa3",
+            "group_name": "Platter size",
+            "variant_id": "a0991ce2-569f-40c1-af0c-b67be721eb64",
+            "variant_name": "Family (serves 4)",
+            "pricing_mode": "ABSOLUTE",
+            "price_cents": 7899,
+            "delta_cents": null
+          },
+          {
+            "variant_group_id": "65f25cbd-0eb0-4146-a0c8-831086f4ffe8",
+            "group_name": "Rice",
+            "variant_id": "9f8b7ac0-a042-4748-ae81-ae72ef042957",
+            "variant_name": "Kabuli pulao",
+            "pricing_mode": "DELTA",
+            "price_cents": null,
+            "delta_cents": 300
+          },
+          {
+            "variant_group_id": "bc59d4db-de3b-4d7c-aa62-01407241b5bd",
+            "group_name": "Heat level",
+            "variant_id": "3af3f517-dde1-4494-a413-cc1675b47fe3",
+            "variant_name": "Hot",
+            "pricing_mode": "DELTA",
+            "price_cents": null,
+            "delta_cents": 0
+          }
+        ],
         "addons": [
           {
             "addon_id": "43558166-60e5-4262-a969-0f2100759962",
@@ -74,8 +99,8 @@
         ],
         "quantity": 2,
         "special_request": "No coriander on anything, please — allergy in the house.",
-        "unit_price_cents": 10192,
-        "line_total_cents": 20384,
+        "unit_price_cents": 10492,
+        "line_total_cents": 20984,
         "currency": "CAD",
         "availability": {
           "is_available": true,
@@ -89,6 +114,7 @@
         "name": "Chicken Biryani",
         "image_url": "https://cdn.halalgoes.ca/img/dish/chicken-biryani.webp",
         "variant": null,
+        "variants": [],
         "addons": [],
         "quantity": 1,
         "special_request": null,
@@ -107,6 +133,7 @@
         "name": "Beef Nihari",
         "image_url": "https://cdn.halalgoes.ca/img/dish/beef-nihari.webp",
         "variant": null,
+        "variants": [],
         "addons": [],
         "quantity": 2,
         "special_request": null,
@@ -125,6 +152,7 @@
         "name": "Chicken Karahi (Half)",
         "image_url": "https://cdn.halalgoes.ca/img/dish/chicken-karahi-half.webp",
         "variant": null,
+        "variants": [],
         "addons": [],
         "quantity": 3,
         "special_request": null,
@@ -143,6 +171,7 @@
         "name": "Chicken Biryani",
         "image_url": "https://cdn.halalgoes.ca/img/dish/chicken-biryani.webp",
         "variant": null,
+        "variants": [],
         "addons": [],
         "quantity": 1,
         "special_request": null,
@@ -161,6 +190,7 @@
         "name": "Beef Nihari",
         "image_url": "https://cdn.halalgoes.ca/img/dish/beef-nihari.webp",
         "variant": null,
+        "variants": [],
         "addons": [],
         "quantity": 2,
         "special_request": null,
@@ -175,7 +205,7 @@
       }
     ],
     "item_count": 11,
-    "indicative_subtotal_cents": 38051,
+    "indicative_subtotal_cents": 38651,
     "currency": "CAD",
     "is_quotable": true,
     "blocking_reasons": []

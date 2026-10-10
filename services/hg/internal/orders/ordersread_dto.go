@@ -96,6 +96,7 @@ type receiptLineDTO struct {
 	MenuItemID     string              `json:"menu_item_id"`
 	Name           string              `json:"name"`
 	VariantName    *string             `json:"variant_name"`
+	Variants       []LineVariantDTO    `json:"variants"`
 	Addons         []quoteLineAddonDTO `json:"addons"`
 	Quantity       int                 `json:"quantity"`
 	SpecialRequest *string             `json:"special_request"`
@@ -156,6 +157,11 @@ func (r *receiptSnapshotDTO) normalizeArrays() {
 	for i := range r.Lines {
 		if r.Lines[i].Addons == nil {
 			r.Lines[i].Addons = []quoteLineAddonDTO{}
+		}
+		// A receipt frozen before lines carried variants has none to show
+		// beyond its variant_name.
+		if r.Lines[i].Variants == nil {
+			r.Lines[i].Variants = []LineVariantDTO{}
 		}
 	}
 }

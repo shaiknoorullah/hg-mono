@@ -1,0 +1,29 @@
+id: rider-wp9-account
+app: rider
+avd: hg_rider
+api: devworld
+build:
+  env: { EXPO_PUBLIC_HG_REDESIGN: "1" }
+  note: "Clear the Metro cache when building (EXPO_PUBLIC_* is inlined at transform time; a warm cache from a flag-off build serves the legacy app)."
+setup: [ "make dev-reset" ]
+reality:
+  - theme: light
+  - theme: dark
+flows: [ "tools/e2e/native/rider/redesign/9-account.yaml" ]
+explore: >
+  After the flow passes, signed in as rider-sim: (1) Account › Your details, Vehicle, Documents,
+  Terms and privacy (Read the rider terms shows "We couldn't open the rider terms" unless the build
+  sets EXPO_PUBLIC_RIDER_TERMS_URL; that is expected until PublicConfig carries the URLs), Delete
+  account; screenshot each in light and in dark (`adb shell cmd uimode night yes`, relaunch).
+  (2) Account › Payouts: if Stripe is not set up, tap "Set up payouts with Stripe": the browser
+  opens a Stripe test-mode page (HG_ENV=local may answer with a fake link); press Back to return
+  to the app and check the screen reads the status again ("Checking with Stripe" or the state
+  Stripe reports), then "Check again". (3) Airplane mode on (`adb shell cmd connectivity
+  airplane-mode enable`) on Payouts: "You are offline" shows; tapping Continue shows "Stripe didn't
+  open" or "We couldn't set up your payout account", never a crash; airplane mode off and Try
+  again works. (4) Sign out with airplane mode on: "We couldn't sign you out" shows and the rider
+  stays signed in; off again, Try again signs out. (5) A paused rider (needs the missing
+  `rider-suspended` persona, or `make dev-scenario s=suspend-rider` once it exists): sign in, the
+  "Account paused" screen shows the expired document and no tabs. (6) `adb shell settings put
+  system font_scale 2.0`: Account rows and the sign-out confirm wrap without clipping. Reset
+  font_scale to 1.0 and night mode to no afterwards.

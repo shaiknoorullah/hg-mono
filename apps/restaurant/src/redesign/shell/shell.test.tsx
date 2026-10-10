@@ -218,12 +218,36 @@ describe('sign out', () => {
   });
 });
 
+/** Audio that plays: the go-live gate's gesture arms the order sound with it. */
+class PlayingAudio {
+  src: string;
+  preload = '';
+  volume = 1;
+  currentTime = 0;
+  constructor(src = '') {
+    this.src = src;
+  }
+  play(): Promise<void> {
+    return Promise.resolve();
+  }
+  pause(): void {}
+}
+
 describe('heartbeat', () => {
-  it('beats on load and every 30 seconds while the console is open', async () => {
+  it('beats once the go-live gate has passed, then every 30 seconds while the console is open', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.stubGlobal('Audio', PlayingAudio);
     const api = installFakeApi(consoleRoutes());
-    await renderRedesign('/orders/history');
+    await renderRedesign('/orders');
     await screen.findByTestId('console-rail');
+    // A screen left on the gate cannot ring: it must not keep the restaurant online
+    // (manifest §2 "Go-live gate": the heartbeat starts after the gate).
+    const goLive = await screen.findByRole('button', { name: 'Turn on sound and go live' });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(HEARTBEAT_INTERVAL_MS * 2);
+    });
+    expect(api.callsTo('POST /v1/restaurant/heartbeat')).toHaveLength(0);
+    fireEvent.click(goLive);
     await waitFor(() => expect(api.callsTo('POST /v1/restaurant/heartbeat')).toHaveLength(1));
     await act(async () => {
       await vi.advanceTimersByTimeAsync(HEARTBEAT_INTERVAL_MS);

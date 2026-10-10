@@ -32,7 +32,7 @@ export {
 } from '@hg/ui-web/primitives';
 export type { ButtonProps, IconName, RadioOption, SelectOption } from '@hg/ui-web/primitives';
 
-export { HalalBadge, formatAbsoluteDate } from '@hg/ui-web/certification';
+export { HalalBadge, formatAbsoluteDate, reportHalalClientError } from '@hg/ui-web/certification';
 export type { HalalBadgeProps } from '@hg/ui-web/certification';
 
 export { Card, Price } from '@hg/ui-web/content';
@@ -74,3 +74,19 @@ export { InlineConfirm } from './_stubs/InlineConfirm';
 export type { InlineConfirmProps, InlineConfirmAction } from './_stubs/InlineConfirm';
 export { ResizeHandle } from './_stubs/ResizeHandle';
 export type { ResizeHandleProps } from './_stubs/ResizeHandle';
+export { Countdown } from './_stubs/Countdown';
+export type { CountdownProps } from './_stubs/Countdown';
+export { InlineNotice } from './_stubs/InlineNotice';
+export type { InlineNoticeProps, NoticeTone } from './_stubs/InlineNotice';
+export { OfferTile } from './_stubs/OfferTile';
+export type { OfferTileProps, OfferStatusLine, OfferOutcomeView, OfferLineTone } from './_stubs/OfferTile';
+export { NewOrderStrip } from './_stubs/NewOrderStrip';
+export type { NewOrderStripProps, NewOrderStripTile, NewOrderStripEmpty, NewOrderStripCompact } from './_stubs/NewOrderStrip';
+export { DeclineForm } from './_stubs/DeclineForm';
+export type { DeclineFormProps, DeclineValues, DeclineItem, DeclineReason } from './_stubs/DeclineForm';
+export type { GlyphName } from './_stubs/glyph';
+export { PageBanner } from './_stubs/PageBanner';
+export type { PageBannerProps, PageBannerTone } from './_stubs/PageBanner';
+export { PickupCode } from './_stubs/PickupCode';
+export type { PickupCodeProps } from './_stubs/PickupCode';
+export type { InlineNoticeTone } from './_stubs/InlineNotice';

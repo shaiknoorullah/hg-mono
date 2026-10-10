@@ -17,7 +17,7 @@
  * only offline disables it, with the reason as its hint.
  */
 import * as React from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { isApiError, unwrap } from '@hg/api-client';
 import type { Schema } from '@hg/api-client';
@@ -91,7 +91,9 @@ export function YourDetailsScreen({ fromCart = false }: { fromCart?: boolean }):
       .then((res) => {
         if (!live) return;
         const p = res.data as CustomerProfile;
-        setFirst(p.first_name ?? '');
+        // First run starts with no first name: a new account's profile row holds the server's
+        // placeholder ("there", for "Hi there"), never a name the customer gave.
+        setFirst(fromCart ? (p.first_name ?? '') : '');
         setLast(p.last_name ?? '');
         setEmail(p.email ?? '');
         setLoadedEmail(p.email ?? null);
@@ -101,7 +103,7 @@ export function YourDetailsScreen({ fromCart = false }: { fromCart?: boolean }):
     return () => {
       live = false;
     };
-  }, []);
+  }, [fromCart]);
 
   const hasEmail = looksLikeEmail(email) && !errors.email;
 
@@ -211,7 +213,7 @@ export function YourDetailsScreen({ fromCart = false }: { fromCart?: boolean }):
 
   return (
     <SafeAreaView style={[styles.fill, { backgroundColor: theme.color.surface.base }]} testID="YourDetailsScreen">
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.fill}>
+      <KeyboardAvoidingView behavior="padding" style={styles.fill}>
         <AppBar
           title="Your details"
           back={fromCart && nav ? { onPress: nav.back, previousTitle: 'cart' } : undefined}

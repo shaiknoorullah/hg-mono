@@ -13,7 +13,8 @@
 import { execSync } from 'node:child_process';
 import { copyFileSync, mkdirSync } from 'node:fs';
 import { expect, test, type APIRequestContext, type Page, type TestInfo } from '@playwright/test';
-import { MODE, MOCK_API, REAL_API, documentScrolls, openSignedIn } from './redesign-restaurant.support';
+import { DEVWORLD, MODE, MOCK_API, REAL_API, documentScrolls, openSignedIn } from './redesign-restaurant.support';
+import { projectMeta } from './mode';
 
 const SHOTS = process.env.E2E_SHOTS_DIR ?? '/tmp/claude-0/-home-user-hg-mono/d41301d3-8d3a-541d-a6f4-40d847c8b738/scratchpad/shots/wp8';
 
@@ -168,7 +169,7 @@ test.describe('restaurant redesign · menu (mock)', () => {
     await expect(grid.getByText('Blocked by HalalGoes')).toBeVisible();
     await expect(page.getByText(/draft/i)).toHaveCount(0);
     await expect(page.getByText('Your menu: 10 items in 5 categories. Customers can order 3 of them now.')).toBeVisible();
-    if (info.project.name === 'desktop') {
+    if (projectMeta().viewport === 'desktop') {
       await expect(page.getByRole('columnheader', { name: 'Review' })).toBeVisible();
       await expect(grid.getByText('Not approved')).toBeVisible();
     }
@@ -319,7 +320,7 @@ test.describe('restaurant redesign · menu (mock)', () => {
     await openMock(page, '/menu?new=1', { profile: { account_state: 'SUSPENDED' } });
     await expect(page.getByRole('region', { name: 'New item' })).toHaveCount(0);
     await expect(page.getByText('Your menu is read-only while your account is suspended.')).toBeVisible();
-    for (const sw of await page.getByRole('switch').all()) await expect(sw).toBeDisabled();
+    for (const sw of await page.getByTestId('menu-grid').getByRole('switch').all()) await expect(sw).toBeDisabled();
     await expect(page.getByRole('button', { name: 'Add item' })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'View Beef kofta plate' })).toBeVisible();
     await expectNoDocumentScroll(page);
@@ -338,7 +339,8 @@ test.describe('restaurant redesign · menu (mock)', () => {
   test('DEACTIVATED: view only, and ?new=1 opens no editor', async ({ page }, info) => {
     await openMock(page, '/menu?new=1', { profile: { account_state: 'DEACTIVATED' } });
     await expect(page.getByText('View only while deactivated.')).toBeVisible();
-    await expect(page.getByRole('switch')).toHaveCount(0);
+    // The menu grid's switches (the status bar's Orders switch is on every console page).
+    await expect(page.getByTestId('menu-grid').getByRole('switch')).toHaveCount(0);
     await expect(page.getByRole('region', { name: 'New item' })).toHaveCount(0);
     await expect(page).not.toHaveURL(/new=1/);
     await expectNoDocumentScroll(page);
@@ -403,7 +405,7 @@ async function ownItem(request: APIRequestContext, email: string, name: string):
 const LIVE = 'bismillah-grill@seed.hg';
 
 test.describe('restaurant redesign · menu (real API)', () => {
-  test.skip(MODE !== 'real', 'real-API journeys run with E2E_MODE=real');
+  test.skip(MODE !== 'real' || !DEVWORLD, 'devworld personas (bismillah-grill, suspended): real API with a devworld database (E2E_DEVWORLD=1)');
   test.describe.configure({ mode: 'serial' });
 
   test('bismillah-grill: an item goes out of stock and back, and getOwnMenu agrees', async ({ page }, info) => {
@@ -522,7 +524,7 @@ test.describe('restaurant redesign · menu (real API)', () => {
     await expect(page.getByRole('button', { name: 'Add item' })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Add category' })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Create your first category' })).toHaveCount(0);
-    for (const sw of await page.getByRole('switch').all()) await expect(sw).toBeDisabled();
+    for (const sw of await page.getByTestId('menu-grid').getByRole('switch').all()) await expect(sw).toBeDisabled();
     for (const b of await page.getByRole('button', { name: /^Edit / }).all()) await expect(b).toHaveCount(0);
     await expectNoDocumentScroll(page);
     await shot(page, info, 'real-suspended');

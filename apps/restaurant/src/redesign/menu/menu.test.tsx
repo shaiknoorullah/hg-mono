@@ -335,7 +335,10 @@ describe('account and certificate states', () => {
     installFakeApi(routes({ 'GET /v1/restaurant/profile': profile({ account_state: 'SUSPENDED' }) }));
     await openMenu();
     expect(await screen.findByText('Your menu is read-only while your account is suspended.')).toBeTruthy();
-    for (const sw of screen.getAllByRole('switch')) expect(sw.hasAttribute('disabled')).toBe(true);
+    // The menu grid's switches (the status bar's Orders switch is on every console page).
+    const switches = within(grid()).getAllByRole('switch');
+    expect(switches.length).toBeGreaterThan(0);
+    for (const sw of switches) expect(sw.hasAttribute('disabled')).toBe(true);
     expect(screen.queryByRole('button', { name: /^Change how long/ })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Add item' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Add category' })).toBeNull();
@@ -348,7 +351,8 @@ describe('account and certificate states', () => {
     await openMenu();
     expect(await screen.findByText('View only while deactivated.')).toBeTruthy();
     expect(screen.getByText('Your restaurant is deactivated.')).toBeTruthy();
-    expect(screen.queryAllByRole('switch')).toHaveLength(0);
+    // The menu grid's switches (the status bar's Orders switch is on every console page).
+    expect(within(grid()).queryAllByRole('switch')).toHaveLength(0);
     expect(screen.queryByRole('columnheader', { name: 'Edit' })).toBeNull();
     expect(within(grid()).getAllByText('Available').length).toBeGreaterThan(0);
     expect(within(grid()).getByText('Until it’s marked available')).toBeTruthy();
@@ -417,7 +421,8 @@ describe('account and certificate states', () => {
     await openMenu('/menu?new=1');
     expect(await screen.findByText('We couldn’t check your account, so your menu is view only for now.')).toBeTruthy();
     expect(screen.getByText('View only until your account loads.')).toBeTruthy();
-    expect(screen.queryAllByRole('switch')).toHaveLength(0);
+    // The menu grid's switches (the status bar's Orders switch is on every console page).
+    expect(within(grid()).queryAllByRole('switch')).toHaveLength(0);
     expect(screen.queryByRole('button', { name: 'Add item' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Add category' })).toBeNull();
     expect(screen.queryByRole('region', { name: 'New item' })).toBeNull();

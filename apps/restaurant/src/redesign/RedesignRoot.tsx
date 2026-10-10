@@ -14,13 +14,15 @@ import { getSession, setSession, setUnauthorizedOverride } from '../lib/api';
 import { client, onSignedOut, refreshAccessToken, resetSignedOut, type SignedOutReason } from './data/client';
 import { ConsoleProvider, consoleRoute, useConsole } from './data/console';
 import { AvailabilityProvider } from './data/availability';
-import { useHeartbeat } from './data/heartbeat';
 import { ConsoleRealtime } from './data/realtime';
 import { ConsoleLayout } from './shell/ConsoleLayout';
 import { ConsoleStatus } from './shell/ConsoleStatus';
 import { LEGACY } from './routes/legacy';
 import { PendingRoute } from './routes/PendingRoute';
 import { MenuPage } from './menu/MenuPage';
+import { NewOrdersProvider } from './strip/NewOrdersProvider';
+import { OrdersGate } from './orders/GoLiveGate';
+import { LiveOrdersPage } from './orders/LiveOrdersPage';
 
 // Legacy screens hosted by the redesign refresh on 401 too.
 setUnauthorizedOverride(async () => (getSession() ? refreshAccessToken() : false));
@@ -68,8 +70,7 @@ function RequireSession({ children }: { children: ReactNode }) {
 function ConsoleGate({ children }: { children: ReactNode }) {
   const { core } = useConsole();
   const route = consoleRoute(core);
-  const live = route.kind === 'console';
-  useHeartbeat(live);
+  // The heartbeat starts in NewOrdersProvider once the go-live gate has passed.
   if (route.kind === 'onboarding') return <Navigate to="/onboarding" replace />;
   if (route.kind !== 'console') return <ConsoleStatus route={route} onRetry={core.reload} />;
   return <>{children}</>;
@@ -92,7 +93,9 @@ function Console() {
       <ConsoleGate>
         <AvailabilityProvider>
           <ConsoleRealtime>
-            <ConsoleLayout onSignOut={() => signOut(navigate)} />
+            <NewOrdersProvider>
+              <ConsoleLayout onSignOut={() => signOut(navigate)} />
+            </NewOrdersProvider>
           </ConsoleRealtime>
         </AvailabilityProvider>
       </ConsoleGate>
@@ -106,7 +109,7 @@ export function RedesignApp() {
     root.setAttribute('data-theme', 'light');
     root.style.colorScheme = 'light';
   }, []);
-  const { Login, Register, VerifyEmail, ResetPassword, Onboarding, Orders, Hours, Payouts, Settings } = LEGACY;
+  const { Login, Register, VerifyEmail, ResetPassword, Onboarding, Hours, Payouts, Settings } = LEGACY;
   return (
     <div {...themeAttributes('restaurant')} className="relative h-dvh overflow-hidden bg-surface-sunken text-fg-primary" data-redesign="">
       <AuthProvider>
@@ -135,7 +138,15 @@ export function RedesignApp() {
               </RequireSession>
             }
           >
-            <Route path="/orders" element={<LegacyPane><Orders /></LegacyPane>} />
+            {/* WP3's go-live gate first, then WP4's live board. */}
+            <Route
+              path="/orders"
+              element={
+                <OrdersGate>
+                  <LiveOrdersPage />
+                </OrdersGate>
+              }
+            />
             <Route
               path="/orders/history"
               element={<PendingRoute title="Past orders" description="Orders you finished, declined or that were cancelled appear here." />}

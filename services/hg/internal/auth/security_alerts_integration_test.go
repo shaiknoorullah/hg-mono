@@ -86,7 +86,7 @@ func TestIntegrationSecurityAlertEmails(t *testing.T) {
 	if len(tokens) != 1 {
 		t.Fatalf("%d reset links, want 1", len(tokens))
 	}
-	if err := svc.ResetPassword(ctx, tokens[0], "a brand new password for tests", "", nil); err != nil {
+	if err := svc.ResetPassword(ctx, tokens[0], "a brand new password for tests", nil); err != nil {
 		t.Fatalf("ResetPassword: %v", err)
 	}
 	if err := svc.store.ChangePasswordAndRevokeAll(ctx, reg.AccountID, "$argon2id$changed", "password_changed"); err != nil {
