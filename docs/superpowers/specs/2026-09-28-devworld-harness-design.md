@@ -5,7 +5,7 @@ covers:
   - services/hg/migrations/devworld/**
   - apps/restaurant/.claude/skills/**
   - docs/playbooks/**
-reviewed: 2026-10-08
+reviewed: 2026-10-09
 ---
 
 # Dev world — seeded personas, live scenarios, journey simulation, playbooks
@@ -162,7 +162,7 @@ These are the seed for the customer, rider and admin coverage tables that [exten
 | `menu-approve` / `menu-reject` | `admin-seed` decides the pending menu version | review badge resolves |
 | `onboard-restaurant` | a new restaurant signs up and completes onboarding; `admin-seed` approves its documents, halal certificate, application and first menu item | the new restaurant is `ACTIVE` and its approved item is on the customer menu ([playbook](../../playbooks/restaurant/onboarding.md)) |
 | `onboard-rider` | a new rider signs in with a fresh number, submits profile, bicycle and documents; `admin-seed` approves them and the application; the rider sets up payouts and goes online | the new rider is `ACTIVE` and online beside `bismillah-grill` ([playbook](../../playbooks/rider/onboarding.md)) |
-| `onboard-admin` | `admin-seed` invites a new admin; the invitee sets up the authenticator from the invitation link, sets the first password with the first code and signs in | the new admin signs in with password and code and reads the review queue; `make dev-totp email=…` prints its current code ([playbook](../../playbooks/admin/onboarding.md)) |
+| `onboard-admin` | `admin-seed` invites a new admin; the invitee sets the first password from the invitation link, signs in with the password alone, then turns two-step sign-in on and signs in again with password and code | the new admin reads the review queue and holds a password-and-code session that may move money; `make dev-totp email=…` prints its current code ([playbook](../../playbooks/admin/onboarding.md)) |
 | `journey` | see [journey](#63-journey) | one live order through delivery when the rider is driven |
 
 ### 6.2 Bootstrap (not run by `reset`)
