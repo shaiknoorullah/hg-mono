@@ -1,5 +1,12 @@
 """Package-seal chain of custody (migration 00027_handoff.sql, tag `handoff`).
 
+Later version: seals are not used at launch and move to v1.1
+(https://github.com/shaiknoorullah/hg-mono/issues/47). No seal scan gates an order
+transition: the rider confirms pickup with the kitchen's pickup code, and delivery is
+gated only by proof of delivery (round-2 decisions, "Orders and delivery":
+https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#orders-and-delivery).
+These fixtures describe the seal operations' shapes for when seals return.
+
 Two schemas describe every state on the wire — `PackageSeal` (the seal's own
 lifecycle) and `HandoffEvent` (one append-only row per scan/attestation) — plus
 `HandoffScanResult`, the envelope `scanPickup`/`scanDelivery`/`reportTamper`
@@ -200,7 +207,7 @@ def _scan_results(reg) -> None:
         "handoff_scan_pickup",
         "handoff",
         "HandoffScanResult",
-        "scanPickup's 200: the proof and its effect together — the order has already advanced to PICKED_UP.",
+        "scanPickup's 200 (later version): the scan recorded as custody evidence. `order_state` is the order's current state; the rider already confirmed pickup with the pickup code, and the scan changed nothing.",
         {
             "seal": _seal("pickup_verified", status="PICKUP_VERIFIED", order_id=ORDER_ID,
                            bound_at=ts(-40 * MINUTE), pickup_at=ts(0), delivery_at=None,
@@ -216,7 +223,7 @@ def _scan_results(reg) -> None:
         "handoff_scan_delivery",
         "handoff",
         "HandoffScanResult",
-        "scanDelivery's 200: PICKED_UP → DELIVERED, gated on the same physical token scoped to the DELIVERY proof.",
+        "scanDelivery's 200 (later version): the same physical token scanned for the DELIVERY proof. `order_state` is the order's current state; delivery was gated only by proof of delivery.",
         {
             "seal": _seal("delivery_verified", status="DELIVERY_VERIFIED", order_id=ORDER_ID,
                            bound_at=ts(-40 * MINUTE), pickup_at=ts(-25 * MINUTE), delivery_at=ts(0),
@@ -232,7 +239,7 @@ def _scan_results(reg) -> None:
         "handoff_tamper_report",
         "handoff",
         "HandoffScanResult",
-        "reportTamper's 200: DELIVERED → DISPUTED. Never a money decision by itself — it hands the scan-and-photo trail to the dispute flow (A-33/A-35).",
+        "reportTamper's 200 (later version): DELIVERED → DISPUTED. Never a money decision by itself — it hands the scan-and-photo trail to the dispute flow.",
         {
             "seal": _seal("tamper_reported", status="TAMPER_REPORTED", order_id=ORDER_ID,
                            bound_at=ts(-2 * HOUR), pickup_at=ts(-90 * MINUTE), delivery_at=ts(-30 * MINUTE),

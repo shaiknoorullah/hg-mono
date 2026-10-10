@@ -1,0 +1,23 @@
+{
+  "scenario": "error_pickup_code_incorrect",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`422` · `PICKUP_CODE_INCORRECT`. **Wrong code.** The attempt is counted and committed in Postgres per order; the assignment's state does not change. `details.attempts_remaining` drives the counter on the rider's screen. Neither the code sent nor the expected code is in the body.",
+  "operations": [
+    "createAssignmentTransition"
+  ],
+  "status": 422,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "PICKUP_CODE_INCORRECT",
+      "message": "That pickup code is not right. 3 attempts remaining.",
+      "request_id": "32X1PXN2ZXZWT0ZPG0VNN4RB9S",
+      "details": {
+        "attempts_remaining": 3
+      }
+    }
+  }
+}
