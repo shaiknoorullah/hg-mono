@@ -49,23 +49,23 @@ export type { StatCardProps } from './StatCard.js';
 export { formatTime12h, DEFAULT_TIME_ZONE } from './time.js';
 export type { FormatTime12hOptions } from './time.js';
 
-/* Adapters over legacy components: live props, legacy rendering. */
-export {
-  Checkbox,
-  Input,
-  RadioGroup,
-  Select,
-  Switch,
-} from './compat.js';
-export type {
-  CheckboxProps,
-  InputProps,
-  RadioGroupProps,
-  RadioOption,
-  SelectOption,
-  SelectProps,
-  SwitchProps,
-} from './compat.js';
+
+/* Rebuilt on shadcn/ui (W3 Forms). */
+export { Input, digitsOnly } from './Input.js';
+export type { InputProps, InputVariant } from './Input.js';
+export { Select, groupOptions } from './Select.js';
+export type { SelectOption, SelectProps } from './Select.js';
+export { Checkbox } from './Checkbox.js';
+export type { CheckboxProps } from './Checkbox.js';
+export { Radio, RadioGroup } from './RadioGroup.js';
+export type { RadioGroupProps, RadioOption, RadioProps } from './RadioGroup.js';
+export { Switch } from './Switch.js';
+export type { SwitchProps } from './Switch.js';
+export { SegmentedControl } from './SegmentedControl.js';
+export type { SegmentedControlOption, SegmentedControlProps } from './SegmentedControl.js';
+/* Owner-approved composite (decisions row, 28 Sep): the web document dropzone. */
+export { FileDrop, checkFile, fileMatchesAccept, formatBytes } from './FileDrop.js';
+export type { FileDropProps, FileDropRejection } from './FileDrop.js';
 
 /* Legacy components whose shape already matches the live index. */
 export { Rating } from '../content/index.js';

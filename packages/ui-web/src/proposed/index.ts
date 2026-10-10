@@ -56,8 +56,6 @@ export type { SeparatorProps } from './Separator.js';
 export { Tooltip, TooltipProvider } from './Tooltip.js';
 export type { TooltipProps } from './Tooltip.js';
 
-export { Textarea } from '../primitives/index.js';
-export type { TextareaProps } from '../primitives/index.js';
 
 /* Toasts: the provider and hook keep their API and now render the rebuilt `/ds` Toast (W4). */
 export { ToastProvider, useToast } from '../ds/Toast.js';
@@ -65,6 +63,24 @@ export type { ToastApi, ToastOptions, ToastProviderProps, ToastVariant } from '.
 
 export { DocumentViewer, FilterBar } from '../data/index.js';
 export type { DocumentViewerProps, DocumentViewerState } from '../data/index.js';
+
+/* Forms (W3), rebuilt on shadcn/ui: approval packet P16 to P21. */
+export { Textarea } from './Textarea.js';
+export type { TextareaProps } from './Textarea.js';
+export { ErrorSummary, Field } from './Field.js';
+export type { ErrorSummaryItem, ErrorSummaryProps, FieldControlProps, FieldProps } from './Field.js';
+export { CheckboxGroup, rangeHint } from './CheckboxGroup.js';
+export type { CheckboxGroupOption, CheckboxGroupProps } from './CheckboxGroup.js';
+export { DateInput, checkDateParts, formatDateShort } from './DateInput.js';
+export type { DateCheck, DateInputProps } from './DateInput.js';
+export { TimeField, checkTimeParts, formatClockTime } from './TimeField.js';
+export type { TimeCheck, TimeFieldProps } from './TimeField.js';
+export { MoneyInput, formatCentsPlain, parseMoneyInput } from './MoneyInput.js';
+export type { MoneyInputProps, MoneyParse } from './MoneyInput.js';
+export { Stepper } from './Stepper.js';
+export type { StepperProps, StepperStep } from './Stepper.js';
+export { InlineConfirm } from './InlineConfirm.js';
+export type { InlineConfirmAction, InlineConfirmProps } from './InlineConfirm.js';
 
 /* Layout and shell (W2): proposed composites from #192 and #191 (packet P8, P12, P14, P15). */
 export { Disclosure } from './Disclosure.js';
