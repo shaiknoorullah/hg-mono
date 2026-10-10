@@ -39,7 +39,7 @@ func TestConformance_SpecLoadsAndEnumerates(t *testing.T) {
 	// way past a handover code, security review on #183:
 	// https://github.com/shaiknoorullah/hg-mono/issues/183; served by
 	// internal/admin since https://github.com/shaiknoorullah/hg-mono/issues/310).
-	const wantOps = 170
+	const wantOps = 169
 	if got := len(spec.Operations); got != wantOps {
 		ids := make([]string, 0, len(spec.Operations))
 		for id := range spec.Operations {

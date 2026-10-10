@@ -39,7 +39,6 @@ func TestPublicRoutesAreExactlyTheContractPublicOps(t *testing.T) {
 		"POST /v1/auth/otp/verify":          {},
 		"POST /v1/auth/register/restaurant": {},
 		"POST /v1/auth/email/verify":        {},
-		"POST /v1/auth/invite/totp":         {},
 		"POST /v1/auth/email/resend":        {},
 		"POST /v1/auth/login":               {},
 		"POST /v1/auth/refresh":             {},

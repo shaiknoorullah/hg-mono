@@ -2,42 +2,33 @@
 # mode. Built with EXPO_PUBLIC_HG_REDESIGN=1 (and a cleared Metro cache: `expo export --clear`
 # or `expo run:android --no-build-cache`, since EXPO_PUBLIC_* is inlined at transform time).
 #
-# Until WP1 merges, sign-in is the legacy screen (per-route fallback, MASTER-PLAN §0.3), so the
-# first steps use its copy. WP1 rewrites them to "Sign in or apply to ride".
-# Env: PHONE (default rider-sim +15550100151; dev codes for +1 555 010 01xx are always 000000).
+# Sign-in is the redesigned R01/R02 (WP1; its own states are in 1-sign-in.yaml).
+# Env: PHONE_DIGITS (rider-sim's ten digits; dev codes for +1 555 010 01xx are always 000000).
 appId: com.halalgoes.rider.dev
 name: rider redesign, shell
 env:
-  PHONE: "+15550100151"
+  PHONE_DIGITS: "5550100151"
 ---
 - launchApp:
     clearState: true
     permissions:
       all: allow
 - extendedWaitUntil:
-    visible: "Rider sign in|Sign in or apply to ride"
+    visible: "Sign in or apply to ride"
     timeout: 90000
 - takeScreenshot: rider-redesign-00-cold-start
 - tapOn:
-    text: "Phone number.*|Mobile number"
-    optional: true
-- tapOn:
-    below: "Phone number .*"
-    above: "Send code"
-    optional: true
-- inputText: ${PHONE}
+    id: "phone-field"
+- inputText: ${PHONE_DIGITS}
+- hideKeyboard
 - tapOn: "Send code"
 - extendedWaitUntil:
-    visible: "Enter the code sent to.*|Enter your code"
+    visible: "Enter your code"
     timeout: 30000
 - tapOn:
-    below: "Enter the code sent to.*"
-    above: "Verify"
-    optional: true
+    id: "code-cell-0"
+# The 6th digit checks the code by itself; no Verify tap.
 - inputText: "000000"
-- tapOn:
-    text: "Verify"
-    optional: true
 # The redesigned shell: three tabs, Home, Earnings, Account (rider decision "Rider navigation").
 - extendedWaitUntil:
     visible: "Earnings"

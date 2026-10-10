@@ -13,6 +13,10 @@
  *
  *   APP_VERSION    the release's semantic version (required for prod)
  *   API_BASE_URL   dev only: point a dev build at another API, e.g. one on your own machine
+ *   EXPO_PUBLIC_HG_REDESIGN, VITE_HG_REDESIGN
+ *                  dev only: "1" builds the redesigned screens (tools/e2e/README.md, Redesign).
+ *                  Anything else is off. A prod build is always off, and refuses to build when
+ *                  either is "1".
  *
  * As a module it is what the Expo `app.config.js` files read (`expoAppEnv`).
  *
@@ -42,6 +46,13 @@ const ENVIRONMENTS = {
     idSuffix: '',
   },
 };
+
+/**
+ * The redesign's build-time flags (web: Vite inlines `VITE_*`; native: Expo inlines
+ * `EXPO_PUBLIC_*`). "1" is on; anything else, or unset, is off. Release 1.0 ships the current
+ * screens, so a prod build is always off.
+ */
+const REDESIGN_FLAGS = ['EXPO_PUBLIC_HG_REDESIGN', 'VITE_HG_REDESIGN'];
 
 const VERSION_RE = /^(\d+)\.(\d+)\.(\d+)(?:-([a-z]+)\.(\d+))?$/;
 
@@ -89,6 +100,13 @@ function resolveEnvironment(name, env = process.env) {
   if (name === 'prod' && !env.APP_VERSION) {
     throw new Error('a prod build needs APP_VERSION, the release\'s semantic version (for example 1.0.0)');
   }
+  const redesignOn = REDESIGN_FLAGS.filter((k) => env[k] === '1');
+  if (name === 'prod' && redesignOn.length > 0) {
+    throw new Error(
+      `a prod build ships the current screens, but ${redesignOn.join(' and ')} is "1" (the redesign). ` +
+        'Unset it, or build dev (tools/e2e/README.md, Redesign).',
+    );
+  }
   const version = env.APP_VERSION || '0.0.0';
   return {
     name,
@@ -99,6 +117,8 @@ function resolveEnvironment(name, env = process.env) {
     idSuffix: base.idSuffix,
     version,
     versionCode: versionCode(version),
+    // Only a dev build can carry the redesign: "1" or "0", never anything in between.
+    redesign: redesignOn.length > 0 ? '1' : '0',
   };
 }
 
@@ -111,6 +131,10 @@ function buildVariables(resolved) {
     EXPO_PUBLIC_WS_URL: resolved.wsUrl,
     VITE_API_BASE_URL: resolved.apiBaseUrl,
     VITE_WS_URL: resolved.wsUrl,
+    // Set explicitly, on or off, so a local .env file cannot change it: Vite and Expo never let
+    // a .env file override a variable already in the environment.
+    EXPO_PUBLIC_HG_REDESIGN: resolved.redesign,
+    VITE_HG_REDESIGN: resolved.redesign,
   };
 }
 
@@ -162,7 +186,7 @@ function main(argv) {
   return run.status ?? 1;
 }
 
-module.exports = { ENVIRONMENTS, versionCode, resolveEnvironment, buildVariables, expoAppEnv };
+module.exports = { ENVIRONMENTS, REDESIGN_FLAGS, versionCode, resolveEnvironment, buildVariables, expoAppEnv };
 
 if (require.main === module) {
   try {
