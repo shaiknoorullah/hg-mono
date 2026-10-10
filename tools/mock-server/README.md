@@ -160,7 +160,7 @@ already loaded), not to swap the server out.
 | `src/routes.ts` | Route table built from `contracts/openapi.yaml` at boot |
 | `src/fixtures.ts` | Fixture loading and default resolution from `index.json` |
 | `src/ws.ts` | The `websocket.md` mock and the script player |
-| `src/scenarios.test.ts` | Scenario selection and re-stamping, against the real fixture set (`pnpm --filter @hg/mock-server test`) |
+| `src/scenarios.test.ts` | Scenario selection and re-stamping, against the real fixture set (`pnpm --filter @hg/mock-server test:unit`) |
 
 Nothing here hardcodes a path, a schema or a scenario name: change the contract or the
 fixtures and the mock follows.
