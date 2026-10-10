@@ -9,7 +9,7 @@ covers:
   - services/hg/internal/files/**
   - services/hg/internal/dispatch/**
   - services/hg/internal/httpx/**
-reviewed: 2026-10-09
+reviewed: 2026-10-10
 ---
 
 # HalalGoes — Cross-Cutting Platform Layer Specification
@@ -605,6 +605,8 @@ func (a Amount) MarshalJSON() ([]byte, error) // emits an integer, never a strin
                      + max(0, billable_km − included_km) × per_km_cents
                      + small_order_surcharge_cents           -- if subtotal < small_order_threshold_cents
   ```
+  A delivery address farther in a straight line from the restaurant than its `delivery_radius_m` is refused with `409 ADDRESS_OUT_OF_RANGE` at quote and at order time, using the same distance and boundary as the discovery card's `OUT_OF_RANGE` ([serviceability gating, C-14](02-customer.md#c-14--restaurant-availability--serviceability-gating)), so the fee clamp never prices a delivery that cannot happen.
+
   clamped to `[min_delivery_fee_cents, max_delivery_fee_cents]`. All parameters come from `pricing_config` (versioned, effective-dated), **never** from constants in code and never from the request. Note the address used is the order's, not the customer's primary — the old code measured to the primary address (B38).
 
   **Step 5 — service fee (customer-facing platform fee).**
