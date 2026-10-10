@@ -15,6 +15,9 @@ export type { BannerProps, BannerVariant, EmptyStateProps, ErrorStateProps, Erro
 // Core (N1): rebuilt on the React Native Reusables tier (`lib/`); the props are unchanged.
 export { Text, Skeleton, Spinner, Separator, Avatar } from '../ds/Core';
 export type { TextProps, SkeletonProps, SpinnerProps, SeparatorProps, AvatarProps } from '../ds/Core';
+// Navigation (N2): the sticky action bar of the item sheet and checkout, on the lib tier.
+export { StickyFooter } from '../ds/Navigation';
+export type { StickyFooterProps } from '../ds/Navigation';
 export { Wordmark } from '../primitives';
 export type { WordmarkProps } from '../primitives';
 

@@ -419,6 +419,59 @@ function cssOnlyRoleColors(color: ThemeColorsLoose): Record<string, unknown> {
   return { feedback, skeleton };
 }
 
+/* ------------------------------------- navigation roles (design-system N2) */
+
+/**
+ * Roles the navigation and overlay parts of the className tier need (design-system N2), kept in
+ * their own pair of functions so other work packages can add theirs beside them without touching
+ * these lines. Written to `global.<theme>.css` only, like `cssOnlyRoleVars`.
+ *
+ *   - `--hg-elev-surface-{0..4,sticky}`: the fill of an elevated element (`bg-elev-surface-sticky`
+ *     for a sticky footer). Light carries depth with a shadow, so the fill is the page at level 0
+ *     and `surface.raised` above it; dark has no shadows, so the fill IS the depth: the
+ *     `surfaceStep` each `elevation.*` token names.
+ *   - `--hg-chrome-*`: ink, hairline, selected ink and selected tile on `surface.chrome`, which is
+ *     dark forest in both schemes (the rider field tone of AppBar and BottomNav). The forest
+ *     steps are the registered chrome neutrals of lint L-4, never a halal green; the selected ink
+ *     is brand, so a selected link on chrome is orange, never green.
+ */
+export function navRoleVars(
+  scheme: 'light' | 'dark',
+  ramps: Record<string, Record<string, string>>,
+  roles: { base: string; raised: string },
+  elevation: Record<string, { surfaceStep?: string }>,
+): Record<string, string> {
+  const dark = scheme === 'dark';
+  const out: Record<string, string> = {};
+  for (const [level, e] of Object.entries(elevation)) {
+    const fill = dark ? e.surfaceStep : level === '0' ? roles.base : roles.raised;
+    if (typeof fill === 'string') out[`--hg-elev-surface-${kebab(level)}`] = fill;
+  }
+  const chrome: Record<string, string | undefined> = {
+    fg: ramps.neutral?.['100'],
+    'fg-muted': ramps.neutral?.['200'],
+    line: dark ? ramps.accent?.['800'] : ramps.accent?.['700'],
+    active: ramps.brand?.['300'],
+    tile: dark ? ramps.accent?.['700'] : ramps.accent?.['800'],
+  };
+  for (const [leaf, value] of Object.entries(chrome)) {
+    if (typeof value === 'string') out[`--hg-chrome-${leaf}`] = value;
+  }
+  return out;
+}
+
+/** Tailwind colour utilities for `navRoleVars` (`bg-elev-surface-sticky`, `text-chrome-fg`). */
+function navRoleColors(elevation: Record<string, unknown>): Record<string, unknown> {
+  return {
+    'elev-surface': Object.fromEntries(
+      Object.keys(elevation).map((level) => [kebab(level), `var(--hg-elev-surface-${kebab(level)})`]),
+    ),
+    chrome: Object.fromEntries(
+      ['fg', 'fg-muted', 'line', 'active', 'tile'].map((leaf) => [leaf, `var(--hg-chrome-${leaf})`]),
+    ),
+  };
+}
+
 /* ----------------------------------------------------------------- builder */
 
 export function buildFiles(doc: Dtcg): Record<string, string> {
@@ -625,6 +678,7 @@ export function buildFiles(doc: Dtcg): Record<string, string> {
     const withRoles = (scheme: 'light' | 'dark') => ({
       ...(varsOut[themeName]![scheme] as Record<string, string>),
       ...cssOnlyRoleVars(t[scheme].color, scheme, tokens.color),
+      ...navRoleVars(scheme, tokens.color, t[scheme].color.surface, tokens.elevation),
     });
     files[`global.${themeName}.css`] = nativewindGlobalCss(
       themeName,
@@ -653,6 +707,7 @@ export function buildFiles(doc: Dtcg): Record<string, string> {
    */
   Object.assign(presetColors, RNR_PRESET_COLORS);
   Object.assign(presetColors, cssOnlyRoleColors((themes.customer as any).light.color));
+  Object.assign(presetColors, navRoleColors(tokens.elevation as Record<string, unknown>));
   presetColors.border = { DEFAULT: 'var(--border)', ...(presetColors.border as object) };
   presetColors.accent = {
     ...(presetColors.accent as object),

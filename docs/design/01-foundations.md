@@ -7,7 +7,7 @@ covers:
   - packages/ui-web/src/styles/**
   - packages/ui-web/src/lint/**
   - packages/ui-native/src/lint/**
-reviewed: 2026-10-09
+reviewed: 2026-10-10
 ---
 
 # HalalGoes — Design Foundations (token system)
@@ -420,6 +420,7 @@ On native, `packages/ui-native/src/tokens/build.ts` (`pnpm --filter @hg/ui-nativ
 
 - **`global.customer.css` and `global.rider.css`** (`@hg/ui-native/global.<theme>.css`): the NativeWind input file for each theme. `:root` holds the light scheme and `.dark:root` the dark one, each as resolved hex: the `--hg-*` role variables, then the shadcn/RNR aliases (`--background`, `--primary`, `--muted-foreground`, …). Each alias points at one of our roles (`build.ts`, `RNR_ALIASES`). Two of them are deliberate: `--primary-foreground` is `text.onBrand`, never white, and `--accent` is the selected-state tint, never the forest ramp. Values are never `hsl()`. A jest guard in `src/lib/__tests__/rnr-guards.test.ts` fails on `hsl(`, on a `lucide` import and on an `@/` alias import anywhere in `packages/ui-native/src`.
 - **Role variables only the className tier reads** (written to the CSS, not to `vars.ts`): the feedback roles `--hg-feedback-<name>-<role>` (tint, tint text, text, icon, border, solid, on-solid, and a soft tint border: the `<name>.100` step in light, the tint itself in dark) and the skeleton fill `--hg-skeleton-*`. `feedback.success.solid` is `null`, so no success fill variable exists (rule H-1). The dark skeleton base is `neutral.700`, not the StyleSheet tier's `neutral.800`, which matched the raised surface and could not be seen ([#167](https://github.com/shaiknoorullah/hg-mono/issues/167)).
+- **Navigation roles (N2)**, also CSS-only, from `navRoleVars` in `build.ts`: `--hg-elev-surface-{0..4,sticky}`, the fill of an elevated element (the page at level 0 and `surface.raised` above it in light, where a shadow carries the depth; the `surfaceStep` each `elevation.*` token names in dark), and `--hg-chrome-{fg,fg-muted,line,active,tile}`, the ink, hairline, selected ink and selected tile on `surface.chrome`, which is dark forest in both schemes. The chrome steps are the forest neutrals lint L-4 already registers; the selected ink is `brand.300`, so a selected link on the chrome is orange, never green. The preset gains `bg-elev-surface-sticky` and `text-chrome-fg`, `bg-chrome-tile` and the rest.
 - **In the NativeWind preset:** the matching utilities (`bg-feedback-danger-tint`, `bg-skeleton-base`, `bg-primary`, `text-muted-foreground`, `border-border`, and bare `bg-accent` beside the numbered forest steps). It also adds `font-sans`, `font-sans-medium`, `font-sans-semibold` and `font-sans-bold`. These name the four `PlusJakartaSans_*` faces that `useHgFonts()` registers, because React Native has no font fallback chain. NativeWind's rem is set to 16 in each app's Metro config.
 
 Only flag-on code reads these files. Each app compiles its JSX through NativeWind only under `packages/ui-native/src/lib/**` and `apps/<app>/src/redesign/**`, and imports the stylesheet only from its redesign root. A flag-off bundle has the same modules as before.

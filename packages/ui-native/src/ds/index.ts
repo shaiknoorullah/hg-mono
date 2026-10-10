@@ -8,7 +8,9 @@
  * `testID`, `onValueChange` is wired to the legacy `onChange`). The DS-native work packages
  * (N1–N7) replace the internals one entry at a time on React Native Reusables; the names and
  * props here do not change, so app code does not either. N1 (core) has landed: Button, IconButton,
- * Badge, Card and Price now render through the React Native Reusables tier (`../lib`).
+ * Badge, Card and Price now render through the React Native Reusables tier (`../lib`). N2
+ * (navigation and overlays) has landed too: AppBar, BottomNav, Sheet, Modal (and the `Dialog`
+ * alias) and Toast render through it, the overlays through the root `<PortalHost />`.
  *
  * Native differences from the web `.d.ts`, everywhere: `style` is a `StyleProp`, `onChange`
  * receives the value (there is no change event), money is the branded `Cents`, and labels are

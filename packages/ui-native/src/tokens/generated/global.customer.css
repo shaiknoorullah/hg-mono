@@ -72,6 +72,17 @@
   --hg-feedback-info-tint-border: #CBDFFC;
   --hg-skeleton-base: #D8D0BF;
   --hg-skeleton-highlight: #E6E0D4;
+  --hg-elev-surface-0: #FFFAEA;
+  --hg-elev-surface-1: #FFFFFF;
+  --hg-elev-surface-2: #FFFFFF;
+  --hg-elev-surface-3: #FFFFFF;
+  --hg-elev-surface-4: #FFFFFF;
+  --hg-elev-surface-sticky: #FFFFFF;
+  --hg-chrome-fg: #F6EFDD;
+  --hg-chrome-fg-muted: #E6E0D4;
+  --hg-chrome-line: #143026;
+  --hg-chrome-active: #F5966B;
+  --hg-chrome-tile: #0F241C;
 
   --background: #FFFAEA;
   --foreground: #232323;
@@ -155,6 +166,17 @@
   --hg-feedback-info-tint-border: #04264F;
   --hg-skeleton-base: #4A4E48;
   --hg-skeleton-highlight: #8B8578;
+  --hg-elev-surface-0: #171717;
+  --hg-elev-surface-1: #232323;
+  --hg-elev-surface-2: #232323;
+  --hg-elev-surface-3: #33352F;
+  --hg-elev-surface-4: #33352F;
+  --hg-elev-surface-sticky: #33352F;
+  --hg-chrome-fg: #F6EFDD;
+  --hg-chrome-fg-muted: #E6E0D4;
+  --hg-chrome-line: #0F241C;
+  --hg-chrome-active: #F5966B;
+  --hg-chrome-tile: #143026;
 
   --background: #171717;
   --foreground: #F6EFDD;

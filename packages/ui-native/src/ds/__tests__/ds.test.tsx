@@ -13,7 +13,7 @@ import * as proposed from '../../proposed';
 import { renderThemed, styleOf, themes } from '../../primitives/__tests__/harness';
 import { resetClientErrorReporter, setClientErrorReporter } from '../../certification/internal/reportClientError';
 import type { ColorScheme, ThemeName } from '../../tokens';
-import { loadThemeCss, renderNw } from '../../lib/ui/__tests__/harness';
+import { hex, loadThemeCss, renderNw } from '../../lib/ui/__tests__/harness';
 
 const {
   AppBar,
@@ -267,7 +267,7 @@ describe('forms take the live callbacks', () => {
 describe('navigation and overlays', () => {
   it('AppBar names its back button and renders action nodes', () => {
     const onBack = jest.fn();
-    renderThemed(
+    renderNw(
       <AppBar
         tone="cream"
         title="Zaytoun"
@@ -280,7 +280,7 @@ describe('navigation and overlays', () => {
     expect(onBack).toHaveBeenCalled();
     expect(screen.getByRole('button', { name: 'Search menu' })).toBeTruthy();
     // cream tone: primary ink on the cream surface, not the chrome bar.
-    expect(styleOf(screen.getByTestId('AppBar')).backgroundColor).toBe(themes.customer.light.color.surface.base);
+    expect(hex(styleOf(screen.getByTestId('AppBar')).backgroundColor)).toBe(hex(themes.customer.light.color.surface.base));
   });
 
   it('BottomNav renders nothing when hidden and changes on press', () => {
@@ -288,11 +288,11 @@ describe('navigation and overlays', () => {
       { key: 'home', label: 'Home', icon: 'home' as const },
       { key: 'orders', label: 'Orders', icon: 'orders' as const, badge: 2, badgeNoun: 'active' },
     ];
-    const hidden = renderThemed(<BottomNav items={items} active="home" hidden />);
+    const hidden = renderNw(<BottomNav items={items} active="home" hidden />);
     expect(hidden.toJSON()).toBeNull();
     hidden.unmount();
     const onChange = jest.fn();
-    renderThemed(<BottomNav items={items} active="home" onChange={onChange} />);
+    renderNw(<BottomNav items={items} active="home" onChange={onChange} />);
     fireEvent.press(screen.getByText('Orders'));
     expect(onChange).toHaveBeenCalledWith('orders');
   });
@@ -300,7 +300,7 @@ describe('navigation and overlays', () => {
   it('Modal confirm offers cancel first and the decisive action second', () => {
     const onConfirm = jest.fn();
     const onClose = jest.fn();
-    renderThemed(
+    renderNw(
       <Modal open variant="confirm" title="Cancel this order?" confirmLabel="Cancel order" destructive onConfirm={onConfirm} onClose={onClose} />,
     );
     fireEvent.press(screen.getByRole('button', { name: 'Cancel order' }));
@@ -310,14 +310,14 @@ describe('navigation and overlays', () => {
   });
 
   it('Sheet and Toast render with the live props', () => {
-    renderThemed(
+    renderNw(
       <Sheet open variant="full" dismissible={false} title="New delivery offer">
         <ds.Button onPress={() => {}}>Accept</ds.Button>
       </Sheet>,
     );
     expect(screen.getByTestId('Sheet')).toBeTruthy();
     const onAction = jest.fn();
-    renderThemed(<Toast title="Removed" action={{ label: 'Undo', onAction }} icon="info" />);
+    renderNw(<Toast title="Removed" action={{ label: 'Undo', onAction }} icon="info" />);
     fireEvent.press(screen.getByText('Undo'));
     expect(onAction).toHaveBeenCalled();
   });
@@ -385,7 +385,10 @@ describe('halal invariants through /ds', () => {
       <HalalBadge key="u" state="UNVERIFIED" restaurantId="r1" />,
     ];
     for (const node of others) {
-      expect(paintedColours(renderThemed(node).toJSON())).not.toContain(seal);
+      // renderNw: the className tier's real colours, and the PortalHost the Toast renders into.
+      const painted = paintedColours(renderNw(node).toJSON());
+      expect(painted.length).toBeGreaterThan(0);
+      expect(painted).not.toContain(seal);
     }
   });
 
