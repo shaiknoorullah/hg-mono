@@ -142,10 +142,10 @@ describe('row text', () => {
 });
 
 describe('line extras and the pickup code', () => {
-  it('reads the pickup code defensively until #290 lands', () => {
-    expect(pickupCodeOf(order({ code: 'A' }))).toBeNull();
-    expect(pickupCodeOf({ ...order({ code: 'A' }), pickup_code: '4827' } as Order)).toBe('4827');
-    expect(pickupCodeOf({ ...order({ code: 'A' }), pickup_code: '' } as Order)).toBeNull();
+  it('the pickup code: null or blank is no code, never a blank slot', () => {
+    expect(pickupCodeOf({ ...order({ code: 'A' }), pickup_code: null })).toBeNull();
+    expect(pickupCodeOf({ ...order({ code: 'A' }), pickup_code: '4827' })).toBe('4827');
+    expect(pickupCodeOf({ ...order({ code: 'A' }), pickup_code: ' ' })).toBeNull();
   });
 
   it('renders variants[] when present, else variant_name', () => {

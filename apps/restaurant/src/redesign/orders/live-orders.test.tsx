@@ -439,7 +439,7 @@ describe('hand-off and live events', () => {
 
   it('rider here but no pickup code yet: the code-error state, never a blank slot', async () => {
     const b = board();
-    withSocket(b);
+    withSocket(b, { [`GET /v1/restaurant/orders/${ids.ready}`]: { body: { ...b.ready, pickup_code: null } } });
     await renderRedesign('/orders', { live: true });
     await waitFor(() => expect(codeButton('K7J1')).toBeTruthy());
     const sock = await liveSocket();

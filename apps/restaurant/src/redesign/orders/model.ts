@@ -279,10 +279,10 @@ export function lineExtra(line: Order['lines'][number]): string | null {
 }
 
 /**
- * The pickup code. `OrderRestaurantView` has no `pickup_code` until PR #290 lands (#315 for
- * the backend), so it is read defensively; missing → the code-error state, never a blank slot.
+ * The pickup code the kitchen reads to the rider (#290). Null until the order is accepted, and
+ * read as no code when blank, so the panel shows the code-error state, never a blank slot.
  */
 export function pickupCodeOf(o: Order): string | null {
-  const code = (o as { pickup_code?: string | null }).pickup_code;
+  const code = o.pickup_code;
   return typeof code === 'string' && code.trim() ? code.trim() : null;
 }

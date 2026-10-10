@@ -224,8 +224,8 @@ test.describe('Live orders: detail panel and Mark ready', () => {
   test('rider here: the hand-off line and the pickup code, or the code-error state', async ({ page }) => {
     const board = await busyBoard(page);
     const socket = await fakeSocket(page);
-    // `pickup_code` arrives with PR #290; until then the view has none → code-error state.
-    await routeBoard(page, board);
+    // An order view without its code (`pickup_code: null`) → the code-error state, never a blank slot.
+    await routeBoard(page, board, { [board.ready.id]: { pickup_code: null } });
     await openLive(page, '/orders');
     const list = page.getByRole('region', { name: 'In progress' });
     await expect(list.getByRole('button', { name: 'K7J1', exact: true })).toBeVisible();
@@ -248,7 +248,7 @@ test.describe('Live orders: detail panel and Mark ready', () => {
     await shot(page, 'ready-rider-here-code-error');
   });
 
-  test('rider here with a pickup code (#290 shape) shows it large', async ({ page }) => {
+  test('rider here with a pickup code shows it large', async ({ page }) => {
     const board = await busyBoard(page);
     const socket = await fakeSocket(page);
     await routeBoard(page, board, { [board.ready.id]: { pickup_code: '4827' } });
