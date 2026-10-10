@@ -40,14 +40,13 @@ import {
   secondsLeft,
   thresholdMessage,
 } from './new-orders-copy.js';
-import { OfferTile, isLiveTile, type OfferTileProps } from './OfferTile.js';
+import { OfferTile, isLiveTile, type OrderOffer } from './OfferTile.js';
 import { useAnnounce } from './PageAnnouncer.js';
 import { Skeleton } from './Skeleton.js';
 
-/** One tile as the strip takes it: the tile's props without the roving-focus wiring. */
-export type NewOrdersStripTile = Omit<OfferTileProps, 'tabIndex' | 'selected' | 'onKeyDown' | 'onFocus' | 'compactDecline' | 'tileRef'>;
-/** The packet's name for a strip tile (P33 `OrderOffer`). */
-export type OrderOffer = NewOrdersStripTile;
+/** One tile as the strip takes it: the tile's fields without the roving-focus wiring. */
+export type NewOrdersStripTile = OrderOffer;
+export type { OrderOffer };
 
 /** A button in the empty card ("Resume now", "Turn on"). */
 export interface NewOrdersStripAction {
@@ -393,7 +392,9 @@ export function NewOrdersStrip({
       h.accept?.();
     } else if (key === 'd') {
       e.preventDefault();
-      if (!tile.declineDisabled && !accepting) h.decline?.();
+      // Same rule as the Decline… button: not while accepting, nor while a decline is being sent.
+      if (e.repeat || tile.declineDisabled || accepting || tile.declining) return;
+      h.decline?.();
     } else if (key === 'Enter') {
       e.preventDefault();
       h.open?.();

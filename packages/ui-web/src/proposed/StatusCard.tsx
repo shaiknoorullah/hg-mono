@@ -9,7 +9,8 @@
  * - The Orders Switch with its required `stateLabel`. It moves only when HalalGoes confirms
  *   (`busy` holds it in place with a spinner). Turning it off asks first, in the page: "Stop
  *   accepting new orders?" with first focus on "Keep accepting".
- * - The pause Menu: each length is a `menuitemradio` ("Pause for 15 minutes (until 7:25 pm)").
+ * - The pause Menu: each length is a `menuitemradio`: on the card "Pause for 15 minutes (until
+ *   7:25 pm)", from the clock when the menu opens; in the bar "Pause for 15 minutes".
  *   While paused it becomes "Resume now", which asks first: "Resume new orders now?" with first
  *   focus on "Stay paused".
  * - `layout="bar"` is the Live Orders status bar (one row, no heading); `card` is the "Right now"
@@ -19,7 +20,7 @@
  * 12-hour through the one shared formatter.
  */
 
-import { useMemo, useState, type CSSProperties, type ReactNode } from 'react';
+import { useState, type CSSProperties, type ReactNode } from 'react';
 
 import type { RestaurantOpenState } from '@hg/api-client';
 
@@ -75,7 +76,10 @@ export interface StatusCardProps {
   closingAt?: string | null;
   /** Offer "Pause until closing". Default true; it needs `onPauseUntilClosing`. */
   pauseUntilClosing?: boolean;
-  /** The lengths in the pause menu. Default 15, 30 and 60 minutes, then until closing. */
+  /**
+   * The lengths in the pause menu. Default 15, 30 and 60 minutes (the card adds when each ends;
+   * the bar says "1 hour"), then until closing.
+   */
   pauseOptions?: readonly StatusCardPauseOption[];
   /** The switch: true turns orders on; false (after the in-page confirm) turns them off. */
   onToggle?: (accepting: boolean) => void;
@@ -152,6 +156,29 @@ export function statusFromOpenState(state: RestaurantOpenState | null | undefine
 
 const DEFAULT_LENGTHS = [15, 30, 60] as const;
 
+/**
+ * The default pause lengths. The card (Menu & Hours `PartNowCard`) says when each one ends,
+ * from the clock at render; the Live Orders status bar (`Board-pause-menu`) says only the length.
+ */
+function defaultPauseOptions(o: {
+  isBar: boolean;
+  timeZone: string | undefined;
+  closingAt: string | null | undefined;
+  untilClosing: boolean;
+}): StatusCardPauseOption[] {
+  const at = (minutes: number) => formatTime12h(Date.now() + minutes * 60_000, { timeZone: o.timeZone });
+  const lengths: StatusCardPauseOption[] = DEFAULT_LENGTHS.map((m) => {
+    if (o.isBar) return { minutes: m, label: m === 60 ? 'Pause for 1 hour' : `Pause for ${m} minutes` };
+    const end = at(m);
+    return { minutes: m, label: `Pause for ${m} minutes${end ? ` (until ${end})` : ''}` };
+  });
+  if (o.untilClosing) {
+    const closing = o.closingAt ? formatTime12h(o.closingAt, { timeZone: o.timeZone }) : null;
+    lengths.push({ minutes: 'closing', label: closing ? `Pause until closing (${closing})` : 'Pause until closing' });
+  }
+  return lengths;
+}
+
 /** "Right now"; see the module comment. */
 export function StatusCard({
   status: statusProp,
@@ -189,19 +216,11 @@ export function StatusCard({
   const locked = status === 'suspended' || status === 'unknown';
   const isBar = layout === 'bar';
 
-  const options = useMemo<readonly StatusCardPauseOption[]>(() => {
-    if (pauseOptions) return pauseOptions;
-    const at = (minutes: number) => formatTime12h(Date.now() + minutes * 60_000, { timeZone });
-    const lengths: StatusCardPauseOption[] = DEFAULT_LENGTHS.map((m) => ({
-      minutes: m,
-      label: `Pause for ${m} minutes${at(m) ? ` (until ${at(m)})` : ''}`,
-    }));
-    if (pauseUntilClosing && onPauseUntilClosing) {
-      const closing = closingAt ? formatTime12h(closingAt, { timeZone }) : null;
-      lengths.push({ minutes: 'closing', label: closing ? `Pause until closing (${closing})` : 'Pause until closing' });
-    }
-    return lengths;
-  }, [pauseOptions, pauseUntilClosing, onPauseUntilClosing, closingAt, timeZone]);
+  // Read at render, never memoised: "(until 7:25 pm)" must be from now, not from the first render.
+  // Opening the menu re-renders the card, so the times are fresh when they are read.
+  const [, setOpenedAt] = useState(0);
+  const options: readonly StatusCardPauseOption[] =
+    pauseOptions ?? defaultPauseOptions({ isBar, timeZone, closingAt, untilClosing: pauseUntilClosing && Boolean(onPauseUntilClosing) });
 
   const items: MenuItem[] = options.map((o, i) => ({
     type: 'radio',
@@ -219,7 +238,9 @@ export function StatusCard({
   };
 
   const reasonText = reason ?? (status === 'paused' && until ? `Paused until ${until}.` : look.fallback);
-  const badge = <Badge variant={look.variant} size="lg" icon={look.icon} label={look.badge} />;
+  // "Open" is the outline badge on the card (`PartNowCard`) and the info badge in the bar (`LiveBoard`).
+  const badgeVariant: BadgeVariant = status === 'open' && !isBar ? 'outline' : look.variant;
+  const badge = <Badge variant={badgeVariant} size="lg" icon={look.icon} label={look.badge} />;
 
   const controls = (
     <div className={cn('flex shrink-0 flex-wrap items-center gap-3', isBar ? 'ms-auto' : undefined)}>
@@ -240,6 +261,9 @@ export function StatusCard({
           triggerVariant="tonal"
           align="end"
           items={items}
+          onOpenChange={(open) => {
+            if (open) setOpenedAt(Date.now());
+          }}
           disabled={!accepting || locked || status !== 'open' || busy !== false}
           onSelect={(key) => choosePause(key)}
         />

@@ -125,7 +125,7 @@ export type {
   OrderOffer,
 } from './NewOrdersStrip.js';
 export { OfferTile, isLiveTile } from './OfferTile.js';
-export type { OfferLineTone, OfferOutcomeView, OfferStatusLine, OfferTileProps } from './OfferTile.js';
+export type { OfferLineTone, OfferOutcomeView, OfferStatusLine, OfferTileFields, OfferTileProps } from './OfferTile.js';
 export {
   OFFER_ANNOUNCE_AT,
   OFFER_OUTCOMES,

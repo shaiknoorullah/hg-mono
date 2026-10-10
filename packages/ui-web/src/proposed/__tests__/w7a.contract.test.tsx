@@ -74,6 +74,14 @@ const REGISTRY: Row[] = [
   },
   {
     component: 'OfferTile',
+    state: 'packet shape (offer + serverNow, P33)',
+    element: () => <OfferTile offer={tile('A7K2', 132)} serverNow={new Date(NOW).toISOString()} accepting />,
+    role: 'button',
+    name: 'Accept order A7K2, ready in 20 minutes',
+    check: (el) => expect(el).toHaveAttribute('aria-busy', 'true'),
+  },
+  {
+    component: 'OfferTile',
     state: 'accept (critical 72px)',
     element: () => <OfferTile {...tile('A7K2', 132)} />,
     role: 'button',
@@ -425,6 +433,23 @@ describe('NewOrdersStrip keyboard: the stray-key guard', () => {
     expect(onAccept).not.toHaveBeenCalled();
   });
 
+  it('D does nothing while that order is accepting or a decline is already being sent', () => {
+    const onDecline = vi.fn();
+    render(
+      <NewOrdersStrip
+        tiles={[tile('A7K2', 120, { acceptLoading: true }), tile('B3M9', 130, { declining: true })]}
+        now={now}
+        onDeclineStart={onDecline}
+      />,
+    );
+    for (const code of ['A7K2', 'B3M9']) {
+      const t = screen.getByRole('group', { name: new RegExp(`^New order ${code}`) });
+      t.focus();
+      fireEvent.keyDown(t, { key: 'd' });
+    }
+    expect(onDecline).not.toHaveBeenCalled();
+  });
+
   it('a new order never takes focus, and a re-sort keeps focus on the same order', () => {
     const tiles = [tile('B3M9', 40), tile('A7K2', 132)];
     const { rerender, tileOf } = setup({ tiles });
@@ -638,13 +663,17 @@ describe('DeclineForm (#604)', () => {
 });
 
 describe('StatusCard', () => {
-  it('pause lengths are menuitemradio rows, and choosing one calls onPause', async () => {
-    const onPause = vi.fn();
-    render(<StatusCard status="open" onPause={onPause} />);
-    const trigger = screen.getByRole('button', { name: 'Pause new orders' });
+  const openPauseMenu = (name: string) => {
+    const trigger = screen.getByRole('button', { name });
     fireEvent.pointerDown(trigger, { button: 0, ctrlKey: false });
     fireEvent.keyDown(trigger, { key: 'Enter' });
-    const items = await screen.findAllByRole('menuitemradio');
+    return screen.getAllByRole('menuitemradio');
+  };
+
+  it('pause lengths are menuitemradio rows, and choosing one calls onPause', () => {
+    const onPause = vi.fn();
+    render(<StatusCard status="open" onPause={onPause} />);
+    const items = openPauseMenu('Pause new orders');
     expect(items.map((i) => i.textContent)).toEqual([
       expect.stringMatching(/^Pause for 15 minutes \(until \d{1,2}:\d{2} (am|pm)\)$/),
       expect.stringMatching(/^Pause for 30 minutes/),
@@ -652,6 +681,33 @@ describe('StatusCard', () => {
     ]);
     fireEvent.click(items[1]!);
     expect(onPause).toHaveBeenCalledWith(30);
+  });
+
+  it('says when each pause ends from the clock when the menu opens, not when the card first drew', () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(Date.parse('2026-10-10T22:00:00Z')); // 6:00 pm in Toronto
+    render(<StatusCard status="open" onPause={() => undefined} timeZone="America/Toronto" />);
+    vi.setSystemTime(Date.parse('2026-10-11T00:00:00Z')); // two hours later
+    expect(openPauseMenu('Pause new orders')[0]).toHaveTextContent('Pause for 15 minutes (until 8:15 pm)');
+  });
+
+  it('the status bar uses the Live Orders lengths, with until closing after a separator', () => {
+    render(
+      <StatusCard
+        layout="bar"
+        status="open"
+        onPause={() => undefined}
+        onPauseUntilClosing={() => undefined}
+        closingAt="2026-10-11T03:00:00Z"
+        timeZone="America/Toronto"
+      />,
+    );
+    expect(openPauseMenu('Pause new orders').map((i) => i.textContent)).toEqual([
+      'Pause for 15 minutes',
+      'Pause for 30 minutes',
+      'Pause for 1 hour',
+      'Pause until closing (11:00 pm)',
+    ]);
   });
 
   it('turning orders off asks in the page first, with first focus on Keep accepting', () => {

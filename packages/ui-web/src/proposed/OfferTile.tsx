@@ -52,8 +52,8 @@ export interface OfferStatusLine {
 
 export type { OfferOutcomeView };
 
-/** Props of `OfferTile`. The restaurant stub's names are kept; the packet's names are aliases. */
-export interface OfferTileProps {
+/** The tile's fields, under the restaurant stub's names (the packet's names are aliases). */
+export interface OfferTileFields {
   /** The order id; the strip's key and roving-focus identity. */
   id: string;
   /** The short order code, in the mono face ("A7K2"). */
@@ -124,6 +124,24 @@ export interface OfferTileProps {
   tileRef?: Ref<HTMLDivElement>;
 }
 
+/** One order as the strip holds it: the tile's fields without the roving-focus wiring (P33 `OrderOffer`). */
+export type OrderOffer = Omit<OfferTileFields, 'tabIndex' | 'selected' | 'onKeyDown' | 'onFocus' | 'compactDecline' | 'tileRef'>;
+
+/**
+ * Props of `OfferTile`: the fields directly (the restaurant stub's shape), or the packet's shape
+ * (P33), `offer` plus any field given directly, which wins over the same field of `offer`.
+ */
+export type OfferTileProps = OfferTileFields | (Partial<OfferTileFields> & { offer: OrderOffer });
+
+/** The tile's fields, from either shape of `OfferTileProps`. */
+function tileFields(input: OfferTileProps): OfferTileFields {
+  if (!('offer' in input) || !input.offer) return input as OfferTileFields;
+  const { offer, ...own } = input;
+  const merged: Record<string, unknown> = { ...offer };
+  for (const [key, value] of Object.entries(own)) if (value !== undefined) merged[key] = value;
+  return merged as unknown as OfferTileFields;
+}
+
 /** Tighter side padding so "Accept · 20 min" and its spinner fit a 280px tile. */
 const ACCEPT_STYLE = { paddingInline: 'var(--hg-space-2)' } as const;
 
@@ -135,12 +153,13 @@ const LINE_TONE: Record<OfferLineTone, string> = {
 };
 
 /** Whether a tile is waiting for an answer. */
-export function isLiveTile(p: Pick<OfferTileProps, 'live' | 'outcome'>): boolean {
+export function isLiveTile(p: Pick<OfferTileFields, 'live' | 'outcome'>): boolean {
   return p.live ?? !p.outcome;
 }
 
 /** One new order in the strip; see the module comment. */
-export function OfferTile(props: OfferTileProps) {
+export function OfferTile(input: OfferTileProps) {
+  const props = tileFields(input);
   const { id, code, tabIndex = 0, selected, inPanel, onKeyDown, onFocus, testId = 'OfferTile', style, tileRef } = props;
   const live = isLiveTile(props);
   const nowMs = (props.now ?? Date.now)();
@@ -177,7 +196,7 @@ export function OfferTile(props: OfferTileProps) {
   );
 }
 
-function LiveBody(p: OfferTileProps & { tabIndex: 0 | -1 }) {
+function LiveBody(p: OfferTileFields & { tabIndex: 0 | -1 }) {
   const span = p.windowSeconds ?? OFFER_WINDOW_SECONDS;
   const expires = deadlineMs(p.expiresAt);
   // The Countdown re-anchors when serverNow changes, so it is read once per deadline.
@@ -296,7 +315,7 @@ function LiveBody(p: OfferTileProps & { tabIndex: 0 | -1 }) {
   );
 }
 
-function EndedBody(p: OfferTileProps & { tabIndex: 0 | -1 }) {
+function EndedBody(p: OfferTileFields & { tabIndex: 0 | -1 }) {
   const o = p.outcome;
   if (!o) return null;
   const danger = o.tone === 'danger';
