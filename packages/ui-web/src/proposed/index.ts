@@ -61,7 +61,7 @@ export type { TooltipProps } from './Tooltip.js';
 export { ToastProvider, useToast } from '../ds/Toast.js';
 export type { ToastApi, ToastOptions, ToastProviderProps, ToastVariant } from '../ds/Toast.js';
 
-export { DocumentViewer, FilterBar } from '../data/index.js';
+export { DocumentViewer } from '../data/index.js';
 export type { DocumentViewerProps, DocumentViewerState } from '../data/index.js';
 
 /* Forms (W3), rebuilt on shadcn/ui: approval packet P16 to P21. */
@@ -95,6 +95,18 @@ export { NavDrawer } from './NavDrawer.js';
 export type { NavDrawerProps } from './NavDrawer.js';
 export { SectionNav } from './SectionNav.js';
 export type { SectionNavItem, SectionNavProps } from './SectionNav.js';
+
+/* Data composites (W6, packet P22 and the admin list pane). FilterBar keeps the pre-rebuild
+   declarative props (`filters`, `value`, `onChange`, `onClear`) and adds the composed shape. */
+export { FilterBar } from './FilterBar.js';
+export type { ComposedFilterBarProps, FilterBarProps } from './FilterBar.js';
+export type { FilterDefinition, FilterOption, FilterValue, SavedView } from '../data/index.js';
+export { FilterChip } from './FilterChip.js';
+export type { FilterChipProps } from './FilterChip.js';
+export { ListPane, ListPaneRow } from './ListPaneRow.js';
+export type { ListPaneProps, ListPaneRowProps } from './ListPaneRow.js';
+export { EventLog } from './EventLog.js';
+export type { EventLogEntry, EventLogProps } from './EventLog.js';
 
 /* Restaurant console composites (W7a, #674): the new-order strip, decline, "Right now" and the
    pickup code (approval packet P33 to P35). */
