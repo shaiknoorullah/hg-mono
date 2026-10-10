@@ -14,12 +14,13 @@ import { getSession, setSession, setUnauthorizedOverride } from '../lib/api';
 import { client, onSignedOut, refreshAccessToken, resetSignedOut, type SignedOutReason } from './data/client';
 import { ConsoleProvider, consoleRoute, useConsole } from './data/console';
 import { AvailabilityProvider } from './data/availability';
-import { useHeartbeat } from './data/heartbeat';
 import { ConsoleRealtime } from './data/realtime';
 import { ConsoleLayout } from './shell/ConsoleLayout';
 import { ConsoleStatus } from './shell/ConsoleStatus';
 import { LEGACY } from './routes/legacy';
 import { PendingRoute } from './routes/PendingRoute';
+import { NewOrdersProvider } from './strip/NewOrdersProvider';
+import { OrdersGate } from './orders/GoLiveGate';
 
 // Legacy screens hosted by the redesign refresh on 401 too.
 setUnauthorizedOverride(async () => (getSession() ? refreshAccessToken() : false));
@@ -67,8 +68,7 @@ function RequireSession({ children }: { children: ReactNode }) {
 function ConsoleGate({ children }: { children: ReactNode }) {
   const { core } = useConsole();
   const route = consoleRoute(core);
-  const live = route.kind === 'console';
-  useHeartbeat(live);
+  // The heartbeat starts in NewOrdersProvider once the go-live gate has passed.
   if (route.kind === 'onboarding') return <Navigate to="/onboarding" replace />;
   if (route.kind !== 'console') return <ConsoleStatus route={route} onRetry={core.reload} />;
   return <>{children}</>;
@@ -91,7 +91,9 @@ function Console() {
       <ConsoleGate>
         <AvailabilityProvider>
           <ConsoleRealtime>
-            <ConsoleLayout onSignOut={() => signOut(navigate)} />
+            <NewOrdersProvider>
+              <ConsoleLayout onSignOut={() => signOut(navigate)} />
+            </NewOrdersProvider>
           </ConsoleRealtime>
         </AvailabilityProvider>
       </ConsoleGate>
@@ -134,7 +136,17 @@ export function RedesignApp() {
               </RequireSession>
             }
           >
-            <Route path="/orders" element={<LegacyPane><Orders /></LegacyPane>} />
+            {/* WP3: the go-live gate first; WP4 replaces the children with the live board. */}
+            <Route
+              path="/orders"
+              element={
+                <OrdersGate>
+                  <LegacyPane>
+                    <Orders />
+                  </LegacyPane>
+                </OrdersGate>
+              }
+            />
             <Route
               path="/orders/history"
               element={<PendingRoute title="Past orders" description="Orders you finished, declined or that were cancelled appear here." />}
