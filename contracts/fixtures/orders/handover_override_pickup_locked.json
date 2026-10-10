@@ -1,0 +1,26 @@
+{
+  "scenario": "handover_override_pickup_locked",
+  "domain": "orders",
+  "schema": "HandoverOverride",
+  "describes": "**Admin override after the limit.** Five wrong pickup codes locked the code (`error_pickup_code_locked`); a support agent called the kitchen, who confirmed the bag went to the assigned rider, and confirmed the pickup. The order moved `READY_FOR_PICKUP` → `PICKED_UP` with `actor_kind: SUPPORT`. The record names the agent, the reason, the case and the 5 wrong attempts — never the code.",
+  "operations": [
+    "overrideHandoverCode"
+  ],
+  "status": 200,
+  "tags": [
+    "admin",
+    "error-path"
+  ],
+  "payload": {
+    "id": "69f68fa9-fbc4-43d6-a7f5-0846251bd045",
+    "order_id": "abbb948c-d80a-4a97-a5e6-cf2528dfe677",
+    "handover": "PICKUP",
+    "reason": "Code locked after 5 tries. Called Karachi Kitchen: they confirmed they handed the bag to Bilal S. at the counter.",
+    "case_id": "dfac740c-a07b-42bd-ad21-c0279fb83b13",
+    "actor_account_id": "6eadb17e-4986-45d0-a5ed-7d24980666dd",
+    "actor_kind": "SUPPORT",
+    "wrong_code_attempts": 5,
+    "order_state": "PICKED_UP",
+    "created_at": "2026-08-10T18:31:11.412Z"
+  }
+}

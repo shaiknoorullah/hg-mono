@@ -49,25 +49,23 @@ export type { StatCardProps } from './StatCard.js';
 export { formatTime12h, DEFAULT_TIME_ZONE } from './time.js';
 export type { FormatTime12hOptions } from './time.js';
 
-/* Adapters over legacy components: live props, legacy rendering. */
-export {
-  Checkbox,
-  Input,
-  RadioGroup,
-  Select,
-  StatusTimeline,
-  Switch,
-} from './compat.js';
-export type {
-  CheckboxProps,
-  InputProps,
-  RadioGroupProps,
-  RadioOption,
-  SelectOption,
-  SelectProps,
-  StatusTimelineProps,
-  SwitchProps,
-} from './compat.js';
+
+/* Rebuilt on shadcn/ui (W3 Forms). */
+export { Input, digitsOnly } from './Input.js';
+export type { InputProps, InputVariant } from './Input.js';
+export { Select, groupOptions } from './Select.js';
+export type { SelectOption, SelectProps } from './Select.js';
+export { Checkbox } from './Checkbox.js';
+export type { CheckboxProps } from './Checkbox.js';
+export { Radio, RadioGroup } from './RadioGroup.js';
+export type { RadioGroupProps, RadioOption, RadioProps } from './RadioGroup.js';
+export { Switch } from './Switch.js';
+export type { SwitchProps } from './Switch.js';
+export { SegmentedControl } from './SegmentedControl.js';
+export type { SegmentedControlOption, SegmentedControlProps } from './SegmentedControl.js';
+/* Owner-approved composite (decisions row, 28 Sep): the web document dropzone. */
+export { FileDrop, checkFile, fileMatchesAccept, formatBytes } from './FileDrop.js';
+export type { FileDropProps, FileDropRejection } from './FileDrop.js';
 
 /* Legacy components whose shape already matches the live index. */
 export { Rating } from '../content/index.js';
@@ -117,3 +115,53 @@ export { DetailPanel } from './DetailPanel.js';
 export type { DetailPanelProps, DetailPanelStatus } from './DetailPanel.js';
 export { FOLDED_STRIP_PX, SplitPanes } from './SplitPanes.js';
 export type { SplitPane, SplitPanesProps } from './SplitPanes.js';
+
+/* Rebuilt on shadcn/ui (W4 Feedback). */
+export { Countdown, COUNTDOWN_ANNOUNCE_AT, COUNTDOWN_SKEW_LIMIT_MS } from './Countdown.js';
+export type { CountdownProps, CountdownState } from './Countdown.js';
+export { Menu } from './Menu.js';
+export type { MenuActionItem, MenuItem, MenuItemDef, MenuProps, MenuRadioItem, MenuTriggerVariant } from './Menu.js';
+export { Dialog, Modal } from './Modal.js';
+export type { ModalProps } from './Modal.js';
+export { Toast, TOAST_DEFAULT_DURATION, isPersistentToast } from './Toast.js';
+export type { ToastProps, ToastVariant } from './Toast.js';
+export { StatusTimeline, STEP_STATE_WORD } from './StatusTimeline.js';
+export type { StatusTimelineProps } from './StatusTimeline.js';
+export { ORDER_STATES, resolveTimeline } from './order-track.js';
+export type { ResolvedStep, ResolvedTimeline, StepState, TimelineAudience, TimelineTransition } from './order-track.js';
+
+/* Data (W6, #141): the DataTable on LyteNyte Grid Core and its cells. */
+export { DataTable } from './DataTable.js';
+export type {
+  DataTableColumn,
+  DataTableMenuItem,
+  DataTableProps,
+  DataTableSortState,
+} from './DataTable.js';
+export {
+  CountdownCell,
+  DateCell,
+  HALAL_STATE_MISSING_TEXT,
+  HalalStateCell,
+  IdCell,
+  MeterCell,
+  MissingValue,
+  MoneyCell,
+  StatusCell,
+  TextCell,
+  TimeCell,
+} from './cells.js';
+export type {
+  CountdownCellProps,
+  DateCellProps,
+  HalalStateCellProps,
+  HalalStateCellState,
+  IdCellProps,
+  MeterCellProps,
+  MeterVizToken,
+  MoneyCellProps,
+  StatusCellProps,
+  StatusCellVariant,
+  TextCellProps,
+  TimeCellProps,
+} from './cells.js';

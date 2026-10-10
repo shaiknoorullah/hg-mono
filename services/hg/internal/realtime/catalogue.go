@@ -49,6 +49,7 @@ var catalogue = []spec{
 	entry[OrderCancelled, orderCancelledWire]("order.cancelled", KindOrder),
 	entry[OrderCompleted, orderCompletedWire]("order.completed", KindOrder),
 	entry[OrderNoteAdded, orderNoteAddedWire]("order.note_added", KindOrder),
+	entry[OrderRiderArrived, orderRiderArrivedWire]("order.rider_arrived", KindOrder),
 
 	// 4.3 Payment — order:{order_id}
 	entry[PaymentAuthorized, paymentAuthorizedWire]("payment.authorized", KindOrder),
@@ -152,6 +153,7 @@ var allowList = map[Viewer]map[string]projector{
 		"order.items_adjusted":    serializer(orderItemsAdjustedPayload),
 		"order.cancelled":         serializer(orderCancelledPayload),
 		"order.completed":         serializer(orderCompletedPayload),
+		"order.rider_arrived":     serializer(orderRiderArrivedPayload),
 		"payment.authorized":      serializer(paymentAuthorizedPayload),
 		"payment.action_required": serializer(paymentActionRequiredPayload),
 		"payment.captured":        serializer(paymentCapturedPayload),
@@ -222,6 +224,7 @@ var allowList = map[Viewer]map[string]projector{
 		"order.cancelled":      serializer(orderCancelledPayload),
 		"order.completed":      serializer(orderCompletedPayload),
 		"order.note_added":     serializer(orderNoteAddedPayload),
+		"order.rider_arrived":  serializer(orderRiderArrivedPayload),
 
 		"payment.authorized": serializer(paymentAuthorizedPayload),
 		"payment.captured":   serializer(paymentCapturedPayload),
@@ -233,7 +236,7 @@ var allowList = map[Viewer]map[string]projector{
 		"restaurant.order_offered":         serializer(restaurantOrderOfferedPayload),
 		"restaurant.order_offer_expired":   serializer(restaurantOrderOfferExpiredPayload),
 		"restaurant.order_offer_withdrawn": serializer(restaurantOrderOfferWithdrawnPayload),
-		"restaurant.order_accepted":        serializer(restaurantOrderAcceptedPayload),
+		"restaurant.order_accepted":        serializer(restaurantOrderAcceptedForSupport),
 		"restaurant.order_rejected":        serializer(restaurantOrderRejectedPayload),
 		"restaurant.status_changed":        serializer(restaurantStatusChangedPayload),
 		"restaurant.payout_updated":        serializer(restaurantPayoutUpdatedPayload),
