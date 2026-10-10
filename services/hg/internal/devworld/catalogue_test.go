@@ -209,7 +209,7 @@ func orderLine(r CatalogueRestaurant, it Item) (orders.CartLineInput, int64) {
 			}
 		}
 		id := catalogueID(r.Slug, "item", it.Key, "variant", pick.Name)
-		in.VariantID = &id
+		in.VariantIDs = []string{id}
 		if v.Mode == "DELTA" {
 			unit += pick.Cents
 		} else {
