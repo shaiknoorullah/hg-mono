@@ -1,7 +1,7 @@
 ---
 covers:
   - services/hg/migrations/**
-reviewed: 2026-10-09
+reviewed: 2026-10-10
 ---
 
 # HalalGoes — database schema
@@ -137,6 +137,11 @@ Every enum in `contracts/openapi.yaml` either has a Postgres type with a
 byte-identical label set, or appears in `tools/enum_map.py:EXCLUSIONS` with a
 written reason. There is no third option: `check_enums.py` fails on anything
 unaccounted for, and `gen_enums.py` refuses to generate.
+
+A contract enum the backend does not store yet (one a contract change adds
+ahead of its backend) is excluded with the reason "contract-only until the
+backend lands" and the issue or pull request that will store it; that change
+moves it to `MAPPED_IN_MIGRATION` with its migration.
 
 ## Verification
 
