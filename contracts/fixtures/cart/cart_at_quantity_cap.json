@@ -53,6 +53,7 @@
         "name": "Chicken Biryani",
         "image_url": "https://cdn.halalgoes.ca/img/dish/chicken-biryani.webp",
         "variant": null,
+        "variants": [],
         "addons": [],
         "quantity": 20,
         "special_request": "Please pack the raita separately, we are driving it to Guelph.",

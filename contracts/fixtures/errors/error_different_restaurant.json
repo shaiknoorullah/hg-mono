@@ -1,0 +1,26 @@
+{
+  "scenario": "error_different_restaurant",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`409` · `DIFFERENT_RESTAURANT`. The \"Start a new cart?\" dialog names the cart's restaurant and its size from `details` (C-20): \"Your cart has 4 items from Karachi Kitchen\". `current_line_count` counts lines, `current_item_count` sums their quantities. \"Start a new cart\" retries with `replace=true`.",
+  "operations": [
+    "addCartLine"
+  ],
+  "status": 409,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "DIFFERENT_RESTAURANT",
+      "message": "Your cart contains items from a different restaurant. Start a new cart to add this item.",
+      "request_id": "JJA0MJ1DPSKWH3CB51Y36ESASS",
+      "details": {
+        "current_restaurant_id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+        "current_restaurant_name": "Karachi Kitchen",
+        "current_line_count": 3,
+        "current_item_count": 4
+      }
+    }
+  }
+}
