@@ -120,7 +120,7 @@ export interface DeclineFormProps {
   noteMax?: number;
   /** The form's id, for a submit button elsewhere (`form={formId}`). */
   formId?: string;
-  /** Draw Keep order and Decline order under the form. Default true. */
+  /** Draw Keep order and Decline order under the form. Default: true unless `formId` is given. */
   showActions?: boolean;
   /** Move focus to Keep order on mount. Default true (with the actions shown). */
   autoFocus?: boolean;
@@ -150,7 +150,7 @@ export function DeclineForm({
   noteMin = 20,
   noteMax = 500,
   formId,
-  showActions = true,
+  showActions = formId === undefined,
   autoFocus = true,
   testId = 'DeclineForm',
   style,
@@ -280,7 +280,7 @@ export function DeclineForm({
             required
             value={note}
             maxLength={noteMax}
-            readOnly={held}
+            disabled={held}
             onValueChange={(v) => setNote(v.slice(0, noteMax))}
             errorText={noteError ? `Write at least ${noteMin} characters.` : null}
             minLength={noteMin}

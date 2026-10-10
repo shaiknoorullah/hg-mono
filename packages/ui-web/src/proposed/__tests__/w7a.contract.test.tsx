@@ -613,6 +613,22 @@ describe('DeclineForm (#604)', () => {
     });
   });
 
+  it('with a formId the panel footer owns the buttons: a submit elsewhere still validates', () => {
+    const onSubmit = vi.fn();
+    render(
+      <div>
+        <DeclineForm formId="decline-a7k2" onSubmit={onSubmit} />
+        <button type="submit" form="decline-a7k2">
+          Footer decline
+        </button>
+      </div>,
+    );
+    expect(screen.queryByRole('button', { name: 'Keep order' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Footer decline' }));
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(screen.getByText('Choose a reason to decline')).toBeInTheDocument();
+  });
+
   it('Keep order calls onCancel', () => {
     const onCancel = vi.fn();
     render(<DeclineForm onSubmit={() => undefined} onCancel={onCancel} />);
