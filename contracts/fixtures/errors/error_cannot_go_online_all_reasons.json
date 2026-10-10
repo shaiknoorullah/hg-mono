@@ -1,0 +1,35 @@
+{
+  "scenario": "error_cannot_go_online_all_reasons",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`422` · `CANNOT_GO_ONLINE`. All nine contract `blocking_reasons` at once, so one screen test covers every row. Contract-only: `services/hg` sends `ONBOARDING_INCOMPLETE`, `ACCOUNT_NOT_ACTIVE` and `PAYOUT_ACCOUNT_INCOMPLETE` as their own 403 codes and only `STALE_LOCATION_FIX` in this list today.",
+  "operations": [
+    "setRiderAvailability"
+  ],
+  "status": 422,
+  "tags": [
+    "error-envelope",
+    "error-path",
+    "rider"
+  ],
+  "payload": {
+    "error": {
+      "code": "CANNOT_GO_ONLINE",
+      "message": "You cannot go online yet.",
+      "request_id": "H5T9DZEPZXQPXS2D0EXT3YQ1AB",
+      "details": {
+        "blocking_reasons": [
+          "ONBOARDING_INCOMPLETE",
+          "ACCOUNT_NOT_ACTIVE",
+          "PAYOUT_ACCOUNT_INCOMPLETE",
+          "FOREGROUND_LOCATION_PERMISSION",
+          "BACKGROUND_LOCATION_PERMISSION",
+          "NOTIFICATION_PERMISSION",
+          "STALE_LOCATION_FIX",
+          "DOCUMENT_EXPIRED",
+          "CONTINUOUS_ONLINE_CAP"
+        ]
+      }
+    }
+  }
+}

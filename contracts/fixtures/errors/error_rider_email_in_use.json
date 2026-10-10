@@ -1,0 +1,22 @@
+{
+  "scenario": "error_rider_email_in_use",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`409` · `EMAIL_IN_USE`. `submitRiderProfile` with an email that belongs to another account. Shown on the email field; nothing was saved.",
+  "operations": [
+    "submitRiderProfile"
+  ],
+  "status": 409,
+  "tags": [
+    "error-envelope",
+    "error-path",
+    "rider"
+  ],
+  "payload": {
+    "error": {
+      "code": "EMAIL_IN_USE",
+      "message": "Email is already in use.",
+      "request_id": "7SK53B3R755Z09PDV45NF48HAQ"
+    }
+  }
+}
