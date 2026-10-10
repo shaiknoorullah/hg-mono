@@ -11,10 +11,9 @@ import { useNavigate } from 'react-router-dom';
 import { isWellFormedToken, passwordTooLong, PASSWORD_MIN, useLinkToken } from '@hg/ui-web/email-links';
 import { setSession } from '../../lib/api';
 import { client } from '../data/client';
-import { Button, GlyphIcon, InlineAlert, Input, usePageAnnouncer } from '../ds';
+import { Button, GlyphIcon, InlineAlert, Input, StateCard, StateCardHeading, StateCardIcon, SupportSentence, TextLink, usePageAnnouncer, WaitLine } from '../ds';
 import { attempt, serverWait, supportFrom, usePublicConfig, type ServerWait } from './api';
-import { COMMON, RESET, SIGN_IN } from './copy';
-import { AuthCard, BackToSignIn, HeadingBlock, IconTile, SupportSentence, WaitLine } from './frame';
+import { COMMON, RESET, SIGN_IN, SUPPORT } from './copy';
 
 type Phase = 'form' | 'invalid' | 'done';
 type Problem = { kind: 'unreachable' } | { kind: 'rate'; wait: ServerWait | null };
@@ -95,35 +94,35 @@ export function ResetPasswordScreen() {
   if (phase === 'invalid') {
     return (
       <>
-        <AuthCard testId="reset-invalid">
-          <IconTile name="clock" />
-          <HeadingBlock title={RESET.invalidTitle} intro={RESET.invalidBody} />
+        <StateCard testId="reset-invalid">
+          <StateCardIcon name="clock" />
+          <StateCardHeading title={RESET.invalidTitle} intro={RESET.invalidBody} />
           <Button variant="primary" size="lg" fullWidth onPress={() => navigate('/forgot-password')}>
             {RESET.newLink}
           </Button>
-          <BackToSignIn />
-        </AuthCard>
-        <SupportSentence support={support} />
+          <TextLink to="/login" variant="standalone">{COMMON.backToSignIn}</TextLink>
+        </StateCard>
+        <SupportSentence contact={support} lead={SUPPORT.sentenceBefore} />
       </>
     );
   }
 
   if (phase === 'done') {
     return (
-      <AuthCard testId="reset-done">
-        <IconTile name="check" />
-        <HeadingBlock title={RESET.doneTitle} intro={RESET.doneBody} />
+      <StateCard testId="reset-done">
+        <StateCardIcon name="check" />
+        <StateCardHeading title={RESET.doneTitle} intro={RESET.doneBody} />
         <Button variant="primary" size="lg" fullWidth onPress={() => navigate('/login')}>
           {RESET.signIn}
         </Button>
-      </AuthCard>
+      </StateCard>
     );
   }
 
   return (
-    <AuthCard testId="reset-card">
+    <StateCard testId="reset-card">
       <form noValidate onSubmit={save} aria-busy={saving || undefined} className="flex flex-col gap-5" aria-label={RESET.title}>
-        <HeadingBlock title={RESET.title} intro={RESET.intro} />
+        <StateCardHeading title={RESET.title} intro={RESET.intro} />
         {problem?.kind === 'unreachable' && !saving ? (
           <InlineAlert key={failures} tone="neutral" icon="warning" blocking title={RESET.errorTitle}>
             <span>{RESET.errorBody}</span>
@@ -163,8 +162,8 @@ export function ResetPasswordScreen() {
         >
           {problem?.kind === 'unreachable' ? RESET.tryAgain : RESET.submit}
         </Button>
-        {problem?.kind === 'rate' && problem.wait ? <WaitLine wait={problem.wait} onExpire={waitOver} /> : null}
+        {problem?.kind === 'rate' && problem.wait ? <WaitLine prefix={COMMON.waitPrefix} label={COMMON.waitLabel} wait={problem.wait} onExpire={waitOver} /> : null}
       </form>
-    </AuthCard>
+    </StateCard>
   );
 }

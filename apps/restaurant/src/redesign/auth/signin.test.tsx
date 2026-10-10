@@ -119,7 +119,7 @@ describe('sign in · refusals (branch on error.code)', () => {
     const alert = await findAlert();
     expect(within(alert).getByText('Email or password is incorrect')).toBeTruthy();
     expect(within(alert).getByText('Check both and try again. Forgot your password? Reset it by email below.')).toBeTruthy();
-    expect(document.activeElement).toBe(alert);
+    await waitFor(() => expect(document.activeElement).toBe(alert));
     expect((screen.getByLabelText(/^Password/) as HTMLInputElement).value).toBe('');
     expect((screen.getByLabelText(/^Email/) as HTMLInputElement).value).toBe('samir@zaytoungrill.ca');
     expect(screen.getByRole('link', { name: 'Register your restaurant' })).toBeTruthy();
@@ -185,7 +185,7 @@ describe('sign in · refusals (branch on error.code)', () => {
     await signIn();
     const alert = await findAlert();
     expect(within(alert).getByText('Sign-in is paused for this account')).toBeTruthy();
-    expect(document.activeElement).toBe(alert);
+    await waitFor(() => expect(document.activeElement).toBe(alert));
     expect(within(alert).getByRole('link', { name: 'Reset it by email' })).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Call partner support' }).getAttribute('href')).toBe('tel:+18005550199');
     const signInButton = screen.getByRole('button', { name: 'Sign in' });
@@ -194,6 +194,20 @@ describe('sign in · refusals (branch on error.code)', () => {
     expect(screen.getByRole('timer').textContent).toMatch(/^1[45]:\d\d$/);
     expect((screen.getByLabelText(/^Password/) as HTMLInputElement).value).toBe('');
     expect(screen.getByText(/^Partner support:/)).toBeTruthy();
+  });
+
+  it('Locked: activating the aria-disabled Sign in says the wait again and does not sign in', async () => {
+    const api = installFakeApi(routes(apiError(429, 'ACCOUNT_TEMPORARILY_LOCKED', { headers: { 'Retry-After': '900' } })));
+    await renderPublic('/login');
+    await signIn();
+    await screen.findByText('Sign-in is paused for this account');
+    const polite = screen.getByTestId('announcer-polite');
+    expect(polite.textContent).toBe('');
+    fireEvent.change(screen.getByLabelText(/^Password/), { target: { value: 'another try' } });
+    // A real click: the DS Button must not swallow it, so the form's submit runs.
+    fireEvent.click(screen.getByRole('button', { name: 'Sign in' }));
+    await waitFor(() => expect(polite.textContent).toMatch(/^You can try again in 1[45] minutes( \d+ seconds?)?\.$/));
+    expect(api.callsTo('POST /v1/auth/login')).toHaveLength(1);
   });
 
   it('Locked without Retry-After has no countdown; without support there is no call button', async () => {
@@ -215,7 +229,7 @@ describe('sign in · refusals (branch on error.code)', () => {
     await signIn();
     const alert = await findAlert();
     expect(within(alert).getByText('We couldn’t reach HalalGoes')).toBeTruthy();
-    expect(document.activeElement).toBe(alert);
+    await waitFor(() => expect(document.activeElement).toBe(alert));
     expect((screen.getByLabelText(/^Password/) as HTMLInputElement).value).toBe('correct horse battery');
     expect(screen.getByRole('button', { name: 'Try again' })).toBeTruthy();
   });

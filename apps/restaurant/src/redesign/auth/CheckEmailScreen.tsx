@@ -6,12 +6,11 @@
  * wait is its own Retry-After (over a minute means the daily limit).
  */
 import { useCallback, useState, type FormEvent } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { client } from '../data/client';
-import { Button, GlyphIcon, InlineAlert, usePageAnnouncer } from '../ds';
-import { attempt, serverWait, supportFrom, usePublicConfig, type ServerWait } from './api';
+import { Button, GlyphIcon, InlineAlert, StateCard, StateCardIcon, TextLink, usePageAnnouncer, WaitLine } from '../ds';
+import { agedWait, attempt, serverWait, supportFrom, usePublicConfig, type ServerWait } from './api';
 import { CHECK_EMAIL, COMMON } from './copy';
-import { AuthCard, BackToSignIn, IconTile, TextLink, WaitLine } from './frame';
 
 export interface CheckEmailEntry {
   email: string;
@@ -43,15 +42,22 @@ function entryFrom(state: unknown): CheckEmailEntry | null {
   }
 }
 
+/**
+ * The entry comes from router state, which the browser keeps in `history.state` across a reload:
+ * its wait is aged by the time since it was received, so a reload after the minute is over opens
+ * the Default state rather than a fresh 60-second wait ("A new link is on its way" again).
+ */
 function initialPhase(entry: CheckEmailEntry | null): Phase {
   if (entry?.start === 'offline') return { kind: 'offline' };
-  if (entry?.wait && entry.start === 'daily') return { kind: 'daily', wait: entry.wait };
-  if (entry?.wait && entry.start === 'cooldown') return { kind: 'cooldown', wait: entry.wait };
+  const wait = agedWait(entry?.wait);
+  if (wait && entry?.start === 'daily') return { kind: 'daily', wait };
+  if (wait && entry?.start === 'cooldown') return { kind: 'cooldown', wait };
   return { kind: 'default' };
 }
 
 export function CheckEmailScreen() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [entry] = useState(() => entryFrom(location.state));
   const [phase, setPhase] = useState<Phase>(() => initialPhase(entry));
   const [sending, setSending] = useState(false);
@@ -62,10 +68,22 @@ export function CheckEmailScreen() {
 
   const waitOver = useCallback(() => {
     setPhase({ kind: 'default' });
+    if (entry?.email) {
+      navigate(`${location.pathname}${location.search}`, { replace: true, state: { email: entry.email, business_name: entry.business_name ?? null } });
+    }
     announce(COMMON.waitOver, 'polite');
-  }, [announce]);
+  }, [announce, entry, location.pathname, location.search, navigate]);
 
   const waiting = phase.kind === 'cooldown' || phase.kind === 'daily';
+
+  /** The phase on screen, and in `history.state`, so a reload resumes it rather than an older one. */
+  function show(next: Phase) {
+    setPhase(next);
+    if (!entry?.email) return;
+    const kept: CheckEmailEntry = { email: entry.email, business_name: entry.business_name ?? null, start: next.kind };
+    if (next.kind === 'cooldown' || next.kind === 'daily') kept.wait = next.wait;
+    navigate(`${location.pathname}${location.search}`, { replace: true, state: kept });
+  }
 
   async function send(e: FormEvent) {
     e.preventDefault();
@@ -74,26 +92,26 @@ export function CheckEmailScreen() {
     const res = await attempt(() => client.POST('/v1/auth/email/resend', { body: { email: entry.email } }));
     setSending(false);
     if (res.ok) {
-      setPhase({ kind: 'cooldown', wait: serverWait(res.serverDate, 60) });
+      show({ kind: 'cooldown', wait: serverWait(res.serverDate, 60) });
       return;
     }
     if (!res.network && res.code === 'RATE_LIMITED') {
       const seconds = res.retryAfter ?? 60;
-      setPhase(seconds > 60 ? { kind: 'daily', wait: serverWait(res.serverDate, seconds) } : { kind: 'cooldown', wait: serverWait(res.serverDate, seconds) });
+      show(seconds > 60 ? { kind: 'daily', wait: serverWait(res.serverDate, seconds) } : { kind: 'cooldown', wait: serverWait(res.serverDate, seconds) });
       return;
     }
     if (res.network || res.status >= 500) {
-      setPhase({ kind: 'offline' });
+      show({ kind: 'offline' });
       setFailures((n) => n + 1);
       return;
     }
-    setPhase({ kind: 'default' });
+    show({ kind: 'default' });
   }
 
   return (
-    <AuthCard testId="check-email-card">
+    <StateCard testId="check-email-card">
       <form noValidate onSubmit={send} aria-busy={sending || undefined} className="flex flex-col gap-5" aria-label={CHECK_EMAIL.title}>
-        <IconTile name="letter" />
+        <StateCardIcon name="letter" />
         <h1 className="m-0 text-heading-xl text-fg-primary">{CHECK_EMAIL.title}</h1>
         <p className="m-0 text-body-md leading-normal text-fg-primary">
           {entry?.email ? (
@@ -142,7 +160,7 @@ export function CheckEmailScreen() {
               {CHECK_EMAIL.send}
             </Button>
           ) : null}
-          <BackToSignIn />
+          <TextLink to="/login" variant="standalone">{COMMON.backToSignIn}</TextLink>
         </div>
         {phase.kind === 'cooldown' || phase.kind === 'daily' ? (
           <WaitLine
@@ -153,6 +171,6 @@ export function CheckEmailScreen() {
           />
         ) : null}
       </form>
-    </AuthCard>
+    </StateCard>
   );
 }

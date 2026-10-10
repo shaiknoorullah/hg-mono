@@ -142,6 +142,14 @@ export const REGISTER = {
     n === 1 ? '1 thing needs changing before we can create your account' : `${n} things need changing before we can create your account`,
   summaryTerms: 'Partner terms',
   nameError: 'Enter at least 2 characters.',
+  /** Not drawn (builder copy, to confirm): the contract's 120-character limit. */
+  nameTooLong: 'Use a shorter name: this one is over the 120-character limit.',
+  /** Not drawn (builder copy, to confirm): a 422 that names no field (#739). */
+  nameRefused: 'HalalGoes couldn’t accept this name. Check it, or try a shorter one.',
+  emailRefused: 'HalalGoes couldn’t accept this email. Check it, or use a different one.',
+  /** Not drawn (builder copy, to confirm): the public config (terms version) failed to load. */
+  termsLoadTitle: 'We couldn’t load the partner terms',
+  termsLoadBody: 'You can accept them once they load. What you typed is kept. Check your connection, then try again.',
   emailError: 'Enter a full email address, like name@restaurant.ca.',
   passwordError: 'Use at least 12 characters.',
   passwordTooLong: 'Use a shorter password: this one is over the 256-character limit.',

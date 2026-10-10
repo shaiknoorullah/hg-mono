@@ -7,11 +7,13 @@
  *   variants and a restaurant owner's SessionGrant have no fixture yet: requested in #676).
  * - Real mode (`E2E_MODE=real`): the app on `services/hg` with devworld personas; these journeys
  *   drive the sign-in form itself (the support file signs in through the API for other specs).
+ *   Register → verify → sign in → forgot → reset → sign in runs on a new owner each time, and
+ *   reads the emailed links from the local database the way devworld does (`E2E_PSQL_CMD`).
  */
 import { execSync } from 'node:child_process';
 import { copyFileSync, mkdirSync } from 'node:fs';
 import { expect, test, type Page, type Route, type TestInfo } from '@playwright/test';
-import { documentScrolls, LIVE_OWNER, MOCK_API, MODE } from './redesign-restaurant.support';
+import { documentScrolls, LIVE_OWNER, MOCK_API, MODE, REAL_API } from './redesign-restaurant.support';
 
 const SHOTS = process.env.WP2_SHOTS_DIR ?? '/tmp/claude-0/-home-user-hg-mono/d41301d3-8d3a-541d-a6f4-40d847c8b738/scratchpad/shots/wp2';
 
@@ -155,6 +157,17 @@ test.describe('restaurant redesign · sign in (mock)', () => {
     await expect(page.getByRole('button', { name: 'Sign in' })).toHaveAttribute('aria-disabled', 'true');
     await expect(page.getByRole('timer')).toHaveText(/^1[45]:\d\d$/);
     await check(page, info, 'locked');
+    // aria-disabled, yet live: activating it says the wait again and sends nothing.
+    let attempts = 0;
+    page.on('request', (r) => {
+      if (r.url().endsWith('/v1/auth/login') && r.method() === 'POST') attempts += 1;
+    });
+    // Keyboard activation (Playwright's click refuses an aria-disabled target, as a mouse user
+    // would see it as disabled; a keyboard or screen-reader user can still activate it).
+    await page.getByRole('button', { name: 'Sign in' }).focus();
+    await page.keyboard.press('Enter');
+    await expect(page.getByTestId('announcer-polite')).toHaveText(/^You can try again in 1[45] minutes/);
+    expect(attempts).toBe(0);
   });
 
   test('Offline and server-busy share the Offline layout', async ({ page }, info) => {
@@ -406,6 +419,29 @@ function resetLimits() {
   if (RESET_LIMITS) execSync(RESET_LIMITS, { stdio: 'ignore' });
 }
 
+/**
+ * The newest single-use token emailed to `email` for `kind` (AUTH_EMAIL_VERIFICATION,
+ * AUTH_PASSWORD_RESET). The local API logs emails instead of sending them; the delivery job keeps
+ * the token, which is where devworld reads it too (`services/hg/internal/devworld/onboarding.go`).
+ * Local database only.
+ */
+const PSQL = process.env.E2E_PSQL_CMD ?? 'docker exec -i hg-postgres-1 psql -U hg -d hg -tA';
+
+function emailedToken(email: string, kind: string): string {
+  if (!/^[\w.+-]+@[\w.-]+$/.test(email) || !/^[A-Z_]+$/.test(kind)) throw new Error('unexpected email or kind');
+  const sql = `SELECT j.args->'overrides'->'EMAIL'->>'link_token' FROM river_job j
+    JOIN notification n ON n.id = (j.args->>'notification_id')::uuid JOIN account a ON a.id = n.account_id
+    WHERE j.kind = 'notify_deliver' AND lower(a.email) = lower('${email}') AND n.kind = '${kind}'
+      AND j.args->'overrides'->'EMAIL'->>'link_token' IS NOT NULL ORDER BY j.id DESC LIMIT 1`;
+  const deadline = Date.now() + 20_000;
+  for (;;) {
+    const token = execSync(PSQL, { input: sql, encoding: 'utf8' }).trim();
+    if (token) return token;
+    if (Date.now() > deadline) throw new Error(`no ${kind} email for ${email} on ${REAL_API} within 20s`);
+    execSync('sleep 0.5');
+  }
+}
+
 test.describe('restaurant redesign · sign in (real API)', () => {
   test.skip(MODE !== 'real', 'real-API journeys');
   test.beforeEach(() => resetLimits());
@@ -443,6 +479,110 @@ test.describe('restaurant redesign · sign in (real API)', () => {
     await expect(page).toHaveURL(/\/check-email$/);
     await expect(page.getByRole('heading', { name: 'Check your email' })).toBeVisible();
     await expect(page.getByTestId('check-email-card')).toContainText('fresh@seed.hg');
+  });
+
+  test('the session is kept in memory only: no token in localStorage after signing in', async ({ page }) => {
+    await page.goto('/login');
+    await fillSignIn(page, LIVE_OWNER.email, LIVE_OWNER.password);
+    await page.getByLabel(/^Password/).press('Enter');
+    await expect(page).toHaveURL(/\/orders$/);
+    await expect(page.getByTestId('console-rail')).toBeVisible();
+    expect(await page.evaluate(() => JSON.stringify(window.localStorage))).not.toContain('eyJ');
+    expect(await page.evaluate(() => localStorage.getItem('hg_restaurant_session_v1'))).toBeNull();
+  });
+
+  test('the suspended persona (restaurant suspended, sign-in account active) signs in to its console', async ({ page }, info) => {
+    await page.goto('/login');
+    await fillSignIn(page, 'suspended@seed.hg', LIVE_OWNER.password);
+    await page.getByLabel(/^Password/).press('Enter');
+    // The SI account-state cards are for a suspended SIGN-IN account; this persona's sign-in is
+    // active and only its restaurant is suspended, which the console itself shows.
+    await expect(page).toHaveURL(/\/orders$/);
+    await expect(page.getByTestId('console-rail')).toBeVisible();
+    await expect(page.locator('[data-testid^="account-card-"]')).toHaveCount(0);
+    await page.waitForLoadState('networkidle');
+    await expectNoDocumentScroll(page);
+    await shot(page, info, 'real-suspended');
+  });
+
+  test('register → check email → verify → sign in → onboarding; forgot → reset → sign in', async ({ page }, info) => {
+    test.setTimeout(120_000);
+    const email = `wp2-${info.project.name}-${Date.now()}@wp2.test`;
+    const password = 'a long kitchen password 2026';
+    const newPassword = 'another long kitchen password 2026';
+
+    // Register. services/hg omits terms_version from the public config today (#738), so the
+    // first submit is refused with TERMS_VERSION_STALE, which names the version; the owner reads
+    // it, ticks the box again and resubmits. With the config fixed it goes straight through.
+    await page.goto('/register');
+    await page.getByLabel(/^Restaurant name/).fill('WP2 Journey Grill');
+    await page.getByLabel(/^Work email/).fill(email);
+    await page.getByLabel(/^Password/).fill(password);
+    const box = page.getByRole('checkbox', { name: 'I have read and accept the partner terms' });
+    await box.click();
+    await page.getByRole('button', { name: 'Create account' }).click();
+    const outcome = await Promise.race([
+      page.waitForURL(/\/check-email$/).then(() => 'created' as const),
+      page.getByText('The partner terms have changed').waitFor().then(() => 'terms' as const),
+    ]);
+    if (outcome === 'terms') {
+      await expect(page.getByText(/^Version \S+/)).toBeVisible();
+      await expect(box).toHaveAttribute('aria-checked', 'false');
+      await check(page, info, 'real-register-terms-updated');
+      await box.click();
+      await page.getByRole('button', { name: 'Create account' }).click();
+    }
+    await expect(page).toHaveURL(/\/check-email$/);
+    await expect(page.getByTestId('check-email-card')).toContainText(`Open the link we sent to ${email} to continue setting up WP2 Journey Grill.`);
+    await check(page, info, 'real-check-email');
+
+    // Not confirmed yet: signing in is the Unverified state.
+    await page.goto('/login');
+    await fillSignIn(page, email, password);
+    await page.getByLabel(/^Password/).press('Enter');
+    await expect(page.getByText('Confirm your email to sign in')).toBeVisible();
+
+    // Verify with the emailed link.
+    const verifyToken = emailedToken(email, 'AUTH_EMAIL_VERIFICATION');
+    await page.goto(`/verify-email?token=${verifyToken}`);
+    await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible();
+    await check(page, info, 'real-verified');
+    await page.getByRole('button', { name: 'Sign in' }).click();
+    await expect(page).toHaveURL(/\/login/);
+
+    // Sign in: a new restaurant is not DONE, so the server's onboarding status sends it there.
+    await fillSignIn(page, email, password);
+    await page.getByLabel(/^Password/).press('Enter');
+    await expect(page).toHaveURL(/\/onboarding/);
+
+    // Forgot → reset → sign in with the new password.
+    await page.goto('/forgot-password');
+    await page.getByLabel(/^Email/).fill(email);
+    await page.getByLabel(/^Email/).press('Enter');
+    await expect(page.getByTestId('forgot-sent')).toContainText(`If ${email} has a HalalGoes partner account`);
+    const resetToken = emailedToken(email, 'AUTH_PASSWORD_RESET');
+    await page.goto(`/reset-password?token=${resetToken}`);
+    await expect(page.getByRole('heading', { name: 'Set a new password' })).toBeVisible();
+    await page.getByLabel(/^New password/).fill(newPassword);
+    await page.getByLabel(/^New password/).press('Enter');
+    await expect(page.getByRole('heading', { name: 'Your new password is set' })).toBeVisible();
+    await check(page, info, 'real-reset-done');
+    await page.getByRole('button', { name: 'Sign in' }).click();
+    await fillSignIn(page, email, password);
+    await page.getByLabel(/^Password/).press('Enter');
+    await expect(page.getByTestId('InlineAlert')).toContainText('Email or password is incorrect');
+    // services/hg denies every session of the account for up to 10 s after a reset, including new
+    // ones (#748): a sign-in inside that window gets a session whose first request is refused.
+    // Wait it out until the backend revokes only the sessions that existed at the reset.
+    await page.waitForTimeout(11_000);
+    await fillSignIn(page, email, newPassword);
+    await page.getByLabel(/^Password/).press('Enter');
+    await expect(page).toHaveURL(/\/onboarding/);
+    // The used link is spent: the same token is now Link invalid.
+    await page.goto(`/reset-password?token=${resetToken}`);
+    await page.getByLabel(/^New password/).fill('yet another kitchen password 2026');
+    await page.getByLabel(/^New password/).press('Enter');
+    await expect(page.getByRole('heading', { name: 'This link doesn’t work any more' })).toBeVisible();
   });
 
   test('forgot password reaches Sent without saying whether the account exists', async ({ page }, info) => {

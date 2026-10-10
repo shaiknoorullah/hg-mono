@@ -10,10 +10,9 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom';
 import { isWellFormedToken, useLinkToken } from '@hg/ui-web/email-links';
 import { client } from '../data/client';
-import { Button, GlyphIcon, InlineAlert, Input, usePageAnnouncer } from '../ds';
+import { Button, GlyphIcon, InlineAlert, Input, StateCard, StateCardHeading, StateCardIcon, TextLink, usePageAnnouncer, WaitLine } from '../ds';
 import { attempt, looksLikeEmail, serverWait, type Attempt, type ServerWait } from './api';
 import { COMMON, VERIFY } from './copy';
-import { AuthCard, HeadingBlock, IconTile, TextLink, WaitLine } from './frame';
 import type { CheckEmailEntry } from './CheckEmailScreen';
 
 type Phase =
@@ -76,9 +75,9 @@ export function VerifyEmailScreen() {
   switch (phase.kind) {
     case 'working':
       return (
-        <AuthCard testId="verify-working">
+        <StateCard testId="verify-working">
           <div className="flex flex-col gap-6">
-            <HeadingBlock title={VERIFY.workingTitle} intro={VERIFY.workingBody} />
+            <StateCardHeading title={VERIFY.workingTitle} intro={VERIFY.workingBody} />
             <div className="mt-4 flex flex-col gap-3">
               <p role="status" className="m-0 text-label-lg text-fg-primary">
                 {VERIFY.workingStatus}
@@ -88,23 +87,23 @@ export function VerifyEmailScreen() {
               </div>
             </div>
           </div>
-        </AuthCard>
+        </StateCard>
       );
     case 'done':
       return (
-        <AuthCard testId="verify-done">
-          <IconTile name="check" />
-          <HeadingBlock title={VERIFY.doneTitle} intro={VERIFY.doneBody} />
+        <StateCard testId="verify-done">
+          <StateCardIcon name="check" />
+          <StateCardHeading title={VERIFY.doneTitle} intro={VERIFY.doneBody} />
           <SignInButton />
-        </AuthCard>
+        </StateCard>
       );
     case 'used':
       return (
-        <AuthCard testId="verify-used">
-          <IconTile name="check" />
-          <HeadingBlock title={VERIFY.usedTitle} intro={VERIFY.usedBody} />
+        <StateCard testId="verify-used">
+          <StateCardIcon name="check" />
+          <StateCardHeading title={VERIFY.usedTitle} intro={VERIFY.usedBody} />
           <SignInButton />
-        </AuthCard>
+        </StateCard>
       );
     case 'error':
       return <VerifyError wait={phase.wait} onRetry={retry} onWaitOver={() => setPhase({ kind: 'error', wait: null })} />;
@@ -131,10 +130,10 @@ function VerifyError({ wait, onRetry, onWaitOver }: { wait: ServerWait | null; o
     announce(COMMON.waitOver, 'polite');
   }, [onWaitOver, announce]);
   return (
-    <AuthCard testId="verify-error">
+    <StateCard testId="verify-error">
       <div ref={ref} role="alert" tabIndex={-1} className="hg-focus flex flex-col gap-5 rounded-[12px]">
-        <IconTile name="warning" />
-        <HeadingBlock title={VERIFY.errorTitle} intro={VERIFY.errorBody} />
+        <StateCardIcon name="warning" />
+        <StateCardHeading title={VERIFY.errorTitle} intro={VERIFY.errorBody} />
       </div>
       <Button
         variant="primary"
@@ -147,8 +146,8 @@ function VerifyError({ wait, onRetry, onWaitOver }: { wait: ServerWait | null; o
       >
         {VERIFY.tryAgain}
       </Button>
-      {wait ? <WaitLine wait={wait} onExpire={over} /> : null}
-    </AuthCard>
+      {wait ? <WaitLine prefix={COMMON.waitPrefix} label={COMMON.waitLabel} wait={wait} onExpire={over} /> : null}
+    </StateCard>
   );
 }
 
@@ -195,10 +194,10 @@ function ExpiredLink() {
   }
 
   return (
-    <AuthCard testId="verify-expired">
+    <StateCard testId="verify-expired">
       <form noValidate onSubmit={send} aria-busy={sending || undefined} className="flex flex-col gap-5" aria-label={VERIFY.expiredTitle}>
-        <IconTile name="clock" />
-        <HeadingBlock title={VERIFY.expiredTitle} intro={VERIFY.expiredBody} />
+        <StateCardIcon name="clock" />
+        <StateCardHeading title={VERIFY.expiredTitle} intro={VERIFY.expiredBody} />
         {failed > 0 && !sending ? (
           <InlineAlert key={failed} tone="danger" icon="error" blocking title={VERIFY.sendErrorTitle}>
             <span>{VERIFY.sendErrorBody}</span>
@@ -236,6 +235,6 @@ function ExpiredLink() {
           </p>
         ) : null}
       </form>
-    </AuthCard>
+    </StateCard>
   );
 }

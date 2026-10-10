@@ -17,6 +17,23 @@ export interface ServerWait {
   serverNow: string;
   expiresAt: string;
   windowSeconds: number;
+  /**
+   * This device's clock when the answer arrived. A wait that travels in router state (and so
+   * survives a reload in `history.state`) is aged by it, never restarted.
+   */
+  receivedAt?: number;
+}
+
+/**
+ * The wait as it stands now: `serverNow` moved on by the time spent on this device since the
+ * answer arrived, or null when it has run out.
+ */
+export function agedWait(wait: ServerWait | undefined | null, now: number = Date.now()): ServerWait | null {
+  if (!wait) return null;
+  const elapsed = Math.max(0, now - (wait.receivedAt ?? now));
+  const left = Date.parse(wait.expiresAt) - Date.parse(wait.serverNow) - elapsed;
+  if (!(left > 0)) return null;
+  return { ...wait, serverNow: new Date(Date.parse(wait.serverNow) + elapsed).toISOString(), receivedAt: now };
 }
 
 export type Attempt<T> =
@@ -88,6 +105,7 @@ export function serverWait(serverDate: number, seconds: number): ServerWait {
     serverNow: new Date(serverDate).toISOString(),
     expiresAt: new Date(serverDate + seconds * 1000).toISOString(),
     windowSeconds: seconds,
+    receivedAt: Date.now(),
   };
 }
 

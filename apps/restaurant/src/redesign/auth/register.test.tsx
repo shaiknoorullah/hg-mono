@@ -57,7 +57,7 @@ describe('register', () => {
     submit();
     const summary = await screen.findByTestId('InlineAlert');
     expect(summary.getAttribute('role')).toBe('alert');
-    expect(document.activeElement).toBe(summary);
+    await waitFor(() => expect(document.activeElement).toBe(summary));
     expect(within(summary).getByText('4 things need changing before we can create your account')).toBeTruthy();
     expect(within(summary).getAllByRole('link').map((a) => a.textContent)).toEqual(['Restaurant name', 'Work email', 'Password', 'Partner terms']);
     expect(screen.getByText('Enter at least 2 characters.')).toBeTruthy();
@@ -105,7 +105,7 @@ describe('register', () => {
     submit();
     const alert = await screen.findByTestId('InlineAlert');
     expect(within(alert).getByText('Your account wasn’t created')).toBeTruthy();
-    expect(document.activeElement).toBe(alert);
+    await waitFor(() => expect(document.activeElement).toBe(alert));
     // Values kept, box still ticked.
     expect(screen.getByRole('checkbox', { name: 'I have read and accept the partner terms' }).getAttribute('aria-checked')).toBe('true');
     submit();
@@ -137,6 +137,35 @@ describe('register', () => {
     expect(await screen.findByText('This password appears in known data breaches. Choose a different one.')).toBeTruthy();
   });
 
+  it('a 422 VALIDATION_FAILED with no field details is a change to make, not a network failure (an Arabic name over 120 bytes)', async () => {
+    const api = installFakeApi(routes(apiError(422, 'VALIDATION_FAILED')));
+    await renderPublic('/register');
+    await screen.findByText('Version 2026-05-01');
+    // Under 120 characters (passes the contract's rule here), over 120 UTF-8 bytes (the server refuses it, #739).
+    const arabicName = 'مطعم الزيتون للمشويات والمأكولات الشرقية الحلال في وسط مدينة تورونتو';
+    expect([...arabicName].length).toBeLessThanOrEqual(120);
+    expect(new TextEncoder().encode(arabicName).length).toBeGreaterThan(120);
+    await fill({ name: arabicName });
+    submit();
+    const summary = await screen.findByTestId('InlineAlert');
+    expect(summary.getAttribute('data-tone')).toBe('danger');
+    expect(within(summary).getByText('1 thing needs changing before we can create your account')).toBeTruthy();
+    expect(within(summary).getByRole('link', { name: 'Restaurant name' })).toBeTruthy();
+    expect(screen.queryByText('Your account wasn’t created')).toBeNull();
+    expect(screen.getByText('HalalGoes couldn’t accept this name. Check it, or try a shorter one.')).toBeTruthy();
+    expect(api.callsTo(REGISTER)).toHaveLength(1);
+  });
+
+  it('a name over 120 characters is caught before sending', async () => {
+    const api = installFakeApi(routes('restaurant_registration'));
+    await renderPublic('/register');
+    await screen.findByText('Version 2026-05-01');
+    await fill({ name: 'Z'.repeat(121) });
+    submit();
+    expect(await screen.findByText('Use a shorter name: this one is over the 120-character limit.')).toBeTruthy();
+    expect(api.callsTo(REGISTER)).toHaveLength(0);
+  });
+
   it('EmailTaken: an info alert with Sign in, and the email field says why', async () => {
     installFakeApi(routes(apiError(409, 'EMAIL_ALREADY_REGISTERED')));
     await renderPublic('/register');
@@ -145,7 +174,7 @@ describe('register', () => {
     submit();
     const alert = await screen.findByTestId('InlineAlert');
     expect(alert.getAttribute('data-tone')).toBe('info');
-    expect(document.activeElement).toBe(alert);
+    await waitFor(() => expect(document.activeElement).toBe(alert));
     expect(within(alert).getByText('An account already uses this email')).toBeTruthy();
     expect(screen.getByText('Already registered. Sign in, or use a different email.')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Sign in' }));
@@ -199,5 +228,25 @@ describe('register', () => {
     expect(button.getAttribute('aria-disabled')).toBe('true');
     release();
     await waitFor(() => expect(screen.getByRole('button', { name: 'Create account' }).getAttribute('aria-disabled')).toBeNull());
+  });
+
+  it('the config failed to load: the terms cannot be accepted, Create account is unavailable, and Try again reloads it', async () => {
+    const api = installFakeApi(
+      routes('restaurant_registration', {
+        'GET /v1/config/public': (_req, n) => (n === 1 ? apiError(500, 'INTERNAL_ERROR') : { body: fixture('public_config') }),
+      }),
+    );
+    await renderPublic('/register');
+    expect(await screen.findByText('We couldn’t load the partner terms')).toBeTruthy();
+    expect(screen.queryByText(/^Version /)).toBeNull();
+    fireEvent.click(screen.getByRole('checkbox', { name: 'I have read and accept the partner terms' }));
+    expect(screen.getByRole('checkbox', { name: 'I have read and accept the partner terms' }).getAttribute('aria-checked')).toBe('false');
+    expect(screen.getByRole('button', { name: 'Create account' }).getAttribute('aria-disabled')).toBe('true');
+    submit();
+    expect(api.callsTo(REGISTER)).toHaveLength(0);
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    expect(await screen.findByText('Version 2026-05-01')).toBeTruthy();
+    expect(screen.queryByText('We couldn’t load the partner terms')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Create account' }).getAttribute('aria-disabled')).toBeNull();
   });
 });

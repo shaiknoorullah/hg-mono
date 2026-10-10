@@ -8,10 +8,18 @@
  */
 import { useEffect, useState, type ReactNode } from 'react';
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
-import { AlertDialog, PageAnnouncerProvider, ToastProvider, TooltipProvider, themeAttributes } from './ds';
+import { AlertDialog, PageAnnouncerProvider, Spinner, ToastProvider, TooltipProvider, themeAttributes } from './ds';
 import { AuthProvider } from '../lib/auth';
-import { getSession, setSession, setUnauthorizedOverride } from '../lib/api';
-import { client, onSignedOut, refreshAccessToken, resetSignedOut, type SignedOutReason } from './data/client';
+import { getSession, setUnauthorizedOverride } from '../lib/api';
+import {
+  client,
+  keepSession,
+  onSignedOut,
+  refreshAccessToken,
+  resetSignedOut,
+  restoreSession,
+  type SignedOutReason,
+} from './data/client';
 import { ConsoleProvider, consoleRoute, useConsole } from './data/console';
 import { AvailabilityProvider } from './data/availability';
 import { useHeartbeat } from './data/heartbeat';
@@ -62,12 +70,32 @@ function SignedOutAlert() {
   );
 }
 
+type SessionCheck = 'present' | 'restoring' | 'absent';
+
 function RequireSession({ children }: { children: ReactNode }) {
   const location = useLocation();
   // A session that ends while the console is open keeps the console on screen behind the
-  // signed-out alert; only a fresh visit with no session goes to sign-in.
-  const [hadSession] = useState(() => getSession() !== null);
-  if (!hadSession) return <Navigate to={`/login?return_to=${encodeURIComponent(location.pathname)}`} replace />;
+  // signed-out alert; only a fresh visit with no session goes to sign-in. The access token
+  // lives in memory only, so a fresh visit (a reload) first tries the `hg_rt` cookie.
+  const [check, setCheck] = useState<SessionCheck>(() => (getSession() !== null ? 'present' : 'restoring'));
+  useEffect(() => {
+    if (check !== 'restoring') return;
+    let live = true;
+    void restoreSession().then((ok) => {
+      if (live) setCheck(ok ? 'present' : 'absent');
+    });
+    return () => {
+      live = false;
+    };
+  }, [check]);
+  if (check === 'restoring') {
+    return (
+      <div className="flex h-dvh items-center justify-center bg-surface-base" data-testid="session-restoring">
+        <Spinner size="lg" label="Checking your sign-in" />
+      </div>
+    );
+  }
+  if (check === 'absent') return <Navigate to={`/login?return_to=${encodeURIComponent(location.pathname)}`} replace />;
   return <>{children}</>;
 }
 
@@ -88,7 +116,7 @@ async function signOut(navigate: ReturnType<typeof useNavigate>) {
   } catch {
     /* best effort: the session is cleared here regardless */
   }
-  setSession(null);
+  keepSession(null);
   navigate('/login', { replace: true });
 }
 

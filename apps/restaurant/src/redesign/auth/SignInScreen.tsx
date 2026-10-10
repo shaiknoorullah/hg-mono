@@ -12,10 +12,9 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import type { Schema } from '@hg/api-client';
-import { setSession } from '../../lib/api';
-import { client, resetSignedOut } from '../data/client';
+import { client, keepSession, resetSignedOut } from '../data/client';
 import { spokenDuration } from '../format/time';
-import { Button, GlyphIcon, InlineAlert, Input, usePageAnnouncer } from '../ds';
+import { Button, GlyphIcon, InlineAlert, Input, StateCard, StateCardHeading, StateCardIcon, SupportBlock, SupportSentence, TextLink, usePageAnnouncer, WaitLine } from '../ds';
 import {
   attempt,
   HG_CLIENT,
@@ -30,7 +29,6 @@ import {
   type SupportContact,
 } from './api';
 import { ACCOUNT_CARDS, COMMON, SIGN_IN, SUPPORT, UPDATE, type AccountCardKind } from './copy';
-import { AccountStateCard, AuthCard, HeadingBlock, PhoneLink, SupportBlock, SupportSentence, TextLink, WaitLine } from './frame';
 import { safeReturnTo } from './returnTo';
 import type { CheckEmailEntry } from './CheckEmailScreen';
 
@@ -200,7 +198,8 @@ export function SignInScreen() {
         setOutcome({ kind: 'not-restaurant', email: trimmed });
         return;
       }
-      setSession({ accessToken: grant.access_token, accountId: principal.account_id });
+      // In memory only (spec §1.12): a reload restores it from the hg_rt cookie.
+      keepSession({ accessToken: grant.access_token, accountId: principal.account_id });
       resetSignedOut();
       rememberEmail(trimmed);
       await routeAfterSignIn();
@@ -272,11 +271,11 @@ export function SignInScreen() {
 
   const heading =
     !problem && arrival === 'expired' ? (
-      <HeadingBlock title={SIGN_IN.expiredTitle} intro={SIGN_IN.expiredIntro} />
+      <StateCardHeading title={SIGN_IN.expiredTitle} intro={SIGN_IN.expiredIntro} />
     ) : !problem && arrival === 'reuse-detected' ? (
-      <HeadingBlock title={SIGN_IN.reuseTitle} intro={SIGN_IN.reuseIntro} />
+      <StateCardHeading title={SIGN_IN.reuseTitle} intro={SIGN_IN.reuseIntro} />
     ) : (
-      <HeadingBlock title={SIGN_IN.title} intro={SIGN_IN.intro} />
+      <StateCardHeading title={SIGN_IN.title} intro={SIGN_IN.intro} />
     );
 
   const banner = (() => {
@@ -388,7 +387,7 @@ export function SignInScreen() {
     </p>
   );
 
-  const waitLine = currentWait ? <WaitLine wait={currentWait} onExpire={waitOver} /> : null;
+  const waitLine = currentWait ? <WaitLine prefix={COMMON.waitPrefix} label={COMMON.waitLabel} wait={currentWait} onExpire={waitOver} /> : null;
   const submitProps = waiting ? { 'aria-describedby': 'wait-reason' } : {};
   const retryIcon = <GlyphIcon name="refresh" size="md" />;
 
@@ -433,8 +432,19 @@ export function SignInScreen() {
           </Button>
         ) : null}
         {fields}
-        {/* aria-disabled, not disabled: it stays focusable, and activating it says the wait again. */}
-        <Button variant="secondary" size="lg" fullWidth type="submit" loading={busy} disabled={waiting} {...submitProps}>
+        {/* Looks and reads disabled (aria-disabled) but stays live: activating it, or Enter in a
+            field, reaches `submit`, which says the wait again instead of signing in (spec §1.6).
+            The DS Button's `disabled` would swallow the activation, so it is not used here. */}
+        <Button
+          variant="secondary"
+          size="lg"
+          fullWidth
+          type="submit"
+          loading={busy}
+          aria-disabled={waiting || undefined}
+          className={waiting ? 'cursor-not-allowed opacity-(--hg-state-disabled-opacity)' : undefined}
+          {...submitProps}
+        >
           {SIGN_IN.submit}
         </Button>
         {waitLine}
@@ -482,34 +492,34 @@ export function SignInScreen() {
 
   let footer = null;
   if (kind === 'invalid' || kind === 'unverified') footer = registerLine;
-  else if (kind === 'too-many') footer = <SupportSentence support={support} />;
+  else if (kind === 'too-many') footer = <SupportSentence contact={support} lead={SUPPORT.sentenceBefore} />;
   else if (kind === 'locked')
     footer = support ? (
       <p className="m-0 text-center text-body-sm text-fg-secondary">
         {SUPPORT.lockedFooter}
-        <PhoneLink support={support} />
+        <TextLink href={`tel:${support.tel}`}>{support.display}</TextLink>
         {support.hours ? `, ${support.hours}.` : '.'}
       </p>
     ) : null;
   else if (kind === 'offline' || kind === 'busy' || (!problem && arrival === 'expired')) footer = null;
-  else if (!problem && arrival === 'reuse-detected') footer = <SupportSentence support={support} />;
+  else if (!problem && arrival === 'reuse-detected') footer = <SupportSentence contact={support} lead={SUPPORT.sentenceBefore} />;
   else
     footer = (
       <>
         {registerLine}
-        {busy ? null : <SupportSentence support={support} />}
+        {busy ? null : <SupportSentence contact={support} lead={SUPPORT.sentenceBefore} />}
       </>
     );
 
   return (
     <>
-      <AuthCard testId="sign-in-card">
+      <StateCard testId="sign-in-card">
         <form noValidate onSubmit={submit} aria-busy={busy || undefined} className="flex flex-col gap-5" aria-label={SIGN_IN.submit}>
           {heading}
           {banner}
           {body}
         </form>
-      </AuthCard>
+      </StateCard>
       {footer}
     </>
   );
@@ -527,38 +537,48 @@ function OutcomeView({
 }) {
   if (outcome.kind === 'update') {
     return (
-      <AuthCard testId="update-card">
-        <HeadingBlock title={UPDATE.title} intro={UPDATE.body} />
+      <StateCard testId="update-card">
+        <StateCardHeading title={UPDATE.title} intro={UPDATE.body} />
         <Button variant="primary" size="lg" fullWidth iconStart={<GlyphIcon name="refresh" size="md" />} onPress={() => window.location.reload()}>
           {UPDATE.refresh}
         </Button>
-        {support ? <SupportBlock support={support} /> : null}
-      </AuthCard>
+        {support ? <SupportBlock contact={support} label={SUPPORT.blockLabel} unavailableTitle={SUPPORT.unavailableTitle} unavailableBody={SUPPORT.unavailableBody} /> : null}
+      </StateCard>
     );
   }
   if (outcome.kind === 'not-restaurant') {
     return (
       <>
-        <AccountStateCard
-          icon="info"
-          title={SIGN_IN.notRestaurantTitle}
-          body={SIGN_IN.notRestaurantBody(outcome.email)}
-          support={support}
-          withSupport={false}
-          testId="not-restaurant-card"
-        >
+        <StateCard testId="not-restaurant-card">
+          <StateCardIcon name="info" />
+          <StateCardHeading title={SIGN_IN.notRestaurantTitle} intro={SIGN_IN.notRestaurantBody(outcome.email)} />
           <Button variant="primary" size="lg" fullWidth onPress={onStartOver}>
             {SIGN_IN.differentEmail}
           </Button>
           <p className="m-0 text-center text-body-md">
             <TextLink to="/register">{COMMON.registerLink}</TextLink>
           </p>
-        </AccountStateCard>
-        <SupportSentence support={support} />
+        </StateCard>
+        <SupportSentence contact={support} lead={SUPPORT.sentenceBefore} />
       </>
     );
   }
   const card = ACCOUNT_CARDS[outcome.card];
   const body = !support && card.bodyNoSupport ? card.bodyNoSupport(outcome.email) : card.body(outcome.email);
-  return <AccountStateCard icon={card.icon} title={card.title} body={body} support={support} testId={`account-card-${outcome.card}`} />;
+  // SI account-state card: tile, heading, body, the support block, "Back to sign in".
+  return (
+    <StateCard testId={`account-card-${outcome.card}`}>
+      <StateCardIcon name={card.icon} />
+      <StateCardHeading title={card.title} intro={body} />
+      <SupportBlock
+        contact={support}
+        label={SUPPORT.blockLabel}
+        unavailableTitle={SUPPORT.unavailableTitle}
+        unavailableBody={SUPPORT.unavailableBody}
+      />
+      <TextLink to="/login" variant="standalone">
+        {COMMON.backToSignIn}
+      </TextLink>
+    </StateCard>
+  );
 }

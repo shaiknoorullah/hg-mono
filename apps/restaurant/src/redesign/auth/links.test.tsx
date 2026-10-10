@@ -62,13 +62,35 @@ describe('check your email', () => {
     expect(screen.getByRole('timer', { name: 'until tomorrow’s limit resets' }).textContent).toBe('24:00:00');
   });
 
+  it('a reload ages the wait kept in history state: after the minute it is Default, within it the rest of the minute', async () => {
+    installFakeApi(withConfig({}));
+    const serverNow = Date.parse('2026-10-10T10:00:00Z');
+    const wait = (receivedAt: number) => ({
+      serverNow: new Date(serverNow).toISOString(),
+      expiresAt: new Date(serverNow + 60_000).toISOString(),
+      windowSeconds: 60,
+      receivedAt,
+    });
+    // Reloaded five minutes after the 202: no "on its way", no new 60-second wait.
+    await renderPublic('/check-email', { ...entry, start: 'cooldown', wait: wait(Date.now() - 5 * 60_000) });
+    await screen.findByTestId('check-email-card');
+    expect(screen.queryByText('A new link is on its way. Earlier links no longer work, so use the newest email.')).toBeNull();
+    expect(screen.queryByRole('timer')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Send a new link' }).getAttribute('aria-disabled')).toBeNull();
+    cleanup();
+    // Reloaded 40 seconds after: the remaining 20 seconds, not a fresh minute.
+    await renderPublic('/check-email', { ...entry, start: 'cooldown', wait: wait(Date.now() - 40_000) });
+    expect(await screen.findByText('A new link is on its way. Earlier links no longer work, so use the newest email.')).toBeTruthy();
+    expect(screen.getByRole('timer').textContent).toMatch(/^0:(19|20)$/);
+  });
+
   it('Offline: a neutral alert takes focus; the button keeps its label', async () => {
     installFakeApi(withConfig({ 'POST /v1/auth/email/resend': apiError(500, 'INTERNAL_ERROR') }));
     await renderPublic('/check-email', entry);
     fireEvent.click(await screen.findByRole('button', { name: 'Send a new link' }));
     const alert = await screen.findByTestId('InlineAlert');
     expect(alert.getAttribute('role')).toBe('alert');
-    expect(document.activeElement).toBe(alert);
+    await waitFor(() => expect(document.activeElement).toBe(alert));
     expect(within(alert).getByText('We couldn’t send a new link')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Send a new link' }).getAttribute('aria-disabled')).toBeNull();
   });
@@ -149,7 +171,7 @@ describe('verify email', () => {
     const alert = await screen.findByTestId('InlineAlert');
     expect(alert.getAttribute('data-tone')).toBe('danger');
     expect(within(alert).getByText('We couldn’t send a new link')).toBeTruthy();
-    expect(document.activeElement).toBe(alert);
+    await waitFor(() => expect(document.activeElement).toBe(alert));
     expect(screen.getByRole('button', { name: 'Try again' })).toBeTruthy();
     expect((screen.getByLabelText(/^Email/) as HTMLInputElement).value).toBe('samir@zaytoungrill.ca');
   });
@@ -202,7 +224,7 @@ describe('forgot password', () => {
     fireEvent.submit((await screen.findByLabelText(/^Email/)).closest('form')!);
     const alert = await screen.findByTestId('InlineAlert');
     expect(within(alert).getByText('We couldn’t send the link')).toBeTruthy();
-    expect(document.activeElement).toBe(alert);
+    await waitFor(() => expect(document.activeElement).toBe(alert));
     expect((screen.getByLabelText(/^Email/) as HTMLInputElement).value).toBe('samir@zaytoungrill.ca');
     expect(screen.getByRole('button', { name: 'Try again' })).toBeTruthy();
   });
@@ -226,7 +248,7 @@ describe('reset password', () => {
     expect(screen.getByText(/^Setting a new password signs you out on every device/)).toBeTruthy();
     const field = await typeAndSave('elevenchars');
     expect(await screen.findByText('Use at least 12 characters.')).toBeTruthy();
-    expect(document.activeElement).toBe(field);
+    await waitFor(() => expect(document.activeElement).toBe(field));
     expect(api.callsTo('POST /v1/auth/password/reset')).toHaveLength(0);
   });
 
@@ -236,7 +258,7 @@ describe('reset password', () => {
     await renderPublic('/reset-password');
     const field = await typeAndSave('password1234567');
     expect(await screen.findByText('This password appears in known data breaches. Choose a different one.')).toBeTruthy();
-    expect(document.activeElement).toBe(field);
+    await waitFor(() => expect(document.activeElement).toBe(field));
   });
 
   it('LinkInvalid: 400 TOKEN_CONSUMED, or no token at all', async () => {

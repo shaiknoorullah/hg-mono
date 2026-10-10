@@ -6,10 +6,9 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useLocation } from 'react-router-dom';
 import { client } from '../data/client';
-import { Button, GlyphIcon, InlineAlert, Input } from '../ds';
+import { Button, GlyphIcon, InlineAlert, Input, StateCard, StateCardHeading, SupportSentence, TextLink } from '../ds';
 import { attempt, looksLikeEmail, supportFrom, usePublicConfig } from './api';
-import { FORGOT } from './copy';
-import { AuthCard, BackToSignIn, HeadingBlock, SupportSentence } from './frame';
+import { COMMON, FORGOT, SUPPORT } from './copy';
 
 export function ForgotPasswordScreen() {
   const location = useLocation();
@@ -51,7 +50,7 @@ export function ForgotPasswordScreen() {
 
   if (sentTo) {
     return (
-      <AuthCard testId="forgot-sent">
+      <StateCard testId="forgot-sent">
         <h1 className="m-0 text-heading-xl text-fg-primary">{FORGOT.sentTitle}</h1>
         <p className="m-0 text-body-md leading-normal text-fg-secondary">
           {FORGOT.sentBefore}
@@ -63,17 +62,17 @@ export function ForgotPasswordScreen() {
           <Button variant="tertiary" size="md" onPress={() => setSentTo(null)}>
             {FORGOT.another}
           </Button>
-          <BackToSignIn />
+          <TextLink to="/login" variant="standalone">{COMMON.backToSignIn}</TextLink>
         </div>
-      </AuthCard>
+      </StateCard>
     );
   }
 
   return (
     <>
-      <AuthCard testId="forgot-card">
+      <StateCard testId="forgot-card">
         <form noValidate onSubmit={send} aria-busy={sending || undefined} className="flex flex-col gap-5" aria-label={FORGOT.title}>
-          <HeadingBlock title={FORGOT.title} intro={FORGOT.intro} />
+          <StateCardHeading title={FORGOT.title} intro={FORGOT.intro} />
           {failed > 0 && !sending ? (
             <InlineAlert key={failed} tone="neutral" icon="warning" blocking title={FORGOT.errorTitle}>
               <span>{FORGOT.errorBody}</span>
@@ -104,10 +103,10 @@ export function ForgotPasswordScreen() {
           >
             {failed > 0 ? FORGOT.tryAgain : FORGOT.submit}
           </Button>
-          <BackToSignIn />
+          <TextLink to="/login" variant="standalone">{COMMON.backToSignIn}</TextLink>
         </form>
-      </AuthCard>
-      <SupportSentence support={support} />
+      </StateCard>
+      <SupportSentence contact={support} lead={SUPPORT.sentenceBefore} />
     </>
   );
 }
