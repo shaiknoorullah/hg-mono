@@ -20,6 +20,13 @@ import { ConsoleLayout } from './shell/ConsoleLayout';
 import { ConsoleStatus } from './shell/ConsoleStatus';
 import { LEGACY } from './routes/legacy';
 import { PendingRoute } from './routes/PendingRoute';
+import { AuthLayout } from './auth/frame';
+import { SignInScreen } from './auth/SignInScreen';
+import { RegisterScreen } from './auth/RegisterScreen';
+import { CheckEmailScreen } from './auth/CheckEmailScreen';
+import { VerifyEmailScreen } from './auth/VerifyEmailScreen';
+import { ForgotPasswordScreen } from './auth/ForgotPasswordScreen';
+import { ResetPasswordScreen } from './auth/ResetPasswordScreen';
 
 // Legacy screens hosted by the redesign refresh on 401 too.
 setUnauthorizedOverride(async () => (getSession() ? refreshAccessToken() : false));
@@ -48,7 +55,8 @@ function SignedOutAlert() {
       onAction={() => {
         resetSignedOut();
         setReason(null);
-        navigate(`/login?return_to=${encodeURIComponent(location.pathname + location.search)}`);
+        // The sign-in page shows the matching SI board (SessionExpired / ReuseDetected).
+        navigate(`/login?signed_out=${reason}&return_to=${encodeURIComponent(location.pathname + location.search)}`);
       }}
     />
   );
@@ -105,16 +113,20 @@ export function RedesignApp() {
     root.setAttribute('data-theme', 'light');
     root.style.colorScheme = 'light';
   }, []);
-  const { Login, Register, VerifyEmail, ResetPassword, Onboarding, Orders, Menu, Hours, Payouts, Settings } = LEGACY;
+  const { Onboarding, Orders, Menu, Hours, Payouts, Settings } = LEGACY;
   return (
     <div {...themeAttributes('restaurant')} className="relative h-dvh overflow-hidden bg-surface-sunken text-fg-primary" data-redesign="">
       <AuthProvider>
         <Routes>
-          {/* Public (WP2 replaces these). */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/verify-email" element={<VerifyEmail />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
+          {/* Public: sign-in and account access (WP2, canvas SI). */}
+          <Route element={<AuthLayout />}>
+            <Route path="/login" element={<FreshSignIn />} />
+            <Route path="/register" element={<RegisterScreen />} />
+            <Route path="/check-email" element={<CheckEmailScreen />} />
+            <Route path="/verify-email" element={<VerifyEmailScreen />} />
+            <Route path="/forgot-password" element={<ForgotPasswordScreen />} />
+            <Route path="/reset-password" element={<ResetPasswordScreen />} />
+          </Route>
           {/* Onboarding (WP6/WP7 replace this). */}
           <Route
             path="/onboarding/*"
@@ -151,6 +163,12 @@ export function RedesignApp() {
       </AuthProvider>
     </div>
   );
+}
+
+/** "Back to sign in" from a sign-in card is a new visit: a clean form, not the last state. */
+function FreshSignIn() {
+  const location = useLocation();
+  return <SignInScreen key={location.key} />;
 }
 
 /** A legacy screen inside the redesigned shell scrolls inside its pane, never the page. */
