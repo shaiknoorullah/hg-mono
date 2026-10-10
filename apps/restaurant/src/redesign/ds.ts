@@ -55,6 +55,7 @@ export {
 export type { BannerProps, EmptyStateProps, ErrorStateProps } from '@hg/ui-web/feedback';
 
 export { DataTable } from '@hg/ui-web/data';
+export type { DataTableColumn } from '@hg/ui-web/data';
 
 export { themeAttributes } from '@hg/ui-web/tokens';
 
@@ -71,6 +72,8 @@ export { DetailPanel } from './_stubs/DetailPanel';
 export type { DetailPanelProps } from './_stubs/DetailPanel';
 export { InlineConfirm } from './_stubs/InlineConfirm';
 export type { InlineConfirmProps, InlineConfirmAction } from './_stubs/InlineConfirm';
+export { ResizeHandle } from './_stubs/ResizeHandle';
+export type { ResizeHandleProps } from './_stubs/ResizeHandle';
 export { Countdown } from './_stubs/Countdown';
 export type { CountdownProps } from './_stubs/Countdown';
 export { InlineNotice } from './_stubs/InlineNotice';

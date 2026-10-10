@@ -22,9 +22,34 @@ export interface DetailPanelProps {
   children: ReactNode;
   /** Focus the heading on mount (default true). */
   focusOnOpen?: boolean;
-  width?: 'panel' | 'pane';
+  /**
+   * `task` (MH: 420 px, tablet 380) and `editor` (MH item editor: takes the remaining width)
+   * are the Proposed DetailPanel variants; `panel`/`pane` as before.
+   */
+  width?: 'panel' | 'pane' | 'task' | 'editor';
   testId?: string;
+  /** Element id of the panel (MH: `item-panel`, `cat-panel`, `item-editor`). */
+  id?: string;
+  /** Id for the heading; the panel is then named by its heading (`aria-labelledby`). */
+  headingId?: string;
+  /** Landmark: `aside` (details) or `section` (a task or the editor). */
+  as?: 'aside' | 'section';
+  /** A line above the heading ("Mains · item details"). */
+  kicker?: ReactNode;
+  /** Beside the heading (a review badge). */
+  headerExtra?: ReactNode;
+  /** The close button is off while a task is in flight. */
+  closeDisabled?: boolean;
+  /** `aria-busy` on the body while it is loading or submitting. */
+  busy?: boolean;
 }
+
+const WIDTH = {
+  panel: 'shrink-0 w-[380px] xl:w-[460px]',
+  pane: 'shrink-0 w-[340px]',
+  task: 'shrink-0 w-[380px] xl:w-[420px]',
+  editor: 'min-w-0 flex-1',
+} as const;
 
 export function DetailPanel({
   title,
@@ -37,39 +62,57 @@ export function DetailPanel({
   focusOnOpen = true,
   width = 'panel',
   testId,
+  id: panelId,
+  headingId,
+  as = 'aside',
+  kicker,
+  headerExtra,
+  closeDisabled,
+  busy,
 }: DetailPanelProps) {
   const headingRef = useRef<HTMLHeadingElement>(null);
-  const id = useId();
+  const autoId = useId();
+  const id = headingId ?? autoId;
+  const Root = as;
   useEffect(() => {
     if (focusOnOpen) headingRef.current?.focus();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   return (
-    <aside
-      aria-label={label}
-      aria-labelledby={undefined}
+    <Root
+      id={panelId}
+      aria-label={headingId ? undefined : label}
+      aria-labelledby={headingId}
       data-testid={testId}
       onKeyDown={(e) => {
         if (e.key === 'Escape') {
           e.stopPropagation();
-          onClose();
+          if (!closeDisabled) onClose();
         }
       }}
-      className={`flex min-h-0 shrink-0 flex-col overflow-hidden rounded-lg border border-line-decorative bg-surface-raised text-fg-primary ${
-        width === 'panel' ? 'w-[380px] xl:w-[460px]' : 'w-[340px]'
-      }`}
+      className={`flex min-h-0 flex-col overflow-hidden rounded-lg border border-line-decorative bg-surface-raised text-fg-primary ${WIDTH[width]}`}
     >
       <div className="flex items-start gap-2 border-b border-line-decorative px-4 py-3">
         <div className="min-w-0 flex-1">
+          {kicker ? <p className="text-[13px] text-fg-secondary">{kicker}</p> : null}
           <h2 id={id} ref={headingRef} tabIndex={-1} className="hg-focus text-[22px] font-semibold leading-7 outline-none">
             {title}
           </h2>
           {subtitle ? <div className="mt-0.5 text-[15px] text-fg-secondary">{subtitle}</div> : null}
+          {headerExtra ? <div className="mt-1">{headerExtra}</div> : null}
         </div>
-        <IconButton icon={<Icon name="close" size={20} />} accessibilityLabel={closeLabel} onPress={onClose} variant="plain" />
+        <IconButton
+          icon={<Icon name="close" size={20} />}
+          accessibilityLabel={closeLabel}
+          onPress={onClose}
+          disabled={closeDisabled}
+          variant="plain"
+        />
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">{children}</div>
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3" aria-busy={busy || undefined}>
+        {children}
+      </div>
       {footer ? <div className="border-t border-line-decorative px-4 py-3">{footer}</div> : null}
-    </aside>
+    </Root>
   );
 }
