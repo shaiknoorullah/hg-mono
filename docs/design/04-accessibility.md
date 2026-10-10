@@ -3,7 +3,7 @@ covers:
   - packages/ui-web/src/certification/**
   - packages/ui-native/src/certification/**
   - packages/ui-web/src/styles/**
-reviewed: 2026-10-09
+reviewed: 2026-10-10
 ---
 
 # HalalGoes — Accessibility Standard
@@ -127,7 +127,7 @@ On `HalalCertificationPanel`, the seal's accessible name extends to carry the va
 
 The certifying body's name is in the **first sentence**, not buried below. C-12 R6 forbids the platform from ranking or editorialising certifying bodies, and the C-04 decision refuses to encode madhhab or method — which means the customer applies their own standard, which means they must be told *who certified it*. For a screen-reader user, "who" must arrive without opening a panel.
 
-Dates are always **absolute** in the accessible name ("14 March 2027"), never relative ("in 7 months"). C-12 requires absolute expiry display; the same applies to speech.
+Dates are always **absolute** in the accessible name ("14 March 2027"), never relative ("in 7 months"). C-12 requires absolute expiry display; the same applies to speech. A calendar date (`issued_on`, `expires_on`) is spoken as written; a date-time (`verified_at`) is spoken as the day it was in Toronto (America/Toronto), so the visible label and the name never disagree about the day.
 
 ### 3.4 Reading order on a card
 
