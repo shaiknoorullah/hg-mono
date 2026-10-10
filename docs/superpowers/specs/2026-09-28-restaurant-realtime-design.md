@@ -1,7 +1,7 @@
 ---
 covers:
   - apps/restaurant/src/**
-reviewed: 2026-10-09
+reviewed: 2026-10-10
 ---
 
 # Restaurant app — live updates and rider map
@@ -68,6 +68,8 @@ An event never patches local state from its payload. It invalidates and refetche
 | `restaurant.status_changed` | availability (Hours page toggle) |
 | `restaurant.payout_updated` | payouts |
 | `rider.location` | the only payload rendered directly — the map circle's position (see [rider map](#5-rider-map)) |
+
+**2026-10-10, redesign Hours (WP9):** the redesigned `/hours` page (`src/redesign/hours/RightNow.tsx`, behind `VITE_HG_REDESIGN`) subscribes `restaurant:{restaurantId}` through `useRealtimeChannel` and, on `restaurant.status_changed` (or a `refetch` signal after a truncated resume), re-reads `getRestaurantAvailability` — it does not patch the card from the payload. The event is also the only source of the auto-off toast ("HalalGoes switched off new orders", body = the event's `reason`, action "Go to Orders"): it is raised only when `changed_by` names HalalGoes and the toggle went off, never on a page load. Without a socket the shared availability provider re-reads every 60 s and on window focus, and a pause re-reads when its `pause_until` passes.
 
 Why: it keeps the app correct when Redis is flushed or events are dropped (the repo's disposable-Redis rule), and it follows the contract's rule that money, distance and ETA are never derived from event payloads.
 
