@@ -215,9 +215,10 @@ describe('Order detail panel', () => {
     expect(within(panel).queryByRole('button', { name: /Mark order/ })).toBeNull();
   });
 
-  it('lines render variants[] when present (#644), else variant_name', async () => {
+  it('lines render variants[] when present, else variant_name', async () => {
+    const choice = (group_name: string, variant_name: string) => ({ variant_group_id: `g-${group_name}`, group_name, variant_id: `v-${variant_name}`, variant_name, pricing_mode: 'DELTA', price_cents: null, delta_cents: 0 });
     const b = board();
-    const lines = b.prep.lines.map((l: Record<string, unknown>, i: number) => (i === 0 ? { ...l, variant_name: 'Large, Spicy', variants: [{ name: 'Large' }, { name: 'Spicy' }] } : l));
+    const lines = b.prep.lines.map((l: Record<string, unknown>, i: number) => (i === 0 ? { ...l, variant_name: 'Large, Spicy', variants: [choice('Size', 'Large'), choice('Heat', 'Spicy')] } : l));
     installFakeApi(boardRoutes(b, { [`GET /v1/restaurant/orders/${ids.prep}`]: { body: { ...b.prep, lines } } }));
     await renderRedesign(`/orders?order=${ids.prep}`, { live: true });
     const panel = await screen.findByRole('complementary', { name: 'Order K7L8 details' });

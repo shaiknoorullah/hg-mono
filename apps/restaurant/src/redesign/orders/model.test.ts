@@ -1,7 +1,7 @@
 /**
  * WP4 — the In progress list's rules (wp4 spec §1.2, §1.3, §2): the #601 guard, the sort,
  * a distinct labelled treatment for every state the restaurant can see, and the defensive
- * reads of fields the contract does not carry yet (#290 pickup code, #644 variants).
+ * read of the field the contract does not carry yet (#290 pickup code).
  */
 import { describe, expect, it, vi } from 'vitest';
 import { fixture } from '../test/fakeApi';
@@ -141,18 +141,27 @@ describe('row text', () => {
   });
 });
 
-describe('fields the contract does not carry yet', () => {
+describe('line extras and the pickup code', () => {
   it('reads the pickup code defensively until #290 lands', () => {
     expect(pickupCodeOf(order({ code: 'A' }))).toBeNull();
     expect(pickupCodeOf({ ...order({ code: 'A' }), pickup_code: '4827' } as Order)).toBe('4827');
     expect(pickupCodeOf({ ...order({ code: 'A' }), pickup_code: '' } as Order)).toBeNull();
   });
 
-  it('renders variants[] when present (#644), else variant_name', () => {
+  it('renders variants[] when present, else variant_name', () => {
     const line = order({ code: 'A' }).lines[1]!;
-    expect(lineExtra({ ...line, variant_name: 'Full' })).toBe('Full');
-    expect(lineExtra({ ...line, variant_name: 'Large, Spicy', variants: [{ name: 'Large' }, { name: 'Spicy' }] } as typeof line)).toBe('Large · Spicy');
-    expect(lineExtra({ ...line, variant_name: null, addons: [{ addon_id: 'a', addon_name: 'Extra garlic sauce', addon_quantity: 1, addon_price_cents: 50 as never }] })).toBe(
+    expect(lineExtra({ ...line, variants: [], variant_name: 'Full' })).toBe('Full');
+    const choice = (group_name: string, variant_name: string) => ({
+      variant_group_id: `g-${group_name}`,
+      group_name,
+      variant_id: `v-${variant_name}`,
+      variant_name,
+      pricing_mode: 'DELTA' as const,
+      price_cents: null,
+      delta_cents: 0 as never,
+    });
+    expect(lineExtra({ ...line, variant_name: 'Large, Spicy', variants: [choice('Size', 'Large'), choice('Heat', 'Spicy')] })).toBe('Large · Spicy');
+    expect(lineExtra({ ...line, variant_name: null, variants: [], addons: [{ addon_id: 'a', addon_name: 'Extra garlic sauce', addon_quantity: 1, addon_price_cents: 50 as never }] })).toBe(
       '+ Extra garlic sauce',
     );
   });

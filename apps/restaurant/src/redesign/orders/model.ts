@@ -268,12 +268,11 @@ export function formatAddress(a: NonNullable<Order['delivery_address']>): string
 }
 
 /**
- * A line's extra text: variants then add-ons ("Large · + Extra garlic sauce"). Lines carry
- * `variants[]` once #644 lands; until then `variant_name` (already joined). Read defensively.
+ * A line's extra text: variants then add-ons ("Large · + Extra garlic sauce"). Each chosen
+ * variant from `variants[]`; a line without them falls back to `variant_name` (already joined).
  */
 export function lineExtra(line: Order['lines'][number]): string | null {
-  const variants = (line as { variants?: { name?: string; variant_name?: string }[] | null }).variants;
-  const variantNames = Array.isArray(variants) && variants.length ? variants.map((v) => v.name ?? v.variant_name ?? '').filter(Boolean) : line.variant_name ? [line.variant_name] : [];
+  const variantNames = line.variants?.length ? line.variants.map((v) => v.variant_name).filter(Boolean) : line.variant_name ? [line.variant_name] : [];
   const addons = (line.addons ?? []).map((a) => `+ ${a.addon_quantity > 1 ? `${a.addon_quantity} × ` : ''}${a.addon_name}`);
   const parts = [...variantNames, ...addons];
   return parts.length ? parts.join(' · ') : null;
