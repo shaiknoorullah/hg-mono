@@ -6,10 +6,9 @@ package auth
 // P-01/P-03/P-04 operations. They are written to FAIL against the pre-fix code
 // and pass after the fix:
 //
-//   F1  disableTotp mandatory-MFA bypass: an account holding a restaurant role
-//       AND ADMIN/SUPER_ADMIN passed the P-05 matrix (via the restaurant role)
-//       and could strip its mandatory admin TOTP. Fix re-checks requiresTOTP on
-//       the full grant set → 403 MFA_REQUIRED, TOTP left intact.
+//   F1  (retired) disableTotp mandatory-MFA bypass. Two-step sign-in is now
+//       opt-in for staff, so staff may turn it off; TestTotp_StaffOptIn pins the
+//       new rules instead.
 //
 //   F2  changePassword session leak: the pre-fix flow revoked "all but the
 //       calling session" then minted a NEW session, leaving the caller's old
@@ -67,28 +66,22 @@ func seedCallingSession(t *testing.T, pool *pgxpool.Pool, accountID, amr string)
 // F1 — disableTotp mandatory-MFA bypass for multi-role accounts
 // ---------------------------------------------------------------------------
 
-// TestDisableTotp_MultiRoleAdminCannotStripMandatoryTOTP is the core F1
-// regression. An account with BOTH RESTAURANT_OWNER (grants the disable action)
-// and ADMIN (TOTP-mandatory) must be refused disableTotp with 403 MFA_REQUIRED,
-// and its TOTP must survive intact — otherwise a mandatory-MFA admin could
-// self-disable their second factor by riding the restaurant grant.
-func TestDisableTotp_MultiRoleAdminCannotStripMandatoryTOTP(t *testing.T) {
+// TestTotp_StaffOptIn: two-step sign-in is opt-in for staff (docs/decisions/
+// README.md, "Two-step sign-in is opt-in"). An admin enrols and confirms an
+// authenticator; while it is on, a second enrolment is refused (409) and leaves
+// it on, because starting again would replace a working authenticator with an
+// unconfirmed one; turning it off takes a current code (204) and clears it.
+func TestTotp_StaffOptIn(t *testing.T) {
 	pool := openTestPool(t)
-	email := uniqueEmail("dis_multirole")
+	email := uniqueEmail("totp_optin")
 	const pw = "SomePass12345!!"
-	accountID := seedEmailAccount(t, pool, email, pw, httpx.RoleRestaurantOwner)
-	grantRole(t, pool, accountID, httpx.RoleAdmin) // now TOTP-mandatory
+	accountID := seedEmailAccount(t, pool, email, pw, httpx.RoleAdmin)
 
-	// Principal carries the restaurant role, which passes the matrix authz for
-	// disableTotp. (Authz is per-role-set; the ADMIN grant is discovered in SQL.)
-	p := principalForTOTP(accountID, httpx.RoleRestaurantOwner, "pwd+totp")
+	p := principalForTOTP(accountID, httpx.RoleAdmin, "pwd")
 	srv := buildTOTPTestServer(t, pool, p)
 	defer srv.Close()
 
-	// Enrol + verify a real TOTP so the caller can present a VALID code — the
-	// bypass must be refused even with a correct code.
-	enrollResp, _ := http.Post(srv.URL+"/v1/auth/totp/enroll", "application/json",
-		strings.NewReader("{}"))
+	enrollResp, _ := http.Post(srv.URL+"/v1/auth/totp/enroll", "application/json", strings.NewReader("{}"))
 	var enrollOut struct {
 		Data struct {
 			ProvisioningURI string `json:"provisioning_uri"`
@@ -108,59 +101,27 @@ func TestDisableTotp_MultiRoleAdminCannotStripMandatoryTOTP(t *testing.T) {
 	}
 	verResp.Body.Close()
 
-	// Disable with a valid live code — must be REFUSED (mandatory MFA).
+	enrolled := func() bool {
+		t.Helper()
+		var at *time.Time
+		if err := pool.QueryRow(context.Background(),
+			`SELECT totp_enrolled_at FROM account WHERE id=$1`, accountID).Scan(&at); err != nil {
+			t.Fatalf("query account: %v", err)
+		}
+		return at != nil
+	}
+
+	again, _ := http.Post(srv.URL+"/v1/auth/totp/enroll", "application/json", strings.NewReader("{}"))
+	again.Body.Close()
+	if again.StatusCode != http.StatusConflict || !enrolled() {
+		t.Fatalf("second enroll while on: got %d enrolled=%v, want 409 and still on", again.StatusCode, enrolled())
+	}
+
 	code2, _ := totpCodeFromURI(t, enrollOut.Data.ProvisioningURI)
 	disResp := doJSON(t, srv, "/v1/auth/totp/disable", map[string]any{"totp_code": code2})
-	defer disResp.Body.Close()
-	if disResp.StatusCode != http.StatusForbidden {
-		t.Fatalf("multi-role admin disableTotp: got %d, want 403", disResp.StatusCode)
-	}
-	var out struct {
-		Error struct {
-			Code string `json:"code"`
-		} `json:"error"`
-	}
-	mustDecodeJSON(t, disResp, &out)
-	if out.Error.Code != string(CodeMFARequired) {
-		t.Fatalf("multi-role admin disableTotp: code = %q, want %q", out.Error.Code, CodeMFARequired)
-	}
-
-	// TOTP must remain enrolled — the disable must not have taken effect.
-	var secretEnc []byte
-	var enrolledAt *time.Time
-	if err := pool.QueryRow(context.Background(), `
-		SELECT totp_secret_enc, totp_enrolled_at FROM account WHERE id=$1`, accountID).
-		Scan(&secretEnc, &enrolledAt); err != nil {
-		t.Fatalf("query account: %v", err)
-	}
-	if len(secretEnc) == 0 || enrolledAt == nil {
-		t.Fatal("mandatory-MFA disable must NOT have cleared TOTP")
-	}
-}
-
-// TestDisableTotp_MultiRoleSuperAdminCannotStrip is the SUPER_ADMIN variant of F1.
-func TestDisableTotp_MultiRoleSuperAdminCannotStrip(t *testing.T) {
-	pool := openTestPool(t)
-	email := uniqueEmail("dis_multirole_sa")
-	const pw = "SomePass12345!!"
-	accountID := seedEmailAccount(t, pool, email, pw, httpx.RoleRestaurantManager)
-	grantRole(t, pool, accountID, httpx.RoleSuperAdmin)
-
-	// Pre-seed an enrolled TOTP so the only reason to refuse is the policy gate.
-	if _, err := pool.Exec(context.Background(), `
-		UPDATE account SET totp_secret_enc = '\x01020304', totp_enrolled_at = now()
-		WHERE id = $1`, accountID); err != nil {
-		t.Fatalf("seed totp: %v", err)
-	}
-
-	p := principalForTOTP(accountID, httpx.RoleRestaurantManager, "pwd+totp")
-	srv := buildTOTPTestServer(t, pool, p)
-	defer srv.Close()
-
-	resp := doJSON(t, srv, "/v1/auth/totp/disable", map[string]any{"totp_code": "123456"})
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusForbidden {
-		t.Fatalf("multi-role super-admin disableTotp: got %d, want 403", resp.StatusCode)
+	disResp.Body.Close()
+	if disResp.StatusCode != http.StatusNoContent || enrolled() {
+		t.Fatalf("admin disableTotp with a current code: got %d enrolled=%v, want 204 and off", disResp.StatusCode, enrolled())
 	}
 }
 

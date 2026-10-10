@@ -8,3 +8,4 @@ import './signin';
 import './trip';
 
 export {};
+import './account';

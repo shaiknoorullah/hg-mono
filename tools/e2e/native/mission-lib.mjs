@@ -98,7 +98,9 @@ function realityItemProblem(item, i) {
     case 'geo-route':
       return `${where}: geo-route must be a path like tools/e2e/native/routes/<name>.gpx, got ${JSON.stringify(v)}`;
     case 'network':
-      return `${where}: network must be gsm | edge | umts | full | offline | restore, got ${JSON.stringify(v)}`;
+      return `${where}: network must be gsm | edge | umts | full | offline | restore, got ${JSON.stringify(v)}` +
+        (/airplane/i.test(String(v)) ? '. Airplane mode is its own step: "- airplane: on" / "- airplane: off"' : '') +
+        (typeof v === 'string' && v.includes(' ') ? `. ${STEP_TIMING}` : '');
     case 'theme':
       return `${where}: theme must be light | dark, got ${JSON.stringify(v)}`;
     case 'font-scale':
@@ -117,6 +119,10 @@ function realityItemProblem(item, i) {
       return `${where}: "${k}" is not an allowed reality step (allowed: ${REALITY_KEYS.join(', ')})`;
   }
 }
+
+/** Why a free-text reality value cannot work, appended where a value reads like an instruction. */
+const STEP_TIMING =
+  'Reality steps run once, in order, before the flows; a change in the middle of a flow (airplane mode for one tap, a GPS jump) goes in the flow itself, e.g. Maestro setAirplaneMode, and anything else for the lab goes in explore';
 
 function ajvMessage(e) {
   const at = e.instancePath ? e.instancePath.slice(1).replace(/\//g, '.') : '(top level)';
