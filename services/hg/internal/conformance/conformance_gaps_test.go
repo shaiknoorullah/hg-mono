@@ -85,15 +85,18 @@ func (g gapsOrderGateway) CreateOrderIntent(ctx context.Context, in orders.Creat
 		return orders.CreateIntentResult{}, err
 	}
 	// advanceLocal: no real webhook in fake mode, so drive the two SYSTEM
-	// transitions the webhook would otherwise trigger.
-	_ = g.store.Transition(ctx, orders.TransitionRequest{
-		OrderID: in.OrderID, To: machine.StateAuthorized, Actor: machine.ActorSystem,
-		Reason: "payment authorised (local fake)",
-	})
-	_ = g.store.Transition(ctx, orders.TransitionRequest{
-		OrderID: in.OrderID, To: machine.StateRestaurantPending, Actor: machine.ActorSystem,
-		Reason: "presented to restaurant",
-	})
+	// transitions the webhook would otherwise trigger, for an authorised
+	// intent only, as the server does.
+	if payments.PaymentState(row.State) == payments.StateRequiresCapture {
+		_ = g.store.Transition(ctx, orders.TransitionRequest{
+			OrderID: in.OrderID, To: machine.StateAuthorized, Actor: machine.ActorSystem,
+			Reason: "payment authorised (local fake)",
+		})
+		_ = g.store.Transition(ctx, orders.TransitionRequest{
+			OrderID: in.OrderID, To: machine.StateRestaurantPending, Actor: machine.ActorSystem,
+			Reason: "presented to restaurant",
+		})
+	}
 	return orders.CreateIntentResult{ClientSecret: row.StripePaymentIntentID + "_secret"}, nil
 }
 

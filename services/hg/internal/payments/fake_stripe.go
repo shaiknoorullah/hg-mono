@@ -9,7 +9,8 @@ import (
 
 // fakeStripe is a LOCAL-DEV-ONLY StripeClient that fabricates successful
 // authorisations so an order can be placed end-to-end without real Stripe
-// credentials. It never contacts Stripe. It is wired ONLY in local env when
+// credentials; a few payment method ids make it fail instead
+// (fake_stripe_switch.go). It never contacts Stripe. It is wired ONLY in local env when
 // HG_STRIPE_SECRET_KEY is unset (see cmd/hg/main.go) and must never run in
 // production — the config gate there is the guarantee.
 type fakeStripe struct{}
@@ -27,6 +28,9 @@ func fakeID(prefix string) string {
 // (requires_capture) for the full amount, as the real gateway would after the
 // client confirms.
 func (fakeStripe) CreatePaymentIntent(_ context.Context, in CreateIntentInput) (*StripeIntent, error) {
+	if pi, ok, err := fakeIntent(in); ok {
+		return pi, err
+	}
 	id := fakeID("pi_fake_")
 	return &StripeIntent{
 		ID:                    id,
@@ -48,7 +52,7 @@ func (fakeStripe) CancelPaymentIntent(_ context.Context, id, _ string) (*StripeI
 }
 
 func (fakeStripe) GetPaymentIntent(_ context.Context, id string) (*StripeIntent, error) {
-	return &StripeIntent{ID: id, Status: "requires_capture"}, nil
+	return &StripeIntent{ID: id, Status: fakeStatus(id)}, nil
 }
 
 func (fakeStripe) CreateSetupIntent(_ context.Context, _, _ string) (*StripeSetupIntent, error) {

@@ -42,6 +42,8 @@ var ScenarioNames = []string{
 	"menu-reject",
 	"onboard-restaurant",
 	"onboard-rider",
+	"payment-failed",
+	"payment-unpaid",
 }
 
 // RunScenario signs in as the personas the scenario needs and calls the API
@@ -81,6 +83,10 @@ func RunScenario(ctx context.Context, baseURL, name string) error {
 		return scenarioOnboardRestaurant(ctx, baseURL)
 	case "onboard-rider":
 		return scenarioOnboardRider(ctx, baseURL)
+	case "payment-failed":
+		return scenarioPaymentFailed(ctx, baseURL)
+	case "payment-unpaid":
+		return scenarioPaymentUnpaid(ctx, baseURL)
 	default:
 		return fmt.Errorf("devworld: unknown scenario %q", name)
 	}
@@ -460,6 +466,7 @@ type apiClient struct {
 	surface           string
 	token             string
 	addressID         string
+	paymentMethod     string // sent with each order; see scenario_payments.go
 	http              *http.Client
 	positionNotBefore time.Time
 }
@@ -603,9 +610,11 @@ func (c *apiClient) place(ctx context.Context) (placedOrder, error) {
 	if jerr := json.Unmarshal(quoteData, &quote); jerr != nil || quote.ID == "" {
 		return placedOrder{}, errors.New("devworld: quote returned no id")
 	}
-	_, orderData, err := c.call(ctx, http.MethodPost, "/v1/orders", map[string]any{
-		"quote_id": quote.ID,
-	}, true)
+	orderBody := map[string]any{"quote_id": quote.ID}
+	if c.paymentMethod != "" {
+		orderBody["payment_method_id"] = c.paymentMethod
+	}
+	_, orderData, err := c.call(ctx, http.MethodPost, "/v1/orders", orderBody, true)
 	if err != nil {
 		return placedOrder{}, fmt.Errorf("devworld: order: %w", err)
 	}
