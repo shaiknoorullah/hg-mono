@@ -7,6 +7,7 @@ import './earnings';
 import './home';
 import './offer';
 import './signin';
+import './trip';
 
 export {};
 import './account';
