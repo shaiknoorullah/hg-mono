@@ -3,7 +3,9 @@
  * (`?date=YYYY-MM-DD` to edit, `?date=new` to add). A special date saves straight away, on its
  * own, and never waits for "Save hours": its PUT carries the weekly hours **as last loaded
  * from the server** (not the unsaved edits) plus the whole special-date list with this one
- * change, because `setRestaurantHours` replaces both.
+ * change, because `setRestaurantHours` replaces both. "Last loaded" means read again just
+ * before the PUT: another device may have changed the weekly hours or the special dates
+ * since this page loaded, and sending the page's own copy would silently undo that.
  */
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { HgApiError, isApiError } from '@hg/api-client';
@@ -19,6 +21,7 @@ import {
   describeOverride,
   fixTitle,
   isTwentyFour,
+  lastAllowedDate,
   overrideNightNote,
   sortOverrides,
   weekFromIntervals,
@@ -28,11 +31,10 @@ import {
 
 const VIEW_NOTE = 'Holidays and one-off hours replace your weekly hours on that date.';
 const EDIT_NOTE = 'Special dates save straight away, separately from your weekly hours.';
+const LIMIT_NOTE = 'You have 90 special dates, the most allowed. Remove one to add another.';
 
-/** "28 September 2027" as the last date allowed: today, one year on. */
-export function lastAllowedDate(today: string): string {
-  const [y, m, d] = today.split('-');
-  return `${Number(y) + 1}-${m}-${d}`;
+function loadHours(): Promise<RestaurantHours> {
+  return call(client.GET('/v1/restaurant/hours', {})) as Promise<RestaurantHours>;
 }
 
 // ── List pane ────────────────────────────────────────────────────────────────────────────
@@ -83,7 +85,7 @@ export function SpecialDatesList({ hours, today, editing, canEdit, onOpen, headi
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
         <p className="text-[14px] text-fg-secondary">{editing ? EDIT_NOTE : VIEW_NOTE}</p>
         {atLimit && canEdit ? (
-          <p className="mt-2 text-[14px] text-fg-primary">You have 90 special dates, the most allowed. Remove one to add another.</p>
+          <p className="mt-2 text-[14px] text-fg-primary">{LIMIT_NOTE}</p>
         ) : null}
         {upcoming.length === 0 ? (
           <div className="mt-4" data-testid="special-dates-empty">
@@ -225,12 +227,17 @@ export function SpecialDatePanel({ target, hours, today, editingWeek, startRemov
   const inEffect = existing?.date === today;
   const weeklyOn = (iso: string) => describeDay(week[weekdayOf(iso)]!);
 
-  const validate = (): Errors => {
+  /** Checks against a special-date list: the one loaded, then the one read just before the PUT. */
+  const validate = (list: readonly HoursOverride[]): Errors => {
     const e: Errors = {};
-    if (!date) e.date = 'Choose a date.';
+    // The contract allows 90 (RestaurantHoursInput maxItems) and the server does not check:
+    // the disabled Add date is not enough, since `?date=new` or `?date=<a new date>` opens Add.
+    const others = list.filter((o) => o.date !== existing?.date);
+    if (others.length >= MAX_SPECIAL_DATES) e.date = LIMIT_NOTE;
+    else if (!date) e.date = 'Choose a date.';
     else if (date > max) e.date = `This date is more than a year ahead. Choose a date up to ${formatCalendarDate(max)}.`;
     else if (date < today && date !== existing?.date) e.date = 'Choose today or a later date.';
-    else if (date !== existing?.date && hours.overrides.some((o) => o.date === date)) {
+    else if (date !== existing?.date && list.some((o) => o.date === date)) {
       e.date = `You already have a special date on ${formatDayDate(date)}. Edit that one instead.`;
     }
     if (kind === 'special') {
@@ -242,11 +249,11 @@ export function SpecialDatePanel({ target, hours, today, editingWeek, startRemov
     return e;
   };
 
-  const put = (overrides: HoursOverride[]) =>
+  const put = (intervals: RestaurantHours['intervals'], overrides: HoursOverride[]) =>
     call(
       client.PUT('/v1/restaurant/hours', {
         body: {
-          intervals: hours.intervals.map((iv) => ({
+          intervals: intervals.map((iv) => ({
             day_of_week: iv.day_of_week,
             opens_at: iv.opens_at,
             closes_at: iv.closes_at,
@@ -258,7 +265,7 @@ export function SpecialDatePanel({ target, hours, today, editingWeek, startRemov
     ) as Promise<RestaurantHours>;
 
   const save = async () => {
-    const e = validate();
+    const e = validate(hours.overrides);
     setServerRefused(false);
     setErrors(e);
     if (Object.keys(e).length > 0) {
@@ -272,13 +279,23 @@ export function SpecialDatePanel({ target, hours, today, editingWeek, startRemov
       closes_at: kind === 'closed' ? null : closes,
       reason: reason.trim() ? reason.trim() : null,
     };
-    const others = hours.overrides.filter((o) => o.date !== existing?.date);
-    const overrides = sortOverrides([...others, entry]);
-    const at = overrides.indexOf(entry);
+    let at = -1;
     setSaving(true);
     setFailed(false);
     try {
-      const next = await put(overrides);
+      // Merge this one change into the special dates as they are now, and send the weekly
+      // hours the server has now.
+      const current = await loadHours();
+      const fresh = validate(current.overrides);
+      if (Object.keys(fresh).length > 0) {
+        setErrors(fresh);
+        setTries((t) => t + 1);
+        return;
+      }
+      const others = current.overrides.filter((o) => o.date !== existing?.date);
+      const overrides = sortOverrides([...others, entry]);
+      at = overrides.indexOf(entry);
+      const next = await put(current.intervals, overrides);
       onSaved(next, { date, removed: false });
     } catch (err) {
       if (isApiError(err) && (err as HgApiError).code === 'VALIDATION_FAILED') {
@@ -307,7 +324,11 @@ export function SpecialDatePanel({ target, hours, today, editingWeek, startRemov
     setSaving(true);
     setFailed(false);
     try {
-      const next = await put(hours.overrides.filter((o) => o.date !== existing.date));
+      const current = await loadHours();
+      const next = await put(
+        current.intervals,
+        current.overrides.filter((o) => o.date !== existing.date),
+      );
       toast.show({
         variant: 'success',
         title: 'Special date removed',

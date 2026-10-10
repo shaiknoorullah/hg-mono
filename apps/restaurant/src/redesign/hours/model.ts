@@ -138,6 +138,23 @@ export function validateWeek(week: Week): HoursIssue[] {
     issues.push(i);
   };
 
+  // Up to 3 ranges a day. Add stops at 3, but hours loaded from the server (which checks no
+  // count) can already have more, and must not be saved back as they are. With 7 days of at
+  // most 3, this also keeps the week within the contract's 21 (RestaurantHoursInput maxItems).
+  for (let day = 0; day < 7; day++) {
+    const ranges = week[day]!;
+    for (let range = MAX_RANGES_PER_DAY; range < ranges.length; range++) {
+      push({
+        day,
+        range,
+        field: 'closes',
+        message: 'Up to 3 time ranges a day. Remove this one or another.',
+        summary: `${dayName(day)}: more than 3 time ranges`,
+        target: DAY_IDS[day]!,
+      });
+    }
+  }
+
   type Span = { day: number; range: number; start: number; end: number; opens: string; closes: string };
   const spans: Span[] = [];
   for (let day = 0; day < 7; day++) {
@@ -246,6 +263,17 @@ export function weekCovers(week: Week, day: number, minutes: number): boolean {
 }
 
 // ── Special dates ────────────────────────────────────────────────────────────────────────
+
+/**
+ * The last date a special date may have: today one year on ("28 September 2027"). 29 February
+ * becomes 28 February the next year, never an impossible date.
+ */
+export function lastAllowedDate(today: string): string {
+  const [y, m, d] = today.split('-').map(Number) as [number, number, number];
+  const lastDay = new Date(Date.UTC(y + 1, m, 0)).getUTCDate();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${y + 1}-${pad(m)}-${pad(Math.min(d, lastDay))}`;
+}
 
 /** The hours line of a special date: "Closed all day" | "12:00 pm – 8:00 pm" | "… (past midnight)". */
 export function describeOverride(o: HoursOverride): string {

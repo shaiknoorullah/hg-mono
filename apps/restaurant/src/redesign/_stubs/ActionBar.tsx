@@ -31,9 +31,12 @@ export interface ActionBarProps {
 export function ActionBar({ title, description, hint, actions, confirm, testId }: ActionBarProps) {
   const id = useId();
   const titleRef = useRef<HTMLHeadingElement>(null);
+  // Focus moves when the confirmation opens or changes kind, not on every parent render (the
+  // parent builds a fresh `confirm` object each time; a poll or a toast re-renders it).
+  const confirmTitle = confirm?.title ?? null;
   useEffect(() => {
-    if (confirm) titleRef.current?.focus();
-  }, [confirm]);
+    if (confirmTitle !== null) titleRef.current?.focus();
+  }, [confirmTitle]);
 
   if (confirm) {
     return (

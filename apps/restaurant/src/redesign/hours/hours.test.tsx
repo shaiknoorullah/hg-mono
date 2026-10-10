@@ -5,11 +5,12 @@
  * fixtures requested in #676).
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { FakeRealtimeSocket } from '@hg/ui-web/testing';
 import { consoleRoutes, errorBody, fixture, installFakeApi, restaurantPrincipal, type Handler } from '../test/fakeApi';
 import { renderRedesign } from '../test/render';
 import { addDays, formatTime, isoDateIn } from '../format/time';
+import { ActionBar, Button, type ActionBarConfirm } from '../ds';
 
 afterEach(() => {
   cleanup();
@@ -19,6 +20,18 @@ afterEach(() => {
 
 const TZ = 'America/Toronto';
 const today = () => isoDateIn(Date.now(), TZ);
+
+/**
+ * Fixes the clock (Date only; timers stay real so waitFor and the fake API run) for the tests
+ * whose outcome depends on the time of day: the weekly save asks "Save and close now?" only
+ * when the new hours have you closed now. The fixture's Monday is 11:00 am – 10:00 pm.
+ */
+const MONDAY_NOON = '2026-10-12T16:00:00Z'; // Monday 12 October 2026, 12:00 pm in Toronto
+const MONDAY_930PM = '2026-10-13T01:30:00Z'; // Monday 12 October 2026, 9:30 pm in Toronto
+function clockAt(iso: string) {
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(new Date(iso));
+}
 
 function openAvailability(patch: Record<string, unknown> = {}) {
   return { ...fixture('restaurant_open_state_open'), pause_until: null, missed_order_count: 0, reason: 'Open and accepting orders.', ...patch };
@@ -303,6 +316,7 @@ describe('Hours: weekly editor', () => {
   });
 
   it('saves: re-reads first, sends the edited week with crosses_midnight and the special dates the server has, then shows the new hours', async () => {
+    clockAt(MONDAY_NOON);
     const { api, hours } = setup();
     await openHours();
     fireEvent.click(screen.getByRole('button', { name: 'Edit hours' }));
@@ -316,8 +330,8 @@ describe('Hours: weekly editor', () => {
     hours.hours = { ...hours.hours, overrides: [...hours.hours.overrides, added] };
     const getsBefore = api.callsTo('GET /v1/restaurant/hours').length;
     fireEvent.click(screen.getByRole('button', { name: 'Save hours' }));
-    const ask = screen.queryByRole('alertdialog', { name: 'Save and close now?' });
-    if (ask) fireEvent.click(within(ask).getByRole('button', { name: 'Save and close now' }));
+    // Monday noon is inside the new hours: nothing to ask.
+    expect(screen.queryByRole('alertdialog')).toBeNull();
     expect(await screen.findByText('Hours saved')).toBeTruthy();
     expect(screen.getByText('Customers see your new hours now.')).toBeTruthy();
     expect(api.callsTo('GET /v1/restaurant/hours').length).toBeGreaterThan(getsBefore);
@@ -332,14 +346,14 @@ describe('Hours: weekly editor', () => {
   });
 
   it('stops when the hours changed while editing (HoursConflict); "Save mine anyway" saves', async () => {
+    clockAt(MONDAY_NOON);
     const { hours } = setup();
     await openHours();
     fireEvent.click(screen.getByRole('button', { name: 'Edit hours' }));
     type(within(day('mon')).getByLabelText('Closes'), '9:00 pm');
     hours.hours = { ...hours.hours, intervals: hours.hours.intervals.map((i: any) => (i.day_of_week === 2 ? { ...i, closes_at: '23:00' } : i)) };
     fireEvent.click(screen.getByRole('button', { name: 'Save hours' }));
-    const ask = screen.queryByRole('alertdialog', { name: 'Save and close now?' });
-    if (ask) fireEvent.click(within(ask).getByRole('button', { name: 'Save and close now' }));
+    expect(screen.queryByRole('alertdialog')).toBeNull();
     const banner = await screen.findByTestId('hours-conflict');
     expect(within(banner).getByText('Your hours were changed while you were editing')).toBeTruthy();
     expect(hours.puts).toHaveLength(0);
@@ -350,8 +364,9 @@ describe('Hours: weekly editor', () => {
     expect(hours.puts).toHaveLength(1);
   });
 
-  it('maps a server 422 to the day and keeps the edits; a network failure keeps them too', async () => {
-    const { api } = setup();
+  it('maps a server 422 to the day and keeps the edits; a network failure keeps them, and "Save again" saves the edits as they are then', async () => {
+    clockAt(MONDAY_NOON);
+    const { api, hours } = setup();
     await openHours();
     fireEvent.click(screen.getByRole('button', { name: 'Edit hours' }));
     type(within(day('mon')).getByLabelText('Closes'), '9:00 pm');
@@ -362,8 +377,7 @@ describe('Hours: weekly editor', () => {
     });
     const save = () => {
       fireEvent.click(screen.getByRole('button', { name: 'Save hours' }));
-      const ask = screen.queryByRole('alertdialog', { name: 'Save and close now?' });
-      if (ask) fireEvent.click(within(ask).getByRole('button', { name: 'Save and close now' }));
+      expect(screen.queryByRole('alertdialog')).toBeNull();
     };
     save();
     const summary = await screen.findByTestId('hours-error-summary');
@@ -376,9 +390,57 @@ describe('Hours: weekly editor', () => {
     expect(screen.getByText('Your changes are still here. Check your connection and save again.')).toBeTruthy();
     expect(editor()).toBeTruthy();
     expect((within(day('mon')).getByLabelText('Closes') as HTMLInputElement).value).toBe('9:00 pm');
+    // Keep editing after the failure, then "Save again": the newer edit is what is sent.
+    type(within(day('mon')).getByLabelText('Closes'), '8:00 pm');
+    api.set('PUT /v1/restaurant/hours', async (req) => {
+      const body = await req.json();
+      hours.puts.push(body);
+      hours.hours = { timezone: TZ, intervals: body.intervals, overrides: body.overrides };
+      return { body: hours.hours };
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Save again' }));
+    expect(await screen.findByText('Hours saved')).toBeTruthy();
+    expect(hours.puts.at(-1).intervals.find((i: any) => i.day_of_week === 1)).toMatchObject({ opens_at: '11:00', closes_at: '20:00' });
   });
 
-  it('limits: 3 ranges a day and 21 in all disable Add with a spoken reason', async () => {
+  it('closes you now (HoursClosesNow): asks in the save bar, "Keep editing" first; with a conflict too it still saves, once, and "Save and go to" still goes', async () => {
+    clockAt(MONDAY_930PM);
+    const { hours } = setup();
+    await openHours();
+    fireEvent.click(screen.getByRole('button', { name: 'Edit hours' }));
+    type(within(day('mon')).getByLabelText('Closes'), '9:00 pm');
+    fireEvent.click(screen.getByRole('button', { name: 'Save hours' }));
+    const ask = screen.getByRole('alertdialog', { name: 'Save and close now?' });
+    expect(within(ask).getByText('It’s Monday 9:30 pm and your new hours end at 9:00 pm today. Saving closes you now. Orders in progress still complete.')).toBeTruthy();
+    expect(within(ask).getAllByRole('button').map((b) => b.textContent)).toEqual(['Keep editing', 'Save and close now']);
+    expect(document.activeElement).toBe(within(ask).getByRole('heading', { name: 'Save and close now?' }));
+    fireEvent.click(within(ask).getByRole('button', { name: 'Keep editing' }));
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+    expect(hours.puts).toHaveLength(0);
+
+    // The hours change elsewhere meanwhile: confirm closing, meet the conflict, save anyway.
+    hours.hours = { ...hours.hours, intervals: hours.hours.intervals.map((i: any) => (i.day_of_week === 2 ? { ...i, closes_at: '23:00' } : i)) };
+    fireEvent.click(screen.getByRole('button', { name: 'Save hours' }));
+    fireEvent.click(within(screen.getByRole('alertdialog', { name: 'Save and close now?' })).getByRole('button', { name: 'Save and close now' }));
+    const banner = await screen.findByTestId('hours-conflict');
+    expect(hours.puts).toHaveLength(0);
+    fireEvent.click(within(banner).getByRole('button', { name: 'Save mine anyway' }));
+    expect(await screen.findByText('Hours saved')).toBeTruthy();
+    expect(hours.puts).toHaveLength(1);
+    expect(hours.puts[0].intervals.find((i: any) => i.day_of_week === 1)).toMatchObject({ closes_at: '21:00' });
+
+    // Leaving with unsaved changes: "Save and go to Live orders" asks about closing, then goes.
+    fireEvent.click(screen.getByRole('button', { name: 'Edit hours' }));
+    type(within(day('mon')).getByLabelText('Closes'), '8:00 pm');
+    fireEvent.click(screen.getAllByRole('link', { name: /^Live orders/ })[0]!);
+    const leave = screen.getByRole('alertdialog', { name: 'Leave without saving?' });
+    fireEvent.click(within(leave).getByRole('button', { name: 'Save and go to Live orders' }));
+    fireEvent.click(within(screen.getByRole('alertdialog', { name: 'Save and close now?' })).getByRole('button', { name: 'Save and close now' }));
+    await waitFor(() => expect(hours.puts).toHaveLength(2));
+    await waitFor(() => expect(screen.queryByTestId('hours-page')).toBeNull());
+  });
+
+  it('limits: at 3 ranges a day Add is disabled with a spoken reason, up to 21 in all', async () => {
     const hours = fixture('restaurant_hours_standard');
     hours.intervals = [0, 1, 2, 3, 4, 5, 6].flatMap((d) => [
       { day_of_week: d, opens_at: '06:00', closes_at: '08:00', crosses_midnight: false },
@@ -393,9 +455,10 @@ describe('Hours: weekly editor', () => {
     expect(friAdd.getAttribute('aria-disabled')).toBe('true');
     fireEvent.click(within(day('sun')).getByRole('button', { name: 'Add hours on Sunday' }));
     expect(screen.getByText(/21 of 21 time ranges used\./)).toBeTruthy();
-    // Every day now hits a limit: Sunday its 3, the rest theirs.
-    expect(within(day('sun')).getByRole('button', { name: /Not available: up to 3 time ranges a day/ })).toBeTruthy();
-    expect(within(day('mon')).getByRole('button', { name: /^Add hours on Monday\. Not available/ })).toBeTruthy();
+    // 21 of 21 is every day at 3 (7 × 3), so each Add gives the per-day reason.
+    for (const id of ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']) {
+      expect(within(day(id)).getByRole('button', { name: /Not available: up to 3 time ranges a day\.$/ }).getAttribute('aria-disabled')).toBe('true');
+    }
   });
 
   it('closing a day removes its ranges with Undo', async () => {
@@ -407,6 +470,30 @@ describe('Hours: weekly editor', () => {
     fireEvent.click(within(day('sat')).getByRole('button', { name: 'Undo closing Saturday' }));
     expect((within(day('sat')).getByLabelText('Opens') as HTMLInputElement).value).toBe('11:00 am');
     expect(screen.getByText('No changes yet')).toBeTruthy();
+  });
+});
+
+describe('Hours: save bar confirmation', () => {
+  it('takes focus when it opens, not again when the page re-renders with a new confirm object', () => {
+    const confirm = (): ActionBarConfirm => ({
+      title: 'Leave without saving?',
+      body: 'Body',
+      onCancel: () => {},
+      actions: (
+        <Button variant="tertiary" size="md" onPress={() => {}}>
+          Keep editing
+        </Button>
+      ),
+    });
+    const bar = (c: ActionBarConfirm | null) => <ActionBar title="No changes yet" actions={null} confirm={c} />;
+    const { rerender } = render(bar(null));
+    rerender(bar(confirm()));
+    expect(document.activeElement).toBe(screen.getByRole('heading', { name: 'Leave without saving?' }));
+    const keep = screen.getByRole('button', { name: 'Keep editing' });
+    keep.focus();
+    // A poll or a toast re-renders the page, which builds a fresh confirm object.
+    rerender(bar(confirm()));
+    expect(document.activeElement).toBe(keep);
   });
 });
 
@@ -474,6 +561,48 @@ describe('Hours: special dates', () => {
     expect(await screen.findByText('Special date removed')).toBeTruthy();
     expect(hours.puts[0].overrides.map((o: any) => o.date)).toEqual(['2027-03-20']);
     expect(screen.queryByText('Friday 25 December 2026')).toBeNull();
+  });
+
+  it('reads the hours again before saving a date, so changes made elsewhere since the page loaded survive (add and remove)', async () => {
+    const { hours } = setup();
+    await openHours();
+    // Another device changes Tuesday and adds a special date after this page loaded.
+    const elsewhere = { date: addDays(today(), 40), is_closed: true, opens_at: null, closes_at: null, reason: 'Added elsewhere' };
+    hours.hours = {
+      ...hours.hours,
+      intervals: hours.hours.intervals.map((i: any) => (i.day_of_week === 2 ? { ...i, closes_at: '23:00' } : i)),
+      overrides: [...hours.hours.overrides, elsewhere],
+    };
+    fireEvent.click(screen.getByRole('button', { name: 'Add a special date' }));
+    let panel = await screen.findByRole('complementary', { name: 'Special date' });
+    const date = addDays(today(), 30);
+    fireEvent.change(panel.querySelector('#sd-date')!, { target: { value: date } });
+    fireEvent.click(within(panel).getByRole('button', { name: 'Save date' }));
+    await waitFor(() => expect(hours.puts).toHaveLength(1));
+    expect(hours.puts[0].overrides.map((o: any) => o.date).sort()).toEqual(['2026-12-25', '2027-03-20', date, elsewhere.date].sort());
+    expect(hours.puts[0].intervals.find((i: any) => i.day_of_week === 2)).toMatchObject({ closes_at: '23:00' });
+
+    // Again before a remove: a date added elsewhere in between is kept.
+    const another = { date: addDays(today(), 60), is_closed: true, opens_at: null, closes_at: null, reason: null };
+    hours.hours = { ...hours.hours, overrides: [...hours.hours.overrides, another] };
+    fireEvent.click(await screen.findByRole('button', { name: 'Edit special date Friday 25 December 2026' }));
+    panel = await screen.findByRole('complementary', { name: 'Special date' });
+    fireEvent.click(within(panel).getByRole('button', { name: 'Remove date' }));
+    fireEvent.click(within(within(panel).getByRole('alertdialog')).getByRole('button', { name: 'Remove now' }));
+    await waitFor(() => expect(hours.puts).toHaveLength(2));
+    expect(hours.puts[1].overrides.map((o: any) => o.date).sort()).toEqual(['2027-03-20', date, elsewhere.date, another.date].sort());
+  });
+
+  it('refuses a 91st special date even when Add is reached by its address (?date=new)', async () => {
+    const hours = fixture('restaurant_hours_standard');
+    hours.overrides = Array.from({ length: 90 }, (_, i) => ({ date: addDays(today(), i + 1), is_closed: true, opens_at: null, closes_at: null, reason: null }));
+    const { hours: store } = setup({ hours });
+    await renderRedesign('/hours?date=new');
+    const panel = await screen.findByRole('complementary', { name: 'Special date' });
+    fireEvent.change(panel.querySelector('#sd-date')!, { target: { value: addDays(today(), 200) } });
+    fireEvent.click(within(panel).getByRole('button', { name: 'Save date' }));
+    expect(await within(panel).findByText('You have 90 special dates, the most allowed. Remove one to add another.')).toBeTruthy();
+    expect(store.puts).toHaveLength(0);
   });
 
   it('a server refusal is reported only in the panel', async () => {

@@ -60,7 +60,14 @@ function loadHours(): Promise<RestaurantHours> {
 
 const EDIT_ROLES = new Set(['RESTAURANT_OWNER', 'RESTAURANT_MANAGER']);
 
-type BarAsk = { kind: 'closes-now'; body: string } | { kind: 'leave'; to: string; label: string } | null;
+interface SaveOpts {
+  skipConflict?: boolean;
+  skipClosesNow?: boolean;
+  then?: string;
+}
+
+/** What the save bar is asking. A closes-now ask keeps the save's options (skipConflict, then). */
+type BarAsk = { kind: 'closes-now'; body: string; opts: SaveOpts } | { kind: 'leave'; to: string; label: string } | null;
 
 export function HoursPage() {
   const { core, profile, config, timezone: profileTz } = useConsole();
@@ -92,7 +99,8 @@ export function HoursPage() {
   const [attempt, setAttempt] = useState(0);
   const [serverIssueList, setServerIssueList] = useState<HoursIssue[] | null>(null);
   const [saving, setSaving] = useState(false);
-  const [conflict, setConflict] = useState<RestaurantHours | null>(null);
+  // The conflict keeps the options of the save it stopped (a confirmed closes-now, `then`).
+  const [conflict, setConflict] = useState<{ current: RestaurantHours; opts: SaveOpts } | null>(null);
   const [showCurrent, setShowCurrent] = useState(false);
   const [ask, setAsk] = useState<BarAsk>(null);
   const summaryRef = useRef<HTMLDivElement>(null);
@@ -199,7 +207,7 @@ export function HoursPage() {
   };
 
   // ── Saving the week ──
-  const save = async (opts: { skipConflict?: boolean; skipClosesNow?: boolean; then?: string } = {}) => {
+  const save = async (opts: SaveOpts = {}) => {
     const found = validateWeek(draft);
     setServerIssueList(null);
     if (found.length > 0) {
@@ -220,7 +228,7 @@ export function HoursPage() {
         const body = ended
           ? `${it} and your new hours end at ${formatClock(ended)} today. Saving closes you now. Orders in progress still complete.`
           : `${it} and your new hours have you closed now. Saving closes you now. Orders in progress still complete.`;
-        setAsk({ kind: 'closes-now', body });
+        setAsk({ kind: 'closes-now', body, opts });
         return;
       }
     }
@@ -232,7 +240,7 @@ export function HoursPage() {
       // Re-read just before writing: someone may have changed the hours meanwhile.
       const current = await loadHours();
       if (!opts.skipConflict && !sameIntervals(current.intervals, startIntervals)) {
-        setConflict(current);
+        setConflict({ current, opts });
         setShowCurrent(false);
         return;
       }
@@ -255,13 +263,17 @@ export function HoursPage() {
           variant: 'danger',
           title: 'Couldn’t save your hours',
           description: 'Your changes are still here. Check your connection and save again.',
-          action: { label: 'Save again', onAction: () => void save(opts) },
+          // Through the ref: the toast outlives this render, and "Save again" must save the
+          // edits as they are when pressed, not the draft this failed save had.
+          action: { label: 'Save again', onAction: () => void saveRef.current(opts) },
         });
       }
     } finally {
       setSaving(false);
     }
   };
+  const saveRef = useRef(save);
+  saveRef.current = save;
 
   // ── Special dates ──
   const openPanel = (date: string, opener: string, remove = false) => {
@@ -342,6 +354,7 @@ export function HoursPage() {
   function renderBar() {
     let confirm: ActionBarConfirm | null = null;
     if (ask?.kind === 'closes-now') {
+      const pending = ask.opts;
       confirm = {
         title: 'Save and close now?',
         body: ask.body,
@@ -351,7 +364,7 @@ export function HoursPage() {
             <Button variant="tertiary" size="md" onPress={() => setAsk(null)}>
               Keep editing
             </Button>
-            <Button variant="primary" size="md" onPress={() => void save({ skipClosesNow: true })}>
+            <Button variant="primary" size="md" onPress={() => void save({ ...pending, skipClosesNow: true })}>
               Save and close now
             </Button>
           </>
@@ -471,7 +484,7 @@ export function HoursPage() {
                 {UI_DAYS.map((d) => (
                   <div key={d} className="contents">
                     <dt className="font-semibold">{dayName(d)}</dt>
-                    <dd className="tabular-nums">{describeDay(weekFromIntervals(conflict.intervals)[d]!)}</dd>
+                    <dd className="tabular-nums">{describeDay(weekFromIntervals(conflict.current.intervals)[d]!)}</dd>
                   </div>
                 ))}
               </dl>
@@ -480,7 +493,7 @@ export function HoursPage() {
               <Button variant="tertiary" size="md" aria-expanded={showCurrent} onPress={() => setShowCurrent((s) => !s)}>
                 See current hours
               </Button>
-              <Button variant="ghost" size="md" onPress={() => void save({ skipConflict: true })}>
+              <Button variant="ghost" size="md" onPress={() => void save({ ...conflict.opts, skipConflict: true })}>
                 Save mine anyway
               </Button>
             </div>

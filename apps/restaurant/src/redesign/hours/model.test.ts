@@ -4,7 +4,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { formatClock, parseClock } from '../format/time';
-import { emptyWeek, intervalsFromWeek, newKey, validateWeek, weekCovers, type Week } from './model';
+import { emptyWeek, intervalsFromWeek, lastAllowedDate, newKey, validateWeek, weekCovers, type Week } from './model';
 
 function week(spec: Record<number, [string, string][]>): Week {
   const w = emptyWeek();
@@ -41,5 +41,16 @@ describe('hours model', () => {
     expect(['12 am', '12:30 pm', '5pm', '5:05 p.m.', '17:30', '9'].map(parseClock)).toEqual(['00:00', '12:30', '17:00', '17:05', '17:30', '09:00']);
     expect(['13 pm', '5:75', 'noon', ''].map(parseClock)).toEqual([null, null, null, null]);
     expect(['00:00', '12:00', '23:59'].map(formatClock)).toEqual(['12:00 am', '12:00 pm', '11:59 pm']);
+  });
+
+  it('hours loaded with more than 3 ranges on a day cannot be saved back as they are', () => {
+    const issues = validateWeek(week({ 1: [['06:00', '07:00'], ['08:00', '09:00'], ['10:00', '11:00'], ['12:00', '13:00']] }));
+    expect(issues.map((i) => [i.summary, i.range, i.target])).toEqual([['Monday: more than 3 time ranges', 3, 'mon']]);
+  });
+
+  it('the last date allowed is one year on, and 29 February becomes 28 February', () => {
+    expect(lastAllowedDate('2026-09-28')).toBe('2027-09-28');
+    expect(lastAllowedDate('2028-02-29')).toBe('2029-02-28');
+    expect(lastAllowedDate('2027-02-28')).toBe('2028-02-28');
   });
 });

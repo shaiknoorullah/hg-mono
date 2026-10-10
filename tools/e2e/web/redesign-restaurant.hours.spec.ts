@@ -468,7 +468,8 @@ test.describe('Hours (real API)', () => {
       const until = /until (\d{1,2}:\d{2} (?:am|pm))/.exec(label)![1];
       await item.click();
       await expect(badge).toHaveText('Paused');
-      await expect(page.getByTestId('right-now-reason')).toHaveText(new RegExp(`^Paused until ${until!.replace(':', ':')}\\.$|^Paused until \\d{1,2}:\\d{2} (am|pm)\\.$`));
+      // The label read back from the server names the same end time the menu item offered.
+      await expect(page.getByTestId('right-now-reason')).toHaveText(`Paused until ${until}.`);
       await shot(page, 'real-paused');
       await page.getByRole('button', { name: 'Resume now' }).click();
       await page.getByRole('group', { name: 'Resume new orders now?' }).getByRole('button', { name: 'Resume now' }).click();
