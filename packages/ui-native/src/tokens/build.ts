@@ -419,6 +419,39 @@ function cssOnlyRoleColors(color: ThemeColorsLoose): Record<string, unknown> {
   return { feedback, skeleton };
 }
 
+/**
+ * Form-control roles for the className tier (design-system N3): the `action` group's control
+ * fills (`--hg-action-control`, the checkbox tick box and radio dot; `--hg-action-track-on`, the
+ * switch track when on). Like `cssOnlyRoleVars`, written to `global.<theme>.css` only, so
+ * `vars.ts` and the released apps' bundle are unchanged. Kept apart from `cssOnlyRoleVars` so
+ * work packages that add roles in parallel merge without touching each other's lines.
+ */
+export function formRoleVars(color: ThemeColorsLoose): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const leaf of ['control', 'trackOn'] as const) {
+    const value = color.action?.[leaf];
+    if (typeof value === 'string') out[`--hg-action-${kebab(leaf)}`] = value;
+  }
+  return out;
+}
+
+/**
+ * Tailwind colour utilities for the form roles: `bg-action-control`, `bg-action-track-on`, and
+ * the `state` overlays that `vars.ts` already writes (`--hg-state-pressed-overlay`) but the
+ * preset never exposed (`active:bg-state-pressed-overlay`, `bg-state-selected-tint`).
+ */
+function formRoleColors(color: ThemeColorsLoose): Record<string, unknown> {
+  const state = Object.fromEntries(
+    Object.entries(color.state ?? {})
+      .filter(([, v]) => typeof v === 'string')
+      .map(([leaf]) => [kebab(leaf), `var(--hg-state-${kebab(leaf)})`]),
+  );
+  return {
+    action: { control: 'var(--hg-action-control)', 'track-on': 'var(--hg-action-track-on)' },
+    state,
+  };
+}
+
 /* ----------------------------------------------------------------- builder */
 
 export function buildFiles(doc: Dtcg): Record<string, string> {
@@ -625,6 +658,7 @@ export function buildFiles(doc: Dtcg): Record<string, string> {
     const withRoles = (scheme: 'light' | 'dark') => ({
       ...(varsOut[themeName]![scheme] as Record<string, string>),
       ...cssOnlyRoleVars(t[scheme].color, scheme, tokens.color),
+      ...formRoleVars(t[scheme].color),
     });
     files[`global.${themeName}.css`] = nativewindGlobalCss(
       themeName,
@@ -653,6 +687,7 @@ export function buildFiles(doc: Dtcg): Record<string, string> {
    */
   Object.assign(presetColors, RNR_PRESET_COLORS);
   Object.assign(presetColors, cssOnlyRoleColors((themes.customer as any).light.color));
+  Object.assign(presetColors, formRoleColors((themes.customer as any).light.color));
   presetColors.border = { DEFAULT: 'var(--border)', ...(presetColors.border as object) };
   presetColors.accent = {
     ...(presetColors.accent as object),
