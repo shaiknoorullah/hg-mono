@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -14,6 +15,10 @@ import (
 type RowQuerier interface {
 	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
 }
+
+// ErrDevClockNotLocal is returned whenever HG_ENV is not local: the
+// developer clock does nothing in staging or production, whoever calls it.
+var ErrDevClockNotLocal = errors.New("orders: the developer clock runs only when HG_ENV is local")
 
 // ErrDeadlineNotMoved is returned when the order is no longer in the state and
 // deadline action the caller expected, so nothing was changed.
@@ -31,7 +36,16 @@ var ErrDeadlineNotMoved = errors.New("orders: the order is no longer where the c
 // order_deadline_required CHECK demands. The lease is cleared so the next
 // sweep claims the row at once, as reArm does. A deadline already due by then
 // is left as it is and returned.
+//
+// It refuses before touching the database unless HG_ENV is local, the
+// environment the server's own configuration reads (internal/config), so a
+// staging or production process cannot move a deadline even if code there
+// called it. Nothing in cmd/hg can: devclock_guard_test.go checks that only
+// internal/devworld calls it and that cmd/hg does not link internal/devworld.
 func BringDeadlineForward(ctx context.Context, q RowQuerier, orderID, state, action string, in time.Duration) (time.Time, error) {
+	if os.Getenv("HG_ENV") != "local" {
+		return time.Time{}, ErrDevClockNotLocal
+	}
 	if in < 0 {
 		return time.Time{}, errors.New("orders: a deadline is only ever brought forward to now or later")
 	}

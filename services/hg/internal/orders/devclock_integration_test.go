@@ -10,6 +10,7 @@ import (
 // The developer clock only ever brings a deadline earlier, only for the
 // state and action named, and the runner then fires the real action.
 func TestIntegrationBringDeadlineForwardFiresTheRealAction(t *testing.T) {
+	t.Setenv("HG_ENV", "local")
 	pool := testPool(t)
 	st := NewStore(pool)
 	ctx := context.Background()
