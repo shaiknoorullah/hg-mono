@@ -48,7 +48,7 @@ These are the rules the existing names already follow; new fixtures follow them 
 
 | Prefix | Fixtures | The suffix names | Example |
 |---|---:|---|---|
-| `error_` | 104 | `error_<code>` for a code's plain meaning; `error_<context>_<situation>` when one code means several things (`error_menu_locked_banned`, `error_staff_email_in_use`). Status and code live in the fixture, never only in the name. | `error_quote_stale` |
+| `error_` | 107 | `error_<code>` for a code's plain meaning; `error_<context>_<situation>` when one code means several things (`error_menu_locked_banned`, `error_staff_email_in_use`). Status and code live in the fixture, never only in the name. | `error_quote_stale` |
 | `realtime_` | 22 | `realtime_<area>_<story>`: a whole WebSocket script, played over one connection. Areas: `order`, `payment`, `rider`, `restaurant`, `admin_ops`, plus the transport stories `gap_and_resume` and `control_frames`. | `realtime_restaurant_offer_burst` |
 | `realtime_ticket` | 1 | Not a script: the single-use ticket `createRealtimeTicket` returns. | `realtime_ticket` |
 | `order_admin_view_` | 4 | An `OrderState` (lower case) as the staff projection shows it. | `order_admin_view_disputed` |
@@ -84,7 +84,7 @@ These are the rules the existing names already follow; new fixtures follow them 
 | `menu_` | 27 | A menu, item, category or version state. | `menu_version_pending_review` |
 | `rider_availability_` | 4 | A `RiderAvailabilityState`, lower case. | `rider_availability_online_idle` |
 | `payout_` | 15 | A `PayoutState`, lower case, or a payout run. | `payout_held` |
-| (other) | 98 | One-off subjects named for what they are (`public_config`, `cart_many_lines`, `quote_standard`). | `public_config` |
+| (other) | 109 | One-off subjects named for what they are (`public_config`, `cart_many_lines`, `quote_standard`). | `public_config` |
 
 ## 2. How one scenario is chosen per operation (the mock server)
 

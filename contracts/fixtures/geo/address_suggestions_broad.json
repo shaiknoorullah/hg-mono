@@ -1,0 +1,37 @@
+{
+  "scenario": "address_suggestions_broad",
+  "domain": "geo",
+  "schema": "array<AddressSuggestion>",
+  "describes": "The user typed a postal code area or a district, not a street address: a postcode, a neighbourhood and a city. None of these fills the whole form; the user drags the pin and types the street.",
+  "operations": [
+    "suggestAddresses"
+  ],
+  "status": 200,
+  "tags": [
+    "geo",
+    "edge"
+  ],
+  "payload": [
+    {
+      "place_id": "dXJuOmhnOnBsYWNlOm01ai0wYzM",
+      "kind": "POSTCODE",
+      "title": "M5J 0C3",
+      "subtitle": "Toronto, Ontario",
+      "distance_m": 380
+    },
+    {
+      "place_id": "dXJuOmhnOnBsYWNlOmhhcmJvdXJmcm9udA",
+      "kind": "NEIGHBOURHOOD",
+      "title": "Harbourfront",
+      "subtitle": "Toronto, Ontario",
+      "distance_m": 510
+    },
+    {
+      "place_id": "dXJuOmhnOnBsYWNlOnRvcm9udG8",
+      "kind": "PLACE",
+      "title": "Toronto",
+      "subtitle": "Ontario",
+      "distance_m": 2900
+    }
+  ]
+}

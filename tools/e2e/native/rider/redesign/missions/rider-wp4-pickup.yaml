@@ -1,0 +1,44 @@
+id: rider-wp4-pickup
+app: rider
+avd: hg_rider
+api: devworld
+build:
+  env: { EXPO_PUBLIC_HG_REDESIGN: "1" }
+  note: "Clear the Metro cache when building (EXPO_PUBLIC_* is inlined at transform time). The pickup code is only checked once contract #290 and backend #315 merge; before that any 4 digits pass and the wrong-code steps skip themselves."
+setup:
+  - "make dev-reset"
+  # One live order on the short route: the restaurant accepts and marks it ready by itself, the
+  # rider is left to the app (manual=rider passes --manual=rider). Needs #315 for the pickup code.
+  - "make dev-journey route=short auto=restaurant manual=rider"
+reality:
+  # The GPS rides from route.go shortStart to Bismillah Grill (about 70 s), on a slow network.
+  - geo-route: tools/e2e/native/routes/rider-to-restaurant.gpx
+  - network: edge
+  - theme: dark
+  - font-scale: 1.3
+flows: [ "tools/e2e/native/rider/redesign/lab/4-pickup.yaml" ]
+explore: >
+  Set PICKUP_CODE for the flow to the 4 digits on the restaurant's order (GET the restaurant
+  order as Bismillah Grill's owner: OrderRestaurantView.pickup_code, #290), or the journey log.
+  The flow also moves the GPS itself (setLocation, travel) and ends at the same door as the GPX.
+  After the flow, with a fresh journey each time (`make dev-journey route=short auto=restaurant
+  manual=rider`), screenshot every state reached:
+  (1) Lock: five wrong codes in a row → "Too many wrong codes": the code field is gone, "Call
+  HalalGoes support" is primary with its number and hours, no photo option; nothing red.
+  (2) Long wait: use `auto=none` and leave the order unready for 20 minutes at the counter (or set
+  the device clock forward): the slate "Still waiting? Call the restaurant" banner with "Call
+  Bismillah Grill". "They've handed it over, but it isn't marked ready" opens a sheet that records
+  nothing (check the API log: no POST).
+  (3) Geofence: stop the GPX early (tools/e2e/reality/geo-route.mjs stop) 300 m away and tap "I'm
+  at the restaurant": the "We can't place you at the restaurant" sheet; the button stays off
+  until 5 characters; "I'm not there yet" sends nothing.
+  (4) Location permission denied (`deny-permission: location` before launching, then grant only
+  "Don't allow"): the trip still opens, steps send without a position, and the geofence sheet
+  is the way through; nothing strands the rider.
+  (5) Network: `network: offline` while waiting at the counter keeps the screen with "No internet
+  connection"; restore and the food state updates on the next poll (5 s). Kill the app while a
+  step is saved, relaunch: "Picking up where you left off", then the same step.
+  (6) Font scale 2.0 and light theme: every button label wraps, nothing is clipped; the 72 px
+  "I've got the food" stays reachable above the keyboard.
+  (7) "See all messages" → Contact: "Before pickup · <order code>", only "Call Bismillah Grill",
+  "No messages yet". "Something's wrong": Call 911, support with hours, the restaurant.

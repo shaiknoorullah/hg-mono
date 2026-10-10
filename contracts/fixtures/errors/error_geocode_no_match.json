@@ -1,0 +1,21 @@
+{
+  "scenario": "error_geocode_no_match",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`404` · `GEOCODE_NO_MATCH`. No Canadian address for the picked suggestion (its `place_id` is short-lived and may have expired) or near the pin (a lake, a field, across the border). The pin stays where it is and the user types the address.",
+  "operations": [
+    "getPlaceAddress",
+    "reverseGeocode"
+  ],
+  "status": 404,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "GEOCODE_NO_MATCH",
+      "message": "We couldn't find an address there. Type it in, or move the pin.",
+      "request_id": "92VWXH856NXD0BGGTYETPT1AK9"
+    }
+  }
+}
