@@ -5,6 +5,7 @@
 import './application';
 import './documents';
 import './earnings';
+import './history';
 import './home';
 import './signin';
 
