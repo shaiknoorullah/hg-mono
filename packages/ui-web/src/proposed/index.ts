@@ -19,8 +19,23 @@ export type {
   ErrorStateProps,
 } from '../feedback/index.js';
 
-export { Skeleton, Spinner, Tooltip, TooltipProvider } from '../primitives/index.js';
-export type { SkeletonProps, SpinnerProps, TooltipProps } from '../primitives/index.js';
+/* Rebuilt on shadcn/ui (W1 Core); the pre-rebuild props still work. */
+export { Skeleton } from './Skeleton.js';
+export type { SkeletonProps, SkeletonShape } from './Skeleton.js';
+export { Spinner } from './Spinner.js';
+export type { SpinnerProps } from './Spinner.js';
+export { Separator } from './Separator.js';
+export type { SeparatorProps } from './Separator.js';
+export { Tooltip, TooltipProvider } from './Tooltip.js';
+export type { TooltipProps } from './Tooltip.js';
+
+
+/* Toasts: a provider and a hook today; the live `Toast` component lands in W4. */
+export { ToastProvider, useToast } from '../primitives/index.js';
+export type { ToastOptions, ToastVariant } from '../primitives/index.js';
+
+export { DocumentViewer, FilterBar } from '../data/index.js';
+export type { DocumentViewerProps, DocumentViewerState } from '../data/index.js';
 
 /* Forms (W3), rebuilt on shadcn/ui: approval packet P16 to P21. */
 export { Textarea } from './Textarea.js';
@@ -39,10 +54,3 @@ export { Stepper } from './Stepper.js';
 export type { StepperProps, StepperStep } from './Stepper.js';
 export { InlineConfirm } from './InlineConfirm.js';
 export type { InlineConfirmAction, InlineConfirmProps } from './InlineConfirm.js';
-
-/* Toasts: a provider and a hook today; the live `Toast` component lands in W4. */
-export { ToastProvider, useToast } from '../primitives/index.js';
-export type { ToastOptions, ToastVariant } from '../primitives/index.js';
-
-export { DocumentViewer, FilterBar } from '../data/index.js';
-export type { DocumentViewerProps, DocumentViewerState } from '../data/index.js';
