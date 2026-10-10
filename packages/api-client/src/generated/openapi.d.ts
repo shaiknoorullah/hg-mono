@@ -1137,31 +1137,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/auth/invite/totp": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Start an invited staff member's authenticator enrolment
-         * @description P-03/A-03. For an unused staff invitation (or reset) link whose account needs an
-         *     authenticator (`SUPPORT_AGENT`, `ADMIN`, `SUPER_ADMIN`) and has none yet. Returns the
-         *     provisioning URI; the link stays usable. `resetPassword` with the link, the new password
-         *     and the first code then confirms it. Calling again replaces the enrolment not yet
-         *     confirmed. An account that needs no authenticator or already has one answers `409
-         *     STEP_NOT_AVAILABLE` ([#170](https://github.com/shaiknoorullah/hg-mono/issues/170)).
-         */
-        post: operations["startInviteTotpEnrolment"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/v1/auth/login": {
         parameters: {
             query?: never;
@@ -1174,7 +1149,8 @@ export interface paths {
         /**
          * Email + password sign-in (restaurants, admins, support)
          * @description P-03. Argon2id verification, account status check, role auth-policy check, TOTP
-         *     when enrolled or required. Wrong email, wrong password and unverified email all
+         *     when the account has turned it on (it is opt-in for every role; `403 MFA_REQUIRED`
+         *     asks for the code). Wrong email, wrong password and unverified email all
          *     return the same `401 INVALID_CREDENTIALS` body; the unverified case additionally
          *     sets `error.details.email_verification_required` **only after** the credentials
          *     were correct. Lockout truth lives in Postgres, so a Redis flush does not unlock.
@@ -1370,15 +1346,9 @@ export interface paths {
          *
          *     **Issues no session and sets no cookie**, also when the link is a staff invitation
          *     setting a first password. The user signs in afterwards with `login` (with the
-         *     authenticator code where the account requires one).
-         *
-         *     **Staff invitation with an authenticator.** A staff role needs an authenticator to sign
-         *     in, and enrolling one needs a session, so an invitee starts enrolment with
-         *     `startInviteTotpEnrolment` and sends the first code here as `totp_code`. The password is
-         *     set and the authenticator confirmed together. A wrong code answers `422
-         *     INVALID_CREDENTIALS` and leaves the link usable; a `totp_code` with no enrolment started
-         *     answers `422 VALIDATION_FAILED`. Without `totp_code` nothing changes
-         *     ([#170](https://github.com/shaiknoorullah/hg-mono/issues/170)).
+         *     authenticator code only if the account has turned two-step sign-in on). An invited staff
+         *     member signs in with the password alone and may turn two-step sign-in on afterwards with
+         *     `enrollTotp`; it is never set up from the invitation link.
          */
         post: operations["resetPassword"];
         delete?: never;
@@ -1482,7 +1452,7 @@ export interface paths {
         put?: never;
         /**
          * Disable TOTP (step-up required)
-         * @description Refused for roles whose policy requires TOTP (`403 MFA_REQUIRED`).
+         * @description Turns two-step sign-in off with a current authenticator code. Two-step sign-in is opt-in for every email account, so staff may turn it off too.
          */
         post: operations["disableTotp"];
         delete?: never;
@@ -1502,8 +1472,13 @@ export interface paths {
         put?: never;
         /**
          * Begin TOTP enrolment
-         * @description P-01/P-03/A-03. Mandatory for `SUPPORT_AGENT`, `ADMIN` and `SUPER_ADMIN`, optional
-         *     for restaurant staff. Returns the provisioning URI and recovery codes exactly once.
+         * @description P-01/P-03/A-03. Opt-in for every email account, staff included: an invited admin or a
+         *     new restaurant signs in with the password alone and turns two-step sign-in on here
+         *     afterwards. Moving money still needs a session signed in with an authenticator code.
+         *     Returns the provisioning URI (shown as a QR code) and recovery codes exactly once.
+         *     While an authenticator is confirmed this answers `409 STEP_NOT_AVAILABLE`: turn it off
+         *     with `disableTotp` first, so a working authenticator is never replaced by an
+         *     unconfirmed one.
          */
         post: operations["enrollTotp"];
         delete?: never;
@@ -1566,12 +1541,27 @@ export interface paths {
          * @description C-16 / C-19 / C-20. The request carries **item identifiers and quantities only** —
          *     no price field exists on this DTO (G-3).
          *
-         *     Line identity is `(menu_item_id, variant_id, sorted(addons), special_request)`; an
-         *     identical add increments quantity, any difference creates a distinct line, so two
+         *     Line identity is `(menu_item_id, sorted(variant_ids), sorted(addons), special_request)`;
+         *     an identical add increments quantity, any difference creates a distinct line, so two
          *     "Chicken Biryani" lines with different variants are representable.
          *
+         *     **Variants, one per group.** `variant_ids` carries one chosen variant per variant group
+         *     of the item: exactly one for every `required` group, at most one for any other. The
+         *     deprecated `variant_id` is read as a one-element `variant_ids`; sending both is
+         *     `422 VALIDATION_FAILED`. The server checks the line against the menu before it touches
+         *     the cart: a variant that is not one of the item's, a missing required group, two
+         *     variants from one group, or an add-on group outside its `min_select`..`max_select` is
+         *     `422 VALIDATION_FAILED`; an add-on that is not one of the item's is `422 INVALID_ADDON`.
+         *     Both carry `FieldError` details naming the field (`variant_ids[1]`, `addons[0]`,
+         *     `addons`). A variant or add-on that is on the item but unavailable is
+         *     `409 VARIANT_UNAVAILABLE` with `{variant_id}` or `409 ADDON_UNAVAILABLE` with
+         *     `{addon_id}`, so the app can say which choice ran out.
+         *
          *     Adding an item from a different restaurant returns `409 DIFFERENT_RESTAURANT` with
-         *     the current cart's restaurant and line count. `replace=true` performs clear + add as
+         *     the current cart's restaurant and line count in `details`
+         *     (`{current_restaurant_id, current_restaurant_name, current_line_count, current_item_count}`).
+         *     The menu is checked first, so the "Start a new cart?" dialog only appears for a line
+         *     that can be added. `replace=true` performs clear + add as
          *     **one atomic call** — a two-call clear-then-add is prohibited because it can leave an
          *     empty cart on failure.
          *
@@ -4038,7 +4028,14 @@ export interface components {
             quantity: number;
             special_request?: string | null;
             unit_price_cents: components["schemas"]["Cents"];
+            /**
+             * @deprecated
+             * @description Deprecated: read `variants`. The line's variant when it has exactly one; `null`
+             *     when it has none or several.
+             */
             variant?: components["schemas"]["SelectedVariant"] | null;
+            /** @description Every chosen variant, one per variant group, in the menu's group order. */
+            variants: components["schemas"]["LineVariant"][];
         };
         /**
          * @description R-19. The API annotates; it **never mutates the cart on the restaurant's behalf**.
@@ -4072,8 +4069,18 @@ export interface components {
             quantity: number;
             /** @description Advisory. Copied to the order line; never changes a price. */
             special_request?: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @deprecated
+             * @description Deprecated: send `variant_ids`. Read as a one-element `variant_ids`; sending both is
+             *     `422 VALIDATION_FAILED`.
+             */
             variant_id?: string | null;
+            /**
+             * @description One chosen variant per variant group of the item: exactly one for each `required`
+             *     group, at most one for any other. Order does not matter; line identity sorts them.
+             */
+            variant_ids?: string[];
         };
         /**
          * Format: int64
@@ -4475,7 +4482,11 @@ export interface components {
                  *     `VALIDATION_FAILED` → `[{field, code, message}]`;
                  *     `QUOTE_STALE` → `{quote: Quote}`;
                  *     `ILLEGAL_TRANSITION` → `{from, to, allowed: [OrderState]}`;
-                 *     `DIFFERENT_RESTAURANT` → `{current_restaurant_id, current_restaurant_name, current_line_count}`;
+                 *     `DIFFERENT_RESTAURANT` → `{current_restaurant_id, current_restaurant_name, current_line_count, current_item_count}`
+                 *     (`current_line_count` counts lines, `current_item_count` sums their quantities);
+                 *     `VARIANT_UNAVAILABLE` → `{variant_id}`;
+                 *     `ADDON_UNAVAILABLE` → `{addon_id}`;
+                 *     `INVALID_ADDON` → `[{field, code, message}]`;
                  *     `CART_HAS_UNAVAILABLE_ITEMS` → `{line_ids: [uuid]}`;
                  *     `INCOMPLETE_DOCUMENT_PACK` → `{missing: [doc_type]}`;
                  *     `MENU_LOCKED` → `{account_state}` (`SUSPENDED` or `BANNED`);
@@ -4804,6 +4815,28 @@ export interface components {
             currency: components["schemas"]["Currency"];
             memo?: string | null;
             posted_at: components["schemas"]["Timestamp"];
+        };
+        /**
+         * @description One chosen variant on a cart, quote or order line, with its group. On a quote or order
+         *     line the name and money are snapshotted, so a later menu edit never changes them; on a
+         *     cart line they are the menu's current values. The line's `variant_part_cents` is the
+         *     `ABSOLUTE` variant's `price_cents` (else the item's base price) plus every `DELTA`
+         *     variant's `delta_cents`.
+         */
+        LineVariant: {
+            /** @description Set when `pricing_mode` is `DELTA`: adjusts the item's base price. */
+            delta_cents: components["schemas"]["Cents"] | null;
+            /** @example Rice */
+            group_name: string;
+            /** @description Set when `pricing_mode` is `ABSOLUTE`: replaces the item's base price. */
+            price_cents: components["schemas"]["Cents"] | null;
+            pricing_mode: components["schemas"]["VariantPricingMode"];
+            /** Format: uuid */
+            variant_group_id: string;
+            /** Format: uuid */
+            variant_id: string;
+            /** @example Kabuli pulao */
+            variant_name: string;
         };
         LoginInput: {
             /** Format: email */
@@ -5305,7 +5338,13 @@ export interface components {
             quantity: number;
             special_request?: string | null;
             unit_price_cents: components["schemas"]["Cents"];
+            /**
+             * @description The chosen variants' names joined with ", " in group order, for a one-line ticket;
+             *     `null` when there is none. `variants` carries each one with its group.
+             */
             variant_name?: string | null;
+            /** @description Every chosen variant with its snapshotted price, in the menu's group order. */
+            variants: components["schemas"]["LineVariant"][];
         };
         /** @description The frozen copy of the quote's customer-facing decomposition. Renders in the fixed P-10 order. */
         OrderMoney: {
@@ -5966,6 +6005,9 @@ export interface components {
          *
          *     Identity: `line_unit_cents = variant_part_cents + addons_part_cents` and
          *     `line_total_cents = line_unit_cents × quantity`, both database `CHECK`s.
+         *     `variant_part_cents` is the chosen `ABSOLUTE` variant's `price_cents` (else
+         *     `base_price_cents`) plus every chosen `DELTA` variant's `delta_cents`, checked by a
+         *     database trigger against the snapshotted `variants`.
          */
         QuoteLine: {
             addons?: components["schemas"]["QuoteLineAddon"][];
@@ -5983,11 +6025,26 @@ export interface components {
             quantity: number;
             special_request?: string | null;
             tax_category: components["schemas"]["TaxCategory"];
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @deprecated
+             * @description Deprecated: read `variants`. Set only when the line has exactly one variant.
+             */
             variant_id?: string | null;
+            /**
+             * @deprecated
+             * @description Deprecated: read `variants`. The chosen variants' names joined with ", " in group
+             *     order (one name for a one-variant line); `null` when there is none.
+             */
             variant_name?: string | null;
             variant_part_cents: components["schemas"]["Cents"];
+            /**
+             * @deprecated
+             * @description Deprecated: read `variants`. Set only when the line has exactly one variant.
+             */
             variant_pricing_mode?: components["schemas"]["VariantPricingMode"] | null;
+            /** @description Every chosen variant with its snapshotted price, in the menu's group order. */
+            variants: components["schemas"]["LineVariant"][];
         };
         QuoteLineAddon: {
             /** Format: uuid */
@@ -6990,7 +7047,7 @@ export interface components {
             id: string;
             /** Format: date-time */
             last_login_at?: string | null;
-            /** @description Mandatory for `SUPPORT_AGENT`, `ADMIN` and `SUPER_ADMIN`; there is no grace period. */
+            /** @description Whether the staff member has turned two-step sign-in on. It is opt-in; moving money needs it. */
             mfa_enrolled: boolean;
             role: components["schemas"]["Role"];
             status: components["schemas"]["StaffStatus"];
@@ -7106,6 +7163,12 @@ export interface components {
          * @description C-16. Single-select. When a group is required and no variant is flagged default,
          *     nothing is pre-selected and add-to-cart stays disabled — silent auto-selection of the
          *     first option is prohibited.
+         *
+         *     An item may have several groups (size, rice, heat level); a cart line carries one
+         *     chosen variant per group in `CartLineInput.variant_ids`. Prices combine as P-09 step 1
+         *     says: the chosen `ABSOLUTE` variant, if any, replaces the base price and every chosen
+         *     `DELTA` variant adjusts it. At most one chosen variant may be `ABSOLUTE`; a combination
+         *     with two cannot be priced and is refused `409 ITEM_UNAVAILABLE`.
          */
         VariantGroup: {
             /** Format: uuid */
@@ -7303,6 +7366,7 @@ export type SchemaLatitude = components['schemas']['Latitude'];
 export type SchemaLedgerAccount = components['schemas']['LedgerAccount'];
 export type SchemaLedgerComponent = components['schemas']['LedgerComponent'];
 export type SchemaLedgerEntry = components['schemas']['LedgerEntry'];
+export type SchemaLineVariant = components['schemas']['LineVariant'];
 export type SchemaLoginInput = components['schemas']['LoginInput'];
 export type SchemaLongitude = components['schemas']['Longitude'];
 export type SchemaMenu = components['schemas']['Menu'];
@@ -9607,38 +9671,6 @@ export interface operations {
             default: components["responses"]["Error"];
         };
     };
-    startInviteTotpEnrolment: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    token: string;
-                };
-            };
-        };
-        responses: {
-            /** @description Enrolment started; confirm it with `resetPassword` and `totp_code`. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        data: components["schemas"]["TotpEnrolment"];
-                    };
-                };
-            };
-            400: components["responses"]["Error"];
-            409: components["responses"]["Error"];
-            429: components["responses"]["RateLimited"];
-            default: components["responses"]["Error"];
-        };
-    };
     login: {
         parameters: {
             query?: never;
@@ -9895,8 +9927,6 @@ export interface operations {
                 "application/json": {
                     new_password: components["schemas"]["Password"];
                     token: string;
-                    /** @description The first code from the authenticator that `startInviteTotpEnrolment` set up for this link. */
-                    totp_code?: string;
                 };
             };
         };
@@ -10210,7 +10240,20 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            422: components["responses"]["Error"];
+            /**
+             * @description `VALIDATION_FAILED` (a malformed body, or a line the item's variant and add-on
+             *     groups do not allow), `INVALID_ADDON` (an add-on that is not one of the item's) or
+             *     `UNKNOWN_FIELD` (any field the DTO does not declare, such as a price). `details` is
+             *     a `FieldError` list. The cart is unchanged.
+             */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             default: components["responses"]["Error"];
         };
     };

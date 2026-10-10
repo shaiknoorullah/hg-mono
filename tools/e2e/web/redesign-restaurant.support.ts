@@ -5,41 +5,44 @@
  * - `mock`: the app on `pnpm mock`. A signed-in owner is seeded straight into the session
  *   store; operations whose restaurant fixture does not exist yet are answered here with
  *   `page.route` (each one names the fixture request it stands in for).
- * - `real`: the app on the real API. The owner is the seeded world's (`world.json` from
- *   tools/e2e/seed/seed.sh, as CI runs it) or, on a laptop running `make dev-reset`, the
- *   devworld `bismillah-grill` persona.
+ * - `real`: the app on the real API, signed in as the live restaurant's owner (`LIVE_OWNER`).
  *
  * Journeys that drive devworld scenarios (`make dev-scenario`, `make dev-journey`) need a
  * devworld database, which the CI world is not: they run only with `E2E_DEVWORLD=1`.
  */
+import type { Page } from '@playwright/test';
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
-import type { Page } from '@playwright/test';
 import { OUT } from '../lib/paths.mjs';
 import { E2E_MODE, MOCK_API_URL } from './mode';
 
 export const MODE = E2E_MODE;
 export const MOCK_API = MOCK_API_URL;
-/** The real API, as `tools/e2e/lib/api.mjs` reads it (the compose stack, or `make run`). */
-export const REAL_API = process.env.E2E_API_URL ?? 'http://localhost:8080';
+/** The real API (`make run`, or the compose stack through Traefik), as `lib/api.mjs` reads it. */
+export const REAL_API = process.env.E2E_REAL_API_URL ?? process.env.E2E_API_URL ?? 'http://localhost:8080';
 /** A devworld database is behind the real API (laptop runs), so scenarios can be driven. */
 export const DEVWORLD = process.env.E2E_DEVWORLD === '1';
 
-/** The live restaurant's owner on the real API: an override, the seeded world, else devworld. */
-function liveOwner(): { email: string; password: string } {
-  if (process.env.E2E_RESTAURANT_EMAIL && process.env.E2E_RESTAURANT_PASSWORD) {
-    return { email: process.env.E2E_RESTAURANT_EMAIL, password: process.env.E2E_RESTAURANT_PASSWORD };
-  }
-  const worldFile = path.join(OUT, 'world.json');
-  if (!DEVWORLD && existsSync(worldFile)) {
-    const w = JSON.parse(readFileSync(worldFile, 'utf8')) as { password: string; restaurant: { ownerEmail: string } };
-    return { email: w.restaurant.ownerEmail, password: w.password };
-  }
-  // services/hg/internal/devworld/personas.go
-  return { email: 'bismillah-grill@seed.hg', password: 'Seed!2026' };
-}
-
+/**
+ * Who real mode signs in as. The e2e stack (tools/e2e/stack/up.sh + seed/seed.sh, what CI runs)
+ * seeds its own world and writes its owner and this run's password to $E2E_OUT/world.json; a local
+ * devworld (`make dev-reset`, or any run with E2E_DEVWORLD=1) uses its live restaurant persona
+ * (services/hg/internal/devworld/personas.go). E2E_RESTAURANT_EMAIL / E2E_RESTAURANT_PASSWORD
+ * override either.
+ */
 export const LIVE_OWNER = liveOwner();
+
+function liveOwner(): { email: string; password: string } {
+  const worldFile = path.join(OUT, 'world.json');
+  const seeded =
+    !DEVWORLD && existsSync(worldFile)
+      ? (JSON.parse(readFileSync(worldFile, 'utf8')) as { restaurant: { ownerEmail: string }; password: string })
+      : null;
+  return {
+    email: process.env.E2E_RESTAURANT_EMAIL ?? seeded?.restaurant.ownerEmail ?? 'bismillah-grill@seed.hg',
+    password: process.env.E2E_RESTAURANT_PASSWORD ?? seeded?.password ?? 'Seed!2026',
+  };
+}
 
 const SESSION_KEY = 'hg_restaurant_session_v1';
 

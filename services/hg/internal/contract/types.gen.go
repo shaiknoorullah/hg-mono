@@ -4590,8 +4590,15 @@ type CartLine struct {
 	//
 	//
 	// Examples: 4696
-	UnitPriceCents Cents            `json:"unit_price_cents"`
-	Variant        *SelectedVariant `json:"variant,omitempty"`
+	UnitPriceCents Cents `json:"unit_price_cents"`
+
+	// Variant Deprecated: read `variants`. The line's variant when it has exactly one; `null`
+	// when it has none or several.
+	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
+	Variant *SelectedVariant `json:"variant,omitempty"`
+
+	// Variants Every chosen variant, one per variant group, in the menu's group order.
+	Variants []LineVariant `json:"variants"`
 }
 
 // CartLineAvailability R-19. The API annotates; it **never mutates the cart on the restaurant's behalf**.
@@ -4618,8 +4625,16 @@ type CartLineInput struct {
 	Quantity   int32              `json:"quantity"`
 
 	// SpecialRequest Advisory. Copied to the order line; never changes a price.
-	SpecialRequest *string             `json:"special_request,omitempty"`
-	VariantId      *openapi_types.UUID `json:"variant_id,omitempty"`
+	SpecialRequest *string `json:"special_request,omitempty"`
+
+	// VariantId Deprecated: send `variant_ids`. Read as a one-element `variant_ids`; sending both is
+	// `422 VALIDATION_FAILED`.
+	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
+	VariantId *openapi_types.UUID `json:"variant_id,omitempty"`
+
+	// VariantIds One chosen variant per variant group of the item: exactly one for each `required`
+	// group, at most one for any other. Order does not matter; line identity sorts them.
+	VariantIds *[]openapi_types.UUID `json:"variant_ids,omitempty"`
 }
 
 // Cents A signed count of Canadian cents. **Every monetary value in this contract is this
@@ -5192,7 +5207,11 @@ type ErrorEnvelope struct {
 		// `VALIDATION_FAILED` → `[{field, code, message}]`;
 		// `QUOTE_STALE` → `{quote: Quote}`;
 		// `ILLEGAL_TRANSITION` → `{from, to, allowed: [OrderState]}`;
-		// `DIFFERENT_RESTAURANT` → `{current_restaurant_id, current_restaurant_name, current_line_count}`;
+		// `DIFFERENT_RESTAURANT` → `{current_restaurant_id, current_restaurant_name, current_line_count, current_item_count}`
+		// (`current_line_count` counts lines, `current_item_count` sums their quantities);
+		// `VARIANT_UNAVAILABLE` → `{variant_id}`;
+		// `ADDON_UNAVAILABLE` → `{addon_id}`;
+		// `INVALID_ADDON` → `[{field, code, message}]`;
 		// `CART_HAS_UNAVAILABLE_ITEMS` → `{line_ids: [uuid]}`;
 		// `INCOMPLETE_DOCUMENT_PACK` → `{missing: [doc_type]}`;
 		// `MENU_LOCKED` → `{account_state}` (`SUSPENDED` or `BANNED`);
@@ -5221,7 +5240,11 @@ type ErrorEnvelopeErrorDetails1 = []FieldError
 // `VALIDATION_FAILED` → `[{field, code, message}]`;
 // `QUOTE_STALE` → `{quote: Quote}`;
 // `ILLEGAL_TRANSITION` → `{from, to, allowed: [OrderState]}`;
-// `DIFFERENT_RESTAURANT` → `{current_restaurant_id, current_restaurant_name, current_line_count}`;
+// `DIFFERENT_RESTAURANT` → `{current_restaurant_id, current_restaurant_name, current_line_count, current_item_count}`
+// (`current_line_count` counts lines, `current_item_count` sums their quantities);
+// `VARIANT_UNAVAILABLE` → `{variant_id}`;
+// `ADDON_UNAVAILABLE` → `{addon_id}`;
+// `INVALID_ADDON` → `[{field, code, message}]`;
 // `CART_HAS_UNAVAILABLE_ITEMS` → `{line_ids: [uuid]}`;
 // `INCOMPLETE_DOCUMENT_PACK` → `{missing: [doc_type]}`;
 // `MENU_LOCKED` → `{account_state}` (`SUSPENDED` or `BANNED`);
@@ -5617,6 +5640,32 @@ type LedgerEntryBatchKind string
 
 // LedgerEntryCounterpartyType defines model for LedgerEntry.CounterpartyType.
 type LedgerEntryCounterpartyType string
+
+// LineVariant One chosen variant on a cart, quote or order line, with its group. On a quote or order
+// line the name and money are snapshotted, so a later menu edit never changes them; on a
+// cart line they are the menu's current values. The line's `variant_part_cents` is the
+// `ABSOLUTE` variant's `price_cents` (else the item's base price) plus every `DELTA`
+// variant's `delta_cents`.
+type LineVariant struct {
+	// DeltaCents Set when `pricing_mode` is `DELTA`: adjusts the item's base price.
+	DeltaCents *Cents `json:"delta_cents"`
+
+	// GroupName Examples: Rice
+	GroupName string `json:"group_name"`
+
+	// PriceCents Set when `pricing_mode` is `ABSOLUTE`: replaces the item's base price.
+	PriceCents *Cents `json:"price_cents"`
+
+	// PricingMode P-09 step 1. Made explicit as data so "Large = $14.99" and "Extra cheese = +$1.50"
+	// are both expressible without ambiguity. `ABSOLUTE` replaces the base price; `DELTA`
+	// adjusts it.
+	PricingMode    VariantPricingMode `json:"pricing_mode"`
+	VariantGroupId openapi_types.UUID `json:"variant_group_id"`
+	VariantId      openapi_types.UUID `json:"variant_id"`
+
+	// VariantName Examples: Kabuli pulao
+	VariantName string `json:"variant_name"`
+}
 
 // LoginInput defines model for LoginInput.
 type LoginInput struct {
@@ -6268,8 +6317,14 @@ type OrderLine struct {
 	//
 	//
 	// Examples: 4696
-	UnitPriceCents Cents   `json:"unit_price_cents"`
-	VariantName    *string `json:"variant_name,omitempty"`
+	UnitPriceCents Cents `json:"unit_price_cents"`
+
+	// VariantName The chosen variants' names joined with ", " in group order, for a one-line ticket;
+	// `null` when there is none. `variants` carries each one with its group.
+	VariantName *string `json:"variant_name,omitempty"`
+
+	// Variants Every chosen variant with its snapshotted price, in the menu's group order.
+	Variants []LineVariant `json:"variants"`
 }
 
 // OrderMoney The frozen copy of the quote's customer-facing decomposition. Renders in the fixed P-10 order.
@@ -7382,6 +7437,9 @@ type QuoteInput struct {
 //
 // Identity: `line_unit_cents = variant_part_cents + addons_part_cents` and
 // `line_total_cents = line_unit_cents × quantity`, both database `CHECK`s.
+// `variant_part_cents` is the chosen `ABSOLUTE` variant's `price_cents` (else
+// `base_price_cents`) plus every chosen `DELTA` variant's `delta_cents`, checked by a
+// database trigger against the snapshotted `variants`.
 type QuoteLine struct {
 	Addons *[]QuoteLineAddon `json:"addons,omitempty"`
 
@@ -7426,9 +7484,16 @@ type QuoteLine struct {
 
 	// TaxCategory P-11. Defaults to `PREPARED_FOOD` and is admin-changeable only.
 	// `BEVERAGE_ALCOHOL` is rejected at menu publish until V2.
-	TaxCategory TaxCategory         `json:"tax_category"`
-	VariantId   *openapi_types.UUID `json:"variant_id,omitempty"`
-	VariantName *string             `json:"variant_name,omitempty"`
+	TaxCategory TaxCategory `json:"tax_category"`
+
+	// VariantId Deprecated: read `variants`. Set only when the line has exactly one variant.
+	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
+	VariantId *openapi_types.UUID `json:"variant_id,omitempty"`
+
+	// VariantName Deprecated: read `variants`. The chosen variants' names joined with ", " in group
+	// order (one name for a one-variant line); `null` when there is none.
+	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
+	VariantName *string `json:"variant_name,omitempty"`
 
 	// VariantPartCents A signed count of Canadian cents. **Every monetary value in this contract is this
 	// type.** There is no `number`-typed money field anywhere, no string-formatted money,
@@ -7436,8 +7501,14 @@ type QuoteLine struct {
 	//
 	//
 	// Examples: 4696
-	VariantPartCents   Cents               `json:"variant_part_cents"`
+	VariantPartCents Cents `json:"variant_part_cents"`
+
+	// VariantPricingMode Deprecated: read `variants`. Set only when the line has exactly one variant.
+	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	VariantPricingMode *VariantPricingMode `json:"variant_pricing_mode,omitempty"`
+
+	// Variants Every chosen variant with its snapshotted price, in the menu's group order.
+	Variants []LineVariant `json:"variants"`
 }
 
 // QuoteLineAddon defines model for QuoteLineAddon.
@@ -8841,7 +8912,7 @@ type StaffUser struct {
 	Id          openapi_types.UUID  `json:"id"`
 	LastLoginAt *time.Time          `json:"last_login_at,omitempty"`
 
-	// MfaEnrolled Mandatory for `SUPPORT_AGENT`, `ADMIN` and `SUPER_ADMIN`; there is no grace period.
+	// MfaEnrolled Whether the staff member has turned two-step sign-in on. It is opt-in; moving money needs it.
 	MfaEnrolled bool `json:"mfa_enrolled"`
 
 	// Role P-01. Roles are grants, not table membership. One person is one account no matter how
@@ -8969,6 +9040,12 @@ type Variant struct {
 // VariantGroup C-16. Single-select. When a group is required and no variant is flagged default,
 // nothing is pre-selected and add-to-cart stays disabled — silent auto-selection of the
 // first option is prohibited.
+//
+// An item may have several groups (size, rice, heat level); a cart line carries one
+// chosen variant per group in `CartLineInput.variant_ids`. Prices combine as P-09 step 1
+// says: the chosen `ABSOLUTE` variant, if any, replaces the base price and every chosen
+// `DELTA` variant adjusts it. At most one chosen variant may be `ABSOLUTE`; a combination
+// with two cannot be priced and is refused `409 ITEM_UNAVAILABLE`.
 type VariantGroup struct {
 	Id openapi_types.UUID `json:"id"`
 
@@ -9425,11 +9502,6 @@ type VerifyEmailJSONBody struct {
 	Token string `json:"token"`
 }
 
-// StartInviteTotpEnrolmentJSONBody defines parameters for StartInviteTotpEnrolment.
-type StartInviteTotpEnrolmentJSONBody struct {
-	Token string `json:"token"`
-}
-
 // LoginParams defines parameters for Login.
 type LoginParams struct {
 	// XHGClient Registered client surface. Selects which role grant is created on first OTP sign-up
@@ -9476,9 +9548,6 @@ type ResetPasswordJSONBody struct {
 	// never present in an audit payload.
 	NewPassword *Password `json:"new_password,omitempty"`
 	Token       string    `json:"token"`
-
-	// TotpCode The first code from the authenticator that `startInviteTotpEnrolment` set up for this link.
-	TotpCode *string `json:"totp_code,omitempty"`
 }
 
 // RefreshSessionJSONBody defines parameters for RefreshSession.
@@ -10069,9 +10138,6 @@ type ResendEmailVerificationJSONRequestBody ResendEmailVerificationJSONBody
 
 // VerifyEmailJSONRequestBody defines body for VerifyEmail for application/json ContentType.
 type VerifyEmailJSONRequestBody VerifyEmailJSONBody
-
-// StartInviteTotpEnrolmentJSONRequestBody defines body for StartInviteTotpEnrolment for application/json ContentType.
-type StartInviteTotpEnrolmentJSONRequestBody StartInviteTotpEnrolmentJSONBody
 
 // LoginJSONRequestBody defines body for Login for application/json ContentType.
 type LoginJSONRequestBody = LoginInput
