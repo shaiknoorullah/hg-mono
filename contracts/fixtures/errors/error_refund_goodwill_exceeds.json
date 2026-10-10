@@ -1,0 +1,23 @@
+{
+  "scenario": "error_refund_goodwill_exceeds",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`409` · `REFUND_EXCEEDS_CAPTURED`. A goodwill amount larger than the order's captured payment. Goodwill is the only refund with a typed amount, and it is still capped by what was captured.",
+  "operations": [
+    "issueRefund"
+  ],
+  "status": 409,
+  "tags": [
+    "error-envelope",
+    "error-path",
+    "admin",
+    "money"
+  ],
+  "payload": {
+    "error": {
+      "code": "REFUND_EXCEEDS_CAPTURED",
+      "message": "Refund of 12000 would exceed the captured 10684 (already refunded 0).",
+      "request_id": "26RAJE62G5RZQG7PFJNYR3H52V"
+    }
+  }
+}

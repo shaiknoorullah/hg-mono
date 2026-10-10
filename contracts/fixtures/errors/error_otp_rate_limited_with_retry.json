@@ -1,0 +1,28 @@
+{
+  "scenario": "error_otp_rate_limited_with_retry",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`429` · `RATE_LIMITED`. `requestOtp` over the per-phone or per-device cap. `details.retry_after_seconds` (the contract's documented `RATE_LIMITED` shape) says how long the button stays disabled. Contract-only: `services/hg` sends the wait only as the `Retry-After` header today, with `details` absent; a fixture cannot carry a header, so read both.",
+  "operations": [
+    "requestOtp",
+    "verifyOtp"
+  ],
+  "status": 429,
+  "tags": [
+    "error-envelope",
+    "error-path",
+    "rider",
+    "customer",
+    "auth"
+  ],
+  "payload": {
+    "error": {
+      "code": "RATE_LIMITED",
+      "message": "Too many verification requests. Please wait before trying again.",
+      "request_id": "M0VKXEX349R1CYD10VEG6Y6SQ8",
+      "details": {
+        "retry_after_seconds": 47
+      }
+    }
+  }
+}

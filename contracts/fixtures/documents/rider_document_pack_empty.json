@@ -1,0 +1,22 @@
+{
+  "scenario": "rider_document_pack_empty",
+  "domain": "documents",
+  "schema": "array<KycDocument>",
+  "describes": "No documents uploaded yet.",
+  "operations": [
+    "listRiderDocuments"
+  ],
+  "status": 200,
+  "tags": [
+    "rider",
+    "documents",
+    "edge",
+    "empty"
+  ],
+  "meta": {
+    "next_cursor": null,
+    "has_more": false,
+    "total": 0
+  },
+  "payload": []
+}

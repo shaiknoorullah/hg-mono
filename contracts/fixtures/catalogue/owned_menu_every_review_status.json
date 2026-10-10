@@ -1,0 +1,387 @@
+{
+  "scenario": "owned_menu_every_review_status",
+  "domain": "catalogue",
+  "schema": "OwnedMenu",
+  "describes": "Six items, one per `MenuReviewStatus` on its newest version: a draft, one waiting for review, one just approved, one rejected with its reason and note, one withdrawn and one superseded. Items whose newest version is withdrawn or superseded show only the live version.",
+  "operations": [
+    "getOwnMenu"
+  ],
+  "status": 200,
+  "tags": [
+    "restaurant",
+    "menu",
+    "state-matrix"
+  ],
+  "payload": {
+    "restaurant_id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+    "categories": [
+      {
+        "id": "711220ae-193e-4cee-a922-b410bea1dc9f",
+        "name": "Biryani & Rice",
+        "description": null,
+        "sort_order": 1,
+        "is_active": true,
+        "item_count": 6,
+        "items": [
+          {
+            "id": "e3723319-f51b-42f0-a693-8c9eb954bb0f",
+            "name": "Chicken Biryani",
+            "description": "Long-grain basmati layered with bone-in chicken, fried onion and kewra.",
+            "image_url": "https://cdn.halalgoes.ca/img/dish/chicken-biryani.webp",
+            "price_cents": 1695,
+            "currency": "CAD",
+            "availability_state": "AVAILABLE",
+            "out_of_stock_until": null,
+            "dietary_tags": [
+              "HALAL_CERTIFIED"
+            ],
+            "allergen_tags": [
+              "MILK"
+            ],
+            "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+            "tax_category": "PREPARED_FOOD",
+            "prep_minutes": 22,
+            "variant_groups": [],
+            "addon_groups": [],
+            "category_id": "711220ae-193e-4cee-a922-b410bea1dc9f",
+            "sort_order": 1,
+            "live_version": {
+              "id": "35baf226-f382-4d2d-afd4-aab80c8ee4d0",
+              "menu_item_id": "e3723319-f51b-42f0-a693-8c9eb954bb0f",
+              "restaurant_id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+              "version": 1,
+              "name": "Chicken Biryani",
+              "description": "Long-grain basmati layered with bone-in chicken, fried onion and kewra.",
+              "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+              "dietary_tags": [
+                "HALAL_CERTIFIED"
+              ],
+              "allergen_tags": [
+                "MILK"
+              ],
+              "image_url": "https://cdn.halalgoes.ca/img/dish/chicken-biryani.webp",
+              "review_status": "APPROVED",
+              "rejection_reason_code": null,
+              "review_note": null,
+              "submitted_at": "2026-07-11T18:42:11.412Z",
+              "reviewed_at": "2026-07-12T18:42:11.412Z",
+              "created_at": "2026-07-11T18:42:11.412Z"
+            },
+            "pending_version": {
+              "id": "dc1e8c3d-3bde-4042-ac3b-761ce187a888",
+              "menu_item_id": "e3723319-f51b-42f0-a693-8c9eb954bb0f",
+              "restaurant_id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+              "version": 2,
+              "name": "Chicken Biryani",
+              "description": "Long-grain basmati layered with bone-in chicken, fried onion and kewra. Now with more saffron.",
+              "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+              "dietary_tags": [
+                "HALAL_CERTIFIED"
+              ],
+              "allergen_tags": [
+                "MILK"
+              ],
+              "image_url": "https://cdn.halalgoes.ca/img/dish/chicken-biryani.webp",
+              "review_status": "DRAFT",
+              "rejection_reason_code": null,
+              "review_note": null,
+              "submitted_at": "2026-08-10T17:42:11.412Z",
+              "reviewed_at": null,
+              "created_at": "2026-08-10T17:42:11.412Z"
+            }
+          },
+          {
+            "id": "260778de-cee3-4a79-ad10-f79f5e9ab98e",
+            "name": "Beef Nihari",
+            "description": "Overnight-simmered beef shank in a bone-marrow gravy. Served with two naan.",
+            "image_url": "https://cdn.halalgoes.ca/img/dish/beef-nihari.webp",
+            "price_cents": 2145,
+            "currency": "CAD",
+            "availability_state": "AVAILABLE",
+            "out_of_stock_until": null,
+            "dietary_tags": [
+              "HALAL_CERTIFIED",
+              "SPICY"
+            ],
+            "allergen_tags": [
+              "WHEAT_TRITICALE"
+            ],
+            "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+            "tax_category": "PREPARED_FOOD",
+            "prep_minutes": 18,
+            "variant_groups": [],
+            "addon_groups": [],
+            "category_id": "711220ae-193e-4cee-a922-b410bea1dc9f",
+            "sort_order": 2,
+            "live_version": {
+              "id": "423f9ff3-7220-4245-a70e-0d46a0d278d0",
+              "menu_item_id": "260778de-cee3-4a79-ad10-f79f5e9ab98e",
+              "restaurant_id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+              "version": 1,
+              "name": "Beef Nihari",
+              "description": "Overnight-simmered beef shank in a bone-marrow gravy. Served with two naan.",
+              "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+              "dietary_tags": [
+                "HALAL_CERTIFIED",
+                "SPICY"
+              ],
+              "allergen_tags": [
+                "WHEAT_TRITICALE"
+              ],
+              "image_url": "https://cdn.halalgoes.ca/img/dish/beef-nihari.webp",
+              "review_status": "APPROVED",
+              "rejection_reason_code": null,
+              "review_note": null,
+              "submitted_at": "2026-07-11T18:42:11.412Z",
+              "reviewed_at": "2026-07-12T18:42:11.412Z",
+              "created_at": "2026-07-11T18:42:11.412Z"
+            },
+            "pending_version": {
+              "id": "1e169ff7-f506-4e47-a869-07e256bbfb50",
+              "menu_item_id": "260778de-cee3-4a79-ad10-f79f5e9ab98e",
+              "restaurant_id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+              "version": 2,
+              "name": "Beef Nihari",
+              "description": "Overnight-simmered beef shank in a bone-marrow gravy. Served with two naan. Now with more saffron.",
+              "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+              "dietary_tags": [
+                "HALAL_CERTIFIED",
+                "SPICY"
+              ],
+              "allergen_tags": [
+                "WHEAT_TRITICALE"
+              ],
+              "image_url": "https://cdn.halalgoes.ca/img/dish/beef-nihari.webp",
+              "review_status": "PENDING_REVIEW",
+              "rejection_reason_code": null,
+              "review_note": null,
+              "submitted_at": "2026-08-10T16:42:11.412Z",
+              "reviewed_at": null,
+              "created_at": "2026-08-10T16:42:11.412Z"
+            }
+          },
+          {
+            "id": "456616ee-e1fc-4a94-aa83-3b1c726ff23d",
+            "name": "Chicken Karahi (Half)",
+            "description": "Wok-finished with tomato, ginger julienne and green chilli.",
+            "image_url": "https://cdn.halalgoes.ca/img/dish/chicken-karahi-half.webp",
+            "price_cents": 1899,
+            "currency": "CAD",
+            "availability_state": "AVAILABLE",
+            "out_of_stock_until": null,
+            "dietary_tags": [
+              "HALAL_CERTIFIED",
+              "SPICY",
+              "GLUTEN_FREE"
+            ],
+            "allergen_tags": [
+              "MILK"
+            ],
+            "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+            "tax_category": "PREPARED_FOOD",
+            "prep_minutes": 20,
+            "variant_groups": [],
+            "addon_groups": [],
+            "category_id": "711220ae-193e-4cee-a922-b410bea1dc9f",
+            "sort_order": 3,
+            "live_version": {
+              "id": "e5d7e05b-2f9b-46ae-a526-ff6dabc8ada7",
+              "menu_item_id": "456616ee-e1fc-4a94-aa83-3b1c726ff23d",
+              "restaurant_id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+              "version": 2,
+              "name": "Chicken Karahi (Half)",
+              "description": "Wok-finished with tomato, ginger julienne and green chilli.",
+              "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+              "dietary_tags": [
+                "HALAL_CERTIFIED",
+                "SPICY",
+                "GLUTEN_FREE"
+              ],
+              "allergen_tags": [
+                "MILK"
+              ],
+              "image_url": "https://cdn.halalgoes.ca/img/dish/chicken-karahi-half.webp",
+              "review_status": "APPROVED",
+              "rejection_reason_code": null,
+              "review_note": null,
+              "submitted_at": "2026-08-07T18:42:11.412Z",
+              "reviewed_at": "2026-08-08T18:42:11.412Z",
+              "created_at": "2026-08-07T18:42:11.412Z"
+            },
+            "pending_version": null
+          },
+          {
+            "id": "87640d9d-d421-4bcf-a116-1881bc0f8eb0",
+            "name": "Lamb Shawarma Platter",
+            "description": "Shaved lamb, garlic toum, pickled turnip, rice and salad.",
+            "image_url": "https://cdn.halalgoes.ca/img/dish/lamb-shawarma-platter.webp",
+            "price_cents": 1849,
+            "currency": "CAD",
+            "availability_state": "AVAILABLE",
+            "out_of_stock_until": null,
+            "dietary_tags": [
+              "HALAL_CERTIFIED"
+            ],
+            "allergen_tags": [
+              "SESAME",
+              "MILK"
+            ],
+            "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+            "tax_category": "PREPARED_FOOD",
+            "prep_minutes": 12,
+            "variant_groups": [],
+            "addon_groups": [],
+            "category_id": "711220ae-193e-4cee-a922-b410bea1dc9f",
+            "sort_order": 4,
+            "live_version": {
+              "id": "ce217859-dac2-44a9-a08f-20af0a87144b",
+              "menu_item_id": "87640d9d-d421-4bcf-a116-1881bc0f8eb0",
+              "restaurant_id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+              "version": 1,
+              "name": "Lamb Shawarma Platter",
+              "description": "Shaved lamb, garlic toum, pickled turnip, rice and salad.",
+              "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+              "dietary_tags": [
+                "HALAL_CERTIFIED"
+              ],
+              "allergen_tags": [
+                "SESAME",
+                "MILK"
+              ],
+              "image_url": "https://cdn.halalgoes.ca/img/dish/lamb-shawarma-platter.webp",
+              "review_status": "APPROVED",
+              "rejection_reason_code": null,
+              "review_note": null,
+              "submitted_at": "2026-07-11T18:42:11.412Z",
+              "reviewed_at": "2026-07-12T18:42:11.412Z",
+              "created_at": "2026-07-11T18:42:11.412Z"
+            },
+            "pending_version": {
+              "id": "eca5026f-b5c0-481c-a14b-dd04dd0daf11",
+              "menu_item_id": "87640d9d-d421-4bcf-a116-1881bc0f8eb0",
+              "restaurant_id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+              "version": 2,
+              "name": "Lamb Shawarma Platter",
+              "description": "Shaved lamb, garlic toum, pickled turnip, rice and salad. Now with more saffron.",
+              "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+              "dietary_tags": [
+                "HALAL_CERTIFIED"
+              ],
+              "allergen_tags": [
+                "SESAME",
+                "MILK"
+              ],
+              "image_url": "https://cdn.halalgoes.ca/img/dish/lamb-shawarma-platter.webp",
+              "review_status": "REJECTED",
+              "rejection_reason_code": "UNSUBSTANTIATED_HALAL_CLAIM",
+              "review_note": "We cannot show \"zabiha\" in a description without the certificate covering it. Remove the word or upload proof.",
+              "submitted_at": "2026-08-10T14:42:11.412Z",
+              "reviewed_at": "2026-08-09T18:42:11.412Z",
+              "created_at": "2026-08-10T14:42:11.412Z"
+            }
+          },
+          {
+            "id": "d917d5fe-3515-489e-ad90-004e11f6e179",
+            "name": "Falafel Wrap",
+            "description": "Chickpea falafel, tahini, tomato, parsley in a saj wrap.",
+            "image_url": "https://cdn.halalgoes.ca/img/dish/falafel-wrap.webp",
+            "price_cents": 1099,
+            "currency": "CAD",
+            "availability_state": "AVAILABLE",
+            "out_of_stock_until": null,
+            "dietary_tags": [
+              "VEGETARIAN",
+              "VEGAN",
+              "HALAL_CERTIFIED"
+            ],
+            "allergen_tags": [
+              "SESAME",
+              "WHEAT_TRITICALE"
+            ],
+            "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+            "tax_category": "PREPARED_FOOD",
+            "prep_minutes": 8,
+            "variant_groups": [],
+            "addon_groups": [],
+            "category_id": "711220ae-193e-4cee-a922-b410bea1dc9f",
+            "sort_order": 5,
+            "live_version": {
+              "id": "e174a8fc-45df-4a18-af1a-682cbcb72172",
+              "menu_item_id": "d917d5fe-3515-489e-ad90-004e11f6e179",
+              "restaurant_id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+              "version": 1,
+              "name": "Falafel Wrap",
+              "description": "Chickpea falafel, tahini, tomato, parsley in a saj wrap.",
+              "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+              "dietary_tags": [
+                "VEGETARIAN",
+                "VEGAN",
+                "HALAL_CERTIFIED"
+              ],
+              "allergen_tags": [
+                "SESAME",
+                "WHEAT_TRITICALE"
+              ],
+              "image_url": "https://cdn.halalgoes.ca/img/dish/falafel-wrap.webp",
+              "review_status": "APPROVED",
+              "rejection_reason_code": null,
+              "review_note": null,
+              "submitted_at": "2026-07-11T18:42:11.412Z",
+              "reviewed_at": "2026-07-12T18:42:11.412Z",
+              "created_at": "2026-07-11T18:42:11.412Z"
+            },
+            "pending_version": null
+          },
+          {
+            "id": "07d4c76f-9546-4692-aa20-006d0e54ea96",
+            "name": "Butter Chicken",
+            "description": "Tandoori chicken thigh in tomato and fenugreek cream.",
+            "image_url": "https://cdn.halalgoes.ca/img/dish/butter-chicken.webp",
+            "price_cents": 1795,
+            "currency": "CAD",
+            "availability_state": "AVAILABLE",
+            "out_of_stock_until": null,
+            "dietary_tags": [
+              "HALAL_CERTIFIED"
+            ],
+            "allergen_tags": [
+              "MILK",
+              "TREE_NUTS"
+            ],
+            "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+            "tax_category": "PREPARED_FOOD",
+            "prep_minutes": 16,
+            "variant_groups": [],
+            "addon_groups": [],
+            "category_id": "711220ae-193e-4cee-a922-b410bea1dc9f",
+            "sort_order": 6,
+            "live_version": {
+              "id": "ec2b9e8e-f9a5-4e69-aa07-b8492aefc0a5",
+              "menu_item_id": "07d4c76f-9546-4692-aa20-006d0e54ea96",
+              "restaurant_id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+              "version": 1,
+              "name": "Butter Chicken",
+              "description": "Tandoori chicken thigh in tomato and fenugreek cream.",
+              "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+              "dietary_tags": [
+                "HALAL_CERTIFIED"
+              ],
+              "allergen_tags": [
+                "MILK",
+                "TREE_NUTS"
+              ],
+              "image_url": "https://cdn.halalgoes.ca/img/dish/butter-chicken.webp",
+              "review_status": "APPROVED",
+              "rejection_reason_code": null,
+              "review_note": null,
+              "submitted_at": "2026-07-11T18:42:11.412Z",
+              "reviewed_at": "2026-07-12T18:42:11.412Z",
+              "created_at": "2026-07-11T18:42:11.412Z"
+            },
+            "pending_version": null
+          }
+        ]
+      }
+    ]
+  }
+}

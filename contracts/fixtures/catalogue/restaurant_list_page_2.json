@@ -1,0 +1,176 @@
+{
+  "scenario": "restaurant_list_page_2",
+  "domain": "catalogue",
+  "schema": "array<RestaurantCard>",
+  "describes": "The next page after `restaurant_list_populated` (its `next_cursor`): five farther restaurants, `has_more: false`, `next_cursor: null`. No id repeats page one.",
+  "operations": [
+    "listRestaurants"
+  ],
+  "status": 200,
+  "tags": [
+    "customer",
+    "home"
+  ],
+  "meta": {
+    "next_cursor": null,
+    "has_more": false,
+    "total": 5
+  },
+  "payload": [
+    {
+      "id": "49fd26b9-2b24-44fb-a649-c3b4237a3aa9",
+      "name": "Shahi Darbar",
+      "slug": "shahi-darbar",
+      "hero_image_url": "https://cdn.halalgoes.ca/img/restaurant/hero/shahi-darbar.webp",
+      "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/shahi-darbar.webp",
+      "cuisines": [
+        "Pakistani",
+        "Biryani",
+        "Halal"
+      ],
+      "rating_avg": 4.8,
+      "rating_count": 412,
+      "price_band": "$$",
+      "halal": {
+        "display_state": "CERTIFIED",
+        "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+        "expires_on": "2027-03-09"
+      },
+      "availability": {
+        "state": "OPEN",
+        "opens_at": "2026-08-10T12:24:11.412Z",
+        "closes_at": "2026-08-10T22:00:11.412Z",
+        "eta_min_minutes": 25,
+        "eta_max_minutes": 40,
+        "indicative_delivery_fee_cents": 449,
+        "minimum_order_cents": 1500,
+        "distance_m": 12400,
+        "out_of_range_reason": null
+      }
+    },
+    {
+      "id": "24f3a244-98e7-4a39-a1a6-3f0799899616",
+      "name": "Kabul Kebab House",
+      "slug": "kabul-kebab-house",
+      "hero_image_url": "https://cdn.halalgoes.ca/img/restaurant/hero/kabul-kebab-house.webp",
+      "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/kabul-kebab-house.webp",
+      "cuisines": [
+        "Middle Eastern",
+        "Shawarma",
+        "Halal"
+      ],
+      "rating_avg": 4.6,
+      "rating_count": 1183,
+      "price_band": "$",
+      "halal": {
+        "display_state": "CERTIFIED",
+        "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+        "expires_on": "2027-03-09"
+      },
+      "availability": {
+        "state": "OPEN",
+        "opens_at": "2026-08-10T12:24:11.412Z",
+        "closes_at": "2026-08-10T22:00:11.412Z",
+        "eta_min_minutes": 25,
+        "eta_max_minutes": 40,
+        "indicative_delivery_fee_cents": 449,
+        "minimum_order_cents": 1500,
+        "distance_m": 13250,
+        "out_of_range_reason": null
+      }
+    },
+    {
+      "id": "7c9469d0-972d-4076-a12c-fd203ac5437d",
+      "name": "Yemeni Mandi Corner",
+      "slug": "yemeni-mandi-corner",
+      "hero_image_url": "https://cdn.halalgoes.ca/img/restaurant/hero/yemeni-mandi-corner.webp",
+      "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/yemeni-mandi-corner.webp",
+      "cuisines": [
+        "Indian",
+        "Biryani",
+        "Halal"
+      ],
+      "rating_avg": 4.4,
+      "rating_count": 96,
+      "price_band": "$$",
+      "halal": {
+        "display_state": "CERTIFIED",
+        "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+        "expires_on": "2027-03-09"
+      },
+      "availability": {
+        "state": "OPEN",
+        "opens_at": "2026-08-10T12:24:11.412Z",
+        "closes_at": "2026-08-10T22:00:11.412Z",
+        "eta_min_minutes": 25,
+        "eta_max_minutes": 40,
+        "indicative_delivery_fee_cents": 449,
+        "minimum_order_cents": 1500,
+        "distance_m": 14100,
+        "out_of_range_reason": null
+      }
+    },
+    {
+      "id": "fdcb1fd3-0cb9-4dc8-a8aa-f0b611fbfce9",
+      "name": "Little Lahore Sweets",
+      "slug": "little-lahore-sweets",
+      "hero_image_url": "https://cdn.halalgoes.ca/img/restaurant/hero/little-lahore-sweets.webp",
+      "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/little-lahore-sweets.webp",
+      "cuisines": [
+        "Mediterranean",
+        "Grill",
+        "Halal"
+      ],
+      "rating_avg": 4.9,
+      "rating_count": 2741,
+      "price_band": "$$$",
+      "halal": {
+        "display_state": "CERTIFIED",
+        "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+        "expires_on": "2027-03-09"
+      },
+      "availability": {
+        "state": "OPEN",
+        "opens_at": "2026-08-10T12:24:11.412Z",
+        "closes_at": "2026-08-10T22:00:11.412Z",
+        "eta_min_minutes": 25,
+        "eta_max_minutes": 40,
+        "indicative_delivery_fee_cents": 449,
+        "minimum_order_cents": 1500,
+        "distance_m": 14950,
+        "out_of_range_reason": null
+      }
+    },
+    {
+      "id": "39290a08-e74e-4018-ae24-ca10eb0e0775",
+      "name": "Istanbul Pide Oven",
+      "slug": "istanbul-pide-oven",
+      "hero_image_url": "https://cdn.halalgoes.ca/img/restaurant/hero/istanbul-pide-oven.webp",
+      "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/istanbul-pide-oven.webp",
+      "cuisines": [
+        "Indian",
+        "Tandoori",
+        "Halal"
+      ],
+      "rating_avg": 4.2,
+      "rating_count": 38,
+      "price_band": "$$",
+      "halal": {
+        "display_state": "CERTIFIED",
+        "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+        "expires_on": "2027-03-09"
+      },
+      "availability": {
+        "state": "OPEN",
+        "opens_at": "2026-08-10T12:24:11.412Z",
+        "closes_at": "2026-08-10T22:00:11.412Z",
+        "eta_min_minutes": 25,
+        "eta_max_minutes": 40,
+        "indicative_delivery_fee_cents": 449,
+        "minimum_order_cents": 1500,
+        "distance_m": 15800,
+        "out_of_range_reason": null
+      }
+    }
+  ]
+}

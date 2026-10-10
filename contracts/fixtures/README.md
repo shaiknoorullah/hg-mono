@@ -72,29 +72,29 @@ falling through, so a typo is visible immediately.
 
 ## Scenarios by domain
 
-**516 scenarios** across 15 domains.
+**680 scenarios** across 15 domains.
 
 | Domain | Scenarios | What it covers |
 |---|---:|---|
-| [`admin`](#admin) | 35 | Review queues, applications, staff, the menu-review workflow and payout runs. |
+| [`admin`](#admin) | 48 | Review queues, applications, staff, the menu-review workflow and payout runs. |
 | [`cart`](#cart) | 16 | Cart and quote — every blocking reason, the quantity cap, and the money edges. |
-| [`catalogue`](#catalogue) | 41 | Discovery, restaurant detail, hours and menus. |
+| [`catalogue`](#catalogue) | 57 | Discovery, restaurant detail, hours and menus. |
 | [`dispatch`](#dispatch) | 31 | Dispatch states, rider offers and assignments. |
-| [`documents`](#documents) | 23 | KYC uploads, review states and every rejection reason. |
-| [`errors`](#errors) | 104 | `{error}` envelopes for the codes an app actually branches on. |
-| [`halal`](#halal) | 25 | Badges, certificates, checks and issuing bodies — the platform's core promise. |
+| [`documents`](#documents) | 27 | KYC uploads, review states and every rejection reason. |
+| [`errors`](#errors) | 130 | `{error}` envelopes for the codes an app actually branches on. |
+| [`halal`](#halal) | 37 | Badges, certificates, checks and issuing bodies — the platform's core promise. |
 | [`handoff`](#handoff) | 13 | The package-seal chain of custody (later version: seals are not used at launch) — every `PackageSeal` status, `HandoffEvent` type, and the bind/pickup-scan/delivery-scan/tamper-report results. |
-| [`onboarding`](#onboarding) | 47 | Restaurant and rider onboarding, profiles, vehicles and trading state. |
-| [`orders`](#orders) | 55 | The 14 `OrderState` values, per-audience projections, tracking and receipts. |
+| [`onboarding`](#onboarding) | 49 | Restaurant and rider onboarding, profiles, vehicles and trading state. |
+| [`orders`](#orders) | 86 | The 14 `OrderState` values, per-audience projections, tracking and receipts. |
 | [`payments`](#payments) | 12 | The 8 `PaymentState` values, saved cards and setup intents. |
-| [`platform`](#platform) | 31 | Auth, config, addresses, notifications, Connect and health. |
-| [`realtime`](#realtime) | 22 | Scripted WebSocket sequences that drive a screen through a whole lifecycle. |
-| [`refunds`](#refunds) | 39 | The 10 `RefundState` values, liability splits, approval requests, the staff review queue and chargebacks. |
-| [`rider`](#rider) | 22 | Availability, dashboard, earnings and payouts. |
+| [`platform`](#platform) | 49 | Auth, config, addresses, notifications, Connect and health. |
+| [`realtime`](#realtime) | 24 | Scripted WebSocket sequences that drive a screen through a whole lifecycle. |
+| [`refunds`](#refunds) | 41 | The 10 `RefundState` values, liability splits, approval requests, the staff review queue and chargebacks. |
+| [`rider`](#rider) | 60 | Availability, dashboard, earnings and payouts. |
 
 ### admin
 
-Review queues, applications, staff, the menu-review workflow and payout runs. — 35 scenarios.
+Review queues, applications, staff, the menu-review workflow and payout runs. — 48 scenarios.
 
 | Scenario | Schema | Status | Represents |
 |---|---|---:|---|
@@ -116,22 +116,35 @@ Review queues, applications, staff, the menu-review workflow and payout runs. �
 | `payout_run_running` | `PayoutRun` | 200 | The Monday run is paying partners. A worker that stops mid-run is relieved by the next. |
 | `payout_run_succeeded` | `PayoutRun` | 200 | The Monday run paid everyone it could; holds and carried balances are not failures. |
 | `restaurant_application_approved` | `RestaurantApplication` | 200 | `decideRestaurantApplication` with `restaurant_decision_input_approve`: approved and moved to `PAYOUT_PENDING`. **Approval does not make the restaurant live**: `account_state` stays `PENDING` until payouts are enabled and a menu is approved. |
+| `restaurant_application_changes_requested` | `RestaurantApplication` | 200 | Sent back for changes: the food safety certificate was rejected with its reason and the owner redoes exactly that document (`DOCUMENTS_REJECTED`). |
+| `restaurant_application_claimed_by_other` | `RestaurantApplication` | 200 | In review and claimed by another admin: `assigned_admin_id` is someone else and `review_lock_expires_at` is 12 minutes away. Read only here; deciding would be `409 REVIEW_LOCK_LOST`. The blockers are the live ones `services/hg` computes. |
+| `restaurant_application_no_certificate` | `RestaurantApplication` | 200 | No halal certificate uploaded at all: `halal_certificate: null`, no `HALAL_CERTIFICATE` document, and the profile has no `halal` object (no badge, never an optimistic one). Blocked until one is uploaded and approved. |
 | `restaurant_application_none_to_take` | `RestaurantApplication|null` | 200 | `takeNextRestaurantApplication` with an empty queue — null, not an error. |
 | `restaurant_application_pending_review` | `RestaurantApplication` | 200 | A complete application sitting in the queue: five documents, a halal certificate awaiting the seven checks, and no decision yet. |
 | `restaurant_application_queue` | `array&lt;RestaurantApplicationSummary&gt;` | 200 | Four applications waiting, oldest first. |
 | `restaurant_application_queue_empty` | `array&lt;RestaurantApplicationSummary&gt;` | 200 | Queue drained. `takeNextRestaurantApplication` returns **null data**, not 404. |
+| `restaurant_application_withdrawn` | `RestaurantApplication` | 200 | The owner withdrew the application (`WITHDRAWN`). Terminal: no lock, nothing to decide. |
 | `restaurant_decision_input_approve` | `RestaurantDecisionInput` | 200 | Request body for `decideRestaurantApplication`. APPROVE: an approval reason; `internal_note` stays with staff. |
 | `restaurant_decision_input_reject` | `RestaurantDecisionInput` | 200 | Request body for `decideRestaurantApplication`. REJECT: a rejection reason. Final for this application. |
 | `restaurant_decision_input_request_changes` | `RestaurantDecisionInput` | 200 | Request body for `decideRestaurantApplication`. REQUEST_CHANGES: a rejection reason and exactly which documents to redo. |
 | `rider_application_approved` | `RiderApplication` | 200 | `decideRiderApplication` with `rider_decision_input_approve`: the rider moves to `PAYOUT_PENDING`, not straight to dispatchable. They are offered orders only once Stripe reports payouts enabled. |
+| `rider_application_attempt_3` | `RiderApplication` | 200 | The third attempt: the rider was sent back twice before. The reviewer sees the attempt number next to the name. |
+| `rider_application_attempt_4` | `RiderApplication` | 200 | A fourth attempt. The contract sets no cap on attempts; the number is shown so the reviewer can judge a repeat applicant. |
+| `rider_application_bicycle` | `RiderApplication` | 200 | A bicycle courier: no plate, make or model, and the light document set (government ID, work eligibility, photo) instead of licence, registration and insurance. |
 | `rider_application_changes_requested` | `RiderApplication` | 200 | `decideRiderApplication` with `rider_decision_input_request_changes`: the licence is rejected with its reason and the rider redoes exactly that document. |
+| `rider_application_claimed_by_other` | `RiderApplication` | 200 | Claimed by another admin, whose lock runs for 9 more minutes. Read only here; deciding would be `409 REVIEW_LOCK_LOST`. |
 | `rider_application_none_to_take` | `RiderApplication|null` | 200 | Empty rider queue — null data. |
+| `rider_application_on_foot` | `RiderApplication` | 200 | A courier on foot: the vehicle row carries only its type, every vehicle field null, and the light document set. |
 | `rider_application_pending_review` | `RiderApplication` | 200 | A rider application with six documents and a vehicle on file. |
 | `rider_application_queue` | `array&lt;RiderApplicationSummary&gt;` | 200 | Nine rider applications waiting. |
+| `rider_application_under_18` | `RiderApplication` | 200 | The ID's date of birth makes the rider 17 (`computed_age_years: 17`), so the first blocker is "Rider is under 18". Approval is refused and no role can override it (`error_rider_under_18`). |
 | `rider_decision_input_approve` | `RiderDecisionInput` | 200 | Request body for `decideRiderApplication`. APPROVE: an approval reason, never a rejection reason. The text reaches the rider. |
 | `rider_decision_input_reject` | `RiderDecisionInput` | 200 | Request body for `decideRiderApplication`. REJECT: a document rejection reason and the sentence the rider reads. |
 | `rider_decision_input_request_changes` | `RiderDecisionInput` | 200 | Request body for `decideRiderApplication`. REQUEST_CHANGES: a document rejection reason and exactly which documents to redo. |
 | `staff_list` | `array&lt;StaffUser&gt;` | 200 | Platform staff across every `StaffStatus`. The invitee has never signed in and has no two-step sign-in yet. |
+| `staff_list_edge_rows` | `array&lt;StaffUser&gt;` | 200 | Rows that break layouts: a very long name and email, an invitee who never signed in (`last_login_at: null`, no two-step sign-in), an active agent without two-step sign-in, a suspended admin and a long-deactivated agent. |
+| `staff_list_one_super_admin` | `array&lt;StaffUser&gt;` | 200 | The day-one console: one super admin and nobody else. Deactivating or demoting the last super admin is refused, so those actions are not offered on this row. |
+| `staff_list_page_2` | `array&lt;StaffUser&gt;` | 200 | The second and last page of a long staff list: five more active members, `has_more: false`. |
 | `staff_user_invited` | `StaffUser` | 200 | What `createStaffUser` returns: a new account in `INVITED`. The super admin set no password; it becomes `ACTIVE` once the invitee sets one and enrols two-step sign-in. |
 
 ### cart
@@ -159,7 +172,7 @@ Cart and quote — every blocking reason, the quantity cap, and the money edges.
 
 ### catalogue
 
-Discovery, restaurant detail, hours and menus. — 41 scenarios.
+Discovery, restaurant detail, hours and menus. — 57 scenarios.
 
 | Scenario | Schema | Status | Represents |
 |---|---|---:|---|
@@ -184,6 +197,10 @@ Discovery, restaurant detail, hours and menus. — 41 scenarios.
 | `menu_item_marked_out_of_stock_until` | `MenuItemOwnerView` | 200 | `setMenuItemAvailability` → `OUT_OF_STOCK`. Sold out for an hour; it comes back by itself at the time shown. Accepted orders and customers' carts are never changed by it. |
 | `menu_item_out_of_stock` | `MenuItem` | 200 | `availability_state = OUT_OF_STOCK`. 86'd until 22:42 local; still rendered, marked unavailable, never hidden (R-19). |
 | `menu_single_item` | `Menu` | 200 | Exactly one category holding exactly one item. Catches carousels that need at least two children and 'N items' copy that pluralises wrongly. |
+| `menu_with_hidden_and_blocked_items` | `Menu` | 200 | `menu_full` with two `BLOCKED` items (shown, never orderable: an admin blocked them) and one `HIDDEN` item (never shown). `services/hg` leaves `HIDDEN` items out of the customer menu, so the hidden one pins the client's own filter. |
+| `owned_menu_empty` | `OwnedMenu` | 200 | The restaurant's own menu before anything was added: no categories. The editor shows "Add your first category". |
+| `owned_menu_every_review_status` | `OwnedMenu` | 200 | Six items, one per `MenuReviewStatus` on its newest version: a draft, one waiting for review, one just approved, one rejected with its reason and note, one withdrawn and one superseded. Items whose newest version is withdrawn or superseded show only the live version. |
+| `owned_menu_forty_categories` | `OwnedMenu` | 200 | Forty categories with one item each: the category rail scrolls and keeps the current one in view. |
 | `owned_menu_with_pending_version` | `OwnedMenu` | 200 | The restaurant's own menu. One item carries a `pending_version` — a claim-bearing field (description) was edited and is queued for review, while price and availability already went live unreviewed (decision R-05). |
 | `restaurant_availability_closed_hours` | `RestaurantAvailabilityInfo` | 200 | Outside trading hours — `opens_at` is tomorrow 11:00 local, no ETA. |
 | `restaurant_availability_no_address` | `RestaurantAvailabilityInfo` | 200 | Customer has no address yet, so nothing distance-derived can be computed. |
@@ -194,12 +211,24 @@ Discovery, restaurant detail, hours and menus. — 41 scenarios.
 | `restaurant_detail_closed` | `RestaurantDetail` | 200 | Detail page for a kitchen that is closed right now. Ordering is blocked; the hours table and the 'opens at' line are the whole screen. |
 | `restaurant_detail_expired` | `RestaurantDetail` | 200 | Restaurant detail with `halal.display_state = EXPIRED`. Expired 9 days ago. **Customer read paths 404 this restaurant** (contradiction log #19) — the fixture exists for the admin and owner surfaces. |
 | `restaurant_detail_expiring_soon` | `RestaurantDetail` | 200 | Restaurant detail with `halal.display_state = EXPIRING_SOON`. Certificate expires in 18 days — badge shows the countdown, the restaurant keeps trading. |
+| `restaurant_detail_no_address` | `RestaurantDetail` | 200 | Restaurant detail with `availability.state = NO_ADDRESS`. No address yet: no distance, ETA or fee. The page asks for an address before ordering. |
 | `restaurant_detail_no_menu` | `RestaurantDetail` | 200 | An approved restaurant that has not published a single menu item. Pair with `menu_empty`. The detail screen must not assume a menu exists. |
+| `restaurant_detail_out_of_range` | `RestaurantDetail` | 200 | Restaurant detail with `availability.state = OUT_OF_RANGE`. 21.4 km from the selected address, with the server's `out_of_range_reason` copy. Browsable; ordering is blocked. |
+| `restaurant_detail_paused` | `RestaurantDetail` | 200 | Restaurant detail with `availability.state = PAUSED`. The kitchen paused itself: still browsable, cannot be ordered from. |
 | `restaurant_detail_unverified` | `RestaurantDetail` | 200 | Restaurant detail with `halal.display_state = UNVERIFIED`. No accepted certificate on file. Never customer-visible; `SELF_DECLARED` does not exist in this contract (decision O-06). |
+| `restaurant_hours_none` | `RestaurantHours` | 200 | No opening hours set yet, and no special dates. The restaurant is `CLOSED_HOURS` all week until it adds some. |
+| `restaurant_hours_special_dates` | `RestaurantHours` | 200 | The standard week plus four special dates: a closed day this Friday, shorter hours on Saturday, a late opening on 25 December with no reason given, and Eid closed. |
+| `restaurant_hours_split_past_midnight` | `RestaurantHours` | 200 | Three ranges every day: breakfast, lunch, and dinner until 02:00 the next morning (`crosses_midnight: true`). Friday's last range still counts as Friday. |
 | `restaurant_hours_standard` | `RestaurantHours` | 200 | Mon–Thu 11:00–22:00, Fri–Sat 11:00–01:00 (crosses midnight), Sun 12:00–21:00, plus one closed-for-Eid override. |
+| `restaurant_list_closed_and_paused` | `array&lt;RestaurantCard&gt;` | 200 | One open card among two `CLOSED_HOURS` (with `opens_at`) and two `PAUSED`. Closed and paused cards stay browsable; only adding to the cart is blocked. |
 | `restaurant_list_empty` | `array&lt;RestaurantCard&gt;` | 200 | Zero results — no halal kitchen serves this postal code yet. The empty state, not an error. |
+| `restaurant_list_eta_sorted` | `array&lt;RestaurantCard&gt;` | 200 | `sort=ETA_ASC`: five open restaurants in the server's order, fastest first by `eta_min_minutes` (15, 20, 25, 25, 35). The client never re-sorts. |
 | `restaurant_list_long_names` | `array&lt;RestaurantCard&gt;` | 200 | Names and cuisine lists that overflow one line at every breakpoint. Truncation, wrapping and the accessible full name all have to survive this. |
+| `restaurant_list_missing_halal_fields` | `array&lt;RestaurantCard&gt;` | 200 | Every card's `halal` carries `display_state` only: no `certifying_body_name`, no `expires_on` (both optional). The badge shows only what is present; an `EXPIRING_SOON` badge with no date shows no date, never an invented one. (A card with no `halal` object at all is not contract-valid: `halal` is required.) |
 | `restaurant_list_missing_images` | `array&lt;RestaurantCard&gt;` | 200 | No hero, no logo, and on the first card no rating and no price band either — a kitchen that went live this morning. Every image slot must have a placeholder. |
+| `restaurant_list_no_address` | `array&lt;RestaurantCard&gt;` | 200 | The customer has no address yet: every card is `NO_ADDRESS`, with no distance, ETA or delivery fee. The list asks for an address instead of showing blanks. |
+| `restaurant_list_page_2` | `array&lt;RestaurantCard&gt;` | 200 | The next page after `restaurant_list_populated` (its `next_cursor`): five farther restaurants, `has_more: false`, `next_cursor: null`. No id repeats page one. |
+| `restaurant_list_partial_halal` | `array&lt;RestaurantCard&gt;` | 200 | A mix: one complete badge, one with `certifying_body_name: null`, one `EXPIRING_SOON` with `expires_on: null`, one with the body and no `expires_on` key. Each card renders only the fields it has. |
 | `restaurant_list_populated` | `array&lt;RestaurantCard&gt;` | 200 | Twelve open, certified Ontario restaurants — the default browse screen. One card (index 3) is EXPIRING_SOON so the badge variant is always on screen. |
 | `restaurant_list_single` | `array&lt;RestaurantCard&gt;` | 200 | Exactly one result. Catches layouts that only look right with a full grid, and 'showing 1 of 1' copy that pluralises wrongly. |
 | `search_results_empty` | `SearchResults` | 200 | No hits at all — the 'nothing matched' state, distinct from an error and from an unserved postal code. |
@@ -245,7 +274,7 @@ Dispatch states, rider offers and assignments. — 31 scenarios.
 
 ### documents
 
-KYC uploads, review states and every rejection reason. — 23 scenarios.
+KYC uploads, review states and every rejection reason. — 27 scenarios.
 
 | Scenario | Schema | Status | Represents |
 |---|---|---:|---|
@@ -267,6 +296,10 @@ KYC uploads, review states and every rejection reason. — 23 scenarios.
 | `restaurant_document_pack_empty` | `array&lt;KycDocument&gt;` | 200 | Nothing uploaded yet — the first thing a new partner sees. |
 | `restaurant_document_pack_incomplete` | `array&lt;KycDocument&gt;` | 200 | Two of five uploaded, one rejected, two never attached. Submitting is `422 INCOMPLETE_DOCUMENT_PACK`. |
 | `rider_document_pack_complete` | `array&lt;KycDocument&gt;` | 200 | All six rider document types APPROVED, including `WORK_ELIGIBILITY` (retained per contradiction log #20). |
+| `rider_document_pack_empty` | `array&lt;KycDocument&gt;` | 200 | No documents uploaded yet. |
+| `rider_document_pack_expired` | `array&lt;KycDocument&gt;` | 200 | The driver's licence expired three days ago (`state: EXPIRED`). Going online is refused with `DOCUMENT_EXPIRED` until a new one is approved. |
+| `rider_document_pack_expired_replacement_in_review` | `array&lt;KycDocument&gt;` | 200 | The expired licence (version 1, `EXPIRED`) and its replacement (version 2, `IN_REVIEW`, uploaded five hours ago). Still blocked until the new one is approved; the screen says it is being checked rather than asking again. |
+| `rider_document_pack_expiring` | `array&lt;KycDocument&gt;` | 200 | Every document approved, but the driver's licence expires in 21 days (`valid_until`). Home and Account show the "renew soon" notice; the rider can still go online. |
 | `rider_document_pack_rejected` | `array&lt;KycDocument&gt;` | 200 | The licence was rejected for cropping and the insurance has expired. The rider resubmits exactly two documents, not the whole pack. |
 | `stored_object_deleted` | `StoredObject` | 200 | Purged. Attaching it is `404 UPLOAD_NOT_FOUND`. |
 | `stored_object_pending` | `StoredObject` | 200 | Slot reserved, nothing uploaded yet. Expires in an hour. |
@@ -275,12 +308,14 @@ KYC uploads, review states and every rejection reason. — 23 scenarios.
 
 ### errors
 
-`{error}` envelopes for the codes an app actually branches on. — 104 scenarios.
+`{error}` envelopes for the codes an app actually branches on. — 130 scenarios.
 
 | Scenario | Schema | Status | Represents |
 |---|---|---:|---|
+| `error_account_banned` | `ErrorEnvelope` | 403 | `403` · `ACCOUNT_BANNED`. The signed-in account is banned. Contract-only: `services/hg` answers a banned account with `ACCOUNT_NOT_ACTIVE` at sign-in (`error_account_not_active`) and `SESSION_REVOKED` at refresh (`error_session_revoked`); handle all three. |
 | `error_account_not_active` | `ErrorEnvelope` | 403 | `403` · `ACCOUNT_NOT_ACTIVE`. The account is suspended, banned or deleted. Returned by `login` and by `setRiderAvailability` going online; nothing changed. |
 | `error_account_suspended` | `ErrorEnvelope` | 403 | `403` · `ACCOUNT_SUSPENDED`. The signed-in account is suspended; the app routes to the on-hold screen. Contract-only: `services/hg` answers a suspended account with `ACCOUNT_NOT_ACTIVE` at sign-in (`error_account_not_active`) and `SESSION_REVOKED` at refresh (`error_session_revoked`); handle all three. |
+| `error_account_temporarily_locked` | `ErrorEnvelope` | 429 | `429` · `ACCOUNT_TEMPORARILY_LOCKED`. Too many wrong passwords: the account is locked for 15 minutes (`Retry-After: 900`, a header a fixture cannot carry). `services/hg` answers 429, not 423. |
 | `error_active_delivery_in_progress` | `ErrorEnvelope` | 409 | `409` · `ACTIVE_DELIVERY_IN_PROGRESS`. Going offline while carrying an order. Contract-only: `services/hg` does not return this code yet; it lets the rider set `go_offline_after_delivery` instead. |
 | `error_active_order_exists` | `ErrorEnvelope` | 409 | `409` · `ACTIVE_ORDER_EXISTS`. One active order per customer (contradiction log #24). `getActiveOrder` returns zero or one — see `order_no_active`. |
 | `error_addon_unavailable` | `ErrorEnvelope` | 409 | `409` · `ADDON_UNAVAILABLE`. The chosen add-on is on the item but switched off: "Paratha just ran out". `details.addon_id` names it. The cart is unchanged. |
@@ -306,7 +341,11 @@ KYC uploads, review states and every rejection reason. — 23 scenarios.
 | `error_category_name_taken` | `ErrorEnvelope` | 409 | `409` · `CATEGORY_NAME_TAKEN`. Category names are unique per restaurant, ignoring case, on create and on rename. |
 | `error_category_not_empty` | `ErrorEnvelope` | 409 | `409` · `CATEGORY_NOT_EMPTY`. `deleteMenuCategory` on a category that still holds items. Deleting a category never deletes an item, so nothing changed; `details.item_count` says how many. |
 | `error_chargeback_closed` | `ErrorEnvelope` | 409 | `409` · `ALREADY_DECIDED`. Evidence notes are for open chargebacks only. |
+| `error_check_failed` | `ErrorEnvelope` | 422 | `422` · `CHECK_FAILED`. Approving with a check that failed. `details.check_keys` lists the failed checks; the certificate can only be rejected. |
+| `error_check_not_overridable` | `ErrorEnvelope` | 409 | `409` · `CHECK_NOT_OVERRIDABLE`. `recordHalalChecks` setting H5 or H7 against the server's computation. `details.check_key` and `details.computed` say which check and what the server computed. |
+| `error_checklist_incomplete` | `ErrorEnvelope` | 422 | `422` · `CHECKLIST_INCOMPLETE`. Approving before every check has a result. `details.check_keys` lists the checks still `NOT_ASSESSED`. |
 | `error_checksum_mismatch` | `ErrorEnvelope` | 422 | `422` · `CHECKSUM_MISMATCH`. The upload was cut off or changed in transit. Upload it again. |
+| `error_connect_status_not_found` | `ErrorEnvelope` | 404 | `404` · `NOT_FOUND`. The 404 the contract allows on `getConnectStatus`. Contract-only: `services/hg` answers a partner with no Stripe account with `connect_status_not_started` (200) instead; treat both as "not set up". |
 | `error_content_type_mismatch` | `ErrorEnvelope` | 422 | `422` · `CONTENT_TYPE_MISMATCH`. The file's bytes are not the type declared when the upload was created. |
 | `error_current_password_incorrect` | `ErrorEnvelope` | 422 | `422` · `INVALID_CREDENTIALS`. `changePassword` with the wrong current password. Nothing changed and no session was revoked. A 422, not a 401: the session is fine, and the client treats every 401 as an expired session to refresh and retry. |
 | `error_decision_approval_reason_required` | `ErrorEnvelope` | 422 | `422` · `VALIDATION_FAILED`. An approval sent with a rejection reason (or none). An approval carries `ALL_CHECKS_PASSED` or `APPROVED_WITH_NOTES`; nothing changed. |
@@ -316,6 +355,7 @@ KYC uploads, review states and every rejection reason. — 23 scenarios.
 | `error_different_restaurant` | `ErrorEnvelope` | 409 | `409` · `DIFFERENT_RESTAURANT`. The "Start a new cart?" dialog names the cart's restaurant and its size from `details` (C-20): "Your cart has 4 items from Karachi Kitchen". `current_line_count` counts lines, `current_item_count` sums their quantities. "Start a new cart" retries with `replace=true`. |
 | `error_document_expires_too_soon` | `ErrorEnvelope` | 422 | `422` · `DOCUMENT_EXPIRES_TOO_SOON`. A document whose expiry date is less than 30 days away. |
 | `error_documents_incomplete` | `ErrorEnvelope` | 422 | `422` · `INCOMPLETE_DOCUMENT_PACK`. Was `incomplete_document_pack`. Pairs with `restaurant_document_pack_incomplete`. |
+| `error_email_already_registered` | `ErrorEnvelope` | 409 | `409` · `EMAIL_ALREADY_REGISTERED`. Restaurant sign-up with an email that already has an account. The form offers "Sign in instead". |
 | `error_field_not_applicable` | `ErrorEnvelope` | 422 | `422` · `FIELD_NOT_APPLICABLE`. A bicycle or on-foot rider sent a plate. The form hides the field for those types. |
 | `error_field_required` | `ErrorEnvelope` | 422 | `422` · `FIELD_REQUIRED`. A car, scooter or motorcycle without a plate. |
 | `error_forbidden` | `ErrorEnvelope` | 403 | `403` · `FORBIDDEN`. Was `forbidden`. Note the English word 'forbidden' in prose was **not** rewritten by the normalisation — only code tokens were. |
@@ -327,6 +367,9 @@ KYC uploads, review states and every rejection reason. — 23 scenarios.
 | `error_image_too_small` | `ErrorEnvelope` | 422 | `422` · `IMAGE_TOO_SMALL`. `confirmUpload` on a photo too small to be a real scan. PDFs are exempt. The app asks for a retake. |
 | `error_internal_error` | `ErrorEnvelope` | 500 | `500` · `INTERNAL_ERROR`. Was `internal_error`. The only correct client behaviour is retry-with-backoff and show `request_id` in the support sheet. |
 | `error_invalid_addon` | `ErrorEnvelope` | 422 | `422` · `INVALID_ADDON`. An add-on id that is not one of the item's, typically from a stale menu. The cart is unchanged; reload the item. |
+| `error_invalid_credentials` | `ErrorEnvelope` | 401 | `401` · `INVALID_CREDENTIALS`. Wrong email or password. The same body whether the email exists or not, so the form never says which one was wrong. |
+| `error_invalid_credentials_email_verification_required` | `ErrorEnvelope` | 401 | `401` · `INVALID_CREDENTIALS`. The right password for an address that was never verified: the same 401, plus `details.email_verification_required: true`, so the form offers to resend the verification email. |
+| `error_invalid_phone` | `ErrorEnvelope` | 422 | `422` · `INVALID_PHONE`. `requestOtp` with a number that is not E.164 (`+` and 8 to 15 digits). Exactly the body `services/hg` sends: one `FieldError` on `phone_e164`. |
 | `error_invalid_transition` | `ErrorEnvelope` | 409 | `409` · `INVALID_TRANSITION`. A backwards or skipped assignment transition. `details.current_state` is where the assignment really is; the app re-reads it and moves on from there. Repeating the current state is a 200 no-op, not this. |
 | `error_item_blocked_by_admin` | `ErrorEnvelope` | 403 | `403` · `ITEM_BLOCKED_BY_ADMIN`. `setMenuItemAvailability` on a `BLOCKED` item. The kitchen cannot un-block it; the message carries the admin's reason. |
 | `error_menu_locked` | `ErrorEnvelope` | 403 | `403` · `MENU_LOCKED`. A menu change while the restaurant is suspended, by its own staff or by an admin on its behalf. The menu still reads normally; every edit control shows the locked-menu state. Opening hours stay editable. Nothing was written. |
@@ -339,9 +382,15 @@ KYC uploads, review states and every rejection reason. — 23 scenarios.
 | `error_offer_already_taken` | `ErrorEnvelope` | 409 | `409` · `OFFER_ALREADY_TAKEN`. Already SCREAMING_SNAKE before the normalisation — the rider spec's spelling. |
 | `error_offer_expired` | `ErrorEnvelope` | 409 | `409` · `OFFER_EXPIRED`. **A collision case**: `offer_expired` (platform) and `OFFER_EXPIRED` (rider) were two members of one enum. They are now one. |
 | `error_onboarding_incomplete` | `ErrorEnvelope` | 403 | `403` · `ONBOARDING_INCOMPLETE`. A rider who has not finished onboarding tries to go online. `details.next_step` is the onboarding state to route to. |
+| `error_order_admin_cancel_illegal_transition` | `ErrorEnvelope` | 409 | `409` · `ILLEGAL_TRANSITION`. `cancelOrderAdmin` on an order that can no longer be cancelled (it was delivered or already ended). Nothing changed; the screen re-reads the order. |
+| `error_order_admin_cancel_rate_limited` | `ErrorEnvelope` | 429 | `429` · `RATE_LIMITED`. Cancelling too many orders too fast. `details.retry_after_seconds` is the wait. Contract-only: `services/hg` has no rate limit on this route yet. |
 | `error_ordering_paused` | `ErrorEnvelope` | 409 | `409` · `ORDERING_PAUSED`. Staff have paused new orders platform-wide during an incident. Nothing was stored and nothing was charged; the same Idempotency-Key can be sent again once ordering resumes. A 409 like `RESTAURANT_CLOSED`, not a 503: the server is fine. |
-| `error_otp_incorrect` | `ErrorEnvelope` | 401 | `401` · `OTP_INCORRECT`. **A collision case**: the auth `otp_incorrect` and the proof-of-delivery `OTP_INCORRECT` collapsed into one member. Since superseded: proof of delivery now answers `DELIVERY_CODE_INCORRECT` (`error_delivery_code_incorrect`), so this is sign-in only. |
+| `error_otp_incorrect` | `ErrorEnvelope` | 400 | `400` · `OTP_INCORRECT`. A wrong sign-in code; `details.attempts_remaining` is how many tries are left on this challenge (always sent by `services/hg`). Sign-in only: proof of delivery now answers `DELIVERY_CODE_INCORRECT` (`error_delivery_code_incorrect`). |
+| `error_otp_incorrect_attempts_0` | `ErrorEnvelope` | 400 | `400` · `OTP_INCORRECT`. The last attempt was wrong: `attempts_remaining: 0`. The code field locks and the app offers "Send a new code"; the next `verifyOtp` on this challenge is `400 OTP_INVALID_OR_EXPIRED` (`error_otp_invalid_or_expired`). |
+| `error_otp_incorrect_attempts_2` | `ErrorEnvelope` | 400 | `400` · `OTP_INCORRECT`. Two wrong codes left on this challenge. `details.attempts_remaining` is the count `services/hg` sends with every `OTP_INCORRECT` (always present, an integer from 0 up). |
+| `error_otp_incorrect_no_count` | `ErrorEnvelope` | 400 | `400` · `OTP_INCORRECT`. A wrong sign-in code with `details` absent. `services/hg` always sends the count; this pins the client's fallback copy when a count is missing. |
 | `error_otp_invalid_or_expired` | `ErrorEnvelope` | 400 | `400` · `OTP_INVALID_OR_EXPIRED`. The challenge expired or was used up. Different from `error_otp_incorrect`: the app clears the code and offers "Send a new code". |
+| `error_otp_rate_limited_with_retry` | `ErrorEnvelope` | 429 | `429` · `RATE_LIMITED`. `requestOtp` over the per-phone or per-device cap. `details.retry_after_seconds` (the contract's documented `RATE_LIMITED` shape) says how long the button stays disabled. Contract-only: `services/hg` sends the wait only as the `Retry-After` header today, with `details` absent; a fixture cannot carry a header, so read both. |
 | `error_payload_too_large` | `ErrorEnvelope` | 413 | `413` · `PAYLOAD_TOO_LARGE`. `createUpload` for a file over the purpose's cap; `details.max_bytes` is the cap. |
 | `error_payout_account_incomplete` | `ErrorEnvelope` | 403 | `403` · `PAYOUT_ACCOUNT_INCOMPLETE`. Stripe payouts are not enabled for this rider yet. The app links to the payout step (`getConnectStatus`). |
 | `error_pickup_code_incorrect` | `ErrorEnvelope` | 422 | `422` · `PICKUP_CODE_INCORRECT`. **Wrong code.** The attempt is counted and committed in Postgres per order; the assignment's state does not change. `details.attempts_remaining` drives the counter on the rider's screen. Neither the code sent nor the expected code is in the body. |
@@ -350,6 +399,7 @@ KYC uploads, review states and every rejection reason. — 23 scenarios.
 | `error_plate_in_use` | `ErrorEnvelope` | 409 | `409` · `PLATE_IN_USE`. The plate belongs to another rider's vehicle. Shown on the plate field. |
 | `error_pod_method_mismatch` | `ErrorEnvelope` | 422 | `422` · `POD_METHOD_MISMATCH`. `MEET_AT_DOOR`/`MEET_IN_LOBBY` map to OTP proof of delivery; the rest map to photo (contradiction log #6). A photo, or a photo with a statement, never replaces the customer's code, before or after it locks. Pairs with `assignment_otp_pod_required`. |
 | `error_pod_required` | `ErrorEnvelope` | 422 | `422` · `POD_REQUIRED`. `DELIVERED` without the proof artefact. `details.required_pod_method` says which proof the drop-off needs (`OTP` here). |
+| `error_precondition_not_met` | `ErrorEnvelope` | 409 | `409` · `PRECONDITION_NOT_MET`. Approving a restaurant with live blockers. `details.blockers` is the list `services/hg` computes, verbatim; the screen lists them. (A rider application answers the same body with 422.) |
 | `error_price_out_of_range` | `ErrorEnvelope` | 422 | `422` · `PRICE_OUT_OF_RANGE`. The catalogue price band. The restaurant sets its own price; it is still never a price a client sends for an order. |
 | `error_profile_incomplete` | `ErrorEnvelope` | 422 | `422` · `PROFILE_INCOMPLETE`. Placing an order before profile capture. Contract-only: `services/hg` does not return this code yet; `next_route: PROFILE_CAPTURE` routes there first. |
 | `error_prohibited_ingredient` | `ErrorEnvelope` | 422 | `422` · `PROHIBITED_INGREDIENT`. Rejected outright, before review. The same check runs for restaurants and for admins editing on their behalf. |
@@ -359,17 +409,24 @@ KYC uploads, review states and every rejection reason. — 23 scenarios.
 | `error_rate_limited` | `ErrorEnvelope` | 429 | `429` · `RATE_LIMITED`. Was `rate_limited`. Also the code on the realtime `error` control frame at the 20 frames/second soft limit. |
 | `error_rate_limiter_unavailable` | `ErrorEnvelope` | 503 | `503` · `RATE_LIMITER_UNAVAILABLE`. The sign-in code service's rate limiter cannot be reached, so no code is sent (fail closed). This is the 503 the rider manifest calls `error_service_unavailable`. |
 | `error_receipt_not_ready` | `ErrorEnvelope` | 409 | `409` · `RECEIPT_NOT_READY`. `getOrderReceipt` before the order reaches COMPLETED: the receipt is written once at COMPLETED (docs/spec/01-platform.md, "P-10 — Fee breakdown presented to the customer"). The customer app shows the receipt as not ready yet rather than as an error; an order that never captured never gets one. |
+| `error_receipt_not_ready_never_completed` | `ErrorEnvelope` | 409 | `409` · `RECEIPT_NOT_READY`. The order was charged but never completed (it failed and was refunded in full): no receipt is written, because a receipt is written only at `COMPLETED`. The app points to the refund instead. Same body as `error_receipt_not_ready`; the app tells the cases apart by the order's state. |
+| `error_receipt_not_ready_no_charge` | `ErrorEnvelope` | 409 | `409` · `RECEIPT_NOT_READY`. The order was rejected or cancelled before the restaurant accepted: the authorisation was voided, nothing was charged, and no receipt will ever exist. The app says "You were not charged" instead of offering a receipt. Same body as `error_receipt_not_ready`; the app tells the cases apart by the order's state. |
 | `error_refresh_reuse_detected` | `ErrorEnvelope` | 401 | `401` · `REFRESH_REUSE_DETECTED`. A refresh token was used twice, so the whole session family was revoked. Same screen as `error_session_revoked`; never retried. |
 | `error_refund_already_decided` | `ErrorEnvelope` | 409 | `409` · `ALREADY_DECIDED`. Someone else decided it first, or it was never waiting. Reload the queue. |
 | `error_refund_approver_over_daily_limit` | `ErrorEnvelope` | 409 | `409` · `DAILY_CAP_EXCEEDED`. A second approver's own rolling 24-hour limit counts too. The request stays in the queue for someone with room. |
+| `error_refund_conflict` | `ErrorEnvelope` | 409 | `409` · `REFUND_EXCEEDS_CAPTURED`. A partial refund on an order that has already been mostly refunded: this one would take the total past what was captured. Nothing was refunded; the screen shows what is left. |
+| `error_refund_daily_cap` | `ErrorEnvelope` | 409 | `409` · `DAILY_CAP_EXCEEDED`. Issuing a refund past the caller's 24-hour limit. Contract-only for `issueRefund`: `services/hg` escalates such a refund to an approval request (202, `refund_approval_request_pending`) instead; it answers this code when approving (`error_refund_approver_over_daily_limit`). |
+| `error_refund_goodwill_exceeds` | `ErrorEnvelope` | 409 | `409` · `REFUND_EXCEEDS_CAPTURED`. A goodwill amount larger than the order's captured payment. Goodwill is the only refund with a typed amount, and it is still capped by what was captured. |
 | `error_refund_mfa_required` | `ErrorEnvelope` | 403 | `403` · `MFA_REQUIRED`. Money actions need a session signed in with an authenticator code (staff MFA for money actions). |
 | `error_refund_needs_higher_role` | `ErrorEnvelope` | 403 | `403` · `FORBIDDEN`. An approval request is decided by the role it was sent up to, or a super admin. |
+| `error_refund_not_refundable` | `ErrorEnvelope` | 409 | `409` · `PAYMENT_NOT_REFUNDABLE`. A refund on an order whose payment was never captured (it was voided). There is nothing to refund; cancel the order instead. |
 | `error_refund_self_approval_forbidden` | `ErrorEnvelope` | 409 | `409` · `SELF_APPROVAL_FORBIDDEN`. The person who asked for a refund, or who sent it up for a second person, tried to approve it. A goodwill refund above CAD 50.00 always needs someone else. |
 | `error_register_restaurant_rate_limited` | `ErrorEnvelope` | 429 | `429` · `RATE_LIMITED` from `registerRestaurant`: more than 5 restaurant sign-ups from one client address in an hour (docs/spec/03-restaurant.md, "R-01 — Restaurant account signup"). Checked before the password is hashed, so nothing was created; the response carries `Retry-After` in seconds. |
 | `error_reset_token_not_valid` | `ErrorEnvelope` | 400 | `400` · `TOKEN_CONSUMED`. `resetPassword` with a token that expired (30 minutes), was already used, or never existed. One body for all three, so a link cannot be probed. The app offers "Send a new link" (`requestPasswordReset`). |
 | `error_restaurant_closed` | `ErrorEnvelope` | 409 | `409` · `RESTAURANT_CLOSED`. Was `restaurant_closed`. Pairs with `restaurant_availability_closed_hours`. |
 | `error_restaurant_unavailable` | `ErrorEnvelope` | 409 | `409` · `RESTAURANT_UNAVAILABLE`. From `addCartLine`, `createQuote` and `createOrder` when the restaurant is not listed and live, or its halal certificate is not current as of the request, computed from admin-verified certificate data. The apps show the halal copy and keep the cart. Pairs with `cart_restaurant_unavailable`. |
 | `error_review_edit_window_closed` | `ErrorEnvelope` | 409 | `409` · `REVIEW_EDIT_WINDOW_CLOSED`. C-38 rule 2: a rating is editable for 24 h from its own `created_at`, then frozen — replacing it past that window is rejected rather than silently overwritten. |
+| `error_review_lock_lost` | `ErrorEnvelope` | 409 | `409` · `REVIEW_LOCK_LOST`. Deciding after the review lock passed to someone else. Nothing was applied; the screen reloads the application read-only. Contract-only: `services/hg` defines the code but does not enforce the lock on decisions yet. |
 | `error_review_window_closed` | `ErrorEnvelope` | 409 | `409` · `REVIEW_WINDOW_CLOSED`. C-38 rule 4 (scoped): `submitOrderRating` on an order that is not DELIVERED/COMPLETED, has no rider assigned for the rider half, or is more than 14 days past `delivered_at`. |
 | `error_rider_email_in_use` | `ErrorEnvelope` | 409 | `409` · `EMAIL_IN_USE`. `submitRiderProfile` with an email that belongs to another account. Shown on the email field; nothing was saved. |
 | `error_rider_under_18` | `ErrorEnvelope` | 422 | `422` · `AGE_REQUIREMENT_NOT_MET`. Approving a rider whose date of birth makes them under 18. No role can override it, and the application stays in review. |
@@ -377,8 +434,10 @@ KYC uploads, review states and every rejection reason. — 23 scenarios.
 | `error_session_revoked` | `ErrorEnvelope` | 401 | `401` · `SESSION_REVOKED`. `refreshSession` after the session was signed out elsewhere (`logoutAll`) or revoked by staff. The app drops its tokens and shows the signed-out screen. |
 | `error_staff_email_in_use` | `ErrorEnvelope` | 409 | `409` · `EMAIL_IN_USE`. `createStaffUser` for an email that already has a live account. No invite is sent. |
 | `error_step_not_available` | `ErrorEnvelope` | 409 | `409` · `STEP_NOT_AVAILABLE`. Payout setup before the application is approved. |
+| `error_terms_version_stale` | `ErrorEnvelope` | 409 | `409` · `TERMS_VERSION_STALE`. Sign-up accepted an older version of the terms. `details.current` is the version to show and accept again. |
 | `error_totp_code_incorrect` | `ErrorEnvelope` | 422 | `422` · `INVALID_CREDENTIALS`. `verifyTotpEnrolment` with a code that does not match the authenticator. Enrolment stays open: the person types the next code, they do not start again. |
 | `error_unknown_field` | `ErrorEnvelope` | 422 | `422` · `UNKNOWN_FIELD`. The decoder runs with `DisallowUnknownFields`. `is_accepting` against `is_accepting_orders` is a 422 at the boundary, not a cheerful 200 over an unchanged row — the exact bug this contract exists to kill. |
+| `error_unsupported_country` | `ErrorEnvelope` | 422 | `422` · `UNSUPPORTED_COUNTRY`. A valid E.164 number from a country the platform does not serve. Contract-only: `services/hg` accepts any E.164 number at `requestOtp` today. |
 | `error_validation_failed` | `ErrorEnvelope` | 422 | `422` · `VALIDATION_FAILED`. Per-field detail lives in `error.details` as `FieldError[]` (contradiction log #2). Note the enum message: `CALL_ON_ARRIVAL` was dropped in favour of the platform's five values (contradiction log #6). |
 | `error_variant_unavailable` | `ErrorEnvelope` | 409 | `409` · `VARIANT_UNAVAILABLE`. The chosen variant is on the item but switched off. `details.variant_id` names it, so the item sheet can say which choice ran out. The cart is unchanged. |
 | `error_verification_token_expired` | `ErrorEnvelope` | 410 | `410` · `VERIFICATION_TOKEN_EXPIRED`. `verifyEmail` with a token older than 24 hours. A token that never existed gets the same code. The page offers "Send a new link" (`resendEmailVerification`). |
@@ -386,29 +445,41 @@ KYC uploads, review states and every rejection reason. — 23 scenarios.
 
 ### halal
 
-Badges, certificates, checks and issuing bodies — the platform's core promise. — 25 scenarios.
+Badges, certificates, checks and issuing bodies — the platform's core promise. — 37 scenarios.
 
 | Scenario | Schema | Status | Represents |
 |---|---|---:|---|
+| `certificate_view_url` | `PresignedDownload` | 200 | The certificate image: a presigned link that expires in 300 s (the halal-certificate maximum). Fetch it at once; never cache or share it. Contract-only in part: `CertificationPanel` does not say which it is, so the app learns PDF or image from the link. |
+| `certificate_view_url_pdf` | `PresignedDownload` | 200 | The certificate as a PDF: the same 300 s link, a `.pdf` object. The viewer opens it as a document, not an image. Contract-only in part: `CertificationPanel` does not say which it is, so the app learns PDF or image from the link. |
 | `certification_panel_certified` | `CertificationPanel` | 200 | The customer-facing certification panel in `CERTIFIED`. |
 | `certification_panel_expired` | `CertificationPanel` | 200 | The customer-facing certification panel in `EXPIRED`. |
 | `certification_panel_expiring_soon` | `CertificationPanel` | 200 | The customer-facing certification panel in `EXPIRING_SOON`. |
+| `certification_panel_not_viewable` | `CertificationPanel` | 200 | Certified, but the certificate file cannot be opened (`certificate_viewable: false`): "View certificate" is not offered. `createCertificateViewUrl` would be a 404. |
+| `certification_panel_partial` | `CertificationPanel` | 200 | Certified, but some transcribed fields are missing: no certificate number, no scope, no issue date. The panel shows the rows it has and leaves the others out; it never fills a gap. |
 | `certification_panel_unverified` | `CertificationPanel` | 200 | The customer-facing certification panel in `UNVERIFIED`. |
 | `halal_badge_certified` | `HalalBadge` | 200 | The green badge. Certifying body and expiry both present. |
-| `halal_badge_expired` | `HalalBadge` | 200 | Red. Never rendered on a customer surface — the restaurant 404s. |
+| `halal_badge_expired` | `HalalBadge` | 200 | Cool slate, never red. Never rendered on a customer surface — the restaurant 404s. |
 | `halal_badge_expiring_soon` | `HalalBadge` | 200 | Amber. 18 days left; body and expiry present. |
 | `halal_badge_unverified` | `HalalBadge` | 200 | No body, no expiry. Never rendered on a customer surface. |
 | `halal_certificate_expired` | `HalalCertificate` | 200 | **Expired** nine days ago. The restaurant 404s from every customer read path; the admin and owner surfaces still show this. |
 | `halal_certificate_expiring_tomorrow` | `HalalCertificate` | 200 | The tightest boundary: expires **tomorrow**. Any 'days remaining' arithmetic that is off by one shows up here. |
 | `halal_certificate_expiring_within_30_days` | `HalalCertificate` | 200 | **Expiring within 30 days** — expires in 18 days. Drives `EXPIRING_SOON` on the customer badge; the restaurant keeps trading (contradiction log #19). |
+| `halal_certificate_pending_h5_computed_fail` | `HalalCertificate` | 200 | The certificate expires in 21 days, inside the 30-day minimum, so the server computes `H5_DATES_VALID: FAIL`. H5 cannot be overridden (`error_check_not_overridable`); the only way forward is a newer certificate. |
+| `halal_certificate_pending_h7_duplicate` | `HalalCertificate` | 200 | The same certificate number from the same issuer is already on another restaurant's approved certificate: `H7_UNIQUE_NOT_REUSED` computes FAIL. Not overridable; reject with `DUPLICATE_CERTIFICATE`. |
+| `halal_certificate_pending_issuer_suspended` | `HalalCertificate` | 200 | Issued by a body that is `SUSPENDED` today, so `H2_ISSUER_ACCEPTED` computes FAIL at review time. Suspending a body blocks new certificates; it does not revoke old ones. |
+| `halal_certificate_pending_scope_supplier_chain` | `HalalCertificate` | 200 | Scope `SUPPLIER_CHAIN_ONLY`: the certificate covers the meat supplier, not this kitchen, so `H6_SCOPE_SUFFICIENT` computes FAIL. The platform makes no item-level or supplier-level claim. |
+| `halal_certificate_pending_transcribed_unchecked` | `HalalCertificate` | 200 | Transcribed, no check recorded yet: every `result` is `NOT_ASSESSED`, and the server's `computed_result` is already there for H2, H5, H6 and H7 (all PASS). H1, H3 and H4 are human judgement only. H5 and H7 are not overridable. |
+| `halal_certificate_pending_untranscribed` | `HalalCertificate` | 200 | Just uploaded: the document is attached but nobody has typed in its fields yet. Number, issuer, names, scope and dates are null and no check has a result or a computed value. Transcribe first; the checks come after. |
 | `halal_certificate_status_approved` | `HalalCertificate` | 200 | `status = APPROVED`. Decided in favour. Same as `halal_certificate_valid`. |
 | `halal_certificate_status_expired` | `HalalCertificate` | 200 | `status = EXPIRED`. Lapsed on its own expiry date. |
 | `halal_certificate_status_pending` | `HalalCertificate` | 200 | `status = PENDING`. Uploaded, transcribed, not yet decided. `checks` are NOT_ASSESSED. |
 | `halal_certificate_status_rejected` | `HalalCertificate` | 200 | `status = REJECTED`. Refused with `ISSUER_NOT_ACCEPTED` — the issuer is not on the O-02 list, so `H2_ISSUER_ACCEPTED` fails. **Until the client seeds that list, no restaurant can be certified.** |
 | `halal_certificate_status_revoked` | `HalalCertificate` | 200 | `status = REVOKED`. Withdrawn by the issuer or by us after the fact. |
 | `halal_certificate_status_superseded` | `HalalCertificate` | 200 | `status = SUPERSEDED`. Replaced by a renewal. Kept for audit. |
+| `halal_certificate_support_projection` | `HalalCertificate` | 200 | What a `SUPPORT_AGENT` gets for an approved certificate, exactly as `services/hg` redacts it: status, expiry, the issuing body's id, name and status, the rejection reason, and nothing else. No document, number, address, scope, dates or checks (`checks: []`). |
 | `halal_certificate_valid` | `HalalCertificate` | 200 | **Valid**: approved, all seven H-checks PASS, 211 days of validity remaining. |
 | `halal_issuing_bodies_empty` | `array&lt;HalalIssuingBody&gt;` | 200 | **The list is empty.** Not launch-day reality any more — O-02 is answered (S-11) and three bodies are seeded — but kept as the degenerate case: with no accepted issuer, `H2_ISSUER_ACCEPTED` fails for every certificate and no restaurant can be certified. A client must render this without implying the platform is broken. |
+| `halal_issuing_bodies_every_status` | `array&lt;HalalIssuingBody&gt;` | 200 | One issuing body in each `HalalIssuingBodyStatus`: accepted, proposed, suspended, retired and rejected. Only `ACCEPTED` satisfies H2. |
 | `halal_issuing_bodies_seed` | `array&lt;HalalIssuingBody&gt;` | 200 | **The launch allowlist** (decision S-11). A certificate from ANY ONE of these satisfies `H2_ISSUER_ACCEPTED`. Extensible at runtime by a super admin, so this is a starting registry, not a closed set. |
 | `halal_issuing_body_accepted` | `HalalIssuingBody` | 200 | `status = ACCEPTED`. On the list. Promotion to this state is gated to a super admin (O-02). |
 | `halal_issuing_body_proposed` | `HalalIssuingBody` | 200 | `status = PROPOSED`. Suggested by a reviewer; **not yet usable**. `H2_ISSUER_ACCEPTED` fails against it. |
@@ -438,7 +509,7 @@ The package-seal chain of custody (later version: seals are not used at launch) 
 
 ### onboarding
 
-Restaurant and rider onboarding, profiles, vehicles and trading state. — 47 scenarios.
+Restaurant and rider onboarding, profiles, vehicles and trading state. — 49 scenarios.
 
 | Scenario | Schema | Status | Represents |
 |---|---|---:|---|
@@ -459,8 +530,10 @@ Restaurant and rider onboarding, profiles, vehicles and trading state. — 47 sc
 | `restaurant_open_state_closed_offline` | `RestaurantAvailability` | 200 | `open_state = CLOSED_OFFLINE`. No tablet heartbeat within the window; the kitchen is presumed away. R-22 evaluates these in strict precedence. |
 | `restaurant_open_state_closed_suspended` | `RestaurantAvailability` | 200 | `open_state = CLOSED_SUSPENDED`. Admin suspension. The owner cannot reopen. R-22 evaluates these in strict precedence. |
 | `restaurant_open_state_closed_toggle` | `RestaurantAvailability` | 200 | `open_state = CLOSED_TOGGLE`. `is_accepting_orders: false` — the explicit switch. R-22 evaluates these in strict precedence. |
+| `restaurant_open_state_closed_toggle_auto_off` | `RestaurantAvailability` | 200 | Ordering turned off by the platform after two offers in a row expired (`missed_order_count: 2`). The restaurant turns it back on itself. Contract-only: `services/hg` counts missed offers but does not turn ordering off by itself yet. |
 | `restaurant_open_state_open` | `RestaurantAvailability` | 200 | `open_state = OPEN`. Trading. R-22 evaluates these in strict precedence. |
 | `restaurant_open_state_paused` | `RestaurantAvailability` | 200 | `open_state = PAUSED`. Owner pressed pause; `is_accepting_orders` is untouched underneath. R-22 evaluates these in strict precedence. |
+| `restaurant_open_state_paused_until_closing` | `RestaurantAvailability` | 200 | Paused for the rest of the day: `pause_until` is tonight's closing time (22:00 Toronto). Ordering resumes by itself tomorrow at opening. |
 | `restaurant_profile` | `RestaurantProfile` | 200 | A submitted restaurant profile: Ontario address, CRA-form GST/HST number, America/Toronto. Server-controlled fields (`is_approved`, `account_state`, `commission_rate_bps`, anything `_cents`) do not exist on this DTO at all. |
 | `restaurant_profile_account_banned` | `RestaurantProfile` | 200 | `getRestaurantProfile` with `account_state: BANNED`. Banned. Its own staff cannot sign in, so only admins acting on its behalf see this profile. |
 | `restaurant_profile_account_closed` | `RestaurantProfile` | 200 | `getRestaurantProfile` with `account_state: CLOSED`. Closed for good. Read only. |
@@ -492,16 +565,35 @@ Restaurant and rider onboarding, profiles, vehicles and trading state. — 47 sc
 
 ### orders
 
-The 14 `OrderState` values, per-audience projections, tracking and receipts. — 55 scenarios.
+The 14 `OrderState` values, per-audience projections, tracking and receipts. — 86 scenarios.
 
 | Scenario | Schema | Status | Represents |
 |---|---|---:|---|
 | `handover_override_delivery` | `HandoverOverride` | 200 | **Admin override at a met handover.** The customer's phone died in the lobby, so they could not read their delivery code after two wrong guesses. Support reached the customer, who confirmed they had the order, and an admin confirmed the delivery: `ARRIVED` → `DELIVERED` with `actor_kind: ADMIN`. The rider could not have done this: a photo never replaces the code at a met handover. |
 | `handover_override_pickup_locked` | `HandoverOverride` | 200 | **Admin override after the limit.** Five wrong pickup codes locked the code (`error_pickup_code_locked`); a support agent called the kitchen, who confirmed the bag went to the assigned rider, and confirmed the pickup. The order moved `READY_FOR_PICKUP` → `PICKED_UP` with `actor_kind: SUPPORT`. The record names the agent, the reason, the case and the 5 wrong attempts — never the code. |
+| `order_admin_list_disputed_page_1` | `array&lt;OrderSummary&gt;` | 200 | `listOrdersAdmin?state=DISPUTED`, first page: 20 disputed orders, newest first, `has_more: true`. The next page is `order_admin_list_disputed_page_2`. |
+| `order_admin_list_disputed_page_2` | `array&lt;OrderSummary&gt;` | 200 | The last page of disputed orders: seven more, `has_more: false`. |
+| `order_admin_list_every_state` | `array&lt;OrderSummary&gt;` | 200 | `listOrdersAdmin` with one order in each of the 14 `OrderState` values. The restaurants' halal badges cover all four `HalalDisplayState` values (cancelled: expiring soon, rejected: expired, failed: unverified) and the resolved order's restaurant has no `halal` object at all: no badge, never an optimistic one, and never red. |
+| `order_admin_view_arrived` | `OrderAdminView` | 200 | The staff projection of an order in `ARRIVED`. Rider is at the drop-off, proof of delivery not yet recorded. |
+| `order_admin_view_authorized` | `OrderAdminView` | 200 | The staff projection of an order in `AUTHORIZED`. Card authorised, not captured. The restaurant has not been asked yet. Cancellation is still free. |
+| `order_admin_view_cancelled` | `OrderAdminView` | 200 | The staff projection of an order in `CANCELLED`. Terminal. Cancelled by the customer before acceptance, so the authorisation was voided rather than captured and refunded. |
+| `order_admin_view_chargeback` | `OrderAdminView` | 200 | A completed order with an open chargeback for the full amount, waiting for evidence (due in five days), with one evidence note. |
 | `order_admin_view_completed` | `OrderAdminView` | 200 | The full admin projection: timeline, dispatch history across two waves, payment, the ledger decomposition and `pii_revealed: false` (unmasking needs a recorded justification). |
+| `order_admin_view_created` | `OrderAdminView` | 200 | The staff projection of an order in `CREATED`. Order exists, payment not yet authorised. 3-D Secure lives here — the order stays CREATED under its 15-minute deadline while `payment.action_required` is outstanding. |
+| `order_admin_view_delivered` | `OrderAdminView` | 200 | The staff projection of an order in `DELIVERED`. Proof of delivery recorded. Not yet financially settled. |
 | `order_admin_view_delivery_overridden` | `OrderAdminView` | 200 | The order after `handover_override_delivery`: the timeline's `DELIVERED` step is `actor_kind: ADMIN` with the reason and the case, and `delivery_code` is null, as it always is for support and admin. |
 | `order_admin_view_disputed` | `OrderAdminView` | 200 | A delivered order in dispute with a partial refund awaiting approval and a liability split that puts the whole amount on the restaurant (O-04 is open; the split is computed at authorisation and stored). The money timeline shows the payment, the request, the agent sending it up, and a chargeback with one evidence note. |
 | `order_admin_view_failed_no_rider` | `OrderAdminView` | 200 | Three dispatch waves, eight riders offered, nobody accepted. The order failed and was fully refunded — the case `admin.dispatch_failure` fires on. |
+| `order_admin_view_ledger_residual` | `OrderAdminView` | 200 | An order whose ledger does not sum to zero (`ledger_residual_cents: 140`). The deferred `SUM = 0` trigger makes this unreachable in a healthy database, so the view flags it as a reconciliation exception, never hides it. |
+| `order_admin_view_masked` | `OrderAdminView` | 200 | The default staff view with `pii_revealed: false`: street only, no unit, buzzer, notes or special instructions. "Reveal" asks for a justification first. Contract-only: `services/hg` sends the same fields whatever `pii_revealed` says today. |
+| `order_admin_view_picked_up` | `OrderAdminView` | 200 | The staff projection of an order in `PICKED_UP`. Rider has the bag. This is when `rider.location` starts publishing to the customer and the map goes live. |
+| `order_admin_view_pii_revealed` | `OrderAdminView` | 200 | `getOrderAdmin?reveal_pii=true&justification=...`: `pii_revealed: true`, the full delivery address with unit and buzzer, the delivery notes and the special instructions. The reveal and its justification are audited. |
+| `order_admin_view_preparing` | `OrderAdminView` | 200 | The staff projection of an order in `PREPARING`. Accepted and captured; the kitchen is cooking and dispatch is searching for a rider. Cancellation is no longer free. |
+| `order_admin_view_ready_for_pickup` | `OrderAdminView` | 200 | The staff projection of an order in `READY_FOR_PICKUP`. Food is on the pass, a rider is assigned and en route to the restaurant. |
+| `order_admin_view_refund_failed_settlement_held` | `OrderAdminView` | 200 | A refund that Stripe refused, retried until it was set aside (`REFUND_SET_ASIDE`): the money is held for a person to settle and the customer has not been paid. The screen says so plainly; it never shows "refunded". |
+| `order_admin_view_rejected` | `OrderAdminView` | 200 | The staff projection of an order in `REJECTED`. Terminal. The restaurant rejected it — `reject_reason: ITEM_UNAVAILABLE`. The authorisation is voided; no money ever moved. |
+| `order_admin_view_resolved` | `OrderAdminView` | 200 | The staff projection of an order in `RESOLVED`. Terminal. The dispute was settled with a partial refund and the case closed. |
+| `order_admin_view_restaurant_pending` | `OrderAdminView` | 200 | The staff projection of an order in `RESTAURANT_PENDING`. The 180-second acceptance window is running (decision R-04). `deadline_at` is the only source of the countdown — never a local constant. |
 | `order_arrived` | `OrderCustomerView` | 200 | Rider is at the drop-off, proof of delivery not yet recorded. |
 | `order_arrived_delivery_code_locked` | `OrderCustomerView` | 200 | A met handover where five wrong codes have **locked** the delivery code: `delivery_code` is null, so the screen stops asking the customer to read it out. The order is now with support, who confirm the handover with `overrideHandoverCode`; the rider has no fallback of their own. |
 | `order_arrived_meet_in_lobby` | `OrderCustomerView` | 200 | The rider is in the lobby (`MEET_IN_LOBBY`) and `delivery_code` is set: the screen leads with the code. The same moment sends `order.rider_arrived` and a push that say only "Your rider is here"; this authenticated view is where the app reads the code, because no push or event carries it. |
@@ -516,7 +608,9 @@ The 14 `OrderState` values, per-audience projections, tracking and receipts. —
 | `order_large_tip` | `OrderCustomerView` | 200 | A CAD 100.00 tip — larger than the food. Catches percentage displays and fixed-width currency columns. |
 | `order_list_active` | `array&lt;OrderSummary&gt;` | 200 | The one order a customer may have in flight (`status_group=ACTIVE`). |
 | `order_list_empty` | `array&lt;OrderSummary&gt;` | 200 | A customer who has never ordered. First-run empty state. |
+| `order_list_mixed_states` | `array&lt;OrderSummary&gt;` | 200 | One order in each of the 14 `OrderState` values, so every state chip renders in one list. Every non-terminal row has a `deadline_at`; terminal rows have none. |
 | `order_list_past` | `array&lt;OrderSummary&gt;` | 200 | Order history: completed, cancelled, rejected and resolved side by side, so the history row's state chip is exercised across colours. |
+| `order_list_past_page_2` | `array&lt;OrderSummary&gt;` | 200 | The next page of history after `order_list_past` (its `next_cursor`): four older orders, `has_more: false`, `next_cursor: null`. |
 | `order_no_active` | `OrderCustomerView|null` | 200 | `getActiveOrder` with nothing in flight. The contract returns **null data**, not 404 and not an empty array — one active order per customer (contradiction log #24). |
 | `order_picked_up` | `OrderCustomerView` | 200 | Rider has the bag. This is when `rider.location` starts publishing to the customer and the map goes live. |
 | `order_picked_up_meet_at_door` | `OrderCustomerView` | 200 | Out for delivery to a **met handover** (`MEET_AT_DOOR`): `delivery_code` is set. The customer reads these 4 digits to the rider at the door; the rider is never shown them. |
@@ -531,16 +625,26 @@ The 14 `OrderState` values, per-audience projections, tracking and receipts. —
 | `order_restaurant_pending` | `OrderCustomerView` | 200 | The 180-second acceptance window is running (decision R-04). `deadline_at` is the only source of the countdown — never a local constant. |
 | `order_single_line` | `OrderCustomerView` | 200 | One line, quantity 1, no variant, no add-ons, no special instructions, no delivery notes — the sparsest legal order. |
 | `order_zero_tip` | `OrderCustomerView` | 200 | A delivered order with **no tip**. The tip row still renders at $0.00, and the rider's earnings for this delivery are the delivery fee alone. |
+| `receipt_no_tax_no_service_fee` | `Receipt` | 200 | A pickup from a restaurant that is not registered for HST (a small supplier), with no service fee and no tip: `tax_lines` is empty and `tax_total_cents` 0, so there is no tax row and no registration number. The lines still sum to the total. |
 | `receipt_pickup_zero_tip` | `Receipt` | 200 | Pickup, no tip, no delivery address. Two whole money rows are absent rather than zeroed. |
 | `receipt_standard` | `Receipt` | 200 | A completed delivery's receipt. Carries **both** tax registration numbers so either answer to O-01 (who is the supplier of record) renders without a schema change. |
 | `receipt_with_refund` | `Receipt` | 200 | The same receipt after a settled partial refund. Both spellings of the reason code exist in the enum (`ITEM_MISSING` and `MISSING_ITEMS`) — contradiction log #8 is still OPEN and this fixture uses the customer-spec spelling. |
+| `restaurant_order_arrived` | `OrderRestaurantView` | 200 | The rider is at the customer's door. Nothing for the kitchen to do. |
+| `restaurant_order_cancelled` | `OrderRestaurantView` | 200 | Cancelled by the customer while the offer was ringing, before acceptance: no delivery address was ever shown and nothing was charged. |
+| `restaurant_order_cancelled_after_accept` | `OrderRestaurantView` | 200 | Cancelled by support after the kitchen accepted it (`accepted_at` set, the address already shown): stop preparing. The customer is refunded; the kitchen's compensation follows the refund's liability split. |
+| `restaurant_order_completed` | `OrderRestaurantView` | 200 | Terminal, happy. Shown in history, never in the live queue. |
+| `restaurant_order_delivered` | `OrderRestaurantView` | 200 | Handed over; settlement has not run yet. |
+| `restaurant_order_disputed` | `OrderRestaurantView` | 200 | The customer disputed it after delivery; support owns it. The kitchen sees the state, not the case. |
 | `restaurant_order_picked_up` | `OrderRestaurantView` | 200 | Collected: the rider typed the right pickup code, so `pickup_code` is null again. The tablet's job is done. |
 | `restaurant_order_pickup_code_locked` | `OrderRestaurantView` | 200 | On the pass, but five wrong pickup codes have **locked** the code: `pickup_code` is null, so the screen stops showing it, and the order is with HalalGoes support, who confirm the pickup with `overrideHandoverCode` after checking with the kitchen. |
 | `restaurant_order_preparing` | `OrderRestaurantView` | 200 | Accepted and overdue (`is_late: true`). The address is now present, and so is the 4-digit `pickup_code` the kitchen will read to the rider. |
 | `restaurant_order_queue_busy` | `array&lt;OrderRestaurantView&gt;` | 200 | Friday 19:00: two pending, three preparing, one late, one ready. Sorted with RESTAURANT_PENDING first by `deadline_at` ascending, per R-23. |
 | `restaurant_order_queue_empty` | `array&lt;OrderRestaurantView&gt;` | 200 | A quiet kitchen — no orders in any state. The tablet's idle screen. |
+| `restaurant_order_queue_pending_four` | `array&lt;OrderRestaurantView&gt;` | 200 | Four offers waiting, sorted by `deadline_at` ascending (25, 70, 120 and 170 seconds left), the server's order. The same orders and codes as `realtime_restaurant_offer_burst`. No delivery address on any of them yet. |
+| `restaurant_order_queue_with_completed` | `array&lt;OrderRestaurantView&gt;` | 200 | A live queue that also carries a `COMPLETED` row. The live screen must leave a terminal order out (the client guard for issue #601), not render it as a ticket. |
 | `restaurant_order_ready_for_pickup` | `OrderRestaurantView` | 200 | On the pass, rider assigned with an ETA to the restaurant. The screen shows `pickup_code` large, for the kitchen to read out. |
 | `restaurant_order_rejected` | `OrderRestaurantView` | 200 | Rejected by the kitchen for ITEM_UNAVAILABLE. Never a pickup code. |
+| `restaurant_order_resolved` | `OrderRestaurantView` | 200 | The dispute was settled. Terminal. |
 | `restaurant_order_restaurant_pending` | `OrderRestaurantView` | 200 | The incoming-order card with 80 s left on the 180 s window. **No delivery address and no pickup code yet** — both are withheld until acceptance. |
 | `tracking_arrived` | `OrderTracking` | 200 | Rider at the door; the countdown is to handover. |
 | `tracking_arrived_delivery_code` | `OrderTracking` | 200 | The rider is in the lobby for a met handover. The screen leads with `delivery_code`; the customer reads it out. |
@@ -573,32 +677,48 @@ The 8 `PaymentState` values, saved cards and setup intents. — 12 scenarios.
 
 ### platform
 
-Auth, config, addresses, notifications, Connect and health. — 31 scenarios.
+Auth, config, addresses, notifications, Connect and health. — 49 scenarios.
 
 | Scenario | Schema | Status | Represents |
 |---|---|---:|---|
 | `addresses_empty` | `array&lt;Address&gt;` | 200 | No address yet — the state that makes every distance and ETA uncomputable (`NO_ADDRESS` availability). |
 | `addresses_list` | `array&lt;Address&gt;` | 200 | Three saved addresses, one default, one with no unit or buzzer. |
+| `connect_onboarding_link` | `ConnectOnboardingLink` | 201 | `createConnectOnboardingLink` (201): a single-use Stripe-hosted onboarding URL that expires in five minutes. Open it straight away; never store it. |
 | `connect_status_complete` | `ConnectStatus` | 200 | Stripe Connect fully onboarded: payouts enabled, nothing due. |
+| `connect_status_currently_due` | `ConnectStatus` | 200 | Stripe wants one more thing now (`currently_due: [external_account]`); payouts are off until it is given. No deadline. Requirement ids and `disabled_reason` are Stripe's own, never paraphrased. |
+| `connect_status_details_not_submitted` | `ConnectStatus` | 200 | The rider opened Stripe's form and left before finishing: `details_submitted: false` and Stripe's requirement ids in `currently_due`, verbatim. Requirement ids and `disabled_reason` are Stripe's own, never paraphrased. |
+| `connect_status_due_with_deadline` | `ConnectStatus` | 200 | Payouts still on, but Stripe needs the SIN before `deadline` (in five days); after that it turns payouts off. Requirement ids and `disabled_reason` are Stripe's own, never paraphrased. |
+| `connect_status_not_started` | `ConnectStatus` | 200 | No Stripe account yet: `services/hg` answers a zeroed, not-ready status (not 404), so the payout step renders "Set up payouts". Requirement ids and `disabled_reason` are Stripe's own, never paraphrased. |
+| `connect_status_past_due` | `ConnectStatus` | 200 | The deadline passed: `past_due` is not empty and payouts are off. Payouts are `HELD` until the rider fixes it. Requirement ids and `disabled_reason` are Stripe's own, never paraphrased. |
+| `connect_status_pending_verification` | `ConnectStatus` | 200 | Everything is submitted and Stripe is checking it: nothing due, payouts off, `disabled_reason: requirements.pending_verification`. Nothing for the rider to do. Requirement ids and `disabled_reason` are Stripe's own, never paraphrased. |
+| `connect_status_rejected` | `ConnectStatus` | 200 | Stripe rejected the account (`disabled_reason: rejected.other`). Payouts are off for good on this account; the app sends the rider to support. Requirement ids and `disabled_reason` are Stripe's own, never paraphrased. |
 | `connect_status_requirements_due` | `ConnectStatus` | 200 | Payouts disabled with `currently_due` and `past_due` surfaced **verbatim** from Stripe — we do not paraphrase requirement ids. |
 | `customer_profile` | `CustomerProfile` | 200 | C-03: `first_name`/`last_name`, never a single `name`. `phone_e164` is read-only here — sending it is `422 UNKNOWN_FIELD`. |
 | `dependency_report` | `DependencyReport` | 200 | Per-dependency detail for the internal status page. |
 | `health_ok` | `HealthStatus` | 200 | Liveness. Never touches a dependency. |
+| `health_version` | `HealthStatus` | 200 | `/health` on a released build: `version` is the release the replica runs (`HG_SERVICE_VERSION`; `dev` locally), `started_at` when this process started. The console footer shows both. |
 | `notifications_empty` | `array&lt;Notification&gt;` | 200 | Nothing to show. The bell must not render a zero badge. |
 | `notifications_list` | `array&lt;Notification&gt;` | 200 | Mixed read and unread notifications across channels and priorities. |
 | `otp_challenge` | `OtpChallenge` | 200 | The OTP request response. The wire carries `resend_after_s` and `expires_at` and the client renders the **server's** cooldown — rate limits are not contract constants (contradiction log #23). |
+| `otp_challenge_resend_open` | `OtpChallenge` | 200 | A challenge whose resend cooldown is over (`resend_after_s: 0`): "Send a new code" is enabled at once. The code itself is still valid for four minutes. |
 | `principal_admin` | `Principal` | 200 | `GET /v1/auth/me` for an `ADMIN` signed in with password and authenticator code (`amr: pwd+totp`), so money actions are allowed. Global grant, `scope_id: null`. Devworld has no plain `ADMIN` persona yet; `admin-seed` is the super admin. |
 | `principal_admin_password_only` | `Principal` | 200 | An `ADMIN` whose session was signed in with a password only (`amr: pwd`). The console works, but every money action answers `403 MFA_REQUIRED` (`error_refund_mfa_required`); the app offers to sign in again with the code. |
 | `principal_customer` | `Principal` | 200 | `GET /v1/auth/me` for a customer — one account, one role, no restaurant scope. |
+| `principal_restaurant_owner` | `Principal` | 200 | `GET /v1/auth/me` for the owner of the `restaurant_profile` restaurant: one `RESTAURANT_OWNER` grant scoped to that restaurant (`scope_type: RESTAURANT`, `scope_id` its id), signed in with email and password. |
 | `principal_super_admin` | `Principal` | 200 | `GET /v1/auth/me` for a `SUPER_ADMIN` with an authenticator-code session: staff management, certificate revocation and refunds above every approver's limit. The account id is the devworld `admin-seed` persona's (`make dev-admin`). |
 | `principal_support_agent` | `Principal` | 200 | `GET /v1/auth/me` for a `SUPPORT_AGENT`: read-mostly console, no decisions, no staff management. The account id is the devworld `support-seed` persona's. |
 | `public_config` | `PublicConfig` | 200 | Client bootstrap. Deliberately exposes **no fee parameter** — no client can compute a price (contradiction log #22). `restaurant_response_window_seconds` is 180 (decision R-04) and `served_provinces` gates ordering (O-05). |
 | `public_config_ordering_paused` | `PublicConfig` | 200 | Staff have paused new orders platform-wide. The customer app says ordering is paused instead of letting checkout fail; `ordering` carries no reason, which is for staff. |
+| `public_config_support_unavailable` | `PublicConfig` | 200 | Support is switched off (`support_enabled: false`): no phone number and no hours. Every "Contact support" control is hidden, never a dead number. |
+| `readiness_not_ready_503` | `ReadinessStatus` | 503 | `/health/ready` with Valkey unreachable: `503`, `ready: false`, the failing dependency named with its error. `services/hg` sends this `ReadinessStatus` body with the 503 (the status and the body always agree); the contract's 503 says error envelope, so a client reads `ready` from either. |
 | `readiness_ok` | `ReadinessStatus` | 200 | Every dependency reachable. |
 | `realtime_ticket` | `RealtimeTicket` | 200 | A single-use 30-second ticket plus the channels this principal may subscribe to. Mint a fresh one per connection attempt; never cache or reuse. |
+| `session_grant_admin` | `SessionGrant` | 200 | `login` on the web console for a `ADMIN`: the `principal_admin` principal, a 15-minute access token and `refresh_token: null` (the refresh token is the `hg_rt` cookie on web). |
 | `session_grant_customer` | `SessionGrant` | 200 | A customer session issued by phone OTP, with `next_route` telling the app where to land — the client contains no branching tree of its own (P-04). |
 | `session_grant_password_changed` | `SessionGrant` | 200 | `changePassword` from the admin console: every other session was revoked and this one re-issued. Web, so the refresh token is in the `hg_rt` cookie and null here. |
 | `session_grant_staff` | `SessionGrant` | 200 | `login` for staff on the web console: password plus authenticator code, a 15-minute access token, `refresh_token: null` (the refresh token is the `hg_rt` cookie on web) and the `principal_admin` principal. |
+| `session_grant_super_admin` | `SessionGrant` | 200 | `login` on the web console for a `SUPER_ADMIN`: the `principal_super_admin` principal, a 15-minute access token and `refresh_token: null` (the refresh token is the `hg_rt` cookie on web). |
+| `session_grant_support_agent` | `SessionGrant` | 200 | `login` on the web console for a `SUPPORT_AGENT`: the `principal_support_agent` principal, a 15-minute access token and `refresh_token: null` (the refresh token is the `hg_rt` cookie on web). |
 | `session_next_route_active_delivery` | `SessionGrant` | 200 | `next_route = ACTIVE_DELIVERY`. A rider with a delivery in progress resumes it, wherever they were. |
 | `session_next_route_app_update_required` | `SessionGrant` | 200 | `next_route = APP_UPDATE_REQUIRED`. Below `min_supported_version`. A hard stop. |
 | `session_next_route_home` | `SessionGrant` | 200 | `next_route = HOME`. Fully onboarded; go to the main surface. |
@@ -607,11 +727,13 @@ Auth, config, addresses, notifications, Connect and health. — 31 scenarios.
 | `session_next_route_order_tracking` | `SessionGrant` | 200 | `next_route = ORDER_TRACKING`. A customer with a live order lands on tracking. |
 | `session_next_route_profile_capture` | `SessionGrant` | 200 | `next_route = PROFILE_CAPTURE`. First sign-in — we have a phone and nothing else. |
 | `session_next_route_suspended` | `SessionGrant` | 200 | `next_route = SUSPENDED`. Account suspended; a dead end with an explanation. |
+| `session_next_route_suspended_banned` | `SessionGrant` | 200 | `next_route = SUSPENDED` with `principal.status: BANNED`. The account is banned: the same dead end as suspended, with no appeal route in the copy. Contract-only: `services/hg` issues no session to an account that is not `ACTIVE`; it answers sign-in with `403 ACCOUNT_NOT_ACTIVE` (`error_account_not_active`). |
+| `session_next_route_suspended_deleted` | `SessionGrant` | 200 | `next_route = SUSPENDED` with `principal.status: DELETED`. The account was deleted: the app says so and offers to start a new one with the same number after the retention period. Contract-only: `services/hg` issues no session to an account that is not `ACTIVE`; it answers sign-in with `403 ACCOUNT_NOT_ACTIVE` (`error_account_not_active`). |
 | `totp_enrolment` | `TotpEnrolment` | 200 | Two-step sign-in enrolment, step one: the authenticator URI and ten recovery codes, shown **once**. Step two is `verifyTotpEnrolment` with a live code. |
 
 ### realtime
 
-Scripted WebSocket sequences that drive a screen through a whole lifecycle. — 22 scenarios.
+Scripted WebSocket sequences that drive a screen through a whole lifecycle. — 24 scenarios.
 
 | Scenario | Schema | Status | Represents |
 |---|---|---:|---|
@@ -620,6 +742,7 @@ Scripted WebSocket sequences that drive a screen through a whole lifecycle. — 
 | `realtime_admin_ops_dispatch_failure` | `RealtimeEvent[]` | 200 | `admin.dispatch_failure`: three dispatch waves ran out to 10 km, eight riders were offered the order and nobody accepted. `services/hg` emits this when dispatch reaches `NO_RIDER_FOUND`. |
 | `realtime_admin_ops_queue_depth` | `RealtimeEvent[]` | 200 | `admin.queue_depth` on `admin:ops`: the first frame fills the nav counts (hidden until it arrives), two updates change them, the last one is all zeros (no badge rendered for 0). Contract-only: `services/hg` does not emit `admin.queue_depth` yet, so on the real API the counts stay hidden; read the queues instead. |
 | `realtime_admin_ops_reconciliation_exception` | `RealtimeEvent[]` | 200 | `admin.reconciliation_exception`: a transfer of 39.80 where the ledger expected 41.20. Contract-only: `services/hg` reports reconciliation exceptions as an `admin.alert` with `subject_type: reconciliation_exception` (`realtime_admin_ops_alerts`), not as this frame. |
+| `realtime_admin_ops_truncated_resume` | `RealtimeEvent[]` | 200 | The console comes back after a long sleep: the first `admin:ops` frame is `seq` 4812 where it last saw 2, it sends `resume {after_seq: 2}`, and the server answers `resume_complete {truncated: true, replayed: 0}` because the gap is older than the 7-day retention. The client refetches the queues over REST and resets its cursor; it never shows the gap as "no alerts". |
 | `realtime_admin_ops_unknown_type` | `RealtimeEvent[]` | 200 | Frames a client must ignore without crashing (websocket.md section 2): an unknown type `admin.capacity_warning`, and `admin.queue_depth` at `v: 2`. Then a normal `v: 1` queue depth that must be shown. `seq` stays gapless across all three. |
 | `realtime_control_frames` | `RealtimeEvent[]` | 200 | Every control frame, `seq: 0` and no channel: `hello`, `subscribed`, `ping`, `subscribe_error` (`not_found` for someone else's order — never `forbidden`), `unsubscribed`, `resume_complete` with `truncated: true`, `reauth_required` and an `error`. |
 | `realtime_gap_and_resume` | `RealtimeEvent[]` | 200 | A deliberate **seq gap** (3 → 7). A conforming client detects `seq > last_seq + 1`, sends `resume {channel, after_seq: 3}`, and receives the missing events followed by `resume_complete`. Use this to prove the gap-detection path before shipping. |
@@ -630,6 +753,7 @@ Scripted WebSocket sequences that drive a screen through a whole lifecycle. — 
 | `realtime_order_timeout_no_rider` | `RealtimeEvent[]` | 200 | Three dispatch waves, nobody accepts, the order fails and is fully refunded. Ends with `admin.dispatch_failure` on `admin:ops`. |
 | `realtime_payment_action_required` | `RealtimeEvent[]` | 200 | 3-D Secure is a **normal** path: `payment.action_required` fires, the order stays `CREATED` under its 15-minute deadline, then authorises and proceeds. |
 | `realtime_payment_failed` | `RealtimeEvent[]` | 200 | The card is declined at capture. The order cancels and the customer owes nothing. |
+| `realtime_restaurant_auto_off` | `RealtimeEvent[]` | 200 | Two offers in a row run out unanswered, and the platform turns ordering off: `restaurant.status_changed {is_accepting_orders: false, open_state: CLOSED_TOGGLE}` after the second `restaurant.order_offer_expired`. The tablet shows "Ordering is off" with a button to turn it back on. Contract-only: `services/hg` counts missed offers but does not turn ordering off by itself yet. |
 | `realtime_restaurant_offer_accepted_elsewhere` | `RealtimeEvent[]` | 200 | Two offers ring; another tablet accepts the first (`restaurant.order_accepted`, the fan-out) and declines the second (`restaurant.order_rejected`, `KITCHEN_AT_CAPACITY`). This screen only clears both tiles. |
 | `realtime_restaurant_offer_burst` | `RealtimeEvent[]` | 200 | A burst of four offers inside six seconds, each with its own 180-second window: three tiles in full and the fourth behind "+1 more". A new offer never takes focus. One is a pickup order. |
 | `realtime_restaurant_offer_expired` | `RealtimeEvent[]` | 200 | An offer seen with 15 seconds of its window left (as after a reconnect), then `restaurant.order_offer_expired {reason: timeout}` when it runs out. The server ends the offer; the customer was not charged. Accepting after this is `409 OFFER_EXPIRED` (`error_offer_expired`). |
@@ -640,7 +764,7 @@ Scripted WebSocket sequences that drive a screen through a whole lifecycle. — 
 
 ### refunds
 
-The 10 `RefundState` values, liability splits, approval requests, the staff review queue and chargebacks. — 39 scenarios.
+The 10 `RefundState` values, liability splits, approval requests, the staff review queue and chargebacks. — 41 scenarios.
 
 | Scenario | Schema | Status | Represents |
 |---|---|---:|---|
@@ -653,6 +777,7 @@ The 10 `RefundState` values, liability splits, approval requests, the staff revi
 | `admin_refund_pending_approval` | `AdminRefund` | 202 | Above the reviewing agent's 24-hour limit: sent up to an admin (`approval_required_role`). The agent who sent it up (`escalated_by`) may not approve it. |
 | `admin_refund_queue` | `array&lt;AdminRefund&gt;` | 200 | The review queue: what waits for a person, oldest first. |
 | `admin_refund_queue_empty` | `array&lt;AdminRefund&gt;` | 200 | Nothing waiting for a person. |
+| `admin_refund_queue_failed` | `array&lt;AdminRefund&gt;` | 200 | `listRefundsAdmin?state=FAILED`: two refunds Stripe refused, each with its `failure_message`. The customer has not been paid on either. |
 | `admin_refund_requested` | `AdminRefund` | 200 | A customer's request waiting for staff review. Nothing has moved. |
 | `admin_refund_settled` | `AdminRefund` | 200 | Back on the card. |
 | `admin_refund_submitted` | `AdminRefund` | 200 | Sent to Stripe, waiting for its answer. |
@@ -678,6 +803,7 @@ The 10 `RefundState` values, liability splits, approval requests, the staff revi
 | `refund_full_never_delivered` | `Refund` | 200 | A full refund for an order that never arrived. Note both spellings survive in the enum (`NEVER_DELIVERED` / `ORDER_NEVER_ARRIVED`) — contradiction log #8 is OPEN. |
 | `refund_goodwill_admin` | `Refund` | 200 | Admin goodwill — the only refund carrying a client-supplied `amount_cents`, capped and dual-approved (one of exactly three money-in-request allowlist entries). |
 | `refund_list_empty` | `array&lt;Refund&gt;` | 200 | No refunds on this account — the common case. |
+| `refund_list_every_state` | `array&lt;Refund&gt;` | 200 | `listRefunds` with refunds in six states: requested, waiting for approval, sent ("refund in progress"), settled ("refunded"), failed and declined. |
 | `refund_pending_approval` | `Refund` | 200 | Above the agent's cap, waiting on a second approver (`SELF_APPROVAL_FORBIDDEN` blocks the requester from approving their own). |
 | `refund_requested` | `Refund` | 200 | Customer asked; nothing has been decided or authorised. |
 | `refund_settled` | `Refund` | 200 | Funds are back on the card. The only state that may say 'refunded'. |
@@ -686,31 +812,69 @@ The 10 `RefundState` values, liability splits, approval requests, the staff revi
 
 ### rider
 
-Availability, dashboard, earnings and payouts. — 22 scenarios.
+Availability, dashboard, earnings and payouts. — 60 scenarios.
 
 | Scenario | Schema | Status | Represents |
 |---|---|---:|---|
+| `earning_entries_clawback` | `array&lt;EarningEntry&gt;` | 200 | A delivery taken back: the original `DELIVERY` row is now `REVERSED` and a new `CLAWBACK` row of -9.49 follows it (append-only; nothing was edited). The line shows the minus sign. |
 | `earning_entries_empty` | `array&lt;EarningEntry&gt;` | 200 | No entries at all — pairs with `earnings_summary_zero`. |
 | `earning_entries_mixed` | `array&lt;EarningEntry&gt;` | 200 | One of every `EarningEntryType` and `EarningEntryStatus`, including a **negative** clawback. Ledger rows must handle a minus sign. |
+| `earning_entries_paging` | `array&lt;EarningEntry&gt;` | 200 | The first page of a long ledger: 20 entries (the default `limit`), newest first, `has_more: true` and `next_cursor` set to the last entry's id, as `services/hg` pages. The next page is `earning_entries_paging_page_2`. |
+| `earning_entries_paging_page_2` | `array&lt;EarningEntry&gt;` | 200 | The second and last page after `earning_entries_paging`: five older entries, `has_more: false`, `next_cursor: null`. |
+| `earning_entries_pending` | `array&lt;EarningEntry&gt;` | 200 | Today's entries, all `PENDING`: earned, not yet available for a payout. One is a tip added after the delivery, its own `TIP` row. |
+| `earnings_summary_day` | `EarningsSummary` | 200 | `period=DAY` for today: one bucket, as `services/hg` answers `period=DAY&from=` today (the bucket unit is the period). Three trips so far. |
+| `earnings_summary_month` | `EarningsSummary` | 200 | `period=MONTH` for August so far: one bucket, as `services/hg` answers `period=MONTH&from=2026-08-01`. 131 trips, CAD 984.15, of which 318.50 tips. |
+| `earnings_summary_negative_balance` | `EarningsSummary` | 200 | Last week ended below zero: two clawbacks on Wednesday (-18.98) outweigh the five trips, so the week's total is 7.96 and `unpaid_balance_cents` is -4.49. A negative balance is carried to the next run, never paid out or charged. |
 | `earnings_summary_week` | `EarningsSummary` | 200 | A full week: 14 deliveries, delivery fees plus 100% of tips. The rate-card component fields (`base_cents`, `distance_cents`, `wait_cents`, `guarantee_topup_cents`) are present but zero — pure pass-through at launch (contradiction log #7). |
 | `earnings_summary_zero` | `EarningsSummary` | 200 | **Zero earnings across every bucket.** A rider who went online and got no offers. Charts must render an axis, not collapse. |
+| `payout_detail_draft` | `PayoutDetail` | 200 | This week's payout, still accruing: no entries stamped yet, amount 0. The amount is exactly the sum of its entries. |
+| `payout_detail_failed` | `PayoutDetail` | 200 | The transfer failed. `failure_message` is shown verbatim; the money stays in the balance and goes into the next run. The amount is exactly the sum of its entries. |
+| `payout_detail_held` | `PayoutDetail` | 200 | Held: `hold_reason` is shown verbatim. Nothing is lost; it goes out on the next Monday payout after the hold is lifted. The amount is exactly the sum of its entries. |
 | `payout_detail_paid` | `PayoutDetail` | 200 | A paid weekly payout expanded into its constituent earning entries. |
-| `payout_draft` | `Payout` | 200 | The week is still accruing. Nothing is owed yet. |
-| `payout_failed` | `Payout` | 200 | The transfer bounced — usually a Connect requirement went `past_due`. |
-| `payout_held` | `Payout` | 200 | Held by compliance pending a review. The partner sees the hold, not the reason. |
+| `payout_detail_ready` | `PayoutDetail` | 200 | Week closed, amount final, waiting for Monday's run. The amount is exactly the sum of its entries. |
+| `payout_detail_transferred` | `PayoutDetail` | 200 | Stripe accepted the transfer; the bank has not shown it yet. The amount is exactly the sum of its entries. |
+| `payout_detail_transferring` | `PayoutDetail` | 200 | Submitted to Stripe Connect on Monday's run. The amount is exactly the sum of its entries. |
+| `payout_draft` | `Payout` | 200 | The week is still accruing. Nothing is owed yet. A single `Payout` row; the list operations serve `payout_list_*`. |
+| `payout_failed` | `Payout` | 200 | The transfer bounced — usually a Connect requirement went `past_due`. A single `Payout` row; the list operations serve `payout_list_*`. |
+| `payout_held` | `Payout` | 200 | Held by compliance pending a review. The partner sees the hold, not the reason. A single `Payout` row; the list operations serve `payout_list_*`. |
+| `payout_list_draft_paid` | `array&lt;Payout&gt;` | 200 | The ordinary history: this week accruing, two paid weeks before it. Nothing needs attention. |
 | `payout_list_empty` | `array&lt;Payout&gt;` | 200 | No payout has ever run for this partner. |
-| `payout_paid` | `Payout` | 200 | Landed. **No minimum** for either partner type (contradiction log #16). |
-| `payout_ready` | `Payout` | 200 | Week closed, amount final, waiting for Monday's run. |
-| `payout_transferred` | `Payout` | 200 | Stripe accepted the transfer; not yet in the bank. |
-| `payout_transferring` | `Payout` | 200 | Submitted to Stripe Connect. |
+| `payout_list_every_state` | `array&lt;Payout&gt;` | 200 | `listRiderPayouts` with one payout in each `PayoutState`, newest first: this week accruing (`DRAFT`), then `READY`, `TRANSFERRING`, `TRANSFERRED`, `HELD` (with its `hold_reason`), `FAILED` (with its `failure_message`) and `PAID`. |
+| `payout_list_multi_problem` | `array&lt;Payout&gt;` | 200 | Two problems at once: last week's payout `FAILED` and the week before is `HELD`. The alert names both ("Two payouts need attention"), not just the newest. |
+| `payout_paid` | `Payout` | 200 | Landed. **No minimum** for either partner type (contradiction log #16). A single `Payout` row; the list operations serve `payout_list_*`. |
+| `payout_ready` | `Payout` | 200 | Week closed, amount final, waiting for Monday's run. A single `Payout` row; the list operations serve `payout_list_*`. |
+| `payout_transferred` | `Payout` | 200 | Stripe accepted the transfer; not yet in the bank. A single `Payout` row; the list operations serve `payout_list_*`. |
+| `payout_transferring` | `Payout` | 200 | Submitted to Stripe Connect. A single `Payout` row; the list operations serve `payout_list_*`. |
 | `restaurant_payout_history` | `array&lt;Payout&gt;` | 200 | A restaurant's payout history, newest first: this week still accruing, last week mid-transfer on Monday's run, three paid weeks before it. Weekly, automatic, no minimum. |
+| `restaurant_payout_history_every_state` | `array&lt;Payout&gt;` | 200 | A restaurant's payouts with one in each `PayoutState`, newest first, including a `HELD` week with its reason and a `FAILED` week with its message. |
+| `restaurant_payout_history_page_1` | `array&lt;Payout&gt;` | 200 | The first page of a long payout history: 20 weeks, newest first, `has_more: true`. The next page is `restaurant_payout_history_page_2`. |
+| `restaurant_payout_history_page_2` | `array&lt;Payout&gt;` | 200 | The last page after `restaurant_payout_history_page_1`: six older paid weeks, `has_more: false`. |
+| `rider_availability_go_offline_after_delivery` | `RiderAvailability` | 200 | `setRiderAvailability {state: OFFLINE}` while carrying an order: `services/hg` keeps the rider `ON_DELIVERY` and sets `go_offline_after_delivery: true`; the rider goes offline by themselves once this delivery is done. |
 | `rider_availability_offline` | `RiderAvailability` | 200 | Rider is off shift. No offers will be sent. |
 | `rider_availability_on_delivery` | `RiderAvailability` | 200 | Carrying an order. Only one active delivery at a time (`ACTIVE_DELIVERY_IN_PROGRESS`). |
 | `rider_availability_online_idle` | `RiderAvailability` | 200 | Online, no assignment, waiting for an offer. |
 | `rider_availability_online_stale` | `RiderAvailability` | 200 | Online but the phone has not reported a position recently — offers are suppressed until it does. |
-| `rider_dashboard_active` | `RiderDashboard` | 200 | A rider mid-shift with an assignment in progress and earnings accrued today. |
-| `rider_dashboard_zero_earnings` | `RiderDashboard` | 200 | **A rider with zero earnings** — approved this morning, no deliveries yet. Every money field is 0 and every count is 0. The dashboard must read as 'not started', never as an error or a blank screen. |
+| `rider_dashboard_active` | `RiderDashboard` | 200 | A rider mid-shift with an assignment in progress (`mode: ON_DELIVERY`) and earnings accrued today. |
+| `rider_dashboard_offline` | `RiderDashboard` | 200 | Off shift. Today's totals stay on screen; tracking is not reported while offline (`tracking_health: null`). |
+| `rider_dashboard_offline_blocked` | `RiderDashboard` | 200 | Offline with all nine `blocking_reasons` at once, so one screen test covers every row and deep link. Nothing earned today. Contract-only: `getRiderDashboard` on `services/hg` sends `mode` and `today` but not `active_assignment`, `tracking_health` or `blocking_reasons` yet. |
+| `rider_dashboard_offline_blocked_account_not_active` | `RiderDashboard` | 200 | Offline with one blocking reason, `ACCOUNT_NOT_ACTIVE`, so its row can be tested alone. Contract-only: `getRiderDashboard` on `services/hg` sends `mode` and `today` but not `active_assignment`, `tracking_health` or `blocking_reasons` yet. |
+| `rider_dashboard_offline_blocked_background_location_permission` | `RiderDashboard` | 200 | Offline with one blocking reason, `BACKGROUND_LOCATION_PERMISSION`, so its row can be tested alone. Contract-only: `getRiderDashboard` on `services/hg` sends `mode` and `today` but not `active_assignment`, `tracking_health` or `blocking_reasons` yet. |
+| `rider_dashboard_offline_blocked_continuous_online_cap` | `RiderDashboard` | 200 | Offline with one blocking reason, `CONTINUOUS_ONLINE_CAP`, so its row can be tested alone. Contract-only: `getRiderDashboard` on `services/hg` sends `mode` and `today` but not `active_assignment`, `tracking_health` or `blocking_reasons` yet. |
+| `rider_dashboard_offline_blocked_document_expired` | `RiderDashboard` | 200 | Offline with one blocking reason, `DOCUMENT_EXPIRED`, so its row can be tested alone. Contract-only: `getRiderDashboard` on `services/hg` sends `mode` and `today` but not `active_assignment`, `tracking_health` or `blocking_reasons` yet. |
+| `rider_dashboard_offline_blocked_foreground_location_permission` | `RiderDashboard` | 200 | Offline with one blocking reason, `FOREGROUND_LOCATION_PERMISSION`, so its row can be tested alone. Contract-only: `getRiderDashboard` on `services/hg` sends `mode` and `today` but not `active_assignment`, `tracking_health` or `blocking_reasons` yet. |
+| `rider_dashboard_offline_blocked_notification_permission` | `RiderDashboard` | 200 | Offline with one blocking reason, `NOTIFICATION_PERMISSION`, so its row can be tested alone. Contract-only: `getRiderDashboard` on `services/hg` sends `mode` and `today` but not `active_assignment`, `tracking_health` or `blocking_reasons` yet. |
+| `rider_dashboard_offline_blocked_onboarding_incomplete` | `RiderDashboard` | 200 | Offline with one blocking reason, `ONBOARDING_INCOMPLETE`, so its row can be tested alone. Contract-only: `getRiderDashboard` on `services/hg` sends `mode` and `today` but not `active_assignment`, `tracking_health` or `blocking_reasons` yet. |
+| `rider_dashboard_offline_blocked_payout_account_incomplete` | `RiderDashboard` | 200 | Offline with one blocking reason, `PAYOUT_ACCOUNT_INCOMPLETE`, so its row can be tested alone. Contract-only: `getRiderDashboard` on `services/hg` sends `mode` and `today` but not `active_assignment`, `tracking_health` or `blocking_reasons` yet. |
+| `rider_dashboard_offline_blocked_stale_location_fix` | `RiderDashboard` | 200 | Offline with one blocking reason, `STALE_LOCATION_FIX`, so its row can be tested alone. Contract-only: `getRiderDashboard` on `services/hg` sends `mode` and `today` but not `active_assignment`, `tracking_health` or `blocking_reasons` yet. |
+| `rider_dashboard_on_delivery_dropoff` | `RiderDashboard` | 200 | `ON_DELIVERY` with the assignment in `EN_ROUTE_TO_DROPOFF`. Bag collected, heading to the customer; the full address and unit are now present. No offer while carrying an order. Contract-only: `getRiderDashboard` on `services/hg` sends `mode` and `today` but not `active_assignment`, `tracking_health` or `blocking_reasons` yet. |
+| `rider_dashboard_on_delivery_pickup` | `RiderDashboard` | 200 | `ON_DELIVERY` with the assignment in `EN_ROUTE_TO_PICKUP`. Heading to the restaurant; the drop-off shows the street and neighbourhood only until pickup. No offer while carrying an order. Contract-only: `getRiderDashboard` on `services/hg` sends `mode` and `today` but not `active_assignment`, `tracking_health` or `blocking_reasons` yet. |
+| `rider_dashboard_online_idle` | `RiderDashboard` | 200 | Online, waiting for an offer: no assignment, no offer, healthy tracking, three trips so far today. |
+| `rider_dashboard_online_stale` | `RiderDashboard` | 200 | Online but no location has arrived recently: offers are held back until one does. `blocking_reasons: [STALE_LOCATION_FIX]`, tracking `DEGRADED`. Contract-only: `getRiderDashboard` on `services/hg` sends `mode` and `today` but not `active_assignment`, `tracking_health` or `blocking_reasons` yet. |
+| `rider_dashboard_tracking_degraded` | `RiderDashboard` | 200 | Online and dispatchable, but location fixes are arriving late or imprecise (`tracking_health: DEGRADED`). Contract-only: `getRiderDashboard` on `services/hg` sends `mode` and `today` but not `active_assignment`, `tracking_health` or `blocking_reasons` yet. |
+| `rider_dashboard_tracking_lost` | `RiderDashboard` | 200 | Online, but no location for long enough that tracking is `LOST`. Tracking loss alone never reassigns anything; the app asks the rider to check location access. Contract-only: `getRiderDashboard` on `services/hg` sends `mode` and `today` but not `active_assignment`, `tracking_health` or `blocking_reasons` yet. |
+| `rider_dashboard_zero_earnings` | `RiderDashboard` | 200 | **A rider with zero earnings** — approved this morning, just went online, no deliveries yet: no assignment, no offer, every money field and count 0. The dashboard must read as 'not started', never as an error or a blank screen. |
 | `rider_me` | `RiderMe` | 200 | The rider's own bootstrap payload — identity, onboarding state, availability and what screen to land on. |
+| `rider_me_suspended` | `RiderMe` | 200 | A suspended rider: `account_status: SUSPENDED`, offline, no assignment, `next_route: SUSPENDED`. The app shows the on-hold screen with the support line; going online is refused. |
 | `rider_position_ack` | `RiderPositionAck` | 202 | Acknowledgement of a batched position upload. Points older than the server's tolerance come back rejected (`STALE_POINT`) rather than silently dropped. |
 
 ## Tags
@@ -719,59 +883,65 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 
 | Tag | Count | Meaning |
 |---|---:|---|
-| `error-envelope` | 104 | A `{error}` body with a real `ErrorCode`. |
-| `rider` | 81 | Rider-facing surface. |
-| `admin` | 77 | Admin/support-facing surface. |
-| `error-path` | 70 | The unhappy branch a client must handle. |
-| `state-matrix` | 67 | One fixture per member of a closed enum. |
-| `edge` | 62 | A shape that breaks naive layouts — empty, overflowing, at a boundary. |
-| `restaurant` | 61 | Restaurant-facing surface. |
-| `money` | 33 | Exercises the money path specifically. |
-| `platform` | 31 | Cross-cutting platform surface. |
-| `halal` | 30 | Touches the halal claim surface. |
-| `empty` | 28 | Zero items. The empty state, never an error. |
-| `auth` | 25 | Session and identity. |
-| `order-state-matrix` | 24 | One per `OrderState` (all 14). |
-| `realtime` | 23 | WebSocket, not HTTP. |
-| `script` | 22 | A realtime event sequence, not a response body. |
+| `rider` | 131 | Rider-facing surface. |
+| `admin` | 130 | Admin/support-facing surface. |
+| `error-envelope` | 130 | A `{error}` body with a real `ErrorCode`. |
+| `error-path` | 129 | The unhappy branch a client must handle. |
+| `restaurant` | 89 | Restaurant-facing surface. |
+| `edge` | 83 | A shape that breaks naive layouts — empty, overflowing, at a boundary. |
+| `state-matrix` | 78 | One fixture per member of a closed enum. |
+| `money` | 70 | Exercises the money path specifically. |
+| `platform` | 49 | Cross-cutting platform surface. |
+| `halal` | 48 | Touches the halal claim surface. |
+| `order-state-matrix` | 44 | One per `OrderState` (all 14). |
+| `auth` | 43 | Session and identity. |
+| `customer` | 36 |  |
+| `empty` | 31 | Zero items. The empty state, never an error. |
+| `realtime` | 25 | WebSocket, not HTTP. |
+| `home` | 24 |  |
+| `script` | 24 | A realtime event sequence, not a response body. |
+| `review-queue` | 23 | An admin review queue item. |
 | `onboarding-state-matrix` | 21 | One per onboarding state, restaurant and rider. |
-| `refund-state-matrix` | 20 | One per `RefundState` (all 10). |
-| `review-queue` | 13 | An admin review queue item. |
+| `refund-state-matrix` | 21 | One per `RefundState` (all 10). |
+| `payout-state-matrix` | 15 | One per `PayoutState` (all 7). |
+| `documents` | 13 | KYC document surface. |
 | `assignment-state-matrix` | 12 | One per `AssignmentState` (all 12). |
+| `dense` | 12 | Deliberately busy — the worst case for a list or a card. |
 | `document-state-matrix` | 12 | One per `KycDocumentState`, plus rejection reasons. |
+| `certificate` | 11 | A `HalalCertificate` at a specific point in its life. |
 | `delivery-code` | 11 | The customer's 4-digit delivery code: shown, hidden, locked, overridden by support. |
-| `customer` | 10 |  |
+| `boundary` | 10 | At an exact limit (quantity cap, expiry tomorrow, zero, the maximum). |
 | `dispatch-state-matrix` | 10 | One per `DispatchState` (all 10). |
 | `menu-editing` | 10 |  |
-| `boundary` | 9 | At an exact limit (quantity cap, expiry tomorrow, zero, the maximum). |
 | `chargeback-state-matrix` | 9 |  |
-| `documents` | 9 | KYC document surface. |
 | `tracking` | 9 | The live order-tracking screen. |
+| `degraded` | 8 | A partially-broken real-world condition (stale GPS, lost tracking). |
 | `payment-state-matrix` | 8 | One per `PaymentState` (all 8). |
+| `staff` | 8 |  |
 | `account-state-matrix` | 7 |  |
-| `payout-state-matrix` | 7 | One per `PayoutState` (all 7). |
+| `connect-state-matrix` | 7 |  |
 | `certificate-status-matrix` | 6 | One per `HalalCertificateStatus` (all 6). |
+| `halal-state-matrix` | 6 |  |
 | `request-body` | 6 | A request body a client sends, not a response. Registered against no operation, so the mock never serves it. |
-| `halal-state-matrix` | 5 |  |
 | `handoff-event-matrix` | 5 |  |
 | `offer-state-matrix` | 5 | One per `OfferState` (all 5). |
 | `seal-state-matrix` | 5 |  |
-| `staff` | 5 |  |
-| `certificate` | 4 | A `HalalCertificate` at a specific point in its life. |
-| `degraded` | 4 | A partially-broken real-world condition (stale GPS, lost tracking). |
-| `dense` | 4 | Deliberately busy — the worst case for a list or a card. |
+| `overflow` | 4 | Text long enough to break one-line layouts. |
 | `payout-run-state-matrix` | 4 | One per `PayoutRunState` (all 4). |
 | `session` | 4 |  |
 | `upload` | 4 |  |
+| `hours` | 3 |  |
+| `menu` | 3 |  |
 | `ratings` | 3 |  |
 | `missing-media` | 2 | No image where one is normally present. |
-| `overflow` | 2 | Text long enough to break one-line layouts. |
+| `pii` | 2 |  |
 | `variants` | 2 |  |
 | `blocking-decision` | 1 | Encodes an OPEN decision from `docs/decisions/README.md`. |
 | `control` | 1 | Realtime control frames. |
 | `forward-compat` | 1 |  |
 | `launch-critical` | 1 |  |
 | `seed` | 1 |  |
+| `support` | 1 |  |
 
 ## Operation coverage
 
@@ -788,15 +958,15 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | `attachRiderDocument` | `error_document_expires_too_soon` | — |
 | `bindPackageSeal` | `seal_bound` | — |
 | `cancelOrder` | `order_cancelled` | `error_cancellation_window_closed`, `order_arrived`, `order_authorized`, `order_completed`, `order_created`, `order_delivered`, `order_disputed`, `order_failed`, `order_picked_up`, `order_preparing`, `order_ready_for_pickup`, `order_rejected`, `order_resolved`, `order_restaurant_pending` |
-| `cancelOrderAdmin` | `order_admin_view_completed` | — |
+| `cancelOrderAdmin` | `order_admin_view_completed` | `error_order_admin_cancel_illegal_transition`, `error_order_admin_cancel_rate_limited` |
 | `changePassword` | `session_grant_password_changed` | `error_breached_password`, `error_current_password_incorrect` |
 | `clearCart` | `cart_empty` | — |
 | `confirmUpload` | `stored_object_ready` | `error_checksum_mismatch`, `error_content_type_mismatch`, `error_image_too_small`, `stored_object_deleted`, `stored_object_pending`, `stored_object_rejected` |
 | `createAddress` | `addresses_list` | — |
 | `createAssignmentTransition` | `assignment_picked_up` | `assignment_arrived_at_dropoff`, `assignment_arrived_at_pickup`, `assignment_assigned`, `assignment_cancelled_by_platform`, `assignment_delivered`, `assignment_en_route_to_dropoff`, `assignment_en_route_to_pickup`, `assignment_reassigned`, `assignment_returned`, `assignment_returning`, `assignment_undeliverable`, `error_geofence_required`, `error_invalid_transition`, `error_pickup_code_incorrect`, `error_pickup_code_locked`, `error_pickup_code_required`, `error_pod_required` |
-| `createCertificateViewUrl` | `presigned_download` | — |
+| `createCertificateViewUrl` | `presigned_download` | `certificate_view_url`, `certificate_view_url_pdf` |
 | `createConnectAccount` | `connect_status_complete` | `error_step_not_available` |
-| `createConnectOnboardingLink` | `error_step_not_available` | — |
+| `createConnectOnboardingLink` | `connect_onboarding_link` | `error_step_not_available` |
 | `createDocumentDownloadUrl` | `presigned_download` | — |
 | `createMenuCategory` | `menu_category_created` | `error_category_name_taken`, `error_menu_locked` |
 | `createMenuCategoryOnBehalf` | `menu_category_created` | `error_category_name_taken`, `error_menu_locked`, `error_menu_locked_banned` |
@@ -807,14 +977,14 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | `createPayoutRun` | `payout_run_queued` | — |
 | `createQuote` | `quote_standard` | `error_ordering_paused`, `quote_large_tip`, `quote_multi_variant`, `quote_pickup`, `quote_single_line_minimum`, `quote_with_discount`, `quote_zero_tip` |
 | `createRealtimeTicket` | `realtime_ticket` | — |
-| `createRefund` | `refund_requested` | `refund_approved`, `refund_authorised`, `refund_cancelled`, `refund_declined`, `refund_failed`, `refund_pending_approval`, `refund_settled`, `refund_submitted`, `refund_succeeded` |
+| `createRefund` | `refund_requested` | `error_refund_not_refundable`, `refund_approved`, `refund_authorised`, `refund_cancelled`, `refund_declined`, `refund_failed`, `refund_pending_approval`, `refund_settled`, `refund_submitted`, `refund_succeeded` |
 | `createRestaurantStaffUser` | `restaurant_staff_list` | — |
 | `createStaffUser` | `staff_user_invited` | `error_staff_email_in_use` |
 | `createUpload` | `presigned_upload` | `error_payload_too_large` |
-| `decideHalalCertificate` | `halal_certificate_status_approved` | `halal_certificate_status_expired`, `halal_certificate_status_pending`, `halal_certificate_status_rejected`, `halal_certificate_status_revoked`, `halal_certificate_status_superseded` |
+| `decideHalalCertificate` | `halal_certificate_status_approved` | `error_check_failed`, `error_checklist_incomplete`, `halal_certificate_pending_h5_computed_fail`, `halal_certificate_pending_h7_duplicate`, `halal_certificate_pending_issuer_suspended`, `halal_certificate_pending_scope_supplier_chain`, `halal_certificate_pending_transcribed_unchecked`, `halal_certificate_pending_untranscribed`, `halal_certificate_status_expired`, `halal_certificate_status_pending`, `halal_certificate_status_rejected`, `halal_certificate_status_revoked`, `halal_certificate_status_superseded` |
 | `decideMenuVersion` | `menu_version_approved` | `error_menu_locked`, `error_menu_locked_banned`, `error_menu_version_already_decided`, `error_menu_version_item_deleted`, `menu_version_draft`, `menu_version_pending_review`, `menu_version_rejected`, `menu_version_superseded`, `menu_version_withdrawn` |
-| `decideRestaurantApplication` | `restaurant_application_approved` | `error_application_already_decided`, `error_decision_approval_reason_required`, `error_decision_rejection_reason_required` |
-| `decideRiderApplication` | `rider_application_approved` | `error_application_already_decided`, `error_decision_approval_reason_required`, `error_decision_rejection_reason_required`, `error_rider_under_18`, `rider_application_changes_requested` |
+| `decideRestaurantApplication` | `restaurant_application_approved` | `error_application_already_decided`, `error_decision_approval_reason_required`, `error_decision_rejection_reason_required`, `error_precondition_not_met`, `error_review_lock_lost` |
+| `decideRiderApplication` | `rider_application_approved` | `error_application_already_decided`, `error_decision_approval_reason_required`, `error_decision_rejection_reason_required`, `error_review_lock_lost`, `error_rider_under_18`, `rider_application_changes_requested` |
 | `declineRefund` | `admin_refund_declined` | `error_refund_already_decided`, `error_refund_needs_higher_role` |
 | `delayOrder` | `restaurant_order_preparing` | `restaurant_order_picked_up`, `restaurant_order_ready_for_pickup`, `restaurant_order_rejected`, `restaurant_order_restaurant_pending` |
 | `deleteAddress` | `error_address_in_use` | — |
@@ -827,76 +997,76 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | `getAssignment` | `assignment_en_route_to_dropoff` | `assignment_arrived_at_dropoff`, `assignment_arrived_at_pickup`, `assignment_assigned`, `assignment_cancelled_by_platform`, `assignment_delivered`, `assignment_en_route_to_pickup`, `assignment_no_instructions_no_unit`, `assignment_otp_pod_required`, `assignment_picked_up`, `assignment_reassigned`, `assignment_returned`, `assignment_returning`, `assignment_undeliverable` |
 | `getCart` | `cart_many_lines` | `cart_at_quantity_cap`, `cart_empty`, `cart_has_unavailable_items`, `cart_multi_variant_line`, `cart_ordering_paused`, `cart_restaurant_unavailable`, `cart_single_line` |
 | `getChargeback` | `chargeback_needs_response` | `chargeback_charge_refunded`, `chargeback_lost`, `chargeback_prevented`, `chargeback_under_review`, `chargeback_warning_closed`, `chargeback_warning_needs_response`, `chargeback_warning_under_review`, `chargeback_won` |
-| `getConnectStatus` | `connect_status_complete` | `connect_status_requirements_due` |
+| `getConnectStatus` | `connect_status_complete` | `connect_status_currently_due`, `connect_status_details_not_submitted`, `connect_status_due_with_deadline`, `connect_status_not_started`, `connect_status_past_due`, `connect_status_pending_verification`, `connect_status_rejected`, `connect_status_requirements_due`, `error_connect_status_not_found` |
 | `getCurrentOffer` | `offer_pending` | `offer_expired`, `offer_none`, `offer_rejected`, `offer_taken_by_another`, `offer_withdrawn`, `offer_zero_tip_low_value` |
-| `getCurrentPrincipal` | `principal_customer` | `error_account_suspended`, `principal_admin`, `principal_admin_password_only`, `principal_super_admin`, `principal_support_agent` |
+| `getCurrentPrincipal` | `principal_customer` | `error_account_banned`, `error_account_suspended`, `principal_admin`, `principal_admin_password_only`, `principal_restaurant_owner`, `principal_super_admin`, `principal_support_agent` |
 | `getCustomerProfile` | `customer_profile` | — |
 | `getDependencyStatus` | `dependency_report` | — |
-| `getHalalCertificate` | `halal_certificate_valid` | `halal_certificate_expired`, `halal_certificate_expiring_tomorrow`, `halal_certificate_expiring_within_30_days`, `halal_certificate_status_approved`, `halal_certificate_status_expired`, `halal_certificate_status_pending`, `halal_certificate_status_rejected`, `halal_certificate_status_revoked`, `halal_certificate_status_superseded` |
-| `getHealth` | `health_ok` | — |
+| `getHalalCertificate` | `halal_certificate_valid` | `halal_certificate_expired`, `halal_certificate_expiring_tomorrow`, `halal_certificate_expiring_within_30_days`, `halal_certificate_pending_h5_computed_fail`, `halal_certificate_pending_h7_duplicate`, `halal_certificate_pending_issuer_suspended`, `halal_certificate_pending_scope_supplier_chain`, `halal_certificate_pending_transcribed_unchecked`, `halal_certificate_pending_untranscribed`, `halal_certificate_status_approved`, `halal_certificate_status_expired`, `halal_certificate_status_pending`, `halal_certificate_status_rejected`, `halal_certificate_status_revoked`, `halal_certificate_status_superseded`, `halal_certificate_support_projection` |
+| `getHealth` | `health_ok` | `health_version` |
 | `getHomeFeed` | `feed_sections` | `feed_empty` |
 | `getOrder` | `order_preparing` | `dispatch_assigned`, `dispatch_at_customer`, `dispatch_at_restaurant`, `dispatch_carrying`, `dispatch_completed`, `dispatch_no_rider_found`, `dispatch_offered`, `dispatch_pending`, `dispatch_searching`, `dispatch_unassigned`, `order_arrived`, `order_arrived_delivery_code_locked`, `order_arrived_meet_in_lobby`, `order_authorized`, `order_cancelled`, `order_completed`, `order_created`, `order_delivered`, `order_delivered_meet_at_door`, `order_disputed`, `order_failed`, `order_large_tip`, `order_picked_up`, `order_picked_up_meet_at_door`, `order_pickup_no_address`, `order_ready_for_pickup`, `order_rejected`, `order_resolved`, `order_restaurant_pending`, `order_single_line`, `order_zero_tip` |
-| `getOrderAdmin` | `order_admin_view_completed` | `order_admin_view_delivery_overridden`, `order_admin_view_disputed`, `order_admin_view_failed_no_rider` |
+| `getOrderAdmin` | `order_admin_view_completed` | `order_admin_view_arrived`, `order_admin_view_authorized`, `order_admin_view_cancelled`, `order_admin_view_chargeback`, `order_admin_view_created`, `order_admin_view_delivered`, `order_admin_view_delivery_overridden`, `order_admin_view_disputed`, `order_admin_view_failed_no_rider`, `order_admin_view_ledger_residual`, `order_admin_view_masked`, `order_admin_view_picked_up`, `order_admin_view_pii_revealed`, `order_admin_view_preparing`, `order_admin_view_ready_for_pickup`, `order_admin_view_refund_failed_settlement_held`, `order_admin_view_rejected`, `order_admin_view_resolved`, `order_admin_view_restaurant_pending` |
 | `getOrderPayment` | `payment_succeeded` | `payment_canceled`, `payment_failed`, `payment_processing`, `payment_requires_action`, `payment_requires_capture`, `payment_requires_confirmation`, `payment_requires_payment_method` |
 | `getOrderRating` | `order_rating_food_and_rider` | `order_rating_food_pending_moderation`, `order_rating_unrated` |
-| `getOrderReceipt` | `receipt_standard` | `error_receipt_not_ready`, `receipt_pickup_zero_tip`, `receipt_with_refund` |
+| `getOrderReceipt` | `receipt_standard` | `error_receipt_not_ready`, `error_receipt_not_ready_never_completed`, `error_receipt_not_ready_no_charge`, `receipt_no_tax_no_service_fee`, `receipt_pickup_zero_tip`, `receipt_with_refund` |
 | `getOrderTracking` | `tracking_picked_up` | `tracking_arrived`, `tracking_arrived_delivery_code`, `tracking_arrived_delivery_code_locked`, `tracking_degraded_gps`, `tracking_delivered`, `tracking_picked_up_delivery_code`, `tracking_preparing`, `tracking_ready_for_pickup` |
 | `getOrderingPause` | `ordering_pause_open` | `ordering_pause_never_changed`, `ordering_pause_on` |
-| `getOwnMenu` | `owned_menu_with_pending_version` | — |
+| `getOwnMenu` | `owned_menu_with_pending_version` | `owned_menu_empty`, `owned_menu_every_review_status`, `owned_menu_forty_categories` |
 | `getPayoutRun` | `payout_run_detail_every_outcome` | — |
-| `getPublicConfig` | `public_config` | `public_config_ordering_paused` |
+| `getPublicConfig` | `public_config` | `public_config_ordering_paused`, `public_config_support_unavailable` |
 | `getQuote` | `quote_standard` | `quote_expired`, `quote_large_tip`, `quote_multi_variant`, `quote_pickup`, `quote_with_discount`, `quote_zero_tip` |
-| `getReadiness` | `readiness_ok` | — |
+| `getReadiness` | `readiness_ok` | `readiness_not_ready_503` |
 | `getRefund` | `refund_settled` | `refund_approved`, `refund_authorised`, `refund_cancelled`, `refund_declined`, `refund_failed`, `refund_full_never_delivered`, `refund_pending_approval`, `refund_requested`, `refund_submitted`, `refund_succeeded` |
-| `getRestaurant` | `restaurant_detail_certified` | `restaurant_detail_closed`, `restaurant_detail_expired`, `restaurant_detail_expiring_soon`, `restaurant_detail_no_menu`, `restaurant_detail_unverified` |
-| `getRestaurantApplication` | `restaurant_application_pending_review` | `restaurant_application_approved` |
-| `getRestaurantAvailability` | `restaurant_open_state_open` | `restaurant_open_state_closed_holiday`, `restaurant_open_state_closed_hours`, `restaurant_open_state_closed_offline`, `restaurant_open_state_closed_suspended`, `restaurant_open_state_closed_toggle`, `restaurant_open_state_paused` |
-| `getRestaurantCertification` | `certification_panel_certified` | `certification_panel_expired`, `certification_panel_expiring_soon`, `certification_panel_unverified` |
-| `getRestaurantHours` | `restaurant_hours_standard` | — |
-| `getRestaurantMenu` | `menu_full` | `menu_empty`, `menu_single_item` |
+| `getRestaurant` | `restaurant_detail_certified` | `restaurant_detail_closed`, `restaurant_detail_expired`, `restaurant_detail_expiring_soon`, `restaurant_detail_no_address`, `restaurant_detail_no_menu`, `restaurant_detail_out_of_range`, `restaurant_detail_paused`, `restaurant_detail_unverified` |
+| `getRestaurantApplication` | `restaurant_application_pending_review` | `restaurant_application_approved`, `restaurant_application_changes_requested`, `restaurant_application_claimed_by_other`, `restaurant_application_no_certificate`, `restaurant_application_withdrawn` |
+| `getRestaurantAvailability` | `restaurant_open_state_open` | `restaurant_open_state_closed_holiday`, `restaurant_open_state_closed_hours`, `restaurant_open_state_closed_offline`, `restaurant_open_state_closed_suspended`, `restaurant_open_state_closed_toggle`, `restaurant_open_state_closed_toggle_auto_off`, `restaurant_open_state_paused`, `restaurant_open_state_paused_until_closing` |
+| `getRestaurantCertification` | `certification_panel_certified` | `certification_panel_expired`, `certification_panel_expiring_soon`, `certification_panel_not_viewable`, `certification_panel_partial`, `certification_panel_unverified` |
+| `getRestaurantHours` | `restaurant_hours_standard` | `restaurant_hours_none`, `restaurant_hours_special_dates`, `restaurant_hours_split_past_midnight` |
+| `getRestaurantMenu` | `menu_full` | `menu_empty`, `menu_single_item`, `menu_with_hidden_and_blocked_items` |
 | `getRestaurantOnboardingStatus` | `restaurant_onboarding_active` | `restaurant_onboarding_documents_approved`, `restaurant_onboarding_documents_pending`, `restaurant_onboarding_documents_rejected`, `restaurant_onboarding_documents_review`, `restaurant_onboarding_email_verified`, `restaurant_onboarding_menu_pending`, `restaurant_onboarding_payout_pending`, `restaurant_onboarding_profile_pending`, `restaurant_onboarding_registered`, `restaurant_onboarding_withdrawn` |
-| `getRestaurantOrder` | `restaurant_order_preparing` | `restaurant_order_picked_up`, `restaurant_order_pickup_code_locked`, `restaurant_order_ready_for_pickup`, `restaurant_order_rejected`, `restaurant_order_restaurant_pending` |
+| `getRestaurantOrder` | `restaurant_order_preparing` | `restaurant_order_arrived`, `restaurant_order_cancelled`, `restaurant_order_cancelled_after_accept`, `restaurant_order_completed`, `restaurant_order_delivered`, `restaurant_order_disputed`, `restaurant_order_picked_up`, `restaurant_order_pickup_code_locked`, `restaurant_order_ready_for_pickup`, `restaurant_order_rejected`, `restaurant_order_resolved`, `restaurant_order_restaurant_pending` |
 | `getRestaurantProfile` | `restaurant_profile` | `restaurant_profile_account_banned`, `restaurant_profile_account_closed`, `restaurant_profile_account_deactivated`, `restaurant_profile_account_delisted`, `restaurant_profile_account_live`, `restaurant_profile_account_pending`, `restaurant_profile_account_suspended`, `restaurant_profile_halal_certified`, `restaurant_profile_halal_expired`, `restaurant_profile_halal_expiring_soon`, `restaurant_profile_halal_missing`, `restaurant_profile_halal_unverified` |
-| `getRiderApplication` | `rider_application_pending_review` | `rider_application_approved`, `rider_application_changes_requested` |
-| `getRiderDashboard` | `rider_dashboard_active` | `rider_dashboard_zero_earnings` |
-| `getRiderEarningsSummary` | `earnings_summary_week` | `earnings_summary_zero` |
-| `getRiderMe` | `rider_me` | — |
+| `getRiderApplication` | `rider_application_pending_review` | `rider_application_approved`, `rider_application_attempt_3`, `rider_application_attempt_4`, `rider_application_bicycle`, `rider_application_changes_requested`, `rider_application_claimed_by_other`, `rider_application_on_foot`, `rider_application_under_18` |
+| `getRiderDashboard` | `rider_dashboard_active` | `rider_dashboard_offline`, `rider_dashboard_offline_blocked`, `rider_dashboard_offline_blocked_account_not_active`, `rider_dashboard_offline_blocked_background_location_permission`, `rider_dashboard_offline_blocked_continuous_online_cap`, `rider_dashboard_offline_blocked_document_expired`, `rider_dashboard_offline_blocked_foreground_location_permission`, `rider_dashboard_offline_blocked_notification_permission`, `rider_dashboard_offline_blocked_onboarding_incomplete`, `rider_dashboard_offline_blocked_payout_account_incomplete`, `rider_dashboard_offline_blocked_stale_location_fix`, `rider_dashboard_on_delivery_dropoff`, `rider_dashboard_on_delivery_pickup`, `rider_dashboard_online_idle`, `rider_dashboard_online_stale`, `rider_dashboard_tracking_degraded`, `rider_dashboard_tracking_lost`, `rider_dashboard_zero_earnings` |
+| `getRiderEarningsSummary` | `earnings_summary_week` | `earnings_summary_day`, `earnings_summary_month`, `earnings_summary_negative_balance`, `earnings_summary_zero` |
+| `getRiderMe` | `rider_me` | `rider_me_suspended` |
 | `getRiderOnboardingStatus` | `rider_onboarding_active` | `rider_onboarding_documents_approved`, `rider_onboarding_documents_pending`, `rider_onboarding_documents_rejected`, `rider_onboarding_documents_review`, `rider_onboarding_payout_pending`, `rider_onboarding_phone_verified`, `rider_onboarding_profile_pending`, `rider_onboarding_registered`, `rider_onboarding_vehicle_pending` |
-| `getRiderPayout` | `payout_detail_paid` | — |
-| `issueRefund` | `refund_goodwill_admin` | `error_refund_mfa_required`, `error_refund_self_approval_forbidden`, `refund_approval_request_pending`, `refund_approved`, `refund_authorised`, `refund_cancelled`, `refund_declined`, `refund_failed`, `refund_pending_approval`, `refund_requested`, `refund_settled`, `refund_submitted`, `refund_succeeded` |
+| `getRiderPayout` | `payout_detail_paid` | `payout_detail_draft`, `payout_detail_failed`, `payout_detail_held`, `payout_detail_ready`, `payout_detail_transferred`, `payout_detail_transferring` |
+| `issueRefund` | `refund_goodwill_admin` | `error_refund_conflict`, `error_refund_daily_cap`, `error_refund_goodwill_exceeds`, `error_refund_mfa_required`, `error_refund_not_refundable`, `error_refund_self_approval_forbidden`, `refund_approval_request_pending`, `refund_approved`, `refund_authorised`, `refund_cancelled`, `refund_declined`, `refund_failed`, `refund_pending_approval`, `refund_requested`, `refund_settled`, `refund_submitted`, `refund_succeeded` |
 | `listAddresses` | `addresses_list` | `addresses_empty` |
 | `listChargebacks` | `chargeback_list` | `chargeback_list_empty` |
-| `listHalalIssuingBodies` | `halal_issuing_body_accepted` | `halal_issuing_bodies_empty`, `halal_issuing_bodies_seed`, `halal_issuing_body_proposed`, `halal_issuing_body_rejected`, `halal_issuing_body_retired`, `halal_issuing_body_suspended` |
+| `listHalalIssuingBodies` | `halal_issuing_body_accepted` | `halal_issuing_bodies_empty`, `halal_issuing_bodies_every_status`, `halal_issuing_bodies_seed`, `halal_issuing_body_proposed`, `halal_issuing_body_rejected`, `halal_issuing_body_retired`, `halal_issuing_body_suspended` |
 | `listMenuReviewQueue` | `menu_review_queue` | `menu_review_queue_empty`, `menu_version_approved`, `menu_version_draft`, `menu_version_pending_review`, `menu_version_rejected`, `menu_version_superseded`, `menu_version_withdrawn` |
 | `listNotifications` | `notifications_list` | `notifications_empty` |
-| `listOrders` | `order_list_active` | `order_list_empty`, `order_list_past` |
-| `listOrdersAdmin` | `order_list_past` | `order_list_active` |
+| `listOrders` | `order_list_active` | `order_list_empty`, `order_list_mixed_states`, `order_list_past`, `order_list_past_page_2` |
+| `listOrdersAdmin` | `order_list_past` | `order_admin_list_disputed_page_1`, `order_admin_list_disputed_page_2`, `order_admin_list_every_state`, `order_list_active`, `order_list_mixed_states`, `order_list_past_page_2` |
 | `listPaymentMethods` | `payment_methods_list` | `payment_methods_at_limit`, `payment_methods_empty` |
 | `listPayoutRuns` | `payout_run_succeeded` | `payout_run_failed`, `payout_run_list_empty`, `payout_run_running` |
-| `listRefunds` | `refund_list_empty` | `refund_approved`, `refund_authorised`, `refund_cancelled`, `refund_declined`, `refund_failed`, `refund_pending_approval`, `refund_requested`, `refund_settled`, `refund_submitted`, `refund_succeeded` |
-| `listRefundsAdmin` | `admin_refund_queue` | `admin_refund_queue_empty` |
+| `listRefunds` | `refund_list_empty` | `refund_list_every_state` |
+| `listRefundsAdmin` | `admin_refund_queue` | `admin_refund_queue_empty`, `admin_refund_queue_failed` |
 | `listRestaurantApplications` | `restaurant_application_queue` | `restaurant_application_queue_empty` |
 | `listRestaurantDocuments` | `restaurant_document_pack_complete` | `restaurant_document_pack_empty`, `restaurant_document_pack_incomplete` |
-| `listRestaurantOrders` | `restaurant_order_queue_busy` | `restaurant_order_picked_up`, `restaurant_order_pickup_code_locked`, `restaurant_order_preparing`, `restaurant_order_queue_empty`, `restaurant_order_ready_for_pickup`, `restaurant_order_rejected`, `restaurant_order_restaurant_pending` |
-| `listRestaurantPayouts` | `restaurant_payout_history` | `payout_draft`, `payout_failed`, `payout_held`, `payout_list_empty`, `payout_paid`, `payout_ready`, `payout_transferred`, `payout_transferring` |
+| `listRestaurantOrders` | `restaurant_order_queue_busy` | `restaurant_order_arrived`, `restaurant_order_cancelled`, `restaurant_order_cancelled_after_accept`, `restaurant_order_completed`, `restaurant_order_delivered`, `restaurant_order_disputed`, `restaurant_order_picked_up`, `restaurant_order_pickup_code_locked`, `restaurant_order_preparing`, `restaurant_order_queue_empty`, `restaurant_order_queue_pending_four`, `restaurant_order_queue_with_completed`, `restaurant_order_ready_for_pickup`, `restaurant_order_rejected`, `restaurant_order_resolved`, `restaurant_order_restaurant_pending` |
+| `listRestaurantPayouts` | `restaurant_payout_history` | `payout_list_empty`, `restaurant_payout_history_every_state`, `restaurant_payout_history_page_1`, `restaurant_payout_history_page_2` |
 | `listRestaurantStaff` | `restaurant_staff_list` | — |
-| `listRestaurants` | `restaurant_list_populated` | `restaurant_list_empty`, `restaurant_list_long_names`, `restaurant_list_missing_images`, `restaurant_list_single` |
+| `listRestaurants` | `restaurant_list_populated` | `restaurant_list_closed_and_paused`, `restaurant_list_empty`, `restaurant_list_eta_sorted`, `restaurant_list_long_names`, `restaurant_list_missing_halal_fields`, `restaurant_list_missing_images`, `restaurant_list_no_address`, `restaurant_list_page_2`, `restaurant_list_partial_halal`, `restaurant_list_single` |
 | `listRiderApplications` | `rider_application_queue` | — |
-| `listRiderDocuments` | `rider_document_pack_complete` | `rider_document_pack_rejected` |
-| `listRiderEarningEntries` | `earning_entries_mixed` | `earning_entries_empty` |
-| `listRiderPayouts` | `payout_paid` | `payout_draft`, `payout_failed`, `payout_held`, `payout_list_empty`, `payout_ready`, `payout_transferred`, `payout_transferring` |
-| `listStaff` | `staff_list` | — |
-| `login` | `session_grant_customer` | `error_account_not_active`, `session_grant_staff`, `session_next_route_active_delivery`, `session_next_route_app_update_required`, `session_next_route_home`, `session_next_route_onboarding_documents`, `session_next_route_onboarding_rejected`, `session_next_route_order_tracking`, `session_next_route_profile_capture`, `session_next_route_suspended` |
+| `listRiderDocuments` | `rider_document_pack_complete` | `rider_document_pack_empty`, `rider_document_pack_expired`, `rider_document_pack_expired_replacement_in_review`, `rider_document_pack_expiring`, `rider_document_pack_rejected` |
+| `listRiderEarningEntries` | `earning_entries_mixed` | `earning_entries_clawback`, `earning_entries_empty`, `earning_entries_paging`, `earning_entries_paging_page_2`, `earning_entries_pending` |
+| `listRiderPayouts` | `payout_list_draft_paid` | `payout_list_empty`, `payout_list_every_state`, `payout_list_multi_problem` |
+| `listStaff` | `staff_list` | `staff_list_edge_rows`, `staff_list_one_super_admin`, `staff_list_page_2` |
+| `login` | `session_grant_customer` | `error_account_not_active`, `error_account_temporarily_locked`, `error_invalid_credentials`, `error_invalid_credentials_email_verification_required`, `session_grant_admin`, `session_grant_staff`, `session_grant_super_admin`, `session_grant_support_agent`, `session_next_route_active_delivery`, `session_next_route_app_update_required`, `session_next_route_home`, `session_next_route_onboarding_documents`, `session_next_route_onboarding_rejected`, `session_next_route_order_tracking`, `session_next_route_profile_capture`, `session_next_route_suspended`, `session_next_route_suspended_banned`, `session_next_route_suspended_deleted` |
 | `markOrderReady` | `restaurant_order_ready_for_pickup` | `restaurant_order_picked_up`, `restaurant_order_preparing`, `restaurant_order_rejected`, `restaurant_order_restaurant_pending` |
 | `overrideHandoverCode` | `handover_override_delivery` | `error_handover_override_not_pending`, `handover_override_pickup_locked` |
 | `proposeHalalIssuingBody` | `halal_issuing_body_accepted` | `halal_issuing_body_proposed`, `halal_issuing_body_rejected`, `halal_issuing_body_retired`, `halal_issuing_body_suspended` |
-| `recordHalalChecks` | `halal_certificate_status_approved` | `halal_certificate_status_expired`, `halal_certificate_status_pending`, `halal_certificate_status_rejected`, `halal_certificate_status_revoked`, `halal_certificate_status_superseded` |
-| `refreshSession` | `session_grant_customer` | `error_account_suspended`, `error_refresh_reuse_detected`, `error_session_expired`, `error_session_revoked`, `session_grant_staff`, `session_next_route_active_delivery`, `session_next_route_app_update_required`, `session_next_route_home`, `session_next_route_onboarding_documents`, `session_next_route_onboarding_rejected`, `session_next_route_order_tracking`, `session_next_route_profile_capture`, `session_next_route_suspended` |
-| `registerRestaurant` | `restaurant_registration` | `error_register_restaurant_rate_limited` |
+| `recordHalalChecks` | `halal_certificate_status_approved` | `error_check_not_overridable`, `halal_certificate_pending_h5_computed_fail`, `halal_certificate_pending_h7_duplicate`, `halal_certificate_pending_issuer_suspended`, `halal_certificate_pending_scope_supplier_chain`, `halal_certificate_pending_transcribed_unchecked`, `halal_certificate_pending_untranscribed`, `halal_certificate_status_expired`, `halal_certificate_status_pending`, `halal_certificate_status_rejected`, `halal_certificate_status_revoked`, `halal_certificate_status_superseded` |
+| `refreshSession` | `session_grant_customer` | `error_account_banned`, `error_account_suspended`, `error_refresh_reuse_detected`, `error_session_expired`, `error_session_revoked`, `session_grant_admin`, `session_grant_staff`, `session_grant_super_admin`, `session_grant_support_agent`, `session_next_route_active_delivery`, `session_next_route_app_update_required`, `session_next_route_home`, `session_next_route_onboarding_documents`, `session_next_route_onboarding_rejected`, `session_next_route_order_tracking`, `session_next_route_profile_capture`, `session_next_route_suspended`, `session_next_route_suspended_banned`, `session_next_route_suspended_deleted` |
+| `registerRestaurant` | `restaurant_registration` | `error_email_already_registered`, `error_register_restaurant_rate_limited`, `error_terms_version_stale` |
 | `rejectOrder` | `restaurant_order_rejected` | `restaurant_order_picked_up`, `restaurant_order_preparing`, `restaurant_order_ready_for_pickup`, `restaurant_order_restaurant_pending` |
 | `reportRiderPositions` | `rider_position_ack` | — |
 | `reportTamper` | `handoff_tamper_report` | — |
-| `requestOtp` | `otp_challenge` | `error_rate_limiter_unavailable` |
+| `requestOtp` | `otp_challenge` | `error_invalid_phone`, `error_otp_rate_limited_with_retry`, `error_rate_limiter_unavailable`, `error_unsupported_country`, `otp_challenge_resend_open` |
 | `resetPassword` | `error_breached_password` | `error_reset_token_not_valid` |
 | `reviewRestaurantDocument` | `document_approved` | `document_expired`, `document_in_review`, `document_rejected`, `document_rejected_expired`, `document_rejected_illegible`, `document_rejected_name_mismatch`, `document_rejected_plate_mismatch`, `document_rejected_suspected_forgery`, `document_rejected_wrong_document_type`, `document_submitted`, `document_superseded` |
 | `reviewRiderDocument` | `document_approved` | `document_expired`, `document_in_review`, `document_rejected`, `document_submitted`, `document_superseded` |
@@ -909,9 +1079,9 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | `setHalalIssuingBodyStatus` | `halal_issuing_body_accepted` | `halal_issuing_body_proposed`, `halal_issuing_body_rejected`, `halal_issuing_body_retired`, `halal_issuing_body_suspended` |
 | `setMenuItemAvailability` | `menu_item_marked_out_of_stock_until` | `error_item_blocked_by_admin`, `error_menu_locked`, `menu_item_marked_available`, `menu_item_marked_out_of_stock_indefinitely` |
 | `setOrderingPause` | `ordering_pause_open` | `ordering_pause_on` |
-| `setRestaurantAcceptingOrders` | `restaurant_open_state_open` | `restaurant_open_state_closed_holiday`, `restaurant_open_state_closed_hours`, `restaurant_open_state_closed_offline`, `restaurant_open_state_closed_suspended`, `restaurant_open_state_closed_toggle`, `restaurant_open_state_paused` |
-| `setRestaurantHours` | `restaurant_hours_standard` | — |
-| `setRiderAvailability` | `rider_availability_online_idle` | `error_account_not_active`, `error_active_delivery_in_progress`, `error_cannot_go_online`, `error_cannot_go_online_account_not_active`, `error_cannot_go_online_all_reasons`, `error_cannot_go_online_background_location_permission`, `error_cannot_go_online_continuous_online_cap`, `error_cannot_go_online_document_expired`, `error_cannot_go_online_foreground_location_permission`, `error_cannot_go_online_notification_permission`, `error_cannot_go_online_onboarding_incomplete`, `error_cannot_go_online_payout_account_incomplete`, `error_onboarding_incomplete`, `error_payout_account_incomplete`, `rider_availability_offline`, `rider_availability_on_delivery`, `rider_availability_online_stale` |
+| `setRestaurantAcceptingOrders` | `restaurant_open_state_open` | `restaurant_open_state_closed_holiday`, `restaurant_open_state_closed_hours`, `restaurant_open_state_closed_offline`, `restaurant_open_state_closed_suspended`, `restaurant_open_state_closed_toggle`, `restaurant_open_state_closed_toggle_auto_off`, `restaurant_open_state_paused`, `restaurant_open_state_paused_until_closing` |
+| `setRestaurantHours` | `restaurant_hours_standard` | `restaurant_hours_none`, `restaurant_hours_special_dates`, `restaurant_hours_split_past_midnight` |
+| `setRiderAvailability` | `rider_availability_online_idle` | `error_account_not_active`, `error_active_delivery_in_progress`, `error_cannot_go_online`, `error_cannot_go_online_account_not_active`, `error_cannot_go_online_all_reasons`, `error_cannot_go_online_background_location_permission`, `error_cannot_go_online_continuous_online_cap`, `error_cannot_go_online_document_expired`, `error_cannot_go_online_foreground_location_permission`, `error_cannot_go_online_notification_permission`, `error_cannot_go_online_onboarding_incomplete`, `error_cannot_go_online_payout_account_incomplete`, `error_onboarding_incomplete`, `error_payout_account_incomplete`, `rider_availability_go_offline_after_delivery`, `rider_availability_offline`, `rider_availability_on_delivery`, `rider_availability_online_stale` |
 | `submitOrderRating` | `order_rating_food_and_rider` | — |
 | `submitProofOfDelivery` | `assignment_delivered` | `assignment_arrived_at_dropoff`, `assignment_arrived_at_pickup`, `assignment_assigned`, `assignment_cancelled_by_platform`, `assignment_en_route_to_dropoff`, `assignment_en_route_to_pickup`, `assignment_otp_pod_required`, `assignment_picked_up`, `assignment_reassigned`, `assignment_returned`, `assignment_returning`, `assignment_undeliverable`, `error_delivery_code_incorrect`, `error_delivery_code_locked`, `error_pod_required` |
 | `submitRestaurantDocuments` | `restaurant_onboarding_documents_review` | `restaurant_onboarding_active`, `restaurant_onboarding_documents_approved`, `restaurant_onboarding_documents_pending`, `restaurant_onboarding_documents_rejected`, `restaurant_onboarding_email_verified`, `restaurant_onboarding_menu_pending`, `restaurant_onboarding_payout_pending`, `restaurant_onboarding_profile_pending`, `restaurant_onboarding_registered`, `restaurant_onboarding_withdrawn` |
@@ -919,9 +1089,9 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | `submitRiderDocuments` | `rider_onboarding_documents_review` | `error_nothing_to_resubmit`, `rider_onboarding_active`, `rider_onboarding_documents_approved`, `rider_onboarding_documents_pending`, `rider_onboarding_documents_rejected`, `rider_onboarding_payout_pending`, `rider_onboarding_phone_verified`, `rider_onboarding_profile_pending`, `rider_onboarding_registered`, `rider_onboarding_vehicle_pending` |
 | `submitRiderProfile` | `rider_profile` | `error_rider_email_in_use` |
 | `submitRiderVehicle` | `rider_vehicle_scooter` | `error_field_not_applicable`, `error_field_required`, `error_plate_in_use`, `rider_vehicle_on_foot` |
-| `takeNextRestaurantApplication` | `restaurant_application_pending_review` | `restaurant_application_none_to_take` |
-| `takeNextRiderApplication` | `rider_application_pending_review` | `rider_application_none_to_take` |
-| `transcribeHalalCertificate` | `halal_certificate_status_pending` | `halal_certificate_status_approved`, `halal_certificate_status_expired`, `halal_certificate_status_rejected`, `halal_certificate_status_revoked`, `halal_certificate_status_superseded` |
+| `takeNextRestaurantApplication` | `restaurant_application_pending_review` | `restaurant_application_changes_requested`, `restaurant_application_claimed_by_other`, `restaurant_application_no_certificate`, `restaurant_application_none_to_take`, `restaurant_application_withdrawn` |
+| `takeNextRiderApplication` | `rider_application_pending_review` | `rider_application_attempt_3`, `rider_application_attempt_4`, `rider_application_bicycle`, `rider_application_claimed_by_other`, `rider_application_none_to_take`, `rider_application_on_foot`, `rider_application_under_18` |
+| `transcribeHalalCertificate` | `halal_certificate_status_pending` | `halal_certificate_pending_h5_computed_fail`, `halal_certificate_pending_h7_duplicate`, `halal_certificate_pending_issuer_suspended`, `halal_certificate_pending_scope_supplier_chain`, `halal_certificate_pending_transcribed_unchecked`, `halal_certificate_pending_untranscribed`, `halal_certificate_status_approved`, `halal_certificate_status_expired`, `halal_certificate_status_rejected`, `halal_certificate_status_revoked`, `halal_certificate_status_superseded` |
 | `updateAddress` | `addresses_list` | — |
 | `updateCartLine` | `cart_at_quantity_cap` | — |
 | `updateCustomerProfile` | `customer_profile` | — |
@@ -929,7 +1099,7 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | `updateMenuItem` | `menu_item_edit_pending_review` | `error_halal_tag_not_writable`, `error_menu_locked`, `error_price_out_of_range`, `error_prohibited_ingredient`, `menu_item_edit_price_only` |
 | `updateMenuItemOnBehalf` | `menu_item_edited_by_admin` | `error_halal_tag_not_writable`, `error_menu_locked`, `error_menu_locked_banned`, `error_menu_version_pending`, `error_price_out_of_range`, `error_prohibited_ingredient`, `menu_item_edit_price_only` |
 | `verifyEmail` | `error_verification_token_expired` | `error_verification_token_used` |
-| `verifyOtp` | `session_grant_customer` | `error_otp_invalid_or_expired`, `error_rate_limiter_unavailable`, `session_next_route_active_delivery`, `session_next_route_app_update_required`, `session_next_route_home`, `session_next_route_onboarding_documents`, `session_next_route_onboarding_rejected`, `session_next_route_order_tracking`, `session_next_route_profile_capture`, `session_next_route_suspended` |
+| `verifyOtp` | `session_grant_customer` | `error_otp_incorrect`, `error_otp_incorrect_attempts_0`, `error_otp_incorrect_attempts_2`, `error_otp_incorrect_no_count`, `error_otp_invalid_or_expired`, `error_otp_rate_limited_with_retry`, `error_rate_limiter_unavailable`, `session_next_route_active_delivery`, `session_next_route_app_update_required`, `session_next_route_home`, `session_next_route_onboarding_documents`, `session_next_route_onboarding_rejected`, `session_next_route_order_tracking`, `session_next_route_profile_capture`, `session_next_route_suspended`, `session_next_route_suspended_banned`, `session_next_route_suspended_deleted` |
 | `verifyTotpEnrolment` | `error_totp_code_incorrect` | — |
 
 ---

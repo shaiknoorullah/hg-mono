@@ -1,0 +1,94 @@
+{
+  "scenario": "halal_certificate_pending_untranscribed",
+  "domain": "halal",
+  "schema": "HalalCertificate",
+  "describes": "Just uploaded: the document is attached but nobody has typed in its fields yet. Number, issuer, names, scope and dates are null and no check has a result or a computed value. Transcribe first; the checks come after.",
+  "operations": [
+    "getHalalCertificate",
+    "recordHalalChecks",
+    "transcribeHalalCertificate",
+    "decideHalalCertificate"
+  ],
+  "status": 200,
+  "tags": [
+    "admin",
+    "halal",
+    "certificate"
+  ],
+  "payload": {
+    "id": "593c227d-a324-49b7-a059-af25eccb4cc7",
+    "restaurant_id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+    "document_id": "6b476421-7e6c-44c7-a187-5d71d26edebe",
+    "certificate_number": null,
+    "issuing_body": null,
+    "certified_legal_name": null,
+    "certified_address": null,
+    "scope": null,
+    "issued_on": null,
+    "expires_on": null,
+    "status": "PENDING",
+    "checklist_version": 1,
+    "checks": [
+      {
+        "check_key": "H1_LEGIBLE_COMPLETE",
+        "result": "NOT_ASSESSED",
+        "computed_result": null,
+        "overridable": true,
+        "note": null,
+        "checked_at": null
+      },
+      {
+        "check_key": "H2_ISSUER_ACCEPTED",
+        "result": "NOT_ASSESSED",
+        "computed_result": null,
+        "overridable": true,
+        "note": null,
+        "checked_at": null
+      },
+      {
+        "check_key": "H3_NAME_MATCH",
+        "result": "NOT_ASSESSED",
+        "computed_result": null,
+        "overridable": true,
+        "note": null,
+        "checked_at": null
+      },
+      {
+        "check_key": "H4_ADDRESS_MATCH",
+        "result": "NOT_ASSESSED",
+        "computed_result": null,
+        "overridable": true,
+        "note": null,
+        "checked_at": null
+      },
+      {
+        "check_key": "H5_DATES_VALID",
+        "result": "NOT_ASSESSED",
+        "computed_result": null,
+        "overridable": false,
+        "note": null,
+        "checked_at": null
+      },
+      {
+        "check_key": "H6_SCOPE_SUFFICIENT",
+        "result": "NOT_ASSESSED",
+        "computed_result": null,
+        "overridable": true,
+        "note": null,
+        "checked_at": null
+      },
+      {
+        "check_key": "H7_UNIQUE_NOT_REUSED",
+        "result": "NOT_ASSESSED",
+        "computed_result": null,
+        "overridable": false,
+        "note": null,
+        "checked_at": null
+      }
+    ],
+    "rejection_reason_code": null,
+    "rejection_reason_text": null,
+    "verified_by": null,
+    "verified_at": null
+  }
+}

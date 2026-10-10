@@ -1,0 +1,20 @@
+{
+  "scenario": "owned_menu_empty",
+  "domain": "catalogue",
+  "schema": "OwnedMenu",
+  "describes": "The restaurant's own menu before anything was added: no categories. The editor shows \"Add your first category\".",
+  "operations": [
+    "getOwnMenu"
+  ],
+  "status": 200,
+  "tags": [
+    "restaurant",
+    "menu",
+    "edge",
+    "empty"
+  ],
+  "payload": {
+    "restaurant_id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+    "categories": []
+  }
+}

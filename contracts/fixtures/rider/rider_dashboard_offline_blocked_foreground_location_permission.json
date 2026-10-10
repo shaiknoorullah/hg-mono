@@ -1,0 +1,30 @@
+{
+  "scenario": "rider_dashboard_offline_blocked_foreground_location_permission",
+  "domain": "rider",
+  "schema": "RiderDashboard",
+  "describes": "Offline with one blocking reason, `FOREGROUND_LOCATION_PERMISSION`, so its row can be tested alone. Contract-only: `getRiderDashboard` on `services/hg` sends `mode` and `today` but not `active_assignment`, `tracking_health` or `blocking_reasons` yet.",
+  "operations": [
+    "getRiderDashboard"
+  ],
+  "status": 200,
+  "tags": [
+    "rider",
+    "home",
+    "error-path"
+  ],
+  "payload": {
+    "mode": "OFFLINE",
+    "today": {
+      "gross_cents": 0,
+      "currency": "CAD",
+      "trips": 0,
+      "online_seconds": 0
+    },
+    "active_assignment": null,
+    "current_offer": null,
+    "tracking_health": null,
+    "blocking_reasons": [
+      "FOREGROUND_LOCATION_PERMISSION"
+    ]
+  }
+}

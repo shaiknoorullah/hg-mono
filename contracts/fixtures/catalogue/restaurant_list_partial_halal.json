@@ -1,0 +1,146 @@
+{
+  "scenario": "restaurant_list_partial_halal",
+  "domain": "catalogue",
+  "schema": "array<RestaurantCard>",
+  "describes": "A mix: one complete badge, one with `certifying_body_name: null`, one `EXPIRING_SOON` with `expires_on: null`, one with the body and no `expires_on` key. Each card renders only the fields it has.",
+  "operations": [
+    "listRestaurants"
+  ],
+  "status": 200,
+  "tags": [
+    "customer",
+    "home",
+    "halal",
+    "edge"
+  ],
+  "meta": {
+    "next_cursor": null,
+    "has_more": false,
+    "total": 4
+  },
+  "payload": [
+    {
+      "id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+      "name": "Karachi Kitchen",
+      "slug": "karachi-kitchen",
+      "hero_image_url": "https://cdn.halalgoes.ca/img/restaurant/hero/karachi-kitchen.webp",
+      "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/karachi-kitchen.webp",
+      "cuisines": [
+        "Pakistani",
+        "Biryani",
+        "Halal"
+      ],
+      "rating_avg": 4.8,
+      "rating_count": 412,
+      "price_band": "$$",
+      "halal": {
+        "display_state": "CERTIFIED",
+        "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+        "expires_on": "2027-03-09"
+      },
+      "availability": {
+        "state": "OPEN",
+        "opens_at": "2026-08-10T12:24:11.412Z",
+        "closes_at": "2026-08-10T22:00:11.412Z",
+        "eta_min_minutes": 25,
+        "eta_max_minutes": 40,
+        "indicative_delivery_fee_cents": 449,
+        "minimum_order_cents": 1500,
+        "distance_m": 1200,
+        "out_of_range_reason": null
+      }
+    },
+    {
+      "id": "92291a8d-1006-4090-a8ba-4cfd1967ffbd",
+      "name": "Al-Noor Shawarma House",
+      "slug": "al-noor-shawarma-house",
+      "hero_image_url": "https://cdn.halalgoes.ca/img/restaurant/hero/al-noor-shawarma-house.webp",
+      "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/al-noor-shawarma-house.webp",
+      "cuisines": [
+        "Middle Eastern",
+        "Shawarma",
+        "Halal"
+      ],
+      "rating_avg": 4.6,
+      "rating_count": 1183,
+      "price_band": "$",
+      "halal": {
+        "display_state": "CERTIFIED",
+        "certifying_body_name": null,
+        "expires_on": "2027-03-09"
+      },
+      "availability": {
+        "state": "OPEN",
+        "opens_at": "2026-08-10T12:24:11.412Z",
+        "closes_at": "2026-08-10T22:00:11.412Z",
+        "eta_min_minutes": 25,
+        "eta_max_minutes": 40,
+        "indicative_delivery_fee_cents": 449,
+        "minimum_order_cents": 1500,
+        "distance_m": 2140,
+        "out_of_range_reason": null
+      }
+    },
+    {
+      "id": "11f93069-62e0-4d02-a081-8c5bb11987b8",
+      "name": "Bismillah Biryani House",
+      "slug": "bismillah-biryani-house",
+      "hero_image_url": "https://cdn.halalgoes.ca/img/restaurant/hero/bismillah-biryani-house.webp",
+      "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/bismillah-biryani-house.webp",
+      "cuisines": [
+        "Indian",
+        "Biryani",
+        "Halal"
+      ],
+      "rating_avg": 4.4,
+      "rating_count": 96,
+      "price_band": "$$",
+      "halal": {
+        "display_state": "EXPIRING_SOON",
+        "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+        "expires_on": null
+      },
+      "availability": {
+        "state": "OPEN",
+        "opens_at": "2026-08-10T12:24:11.412Z",
+        "closes_at": "2026-08-10T22:00:11.412Z",
+        "eta_min_minutes": 25,
+        "eta_max_minutes": 40,
+        "indicative_delivery_fee_cents": 449,
+        "minimum_order_cents": 1500,
+        "distance_m": 3080,
+        "out_of_range_reason": null
+      }
+    },
+    {
+      "id": "a12be53e-1468-4f99-a72e-862f5c7be4e1",
+      "name": "Zaytoun Mediterranean Grill",
+      "slug": "zaytoun-mediterranean-grill",
+      "hero_image_url": "https://cdn.halalgoes.ca/img/restaurant/hero/zaytoun-mediterranean-grill.webp",
+      "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/zaytoun-mediterranean-grill.webp",
+      "cuisines": [
+        "Mediterranean",
+        "Grill",
+        "Halal"
+      ],
+      "rating_avg": 4.9,
+      "rating_count": 2741,
+      "price_band": "$$$",
+      "halal": {
+        "display_state": "CERTIFIED",
+        "certifying_body_name": "Canadian Halal Certification Bureau"
+      },
+      "availability": {
+        "state": "OPEN",
+        "opens_at": "2026-08-10T12:24:11.412Z",
+        "closes_at": "2026-08-10T22:00:11.412Z",
+        "eta_min_minutes": 25,
+        "eta_max_minutes": 40,
+        "indicative_delivery_fee_cents": 449,
+        "minimum_order_cents": 1500,
+        "distance_m": 4020,
+        "out_of_range_reason": null
+      }
+    }
+  ]
+}

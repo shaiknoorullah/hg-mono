@@ -5,7 +5,6 @@
   "describes": "Above the agent's cap, waiting on a second approver (`SELF_APPROVAL_FORBIDDEN` blocks the requester from approving their own).",
   "operations": [
     "getRefund",
-    "listRefunds",
     "createRefund",
     "issueRefund"
   ],

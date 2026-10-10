@@ -1,0 +1,22 @@
+{
+  "scenario": "error_receipt_not_ready_never_completed",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`409` · `RECEIPT_NOT_READY`. The order was charged but never completed (it failed and was refunded in full): no receipt is written, because a receipt is written only at `COMPLETED`. The app points to the refund instead. Same body as `error_receipt_not_ready`; the app tells the cases apart by the order's state.",
+  "operations": [
+    "getOrderReceipt"
+  ],
+  "status": 409,
+  "tags": [
+    "error-envelope",
+    "error-path",
+    "customer"
+  ],
+  "payload": {
+    "error": {
+      "code": "RECEIPT_NOT_READY",
+      "message": "This order does not have a receipt yet.",
+      "request_id": "6JVD1NRZ8HSKFYW0ZV0J7X7BFT"
+    }
+  }
+}

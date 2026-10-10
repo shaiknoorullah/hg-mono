@@ -15,7 +15,7 @@
     "period": "WEEK",
     "buckets": [
       {
-        "bucket_start": "2026-08-10T18:32:11.412Z",
+        "bucket_start": "2026-08-03T04:00:00.000Z",
         "gross_cents": 1149,
         "delivery_cents": 1695,
         "tip_cents": 700,
@@ -27,7 +27,7 @@
         "effective_cents_per_hour": 1695
       },
       {
-        "bucket_start": "2026-08-10T18:32:11.412Z",
+        "bucket_start": "2026-08-04T04:00:00.000Z",
         "gross_cents": 1149,
         "delivery_cents": 1695,
         "tip_cents": 700,
@@ -39,7 +39,7 @@
         "effective_cents_per_hour": 1695
       },
       {
-        "bucket_start": "2026-08-10T18:32:11.412Z",
+        "bucket_start": "2026-08-05T04:00:00.000Z",
         "gross_cents": 1149,
         "delivery_cents": 1695,
         "tip_cents": 700,
@@ -51,7 +51,7 @@
         "effective_cents_per_hour": 1695
       },
       {
-        "bucket_start": "2026-08-10T18:32:11.412Z",
+        "bucket_start": "2026-08-06T04:00:00.000Z",
         "gross_cents": 1149,
         "delivery_cents": 1695,
         "tip_cents": 700,
@@ -63,7 +63,7 @@
         "effective_cents_per_hour": 1695
       },
       {
-        "bucket_start": "2026-08-10T18:32:11.412Z",
+        "bucket_start": "2026-08-07T04:00:00.000Z",
         "gross_cents": 1149,
         "delivery_cents": 1695,
         "tip_cents": 700,
@@ -75,7 +75,7 @@
         "effective_cents_per_hour": 1695
       },
       {
-        "bucket_start": "2026-08-10T18:32:11.412Z",
+        "bucket_start": "2026-08-08T04:00:00.000Z",
         "gross_cents": 1149,
         "delivery_cents": 1695,
         "tip_cents": 700,
@@ -87,7 +87,7 @@
         "effective_cents_per_hour": 1695
       },
       {
-        "bucket_start": "2026-08-10T18:32:11.412Z",
+        "bucket_start": "2026-08-09T04:00:00.000Z",
         "gross_cents": 1149,
         "delivery_cents": 1695,
         "tip_cents": 700,
@@ -100,7 +100,7 @@
       }
     ],
     "total": {
-      "bucket_start": "2026-08-10T18:32:11.412Z",
+      "bucket_start": "2026-08-03T04:00:00.000Z",
       "gross_cents": 1149,
       "delivery_cents": 1695,
       "tip_cents": 700,

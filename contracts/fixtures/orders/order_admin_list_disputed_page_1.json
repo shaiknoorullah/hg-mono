@@ -1,0 +1,501 @@
+{
+  "scenario": "order_admin_list_disputed_page_1",
+  "domain": "orders",
+  "schema": "array<OrderSummary>",
+  "describes": "`listOrdersAdmin?state=DISPUTED`, first page: 20 disputed orders, newest first, `has_more: true`. The next page is `order_admin_list_disputed_page_2`.",
+  "operations": [
+    "listOrdersAdmin"
+  ],
+  "status": 200,
+  "tags": [
+    "admin",
+    "dense"
+  ],
+  "meta": {
+    "next_cursor": "01K4SA2D7H8V7Q2R3T5Y6M8N9P",
+    "has_more": true,
+    "total": null
+  },
+  "payload": [
+    {
+      "id": "82ab23a3-4ec4-4c9b-abed-0d796f88886f",
+      "code": "HG-D00K-1T",
+      "state": "DISPUTED",
+      "restaurant": {
+        "id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+        "name": "Karachi Kitchen",
+        "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/karachi-kitchen.webp",
+        "halal": {
+          "display_state": "CERTIFIED",
+          "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+          "expires_on": "2027-03-09"
+        }
+      },
+      "item_count": 3,
+      "first_item_names": [
+        "Chicken Biryani",
+        "Beef Nihari"
+      ],
+      "total_cents": 10684,
+      "currency": "CAD",
+      "placed_at": "2026-08-10T13:42:11.412Z",
+      "deadline_at": "2026-08-12T18:42:11.412Z"
+    },
+    {
+      "id": "0190e3cd-f4a8-498e-af4e-82dc5942dd72",
+      "code": "HG-D01K-2T",
+      "state": "DISPUTED",
+      "restaurant": {
+        "id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+        "name": "Karachi Kitchen",
+        "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/karachi-kitchen.webp",
+        "halal": {
+          "display_state": "CERTIFIED",
+          "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+          "expires_on": "2027-03-09"
+        }
+      },
+      "item_count": 3,
+      "first_item_names": [
+        "Chicken Biryani",
+        "Beef Nihari"
+      ],
+      "total_cents": 10684,
+      "currency": "CAD",
+      "placed_at": "2026-08-10T08:42:11.412Z",
+      "deadline_at": "2026-08-12T18:42:11.412Z"
+    },
+    {
+      "id": "9060ea84-056e-4df3-ad78-14cfc588857d",
+      "code": "HG-D02K-3T",
+      "state": "DISPUTED",
+      "restaurant": {
+        "id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+        "name": "Karachi Kitchen",
+        "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/karachi-kitchen.webp",
+        "halal": {
+          "display_state": "CERTIFIED",
+          "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+          "expires_on": "2027-03-09"
+        }
+      },
+      "item_count": 3,
+      "first_item_names": [
+        "Chicken Biryani",
+        "Beef Nihari"
+      ],
+      "total_cents": 10684,
+      "currency": "CAD",
+      "placed_at": "2026-08-10T03:42:11.412Z",
+      "deadline_at": "2026-08-12T18:42:11.412Z"
+    },
+    {
+      "id": "e3c95307-e2bd-411a-a0a2-6e19d2072a29",
+      "code": "HG-D03K-4T",
+      "state": "DISPUTED",
+      "restaurant": {
+        "id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+        "name": "Karachi Kitchen",
+        "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/karachi-kitchen.webp",
+        "halal": {
+          "display_state": "CERTIFIED",
+          "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+          "expires_on": "2027-03-09"
+        }
+      },
+      "item_count": 3,
+      "first_item_names": [
+        "Chicken Biryani",
+        "Beef Nihari"
+      ],
+      "total_cents": 10684,
+      "currency": "CAD",
+      "placed_at": "2026-08-09T22:42:11.412Z",
+      "deadline_at": "2026-08-12T18:42:11.412Z"
+    },
+    {
+      "id": "c76b9e66-9b3a-409c-a8bf-f36921bbb0af",
+      "code": "HG-D04K-5T",
+      "state": "DISPUTED",
+      "restaurant": {
+        "id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+        "name": "Karachi Kitchen",
+        "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/karachi-kitchen.webp",
+        "halal": {
+          "display_state": "CERTIFIED",
+          "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+          "expires_on": "2027-03-09"
+        }
+      },
+      "item_count": 3,
+      "first_item_names": [
+        "Chicken Biryani",
+        "Beef Nihari"
+      ],
+      "total_cents": 10684,
+      "currency": "CAD",
+      "placed_at": "2026-08-09T17:42:11.412Z",
+      "deadline_at": "2026-08-12T18:42:11.412Z"
+    },
+    {
+      "id": "a8455b9e-8ad8-454a-a75d-c8e4fda4d62e",
+      "code": "HG-D05K-6T",
+      "state": "DISPUTED",
+      "restaurant": {
+        "id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+        "name": "Karachi Kitchen",
+        "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/karachi-kitchen.webp",
+        "halal": {
+          "display_state": "CERTIFIED",
+          "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+          "expires_on": "2027-03-09"
+        }
+      },
+      "item_count": 3,
+      "first_item_names": [
+        "Chicken Biryani",
+        "Beef Nihari"
+      ],
+      "total_cents": 10684,
+      "currency": "CAD",
+      "placed_at": "2026-08-09T12:42:11.412Z",
+      "deadline_at": "2026-08-12T18:42:11.412Z"
+    },
+    {
+      "id": "810d94e4-7d20-45d3-a6bb-30734646cdbd",
+      "code": "HG-D06K-7T",
+      "state": "DISPUTED",
+      "restaurant": {
+        "id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+        "name": "Karachi Kitchen",
+        "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/karachi-kitchen.webp",
+        "halal": {
+          "display_state": "CERTIFIED",
+          "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+          "expires_on": "2027-03-09"
+        }
+      },
+      "item_count": 3,
+      "first_item_names": [
+        "Chicken Biryani",
+        "Beef Nihari"
+      ],
+      "total_cents": 10684,
+      "currency": "CAD",
+      "placed_at": "2026-08-09T07:42:11.412Z",
+      "deadline_at": "2026-08-12T18:42:11.412Z"
+    },
+    {
+      "id": "42620682-b2ed-4f88-abb1-0628d270ad68",
+      "code": "HG-D07K-8T",
+      "state": "DISPUTED",
+      "restaurant": {
+        "id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+        "name": "Karachi Kitchen",
+        "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/karachi-kitchen.webp",
+        "halal": {
+          "display_state": "CERTIFIED",
+          "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+          "expires_on": "2027-03-09"
+        }
+      },
+      "item_count": 3,
+      "first_item_names": [
+        "Chicken Biryani",
+        "Beef Nihari"
+      ],
+      "total_cents": 10684,
+      "currency": "CAD",
+      "placed_at": "2026-08-09T02:42:11.412Z",
+      "deadline_at": "2026-08-12T18:42:11.412Z"
+    },
+    {
+      "id": "e8489b69-5791-4b82-ae1d-1dd99d127a3d",
+      "code": "HG-D08K-9T",
+      "state": "DISPUTED",
+      "restaurant": {
+        "id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+        "name": "Karachi Kitchen",
+        "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/karachi-kitchen.webp",
+        "halal": {
+          "display_state": "CERTIFIED",
+          "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+          "expires_on": "2027-03-09"
+        }
+      },
+      "item_count": 3,
+      "first_item_names": [
+        "Chicken Biryani",
+        "Beef Nihari"
+      ],
+      "total_cents": 10684,
+      "currency": "CAD",
+      "placed_at": "2026-08-08T21:42:11.412Z",
+      "deadline_at": "2026-08-12T18:42:11.412Z"
+    },
+    {
+      "id": "ac33f888-3483-47e9-a8dd-67a61fdbb448",
+      "code": "HG-D09K-1T",
+      "state": "DISPUTED",
+      "restaurant": {
+        "id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+        "name": "Karachi Kitchen",
+        "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/karachi-kitchen.webp",
+        "halal": {
+          "display_state": "CERTIFIED",
+          "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+          "expires_on": "2027-03-09"
+        }
+      },
+      "item_count": 3,
+      "first_item_names": [
+        "Chicken Biryani",
+        "Beef Nihari"
+      ],
+      "total_cents": 10684,
+      "currency": "CAD",
+      "placed_at": "2026-08-08T16:42:11.412Z",
+      "deadline_at": "2026-08-12T18:42:11.412Z"
+    },
+    {
+      "id": "6ff98922-6a43-475e-a7fa-fbb20f0cb7a8",
+      "code": "HG-D10K-2T",
+      "state": "DISPUTED",
+      "restaurant": {
+        "id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+        "name": "Karachi Kitchen",
+        "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/karachi-kitchen.webp",
+        "halal": {
+          "display_state": "CERTIFIED",
+          "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+          "expires_on": "2027-03-09"
+        }
+      },
+      "item_count": 3,
+      "first_item_names": [
+        "Chicken Biryani",
+        "Beef Nihari"
+      ],
+      "total_cents": 10684,
+      "currency": "CAD",
+      "placed_at": "2026-08-08T11:42:11.412Z",
+      "deadline_at": "2026-08-12T18:42:11.412Z"
+    },
+    {
+      "id": "2cf9b159-405b-4b11-aee9-d3a70d97c75a",
+      "code": "HG-D11K-3T",
+      "state": "DISPUTED",
+      "restaurant": {
+        "id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+        "name": "Karachi Kitchen",
+        "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/karachi-kitchen.webp",
+        "halal": {
+          "display_state": "CERTIFIED",
+          "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+          "expires_on": "2027-03-09"
+        }
+      },
+      "item_count": 3,
+      "first_item_names": [
+        "Chicken Biryani",
+        "Beef Nihari"
+      ],
+      "total_cents": 10684,
+      "currency": "CAD",
+      "placed_at": "2026-08-08T06:42:11.412Z",
+      "deadline_at": "2026-08-12T18:42:11.412Z"
+    },
+    {
+      "id": "3198f2b9-3fa9-4fc9-a6e1-c7294df297c3",
+      "code": "HG-D12K-4T",
+      "state": "DISPUTED",
+      "restaurant": {
+        "id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+        "name": "Karachi Kitchen",
+        "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/karachi-kitchen.webp",
+        "halal": {
+          "display_state": "CERTIFIED",
+          "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+          "expires_on": "2027-03-09"
+        }
+      },
+      "item_count": 3,
+      "first_item_names": [
+        "Chicken Biryani",
+        "Beef Nihari"
+      ],
+      "total_cents": 10684,
+      "currency": "CAD",
+      "placed_at": "2026-08-08T01:42:11.412Z",
+      "deadline_at": "2026-08-12T18:42:11.412Z"
+    },
+    {
+      "id": "b21bf540-38b0-41ef-a6d2-6e2ff6c6da62",
+      "code": "HG-D13K-5T",
+      "state": "DISPUTED",
+      "restaurant": {
+        "id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+        "name": "Karachi Kitchen",
+        "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/karachi-kitchen.webp",
+        "halal": {
+          "display_state": "CERTIFIED",
+          "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+          "expires_on": "2027-03-09"
+        }
+      },
+      "item_count": 3,
+      "first_item_names": [
+        "Chicken Biryani",
+        "Beef Nihari"
+      ],
+      "total_cents": 10684,
+      "currency": "CAD",
+      "placed_at": "2026-08-07T20:42:11.412Z",
+      "deadline_at": "2026-08-12T18:42:11.412Z"
+    },
+    {
+      "id": "8f50ae26-cf45-47e2-ab9e-b99792f53239",
+      "code": "HG-D14K-6T",
+      "state": "DISPUTED",
+      "restaurant": {
+        "id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+        "name": "Karachi Kitchen",
+        "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/karachi-kitchen.webp",
+        "halal": {
+          "display_state": "CERTIFIED",
+          "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+          "expires_on": "2027-03-09"
+        }
+      },
+      "item_count": 3,
+      "first_item_names": [
+        "Chicken Biryani",
+        "Beef Nihari"
+      ],
+      "total_cents": 10684,
+      "currency": "CAD",
+      "placed_at": "2026-08-07T15:42:11.412Z",
+      "deadline_at": "2026-08-12T18:42:11.412Z"
+    },
+    {
+      "id": "d5c7deda-c193-43fe-ad01-353a23d985dc",
+      "code": "HG-D15K-7T",
+      "state": "DISPUTED",
+      "restaurant": {
+        "id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+        "name": "Karachi Kitchen",
+        "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/karachi-kitchen.webp",
+        "halal": {
+          "display_state": "CERTIFIED",
+          "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+          "expires_on": "2027-03-09"
+        }
+      },
+      "item_count": 3,
+      "first_item_names": [
+        "Chicken Biryani",
+        "Beef Nihari"
+      ],
+      "total_cents": 10684,
+      "currency": "CAD",
+      "placed_at": "2026-08-07T10:42:11.412Z",
+      "deadline_at": "2026-08-12T18:42:11.412Z"
+    },
+    {
+      "id": "cb8a7bd4-db35-440f-abe3-d8c10f7b8c17",
+      "code": "HG-D16K-8T",
+      "state": "DISPUTED",
+      "restaurant": {
+        "id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+        "name": "Karachi Kitchen",
+        "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/karachi-kitchen.webp",
+        "halal": {
+          "display_state": "CERTIFIED",
+          "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+          "expires_on": "2027-03-09"
+        }
+      },
+      "item_count": 3,
+      "first_item_names": [
+        "Chicken Biryani",
+        "Beef Nihari"
+      ],
+      "total_cents": 10684,
+      "currency": "CAD",
+      "placed_at": "2026-08-07T05:42:11.412Z",
+      "deadline_at": "2026-08-12T18:42:11.412Z"
+    },
+    {
+      "id": "ebd44869-dc04-427e-a25a-136279f14175",
+      "code": "HG-D17K-9T",
+      "state": "DISPUTED",
+      "restaurant": {
+        "id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+        "name": "Karachi Kitchen",
+        "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/karachi-kitchen.webp",
+        "halal": {
+          "display_state": "CERTIFIED",
+          "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+          "expires_on": "2027-03-09"
+        }
+      },
+      "item_count": 3,
+      "first_item_names": [
+        "Chicken Biryani",
+        "Beef Nihari"
+      ],
+      "total_cents": 10684,
+      "currency": "CAD",
+      "placed_at": "2026-08-07T00:42:11.412Z",
+      "deadline_at": "2026-08-12T18:42:11.412Z"
+    },
+    {
+      "id": "9d1d0d48-897f-4baf-a891-36d0fa05a071",
+      "code": "HG-D18K-1T",
+      "state": "DISPUTED",
+      "restaurant": {
+        "id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+        "name": "Karachi Kitchen",
+        "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/karachi-kitchen.webp",
+        "halal": {
+          "display_state": "CERTIFIED",
+          "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+          "expires_on": "2027-03-09"
+        }
+      },
+      "item_count": 3,
+      "first_item_names": [
+        "Chicken Biryani",
+        "Beef Nihari"
+      ],
+      "total_cents": 10684,
+      "currency": "CAD",
+      "placed_at": "2026-08-06T19:42:11.412Z",
+      "deadline_at": "2026-08-12T18:42:11.412Z"
+    },
+    {
+      "id": "4ec8f24b-37af-4a53-aa4f-418c64551634",
+      "code": "HG-D19K-2T",
+      "state": "DISPUTED",
+      "restaurant": {
+        "id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+        "name": "Karachi Kitchen",
+        "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/karachi-kitchen.webp",
+        "halal": {
+          "display_state": "CERTIFIED",
+          "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+          "expires_on": "2027-03-09"
+        }
+      },
+      "item_count": 3,
+      "first_item_names": [
+        "Chicken Biryani",
+        "Beef Nihari"
+      ],
+      "total_cents": 10684,
+      "currency": "CAD",
+      "placed_at": "2026-08-06T14:42:11.412Z",
+      "deadline_at": "2026-08-12T18:42:11.412Z"
+    }
+  ]
+}

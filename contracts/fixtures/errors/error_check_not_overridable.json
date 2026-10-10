@@ -1,0 +1,27 @@
+{
+  "scenario": "error_check_not_overridable",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`409` · `CHECK_NOT_OVERRIDABLE`. `recordHalalChecks` setting H5 or H7 against the server's computation. `details.check_key` and `details.computed` say which check and what the server computed.",
+  "operations": [
+    "recordHalalChecks"
+  ],
+  "status": 409,
+  "tags": [
+    "error-envelope",
+    "error-path",
+    "admin",
+    "halal"
+  ],
+  "payload": {
+    "error": {
+      "code": "CHECK_NOT_OVERRIDABLE",
+      "message": "H5 and H7 are computed by the server and cannot be overridden.",
+      "request_id": "FQZCPYDJQ3BB3TZSBH44JNMB82",
+      "details": {
+        "check_key": "H5_DATES_VALID",
+        "computed": "FAIL"
+      }
+    }
+  }
+}

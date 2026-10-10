@@ -2,23 +2,23 @@
   "generated_by": "contracts/fixtures/_build/build.py",
   "do_not_edit": "Every file under contracts/fixtures/ is generated. Run `pnpm fixtures:build`.",
   "frozen_clock": "2026-08-10T18:42:11.412Z",
-  "count": 516,
+  "count": 680,
   "counts_by_domain": {
-    "admin": 35,
+    "admin": 48,
     "cart": 16,
-    "catalogue": 41,
+    "catalogue": 57,
     "dispatch": 31,
-    "documents": 23,
-    "errors": 104,
-    "halal": 25,
+    "documents": 27,
+    "errors": 130,
+    "halal": 37,
     "handoff": 13,
-    "onboarding": 47,
-    "orders": 55,
+    "onboarding": 49,
+    "orders": 86,
     "payments": 12,
-    "platform": 31,
-    "realtime": 22,
-    "refunds": 39,
-    "rider": 22
+    "platform": 49,
+    "realtime": 24,
+    "refunds": 41,
+    "rider": 60
   },
   "fixtures": [
     {
@@ -315,6 +315,57 @@
       "file": "admin/restaurant_application_approved.json"
     },
     {
+      "scenario": "restaurant_application_changes_requested",
+      "domain": "admin",
+      "schema": "RestaurantApplication",
+      "describes": "Sent back for changes: the food safety certificate was rejected with its reason and the owner redoes exactly that document (`DOCUMENTS_REJECTED`).",
+      "operations": [
+        "getRestaurantApplication",
+        "takeNextRestaurantApplication"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "review-queue",
+        "error-path"
+      ],
+      "file": "admin/restaurant_application_changes_requested.json"
+    },
+    {
+      "scenario": "restaurant_application_claimed_by_other",
+      "domain": "admin",
+      "schema": "RestaurantApplication",
+      "describes": "In review and claimed by another admin: `assigned_admin_id` is someone else and `review_lock_expires_at` is 12 minutes away. Read only here; deciding would be `409 REVIEW_LOCK_LOST`. The blockers are the live ones `services/hg` computes.",
+      "operations": [
+        "getRestaurantApplication",
+        "takeNextRestaurantApplication"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "review-queue"
+      ],
+      "file": "admin/restaurant_application_claimed_by_other.json"
+    },
+    {
+      "scenario": "restaurant_application_no_certificate",
+      "domain": "admin",
+      "schema": "RestaurantApplication",
+      "describes": "No halal certificate uploaded at all: `halal_certificate: null`, no `HALAL_CERTIFICATE` document, and the profile has no `halal` object (no badge, never an optimistic one). Blocked until one is uploaded and approved.",
+      "operations": [
+        "getRestaurantApplication",
+        "takeNextRestaurantApplication"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "review-queue",
+        "halal",
+        "edge"
+      ],
+      "file": "admin/restaurant_application_no_certificate.json"
+    },
+    {
       "scenario": "restaurant_application_none_to_take",
       "domain": "admin",
       "schema": "RestaurantApplication|null",
@@ -378,6 +429,23 @@
       "file": "admin/restaurant_application_queue_empty.json"
     },
     {
+      "scenario": "restaurant_application_withdrawn",
+      "domain": "admin",
+      "schema": "RestaurantApplication",
+      "describes": "The owner withdrew the application (`WITHDRAWN`). Terminal: no lock, nothing to decide.",
+      "operations": [
+        "getRestaurantApplication",
+        "takeNextRestaurantApplication"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "review-queue",
+        "edge"
+      ],
+      "file": "admin/restaurant_application_withdrawn.json"
+    },
+    {
       "scenario": "restaurant_decision_input_approve",
       "domain": "admin",
       "schema": "RestaurantDecisionInput",
@@ -433,6 +501,57 @@
       "file": "admin/rider_application_approved.json"
     },
     {
+      "scenario": "rider_application_attempt_3",
+      "domain": "admin",
+      "schema": "RiderApplication",
+      "describes": "The third attempt: the rider was sent back twice before. The reviewer sees the attempt number next to the name.",
+      "operations": [
+        "getRiderApplication",
+        "takeNextRiderApplication"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "review-queue",
+        "rider"
+      ],
+      "file": "admin/rider_application_attempt_3.json"
+    },
+    {
+      "scenario": "rider_application_attempt_4",
+      "domain": "admin",
+      "schema": "RiderApplication",
+      "describes": "A fourth attempt. The contract sets no cap on attempts; the number is shown so the reviewer can judge a repeat applicant.",
+      "operations": [
+        "getRiderApplication",
+        "takeNextRiderApplication"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "review-queue",
+        "rider"
+      ],
+      "file": "admin/rider_application_attempt_4.json"
+    },
+    {
+      "scenario": "rider_application_bicycle",
+      "domain": "admin",
+      "schema": "RiderApplication",
+      "describes": "A bicycle courier: no plate, make or model, and the light document set (government ID, work eligibility, photo) instead of licence, registration and insurance.",
+      "operations": [
+        "getRiderApplication",
+        "takeNextRiderApplication"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "review-queue",
+        "rider"
+      ],
+      "file": "admin/rider_application_bicycle.json"
+    },
+    {
       "scenario": "rider_application_changes_requested",
       "domain": "admin",
       "schema": "RiderApplication",
@@ -450,6 +569,23 @@
       "file": "admin/rider_application_changes_requested.json"
     },
     {
+      "scenario": "rider_application_claimed_by_other",
+      "domain": "admin",
+      "schema": "RiderApplication",
+      "describes": "Claimed by another admin, whose lock runs for 9 more minutes. Read only here; deciding would be `409 REVIEW_LOCK_LOST`.",
+      "operations": [
+        "getRiderApplication",
+        "takeNextRiderApplication"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "review-queue",
+        "rider"
+      ],
+      "file": "admin/rider_application_claimed_by_other.json"
+    },
+    {
       "scenario": "rider_application_none_to_take",
       "domain": "admin",
       "schema": "RiderApplication|null",
@@ -464,6 +600,23 @@
         "empty"
       ],
       "file": "admin/rider_application_none_to_take.json"
+    },
+    {
+      "scenario": "rider_application_on_foot",
+      "domain": "admin",
+      "schema": "RiderApplication",
+      "describes": "A courier on foot: the vehicle row carries only its type, every vehicle field null, and the light document set.",
+      "operations": [
+        "getRiderApplication",
+        "takeNextRiderApplication"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "review-queue",
+        "rider"
+      ],
+      "file": "admin/rider_application_on_foot.json"
     },
     {
       "scenario": "rider_application_pending_review",
@@ -495,6 +648,24 @@
         "review-queue"
       ],
       "file": "admin/rider_application_queue.json"
+    },
+    {
+      "scenario": "rider_application_under_18",
+      "domain": "admin",
+      "schema": "RiderApplication",
+      "describes": "The ID's date of birth makes the rider 17 (`computed_age_years: 17`), so the first blocker is \"Rider is under 18\". Approval is refused and no role can override it (`error_rider_under_18`).",
+      "operations": [
+        "getRiderApplication",
+        "takeNextRiderApplication"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "review-queue",
+        "rider",
+        "error-path"
+      ],
+      "file": "admin/rider_application_under_18.json"
     },
     {
       "scenario": "rider_decision_input_approve",
@@ -549,6 +720,51 @@
         "state-matrix"
       ],
       "file": "admin/staff_list.json"
+    },
+    {
+      "scenario": "staff_list_edge_rows",
+      "domain": "admin",
+      "schema": "array<StaffUser>",
+      "describes": "Rows that break layouts: a very long name and email, an invitee who never signed in (`last_login_at: null`, no two-step sign-in), an active agent without two-step sign-in, a suspended admin and a long-deactivated agent.",
+      "operations": [
+        "listStaff"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "edge",
+        "overflow"
+      ],
+      "file": "admin/staff_list_edge_rows.json"
+    },
+    {
+      "scenario": "staff_list_one_super_admin",
+      "domain": "admin",
+      "schema": "array<StaffUser>",
+      "describes": "The day-one console: one super admin and nobody else. Deactivating or demoting the last super admin is refused, so those actions are not offered on this row.",
+      "operations": [
+        "listStaff"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "edge"
+      ],
+      "file": "admin/staff_list_one_super_admin.json"
+    },
+    {
+      "scenario": "staff_list_page_2",
+      "domain": "admin",
+      "schema": "array<StaffUser>",
+      "describes": "The second and last page of a long staff list: five more active members, `has_more: false`.",
+      "operations": [
+        "listStaff"
+      ],
+      "status": 200,
+      "tags": [
+        "admin"
+      ],
+      "file": "admin/staff_list_page_2.json"
     },
     {
       "scenario": "staff_user_invited",
@@ -1109,6 +1325,71 @@
       "file": "catalogue/menu_single_item.json"
     },
     {
+      "scenario": "menu_with_hidden_and_blocked_items",
+      "domain": "catalogue",
+      "schema": "Menu",
+      "describes": "`menu_full` with two `BLOCKED` items (shown, never orderable: an admin blocked them) and one `HIDDEN` item (never shown). `services/hg` leaves `HIDDEN` items out of the customer menu, so the hidden one pins the client's own filter.",
+      "operations": [
+        "getRestaurantMenu"
+      ],
+      "status": 200,
+      "tags": [
+        "customer",
+        "edge"
+      ],
+      "file": "catalogue/menu_with_hidden_and_blocked_items.json"
+    },
+    {
+      "scenario": "owned_menu_empty",
+      "domain": "catalogue",
+      "schema": "OwnedMenu",
+      "describes": "The restaurant's own menu before anything was added: no categories. The editor shows \"Add your first category\".",
+      "operations": [
+        "getOwnMenu"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "menu",
+        "edge",
+        "empty"
+      ],
+      "file": "catalogue/owned_menu_empty.json"
+    },
+    {
+      "scenario": "owned_menu_every_review_status",
+      "domain": "catalogue",
+      "schema": "OwnedMenu",
+      "describes": "Six items, one per `MenuReviewStatus` on its newest version: a draft, one waiting for review, one just approved, one rejected with its reason and note, one withdrawn and one superseded. Items whose newest version is withdrawn or superseded show only the live version.",
+      "operations": [
+        "getOwnMenu"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "menu",
+        "state-matrix"
+      ],
+      "file": "catalogue/owned_menu_every_review_status.json"
+    },
+    {
+      "scenario": "owned_menu_forty_categories",
+      "domain": "catalogue",
+      "schema": "OwnedMenu",
+      "describes": "Forty categories with one item each: the category rail scrolls and keeps the current one in view.",
+      "operations": [
+        "getOwnMenu"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "menu",
+        "dense",
+        "overflow"
+      ],
+      "file": "catalogue/owned_menu_forty_categories.json"
+    },
+    {
       "scenario": "owned_menu_with_pending_version",
       "domain": "catalogue",
       "schema": "OwnedMenu",
@@ -1240,6 +1521,21 @@
       "file": "catalogue/restaurant_detail_expiring_soon.json"
     },
     {
+      "scenario": "restaurant_detail_no_address",
+      "domain": "catalogue",
+      "schema": "RestaurantDetail",
+      "describes": "Restaurant detail with `availability.state = NO_ADDRESS`. No address yet: no distance, ETA or fee. The page asks for an address before ordering.",
+      "operations": [
+        "getRestaurant"
+      ],
+      "status": 200,
+      "tags": [
+        "customer",
+        "state-matrix"
+      ],
+      "file": "catalogue/restaurant_detail_no_address.json"
+    },
+    {
       "scenario": "restaurant_detail_no_menu",
       "domain": "catalogue",
       "schema": "RestaurantDetail",
@@ -1253,6 +1549,36 @@
         "empty"
       ],
       "file": "catalogue/restaurant_detail_no_menu.json"
+    },
+    {
+      "scenario": "restaurant_detail_out_of_range",
+      "domain": "catalogue",
+      "schema": "RestaurantDetail",
+      "describes": "Restaurant detail with `availability.state = OUT_OF_RANGE`. 21.4 km from the selected address, with the server's `out_of_range_reason` copy. Browsable; ordering is blocked.",
+      "operations": [
+        "getRestaurant"
+      ],
+      "status": 200,
+      "tags": [
+        "customer",
+        "state-matrix"
+      ],
+      "file": "catalogue/restaurant_detail_out_of_range.json"
+    },
+    {
+      "scenario": "restaurant_detail_paused",
+      "domain": "catalogue",
+      "schema": "RestaurantDetail",
+      "describes": "Restaurant detail with `availability.state = PAUSED`. The kitchen paused itself: still browsable, cannot be ordered from.",
+      "operations": [
+        "getRestaurant"
+      ],
+      "status": 200,
+      "tags": [
+        "customer",
+        "state-matrix"
+      ],
+      "file": "catalogue/restaurant_detail_paused.json"
     },
     {
       "scenario": "restaurant_detail_unverified",
@@ -1270,6 +1596,57 @@
       "file": "catalogue/restaurant_detail_unverified.json"
     },
     {
+      "scenario": "restaurant_hours_none",
+      "domain": "catalogue",
+      "schema": "RestaurantHours",
+      "describes": "No opening hours set yet, and no special dates. The restaurant is `CLOSED_HOURS` all week until it adds some.",
+      "operations": [
+        "getRestaurantHours",
+        "setRestaurantHours"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "hours",
+        "edge",
+        "empty"
+      ],
+      "file": "catalogue/restaurant_hours_none.json"
+    },
+    {
+      "scenario": "restaurant_hours_special_dates",
+      "domain": "catalogue",
+      "schema": "RestaurantHours",
+      "describes": "The standard week plus four special dates: a closed day this Friday, shorter hours on Saturday, a late opening on 25 December with no reason given, and Eid closed.",
+      "operations": [
+        "getRestaurantHours",
+        "setRestaurantHours"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "hours"
+      ],
+      "file": "catalogue/restaurant_hours_special_dates.json"
+    },
+    {
+      "scenario": "restaurant_hours_split_past_midnight",
+      "domain": "catalogue",
+      "schema": "RestaurantHours",
+      "describes": "Three ranges every day: breakfast, lunch, and dinner until 02:00 the next morning (`crosses_midnight: true`). Friday's last range still counts as Friday.",
+      "operations": [
+        "getRestaurantHours",
+        "setRestaurantHours"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "hours",
+        "dense"
+      ],
+      "file": "catalogue/restaurant_hours_split_past_midnight.json"
+    },
+    {
       "scenario": "restaurant_hours_standard",
       "domain": "catalogue",
       "schema": "RestaurantHours",
@@ -1281,6 +1658,22 @@
       "status": 200,
       "tags": [],
       "file": "catalogue/restaurant_hours_standard.json"
+    },
+    {
+      "scenario": "restaurant_list_closed_and_paused",
+      "domain": "catalogue",
+      "schema": "array<RestaurantCard>",
+      "describes": "One open card among two `CLOSED_HOURS` (with `opens_at`) and two `PAUSED`. Closed and paused cards stay browsable; only adding to the cart is blocked.",
+      "operations": [
+        "listRestaurants"
+      ],
+      "status": 200,
+      "tags": [
+        "customer",
+        "home",
+        "state-matrix"
+      ],
+      "file": "catalogue/restaurant_list_closed_and_paused.json"
     },
     {
       "scenario": "restaurant_list_empty",
@@ -1298,6 +1691,21 @@
       "file": "catalogue/restaurant_list_empty.json"
     },
     {
+      "scenario": "restaurant_list_eta_sorted",
+      "domain": "catalogue",
+      "schema": "array<RestaurantCard>",
+      "describes": "`sort=ETA_ASC`: five open restaurants in the server's order, fastest first by `eta_min_minutes` (15, 20, 25, 25, 35). The client never re-sorts.",
+      "operations": [
+        "listRestaurants"
+      ],
+      "status": 200,
+      "tags": [
+        "customer",
+        "home"
+      ],
+      "file": "catalogue/restaurant_list_eta_sorted.json"
+    },
+    {
       "scenario": "restaurant_list_long_names",
       "domain": "catalogue",
       "schema": "array<RestaurantCard>",
@@ -1313,6 +1721,23 @@
       "file": "catalogue/restaurant_list_long_names.json"
     },
     {
+      "scenario": "restaurant_list_missing_halal_fields",
+      "domain": "catalogue",
+      "schema": "array<RestaurantCard>",
+      "describes": "Every card's `halal` carries `display_state` only: no `certifying_body_name`, no `expires_on` (both optional). The badge shows only what is present; an `EXPIRING_SOON` badge with no date shows no date, never an invented one. (A card with no `halal` object at all is not contract-valid: `halal` is required.)",
+      "operations": [
+        "listRestaurants"
+      ],
+      "status": 200,
+      "tags": [
+        "customer",
+        "home",
+        "halal",
+        "edge"
+      ],
+      "file": "catalogue/restaurant_list_missing_halal_fields.json"
+    },
+    {
       "scenario": "restaurant_list_missing_images",
       "domain": "catalogue",
       "schema": "array<RestaurantCard>",
@@ -1326,6 +1751,55 @@
         "missing-media"
       ],
       "file": "catalogue/restaurant_list_missing_images.json"
+    },
+    {
+      "scenario": "restaurant_list_no_address",
+      "domain": "catalogue",
+      "schema": "array<RestaurantCard>",
+      "describes": "The customer has no address yet: every card is `NO_ADDRESS`, with no distance, ETA or delivery fee. The list asks for an address instead of showing blanks.",
+      "operations": [
+        "listRestaurants"
+      ],
+      "status": 200,
+      "tags": [
+        "customer",
+        "home",
+        "state-matrix",
+        "edge"
+      ],
+      "file": "catalogue/restaurant_list_no_address.json"
+    },
+    {
+      "scenario": "restaurant_list_page_2",
+      "domain": "catalogue",
+      "schema": "array<RestaurantCard>",
+      "describes": "The next page after `restaurant_list_populated` (its `next_cursor`): five farther restaurants, `has_more: false`, `next_cursor: null`. No id repeats page one.",
+      "operations": [
+        "listRestaurants"
+      ],
+      "status": 200,
+      "tags": [
+        "customer",
+        "home"
+      ],
+      "file": "catalogue/restaurant_list_page_2.json"
+    },
+    {
+      "scenario": "restaurant_list_partial_halal",
+      "domain": "catalogue",
+      "schema": "array<RestaurantCard>",
+      "describes": "A mix: one complete badge, one with `certifying_body_name: null`, one `EXPIRING_SOON` with `expires_on: null`, one with the body and no `expires_on` key. Each card renders only the fields it has.",
+      "operations": [
+        "listRestaurants"
+      ],
+      "status": 200,
+      "tags": [
+        "customer",
+        "home",
+        "halal",
+        "edge"
+      ],
+      "file": "catalogue/restaurant_list_partial_halal.json"
     },
     {
       "scenario": "restaurant_list_populated",
@@ -2160,6 +2634,70 @@
       "file": "documents/rider_document_pack_complete.json"
     },
     {
+      "scenario": "rider_document_pack_empty",
+      "domain": "documents",
+      "schema": "array<KycDocument>",
+      "describes": "No documents uploaded yet.",
+      "operations": [
+        "listRiderDocuments"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "documents",
+        "edge",
+        "empty"
+      ],
+      "file": "documents/rider_document_pack_empty.json"
+    },
+    {
+      "scenario": "rider_document_pack_expired",
+      "domain": "documents",
+      "schema": "array<KycDocument>",
+      "describes": "The driver's licence expired three days ago (`state: EXPIRED`). Going online is refused with `DOCUMENT_EXPIRED` until a new one is approved.",
+      "operations": [
+        "listRiderDocuments"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "documents",
+        "error-path"
+      ],
+      "file": "documents/rider_document_pack_expired.json"
+    },
+    {
+      "scenario": "rider_document_pack_expired_replacement_in_review",
+      "domain": "documents",
+      "schema": "array<KycDocument>",
+      "describes": "The expired licence (version 1, `EXPIRED`) and its replacement (version 2, `IN_REVIEW`, uploaded five hours ago). Still blocked until the new one is approved; the screen says it is being checked rather than asking again.",
+      "operations": [
+        "listRiderDocuments"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "documents"
+      ],
+      "file": "documents/rider_document_pack_expired_replacement_in_review.json"
+    },
+    {
+      "scenario": "rider_document_pack_expiring",
+      "domain": "documents",
+      "schema": "array<KycDocument>",
+      "describes": "Every document approved, but the driver's licence expires in 21 days (`valid_until`). Home and Account show the \"renew soon\" notice; the rider can still go online.",
+      "operations": [
+        "listRiderDocuments"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "documents",
+        "boundary"
+      ],
+      "file": "documents/rider_document_pack_expiring.json"
+    },
+    {
       "scenario": "rider_document_pack_rejected",
       "domain": "documents",
       "schema": "array<KycDocument>",
@@ -2236,6 +2774,24 @@
       "file": "documents/stored_object_rejected.json"
     },
     {
+      "scenario": "error_account_banned",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`403` · `ACCOUNT_BANNED`. The signed-in account is banned. Contract-only: `services/hg` answers a banned account with `ACCOUNT_NOT_ACTIVE` at sign-in (`error_account_not_active`) and `SESSION_REVOKED` at refresh (`error_session_revoked`); handle all three.",
+      "operations": [
+        "getCurrentPrincipal",
+        "refreshSession"
+      ],
+      "status": 403,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "customer",
+        "auth"
+      ],
+      "file": "errors/error_account_banned.json"
+    },
+    {
       "scenario": "error_account_not_active",
       "domain": "errors",
       "schema": "ErrorEnvelope",
@@ -2271,6 +2827,23 @@
         "session"
       ],
       "file": "errors/error_account_suspended.json"
+    },
+    {
+      "scenario": "error_account_temporarily_locked",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`429` · `ACCOUNT_TEMPORARILY_LOCKED`. Too many wrong passwords: the account is locked for 15 minutes (`Retry-After: 900`, a header a fixture cannot carry). `services/hg` answers 429, not 423.",
+      "operations": [
+        "login"
+      ],
+      "status": 429,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "restaurant",
+        "auth"
+      ],
+      "file": "errors/error_account_temporarily_locked.json"
     },
     {
       "scenario": "error_active_delivery_in_progress",
@@ -2643,6 +3216,57 @@
       "file": "errors/error_chargeback_closed.json"
     },
     {
+      "scenario": "error_check_failed",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`422` · `CHECK_FAILED`. Approving with a check that failed. `details.check_keys` lists the failed checks; the certificate can only be rejected.",
+      "operations": [
+        "decideHalalCertificate"
+      ],
+      "status": 422,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "admin",
+        "halal"
+      ],
+      "file": "errors/error_check_failed.json"
+    },
+    {
+      "scenario": "error_check_not_overridable",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `CHECK_NOT_OVERRIDABLE`. `recordHalalChecks` setting H5 or H7 against the server's computation. `details.check_key` and `details.computed` say which check and what the server computed.",
+      "operations": [
+        "recordHalalChecks"
+      ],
+      "status": 409,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "admin",
+        "halal"
+      ],
+      "file": "errors/error_check_not_overridable.json"
+    },
+    {
+      "scenario": "error_checklist_incomplete",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`422` · `CHECKLIST_INCOMPLETE`. Approving before every check has a result. `details.check_keys` lists the checks still `NOT_ASSESSED`.",
+      "operations": [
+        "decideHalalCertificate"
+      ],
+      "status": 422,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "admin",
+        "halal"
+      ],
+      "file": "errors/error_checklist_incomplete.json"
+    },
+    {
       "scenario": "error_checksum_mismatch",
       "domain": "errors",
       "schema": "ErrorEnvelope",
@@ -2658,6 +3282,23 @@
         "upload"
       ],
       "file": "errors/error_checksum_mismatch.json"
+    },
+    {
+      "scenario": "error_connect_status_not_found",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`404` · `NOT_FOUND`. The 404 the contract allows on `getConnectStatus`. Contract-only: `services/hg` answers a partner with no Stripe account with `connect_status_not_started` (200) instead; treat both as \"not set up\".",
+      "operations": [
+        "getConnectStatus"
+      ],
+      "status": 404,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "rider",
+        "restaurant"
+      ],
+      "file": "errors/error_connect_status_not_found.json"
     },
     {
       "scenario": "error_content_type_mismatch",
@@ -2789,6 +3430,23 @@
         "error-envelope"
       ],
       "file": "errors/error_documents_incomplete.json"
+    },
+    {
+      "scenario": "error_email_already_registered",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `EMAIL_ALREADY_REGISTERED`. Restaurant sign-up with an email that already has an account. The form offers \"Sign in instead\".",
+      "operations": [
+        "registerRestaurant"
+      ],
+      "status": 409,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "restaurant",
+        "auth"
+      ],
+      "file": "errors/error_email_already_registered.json"
     },
     {
       "scenario": "error_field_not_applicable",
@@ -2951,6 +3609,58 @@
         "error-envelope"
       ],
       "file": "errors/error_invalid_addon.json"
+    },
+    {
+      "scenario": "error_invalid_credentials",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`401` · `INVALID_CREDENTIALS`. Wrong email or password. The same body whether the email exists or not, so the form never says which one was wrong.",
+      "operations": [
+        "login"
+      ],
+      "status": 401,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "restaurant",
+        "auth"
+      ],
+      "file": "errors/error_invalid_credentials.json"
+    },
+    {
+      "scenario": "error_invalid_credentials_email_verification_required",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`401` · `INVALID_CREDENTIALS`. The right password for an address that was never verified: the same 401, plus `details.email_verification_required: true`, so the form offers to resend the verification email.",
+      "operations": [
+        "login"
+      ],
+      "status": 401,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "restaurant",
+        "auth"
+      ],
+      "file": "errors/error_invalid_credentials_email_verification_required.json"
+    },
+    {
+      "scenario": "error_invalid_phone",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`422` · `INVALID_PHONE`. `requestOtp` with a number that is not E.164 (`+` and 8 to 15 digits). Exactly the body `services/hg` sends: one `FieldError` on `phone_e164`.",
+      "operations": [
+        "requestOtp"
+      ],
+      "status": 422,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "rider",
+        "customer",
+        "auth"
+      ],
+      "file": "errors/error_invalid_phone.json"
     },
     {
       "scenario": "error_invalid_transition",
@@ -3136,6 +3846,38 @@
       "file": "errors/error_onboarding_incomplete.json"
     },
     {
+      "scenario": "error_order_admin_cancel_illegal_transition",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `ILLEGAL_TRANSITION`. `cancelOrderAdmin` on an order that can no longer be cancelled (it was delivered or already ended). Nothing changed; the screen re-reads the order.",
+      "operations": [
+        "cancelOrderAdmin"
+      ],
+      "status": 409,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "admin"
+      ],
+      "file": "errors/error_order_admin_cancel_illegal_transition.json"
+    },
+    {
+      "scenario": "error_order_admin_cancel_rate_limited",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`429` · `RATE_LIMITED`. Cancelling too many orders too fast. `details.retry_after_seconds` is the wait. Contract-only: `services/hg` has no rate limit on this route yet.",
+      "operations": [
+        "cancelOrderAdmin"
+      ],
+      "status": 429,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "admin"
+      ],
+      "file": "errors/error_order_admin_cancel_rate_limited.json"
+    },
+    {
       "scenario": "error_ordering_paused",
       "domain": "errors",
       "schema": "ErrorEnvelope",
@@ -3154,13 +3896,67 @@
       "scenario": "error_otp_incorrect",
       "domain": "errors",
       "schema": "ErrorEnvelope",
-      "describes": "`401` · `OTP_INCORRECT`. **A collision case**: the auth `otp_incorrect` and the proof-of-delivery `OTP_INCORRECT` collapsed into one member. Since superseded: proof of delivery now answers `DELIVERY_CODE_INCORRECT` (`error_delivery_code_incorrect`), so this is sign-in only.",
-      "operations": [],
-      "status": 401,
+      "describes": "`400` · `OTP_INCORRECT`. A wrong sign-in code; `details.attempts_remaining` is how many tries are left on this challenge (always sent by `services/hg`). Sign-in only: proof of delivery now answers `DELIVERY_CODE_INCORRECT` (`error_delivery_code_incorrect`).",
+      "operations": [
+        "verifyOtp"
+      ],
+      "status": 400,
       "tags": [
-        "error-envelope"
+        "error-envelope",
+        "error-path"
       ],
       "file": "errors/error_otp_incorrect.json"
+    },
+    {
+      "scenario": "error_otp_incorrect_attempts_0",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`400` · `OTP_INCORRECT`. The last attempt was wrong: `attempts_remaining: 0`. The code field locks and the app offers \"Send a new code\"; the next `verifyOtp` on this challenge is `400 OTP_INVALID_OR_EXPIRED` (`error_otp_invalid_or_expired`).",
+      "operations": [
+        "verifyOtp"
+      ],
+      "status": 400,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "rider",
+        "customer",
+        "auth"
+      ],
+      "file": "errors/error_otp_incorrect_attempts_0.json"
+    },
+    {
+      "scenario": "error_otp_incorrect_attempts_2",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`400` · `OTP_INCORRECT`. Two wrong codes left on this challenge. `details.attempts_remaining` is the count `services/hg` sends with every `OTP_INCORRECT` (always present, an integer from 0 up).",
+      "operations": [
+        "verifyOtp"
+      ],
+      "status": 400,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "rider",
+        "customer",
+        "auth"
+      ],
+      "file": "errors/error_otp_incorrect_attempts_2.json"
+    },
+    {
+      "scenario": "error_otp_incorrect_no_count",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`400` · `OTP_INCORRECT`. A wrong sign-in code with `details` absent. `services/hg` always sends the count; this pins the client's fallback copy when a count is missing.",
+      "operations": [
+        "verifyOtp"
+      ],
+      "status": 400,
+      "tags": [
+        "error-envelope",
+        "error-path"
+      ],
+      "file": "errors/error_otp_incorrect_no_count.json"
     },
     {
       "scenario": "error_otp_invalid_or_expired",
@@ -3179,6 +3975,25 @@
         "auth"
       ],
       "file": "errors/error_otp_invalid_or_expired.json"
+    },
+    {
+      "scenario": "error_otp_rate_limited_with_retry",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`429` · `RATE_LIMITED`. `requestOtp` over the per-phone or per-device cap. `details.retry_after_seconds` (the contract's documented `RATE_LIMITED` shape) says how long the button stays disabled. Contract-only: `services/hg` sends the wait only as the `Retry-After` header today, with `details` absent; a fixture cannot carry a header, so read both.",
+      "operations": [
+        "requestOtp",
+        "verifyOtp"
+      ],
+      "status": 429,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "rider",
+        "customer",
+        "auth"
+      ],
+      "file": "errors/error_otp_rate_limited_with_retry.json"
     },
     {
       "scenario": "error_payload_too_large",
@@ -3299,6 +4114,22 @@
         "rider"
       ],
       "file": "errors/error_pod_required.json"
+    },
+    {
+      "scenario": "error_precondition_not_met",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `PRECONDITION_NOT_MET`. Approving a restaurant with live blockers. `details.blockers` is the list `services/hg` computes, verbatim; the screen lists them. (A rider application answers the same body with 422.)",
+      "operations": [
+        "decideRestaurantApplication"
+      ],
+      "status": 409,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "admin"
+      ],
+      "file": "errors/error_precondition_not_met.json"
     },
     {
       "scenario": "error_price_out_of_range",
@@ -3432,6 +4263,38 @@
       "file": "errors/error_receipt_not_ready.json"
     },
     {
+      "scenario": "error_receipt_not_ready_never_completed",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `RECEIPT_NOT_READY`. The order was charged but never completed (it failed and was refunded in full): no receipt is written, because a receipt is written only at `COMPLETED`. The app points to the refund instead. Same body as `error_receipt_not_ready`; the app tells the cases apart by the order's state.",
+      "operations": [
+        "getOrderReceipt"
+      ],
+      "status": 409,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "customer"
+      ],
+      "file": "errors/error_receipt_not_ready_never_completed.json"
+    },
+    {
+      "scenario": "error_receipt_not_ready_no_charge",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `RECEIPT_NOT_READY`. The order was rejected or cancelled before the restaurant accepted: the authorisation was voided, nothing was charged, and no receipt will ever exist. The app says \"You were not charged\" instead of offering a receipt. Same body as `error_receipt_not_ready`; the app tells the cases apart by the order's state.",
+      "operations": [
+        "getOrderReceipt"
+      ],
+      "status": 409,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "customer"
+      ],
+      "file": "errors/error_receipt_not_ready_no_charge.json"
+    },
+    {
       "scenario": "error_refresh_reuse_detected",
       "domain": "errors",
       "schema": "ErrorEnvelope",
@@ -3479,6 +4342,57 @@
       "file": "errors/error_refund_approver_over_daily_limit.json"
     },
     {
+      "scenario": "error_refund_conflict",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `REFUND_EXCEEDS_CAPTURED`. A partial refund on an order that has already been mostly refunded: this one would take the total past what was captured. Nothing was refunded; the screen shows what is left.",
+      "operations": [
+        "issueRefund"
+      ],
+      "status": 409,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "admin",
+        "money"
+      ],
+      "file": "errors/error_refund_conflict.json"
+    },
+    {
+      "scenario": "error_refund_daily_cap",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `DAILY_CAP_EXCEEDED`. Issuing a refund past the caller's 24-hour limit. Contract-only for `issueRefund`: `services/hg` escalates such a refund to an approval request (202, `refund_approval_request_pending`) instead; it answers this code when approving (`error_refund_approver_over_daily_limit`).",
+      "operations": [
+        "issueRefund"
+      ],
+      "status": 409,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "admin",
+        "money"
+      ],
+      "file": "errors/error_refund_daily_cap.json"
+    },
+    {
+      "scenario": "error_refund_goodwill_exceeds",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `REFUND_EXCEEDS_CAPTURED`. A goodwill amount larger than the order's captured payment. Goodwill is the only refund with a typed amount, and it is still capped by what was captured.",
+      "operations": [
+        "issueRefund"
+      ],
+      "status": 409,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "admin",
+        "money"
+      ],
+      "file": "errors/error_refund_goodwill_exceeds.json"
+    },
+    {
       "scenario": "error_refund_mfa_required",
       "domain": "errors",
       "schema": "ErrorEnvelope",
@@ -3507,6 +4421,24 @@
         "error-envelope"
       ],
       "file": "errors/error_refund_needs_higher_role.json"
+    },
+    {
+      "scenario": "error_refund_not_refundable",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `PAYMENT_NOT_REFUNDABLE`. A refund on an order whose payment was never captured (it was voided). There is nothing to refund; cancel the order instead.",
+      "operations": [
+        "issueRefund",
+        "createRefund"
+      ],
+      "status": 409,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "admin",
+        "money"
+      ],
+      "file": "errors/error_refund_not_refundable.json"
     },
     {
       "scenario": "error_refund_self_approval_forbidden",
@@ -3587,6 +4519,23 @@
         "error-envelope"
       ],
       "file": "errors/error_review_edit_window_closed.json"
+    },
+    {
+      "scenario": "error_review_lock_lost",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `REVIEW_LOCK_LOST`. Deciding after the review lock passed to someone else. Nothing was applied; the screen reloads the application read-only. Contract-only: `services/hg` defines the code but does not enforce the lock on decisions yet.",
+      "operations": [
+        "decideRestaurantApplication",
+        "decideRiderApplication"
+      ],
+      "status": 409,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "admin"
+      ],
+      "file": "errors/error_review_lock_lost.json"
     },
     {
       "scenario": "error_review_window_closed",
@@ -3699,6 +4648,23 @@
       "file": "errors/error_step_not_available.json"
     },
     {
+      "scenario": "error_terms_version_stale",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `TERMS_VERSION_STALE`. Sign-up accepted an older version of the terms. `details.current` is the version to show and accept again.",
+      "operations": [
+        "registerRestaurant"
+      ],
+      "status": 409,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "restaurant",
+        "auth"
+      ],
+      "file": "errors/error_terms_version_stale.json"
+    },
+    {
       "scenario": "error_totp_code_incorrect",
       "domain": "errors",
       "schema": "ErrorEnvelope",
@@ -3723,6 +4689,23 @@
         "error-envelope"
       ],
       "file": "errors/error_unknown_field.json"
+    },
+    {
+      "scenario": "error_unsupported_country",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`422` · `UNSUPPORTED_COUNTRY`. A valid E.164 number from a country the platform does not serve. Contract-only: `services/hg` accepts any E.164 number at `requestOtp` today.",
+      "operations": [
+        "requestOtp"
+      ],
+      "status": 422,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "customer",
+        "auth"
+      ],
+      "file": "errors/error_unsupported_country.json"
     },
     {
       "scenario": "error_validation_failed",
@@ -3779,6 +4762,36 @@
       "file": "errors/error_verification_token_used.json"
     },
     {
+      "scenario": "certificate_view_url",
+      "domain": "halal",
+      "schema": "PresignedDownload",
+      "describes": "The certificate image: a presigned link that expires in 300 s (the halal-certificate maximum). Fetch it at once; never cache or share it. Contract-only in part: `CertificationPanel` does not say which it is, so the app learns PDF or image from the link.",
+      "operations": [
+        "createCertificateViewUrl"
+      ],
+      "status": 200,
+      "tags": [
+        "customer",
+        "halal"
+      ],
+      "file": "halal/certificate_view_url.json"
+    },
+    {
+      "scenario": "certificate_view_url_pdf",
+      "domain": "halal",
+      "schema": "PresignedDownload",
+      "describes": "The certificate as a PDF: the same 300 s link, a `.pdf` object. The viewer opens it as a document, not an image. Contract-only in part: `CertificationPanel` does not say which it is, so the app learns PDF or image from the link.",
+      "operations": [
+        "createCertificateViewUrl"
+      ],
+      "status": 200,
+      "tags": [
+        "customer",
+        "halal"
+      ],
+      "file": "halal/certificate_view_url_pdf.json"
+    },
+    {
       "scenario": "certification_panel_certified",
       "domain": "halal",
       "schema": "CertificationPanel",
@@ -3824,6 +4837,38 @@
       "file": "halal/certification_panel_expiring_soon.json"
     },
     {
+      "scenario": "certification_panel_not_viewable",
+      "domain": "halal",
+      "schema": "CertificationPanel",
+      "describes": "Certified, but the certificate file cannot be opened (`certificate_viewable: false`): \"View certificate\" is not offered. `createCertificateViewUrl` would be a 404.",
+      "operations": [
+        "getRestaurantCertification"
+      ],
+      "status": 200,
+      "tags": [
+        "customer",
+        "halal",
+        "edge"
+      ],
+      "file": "halal/certification_panel_not_viewable.json"
+    },
+    {
+      "scenario": "certification_panel_partial",
+      "domain": "halal",
+      "schema": "CertificationPanel",
+      "describes": "Certified, but some transcribed fields are missing: no certificate number, no scope, no issue date. The panel shows the rows it has and leaves the others out; it never fills a gap.",
+      "operations": [
+        "getRestaurantCertification"
+      ],
+      "status": 200,
+      "tags": [
+        "customer",
+        "halal",
+        "edge"
+      ],
+      "file": "halal/certification_panel_partial.json"
+    },
+    {
       "scenario": "certification_panel_unverified",
       "domain": "halal",
       "schema": "CertificationPanel",
@@ -3855,7 +4900,7 @@
       "scenario": "halal_badge_expired",
       "domain": "halal",
       "schema": "HalalBadge",
-      "describes": "Red. Never rendered on a customer surface — the restaurant 404s.",
+      "describes": "Cool slate, never red. Never rendered on a customer surface — the restaurant 404s.",
       "operations": [],
       "status": 200,
       "tags": [
@@ -3937,6 +4982,124 @@
         "boundary"
       ],
       "file": "halal/halal_certificate_expiring_within_30_days.json"
+    },
+    {
+      "scenario": "halal_certificate_pending_h5_computed_fail",
+      "domain": "halal",
+      "schema": "HalalCertificate",
+      "describes": "The certificate expires in 21 days, inside the 30-day minimum, so the server computes `H5_DATES_VALID: FAIL`. H5 cannot be overridden (`error_check_not_overridable`); the only way forward is a newer certificate.",
+      "operations": [
+        "getHalalCertificate",
+        "recordHalalChecks",
+        "transcribeHalalCertificate",
+        "decideHalalCertificate"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "halal",
+        "certificate",
+        "error-path"
+      ],
+      "file": "halal/halal_certificate_pending_h5_computed_fail.json"
+    },
+    {
+      "scenario": "halal_certificate_pending_h7_duplicate",
+      "domain": "halal",
+      "schema": "HalalCertificate",
+      "describes": "The same certificate number from the same issuer is already on another restaurant's approved certificate: `H7_UNIQUE_NOT_REUSED` computes FAIL. Not overridable; reject with `DUPLICATE_CERTIFICATE`.",
+      "operations": [
+        "getHalalCertificate",
+        "recordHalalChecks",
+        "transcribeHalalCertificate",
+        "decideHalalCertificate"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "halal",
+        "certificate",
+        "error-path"
+      ],
+      "file": "halal/halal_certificate_pending_h7_duplicate.json"
+    },
+    {
+      "scenario": "halal_certificate_pending_issuer_suspended",
+      "domain": "halal",
+      "schema": "HalalCertificate",
+      "describes": "Issued by a body that is `SUSPENDED` today, so `H2_ISSUER_ACCEPTED` computes FAIL at review time. Suspending a body blocks new certificates; it does not revoke old ones.",
+      "operations": [
+        "getHalalCertificate",
+        "recordHalalChecks",
+        "transcribeHalalCertificate",
+        "decideHalalCertificate"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "halal",
+        "certificate",
+        "error-path"
+      ],
+      "file": "halal/halal_certificate_pending_issuer_suspended.json"
+    },
+    {
+      "scenario": "halal_certificate_pending_scope_supplier_chain",
+      "domain": "halal",
+      "schema": "HalalCertificate",
+      "describes": "Scope `SUPPLIER_CHAIN_ONLY`: the certificate covers the meat supplier, not this kitchen, so `H6_SCOPE_SUFFICIENT` computes FAIL. The platform makes no item-level or supplier-level claim.",
+      "operations": [
+        "getHalalCertificate",
+        "recordHalalChecks",
+        "transcribeHalalCertificate",
+        "decideHalalCertificate"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "halal",
+        "certificate",
+        "error-path"
+      ],
+      "file": "halal/halal_certificate_pending_scope_supplier_chain.json"
+    },
+    {
+      "scenario": "halal_certificate_pending_transcribed_unchecked",
+      "domain": "halal",
+      "schema": "HalalCertificate",
+      "describes": "Transcribed, no check recorded yet: every `result` is `NOT_ASSESSED`, and the server's `computed_result` is already there for H2, H5, H6 and H7 (all PASS). H1, H3 and H4 are human judgement only. H5 and H7 are not overridable.",
+      "operations": [
+        "getHalalCertificate",
+        "recordHalalChecks",
+        "transcribeHalalCertificate",
+        "decideHalalCertificate"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "halal",
+        "certificate"
+      ],
+      "file": "halal/halal_certificate_pending_transcribed_unchecked.json"
+    },
+    {
+      "scenario": "halal_certificate_pending_untranscribed",
+      "domain": "halal",
+      "schema": "HalalCertificate",
+      "describes": "Just uploaded: the document is attached but nobody has typed in its fields yet. Number, issuer, names, scope and dates are null and no check has a result or a computed value. Transcribe first; the checks come after.",
+      "operations": [
+        "getHalalCertificate",
+        "recordHalalChecks",
+        "transcribeHalalCertificate",
+        "decideHalalCertificate"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "halal",
+        "certificate"
+      ],
+      "file": "halal/halal_certificate_pending_untranscribed.json"
     },
     {
       "scenario": "halal_certificate_status_approved",
@@ -4047,6 +5210,23 @@
       "file": "halal/halal_certificate_status_superseded.json"
     },
     {
+      "scenario": "halal_certificate_support_projection",
+      "domain": "halal",
+      "schema": "HalalCertificate",
+      "describes": "What a `SUPPORT_AGENT` gets for an approved certificate, exactly as `services/hg` redacts it: status, expiry, the issuing body's id, name and status, the rejection reason, and nothing else. No document, number, address, scope, dates or checks (`checks: []`).",
+      "operations": [
+        "getHalalCertificate"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "halal",
+        "certificate",
+        "support"
+      ],
+      "file": "halal/halal_certificate_support_projection.json"
+    },
+    {
       "scenario": "halal_certificate_valid",
       "domain": "halal",
       "schema": "HalalCertificate",
@@ -4077,6 +5257,22 @@
         "blocking-decision"
       ],
       "file": "halal/halal_issuing_bodies_empty.json"
+    },
+    {
+      "scenario": "halal_issuing_bodies_every_status",
+      "domain": "halal",
+      "schema": "array<HalalIssuingBody>",
+      "describes": "One issuing body in each `HalalIssuingBodyStatus`: accepted, proposed, suspended, retired and rejected. Only `ACCEPTED` satisfies H2.",
+      "operations": [
+        "listHalalIssuingBodies"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "halal",
+        "state-matrix"
+      ],
+      "file": "halal/halal_issuing_bodies_every_status.json"
     },
     {
       "scenario": "halal_issuing_bodies_seed",
@@ -4610,6 +5806,23 @@
       "file": "onboarding/restaurant_open_state_closed_toggle.json"
     },
     {
+      "scenario": "restaurant_open_state_closed_toggle_auto_off",
+      "domain": "onboarding",
+      "schema": "RestaurantAvailability",
+      "describes": "Ordering turned off by the platform after two offers in a row expired (`missed_order_count: 2`). The restaurant turns it back on itself. Contract-only: `services/hg` counts missed offers but does not turn ordering off by itself yet.",
+      "operations": [
+        "getRestaurantAvailability",
+        "setRestaurantAcceptingOrders"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "state-matrix",
+        "error-path"
+      ],
+      "file": "onboarding/restaurant_open_state_closed_toggle_auto_off.json"
+    },
+    {
       "scenario": "restaurant_open_state_open",
       "domain": "onboarding",
       "schema": "RestaurantAvailability",
@@ -4640,6 +5853,22 @@
         "state-matrix"
       ],
       "file": "onboarding/restaurant_open_state_paused.json"
+    },
+    {
+      "scenario": "restaurant_open_state_paused_until_closing",
+      "domain": "onboarding",
+      "schema": "RestaurantAvailability",
+      "describes": "Paused for the rest of the day: `pause_until` is tonight's closing time (22:00 Toronto). Ordering resumes by itself tomorrow at opening.",
+      "operations": [
+        "getRestaurantAvailability",
+        "setRestaurantAcceptingOrders"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "state-matrix"
+      ],
+      "file": "onboarding/restaurant_open_state_paused_until_closing.json"
     },
     {
       "scenario": "restaurant_profile",
@@ -5101,6 +6330,112 @@
       "file": "orders/handover_override_pickup_locked.json"
     },
     {
+      "scenario": "order_admin_list_disputed_page_1",
+      "domain": "orders",
+      "schema": "array<OrderSummary>",
+      "describes": "`listOrdersAdmin?state=DISPUTED`, first page: 20 disputed orders, newest first, `has_more: true`. The next page is `order_admin_list_disputed_page_2`.",
+      "operations": [
+        "listOrdersAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "dense"
+      ],
+      "file": "orders/order_admin_list_disputed_page_1.json"
+    },
+    {
+      "scenario": "order_admin_list_disputed_page_2",
+      "domain": "orders",
+      "schema": "array<OrderSummary>",
+      "describes": "The last page of disputed orders: seven more, `has_more: false`.",
+      "operations": [
+        "listOrdersAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "admin"
+      ],
+      "file": "orders/order_admin_list_disputed_page_2.json"
+    },
+    {
+      "scenario": "order_admin_list_every_state",
+      "domain": "orders",
+      "schema": "array<OrderSummary>",
+      "describes": "`listOrdersAdmin` with one order in each of the 14 `OrderState` values. The restaurants' halal badges cover all four `HalalDisplayState` values (cancelled: expiring soon, rejected: expired, failed: unverified) and the resolved order's restaurant has no `halal` object at all: no badge, never an optimistic one, and never red.",
+      "operations": [
+        "listOrdersAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "order-state-matrix",
+        "halal-state-matrix",
+        "dense"
+      ],
+      "file": "orders/order_admin_list_every_state.json"
+    },
+    {
+      "scenario": "order_admin_view_arrived",
+      "domain": "orders",
+      "schema": "OrderAdminView",
+      "describes": "The staff projection of an order in `ARRIVED`. Rider is at the drop-off, proof of delivery not yet recorded.",
+      "operations": [
+        "getOrderAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "order-state-matrix"
+      ],
+      "file": "orders/order_admin_view_arrived.json"
+    },
+    {
+      "scenario": "order_admin_view_authorized",
+      "domain": "orders",
+      "schema": "OrderAdminView",
+      "describes": "The staff projection of an order in `AUTHORIZED`. Card authorised, not captured. The restaurant has not been asked yet. Cancellation is still free.",
+      "operations": [
+        "getOrderAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "order-state-matrix"
+      ],
+      "file": "orders/order_admin_view_authorized.json"
+    },
+    {
+      "scenario": "order_admin_view_cancelled",
+      "domain": "orders",
+      "schema": "OrderAdminView",
+      "describes": "The staff projection of an order in `CANCELLED`. Terminal. Cancelled by the customer before acceptance, so the authorisation was voided rather than captured and refunded.",
+      "operations": [
+        "getOrderAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "order-state-matrix"
+      ],
+      "file": "orders/order_admin_view_cancelled.json"
+    },
+    {
+      "scenario": "order_admin_view_chargeback",
+      "domain": "orders",
+      "schema": "OrderAdminView",
+      "describes": "A completed order with an open chargeback for the full amount, waiting for evidence (due in five days), with one evidence note.",
+      "operations": [
+        "getOrderAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "money"
+      ],
+      "file": "orders/order_admin_view_chargeback.json"
+    },
+    {
       "scenario": "order_admin_view_completed",
       "domain": "orders",
       "schema": "OrderAdminView",
@@ -5114,6 +6449,36 @@
         "admin"
       ],
       "file": "orders/order_admin_view_completed.json"
+    },
+    {
+      "scenario": "order_admin_view_created",
+      "domain": "orders",
+      "schema": "OrderAdminView",
+      "describes": "The staff projection of an order in `CREATED`. Order exists, payment not yet authorised. 3-D Secure lives here — the order stays CREATED under its 15-minute deadline while `payment.action_required` is outstanding.",
+      "operations": [
+        "getOrderAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "order-state-matrix"
+      ],
+      "file": "orders/order_admin_view_created.json"
+    },
+    {
+      "scenario": "order_admin_view_delivered",
+      "domain": "orders",
+      "schema": "OrderAdminView",
+      "describes": "The staff projection of an order in `DELIVERED`. Proof of delivery recorded. Not yet financially settled.",
+      "operations": [
+        "getOrderAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "order-state-matrix"
+      ],
+      "file": "orders/order_admin_view_delivered.json"
     },
     {
       "scenario": "order_admin_view_delivery_overridden",
@@ -5159,6 +6524,158 @@
         "error-path"
       ],
       "file": "orders/order_admin_view_failed_no_rider.json"
+    },
+    {
+      "scenario": "order_admin_view_ledger_residual",
+      "domain": "orders",
+      "schema": "OrderAdminView",
+      "describes": "An order whose ledger does not sum to zero (`ledger_residual_cents: 140`). The deferred `SUM = 0` trigger makes this unreachable in a healthy database, so the view flags it as a reconciliation exception, never hides it.",
+      "operations": [
+        "getOrderAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "money",
+        "edge"
+      ],
+      "file": "orders/order_admin_view_ledger_residual.json"
+    },
+    {
+      "scenario": "order_admin_view_masked",
+      "domain": "orders",
+      "schema": "OrderAdminView",
+      "describes": "The default staff view with `pii_revealed: false`: street only, no unit, buzzer, notes or special instructions. \"Reveal\" asks for a justification first. Contract-only: `services/hg` sends the same fields whatever `pii_revealed` says today.",
+      "operations": [
+        "getOrderAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "pii"
+      ],
+      "file": "orders/order_admin_view_masked.json"
+    },
+    {
+      "scenario": "order_admin_view_picked_up",
+      "domain": "orders",
+      "schema": "OrderAdminView",
+      "describes": "The staff projection of an order in `PICKED_UP`. Rider has the bag. This is when `rider.location` starts publishing to the customer and the map goes live.",
+      "operations": [
+        "getOrderAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "order-state-matrix"
+      ],
+      "file": "orders/order_admin_view_picked_up.json"
+    },
+    {
+      "scenario": "order_admin_view_pii_revealed",
+      "domain": "orders",
+      "schema": "OrderAdminView",
+      "describes": "`getOrderAdmin?reveal_pii=true&justification=...`: `pii_revealed: true`, the full delivery address with unit and buzzer, the delivery notes and the special instructions. The reveal and its justification are audited.",
+      "operations": [
+        "getOrderAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "pii"
+      ],
+      "file": "orders/order_admin_view_pii_revealed.json"
+    },
+    {
+      "scenario": "order_admin_view_preparing",
+      "domain": "orders",
+      "schema": "OrderAdminView",
+      "describes": "The staff projection of an order in `PREPARING`. Accepted and captured; the kitchen is cooking and dispatch is searching for a rider. Cancellation is no longer free.",
+      "operations": [
+        "getOrderAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "order-state-matrix"
+      ],
+      "file": "orders/order_admin_view_preparing.json"
+    },
+    {
+      "scenario": "order_admin_view_ready_for_pickup",
+      "domain": "orders",
+      "schema": "OrderAdminView",
+      "describes": "The staff projection of an order in `READY_FOR_PICKUP`. Food is on the pass, a rider is assigned and en route to the restaurant.",
+      "operations": [
+        "getOrderAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "order-state-matrix"
+      ],
+      "file": "orders/order_admin_view_ready_for_pickup.json"
+    },
+    {
+      "scenario": "order_admin_view_refund_failed_settlement_held",
+      "domain": "orders",
+      "schema": "OrderAdminView",
+      "describes": "A refund that Stripe refused, retried until it was set aside (`REFUND_SET_ASIDE`): the money is held for a person to settle and the customer has not been paid. The screen says so plainly; it never shows \"refunded\".",
+      "operations": [
+        "getOrderAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "money",
+        "error-path"
+      ],
+      "file": "orders/order_admin_view_refund_failed_settlement_held.json"
+    },
+    {
+      "scenario": "order_admin_view_rejected",
+      "domain": "orders",
+      "schema": "OrderAdminView",
+      "describes": "The staff projection of an order in `REJECTED`. Terminal. The restaurant rejected it — `reject_reason: ITEM_UNAVAILABLE`. The authorisation is voided; no money ever moved.",
+      "operations": [
+        "getOrderAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "order-state-matrix"
+      ],
+      "file": "orders/order_admin_view_rejected.json"
+    },
+    {
+      "scenario": "order_admin_view_resolved",
+      "domain": "orders",
+      "schema": "OrderAdminView",
+      "describes": "The staff projection of an order in `RESOLVED`. Terminal. The dispute was settled with a partial refund and the case closed.",
+      "operations": [
+        "getOrderAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "order-state-matrix"
+      ],
+      "file": "orders/order_admin_view_resolved.json"
+    },
+    {
+      "scenario": "order_admin_view_restaurant_pending",
+      "domain": "orders",
+      "schema": "OrderAdminView",
+      "describes": "The staff projection of an order in `RESTAURANT_PENDING`. The 180-second acceptance window is running (decision R-04). `deadline_at` is the only source of the countdown — never a local constant.",
+      "operations": [
+        "getOrderAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "order-state-matrix"
+      ],
+      "file": "orders/order_admin_view_restaurant_pending.json"
     },
     {
       "scenario": "order_arrived",
@@ -5381,6 +6898,23 @@
       "file": "orders/order_list_empty.json"
     },
     {
+      "scenario": "order_list_mixed_states",
+      "domain": "orders",
+      "schema": "array<OrderSummary>",
+      "describes": "One order in each of the 14 `OrderState` values, so every state chip renders in one list. Every non-terminal row has a `deadline_at`; terminal rows have none.",
+      "operations": [
+        "listOrders",
+        "listOrdersAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "customer",
+        "order-state-matrix",
+        "dense"
+      ],
+      "file": "orders/order_list_mixed_states.json"
+    },
+    {
       "scenario": "order_list_past",
       "domain": "orders",
       "schema": "array<OrderSummary>",
@@ -5392,6 +6926,21 @@
       "status": 200,
       "tags": [],
       "file": "orders/order_list_past.json"
+    },
+    {
+      "scenario": "order_list_past_page_2",
+      "domain": "orders",
+      "schema": "array<OrderSummary>",
+      "describes": "The next page of history after `order_list_past` (its `next_cursor`): four older orders, `has_more: false`, `next_cursor: null`.",
+      "operations": [
+        "listOrders",
+        "listOrdersAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "customer"
+      ],
+      "file": "orders/order_list_past_page_2.json"
     },
     {
       "scenario": "order_no_active",
@@ -5610,6 +7159,22 @@
       "file": "orders/order_zero_tip.json"
     },
     {
+      "scenario": "receipt_no_tax_no_service_fee",
+      "domain": "orders",
+      "schema": "Receipt",
+      "describes": "A pickup from a restaurant that is not registered for HST (a small supplier), with no service fee and no tip: `tax_lines` is empty and `tax_total_cents` 0, so there is no tax row and no registration number. The lines still sum to the total.",
+      "operations": [
+        "getOrderReceipt"
+      ],
+      "status": 200,
+      "tags": [
+        "customer",
+        "money",
+        "edge"
+      ],
+      "file": "orders/receipt_no_tax_no_service_fee.json"
+    },
+    {
       "scenario": "receipt_pickup_zero_tip",
       "domain": "orders",
       "schema": "Receipt",
@@ -5649,6 +7214,103 @@
         "money"
       ],
       "file": "orders/receipt_with_refund.json"
+    },
+    {
+      "scenario": "restaurant_order_arrived",
+      "domain": "orders",
+      "schema": "OrderRestaurantView",
+      "describes": "The rider is at the customer's door. Nothing for the kitchen to do.",
+      "operations": [
+        "getRestaurantOrder",
+        "listRestaurantOrders"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "order-state-matrix"
+      ],
+      "file": "orders/restaurant_order_arrived.json"
+    },
+    {
+      "scenario": "restaurant_order_cancelled",
+      "domain": "orders",
+      "schema": "OrderRestaurantView",
+      "describes": "Cancelled by the customer while the offer was ringing, before acceptance: no delivery address was ever shown and nothing was charged.",
+      "operations": [
+        "getRestaurantOrder",
+        "listRestaurantOrders"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "order-state-matrix"
+      ],
+      "file": "orders/restaurant_order_cancelled.json"
+    },
+    {
+      "scenario": "restaurant_order_cancelled_after_accept",
+      "domain": "orders",
+      "schema": "OrderRestaurantView",
+      "describes": "Cancelled by support after the kitchen accepted it (`accepted_at` set, the address already shown): stop preparing. The customer is refunded; the kitchen's compensation follows the refund's liability split.",
+      "operations": [
+        "getRestaurantOrder",
+        "listRestaurantOrders"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "order-state-matrix",
+        "error-path"
+      ],
+      "file": "orders/restaurant_order_cancelled_after_accept.json"
+    },
+    {
+      "scenario": "restaurant_order_completed",
+      "domain": "orders",
+      "schema": "OrderRestaurantView",
+      "describes": "Terminal, happy. Shown in history, never in the live queue.",
+      "operations": [
+        "getRestaurantOrder",
+        "listRestaurantOrders"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "order-state-matrix"
+      ],
+      "file": "orders/restaurant_order_completed.json"
+    },
+    {
+      "scenario": "restaurant_order_delivered",
+      "domain": "orders",
+      "schema": "OrderRestaurantView",
+      "describes": "Handed over; settlement has not run yet.",
+      "operations": [
+        "getRestaurantOrder",
+        "listRestaurantOrders"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "order-state-matrix"
+      ],
+      "file": "orders/restaurant_order_delivered.json"
+    },
+    {
+      "scenario": "restaurant_order_disputed",
+      "domain": "orders",
+      "schema": "OrderRestaurantView",
+      "describes": "The customer disputed it after delivery; support owns it. The kitchen sees the state, not the case.",
+      "operations": [
+        "getRestaurantOrder",
+        "listRestaurantOrders"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "order-state-matrix"
+      ],
+      "file": "orders/restaurant_order_disputed.json"
     },
     {
       "scenario": "restaurant_order_picked_up",
@@ -5739,6 +7401,36 @@
       "file": "orders/restaurant_order_queue_empty.json"
     },
     {
+      "scenario": "restaurant_order_queue_pending_four",
+      "domain": "orders",
+      "schema": "array<OrderRestaurantView>",
+      "describes": "Four offers waiting, sorted by `deadline_at` ascending (25, 70, 120 and 170 seconds left), the server's order. The same orders and codes as `realtime_restaurant_offer_burst`. No delivery address on any of them yet.",
+      "operations": [
+        "listRestaurantOrders"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "dense"
+      ],
+      "file": "orders/restaurant_order_queue_pending_four.json"
+    },
+    {
+      "scenario": "restaurant_order_queue_with_completed",
+      "domain": "orders",
+      "schema": "array<OrderRestaurantView>",
+      "describes": "A live queue that also carries a `COMPLETED` row. The live screen must leave a terminal order out (the client guard for issue #601), not render it as a ticket.",
+      "operations": [
+        "listRestaurantOrders"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "edge"
+      ],
+      "file": "orders/restaurant_order_queue_with_completed.json"
+    },
+    {
       "scenario": "restaurant_order_ready_for_pickup",
       "domain": "orders",
       "schema": "OrderRestaurantView",
@@ -5777,6 +7469,22 @@
         "order-state-matrix"
       ],
       "file": "orders/restaurant_order_rejected.json"
+    },
+    {
+      "scenario": "restaurant_order_resolved",
+      "domain": "orders",
+      "schema": "OrderRestaurantView",
+      "describes": "The dispute was settled. Terminal.",
+      "operations": [
+        "getRestaurantOrder",
+        "listRestaurantOrders"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "order-state-matrix"
+      ],
+      "file": "orders/restaurant_order_resolved.json"
     },
     {
       "scenario": "restaurant_order_restaurant_pending",
@@ -6137,6 +7845,21 @@
       "file": "platform/addresses_list.json"
     },
     {
+      "scenario": "connect_onboarding_link",
+      "domain": "platform",
+      "schema": "ConnectOnboardingLink",
+      "describes": "`createConnectOnboardingLink` (201): a single-use Stripe-hosted onboarding URL that expires in five minutes. Open it straight away; never store it.",
+      "operations": [
+        "createConnectOnboardingLink"
+      ],
+      "status": 201,
+      "tags": [
+        "platform",
+        "money"
+      ],
+      "file": "platform/connect_onboarding_link.json"
+    },
+    {
       "scenario": "connect_status_complete",
       "domain": "platform",
       "schema": "ConnectStatus",
@@ -6151,6 +7874,123 @@
         "money"
       ],
       "file": "platform/connect_status_complete.json"
+    },
+    {
+      "scenario": "connect_status_currently_due",
+      "domain": "platform",
+      "schema": "ConnectStatus",
+      "describes": "Stripe wants one more thing now (`currently_due: [external_account]`); payouts are off until it is given. No deadline. Requirement ids and `disabled_reason` are Stripe's own, never paraphrased.",
+      "operations": [
+        "getConnectStatus"
+      ],
+      "status": 200,
+      "tags": [
+        "platform",
+        "money",
+        "connect-state-matrix",
+        "error-path"
+      ],
+      "file": "platform/connect_status_currently_due.json"
+    },
+    {
+      "scenario": "connect_status_details_not_submitted",
+      "domain": "platform",
+      "schema": "ConnectStatus",
+      "describes": "The rider opened Stripe's form and left before finishing: `details_submitted: false` and Stripe's requirement ids in `currently_due`, verbatim. Requirement ids and `disabled_reason` are Stripe's own, never paraphrased.",
+      "operations": [
+        "getConnectStatus"
+      ],
+      "status": 200,
+      "tags": [
+        "platform",
+        "money",
+        "connect-state-matrix",
+        "error-path"
+      ],
+      "file": "platform/connect_status_details_not_submitted.json"
+    },
+    {
+      "scenario": "connect_status_due_with_deadline",
+      "domain": "platform",
+      "schema": "ConnectStatus",
+      "describes": "Payouts still on, but Stripe needs the SIN before `deadline` (in five days); after that it turns payouts off. Requirement ids and `disabled_reason` are Stripe's own, never paraphrased.",
+      "operations": [
+        "getConnectStatus"
+      ],
+      "status": 200,
+      "tags": [
+        "platform",
+        "money",
+        "connect-state-matrix"
+      ],
+      "file": "platform/connect_status_due_with_deadline.json"
+    },
+    {
+      "scenario": "connect_status_not_started",
+      "domain": "platform",
+      "schema": "ConnectStatus",
+      "describes": "No Stripe account yet: `services/hg` answers a zeroed, not-ready status (not 404), so the payout step renders \"Set up payouts\". Requirement ids and `disabled_reason` are Stripe's own, never paraphrased.",
+      "operations": [
+        "getConnectStatus"
+      ],
+      "status": 200,
+      "tags": [
+        "platform",
+        "money",
+        "connect-state-matrix"
+      ],
+      "file": "platform/connect_status_not_started.json"
+    },
+    {
+      "scenario": "connect_status_past_due",
+      "domain": "platform",
+      "schema": "ConnectStatus",
+      "describes": "The deadline passed: `past_due` is not empty and payouts are off. Payouts are `HELD` until the rider fixes it. Requirement ids and `disabled_reason` are Stripe's own, never paraphrased.",
+      "operations": [
+        "getConnectStatus"
+      ],
+      "status": 200,
+      "tags": [
+        "platform",
+        "money",
+        "connect-state-matrix",
+        "error-path"
+      ],
+      "file": "platform/connect_status_past_due.json"
+    },
+    {
+      "scenario": "connect_status_pending_verification",
+      "domain": "platform",
+      "schema": "ConnectStatus",
+      "describes": "Everything is submitted and Stripe is checking it: nothing due, payouts off, `disabled_reason: requirements.pending_verification`. Nothing for the rider to do. Requirement ids and `disabled_reason` are Stripe's own, never paraphrased.",
+      "operations": [
+        "getConnectStatus"
+      ],
+      "status": 200,
+      "tags": [
+        "platform",
+        "money",
+        "connect-state-matrix",
+        "error-path"
+      ],
+      "file": "platform/connect_status_pending_verification.json"
+    },
+    {
+      "scenario": "connect_status_rejected",
+      "domain": "platform",
+      "schema": "ConnectStatus",
+      "describes": "Stripe rejected the account (`disabled_reason: rejected.other`). Payouts are off for good on this account; the app sends the rider to support. Requirement ids and `disabled_reason` are Stripe's own, never paraphrased.",
+      "operations": [
+        "getConnectStatus"
+      ],
+      "status": 200,
+      "tags": [
+        "platform",
+        "money",
+        "connect-state-matrix",
+        "error-path"
+      ],
+      "file": "platform/connect_status_rejected.json"
     },
     {
       "scenario": "connect_status_requirements_due",
@@ -6212,6 +8052,20 @@
       "file": "platform/health_ok.json"
     },
     {
+      "scenario": "health_version",
+      "domain": "platform",
+      "schema": "HealthStatus",
+      "describes": "`/health` on a released build: `version` is the release the replica runs (`HG_SERVICE_VERSION`; `dev` locally), `started_at` when this process started. The console footer shows both.",
+      "operations": [
+        "getHealth"
+      ],
+      "status": 200,
+      "tags": [
+        "platform"
+      ],
+      "file": "platform/health_version.json"
+    },
+    {
       "scenario": "notifications_empty",
       "domain": "platform",
       "schema": "array<Notification>",
@@ -6255,6 +8109,22 @@
         "auth"
       ],
       "file": "platform/otp_challenge.json"
+    },
+    {
+      "scenario": "otp_challenge_resend_open",
+      "domain": "platform",
+      "schema": "OtpChallenge",
+      "describes": "A challenge whose resend cooldown is over (`resend_after_s: 0`): \"Send a new code\" is enabled at once. The code itself is still valid for four minutes.",
+      "operations": [
+        "requestOtp"
+      ],
+      "status": 200,
+      "tags": [
+        "platform",
+        "auth",
+        "edge"
+      ],
+      "file": "platform/otp_challenge_resend_open.json"
     },
     {
       "scenario": "principal_admin",
@@ -6302,6 +8172,22 @@
         "auth"
       ],
       "file": "platform/principal_customer.json"
+    },
+    {
+      "scenario": "principal_restaurant_owner",
+      "domain": "platform",
+      "schema": "Principal",
+      "describes": "`GET /v1/auth/me` for the owner of the `restaurant_profile` restaurant: one `RESTAURANT_OWNER` grant scoped to that restaurant (`scope_type: RESTAURANT`, `scope_id` its id), signed in with email and password.",
+      "operations": [
+        "getCurrentPrincipal"
+      ],
+      "status": 200,
+      "tags": [
+        "platform",
+        "auth",
+        "restaurant"
+      ],
+      "file": "platform/principal_restaurant_owner.json"
     },
     {
       "scenario": "principal_super_admin",
@@ -6365,6 +8251,37 @@
       "file": "platform/public_config_ordering_paused.json"
     },
     {
+      "scenario": "public_config_support_unavailable",
+      "domain": "platform",
+      "schema": "PublicConfig",
+      "describes": "Support is switched off (`support_enabled: false`): no phone number and no hours. Every \"Contact support\" control is hidden, never a dead number.",
+      "operations": [
+        "getPublicConfig"
+      ],
+      "status": 200,
+      "tags": [
+        "platform",
+        "edge"
+      ],
+      "file": "platform/public_config_support_unavailable.json"
+    },
+    {
+      "scenario": "readiness_not_ready_503",
+      "domain": "platform",
+      "schema": "ReadinessStatus",
+      "describes": "`/health/ready` with Valkey unreachable: `503`, `ready: false`, the failing dependency named with its error. `services/hg` sends this `ReadinessStatus` body with the 503 (the status and the body always agree); the contract's 503 says error envelope, so a client reads `ready` from either.",
+      "operations": [
+        "getReadiness"
+      ],
+      "status": 503,
+      "tags": [
+        "platform",
+        "error-path",
+        "degraded"
+      ],
+      "file": "platform/readiness_not_ready_503.json"
+    },
+    {
       "scenario": "readiness_ok",
       "domain": "platform",
       "schema": "ReadinessStatus",
@@ -6392,6 +8309,23 @@
         "realtime"
       ],
       "file": "platform/realtime_ticket.json"
+    },
+    {
+      "scenario": "session_grant_admin",
+      "domain": "platform",
+      "schema": "SessionGrant",
+      "describes": "`login` on the web console for a `ADMIN`: the `principal_admin` principal, a 15-minute access token and `refresh_token: null` (the refresh token is the `hg_rt` cookie on web).",
+      "operations": [
+        "login",
+        "refreshSession"
+      ],
+      "status": 200,
+      "tags": [
+        "platform",
+        "auth",
+        "staff"
+      ],
+      "file": "platform/session_grant_admin.json"
     },
     {
       "scenario": "session_grant_customer",
@@ -6441,6 +8375,40 @@
         "staff"
       ],
       "file": "platform/session_grant_staff.json"
+    },
+    {
+      "scenario": "session_grant_super_admin",
+      "domain": "platform",
+      "schema": "SessionGrant",
+      "describes": "`login` on the web console for a `SUPER_ADMIN`: the `principal_super_admin` principal, a 15-minute access token and `refresh_token: null` (the refresh token is the `hg_rt` cookie on web).",
+      "operations": [
+        "login",
+        "refreshSession"
+      ],
+      "status": 200,
+      "tags": [
+        "platform",
+        "auth",
+        "staff"
+      ],
+      "file": "platform/session_grant_super_admin.json"
+    },
+    {
+      "scenario": "session_grant_support_agent",
+      "domain": "platform",
+      "schema": "SessionGrant",
+      "describes": "`login` on the web console for a `SUPPORT_AGENT`: the `principal_support_agent` principal, a 15-minute access token and `refresh_token: null` (the refresh token is the `hg_rt` cookie on web).",
+      "operations": [
+        "login",
+        "refreshSession"
+      ],
+      "status": 200,
+      "tags": [
+        "platform",
+        "auth",
+        "staff"
+      ],
+      "file": "platform/session_grant_support_agent.json"
     },
     {
       "scenario": "session_next_route_active_delivery",
@@ -6587,6 +8555,44 @@
       "file": "platform/session_next_route_suspended.json"
     },
     {
+      "scenario": "session_next_route_suspended_banned",
+      "domain": "platform",
+      "schema": "SessionGrant",
+      "describes": "`next_route = SUSPENDED` with `principal.status: BANNED`. The account is banned: the same dead end as suspended, with no appeal route in the copy. Contract-only: `services/hg` issues no session to an account that is not `ACTIVE`; it answers sign-in with `403 ACCOUNT_NOT_ACTIVE` (`error_account_not_active`).",
+      "operations": [
+        "verifyOtp",
+        "login",
+        "refreshSession"
+      ],
+      "status": 200,
+      "tags": [
+        "platform",
+        "auth",
+        "state-matrix",
+        "error-path"
+      ],
+      "file": "platform/session_next_route_suspended_banned.json"
+    },
+    {
+      "scenario": "session_next_route_suspended_deleted",
+      "domain": "platform",
+      "schema": "SessionGrant",
+      "describes": "`next_route = SUSPENDED` with `principal.status: DELETED`. The account was deleted: the app says so and offers to start a new one with the same number after the retention period. Contract-only: `services/hg` issues no session to an account that is not `ACTIVE`; it answers sign-in with `403 ACCOUNT_NOT_ACTIVE` (`error_account_not_active`).",
+      "operations": [
+        "verifyOtp",
+        "login",
+        "refreshSession"
+      ],
+      "status": 200,
+      "tags": [
+        "platform",
+        "auth",
+        "state-matrix",
+        "error-path"
+      ],
+      "file": "platform/session_next_route_suspended_deleted.json"
+    },
+    {
       "scenario": "totp_enrolment",
       "domain": "platform",
       "schema": "TotpEnrolment",
@@ -6672,6 +8678,21 @@
         "error-path"
       ],
       "file": "realtime/realtime_admin_ops_reconciliation_exception.json"
+    },
+    {
+      "scenario": "realtime_admin_ops_truncated_resume",
+      "domain": "realtime",
+      "schema": "RealtimeEvent[]",
+      "describes": "The console comes back after a long sleep: the first `admin:ops` frame is `seq` 4812 where it last saw 2, it sends `resume {after_seq: 2}`, and the server answers `resume_complete {truncated: true, replayed: 0}` because the gap is older than the 7-day retention. The client refetches the queues over REST and resets its cursor; it never shows the gap as \"no alerts\".",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "realtime",
+        "script",
+        "admin",
+        "edge"
+      ],
+      "file": "realtime/realtime_admin_ops_truncated_resume.json"
     },
     {
       "scenario": "realtime_admin_ops_unknown_type",
@@ -6814,6 +8835,21 @@
         "error-path"
       ],
       "file": "realtime/realtime_payment_failed.json"
+    },
+    {
+      "scenario": "realtime_restaurant_auto_off",
+      "domain": "realtime",
+      "schema": "RealtimeEvent[]",
+      "describes": "Two offers in a row run out unanswered, and the platform turns ordering off: `restaurant.status_changed {is_accepting_orders: false, open_state: CLOSED_TOGGLE}` after the second `restaurant.order_offer_expired`. The tablet shows \"Ordering is off\" with a button to turn it back on. Contract-only: `services/hg` counts missed offers but does not turn ordering off by itself yet.",
+      "operations": [],
+      "status": 200,
+      "tags": [
+        "realtime",
+        "script",
+        "restaurant",
+        "error-path"
+      ],
+      "file": "realtime/realtime_restaurant_auto_off.json"
     },
     {
       "scenario": "realtime_restaurant_offer_accepted_elsewhere",
@@ -7043,6 +9079,22 @@
         "empty"
       ],
       "file": "refunds/admin_refund_queue_empty.json"
+    },
+    {
+      "scenario": "admin_refund_queue_failed",
+      "domain": "refunds",
+      "schema": "array<AdminRefund>",
+      "describes": "`listRefundsAdmin?state=FAILED`: two refunds Stripe refused, each with its `failure_message`. The customer has not been paid on either.",
+      "operations": [
+        "listRefundsAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "admin",
+        "money",
+        "error-path"
+      ],
+      "file": "refunds/admin_refund_queue_failed.json"
     },
     {
       "scenario": "admin_refund_requested",
@@ -7296,7 +9348,6 @@
       "describes": "Approved, not yet sent to the PSP.",
       "operations": [
         "getRefund",
-        "listRefunds",
         "createRefund",
         "issueRefund"
       ],
@@ -7313,7 +9364,6 @@
       "describes": "Authorised against the captured payment; the ledger entry exists.",
       "operations": [
         "getRefund",
-        "listRefunds",
         "createRefund",
         "issueRefund"
       ],
@@ -7330,7 +9380,6 @@
       "describes": "Withdrawn before authorisation — no money moved.",
       "operations": [
         "getRefund",
-        "listRefunds",
         "createRefund",
         "issueRefund"
       ],
@@ -7347,7 +9396,6 @@
       "describes": "A human declined the request, with a reason.",
       "operations": [
         "getRefund",
-        "listRefunds",
         "createRefund",
         "issueRefund"
       ],
@@ -7364,7 +9412,6 @@
       "describes": "The PSP rejected the refund. Carries `failure_message`; support must intervene, and the customer must never be told they were refunded.",
       "operations": [
         "getRefund",
-        "listRefunds",
         "createRefund",
         "issueRefund"
       ],
@@ -7419,13 +9466,28 @@
       "file": "refunds/refund_list_empty.json"
     },
     {
+      "scenario": "refund_list_every_state",
+      "domain": "refunds",
+      "schema": "array<Refund>",
+      "describes": "`listRefunds` with refunds in six states: requested, waiting for approval, sent (\"refund in progress\"), settled (\"refunded\"), failed and declined.",
+      "operations": [
+        "listRefunds"
+      ],
+      "status": 200,
+      "tags": [
+        "customer",
+        "money",
+        "refund-state-matrix"
+      ],
+      "file": "refunds/refund_list_every_state.json"
+    },
+    {
       "scenario": "refund_pending_approval",
       "domain": "refunds",
       "schema": "Refund",
       "describes": "Above the agent's cap, waiting on a second approver (`SELF_APPROVAL_FORBIDDEN` blocks the requester from approving their own).",
       "operations": [
         "getRefund",
-        "listRefunds",
         "createRefund",
         "issueRefund"
       ],
@@ -7442,7 +9504,6 @@
       "describes": "Customer asked; nothing has been decided or authorised.",
       "operations": [
         "getRefund",
-        "listRefunds",
         "createRefund",
         "issueRefund"
       ],
@@ -7459,7 +9520,6 @@
       "describes": "Funds are back on the card. The only state that may say 'refunded'.",
       "operations": [
         "getRefund",
-        "listRefunds",
         "createRefund",
         "issueRefund"
       ],
@@ -7476,7 +9536,6 @@
       "describes": "Sent to Stripe, awaiting acknowledgement.",
       "operations": [
         "getRefund",
-        "listRefunds",
         "createRefund",
         "issueRefund"
       ],
@@ -7493,7 +9552,6 @@
       "describes": "Stripe accepted it. **Customer copy still reads 'refund in progress'** until SETTLED — money has not reached the card yet.",
       "operations": [
         "getRefund",
-        "listRefunds",
         "createRefund",
         "issueRefund"
       ],
@@ -7502,6 +9560,22 @@
         "refund-state-matrix"
       ],
       "file": "refunds/refund_succeeded.json"
+    },
+    {
+      "scenario": "earning_entries_clawback",
+      "domain": "rider",
+      "schema": "array<EarningEntry>",
+      "describes": "A delivery taken back: the original `DELIVERY` row is now `REVERSED` and a new `CLAWBACK` row of -9.49 follows it (append-only; nothing was edited). The line shows the minus sign.",
+      "operations": [
+        "listRiderEarningEntries"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "money",
+        "edge"
+      ],
+      "file": "rider/earning_entries_clawback.json"
     },
     {
       "scenario": "earning_entries_empty",
@@ -7536,6 +9610,98 @@
       "file": "rider/earning_entries_mixed.json"
     },
     {
+      "scenario": "earning_entries_paging",
+      "domain": "rider",
+      "schema": "array<EarningEntry>",
+      "describes": "The first page of a long ledger: 20 entries (the default `limit`), newest first, `has_more: true` and `next_cursor` set to the last entry's id, as `services/hg` pages. The next page is `earning_entries_paging_page_2`.",
+      "operations": [
+        "listRiderEarningEntries"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "money",
+        "dense"
+      ],
+      "file": "rider/earning_entries_paging.json"
+    },
+    {
+      "scenario": "earning_entries_paging_page_2",
+      "domain": "rider",
+      "schema": "array<EarningEntry>",
+      "describes": "The second and last page after `earning_entries_paging`: five older entries, `has_more: false`, `next_cursor: null`.",
+      "operations": [
+        "listRiderEarningEntries"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "money"
+      ],
+      "file": "rider/earning_entries_paging_page_2.json"
+    },
+    {
+      "scenario": "earning_entries_pending",
+      "domain": "rider",
+      "schema": "array<EarningEntry>",
+      "describes": "Today's entries, all `PENDING`: earned, not yet available for a payout. One is a tip added after the delivery, its own `TIP` row.",
+      "operations": [
+        "listRiderEarningEntries"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "money"
+      ],
+      "file": "rider/earning_entries_pending.json"
+    },
+    {
+      "scenario": "earnings_summary_day",
+      "domain": "rider",
+      "schema": "EarningsSummary",
+      "describes": "`period=DAY` for today: one bucket, as `services/hg` answers `period=DAY&from=` today (the bucket unit is the period). Three trips so far.",
+      "operations": [
+        "getRiderEarningsSummary"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "money"
+      ],
+      "file": "rider/earnings_summary_day.json"
+    },
+    {
+      "scenario": "earnings_summary_month",
+      "domain": "rider",
+      "schema": "EarningsSummary",
+      "describes": "`period=MONTH` for August so far: one bucket, as `services/hg` answers `period=MONTH&from=2026-08-01`. 131 trips, CAD 984.15, of which 318.50 tips.",
+      "operations": [
+        "getRiderEarningsSummary"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "money"
+      ],
+      "file": "rider/earnings_summary_month.json"
+    },
+    {
+      "scenario": "earnings_summary_negative_balance",
+      "domain": "rider",
+      "schema": "EarningsSummary",
+      "describes": "Last week ended below zero: two clawbacks on Wednesday (-18.98) outweigh the five trips, so the week's total is 7.96 and `unpaid_balance_cents` is -4.49. A negative balance is carried to the next run, never paid out or charged.",
+      "operations": [
+        "getRiderEarningsSummary"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "money",
+        "edge"
+      ],
+      "file": "rider/earnings_summary_negative_balance.json"
+    },
+    {
       "scenario": "earnings_summary_week",
       "domain": "rider",
       "schema": "EarningsSummary",
@@ -7568,6 +9734,54 @@
       "file": "rider/earnings_summary_zero.json"
     },
     {
+      "scenario": "payout_detail_draft",
+      "domain": "rider",
+      "schema": "PayoutDetail",
+      "describes": "This week's payout, still accruing: no entries stamped yet, amount 0. The amount is exactly the sum of its entries.",
+      "operations": [
+        "getRiderPayout"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "money",
+        "payout-state-matrix"
+      ],
+      "file": "rider/payout_detail_draft.json"
+    },
+    {
+      "scenario": "payout_detail_failed",
+      "domain": "rider",
+      "schema": "PayoutDetail",
+      "describes": "The transfer failed. `failure_message` is shown verbatim; the money stays in the balance and goes into the next run. The amount is exactly the sum of its entries.",
+      "operations": [
+        "getRiderPayout"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "money",
+        "payout-state-matrix"
+      ],
+      "file": "rider/payout_detail_failed.json"
+    },
+    {
+      "scenario": "payout_detail_held",
+      "domain": "rider",
+      "schema": "PayoutDetail",
+      "describes": "Held: `hold_reason` is shown verbatim. Nothing is lost; it goes out on the next Monday payout after the hold is lifted. The amount is exactly the sum of its entries.",
+      "operations": [
+        "getRiderPayout"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "money",
+        "payout-state-matrix"
+      ],
+      "file": "rider/payout_detail_held.json"
+    },
+    {
       "scenario": "payout_detail_paid",
       "domain": "rider",
       "schema": "PayoutDetail",
@@ -7583,14 +9797,59 @@
       "file": "rider/payout_detail_paid.json"
     },
     {
+      "scenario": "payout_detail_ready",
+      "domain": "rider",
+      "schema": "PayoutDetail",
+      "describes": "Week closed, amount final, waiting for Monday's run. The amount is exactly the sum of its entries.",
+      "operations": [
+        "getRiderPayout"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "money",
+        "payout-state-matrix"
+      ],
+      "file": "rider/payout_detail_ready.json"
+    },
+    {
+      "scenario": "payout_detail_transferred",
+      "domain": "rider",
+      "schema": "PayoutDetail",
+      "describes": "Stripe accepted the transfer; the bank has not shown it yet. The amount is exactly the sum of its entries.",
+      "operations": [
+        "getRiderPayout"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "money",
+        "payout-state-matrix"
+      ],
+      "file": "rider/payout_detail_transferred.json"
+    },
+    {
+      "scenario": "payout_detail_transferring",
+      "domain": "rider",
+      "schema": "PayoutDetail",
+      "describes": "Submitted to Stripe Connect on Monday's run. The amount is exactly the sum of its entries.",
+      "operations": [
+        "getRiderPayout"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "money",
+        "payout-state-matrix"
+      ],
+      "file": "rider/payout_detail_transferring.json"
+    },
+    {
       "scenario": "payout_draft",
       "domain": "rider",
       "schema": "Payout",
-      "describes": "The week is still accruing. Nothing is owed yet.",
-      "operations": [
-        "listRiderPayouts",
-        "listRestaurantPayouts"
-      ],
+      "describes": "The week is still accruing. Nothing is owed yet. A single `Payout` row; the list operations serve `payout_list_*`.",
+      "operations": [],
       "status": 200,
       "tags": [
         "payout-state-matrix",
@@ -7602,11 +9861,8 @@
       "scenario": "payout_failed",
       "domain": "rider",
       "schema": "Payout",
-      "describes": "The transfer bounced — usually a Connect requirement went `past_due`.",
-      "operations": [
-        "listRiderPayouts",
-        "listRestaurantPayouts"
-      ],
+      "describes": "The transfer bounced — usually a Connect requirement went `past_due`. A single `Payout` row; the list operations serve `payout_list_*`.",
+      "operations": [],
       "status": 200,
       "tags": [
         "payout-state-matrix",
@@ -7618,17 +9874,29 @@
       "scenario": "payout_held",
       "domain": "rider",
       "schema": "Payout",
-      "describes": "Held by compliance pending a review. The partner sees the hold, not the reason.",
-      "operations": [
-        "listRiderPayouts",
-        "listRestaurantPayouts"
-      ],
+      "describes": "Held by compliance pending a review. The partner sees the hold, not the reason. A single `Payout` row; the list operations serve `payout_list_*`.",
+      "operations": [],
       "status": 200,
       "tags": [
         "payout-state-matrix",
         "money"
       ],
       "file": "rider/payout_held.json"
+    },
+    {
+      "scenario": "payout_list_draft_paid",
+      "domain": "rider",
+      "schema": "array<Payout>",
+      "describes": "The ordinary history: this week accruing, two paid weeks before it. Nothing needs attention.",
+      "operations": [
+        "listRiderPayouts"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "money"
+      ],
+      "file": "rider/payout_list_draft_paid.json"
     },
     {
       "scenario": "payout_list_empty",
@@ -7647,14 +9915,43 @@
       "file": "rider/payout_list_empty.json"
     },
     {
+      "scenario": "payout_list_every_state",
+      "domain": "rider",
+      "schema": "array<Payout>",
+      "describes": "`listRiderPayouts` with one payout in each `PayoutState`, newest first: this week accruing (`DRAFT`), then `READY`, `TRANSFERRING`, `TRANSFERRED`, `HELD` (with its `hold_reason`), `FAILED` (with its `failure_message`) and `PAID`.",
+      "operations": [
+        "listRiderPayouts"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "money",
+        "payout-state-matrix"
+      ],
+      "file": "rider/payout_list_every_state.json"
+    },
+    {
+      "scenario": "payout_list_multi_problem",
+      "domain": "rider",
+      "schema": "array<Payout>",
+      "describes": "Two problems at once: last week's payout `FAILED` and the week before is `HELD`. The alert names both (\"Two payouts need attention\"), not just the newest.",
+      "operations": [
+        "listRiderPayouts"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "money",
+        "error-path"
+      ],
+      "file": "rider/payout_list_multi_problem.json"
+    },
+    {
       "scenario": "payout_paid",
       "domain": "rider",
       "schema": "Payout",
-      "describes": "Landed. **No minimum** for either partner type (contradiction log #16).",
-      "operations": [
-        "listRiderPayouts",
-        "listRestaurantPayouts"
-      ],
+      "describes": "Landed. **No minimum** for either partner type (contradiction log #16). A single `Payout` row; the list operations serve `payout_list_*`.",
+      "operations": [],
       "status": 200,
       "tags": [
         "payout-state-matrix",
@@ -7666,11 +9963,8 @@
       "scenario": "payout_ready",
       "domain": "rider",
       "schema": "Payout",
-      "describes": "Week closed, amount final, waiting for Monday's run.",
-      "operations": [
-        "listRiderPayouts",
-        "listRestaurantPayouts"
-      ],
+      "describes": "Week closed, amount final, waiting for Monday's run. A single `Payout` row; the list operations serve `payout_list_*`.",
+      "operations": [],
       "status": 200,
       "tags": [
         "payout-state-matrix",
@@ -7682,11 +9976,8 @@
       "scenario": "payout_transferred",
       "domain": "rider",
       "schema": "Payout",
-      "describes": "Stripe accepted the transfer; not yet in the bank.",
-      "operations": [
-        "listRiderPayouts",
-        "listRestaurantPayouts"
-      ],
+      "describes": "Stripe accepted the transfer; not yet in the bank. A single `Payout` row; the list operations serve `payout_list_*`.",
+      "operations": [],
       "status": 200,
       "tags": [
         "payout-state-matrix",
@@ -7698,11 +9989,8 @@
       "scenario": "payout_transferring",
       "domain": "rider",
       "schema": "Payout",
-      "describes": "Submitted to Stripe Connect.",
-      "operations": [
-        "listRiderPayouts",
-        "listRestaurantPayouts"
-      ],
+      "describes": "Submitted to Stripe Connect. A single `Payout` row; the list operations serve `payout_list_*`.",
+      "operations": [],
       "status": 200,
       "tags": [
         "payout-state-matrix",
@@ -7724,6 +10012,68 @@
         "money"
       ],
       "file": "rider/restaurant_payout_history.json"
+    },
+    {
+      "scenario": "restaurant_payout_history_every_state",
+      "domain": "rider",
+      "schema": "array<Payout>",
+      "describes": "A restaurant's payouts with one in each `PayoutState`, newest first, including a `HELD` week with its reason and a `FAILED` week with its message.",
+      "operations": [
+        "listRestaurantPayouts"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "money",
+        "payout-state-matrix"
+      ],
+      "file": "rider/restaurant_payout_history_every_state.json"
+    },
+    {
+      "scenario": "restaurant_payout_history_page_1",
+      "domain": "rider",
+      "schema": "array<Payout>",
+      "describes": "The first page of a long payout history: 20 weeks, newest first, `has_more: true`. The next page is `restaurant_payout_history_page_2`.",
+      "operations": [
+        "listRestaurantPayouts"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "money",
+        "dense"
+      ],
+      "file": "rider/restaurant_payout_history_page_1.json"
+    },
+    {
+      "scenario": "restaurant_payout_history_page_2",
+      "domain": "rider",
+      "schema": "array<Payout>",
+      "describes": "The last page after `restaurant_payout_history_page_1`: six older paid weeks, `has_more: false`.",
+      "operations": [
+        "listRestaurantPayouts"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant",
+        "money"
+      ],
+      "file": "rider/restaurant_payout_history_page_2.json"
+    },
+    {
+      "scenario": "rider_availability_go_offline_after_delivery",
+      "domain": "rider",
+      "schema": "RiderAvailability",
+      "describes": "`setRiderAvailability {state: OFFLINE}` while carrying an order: `services/hg` keeps the rider `ON_DELIVERY` and sets `go_offline_after_delivery: true`; the rider goes offline by themselves once this delivery is done.",
+      "operations": [
+        "setRiderAvailability"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "home"
+      ],
+      "file": "rider/rider_availability_go_offline_after_delivery.json"
     },
     {
       "scenario": "rider_availability_offline",
@@ -7789,7 +10139,7 @@
       "scenario": "rider_dashboard_active",
       "domain": "rider",
       "schema": "RiderDashboard",
-      "describes": "A rider mid-shift with an assignment in progress and earnings accrued today.",
+      "describes": "A rider mid-shift with an assignment in progress (`mode: ON_DELIVERY`) and earnings accrued today.",
       "operations": [
         "getRiderDashboard"
       ],
@@ -7800,10 +10150,278 @@
       "file": "rider/rider_dashboard_active.json"
     },
     {
+      "scenario": "rider_dashboard_offline",
+      "domain": "rider",
+      "schema": "RiderDashboard",
+      "describes": "Off shift. Today's totals stay on screen; tracking is not reported while offline (`tracking_health: null`).",
+      "operations": [
+        "getRiderDashboard"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "home"
+      ],
+      "file": "rider/rider_dashboard_offline.json"
+    },
+    {
+      "scenario": "rider_dashboard_offline_blocked",
+      "domain": "rider",
+      "schema": "RiderDashboard",
+      "describes": "Offline with all nine `blocking_reasons` at once, so one screen test covers every row and deep link. Nothing earned today. Contract-only: `getRiderDashboard` on `services/hg` sends `mode` and `today` but not `active_assignment`, `tracking_health` or `blocking_reasons` yet.",
+      "operations": [
+        "getRiderDashboard"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "home",
+        "error-path"
+      ],
+      "file": "rider/rider_dashboard_offline_blocked.json"
+    },
+    {
+      "scenario": "rider_dashboard_offline_blocked_account_not_active",
+      "domain": "rider",
+      "schema": "RiderDashboard",
+      "describes": "Offline with one blocking reason, `ACCOUNT_NOT_ACTIVE`, so its row can be tested alone. Contract-only: `getRiderDashboard` on `services/hg` sends `mode` and `today` but not `active_assignment`, `tracking_health` or `blocking_reasons` yet.",
+      "operations": [
+        "getRiderDashboard"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "home",
+        "error-path"
+      ],
+      "file": "rider/rider_dashboard_offline_blocked_account_not_active.json"
+    },
+    {
+      "scenario": "rider_dashboard_offline_blocked_background_location_permission",
+      "domain": "rider",
+      "schema": "RiderDashboard",
+      "describes": "Offline with one blocking reason, `BACKGROUND_LOCATION_PERMISSION`, so its row can be tested alone. Contract-only: `getRiderDashboard` on `services/hg` sends `mode` and `today` but not `active_assignment`, `tracking_health` or `blocking_reasons` yet.",
+      "operations": [
+        "getRiderDashboard"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "home",
+        "error-path"
+      ],
+      "file": "rider/rider_dashboard_offline_blocked_background_location_permission.json"
+    },
+    {
+      "scenario": "rider_dashboard_offline_blocked_continuous_online_cap",
+      "domain": "rider",
+      "schema": "RiderDashboard",
+      "describes": "Offline with one blocking reason, `CONTINUOUS_ONLINE_CAP`, so its row can be tested alone. Contract-only: `getRiderDashboard` on `services/hg` sends `mode` and `today` but not `active_assignment`, `tracking_health` or `blocking_reasons` yet.",
+      "operations": [
+        "getRiderDashboard"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "home",
+        "error-path"
+      ],
+      "file": "rider/rider_dashboard_offline_blocked_continuous_online_cap.json"
+    },
+    {
+      "scenario": "rider_dashboard_offline_blocked_document_expired",
+      "domain": "rider",
+      "schema": "RiderDashboard",
+      "describes": "Offline with one blocking reason, `DOCUMENT_EXPIRED`, so its row can be tested alone. Contract-only: `getRiderDashboard` on `services/hg` sends `mode` and `today` but not `active_assignment`, `tracking_health` or `blocking_reasons` yet.",
+      "operations": [
+        "getRiderDashboard"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "home",
+        "error-path"
+      ],
+      "file": "rider/rider_dashboard_offline_blocked_document_expired.json"
+    },
+    {
+      "scenario": "rider_dashboard_offline_blocked_foreground_location_permission",
+      "domain": "rider",
+      "schema": "RiderDashboard",
+      "describes": "Offline with one blocking reason, `FOREGROUND_LOCATION_PERMISSION`, so its row can be tested alone. Contract-only: `getRiderDashboard` on `services/hg` sends `mode` and `today` but not `active_assignment`, `tracking_health` or `blocking_reasons` yet.",
+      "operations": [
+        "getRiderDashboard"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "home",
+        "error-path"
+      ],
+      "file": "rider/rider_dashboard_offline_blocked_foreground_location_permission.json"
+    },
+    {
+      "scenario": "rider_dashboard_offline_blocked_notification_permission",
+      "domain": "rider",
+      "schema": "RiderDashboard",
+      "describes": "Offline with one blocking reason, `NOTIFICATION_PERMISSION`, so its row can be tested alone. Contract-only: `getRiderDashboard` on `services/hg` sends `mode` and `today` but not `active_assignment`, `tracking_health` or `blocking_reasons` yet.",
+      "operations": [
+        "getRiderDashboard"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "home",
+        "error-path"
+      ],
+      "file": "rider/rider_dashboard_offline_blocked_notification_permission.json"
+    },
+    {
+      "scenario": "rider_dashboard_offline_blocked_onboarding_incomplete",
+      "domain": "rider",
+      "schema": "RiderDashboard",
+      "describes": "Offline with one blocking reason, `ONBOARDING_INCOMPLETE`, so its row can be tested alone. Contract-only: `getRiderDashboard` on `services/hg` sends `mode` and `today` but not `active_assignment`, `tracking_health` or `blocking_reasons` yet.",
+      "operations": [
+        "getRiderDashboard"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "home",
+        "error-path"
+      ],
+      "file": "rider/rider_dashboard_offline_blocked_onboarding_incomplete.json"
+    },
+    {
+      "scenario": "rider_dashboard_offline_blocked_payout_account_incomplete",
+      "domain": "rider",
+      "schema": "RiderDashboard",
+      "describes": "Offline with one blocking reason, `PAYOUT_ACCOUNT_INCOMPLETE`, so its row can be tested alone. Contract-only: `getRiderDashboard` on `services/hg` sends `mode` and `today` but not `active_assignment`, `tracking_health` or `blocking_reasons` yet.",
+      "operations": [
+        "getRiderDashboard"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "home",
+        "error-path"
+      ],
+      "file": "rider/rider_dashboard_offline_blocked_payout_account_incomplete.json"
+    },
+    {
+      "scenario": "rider_dashboard_offline_blocked_stale_location_fix",
+      "domain": "rider",
+      "schema": "RiderDashboard",
+      "describes": "Offline with one blocking reason, `STALE_LOCATION_FIX`, so its row can be tested alone. Contract-only: `getRiderDashboard` on `services/hg` sends `mode` and `today` but not `active_assignment`, `tracking_health` or `blocking_reasons` yet.",
+      "operations": [
+        "getRiderDashboard"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "home",
+        "error-path"
+      ],
+      "file": "rider/rider_dashboard_offline_blocked_stale_location_fix.json"
+    },
+    {
+      "scenario": "rider_dashboard_on_delivery_dropoff",
+      "domain": "rider",
+      "schema": "RiderDashboard",
+      "describes": "`ON_DELIVERY` with the assignment in `EN_ROUTE_TO_DROPOFF`. Bag collected, heading to the customer; the full address and unit are now present. No offer while carrying an order. Contract-only: `getRiderDashboard` on `services/hg` sends `mode` and `today` but not `active_assignment`, `tracking_health` or `blocking_reasons` yet.",
+      "operations": [
+        "getRiderDashboard"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "home"
+      ],
+      "file": "rider/rider_dashboard_on_delivery_dropoff.json"
+    },
+    {
+      "scenario": "rider_dashboard_on_delivery_pickup",
+      "domain": "rider",
+      "schema": "RiderDashboard",
+      "describes": "`ON_DELIVERY` with the assignment in `EN_ROUTE_TO_PICKUP`. Heading to the restaurant; the drop-off shows the street and neighbourhood only until pickup. No offer while carrying an order. Contract-only: `getRiderDashboard` on `services/hg` sends `mode` and `today` but not `active_assignment`, `tracking_health` or `blocking_reasons` yet.",
+      "operations": [
+        "getRiderDashboard"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "home"
+      ],
+      "file": "rider/rider_dashboard_on_delivery_pickup.json"
+    },
+    {
+      "scenario": "rider_dashboard_online_idle",
+      "domain": "rider",
+      "schema": "RiderDashboard",
+      "describes": "Online, waiting for an offer: no assignment, no offer, healthy tracking, three trips so far today.",
+      "operations": [
+        "getRiderDashboard"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "home"
+      ],
+      "file": "rider/rider_dashboard_online_idle.json"
+    },
+    {
+      "scenario": "rider_dashboard_online_stale",
+      "domain": "rider",
+      "schema": "RiderDashboard",
+      "describes": "Online but no location has arrived recently: offers are held back until one does. `blocking_reasons: [STALE_LOCATION_FIX]`, tracking `DEGRADED`. Contract-only: `getRiderDashboard` on `services/hg` sends `mode` and `today` but not `active_assignment`, `tracking_health` or `blocking_reasons` yet.",
+      "operations": [
+        "getRiderDashboard"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "home",
+        "degraded"
+      ],
+      "file": "rider/rider_dashboard_online_stale.json"
+    },
+    {
+      "scenario": "rider_dashboard_tracking_degraded",
+      "domain": "rider",
+      "schema": "RiderDashboard",
+      "describes": "Online and dispatchable, but location fixes are arriving late or imprecise (`tracking_health: DEGRADED`). Contract-only: `getRiderDashboard` on `services/hg` sends `mode` and `today` but not `active_assignment`, `tracking_health` or `blocking_reasons` yet.",
+      "operations": [
+        "getRiderDashboard"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "home",
+        "degraded"
+      ],
+      "file": "rider/rider_dashboard_tracking_degraded.json"
+    },
+    {
+      "scenario": "rider_dashboard_tracking_lost",
+      "domain": "rider",
+      "schema": "RiderDashboard",
+      "describes": "Online, but no location for long enough that tracking is `LOST`. Tracking loss alone never reassigns anything; the app asks the rider to check location access. Contract-only: `getRiderDashboard` on `services/hg` sends `mode` and `today` but not `active_assignment`, `tracking_health` or `blocking_reasons` yet.",
+      "operations": [
+        "getRiderDashboard"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "home",
+        "degraded"
+      ],
+      "file": "rider/rider_dashboard_tracking_lost.json"
+    },
+    {
       "scenario": "rider_dashboard_zero_earnings",
       "domain": "rider",
       "schema": "RiderDashboard",
-      "describes": "**A rider with zero earnings** — approved this morning, no deliveries yet. Every money field is 0 and every count is 0. The dashboard must read as 'not started', never as an error or a blank screen.",
+      "describes": "**A rider with zero earnings** — approved this morning, just went online, no deliveries yet: no assignment, no offer, every money field and count 0. The dashboard must read as 'not started', never as an error or a blank screen.",
       "operations": [
         "getRiderDashboard"
       ],
@@ -7829,6 +10447,21 @@
         "rider"
       ],
       "file": "rider/rider_me.json"
+    },
+    {
+      "scenario": "rider_me_suspended",
+      "domain": "rider",
+      "schema": "RiderMe",
+      "describes": "A suspended rider: `account_status: SUSPENDED`, offline, no assignment, `next_route: SUSPENDED`. The app shows the on-hold screen with the support line; going online is refused.",
+      "operations": [
+        "getRiderMe"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "error-path"
+      ],
+      "file": "rider/rider_me_suspended.json"
     },
     {
       "scenario": "rider_position_ack",
@@ -7921,6 +10554,8 @@
       "order_restaurant_pending"
     ],
     "cancelOrderAdmin": [
+      "error_order_admin_cancel_illegal_transition",
+      "error_order_admin_cancel_rate_limited",
       "order_admin_view_completed"
     ],
     "changePassword": [
@@ -7964,6 +10599,8 @@
       "error_pod_required"
     ],
     "createCertificateViewUrl": [
+      "certificate_view_url",
+      "certificate_view_url_pdf",
       "presigned_download"
     ],
     "createConnectAccount": [
@@ -7971,6 +10608,7 @@
       "error_step_not_available"
     ],
     "createConnectOnboardingLink": [
+      "connect_onboarding_link",
       "error_step_not_available"
     ],
     "createDocumentDownloadUrl": [
@@ -8027,6 +10665,7 @@
       "realtime_ticket"
     ],
     "createRefund": [
+      "error_refund_not_refundable",
       "refund_approved",
       "refund_authorised",
       "refund_cancelled",
@@ -8050,6 +10689,14 @@
       "presigned_upload"
     ],
     "decideHalalCertificate": [
+      "error_check_failed",
+      "error_checklist_incomplete",
+      "halal_certificate_pending_h5_computed_fail",
+      "halal_certificate_pending_h7_duplicate",
+      "halal_certificate_pending_issuer_suspended",
+      "halal_certificate_pending_scope_supplier_chain",
+      "halal_certificate_pending_transcribed_unchecked",
+      "halal_certificate_pending_untranscribed",
       "halal_certificate_status_approved",
       "halal_certificate_status_expired",
       "halal_certificate_status_pending",
@@ -8073,12 +10720,15 @@
       "error_application_already_decided",
       "error_decision_approval_reason_required",
       "error_decision_rejection_reason_required",
+      "error_precondition_not_met",
+      "error_review_lock_lost",
       "restaurant_application_approved"
     ],
     "decideRiderApplication": [
       "error_application_already_decided",
       "error_decision_approval_reason_required",
       "error_decision_rejection_reason_required",
+      "error_review_lock_lost",
       "error_rider_under_18",
       "rider_application_approved",
       "rider_application_changes_requested"
@@ -8184,7 +10834,15 @@
     ],
     "getConnectStatus": [
       "connect_status_complete",
-      "connect_status_requirements_due"
+      "connect_status_currently_due",
+      "connect_status_details_not_submitted",
+      "connect_status_due_with_deadline",
+      "connect_status_not_started",
+      "connect_status_past_due",
+      "connect_status_pending_verification",
+      "connect_status_rejected",
+      "connect_status_requirements_due",
+      "error_connect_status_not_found"
     ],
     "getCurrentOffer": [
       "offer_expired",
@@ -8196,10 +10854,12 @@
       "offer_zero_tip_low_value"
     ],
     "getCurrentPrincipal": [
+      "error_account_banned",
       "error_account_suspended",
       "principal_admin",
       "principal_admin_password_only",
       "principal_customer",
+      "principal_restaurant_owner",
       "principal_super_admin",
       "principal_support_agent"
     ],
@@ -8213,16 +10873,24 @@
       "halal_certificate_expired",
       "halal_certificate_expiring_tomorrow",
       "halal_certificate_expiring_within_30_days",
+      "halal_certificate_pending_h5_computed_fail",
+      "halal_certificate_pending_h7_duplicate",
+      "halal_certificate_pending_issuer_suspended",
+      "halal_certificate_pending_scope_supplier_chain",
+      "halal_certificate_pending_transcribed_unchecked",
+      "halal_certificate_pending_untranscribed",
       "halal_certificate_status_approved",
       "halal_certificate_status_expired",
       "halal_certificate_status_pending",
       "halal_certificate_status_rejected",
       "halal_certificate_status_revoked",
       "halal_certificate_status_superseded",
+      "halal_certificate_support_projection",
       "halal_certificate_valid"
     ],
     "getHealth": [
-      "health_ok"
+      "health_ok",
+      "health_version"
     ],
     "getHomeFeed": [
       "feed_empty",
@@ -8263,10 +10931,26 @@
       "order_zero_tip"
     ],
     "getOrderAdmin": [
+      "order_admin_view_arrived",
+      "order_admin_view_authorized",
+      "order_admin_view_cancelled",
+      "order_admin_view_chargeback",
       "order_admin_view_completed",
+      "order_admin_view_created",
+      "order_admin_view_delivered",
       "order_admin_view_delivery_overridden",
       "order_admin_view_disputed",
-      "order_admin_view_failed_no_rider"
+      "order_admin_view_failed_no_rider",
+      "order_admin_view_ledger_residual",
+      "order_admin_view_masked",
+      "order_admin_view_picked_up",
+      "order_admin_view_pii_revealed",
+      "order_admin_view_preparing",
+      "order_admin_view_ready_for_pickup",
+      "order_admin_view_refund_failed_settlement_held",
+      "order_admin_view_rejected",
+      "order_admin_view_resolved",
+      "order_admin_view_restaurant_pending"
     ],
     "getOrderPayment": [
       "payment_canceled",
@@ -8285,6 +10969,9 @@
     ],
     "getOrderReceipt": [
       "error_receipt_not_ready",
+      "error_receipt_not_ready_never_completed",
+      "error_receipt_not_ready_no_charge",
+      "receipt_no_tax_no_service_fee",
       "receipt_pickup_zero_tip",
       "receipt_standard",
       "receipt_with_refund"
@@ -8306,6 +10993,9 @@
       "ordering_pause_open"
     ],
     "getOwnMenu": [
+      "owned_menu_empty",
+      "owned_menu_every_review_status",
+      "owned_menu_forty_categories",
       "owned_menu_with_pending_version"
     ],
     "getPayoutRun": [
@@ -8313,7 +11003,8 @@
     ],
     "getPublicConfig": [
       "public_config",
-      "public_config_ordering_paused"
+      "public_config_ordering_paused",
+      "public_config_support_unavailable"
     ],
     "getQuote": [
       "quote_expired",
@@ -8325,6 +11016,7 @@
       "quote_zero_tip"
     ],
     "getReadiness": [
+      "readiness_not_ready_503",
       "readiness_ok"
     ],
     "getRefund": [
@@ -8345,12 +11037,19 @@
       "restaurant_detail_closed",
       "restaurant_detail_expired",
       "restaurant_detail_expiring_soon",
+      "restaurant_detail_no_address",
       "restaurant_detail_no_menu",
+      "restaurant_detail_out_of_range",
+      "restaurant_detail_paused",
       "restaurant_detail_unverified"
     ],
     "getRestaurantApplication": [
       "restaurant_application_approved",
-      "restaurant_application_pending_review"
+      "restaurant_application_changes_requested",
+      "restaurant_application_claimed_by_other",
+      "restaurant_application_no_certificate",
+      "restaurant_application_pending_review",
+      "restaurant_application_withdrawn"
     ],
     "getRestaurantAvailability": [
       "restaurant_open_state_closed_holiday",
@@ -8358,22 +11057,30 @@
       "restaurant_open_state_closed_offline",
       "restaurant_open_state_closed_suspended",
       "restaurant_open_state_closed_toggle",
+      "restaurant_open_state_closed_toggle_auto_off",
       "restaurant_open_state_open",
-      "restaurant_open_state_paused"
+      "restaurant_open_state_paused",
+      "restaurant_open_state_paused_until_closing"
     ],
     "getRestaurantCertification": [
       "certification_panel_certified",
       "certification_panel_expired",
       "certification_panel_expiring_soon",
+      "certification_panel_not_viewable",
+      "certification_panel_partial",
       "certification_panel_unverified"
     ],
     "getRestaurantHours": [
+      "restaurant_hours_none",
+      "restaurant_hours_special_dates",
+      "restaurant_hours_split_past_midnight",
       "restaurant_hours_standard"
     ],
     "getRestaurantMenu": [
       "menu_empty",
       "menu_full",
-      "menu_single_item"
+      "menu_single_item",
+      "menu_with_hidden_and_blocked_items"
     ],
     "getRestaurantOnboardingStatus": [
       "restaurant_onboarding_active",
@@ -8389,11 +11096,18 @@
       "restaurant_onboarding_withdrawn"
     ],
     "getRestaurantOrder": [
+      "restaurant_order_arrived",
+      "restaurant_order_cancelled",
+      "restaurant_order_cancelled_after_accept",
+      "restaurant_order_completed",
+      "restaurant_order_delivered",
+      "restaurant_order_disputed",
       "restaurant_order_picked_up",
       "restaurant_order_pickup_code_locked",
       "restaurant_order_preparing",
       "restaurant_order_ready_for_pickup",
       "restaurant_order_rejected",
+      "restaurant_order_resolved",
       "restaurant_order_restaurant_pending"
     ],
     "getRestaurantProfile": [
@@ -8413,19 +11127,46 @@
     ],
     "getRiderApplication": [
       "rider_application_approved",
+      "rider_application_attempt_3",
+      "rider_application_attempt_4",
+      "rider_application_bicycle",
       "rider_application_changes_requested",
-      "rider_application_pending_review"
+      "rider_application_claimed_by_other",
+      "rider_application_on_foot",
+      "rider_application_pending_review",
+      "rider_application_under_18"
     ],
     "getRiderDashboard": [
       "rider_dashboard_active",
+      "rider_dashboard_offline",
+      "rider_dashboard_offline_blocked",
+      "rider_dashboard_offline_blocked_account_not_active",
+      "rider_dashboard_offline_blocked_background_location_permission",
+      "rider_dashboard_offline_blocked_continuous_online_cap",
+      "rider_dashboard_offline_blocked_document_expired",
+      "rider_dashboard_offline_blocked_foreground_location_permission",
+      "rider_dashboard_offline_blocked_notification_permission",
+      "rider_dashboard_offline_blocked_onboarding_incomplete",
+      "rider_dashboard_offline_blocked_payout_account_incomplete",
+      "rider_dashboard_offline_blocked_stale_location_fix",
+      "rider_dashboard_on_delivery_dropoff",
+      "rider_dashboard_on_delivery_pickup",
+      "rider_dashboard_online_idle",
+      "rider_dashboard_online_stale",
+      "rider_dashboard_tracking_degraded",
+      "rider_dashboard_tracking_lost",
       "rider_dashboard_zero_earnings"
     ],
     "getRiderEarningsSummary": [
+      "earnings_summary_day",
+      "earnings_summary_month",
+      "earnings_summary_negative_balance",
       "earnings_summary_week",
       "earnings_summary_zero"
     ],
     "getRiderMe": [
-      "rider_me"
+      "rider_me",
+      "rider_me_suspended"
     ],
     "getRiderOnboardingStatus": [
       "rider_onboarding_active",
@@ -8440,10 +11181,20 @@
       "rider_onboarding_vehicle_pending"
     ],
     "getRiderPayout": [
-      "payout_detail_paid"
+      "payout_detail_draft",
+      "payout_detail_failed",
+      "payout_detail_held",
+      "payout_detail_paid",
+      "payout_detail_ready",
+      "payout_detail_transferred",
+      "payout_detail_transferring"
     ],
     "issueRefund": [
+      "error_refund_conflict",
+      "error_refund_daily_cap",
+      "error_refund_goodwill_exceeds",
       "error_refund_mfa_required",
+      "error_refund_not_refundable",
       "error_refund_self_approval_forbidden",
       "refund_approval_request_pending",
       "refund_approved",
@@ -8468,6 +11219,7 @@
     ],
     "listHalalIssuingBodies": [
       "halal_issuing_bodies_empty",
+      "halal_issuing_bodies_every_status",
       "halal_issuing_bodies_seed",
       "halal_issuing_body_accepted",
       "halal_issuing_body_proposed",
@@ -8492,11 +11244,18 @@
     "listOrders": [
       "order_list_active",
       "order_list_empty",
-      "order_list_past"
+      "order_list_mixed_states",
+      "order_list_past",
+      "order_list_past_page_2"
     ],
     "listOrdersAdmin": [
+      "order_admin_list_disputed_page_1",
+      "order_admin_list_disputed_page_2",
+      "order_admin_list_every_state",
       "order_list_active",
-      "order_list_past"
+      "order_list_mixed_states",
+      "order_list_past",
+      "order_list_past_page_2"
     ],
     "listPaymentMethods": [
       "payment_methods_at_limit",
@@ -8510,21 +11269,13 @@
       "payout_run_succeeded"
     ],
     "listRefunds": [
-      "refund_approved",
-      "refund_authorised",
-      "refund_cancelled",
-      "refund_declined",
-      "refund_failed",
       "refund_list_empty",
-      "refund_pending_approval",
-      "refund_requested",
-      "refund_settled",
-      "refund_submitted",
-      "refund_succeeded"
+      "refund_list_every_state"
     ],
     "listRefundsAdmin": [
       "admin_refund_queue",
-      "admin_refund_queue_empty"
+      "admin_refund_queue_empty",
+      "admin_refund_queue_failed"
     ],
     "listRestaurantApplications": [
       "restaurant_application_queue",
@@ -8536,33 +11287,44 @@
       "restaurant_document_pack_incomplete"
     ],
     "listRestaurantOrders": [
+      "restaurant_order_arrived",
+      "restaurant_order_cancelled",
+      "restaurant_order_cancelled_after_accept",
+      "restaurant_order_completed",
+      "restaurant_order_delivered",
+      "restaurant_order_disputed",
       "restaurant_order_picked_up",
       "restaurant_order_pickup_code_locked",
       "restaurant_order_preparing",
       "restaurant_order_queue_busy",
       "restaurant_order_queue_empty",
+      "restaurant_order_queue_pending_four",
+      "restaurant_order_queue_with_completed",
       "restaurant_order_ready_for_pickup",
       "restaurant_order_rejected",
+      "restaurant_order_resolved",
       "restaurant_order_restaurant_pending"
     ],
     "listRestaurantPayouts": [
-      "payout_draft",
-      "payout_failed",
-      "payout_held",
       "payout_list_empty",
-      "payout_paid",
-      "payout_ready",
-      "payout_transferred",
-      "payout_transferring",
-      "restaurant_payout_history"
+      "restaurant_payout_history",
+      "restaurant_payout_history_every_state",
+      "restaurant_payout_history_page_1",
+      "restaurant_payout_history_page_2"
     ],
     "listRestaurantStaff": [
       "restaurant_staff_list"
     ],
     "listRestaurants": [
+      "restaurant_list_closed_and_paused",
       "restaurant_list_empty",
+      "restaurant_list_eta_sorted",
       "restaurant_list_long_names",
+      "restaurant_list_missing_halal_fields",
       "restaurant_list_missing_images",
+      "restaurant_list_no_address",
+      "restaurant_list_page_2",
+      "restaurant_list_partial_halal",
       "restaurant_list_populated",
       "restaurant_list_single"
     ],
@@ -8571,29 +11333,42 @@
     ],
     "listRiderDocuments": [
       "rider_document_pack_complete",
+      "rider_document_pack_empty",
+      "rider_document_pack_expired",
+      "rider_document_pack_expired_replacement_in_review",
+      "rider_document_pack_expiring",
       "rider_document_pack_rejected"
     ],
     "listRiderEarningEntries": [
+      "earning_entries_clawback",
       "earning_entries_empty",
-      "earning_entries_mixed"
+      "earning_entries_mixed",
+      "earning_entries_paging",
+      "earning_entries_paging_page_2",
+      "earning_entries_pending"
     ],
     "listRiderPayouts": [
-      "payout_draft",
-      "payout_failed",
-      "payout_held",
+      "payout_list_draft_paid",
       "payout_list_empty",
-      "payout_paid",
-      "payout_ready",
-      "payout_transferred",
-      "payout_transferring"
+      "payout_list_every_state",
+      "payout_list_multi_problem"
     ],
     "listStaff": [
-      "staff_list"
+      "staff_list",
+      "staff_list_edge_rows",
+      "staff_list_one_super_admin",
+      "staff_list_page_2"
     ],
     "login": [
       "error_account_not_active",
+      "error_account_temporarily_locked",
+      "error_invalid_credentials",
+      "error_invalid_credentials_email_verification_required",
+      "session_grant_admin",
       "session_grant_customer",
       "session_grant_staff",
+      "session_grant_super_admin",
+      "session_grant_support_agent",
       "session_next_route_active_delivery",
       "session_next_route_app_update_required",
       "session_next_route_home",
@@ -8601,7 +11376,9 @@
       "session_next_route_onboarding_rejected",
       "session_next_route_order_tracking",
       "session_next_route_profile_capture",
-      "session_next_route_suspended"
+      "session_next_route_suspended",
+      "session_next_route_suspended_banned",
+      "session_next_route_suspended_deleted"
     ],
     "markOrderReady": [
       "restaurant_order_picked_up",
@@ -8623,6 +11400,13 @@
       "halal_issuing_body_suspended"
     ],
     "recordHalalChecks": [
+      "error_check_not_overridable",
+      "halal_certificate_pending_h5_computed_fail",
+      "halal_certificate_pending_h7_duplicate",
+      "halal_certificate_pending_issuer_suspended",
+      "halal_certificate_pending_scope_supplier_chain",
+      "halal_certificate_pending_transcribed_unchecked",
+      "halal_certificate_pending_untranscribed",
       "halal_certificate_status_approved",
       "halal_certificate_status_expired",
       "halal_certificate_status_pending",
@@ -8631,12 +11415,16 @@
       "halal_certificate_status_superseded"
     ],
     "refreshSession": [
+      "error_account_banned",
       "error_account_suspended",
       "error_refresh_reuse_detected",
       "error_session_expired",
       "error_session_revoked",
+      "session_grant_admin",
       "session_grant_customer",
       "session_grant_staff",
+      "session_grant_super_admin",
+      "session_grant_support_agent",
       "session_next_route_active_delivery",
       "session_next_route_app_update_required",
       "session_next_route_home",
@@ -8644,10 +11432,14 @@
       "session_next_route_onboarding_rejected",
       "session_next_route_order_tracking",
       "session_next_route_profile_capture",
-      "session_next_route_suspended"
+      "session_next_route_suspended",
+      "session_next_route_suspended_banned",
+      "session_next_route_suspended_deleted"
     ],
     "registerRestaurant": [
+      "error_email_already_registered",
       "error_register_restaurant_rate_limited",
+      "error_terms_version_stale",
       "restaurant_registration"
     ],
     "rejectOrder": [
@@ -8664,8 +11456,12 @@
       "handoff_tamper_report"
     ],
     "requestOtp": [
+      "error_invalid_phone",
+      "error_otp_rate_limited_with_retry",
       "error_rate_limiter_unavailable",
-      "otp_challenge"
+      "error_unsupported_country",
+      "otp_challenge",
+      "otp_challenge_resend_open"
     ],
     "resetPassword": [
       "error_breached_password",
@@ -8736,10 +11532,15 @@
       "restaurant_open_state_closed_offline",
       "restaurant_open_state_closed_suspended",
       "restaurant_open_state_closed_toggle",
+      "restaurant_open_state_closed_toggle_auto_off",
       "restaurant_open_state_open",
-      "restaurant_open_state_paused"
+      "restaurant_open_state_paused",
+      "restaurant_open_state_paused_until_closing"
     ],
     "setRestaurantHours": [
+      "restaurant_hours_none",
+      "restaurant_hours_special_dates",
+      "restaurant_hours_split_past_midnight",
       "restaurant_hours_standard"
     ],
     "setRiderAvailability": [
@@ -8757,6 +11558,7 @@
       "error_cannot_go_online_payout_account_incomplete",
       "error_onboarding_incomplete",
       "error_payout_account_incomplete",
+      "rider_availability_go_offline_after_delivery",
       "rider_availability_offline",
       "rider_availability_on_delivery",
       "rider_availability_online_idle",
@@ -8824,14 +11626,30 @@
       "rider_vehicle_scooter"
     ],
     "takeNextRestaurantApplication": [
+      "restaurant_application_changes_requested",
+      "restaurant_application_claimed_by_other",
+      "restaurant_application_no_certificate",
       "restaurant_application_none_to_take",
-      "restaurant_application_pending_review"
+      "restaurant_application_pending_review",
+      "restaurant_application_withdrawn"
     ],
     "takeNextRiderApplication": [
+      "rider_application_attempt_3",
+      "rider_application_attempt_4",
+      "rider_application_bicycle",
+      "rider_application_claimed_by_other",
       "rider_application_none_to_take",
-      "rider_application_pending_review"
+      "rider_application_on_foot",
+      "rider_application_pending_review",
+      "rider_application_under_18"
     ],
     "transcribeHalalCertificate": [
+      "halal_certificate_pending_h5_computed_fail",
+      "halal_certificate_pending_h7_duplicate",
+      "halal_certificate_pending_issuer_suspended",
+      "halal_certificate_pending_scope_supplier_chain",
+      "halal_certificate_pending_transcribed_unchecked",
+      "halal_certificate_pending_untranscribed",
       "halal_certificate_status_approved",
       "halal_certificate_status_expired",
       "halal_certificate_status_pending",
@@ -8876,7 +11694,12 @@
       "error_verification_token_used"
     ],
     "verifyOtp": [
+      "error_otp_incorrect",
+      "error_otp_incorrect_attempts_0",
+      "error_otp_incorrect_attempts_2",
+      "error_otp_incorrect_no_count",
       "error_otp_invalid_or_expired",
+      "error_otp_rate_limited_with_retry",
       "error_rate_limiter_unavailable",
       "session_grant_customer",
       "session_next_route_active_delivery",
@@ -8886,7 +11709,9 @@
       "session_next_route_onboarding_rejected",
       "session_next_route_order_tracking",
       "session_next_route_profile_capture",
-      "session_next_route_suspended"
+      "session_next_route_suspended",
+      "session_next_route_suspended_banned",
+      "session_next_route_suspended_deleted"
     ],
     "verifyTotpEnrolment": [
       "error_totp_code_incorrect"
@@ -8909,6 +11734,7 @@
     "createAssignmentTransition": "assignment_picked_up",
     "createCertificateViewUrl": "presigned_download",
     "createConnectAccount": "connect_status_complete",
+    "createConnectOnboardingLink": "connect_onboarding_link",
     "createDocumentDownloadUrl": "presigned_download",
     "createMenuCategory": "menu_category_created",
     "createMenuCategoryOnBehalf": "menu_category_created",
@@ -8991,7 +11817,7 @@
     "listRiderApplications": "rider_application_queue",
     "listRiderDocuments": "rider_document_pack_complete",
     "listRiderEarningEntries": "earning_entries_mixed",
-    "listRiderPayouts": "payout_paid",
+    "listRiderPayouts": "payout_list_draft_paid",
     "listStaff": "staff_list",
     "login": "session_grant_customer",
     "markOrderReady": "restaurant_order_ready_for_pickup",

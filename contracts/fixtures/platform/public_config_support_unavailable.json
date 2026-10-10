@@ -1,0 +1,35 @@
+{
+  "scenario": "public_config_support_unavailable",
+  "domain": "platform",
+  "schema": "PublicConfig",
+  "describes": "Support is switched off (`support_enabled: false`): no phone number and no hours. Every \"Contact support\" control is hidden, never a dead number.",
+  "operations": [
+    "getPublicConfig"
+  ],
+  "status": 200,
+  "tags": [
+    "platform",
+    "edge"
+  ],
+  "payload": {
+    "currency": "CAD",
+    "served_provinces": [
+      "ON"
+    ],
+    "ordering": {
+      "paused": false,
+      "paused_since": null
+    },
+    "quote_ttl_seconds": 11,
+    "restaurant_response_window_seconds": 180,
+    "max_tip_cents": 1695,
+    "support_enabled": false,
+    "support_phone_e164": null,
+    "support_hours": null,
+    "default_map_center": {
+      "latitude": 43.6199,
+      "longitude": -79.6033
+    },
+    "terms_version": "2026-05-01"
+  }
+}

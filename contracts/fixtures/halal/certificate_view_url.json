@@ -1,0 +1,18 @@
+{
+  "scenario": "certificate_view_url",
+  "domain": "halal",
+  "schema": "PresignedDownload",
+  "describes": "The certificate image: a presigned link that expires in 300 s (the halal-certificate maximum). Fetch it at once; never cache or share it. Contract-only in part: `CertificationPanel` does not say which it is, so the app learns PDF or image from the link.",
+  "operations": [
+    "createCertificateViewUrl"
+  ],
+  "status": 200,
+  "tags": [
+    "customer",
+    "halal"
+  ],
+  "payload": {
+    "url": "https://files.halalgoes.ca/certificates/karachi-kitchen/hma-on-40182.jpg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Expires=300&X-Amz-Signature=9f2c4e",
+    "expires_at": "2026-08-10T18:47:11.412Z"
+  }
+}

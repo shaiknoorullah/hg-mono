@@ -48,43 +48,54 @@ These are the rules the existing names already follow; new fixtures follow them 
 
 | Prefix | Fixtures | The suffix names | Example |
 |---|---:|---|---|
-| `error_` | 104 | `error_<code>` for a code's plain meaning; `error_<context>_<situation>` when one code means several things (`error_menu_locked_banned`, `error_staff_email_in_use`). Status and code live in the fixture, never only in the name. | `error_quote_stale` |
-| `realtime_` | 22 | `realtime_<area>_<story>`: a whole WebSocket script, played over one connection. Areas: `order`, `payment`, `rider`, `restaurant`, `admin_ops`, plus the transport stories `gap_and_resume` and `control_frames`. | `realtime_restaurant_offer_burst` |
+| `error_` | 130 | `error_<code>` for a code's plain meaning; `error_<context>_<situation>` when one code means several things (`error_menu_locked_banned`, `error_staff_email_in_use`). Status and code live in the fixture, never only in the name. | `error_quote_stale` |
+| `realtime_` | 24 | `realtime_<area>_<story>`: a whole WebSocket script, played over one connection. Areas: `order`, `payment`, `rider`, `restaurant`, `admin_ops`, plus the transport stories `gap_and_resume` and `control_frames`. | `realtime_restaurant_offer_burst` |
 | `realtime_ticket` | 1 | Not a script: the single-use ticket `createRealtimeTicket` returns. | `realtime_ticket` |
-| `order_admin_view_` | 4 | An `OrderState` (lower case) as the staff projection shows it. | `order_admin_view_disputed` |
-| `order_list_` | 3 | A list variant: `active`, `past`, `empty`. | `order_list_active` |
+| `order_admin_view_` | 20 | An `OrderState` (lower case) as the staff projection shows it. | `order_admin_view_disputed` |
+| `order_list_` | 5 | A list variant: `active`, `past`, `empty`. | `order_list_active` |
 | `order_rating_` | 3 | A rating state. | `order_rating_unrated` |
 | `order_` | 23 | An `OrderState`, lower case, in the customer projection (`order_ready_for_pickup`), or a money or shape edge (`order_zero_tip`). | `order_arrived` |
-| `restaurant_order_` | 8 | An `OrderState` in the restaurant projection, or the queue (`_queue_busy`, `_queue_empty`). | `restaurant_order_preparing` |
+| `restaurant_order_` | 17 | An `OrderState` in the restaurant projection, or the queue (`_queue_busy`, `_queue_empty`). | `restaurant_order_preparing` |
 | `tracking_` | 9 | An `OrderState` (or a degraded signal) in the tracking projection. | `tracking_picked_up` |
 | `assignment_` | 14 | An `AssignmentState`, lower case, or a drop-off instruction edge. | `assignment_arrived_at_pickup` |
 | `dispatch_` | 10 | A `DispatchState`, lower case. | `dispatch_searching` |
 | `offer_` | 7 | A rider offer outcome. | `offer_pending` |
 | `payment_` | 11 | A `PaymentState`, lower case, or saved methods. | `payment_requires_action` |
-| `refund_` | 14 | A `RefundState` in the customer view. | `refund_settled` |
-| `admin_refund_` | 13 | A `RefundState` or queue in the staff view. | `admin_refund_queue` |
+| `refund_` | 15 | A `RefundState` in the customer view. | `refund_settled` |
+| `admin_refund_` | 14 | A `RefundState` or queue in the staff view. | `admin_refund_queue` |
 | `chargeback_` | 12 | A chargeback state or list. | `chargeback_needs_response` |
 | `halal_badge_` | 4 | A `HalalDisplayState`, lower case. | `halal_badge_expiring_soon` |
-| `certification_panel_` | 4 | A `HalalDisplayState` in the customer certification panel. | `certification_panel_certified` |
-| `halal_certificate_` | 10 | A certificate status or expiry edge (staff view). | `halal_certificate_status_pending` |
-| `halal_issuing_bod` | 7 | An issuing-body status or list. | `halal_issuing_body_suspended` |
-| `restaurant_detail_` | 6 | A `HalalDisplayState` or availability edge on the customer restaurant page. | `restaurant_detail_expiring_soon` |
+| `certification_panel_` | 6 | A `HalalDisplayState` in the customer certification panel. | `certification_panel_certified` |
+| `halal_certificate_` | 17 | A certificate status or expiry edge (staff view). | `halal_certificate_status_pending` |
+| `halal_issuing_bod` | 8 | An issuing-body status or list. | `halal_issuing_body_suspended` |
+| `restaurant_detail_` | 9 | A `HalalDisplayState` or availability edge on the customer restaurant page. | `restaurant_detail_expiring_soon` |
 | `restaurant_availability_` | 5 | The customer availability answer. | `restaurant_availability_paused` |
-| `restaurant_open_state_` | 7 | A `RestaurantOpenState`, lower case. | `restaurant_open_state_closed_suspended` |
+| `restaurant_open_state_` | 9 | A `RestaurantOpenState`, lower case. | `restaurant_open_state_closed_suspended` |
 | `restaurant_profile_account_` | 7 | A `RestaurantAccountState`, lower case. | `restaurant_profile_account_suspended` |
 | `restaurant_profile_halal_` | 5 | A `HalalDisplayState`, lower case, or `missing` (no `halal` object). | `restaurant_profile_halal_missing` |
 | `restaurant_onboarding_` | 11 | A `RestaurantOnboardingState`, lower case. | `restaurant_onboarding_documents_review` |
 | `rider_onboarding_` | 10 | A `RiderOnboardingState`, lower case. | `rider_onboarding_vehicle_pending` |
-| `restaurant_application_` | 5 | An application in the staff review queue. | `restaurant_application_pending_review` |
-| `rider_application_` | 5 | An application in the staff review queue. | `rider_application_pending_review` |
+| `restaurant_application_` | 9 | An application in the staff review queue. | `restaurant_application_pending_review` |
+| `rider_application_` | 11 | An application in the staff review queue. | `rider_application_pending_review` |
 | `document_` | 12 | A `KycDocumentState` or rejection reason. | `document_rejected_illegible` |
-| `session_next_route_` | 8 | A `NextRoute`, lower case. | `session_next_route_suspended` |
-| `session_grant_` | 3 | Who was signed in. | `session_grant_staff` |
-| `principal_` | 5 | The signed-in principal, by role (`principal_<role>`). | `principal_support_agent` |
-| `menu_` | 27 | A menu, item, category or version state. | `menu_version_pending_review` |
-| `rider_availability_` | 4 | A `RiderAvailabilityState`, lower case. | `rider_availability_online_idle` |
-| `payout_` | 15 | A `PayoutState`, lower case, or a payout run. | `payout_held` |
-| (other) | 98 | One-off subjects named for what they are (`public_config`, `cart_many_lines`, `quote_standard`). | `public_config` |
+| `session_next_route_` | 10 | A `NextRoute`, lower case. | `session_next_route_suspended` |
+| `session_grant_` | 6 | Who was signed in. | `session_grant_staff` |
+| `principal_` | 6 | The signed-in principal, by role (`principal_<role>`). | `principal_support_agent` |
+| `menu_` | 28 | A menu, item, category or version state. | `menu_version_pending_review` |
+| `rider_availability_` | 5 | A `RiderAvailabilityState`, lower case. | `rider_availability_online_idle` |
+| `payout_` | 20 | A `PayoutState`, lower case, or a payout run. | `payout_held` |
+| `payout_list_` | 4 | A rider payout list (`_every_state`, `_multi_problem`, `_draft_paid`). | `payout_list_every_state` |
+| `rider_dashboard_` | 19 | Rider Home: a `RiderAvailabilityState` (lower case), a `TrackingHealth` problem, a blocking reason or a delivery leg. | `rider_dashboard_online_stale` |
+| `connect_status_` | 9 | A Stripe Connect requirement state, in Stripe's words (`currently_due`, `past_due`, `pending_verification`). | `connect_status_past_due` |
+| `earnings_summary_` | 5 | An `EarningsPeriod`, lower case, or a money edge. | `earnings_summary_day` |
+| `earning_entries_` | 6 | A rider ledger page or situation (`_paging`, `_clawback`, `_pending`). | `earning_entries_clawback` |
+| `restaurant_list_` | 11 | A customer home list: halal-field gaps, sort order, availability mix, a page. | `restaurant_list_partial_halal` |
+| `restaurant_hours_` | 4 | An opening-hours shape. | `restaurant_hours_split_past_midnight` |
+| `restaurant_payout_history` | 4 | A restaurant's payout list or one of its pages. | `restaurant_payout_history_every_state` |
+| `owned_menu_` | 4 | The restaurant's own menu, as its editor reads it. | `owned_menu_every_review_status` |
+| `order_admin_list_` | 3 | A staff order list variant. | `order_admin_list_every_state` |
+| `staff_list` | 4 | A platform staff list variant. | `staff_list_edge_rows` |
+| (other) | 94 | One-off subjects named for what they are (`public_config`, `cart_many_lines`, `quote_standard`). | `public_config` |
 
 ## 2. How one scenario is chosen per operation (the mock server)
 
@@ -163,6 +174,7 @@ countdown in the client is live. `MOCK_WS_SPEED=0.2` plays five times faster.
 
 Fixtures whose `describes` says "Contract-only:": `services/hg` cannot produce them, so they have no layer B journey yet.
 
+- `error_account_banned`
 - `error_account_suspended`
 - `error_active_delivery_in_progress`
 - `error_address_in_use`
@@ -175,7 +187,32 @@ Fixtures whose `describes` says "Contract-only:": `services/hg` cannot produce t
 - `error_cannot_go_online_notification_permission`
 - `error_cannot_go_online_onboarding_incomplete`
 - `error_cannot_go_online_payout_account_incomplete`
+- `error_connect_status_not_found`
 - `error_nothing_to_resubmit`
+- `error_order_admin_cancel_rate_limited`
+- `error_otp_rate_limited_with_retry`
 - `error_profile_incomplete`
+- `error_review_lock_lost`
+- `error_unsupported_country`
+- `order_admin_view_masked`
 - `realtime_admin_ops_queue_depth`
 - `realtime_admin_ops_reconciliation_exception`
+- `realtime_restaurant_auto_off`
+- `restaurant_open_state_closed_toggle_auto_off`
+- `rider_dashboard_offline_blocked`
+- `rider_dashboard_offline_blocked_account_not_active`
+- `rider_dashboard_offline_blocked_background_location_permission`
+- `rider_dashboard_offline_blocked_continuous_online_cap`
+- `rider_dashboard_offline_blocked_document_expired`
+- `rider_dashboard_offline_blocked_foreground_location_permission`
+- `rider_dashboard_offline_blocked_notification_permission`
+- `rider_dashboard_offline_blocked_onboarding_incomplete`
+- `rider_dashboard_offline_blocked_payout_account_incomplete`
+- `rider_dashboard_offline_blocked_stale_location_fix`
+- `rider_dashboard_on_delivery_dropoff`
+- `rider_dashboard_on_delivery_pickup`
+- `rider_dashboard_online_stale`
+- `rider_dashboard_tracking_degraded`
+- `rider_dashboard_tracking_lost`
+- `session_next_route_suspended_banned`
+- `session_next_route_suspended_deleted`

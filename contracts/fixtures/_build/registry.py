@@ -51,7 +51,8 @@ DEFAULT_SCENARIO: dict[str, str] = {
     "getRiderDashboard": "rider_dashboard_active",
     "getRiderEarningsSummary": "earnings_summary_week",
     "listRiderEarningEntries": "earning_entries_mixed",
-    "listRiderPayouts": "payout_paid",
+    # Was `payout_paid`, a single Payout served for a list (issue #708).
+    "listRiderPayouts": "payout_list_draft_paid",
     "listRestaurantPayouts": "restaurant_payout_history",
     "getRiderPayout": "payout_detail_paid",
     "createPayoutRun": "payout_run_queued",
@@ -68,8 +69,10 @@ DEFAULT_SCENARIO: dict[str, str] = {
     "reviewRestaurantDocument": "document_approved",
     "reviewRiderDocument": "document_approved",
     "getHalalCertificate": "halal_certificate_valid",
-    "decideHalalCertificate": "halal_certificate_valid",
-    "recordHalalChecks": "halal_certificate_valid",
+    # `halal_certificate_valid` is not registered for it; this is what the mock served.
+    "decideHalalCertificate": "halal_certificate_status_approved",
+    # `halal_certificate_valid` is not registered for it; this is what the mock served.
+    "recordHalalChecks": "halal_certificate_status_approved",
     "transcribeHalalCertificate": "halal_certificate_status_pending",
     "listHalalIssuingBodies": "halal_issuing_body_accepted",
     "getRestaurantAvailability": "restaurant_open_state_open",
@@ -104,6 +107,13 @@ DEFAULT_SCENARIO: dict[str, str] = {
     "changePassword": "session_grant_password_changed",
     "getConnectStatus": "connect_status_complete",
     "confirmUpload": "stored_object_ready",
+    # Batch 2 added certificate links that would otherwise win on name order.
+    "createCertificateViewUrl": "presigned_download",
+    "getOwnMenu": "owned_menu_with_pending_version",
+    "getRestaurantHours": "restaurant_hours_standard",
+    "setRestaurantHours": "restaurant_hours_standard",
+    "login": "session_grant_customer",
+    "refreshSession": "session_grant_customer",
     # Staff principals and the restaurant profile matrix share these operations; the
     # plain customer and LIVE + CERTIFIED shapes stay the defaults.
     "getCurrentPrincipal": "principal_customer",

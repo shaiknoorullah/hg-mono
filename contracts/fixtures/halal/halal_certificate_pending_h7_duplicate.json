@@ -1,0 +1,109 @@
+{
+  "scenario": "halal_certificate_pending_h7_duplicate",
+  "domain": "halal",
+  "schema": "HalalCertificate",
+  "describes": "The same certificate number from the same issuer is already on another restaurant's approved certificate: `H7_UNIQUE_NOT_REUSED` computes FAIL. Not overridable; reject with `DUPLICATE_CERTIFICATE`.",
+  "operations": [
+    "getHalalCertificate",
+    "recordHalalChecks",
+    "transcribeHalalCertificate",
+    "decideHalalCertificate"
+  ],
+  "status": 200,
+  "tags": [
+    "admin",
+    "halal",
+    "certificate",
+    "error-path"
+  ],
+  "payload": {
+    "id": "7a92b9ae-53f8-4ba0-a245-060ce5106ff7",
+    "restaurant_id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+    "document_id": "39eb329b-b52c-4f76-ac3f-3f40f1108f6f",
+    "certificate_number": "HMA-ON-40118",
+    "issuing_body": {
+      "id": "2a5c05d7-d3df-442b-a992-b6cce917d419",
+      "name": "Halal Monitoring Authority (HMA Canada)",
+      "aliases": [
+        "HMA",
+        "HMA Canada"
+      ],
+      "country": "CA",
+      "region": "ON",
+      "website": "https://www.hmacanada.org",
+      "accreditation_ref": null,
+      "requires_issuer_confirmation": false,
+      "status": "ACCEPTED",
+      "notes": null
+    },
+    "certified_legal_name": "Karachi Kitchen Inc.",
+    "certified_address": "1245 Danforth Avenue, Toronto, ON M4J 1M8",
+    "scope": "WHOLE_ESTABLISHMENT",
+    "issued_on": "2026-07-11",
+    "expires_on": "2027-07-11",
+    "status": "PENDING",
+    "checklist_version": 1,
+    "checks": [
+      {
+        "check_key": "H1_LEGIBLE_COMPLETE",
+        "result": "NOT_ASSESSED",
+        "computed_result": "NOT_ASSESSED",
+        "overridable": true,
+        "note": null,
+        "checked_at": null
+      },
+      {
+        "check_key": "H2_ISSUER_ACCEPTED",
+        "result": "NOT_ASSESSED",
+        "computed_result": "PASS",
+        "overridable": true,
+        "note": null,
+        "checked_at": null
+      },
+      {
+        "check_key": "H3_NAME_MATCH",
+        "result": "NOT_ASSESSED",
+        "computed_result": "NOT_ASSESSED",
+        "overridable": true,
+        "note": null,
+        "checked_at": null
+      },
+      {
+        "check_key": "H4_ADDRESS_MATCH",
+        "result": "NOT_ASSESSED",
+        "computed_result": "NOT_ASSESSED",
+        "overridable": true,
+        "note": null,
+        "checked_at": null
+      },
+      {
+        "check_key": "H5_DATES_VALID",
+        "result": "NOT_ASSESSED",
+        "computed_result": "PASS",
+        "overridable": false,
+        "note": null,
+        "checked_at": null
+      },
+      {
+        "check_key": "H6_SCOPE_SUFFICIENT",
+        "result": "NOT_ASSESSED",
+        "computed_result": "PASS",
+        "overridable": true,
+        "note": null,
+        "checked_at": null
+      },
+      {
+        "check_key": "H7_UNIQUE_NOT_REUSED",
+        "result": "FAIL",
+        "computed_result": "FAIL",
+        "overridable": false,
+        "note": "Number already approved for Lahore Tikka Corner.",
+        "checked_at": "2026-08-10T18:22:11.412Z"
+      }
+    ],
+    "rejection_reason_code": null,
+    "rejection_reason_text": null,
+    "verified_by": null,
+    "verified_at": null
+  }
+}

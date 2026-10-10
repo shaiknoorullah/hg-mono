@@ -1,0 +1,40 @@
+{
+  "scenario": "session_next_route_suspended_banned",
+  "domain": "platform",
+  "schema": "SessionGrant",
+  "describes": "`next_route = SUSPENDED` with `principal.status: BANNED`. The account is banned: the same dead end as suspended, with no appeal route in the copy. Contract-only: `services/hg` issues no session to an account that is not `ACTIVE`; it answers sign-in with `403 ACCOUNT_NOT_ACTIVE` (`error_account_not_active`).",
+  "operations": [
+    "verifyOtp",
+    "login",
+    "refreshSession"
+  ],
+  "status": 200,
+  "tags": [
+    "platform",
+    "auth",
+    "state-matrix",
+    "error-path"
+  ],
+  "payload": {
+    "access_token": "Access Token",
+    "refresh_token": "Refresh Token",
+    "expires_in": 12,
+    "is_new_account": true,
+    "principal": {
+      "account_id": "bb386f17-bf56-478d-a244-5378c427e0c3",
+      "session_id": "c7763472-583f-41e6-aaf2-26ad7f4b3d08",
+      "roles": [
+        {
+          "role": "CUSTOMER",
+          "scope_type": "GLOBAL",
+          "scope_id": "d3c0cb85-5895-49bd-ae18-8c6eef0d4e6c"
+        }
+      ],
+      "amr": "otp",
+      "status": "BANNED",
+      "locale": "en-CA",
+      "timezone": "America/Toronto",
+      "next_route": "SUSPENDED"
+    }
+  }
+}

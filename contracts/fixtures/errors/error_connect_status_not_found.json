@@ -1,0 +1,23 @@
+{
+  "scenario": "error_connect_status_not_found",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`404` · `NOT_FOUND`. The 404 the contract allows on `getConnectStatus`. Contract-only: `services/hg` answers a partner with no Stripe account with `connect_status_not_started` (200) instead; treat both as \"not set up\".",
+  "operations": [
+    "getConnectStatus"
+  ],
+  "status": 404,
+  "tags": [
+    "error-envelope",
+    "error-path",
+    "rider",
+    "restaurant"
+  ],
+  "payload": {
+    "error": {
+      "code": "NOT_FOUND",
+      "message": "No payout account exists for this partner.",
+      "request_id": "RXTRBNTAVEC9E4N6XR6E61TJ4E"
+    }
+  }
+}

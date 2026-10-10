@@ -1,0 +1,31 @@
+{
+  "scenario": "error_invalid_phone",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`422` · `INVALID_PHONE`. `requestOtp` with a number that is not E.164 (`+` and 8 to 15 digits). Exactly the body `services/hg` sends: one `FieldError` on `phone_e164`.",
+  "operations": [
+    "requestOtp"
+  ],
+  "status": 422,
+  "tags": [
+    "error-envelope",
+    "error-path",
+    "rider",
+    "customer",
+    "auth"
+  ],
+  "payload": {
+    "error": {
+      "code": "INVALID_PHONE",
+      "message": "The phone number is not a valid E.164 number.",
+      "request_id": "Y4FY3Z8AGRSTN8MBPPR0YTX69B",
+      "details": [
+        {
+          "field": "phone_e164",
+          "code": "format",
+          "message": "must be E.164, e.g. +14165550123"
+        }
+      ]
+    }
+  }
+}

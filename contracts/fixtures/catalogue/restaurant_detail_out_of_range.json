@@ -1,0 +1,112 @@
+{
+  "scenario": "restaurant_detail_out_of_range",
+  "domain": "catalogue",
+  "schema": "RestaurantDetail",
+  "describes": "Restaurant detail with `availability.state = OUT_OF_RANGE`. 21.4 km from the selected address, with the server's `out_of_range_reason` copy. Browsable; ordering is blocked.",
+  "operations": [
+    "getRestaurant"
+  ],
+  "status": 200,
+  "tags": [
+    "customer",
+    "state-matrix"
+  ],
+  "payload": {
+    "id": "0aa5f4b0-7dd1-4fbb-ab88-39fd9247a0e4",
+    "name": "Barakah Charcoal Grill",
+    "slug": "barakah-charcoal-grill",
+    "hero_image_url": "https://cdn.halalgoes.ca/img/restaurant/hero/barakah-charcoal-grill.webp",
+    "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/barakah-charcoal-grill.webp",
+    "cuisines": [
+      "Pakistani",
+      "Biryani",
+      "Halal"
+    ],
+    "rating_avg": 4.8,
+    "rating_count": 412,
+    "price_band": "$$",
+    "halal": {
+      "display_state": "CERTIFIED",
+      "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+      "expires_on": "2027-03-09"
+    },
+    "availability": {
+      "state": "OUT_OF_RANGE",
+      "opens_at": "2026-08-10T12:24:11.412Z",
+      "closes_at": "2026-08-10T22:00:11.412Z",
+      "eta_min_minutes": null,
+      "eta_max_minutes": null,
+      "indicative_delivery_fee_cents": null,
+      "minimum_order_cents": 1500,
+      "distance_m": 21400,
+      "out_of_range_reason": "This kitchen delivers within 12 km. You are 21.4 km away."
+    },
+    "description": "A Danforth institution since 2011. Charcoal grill, hand-pounded masala, and a kitchen that has been HMA-certified every year we have traded.",
+    "address": {
+      "line1": "4141 Dixie Road",
+      "line2": null,
+      "city": "Mississauga",
+      "province": "ON",
+      "postal_code": "L4W 1V5",
+      "latitude": 43.6199,
+      "longitude": -79.6033
+    },
+    "timezone": "America/Toronto",
+    "public_phone_e164": "+14165550142",
+    "certification": {
+      "display_state": "CERTIFIED",
+      "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+      "certificate_number": "HMA-ON-40182",
+      "scope": "WHOLE_ESTABLISHMENT",
+      "issued_on": "2026-03-09",
+      "expires_on": "2027-03-09",
+      "verified_at": "2026-03-11T18:42:11.412Z",
+      "certificate_viewable": true,
+      "disclaimer": "Certification verified by HalalGoes on 11 March 2026. HalalGoes does not itself certify food."
+    },
+    "hours": [
+      {
+        "day_of_week": 0,
+        "opens_at": "12:00",
+        "closes_at": "21:00",
+        "crosses_midnight": false
+      },
+      {
+        "day_of_week": 1,
+        "opens_at": "11:00",
+        "closes_at": "22:00",
+        "crosses_midnight": false
+      },
+      {
+        "day_of_week": 2,
+        "opens_at": "11:00",
+        "closes_at": "22:00",
+        "crosses_midnight": false
+      },
+      {
+        "day_of_week": 3,
+        "opens_at": "11:00",
+        "closes_at": "22:00",
+        "crosses_midnight": false
+      },
+      {
+        "day_of_week": 4,
+        "opens_at": "11:00",
+        "closes_at": "22:00",
+        "crosses_midnight": false
+      },
+      {
+        "day_of_week": 5,
+        "opens_at": "11:00",
+        "closes_at": "01:00",
+        "crosses_midnight": true
+      },
+      {
+        "day_of_week": 6,
+        "opens_at": "11:00",
+        "closes_at": "01:00",
+        "crosses_midnight": true
+      }
+    ]
+  }
+}

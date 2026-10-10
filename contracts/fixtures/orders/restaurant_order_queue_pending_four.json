@@ -1,0 +1,385 @@
+{
+  "scenario": "restaurant_order_queue_pending_four",
+  "domain": "orders",
+  "schema": "array<OrderRestaurantView>",
+  "describes": "Four offers waiting, sorted by `deadline_at` ascending (25, 70, 120 and 170 seconds left), the server's order. The same orders and codes as `realtime_restaurant_offer_burst`. No delivery address on any of them yet.",
+  "operations": [
+    "listRestaurantOrders"
+  ],
+  "status": 200,
+  "tags": [
+    "restaurant",
+    "dense"
+  ],
+  "meta": {
+    "next_cursor": null,
+    "has_more": false,
+    "total": 4
+  },
+  "payload": [
+    {
+      "id": "11cd6318-418f-4301-af7e-3e7f33818fa8",
+      "code": "HG-A7K2-4M",
+      "state": "RESTAURANT_PENDING",
+      "deadline_at": "2026-08-10T18:42:36.412Z",
+      "promised_ready_at": null,
+      "customer": {
+        "display_name": "Ayesha R.",
+        "phone_masked": "+1 416 ••• 0142"
+      },
+      "delivery_area": "Greektown",
+      "delivery_address": null,
+      "delivery_instructions": [
+        "LEAVE_AT_DOOR",
+        "DO_NOT_RING_BELL"
+      ],
+      "special_instructions": "Please leave it on the mat, not the shoe rack.",
+      "lines": [
+        {
+          "line_no": 1,
+          "menu_item_id": "e3723319-f51b-42f0-a693-8c9eb954bb0f",
+          "name": "Chicken Biryani",
+          "variant_name": null,
+          "variants": [],
+          "addons": [],
+          "quantity": 1,
+          "special_request": null,
+          "unit_price_cents": 1695,
+          "line_total_cents": 1695,
+          "currency": "CAD"
+        },
+        {
+          "line_no": 2,
+          "menu_item_id": "260778de-cee3-4a79-ad10-f79f5e9ab98e",
+          "name": "Beef Nihari",
+          "variant_name": "Full",
+          "variants": [
+            {
+              "variant_group_id": "e85bf673-4e6a-48a3-a171-fa397e45e9dc",
+              "group_name": "Portion",
+              "variant_id": "e2b1737f-75fc-43ed-af76-4bcfbb941301",
+              "variant_name": "Full",
+              "pricing_mode": "ABSOLUTE",
+              "price_cents": 3695,
+              "delta_cents": null
+            }
+          ],
+          "addons": [],
+          "quantity": 1,
+          "special_request": "Extra gravy on the side",
+          "unit_price_cents": 3695,
+          "line_total_cents": 3695,
+          "currency": "CAD"
+        },
+        {
+          "line_no": 3,
+          "menu_item_id": "456616ee-e1fc-4a94-aa83-3b1c726ff23d",
+          "name": "Chicken Karahi (Half)",
+          "variant_name": null,
+          "variants": [],
+          "addons": [
+            {
+              "addon_id": "8e05bcf1-8b4f-4578-ac6d-92f90d1cdf6f",
+              "addon_name": "Garlic naan",
+              "addon_quantity": 2,
+              "addon_price_cents": 349
+            }
+          ],
+          "quantity": 1,
+          "special_request": null,
+          "unit_price_cents": 2597,
+          "line_total_cents": 2597,
+          "currency": "CAD"
+        }
+      ],
+      "money": {
+        "subtotal_cents": 7987,
+        "discount_cents": 0,
+        "commission_cents": 0,
+        "restaurant_net_cents": 7987,
+        "total_cents": 10684,
+        "currency": "CAD"
+      },
+      "rider": null,
+      "pickup_code": null,
+      "elapsed_seconds": 155,
+      "is_late": false,
+      "placed_at": "2026-08-10T18:10:11.412Z",
+      "accepted_at": null,
+      "ready_at": null
+    },
+    {
+      "id": "bee84871-8c40-47d3-ad99-2d0880ff42cb",
+      "code": "HG-B3Q9-7T",
+      "state": "RESTAURANT_PENDING",
+      "deadline_at": "2026-08-10T18:43:21.412Z",
+      "promised_ready_at": null,
+      "customer": {
+        "display_name": "Bilal S.",
+        "phone_masked": "+1 416 ••• 0142"
+      },
+      "delivery_area": "Greektown",
+      "delivery_address": null,
+      "delivery_instructions": [
+        "LEAVE_AT_DOOR",
+        "DO_NOT_RING_BELL"
+      ],
+      "special_instructions": "Please leave it on the mat, not the shoe rack.",
+      "lines": [
+        {
+          "line_no": 1,
+          "menu_item_id": "e3723319-f51b-42f0-a693-8c9eb954bb0f",
+          "name": "Chicken Biryani",
+          "variant_name": null,
+          "variants": [],
+          "addons": [],
+          "quantity": 1,
+          "special_request": null,
+          "unit_price_cents": 1695,
+          "line_total_cents": 1695,
+          "currency": "CAD"
+        },
+        {
+          "line_no": 2,
+          "menu_item_id": "260778de-cee3-4a79-ad10-f79f5e9ab98e",
+          "name": "Beef Nihari",
+          "variant_name": "Full",
+          "variants": [
+            {
+              "variant_group_id": "e85bf673-4e6a-48a3-a171-fa397e45e9dc",
+              "group_name": "Portion",
+              "variant_id": "e2b1737f-75fc-43ed-af76-4bcfbb941301",
+              "variant_name": "Full",
+              "pricing_mode": "ABSOLUTE",
+              "price_cents": 3695,
+              "delta_cents": null
+            }
+          ],
+          "addons": [],
+          "quantity": 1,
+          "special_request": "Extra gravy on the side",
+          "unit_price_cents": 3695,
+          "line_total_cents": 3695,
+          "currency": "CAD"
+        },
+        {
+          "line_no": 3,
+          "menu_item_id": "456616ee-e1fc-4a94-aa83-3b1c726ff23d",
+          "name": "Chicken Karahi (Half)",
+          "variant_name": null,
+          "variants": [],
+          "addons": [
+            {
+              "addon_id": "8e05bcf1-8b4f-4578-ac6d-92f90d1cdf6f",
+              "addon_name": "Garlic naan",
+              "addon_quantity": 2,
+              "addon_price_cents": 349
+            }
+          ],
+          "quantity": 1,
+          "special_request": null,
+          "unit_price_cents": 2597,
+          "line_total_cents": 2597,
+          "currency": "CAD"
+        }
+      ],
+      "money": {
+        "subtotal_cents": 7987,
+        "discount_cents": 0,
+        "commission_cents": 0,
+        "restaurant_net_cents": 7987,
+        "total_cents": 10684,
+        "currency": "CAD"
+      },
+      "rider": null,
+      "pickup_code": null,
+      "elapsed_seconds": 110,
+      "is_late": false,
+      "placed_at": "2026-08-10T18:10:11.412Z",
+      "accepted_at": null,
+      "ready_at": null
+    },
+    {
+      "id": "22d6814a-470c-49f0-a279-e9d5f67fb18c",
+      "code": "HG-C8W4-2R",
+      "state": "RESTAURANT_PENDING",
+      "deadline_at": "2026-08-10T18:44:11.412Z",
+      "promised_ready_at": null,
+      "customer": {
+        "display_name": "Fatima K.",
+        "phone_masked": "+1 416 ••• 0142"
+      },
+      "delivery_area": "Greektown",
+      "delivery_address": null,
+      "delivery_instructions": [
+        "LEAVE_AT_DOOR",
+        "DO_NOT_RING_BELL"
+      ],
+      "special_instructions": "Please leave it on the mat, not the shoe rack.",
+      "lines": [
+        {
+          "line_no": 1,
+          "menu_item_id": "e3723319-f51b-42f0-a693-8c9eb954bb0f",
+          "name": "Chicken Biryani",
+          "variant_name": null,
+          "variants": [],
+          "addons": [],
+          "quantity": 1,
+          "special_request": null,
+          "unit_price_cents": 1695,
+          "line_total_cents": 1695,
+          "currency": "CAD"
+        },
+        {
+          "line_no": 2,
+          "menu_item_id": "260778de-cee3-4a79-ad10-f79f5e9ab98e",
+          "name": "Beef Nihari",
+          "variant_name": "Full",
+          "variants": [
+            {
+              "variant_group_id": "e85bf673-4e6a-48a3-a171-fa397e45e9dc",
+              "group_name": "Portion",
+              "variant_id": "e2b1737f-75fc-43ed-af76-4bcfbb941301",
+              "variant_name": "Full",
+              "pricing_mode": "ABSOLUTE",
+              "price_cents": 3695,
+              "delta_cents": null
+            }
+          ],
+          "addons": [],
+          "quantity": 1,
+          "special_request": "Extra gravy on the side",
+          "unit_price_cents": 3695,
+          "line_total_cents": 3695,
+          "currency": "CAD"
+        },
+        {
+          "line_no": 3,
+          "menu_item_id": "456616ee-e1fc-4a94-aa83-3b1c726ff23d",
+          "name": "Chicken Karahi (Half)",
+          "variant_name": null,
+          "variants": [],
+          "addons": [
+            {
+              "addon_id": "8e05bcf1-8b4f-4578-ac6d-92f90d1cdf6f",
+              "addon_name": "Garlic naan",
+              "addon_quantity": 2,
+              "addon_price_cents": 349
+            }
+          ],
+          "quantity": 1,
+          "special_request": null,
+          "unit_price_cents": 2597,
+          "line_total_cents": 2597,
+          "currency": "CAD"
+        }
+      ],
+      "money": {
+        "subtotal_cents": 7987,
+        "discount_cents": 0,
+        "commission_cents": 0,
+        "restaurant_net_cents": 7987,
+        "total_cents": 10684,
+        "currency": "CAD"
+      },
+      "rider": null,
+      "pickup_code": null,
+      "elapsed_seconds": 60,
+      "is_late": false,
+      "placed_at": "2026-08-10T18:10:11.412Z",
+      "accepted_at": null,
+      "ready_at": null
+    },
+    {
+      "id": "7cad285e-b3a0-47a5-a8ca-6c25344e6e2a",
+      "code": "HG-D2M6-9K",
+      "state": "RESTAURANT_PENDING",
+      "deadline_at": "2026-08-10T18:45:01.412Z",
+      "promised_ready_at": null,
+      "customer": {
+        "display_name": "Omar O.",
+        "phone_masked": "+1 416 ••• 0142"
+      },
+      "delivery_area": "Greektown",
+      "delivery_address": null,
+      "delivery_instructions": [
+        "LEAVE_AT_DOOR",
+        "DO_NOT_RING_BELL"
+      ],
+      "special_instructions": "Please leave it on the mat, not the shoe rack.",
+      "lines": [
+        {
+          "line_no": 1,
+          "menu_item_id": "e3723319-f51b-42f0-a693-8c9eb954bb0f",
+          "name": "Chicken Biryani",
+          "variant_name": null,
+          "variants": [],
+          "addons": [],
+          "quantity": 1,
+          "special_request": null,
+          "unit_price_cents": 1695,
+          "line_total_cents": 1695,
+          "currency": "CAD"
+        },
+        {
+          "line_no": 2,
+          "menu_item_id": "260778de-cee3-4a79-ad10-f79f5e9ab98e",
+          "name": "Beef Nihari",
+          "variant_name": "Full",
+          "variants": [
+            {
+              "variant_group_id": "e85bf673-4e6a-48a3-a171-fa397e45e9dc",
+              "group_name": "Portion",
+              "variant_id": "e2b1737f-75fc-43ed-af76-4bcfbb941301",
+              "variant_name": "Full",
+              "pricing_mode": "ABSOLUTE",
+              "price_cents": 3695,
+              "delta_cents": null
+            }
+          ],
+          "addons": [],
+          "quantity": 1,
+          "special_request": "Extra gravy on the side",
+          "unit_price_cents": 3695,
+          "line_total_cents": 3695,
+          "currency": "CAD"
+        },
+        {
+          "line_no": 3,
+          "menu_item_id": "456616ee-e1fc-4a94-aa83-3b1c726ff23d",
+          "name": "Chicken Karahi (Half)",
+          "variant_name": null,
+          "variants": [],
+          "addons": [
+            {
+              "addon_id": "8e05bcf1-8b4f-4578-ac6d-92f90d1cdf6f",
+              "addon_name": "Garlic naan",
+              "addon_quantity": 2,
+              "addon_price_cents": 349
+            }
+          ],
+          "quantity": 1,
+          "special_request": null,
+          "unit_price_cents": 2597,
+          "line_total_cents": 2597,
+          "currency": "CAD"
+        }
+      ],
+      "money": {
+        "subtotal_cents": 7987,
+        "discount_cents": 0,
+        "commission_cents": 0,
+        "restaurant_net_cents": 7987,
+        "total_cents": 10684,
+        "currency": "CAD"
+      },
+      "rider": null,
+      "pickup_code": null,
+      "elapsed_seconds": 10,
+      "is_late": false,
+      "placed_at": "2026-08-10T18:10:11.412Z",
+      "accepted_at": null,
+      "ready_at": null
+    }
+  ]
+}

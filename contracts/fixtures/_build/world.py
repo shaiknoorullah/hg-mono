@@ -201,8 +201,17 @@ def restaurant_card(index: int = 0, *, halal_state: str = "CERTIFIED", **over: A
     return out
 
 
+def long_date(timestamp: str) -> str:
+    """`2026-03-11T18:42:11.412Z` as the disclaimer writes it: `11 March 2026`."""
+    import datetime as _dt
+
+    moment = _dt.datetime.strptime(timestamp[:10], "%Y-%m-%d")
+    return f"{moment.day} {moment.strftime('%B')} {moment.year}"
+
+
 def certification_panel(state: str = "CERTIFIED", **over: Any) -> dict:
     known = state != "UNVERIFIED"
+    verified_at = ts(-152 * DAY) if known else None
     out = {
         "display_state": state,
         "certifying_body_name": ISSUING_BODIES[0] if known else None,
@@ -210,11 +219,12 @@ def certification_panel(state: str = "CERTIFIED", **over: Any) -> dict:
         "scope": "WHOLE_ESTABLISHMENT" if known else None,
         "issued_on": day(-154) if known else None,
         "expires_on": halal_badge(state)["expires_on"],
-        "verified_at": ts(-152 * DAY) if known else None,
+        "verified_at": verified_at,
         "certificate_viewable": known,
         # C-12: fixed copy. HalalGoes verifies certification; it does not certify food.
         "disclaimer": (
-            "Certification verified by HalalGoes on 9 March 2026. "
+            # The date is `verified_at`'s (issue #720: it said 9 March, two days early).
+            f"Certification verified by HalalGoes on {long_date(verified_at)}. "
             "HalalGoes does not itself certify food."
             if known
             else "This kitchen has not provided a halal certificate we can verify. "

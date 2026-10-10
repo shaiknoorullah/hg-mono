@@ -1,0 +1,72 @@
+{
+  "scenario": "staff_list_edge_rows",
+  "domain": "admin",
+  "schema": "array<StaffUser>",
+  "describes": "Rows that break layouts: a very long name and email, an invitee who never signed in (`last_login_at: null`, no two-step sign-in), an active agent without two-step sign-in, a suspended admin and a long-deactivated agent.",
+  "operations": [
+    "listStaff"
+  ],
+  "status": 200,
+  "tags": [
+    "admin",
+    "edge",
+    "overflow"
+  ],
+  "meta": {
+    "next_cursor": null,
+    "has_more": false,
+    "total": 5
+  },
+  "payload": [
+    {
+      "id": "8ca600b9-9929-4c26-a132-6ce052ad127a",
+      "email": "muhammad.abdulrahman.alsiddiqui.farooqui@operations.halalgoes.ca",
+      "full_name": "Muhammad Abdul-Rahman ibn Khalid Al-Siddiqui Farooqui",
+      "role": "ADMIN",
+      "status": "ACTIVE",
+      "mfa_enrolled": true,
+      "last_login_at": "2026-08-10T16:42:11.412Z",
+      "created_at": "2026-05-12T18:42:11.412Z"
+    },
+    {
+      "id": "f6c67e91-7677-4429-a968-dfbd34d9548d",
+      "email": "hamza.siddiqui@halalgoes.ca",
+      "full_name": "Hamza Siddiqui",
+      "role": "SUPPORT_AGENT",
+      "status": "INVITED",
+      "mfa_enrolled": false,
+      "last_login_at": null,
+      "created_at": "2026-07-26T18:42:11.412Z"
+    },
+    {
+      "id": "2df7f5e4-44de-4f94-aa96-ac360065515d",
+      "email": "zainab.osman@halalgoes.ca",
+      "full_name": "Zainab Osman",
+      "role": "SUPPORT_AGENT",
+      "status": "ACTIVE",
+      "mfa_enrolled": false,
+      "last_login_at": "2026-07-15T18:42:11.412Z",
+      "created_at": "2026-05-12T18:42:11.412Z"
+    },
+    {
+      "id": "cdfef263-8104-41ea-a21f-2a755b0fa6a3",
+      "email": "tariq.ali@halalgoes.ca",
+      "full_name": "Tariq Ali",
+      "role": "ADMIN",
+      "status": "SUSPENDED",
+      "mfa_enrolled": true,
+      "last_login_at": "2026-07-01T18:42:11.412Z",
+      "created_at": "2026-05-12T18:42:11.412Z"
+    },
+    {
+      "id": "f4f92902-7ff2-4e07-a4d7-ac98b8b53675",
+      "email": "rania.haddad@halalgoes.ca",
+      "full_name": "Rania Haddad",
+      "role": "SUPPORT_AGENT",
+      "status": "DEACTIVATED",
+      "mfa_enrolled": true,
+      "last_login_at": "2026-01-22T18:42:11.412Z",
+      "created_at": "2025-07-06T18:42:11.412Z"
+    }
+  ]
+}

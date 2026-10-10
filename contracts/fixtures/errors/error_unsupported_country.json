@@ -1,0 +1,23 @@
+{
+  "scenario": "error_unsupported_country",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`422` · `UNSUPPORTED_COUNTRY`. A valid E.164 number from a country the platform does not serve. Contract-only: `services/hg` accepts any E.164 number at `requestOtp` today.",
+  "operations": [
+    "requestOtp"
+  ],
+  "status": 422,
+  "tags": [
+    "error-envelope",
+    "error-path",
+    "customer",
+    "auth"
+  ],
+  "payload": {
+    "error": {
+      "code": "UNSUPPORTED_COUNTRY",
+      "message": "Sign-in is available for Canadian phone numbers only.",
+      "request_id": "KWY1T1X8SJZKEARXX8D4J0BAD7"
+    }
+  }
+}

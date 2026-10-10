@@ -1,0 +1,106 @@
+{
+  "scenario": "payout_list_every_state",
+  "domain": "rider",
+  "schema": "array<Payout>",
+  "describes": "`listRiderPayouts` with one payout in each `PayoutState`, newest first: this week accruing (`DRAFT`), then `READY`, `TRANSFERRING`, `TRANSFERRED`, `HELD` (with its `hold_reason`), `FAILED` (with its `failure_message`) and `PAID`.",
+  "operations": [
+    "listRiderPayouts"
+  ],
+  "status": 200,
+  "tags": [
+    "rider",
+    "money",
+    "payout-state-matrix"
+  ],
+  "meta": {
+    "next_cursor": null,
+    "has_more": false,
+    "total": 7
+  },
+  "payload": [
+    {
+      "id": "45c8937f-e8d7-4fa8-abdc-db434ef06593",
+      "period_start": "2026-08-10T04:00:00.000Z",
+      "period_end": "2026-08-17T04:00:00.000Z",
+      "amount_cents": 0,
+      "currency": "CAD",
+      "state": "DRAFT",
+      "hold_reason": null,
+      "entry_count": 0,
+      "paid_at": null,
+      "failure_message": null
+    },
+    {
+      "id": "03cf6d8c-f013-41b3-a680-8b7c95f9c8f6",
+      "period_start": "2026-08-03T04:00:00.000Z",
+      "period_end": "2026-08-10T04:00:00.000Z",
+      "amount_cents": 41235,
+      "currency": "CAD",
+      "state": "READY",
+      "hold_reason": null,
+      "entry_count": 23,
+      "paid_at": null,
+      "failure_message": null
+    },
+    {
+      "id": "f232037f-2b21-46a2-a1d9-1bd9a72d3c61",
+      "period_start": "2026-07-27T04:00:00.000Z",
+      "period_end": "2026-08-03T04:00:00.000Z",
+      "amount_cents": 38810,
+      "currency": "CAD",
+      "state": "TRANSFERRING",
+      "hold_reason": null,
+      "entry_count": 21,
+      "paid_at": null,
+      "failure_message": null
+    },
+    {
+      "id": "8aa53d40-7eef-4acc-a829-ff879c6d18a6",
+      "period_start": "2026-07-20T04:00:00.000Z",
+      "period_end": "2026-07-27T04:00:00.000Z",
+      "amount_cents": 44120,
+      "currency": "CAD",
+      "state": "TRANSFERRED",
+      "hold_reason": null,
+      "entry_count": 25,
+      "paid_at": null,
+      "failure_message": null
+    },
+    {
+      "id": "71b2ce1a-4cae-425b-ad11-1f91cbc14664",
+      "period_start": "2026-07-13T04:00:00.000Z",
+      "period_end": "2026-07-20T04:00:00.000Z",
+      "amount_cents": 29960,
+      "currency": "CAD",
+      "state": "HELD",
+      "hold_reason": "Payouts are paused while Stripe checks your identity. Your earnings are safe.",
+      "entry_count": 17,
+      "paid_at": null,
+      "failure_message": null
+    },
+    {
+      "id": "e38f7d40-db1a-496f-a482-6202a198ef8c",
+      "period_start": "2026-07-06T04:00:00.000Z",
+      "period_end": "2026-07-13T04:00:00.000Z",
+      "amount_cents": 36475,
+      "currency": "CAD",
+      "state": "FAILED",
+      "hold_reason": null,
+      "entry_count": 20,
+      "paid_at": null,
+      "failure_message": "The bank declined the transfer: the account number on file is closed."
+    },
+    {
+      "id": "8b99a9f7-8640-4f52-a792-a31d9af3aab4",
+      "period_start": "2026-06-29T04:00:00.000Z",
+      "period_end": "2026-07-06T04:00:00.000Z",
+      "amount_cents": 40390,
+      "currency": "CAD",
+      "state": "PAID",
+      "hold_reason": null,
+      "entry_count": 22,
+      "paid_at": "2026-07-08T13:00:00.000Z",
+      "failure_message": null
+    }
+  ]
+}

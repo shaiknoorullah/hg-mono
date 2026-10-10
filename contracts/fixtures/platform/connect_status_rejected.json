@@ -1,0 +1,31 @@
+{
+  "scenario": "connect_status_rejected",
+  "domain": "platform",
+  "schema": "ConnectStatus",
+  "describes": "Stripe rejected the account (`disabled_reason: rejected.other`). Payouts are off for good on this account; the app sends the rider to support. Requirement ids and `disabled_reason` are Stripe's own, never paraphrased.",
+  "operations": [
+    "getConnectStatus"
+  ],
+  "status": 200,
+  "tags": [
+    "platform",
+    "money",
+    "connect-state-matrix",
+    "error-path"
+  ],
+  "payload": {
+    "stripe_account_id": "acct_1QkR7mE8xVn2LbQ1",
+    "charges_enabled": false,
+    "payouts_enabled": false,
+    "details_submitted": true,
+    "requirements": {
+      "currently_due": [],
+      "eventually_due": [],
+      "past_due": [],
+      "disabled_reason": "rejected.other",
+      "deadline": null
+    },
+    "bank_last4": "6789",
+    "payout_interval": "WEEKLY"
+  }
+}

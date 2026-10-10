@@ -1,0 +1,26 @@
+{
+  "scenario": "certification_panel_partial",
+  "domain": "halal",
+  "schema": "CertificationPanel",
+  "describes": "Certified, but some transcribed fields are missing: no certificate number, no scope, no issue date. The panel shows the rows it has and leaves the others out; it never fills a gap.",
+  "operations": [
+    "getRestaurantCertification"
+  ],
+  "status": 200,
+  "tags": [
+    "customer",
+    "halal",
+    "edge"
+  ],
+  "payload": {
+    "display_state": "CERTIFIED",
+    "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+    "certificate_number": null,
+    "scope": null,
+    "issued_on": null,
+    "expires_on": "2027-03-09",
+    "verified_at": "2026-03-11T18:42:11.412Z",
+    "certificate_viewable": true,
+    "disclaimer": "Certification verified by HalalGoes on 11 March 2026. HalalGoes does not itself certify food."
+  }
+}

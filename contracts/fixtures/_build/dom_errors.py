@@ -80,17 +80,6 @@ ERRORS = [
         "two members of one enum. They are now one.",
     ),
     (
-        "otp_incorrect",
-        401,
-        "OTP_INCORRECT",
-        "That code is not right. 4 attempts remaining.",
-        None,
-        "**A collision case**: the auth `otp_incorrect` and the proof-of-delivery "
-        "`OTP_INCORRECT` collapsed into one member. Since superseded: proof of delivery now "
-        "answers `DELIVERY_CODE_INCORRECT` (`error_delivery_code_incorrect`), so this is "
-        "sign-in only.",
-    ),
-    (
         "province_not_served",
         422,
         "PROVINCE_NOT_SERVED",
@@ -693,6 +682,44 @@ def _operation_errors(reg) -> None:
         status=429,
         tags=["error-envelope", "error-path"],
     )
+
+
+    # verifyOtp's wrong code, as services/hg/internal/auth answers it: 400 with
+    # `details.attempts_remaining` (issue #708; it used to be a 401 with no details).
+    for scenario, details, note in [
+        (
+            "error_otp_incorrect",
+            {"attempts_remaining": 4},
+            "A wrong sign-in code; `details.attempts_remaining` is how many tries are left on "
+            "this challenge (always sent by `services/hg`). Sign-in only: proof of delivery "
+            "now answers `DELIVERY_CODE_INCORRECT` (`error_delivery_code_incorrect`).",
+        ),
+        (
+            "error_otp_incorrect_no_count",
+            None,
+            "A wrong sign-in code with `details` absent. `services/hg` always sends the count; "
+            "this pins the client's fallback copy when a count is missing.",
+        ),
+    ]:
+        envelope = {
+            "error": {
+                "code": "OTP_INCORRECT",
+                "message": "That code is incorrect.",
+                "request_id": ulid_for(f"request:{scenario[len('error_'):]}"),
+            }
+        }
+        if details is not None:
+            envelope["error"]["details"] = details
+        reg.add(
+            scenario,
+            "errors",
+            "ErrorEnvelope",
+            f"`400` · `OTP_INCORRECT`. {note}",
+            envelope,
+            operations=["verifyOtp"],
+            status=400,
+            tags=["error-envelope", "error-path"],
+        )
 
 
 def _errors(reg) -> None:

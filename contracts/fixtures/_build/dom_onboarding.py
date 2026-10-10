@@ -580,7 +580,7 @@ def _halal(reg, synth) -> None:
             {
                 "CERTIFIED": "The green badge. Certifying body and expiry both present.",
                 "EXPIRING_SOON": "Amber. 18 days left; body and expiry present.",
-                "EXPIRED": "Red. Never rendered on a customer surface — the restaurant 404s.",
+                "EXPIRED": "Cool slate, never red. Never rendered on a customer surface — the restaurant 404s.",
                 "UNVERIFIED": "No body, no expiry. Never rendered on a customer surface.",
             }[state],
             halal_badge(state),
@@ -1271,8 +1271,11 @@ def _auth_and_config(reg, synth) -> None:
         ("APP_UPDATE_REQUIRED", "Below `min_supported_version`. A hard stop."),
     ]:
         grant = synth.make("SessionGrant", f"session-{route}")
-        if "next_route" in grant:
-            grant["next_route"] = route
+        # The route lives on the principal (issue #720: every grant used to say HOME and
+        # ACTIVE whatever its name). A suspended account's principal is SUSPENDED too.
+        grant["principal"]["next_route"] = route
+        if route == "SUSPENDED":
+            grant["principal"]["status"] = "SUSPENDED"
         reg.add(
             f"session_next_route_{route.lower()}",
             "platform",
@@ -1358,7 +1361,11 @@ def _auth_and_config(reg, synth) -> None:
         "CustomerProfile",
         "C-03: `first_name`/`last_name`, never a single `name`. `phone_e164` is read-only "
         "here — sending it is `422 UNKNOWN_FIELD`.",
-        synth.make("CustomerProfile", "customer-profile"),
+        {
+            **synth.make("CustomerProfile", "customer-profile"),
+            # The default address in `addresses_list` (issue #720: it matched none).
+            "default_address_id": _address_fixture(0, True)["id"],
+        },
         operations=["getCustomerProfile", "updateCustomerProfile"],
         tags=["platform"],
     )

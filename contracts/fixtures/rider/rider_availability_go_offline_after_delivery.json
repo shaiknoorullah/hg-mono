@@ -1,0 +1,21 @@
+{
+  "scenario": "rider_availability_go_offline_after_delivery",
+  "domain": "rider",
+  "schema": "RiderAvailability",
+  "describes": "`setRiderAvailability {state: OFFLINE}` while carrying an order: `services/hg` keeps the rider `ON_DELIVERY` and sets `go_offline_after_delivery: true`; the rider goes offline by themselves once this delivery is done.",
+  "operations": [
+    "setRiderAvailability"
+  ],
+  "status": 200,
+  "tags": [
+    "rider",
+    "home"
+  ],
+  "payload": {
+    "availability_state": "ON_DELIVERY",
+    "since": "2026-08-10T18:28:11.412Z",
+    "can_receive_offers": false,
+    "go_offline_after_delivery": true,
+    "blocking_reasons": []
+  }
+}

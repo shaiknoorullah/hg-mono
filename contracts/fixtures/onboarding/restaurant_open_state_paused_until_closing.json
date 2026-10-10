@@ -1,0 +1,24 @@
+{
+  "scenario": "restaurant_open_state_paused_until_closing",
+  "domain": "onboarding",
+  "schema": "RestaurantAvailability",
+  "describes": "Paused for the rest of the day: `pause_until` is tonight's closing time (22:00 Toronto). Ordering resumes by itself tomorrow at opening.",
+  "operations": [
+    "getRestaurantAvailability",
+    "setRestaurantAcceptingOrders"
+  ],
+  "status": 200,
+  "tags": [
+    "restaurant",
+    "state-matrix"
+  ],
+  "payload": {
+    "open_state": "PAUSED",
+    "is_accepting_orders": true,
+    "pause_until": "2026-08-11T02:00:00.000Z",
+    "last_heartbeat_at": "2026-08-10T18:41:31.412Z",
+    "missed_order_count": 0,
+    "reason": "Paused until closing at 10:00 p.m.",
+    "resolvable_by": "TIME"
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "scenario": "session_grant_support_agent",
+  "domain": "platform",
+  "schema": "SessionGrant",
+  "describes": "`login` on the web console for a `SUPPORT_AGENT`: the `principal_support_agent` principal, a 15-minute access token and `refresh_token: null` (the refresh token is the `hg_rt` cookie on web).",
+  "operations": [
+    "login",
+    "refreshSession"
+  ],
+  "status": 200,
+  "tags": [
+    "platform",
+    "auth",
+    "staff"
+  ],
+  "payload": {
+    "access_token": "eyJhbGciOiJFZERTQSJ9.staff-session.signature",
+    "refresh_token": null,
+    "expires_in": 900,
+    "is_new_account": false,
+    "principal": {
+      "account_id": "a0000000-0000-4000-8000-000000000002",
+      "session_id": "132a44a9-f0e6-49d5-a7f4-7689f5189b5e",
+      "roles": [
+        {
+          "role": "SUPPORT_AGENT",
+          "scope_type": "GLOBAL",
+          "scope_id": null
+        }
+      ],
+      "amr": "pwd",
+      "status": "ACTIVE",
+      "locale": "en-CA",
+      "timezone": "America/Toronto",
+      "next_route": "HOME"
+    }
+  }
+}

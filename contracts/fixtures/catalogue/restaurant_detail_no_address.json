@@ -1,0 +1,112 @@
+{
+  "scenario": "restaurant_detail_no_address",
+  "domain": "catalogue",
+  "schema": "RestaurantDetail",
+  "describes": "Restaurant detail with `availability.state = NO_ADDRESS`. No address yet: no distance, ETA or fee. The page asks for an address before ordering.",
+  "operations": [
+    "getRestaurant"
+  ],
+  "status": 200,
+  "tags": [
+    "customer",
+    "state-matrix"
+  ],
+  "payload": {
+    "id": "92291a8d-1006-4090-a8ba-4cfd1967ffbd",
+    "name": "Al-Noor Shawarma House",
+    "slug": "al-noor-shawarma-house",
+    "hero_image_url": "https://cdn.halalgoes.ca/img/restaurant/hero/al-noor-shawarma-house.webp",
+    "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/al-noor-shawarma-house.webp",
+    "cuisines": [
+      "Middle Eastern",
+      "Shawarma",
+      "Halal"
+    ],
+    "rating_avg": 4.6,
+    "rating_count": 1183,
+    "price_band": "$",
+    "halal": {
+      "display_state": "CERTIFIED",
+      "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+      "expires_on": "2027-03-09"
+    },
+    "availability": {
+      "state": "NO_ADDRESS",
+      "opens_at": null,
+      "closes_at": null,
+      "eta_min_minutes": null,
+      "eta_max_minutes": null,
+      "indicative_delivery_fee_cents": null,
+      "minimum_order_cents": 1500,
+      "distance_m": null,
+      "out_of_range_reason": null
+    },
+    "description": "A Danforth institution since 2011. Charcoal grill, hand-pounded masala, and a kitchen that has been HMA-certified every year we have traded.",
+    "address": {
+      "line1": "3255 Hurontario Street",
+      "line2": null,
+      "city": "Mississauga",
+      "province": "ON",
+      "postal_code": "L5A 4E5",
+      "latitude": 43.5789,
+      "longitude": -79.6212
+    },
+    "timezone": "America/Toronto",
+    "public_phone_e164": "+14165550142",
+    "certification": {
+      "display_state": "CERTIFIED",
+      "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+      "certificate_number": "HMA-ON-40182",
+      "scope": "WHOLE_ESTABLISHMENT",
+      "issued_on": "2026-03-09",
+      "expires_on": "2027-03-09",
+      "verified_at": "2026-03-11T18:42:11.412Z",
+      "certificate_viewable": true,
+      "disclaimer": "Certification verified by HalalGoes on 11 March 2026. HalalGoes does not itself certify food."
+    },
+    "hours": [
+      {
+        "day_of_week": 0,
+        "opens_at": "12:00",
+        "closes_at": "21:00",
+        "crosses_midnight": false
+      },
+      {
+        "day_of_week": 1,
+        "opens_at": "11:00",
+        "closes_at": "22:00",
+        "crosses_midnight": false
+      },
+      {
+        "day_of_week": 2,
+        "opens_at": "11:00",
+        "closes_at": "22:00",
+        "crosses_midnight": false
+      },
+      {
+        "day_of_week": 3,
+        "opens_at": "11:00",
+        "closes_at": "22:00",
+        "crosses_midnight": false
+      },
+      {
+        "day_of_week": 4,
+        "opens_at": "11:00",
+        "closes_at": "22:00",
+        "crosses_midnight": false
+      },
+      {
+        "day_of_week": 5,
+        "opens_at": "11:00",
+        "closes_at": "01:00",
+        "crosses_midnight": true
+      },
+      {
+        "day_of_week": 6,
+        "opens_at": "11:00",
+        "closes_at": "01:00",
+        "crosses_midnight": true
+      }
+    ]
+  }
+}

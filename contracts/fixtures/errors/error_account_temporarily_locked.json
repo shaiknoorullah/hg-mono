@@ -1,0 +1,23 @@
+{
+  "scenario": "error_account_temporarily_locked",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`429` · `ACCOUNT_TEMPORARILY_LOCKED`. Too many wrong passwords: the account is locked for 15 minutes (`Retry-After: 900`, a header a fixture cannot carry). `services/hg` answers 429, not 423.",
+  "operations": [
+    "login"
+  ],
+  "status": 429,
+  "tags": [
+    "error-envelope",
+    "error-path",
+    "restaurant",
+    "auth"
+  ],
+  "payload": {
+    "error": {
+      "code": "ACCOUNT_TEMPORARILY_LOCKED",
+      "message": "This account is temporarily locked after too many failed attempts.",
+      "request_id": "Y5ZJW7FZER9YTVWM17SKGCMWMR"
+    }
+  }
+}

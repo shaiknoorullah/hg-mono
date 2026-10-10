@@ -1,0 +1,27 @@
+{
+  "scenario": "error_otp_incorrect_attempts_2",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`400` · `OTP_INCORRECT`. Two wrong codes left on this challenge. `details.attempts_remaining` is the count `services/hg` sends with every `OTP_INCORRECT` (always present, an integer from 0 up).",
+  "operations": [
+    "verifyOtp"
+  ],
+  "status": 400,
+  "tags": [
+    "error-envelope",
+    "error-path",
+    "rider",
+    "customer",
+    "auth"
+  ],
+  "payload": {
+    "error": {
+      "code": "OTP_INCORRECT",
+      "message": "That code is incorrect.",
+      "request_id": "RYTK3G44JPMEZGHT3CWFK9HC7T",
+      "details": {
+        "attempts_remaining": 2
+      }
+    }
+  }
+}

@@ -2,7 +2,7 @@
   "scenario": "rider_dashboard_active",
   "domain": "rider",
   "schema": "RiderDashboard",
-  "describes": "A rider mid-shift with an assignment in progress and earnings accrued today.",
+  "describes": "A rider mid-shift with an assignment in progress (`mode: ON_DELIVERY`) and earnings accrued today.",
   "operations": [
     "getRiderDashboard"
   ],
@@ -11,7 +11,7 @@
     "rider"
   ],
   "payload": {
-    "mode": "ONLINE_IDLE",
+    "mode": "ON_DELIVERY",
     "today": {
       "gross_cents": 1149,
       "currency": "CAD",

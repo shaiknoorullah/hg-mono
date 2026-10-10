@@ -1,0 +1,46 @@
+{
+  "scenario": "earnings_summary_month",
+  "domain": "rider",
+  "schema": "EarningsSummary",
+  "describes": "`period=MONTH` for August so far: one bucket, as `services/hg` answers `period=MONTH&from=2026-08-01`. 131 trips, CAD 984.15, of which 318.50 tips.",
+  "operations": [
+    "getRiderEarningsSummary"
+  ],
+  "status": 200,
+  "tags": [
+    "rider",
+    "money"
+  ],
+  "payload": {
+    "period": "MONTH",
+    "buckets": [
+      {
+        "bucket_start": "2026-08-01T04:00:00.000Z",
+        "gross_cents": 98415,
+        "delivery_cents": 66565,
+        "tip_cents": 31850,
+        "bonus_cents": 0,
+        "adjustment_cents": 0,
+        "trips": 131,
+        "online_seconds": 204360,
+        "distance_m": 539720,
+        "effective_cents_per_hour": 1733
+      }
+    ],
+    "total": {
+      "bucket_start": "2026-08-01T04:00:00.000Z",
+      "gross_cents": 98415,
+      "delivery_cents": 66565,
+      "tip_cents": 31850,
+      "bonus_cents": 0,
+      "adjustment_cents": 0,
+      "trips": 131,
+      "online_seconds": 204360,
+      "distance_m": 539720,
+      "effective_cents_per_hour": 1733
+    },
+    "unpaid_balance_cents": 4296,
+    "next_payout_at": "2026-08-17T13:00:00.000Z",
+    "currency": "CAD"
+  }
+}
