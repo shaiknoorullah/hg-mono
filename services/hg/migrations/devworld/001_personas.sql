@@ -74,6 +74,14 @@ BEGIN
 END
 $dw$;
 
+-- Today in Toronto, the personas' timezone. The halal state compares a
+-- certificate's dates with the restaurant's local date, so seeding them from
+-- current_date (the server's UTC date) made "expired yesterday" still valid
+-- between midnight UTC and midnight in Toronto.
+CREATE OR REPLACE FUNCTION devworld_local_date() RETURNS date LANGUAGE sql STABLE AS $dw$
+  SELECT halal_local_date('America/Toronto', now())
+$dw$;
+
 -- The approval trigger only requires seven PASS rows. Date display is computed
 -- by the refresh trigger from expires_on, including a certificate that has
 -- already passed its expiry date.
@@ -115,7 +123,7 @@ BEGIN
     state, reviewed_by, reviewed_at
   ) VALUES (
     p_doc, 'RESTAURANT', p_restaurant, 'HALAL_CERTIFICATE', p_obj,
-    body, p_number, current_date - 40, p_expires,
+    body, p_number, devworld_local_date() - 40, p_expires,
     'APPROVED', p_admin, now()
   )
   ON CONFLICT (id) DO NOTHING;
@@ -126,7 +134,7 @@ BEGIN
     status, checklist_version, verified_by, verified_at
   ) VALUES (
     p_cert, p_restaurant, p_doc, p_number, body,
-    p_legal, p_address, 'WHOLE_ESTABLISHMENT', current_date - 40, p_expires,
+    p_legal, p_address, 'WHOLE_ESTABLISHMENT', devworld_local_date() - 40, p_expires,
     'APPROVED', 1, p_admin, now()
   )
   ON CONFLICT (id) DO NOTHING;
@@ -305,31 +313,31 @@ ON CONFLICT (restaurant_id) DO NOTHING;
 SELECT devworld_certificate(
   'd0000000-0000-4000-8000-000000000206', 'd0000000-0000-4000-8000-000000000306', 'd0000000-0000-4000-8000-000000000406',
   'b0000000-0000-4000-8000-000000000206', 'DW-PAYOUT-0001', 'Devworld Payout Inc.', '1240 Danforth Avenue, Toronto',
-  current_date + 400, 'a0000000-0000-4000-8000-000000000001');
+  devworld_local_date() + 400, 'a0000000-0000-4000-8000-000000000001');
 SELECT devworld_certificate(
   'd0000000-0000-4000-8000-000000000207', 'd0000000-0000-4000-8000-000000000307', 'd0000000-0000-4000-8000-000000000407',
   'b0000000-0000-4000-8000-000000000207', 'DW-MENU-0001', 'Devworld Menu Inc.', '1240 Danforth Avenue, Toronto',
-  current_date + 400, 'a0000000-0000-4000-8000-000000000001');
+  devworld_local_date() + 400, 'a0000000-0000-4000-8000-000000000001');
 SELECT devworld_certificate(
   'd0000000-0000-4000-8000-000000000208', 'd0000000-0000-4000-8000-000000000308', 'd0000000-0000-4000-8000-000000000408',
   'b0000000-0000-4000-8000-000000000208', 'DW-BISMILLAH-0001', 'Bismillah Grill Inc.', '1240 Danforth Avenue, Toronto',
-  current_date + 400, 'a0000000-0000-4000-8000-000000000001');
+  devworld_local_date() + 400, 'a0000000-0000-4000-8000-000000000001');
 SELECT devworld_certificate(
   'd0000000-0000-4000-8000-000000000209', 'd0000000-0000-4000-8000-000000000309', 'd0000000-0000-4000-8000-000000000409',
   'b0000000-0000-4000-8000-000000000209', 'DW-EXPIRING-0001', 'Devworld Expiring Inc.', '1240 Danforth Avenue, Toronto',
-  current_date + 1, 'a0000000-0000-4000-8000-000000000001');
+  devworld_local_date() + 1, 'a0000000-0000-4000-8000-000000000001');
 SELECT devworld_certificate(
   'd0000000-0000-4000-8000-000000000210', 'd0000000-0000-4000-8000-000000000310', 'd0000000-0000-4000-8000-000000000410',
   'b0000000-0000-4000-8000-000000000210', 'DW-EXPIRED-0001', 'Devworld Expired Inc.', '1240 Danforth Avenue, Toronto',
-  current_date - 1, 'a0000000-0000-4000-8000-000000000001');
+  devworld_local_date() - 1, 'a0000000-0000-4000-8000-000000000001');
 SELECT devworld_certificate(
   'd0000000-0000-4000-8000-000000000211', 'd0000000-0000-4000-8000-000000000311', 'd0000000-0000-4000-8000-000000000411',
   'b0000000-0000-4000-8000-000000000211', 'DW-PAUSED-0001', 'Devworld Paused Inc.', '1240 Danforth Avenue, Toronto',
-  current_date + 400, 'a0000000-0000-4000-8000-000000000001');
+  devworld_local_date() + 400, 'a0000000-0000-4000-8000-000000000001');
 SELECT devworld_certificate(
   'd0000000-0000-4000-8000-000000000212', 'd0000000-0000-4000-8000-000000000312', 'd0000000-0000-4000-8000-000000000412',
   'b0000000-0000-4000-8000-000000000212', 'DW-SUSPENDED-0001', 'Devworld Suspended Inc.', '1240 Danforth Avenue, Toronto',
-  current_date + 400, 'a0000000-0000-4000-8000-000000000001');
+  devworld_local_date() + 400, 'a0000000-0000-4000-8000-000000000001');
 
 INSERT INTO restaurant_hours (restaurant_id, day_of_week, opens_at, closes_at)
 SELECT r.id, d, time '00:00', time '23:45'
@@ -452,5 +460,6 @@ ON CONFLICT (slug) DO UPDATE SET
 DROP FUNCTION devworld_certificate(uuid, uuid, uuid, uuid, text, text, text, date, uuid);
 DROP FUNCTION devworld_restaurant(uuid, text, text, text, text, restaurant_onboarding_state, restaurant_account_state, boolean, timestamptz, boolean);
 DROP FUNCTION devworld_account(uuid, text, text, boolean);
+DROP FUNCTION devworld_local_date();
 
 COMMIT;

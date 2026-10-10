@@ -1,0 +1,32 @@
+id: customer-wp9-orders
+app: customer
+avd: hg_customer
+api: devworld
+# Build the dev APK from this branch with EXPO_PUBLIC_HG_REDESIGN=1.
+# The journey completes one delivery for amina (J12, which J18 then reads); restaurant-rejected adds
+# a rejected order to her history.
+setup:
+  - "make dev-reset"
+  - "make dev-journey route=short speed=4x auto=all"
+  - "make dev-scenario s=restaurant-rejected"
+flows: [ "tools/e2e/native/customer/redesign/9-orders.yaml" ]
+reality:
+  - theme: dark
+  - font-scale: 2.0
+  - network: offline
+  - network: restore
+explore: >
+  After the flow, as amina: (1) on Orders in dark mode and at 200% text, screenshot the whole list;
+  report any row whose badge, "{n} items · …" line, "Not charged" or "See details for your money"
+  is clipped or truncated (it must wrap), any target smaller than 44 dp, any red on a row, and any
+  bare total on a Cancelled or Resolved row. (2) Turn the network off
+  (`adb shell svc wifi disable && adb shell svc data disable`), switch to Home and back to Orders:
+  expect "We couldn't load your orders" with Try again, never a blank list; turn the network back on
+  (`adb shell svc wifi enable && adb shell svc data enable`), press Try again: the list returns.
+  (3) Start a new order for amina (`make dev-scenario s=new-order`) and reopen Orders: it is under
+  "Active orders" with its badge, the "Arriving …" window, Track and Get help, and the Orders tab
+  badge reads 1; Track opens its tracking screen. (4) Open the completed order's receipt in dark
+  mode and at 200% text and screenshot every card: the service fee row shows even at $0.00, no tax
+  rows while the receipt has no tax lines, "Visa •••• 4242, charged" (or the card devworld used),
+  no Download or Share, no halal badge anywhere. (5) Scroll Past orders to the end: the list ends
+  with "That's all your orders".

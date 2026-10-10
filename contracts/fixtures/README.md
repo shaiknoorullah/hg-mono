@@ -68,7 +68,7 @@ falling through, so a typo is visible immediately.
 
 ## Scenarios by domain
 
-**424 scenarios** across 15 domains.
+**423 scenarios** across 15 domains.
 
 | Domain | Scenarios | What it covers |
 |---|---:|---|
@@ -83,7 +83,7 @@ falling through, so a typo is visible immediately.
 | [`onboarding`](#onboarding) | 35 | Restaurant and rider onboarding, profiles, vehicles and trading state. |
 | [`orders`](#orders) | 44 | The 14 `OrderState` values, per-audience projections, tracking and receipts. |
 | [`payments`](#payments) | 12 | The 8 `PaymentState` values, saved cards and setup intents. |
-| [`platform`](#platform) | 27 | Auth, config, addresses, notifications, Connect and health. |
+| [`platform`](#platform) | 26 | Auth, config, addresses, notifications, Connect and health. |
 | [`realtime`](#realtime) | 8 | Scripted WebSocket sequences that drive a screen through a whole lifecycle. |
 | [`refunds`](#refunds) | 39 | The 10 `RefundState` values, liability splits, approval requests, the staff review queue and chargebacks. |
 | [`rider`](#rider) | 22 | Availability, dashboard, earnings and payouts. |
@@ -495,7 +495,7 @@ The 8 `PaymentState` values, saved cards and setup intents. — 12 scenarios.
 
 ### platform
 
-Auth, config, addresses, notifications, Connect and health. — 27 scenarios.
+Auth, config, addresses, notifications, Connect and health. — 26 scenarios.
 
 | Scenario | Schema | Status | Represents |
 |---|---|---:|---|
@@ -525,7 +525,6 @@ Auth, config, addresses, notifications, Connect and health. — 27 scenarios.
 | `session_next_route_profile_capture` | `SessionGrant` | 200 | `next_route = PROFILE_CAPTURE`. First sign-in — we have a phone and nothing else. |
 | `session_next_route_suspended` | `SessionGrant` | 200 | `next_route = SUSPENDED`. Account suspended; a dead end with an explanation. |
 | `totp_enrolment` | `TotpEnrolment` | 200 | Two-step sign-in enrolment, step one: the authenticator URI and ten recovery codes, shown **once**. Step two is `verifyTotpEnrolment` with a live code. |
-| `totp_invite_enrolment` | `TotpEnrolment` | 200 | An invited admin, who has no session yet, starts the authenticator from the invitation link (`startInviteTotpEnrolment`, issue #170). The link stays usable; `resetPassword` with the link, the first password and the first code as `totp_code` confirms it. |
 
 ### realtime
 
@@ -632,12 +631,12 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | `money` | 32 | Exercises the money path specifically. |
 | `halal` | 30 | Touches the halal claim surface. |
 | `empty` | 28 | Zero items. The empty state, never an error. |
-| `platform` | 27 | Cross-cutting platform surface. |
+| `platform` | 26 | Cross-cutting platform surface. |
 | `order-state-matrix` | 24 | One per `OrderState` (all 14). |
 | `error-path` | 22 | The unhappy branch a client must handle. |
 | `onboarding-state-matrix` | 21 | One per onboarding state, restaurant and rider. |
 | `refund-state-matrix` | 20 | One per `RefundState` (all 10). |
-| `auth` | 14 | Session and identity. |
+| `auth` | 13 | Session and identity. |
 | `review-queue` | 13 | An admin review queue item. |
 | `assignment-state-matrix` | 12 | One per `AssignmentState` (all 12). |
 | `document-state-matrix` | 12 | One per `KycDocumentState`, plus rejection reasons. |
@@ -670,7 +669,7 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 
 ## Operation coverage
 
-149 of the contract's operations have at least one fixture registered against them; the rest are `204 No Content` or write-only operations the mock answers from the response schema. The full map lives in `index.json` under `by_operation`, and `GET /__mock/operations` serves it live.
+148 of the contract's operations have at least one fixture registered against them; the rest are `204 No Content` or write-only operations the mock answers from the response schema. The full map lives in `index.json` under `by_operation`, and `GET /__mock/operations` serves it live.
 
 | Operation | Default scenario | Also available |
 |---|---|---|
@@ -803,7 +802,6 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | `setRestaurantAcceptingOrders` | `restaurant_open_state_open` | `restaurant_open_state_closed_holiday`, `restaurant_open_state_closed_hours`, `restaurant_open_state_closed_offline`, `restaurant_open_state_closed_suspended`, `restaurant_open_state_closed_toggle`, `restaurant_open_state_paused` |
 | `setRestaurantHours` | `restaurant_hours_standard` | — |
 | `setRiderAvailability` | `rider_availability_online_idle` | `rider_availability_offline`, `rider_availability_on_delivery`, `rider_availability_online_stale` |
-| `startInviteTotpEnrolment` | `totp_invite_enrolment` | — |
 | `submitOrderRating` | `order_rating_food_and_rider` | — |
 | `submitProofOfDelivery` | `assignment_delivered` | `assignment_arrived_at_dropoff`, `assignment_arrived_at_pickup`, `assignment_assigned`, `assignment_cancelled_by_platform`, `assignment_en_route_to_dropoff`, `assignment_en_route_to_pickup`, `assignment_otp_pod_required`, `assignment_picked_up`, `assignment_reassigned`, `assignment_returned`, `assignment_returning`, `assignment_undeliverable` |
 | `submitRestaurantDocuments` | `restaurant_onboarding_documents_review` | `restaurant_onboarding_active`, `restaurant_onboarding_documents_approved`, `restaurant_onboarding_documents_pending`, `restaurant_onboarding_documents_rejected`, `restaurant_onboarding_email_verified`, `restaurant_onboarding_menu_pending`, `restaurant_onboarding_payout_pending`, `restaurant_onboarding_profile_pending`, `restaurant_onboarding_registered`, `restaurant_onboarding_withdrawn` |
