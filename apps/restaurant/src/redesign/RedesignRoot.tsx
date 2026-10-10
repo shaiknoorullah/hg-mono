@@ -20,6 +20,7 @@ import { ConsoleLayout } from './shell/ConsoleLayout';
 import { ConsoleStatus } from './shell/ConsoleStatus';
 import { LEGACY } from './routes/legacy';
 import { PendingRoute } from './routes/PendingRoute';
+import { MenuPage } from './menu/MenuPage';
 
 // Legacy screens hosted by the redesign refresh on 401 too.
 setUnauthorizedOverride(async () => (getSession() ? refreshAccessToken() : false));
@@ -105,7 +106,7 @@ export function RedesignApp() {
     root.setAttribute('data-theme', 'light');
     root.style.colorScheme = 'light';
   }, []);
-  const { Login, Register, VerifyEmail, ResetPassword, Onboarding, Orders, Menu, Hours, Payouts, Settings } = LEGACY;
+  const { Login, Register, VerifyEmail, ResetPassword, Onboarding, Orders, Hours, Payouts, Settings } = LEGACY;
   return (
     <div {...themeAttributes('restaurant')} className="relative h-dvh overflow-hidden bg-surface-sunken text-fg-primary" data-redesign="">
       <AuthProvider>
@@ -139,7 +140,7 @@ export function RedesignApp() {
               path="/orders/history"
               element={<PendingRoute title="Past orders" description="Orders you finished, declined or that were cancelled appear here." />}
             />
-            <Route path="/menu" element={<LegacyPane><Menu /></LegacyPane>} />
+            <Route path="/menu" element={<MenuPage />} />
             <Route path="/hours" element={<LegacyPane><Hours /></LegacyPane>} />
             <Route path="/payouts" element={<LegacyPane><Payouts /></LegacyPane>} />
             <Route path="/settings/*" element={<LegacyPane><Settings /></LegacyPane>} />
