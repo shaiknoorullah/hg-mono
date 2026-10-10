@@ -1,0 +1,54 @@
+# Rider redesign WP8 helper (run from 8-documents.yaml and 8b-documents-fix.yaml, not on its own):
+# on Documents (or Fix), open the capture screen for DOC_ID, take a photo with the emulator's
+# virtual scene, type the expiry (unless it is the photo of you) and use it, then wait until the
+# upload lands back on the list.
+#
+# Env: DOC_ID (a RiderDocType), OPEN_ID (the button that opens the camera), EXPIRY_DAY/MONTH/YEAR,
+# LANDED (text that shows once the row reads Added).
+appId: com.halalgoes.rider.dev
+name: rider redesign, add one document
+env:
+  DOC_ID: DRIVERS_LICENCE
+  OPEN_ID: doc-add-DRIVERS_LICENCE
+  EXPIRY_DAY: "14"
+  EXPIRY_MONTH: "03"
+  EXPIRY_YEAR: "2029"
+  LANDED: "Expires 14 March 2029"
+---
+- scrollUntilVisible:
+    element:
+      id: ${OPEN_ID}
+- tapOn:
+    id: ${OPEN_ID}
+# The camera starts; Take photo turns on once it is ready.
+- extendedWaitUntil:
+    visible: "(Fit the whole .* inside the frame|Fit your face inside the oval)"
+    timeout: 30000
+- tapOn:
+    id: "capture-take"
+- extendedWaitUntil:
+    visible: "Use this photo"
+    timeout: 20000
+- runFlow:
+    when:
+      visible:
+        id: "expiry-day-field"
+    commands:
+      - tapOn:
+          id: "expiry-day-field"
+      - inputText: ${EXPIRY_DAY}
+      - tapOn:
+          id: "expiry-month-field"
+      - inputText: ${EXPIRY_MONTH}
+      - tapOn:
+          id: "expiry-year-field"
+      - inputText: ${EXPIRY_YEAR}
+      - hideKeyboard
+- takeScreenshot: rider-wp8-capture-review-${DOC_ID}
+- tapOn:
+    id: "capture-use"
+# Back on the list: the row uploads (createUpload → PUT → confirmUpload → attach), then reads Added.
+- scrollUntilVisible:
+    element:
+      text: ${LANDED}
+    timeout: 60000

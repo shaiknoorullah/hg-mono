@@ -1,0 +1,56 @@
+id: rider-wp8-documents
+app: rider
+avd: hg_rider
+api: devworld
+build:
+  env: { EXPO_PUBLIC_HG_REDESIGN: "1" }
+  note: "Clear the Metro cache when building (EXPO_PUBLIC_* is inlined at transform time; a warm cache from a flag-off build serves the legacy app)."
+# dev-reset gives rider-docs (+1 555 010 0152, DOCUMENTS_REVIEW) and rider-rejected (0153,
+# DOCUMENTS_REJECTED, a government ID turned down ILLEGIBLE). The first flow signs up its own
+# number (PHONE_DIGITS 0196 in onboard-rider's range).
+# Note: `make dev-scenario s=docs-reject` / `docs-approve` decide the *restaurant* docs persona's
+# document, not a rider's, so rider decisions are made through the admin API in `explore` below.
+setup:
+  - "make dev-reset"
+reality:
+  # A picture in the photo library, for "Choose a file (PDF or photo)".
+  - camera-media: tools/e2e/native/media/pod-sample-door.png
+  - theme: light
+  - font-scale: 1.3
+flows:
+  - "tools/e2e/native/rider/redesign/8-documents.yaml"
+  - "tools/e2e/native/rider/redesign/8b-documents-fix.yaml"
+  - "tools/e2e/native/rider/redesign/8c-documents-review.yaml"
+explore: >
+  The flows take every document with the emulator's virtual scene (back camera) and the photo of
+  you with the front camera. Screenshot each state reached, light, at 130% text. Then, on the
+  real API:
+  (1) Choose a file: with a fresh number in +1 555 010 0160–0199 (code 000000) at the documents
+  step, Add driver's licence → "Choose a file (PDF or photo)" → pick pod-sample-door.png from the
+  photo library → the file preview with its size and "We send the whole file…", type an expiry,
+  Use this file; the API log shows POST /v1/uploads with content_type image/png, the PUT to
+  storage, POST /v1/uploads/{id}/confirm, POST /v1/riders/me/documents with expires_on. A PDF
+  cannot be picked yet (the app has no document picker dependency; the file picker is the photo
+  library): note it, do not fail the run.
+  (2) Expiry too soon: type a date 10 days from today → "This licence expires on …, less than 30
+  days away…" with Back to documents as the primary and nothing in the API log.
+  (3) Network loss mid-upload: take the insurance photo, Use this photo, and at once
+  `adb shell cmd connectivity airplane-mode enable`: the row reads Paused, "Upload paused because
+  you went offline…", the alert "Uploads carry on when you are back online. Nothing you added is
+  lost."; airplane mode off: within a few seconds the row reads Added by itself.
+  (4) Torch: on the camera, the Torch switch lights the emulator torch (or at least toggles).
+  (5) Submit twice fast: one POST /v1/riders/me/onboarding/documents in the API log.
+  (6) Review decisions for rider-docs: sign in as +1 555 010 0152; with an admin token (make
+  dev-admin, then sign in to the admin API) call reviewRiderDocument (POST
+  /v1/admin/rider-documents/{documentId}/review) with {"decision":"APPROVE"} for the government
+  ID: within 30 s (or on returning to the app) the row reads Approved and, once the application is
+  decided, "Your documents are approved" with Set up payouts. Repeat on a fresh run with
+  {"decision":"REJECT","rejection_reason_code":"PLATE_MISMATCH"} on a scooter rider's registration:
+  Fix shows "Check your plate", the plate entered, two steps; Fix your plate → edit plate → Save →
+  camera → new photo → Send for review again.
+  (7) Notifications off: before signing in as rider-docs, `adb shell pm revoke
+  com.halalgoes.rider.dev android.permission.POST_NOTIFICATIONS`: Review shows "Notifications are
+  off" with Open settings.
+  (8) Dark theme and font_scale 2.0 (`adb shell cmd uimode night yes`, `adb shell settings put
+  system font_scale 2.0`): screenshot Documents (rows wrap, the Add button drops below the text),
+  capture review with the Day / Month / Year fields, Review and Fix. Reset afterwards.
