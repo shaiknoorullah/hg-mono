@@ -54,7 +54,7 @@ These are the rules the existing names already follow; new fixtures follow them 
 | `order_admin_view_` | 19 | An `OrderState` (lower case) as the staff projection shows it. | `order_admin_view_disputed` |
 | `order_list_` | 5 | A list variant: `active`, `past`, `empty`. | `order_list_active` |
 | `order_rating_` | 3 | A rating state. | `order_rating_unrated` |
-| `order_` | 22 | An `OrderState`, lower case, in the customer projection (`order_ready_for_pickup`), or a money or shape edge (`order_zero_tip`). | `order_arrived` |
+| `order_` | 19 | An `OrderState`, lower case, in the customer projection (`order_ready_for_pickup`), or a money or shape edge (`order_zero_tip`). | `order_arrived` |
 | `restaurant_order_` | 16 | An `OrderState` in the restaurant projection, or the queue (`_queue_busy`, `_queue_empty`). | `restaurant_order_preparing` |
 | `tracking_` | 6 | An `OrderState` (or a degraded signal) in the tracking projection. | `tracking_picked_up` |
 | `assignment_` | 14 | An `AssignmentState`, lower case, or a drop-off instruction edge. | `assignment_arrived_at_pickup` |
@@ -83,8 +83,19 @@ These are the rules the existing names already follow; new fixtures follow them 
 | `principal_` | 6 | The signed-in principal, by role (`principal_<role>`). | `principal_support_agent` |
 | `menu_` | 28 | A menu, item, category or version state. | `menu_version_pending_review` |
 | `rider_availability_` | 5 | A `RiderAvailabilityState`, lower case. | `rider_availability_online_idle` |
-| `payout_` | 24 | A `PayoutState`, lower case, or a payout run. | `payout_held` |
-| (other) | 156 | One-off subjects named for what they are (`public_config`, `cart_many_lines`, `quote_standard`). | `public_config` |
+| `payout_` | 20 | A `PayoutState`, lower case, or a payout run. | `payout_held` |
+| `payout_list_` | 4 | A rider payout list (`_every_state`, `_multi_problem`, `_draft_paid`). | `payout_list_every_state` |
+| `rider_dashboard_` | 19 | Rider Home: a `RiderAvailabilityState` (lower case), a `TrackingHealth` problem, a blocking reason or a delivery leg. | `rider_dashboard_online_stale` |
+| `connect_status_` | 9 | A Stripe Connect requirement state, in Stripe's words (`currently_due`, `past_due`, `pending_verification`). | `connect_status_past_due` |
+| `earnings_summary_` | 5 | An `EarningsPeriod`, lower case, or a money edge. | `earnings_summary_day` |
+| `earning_entries_` | 6 | A rider ledger page or situation (`_paging`, `_clawback`, `_pending`). | `earning_entries_clawback` |
+| `restaurant_list_` | 11 | A customer home list: halal-field gaps, sort order, availability mix, a page. | `restaurant_list_partial_halal` |
+| `restaurant_hours_` | 4 | An opening-hours shape. | `restaurant_hours_split_past_midnight` |
+| `restaurant_payout_history` | 4 | A restaurant's payout list or one of its pages. | `restaurant_payout_history_every_state` |
+| `owned_menu_` | 4 | The restaurant's own menu, as its editor reads it. | `owned_menu_every_review_status` |
+| `order_admin_list_` | 3 | A staff order list variant. | `order_admin_list_every_state` |
+| `staff_list` | 4 | A platform staff list variant. | `staff_list_edge_rows` |
+| (other) | 90 | One-off subjects named for what they are (`public_config`, `cart_many_lines`, `quote_standard`). | `public_config` |
 
 ## 2. How one scenario is chosen per operation (the mock server)
 
