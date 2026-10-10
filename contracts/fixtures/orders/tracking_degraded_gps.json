@@ -42,6 +42,7 @@
       "vehicle_type": "SCOOTER",
       "rating_avg": 4.9
     },
+    "delivery_code": null,
     "timeline": [
       {
         "from_state": null,
