@@ -608,6 +608,21 @@ describe('go-live gate and sound', () => {
   });
 });
 
+describe('the strip on Live orders', () => {
+  it('after going live, /orders shows the strip above the page, and A accepts the focused tile there too', async () => {
+    const o = pending('A7K2', 150);
+    const api = installFakeApi(routesFor([o], { [`POST /v1/restaurant/orders/${o.id}/accept`]: accepted(o) }));
+    await renderRedesign('/orders', { live: true });
+    const tile = await findTile('A7K2');
+    // The gate is gone and the strip is the strip landmark, above the page body.
+    expect(screen.queryByTestId('go-live-gate')).toBeNull();
+    expect(document.getElementById('new-orders')!.contains(tile)).toBe(true);
+    act(() => tile.focus());
+    fireEvent.keyDown(tile, { key: 'a' });
+    await waitFor(() => expect(api.callsTo(`POST /v1/restaurant/orders/${o.id}/accept`)).toHaveLength(1));
+  });
+});
+
 // ── open state, compact row, connection, ended panels ────────────────────────────────────
 
 const frameOn = (n: number, type: string, data: Record<string, unknown>) => ({
