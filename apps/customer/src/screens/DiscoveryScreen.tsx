@@ -30,6 +30,7 @@ import { api } from '../api/client';
 import { getDefaultAddress, getAddressVersion, subscribeAddressVersion } from '../api/addresses';
 import { useNavigation } from '../navigation/stack';
 import { CustomerTabBar } from '../navigation/TabBar';
+import { OrderingPausedNotice, useOrderingPause } from '../ordering/orderingPause';
 
 type Status =
   | { kind: 'loading' }
@@ -39,6 +40,7 @@ type Status =
 export function DiscoveryScreen(): React.ReactElement {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const { paused: orderingPaused } = useOrderingPause();
   const nav = useNavigation();
   const [status, setStatus] = React.useState<Status>({ kind: 'loading' });
 
@@ -87,6 +89,11 @@ export function DiscoveryScreen(): React.ReactElement {
   return (
     <View style={{ flex: 1, backgroundColor: theme.color.surface.sunken }}>
       <AppBar title="Discover" subtitle="Halal-certified, near you" />
+      {orderingPaused ? (
+        <View style={{ paddingHorizontal: 16, paddingTop: 16 }}>
+          <OrderingPausedNotice />
+        </View>
+      ) : null}
       <View style={{ flex: 1 }}>
         <Body
           status={status}

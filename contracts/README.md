@@ -140,8 +140,7 @@ header (client-generated UUID or ULID, 16–128 chars), scoped
   idempotency record did not commit" cannot happen.
 
 The header is marked `required: true` on every such operation in `openapi.yaml`, so a generated
-client cannot omit it. The one exception is `joinWaitlist`: it is public, so there is no account
-to scope a key to, and it is idempotent on its natural key (audience and contact) instead.
+client cannot omit it.
 
 ### Enums
 
@@ -162,7 +161,6 @@ operation may be called unauthenticated, and that set is fixed:
 | `requestPasswordReset`, `resetPassword` | Same |
 | `refreshSession` | Authenticated by the refresh token itself |
 | `receiveStripeWebhook` | Authenticated by signature, not by session |
-| `joinWaitlist` | The marketing site's waitlist form: a visitor joins before they have an account. Rate-limited per client address (rate class `WAITLIST`) and idempotent on audience and contact ([#212](https://github.com/shaiknoorullah/hg-mono/issues/212)) |
 
 Four security schemes are declared, matching the four ways identity is established:
 `otpSession` (customer/rider, phone-OTP issued), `passwordSession` (restaurant/admin/support,
@@ -175,7 +173,7 @@ leaked. `403` means "you can see this resource but may not perform this action".
 ### Versioning
 
 Every operation carries `x-version`: `V0` (in the 43-feature launch cut) or `V1` (needed to make
-a V0 screen coherent, but not itself launch-blocking). Current counts: **145 V0, 16 V1**
+a V0 screen coherent, but not itself launch-blocking). Current counts: **156 V0, 19 V1**
 (`pnpm validate:contract` prints them).
 
 On 2026-10-01 the owner moved into launch the operations launch screens depend on, and added
@@ -195,6 +193,14 @@ issue [#182](https://github.com/shaiknoorullah/hg-mono/issues/182)):
 | The menu review queue | `listMenuReviewQueue`, `decideMenuVersion` |
 | **New:** an admin updates or removes a menu item on a restaurant's behalf | `updateMenuItemOnBehalf`, `deleteMenuItemOnBehalf` |
 
+Then, for launch, staff review refunds and see chargebacks ([#172](https://github.com/shaiknoorullah/hg-mono/issues/172)):
+
+| What | Operations |
+|---|---|
+| **New:** the refund review queue; approve a refund (within the approver's 24-hour limit, or sent up for a second person) or decline it with a reason | `listRefundsAdmin`, `approveRefund`, `declineRefund` |
+| **New:** chargebacks (disputes raised with the customer's bank) and the evidence notes staff keep for them | `listChargebacks`, `getChargeback`, `addChargebackEvidenceNote` |
+| **Widened:** the admin order view carries the order's money timeline and its chargebacks | `getOrderAdmin` |
+
 Still later-version: turning two-step sign-in off, listing and ending single sessions,
 dependency status, the in-app inbox, restaurant staff, ratings, the home feed and a restaurant
 adding delay to an order (`delayOrder`).
@@ -208,53 +214,29 @@ seal scan gates any order transition.
 
 | Code | Who sees it | Who types it in | Where in the contract |
 |---|---|---|---|
-| **Pickup code** | The kitchen, on `OrderRestaurantView.pickup_code` and `restaurant.order_accepted`, from acceptance until pickup | The rider, as `pickup_code` on the `PICKED_UP` transition of `createAssignmentTransition`. Wrong code: `PICKUP_CODE_INCORRECT` with the attempts left; five wrong codes: `PICKUP_CODE_LOCKED`, then pickup needs an `override_reason` and is flagged for operations ([#178](https://github.com/shaiknoorullah/hg-mono/issues/178), [#183](https://github.com/shaiknoorullah/hg-mono/issues/183)) |
-| **Delivery code** | The customer, on `OrderCustomerView.delivery_code`, `OrderTracking.delivery_code` and the `order.rider_arrived` event (a push without the code also goes out), while a met handover is out for delivery | The rider, as `otp_code` on `submitProofOfDelivery`. Five wrong codes lock it and the rider falls back to a photo with a statement ([#180](https://github.com/shaiknoorullah/hg-mono/issues/180)) |
+| **Pickup code** | The restaurant's staff only: their authenticated order view (`OrderRestaurantView.pickup_code`) and the staff projection of `restaurant.order_accepted` on `restaurant:{id}`, from acceptance until pickup | The rider, as the **required** `pickup_code` of `PickupTransitionInput`, the only shape `createAssignmentTransition` accepts for `PICKED_UP`. Wrong code: `PICKUP_CODE_INCORRECT` with the attempts left; five wrong codes per order: `PICKUP_CODE_LOCKED`, and the order goes to support ([#178](https://github.com/shaiknoorullah/hg-mono/issues/178), [#183](https://github.com/shaiknoorullah/hg-mono/issues/183)) |
+| **Delivery code** | The customer only, over REST from their own authenticated order view: `OrderCustomerView.delivery_code` and `OrderTracking.delivery_code`, while a met handover is out for delivery. Never on the socket and never in a push: the arrival push and `order.rider_arrived` say only "Your rider is here" | The rider, as the **required** `otp_code` of `OtpProofInput` on `submitProofOfDelivery`, the only proof a met handover accepts. Wrong code: `DELIVERY_CODE_INCORRECT` with the attempts left; five wrong codes per order: `DELIVERY_CODE_LOCKED`, and the order goes to support ([#180](https://github.com/shaiknoorullah/hg-mono/issues/180), [#183](https://github.com/shaiknoorullah/hg-mono/issues/183)) |
 
 The rider is never sent either code; each one is heard from the person holding it.
 
-The same day the owner decided where the location picker's address search comes from: our
-API, which forwards to Mapbox
-([round-2 decisions, "Launch scope and contract", map address search](../docs/decisions/README.md#launch-scope-and-contract),
-issue [#179](https://github.com/shaiknoorullah/hg-mono/issues/179)). The secret key stays on
-the server, and the provider can change without a client release. Three launch operations,
-tag `geo`, for customers and for restaurant owners and managers:
+#### Neither code can be bypassed
 
-| Operation | What it does | No match | Provider down |
-|---|---|---|---|
-| `suggestAddresses` — `GET /v1/geo/autocomplete` | Up to 5 Canadian suggestions as the user types, ranked towards the location sent, else the default address or restaurant location, else `default_map_center`. Needs a client-made `session_token` | `200` with an empty list | `503 GEOCODER_UNAVAILABLE` |
-| `getPlaceAddress` — `GET /v1/geo/places/{placeId}` | The address and point of a picked suggestion; ends the search session | `404 GEOCODE_NO_MATCH` | `503 GEOCODER_UNAVAILABLE` |
-| `reverseGeocode` — `GET /v1/geo/reverse` | The nearest Canadian address to a map pin | `404 GEOCODE_NO_MATCH` | `503 GEOCODER_UNAVAILABLE` |
+From the [security review on #183](https://github.com/shaiknoorullah/hg-mono/issues/183): the
+codes are proof of presence, so the contract leaves the rider no way past them.
 
-`suggestAddresses` is rate class `GEO_SUGGEST`: 60 requests per account per minute, burst 20,
-so one search typed a key at a time stays under it. `getPlaceAddress` and `reverseGeocode` are
-rate class `GEO`: 30 requests per account per minute, burst 10, each counted separately
-([rate limiting](../docs/spec/01-platform.md#p-38--rate-limiting)). Over the limit is
-`429 RATE_LIMITED`. Results are Canada-only: the server asks the provider for
-Canadian results and drops any other. A result outside the served provinces is still
-returned, and saving it is `PROVINCE_NOT_SERVED`. The operations store nothing: the result
-prefills the form, and `createAddress` or `submitRestaurantProfile` saves what the user
-confirms, at the pin's final position. Because that saved address comes from Mapbox, the
-server gets it from Mapbox Geocoding v6 with `permanent=true`: Mapbox results are temporary by
-default, and a temporary result may not be stored or cached
-([Mapbox: storing geocoding results](https://docs.mapbox.com/api/search/geocoding/#storing-geocoding-results);
-cost: [#297](https://github.com/shaiknoorullah/hg-mono/issues/297)). Suggestions may stay
-temporary, and the server never caches them. When the provider is down or nothing matches, the manual form and the
-map pin still work.
-
-The rest of the round-2 answers changed the contract in eight places
-([round-2 decisions](../docs/decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)):
-
-| What | Where in the contract | Error states |
-|---|---|---|
-| **Replace the whole cart in one call**, for "Put these items back in your cart" after an unpaid order is cancelled, expires or fails payment. Item ids, options and quantities only, never a price; every line is priced again. Clear-then-add in two calls stays prohibited ([#179](https://github.com/shaiknoorullah/hg-mono/issues/179)) | **New:** `replaceCart`, `PUT /v1/cart`, body `CartReplaceInput` | All or nothing: `409` with the first failure's code (`ITEM_UNAVAILABLE`, `VARIANT_UNAVAILABLE`, `ADDON_UNAVAILABLE`, `RESTAURANT_CLOSED`, `RESTAURANT_UNAVAILABLE`) and `details.lines: [{index, code}]`; lines from two restaurants or a merged quantity over 20 is `422 VALIDATION_FAILED`. The cart is unchanged |
-| **Several problem reports on one order.** The rule chosen: each report is its own refund, decided on its own, and reports never merge. A later report is refused only when it claims a line quantity, or the fees, that another refund on the order already holds: per order line, the quantities claimed may not exceed the quantity ordered, and the fees go out at most once. A refund holds its claim in every state but `DECLINED` and `CANCELLED`, a refund waiting for approval included. A `FULL` refund claims only what no other refund holds, so it never clashes ([#184](https://github.com/shaiknoorullah/hg-mono/issues/184)) | `createRefund`, and the same rules on `issueRefund` | `409 REFUND_ALREADY_REQUESTED` now means "that line quantity or those fees already have a refund", with `details.order_line_nos` and `details.fees`. The refunds that hold a claim never exceed the captured amount: `409 REFUND_EXCEEDS_CAPTURED`, also for a `FULL` refund with nothing left. Each request and each approval locks the order row first and re-checks quantities, fees and the cap together |
-| **A wrong delivery address** as a reason for a report before delivery; any refund is per support's judgement and the platform absorbs it ([#180](https://github.com/shaiknoorullah/hg-mono/issues/180)) | `WRONG_ADDRESS` in `RefundReasonCode` | — |
-| **Pause until closing** replaces "rest of today". The server works out the end of the current trading period, late nights past midnight included | `pause_until_closing` on `setRestaurantAcceptingOrders` | Outside trading hours: `409 RESTAURANT_CLOSED`; with `pause_until` as well: `422 VALIDATION_FAILED` |
-| **A support email** for customers and partners, shown while the phone line is off, and how customers ask for account deletion at launch ([#181](https://github.com/shaiknoorullah/hg-mono/issues/181)) | `PublicConfig.support_email` | Null when none is configured: no email contact is shown |
-| **An approximate drop-off area on a rider's offer** before accepting; the full address once accepted ([#183](https://github.com/shaiknoorullah/hg-mono/issues/183)) | `DispatchOffer.dropoff`: `area` is the neighbourhood and city, `latitude`/`longitude` the centre of a ~500 m cell, and the new `radius_m`. Same on the `dispatch.offer` event | — |
-| **The marketing site's waitlist** posts to our API, so the site can be a static export and the sign-ups land in our own database ([#212](https://github.com/shaiknoorullah/hg-mono/issues/212)) | **New:** `joinWaitlist`, `POST /v1/waitlist`, public, rate class `WAITLIST` (10 per client address per hour, burst 5) | `422 VALIDATION_FAILED` for a bad contact or no consent; `429 RATE_LIMITED`; `503 RATE_LIMITER_UNAVAILABLE` when Redis is down, because this limit fails closed. A repeat sign-up gets the same `202` |
-| **The text-message sender check, for every staff role**, so the sticky banner shows on every admin page while sign-in codes cannot be sent | **New:** `getSmsSenderStatus`, `GET /v1/admin/system/sms-sender`, for support agents, admins and super admins | — |
+- The code is a required field of the only request shape that can make each handover happen. There
+  is no optional code field, no "skip", and no rider override: `override_reason` covers a failed
+  geofence check only, and a met handover accepts no photo or statement in place of the code.
+- Wrong attempts are counted per order in Postgres, five at most. The fifth locks the code
+  (`423`), raises a `HANDOVER_CODE_LOCKED` alert on `admin:ops`, and hands the order to support.
+  The state's `deadline_at` keeps running, so a lock nobody resolves still ends.
+- Only support or an admin can confirm a handover without its code, with `overrideHandoverCode`
+  ([`POST /v1/admin/orders/{orderId}/handover-override`](openapi.yaml)): a reason, a support case,
+  and an append-only `HandoverOverride` audit record written in the same transaction. No admin
+  view carries either code, so nobody at HalalGoes can read one out to a rider.
+- No rider-visible schema (offer, assignment, dashboard), no event on `order:{order_id}`, no push,
+  SMS or email, and no error body carries a code. `pnpm validate:contract` fails if a response
+  of a rider operation ever gains a `pickup_code`, `delivery_code` or `otp_code` property.
 
 ---
 
@@ -310,7 +292,7 @@ Three pairs became identical once cased alike, and were collapsed to one member 
 
 | Kept | Absorbed | Consequence |
 |---|---|---|
-| `OTP_INCORRECT` | `otp_incorrect` | The auth OTP code and the **proof-of-delivery** OTP code are now one member. They were always distinguishable only by endpoint, and still are — `POST /v1/auth/otp/verify` versus `submitProofOfDelivery`. `OTP_LOCKED` and `POD_METHOD_MISMATCH` remain separate. |
+| `OTP_INCORRECT` | `otp_incorrect` | The auth OTP code and the **proof-of-delivery** OTP code are now one member. They were always distinguishable only by endpoint, and still are — `POST /v1/auth/otp/verify` versus `submitProofOfDelivery`. `OTP_LOCKED` and `POD_METHOD_MISMATCH` remain separate. **Since superseded:** proof of delivery now has its own `DELIVERY_CODE_INCORRECT` and `DELIVERY_CODE_LOCKED`, so `OTP_INCORRECT` is sign-in only, and `OTP_LOCKED` was removed with the photo fallback it announced ([security review on #183](https://github.com/shaiknoorullah/hg-mono/issues/183)). |
 | `OFFER_EXPIRED` | `offer_expired` | Same meaning in both specs — a dispatch offer whose countdown ran out. A genuine duplicate. |
 | `PROVINCE_NOT_SERVED` | `province_not_served` | The address-validation code and the quote-time code. Same customer-facing outcome, gated by the same `getPublicConfig.served_provinces` list (decision O-05). |
 
@@ -359,11 +341,14 @@ either way, but the **values** need a human before launch:
 | `x-roles` and `x-version` present | Any operation omits either — this is the deny-by-default gate expressed in the contract |
 | Money invariant | A `_cents` field is not `integer/int64`, or a money-shaped field lacks the suffix, or a `number`-typed field has a money-shaped name |
 | Mass-assignment invariant | A request body contains a price-shaped field outside the three-item allowlist |
+| Menu lock declared | A write under a menu path (`/menu`, `/menu/…`, `/menu-reviews/…`) has no `403` naming `MENU_LOCKED`, the refusal while the restaurant is suspended or banned ([menu lock](../docs/decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01), [#256](https://github.com/shaiknoorullah/hg-mono/issues/256)) |
 | Component reachability | A schema, parameter or response is declared and never referenced |
 | Contract drift | The document generated from the route registry differs from the committed one |
 | Fixture validity | Any fixture under `contracts/fixtures/` does not validate against its named schema (`pnpm validate:fixtures`) |
+| Distinct list rows | A list fixture (`array<…>`) has two rows with the same `id`, i.e. one record shown twice (`pnpm validate:fixtures`, [issue #31](https://github.com/shaiknoorullah/hg-mono/issues/31)) |
 | Error-code casing | Any `ErrorCode` member is not `SCREAMING_SNAKE_CASE`, or the enum contains a duplicate |
 | YAML 1.1 truthy scalars | An unquoted `ON`/`OFF`/`YES`/`NO` appears in an `enum`, `examples` or `default` — see §"Two contract defects" |
 | Unsatisfiable `allOf` | An `allOf` extends a base that sets `additionalProperties: false` |
+| Handover codes kept from riders | A response schema of any operation a rider can call (`RIDER` or `PUBLIC` in `x-roles`) has a `pickup_code`, `delivery_code` or `otp_code` property — see ["Neither code can be bypassed"](#neither-code-can-be-bypassed) |
 | Generated-client drift | `pnpm generate` changes `packages/api-client/src/generated/**` (`git diff --exit-code`) |
 | Fixture drift | `pnpm fixtures:build` changes anything under `contracts/fixtures/` (`git diff --exit-code`) |

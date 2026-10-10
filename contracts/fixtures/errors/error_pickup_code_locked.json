@@ -2,7 +2,7 @@
   "scenario": "error_pickup_code_locked",
   "domain": "errors",
   "schema": "ErrorEnvelope",
-  "describes": "`423` · `PICKUP_CODE_LOCKED`. The fifth wrong pickup code locks it for this order, so a reassignment does not reset the count. Every later `PICKED_UP` without an `override_reason` gets this answer, with or without a code. The rider is never trapped at the counter: `PICKED_UP` with an `override_reason` and no code is accepted and flagged for operations.",
+  "describes": "`423` · `PICKUP_CODE_LOCKED`. **Limit reached.** The fifth wrong pickup code locks it for this order, so a reassignment does not reset the count, and hands the order to support (`HANDOVER_CODE_LOCKED` on `admin:ops`). Every later `PICKED_UP` gets this answer, with or without a code. The rider has no override: support or an admin confirms the pickup with `overrideHandoverCode` (see `handover_override_pickup_locked`).",
   "operations": [
     "createAssignmentTransition"
   ],
@@ -13,7 +13,7 @@
   "payload": {
     "error": {
       "code": "PICKUP_CODE_LOCKED",
-      "message": "Too many wrong codes. Confirm pickup with a reason instead.",
+      "message": "Too many wrong codes. HalalGoes support is taking over this pickup; please wait at the counter.",
       "request_id": "KRPG0PB9P7Y07WJ96QMMAX4KP7"
     }
   }

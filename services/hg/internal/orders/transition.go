@@ -58,6 +58,18 @@ func (s *Store) Transition(ctx context.Context, req TransitionRequest, effects .
 	})
 }
 
+// TransitionInTx is Transition inside a transaction the caller already holds.
+// It is for a caller that must lock its own rows first and commit its own
+// records with the state change: the restaurant's accept, reject and
+// mark-ready lock the order under the restaurant's ownership predicate, then
+// move it here (https://github.com/shaiknoorullah/hg-mono/issues/337). It is
+// the same single function as Transition, not a second writer of order.state
+// (docs/spec/01-platform.md, "P-14 — Order lifecycle states and transitions").
+// The caller commits or rolls back tx.
+func (s *Store) TransitionInTx(ctx context.Context, tx pgx.Tx, req TransitionRequest, effects ...func(pgx.Tx) error) error {
+	return s.transitionTx(ctx, tx, req, effects...)
+}
+
 func (s *Store) transitionTx(ctx context.Context, tx pgx.Tx, req TransitionRequest, effects ...func(pgx.Tx) error) error {
 	var fromStr string
 	var acceptedAt *time.Time
@@ -131,13 +143,34 @@ func (s *Store) transitionTx(ctx context.Context, tx pgx.Tx, req TransitionReque
 		return fmt.Errorf("insert transition: %w", err)
 	}
 
-	// Emit a realtime outbox event in the same transaction so the customer's
-	// order channel receives a live update. The emitter is optional (nil when
-	// the realtime module is not wired, e.g. in unit tests).
-	if s.emitter != nil {
-		if err := s.emitter.EmitOrderTransition(ctx, tx, req.OrderID, string(req.To)); err != nil {
-			return fmt.Errorf("emit order transition: %w", err)
+	// The rider who delivered is paid in the same transaction as the
+	// delivery, and only by the rider's own DELIVERED transition: no other
+	// actor's state change writes earnings, and a failed write rolls the
+	// delivery back (https://github.com/shaiknoorullah/hg-mono/issues/306).
+	// DELIVERED is reachable once per order, so this runs once.
+	if req.To == machine.StateDelivered && req.Actor == machine.ActorRider && s.riderEarnings != nil {
+		if err := s.riderEarnings.CreditDeliveryTx(ctx, tx, req.OrderID, req.ActorAccountID); err != nil {
+			return fmt.Errorf("rider earnings: %w", err)
 		}
+	}
+
+	// A cancelled order needs no rider: the dispatch half runs here, in the
+	// cancel's transaction, whoever cancelled it.
+	if req.To == machine.StateCancelled && s.orderCancelled != nil {
+		if err := s.orderCancelled.OrderCancelledTx(ctx, tx, req.OrderID); err != nil {
+			return fmt.Errorf("release the cancelled order's rider: %w", err)
+		}
+	}
+
+	// Emit a realtime outbox event in the same transaction so the customer's
+	// tracking, the restaurant's queue and the rider see the change, in the
+	// contract's shapes, whoever called this function (events.go; issue #247).
+	// The notifier behind s.emitter is optional (nil in unit tests).
+	if err := s.emitTransition(ctx, tx, transitionFacts{
+		OrderID: req.OrderID, From: &fromCopy, To: req.To, Actor: req.Actor,
+		ActorAccountID: req.ActorAccountID, PrepEtaMinutes: req.PrepEtaMinutes,
+	}); err != nil {
+		return fmt.Errorf("emit order transition: %w", err)
 	}
 
 	for _, eff := range effects {

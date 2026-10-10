@@ -149,15 +149,15 @@ export interface OrderNoteAddedData {
   at: string;
 }
 /**
- * The arrival event, customer only, also sent as a push. `delivery_code` is the 4-digit code
- * the customer reads to the rider at a met handover; null for an unattended drop or once it
- * has locked. The rider is never sent it (docs/decisions/README.md, round 2, "Orders and
- * delivery": https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#orders-and-delivery).
+ * The arrival event, customer only, also sent as a push that says only "Your rider is here".
+ * It never carries a handover code: the rider subscribes to `order:{id}` too, and a push shows
+ * on the lock screen. On this event the customer app fetches `delivery_code` from its own
+ * authenticated order view (`getOrder` / `getOrderTracking`). Security review on #183:
+ * https://github.com/shaiknoorullah/hg-mono/issues/183
  */
 export interface OrderRiderArrivedData {
   order_id: string;
   at: string;
-  delivery_code: string | null;
 }
 
 /* ----------------------------- §4.3 payment ------------------------------ */
@@ -244,7 +244,8 @@ export interface RestaurantOrderAcceptedData {
   prep_eta_minutes: number;
   /**
    * The 4-digit code the kitchen reads to the rider at the counter; null when the customer
-   * collects the order. Restaurant channel only — the rider is never sent it.
+   * collects the order, and always null in the support and admin projection. Restaurant
+   * channel only — the rider is never sent it.
    */
   pickup_code: string | null;
 }
@@ -479,7 +480,7 @@ export type RealtimeEvent = {
 export const REALTIME_CLOSE = {
   NORMAL: 1000,
   GOING_AWAY: 1001,
-  /** `slow_consumer` or `at_capacity`: reconnect with backoff, then resume every channel. */
+  /** `slow_consumer`, `at_capacity` or `connection_limit`: reconnect with backoff, then resume every channel. */
   TRY_AGAIN_LATER: 1013,
   MALFORMED_FRAME: 4400,
   UNAUTHENTICATED: 4401,

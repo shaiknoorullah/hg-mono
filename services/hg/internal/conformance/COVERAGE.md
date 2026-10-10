@@ -6,15 +6,17 @@ The oracle: every covered operation had its live server response validated again
 `contracts/openapi.yaml` via kin-openapi (`openapi3filter.ValidateResponse`), which
 enforces `additionalProperties:false` + `required[]` + closed enums automatically.
 
-- **Total contract operations:** 152
-- **Validated (covered):** 152
-- **Not yet validated (uncovered):** 0
+- **Total contract operations:** 175
+- **Validated (covered):** 166
+- **Not yet validated (uncovered):** 9
 
-## Covered (152)
+## Covered (166)
 
 - `acceptOffer` — POST /v1/riders/me/offers/{offerId}/accept
 - `acceptOrder` — POST /v1/restaurant/orders/{orderId}/accept
 - `addCartLine` — POST /v1/cart/lines
+- `addChargebackEvidenceNote` — POST /v1/admin/chargebacks/{chargebackId}/evidence-notes
+- `approveRefund` — POST /v1/admin/refunds/{refundId}/approve
 - `attachRestaurantDocument` — POST /v1/restaurant/documents
 - `attachRiderDocument` — POST /v1/riders/me/documents
 - `bindPackageSeal` — POST /v1/orders/{orderId}/handoff/seal
@@ -35,6 +37,7 @@ enforces `additionalProperties:false` + `required[]` + closed enums automaticall
 - `createMenuItemOnBehalf` — POST /v1/admin/restaurants/{restaurantId}/menu/items
 - `createOrder` — POST /v1/orders
 - `createPaymentMethodSetupIntent` — POST /v1/payment-methods/setup-intent
+- `createPayoutRun` — POST /v1/admin/payout-runs
 - `createQuote` — POST /v1/quotes
 - `createRealtimeTicket` — POST /v1/realtime/ticket
 - `createRefund` — POST /v1/refunds
@@ -45,8 +48,12 @@ enforces `additionalProperties:false` + `required[]` + closed enums automaticall
 - `decideMenuVersion` — POST /v1/admin/menu-reviews/{versionId}/decision
 - `decideRestaurantApplication` — POST /v1/admin/restaurant-applications/{restaurantId}/decision
 - `decideRiderApplication` — POST /v1/admin/rider-applications/{riderAccountId}/decision
+- `declineRefund` — POST /v1/admin/refunds/{refundId}/decline
 - `delayOrder` — POST /v1/restaurant/orders/{orderId}/delay
 - `deleteAddress` — DELETE /v1/addresses/{addressId}
+- `deleteMenuCategory` — DELETE /v1/restaurant/menu/categories/{categoryId}
+- `deleteMenuItem` — DELETE /v1/restaurant/menu/items/{itemId}
+- `deleteMenuItemOnBehalf` — DELETE /v1/admin/restaurants/{restaurantId}/menu/items/{itemId}
 - `deletePaymentMethod` — DELETE /v1/payment-methods/{paymentMethodId}
 - `disableTotp` — POST /v1/auth/totp/disable
 - `enrollTotp` — POST /v1/auth/totp/enroll
@@ -54,11 +61,11 @@ enforces `additionalProperties:false` + `required[]` + closed enums automaticall
 - `getAddress` — GET /v1/addresses/{addressId}
 - `getAssignment` — GET /v1/riders/me/assignments/{assignmentId}
 - `getCart` — GET /v1/cart
+- `getChargeback` — GET /v1/admin/chargebacks/{chargebackId}
 - `getConnectStatus` — GET /v1/connect/status
 - `getCurrentOffer` — GET /v1/riders/me/offers/current
 - `getCurrentPrincipal` — GET /v1/auth/me
 - `getCustomerProfile` — GET /v1/me/profile
-- `getDependencyStatus` — GET /internal/deps
 - `getHalalCertificate` — GET /v1/admin/halal-certificates/{certificateId}
 - `getHealth` — GET /health
 - `getHomeFeed` — GET /v1/feed
@@ -70,10 +77,11 @@ enforces `additionalProperties:false` + `required[]` + closed enums automaticall
 - `getOrderReceipt` — GET /v1/orders/{orderId}/receipt
 - `getOrderRiderPublicProfile` — GET /v1/orders/{orderId}/rider
 - `getOrderTracking` — GET /v1/orders/{orderId}/tracking
+- `getOrderingPause` — GET /v1/admin/ordering-pause
 - `getOwnMenu` — GET /v1/restaurant/menu
+- `getPayoutRun` — GET /v1/admin/payout-runs/{runId}
 - `getPublicConfig` — GET /v1/config/public
 - `getQuote` — GET /v1/quotes/{quoteId}
-- `getReadiness` — GET /health/ready
 - `getRealtimeSchema` — GET /v1/realtime/schema
 - `getRefund` — GET /v1/refunds/{refundId}
 - `getRestaurant` — GET /v1/restaurants/{restaurantId}
@@ -93,13 +101,16 @@ enforces `additionalProperties:false` + `required[]` + closed enums automaticall
 - `getRiderPayout` — GET /v1/riders/me/payouts/{payoutId}
 - `issueRefund` — POST /v1/admin/refunds
 - `listAddresses` — GET /v1/addresses
+- `listChargebacks` — GET /v1/admin/chargebacks
 - `listHalalIssuingBodies` — GET /v1/admin/halal-issuing-bodies
 - `listMenuReviewQueue` — GET /v1/admin/menu-reviews
 - `listNotifications` — GET /v1/notifications
 - `listOrders` — GET /v1/orders
 - `listOrdersAdmin` — GET /v1/admin/orders
 - `listPaymentMethods` — GET /v1/payment-methods
+- `listPayoutRuns` — GET /v1/admin/payout-runs
 - `listRefunds` — GET /v1/refunds
+- `listRefundsAdmin` — GET /v1/admin/refunds
 - `listRestaurantApplications` — GET /v1/admin/restaurant-applications
 - `listRestaurantDocuments` — GET /v1/restaurant/documents
 - `listRestaurantOrders` — GET /v1/restaurant/orders
@@ -143,6 +154,7 @@ enforces `additionalProperties:false` + `required[]` + closed enums automaticall
 - `setDefaultPaymentMethod` — POST /v1/payment-methods/{paymentMethodId}/default
 - `setHalalIssuingBodyStatus` — POST /v1/admin/halal-issuing-bodies/{bodyId}/status
 - `setMenuItemAvailability` — PUT /v1/restaurant/menu/items/{itemId}/availability
+- `setOrderingPause` — PUT /v1/admin/ordering-pause
 - `setRestaurantAcceptingOrders` — PATCH /v1/restaurant/availability
 - `setRestaurantHours` — PUT /v1/restaurant/hours
 - `setRiderAvailability` — PUT /v1/riders/me/availability
@@ -160,13 +172,24 @@ enforces `additionalProperties:false` + `required[]` + closed enums automaticall
 - `updateAddress` — PATCH /v1/addresses/{addressId}
 - `updateCartLine` — PATCH /v1/cart/lines/{lineId}
 - `updateCustomerProfile` — PATCH /v1/me/profile
+- `updateMenuCategory` — PATCH /v1/restaurant/menu/categories/{categoryId}
 - `updateMenuItem` — PATCH /v1/restaurant/menu/items/{itemId}
+- `updateMenuItemOnBehalf` — PATCH /v1/admin/restaurants/{restaurantId}/menu/items/{itemId}
 - `verifyEmail` — POST /v1/auth/email/verify
 - `verifyOtp` — POST /v1/auth/otp/verify
 - `verifyTotpEnrolment` — POST /v1/auth/totp/verify
 
-## Uncovered (0)
+## Uncovered (9)
 
 Each uncovered operation is listed with its method/path. This list is emitted
 every run: an operation silently losing coverage becomes visible here.
 
+- `getDependencyStatus` — GET /internal/deps — needs Redis and the object store
+- `getPlaceAddress` — GET /v1/geo/places/{placeId} — unexplained gap
+- `getReadiness` — GET /health/ready — needs Redis and the object store
+- `getSmsSenderStatus` — GET /v1/admin/system/sms-sender — unexplained gap
+- `joinWaitlist` — POST /v1/waitlist — unexplained gap
+- `overrideHandoverCode` — POST /v1/admin/orders/{orderId}/handover-override — no handler yet: the backend lands in #315
+- `replaceCart` — PUT /v1/cart — unexplained gap
+- `reverseGeocode` — GET /v1/geo/reverse — unexplained gap
+- `suggestAddresses` — GET /v1/geo/autocomplete — unexplained gap

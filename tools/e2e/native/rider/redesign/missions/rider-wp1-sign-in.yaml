@@ -1,0 +1,29 @@
+id: rider-wp1-sign-in
+app: rider
+avd: hg_rider
+api: devworld
+build:
+  env: { EXPO_PUBLIC_HG_REDESIGN: "1" }
+  note: "Clear the Metro cache when building (EXPO_PUBLIC_* is inlined at transform time; a warm cache from a flag-off build serves the legacy app)."
+setup: [ "make dev-reset" ]
+reality:
+  - theme: light
+flows:
+  - "tools/e2e/native/rider/redesign/1-sign-in.yaml"
+  - "tools/e2e/native/rider/redesign/0-shell.yaml"
+explore: >
+  The flow itself turns airplane mode on for the first Send code and off again (Maestro
+  setAirplaneMode), so no network step is needed here. After the flows pass, each step on the real API (devworld, rider-sim +1 555 010 0151, code
+  000000): (1) Wrong code three times in a row: the third answer is "That code no longer works"
+  with "Send a new code" (attempts_remaining 0); send a new code and sign in. (2) Wait out the
+  resend countdown and tap "Send the code again" twice: the third send shows "We've sent 3 codes"
+  with the minutes left in the 15-minute window; "Use a different number" and Send code again for
+  the same number shows "Too many codes requested". (3) Type a 9-digit number: "Enter all 10
+  digits…" with no request in the API log. (4) Stop Valkey (`docker compose stop valkey` in
+  services/hg) and tap Send code: "We can't send codes right now" and the button reads "Try
+  again" (503 RATE_LIMITER_UNAVAILABLE); start it again. (5) Sign in as rider-registered
+  (+1 555 010 0154): the splash, then the application flow (or its legacy fallback until WP7).
+  (6) Kill the API while signed in and relaunch past sign-in: after 10 s "This is taking longer
+  than usual", then "We couldn't open your account" with Try again and Sign out. (7) Dark mode
+  (`adb shell cmd uimode night yes`) and font_scale 2.0: screenshot phone and code; the footer
+  buttons must stay above the keyboard and nothing may clip. Reset night mode and font_scale.

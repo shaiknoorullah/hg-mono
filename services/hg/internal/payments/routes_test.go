@@ -60,6 +60,7 @@ func TestMoneyRoutesAreIdempotent(t *testing.T) {
 		"POST /v1/payment-methods/setup-intent",
 		"POST /v1/refunds",
 		"POST /v1/admin/refunds",
+		"POST /v1/admin/refunds/{refundId}/approve",
 		"POST /v1/connect/account",
 	}
 	all := strings.Join(rt.Routes(), "\n")

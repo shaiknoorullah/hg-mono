@@ -96,6 +96,30 @@ function main(): number {
   const dupes = errorCodes.filter((c, i) => errorCodes.indexOf(c) !== i);
   if (dupes.length) fail(`duplicate ErrorCode members: ${[...new Set(dupes)].join(', ')}`);
 
+  // ------------------------------------------------------ menu lock declared
+  // While a restaurant is suspended or banned its menu is locked for everyone, admins
+  // included (docs/decisions/README.md, round 2, "A suspended or banned restaurant's menu";
+  // https://github.com/shaiknoorullah/hg-mono/issues/256). Every write under a menu path
+  // must declare that refusal, so a menu write added later cannot leave it out.
+  let menuWrites = 0;
+  for (const [route, methods] of Object.entries(spec.paths ?? {})) {
+    if (!/\/menu(?:[/-]|$)/.test(route)) continue;
+    for (const [method, op] of Object.entries(methods as Record<string, any>)) {
+      if (!HTTP_METHODS.includes(method) || ['get', 'head', 'options'].includes(method)) continue;
+      menuWrites += 1;
+      const forbidden: string = op.responses?.['403']?.description ?? '';
+      if (!forbidden.includes('`MENU_LOCKED`')) {
+        fail(
+          `${method.toUpperCase()} ${route}: a menu write must declare \`403 MENU_LOCKED\` — ` +
+            'the refusal while the restaurant is suspended or banned',
+        );
+      }
+    }
+  }
+  if (menuWrites > 0 && !errorCodes.includes('MENU_LOCKED')) {
+    fail('ErrorCode is missing `MENU_LOCKED`, which every menu write declares');
+  }
+
   // ------------------------------------------------------------ money invariant
   const schemas: Record<string, any> = spec.components?.schemas ?? {};
   const moneyShaped = /(^|_)(cents|amount|price|fee|total|subtotal|tip|balance)$/;
@@ -157,6 +181,44 @@ function main(): number {
         }
       }
     });
+  }
+
+  // ------------------------------------------- handover codes never reach a rider
+  // The pickup and delivery codes are proof of presence that the rider types in, so no
+  // response of an operation a rider can call (RIDER or PUBLIC) may carry one, however deep
+  // the $ref chain. Security review on #183:
+  // https://github.com/shaiknoorullah/hg-mono/issues/183 — contracts/README.md,
+  // "Neither code can be bypassed".
+  const HANDOVER_CODE_FIELDS = new Set(['pickup_code', 'delivery_code', 'otp_code']);
+  const resolveRef = (ref: string): unknown =>
+    ref
+      .slice(2)
+      .split('/')
+      .reduce((cursor: any, part) => cursor?.[part.replace(/~1/g, '/').replace(/~0/g, '~')], spec);
+  for (const [route, methods] of Object.entries(spec.paths ?? {})) {
+    for (const [method, op] of Object.entries(methods as Record<string, any>)) {
+      if (!HTTP_METHODS.includes(method)) continue;
+      const roles: string[] = op['x-roles'] ?? [];
+      if (!roles.includes('RIDER') && !roles.includes('PUBLIC')) continue;
+      const followed = new Set<string>();
+      const visit = (node: unknown, path: string): void => {
+        walk(node, path, (n, p) => {
+          for (const prop of Object.keys(n.properties ?? {})) {
+            if (HANDOVER_CODE_FIELDS.has(prop)) {
+              fail(
+                `${method.toUpperCase()} ${route} (${op.operationId}) is callable by a rider, and ` +
+                  `its response reaches \`${prop}\` at ${p}: a handover code must never reach a rider`,
+              );
+            }
+          }
+          if (typeof n.$ref === 'string' && n.$ref.startsWith('#/') && !followed.has(n.$ref)) {
+            followed.add(n.$ref);
+            visit(resolveRef(n.$ref), n.$ref);
+          }
+        });
+      };
+      visit(op.responses ?? {}, `${method.toUpperCase()} ${route} responses`);
+    }
   }
 
   // ------------------------------------------------- YAML 1.1 truthy landmines

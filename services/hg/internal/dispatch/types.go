@@ -1,9 +1,11 @@
 package dispatch
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/riderview"
 )
 
 // Domain error codes this module raises. Each must exist in the contract's
@@ -54,6 +56,19 @@ const (
 	geoArrivalRadiusM = 150
 	otpMaxFailures    = 5
 	candidateLimit    = 50
+
+	// emptyWaveHold is how long a wave that found nobody holds the search
+	// before the next, wider wave runs: the SEARCHING row of the dispatch
+	// deadline table, "+20 s, NEXT_WAVE — widen radius (3 → 6 → 10 km),
+	// re-offer" (docs/spec/01-platform.md, "P-15 — Deadlines and timeout
+	// actions"). Holding is what lets a rider who comes online meanwhile be
+	// found (https://github.com/shaiknoorullah/hg-mono/issues/294).
+	emptyWaveHold = 20 * time.Second
+	// escalationLease is how long a replica holds a due search it claimed to
+	// run the next wave: the dispatch row's lease_until, as in the runner
+	// mechanics of "P-15 — Deadlines and timeout actions" (docs/spec/01-platform.md).
+	// A replica that dies mid-wave lets the search go after this.
+	escalationLease = 30 * time.Second
 )
 
 // radiusLadderM is the widening search ladder in metres (D-13).
@@ -77,11 +92,23 @@ type OfferPickup struct {
 	Longitude      float64 `json:"longitude"`
 }
 
-// OfferDropoff is the pre-accept dropoff projection (street + neighbourhood only).
+// OfferDropoff is the pre-accept drop-off: the area's name (the address's
+// city column, passed through whole) and its point. The point is a
+// riderview.Area, which can only hold a point rounded to about a kilometre, so
+// the delivery address's exact point cannot reach a rider who has not
+// accepted.
 type OfferDropoff struct {
-	Area      string  `json:"area"`
-	Latitude  float64 `json:"latitude"`
-	Longitude float64 `json:"longitude"`
+	Area  string
+	Point riderview.Area
+}
+
+// MarshalJSON writes the contract's shape: {area, latitude, longitude}.
+func (d OfferDropoff) MarshalJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		Area      string  `json:"area"`
+		Latitude  float64 `json:"latitude"`
+		Longitude float64 `json:"longitude"`
+	}{Area: d.Area, Latitude: d.Point.Lat(), Longitude: d.Point.Lng()})
 }
 
 // DispatchOffer is the contract DispatchOffer (pre-accept projection, D-14).

@@ -19,6 +19,9 @@ name: release-builds
 #   (#264). Dev APKs use Android's debug key and never read a signing secret.
 # - Prod builds restore no cache. Every action is pinned to a commit; inputs reach scripts only
 #   through env, after an allow-list check.
+# - Every build here ships the current screens: the redesign's build flags are pinned off below,
+#   and scripts/release/redesign-off.cjs fails the build, before and after it, if either is on
+#   (MASTER-PLAN §0.2; tools/e2e/README.md, Redesign).
 
 on:
   push:
@@ -38,6 +41,11 @@ on:
         description: Semantic version, for example 1.0.0 or 1.0.0-rc.1
         type: string
         required: true
+      api_base_url:
+        description: 'Dev only: the API this build talks to, for example http://192.168.1.8:8080 for a local dev world. Empty: the dev environment. An http:// address also allows plain HTTP in the APK.'
+        type: string
+        required: false
+        default: ''
   pull_request:
     paths:
       - scripts/release/**
@@ -54,6 +62,11 @@ concurrency:
 env:
   # Expo's CLI reports usage to Expo unless told not to.
   EXPO_NO_TELEMETRY: 1
+  # The redesign is built behind these flags ("1" on, anything else off). Release 1.0 ships the
+  # current screens, so every build here, dev or prod, has both off. Set explicitly: neither Vite
+  # nor Expo lets a .env file override a variable already in the environment.
+  EXPO_PUBLIC_HG_REDESIGN: '0'
+  VITE_HG_REDESIGN: '0'
 
 jobs:
   config-tests:
@@ -72,8 +85,8 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
-      - name: Environments, versions and app identities
-        run: node --test scripts/release/app-env.test.cjs
+      - name: Environments, versions, app identities and the redesign flag
+        run: node --test scripts/release/app-env.test.cjs scripts/release/mapbox.test.cjs scripts/release/redesign-off.test.cjs
       - name: The owner's release-key script, against a stand-in gh
         run: bash scripts/release/make-android-keystore.test.sh
 
@@ -88,6 +101,7 @@ jobs:
       version: ${{ steps.plan.outputs.version }}
       kind: ${{ steps.plan.outputs.kind }}
       name: ${{ steps.plan.outputs.name }}
+      api_base_url: ${{ steps.plan.outputs.api_base_url }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
@@ -105,6 +119,7 @@ jobs:
           IN_APP: ${{ inputs.app }}
           IN_ENV: ${{ inputs.env }}
           IN_VERSION: ${{ inputs.version }}
+          IN_API: ${{ inputs.api_base_url }}
         run: |
           refuse() { echo "::error title=Build refused::$*"; printf '### Build refused\n\n%s\n' "$*" >>"$GITHUB_STEP_SUMMARY"; exit 1; }
           if [ "$EVENT" = push ]; then
@@ -139,9 +154,16 @@ jobs:
             fi
           fi
 
+          # A dev build may talk to another API, such as a dev world on a laptop (scripts/release/app-env.cjs).
+          api="${IN_API:-}"
+          if [ -n "$api" ]; then
+            [ "$env" = dev ] || refuse "api_base_url is for dev builds only: a prod build always talks to the production API"
+            [[ "$api" =~ ^https?://[A-Za-z0-9.:-]+(/[A-Za-z0-9._/-]*)?$ ]] || refuse "api_base_url \"$api\" is not an http:// or https:// address"
+          fi
+
           if [ "$env" = prod ]; then name="halalgoes-$app-$version"; else name="halalgoes-$app-dev-$version"; fi
           {
-            echo "app=$app"; echo "env=$env"; echo "version=$version"; echo "kind=$kind"; echo "name=$name"
+            echo "app=$app"; echo "env=$env"; echo "version=$version"; echo "kind=$kind"; echo "name=$name"; echo "api_base_url=$api"
           } >>"$GITHUB_OUTPUT"
           echo "Building **$name** ($kind, $env) from \`${GITHUB_SHA::7}\`." >>"$GITHUB_STEP_SUMMARY"
 
@@ -163,8 +185,11 @@ jobs:
       APP_VERSION: ${{ needs.plan.outputs.version }}
       NAME: ${{ needs.plan.outputs.name }}
       PROD: ${{ needs.plan.outputs.env == 'prod' }}
+      API_BASE_URL: ${{ needs.plan.outputs.api_base_url }}
       # Public (pk.) token, read by the maps at run time. Optional: without it there is no map.
       EXPO_PUBLIC_MAPBOX_TOKEN: ${{ secrets.MAPBOX_PUBLIC_TOKEN_MOBILE }}
+      # Public (pk_) Stripe key for the customer's payment sheet. Without it a customer cannot pay.
+      EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ secrets.STRIPE_PUBLISHABLE_KEY_MOBILE }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
@@ -204,6 +229,10 @@ jobs:
             exit 1
           fi
 
+      # Release 1.0 ships the current screens: refuse a build with the redesign flag on.
+      - name: Check the redesign is off
+        run: node scripts/release/redesign-off.cjs env "$APP"
+
       - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
@@ -226,13 +255,31 @@ jobs:
       - name: Set the environment
         run: node scripts/release/app-env.cjs "$APP_ENV" --print | tee -a "$GITHUB_ENV"
 
+      # RNMAPBOX_MAPS_DOWNLOAD_TOKEN (secret `sk.`, DOWNLOADS:READ) is set on the two steps that
+      # need it and no others: prebuild decides from it whether to add the Mapbox plugin, and
+      # Gradle reads it to fetch Mapbox's native SDK. Without the secret the module stays out of
+      # the build and the app shows its ETA-only fallback; the build still passes (scripts/release/mapbox.cjs).
       - name: Generate the native project
         working-directory: apps/${{ env.APP }}
+        env:
+          RNMAPBOX_MAPS_DOWNLOAD_TOKEN: ${{ secrets.RNMAPBOX_MAPS_DOWNLOAD_TOKEN }}
         run: |
+          if [ -n "$RNMAPBOX_MAPS_DOWNLOAD_TOKEN" ]; then
+            echo "Mapbox native SDK: linked (download token present)."
+          else
+            echo "::notice title=Mapbox native SDK left out::RNMAPBOX_MAPS_DOWNLOAD_TOKEN is not set, so the app is built without the live map and shows the ETA only."
+          fi
           pnpm exec expo prebuild --platform android --no-install
           # Room for Gradle and Kotlin on a small runner.
           printf '\norg.gradle.jvmargs=-Xmx3g -XX:MaxMetaspaceSize=1g -XX:+HeapDumpOnOutOfMemoryError\norg.gradle.workers.max=2\n' \
             >>android/gradle.properties
+
+      # Only a dev build pointed at a plain-HTTP API (a dev world on a laptop) gets cleartext:
+      # Android refuses it in a release build otherwise. Prod and https:// builds keep it off.
+      - name: Allow plain HTTP to a local API
+        if: env.PROD != 'true' && startsWith(needs.plan.outputs.api_base_url, 'http://')
+        working-directory: apps/${{ env.APP }}
+        run: bash ../../tools/e2e/android/allow-cleartext.sh android
 
       - name: Unpack the release key
         if: env.PROD == 'true'
@@ -247,6 +294,7 @@ jobs:
           ANDROID_KEYSTORE_PASSWORD: ${{ env.PROD == 'true' && secrets.ANDROID_KEYSTORE_PASSWORD || '' }}
           ANDROID_KEY_ALIAS: ${{ env.PROD == 'true' && secrets.ANDROID_KEY_ALIAS || '' }}
           ANDROID_KEY_PASSWORD: ${{ env.PROD == 'true' && secrets.ANDROID_KEY_PASSWORD || '' }}
+          RNMAPBOX_MAPS_DOWNLOAD_TOKEN: ${{ secrets.RNMAPBOX_MAPS_DOWNLOAD_TOKEN }}
         run: |
           if [ "$PROD" = true ]; then
             # Real phones only: 64-bit and 32-bit ARM.
@@ -294,6 +342,9 @@ jobs:
           unzip -p "$apk" assets/index.android.bundle >"$RUNNER_TEMP/index.android.bundle"
           grep -aqF "$EXPO_PUBLIC_API_BASE_URL" "$RUNNER_TEMP/index.android.bundle" \
             || fail "the bundle does not contain $EXPO_PUBLIC_API_BASE_URL"
+          # And the redesign must not be in it: the flag still "0", no sign of it compiled on.
+          node scripts/release/redesign-off.cjs bundle "$RUNNER_TEMP/index.android.bundle" \
+            || fail "the redesign flag is on in this build (see the errors above)"
 
           certs="$("$tools/apksigner" verify --print-certs "$apk")"
           echo "$certs"
@@ -350,6 +401,7 @@ jobs:
       APP_VERSION: ${{ needs.plan.outputs.version }}
       NAME: ${{ needs.plan.outputs.name }}
       PROD: ${{ needs.plan.outputs.env == 'prod' }}
+      API_BASE_URL: ${{ needs.plan.outputs.api_base_url }}
       # Public (pk.) token for the admin's live map, restricted to the admin's web address.
       VITE_MAPBOX_TOKEN: ${{ secrets.MAPBOX_PUBLIC_TOKEN_WEB }}
     steps:
@@ -361,6 +413,10 @@ jobs:
         with:
           node-version: 22
           cache: ${{ env.PROD != 'true' && 'pnpm' || '' }}
+      # Release 1.0 ships the current screens: refuse a build with the redesign flag on.
+      - name: Check the redesign is off
+        run: node scripts/release/redesign-off.cjs env "$APP"
+
       - run: pnpm install --frozen-lockfile
 
       - name: Build the bundle
@@ -375,6 +431,8 @@ jobs:
           api="$(node scripts/release/app-env.cjs "$APP_ENV" --print | sed -n 's/^VITE_API_BASE_URL=//p')"
           grep -rqF "$api" "apps/$APP/dist" \
             || { echo "::error title=Bundle check failed::the bundle does not contain $api"; exit 1; }
+          node scripts/release/redesign-off.cjs bundle "apps/$APP/dist" \
+            || { echo "::error title=Bundle check failed::the redesign flag is on in this build"; exit 1; }
           mkdir -p out
           tar -czf "out/$NAME.tar.gz" -C "apps/$APP/dist" .
           (cd out && sha256sum "$NAME.tar.gz" >"$NAME.tar.gz.sha256")

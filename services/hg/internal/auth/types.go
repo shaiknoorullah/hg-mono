@@ -24,6 +24,7 @@ const (
 	CodeSessionExpired         httpx.ErrorCode = "SESSION_EXPIRED"
 	CodeRefreshReuseDetected   httpx.ErrorCode = "REFRESH_REUSE_DETECTED"
 	CodeTokenConsumed          httpx.ErrorCode = "TOKEN_CONSUMED"
+	codeStepNotAvailable       httpx.ErrorCode = "STEP_NOT_AVAILABLE"
 	CodeVerifyTokenExpired     httpx.ErrorCode = "VERIFICATION_TOKEN_EXPIRED"
 	CodeVerifyTokenUsed        httpx.ErrorCode = "VERIFICATION_TOKEN_USED"
 	CodeMFARequired            httpx.ErrorCode = "MFA_REQUIRED"

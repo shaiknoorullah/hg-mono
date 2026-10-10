@@ -11,7 +11,7 @@ covers:
   - packages/ui-native/src/content/**
   - packages/ui-native/src/feedback/**
   - packages/ui-native/src/navigation/**
-reviewed: 2026-09-28
+reviewed: 2026-10-09
 ---
 
 # HalalGoes — Component Inventory
@@ -21,6 +21,15 @@ reviewed: 2026-09-28
 **Read with:** [`03-patterns.md`](./03-patterns.md) (where these get composed), [`04-accessibility.md`](./04-accessibility.md) (the rules every entry below defers to)
 
 **41 components** in five tiers. No implementation code — this is what four app agents build against.
+
+### The redesign surface on native: `@hg/ui-native/ds` and `/proposed`
+
+Redesigned customer and rider screens (behind `EXPO_PUBLIC_HG_REDESIGN`) import only from:
+
+- **`@hg/ui-native/ds`**: the live design system's components, with the names and props of its `index.d.ts` ([Claude Design](https://claude.ai/artifact/1GwGVZz8Ju9wcz4HfCnzbv)). Today each entry adapts those props onto the legacy component below; the rebuild on React Native Reusables ([#111](https://github.com/shaiknoorullah/hg-mono/issues/111)) swaps the internals without changing the API. Native differs from the web `.d.ts` in four ways: `style` is a `StyleProp`, `onChange` receives the value, money is the branded `Cents`, and labels are strings. `Icon` also takes the live extension names (`chevron-down`, `chevron-right`, `minus`, `lock`, `info`, `warning`, `error`, `more`, `refresh`); an unknown name renders nothing and reports `ICON_NAME_UNKNOWN`. A non-integer `Price` renders nothing and reports `MONEY_NOT_INTEGER_CENTS`.
+- **`@hg/ui-native/proposed`**: composites drawn on the approved canvases but not yet approved as components ([#191](https://github.com/shaiknoorullah/hg-mono/issues/191)–[#198](https://github.com/shaiknoorullah/hg-mono/issues/198)). Owner decision, 9 Oct 2026: allowed on `main` for flagged screens only.
+
+The package root stays what the released apps use until the post-launch cut-over.
 
 ---
 
@@ -39,6 +48,7 @@ These are stated once. No entry below re-litigates them.
 9. **Server state only.** No component derives a business state client-side. Notably: the halal badge renders from `halal_display_state` in the payload or renders nothing and logs a client error (C-12 R4 — "there is no 'assume certified'"); countdowns derive from server `expires_at` minus measured clock skew, never a local constant (D-14).
 10. **Unknown enum values do not crash.** Any component switching on a server enum has a documented fallback branch and reports it (rider spec §0.1: "Client must treat unknown enum values as 'unsupported — refresh app', never crash").
 11. **Every component ships a `testID` / `data-testid`** derived from its name, and snapshot coverage in both themes and both density modes.
+12. **Current and selected are a fill, never an edge.** A current page, active nav item, selected row or selected card is never marked with a bar, border or stripe on its inline-start edge. On the dark chrome it is an inverted tile: fill `text.onAccent`, with the label and icon in `surface.chrome`. On any other surface it is a `state.selectedTint` fill. Either way the label is bold and the state is in the markup (`aria-current` / `aria-selected`), so it never rests on colour alone. Owner decision, 1 Oct 2026; [issue #398](https://github.com/shaiknoorullah/hg-mono/issues/398) moved the web `SideNav` off its edge bar.
 
 ---
 
@@ -621,6 +631,8 @@ There is no `seconds: number` prop. Clock skew is measured as `serverNow − dev
 | 4 — Navigation | 6 | AppBar, BottomNav, Tabs, Sheet, Modal, Toast |
 | 5 — Feedback & state | 9 | Skeleton, Spinner, EmptyState, ErrorState, Banner, Countdown, ListRow, Divider, Tooltip/Popover |
 | **Total** | **41** | |
+
+**Shipped beside the 41, not counted in them:** `Icon` (see [iconography](./01-foundations.md#11-iconography)) and `Wordmark`, the HalalGoes logo, in both `@hg/ui-web` and `@hg/ui-native`. `Wordmark` draws the approved traced artwork from `@hg/brand` ([packages/brand/README.md](../../packages/brand/README.md)); its letters take `text.primary` and its swash `action.primary`, so it has no green and never stands in for the halal seal. The rules for the mark are in Claude Design's [wordmark and app icon guideline](https://claude.ai/artifact/1GwGVZz8Ju9wcz4HfCnzbv).
 
 **Deliberately absent, and why:**
 - **`SuccessButton` / filled green anything** — RULE H-1.

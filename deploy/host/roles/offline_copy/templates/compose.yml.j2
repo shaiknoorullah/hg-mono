@@ -1,0 +1,19 @@
+# Managed by Ansible (deploy/host/roles/offline_copy). The watcher outside Contabo: the only
+# one that can say the whole server is down, and only while this machine is on.
+name: hg-watcher
+
+services:
+  gatus:
+    image: "{{ hg_images.gatus }}"
+    restart: unless-stopped
+    environment:
+      GATUS_CONFIG_PATH: /config/config.yaml
+    env_file: ./gatus.env
+    volumes:
+      - ./gatus.yaml:/config/config.yaml:ro
+      - gatusdata:/data
+    ports: ["127.0.0.1:8080:8080"]
+    mem_limit: 64m
+
+volumes:
+  gatusdata:

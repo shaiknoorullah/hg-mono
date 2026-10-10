@@ -21,13 +21,14 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
-import { ThemeProvider, useTheme } from '@hg/ui-native';
+import { ThemeProvider, useTheme, Wordmark } from '@hg/ui-native';
 import { useHgFonts } from '@hg/ui-native/fonts';
 
 import { NavProvider } from './src/nav';
 import { RiderShell } from './src/RiderShell';
 import { requestOtp, verifyOtp } from './src/auth';
 import { subscribe, isAuthed } from './src/token';
+import { REDESIGN_ENABLED } from './src/redesign/flag';
 
 // ---------------------------------------------------------------------------
 // OTP LoginGate
@@ -35,7 +36,7 @@ import { subscribe, isAuthed } from './src/token';
 
 type Phase = 'phone' | 'code';
 
-function LoginGate(): React.ReactElement {
+export function LoginGate(): React.ReactElement {
   // Inside ThemeProvider (see the root below), so colours come from the rider
   // register. They were raw hexes because this branch mounted outside it.
   const theme = useTheme();
@@ -81,6 +82,9 @@ function LoginGate(): React.ReactElement {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <View style={styles.container}>
+        <View style={styles.brand}>
+          <Wordmark height={56} />
+        </View>
         <Text style={[styles.title, { color: theme.color.text.primary }]}>Rider sign in</Text>
 
         {phase === 'phone' ? (
@@ -160,6 +164,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     gap: 12,
   },
+  // The logo from @hg/ui-native — the same geometry as every other surface (packages/brand).
+  brand: { alignItems: 'center', marginBottom: 24 },
   title: { fontSize: 24, fontWeight: '700', marginBottom: 8 },
   label: { fontSize: 14 },
   input: {
@@ -189,7 +195,7 @@ const styles = StyleSheet.create({
 // Root
 // ---------------------------------------------------------------------------
 
-export default function App(): React.ReactElement | null {
+function LegacyApp(): React.ReactElement | null {
   const authed = React.useSyncExternalStore(subscribe, isAuthed, isAuthed);
   // Plus Jakarta Sans (--hg-font-ui's RN counterpart) must be registered before anything under
   // `ThemeProvider` renders — `typeStyle()` names these exact face strings. Render nothing (the
@@ -232,3 +238,18 @@ export default function App(): React.ReactElement | null {
     </SafeAreaProvider>
   );
 }
+
+// ---------------------------------------------------------------------------
+// Flag switch (MASTER-PLAN §0.2)
+// ---------------------------------------------------------------------------
+
+/**
+ * `EXPO_PUBLIC_HG_REDESIGN=1` mounts the redesigned app (`src/redesign/`); anything else, and
+ * every release build, mounts the legacy app above unchanged. Required lazily so a flag-off
+ * build never evaluates a redesign module.
+ */
+const App: () => React.ReactElement | null = REDESIGN_ENABLED
+  ? (require('./src/redesign/RedesignApp') as typeof import('./src/redesign/RedesignApp')).RedesignApp
+  : LegacyApp;
+
+export default App;

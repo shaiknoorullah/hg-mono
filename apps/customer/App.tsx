@@ -24,10 +24,13 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { ThemeProvider, useTheme, setClientErrorReporter } from '@hg/ui-native';
+import { ThemeProvider, useTheme, setClientErrorReporter, Wordmark } from '@hg/ui-native';
 import { useHgFonts } from '@hg/ui-native/fonts';
 
 import { Router } from './src/navigation/Router';
+import { OrderingPauseProvider } from './src/ordering/orderingPause';
+import { StripeRoot } from './src/payments/StripeRoot';
+import { PaymentSheetHost } from './src/payments/PaymentSheetHost';
 import { requestOtp, verifyOtp } from './src/api/auth';
 import { subscribe, isAuthed } from './src/api/token';
 
@@ -37,7 +40,8 @@ import { subscribe, isAuthed } from './src/api/token';
 
 type Phase = 'phone' | 'code';
 
-function LoginGate(): React.ReactElement {
+/** Exported for the redesign shell's sign-in fallback until the redesigned sign-in (WP1) merges. */
+export function LoginGate(): React.ReactElement {
   // The gate renders inside ThemeProvider (see the root below), so its colours
   // come from the register like every other surface. They used to be raw hexes
   // because this branch mounted OUTSIDE the provider and had no theme to read.
@@ -84,6 +88,9 @@ function LoginGate(): React.ReactElement {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <View style={styles.container}>
+        <View style={styles.brand}>
+          <Wordmark height={56} />
+        </View>
         <Text style={[styles.title, { color: theme.color.text.primary }]}>Sign in</Text>
 
         {phase === 'phone' ? (
@@ -161,6 +168,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     gap: 12,
   },
+  // The logo from @hg/ui-native — the same geometry as every other surface (packages/brand).
+  brand: { alignItems: 'center', marginBottom: 24 },
   title: {
     fontSize: 24,
     fontWeight: '700',
@@ -242,11 +251,21 @@ export default function App(): React.ReactElement | null {
   // one, so the sign-in gate — the first screen every customer sees — rendered
   // with no design system at all and hard-coded its own palette.
   return (
+    <StripeRoot>
     <SafeAreaProvider>
       <ThemeProvider theme="customer" scheme="light">
         <StatusBar style="dark" />
-        {authed ? <Router /> : <LoginGate />}
+        {authed ? (
+          <OrderingPauseProvider>
+            <Router />
+            {/* The web card sheet `payWithSheet` opens (renders nothing on native). */}
+            <PaymentSheetHost />
+          </OrderingPauseProvider>
+        ) : (
+          <LoginGate />
+        )}
       </ThemeProvider>
     </SafeAreaProvider>
+    </StripeRoot>
   );
 }

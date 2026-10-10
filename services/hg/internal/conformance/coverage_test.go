@@ -46,7 +46,18 @@ func writeCoverage(t *testing.T, h *Harness) {
 //   - "realtime/ws" — the WebSocket upgrade and SSE surfaces, not a JSON body.
 //   - "needs bespoke state" — a read reachable in principle but requiring a
 //     narrow seeded state this pass does not construct.
-var uncoveredReasons = map[string]string{}
+var uncoveredReasons = map[string]string{
+	// No route serves these yet: #261 added them to the contract without a
+	// handler (https://github.com/shaiknoorullah/hg-mono/issues/502).
+	// Both report on Redis and the object store, which a run against Postgres
+	// alone does not have (https://github.com/shaiknoorullah/hg-mono/issues/377).
+	"getDependencyStatus": "needs Redis and the object store",
+	"getReadiness":        "needs Redis and the object store",
+	// The handover-code contract (#290) lands before the backend that serves it:
+	// the handler and its conformance tests are #315
+	// (https://github.com/shaiknoorullah/hg-mono/pull/315).
+	"overrideHandoverCode": "no handler yet: the backend lands in #315",
+}
 
 // coveredOperationsRelPath is where COVERAGE.md lands (next to this source).
 const coverageFileName = "COVERAGE.md"
@@ -91,7 +102,11 @@ func renderCoverage(spec *Spec, covered map[string]bool) error {
 	fmt.Fprintf(&b, "every run: an operation silently losing coverage becomes visible here.\n\n")
 	for _, id := range uncoveredList {
 		op := spec.Operations[id]
-		fmt.Fprintf(&b, "- `%s` — %s %s\n", id, op.Method, op.Path)
+		reason := uncoveredReasons[id]
+		if reason == "" {
+			reason = "unexplained gap"
+		}
+		fmt.Fprintf(&b, "- `%s` — %s %s — %s\n", id, op.Method, op.Path, reason)
 	}
 
 	dir, err := os.Getwd()

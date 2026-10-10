@@ -2,7 +2,7 @@
   "scenario": "realtime_order_met_handover",
   "domain": "realtime",
   "schema": "RealtimeEvent[]",
-  "describes": "A **met handover** (`MEET_IN_LOBBY`) from pickup to delivery. On arrival the customer receives `order.rider_arrived` carrying the 4-digit `delivery_code` (also sent as a push) and reads it to the rider, who records it as proof of delivery. The rider is never sent the code.",
+  "describes": "A **met handover** (`MEET_IN_LOBBY`) from pickup to delivery. On arrival the customer receives `order.rider_arrived` and a push that say only \"Your rider is here\"; neither carries the code. The app then fetches `delivery_code` from the customer's own order view (`order_arrived_meet_in_lobby`, `tracking_arrived_delivery_code`), and the customer reads it to the rider, who records it as proof of delivery. No event on this channel ever carries a code, because the rider subscribes to it too.",
   "operations": [],
   "status": 200,
   "tags": [
@@ -76,8 +76,7 @@
       "ts": "2026-08-10T18:42:20.412Z",
       "data": {
         "order_id": "1362e3e3-2975-4d34-a104-c54b647b6f5e",
-        "at": "2026-08-10T18:42:20.412Z",
-        "delivery_code": "4827"
+        "at": "2026-08-10T18:42:20.412Z"
       },
       "_delay_ms": 9000
     },

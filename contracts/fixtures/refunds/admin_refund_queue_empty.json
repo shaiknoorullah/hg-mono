@@ -1,0 +1,20 @@
+{
+  "scenario": "admin_refund_queue_empty",
+  "domain": "refunds",
+  "schema": "array<AdminRefund>",
+  "describes": "Nothing waiting for a person.",
+  "operations": [
+    "listRefundsAdmin"
+  ],
+  "status": 200,
+  "tags": [
+    "admin",
+    "edge",
+    "empty"
+  ],
+  "meta": {
+    "next_cursor": null,
+    "has_more": false
+  },
+  "payload": []
+}

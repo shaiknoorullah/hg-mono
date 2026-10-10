@@ -819,6 +819,30 @@ def _cart(reg) -> None:
         tags=["error-path"],
     )
 
+    lapsed = [_cart_line(11, items[0], 2)]
+    reg.add(
+        "cart_restaurant_unavailable",
+        "cart",
+        "Cart",
+        "The restaurant's halal certificate expired after these items were added. The cart is "
+        "kept as it was, the badge reads `EXPIRED` (cool slate, never a red one) and "
+        "`blocking_reasons: [RESTAURANT_UNAVAILABLE]` with `is_quotable: false`. Adding, "
+        "quoting and ordering answer `409 RESTAURANT_UNAVAILABLE` (`error_restaurant_unavailable`).",
+        {
+            "id": uuid_for("cart:restaurant-unavailable"),
+            "restaurant": restaurant_card(0, halal_state="EXPIRED"),
+            "delivery_address_id": uuid_for("address:home"),
+            "lines": lapsed,
+            "item_count": 2,
+            "indicative_subtotal_cents": sum(l["line_total_cents"] for l in lapsed),
+            "currency": "CAD",
+            "is_quotable": False,
+            "blocking_reasons": ["RESTAURANT_UNAVAILABLE"],
+        },
+        operations=["getCart"],
+        tags=["error-path", "halal"],
+    )
+
     loaded = _loaded_item()
     dense = _cart_line(
         5,

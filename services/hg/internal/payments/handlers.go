@@ -10,8 +10,11 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
+
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/config"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/restaurant"
 )
 
 // Handler serves the payments, refunds, connect, earnings and payout operations.
@@ -136,8 +139,13 @@ func (h *Handler) GetOrderPayment(w http.ResponseWriter, r *http.Request) {
 // CreateRefund implements POST /v1/refunds.
 func (h *Handler) CreateRefund(w http.ResponseWriter, r *http.Request) {
 	p := httpx.PrincipalFrom(r.Context())
+	body, idem, err := readIdempotentBody(r, "/v1/refunds")
+	if err != nil {
+		invalidBody(w, r, err)
+		return
+	}
 	var in RefundInput
-	if err := decodeJSON(r, &in); err != nil {
+	if err := decodeStrict(body, &in); err != nil {
 		httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
 			"The request body is not valid.", []httpx.FieldError{{Field: "body", Code: "invalid", Message: err.Error()}})
 		return
@@ -159,12 +167,12 @@ func (h *Handler) CreateRefund(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	dto, err := h.svc.RequestRefund(r.Context(), in, p.AccountID)
+	out, err := h.svc.RequestRefundOnce(r.Context(), in, p.AccountID, idem)
 	if err != nil {
 		h.fail(w, r, err)
 		return
 	}
-	httpx.Respond(w, r, http.StatusCreated, dto)
+	writeOutcome(w, r, out)
 }
 
 // ListRefunds implements GET /v1/refunds.
@@ -214,11 +222,14 @@ func (h *Handler) GetRefund(w http.ResponseWriter, r *http.Request) {
 // customer's request is never lost. amount_cents is accepted ONLY for a GOODWILL
 // PARTIAL_AMOUNT (G-3); anywhere else it is 422 UNKNOWN_FIELD.
 func (h *Handler) IssueRefund(w http.ResponseWriter, r *http.Request) {
-	p := httpx.PrincipalFrom(r.Context())
+	body, idem, err := readIdempotentBody(r, "/v1/admin/refunds")
+	if err != nil {
+		invalidBody(w, r, err)
+		return
+	}
 	var in AdminRefundInput
-	if err := decodeJSON(r, &in); err != nil {
-		httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
-			"The request body is not valid.", []httpx.FieldError{{Field: "body", Code: "invalid", Message: err.Error()}})
+	if err := decodeStrict(body, &in); err != nil {
+		invalidBody(w, r, err)
 		return
 	}
 	// Required fields (AdminRefundInput.required).
@@ -257,21 +268,14 @@ func (h *Handler) IssueRefund(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	roles := make([]string, 0, len(p.Roles))
-	for _, rr := range p.Roles {
-		roles = append(roles, string(rr))
-	}
-	refund, approval, escalated, err := h.svc.IssueAdminRefund(r.Context(), in, p.AccountID, roles)
+	// Within the caller's cap: the authorised refund, 201. Above it: the
+	// approval request, 202 Accepted. A replay: the first answer.
+	out, err := h.svc.IssueAdminRefund(r.Context(), in, StaffFrom(r), idem)
 	if err != nil {
 		h.fail(w, r, err)
 		return
 	}
-	if escalated {
-		// Above the caller's cap: the approval request, 202 Accepted.
-		httpx.Respond(w, r, http.StatusAccepted, approval)
-		return
-	}
-	httpx.Respond(w, r, http.StatusCreated, refund)
+	writeOutcome(w, r, out)
 }
 
 // ---------------------------------------------------------------------------
@@ -284,6 +288,7 @@ func (h *Handler) IssueRefund(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) ReceiveStripeWebhook(w http.ResponseWriter, r *http.Request) {
 	payload, err := io.ReadAll(io.LimitReader(r.Body, 1<<20))
 	if err != nil {
+		h.svc.logWebhookRejected(r.Context(), "unreadable body", "")
 		httpx.Fail(w, r, http.StatusBadRequest, httpx.CodeValidationFailed, "Unreadable body.", nil)
 		return
 	}
@@ -292,7 +297,8 @@ func (h *Handler) ReceiveStripeWebhook(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		var de *DomainError
 		if errors.As(err, &de) {
-			// A signature or livemode failure is a 400; the body is not logged.
+			// A signature or livemode failure is a 400, logged once by the
+			// service with its reason (#516); the body is not logged.
 			httpx.Fail(w, r, de.Status, httpx.ErrorCode(de.Code), de.Message, nil)
 			return
 		}
@@ -308,21 +314,35 @@ func (h *Handler) ReceiveStripeWebhook(w http.ResponseWriter, r *http.Request) {
 // Connect.
 // ---------------------------------------------------------------------------
 
-// ownerFromPrincipal resolves the (owner_type, owner_id) a partner principal
-// acts as. Riders act as RIDER/account_id; restaurant staff act as RESTAURANT,
-// but the restaurant id is resolved from the session by the restaurant module —
-// here we fall back to the account id, which the auth sibling will refine.
-func ownerFromPrincipal(p httpx.Principal) (string, string) {
+// owner resolves the (owner_type, owner_id) a partner principal acts as. A
+// rider acts as RIDER/account_id. Restaurant staff act as RESTAURANT and the
+// restaurant's own id, the key RecomputeOnboarding and the payout run read;
+// keying it by the staff member's account id made every restaurant's Connect
+// insert fail. Staff with no restaurant grant get a 404, as in the restaurant
+// module.
+func (h *Handler) owner(w http.ResponseWriter, r *http.Request) (string, string, bool) {
+	p := httpx.PrincipalFrom(r.Context())
 	if p.HasRole(httpx.RoleRider) {
-		return "RIDER", p.AccountID
+		return "RIDER", p.AccountID, true
 	}
-	return "RESTAURANT", p.AccountID
+	var pool *pgxpool.Pool
+	if h.svc != nil && h.svc.repo != nil {
+		pool = h.svc.repo.pool
+	}
+	id, ok := restaurant.ScopedRestaurant(r.Context(), pool, p.AccountID)
+	if !ok {
+		httpx.Fail(w, r, http.StatusNotFound, httpx.CodeNotFound, "No such resource.", nil)
+		return "", "", false
+	}
+	return "RESTAURANT", id, true
 }
 
 // CreateConnectAccount implements POST /v1/connect/account.
 func (h *Handler) CreateConnectAccount(w http.ResponseWriter, r *http.Request) {
-	p := httpx.PrincipalFrom(r.Context())
-	ownerType, ownerID := ownerFromPrincipal(p)
+	ownerType, ownerID, ok := h.owner(w, r)
+	if !ok {
+		return
+	}
 	key, _ := httpx.IdempotencyKeyFrom(r.Context())
 	// Approval is enforced by the onboarding module before this route is
 	// reachable; the guard already restricted the roles. Pass approved=true.
@@ -336,8 +356,10 @@ func (h *Handler) CreateConnectAccount(w http.ResponseWriter, r *http.Request) {
 
 // CreateOnboardingLink implements POST /v1/connect/onboarding-link.
 func (h *Handler) CreateOnboardingLink(w http.ResponseWriter, r *http.Request) {
-	p := httpx.PrincipalFrom(r.Context())
-	ownerType, ownerID := ownerFromPrincipal(p)
+	ownerType, ownerID, ok := h.owner(w, r)
+	if !ok {
+		return
+	}
 	dto, err := h.svc.CreateOnboardingLink(r.Context(), ownerType, ownerID)
 	if err != nil {
 		h.fail(w, r, err)
@@ -348,8 +370,10 @@ func (h *Handler) CreateOnboardingLink(w http.ResponseWriter, r *http.Request) {
 
 // GetConnectStatus implements GET /v1/connect/status.
 func (h *Handler) GetConnectStatus(w http.ResponseWriter, r *http.Request) {
-	p := httpx.PrincipalFrom(r.Context())
-	ownerType, ownerID := ownerFromPrincipal(p)
+	ownerType, ownerID, ok := h.owner(w, r)
+	if !ok {
+		return
+	}
 	dto, err := h.svc.GetConnectStatus(r.Context(), ownerType, ownerID)
 	if err != nil {
 		h.fail(w, r, err)
@@ -412,8 +436,10 @@ func (h *Handler) ListRiderPayouts(w http.ResponseWriter, r *http.Request) {
 
 // ListRestaurantPayouts implements GET /v1/restaurant/payouts.
 func (h *Handler) ListRestaurantPayouts(w http.ResponseWriter, r *http.Request) {
-	p := httpx.PrincipalFrom(r.Context())
-	_, ownerID := ownerFromPrincipal(p)
+	_, ownerID, ok := h.owner(w, r)
+	if !ok {
+		return
+	}
 	h.listPayouts(w, r, "RESTAURANT", ownerID)
 }
 

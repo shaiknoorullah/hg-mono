@@ -47,7 +47,9 @@ export const themes = {
           "onBrand": "#0F241C",
           "onInverse": "#F6EFDD",
           "onAccent": "#FFFFFF",
-          "link": "#0959B8"
+          "link": "#0959B8",
+          "linkHover": "#07458F",
+          "secondaryField": "#4A4E48"
         },
         "border": {
           "decorative": "#E6E0D4",
@@ -145,6 +147,17 @@ export const themes = {
         "skeleton": {
           "base": "#D8D0BF",
           "highlight": "#E6E0D4"
+        },
+        "elev": {
+          "surface": {
+            "0": "#FFFAEA",
+            "1": "#FFFFFF",
+            "2": "#FFFFFF",
+            "3": "#FFFFFF",
+            "4": "#FFFFFF",
+            "sticky": "#FFFFFF"
+          },
+          "hairline": "transparent"
         }
       },
       "typography": {
@@ -728,7 +741,9 @@ export const themes = {
           "onBrand": "#0F241C",
           "onInverse": "#232323",
           "onAccent": "#FFFFFF",
-          "link": "#6FA9F2"
+          "link": "#6FA9F2",
+          "linkHover": "#CBDFFC",
+          "secondaryField": "#D8D0BF"
         },
         "border": {
           "decorative": "#33352F",
@@ -826,6 +841,17 @@ export const themes = {
         "skeleton": {
           "base": "#33352F",
           "highlight": "#4A4E48"
+        },
+        "elev": {
+          "surface": {
+            "0": "#171717",
+            "1": "#232323",
+            "2": "#232323",
+            "3": "#33352F",
+            "4": "#33352F",
+            "sticky": "#33352F"
+          },
+          "hairline": "#33352F"
         }
       },
       "typography": {
@@ -1411,7 +1437,9 @@ export const themes = {
           "onBrand": "#0F241C",
           "onInverse": "#F6EFDD",
           "onAccent": "#FFFFFF",
-          "link": "#0959B8"
+          "link": "#0959B8",
+          "linkHover": "#07458F",
+          "secondaryField": "#4A4E48"
         },
         "border": {
           "decorative": "#E6E0D4",
@@ -1509,6 +1537,17 @@ export const themes = {
         "skeleton": {
           "base": "#D8D0BF",
           "highlight": "#E6E0D4"
+        },
+        "elev": {
+          "surface": {
+            "0": "#FFFAEA",
+            "1": "#FFFFFF",
+            "2": "#FFFFFF",
+            "3": "#FFFFFF",
+            "4": "#FFFFFF",
+            "sticky": "#FFFFFF"
+          },
+          "hairline": "transparent"
         }
       },
       "typography": {
@@ -2092,7 +2131,9 @@ export const themes = {
           "onBrand": "#0F241C",
           "onInverse": "#232323",
           "onAccent": "#FFFFFF",
-          "link": "#6FA9F2"
+          "link": "#6FA9F2",
+          "linkHover": "#CBDFFC",
+          "secondaryField": "#D8D0BF"
         },
         "border": {
           "decorative": "#33352F",
@@ -2190,6 +2231,17 @@ export const themes = {
         "skeleton": {
           "base": "#33352F",
           "highlight": "#4A4E48"
+        },
+        "elev": {
+          "surface": {
+            "0": "#171717",
+            "1": "#232323",
+            "2": "#232323",
+            "3": "#33352F",
+            "4": "#33352F",
+            "sticky": "#33352F"
+          },
+          "hairline": "#33352F"
         }
       },
       "typography": {

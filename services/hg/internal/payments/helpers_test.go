@@ -2,7 +2,6 @@ package payments
 
 import (
 	"testing"
-	"time"
 )
 
 func TestStateFromStripe(t *testing.T) {
@@ -45,27 +44,6 @@ func TestBpsToDecimal(t *testing.T) {
 		if got := bpsToDecimal(bps); got != want {
 			t.Fatalf("bpsToDecimal(%d) = %q, want %q", bps, got, want)
 		}
-	}
-}
-
-func TestNextMondayUTC(t *testing.T) {
-	// A Wednesday should yield the following Monday.
-	wed := time.Date(2026, 8, 12, 15, 0, 0, 0, time.UTC) // 2026-08-12 is a Wednesday
-	mon := nextMondayUTC(wed)
-	if mon.Weekday() != time.Monday {
-		t.Fatalf("nextMondayUTC weekday = %s, want Monday", mon.Weekday())
-	}
-	if !mon.After(wed) {
-		t.Fatalf("next Monday %v not after %v", mon, wed)
-	}
-	if mon.Hour() != 0 || mon.Minute() != 0 {
-		t.Fatalf("next Monday not at midnight: %v", mon)
-	}
-	// A Monday should yield the next Monday, never itself.
-	m0 := time.Date(2026, 8, 10, 0, 0, 0, 0, time.UTC) // Monday
-	m1 := nextMondayUTC(m0)
-	if !m1.After(m0) || m1.Sub(m0) != 7*24*time.Hour {
-		t.Fatalf("Monday→next Monday = %v, want +7d", m1.Sub(m0))
 	}
 }
 

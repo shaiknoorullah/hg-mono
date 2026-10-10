@@ -1,0 +1,43 @@
+# Rider redesign WP0: cold start, sign in, land on the three-tab shell; then the phone in dark
+# mode. Built with EXPO_PUBLIC_HG_REDESIGN=1 (and a cleared Metro cache: `expo export --clear`
+# or `expo run:android --no-build-cache`, since EXPO_PUBLIC_* is inlined at transform time).
+#
+# Sign-in is the redesigned R01/R02 (WP1; its own states are in 1-sign-in.yaml).
+# Env: PHONE_DIGITS (rider-sim's ten digits; dev codes for +1 555 010 01xx are always 000000).
+appId: com.halalgoes.rider.dev
+name: rider redesign, shell
+env:
+  PHONE_DIGITS: "5550100151"
+---
+- launchApp:
+    clearState: true
+    permissions:
+      all: allow
+- extendedWaitUntil:
+    visible: "Sign in or apply to ride"
+    timeout: 90000
+- takeScreenshot: rider-redesign-00-cold-start
+- tapOn:
+    id: "phone-field"
+- inputText: ${PHONE_DIGITS}
+- hideKeyboard
+- tapOn: "Send code"
+- extendedWaitUntil:
+    visible: "Enter your code"
+    timeout: 30000
+- tapOn:
+    id: "code-cell-0"
+# The 6th digit checks the code by itself; no Verify tap.
+- inputText: "000000"
+# The redesigned shell: three tabs, Home, Earnings, Account (rider decision "Rider navigation").
+- extendedWaitUntil:
+    visible: "Earnings"
+    timeout: 60000
+- assertVisible: "Account"
+- takeScreenshot: rider-redesign-01-home-tab
+- tapOn: "Earnings"
+- takeScreenshot: rider-redesign-02-earnings-tab
+- tapOn: "Account"
+- takeScreenshot: rider-redesign-03-account-tab
+- tapOn: "Home"
+- assertVisible: "Earnings"

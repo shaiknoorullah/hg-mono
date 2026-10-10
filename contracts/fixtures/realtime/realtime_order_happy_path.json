@@ -2,7 +2,7 @@
   "scenario": "realtime_order_happy_path",
   "domain": "realtime",
   "schema": "RealtimeEvent[]",
-  "describes": "**The whole order lifecycle in 58 seconds of wall clock**, 25 events across the order, restaurant and rider channels: created → authorized → restaurant offered → accepted (with the kitchen's pickup code) → captured → dispatch searching → offered → assigned → ready → picked up → three location pings → arrived (with `order.rider_arrived`; left at the door, so no delivery code) → delivered → completed. Drive a tracking screen end to end with `?scenario=realtime_order_happy_path`.",
+  "describes": "**The whole order lifecycle in 58 seconds of wall clock**, 25 events across the order, restaurant and rider channels: created → authorized → restaurant offered → accepted (with the kitchen's pickup code) → captured → dispatch searching → offered → assigned → ready → picked up → three location pings → arrived (with `order.rider_arrived`, which never carries a code) → delivered → completed. The pickup code appears only on the restaurant channel. Drive a tracking screen end to end with `?scenario=realtime_order_happy_path`.",
   "operations": [],
   "status": 200,
   "tags": [
@@ -414,8 +414,7 @@
       "ts": "2026-08-10T18:42:59.412Z",
       "data": {
         "order_id": "c622bd1b-2de3-40be-aa8f-9996517b6aed",
-        "at": "2026-08-10T18:42:59.412Z",
-        "delivery_code": null
+        "at": "2026-08-10T18:42:59.412Z"
       },
       "_delay_ms": 48000
     },

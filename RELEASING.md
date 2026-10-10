@@ -1,7 +1,7 @@
 ---
 covers:
   - deploy/**
-reviewed: 2026-10-04
+reviewed: 2026-10-05
 ---
 
 # Releasing HalalGoes
@@ -36,11 +36,20 @@ files are committed and carry **no real secrets**.
 
 | Surface | Copy to | Key vars |
 |---|---|---|
-| Backend / compose | `deploy/.env.example` → `deploy/.env` | DB/Redis/MinIO + auth keys + the **§3 go-live flips** |
+| Backend / compose | `deploy/.env.example` → `deploy/.env` | DB/cache (Valkey)/object storage (Silo) + auth keys + the **§3 go-live flips** |
 | Admin (`@hg/admin`, Vite) | `apps/admin/.env.example` → `apps/admin/.env.local` | `VITE_API_BASE_URL`, `VITE_MAPBOX_TOKEN` |
 | Restaurant (`@hg/restaurant`, Vite) | `apps/restaurant/.env.example` → `apps/restaurant/.env.local` | `VITE_API_BASE_URL` |
 | Customer (`@hg/customer`, Expo) | `apps/customer/.env.example` → `apps/customer/.env` | `EXPO_PUBLIC_API_BASE_URL`, `EXPO_PUBLIC_MAPBOX_TOKEN` |
 | Rider (`@hg/rider`, Expo) | `apps/rider/.env.example` → `apps/rider/.env` | `EXPO_PUBLIC_API_BASE_URL`, `EXPO_PUBLIC_MAPBOX_TOKEN` |
+
+**Password hashing cap.** Each password hash takes 64 MiB, so each API replica runs at most
+`HG_AUTH_HASH_CONCURRENCY` (default `3`, minimum `3`) at once, split into separate sign-up, login
+and staff gates so a sign-up flood cannot lock admins out. A sign-up or login that waits longer than
+`HG_AUTH_HASH_WAIT` (default `2s`, at most `5s`), or finds more than `HG_AUTH_HASH_MAX_WAITERS`
+(default 4 per slot) already waiting, is answered `503` with `Retry-After`, and the server logs a
+`password hashing at capacity` warning with the gate name: alert on it. Raise the cap only if the
+replica's memory limit has room for another 64 MiB per step
+([#216](https://github.com/shaiknoorullah/hg-mono/issues/216)).
 
 **Mapbox tokens** (create at https://account.mapbox.com/access-tokens):
 - Make **public tokens** (`pk.…`) with **public scopes only** (STYLES:TILES, STYLES:READ,
@@ -68,30 +77,77 @@ Each is a config change, not an eng sprint — the seams are built. Do them in t
    in until this lands.*
 2. **Stripe live + Connect payouts.** `HG_STRIPE_SECRET_KEY` + `HG_STRIPE_WEBHOOK_SECRET`
    (+ `HG_STRIPE_CONNECT_RETURN_URL` / `HG_STRIPE_CONNECT_REFRESH_URL` for rider onboarding).
-   Empty keys = fake local gateway.
+   Empty keys = fake local gateway. The customer build's `EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY` must
+   be the `pk_live_…` key of the same account; a build without it takes no card payments and says
+   so at checkout ([release README](docs/release/README.md)).
 3. **HST / tax (O-01).** `HG_TAX_HST_REGISTRATION_NUMBER` + `HG_TAX_PLATFORM_LEGAL_NAME` — rendered
    on receipts only when set. (Tax is already computed.)
 4. **Mapbox token(s)** — §2.
 5. **Product decisions** (defaults coded): O-05 launch province (default Ontario), O-06
-   self-declared halal (default hide), O-04 refund liability.
-6. **Production hosting** — a box/cluster + domain/DNS + TLS for Traefik, including the public
+   self-declared halal (default hide), O-04 refund liability. Settings that also hold coded
+   defaults until the owner decides ([#164](https://github.com/shaiknoorullah/hg-mono/issues/164)):
+   `HG_RIDER_TIP_MAKEUP` (default `false`: a tip lowered after the rider accepts is not made up),
+   `HG_PAYOUT_RESTAURANT_HOLD_HOURS` (72, the proposed three-day hold before a restaurant's earning
+   is paid) and `HG_RESTAURANT_NEGATIVE_BALANCE_BLOCK_DAYS` (30: a restaurant whose payout balance
+   stays below zero longer takes no new orders; 0 turns the block off).
+   Also on #164: whether a restaurant is also suspended some days after its halal certificate
+   expires. Default: never; it is delisted only. Set `HG_HALAL_SUSPEND_AFTER_EXPIRED_DAYS`
+   (e.g. `14`) if the owner decides otherwise.
+6. **Production hosting** — one Contabo server ([the owner's decision](https://github.com/shaiknoorullah/hg-mono/issues/207#issuecomment-5976966570)) + domain/DNS + TLS for Traefik, set up with one command: [deploy/host](deploy/host/README.md), "Day 1". Include the public
    host for file links: `HG_MINIO_PRESIGN_BASE_URL` (e.g. `https://files.halalgoes.com`), routed
    by Traefik to the object store with the Host header unchanged. Upload and download links are
-   signed for that host, so phones can use them.
-7. **Trusted proxy.** Set `HG_TRUSTED_PROXY_CIDRS` to the network Traefik reaches the API from
-   (`docker network inspect hg-net`). Unset, the stack refuses to start: every request's client
+   signed for that host, so phones can use them. Every HTTPS host sends
+   `Strict-Transport-Security` for a year, subdomains included
+   ([#460](https://github.com/shaiknoorullah/hg-mono/issues/460); how to check it is in the
+   [runbook](docs/ops/runbook.md#certificates-are-expiring)).
+7. **Email (Resend).** Verify the sending domain in Resend (SPF, DKIM and DMARC on
+   `mail.halalgoes.com`), then set `HG_RESEND_API_KEY`, `HG_EMAIL_FROM`, and the web apps the
+   emails link to: `HG_RESTAURANT_WEB_URL` and `HG_ADMIN_WEB_URL` (`https`; the stack refuses to
+   start with a key and localhost links). With no key the API logs each email instead of sending
+   it. Outside production only the addresses in `HG_EMAIL_ALLOWLIST` are ever really emailed;
+   that list is refused in production.
+   **Push (Expo)** is off until `HG_PUSH_ENABLED=true`; `EXPO_ACCESS_TOKEN` is needed only when the
+   Expo project has enhanced push security on, and Android delivery needs the project's FCM
+   credentials in Expo ([#58](https://github.com/shaiknoorullah/hg-mono/issues/58)).
+8. **Trusted proxy.** Set `HG_TRUSTED_PROXY_CIDRS` to the network Traefik reaches the API from.
+   On the production server that is `hg-proxy`, `10.88.0.0/29`, which only Traefik and the API join
+   ([deploy/host](deploy/host/README.md#what-productions-compose-file-must-do)). Unset, the stack refuses to start: every request's client
    address would be Traefik's, so the per-IP sign-in limits would throttle all customers as one.
-   Never `0.0.0.0/0` (refused at boot).
+   Never `0.0.0.0/0` or any public range: the API refuses to start unless every entry lies inside
+   `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `127.0.0.0/8`, `::1/128` or `fc00::/7`.
+8. **Edge limit on the sign-in routes.** `deploy/docker-compose.yml` puts every `/v1/auth/` route
+   behind a per-address limit in Traefik (the `hg-auth` router and `hg-auth-ratelimit` middleware;
+   [rate limiting](docs/spec/01-platform.md#p-38--rate-limiting)). A production override that
+   replaces the API's labels (`labels: !override`) drops them, so it must carry both, with its own
+   `Host(...)` rule and entrypoint. Check: `docker compose ... config | grep hg-auth-ratelimit`.
 
 ## 4. Deploy the stack (on your host)
+
+On the production server, provision first with [deploy/host](deploy/host/README.md): it installs Docker, the firewall, backups and monitoring, and writes production's `.env` from the encrypted `prod.sops.env` rather than a copy edited on the server. The commands below are the stack itself, on any host:
 
 ```bash
 cp deploy/.env.example deploy/.env      # edit secrets + §3 flips; HG_ENV=production
 cd services/hg
-make up            # Traefik + 2× API + Postgres/PostGIS + Redis + MinIO
+make up            # Traefik + 2× API + Postgres/PostGIS + Valkey + Silo
 make migrate       # apply migrations 0→N
 curl -fsS http://<host>:${HG_HTTP_PORT:-8080}/health/ready   # expect 200
 ```
+
+With `HG_ENV=local`, `make up` also layers [`deploy/docker-compose.local.yml`](deploy/docker-compose.local.yml): a request from your machine to the published port reaches Traefik from Docker's bridge, not `127.0.0.1`, so that file lets Docker's bridge range (`172.16.0.0/12`) through the edge to `/internal` and `/debug` ([#487](https://github.com/shaiknoorullah/hg-mono/issues/487)). With any other `HG_ENV`, `make up` runs the base file alone.
+
+The database has three logins, each with its own password in `deploy/.env`: the Postgres
+superuser (`POSTGRES_PASSWORD`) only creates the roles; goose runs as `hg_migrator`
+(`HG_DB_MIGRATOR_PASSWORD`), which owns the schema; the API runs as `hg_app`
+(`HG_DB_APP_PASSWORD`), which can read and write rows but cannot change the schema or switch the
+ledger's triggers off; its hourly partition upkeep goes through two narrow functions that run as
+`hg_migrator`. `make up` and `make migrate` create and update the roles first, from
+[`services/hg/migrations/roles/roles.sql`](services/hg/migrations/roles/roles.sql); the reasons
+are in [the migrations README](services/hg/migrations/README.md#who-connects-as-whom).
+
+Postgres, Valkey and Silo publish their ports on `127.0.0.1` only, so `psql` and the migrations
+work from the host but no other machine can reach them. On the server, open an SSH tunnel
+(`ssh -L 15432:127.0.0.1:5432 <host>`) to reach Postgres from your laptop. A server started
+before this change keeps its old binding until those three containers are recreated.
 
 Outside `local`, the binary refuses to boot if any dependency still points at `localhost`, if
 `HG_MINIO_PRESIGN_BASE_URL` is unset or not `https` (every signed link is a bearer credential),

@@ -2,7 +2,7 @@
 covers:
   - apps/admin/**
   - services/hg/internal/admin/**
-reviewed: 2026-10-04
+reviewed: 2026-10-09
 ---
 
 # HalalGoes — ADMIN / SUPER ADMIN / SUPPORT AGENT Specification
@@ -184,6 +184,24 @@ fails, the change is rolled back. This is a hard invariant, not a best effort.
      `410 INVITATION_EXPIRED` and the account remains `INVITED`.
 - **Out of scope**: SSO/SAML/OIDC; SCIM provisioning; per-user custom permission overrides (V3, see
   A-02); staff org-chart/manager hierarchy; hard deletion of staff rows.
+- **As built (Oct 2026)**: the invitation is a 72-hour single-use token stored like a password-reset
+  token and emailed through the notification outbox in the transaction that creates the account. The
+  address is read from the invited account itself, the email quotes nothing the super admin typed
+  (only the role, from a fixed list), and one account gets at most 3 invitations a day and one super
+  admin sends at most 20. The invitee sets a first password through the reset-password operation, which
+  also marks the email verified, then signs in with the password alone. `staff_invitation` is not written yet,
+  and an expired link answers with the reset operation's expired-token error rather than
+  `INVITATION_EXPIRED`: the acceptance flow is [#170](https://github.com/shaiknoorullah/hg-mono/issues/170).
+  The console's pages for these emails exist ([#329](https://github.com/shaiknoorullah/hg-mono/issues/329)).
+  `/accept-invite` sets the first password and stops there; two-step sign-in is opt-in and set up
+  from the console with a QR code once signed in, never from the invitation link
+  ([two-step sign-in is opt-in](../decisions/README.md#settled--owner-decisions-2026-10-05)).
+  `/reset-password` is both "Forgot your password?" on the sign-in gate and the page the reset email
+  opens. Both take the token the way the restaurant app's link pages do (see
+  [email verification, as built](03-restaurant.md#r-02--email-verification-and-account-activation)),
+  with the same shared code: out of the address before anything loads, in memory only, sent once
+  in a POST body, and never a sign-in. If the console is already signed in in that tab, the page
+  asks before it uses the link.
 - **Version**: V1 · **Size**: M
 
 > **Decided:** no warning above 25 active staff accounts at launch ([staff account warning](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)).
@@ -260,7 +278,7 @@ fails, the change is rolled back. This is a hard invariant, not a best effort.
     20 failed attempts per IP per 15 min → IP throttled. Lockout does not reveal account existence.
   - R2 Login response is identical (timing-normalised, same error `401 INVALID_CREDENTIALS`) for
     unknown email, wrong password, and non-`ACTIVE` account.
-  - R3 MFA is mandatory for all three roles. An account without `mfa_enrolled` cannot reach `ACTIVE`.
+  - R3 MFA is opt-in for all three roles ([two-step sign-in is opt-in](../decisions/README.md#settled--owner-decisions-2026-10-05)): a staff member signs in with the password alone until they turn it on from the console with a QR code, and may turn it off with a current code. MONEY permissions still require a session signed in with it (R4).
   - R4 `mfa_verified_at` is stamped at login and re-stamped by a step-up prompt; MONEY/DESTRUCTIVE
     permissions require it within 12 hours (A-02 R4).
   - R5 Password change or reset revokes all other sessions for that account.
@@ -312,6 +330,9 @@ fails, the change is rolled back. This is a hard invariant, not a best effort.
     prev_hash bytea not null     hash bytea not null
   audit_chain_seal { seal_date date pk, terminal_hash bytea, event_count int, sealed_at timestamptz }
   ```
+  `actor_ip` is the staff member's own address as the router resolves it behind Traefik
+  ([`01-platform.md`, "P-06 — Deny-by-default routing and the middleware chain"](01-platform.md#p-06--deny-by-default-routing-and-the-middleware-chain),
+  stage 3), never the proxy's.
 - **Role**: **Super Admin** — read all events, export, run chain verification. **Admin** — read events
   whose `target_type` is an operational entity (`RESTAURANT`, `RIDER`, `CUSTOMER`, `ORDER`,
   `MENU_VERSION`, `CASE`, `HALAL_CERTIFICATE`), i.e. the compliance trail they are accountable for;
@@ -813,8 +834,8 @@ REGISTERED → EMAIL_VERIFIED → PROFILE_SUBMITTED → DOCUMENTS_SUBMITTED
 |---|---|---|---|---|---|
 | `LIVE` | system, on READY | — | Yes (subject to hours + accepting toggle) | Yes | Full |
 | `DELISTED` | **system**, non-punitive (halal cert lapsed, docs expired, no approved menu) | Auto, when the cause clears | No | No | Full, with a blocking remediation banner; the menu stays editable ([menu lock](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)) |
-| `SUSPENDED` | **Admin**, punitive, reversible, optionally time-boxed | Yes, by Admin+ | No | No | Restricted: read own data, upload documents, respond to cases, edit opening hours ([hours while suspended](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)); the menu is locked for everyone, admins included ([menu lock](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)) |
-| `BANNED` | **Admin** proposes, **Super Admin** confirms; punitive, permanent | Only by Super Admin | No | No | Blocked entirely (`403 ACCOUNT_BANNED`); the menu is locked for everyone, admins included ([menu lock](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)) |
+| `SUSPENDED` | **Admin**, punitive, reversible, optionally time-boxed | Yes, by Admin+ | No | No | Restricted: read own data, upload documents, respond to cases, edit opening hours ([hours while suspended](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)); the menu is locked for everyone, admins included: every menu write is `403 MENU_LOCKED` ([menu lock](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01), [how it is enforced](#a-19--menu-approval-queue)) |
+| `BANNED` | **Admin** proposes, **Super Admin** confirms; punitive, permanent | Only by Super Admin | No | No | Blocked entirely (`403 ACCOUNT_BANNED`); the menu is locked for everyone, admins included: every menu write is `403 MENU_LOCKED` ([menu lock](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01), [how it is enforced](#a-19--menu-approval-queue)) |
 | `DEACTIVATED` | **the restaurant itself**, or staff on the restaurant's written request; non-punitive voluntary exit | Yes, by the restaurant or Support Agent | No | No | Full, with a "reactivate" call to action; opening hours read-only |
 | `CLOSED` | Super Admin, after `BANNED` or `DEACTIVATED` + retention period, or on erasure request | No — terminal | No | No | Blocked |
 
@@ -1196,6 +1217,8 @@ These six words mean exactly this everywhere in the product, in the API, and in 
 
 ---
 
+> **Realtime (Oct 2026):** each document review, and each application decision ([restaurant](#a-18--restaurant-approval--rejection-decision) and rider), writes its event in the decision's own transaction: `document.review_state_changed` to the restaurant's owners and managers (riders hear only the application decision, [one message per review](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)), `onboarding.state_changed` to the restaurant's owners and managers or the rider. The refund an admin's order cancellation records sends `refund.created` to the customer ([realtime contract](../../contracts/websocket.md#4-event-catalogue)).
+
 ### A-18 — Restaurant approval / rejection decision
 
 - **SOW trace**: *"Restaurant Approval/Rejection: Approve or reject restaurant registrations based on submitted documents and compliance."*
@@ -1207,6 +1230,9 @@ These six words mean exactly this everywhere in the product, in the API, and in 
   becomes `READY` and `account_state = LIVE` only when a menu version is approved (A-19). `REJECT` is
   terminal for that application (re-application per A-13 R7) and requires a reason code plus text that
   is sent verbatim to the restaurant. `REQUEST_CHANGES` names the specific documents to redo.
+  The decision notifies the restaurant's owners and managers by email and in-app inbox, in the same
+  transaction. The reason text goes in the inbox row the restaurant app shows; the email only says
+  there is a decision and links to it, so no text typed outside HalalGoes's templates is ever emailed.
 - **Data**: `restaurant_application` (A-13); `restaurant { id, ..., onboarding_state, account_state, halal_status, delist_reasons[], approved_by, approved_at, rejected_by, rejected_at, rejection_reason_code, rejection_reason_text }`.
   Decision reason codes — approve: `ALL_CHECKS_PASSED`, `APPROVED_WITH_NOTES`; reject:
   `HALAL_CERTIFICATION_INVALID`, `DOCUMENTS_INSUFFICIENT`, `IDENTITY_UNVERIFIED`,
@@ -1319,10 +1345,30 @@ These six words mean exactly this everywhere in the product, in the API, and in 
     suspended or banned: then nobody changes its menu, admins included; a delisted restaurant's menu
     stays editable ([menu lock](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)). An item an admin creates
     is approved on creation and audited, with the creating admin recorded as its reviewer
-    ([menu approval](../decisions/README.md#settled--reconciliations)). Updating or removing an item on
-    a restaurant's behalf is a launch operation the contract does not have yet ([launch scope](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01),
-    [#182](https://github.com/shaiknoorullah/hg-mono/issues/182)); it never silently discards a
-    restaurant edit that is waiting for review.
+    ([menu approval](../decisions/README.md#settled--reconciliations)). Its photo must be a confirmed
+    `MENU_IMAGE` the admin or someone at the restaurant uploaded, or one of the restaurant's photos
+    already; anything else is `404` and nothing is written
+    ([#450](https://github.com/shaiknoorullah/hg-mono/issues/450),
+    [presigned upload](01-platform.md#p-28--presigned-upload-and-download)). Admins also update and remove
+    items on a restaurant's behalf, a launch operation ([launch scope](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01),
+    [#182](https://github.com/shaiknoorullah/hg-mono/issues/182), built in
+    [#502](https://github.com/shaiknoorullah/hg-mono/issues/502)), with the same permission, photo rule
+    and audit event as creating one. An update applies price, category, prep time and order at once and
+    approves claim-bearing fields on save, the admin recorded as reviewer, keeping any field it does not
+    send from the live version. It never silently discards a restaurant edit that is waiting for review:
+    a claim-bearing update to an item with one is `409 MENU_VERSION_PENDING`, and the admin decides that
+    version first. Removing an item is a soft delete: the item leaves the menu at once, order lines keep
+    their snapshot, and a version waiting for review is withdrawn, so deciding it is `409 ITEM_DELETED`.
+  - R8 The menu lock is enforced, not advisory ([#256](https://github.com/shaiknoorullah/hg-mono/issues/256)).
+    While the restaurant's `account_state` is `SUSPENDED` or `BANNED`, every menu write on its behalf
+    answers `403 MENU_LOCKED`, with the state in `details.account_state`, and writes nothing: creating,
+    updating or removing a category or an item, and approving or rejecting one of its versions waiting
+    for review, which stays `PENDING_REVIEW` until the suspension is lifted. The review queue still
+    lists it, and every read stays open. `ADMIN` and `SUPER_ADMIN` are refused alike. A `DELISTED`
+    restaurant is not locked. The check is the same one the restaurant's own menu writes make
+    ([the menu lock](03-restaurant.md#r-15--menu-item-authoring)): each write locks the restaurant row
+    and reads its state in the transaction that makes the write, so a write racing a suspension
+    commits before it or is refused, never after it.
 - **Acceptance criteria**:
   1. Given a restaurant with no published menu, when everything else is approved, then `account_state`
      is not `LIVE` and `delist_reasons` contains `NO_APPROVED_MENU`; when menu v1 is approved, then it
@@ -1338,6 +1384,10 @@ These six words mean exactly this everywhere in the product, in the API, and in 
      `HALAL_INTEGRITY` case exists.
   5. Given an `ADMIN` creates a menu item on a restaurant's behalf, then the item is approved without
      entering the review queue, the admin is its recorded reviewer, and an `audit_event` exists.
+  6. Given a suspended or banned restaurant with a version waiting for review, when a `SUPER_ADMIN`
+     creates a menu item on its behalf or approves that version, then `403 MENU_LOCKED`, nothing is
+     written, and the version is still `PENDING_REVIEW` in the queue; when the restaurant is delisted
+     instead, then both succeed.
 - **Out of scope**: nutritional-data validation; automated image moderation (V2); ingredient-level
   halal verification (V3); per-item halal certification.
 - **Version**: V1 · **Size**: L
@@ -1564,6 +1614,15 @@ documents lapse cannot go on shift, but is not punished.
 - **Data**: `rider_application` and `rider_document` mirroring A-13's shapes, plus
   `rider { id, ..., date_of_birth, vehicle_type, licence_plate, onboarding_state, account_state, approved_by, approved_at, rejection_reason_code }`,
   and `document_check` reused with rider `check_key`s.
+  Decision reason codes, the same split as a
+  [restaurant decision](#a-18--restaurant-approval--rejection-decision) — approve:
+  `ALL_CHECKS_PASSED`, `APPROVED_WITH_NOTES`; reject and request changes: the document rejection
+  reasons (`ILLEGIBLE`, `EXPIRED`, `WRONG_DOCUMENT_TYPE`, `NAME_MISMATCH`, `DOB_MISMATCH`,
+  `ADDRESS_MISMATCH`, `PLATE_MISMATCH`, `UNRECOGNISED_CERTIFIER`, `SUSPECTED_FORGERY`,
+  `SUSPECTED_ALTERATION`, `INCOMPLETE_PAGES`, `OTHER`). `REQUEST_CHANGES` also names the documents
+  to redo. An approval never carries a rejection reason: the API takes one body shape per decision
+  ([#163](https://github.com/shaiknoorullah/hg-mono/issues/163)). The approval reason is kept on
+  the decision's `audit_event`.
 - **Role**: **Admin** — take, review, decide. **Super Admin** — same, plus reverse a rejection within
   30 days and override a document decision. **Support Agent** — only through a support case
   ([what support agents see](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)):
@@ -1586,6 +1645,7 @@ documents lapse cannot go on shift, but is not punished.
   - R6 Rejection reason text is sent verbatim to the rider along with the specific remediation step —
     this is the SOW's "Support: Get support on verification rejections".
   - R7 Rejecting a single document does not notify the rider; only the application decision does
+    (push, inbox and email; the email carries no reason text, which the rider app shows)
     ([rider document rejection](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)).
   - R8 After a rider's third resubmission the only decisions are approve or reject; requesting changes
     is no longer offered ([third resubmission](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
@@ -2148,14 +2208,32 @@ documents lapse cannot go on shift, but is not punished.
     rest; `LATE_DELIVERY`, `PRICING_ERROR`, `PLATFORM_INITIATED_CANCELLATION`, `GOODWILL`,
     `DUPLICATE_CHARGE`, `OTHER` → platform bears it. The split feeds settlement (A-36) and is visible to the
     bearing party.
-  - R5 A refund is submitted to the payment provider only after `AUTHORISED`; provider failures move
-    to `FAILED` with the provider's code, are retried with exponential backoff up to 24 hours, and
-    raise a P1 case at Tier 2 on final failure. **The customer-facing refund status never shows
+  - R5 Only an approved refund is submitted to the payment provider: `AUTHORISED`, with the member of
+    staff who approved it on the row (a cancellation's refund is approved by whoever cancelled the
+    order). A customer's own request and one waiting for a second approver are never sent. The refund
+    sender submits each refund once, keyed by the refund, from one replica at a time
+    ([sending a refund](01-platform.md#p-18--refunds-cancellations-and-compensation)). A provider
+    refusal moves the refund to `FAILED` with the provider's code, an admin alert and a reconciliation
+    exception; a refund the sender could not deliver after eight attempts, with backoff, stays
+    `AUTHORISED` and is set aside with an admin alert for a person to review.
+    **The customer-facing refund status never shows
     "completed" before the provider confirms.** (This closes defects B48/B54, where refunds only ever
     logged "refund would be initiated here".)
   - R6 Refunds require the session's MFA to be verified within 12 hours (A-02 R4).
   - R7 Every refund state change writes an `audit_event` including the authority path used
     (`role`, `cap_applied`, `approver_ids`).
+  - As built ([#172](https://github.com/shaiknoorullah/hg-mono/issues/172)): the approval request is
+    the `PENDING_APPROVAL` refund itself (no separate table), with the role that must decide it and
+    who sent it up; the rolling total counts the refunds a person *approved* (`refund.approved_by`,
+    `approved_at`) and is summed under a per-person advisory lock rather than a `staff_refund_ledger`
+    upsert; a customer's request is reviewed through `approveRefund` and `declineRefund`; the caps are
+    the figures in the table above, in `internal/payments/types.go`. The per-order and order-age
+    limits are enforced as the 24-hour one is: a refund past them is sent up, never rejected. A
+    person's per-order total counts what they already approved on that order, so a refund split in
+    two is held to the same limit; an order's age counts from delivery, or from when it was placed
+    if it was never delivered; a refund on an order past an admin's 90 days is sent straight to a
+    super admin; and an admin approving a sent-up refund past their own age limit gets `403
+    FORBIDDEN` ([per-order and order-age limits](https://github.com/shaiknoorullah/hg-mono/issues/364)).
   - R8 A refund against an order whose payment is not `CAPTURED` is rejected
     `409 PAYMENT_NOT_REFUNDABLE`; a cancellation before capture voids the authorisation instead and is
     a different operation.
@@ -2182,7 +2260,8 @@ documents lapse cannot go on shift, but is not punished.
 
 > **DECISION REQUIRED — D-23 · Support agent refund cap**: What is the maximum a front-line support
 > agent may refund without approval — per order and per day? · **Proposed default**: CAD 25.00 per
-> order, CAD 150.00 per rolling 24 hours, orders up to 14 days old. · **Why**: Covers the great
+> order, CAD 150.00 per rolling 24 hours, orders up to 14 days old. *Shipping on this default until
+> the owner confirms it ([decisions](../decisions/README.md#open--non-blocking)). Enforced since [#364](https://github.com/shaiknoorullah/hg-mono/issues/364).* · **Why**: Covers the great
 > majority of missing-item and late-delivery goodwill without creating a meaningful loss surface from
 > a single compromised or careless account.
 
@@ -2434,6 +2513,16 @@ documents lapse cannot go on shift, but is not punished.
   `CONTACT_RIDER`, `CONTACT_RESTAURANT`, `UPDATE_DELIVERY_INSTRUCTIONS`, `REASSIGN_RIDER`,
   `EXTEND_ETA`, `CANCEL_ORDER`, `FORCE_STATUS` (super admin only, emergency).
 - **Data**: read model over the order aggregate; `order_intervention` (A-29) records every action.
+- **Live tracking**: the order-detail map follows the rider over `order:{id}` (`rider.location`,
+  precise for support and admin per the
+  [per-role projection rules](../../contracts/websocket.md#5-per-role-projection-rules)), gliding
+  between fixes and saying `last updated 42s ago` once a fix is older than 30 s; state and dispatch events refetch the
+  order. While the socket is down it polls `getOrderAdmin` every 5 s. The **live operations map**
+  (`#/live`) shows every active order (`RESTAURANT_PENDING` to `ARRIVED`, up to 40) with its
+  restaurant, destination and rider, live on each order's channel plus `admin:ops` (a dispatch
+  failure raises a banner). It re-reads the list every 30 s to find new orders, because no admin-wide
+  "order created" event exists, and every 15 s while the socket is down. Riders online without an
+  order are not shown: no operation or event reports their position.
 - **Role**:
 
   | Intervention | Support Agent | Admin | Super Admin |
@@ -2456,7 +2545,10 @@ documents lapse cannot go on shift, but is not punished.
     acceptance: staff may do that without a case, and the reason goes on the audit log
     ([cancellation policy](../decisions/README.md#settled--client-decisions); needs a contract change).
   - R2 Cancelling after acceptance always issues a refund per A-29 R1 and A-33; the two are one
-    transaction from the operator's point of view.
+    transaction from the operator's point of view. The same transaction releases the order's
+    rider: a live assignment ends `CANCELLED_BY_PLATFORM`, the rider is available again, the
+    dispatch row stops naming them and `dispatch.unassigned` is written
+    ([#415](https://github.com/shaiknoorullah/hg-mono/issues/415)).
   - R3 `FORCE_STATUS` writes an `audit_event` with severity `DESTRUCTIVE`, requires re-authentication
     (A-02 R4), and raises a P3 case at Tier 3 for after-the-fact review.
   - R4 ETA extension is customer-visible and notifies the customer; it never changes any SLA
@@ -2465,6 +2557,10 @@ documents lapse cannot go on shift, but is not punished.
     support and customer can never see contradictory states.
   - R6 Reassigning a rider returns the order to dispatch with the previous rider excluded from the
     next offer round.
+  - R7 A staff cancel tells the customer like any other cancel: it goes through the order state
+    machine's one transition function, which writes the `order.state_changed` and `order.cancelled`
+    realtime events and enqueues the customer's cancellation notification in the same
+    transaction ([#352](https://github.com/shaiknoorullah/hg-mono/issues/352)).
 - **Acceptance criteria**:
   1. Given a support agent and an order in `PREPARING`, when they attempt `CANCEL_ORDER`, then
      `403 FORBIDDEN_PERMISSION` and the UI offers "escalate to Tier 2" which creates the escalation.
@@ -2707,6 +2803,8 @@ is enforced server-side. `Deny` = `403 FORBIDDEN_PERMISSION`.
 | `setting.propose_pricing` / `setting.propose_payout` | A-06 | Allow | Deny | Deny |
 | `setting.propose_operational` | A-06 | Allow | Limited — `SLA`, `COMPLIANCE` classes | Deny |
 | `setting.approve` | A-06 | Limited — never own proposal | Deny | Deny |
+| `ordering_pause.read` (whether new orders are paused platform-wide, [#244](https://github.com/shaiknoorullah/hg-mono/issues/244)) | — | Allow | Allow | Allow — to tell a customer why checkout is refused |
+| `ordering_pause.set` (pause or resume new orders platform-wide during an incident, with a reason, audited; [#244](https://github.com/shaiknoorullah/hg-mono/issues/244)) | — | Allow | Allow — an operations control like `promotion.pause`, not a platform setting: no second approver, applies at once | **Deny** — stopping every new order is not a support action |
 | `promotion.read` | A-07 | Allow | Allow | Limited — terms + a named customer's redemptions |
 | `promotion.create` / `promotion.edit` / `promotion.resume` | A-07 | Allow | Deny | Deny |
 | `promotion.pause` | A-07 | Allow | Allow | Deny |
@@ -2721,6 +2819,8 @@ is enforced server-side. `Deny` = `403 FORBIDDEN_PERMISSION`.
 | `report.schedule` | A-10 | Allow | Deny | Deny |
 | `oversight.read_agent_metrics` | A-11 | Allow | Limited — team aggregates + own-queue agents | Limited — own metrics only |
 | `oversight.create_quality_review` | A-11 | Allow | Deny | Deny |
+
+The admin console's System page now shows whether new orders are paused, since when and the latest reason, and lets `ADMIN` and `SUPER_ADMIN` pause or resume them with a required reason after a confirmation; a `403` from `setOrderingPause` turns the panel read-only, as a support agent sees it ([#389](https://github.com/shaiknoorullah/hg-mono/issues/389)).
 
 ### 7.2 Restaurant domain
 
@@ -2746,8 +2846,8 @@ is enforced server-side. `Deny` = `403 FORBIDDEN_PERMISSION`.
 | `restaurant.approve` / `restaurant.reject` / `restaurant.request_changes` | A-18 | Allow | Allow | Deny |
 | `restaurant.reverse_rejection` | A-18 | Limited — ≤30 days | Deny | Deny |
 | `menu.read_queue` | A-19 | Allow | Allow | Allow — position, SLA, findings |
-| `menu.review` (approve / reject / partial) | A-19 | Allow | Allow | Deny |
-| `menu.bulk_approve` | A-19 | Allow | Deny | Deny |
+| `menu.review` (approve / reject / partial; refused while the restaurant is suspended or banned, [menu lock](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)) | A-19 | Allow | Allow | Deny |
+| `menu.bulk_approve` (refused while the restaurant is suspended or banned, as above) | A-19 | Allow | Deny | Deny |
 | `menu.edit` (create, update or remove on a restaurant's behalf; refused while it is suspended or banned, [menu lock](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)) | A-19 | Allow | Allow | Deny |
 | `compliance.read` | A-20 | Allow | Allow | Limited — violation summary only |
 | `compliance.raise_violation` | A-20 | Allow | Allow | Deny |

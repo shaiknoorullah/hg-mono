@@ -2,23 +2,30 @@
 // Test coverage: measure it, never let it drop, hold floors where money and safety live.
 // Issue: https://github.com/shaiknoorullah/hg-mono/issues/118
 //
-//   node .github/scripts/coverage.mjs collect [--go] [--js] [--only <name,…>]
+//   node .github/scripts/coverage.mjs collect [--go] [--js] [--only <name,…>] [--merge] [--fail-on-red]
 //       Runs the Go and JS suites with coverage and writes coverage/.out/summary.json:
 //       { files: { "<repo path>": { covered, total, pct, unit } }, runs: [...] }.
 //       Go counts statements (what `go test -cover` measures); JS counts lines.
 //       A red test does NOT stop collection: coverage is measured from whatever ran.
-//       Failing tests are the tests workflow's job (issue #42), not this one's.
+//       --fail-on-red: after writing the summary, exit 1 if any suite's tests were red. CI's
+//       go and js jobs run their suites only this way, so one run both tests and measures
+//       (issue #374); red tests fail those jobs (issue #42), never the coverage check.
+//   node .github/scripts/coverage.mjs merge <summary.json …>
+//       Adds summaries written by other jobs to coverage/.out/summary.json (created if
+//       missing). CI's coverage job uses it to join what the go and js jobs measured.
 //   node .github/scripts/coverage.mjs check [--base <git ref>] [--files <a,b,…>] [--all]
 //       Ratchet: every changed file that has a baseline must not drop below it
 //       (--all: every file in the baseline, for the weekly scan).
-//       Floors: every area in coverage/floors.json must stay at or above its floor.
+//       Floors: every area in coverage/floors.json must stay at or above its floor. An area
+//       whose suite did not run is reported as not measured, not as a failure: in CI a suite
+//       is skipped only when nothing it measures changed.
 //       Writes coverage/.out/report.md (the PR comment) and exits 1 on any failure.
 //   node .github/scripts/coverage.mjs update-baseline
 //       Raises coverage/baseline.json to today's numbers. Never lowers an entry.
 //       Adds new files, drops files that no longer exist.
 
 import { execFileSync, spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -40,6 +47,7 @@ const JS = [
   { name: 'admin', dir: 'apps/admin', runner: 'vitest' },
   { name: 'restaurant', dir: 'apps/restaurant', runner: 'vitest' },
   { name: 'ui-web', dir: 'packages/ui-web', runner: 'vitest' },
+  { name: 'emails', dir: 'packages/emails', runner: 'vitest' },
   { name: 'customer', dir: 'apps/customer', runner: 'jest' },
   { name: 'rider', dir: 'apps/rider', runner: 'jest' },
   { name: 'ui-native', dir: 'packages/ui-native', runner: 'jest' },
@@ -99,11 +107,14 @@ function parseGoProfile(text) {
 
 function collectGo() {
   const profile = join(OUT, 'go.out');
-  // No Postgres here: integration tests skip themselves (HG_TEST_POSTGRES_DSN unset),
-  // so the numbers are the same on every machine and every run.
-  const exit = run('go', ['test', '-covermode=set', `-coverprofile=${profile}`, './...'], join(ROOT, GO_DIR), {
-    HG_TEST_POSTGRES_DSN: '',
-  });
+  // The same run as `make test` (go test -race ./...), with coverage on, so the go job tests
+  // and measures in one pass. -race requires -covermode=atomic; a block still counts as
+  // covered when its count is above zero, so the numbers equal `set` mode's. No -coverpkg:
+  // each package is measured by its own tests only, as the baseline was.
+  // HG_TEST_POSTGRES_DSN passes through: the go job sets it to its seeded Postgres service
+  // (issue #520), so the database-backed tests run and count. Unset, they skip themselves.
+  const argv = ['test', '-race', '-covermode=atomic', `-coverprofile=${profile}`, './...'];
+  const exit = run('go', argv, join(ROOT, GO_DIR));
   const files = existsSync(profile) ? parseGoProfile(readFileSync(profile, 'utf8')) : {};
   return { name: 'go', exit, files };
 }
@@ -155,29 +166,102 @@ function collectJs(pkg) {
   return { name: pkg.name, exit, files };
 }
 
+// CI's js job runs the JS tests only through this script, so every workspace package with a
+// `test` script must be in JS, and its `test` script must be the runner this script starts.
+// Otherwise a new package's tests would silently never run in CI. Returns the problems found.
+function jsSuiteProblems() {
+  const entries = [...readFileSync(join(ROOT, 'pnpm-workspace.yaml'), 'utf8').matchAll(/^\s*-\s*['"]?([^'"\s#]+)['"]?\s*$/gm)];
+  const dirs = [];
+  for (const [, entry] of entries) {
+    if (entry.startsWith('!')) continue;
+    if (!entry.endsWith('/*')) {
+      dirs.push(entry);
+      continue;
+    }
+    const parent = entry.slice(0, -2);
+    if (!existsSync(join(ROOT, parent))) continue;
+    for (const d of readdirSync(join(ROOT, parent), { withFileTypes: true })) if (d.isDirectory()) dirs.push(`${parent}/${d.name}`);
+  }
+  const problems = [];
+  for (const dir of dirs.sort()) {
+    const manifest = join(ROOT, dir, 'package.json');
+    const script = existsSync(manifest) ? readJSON(manifest).scripts?.test : undefined;
+    if (!script) continue;
+    const pkg = JS.find((p) => p.dir === dir);
+    if (!pkg) {
+      problems.push(`${dir} has a test script but is not in JS in .github/scripts/coverage.mjs, so CI would never run its tests. Add it.`);
+      continue;
+    }
+    const expected = pkg.runner === 'vitest' ? 'vitest run' : 'jest';
+    if (script !== expected) {
+      problems.push(`${dir}: its test script is "${script}", but CI runs "${expected}" with coverage on (.github/scripts/coverage.mjs). Make them match.`);
+    }
+  }
+  return problems;
+}
+
+function writeSummary(summary) {
+  summary.files = Object.fromEntries(Object.entries(summary.files).sort(([a], [b]) => a.localeCompare(b)));
+  writeJSON(SUMMARY, summary);
+  console.log(`\ncoverage: ${Object.keys(summary.files).length} files → ${relative(ROOT, SUMMARY)}`);
+  for (const r of summary.runs) {
+    const note = r.testsExit === 0 ? 'tests green' : `tests exited ${r.testsExit} — coverage kept anyway`;
+    console.log(`  ${r.name.padEnd(12)} ${String(r.files).padStart(4)} files  (${note})`);
+  }
+}
+
+// Adds runs to a summary. A suite that ran again replaces its earlier run.
+function addRuns(summary, runs, files) {
+  summary.runs = summary.runs.filter((r) => !runs.some((x) => x.name === r.name)).concat(runs);
+  Object.assign(summary.files, files);
+  return summary;
+}
+
 function collect(opts) {
   mkdirSync(OUT, { recursive: true });
   const only = typeof opts.only === 'string' ? new Set(opts.only.split(',')) : null;
   const wantGo = opts.go || (!opts.go && !opts.js);
   const wantJs = opts.js || (!opts.go && !opts.js);
+  if (wantJs) {
+    const problems = jsSuiteProblems();
+    if (problems.length) {
+      for (const p of problems) console.error(`coverage: ${p}`);
+      process.exit(1);
+    }
+  }
   const results = [];
   if (wantGo && (!only || only.has('go'))) results.push(collectGo());
   if (wantJs) for (const p of JS) if (!only || only.has(p.name)) results.push(collectJs(p));
 
   // Merge into an existing summary so suites can be collected in separate steps.
   const prev = existsSync(SUMMARY) && opts.merge ? readJSON(SUMMARY) : { files: {}, runs: [] };
-  const summary = { files: { ...prev.files }, runs: prev.runs.filter((r) => !results.some((x) => x.name === r.name)) };
-  for (const r of results) {
-    Object.assign(summary.files, r.files);
-    summary.runs.push({ name: r.name, testsExit: r.exit, files: Object.keys(r.files).length });
+  const runs = results.map((r) => ({ name: r.name, testsExit: r.exit, files: Object.keys(r.files).length }));
+  writeSummary(addRuns(prev, runs, Object.assign({}, ...results.map((r) => r.files))));
+
+  const red = runs.filter((r) => r.testsExit !== 0).map((r) => r.name);
+  if (opts['fail-on-red'] && red.length) {
+    console.error(`\ntests failed in: ${red.join(', ')} (see the output above). Coverage was still written to ${relative(ROOT, SUMMARY)}.`);
+    process.exit(1);
   }
-  summary.files = Object.fromEntries(Object.entries(summary.files).sort(([a], [b]) => a.localeCompare(b)));
-  writeJSON(SUMMARY, summary);
-  console.log(`\ncoverage: ${Object.keys(summary.files).length} files → ${relative(ROOT, SUMMARY)}`);
-  for (const r of summary.runs) {
-    const note = r.testsExit === 0 ? 'tests green' : `tests exited ${r.testsExit} — coverage kept anyway; the tests workflow reports red tests`;
-    console.log(`  ${r.name.padEnd(12)} ${String(r.files).padStart(4)} files  (${note})`);
+}
+
+// ---------------------------------------------------------------------------
+// merge
+// ---------------------------------------------------------------------------
+
+function merge(paths) {
+  const missing = paths.filter((p) => !existsSync(p));
+  if (missing.length) {
+    for (const p of missing) console.error(`coverage: ${p} is missing: the job that runs that suite ran but did not write its coverage. See that job's log.`);
+    process.exit(1);
   }
+  mkdirSync(OUT, { recursive: true });
+  let summary = existsSync(SUMMARY) ? readJSON(SUMMARY) : { files: {}, runs: [] };
+  for (const p of paths) {
+    const part = readJSON(p);
+    summary = addRuns(summary, part.runs, part.files);
+  }
+  writeSummary(summary);
 }
 
 // ---------------------------------------------------------------------------
@@ -209,6 +293,12 @@ function areaCoverage(area, files) {
     hit.push(path);
   }
   return { covered, total, pct: pct(covered, total), files: hit };
+}
+
+// The suite that measures a path: Go for services/hg, else the JS package it is in.
+function suiteOf(path) {
+  if (path.startsWith(GO_DIR + '/')) return 'go';
+  return JS.find((p) => path.startsWith(p.dir + '/'))?.name;
 }
 
 function loadFloors() {
@@ -259,17 +349,32 @@ function check(opts) {
     touched.push({ path, was: was?.pct, now: now.pct, ok });
   }
 
+  // A floor is checked when a suite that measures it ran. In CI a suite is skipped only when
+  // nothing it measures changed (issue #374), so its floors still hold at main's numbers.
+  // An area no suite owns is always checked, and fails with nothing measured.
+  const ran = new Set(summary.runs.map((r) => r.name));
   const floorRows = [];
   for (const [name, area] of Object.entries(floors)) {
+    const suites = new Set(area.paths.map(suiteOf).filter(Boolean));
+    if (suites.size > 0 && ![...suites].some((s) => ran.has(s))) {
+      floorRows.push({ name, floor: area.floor, notRun: [...suites].join(', '), ok: true });
+      continue;
+    }
     const c = areaCoverage(area, summary.files);
     floorRows.push({ name, floor: area.floor, ...c, ok: c.total > 0 && c.pct + EPSILON >= area.floor });
   }
 
-  const failed = drops.length > 0 || floorRows.some((r) => !r.ok);
+  // HG_COVERAGE_RATCHET=warn reports per-file drops without failing; the money and safety floors
+  // still fail. Set in ci.yml for the 6 Oct launch week only; issue #446 turns the ratchet back on.
+  const ratchetBlocks = process.env.HG_COVERAGE_RATCHET !== 'warn';
+  const failed = (ratchetBlocks && drops.length > 0) || floorRows.some((r) => !r.ok);
   const lines = ['<!-- coverage-report -->', `## Coverage ${failed ? '— failing' : '— ok'}`, ''];
   lines.push('**Money and safety floors** (fixed minimums, [issue #118](https://github.com/shaiknoorullah/hg-mono/issues/118))', '');
   lines.push('| Area | Coverage | Floor | |', '|---|---:|---:|---|');
-  for (const r of floorRows) lines.push(`| ${r.name} | ${fmt(r.pct)} | ${r.floor}% | ${r.ok ? 'ok' : '**below floor**'} |`);
+  for (const r of floorRows) {
+    if (r.notRun) lines.push(`| ${r.name} | not measured | ${r.floor}% | ${r.notRun} did not run: nothing it measures changed |`);
+    else lines.push(`| ${r.name} | ${fmt(r.pct)} | ${r.floor}% | ${r.ok ? 'ok' : '**below floor**'} |`);
+  }
   lines.push('');
   if (touched.length === 0) {
     lines.push('No measured source files changed.');
@@ -289,7 +394,7 @@ function check(opts) {
   }
   const red = summary.runs.filter((r) => r.testsExit !== 0).map((r) => r.name);
   if (red.length) {
-    lines.push('', `Tests were red in: ${red.join(', ')}. Coverage was still measured; the tests workflow is the check that fails on red tests.`);
+    lines.push('', `Tests were red in: ${red.join(', ')}. Coverage was still measured; the \`go\` and \`js\` checks are the ones that fail on red tests.`);
   }
   lines.push('', 'Go counts statements, JS counts lines. Baseline: `coverage/baseline.json` (only moves up, from main). Floors: `coverage/floors.json`.');
   mkdirSync(OUT, { recursive: true });
@@ -365,6 +470,7 @@ function updateBaseline() {
 const [cmd, ...rest] = process.argv.slice(2);
 const opts = args(rest);
 if (cmd === 'collect') collect(opts);
+else if (cmd === 'merge') merge(rest);
 else if (cmd === 'check') check(opts);
 else if (cmd === 'update-baseline') updateBaseline();
 else if (cmd === 'floors') {
@@ -374,6 +480,6 @@ else if (cmd === 'floors') {
     console.log(`${name.padEnd(22)} ${fmt(c.pct).padStart(7)}  floor ${area.floor}%  (${c.files.length} files, ${c.covered}/${c.total})`);
   }
 } else {
-  console.error('usage: coverage.mjs collect|check|update-baseline|floors');
+  console.error('usage: coverage.mjs collect|merge|check|update-baseline|floors');
   process.exit(2);
 }
