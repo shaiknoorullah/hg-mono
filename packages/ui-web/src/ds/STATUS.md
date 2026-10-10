@@ -63,7 +63,7 @@ Work packages: `plan/design-system.md` §4.1 on the read-only `claude/redesign-c
 | Tooltip (+ TooltipProvider) | **rebuilt** | W1 |
 | Field, ErrorSummary | rebuilt | W3 |
 | CheckboxGroup | rebuilt | W3 |
-| DateInput, TimeField | rebuilt | W3 |
+| DateInput, TimeField | rebuilt (TimeField adds `compact`, W7b) | W3 |
 | MoneyInput (integer cents only) | rebuilt | W3 |
 | Stepper | rebuilt | W3 |
 | InlineConfirm | rebuilt | W3 |
@@ -95,3 +95,6 @@ Work packages: `plan/design-system.md` §4.1 on the read-only `claude/redesign-c
 | StateCard | rebuilt (new) | sign-in composites (#737) |
 | SupportBlock, SupportSentence (+ `formatSupportPhone`, `resolveSupport`) | rebuilt (new) | sign-in composites (#737) |
 | WaitLine (+ `useWaitLine`, `resolveWaitDeadline`) | rebuilt (new) | sign-in composites (#737) |
+| WeeklyHoursEditor (+ pure helpers `weeklyHoursFromContract`, `weeklyHoursToContract`, `toRestaurantHoursInput`, `checkWeeklyHours`, `changedDays`; packet P23) | rebuilt | W7b |
+| SpecialDatesList (+ `formatOverrideHours`) | rebuilt (new) | W7b |
+| SetupChecklist (onboarding rail) | rebuilt (new) | W7b |
