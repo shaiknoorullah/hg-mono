@@ -29,6 +29,7 @@ import { useConsole } from '../data/console';
 import { useAvailability } from '../data/availability';
 import { errorCode } from '../data/useServerResource';
 import { formatTime } from '../format/time';
+import { noteAcceptedHere } from '../orders/acceptedHere';
 import { publishWaitingCount } from '../shell/waiting';
 import { DEFAULT_PREP_MINUTES, PREP_MAX, PREP_MIN, reasonLabel, type Outcome } from './copy';
 import { OfferAnnouncer, newOrdersMessage } from './announcements';
@@ -276,6 +277,8 @@ export function NewOrdersProvider({ children }: { children: ReactNode }) {
     (id: string, order: OrderView | null) => {
       const o = offersRef.current[id];
       acceptedHere.current.add(id);
+      // The live board draws it at the top as "Just accepted" (the toast says so).
+      if (order) noteAcceptedHere(order);
       acceptUncertain.current.delete(id);
       acceptFrameSeen.current.delete(id);
       if (!o) return;
