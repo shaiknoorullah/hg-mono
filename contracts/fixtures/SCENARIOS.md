@@ -48,11 +48,11 @@ These are the rules the existing names already follow; new fixtures follow them 
 
 | Prefix | Fixtures | The suffix names | Example |
 |---|---:|---|---|
-| `error_` | 99 | `error_<code>` for a code's plain meaning; `error_<context>_<situation>` when one code means several things (`error_menu_locked_banned`, `error_staff_email_in_use`). Status and code live in the fixture, never only in the name. | `error_quote_stale` |
+| `error_` | 103 | `error_<code>` for a code's plain meaning; `error_<context>_<situation>` when one code means several things (`error_menu_locked_banned`, `error_staff_email_in_use`). Status and code live in the fixture, never only in the name. | `error_quote_stale` |
 | `realtime_` | 20 | `realtime_<area>_<story>`: a whole WebSocket script, played over one connection. Areas: `order`, `payment`, `rider`, `restaurant`, `admin_ops`, plus the transport stories `gap_and_resume` and `control_frames`. | `realtime_restaurant_offer_burst` |
 | `realtime_ticket` | 1 | Not a script: the single-use ticket `createRealtimeTicket` returns. | `realtime_ticket` |
 | `order_admin_view_` | 3 | An `OrderState` (lower case) as the staff projection shows it. | `order_admin_view_disputed` |
-| `order_list_` | 3 | A list variant: `active`, `past`, `empty`. | `order_list_active` |
+| `order_list_` | 5 | A list variant: `active`, `past`, `empty`. | `order_list_active` |
 | `order_rating_` | 3 | A rating state. | `order_rating_unrated` |
 | `order_` | 19 | An `OrderState`, lower case, in the customer projection (`order_ready_for_pickup`), or a money or shape edge (`order_zero_tip`). | `order_arrived` |
 | `restaurant_order_` | 7 | An `OrderState` in the restaurant projection, or the queue (`_queue_busy`, `_queue_empty`). | `restaurant_order_preparing` |
@@ -61,14 +61,14 @@ These are the rules the existing names already follow; new fixtures follow them 
 | `dispatch_` | 10 | A `DispatchState`, lower case. | `dispatch_searching` |
 | `offer_` | 7 | A rider offer outcome. | `offer_pending` |
 | `payment_` | 11 | A `PaymentState`, lower case, or saved methods. | `payment_requires_action` |
-| `refund_` | 14 | A `RefundState` in the customer view. | `refund_settled` |
+| `refund_` | 15 | A `RefundState` in the customer view. | `refund_settled` |
 | `admin_refund_` | 13 | A `RefundState` or queue in the staff view. | `admin_refund_queue` |
 | `chargeback_` | 12 | A chargeback state or list. | `chargeback_needs_response` |
 | `halal_badge_` | 4 | A `HalalDisplayState`, lower case. | `halal_badge_expiring_soon` |
-| `certification_panel_` | 4 | A `HalalDisplayState` in the customer certification panel. | `certification_panel_certified` |
+| `certification_panel_` | 6 | A `HalalDisplayState` in the customer certification panel. | `certification_panel_certified` |
 | `halal_certificate_` | 10 | A certificate status or expiry edge (staff view). | `halal_certificate_status_pending` |
 | `halal_issuing_bod` | 7 | An issuing-body status or list. | `halal_issuing_body_suspended` |
-| `restaurant_detail_` | 6 | A `HalalDisplayState` or availability edge on the customer restaurant page. | `restaurant_detail_expiring_soon` |
+| `restaurant_detail_` | 9 | A `HalalDisplayState` or availability edge on the customer restaurant page. | `restaurant_detail_expiring_soon` |
 | `restaurant_availability_` | 5 | The customer availability answer. | `restaurant_availability_paused` |
 | `restaurant_open_state_` | 7 | A `RestaurantOpenState`, lower case. | `restaurant_open_state_closed_suspended` |
 | `restaurant_profile_account_` | 7 | A `RestaurantAccountState`, lower case. | `restaurant_profile_account_suspended` |
@@ -78,13 +78,13 @@ These are the rules the existing names already follow; new fixtures follow them 
 | `restaurant_application_` | 5 | An application in the staff review queue. | `restaurant_application_pending_review` |
 | `rider_application_` | 5 | An application in the staff review queue. | `rider_application_pending_review` |
 | `document_` | 12 | A `KycDocumentState` or rejection reason. | `document_rejected_illegible` |
-| `session_next_route_` | 8 | A `NextRoute`, lower case. | `session_next_route_suspended` |
+| `session_next_route_` | 10 | A `NextRoute`, lower case. | `session_next_route_suspended` |
 | `session_grant_` | 3 | Who was signed in. | `session_grant_staff` |
 | `principal_` | 5 | The signed-in principal, by role (`principal_<role>`). | `principal_support_agent` |
-| `menu_` | 27 | A menu, item, category or version state. | `menu_version_pending_review` |
+| `menu_` | 28 | A menu, item, category or version state. | `menu_version_pending_review` |
 | `rider_availability_` | 5 | A `RiderAvailabilityState`, lower case. | `rider_availability_online_idle` |
 | `payout_` | 24 | A `PayoutState`, lower case, or a payout run. | `payout_held` |
-| (other) | 132 | One-off subjects named for what they are (`public_config`, `cart_many_lines`, `quote_standard`). | `public_config` |
+| (other) | 142 | One-off subjects named for what they are (`public_config`, `cart_many_lines`, `quote_standard`). | `public_config` |
 
 ## 2. How one scenario is chosen per operation (the mock server)
 
@@ -163,6 +163,7 @@ countdown in the client is live. `MOCK_WS_SPEED=0.2` plays five times faster.
 
 Fixtures whose `describes` says "Contract-only:": `services/hg` cannot produce them, so they have no layer B journey yet.
 
+- `error_account_banned`
 - `error_account_suspended`
 - `error_active_delivery_in_progress`
 - `error_address_in_use`
@@ -179,6 +180,7 @@ Fixtures whose `describes` says "Contract-only:": `services/hg` cannot produce t
 - `error_nothing_to_resubmit`
 - `error_otp_rate_limited_with_retry`
 - `error_profile_incomplete`
+- `error_unsupported_country`
 - `realtime_admin_ops_queue_depth`
 - `realtime_admin_ops_reconciliation_exception`
 - `rider_dashboard_offline_blocked`
@@ -196,3 +198,5 @@ Fixtures whose `describes` says "Contract-only:": `services/hg` cannot produce t
 - `rider_dashboard_online_stale`
 - `rider_dashboard_tracking_degraded`
 - `rider_dashboard_tracking_lost`
+- `session_next_route_suspended_banned`
+- `session_next_route_suspended_deleted`

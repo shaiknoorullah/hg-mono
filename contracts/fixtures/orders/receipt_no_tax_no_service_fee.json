@@ -1,0 +1,92 @@
+{
+  "scenario": "receipt_no_tax_no_service_fee",
+  "domain": "orders",
+  "schema": "Receipt",
+  "describes": "A pickup from a restaurant that is not registered for HST (a small supplier), with no service fee and no tip: `tax_lines` is empty and `tax_total_cents` 0, so there is no tax row and no registration number. The lines still sum to the total.",
+  "operations": [
+    "getOrderReceipt"
+  ],
+  "status": 200,
+  "tags": [
+    "customer",
+    "money",
+    "edge"
+  ],
+  "payload": {
+    "order_id": "31a3262d-e2be-4516-a5a8-3f2638abc5c2",
+    "order_code": "HG-NT4X-2P",
+    "receipt_number": "HG-2026-000148377",
+    "issued_at": "2026-08-10T18:41:11.412Z",
+    "platform_legal_name": "HalalGoes Technologies Inc.",
+    "platform_tax_registration_number": "701234567RT0001",
+    "restaurant_legal_name": "Karachi Kitchen Inc.",
+    "restaurant_tax_registration_number": null,
+    "delivery_address": null,
+    "lines": [
+      {
+        "line_no": 1,
+        "menu_item_id": "e3723319-f51b-42f0-a693-8c9eb954bb0f",
+        "name": "Chicken Biryani",
+        "variant_name": null,
+        "addons": [],
+        "quantity": 1,
+        "special_request": null,
+        "unit_price_cents": 1695,
+        "line_total_cents": 1695,
+        "currency": "CAD"
+      },
+      {
+        "line_no": 2,
+        "menu_item_id": "260778de-cee3-4a79-ad10-f79f5e9ab98e",
+        "name": "Beef Nihari",
+        "variant_name": "Full",
+        "addons": [],
+        "quantity": 1,
+        "special_request": "Extra gravy on the side",
+        "unit_price_cents": 3695,
+        "line_total_cents": 3695,
+        "currency": "CAD"
+      },
+      {
+        "line_no": 3,
+        "menu_item_id": "456616ee-e1fc-4a94-aa83-3b1c726ff23d",
+        "name": "Chicken Karahi (Half)",
+        "variant_name": null,
+        "addons": [
+          {
+            "addon_id": "8e05bcf1-8b4f-4578-ac6d-92f90d1cdf6f",
+            "addon_name": "Garlic naan",
+            "addon_quantity": 2,
+            "addon_price_cents": 349
+          }
+        ],
+        "quantity": 1,
+        "special_request": null,
+        "unit_price_cents": 2597,
+        "line_total_cents": 2597,
+        "currency": "CAD"
+      }
+    ],
+    "money": {
+      "subtotal_cents": 7987,
+      "discount_cents": 0,
+      "delivery_fee_cents": 0,
+      "service_fee_cents": 0,
+      "tax_lines": [],
+      "tax_total_cents": 0,
+      "tip_cents": 0,
+      "total_cents": 7987,
+      "currency": "CAD"
+    },
+    "payment": {
+      "card_brand": "visa",
+      "card_last4": "4242",
+      "wallet": null,
+      "amount_charged_cents": 7987,
+      "currency": "CAD"
+    },
+    "refunds": [],
+    "placed_at": "2026-08-10T18:10:11.412Z",
+    "delivered_at": "2026-08-10T18:40:11.412Z"
+  }
+}

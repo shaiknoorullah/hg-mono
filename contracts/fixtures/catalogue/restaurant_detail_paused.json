@@ -1,65 +1,65 @@
 {
-  "scenario": "restaurant_detail_expiring_soon",
+  "scenario": "restaurant_detail_paused",
   "domain": "catalogue",
   "schema": "RestaurantDetail",
-  "describes": "Restaurant detail with `halal.display_state = EXPIRING_SOON`. Certificate expires in 18 days — badge shows the countdown, the restaurant keeps trading.",
+  "describes": "Restaurant detail with `availability.state = PAUSED`. The kitchen paused itself: still browsable, cannot be ordered from.",
   "operations": [
     "getRestaurant"
   ],
   "status": 200,
   "tags": [
-    "state-matrix",
-    "halal"
+    "customer",
+    "state-matrix"
   ],
   "payload": {
-    "id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
-    "name": "Karachi Kitchen",
-    "slug": "karachi-kitchen",
-    "hero_image_url": "https://cdn.halalgoes.ca/img/restaurant/hero/karachi-kitchen.webp",
-    "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/karachi-kitchen.webp",
+    "id": "a12be53e-1468-4f99-a72e-862f5c7be4e1",
+    "name": "Zaytoun Mediterranean Grill",
+    "slug": "zaytoun-mediterranean-grill",
+    "hero_image_url": "https://cdn.halalgoes.ca/img/restaurant/hero/zaytoun-mediterranean-grill.webp",
+    "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/zaytoun-mediterranean-grill.webp",
     "cuisines": [
-      "Pakistani",
-      "Biryani",
+      "Mediterranean",
+      "Grill",
       "Halal"
     ],
-    "rating_avg": 4.8,
-    "rating_count": 412,
-    "price_band": "$$",
+    "rating_avg": 4.9,
+    "rating_count": 2741,
+    "price_band": "$$$",
     "halal": {
-      "display_state": "EXPIRING_SOON",
+      "display_state": "CERTIFIED",
       "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
-      "expires_on": "2026-08-28"
+      "expires_on": "2027-03-09"
     },
     "availability": {
-      "state": "OPEN",
+      "state": "PAUSED",
       "opens_at": "2026-08-10T12:24:11.412Z",
       "closes_at": "2026-08-10T22:00:11.412Z",
-      "eta_min_minutes": 25,
-      "eta_max_minutes": 40,
+      "eta_min_minutes": null,
+      "eta_max_minutes": null,
       "indicative_delivery_fee_cents": 449,
       "minimum_order_cents": 1500,
-      "distance_m": 1200,
+      "distance_m": 3180,
       "out_of_range_reason": null
     },
     "description": "A Danforth institution since 2011. Charcoal grill, hand-pounded masala, and a kitchen that has been HMA-certified every year we have traded.",
     "address": {
-      "line1": "1245 Danforth Avenue",
+      "line1": "55 Peel Centre Drive",
       "line2": null,
-      "city": "Toronto",
+      "city": "Brampton",
       "province": "ON",
-      "postal_code": "M4J 1M4",
-      "latitude": 43.6817,
-      "longitude": -79.3403
+      "postal_code": "L6T 4G8",
+      "latitude": 43.7211,
+      "longitude": -79.7135
     },
     "timezone": "America/Toronto",
     "public_phone_e164": "+14165550142",
     "certification": {
-      "display_state": "EXPIRING_SOON",
+      "display_state": "CERTIFIED",
       "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
       "certificate_number": "HMA-ON-40182",
       "scope": "WHOLE_ESTABLISHMENT",
       "issued_on": "2026-03-09",
-      "expires_on": "2026-08-28",
+      "expires_on": "2027-03-09",
       "verified_at": "2026-03-11T18:42:11.412Z",
       "certificate_viewable": true,
       "disclaimer": "Certification verified by HalalGoes on 11 March 2026. HalalGoes does not itself certify food."

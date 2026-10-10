@@ -57,6 +57,7 @@ def _week_start(weeks_ago: int) -> dt.datetime:
 
 def build(reg, synth) -> None:
     _rider(reg, synth)
+    _customer(reg, synth)
 
 
 # --------------------------------------------------------------------------- #
@@ -797,4 +798,362 @@ def _rider_account(reg) -> None:
         operations=["listRiderDocuments"],
         meta={"next_cursor": None, "has_more": False, "total": 0},
         tags=["rider", "documents", "edge", "empty"],
+    )
+
+
+# =========================================================================== #
+# Customer (#720)
+# =========================================================================== #
+
+
+def _customer(reg, synth) -> None:
+    _customer_sign_in(reg)
+    _customer_home(reg)
+    _customer_restaurant(reg)
+    _customer_orders(reg)
+
+
+def _customer_sign_in(reg) -> None:
+    auth = ("customer", "auth")
+    suspended = reg.fixtures["session_next_route_suspended"].payload
+    for status, note in [
+        ("BANNED", "The account is banned: the same dead end as suspended, with no appeal "
+                   "route in the copy."),
+        ("DELETED", "The account was deleted: the app says so and offers to start a new one "
+                    "with the same number after the retention period."),
+    ]:
+        grant = copy.deepcopy(suspended)
+        grant["principal"]["status"] = status
+        grant["principal"]["account_id"] = uuid_for(f"account:customer:{status.lower()}")
+        grant["principal"]["session_id"] = uuid_for(f"session:customer:{status.lower()}")
+        reg.add(
+            f"session_next_route_suspended_{status.lower()}",
+            "platform",
+            "SessionGrant",
+            f"`next_route = SUSPENDED` with `principal.status: {status}`. {note} "
+            "Contract-only: `services/hg` issues no session to an account that is not "
+            "`ACTIVE`; it answers sign-in with `403 ACCOUNT_NOT_ACTIVE` "
+            "(`error_account_not_active`).",
+            grant,
+            operations=["verifyOtp", "login", "refreshSession"],
+            tags=["platform", "auth", "state-matrix", "error-path"],
+        )
+
+    _error(
+        reg, "error_unsupported_country", 422, "UNSUPPORTED_COUNTRY",
+        "Sign-in is available for Canadian phone numbers only.",
+        "A valid E.164 number from a country the platform does not serve. Contract-only: "
+        "`services/hg` accepts any E.164 number at `requestOtp` today.",
+        ["requestOtp"], extra_tags=auth,
+    )
+    _error(
+        reg, "error_account_banned", 403, "ACCOUNT_BANNED",
+        "This account has been closed. Contact support.",
+        "The signed-in account is banned. Contract-only: `services/hg` answers a banned "
+        "account with `ACCOUNT_NOT_ACTIVE` at sign-in (`error_account_not_active`) and "
+        "`SESSION_REVOKED` at refresh (`error_session_revoked`); handle all three.",
+        ["getCurrentPrincipal", "refreshSession"], extra_tags=auth,
+    )
+
+    config = copy.deepcopy(reg.fixtures["public_config"].payload)
+    config.update({"support_enabled": False, "support_phone_e164": None, "support_hours": None})
+    reg.add(
+        "public_config_support_unavailable",
+        "platform",
+        "PublicConfig",
+        "Support is switched off (`support_enabled: false`): no phone number and no hours. "
+        "Every \"Contact support\" control is hidden, never a dead number.",
+        config,
+        operations=["getPublicConfig"],
+        tags=["platform", "edge"],
+    )
+
+
+# --- Home ------------------------------------------------------------------- #
+
+PAGE_2_NAMES = ["Shahi Darbar", "Kabul Kebab House", "Yemeni Mandi Corner", "Little Lahore Sweets", "Istanbul Pide Oven"]
+
+
+def _list_meta(rows, *, next_cursor=None, total=None):
+    return {"next_cursor": next_cursor, "has_more": next_cursor is not None,
+            "total": len(rows) if total is None else total}
+
+
+def _customer_home(reg) -> None:
+    from content import ISSUING_BODIES
+    from world import availability, halal_badge, restaurant_card, slug
+
+    def add(name, note, cards, meta=None, extra_tags=()):
+        reg.add(name, "catalogue", "array<RestaurantCard>", note, cards,
+                operations=["listRestaurants"], meta=meta or _list_meta(cards),
+                tags=["customer", "home", *extra_tags])
+
+    bare = [restaurant_card(i, halal={"display_state": state})
+            for i, state in enumerate(["CERTIFIED", "EXPIRING_SOON", "CERTIFIED", "CERTIFIED"])]
+    add(
+        "restaurant_list_missing_halal_fields",
+        "Every card's `halal` carries `display_state` only: no `certifying_body_name`, no "
+        "`expires_on` (both optional). The badge shows only what is present; an "
+        "`EXPIRING_SOON` badge with no date shows no date, never an invented one. (A card "
+        "with no `halal` object at all is not contract-valid: `halal` is required.)",
+        bare, extra_tags=("halal", "edge"),
+    )
+
+    partial = [
+        restaurant_card(0),
+        restaurant_card(1, halal=halal_badge("CERTIFIED", certifying_body_name=None)),
+        restaurant_card(2, halal=halal_badge("EXPIRING_SOON", expires_on=None)),
+        restaurant_card(3, halal={"display_state": "CERTIFIED", "certifying_body_name": ISSUING_BODIES[2]}),
+    ]
+    add(
+        "restaurant_list_partial_halal",
+        "A mix: one complete badge, one with `certifying_body_name: null`, one "
+        "`EXPIRING_SOON` with `expires_on: null`, one with the body and no `expires_on` key. "
+        "Each card renders only the fields it has.",
+        partial, extra_tags=("halal", "edge"),
+    )
+
+    eta = []
+    for rank, (i, lo, hi) in enumerate([(4, 15, 25), (1, 20, 30), (7, 25, 35), (0, 25, 40), (9, 35, 50)]):
+        card = restaurant_card(i)
+        card["availability"] = availability("OPEN", eta_min_minutes=lo, eta_max_minutes=hi,
+                                            distance_m=900 + rank * 1300)
+        eta.append(card)
+    add(
+        "restaurant_list_eta_sorted",
+        "`sort=ETA_ASC`: five open restaurants in the server's order, fastest first by "
+        "`eta_min_minutes` (15, 20, 25, 25, 35). The client never re-sorts.",
+        eta,
+    )
+
+    page_2 = []
+    for k, name in enumerate(PAGE_2_NAMES):
+        key = slug(name)
+        page_2.append(restaurant_card(
+            k, id=uuid_for(f"restaurant:{key}"), name=name, slug=key,
+            hero_image_url=f"https://cdn.halalgoes.ca/img/restaurant/hero/{key}.webp",
+            logo_image_url=f"https://cdn.halalgoes.ca/img/restaurant/logo/{key}.webp",
+            availability=availability("OPEN", distance_m=12400 + k * 850),
+        ))
+    add(
+        "restaurant_list_page_2",
+        "The next page after `restaurant_list_populated` (its `next_cursor`): five farther "
+        "restaurants, `has_more: false`, `next_cursor: null`. No id repeats page one.",
+        page_2, meta=_list_meta(page_2, total=None),
+    )
+
+    mixed = [
+        restaurant_card(0),
+        restaurant_card(2, availability=availability("CLOSED_HOURS")),
+        restaurant_card(5, availability=availability("PAUSED")),
+        restaurant_card(7, availability=availability("CLOSED_HOURS", opens_at=ts(16 * HOUR))),
+        restaurant_card(9, availability=availability("PAUSED", distance_m=5120)),
+    ]
+    add(
+        "restaurant_list_closed_and_paused",
+        "One open card among two `CLOSED_HOURS` (with `opens_at`) and two `PAUSED`. Closed "
+        "and paused cards stay browsable; only adding to the cart is blocked.",
+        mixed, extra_tags=("state-matrix",),
+    )
+
+    no_address = [restaurant_card(i, availability=availability("NO_ADDRESS")) for i in range(4)]
+    add(
+        "restaurant_list_no_address",
+        "The customer has no address yet: every card is `NO_ADDRESS`, with no distance, ETA "
+        "or delivery fee. The list asks for an address instead of showing blanks.",
+        no_address, extra_tags=("state-matrix", "edge"),
+    )
+
+
+# --- Restaurant page -------------------------------------------------------- #
+
+def _customer_restaurant(reg) -> None:
+    from world import availability, certification_panel, restaurant_detail
+
+    for name, note, url in [
+        ("certificate_view_url", "The certificate image: a presigned link that expires in "
+         "300 s (the halal-certificate maximum). Fetch it at once; never cache or share it.",
+         "https://files.halalgoes.ca/certificates/karachi-kitchen/hma-on-40182.jpg"),
+        ("certificate_view_url_pdf", "The certificate as a PDF: the same 300 s link, a "
+         "`.pdf` object. The viewer opens it as a document, not an image.",
+         "https://files.halalgoes.ca/certificates/karachi-kitchen/hma-on-40182.pdf"),
+    ]:
+        reg.add(
+            name,
+            "halal",
+            "PresignedDownload",
+            note + " Contract-only in part: `CertificationPanel` does not say which it is, "
+            "so the app learns PDF or image from the link.",
+            {
+                "url": url + "?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Expires=300&X-Amz-Signature=9f2c4e",
+                "expires_at": ts(300),
+            },
+            operations=["createCertificateViewUrl"],
+            tags=["customer", "halal"],
+        )
+
+    def panel(name, note, payload):
+        reg.add(name, "halal", "CertificationPanel", note, payload,
+                operations=["getRestaurantCertification"], tags=["customer", "halal", "edge"])
+
+    panel(
+        "certification_panel_partial",
+        "Certified, but some transcribed fields are missing: no certificate number, no "
+        "scope, no issue date. The panel shows the rows it has and leaves the others out; "
+        "it never fills a gap.",
+        certification_panel("CERTIFIED", certificate_number=None, scope=None, issued_on=None),
+    )
+    panel(
+        "certification_panel_not_viewable",
+        "Certified, but the certificate file cannot be opened (`certificate_viewable: "
+        "false`): \"View certificate\" is not offered. `createCertificateViewUrl` would be "
+        "a 404.",
+        certification_panel("CERTIFIED", certificate_viewable=False),
+    )
+
+    for state, index, note in [
+        ("PAUSED", 3, "The kitchen paused itself: still browsable, cannot be ordered from."),
+        ("OUT_OF_RANGE", 6, "21.4 km from the selected address, with the server's "
+         "`out_of_range_reason` copy. Browsable; ordering is blocked."),
+        ("NO_ADDRESS", 1, "No address yet: no distance, ETA or fee. The page asks for an "
+         "address before ordering."),
+    ]:
+        reg.add(
+            f"restaurant_detail_{state.lower()}",
+            "catalogue",
+            "RestaurantDetail",
+            f"Restaurant detail with `availability.state = {state}`. {note}",
+            restaurant_detail(index, availability=availability(state)),
+            operations=["getRestaurant"],
+            tags=["customer", "state-matrix"],
+        )
+
+    menu = copy.deepcopy(reg.fixtures["menu_full"].payload)
+    items = menu["categories"][0]["items"]
+    items[1]["availability_state"] = "BLOCKED"
+    items[2]["availability_state"] = "HIDDEN"
+    menu["categories"][1]["items"][2]["availability_state"] = "BLOCKED"
+    reg.add(
+        "menu_with_hidden_and_blocked_items",
+        "catalogue",
+        "Menu",
+        "`menu_full` with two `BLOCKED` items (shown, never orderable: an admin blocked "
+        "them) and one `HIDDEN` item (never shown). `services/hg` leaves `HIDDEN` items out "
+        "of the customer menu, so the hidden one pins the client's own filter.",
+        menu,
+        operations=["getRestaurantMenu"],
+        tags=["customer", "edge"],
+    )
+
+
+# --- Orders ------------------------------------------------------------------- #
+
+def _summary(order: dict) -> dict:
+    return {
+        "id": order["id"],
+        "code": order["code"],
+        "state": order["state"],
+        "restaurant": order["restaurant"],
+        "item_count": sum(line["quantity"] for line in order["lines"]),
+        "first_item_names": [line["name"] for line in order["lines"][:2]],
+        "total_cents": order["money"]["total_cents"],
+        "currency": "CAD",
+        "placed_at": order["placed_at"],
+        "deadline_at": order["deadline_at"],
+    }
+
+
+def _customer_orders(reg) -> None:
+    from dom_catalogue import standard_quote_lines
+    from dom_orders import ORDER_STATES, customer_order
+    from money import order_money, price_quote
+
+    every = [_summary(customer_order(state)) for state in ORDER_STATES]
+    reg.add(
+        "order_list_mixed_states",
+        "orders",
+        "array<OrderSummary>",
+        "One order in each of the 14 `OrderState` values, so every state chip renders in one "
+        "list. Every non-terminal row has a `deadline_at`; terminal rows have none.",
+        every,
+        operations=["listOrders", "listOrdersAdmin"],
+        meta={"next_cursor": None, "has_more": False, "total": len(every)},
+        tags=["customer", "order-state-matrix", "dense"],
+    )
+
+    older = []
+    for k, state in enumerate(["COMPLETED", "COMPLETED", "CANCELLED", "COMPLETED"]):
+        order = customer_order(state, label=f"history-page-2-{k}")
+        order["code"] = f"HG-P2{k}K-{k + 3}M"
+        order["placed_at"] = ts(-(9 + 4 * k) * DAY)
+        older.append(_summary(order))
+    reg.add(
+        "order_list_past_page_2",
+        "orders",
+        "array<OrderSummary>",
+        "The next page of history after `order_list_past` (its `next_cursor`): four older "
+        "orders, `has_more: false`, `next_cursor: null`.",
+        older,
+        operations=["listOrders", "listOrdersAdmin"],
+        meta={"next_cursor": None, "has_more": False, "total": None},
+        tags=["customer"],
+    )
+
+    standard = reg.fixtures["receipt_standard"].payload
+    lines = standard_quote_lines()
+    priced = price_quote(lines, tip_cents=0, fulfilment="PICKUP", service_fee_cents=0)
+    money = order_money(priced)
+    money.update({"tax_lines": [], "tax_total_cents": 0, "total_cents": priced["subtotal_cents"]})
+    receipt = copy.deepcopy(standard)
+    receipt.update(
+        {
+            "order_id": uuid_for("order:receipt-no-tax"),
+            "order_code": "HG-NT4X-2P",
+            "receipt_number": "HG-2026-000148377",
+            "restaurant_tax_registration_number": None,
+            "delivery_address": None,
+            "money": money,
+            "payment": {**standard["payment"], "amount_charged_cents": money["total_cents"]},
+        }
+    )
+    reg.add(
+        "receipt_no_tax_no_service_fee",
+        "orders",
+        "Receipt",
+        "A pickup from a restaurant that is not registered for HST (a small supplier), with "
+        "no service fee and no tip: `tax_lines` is empty and `tax_total_cents` 0, so there "
+        "is no tax row and no registration number. The lines still sum to the total.",
+        receipt,
+        operations=["getOrderReceipt"],
+        tags=["customer", "money", "edge"],
+    )
+
+    for name, note in [
+        ("no_charge", "The order was rejected or cancelled before the restaurant accepted: the "
+         "authorisation was voided, nothing was charged, and no receipt will ever exist. The "
+         "app says \"You were not charged\" instead of offering a receipt."),
+        ("never_completed", "The order was charged but never completed (it failed and was "
+         "refunded in full): no receipt is written, because a receipt is written only at "
+         "`COMPLETED`. The app points to the refund instead."),
+    ]:
+        _error(
+            reg, f"error_receipt_not_ready_{name}", 409, "RECEIPT_NOT_READY",
+            "This order does not have a receipt yet.",
+            note + " Same body as `error_receipt_not_ready`; the app tells the cases apart by "
+            "the order's state.",
+            ["getOrderReceipt"], extra_tags=("customer",),
+        )
+
+    refunds = [copy.deepcopy(reg.fixtures[f"refund_{state}"].payload)
+               for state in ("requested", "pending_approval", "succeeded", "settled", "failed", "declined")]
+    reg.add(
+        "refund_list_every_state",
+        "refunds",
+        "array<Refund>",
+        "`listRefunds` with refunds in six states: requested, waiting for approval, sent "
+        "(\"refund in progress\"), settled (\"refunded\"), failed and declined.",
+        refunds,
+        operations=["listRefunds"],
+        meta={"next_cursor": None, "has_more": False, "total": len(refunds)},
+        tags=["customer", "money", "refund-state-matrix"],
     )

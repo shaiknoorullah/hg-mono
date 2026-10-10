@@ -2,22 +2,22 @@
   "generated_by": "contracts/fixtures/_build/build.py",
   "do_not_edit": "Every file under contracts/fixtures/ is generated. Run `pnpm fixtures:build`.",
   "frozen_clock": "2026-08-10T18:42:11.412Z",
-  "count": 544,
+  "count": 569,
   "counts_by_domain": {
     "admin": 35,
     "cart": 14,
-    "catalogue": 41,
+    "catalogue": 51,
     "dispatch": 31,
     "documents": 27,
-    "errors": 99,
-    "halal": 25,
+    "errors": 103,
+    "halal": 29,
     "handoff": 13,
     "onboarding": 47,
-    "orders": 44,
+    "orders": 47,
     "payments": 12,
-    "platform": 40,
+    "platform": 43,
     "realtime": 20,
-    "refunds": 39,
+    "refunds": 40,
     "rider": 57
   },
   "fixtures": [
@@ -1078,6 +1078,21 @@
       "file": "catalogue/menu_single_item.json"
     },
     {
+      "scenario": "menu_with_hidden_and_blocked_items",
+      "domain": "catalogue",
+      "schema": "Menu",
+      "describes": "`menu_full` with two `BLOCKED` items (shown, never orderable: an admin blocked them) and one `HIDDEN` item (never shown). `services/hg` leaves `HIDDEN` items out of the customer menu, so the hidden one pins the client's own filter.",
+      "operations": [
+        "getRestaurantMenu"
+      ],
+      "status": 200,
+      "tags": [
+        "customer",
+        "edge"
+      ],
+      "file": "catalogue/menu_with_hidden_and_blocked_items.json"
+    },
+    {
       "scenario": "owned_menu_with_pending_version",
       "domain": "catalogue",
       "schema": "OwnedMenu",
@@ -1209,6 +1224,21 @@
       "file": "catalogue/restaurant_detail_expiring_soon.json"
     },
     {
+      "scenario": "restaurant_detail_no_address",
+      "domain": "catalogue",
+      "schema": "RestaurantDetail",
+      "describes": "Restaurant detail with `availability.state = NO_ADDRESS`. No address yet: no distance, ETA or fee. The page asks for an address before ordering.",
+      "operations": [
+        "getRestaurant"
+      ],
+      "status": 200,
+      "tags": [
+        "customer",
+        "state-matrix"
+      ],
+      "file": "catalogue/restaurant_detail_no_address.json"
+    },
+    {
       "scenario": "restaurant_detail_no_menu",
       "domain": "catalogue",
       "schema": "RestaurantDetail",
@@ -1222,6 +1252,36 @@
         "empty"
       ],
       "file": "catalogue/restaurant_detail_no_menu.json"
+    },
+    {
+      "scenario": "restaurant_detail_out_of_range",
+      "domain": "catalogue",
+      "schema": "RestaurantDetail",
+      "describes": "Restaurant detail with `availability.state = OUT_OF_RANGE`. 21.4 km from the selected address, with the server's `out_of_range_reason` copy. Browsable; ordering is blocked.",
+      "operations": [
+        "getRestaurant"
+      ],
+      "status": 200,
+      "tags": [
+        "customer",
+        "state-matrix"
+      ],
+      "file": "catalogue/restaurant_detail_out_of_range.json"
+    },
+    {
+      "scenario": "restaurant_detail_paused",
+      "domain": "catalogue",
+      "schema": "RestaurantDetail",
+      "describes": "Restaurant detail with `availability.state = PAUSED`. The kitchen paused itself: still browsable, cannot be ordered from.",
+      "operations": [
+        "getRestaurant"
+      ],
+      "status": 200,
+      "tags": [
+        "customer",
+        "state-matrix"
+      ],
+      "file": "catalogue/restaurant_detail_paused.json"
     },
     {
       "scenario": "restaurant_detail_unverified",
@@ -1252,6 +1312,22 @@
       "file": "catalogue/restaurant_hours_standard.json"
     },
     {
+      "scenario": "restaurant_list_closed_and_paused",
+      "domain": "catalogue",
+      "schema": "array<RestaurantCard>",
+      "describes": "One open card among two `CLOSED_HOURS` (with `opens_at`) and two `PAUSED`. Closed and paused cards stay browsable; only adding to the cart is blocked.",
+      "operations": [
+        "listRestaurants"
+      ],
+      "status": 200,
+      "tags": [
+        "customer",
+        "home",
+        "state-matrix"
+      ],
+      "file": "catalogue/restaurant_list_closed_and_paused.json"
+    },
+    {
       "scenario": "restaurant_list_empty",
       "domain": "catalogue",
       "schema": "array<RestaurantCard>",
@@ -1265,6 +1341,21 @@
         "empty"
       ],
       "file": "catalogue/restaurant_list_empty.json"
+    },
+    {
+      "scenario": "restaurant_list_eta_sorted",
+      "domain": "catalogue",
+      "schema": "array<RestaurantCard>",
+      "describes": "`sort=ETA_ASC`: five open restaurants in the server's order, fastest first by `eta_min_minutes` (15, 20, 25, 25, 35). The client never re-sorts.",
+      "operations": [
+        "listRestaurants"
+      ],
+      "status": 200,
+      "tags": [
+        "customer",
+        "home"
+      ],
+      "file": "catalogue/restaurant_list_eta_sorted.json"
     },
     {
       "scenario": "restaurant_list_long_names",
@@ -1282,6 +1373,23 @@
       "file": "catalogue/restaurant_list_long_names.json"
     },
     {
+      "scenario": "restaurant_list_missing_halal_fields",
+      "domain": "catalogue",
+      "schema": "array<RestaurantCard>",
+      "describes": "Every card's `halal` carries `display_state` only: no `certifying_body_name`, no `expires_on` (both optional). The badge shows only what is present; an `EXPIRING_SOON` badge with no date shows no date, never an invented one. (A card with no `halal` object at all is not contract-valid: `halal` is required.)",
+      "operations": [
+        "listRestaurants"
+      ],
+      "status": 200,
+      "tags": [
+        "customer",
+        "home",
+        "halal",
+        "edge"
+      ],
+      "file": "catalogue/restaurant_list_missing_halal_fields.json"
+    },
+    {
       "scenario": "restaurant_list_missing_images",
       "domain": "catalogue",
       "schema": "array<RestaurantCard>",
@@ -1295,6 +1403,55 @@
         "missing-media"
       ],
       "file": "catalogue/restaurant_list_missing_images.json"
+    },
+    {
+      "scenario": "restaurant_list_no_address",
+      "domain": "catalogue",
+      "schema": "array<RestaurantCard>",
+      "describes": "The customer has no address yet: every card is `NO_ADDRESS`, with no distance, ETA or delivery fee. The list asks for an address instead of showing blanks.",
+      "operations": [
+        "listRestaurants"
+      ],
+      "status": 200,
+      "tags": [
+        "customer",
+        "home",
+        "state-matrix",
+        "edge"
+      ],
+      "file": "catalogue/restaurant_list_no_address.json"
+    },
+    {
+      "scenario": "restaurant_list_page_2",
+      "domain": "catalogue",
+      "schema": "array<RestaurantCard>",
+      "describes": "The next page after `restaurant_list_populated` (its `next_cursor`): five farther restaurants, `has_more: false`, `next_cursor: null`. No id repeats page one.",
+      "operations": [
+        "listRestaurants"
+      ],
+      "status": 200,
+      "tags": [
+        "customer",
+        "home"
+      ],
+      "file": "catalogue/restaurant_list_page_2.json"
+    },
+    {
+      "scenario": "restaurant_list_partial_halal",
+      "domain": "catalogue",
+      "schema": "array<RestaurantCard>",
+      "describes": "A mix: one complete badge, one with `certifying_body_name: null`, one `EXPIRING_SOON` with `expires_on: null`, one with the body and no `expires_on` key. Each card renders only the fields it has.",
+      "operations": [
+        "listRestaurants"
+      ],
+      "status": 200,
+      "tags": [
+        "customer",
+        "home",
+        "halal",
+        "edge"
+      ],
+      "file": "catalogue/restaurant_list_partial_halal.json"
     },
     {
       "scenario": "restaurant_list_populated",
@@ -2267,6 +2424,24 @@
         "documents"
       ],
       "file": "documents/stored_object_rejected.json"
+    },
+    {
+      "scenario": "error_account_banned",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`403` · `ACCOUNT_BANNED`. The signed-in account is banned. Contract-only: `services/hg` answers a banned account with `ACCOUNT_NOT_ACTIVE` at sign-in (`error_account_not_active`) and `SESSION_REVOKED` at refresh (`error_session_revoked`); handle all three.",
+      "operations": [
+        "getCurrentPrincipal",
+        "refreshSession"
+      ],
+      "status": 403,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "customer",
+        "auth"
+      ],
+      "file": "errors/error_account_banned.json"
     },
     {
       "scenario": "error_account_not_active",
@@ -3433,6 +3608,38 @@
       "file": "errors/error_receipt_not_ready.json"
     },
     {
+      "scenario": "error_receipt_not_ready_never_completed",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `RECEIPT_NOT_READY`. The order was charged but never completed (it failed and was refunded in full): no receipt is written, because a receipt is written only at `COMPLETED`. The app points to the refund instead. Same body as `error_receipt_not_ready`; the app tells the cases apart by the order's state.",
+      "operations": [
+        "getOrderReceipt"
+      ],
+      "status": 409,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "customer"
+      ],
+      "file": "errors/error_receipt_not_ready_never_completed.json"
+    },
+    {
+      "scenario": "error_receipt_not_ready_no_charge",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`409` · `RECEIPT_NOT_READY`. The order was rejected or cancelled before the restaurant accepted: the authorisation was voided, nothing was charged, and no receipt will ever exist. The app says \"You were not charged\" instead of offering a receipt. Same body as `error_receipt_not_ready`; the app tells the cases apart by the order's state.",
+      "operations": [
+        "getOrderReceipt"
+      ],
+      "status": 409,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "customer"
+      ],
+      "file": "errors/error_receipt_not_ready_no_charge.json"
+    },
+    {
       "scenario": "error_refresh_reuse_detected",
       "domain": "errors",
       "schema": "ErrorEnvelope",
@@ -3726,6 +3933,23 @@
       "file": "errors/error_unknown_field.json"
     },
     {
+      "scenario": "error_unsupported_country",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`422` · `UNSUPPORTED_COUNTRY`. A valid E.164 number from a country the platform does not serve. Contract-only: `services/hg` accepts any E.164 number at `requestOtp` today.",
+      "operations": [
+        "requestOtp"
+      ],
+      "status": 422,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "customer",
+        "auth"
+      ],
+      "file": "errors/error_unsupported_country.json"
+    },
+    {
       "scenario": "error_validation_failed",
       "domain": "errors",
       "schema": "ErrorEnvelope",
@@ -3764,6 +3988,36 @@
         "error-envelope"
       ],
       "file": "errors/error_verification_token_used.json"
+    },
+    {
+      "scenario": "certificate_view_url",
+      "domain": "halal",
+      "schema": "PresignedDownload",
+      "describes": "The certificate image: a presigned link that expires in 300 s (the halal-certificate maximum). Fetch it at once; never cache or share it. Contract-only in part: `CertificationPanel` does not say which it is, so the app learns PDF or image from the link.",
+      "operations": [
+        "createCertificateViewUrl"
+      ],
+      "status": 200,
+      "tags": [
+        "customer",
+        "halal"
+      ],
+      "file": "halal/certificate_view_url.json"
+    },
+    {
+      "scenario": "certificate_view_url_pdf",
+      "domain": "halal",
+      "schema": "PresignedDownload",
+      "describes": "The certificate as a PDF: the same 300 s link, a `.pdf` object. The viewer opens it as a document, not an image. Contract-only in part: `CertificationPanel` does not say which it is, so the app learns PDF or image from the link.",
+      "operations": [
+        "createCertificateViewUrl"
+      ],
+      "status": 200,
+      "tags": [
+        "customer",
+        "halal"
+      ],
+      "file": "halal/certificate_view_url_pdf.json"
     },
     {
       "scenario": "certification_panel_certified",
@@ -3811,6 +4065,38 @@
       "file": "halal/certification_panel_expiring_soon.json"
     },
     {
+      "scenario": "certification_panel_not_viewable",
+      "domain": "halal",
+      "schema": "CertificationPanel",
+      "describes": "Certified, but the certificate file cannot be opened (`certificate_viewable: false`): \"View certificate\" is not offered. `createCertificateViewUrl` would be a 404.",
+      "operations": [
+        "getRestaurantCertification"
+      ],
+      "status": 200,
+      "tags": [
+        "customer",
+        "halal",
+        "edge"
+      ],
+      "file": "halal/certification_panel_not_viewable.json"
+    },
+    {
+      "scenario": "certification_panel_partial",
+      "domain": "halal",
+      "schema": "CertificationPanel",
+      "describes": "Certified, but some transcribed fields are missing: no certificate number, no scope, no issue date. The panel shows the rows it has and leaves the others out; it never fills a gap.",
+      "operations": [
+        "getRestaurantCertification"
+      ],
+      "status": 200,
+      "tags": [
+        "customer",
+        "halal",
+        "edge"
+      ],
+      "file": "halal/certification_panel_partial.json"
+    },
+    {
       "scenario": "certification_panel_unverified",
       "domain": "halal",
       "schema": "CertificationPanel",
@@ -3842,7 +4128,7 @@
       "scenario": "halal_badge_expired",
       "domain": "halal",
       "schema": "HalalBadge",
-      "describes": "Red. Never rendered on a customer surface — the restaurant 404s.",
+      "describes": "Cool slate, never red. Never rendered on a customer surface — the restaurant 404s.",
       "operations": [],
       "status": 200,
       "tags": [
@@ -5275,6 +5561,23 @@
       "file": "orders/order_list_empty.json"
     },
     {
+      "scenario": "order_list_mixed_states",
+      "domain": "orders",
+      "schema": "array<OrderSummary>",
+      "describes": "One order in each of the 14 `OrderState` values, so every state chip renders in one list. Every non-terminal row has a `deadline_at`; terminal rows have none.",
+      "operations": [
+        "listOrders",
+        "listOrdersAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "customer",
+        "order-state-matrix",
+        "dense"
+      ],
+      "file": "orders/order_list_mixed_states.json"
+    },
+    {
       "scenario": "order_list_past",
       "domain": "orders",
       "schema": "array<OrderSummary>",
@@ -5286,6 +5589,21 @@
       "status": 200,
       "tags": [],
       "file": "orders/order_list_past.json"
+    },
+    {
+      "scenario": "order_list_past_page_2",
+      "domain": "orders",
+      "schema": "array<OrderSummary>",
+      "describes": "The next page of history after `order_list_past` (its `next_cursor`): four older orders, `has_more: false`, `next_cursor: null`.",
+      "operations": [
+        "listOrders",
+        "listOrdersAdmin"
+      ],
+      "status": 200,
+      "tags": [
+        "customer"
+      ],
+      "file": "orders/order_list_past_page_2.json"
     },
     {
       "scenario": "order_no_active",
@@ -5486,6 +5804,22 @@
         "boundary"
       ],
       "file": "orders/order_zero_tip.json"
+    },
+    {
+      "scenario": "receipt_no_tax_no_service_fee",
+      "domain": "orders",
+      "schema": "Receipt",
+      "describes": "A pickup from a restaurant that is not registered for HST (a small supplier), with no service fee and no tip: `tax_lines` is empty and `tax_total_cents` 0, so there is no tax row and no registration number. The lines still sum to the total.",
+      "operations": [
+        "getOrderReceipt"
+      ],
+      "status": 200,
+      "tags": [
+        "customer",
+        "money",
+        "edge"
+      ],
+      "file": "orders/receipt_no_tax_no_service_fee.json"
     },
     {
       "scenario": "receipt_pickup_zero_tip",
@@ -6328,6 +6662,21 @@
       "file": "platform/public_config_ordering_paused.json"
     },
     {
+      "scenario": "public_config_support_unavailable",
+      "domain": "platform",
+      "schema": "PublicConfig",
+      "describes": "Support is switched off (`support_enabled: false`): no phone number and no hours. Every \"Contact support\" control is hidden, never a dead number.",
+      "operations": [
+        "getPublicConfig"
+      ],
+      "status": 200,
+      "tags": [
+        "platform",
+        "edge"
+      ],
+      "file": "platform/public_config_support_unavailable.json"
+    },
+    {
       "scenario": "readiness_ok",
       "domain": "platform",
       "schema": "ReadinessStatus",
@@ -6548,6 +6897,44 @@
         "state-matrix"
       ],
       "file": "platform/session_next_route_suspended.json"
+    },
+    {
+      "scenario": "session_next_route_suspended_banned",
+      "domain": "platform",
+      "schema": "SessionGrant",
+      "describes": "`next_route = SUSPENDED` with `principal.status: BANNED`. The account is banned: the same dead end as suspended, with no appeal route in the copy. Contract-only: `services/hg` issues no session to an account that is not `ACTIVE`; it answers sign-in with `403 ACCOUNT_NOT_ACTIVE` (`error_account_not_active`).",
+      "operations": [
+        "verifyOtp",
+        "login",
+        "refreshSession"
+      ],
+      "status": 200,
+      "tags": [
+        "platform",
+        "auth",
+        "state-matrix",
+        "error-path"
+      ],
+      "file": "platform/session_next_route_suspended_banned.json"
+    },
+    {
+      "scenario": "session_next_route_suspended_deleted",
+      "domain": "platform",
+      "schema": "SessionGrant",
+      "describes": "`next_route = SUSPENDED` with `principal.status: DELETED`. The account was deleted: the app says so and offers to start a new one with the same number after the retention period. Contract-only: `services/hg` issues no session to an account that is not `ACTIVE`; it answers sign-in with `403 ACCOUNT_NOT_ACTIVE` (`error_account_not_active`).",
+      "operations": [
+        "verifyOtp",
+        "login",
+        "refreshSession"
+      ],
+      "status": 200,
+      "tags": [
+        "platform",
+        "auth",
+        "state-matrix",
+        "error-path"
+      ],
+      "file": "platform/session_next_route_suspended_deleted.json"
     },
     {
       "scenario": "totp_enrolment",
@@ -7229,7 +7616,6 @@
       "describes": "Approved, not yet sent to the PSP.",
       "operations": [
         "getRefund",
-        "listRefunds",
         "createRefund",
         "issueRefund"
       ],
@@ -7246,7 +7632,6 @@
       "describes": "Authorised against the captured payment; the ledger entry exists.",
       "operations": [
         "getRefund",
-        "listRefunds",
         "createRefund",
         "issueRefund"
       ],
@@ -7263,7 +7648,6 @@
       "describes": "Withdrawn before authorisation — no money moved.",
       "operations": [
         "getRefund",
-        "listRefunds",
         "createRefund",
         "issueRefund"
       ],
@@ -7280,7 +7664,6 @@
       "describes": "A human declined the request, with a reason.",
       "operations": [
         "getRefund",
-        "listRefunds",
         "createRefund",
         "issueRefund"
       ],
@@ -7297,7 +7680,6 @@
       "describes": "The PSP rejected the refund. Carries `failure_message`; support must intervene, and the customer must never be told they were refunded.",
       "operations": [
         "getRefund",
-        "listRefunds",
         "createRefund",
         "issueRefund"
       ],
@@ -7352,13 +7734,28 @@
       "file": "refunds/refund_list_empty.json"
     },
     {
+      "scenario": "refund_list_every_state",
+      "domain": "refunds",
+      "schema": "array<Refund>",
+      "describes": "`listRefunds` with refunds in six states: requested, waiting for approval, sent (\"refund in progress\"), settled (\"refunded\"), failed and declined.",
+      "operations": [
+        "listRefunds"
+      ],
+      "status": 200,
+      "tags": [
+        "customer",
+        "money",
+        "refund-state-matrix"
+      ],
+      "file": "refunds/refund_list_every_state.json"
+    },
+    {
       "scenario": "refund_pending_approval",
       "domain": "refunds",
       "schema": "Refund",
       "describes": "Above the agent's cap, waiting on a second approver (`SELF_APPROVAL_FORBIDDEN` blocks the requester from approving their own).",
       "operations": [
         "getRefund",
-        "listRefunds",
         "createRefund",
         "issueRefund"
       ],
@@ -7375,7 +7772,6 @@
       "describes": "Customer asked; nothing has been decided or authorised.",
       "operations": [
         "getRefund",
-        "listRefunds",
         "createRefund",
         "issueRefund"
       ],
@@ -7392,7 +7788,6 @@
       "describes": "Funds are back on the card. The only state that may say 'refunded'.",
       "operations": [
         "getRefund",
-        "listRefunds",
         "createRefund",
         "issueRefund"
       ],
@@ -7409,7 +7804,6 @@
       "describes": "Sent to Stripe, awaiting acknowledgement.",
       "operations": [
         "getRefund",
-        "listRefunds",
         "createRefund",
         "issueRefund"
       ],
@@ -7426,7 +7820,6 @@
       "describes": "Stripe accepted it. **Customer copy still reads 'refund in progress'** until SETTLED — money has not reached the card yet.",
       "operations": [
         "getRefund",
-        "listRefunds",
         "createRefund",
         "issueRefund"
       ],
@@ -8416,6 +8809,8 @@
       "error_pod_required"
     ],
     "createCertificateViewUrl": [
+      "certificate_view_url",
+      "certificate_view_url_pdf",
       "presigned_download"
     ],
     "createConnectAccount": [
@@ -8652,6 +9047,7 @@
       "offer_zero_tip_low_value"
     ],
     "getCurrentPrincipal": [
+      "error_account_banned",
       "error_account_suspended",
       "principal_admin",
       "principal_admin_password_only",
@@ -8736,6 +9132,9 @@
     ],
     "getOrderReceipt": [
       "error_receipt_not_ready",
+      "error_receipt_not_ready_never_completed",
+      "error_receipt_not_ready_no_charge",
+      "receipt_no_tax_no_service_fee",
       "receipt_pickup_zero_tip",
       "receipt_standard",
       "receipt_with_refund"
@@ -8761,7 +9160,8 @@
     ],
     "getPublicConfig": [
       "public_config",
-      "public_config_ordering_paused"
+      "public_config_ordering_paused",
+      "public_config_support_unavailable"
     ],
     "getQuote": [
       "quote_expired",
@@ -8792,7 +9192,10 @@
       "restaurant_detail_closed",
       "restaurant_detail_expired",
       "restaurant_detail_expiring_soon",
+      "restaurant_detail_no_address",
       "restaurant_detail_no_menu",
+      "restaurant_detail_out_of_range",
+      "restaurant_detail_paused",
       "restaurant_detail_unverified"
     ],
     "getRestaurantApplication": [
@@ -8812,6 +9215,8 @@
       "certification_panel_certified",
       "certification_panel_expired",
       "certification_panel_expiring_soon",
+      "certification_panel_not_viewable",
+      "certification_panel_partial",
       "certification_panel_unverified"
     ],
     "getRestaurantHours": [
@@ -8820,7 +9225,8 @@
     "getRestaurantMenu": [
       "menu_empty",
       "menu_full",
-      "menu_single_item"
+      "menu_single_item",
+      "menu_with_hidden_and_blocked_items"
     ],
     "getRestaurantOnboardingStatus": [
       "restaurant_onboarding_active",
@@ -8965,11 +9371,15 @@
     "listOrders": [
       "order_list_active",
       "order_list_empty",
-      "order_list_past"
+      "order_list_mixed_states",
+      "order_list_past",
+      "order_list_past_page_2"
     ],
     "listOrdersAdmin": [
       "order_list_active",
-      "order_list_past"
+      "order_list_mixed_states",
+      "order_list_past",
+      "order_list_past_page_2"
     ],
     "listPaymentMethods": [
       "payment_methods_at_limit",
@@ -8983,17 +9393,8 @@
       "payout_run_succeeded"
     ],
     "listRefunds": [
-      "refund_approved",
-      "refund_authorised",
-      "refund_cancelled",
-      "refund_declined",
-      "refund_failed",
       "refund_list_empty",
-      "refund_pending_approval",
-      "refund_requested",
-      "refund_settled",
-      "refund_submitted",
-      "refund_succeeded"
+      "refund_list_every_state"
     ],
     "listRefundsAdmin": [
       "admin_refund_queue",
@@ -9025,9 +9426,15 @@
       "restaurant_staff_list"
     ],
     "listRestaurants": [
+      "restaurant_list_closed_and_paused",
       "restaurant_list_empty",
+      "restaurant_list_eta_sorted",
       "restaurant_list_long_names",
+      "restaurant_list_missing_halal_fields",
       "restaurant_list_missing_images",
+      "restaurant_list_no_address",
+      "restaurant_list_page_2",
+      "restaurant_list_partial_halal",
       "restaurant_list_populated",
       "restaurant_list_single"
     ],
@@ -9070,7 +9477,9 @@
       "session_next_route_onboarding_rejected",
       "session_next_route_order_tracking",
       "session_next_route_profile_capture",
-      "session_next_route_suspended"
+      "session_next_route_suspended",
+      "session_next_route_suspended_banned",
+      "session_next_route_suspended_deleted"
     ],
     "markOrderReady": [
       "restaurant_order_picked_up",
@@ -9095,6 +9504,7 @@
       "halal_certificate_status_superseded"
     ],
     "refreshSession": [
+      "error_account_banned",
       "error_account_suspended",
       "error_refresh_reuse_detected",
       "error_session_expired",
@@ -9108,7 +9518,9 @@
       "session_next_route_onboarding_rejected",
       "session_next_route_order_tracking",
       "session_next_route_profile_capture",
-      "session_next_route_suspended"
+      "session_next_route_suspended",
+      "session_next_route_suspended_banned",
+      "session_next_route_suspended_deleted"
     ],
     "registerRestaurant": [
       "error_register_restaurant_rate_limited",
@@ -9131,6 +9543,7 @@
       "error_invalid_phone",
       "error_otp_rate_limited_with_retry",
       "error_rate_limiter_unavailable",
+      "error_unsupported_country",
       "otp_challenge",
       "otp_challenge_resend_open"
     ],
@@ -9357,7 +9770,9 @@
       "session_next_route_onboarding_rejected",
       "session_next_route_order_tracking",
       "session_next_route_profile_capture",
-      "session_next_route_suspended"
+      "session_next_route_suspended",
+      "session_next_route_suspended_banned",
+      "session_next_route_suspended_deleted"
     ],
     "verifyTotpEnrolment": [
       "error_totp_code_incorrect"

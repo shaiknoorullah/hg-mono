@@ -5,7 +5,6 @@
   "describes": "The PSP rejected the refund. Carries `failure_message`; support must intervene, and the customer must never be told they were refunded.",
   "operations": [
     "getRefund",
-    "listRefunds",
     "createRefund",
     "issueRefund"
   ],

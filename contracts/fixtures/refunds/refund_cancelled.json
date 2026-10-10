@@ -5,7 +5,6 @@
   "describes": "Withdrawn before authorisation — no money moved.",
   "operations": [
     "getRefund",
-    "listRefunds",
     "createRefund",
     "issueRefund"
   ],

@@ -1158,7 +1158,8 @@ def _refunds(reg, synth) -> None:
                     else None
                 ),
             },
-            operations=["getRefund", "listRefunds", "createRefund", "issueRefund"],
+            # One refund, not a list: `listRefunds` serves `refund_list_*` (issue #720).
+            operations=["getRefund", "createRefund", "issueRefund"],
             tags=["refund-state-matrix"],
         )
 

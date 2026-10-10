@@ -5,7 +5,6 @@
   "describes": "Stripe accepted it. **Customer copy still reads 'refund in progress'** until SETTLED — money has not reached the card yet.",
   "operations": [
     "getRefund",
-    "listRefunds",
     "createRefund",
     "issueRefund"
   ],

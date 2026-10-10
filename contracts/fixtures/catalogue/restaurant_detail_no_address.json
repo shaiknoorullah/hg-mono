@@ -1,65 +1,65 @@
 {
-  "scenario": "restaurant_detail_expiring_soon",
+  "scenario": "restaurant_detail_no_address",
   "domain": "catalogue",
   "schema": "RestaurantDetail",
-  "describes": "Restaurant detail with `halal.display_state = EXPIRING_SOON`. Certificate expires in 18 days — badge shows the countdown, the restaurant keeps trading.",
+  "describes": "Restaurant detail with `availability.state = NO_ADDRESS`. No address yet: no distance, ETA or fee. The page asks for an address before ordering.",
   "operations": [
     "getRestaurant"
   ],
   "status": 200,
   "tags": [
-    "state-matrix",
-    "halal"
+    "customer",
+    "state-matrix"
   ],
   "payload": {
-    "id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
-    "name": "Karachi Kitchen",
-    "slug": "karachi-kitchen",
-    "hero_image_url": "https://cdn.halalgoes.ca/img/restaurant/hero/karachi-kitchen.webp",
-    "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/karachi-kitchen.webp",
+    "id": "92291a8d-1006-4090-a8ba-4cfd1967ffbd",
+    "name": "Al-Noor Shawarma House",
+    "slug": "al-noor-shawarma-house",
+    "hero_image_url": "https://cdn.halalgoes.ca/img/restaurant/hero/al-noor-shawarma-house.webp",
+    "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/al-noor-shawarma-house.webp",
     "cuisines": [
-      "Pakistani",
-      "Biryani",
+      "Middle Eastern",
+      "Shawarma",
       "Halal"
     ],
-    "rating_avg": 4.8,
-    "rating_count": 412,
-    "price_band": "$$",
+    "rating_avg": 4.6,
+    "rating_count": 1183,
+    "price_band": "$",
     "halal": {
-      "display_state": "EXPIRING_SOON",
+      "display_state": "CERTIFIED",
       "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
-      "expires_on": "2026-08-28"
+      "expires_on": "2027-03-09"
     },
     "availability": {
-      "state": "OPEN",
-      "opens_at": "2026-08-10T12:24:11.412Z",
-      "closes_at": "2026-08-10T22:00:11.412Z",
-      "eta_min_minutes": 25,
-      "eta_max_minutes": 40,
-      "indicative_delivery_fee_cents": 449,
+      "state": "NO_ADDRESS",
+      "opens_at": null,
+      "closes_at": null,
+      "eta_min_minutes": null,
+      "eta_max_minutes": null,
+      "indicative_delivery_fee_cents": null,
       "minimum_order_cents": 1500,
-      "distance_m": 1200,
+      "distance_m": null,
       "out_of_range_reason": null
     },
     "description": "A Danforth institution since 2011. Charcoal grill, hand-pounded masala, and a kitchen that has been HMA-certified every year we have traded.",
     "address": {
-      "line1": "1245 Danforth Avenue",
+      "line1": "3255 Hurontario Street",
       "line2": null,
-      "city": "Toronto",
+      "city": "Mississauga",
       "province": "ON",
-      "postal_code": "M4J 1M4",
-      "latitude": 43.6817,
-      "longitude": -79.3403
+      "postal_code": "L5A 4E5",
+      "latitude": 43.5789,
+      "longitude": -79.6212
     },
     "timezone": "America/Toronto",
     "public_phone_e164": "+14165550142",
     "certification": {
-      "display_state": "EXPIRING_SOON",
+      "display_state": "CERTIFIED",
       "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
       "certificate_number": "HMA-ON-40182",
       "scope": "WHOLE_ESTABLISHMENT",
       "issued_on": "2026-03-09",
-      "expires_on": "2026-08-28",
+      "expires_on": "2027-03-09",
       "verified_at": "2026-03-11T18:42:11.412Z",
       "certificate_viewable": true,
       "disclaimer": "Certification verified by HalalGoes on 11 March 2026. HalalGoes does not itself certify food."

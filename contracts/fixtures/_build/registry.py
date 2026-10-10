@@ -105,6 +105,8 @@ DEFAULT_SCENARIO: dict[str, str] = {
     "changePassword": "session_grant_password_changed",
     "getConnectStatus": "connect_status_complete",
     "confirmUpload": "stored_object_ready",
+    # Batch 2 added certificate links that would otherwise win on name order.
+    "createCertificateViewUrl": "presigned_download",
     # Staff principals and the restaurant profile matrix share these operations; the
     # plain customer and LIVE + CERTIFIED shapes stay the defaults.
     "getCurrentPrincipal": "principal_customer",
