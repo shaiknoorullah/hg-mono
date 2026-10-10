@@ -14,20 +14,8 @@ import { useConsole } from '../data/console';
 import { formatTime } from '../format/time';
 import { OUTCOME_TILE, WINDOW_SECONDS, acceptName, liveTileLabel, offerSummary } from './copy';
 import { isLive, useNewOrders, type NewOrdersApi, type Offer } from './NewOrdersProvider';
+import { useIsDesktop } from '../shell/viewport';
 
-/** Desktop is ≥ 1280 CSS px (the shell's breakpoint); below that the tablet layout. */
-export function useIsDesktop(): boolean {
-  const query = '(min-width: 1280px)';
-  const [match, setMatch] = useState(() => (typeof window.matchMedia === 'function' ? window.matchMedia(query).matches : true));
-  useEffect(() => {
-    if (typeof window.matchMedia !== 'function') return;
-    const mql = window.matchMedia(query);
-    const on = () => setMatch(mql.matches);
-    mql.addEventListener?.('change', on);
-    return () => mql.removeEventListener?.('change', on);
-  }, []);
-  return match;
-}
 
 /** Re-render once a second (accessible names carry the time left; never announced). */
 function useSecondTick(active: boolean): number {

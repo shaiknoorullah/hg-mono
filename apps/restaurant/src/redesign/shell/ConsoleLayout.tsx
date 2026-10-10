@@ -21,6 +21,7 @@ import { SHELL_PANELS, StatusBarSlot, StripSlot } from './slots';
 import { ConsoleLayoutContext } from './layout';
 import { SignOutConfirm } from './SignOutConfirm';
 import { useWaitingCount } from './waiting';
+import { useIsDesktop } from './viewport';
 
 const RAIL_KEY = 'hg_restaurant_rail_expanded_v1';
 
@@ -40,19 +41,6 @@ function writeRailPref(expanded: boolean) {
   }
 }
 
-/** Desktop is ≥ 1280 CSS px; landscape tablet (1024–1279) always shows icons. */
-function useIsDesktop(): boolean {
-  const query = '(min-width: 1280px)';
-  const [match, setMatch] = useState(() => (typeof window.matchMedia === 'function' ? window.matchMedia(query).matches : true));
-  useEffect(() => {
-    if (typeof window.matchMedia !== 'function') return;
-    const mql = window.matchMedia(query);
-    const on = () => setMatch(mql.matches);
-    mql.addEventListener?.('change', on);
-    return () => mql.removeEventListener?.('change', on);
-  }, []);
-  return match;
-}
 
 export interface ConsoleLayoutProps {
   onSignOut: () => Promise<void>;
