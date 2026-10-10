@@ -3,7 +3,6 @@ package devworld
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -22,9 +21,9 @@ import (
 const bismillahCertificateID = "d0000000-0000-4000-8000-000000000208"
 
 const (
-	// offerTimeoutWindow is how long offer-timeout leaves the restaurant to
+	// restaurantTimeoutWindow is how long restaurant-timeout leaves the restaurant to
 	// answer, in place of the real 180 seconds.
-	offerTimeoutWindow = 30 * time.Second
+	restaurantTimeoutWindow = 30 * time.Second
 	// offerWait is how long a scenario waits for dispatch to offer a ready
 	// order to rider-sim, who went online before the order was ready.
 	offerWait = 45 * time.Second
@@ -148,10 +147,10 @@ func scenarioOfferToRider(ctx context.Context, base string) error {
 	return nil
 }
 
-// scenarioOfferTimeout places an order and brings its restaurant deadline
+// scenarioRestaurantTimeout places an order and brings its restaurant deadline
 // forward to 30 seconds from now, then waits for the deadline ticker to
 // cancel it as RESTAURANT_TIMEOUT and void the authorisation.
-func scenarioOfferTimeout(ctx context.Context, base string) error {
+func scenarioRestaurantTimeout(ctx context.Context, base string) error {
 	if err := clockGuard(base); err != nil {
 		return err
 	}
@@ -159,11 +158,11 @@ func scenarioOfferTimeout(ctx context.Context, base string) error {
 	if err != nil {
 		return err
 	}
-	at, err := bringDeadlineForward(ctx, order.ID, statePending, "RESTAURANT_TIMEOUT", offerTimeoutWindow)
+	at, err := bringDeadlineForward(ctx, order.ID, statePending, "RESTAURANT_TIMEOUT", restaurantTimeoutWindow)
 	if err != nil {
 		return err
 	}
-	fmt.Printf("offer window  %s  times out at %s (in %s; the real window is 180 s)\n",
+	fmt.Printf("restaurant window  %s  times out at %s (in %s; the real window is 180 s)\n",
 		order.Code, at.UTC().Format(time.RFC3339), time.Until(at).Round(time.Second))
 	c, err := waitClock(ctx, order.ID, time.Until(at)+tickerWait, func(c orderClock) bool {
 		return c.State != statePending
@@ -173,7 +172,7 @@ func scenarioOfferTimeout(ctx context.Context, base string) error {
 	}
 	fmt.Printf("order %s  %s  %s\n", order.Code, c.State, c.CancelledAs)
 	if c.State != "CANCELLED" || c.CancelledAs != "RESTAURANT_TIMEOUT" {
-		return fmt.Errorf("devworld: offer-timeout left %s in %s (%s); the restaurant answered first?", order.Code, c.State, c.CancelledAs)
+		return fmt.Errorf("devworld: restaurant-timeout left %s in %s (%s); the restaurant answered first?", order.Code, c.State, c.CancelledAs)
 	}
 	return nil
 }
@@ -220,10 +219,10 @@ func scenarioAdminCancel(ctx context.Context, base string) error {
 	return nil
 }
 
-// scenarioNoRider takes rider-sim offline, readies an order and lets its
+// scenarioPickupLapse takes rider-sim offline, readies an order and lets its
 // pickup deadline lapse. toCap repeats the lapse up to the escalation cap,
 // where the ticker cancels the order as NO_RIDER_FOUND with a full refund.
-func scenarioNoRider(ctx context.Context, base string, toCap bool) error {
+func scenarioPickupLapse(ctx context.Context, base string, toCap bool) error {
 	if err := clockGuard(base); err != nil {
 		return err
 	}
@@ -283,7 +282,7 @@ func scenarioNoRider(ctx context.Context, base string, toCap bool) error {
 	case toCap && c.State == "CANCELLED" && c.CancelledAs == "NO_RIDER_FOUND":
 		return nil
 	}
-	return fmt.Errorf("devworld: no-rider left %s in %s (%s, %d lapses)", order.Code, c.State, c.CancelledAs, c.Escalations)
+	return fmt.Errorf("devworld: pickup-lapse left %s in %s (%s, %d lapses)", order.Code, c.State, c.CancelledAs, c.Escalations)
 }
 
 // scenarioCertLapse puts a live order at bismillah-grill, accepted by the
@@ -422,143 +421,6 @@ func scenarioOrderCompleted(ctx context.Context, base string) error {
 		return err
 	}
 	return settleNow(ctx, order)
-}
-
-// scenarioRefundApprove delivers and settles an order, has the customer ask
-// for a full refund for a missing item, and has admin-seed approve it. The
-// local fake payment client then sends the refund.
-func scenarioRefundApprove(ctx context.Context, base string) error {
-	if err := clockGuard(base); err != nil {
-		return err
-	}
-	cust, _, order, err := driveToDoor(ctx, base)
-	if err != nil {
-		return err
-	}
-	if err := settleNow(ctx, order); err != nil {
-		return err
-	}
-	status, data, err := cust.call(ctx, http.MethodPost, "/v1/refunds", map[string]any{
-		"order_id":    order.ID,
-		"kind":        "FULL",
-		"reason_code": "ITEM_MISSING",
-	}, true)
-	if err != nil {
-		return fmt.Errorf("devworld: refund request: %w", err)
-	}
-	var refund struct {
-		ID    string `json:"id"`
-		State string `json:"state"`
-	}
-	_ = json.Unmarshal(data, &refund)
-	fmt.Printf("refund requested  http %d  %s  %s\n", status, refund.ID, refund.State)
-	if refund.ID == "" {
-		return errors.New("devworld: refund request returned no id")
-	}
-	admin, err := staff(ctx, base, "admin-seed", "admin-web")
-	if err != nil {
-		return err
-	}
-	status, data, err = admin.call(ctx, http.MethodPost, "/v1/admin/refunds/"+refund.ID+"/approve", map[string]any{
-		"reason_text": "Devworld: the customer reported a missing item; approved in full.",
-	}, true)
-	if err != nil {
-		return fmt.Errorf("devworld: refund approve: %w", err)
-	}
-	var decided struct {
-		State string `json:"state"`
-	}
-	_ = json.Unmarshal(data, &decided)
-	fmt.Printf("refund approved  http %d  %s\n", status, decided.State)
-	return watchRefund(ctx, cust, refund.ID)
-}
-
-// watchRefund prints the refund's state as the customer sees it until the
-// sender has sent it (SUBMITTED) or it has succeeded, or for twenty seconds.
-func watchRefund(ctx context.Context, cust *apiClient, refundID string) error {
-	last := ""
-	deadline := time.Now().Add(20 * time.Second)
-	for {
-		_, data, err := cust.call(ctx, http.MethodGet, "/v1/refunds/"+refundID, nil, false)
-		if err != nil {
-			return fmt.Errorf("devworld: read refund: %w", err)
-		}
-		var r struct {
-			State       string `json:"state"`
-			AmountCents int64  `json:"amount_cents"`
-		}
-		_ = json.Unmarshal(data, &r)
-		if r.State != last {
-			fmt.Printf("refund  %s  %d cents\n", r.State, r.AmountCents)
-			last = r.State
-		}
-		switch r.State {
-		case "SUCCEEDED", "SETTLED":
-			return nil
-		case "SUBMITTED":
-			// Sent to the payment client. SUCCEEDED arrives by Stripe
-			// webhook, which the local fake payment client never sends.
-			fmt.Println("refund sent; locally it stays SUBMITTED (no Stripe webhook confirms it)")
-			return nil
-		case "FAILED", "DECLINED", "CANCELLED", "REQUESTED", "PENDING_APPROVAL":
-			return fmt.Errorf("devworld: refund is %s after approval", r.State)
-		}
-		if !time.Now().Before(deadline) {
-			return fmt.Errorf("devworld: refund still %s after 20 s", r.State)
-		}
-		if err := sleepCtx(ctx, time.Second); err != nil {
-			return err
-		}
-	}
-}
-
-// scenarioPayoutRun has admin-seed request a payout run for every partner and
-// waits for it to finish. A run pays balances from closed weeks only, so on a
-// world reset this week it finishes with nothing due; it still fills the
-// admin's payout-run list and detail.
-func scenarioPayoutRun(ctx context.Context, base string) error {
-	if err := AllowAPI(base); err != nil {
-		return err
-	}
-	admin, err := staff(ctx, base, "admin-seed", "admin-web")
-	if err != nil {
-		return err
-	}
-	status, data, err := admin.call(ctx, http.MethodPost, "/v1/admin/payout-runs", map[string]any{
-		"reason": "Devworld: run the payout now to show the payout-run board.",
-	}, true)
-	if err != nil {
-		return fmt.Errorf("devworld: payout run: %w", err)
-	}
-	var run payoutRunView
-	_ = json.Unmarshal(data, &run)
-	fmt.Printf("payout run  http %d  %s  %s\n", status, run.ID, run.State)
-	if run.ID == "" {
-		return errors.New("devworld: payout run returned no id")
-	}
-	deadline := time.Now().Add(tickerWait)
-	for run.State == "QUEUED" || run.State == "RUNNING" {
-		if !time.Now().Before(deadline) {
-			return fmt.Errorf("devworld: payout run %s still %s after %s", run.ID, run.State, tickerWait)
-		}
-		if err := sleepCtx(ctx, time.Second); err != nil {
-			return err
-		}
-		_, data, err = admin.call(ctx, http.MethodGet, "/v1/admin/payout-runs/"+run.ID, nil, false)
-		if err != nil {
-			return fmt.Errorf("devworld: read payout run: %w", err)
-		}
-		_ = json.Unmarshal(data, &run)
-	}
-	fmt.Printf("payout run  %s  %s  partners %d  paid %d (%d cents)  held %d  carried %d  failed %d  lines %d\n",
-		run.ID, run.State, run.Partners, run.Paid, run.PaidCents, run.Held, run.Carried, run.Failed, len(run.Lines))
-	for _, l := range run.Lines {
-		fmt.Printf("  %s %s  %s  %d cents\n", l.Payee.Type, l.Payee.ID, l.Outcome, l.AmountCents)
-	}
-	if run.State != "SUCCEEDED" {
-		return fmt.Errorf("devworld: payout run %s ended %s", run.ID, run.State)
-	}
-	return nil
 }
 
 type payoutRunView struct {

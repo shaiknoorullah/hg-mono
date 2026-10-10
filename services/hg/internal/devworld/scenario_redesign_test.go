@@ -12,14 +12,14 @@ import (
 
 // redesignScenarios are the scenarios added for the redesign journeys.
 var redesignScenarios = []string{
-	"offer-to-rider", "offer-timeout", "admin-cancel", "no-rider", "no-rider-cancelled",
-	"cert-lapse-mid-order", "order-completed", "refund-approve", "payout-run",
+	"offer-to-rider", "restaurant-timeout", "admin-cancel", "pickup-lapse",
+	"pickup-lapse-cancelled", "cert-lapse-mid-order", "order-completed",
 }
 
 // clockScenarios move a clock in the local database.
 var clockScenarios = []string{
-	"offer-timeout", "no-rider", "no-rider-cancelled", "cert-lapse-mid-order",
-	"order-completed", "refund-approve",
+	"restaurant-timeout", "pickup-lapse", "pickup-lapse-cancelled",
+	"cert-lapse-mid-order", "order-completed",
 }
 
 func refuseRequests(t *testing.T) *countingTransport {

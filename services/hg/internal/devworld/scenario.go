@@ -47,40 +47,36 @@ var ScenarioNames = []string{
 	"onboard-restaurant",
 	"onboard-rider",
 	"offer-to-rider",
-	"offer-timeout",
+	"restaurant-timeout",
 	"admin-cancel",
-	"no-rider",
-	"no-rider-cancelled",
+	"pickup-lapse",
+	"pickup-lapse-cancelled",
 	"cert-lapse-mid-order",
 	"order-completed",
-	"refund-approve",
-	"payout-run",
 }
 
 // scenarioSummaries is what `devworld scenario list` prints beside each name:
 // the state the scenario leaves the world in.
 var scenarioSummaries = map[string]string{
-	"new-order":            "amina's order waits for bismillah-grill (RESTAURANT_PENDING, the real 180 s window)",
-	"rush":                 "amina and nour each have an order waiting; a third is refused",
-	"order-preparing":      "amina's order is accepted (PREPARING)",
-	"order-ready":          "amina's order is ready, waiting for a rider (READY_FOR_PICKUP)",
-	"customer-cancels":     "amina cancels her waiting order (CANCELLED)",
-	"restaurant-rejected":  "bismillah-grill rejects amina's waiting order (REJECTED)",
-	"docs-approve":         "admin-seed approves the docs-review document",
-	"docs-reject":          "admin-seed rejects the docs-review document (ILLEGIBLE)",
-	"menu-approve":         "admin-seed approves the oldest menu version waiting (menu persona)",
-	"menu-reject":          "admin-seed rejects the oldest menu version waiting (menu persona)",
-	"onboard-restaurant":   "a new restaurant signs up and is approved to take orders",
-	"onboard-rider":        "a new rider signs up, is approved and goes online",
-	"offer-to-rider":       "rider-sim is online at bismillah-grill with a pending 30 s offer for a ready order",
-	"offer-timeout":        "an order's restaurant window is cut to 30 s; it times out (CANCELLED, RESTAURANT_TIMEOUT)",
-	"admin-cancel":         "admin-seed cancels an accepted order (CANCELLED, SUPPORT_CANCELLED, full refund)",
-	"no-rider":             "rider-sim offline; a ready order's pickup deadline lapses once (READY_FOR_PICKUP, escalating)",
-	"no-rider-cancelled":   "rider-sim offline; a ready order lapses to the cap (CANCELLED, NO_RIDER_FOUND, full refund)",
-	"cert-lapse-mid-order": "an accepted order is live when bismillah-grill's certificate lapses (EXPIRED, delisted until dev-reset)",
-	"order-completed":      "rider-sim delivers an order and it settles (COMPLETED, receipt, rider earnings)",
-	"refund-approve":       "a completed order's full refund is requested and approved by admin-seed and sent (SUBMITTED locally)",
-	"payout-run":           "admin-seed runs a payout for every partner (a run in the payout-run list)",
+	"new-order":              "amina's order waits for bismillah-grill (RESTAURANT_PENDING, the real 180 s window)",
+	"rush":                   "amina and nour each have an order waiting; a third is refused",
+	"order-preparing":        "amina's order is accepted (PREPARING)",
+	"order-ready":            "amina's order is ready, waiting for a rider (READY_FOR_PICKUP)",
+	"customer-cancels":       "amina cancels her waiting order (CANCELLED)",
+	"restaurant-rejected":    "bismillah-grill rejects amina's waiting order (REJECTED)",
+	"docs-approve":           "admin-seed approves the docs-review document",
+	"docs-reject":            "admin-seed rejects the docs-review document (ILLEGIBLE)",
+	"menu-approve":           "admin-seed approves the oldest menu version waiting (menu persona)",
+	"menu-reject":            "admin-seed rejects the oldest menu version waiting (menu persona)",
+	"onboard-restaurant":     "a new restaurant signs up and is approved to take orders",
+	"onboard-rider":          "a new rider signs up, is approved and goes online",
+	"offer-to-rider":         "rider-sim is online at bismillah-grill with a pending 30 s offer for a ready order",
+	"restaurant-timeout":     "an order's restaurant window is cut to 30 s; it times out (CANCELLED, RESTAURANT_TIMEOUT)",
+	"admin-cancel":           "admin-seed cancels an accepted order (CANCELLED, SUPPORT_CANCELLED, full refund)",
+	"pickup-lapse":           "rider-sim offline; a ready order's pickup deadline lapses once (READY_FOR_PICKUP, escalating)",
+	"pickup-lapse-cancelled": "rider-sim offline; a ready order lapses to the cap (CANCELLED, NO_RIDER_FOUND, full refund)",
+	"cert-lapse-mid-order":   "an accepted order is live when bismillah-grill's certificate lapses (EXPIRED, delisted until dev-reset)",
+	"order-completed":        "rider-sim delivers an order and it settles (COMPLETED, receipt, rider earnings)",
 }
 
 // RunScenario signs in as the personas the scenario needs and calls the API
@@ -122,22 +118,18 @@ func RunScenario(ctx context.Context, baseURL, name string) error {
 		return scenarioOnboardRider(ctx, baseURL)
 	case "offer-to-rider":
 		return scenarioOfferToRider(ctx, baseURL)
-	case "offer-timeout":
-		return scenarioOfferTimeout(ctx, baseURL)
+	case "restaurant-timeout":
+		return scenarioRestaurantTimeout(ctx, baseURL)
 	case "admin-cancel":
 		return scenarioAdminCancel(ctx, baseURL)
-	case "no-rider":
-		return scenarioNoRider(ctx, baseURL, false)
-	case "no-rider-cancelled":
-		return scenarioNoRider(ctx, baseURL, true)
+	case "pickup-lapse":
+		return scenarioPickupLapse(ctx, baseURL, false)
+	case "pickup-lapse-cancelled":
+		return scenarioPickupLapse(ctx, baseURL, true)
 	case "cert-lapse-mid-order":
 		return scenarioCertLapse(ctx, baseURL)
 	case "order-completed":
 		return scenarioOrderCompleted(ctx, baseURL)
-	case "refund-approve":
-		return scenarioRefundApprove(ctx, baseURL)
-	case "payout-run":
-		return scenarioPayoutRun(ctx, baseURL)
 	default:
 		return fmt.Errorf("devworld: unknown scenario %q", name)
 	}
@@ -147,7 +139,7 @@ func RunScenario(ctx context.Context, baseURL, name string) error {
 // leaves the world in.
 func PrintScenarios() {
 	for _, name := range ScenarioNames {
-		fmt.Printf("%-21s %s\n", name, scenarioSummaries[name])
+		fmt.Printf("%-23s %s\n", name, scenarioSummaries[name])
 	}
 }
 
