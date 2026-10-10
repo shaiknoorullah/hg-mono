@@ -16,8 +16,10 @@
  * - One polite status message when the wait starts ("You can try again in 42 seconds.") and one
  *   when it ends ("You can try again now."), nothing per second (`announce={false}` when the
  *   page's PageAnnouncer speaks instead).
+ * - Activating the aria-disabled button says the wait again (SI `SignIn-Locked`): change
+ *   `announceRequest`, or spread `useWaitLine`'s `buttonProps` onto the button.
  * - Expiring while shown: `onExpire` fires once and the line becomes `endMessage`. Already over
- *   at mount: `onExpire` fires once and nothing renders.
+ *   at mount: `onExpire` fires once and nothing renders (StrictMode's double effects included).
  */
 
 import {
@@ -28,6 +30,7 @@ import {
   useRef,
   useState,
   type CSSProperties,
+  type KeyboardEvent,
 } from 'react';
 
 import { Countdown } from '../ds/Countdown.js';
@@ -93,6 +96,11 @@ export interface WaitLineProps extends WaitSource {
   onExpire?: () => void;
   /** Speak once at the start and once at the end. Default true. */
   announce?: boolean;
+  /**
+   * Change this number (a counter bumped when the disabled button is activated) to say the time
+   * left again in the status region. `useWaitLine` wires it.
+   */
+  announceRequest?: number;
   /** data-testid; defaults to the component name. */
   testId?: string;
   style?: CSSProperties;
@@ -110,6 +118,7 @@ export function WaitLine({
   endMessage = 'You can try again now.',
   onExpire,
   announce = true,
+  announceRequest,
   testId = 'WaitLine',
   style,
   className,
@@ -124,39 +133,59 @@ export function WaitLine({
     [serverNow, retryAfter, expiresAt],
   );
   const key = wait?.expiresAt ?? '';
+  // Device time when this deadline arrived: the time left is the window minus what has elapsed.
+  const arrivedAt = useMemo(() => Date.now(), [key]);
 
-  const [phase, setPhase] = useState<'waiting' | 'ended' | 'over-at-mount'>('waiting');
-  const [message, setMessage] = useState('');
+  // Keyed by the deadline, so a new deadline starts a new wait with no reset in an effect
+  // cleanup (which StrictMode's double effects would run, undoing "over at mount").
+  const [overFor, setOverFor] = useState<string | null>(null);
+  const [endedFor, setEndedFor] = useState<string | null>(null);
+  const [message, setMessage] = useState({ text: '', seq: 0 });
   // Child effects run before this component's own: until this is true, an expiry is "at mount".
   const mounted = useRef(false);
   const onExpireRef = useRef(onExpire);
   onExpireRef.current = onExpire;
 
+  const say = useCallback((text: string) => setMessage((m) => ({ text, seq: m.seq + 1 })), []);
+
   useEffect(() => {
     mounted.current = true;
-    setPhase((p) => (p === 'over-at-mount' ? p : 'waiting'));
-    if (wait && announce) setMessage(`${lead} ${speakRemaining(wait.windowSeconds)}.`);
+    if (wait && announce) say(`${lead} ${speakRemaining(wait.windowSeconds)}.`);
     return () => {
       mounted.current = false;
-      setPhase('waiting');
-      setMessage('');
     };
     // A new deadline starts a new wait; the copy props do not.
   }, [key]);
 
+  // Say the time left again when asked (the disabled button was activated).
+  const lastRequest = useRef(announceRequest);
+  useEffect(() => {
+    if (announceRequest === lastRequest.current) return;
+    lastRequest.current = announceRequest;
+    if (!wait || !announce || endedFor === key || overFor === key) return;
+    const left = wait.windowSeconds - (Date.now() - arrivedAt) / 1000;
+    if (left > 0) say(`${lead} ${speakRemaining(left)}.`);
+  }, [announceRequest]);
+
   const handleExpire = useCallback(() => {
-    setPhase(mounted.current ? 'ended' : 'over-at-mount');
-    if (mounted.current && announce) setMessage(endMessage);
+    if (mounted.current) {
+      setEndedFor(key);
+      if (announce) say(endMessage);
+    } else {
+      setOverFor(key);
+    }
     onExpireRef.current?.();
-  }, [announce, endMessage]);
+  }, [announce, endMessage, key, say]);
 
-  if (!wait || phase === 'over-at-mount') return null;
+  if (!wait || overFor === key) return null;
 
+  const phase = endedFor === key ? 'ended' : 'waiting';
   const spoken = spokenLead ?? (lead === DEFAULT_LEAD ? DEFAULT_SPOKEN_LEAD : lead);
 
   return (
     <div data-testid={testId} data-state={phase} style={style} className={cn('flex flex-col', className)}>
-      <p id={lineId} className="m-0 flex flex-wrap items-center gap-1 text-body-sm text-fg-secondary">
+      {/* A div, not a p: the Countdown's timer is a div, which a paragraph may not contain. */}
+      <div id={lineId} className="flex flex-wrap items-center gap-1 text-body-sm text-fg-secondary">
         {phase === 'ended' ? (
           endMessage
         ) : (
@@ -176,10 +205,11 @@ export function WaitLine({
             />
           </>
         )}
-      </p>
+      </div>
       {announce ? (
         <span role="status" aria-atomic="true" className="sr-only" data-slot="wait-line-status">
-          {message}
+          {/* A new node per message, so the same words said again are announced again. */}
+          <span key={message.seq}>{message.text}</span>
         </span>
       ) : null}
     </div>
@@ -194,7 +224,19 @@ export interface UseWaitLineResult {
   waiting: boolean;
   /** The button's `aria-describedby`: the line's id while waiting, else undefined. */
   describedBy: string | undefined;
-  /** Spread onto `<WaitLine>`: the source, the id and the expiry wiring. */
+  /** Says the time left again in the line's status region; does nothing once the wait is over. */
+  reannounce: () => void;
+  /**
+   * Spread onto the disabled button: its `aria-describedby`, and capture-phase click and
+   * Enter/Space handlers that call `reannounce` (a disabled DS Button swallows activation, so
+   * the capture phase is where it can still be heard).
+   */
+  buttonProps: {
+    'aria-describedby': string | undefined;
+    onClickCapture: () => void;
+    onKeyDownCapture: (e: KeyboardEvent) => void;
+  };
+  /** Spread onto `<WaitLine>`: the source, the id and the expiry and re-announce wiring. */
   lineProps: WaitLineProps;
 }
 
@@ -202,7 +244,7 @@ export interface UseWaitLineResult {
  * Wires a WaitLine to the button it explains:
  *
  *   const wait = useWaitLine({ serverNow, retryAfter });
- *   <Button disabled={wait.waiting} aria-describedby={wait.describedBy}>Try again</Button>
+ *   <Button disabled={wait.waiting} {...wait.buttonProps}>Try again</Button>
  *   <WaitLine {...wait.lineProps} />
  */
 export function useWaitLine(source: WaitSource & { id?: string; onExpire?: () => void }): UseWaitLineResult {
@@ -210,6 +252,7 @@ export function useWaitLine(source: WaitSource & { id?: string; onExpire?: () =>
   const id = source.id ?? `wait-line-${auto}`;
   const deadline = resolveWaitDeadline(source)?.expiresAt ?? null;
   const [endedFor, setEndedFor] = useState<string | null>(null);
+  const [announceRequest, setAnnounceRequest] = useState(0);
   const onExpireRef = useRef(source.onExpire);
   onExpireRef.current = source.onExpire;
 
@@ -219,16 +262,30 @@ export function useWaitLine(source: WaitSource & { id?: string; onExpire?: () =>
   }, [deadline]);
 
   const waiting = deadline !== null && endedFor !== deadline;
+  const reannounce = useCallback(() => {
+    if (waiting) setAnnounceRequest((n) => n + 1);
+  }, [waiting]);
+  const describedBy = waiting ? id : undefined;
+
   return {
     id,
     waiting,
-    describedBy: waiting ? id : undefined,
+    describedBy,
+    reannounce,
+    buttonProps: {
+      'aria-describedby': describedBy,
+      onClickCapture: reannounce,
+      onKeyDownCapture: (e) => {
+        if (e.key === 'Enter' || e.key === ' ') reannounce();
+      },
+    },
     lineProps: {
       serverNow: source.serverNow,
       retryAfter: source.retryAfter,
       expiresAt: source.expiresAt,
       id,
       onExpire,
+      announceRequest,
     },
   };
 }

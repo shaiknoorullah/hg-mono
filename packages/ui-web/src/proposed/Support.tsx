@@ -9,7 +9,8 @@
  * the same rule as a missing halal field:
  * - `supportEnabled` undefined (config still loading, or `loading`): SupportBlock shows a
  *   placeholder that names no number; SupportSentence renders nothing.
- * - `supportEnabled` false, or true without a phone: SupportBlock shows the "Partner support
+ * - `supportEnabled` false or null (or a loaded `config` whose flag is not true), or true
+ *   without a phone: SupportBlock shows the "Partner support
  *   isn't available right now" replacement (or nothing, with `unavailable="none"`);
  *   SupportSentence shows `fallback`, or nothing.
  * - `supportEnabled` true with a phone: the block (label, the phone as a `tel:` link with a
@@ -100,9 +101,19 @@ export type SupportResolution =
   | { kind: 'off' }
   | { kind: 'on'; href: string; display: string; hours: string | null };
 
+/**
+ * The support flag: `supportEnabled` when given (null counts as given: off), else the loaded
+ * config's flag (missing or null there is off too), else undefined while nothing has loaded.
+ */
+function supportFlag(source: SupportSource): boolean | null | undefined {
+  if (source.supportEnabled !== undefined) return source.supportEnabled;
+  if (source.config) return source.config.support_enabled ?? null;
+  return undefined;
+}
+
 /** Applies the support rule (module comment) to a component's props. */
 export function resolveSupport(source: SupportSource, loading = false): SupportResolution {
-  const enabled = source.supportEnabled ?? source.config?.support_enabled;
+  const enabled = supportFlag(source);
   if (loading || enabled === undefined) return { kind: 'loading' };
   if (enabled !== true) return { kind: 'off' };
   const phone = (source.phoneE164 ?? source.config?.support_phone_e164 ?? '').trim();
@@ -118,8 +129,7 @@ export function resolveSupport(source: SupportSource, loading = false): SupportR
 
 /** Reports support switched on without a phone: a config fault, never shown. */
 function useReportMissingPhone(source: SupportSource, resolution: SupportResolution) {
-  const enabled = source.supportEnabled ?? source.config?.support_enabled;
-  const missing = enabled === true && resolution.kind === 'off';
+  const missing = supportFlag(source) === true && resolution.kind === 'off';
   useEffect(() => {
     if (missing) reportDsClientError('SUPPORT_PHONE_MISSING', { component: 'Support' });
   }, [missing]);

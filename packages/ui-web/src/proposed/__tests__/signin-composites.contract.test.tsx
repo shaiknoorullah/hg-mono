@@ -5,7 +5,7 @@
  */
 
 import { act, fireEvent, render, screen } from '@testing-library/react';
-import { forwardRef, type AnchorHTMLAttributes, type ReactElement } from 'react';
+import { StrictMode, forwardRef, type AnchorHTMLAttributes, type ReactElement } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { Button, setClientErrorReporter } from '../../ds/index';
@@ -90,7 +90,7 @@ const REGISTRY: Row[] = [
   { component: 'SupportSentence', state: 'unavailable fallback', element: () => <SupportSentence supportEnabled={false} fallback="If you didn't expect this, contact HalalGoes after signing in." />, check: () => expect(screen.getByTestId('SupportSentence')).toHaveTextContent('contact HalalGoes after signing in') },
 
   /* WaitLine: the silent countdown inside a described line. */
-  { component: 'WaitLine', state: 'waiting', element: () => <WaitLine id="wait-reason" serverNow={DATE_HEADER} retryAfter={42} />, role: 'timer', name: '42 seconds left', check: (el) => { expect(el).not.toHaveAttribute('aria-live'); expect(document.getElementById('wait-reason')).toHaveTextContent('You can try again in'); } },
+  { component: 'WaitLine', state: 'waiting', element: () => <WaitLine id="wait-reason" serverNow={DATE_HEADER} retryAfter={42} />, role: 'timer', name: '42 seconds left', check: (el) => { expect(el).not.toHaveAttribute('aria-live'); expect(document.getElementById('wait-reason')).toHaveTextContent('You can try again in'); expect(el.closest('p'), 'a timer div inside a paragraph is invalid HTML').toBeNull(); } },
   { component: 'WaitLine', state: 'lead', element: () => <WaitLine serverNow={DATE_HEADER} retryAfter="60" lead="You can send another in" />, role: 'timer', name: '1 minute left', check: () => expect(screen.getByTestId('WaitLine')).toHaveTextContent('You can send another in') },
   { component: 'WaitLine', state: 'no Retry-After', element: () => <WaitLine serverNow={DATE_HEADER} />, empty: true },
 ];
@@ -134,6 +134,18 @@ describe('support renders nothing unless support_enabled is true', () => {
     expect(container.innerHTML).not.toMatch(PHONE_PATTERN);
     expect(screen.queryByRole('link')).toBeNull();
     expect(screen.queryAllByTestId('SupportSentence')).toHaveLength(0);
+  });
+
+  it('an explicit null or a loaded config without the flag is off, not a placeholder that never ends', () => {
+    render(
+      <>
+        <SupportBlock supportEnabled={null} phoneE164={ON.phoneE164} testId="explicit-null" />
+        <SupportBlock config={{ support_phone_e164: ON.phoneE164 }} testId="config-no-flag" />
+      </>,
+    );
+    expect(screen.getByTestId('explicit-null')).toHaveAttribute('data-state', 'unavailable');
+    expect(screen.getByTestId('config-no-flag')).toHaveAttribute('data-state', 'unavailable');
+    expect(screen.queryByRole('link')).toBeNull();
   });
 
   it('true without a phone shows the replacement and reports the config fault', () => {
@@ -199,6 +211,45 @@ describe('WaitLine', () => {
     render(<WaitLine serverNow={DATE_HEADER} expiresAt={new Date(NOW - 5_000).toISOString()} onExpire={onExpire} />);
     expect(screen.queryByTestId('WaitLine')).toBeNull();
     expect(onExpire).toHaveBeenCalledTimes(1);
+  });
+
+  it('a wait already over at mount stays empty under StrictMode (double effects)', () => {
+    const onExpire = vi.fn();
+    const { container } = render(
+      <StrictMode>
+        <WaitLine serverNow={DATE_HEADER} expiresAt={new Date(NOW - 5_000).toISOString()} onExpire={onExpire} />
+      </StrictMode>,
+    );
+    expect(container).toBeEmptyDOMElement();
+    expect(onExpire).toHaveBeenCalledTimes(1);
+  });
+
+  it('activating the disabled button says the wait again (SignIn-Locked), and stops once it ends', () => {
+    function Locked() {
+      const wait = useWaitLine({ serverNow: DATE_HEADER, retryAfter: 42 });
+      return (
+        <>
+          <Button disabled={wait.waiting} {...wait.buttonProps}>Sign in</Button>
+          <WaitLine {...wait.lineProps} />
+        </>
+      );
+    }
+    render(<Locked />);
+    const status = screen.getByRole('status');
+    expect(status).toHaveTextContent('You can try again in 42 seconds.');
+    act(() => vi.advanceTimersByTime(10_000));
+    const button = screen.getByRole('button', { name: 'Sign in' });
+    fireEvent.click(button);
+    expect(status).toHaveTextContent('You can try again in 32 seconds.');
+    const spoken = status.firstChild;
+    fireEvent.keyDown(button, { key: 'Enter' });
+    // The same words again, in a new node, so a screen reader says them again.
+    expect(status).toHaveTextContent('You can try again in 32 seconds.');
+    expect(status.firstChild).not.toBe(spoken);
+    act(() => vi.advanceTimersByTime(40_000));
+    expect(status).toHaveTextContent('You can try again now.');
+    fireEvent.click(screen.getByRole('button', { name: 'Sign in' }));
+    expect(status).toHaveTextContent('You can try again now.');
   });
 
   it('reads Retry-After as seconds or as an HTTP date', () => {
