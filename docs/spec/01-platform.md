@@ -585,7 +585,7 @@ func (a Amount) MarshalJSON() ([]byte, error) // emits an integer, never a strin
 
   This is the single definition. The cart, the order line and the receipt all display `line_unit_cents` from the quote; none of them recompute. `variant.pricing_mode` is a column on the variant, so a restaurant can express "Large = $14.99" and "Extra cheese = +$1.50" without ambiguity. The old system's cart-adds-variant-to-base vs order-replaces-base contradiction (B39) is resolved by making the mode explicit data.
 
-  A dish can have several variant groups (size, rice, heat level), and a cart line carries one chosen variant per group ([#628](https://github.com/shaiknoorullah/hg-mono/issues/628)); at most one chosen variant may be `ABSOLUTE`, and a combination the rule cannot price (two `ABSOLUTE` variants, or a part below zero) refuses the line with `409 ITEM_UNAVAILABLE` rather than guessing a price. The quote and the order snapshot each chosen variant with its money (`quote_line_variant`, `order_line_variant`), and a deferred database trigger refuses at commit any line whose `variant_part_cents` its variants do not add up to.
+  A dish can have several variant groups (size, rice, heat level), and a cart line carries one chosen variant per group ([#628](https://github.com/shaiknoorullah/hg-mono/issues/628)); at most one chosen variant may be `ABSOLUTE`, and a combination the rule cannot price (two `ABSOLUTE` variants, or a part below zero) refuses the line with `409 ITEM_UNAVAILABLE` rather than guessing a price. Two `ABSOLUTE` variants can only come from two full-price groups, which the menu itself refuses (one full-price group per dish: [variants and modifier groups, R-20](03-restaurant.md#r-20--variants-and-modifier-groups)), so for them the `409` is a backstop. The quote and the order snapshot each chosen variant with its money (`quote_line_variant`, `order_line_variant`), and a deferred database trigger refuses at commit any line whose `variant_part_cents` its variants do not add up to.
 
   **Step 2 — subtotal.** `subtotal_cents = Σ line_total_cents`.
 
@@ -1859,14 +1859,7 @@ CREATE TABLE realtime_connection (
 
   Who receives them: the account's owner only. An event about a restaurant goes to each of its live owners and managers, never its other staff; one about a rider goes to the rider. `onboarding.state_changed` is sent for steps the subject did not take themselves (an admin's decision, Stripe turning payouts on, a menu approval); a step they take gets its new state in its own response. `document.review_state_changed` goes to restaurants only: a rider hears only the application decision ([one message per review](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)). `account.security_event` is sent for a sign-in from a device the account has not used before (never the first sign-in, and not on the web, which has no device id), a password changed or reset, and a session revoked other than by signing out of it. `notification.created` is sent for notifications that have an inbox row; a sign-in code has none.
 
-  **Admin (channel `admin:ops`)**
-
-  | Type | Payload |
-  |---|---|
-  | `admin.alert` | `{severity, kind, subject_type, subject_id, message, at}` |
-  | `admin.dispatch_failure` | `{order_id, waves, riders_offered, radius_m}` |
-  | `admin.reconciliation_exception` | `{kind, order_id, expected_cents, actual_cents}` |
-  | `admin.queue_depth` | `{pending_restaurant_reviews, pending_rider_reviews, open_disputes, failed_refunds}` |
+  **Admin (channel `admin:ops`)**: `admin.alert`, `admin.dispatch_failure`, `admin.reconciliation_exception` and `admin.queue_depth`. Their payloads, and which alert kinds exist, are listed once, in [the websocket contract's admin section](../../contracts/websocket.md#47-admin--channel-adminops).
 
   Payload schemas are generated from Go structs into a versioned JSON-Schema bundle served at `GET /v1/realtime/schema` and consumed by the generated TypeScript client, so a field rename cannot silently break four apps (which is exactly how the old `CHANNEL_JOIN`-wrapped-in-`order_request` mess arose, §7.16).
 

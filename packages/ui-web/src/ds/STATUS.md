@@ -30,21 +30,23 @@ Work packages: `plan/design-system.md` §4.1 on the read-only `claude/redesign-c
 | SideNav | rebuilt | W2 | count pill is drawn in place until W1's Badge lands; on-chrome tile uses on-accent until `surface-chrome-selected` (packet T7) exists. Admin names (#699) accepted as aliases |
 | DetailPanel | rebuilt | W2 | additions `open`, `busy`, `returnFocusRef`, `label`, `id`, `width="panel"` (380/460px) for #675 and #699 |
 | SplitPanes | rebuilt | W2 | horizontal only; additions `units="px"`, `fill`, controlled `collapsed`, `onResize` (#699) |
-| Input | adapter | W3 | `otp` is the legacy 6-cell row |
-| Select | adapter | W3 | `onChange` receives the value, not an event |
-| Checkbox | adapter | W3 | use `onCheckedChange`; `onChange(event)` is not offered |
-| RadioGroup | adapter | W3 | `options` only (no `<Radio>` children); `onChange(value)` without an event |
-| Switch | adapter | W3 | `size` ignored |
-| SegmentedControl | missing | W3 | — |
-| Countdown | missing | W4 | — |
-| Menu | missing | W4 | — |
-| Modal | missing | W4 | confirm and alert only on web |
-| Toast | missing (see `/proposed`) | W4 | — |
-| StatusTimeline | adapter | W4 | transitions without `at` are dropped |
+| Input | rebuilt | W3 | `otp` is one input-otp group (6 cells, or 4 with `otpLength`/`length`); `size="field"` (56px) added |
+| Select | rebuilt | W3 | native `onChange` receives the event, listbox the value (live `index.d.ts`); `onValueChange` receives the value in both |
+| Checkbox | rebuilt | W3 | — |
+| RadioGroup (+ Radio) | rebuilt | W3 | `roomy` (72px rows) added |
+| Switch | rebuilt | W3 | — |
+| SegmentedControl | rebuilt | W3 | — |
+| FileDrop (approved composite) | rebuilt | W3 | — |
+| Countdown | rebuilt | W4 | adds `silent`, `barOnly` / `variant="bar-only"` (packet P6) and `className` |
+| Menu | rebuilt (Radix DropdownMenu) | W4 | adds `menuitemradio` (`type: 'radio'` or `checked`), and the restaurant stub's `trigger`, `triggerLabel`, `variant`, `separatorBefore` |
+| Modal (+ deprecated `Dialog`) | rebuilt (Radix Dialog) | W4 | confirm and alert only on web |
+| Toast | rebuilt | W4 | not Radix `Toast.Root` (it also renders inline); the hover and focus pause is kept by hand |
+| StatusTimeline (+ `ORDER_STATES`, `resolveTimeline`) | rebuilt | W4 | — |
 | HalalBadge, HalalShield | legacy | W5 | — |
 | HalalCertificationPanel | legacy | W5 | no `headingLevel` |
 | HalalChecklist (+ gate helpers) | legacy | W5 | — |
-| DataTable | missing | W6 (LyteNyte) | the legacy root `DataTable` has a different shape |
+| DataTable | rebuilt | W6 (LyteNyte) | `role="grid"` named by the caption (`aria-labelledby`), not `<table>`; the check, minus, sort-chevron and "more" glyphs are CSS-drawn in `lib/ui/data-grid` (today's Icon map lacks them); row actions use a Radix menu in `lib/ui/data-grid` until the W4 `Menu` is wired in |
+| TextCell, IdCell, MoneyCell, TimeCell, DateCell, CountdownCell, StatusCell, HalalStateCell, MeterCell | rebuilt | W6 | StatusCell draws its own tint chip until the W1 `Badge` is used; CountdownCell is the silent text form (the W4 `Countdown` is not used inside cells) |
 | Rating | legacy | — | out of launch scope; do not extend |
 | Sheet, BottomNav | not on web | — | working tasks use DetailPanel; phones only |
 
@@ -52,18 +54,29 @@ Work packages: `plan/design-system.md` §4.1 on the read-only `claude/redesign-c
 
 | Export | Today | Rebuilt in |
 |---|---|---|
-| Banner (+ InlineAlert, slate tone) | legacy `Banner` | W4 |
-| EmptyState, ErrorState | legacy | W4 |
+| EmptyState, ErrorState | rebuilt | W4 |
 | Skeleton, Spinner | **rebuilt** | W1 |
 | Separator | **rebuilt** (new) | W1 |
-| Textarea | legacy | W3 |
+| Textarea | rebuilt (keeps the legacy props) | W3 |
 | Tooltip (+ TooltipProvider) | **rebuilt** | W1 |
-| ToastProvider, useToast | legacy | W4 |
+| Field, ErrorSummary | rebuilt | W3 |
+| CheckboxGroup | rebuilt | W3 |
+| DateInput, TimeField | rebuilt | W3 |
+| MoneyInput (integer cents only) | rebuilt | W3 |
+| Stepper | rebuilt | W3 |
+| InlineConfirm | rebuilt | W3 |
+| ToastProvider, useToast (render the rebuilt `/ds` Toast; `placement`, `position`) | rebuilt | W4 |
+| Banner + InlineAlert + HalalBanner (one family with `placement`: Banner defaults to the page bar, InlineAlert to inline; slate tone; halal props exclude danger) | rebuilt | W4 |
+| ProgressBar | rebuilt (Radix Progress) | W4 |
+| PageAnnouncerProvider, useAnnounce, usePageAnnouncer | rebuilt | W4 |
 | DocumentViewer | legacy | W7b |
-| FilterBar | legacy | W6 |
+| FilterBar | rebuilt (the declarative pre-rebuild props still work) | W6 |
 | Disclosure | rebuilt | W2 |
 | SkipLink | rebuilt | W2 |
 | SystemBannerSlot (= SystemBannerStack) | rebuilt | W2 |
 | StickyFooter (= ActionBar) | rebuilt | W2 |
 | NavDrawer | rebuilt | W2 |
 | SectionNav | rebuilt | W2 |
+| FilterChip | rebuilt | W6 |
+| ListPane, ListPaneRow | rebuilt | W6 |
+| EventLog | rebuilt | W6 |
