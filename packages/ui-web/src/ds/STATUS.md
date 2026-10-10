@@ -80,3 +80,7 @@ Work packages: `plan/design-system.md` §4.1 on the read-only `claude/redesign-c
 | FilterChip | rebuilt | W6 |
 | ListPane, ListPaneRow | rebuilt | W6 |
 | EventLog | rebuilt | W6 |
+| TextLink (router-agnostic: `as`, `render` or `onNavigate`; `href` for `tel:`, `mailto:`, external) | rebuilt (new) | sign-in composites (#737) |
+| StateCard | rebuilt (new) | sign-in composites (#737) |
+| SupportBlock, SupportSentence (+ `formatSupportPhone`, `resolveSupport`) | rebuilt (new) | sign-in composites (#737) |
+| WaitLine (+ `useWaitLine`, `resolveWaitDeadline`) | rebuilt (new) | sign-in composites (#737) |

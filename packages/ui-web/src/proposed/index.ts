@@ -107,3 +107,19 @@ export { ListPane, ListPaneRow } from './ListPaneRow.js';
 export type { ListPaneProps, ListPaneRowProps } from './ListPaneRow.js';
 export { EventLog } from './EventLog.js';
 export type { EventLogEntry, EventLogProps } from './EventLog.js';
+
+/* Restaurant sign-in composites (#737): links, the state card, partner support and the wait line. */
+export { TextLink } from './TextLink.js';
+export type { TextLinkProps, TextLinkRenderArgs, TextLinkTextStyle, TextLinkVariant } from './TextLink.js';
+export { StateCard } from './StateCard.js';
+export type { StateCardHeadingLevel, StateCardProps } from './StateCard.js';
+export { SupportBlock, SupportSentence, formatSupportPhone, resolveSupport } from './Support.js';
+export type {
+  SupportBlockProps,
+  SupportConfig,
+  SupportResolution,
+  SupportSentenceProps,
+  SupportSource,
+} from './Support.js';
+export { WaitLine, resolveWaitDeadline, useWaitLine } from './WaitLine.js';
+export type { UseWaitLineResult, WaitDeadline, WaitLineProps, WaitSource } from './WaitLine.js';
