@@ -62,6 +62,16 @@ now() { date -u +%Y-%m-%dT%H:%M:%SZ; }
 # One Maestro flow (a path under tools/e2e/native/<app>/), from the app's screenshot folder
 # (screenshots/<app>/redesign/ for a redesign flow); its report, debug output and any screenshot
 # it took end up under $E2E_OUT.
+# stop_other_apps closes every HalalGoes app on the emulator except the one named, so an app left
+# running by an earlier flow (the cross-app rider, still online, showing "Offer expired") cannot
+# come to the front over the app under test.
+stop_other_apps() {
+  local keep="$1" other
+  for other in customer rider; do
+    [ "$other" = "$keep" ] || adb shell am force-stop "com.halalgoes.$other.dev" >/dev/null 2>&1 || true
+  done
+}
+
 maestro_flow() {
   local app="$1" flow="$2"
   shift 2
@@ -170,7 +180,12 @@ if [ "$mode" = all ]; then
       else
         record restaurant-ready fail "see the Playwright report and trace"
       fi
-      if wait "$rider_pid"; then
+      rider_ok=true
+      wait "$rider_pid" || rider_ok=false
+      # The rider's part ends at the offer, passed or not: close the app so its expiring offer
+      # cannot pop up over the flows that follow.
+      stop_other_apps none
+      if [ "$rider_ok" = true ]; then
         record rider pass "went online at the restaurant and received the offer for $cross_code"
         record cross-app pass "$cross_code: placed on the phone, accepted and readied in the browser, offered to the rider"
       else
@@ -231,6 +246,7 @@ if [ "$mode" = all ]; then
       record "redesign-$app" fail "adb install of the redesign APK"
       continue
     fi
+    stop_other_apps "$app"
     if [ "$app" = customer ]; then phone="$(w customers.app.phone)"; else phone="$(w rider.phone)"; fi
     vars=(-e PHONE="$phone" -e RESTAURANT="$(w restaurant.name)" -e DISH="$(w restaurant.menuItemName)"
       -e EXPIRED_RESTAURANT="$(w expiredRestaurant.name)"
