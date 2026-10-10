@@ -18,9 +18,19 @@ export type { TextProps, SkeletonProps, SpinnerProps, SeparatorProps, AvatarProp
 export { Wordmark } from '../primitives';
 export type { WordmarkProps } from '../primitives';
 
-// Forms (N3): customer item sheet.
-export { QuantityStepper } from '../content';
-export type { QuantityStepperProps } from '../content';
+// Forms (N3): rebuilt on the React Native Reusables tier (`lib/`). QuantityStepper keeps today's
+// props and adds the cart's `variant` (PR #639).
+export { Field, ErrorSummary, Textarea, CheckboxGroup, DateInput, QuantityStepper } from './Forms';
+export type {
+  FieldProps,
+  ErrorSummaryProps,
+  ErrorSummaryError,
+  TextareaProps,
+  CheckboxGroupProps,
+  CheckboxGroupOption,
+  DateInputProps,
+  QuantityStepperProps,
+} from './Forms';
 
 // Lists and content (N6).
 export { FilterChip, Chip } from '../primitives';
