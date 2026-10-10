@@ -105,8 +105,8 @@ Email-login personas share one local password and sign in as `<persona>@seed.hg`
 | `docs-todo` | DOCUMENTS_PENDING, 1 of 3 uploaded | PENDING | — | — | upload flow, incomplete pack |
 | `docs-review` | DOCUMENTS_REVIEW | PENDING | — | — | awaiting-review screen; target of `docs-approve` / `docs-reject` |
 | `docs-rejected` | DOCUMENTS_REJECTED — halal cert `ILLEGIBLE` | PENDING | — | — | rejection reason + resubmit |
-| `payout-setup` | PAYOUT_PENDING | PENDING | — | — | payout-account step |
-| `menu-setup` | MENU_PENDING, empty menu | PENDING | — | — | first-menu creation |
+| `payout` | PAYOUT_PENDING | PENDING | — | — | payout-account step |
+| `menu` | MENU_PENDING, empty menu | PENDING | — | — | first-menu creation |
 | **`bismillah-grill`** | ACTIVE | LIVE | CERTIFIED | OPEN | the operating surface (see [its depth below](#52-bismillah-grill-depth)) |
 | `expiring-halal` | ACTIVE | LIVE | EXPIRING_SOON (expires now + 10 d) | OPEN | expiring warning |
 | `expired-halal` | ACTIVE | DELISTED (reason `HALAL_CERTIFICATE_EXPIRED`) | EXPIRED (expired now − 7 d) | — | slate, never red ([never red for a halal state (invariant 9)](https://github.com/shaiknoorullah/hg-mono/blob/main/AGENTS.md#3-non-negotiable-invariants)); hidden from customers. Not `LIVE`: the schema refuses a listed restaurant with an expired certificate ([#252](https://github.com/shaiknoorullah/hg-mono/issues/252)) |
@@ -199,6 +199,8 @@ Each playbook step is: **setup command** (terminal) → **action** (in browser) 
 > 3. Click **Accept** → card shows **Preparing**.
 
 Playbooks describe the app **as it behaves today**. Where the app does not yet update live, the step says "press Refresh"; the companion feature spec rewrites those steps to "appears without Refresh" when it lands. *Done for the restaurant order queue (Oct 2026, [#27](https://github.com/shaiknoorullah/hg-mono/issues/27)): `journey.md` and `order-handling.md` wait for orders to appear on their own; **Refresh** stays as a manual option.*
+
+A playbook names only personas that `go run ./cmd/devworld list` prints and commands that exist; a step that needs something the dev world does not seed yet links the issue that adds it instead of naming a login ([#687](https://github.com/shaiknoorullah/hg-mono/issues/687)).
 
 Two runners, same playbook:
 
