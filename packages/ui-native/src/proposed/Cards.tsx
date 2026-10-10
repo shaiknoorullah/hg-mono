@@ -368,6 +368,7 @@ export function MenuItemCard({
   const allergens = formatAllergens(item.allergen_tags);
   const diet = item.dietary_tags?.includes('VEGAN') ? 'Vegan' : item.dietary_tags?.includes('VEGETARIAN') ? 'Vegetarian' : null;
   const reason = unavailableReason(item, disabledReason, disabled);
+  const badgeWord = item.availability_state === 'OUT_OF_STOCK' ? 'Out of stock' : 'Unavailable';
   const name = [
     `${item.name}.`,
     item.description ? `${item.description}.` : null,
@@ -409,10 +410,12 @@ export function MenuItemCard({
             ) : null}
             {reason ? (
               <View className="flex-row flex-wrap items-center gap-2">
-                <Badge testID={`${testID}-unavailable`} text={item.availability_state === 'OUT_OF_STOCK' ? 'Out of stock' : 'Unavailable'} size="sm" />
-                <Text testID={`${testID}-reason`} className="text-body-sm text-muted-foreground">
-                  {reason}
-                </Text>
+                <Badge testID={`${testID}-unavailable`} text={badgeWord} size="sm" />
+                {reason !== badgeWord ? (
+                  <Text testID={`${testID}-reason`} className="text-body-sm text-muted-foreground">
+                    {reason}
+                  </Text>
+                ) : null}
               </View>
             ) : null}
           </View>

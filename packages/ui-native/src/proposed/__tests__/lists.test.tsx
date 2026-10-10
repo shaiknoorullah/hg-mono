@@ -220,6 +220,10 @@ describe('MenuItemCard', () => {
     fireEvent.press(add);
     expect(onAdd).not.toHaveBeenCalled();
     expect(screen.getByTestId('MenuItemCard').props.accessibilityLabel.endsWith(`${reason}.`)).toBe(true);
+    // With no time, the badge says it once; the words are not repeated beside it.
+    renderNw(<MenuItemCard item={item({ availability_state: 'OUT_OF_STOCK' })} onPress={jest.fn()} />);
+    expect(screen.getAllByText('Out of stock')).toHaveLength(1);
+    expect(screen.queryByTestId('MenuItemCard-reason')).toBeNull();
   });
 
   it('highlighted is the selected fill; loading is a hidden skeleton; no image is the placeholder', () => {

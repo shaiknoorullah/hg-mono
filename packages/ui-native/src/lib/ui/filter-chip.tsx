@@ -62,6 +62,8 @@ export function FilterChip({
       accessibilityRole="button"
       accessibilityLabel={count === undefined ? text : `${text}, ${count}`}
       accessibilityState={{ selected, disabled }}
+      aria-selected={selected}
+      aria-disabled={disabled}
       onPress={disabled ? undefined : onPress}
       className={cn(tile(selected, field), disabled && 'opacity-60 dark:opacity-50')}
     >
@@ -169,6 +171,7 @@ export function JumpLinks({ label: name, links, current, onSelect, field = false
               accessibilityRole="tab"
               accessibilityLabel={l.label}
               accessibilityState={{ selected }}
+              aria-selected={selected}
               onPress={() => onSelect(l.key)}
               className={tile(selected, field)}
             >

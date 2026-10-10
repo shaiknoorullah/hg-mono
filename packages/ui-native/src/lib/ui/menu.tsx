@@ -184,6 +184,8 @@ export function Menu({
         onPress={() => (open ? close(false) : setOpen(true))}
         accessibilityLabel={label}
         accessibilityState={{ expanded: open }}
+        aria-expanded={open}
+        aria-haspopup="menu"
         className="self-start"
       >
         {triggerText ? <Text>{triggerText}</Text> : null}
@@ -216,7 +218,7 @@ export function Menu({
                   testID={`${testID}-separator`}
                   accessibilityElementsHidden
                   importantForAccessibility="no-hide-descendants"
-                  className="my-1 h-px bg-border"
+                  className="my-1 h-px bg-border-interactive"
                 />
               ) : (
                 <Pressable
@@ -227,6 +229,7 @@ export function Menu({
                   accessibilityLabel={entry.label}
                   accessibilityHint={entry.disabled ? entry.disabledReason : undefined}
                   accessibilityState={{ disabled: !!entry.disabled }}
+                  aria-disabled={!!entry.disabled}
                   onPress={() => activate(entry)}
                   onPressIn={() => setActive(i)}
                   onPressOut={() => setActive(null)}

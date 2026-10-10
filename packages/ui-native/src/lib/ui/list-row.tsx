@@ -77,7 +77,7 @@ function SwitchMark({ on, field }: { on: boolean; field: boolean }): React.React
       className={cn(
         'justify-center rounded-full px-0.5',
         field ? 'h-8 w-14' : 'h-7 w-12',
-        on ? 'items-end bg-secondary' : 'items-start bg-border-interactive',
+        on ? 'items-end bg-primary' : 'items-start bg-border-interactive',
       )}
     >
       <View className={cn('rounded-full bg-card', field ? 'h-7 w-7' : 'h-6 w-6')} />
@@ -167,6 +167,9 @@ export function ListRow({
       accessibilityLabel={name}
       accessibilityHint={accessibilityHint}
       accessibilityState={{ disabled, selected, ...(isSwitch ? { checked: !!switchValue } : null) }}
+      aria-disabled={disabled}
+      aria-selected={selected}
+      aria-checked={isSwitch ? !!switchValue : undefined}
       onPress={handlePress}
       onPressIn={() => setPressed(true)}
       onPressOut={() => setPressed(false)}

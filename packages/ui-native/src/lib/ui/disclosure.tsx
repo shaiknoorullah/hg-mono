@@ -55,6 +55,7 @@ export function Disclosure({
         accessibilityRole="button"
         accessibilityLabel={summary && !open ? `${title}, ${summary}` : title}
         accessibilityState={{ expanded: open }}
+        aria-expanded={open}
         onPress={toggle}
         onPressIn={() => setPressed(true)}
         onPressOut={() => setPressed(false)}
