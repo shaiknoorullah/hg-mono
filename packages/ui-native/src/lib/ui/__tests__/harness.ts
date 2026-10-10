@@ -5,11 +5,12 @@
  *
  * Call `loadThemeCss()` in a `beforeAll`; then `renderNw(ui, { theme, scheme })`.
  */
-import type { ReactElement } from 'react';
+import { createElement, Fragment, type ReactElement } from 'react';
 import { StyleSheet } from 'react-native';
-import { act } from '@testing-library/react-native';
+import { act, render } from '@testing-library/react-native';
+import { PortalHost } from '@rn-primitives/portal';
 
-import { renderThemed } from '../../../primitives/__tests__/harness';
+import { ThemeProvider } from '../../../tokens';
 import type { ColorScheme, ThemeName } from '../../../tokens';
 
 const interop = require('react-native-css-interop/test') as {
@@ -43,7 +44,10 @@ export const SCHEMES: Array<[ThemeName, ColorScheme]> = [
   ['rider', 'dark'],
 ];
 
-/** Registers `theme`'s stylesheet, puts NativeWind on `scheme`, and renders under `ThemeProvider`. */
+/**
+ * Registers `theme`'s stylesheet, puts NativeWind on `scheme`, and renders under `ThemeProvider`,
+ * with the root `<PortalHost />` an app mounts, so portalled overlays (Sheet, Modal, Toast) render.
+ */
 export function renderNw(
   ui: ReactElement,
   { theme = 'customer', scheme = 'light' }: { theme?: ThemeName; scheme?: ColorScheme } = {},
@@ -52,7 +56,9 @@ export function renderNw(
   interop.setupAllComponents();
   interop.injectData(compiled[theme]);
   act(() => colorScheme.set(scheme));
-  return renderThemed(ui, { theme, scheme });
+  return render(
+    createElement(ThemeProvider, { theme, scheme, children: createElement(Fragment, null, ui, createElement(PortalHost)) }),
+  );
 }
 
 /** Flattened style of a rendered node. */
