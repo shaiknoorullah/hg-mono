@@ -11,8 +11,9 @@ The tables are data here, and the build fails if they drift:
 * every fixture name in them must exist, and be registered for the operation it is listed
   under unless it is a generic fixture registered for none (realtime scripts are listed
   under `ws`);
-* the devworld scenario names must be exactly `ScenarioNames` in
-  `services/hg/internal/devworld/scenario.go`, in the same order;
+* every devworld scenario named must be in `ScenarioNames` in
+  `services/hg/internal/devworld/scenario.go`. A scenario without a row is allowed (it
+  has no mock fixture mapped yet), so adding a devworld scenario never breaks this build;
 * every persona must be a `Slug` in `services/hg/internal/devworld/personas.go`.
 """
 
@@ -303,11 +304,13 @@ def _check_pairs(reg, where: str, pairs) -> None:
 def _check(reg) -> None:
     go_names = _go_scenario_names()
     ours = [name for name, *_ in DEVWORLD_SCENARIOS]
-    if go_names is not None and go_names != ours:
-        raise RuntimeError(
-            "vocabulary: DEVWORLD_SCENARIOS must list devworld ScenarioNames in order.\n"
-            f"  scenario.go: {go_names}\n  vocabulary:  {ours}"
-        )
+    if go_names is not None:
+        stale = [name for name in ours if name not in go_names]
+        if stale:
+            raise RuntimeError(
+                f"vocabulary: DEVWORLD_SCENARIOS names {stale}, which are not devworld "
+                f"ScenarioNames: {go_names}"
+            )
     slugs = _go_persona_slugs()
     for slug, pairs in PERSONAS:
         if slugs is not None and slug not in slugs:
@@ -443,7 +446,8 @@ def write_vocabulary(reg) -> None:
     lines.append(
         "`make dev-reset`, then `make dev-scenario s=<name>` (in `services/hg`). The fixtures "
         "are what the same screen shows in layer A. Several rows for one operation are the "
-        "states the scenario passes through."
+        "states the scenario passes through. A scenario missing here has no mock fixture "
+        "mapped yet; `go run ./cmd/devworld scenario list` prints them all."
     )
     lines.append("")
     lines.append("| `s=` | Leaves the world with | Same state in the mock | Note |")

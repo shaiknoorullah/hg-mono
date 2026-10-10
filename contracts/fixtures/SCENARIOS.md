@@ -116,7 +116,7 @@ countdown in the client is live. `MOCK_WS_SPEED=0.2` plays five times faster.
 
 ## 3. Devworld scenarios and the fixtures that show the same state
 
-`make dev-reset`, then `make dev-scenario s=<name>` (in `services/hg`). The fixtures are what the same screen shows in layer A. Several rows for one operation are the states the scenario passes through.
+`make dev-reset`, then `make dev-scenario s=<name>` (in `services/hg`). The fixtures are what the same screen shows in layer A. Several rows for one operation are the states the scenario passes through. A scenario missing here has no mock fixture mapped yet; `go run ./cmd/devworld scenario list` prints them all.
 
 | `s=` | Leaves the world with | Same state in the mock | Note |
 |---|---|---|---|
