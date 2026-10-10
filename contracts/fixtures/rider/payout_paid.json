@@ -2,11 +2,8 @@
   "scenario": "payout_paid",
   "domain": "rider",
   "schema": "Payout",
-  "describes": "Landed. **No minimum** for either partner type (contradiction log #16).",
-  "operations": [
-    "listRiderPayouts",
-    "listRestaurantPayouts"
-  ],
+  "describes": "Landed. **No minimum** for either partner type (contradiction log #16). A single `Payout` row; the list operations serve `payout_list_*`.",
+  "operations": [],
   "status": 200,
   "tags": [
     "payout-state-matrix",

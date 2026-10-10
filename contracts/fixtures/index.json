@@ -2,23 +2,23 @@
   "generated_by": "contracts/fixtures/_build/build.py",
   "do_not_edit": "Every file under contracts/fixtures/ is generated. Run `pnpm fixtures:build`.",
   "frozen_clock": "2026-08-10T18:42:11.412Z",
-  "count": 490,
+  "count": 544,
   "counts_by_domain": {
     "admin": 35,
     "cart": 14,
     "catalogue": 41,
     "dispatch": 31,
-    "documents": 23,
-    "errors": 93,
+    "documents": 27,
+    "errors": 99,
     "halal": 25,
     "handoff": 13,
     "onboarding": 47,
     "orders": 44,
     "payments": 12,
-    "platform": 31,
+    "platform": 40,
     "realtime": 20,
     "refunds": 39,
-    "rider": 22
+    "rider": 57
   },
   "fixtures": [
     {
@@ -2129,6 +2129,70 @@
       "file": "documents/rider_document_pack_complete.json"
     },
     {
+      "scenario": "rider_document_pack_empty",
+      "domain": "documents",
+      "schema": "array<KycDocument>",
+      "describes": "No documents uploaded yet.",
+      "operations": [
+        "listRiderDocuments"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "documents",
+        "edge",
+        "empty"
+      ],
+      "file": "documents/rider_document_pack_empty.json"
+    },
+    {
+      "scenario": "rider_document_pack_expired",
+      "domain": "documents",
+      "schema": "array<KycDocument>",
+      "describes": "The driver's licence expired three days ago (`state: EXPIRED`). Going online is refused with `DOCUMENT_EXPIRED` until a new one is approved.",
+      "operations": [
+        "listRiderDocuments"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "documents",
+        "error-path"
+      ],
+      "file": "documents/rider_document_pack_expired.json"
+    },
+    {
+      "scenario": "rider_document_pack_expired_replacement_in_review",
+      "domain": "documents",
+      "schema": "array<KycDocument>",
+      "describes": "The expired licence (version 1, `EXPIRED`) and its replacement (version 2, `IN_REVIEW`, uploaded five hours ago). Still blocked until the new one is approved; the screen says it is being checked rather than asking again.",
+      "operations": [
+        "listRiderDocuments"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "documents"
+      ],
+      "file": "documents/rider_document_pack_expired_replacement_in_review.json"
+    },
+    {
+      "scenario": "rider_document_pack_expiring",
+      "domain": "documents",
+      "schema": "array<KycDocument>",
+      "describes": "Every document approved, but the driver's licence expires in 21 days (`valid_until`). Home and Account show the \"renew soon\" notice; the rider can still go online.",
+      "operations": [
+        "listRiderDocuments"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "documents",
+        "boundary"
+      ],
+      "file": "documents/rider_document_pack_expiring.json"
+    },
+    {
       "scenario": "rider_document_pack_rejected",
       "domain": "documents",
       "schema": "array<KycDocument>",
@@ -2601,6 +2665,23 @@
       "file": "errors/error_checksum_mismatch.json"
     },
     {
+      "scenario": "error_connect_status_not_found",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`404` · `NOT_FOUND`. The 404 the contract allows on `getConnectStatus`. Contract-only: `services/hg` answers a partner with no Stripe account with `connect_status_not_started` (200) instead; treat both as \"not set up\".",
+      "operations": [
+        "getConnectStatus"
+      ],
+      "status": 404,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "rider",
+        "restaurant"
+      ],
+      "file": "errors/error_connect_status_not_found.json"
+    },
+    {
       "scenario": "error_content_type_mismatch",
       "domain": "errors",
       "schema": "ErrorEnvelope",
@@ -2824,6 +2905,24 @@
       "file": "errors/error_internal_error.json"
     },
     {
+      "scenario": "error_invalid_phone",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`422` · `INVALID_PHONE`. `requestOtp` with a number that is not E.164 (`+` and 8 to 15 digits). Exactly the body `services/hg` sends: one `FieldError` on `phone_e164`.",
+      "operations": [
+        "requestOtp"
+      ],
+      "status": 422,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "rider",
+        "customer",
+        "auth"
+      ],
+      "file": "errors/error_invalid_phone.json"
+    },
+    {
       "scenario": "error_invalid_transition",
       "domain": "errors",
       "schema": "ErrorEnvelope",
@@ -3025,13 +3124,67 @@
       "scenario": "error_otp_incorrect",
       "domain": "errors",
       "schema": "ErrorEnvelope",
-      "describes": "`401` · `OTP_INCORRECT`. **A collision case**: the auth `otp_incorrect` and the proof-of-delivery `OTP_INCORRECT` collapsed into one member. Disambiguate by endpoint, not by code.",
-      "operations": [],
-      "status": 401,
+      "describes": "`400` · `OTP_INCORRECT`. A wrong sign-in code; `details.attempts_remaining` is how many tries are left on this challenge (always sent by `services/hg`). **A collision case**: the proof-of-delivery `OTP_INCORRECT` (`422` from `createAssignmentTransition`) is the same member. Disambiguate by endpoint, not by code.",
+      "operations": [
+        "verifyOtp"
+      ],
+      "status": 400,
       "tags": [
-        "error-envelope"
+        "error-envelope",
+        "error-path"
       ],
       "file": "errors/error_otp_incorrect.json"
+    },
+    {
+      "scenario": "error_otp_incorrect_attempts_0",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`400` · `OTP_INCORRECT`. The last attempt was wrong: `attempts_remaining: 0`. The code field locks and the app offers \"Send a new code\"; the next `verifyOtp` on this challenge is `400 OTP_INVALID_OR_EXPIRED` (`error_otp_invalid_or_expired`).",
+      "operations": [
+        "verifyOtp"
+      ],
+      "status": 400,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "rider",
+        "customer",
+        "auth"
+      ],
+      "file": "errors/error_otp_incorrect_attempts_0.json"
+    },
+    {
+      "scenario": "error_otp_incorrect_attempts_2",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`400` · `OTP_INCORRECT`. Two wrong codes left on this challenge. `details.attempts_remaining` is the count `services/hg` sends with every `OTP_INCORRECT` (always present, an integer from 0 up).",
+      "operations": [
+        "verifyOtp"
+      ],
+      "status": 400,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "rider",
+        "customer",
+        "auth"
+      ],
+      "file": "errors/error_otp_incorrect_attempts_2.json"
+    },
+    {
+      "scenario": "error_otp_incorrect_no_count",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`400` · `OTP_INCORRECT`. A wrong sign-in code with `details` absent. `services/hg` always sends the count; this pins the client's fallback copy when a count is missing.",
+      "operations": [
+        "verifyOtp"
+      ],
+      "status": 400,
+      "tags": [
+        "error-envelope",
+        "error-path"
+      ],
+      "file": "errors/error_otp_incorrect_no_count.json"
     },
     {
       "scenario": "error_otp_invalid_or_expired",
@@ -3050,6 +3203,25 @@
         "auth"
       ],
       "file": "errors/error_otp_invalid_or_expired.json"
+    },
+    {
+      "scenario": "error_otp_rate_limited_with_retry",
+      "domain": "errors",
+      "schema": "ErrorEnvelope",
+      "describes": "`429` · `RATE_LIMITED`. `requestOtp` over the per-phone or per-device cap. `details.retry_after_seconds` (the contract's documented `RATE_LIMITED` shape) says how long the button stays disabled. Contract-only: `services/hg` sends the wait only as the `Retry-After` header today, with `details` absent; a fixture cannot carry a header, so read both.",
+      "operations": [
+        "requestOtp",
+        "verifyOtp"
+      ],
+      "status": 429,
+      "tags": [
+        "error-envelope",
+        "error-path",
+        "rider",
+        "customer",
+        "auth"
+      ],
+      "file": "errors/error_otp_rate_limited_with_retry.json"
     },
     {
       "scenario": "error_payload_too_large",
@@ -5780,6 +5952,21 @@
       "file": "platform/addresses_list.json"
     },
     {
+      "scenario": "connect_onboarding_link",
+      "domain": "platform",
+      "schema": "ConnectOnboardingLink",
+      "describes": "`createConnectOnboardingLink` (201): a single-use Stripe-hosted onboarding URL that expires in five minutes. Open it straight away; never store it.",
+      "operations": [
+        "createConnectOnboardingLink"
+      ],
+      "status": 201,
+      "tags": [
+        "platform",
+        "money"
+      ],
+      "file": "platform/connect_onboarding_link.json"
+    },
+    {
       "scenario": "connect_status_complete",
       "domain": "platform",
       "schema": "ConnectStatus",
@@ -5794,6 +5981,123 @@
         "money"
       ],
       "file": "platform/connect_status_complete.json"
+    },
+    {
+      "scenario": "connect_status_currently_due",
+      "domain": "platform",
+      "schema": "ConnectStatus",
+      "describes": "Stripe wants one more thing now (`currently_due: [external_account]`); payouts are off until it is given. No deadline. Requirement ids and `disabled_reason` are Stripe's own, never paraphrased.",
+      "operations": [
+        "getConnectStatus"
+      ],
+      "status": 200,
+      "tags": [
+        "platform",
+        "money",
+        "connect-state-matrix",
+        "error-path"
+      ],
+      "file": "platform/connect_status_currently_due.json"
+    },
+    {
+      "scenario": "connect_status_details_not_submitted",
+      "domain": "platform",
+      "schema": "ConnectStatus",
+      "describes": "The rider opened Stripe's form and left before finishing: `details_submitted: false` and Stripe's requirement ids in `currently_due`, verbatim. Requirement ids and `disabled_reason` are Stripe's own, never paraphrased.",
+      "operations": [
+        "getConnectStatus"
+      ],
+      "status": 200,
+      "tags": [
+        "platform",
+        "money",
+        "connect-state-matrix",
+        "error-path"
+      ],
+      "file": "platform/connect_status_details_not_submitted.json"
+    },
+    {
+      "scenario": "connect_status_due_with_deadline",
+      "domain": "platform",
+      "schema": "ConnectStatus",
+      "describes": "Payouts still on, but Stripe needs the SIN before `deadline` (in five days); after that it turns payouts off. Requirement ids and `disabled_reason` are Stripe's own, never paraphrased.",
+      "operations": [
+        "getConnectStatus"
+      ],
+      "status": 200,
+      "tags": [
+        "platform",
+        "money",
+        "connect-state-matrix"
+      ],
+      "file": "platform/connect_status_due_with_deadline.json"
+    },
+    {
+      "scenario": "connect_status_not_started",
+      "domain": "platform",
+      "schema": "ConnectStatus",
+      "describes": "No Stripe account yet: `services/hg` answers a zeroed, not-ready status (not 404), so the payout step renders \"Set up payouts\". Requirement ids and `disabled_reason` are Stripe's own, never paraphrased.",
+      "operations": [
+        "getConnectStatus"
+      ],
+      "status": 200,
+      "tags": [
+        "platform",
+        "money",
+        "connect-state-matrix"
+      ],
+      "file": "platform/connect_status_not_started.json"
+    },
+    {
+      "scenario": "connect_status_past_due",
+      "domain": "platform",
+      "schema": "ConnectStatus",
+      "describes": "The deadline passed: `past_due` is not empty and payouts are off. Payouts are `HELD` until the rider fixes it. Requirement ids and `disabled_reason` are Stripe's own, never paraphrased.",
+      "operations": [
+        "getConnectStatus"
+      ],
+      "status": 200,
+      "tags": [
+        "platform",
+        "money",
+        "connect-state-matrix",
+        "error-path"
+      ],
+      "file": "platform/connect_status_past_due.json"
+    },
+    {
+      "scenario": "connect_status_pending_verification",
+      "domain": "platform",
+      "schema": "ConnectStatus",
+      "describes": "Everything is submitted and Stripe is checking it: nothing due, payouts off, `disabled_reason: requirements.pending_verification`. Nothing for the rider to do. Requirement ids and `disabled_reason` are Stripe's own, never paraphrased.",
+      "operations": [
+        "getConnectStatus"
+      ],
+      "status": 200,
+      "tags": [
+        "platform",
+        "money",
+        "connect-state-matrix",
+        "error-path"
+      ],
+      "file": "platform/connect_status_pending_verification.json"
+    },
+    {
+      "scenario": "connect_status_rejected",
+      "domain": "platform",
+      "schema": "ConnectStatus",
+      "describes": "Stripe rejected the account (`disabled_reason: rejected.other`). Payouts are off for good on this account; the app sends the rider to support. Requirement ids and `disabled_reason` are Stripe's own, never paraphrased.",
+      "operations": [
+        "getConnectStatus"
+      ],
+      "status": 200,
+      "tags": [
+        "platform",
+        "money",
+        "connect-state-matrix",
+        "error-path"
+      ],
+      "file": "platform/connect_status_rejected.json"
     },
     {
       "scenario": "connect_status_requirements_due",
@@ -5898,6 +6202,22 @@
         "auth"
       ],
       "file": "platform/otp_challenge.json"
+    },
+    {
+      "scenario": "otp_challenge_resend_open",
+      "domain": "platform",
+      "schema": "OtpChallenge",
+      "describes": "A challenge whose resend cooldown is over (`resend_after_s: 0`): \"Send a new code\" is enabled at once. The code itself is still valid for four minutes.",
+      "operations": [
+        "requestOtp"
+      ],
+      "status": 200,
+      "tags": [
+        "platform",
+        "auth",
+        "edge"
+      ],
+      "file": "platform/otp_challenge_resend_open.json"
     },
     {
       "scenario": "principal_admin",
@@ -7117,6 +7437,22 @@
       "file": "refunds/refund_succeeded.json"
     },
     {
+      "scenario": "earning_entries_clawback",
+      "domain": "rider",
+      "schema": "array<EarningEntry>",
+      "describes": "A delivery taken back: the original `DELIVERY` row is now `REVERSED` and a new `CLAWBACK` row of -9.49 follows it (append-only; nothing was edited). The line shows the minus sign.",
+      "operations": [
+        "listRiderEarningEntries"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "money",
+        "edge"
+      ],
+      "file": "rider/earning_entries_clawback.json"
+    },
+    {
       "scenario": "earning_entries_empty",
       "domain": "rider",
       "schema": "array<EarningEntry>",
@@ -7147,6 +7483,98 @@
         "state-matrix"
       ],
       "file": "rider/earning_entries_mixed.json"
+    },
+    {
+      "scenario": "earning_entries_paging",
+      "domain": "rider",
+      "schema": "array<EarningEntry>",
+      "describes": "The first page of a long ledger: 20 entries (the default `limit`), newest first, `has_more: true` and `next_cursor` set to the last entry's id, as `services/hg` pages. The next page is `earning_entries_paging_page_2`.",
+      "operations": [
+        "listRiderEarningEntries"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "money",
+        "dense"
+      ],
+      "file": "rider/earning_entries_paging.json"
+    },
+    {
+      "scenario": "earning_entries_paging_page_2",
+      "domain": "rider",
+      "schema": "array<EarningEntry>",
+      "describes": "The second and last page after `earning_entries_paging`: five older entries, `has_more: false`, `next_cursor: null`.",
+      "operations": [
+        "listRiderEarningEntries"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "money"
+      ],
+      "file": "rider/earning_entries_paging_page_2.json"
+    },
+    {
+      "scenario": "earning_entries_pending",
+      "domain": "rider",
+      "schema": "array<EarningEntry>",
+      "describes": "Today's entries, all `PENDING`: earned, not yet available for a payout. One is a tip added after the delivery, its own `TIP` row.",
+      "operations": [
+        "listRiderEarningEntries"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "money"
+      ],
+      "file": "rider/earning_entries_pending.json"
+    },
+    {
+      "scenario": "earnings_summary_day",
+      "domain": "rider",
+      "schema": "EarningsSummary",
+      "describes": "`period=DAY` for today: one bucket, as `services/hg` answers `period=DAY&from=` today (the bucket unit is the period). Three trips so far.",
+      "operations": [
+        "getRiderEarningsSummary"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "money"
+      ],
+      "file": "rider/earnings_summary_day.json"
+    },
+    {
+      "scenario": "earnings_summary_month",
+      "domain": "rider",
+      "schema": "EarningsSummary",
+      "describes": "`period=MONTH` for August so far: one bucket, as `services/hg` answers `period=MONTH&from=2026-08-01`. 131 trips, CAD 984.15, of which 318.50 tips.",
+      "operations": [
+        "getRiderEarningsSummary"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "money"
+      ],
+      "file": "rider/earnings_summary_month.json"
+    },
+    {
+      "scenario": "earnings_summary_negative_balance",
+      "domain": "rider",
+      "schema": "EarningsSummary",
+      "describes": "Last week ended below zero: two clawbacks on Wednesday (-18.98) outweigh the five trips, so the week's total is 7.96 and `unpaid_balance_cents` is -4.49. A negative balance is carried to the next run, never paid out or charged.",
+      "operations": [
+        "getRiderEarningsSummary"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "money",
+        "edge"
+      ],
+      "file": "rider/earnings_summary_negative_balance.json"
     },
     {
       "scenario": "earnings_summary_week",
@@ -7181,6 +7609,54 @@
       "file": "rider/earnings_summary_zero.json"
     },
     {
+      "scenario": "payout_detail_draft",
+      "domain": "rider",
+      "schema": "PayoutDetail",
+      "describes": "This week's payout, still accruing: no entries stamped yet, amount 0. The amount is exactly the sum of its entries.",
+      "operations": [
+        "getRiderPayout"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "money",
+        "payout-state-matrix"
+      ],
+      "file": "rider/payout_detail_draft.json"
+    },
+    {
+      "scenario": "payout_detail_failed",
+      "domain": "rider",
+      "schema": "PayoutDetail",
+      "describes": "The transfer failed. `failure_message` is shown verbatim; the money stays in the balance and goes into the next run. The amount is exactly the sum of its entries.",
+      "operations": [
+        "getRiderPayout"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "money",
+        "payout-state-matrix"
+      ],
+      "file": "rider/payout_detail_failed.json"
+    },
+    {
+      "scenario": "payout_detail_held",
+      "domain": "rider",
+      "schema": "PayoutDetail",
+      "describes": "Held: `hold_reason` is shown verbatim. Nothing is lost; it goes out on the next Monday payout after the hold is lifted. The amount is exactly the sum of its entries.",
+      "operations": [
+        "getRiderPayout"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "money",
+        "payout-state-matrix"
+      ],
+      "file": "rider/payout_detail_held.json"
+    },
+    {
       "scenario": "payout_detail_paid",
       "domain": "rider",
       "schema": "PayoutDetail",
@@ -7196,14 +7672,59 @@
       "file": "rider/payout_detail_paid.json"
     },
     {
+      "scenario": "payout_detail_ready",
+      "domain": "rider",
+      "schema": "PayoutDetail",
+      "describes": "Week closed, amount final, waiting for Monday's run. The amount is exactly the sum of its entries.",
+      "operations": [
+        "getRiderPayout"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "money",
+        "payout-state-matrix"
+      ],
+      "file": "rider/payout_detail_ready.json"
+    },
+    {
+      "scenario": "payout_detail_transferred",
+      "domain": "rider",
+      "schema": "PayoutDetail",
+      "describes": "Stripe accepted the transfer; the bank has not shown it yet. The amount is exactly the sum of its entries.",
+      "operations": [
+        "getRiderPayout"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "money",
+        "payout-state-matrix"
+      ],
+      "file": "rider/payout_detail_transferred.json"
+    },
+    {
+      "scenario": "payout_detail_transferring",
+      "domain": "rider",
+      "schema": "PayoutDetail",
+      "describes": "Submitted to Stripe Connect on Monday's run. The amount is exactly the sum of its entries.",
+      "operations": [
+        "getRiderPayout"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "money",
+        "payout-state-matrix"
+      ],
+      "file": "rider/payout_detail_transferring.json"
+    },
+    {
       "scenario": "payout_draft",
       "domain": "rider",
       "schema": "Payout",
-      "describes": "The week is still accruing. Nothing is owed yet.",
-      "operations": [
-        "listRiderPayouts",
-        "listRestaurantPayouts"
-      ],
+      "describes": "The week is still accruing. Nothing is owed yet. A single `Payout` row; the list operations serve `payout_list_*`.",
+      "operations": [],
       "status": 200,
       "tags": [
         "payout-state-matrix",
@@ -7215,11 +7736,8 @@
       "scenario": "payout_failed",
       "domain": "rider",
       "schema": "Payout",
-      "describes": "The transfer bounced — usually a Connect requirement went `past_due`.",
-      "operations": [
-        "listRiderPayouts",
-        "listRestaurantPayouts"
-      ],
+      "describes": "The transfer bounced — usually a Connect requirement went `past_due`. A single `Payout` row; the list operations serve `payout_list_*`.",
+      "operations": [],
       "status": 200,
       "tags": [
         "payout-state-matrix",
@@ -7231,17 +7749,29 @@
       "scenario": "payout_held",
       "domain": "rider",
       "schema": "Payout",
-      "describes": "Held by compliance pending a review. The partner sees the hold, not the reason.",
-      "operations": [
-        "listRiderPayouts",
-        "listRestaurantPayouts"
-      ],
+      "describes": "Held by compliance pending a review. The partner sees the hold, not the reason. A single `Payout` row; the list operations serve `payout_list_*`.",
+      "operations": [],
       "status": 200,
       "tags": [
         "payout-state-matrix",
         "money"
       ],
       "file": "rider/payout_held.json"
+    },
+    {
+      "scenario": "payout_list_draft_paid",
+      "domain": "rider",
+      "schema": "array<Payout>",
+      "describes": "The ordinary history: this week accruing, two paid weeks before it. Nothing needs attention.",
+      "operations": [
+        "listRiderPayouts"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "money"
+      ],
+      "file": "rider/payout_list_draft_paid.json"
     },
     {
       "scenario": "payout_list_empty",
@@ -7260,14 +7790,43 @@
       "file": "rider/payout_list_empty.json"
     },
     {
+      "scenario": "payout_list_every_state",
+      "domain": "rider",
+      "schema": "array<Payout>",
+      "describes": "`listRiderPayouts` with one payout in each `PayoutState`, newest first: this week accruing (`DRAFT`), then `READY`, `TRANSFERRING`, `TRANSFERRED`, `HELD` (with its `hold_reason`), `FAILED` (with its `failure_message`) and `PAID`.",
+      "operations": [
+        "listRiderPayouts"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "money",
+        "payout-state-matrix"
+      ],
+      "file": "rider/payout_list_every_state.json"
+    },
+    {
+      "scenario": "payout_list_multi_problem",
+      "domain": "rider",
+      "schema": "array<Payout>",
+      "describes": "Two problems at once: last week's payout `FAILED` and the week before is `HELD`. The alert names both (\"Two payouts need attention\"), not just the newest.",
+      "operations": [
+        "listRiderPayouts"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "money",
+        "error-path"
+      ],
+      "file": "rider/payout_list_multi_problem.json"
+    },
+    {
       "scenario": "payout_paid",
       "domain": "rider",
       "schema": "Payout",
-      "describes": "Landed. **No minimum** for either partner type (contradiction log #16).",
-      "operations": [
-        "listRiderPayouts",
-        "listRestaurantPayouts"
-      ],
+      "describes": "Landed. **No minimum** for either partner type (contradiction log #16). A single `Payout` row; the list operations serve `payout_list_*`.",
+      "operations": [],
       "status": 200,
       "tags": [
         "payout-state-matrix",
@@ -7279,11 +7838,8 @@
       "scenario": "payout_ready",
       "domain": "rider",
       "schema": "Payout",
-      "describes": "Week closed, amount final, waiting for Monday's run.",
-      "operations": [
-        "listRiderPayouts",
-        "listRestaurantPayouts"
-      ],
+      "describes": "Week closed, amount final, waiting for Monday's run. A single `Payout` row; the list operations serve `payout_list_*`.",
+      "operations": [],
       "status": 200,
       "tags": [
         "payout-state-matrix",
@@ -7295,11 +7851,8 @@
       "scenario": "payout_transferred",
       "domain": "rider",
       "schema": "Payout",
-      "describes": "Stripe accepted the transfer; not yet in the bank.",
-      "operations": [
-        "listRiderPayouts",
-        "listRestaurantPayouts"
-      ],
+      "describes": "Stripe accepted the transfer; not yet in the bank. A single `Payout` row; the list operations serve `payout_list_*`.",
+      "operations": [],
       "status": 200,
       "tags": [
         "payout-state-matrix",
@@ -7311,11 +7864,8 @@
       "scenario": "payout_transferring",
       "domain": "rider",
       "schema": "Payout",
-      "describes": "Submitted to Stripe Connect.",
-      "operations": [
-        "listRiderPayouts",
-        "listRestaurantPayouts"
-      ],
+      "describes": "Submitted to Stripe Connect. A single `Payout` row; the list operations serve `payout_list_*`.",
+      "operations": [],
       "status": 200,
       "tags": [
         "payout-state-matrix",
@@ -7337,6 +7887,21 @@
         "money"
       ],
       "file": "rider/restaurant_payout_history.json"
+    },
+    {
+      "scenario": "rider_availability_go_offline_after_delivery",
+      "domain": "rider",
+      "schema": "RiderAvailability",
+      "describes": "`setRiderAvailability {state: OFFLINE}` while carrying an order: `services/hg` keeps the rider `ON_DELIVERY` and sets `go_offline_after_delivery: true`; the rider goes offline by themselves once this delivery is done.",
+      "operations": [
+        "setRiderAvailability"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "home"
+      ],
+      "file": "rider/rider_availability_go_offline_after_delivery.json"
     },
     {
       "scenario": "rider_availability_offline",
@@ -7402,7 +7967,7 @@
       "scenario": "rider_dashboard_active",
       "domain": "rider",
       "schema": "RiderDashboard",
-      "describes": "A rider mid-shift with an assignment in progress and earnings accrued today.",
+      "describes": "A rider mid-shift with an assignment in progress (`mode: ON_DELIVERY`) and earnings accrued today.",
       "operations": [
         "getRiderDashboard"
       ],
@@ -7413,10 +7978,278 @@
       "file": "rider/rider_dashboard_active.json"
     },
     {
+      "scenario": "rider_dashboard_offline",
+      "domain": "rider",
+      "schema": "RiderDashboard",
+      "describes": "Off shift. Today's totals stay on screen; tracking is not reported while offline (`tracking_health: null`).",
+      "operations": [
+        "getRiderDashboard"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "home"
+      ],
+      "file": "rider/rider_dashboard_offline.json"
+    },
+    {
+      "scenario": "rider_dashboard_offline_blocked",
+      "domain": "rider",
+      "schema": "RiderDashboard",
+      "describes": "Offline with all nine `blocking_reasons` at once, so one screen test covers every row and deep link. Nothing earned today. Contract-only: `getRiderDashboard` on `services/hg` sends `mode` and `today` but not `active_assignment`, `tracking_health` or `blocking_reasons` yet.",
+      "operations": [
+        "getRiderDashboard"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "home",
+        "error-path"
+      ],
+      "file": "rider/rider_dashboard_offline_blocked.json"
+    },
+    {
+      "scenario": "rider_dashboard_offline_blocked_account_not_active",
+      "domain": "rider",
+      "schema": "RiderDashboard",
+      "describes": "Offline with one blocking reason, `ACCOUNT_NOT_ACTIVE`, so its row can be tested alone. Contract-only: `getRiderDashboard` on `services/hg` sends `mode` and `today` but not `active_assignment`, `tracking_health` or `blocking_reasons` yet.",
+      "operations": [
+        "getRiderDashboard"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "home",
+        "error-path"
+      ],
+      "file": "rider/rider_dashboard_offline_blocked_account_not_active.json"
+    },
+    {
+      "scenario": "rider_dashboard_offline_blocked_background_location_permission",
+      "domain": "rider",
+      "schema": "RiderDashboard",
+      "describes": "Offline with one blocking reason, `BACKGROUND_LOCATION_PERMISSION`, so its row can be tested alone. Contract-only: `getRiderDashboard` on `services/hg` sends `mode` and `today` but not `active_assignment`, `tracking_health` or `blocking_reasons` yet.",
+      "operations": [
+        "getRiderDashboard"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "home",
+        "error-path"
+      ],
+      "file": "rider/rider_dashboard_offline_blocked_background_location_permission.json"
+    },
+    {
+      "scenario": "rider_dashboard_offline_blocked_continuous_online_cap",
+      "domain": "rider",
+      "schema": "RiderDashboard",
+      "describes": "Offline with one blocking reason, `CONTINUOUS_ONLINE_CAP`, so its row can be tested alone. Contract-only: `getRiderDashboard` on `services/hg` sends `mode` and `today` but not `active_assignment`, `tracking_health` or `blocking_reasons` yet.",
+      "operations": [
+        "getRiderDashboard"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "home",
+        "error-path"
+      ],
+      "file": "rider/rider_dashboard_offline_blocked_continuous_online_cap.json"
+    },
+    {
+      "scenario": "rider_dashboard_offline_blocked_document_expired",
+      "domain": "rider",
+      "schema": "RiderDashboard",
+      "describes": "Offline with one blocking reason, `DOCUMENT_EXPIRED`, so its row can be tested alone. Contract-only: `getRiderDashboard` on `services/hg` sends `mode` and `today` but not `active_assignment`, `tracking_health` or `blocking_reasons` yet.",
+      "operations": [
+        "getRiderDashboard"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "home",
+        "error-path"
+      ],
+      "file": "rider/rider_dashboard_offline_blocked_document_expired.json"
+    },
+    {
+      "scenario": "rider_dashboard_offline_blocked_foreground_location_permission",
+      "domain": "rider",
+      "schema": "RiderDashboard",
+      "describes": "Offline with one blocking reason, `FOREGROUND_LOCATION_PERMISSION`, so its row can be tested alone. Contract-only: `getRiderDashboard` on `services/hg` sends `mode` and `today` but not `active_assignment`, `tracking_health` or `blocking_reasons` yet.",
+      "operations": [
+        "getRiderDashboard"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "home",
+        "error-path"
+      ],
+      "file": "rider/rider_dashboard_offline_blocked_foreground_location_permission.json"
+    },
+    {
+      "scenario": "rider_dashboard_offline_blocked_notification_permission",
+      "domain": "rider",
+      "schema": "RiderDashboard",
+      "describes": "Offline with one blocking reason, `NOTIFICATION_PERMISSION`, so its row can be tested alone. Contract-only: `getRiderDashboard` on `services/hg` sends `mode` and `today` but not `active_assignment`, `tracking_health` or `blocking_reasons` yet.",
+      "operations": [
+        "getRiderDashboard"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "home",
+        "error-path"
+      ],
+      "file": "rider/rider_dashboard_offline_blocked_notification_permission.json"
+    },
+    {
+      "scenario": "rider_dashboard_offline_blocked_onboarding_incomplete",
+      "domain": "rider",
+      "schema": "RiderDashboard",
+      "describes": "Offline with one blocking reason, `ONBOARDING_INCOMPLETE`, so its row can be tested alone. Contract-only: `getRiderDashboard` on `services/hg` sends `mode` and `today` but not `active_assignment`, `tracking_health` or `blocking_reasons` yet.",
+      "operations": [
+        "getRiderDashboard"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "home",
+        "error-path"
+      ],
+      "file": "rider/rider_dashboard_offline_blocked_onboarding_incomplete.json"
+    },
+    {
+      "scenario": "rider_dashboard_offline_blocked_payout_account_incomplete",
+      "domain": "rider",
+      "schema": "RiderDashboard",
+      "describes": "Offline with one blocking reason, `PAYOUT_ACCOUNT_INCOMPLETE`, so its row can be tested alone. Contract-only: `getRiderDashboard` on `services/hg` sends `mode` and `today` but not `active_assignment`, `tracking_health` or `blocking_reasons` yet.",
+      "operations": [
+        "getRiderDashboard"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "home",
+        "error-path"
+      ],
+      "file": "rider/rider_dashboard_offline_blocked_payout_account_incomplete.json"
+    },
+    {
+      "scenario": "rider_dashboard_offline_blocked_stale_location_fix",
+      "domain": "rider",
+      "schema": "RiderDashboard",
+      "describes": "Offline with one blocking reason, `STALE_LOCATION_FIX`, so its row can be tested alone. Contract-only: `getRiderDashboard` on `services/hg` sends `mode` and `today` but not `active_assignment`, `tracking_health` or `blocking_reasons` yet.",
+      "operations": [
+        "getRiderDashboard"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "home",
+        "error-path"
+      ],
+      "file": "rider/rider_dashboard_offline_blocked_stale_location_fix.json"
+    },
+    {
+      "scenario": "rider_dashboard_on_delivery_dropoff",
+      "domain": "rider",
+      "schema": "RiderDashboard",
+      "describes": "`ON_DELIVERY` with the assignment in `EN_ROUTE_TO_DROPOFF`. Bag collected, heading to the customer; the full address and unit are now present. No offer while carrying an order. Contract-only: `getRiderDashboard` on `services/hg` sends `mode` and `today` but not `active_assignment`, `tracking_health` or `blocking_reasons` yet.",
+      "operations": [
+        "getRiderDashboard"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "home"
+      ],
+      "file": "rider/rider_dashboard_on_delivery_dropoff.json"
+    },
+    {
+      "scenario": "rider_dashboard_on_delivery_pickup",
+      "domain": "rider",
+      "schema": "RiderDashboard",
+      "describes": "`ON_DELIVERY` with the assignment in `EN_ROUTE_TO_PICKUP`. Heading to the restaurant; the drop-off shows the street and neighbourhood only until pickup. No offer while carrying an order. Contract-only: `getRiderDashboard` on `services/hg` sends `mode` and `today` but not `active_assignment`, `tracking_health` or `blocking_reasons` yet.",
+      "operations": [
+        "getRiderDashboard"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "home"
+      ],
+      "file": "rider/rider_dashboard_on_delivery_pickup.json"
+    },
+    {
+      "scenario": "rider_dashboard_online_idle",
+      "domain": "rider",
+      "schema": "RiderDashboard",
+      "describes": "Online, waiting for an offer: no assignment, no offer, healthy tracking, three trips so far today.",
+      "operations": [
+        "getRiderDashboard"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "home"
+      ],
+      "file": "rider/rider_dashboard_online_idle.json"
+    },
+    {
+      "scenario": "rider_dashboard_online_stale",
+      "domain": "rider",
+      "schema": "RiderDashboard",
+      "describes": "Online but no location has arrived recently: offers are held back until one does. `blocking_reasons: [STALE_LOCATION_FIX]`, tracking `DEGRADED`. Contract-only: `getRiderDashboard` on `services/hg` sends `mode` and `today` but not `active_assignment`, `tracking_health` or `blocking_reasons` yet.",
+      "operations": [
+        "getRiderDashboard"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "home",
+        "degraded"
+      ],
+      "file": "rider/rider_dashboard_online_stale.json"
+    },
+    {
+      "scenario": "rider_dashboard_tracking_degraded",
+      "domain": "rider",
+      "schema": "RiderDashboard",
+      "describes": "Online and dispatchable, but location fixes are arriving late or imprecise (`tracking_health: DEGRADED`). Contract-only: `getRiderDashboard` on `services/hg` sends `mode` and `today` but not `active_assignment`, `tracking_health` or `blocking_reasons` yet.",
+      "operations": [
+        "getRiderDashboard"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "home",
+        "degraded"
+      ],
+      "file": "rider/rider_dashboard_tracking_degraded.json"
+    },
+    {
+      "scenario": "rider_dashboard_tracking_lost",
+      "domain": "rider",
+      "schema": "RiderDashboard",
+      "describes": "Online, but no location for long enough that tracking is `LOST`. Tracking loss alone never reassigns anything; the app asks the rider to check location access. Contract-only: `getRiderDashboard` on `services/hg` sends `mode` and `today` but not `active_assignment`, `tracking_health` or `blocking_reasons` yet.",
+      "operations": [
+        "getRiderDashboard"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "home",
+        "degraded"
+      ],
+      "file": "rider/rider_dashboard_tracking_lost.json"
+    },
+    {
       "scenario": "rider_dashboard_zero_earnings",
       "domain": "rider",
       "schema": "RiderDashboard",
-      "describes": "**A rider with zero earnings** — approved this morning, no deliveries yet. Every money field is 0 and every count is 0. The dashboard must read as 'not started', never as an error or a blank screen.",
+      "describes": "**A rider with zero earnings** — approved this morning, just went online, no deliveries yet: no assignment, no offer, every money field and count 0. The dashboard must read as 'not started', never as an error or a blank screen.",
       "operations": [
         "getRiderDashboard"
       ],
@@ -7442,6 +8275,21 @@
         "rider"
       ],
       "file": "rider/rider_me.json"
+    },
+    {
+      "scenario": "rider_me_suspended",
+      "domain": "rider",
+      "schema": "RiderMe",
+      "describes": "A suspended rider: `account_status: SUSPENDED`, offline, no assignment, `next_route: SUSPENDED`. The app shows the on-hold screen with the support line; going online is refused.",
+      "operations": [
+        "getRiderMe"
+      ],
+      "status": 200,
+      "tags": [
+        "rider",
+        "error-path"
+      ],
+      "file": "rider/rider_me_suspended.json"
     },
     {
       "scenario": "rider_position_ack",
@@ -7575,6 +8423,7 @@
       "error_step_not_available"
     ],
     "createConnectOnboardingLink": [
+      "connect_onboarding_link",
       "error_step_not_available"
     ],
     "createDocumentDownloadUrl": [
@@ -7783,7 +8632,15 @@
     ],
     "getConnectStatus": [
       "connect_status_complete",
-      "connect_status_requirements_due"
+      "connect_status_currently_due",
+      "connect_status_details_not_submitted",
+      "connect_status_due_with_deadline",
+      "connect_status_not_started",
+      "connect_status_past_due",
+      "connect_status_pending_verification",
+      "connect_status_rejected",
+      "connect_status_requirements_due",
+      "error_connect_status_not_found"
     ],
     "getCurrentOffer": [
       "offer_expired",
@@ -8007,14 +8864,35 @@
     ],
     "getRiderDashboard": [
       "rider_dashboard_active",
+      "rider_dashboard_offline",
+      "rider_dashboard_offline_blocked",
+      "rider_dashboard_offline_blocked_account_not_active",
+      "rider_dashboard_offline_blocked_background_location_permission",
+      "rider_dashboard_offline_blocked_continuous_online_cap",
+      "rider_dashboard_offline_blocked_document_expired",
+      "rider_dashboard_offline_blocked_foreground_location_permission",
+      "rider_dashboard_offline_blocked_notification_permission",
+      "rider_dashboard_offline_blocked_onboarding_incomplete",
+      "rider_dashboard_offline_blocked_payout_account_incomplete",
+      "rider_dashboard_offline_blocked_stale_location_fix",
+      "rider_dashboard_on_delivery_dropoff",
+      "rider_dashboard_on_delivery_pickup",
+      "rider_dashboard_online_idle",
+      "rider_dashboard_online_stale",
+      "rider_dashboard_tracking_degraded",
+      "rider_dashboard_tracking_lost",
       "rider_dashboard_zero_earnings"
     ],
     "getRiderEarningsSummary": [
+      "earnings_summary_day",
+      "earnings_summary_month",
+      "earnings_summary_negative_balance",
       "earnings_summary_week",
       "earnings_summary_zero"
     ],
     "getRiderMe": [
-      "rider_me"
+      "rider_me",
+      "rider_me_suspended"
     ],
     "getRiderOnboardingStatus": [
       "rider_onboarding_active",
@@ -8029,7 +8907,13 @@
       "rider_onboarding_vehicle_pending"
     ],
     "getRiderPayout": [
-      "payout_detail_paid"
+      "payout_detail_draft",
+      "payout_detail_failed",
+      "payout_detail_held",
+      "payout_detail_paid",
+      "payout_detail_ready",
+      "payout_detail_transferred",
+      "payout_detail_transferring"
     ],
     "issueRefund": [
       "error_refund_mfa_required",
@@ -8134,14 +9018,7 @@
       "restaurant_order_restaurant_pending"
     ],
     "listRestaurantPayouts": [
-      "payout_draft",
-      "payout_failed",
-      "payout_held",
       "payout_list_empty",
-      "payout_paid",
-      "payout_ready",
-      "payout_transferred",
-      "payout_transferring",
       "restaurant_payout_history"
     ],
     "listRestaurantStaff": [
@@ -8159,21 +9036,25 @@
     ],
     "listRiderDocuments": [
       "rider_document_pack_complete",
+      "rider_document_pack_empty",
+      "rider_document_pack_expired",
+      "rider_document_pack_expired_replacement_in_review",
+      "rider_document_pack_expiring",
       "rider_document_pack_rejected"
     ],
     "listRiderEarningEntries": [
+      "earning_entries_clawback",
       "earning_entries_empty",
-      "earning_entries_mixed"
+      "earning_entries_mixed",
+      "earning_entries_paging",
+      "earning_entries_paging_page_2",
+      "earning_entries_pending"
     ],
     "listRiderPayouts": [
-      "payout_draft",
-      "payout_failed",
-      "payout_held",
+      "payout_list_draft_paid",
       "payout_list_empty",
-      "payout_paid",
-      "payout_ready",
-      "payout_transferred",
-      "payout_transferring"
+      "payout_list_every_state",
+      "payout_list_multi_problem"
     ],
     "listStaff": [
       "staff_list"
@@ -8247,8 +9128,11 @@
       "handoff_tamper_report"
     ],
     "requestOtp": [
+      "error_invalid_phone",
+      "error_otp_rate_limited_with_retry",
       "error_rate_limiter_unavailable",
-      "otp_challenge"
+      "otp_challenge",
+      "otp_challenge_resend_open"
     ],
     "resetPassword": [
       "error_breached_password",
@@ -8340,6 +9224,7 @@
       "error_cannot_go_online_payout_account_incomplete",
       "error_onboarding_incomplete",
       "error_payout_account_incomplete",
+      "rider_availability_go_offline_after_delivery",
       "rider_availability_offline",
       "rider_availability_on_delivery",
       "rider_availability_online_idle",
@@ -8457,7 +9342,12 @@
       "error_verification_token_used"
     ],
     "verifyOtp": [
+      "error_otp_incorrect",
+      "error_otp_incorrect_attempts_0",
+      "error_otp_incorrect_attempts_2",
+      "error_otp_incorrect_no_count",
       "error_otp_invalid_or_expired",
+      "error_otp_rate_limited_with_retry",
       "error_rate_limiter_unavailable",
       "session_grant_customer",
       "session_next_route_active_delivery",
@@ -8490,6 +9380,7 @@
     "createAssignmentTransition": "assignment_picked_up",
     "createCertificateViewUrl": "presigned_download",
     "createConnectAccount": "connect_status_complete",
+    "createConnectOnboardingLink": "connect_onboarding_link",
     "createDocumentDownloadUrl": "presigned_download",
     "createMenuCategory": "menu_category_created",
     "createMenuCategoryOnBehalf": "menu_category_created",
@@ -8572,7 +9463,7 @@
     "listRiderApplications": "rider_application_queue",
     "listRiderDocuments": "rider_document_pack_complete",
     "listRiderEarningEntries": "earning_entries_mixed",
-    "listRiderPayouts": "payout_paid",
+    "listRiderPayouts": "payout_list_draft_paid",
     "listStaff": "staff_list",
     "login": "session_grant_customer",
     "markOrderReady": "restaurant_order_ready_for_pickup",

@@ -72,7 +72,7 @@ falling through, so a typo is visible immediately.
 
 ## Scenarios by domain
 
-**490 scenarios** across 15 domains.
+**544 scenarios** across 15 domains.
 
 | Domain | Scenarios | What it covers |
 |---|---:|---|
@@ -80,17 +80,17 @@ falling through, so a typo is visible immediately.
 | [`cart`](#cart) | 14 | Cart and quote — every blocking reason, the quantity cap, and the money edges. |
 | [`catalogue`](#catalogue) | 41 | Discovery, restaurant detail, hours and menus. |
 | [`dispatch`](#dispatch) | 31 | Dispatch states, rider offers and assignments. |
-| [`documents`](#documents) | 23 | KYC uploads, review states and every rejection reason. |
-| [`errors`](#errors) | 93 | `{error}` envelopes for the codes an app actually branches on. |
+| [`documents`](#documents) | 27 | KYC uploads, review states and every rejection reason. |
+| [`errors`](#errors) | 99 | `{error}` envelopes for the codes an app actually branches on. |
 | [`halal`](#halal) | 25 | Badges, certificates, checks and issuing bodies — the platform's core promise. |
 | [`handoff`](#handoff) | 13 | The package-seal chain of custody — every `PackageSeal` status, `HandoffEvent` type, and the bind/pickup-scan/delivery-scan/tamper-report results. |
 | [`onboarding`](#onboarding) | 47 | Restaurant and rider onboarding, profiles, vehicles and trading state. |
 | [`orders`](#orders) | 44 | The 14 `OrderState` values, per-audience projections, tracking and receipts. |
 | [`payments`](#payments) | 12 | The 8 `PaymentState` values, saved cards and setup intents. |
-| [`platform`](#platform) | 31 | Auth, config, addresses, notifications, Connect and health. |
+| [`platform`](#platform) | 40 | Auth, config, addresses, notifications, Connect and health. |
 | [`realtime`](#realtime) | 20 | Scripted WebSocket sequences that drive a screen through a whole lifecycle. |
 | [`refunds`](#refunds) | 39 | The 10 `RefundState` values, liability splits, approval requests, the staff review queue and chargebacks. |
-| [`rider`](#rider) | 22 | Availability, dashboard, earnings and payouts. |
+| [`rider`](#rider) | 57 | Availability, dashboard, earnings and payouts. |
 
 ### admin
 
@@ -243,7 +243,7 @@ Dispatch states, rider offers and assignments. — 31 scenarios.
 
 ### documents
 
-KYC uploads, review states and every rejection reason. — 23 scenarios.
+KYC uploads, review states and every rejection reason. — 27 scenarios.
 
 | Scenario | Schema | Status | Represents |
 |---|---|---:|---|
@@ -265,6 +265,10 @@ KYC uploads, review states and every rejection reason. — 23 scenarios.
 | `restaurant_document_pack_empty` | `array&lt;KycDocument&gt;` | 200 | Nothing uploaded yet — the first thing a new partner sees. |
 | `restaurant_document_pack_incomplete` | `array&lt;KycDocument&gt;` | 200 | Two of five uploaded, one rejected, two never attached. Submitting is `422 INCOMPLETE_DOCUMENT_PACK`. |
 | `rider_document_pack_complete` | `array&lt;KycDocument&gt;` | 200 | All six rider document types APPROVED, including `WORK_ELIGIBILITY` (retained per contradiction log #20). |
+| `rider_document_pack_empty` | `array&lt;KycDocument&gt;` | 200 | No documents uploaded yet. |
+| `rider_document_pack_expired` | `array&lt;KycDocument&gt;` | 200 | The driver's licence expired three days ago (`state: EXPIRED`). Going online is refused with `DOCUMENT_EXPIRED` until a new one is approved. |
+| `rider_document_pack_expired_replacement_in_review` | `array&lt;KycDocument&gt;` | 200 | The expired licence (version 1, `EXPIRED`) and its replacement (version 2, `IN_REVIEW`, uploaded five hours ago). Still blocked until the new one is approved; the screen says it is being checked rather than asking again. |
+| `rider_document_pack_expiring` | `array&lt;KycDocument&gt;` | 200 | Every document approved, but the driver's licence expires in 21 days (`valid_until`). Home and Account show the "renew soon" notice; the rider can still go online. |
 | `rider_document_pack_rejected` | `array&lt;KycDocument&gt;` | 200 | The licence was rejected for cropping and the insurance has expired. The rider resubmits exactly two documents, not the whole pack. |
 | `stored_object_deleted` | `StoredObject` | 200 | Purged. Attaching it is `404 UPLOAD_NOT_FOUND`. |
 | `stored_object_pending` | `StoredObject` | 200 | Slot reserved, nothing uploaded yet. Expires in an hour. |
@@ -273,7 +277,7 @@ KYC uploads, review states and every rejection reason. — 23 scenarios.
 
 ### errors
 
-`{error}` envelopes for the codes an app actually branches on. — 93 scenarios.
+`{error}` envelopes for the codes an app actually branches on. — 99 scenarios.
 
 | Scenario | Schema | Status | Represents |
 |---|---|---:|---|
@@ -303,6 +307,7 @@ KYC uploads, review states and every rejection reason. — 23 scenarios.
 | `error_category_not_empty` | `ErrorEnvelope` | 409 | `409` · `CATEGORY_NOT_EMPTY`. `deleteMenuCategory` on a category that still holds items. Deleting a category never deletes an item, so nothing changed; `details.item_count` says how many. |
 | `error_chargeback_closed` | `ErrorEnvelope` | 409 | `409` · `ALREADY_DECIDED`. Evidence notes are for open chargebacks only. |
 | `error_checksum_mismatch` | `ErrorEnvelope` | 422 | `422` · `CHECKSUM_MISMATCH`. The upload was cut off or changed in transit. Upload it again. |
+| `error_connect_status_not_found` | `ErrorEnvelope` | 404 | `404` · `NOT_FOUND`. The 404 the contract allows on `getConnectStatus`. Contract-only: `services/hg` answers a partner with no Stripe account with `connect_status_not_started` (200) instead; treat both as "not set up". |
 | `error_content_type_mismatch` | `ErrorEnvelope` | 422 | `422` · `CONTENT_TYPE_MISMATCH`. The file's bytes are not the type declared when the upload was created. |
 | `error_current_password_incorrect` | `ErrorEnvelope` | 422 | `422` · `INVALID_CREDENTIALS`. `changePassword` with the wrong current password. Nothing changed and no session was revoked. A 422, not a 401: the session is fine, and the client treats every 401 as an expired session to refresh and retry. |
 | `error_decision_approval_reason_required` | `ErrorEnvelope` | 422 | `422` · `VALIDATION_FAILED`. An approval sent with a rejection reason (or none). An approval carries `ALL_CHECKS_PASSED` or `APPROVED_WITH_NOTES`; nothing changed. |
@@ -318,6 +323,7 @@ KYC uploads, review states and every rejection reason. — 23 scenarios.
 | `error_idempotency_key_reuse` | `ErrorEnvelope` | 409 | `409` · `IDEMPOTENCY_KEY_REUSE`. Never a silent replay of the wrong result. Was `idempotency_key_reuse`. |
 | `error_image_too_small` | `ErrorEnvelope` | 422 | `422` · `IMAGE_TOO_SMALL`. `confirmUpload` on a photo too small to be a real scan. PDFs are exempt. The app asks for a retake. |
 | `error_internal_error` | `ErrorEnvelope` | 500 | `500` · `INTERNAL_ERROR`. Was `internal_error`. The only correct client behaviour is retry-with-backoff and show `request_id` in the support sheet. |
+| `error_invalid_phone` | `ErrorEnvelope` | 422 | `422` · `INVALID_PHONE`. `requestOtp` with a number that is not E.164 (`+` and 8 to 15 digits). Exactly the body `services/hg` sends: one `FieldError` on `phone_e164`. |
 | `error_invalid_transition` | `ErrorEnvelope` | 409 | `409` · `INVALID_TRANSITION`. A backwards or skipped assignment transition. `details.current_state` is where the assignment really is; the app re-reads it and moves on from there. Repeating the current state is a 200 no-op, not this. |
 | `error_item_blocked_by_admin` | `ErrorEnvelope` | 403 | `403` · `ITEM_BLOCKED_BY_ADMIN`. `setMenuItemAvailability` on a `BLOCKED` item. The kitchen cannot un-block it; the message carries the admin's reason. |
 | `error_menu_locked` | `ErrorEnvelope` | 403 | `403` · `MENU_LOCKED`. A menu change while the restaurant is suspended, by its own staff or by an admin on its behalf. The menu still reads normally; every edit control shows the locked-menu state. Opening hours stay editable. Nothing was written. |
@@ -331,8 +337,12 @@ KYC uploads, review states and every rejection reason. — 23 scenarios.
 | `error_offer_expired` | `ErrorEnvelope` | 409 | `409` · `OFFER_EXPIRED`. **A collision case**: `offer_expired` (platform) and `OFFER_EXPIRED` (rider) were two members of one enum. They are now one. |
 | `error_onboarding_incomplete` | `ErrorEnvelope` | 403 | `403` · `ONBOARDING_INCOMPLETE`. A rider who has not finished onboarding tries to go online. `details.next_step` is the onboarding state to route to. |
 | `error_ordering_paused` | `ErrorEnvelope` | 409 | `409` · `ORDERING_PAUSED`. Staff have paused new orders platform-wide during an incident. Nothing was stored and nothing was charged; the same Idempotency-Key can be sent again once ordering resumes. A 409 like `RESTAURANT_CLOSED`, not a 503: the server is fine. |
-| `error_otp_incorrect` | `ErrorEnvelope` | 401 | `401` · `OTP_INCORRECT`. **A collision case**: the auth `otp_incorrect` and the proof-of-delivery `OTP_INCORRECT` collapsed into one member. Disambiguate by endpoint, not by code. |
+| `error_otp_incorrect` | `ErrorEnvelope` | 400 | `400` · `OTP_INCORRECT`. A wrong sign-in code; `details.attempts_remaining` is how many tries are left on this challenge (always sent by `services/hg`). **A collision case**: the proof-of-delivery `OTP_INCORRECT` (`422` from `createAssignmentTransition`) is the same member. Disambiguate by endpoint, not by code. |
+| `error_otp_incorrect_attempts_0` | `ErrorEnvelope` | 400 | `400` · `OTP_INCORRECT`. The last attempt was wrong: `attempts_remaining: 0`. The code field locks and the app offers "Send a new code"; the next `verifyOtp` on this challenge is `400 OTP_INVALID_OR_EXPIRED` (`error_otp_invalid_or_expired`). |
+| `error_otp_incorrect_attempts_2` | `ErrorEnvelope` | 400 | `400` · `OTP_INCORRECT`. Two wrong codes left on this challenge. `details.attempts_remaining` is the count `services/hg` sends with every `OTP_INCORRECT` (always present, an integer from 0 up). |
+| `error_otp_incorrect_no_count` | `ErrorEnvelope` | 400 | `400` · `OTP_INCORRECT`. A wrong sign-in code with `details` absent. `services/hg` always sends the count; this pins the client's fallback copy when a count is missing. |
 | `error_otp_invalid_or_expired` | `ErrorEnvelope` | 400 | `400` · `OTP_INVALID_OR_EXPIRED`. The challenge expired or was used up. Different from `error_otp_incorrect`: the app clears the code and offers "Send a new code". |
+| `error_otp_rate_limited_with_retry` | `ErrorEnvelope` | 429 | `429` · `RATE_LIMITED`. `requestOtp` over the per-phone or per-device cap. `details.retry_after_seconds` (the contract's documented `RATE_LIMITED` shape) says how long the button stays disabled. Contract-only: `services/hg` sends the wait only as the `Retry-After` header today, with `details` absent; a fixture cannot carry a header, so read both. |
 | `error_payload_too_large` | `ErrorEnvelope` | 413 | `413` · `PAYLOAD_TOO_LARGE`. `createUpload` for a file over the purpose's cap; `details.max_bytes` is the cap. |
 | `error_payout_account_incomplete` | `ErrorEnvelope` | 403 | `403` · `PAYOUT_ACCOUNT_INCOMPLETE`. Stripe payouts are not enabled for this rider yet. The app links to the payout step (`getConnectStatus`). |
 | `error_plate_in_use` | `ErrorEnvelope` | 409 | `409` · `PLATE_IN_USE`. The plate belongs to another rider's vehicle. Shown on the plate field. |
@@ -549,13 +559,21 @@ The 8 `PaymentState` values, saved cards and setup intents. — 12 scenarios.
 
 ### platform
 
-Auth, config, addresses, notifications, Connect and health. — 31 scenarios.
+Auth, config, addresses, notifications, Connect and health. — 40 scenarios.
 
 | Scenario | Schema | Status | Represents |
 |---|---|---:|---|
 | `addresses_empty` | `array&lt;Address&gt;` | 200 | No address yet — the state that makes every distance and ETA uncomputable (`NO_ADDRESS` availability). |
 | `addresses_list` | `array&lt;Address&gt;` | 200 | Three saved addresses, one default, one with no unit or buzzer. |
+| `connect_onboarding_link` | `ConnectOnboardingLink` | 201 | `createConnectOnboardingLink` (201): a single-use Stripe-hosted onboarding URL that expires in five minutes. Open it straight away; never store it. |
 | `connect_status_complete` | `ConnectStatus` | 200 | Stripe Connect fully onboarded: payouts enabled, nothing due. |
+| `connect_status_currently_due` | `ConnectStatus` | 200 | Stripe wants one more thing now (`currently_due: [external_account]`); payouts are off until it is given. No deadline. Requirement ids and `disabled_reason` are Stripe's own, never paraphrased. |
+| `connect_status_details_not_submitted` | `ConnectStatus` | 200 | The rider opened Stripe's form and left before finishing: `details_submitted: false` and Stripe's requirement ids in `currently_due`, verbatim. Requirement ids and `disabled_reason` are Stripe's own, never paraphrased. |
+| `connect_status_due_with_deadline` | `ConnectStatus` | 200 | Payouts still on, but Stripe needs the SIN before `deadline` (in five days); after that it turns payouts off. Requirement ids and `disabled_reason` are Stripe's own, never paraphrased. |
+| `connect_status_not_started` | `ConnectStatus` | 200 | No Stripe account yet: `services/hg` answers a zeroed, not-ready status (not 404), so the payout step renders "Set up payouts". Requirement ids and `disabled_reason` are Stripe's own, never paraphrased. |
+| `connect_status_past_due` | `ConnectStatus` | 200 | The deadline passed: `past_due` is not empty and payouts are off. Payouts are `HELD` until the rider fixes it. Requirement ids and `disabled_reason` are Stripe's own, never paraphrased. |
+| `connect_status_pending_verification` | `ConnectStatus` | 200 | Everything is submitted and Stripe is checking it: nothing due, payouts off, `disabled_reason: requirements.pending_verification`. Nothing for the rider to do. Requirement ids and `disabled_reason` are Stripe's own, never paraphrased. |
+| `connect_status_rejected` | `ConnectStatus` | 200 | Stripe rejected the account (`disabled_reason: rejected.other`). Payouts are off for good on this account; the app sends the rider to support. Requirement ids and `disabled_reason` are Stripe's own, never paraphrased. |
 | `connect_status_requirements_due` | `ConnectStatus` | 200 | Payouts disabled with `currently_due` and `past_due` surfaced **verbatim** from Stripe — we do not paraphrase requirement ids. |
 | `customer_profile` | `CustomerProfile` | 200 | C-03: `first_name`/`last_name`, never a single `name`. `phone_e164` is read-only here — sending it is `422 UNKNOWN_FIELD`. |
 | `dependency_report` | `DependencyReport` | 200 | Per-dependency detail for the internal status page. |
@@ -563,6 +581,7 @@ Auth, config, addresses, notifications, Connect and health. — 31 scenarios.
 | `notifications_empty` | `array&lt;Notification&gt;` | 200 | Nothing to show. The bell must not render a zero badge. |
 | `notifications_list` | `array&lt;Notification&gt;` | 200 | Mixed read and unread notifications across channels and priorities. |
 | `otp_challenge` | `OtpChallenge` | 200 | The OTP request response. The wire carries `resend_after_s` and `expires_at` and the client renders the **server's** cooldown — rate limits are not contract constants (contradiction log #23). |
+| `otp_challenge_resend_open` | `OtpChallenge` | 200 | A challenge whose resend cooldown is over (`resend_after_s: 0`): "Send a new code" is enabled at once. The code itself is still valid for four minutes. |
 | `principal_admin` | `Principal` | 200 | `GET /v1/auth/me` for an `ADMIN` signed in with password and authenticator code (`amr: pwd+totp`), so money actions are allowed. Global grant, `scope_id: null`. Devworld has no plain `ADMIN` persona yet; `admin-seed` is the super admin. |
 | `principal_admin_password_only` | `Principal` | 200 | An `ADMIN` whose session was signed in with a password only (`amr: pwd`). The console works, but every money action answers `403 MFA_REQUIRED` (`error_refund_mfa_required`); the app offers to sign in again with the code. |
 | `principal_customer` | `Principal` | 200 | `GET /v1/auth/me` for a customer — one account, one role, no restaurant scope. |
@@ -660,31 +679,66 @@ The 10 `RefundState` values, liability splits, approval requests, the staff revi
 
 ### rider
 
-Availability, dashboard, earnings and payouts. — 22 scenarios.
+Availability, dashboard, earnings and payouts. — 57 scenarios.
 
 | Scenario | Schema | Status | Represents |
 |---|---|---:|---|
+| `earning_entries_clawback` | `array&lt;EarningEntry&gt;` | 200 | A delivery taken back: the original `DELIVERY` row is now `REVERSED` and a new `CLAWBACK` row of -9.49 follows it (append-only; nothing was edited). The line shows the minus sign. |
 | `earning_entries_empty` | `array&lt;EarningEntry&gt;` | 200 | No entries at all — pairs with `earnings_summary_zero`. |
 | `earning_entries_mixed` | `array&lt;EarningEntry&gt;` | 200 | One of every `EarningEntryType` and `EarningEntryStatus`, including a **negative** clawback. Ledger rows must handle a minus sign. |
+| `earning_entries_paging` | `array&lt;EarningEntry&gt;` | 200 | The first page of a long ledger: 20 entries (the default `limit`), newest first, `has_more: true` and `next_cursor` set to the last entry's id, as `services/hg` pages. The next page is `earning_entries_paging_page_2`. |
+| `earning_entries_paging_page_2` | `array&lt;EarningEntry&gt;` | 200 | The second and last page after `earning_entries_paging`: five older entries, `has_more: false`, `next_cursor: null`. |
+| `earning_entries_pending` | `array&lt;EarningEntry&gt;` | 200 | Today's entries, all `PENDING`: earned, not yet available for a payout. One is a tip added after the delivery, its own `TIP` row. |
+| `earnings_summary_day` | `EarningsSummary` | 200 | `period=DAY` for today: one bucket, as `services/hg` answers `period=DAY&from=` today (the bucket unit is the period). Three trips so far. |
+| `earnings_summary_month` | `EarningsSummary` | 200 | `period=MONTH` for August so far: one bucket, as `services/hg` answers `period=MONTH&from=2026-08-01`. 131 trips, CAD 984.15, of which 318.50 tips. |
+| `earnings_summary_negative_balance` | `EarningsSummary` | 200 | Last week ended below zero: two clawbacks on Wednesday (-18.98) outweigh the five trips, so the week's total is 7.96 and `unpaid_balance_cents` is -4.49. A negative balance is carried to the next run, never paid out or charged. |
 | `earnings_summary_week` | `EarningsSummary` | 200 | A full week: 14 deliveries, delivery fees plus 100% of tips. The rate-card component fields (`base_cents`, `distance_cents`, `wait_cents`, `guarantee_topup_cents`) are present but zero — pure pass-through at launch (contradiction log #7). |
 | `earnings_summary_zero` | `EarningsSummary` | 200 | **Zero earnings across every bucket.** A rider who went online and got no offers. Charts must render an axis, not collapse. |
+| `payout_detail_draft` | `PayoutDetail` | 200 | This week's payout, still accruing: no entries stamped yet, amount 0. The amount is exactly the sum of its entries. |
+| `payout_detail_failed` | `PayoutDetail` | 200 | The transfer failed. `failure_message` is shown verbatim; the money stays in the balance and goes into the next run. The amount is exactly the sum of its entries. |
+| `payout_detail_held` | `PayoutDetail` | 200 | Held: `hold_reason` is shown verbatim. Nothing is lost; it goes out on the next Monday payout after the hold is lifted. The amount is exactly the sum of its entries. |
 | `payout_detail_paid` | `PayoutDetail` | 200 | A paid weekly payout expanded into its constituent earning entries. |
-| `payout_draft` | `Payout` | 200 | The week is still accruing. Nothing is owed yet. |
-| `payout_failed` | `Payout` | 200 | The transfer bounced — usually a Connect requirement went `past_due`. |
-| `payout_held` | `Payout` | 200 | Held by compliance pending a review. The partner sees the hold, not the reason. |
+| `payout_detail_ready` | `PayoutDetail` | 200 | Week closed, amount final, waiting for Monday's run. The amount is exactly the sum of its entries. |
+| `payout_detail_transferred` | `PayoutDetail` | 200 | Stripe accepted the transfer; the bank has not shown it yet. The amount is exactly the sum of its entries. |
+| `payout_detail_transferring` | `PayoutDetail` | 200 | Submitted to Stripe Connect on Monday's run. The amount is exactly the sum of its entries. |
+| `payout_draft` | `Payout` | 200 | The week is still accruing. Nothing is owed yet. A single `Payout` row; the list operations serve `payout_list_*`. |
+| `payout_failed` | `Payout` | 200 | The transfer bounced — usually a Connect requirement went `past_due`. A single `Payout` row; the list operations serve `payout_list_*`. |
+| `payout_held` | `Payout` | 200 | Held by compliance pending a review. The partner sees the hold, not the reason. A single `Payout` row; the list operations serve `payout_list_*`. |
+| `payout_list_draft_paid` | `array&lt;Payout&gt;` | 200 | The ordinary history: this week accruing, two paid weeks before it. Nothing needs attention. |
 | `payout_list_empty` | `array&lt;Payout&gt;` | 200 | No payout has ever run for this partner. |
-| `payout_paid` | `Payout` | 200 | Landed. **No minimum** for either partner type (contradiction log #16). |
-| `payout_ready` | `Payout` | 200 | Week closed, amount final, waiting for Monday's run. |
-| `payout_transferred` | `Payout` | 200 | Stripe accepted the transfer; not yet in the bank. |
-| `payout_transferring` | `Payout` | 200 | Submitted to Stripe Connect. |
+| `payout_list_every_state` | `array&lt;Payout&gt;` | 200 | `listRiderPayouts` with one payout in each `PayoutState`, newest first: this week accruing (`DRAFT`), then `READY`, `TRANSFERRING`, `TRANSFERRED`, `HELD` (with its `hold_reason`), `FAILED` (with its `failure_message`) and `PAID`. |
+| `payout_list_multi_problem` | `array&lt;Payout&gt;` | 200 | Two problems at once: last week's payout `FAILED` and the week before is `HELD`. The alert names both ("Two payouts need attention"), not just the newest. |
+| `payout_paid` | `Payout` | 200 | Landed. **No minimum** for either partner type (contradiction log #16). A single `Payout` row; the list operations serve `payout_list_*`. |
+| `payout_ready` | `Payout` | 200 | Week closed, amount final, waiting for Monday's run. A single `Payout` row; the list operations serve `payout_list_*`. |
+| `payout_transferred` | `Payout` | 200 | Stripe accepted the transfer; not yet in the bank. A single `Payout` row; the list operations serve `payout_list_*`. |
+| `payout_transferring` | `Payout` | 200 | Submitted to Stripe Connect. A single `Payout` row; the list operations serve `payout_list_*`. |
 | `restaurant_payout_history` | `array&lt;Payout&gt;` | 200 | A restaurant's payout history, newest first: this week still accruing, last week mid-transfer on Monday's run, three paid weeks before it. Weekly, automatic, no minimum. |
+| `rider_availability_go_offline_after_delivery` | `RiderAvailability` | 200 | `setRiderAvailability {state: OFFLINE}` while carrying an order: `services/hg` keeps the rider `ON_DELIVERY` and sets `go_offline_after_delivery: true`; the rider goes offline by themselves once this delivery is done. |
 | `rider_availability_offline` | `RiderAvailability` | 200 | Rider is off shift. No offers will be sent. |
 | `rider_availability_on_delivery` | `RiderAvailability` | 200 | Carrying an order. Only one active delivery at a time (`ACTIVE_DELIVERY_IN_PROGRESS`). |
 | `rider_availability_online_idle` | `RiderAvailability` | 200 | Online, no assignment, waiting for an offer. |
 | `rider_availability_online_stale` | `RiderAvailability` | 200 | Online but the phone has not reported a position recently — offers are suppressed until it does. |
-| `rider_dashboard_active` | `RiderDashboard` | 200 | A rider mid-shift with an assignment in progress and earnings accrued today. |
-| `rider_dashboard_zero_earnings` | `RiderDashboard` | 200 | **A rider with zero earnings** — approved this morning, no deliveries yet. Every money field is 0 and every count is 0. The dashboard must read as 'not started', never as an error or a blank screen. |
+| `rider_dashboard_active` | `RiderDashboard` | 200 | A rider mid-shift with an assignment in progress (`mode: ON_DELIVERY`) and earnings accrued today. |
+| `rider_dashboard_offline` | `RiderDashboard` | 200 | Off shift. Today's totals stay on screen; tracking is not reported while offline (`tracking_health: null`). |
+| `rider_dashboard_offline_blocked` | `RiderDashboard` | 200 | Offline with all nine `blocking_reasons` at once, so one screen test covers every row and deep link. Nothing earned today. Contract-only: `getRiderDashboard` on `services/hg` sends `mode` and `today` but not `active_assignment`, `tracking_health` or `blocking_reasons` yet. |
+| `rider_dashboard_offline_blocked_account_not_active` | `RiderDashboard` | 200 | Offline with one blocking reason, `ACCOUNT_NOT_ACTIVE`, so its row can be tested alone. Contract-only: `getRiderDashboard` on `services/hg` sends `mode` and `today` but not `active_assignment`, `tracking_health` or `blocking_reasons` yet. |
+| `rider_dashboard_offline_blocked_background_location_permission` | `RiderDashboard` | 200 | Offline with one blocking reason, `BACKGROUND_LOCATION_PERMISSION`, so its row can be tested alone. Contract-only: `getRiderDashboard` on `services/hg` sends `mode` and `today` but not `active_assignment`, `tracking_health` or `blocking_reasons` yet. |
+| `rider_dashboard_offline_blocked_continuous_online_cap` | `RiderDashboard` | 200 | Offline with one blocking reason, `CONTINUOUS_ONLINE_CAP`, so its row can be tested alone. Contract-only: `getRiderDashboard` on `services/hg` sends `mode` and `today` but not `active_assignment`, `tracking_health` or `blocking_reasons` yet. |
+| `rider_dashboard_offline_blocked_document_expired` | `RiderDashboard` | 200 | Offline with one blocking reason, `DOCUMENT_EXPIRED`, so its row can be tested alone. Contract-only: `getRiderDashboard` on `services/hg` sends `mode` and `today` but not `active_assignment`, `tracking_health` or `blocking_reasons` yet. |
+| `rider_dashboard_offline_blocked_foreground_location_permission` | `RiderDashboard` | 200 | Offline with one blocking reason, `FOREGROUND_LOCATION_PERMISSION`, so its row can be tested alone. Contract-only: `getRiderDashboard` on `services/hg` sends `mode` and `today` but not `active_assignment`, `tracking_health` or `blocking_reasons` yet. |
+| `rider_dashboard_offline_blocked_notification_permission` | `RiderDashboard` | 200 | Offline with one blocking reason, `NOTIFICATION_PERMISSION`, so its row can be tested alone. Contract-only: `getRiderDashboard` on `services/hg` sends `mode` and `today` but not `active_assignment`, `tracking_health` or `blocking_reasons` yet. |
+| `rider_dashboard_offline_blocked_onboarding_incomplete` | `RiderDashboard` | 200 | Offline with one blocking reason, `ONBOARDING_INCOMPLETE`, so its row can be tested alone. Contract-only: `getRiderDashboard` on `services/hg` sends `mode` and `today` but not `active_assignment`, `tracking_health` or `blocking_reasons` yet. |
+| `rider_dashboard_offline_blocked_payout_account_incomplete` | `RiderDashboard` | 200 | Offline with one blocking reason, `PAYOUT_ACCOUNT_INCOMPLETE`, so its row can be tested alone. Contract-only: `getRiderDashboard` on `services/hg` sends `mode` and `today` but not `active_assignment`, `tracking_health` or `blocking_reasons` yet. |
+| `rider_dashboard_offline_blocked_stale_location_fix` | `RiderDashboard` | 200 | Offline with one blocking reason, `STALE_LOCATION_FIX`, so its row can be tested alone. Contract-only: `getRiderDashboard` on `services/hg` sends `mode` and `today` but not `active_assignment`, `tracking_health` or `blocking_reasons` yet. |
+| `rider_dashboard_on_delivery_dropoff` | `RiderDashboard` | 200 | `ON_DELIVERY` with the assignment in `EN_ROUTE_TO_DROPOFF`. Bag collected, heading to the customer; the full address and unit are now present. No offer while carrying an order. Contract-only: `getRiderDashboard` on `services/hg` sends `mode` and `today` but not `active_assignment`, `tracking_health` or `blocking_reasons` yet. |
+| `rider_dashboard_on_delivery_pickup` | `RiderDashboard` | 200 | `ON_DELIVERY` with the assignment in `EN_ROUTE_TO_PICKUP`. Heading to the restaurant; the drop-off shows the street and neighbourhood only until pickup. No offer while carrying an order. Contract-only: `getRiderDashboard` on `services/hg` sends `mode` and `today` but not `active_assignment`, `tracking_health` or `blocking_reasons` yet. |
+| `rider_dashboard_online_idle` | `RiderDashboard` | 200 | Online, waiting for an offer: no assignment, no offer, healthy tracking, three trips so far today. |
+| `rider_dashboard_online_stale` | `RiderDashboard` | 200 | Online but no location has arrived recently: offers are held back until one does. `blocking_reasons: [STALE_LOCATION_FIX]`, tracking `DEGRADED`. Contract-only: `getRiderDashboard` on `services/hg` sends `mode` and `today` but not `active_assignment`, `tracking_health` or `blocking_reasons` yet. |
+| `rider_dashboard_tracking_degraded` | `RiderDashboard` | 200 | Online and dispatchable, but location fixes are arriving late or imprecise (`tracking_health: DEGRADED`). Contract-only: `getRiderDashboard` on `services/hg` sends `mode` and `today` but not `active_assignment`, `tracking_health` or `blocking_reasons` yet. |
+| `rider_dashboard_tracking_lost` | `RiderDashboard` | 200 | Online, but no location for long enough that tracking is `LOST`. Tracking loss alone never reassigns anything; the app asks the rider to check location access. Contract-only: `getRiderDashboard` on `services/hg` sends `mode` and `today` but not `active_assignment`, `tracking_health` or `blocking_reasons` yet. |
+| `rider_dashboard_zero_earnings` | `RiderDashboard` | 200 | **A rider with zero earnings** — approved this morning, just went online, no deliveries yet: no assignment, no offer, every money field and count 0. The dashboard must read as 'not started', never as an error or a blank screen. |
 | `rider_me` | `RiderMe` | 200 | The rider's own bootstrap payload — identity, onboarding state, availability and what screen to land on. |
+| `rider_me_suspended` | `RiderMe` | 200 | A suspended rider: `account_status: SUSPENDED`, offline, no assignment, `next_route: SUSPENDED`. The app shows the on-hold screen with the support line; going online is refused. |
 | `rider_position_ack` | `RiderPositionAck` | 202 | Acknowledgement of a batched position upload. Points older than the server's tolerance come back rejected (`STALE_POINT`) rather than silently dropped. |
 
 ## Tags
@@ -693,46 +747,48 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 
 | Tag | Count | Meaning |
 |---|---:|---|
-| `error-envelope` | 93 | A `{error}` body with a real `ErrorCode`. |
-| `rider` | 81 | Rider-facing surface. |
+| `rider` | 125 | Rider-facing surface. |
+| `error-envelope` | 99 | A `{error}` body with a real `ErrorCode`. |
+| `error-path` | 90 | The unhappy branch a client must handle. |
 | `admin` | 73 | Admin/support-facing surface. |
 | `state-matrix` | 67 | One fixture per member of a closed enum. |
-| `error-path` | 65 | The unhappy branch a client must handle. |
-| `restaurant` | 60 | Restaurant-facing surface. |
-| `edge` | 57 | A shape that breaks naive layouts — empty, overflowing, at a boundary. |
-| `money` | 32 | Exercises the money path specifically. |
-| `platform` | 31 | Cross-cutting platform surface. |
+| `edge` | 61 | A shape that breaks naive layouts — empty, overflowing, at a boundary. |
+| `restaurant` | 61 | Restaurant-facing surface. |
+| `money` | 56 | Exercises the money path specifically. |
+| `platform` | 40 | Cross-cutting platform surface. |
+| `auth` | 30 | Session and identity. |
 | `halal` | 30 | Touches the halal claim surface. |
-| `empty` | 28 | Zero items. The empty state, never an error. |
-| `auth` | 25 | Session and identity. |
+| `empty` | 29 | Zero items. The empty state, never an error. |
 | `order-state-matrix` | 24 | One per `OrderState` (all 14). |
 | `onboarding-state-matrix` | 21 | One per onboarding state, restaurant and rider. |
 | `realtime` | 21 | WebSocket, not HTTP. |
 | `refund-state-matrix` | 20 | One per `RefundState` (all 10). |
 | `script` | 20 | A realtime event sequence, not a response body. |
+| `home` | 18 |  |
+| `customer` | 14 |  |
+| `payout-state-matrix` | 14 | One per `PayoutState` (all 7). |
+| `documents` | 13 | KYC document surface. |
 | `review-queue` | 13 | An admin review queue item. |
 | `assignment-state-matrix` | 12 | One per `AssignmentState` (all 12). |
 | `document-state-matrix` | 12 | One per `KycDocumentState`, plus rejection reasons. |
-| `customer` | 10 |  |
+| `boundary` | 10 | At an exact limit (quantity cap, expiry tomorrow, zero, the maximum). |
 | `dispatch-state-matrix` | 10 | One per `DispatchState` (all 10). |
 | `menu-editing` | 10 |  |
-| `boundary` | 9 | At an exact limit (quantity cap, expiry tomorrow, zero, the maximum). |
 | `chargeback-state-matrix` | 9 |  |
-| `documents` | 9 | KYC document surface. |
 | `payment-state-matrix` | 8 | One per `PaymentState` (all 8). |
 | `account-state-matrix` | 7 |  |
-| `payout-state-matrix` | 7 | One per `PayoutState` (all 7). |
+| `connect-state-matrix` | 7 |  |
+| `degraded` | 7 | A partially-broken real-world condition (stale GPS, lost tracking). |
 | `certificate-status-matrix` | 6 | One per `HalalCertificateStatus` (all 6). |
 | `request-body` | 6 | A request body a client sends, not a response. Registered against no operation, so the mock never serves it. |
 | `tracking` | 6 | The live order-tracking screen. |
+| `dense` | 5 | Deliberately busy — the worst case for a list or a card. |
 | `halal-state-matrix` | 5 |  |
 | `handoff-event-matrix` | 5 |  |
 | `offer-state-matrix` | 5 | One per `OfferState` (all 5). |
 | `seal-state-matrix` | 5 |  |
 | `staff` | 5 |  |
 | `certificate` | 4 | A `HalalCertificate` at a specific point in its life. |
-| `degraded` | 4 | A partially-broken real-world condition (stale GPS, lost tracking). |
-| `dense` | 4 | Deliberately busy — the worst case for a list or a card. |
 | `payout-run-state-matrix` | 4 | One per `PayoutRunState` (all 4). |
 | `session` | 4 |  |
 | `upload` | 4 |  |
@@ -768,7 +824,7 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | `createAssignmentTransition` | `assignment_picked_up` | `assignment_arrived_at_dropoff`, `assignment_arrived_at_pickup`, `assignment_assigned`, `assignment_cancelled_by_platform`, `assignment_delivered`, `assignment_en_route_to_dropoff`, `assignment_en_route_to_pickup`, `assignment_reassigned`, `assignment_returned`, `assignment_returning`, `assignment_undeliverable`, `error_geofence_required`, `error_invalid_transition`, `error_pod_required` |
 | `createCertificateViewUrl` | `presigned_download` | — |
 | `createConnectAccount` | `connect_status_complete` | `error_step_not_available` |
-| `createConnectOnboardingLink` | `error_step_not_available` | — |
+| `createConnectOnboardingLink` | `connect_onboarding_link` | `error_step_not_available` |
 | `createDocumentDownloadUrl` | `presigned_download` | — |
 | `createMenuCategory` | `menu_category_created` | `error_category_name_taken`, `error_menu_locked` |
 | `createMenuCategoryOnBehalf` | `menu_category_created` | `error_category_name_taken`, `error_menu_locked`, `error_menu_locked_banned` |
@@ -799,7 +855,7 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | `getAssignment` | `assignment_en_route_to_dropoff` | `assignment_arrived_at_dropoff`, `assignment_arrived_at_pickup`, `assignment_assigned`, `assignment_cancelled_by_platform`, `assignment_delivered`, `assignment_en_route_to_pickup`, `assignment_no_instructions_no_unit`, `assignment_otp_pod_required`, `assignment_picked_up`, `assignment_reassigned`, `assignment_returned`, `assignment_returning`, `assignment_undeliverable` |
 | `getCart` | `cart_many_lines` | `cart_at_quantity_cap`, `cart_empty`, `cart_has_unavailable_items`, `cart_ordering_paused`, `cart_restaurant_unavailable`, `cart_single_line` |
 | `getChargeback` | `chargeback_needs_response` | `chargeback_charge_refunded`, `chargeback_lost`, `chargeback_prevented`, `chargeback_under_review`, `chargeback_warning_closed`, `chargeback_warning_needs_response`, `chargeback_warning_under_review`, `chargeback_won` |
-| `getConnectStatus` | `connect_status_complete` | `connect_status_requirements_due` |
+| `getConnectStatus` | `connect_status_complete` | `connect_status_currently_due`, `connect_status_details_not_submitted`, `connect_status_due_with_deadline`, `connect_status_not_started`, `connect_status_past_due`, `connect_status_pending_verification`, `connect_status_rejected`, `connect_status_requirements_due`, `error_connect_status_not_found` |
 | `getCurrentOffer` | `offer_pending` | `offer_expired`, `offer_none`, `offer_rejected`, `offer_taken_by_another`, `offer_withdrawn`, `offer_zero_tip_low_value` |
 | `getCurrentPrincipal` | `principal_customer` | `error_account_suspended`, `principal_admin`, `principal_admin_password_only`, `principal_super_admin`, `principal_support_agent` |
 | `getCustomerProfile` | `customer_profile` | — |
@@ -830,11 +886,11 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | `getRestaurantOrder` | `restaurant_order_preparing` | `restaurant_order_picked_up`, `restaurant_order_ready_for_pickup`, `restaurant_order_rejected`, `restaurant_order_restaurant_pending` |
 | `getRestaurantProfile` | `restaurant_profile` | `restaurant_profile_account_banned`, `restaurant_profile_account_closed`, `restaurant_profile_account_deactivated`, `restaurant_profile_account_delisted`, `restaurant_profile_account_live`, `restaurant_profile_account_pending`, `restaurant_profile_account_suspended`, `restaurant_profile_halal_certified`, `restaurant_profile_halal_expired`, `restaurant_profile_halal_expiring_soon`, `restaurant_profile_halal_missing`, `restaurant_profile_halal_unverified` |
 | `getRiderApplication` | `rider_application_pending_review` | `rider_application_approved`, `rider_application_changes_requested` |
-| `getRiderDashboard` | `rider_dashboard_active` | `rider_dashboard_zero_earnings` |
-| `getRiderEarningsSummary` | `earnings_summary_week` | `earnings_summary_zero` |
-| `getRiderMe` | `rider_me` | — |
+| `getRiderDashboard` | `rider_dashboard_active` | `rider_dashboard_offline`, `rider_dashboard_offline_blocked`, `rider_dashboard_offline_blocked_account_not_active`, `rider_dashboard_offline_blocked_background_location_permission`, `rider_dashboard_offline_blocked_continuous_online_cap`, `rider_dashboard_offline_blocked_document_expired`, `rider_dashboard_offline_blocked_foreground_location_permission`, `rider_dashboard_offline_blocked_notification_permission`, `rider_dashboard_offline_blocked_onboarding_incomplete`, `rider_dashboard_offline_blocked_payout_account_incomplete`, `rider_dashboard_offline_blocked_stale_location_fix`, `rider_dashboard_on_delivery_dropoff`, `rider_dashboard_on_delivery_pickup`, `rider_dashboard_online_idle`, `rider_dashboard_online_stale`, `rider_dashboard_tracking_degraded`, `rider_dashboard_tracking_lost`, `rider_dashboard_zero_earnings` |
+| `getRiderEarningsSummary` | `earnings_summary_week` | `earnings_summary_day`, `earnings_summary_month`, `earnings_summary_negative_balance`, `earnings_summary_zero` |
+| `getRiderMe` | `rider_me` | `rider_me_suspended` |
 | `getRiderOnboardingStatus` | `rider_onboarding_active` | `rider_onboarding_documents_approved`, `rider_onboarding_documents_pending`, `rider_onboarding_documents_rejected`, `rider_onboarding_documents_review`, `rider_onboarding_payout_pending`, `rider_onboarding_phone_verified`, `rider_onboarding_profile_pending`, `rider_onboarding_registered`, `rider_onboarding_vehicle_pending` |
-| `getRiderPayout` | `payout_detail_paid` | — |
+| `getRiderPayout` | `payout_detail_paid` | `payout_detail_draft`, `payout_detail_failed`, `payout_detail_held`, `payout_detail_ready`, `payout_detail_transferred`, `payout_detail_transferring` |
 | `issueRefund` | `refund_goodwill_admin` | `error_refund_mfa_required`, `error_refund_self_approval_forbidden`, `refund_approval_request_pending`, `refund_approved`, `refund_authorised`, `refund_cancelled`, `refund_declined`, `refund_failed`, `refund_pending_approval`, `refund_requested`, `refund_settled`, `refund_submitted`, `refund_succeeded` |
 | `listAddresses` | `addresses_list` | `addresses_empty` |
 | `listChargebacks` | `chargeback_list` | `chargeback_list_empty` |
@@ -850,13 +906,13 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | `listRestaurantApplications` | `restaurant_application_queue` | `restaurant_application_queue_empty` |
 | `listRestaurantDocuments` | `restaurant_document_pack_complete` | `restaurant_document_pack_empty`, `restaurant_document_pack_incomplete` |
 | `listRestaurantOrders` | `restaurant_order_queue_busy` | `restaurant_order_picked_up`, `restaurant_order_preparing`, `restaurant_order_queue_empty`, `restaurant_order_ready_for_pickup`, `restaurant_order_rejected`, `restaurant_order_restaurant_pending` |
-| `listRestaurantPayouts` | `restaurant_payout_history` | `payout_draft`, `payout_failed`, `payout_held`, `payout_list_empty`, `payout_paid`, `payout_ready`, `payout_transferred`, `payout_transferring` |
+| `listRestaurantPayouts` | `restaurant_payout_history` | `payout_list_empty` |
 | `listRestaurantStaff` | `restaurant_staff_list` | — |
 | `listRestaurants` | `restaurant_list_populated` | `restaurant_list_empty`, `restaurant_list_long_names`, `restaurant_list_missing_images`, `restaurant_list_single` |
 | `listRiderApplications` | `rider_application_queue` | — |
-| `listRiderDocuments` | `rider_document_pack_complete` | `rider_document_pack_rejected` |
-| `listRiderEarningEntries` | `earning_entries_mixed` | `earning_entries_empty` |
-| `listRiderPayouts` | `payout_paid` | `payout_draft`, `payout_failed`, `payout_held`, `payout_list_empty`, `payout_ready`, `payout_transferred`, `payout_transferring` |
+| `listRiderDocuments` | `rider_document_pack_complete` | `rider_document_pack_empty`, `rider_document_pack_expired`, `rider_document_pack_expired_replacement_in_review`, `rider_document_pack_expiring`, `rider_document_pack_rejected` |
+| `listRiderEarningEntries` | `earning_entries_mixed` | `earning_entries_clawback`, `earning_entries_empty`, `earning_entries_paging`, `earning_entries_paging_page_2`, `earning_entries_pending` |
+| `listRiderPayouts` | `payout_list_draft_paid` | `payout_list_empty`, `payout_list_every_state`, `payout_list_multi_problem` |
 | `listStaff` | `staff_list` | — |
 | `login` | `session_grant_customer` | `error_account_not_active`, `session_grant_staff`, `session_next_route_active_delivery`, `session_next_route_app_update_required`, `session_next_route_home`, `session_next_route_onboarding_documents`, `session_next_route_onboarding_rejected`, `session_next_route_order_tracking`, `session_next_route_profile_capture`, `session_next_route_suspended` |
 | `markOrderReady` | `restaurant_order_ready_for_pickup` | `restaurant_order_picked_up`, `restaurant_order_preparing`, `restaurant_order_rejected`, `restaurant_order_restaurant_pending` |
@@ -867,7 +923,7 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | `rejectOrder` | `restaurant_order_rejected` | `restaurant_order_picked_up`, `restaurant_order_preparing`, `restaurant_order_ready_for_pickup`, `restaurant_order_restaurant_pending` |
 | `reportRiderPositions` | `rider_position_ack` | — |
 | `reportTamper` | `handoff_tamper_report` | — |
-| `requestOtp` | `otp_challenge` | `error_rate_limiter_unavailable` |
+| `requestOtp` | `otp_challenge` | `error_invalid_phone`, `error_otp_rate_limited_with_retry`, `error_rate_limiter_unavailable`, `otp_challenge_resend_open` |
 | `resetPassword` | `error_breached_password` | `error_reset_token_not_valid` |
 | `reviewRestaurantDocument` | `document_approved` | `document_expired`, `document_in_review`, `document_rejected`, `document_rejected_expired`, `document_rejected_illegible`, `document_rejected_name_mismatch`, `document_rejected_plate_mismatch`, `document_rejected_suspected_forgery`, `document_rejected_wrong_document_type`, `document_submitted`, `document_superseded` |
 | `reviewRiderDocument` | `document_approved` | `document_expired`, `document_in_review`, `document_rejected`, `document_submitted`, `document_superseded` |
@@ -882,7 +938,7 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | `setOrderingPause` | `ordering_pause_open` | `ordering_pause_on` |
 | `setRestaurantAcceptingOrders` | `restaurant_open_state_open` | `restaurant_open_state_closed_holiday`, `restaurant_open_state_closed_hours`, `restaurant_open_state_closed_offline`, `restaurant_open_state_closed_suspended`, `restaurant_open_state_closed_toggle`, `restaurant_open_state_paused` |
 | `setRestaurantHours` | `restaurant_hours_standard` | — |
-| `setRiderAvailability` | `rider_availability_online_idle` | `error_account_not_active`, `error_active_delivery_in_progress`, `error_cannot_go_online`, `error_cannot_go_online_account_not_active`, `error_cannot_go_online_all_reasons`, `error_cannot_go_online_background_location_permission`, `error_cannot_go_online_continuous_online_cap`, `error_cannot_go_online_document_expired`, `error_cannot_go_online_foreground_location_permission`, `error_cannot_go_online_notification_permission`, `error_cannot_go_online_onboarding_incomplete`, `error_cannot_go_online_payout_account_incomplete`, `error_onboarding_incomplete`, `error_payout_account_incomplete`, `rider_availability_offline`, `rider_availability_on_delivery`, `rider_availability_online_stale` |
+| `setRiderAvailability` | `rider_availability_online_idle` | `error_account_not_active`, `error_active_delivery_in_progress`, `error_cannot_go_online`, `error_cannot_go_online_account_not_active`, `error_cannot_go_online_all_reasons`, `error_cannot_go_online_background_location_permission`, `error_cannot_go_online_continuous_online_cap`, `error_cannot_go_online_document_expired`, `error_cannot_go_online_foreground_location_permission`, `error_cannot_go_online_notification_permission`, `error_cannot_go_online_onboarding_incomplete`, `error_cannot_go_online_payout_account_incomplete`, `error_onboarding_incomplete`, `error_payout_account_incomplete`, `rider_availability_go_offline_after_delivery`, `rider_availability_offline`, `rider_availability_on_delivery`, `rider_availability_online_stale` |
 | `submitOrderRating` | `order_rating_food_and_rider` | — |
 | `submitProofOfDelivery` | `assignment_delivered` | `assignment_arrived_at_dropoff`, `assignment_arrived_at_pickup`, `assignment_assigned`, `assignment_cancelled_by_platform`, `assignment_en_route_to_dropoff`, `assignment_en_route_to_pickup`, `assignment_otp_pod_required`, `assignment_picked_up`, `assignment_reassigned`, `assignment_returned`, `assignment_returning`, `assignment_undeliverable`, `error_pod_required` |
 | `submitRestaurantDocuments` | `restaurant_onboarding_documents_review` | `restaurant_onboarding_active`, `restaurant_onboarding_documents_approved`, `restaurant_onboarding_documents_pending`, `restaurant_onboarding_documents_rejected`, `restaurant_onboarding_email_verified`, `restaurant_onboarding_menu_pending`, `restaurant_onboarding_payout_pending`, `restaurant_onboarding_profile_pending`, `restaurant_onboarding_registered`, `restaurant_onboarding_withdrawn` |
@@ -900,7 +956,7 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | `updateMenuItem` | `menu_item_edit_pending_review` | `error_halal_tag_not_writable`, `error_menu_locked`, `error_price_out_of_range`, `error_prohibited_ingredient`, `menu_item_edit_price_only` |
 | `updateMenuItemOnBehalf` | `menu_item_edited_by_admin` | `error_halal_tag_not_writable`, `error_menu_locked`, `error_menu_locked_banned`, `error_menu_version_pending`, `error_price_out_of_range`, `error_prohibited_ingredient`, `menu_item_edit_price_only` |
 | `verifyEmail` | `error_verification_token_expired` | `error_verification_token_used` |
-| `verifyOtp` | `session_grant_customer` | `error_otp_invalid_or_expired`, `error_rate_limiter_unavailable`, `session_next_route_active_delivery`, `session_next_route_app_update_required`, `session_next_route_home`, `session_next_route_onboarding_documents`, `session_next_route_onboarding_rejected`, `session_next_route_order_tracking`, `session_next_route_profile_capture`, `session_next_route_suspended` |
+| `verifyOtp` | `session_grant_customer` | `error_otp_incorrect`, `error_otp_incorrect_attempts_0`, `error_otp_incorrect_attempts_2`, `error_otp_incorrect_no_count`, `error_otp_invalid_or_expired`, `error_otp_rate_limited_with_retry`, `error_rate_limiter_unavailable`, `session_next_route_active_delivery`, `session_next_route_app_update_required`, `session_next_route_home`, `session_next_route_onboarding_documents`, `session_next_route_onboarding_rejected`, `session_next_route_order_tracking`, `session_next_route_profile_capture`, `session_next_route_suspended` |
 | `verifyTotpEnrolment` | `error_totp_code_incorrect` | — |
 
 ---

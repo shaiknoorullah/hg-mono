@@ -27,6 +27,7 @@ import dom_onboarding  # noqa: E402
 import dom_ordering_pause  # noqa: E402
 import dom_orders  # noqa: E402
 import dom_redesign  # noqa: E402
+import dom_redesign_2  # noqa: E402
 import dom_rider  # noqa: E402
 from content import Content  # noqa: E402
 from readme import write_readme  # noqa: E402
@@ -52,6 +53,7 @@ def main() -> int:
     dom_errors.build(reg, synth)
     dom_handoff.build(reg, synth)
     dom_redesign.build(reg, synth)
+    dom_redesign_2.build(reg, synth)
 
     write_vocabulary(reg)
 

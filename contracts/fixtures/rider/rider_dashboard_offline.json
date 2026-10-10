@@ -1,0 +1,27 @@
+{
+  "scenario": "rider_dashboard_offline",
+  "domain": "rider",
+  "schema": "RiderDashboard",
+  "describes": "Off shift. Today's totals stay on screen; tracking is not reported while offline (`tracking_health: null`).",
+  "operations": [
+    "getRiderDashboard"
+  ],
+  "status": 200,
+  "tags": [
+    "rider",
+    "home"
+  ],
+  "payload": {
+    "mode": "OFFLINE",
+    "today": {
+      "gross_cents": 4296,
+      "currency": "CAD",
+      "trips": 3,
+      "online_seconds": 8040
+    },
+    "active_assignment": null,
+    "current_offer": null,
+    "tracking_health": null,
+    "blocking_reasons": []
+  }
+}

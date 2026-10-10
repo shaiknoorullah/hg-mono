@@ -2,11 +2,8 @@
   "scenario": "payout_held",
   "domain": "rider",
   "schema": "Payout",
-  "describes": "Held by compliance pending a review. The partner sees the hold, not the reason.",
-  "operations": [
-    "listRiderPayouts",
-    "listRestaurantPayouts"
-  ],
+  "describes": "Held by compliance pending a review. The partner sees the hold, not the reason. A single `Payout` row; the list operations serve `payout_list_*`.",
+  "operations": [],
   "status": 200,
   "tags": [
     "payout-state-matrix",

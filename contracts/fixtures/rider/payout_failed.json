@@ -2,11 +2,8 @@
   "scenario": "payout_failed",
   "domain": "rider",
   "schema": "Payout",
-  "describes": "The transfer bounced — usually a Connect requirement went `past_due`.",
-  "operations": [
-    "listRiderPayouts",
-    "listRestaurantPayouts"
-  ],
+  "describes": "The transfer bounced — usually a Connect requirement went `past_due`. A single `Payout` row; the list operations serve `payout_list_*`.",
+  "operations": [],
   "status": 200,
   "tags": [
     "payout-state-matrix",
@@ -22,6 +19,6 @@
     "hold_reason": "Hold Reason",
     "entry_count": 9,
     "paid_at": "2026-08-09T18:42:11.412Z",
-    "failure_message": null
+    "failure_message": "The bank declined the transfer: the account number on file is closed."
   }
 }

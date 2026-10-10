@@ -1,0 +1,27 @@
+{
+  "scenario": "rider_dashboard_online_idle",
+  "domain": "rider",
+  "schema": "RiderDashboard",
+  "describes": "Online, waiting for an offer: no assignment, no offer, healthy tracking, three trips so far today.",
+  "operations": [
+    "getRiderDashboard"
+  ],
+  "status": 200,
+  "tags": [
+    "rider",
+    "home"
+  ],
+  "payload": {
+    "mode": "ONLINE_IDLE",
+    "today": {
+      "gross_cents": 4296,
+      "currency": "CAD",
+      "trips": 3,
+      "online_seconds": 8040
+    },
+    "active_assignment": null,
+    "current_offer": null,
+    "tracking_health": "HEALTHY",
+    "blocking_reasons": []
+  }
+}

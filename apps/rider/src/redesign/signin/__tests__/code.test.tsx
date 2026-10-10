@@ -83,8 +83,8 @@ describe.each(SCHEMES)('code step (%s)', (scheme) => {
     expect(screen.getByText(/You can ask for a new code in/)).toBeTruthy();
   });
 
-  it('OTP_INCORRECT with no count (error_otp_incorrect as is) says only that the code is wrong', async () => {
-    await toCode({ verifyOtp: 'error_otp_incorrect' });
+  it('OTP_INCORRECT with no count (error_otp_incorrect_no_count) says only that the code is wrong', async () => {
+    await toCode({ verifyOtp: 'error_otp_incorrect_no_count' });
     typeCode('482913');
     expect(await screen.findByText(/That code is not right\.$/)).toBeTruthy();
   });

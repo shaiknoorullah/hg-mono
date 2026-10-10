@@ -400,29 +400,36 @@ def _availability(reg, synth) -> None:
         )
 
     dash = synth.make("RiderDashboard", "dashboard-active")
+    # A rider holding an assignment is ON_DELIVERY, never ONLINE_IDLE (issue #708).
+    dash["mode"] = "ON_DELIVERY"
     reg.add(
         "rider_dashboard_active",
         "rider",
         "RiderDashboard",
-        "A rider mid-shift with an assignment in progress and earnings accrued today.",
+        "A rider mid-shift with an assignment in progress (`mode: ON_DELIVERY`) and earnings "
+        "accrued today.",
         dash,
         operations=["getRiderDashboard"],
         tags=["rider"],
     )
 
-    zero = synth.make("RiderDashboard", "dashboard-zero")
-    for key, value in list(zero.items()):
-        if key.endswith("_cents"):
-            zero[key] = 0
-        if key in ("deliveries", "deliveries_today", "trips", "trip_count"):
-            zero[key] = 0
+    # Built by hand: the money and counts live under `today`, and a rider who has not
+    # started has no assignment and no offer (issue #708).
+    zero = {
+        "mode": "ONLINE_IDLE",
+        "today": {"gross_cents": 0, "currency": "CAD", "trips": 0, "online_seconds": 0},
+        "active_assignment": None,
+        "current_offer": None,
+        "tracking_health": "HEALTHY",
+        "blocking_reasons": [],
+    }
     reg.add(
         "rider_dashboard_zero_earnings",
         "rider",
         "RiderDashboard",
-        "**A rider with zero earnings** — approved this morning, no deliveries yet. Every "
-        "money field is 0 and every count is 0. The dashboard must read as 'not started', "
-        "never as an error or a blank screen.",
+        "**A rider with zero earnings** — approved this morning, just went online, no "
+        "deliveries yet: no assignment, no offer, every money field and count 0. The "
+        "dashboard must read as 'not started', never as an error or a blank screen.",
         zero,
         operations=["getRiderDashboard"],
         tags=["rider", "edge", "empty", "money"],
@@ -454,6 +461,11 @@ def _availability(reg, synth) -> None:
 
 def _earnings(reg, synth) -> None:
     week = synth.make("EarningsSummary", "earnings-week")
+    # One bucket per day of the week, Monday first (issue #708: every bucket used to carry
+    # the same `bucket_start`). Monday 3 August 2026 00:00 America/Toronto is 04:00 UTC.
+    for i, bucket in enumerate(week["buckets"]):
+        bucket["bucket_start"] = f"2026-08-{3 + i:02d}T04:00:00.000Z"
+    week["total"]["bucket_start"] = week["buckets"][0]["bucket_start"]
     reg.add(
         "earnings_summary_week",
         "rider",
@@ -543,13 +555,18 @@ def _payouts(reg, synth) -> None:
             for k in payout:
                 if k.endswith("_cents"):
                     payout[k] = 0
+        payout["failure_message"] = (
+            "The bank declined the transfer: the account number on file is closed."
+            if state == "FAILED" else None
+        )
+        # One payout row, not a list: no list operation serves it (issue #708). The lists
+        # are `payout_list_*` and `restaurant_payout_history`.
         reg.add(
             f"payout_{state.lower()}",
             "rider",
             "Payout",
-            note,
+            note + " A single `Payout` row; the list operations serve `payout_list_*`.",
             payout,
-            operations=["listRiderPayouts", "listRestaurantPayouts"],
             tags=["payout-state-matrix", "money"],
         )
 

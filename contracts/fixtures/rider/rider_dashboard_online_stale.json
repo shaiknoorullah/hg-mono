@@ -1,0 +1,30 @@
+{
+  "scenario": "rider_dashboard_online_stale",
+  "domain": "rider",
+  "schema": "RiderDashboard",
+  "describes": "Online but no location has arrived recently: offers are held back until one does. `blocking_reasons: [STALE_LOCATION_FIX]`, tracking `DEGRADED`. Contract-only: `getRiderDashboard` on `services/hg` sends `mode` and `today` but not `active_assignment`, `tracking_health` or `blocking_reasons` yet.",
+  "operations": [
+    "getRiderDashboard"
+  ],
+  "status": 200,
+  "tags": [
+    "rider",
+    "home",
+    "degraded"
+  ],
+  "payload": {
+    "mode": "ONLINE_STALE",
+    "today": {
+      "gross_cents": 4296,
+      "currency": "CAD",
+      "trips": 3,
+      "online_seconds": 8040
+    },
+    "active_assignment": null,
+    "current_offer": null,
+    "tracking_health": "DEGRADED",
+    "blocking_reasons": [
+      "STALE_LOCATION_FIX"
+    ]
+  }
+}

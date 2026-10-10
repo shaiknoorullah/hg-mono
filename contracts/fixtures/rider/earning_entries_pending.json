@@ -1,0 +1,84 @@
+{
+  "scenario": "earning_entries_pending",
+  "domain": "rider",
+  "schema": "array<EarningEntry>",
+  "describes": "Today's entries, all `PENDING`: earned, not yet available for a payout. One is a tip added after the delivery, its own `TIP` row.",
+  "operations": [
+    "listRiderEarningEntries"
+  ],
+  "status": 200,
+  "tags": [
+    "rider",
+    "money"
+  ],
+  "meta": {
+    "next_cursor": null,
+    "has_more": false,
+    "total": 3
+  },
+  "payload": [
+    {
+      "id": "3169b332-f728-44c9-a347-918211a641a4",
+      "assignment_id": "210b67dd-94fa-4340-a160-a88a82499b2a",
+      "order_code": "HG-6D4N-2V",
+      "type": "DELIVERY",
+      "status": "PENDING",
+      "base_cents": 449,
+      "distance_cents": 0,
+      "wait_cents": 0,
+      "surge_multiplier": "1.00",
+      "guarantee_topup_cents": 0,
+      "tip_cents": 300,
+      "adjustment_cents": 0,
+      "gross_cents": 749,
+      "currency": "CAD",
+      "billable_distance_m": 4120,
+      "distance_source": "ROUTED",
+      "formula_version": 3,
+      "payout_id": null,
+      "earned_at": "2026-08-10T18:30:11.412Z"
+    },
+    {
+      "id": "96e93d0f-6ab7-469d-a257-c39b46e3110b",
+      "assignment_id": "620cac86-fb66-43b3-a7fa-6d8e65990913",
+      "order_code": "HG-9W6H-1F",
+      "type": "DELIVERY",
+      "status": "PENDING",
+      "base_cents": 449,
+      "distance_cents": 0,
+      "wait_cents": 0,
+      "surge_multiplier": "1.00",
+      "guarantee_topup_cents": 0,
+      "tip_cents": 0,
+      "adjustment_cents": 0,
+      "gross_cents": 449,
+      "currency": "CAD",
+      "billable_distance_m": 4120,
+      "distance_source": "ROUTED",
+      "formula_version": 3,
+      "payout_id": null,
+      "earned_at": "2026-08-10T17:44:11.412Z"
+    },
+    {
+      "id": "353dd006-7f28-4c27-ae6a-bd694c4524c3",
+      "assignment_id": "620cac86-fb66-43b3-a7fa-6d8e65990913",
+      "order_code": "HG-9W6H-1F",
+      "type": "TIP",
+      "status": "PENDING",
+      "base_cents": 0,
+      "distance_cents": 0,
+      "wait_cents": 0,
+      "surge_multiplier": "1.00",
+      "guarantee_topup_cents": 0,
+      "tip_cents": 500,
+      "adjustment_cents": 0,
+      "gross_cents": 500,
+      "currency": "CAD",
+      "billable_distance_m": null,
+      "distance_source": null,
+      "formula_version": 3,
+      "payout_id": null,
+      "earned_at": "2026-08-10T18:11:11.412Z"
+    }
+  ]
+}

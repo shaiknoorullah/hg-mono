@@ -51,7 +51,8 @@ DEFAULT_SCENARIO: dict[str, str] = {
     "getRiderDashboard": "rider_dashboard_active",
     "getRiderEarningsSummary": "earnings_summary_week",
     "listRiderEarningEntries": "earning_entries_mixed",
-    "listRiderPayouts": "payout_paid",
+    # Was `payout_paid`, a single Payout served for a list (issue #708).
+    "listRiderPayouts": "payout_list_draft_paid",
     "listRestaurantPayouts": "restaurant_payout_history",
     "getRiderPayout": "payout_detail_paid",
     "createPayoutRun": "payout_run_queued",

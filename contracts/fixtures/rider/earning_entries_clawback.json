@@ -1,0 +1,85 @@
+{
+  "scenario": "earning_entries_clawback",
+  "domain": "rider",
+  "schema": "array<EarningEntry>",
+  "describes": "A delivery taken back: the original `DELIVERY` row is now `REVERSED` and a new `CLAWBACK` row of -9.49 follows it (append-only; nothing was edited). The line shows the minus sign.",
+  "operations": [
+    "listRiderEarningEntries"
+  ],
+  "status": 200,
+  "tags": [
+    "rider",
+    "money",
+    "edge"
+  ],
+  "meta": {
+    "next_cursor": null,
+    "has_more": false,
+    "total": 3
+  },
+  "payload": [
+    {
+      "id": "4bc87e39-a2e9-4a15-a785-dbd737f0547f",
+      "assignment_id": "a5480fd2-48ad-4d48-a403-f743d577db15",
+      "order_code": "HG-3P9R-8W",
+      "type": "CLAWBACK",
+      "status": "AVAILABLE",
+      "base_cents": 0,
+      "distance_cents": 0,
+      "wait_cents": 0,
+      "surge_multiplier": "1.00",
+      "guarantee_topup_cents": 0,
+      "tip_cents": 0,
+      "adjustment_cents": 0,
+      "gross_cents": -949,
+      "currency": "CAD",
+      "billable_distance_m": null,
+      "distance_source": null,
+      "formula_version": 3,
+      "payout_id": null,
+      "earned_at": "2026-08-10T18:22:11.412Z"
+    },
+    {
+      "id": "3a5c1053-ed24-4ae2-a014-a9cf37396ab7",
+      "assignment_id": "a5480fd2-48ad-4d48-a403-f743d577db15",
+      "order_code": "HG-3P9R-8W",
+      "type": "DELIVERY",
+      "status": "REVERSED",
+      "base_cents": 449,
+      "distance_cents": 0,
+      "wait_cents": 0,
+      "surge_multiplier": "1.00",
+      "guarantee_topup_cents": 0,
+      "tip_cents": 500,
+      "adjustment_cents": 0,
+      "gross_cents": 949,
+      "currency": "CAD",
+      "billable_distance_m": 4120,
+      "distance_source": "ROUTED",
+      "formula_version": 3,
+      "payout_id": null,
+      "earned_at": "2026-08-10T15:42:11.412Z"
+    },
+    {
+      "id": "a60d601b-d977-4a4f-a6a2-1fa32a1549c7",
+      "assignment_id": "e6697bcf-e242-42a4-a992-2af6666e1262",
+      "order_code": "HG-7K2M-4T",
+      "type": "DELIVERY",
+      "status": "AVAILABLE",
+      "base_cents": 449,
+      "distance_cents": 0,
+      "wait_cents": 0,
+      "surge_multiplier": "1.00",
+      "guarantee_topup_cents": 0,
+      "tip_cents": 300,
+      "adjustment_cents": 0,
+      "gross_cents": 749,
+      "currency": "CAD",
+      "billable_distance_m": 4120,
+      "distance_source": "ROUTED",
+      "formula_version": 3,
+      "payout_id": null,
+      "earned_at": "2026-08-10T14:42:11.412Z"
+    }
+  ]
+}

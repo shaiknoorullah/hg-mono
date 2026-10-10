@@ -48,7 +48,7 @@ These are the rules the existing names already follow; new fixtures follow them 
 
 | Prefix | Fixtures | The suffix names | Example |
 |---|---:|---|---|
-| `error_` | 93 | `error_<code>` for a code's plain meaning; `error_<context>_<situation>` when one code means several things (`error_menu_locked_banned`, `error_staff_email_in_use`). Status and code live in the fixture, never only in the name. | `error_quote_stale` |
+| `error_` | 99 | `error_<code>` for a code's plain meaning; `error_<context>_<situation>` when one code means several things (`error_menu_locked_banned`, `error_staff_email_in_use`). Status and code live in the fixture, never only in the name. | `error_quote_stale` |
 | `realtime_` | 20 | `realtime_<area>_<story>`: a whole WebSocket script, played over one connection. Areas: `order`, `payment`, `rider`, `restaurant`, `admin_ops`, plus the transport stories `gap_and_resume` and `control_frames`. | `realtime_restaurant_offer_burst` |
 | `realtime_ticket` | 1 | Not a script: the single-use ticket `createRealtimeTicket` returns. | `realtime_ticket` |
 | `order_admin_view_` | 3 | An `OrderState` (lower case) as the staff projection shows it. | `order_admin_view_disputed` |
@@ -82,9 +82,9 @@ These are the rules the existing names already follow; new fixtures follow them 
 | `session_grant_` | 3 | Who was signed in. | `session_grant_staff` |
 | `principal_` | 5 | The signed-in principal, by role (`principal_<role>`). | `principal_support_agent` |
 | `menu_` | 27 | A menu, item, category or version state. | `menu_version_pending_review` |
-| `rider_availability_` | 4 | A `RiderAvailabilityState`, lower case. | `rider_availability_online_idle` |
-| `payout_` | 15 | A `PayoutState`, lower case, or a payout run. | `payout_held` |
-| (other) | 94 | One-off subjects named for what they are (`public_config`, `cart_many_lines`, `quote_standard`). | `public_config` |
+| `rider_availability_` | 5 | A `RiderAvailabilityState`, lower case. | `rider_availability_online_idle` |
+| `payout_` | 24 | A `PayoutState`, lower case, or a payout run. | `payout_held` |
+| (other) | 132 | One-off subjects named for what they are (`public_config`, `cart_many_lines`, `quote_standard`). | `public_config` |
 
 ## 2. How one scenario is chosen per operation (the mock server)
 
@@ -175,7 +175,24 @@ Fixtures whose `describes` says "Contract-only:": `services/hg` cannot produce t
 - `error_cannot_go_online_notification_permission`
 - `error_cannot_go_online_onboarding_incomplete`
 - `error_cannot_go_online_payout_account_incomplete`
+- `error_connect_status_not_found`
 - `error_nothing_to_resubmit`
+- `error_otp_rate_limited_with_retry`
 - `error_profile_incomplete`
 - `realtime_admin_ops_queue_depth`
 - `realtime_admin_ops_reconciliation_exception`
+- `rider_dashboard_offline_blocked`
+- `rider_dashboard_offline_blocked_account_not_active`
+- `rider_dashboard_offline_blocked_background_location_permission`
+- `rider_dashboard_offline_blocked_continuous_online_cap`
+- `rider_dashboard_offline_blocked_document_expired`
+- `rider_dashboard_offline_blocked_foreground_location_permission`
+- `rider_dashboard_offline_blocked_notification_permission`
+- `rider_dashboard_offline_blocked_onboarding_incomplete`
+- `rider_dashboard_offline_blocked_payout_account_incomplete`
+- `rider_dashboard_offline_blocked_stale_location_fix`
+- `rider_dashboard_on_delivery_dropoff`
+- `rider_dashboard_on_delivery_pickup`
+- `rider_dashboard_online_stale`
+- `rider_dashboard_tracking_degraded`
+- `rider_dashboard_tracking_lost`

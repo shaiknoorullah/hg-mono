@@ -1,0 +1,33 @@
+{
+  "scenario": "connect_status_currently_due",
+  "domain": "platform",
+  "schema": "ConnectStatus",
+  "describes": "Stripe wants one more thing now (`currently_due: [external_account]`); payouts are off until it is given. No deadline. Requirement ids and `disabled_reason` are Stripe's own, never paraphrased.",
+  "operations": [
+    "getConnectStatus"
+  ],
+  "status": 200,
+  "tags": [
+    "platform",
+    "money",
+    "connect-state-matrix",
+    "error-path"
+  ],
+  "payload": {
+    "stripe_account_id": "acct_1QkR7mE8xVn2LbQ1",
+    "charges_enabled": false,
+    "payouts_enabled": false,
+    "details_submitted": true,
+    "requirements": {
+      "currently_due": [
+        "external_account"
+      ],
+      "eventually_due": [],
+      "past_due": [],
+      "disabled_reason": "requirements.past_due",
+      "deadline": null
+    },
+    "bank_last4": null,
+    "payout_interval": "WEEKLY"
+  }
+}

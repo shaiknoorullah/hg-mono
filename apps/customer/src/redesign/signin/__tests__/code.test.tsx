@@ -131,7 +131,7 @@ describe('S2 Code', () => {
   });
 
   it('OTP_INCORRECT from the fixture (no attempts count): check it and try again', async () => {
-    mock.answer('verifyOtp', 'error_otp_incorrect');
+    mock.answer('verifyOtp', 'error_otp_incorrect_no_count');
     renderRedesign(<SignInScreen />);
     await toCode();
     typeCode('482915');

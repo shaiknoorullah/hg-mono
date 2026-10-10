@@ -1,0 +1,38 @@
+{
+  "scenario": "rider_dashboard_offline_blocked",
+  "domain": "rider",
+  "schema": "RiderDashboard",
+  "describes": "Offline with all nine `blocking_reasons` at once, so one screen test covers every row and deep link. Nothing earned today. Contract-only: `getRiderDashboard` on `services/hg` sends `mode` and `today` but not `active_assignment`, `tracking_health` or `blocking_reasons` yet.",
+  "operations": [
+    "getRiderDashboard"
+  ],
+  "status": 200,
+  "tags": [
+    "rider",
+    "home",
+    "error-path"
+  ],
+  "payload": {
+    "mode": "OFFLINE",
+    "today": {
+      "gross_cents": 0,
+      "currency": "CAD",
+      "trips": 0,
+      "online_seconds": 0
+    },
+    "active_assignment": null,
+    "current_offer": null,
+    "tracking_health": null,
+    "blocking_reasons": [
+      "ONBOARDING_INCOMPLETE",
+      "ACCOUNT_NOT_ACTIVE",
+      "PAYOUT_ACCOUNT_INCOMPLETE",
+      "FOREGROUND_LOCATION_PERMISSION",
+      "BACKGROUND_LOCATION_PERMISSION",
+      "NOTIFICATION_PERMISSION",
+      "STALE_LOCATION_FIX",
+      "DOCUMENT_EXPIRED",
+      "CONTINUOUS_ONLINE_CAP"
+    ]
+  }
+}

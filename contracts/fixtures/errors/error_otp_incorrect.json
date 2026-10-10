@@ -2,17 +2,23 @@
   "scenario": "error_otp_incorrect",
   "domain": "errors",
   "schema": "ErrorEnvelope",
-  "describes": "`401` · `OTP_INCORRECT`. **A collision case**: the auth `otp_incorrect` and the proof-of-delivery `OTP_INCORRECT` collapsed into one member. Disambiguate by endpoint, not by code.",
-  "operations": [],
-  "status": 401,
+  "describes": "`400` · `OTP_INCORRECT`. A wrong sign-in code; `details.attempts_remaining` is how many tries are left on this challenge (always sent by `services/hg`). **A collision case**: the proof-of-delivery `OTP_INCORRECT` (`422` from `createAssignmentTransition`) is the same member. Disambiguate by endpoint, not by code.",
+  "operations": [
+    "verifyOtp"
+  ],
+  "status": 400,
   "tags": [
-    "error-envelope"
+    "error-envelope",
+    "error-path"
   ],
   "payload": {
     "error": {
       "code": "OTP_INCORRECT",
-      "message": "That code is not right. 4 attempts remaining.",
-      "request_id": "F3YRRZK8YBK6TXVE1WGSQRFQD5"
+      "message": "That code is incorrect.",
+      "request_id": "F3YRRZK8YBK6TXVE1WGSQRFQD5",
+      "details": {
+        "attempts_remaining": 4
+      }
     }
   }
 }
