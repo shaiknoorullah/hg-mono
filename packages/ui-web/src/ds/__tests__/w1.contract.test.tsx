@@ -242,6 +242,32 @@ describe('App-track additions (#675, #699)', () => {
     expect(screen.getByText('Not on file')).not.toHaveClass('font-mono');
   });
 
+  it('StatCard with a null money figure says "Not reported", never a blank card or $0.00', () => {
+    render(<StatCard label="Gross" cents={null} />);
+    expect(screen.getByTestId('StatCard')).toHaveAttribute('data-state', 'empty');
+    expect(screen.getByText('Not reported')).toBeInTheDocument();
+    expect(screen.queryByTestId('StatCard-price')).toBeNull();
+  });
+
+  it('Price loading is read as words, not as a name on a role-less span', () => {
+    render(<Price cents={1234} loading />);
+    const el = screen.getByTestId('Price-loading');
+    expect(el).toHaveAttribute('aria-busy', 'true');
+    expect(el).not.toHaveAttribute('aria-label');
+    expect(el).toHaveTextContent('Loading price');
+  });
+
+  it('a disabled link button keeps focus, drops its href and ignores presses', () => {
+    const onPress = vi.fn();
+    render(<Button href="/menu" disabled onPress={onPress}>View menu</Button>);
+    const link = screen.getByRole('link', { name: 'View menu' });
+    link.focus();
+    expect(link).toHaveFocus();
+    expect(link).not.toHaveAttribute('href');
+    fireEvent.click(link);
+    expect(onPress).not.toHaveBeenCalled();
+  });
+
   it('Button form and name reach the native button', () => {
     render(<Button type="submit" form="decision" name="intent">Approve</Button>);
     const button = screen.getByRole('button', { name: 'Approve' });

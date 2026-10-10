@@ -31,7 +31,7 @@ export interface StatCardProps {
   /** A non-money figure, already formatted ("14", "6 h 20 min"). */
   value?: ReactNode;
   /** A money figure in integer cents; rendered through Price. Takes precedence over `value`. */
-  cents?: number;
+  cents?: number | null;
   /** Price size for `cents`. Default `display-lg`. */
   priceSize?: PriceSize;
   /** Context under the figure ("This week", "Before fees"). */
@@ -75,7 +75,9 @@ export function StatCard({
 }: StatCardProps) {
   const labelId = useId();
   const helper = helperProp ?? hint;
-  const hasFigure = cents !== undefined || (value !== undefined && value !== null && value !== '');
+  // A server `null` on a money field is a missing figure: "Not reported", never a blank card.
+  const hasCents = cents !== undefined && cents !== null;
+  const hasFigure = hasCents || (value !== undefined && value !== null && value !== '');
 
   let figure: ReactNode;
   if (loading) figure = <SkeletonBlock className="h-9 w-32" />;
@@ -86,7 +88,7 @@ export function StatCard({
         {error}
       </span>
     );
-  } else if (cents !== undefined) figure = <Price cents={cents} size={priceSize} testId="StatCard-price" />;
+  } else if (hasCents) figure = <Price cents={cents} size={priceSize} testId="StatCard-price" />;
   else if (hasFigure) figure = <span className="text-display-md font-bold tabular-nums">{value}</span>;
   else figure = <span className="text-body-md text-fg-secondary">{emptyValue}</span>;
 

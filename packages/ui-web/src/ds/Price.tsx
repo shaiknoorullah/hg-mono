@@ -131,10 +131,11 @@ export function Price({
       <span
         data-testid={`${testId}-loading`}
         aria-busy="true"
-        aria-label="Loading price"
         className={cn('inline-flex align-middle', SIZE_CLASS[size], className)}
         style={style}
       >
+        {/* A name on a role-less span is ignored by screen readers; the words are read instead. */}
+        <span className="sr-only">Loading price</span>
         <SkeletonBlock className="h-[1em]" style={{ inlineSize: `${Math.max(shown.length, 4)}ch` }} />
       </span>
     );
