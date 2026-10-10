@@ -51,7 +51,7 @@ const SESSION_KEY = 'hg_restaurant_session_v1';
  * (w0-request: a `principal_restaurant_owner` fixture), so this re-scopes it to the
  * restaurant of `restaurant_profile`.
  */
-async function restaurantPrincipal(page: Page) {
+export async function restaurantPrincipal(page: Page) {
   const [principal, profile] = await Promise.all([
     page.request.get(`${MOCK_API}/__mock/scenarios/principal_customer`).then((r) => r.json()),
     page.request.get(`${MOCK_API}/__mock/scenarios/restaurant_profile`).then((r) => r.json()),
@@ -80,6 +80,15 @@ function realGrant(page: Page): Promise<Grant> {
     return (await res.json()).data as Grant;
   })();
   return grantOnce;
+}
+
+/**
+ * Real mode: the live owner's access token, for a spec that checks the server's state itself.
+ * The app keeps its session in memory only (no token in `localStorage`), so a spec reads the
+ * worker's own sign-in, the same session `openSignedIn` hands the page.
+ */
+export async function liveAccessToken(page: Page): Promise<string> {
+  return (await realGrant(page)).access_token;
 }
 
 /** Opens `path` signed in as the live restaurant's owner. */

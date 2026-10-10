@@ -11,7 +11,7 @@
 import { expect, test, type Page, type Route } from '@playwright/test';
 import { execSync } from 'node:child_process';
 import { resolve } from 'node:path';
-import { DEVWORLD, MOCK_API, MODE, REAL_API, documentScrolls, openLive, openSignedIn } from './redesign-restaurant.support';
+import { DEVWORLD, MOCK_API, MODE, REAL_API, documentScrolls, liveAccessToken, openLive, openSignedIn } from './redesign-restaurant.support';
 
 
 const SHOTS = process.env.WP4_SHOTS_DIR;
@@ -319,7 +319,7 @@ function make(target: string, timeout = 300_000): string {
 }
 
 async function restaurantOrders(page: Page): Promise<{ code: string; state: string }[]> {
-  const token = await page.evaluate(() => JSON.parse(localStorage.getItem('hg_restaurant_session_v1') ?? '{}').accessToken as string);
+  const token = await liveAccessToken(page);
   const res = await page.request.get(`${REAL_API}/v1/restaurant/orders?limit=50`, {
     headers: { Authorization: `Bearer ${token}`, 'X-HG-Client': 'restaurant-web' },
   });
