@@ -80,11 +80,14 @@ export function OfferLayer(): React.ReactElement | null {
   // On a delivery the rider is not dispatchable: only follow an offer already on screen.
   const acceptNew = !dash.onDelivery;
   React.useEffect(() => {
-    if (polled.updatedAt > 0) dispatch({ type: 'receive', offer: polled.data, now: Date.now(), acceptNew });
+    if (polled.updatedAt > 0) dispatch({ type: 'receive', offer: polled.data, now: Date.now(), receivedAt: polled.updatedAt, acceptNew });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [polled.updatedAt]);
   React.useEffect(() => {
-    if (dash.updatedAt > 0) dispatch({ type: 'receive', offer: dash.data?.current_offer as DispatchOffer | null, now: Date.now(), acceptNew });
+    // `receivedAt`: the dashboard store is shared, so its answer may be older than this layer.
+    if (dash.updatedAt > 0) {
+      dispatch({ type: 'receive', offer: dash.data?.current_offer as DispatchOffer | null, now: Date.now(), receivedAt: dash.updatedAt, acceptNew });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dash.updatedAt]);
 
@@ -111,41 +114,59 @@ export function OfferLayer(): React.ReactElement | null {
     return v;
   };
 
+  // One request at a time: a second tap that lands before the re-render (a double tap) sends
+  // nothing, rather than racing the first into a 409 IDEMPOTENCY_IN_PROGRESS.
+  const sending = React.useRef(false);
+
   const accept = React.useCallback(() => {
-    if (state.kind !== 'live') return;
+    if (state.kind !== 'live' || sending.current || state.step === 'accepting' || state.step === 'declining') return;
     const id = state.offer.offer_id;
+    sending.current = true;
     dispatch({ type: 'accept-start' });
-    acceptOffer(id, keyFor(`accept:${id}`)).then(
-      (assignment) => {
-        dispatch({ type: 'accept-ok', assignment });
-        nav.openFlow('trip', { assignmentId: assignment.id });
-      },
-      (error) => dispatch({ type: 'accept-fail', error }),
-    );
+    acceptOffer(id, keyFor(`accept:${id}`))
+      .then(
+        (assignment) => {
+          dispatch({ type: 'accept-ok', assignment });
+          nav.openFlow('trip', { assignmentId: assignment.id });
+        },
+        (error) => dispatch({ type: 'accept-fail', error }),
+      )
+      .finally(() => {
+        sending.current = false;
+      });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state, nav]);
 
   const decline = React.useCallback(
     (reason: RejectReason) => {
-      if (state.kind !== 'live') return;
+      if (state.kind !== 'live' || sending.current || state.step === 'accepting' || state.step === 'declining') return;
       const id = state.offer.offer_id;
+      sending.current = true;
       dispatch({ type: 'decline-start', reason });
-      rejectOffer(id, reason, keyFor(`reject:${id}:${reason}`)).then(
-        () => dispatch({ type: 'decline-ok' }),
-        (error) => dispatch({ type: 'decline-fail', error }),
-      );
+      rejectOffer(id, reason, keyFor(`reject:${id}:${reason}`))
+        .then(
+          () => dispatch({ type: 'decline-ok' }),
+          (error) => dispatch({ type: 'decline-fail', error }),
+        )
+        .finally(() => {
+          sending.current = false;
+        });
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [state],
   );
 
   // SH/OfferConnectionLost: an accept that failed for want of a connection goes again the moment
-  // the connection is back, while the time lasts.
+  // the connection comes back (offline → online), while the time lasts. Only on that change:
+  // retrying whenever "online" is true would loop on a failure that did not flip connectivity.
   const retryOnReconnect = state.kind === 'live' && state.step === 'accept-failed' && state.error?.kind === 'offline';
+  const wasOnline = React.useRef(online);
   React.useEffect(() => {
-    if (online && retryOnReconnect && state.kind === 'live' && Date.now() < state.deadline) accept();
+    const cameBack = online && !wasOnline.current;
+    wasOnline.current = online;
+    if (cameBack && retryOnReconnect && state.kind === 'live' && Date.now() < state.deadline) accept();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [online, retryOnReconnect]);
+  }, [online]);
 
   /** `toHome`: a result's "Back to waiting" / "Back to Home": re-read the shift and show Home. */
   const close = React.useCallback(

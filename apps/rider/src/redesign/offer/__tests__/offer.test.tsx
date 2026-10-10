@@ -28,7 +28,7 @@ jest.mock('../sound', () => ({ playOfferSound: jest.fn() }));
 
 import { MapView } from '../../ds';
 import { reportReachable, reportTransportFailure, resetConnectivity } from '../../data/connectivity';
-import { DashboardPoller } from '../../home/dashboard';
+import { DashboardPoller, resetHomeState } from '../../home/dashboard';
 import { useNav } from '../../nav/Navigator';
 import { mockApi, type MockApi, type ScenarioChoice } from '../../test/mockApi';
 import { renderRedesign, SCHEMES, type Scheme } from '../../test/render';
@@ -91,6 +91,32 @@ async function mount(scheme: Scheme, choices: Record<string, ScenarioChoice>) {
     { scheme, nav: true },
   );
   await act(async () => {});
+}
+
+/**
+ * The dashboard store answers first; the layer mounts `lateMs` later while the app was in the
+ * background (no new read), so it reads a cached answer.
+ */
+async function mountLate(scheme: Scheme, lateMs: number) {
+  resetHomeState();
+  api = mockApi({ getRiderDashboard: dashboard({ current_offer: offerPending() }), getCurrentOffer: 'offer_none' });
+  let show: (v: boolean) => void = () => undefined;
+  function Later() {
+    const [on, setOn] = React.useState(false);
+    show = setOn;
+    return on ? <OfferLayer /> : null;
+  }
+  renderRedesign(
+    <>
+      <DashboardPoller />
+      <Later />
+    </>,
+    { scheme, nav: true },
+  );
+  await act(async () => {});
+  appState.currentState = 'background';
+  await advance(lateMs);
+  await act(async () => show(true));
 }
 
 async function advance(ms: number) {
@@ -174,6 +200,21 @@ describe.each(SCHEMES)('Offer layer (%s)', (scheme) => {
     expect(await screen.findByText('0:28')).toBeTruthy();
     await advance(10_000);
     expect(screen.getByText('0:18')).toBeTruthy();
+  });
+
+  it('a cached dashboard answer counts from when it arrived, not from when the layer first reads it', async () => {
+    await mountLate(scheme, 20_000);
+    // 28 s were left when the answer arrived, 20 s ago: 0:08, not a fresh 0:28.
+    expect(screen.getByText('0:08')).toBeTruthy();
+    await advance(8_250);
+    expect(screen.getByText('This offer expired')).toBeTruthy();
+  });
+
+  it('a cached answer whose offer ran out before the layer read it renders nothing', async () => {
+    await mountLate(scheme, 30_000);
+    expect(screen.queryByText('Delivery offer')).toBeNull();
+    expect(screen.queryByText('This offer expired')).toBeNull();
+    expect(sound).not.toHaveBeenCalled();
   });
 
   it('an offer already past expires_at renders nothing', async () => {
@@ -296,6 +337,43 @@ describe.each(SCHEMES)('Offer layer (%s)', (scheme) => {
     fireEvent.press(screen.getByText('Go to the restaurant'));
     expect(screen.queryByText("You've got this delivery")).toBeNull();
     expect(screen.getByTestId('probe')).toHaveTextContent(/flow=trip:/);
+  });
+
+  it('a double tap on Accept sends one request', async () => {
+    await mount(scheme, { acceptOffer: 'pending' });
+    await screen.findByText('Delivery offer');
+    // Two taps in the same frame, before React re-renders the Button as loading.
+    const { onPress } = screen.UNSAFE_getByProps({ testID: 'offer-accept' }).props as { onPress: () => void };
+    await act(async () => {
+      onPress();
+      onPress();
+    });
+    expect(api.callsTo('acceptOffer')).toHaveLength(1);
+    expect(screen.getByText('Accepting')).toBeTruthy();
+  });
+
+  it('a decline still in flight when the time runs out closes the offer silently', async () => {
+    await mount(scheme, { rejectOffer: 'pending' });
+    await screen.findByText('Delivery offer');
+    await advance(20_000);
+    fireEvent.press(screen.getByTestId('offer-decline'));
+    fireEvent.press(screen.getByText('Taking a break'));
+    await act(async () => {});
+    await advance(8_500);
+    expect(screen.queryByText('Delivery offer')).toBeNull();
+    expect(screen.queryByText('This offer expired')).toBeNull();
+    expect(api.callsTo('rejectOffer')).toHaveLength(1);
+  });
+
+  it('an accept still in flight when the time runs out waits for its answer', async () => {
+    await mount(scheme, { acceptOffer: 'pending' });
+    await screen.findByText('Delivery offer');
+    await advance(20_000);
+    fireEvent.press(screen.getByTestId('offer-accept'));
+    await act(async () => {});
+    await advance(10_000);
+    expect(screen.queryByText('This offer expired')).toBeNull();
+    expect(screen.getByText('Accepting')).toBeTruthy();
   });
 
   it('SH/OfferAcceptRetry: a failed accept retries with the same Idempotency-Key', async () => {

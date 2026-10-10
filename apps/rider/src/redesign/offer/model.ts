@@ -170,8 +170,13 @@ export type OfferState =
   | { kind: 'result'; seen: readonly string[]; result: ResultKind };
 
 export type OfferEvent =
-  /** `acceptNew: false` (on a delivery) only follows the offer already on screen. */
-  | { type: 'receive'; offer: DispatchOffer | null | undefined; now: number; acceptNew?: boolean }
+  /**
+   * `receivedAt`: when the response carrying the offer arrived (the query's `updatedAt`), which
+   * can be earlier than `now` when the answer was cached (the shared dashboard store). The
+   * deadline counts from the receipt, not from when the layer happened to read it.
+   * `acceptNew: false` (on a delivery) only follows the offer already on screen.
+   */
+  | { type: 'receive'; offer: DispatchOffer | null | undefined; now: number; receivedAt?: number; acceptNew?: boolean }
   | { type: 'tick'; now: number }
   | { type: 'accept-start' }
   | { type: 'accept-ok'; assignment: Assignment }
@@ -210,7 +215,7 @@ function busy(step: Step): boolean {
   return step === 'accepting' || step === 'declining';
 }
 
-function receive(s: OfferState, offer: DispatchOffer | null | undefined, now: number, acceptNew: boolean): OfferState {
+function receive(s: OfferState, offer: DispatchOffer | null | undefined, now: number, receivedAt: number, acceptNew: boolean): OfferState {
   if (!offer) return s;
   const id = offer.offer_id;
   if (s.kind === 'live' && s.offer.offer_id === id) {
@@ -224,17 +229,19 @@ function receive(s: OfferState, offer: DispatchOffer | null | undefined, now: nu
   }
   if (s.seen.includes(id) || !acceptNew) return s;
   if (offer.state && offer.state !== 'PENDING') return s;
-  const remaining = windowMs(offer);
-  // Already over when it reached us: nothing renders (SH note: "an offer already past
-  // expires_at renders nothing").
-  if (remaining <= 0) return { ...s, seen: seenWith(s, id) };
+  const given = windowMs(offer);
+  const deadline = Math.min(receivedAt, now) + given;
+  const remaining = deadline - now;
+  // Already over when it reached us (or when a cached answer is read late): nothing renders
+  // (SH note: "an offer already past expires_at renders nothing").
+  if (given <= 0 || remaining <= 0) return { ...s, seen: seenWith(s, id) };
   // One offer at a time; a new one replaces a result at once (SH/OfferReplacesResult).
   if (s.kind === 'live' || s.kind === 'accepted') return s;
   return {
     kind: 'live',
     seen: seenWith(s, id),
     offer,
-    deadline: now + remaining,
+    deadline,
     total: remaining,
     step: 'idle',
     reason: null,
@@ -246,7 +253,7 @@ function receive(s: OfferState, offer: DispatchOffer | null | undefined, now: nu
 export function offerReducer(s: OfferState, e: OfferEvent): OfferState {
   switch (e.type) {
     case 'receive':
-      return receive(s, e.offer, e.now, e.acceptNew ?? true);
+      return receive(s, e.offer, e.now, e.receivedAt ?? e.now, e.acceptNew ?? true);
     case 'dismiss':
       return { kind: 'none', seen: s.seen };
     default:
@@ -260,8 +267,12 @@ type Live = Extract<OfferState, { kind: 'live' }>;
 function live(s: Live, e: OfferEvent): OfferState {
   switch (e.type) {
     case 'tick':
-      // Time is up, unless our own request is still out: its answer decides.
-      return e.now >= s.deadline && !busy(s.step) ? { kind: 'result', seen: s.seen, result: 'expired' } : s;
+      if (e.now < s.deadline) return s;
+      // A decline still out when time runs out: the offer is over either way, which is what the
+      // rider asked for. Close silently, like a 409 on decline (SH/OfferDeclining).
+      if (s.step === 'declining') return { kind: 'none', seen: s.seen };
+      // Time is up, unless our accept is still out: its answer decides.
+      return s.step === 'accepting' ? s : { kind: 'result', seen: s.seen, result: 'expired' };
     case 'accept-start':
       return { ...s, step: 'accepting', error: null };
     case 'accept-ok':
