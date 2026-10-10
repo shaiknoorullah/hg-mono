@@ -182,8 +182,10 @@ export function DocumentsScreen(): React.ReactElement {
     } catch (e) {
       sending.current = false;
       if (e instanceof Cooldown) {
-        setNow(Date.now());
-        setSubmit({ phase: 'cooldown', until: Date.now() + e.seconds * 1000 });
+        // One clock read for both: two reads a millisecond apart made "24 minutes" read 25.
+        const t = Date.now();
+        setNow(t);
+        setSubmit({ phase: 'cooldown', until: t + e.seconds * 1000 });
         return;
       }
       const err = toRiderError(e);
