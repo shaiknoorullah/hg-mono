@@ -11,7 +11,7 @@
 import { expect, test, type Page, type Route } from '@playwright/test';
 import { execSync } from 'node:child_process';
 import { resolve } from 'node:path';
-import { MOCK_API, MODE, REAL_API, documentScrolls, openLive, openSignedIn } from './redesign-restaurant.support';
+import { DEVWORLD, MOCK_API, MODE, REAL_API, documentScrolls, openLive, openSignedIn } from './redesign-restaurant.support';
 
 
 const SHOTS = process.env.WP4_SHOTS_DIR;
@@ -327,7 +327,7 @@ async function restaurantOrders(page: Page): Promise<{ code: string; state: stri
 }
 
 test.describe('Live orders · real API', () => {
-  test.skip(MODE !== 'real', 'drives devworld journeys against services/hg');
+  test.skip(MODE !== 'real' || !DEVWORLD, 'drives devworld journeys: real API with a devworld database (E2E_DEVWORLD=1)');
   test.describe.configure({ mode: 'serial' });
   let finished = '';
 
