@@ -3,7 +3,7 @@ covers:
   - apps/restaurant/**
   - services/hg/internal/restaurant/**
   - services/hg/internal/catalog/**
-reviewed: 2026-10-05
+reviewed: 2026-10-10
 ---
 
 # HalalGoes — RESTAURANT domain specification
@@ -1579,6 +1579,8 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
   `response_deadline_at = offered_at + RESPONSE_WINDOW`, and pushes an `order.offered` event. The
   restaurant has until the deadline to `accept` or `reject`. The **server** is the sole authority on
   expiry; the client countdown is decorative.
+
+  Accepting captures the payment; if that capture fails, the accept still succeeds and the capture is retried in the background with backoff, then raised to on-call as a critical alert after the eighth failure ([PaymentIntent lifecycle and capture timing, P-16](01-platform.md#p-16--paymentintent-lifecycle-and-capture-timing)).
 
   > **Decided:** `RESPONSE_WINDOW = 180 seconds` ([acceptance window](../decisions/README.md#settled--reconciliations)); expiry voids the authorisation, never captures ([authorise then capture](../../AGENTS.md#3-non-negotiable-invariants)).
   > **Open** (proposed defaults stand): an apology credit offer to the customer; toggle forced off after two consecutive expiries (R-22); no re-offer, no re-route.
