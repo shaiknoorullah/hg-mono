@@ -10,7 +10,9 @@
 package pricing
 
 import (
+	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders/money"
 )
@@ -76,15 +78,96 @@ type LineInput struct {
 	MenuItemID         string
 	MenuItemVersionID  *string
 	MenuItemName       string
-	VariantID          *string
-	VariantName        *string
-	VariantPricingMode *string // ABSOLUTE | DELTA | nil
+	VariantID          *string // set only for a line with exactly one variant
+	VariantName        *string // every chosen name, joined (VariantSummary)
+	VariantPricingMode *string // ABSOLUTE | DELTA | nil; only for exactly one variant
+	Variants           []VariantChoice
 	Quantity           int
 	BasePriceCents     money.Amount
-	VariantPartCents   money.Amount // resolved per pricing_mode
+	VariantPartCents   money.Amount // VariantPart(BasePriceCents, Variants)
 	SpecialRequest     *string
 	TaxCategory        TaxCategory
 	Addons             []AddonInput
+}
+
+// Variant pricing modes (the contract's VariantPricingMode).
+const (
+	PricingAbsolute = "ABSOLUTE"
+	PricingDelta    = "DELTA"
+)
+
+// VariantChoice is one chosen variant with the menu values it is priced from,
+// one per variant group of the item.
+type VariantChoice struct {
+	VariantID      string
+	VariantGroupID string
+	GroupName      string
+	Name           string
+	PricingMode    string        // ABSOLUTE | DELTA
+	PriceCents     *money.Amount // ABSOLUTE: replaces the base price
+	DeltaCents     *money.Amount // DELTA: adjusts the base price
+}
+
+// ErrVariantPricing is returned by VariantPart for a combination it cannot
+// price: two ABSOLUTE variants (each claims to be the price), or a result
+// below zero. The menu is wrong, not the customer's choice, so callers refuse
+// the line as unavailable rather than guess a price.
+var ErrVariantPricing = errors.New("pricing: the chosen variants cannot be priced together")
+
+// VariantPart is P-09 step 1 for any number of chosen variants: the chosen
+// ABSOLUTE variant's price, else the base price, plus every chosen DELTA
+// variant's delta. With one variant it is exactly the one-variant rule
+// (ABSOLUTE replaces the base, DELTA adjusts it); with none it is the base.
+// The cart's indicative price, the quote and the order all come from here.
+func VariantPart(base money.Amount, chosen []VariantChoice) (money.Amount, error) {
+	part := base
+	var deltas money.Amount
+	absolutes := 0
+	for _, v := range chosen {
+		switch v.PricingMode {
+		case PricingAbsolute:
+			if v.PriceCents == nil {
+				return 0, fmt.Errorf("%w: variant %s has no price", ErrVariantPricing, v.VariantID)
+			}
+			absolutes++
+			part = *v.PriceCents
+		case PricingDelta:
+			if v.DeltaCents == nil {
+				return 0, fmt.Errorf("%w: variant %s has no delta", ErrVariantPricing, v.VariantID)
+			}
+			deltas = deltas.Add(*v.DeltaCents)
+		default:
+			return 0, fmt.Errorf("%w: variant %s has pricing mode %q", ErrVariantPricing, v.VariantID, v.PricingMode)
+		}
+	}
+	if absolutes > 1 {
+		return 0, fmt.Errorf("%w: %d variants each replace the base price", ErrVariantPricing, absolutes)
+	}
+	part = part.Add(deltas)
+	if part < 0 {
+		return 0, fmt.Errorf("%w: the variants take the price below zero", ErrVariantPricing)
+	}
+	return part, nil
+}
+
+// VariantSummary returns the legacy one-variant fields for a line: the id and
+// pricing mode when there is exactly one variant, and every chosen name joined
+// with ", " (nil when there is none). The restaurant ticket, the rider and the
+// admin read the joined name, so they see every choice.
+func VariantSummary(chosen []VariantChoice) (id, name, mode *string) {
+	if len(chosen) == 0 {
+		return nil, nil, nil
+	}
+	names := make([]string, 0, len(chosen))
+	for _, v := range chosen {
+		names = append(names, v.Name)
+	}
+	joined := strings.Join(names, ", ")
+	if len(chosen) == 1 {
+		vid, vmode := chosen[0].VariantID, chosen[0].PricingMode
+		return &vid, &joined, &vmode
+	}
+	return nil, &joined, nil
 }
 
 // AddonInput is one chosen add-on with its snapshotted price.
@@ -131,6 +214,7 @@ type ResultLine struct {
 	VariantID          *string
 	VariantName        *string
 	VariantPricingMode *string
+	Variants           []VariantChoice
 	Quantity           int
 	BasePriceCents     money.Amount
 	VariantPartCents   money.Amount
@@ -204,6 +288,16 @@ func Compute(in Inputs) (Result, error) {
 		if l.Quantity <= 0 {
 			return Result{}, fmt.Errorf("pricing: line %d has non-positive quantity", i)
 		}
+		// The variant part comes from the chosen variants whenever the caller
+		// supplied them, so the quote cannot carry a part its variants disagree
+		// with (the database re-checks it: 00069).
+		if len(l.Variants) > 0 {
+			vp, err := VariantPart(l.BasePriceCents, l.Variants)
+			if err != nil {
+				return Result{}, fmt.Errorf("pricing: line %d: %w", i, err)
+			}
+			l.VariantPartCents = vp
+		}
 		var addonsPart money.Amount
 		for _, a := range l.Addons {
 			if a.AddonQuantity <= 0 {
@@ -221,6 +315,7 @@ func Compute(in Inputs) (Result, error) {
 			VariantID:          l.VariantID,
 			VariantName:        l.VariantName,
 			VariantPricingMode: l.VariantPricingMode,
+			Variants:           l.Variants,
 			Quantity:           l.Quantity,
 			BasePriceCents:     l.BasePriceCents,
 			VariantPartCents:   l.VariantPartCents,

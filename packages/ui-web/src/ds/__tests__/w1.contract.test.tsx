@@ -324,7 +324,13 @@ describe('No success solid, no halal claim (invariants 8–10)', () => {
       expect(src, file).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
       expect(src, file).not.toMatch(/\b(rgb|rgba|hsl|hsla)\(/);
       expect(src, file).not.toMatch(/\b(bg|text|border|fill|ring)-(brand|accent|neutral|success|warning|danger|info)-\d{2,3}\b/);
-      expect(src, file).not.toMatch(/\b(bg|text|border)-(feedback-success|halal)/);
+      // Solid green is the halal seal's alone (AGENTS.md "Non-negotiable invariants", item 10):
+      // semantic success is tint-only, so a success fill other than the tint is refused, while a
+      // success-coloured glyph or text (Input's trailing check, per the live README) is allowed.
+      expect(src, file).not.toMatch(/\bbg-feedback-success-(?!tint\b)[a-z-]+/);
+      // Only the halal family may paint the certified (green) halal roles; the slate tone for
+      // halal messages may use the expired roles, which are cool slate, never green.
+      if (!/\/Halal[^/]*\.tsx$/.test(file)) expect(src, file).not.toMatch(/\b(bg|text|border|fill|ring)-halal-certified/);
       expect(src, file).not.toMatch(/\bborder-(l|s|inline-start)(-|\b)/);
     }
   });

@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -205,8 +206,12 @@ type canonicalInput struct {
 }
 
 type canonicalLine struct {
-	MenuItemID     string           `json:"menu_item_id"`
-	VariantID      *string          `json:"variant_id"`
+	MenuItemID string  `json:"menu_item_id"`
+	VariantID  *string `json:"variant_id"`
+	// VariantIDs, sorted, is set only for a line with more than one variant,
+	// so a one-variant line hashes exactly as it did before lines carried
+	// several.
+	VariantIDs     []string         `json:"variant_ids,omitempty"`
 	Quantity       int              `json:"quantity"`
 	SpecialRequest *string          `json:"special_request"`
 	Addons         []canonicalAddon `json:"addons"`
@@ -231,7 +236,10 @@ func hashInput(ci canonicalInput) []byte {
 		if ci.Lines[j].VariantID != nil {
 			vj = *ci.Lines[j].VariantID
 		}
-		return vi < vj
+		if vi != vj {
+			return vi < vj
+		}
+		return strings.Join(ci.Lines[i].VariantIDs, ",") < strings.Join(ci.Lines[j].VariantIDs, ",")
 	})
 	for _, l := range ci.Lines {
 		sort.Slice(l.Addons, func(i, j int) bool { return l.Addons[i].AddonID < l.Addons[j].AddonID })
@@ -309,6 +317,7 @@ type QuoteLine struct {
 	VariantID          *string
 	VariantName        *string
 	VariantPricingMode *string
+	Variants           []pricing.VariantChoice
 	Quantity           int
 	BasePriceCents     int64
 	VariantPartCents   int64

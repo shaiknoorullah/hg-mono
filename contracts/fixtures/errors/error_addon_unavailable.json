@@ -1,0 +1,23 @@
+{
+  "scenario": "error_addon_unavailable",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`409` · `ADDON_UNAVAILABLE`. The chosen add-on is on the item but switched off: \"Paratha just ran out\". `details.addon_id` names it. The cart is unchanged.",
+  "operations": [
+    "addCartLine"
+  ],
+  "status": 409,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "ADDON_UNAVAILABLE",
+      "message": "An extra on this item is no longer available.",
+      "request_id": "XXY2CAZ9V36DTPYMWJVKT93WMC",
+      "details": {
+        "addon_id": "92dd11d2-d38b-4a38-ad80-101f16fab339"
+      }
+    }
+  }
+}
