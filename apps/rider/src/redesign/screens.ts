@@ -4,6 +4,7 @@
  */
 import './dropoff';
 import './earnings';
+import './exceptions';
 import './home';
 import './signin';
 import './trip';
