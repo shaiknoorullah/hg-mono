@@ -42,9 +42,11 @@ Work packages: `plan/design-system.md` §4.1 on the read-only `claude/redesign-c
 | Modal (+ deprecated `Dialog`) | rebuilt (Radix Dialog) | W4 | confirm and alert only on web |
 | Toast | rebuilt | W4 | not Radix `Toast.Root` (it also renders inline); the hover and focus pause is kept by hand |
 | StatusTimeline (+ `ORDER_STATES`, `resolveTimeline`) | rebuilt | W4 | — |
-| HalalBadge, HalalShield | legacy | W5 | — |
-| HalalCertificationPanel | legacy | W5 | no `headingLevel` |
-| HalalChecklist (+ gate helpers) | legacy | W5 | — |
+| HalalShield | **rebuilt** | W5 | — (a CSS-length `size` goes to the style, not the SVG `width` attribute: the legacy bug, fixed) |
+| HalalBadge | **rebuilt** | W5 | — (amber EXPIRING_SOON with "· expires {d Mon}"; `operational` adds a pointer Tooltip) |
+| HalalCertificationPanel | **rebuilt** | W5 | — (adds `variant="restaurant"`, `density="compact"`, the `certificate_viewable=false` copy) |
+| Halal labels (`HALAL_CHECK_NAME`, `HALAL_REJECTION_REASONS`, `halalBadgeLabels`, …) | **rebuilt** (new) | W5 | — |
+| HalalChecklist (+ gate helpers) | legacy (kept) | W5 | the console uses `SevenChecks` + `DecisionBar`; the gate types are unchanged |
 | DataTable | rebuilt | W6 (LyteNyte) | `role="grid"` named by the caption (`aria-labelledby`), not `<table>`; the check, minus, sort-chevron and "more" glyphs are CSS-drawn in `lib/ui/data-grid` (today's Icon map lacks them); row actions use a Radix menu in `lib/ui/data-grid` until the W4 `Menu` is wired in |
 | TextCell, IdCell, MoneyCell, TimeCell, DateCell, CountdownCell, StatusCell, HalalStateCell, MeterCell | rebuilt | W6 | StatusCell draws its own tint chip until the W1 `Badge` is used; CountdownCell is the silent text form (the W4 `Countdown` is not used inside cells) |
 | Rating | legacy | — | out of launch scope; do not extend |
@@ -77,6 +79,11 @@ Work packages: `plan/design-system.md` §4.1 on the read-only `claude/redesign-c
 | StickyFooter (= ActionBar) | rebuilt | W2 |
 | NavDrawer | rebuilt | W2 |
 | SectionNav | rebuilt | W2 |
+| SevenChecks (+ `sevenChecksRollup`) | rebuilt (new, packet P28) | W5 |
+| DecisionBar | rebuilt (new, packet P28) | W5 |
+| RiderChecklist | rebuilt (new, packet P29) | W5 |
+| JustifiedReveal | rebuilt (new, packet P30) | W5 |
+| IssuerCombobox (+ `ISSUER_STATUS_LABEL`) | rebuilt (new, packet P31; contract statuses) | W5 |
 | FilterChip | rebuilt | W6 |
 | ListPane, ListPaneRow | rebuilt | W6 |
 | EventLog | rebuilt | W6 |
@@ -84,3 +91,7 @@ Work packages: `plan/design-system.md` §4.1 on the read-only `claude/redesign-c
 | DeclineForm (+ `DECLINE_REASONS`, the contract's seven reject reasons) | rebuilt | W7a |
 | StatusCard (+ `statusFromOpenState`) | rebuilt | W7a |
 | PickupCode | rebuilt | W7a |
+| TextLink (router-agnostic: `as`, `render` or `onNavigate`; `href` for `tel:`, `mailto:`, external) | rebuilt (new) | sign-in composites (#737) |
+| StateCard | rebuilt (new) | sign-in composites (#737) |
+| SupportBlock, SupportSentence (+ `formatSupportPhone`, `resolveSupport`) | rebuilt (new) | sign-in composites (#737) |
+| WaitLine (+ `useWaitLine`, `resolveWaitDeadline`) | rebuilt (new) | sign-in composites (#737) |

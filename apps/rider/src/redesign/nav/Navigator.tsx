@@ -60,6 +60,11 @@ function initialState(initialTab: Tab, initialFlow: Entry | null): State {
   };
 }
 
+function topOf(s: State): Entry {
+  const st = s.flow ?? s.stacks[s.tab];
+  return st[st.length - 1]!;
+}
+
 const NavContext = React.createContext<Nav | null>(null);
 
 export interface NavigatorProps {
@@ -73,13 +78,23 @@ export function Navigator({ initialTab = 'home', initialFlow = null, children }:
   const [state, setState] = React.useState<State>(() =>
     initialState(initialTab, initialFlow ? entry(initialFlow.name, initialFlow.params as never) : null),
   );
+  // The latest state, updated synchronously by every action (not only on re-render), so two
+  // calls in the same frame see each other: a second Back tap before React re-renders reads the
+  // stack the first tap left, not the one this render was built from. Only `commit` writes it
+  // (it is the only caller of `setState`), never a render: a render can carry an older state
+  // than the ref while an update is still pending, and must not wind the ref back.
   const stateRef = React.useRef(state);
-  stateRef.current = state;
+  const commit = React.useCallback((fn: (s: State) => State) => {
+    const next = fn(stateRef.current);
+    stateRef.current = next;
+    setState(next);
+  }, []);
 
   const nav = React.useMemo<Nav>(() => {
-    const top = state.flow ? state.flow[state.flow.length - 1]! : state.stacks[state.tab][state.stacks[state.tab].length - 1]!;
+    const top = topOf(state);
+    const flowRoot = state.flow?.[0]?.key ?? null;
     const mutateTop = (fn: (s: Entry[]) => Entry[]) =>
-      setState((s) => (s.flow ? { ...s, flow: fn(s.flow) } : { ...s, stacks: { ...s.stacks, [s.tab]: fn(s.stacks[s.tab]) } }));
+      commit((s) => (s.flow ? { ...s, flow: fn(s.flow) } : { ...s, stacks: { ...s.stacks, [s.tab]: fn(s.stacks[s.tab]) } }));
     return {
       tab: state.tab,
       current: top,
@@ -87,23 +102,32 @@ export function Navigator({ initialTab = 'home', initialFlow = null, children }:
       flow: state.flow,
       canGoBack: state.flow ? state.flow.length > 1 : state.stacks[state.tab].length > 1,
       switchTab: (tab) =>
-        setState((s) =>
+        commit((s) =>
           s.tab === tab ? { ...s, stacks: { ...s.stacks, [tab]: s.stacks[tab].slice(0, 1) } } : { ...s, tab },
         ),
       push: (name, ...params) => mutateTop((st) => [...st, entry(name, params[0] as never)]),
       replace: (name, ...params) => mutateTop((st) => [...st.slice(0, -1), entry(name, params[0] as never)]),
       pop: () => {
         const s = stateRef.current;
+        // Issued by a screen that is no longer on top (a double tap on Back, two Back presses
+        // in one frame): that screen is already gone, so this pop is done. `true`, so Android
+        // Back does not go on to switch tabs or leave the app.
+        if (topOf(s).key !== top.key) return true;
         const st = s.flow ?? s.stacks[s.tab];
         if (st.length <= 1) return false;
         mutateTop((x) => x.slice(0, -1));
         return true;
       },
       popToRoot: () => mutateTop((st) => st.slice(0, 1)),
-      openFlow: (name, ...params) => setState((s) => ({ ...s, flow: [entry(name, params[0] as never)] })),
-      closeFlow: () => setState((s) => ({ ...s, flow: null })),
+      openFlow: (name, ...params) => commit((s) => ({ ...s, flow: [entry(name, params[0] as never)] })),
+      closeFlow: () =>
+        commit((s) =>
+          // Only the flow this render showed: a second tap, or a late close from a flow that has
+          // since been replaced by a new one, changes nothing.
+          s.flow && (flowRoot === null || s.flow[0]?.key === flowRoot) ? { ...s, flow: null } : s,
+        ),
     };
-  }, [state]);
+  }, [state, commit]);
 
   const navRef = React.useRef(nav);
   navRef.current = nav;
