@@ -110,7 +110,7 @@ export function Button(props: ButtonProps) {
 
   return (
     <LibButton
-      ref={ref}
+      ref={ref as never}
       testID={testID}
       variant={variant}
       size={libSize}
