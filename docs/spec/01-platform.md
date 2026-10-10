@@ -9,7 +9,7 @@ covers:
   - services/hg/internal/files/**
   - services/hg/internal/dispatch/**
   - services/hg/internal/httpx/**
-reviewed: 2026-10-05
+reviewed: 2026-10-10
 ---
 
 # HalalGoes — Cross-Cutting Platform Layer Specification
@@ -1088,7 +1088,7 @@ CREATED ──────────► AUTHORIZED ──────► RESTA
                  └──────────┘         └────────────┴─────────────┴──► UNASSIGNED → SEARCHING
                  └───────────────────────────────────────────────────► NO_RIDER_FOUND
   ```
-  Dispatch may push the order forward **only** through T12 (`CARRYING` ⟹ `PICKED_UP`), T14 (`AT_CUSTOMER` ⟹ `ARRIVED`) and T15/T16 (`COMPLETED` ⟹ `DELIVERED`). It may never cancel an order; `NO_RIDER_FOUND` arms the order's `READY_FOR_PICKUP` escalation instead (T13). A pickup moves the order in the same transaction as the dispatch step, so a refused order move refuses the pickup ([pickup in one transaction](https://github.com/shaiknoorullah/hg-mono/issues/317)). Only the rider who holds the order's delivery can move it, checked where the order is locked. A pickup while the order is still `PREPARING` is refused until the kitchen's pickup code is checked: marking ready is the kitchen's step, never the rider's word alone ([early pickup with the kitchen's code](https://github.com/shaiknoorullah/hg-mono/issues/413)).
+  Dispatch may push the order forward **only** through T12 (`CARRYING` ⟹ `PICKED_UP`), T14 (`AT_CUSTOMER` ⟹ `ARRIVED`) and T15/T16 (`COMPLETED` ⟹ `DELIVERED`). It may never cancel an order; `NO_RIDER_FOUND` arms the order's `READY_FOR_PICKUP` escalation instead (T13). A pickup moves the order in the same transaction as the dispatch step, so a refused order move refuses the pickup ([pickup in one transaction](https://github.com/shaiknoorullah/hg-mono/issues/317)). Only the rider who holds the order's delivery can move it, checked where the order is locked. A pickup while the order is still `PREPARING` is refused until the kitchen's pickup code is checked: marking ready is the kitchen's step, never the rider's word alone ([early pickup with the kitchen's code](https://github.com/shaiknoorullah/hg-mono/issues/413)). The pickup code is asked for only once the order is `READY_FOR_PICKUP` and the rider holds its live delivery: a missing code is `422 PICKUP_CODE_REQUIRED`, a wrong one `422 PICKUP_CODE_INCORRECT` with the tries left, and the last wrong try locks the code (`423 PICKUP_CODE_LOCKED`) so that only support or an admin can confirm the handover, with a reason and an audit record ([handover codes enforced](https://github.com/shaiknoorullah/hg-mono/pull/315)).
 
   **Enforcement.** A single function owns every transition:
   ```go
