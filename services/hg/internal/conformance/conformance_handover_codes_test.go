@@ -45,6 +45,7 @@ import (
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders/machine"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/restaurant"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/testseed"
 )
 
 // riderLifecycle is the dispatch half of cmd/hg/main.go's orderLifecycleAdapter
@@ -119,6 +120,9 @@ type hoFixture struct {
 func hoSeed(t *testing.T, pool *pgxpool.Pool) hoFixture {
 	t.Helper()
 	b := mrSeedRestaurant(t, pool, "ACTIVE")
+	// Accepting an order needs a LIVE restaurant whose halal certificate is
+	// current (https://github.com/shaiknoorullah/hg-mono/issues/328).
+	testseed.CertifyRestaurant(t, pool, b.restaurantID, 300)
 	f := hoFixture{restaurantID: b.restaurantID, managerID: b.managerID}
 	f.orderID = mrSeedPreparingOrder(t, pool, b.restaurantID, b.itemID)
 	mustExecGaps(t, pool, `

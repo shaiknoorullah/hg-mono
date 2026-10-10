@@ -123,7 +123,16 @@ FOR UPDATE OF asn`, assignmentID, riderAccountID).Scan(
 	// override_reason, no geofence (handover_codes.go). The order row is locked
 	// after the assignment, the lock order every code check uses. A refusal
 	// commits first, so a counted wrong code and a lock alert survive it.
-	if in.ToState == "PICKED_UP" {
+	//
+	// The code is asked for only when the pickup could otherwise go ahead: the
+	// order is waiting at the counter and this rider holds its delivery. Any
+	// other order is refused by the order move below (pickup.go) without
+	// touching the code, so a pickup that is not allowed never counts a try.
+	codeDue, err := pickupCodeDue(ctx, tx, in.ToState, orderID, riderAccountID)
+	if err != nil {
+		return nil, false, err
+	}
+	if codeDue {
 		refusal, err := codeGate(ctx, tx, orderID, handover.Pickup, in.PickupCode)
 		if err != nil {
 			return nil, false, err
@@ -254,6 +263,25 @@ UPDATE dispatch SET state = 'COMPLETED', state_since = now(),
 	}
 	asn, err := s.LoadAssignment(ctx, riderAccountID, assignmentID)
 	return asn, true, err
+}
+
+// pickupCodeDue reports whether a step must pass the pickup code: a PICKED_UP
+// of an order that is READY_FOR_PICKUP and whose live dispatch this rider
+// holds. It locks the order row, after the assignment row.
+func pickupCodeDue(ctx context.Context, tx pgx.Tx, toState, orderID, riderAccountID string) (bool, error) {
+	if toState != "PICKED_UP" {
+		return false, nil
+	}
+	var due bool
+	err := tx.QueryRow(ctx, `
+SELECT o.state = 'READY_FOR_PICKUP'
+       AND EXISTS (SELECT 1 FROM dispatch d
+                    WHERE d.order_id = o.id AND d.rider_account_id = $2
+                      AND d.state IN ('ASSIGNED', 'AT_RESTAURANT', 'CARRYING'))
+  FROM "order" o
+ WHERE o.id = $1
+   FOR UPDATE OF o`, orderID, riderAccountID).Scan(&due)
+	return due, err
 }
 
 // restoreAvailabilityTx returns a rider from ON_DELIVERY to ONLINE_IDLE (or

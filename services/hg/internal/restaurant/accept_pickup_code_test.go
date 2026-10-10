@@ -19,7 +19,7 @@ import (
 func TestIntegration_AcceptOrder_MintsOnePickupCode(t *testing.T) {
 	pool := testPool(t)
 	ctx := context.Background()
-	f := seedFixtures(t, pool)
+	f := seedOrderableFixtures(t, pool)
 	orderID := seedOrder(t, pool, f.restaurantID, f.menuItemID, "RESTAURANT_PENDING", "now() + interval '3 minutes'")
 
 	// Count every statement that writes this order's pickup code. A trigger
