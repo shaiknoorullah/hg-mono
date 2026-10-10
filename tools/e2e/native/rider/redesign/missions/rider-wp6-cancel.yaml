@@ -1,0 +1,38 @@
+id: rider-wp6-cancel
+app: rider
+avd: hg_rider
+api: devworld
+build:
+  env: { EXPO_PUBLIC_HG_REDESIGN: "1" }
+  note: "Clear the Metro cache when building (EXPO_PUBLIC_* is inlined at transform time)."
+setup:
+  - "make dev-reset"
+  # The dev super admin cancels the rider's live order mid-flow (explore): cancelOrderAdmin.
+  - "make dev-admin"
+  # One live order on the short route: the restaurant accepts and marks it ready by itself, the
+  # rider is left to the app.
+  - "make dev-journey route=short auto=restaurant manual=rider"
+reality:
+  # The GPS rides from route.go shortStart to Bismillah Grill, on a slow network, large text.
+  - geo-route: tools/e2e/native/routes/rider-to-restaurant.gpx
+  - network: gsm
+  - theme: light
+  - font-scale: 2.0
+flows: [ "tools/e2e/native/rider/redesign/lab/6-cancel.yaml" ]
+explore: >
+  The flow waits at the counter (step 2) for the order to be cancelled from outside the app. As
+  soon as the screenshot rider-wp6-01-waiting-for-the-cancel is taken, cancel the journey's order.
+  `make dev-scenario s=customer-cancels` only cancels an order the restaurant has not accepted
+  (self-service cancel closes at acceptance), so sign in as the dev admin (`make dev-admin`) and
+  POST /v1/admin/orders/{orderId}/cancel (cancelOrderAdmin, with an Idempotency-Key) for the
+  journey's order. A devworld helper for this (admin cancel, and reassign the rider) is missing:
+  note it in the report. Within about 5 s the trip shows "Order cancelled". Then, on fresh
+  journeys, screenshot each state:
+  (1) Cancel after pickup (type the pickup code first, then cancel): "Don't deliver it. You have
+  the food with you.", "Call HalalGoes support" primary with its number and hours, "Done — I've
+  dealt with the food" opens "Have you dealt with the food?" (check the API log: nothing is
+  sent), "Go offline" ends on Home offline.
+  (2) Network: `network: offline` (tools/e2e/reality/step.mjs) while waiting, cancel, restore:
+  the cancel shows on the first poll after the connection is back; nothing saved replays into it.
+  (3) Kill the app at the counter, cancel, relaunch: the trip ends without a stuck step.
+  (4) Dark theme and font scale 1.3: repeat the cancelled screen; nothing red, no green.

@@ -1,0 +1,23 @@
+{
+  "scenario": "error_content_type_mismatch",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`422` · `CONTENT_TYPE_MISMATCH`. The file's bytes are not the type declared when the upload was created.",
+  "operations": [
+    "confirmUpload"
+  ],
+  "status": 422,
+  "tags": [
+    "error-envelope",
+    "error-path",
+    "rider",
+    "upload"
+  ],
+  "payload": {
+    "error": {
+      "code": "CONTENT_TYPE_MISMATCH",
+      "message": "The uploaded bytes do not match the declared content type.",
+      "request_id": "SFTN09GMPDM8D2H2485T6Z3FHQ"
+    }
+  }
+}

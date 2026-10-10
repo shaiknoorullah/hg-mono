@@ -1,0 +1,27 @@
+{
+  "scenario": "error_cannot_go_online_document_expired",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`422` · `CANNOT_GO_ONLINE`. One blocking reason, `DOCUMENT_EXPIRED`, so its row and deep link can be tested alone. Contract-only: `services/hg` sends only `STALE_LOCATION_FIX` in `blocking_reasons` today.",
+  "operations": [
+    "setRiderAvailability"
+  ],
+  "status": 422,
+  "tags": [
+    "error-envelope",
+    "error-path",
+    "rider"
+  ],
+  "payload": {
+    "error": {
+      "code": "CANNOT_GO_ONLINE",
+      "message": "You cannot go online yet.",
+      "request_id": "YPZJYVBK53R8SA6F0RS4X6YVRJ",
+      "details": {
+        "blocking_reasons": [
+          "DOCUMENT_EXPIRED"
+        ]
+      }
+    }
+  }
+}

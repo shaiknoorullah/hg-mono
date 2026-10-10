@@ -1,0 +1,31 @@
+{
+  "scenario": "realtime_admin_ops_dispatch_failure",
+  "domain": "realtime",
+  "schema": "RealtimeEvent[]",
+  "describes": "`admin.dispatch_failure`: three dispatch waves ran out to 10 km, eight riders were offered the order and nobody accepted. `services/hg` emits this when dispatch reaches `NO_RIDER_FOUND`.",
+  "operations": [],
+  "status": 200,
+  "tags": [
+    "realtime",
+    "script",
+    "admin",
+    "error-path"
+  ],
+  "payload": [
+    {
+      "id": "V51CVM2TF3Z26JAR5TR2M29FN1",
+      "seq": 1,
+      "channel": "admin:ops",
+      "type": "admin.dispatch_failure",
+      "v": 1,
+      "ts": "2026-08-10T18:42:11.412Z",
+      "data": {
+        "order_id": "d99d0f25-0c93-42c0-af42-ba0a8794bf0b",
+        "waves": 3,
+        "riders_offered": 8,
+        "radius_m": 10000
+      },
+      "_delay_ms": 0
+    }
+  ]
+}

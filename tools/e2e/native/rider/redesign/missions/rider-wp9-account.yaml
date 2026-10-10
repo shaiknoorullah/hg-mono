@@ -9,7 +9,7 @@ setup: [ "make dev-reset" ]
 reality:
   - theme: light
   - theme: dark
-flows: [ "tools/e2e/native/rider/redesign/9-account.yaml" ]
+flows: [ "tools/e2e/native/rider/redesign/1-sign-in.yaml", "tools/e2e/native/rider/redesign/9-account.yaml" ]   # 9-account keeps the session 1-sign-in opens
 explore: >
   After the flow passes, signed in as rider-sim: (1) Account › Your details, Vehicle, Documents,
   Terms and privacy (Read the rider terms shows "We couldn't open the rider terms" unless the build

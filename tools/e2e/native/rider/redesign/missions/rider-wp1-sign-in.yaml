@@ -9,8 +9,8 @@ setup: [ "make dev-reset" ]
 reality:
   - theme: light
 flows:
-  - "tools/e2e/native/rider/redesign/1-sign-in.yaml"
   - "tools/e2e/native/rider/redesign/0-shell.yaml"
+  - "tools/e2e/native/rider/redesign/1-sign-in.yaml"
 explore: >
   The flow itself turns airplane mode on for the first Send code and off again (Maestro
   setAirplaneMode), so no network step is needed here. After the flows pass, each step on the real API (devworld, rider-sim +1 555 010 0151, code

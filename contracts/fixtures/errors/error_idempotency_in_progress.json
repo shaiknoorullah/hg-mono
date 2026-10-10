@@ -1,0 +1,22 @@
+{
+  "scenario": "error_idempotency_in_progress",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`409` · `IDEMPOTENCY_IN_PROGRESS`. A retry of `createOrder` with the same key while the first is still running. The app waits and re-reads the active order; it never sends a new key.",
+  "operations": [
+    "createOrder"
+  ],
+  "status": 409,
+  "tags": [
+    "error-envelope",
+    "error-path",
+    "customer"
+  ],
+  "payload": {
+    "error": {
+      "code": "IDEMPOTENCY_IN_PROGRESS",
+      "message": "A request with this Idempotency-Key is still in progress.",
+      "request_id": "DJ5QZJQGEZH7KW17C1TKWHHMX5"
+    }
+  }
+}
