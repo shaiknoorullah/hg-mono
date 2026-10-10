@@ -18,7 +18,7 @@
  * Nothing here is green or red.
  */
 import * as React from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { api } from '../api/client';
 import {
@@ -131,7 +131,8 @@ export function SignInScreen(): React.ReactElement {
 }
 
 // ---------------------------------------------------------------------------------------------
-// Page frame: content scrolls, the footer stays at the bottom above the keyboard.
+// Page frame: content scrolls, the footer stays at the bottom above the keyboard. Padding on both
+// platforms: with edge-to-edge on, Android no longer resizes the window for the keyboard.
 // ---------------------------------------------------------------------------------------------
 
 function Frame({
@@ -148,7 +149,7 @@ function Frame({
   const theme = useTheme();
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior="padding"
       style={[styles.fill, { backgroundColor: theme.color.surface.base }]}
       testID={testID}
     >
