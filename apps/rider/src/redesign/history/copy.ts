@@ -188,6 +188,12 @@ export const REPLACE = {
   takeNew: 'Take a new photo',
   uploading: 'Uploading',
   failedAnnounce: (type: RiderDocType) => `Your new ${DOC[type].noun} didn't upload`,
+  /** Account-Replace-TooSmall / -TooLarge / -LinkExpired, under the current row. */
+  unchanged: (type: RiderDocType) => `Nothing was replaced. Your current ${nounOf(type)} is unchanged until a new one uploads.`,
+  /** Account-Replace-Rejected: the earlier document, still valid, is the one in use. */
+  inUse: 'In use',
+  keepRidingUntil: (type: RiderDocType, date: string) =>
+    `You can keep riding until your current ${DOC[type].noun} expires on ${date}. Upload a new one before then. Money you've already earned is still paid out.`,
   inReviewTitle: (type: RiderDocType) => `We're checking your new ${DOC[type].noun}`,
   inReviewLines: (type: RiderDocType) => [
     'A person checks it, usually within 72 hours.',

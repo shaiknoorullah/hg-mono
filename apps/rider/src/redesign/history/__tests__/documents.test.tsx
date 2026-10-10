@@ -17,6 +17,7 @@ import { SCHEMES } from '../../test/render';
 import { apiError, press, type } from '../../documents/__tests__/harness';
 import { resetUploads } from '../../documents/uploads';
 import { DOCUMENTS } from '../../account/copy';
+import { dayDate } from '../../documents/data';
 import { DOC_VIEW, REPLACE } from '../copy';
 import { resetReplacing } from '../DocumentScreens';
 import { answerStoragePuts, docList, kycDoc, renderRoute, spyOpenUrl } from './harness';
@@ -197,6 +198,7 @@ describe.each(SCHEMES)('Account › replace a document (%s)', (scheme) => {
     expect(screen.getByText('Too small to read. Retake it closer.')).toBeTruthy();
     expect(within(screen.getByTestId('replace-new')).getByText("Didn't upload")).toBeTruthy();
     expect(within(screen.getByTestId('replace-current')).getByText('Approved')).toBeTruthy();
+    expect(screen.getByText('Nothing was replaced. Your current policy is unchanged until a new one uploads.')).toBeTruthy();
     expect(api.callsTo('attachRiderDocument')).toHaveLength(0);
     await press('replace-failure-action');
     expect(screen.getByTestId('current-route').props.children).toBe('applicationCapture');
@@ -236,11 +238,12 @@ describe.each(SCHEMES)('Account › replace a document (%s)', (scheme) => {
     expect(within(screen.getByTestId('replace-earlier')).getByText('Replaced')).toBeTruthy();
   });
 
-  it('a replacement turned down while the current one is valid: why, the note, the remedies', async () => {
+  it('a replacement turned down while the current one is valid: why, the note, the remedies, the one in use', async () => {
+    // Attach marked the earlier one Replaced; it is still the one in use while valid.
     api = mockApi({
       listRiderDocuments: docList(
         { ...replacement, state: 'REJECTED', rejection_reason_code: 'ILLEGIBLE', review_note: 'The policy number and end date are cut off.' },
-        insurance,
+        { ...insurance, state: 'SUPERSEDED' },
       ),
     });
     renderRoute(scheme, 'accountReplace', { docType: 'VEHICLE_INSURANCE' });
@@ -249,6 +252,14 @@ describe.each(SCHEMES)('Account › replace a document (%s)', (scheme) => {
     expect(screen.getByText("We couldn't read it")).toBeTruthy();
     expect(screen.getByText('“The policy number and end date are cut off.”')).toBeTruthy();
     expect(screen.getByText(DOC_VIEW.takeNew)).toBeTruthy();
+    const inUse = within(screen.getByTestId('replace-in-use'));
+    expect(inUse.getByText('Vehicle insurance (current)')).toBeTruthy();
+    expect(inUse.getByText('In use')).toBeTruthy();
+    expect(
+      screen.getByText(
+        `You can keep riding until your current insurance expires on ${dayDate(insurance.valid_until)}. Upload a new one before then. Money you've already earned is still paid out.`,
+      ),
+    ).toBeTruthy();
   });
 
   it('the list: an insurance expiring soon offers "Add new insurance", which starts the replace', async () => {

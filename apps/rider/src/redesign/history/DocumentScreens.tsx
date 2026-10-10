@@ -247,7 +247,18 @@ export function AccountDocumentScreen({ params }: ScreenProps<'accountDocument'>
   );
 }
 
-function RejectedActions({ type, onPhoto, onFile }: { type: RiderDocType; onPhoto: () => void; onFile: () => void }): React.ReactElement {
+function RejectedActions({
+  type,
+  onPhoto,
+  onFile,
+  children,
+}: {
+  type: RiderDocType;
+  onPhoto: () => void;
+  onFile: () => void;
+  /** Drawn between the remedies and support (Account-Replace-Rejected: the document still in use). */
+  children?: React.ReactNode;
+}): React.ReactElement {
   const support = useSupport();
   return (
     <View style={{ gap: space['3'] }}>
@@ -259,6 +270,7 @@ function RejectedActions({ type, onPhoto, onFile }: { type: RiderDocType; onPhot
           {DOC_VIEW.choosePdf}
         </Button>
       )}
+      {children}
       <SupportGhost support={support} />
       <SupportHours support={support} />
     </View>
@@ -333,6 +345,11 @@ export function AccountReplaceScreen({ params }: ScreenProps<'accountReplace'>):
           )}
         </Row>
         {current ? <Row title={REPLACE.currentRow(copy.label)} sub={expiresLine(current)} state={current.state} testID="replace-current" /> : null}
+        {failed && current ? (
+          <Text style={text('body.lg')} testID="replace-unchanged">
+            {REPLACE.unchanged(type)}
+          </Text>
+        ) : null}
       </>,
     );
   }
@@ -343,6 +360,8 @@ export function AccountReplaceScreen({ params }: ScreenProps<'accountReplace'>):
   const isNew = latest && latest !== current && (latest.state === 'SUBMITTED' || latest.state === 'IN_REVIEW' || latest.state === 'REJECTED');
   if (isNew && latest.state === 'REJECTED') {
     const why = latest.rejection_reason_code ? WHY[latest.rejection_reason_code] : null;
+    // Attach marks the earlier one Replaced; while the new one is turned down it is still the one in use.
+    const inUse = earlier && earlier.state !== 'EXPIRED' && (!earlier.valid_until || Date.parse(earlier.valid_until) >= Date.now() - 86_400_000) ? earlier : null;
     return frame(
       'replace-rejected',
       <>
@@ -361,7 +380,18 @@ export function AccountReplaceScreen({ params }: ScreenProps<'accountReplace'>):
             {latest.review_note ? <KeyValue label={DOC_VIEW.note} value={DOC_VIEW.quoted(latest.review_note)} testID="replace-note" /> : null}
           </View>
         </Card>
-        <RejectedActions type={type} onPhoto={camera} onFile={() => startReplace(type, 'push', 'file')} />
+        <RejectedActions type={type} onPhoto={camera} onFile={() => startReplace(type, 'push', 'file')}>
+          {inUse ? (
+            <>
+              <Row title={REPLACE.currentRow(copy.label)} sub={expiresLine(inUse)} badge={REPLACE.inUse} testID="replace-in-use" />
+              {inUse.valid_until ? (
+                <Text style={text('body.lg')} testID="replace-keep-riding">
+                  {REPLACE.keepRidingUntil(type, dayDate(inUse.valid_until))}
+                </Text>
+              ) : null}
+            </>
+          ) : null}
+        </RejectedActions>
       </>,
     );
   }
