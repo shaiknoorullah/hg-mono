@@ -13,7 +13,9 @@ reviewed: 2026-10-09
 > redesign hosts the legacy screen for that route inside the new shell. This brief still describes
 > the old Next.js app and what the redesign takes from it; nothing below changes. The new-order
 > strip (accept, decline with a reason, the order sound and the go-live gate) is redesigned in
-> `src/redesign/strip/`.
+> `src/redesign/strip/`. The Live orders board (In progress list, order panel, Mark ready and the
+> pickup code), the service status bar and the halal banners are in `src/redesign/orders/` and
+> `src/redesign/status/`.
 
 > **2026-10-05:** the new app adds what the old one never had — a live "rider approaching" map on
 > accepted orders, drawn from the coarse realtime position

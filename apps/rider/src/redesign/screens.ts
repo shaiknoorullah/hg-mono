@@ -4,10 +4,13 @@
  */
 import './application';
 import './documents';
+import './dropoff';
 import './earnings';
 import './history';
 import './home';
+import './offer';
 import './signin';
+import './trip';
 
 export {};
 import './account';

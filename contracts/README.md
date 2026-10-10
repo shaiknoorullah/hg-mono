@@ -173,7 +173,7 @@ leaked. `403` means "you can see this resource but may not perform this action".
 ### Versioning
 
 Every operation carries `x-version`: `V0` (in the 43-feature launch cut) or `V1` (needed to make
-a V0 screen coherent, but not itself launch-blocking). Current counts: **149 V0, 12 V1**
+a V0 screen coherent, but not itself launch-blocking). Current counts: **153 V0, 19 V1**
 (`pnpm validate:contract` prints them).
 
 On 2026-10-01 the owner moved into launch the operations launch screens depend on, and added
@@ -204,6 +204,39 @@ Then, for launch, staff review refunds and see chargebacks ([#172](https://githu
 Still later-version: turning two-step sign-in off, listing and ending single sessions,
 dependency status, the in-app inbox, restaurant staff, ratings, the home feed and a restaurant
 adding delay to an order (`delayOrder`).
+
+The same day the owner replaced the package seal with two 4-digit handover codes
+([round-2 decisions, "Orders and delivery"](../docs/decisions/README.md#orders-and-delivery)).
+Seals are not used at launch and move to v1.1
+([#47](https://github.com/shaiknoorullah/hg-mono/issues/47)), so the four seal operations
+(`bindPackageSeal`, `scanPickup`, `scanDelivery`, `reportTamper`) are now later-version, and no
+seal scan gates any order transition.
+
+| Code | Who sees it | Who types it in | Where in the contract |
+|---|---|---|---|
+| **Pickup code** | The restaurant's staff only: their authenticated order view (`OrderRestaurantView.pickup_code`) and the staff projection of `restaurant.order_accepted` on `restaurant:{id}`, from acceptance until pickup | The rider, as the **required** `pickup_code` of `PickupTransitionInput`, the only shape `createAssignmentTransition` accepts for `PICKED_UP`. Wrong code: `PICKUP_CODE_INCORRECT` with the attempts left; five wrong codes per order: `PICKUP_CODE_LOCKED`, and the order goes to support ([#178](https://github.com/shaiknoorullah/hg-mono/issues/178), [#183](https://github.com/shaiknoorullah/hg-mono/issues/183)) |
+| **Delivery code** | The customer only, over REST from their own authenticated order view: `OrderCustomerView.delivery_code` and `OrderTracking.delivery_code`, while a met handover is out for delivery. Never on the socket and never in a push: the arrival push and `order.rider_arrived` say only "Your rider is here" | The rider, as the **required** `otp_code` of `OtpProofInput` on `submitProofOfDelivery`, the only proof a met handover accepts. Wrong code: `DELIVERY_CODE_INCORRECT` with the attempts left; five wrong codes per order: `DELIVERY_CODE_LOCKED`, and the order goes to support ([#180](https://github.com/shaiknoorullah/hg-mono/issues/180), [#183](https://github.com/shaiknoorullah/hg-mono/issues/183)) |
+
+The rider is never sent either code; each one is heard from the person holding it.
+
+#### Neither code can be bypassed
+
+From the [security review on #183](https://github.com/shaiknoorullah/hg-mono/issues/183): the
+codes are proof of presence, so the contract leaves the rider no way past them.
+
+- The code is a required field of the only request shape that can make each handover happen. There
+  is no optional code field, no "skip", and no rider override: `override_reason` covers a failed
+  geofence check only, and a met handover accepts no photo or statement in place of the code.
+- Wrong attempts are counted per order in Postgres, five at most. The fifth locks the code
+  (`423`), raises a `HANDOVER_CODE_LOCKED` alert on `admin:ops`, and hands the order to support.
+  The state's `deadline_at` keeps running, so a lock nobody resolves still ends.
+- Only support or an admin can confirm a handover without its code, with `overrideHandoverCode`
+  ([`POST /v1/admin/orders/{orderId}/handover-override`](openapi.yaml)): a reason, a support case,
+  and an append-only `HandoverOverride` audit record written in the same transaction. No admin
+  view carries either code, so nobody at HalalGoes can read one out to a rider.
+- No rider-visible schema (offer, assignment, dashboard), no event on `order:{order_id}`, no push,
+  SMS or email, and no error body carries a code. `pnpm validate:contract` fails if a response
+  of a rider operation ever gains a `pickup_code`, `delivery_code` or `otp_code` property.
 
 ---
 
@@ -259,7 +292,7 @@ Three pairs became identical once cased alike, and were collapsed to one member 
 
 | Kept | Absorbed | Consequence |
 |---|---|---|
-| `OTP_INCORRECT` | `otp_incorrect` | The auth OTP code and the **proof-of-delivery** OTP code are now one member. They were always distinguishable only by endpoint, and still are — `POST /v1/auth/otp/verify` versus `submitProofOfDelivery`. `OTP_LOCKED` and `POD_METHOD_MISMATCH` remain separate. |
+| `OTP_INCORRECT` | `otp_incorrect` | The auth OTP code and the **proof-of-delivery** OTP code are now one member. They were always distinguishable only by endpoint, and still are — `POST /v1/auth/otp/verify` versus `submitProofOfDelivery`. `OTP_LOCKED` and `POD_METHOD_MISMATCH` remain separate. **Since superseded:** proof of delivery now has its own `DELIVERY_CODE_INCORRECT` and `DELIVERY_CODE_LOCKED`, so `OTP_INCORRECT` is sign-in only, and `OTP_LOCKED` was removed with the photo fallback it announced ([security review on #183](https://github.com/shaiknoorullah/hg-mono/issues/183)). |
 | `OFFER_EXPIRED` | `offer_expired` | Same meaning in both specs — a dispatch offer whose countdown ran out. A genuine duplicate. |
 | `PROVINCE_NOT_SERVED` | `province_not_served` | The address-validation code and the quote-time code. Same customer-facing outcome, gated by the same `getPublicConfig.served_provinces` list (decision O-05). |
 
@@ -316,5 +349,6 @@ either way, but the **values** need a human before launch:
 | Error-code casing | Any `ErrorCode` member is not `SCREAMING_SNAKE_CASE`, or the enum contains a duplicate |
 | YAML 1.1 truthy scalars | An unquoted `ON`/`OFF`/`YES`/`NO` appears in an `enum`, `examples` or `default` — see §"Two contract defects" |
 | Unsatisfiable `allOf` | An `allOf` extends a base that sets `additionalProperties: false` |
+| Handover codes kept from riders | A response schema of any operation a rider can call (`RIDER` or `PUBLIC` in `x-roles`) has a `pickup_code`, `delivery_code` or `otp_code` property — see ["Neither code can be bypassed"](#neither-code-can-be-bypassed) |
 | Generated-client drift | `pnpm generate` changes `packages/api-client/src/generated/**` (`git diff --exit-code`) |
 | Fixture drift | `pnpm fixtures:build` changes anything under `contracts/fixtures/` (`git diff --exit-code`) |

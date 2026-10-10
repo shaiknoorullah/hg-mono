@@ -234,6 +234,39 @@ EXCLUSIONS = {
     "OrderRatingInput/properties/rider/oneOf/0/properties/tags/items":
         "Rating tag vocabulary. Stored as free text[] on the rating row; the "
         "allowed set is enforced at the API boundary.",
+    # The handover-code request shapes
+    # (https://github.com/shaiknoorullah/hg-mono/pull/290). Each method/to_state
+    # below is a one-value discriminator that picks the request shape; what is
+    # stored is the full enum it narrows.
+    "AssignmentStepInput/properties/to_state/not":
+        "Request-shape rule: PICKED_UP is not a plain step (it needs the pickup "
+        "code). The stored value is assignment_state.",
+    "PickupTransitionInput/properties/to_state":
+        "One-value discriminator (PICKED_UP) of the pickup request; stored as "
+        "assignment_state.",
+    "OtpProofInput/properties/method":
+        "One-value discriminator of the proof shape; stored as pod_method.",
+    "PhotoProofInput/properties/method":
+        "One-value discriminator of the proof shape; stored as pod_method.",
+    "PhotoWithAttestationProofInput/properties/method":
+        "One-value discriminator of the proof shape; stored as pod_method.",
+    "HandoverOverride/properties/actor_kind":
+        "Subset of order_actor_kind (SUPPORT, ADMIN); stored as order_actor_kind "
+        "with a CHECK on handover_override.actor_kind.",
+    "HandoverCodeKind":
+        "Contract-only until the backend lands "
+        "(https://github.com/shaiknoorullah/hg-mono/pull/315): nothing stores it yet. "
+        "That PR adds handover_code_kind in its own migration and moves this entry "
+        "to MAPPED_IN_MIGRATION.",
+    # Address search (https://github.com/shaiknoorullah/hg-mono/issues/179) is
+    # forwarded to Mapbox and answered without touching the database.
+    "GeoResultKind":
+        "Response-only: how precise an address-search result is. Search results "
+        "are forwarded from Mapbox and never stored; a chosen address is saved "
+        "as an Address.",
+    "GeocodedAddress/properties/country":
+        "Response-only, always CA: an address-search result is never stored. "
+        "A saved address carries Address.country.",
 }
 
 

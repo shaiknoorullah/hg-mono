@@ -37,15 +37,16 @@ Work packages: `plan/design-system.md` §4.1 on the read-only `claude/redesign-c
 | Switch | rebuilt | W3 | — |
 | SegmentedControl | rebuilt | W3 | — |
 | FileDrop (approved composite) | rebuilt | W3 | — |
-| Countdown | missing | W4 | — |
-| Menu | missing | W4 | — |
-| Modal | missing | W4 | confirm and alert only on web |
-| Toast | missing (see `/proposed`) | W4 | — |
-| StatusTimeline | adapter | W4 | transitions without `at` are dropped |
+| Countdown | rebuilt | W4 | adds `silent`, `barOnly` / `variant="bar-only"` (packet P6) and `className` |
+| Menu | rebuilt (Radix DropdownMenu) | W4 | adds `menuitemradio` (`type: 'radio'` or `checked`), and the restaurant stub's `trigger`, `triggerLabel`, `variant`, `separatorBefore` |
+| Modal (+ deprecated `Dialog`) | rebuilt (Radix Dialog) | W4 | confirm and alert only on web |
+| Toast | rebuilt | W4 | not Radix `Toast.Root` (it also renders inline); the hover and focus pause is kept by hand |
+| StatusTimeline (+ `ORDER_STATES`, `resolveTimeline`) | rebuilt | W4 | — |
 | HalalBadge, HalalShield | legacy | W5 | — |
 | HalalCertificationPanel | legacy | W5 | no `headingLevel` |
 | HalalChecklist (+ gate helpers) | legacy | W5 | — |
-| DataTable | missing | W6 (LyteNyte) | the legacy root `DataTable` has a different shape |
+| DataTable | rebuilt | W6 (LyteNyte) | `role="grid"` named by the caption (`aria-labelledby`), not `<table>`; the check, minus, sort-chevron and "more" glyphs are CSS-drawn in `lib/ui/data-grid` (today's Icon map lacks them); row actions use a Radix menu in `lib/ui/data-grid` until the W4 `Menu` is wired in |
+| TextCell, IdCell, MoneyCell, TimeCell, DateCell, CountdownCell, StatusCell, HalalStateCell, MeterCell | rebuilt | W6 | StatusCell draws its own tint chip until the W1 `Badge` is used; CountdownCell is the silent text form (the W4 `Countdown` is not used inside cells) |
 | Rating | legacy | — | out of launch scope; do not extend |
 | Sheet, BottomNav | not on web | — | working tasks use DetailPanel; phones only |
 
@@ -53,8 +54,7 @@ Work packages: `plan/design-system.md` §4.1 on the read-only `claude/redesign-c
 
 | Export | Today | Rebuilt in |
 |---|---|---|
-| Banner (+ InlineAlert, slate tone) | legacy `Banner` | W4 |
-| EmptyState, ErrorState | legacy | W4 |
+| EmptyState, ErrorState | rebuilt | W4 |
 | Skeleton, Spinner | **rebuilt** | W1 |
 | Separator | **rebuilt** (new) | W1 |
 | Textarea | rebuilt (keeps the legacy props) | W3 |
@@ -65,12 +65,22 @@ Work packages: `plan/design-system.md` §4.1 on the read-only `claude/redesign-c
 | MoneyInput (integer cents only) | rebuilt | W3 |
 | Stepper | rebuilt | W3 |
 | InlineConfirm | rebuilt | W3 |
-| ToastProvider, useToast | legacy | W4 |
+| ToastProvider, useToast (render the rebuilt `/ds` Toast; `placement`, `position`) | rebuilt | W4 |
+| Banner + InlineAlert + HalalBanner (one family with `placement`: Banner defaults to the page bar, InlineAlert to inline; slate tone; halal props exclude danger) | rebuilt | W4 |
+| ProgressBar | rebuilt (Radix Progress) | W4 |
+| PageAnnouncerProvider, useAnnounce, usePageAnnouncer | rebuilt | W4 |
 | DocumentViewer | legacy | W7b |
-| FilterBar | legacy | W6 |
+| FilterBar | rebuilt (the declarative pre-rebuild props still work) | W6 |
 | Disclosure | rebuilt | W2 |
 | SkipLink | rebuilt | W2 |
 | SystemBannerSlot (= SystemBannerStack) | rebuilt | W2 |
 | StickyFooter (= ActionBar) | rebuilt | W2 |
 | NavDrawer | rebuilt | W2 |
 | SectionNav | rebuilt | W2 |
+| FilterChip | rebuilt | W6 |
+| ListPane, ListPaneRow | rebuilt | W6 |
+| EventLog | rebuilt | W6 |
+| NewOrdersStrip (= `NewOrderStrip`, the restaurant stub's name) + OfferTile (+ `OFFER_OUTCOMES`, `isLiveTile`) | rebuilt | W7a |
+| DeclineForm (+ `DECLINE_REASONS`, the contract's seven reject reasons) | rebuilt | W7a |
+| StatusCard (+ `statusFromOpenState`) | rebuilt | W7a |
+| PickupCode | rebuilt | W7a |

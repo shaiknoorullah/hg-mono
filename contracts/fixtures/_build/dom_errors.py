@@ -86,7 +86,9 @@ ERRORS = [
         "That code is not right. 4 attempts remaining.",
         None,
         "**A collision case**: the auth `otp_incorrect` and the proof-of-delivery "
-        "`OTP_INCORRECT` collapsed into one member. Disambiguate by endpoint, not by code.",
+        "`OTP_INCORRECT` collapsed into one member. Since superseded: proof of delivery now "
+        "answers `DELIVERY_CODE_INCORRECT` (`error_delivery_code_incorrect`), so this is "
+        "sign-in only.",
     ),
     (
         "province_not_served",
@@ -183,9 +185,10 @@ ERRORS = [
         422,
         "POD_METHOD_MISMATCH",
         "This delivery needs a code from the customer, not a photo.",
-        None,
+        {"required_pod_method": "OTP"},
         "`MEET_AT_DOOR`/`MEET_IN_LOBBY` map to OTP proof of delivery; the rest map to photo "
-        "(contradiction log #6). Pairs with `assignment_otp_pod_required`.",
+        "(contradiction log #6). A photo, or a photo with a statement, never replaces the "
+        "customer's code, before or after it locks. Pairs with `assignment_otp_pod_required`.",
     ),
     (
         "documents_incomplete",
@@ -582,6 +585,131 @@ LAUNCH_ERRORS = [
 ]
 
 
+# The handover codes' error states (round-2 decisions, "Orders and delivery":
+# https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#orders-and-delivery,
+# #178 and #180). The kitchen reads a 4-digit pickup code to the rider, who types it in on
+# createAssignmentTransition; the customer reads a 4-digit delivery code to the rider, who
+# types it in on submitProofOfDelivery. The codes are proof of presence, so the rider has no
+# way past them: five wrong codes per order hand the order to support, and only support or
+# an admin can confirm the handover without its code (overrideHandoverCode). No error body
+# ever carries a code (security review on #183:
+# https://github.com/shaiknoorullah/hg-mono/issues/183).
+HANDOVER_ERRORS = [
+    (
+        "pickup_code_required",
+        422,
+        "PICKUP_CODE_REQUIRED",
+        "Ask the kitchen for the 4-digit pickup code.",
+        None,
+        "`PICKED_UP` sent without `pickup_code`. The code is a required field of "
+        "`PickupTransitionInput`, the only shape that can confirm a pickup, so this is never "
+        "accepted. Nothing is counted; the rider app asks for the code the kitchen reads out.",
+        ["createAssignmentTransition"],
+    ),
+    (
+        "pickup_code_incorrect",
+        422,
+        "PICKUP_CODE_INCORRECT",
+        "That pickup code is not right. 3 attempts remaining.",
+        {"attempts_remaining": 3},
+        "**Wrong code.** The attempt is counted and committed in Postgres per order; the "
+        "assignment's state does not change. `details.attempts_remaining` drives the counter "
+        "on the rider's screen. Neither the code sent nor the expected code is in the body.",
+        ["createAssignmentTransition"],
+    ),
+    (
+        "pickup_code_locked",
+        423,
+        "PICKUP_CODE_LOCKED",
+        "Too many wrong codes. HalalGoes support is taking over this pickup; please wait at the counter.",
+        None,
+        "**Limit reached.** The fifth wrong pickup code locks it for this order, so a "
+        "reassignment does not reset the count, and hands the order to support "
+        "(`HANDOVER_CODE_LOCKED` on `admin:ops`). Every later `PICKED_UP` gets this answer, "
+        "with or without a code. The rider has no override: support or an admin confirms "
+        "the pickup with `overrideHandoverCode` (see `handover_override_pickup_locked`).",
+        ["createAssignmentTransition"],
+    ),
+    (
+        "delivery_code_incorrect",
+        422,
+        "DELIVERY_CODE_INCORRECT",
+        "That delivery code is not right. 2 attempts remaining.",
+        {"attempts_remaining": 2},
+        "**Wrong code** at a met handover. The attempt is counted and committed in Postgres "
+        "per order; no proof is recorded. Neither the code sent nor the expected code is in "
+        "the body.",
+        ["submitProofOfDelivery"],
+    ),
+    (
+        "delivery_code_locked",
+        423,
+        "DELIVERY_CODE_LOCKED",
+        "Too many wrong codes. HalalGoes support is taking over this delivery; please stay with the order.",
+        None,
+        "**Limit reached.** The fifth wrong delivery code locks it for this order and hands "
+        "the order to support (`HANDOVER_CODE_LOCKED` on `admin:ops`). There is no photo "
+        "fallback: support or an admin confirms the delivery with `overrideHandoverCode` "
+        "(see `handover_override_delivery`).",
+        ["submitProofOfDelivery"],
+    ),
+    (
+        "handover_override_not_pending",
+        409,
+        "ILLEGAL_TRANSITION",
+        "This order is not waiting on that handover.",
+        {"from": "DELIVERED", "to": "DELIVERED", "allowed": ["COMPLETED", "DISPUTED"]},
+        "`overrideHandoverCode` for a handover that already happened (here a `DELIVERY` "
+        "override on a delivered order). Nothing is written and no audit record is created.",
+        ["overrideHandoverCode"],
+    ),
+]
+
+
+# Address search's error states (the owner's round-2 decision of 2026-10-01, map address
+# search: docs/decisions/README.md, "Launch scope and contract"; #179). Our API forwards to
+# Mapbox. No match on a search list is an empty 200 (`address_suggestions_empty`), not an
+# error; the provider being down is never a dead end, because the manual form and the map
+# pin still work.
+GEO_ERRORS = [
+    (
+        "geocode_no_match",
+        404,
+        "GEOCODE_NO_MATCH",
+        "We couldn't find an address there. Type it in, or move the pin.",
+        None,
+        "No Canadian address for the picked suggestion (its `place_id` is short-lived and "
+        "may have expired) or near the pin (a lake, a field, across the border). The pin "
+        "stays where it is and the user types the address.",
+        ["getPlaceAddress", "reverseGeocode"],
+    ),
+    (
+        "geocoder_unavailable",
+        503,
+        "GEOCODER_UNAVAILABLE",
+        "Address search isn't working right now. You can still type your address and place the pin.",
+        None,
+        "Mapbox is down, timed out or refused our key. The client shows the manual address "
+        "form and the map pin with a notice, so address entry never becomes impossible.",
+        ["suggestAddresses", "getPlaceAddress", "reverseGeocode"],
+    ),
+    (
+        "geocode_rate_limited",
+        429,
+        "RATE_LIMITED",
+        "Too many address searches. Try again in 20 seconds.",
+        {"retry_after_seconds": 20},
+        "One account went over an address search limit: more than 60 suggestion requests "
+        "in a minute (rate class `GEO_SUGGEST`, burst 20, which one search typed a key at a "
+        "time stays under), or more than 30 place or pin lookups in a minute for one "
+        "operation (rate class `GEO`, burst 10). Nothing was sent to the provider. The client "
+        "stops searching as the user types until `Retry-After` passes, and the manual form "
+        "still works.",
+        ["suggestAddresses", "getPlaceAddress", "reverseGeocode"],
+    ),
+]
+
+
 def build(reg, synth) -> None:
     _errors(reg)
     _operation_errors(reg)
@@ -612,7 +740,7 @@ def _operation_errors(reg) -> None:
 
 
 def _errors(reg) -> None:
-    entries = [(*entry, []) for entry in ERRORS] + LAUNCH_ERRORS
+    entries = [(*entry, []) for entry in ERRORS] + LAUNCH_ERRORS + HANDOVER_ERRORS + GEO_ERRORS
     for suffix, status, code, message, details, note, operations in entries:
         envelope = {
             "error": {
@@ -703,6 +831,8 @@ def _realtime(reg) -> None:
         }),
         _event(6, restaurant_channel, "restaurant.order_accepted", 12000, {
             "order_id": order_id, "accepted_by": "Hamza K.", "prep_eta_minutes": 20,
+            # Restaurant channel only: the kitchen reads it to the rider at the counter.
+            "pickup_code": "3051",
         }),
         state_changed(7, "RESTAURANT_PENDING", "PREPARING", 12100, "RESTAURANT", deadline=ts(20 * MINUTE), eta=ts(32 * MINUTE)),
         _event(8, order_channel, "payment.captured", 12500, {
@@ -748,12 +878,18 @@ def _realtime(reg) -> None:
             "speed_mps": 5.2, "accuracy_m": 8.0, "recorded_at": ts(44),
         }),
         state_changed(20, "PICKED_UP", "ARRIVED", 48000, "RIDER", deadline=ts(5 * MINUTE), eta=ts(2 * MINUTE)),
-        state_changed(21, "ARRIVED", "DELIVERED", 54000, "RIDER", deadline=ts(30 * MINUTE)),
-        _event(22, order_channel, "dispatch.state_changed", 54100, {
+        # The arrival event, customer only and also a push ("Your rider is here"). It never
+        # carries a code: the rider subscribes to this channel too (security review on #183,
+        # https://github.com/shaiknoorullah/hg-mono/issues/183).
+        _event(21, order_channel, "order.rider_arrived", 48000, {
+            "order_id": order_id, "at": ts(48),
+        }),
+        state_changed(22, "ARRIVED", "DELIVERED", 54000, "RIDER", deadline=ts(30 * MINUTE)),
+        _event(23, order_channel, "dispatch.state_changed", 54100, {
             "order_id": order_id, "from": "AT_CUSTOMER", "to": "COMPLETED", "at": ts(54.1),
         }),
-        state_changed(23, "DELIVERED", "COMPLETED", 58000, "SYSTEM"),
-        _event(24, order_channel, "order.completed", 58100, {
+        state_changed(24, "DELIVERED", "COMPLETED", 58000, "SYSTEM"),
+        _event(25, order_channel, "order.completed", 58100, {
             "order_id": order_id, "delivered_at": ts(54),
             "receipt_url": "https://halalgoes.ca/receipts/HG-2026-000148213.pdf",
         }),
@@ -763,13 +899,85 @@ def _realtime(reg) -> None:
         "realtime_order_happy_path",
         "realtime",
         "RealtimeEvent[]",
-        "**The whole order lifecycle in 58 seconds of wall clock**, 24 events across the "
+        "**The whole order lifecycle in 58 seconds of wall clock**, 25 events across the "
         "order, restaurant and rider channels: created → authorized → restaurant offered → "
-        "accepted → captured → dispatch searching → offered → assigned → ready → picked up "
-        "→ three location pings → arrived → delivered → completed. Drive a tracking screen "
-        "end to end with `?scenario=realtime_order_happy_path`.",
+        "accepted (with the kitchen's pickup code) → captured → dispatch searching → offered "
+        "→ assigned → ready → picked up → three location pings → arrived (with "
+        "`order.rider_arrived`, which never carries a code) → delivered → completed. The "
+        "pickup code appears only on the restaurant channel. Drive a tracking screen end to "
+        "end with `?scenario=realtime_order_happy_path`.",
         happy,
         tags=["realtime", "script"],
+    )
+
+    met_id = uuid_for("order:meet-in-lobby")
+    met_channel = f"order:{met_id}"
+
+    def met_state(seq, frm, to, offset, actor, deadline=None, eta=None):
+        return _event(seq, met_channel, "order.state_changed", offset, {
+            "order_id": met_id, "from": frm, "to": to, "at": ts(offset / 1000.0),
+            "reason": None, "actor_kind": actor, "deadline_at": deadline, "eta_at": eta,
+        })
+
+    met_arrival = [
+        met_state(1, "READY_FOR_PICKUP", "PICKED_UP", 0, "RIDER", deadline=ts(14 * MINUTE), eta=ts(12 * MINUTE)),
+        _event(2, met_channel, "rider.location", 5000, {
+            "order_id": met_id, "lat": 43.6460, "lng": -79.3770, "heading_deg": 226.0,
+            "speed_mps": 5.2, "accuracy_m": 8.0, "recorded_at": ts(5),
+        }),
+        met_state(3, "PICKED_UP", "ARRIVED", 9000, "RIDER", deadline=ts(5 * MINUTE), eta=ts(1 * MINUTE)),
+        # No code here: the customer app fetches it from getOrder / getOrderTracking.
+        _event(4, met_channel, "order.rider_arrived", 9000, {
+            "order_id": met_id, "at": ts(9),
+        }),
+    ]
+
+    reg.add(
+        "realtime_order_met_handover",
+        "realtime",
+        "RealtimeEvent[]",
+        "A **met handover** (`MEET_IN_LOBBY`) from pickup to delivery. On arrival the "
+        "customer receives `order.rider_arrived` and a push that say only \"Your rider is "
+        "here\"; neither carries the code. The app then fetches `delivery_code` from the "
+        "customer's own order view (`order_arrived_meet_in_lobby`, "
+        "`tracking_arrived_delivery_code`), and the customer reads it to the rider, who "
+        "records it as proof of delivery. No event on this channel ever carries a code, "
+        "because the rider subscribes to it too.",
+        [
+            *met_arrival,
+            met_state(5, "ARRIVED", "DELIVERED", 15000, "RIDER", deadline=ts(30 * MINUTE)),
+        ],
+        tags=["realtime", "script", "delivery-code"],
+    )
+
+    reg.add(
+        "realtime_order_delivery_code_locked",
+        "realtime",
+        "RealtimeEvent[]",
+        "A met handover where **five wrong delivery codes** hand the order to support. The "
+        "rider's fifth wrong code (`error_delivery_code_locked`) raises "
+        "`HANDOVER_CODE_LOCKED` on `admin:ops`, which names the order and the handover, "
+        "never the code. Support checks with the customer and confirms the delivery with "
+        "`overrideHandoverCode` (`handover_override_delivery`): the order moves to "
+        "`DELIVERED` with `actor_kind: SUPPORT` and the reason. The rider never had a "
+        "fallback of their own.",
+        [
+            *met_arrival,
+            _event(1, "admin:ops", "admin.alert", 14000, {
+                "severity": "WARNING",
+                "kind": "HANDOVER_CODE_LOCKED",
+                "subject_type": "ORDER",
+                "subject_id": met_id,
+                "message": "Five wrong delivery codes at a met handover. The delivery is with support.",
+                "at": ts(14),
+            }),
+            _event(5, met_channel, "order.state_changed", 95000, {
+                "order_id": met_id, "from": "ARRIVED", "to": "DELIVERED", "at": ts(95),
+                "reason": "Delivery confirmed by support: called the customer, who has the order.",
+                "actor_kind": "SUPPORT", "deadline_at": ts(30 * MINUTE), "eta_at": None,
+            }),
+        ],
+        tags=["realtime", "script", "delivery-code", "admin", "error-path"],
     )
 
     reg.add(
@@ -863,6 +1071,7 @@ def _realtime(reg) -> None:
             happy[4],
             _event(6, restaurant_channel, "restaurant.order_accepted", 12000, {
                 "order_id": order_id, "accepted_by": "Hamza K.", "prep_eta_minutes": 20,
+                "pickup_code": "3051",
             }),
             _event(7, order_channel, "payment.failed", 12400, {
                 "order_id": order_id, "code": "CAPTURE_FAILED", "decline_code": "insufficient_funds",

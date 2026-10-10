@@ -1,0 +1,20 @@
+id: rider-wp3-offer-decline
+app: rider
+avd: hg_rider
+api: devworld
+build:
+  env: { EXPO_PUBLIC_HG_REDESIGN: "1" }
+  note: "Clear the Metro cache when building (EXPO_PUBLIC_* is inlined at transform time; a warm cache from a flag-off build serves the legacy app)."
+setup: [ "make dev-reset", "make dev-scenario s=order-ready" ]
+reality:
+  - theme: light
+  - network: edge
+flows: [ "tools/e2e/native/rider/redesign/lab/3c-offer-decline.yaml" ]
+explore: >
+  On a slow (EDGE) network. In the API log the reject request carries
+  `{"reason_code": "TOO_FAR_PICKUP"}` and an Idempotency-Key, and no accept is sent. After the
+  flow passes, still online, run `make dev-scenario s=order-ready` again; on the new offer tap
+  Decline, turn airplane mode on (`adb shell cmd connectivity airplane-mode enable`) and tap
+  "Earnings are too low": the slate alert "Your decline didn't reach us" shows with the reasons
+  still there. Turn airplane mode off and tap the same reason again: the offer closes, and both
+  reject requests in the API log carry the same Idempotency-Key. Restore the network afterwards.
