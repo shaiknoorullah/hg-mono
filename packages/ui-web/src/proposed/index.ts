@@ -155,3 +155,19 @@ export { StatusCard, statusFromOpenState } from './StatusCard.js';
 export type { StatusCardBusy, StatusCardPauseOption, StatusCardProps, StatusCardStatus } from './StatusCard.js';
 export { PickupCode } from './PickupCode.js';
 export type { PickupCodeProps, PickupCodeSupport } from './PickupCode.js';
+
+/* Restaurant sign-in composites (#737): links, the state card, partner support and the wait line. */
+export { TextLink } from './TextLink.js';
+export type { TextLinkProps, TextLinkRenderArgs, TextLinkTextStyle, TextLinkVariant } from './TextLink.js';
+export { StateCard } from './StateCard.js';
+export type { StateCardHeadingLevel, StateCardProps } from './StateCard.js';
+export { SupportBlock, SupportSentence, formatSupportPhone, resolveSupport } from './Support.js';
+export type {
+  SupportBlockProps,
+  SupportConfig,
+  SupportResolution,
+  SupportSentenceProps,
+  SupportSource,
+} from './Support.js';
+export { WaitLine, resolveWaitDeadline, useWaitLine } from './WaitLine.js';
+export type { UseWaitLineResult, WaitDeadline, WaitLineProps, WaitSource } from './WaitLine.js';

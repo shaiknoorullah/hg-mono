@@ -91,3 +91,7 @@ Work packages: `plan/design-system.md` §4.1 on the read-only `claude/redesign-c
 | DeclineForm (+ `DECLINE_REASONS`, the contract's seven reject reasons) | rebuilt | W7a |
 | StatusCard (+ `statusFromOpenState`) | rebuilt | W7a |
 | PickupCode | rebuilt | W7a |
+| TextLink (router-agnostic: `as`, `render` or `onNavigate`; `href` for `tel:`, `mailto:`, external) | rebuilt (new) | sign-in composites (#737) |
+| StateCard | rebuilt (new) | sign-in composites (#737) |
+| SupportBlock, SupportSentence (+ `formatSupportPhone`, `resolveSupport`) | rebuilt (new) | sign-in composites (#737) |
+| WaitLine (+ `useWaitLine`, `resolveWaitDeadline`) | rebuilt (new) | sign-in composites (#737) |
