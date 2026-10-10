@@ -5,10 +5,11 @@
  *
  * It is the legacy View-drawn shield (`certification/internal/HalalShield.tsx`), reused, not
  * redrawn: never SVG, never a font glyph, never an icon-set shield (AGENTS.md §8, foundations
- * §11). Registering it with css-interop, as `Glyph` registers the Solar icon, lets a `text-*`
- * class become its `color` prop, so the ink follows the scheme through `dark:` like every other
- * class. The registration only affects elements created in this tier (NativeWind's JSX
- * runtime); the legacy badge keeps rendering it exactly as before.
+ * §11). Its ink is a `color` prop, not a class: the shield is built from bordered and filled
+ * Views, and on react-native-web a class mapped onto a prop does not reach them (the web export
+ * drew an empty solid shield). So the ink is a closed key resolved here from `color.halal.*` for
+ * NativeWind's current scheme, the same scheme every `dark:` class resolves against. This family
+ * is the one place allowed to read the halal tokens (lint L-3).
  *
  * Four variants carry the state in the shape channel alone (04-accessibility.md §3.2):
  * `solid` (certified), `outline` (expired), `dashed` (unverified) and `solid-clock` (the expiring
@@ -18,29 +19,40 @@
  */
 import * as React from 'react';
 import { View } from 'react-native';
-import { cssInterop } from 'nativewind';
+import { useColorScheme } from 'nativewind';
 
 import { HalalShield as LegacyShield, SealChevron as LegacyChevron } from '../../certification/internal/HalalShield';
+import { tokens } from '../../tokens/generated/tokens';
 import { cn } from '../utils';
 
-cssInterop(LegacyShield, { className: { target: false, nativeStyleToProp: { color: true } } });
-cssInterop(LegacyChevron, { className: { target: false, nativeStyleToProp: { color: true } } });
+const halal = tokens.color.halal;
 
-/** The interactive seal's affordance (detail surface only), inked by a `text-*` class. */
-export const HalalChevron = LegacyChevron as unknown as React.ComponentType<{
-  size: number;
-  direction?: 'forward' | 'back';
-  color?: string;
-  className?: string;
-}>;
+/**
+ * The shield and chevron inks, per scheme. Light values are the seal's own label and icon
+ * colours; the dark values are the existing `*Dark` primitives (in-component dark mapping,
+ * recorded debt until themed halal roles are approved, design-system plan §2.3 step 2).
+ */
+const INK = {
+  onSeal: { light: halal.certified.onSeal, dark: halal.certified.onSeal },
+  expiringIcon: { light: halal.expiring.icon, dark: halal.expiring.textDark },
+  expiringText: { light: halal.expiring.text, dark: halal.expiring.textDark },
+  expiredOnSeal: { light: halal.expired.onSeal, dark: halal.expired.onSeal },
+  unverified: { light: halal.unverified.text, dark: halal.unverified.textDark },
+} as const;
 
-/** The registered shield, typed with the `className` css-interop now maps onto `color`. */
-const Shield = LegacyShield as unknown as React.ComponentType<{
-  form: 'solid' | 'outline' | 'dashed';
-  size: number;
-  color?: string;
-  className?: string;
-}>;
+/** A halal ink: a closed set of `color.halal.*` roles, never a free colour. */
+export type HalalInk = keyof typeof INK;
+
+/** The ink's hex for the scheme NativeWind is on. */
+function useInk(ink: HalalInk): string {
+  const { colorScheme } = useColorScheme();
+  return INK[ink][colorScheme === 'dark' ? 'dark' : 'light'];
+}
+
+/** The interactive seal's affordance (detail surface only). */
+export function HalalChevron({ size, ink }: { size: number; ink: HalalInk }): React.ReactElement {
+  return <LegacyChevron size={size} direction="forward" color={useInk(ink)} />;
+}
 
 /** The four shapes of the halal state. */
 export type HalalShieldVariant = 'solid' | 'outline' | 'dashed' | 'solid-clock';
@@ -68,8 +80,8 @@ export interface HalalShieldMarkProps {
   variant: HalalShieldVariant;
   /** Points. */
   size: number;
-  /** A `text-halal-*` class (and its `dark:` pair): the ink. */
-  className: string;
+  /** The ink: a halal role, resolved for the current scheme. */
+  ink: HalalInk;
   /** `solid-clock` only: the plate the clock is knocked out of. */
   knockout?: HalalKnockout;
   testID?: string;
@@ -79,7 +91,7 @@ export interface HalalShieldMarkProps {
 export function HalalShieldMark({
   variant,
   size,
-  className,
+  ink,
   knockout = 'expiring',
   testID = 'HalalShield',
 }: HalalShieldMarkProps): React.ReactElement {
@@ -88,6 +100,7 @@ export function HalalShieldMark({
   const dial = size * 0.36;
   const stroke = Math.max(1, size * 0.07);
   const k = KNOCKOUT[knockout];
+  const color = useInk(ink);
   return (
     <View
       testID={testID}
@@ -96,7 +109,7 @@ export function HalalShieldMark({
       pointerEvents="none"
       style={{ width: size, height: size }}
     >
-      <Shield form={form} size={size} className={className} />
+      <LegacyShield form={form} size={size} color={color} />
       {variant === 'solid-clock' ? (
         <View
           testID={`${testID}-clock`}

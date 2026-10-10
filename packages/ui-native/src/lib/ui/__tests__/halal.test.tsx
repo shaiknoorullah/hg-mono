@@ -137,6 +137,7 @@ describe('HalalBadge: the four states on every surface', () => {
         expect(hex(plate.backgroundColor)).toBe(hex(scheme === 'dark' ? halal.expiring.tintDark : halal.expiring.tint));
         expect(hex(plate.borderColor)).toBe(hex(halal.expiring.border));
         expect(screen.getByTestId('HalalBadge-shield-clock', { includeHiddenElements: true })).toBeTruthy();
+        expect(shieldFills().map(hex)).toContain(hex(scheme === 'dark' ? halal.expiring.textDark : halal.expiring.icon));
         const label = screen.getByText('Halal certified · expires 14 Oct');
         expect(hex(flat(label).color)).toBe(hex(scheme === 'dark' ? halal.expiring.textDark : halal.expiring.text));
         const painted = paintedColours(toJSON());
@@ -159,7 +160,8 @@ describe('HalalBadge: the four states on every surface', () => {
       expect(shieldFills()).toEqual([]);
       unmount();
       renderNw(badge('CERTIFIED', 'card'), { theme, scheme });
-      expect(shieldFills().length).toBeGreaterThan(0);
+      // The ink is a prop resolved from the halal tokens, so it paints on web as well as native.
+      expect(shieldFills().map(hex)).toContain(hex(halal.certified.onSeal));
     }
   });
 

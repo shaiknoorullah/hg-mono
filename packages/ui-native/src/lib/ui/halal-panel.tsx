@@ -94,7 +94,7 @@ export function HalalRenewalNote({ text, testID = 'HalalCertificationPanel-renew
       <HalalShieldMark
         variant="solid-clock"
         size={20}
-        className="text-halal-expiring-icon dark:text-halal-expiring-textDark"
+        ink="expiringIcon"
         testID={`${testID}-shield`}
       />
       <Text variant="body.sm" className="shrink text-halal-expiring-text dark:text-halal-expiring-textDark">

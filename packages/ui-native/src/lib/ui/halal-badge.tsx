@@ -15,7 +15,8 @@
  *     reads as haram, a ruling the platform does not make.
  *   - `unverified`: a dashed outline and a dashed shield, transparent fill (operational only).
  *
- * Colours are the reserved `halal-*` utilities of the generated preset and nothing else; this
+ * Colours are the reserved `halal-*` utilities of the generated preset (the shield's ink is the
+ * same `color.halal.*` role, resolved in `halal-shield.tsx`) and nothing else; this
  * family is the one place allowed to read them (lint L-3), and no `feedback-danger-*` or
  * `destructive` class appears here.
  *
@@ -30,7 +31,7 @@ import * as React from 'react';
 import { Pressable, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { cn } from '../utils';
-import { HalalChevron, HalalShieldMark, type HalalShieldVariant } from './halal-shield';
+import { HalalChevron, HalalShieldMark, type HalalInk, type HalalShieldVariant } from './halal-shield';
 import { Text } from './text';
 
 /** The four drawn looks of the seal. */
@@ -42,10 +43,12 @@ interface Skin {
   plate: string;
   /** The plate while pressed (detail surface only). */
   pressed: string;
-  /** Label and chevron ink. */
+  /** Label classes. */
   ink: string;
   /** Shield ink (the expiring look inks its shield in the icon colour, not the text colour). */
-  shieldInk: string;
+  shieldInk: HalalInk;
+  /** Chevron ink: the label's colour. */
+  chevronInk: HalalInk;
   shield: HalalShieldVariant;
 }
 
@@ -56,7 +59,8 @@ export const HALAL_SKIN: Readonly<Record<HalalLook, Skin>> = {
       'border-[1.5px] border-halal-certified-ring bg-halal-certified-seal dark:border-halal-certified-ringDark dark:bg-halal-certified-sealDark',
     pressed: 'bg-halal-certified-sealPressed dark:bg-halal-certified-sealPressed',
     ink: 'text-halal-certified-onSeal',
-    shieldInk: 'text-halal-certified-onSeal',
+    shieldInk: 'onSeal',
+    chevronInk: 'onSeal',
     shield: 'solid',
   },
   expiring: {
@@ -64,14 +68,16 @@ export const HALAL_SKIN: Readonly<Record<HalalLook, Skin>> = {
       'border-[1.5px] border-halal-expiring-border bg-halal-expiring-tint dark:bg-halal-expiring-tintDark',
     pressed: '',
     ink: 'text-halal-expiring-text dark:text-halal-expiring-textDark',
-    shieldInk: 'text-halal-expiring-icon dark:text-halal-expiring-textDark',
+    shieldInk: 'expiringIcon',
+    chevronInk: 'expiringText',
     shield: 'solid-clock',
   },
   expired: {
     plate: 'border-0 bg-halal-expired-seal dark:bg-halal-expired-sealDark',
     pressed: '',
     ink: 'text-halal-expired-onSeal',
-    shieldInk: 'text-halal-expired-onSeal',
+    shieldInk: 'expiredOnSeal',
+    chevronInk: 'expiredOnSeal',
     shield: 'outline',
   },
   unverified: {
@@ -79,7 +85,8 @@ export const HALAL_SKIN: Readonly<Record<HalalLook, Skin>> = {
       'border-[1.5px] border-dashed border-halal-unverified-border bg-transparent dark:border-halal-unverified-borderDark',
     pressed: '',
     ink: 'text-halal-unverified-text dark:text-halal-unverified-textDark',
-    shieldInk: 'text-halal-unverified-text dark:text-halal-unverified-textDark',
+    shieldInk: 'unverified',
+    chevronInk: 'unverified',
     shield: 'dashed',
   },
 };
@@ -125,12 +132,12 @@ export function HalalSeal({
       testID={`${testID}-plate`}
       className={cn('flex-row items-center gap-1 rounded-md py-0.5', spec.plate, skin.plate, pressed && skin.pressed)}
     >
-      <HalalShieldMark variant={skin.shield} size={spec.glyph} className={skin.shieldInk} testID={`${testID}-shield`} />
+      <HalalShieldMark variant={skin.shield} size={spec.glyph} ink={skin.shieldInk} testID={`${testID}-shield`} />
       {/* Not clamped: at 200% text the label wraps and the plate grows, it is never cut off. */}
       <Text className={cn('shrink font-sans-semibold', spec.label, skin.ink)}>{label}</Text>
       {onPress ? (
         <View testID={`${testID}-chevron`} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-          <HalalChevron size={spec.glyph} direction="forward" className={skin.ink} />
+          <HalalChevron size={spec.glyph} ink={skin.chevronInk} />
         </View>
       ) : null}
     </View>
