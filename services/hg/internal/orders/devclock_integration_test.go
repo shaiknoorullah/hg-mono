@@ -15,13 +15,7 @@ func TestIntegrationBringDeadlineForwardFiresTheRealAction(t *testing.T) {
 	ctx := context.Background()
 	b := seedBasics(t, pool)
 
-	cart, _ := st.AddCartLine(ctx, b.accountID, b.restaurantID, CartLineInput{MenuItemID: b.menuItemID, Quantity: 1}, false)
-	q, _ := st.CreateQuote(ctx, QuoteRequest{AccountID: b.accountID, CartID: cart.ID, DeliveryAddressID: &b.addressID, Fulfilment: "DELIVERY"})
-	var fresh *Quote
-	prepared, err := st.CreateOrder(ctx, OrderInput{AccountID: b.accountID, QuoteID: q.ID}, &fresh)
-	if err != nil {
-		t.Fatalf("create order: %v", err)
-	}
+	prepared := placeCreatedOrder(t, st, b)
 
 	if _, err := BringDeadlineForward(ctx, pool, prepared.OrderID, "CREATED", "EXPIRE_PAYMENT", -time.Second); err == nil {
 		t.Fatal("a deadline was pushed into the past")
