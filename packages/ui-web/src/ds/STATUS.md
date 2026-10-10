@@ -77,3 +77,7 @@ Work packages: `plan/design-system.md` §4.1 on the read-only `claude/redesign-c
 | StickyFooter (= ActionBar) | rebuilt | W2 |
 | NavDrawer | rebuilt | W2 |
 | SectionNav | rebuilt | W2 |
+| NewOrdersStrip (= `NewOrderStrip`, the restaurant stub's name) + OfferTile (+ `OFFER_OUTCOMES`, `isLiveTile`) | rebuilt | W7a |
+| DeclineForm (+ `DECLINE_REASONS`, the contract's seven reject reasons) | rebuilt | W7a |
+| StatusCard (+ `statusFromOpenState`) | rebuilt | W7a |
+| PickupCode | rebuilt | W7a |
