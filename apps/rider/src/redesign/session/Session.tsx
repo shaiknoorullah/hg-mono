@@ -37,7 +37,10 @@ export function useSession(): SessionValue {
   return s;
 }
 
-/** The session when one is open, else `null` (a screen rendered alone in a test, or by the gate). */
+/**
+ * The session, or null outside one: for a screen that can also be rendered on its own (a
+ * pushed screen under test, a flow step) and only needs `refresh` when there is a session.
+ */
 export function useOptionalSession(): SessionValue | null {
   return React.useContext(SessionContext);
 }
