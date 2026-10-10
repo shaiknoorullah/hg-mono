@@ -59,6 +59,16 @@ info:
 
     The same decisions added three V0 address search operations that our API forwards to
     Mapbox: `suggestAddresses`, `getPlaceAddress` and `reverseGeocode` (tag `geo`).
+
+    Other round-2 changes: `replaceCart` replaces every cart line in one atomic call; a
+    customer may file several problem reports on one order (`createRefund`); a restaurant
+    may pause until closing (`setRestaurantAcceptingOrders`); `PublicConfig` carries a
+    support email; a rider's offer shows only an approximate drop-off area
+    (`DispatchOffer.dropoff`); `WRONG_ADDRESS` is a refund reason; the marketing site's
+    waitlist posts to `joinWaitlist`, which is public; and every staff role can read the
+    text-message sender check (`getSmsSenderStatus`). Source: `docs/decisions/README.md`,
+    "Settled — redesign decisions, round 2", and issues [#179](https://github.com/shaiknoorullah/hg-mono/issues/179), [#180](https://github.com/shaiknoorullah/hg-mono/issues/180),
+    [#181](https://github.com/shaiknoorullah/hg-mono/issues/181), [#183](https://github.com/shaiknoorullah/hg-mono/issues/183), [#184](https://github.com/shaiknoorullah/hg-mono/issues/184) and [#212](https://github.com/shaiknoorullah/hg-mono/issues/212).
   contact:
     name: HalalGoes platform team
     email: shaiknooru247@gmail.com
@@ -103,6 +113,11 @@ tags:
       so they may stay temporary, and the server never caches them. Source: the owner's
       decision of 2026-10-01 (`docs/decisions/README.md`, "Settled — redesign decisions,
       round 2", "Launch scope and contract", map address search; issue #179).
+  - name: waitlist
+    description: |
+      The pre-launch waitlist the marketing site's form posts to. Public, rate-limited by
+      client address, and idempotent on audience and contact; it keeps the consent record
+      Canada's anti-spam law asks for.
   - name: discovery
     description: |
       Halal-gated restaurant discovery, search, restaurant detail, menu and the halal
@@ -281,6 +296,82 @@ paths:
                     $ref: '#/components/schemas/PublicConfig'
         default:
           $ref: '#/components/responses/Error'
+  /v1/waitlist:
+    post:
+      operationId: joinWaitlist
+      tags: [waitlist]
+      summary: Join the pre-launch waitlist from the marketing site
+      description: |
+        The marketing site's waitlist form posts here, so the site can be a static export
+        and the sign-ups land in the product database instead of a hosted one
+        ([#212](https://github.com/shaiknoorullah/hg-mono/issues/212); [every HalalGoes
+        system is self-hosted](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#settled--platform-decisions-owner-2026-10-01)).
+
+        **Public, and registered public on purpose:** a visitor joins before they have an
+        account. A route is public only if it is explicitly registered public ([deny by
+        default](https://github.com/shaiknoorullah/hg-mono/blob/main/AGENTS.md#3-non-negotiable-invariants)),
+        so this operation is added to the fixed public set in `contracts/README.md`.
+
+        **Rate-limited by client address:** rate class `WAITLIST`, 10 sign-ups per client
+        address per hour, burst 5 ([rate limiting](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/01-platform.md#p-38--rate-limiting)).
+        The address is the one Traefik forwards, trusted only from Traefik's network
+        ([middleware chain, client-address step](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/01-platform.md#p-06--deny-by-default-routing-and-the-middleware-chain)). Over
+        the limit is `429 RATE_LIMITED`, and nothing is stored. When Redis is down the
+        limit **fails closed**: `503 RATE_LIMITER_UNAVAILABLE`, and nothing is stored; the
+        form asks the visitor to try again. Failing open would let anyone store unlimited
+        sign-ups by varying the contact, because the idempotency key is a pair the caller
+        chooses, and [correctness may never depend on Redis](https://github.com/shaiknoorullah/hg-mono/blob/main/AGENTS.md#2-architecture-in-one-picture).
+
+        **The consent record.** Canada's anti-spam law (CASL) asks what the person agreed
+        to, not only that they agreed. The server keeps the exact `consent_text` the form
+        showed, the audience, the contact and its kind, the form it came from, the campaign
+        parameters, and `consented_at`, which the server sets to the time it receives the
+        request. `consent` must be `true`: an unticked box is a no.
+
+        **Idempotent on audience and contact.** Joining again with the same audience and
+        contact returns the same `202` and stores nothing new; the first consent is kept
+        and never overwritten. The answer is identical whether or not the contact was
+        already on the list, so the form cannot be used to find out who signed up. The same
+        person may join as a customer and as a restaurant: the pair is the key. That is why
+        it takes no `Idempotency-Key`: there is no account to scope a key to, and the
+        audience and contact already make a repeat harmless.
+
+        **Contact.** `EMAIL` is lower-cased before it is stored. `TEL` must be E.164.
+        The marketing site collects email only while text-message sender registration is
+        open ([#71](https://github.com/shaiknoorullah/hg-mono/issues/71)); `TEL` exists so
+        phone sign-ups need no contract change later.
+      security: []
+      x-roles: [PUBLIC]
+      x-version: V0
+      x-rate-class: WAITLIST
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WaitlistSignupInput'
+      responses:
+        '202':
+          description: |
+            Received. The same answer for a new sign-up and for a repeat; it never says
+            whether the contact was already on the list.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [data]
+                properties:
+                  data:
+                    $ref: '#/components/schemas/WaitlistSignupReceipt'
+        '422':
+          $ref: '#/components/responses/Error'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '503':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
   /v1/auth/otp/request:
     post:
       operationId: requestOtp
@@ -298,7 +389,8 @@ paths:
         authorization.
 
         Fails closed (`503 RATE_LIMITER_UNAVAILABLE`) when Redis is unreachable — this and
-        `verifyOtp` are the two endpoints where fail-open is unacceptable.
+        `verifyOtp` are the two sign-in endpoints where fail-open is unacceptable
+        (`joinWaitlist` fails closed too).
       security: []
       x-roles: [PUBLIC]
       x-version: V0
@@ -1899,6 +1991,77 @@ paths:
                     $ref: '#/components/schemas/Cart'
         default:
           $ref: '#/components/responses/Error'
+    put:
+      operationId: replaceCart
+      tags: [cart]
+      summary: Replace every line in the cart in one call
+      description: |
+        Clears the cart and adds every line in the request as **one atomic call**: either
+        the whole new cart is saved, or the cart is unchanged. A two-call clear-then-add
+        stays prohibited, because it can leave an empty cart on failure. The owner approved
+        this operation on 2026-10-01 for "Put these items back in your cart" after an unpaid
+        order is cancelled, expires or fails payment ([round-2 decisions, "Orders and
+        delivery"](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#orders-and-delivery);
+        [#179](https://github.com/shaiknoorullah/hg-mono/issues/179)). It is the one
+        exception to the granular cart operations, and only because rebuilding a cart line
+        by line cannot be atomic.
+
+        The request carries **item identifiers, options and quantities only**, never a
+        price: [the server prices every order](https://github.com/shaiknoorullah/hg-mono/blob/main/AGENTS.md#3-non-negotiable-invariants).
+        Every line is priced again at today's price; the old order's prices are not reused.
+
+        Rules:
+
+        * Every line must be from the same restaurant; that restaurant becomes the cart's
+          restaurant. Lines from two restaurants are `422 VALIDATION_FAILED`.
+        * It replaces whatever the cart held, from any restaurant, so it never returns
+          `DIFFERENT_RESTAURANT`. If the current cart is not empty, the client asks the
+          customer before calling it.
+        * Lines are merged by the same line identity as `addCartLine`
+          (`menu_item_id`, `variant_id`, sorted add-ons, `special_request`). A merged
+          quantity above 20 is `422 VALIDATION_FAILED`.
+        * All or nothing. If any line cannot be added, the answer is `409` with the code of
+          the first failure (`ITEM_UNAVAILABLE`, `VARIANT_UNAVAILABLE`, `ADDON_UNAVAILABLE`,
+          `RESTAURANT_CLOSED` or `RESTAURANT_UNAVAILABLE`) and `details.lines` lists every
+          failing line as `{index, code}`, where `index` is the line's position in the
+          request. The cart is unchanged. The app can offer to put back the lines that are
+          still available by calling again without the failing ones.
+        * The cart's `delivery_address_id` is kept.
+      x-roles: [CUSTOMER]
+      x-version: V0
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKeyRequired'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CartReplaceInput'
+      responses:
+        '200':
+          description: The new cart, recomputed.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [data]
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Cart'
+        '409':
+          description: |
+            `ITEM_UNAVAILABLE`, `VARIANT_UNAVAILABLE`, `ADDON_UNAVAILABLE`,
+            `RESTAURANT_CLOSED` or `RESTAURANT_UNAVAILABLE`, with `details.lines` naming
+            every failing line. The cart is unchanged.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
     delete:
       operationId: clearCart
       tags: [cart]
@@ -2775,6 +2938,51 @@ paths:
         A refund is only meaningful post-capture. A pre-capture cancellation **voids** the
         authorisation and is a different operation entirely (`cancelOrder`); no `refund` row
         and no Stripe refund call exists on that path.
+
+        **Several problem reports on one order.** A customer may report more than one
+        problem on the same order, as the owner approved on 2026-10-01
+        ([#184](https://github.com/shaiknoorullah/hg-mono/issues/184)). The rule this
+        contract chose: **each report is its own refund, decided on its own, and reports
+        never merge.** A later report is accepted while earlier ones are open or decided,
+        unless it claims something another report already holds:
+
+        * A refund *holds* its claim in every state except `DECLINED` and `CANCELLED`, the
+          two in which no money moves.
+        * A refund waiting for a second approval (`PENDING_APPROVAL`, including the approval
+          request `issueRefund` answers `202` with) holds its claim too, until it is declined.
+        * **Items.** For each order line, the quantity across the refunds that hold a claim
+          on it may not exceed the quantity ordered. A second report on a line is accepted
+          while some of that line's quantity is still unclaimed: with 3 ordered and 1
+          claimed, a report on 2 more is accepted and a report on 3 more is refused.
+        * **Fees.** The delivery and service fees and their tax are refunded at most once:
+          by `FEES_ONLY`, or as part of a `FULL` refund when no other refund holds them.
+        * **`FULL` never clashes.** A `FULL` refund claims only the quantities and the fees
+          that no other refund holds. It refunds the captured amount minus every refund that
+          holds a claim, and is `409 REFUND_EXCEEDS_CAPTURED` when nothing is left.
+        * A claim another refund already holds is `409 REFUND_ALREADY_REQUESTED`, with
+          `details.order_line_nos` naming the lines and `details.fees` true when the fees
+          were the clash. Nothing is created. Only `PARTIAL_ITEMS` and `FEES_ONLY` can
+          clash; `GOODWILL` claims no line and no fees, only part of the cap.
+        * **The cap.** The refunds that hold a claim never add up to more than the captured
+          amount (`409 REFUND_EXCEEDS_CAPTURED`). Source: [refunds never exceed the captured
+          amount](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/01-platform.md#p-18--refunds-cancellations-and-compensation).
+        * **Two requests at once cannot both pass.** `createRefund`, `issueRefund` and the
+          approval transaction each first take `SELECT … FROM "order" WHERE id = $1 FOR
+          UPDATE`, and only then re-check the line quantities, the fees and the cap
+          together. Locking the order row, not the existing refund rows, is what stops a
+          second request inserting a new refund row at the same moment. An approval
+          re-checks all three, not only the cap. The fee rule is also made unrepresentable
+          by a partial unique index on the refund table ([P-18, Data](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/01-platform.md#p-18--refunds-cancellations-and-compensation)).
+        * Each report keeps its own reason code and therefore its own liability split, so a
+          missing item charged to the restaurant and a late delivery absorbed by the
+          platform can sit on the same order.
+        * The rate limit of 5 refund requests per order per day still applies
+          ([rate limiting](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/01-platform.md#p-38--rate-limiting)).
+
+        **Reporting before delivery.** "Get help" opens from the restaurant's acceptance
+        ([round-2 decisions, "Orders and delivery"](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#orders-and-delivery)).
+        The reasons that fit before delivery are `LATE_DELIVERY` and `WRONG_ADDRESS`;
+        wanting to cancel is `cancelOrder`, not a refund request.
       x-roles: [CUSTOMER, SUPPORT_AGENT, ADMIN, SUPER_ADMIN]
       x-version: V0
       x-rate-class: MONEY
@@ -2800,8 +3008,10 @@ paths:
                     $ref: '#/components/schemas/Refund'
         '409':
           description: |
-            `REFUND_EXCEEDS_CAPTURED`, `REFUND_WINDOW_CLOSED`, `REFUND_ALREADY_REQUESTED`,
-            `PAYMENT_NOT_REFUNDABLE`.
+            `REFUND_EXCEEDS_CAPTURED`, `REFUND_WINDOW_CLOSED`, `PAYMENT_NOT_REFUNDABLE`,
+            or `REFUND_ALREADY_REQUESTED` when the report claims an item or the fees that
+            another refund on the order already holds (not merely because the order has
+            another refund).
           content:
             application/json:
               schema:
@@ -3790,6 +4000,20 @@ paths:
 
         Turning the toggle off never shortens an offer already outstanding: that order keeps
         its full 180-second response window.
+
+        **Pausing until closing.** `pause_until_closing: true` pauses new orders until the
+        end of the trading period the restaurant is in now, worked out by the server from
+        the restaurant's own hours, today's override if there is one, and its time zone. A
+        late night that runs past midnight pauses until it ends the next morning, which is
+        why the client never computes it. It replaces "rest of today", as the owner decided
+        on 2026-10-01 ([round-2 decisions](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01), "Restaurant", "For how long" options).
+        The response's `pause_until` is the closing time it chose. Rules:
+
+        * `is_accepting_orders` must be true, as for any pause.
+        * Send `pause_until` or `pause_until_closing`, never both: both is
+          `422 VALIDATION_FAILED`.
+        * Outside trading hours there is nothing to pause: `409 RESTAURANT_CLOSED`.
+        * Later changes to the hours do not move a pause already set; pausing again does.
       x-roles: [RESTAURANT_OWNER, RESTAURANT_MANAGER, RESTAURANT_STAFF]
       x-version: V0
       requestBody:
@@ -3807,6 +4031,12 @@ paths:
                   type: [string, 'null']
                   format: date-time
                   description: 'Optional short pause; ignored when `is_accepting_orders` is false.'
+                pause_until_closing:
+                  type: boolean
+                  default: false
+                  description: |
+                    Pause until the end of the current trading period, worked out by the
+                    server. Not with `pause_until`.
       responses:
         '200':
           description: Availability read back from the database after the write.
@@ -3819,6 +4049,12 @@ paths:
                 properties:
                   data:
                     $ref: '#/components/schemas/RestaurantAvailability'
+        '409':
+          description: '`RESTAURANT_CLOSED` when `pause_until_closing` is sent outside trading hours.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
         '422':
           $ref: '#/components/responses/Error'
         default:
@@ -4468,8 +4704,9 @@ paths:
         countdown is derived from the server's `expires_at` and `server_time`, never from a
         local constant — a device whose clock is ten minutes fast still shows ~30 seconds.
 
-        The pre-accept projection deliberately withholds the customer's unit number and
-        phone alias; only the drop-off street and neighbourhood are shown.
+        The pre-accept projection shows only an approximate drop-off area (neighbourhood,
+        city, and the centre and radius of the area), never the street or the address; the
+        full address arrives once the rider accepts (`DispatchOffer`).
       x-roles: [RIDER]
       x-version: V0
       responses:
@@ -5000,6 +5237,43 @@ paths:
                       $ref: '#/components/schemas/Payout'
                   meta:
                     $ref: '#/components/schemas/PageMeta'
+        default:
+          $ref: '#/components/responses/Error'
+  /v1/admin/system/sms-sender:
+    get:
+      operationId: getSmsSenderStatus
+      tags: [admin]
+      summary: The result of the text-message sender start-up check
+      description: |
+        Whether the sender of sign-in codes passed its start-up check (the `sms_sender`
+        boot probe, [SMS and email](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/01-platform.md#p-26--sms-and-email)).
+        When it fails, nobody new can sign in, so every admin page shows a sticky banner
+        until it passes, for every staff role: support agents, admins and super admins
+        ([round-2 decisions, "Admin", a failed text-message sender check](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01);
+        [what to do when the sender is down](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/ops/runbook.md#the-sign-in-code-sender-is-down)).
+
+        This is a narrow, launch read of one check. The full dependency report
+        (`getDependencyStatus`) stays later-version and admin-only, because it carries
+        internal addresses a support agent does not need.
+
+        Each API replica runs the check when it starts and writes the result to Postgres,
+        so every replica answers the same and a Redis flush loses nothing. This operation
+        returns the most recent result. The banner clears once a later check passes, for
+        example after the credentials are fixed and the replicas restart.
+      x-roles: [SUPPORT_AGENT, ADMIN, SUPER_ADMIN]
+      x-version: V0
+      responses:
+        '200':
+          description: The latest check.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [data]
+                properties:
+                  data:
+                    $ref: '#/components/schemas/SmsSenderStatus'
         default:
           $ref: '#/components/responses/Error'
   /v1/admin/staff:
@@ -6392,6 +6666,25 @@ paths:
         `amount_cents` is accepted **only** for `GOODWILL` — this is the single allowlisted
         inbound monetary field besides `tip_cents` (G-3).
 
+        **The same claim rules as a customer's report.** Staff cannot refund a line or the
+        fees a second time. The rules are written out on `createRefund` under "Several
+        problem reports on one order" ([P-18](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/01-platform.md#p-18--refunds-cancellations-and-compensation),
+        [#184](https://github.com/shaiknoorullah/hg-mono/issues/184)); in short:
+
+        * A refund holds its claim in every state except `DECLINED` and `CANCELLED`. **A
+          pending approval request holds its claim too**, from the `202` until it is
+          declined, so a second request cannot take the same lines or fees meanwhile.
+        * For each order line, the quantity across the refunds that hold a claim may not
+          exceed the quantity ordered.
+        * The delivery and service fees and their tax are refunded at most once.
+        * A `FULL` refund claims only what no other refund holds, so it never clashes; when
+          nothing is left it is `409 REFUND_EXCEEDS_CAPTURED`.
+        * The refunds that hold a claim never add up to more than the captured amount.
+        * This operation, `createRefund` and the approval transaction each first take
+          `SELECT … FROM "order" WHERE id = $1 FOR UPDATE`, then re-check the line
+          quantities, the fees and the cap together, so two requests at once cannot both
+          pass.
+
         The customer-facing status never reads "refunded" before the provider confirms.
       x-roles: [SUPPORT_AGENT, ADMIN, SUPER_ADMIN]
       x-version: V0
@@ -6424,7 +6717,8 @@ paths:
         '202':
           description: |
             Above the caller's cap: an approval request was created and the case escalated.
-            No refund exists yet.
+            No money has moved yet. The request already holds its claim on the lines and
+            fees it names, until it is declined.
           headers:
             Idempotency-Replayed:
               description: 'Present and `true` when this response replays an earlier identical request.'
@@ -6453,8 +6747,12 @@ paths:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '409':
           description: |
-            `REFUND_EXCEEDS_CAPTURED`, `DAILY_CAP_EXCEEDED`, `SELF_APPROVAL_FORBIDDEN`,
-            `PAYMENT_NOT_REFUNDABLE`, `IDEMPOTENCY_KEY_REUSE`.
+            `REFUND_EXCEEDS_CAPTURED` when the refunds that hold a claim would exceed the
+            captured amount, `REFUND_ALREADY_REQUESTED` when the request claims a line
+            quantity or the fees that another refund or pending approval request on the
+            order already holds (with `details.order_line_nos` and `details.fees`),
+            `DAILY_CAP_EXCEEDED`, `SELF_APPROVAL_FORBIDDEN`, `PAYMENT_NOT_REFUNDABLE`,
+            `IDEMPOTENCY_KEY_REUSE`.
           content:
             application/json:
               schema:
@@ -7615,6 +7913,10 @@ components:
                 `VARIANT_UNAVAILABLE` → `{variant_id}`;
                 `ADDON_UNAVAILABLE` → `{addon_id}`;
                 `INVALID_ADDON` → `[{field, code, message}]`;
+                `ITEM_UNAVAILABLE`, `VARIANT_UNAVAILABLE`, `ADDON_UNAVAILABLE`,
+                `RESTAURANT_CLOSED`, `RESTAURANT_UNAVAILABLE` from `replaceCart` →
+                `{lines: [{index, code}]}`;
+                `REFUND_ALREADY_REQUESTED` → `{order_line_nos: [int], fees: bool}`;
                 `CART_HAS_UNAVAILABLE_ITEMS` → `{line_ids: [uuid]}`;
                 `INCOMPLETE_DOCUMENT_PACK` → `{missing: [doc_type]}`;
                 `MENU_LOCKED` → `{account_state}` (`SUSPENDED` or `BANNED`);
@@ -8274,6 +8576,14 @@ components:
         (customer refunded, restaurant charged back, rider charged back, platform absorbs) —
         the table is what makes the ledger balance. The specs enumerate overlapping sets; this
         is their reconciled union (see `contracts/README.md` §"Spec contradictions", item 8).
+
+        `WRONG_ADDRESS`: the customer reports, before delivery, that the order is going to
+        the wrong address ([round-2 decisions, "Orders and delivery"](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#orders-and-delivery);
+        [#180](https://github.com/shaiknoorullah/hg-mono/issues/180)). Support redirects
+        the delivery when it can; any refund is per support's judgement, and the platform
+        absorbs it, because the restaurant cooked the order and the rider carried it to the
+        address on the order. If the rider delivered somewhere other than the order's
+        address, staff file `NEVER_DELIVERED` instead, which charges the rider.
       enum:
         - RESTAURANT_REJECTED
         - ITEM_MISSING
@@ -8285,6 +8595,7 @@ components:
         - NEVER_DELIVERED
         - ORDER_NEVER_ARRIVED
         - LATE_DELIVERY
+        - WRONG_ADDRESS
         - DAMAGED_SPILLED
         - NO_RIDER_FOUND
         - CUSTOMER_CHANGED_MIND
@@ -8695,6 +9006,33 @@ components:
                 type: boolean
               detail:
                 type: [string, 'null']
+    SmsSenderCheckState:
+      type: string
+      description: |
+        `PASSED`: the last check passed. `FAILED`: the last check failed, and every admin
+        page shows the sticky banner. `NOT_CHECKED`: no replica has run the check yet, for
+        example in the first seconds of a new deployment; no banner.
+      enum: [PASSED, FAILED, NOT_CHECKED]
+    SmsSenderStatus:
+      type: object
+      additionalProperties: false
+      required: [state, checked_at, failing_since, message]
+      description: 'The result `getSmsSenderStatus` returns. Safe for every staff role: no credential, account id or internal address.'
+      properties:
+        state:
+          $ref: '#/components/schemas/SmsSenderCheckState'
+        checked_at:
+          type: [string, 'null']
+          format: date-time
+          description: 'When the latest check ran. Null only for `NOT_CHECKED`.'
+        failing_since:
+          type: [string, 'null']
+          format: date-time
+          description: 'When the checks started failing, for "Failing since 7:42 pm". Null unless `state` is `FAILED`.'
+        message:
+          type: [string, 'null']
+          maxLength: 300
+          description: 'Plain language, safe to show on the banner, such as "Twilio refused our credentials." Null unless `state` is `FAILED`.'
     PublicConfig:
       type: object
       additionalProperties: false
@@ -8737,6 +9075,18 @@ components:
           description: 'Never hardcoded in a client. Absent when `support_enabled` is false.'
         support_hours:
           type: [string, 'null']
+        support_email:
+          type: [string, 'null']
+          format: email
+          maxLength: 254
+          description: |
+            The support email address, for customers and partners alike. Never hardcoded in
+            a client. Unlike the phone line it does not depend on `support_enabled`: it is
+            the contact shown while phone support is off, and how a customer asks staff to
+            delete their account at launch ([round-2 decisions, "Launch scope and contract",
+            account deletion](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#launch-scope-and-contract);
+            [#181](https://github.com/shaiknoorullah/hg-mono/issues/181)). Null only when
+            none is configured, and then the client shows no email contact.
         default_map_center:
           type: object
           additionalProperties: false
@@ -8748,6 +9098,68 @@ components:
               $ref: '#/components/schemas/Longitude'
         terms_version:
           type: string
+    WaitlistAudience:
+      type: string
+      description: 'Which waitlist the visitor joins. One person may join more than one.'
+      enum: [CUSTOMER, RESTAURANT, RIDER]
+    WaitlistContactKind:
+      type: string
+      description: '`EMAIL` while text-message sender registration is open ([#71](https://github.com/shaiknoorullah/hg-mono/issues/71)); `TEL` is E.164.'
+      enum: [EMAIL, TEL]
+    WaitlistSignupInput:
+      type: object
+      additionalProperties: false
+      required: [audience, contact, contact_kind, consent, consent_text, context]
+      description: |
+        The body of `joinWaitlist`. Every field the consent record needs comes from the form;
+        `consented_at` does not, because the server sets it to the time it receives the
+        request.
+      properties:
+        audience:
+          $ref: '#/components/schemas/WaitlistAudience'
+        contact:
+          type: string
+          minLength: 3
+          maxLength: 254
+          description: 'An email address for `EMAIL`, lower-cased by the server; an E.164 number for `TEL`. A malformed one is `422 VALIDATION_FAILED`.'
+          examples: ['amina@example.com']
+        contact_kind:
+          $ref: '#/components/schemas/WaitlistContactKind'
+        consent:
+          type: boolean
+          const: true
+          description: 'The ticked consent box. Anything but `true` is `422 VALIDATION_FAILED`: an unticked box is a no.'
+        consent_text:
+          type: string
+          minLength: 1
+          maxLength: 1000
+          description: 'The exact consent sentence the form showed, kept word for word as the record of what the person agreed to.'
+        context:
+          type: string
+          minLength: 1
+          maxLength: 40
+          description: 'Which form on which page, such as `hero`, `final`, `footer` or `sticky`.'
+          examples: ['hero']
+        utm:
+          type: object
+          maxProperties: 12
+          description: 'Campaign parameters from the visit, such as `utm_source`. Empty or absent for a direct visit.'
+          propertyNames:
+            maxLength: 40
+          additionalProperties:
+            type: string
+            maxLength: 200
+    WaitlistSignupReceipt:
+      type: object
+      additionalProperties: false
+      required: [audience, received]
+      description: 'The answer to `joinWaitlist`: the same for a new sign-up and a repeat, so it never reveals who is already on the list.'
+      properties:
+        audience:
+          $ref: '#/components/schemas/WaitlistAudience'
+        received:
+          type: boolean
+          const: true
     OtpRequestInput:
       type: object
       additionalProperties: false
@@ -9911,6 +10323,23 @@ components:
           type: string
           maxLength: 140
           description: 'Advisory. Copied to the order line; never changes a price.'
+    CartReplaceInput:
+      type: object
+      additionalProperties: false
+      required: [lines]
+      description: |
+        The body of `replaceCart`. **Item identifiers, options and quantities only**: each
+        line is a `CartLineInput`, which has no price field, so no client-supplied price can
+        reach the cart ([the server prices every order](https://github.com/shaiknoorullah/hg-mono/blob/main/AGENTS.md#3-non-negotiable-invariants)).
+        To empty the cart, use `clearCart`; an empty `lines` is rejected.
+      properties:
+        lines:
+          type: array
+          minItems: 1
+          maxItems: 100
+          description: 'Every line of the new cart, from one restaurant. 100 bounds the request size; a cart rebuilt from an order never comes near it.'
+          items:
+            $ref: '#/components/schemas/CartLineInput'
     QuoteInput:
       type: object
       additionalProperties: false
@@ -12497,9 +12926,14 @@ components:
       additionalProperties: false
       required: [offer_id, order_id, expires_at, server_time, pickup, dropoff, earnings, items_count]
       description: |
-        D-14. The **pre-accept** projection. It deliberately omits the customer's unit number
-        and phone alias; only the drop-off street and neighbourhood are shown. The countdown
-        is computed from `expires_at` minus `server_time`, never from a local constant.
+        D-14. The **pre-accept** projection. Before accepting, the rider sees only an
+        approximate drop-off area: no street, house number, unit, buzzer, name or phone
+        alias. The full address arrives with the `Assignment` once the rider accepts. The
+        owner decided this on 2026-10-01 ([round-2 decisions, "Orders and delivery"](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#orders-and-delivery);
+        [#183](https://github.com/shaiknoorullah/hg-mono/issues/183)). `distance_m` and
+        `est_duration_s` are still measured to the exact address, so the rider can judge the
+        trip. The countdown is computed from `expires_at` minus `server_time`, never from a
+        local constant.
       properties:
         offer_id:
           type: string
@@ -12534,14 +12968,32 @@ components:
           type: object
           additionalProperties: false
           required: [area, latitude, longitude]
+          description: |
+            The approximate drop-off area. `latitude` and `longitude` are the centre of the
+            area, never the customer's address: the server snaps the address to a grid of
+            about 500 m and sends the centre of that cell, so the map can show a shaded
+            circle and the direction of travel without pointing at a house.
           properties:
             area:
               type: string
-              description: 'Street and neighbourhood only. The unit number arrives on accept.'
+              maxLength: 120
+              description: |
+                The neighbourhood and city, such as "Harbourfront, Toronto". Never a street,
+                a house number, a unit or a full postal code.
+              examples: ['Harbourfront, Toronto']
             latitude:
               $ref: '#/components/schemas/Latitude'
             longitude:
               $ref: '#/components/schemas/Longitude'
+            radius_m:
+              type: integer
+              format: int32
+              minimum: 1
+              description: |
+                The radius of the approximate area around the point, in metres, for the
+                shaded circle. The address lies inside it. When absent, the client draws
+                no circle and shows the area name alone.
+              examples: [400]
         distance_m:
           type: integer
           format: int32

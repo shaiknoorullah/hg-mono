@@ -695,6 +695,25 @@ export interface paths {
          *     `amount_cents` is accepted **only** for `GOODWILL` — this is the single allowlisted
          *     inbound monetary field besides `tip_cents` (G-3).
          *
+         *     **The same claim rules as a customer's report.** Staff cannot refund a line or the
+         *     fees a second time. The rules are written out on `createRefund` under "Several
+         *     problem reports on one order" ([P-18](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/01-platform.md#p-18--refunds-cancellations-and-compensation),
+         *     [#184](https://github.com/shaiknoorullah/hg-mono/issues/184)); in short:
+         *
+         *     * A refund holds its claim in every state except `DECLINED` and `CANCELLED`. **A
+         *       pending approval request holds its claim too**, from the `202` until it is
+         *       declined, so a second request cannot take the same lines or fees meanwhile.
+         *     * For each order line, the quantity across the refunds that hold a claim may not
+         *       exceed the quantity ordered.
+         *     * The delivery and service fees and their tax are refunded at most once.
+         *     * A `FULL` refund claims only what no other refund holds, so it never clashes; when
+         *       nothing is left it is `409 REFUND_EXCEEDS_CAPTURED`.
+         *     * The refunds that hold a claim never add up to more than the captured amount.
+         *     * This operation, `createRefund` and the approval transaction each first take
+         *       `SELECT … FROM "order" WHERE id = $1 FOR UPDATE`, then re-check the line
+         *       quantities, the fees and the cap together, so two requests at once cannot both
+         *       pass.
+         *
          *     The customer-facing status never reads "refunded" before the provider confirms.
          */
         post: operations["issueRefund"];
@@ -1138,6 +1157,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/system/sms-sender": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The result of the text-message sender start-up check
+         * @description Whether the sender of sign-in codes passed its start-up check (the `sms_sender`
+         *     boot probe, [SMS and email](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/01-platform.md#p-26--sms-and-email)).
+         *     When it fails, nobody new can sign in, so every admin page shows a sticky banner
+         *     until it passes, for every staff role: support agents, admins and super admins
+         *     ([round-2 decisions, "Admin", a failed text-message sender check](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01);
+         *     [what to do when the sender is down](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/ops/runbook.md#the-sign-in-code-sender-is-down)).
+         *
+         *     This is a narrow, launch read of one check. The full dependency report
+         *     (`getDependencyStatus`) stays later-version and admin-only, because it carries
+         *     internal addresses a support agent does not need.
+         *
+         *     Each API replica runs the check when it starts and writes the result to Postgres,
+         *     so every replica answers the same and a Redis flush loses nothing. This operation
+         *     returns the most recent result. The banner clears once a later check passes, for
+         *     example after the credentials are fixed and the replicas restart.
+         */
+        get: operations["getSmsSenderStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/auth/email/resend": {
         parameters: {
             query?: never;
@@ -1293,7 +1346,8 @@ export interface paths {
          *     authorization.
          *
          *     Fails closed (`503 RATE_LIMITER_UNAVAILABLE`) when Redis is unreachable — this and
-         *     `verifyOtp` are the two endpoints where fail-open is unacceptable.
+         *     `verifyOtp` are the two sign-in endpoints where fail-open is unacceptable
+         *     (`joinWaitlist` fails closed too).
          */
         post: operations["requestOtp"];
         delete?: never;
@@ -1565,7 +1619,41 @@ export interface paths {
          *     line. Money on the cart is indicative only — the binding numbers come from a quote.
          */
         get: operations["getCart"];
-        put?: never;
+        /**
+         * Replace every line in the cart in one call
+         * @description Clears the cart and adds every line in the request as **one atomic call**: either
+         *     the whole new cart is saved, or the cart is unchanged. A two-call clear-then-add
+         *     stays prohibited, because it can leave an empty cart on failure. The owner approved
+         *     this operation on 2026-10-01 for "Put these items back in your cart" after an unpaid
+         *     order is cancelled, expires or fails payment ([round-2 decisions, "Orders and
+         *     delivery"](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#orders-and-delivery);
+         *     [#179](https://github.com/shaiknoorullah/hg-mono/issues/179)). It is the one
+         *     exception to the granular cart operations, and only because rebuilding a cart line
+         *     by line cannot be atomic.
+         *
+         *     The request carries **item identifiers, options and quantities only**, never a
+         *     price: [the server prices every order](https://github.com/shaiknoorullah/hg-mono/blob/main/AGENTS.md#3-non-negotiable-invariants).
+         *     Every line is priced again at today's price; the old order's prices are not reused.
+         *
+         *     Rules:
+         *
+         *     * Every line must be from the same restaurant; that restaurant becomes the cart's
+         *       restaurant. Lines from two restaurants are `422 VALIDATION_FAILED`.
+         *     * It replaces whatever the cart held, from any restaurant, so it never returns
+         *       `DIFFERENT_RESTAURANT`. If the current cart is not empty, the client asks the
+         *       customer before calling it.
+         *     * Lines are merged by the same line identity as `addCartLine`
+         *       (`menu_item_id`, `variant_id`, sorted add-ons, `special_request`). A merged
+         *       quantity above 20 is `422 VALIDATION_FAILED`.
+         *     * All or nothing. If any line cannot be added, the answer is `409` with the code of
+         *       the first failure (`ITEM_UNAVAILABLE`, `VARIANT_UNAVAILABLE`, `ADDON_UNAVAILABLE`,
+         *       `RESTAURANT_CLOSED` or `RESTAURANT_UNAVAILABLE`) and `details.lines` lists every
+         *       failing line as `{index, code}`, where `index` is the line's position in the
+         *       request. The cart is unchanged. The app can offer to put back the lines that are
+         *       still available by calling again without the failing ones.
+         *     * The cart's `delivery_address_id` is kept.
+         */
+        put: operations["replaceCart"];
         post?: never;
         /** Empty the cart */
         delete: operations["clearCart"];
@@ -2631,6 +2719,51 @@ export interface paths {
          *     A refund is only meaningful post-capture. A pre-capture cancellation **voids** the
          *     authorisation and is a different operation entirely (`cancelOrder`); no `refund` row
          *     and no Stripe refund call exists on that path.
+         *
+         *     **Several problem reports on one order.** A customer may report more than one
+         *     problem on the same order, as the owner approved on 2026-10-01
+         *     ([#184](https://github.com/shaiknoorullah/hg-mono/issues/184)). The rule this
+         *     contract chose: **each report is its own refund, decided on its own, and reports
+         *     never merge.** A later report is accepted while earlier ones are open or decided,
+         *     unless it claims something another report already holds:
+         *
+         *     * A refund *holds* its claim in every state except `DECLINED` and `CANCELLED`, the
+         *       two in which no money moves.
+         *     * A refund waiting for a second approval (`PENDING_APPROVAL`, including the approval
+         *       request `issueRefund` answers `202` with) holds its claim too, until it is declined.
+         *     * **Items.** For each order line, the quantity across the refunds that hold a claim
+         *       on it may not exceed the quantity ordered. A second report on a line is accepted
+         *       while some of that line's quantity is still unclaimed: with 3 ordered and 1
+         *       claimed, a report on 2 more is accepted and a report on 3 more is refused.
+         *     * **Fees.** The delivery and service fees and their tax are refunded at most once:
+         *       by `FEES_ONLY`, or as part of a `FULL` refund when no other refund holds them.
+         *     * **`FULL` never clashes.** A `FULL` refund claims only the quantities and the fees
+         *       that no other refund holds. It refunds the captured amount minus every refund that
+         *       holds a claim, and is `409 REFUND_EXCEEDS_CAPTURED` when nothing is left.
+         *     * A claim another refund already holds is `409 REFUND_ALREADY_REQUESTED`, with
+         *       `details.order_line_nos` naming the lines and `details.fees` true when the fees
+         *       were the clash. Nothing is created. Only `PARTIAL_ITEMS` and `FEES_ONLY` can
+         *       clash; `GOODWILL` claims no line and no fees, only part of the cap.
+         *     * **The cap.** The refunds that hold a claim never add up to more than the captured
+         *       amount (`409 REFUND_EXCEEDS_CAPTURED`). Source: [refunds never exceed the captured
+         *       amount](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/01-platform.md#p-18--refunds-cancellations-and-compensation).
+         *     * **Two requests at once cannot both pass.** `createRefund`, `issueRefund` and the
+         *       approval transaction each first take `SELECT … FROM "order" WHERE id = $1 FOR
+         *       UPDATE`, and only then re-check the line quantities, the fees and the cap
+         *       together. Locking the order row, not the existing refund rows, is what stops a
+         *       second request inserting a new refund row at the same moment. An approval
+         *       re-checks all three, not only the cap. The fee rule is also made unrepresentable
+         *       by a partial unique index on the refund table ([P-18, Data](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/01-platform.md#p-18--refunds-cancellations-and-compensation)).
+         *     * Each report keeps its own reason code and therefore its own liability split, so a
+         *       missing item charged to the restaurant and a late delivery absorbed by the
+         *       platform can sit on the same order.
+         *     * The rate limit of 5 refund requests per order per day still applies
+         *       ([rate limiting](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/01-platform.md#p-38--rate-limiting)).
+         *
+         *     **Reporting before delivery.** "Get help" opens from the restaurant's acceptance
+         *     ([round-2 decisions, "Orders and delivery"](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#orders-and-delivery)).
+         *     The reasons that fit before delivery are `LATE_DELIVERY` and `WRONG_ADDRESS`;
+         *     wanting to cancel is `cancelOrder`, not a refund request.
          */
         post: operations["createRefund"];
         delete?: never;
@@ -2690,6 +2823,20 @@ export interface paths {
          *
          *     Turning the toggle off never shortens an offer already outstanding: that order keeps
          *     its full 180-second response window.
+         *
+         *     **Pausing until closing.** `pause_until_closing: true` pauses new orders until the
+         *     end of the trading period the restaurant is in now, worked out by the server from
+         *     the restaurant's own hours, today's override if there is one, and its time zone. A
+         *     late night that runs past midnight pauses until it ends the next morning, which is
+         *     why the client never computes it. It replaces "rest of today", as the owner decided
+         *     on 2026-10-01 ([round-2 decisions](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01), "Restaurant", "For how long" options).
+         *     The response's `pause_until` is the closing time it chose. Rules:
+         *
+         *     * `is_accepting_orders` must be true, as for any pause.
+         *     * Send `pause_until` or `pause_until_closing`, never both: both is
+         *       `422 VALIDATION_FAILED`.
+         *     * Outside trading hours there is nothing to pause: `409 RESTAURANT_CLOSED`.
+         *     * Later changes to the hours do not move a pause already set; pausing again does.
          */
         patch: operations["setRestaurantAcceptingOrders"];
         trace?: never;
@@ -3747,8 +3894,9 @@ export interface paths {
          *     countdown is derived from the server's `expires_at` and `server_time`, never from a
          *     local constant — a device whose clock is ten minutes fast still shows ~30 seconds.
          *
-         *     The pre-accept projection deliberately withholds the customer's unit number and
-         *     phone alias; only the drop-off street and neighbourhood are shown.
+         *     The pre-accept projection shows only an approximate drop-off area (neighbourhood,
+         *     city, and the centre and radius of the area), never the street or the address; the
+         *     full address arrives once the rider accepts (`DispatchOffer`).
          */
         get: operations["getCurrentOffer"];
         put?: never;
@@ -3979,6 +4127,63 @@ export interface paths {
          *     confirmed is deleted by the deadline runner after one hour.
          */
         post: operations["confirmUpload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/waitlist": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Join the pre-launch waitlist from the marketing site
+         * @description The marketing site's waitlist form posts here, so the site can be a static export
+         *     and the sign-ups land in the product database instead of a hosted one
+         *     ([#212](https://github.com/shaiknoorullah/hg-mono/issues/212); [every HalalGoes
+         *     system is self-hosted](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#settled--platform-decisions-owner-2026-10-01)).
+         *
+         *     **Public, and registered public on purpose:** a visitor joins before they have an
+         *     account. A route is public only if it is explicitly registered public ([deny by
+         *     default](https://github.com/shaiknoorullah/hg-mono/blob/main/AGENTS.md#3-non-negotiable-invariants)),
+         *     so this operation is added to the fixed public set in `contracts/README.md`.
+         *
+         *     **Rate-limited by client address:** rate class `WAITLIST`, 10 sign-ups per client
+         *     address per hour, burst 5 ([rate limiting](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/01-platform.md#p-38--rate-limiting)).
+         *     The address is the one Traefik forwards, trusted only from Traefik's network
+         *     ([middleware chain, client-address step](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/01-platform.md#p-06--deny-by-default-routing-and-the-middleware-chain)). Over
+         *     the limit is `429 RATE_LIMITED`, and nothing is stored. When Redis is down the
+         *     limit **fails closed**: `503 RATE_LIMITER_UNAVAILABLE`, and nothing is stored; the
+         *     form asks the visitor to try again. Failing open would let anyone store unlimited
+         *     sign-ups by varying the contact, because the idempotency key is a pair the caller
+         *     chooses, and [correctness may never depend on Redis](https://github.com/shaiknoorullah/hg-mono/blob/main/AGENTS.md#2-architecture-in-one-picture).
+         *
+         *     **The consent record.** Canada's anti-spam law (CASL) asks what the person agreed
+         *     to, not only that they agreed. The server keeps the exact `consent_text` the form
+         *     showed, the audience, the contact and its kind, the form it came from, the campaign
+         *     parameters, and `consented_at`, which the server sets to the time it receives the
+         *     request. `consent` must be `true`: an unticked box is a no.
+         *
+         *     **Idempotent on audience and contact.** Joining again with the same audience and
+         *     contact returns the same `202` and stores nothing new; the first consent is kept
+         *     and never overwritten. The answer is identical whether or not the contact was
+         *     already on the list, so the form cannot be used to find out who signed up. The same
+         *     person may join as a customer and as a restaurant: the pair is the key. That is why
+         *     it takes no `Idempotency-Key`: there is no account to scope a key to, and the
+         *     audience and contact already make a repeat harmless.
+         *
+         *     **Contact.** `EMAIL` is lower-cased before it is stored. `TEL` must be E.164.
+         *     The marketing site collects email only while text-message sender registration is
+         *     open ([#71](https://github.com/shaiknoorullah/hg-mono/issues/71)); `TEL` exists so
+         *     phone sign-ups need no contract change later.
+         */
+        post: operations["joinWaitlist"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4421,6 +4626,16 @@ export interface components {
             variant_ids?: string[];
         };
         /**
+         * @description The body of `replaceCart`. **Item identifiers, options and quantities only**: each
+         *     line is a `CartLineInput`, which has no price field, so no client-supplied price can
+         *     reach the cart ([the server prices every order](https://github.com/shaiknoorullah/hg-mono/blob/main/AGENTS.md#3-non-negotiable-invariants)).
+         *     To empty the cart, use `clearCart`; an empty `lines` is rejected.
+         */
+        CartReplaceInput: {
+            /** @description Every line of the new cart, from one restaurant. 100 bounds the request size; a cart rebuilt from an order never comes near it. */
+            lines: components["schemas"]["CartLineInput"][];
+        };
+        /**
          * Format: int64
          * @description A signed count of Canadian cents. **Every monetary value in this contract is this
          *     type.** There is no `number`-typed money field anywhere, no string-formatted money,
@@ -4663,18 +4878,41 @@ export interface components {
             restaurant: components["schemas"]["RestaurantCard"];
         };
         /**
-         * @description D-14. The **pre-accept** projection. It deliberately omits the customer's unit number
-         *     and phone alias; only the drop-off street and neighbourhood are shown. The countdown
-         *     is computed from `expires_at` minus `server_time`, never from a local constant.
+         * @description D-14. The **pre-accept** projection. Before accepting, the rider sees only an
+         *     approximate drop-off area: no street, house number, unit, buzzer, name or phone
+         *     alias. The full address arrives with the `Assignment` once the rider accepts. The
+         *     owner decided this on 2026-10-01 ([round-2 decisions, "Orders and delivery"](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#orders-and-delivery);
+         *     [#183](https://github.com/shaiknoorullah/hg-mono/issues/183)). `distance_m` and
+         *     `est_duration_s` are still measured to the exact address, so the rider can judge the
+         *     trip. The countdown is computed from `expires_at` minus `server_time`, never from a
+         *     local constant.
          */
         DispatchOffer: {
             /** Format: int32 */
             distance_m?: number;
+            /**
+             * @description The approximate drop-off area. `latitude` and `longitude` are the centre of the
+             *     area, never the customer's address: the server snaps the address to a grid of
+             *     about 500 m and sends the centre of that cell, so the map can show a shaded
+             *     circle and the direction of travel without pointing at a house.
+             */
             dropoff: {
-                /** @description Street and neighbourhood only. The unit number arrives on accept. */
+                /**
+                 * @description The neighbourhood and city, such as "Harbourfront, Toronto". Never a street,
+                 *     a house number, a unit or a full postal code.
+                 * @example Harbourfront, Toronto
+                 */
                 area: string;
                 latitude: components["schemas"]["Latitude"];
                 longitude: components["schemas"]["Longitude"];
+                /**
+                 * Format: int32
+                 * @description The radius of the approximate area around the point, in metres, for the
+                 *     shaded circle. The address lies inside it. When absent, the client draws
+                 *     no circle and shows the area name alone.
+                 * @example 400
+                 */
+                radius_m?: number;
             };
             earnings: components["schemas"]["OfferEarningsEstimate"];
             /** Format: int32 */
@@ -4825,6 +5063,10 @@ export interface components {
                  *     `VARIANT_UNAVAILABLE` → `{variant_id}`;
                  *     `ADDON_UNAVAILABLE` → `{addon_id}`;
                  *     `INVALID_ADDON` → `[{field, code, message}]`;
+                 *     `ITEM_UNAVAILABLE`, `VARIANT_UNAVAILABLE`, `ADDON_UNAVAILABLE`,
+                 *     `RESTAURANT_CLOSED`, `RESTAURANT_UNAVAILABLE` from `replaceCart` →
+                 *     `{lines: [{index, code}]}`;
+                 *     `REFUND_ALREADY_REQUESTED` → `{order_line_nos: [int], fees: bool}`;
                  *     `CART_HAS_UNAVAILABLE_ITEMS` → `{line_ids: [uuid]}`;
                  *     `INCOMPLETE_DOCUMENT_PACK` → `{missing: [doc_type]}`;
                  *     `MENU_LOCKED` → `{account_state}` (`SUSPENDED` or `BANNED`);
@@ -6481,6 +6723,17 @@ export interface components {
             restaurant_response_window_seconds: number;
             /** @description Ontario only at launch. Addresses elsewhere are rejected at quote time. */
             served_provinces: components["schemas"]["Province"][];
+            /**
+             * Format: email
+             * @description The support email address, for customers and partners alike. Never hardcoded in
+             *     a client. Unlike the phone line it does not depend on `support_enabled`: it is
+             *     the contact shown while phone support is off, and how a customer asks staff to
+             *     delete their account at launch ([round-2 decisions, "Launch scope and contract",
+             *     account deletion](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#launch-scope-and-contract);
+             *     [#181](https://github.com/shaiknoorullah/hg-mono/issues/181)). Null only when
+             *     none is configured, and then the client shows no email contact.
+             */
+            support_email?: string | null;
             support_enabled: boolean;
             support_hours?: string | null;
             /** @description Never hardcoded in a client. Absent when `support_enabled` is false. */
@@ -6815,9 +7068,17 @@ export interface components {
          *     (customer refunded, restaurant charged back, rider charged back, platform absorbs) —
          *     the table is what makes the ledger balance. The specs enumerate overlapping sets; this
          *     is their reconciled union (see `contracts/README.md` §"Spec contradictions", item 8).
+         *
+         *     `WRONG_ADDRESS`: the customer reports, before delivery, that the order is going to
+         *     the wrong address ([round-2 decisions, "Orders and delivery"](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#orders-and-delivery);
+         *     [#180](https://github.com/shaiknoorullah/hg-mono/issues/180)). Support redirects
+         *     the delivery when it can; any refund is per support's judgement, and the platform
+         *     absorbs it, because the restaurant cooked the order and the rider carried it to the
+         *     address on the order. If the rider delivered somewhere other than the order's
+         *     address, staff file `NEVER_DELIVERED` instead, which charges the rider.
          * @enum {string}
          */
-        RefundReasonCode: "RESTAURANT_REJECTED" | "ITEM_MISSING" | "MISSING_ITEMS" | "WRONG_ITEM" | "WRONG_ITEMS" | "FOOD_QUALITY" | "FOOD_SAFETY" | "NEVER_DELIVERED" | "ORDER_NEVER_ARRIVED" | "LATE_DELIVERY" | "DAMAGED_SPILLED" | "NO_RIDER_FOUND" | "CUSTOMER_CHANGED_MIND" | "RESTAURANT_CANCELLED" | "PLATFORM_INITIATED_CANCELLATION" | "PLATFORM_ERROR" | "DUPLICATE_CHARGE" | "CHARGED_INCORRECTLY" | "PRICING_ERROR" | "HALAL_CONCERN" | "HALAL_INTEGRITY" | "GOODWILL" | "DISPUTE_RESOLUTION" | "CHARGEBACK_PREEMPTIVE" | "OTHER";
+        RefundReasonCode: "RESTAURANT_REJECTED" | "ITEM_MISSING" | "MISSING_ITEMS" | "WRONG_ITEM" | "WRONG_ITEMS" | "FOOD_QUALITY" | "FOOD_SAFETY" | "NEVER_DELIVERED" | "ORDER_NEVER_ARRIVED" | "LATE_DELIVERY" | "WRONG_ADDRESS" | "DAMAGED_SPILLED" | "NO_RIDER_FOUND" | "CUSTOMER_CHANGED_MIND" | "RESTAURANT_CANCELLED" | "PLATFORM_INITIATED_CANCELLATION" | "PLATFORM_ERROR" | "DUPLICATE_CHARGE" | "CHARGED_INCORRECTLY" | "PRICING_ERROR" | "HALAL_CONCERN" | "HALAL_INTEGRITY" | "GOODWILL" | "DISPUTE_RESOLUTION" | "CHARGEBACK_PREEMPTIVE" | "OTHER";
         /**
          * @description Who asked for a refund. `CUSTOMER`: the order's own customer (`createRefund`), whose
          *     request waits for staff review. `STAFF`: a member of staff (`issueRefund`, or a cancel
@@ -7612,6 +7873,29 @@ export interface components {
         SetupIntent: {
             client_secret: string;
         };
+        /**
+         * @description `PASSED`: the last check passed. `FAILED`: the last check failed, and every admin
+         *     page shows the sticky banner. `NOT_CHECKED`: no replica has run the check yet, for
+         *     example in the first seconds of a new deployment; no banner.
+         * @enum {string}
+         */
+        SmsSenderCheckState: "PASSED" | "FAILED" | "NOT_CHECKED";
+        /** @description The result `getSmsSenderStatus` returns. Safe for every staff role: no credential, account id or internal address. */
+        SmsSenderStatus: {
+            /**
+             * Format: date-time
+             * @description When the latest check ran. Null only for `NOT_CHECKED`.
+             */
+            checked_at: string | null;
+            /**
+             * Format: date-time
+             * @description When the checks started failing, for "Failing since 7:42 pm". Null unless `state` is `FAILED`.
+             */
+            failing_since: string | null;
+            /** @description Plain language, safe to show on the banner, such as "Twilio refused our credentials." Null unless `state` is `FAILED`. */
+            message: string | null;
+            state: components["schemas"]["SmsSenderCheckState"];
+        };
         /** @enum {string} */
         StaffStatus: "INVITED" | "ACTIVE" | "SUSPENDED" | "DEACTIVATED";
         StaffUser: {
@@ -7767,6 +8051,52 @@ export interface components {
          * @enum {string}
          */
         VehicleType: "CAR" | "SCOOTER" | "MOTORCYCLE" | "BICYCLE" | "ON_FOOT";
+        /**
+         * @description Which waitlist the visitor joins. One person may join more than one.
+         * @enum {string}
+         */
+        WaitlistAudience: "CUSTOMER" | "RESTAURANT" | "RIDER";
+        /**
+         * @description `EMAIL` while text-message sender registration is open ([#71](https://github.com/shaiknoorullah/hg-mono/issues/71)); `TEL` is E.164.
+         * @enum {string}
+         */
+        WaitlistContactKind: "EMAIL" | "TEL";
+        /**
+         * @description The body of `joinWaitlist`. Every field the consent record needs comes from the form;
+         *     `consented_at` does not, because the server sets it to the time it receives the
+         *     request.
+         */
+        WaitlistSignupInput: {
+            audience: components["schemas"]["WaitlistAudience"];
+            /**
+             * @description The ticked consent box. Anything but `true` is `422 VALIDATION_FAILED`: an unticked box is a no.
+             * @constant
+             */
+            consent: true;
+            /** @description The exact consent sentence the form showed, kept word for word as the record of what the person agreed to. */
+            consent_text: string;
+            /**
+             * @description An email address for `EMAIL`, lower-cased by the server; an E.164 number for `TEL`. A malformed one is `422 VALIDATION_FAILED`.
+             * @example amina@example.com
+             */
+            contact: string;
+            contact_kind: components["schemas"]["WaitlistContactKind"];
+            /**
+             * @description Which form on which page, such as `hero`, `final`, `footer` or `sticky`.
+             * @example hero
+             */
+            context: string;
+            /** @description Campaign parameters from the visit, such as `utm_source`. Empty or absent for a direct visit. */
+            utm?: {
+                [key: string]: string;
+            };
+        };
+        /** @description The answer to `joinWaitlist`: the same for a new sign-up and a repeat, so it never reveals who is already on the list. */
+        WaitlistSignupReceipt: {
+            audience: components["schemas"]["WaitlistAudience"];
+            /** @constant */
+            received: true;
+        };
     };
     responses: {
         /**
@@ -7878,6 +8208,7 @@ export type SchemaCart = components['schemas']['Cart'];
 export type SchemaCartLine = components['schemas']['CartLine'];
 export type SchemaCartLineAvailability = components['schemas']['CartLineAvailability'];
 export type SchemaCartLineInput = components['schemas']['CartLineInput'];
+export type SchemaCartReplaceInput = components['schemas']['CartReplaceInput'];
 export type SchemaCents = components['schemas']['Cents'];
 export type SchemaCertificationPanel = components['schemas']['CertificationPanel'];
 export type SchemaChargeback = components['schemas']['Chargeback'];
@@ -8147,6 +8478,8 @@ export type SchemaSelectedVariant = components['schemas']['SelectedVariant'];
 export type SchemaSessionGrant = components['schemas']['SessionGrant'];
 export type SchemaSessionSummary = components['schemas']['SessionSummary'];
 export type SchemaSetupIntent = components['schemas']['SetupIntent'];
+export type SchemaSmsSenderCheckState = components['schemas']['SmsSenderCheckState'];
+export type SchemaSmsSenderStatus = components['schemas']['SmsSenderStatus'];
 export type SchemaStaffStatus = components['schemas']['StaffStatus'];
 export type SchemaStaffUser = components['schemas']['StaffUser'];
 export type SchemaStaffUserInput = components['schemas']['StaffUserInput'];
@@ -8167,6 +8500,10 @@ export type SchemaVariant = components['schemas']['Variant'];
 export type SchemaVariantGroup = components['schemas']['VariantGroup'];
 export type SchemaVariantPricingMode = components['schemas']['VariantPricingMode'];
 export type SchemaVehicleType = components['schemas']['VehicleType'];
+export type SchemaWaitlistAudience = components['schemas']['WaitlistAudience'];
+export type SchemaWaitlistContactKind = components['schemas']['WaitlistContactKind'];
+export type SchemaWaitlistSignupInput = components['schemas']['WaitlistSignupInput'];
+export type SchemaWaitlistSignupReceipt = components['schemas']['WaitlistSignupReceipt'];
 export type ResponseError = components['responses']['Error'];
 export type ResponseRateLimited = components['responses']['RateLimited'];
 export type ResponseServerBusy = components['responses']['ServerBusy'];
@@ -9425,7 +9762,8 @@ export interface operations {
             };
             /**
              * @description Above the caller's cap: an approval request was created and the case escalated.
-             *     No refund exists yet.
+             *     No money has moved yet. The request already holds its claim on the lines and
+             *     fees it names, until it is declined.
              */
             202: {
                 headers: {
@@ -9458,8 +9796,12 @@ export interface operations {
                 };
             };
             /**
-             * @description `REFUND_EXCEEDS_CAPTURED`, `DAILY_CAP_EXCEEDED`, `SELF_APPROVAL_FORBIDDEN`,
-             *     `PAYMENT_NOT_REFUNDABLE`, `IDEMPOTENCY_KEY_REUSE`.
+             * @description `REFUND_EXCEEDS_CAPTURED` when the refunds that hold a claim would exceed the
+             *     captured amount, `REFUND_ALREADY_REQUESTED` when the request claims a line
+             *     quantity or the fees that another refund or pending approval request on the
+             *     order already holds (with `details.order_line_nos` and `details.fees`),
+             *     `DAILY_CAP_EXCEEDED`, `SELF_APPROVAL_FORBIDDEN`, `PAYMENT_NOT_REFUNDABLE`,
+             *     `IDEMPOTENCY_KEY_REUSE`.
              */
             409: {
                 headers: {
@@ -10273,6 +10615,29 @@ export interface operations {
             default: components["responses"]["Error"];
         };
     };
+    getSmsSenderStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The latest check. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["SmsSenderStatus"];
+                    };
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
     resendEmailVerification: {
         parameters: {
             query?: never;
@@ -10826,6 +11191,57 @@ export interface operations {
                     };
                 };
             };
+            default: components["responses"]["Error"];
+        };
+    };
+    replaceCart: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated UUID or ULID, 16–128 characters. Scope is
+                 *     `(account_id, method, path_template, key)`. Two concurrent requests with the same key
+                 *     produce exactly one business effect; a replay returns the original status and body
+                 *     byte-identically with `Idempotency-Replayed: true`; the same key with a different body
+                 *     is `409 IDEMPOTENCY_KEY_REUSE`, never a silent replay of the wrong result. The record
+                 *     is written in the same transaction as the business effect and expires after 24 h.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKeyRequired"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CartReplaceInput"];
+            };
+        };
+        responses: {
+            /** @description The new cart, recomputed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["Cart"];
+                    };
+                };
+            };
+            /**
+             * @description `ITEM_UNAVAILABLE`, `VARIANT_UNAVAILABLE`, `ADDON_UNAVAILABLE`,
+             *     `RESTAURANT_CLOSED` or `RESTAURANT_UNAVAILABLE`, with `details.lines` naming
+             *     every failing line. The cart is unchanged.
+             */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            422: components["responses"]["Error"];
             default: components["responses"]["Error"];
         };
     };
@@ -12375,8 +12791,10 @@ export interface operations {
                 };
             };
             /**
-             * @description `REFUND_EXCEEDS_CAPTURED`, `REFUND_WINDOW_CLOSED`, `REFUND_ALREADY_REQUESTED`,
-             *     `PAYMENT_NOT_REFUNDABLE`.
+             * @description `REFUND_EXCEEDS_CAPTURED`, `REFUND_WINDOW_CLOSED`, `PAYMENT_NOT_REFUNDABLE`,
+             *     or `REFUND_ALREADY_REQUESTED` when the report claims an item or the fees that
+             *     another refund on the order already holds (not merely because the order has
+             *     another refund).
              */
             409: {
                 headers: {
@@ -12455,6 +12873,12 @@ export interface operations {
                      * @description Optional short pause; ignored when `is_accepting_orders` is false.
                      */
                     pause_until?: string | null;
+                    /**
+                     * @description Pause until the end of the current trading period, worked out by the
+                     *     server. Not with `pause_until`.
+                     * @default false
+                     */
+                    pause_until_closing?: boolean;
                 };
             };
         };
@@ -12468,6 +12892,15 @@ export interface operations {
                     "application/json": {
                         data: components["schemas"]["RestaurantAvailability"];
                     };
+                };
+            };
+            /** @description `RESTAURANT_CLOSED` when `pause_until_closing` is sent outside trading hours. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
             422: components["responses"]["Error"];
@@ -14413,6 +14846,39 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
+            default: components["responses"]["Error"];
+        };
+    };
+    joinWaitlist: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WaitlistSignupInput"];
+            };
+        };
+        responses: {
+            /**
+             * @description Received. The same answer for a new sign-up and for a repeat; it never says
+             *     whether the contact was already on the list.
+             */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["WaitlistSignupReceipt"];
+                    };
+                };
+            };
+            422: components["responses"]["Error"];
+            429: components["responses"]["RateLimited"];
+            503: components["responses"]["Error"];
             default: components["responses"]["Error"];
         };
     };

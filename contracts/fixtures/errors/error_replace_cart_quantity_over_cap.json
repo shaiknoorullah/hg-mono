@@ -1,0 +1,27 @@
+{
+  "scenario": "error_replace_cart_quantity_over_cap",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`422` · `VALIDATION_FAILED`. `replaceCart` merges identical lines first, as `addCartLine` does. Two lines that merge to more than 20 are refused, and the cart is unchanged.",
+  "operations": [
+    "replaceCart"
+  ],
+  "status": 422,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "VALIDATION_FAILED",
+      "message": "You can add at most 20 of one item.",
+      "request_id": "QP65FJYP2C0CCCS4C04H3JYJ86",
+      "details": [
+        {
+          "field": "lines[0].quantity",
+          "code": "maximum",
+          "message": "Lines 0 and 3 are the same item and add up to 24; the most is 20."
+        }
+      ]
+    }
+  }
+}

@@ -278,8 +278,15 @@ export interface DispatchOfferData {
   /** Countdown = `expires_at - server_time`, corrected for device clock skew. */
   server_time: string;
   pickup: { restaurant_name: string; address_short: string; lat: number; lng: number };
-  /** Never the unit number or phone alias — those exist only after acceptance. */
-  dropoff: { area: string; lat: number; lng: number };
+  /**
+   * An approximate area only: `area` is the neighbourhood and city, and `lat`/`lng` are the
+   * centre of an area of about 500 m with `radius_m` its radius, never the address. The
+   * street, unit, buzzer, name and phone alias arrive only after acceptance (round-2
+   * decisions, "Orders and delivery":
+   * https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#orders-and-delivery).
+   * `radius_m` may be absent; then draw no circle.
+   */
+  dropoff: { area: string; lat: number; lng: number; radius_m?: number };
   distance_m: number;
   est_duration_s: number;
   earnings_cents: number;

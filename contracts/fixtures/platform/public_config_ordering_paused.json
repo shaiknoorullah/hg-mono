@@ -26,6 +26,7 @@
     "support_enabled": true,
     "support_phone_e164": "+18005550199",
     "support_hours": "Support Hours",
+    "support_email": "owner@karachikitchen.ca",
     "default_map_center": {
       "latitude": 43.6199,
       "longitude": -79.6033

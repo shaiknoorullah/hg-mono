@@ -201,7 +201,7 @@ CREATE INDEX otp_challenge_open ON otp_challenge(phone_e164, purpose) WHERE cons
   | `rl:otp:verify:{challenge_id}` | counter | 900 s | soft mirror of `attempts` |
   | `sms:spend:{yyyymmdd}` | counter | 172800 s | global daily SMS circuit breaker |
 
-  **Disposability**: flushing Redis resets the *request* counters (an attacker regains at most one hour of send budget — bounded by SMS spend alarms) but **cannot** reset `otp_challenge.attempts`, `consumed_at` or `expires_at`, so no code becomes re-guessable or re-usable. If Redis is unreachable, OTP request/verify **fail closed** (503 `rate_limiter_unavailable`) — these are the two endpoints where fail-open is unacceptable.
+  **Disposability**: flushing Redis resets the *request* counters (an attacker regains at most one hour of send budget — bounded by SMS spend alarms) but **cannot** reset `otp_challenge.attempts`, `consumed_at` or `expires_at`, so no code becomes re-guessable or re-usable. If Redis is unreachable, OTP request/verify **fail closed** (503 `rate_limiter_unavailable`) — these are the two sign-in endpoints where fail-open is unacceptable (the public waitlist form fails closed too: [P-38](#p-38--rate-limiting)).
 
 - **Rules & invariants**:
   - **I-02.1** A challenge is consumable exactly once: `consumed_at` is set by a conditional `UPDATE`, never by read-then-write.
@@ -1499,6 +1499,7 @@ CREATE TABLE reconciliation_exception (
   | `HALAL_CONCERN` (filed by staff with evidence) | item + its tax | item net, only when substantiated | — | all of it otherwise, as goodwill |
   | `NEVER_DELIVERED` (no POD) | full | — | rider earnings reversed, minus a proven-effort payment | remainder |
   | `LATE_DELIVERY` | fees only | — | — | full |
+  | `WRONG_ADDRESS` (reported before delivery: [wrong address](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01), [#180](https://github.com/shaiknoorullah/hg-mono/issues/180)) | per support judgement; support redirects the delivery when it can | — | — (if the rider delivered somewhere other than the order's address, staff file `NEVER_DELIVERED`) | all of it |
   | `NO_RIDER_FOUND` | full | — | — | full (restaurant still paid) |
   | `CUSTOMER_CHANGED_MIND` (post-accept) | full or none per policy | — | — | full when refunded |
   | `PLATFORM_ERROR` | full | — | — | full |
@@ -1530,8 +1531,13 @@ CREATE TABLE refund (
   state text NOT NULL,                 -- 'REQUESTED'|'APPROVED'|'SUBMITTED'|'SUCCEEDED'|'FAILED'
   requested_by uuid NOT NULL, approved_by uuid,
   requested_at timestamptz NOT NULL DEFAULT now(), settled_at timestamptz,
-  deadline_at timestamptz, deadline_action text, attempts int NOT NULL DEFAULT 0, last_error text
+  deadline_at timestamptz, deadline_action text, attempts int NOT NULL DEFAULT 0, last_error text,
+  claims_fees boolean NOT NULL DEFAULT false  -- true for FEES_ONLY, and for a FULL refund that took the fees
 );
+-- The fees are refunded at most once per order: two live refunds that both claim them
+-- cannot exist. A refund waiting for approval is a live row, so it holds the fees too.
+CREATE UNIQUE INDEX refund_fees_once ON refund (order_id)
+  WHERE claims_fees AND state NOT IN ('DECLINED', 'CANCELLED');
 CREATE TABLE refund_line (
   refund_id uuid NOT NULL REFERENCES refund(id) ON DELETE CASCADE,
   order_line_no int NOT NULL, quantity int NOT NULL, amount_cents bigint NOT NULL,
@@ -1552,6 +1558,7 @@ CREATE TABLE chargeback (
   - **I-18.4** A failed refund never allows the order to reach a terminal money state; `refund.state='FAILED'` is an alerting condition with a deadline.
   - **I-18.5** Voids and refunds are distinct code paths; a pre-capture cancellation never calls the refund API.
   - **I-18.6** Refunding a tip is only permitted when the rider did not complete delivery.
+  - **I-18.7** Several refunds on one order never claim the same thing twice ([#184](https://github.com/shaiknoorullah/hg-mono/issues/184)): per order line, the quantities claimed by refunds in any state but `DECLINED` and `CANCELLED` (a refund waiting for approval included) never exceed the quantity ordered, and the fees are claimed at most once (the `refund_fees_once` index above). A `FULL` refund claims only what no other refund holds. `createRefund`, `issueRefund` and the approval transaction each first take `SELECT … FROM "order" WHERE id = $1 FOR UPDATE`, then re-check line quantities, fees and the cap (I-18.1) together; locking the order row is what stops a concurrent insert of a new refund row. The full rule is on `createRefund` in [the API contract](../../contracts/openapi.yaml).
 - **Acceptance criteria**:
   1. Given the worked example order, When a `PARTIAL_ITEMS` refund for one $12.00 dish is issued, Then the customer is refunded $12.00 + its proportional HST, the restaurant's payable drops by the dish net and its commission is reversed, the rider keeps their earnings and tip, and `SUM(ledger_entry) per order = 0`.
   2. Given Stripe returns a permanent error on refund, Then `refund.state='FAILED'`, on-call is paged, the order does not reach `COMPLETED`, and the customer sees "refund in progress" not "refunded".
@@ -2128,7 +2135,7 @@ CREATE INDEX device_token ON device(expo_push_token) WHERE revoked_at IS NULL;
   - **I-26.1** No provider credentials or message bodies containing OTPs are logged.
   - **I-26.2** A hard bounce suppresses the address and raises the account's `email_verified_at` to NULL for restaurant/admin accounts (they must re-verify).
   - **I-26.3** Both providers are behind interfaces with a `NoopSender` used in tests; no test ever hits a live provider.
-  - **I-26.4** Boot probe verifies SPF/DKIM/DMARC records and the SMS sender identity; failure alerts but does not block boot (except in production, where it blocks).
+  - **I-26.4** Boot probe verifies SPF/DKIM/DMARC records and the SMS sender identity. A failed email DNS check alerts but does not block boot, except in production, where it blocks. A failed SMS sender check never blocks boot, in any environment: it alerts, is recorded in Postgres, and puts a sticky banner on every admin page until a later check passes, for every staff role (`getSmsSenderStatus`; [a failed text-message sender check](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)). Blocking boot would take the whole API down, and the banner with it, while staff sign-in, which does not use text messages, still works.
 - **Acceptance criteria**:
   1. Given the templates, When the golden-file test runs, Then every template renders in both locales with no unresolved variables.
   2. Given a hard bounce webhook, Then the address is suppressed and subsequent marketing sends are `SUPPRESSED`.
@@ -2746,26 +2753,28 @@ CREATE UNIQUE INDEX idempotency_unique ON idempotency_record(account_id, method,
 
   | Class | Limit | Burst | Key |
   |---|---|---|---|
-  | `AUTH` (login, OTP request/verify, reset) | 10 / 15 min | 3 | ip + identifier |
-  | `READ` | 300 / min | 60 | account or ip |
+  | `AUTH` (login, OTP request/verify, reset) | 10 / 15 min | 3 | IP address + identifier |
+  | `READ` | 300 / min | 60 | account or IP address |
   | `WRITE` | 60 / min | 15 | account |
   | `MONEY` (quote, order, refund, payout) | 10 / min | 3 | account |
   | `UPLOAD` | 20 / hour | 5 | account |
   | `REALTIME` (ticket issue) | 30 / min | 10 | account |
-  | `SEARCH` | 60 / min | 20 | account or ip |
+  | `SEARCH` | 60 / min | 20 | account or IP address |
   | `GEO_SUGGEST` (address suggestions as the user types, `suggestAddresses`; forwarded to Mapbox. Sized so one search typed a key at a time stays under it) | 60 / min | 20 | account |
   | `GEO` (place details and reverse geocoding, `getPlaceAddress` and `reverseGeocode`; forwarded to Mapbox, each operation counted separately) | 30 / min | 10 | account |
-  | `WEBHOOK` | 1000 / min | 200 | provider ip |
+  | `WAITLIST` (the marketing site's waitlist form, `joinWaitlist`, public: [#212](https://github.com/shaiknoorullah/hg-mono/issues/212)) | 10 / hour | 5 | IP address |
+  | `WEBHOOK` | 1000 / min | 200 | provider IP address |
   | `POSITION` (rider position ingest) | 120 / min | 30 | account |
 
   Additional domain limits: one active order per customer at launch, where an order under review after a problem report does not count (`409 ACTIVE_ORDER_EXISTS`; [one active order](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28), [narrowed](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)); 3 orders per customer per 5 minutes; 1 restaurant accept/reject per order (enforced by the state machine, not the limiter); 5 refund requests per order per day. The one-active-order rule is enforced in the order-creation transaction, not by the limiter: the transaction first takes a per-customer lock, so two checkouts racing for the same customer queue, and the second counts only after the first has committed. The active order that `getActiveOrder` returns is the one that refuses a second checkout, so a lone order under review is not it; the order history's active section still lists every unfinished order.
 
   Responses carry `RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset` and, on 429, `Retry-After`.
 
-  **Redis-down policy** is explicit per class, and this is where the disposability rule needs care: rate limiting is *protection*, not *correctness*, so losing counters is acceptable — but not for authentication.
+  **Redis-down policy** is explicit per class, and this is where the disposability rule needs care: rate limiting is *protection*, not *correctness*, so losing counters is acceptable — but not for authentication, nor for the public waitlist form.
   - `AUTH`, sign-in codes (OTP request and verify): **fail closed** (503 `rate_limiter_unavailable`), as [phone sign-in](#p-02--phone-otp-authentication-customers-riders) requires.
   - `AUTH`, login, restaurant sign-up, password reset and password change: **fall back to a count in the replica's memory**, with the same key, limit and window, instead of letting the request through or refusing it. Each API replica counts on its own, so a caller gets at most the limit times the number of replicas running (twice, with two), and a replica that restarts during the outage starts with no counts. This is the degraded mode, not a second source of truth: a count is dropped when its window ends, the next answer from Redis is the count again, and the Postgres-backed lockout of [email and password sign-in](#p-03--email--password-authentication-restaurants-admins-support) applies throughout. The local count uses the Redis key (canonical email, IPv6 per /64, one `unknown` bucket), the same fixed window (so, as with Redis, up to twice the limit across a window boundary), and one lock around each check and increment; its window starts at the first request Redis could not answer. The memory is bounded: at most 100,000 counts per limit, keys stored as fixed-size hashes (about 11 MB per limit at the cap). When a limit is full, a new caller takes the place of the lowest count among 16 sampled, as Redis samples keys for eviction (an ended window counts as zero; on a tie, the oldest goes). A flood of made-up emails or addresses creates counts of one, so those are what it evicts: a caller who is really guessing keeps a count it cannot shed, losing a count of one gives back at most one attempt, and every new caller still gets a count of its own, so the flood neither resets a budget nor locks anyone out. While it is in use, each limit logs one error per window (`rate limiter unavailable; counting in this replica's memory`), not one per request, so an alert can fire without flooding the logs.
   - `AUTH`, the emailed-link limits (sign-up verification, resend, password reset): **fail closed**, so no email is sent while Redis is down; restaurant sign-up therefore answers 503 `rate_limiter_unavailable` after its own limits are counted, and the resend and reset requests give their usual generic answer.
+  - `WAITLIST`: **fail closed** (503 `RATE_LIMITER_UNAVAILABLE`, nothing stored; the form asks the visitor to try again). It is the one public operation that creates rows without any sign-in, and its idempotency key is the audience and contact pair the caller chooses, so failing open would let anyone store unlimited sign-ups while Redis is down ([`joinWaitlist`](../../contracts/openapi.yaml), [#212](https://github.com/shaiknoorullah/hg-mono/issues/212)).
   - `MONEY`: fail open, because idempotency (P-37) and the state machine already prevent duplicate effects; an alert fires.
   - All other classes: fail open with an alert.
 

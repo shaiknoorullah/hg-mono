@@ -1,0 +1,18 @@
+{
+  "scenario": "waitlist_joined",
+  "domain": "platform",
+  "schema": "WaitlistSignupReceipt",
+  "describes": "`joinWaitlist` → `202`. A new sign-up: the consent record is stored with the time the server received it.",
+  "operations": [
+    "joinWaitlist"
+  ],
+  "status": 202,
+  "tags": [
+    "platform",
+    "public"
+  ],
+  "payload": {
+    "audience": "CUSTOMER",
+    "received": true
+  }
+}

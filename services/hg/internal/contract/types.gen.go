@@ -2171,25 +2171,25 @@ func (e NextRoute) Valid() bool {
 
 // Defines values for NotificationChannel.
 const (
-	EMAIL    NotificationChannel = "EMAIL"
-	INAPP    NotificationChannel = "INAPP"
-	PUSH     NotificationChannel = "PUSH"
-	REALTIME NotificationChannel = "REALTIME"
-	SMS      NotificationChannel = "SMS"
+	NotificationChannelEMAIL    NotificationChannel = "EMAIL"
+	NotificationChannelINAPP    NotificationChannel = "INAPP"
+	NotificationChannelPUSH     NotificationChannel = "PUSH"
+	NotificationChannelREALTIME NotificationChannel = "REALTIME"
+	NotificationChannelSMS      NotificationChannel = "SMS"
 )
 
 // Valid indicates whether the value is a known member of the NotificationChannel enum.
 func (e NotificationChannel) Valid() bool {
 	switch e {
-	case EMAIL:
+	case NotificationChannelEMAIL:
 		return true
-	case INAPP:
+	case NotificationChannelINAPP:
 		return true
-	case PUSH:
+	case NotificationChannelPUSH:
 		return true
-	case REALTIME:
+	case NotificationChannelREALTIME:
 		return true
-	case SMS:
+	case NotificationChannelSMS:
 		return true
 	default:
 		return false
@@ -3103,6 +3103,7 @@ const (
 	RefundReasonCodePRICINGERROR                  RefundReasonCode = "PRICING_ERROR"
 	RefundReasonCodeRESTAURANTCANCELLED           RefundReasonCode = "RESTAURANT_CANCELLED"
 	RefundReasonCodeRESTAURANTREJECTED            RefundReasonCode = "RESTAURANT_REJECTED"
+	RefundReasonCodeWRONGADDRESS                  RefundReasonCode = "WRONG_ADDRESS"
 	RefundReasonCodeWRONGITEM                     RefundReasonCode = "WRONG_ITEM"
 	RefundReasonCodeWRONGITEMS                    RefundReasonCode = "WRONG_ITEMS"
 )
@@ -3155,6 +3156,8 @@ func (e RefundReasonCode) Valid() bool {
 	case RefundReasonCodeRESTAURANTCANCELLED:
 		return true
 	case RefundReasonCodeRESTAURANTREJECTED:
+		return true
+	case RefundReasonCodeWRONGADDRESS:
 		return true
 	case RefundReasonCodeWRONGITEM:
 		return true
@@ -4065,6 +4068,27 @@ func (e RouteSource) Valid() bool {
 	}
 }
 
+// Defines values for SmsSenderCheckState.
+const (
+	SmsSenderCheckStateFAILED     SmsSenderCheckState = "FAILED"
+	SmsSenderCheckStateNOTCHECKED SmsSenderCheckState = "NOT_CHECKED"
+	SmsSenderCheckStatePASSED     SmsSenderCheckState = "PASSED"
+)
+
+// Valid indicates whether the value is a known member of the SmsSenderCheckState enum.
+func (e SmsSenderCheckState) Valid() bool {
+	switch e {
+	case SmsSenderCheckStateFAILED:
+		return true
+	case SmsSenderCheckStateNOTCHECKED:
+		return true
+	case SmsSenderCheckStatePASSED:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for StaffStatus.
 const (
 	StaffStatusACTIVE      StaffStatus = "ACTIVE"
@@ -4281,6 +4305,75 @@ func (e VehicleType) Valid() bool {
 	case ONFOOT:
 		return true
 	case SCOOTER:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for WaitlistAudience.
+const (
+	WaitlistAudienceCUSTOMER   WaitlistAudience = "CUSTOMER"
+	WaitlistAudienceRESTAURANT WaitlistAudience = "RESTAURANT"
+	WaitlistAudienceRIDER      WaitlistAudience = "RIDER"
+)
+
+// Valid indicates whether the value is a known member of the WaitlistAudience enum.
+func (e WaitlistAudience) Valid() bool {
+	switch e {
+	case WaitlistAudienceCUSTOMER:
+		return true
+	case WaitlistAudienceRESTAURANT:
+		return true
+	case WaitlistAudienceRIDER:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for WaitlistContactKind.
+const (
+	WaitlistContactKindEMAIL WaitlistContactKind = "EMAIL"
+	WaitlistContactKindTEL   WaitlistContactKind = "TEL"
+)
+
+// Valid indicates whether the value is a known member of the WaitlistContactKind enum.
+func (e WaitlistContactKind) Valid() bool {
+	switch e {
+	case WaitlistContactKindEMAIL:
+		return true
+	case WaitlistContactKindTEL:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for WaitlistSignupInputConsent.
+const (
+	WaitlistSignupInputConsentTrue WaitlistSignupInputConsent = true
+)
+
+// Valid indicates whether the value is a known member of the WaitlistSignupInputConsent enum.
+func (e WaitlistSignupInputConsent) Valid() bool {
+	switch e {
+	case WaitlistSignupInputConsentTrue:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for WaitlistSignupReceiptReceived.
+const (
+	WaitlistSignupReceiptReceivedTrue WaitlistSignupReceiptReceived = true
+)
+
+// Valid indicates whether the value is a known member of the WaitlistSignupReceiptReceived enum.
+func (e WaitlistSignupReceiptReceived) Valid() bool {
+	switch e {
+	case WaitlistSignupReceiptReceivedTrue:
 		return true
 	default:
 		return false
@@ -4520,6 +4613,14 @@ type AdminRefund struct {
 	// (customer refunded, restaurant charged back, rider charged back, platform absorbs) —
 	// the table is what makes the ledger balance. The specs enumerate overlapping sets; this
 	// is their reconciled union (see `contracts/README.md` §"Spec contradictions", item 8).
+	//
+	// `WRONG_ADDRESS`: the customer reports, before delivery, that the order is going to
+	// the wrong address ([round-2 decisions, "Orders and delivery"](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#orders-and-delivery);
+	// [#180](https://github.com/shaiknoorullah/hg-mono/issues/180)). Support redirects
+	// the delivery when it can; any refund is per support's judgement, and the platform
+	// absorbs it, because the restaurant cooked the order and the rider carried it to the
+	// address on the order. If the rider delivered somewhere other than the order's
+	// address, staff file `NEVER_DELIVERED` instead, which charges the rider.
 	ReasonCode RefundReasonCode `json:"reason_code"`
 
 	// RequestedAt RFC3339 with milliseconds, UTC, `Z`-suffixed. Example: `2026-08-10T14:03:11.412Z`.
@@ -4570,6 +4671,14 @@ type AdminRefundInput struct {
 	// (customer refunded, restaurant charged back, rider charged back, platform absorbs) —
 	// the table is what makes the ledger balance. The specs enumerate overlapping sets; this
 	// is their reconciled union (see `contracts/README.md` §"Spec contradictions", item 8).
+	//
+	// `WRONG_ADDRESS`: the customer reports, before delivery, that the order is going to
+	// the wrong address ([round-2 decisions, "Orders and delivery"](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#orders-and-delivery);
+	// [#180](https://github.com/shaiknoorullah/hg-mono/issues/180)). Support redirects
+	// the delivery when it can; any refund is per support's judgement, and the platform
+	// absorbs it, because the restaurant cooked the order and the rider carried it to the
+	// address on the order. If the rider delivered somewhere other than the order's
+	// address, staff file `NEVER_DELIVERED` instead, which charges the rider.
 	ReasonCode RefundReasonCode `json:"reason_code"`
 	ReasonText string           `json:"reason_text"`
 	Scope      RefundScope      `json:"scope"`
@@ -4840,6 +4949,15 @@ type CartLineInput struct {
 	// VariantIds One chosen variant per variant group of the item: exactly one for each `required`
 	// group, at most one for any other. Order does not matter; line identity sorts them.
 	VariantIds *[]openapi_types.UUID `json:"variant_ids,omitempty"`
+}
+
+// CartReplaceInput The body of `replaceCart`. **Item identifiers, options and quantities only**: each
+// line is a `CartLineInput`, which has no price field, so no client-supplied price can
+// reach the cart ([the server prices every order](https://github.com/shaiknoorullah/hg-mono/blob/main/AGENTS.md#3-non-negotiable-invariants)).
+// To empty the cart, use `clearCart`; an empty `lines` is rejected.
+type CartReplaceInput struct {
+	// Lines Every line of the new cart, from one restaurant. 100 bounds the request size; a cart rebuilt from an order never comes near it.
+	Lines []CartLineInput `json:"lines"`
 }
 
 // Cents A signed count of Canadian cents. **Every monetary value in this contract is this
@@ -5140,18 +5258,40 @@ type DishResult struct {
 	Restaurant RestaurantCard `json:"restaurant"`
 }
 
-// DispatchOffer D-14. The **pre-accept** projection. It deliberately omits the customer's unit number
-// and phone alias; only the drop-off street and neighbourhood are shown. The countdown
-// is computed from `expires_at` minus `server_time`, never from a local constant.
+// DispatchOffer D-14. The **pre-accept** projection. Before accepting, the rider sees only an
+// approximate drop-off area: no street, house number, unit, buzzer, name or phone
+// alias. The full address arrives with the `Assignment` once the rider accepts. The
+// owner decided this on 2026-10-01 ([round-2 decisions, "Orders and delivery"](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#orders-and-delivery);
+// [#183](https://github.com/shaiknoorullah/hg-mono/issues/183)). `distance_m` and
+// `est_duration_s` are still measured to the exact address, so the rider can judge the
+// trip. The countdown is computed from `expires_at` minus `server_time`, never from a
+// local constant.
 type DispatchOffer struct {
 	DistanceM *int32 `json:"distance_m,omitempty"`
-	Dropoff   struct {
-		// Area Street and neighbourhood only. The unit number arrives on accept.
+
+	// Dropoff The approximate drop-off area. `latitude` and `longitude` are the centre of the
+	// area, never the customer's address: the server snaps the address to a grid of
+	// about 500 m and sends the centre of that cell, so the map can show a shaded
+	// circle and the direction of travel without pointing at a house.
+	Dropoff struct {
+		// Area The neighbourhood and city, such as "Harbourfront, Toronto". Never a street,
+		// a house number, a unit or a full postal code.
+		//
+		//
+		// Examples: Harbourfront, Toronto
 		Area string `json:"area"`
 
 		// Latitude WGS84 latitude. Never a money field — the only `number` types in this contract are geographic or rating values.
 		Latitude  Latitude  `json:"latitude"`
 		Longitude Longitude `json:"longitude"`
+
+		// RadiusM The radius of the approximate area around the point, in metres, for the
+		// shaded circle. The address lies inside it. When absent, the client draws
+		// no circle and shows the area name alone.
+		//
+		//
+		// Examples: 400
+		RadiusM *int32 `json:"radius_m,omitempty"`
 	} `json:"dropoff"`
 
 	// Earnings Broken into components so the rider can see what they are being offered. Under the
@@ -5417,6 +5557,10 @@ type ErrorEnvelope struct {
 		// `VARIANT_UNAVAILABLE` → `{variant_id}`;
 		// `ADDON_UNAVAILABLE` → `{addon_id}`;
 		// `INVALID_ADDON` → `[{field, code, message}]`;
+		// `ITEM_UNAVAILABLE`, `VARIANT_UNAVAILABLE`, `ADDON_UNAVAILABLE`,
+		// `RESTAURANT_CLOSED`, `RESTAURANT_UNAVAILABLE` from `replaceCart` →
+		// `{lines: [{index, code}]}`;
+		// `REFUND_ALREADY_REQUESTED` → `{order_line_nos: [int], fees: bool}`;
 		// `CART_HAS_UNAVAILABLE_ITEMS` → `{line_ids: [uuid]}`;
 		// `INCOMPLETE_DOCUMENT_PACK` → `{missing: [doc_type]}`;
 		// `MENU_LOCKED` → `{account_state}` (`SUSPENDED` or `BANNED`);
@@ -5457,6 +5601,10 @@ type ErrorEnvelopeErrorDetails1 = []FieldError
 // `VARIANT_UNAVAILABLE` → `{variant_id}`;
 // `ADDON_UNAVAILABLE` → `{addon_id}`;
 // `INVALID_ADDON` → `[{field, code, message}]`;
+// `ITEM_UNAVAILABLE`, `VARIANT_UNAVAILABLE`, `ADDON_UNAVAILABLE`,
+// `RESTAURANT_CLOSED`, `RESTAURANT_UNAVAILABLE` from `replaceCart` →
+// `{lines: [{index, code}]}`;
+// `REFUND_ALREADY_REQUESTED` → `{order_line_nos: [int], fees: bool}`;
 // `CART_HAS_UNAVAILABLE_ITEMS` → `{line_ids: [uuid]}`;
 // `INCOMPLETE_DOCUMENT_PACK` → `{missing: [doc_type]}`;
 // `MENU_LOCKED` → `{account_state}` (`SUSPENDED` or `BANNED`);
@@ -7731,8 +7879,17 @@ type PublicConfig struct {
 
 	// ServedProvinces Ontario only at launch. Addresses elsewhere are rejected at quote time.
 	ServedProvinces []Province `json:"served_provinces"`
-	SupportEnabled  bool       `json:"support_enabled"`
-	SupportHours    *string    `json:"support_hours,omitempty"`
+
+	// SupportEmail The support email address, for customers and partners alike. Never hardcoded in
+	// a client. Unlike the phone line it does not depend on `support_enabled`: it is
+	// the contact shown while phone support is off, and how a customer asks staff to
+	// delete their account at launch ([round-2 decisions, "Launch scope and contract",
+	// account deletion](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#launch-scope-and-contract);
+	// [#181](https://github.com/shaiknoorullah/hg-mono/issues/181)). Null only when
+	// none is configured, and then the client shows no email contact.
+	SupportEmail   *openapi_types.Email `json:"support_email,omitempty"`
+	SupportEnabled bool                 `json:"support_enabled"`
+	SupportHours   *string              `json:"support_hours,omitempty"`
 
 	// SupportPhoneE164 Never hardcoded in a client. Absent when `support_enabled` is false.
 	SupportPhoneE164 *string `json:"support_phone_e164,omitempty"`
@@ -8150,6 +8307,14 @@ type Refund struct {
 	// (customer refunded, restaurant charged back, rider charged back, platform absorbs) —
 	// the table is what makes the ledger balance. The specs enumerate overlapping sets; this
 	// is their reconciled union (see `contracts/README.md` §"Spec contradictions", item 8).
+	//
+	// `WRONG_ADDRESS`: the customer reports, before delivery, that the order is going to
+	// the wrong address ([round-2 decisions, "Orders and delivery"](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#orders-and-delivery);
+	// [#180](https://github.com/shaiknoorullah/hg-mono/issues/180)). Support redirects
+	// the delivery when it can; any refund is per support's judgement, and the platform
+	// absorbs it, because the restaurant cooked the order and the rider carried it to the
+	// address on the order. If the rider delivered somewhere other than the order's
+	// address, staff file `NEVER_DELIVERED` instead, which charges the rider.
 	ReasonCode RefundReasonCode `json:"reason_code"`
 
 	// RequestedAt RFC3339 with milliseconds, UTC, `Z`-suffixed. Example: `2026-08-10T14:03:11.412Z`.
@@ -8241,6 +8406,14 @@ type RefundInput struct {
 	// (customer refunded, restaurant charged back, rider charged back, platform absorbs) —
 	// the table is what makes the ledger balance. The specs enumerate overlapping sets; this
 	// is their reconciled union (see `contracts/README.md` §"Spec contradictions", item 8).
+	//
+	// `WRONG_ADDRESS`: the customer reports, before delivery, that the order is going to
+	// the wrong address ([round-2 decisions, "Orders and delivery"](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#orders-and-delivery);
+	// [#180](https://github.com/shaiknoorullah/hg-mono/issues/180)). Support redirects
+	// the delivery when it can; any refund is per support's judgement, and the platform
+	// absorbs it, because the restaurant cooked the order and the rider carried it to the
+	// address on the order. If the rider delivered somewhere other than the order's
+	// address, staff file `NEVER_DELIVERED` instead, which charges the rider.
 	ReasonCode RefundReasonCode `json:"reason_code"`
 }
 
@@ -8281,6 +8454,14 @@ type RefundLiabilitySplit struct {
 // (customer refunded, restaurant charged back, rider charged back, platform absorbs) —
 // the table is what makes the ledger balance. The specs enumerate overlapping sets; this
 // is their reconciled union (see `contracts/README.md` §"Spec contradictions", item 8).
+//
+// `WRONG_ADDRESS`: the customer reports, before delivery, that the order is going to
+// the wrong address ([round-2 decisions, "Orders and delivery"](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#orders-and-delivery);
+// [#180](https://github.com/shaiknoorullah/hg-mono/issues/180)). Support redirects
+// the delivery when it can; any refund is per support's judgement, and the platform
+// absorbs it, because the restaurant cooked the order and the rider carried it to the
+// address on the order. If the rider delivered somewhere other than the order's
+// address, staff file `NEVER_DELIVERED` instead, which charges the rider.
 type RefundReasonCode string
 
 // RefundRequesterKind Who asked for a refund. `CUSTOMER`: the order's own customer (`createRefund`), whose
@@ -9363,6 +9544,28 @@ type SetupIntent struct {
 	ClientSecret string `json:"client_secret"`
 }
 
+// SmsSenderCheckState `PASSED`: the last check passed. `FAILED`: the last check failed, and every admin
+// page shows the sticky banner. `NOT_CHECKED`: no replica has run the check yet, for
+// example in the first seconds of a new deployment; no banner.
+type SmsSenderCheckState string
+
+// SmsSenderStatus The result `getSmsSenderStatus` returns. Safe for every staff role: no credential, account id or internal address.
+type SmsSenderStatus struct {
+	// CheckedAt When the latest check ran. Null only for `NOT_CHECKED`.
+	CheckedAt *time.Time `json:"checked_at"`
+
+	// FailingSince When the checks started failing, for "Failing since 7:42 pm". Null unless `state` is `FAILED`.
+	FailingSince *time.Time `json:"failing_since"`
+
+	// Message Plain language, safe to show on the banner, such as "Twilio refused our credentials." Null unless `state` is `FAILED`.
+	Message *string `json:"message"`
+
+	// State `PASSED`: the last check passed. `FAILED`: the last check failed, and every admin
+	// page shows the sticky banner. `NOT_CHECKED`: no replica has run the check yet, for
+	// example in the first seconds of a new deployment; no banner.
+	State SmsSenderCheckState `json:"state"`
+}
+
 // StaffStatus defines model for StaffStatus.
 type StaffStatus string
 
@@ -9526,6 +9729,55 @@ type VariantPricingMode string
 // VehicleType Determines the required document set and the routing profile
 // (`driving` / `cycling` / `walking`).
 type VehicleType string
+
+// WaitlistAudience Which waitlist the visitor joins. One person may join more than one.
+type WaitlistAudience string
+
+// WaitlistContactKind `EMAIL` while text-message sender registration is open ([#71](https://github.com/shaiknoorullah/hg-mono/issues/71)); `TEL` is E.164.
+type WaitlistContactKind string
+
+// WaitlistSignupInput The body of `joinWaitlist`. Every field the consent record needs comes from the form;
+// `consented_at` does not, because the server sets it to the time it receives the
+// request.
+type WaitlistSignupInput struct {
+	// Audience Which waitlist the visitor joins. One person may join more than one.
+	Audience WaitlistAudience `json:"audience"`
+
+	// Consent The ticked consent box. Anything but `true` is `422 VALIDATION_FAILED`: an unticked box is a no.
+	Consent WaitlistSignupInputConsent `json:"consent"`
+
+	// ConsentText The exact consent sentence the form showed, kept word for word as the record of what the person agreed to.
+	ConsentText string `json:"consent_text"`
+
+	// Contact An email address for `EMAIL`, lower-cased by the server; an E.164 number for `TEL`. A malformed one is `422 VALIDATION_FAILED`.
+	//
+	// Examples: amina@example.com
+	Contact string `json:"contact"`
+
+	// ContactKind `EMAIL` while text-message sender registration is open ([#71](https://github.com/shaiknoorullah/hg-mono/issues/71)); `TEL` is E.164.
+	ContactKind WaitlistContactKind `json:"contact_kind"`
+
+	// Context Which form on which page, such as `hero`, `final`, `footer` or `sticky`.
+	//
+	// Examples: hero
+	Context string `json:"context"`
+
+	// Utm Campaign parameters from the visit, such as `utm_source`. Empty or absent for a direct visit.
+	Utm *map[string]string `json:"utm,omitempty"`
+}
+
+// WaitlistSignupInputConsent The ticked consent box. Anything but `true` is `422 VALIDATION_FAILED`: an unticked box is a no.
+type WaitlistSignupInputConsent bool
+
+// WaitlistSignupReceipt The answer to `joinWaitlist`: the same for a new sign-up and a repeat, so it never reveals who is already on the list.
+type WaitlistSignupReceipt struct {
+	// Audience Which waitlist the visitor joins. One person may join more than one.
+	Audience WaitlistAudience              `json:"audience"`
+	Received WaitlistSignupReceiptReceived `json:"received"`
+}
+
+// WaitlistSignupReceiptReceived defines model for WaitlistSignupReceipt.Received.
+type WaitlistSignupReceiptReceived bool
 
 // AssignmentIdPath defines model for AssignmentIdPath.
 type AssignmentIdPath = openapi_types.UUID
@@ -10067,6 +10319,17 @@ type VerifyTotpEnrolmentJSONBody struct {
 	TotpCode string `json:"totp_code"`
 }
 
+// ReplaceCartParams defines parameters for ReplaceCart.
+type ReplaceCartParams struct {
+	// IdempotencyKey Client-generated UUID or ULID, 16–128 characters. Scope is
+	// `(account_id, method, path_template, key)`. Two concurrent requests with the same key
+	// produce exactly one business effect; a replay returns the original status and body
+	// byte-identically with `Idempotency-Replayed: true`; the same key with a different body
+	// is `409 IDEMPOTENCY_KEY_REUSE`, never a silent replay of the wrong result. The record
+	// is written in the same transaction as the business effect and expires after 24 h.
+	IdempotencyKey IdempotencyKeyRequired `json:"Idempotency-Key"`
+}
+
 // AddCartLineParams defines parameters for AddCartLine.
 type AddCartLineParams struct {
 	// Replace Atomically clear the cart before adding (the "Start a new cart" action).
@@ -10289,6 +10552,10 @@ type SetRestaurantAcceptingOrdersJSONBody struct {
 
 	// PauseUntil Optional short pause; ignored when `is_accepting_orders` is false.
 	PauseUntil *time.Time `json:"pause_until,omitempty"`
+
+	// PauseUntilClosing Pause until the end of the current trading period, worked out by the
+	// server. Not with `pause_until`.
+	PauseUntilClosing *bool `json:"pause_until_closing,omitempty"`
 }
 
 // AttachRestaurantDocumentParams defines parameters for AttachRestaurantDocument.
@@ -10680,6 +10947,9 @@ type DisableTotpJSONRequestBody DisableTotpJSONBody
 // VerifyTotpEnrolmentJSONRequestBody defines body for VerifyTotpEnrolment for application/json ContentType.
 type VerifyTotpEnrolmentJSONRequestBody VerifyTotpEnrolmentJSONBody
 
+// ReplaceCartJSONRequestBody defines body for ReplaceCart for application/json ContentType.
+type ReplaceCartJSONRequestBody = CartReplaceInput
+
 // AddCartLineJSONRequestBody defines body for AddCartLine for application/json ContentType.
 type AddCartLineJSONRequestBody = CartLineInput
 
@@ -10784,6 +11054,9 @@ type ReportRiderPositionsJSONRequestBody = RiderPositionBatchInput
 
 // CreateUploadJSONRequestBody defines body for CreateUpload for application/json ContentType.
 type CreateUploadJSONRequestBody = UploadInput
+
+// JoinWaitlistJSONRequestBody defines body for JoinWaitlist for application/json ContentType.
+type JoinWaitlistJSONRequestBody = WaitlistSignupInput
 
 // ReceiveStripeWebhookJSONRequestBody defines body for ReceiveStripeWebhook for application/json ContentType.
 type ReceiveStripeWebhookJSONRequestBody ReceiveStripeWebhookJSONBody

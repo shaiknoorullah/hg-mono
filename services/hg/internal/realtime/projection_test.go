@@ -452,7 +452,7 @@ func TestDispatchOfferCarriesOnlyTheDropoffArea(t *testing.T) {
 	fields := map[string][]string{
 		"": {"distance_m", "dropoff", "earnings_cents", "est_duration_s", "expires_at", "items_count",
 			"offer_id", "order_id", "pickup", "server_time", "tip_cents_estimate"},
-		"dropoff": {"area", "lat", "lng"},
+		"dropoff": {"area", "lat", "lng", "radius_m"},
 		"pickup":  {"address_short", "lat", "lng", "restaurant_name"},
 	}
 	keys := func(m map[string]any) []string {
@@ -485,6 +485,9 @@ func TestDispatchOfferCarriesOnlyTheDropoffArea(t *testing.T) {
 		}
 		if dropoff["lat"] != 43.65 || dropoff["lng"] != -79.38 || dropoff["area"] != "Toronto" {
 			t.Errorf("%s: drop-off = %v, want the area rounded to about a kilometre (43.65, -79.38), never the address's own point", v, dropoff)
+		}
+		if dropoff["radius_m"] != float64(offerAreaRadiusM) {
+			t.Errorf("%s: drop-off radius_m = %v, want %d, the circle sure to contain the address", v, dropoff["radius_m"], offerAreaRadiusM)
 		}
 		if pickup["lat"] != 43.6487213 || pickup["lng"] != -79.3786402 {
 			t.Errorf("%s: pickup = %v, want the restaurant's exact point", v, pickup)

@@ -1,0 +1,35 @@
+{
+  "scenario": "refund_wrong_address_before_delivery",
+  "domain": "refunds",
+  "schema": "Refund",
+  "describes": "Reported from \"Get help\" before delivery: the order is going to the wrong address. `WRONG_ADDRESS` waits for support, who redirect the delivery when they can. Any refund is per support's judgement and absorbed by the platform: the restaurant cooked the order and the rider carried it to the address on the order.",
+  "operations": [
+    "createRefund",
+    "getRefund"
+  ],
+  "status": 200,
+  "tags": [
+    "money",
+    "refund-state-matrix"
+  ],
+  "payload": {
+    "id": "7e69fda4-d889-4405-a16b-c211185cc6b3",
+    "order_id": "ffba57b1-c3ee-4b95-ade1-13da6d3ba92c",
+    "kind": "FULL",
+    "scope": "FULL",
+    "reason_code": "WRONG_ADDRESS",
+    "amount_cents": 6706,
+    "tax_cents": 691,
+    "currency": "CAD",
+    "state": "REQUESTED",
+    "liability_split": {
+      "platform_cents": 6706,
+      "restaurant_cents": 0,
+      "rider_cents": 0
+    },
+    "note": "I picked my old address by mistake; I'm at 22 Wellesley Street East now.",
+    "requested_at": "2026-08-10T18:38:11.412Z",
+    "settled_at": null,
+    "failure_message": null
+  }
+}

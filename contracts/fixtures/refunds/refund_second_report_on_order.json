@@ -1,0 +1,35 @@
+{
+  "scenario": "refund_second_report_on_order",
+  "domain": "refunds",
+  "schema": "Refund",
+  "describes": "A second problem report on an order that already has one: the missing item was refunded, and now the customer reports the delivery was late. It is accepted as its own refund with its own reason, so the platform absorbs the fees while the restaurant was charged for the missing item. It does not claim the item again.",
+  "operations": [
+    "createRefund",
+    "getRefund"
+  ],
+  "status": 200,
+  "tags": [
+    "money",
+    "refund-state-matrix"
+  ],
+  "payload": {
+    "id": "5556e200-80c9-4278-a2c3-e3660a6ed7cb",
+    "order_id": "d1435528-5730-4b9a-a635-98014dc0201a",
+    "kind": "FEES_ONLY",
+    "scope": "PARTIAL_AMOUNT",
+    "reason_code": "LATE_DELIVERY",
+    "amount_cents": 902,
+    "tax_cents": 104,
+    "currency": "CAD",
+    "state": "REQUESTED",
+    "liability_split": {
+      "platform_cents": 902,
+      "restaurant_cents": 0,
+      "rider_cents": 0
+    },
+    "note": "Arrived 50 minutes after the latest promised time.",
+    "requested_at": "2026-08-10T18:22:11.412Z",
+    "settled_at": null,
+    "failure_message": null
+  }
+}

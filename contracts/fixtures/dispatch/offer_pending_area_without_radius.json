@@ -1,0 +1,45 @@
+{
+  "scenario": "offer_pending_area_without_radius",
+  "domain": "dispatch",
+  "schema": "DispatchOffer",
+  "describes": "A live offer whose approximate drop-off area has no `radius_m`. The map shows the area name and the direction from the area's centre, and draws no circle. It never shows a street or a pin on a house: the full address comes only on accept.",
+  "operations": [
+    "getCurrentOffer"
+  ],
+  "status": 200,
+  "tags": [
+    "rider",
+    "offer-state-matrix",
+    "privacy"
+  ],
+  "payload": {
+    "offer_id": "acaf1919-15ba-471a-ad9f-c1b6ed463ec7",
+    "order_id": "c622bd1b-2de3-40be-aa8f-9996517b6aed",
+    "state": "PENDING",
+    "wave": 2,
+    "expires_at": "2026-08-10T18:42:39.412Z",
+    "server_time": "2026-08-10T18:42:11.412Z",
+    "pickup": {
+      "restaurant_name": "Karachi Kitchen",
+      "address_short": "1245 Danforth Avenue, Toronto",
+      "latitude": 43.6817,
+      "longitude": -79.3403
+    },
+    "dropoff": {
+      "area": "Riverdale, Toronto",
+      "latitude": 43.6675,
+      "longitude": -79.35
+    },
+    "distance_m": 5240,
+    "est_duration_s": 780,
+    "earnings": {
+      "base_cents": 449,
+      "distance_cents": 0,
+      "surge_cents": 0,
+      "tip_so_far_cents": 700,
+      "estimated_total_cents": 1149,
+      "currency": "CAD"
+    },
+    "items_count": 3
+  }
+}

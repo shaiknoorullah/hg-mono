@@ -1,0 +1,18 @@
+{
+  "scenario": "waitlist_joined_as_restaurant",
+  "domain": "platform",
+  "schema": "WaitlistSignupReceipt",
+  "describes": "`joinWaitlist` → `202`. Someone already on the customer list joins as a restaurant too. Audience and contact together are the key, so this is a new sign-up.",
+  "operations": [
+    "joinWaitlist"
+  ],
+  "status": 202,
+  "tags": [
+    "platform",
+    "public"
+  ],
+  "payload": {
+    "audience": "RESTAURANT",
+    "received": true
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "scenario": "error_pause_with_both_times",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`422` · `VALIDATION_FAILED`. `pause_until` and `pause_until_closing` together. The pause is unchanged.",
+  "operations": [
+    "setRestaurantAcceptingOrders"
+  ],
+  "status": 422,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "VALIDATION_FAILED",
+      "message": "Choose a time or 'until closing', not both.",
+      "request_id": "ZF2JS2WAKWAZCSE1CG8SQXBB60",
+      "details": [
+        {
+          "field": "pause_until_closing",
+          "code": "conflict",
+          "message": "Send pause_until or pause_until_closing, not both."
+        }
+      ]
+    }
+  }
+}

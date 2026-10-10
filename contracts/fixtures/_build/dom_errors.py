@@ -710,6 +710,171 @@ GEO_ERRORS = [
 ]
 
 
+# Error states for the round-2 contract changes (docs/decisions/README.md, "Settled —
+# redesign decisions, round 2"): replacing the cart in one call
+# (https://github.com/shaiknoorullah/hg-mono/issues/179), several problem reports on one order
+# (https://github.com/shaiknoorullah/hg-mono/issues/184), pausing until closing, and the public waitlist
+# (https://github.com/shaiknoorullah/hg-mono/issues/212).
+ROUND2_ERRORS = [
+    (
+        "replace_cart_items_unavailable",
+        409,
+        "ITEM_UNAVAILABLE",
+        "Some items can't be put back in your cart.",
+        {
+            "lines": [
+                {"index": 1, "code": "ITEM_UNAVAILABLE"},
+                {"index": 2, "code": "ADDON_UNAVAILABLE"},
+            ]
+        },
+        "`replaceCart` is all or nothing. Two of the lines from the old order can't be added "
+        "today: the code is the first failure's, and `details.lines` names every failing "
+        "line by its position in the request. The cart is unchanged; the app can offer to "
+        "put back the rest by calling again without lines 1 and 2.",
+        ["replaceCart"],
+    ),
+    (
+        "replace_cart_restaurant_closed",
+        409,
+        "RESTAURANT_CLOSED",
+        "The restaurant is closed right now, so nothing was put back in your cart.",
+        {
+            "lines": [
+                {"index": 0, "code": "RESTAURANT_CLOSED"},
+                {"index": 1, "code": "RESTAURANT_CLOSED"},
+            ]
+        },
+        "`replaceCart` while the restaurant is closed: every line fails, and the cart is "
+        "unchanged.",
+        ["replaceCart"],
+    ),
+    (
+        "replace_cart_two_restaurants",
+        422,
+        "VALIDATION_FAILED",
+        "Every item must come from the same restaurant.",
+        [
+            {
+                "field": "lines[2].menu_item_id",
+                "code": "different_restaurant",
+                "message": "This item is from a different restaurant than lines[0].",
+            }
+        ],
+        "`replaceCart` with lines from two restaurants. A cart holds one restaurant, so the "
+        "request is refused and the cart is unchanged.",
+        ["replaceCart"],
+    ),
+    (
+        "replace_cart_quantity_over_cap",
+        422,
+        "VALIDATION_FAILED",
+        "You can add at most 20 of one item.",
+        [
+            {
+                "field": "lines[0].quantity",
+                "code": "maximum",
+                "message": "Lines 0 and 3 are the same item and add up to 24; the most is 20.",
+            }
+        ],
+        "`replaceCart` merges identical lines first, as `addCartLine` does. Two lines that "
+        "merge to more than 20 are refused, and the cart is unchanged.",
+        ["replaceCart"],
+    ),
+    (
+        "refund_already_requested_items",
+        409,
+        "REFUND_ALREADY_REQUESTED",
+        "You've already reported a problem with this item.",
+        {"order_line_nos": [1], "fees": False},
+        "A second report on the same order is fine; claiming more of a line than was ordered "
+        "is not. All of order line 1's quantity is already held by another refund on this "
+        "order, so nothing is created. A report on a line with quantity still unclaimed, or "
+        "about the delivery fees, is accepted.",
+        ["createRefund", "issueRefund"],
+    ),
+    (
+        "refund_already_requested_fees",
+        409,
+        "REFUND_ALREADY_REQUESTED",
+        "The delivery fees on this order have already been refunded.",
+        {"order_line_nos": [], "fees": True},
+        "The delivery and service fees are refunded at most once: by `FEES_ONLY`, or as part "
+        "of a `FULL` refund when no other refund holds them. A second `FEES_ONLY` refund on "
+        "the order is refused; nothing is created. (A `FULL` refund never clashes: it takes "
+        "only what no other refund holds.)",
+        ["createRefund", "issueRefund"],
+    ),
+    (
+        "refund_exceeds_captured",
+        409,
+        "REFUND_EXCEEDS_CAPTURED",
+        "This would refund more than was charged for the order.",
+        None,
+        "The refunds that hold a claim on an order never add up to more than the captured "
+        "amount. Each request and each approval first locks the order row (`SELECT … FROM "
+        "\"order\" WHERE id = $1 FOR UPDATE`) and re-checks line quantities, fees and the "
+        "cap together, so two at once cannot pass it together. A `FULL` refund with nothing "
+        "left is refused the same way.",
+        ["createRefund", "issueRefund"],
+    ),
+    (
+        "pause_until_closing_outside_hours",
+        409,
+        "RESTAURANT_CLOSED",
+        "You're outside your opening hours, so there is nothing to pause.",
+        None,
+        "`pause_until_closing: true` outside trading hours. There is no current trading "
+        "period to pause until the end of; nothing changes.",
+        ["setRestaurantAcceptingOrders"],
+    ),
+    (
+        "pause_with_both_times",
+        422,
+        "VALIDATION_FAILED",
+        "Choose a time or 'until closing', not both.",
+        [
+            {
+                "field": "pause_until_closing",
+                "code": "conflict",
+                "message": "Send pause_until or pause_until_closing, not both.",
+            }
+        ],
+        "`pause_until` and `pause_until_closing` together. The pause is unchanged.",
+        ["setRestaurantAcceptingOrders"],
+    ),
+    (
+        "waitlist_invalid_contact",
+        422,
+        "VALIDATION_FAILED",
+        "That email address doesn't look right.",
+        [{"field": "contact", "code": "format", "message": "Enter an email address like name@example.com."}],
+        "A malformed contact on `joinWaitlist`. Nothing is stored; the form keeps what the "
+        "visitor typed.",
+        ["joinWaitlist"],
+    ),
+    (
+        "waitlist_consent_missing",
+        422,
+        "VALIDATION_FAILED",
+        "Please tick the box so we're allowed to contact you.",
+        [{"field": "consent", "code": "const", "message": "Consent must be given; an unticked box is a no."}],
+        "Canada's anti-spam law (CASL) needs express consent as an affirmative act, so "
+        "`consent` must be `true`. Nothing is stored.",
+        ["joinWaitlist"],
+    ),
+    (
+        "waitlist_rate_limited",
+        429,
+        "RATE_LIMITED",
+        "Too many sign-ups from your connection. Try again later.",
+        {"retry_after_seconds": 1800},
+        "More than 10 sign-ups from one client address in an hour (rate class `WAITLIST`, "
+        "burst 5). Nothing is stored.",
+        ["joinWaitlist"],
+    ),
+]
+
+
 def build(reg, synth) -> None:
     _errors(reg)
     _operation_errors(reg)
@@ -740,7 +905,13 @@ def _operation_errors(reg) -> None:
 
 
 def _errors(reg) -> None:
-    entries = [(*entry, []) for entry in ERRORS] + LAUNCH_ERRORS + HANDOVER_ERRORS + GEO_ERRORS
+    entries = (
+        [(*entry, []) for entry in ERRORS]
+        + LAUNCH_ERRORS
+        + HANDOVER_ERRORS
+        + GEO_ERRORS
+        + ROUND2_ERRORS
+    )
     for suffix, status, code, message, details, note, operations in entries:
         envelope = {
             "error": {
@@ -845,7 +1016,7 @@ def _realtime(reg) -> None:
             "order_id": order_id, "offer_id": uuid_for("offer:script"), "expires_at": ts(44),
             "server_time": ts(14),
             "pickup": {"restaurant_name": "Karachi Kitchen", "address_short": "1245 Danforth Avenue, Toronto", "lat": 43.6817, "lng": -79.3403},
-            "dropoff": {"area": "Harbourfront, Toronto", "lat": 43.6412, "lng": -79.3810},
+            "dropoff": {"area": "Harbourfront, Toronto", "lat": 43.6405, "lng": -79.3815, "radius_m": 400},
             "distance_m": 5240, "est_duration_s": 780, "earnings_cents": 1149,
             "tip_cents_estimate": 700, "items_count": 3,
         }),
