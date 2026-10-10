@@ -13,7 +13,7 @@ reality:
   - network: gsm
   - theme: dark
   - font-scale: 2.0
-flows: [ "tools/e2e/native/rider/redesign/5c-dropoff-offline.yaml" ]
+flows: [ "tools/e2e/native/rider/redesign/lab/5c-dropoff-offline.yaml" ]
 explore: >
   The flow switches airplane mode itself (setAirplaneMode) at the door and again at Mark as
   delivered. Check the API log afterwards: no submitProofOfDelivery or DELIVERED while the phone

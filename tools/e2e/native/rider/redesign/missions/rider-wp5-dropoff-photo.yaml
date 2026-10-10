@@ -19,7 +19,7 @@ reality:
   - network: edge
   - theme: dark
   - font-scale: 2.0
-flows: [ "tools/e2e/native/rider/redesign/5-dropoff-photo.yaml" ]
+flows: [ "tools/e2e/native/rider/redesign/lab/5-dropoff-photo.yaml" ]
 explore: >
   Set the emulator's back camera to VirtualScene before the run (AVD settings), so the in-app
   camera returns a picture. Set PICKUP_CODE as for rider-wp4-pickup. After the flow, with a fresh

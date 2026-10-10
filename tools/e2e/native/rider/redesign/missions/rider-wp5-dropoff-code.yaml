@@ -15,7 +15,7 @@ reality:
   - network: umts
   - theme: light
   - font-scale: 1.3
-flows: [ "tools/e2e/native/rider/redesign/5b-dropoff-code.yaml" ]
+flows: [ "tools/e2e/native/rider/redesign/lab/5b-dropoff-code.yaml" ]
 explore: >
   Set PICKUP_CODE (rider-wp4-pickup) and DELIVERY_CODE for the flow: sign in to the customer API
   as Amina and read `delivery_code` from her active order (OrderCustomerView / OrderTracking,
