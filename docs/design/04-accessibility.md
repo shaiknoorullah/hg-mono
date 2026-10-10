@@ -3,7 +3,7 @@ covers:
   - packages/ui-web/src/certification/**
   - packages/ui-native/src/certification/**
   - packages/ui-web/src/styles/**
-reviewed: 2026-10-09
+reviewed: 2026-10-10
 ---
 
 # HalalGoes — Accessibility Standard
@@ -103,7 +103,9 @@ These strings are **fixed, reviewed, and not templatable by callers** (C-12 R7 f
 | `UNVERIFIED` | *(customer: nothing)* | *(customer: nothing)* · operational: **"Halal certification not verified."** |
 | `null` / absent / unknown | *(nothing)* | *(nothing)* + `reportClientError('HALAL_DISPLAY_STATE_MISSING')` |
 
-On native, the redesign surface's `HalalCertificationPanel` (`@hg/ui-native/ds`) applies the same rule to the whole panel: a missing or unknown `display_state` renders nothing and reports `CERTIFICATION_PANEL_STATE_MISSING`, and `UNVERIFIED` renders nothing. The same client-error reporter also carries two non-halal codes from that surface: `ICON_NAME_UNKNOWN` and `MONEY_NOT_INTEGER_CENTS`.
+On native, the redesign surface's `HalalCertificationPanel` (`@hg/ui-native/ds`) applies the same rule to the whole panel: a missing or unknown `display_state` renders nothing and reports `CERTIFICATION_PANEL_STATE_MISSING`, and `UNVERIFIED` renders nothing.
+
+**The approved expiring look (redesign surface, from N4).** The owner approved a distinct `EXPIRING_SOON` seal on 1 Oct 2026 (published in Claude Design on 4 Oct), and the native `@hg/ui-native/ds` `HalalBadge` draws it. When `expiresOn` parses, the visible label is "Halal certified · expires 14 Oct" (a short date in UTC, the owner-approved exception to written-out dates) and the accessible label is "Halal certified. Expires 14 October 2026." (on the detail surface: "Halal certified by {body}. Expires {date}."). When it does not parse, both stay "Halal certified": no date is invented and the `{date}` placeholder is never shown. On the redesign surface a missing and an unknown state both report `HALAL_DISPLAY_STATE_MISSING`, with the received value in the report. The rows above, and the byte-identical rule below, still describe the package-root `HalalBadge` that flag-off screens render until the cut-over. The same client-error reporter also carries two non-halal codes from that surface: `ICON_NAME_UNKNOWN` and `MONEY_NOT_INTEGER_CENTS`.
 
 C-12 acceptance criterion 2 asserts the exact string "Halal certified" is present as an accessible label on all six card surfaces (feed, search, favourites, order history, receipt, detail header). That assertion is a snapshot test and it is the reason the label is not parameterised.
 
@@ -117,7 +119,7 @@ C-12 acceptance criterion 2 asserts the exact string "Halal certified" is presen
 
 Read the row for `EXPIRED` in greyscale: the shield is hollow and the word says "expired". Read it with no shapes: the word says "expired". Read it with no text: the shield is hollow against a slate plate, distinct from the filled ringed plate. Three channels, any two sufficient.
 
-`EXPIRING_SOON` is *deliberately* identical to `CERTIFIED` on all three channels, because it *is* certified today. Its signal lives only in the panel's renewal note, which is itself text-first.
+`EXPIRING_SOON` is *deliberately* identical to `CERTIFIED` on all three channels in the package-root badge, because it *is* certified today. Its signal lives only in the panel's renewal note, which is itself text-first. On the native redesign surface (`@hg/ui-native/ds`, N4) the three channels are: colour, the brass-ochre `halal.expiring` tint with its border and no brass ring (never the seal green, never red); shape, the `solid-clock` shield; text, "Halal certified · expires {d Mon}".
 
 ### 3.3 The detail-page announcement
 
@@ -276,7 +278,7 @@ We ship **LTR `en-CA` only** at V1 (customer spec §0.1: no i18n layer, all copy
 | Snapshot × {light, dark} × {LTR, RTL} × {1.0×, 2.0×} | jest snapshot | build |
 | **`HalalBadge` accessible label matches the fixed string, all four states, all six card surfaces** | snapshot (C-12 AC2) | build |
 | **`HalalBadge` renders nothing + reports an error when `halal_display_state` is absent** | component test (C-12 AC5) | build |
-| **`CERTIFIED` and `EXPIRING_SOON` card renders are byte-identical** | snapshot | build |
+| **`CERTIFIED` and `EXPIRING_SOON` card renders are byte-identical** (package root; the native redesign surface draws the approved expiring look instead, pinned by `packages/ui-native/src/lib/ui/__tests__/halal.test.tsx`) | snapshot | build |
 | **Greyscale + glyph-stripped renders of the four halal states remain distinguishable** (A-0) | visual regression | build |
 
 **Manual, per release:**
