@@ -1,12 +1,18 @@
 ---
 covers:
   - apps/restaurant/src/**
-reviewed: 2026-10-05
+reviewed: 2026-10-09
 ---
 
 # Restaurant app — live updates and rider map
 
 **Status:** design approved 2026-09-28 · **Kind:** product feature (`apps/restaurant`)
+> **2026-10-09:** the redesigned new-order strip (behind `VITE_HG_REDESIGN`,
+> `apps/restaurant/src/redesign/strip/`) follows the same rules: it listens on
+> `restaurant:{restaurant_id}` for offered, expired, withdrawn, accepted and rejected offers,
+> treats each event as a signal to re-read the order over REST, and polls the pending list every
+> 10 seconds whenever the socket is not open.
+
 **Companion spec:** [`2026-09-28-devworld-harness-design.md`](2026-09-28-devworld-harness-design.md) — the dev/QA harness used for this feature's end-to-end acceptance.
 
 ## 1. Problem
