@@ -341,10 +341,15 @@ reject "a variant part its variants do not add up to is rejected" "order_line_va
      base_price_cents, variant_part_cents, addons_part_cents, line_unit_cents, line_total_cents, tax_category)
    VALUES ('88888888-8888-4888-8888-888888888888',9,'55555555-5555-4555-8555-555555555555',
      'Bad Line',1,1500,1800,0,1800,1800,'PREPARED_FOOD');"
+# The two ABSOLUTE groups sit on two dishes: one dish cannot hold both (00070,
+# below), so this proves the line's own index, not the menu's.
 reject "a line with two ABSOLUTE variants is rejected" "quote_line_variant_one_absolute" \
-  "INSERT INTO variant_group (id, menu_item_id, name) VALUES
+  "INSERT INTO menu_item (id, restaurant_id, category_id, price_cents, tax_category) VALUES
+     ('ff000000-0000-4000-8000-0000000000d1','33333333-3333-4333-8333-333333333333',
+      '44444444-4444-4444-8444-444444444444',1500,'PREPARED_FOOD');
+   INSERT INTO variant_group (id, menu_item_id, name) VALUES
      ('ff000000-0000-4000-8000-0000000000a1','55555555-5555-4555-8555-555555555555','Size'),
-     ('ff000000-0000-4000-8000-0000000000a2','55555555-5555-4555-8555-555555555555','Box');
+     ('ff000000-0000-4000-8000-0000000000a2','ff000000-0000-4000-8000-0000000000d1','Box');
    INSERT INTO variant (id, variant_group_id, name, pricing_mode, price_cents) VALUES
      ('ff000000-0000-4000-8000-0000000000b1','ff000000-0000-4000-8000-0000000000a1','Large','ABSOLUTE',2000),
      ('ff000000-0000-4000-8000-0000000000b2','ff000000-0000-4000-8000-0000000000a2','Gift','ABSOLUTE',2500);
@@ -352,6 +357,23 @@ reject "a line with two ABSOLUTE variants is rejected" "quote_line_variant_one_a
      pricing_mode, price_cents, sort_no) VALUES
      ('77777777-7777-4777-8777-777777777777',1,'ff000000-0000-4000-8000-0000000000b1','ff000000-0000-4000-8000-0000000000a1','Size','Large','ABSOLUTE',2000,1),
      ('77777777-7777-4777-8777-777777777777',1,'ff000000-0000-4000-8000-0000000000b2','ff000000-0000-4000-8000-0000000000a2','Box','Gift','ABSOLUTE',2500,2);"
+# A dish has at most one variant group that sets its full price (an ABSOLUTE
+# variant); the others are DELTA add-on amounts (00070, owner decision 2026-10-09).
+accept "a dish with one ABSOLUTE group and one DELTA group is accepted" \
+  "INSERT INTO variant_group (id, menu_item_id, name) VALUES
+     ('ff000000-0000-4000-8000-0000000000e1','55555555-5555-4555-8555-555555555555','Size'),
+     ('ff000000-0000-4000-8000-0000000000e2','55555555-5555-4555-8555-555555555555','Rice');
+   INSERT INTO variant (variant_group_id, name, pricing_mode, price_cents, delta_cents) VALUES
+     ('ff000000-0000-4000-8000-0000000000e1','Large','ABSOLUTE',2000,NULL),
+     ('ff000000-0000-4000-8000-0000000000e2','Biryani','DELTA',NULL,350);
+   ROLLBACK; BEGIN;"
+reject "a dish with two ABSOLUTE groups is rejected" "variant_group_one_full_price" \
+  "INSERT INTO variant_group (id, menu_item_id, name) VALUES
+     ('ff000000-0000-4000-8000-0000000000e1','55555555-5555-4555-8555-555555555555','Size'),
+     ('ff000000-0000-4000-8000-0000000000e2','55555555-5555-4555-8555-555555555555','Box');
+   INSERT INTO variant (variant_group_id, name, pricing_mode, price_cents) VALUES
+     ('ff000000-0000-4000-8000-0000000000e1','Large','ABSOLUTE',2000),
+     ('ff000000-0000-4000-8000-0000000000e2','Gift','ABSOLUTE',2500);"
 reject "a receipt snapshot cannot be rewritten" "receipt_snapshot_is_immutable" \
   "UPDATE \"order\" SET receipt_snapshot = '{\"v\":1}' WHERE id='88888888-8888-4888-8888-888888888888';
    UPDATE \"order\" SET receipt_snapshot = '{\"v\":2}' WHERE id='88888888-8888-4888-8888-888888888888';"
