@@ -278,7 +278,7 @@ There is **no** `color`, `label`, `variant` or `icon` prop. The four states are 
 - `H2`/`H3`/`H4` render the server's pre-computed suggestion as a pre-selected value with a visible "system suggested" marker; changing it **requires** a note.
 - Any human override requires a note of ≥20 characters (A-15 R5). The `Textarea` counter enforces it and Approve stays enabled-but-blocking with an explanatory error, not silently disabled.
 - **Approve is disabled until all seven are `PASS`.** Its disabled state names the outstanding keys ("2 checks outstanding: H1, H6") — a disabled button that will not say why is a defect.
-- Reject requires ≥1 `FAIL` and a reason code from the closed enum.
+- Reject requires ≥1 `FAIL`, a reason code from the closed enum and a message to the restaurant of 10–1000 characters (`HalalDecisionInput.reason_text` in the contract), sent word for word. The 20-character minimum is the override note's, not the rejection's.
 
 **Accessibility.** A `<fieldset>` per check with a legend. Locked checks are `aria-readonly` with the reason in `aria-describedby`. Approve/Reject are separated by ≥24 and are not colour-only. Every recorded value writes an `audit_event` — the UI shows a persistent "this action is audited" note, because it changes behaviour.
 

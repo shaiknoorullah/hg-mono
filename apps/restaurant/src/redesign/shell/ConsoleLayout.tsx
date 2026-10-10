@@ -17,7 +17,7 @@ import { Outlet, useLocation, useNavigate, useSearchParams } from 'react-router-
 import { Icon, Menu, SideNav, TopBar, type SideNavItem } from '../ds';
 import { useConsole } from '../data/console';
 import { NAV, activeNavKey } from './nav';
-import { SHELL_PANELS, StatusBarSlot, StripSlot } from './slots';
+import { BannerSlot, SHELL_PANELS, StatusBarSlot, StripSlot } from './slots';
 import { ConsoleLayoutContext } from './layout';
 import { SignOutConfirm } from './SignOutConfirm';
 import { useWaitingCount } from './waiting';
@@ -181,6 +181,8 @@ export function ConsoleLayout({ onSignOut }: ConsoleLayoutProps) {
           <div role="region" aria-label="Service status" className="border-b border-line-decorative bg-surface-raised">
             <StatusBarSlot />
           </div>
+
+          <BannerSlot />
 
           {confirm ? <div className="mx-4 mt-2.5">{confirm}</div> : null}
 

@@ -56,7 +56,10 @@ Dev world orders come from the API, not from SQL:
 
 - `make dev-scenario s=<name>` puts an order or a decision in a state:
   `new-order`, `rush`, `order-preparing`, `order-ready`, `customer-cancels`,
-  `restaurant-rejected`, `docs-approve`, `docs-reject`, `menu-approve`, `menu-reject`
+  `restaurant-rejected`, `docs-approve`, `docs-reject`, `menu-approve`, `menu-reject`,
+  `onboard-restaurant`, `onboard-rider`, `offer-to-rider`, `restaurant-timeout`, `admin-cancel`,
+  `pickup-lapse`, `pickup-lapse-cancelled`, `cert-lapse-mid-order`, `order-completed`;
+  `make dev-scenario s=list` prints each with the state it leaves
   ([catalogue](../superpowers/specs/2026-09-28-devworld-harness-design.md#61-catalogue)).
 - `make dev-journey` drives one live order from checkout to delivered, receipt, rating and refund.
   `auto=restaurant` or `auto=all` lets it play the restaurant or the rider, and `manual=rider`

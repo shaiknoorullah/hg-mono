@@ -189,6 +189,11 @@ jobs:
       - name: typecheck
         run: pnpm -r typecheck
 
+      # How the mock picks one fixture per operation (contracts/fixtures/SCENARIOS.md) and
+      # moves realtime scripts to wall clock, against the fixtures just validated.
+      - name: mock server unit tests
+        run: pnpm --filter @hg/mock-server test:unit
+
       # The email templates the Go service embeds are exactly what packages/emails
       # exports. A hand edit to services/hg/internal/notify/emailtmpl/templates/**,
       # or a template changed without re-exporting, fails here.
@@ -217,6 +222,9 @@ jobs:
           done
           curl -sf "localhost:$PORT/__mock/health" | tee /dev/stderr | grep -q '"status":"ok"'
           curl -sf "localhost:$PORT/v1/orders/any?scenario=order_arrived" | grep -q '"state":"ARRIVED"'
+          # A per-operation map: the named operation gets its fixture, the rest their default.
+          curl -sf -H 'X-Mock-Scenario: getCurrentPrincipal=principal_admin' "localhost:$PORT/v1/auth/me" | grep -q '"role":"ADMIN"'
+          curl -sf -H 'X-Mock-Scenario: getCurrentPrincipal=principal_admin' "localhost:$PORT/v1/orders/any" | grep -q '"state":"PREPARING"'
           curl -s "localhost:$PORT/v1/definitely-not-a-route" | grep -q 'NOT_FOUND'
 
       - name: stop the mock server

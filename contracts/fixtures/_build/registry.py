@@ -108,6 +108,10 @@ DEFAULT_SCENARIO: dict[str, str] = {
     # tie-break picks FAILED, so every admin page in `pnpm mock` showed the sticky
     # "sign-in codes cannot be sent" banner.
     "getSmsSenderStatus": "sms_sender_passed",
+    # Staff principals and the restaurant profile matrix share these operations; the
+    # plain customer and LIVE + CERTIFIED shapes stay the defaults.
+    "getCurrentPrincipal": "principal_customer",
+    "getRestaurantProfile": "restaurant_profile",
 }
 
 

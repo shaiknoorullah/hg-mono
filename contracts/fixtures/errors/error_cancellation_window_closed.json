@@ -1,0 +1,22 @@
+{
+  "scenario": "error_cancellation_window_closed",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`409` · `CANCELLATION_WINDOW_CLOSED`. Cancel after the restaurant accepted. The app swaps Cancel for Get help.",
+  "operations": [
+    "cancelOrder"
+  ],
+  "status": 409,
+  "tags": [
+    "error-envelope",
+    "error-path",
+    "customer"
+  ],
+  "payload": {
+    "error": {
+      "code": "CANCELLATION_WINDOW_CLOSED",
+      "message": "This order can no longer be cancelled from the app. Please contact support.",
+      "request_id": "JWFBW8HNMHCEBSNEMSRSZ733G0"
+    }
+  }
+}

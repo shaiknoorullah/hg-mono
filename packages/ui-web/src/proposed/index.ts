@@ -61,7 +61,7 @@ export type { TooltipProps } from './Tooltip.js';
 export { ToastProvider, useToast } from '../ds/Toast.js';
 export type { ToastApi, ToastOptions, ToastProviderProps, ToastVariant } from '../ds/Toast.js';
 
-export { DocumentViewer, FilterBar } from '../data/index.js';
+export { DocumentViewer } from '../data/index.js';
 export type { DocumentViewerProps, DocumentViewerState } from '../data/index.js';
 
 /* Forms (W3), rebuilt on shadcn/ui: approval packet P16 to P21. */
@@ -95,3 +95,79 @@ export { NavDrawer } from './NavDrawer.js';
 export type { NavDrawerProps } from './NavDrawer.js';
 export { SectionNav } from './SectionNav.js';
 export type { SectionNavItem, SectionNavProps } from './SectionNav.js';
+
+/* Halal and verification composites (W5): approval packet P28 to P31 (#196). */
+export { SevenChecks, sevenChecksRollup } from './SevenChecks.js';
+export type { SevenChecksProps } from './SevenChecks.js';
+export { DecisionBar } from './DecisionBar.js';
+export type { DecisionBarProps, DecisionRejectInput, DecisionSubmitting } from './DecisionBar.js';
+export { RiderChecklist } from './RiderChecklist.js';
+export type { RiderCheckValue, RiderChecklistItem, RiderChecklistProps } from './RiderChecklist.js';
+export { ISSUER_STATUS_LABEL, IssuerCombobox } from './IssuerCombobox.js';
+export type { IssuerComboboxProps, IssuerOption, IssuerStatus } from './IssuerCombobox.js';
+export { JustifiedReveal } from './JustifiedReveal.js';
+export type { JustifiedRevealProps } from './JustifiedReveal.js';
+
+/* Data composites (W6, packet P22 and the admin list pane). FilterBar keeps the pre-rebuild
+   declarative props (`filters`, `value`, `onChange`, `onClear`) and adds the composed shape. */
+export { FilterBar } from './FilterBar.js';
+export type { ComposedFilterBarProps, FilterBarProps } from './FilterBar.js';
+export type { FilterDefinition, FilterOption, FilterValue, SavedView } from '../data/index.js';
+export { FilterChip } from './FilterChip.js';
+export type { FilterChipProps } from './FilterChip.js';
+export { ListPane, ListPaneRow } from './ListPaneRow.js';
+export type { ListPaneProps, ListPaneRowProps } from './ListPaneRow.js';
+export { EventLog } from './EventLog.js';
+export type { EventLogEntry, EventLogProps } from './EventLog.js';
+
+/* Restaurant console composites (W7a, #674): the new-order strip, decline, "Right now" and the
+   pickup code (approval packet P33 to P35). */
+export { NewOrderStrip, NewOrdersStrip } from './NewOrdersStrip.js';
+export type {
+  NewOrderStripCompact,
+  NewOrderStripEmpty,
+  NewOrderStripProps,
+  NewOrderStripTile,
+  NewOrdersStripAction,
+  NewOrdersStripCompact,
+  NewOrdersStripEmpty,
+  NewOrdersStripError,
+  NewOrdersStripProps,
+  NewOrdersStripTile,
+  OrderOffer,
+} from './NewOrdersStrip.js';
+export { OfferTile, isLiveTile } from './OfferTile.js';
+export type { OfferLineTone, OfferOutcomeView, OfferStatusLine, OfferTileFields, OfferTileProps } from './OfferTile.js';
+export {
+  OFFER_ANNOUNCE_AT,
+  OFFER_OUTCOMES,
+  OFFER_WINDOW_SECONDS,
+  acceptLabel,
+  acceptName,
+  declineName,
+  liveTileName,
+  offerSummary,
+} from './new-orders-copy.js';
+export type { OfferDeadline } from './new-orders-copy.js';
+export { DECLINE_REASONS, DeclineForm } from './DeclineForm.js';
+export type { DeclineFormProps, DeclineItem, DeclineReason, DeclineReasonCode, DeclineValues } from './DeclineForm.js';
+export { StatusCard, statusFromOpenState } from './StatusCard.js';
+export type { StatusCardBusy, StatusCardPauseOption, StatusCardProps, StatusCardStatus } from './StatusCard.js';
+export { PickupCode } from './PickupCode.js';
+export type { PickupCodeProps, PickupCodeSupport } from './PickupCode.js';
+
+/* Restaurant sign-in composites (#737): links, the state card, partner support and the wait line. */
+export { TextLink } from './TextLink.js';
+export type { TextLinkProps, TextLinkRenderArgs, TextLinkTextStyle, TextLinkVariant } from './TextLink.js';
+export { StateCard } from './StateCard.js';
+export type { StateCardHeadingLevel, StateCardProps } from './StateCard.js';
+export { SupportBlock, SupportSentence, formatSupportPhone, resolveSupport } from './Support.js';
+export type {
+  SupportBlockProps,
+  SupportConfig,
+  SupportResolution,
+  SupportSentenceProps,
+  SupportSource,
+} from './Support.js';
+export { WaitLine, resolveWaitDeadline, useWaitLine } from './WaitLine.js';
+export type { UseWaitLineResult, WaitDeadline, WaitLineProps, WaitSource } from './WaitLine.js';
