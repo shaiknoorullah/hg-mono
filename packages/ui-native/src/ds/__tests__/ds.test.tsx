@@ -363,7 +363,9 @@ describe('halal invariants through /ds', () => {
           .map((v: string) => v.toUpperCase()),
       );
       for (const state of ['CERTIFIED', 'EXPIRING_SOON', 'EXPIRED', 'UNVERIFIED'] as const) {
-        const tree = (render: ReactElement) => renderThemed(render, { theme, scheme }).toJSON();
+        // N4: the halal family renders through the className tier, so colours are measured on the
+        // real stylesheet.
+        const tree = (render: ReactElement) => renderNw(render, { theme, scheme }).toJSON();
         const colours = [
           ...paintedColours(tree(<HalalBadge state={state} restaurantId="r1" />)),
           ...paintedColours(tree(<HalalBadge state={state} surface="detail" restaurantId="r1" onPress={() => {}} />)),
@@ -375,17 +377,19 @@ describe('halal invariants through /ds', () => {
 
   it('invariant 10: the seal green appears only on the CERTIFIED seal', () => {
     const seal = '#0F7A43';
-    const certified = paintedColours(renderThemed(<HalalBadge state="CERTIFIED" restaurantId="r1" />).toJSON());
+    const certified = paintedColours(renderNw(<HalalBadge state="CERTIFIED" restaurantId="r1" />).toJSON());
     expect(certified).toContain(seal);
     const others = [
       <Button key="b">Pay</Button>,
       <Badge key="g" variant="brand" appearance="solid">New</Badge>,
       <Toast key="t" variant="success" title="Saved" />,
       <HalalBadge key="x" state="EXPIRED" restaurantId="r1" />,
-      <HalalBadge key="u" state="UNVERIFIED" restaurantId="r1" />,
+      <HalalBadge key="u" state="UNVERIFIED" surface="operational" restaurantId="r1" />,
+      // The approved amber expiring look (N4) is never the seal.
+      <HalalBadge key="e" state="EXPIRING_SOON" expiresOn="2026-10-14" restaurantId="r1" />,
     ];
     for (const node of others) {
-      expect(paintedColours(renderThemed(node).toJSON())).not.toContain(seal);
+      expect(paintedColours(renderNw(node).toJSON())).not.toContain(seal);
     }
   });
 
@@ -404,5 +408,28 @@ describe('halal invariants through /ds', () => {
       <HalalCertificationPanel restaurantId="r1" certification={{ display_state: 'UNVERIFIED', disclaimer: 'x' }} />,
     );
     expect(unverified.toJSON()).toBeNull();
+  });
+
+  it('the panel hides "View certificate" when certificate_viewable is false (N4)', () => {
+    const certification = {
+      display_state: 'CERTIFIED' as const,
+      certifying_body_name: 'HMA',
+      expires_on: '2027-03-31',
+      certificate_viewable: false,
+      disclaimer: 'HalalGoes does not itself certify food.',
+    };
+    renderNw(<HalalCertificationPanel restaurantId="r1" certification={certification} onViewCertificate={() => {}} />);
+    expect(screen.queryByText('View certificate')).toBeNull();
+    renderNw(
+      <HalalCertificationPanel restaurantId="r1" certification={{ ...certification, certificate_viewable: true }} onViewCertificate={() => {}} />,
+    );
+    expect(screen.getByRole('button', { name: 'View certificate' })).toBeTruthy();
+  });
+
+  it('EXPIRING_SOON carries its date on the seal only when expiresOn parses (N4)', () => {
+    renderNw(<HalalBadge state="EXPIRING_SOON" expiresOn="2026-10-14" />);
+    expect(screen.getByText('Halal certified · expires 14 Oct')).toBeTruthy();
+    renderNw(<HalalBadge state="EXPIRING_SOON" expiresOn="not a date" />);
+    expect(screen.getByText(ds.HALAL_VISIBLE_LABEL.EXPIRING_SOON)).toBeTruthy();
   });
 });
