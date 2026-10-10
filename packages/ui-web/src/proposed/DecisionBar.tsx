@@ -8,8 +8,8 @@
  *   Approve… stays focusable but unavailable, and its accessible name says why ("Approve…,
  *   unavailable: 2 checks still needed").
  * - **Reject needs at least one Fail** (a `HalalRejectionGate`), a reason code from the contract's
- *   `HalalRejectionReasonCode` and a message of at least 20 characters, which the restaurant sees
- *   word for word. A single failed check preselects its reason. Suspected forgery is not a
+ *   `HalalRejectionReasonCode` and a message of 10 to 1000 characters (the contract's `reason_text`),
+ *   which the restaurant sees word for word. A single failed check preselects its reason. Suspected forgery is not a
  *   rejection here (the helper says what to do instead).
  * - Both decisions confirm in place, in the bar (in-page, never an overlay): pressing Approve… or
  *   Reject… opens the confirmation below the buttons and moves focus to its heading.
@@ -23,7 +23,6 @@ import { useEffect, useId, useRef, useState, type CSSProperties, type ReactNode 
 
 import {
   HALAL_CHECK_ORDER,
-  OVERRIDE_NOTE_MIN_LENGTH,
   type HalalApprovalGate,
   type HalalCheckKey,
   type HalalRejectionGate,
@@ -79,6 +78,12 @@ export interface DecisionBarProps {
 }
 
 /** The reasons offered: every contract code except suspected forgery, which is a hold, not a rejection. */
+/**
+ * The contract's `HalalDecisionInput.reason_text` minimum. It is not the 20-character override
+ * note (A-15 R5): that rule is for a check result against the system's suggestion.
+ */
+const REJECT_MESSAGE_MIN_LENGTH = 10;
+
 const OFFERED_REASONS = HALAL_REJECTION_REASONS.filter((r) => r !== 'SUSPECTED_FORGERY');
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
@@ -159,8 +164,8 @@ export function DecisionBar({
     const text = message.trim();
     const next: typeof errors = {};
     if (!reason) next.reason = 'Choose a reason. A rejection without one can’t be explained to the restaurant.';
-    if (text.length < OVERRIDE_NOTE_MIN_LENGTH) {
-      next.message = `Write at least ${OVERRIDE_NOTE_MIN_LENGTH} characters. The restaurant sees it word for word.`;
+    if (text.length < REJECT_MESSAGE_MIN_LENGTH) {
+      next.message = `Write at least ${REJECT_MESSAGE_MIN_LENGTH} characters. The restaurant sees it word for word.`;
     }
     setErrors(next);
     if (next.reason || next.message || !reason) return;
@@ -315,9 +320,9 @@ export function DecisionBar({
             required
             rows={3}
             minHeight={88}
-            minLength={OVERRIDE_NOTE_MIN_LENGTH}
+            minLength={REJECT_MESSAGE_MIN_LENGTH}
             maxLength={1000}
-            helperText={`Sent word for word. Say what to upload instead. At least ${OVERRIDE_NOTE_MIN_LENGTH} characters.`}
+            helperText={`Sent word for word. Say what to upload instead. At least ${REJECT_MESSAGE_MIN_LENGTH} characters.`}
             value={message}
             readOnly={busy}
             errorText={errors.message ?? null}

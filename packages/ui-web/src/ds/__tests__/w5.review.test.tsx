@@ -33,7 +33,7 @@ describe('halal dates never invent a day', () => {
 
   it('valid dates still parse, including a leap day', () => {
     expect(formatHalalShortDate('2028-02-29')).toBe('29 Feb');
-    expect(formatHalalLongDate('2026-10-20T03:00:00Z')).toBe('20 October 2026');
+    expect(formatHalalLongDate('2026-10-20T15:00:00Z')).toBe('20 October 2026');
   });
 });
 

@@ -11,11 +11,15 @@
  *
  * - **Invariant 8.** A missing or unknown `display_state` renders **nothing** and reports
  *   `HALAL_DISPLAY_STATE_MISSING`; `UNVERIFIED` renders nothing (an uncertified kitchen is
- *   invisible). There is no default state and no `{date}` placeholder.
+ *   invisible). There is no default state and no `{date}` placeholder. A CERTIFIED or
+ *   EXPIRING_SOON claim without its proof (`certifying_body_name` and a readable `expires_on`)
+ *   also renders nothing and reports `HALAL_PROOF_MISSING`: a seal with no body and no date is an
+ *   optimistic claim.
  * - `certificate_viewable=false`: "View certificate" is absent and the panel says the image is
  *   not available to view (customer `Cert-not-viewable`).
  * - **Loading** reserves the seal's silhouette with a skeleton, never a spinner in the seal slot.
- *   **Error** keeps the panel, offers Retry and draws **no seal**.
+ *   **Error** keeps the panel, offers Retry and draws **no seal**. Both use a neutral frame: no
+ *   certified or expired tint while the state is unknown.
  * - **Invariant 9.** EXPIRED uses the slate tint, never red.
  * - A11y: `role="region"` named by the visible "Halal certification" heading (`headingLevel`).
  *
@@ -93,17 +97,23 @@ export function HalalCertificationPanel(props: HalalCertificationPanelProps) {
   const certification = 'certification' in props ? props.certification : undefined;
   const state = certification?.display_state;
   const known = isHalalDisplayState(state);
+  const claimsCertified = state === 'CERTIFIED' || state === 'EXPIRING_SOON';
+  const proofMissing =
+    claimsCertified && (!certification?.certifying_body_name || !formatHalalLongDate(certification.expires_on));
   const headingId = `hg-halal-certification-${useId()}`;
 
   useEffect(() => {
     if (status === 'ready' && !known) {
       reportHalalClientError('HALAL_DISPLAY_STATE_MISSING', { restaurantId, received: state, surface: 'panel' });
+    } else if (status === 'ready' && proofMissing) {
+      reportHalalClientError('HALAL_PROOF_MISSING', { restaurantId, received: state, surface: 'panel' });
     }
-  }, [status, known, state, restaurantId]);
+  }, [status, known, proofMissing, state, restaurantId]);
 
-  if (status === 'ready' && (!known || state === 'UNVERIFIED' || !certification)) return null;
+  if (status === 'ready' && (!known || state === 'UNVERIFIED' || !certification || proofMissing)) return null;
 
-  const expired = status === 'ready' && state === 'EXPIRED';
+  const ready = status === 'ready';
+  const expired = ready && state === 'EXPIRED';
   const level = Math.min(6, Math.max(1, headingLevel));
   const Heading = `h${level}` as 'h2';
 
@@ -118,15 +128,20 @@ export function HalalCertificationPanel(props: HalalCertificationPanelProps) {
       style={style}
       className={cn(
         'flex flex-col gap-4 rounded-lg border p-5 font-ui text-fg-primary',
-        expired
-          ? 'border-halal-expired-border bg-halal-expired-tint'
-          : 'border-halal-certified-tint-border bg-halal-certified-tint',
+        !ready
+          ? 'border-line-decorative bg-surface-raised'
+          : expired
+            ? 'border-halal-expired-border bg-halal-expired-tint'
+            : 'border-halal-certified-tint-border bg-halal-certified-tint',
         className,
       )}
     >
       <Heading
         id={headingId}
-        className={cn('m-0 text-heading-lg', expired ? 'text-halal-expired-text' : 'text-halal-certified-tint-text')}
+        className={cn(
+          'm-0 text-heading-lg',
+          !ready ? 'text-fg-primary' : expired ? 'text-halal-expired-text' : 'text-halal-certified-tint-text',
+        )}
       >
         Halal certification
       </Heading>

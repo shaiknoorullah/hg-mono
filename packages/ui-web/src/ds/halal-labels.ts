@@ -19,6 +19,7 @@ import {
   type HalalCheckResult,
   type HalalRejectionReasonCode,
 } from '../certification/index.js';
+import { DEFAULT_TIME_ZONE } from './time.js';
 
 export { HALAL_ACCESSIBLE_LABEL, HALAL_VISIBLE_LABEL };
 
@@ -36,33 +37,51 @@ const LONG_MONTH = [
   'July', 'August', 'September', 'October', 'November', 'December',
 ] as const;
 
+const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
+
 /**
- * A wire date (`2026-10-20`) or date-time, or null when it is missing or unparseable. An
- * impossible calendar day (`2026-02-30`) is unparseable: `Date` would roll it over into
- * 2 March, an expiry the server never sent.
+ * The calendar day a wire value names, or null when it is missing or unparseable.
+ *
+ * A date (`2026-10-20`, `issued_on`, `expires_on`) is a calendar day and is read as written. A
+ * date-time (`verified_at`) is an instant and is read in the platform's zone (Ontario), not UTC:
+ * `2026-10-10T02:30:00Z` was 9 October in Toronto. An impossible calendar day (`2026-02-30`) is
+ * unparseable: `Date` would roll it over into 2 March, an expiry the server never sent.
  */
-function parseHalalDate(value: string | null | undefined): Date | null {
+function halalCalendarDay(value: string | null | undefined): { day: number; month: number; year: number } | null {
   if (!value) return null;
-  const day = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
-  if (day) {
-    const [y, m, d] = [Number(day[1]), Number(day[2]) - 1, Number(day[3])];
+  const head = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
+  if (head) {
+    const [y, m, d] = [Number(head[1]), Number(head[2]) - 1, Number(head[3])];
     const calendar = new Date(Date.UTC(y, m, d));
     if (calendar.getUTCFullYear() !== y || calendar.getUTCMonth() !== m || calendar.getUTCDate() !== d) return null;
   }
-  const date = /^\d{4}-\d{2}-\d{2}$/.test(value) ? new Date(`${value}T00:00:00Z`) : new Date(value);
-  return Number.isNaN(date.getTime()) ? null : date;
+  const dateOnly = DATE_ONLY.test(value);
+  const date = dateOnly ? new Date(`${value}T00:00:00Z`) : new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: dateOnly ? 'UTC' : DEFAULT_TIME_ZONE,
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+  }).formatToParts(date);
+  const part = (type: Intl.DateTimeFormatPartTypes) => Number(parts.find((p) => p.type === type)?.value);
+  const [day, month, year] = [part('day'), part('month') - 1, part('year')];
+  return Number.isInteger(day) && Number.isInteger(month) && Number.isInteger(year) ? { day, month, year } : null;
 }
 
-/** `2026-10-20` → `20 Oct` (UTC). The badge's one-line exception to written-out dates. */
+/** `2026-10-20` → `20 Oct`. The badge's one-line exception to written-out dates. */
 export function formatHalalShortDate(value: string | null | undefined): string | null {
-  const d = parseHalalDate(value);
-  return d ? `${d.getUTCDate()} ${SHORT_MONTH[d.getUTCMonth()]}` : null;
+  const d = halalCalendarDay(value);
+  return d ? `${d.day} ${SHORT_MONTH[d.month]}` : null;
 }
 
-/** `2026-10-20` → `20 October 2026` (UTC). Certification dates are always absolute. */
+/**
+ * `2026-10-20` → `20 October 2026`. Certification dates are always absolute; a date-time is the
+ * Toronto day (see `halalCalendarDay`).
+ */
 export function formatHalalLongDate(value: string | null | undefined): string | null {
-  const d = parseHalalDate(value);
-  return d ? `${d.getUTCDate()} ${LONG_MONTH[d.getUTCMonth()]} ${d.getUTCFullYear()}` : null;
+  const d = halalCalendarDay(value);
+  return d ? `${d.day} ${LONG_MONTH[d.month]} ${d.year}` : null;
 }
 
 /** Where a badge sits: a card, the detail header, or an admin/restaurant operational surface. */

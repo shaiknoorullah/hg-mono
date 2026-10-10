@@ -7,7 +7,8 @@
  * - Invariant 10: only HalalBadge(CERTIFIED) and HalalShield paint the certified seal roles.
  * - The fixed label strings.
  * - The approval gate: six of seven is a rejection; H5 and H7 are locked; an override needs a
- *   20-character note; a rejection needs a reason code and 20 characters; busy blocks.
+ *   20-character note; a rejection needs a reason code and the contract's 10 characters; busy
+ *   blocks.
  */
 
 import { fireEvent, render, screen, within } from '@testing-library/react';
@@ -18,6 +19,7 @@ import {
   HalalBadge,
   HalalCertificationPanel,
   HalalShield,
+  formatHalalLongDate,
   formatHalalShortDate,
   setClientErrorReporter,
 } from '../index';
@@ -51,6 +53,19 @@ describe('invariant 8: a missing halal field renders no badge, and is reported',
     }
   });
 
+  it.each([
+    ['CERTIFIED', { certifying_body_name: null }],
+    ['CERTIFIED', { expires_on: null }],
+    ['EXPIRING_SOON', { certifying_body_name: '' }],
+    ['EXPIRING_SOON', { expires_on: '2026-02-30' }],
+  ] as const)('a %s claim without its proof (%o) renders no seal and reports', (state, over) => {
+    const report = vi.fn();
+    setClientErrorReporter(report);
+    const { container } = render(<HalalCertificationPanel restaurantId="r9" certification={panel(state, over as never)} />);
+    expect(container).toBeEmptyDOMElement();
+    expect(report).toHaveBeenCalledWith('HALAL_PROOF_MISSING', expect.objectContaining({ restaurantId: 'r9', received: state }));
+  });
+
   it('"View certificate" is absent when certificate_viewable=false, and the panel says why', () => {
     render(<HalalCertificationPanel restaurantId="r1" certification={panel('CERTIFIED', { certificate_viewable: false })} onViewCertificate={noop} />);
     expect(screen.queryByRole('button', { name: /View certificate/ })).toBeNull();
@@ -62,6 +77,19 @@ describe('invariant 8: a missing halal field renders no badge, and is reported',
     expect(screen.getByRole('region', { name: 'Halal certification' })).toBeInTheDocument();
     expect(screen.queryByTestId('HalalBadge')).toBeNull();
     expect(screen.queryByTestId('HalalShield')).toBeNull();
+  });
+
+  it('loading and error use a neutral frame: no certified or expired tint while the state is unknown', () => {
+    const { unmount } = render(<HalalCertificationPanel restaurantId="r1" status="loading" />);
+    const frames = [screen.getByTestId('HalalCertificationPanel').outerHTML];
+    unmount();
+    render(<HalalCertificationPanel restaurantId="r1" status="error" onRetry={noop} />);
+    frames.push(screen.getByTestId('HalalCertificationPanel').outerHTML);
+    for (const html of frames) {
+      expect(html).not.toMatch(/halal-certified/);
+      expect(html).not.toMatch(/halal-expired/);
+      expect(html).toMatch(/bg-surface-raised/);
+    }
   });
 });
 
@@ -177,10 +205,18 @@ describe('fixed strings', () => {
     expect(document.body.innerHTML).not.toContain('{date}');
   });
 
-  it('the short date is fixed English in UTC: no locale writes "Sept."', () => {
+  it('the short date is fixed English: no locale writes "Sept."', () => {
     expect(formatHalalShortDate('2026-09-01')).toBe('1 Sep');
-    expect(formatHalalShortDate('2026-10-20T03:00:00Z')).toBe('20 Oct');
     expect(formatHalalShortDate(null)).toBeNull();
+  });
+
+  it('a date is read as written; a date-time is the day it was in Toronto, not in UTC', () => {
+    expect(formatHalalLongDate('2026-10-20')).toBe('20 October 2026');
+    expect(formatHalalLongDate('2026-10-10T02:30:00Z')).toBe('9 October 2026');
+    expect(formatHalalShortDate('2026-10-20T03:00:00Z')).toBe('19 Oct');
+    expect(formatHalalLongDate('2026-10-10T16:30:00Z')).toBe('10 October 2026');
+    render(<HalalCertificationPanel restaurantId="r1" certification={panel('CERTIFIED', { disclaimer: '', verified_at: '2026-10-10T02:30:00Z' })} />);
+    expect(screen.getByTestId('HalalCertificationPanel-disclaimer')).toHaveTextContent('Certification verified by HalalGoes on 9 October 2026.');
   });
 
   it('the standing line is always present, with and without a server disclaimer', () => {
@@ -215,7 +251,7 @@ describe('the approval gate', () => {
     expect(screen.getByTestId('DecisionBar-still-open')).toHaveTextContent('H7 Unique, not reused');
   });
 
-  it('reject needs a contract reason code and 20 characters; a single fail preselects its reason', () => {
+  it('reject needs a contract reason code and the contract\'s 10 characters; a single fail preselects its reason', () => {
     const g = gates(sixAndAFail);
     const onReject = vi.fn();
     render(<DecisionBar approveGate={g.approve} rejectGate={g.reject} onApprove={noop} onReject={onReject} />);
@@ -229,14 +265,15 @@ describe('the approval gate', () => {
     expect(offered).not.toContain('SUSPECTED_FORGERY');
 
     const message = screen.getByRole('textbox', { name: /Message to the restaurant/ });
-    fireEvent.change(message, { target: { value: 'Supplier chain only' } }); // 19 characters
+    fireEvent.change(message, { target: { value: '  Too short ' } }); // 9 characters once trimmed
     fireEvent.click(screen.getByRole('button', { name: 'Reject certificate' }));
     expect(onReject).not.toHaveBeenCalled();
-    expect(screen.getByText(/Write at least 20 characters/)).toBeInTheDocument();
+    expect(screen.getByText(/Write at least 10 characters/)).toBeInTheDocument();
 
-    fireEvent.change(message, { target: { value: 'Your certificate covers the supplier chain only.' } });
+    // HalalDecisionInput.reason_text: minLength 10, so exactly 10 is accepted.
+    fireEvent.change(message, { target: { value: 'Scope only' } });
     fireEvent.click(screen.getByRole('button', { name: 'Reject certificate' }));
-    expect(onReject).toHaveBeenCalledWith(g.reject, { reasonCode: 'SCOPE_INSUFFICIENT', reasonText: 'Your certificate covers the supplier chain only.' });
+    expect(onReject).toHaveBeenCalledWith(g.reject, { reasonCode: 'SCOPE_INSUFFICIENT', reasonText: 'Scope only' });
   });
 
   it('approve is reachable only with the gate, and is confirmed in place', () => {
