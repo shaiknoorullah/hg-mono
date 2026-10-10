@@ -163,6 +163,13 @@ first for the same reason. A default under a flow's `env:` is written `${PHONE |
 value there overrides the `-e` values `run.sh` passes, so the flow would sign in someone who is
 not in the e2e world.
 
+**The rider's offer, on the emulator.** `run.sh` runs the rider's `redesign/3-offer.yaml` with a
+real order: while the flow waits online at the restaurant, it places an order through the API
+(`lib/api.mjs place-order api`), accepts it with the `@cross-accept` spec and, once the rider is
+online, marks it ready with `@cross-ready`. The flow checks the offer shows the drop-off area and
+not the address, then declines it. Accepting and the trip stay in the device lab until the backend
+takes the pickup code instead of a seal scan ([#315](https://github.com/shaiknoorullah/hg-mono/issues/315)).
+
 **Playwright projects** are `<app>-<flag>-<viewport>`: `restaurant-legacy-desktop`,
 `restaurant-legacy-tablet`, `restaurant-redesign-desktop`, `restaurant-redesign-tablet`, and the
 same for `admin`. `--project` takes wildcards (`'*-redesign-*'`). Every project uses `en-CA` and

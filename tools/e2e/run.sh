@@ -209,6 +209,42 @@ for app in restaurant admin; do
   fi
 done
 
+# The redesigned rider's offer: the flow waits online at the restaurant while an order is placed
+# through the API, accepted in the restaurant web app and, once the rider is online, marked ready,
+# the way section 4 does it for the legacy app. Dispatch offers only to riders already online.
+# redesign_offer <label> <maestro -e args…>
+redesign_offer() {
+  local label="$1" placed id code pid online=false
+  shift
+  if ! placed="$(cd "$e2e" && node lib/api.mjs place-order api)"; then
+    record "$label" fail "could not place an order through the API"
+    return
+  fi
+  read -r id code <<<"$(node -e 'const o=JSON.parse(process.argv[1]);console.log(o.id, o.code)' "$placed")"
+  export E2E_CROSS_ORDER_ID="$id" E2E_CROSS_ORDER_CODE="$code"
+  if ! playwright redesign-rider-offer-accept --project restaurant-legacy-desktop --grep @cross-accept; then
+    record "$label" fail "the restaurant could not accept $code (see the Playwright report)"
+    return
+  fi
+  maestro_flow rider redesign/3-offer.yaml "$@" &
+  pid=$!
+  for _ in $(seq 1 120); do
+    if [ "$(sql "SELECT availability_state FROM rider_profile WHERE account_id = '$(w rider.id)'")" = ONLINE_IDLE ]; then
+      online=true
+      break
+    fi
+    sleep 1
+  done
+  [ "$online" = true ] || echo "::warning::the redesigned rider did not go online within 120 s; marking $code ready anyway"
+  playwright redesign-rider-offer-ready --project restaurant-legacy-desktop --grep @cross-ready ||
+    echo "::warning::the restaurant could not mark $code ready"
+  if wait "$pid"; then
+    record "$label" pass "offered $code at the restaurant, saw the drop-off area only, declined it with a reason"
+  else
+    record "$label" fail "see the Maestro output and screenshots (online: $online)"
+  fi
+}
+
 # --- 7. the redesign, on the emulator ----------------------------------------------------------
 # The redesign APK replaces the legacy one (same package), with its data cleared. Its flows run in
 # name order, each with the world's values; a 1-ask-for-code.yaml among them runs first, and the
@@ -247,6 +283,10 @@ if [ "$mode" = all ]; then
       flow="redesign/$(basename "$flow")"
       [ "$flow" != redesign/1-ask-for-code.yaml ] || continue
       label="redesign-$app-$(basename "$flow" .yaml)"
+      if [ "$app" = rider ] && [ "$flow" = redesign/3-offer.yaml ]; then
+        redesign_offer "$label" "${vars[@]}"
+        continue
+      fi
       if maestro_flow "$app" "$flow" "${vars[@]}"; then
         record "$label" pass "$flow"
       else

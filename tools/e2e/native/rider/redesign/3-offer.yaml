@@ -1,0 +1,69 @@
+# Rider redesign WP3 in CI: on the session 1-sign-in.yaml opened, stand at the restaurant, go
+# online, and get a real dispatch offer. run.sh places an order through the API, accepts it in the
+# restaurant web app, and marks it ready once this rider is online (dispatch offers only to riders
+# already online, within 3 km). Checks the offer shows the approximate drop-off area and not the
+# address, declines it with a reason, and goes offline again so the flows after it start on Home.
+# Accept and the trip run in the device lab (lab/3-offer.yaml): the backend still asks for a seal
+# scan at pickup until #315, so an accepted trip would strand the rider in CI.
+#
+# Each default is written ${VAR || "…"}: a plain value under env: would override the -e values
+# run.sh passes (the world's restaurant).
+appId: com.halalgoes.rider.dev
+name: rider redesign, offer
+env:
+  LATITUDE: ${LATITUDE || "43.6815"}
+  LONGITUDE: ${LONGITUDE || "-79.3310"}
+---
+- launchApp:
+    stopApp: false
+- extendedWaitUntil:
+    visible: "Earnings"
+    timeout: 30000
+- tapOn:
+    id: "tab-home"
+- setLocation:
+    latitude: ${LATITUDE}
+    longitude: ${LONGITUDE}
+- extendedWaitUntil:
+    visible: "You're offline|Go offline"
+    timeout: 30000
+- runFlow:
+    when:
+      visible: "You're offline"
+    commands:
+      - tapOn: "Go online"
+      - tapOn:
+          text: "While using the app"
+          optional: true
+- extendedWaitUntil:
+    visible: "You can lock your phone.*"
+    timeout: 45000
+
+# SH/OfferLive: a real offer, the area only until Accept.
+- extendedWaitUntil:
+    visible: "Delivery offer"
+    timeout: 180000
+- assertVisible: "Estimated earnings"
+- assertVisible: "Drop-off area"
+- assertVisible: "You get the full address when you accept."
+- assertVisible: "Decline"
+- assertVisible: "Accept"
+- takeScreenshot: rider-redesign-03-offer
+
+# SH/OfferDecline: one reason, then back to waiting.
+- tapOn: "Decline"
+- extendedWaitUntil:
+    visible: "Keep the offer"
+    timeout: 5000
+- assertVisible: "Pickup is too far"
+- tapOn: "Pickup is too far"
+- extendedWaitUntil:
+    notVisible: "Delivery offer"
+    timeout: 15000
+- takeScreenshot: rider-redesign-03-declined
+
+# Offline again for the flows after this one.
+- tapOn: "Go offline"
+- extendedWaitUntil:
+    visible: "You're offline"
+    timeout: 30000
