@@ -258,6 +258,15 @@ EXCLUSIONS = {
         "(https://github.com/shaiknoorullah/hg-mono/pull/315): nothing stores it yet. "
         "That PR adds handover_code_kind in its own migration and moves this entry "
         "to MAPPED_IN_MIGRATION.",
+    # Address search (https://github.com/shaiknoorullah/hg-mono/issues/179) is
+    # forwarded to Mapbox and answered without touching the database.
+    "GeoResultKind":
+        "Response-only: how precise an address-search result is. Search results "
+        "are forwarded from Mapbox and never stored; a chosen address is saved "
+        "as an Address.",
+    "GeocodedAddress/properties/country":
+        "Response-only, always CA: an address-search result is never stored. "
+        "A saved address carries Address.country.",
 }
 
 
