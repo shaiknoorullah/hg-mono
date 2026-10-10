@@ -82,6 +82,15 @@ function realGrant(page: Page): Promise<Grant> {
   return grantOnce;
 }
 
+/**
+ * Real mode: the live owner's access token, for a spec that checks the server's state itself.
+ * The app keeps its session in memory only (no token in `localStorage`), so a spec reads the
+ * worker's own sign-in, the same session `openSignedIn` hands the page.
+ */
+export async function liveAccessToken(page: Page): Promise<string> {
+  return (await realGrant(page)).access_token;
+}
+
 /** Opens `path` signed in as the live restaurant's owner. */
 export async function openSignedIn(page: Page, path: string): Promise<void> {
   if (MODE === 'mock') {
