@@ -46,8 +46,18 @@ export type {
   Politeness,
 } from './PageAnnouncer.js';
 
-export { Skeleton, Spinner, Textarea, Tooltip, TooltipProvider } from '../primitives/index.js';
-export type { SkeletonProps, SpinnerProps, TextareaProps, TooltipProps } from '../primitives/index.js';
+/* Rebuilt on shadcn/ui (W1 Core); the pre-rebuild props still work. */
+export { Skeleton } from './Skeleton.js';
+export type { SkeletonProps, SkeletonShape } from './Skeleton.js';
+export { Spinner } from './Spinner.js';
+export type { SpinnerProps } from './Spinner.js';
+export { Separator } from './Separator.js';
+export type { SeparatorProps } from './Separator.js';
+export { Tooltip, TooltipProvider } from './Tooltip.js';
+export type { TooltipProps } from './Tooltip.js';
+
+export { Textarea } from '../primitives/index.js';
+export type { TextareaProps } from '../primitives/index.js';
 
 /* Toasts: the provider and hook keep their API and now render the rebuilt `/ds` Toast (W4). */
 export { ToastProvider, useToast } from '../ds/Toast.js';

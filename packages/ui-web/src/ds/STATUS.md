@@ -17,12 +17,15 @@ Work packages: `plan/design-system.md` §4.1 on the read-only `claude/redesign-c
 
 | Export | Today | Rebuilt in | Known gaps until rebuilt |
 |---|---|---|---|
-| Icon | adapter | W1 | the 9 extension names (`chevron-down`, `info`, `more` …) render nothing and report `ICON_NAME_UNKNOWN` |
-| Button | adapter | W1 | `critical` is xl with a 72px minimum height; `href` mode as legacy |
-| IconButton | adapter | W1 | — |
-| Badge | missing | W1 | — |
-| Card | legacy | W1 | no `href` |
-| Price | legacy | W1 | no `onDark`, `testId`, `style` |
+| Icon (+ `ICON_NAMES`, `ICON_MAP`) | **rebuilt** | W1 | the 9 extension names and 25 glyphs from #198 are mapped; `move` has no Solar glyph yet |
+| Button | **rebuilt** | W1 | — (adds optional `link` variant, `tone="onChrome"`, `priceCents`) |
+| IconButton | **rebuilt** | W1 | — (adds optional `tone`) |
+| Badge | **rebuilt** | W1 | — |
+| Card | **rebuilt** | W1 | — |
+| Price | **rebuilt** | W1 | — (adds optional `display-lg` size) |
+| KeyValueList (approved) | **rebuilt** | W1 | — |
+| StatCard (approved) | **rebuilt** | W1 | — |
+| `formatTime12h` (the one 12-hour formatter) | **rebuilt** | W1 | — |
 | AppBar | adapter (over `TopBar`) | W2 | `tone`, `large`, `transparent`, `sticky` are accepted and ignored |
 | SideNav | legacy (approved) | W2 | — |
 | Input | adapter | W3 | `otp` is the legacy 6-cell row |
@@ -47,12 +50,13 @@ Work packages: `plan/design-system.md` §4.1 on the read-only `claude/redesign-c
 
 | Export | Today | Rebuilt in |
 |---|---|---|
-| Banner + InlineAlert + HalalBanner (one family with `placement`: Banner defaults to the page bar, InlineAlert to inline; slate tone; halal props exclude danger) | rebuilt | W4 |
 | EmptyState, ErrorState | rebuilt | W4 |
-| Skeleton, Spinner | legacy | W1 |
+| Skeleton, Spinner | **rebuilt** | W1 |
+| Separator | **rebuilt** (new) | W1 |
 | Textarea | legacy | W3 |
-| Tooltip | legacy | W1 |
+| Tooltip (+ TooltipProvider) | **rebuilt** | W1 |
 | ToastProvider, useToast (render the rebuilt `/ds` Toast; `placement`, `position`) | rebuilt | W4 |
+| Banner + InlineAlert + HalalBanner (one family with `placement`: Banner defaults to the page bar, InlineAlert to inline; slate tone; halal props exclude danger) | rebuilt | W4 |
 | ProgressBar | rebuilt (Radix Progress) | W4 |
 | PageAnnouncerProvider, useAnnounce, usePageAnnouncer | rebuilt | W4 |
 | DocumentViewer | legacy | W7b |
