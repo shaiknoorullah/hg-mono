@@ -39,7 +39,7 @@ Work packages: `plan/design-system.md` §4.1 on the read-only `claude/redesign-c
 | HalalBadge, HalalShield | legacy | W5 | — |
 | HalalCertificationPanel | legacy | W5 | no `headingLevel` |
 | HalalChecklist (+ gate helpers) | legacy | W5 | — |
-| DataTable | rebuilt | W6 (LyteNyte) | `role="grid"` named by the caption (`aria-labelledby`), not `<table>`; the row-action and sort glyphs (`more`, `chevron-down`) render once the W1 Icon lands; row actions use a Radix menu in `lib/ui/data-grid` until the W4 `Menu` is wired in |
+| DataTable | rebuilt | W6 (LyteNyte) | `role="grid"` named by the caption (`aria-labelledby`), not `<table>`; the check, minus, sort-chevron and "more" glyphs are CSS-drawn in `lib/ui/data-grid` (today's Icon map lacks them); row actions use a Radix menu in `lib/ui/data-grid` until the W4 `Menu` is wired in |
 | TextCell, IdCell, MoneyCell, TimeCell, DateCell, CountdownCell, StatusCell, HalalStateCell, MeterCell | rebuilt | W6 | StatusCell draws its own tint chip until the W1 `Badge` is used; CountdownCell is the silent text form (the W4 `Countdown` is not used inside cells) |
 | Rating | legacy | — | out of launch scope; do not extend |
 | Sheet, BottomNav | not on web | — | working tasks use DetailPanel; phones only |
