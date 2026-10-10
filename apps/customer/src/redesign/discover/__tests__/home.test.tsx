@@ -375,6 +375,9 @@ describe('Home (D1)', () => {
     await renderHome({ listAddresses: 'addresses_empty', listRestaurants: 'hang' });
     expect(await screen.findByTestId('Home-loading')).toBeTruthy();
     expect(screen.queryByText(/35 Fontenay Court/)).toBeNull();
+    // Unmount before signing out, so the sign-out listener does not drive a mounted Home whose
+    // feed request never answers while the test library cleans up.
+    screen.unmount();
     setToken(null);
   });
 });
