@@ -1,75 +1,53 @@
-# Customer redesign WP5 (#656): item sheet (D9) and cart (C1, CC/Cart-edit-line).
-# Built with EXPO_PUBLIC_HG_REDESIGN=1 against devworld (`make dev-reset`).
-# amina (+15550100101, test code 000000) signs in, then (manifest §6, J8):
-# J8's multi-variant dish is not reachable here: every devworld dish has one variant group (a
-# devworld VariantGroup holds a single group; w0-request filed). Lamb Karahi stands in for it; the
-# multi-group line is covered by the screen tests against the cart_multi_variant_line fixture.
-#   bismillah-grill  b0000000-0000-4000-8000-000000000208  Lamb Karahi: a required ABSOLUTE
-#                    "Portion" group and a required "Spice level" add-on group (min 1)
-#   expiring-halal   b0000000-0000-4000-8000-000000000209  a second restaurant: "Start a new cart?"
-# then the cart: quantity, remove with Undo, clear with its confirm.
+# Customer redesign WP5 (#656), CI: item sheet (D9) and cart (C1) for the seeded world. Amina is
+# still signed in from 1-sign-in.yaml, in the same app process. DISH at RESTAURANT has no options, so the sheet adds it
+# straight away; the cart is priced for her default address, then cleared again so nothing is
+# left for the flows after this one. Options, the 20 cap and "Start a new cart?" need devworld's
+# menus: devworld/5-item-cart.yaml.
+# Env: RESTAURANT, DISH.
 appId: com.halalgoes.customer.dev
 name: customer redesign, item sheet and cart
-env:
-  PHONE: "+15550100101"
-  CODE: "000000"
 ---
+# The legacy rider app, left online by the cross-app flow, opens its offer screen over this app
+# when an offer re-waves; stopped, it stays out of the way.
+- stopApp: com.halalgoes.rider.dev
+# The app holds its session in memory only (src/api/token.ts), so a relaunch signs out: bring the
+# running app back without restarting it, then step back to Home if a flow left it deeper.
 - launchApp:
-    clearState: true
-    permissions:
-      all: allow
+    stopApp: false
+- repeat:
+    while:
+      notVisible:
+        id: "Home-title"
+    times: 4
+    commands:
+      - tapOn:
+          id: "AppBar-back"
+          optional: true
 - extendedWaitUntil:
-    visible: "Sign in"
+    visible:
+      id: "Home-title"
     timeout: 90000
-- tapOn:
-    below: "Phone number .*"
-    above: "Send code"
-- inputText: ${PHONE}
-- tapOn: "Send code"
-- extendedWaitUntil:
-    visible: "Enter the code sent to.*"
-    timeout: 30000
-- tapOn:
-    below: "Enter the code sent to.*"
-    above: "Verify"
-- inputText: ${CODE}
-- tapOn: "Verify"
-- extendedWaitUntil:
-    visible: "Account"
-    timeout: 30000
-
-# D9: a dish with a required size (ABSOLUTE, default chosen) and a required add-on group.
-- openLink: "hgcustomer://restaurant/b0000000-0000-4000-8000-000000000208"
-- extendedWaitUntil:
-    visible: "Bismillah Grill"
-    timeout: 30000
 - scrollUntilVisible:
-    element: "Lamb Karahi.*"
+    element: ${RESTAURANT}
     direction: DOWN
     timeout: 20000
-- tapOn: "Lamb Karahi.*"
+- tapOn: ${RESTAURANT}
 - extendedWaitUntil:
-    visible: "Portion \\(required\\).*"
-    timeout: 15000
-- assertVisible: "Allergens"
-- takeScreenshot: redesign-wp5-01-item-ready
+    visible: "View certification"
+    timeout: 30000
+
+# D9: the dish's sheet, then add one.
 - scrollUntilVisible:
-    element: "Choose at least 1 spice level to add this to your cart"
+    element: "${DISH}.*"
     direction: DOWN
-    timeout: 10000
-- takeScreenshot: redesign-wp5-02-item-required-addon
-- tapOn: "Medium"
-- assertVisible: "0/140"
-# J8: the quantity goes to 20 and stops there.
-- repeat:
-    times: 19
-    commands:
-      - tapOn: "Increase quantity"
-- assertVisible: "Maximum 20"
-- assertVisible: "Add 20 to cart"
-- takeScreenshot: redesign-wp5-03-item-options-chosen
-- tapOn: "Add 20 to cart"
-# A cart left from another restaurant asks first; start a new one.
+    timeout: 20000
+- tapOn: "${DISH}.*"
+- extendedWaitUntil:
+    visible: "Add to cart"
+    timeout: 15000
+- takeScreenshot: redesign-wp5-01-item-ready
+- tapOn: "Add to cart"
+# A cart left from an earlier run or flow asks first; start a new one.
 - runFlow:
     when:
       visible: "Start a new cart\\?"
@@ -78,41 +56,10 @@ env:
 - extendedWaitUntil:
     visible: "Added to your cart"
     timeout: 15000
-- assertVisible: "View cart · 20 items · .*"
+- assertVisible: "View cart · 1 item · .*"
 - takeScreenshot: redesign-wp5-04-item-added
 
-# A second restaurant: "Start a new cart?" names the cart; Keep my cart keeps it.
-- openLink: "hgcustomer://restaurant/b0000000-0000-4000-8000-000000000209"
-- extendedWaitUntil:
-    visible: "Bamyan Kebab House"
-    timeout: 30000
-- scrollUntilVisible:
-    element: "Lentil Soup.*"
-    direction: DOWN
-    timeout: 20000
-- tapOn: "Lentil Soup.*"
-- extendedWaitUntil:
-    visible: "Add to cart"
-    timeout: 15000
-- tapOn: "Add to cart"
-- extendedWaitUntil:
-    visible: "Start a new cart\\?"
-    timeout: 15000
-- assertVisible: "Your cart has 20 items from Bismillah Grill.*"
-- takeScreenshot: redesign-wp5-05-different-restaurant
-- tapOn: "Keep my cart"
-- assertVisible: "Add to cart"
-- tapOn: "Add to cart"
-- extendedWaitUntil:
-    visible: "Start a new cart\\?"
-    timeout: 15000
-- tapOn: "Start a new cart"
-- extendedWaitUntil:
-    visible: "Added to your cart"
-    timeout: 15000
-- assertVisible: "View cart · 1 item · .*"
-
-# C1: the cart, priced for amina's address (same rows as checkout).
+# C1: the cart, priced by the server for her address.
 - tapOn: "View cart.*"
 - extendedWaitUntil:
     visible: "Your cart"
@@ -123,27 +70,12 @@ env:
 - assertVisible: "Service fee"
 - assertVisible: "Go to checkout"
 - takeScreenshot: redesign-wp5-06-cart-priced
-# At 1 the minus is Remove; Undo puts the same line back.
-- tapOn: "Remove Lentil Soup"
-- extendedWaitUntil:
-    visible: "Removed Lentil Soup"
-    timeout: 15000
-- takeScreenshot: redesign-wp5-07-cart-removed-undo
-- tapOn: "Undo"
-- extendedWaitUntil:
-    visible: "Lentil Soup"
-    timeout: 15000
-- tapOn: "Increase quantity"
-- extendedWaitUntil:
-    visible: "Total"
-    timeout: 30000
-- takeScreenshot: redesign-wp5-08-cart-quantity
+
 # Clear cart asks first.
 - tapOn: "Clear cart"
 - extendedWaitUntil:
     visible: "Clear your cart\\?"
     timeout: 10000
-- takeScreenshot: redesign-wp5-09-cart-clear-confirm
 - tapOn:
     text: "Clear cart"
     index: 1
@@ -151,3 +83,12 @@ env:
     visible: "Your cart is empty"
     timeout: 15000
 - takeScreenshot: redesign-wp5-10-cart-empty
+# Back to Home for the flows after this one (the app's own back; Android's Back would leave it).
+- repeat:
+    while:
+      notVisible:
+        id: "Home-title"
+    times: 4
+    commands:
+      - tapOn:
+          id: "AppBar-back"

@@ -5,7 +5,7 @@ api: devworld
 # Build the dev APK from this branch with EXPO_PUBLIC_HG_REDESIGN=1. Run the flow with
 # `-e CERT_LINK_EXPIRED_ONCE=true` once devworld can refuse the first certificate link (w0-request).
 setup: [ "make dev-reset" ]
-flows: [ "tools/e2e/native/customer/redesign/4-restaurant.yaml" ]
+flows: [ "tools/e2e/native/customer/redesign/devworld/4-restaurant.yaml" ]
 reality:
   - theme: dark
   - font-scale: 2.0

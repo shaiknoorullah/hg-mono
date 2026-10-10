@@ -1,17 +1,17 @@
-# Customer redesign WP1 (#656), CI, journey J2: a new customer's first run. The stack runs with
-# HG_ENV=local, so the reserved number +1 555 010 0141 takes the fixed test code 000000 and needs no
-# code from the log. It has no account in the seeded world: verifyOtp creates one and answers
-# PROFILE_CAPTURE, so Your details comes first, then (no address) the address step, then Home.
-# It runs before 1-sign-in.yaml (name order), which clears its session and signs Amina in.
+# Devworld only: the device lab runs this through its mission (missions/). CI runs the flows directly
+# under redesign/, which sign in the seeded world once (see 1-sign-in.yaml there).
+# Customer redesign WP1 (#656), journey J2: a new customer's first run. Built with
+# EXPO_PUBLIC_HG_REDESIGN=1, against devworld right after `make dev-reset`.
+# NEW_PHONE is a reserved dev number (+1 555 010 01NN accepts the test code 000000) that has no
+# account yet, so verifyOtp creates one and answers next_route PROFILE_CAPTURE: Your details, then
+# (no default address) the address step, then "Not now" lands on Home.
+# Needs a reserved phone with no account in the seed (w0-request); 0141 is unused by the personas.
 appId: com.halalgoes.customer.dev
 name: customer redesign, first run (Your details, address step)
 env:
   NEW_PHONE: "5550100141"
-  TEST_CODE: "000000"
+  CODE: "000000"
 ---
-# The legacy rider app, left online by the cross-app flow, opens its offer screen over this app
-# when an offer re-waves; stopped, it stays out of the way.
-- stopApp: com.halalgoes.rider.dev
 - launchApp:
     clearState: true
     permissions:
@@ -29,7 +29,7 @@ env:
     timeout: 30000
 - tapOn:
     id: "Code-input-cell-0"
-- inputText: ${TEST_CODE}
+- inputText: ${CODE}
 - hideKeyboard
 - tapOn: "Verify and continue"
 
@@ -39,20 +39,16 @@ env:
     timeout: 30000
 - assertNotVisible: "Account"
 - takeScreenshot: redesign-wp1-10-your-details
-# Empty the field first: until #774 the screen fills in the server's placeholder name.
-- tapOn:
-    id: "Profile-first-field"
-- eraseText: 30
-- hideKeyboard
 - tapOn: "Save and continue"
 - assertVisible: ".*Enter your first name\\..*"
+- takeScreenshot: redesign-wp1-11-your-details-validation
 - tapOn:
     id: "Profile-first-field"
 - inputText: "Maryam"
 - hideKeyboard
 - tapOn: "Save and continue"
 
-# S4 address step (no default address), then Home without one.
+# S4 address step (no default address).
 - extendedWaitUntil:
     visible: "Where should we deliver?"
     timeout: 30000

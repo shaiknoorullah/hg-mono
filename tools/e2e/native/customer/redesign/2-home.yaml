@@ -1,102 +1,74 @@
-# Customer redesign WP2 (#656): Home, the address switcher and How we check (manifest D1, D2, D8).
-# Built with EXPO_PUBLIC_HG_REDESIGN=1 against devworld. amina (test code 000000) signs in and lands
-# on Home for her default address, Home · 1250 Danforth Avenue. She sees bismillah-grill
-# ("Bismillah Grill") and expiring-halal ("Bamyan Kebab House", with its dated "expires" badge),
-# never expired-halal ("Devworld Expired"). Until WP1 merges, sign-in is the legacy screen.
-# Switching to a far address ("nothing in range") needs amina's out-of-range "Cottage" address in
-# the devworld seed (w0-request); until it lands, the mission's explore step (3) adds one by hand.
+# Customer redesign WP2 (#656), CI: Home, the address switcher and How we check (manifest D1, D2,
+# D8) for the seeded world. Amina is still signed in from 1-sign-in.yaml, in the same app process. Her default address is
+# Home · 1 Dundas St W; RESTAURANT (certified) is listed and EXPIRED_RESTAURANT (certificate
+# expired) never is. Her order from the legacy flow may still be active, so Home can carry it.
+# The device lab's version, with devworld's restaurants, is devworld/2-home.yaml.
+# Env: RESTAURANT, EXPIRED_RESTAURANT.
 appId: com.halalgoes.customer.dev
 name: customer redesign, Home, address switcher and How we check
-env:
-  PHONE: "+15550100101"
-  CODE: "000000"
 ---
+# The legacy rider app, left online by the cross-app flow, opens its offer screen over this app
+# when an offer re-waves; stopped, it stays out of the way.
+- stopApp: com.halalgoes.rider.dev
+# The app holds its session in memory only (src/api/token.ts), so a relaunch signs out: bring the
+# running app back without restarting it, then step back to Home if a flow left it deeper.
 - launchApp:
-    clearState: true
-    permissions:
-      all: allow
+    stopApp: false
+- repeat:
+    while:
+      notVisible:
+        id: "Home-title"
+    times: 4
+    commands:
+      - tapOn:
+          id: "AppBar-back"
+          optional: true
 - extendedWaitUntil:
-    visible: "Sign in"
+    visible:
+      id: "Home-title"
     timeout: 90000
-- tapOn:
-    below: "Phone number .*"
-    above: "Send code"
-- inputText: ${PHONE}
-- tapOn: "Send code"
-- extendedWaitUntil:
-    visible: "Enter the code sent to.*"
-    timeout: 30000
-- tapOn:
-    below: "Enter the code sent to.*"
-    above: "Verify"
-- inputText: ${CODE}
-- tapOn: "Verify"
 
-# D1 Home, populated
-- extendedWaitUntil:
-    visible: "Open now, closest first"
-    timeout: 30000
+# D1 Home, populated: the certified restaurant, never the expired one.
 - assertVisible: "Deliver to"
-- assertVisible: "Home · 1250 Danforth Avenue"
-- assertVisible: "Quickest delivery"
-- assertVisible: "How we check halal certificates"
-- assertVisible: "Bismillah Grill"
+- assertVisible: "Home · 1 Dundas St W"
+- scrollUntilVisible:
+    element: ${RESTAURANT}
+    direction: DOWN
+    timeout: 20000
+- assertNotVisible: ${EXPIRED_RESTAURANT}
 - takeScreenshot: redesign-wp2-01-home
 - scrollUntilVisible:
-    element: "All restaurants"
-    direction: DOWN
-    timeout: 20000
-- scrollUntilVisible:
-    element: "Bamyan Kebab House"
-    direction: DOWN
-    timeout: 20000
-- assertVisible: "expires .*"
-- assertNotVisible: "Devworld Expired"
-- takeScreenshot: redesign-wp2-02-list-expiring
-- scrollUntilVisible:
-    element: "See all restaurants"
-    direction: DOWN
-    timeout: 20000
-- assertNotVisible: "Devworld Expired"
-- takeScreenshot: redesign-wp2-03-list-end
-- scrollUntilVisible:
-    element: "How we check halal certificates"
+    element:
+      id: "Home-howWeCheck"
     direction: UP
     timeout: 20000
 
 # D8 How we check
-- tapOn: "How we check halal certificates"
+- tapOn:
+    id: "Home-howWeCheck"
 - extendedWaitUntil:
     visible: "What we check"
     timeout: 10000
-- assertVisible: "How we check"
 - assertVisible: "All seven must pass.*"
 - takeScreenshot: redesign-wp2-04-how-we-check
-- back
+# The page's own back: Android's Back on a pushed page leaves the app until #783.
+- tapOn:
+    id: "AppBar-back"
 - extendedWaitUntil:
-    visible: "Open now, closest first"
+    visible:
+      id: "Home-title"
     timeout: 10000
 
 # D2 Address switcher: session-only, never changes the default. Change is a word in the bar.
-- assertVisible:
+- tapOn:
     id: "Home-changeAddress"
-    text: "Change"
-- tapOn: "Change"
 - extendedWaitUntil:
-    visible: "Home \\(default\\) · 1250 Danforth Avenue"
+    visible: "Home \\(default\\) · 1 Dundas St W"
     timeout: 10000
 - assertVisible: "This changes where we deliver and which restaurants you see. Your default address stays the same."
 - assertVisible: "Add address"
 - takeScreenshot: redesign-wp2-05-switcher
-- tapOn: "Home \\(default\\) · 1250 Danforth Avenue"
+- tapOn: "Home \\(default\\) · 1 Dundas St W"
 - extendedWaitUntil:
     notVisible: "Add address"
-    timeout: 10000
-
-# A card opens its restaurant (legacy restaurant screen until WP4 merges)
-- tapOn: "Bismillah Grill"
-- takeScreenshot: redesign-wp2-06-restaurant
-- back
-- extendedWaitUntil:
-    visible: "Open now, closest first"
     timeout: 10000

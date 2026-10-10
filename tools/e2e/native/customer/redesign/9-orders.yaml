@@ -1,85 +1,40 @@
-# Customer redesign WP9 (#656): Orders history and receipt (manifest T9, T10; journey J18).
-# Built with EXPO_PUBLIC_HG_REDESIGN=1 against devworld. The mission's setup completes one delivery
-# for amina (`make dev-journey route=short speed=4x auto=all`) and runs `restaurant-rejected`, so her
-# history holds a Completed order and a Not accepted one. amina (test code 000000) signs in, opens
-# Orders, sees the completed order under Past orders, opens its row menu (View receipt and Get help with this order;
-# no Order again, no Rate) and reads the receipt. Until WP1 merges, sign-in is the legacy screen.
+# Customer redesign WP9 (#656), CI: the Orders tab (manifest T9) for the seeded world. Amina is
+# still signed in from 1-sign-in.yaml, in the same app process. Her order from the legacy flow is still active (accepted,
+# readied, offered to the rider), so Active orders lists it from RESTAURANT; if that flow placed
+# nothing, the tab says so. Past orders, the row menu and the receipt need a finished delivery:
+# devworld/9-orders.yaml, where the mission completes one first.
+# Env: RESTAURANT.
 appId: com.halalgoes.customer.dev
-name: customer redesign, Orders history and receipt
-env:
-  PHONE: "+15550100101"
-  CODE: "000000"
+name: customer redesign, Orders tab
 ---
+# The legacy rider app, left online by the cross-app flow, opens its offer screen over this app
+# when an offer re-waves; stopped, it stays out of the way.
+- stopApp: com.halalgoes.rider.dev
+# The app holds its session in memory only (src/api/token.ts), so a relaunch signs out: bring the
+# running app back without restarting it, then step back to Home if a flow left it deeper.
 - launchApp:
-    clearState: true
-    permissions:
-      all: allow
-- extendedWaitUntil:
-    visible: "Sign in"
-    timeout: 90000
-- tapOn:
-    below: "Phone number .*"
-    above: "Send code"
-- inputText: ${PHONE}
-- tapOn: "Send code"
-- extendedWaitUntil:
-    visible: "Enter the code sent to.*"
-    timeout: 30000
-- tapOn:
-    below: "Enter the code sent to.*"
-    above: "Verify"
-- inputText: ${CODE}
-- tapOn: "Verify"
+    stopApp: false
+- repeat:
+    while:
+      notVisible:
+        id: "Home-title"
+    times: 4
+    commands:
+      - tapOn:
+          id: "AppBar-back"
+          optional: true
 - extendedWaitUntil:
     visible: "Account"
-    timeout: 30000
-
-# T9 Orders: Past orders lists the completed delivery and the rejected order.
+    timeout: 90000
 - tapOn: "Orders"
 - extendedWaitUntil:
-    visible: "Past orders"
+    visible: "(Active orders|Past orders|No orders yet)"
     timeout: 30000
-- assertVisible: "Completed"
-- assertVisible: ".*items · .*"
+- runFlow:
+    when:
+      visible: "Active orders"
+    commands:
+      - assertVisible: ".*${RESTAURANT}.*"
 - assertNotVisible: "Order again"
 - assertNotVisible: "Rate"
 - takeScreenshot: redesign-wp9-01-orders
-- runFlow:
-    when:
-      visible: "Not accepted"
-    commands:
-      - assertVisible: "Not charged"
-- takeScreenshot: redesign-wp9-02-orders-money
-
-# The completed order's row menu: View receipt and Get help only.
-- tapOn:
-    id: "OrderRow-.*-menu"
-    below: "Completed"
-- extendedWaitUntil:
-    visible: "View receipt"
-    timeout: 10000
-- assertVisible: "Get help with this order"
-- assertNotVisible: "Order again"
-- takeScreenshot: redesign-wp9-03-row-menu
-- tapOn: "View receipt"
-
-# T10 Receipt: the frozen snapshot, charged, no download or share.
-- extendedWaitUntil:
-    visible: "Receipt number"
-    timeout: 30000
-- assertVisible: "Items subtotal"
-- assertVisible: "Service fee"
-- assertVisible: "Total"
-- assertVisible: ".*, charged"
-- assertNotVisible: "Download"
-- assertNotVisible: "Share"
-- takeScreenshot: redesign-wp9-04-receipt
-- scrollUntilVisible:
-    element: "Get help"
-    direction: DOWN
-- takeScreenshot: redesign-wp9-05-receipt-end
-- back
-- extendedWaitUntil:
-    visible: "Past orders"
-    timeout: 10000
-- takeScreenshot: redesign-wp9-06-back-to-orders
