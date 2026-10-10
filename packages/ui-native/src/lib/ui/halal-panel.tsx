@@ -22,8 +22,11 @@ import { cn } from '../utils';
 import { HalalShieldMark } from './halal-shield';
 import { Text } from './text';
 
-/** The two panel tints: certified (also expiring) and expired. */
-export type HalalPanelTone = 'certified' | 'expired';
+/**
+ * The panel tints: certified (also expiring), expired, and neutral for loading and error, which
+ * make no halal claim while nothing has been verified (invariant 8: silence is never consent).
+ */
+export type HalalPanelTone = 'certified' | 'expired' | 'neutral';
 
 const FRAME: Record<HalalPanelTone, { frame: string; heading: string }> = {
   certified: {
@@ -34,6 +37,10 @@ const FRAME: Record<HalalPanelTone, { frame: string; heading: string }> = {
   expired: {
     frame: 'border-halal-expired-border bg-halal-expired-tint dark:border-halal-expired-tintDark dark:bg-halal-expired-tintDark',
     heading: 'text-halal-expired-text dark:text-halal-expired-textDark',
+  },
+  neutral: {
+    frame: 'border-border bg-muted',
+    heading: 'text-foreground',
   },
 };
 

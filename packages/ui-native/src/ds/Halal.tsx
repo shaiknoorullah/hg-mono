@@ -176,7 +176,7 @@ export function HalalCertificationPanel(props: HalalCertificationPanelProps) {
     if (missing) reportClientError('CERTIFICATION_PANEL_STATE_MISSING', { restaurantId, state: String(state) });
   }, [missing, restaurantId, state]);
 
-  const frame = (tone: 'certified' | 'expired', busy: boolean, children: React.ReactNode) => (
+  const frame = (tone: 'certified' | 'expired' | 'neutral', busy: boolean, children: React.ReactNode) => (
     <HalalPanelFrame
       tone={tone}
       heading={HALAL_PANEL_COPY.heading}
@@ -196,8 +196,9 @@ export function HalalCertificationPanel(props: HalalCertificationPanelProps) {
   );
 
   if (props.status === 'loading') {
+    // Neutral, not the certified tint: nothing is verified yet, so the frame makes no claim.
     return frame(
-      'certified',
+      'neutral',
       true,
       <>
         {/* The seal's slot at full lg size: never a spinner where the seal will be. */}
@@ -211,9 +212,9 @@ export function HalalCertificationPanel(props: HalalCertificationPanelProps) {
     );
   }
   if (props.status === 'error') {
-    // The panel stays and draws no seal: no cached or defaulted state is trusted.
+    // The panel stays, neutral, and draws no seal: no cached or defaulted state is trusted.
     return frame(
-      'certified',
+      'neutral',
       false,
       <>
         <Text testID={`${testID}-error`} accessibilityRole="alert" variant="body.md">

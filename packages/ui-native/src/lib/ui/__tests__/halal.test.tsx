@@ -18,6 +18,7 @@ import { themes, tokens } from '../../../tokens';
 import type { ColorScheme, ThemeName } from '../../../tokens';
 import type { CertificationPanel } from '../../../ds/Halal';
 import { SCHEMES, flat, hex, loadThemeCss, paintedColours, renderNw } from './harness';
+import { formatLongDate, formatShortDate } from '../../halal-dates';
 
 const { HalalBadge, HalalCertificationPanel } = ds;
 const { RestaurantHalalStatus } = proposed;
@@ -392,6 +393,45 @@ describe('HalalCertificationPanel', () => {
     expect(screen.queryByTestId('HalalCertificationPanel-badge', { includeHiddenElements: true })).toBeNull();
     fireEvent.press(screen.getByRole('button', { name: 'Retry' }));
     expect(onRetry).toHaveBeenCalledTimes(1);
+  });
+
+  it('loading and error sit on a neutral frame, never a halal tint', () => {
+    const tints = [halal.certified.tint, halal.certified.tintDark, halal.expired.tint, halal.expired.tintDark].map(hex);
+    for (const status of ['loading', 'error'] as const) {
+      renderNw(<HalalCertificationPanel restaurantId="r1" status={status} onRetry={() => {}} />);
+      const bg = hex(flat(screen.getByTestId('HalalCertificationPanel')).backgroundColor);
+      expect(bg).toBeTruthy();
+      expect(tints).not.toContain(bg);
+    }
+  });
+
+  it('prints a verified_at date-time as its day in Toronto', () => {
+    renderNw(
+      <HalalCertificationPanel
+        restaurantId="r1"
+        certification={{ ...PANEL, verified_at: '2026-10-01T21:00:00-04:00' }}
+      />,
+    );
+    expect(screen.getByText(/1 October 2026/)).toBeTruthy();
+    expect(screen.queryByText(/2 October 2026/)).toBeNull();
+  });
+});
+
+describe('halal dates', () => {
+  it('date-times print the Toronto day across both daylight-saving edges; date-only values print as written', () => {
+    expect(formatLongDate('2026-10-01T21:00:00-04:00')).toBe('1 October 2026');
+    expect(formatLongDate('2026-10-02T01:00:00Z')).toBe('1 October 2026');
+    // 2026-03-08 07:00Z is 03:00 EDT; a minute earlier is 01:59 EST.
+    expect(formatLongDate('2026-03-08T06:59:00Z')).toBe('8 March 2026');
+    expect(formatLongDate('2026-03-08T04:30:00Z')).toBe('7 March 2026');
+    // 2026-11-01 06:00Z is 01:00 EST; 04:30Z is 00:30 EDT the same day, 03:30Z is 23:30 EDT the day before.
+    expect(formatLongDate('2026-11-01T04:30:00Z')).toBe('1 November 2026');
+    expect(formatLongDate('2026-11-01T03:30:00Z')).toBe('31 October 2026');
+    expect(formatLongDate('2026-01-15T04:59:00Z')).toBe('14 January 2026');
+    expect(formatShortDate('2026-10-14')).toBe('14 Oct');
+    expect(formatLongDate('2026-10-14')).toBe('14 October 2026');
+    expect(formatLongDate('2026-02-30')).toBeNull();
+    expect(formatLongDate('not a date')).toBeNull();
   });
 });
 
