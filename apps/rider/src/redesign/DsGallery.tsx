@@ -15,6 +15,9 @@
  * N5 adds the feedback family from `@hg/ui-native/proposed` (Banner, InlineAlert in every tone
  * including the halal slate, ErrorState, EmptyState, loading and status indicators), so each
  * can be seen in both schemes.
+ * N6 adds lists and content (`ListsSection`): ListRow in every state, QueuedStepRow, Disclosure,
+ * FilterChipGroup, JumpLinks, the `/ds` Menu, MediaFrame, the compact restaurant card and its
+ * skeleton, MenuItemCard out of stock, and the rider composites.
  */
 import * as React from 'react';
 import { ScrollView, View } from 'react-native';
@@ -107,6 +110,95 @@ function CoreSection(): React.ReactElement {
   );
 }
 
+const RESTAURANT = {
+  id: 'r-gallery',
+  name: 'Zaytoun Grill',
+  cuisines: ['Lebanese', 'Grill'],
+  availability: { state: 'OPEN', distance_m: 1200, eta_min_minutes: 25, eta_max_minutes: 35, indicative_delivery_fee_cents: 299 },
+  halal: { display_state: 'EXPIRING_SOON', certifying_body_name: 'HMA Canada', expires_on: '2026-10-20' },
+} as unknown as React.ComponentProps<typeof proposed.RestaurantCardCompact>['restaurant'];
+
+const MENU_ITEM = {
+  id: 'm-gallery',
+  name: 'Chicken shawarma plate',
+  description: 'Garlic sauce, pickles, rice.',
+  price_cents: 1599,
+  currency: 'CAD',
+  availability_state: 'OUT_OF_STOCK',
+  tax_category: 'PREPARED_FOOD',
+  allergen_tags: ['SESAME'],
+} as unknown as React.ComponentProps<typeof proposed.MenuItemCard>['item'];
+
+/** The N6 lists and content parts, in the states the canvases draw. */
+function ListsSection(): React.ReactElement {
+  const [filters, setFilters] = React.useState<string[]>(['open']);
+  const [notify, setNotify] = React.useState(true);
+  const [section, setSection] = React.useState('grills');
+  return (
+    <View className="gap-3">
+      <proposed.Text variant="heading.md">Lists and content (N6)</proposed.Text>
+      <View className="rounded-lg bg-card">
+        <proposed.ListRow title="Your details" subline="Name, phone, time zone" icon="profile" height={72} onPress={() => {}} />
+        <proposed.ListRow title="Vehicle" value="Scooter" icon="map" height={72} selected onPress={() => {}} />
+        <proposed.ListRow title="Offer sounds" switchValue={notify} onValueChange={setNotify} height={72} />
+        <proposed.ListRow title="Payouts" disabled disabledReason="Finish your documents first" height={72} onPress={() => {}} />
+        <proposed.ListRow title="Sign out" destructive height={72} onPress={() => {}} />
+      </View>
+      <proposed.QueuedStepRow step="On my way" time="9:31 pm" />
+      <proposed.Disclosure title="For support" summary="Stripe details">
+        <proposed.Text>Copy details for support.</proposed.Text>
+      </proposed.Disclosure>
+      <proposed.FilterChipGroup
+        label="Filters"
+        options={[
+          { value: 'open', label: 'Open now' },
+          { value: 'veg', label: 'Vegetarian', count: 12 },
+          { value: 'fee', label: 'Free delivery' },
+        ]}
+        value={filters}
+        onValueChange={setFilters}
+      />
+      <proposed.JumpLinks
+        label="Menu sections"
+        links={[
+          { key: 'grills', label: 'Grills' },
+          { key: 'wraps', label: 'Wraps' },
+          { key: 'drinks', label: 'Drinks' },
+        ]}
+        current={section}
+        onSelect={setSection}
+      />
+      <View className="flex-row items-center gap-3">
+        <ds.Menu
+          label="Actions for order HG-10482"
+          align="start"
+          items={[
+            { key: 'open', label: 'Open order' },
+            { key: 'refund', label: 'Issue refund', disabled: true, disabledReason: 'Already refunded' },
+            { type: 'separator' },
+            { key: 'cancel', label: 'Cancel order', destructive: true },
+          ]}
+        />
+        <ds.Menu label="Sort restaurants" triggerText="Sort" triggerVariant="tonal" items={[{ label: 'Nearest' }, { label: 'Fastest' }]} />
+      </View>
+      <proposed.MediaFrame ratio={16 / 9} />
+      <proposed.RestaurantCardCompact restaurant={RESTAURANT} onPress={() => {}} />
+      <proposed.RestaurantCardCompact restaurant={RESTAURANT} loading />
+      <proposed.MenuItemCard item={MENU_ITEM} onPress={() => {}} onAdd={() => {}} />
+      <proposed.MessagePreview from="Zaytoun Grill" time="9:41 pm" body="Two more minutes on the grill. Sorry for the wait." onSeeAll={() => {}} />
+      <proposed.FoodStatusPanel status="Preparing" detail="You've waited 21 min" />
+      <proposed.ActionList
+        label="Why are you declining?"
+        actions={[
+          { key: 'far', label: 'Too far', onPress: () => {} },
+          { key: 'busy', label: 'Too busy right now', onPress: () => {} },
+        ]}
+      />
+      <proposed.ActiveDeliveryBar label="Go to Zaytoun Grill" detail="12 Queen St W" onResume={() => {}} />
+    </View>
+  );
+}
+
 /** The gallery screen: every Button variant and size, swatches, a scheme toggle, a portal demo. */
 export function DsGallery({
   scheme,
@@ -129,6 +221,8 @@ export function DsGallery({
       </Text>
 
       <CoreSection />
+
+      <ListsSection />
 
       {VARIANTS.map((variant) => (
         <Button key={variant} variant={variant} accessibilityLabel={`${variant} button`}>

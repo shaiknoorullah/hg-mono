@@ -10,7 +10,7 @@ import { StyleSheet } from 'react-native';
 import { act } from '@testing-library/react-native';
 
 import { renderThemed } from '../../../primitives/__tests__/harness';
-import type { ColorScheme, ThemeName } from '../../../tokens';
+import { themes, tokens, type ColorScheme, type ThemeName } from '../../../tokens';
 
 const interop = require('react-native-css-interop/test') as {
   resetData: () => void;
@@ -22,7 +22,7 @@ const { cssToReactNativeRuntime } = require('react-native-css-interop/dist/css-t
   cssToReactNativeRuntime: (css: string, options: object) => unknown;
 };
 const { compileThemeCss } = require('../../../../jest.nativewind.cjs') as {
-  compileThemeCss: (theme: ThemeName) => Promise<{ css: string; options: object }>;
+  compileThemeCss: (theme: ThemeName, content?: string[]) => Promise<{ css: string; options: object }>;
 };
 
 const compiled: Partial<Record<ThemeName, unknown>> = {};
@@ -31,6 +31,17 @@ const compiled: Partial<Record<ThemeName, unknown>> = {};
 export async function loadThemeCss(): Promise<void> {
   for (const theme of ['customer', 'rider'] as const) {
     const { css, options } = await compileThemeCss(theme);
+    compiled[theme] = cssToReactNativeRuntime(css, options);
+  }
+}
+
+/**
+ * `loadThemeCss` over a wider scan: also the files that pass classes into `lib/` (the `/ds` and
+ * `/proposed` composites), as an app's Tailwind config scans the whole package.
+ */
+export async function loadThemeCssFor(content: string[]): Promise<void> {
+  for (const theme of ['customer', 'rider'] as const) {
+    const { css, options } = await compileThemeCss(theme, content);
     compiled[theme] = cssToReactNativeRuntime(css, options);
   }
 }
@@ -53,6 +64,30 @@ export function renderNw(
   interop.injectData(compiled[theme]);
   act(() => colorScheme.set(scheme));
   return renderThemed(ui, { theme, scheme });
+}
+
+/** Every danger colour of one theme × scheme (the feedback danger roles and the danger action). */
+export function dangerSet(theme: ThemeName, scheme: ColorScheme): Set<string> {
+  const c = themes[theme][scheme].color;
+  const d = c.feedback.danger as Record<string, string | null | undefined>;
+  // `onSolid` is the white label on a danger fill, not a danger colour itself.
+  const values = Object.entries(d)
+    .filter(([k, v]) => k !== 'onSolid' && typeof v === 'string')
+    .map(([, v]) => hex(v));
+  return new Set([...values, hex(c.action.danger)]);
+}
+
+/** The halal seal's green: it may appear only inside a `HalalBadge` for CERTIFIED. */
+export const SEAL_GREEN = tokens.color.halal.certified.seal.toUpperCase();
+/** The seal's green in each scheme (dark draws `sealDark`). */
+export const sealGreen = (scheme: ColorScheme) =>
+  (scheme === 'dark' ? tokens.color.halal.certified.sealDark : tokens.color.halal.certified.seal).toUpperCase();
+
+/** One `--hg-*` value of a theme × scheme, read from the generated stylesheet (roles not in `themes`). */
+export function cssVar(theme: ThemeName, scheme: ColorScheme, name: string): string | undefined {
+  const css = require('node:fs').readFileSync(`${__dirname}/../../../tokens/generated/global.${theme}.css`, 'utf8') as string;
+  const block = css.split(/\.dark:root\s*\{/)[scheme === 'dark' ? 1 : 0] ?? '';
+  return new RegExp(`${name}:\\s*(#[0-9A-Fa-f]+);`).exec(block)?.[1]?.toUpperCase();
 }
 
 /** Flattened style of a rendered node. */
