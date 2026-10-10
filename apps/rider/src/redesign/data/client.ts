@@ -55,8 +55,8 @@ export function trackedFetchWithin(timeoutMs: number): (input: Request) => Promi
     const deadline = new Promise<never>((_, reject) => {
       timer = setTimeout(() => {
         const err = new RequestTimeoutError(timeoutMs);
+        reject(err); // first, so the race settles with this error, not the fetch's AbortError
         controller.abort(err);
-        reject(err);
       }, timeoutMs);
     });
     try {

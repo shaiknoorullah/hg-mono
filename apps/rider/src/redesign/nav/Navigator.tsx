@@ -80,9 +80,10 @@ export function Navigator({ initialTab = 'home', initialFlow = null, children }:
   );
   // The latest state, updated synchronously by every action (not only on re-render), so two
   // calls in the same frame see each other: a second Back tap before React re-renders reads the
-  // stack the first tap left, not the one this render was built from.
+  // stack the first tap left, not the one this render was built from. Only `commit` writes it
+  // (it is the only caller of `setState`), never a render: a render can carry an older state
+  // than the ref while an update is still pending, and must not wind the ref back.
   const stateRef = React.useRef(state);
-  stateRef.current = state;
   const commit = React.useCallback((fn: (s: State) => State) => {
     const next = fn(stateRef.current);
     stateRef.current = next;
