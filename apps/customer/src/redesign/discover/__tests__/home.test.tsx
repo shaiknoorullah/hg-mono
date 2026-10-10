@@ -9,6 +9,7 @@ import { act, fireEvent, screen, waitFor, within } from '@testing-library/react-
 
 import { isAuthed, setToken } from '../../../api/token';
 import { setApiFetch } from '../../api/client';
+import { spokenPrice } from '../../ds';
 import { resetConnectivity } from '../../lib/connectivity';
 import { setNowOverride } from '../../lib/now';
 import { formatTime } from '../../lib/time';
@@ -155,10 +156,14 @@ describe('Home (D1)', () => {
   });
 
   it('shows the View cart bar while the cart has items, and opens the cart', async () => {
+    // The amounts come from the fixture, so a regenerated fixture set does not break this test.
+    const cart = payloadOf<{ item_count: number; indicative_subtotal_cents: number }>('cart_many_lines');
     const nav = await renderHome({ getCart: 'cart_many_lines' });
     const bar = await screen.findByTestId('Home-cartBar');
-    expect(within(bar).getByText('View cart · 11 items ·')).toBeTruthy();
-    expect(bar.props.accessibilityLabel).toBe('View cart, 11 items, 380 dollars and 51 cents');
+    expect(within(bar).getByText(`View cart · ${cart.item_count} items ·`)).toBeTruthy();
+    expect(bar.props.accessibilityLabel).toBe(
+      `View cart, ${cart.item_count} items, ${spokenPrice(cart.indicative_subtotal_cents as Parameters<typeof spokenPrice>[0])}`,
+    );
     fireEvent.press(bar);
     expect(nav.log).toContainEqual({ action: 'push', route: { name: 'cart' } });
   });

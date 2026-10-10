@@ -46,9 +46,6 @@ export const REDESIGNED: Registry = {
   // WP2: Home, address switcher (a sheet owned by Home), How we check.
   home: () => <HomeScreen />,
   howWeCheck: () => <HowWeCheckScreen />,
-  // WP4: restaurant page (with its certification sheet) and the certificate viewer.
-  restaurant: (r) => <RedesignedRestaurantScreen restaurantId={r.restaurantId} />,
-  certificate: (r) => <CertificateScreen restaurantId={r.restaurantId} />,
   // WP1: sign-in, first run, forced routes. `signIn` owns the signed-out stack (code, terms,
   // signed out); `signedOut` and `terms` also render on their own when opened from a tab.
   signIn: () => <SignInScreen />,
