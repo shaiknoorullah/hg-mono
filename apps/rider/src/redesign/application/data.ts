@@ -120,6 +120,9 @@ export function dateOfBirth(day: string, month: string, year: string, now: Date 
   return `${year}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
 }
 
+/** How often a screen re-reads while offline, so it learns the API answers again (as sign-in does). */
+export const OFFLINE_PROBE_MS = 5_000;
+
 /** The contract's `minimum: 1990` on RiderVehicleInput.year. */
 export const MIN_VEHICLE_YEAR = 1990;
 
@@ -138,25 +141,32 @@ export function minAgeFrom(details: unknown): number {
 export const DEFAULT_MIN_AGE = 18;
 
 /**
- * How many times the server has answered UNDERAGE this app session. The second answer locks the
- * form (Profile-UnderageAgain). Kept outside the screen so leaving and reopening the step does
- * not reset it.
+ * How many times the server has answered UNDERAGE this app session, per account. The second
+ * answer locks the form (Profile-UnderageAgain). Kept outside the screen so leaving and reopening
+ * the step does not reset it, and keyed by account so another rider signing in on the same phone
+ * does not inherit the lock.
  */
+let underageAccount: string | null = null;
 let underageAnswers = 0;
 let lastMinAge = DEFAULT_MIN_AGE;
 
-export function recordUnderage(minAge: number): number {
+export function recordUnderage(accountId: string, minAge: number): number {
+  if (underageAccount !== accountId) {
+    underageAccount = accountId;
+    underageAnswers = 0;
+  }
   underageAnswers += 1;
   lastMinAge = minAge;
   return underageAnswers;
 }
 
-export function underageState(): { count: number; minAge: number } {
-  return { count: underageAnswers, minAge: lastMinAge };
+export function underageState(accountId: string): { count: number; minAge: number } {
+  return underageAccount === accountId ? { count: underageAnswers, minAge: lastMinAge } : { count: 0, minAge: DEFAULT_MIN_AGE };
 }
 
 /** Test seam. */
 export function resetApplicationState(): void {
+  underageAccount = null;
   underageAnswers = 0;
   lastMinAge = DEFAULT_MIN_AGE;
 }

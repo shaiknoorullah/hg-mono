@@ -7,7 +7,7 @@
 import './mocks';
 
 import { Linking } from 'react-native';
-import { act, screen } from '@testing-library/react-native';
+import { act, fireEvent, screen } from '@testing-library/react-native';
 
 import { reportTransportFailure } from '../../data/connectivity';
 import { SCHEMES } from '../../test/render';
@@ -178,12 +178,16 @@ describe.each(SCHEMES)('how you deliver (%s)', (scheme) => {
     expect(sent[1]).toEqual(sent[0]);
   });
 
-  it('saving: busy, the choice locked', async () => {
-    start({ scheme, me: AT_VEHICLE, api: { ...VEHICLE_STEP, submitRiderVehicle: 'pending' } });
+  it('saving: busy, the choice locked, and a double tap sends one save', async () => {
+    const api = start({ scheme, me: AT_VEHICLE, api: { ...VEHICLE_STEP, submitRiderVehicle: 'pending' } });
     await openVehicle();
     await press('vehicle-BICYCLE');
-    await press('vehicle-continue');
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('vehicle-continue'));
+      fireEvent.press(screen.getByTestId('vehicle-continue'));
+    });
     expect(screen.getByTestId('vehicle-continue').props.accessibilityState).toMatchObject({ busy: true });
+    expect(api.callsTo('submitRiderVehicle')).toHaveLength(1);
   });
 
   it('offline: the choice stays, Continue is off and nothing is sent', async () => {

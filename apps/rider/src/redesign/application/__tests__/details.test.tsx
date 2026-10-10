@@ -5,11 +5,13 @@
  */
 import './mocks';
 
+import { AppState } from 'react-native';
 import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 
 import { getToken } from '../../../token';
 import { reportTransportFailure } from '../../data/connectivity';
 import { SCHEMES } from '../../test/render';
+import { OFFLINE_PROBE_MS, recordUnderage, resetApplicationState, underageState } from '../data';
 import { apiError, bodies, openDetails, press, route, start, stop, type } from './harness';
 
 afterEach(stop);
@@ -69,9 +71,23 @@ describe.each(SCHEMES)('your details (%s)', (scheme) => {
     expect(screen.getByText('1 thing needs fixing')).toBeTruthy();
     expect(screen.getByText('Choose the time zone you ride in. It sets the days your earnings are grouped by.', { exact: false })).toBeTruthy();
     expect(api.callsTo('submitRiderProfile')).toHaveLength(0);
+    // Nothing came from the phone, so the helper does not say it did.
+    expect(screen.queryByText(/Set from your phone/)).toBeNull();
     await press('details-timezone-trigger');
     await press('details-timezone-option-America/Winnipeg');
     expect(screen.queryByText('Choose the time zone you ride in. It sets the days your earnings are grouped by.', { exact: false })).toBeNull();
+    expect(screen.getByText('Used for your earnings days.')).toBeTruthy();
+  });
+
+  it('a double tap on Continue sends one save', async () => {
+    const api = start({ scheme, me: NEW_RIDER, api: { ...PROFILE, submitRiderProfile: 'pending' } });
+    await openDetails();
+    fill();
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('details-continue'));
+      fireEvent.press(screen.getByTestId('details-continue'));
+    });
+    expect(api.callsTo('submitRiderProfile')).toHaveLength(1);
   });
 
   it('saves the exact RiderProfileInput (email left out when blank), then step 2', async () => {
@@ -168,6 +184,33 @@ describe.each(SCHEMES)('your details (%s)', (scheme) => {
     expect(api.callsTo('submitRiderProfile')).toHaveLength(0);
   });
 
+  it('offline: the status is re-read until the API answers, then Continue works again', async () => {
+    const api = start({ scheme, me: NEW_RIDER, api: PROFILE });
+    await openDetails();
+    fill();
+    const before = api.callsTo('getRiderOnboardingStatus').length;
+    // The react-native jest preset stubs AppState.currentState; polling runs only in the foreground.
+    const stub = Object.getOwnPropertyDescriptor(AppState, 'currentState');
+    Object.defineProperty(AppState, 'currentState', { value: 'active', configurable: true, writable: true });
+    jest.useFakeTimers();
+    try {
+      act(() => reportTransportFailure());
+      expect(screen.getByTestId('details-continue').props.accessibilityState).toMatchObject({ disabled: true });
+      await act(async () => {
+        jest.advanceTimersByTime(OFFLINE_PROBE_MS);
+      });
+      expect(api.callsTo('getRiderOnboardingStatus').length).toBe(before + 1);
+      expect(screen.queryByText('You are offline')).toBeNull();
+      expect(screen.getByTestId('details-continue').props.accessibilityState).not.toMatchObject({ disabled: true });
+    } finally {
+      jest.useRealTimers();
+      if (stub) Object.defineProperty(AppState, 'currentState', stub);
+    }
+    await press('details-continue');
+    expect(await screen.findByText(/How will you deliver\?/)).toBeTruthy();
+    expect(bodies('submitRiderProfile')).toHaveLength(1);
+  });
+
   it('a save that loses the connection shows offline and keeps the answers', async () => {
     start({ scheme, me: NEW_RIDER, api: { ...PROFILE, submitRiderProfile: 'offline' } });
     await openDetails();
@@ -184,5 +227,17 @@ describe.each(SCHEMES)('your details (%s)', (scheme) => {
       fireEvent.press(screen.getByLabelText('Back to your application'));
     });
     await waitFor(() => expect(screen.getByText('Apply to ride')).toBeTruthy());
+  });
+});
+
+describe('under-age count', () => {
+  afterEach(resetApplicationState);
+
+  it('belongs to the account that got the answers, not to the next rider on the phone', () => {
+    recordUnderage('rider-a', 18);
+    expect(recordUnderage('rider-a', 18)).toBe(2);
+    expect(underageState('rider-a').count).toBe(2);
+    expect(underageState('rider-b')).toEqual({ count: 0, minAge: 18 });
+    expect(recordUnderage('rider-b', 18)).toBe(1);
   });
 });

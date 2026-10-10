@@ -72,6 +72,7 @@ import {
 } from './copy';
 import {
   MIN_VEHICLE_YEAR,
+  OFFLINE_PROBE_MS,
   TIMEZONES,
   addedCount,
   addedDocs,
@@ -97,8 +98,15 @@ import {
 
 const CLOSED_CODES = new Set(['ACCOUNT_NOT_ACTIVE', 'ACCOUNT_DEACTIVATED', 'ACCOUNT_BANNED']);
 
+/**
+ * The onboarding status. While offline it is re-read every few seconds: `useOnline` only turns
+ * back on when a request gets an answer, and these screens send nothing else on their own, so
+ * without the probe Continue would stay off after the signal returns ("Continue works again once
+ * you are back online").
+ */
 function useStatus(): QueryResult<OnboardingStatus> {
-  return useApiQuery('rider-onboarding-status', fetchOnboardingStatus);
+  const online = useOnline();
+  return useApiQuery('rider-onboarding-status', fetchOnboardingStatus, { pollMs: online ? null : OFFLINE_PROBE_MS });
 }
 
 function leave(): void {
@@ -562,8 +570,11 @@ export function DetailsScreen(): React.ReactElement {
   const [summary, setSummary] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
   const [serverError, setServerError] = React.useState(false);
-  const [underage, setUnderage] = React.useState(underageState);
+  const [underage, setUnderage] = React.useState(() => underageState(me.account_id));
   const fields = useFieldPositions<DetailsField>();
+  // A second tap lands before the re-render that marks Continue busy: one save at a time.
+  const inFlight = React.useRef(false);
+  const phonePreset = React.useMemo(() => presetTimezone(), []);
 
   // A saved profile keeps its zone; a new one is preset from the phone.
   React.useEffect(() => {
@@ -589,6 +600,7 @@ export function DetailsScreen(): React.ReactElement {
   };
 
   const submit = async () => {
+    if (inFlight.current) return;
     const found: Partial<Record<DetailsField, string>> = {};
     if (!first.trim()) found.first = DETAILS.firstNameRequired;
     if (!last.trim()) found.last = DETAILS.lastNameRequired;
@@ -606,15 +618,17 @@ export function DetailsScreen(): React.ReactElement {
     const body: RiderProfileInput = { first_name: first.trim(), last_name: last.trim(), date_of_birth: dob!, timezone: tz! };
     if (email.trim()) body.email = email.trim();
     setSaving(true);
+    inFlight.current = true;
     try {
       await submitProfile(body);
     } catch (e) {
+      inFlight.current = false;
       setSaving(false);
       const err = toRiderError(e);
       if (err.kind === 'offline') return; // the offline alert follows `online`
       if (err.code === 'UNDERAGE') {
-        const count = recordUnderage(minAgeFrom(err.details));
-        setUnderage(underageState());
+        const count = recordUnderage(me.account_id, minAgeFrom(err.details));
+        setUnderage(underageState(me.account_id));
         if (count < 2) setErrors({ dob: DETAILS.underage(minAgeFrom(err.details)) });
         return;
       }
@@ -637,8 +651,9 @@ export function DetailsScreen(): React.ReactElement {
       setServerError(true);
       return;
     }
-    setSaving(false);
     await session.refresh();
+    inFlight.current = false;
+    setSaving(false);
     nav.push('applicationVehicle');
   };
 
@@ -722,6 +737,7 @@ export function DetailsScreen(): React.ReactElement {
           size="lg"
           required
           autoComplete="given-name"
+          maxLength={50}
           value={first}
           readOnly={readOnly}
           onChange={(v) => {
@@ -738,6 +754,7 @@ export function DetailsScreen(): React.ReactElement {
           size="lg"
           required
           autoComplete="family-name"
+          maxLength={50}
           value={last}
           readOnly={readOnly}
           onChange={(v) => {
@@ -770,6 +787,7 @@ export function DetailsScreen(): React.ReactElement {
           variant="email"
           size="lg"
           autoComplete="email"
+          maxLength={254}
           value={email}
           readOnly={readOnly}
           helperText={DETAILS.emailHelper}
@@ -796,7 +814,8 @@ export function DetailsScreen(): React.ReactElement {
           }}
           errorText={errors.tz}
         />
-        {errors.tz ? null : <FieldNote text={locked ? DETAILS.timezoneHelperLocked : DETAILS.timezoneHelper} />}
+        {/* "Set from your phone" only while the value is the phone's own zone (Profile-Timezone-Error: no preset) */}
+        {errors.tz ? null : <FieldNote text={!locked && tz != null && tz === phonePreset ? DETAILS.timezoneHelper : DETAILS.timezoneHelperLocked} />}
       </View>
     </Frame>
   );
@@ -845,6 +864,7 @@ export function VehicleScreen(): React.ReactElement {
   const [notice, setNotice] = React.useState<Notice | null>(null);
   const [saving, setSaving] = React.useState(false);
   const [pending, setPending] = React.useState<VehicleType | null>(null);
+  const inFlight = React.useRef(false);
 
   const cameFromDetails = (nav.flow?.length ?? 0) >= 2 && nav.flow?.[nav.flow.length - 2]?.name === 'applicationDetails';
   const back = { label: cameFromDetails ? BACK_TO_DETAILS : BACK_TO_APPLICATION, onPress: () => void nav.pop() };
@@ -898,6 +918,7 @@ export function VehicleScreen(): React.ReactElement {
   };
 
   const submit = async () => {
+    if (inFlight.current) return;
     if (!type) {
       setNotice({ kind: 'no-choice' });
       setErrors({ type: VEHICLE.noChoiceError });
@@ -926,9 +947,11 @@ export function VehicleScreen(): React.ReactElement {
       if (fields.colour.trim()) body.colour = fields.colour.trim();
     }
     setSaving(true);
+    inFlight.current = true;
     try {
       await submitVehicle(body);
     } catch (e) {
+      inFlight.current = false;
       setSaving(false);
       const err = toRiderError(e);
       if (err.kind === 'offline') return;
@@ -959,8 +982,9 @@ export function VehicleScreen(): React.ReactElement {
       setNotice({ kind: 'server' });
       return;
     }
-    setSaving(false);
     await session.refresh();
+    inFlight.current = false;
+    setSaving(false);
     nav.push('applicationDocuments');
   };
 
