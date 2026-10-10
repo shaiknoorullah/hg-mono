@@ -71,7 +71,7 @@ Work packages: `plan/design-system.md` §4.1 on the read-only `claude/redesign-c
 | Banner + InlineAlert + HalalBanner (one family with `placement`: Banner defaults to the page bar, InlineAlert to inline; slate tone; halal props exclude danger) | rebuilt | W4 |
 | ProgressBar | rebuilt (Radix Progress) | W4 |
 | PageAnnouncerProvider, useAnnounce, usePageAnnouncer | rebuilt | W4 |
-| DocumentViewer | legacy | W7b |
+| DocumentViewer (image and PDF from a presigned link; packet P32; keeps the legacy and admin-stub props as aliases) | rebuilt | W7b |
 | FilterBar | rebuilt (the declarative pre-rebuild props still work) | W6 |
 | Disclosure | rebuilt | W2 |
 | SkipLink | rebuilt | W2 |
@@ -95,3 +95,6 @@ Work packages: `plan/design-system.md` §4.1 on the read-only `claude/redesign-c
 | StateCard | rebuilt (new) | sign-in composites (#737) |
 | SupportBlock, SupportSentence (+ `formatSupportPhone`, `resolveSupport`) | rebuilt (new) | sign-in composites (#737) |
 | WaitLine (+ `useWaitLine`, `resolveWaitDeadline`) | rebuilt (new) | sign-in composites (#737) |
+| LiveMap (port of `live/LiveMap` onto tokens; text equivalent when there is no map; light pin roles until packet T5) | rebuilt | W7b |
+| AddressCombobox (cmdk; caller-supplied `suggest` and `resolve`) | rebuilt | W7b |
+| MapPinPicker (draggable pin, arrow keys, no-map fallback; caller-supplied `reverseGeocode`) | rebuilt | W7b |
