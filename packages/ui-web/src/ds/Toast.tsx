@@ -41,11 +41,11 @@ export interface ToastProps {
   variant?: ToastVariant;
   title: string;
   description?: string;
-  /** An action makes the toast persistent. */
+  /** An action makes the toast persistent. Taking the action also dismisses the toast. */
   action?: { label: string; onAction: () => void };
   /** ms, default 5000. danger and action toasts are persistent. Pauses on hover and focus. */
   duration?: number;
-  /** Called on dismiss and when the timer ends. A 44px dismiss button renders when set. */
+  /** Called on dismiss, after the action, and when the timer ends. A 44px dismiss button renders when set. */
   onDismiss?: () => void;
   icon?: DsIconName;
   /** data-testid; defaults to the component name (02-components.md rule 11). */
@@ -154,7 +154,17 @@ export function Toast({
         <span className="text-label-lg font-semibold">{title}</span>
         {description ? <span className="text-body-sm">{description}</span> : null}
       </div>
-      {action ? <ToastAction onClick={action.onAction}>{action.label}</ToastAction> : null}
+      {action ? (
+        <ToastAction
+          onClick={() => {
+            // Taking the action ends the toast ("Undo" done), as the Radix toast it replaces did.
+            action.onAction();
+            onDismiss?.();
+          }}
+        >
+          {action.label}
+        </ToastAction>
+      ) : null}
       {onDismiss ? (
         <IconButton icon="close" accessibilityLabel="Dismiss" variant="plain" size="md" onPress={() => onDismiss()} />
       ) : null}

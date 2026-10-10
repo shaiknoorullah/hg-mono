@@ -63,11 +63,15 @@ describe('Countdown', () => {
 
   it('fires onExpire exactly once and never shows a negative number', () => {
     const onExpire = vi.fn();
-    render(<Countdown expiresAt={iso(NOW + 3_000)} serverNow={iso(NOW)} windowSeconds={30} onExpire={onExpire} />);
+    const { rerender } = render(<Countdown expiresAt={iso(NOW + 3_000)} serverNow={iso(NOW)} windowSeconds={30} onExpire={onExpire} />);
     act(() => vi.advanceTimersByTime(10_000));
     expect(numeral()).toBe('0:00');
     expect(screen.getByTestId('Countdown')).toHaveAttribute('data-state', 'expired');
     act(() => vi.advanceTimersByTime(10_000));
+    expect(onExpire).toHaveBeenCalledTimes(1);
+    // A re-fetch that returns the same deadline with a fresh server clock is the same deadline.
+    rerender(<Countdown expiresAt={iso(NOW + 3_000)} serverNow={iso(NOW + 20_000)} windowSeconds={30} onExpire={onExpire} />);
+    act(() => vi.advanceTimersByTime(1_000));
     expect(onExpire).toHaveBeenCalledTimes(1);
   });
 
@@ -134,6 +138,9 @@ describe('Toast', () => {
     );
     act(() => vi.advanceTimersByTime(60_000));
     expect(onDismiss).not.toHaveBeenCalled();
+    // Taking the action ends the toast, as the Radix toast it replaced did.
+    fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(onDismiss).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -210,6 +217,12 @@ describe('Menu', () => {
     expect(screen.getAllByRole('separator')).toHaveLength(1);
     await user.click(screen.getByRole('menuitemradio', { name: '30 minutes' }));
     expect(onSelect).toHaveBeenCalledWith('30', expect.objectContaining({ label: '30 minutes' }));
+  });
+
+  it('an icon-only trigger always draws a glyph (never an empty, invisible button)', () => {
+    render(<Menu label="Actions for order HG-10482" items={[{ label: 'Open order' }]} />);
+    const trigger = screen.getByRole('button', { name: 'Actions for order HG-10482' });
+    expect(trigger.querySelector('svg, [data-slot="menu-trigger-dots"]')).not.toBeNull();
   });
 
   it('reports two triggers with the same name', () => {
@@ -303,6 +316,13 @@ describe('PageAnnouncer', () => {
     act(() => announce('New order A7K2.'));
     act(() => vi.advanceTimersByTime(10));
     expect(polite).toHaveTextContent('New order A7K2.');
+    // The same text again after the window is a DOM change, so a screen reader speaks it again.
+    const before = polite.textContent;
+    act(() => vi.advanceTimersByTime(5_000));
+    act(() => announce('New order A7K2.'));
+    act(() => vi.advanceTimersByTime(10));
+    expect(polite).toHaveTextContent('New order A7K2.');
+    expect(polite.textContent).not.toBe(before);
   });
 });
 

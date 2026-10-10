@@ -31,6 +31,7 @@ import {
   DropdownMenuTrigger,
 } from '../lib/ui/dropdown-menu.js';
 import { cn } from '../lib/utils.js';
+import { SOLAR_ICON_IDS } from '../primitives/index.js';
 import { reportDsClientError } from './client-error.js';
 import { Icon, type DsIconName } from './index.js';
 
@@ -162,6 +163,29 @@ function toRows(items: readonly MenuItem[]): Row[] {
   return rows;
 }
 
+/** Whether the icon set on this branch draws `name` (W1 adds `more` and `chevron-down`). */
+function hasGlyph(name: string): boolean {
+  return Object.prototype.hasOwnProperty.call(SOLAR_ICON_IDS, name);
+}
+
+/**
+ * The trigger glyph. Until the icon set carries `more` / `chevron-down` (W1, #698), they are
+ * drawn here in `currentColor`, so an icon-only trigger is never an empty, invisible button.
+ */
+function TriggerGlyph({ name }: { name: DsIconName }) {
+  if (hasGlyph(name)) return <Icon name={name} size={name === 'chevron-down' ? 'sm' : 'md'} />;
+  if (name === 'chevron-down') {
+    return <span aria-hidden="true" className="block size-0 border-x-4 border-t-[5px] border-x-transparent border-t-current" />;
+  }
+  return (
+    <span aria-hidden="true" data-slot="menu-trigger-dots" className="inline-flex size-5 items-center justify-center gap-0.5">
+      <span className="block size-1 rounded-full bg-current" />
+      <span className="block size-1 rounded-full bg-current" />
+      <span className="block size-1 rounded-full bg-current" />
+    </span>
+  );
+}
+
 /** The visible reason under a disabled item's label; the item's name repeats it ("Label, reason"). */
 function Reason({ text }: { text: string }) {
   return <span className="text-caption text-fg-secondary">{text}</span>;
@@ -231,10 +255,10 @@ export function Menu({
           ) : triggerText ? (
             <>
               <span>{triggerText}</span>
-              <Icon name="chevron-down" size="sm" />
+              <TriggerGlyph name="chevron-down" />
             </>
           ) : (
-            <Icon name={icon} size="md" />
+            <TriggerGlyph name={icon} />
           )}
         </DropdownMenuTrigger>
         <DropdownMenuContent

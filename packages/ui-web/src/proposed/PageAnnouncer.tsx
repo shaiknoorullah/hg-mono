@@ -78,8 +78,10 @@ export function PageAnnouncerProvider({
   dedupeWindowMs = 5000,
   testId = 'PageAnnouncer',
 }: PageAnnouncerProviderProps) {
-  const [polite, setPolite] = useState('');
-  const [assertive, setAssertive] = useState('');
+  // Each message carries a sequence number: a text equal to the one already in the region is
+  // re-rendered with a trailing no-break space, so the DOM changes and it is spoken again.
+  const [polite, setPolite] = useState({ text: '', seq: 0 });
+  const [assertive, setAssertive] = useState({ text: '', seq: 0 });
   const queue = useRef<Queued[]>([]);
   const seen = useRef<string[]>([]);
   const recent = useRef(new Map<string, number>());
@@ -106,8 +108,8 @@ export function PageAnnouncerProvider({
       if (due <= now) {
         const [next] = queue.current.splice(index, 1);
         last.current[politeness] = now;
-        if (politeness === 'assertive') setAssertive(next!.message);
-        else setPolite(next!.message);
+        const set = politeness === 'assertive' ? setAssertive : setPolite;
+        set((prev) => ({ text: next!.message, seq: prev.seq + 1 }));
         break;
       }
       wait = Math.min(wait, due - now);
@@ -155,14 +157,19 @@ export function PageAnnouncerProvider({
       {children}
       <div data-testid={testId} className={SR_ONLY}>
         <div role="status" aria-live="polite" aria-atomic="true" data-politeness="polite">
-          {polite}
+          {spoken(polite)}
         </div>
         <div role="alert" aria-live="assertive" aria-atomic="true" data-politeness="assertive">
-          {assertive}
+          {spoken(assertive)}
         </div>
       </div>
     </AnnouncerContext.Provider>
   );
+}
+
+/** The region's text; alternates a trailing no-break space so a repeat is a DOM change. */
+function spoken({ text, seq }: { text: string; seq: number }): string {
+  return seq % 2 === 0 ? text : `${text}\u00a0`;
 }
 
 const noop: Announce = () => undefined;
