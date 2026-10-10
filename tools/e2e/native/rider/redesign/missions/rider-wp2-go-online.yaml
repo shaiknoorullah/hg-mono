@@ -1,0 +1,35 @@
+id: rider-wp2-go-online
+app: rider
+avd: hg_rider
+api: devworld
+build:
+  env: { EXPO_PUBLIC_HG_REDESIGN: "1" }
+  note: "Clear the Metro cache when building (EXPO_PUBLIC_* is inlined at transform time; a warm cache from a flag-off build serves the legacy app)."
+setup: [ "make dev-reset" ]
+reality:
+  - theme: light
+flows: [ "tools/e2e/native/rider/redesign/2-go-online.yaml" ]
+explore: >
+  The flow sets the location (setLocation) and switches airplane mode (setAirplaneMode) itself
+  where it needs to; the reality steps above only set the theme.
+  After the flow passes, with rider-sim still signed in:
+  (1) Go online again and wait for "Waiting for offers". Revoke the location permission:
+  `adb shell pm revoke com.halalgoes.rider.dev android.permission.ACCESS_FINE_LOCATION` and
+  `... ACCESS_COARSE_LOCATION`; within about 20 s (one reporting interval) the bar reads
+  "Offers may stop" and the slate alert "Location is off for HalalGoes" shows with "Open Settings",
+  never red. Screenshot it. Tap "Open Settings": the app's settings page opens. Grant location
+  again (`adb shell pm grant ...` both), return: the alert clears on the next report.
+  (2) Revoke notifications (`adb shell pm revoke com.halalgoes.rider.dev
+  android.permission.POST_NOTIFICATIONS`), background and foreground the app: "You may miss
+  offers" and "Notifications are off for HalalGoes". Grant it back.
+  (3) Go offline, revoke location, tap "Go online": the rider stays "Offline" and Home shows
+  "Fix 1 thing to go online" with "Location is off for HalalGoes" and "Allow location"; no PUT
+  is sent (check the API log). Grant it back, tap "Check again": online.
+  (4) Optional, real blockers: `make dev-scenario s=suspend-rider` while online → after the next
+  poll Home reads "Your account is not active" (or the gate's Account paused screen).
+  (5) Dark mode: `adb shell cmd uimode night yes`, relaunch, screenshot offline and waiting.
+  (6) While online, `make dev-scenario s=offer-to-rider` and accept the offer (WP3) or let the
+  legacy offer fallback take it: Home opens the trip once; Back to Home shows "On a delivery",
+  "Resume delivery" and "Go offline after this delivery"; switch to Earnings: the resume strip
+  "On a delivery" with "Resume" sits above the tabs.
+  Reset night mode to no and re-grant every permission afterwards.

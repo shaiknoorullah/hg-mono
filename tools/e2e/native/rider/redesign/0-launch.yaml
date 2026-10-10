@@ -1,0 +1,13 @@
+# Rider app, redesign build: launch smoke. Opens the dev APK as it is installed (no clearState,
+# no sign-in) and checks that it starts and does not crash in its first seconds. It asserts no
+# screen text, so it holds whatever the redesign's first screen becomes.
+# Used by the example mission in missions/. Run alone:
+#   maestro test tools/e2e/native/rider/redesign/0-launch.yaml
+appId: com.halalgoes.rider.dev
+name: rider redesign, launch smoke
+---
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 15000
+- assertNotVisible: ".*(keeps stopping|has stopped|isn't responding).*"
+- takeScreenshot: rider-redesign-00-launch
