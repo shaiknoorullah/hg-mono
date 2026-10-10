@@ -45,7 +45,8 @@ Work packages: `plan/design-system.md` §4.1 on the read-only `claude/redesign-c
 | HalalBadge, HalalShield | legacy | W5 | — |
 | HalalCertificationPanel | legacy | W5 | no `headingLevel` |
 | HalalChecklist (+ gate helpers) | legacy | W5 | — |
-| DataTable | missing | W6 (LyteNyte) | the legacy root `DataTable` has a different shape |
+| DataTable | rebuilt | W6 (LyteNyte) | `role="grid"` named by the caption (`aria-labelledby`), not `<table>`; the check, minus, sort-chevron and "more" glyphs are CSS-drawn in `lib/ui/data-grid` (today's Icon map lacks them); row actions use a Radix menu in `lib/ui/data-grid` until the W4 `Menu` is wired in |
+| TextCell, IdCell, MoneyCell, TimeCell, DateCell, CountdownCell, StatusCell, HalalStateCell, MeterCell | rebuilt | W6 | StatusCell draws its own tint chip until the W1 `Badge` is used; CountdownCell is the silent text form (the W4 `Countdown` is not used inside cells) |
 | Rating | legacy | — | out of launch scope; do not extend |
 | Sheet, BottomNav | not on web | — | working tasks use DetailPanel; phones only |
 
@@ -53,7 +54,6 @@ Work packages: `plan/design-system.md` §4.1 on the read-only `claude/redesign-c
 
 | Export | Today | Rebuilt in |
 |---|---|---|
-| Banner (+ InlineAlert, slate tone) | legacy `Banner` | W4 |
 | EmptyState, ErrorState | rebuilt | W4 |
 | Skeleton, Spinner | **rebuilt** | W1 |
 | Separator | **rebuilt** (new) | W1 |
@@ -70,10 +70,13 @@ Work packages: `plan/design-system.md` §4.1 on the read-only `claude/redesign-c
 | ProgressBar | rebuilt (Radix Progress) | W4 |
 | PageAnnouncerProvider, useAnnounce, usePageAnnouncer | rebuilt | W4 |
 | DocumentViewer | legacy | W7b |
-| FilterBar | legacy | W6 |
+| FilterBar | rebuilt (the declarative pre-rebuild props still work) | W6 |
 | Disclosure | rebuilt | W2 |
 | SkipLink | rebuilt | W2 |
 | SystemBannerSlot (= SystemBannerStack) | rebuilt | W2 |
 | StickyFooter (= ActionBar) | rebuilt | W2 |
 | NavDrawer | rebuilt | W2 |
 | SectionNav | rebuilt | W2 |
+| FilterChip | rebuilt | W6 |
+| ListPane, ListPaneRow | rebuilt | W6 |
+| EventLog | rebuilt | W6 |

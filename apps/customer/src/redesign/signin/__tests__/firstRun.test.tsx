@@ -67,6 +67,20 @@ describe('S3 Your details', () => {
     expect(screen.getByText('Not you? Use a different number')).toBeTruthy();
   });
 
+  it("first run: the server's placeholder name is not shown as the customer's", async () => {
+    // A new account's profile row holds "there" (for "Hi there"), not a name anyone gave.
+    mock.answer('getCustomerProfile', {
+      status: 200,
+      body: { data: { ...PROFILE, first_name: 'there', last_name: null, email: null, default_address_id: null } },
+    });
+    renderRedesign(<YourDetailsScreen />);
+    await ready();
+    expect(screen.getByTestId('Profile-first-field').props.value).toBe('');
+    fireEvent.press(screen.getByText('Save and continue'));
+    expect(screen.getByText(/Enter your first name\./)).toBeTruthy();
+    expect(mock.callsTo('updateCustomerProfile')).toHaveLength(0);
+  });
+
   it('renders in dark, with the validation errors', async () => {
     renderRedesign(<YourDetailsScreen />, { scheme: 'dark' });
     await ready();
