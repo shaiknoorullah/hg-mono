@@ -122,8 +122,8 @@ SELECT audience, payload FROM realtime_event WHERE channel = $1 AND type = 'disp
 			t.Fatalf("%s: %v", v, err)
 		}
 		dropoff, _ := got["dropoff"].(map[string]any)
-		if !slices.Equal(fieldNames(got), top) || !slices.Equal(fieldNames(dropoff), []string{"area", "lat", "lng"}) {
-			t.Errorf("%s: dispatch.offer = %v, want exactly the fields %v with a drop-off of area, lat, lng", v, got, top)
+		if !slices.Equal(fieldNames(got), top) || !slices.Equal(fieldNames(dropoff), []string{"area", "lat", "lng", "radius_m"}) {
+			t.Errorf("%s: dispatch.offer = %v, want exactly the fields %v with a drop-off of area, lat, lng, radius_m", v, got, top)
 		}
 		if dropoff["lat"] != areaLat || dropoff["lng"] != areaLng {
 			t.Errorf("%s: drop-off = %v,%v, want the area %v,%v", v, dropoff["lat"], dropoff["lng"], areaLat, areaLng)
