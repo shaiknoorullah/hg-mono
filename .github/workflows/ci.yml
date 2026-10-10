@@ -192,7 +192,7 @@ jobs:
       # How the mock picks one fixture per operation (contracts/fixtures/SCENARIOS.md) and
       # moves realtime scripts to wall clock, against the fixtures just validated.
       - name: mock server unit tests
-        run: pnpm --filter @hg/mock-server test
+        run: pnpm --filter @hg/mock-server test:unit
 
       # The email templates the Go service embeds are exactly what packages/emails
       # exports. A hand edit to services/hg/internal/notify/emailtmpl/templates/**,
