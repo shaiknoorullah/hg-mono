@@ -10,6 +10,7 @@ import (
 
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders/machine"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders/money"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders/pricing"
 )
 
 // OrderView is the customer projection (P-07) of an order, in the shape the
@@ -61,6 +62,7 @@ type OrderViewLine struct {
 	MenuItemID     string
 	Name           string
 	VariantName    *string
+	Variants       []pricing.VariantChoice
 	Quantity       int
 	SpecialRequest *string
 	UnitPriceCents int64
@@ -193,7 +195,12 @@ func (s *Store) loadOrderView(ctx context.Context, tx pgx.Tx, accountID, orderID
 	}
 	lineRows.Close()
 
+	lineVariants, err := loadLineVariantSnapshots(ctx, tx, orderLineVariants, orderID)
+	if err != nil {
+		return nil, err
+	}
 	for i := range v.Lines {
+		v.Lines[i].Variants = lineVariants[v.Lines[i].LineNo]
 		aRows, err := tx.Query(ctx, `
 			SELECT addon_id, addon_name, addon_quantity, addon_price_cents
 			  FROM order_line_addon WHERE order_id = $1 AND line_no = $2 ORDER BY addon_id`,

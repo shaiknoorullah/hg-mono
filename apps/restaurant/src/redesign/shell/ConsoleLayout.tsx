@@ -21,6 +21,7 @@ import { SHELL_PANELS, StatusBarSlot, StripSlot } from './slots';
 import { ConsoleLayoutContext } from './layout';
 import { SignOutConfirm } from './SignOutConfirm';
 import { useWaitingCount } from './waiting';
+import { useIsDesktop } from './viewport';
 
 const RAIL_KEY = 'hg_restaurant_rail_expanded_v1';
 
@@ -40,19 +41,6 @@ function writeRailPref(expanded: boolean) {
   }
 }
 
-/** Desktop is ≥ 1280 CSS px; landscape tablet (1024–1279) always shows icons. */
-function useIsDesktop(): boolean {
-  const query = '(min-width: 1280px)';
-  const [match, setMatch] = useState(() => (typeof window.matchMedia === 'function' ? window.matchMedia(query).matches : true));
-  useEffect(() => {
-    if (typeof window.matchMedia !== 'function') return;
-    const mql = window.matchMedia(query);
-    const on = () => setMatch(mql.matches);
-    mql.addEventListener?.('change', on);
-    return () => mql.removeEventListener?.('change', on);
-  }, []);
-  return match;
-}
 
 export interface ConsoleLayoutProps {
   onSignOut: () => Promise<void>;
@@ -104,7 +92,6 @@ export function ConsoleLayout({ onSignOut }: ConsoleLayoutProps) {
     ),
     badge: n.key === 'orders' && waiting > 0 ? waiting : undefined,
     badgeNoun: n.key === 'orders' ? 'new' : undefined,
-    onSelect: () => navigate(n.to),
   }));
 
   const layoutApi = useMemo(() => ({ setPagePanelOpen, setConfirm }), []);
@@ -141,7 +128,20 @@ export function ConsoleLayout({ onSignOut }: ConsoleLayoutProps) {
           </a>
         </div>
 
-        <nav aria-label="Main" className="flex shrink-0">
+        <nav
+          aria-label="Main"
+          className="flex shrink-0"
+          onClick={(e) => {
+            // Rail items are real links (middle-click, copy link), but a plain click stays in
+            // the app: a full page load would drop the go-live gesture and stop the order
+            // sound (WP3), and re-read everything.
+            const a = (e.target as HTMLElement).closest('a[href]');
+            const href = a?.getAttribute('href');
+            if (!a || !href?.startsWith('/') || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+            e.preventDefault();
+            navigate(href);
+          }}
+        >
           <SideNav
             groups={[{ key: 'main', items }]}
             activeKey={active}

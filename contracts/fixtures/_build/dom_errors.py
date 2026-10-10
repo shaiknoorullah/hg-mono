@@ -245,6 +245,68 @@ ERRORS = [
 # errors are its only fixtures.
 LAUNCH_ERRORS = [
     (
+        "different_restaurant",
+        409,
+        "DIFFERENT_RESTAURANT",
+        "Your cart contains items from a different restaurant. Start a new cart to add this item.",
+        {
+            "current_restaurant_id": uuid_for("restaurant:karachi-kitchen"),
+            "current_restaurant_name": "Karachi Kitchen",
+            "current_line_count": 3,
+            "current_item_count": 4,
+        },
+        "The \"Start a new cart?\" dialog names the cart's restaurant and its size from "
+        "`details` (C-20): \"Your cart has 4 items from Karachi Kitchen\". "
+        "`current_line_count` counts lines, `current_item_count` sums their quantities. "
+        "\"Start a new cart\" retries with `replace=true`.",
+        ["addCartLine"],
+    ),
+    (
+        "variant_unavailable",
+        409,
+        "VARIANT_UNAVAILABLE",
+        "A choice on this item is no longer available.",
+        {"variant_id": uuid_for("variant:loaded:size:party-tray-serves-8-10")},
+        "The chosen variant is on the item but switched off. `details.variant_id` names it, so "
+        "the item sheet can say which choice ran out. The cart is unchanged.",
+        ["addCartLine"],
+    ),
+    (
+        "addon_unavailable",
+        409,
+        "ADDON_UNAVAILABLE",
+        "An extra on this item is no longer available.",
+        {"addon_id": uuid_for("addon:loaded:breads:paratha")},
+        "The chosen add-on is on the item but switched off: \"Paratha just ran out\". "
+        "`details.addon_id` names it. The cart is unchanged.",
+        ["addCartLine"],
+    ),
+    (
+        "cart_line_variant_missing",
+        422,
+        "VALIDATION_FAILED",
+        "This item cannot be added with these choices.",
+        [
+            {"field": "variant_ids", "code": "required_group_missing", "message": "Choose a Rice."},
+            {"field": "addons", "code": "min_select", "message": "Choose at least 1 from Chutneys and sauces."},
+        ],
+        "A line the menu does not allow: a required variant group with no choice, and an "
+        "add-on group below its `min_select`. Every problem comes back at once, each with "
+        "its field. Other codes: `not_on_item` (`variant_ids[i]`), `one_per_group`, "
+        "`duplicate`, `max_select`. The cart is unchanged.",
+        ["addCartLine"],
+    ),
+    (
+        "invalid_addon",
+        422,
+        "INVALID_ADDON",
+        "This item cannot be added with these choices.",
+        [{"field": "addons[0]", "code": "not_on_item", "message": "This add-on is not one of this item's."}],
+        "An add-on id that is not one of the item's, typically from a stale menu. The cart is "
+        "unchanged; reload the item.",
+        ["addCartLine"],
+    ),
+    (
         "refund_self_approval_forbidden",
         409,
         "SELF_APPROVAL_FORBIDDEN",
