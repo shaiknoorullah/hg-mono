@@ -7,6 +7,9 @@
 appId: com.halalgoes.customer.dev
 name: customer redesign, Home, address switcher and How we check
 ---
+# The legacy rider app, left online by the cross-app flow, opens its offer screen over this app
+# when an offer re-waves; stopped, it stays out of the way.
+- stopApp: com.halalgoes.rider.dev
 - launchApp:
     permissions:
       all: allow

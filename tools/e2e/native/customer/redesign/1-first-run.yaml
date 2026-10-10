@@ -9,6 +9,9 @@ env:
   NEW_PHONE: "5550100141"
   TEST_CODE: "000000"
 ---
+# The legacy rider app, left online by the cross-app flow, opens its offer screen over this app
+# when an offer re-waves; stopped, it stays out of the way.
+- stopApp: com.halalgoes.rider.dev
 - launchApp:
     clearState: true
     permissions:
@@ -36,6 +39,11 @@ env:
     timeout: 30000
 - assertNotVisible: "Account"
 - takeScreenshot: redesign-wp1-10-your-details
+# Empty the field first: until #774 the screen fills in the server's placeholder name.
+- tapOn:
+    id: "Profile-first-field"
+- eraseText: 30
+- hideKeyboard
 - tapOn: "Save and continue"
 - assertVisible: ".*Enter your first name\\..*"
 - tapOn:
