@@ -16,6 +16,12 @@ import { OrdersScreen } from '../../screens/OrdersScreen';
 import { ProfileScreen } from '../../screens/ProfileScreen';
 import { AddressesScreen } from '../../screens/AddressesScreen';
 import { AddressFormScreen } from '../../screens/AddressFormScreen';
+import { OrdersScreen as RedesignedOrdersScreen } from '../orders/OrdersScreen';
+import { ReceiptScreen } from '../orders/ReceiptScreen';
+import { HomeScreen } from '../discover/HomeScreen';
+import { HowWeCheckScreen } from '../discover/HowWeCheckScreen';
+import { CertificateScreen } from '../restaurant/CertificateScreen';
+import { RestaurantScreen as RedesignedRestaurantScreen } from '../restaurant/RestaurantScreen';
 import { AddressStepScreen } from '../signin/AddressStepScreen';
 import { SignInScreen } from '../signin/SignInScreen';
 import { TermsScreen } from '../signin/TermsScreen';
@@ -28,6 +34,15 @@ type Registry = { [N in RouteName]?: ScreenFor<N> };
 
 /** Redesigned screens, by route. Each WP registers its own. */
 export const REDESIGNED: Registry = {
+  // WP9: Orders history (T9) and Receipt (T10).
+  orders: () => <RedesignedOrdersScreen />,
+  receipt: (route) => <ReceiptScreen orderId={route.orderId} />,
+  // WP2: Home, address switcher (a sheet owned by Home), How we check.
+  home: () => <HomeScreen />,
+  howWeCheck: () => <HowWeCheckScreen />,
+  // WP4: restaurant page (with its certification sheet) and the certificate viewer.
+  restaurant: (r) => <RedesignedRestaurantScreen restaurantId={r.restaurantId} />,
+  certificate: (r) => <CertificateScreen restaurantId={r.restaurantId} />,
   // WP1: sign-in, first run, forced routes. `signIn` owns the signed-out stack (code, terms,
   // signed out); `signedOut` and `terms` also render on their own when opened from a tab.
   signIn: () => <SignInScreen />,
