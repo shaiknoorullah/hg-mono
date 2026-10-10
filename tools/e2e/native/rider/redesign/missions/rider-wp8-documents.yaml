@@ -18,9 +18,9 @@ reality:
   - theme: light
   - font-scale: 1.3
 flows:
-  - "tools/e2e/native/rider/redesign/8-documents.yaml"
-  - "tools/e2e/native/rider/redesign/8b-documents-fix.yaml"
-  - "tools/e2e/native/rider/redesign/8c-documents-review.yaml"
+  - "tools/e2e/native/rider/redesign/lab/8-documents.yaml"
+  - "tools/e2e/native/rider/redesign/lab/8b-documents-fix.yaml"
+  - "tools/e2e/native/rider/redesign/lab/8c-documents-review.yaml"
 explore: >
   The flows take every document with the emulator's virtual scene (back camera) and the photo of
   you with the front camera. Screenshot each state reached, light, at 130% text. Then, on the
