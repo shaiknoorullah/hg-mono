@@ -3,7 +3,7 @@ covers:
   - apps/restaurant/**
   - services/hg/internal/restaurant/**
   - services/hg/internal/catalog/**
-reviewed: 2026-10-05
+reviewed: 2026-10-10
 ---
 
 # HalalGoes — RESTAURANT domain specification
@@ -1684,6 +1684,11 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
   up an order the kitchen has not marked ready: the pickup is refused and the rider is told to wait
   for the kitchen, until the kitchen's pickup code is checked
   ([early pickup with the kitchen's code](https://github.com/shaiknoorullah/hg-mono/issues/413)).
+
+  The live order queue shows a ready order's 4-digit `pickup_code` in large type, labelled as the
+  code the rider must type, for the kitchen to read out at the counter; when the order carries no
+  code it shows nothing, never a placeholder
+  ([kitchen shows the pickup code](https://github.com/shaiknoorullah/hg-mono/issues/659)).
 
   *(In the current system this is unreachable: the transition table lives in a workflow that starts
   at `RIDER_ASSIGNED`, the `updateStatus()` function on the order page is defined and never called,
