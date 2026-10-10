@@ -7,7 +7,7 @@ covers:
   - packages/ui-web/src/styles/**
   - packages/ui-web/src/lint/**
   - packages/ui-native/src/lint/**
-reviewed: 2026-10-05
+reviewed: 2026-10-09
 ---
 
 # HalalGoes — Design Foundations (token system)
@@ -415,6 +415,13 @@ tokens.json  (W3C DTCG, single source)
 ```
 
 On the web, `packages/ui-web/scripts/generate-tokens.mjs` writes the generated files into `packages/ui-web/src/tokens/`. One of them is `grid-theme.css` (`@hg/ui-web/grid-theme.css`): the theme for LyteNyte Grid, the data-table library the admin console uses. It points every `--ln-*` variable LyteNyte's `grid.css` reads at a role, never a ramp step or a hex, so the grid follows light and dark like everything else. LyteNyte's own themes are never loaded. The generator stops if the theme names a custom property `tokens.css` does not declare ([#145](https://github.com/shaiknoorullah/hg-mono/issues/145), [the LyteNyte theming notes](research/lytenyte-tables.md#8-theming-our-tokens-on-lytenyte)).
+
+On native, `packages/ui-native/src/tokens/build.ts` (`pnpm --filter @hg/ui-native generate:tokens`) writes `src/tokens/generated/`. For the redesign on NativeWind 4 and React Native Reusables (Oct 2026, behind `EXPO_PUBLIC_HG_REDESIGN=1`) it also writes:
+
+- **`global.customer.css` and `global.rider.css`** (`@hg/ui-native/global.<theme>.css`): the NativeWind input file for each theme. `:root` holds the light scheme and `.dark:root` the dark one, each as resolved hex: the `--hg-*` role variables, then the shadcn/RNR aliases (`--background`, `--primary`, `--muted-foreground`, …). Each alias points at one of our roles (`build.ts`, `RNR_ALIASES`). Two of them are deliberate: `--primary-foreground` is `text.onBrand`, never white, and `--accent` is the selected-state tint, never the forest ramp. Values are never `hsl()`. A jest guard in `src/lib/__tests__/rnr-guards.test.ts` fails on `hsl(`, on a `lucide` import and on an `@/` alias import anywhere in `packages/ui-native/src`.
+- **In the NativeWind preset:** the matching utilities (`bg-primary`, `text-muted-foreground`, `border-border`, and bare `bg-accent` beside the numbered forest steps). It also adds `font-sans`, `font-sans-medium`, `font-sans-semibold` and `font-sans-bold`. These name the four `PlusJakartaSans_*` faces that `useHgFonts()` registers, because React Native has no font fallback chain. NativeWind's rem is set to 16 in each app's Metro config.
+
+Only flag-on code reads these files. Each app compiles its JSX through NativeWind only under `packages/ui-native/src/lib/**` and `apps/<app>/src/redesign/**`, and imports the stylesheet only from its redesign root. A flag-off bundle has the same modules as before.
 
 **Lint rules.** All seven are specified to block CI. **Only rule 4, no green solids, is implemented today** (Sep 2026). The other six are specification only; the contrast checker that rule 6 needs (`contrast.check.mjs`) does not exist yet.
 

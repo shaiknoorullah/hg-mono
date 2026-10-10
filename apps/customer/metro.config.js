@@ -19,21 +19,14 @@
  *    build before that try/catch ever runs. The stub below makes the require succeed and return
  *    nothing usable, which is the input `resolveNativeMaps()` is written to handle.
  */
-const { getDefaultConfig } = require('expo/metro-config');
 const path = require('path');
+const { NATIVE_SINGLETONS, hgWorkspaceConfig, withHgNativeWind } = require('@hg/ui-native/build-config');
 
 const projectRoot = __dirname;
 const monorepoRoot = path.resolve(projectRoot, '../..');
 
-const config = getDefaultConfig(projectRoot);
-
-config.watchFolders = [monorepoRoot];
-config.resolver.nodeModulesPaths = [
-  path.resolve(projectRoot, 'node_modules'),
-  path.resolve(monorepoRoot, 'node_modules'),
-];
-config.resolver.unstable_enableSymlinks = true;
-config.resolver.unstable_enablePackageExports = true;
+// Expo's defaults plus the workspace watch folders (packages/ui-native/build-config.cjs).
+const config = hgWorkspaceConfig(projectRoot);
 
 const MAPS_STUB = path.resolve(projectRoot, 'shims/react-native-maps.js');
 const CLIPBOARD_SHIM = path.resolve(projectRoot, 'shims/clipboard.ts');
@@ -53,7 +46,8 @@ const WEB_SHIMS = [
  * Because `@hg/ui-native` is source, react + react-native + safe-area-context must resolve to a
  * single physical copy — the app's — or the RN runtime initialises twice and throws on web.
  */
-const SINGLETONS = ['react', 'react-native', 'react-native-safe-area-context'];
+const SINGLETONS = NATIVE_SINGLETONS;
+
 const isSingleton = (n) => SINGLETONS.some((s) => n === s || n.startsWith(s + '/'));
 
 const upstreamResolveRequest = config.resolver.resolveRequest;
@@ -97,4 +91,5 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
   return resolve(context, moduleName, platform);
 };
 
-module.exports = config;
+// NativeWind (redesign N0) wraps the finished config last; its resolveRequest calls ours first.
+module.exports = withHgNativeWind(config, { projectRoot, theme: 'customer' });

@@ -13,7 +13,11 @@
     "isolatedModules": true,
     "verbatimModuleSyntax": true,
     "resolveJsonModule": true,
-    "types": ["jest", "node"]
+    "types": ["jest", "node"],
+    // Only for the React Native Reusables CLI (components.json aliases `@/lib/...`). Source must
+    // not import through it — apps compile this package with Metro, which does not know `@/`;
+    // src/lib/__tests__/rnr-guards.test.ts fails on any `@/` import left after a copy-in.
+    "paths": { "@/*": ["./src/*"] }
   },
   "include": ["src/**/*.ts", "src/**/*.tsx", "nativewind-env.d.ts"]
 }

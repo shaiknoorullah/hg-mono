@@ -15,7 +15,11 @@
     "./primitives": "./src/primitives/index.ts",
     "./fonts": "./src/tokens/useHgFonts.ts",
     "./preset": "./src/tokens/generated/nativewind-preset.cjs",
-    "./lint": "./src/lint/index.js"
+    "./lib": "./src/lib/index.ts",
+    "./global.customer.css": "./src/tokens/generated/global.customer.css",
+    "./global.rider.css": "./src/tokens/generated/global.rider.css",
+    "./lint": "./src/lint/index.js",
+    "./build-config": "./build-config.cjs"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
@@ -28,10 +32,15 @@
   },
   "dependencies": {
     "@hg/api-client": "workspace:*",
-    "@hg/brand": "workspace:*"
+    "@hg/brand": "workspace:*",
+    "class-variance-authority": "0.7.1",
+    "clsx": "2.1.1",
+    "tailwind-merge": "2.6.0"
   },
   "peerDependencies": {
     "@expo-google-fonts/plus-jakarta-sans": "*",
+    "@rn-primitives/portal": ">=1.5.0",
+    "@rn-primitives/slot": ">=1.5.0",
     "expo-clipboard": "*",
     "expo-font": "*",
     "nativewind": ">=4.1.0",
@@ -43,6 +52,8 @@
   },
   "peerDependenciesMeta": {
     "@expo-google-fonts/plus-jakarta-sans": { "optional": true },
+    "@rn-primitives/portal": { "optional": true },
+    "@rn-primitives/slot": { "optional": true },
     "expo-clipboard": { "optional": true },
     "expo-font": { "optional": true },
     "nativewind": { "optional": true },
@@ -55,6 +66,8 @@
     "@iconify-json/solar": "^1.2.2",
     "@iconify/utils": "^2.3.0",
     "@react-native/babel-preset": "^0.81.0",
+    "@rn-primitives/portal": "1.5.3",
+    "@rn-primitives/slot": "1.5.2",
     "@testing-library/react-native": "^13.2.0",
     "@types/jest": "^29.5.14",
     "@types/node": "^22.10.0",
@@ -65,12 +78,14 @@
     "eslint": "^9.39.0",
     "expo-font": "^13.0.0",
     "jest": "^29.7.0",
-    "nativewind": "^4.2.6",
+    "nativewind": "4.2.7",
     "react": "19.1.0",
     "react-native": "0.81.4",
+    "react-native-reanimated": "4.1.7",
     "react-native-svg": "^15.11.2",
+    "react-native-worklets": "0.5.1",
     "react-test-renderer": "19.1.0",
-    "tailwindcss": "^3.4.18",
+    "tailwindcss": "3.4.19",
     "tsx": "^4.20.0",
     "typescript": "^5.9.0"
   }

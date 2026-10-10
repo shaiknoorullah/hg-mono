@@ -7,7 +7,11 @@
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "noEmit": true,
-    "types": ["react", "jest"]
+    "types": ["react", "jest"],
+    // One `react-native` for the whole program, as Metro's SINGLETONS do at bundle time:
+    // @hg/ui-native is checked as source and would otherwise see its own peer-hash copy, which
+    // NativeWind's `className` augmentation (nativewind-env.d.ts) does not reach.
+    "paths": { "react-native": ["./node_modules/react-native"] }
   },
-  "include": ["App.tsx", "src/**/*.ts", "src/**/*.tsx", "shims/**/*.ts"]
+  "include": ["nativewind-env.d.ts", "App.tsx", "src/**/*.ts", "src/**/*.tsx", "shims/**/*.ts"]
 }
