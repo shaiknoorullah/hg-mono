@@ -15,7 +15,7 @@
  *     focus moves to the title on open, and the Android back button is handled here.
  */
 import * as React from 'react';
-import { AccessibilityInfo, BackHandler, findNodeHandle } from 'react-native';
+import { AccessibilityInfo, BackHandler, Platform, findNodeHandle } from 'react-native';
 import { Portal } from '@rn-primitives/portal';
 
 /** Re-provides context around portalled content (the `/ds` layer passes its ThemeProvider). */
@@ -50,7 +50,11 @@ export function useBackToDismiss(onDismiss: (() => void) | undefined): void {
 export function useInitialFocus(ref: React.RefObject<unknown>, delayMs: number): void {
   React.useEffect(() => {
     const t = setTimeout(() => {
-      const node = ref.current ? findNodeHandle(ref.current as never) : null;
+      const target = ref.current as { focus?: () => void } | null;
+      if (!target) return;
+      // react-native-web has no findNodeHandle; its host nodes are DOM elements with focus().
+      if (Platform.OS === 'web') return target.focus?.();
+      const node = findNodeHandle(target as never);
       if (node != null) AccessibilityInfo.setAccessibilityFocus(node);
     }, delayMs);
     return () => clearTimeout(t);
