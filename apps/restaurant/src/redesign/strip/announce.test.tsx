@@ -102,7 +102,9 @@ describe('the strip speaks through the page announcer', () => {
     const o = {
       ...fixture('restaurant_order_restaurant_pending'),
       code: 'B3M9',
-      deadline_at: new Date(Date.now() + 50_000).toISOString(),
+      // 59 s left (spoken in seconds): real time also moves this clock (shouldAdvanceTime), so a
+      // slow first render on a loaded machine must not carry the order past the 25 % mark (45 s).
+      deadline_at: new Date(Date.now() + 59_000).toISOString(),
     };
     installFakeApi(
       consoleRoutes({
@@ -115,10 +117,12 @@ describe('the strip speaks through the page announcer', () => {
     await waitFor(() => expect(document.querySelector('[data-offer-tile]')).not.toBeNull());
     const polite = screen.getByTestId('announcer-polite');
     const assertive = screen.getByTestId('announcer-assertive');
-    await waitFor(() => expect(polite.textContent).toMatch(/^New order B3M9, 3 items, (49|50) seconds to answer\.$/));
+    await waitFor(() => expect(polite.textContent).toMatch(/^New order B3M9, 3 items, (4[6-9]|5[0-9]) seconds to answer\.$/));
+    const firstLeft = Number(/(\d+) seconds to answer/.exec(polite.textContent ?? '')![1]);
 
+    // Cross the 25 % mark (45 s left).
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(6_000);
+      await vi.advanceTimersByTimeAsync((firstLeft - 44) * 1000);
     });
     await waitFor(() => expect(polite.textContent).toMatch(/^B3M9, 4[45] seconds left\.$/));
     const at25 = polite.textContent;
