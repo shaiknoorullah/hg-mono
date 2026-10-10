@@ -8,6 +8,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/handover"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders"
 )
 
@@ -1637,6 +1638,10 @@ func (r *Repo) GetOrder(ctx context.Context, restaurantID, orderID string) (*Ord
 	var custPhone *string
 	// Delivery area: city + distance band. City is available on the address.
 	var city *string
+	// The pickup code the kitchen reads to the rider (handover.PickupCodeVisible).
+	var fulfilment string
+	var pickupCodeEnc []byte
+	var pickupCodeAttempts int
 	err := r.db.QueryRow(ctx, `
 		SELECT o.id::text, o.code, o.state::text, o.state_since, o.deadline_at,
 		       o.promised_ready_at,
@@ -1644,7 +1649,8 @@ func (r *Repo) GetOrder(ctx context.Context, restaurantID, orderID string) (*Ord
 		       o.restaurant_net_cents, o.total_cents, o.currency::text,
 		       o.placed_at, o.accepted_at, o.ready_at, o.special_instructions,
 		       cp.first_name, cp.last_name, acc.phone_e164,
-		       addr.city
+		       addr.city,
+		       o.fulfilment::text, o.pickup_code_enc, o.pickup_code_attempts
 		  FROM "order" o
 		  LEFT JOIN account acc ON acc.id = o.account_id
 		  LEFT JOIN customer_profile cp ON cp.account_id = o.account_id
@@ -1657,12 +1663,20 @@ func (r *Repo) GetOrder(ctx context.Context, restaurantID, orderID string) (*Ord
 		&money.RestaurantNetCents, &money.TotalCents, &money.Currency,
 		&placedAt, &acceptedAt, &readyAt, &o.SpecialInstructions,
 		&custFirst, &custLast, &custPhone,
-		&city)
+		&city,
+		&fulfilment, &pickupCodeEnc, &pickupCodeAttempts)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
 	}
 	if err != nil {
 		return nil, fmt.Errorf("get order: %w", err)
+	}
+	// The restaurant staff's own order view is the one place the pickup code is
+	// shown (contracts/openapi.yaml, OrderRestaurantView.pickup_code;
+	// https://github.com/shaiknoorullah/hg-mono/issues/310). The ownership
+	// predicate above (o.restaurant_id = $2) keeps it to this restaurant.
+	if handover.PickupCodeVisible(o.State, fulfilment, pickupCodeAttempts) {
+		o.PickupCode = handover.Reveal(o.ID, handover.Pickup, pickupCodeEnc)
 	}
 	if discountCents != 0 {
 		o.Money = money

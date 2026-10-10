@@ -181,6 +181,7 @@ func TestLifecycleConfirmPickupCalled(t *testing.T) {
 	for _, step := range []string{"EN_ROUTE_TO_PICKUP", "ARRIVED_AT_PICKUP"} {
 		_, err := svc.Transition(context.Background(), o.riderAccountID, assignmentID, TransitionInput{
 			ToState:        step,
+			PickupCode:     pickupCodeFor(step),
 			OccurredAt:     time.Now().UTC(),
 			OverrideReason: &override,
 		})
@@ -197,6 +198,7 @@ func TestLifecycleConfirmPickupCalled(t *testing.T) {
 	// Transition to PICKED_UP.
 	_, err = svc.Transition(context.Background(), o.riderAccountID, assignmentID, TransitionInput{
 		ToState:    "PICKED_UP",
+		PickupCode: pickupCodeFor("PICKED_UP"),
 		OccurredAt: time.Now().UTC(),
 	})
 	if err != nil {
@@ -246,6 +248,7 @@ func TestLifecycleCompleteDeliveryCalled(t *testing.T) {
 	for _, step := range steps {
 		_, err := svc.Transition(context.Background(), o.riderAccountID, assignmentID, TransitionInput{
 			ToState:        step,
+			PickupCode:     pickupCodeFor(step),
 			OccurredAt:     time.Now().UTC(),
 			OverrideReason: &override,
 		})
@@ -331,6 +334,7 @@ func TestLifecycleNilSafe(t *testing.T) {
 	for _, step := range []string{"EN_ROUTE_TO_PICKUP", "ARRIVED_AT_PICKUP", "PICKED_UP"} {
 		_, err := svc.Transition(context.Background(), o.riderAccountID, assignmentID, TransitionInput{
 			ToState:        step,
+			PickupCode:     pickupCodeFor(step),
 			OccurredAt:     time.Now().UTC(),
 			OverrideReason: &override,
 		})
@@ -367,6 +371,7 @@ func TestPickupRefusedWhenTheOrderCannotMove(t *testing.T) {
 	for _, step := range []string{"EN_ROUTE_TO_PICKUP", "ARRIVED_AT_PICKUP"} {
 		if _, err := svc.Transition(context.Background(), o.riderAccountID, assignmentID, TransitionInput{
 			ToState:        step,
+			PickupCode:     pickupCodeFor(step),
 			OccurredAt:     time.Now().UTC(),
 			OverrideReason: &override,
 		}); err != nil {
@@ -376,6 +381,7 @@ func TestPickupRefusedWhenTheOrderCannotMove(t *testing.T) {
 
 	_, err = svc.Transition(context.Background(), o.riderAccountID, assignmentID, TransitionInput{
 		ToState:    "PICKED_UP",
+		PickupCode: pickupCodeFor("PICKED_UP"),
 		OccurredAt: time.Now().UTC(),
 	})
 	se, ok := asServiceError(err)

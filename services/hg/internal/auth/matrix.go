@@ -224,6 +224,7 @@ var matrix = map[httpx.Role]map[httpx.Action]struct{}{
 		httpx.Action("halal_certificate.read"),
 		httpx.Action("halal_issuing_body.read"),
 		httpx.Action("order.cancel_support"),
+		httpx.Action("order.handover_override"),
 		httpx.Action("order.read_any"),
 		// Reads the platform-wide pause on new orders, never changes it: that
 		// is ADMIN and SUPER_ADMIN only (https://github.com/shaiknoorullah/hg-mono/issues/244;
@@ -255,6 +256,7 @@ var matrix = map[httpx.Role]map[httpx.Action]struct{}{
 		httpx.Action("menu_version.decide"),
 		httpx.Action("menu_version.read"),
 		httpx.Action("order.cancel_support"),
+		httpx.Action("order.handover_override"),
 		httpx.Action("order.read_any"),
 		// The platform-wide pause on new orders
 		// (https://github.com/shaiknoorullah/hg-mono/issues/244).
@@ -297,6 +299,7 @@ var matrix = map[httpx.Role]map[httpx.Action]struct{}{
 		httpx.Action("menu_version.decide"),
 		httpx.Action("menu_version.read"),
 		httpx.Action("order.cancel_support"),
+		httpx.Action("order.handover_override"),
 		httpx.Action("order.read_any"),
 		httpx.Action("ordering_pause.read"),
 		httpx.Action("ordering_pause.set"),

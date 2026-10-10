@@ -34,7 +34,9 @@ const (
 )
 
 // deliverLeg picks the order up, walks the drop-off, records a proof photo
-// and marks the assignment delivered. A refused seal does not stop it. The
+// and marks the assignment delivered. The rider types the kitchen's pickup code
+// and, at a met handover, the customer's delivery code. A refused seal does not
+// stop it. The
 // customer follow-ups run after delivery even when the order stays delivered.
 func deliverLeg(ctx context.Context, cust, kitchen, rider *apiClient, order placedOrder, assignmentID string, pickup routePoint) error {
 	if kitchen == nil || rider == nil {
@@ -43,10 +45,16 @@ func deliverLeg(ctx context.Context, cust, kitchen, rider *apiClient, order plac
 	if err := kitchen.recordSeal(ctx, order); err != nil {
 		return err
 	}
-	if err := rider.transition(ctx, assignmentID, "PICKED_UP", pickup); err != nil {
+	// The kitchen reads its pickup code out and the rider types it in: the
+	// only way through pickup (https://github.com/shaiknoorullah/hg-mono/issues/310).
+	code, err := kitchen.pickupCode(ctx, order.ID)
+	if err != nil {
 		return err
 	}
-	fmt.Println("assignment  PICKED_UP")
+	if err := rider.pickUp(ctx, assignmentID, code, pickup); err != nil {
+		return err
+	}
+	fmt.Println("assignment  PICKED_UP  (pickup code typed)")
 	if _, err := observeOrder(ctx, cust, order.ID); err != nil {
 		fmt.Printf("order read  %s\n", codeOf(err))
 	}
@@ -65,7 +73,7 @@ func deliverLeg(ctx context.Context, cust, kitchen, rider *apiClient, order plac
 		return err
 	}
 	fmt.Println("assignment  ARRIVED_AT_DROPOFF")
-	if err := rider.submitProof(ctx, assignmentID, order.ID); err != nil {
+	if err := rider.submitProof(ctx, cust, assignmentID, order.ID); err != nil {
 		return err
 	}
 	if err := rider.transition(ctx, assignmentID, "DELIVERED", drop); err != nil {
@@ -120,7 +128,84 @@ type presignedPut struct {
 	RequiredHeaders map[string]string `json:"required_headers"`
 }
 
-func (c *apiClient) submitProof(ctx context.Context, assignmentID, orderID string) error {
+// pickupCode reads the order's pickup code from the restaurant's order view,
+// the screen the kitchen reads it out from.
+func (c *apiClient) pickupCode(ctx context.Context, orderID string) (string, error) {
+	_, data, err := c.call(ctx, http.MethodGet, "/v1/restaurant/orders/"+orderID, nil, false)
+	if err != nil {
+		return "", fmt.Errorf("devworld: restaurant order read: %w", err)
+	}
+	var view struct {
+		PickupCode *string `json:"pickup_code"`
+	}
+	if json.Unmarshal(data, &view) != nil || view.PickupCode == nil || *view.PickupCode == "" {
+		return "", errors.New("devworld: the restaurant's order view shows no pickup code")
+	}
+	fmt.Println("pickup code  read out by the kitchen")
+	return *view.PickupCode, nil
+}
+
+// pickUp confirms pickup with the kitchen's code (contract
+// PickupTransitionInput). The code is never printed.
+func (c *apiClient) pickUp(ctx context.Context, assignmentID, code string, p routePoint) error {
+	_, _, err := c.call(ctx, http.MethodPost, "/v1/riders/me/assignments/"+assignmentID+"/transitions", map[string]any{
+		"to_state":    "PICKED_UP",
+		"pickup_code": code,
+		"latitude":    p.Lat,
+		"longitude":   p.Lng,
+		"accuracy_m":  10,
+		"occurred_at": time.Now().UTC().Format(time.RFC3339),
+	}, true)
+	if err != nil {
+		return fmt.Errorf("devworld: transition PICKED_UP: %w", err)
+	}
+	return nil
+}
+
+// requiredPod reads the assignment's required proof method.
+func (c *apiClient) requiredPod(ctx context.Context, assignmentID string) string {
+	_, data, err := c.call(ctx, http.MethodGet, "/v1/riders/me/assignments/"+assignmentID, nil, false)
+	if err != nil {
+		return ""
+	}
+	var asn struct {
+		RequiredPodMethod string `json:"required_pod_method"`
+	}
+	_ = json.Unmarshal(data, &asn)
+	return asn.RequiredPodMethod
+}
+
+// submitOtpProof proves a met handover: the customer reads their delivery code
+// from their order view and the rider types it in (contract OtpProofInput).
+func (c *apiClient) submitOtpProof(ctx context.Context, cust *apiClient, assignmentID, orderID string) error {
+	if cust == nil {
+		return errors.New("devworld: a met handover needs the customer session for the delivery code")
+	}
+	_, data, err := cust.call(ctx, http.MethodGet, "/v1/orders/"+orderID, nil, false)
+	if err != nil {
+		return fmt.Errorf("devworld: customer order read: %w", err)
+	}
+	var view struct {
+		DeliveryCode *string `json:"delivery_code"`
+	}
+	if json.Unmarshal(data, &view) != nil || view.DeliveryCode == nil || *view.DeliveryCode == "" {
+		return errors.New("devworld: the customer's order view shows no delivery code")
+	}
+	_, _, err = c.call(ctx, http.MethodPost, "/v1/riders/me/assignments/"+assignmentID+"/proof-of-delivery", map[string]any{
+		"method":   "OTP",
+		"otp_code": *view.DeliveryCode,
+	}, true)
+	if err != nil {
+		return fmt.Errorf("devworld: proof of delivery: %w", err)
+	}
+	fmt.Println("proof recorded  (delivery code typed)")
+	return nil
+}
+
+func (c *apiClient) submitProof(ctx context.Context, cust *apiClient, assignmentID, orderID string) error {
+	if c.requiredPod(ctx, assignmentID) == "OTP" {
+		return c.submitOtpProof(ctx, cust, assignmentID, orderID)
+	}
 	jpegBytes, sum, err := proofJPEG()
 	if err != nil {
 		return err

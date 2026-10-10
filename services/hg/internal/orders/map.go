@@ -169,7 +169,8 @@ func orderViewToDTO(v *OrderView) orderCustomerViewDTO {
 		CancelReason:  v.CancelReason, RejectReason: v.RejectReason, CanCancel: v.CanCancel,
 		PlacedAt: httpx.Timestamp(v.PlacedAt), AcceptedAt: tsPtr(v.AcceptedAt), ReadyAt: tsPtr(v.ReadyAt),
 		PickedUpAt: tsPtr(v.PickedUpAt), DeliveredAt: tsPtr(v.DeliveredAt), CompletedAt: tsPtr(v.CompletedAt),
-		Lines: []orderLineDTO{},
+		DeliveryCode: v.DeliveryCode,
+		Lines:        []orderLineDTO{},
 	}
 	if v.DeliveryAddress != nil {
 		d.DeliveryAddress = addressToDTO(v.DeliveryAddress)

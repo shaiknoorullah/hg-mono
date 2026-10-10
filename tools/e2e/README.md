@@ -255,5 +255,5 @@ on macOS runners and are not part of this workflow
 
 ## API journey runner
 
-`tools/e2e/api/run.mjs` drives the launch path through the API alone (no app UI): an admin, a restaurant, a rider and a customer, from sign-up to a delivered and refunded order. It needs an explicit `--base`, and it refuses unless the API itself reports a non-production environment. It signs in only with the fictional `+1 NPA 555 0100-0199` numbers and a dedicated test staff login from environment variables. Its README is [tools/e2e/api/README.md](api/README.md); it shares the TOTP helper in `lib/totp.mjs`.
+`tools/e2e/api/run.mjs` drives the launch path through the API alone (no app UI): an admin, a restaurant, a rider and a customer, from sign-up to a delivered and refunded order. Its rider confirms pickup with the pickup code from the restaurant's order view. It needs an explicit `--base`, and it refuses unless the API itself reports a non-production environment. It signs in only with the fictional `+1 NPA 555 0100-0199` numbers and a dedicated test staff login from environment variables. Its README is [tools/e2e/api/README.md](api/README.md); it shares the TOTP helper in `lib/totp.mjs`.
 

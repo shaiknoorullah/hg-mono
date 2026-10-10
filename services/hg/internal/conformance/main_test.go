@@ -118,6 +118,10 @@ var expectedCovered = []string{
 	"createQuote", "createOrder", "cancelOrder",
 	"acceptOffer", "getAssignment",
 	"createRealtimeTicket", "receiveStripeWebhook",
+	// the handover codes (conformance_handover_codes_test.go): the rider's
+	// pickup and proof of delivery with their code errors, and the support
+	// override (https://github.com/shaiknoorullah/hg-mono/issues/310).
+	"createAssignmentTransition", "submitProofOfDelivery", "overrideHandoverCode",
 	// admin payout runs (conformance_payout_runs_test.go, issue #251)
 	"createPayoutRun", "getPayoutRun", "listPayoutRuns",
 	// refund review and chargebacks (#172; conformance_refund_review_test.go)

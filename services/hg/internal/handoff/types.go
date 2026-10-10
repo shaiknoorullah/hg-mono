@@ -82,9 +82,9 @@ type HandoffEvent struct {
 	At             string   `json:"at"`
 }
 
-// HandoffScanResult is the contract HandoffScanResult shape: the proof and its
-// effect together, so a client never has to make a second call to learn
-// whether the order actually advanced.
+// HandoffScanResult is the contract HandoffScanResult shape: the proof and the
+// order's state, which a seal scan reports and never changes (the tamper
+// report's is the dispute it opened).
 type HandoffScanResult struct {
 	Seal       PackageSeal  `json:"seal"`
 	Event      HandoffEvent `json:"event"`

@@ -9,6 +9,10 @@ const (
 	CodeInvalidEnumValue httpx.ErrorCode = "INVALID_ENUM_VALUE"
 	CodeNotFound         httpx.ErrorCode = "NOT_FOUND"
 	CodeForbidden        httpx.ErrorCode = "FORBIDDEN"
+	// CodeAccountNotActive refuses a staff member whose account or staff
+	// profile is no longer active, though their session's token is still valid
+	// (store_handover.go, overrideActorTx).
+	CodeAccountNotActive httpx.ErrorCode = "ACCOUNT_NOT_ACTIVE"
 
 	// Staff / RBAC.
 	CodeEmailInUse        httpx.ErrorCode = "EMAIL_IN_USE"
@@ -30,6 +34,9 @@ const (
 
 	// Order oversight (A-38).
 	CodeIllegalTransition httpx.ErrorCode = "ILLEGAL_TRANSITION"
+	// CodeMFARequired refuses a handover override from a session that did not
+	// sign in with two-step sign-in (handler_handover.go).
+	CodeMFARequired httpx.ErrorCode = "MFA_REQUIRED"
 
 	// Menu (A-19).
 	CodeCategoryNameTaken  httpx.ErrorCode = "CATEGORY_NAME_TAKEN"

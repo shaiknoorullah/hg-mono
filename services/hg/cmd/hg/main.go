@@ -46,6 +46,7 @@ import (
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/files"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/halalexpiry"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/handoff"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/handover"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/notify"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/notify/emailtmpl"
@@ -352,19 +353,6 @@ type orderLifecycleAdapter struct {
 	store *orders.Store
 }
 
-// ConfirmPickup is the handoff seal scan's pickup (handoff.OrderLifecycle). The
-// rider's own pickup step moves the order inside its transaction instead, with
-// ConfirmPickupTx (pickup.go).
-func (a *orderLifecycleAdapter) ConfirmPickup(ctx context.Context, orderID, riderAccountID string) error {
-	return a.store.Transition(ctx, orders.TransitionRequest{
-		OrderID:        orderID,
-		To:             machine.StatePickedUp,
-		Actor:          machine.ActorRider,
-		ActorAccountID: riderAccountID,
-		Reason:         "rider confirmed pickup",
-	})
-}
-
 // MarkArrived is the picked-up to arrived step, taken when the rider taps "I'm
 // here" at the drop-off (issue #250). Going through Transition arms the
 // 15-minute handover-overdue deadline and emits the same order.state_changed
@@ -574,6 +562,11 @@ func run() error {
 	if err != nil {
 		return err
 	}
+	// The handover codes (the kitchen's pickup code, the customer's delivery
+	// code) are sealed under the same APP_DATA_KEY as the staff TOTP secrets,
+	// set once for every module that seals or opens one (internal/handover;
+	// https://github.com/shaiknoorullah/hg-mono/issues/289).
+	handover.UseKey(authSecrets.AppDataKey)
 	// O-03 (SMS provider): HG_SMS_PROVIDER=twilio + credentials is the one-line
 	// flip from LogSMSSender (records the send, delivers nothing) to a real
 	// Twilio send. Config already refuses to boot with provider=twilio and
@@ -785,10 +778,12 @@ func run() error {
 	go riderSweeps.Run(ctx)
 
 	// B11 — Handoff (internal/handoff, migration 00027): package-seal chain of
-	// custody. Reuses the same orderLifecycleAdapter instance dispatch is wired
-	// with above — it already satisfies dispatch.OrderLifecycle's three methods
-	// plus handoff.OrderLifecycle's OpenDispute — and auth's P-04 Ed25519 signing
-	// key, so no second key pair is minted for this module alone.
+	// custody, later-version at launch: a scan is evidence and never moves an
+	// order (https://github.com/shaiknoorullah/hg-mono/issues/310). Reuses the
+	// same orderLifecycleAdapter instance dispatch is wired with above (it
+	// satisfies dispatch.OrderLifecycle's three methods) for
+	// handoff.OrderLifecycle's one method, OpenDispute, and auth's P-04 Ed25519
+	// signing key, so no second key pair is minted for this module alone.
 	handoffStore := handoff.NewStore(st.DB().Pool)
 	handoffSvc := handoff.NewService(handoffStore, dispatchLifecycle, authSecrets.SigningPriv, authSecrets.SigningPub, log)
 	handoff.Routes(router, handoff.NewHandler(handoffSvc))

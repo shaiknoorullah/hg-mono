@@ -9,7 +9,7 @@ covers:
   - services/hg/internal/files/**
   - services/hg/internal/dispatch/**
   - services/hg/internal/httpx/**
-reviewed: 2026-10-09
+reviewed: 2026-10-10
 ---
 
 # HalalGoes — Cross-Cutting Platform Layer Specification
@@ -59,8 +59,8 @@ These are not capabilities; they are constraints on all of them. Violating one i
   | `CUSTOMER` | phone OTP | — |
   | `RIDER` | phone OTP | — |
   | `RESTAURANT_OWNER`, `RESTAURANT_MANAGER`, `RESTAURANT_STAFF` | email + password | optional TOTP |
-  | `SUPPORT_AGENT` | email + password | optional TOTP; moving money needs it |
-  | `ADMIN`, `SUPER_ADMIN` | email + password | optional TOTP; moving money needs it |
+  | `SUPPORT_AGENT` | email + password | TOTP required |
+  | `ADMIN`, `SUPER_ADMIN` | email + password | TOTP required |
 
   An account holding both `CUSTOMER` and `ADMIN` must authenticate with the admin method to receive an access token carrying the admin role; a phone-OTP session for that account carries `CUSTOMER` only. This is the `amr` claim's job (P-04).
 
@@ -138,7 +138,7 @@ CREATE TABLE admin_profile   (account_id uuid PRIMARY KEY REFERENCES account(id)
 
 > **Decided:** owner only at launch; manager and staff roles wait for a later version ([staff accounts](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28), [restaurant staff](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
 
-> **Decided:** two-step sign-in (TOTP) is opt-in for every email account, staff included, and set up from the console with a QR code after sign-up or invitation; refund approvals and payout runs still need a session signed in with it ([two-step sign-in is opt-in](../decisions/README.md#settled--owner-decisions-2026-10-05)). No recovery codes; a super admin resets a lost authenticator after a call-back identity check ([manual reset](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
+> **Decided:** TOTP mandatory for staff; no recovery codes; a super admin resets a lost authenticator after a call-back identity check ([manual reset](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
 
 ---
 
@@ -228,10 +228,10 @@ CREATE INDEX otp_challenge_open ON otp_challenge(phone_e164, purpose) WHERE cons
   - `POST /v1/auth/register/restaurant` `{email, password, business_name, terms_version}` → creates `account` (unverified) + `restaurant` in `onboarding_state='REGISTERED'` + `RESTAURANT_OWNER` grant. Sends verification email with a single-use token. **No session is issued until the email is verified.**
   - `POST /v1/auth/email/verify` `{token}` → sets `email_verified_at`, advances onboarding to `PROFILE_PENDING`, answers `204`. **Issues no session and sets no cookie**: an emailed link never signs anyone in, or an attacker could send someone the link for the attacker's own account and have them work in it ([#356](https://github.com/shaiknoorullah/hg-mono/issues/356)). The owner then signs in with `login`.
   - `POST /v1/auth/email/resend` — rate limited like the reset email below; a 429 only when the caller is over its own limits.
-  - `POST /v1/auth/login` `{email, password, totp_code?}` → verifies argon2id, checks `status`, checks role auth policy, checks TOTP when the account turned it on, issues session. Uniform failure `401 invalid_credentials` for wrong-email, wrong-password and unverified-email cases (unverified additionally returns `error.details.email_verification_required: true` only **after** correct credentials).
+  - `POST /v1/auth/login` `{email, password, totp_code?}` → verifies argon2id, checks `status`, checks role auth policy, checks TOTP when enrolled/required, issues session. Uniform failure `401 invalid_credentials` for wrong-email, wrong-password and unverified-email cases (unverified additionally returns `error.details.email_verification_required: true` only **after** correct credentials).
   - `POST /v1/auth/password/forgot` `{email}` → always 200; sends reset token if the account exists.
   - **Link email limits** (verification and reset alike, as built Oct 2026): 3 an hour per address and client address (an IPv4 address or an IPv6 /64), so an attacker cannot use up the owner's own quota; 10 an hour per client address over all addresses; and a last-resort cap of 10 an hour and 20 a day per address, which answers generically and logs an alert. Addresses are counted in lower case with any `+tag` removed. Both operations answer in the same content and time whether or not the account exists. A new link does not cancel the earlier ones; at most 3 are live per account, and using one ends the rest.
-  - `POST /v1/auth/password/reset` `{token, new_password}` → sets hash, **revokes every session in the account's family**, audit `session.revoked_all`, sends a security email. Answers `204` with no session and no cookie, also for a staff invitation setting a first password; the user then signs in with `login` (with the authenticator code only if the account turned two-step sign-in on). Spending the link, setting the password and revoking the sessions happen in one transaction. A staff invitee signs in with the password alone and turns two-step sign-in on afterwards from the console; it is never set up from the invitation link, and the invitation-time enrolment of [#615](https://github.com/shaiknoorullah/hg-mono/pull/615) (`startInviteTotpEnrolment`, `totp_code` here) is withdrawn ([two-step sign-in is opt-in](../decisions/README.md#settled--owner-decisions-2026-10-05)).
+  - `POST /v1/auth/password/reset` `{token, new_password}` → sets hash, **revokes every session in the account's family**, audit `session.revoked_all`, sends a security email. Answers `204` with no session and no cookie, also for a staff invitation setting a first password; the user then signs in with `login` (with the authenticator code where required). A staff invitee, whose role needs an authenticator, first calls `POST /v1/auth/invite/totp` `{token}` (`startInviteTotpEnrolment`) and then sends the first code as `totp_code` here, which sets the password and confirms the authenticator together; a wrong code leaves the link usable ([#170](https://github.com/shaiknoorullah/hg-mono/issues/170)).
   - `POST /v1/auth/password/change` `{current_password, new_password}` (authenticated) → same revocation, except the calling session which is re-issued. A wrong current password is `422 INVALID_CREDENTIALS`, never `401`: the session is valid, and the shared client answers every `401` by refreshing and retrying, which would count the wrong password twice ([#238](https://github.com/shaiknoorullah/hg-mono/issues/238)).
   - `POST /v1/auth/totp/enroll` / `verify` / `disable` (step-up required).
 
@@ -1087,7 +1087,7 @@ CREATED ──────────► AUTHORIZED ──────► RESTA
                  └──────────┘         └────────────┴─────────────┴──► UNASSIGNED → SEARCHING
                  └───────────────────────────────────────────────────► NO_RIDER_FOUND
   ```
-  Dispatch may push the order forward **only** through T12 (`CARRYING` ⟹ `PICKED_UP`), T14 (`AT_CUSTOMER` ⟹ `ARRIVED`) and T15/T16 (`COMPLETED` ⟹ `DELIVERED`). It may never cancel an order; `NO_RIDER_FOUND` arms the order's `READY_FOR_PICKUP` escalation instead (T13). A pickup moves the order in the same transaction as the dispatch step, so a refused order move refuses the pickup ([pickup in one transaction](https://github.com/shaiknoorullah/hg-mono/issues/317)). Only the rider who holds the order's delivery can move it, checked where the order is locked. A pickup while the order is still `PREPARING` is refused until the kitchen's pickup code is checked: marking ready is the kitchen's step, never the rider's word alone ([early pickup with the kitchen's code](https://github.com/shaiknoorullah/hg-mono/issues/413)).
+  Dispatch may push the order forward **only** through T12 (`CARRYING` ⟹ `PICKED_UP`), T14 (`AT_CUSTOMER` ⟹ `ARRIVED`) and T15/T16 (`COMPLETED` ⟹ `DELIVERED`). It may never cancel an order; `NO_RIDER_FOUND` arms the order's `READY_FOR_PICKUP` escalation instead (T13). A pickup moves the order in the same transaction as the dispatch step, so a refused order move refuses the pickup ([pickup in one transaction](https://github.com/shaiknoorullah/hg-mono/issues/317)). Only the rider who holds the order's delivery can move it, checked where the order is locked. A pickup while the order is still `PREPARING` is refused until the kitchen's pickup code is checked: marking ready is the kitchen's step, never the rider's word alone ([early pickup with the kitchen's code](https://github.com/shaiknoorullah/hg-mono/issues/413)). The pickup code is asked for only once the order is `READY_FOR_PICKUP` and the rider holds its live delivery: a missing code is `422 PICKUP_CODE_REQUIRED`, a wrong one `422 PICKUP_CODE_INCORRECT` with the tries left, and the last wrong try locks the code (`423 PICKUP_CODE_LOCKED`) so that only support or an admin can confirm the handover, with a reason and an audit record ([handover codes enforced](https://github.com/shaiknoorullah/hg-mono/pull/315)).
 
   **Enforcement.** A single function owns every transition:
   ```go
@@ -2887,7 +2887,7 @@ CREATE UNIQUE INDEX idempotency_unique ON idempotency_record(account_id, method,
 |---|---|---|---|
 | 1 | One account across roles | Can one person hold customer, rider and restaurant roles on one account? | One account, many roles |
 | 2 | Restaurant staff granularity | How many restaurant sub-roles at launch? | **Decided:** owner only at launch ([staff accounts](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)) |
-| 3 | Admin MFA | Mandatory TOTP for admin, super-admin, support? | **Decided (2026-10-05):** opt-in; moving money still needs it ([two-step sign-in is opt-in](../decisions/README.md#settled--owner-decisions-2026-10-05)). No recovery codes; a super admin resets a lost authenticator ([manual reset](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)) |
+| 3 | Admin MFA | Mandatory TOTP for admin, super-admin, support? | **Decided:** mandatory; no recovery codes, a super admin resets a lost authenticator ([manual reset](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)) |
 | 4 | Session lifetimes | Per-role idle and absolute TTLs? | **Decided** for staff: 30 min idle, 12 h total ([staff session length](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)); open: customer 30/180 d, restaurant 14/90 d |
 | 5 | Variant pricing semantics | Does a variant replace or adjust the base price? | Explicit per variant: `ABSOLUTE` \| `DELTA`, default `ABSOLUTE` |
 | 6 | Fee parameters | Launch delivery/service/commission values? | **Decided:** delivery $2.99 + $1.00/km, service fee $0.00, commission 0% ([delivery fee](../decisions/README.md#settled--client-decisions), [service fee](../decisions/README.md#settled--reconciliations)); open: included km, min/max, small-order surcharge |

@@ -14,6 +14,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/dispatch"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/handover"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders/machine"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/realtime"
@@ -124,12 +125,20 @@ func TestRealtime_CheckoutToCompletedEmitsTheContractsEvents(t *testing.T) {
 	if err != nil {
 		t.Fatalf("AcceptOffer: %v", err)
 	}
+	// The kitchen's pickup code, minted at acceptance, set to a known value
+	// here for the rider to type at PICKED_UP.
+	pickupCode := "3051"
+	if err := handover.SetCodeTx(ctx, pool, orderID, handover.Pickup, pickupCode); err != nil {
+		t.Fatalf("set the pickup code: %v", err)
+	}
 	override := "e2e"
 	step := func(to string) {
 		t.Helper()
-		if _, err := svc.Transition(ctx, riderID, asn.ID, dispatch.TransitionInput{
-			ToState: to, OccurredAt: time.Now().UTC(), OverrideReason: &override,
-		}); err != nil {
+		in := dispatch.TransitionInput{ToState: to, OccurredAt: time.Now().UTC(), OverrideReason: &override}
+		if to == "PICKED_UP" {
+			in.PickupCode = &pickupCode
+		}
+		if _, err := svc.Transition(ctx, riderID, asn.ID, in); err != nil {
 			t.Fatalf("assignment to %s: %v", to, err)
 		}
 	}

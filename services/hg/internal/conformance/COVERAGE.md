@@ -7,10 +7,10 @@ The oracle: every covered operation had its live server response validated again
 enforces `additionalProperties:false` + `required[]` + closed enums automatically.
 
 - **Total contract operations:** 169
-- **Validated (covered):** 166
-- **Not yet validated (uncovered):** 3
+- **Validated (covered):** 167
+- **Not yet validated (uncovered):** 2
 
-## Covered (166)
+## Covered (167)
 
 - `acceptOffer` — POST /v1/riders/me/offers/{offerId}/accept
 - `acceptOrder` — POST /v1/restaurant/orders/{orderId}/accept
@@ -128,6 +128,7 @@ enforces `additionalProperties:false` + `required[]` + closed enums automaticall
 - `logoutAll` — POST /v1/auth/logout-all
 - `markNotificationRead` — POST /v1/notifications/{notificationId}/read
 - `markOrderReady` — POST /v1/restaurant/orders/{orderId}/ready
+- `overrideHandoverCode` — POST /v1/admin/orders/{orderId}/handover-override
 - `proposeHalalIssuingBody` — POST /v1/admin/halal-issuing-bodies
 - `receiveStripeWebhook` — POST /v1/webhooks/stripe
 - `recordHalalChecks` — PUT /v1/admin/halal-certificates/{certificateId}/checks
@@ -179,11 +180,10 @@ enforces `additionalProperties:false` + `required[]` + closed enums automaticall
 - `verifyOtp` — POST /v1/auth/otp/verify
 - `verifyTotpEnrolment` — POST /v1/auth/totp/verify
 
-## Uncovered (3)
+## Uncovered (2)
 
 Each uncovered operation is listed with its method/path. This list is emitted
 every run: an operation silently losing coverage becomes visible here.
 
 - `getDependencyStatus` — GET /internal/deps — needs Redis and the object store
 - `getReadiness` — GET /health/ready — needs Redis and the object store
-- `overrideHandoverCode` — POST /v1/admin/orders/{orderId}/handover-override — no handler yet: the backend lands in #315
