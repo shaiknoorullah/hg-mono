@@ -4,6 +4,7 @@
  */
 import './earnings';
 import './home';
+import './offer';
 import './signin';
 
 export {};
