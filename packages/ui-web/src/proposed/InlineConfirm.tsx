@@ -24,7 +24,7 @@
 import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react';
 
 import { FieldMessage, useFieldIds } from '../ds/field-parts.js';
-import { Button, Icon, type IconName } from '../ds/index.js';
+import { Button, ICON_NAMES, Icon, type IconName } from '../ds/index.js';
 
 /** One button of the action-list form (the restaurant stub's `InlineConfirmAction`). */
 export interface InlineConfirmAction {
@@ -47,8 +47,11 @@ export interface InlineConfirmProps {
   cancel?: InlineConfirmAction;
   /** Action-list form: the decisive actions, after `cancel`. */
   actions?: readonly InlineConfirmAction[];
-  /** A leading glyph (action-list form, any form). */
-  icon?: IconName;
+  /**
+   * A leading glyph (any form). `warning` and `info` are the restaurant stub's names: they draw
+   * nothing until the repo icon map has them (W1, #198), never a substitute glyph.
+   */
+  icon?: IconName | 'warning' | 'info';
   /** The confirm is in flight: its button shows loading and presses are ignored. */
   confirming?: boolean;
   /** The confirm button uses the danger variant. */
@@ -87,6 +90,7 @@ export function InlineConfirm({
   const ids = useFieldIds(undefined, 'inlineconfirm');
   const titleId = `${ids.control}-title`;
   const root = useRef<HTMLDivElement>(null);
+  const glyph = icon && (ICON_NAMES as readonly string[]).includes(icon) ? (icon as IconName) : null;
   const busy = confirming || (actions?.some((a) => a.loading) ?? false);
   const doCancel = () => {
     if (busy) return;
@@ -121,7 +125,7 @@ export function InlineConfirm({
         }
       }}
     >
-      {icon ? <Icon name={icon} size={24} /> : null}
+      {glyph ? <Icon name={glyph} size={24} /> : null}
       {title ? (
         <p id={titleId} className="m-0 text-label-lg font-semibold text-fg-primary">
           {title}

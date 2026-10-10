@@ -60,7 +60,7 @@ export function ErrorGlyph({ size = 'sm' }: { size?: 'sm' | 'md' }) {
   );
 }
 
-/** A helper line (caption, text-secondary) or, with `error`, the announced error line. */
+/** A helper line (caption size, text-secondary) or, with `error`, the announced error line. */
 export function FieldMessage({
   id,
   error = false,
@@ -78,7 +78,7 @@ export function FieldMessage({
       <p
         id={id}
         role="alert"
-        className={cn('m-0 flex items-start gap-1 text-body-sm text-feedback-danger-text', className)}
+        className={cn('m-0 flex items-start gap-1 text-caption text-feedback-danger-text', className)}
       >
         <span className="mt-px inline-flex shrink-0">
           <ErrorGlyph size="sm" />
@@ -88,7 +88,7 @@ export function FieldMessage({
     );
   }
   return (
-    <p id={id} className={cn('m-0 text-body-sm text-fg-secondary', className)}>
+    <p id={id} className={cn('m-0 text-caption text-fg-secondary', className)}>
       {children}
     </p>
   );
@@ -129,7 +129,7 @@ export function CharacterCounter({ id, length, limit }: { id: string; length: nu
     <p
       id={id}
       className={cn(
-        'm-0 justify-self-end text-body-sm tabular-nums',
+        'm-0 justify-self-end text-caption tabular-nums',
         length >= limit ? 'text-fg-primary' : 'text-fg-secondary',
       )}
     >

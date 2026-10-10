@@ -24,7 +24,7 @@ import {
 
 import { ChoiceInput, RadioDot, choiceControlVariants } from '../lib/ui/checkbox.js';
 import { cn } from '../lib/utils.js';
-import { PriceDelta } from './Checkbox.js';
+import { ChoiceRowText, DisabledReasonLine } from './Checkbox.js';
 import { FieldMessage, describedBy, useFieldIds } from './field-parts.js';
 
 /** One option of a RadioGroup. */
@@ -215,20 +215,18 @@ export function Radio({
         >
           {checked ? <RadioDot size={size} /> : null}
         </span>
-        <span className={cn('grid flex-1 gap-0.5', disabled && 'opacity-(--hg-state-disabled-opacity)')}>
-          <span className="text-body-md text-fg-primary">{label}</span>
-          {description != null ? (
-            <span id={descId} className="text-body-sm text-fg-secondary">
-              {description}
-            </span>
-          ) : null}
-        </span>
-        {typeof priceDeltaCents === 'number' ? <PriceDelta cents={priceDeltaCents} /> : null}
+        <ChoiceRowText
+          label={label}
+          description={description}
+          descId={descId}
+          priceDeltaCents={priceDeltaCents}
+          disabled={disabled}
+        />
       </label>
       {disabled && disabledReason ? (
-        <p id={reasonId} className="m-0 text-body-sm text-fg-tertiary" style={{ paddingInlineStart: size + 12 }}>
+        <DisabledReasonLine id={reasonId} indent={size + 12}>
           {disabledReason}
-        </p>
+        </DisabledReasonLine>
       ) : null}
     </div>
   );

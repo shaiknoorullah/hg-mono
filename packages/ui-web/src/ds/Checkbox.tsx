@@ -51,9 +51,51 @@ export interface CheckboxProps {
 /** The signed price delta beside an add-on or variant row. */
 export function PriceDelta({ cents }: { cents: number }) {
   return (
-    <span className="shrink-0 text-body-sm font-semibold text-fg-primary">
-      <Price cents={cents as Cents} sign="always" size="sm" />
+    <span className="shrink-0 text-fg-primary">
+      {/* The weight goes on Price itself: its text-body-sm utility sets a regular weight. */}
+      <Price cents={cents as Cents} sign="always" size="sm" className="font-semibold" />
     </span>
+  );
+}
+
+/**
+ * The text column of a checkbox or radio row: the label, the optional description (its id is
+ * linked from the input) and the signed price delta. Shared by Checkbox and Radio.
+ */
+export function ChoiceRowText({
+  label,
+  description,
+  descId,
+  priceDeltaCents,
+  disabled,
+}: {
+  label: ReactNode;
+  description?: ReactNode;
+  descId: string;
+  priceDeltaCents?: number;
+  disabled: boolean;
+}) {
+  return (
+    <>
+      <span className={cn('grid flex-1 gap-0.5', disabled && 'opacity-(--hg-state-disabled-opacity)')}>
+        <span className="text-body-md text-fg-primary">{label}</span>
+        {description != null ? (
+          <span id={descId} className="text-body-sm text-fg-secondary">
+            {description}
+          </span>
+        ) : null}
+      </span>
+      {typeof priceDeltaCents === 'number' ? <PriceDelta cents={priceDeltaCents} /> : null}
+    </>
+  );
+}
+
+/** The line under a disabled checkbox or radio row that says why it is disabled. */
+export function DisabledReasonLine({ id, indent, children }: { id: string; indent: number; children: ReactNode }) {
+  return (
+    <p id={id} className="m-0 text-body-sm text-fg-tertiary" style={{ paddingInlineStart: indent }}>
+      {children}
+    </p>
   );
 }
 
@@ -131,20 +173,18 @@ export function Checkbox({
         >
           {indeterminate ? <MixedBar size={size - 6} /> : checked ? <Tick size={size - 6} /> : null}
         </span>
-        <span className={cn('grid flex-1 gap-0.5', disabled && 'opacity-(--hg-state-disabled-opacity)')}>
-          <span className="text-body-md text-fg-primary">{label}</span>
-          {description != null ? (
-            <span id={descId} className="text-body-sm text-fg-secondary">
-              {description}
-            </span>
-          ) : null}
-        </span>
-        {typeof priceDeltaCents === 'number' ? <PriceDelta cents={priceDeltaCents} /> : null}
+        <ChoiceRowText
+          label={label}
+          description={description}
+          descId={descId}
+          priceDeltaCents={priceDeltaCents}
+          disabled={disabled}
+        />
       </label>
       {disabled && disabledReason ? (
-        <p id={reasonId} className="m-0 text-body-sm text-fg-tertiary" style={{ paddingInlineStart: size + 12 }}>
+        <DisabledReasonLine id={reasonId} indent={size + 12}>
           {disabledReason}
-        </p>
+        </DisabledReasonLine>
       ) : null}
       {error ? (
         <FieldMessage id={ids.error} error>

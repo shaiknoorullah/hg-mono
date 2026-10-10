@@ -599,6 +599,8 @@ describe('W3 Forms behaviour', () => {
     const resume = vi.fn();
     render(
       <proposed.InlineConfirm
+        // The stub's `warning` name type-checks and draws nothing until the icon map has it.
+        icon="warning"
         title="Resume orders?"
         body="New orders start ringing again."
         cancel={{ label: 'Stay paused', onPress: cancel }}
