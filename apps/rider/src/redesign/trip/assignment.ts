@@ -245,6 +245,12 @@ export function useTripAssignment(assignmentId: string | null): TripAssignmentVi
     () => floors.get(id),
   );
   const assignment = cached?.data ?? query.data;
+  // The delivery ended (delivered, cancelled, moved to another rider): its saved steps are moot.
+  // Left in the queue they would replay into a 409 and open QueuedRejected over Home.
+  const ended = !!assignment && ENDED.has(assignment.state);
+  React.useEffect(() => {
+    if (ended && assignmentId && saved.length) void outbox.clearAssignment(assignmentId);
+  }, [ended, assignmentId, saved.length]);
   return {
     id: assignmentId,
     status: assignment ? 'success' : query.status,
@@ -285,7 +291,7 @@ async function currentFix(): Promise<Pick<TransitionInput, 'latitude' | 'longitu
   const timeout = new Promise<null>((resolve) => {
     timer = setTimeout(() => resolve(null), FIX_TIMEOUT_MS);
   });
-  const outcome = await Promise.race([getFreshFix(true), timeout]).finally(() => clearTimeout(timer));
+  const outcome = await Promise.race([getFreshFix(true).catch(() => null), timeout]).finally(() => clearTimeout(timer));
   if (!outcome || !outcome.ok) return {};
   const { latitude, longitude, accuracy_m } = outcome.fix;
   return accuracy_m == null ? { latitude, longitude } : { latitude, longitude, accuracy_m };

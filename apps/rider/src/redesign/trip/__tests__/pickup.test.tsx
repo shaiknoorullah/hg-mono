@@ -489,3 +489,54 @@ function PREPARING_AS(state: string) {
   return assignment('assignment_arrived_at_pickup', { state, arrived_pickup_at: null }, { order_state: 'PREPARING' });
 }
 
+describe.each(SCHEMES)('real conditions: retries, double taps, an ended delivery (%s)', (scheme) => {
+  it("the start failed, then I'm at the restaurant: On my way goes first with its key, never a 409 from ASSIGNED", async () => {
+    const { api } = renderTrip(scheme, {
+      getAssignment: 'assignment_assigned',
+      createAssignmentTransition: (_c, nth) =>
+        nth === 0 ? 'error_internal_error' : nth === 1 ? 'assignment_en_route_to_pickup' : PREPARING(),
+    });
+    await screen.findByText("We couldn't start the trip");
+    fireEvent.press(screen.getByText("I'm at the restaurant"));
+    await screen.findByText('Wait for the food');
+    expect(transitions(api).map((b) => b.to_state)).toEqual(['EN_ROUTE_TO_PICKUP', 'EN_ROUTE_TO_PICKUP', 'ARRIVED_AT_PICKUP']);
+    expect(keys(api)[1]).toBe(keys(api)[0]);
+    expect(transitions(api)[1]).toEqual(transitions(api)[0]);
+    expect(keys(api)[2]).not.toBe(keys(api)[0]);
+    expect(screen.queryByText('This delivery had already moved on')).toBeNull();
+  });
+
+  it("a double tap on I've got the food records one pickup", async () => {
+    const { api } = renderTrip(scheme, { getAssignment: 'assignment_arrived_at_pickup', createAssignmentTransition: 'assignment_picked_up' });
+    await screen.findByText('Check the bag has 3 items');
+    fireEvent.changeText(screen.getByTestId('trip-pickup-code-field'), '7314');
+    const button = screen.getByTestId('trip-got-food');
+    fireEvent.press(button);
+    fireEvent.press(button);
+    await screen.findByTestId('route-probe');
+    expect(transitions(api)).toHaveLength(1);
+  });
+
+  it('the delivery is cancelled while a step waits to send: the saved step is dropped, nothing replays', async () => {
+    jest.useFakeTimers({ doNotFake: ['nextTick', 'setImmediate'] });
+    try {
+      const { api } = renderTrip(scheme, { getAssignment: 'assignment_en_route_to_pickup', createAssignmentTransition: 'offline' });
+      fireEvent.press(await screen.findByText("I'm at the restaurant"));
+      await waitFor(() => expect(outbox.pendingFor(ID)).toHaveLength(1));
+      api.set('getAssignment', 'assignment_cancelled_by_platform');
+      await act(async () => {
+        jest.advanceTimersByTime(5_000);
+      });
+      await screen.findByTestId('route-probe');
+      await waitFor(() => expect(outbox.pendingFor(ID)).toHaveLength(0));
+      api.set('createAssignmentTransition', 'assignment_arrived_at_pickup');
+      await act(async () => {
+        await outbox.drain();
+      });
+      expect(transitions(api)).toHaveLength(1);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+});
+

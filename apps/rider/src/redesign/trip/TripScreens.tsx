@@ -58,6 +58,7 @@ import type { ScreenProps } from '../nav/registry';
 import { fetchRiderMe } from '../session/Session';
 import {
   ENDED,
+  cachedAssignment,
   classifyStepError,
   claimAutoStart,
   dial,
@@ -258,8 +259,26 @@ export function PickupStepScreen({ params }: ScreenProps<'tripPickup'>): React.R
     [alive, id, view.refetch],
   );
 
+  // The last EN_ROUTE_TO_PICKUP attempt and the one in flight: "I'm at the restaurant" waits for
+  // it, and resends a failed one first (same key), so the arrival is never a 409 from ASSIGNED.
+  const startStep = React.useRef<{ step: PreparedStep; failed: boolean } | null>(null);
+  const startInFlight = React.useRef<Promise<'sent' | 'geofence' | 'failed'> | null>(null);
   const startTrip = React.useCallback(
-    (retry?: PreparedStep) => run(setStart, () => prepareStep({ to_state: 'EN_ROUTE_TO_PICKUP' }), retry),
+    (retry?: PreparedStep) => {
+      const make = async () => {
+        const step = await prepareStep({ to_state: 'EN_ROUTE_TO_PICKUP' });
+        startStep.current = { step, failed: false };
+        return step;
+      };
+      if (retry) startStep.current = { step: retry, failed: false };
+      const p = run(setStart, make, retry).then((outcome) => {
+        if (startStep.current) startStep.current.failed = outcome === 'failed';
+        if (startInFlight.current === p) startInFlight.current = null;
+        return outcome;
+      });
+      startInFlight.current = p;
+      return p;
+    },
     [run],
   );
 
@@ -268,16 +287,39 @@ export function PickupStepScreen({ params }: ScreenProps<'tripPickup'>): React.R
     if (view.assignment?.state === 'ASSIGNED' && view.saved.length === 0 && claimAutoStart(id)) void startTrip();
   }, [id, startTrip, view.assignment?.state, view.saved.length]);
 
-  const arrived = async (retry?: PreparedStep) => {
-    const outcome = await run(setArrive, () => prepareStep({ to_state: 'ARRIVED_AT_PICKUP' }), retry);
-    if (outcome === 'geofence' && alive.current) setSheet('geofence');
+  /** One arrival at a time: a second tap while the first waits for a GPS fix sends nothing. */
+  const arriving = React.useRef(false);
+  const arriveWith = async (make: () => Promise<PreparedStep>, retry?: PreparedStep) => {
+    if (arriving.current) return;
+    arriving.current = true;
+    try {
+      setArrive({ phase: 'sending', step: retry });
+      // "On my way" first (DL/PickupStartFailed: the arrival queues behind it). The machine has no
+      // ASSIGNED → ARRIVED_AT_PICKUP, so arriving on a delivery still at ASSIGNED would be a 409.
+      if (startInFlight.current) await startInFlight.current;
+      const startQueued = outbox.pendingFor(id).some((e) => e.input.to_state === 'EN_ROUTE_TO_PICKUP');
+      if (cachedAssignment(id)?.state === 'ASSIGNED' && !startQueued) {
+        const last = startStep.current;
+        const started = await startTrip(last?.failed ? last.step : undefined);
+        if (started === 'failed') {
+          const step = retry ?? (await make());
+          if (alive.current) setArrive({ phase: 'failed', step });
+          return;
+        }
+      }
+      const outcome = await run(setArrive, make, retry);
+      if (outcome === 'geofence' && alive.current) setSheet('geofence');
+    } finally {
+      arriving.current = false;
+    }
   };
+
+  const arrived = (retry?: PreparedStep) => arriveWith(() => prepareStep({ to_state: 'ARRIVED_AT_PICKUP' }), retry);
 
   const override = async () => {
     const reasonText = reason.trim();
     setSheet(null);
-    const outcome = await run(setArrive, () => prepareStep({ to_state: 'ARRIVED_AT_PICKUP', override_reason: reasonText }));
-    if (outcome === 'geofence' && alive.current) setSheet('geofence');
+    await arriveWith(() => prepareStep({ to_state: 'ARRIVED_AT_PICKUP', override_reason: reasonText }));
   };
 
   if (!a) return <StepPending view={view} />;
@@ -400,7 +442,7 @@ export function PickupStepScreen({ params }: ScreenProps<'tripPickup'>): React.R
 
 type Pickup =
   | { status: 'idle' }
-  | { status: 'sending'; step: PreparedStep }
+  | { status: 'sending'; step?: PreparedStep }
   | { status: 'failed'; step: PreparedStep }
   | { status: 'wrong'; attemptsRemaining: number | null }
   | { status: 'locked' }
@@ -428,13 +470,17 @@ export function AtRestaurantScreen({ params }: ScreenProps<'tripAtRestaurant'>):
   }, [a, checking, ready]);
   const minutes = useMinutesSince(a?.arrived_pickup_at);
 
+  // One pickup at a time: a second tap while the first waits up to 5 s for a GPS fix sends nothing.
+  const recording = React.useRef(false);
   const gotFood = async () => {
-    if (code.length !== CODE_LENGTH) return;
+    if (code.length !== CODE_LENGTH || recording.current) return;
+    recording.current = true;
     // "Try again" after a 5xx is the same request, unless the rider changed the code.
     const previous = pickup.status === 'failed' && pickup.step.input.pickup_code === code ? pickup.step : null;
-    const step = previous ?? (await prepareStep({ to_state: 'PICKED_UP', pickup_code: code }));
-    setPickup({ status: 'sending', step });
+    setPickup({ status: 'sending', step: previous ?? undefined });
+    let step = previous;
     try {
+      step ??= await prepareStep({ to_state: 'PICKED_UP', pickup_code: code });
       const result = await sendStep(id, step);
       if (!alive.current) return;
       setPickup(result.queued ? { status: 'queued', at: step.input.occurred_at } : { status: 'idle' });
@@ -450,8 +496,10 @@ export function AtRestaurantScreen({ params }: ScreenProps<'tripAtRestaurant'>):
           setPickup({ status: 'idle' });
           return void resyncAfterConflict(id, failure.state, view.refetch);
         default:
-          return setPickup({ status: 'failed', step });
+          return step ? setPickup({ status: 'failed', step }) : setPickup({ status: 'idle' });
       }
+    } finally {
+      recording.current = false;
     }
   };
 
