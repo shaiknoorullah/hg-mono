@@ -38,13 +38,13 @@ func (e AccountStatus) Valid() bool {
 
 // Defines values for AddressCountry.
 const (
-	CA AddressCountry = "CA"
+	AddressCountryCA AddressCountry = "CA"
 )
 
 // Valid indicates whether the value is a known member of the AddressCountry enum.
 func (e AddressCountry) Valid() bool {
 	switch e {
-	case CA:
+	case AddressCountryCA:
 		return true
 	default:
 		return false
@@ -798,6 +798,8 @@ const (
 	ErrorCodeFIELDREQUIRED                  ErrorCode = "FIELD_REQUIRED"
 	ErrorCodeFORBIDDEN                      ErrorCode = "FORBIDDEN"
 	ErrorCodeFORBIDDENPERMISSION            ErrorCode = "FORBIDDEN_PERMISSION"
+	ErrorCodeGEOCODENOMATCH                 ErrorCode = "GEOCODE_NO_MATCH"
+	ErrorCodeGEOCODERUNAVAILABLE            ErrorCode = "GEOCODER_UNAVAILABLE"
 	ErrorCodeGEOFENCEREQUIRED               ErrorCode = "GEOFENCE_REQUIRED"
 	ErrorCodeHALALCERTIFICATEREQUIRED       ErrorCode = "HALAL_CERTIFICATE_REQUIRED"
 	ErrorCodeIDEMPOTENCYCONFLICT            ErrorCode = "IDEMPOTENCY_CONFLICT"
@@ -1017,6 +1019,10 @@ func (e ErrorCode) Valid() bool {
 	case ErrorCodeFORBIDDEN:
 		return true
 	case ErrorCodeFORBIDDENPERMISSION:
+		return true
+	case ErrorCodeGEOCODENOMATCH:
+		return true
+	case ErrorCodeGEOCODERUNAVAILABLE:
 		return true
 	case ErrorCodeGEOFENCEREQUIRED:
 		return true
@@ -1302,6 +1308,51 @@ func (e Fulfilment) Valid() bool {
 	case FulfilmentDELIVERY:
 		return true
 	case FulfilmentPICKUP:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for GeoResultKind.
+const (
+	ADDRESS       GeoResultKind = "ADDRESS"
+	NEIGHBOURHOOD GeoResultKind = "NEIGHBOURHOOD"
+	PLACE         GeoResultKind = "PLACE"
+	POI           GeoResultKind = "POI"
+	POSTCODE      GeoResultKind = "POSTCODE"
+	STREET        GeoResultKind = "STREET"
+)
+
+// Valid indicates whether the value is a known member of the GeoResultKind enum.
+func (e GeoResultKind) Valid() bool {
+	switch e {
+	case ADDRESS:
+		return true
+	case NEIGHBOURHOOD:
+		return true
+	case PLACE:
+		return true
+	case POI:
+		return true
+	case POSTCODE:
+		return true
+	case STREET:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for GeocodedAddressCountry.
+const (
+	GeocodedAddressCountryCA GeocodedAddressCountry = "CA"
+)
+
+// Valid indicates whether the value is a known member of the GeocodedAddressCountry enum.
+func (e GeocodedAddressCountry) Valid() bool {
+	switch e {
+	case GeocodedAddressCountryCA:
 		return true
 	default:
 		return false
@@ -4350,6 +4401,34 @@ type AddressInput struct {
 	Unit     *string  `json:"unit,omitempty"`
 }
 
+// AddressSuggestion One row in the search list. Carries no coordinates: picking it calls `getPlaceAddress`.
+type AddressSuggestion struct {
+	// DistanceM Straight-line metres from the `latitude`/`longitude` the request sent. Null when the request sent no location.
+	DistanceM *int32 `json:"distance_m"`
+
+	// Kind How precise a search result is. `ADDRESS`: a street number on a street. `STREET`:
+	// a street without a number. `POSTCODE`: a postal code area. `NEIGHBOURHOOD`: a
+	// neighbourhood or locality. `PLACE`: a city or town. `POI`: a named place such as a
+	// building, with its street address. Only `ADDRESS` and `POI` usually fill every
+	// field the address form needs; for the rest the user adds what is missing.
+	Kind GeoResultKind `json:"kind"`
+
+	// PlaceId The server's opaque, URL-safe handle for a suggestion. It names no provider, so the
+	// provider can change without a contract change. Short-lived: use it in the same
+	// search session, and never store it.
+	PlaceId PlaceId `json:"place_id"`
+
+	// Subtitle The second line, e.g. `Toronto, Ontario M5J 0C3`. Null when the title says it all, such as a province-wide result.
+	//
+	// Examples: Toronto, Ontario M5J 0C3
+	Subtitle *string `json:"subtitle"`
+
+	// Title The first line of the row, e.g. `88 Harbour Street` or `CN Tower`.
+	//
+	// Examples: 88 Harbour Street
+	Title string `json:"title"`
+}
+
 // AddressUpdateInput Partial update — every field is optional, but the **merged** row must still satisfy
 // `AddressInput`'s required set. `country` and `timezone` remain server-controlled and are
 // absent here by construction.
@@ -5444,6 +5523,55 @@ type GeoPoint struct {
 	Latitude  Latitude  `json:"latitude"`
 	Longitude Longitude `json:"longitude"`
 }
+
+// GeoResultKind How precise a search result is. `ADDRESS`: a street number on a street. `STREET`:
+// a street without a number. `POSTCODE`: a postal code area. `NEIGHBOURHOOD`: a
+// neighbourhood or locality. `PLACE`: a city or town. `POI`: a named place such as a
+// building, with its street address. Only `ADDRESS` and `POI` usually fill every
+// field the address form needs; for the rest the user adds what is missing.
+type GeoResultKind string
+
+// GeocodedAddress A Canadian address that **prefills** the address form; it is not a saved address.
+// Its field names match `AddressInput` and `RestaurantProfileInput` so the form copies
+// them across. A field the provider does not know is `null`, never guessed. `unit`,
+// `buzzer` and delivery notes are never returned: the user types them.
+type GeocodedAddress struct {
+	City *string `json:"city"`
+
+	// Country Always `CA`. A result outside Canada is never returned.
+	Country GeocodedAddressCountry `json:"country"`
+
+	// Formatted One line for display, e.g. `88 Harbour Street, Toronto, Ontario M5J 0C3`.
+	Formatted string `json:"formatted"`
+
+	// Kind How precise a search result is. `ADDRESS`: a street number on a street. `STREET`:
+	// a street without a number. `POSTCODE`: a postal code area. `NEIGHBOURHOOD`: a
+	// neighbourhood or locality. `PLACE`: a city or town. `POI`: a named place such as a
+	// building, with its street address. Only `ADDRESS` and `POI` usually fill every
+	// field the address form needs; for the rest the user adds what is missing.
+	Kind GeoResultKind `json:"kind"`
+
+	// Latitude WGS84 latitude. Never a money field — the only `number` types in this contract are geographic or rating values.
+	Latitude Latitude `json:"latitude"`
+
+	// Line1 Street number and street, or the street alone for `STREET`. Null for `POSTCODE`, `NEIGHBOURHOOD` and `PLACE`.
+	Line1     *string   `json:"line1"`
+	Longitude Longitude `json:"longitude"`
+
+	// Name The place's name when `kind` is `POI` (e.g. `CN Tower`); null otherwise.
+	Name *string `json:"name"`
+
+	// PostalCode Uppercased with a single space. Null when the provider has none, as for a whole street.
+	PostalCode *PostalCode `json:"postal_code"`
+
+	// Province ISO 3166-2:CA subdivision. Drives the tax profile (place of supply). Ontario only is
+	// served at launch; other provinces are rejected at quote time with `PROVINCE_NOT_SERVED`
+	// even though the tax engine carries every rate.
+	Province Province `json:"province"`
+}
+
+// GeocodedAddressCountry Always `CA`. A result outside Canada is never returned.
+type GeocodedAddressCountry string
 
 // HalalBadge C-12. When this object is absent from a payload the client renders **no badge** and
 // reports a client error — there is no "assume certified" path. The label is fixed
@@ -7463,6 +7591,11 @@ type PickupTransitionInput struct {
 // PickupTransitionInputToState defines model for PickupTransitionInput.ToState.
 type PickupTransitionInputToState string
 
+// PlaceId The server's opaque, URL-safe handle for a suggestion. It names no provider, so the
+// provider can change without a contract change. Short-lived: use it in the same
+// search session, and never store it.
+type PlaceId = string
+
 // PodMethod D-21. Derived from the order's delivery instruction and returned to the rider as
 // `required_pod_method`. `DELIVERED` cannot commit without the artefact in the **same
 // transaction** — there is no "mark delivered, upload later".
@@ -9409,6 +9542,9 @@ type ClientHeader = ClientSurface
 // DocumentIdPath defines model for DocumentIdPath.
 type DocumentIdPath = openapi_types.UUID
 
+// GeoSessionToken defines model for GeoSessionToken.
+type GeoSessionToken = openapi_types.UUID
+
 // IdempotencyKeyRequired defines model for IdempotencyKeyRequired.
 type IdempotencyKeyRequired = string
 
@@ -9966,6 +10102,37 @@ type GetHomeFeedParams struct {
 	Latitude          *Latitude           `form:"latitude,omitempty" json:"latitude,omitempty"`
 	Longitude         *Longitude          `form:"longitude,omitempty" json:"longitude,omitempty"`
 	DeliveryAddressId *openapi_types.UUID `form:"delivery_address_id,omitempty" json:"delivery_address_id,omitempty"`
+}
+
+// SuggestAddressesParams defines parameters for SuggestAddresses.
+type SuggestAddressesParams struct {
+	// Q What the user has typed. 1–256 characters after trimming (the provider's limit).
+	Q string `form:"q" json:"q"`
+
+	// SessionToken A UUID the client makes when the address search field opens. It groups the
+	// suggestion requests and the one `getPlaceAddress` call that ends them into one
+	// provider session, which is how the provider bills. Make a new one after
+	// `getPlaceAddress`, and never share one between two searches open at once.
+	SessionToken GeoSessionToken `form:"session_token" json:"session_token"`
+
+	// Latitude Ranks results near this point. Send both `latitude` and `longitude` or neither; one alone is `422 VALIDATION_FAILED`.
+	Latitude  *Latitude  `form:"latitude,omitempty" json:"latitude,omitempty"`
+	Longitude *Longitude `form:"longitude,omitempty" json:"longitude,omitempty"`
+}
+
+// GetPlaceAddressParams defines parameters for GetPlaceAddress.
+type GetPlaceAddressParams struct {
+	// SessionToken A UUID the client makes when the address search field opens. It groups the
+	// suggestion requests and the one `getPlaceAddress` call that ends them into one
+	// provider session, which is how the provider bills. Make a new one after
+	// `getPlaceAddress`, and never share one between two searches open at once.
+	SessionToken GeoSessionToken `form:"session_token" json:"session_token"`
+}
+
+// ReverseGeocodeParams defines parameters for ReverseGeocode.
+type ReverseGeocodeParams struct {
+	Latitude  Latitude  `form:"latitude" json:"latitude"`
+	Longitude Longitude `form:"longitude" json:"longitude"`
 }
 
 // ListNotificationsParams defines parameters for ListNotifications.

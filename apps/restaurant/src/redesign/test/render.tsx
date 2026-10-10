@@ -9,6 +9,8 @@ import { installDomShims } from '@hg/ui-web/testing';
 import { setSession } from '../../lib/api';
 import { resetSignedOut } from '../data/client';
 import { resetServerClock } from '../data/serverClock';
+import { resetHeartbeatHealth } from '../data/heartbeat';
+import { resetConnectionHistory } from '../data/connection';
 
 /** A quiet `Audio` that always plays: the gate's test chime and the order loop. */
 class SilentAudio {
@@ -51,6 +53,8 @@ export async function renderRedesign(path: string, { signedIn = true, live = fal
   installDomShims();
   resetServerClock();
   resetSignedOut();
+  resetHeartbeatHealth();
+  resetConnectionHistory();
   setSession(signedIn ? { accessToken: 'access-token-1' } : null);
   const { default: RedesignRoot } = await import('../RedesignRoot');
   const result = render(

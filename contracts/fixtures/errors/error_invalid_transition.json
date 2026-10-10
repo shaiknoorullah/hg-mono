@@ -1,0 +1,25 @@
+{
+  "scenario": "error_invalid_transition",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`409` · `INVALID_TRANSITION`. A backwards or skipped assignment transition. `details.current_state` is where the assignment really is; the app re-reads it and moves on from there. Repeating the current state is a 200 no-op, not this.",
+  "operations": [
+    "createAssignmentTransition"
+  ],
+  "status": 409,
+  "tags": [
+    "error-envelope",
+    "error-path",
+    "rider"
+  ],
+  "payload": {
+    "error": {
+      "code": "INVALID_TRANSITION",
+      "message": "That transition is not allowed.",
+      "request_id": "CN2845FG68FJ11B9PP97DGFV7W",
+      "details": {
+        "current_state": "PICKED_UP"
+      }
+    }
+  }
+}

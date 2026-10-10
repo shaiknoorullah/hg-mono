@@ -1,0 +1,24 @@
+{
+  "scenario": "error_account_not_active",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`403` · `ACCOUNT_NOT_ACTIVE`. The account is suspended, banned or deleted. Returned by `login` and by `setRiderAvailability` going online; nothing changed.",
+  "operations": [
+    "setRiderAvailability",
+    "login"
+  ],
+  "status": 403,
+  "tags": [
+    "error-envelope",
+    "error-path",
+    "rider",
+    "auth"
+  ],
+  "payload": {
+    "error": {
+      "code": "ACCOUNT_NOT_ACTIVE",
+      "message": "This account is not active.",
+      "request_id": "HXBX2SD9XVH4YFBW1YARN564YG"
+    }
+  }
+}

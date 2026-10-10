@@ -1,0 +1,140 @@
+# Rider redesign WP11: delivery history and account documents against devworld. Sign in as
+# rider-sim after one delivery (the mission's setup drives it), Earnings › Deliveries → the
+# delivered order (R41 → R42) and back; then Account › Documents → a document (R49) → Download a
+# copy, and Account › What's new (R43).
+#
+# In the lab/ folder: it needs the mission's delivery (`make dev-journey`), which a plain stack
+# does not have. Built with EXPO_PUBLIC_HG_REDESIGN=1 and a cleared Metro cache (see 0-shell.yaml).
+# A dev build is version 0.0.0, older than every release note, so no What's new sheet opens here;
+# the page says "No release notes yet" (the mission's explore covers a bumped APP_VERSION).
+# Sign-in steps accept both the legacy and the WP1 copy (per-route fallback).
+# Env: PHONE (default rider-sim +15550100151; dev codes for +1 555 010 01xx are always 000000).
+appId: com.halalgoes.rider.dev
+name: rider redesign, delivery history and documents
+env:
+  PHONE: "+15550100151"
+---
+- launchApp:
+    clearState: true
+    permissions:
+      all: allow
+- extendedWaitUntil:
+    visible: "Rider sign in|Sign in or apply to ride"
+    timeout: 90000
+- tapOn:
+    text: "Phone number.*|Mobile number"
+    optional: true
+- tapOn:
+    below: "Phone number .*"
+    above: "Send code"
+    optional: true
+- inputText: ${PHONE}
+- tapOn: "Send code"
+- extendedWaitUntil:
+    visible: "Enter the code sent to.*|Enter your code"
+    timeout: 30000
+- tapOn:
+    below: "Enter the code sent to.*"
+    above: "Verify"
+    optional: true
+- inputText: "000000"
+- tapOn:
+    text: "Verify"
+    optional: true
+- extendedWaitUntil:
+    visible: "Earnings"
+    timeout: 60000
+
+# R41 Deliveries, from the Earnings History card.
+- tapOn:
+    id: "tab-earnings"
+- extendedWaitUntil:
+    visible: "Right now"
+    timeout: 30000
+- scrollUntilVisible:
+    element:
+      id: "earnings-open-deliveries"
+    direction: DOWN
+- tapOn:
+    id: "earnings-open-deliveries"
+- extendedWaitUntil:
+    visible: "Completed deliveries, newest first.*|No deliveries yet"
+    timeout: 30000
+- assertNotVisible: "We couldn’t load your deliveries"
+- takeScreenshot: rider-wp11-01-deliveries
+
+# R42 the delivered order: restaurant first, the street only, 12-hour times, no customer.
+- runFlow:
+    when:
+      visible: "Completed deliveries, newest first.*"
+    commands:
+      - tapOn:
+          id: "delivery-row-.*"
+          index: 0
+      - extendedWaitUntil:
+          visible: "Delivered"
+          timeout: 30000
+      - assertVisible: "Where"
+      - assertVisible: "Only the street is kept after a delivery."
+      - assertVisible: "\\d{1,2}:\\d{2} [ap]m"
+      - assertNotVisible: "This delivery isn't available"
+      - takeScreenshot: rider-wp11-02-delivery
+      - scrollUntilVisible:
+          element: "Items"
+          direction: DOWN
+      - takeScreenshot: rider-wp11-03-delivery-items
+      - tapOn: "Back to Deliveries"
+      - extendedWaitUntil:
+          visible: "Completed deliveries, newest first.*"
+          timeout: 15000
+- tapOn: "Back to Earnings"
+
+# R49 Account › Documents → one document → Download a copy (a 2-minute private link).
+- tapOn:
+    id: "tab-account"
+- extendedWaitUntil:
+    visible: "Your details"
+    timeout: 30000
+- tapOn:
+    id: "row-documents"
+- extendedWaitUntil:
+    visible: "Driver's licence|No documents on file"
+    timeout: 30000
+- takeScreenshot: rider-wp11-04-documents
+- runFlow:
+    when:
+      visible: "Driver's licence"
+    commands:
+      - tapOn: "Driver's licence"
+      - extendedWaitUntil:
+          visible: "Download a copy"
+          timeout: 30000
+      - assertVisible: "The download link works for 2 minutes, to keep your document private."
+      - takeScreenshot: rider-wp11-05-document
+      - tapOn:
+          id: "document-download"
+      # The link opens outside the app (the browser or a viewer); come back to it.
+      - waitForAnimationToEnd:
+          timeout: 5000
+      - launchApp:
+          stopApp: false
+      - extendedWaitUntil:
+          visible: "Download a copy|We couldn't get your document"
+          timeout: 15000
+      - takeScreenshot: rider-wp11-06-document-after-download
+      - tapOn: "Back to Documents"
+- tapOn: "Back to Account"
+
+# R43 Account › What's new.
+- scrollUntilVisible:
+    element:
+      id: "row-whats-new"
+    direction: DOWN
+- tapOn:
+    id: "row-whats-new"
+- extendedWaitUntil:
+    visible: "You're on version .*|No release notes yet"
+    timeout: 15000
+- takeScreenshot: rider-wp11-07-whats-new
+- tapOn: "Back to Account"
+- assertVisible: "Your details"

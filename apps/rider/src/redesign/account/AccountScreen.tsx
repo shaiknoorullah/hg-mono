@@ -7,8 +7,7 @@
  *
  * Every screen reads the contract and nothing else: RiderMe for the person and vehicle,
  * `listRiderDocuments`, `getConnectStatus`, `PublicConfig` for support. Rows are plain
- * navigation; a row whose destination is not built (a document's own page, What's new) does not
- * pretend to open. Badges are outline or info, never brand, green or red
+ * navigation (a document's own page and What's new are WP11's, in `../history`). Badges are outline or info, never brand, green or red
  * (SO/Ref-DocumentStates). Support is never hardcoded: with support off, "Call support" is
  * replaced by "Support isn't available right now. Try again later." (the `*-NoSupport` boards).
  */
@@ -70,6 +69,9 @@ import {
   type KycDocument,
 } from './data';
 import { legalText } from './legal';
+import { WHATS_NEW } from '../history/copy';
+import { appVersion } from '../history/whatsNew';
+import type { RiderDocType } from '../documents/data';
 import { useSignOutFlow } from './signOutFlow';
 
 /* ------------------------------------------------------------------------------------------ */
@@ -338,7 +340,8 @@ export function AccountScreen(): React.ReactElement {
         />
         <Row title={ACCOUNT.terms} subtitle={ACCOUNT.termsSub} onPress={() => nav.push('accountTerms')} testID="row-terms" />
         <Row title={ACCOUNT.delete} subtitle={ACCOUNT.deleteSub} onPress={() => nav.push('deleteAccount')} testID="row-delete" />
-        {/* R52 What's new row (HW/WhatsNew-account-row) is WP11's: it appears when that route exists. */}
+        {/* WP11: HW/WhatsNew-account-row, the one entry point that reopens the release notes. */}
+        <Row title={WHATS_NEW.row} subtitle={WHATS_NEW.onVersion(appVersion())} onPress={() => nav.push('whatsNew')} testID="row-whats-new" />
       </View>
 
       <View style={{ gap: space['2'] }}>
@@ -489,6 +492,7 @@ function docSubtitle(doc: KycDocument, superseded: boolean): string {
 }
 
 export function DocumentsScreen(): React.ReactElement {
+  const nav = useNav();
   const docs = useApiQuery('account-documents', fetchDocuments);
   const support = useSupport();
   if (docs.status === 'loading') {
@@ -538,8 +542,18 @@ export function DocumentsScreen(): React.ReactElement {
           testID="documents-alert"
         />
       ) : null}
-      {/* "Add new insurance" (replace) is WP11's (R49) and needs submitRiderDocuments after
-          approval (Needs API, manifest §5 #42): not drawn until that route exists. */}
+      {/* WP11 (R49): "Add new insurance" opens the replace flow for the expiring document. */}
+      {!expiredInReview && expiring && expiring.valid_until && !replacedTypes.has(String(expiring.doc_type)) ? (
+        <Button
+          variant="secondary"
+          size="xl"
+          fullWidth
+          onPress={() => nav.push('accountReplace', { docType: expiring.doc_type as RiderDocType })}
+          testID="documents-add-new"
+        >
+          {`Add new ${docShort(String(expiring.doc_type))}`}
+        </Button>
+      ) : null}
       <View style={{ gap: space['2'] }}>
         {list.map((doc) => {
           const earlier = doc.state === 'SUPERSEDED' || (doc.state === 'EXPIRED' && replacedTypes.has(String(doc.doc_type)));
@@ -550,6 +564,7 @@ export function DocumentsScreen(): React.ReactElement {
               title={earlier ? DOCUMENTS.earlier(docLabel(String(doc.doc_type))) : docLabel(String(doc.doc_type))}
               subtitle={docSubtitle(doc, earlier)}
               badge={DOC_BADGE[key] ?? null}
+              onPress={() => nav.push('accountDocument', { documentId: doc.id, docType: doc.doc_type as RiderDocType })}
               testID={`document-${doc.id}`}
             />
           );

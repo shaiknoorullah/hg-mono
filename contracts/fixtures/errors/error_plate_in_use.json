@@ -1,0 +1,22 @@
+{
+  "scenario": "error_plate_in_use",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`409` · `PLATE_IN_USE`. The plate belongs to another rider's vehicle. Shown on the plate field.",
+  "operations": [
+    "submitRiderVehicle"
+  ],
+  "status": 409,
+  "tags": [
+    "error-envelope",
+    "error-path",
+    "rider"
+  ],
+  "payload": {
+    "error": {
+      "code": "PLATE_IN_USE",
+      "message": "Licence plate is already registered to another vehicle.",
+      "request_id": "VNQWX02369ZPDVSE121T4S86AA"
+    }
+  }
+}

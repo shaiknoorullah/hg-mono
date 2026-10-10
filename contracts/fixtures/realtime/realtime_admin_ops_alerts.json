@@ -1,0 +1,83 @@
+{
+  "scenario": "realtime_admin_ops_alerts",
+  "domain": "realtime",
+  "schema": "RealtimeEvent[]",
+  "describes": "Four `admin.alert` frames in the shapes `services/hg` raises today: a refused webhook (`high`), a chargeback opened (`high`), a refund dead letter (`critical`) and a reconciliation exception (`high`, `subject_type: reconciliation_exception`). `severity` is `high` or `critical`.",
+  "operations": [],
+  "status": 200,
+  "tags": [
+    "realtime",
+    "script",
+    "admin"
+  ],
+  "payload": [
+    {
+      "id": "9B0D1NDFWRA5YKBCPTJZZ3ZE4Y",
+      "seq": 1,
+      "channel": "admin:ops",
+      "type": "admin.alert",
+      "v": 1,
+      "ts": "2026-08-10T18:42:11.412Z",
+      "data": {
+        "severity": "high",
+        "kind": "webhook_refused",
+        "subject_type": "stripe_event",
+        "subject_id": "evt_3QkR7mE8xVn2LbQ1",
+        "message": "A Stripe webhook was refused: its signature did not verify.",
+        "at": "2026-08-10T18:42:11.412Z"
+      },
+      "_delay_ms": 0
+    },
+    {
+      "id": "1SBQTXCPKEQYKZXPF7J0TBS1GS",
+      "seq": 2,
+      "channel": "admin:ops",
+      "type": "admin.alert",
+      "v": 1,
+      "ts": "2026-08-10T18:42:15.412Z",
+      "data": {
+        "severity": "high",
+        "kind": "chargeback_opened",
+        "subject_type": "chargeback",
+        "subject_id": "7c90dd60-6808-4f3b-a01e-75aa1b926c53",
+        "message": "A chargeback was opened on HG-4K2M-9T. Evidence is due in 7 days.",
+        "at": "2026-08-10T18:42:15.412Z"
+      },
+      "_delay_ms": 4000
+    },
+    {
+      "id": "HDA53EK4M92K59G7DTJFTF4MJD",
+      "seq": 3,
+      "channel": "admin:ops",
+      "type": "admin.alert",
+      "v": 1,
+      "ts": "2026-08-10T18:42:19.412Z",
+      "data": {
+        "severity": "critical",
+        "kind": "refund_dead_letter",
+        "subject_type": "refund",
+        "subject_id": "5d1285e1-efed-45a7-aa7c-e097af727eca",
+        "message": "A refund failed five times and stopped retrying. The customer has not been paid.",
+        "at": "2026-08-10T18:42:19.412Z"
+      },
+      "_delay_ms": 8000
+    },
+    {
+      "id": "929YB80N632747Z0TW24NWJGG1",
+      "seq": 4,
+      "channel": "admin:ops",
+      "type": "admin.alert",
+      "v": 1,
+      "ts": "2026-08-10T18:42:23.412Z",
+      "data": {
+        "severity": "high",
+        "kind": "unknown_intent",
+        "subject_type": "reconciliation_exception",
+        "subject_id": "4c97b3d4-4a1f-4585-a47a-a117fc4362a1",
+        "message": "Stripe has a payment this database has no row for. Stripe object pi_3QkR7mE8xVn2LbQ1.",
+        "at": "2026-08-10T18:42:23.412Z"
+      },
+      "_delay_ms": 12000
+    }
+  ]
+}

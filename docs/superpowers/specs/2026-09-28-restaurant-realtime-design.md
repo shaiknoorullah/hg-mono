@@ -7,6 +7,17 @@ reviewed: 2026-10-10
 # Restaurant app — live updates and rider map
 
 **Status:** design approved 2026-09-28 · **Kind:** product feature (`apps/restaurant`)
+> **2026-10-09:** the redesigned new-order strip (behind `VITE_HG_REDESIGN`,
+> `apps/restaurant/src/redesign/strip/`) follows the same rules: it listens on
+> `restaurant:{restaurant_id}` for offered, expired, withdrawn, accepted and rejected offers,
+> treats each event as a signal to re-read the order over REST, and polls the pending list every
+> 10 seconds whenever the socket is not open. The redesigned Live orders board
+> (`src/redesign/orders/`) subscribes to `order:{order_id}` for each row on screen; order and
+> dispatch events (rider assigned, rider here, picked up, cancelled) update the row and are kept
+> only while the page is open, because the REST view does not carry them after a reload.
+
+> **2026-10-10 — pickup code on the card** ([#659](https://github.com/shaiknoorullah/hg-mono/issues/659)). A ready order's card in the queue shows `pickup_code` from the order it already holds, large, for the kitchen to read out; a refetch after a realtime event refreshes it, and a card without one shows nothing.
+
 **Companion spec:** [`2026-09-28-devworld-harness-design.md`](2026-09-28-devworld-harness-design.md) — the dev/QA harness used for this feature's end-to-end acceptance.
 
 ## 1. Problem
@@ -73,8 +84,6 @@ Alongside the map: rider first name, vehicle, pickup ETA (from `order.eta_update
 Engine and styles: the shared `LiveMap` in `packages/ui-web/src/live/` (`mapbox-gl`, `VITE_MAPBOX_TOKEN`), used by the admin maps too. Without a token the map renders its empty state and the text facts still show. Colours obey the halal colour rules: no solid green outside `color.halal.*`.
 
 > **2026-10-05 — built** (`apps/restaurant/src/components/RiderApproachMap.tsx`, owner request for live maps at launch). The socket (`src/lib/realtime.tsx`) carries only the `order:{id}` channels of cards with an assigned rider; the queue itself still polls every 7 s, so the queue-side events in [events are signals](#4-events-are-signals-rest-is-truth) remain to do.
-
-> **2026-10-10 — pickup code on the card** ([#659](https://github.com/shaiknoorullah/hg-mono/issues/659)). A ready order's card in the queue shows `pickup_code` from the order it already holds, large, for the kitchen to read out; a refetch after a realtime event refreshes it, and a card without one shows nothing.
 
 > **2026-10-05 — queue built** (`apps/restaurant/src/routes/OrdersPage.tsx`, [#27](https://github.com/shaiknoorullah/hg-mono/issues/27)). The queue listens on `restaurant:{id}` (offered, offer expired, offer withdrawn, accepted, rejected) and on each shown order's `order:{id}` (`order.state_changed` only), and refetches over REST on each event and on every (re)connect. The 7-second poll is kept unchanged underneath, so with the socket down the page behaves as before and shows only a quiet "Live updates paused, refreshing every few seconds" caption. Not yet built from this spec: the Live / Reconnecting / Offline indicator, the stale banner and dim after 45 s, the polite live region for new offers, and the accept/reject toasts. The contract has no restaurant-scoped REST read of the rider's position, so with the socket down the map keeps the last fix, aged, and says it is reconnecting.
 

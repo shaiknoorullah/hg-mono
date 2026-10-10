@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { BackHandler } from 'react-native';
 import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 
 import { setToken } from '../../../api/token';
@@ -78,6 +79,24 @@ describe('the redesign shell (WP0)', () => {
     fireEvent.press(screen.getByText('Home screen'));
     expect(screen.getByText('Cart screen')).toBeTruthy();
     expect(screen.queryByTestId('RedesignBottomNav')).toBeNull();
+  });
+
+  it("Android's Back pops the tab's stack, and on a tab root leaves it to the system", () => {
+    const add = jest.spyOn(BackHandler, 'addEventListener');
+    signIn();
+    renderRedesign(<Shell />);
+    expect(add).not.toHaveBeenCalled();
+    fireEvent.press(screen.getByText('Home screen'));
+    expect(screen.getByText('Cart screen')).toBeTruthy();
+    const onBack = add.mock.calls.at(-1)![1];
+    let handled: boolean | null | undefined;
+    act(() => {
+      handled = onBack();
+    });
+    expect(handled).toBe(true);
+    expect(screen.getByText('Home screen')).toBeTruthy();
+    expect(screen.getByTestId('RedesignBottomNav')).toBeTruthy();
+    add.mockRestore();
   });
 
   it('renders in dark', () => {
