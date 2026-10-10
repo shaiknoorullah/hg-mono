@@ -84,7 +84,7 @@ These are the rules the existing names already follow; new fixtures follow them 
 | `menu_` | 27 | A menu, item, category or version state. | `menu_version_pending_review` |
 | `rider_availability_` | 4 | A `RiderAvailabilityState`, lower case. | `rider_availability_online_idle` |
 | `payout_` | 15 | A `PayoutState`, lower case, or a payout run. | `payout_held` |
-| (other) | 95 | One-off subjects named for what they are (`public_config`, `cart_many_lines`, `quote_standard`). | `public_config` |
+| (other) | 94 | One-off subjects named for what they are (`public_config`, `cart_many_lines`, `quote_standard`). | `public_config` |
 
 ## 2. How one scenario is chosen per operation (the mock server)
 

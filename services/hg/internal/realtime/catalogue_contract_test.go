@@ -418,23 +418,39 @@ func TestContractFixturesValidateAgainstSchema(t *testing.T) {
 			t.Fatal(err)
 		}
 		var fx struct {
+			Tags    []string `json:"tags"`
 			Payload []struct {
 				Seq  int64           `json:"seq"`
 				Type string          `json:"type"`
+				V    int             `json:"v"`
 				Data json.RawMessage `json:"data"`
 			} `json:"payload"`
 		}
 		if err := json.Unmarshal(raw, &fx); err != nil {
 			t.Fatalf("%s: %v", f, err)
 		}
+		// A fixture tagged forward-compat carries frames a client must ignore
+		// (contracts/websocket.md section 2): a type the bundle does not
+		// serve, or a version above 1. Those frames are skipped, and the
+		// fixture must contain at least one, so the tag cannot hide drift in a
+		// frame the bundle does serve.
+		forwardCompat := slices.Contains(fx.Tags, "forward-compat")
+		ignored := 0
 		for _, ev := range fx.Payload {
 			if ev.Seq == 0 {
 				continue // control frames carry seq 0 and are not in the bundle
+			}
+			if forwardCompat && (ev.V > 1 || schemaBundle().Events[ev.Type+"@v1"] == nil) {
+				ignored++
+				continue
 			}
 			seen++
 			if err := validatePayload(t, ev.Type, ev.Data); err != nil {
 				t.Errorf("%s: %s fixture does not validate: %v", filepath.Base(f), ev.Type, err)
 			}
+		}
+		if forwardCompat && ignored == 0 {
+			t.Errorf("%s: tagged forward-compat but every frame is in the bundle", filepath.Base(f))
 		}
 	}
 	if seen == 0 {

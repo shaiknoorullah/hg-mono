@@ -296,7 +296,7 @@ def _admin_ops(reg) -> None:
             }, v=2),
             _queue_depth(3, 4000, 3, 5, 1, 0),
         ],
-        tags=["realtime", "script", "admin", "edge"],
+        tags=["realtime", "script", "admin", "edge", "forward-compat"],
     )
 
 
