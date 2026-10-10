@@ -31,3 +31,5 @@ export type { AvatarProps, AvatarSize } from './ui/avatar';
 export { KeyValueList, StatCard } from './ui/key-value';
 export type { KeyValueListProps, KeyValueRow, StatCardProps } from './ui/key-value';
 export { useHgColorScheme, HgColorSchemeBridge } from './useHgColorScheme';
+// The N4 halal parts (`ui/halal-*.tsx`) are deliberately NOT exported here: a seal may only be
+// drawn through `/ds` HalalBadge, which applies the state rules (invariants 8–10).
