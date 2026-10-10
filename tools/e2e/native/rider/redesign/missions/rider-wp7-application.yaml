@@ -15,7 +15,7 @@ setup:
 reality:
   - theme: dark
   - font-scale: 2.0
-flows: [ "tools/e2e/native/rider/redesign/7-apply.yaml" ]
+flows: [ "tools/e2e/native/rider/redesign/lab/7-apply.yaml" ]
 explore: >
   The flow runs in dark mode at 200% text: on every screenshot the body scrolls, the footer
   (Continue, Call support) stays pinned, labels wrap and never clip, and the Day / Month / Year
