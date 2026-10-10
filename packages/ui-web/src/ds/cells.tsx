@@ -16,6 +16,7 @@
 import { useEffect, useRef, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from 'react';
 
 import { reportHalalClientError } from '../certification/index.js';
+import { reportDsClientError } from './client-error.js';
 import { cn } from '../lib/utils.js';
 import {
   GridCellButton,
@@ -160,13 +161,25 @@ export function MoneyCell({
   testId = 'MoneyCell',
   style,
 }: MoneyCellProps) {
+  const integer = typeof cents === 'number' && Number.isSafeInteger(cents);
+  useEffect(() => {
+    if (cents !== null && cents !== undefined && !integer)
+      reportDsClientError('MONEY_NOT_INTEGER_CENTS', {
+        received: cents,
+        surface: 'cell',
+      });
+  }, [cents, integer]);
   if (cents === null || cents === undefined) return <MissingValue testId={testId} style={style} />;
+  // Money is int64 minor units (invariant 3). A fractional value is a bug upstream: render
+  // nothing (never a rounded amount) and report it, as the live Price contract says.
+  if (!integer) return <span data-testid={testId} data-money-invalid="true" style={style} />;
   return (
     <span
       data-testid={testId}
       style={style}
       className={cn(
-        'inline-flex justify-end font-semibold tabular-nums',
+        // Price sets its own text style; the cell's weight is restated on it.
+        'inline-flex justify-end font-semibold tabular-nums [&_[data-testid=Price]]:font-semibold',
         tone === 'muted' && 'text-fg-secondary',
         tone === 'negative-ops' && 'text-feedback-danger-text',
       )}

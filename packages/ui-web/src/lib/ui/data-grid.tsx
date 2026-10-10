@@ -257,6 +257,56 @@ export const cellBadgeVariants = cva(
   },
 );
 
+/* ───── Grid glyphs ───── */
+/*
+ * The grid's four structural glyphs (check, minus, sort chevron, "more"), drawn with CSS in
+ * currentColor. The icon map behind today's `/ds` Icon has no `more`, `minus` or `chevron-down`
+ * (they arrive with the W1 Icon rebuild) and its `check` is a circled check, so an icon-only
+ * control here would otherwise render empty. Decorative: always `aria-hidden`; the control
+ * carries the name.
+ */
+
+/** A check mark for a checked box (2px strokes, currentColor). */
+export function GridCheckGlyph() {
+  return (
+    <span
+      aria-hidden="true"
+      data-slot="grid-glyph-check"
+      className="mb-0.5 block h-2.5 w-1.5 rotate-45 border-0 border-e-2 border-b-2 border-solid border-current"
+    />
+  );
+}
+
+/** A minus bar for an indeterminate box. */
+export function GridMinusGlyph() {
+  return <span aria-hidden="true" data-slot="grid-glyph-minus" className="block h-0.5 w-2.5 rounded-full bg-current" />;
+}
+
+/** A chevron pointing down (rotate the wrapper for ascending). */
+export function GridChevronGlyph({ bold = false }: { bold?: boolean }) {
+  return (
+    <span aria-hidden="true" data-slot="grid-glyph-chevron" className="inline-flex size-4 items-center justify-center">
+      <span
+        className={cn(
+          'mb-1 block size-1.5 rotate-45 border-0 border-solid border-current',
+          bold ? 'border-e-2 border-b-2' : 'border-e-[1.5px] border-b-[1.5px]',
+        )}
+      />
+    </span>
+  );
+}
+
+/** Three dots in a row: the row-actions ("more") glyph. */
+export function GridMoreGlyph() {
+  return (
+    <span aria-hidden="true" data-slot="grid-glyph-more" className="inline-flex items-center gap-0.5">
+      <span className="block size-1 rounded-full border-[1.5px] border-solid border-current" />
+      <span className="block size-1 rounded-full border-[1.5px] border-solid border-current" />
+      <span className="block size-1 rounded-full border-[1.5px] border-solid border-current" />
+    </span>
+  );
+}
+
 /* ───── Meter track ───── */
 
 /** One filled part of a meter: a fraction (0..1) and the role colour class for it. */

@@ -45,7 +45,11 @@ import {
 
 import { cn } from '../lib/utils.js';
 import {
+  GridCheckGlyph,
   GridCheckbox,
+  GridChevronGlyph,
+  GridMinusGlyph,
+  GridMoreGlyph,
   GridRowMenu,
   GridRowMenuContent,
   GridRowMenuItem,
@@ -289,25 +293,24 @@ export function DataTable<Row>(props: DataTableProps<Row>) {
 
   /* ── Announcements: sort and selection changes, politely. ── */
   const [announcement, setAnnouncement] = useState('');
-  const firstSort = useRef(true);
+  // Announce changes only, never the initial value: compare with the last value seen, so a
+  // StrictMode double-run of the effects (dev) or a remount stays silent.
+  const sortKey = sort ? `${sort.key}\u0000${sort.direction}` : '';
+  const lastSort = useRef(sortKey);
   useEffect(() => {
-    if (firstSort.current) {
-      firstSort.current = false;
-      return;
-    }
+    if (lastSort.current === sortKey) return;
+    lastSort.current = sortKey;
     if (!sort) return;
     const label = columns.find((c) => c.key === sort.key)?.label ?? sort.key;
     setAnnouncement(`Sorted by ${label}, ${sort.direction}`);
     // Only the sort itself triggers the announcement.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sort?.key, sort?.direction]);
-  const firstSelection = useRef(true);
+  }, [sortKey]);
   const selectionCount = selection?.length ?? 0;
+  const lastSelectionCount = useRef(selectionCount);
   useEffect(() => {
-    if (firstSelection.current) {
-      firstSelection.current = false;
-      return;
-    }
+    if (lastSelectionCount.current === selectionCount) return;
+    lastSelectionCount.current = selectionCount;
     setAnnouncement(
       selectionCount === 0 ? 'No rows selected' : `${selectionCount} ${selectionCount === 1 ? 'row' : 'rows'} selected`,
     );
@@ -344,8 +347,8 @@ export function DataTable<Row>(props: DataTableProps<Row>) {
               aria-label="Select all rows"
               checked={allState}
               disabled={allIds.length === 0}
-              checkedGlyph={<Icon name="check" size="sm" weight="bold" />}
-              indeterminateGlyph={<Icon name="minus" size="sm" weight="bold" />}
+              checkedGlyph={<GridCheckGlyph />}
+              indeterminateGlyph={<GridMinusGlyph />}
               onCheckedChange={() => onSelectionChange?.(allState === true ? [] : allIds)}
             />
           </span>
@@ -359,7 +362,7 @@ export function DataTable<Row>(props: DataTableProps<Row>) {
               <GridCheckbox
                 aria-label={`Select ${labelOf(d.row, p.rowIndex)}`}
                 checked={selected.has(id)}
-                checkedGlyph={<Icon name="check" size="sm" weight="bold" />}
+                checkedGlyph={<GridCheckGlyph />}
                 onCheckedChange={() => toggle(id)}
               />
             </span>
@@ -398,7 +401,7 @@ export function DataTable<Row>(props: DataTableProps<Row>) {
                   current === 'ascending' && 'rotate-180',
                 )}
               >
-                <Icon name="chevron-down" size="sm" weight={current ? 'bold' : 'linear'} />
+                <GridChevronGlyph bold={Boolean(current)} />
               </span>
             </GridSortButton>
           );
@@ -535,7 +538,7 @@ export function DataTable<Row>(props: DataTableProps<Row>) {
         variant="table"
         title="No results match these filters"
         description="Records exist, but none match. Clear the filters to see everything."
-        primaryAction={onClearFilters ? { label: 'Clear filters', onPress: onClearFilters } : undefined}
+        secondaryAction={onClearFilters ? { label: 'Clear filters', onPress: onClearFilters } : undefined}
       />
     );
   } else if (empty) {
@@ -639,7 +642,9 @@ export function DataTable<Row>(props: DataTableProps<Row>) {
             Loading {caption}
           </span>
         ) : null}
-        {body ? <div className="border-0 border-t border-solid border-line-decorative bg-surface-raised">{body}</div> : null}
+        {body ? (
+          <div className="border-0 border-t border-solid border-line-decorative bg-surface-raised">{body}</div>
+        ) : null}
         {showFooter ? (
           <div className="relative flex min-h-14 items-center justify-center gap-3 border-0 border-t border-solid border-line-decorative bg-surface-raised px-3 py-2">
             <p id={footerId} className="absolute start-3 m-0 text-body-sm tabular-nums text-fg-secondary">
@@ -683,7 +688,7 @@ function RowActionsMenu({
   return (
     <GridRowMenu>
       <GridRowMenuTrigger aria-label={label}>
-        <Icon name="more" size="md" />
+        <GridMoreGlyph />
       </GridRowMenuTrigger>
       <GridRowMenuContent aria-label={label}>
         {items.map((item, i) =>

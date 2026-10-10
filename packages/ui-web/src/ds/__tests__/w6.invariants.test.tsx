@@ -13,13 +13,14 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { fireEvent, render, screen } from '@testing-library/react';
-import { useState } from 'react';
+import { StrictMode, useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
   DataTable,
   HalalStateCell,
   HALAL_STATE_MISSING_TEXT,
+  MoneyCell,
   setClientErrorReporter,
   type DataTableColumn,
 } from '../index.js';
@@ -185,5 +186,41 @@ describe('DataTable behaviour', () => {
     render(<DataTable<Row> caption="Restaurants" columns={COLS} rows={ROWS} activeRowId="b" />);
     const rows = screen.getAllByRole('row').filter((r) => r.getAttribute('data-ln-row') === 'true');
     expect(rows.map((r) => r.getAttribute('aria-current'))).toEqual([null, 'true']);
+  });
+});
+
+describe('review fixes', () => {
+  it('mounting (even under StrictMode) announces nothing; only a change is announced', () => {
+    render(
+      <StrictMode>
+        <DataTable<Row>
+          caption="Restaurants"
+          columns={COLS}
+          rows={ROWS}
+          sort={{ key: 'total', direction: 'descending' }}
+          onSortChange={() => {}}
+          selection={[]}
+          onSelectionChange={() => {}}
+        />
+      </StrictMode>,
+    );
+    expect(screen.getByTestId('DataTable-announcer')).toHaveTextContent('');
+  });
+
+  it('MoneyCell: fractional cents render no amount and are reported (invariant 3)', () => {
+    const report = vi.fn();
+    setClientErrorReporter(report);
+    render(<MoneyCell cents={12.5} />);
+    expect(screen.getByTestId('MoneyCell')).toHaveTextContent('');
+    expect(report).toHaveBeenCalledWith('MONEY_NOT_INTEGER_CENTS', expect.objectContaining({ received: 12.5 }));
+  });
+
+  it('icon-only grid controls draw a glyph (never an empty button)', () => {
+    render(<Harness onActivate={() => {}} />);
+    const trigger = screen.getByRole('button', { name: 'Actions for Zaytoun Grill' });
+    expect(trigger.querySelector('[data-slot="grid-glyph-more"]')).not.toBeNull();
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Select Karahi House' }));
+    const all = screen.getByRole('checkbox', { name: 'Select all rows' });
+    expect(all.querySelector('[data-slot="grid-glyph-minus"]')).not.toBeNull();
   });
 });
