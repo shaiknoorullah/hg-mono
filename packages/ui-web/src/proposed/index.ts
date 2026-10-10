@@ -54,3 +54,17 @@ export { Stepper } from './Stepper.js';
 export type { StepperProps, StepperStep } from './Stepper.js';
 export { InlineConfirm } from './InlineConfirm.js';
 export type { InlineConfirmAction, InlineConfirmProps } from './InlineConfirm.js';
+
+/* Layout and shell (W2): proposed composites from #192 and #191 (packet P8, P12, P14, P15). */
+export { Disclosure } from './Disclosure.js';
+export type { DisclosureProps } from './Disclosure.js';
+export { SkipLink } from './SkipLink.js';
+export type { SkipLinkProps } from './SkipLink.js';
+export { SYSTEM_BANNER_SEVERITY, SystemBannerSlot, SystemBannerStack } from './SystemBannerSlot.js';
+export type { SystemBanner, SystemBannerSlotProps, SystemBannerStackProps } from './SystemBannerSlot.js';
+export { ActionBar, StickyFooter } from './StickyFooter.js';
+export type { ActionBarProps, StickyFooterProps } from './StickyFooter.js';
+export { NavDrawer } from './NavDrawer.js';
+export type { NavDrawerProps } from './NavDrawer.js';
+export { SectionNav } from './SectionNav.js';
+export type { SectionNavItem, SectionNavProps } from './SectionNav.js';

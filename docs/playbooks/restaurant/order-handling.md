@@ -1,6 +1,6 @@
 ---
 covers: []
-reviewed: 2026-10-05
+reviewed: 2026-10-09
 ---
 
 # Restaurant Playbook: Order Handling
@@ -13,11 +13,11 @@ This playbook scripts the end-to-end order processing lifecycle for restaurant o
 
 1. **Setup command** (terminal):
    ```bash
-   # Dispatch a new customer checkout to the active restaurant
-   cmd/devworld scenario new-order --persona bismillah-grill
+   # amina places an order at Bismillah Grill (the scenario has no persona flag)
+   cd services/hg && make dev-scenario s=new-order
    ```
 2. **Browser action**:
-   - Open `/orders` as the active restaurant operator.
+   - Open `/orders` signed in as `bismillah-grill@seed.hg` / `Seed!2026`.
    - Do not click anything: the queue updates by itself from the realtime socket, and every 7 seconds even when the socket is down. **Refresh** stays available as a manual option.
 3. **Visible assertion**:
    - Without a click, within 7 seconds, a new order card appears displaying the order code (e.g. `#HG-…`), customer name, delivery destination, and ordered items.
@@ -46,10 +46,10 @@ This playbook scripts the end-to-end order processing lifecycle for restaurant o
 2. **Browser action**:
    - Locate the **Package seal** entry row on the order card.
    - Type a pre-printed bag seal code (e.g. `SEAL-8821`).
-   - Click **Bind seal**.
+   - Click **Seal**.
 3. **Visible assertion**:
-   - A success confirmation displays `Sealed · SEAL-8821` with a tinted success badge (never solid green, per [Design Rule 10](../../../AGENTS.md#3-non-negotiable-invariants)).
-   - The chain-of-custody seal is now bound on the server for rider pickup scan.
+   - The dev world issues no physical seals, so the bind is refused, as in the [journey playbook](journey.md): the field shows `No such seal code for this restaurant.` and the card is **not** marked `Sealed ·`.
+   - The order continues without a seal. With a seal issued to the restaurant, the card would show `Sealed · SEAL-8821` with a tinted success badge (never solid green, per [Design Rule 10](../../../AGENTS.md#3-non-negotiable-invariants)).
 
 ---
 
@@ -69,9 +69,11 @@ This playbook scripts the end-to-end order processing lifecycle for restaurant o
 
 1. **Setup command**:
    ```bash
-   cmd/devworld scenario new-order --persona bismillah-grill
+   # amina has one active order at a time: reset clears the order from steps 1-4
+   cd services/hg && make dev-reset && make dev-scenario s=new-order
    ```
 2. **Browser action**:
+   - If the console signed you out after the reset, sign in again as `bismillah-grill@seed.hg` / `Seed!2026`.
    - Wait for the incoming order to appear on `/orders` by itself (at most 7 seconds).
    - Click **Reject**.
    - In the confirmation dialog, select a reason: `KITCHEN_AT_CAPACITY` or `ITEM_UNAVAILABLE`.
