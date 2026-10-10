@@ -26,8 +26,10 @@ Work packages: `plan/design-system.md` §4.1 on the read-only `claude/redesign-c
 | KeyValueList (approved) | **rebuilt** | W1 | — |
 | StatCard (approved) | **rebuilt** | W1 | — |
 | `formatTime12h` (the one 12-hour formatter) | **rebuilt** | W1 | — |
-| AppBar | adapter (over `TopBar`) | W2 | `tone`, `large`, `transparent`, `sticky` are accepted and ignored |
-| SideNav | legacy (approved) | W2 | — |
+| AppBar | rebuilt | W2 | additions `leading`, `brand`, `role`, `loadingLabel`; `titleAs`/`onTitlePress` (packet P19) not yet |
+| SideNav | rebuilt | W2 | count pill is drawn in place until W1's Badge lands; on-chrome tile uses on-accent until `surface-chrome-selected` (packet T7) exists. Admin names (#699) accepted as aliases |
+| DetailPanel | rebuilt | W2 | additions `open`, `busy`, `returnFocusRef`, `label`, `id`, `width="panel"` (380/460px) for #675 and #699 |
+| SplitPanes | rebuilt | W2 | horizontal only; additions `units="px"`, `fill`, controlled `collapsed`, `onResize` (#699) |
 | Input | adapter | W3 | `otp` is the legacy 6-cell row |
 | Select | adapter | W3 | `onChange` receives the value, not an event |
 | Checkbox | adapter | W3 | use `onCheckedChange`; `onChange(event)` is not offered |
@@ -59,3 +61,9 @@ Work packages: `plan/design-system.md` §4.1 on the read-only `claude/redesign-c
 | ToastProvider, useToast | legacy | W4 |
 | DocumentViewer | legacy | W7b |
 | FilterBar | legacy | W6 |
+| Disclosure | rebuilt | W2 |
+| SkipLink | rebuilt | W2 |
+| SystemBannerSlot (= SystemBannerStack) | rebuilt | W2 |
+| StickyFooter (= ActionBar) | rebuilt | W2 |
+| NavDrawer | rebuilt | W2 |
+| SectionNav | rebuilt | W2 |

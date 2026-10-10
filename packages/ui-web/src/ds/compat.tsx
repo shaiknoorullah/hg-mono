@@ -23,7 +23,6 @@ import {
 import { Price } from '../content/index.js';
 import { StatusTimeline as LegacyStatusTimeline } from '../feedback/index.js';
 import type { OrderState } from '@hg/api-client';
-import { TopBar } from '../navigation/index.js';
 import { Icon, type DsIconName } from './Icon.js';
 
 /* ───── Input ───── */
@@ -291,55 +290,6 @@ export function StatusTimeline({ state, transitions, connection, ...rest }: Stat
         .filter((t): t is { to_state: OrderState; at: string } => typeof t.at === 'string')
         .map((t) => ({ state: t.to_state, at: t.at }))}
     />
-  );
-}
-
-/* ───── AppBar ───── */
-
-/** Props of the live `AppBar` (index.d.ts). */
-export interface AppBarProps {
-  variant?: 'default' | 'large' | 'search' | 'contextual' | 'transparent';
-  /** chrome is the restaurant and admin tone; tones land with the AppBar rebuild (W2). */
-  tone?: 'cream' | 'raised' | 'chrome' | 'field';
-  title?: ReactNode;
-  subtitle?: ReactNode;
-  /** "Back to {previous}". */
-  backLabel?: string;
-  onBack?: () => void;
-  actions?: ReactNode;
-  search?: ReactNode;
-  loading?: boolean;
-  elevated?: boolean;
-  titleIsPageHeading?: boolean;
-  sticky?: boolean;
-  testId?: string;
-  style?: CSSProperties;
-}
-
-/** The top bar with the live props, rendered by the legacy TopBar until W2. */
-export function AppBar({
-  variant = 'default',
-  tone: _tone,
-  title,
-  subtitle,
-  backLabel,
-  onBack,
-  sticky: _sticky,
-  style,
-  ...rest
-}: AppBarProps) {
-  const legacyVariant = variant === 'search' || variant === 'contextual' ? variant : 'default';
-  return (
-    <div style={style}>
-      <TopBar
-        {...rest}
-        variant={legacyVariant}
-        title={title as string}
-        subtitle={subtitle as string | undefined}
-        back={onBack ? { label: backLabel ?? 'Back', onPress: onBack } : undefined}
-        onExitContextual={variant === 'contextual' ? onBack : undefined}
-      />
-    </div>
   );
 }
 
