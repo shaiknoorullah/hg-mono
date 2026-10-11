@@ -95,7 +95,43 @@ func TestListRestaurantsResolvesDeliveryAddressID(t *testing.T) {
 		return RestaurantAvailabilityInfo{}
 	}
 
+	// The home feed takes the same parameter and must read the same verdicts.
+	feed := func(query string, p httpx.Principal) RestaurantAvailabilityInfo {
+		t.Helper()
+		r := httptest.NewRequest(http.MethodGet, "/v1/feed"+query, nil)
+		r = r.WithContext(httpx.WithPrincipalForTest(r.Context(), p))
+		w := httptest.NewRecorder()
+		h.GetHomeFeed(w, r)
+		if w.Code != http.StatusOK {
+			t.Fatalf("feed %s: status = %d; body %s", query, w.Code, w.Body.String())
+		}
+		var env struct {
+			Data []FeedSection `json:"data"`
+		}
+		if err := json.Unmarshal(w.Body.Bytes(), &env); err != nil {
+			t.Fatalf("decode feed: %v", err)
+		}
+		for _, sec := range env.Data {
+			for _, c := range sec.Restaurants {
+				if c.ID == restaurantID {
+					return c.Availability
+				}
+			}
+		}
+		t.Fatalf("feed %s: restaurant not listed", query)
+		return RestaurantAvailabilityInfo{}
+	}
+
 	as := httpx.Principal{AccountID: amina}
+	if got := feed("?delivery_address_id="+home, as); got.State != availOpen || got.DistanceM == nil {
+		t.Errorf("feed Home: state=%q distance=%v, want OPEN with a distance", got.State, got.DistanceM)
+	}
+	if got := feed("?delivery_address_id="+cottage, as); got.State != availOutOfRange {
+		t.Errorf("feed Cottage: state=%q, want OUT_OF_RANGE", got.State)
+	}
+	if got := feed("?delivery_address_id="+othersHome, as); got.State != availNoAddress {
+		t.Errorf("feed another account's address: state=%q, want NO_ADDRESS", got.State)
+	}
 	if got := list("?delivery_address_id="+home, as); got.State != availOpen || got.DistanceM == nil {
 		t.Errorf("Home: state=%q distance=%v, want OPEN with a distance", got.State, got.DistanceM)
 	}
