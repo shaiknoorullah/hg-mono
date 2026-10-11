@@ -93,7 +93,12 @@ func advanceIntentState(ctx context.Context, tx pgx.Tx, stripeID string, target 
 		        deadline_at = coalesce(deadline_at, now() + interval '20 minutes'),
 		        deadline_action = coalesce(deadline_action, 'await_capture')`
 		if target == StateRequiresCapture {
-			set += ", authorized_at = coalesce(authorized_at, now())"
+			// The card is authorised for the server-priced order total, which is
+			// what the intent was created for; an intent stored before then
+			// holds 0 (https://github.com/shaiknoorullah/hg-mono/issues/729).
+			set += `, authorized_at = coalesce(authorized_at, now()),
+			        amount_authorized_cents = GREATEST(amount_authorized_cents,
+			          (SELECT o.total_cents FROM "order" o WHERE o.id = payment_intent.order_id))`
 		}
 	}
 	tag, err := tx.Exec(ctx,
@@ -107,16 +112,17 @@ func advanceIntentState(ctx context.Context, tx pgx.Tx, stripeID string, target 
 // recordCapture stamps a captured amount and posts the CAPTURE ledger batch.
 // Both are idempotent: a redelivered succeeded event captures once and posts
 // one batch.
-func recordCapture(ctx context.Context, tx pgx.Tx, stripeID string, capturedCents int64, asOf time.Time, batch LedgerBatch) error {
+func recordCapture(ctx context.Context, tx pgx.Tx, stripeID string, capturedCents, authorizedCents int64, asOf time.Time, batch LedgerBatch) error {
 	_, err := tx.Exec(ctx, `
 		UPDATE payment_intent
 		   SET state = 'SUCCEEDED',
 		       amount_captured_cents = $2,
+		       amount_authorized_cents = GREATEST(amount_authorized_cents, $4),
 		       captured_at = coalesce(captured_at, now()),
 		       canceled_at = NULL,
 		       last_stripe_event_created_at = GREATEST(last_stripe_event_created_at, $3),
 		       deadline_at = NULL, deadline_action = NULL
-		 WHERE stripe_payment_intent_id = $1`, stripeID, capturedCents, asOf)
+		 WHERE stripe_payment_intent_id = $1`, stripeID, capturedCents, asOf, authorizedCents)
 	if err != nil {
 		return err
 	}

@@ -484,18 +484,29 @@ func (s *Service) assertIntentState(ctx context.Context, tx pgx.Tx, stripeID str
 // The batch's idempotency key is the order id so a redelivered succeeded
 // event posts exactly one batch.
 func (s *Service) recordSucceeded(ctx context.Context, tx pgx.Tx, cur IntentRow, amountReceived int64, asOf time.Time) (effect, error) {
+	money, _, err := getOrderMoney(ctx, tx, cur.OrderID)
+	if err != nil {
+		return effect{}, err
+	}
+	// A capture that arrives before the authorisation was recorded (the card
+	// was confirmed and captured between two reads) finds 0 stored; the
+	// authorisation it implies is the server-priced order total.
+	authorised := cur.AmountAuthorizedCents
+	if authorised == 0 {
+		authorised = money.TotalCents
+	}
 	captured := amountReceived
 	if captured == 0 {
-		captured = cur.AmountAuthorizedCents
+		captured = authorised
 	}
-	if captured > cur.AmountAuthorizedCents {
+	if captured > authorised {
 		// Stripe never captures more than it authorised, and the amount we
 		// authorised is the server-priced order total. A larger figure is
 		// not this payment's capture: record nothing and page on-call.
 		if err := raiseOpsAlert(ctx, tx, opsAlert{Severity: "high", Kind: "webhook_refused",
 			SubjectType: "payment_intent", SubjectID: cur.ID,
 			Message: fmt.Sprintf("Stripe reports %d cents captured on %s, more than the %d authorised; nothing was recorded.",
-				captured, cur.StripePaymentIntentID, cur.AmountAuthorizedCents)}); err != nil {
+				captured, cur.StripePaymentIntentID, authorised)}); err != nil {
 			return effect{}, err
 		}
 		return effect{kind: effectMismatch, label: "refused:capture_above_authorisation",
@@ -512,17 +523,13 @@ func (s *Service) recordSucceeded(ctx context.Context, tx pgx.Tx, cur IntentRow,
 				stripeID: cur.StripePaymentIntentID, orderID: cur.OrderID}, nil
 		}
 	}
-	money, _, err := getOrderMoney(ctx, tx, cur.OrderID)
-	if err != nil {
-		return effect{}, err
-	}
 	// The rider's share is credited once, at delivery, by the rider earnings
 	// batch (rider_earnings.go, issue #306). A capture recorded late, after
 	// the delivery, must leave it parked in platform revenue like any other
 	// capture, or the rider would be credited twice.
 	money.RiderID = ""
 	batch := BuildCaptureBatch(money, key, "system:capture")
-	if err := recordCapture(ctx, tx, cur.StripePaymentIntentID, captured, asOf, batch); err != nil {
+	if err := recordCapture(ctx, tx, cur.StripePaymentIntentID, captured, authorised, asOf, batch); err != nil {
 		return effect{}, err
 	}
 	return effect{kind: effectApplied, label: "captured:" + cur.OrderID,
