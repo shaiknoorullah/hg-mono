@@ -9,7 +9,7 @@ covers:
   - services/hg/internal/files/**
   - services/hg/internal/dispatch/**
   - services/hg/internal/httpx/**
-reviewed: 2026-10-10
+reviewed: 2026-10-11
 ---
 
 # HalalGoes — Cross-Cutting Platform Layer Specification
@@ -1035,7 +1035,7 @@ CREATE INDEX ledger_entry_cp ON ledger_entry(counterparty_type, counterparty_id,
 
 # 4. Order state machine
 
-> Design decision stated up front, because it is the fix for a whole family of old bugs: **the order has one fulfilment state track, and rider assignment is a separate, subordinate machine.** The old system put `PREPARING` and `RIDER_ASSIGNED` on one line, which is precisely why the restaurant's own transitions became unreachable (B58/R31) and why the tracking workflow that owned the transition table started at `RIDER_ASSIGNED` and could never validate the restaurant-side moves. Here, `dispatch` runs concurrently with `PREPARING` and may only push the order forward through three named transitions.
+> Design decision stated up front, because it is the fix for a whole family of old bugs: **the order has one fulfilment state track, and rider assignment is a separate, subordinate machine.** The old system put `PREPARING` and `RIDER_ASSIGNED` on one line, which is precisely why the restaurant's own transitions became unreachable (B58/R31) and why the tracking workflow that owned the transition table started at `RIDER_ASSIGNED` and could never validate the restaurant-side moves. Here, `dispatch` runs concurrently with `PREPARING` and may only push the order forward through three named transitions. When two riders accept the same offer at once, the loser is told `OFFER_ALREADY_TAKEN` (the code is derived from the offer and dispatch row re-read under the order's lock), and `OFFER_EXPIRED` is reserved for an offer whose `expires_at` has passed ([#696](https://github.com/shaiknoorullah/hg-mono/issues/696)).
 
 ### P-14 — Order lifecycle states and transitions
 
