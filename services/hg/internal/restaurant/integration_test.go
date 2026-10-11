@@ -1337,3 +1337,80 @@ func TestIntegration_UpdateMenuItem_ReviewedFieldsWaitForReview(t *testing.T) {
 		t.Fatalf("the older pending version is %q (err %v), want WITHDRAWN", older, err)
 	}
 }
+
+// A rejected owner must be told why, and a final REJECT must be told apart from
+// a request for changes (https://github.com/shaiknoorullah/hg-mono/issues/695).
+func TestIntegration_GetOnboardingStatus_RejectionCarriesDecisionAndReason(t *testing.T) {
+	for _, decision := range []string{"REJECT", "REQUEST_CHANGES"} {
+		t.Run(decision, func(t *testing.T) {
+			pool := testPool(t)
+			f := seedFixtures(t, pool)
+			h := newHandler(pool)
+			ctx := context.Background()
+			const text = "We could not verify the halal certificate for this location."
+
+			if _, err := pool.Exec(ctx, `UPDATE restaurant SET onboarding_state='DOCUMENTS_REJECTED' WHERE id=$1`, f.restaurantID); err != nil {
+				t.Fatalf("set state: %v", err)
+			}
+			if _, err := pool.Exec(ctx, `
+				INSERT INTO restaurant_application
+				  (restaurant_id, submission_count, submitted_at, decision, reject_reason_code, decided_at)
+				VALUES ($1, 2, now(), $2::restaurant_decision, 'HALAL_CERTIFICATION_INVALID', now())
+				ON CONFLICT (restaurant_id) DO UPDATE
+				SET submission_count=2, decision=EXCLUDED.decision,
+				    reject_reason_code=EXCLUDED.reject_reason_code, decided_at=now()`,
+				f.restaurantID, decision); err != nil {
+				t.Fatalf("seed application: %v", err)
+			}
+			if _, err := pool.Exec(ctx, `
+				INSERT INTO restaurant_onboarding_transition
+				  (restaurant_id, from_state, to_state, actor_kind, decision_reason_code, reason)
+				VALUES ($1, 'DOCUMENTS_REVIEW', 'DOCUMENTS_REJECTED', 'ADMIN', 'HALAL_CERTIFICATION_INVALID', $2)`,
+				f.restaurantID, text); err != nil {
+				t.Fatalf("seed transition: %v", err)
+			}
+
+			req := httptest.NewRequest(http.MethodGet, "/v1/restaurant/onboarding/status", nil)
+			req = withPrincipal(req, principalWith(f.ownerAccountID, httpx.RoleRestaurantOwner))
+			rec := httptest.NewRecorder()
+			h.GetRestaurantOnboardingStatus(rec, req)
+			if rec.Code != http.StatusOK {
+				t.Fatalf("status=%d (body: %s)", rec.Code, rec.Body.String())
+			}
+			var env struct {
+				Data struct {
+					BlockingReason *string `json:"blocking_reason"`
+					ReviewCycle    int     `json:"review_cycle"`
+					Rejection      *struct {
+						Decision   string  `json:"decision"`
+						ReasonCode *string `json:"reason_code"`
+						Note       *string `json:"note"`
+						Documents  []any   `json:"documents"`
+					} `json:"rejection"`
+				} `json:"data"`
+			}
+			if err := json.Unmarshal(rec.Body.Bytes(), &env); err != nil {
+				t.Fatalf("unmarshal: %v", err)
+			}
+			rej := env.Data.Rejection
+			if rej == nil {
+				t.Fatalf("rejection is null; the owner sees no reason (body: %s)", rec.Body.String())
+			}
+			if rej.Decision != decision {
+				t.Errorf("decision=%q, want %q", rej.Decision, decision)
+			}
+			if rej.ReasonCode == nil || *rej.ReasonCode != "HALAL_CERTIFICATION_INVALID" {
+				t.Errorf("reason_code=%v", rej.ReasonCode)
+			}
+			if rej.Note == nil || *rej.Note != text {
+				t.Errorf("note=%v, want the admin's reason text", rej.Note)
+			}
+			if env.Data.BlockingReason == nil || *env.Data.BlockingReason != text {
+				t.Errorf("blocking_reason=%v", env.Data.BlockingReason)
+			}
+			if env.Data.ReviewCycle != 2 {
+				t.Errorf("review_cycle=%d, want 2", env.Data.ReviewCycle)
+			}
+		})
+	}
+}

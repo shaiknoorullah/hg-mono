@@ -7,10 +7,10 @@ The oracle: every covered operation had its live server response validated again
 enforces `additionalProperties:false` + `required[]` + closed enums automatically.
 
 - **Total contract operations:** 172
-- **Validated (covered):** 166
-- **Not yet validated (uncovered):** 6
+- **Validated (covered):** 160
+- **Not yet validated (uncovered):** 12
 
-## Covered (166)
+## Covered (160)
 
 - `acceptOffer` — POST /v1/riders/me/offers/{offerId}/accept
 - `acceptOrder` — POST /v1/restaurant/orders/{orderId}/accept
@@ -20,10 +20,8 @@ enforces `additionalProperties:false` + `required[]` + closed enums automaticall
 - `attachRestaurantDocument` — POST /v1/restaurant/documents
 - `attachRiderDocument` — POST /v1/riders/me/documents
 - `bindPackageSeal` — POST /v1/orders/{orderId}/handoff/seal
-- `cancelOrder` — POST /v1/orders/{orderId}/cancel
 - `cancelOrderAdmin` — POST /v1/admin/orders/{orderId}/cancel
 - `changePassword` — POST /v1/auth/password/change
-- `clearCart` — DELETE /v1/cart
 - `confirmUpload` — POST /v1/uploads/{uploadId}/confirm
 - `createAddress` — POST /v1/addresses
 - `createAssignmentTransition` — POST /v1/riders/me/assignments/{assignmentId}/transitions
@@ -35,10 +33,8 @@ enforces `additionalProperties:false` + `required[]` + closed enums automaticall
 - `createMenuCategoryOnBehalf` — POST /v1/admin/restaurants/{restaurantId}/menu/categories
 - `createMenuItem` — POST /v1/restaurant/menu/items
 - `createMenuItemOnBehalf` — POST /v1/admin/restaurants/{restaurantId}/menu/items
-- `createOrder` — POST /v1/orders
 - `createPaymentMethodSetupIntent` — POST /v1/payment-methods/setup-intent
 - `createPayoutRun` — POST /v1/admin/payout-runs
-- `createQuote` — POST /v1/quotes
 - `createRealtimeTicket` — POST /v1/realtime/ticket
 - `createRefund` — POST /v1/refunds
 - `createRestaurantStaffUser` — POST /v1/restaurant/staff
@@ -136,7 +132,6 @@ enforces `additionalProperties:false` + `required[]` + closed enums automaticall
 - `registerRestaurant` — POST /v1/auth/register/restaurant
 - `rejectOffer` — POST /v1/riders/me/offers/{offerId}/reject
 - `rejectOrder` — POST /v1/restaurant/orders/{orderId}/reject
-- `removeCartLine` — DELETE /v1/cart/lines/{lineId}
 - `reportRiderPositions` — POST /v1/riders/me/positions
 - `reportTamper` — POST /v1/orders/{orderId}/handoff/tamper-report
 - `requestOtp` — POST /v1/auth/otp/request
@@ -170,7 +165,6 @@ enforces `additionalProperties:false` + `required[]` + closed enums automaticall
 - `transcribeHalalCertificate` — PUT /v1/admin/halal-certificates/{certificateId}/transcription
 - `unregisterDevice` — DELETE /v1/devices/{deviceId}
 - `updateAddress` — PATCH /v1/addresses/{addressId}
-- `updateCartLine` — PATCH /v1/cart/lines/{lineId}
 - `updateCustomerProfile` — PATCH /v1/me/profile
 - `updateMenuCategory` — PATCH /v1/restaurant/menu/categories/{categoryId}
 - `updateMenuItem` — PATCH /v1/restaurant/menu/items/{itemId}
@@ -179,14 +173,20 @@ enforces `additionalProperties:false` + `required[]` + closed enums automaticall
 - `verifyOtp` — POST /v1/auth/otp/verify
 - `verifyTotpEnrolment` — POST /v1/auth/totp/verify
 
-## Uncovered (6)
+## Uncovered (12)
 
 Each uncovered operation is listed with its method/path. This list is emitted
 every run: an operation silently losing coverage becomes visible here.
 
+- `cancelOrder` — POST /v1/orders/{orderId}/cancel — unexplained gap
+- `clearCart` — DELETE /v1/cart — unexplained gap
+- `createOrder` — POST /v1/orders — unexplained gap
+- `createQuote` — POST /v1/quotes — unexplained gap
 - `getDependencyStatus` — GET /internal/deps — needs Redis and the object store
 - `getPlaceAddress` — GET /v1/geo/places/{placeId} — unexplained gap
 - `getReadiness` — GET /health/ready — needs Redis and the object store
 - `overrideHandoverCode` — POST /v1/admin/orders/{orderId}/handover-override — no handler yet: the backend lands in #315
+- `removeCartLine` — DELETE /v1/cart/lines/{lineId} — unexplained gap
 - `reverseGeocode` — GET /v1/geo/reverse — unexplained gap
 - `suggestAddresses` — GET /v1/geo/autocomplete — unexplained gap
+- `updateCartLine` — PATCH /v1/cart/lines/{lineId} — unexplained gap

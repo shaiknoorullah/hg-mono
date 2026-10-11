@@ -3,7 +3,7 @@ covers:
   - apps/restaurant/**
   - services/hg/internal/restaurant/**
   - services/hg/internal/catalog/**
-reviewed: 2026-10-05
+reviewed: 2026-10-11
 ---
 
 # HalalGoes — RESTAURANT domain specification
@@ -332,7 +332,7 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
                         rejection_note, review_cycle int)
   ```
   Status response:
-  `{onboarding_state, current_step, progress_percent, steps_completed:{profile,documents_uploaded,documents_submitted,documents_approved,payout_account,menu_published}, blocking_reason, rejection: {reason_code, note, documents:[{doc_type, status, review_note}]}}`
+  `{onboarding_state, current_step, progress_percent, steps_completed:{profile,documents_uploaded,documents_submitted,documents_approved,payout_account,menu_published}, blocking_reason, rejection: {decision, reason_code, note, documents:[{doc_type, status, review_note}]}}`. While `onboarding_state='DOCUMENTS_REJECTED'`, `rejection` carries the admin's reason code and reason text verbatim (`blocking_reason` repeats the text), and `decision` tells a request for changes (`REQUEST_CHANGES`) from a final `REJECT`; the review screen shows the reason and offers no resubmission after a final rejection ([#695](https://github.com/shaiknoorullah/hg-mono/issues/695)).
 
 - **States** (`onboarding_state`, exact list and triggers):
 

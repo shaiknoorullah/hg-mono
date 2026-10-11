@@ -11530,19 +11530,27 @@ components:
               type: boolean
         blocking_reason:
           type: [string, 'null']
+          description: 'While the application is sent back or rejected, the reason text the admin wrote, verbatim. Null otherwise.'
         review_cycle:
           type: integer
           format: int32
         rejection:
+          description: 'Present only while `onboarding_state` is `DOCUMENTS_REJECTED`; null otherwise.'
           oneOf:
             - type: object
               additionalProperties: false
-              required: [documents]
+              required: [decision, documents]
               properties:
+                decision:
+                  type: string
+                  enum: [REQUEST_CHANGES, REJECT]
+                  description: '`REQUEST_CHANGES` means fix the listed documents and resubmit. `REJECT` is final for this application: there is nothing to fix and resubmit.'
                 reason_code:
                   type: [string, 'null']
+                  description: 'The `RestaurantRejectApplicationReasonCode` the admin chose.'
                 note:
                   type: [string, 'null']
+                  description: 'The reason text the admin wrote, sent verbatim. Never the internal note.'
                 documents:
                   type: array
                   items:

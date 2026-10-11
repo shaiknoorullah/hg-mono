@@ -7072,6 +7072,7 @@ export interface components {
         RestaurantOnboardingState: "REGISTERED" | "EMAIL_VERIFIED" | "PROFILE_PENDING" | "DOCUMENTS_PENDING" | "DOCUMENTS_REVIEW" | "DOCUMENTS_APPROVED" | "DOCUMENTS_REJECTED" | "PAYOUT_PENDING" | "MENU_PENDING" | "ACTIVE" | "WITHDRAWN";
         RestaurantOnboardingStatus: {
             account_state: components["schemas"]["RestaurantAccountState"];
+            /** @description While the application is sent back or rejected, the reason text the admin wrote, verbatim. Null otherwise. */
             blocking_reason?: string | null;
             /** @enum {string} */
             current_step: "PROFILE" | "DOCUMENTS" | "AWAITING_REVIEW" | "FIX_DOCUMENTS" | "PAYOUT" | "MENU" | "DONE";
@@ -7081,9 +7082,17 @@ export interface components {
              * @description Server-computed with fixed weights. The client never computes it.
              */
             progress_percent: number;
+            /** @description Present only while `onboarding_state` is `DOCUMENTS_REJECTED`; null otherwise. */
             rejection?: {
+                /**
+                 * @description `REQUEST_CHANGES` means fix the listed documents and resubmit. `REJECT` is final for this application: there is nothing to fix and resubmit.
+                 * @enum {string}
+                 */
+                decision: "REQUEST_CHANGES" | "REJECT";
                 documents: components["schemas"]["KycDocument"][];
+                /** @description The reason text the admin wrote, sent verbatim. Never the internal note. */
                 note?: string | null;
+                /** @description The `RestaurantRejectApplicationReasonCode` the admin chose. */
                 reason_code?: string | null;
             } | null;
             /** Format: int32 */
