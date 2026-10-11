@@ -371,7 +371,25 @@ UPDATE dispatch_offer
 RETURNING order_id, wave::text, wave, earnings_cents, tip_estimate_cents, distance_m, id`,
 		offerID, riderAccountID, now).Scan(&claimedOrder, &wave, &waveNo, &earningsCents, &tipCents, &offerDistanceM, &dispatchOfferID)
 	if errors.Is(err, pgx.ErrNoRows) {
-		// Lost the race in the tiny window since the read. It expired.
+		// The claim matched no row. The state read at the top predates the dispatch
+		// row lock, so it cannot say why; re-read under the lock (D-16 AC-1). A
+		// winner that withdrew this offer, or a dispatch row already holding a
+		// rider, is OFFER_ALREADY_TAKEN; only a lapsed offer is OFFER_EXPIRED.
+		var curState string
+		if rerr := tx.QueryRow(ctx, `
+SELECT state::text FROM dispatch_offer
+WHERE id = $1 AND rider_account_id = $2`, offerID, riderAccountID).Scan(&curState); rerr != nil {
+			return "", rerr
+		}
+		var taken bool
+		if terr := tx.QueryRow(ctx, `
+SELECT EXISTS (SELECT 1 FROM dispatch WHERE order_id = $1 AND rider_account_id IS NOT NULL)`,
+			st.OrderID).Scan(&taken); terr != nil {
+			return "", terr
+		}
+		if taken || curState == "ACCEPTED" || curState == "WITHDRAWN" {
+			return "", newError(409, CodeOfferAlreadyTaken, "This order was taken by another rider.", nil)
+		}
 		return "", newError(409, CodeOfferExpired, "This offer has expired.", nil)
 	}
 	if err != nil {

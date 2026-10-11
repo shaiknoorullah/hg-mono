@@ -294,3 +294,73 @@ SELECT count(*) FROM realtime_event e
 		t.Errorf("rider.availability_changed ONLINE_IDLE events = %d, want 1", events)
 	}
 }
+
+// TestAcceptLoserCodes pins the codes for a lost claim (D-16 AC-1). Two riders
+// read their offers PENDING, then both queue on the order's dispatch row lock
+// (held here so the interleaving is deterministic): the loser must get
+// OFFER_ALREADY_TAKEN, never OFFER_EXPIRED. A genuinely lapsed offer still
+// gets OFFER_EXPIRED.
+func TestAcceptLoserCodes(t *testing.T) {
+	pool := openPool(t)
+	store := NewStore(pool)
+	ctx := context.Background()
+	orderID, offers := seedFixture(t, pool, 2)
+
+	hold, err := pool.Begin(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer hold.Rollback(ctx)
+	if _, err := hold.Exec(ctx, `SELECT 1 FROM dispatch WHERE order_id=$1 FOR UPDATE`, orderID); err != nil {
+		t.Fatal(err)
+	}
+
+	results := make([]error, len(offers))
+	var wg sync.WaitGroup
+	for i, o := range offers {
+		wg.Add(1)
+		go func(i int, o seededOffer) {
+			defer wg.Done()
+			_, results[i] = store.AcceptOffer(ctx, o.riderAccountID, o.offerID, time.Now().UTC())
+		}(i, o)
+	}
+	// Wait until both accepts are blocked on the dispatch row lock.
+	deadline := time.Now().Add(10 * time.Second)
+	for {
+		var waiting int
+		mustQuery(t, pool, `SELECT count(*) FROM pg_stat_activity WHERE wait_event_type='Lock' AND query ILIKE '%FROM dispatch WHERE order_id%FOR UPDATE%' AND pid <> pg_backend_pid()`, &waiting)
+		if waiting >= 2 {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("accepts never queued on the dispatch lock (waiting=%d)", waiting)
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	if err := hold.Commit(ctx); err != nil {
+		t.Fatal(err)
+	}
+	wg.Wait()
+
+	winners := 0
+	for i, err := range results {
+		if err == nil {
+			winners++
+			continue
+		}
+		if se, ok := asServiceError(err); !ok || se.Code != CodeOfferAlreadyTaken {
+			t.Errorf("loser %d: want OFFER_ALREADY_TAKEN, got %v", i, err)
+		}
+	}
+	if winners != 1 {
+		t.Fatalf("expected exactly one winner, got %d", winners)
+	}
+
+	// A genuinely expired offer is still OFFER_EXPIRED.
+	_, offers2 := seedFixture(t, pool, 1)
+	mustExec(t, pool, `UPDATE dispatch_offer SET expires_at = now() - interval '1 minute' WHERE id=$1`, offers2[0].offerID)
+	_, err = store.AcceptOffer(ctx, offers2[0].riderAccountID, offers2[0].offerID, time.Now().UTC())
+	if se, ok := asServiceError(err); !ok || se.Code != CodeOfferExpired {
+		t.Errorf("expired offer: want OFFER_EXPIRED, got %v", err)
+	}
+}
