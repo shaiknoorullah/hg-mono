@@ -1,0 +1,70 @@
+{
+  "scenario": "staff_list_page_2",
+  "domain": "admin",
+  "schema": "array<StaffUser>",
+  "describes": "The second and last page of a long staff list: five more active members, `has_more: false`.",
+  "operations": [
+    "listStaff"
+  ],
+  "status": 200,
+  "tags": [
+    "admin"
+  ],
+  "meta": {
+    "next_cursor": null,
+    "has_more": false,
+    "total": null
+  },
+  "payload": [
+    {
+      "id": "540fb657-483b-4d3f-a306-5a72eca6c5b3",
+      "email": "imran.cheema@halalgoes.ca",
+      "full_name": "Imran Cheema",
+      "role": "SUPPORT_AGENT",
+      "status": "ACTIVE",
+      "mfa_enrolled": true,
+      "last_login_at": "2026-08-10T15:42:11.412Z",
+      "created_at": "2026-04-12T18:42:11.412Z"
+    },
+    {
+      "id": "6c0dfdfc-7d8e-43dd-a3d7-b583f691c48b",
+      "email": "khadija.nasser@halalgoes.ca",
+      "full_name": "Khadija Nasser",
+      "role": "SUPPORT_AGENT",
+      "status": "ACTIVE",
+      "mfa_enrolled": true,
+      "last_login_at": "2026-08-10T14:42:11.412Z",
+      "created_at": "2026-04-11T18:42:11.412Z"
+    },
+    {
+      "id": "2a78053d-6bbb-42ae-a574-2f2c47cdfa01",
+      "email": "omar.farooq@halalgoes.ca",
+      "full_name": "Omar Farooq",
+      "role": "ADMIN",
+      "status": "ACTIVE",
+      "mfa_enrolled": true,
+      "last_login_at": "2026-08-10T13:42:11.412Z",
+      "created_at": "2026-04-10T18:42:11.412Z"
+    },
+    {
+      "id": "d6dba7bf-9fb1-4a48-af54-4c0107120d89",
+      "email": "sana.ibrahim@halalgoes.ca",
+      "full_name": "Sana Ibrahim",
+      "role": "SUPPORT_AGENT",
+      "status": "ACTIVE",
+      "mfa_enrolled": true,
+      "last_login_at": "2026-08-10T12:42:11.412Z",
+      "created_at": "2026-04-09T18:42:11.412Z"
+    },
+    {
+      "id": "77af1e95-7268-4365-ad95-23b9bcfac7f8",
+      "email": "yusuf.rahman@halalgoes.ca",
+      "full_name": "Yusuf Rahman",
+      "role": "SUPPORT_AGENT",
+      "status": "ACTIVE",
+      "mfa_enrolled": true,
+      "last_login_at": "2026-08-10T11:42:11.412Z",
+      "created_at": "2026-04-08T18:42:11.412Z"
+    }
+  ]
+}

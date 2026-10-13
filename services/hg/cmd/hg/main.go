@@ -22,6 +22,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -87,6 +88,26 @@ func (e *orderRealtimeEmitter) EmitOrderTransition(ctx context.Context, tx pgx.T
 		return nil
 	}
 	return e.enqueueLifecycleNotification(ctx, tx, orderID, newState)
+}
+
+// AlertOps implements orders.OpsAlerter: it writes an admin.alert event on the
+// admin:ops channel (contracts/websocket.md, "Admin — channel admin:ops")
+// inside the caller's transaction, so the alert commits with the record it
+// describes. The deadline runner raises one when it records an outage.
+func (e *orderRealtimeEmitter) AlertOps(ctx context.Context, tx pgx.Tx, a orders.OpsAlert) error {
+	payload, err := json.Marshal(struct {
+		Severity    string `json:"severity"`
+		Kind        string `json:"kind"`
+		SubjectType string `json:"subject_type"`
+		SubjectID   string `json:"subject_id"`
+		Message     string `json:"message"`
+		At          string `json:"at"`
+	}{a.Severity, a.Kind, a.SubjectType, a.SubjectID, a.Message, a.At.UTC().Format(time.RFC3339)})
+	if err != nil {
+		return fmt.Errorf("marshal ops alert: %w", err)
+	}
+	_, _, err = realtime.EmitInTx(ctx, tx, realtime.AdminOpsChannel, "admin.alert", 1, nil, payload, nil, nil)
+	return err
 }
 
 var _ orders.DelayNotifier = (*orderRealtimeEmitter)(nil)
@@ -336,6 +357,19 @@ func (g orderPaymentGateway) CreateOrderIntent(ctx context.Context, in orders.Cr
 	// and the mobile SDK confirm the payment with it
 	// (https://github.com/shaiknoorullah/hg-mono/issues/509).
 	return orders.CreateIntentResult{ClientSecret: row.ClientSecret}, nil
+}
+
+// VoidOrderPayment voids the order's uncaptured PaymentIntent after the
+// deadline runner cancels an order the restaurant never accepted (authorise
+// then capture — AGENTS.md, "Non-negotiable invariants"). An order with no
+// payment_intent row (still CREATED) has nothing to void, and with Stripe not
+// configured there is no hold to release, so both are no-ops.
+func (g orderPaymentGateway) VoidOrderPayment(ctx context.Context, orderID string) error {
+	_, err := g.svc.Void(ctx, orderID)
+	if errors.Is(err, payments.ErrNotFound) || errors.Is(err, payments.ErrStripeNotConfigured) {
+		return nil
+	}
+	return err
 }
 
 // orderLifecycleAdapter implements dispatch.OrderLifecycle by forwarding to the
@@ -757,10 +791,15 @@ func run() error {
 	// now asks the payments sibling to authorise the PaymentIntent (P-16 3/4).
 	orderGateway := orderPaymentGateway{svc: paymentsSvc, store: ordersStore, advanceLocal: !cfg.Stripe.Configured() && cfg.Env.IsLocal()}
 	orders.Routes(router, orders.NewHandler(ordersStore, orderGateway, log))
+	// HG_DEADLINE_RUNNER_HOLD starts the runner held until ops releases it, so
+	// a failover can catch up first; deadlines that fell in the gap are then
+	// handled as outage actions (internal/orders/runner_outage.go).
 	// A ready order nobody collects is escalated on each lapse of its pickup
 	// deadline: re-dispatch, an ops alert, a customer notice; at the cap, if
 	// no rider holds it, it is cancelled with a full refund (pickup.go).
 	deadlineRunner := orders.NewDeadlineRunner(ordersStore, orderGateway, log, cfg.HTTPAddr).
+		WithHold(cfg.DeadlineRunner.Hold).
+		WithOpsAlerter(rtEmitter).
 		WithPickupEscalator(&pickupEscalator{notify: notifyClient.Enqueue}).
 		WithUncollectedCanceller(uncollectedCanceller{})
 	go deadlineRunner.Run(ctx)

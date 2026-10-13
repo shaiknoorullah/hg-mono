@@ -1,0 +1,24 @@
+{
+  "scenario": "error_account_banned",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`403` · `ACCOUNT_BANNED`. The signed-in account is banned. Contract-only: `services/hg` answers a banned account with `ACCOUNT_NOT_ACTIVE` at sign-in (`error_account_not_active`) and `SESSION_REVOKED` at refresh (`error_session_revoked`); handle all three.",
+  "operations": [
+    "getCurrentPrincipal",
+    "refreshSession"
+  ],
+  "status": 403,
+  "tags": [
+    "error-envelope",
+    "error-path",
+    "customer",
+    "auth"
+  ],
+  "payload": {
+    "error": {
+      "code": "ACCOUNT_BANNED",
+      "message": "This account has been closed. Contact support.",
+      "request_id": "1BBJ9G0KH6TY3VJAJWNDTV8KAH"
+    }
+  }
+}
