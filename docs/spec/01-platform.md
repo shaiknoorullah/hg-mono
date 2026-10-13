@@ -9,7 +9,7 @@ covers:
   - services/hg/internal/files/**
   - services/hg/internal/dispatch/**
   - services/hg/internal/httpx/**
-reviewed: 2026-10-10
+reviewed: 2026-10-13
 ---
 
 # HalalGoes — Cross-Cutting Platform Layer Specification
@@ -320,7 +320,7 @@ CREATE INDEX login_attempt_recent ON login_attempt(email, at DESC);
 
   **Endpoints**: `POST /v1/auth/refresh`, `POST /v1/auth/logout` (this session), `POST /v1/auth/logout-all` (family), `GET /v1/auth/sessions`, `DELETE /v1/auth/sessions/{id}`, `GET /v1/auth/me`.
 
-  **Revocation propagation**: the API keeps an in-process deny set of revoked `sid`s (and `account_id`s revoked wholesale), refreshed from Postgres **every 10 seconds** and additionally invalidated immediately via Redis pub/sub channel `sys:session_revoked`. Redis makes revocation instant; Postgres makes it *correct*. Worst case with Redis down or flushed: **≤10 s** propagation. Access tokens are otherwise trusted for their ≤15-minute life.
+  **Revocation propagation**: the API keeps an in-process deny set of revoked `sid`s (and `account_id`s revoked wholesale), refreshed from Postgres **every 10 seconds** and additionally invalidated immediately via Redis pub/sub channel `sys:session_revoked`. Redis makes revocation instant; Postgres makes it *correct*. Worst case with Redis down or flushed: **≤10 s** propagation. Access tokens are otherwise trusted for their ≤15-minute life. A password reset and `logout-all` deny the session ids they revoked, never the whole account, so a session signed in straight afterwards works at once ([#748](https://github.com/shaiknoorullah/hg-mono/issues/748), [#752](https://github.com/shaiknoorullah/hg-mono/issues/752)).
 
 - **Data**:
 
