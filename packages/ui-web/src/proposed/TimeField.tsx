@@ -34,6 +34,8 @@ export interface TimeFieldProps {
   required?: boolean;
   disabled?: boolean;
   size?: 'md' | 'lg' | 'field';
+  /** Addition (W7b): the Hour and Minute labels are kept for screen readers but not drawn, for dense rows. */
+  compact?: boolean;
   testId?: string;
   style?: CSSProperties;
 }
@@ -92,6 +94,7 @@ export function TimeField({
   required = false,
   disabled = false,
   size = 'md',
+  compact = false,
   testId,
   style,
 }: TimeFieldProps) {
@@ -120,7 +123,7 @@ export function TimeField({
     const bad = (invalid as readonly string[]).includes(key);
     return (
       <div className="grid gap-1">
-        <Label htmlFor={partId} className="text-body-sm font-normal">
+        <Label htmlFor={partId} className={cn('text-body-sm font-normal', compact && 'sr-only')}>
           {partLabel}
         </Label>
         <div data-hg-state={bad ? 'error' : undefined} className={cn(fieldShellVariants({ size, invalid: bad, disabled }), 'w-16')}>
