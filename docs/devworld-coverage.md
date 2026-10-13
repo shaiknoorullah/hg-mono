@@ -39,7 +39,7 @@ Commands run from `services/hg`, against a local stack (`make up`, `make migrate
 | `rider-sim-2` | `+15550100155`, code `000000`, offline | rider app; the second rider of the offer scenarios |
 | Restaurant personas and catalogue owners | `<slug>@seed.hg`, password `Seed!2026` | restaurant console, `http://localhost:5183` |
 | `admin-seed` | `admin-seed@seed.hg`, `Seed!2026`, and the code from `make dev-totp` | admin console |
-| `support-seed` | cannot sign in yet ([#677](https://github.com/shaiknoorullah/hg-mono/issues/677)) | admin console |
+| `support-seed`, `ops-admin` | `support-seed@seed.hg` (support agent) and `ops-admin@seed.hg` (admin), `Seed!2026`, and the code from `make dev-totp email=<address>` | admin console |
 
 The fixed code works only for `+15550100100` to `+15550100199` and only when `HG_ENV` is `local` or `staging` ([scenario sign-in](superpowers/specs/2026-09-28-devworld-harness-design.md#64-scenario-sign-in)). The admin code needs `HG_APP_DATA_KEY` set before `make dev-reset`.
 
@@ -47,11 +47,11 @@ The fixed code works only for `+15550100100` to `+15550100199` and only when `HG
 
 | Table | Covered | Partial | Missing | Not in V1 | Blocked by external |
 |---|---:|---:|---:|---:|---:|
-| Customer app | 16 | 7 | 0 | 13 | 4 |
+| Customer app | 17 | 6 | 0 | 13 | 4 |
 | Restaurant portal | 22 | 6 | 3 | 5 | 0 |
 | Rider app | 23 | 6 | 2 | 1 | 3 |
-| Admin console | 7 | 8 | 12 | 15 | 0 |
-| Platform | 27 | 9 | 0 | 0 | 3 |
+| Admin console | 9 | 6 | 12 | 15 | 0 |
+| Platform | 28 | 8 | 0 | 0 | 3 |
 
 ## Customer app
 
@@ -68,7 +68,7 @@ The fixed code works only for `+15550100100` to `+15550100199` and only when `HG
 | [C-09](spec/02-customer.md#c-09--home-feed) | Home feed | `amina` after `make dev-reset`: the 14 restaurants of the [Toronto catalogue](superpowers/specs/2026-09-28-devworld-harness-design.md#51a-toronto-catalogue) | Covered | — |
 | [C-10](spec/02-customer.md#c-10--search-restaurants-and-dishes) | Search restaurants and dishes | `amina`, the Toronto catalogue | Covered | — |
 | [C-11](spec/02-customer.md#c-11--filters-and-sort-advanced-filters) | Advanced filters and sort | — | Not in V1 | — |
-| [C-12](spec/02-customer.md#c-12--halal-certification-display-and-verification--critical) | See the halal badge and the certification panel | `amina`: Bismillah Grill is certified, Bamyan Kebab House (`expiring-halal`) is expiring; `expired-halal` and the onboarding restaurants are never listed. The certificate file does not open | Partial | [#686](https://github.com/shaiknoorullah/hg-mono/issues/686) |
+| [C-12](spec/02-customer.md#c-12--halal-certification-display-and-verification--critical) | See the halal badge and the certification panel | `amina`: Bismillah Grill is certified, Bamyan Kebab House (`expiring-halal`) is expiring; `expired-halal` and the onboarding restaurants are never listed. "View certificate" opens a generated PDF after `make dev-reset` | Covered | — |
 | [C-13](spec/02-customer.md#c-13--restaurant-detail-page) | Restaurant page | `amina`, any catalogue restaurant | Covered | — |
 | [C-14](spec/02-customer.md#c-14--restaurant-availability--serviceability-gating) | Closed, paused or out-of-range restaurant | `amina`: Galata Pide & Grill (`paused`), `padma-river-kitchen` (no hours on the reset day), the ordering pause in the admin console. The catalogue test checks that every catalogue restaurant closed by its hours refuses a cart line. No saved address is out of range | Partial | [#681](https://github.com/shaiknoorullah/hg-mono/issues/681) |
 | [C-15](spec/02-customer.md#c-15--food-item-detail) | Dish detail | `amina`, any catalogue dish | Covered | — |
@@ -184,7 +184,7 @@ The fixed code works only for `+15550100100` to `+15550100199` and only when `HG
 | Feature | Journey | How to reach it | Status | Gap |
 |---|---|---|---|---|
 | [A-01](spec/05-admin.md#a-01--staff-account-provisioning) | Invite a staff member | In the console as `admin-seed`; or the invitation-to-sign-in scenario `onboard-admin` | Covered | — |
-| [A-02](spec/05-admin.md#a-02--role-based-access-control-model) | Roles: what each staff role may do | Only `admin-seed` can sign in; `support-seed` has no authenticator, and no plain admin exists | Partial | [#677](https://github.com/shaiknoorullah/hg-mono/issues/677) |
+| [A-02](spec/05-admin.md#a-02--role-based-access-control-model) | Roles: what each staff role may do | `admin-seed`, `ops-admin` (admin) and `support-seed` (support agent) all sign in with a code; a support agent gets `403` on `POST /v1/admin/payout-runs` | Covered | — |
 | [A-03](spec/05-admin.md#a-03--staff-authentication-mfa-and-session-policy) | Staff sign-in with a code | `admin-seed`, `make dev-totp`; or `make dev-admin` | Covered | — |
 | [A-04](spec/05-admin.md#a-04--audit-log-append-only-hash-chained) | Audit trail is written | Every admin scenario writes rows; read them in the database | Covered | — |
 | [A-05](spec/05-admin.md#a-05--audit-log-viewer-and-export) | Read and export the audit trail | No operation yet | Missing | [#327](https://github.com/shaiknoorullah/hg-mono/issues/327) |
@@ -196,7 +196,7 @@ The fixed code works only for `+15550100100` to `+15550100199` and only when `HG
 | [A-11](spec/05-admin.md#a-11--support-team-oversight) | Support team oversight | — | Not in V1 | — |
 | [A-12](spec/05-admin.md#a-12--escalation-routing-and-tiering) | Escalation routing | No case operations yet | Missing | [#190](https://github.com/shaiknoorullah/hg-mono/issues/190) |
 | [A-13](spec/05-admin.md#a-13--restaurant-onboarding-review-queue) | Restaurant onboarding queue | `docs-review` and `docs-rejected`; no full application waits | Partial | [#678](https://github.com/shaiknoorullah/hg-mono/issues/678) |
-| [A-14](spec/05-admin.md#a-14--kyc-document-review-non-halal-documents) | Review a document | `make dev-scenario s=docs-approve` or `s=docs-reject`; the seeded file does not open | Partial | [#686](https://github.com/shaiknoorullah/hg-mono/issues/686) |
+| [A-14](spec/05-admin.md#a-14--kyc-document-review-non-halal-documents) | Review a document | `make dev-scenario s=docs-approve` or `s=docs-reject`; the seeded file opens as a generated PDF | Covered | — |
 | [A-15](spec/05-admin.md#a-15--halal-certification-verification--core-product-function) | Halal seven-check verification | Only inside `s=onboard-restaurant`; no certificate waits for checks after a reset | Partial | [#678](https://github.com/shaiknoorullah/hg-mono/issues/678) |
 | [A-16](spec/05-admin.md#a-16--halal-issuing-body-registry) | Issuing bodies | `admin-seed`; the reference seed has accepted bodies | Covered | — |
 | [A-17](spec/05-admin.md#a-17--halal-certificate-expiry-monitoring-and-lapse-handling) | Certificate expiry and lapse | `expiring-halal`, `expired-halal`; `s=halal-lapse` runs the expiry job for `expiring-halal` (`EXPIRED`, delisted, owner notified); reminders are not produced | Partial | [#685](https://github.com/shaiknoorullah/hg-mono/issues/685) |
@@ -285,7 +285,7 @@ The four states a customer can see a restaurant in. A restaurant that is not `CE
 | [A-17](spec/05-admin.md#a-17--halal-certificate-expiry-monitoring-and-lapse-handling) | A certificate lapses as the days pass | `s=cert-lapse-mid-order` moves `bismillah-grill`'s expiry to yesterday with an order live: `EXPIRED`, delisted, no badge, until `make dev-reset`; or `s=halal-lapse` for `expiring-halal`, no order live | Covered | — |
 | [A-17](spec/05-admin.md#a-17--halal-certificate-expiry-monitoring-and-lapse-handling) | Renewal reminders (30, 14, 7 and 1 days) | Not produced | Missing | [#685](https://github.com/shaiknoorullah/hg-mono/issues/685) |
 | [R-10](spec/03-restaurant.md#r-10--document-expiry-renewal-and-compliance-suspension) | A renewed certificate relists the restaurant | `s=halal-renew` after `s=halal-lapse`: `CERTIFIED`, `LIVE`, public page 200 | Covered | — |
-| [C-12](spec/02-customer.md#c-12--halal-certification-display-and-verification--critical) | Open the certificate | The seeded file is missing from storage | Partial | [#686](https://github.com/shaiknoorullah/hg-mono/issues/686) |
+| [C-12](spec/02-customer.md#c-12--halal-certification-display-and-verification--critical) | Open the certificate | `make dev-reset` uploads a generated PDF for each seeded document and certificate to the private bucket (22 files); `devworld verify` lists any missing | Covered | — |
 
 ### Realtime
 

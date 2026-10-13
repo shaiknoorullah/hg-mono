@@ -237,7 +237,7 @@ board by that name, and judges it pixel by pixel; the flows themselves never fai
   screenshot and a layout snapshot to `$E2E_OUT/design-captures/<app>/<width>x<height>/`.
   `redesign-restaurant.sign-in.spec.ts` names a board for each sign-in state.
 - **Maestro:** `takeScreenshot: design--<area>--<Board>` in a flow of the app's folder, for
-  example `design--sign-in--Main` in `native/customer/redesign/1-sign-in.yaml`. Capture on the
+  example `design--sign-in--Main` in `native/customer/redesign/lab/1-sign-in.yaml` (a device-lab flow). Capture on the
   design AVD in the state the board is drawn in ([phone captures](../design-diff/README.md#phone-captures)).
 
 `<area>` is the canvas folder (`sign-in`, `live-orders`) and `<Board>` the board's file name

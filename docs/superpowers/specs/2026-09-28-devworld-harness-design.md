@@ -63,10 +63,11 @@ dev-reset                                         (make dev-reset)
           as the same local superuser (new orders start open: migrating recreates the
           ordering-pause row switched off)
        3. load the reference seed
-       4. load migrations/devworld/001_personas.sql, then the Toronto catalogue
+       4. load migrations/devworld/001_personas.sql, then the other files there in name
+          order, then the Toronto catalogue
           (internal/devworld/catalogue.go) and its pictures
-       5. set one shared password hash. The admin authenticator is enrolled only when
-          HG_APP_DATA_KEY is set. The fresh restaurant email stays unverified.
+       5. set one shared password hash. The staff authenticators (`admin-seed`, `ops-admin`,
+          `support-seed`) are enrolled only when HG_APP_DATA_KEY is set. The fresh restaurant email stays unverified.
        6. flush Redis only when HG_REDIS_ADDR is local. A connection failure does not fail the reset.
        7. verify: every persona in its declared state, or a non-zero exit
 
@@ -80,7 +81,7 @@ The reset does not re-run `roles/roles.sql` and does not migrate as `hg_migrator
 
 | Unit | Location | Responsibility | Depends on |
 |---|---|---|---|
-| World SQL | `migrations/devworld/001_personas.sql` | Static personas and their data, fixed UUIDs, idempotent | reference seed |
+| World SQL | `migrations/devworld/001_personas.sql`, then the other `migrations/devworld/*.sql` in name order | Static personas and their data, fixed UUIDs, idempotent | reference seed |
 | `devworld` command | `cmd/devworld/` | `reset` / `seed` / `scenario` / `journey` / `totp` / `list` / `verify` | pgx, auth credential helpers |
 | Scenario client | `internal/devworld/scenario.go` | HTTP calls that sign in as personas and place orders | auth sign-in |
 | Scenario registry | `internal/devworld/scenario.go` | Named scenarios the command accepts | scenario client |
@@ -117,7 +118,7 @@ The customer apps see `expiring-halal` as Bamyan Kebab House and `paused` as Gal
 
 ### 5.1a Toronto catalogue
 
-Reset also seeds 14 live, certified restaurants within 8 km of both the Danforth persona address and downtown, so a new phone sign-in sees a full marketplace once it saves a Toronto address. Three are the personas above (`bismillah-grill`, `expiring-halal`, `paused`). The other 11 are created by [`catalogue.go`](../../../services/hg/internal/devworld/catalogue.go), each with a verified certificate, a Connect stand-in and an owner who signs in as `<slug>@seed.hg`. One of them, `padma-river-kitchen`, has no trading hours on the reset day, so adding to its cart and quoting refuse with `RESTAURANT_CLOSED` that day, as at any restaurant outside its hours ([#648](https://github.com/shaiknoorullah/hg-mono/issues/648)). Menus have 12 to 20 items, with one variant group at most per item, required and optional add-on groups, and some items, variants and add-ons out of stock. Photos come from Wikimedia Commons under the licences in [`catalogue_photos.json`](../../../services/hg/internal/devworld/catalogue_photos.json). The reset downloads them to a cache outside the repository and uploads them to the local `hg-media` bucket. Logos, and any photo it cannot fetch, are generated. `HG_DEVWORLD_PHOTOS=off` skips the download. While `make run` serves a local stack, the API stands in for the catalogue's order screens: once a minute it touches the heartbeat of each seeded restaurant that is live and taking orders ([`tablets`](../../../services/hg/internal/devworld/tablets/tablets.go), `HG_DEVWORLD_TABLETS=on`, refused unless `HG_ENV` is `local`), so discovery keeps them open within their hours and `paused` stays paused.
+Reset also seeds 14 live, certified restaurants within 8 km of both the Danforth persona address and downtown, so a new phone sign-in sees a full marketplace once it saves a Toronto address. Three are the personas above (`bismillah-grill`, `expiring-halal`, `paused`). The other 11 are created by [`catalogue.go`](../../../services/hg/internal/devworld/catalogue.go), each with a verified certificate, a Connect stand-in and an owner who signs in as `<slug>@seed.hg`. One of them, `padma-river-kitchen`, has no trading hours on the reset day, so adding to its cart and quoting refuse with `RESTAURANT_CLOSED` that day, as at any restaurant outside its hours ([#648](https://github.com/shaiknoorullah/hg-mono/issues/648)). Menus have 12 to 20 items, with one variant group at most per item, required and optional add-on groups, and some items, variants and add-ons out of stock. Photos come from Wikimedia Commons under the licences in [`catalogue_photos.json`](../../../services/hg/internal/devworld/catalogue_photos.json). The reset downloads them to a cache outside the repository and uploads them to the local `hg-media` bucket. Logos, and any photo it cannot fetch, are generated. `HG_DEVWORLD_PHOTOS=off` skips the download. It also uploads a generated one-page PDF, marked as not a real document, for every seeded document and halal certificate to the private `hg-kyc` bucket at the row's object key, and sets the row's size and checksum to match, so their presigned links open a file ([`document_files.go`](../../../services/hg/internal/devworld/document_files.go)); `devworld verify` lists any that are missing. While `make run` serves a local stack, the API stands in for the catalogue's order screens: once a minute it touches the heartbeat of each seeded restaurant that is live and taking orders ([`tablets`](../../../services/hg/internal/devworld/tablets/tablets.go), `HG_DEVWORLD_TABLETS=on`, refused unless `HG_ENV` is `local`), so discovery keeps them open within their hours and `paused` stays paused.
 
 ### 5.2 `bismillah-grill` depth
 
@@ -135,6 +136,7 @@ Reset also seeds 14 live, certified restaurants within 8 km of both the Danforth
 | `rider-sim` | RIDER, ACTIVE, Connect enabled, phone `+15550100151` | the journey's rider |
 | `rider-sim-2` | RIDER, ACTIVE, bicycle, Connect stand-in, offline, phone `+15550100155` | the second rider of the offer scenarios |
 | `admin-seed` | SUPER_ADMIN, email + password + TOTP | admin-decision scenarios |
+| `ops-admin`, `support-seed` | ADMIN and SUPPORT_AGENT, email + password + TOTP | the staff role matrix: after a reset all three staff roles sign in to the admin console, and `verify` checks each one's role and authenticator ([#677](https://github.com/shaiknoorullah/hg-mono/issues/677)) |
 
 These are the seed for the customer, rider and admin coverage tables that [extending to another app](#10-extending-to-another-app) adds.
 

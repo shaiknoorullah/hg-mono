@@ -8,7 +8,7 @@
 appId: com.halalgoes.customer.dev
 name: customer redesign, restaurant and certificate
 env:
-  PHONE: "+15550100101"
+  PHONE: "5550100101"
   CODE: "000000"
   # Set to "true" once devworld can make storage refuse the first certificate link of a session
   # with 403, the way an expired presigned link answers (w0-request in PR; the API's 300 s TTL is
@@ -20,21 +20,21 @@ env:
     permissions:
       all: allow
 - extendedWaitUntil:
-    visible: "Sign in"
+    visible: "Sign in or create an account"
     timeout: 90000
 - tapOn:
-    below: "Phone number .*"
-    above: "Send code"
+    id: "SignIn-phone-field"
 - inputText: ${PHONE}
+- hideKeyboard
 - tapOn: "Send code"
 - extendedWaitUntil:
-    visible: "Enter the code sent to.*"
+    visible: "Enter the 6-digit code"
     timeout: 30000
 - tapOn:
-    below: "Enter the code sent to.*"
-    above: "Verify"
+    id: "Code-input-cell-0"
 - inputText: ${CODE}
-- tapOn: "Verify"
+- hideKeyboard
+- tapOn: "Verify and continue"
 - extendedWaitUntil:
     visible: "Account"
     timeout: 30000
