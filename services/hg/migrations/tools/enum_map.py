@@ -184,6 +184,9 @@ EXCLUSIONS = {
     "RestaurantApplicationRequestChangesInput/properties/decision":
         "Single-value request discriminator; the decision is stored as "
         "restaurant_application.decision (restaurant_decision).",
+    "RestaurantOnboardingStatus/properties/rejection/oneOf/0/properties/decision":
+        "Read-only projection of restaurant_application.decision "
+        "(restaurant_decision), limited to the two non-approving values.",
     "RiderApplicationApproveInput/properties/decision":
         "Single-value request discriminator; the outcome lands in "
         "rider_profile.onboarding_state.",
@@ -258,6 +261,15 @@ EXCLUSIONS = {
         "(https://github.com/shaiknoorullah/hg-mono/pull/315): nothing stores it yet. "
         "That PR adds handover_code_kind in its own migration and moves this entry "
         "to MAPPED_IN_MIGRATION.",
+    # Address search (https://github.com/shaiknoorullah/hg-mono/issues/179) is
+    # forwarded to Mapbox and answered without touching the database.
+    "GeoResultKind":
+        "Response-only: how precise an address-search result is. Search results "
+        "are forwarded from Mapbox and never stored; a chosen address is saved "
+        "as an Address.",
+    "GeocodedAddress/properties/country":
+        "Response-only, always CA: an address-search result is never stored. "
+        "A saved address carries Address.country.",
 }
 
 

@@ -13,10 +13,15 @@ import { glyph, type GlyphName } from './glyph';
 
 export type NoticeTone = 'neutral' | 'info' | 'warning' | 'danger' | 'brand';
 
+/** Alias kept for the live board's imports. */
+export type InlineNoticeTone = NoticeTone;
+
 export interface InlineNoticeProps {
   tone?: NoticeTone;
   icon?: GlyphName;
   title?: ReactNode;
+  /** A one-paragraph body; `children` follow it (links, buttons). */
+  body?: ReactNode;
   children?: ReactNode;
   role?: 'alert' | 'status' | 'note';
   label?: string;
@@ -40,7 +45,7 @@ const ICON_TONE: Record<NoticeTone, string> = {
   brand: 'text-brand-600',
 };
 
-export function InlineNotice({ tone = 'neutral', icon, title, children, role, label, className, testId }: InlineNoticeProps) {
+export function InlineNotice({ tone = 'neutral', icon, title, body, children, role, label, className, testId }: InlineNoticeProps) {
   const name: IconName | null = icon ? glyph(icon) : null;
   return (
     <div
@@ -53,6 +58,7 @@ export function InlineNotice({ tone = 'neutral', icon, title, children, role, la
       {name ? <Icon name={name} size={20} className={`mt-0.5 shrink-0 ${ICON_TONE[tone]}`} /> : null}
       <div className="flex min-w-0 flex-col gap-1">
         {title ? <span className="text-[17px] font-bold leading-[22px]">{title}</span> : null}
+        {body ? <p className="text-[15px] leading-[21px]">{body}</p> : null}
         {children ? <div className="text-[15px] leading-[21px]">{children}</div> : null}
       </div>
     </div>

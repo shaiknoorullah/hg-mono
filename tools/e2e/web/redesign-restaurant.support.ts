@@ -51,7 +51,7 @@ const SESSION_KEY = 'hg_restaurant_session_v1';
  * (w0-request: a `principal_restaurant_owner` fixture), so this re-scopes it to the
  * restaurant of `restaurant_profile`.
  */
-async function restaurantPrincipal(page: Page) {
+export async function restaurantPrincipal(page: Page) {
   const [principal, profile] = await Promise.all([
     page.request.get(`${MOCK_API}/__mock/scenarios/principal_customer`).then((r) => r.json()),
     page.request.get(`${MOCK_API}/__mock/scenarios/restaurant_profile`).then((r) => r.json()),
@@ -82,6 +82,15 @@ function realGrant(page: Page): Promise<Grant> {
   return grantOnce;
 }
 
+/**
+ * Real mode: the live owner's access token, for a spec that checks the server's state itself.
+ * The app keeps its session in memory only (no token in `localStorage`), so a spec reads the
+ * worker's own sign-in, the same session `openSignedIn` hands the page.
+ */
+export async function liveAccessToken(page: Page): Promise<string> {
+  return (await realGrant(page)).access_token;
+}
+
 /** Opens `path` signed in as the live restaurant's owner. */
 export async function openSignedIn(page: Page, path: string): Promise<void> {
   if (MODE === 'mock') {
@@ -102,6 +111,17 @@ export async function openSignedIn(page: Page, path: string): Promise<void> {
     [SESSION_KEY, grant.access_token, grant.principal.account_id],
   );
   await page.goto(path);
+}
+
+/**
+ * Opens a console page signed in and passes the go-live gate on /orders the way a person does
+ * (one click: test chime, notifications, screen kept awake), so the board under it shows.
+ */
+export async function openLive(page: Page, path: string): Promise<void> {
+  await page.context().grantPermissions(['notifications']);
+  await openSignedIn(page, path);
+  await page.getByRole('button', { name: 'Turn on sound and go live' }).click();
+  await page.getByTestId('go-live-gate').waitFor({ state: 'detached' });
 }
 
 /** The page never scrolls: the document is exactly the viewport (manifest WP1 DONE). */

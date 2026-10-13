@@ -72,7 +72,7 @@ falling through, so a typo is visible immediately.
 
 ## Scenarios by domain
 
-**680 scenarios** across 15 domains.
+**695 scenarios** across 16 domains.
 
 | Domain | Scenarios | What it covers |
 |---|---:|---|
@@ -81,10 +81,11 @@ falling through, so a typo is visible immediately.
 | [`catalogue`](#catalogue) | 57 | Discovery, restaurant detail, hours and menus. |
 | [`dispatch`](#dispatch) | 31 | Dispatch states, rider offers and assignments. |
 | [`documents`](#documents) | 27 | KYC uploads, review states and every rejection reason. |
-| [`errors`](#errors) | 130 | `{error}` envelopes for the codes an app actually branches on. |
+| [`errors`](#errors) | 133 | `{error}` envelopes for the codes an app actually branches on. |
+| [`geo`](#geo) | 11 | Address search through our API to Mapbox — suggestions, a picked place, a map pin, and the no-match and provider-down paths. |
 | [`halal`](#halal) | 37 | Badges, certificates, checks and issuing bodies — the platform's core promise. |
 | [`handoff`](#handoff) | 13 | The package-seal chain of custody (later version: seals are not used at launch) — every `PackageSeal` status, `HandoffEvent` type, and the bind/pickup-scan/delivery-scan/tamper-report results. |
-| [`onboarding`](#onboarding) | 49 | Restaurant and rider onboarding, profiles, vehicles and trading state. |
+| [`onboarding`](#onboarding) | 50 | Restaurant and rider onboarding, profiles, vehicles and trading state. |
 | [`orders`](#orders) | 86 | The 14 `OrderState` values, per-audience projections, tracking and receipts. |
 | [`payments`](#payments) | 12 | The 8 `PaymentState` values, saved cards and setup intents. |
 | [`platform`](#platform) | 49 | Auth, config, addresses, notifications, Connect and health. |
@@ -308,7 +309,7 @@ KYC uploads, review states and every rejection reason. — 27 scenarios.
 
 ### errors
 
-`{error}` envelopes for the codes an app actually branches on. — 130 scenarios.
+`{error}` envelopes for the codes an app actually branches on. — 133 scenarios.
 
 | Scenario | Schema | Status | Represents |
 |---|---|---:|---|
@@ -359,6 +360,9 @@ KYC uploads, review states and every rejection reason. — 27 scenarios.
 | `error_field_not_applicable` | `ErrorEnvelope` | 422 | `422` · `FIELD_NOT_APPLICABLE`. A bicycle or on-foot rider sent a plate. The form hides the field for those types. |
 | `error_field_required` | `ErrorEnvelope` | 422 | `422` · `FIELD_REQUIRED`. A car, scooter or motorcycle without a plate. |
 | `error_forbidden` | `ErrorEnvelope` | 403 | `403` · `FORBIDDEN`. Was `forbidden`. Note the English word 'forbidden' in prose was **not** rewritten by the normalisation — only code tokens were. |
+| `error_geocode_no_match` | `ErrorEnvelope` | 404 | `404` · `GEOCODE_NO_MATCH`. No Canadian address for the picked suggestion (its `place_id` is short-lived and may have expired) or near the pin (a lake, a field, across the border). The pin stays where it is and the user types the address. |
+| `error_geocode_rate_limited` | `ErrorEnvelope` | 429 | `429` · `RATE_LIMITED`. One account went over an address search limit: more than 60 suggestion requests in a minute (rate class `GEO_SUGGEST`, burst 20, which one search typed a key at a time stays under), or more than 30 place or pin lookups in a minute for one operation (rate class `GEO`, burst 10). Nothing was sent to the provider. The client stops searching as the user types until `Retry-After` passes, and the manual form still works. |
+| `error_geocoder_unavailable` | `ErrorEnvelope` | 503 | `503` · `GEOCODER_UNAVAILABLE`. Mapbox is down, timed out or refused our key. The client shows the manual address form and the map pin with a notice, so address entry never becomes impossible. |
 | `error_geofence_required` | `ErrorEnvelope` | 422 | `422` · `GEOFENCE_REQUIRED`. A transition that needs the rider at the pickup or drop-off, sent from too far away and without `override_reason`. The app offers "I'm here" with a reason, which makes it a flagged manual transition. |
 | `error_halal_tag_not_writable` | `ErrorEnvelope` | 403 | `403` · `FIELD_NOT_WRITABLE`. Nobody types the halal claim onto a dish, not even an admin: it comes from the restaurant's approved certificate. A missing claim shows no badge, never an optimistic one. |
 | `error_handover_override_not_pending` | `ErrorEnvelope` | 409 | `409` · `ILLEGAL_TRANSITION`. `overrideHandoverCode` for a handover that already happened (here a `DELIVERY` override on a delivered order). Nothing is written and no audit record is created. |
@@ -443,6 +447,24 @@ KYC uploads, review states and every rejection reason. — 27 scenarios.
 | `error_verification_token_expired` | `ErrorEnvelope` | 410 | `410` · `VERIFICATION_TOKEN_EXPIRED`. `verifyEmail` with a token older than 24 hours. A token that never existed gets the same code. The page offers "Send a new link" (`resendEmailVerification`). |
 | `error_verification_token_used` | `ErrorEnvelope` | 410 | `410` · `VERIFICATION_TOKEN_USED`. `verifyEmail` with a token that was already used: the email is verified, so the page sends the owner to sign in. Using the link never signs anyone in. |
 
+### geo
+
+Address search through our API to Mapbox — suggestions, a picked place, a map pin, and the no-match and provider-down paths. — 11 scenarios.
+
+| Scenario | Schema | Status | Represents |
+|---|---|---:|---|
+| `address_suggestions_broad` | `array&lt;AddressSuggestion&gt;` | 200 | The user typed a postal code area or a district, not a street address: a postcode, a neighbourhood and a city. None of these fills the whole form; the user drags the pin and types the street. |
+| `address_suggestions_empty` | `array&lt;AddressSuggestion&gt;` | 200 | No match: `200` with an empty list, not an error. The list says nothing matched and keeps "Enter address manually" and the map pin one tap away. |
+| `address_suggestions_populated` | `array&lt;AddressSuggestion&gt;` | 200 | The user typed `88 Harb` with the device's location sent. Five Canadian results, nearest first, mixing an exact address, a building by name and a whole street. Picking one calls `getPlaceAddress` with its `place_id` and the same session token. |
+| `address_suggestions_without_location` | `array&lt;AddressSuggestion&gt;` | 200 | Location permission denied and no location sent: results are ranked towards the default address or `default_map_center`, and `distance_m` is null on every row. A denied permission never blocks the address form. |
+| `place_address_full` | `GeocodedAddress` | 200 | A picked street address: every field the form needs is filled. The user adds the unit and buzzer, may drag the pin, and the pin's final position is what is saved. |
+| `place_address_poi` | `GeocodedAddress` | 200 | A picked building by name: `name` is set and the street address comes with it. |
+| `place_address_postcode` | `GeocodedAddress` | 200 | A postal code area: no `line1`, the pin at the area's centre. The user types the street and drags the pin to the door. |
+| `place_address_province_not_served` | `GeocodedAddress` | 200 | A Canadian address outside the provinces served at launch (Ontario only). It is returned, because search is Canada-wide; the client warns by comparing `province` with `getPublicConfig.served_provinces`, and saving it is `PROVINCE_NOT_SERVED`. |
+| `place_address_street_only` | `GeocodedAddress` | 200 | A whole street with no number: `line1` is the street and `postal_code` is null, because a street spans many. The form asks for the number and postal code. |
+| `reverse_geocode_address` | `GeocodedAddress` | 200 | The pin dropped on a building: the nearest street address fills the form. Its point is a few metres from the pin; the client keeps the pin, which is what is saved. |
+| `reverse_geocode_street_only` | `GeocodedAddress` | 200 | The pin dropped in a park beside a street with no numbered building close by: the street alone, with no postal code. The user types the number and postal code. |
+
 ### halal
 
 Badges, certificates, checks and issuing bodies — the platform's core promise. — 37 scenarios.
@@ -509,12 +531,13 @@ The package-seal chain of custody (later version: seals are not used at launch) 
 
 ### onboarding
 
-Restaurant and rider onboarding, profiles, vehicles and trading state. — 49 scenarios.
+Restaurant and rider onboarding, profiles, vehicles and trading state. — 50 scenarios.
 
 | Scenario | Schema | Status | Represents |
 |---|---|---:|---|
 | `restaurant_heartbeat` | `RestaurantHeartbeat` | 200 | The tablet's liveness ping response. |
 | `restaurant_onboarding_active` | `RestaurantOnboardingStatus` | 200 | `onboarding_state = ACTIVE`. Live and trading. Terminal, happy. |
+| `restaurant_onboarding_application_rejected` | `RestaurantOnboardingStatus` | 200 | `onboarding_state = DOCUMENTS_REJECTED` after a `REJECT` decision (`rejection.decision = REJECT`). Unlike a request for changes no documents are listed to fix and the screen offers no resubmission; the owner is shown the reason and who to contact. |
 | `restaurant_onboarding_documents_approved` | `RestaurantOnboardingStatus` | 200 | `onboarding_state = DOCUMENTS_APPROVED`. Documents cleared; Stripe Connect is next. |
 | `restaurant_onboarding_documents_pending` | `RestaurantOnboardingStatus` | 200 | `onboarding_state = DOCUMENTS_PENDING`. Profile accepted; the five-document pack is outstanding. |
 | `restaurant_onboarding_documents_rejected` | `RestaurantOnboardingStatus` | 200 | `onboarding_state = DOCUMENTS_REJECTED`. **At least one document was rejected with a reason.** The applicant must resubmit exactly the failed documents. |
@@ -883,12 +906,12 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 
 | Tag | Count | Meaning |
 |---|---:|---|
+| `error-envelope` | 133 | A `{error}` body with a real `ErrorCode`. |
 | `rider` | 131 | Rider-facing surface. |
 | `admin` | 130 | Admin/support-facing surface. |
-| `error-envelope` | 130 | A `{error}` body with a real `ErrorCode`. |
 | `error-path` | 129 | The unhappy branch a client must handle. |
-| `restaurant` | 89 | Restaurant-facing surface. |
-| `edge` | 83 | A shape that breaks naive layouts — empty, overflowing, at a boundary. |
+| `restaurant` | 90 | Restaurant-facing surface. |
+| `edge` | 89 | A shape that breaks naive layouts — empty, overflowing, at a boundary. |
 | `state-matrix` | 78 | One fixture per member of a closed enum. |
 | `money` | 70 | Exercises the money path specifically. |
 | `platform` | 49 | Cross-cutting platform surface. |
@@ -896,7 +919,7 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | `order-state-matrix` | 44 | One per `OrderState` (all 14). |
 | `auth` | 43 | Session and identity. |
 | `customer` | 36 |  |
-| `empty` | 31 | Zero items. The empty state, never an error. |
+| `empty` | 32 | Zero items. The empty state, never an error. |
 | `realtime` | 25 | WebSocket, not HTTP. |
 | `home` | 24 |  |
 | `script` | 24 | A realtime event sequence, not a response body. |
@@ -910,12 +933,13 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | `document-state-matrix` | 12 | One per `KycDocumentState`, plus rejection reasons. |
 | `certificate` | 11 | A `HalalCertificate` at a specific point in its life. |
 | `delivery-code` | 11 | The customer's 4-digit delivery code: shown, hidden, locked, overridden by support. |
+| `geo` | 11 | Address search: suggestions, a picked place, the address under a map pin. |
 | `boundary` | 10 | At an exact limit (quantity cap, expiry tomorrow, zero, the maximum). |
 | `dispatch-state-matrix` | 10 | One per `DispatchState` (all 10). |
 | `menu-editing` | 10 |  |
 | `chargeback-state-matrix` | 9 |  |
+| `degraded` | 9 | A partially-broken real-world condition (stale GPS, lost tracking). |
 | `tracking` | 9 | The live order-tracking screen. |
-| `degraded` | 8 | A partially-broken real-world condition (stale GPS, lost tracking). |
 | `payment-state-matrix` | 8 | One per `PaymentState` (all 8). |
 | `staff` | 8 |  |
 | `account-state-matrix` | 7 |  |
@@ -945,7 +969,7 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 
 ## Operation coverage
 
-152 of the contract's operations have at least one fixture registered against them; the rest are `204 No Content` or write-only operations the mock answers from the response schema. The full map lives in `index.json` under `by_operation`, and `GET /__mock/operations` serves it live.
+155 of the contract's operations have at least one fixture registered against them; the rest are `204 No Content` or write-only operations the mock answers from the response schema. The full map lives in `index.json` under `by_operation`, and `GET /__mock/operations` serves it live.
 
 | Operation | Default scenario | Also available |
 |---|---|---|
@@ -1014,6 +1038,7 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | `getOrderingPause` | `ordering_pause_open` | `ordering_pause_never_changed`, `ordering_pause_on` |
 | `getOwnMenu` | `owned_menu_with_pending_version` | `owned_menu_empty`, `owned_menu_every_review_status`, `owned_menu_forty_categories` |
 | `getPayoutRun` | `payout_run_detail_every_outcome` | — |
+| `getPlaceAddress` | `place_address_full` | `error_geocode_no_match`, `error_geocode_rate_limited`, `error_geocoder_unavailable`, `place_address_poi`, `place_address_postcode`, `place_address_province_not_served`, `place_address_street_only` |
 | `getPublicConfig` | `public_config` | `public_config_ordering_paused`, `public_config_support_unavailable` |
 | `getQuote` | `quote_standard` | `quote_expired`, `quote_large_tip`, `quote_multi_variant`, `quote_pickup`, `quote_with_discount`, `quote_zero_tip` |
 | `getReadiness` | `readiness_ok` | `readiness_not_ready_503` |
@@ -1024,7 +1049,7 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | `getRestaurantCertification` | `certification_panel_certified` | `certification_panel_expired`, `certification_panel_expiring_soon`, `certification_panel_not_viewable`, `certification_panel_partial`, `certification_panel_unverified` |
 | `getRestaurantHours` | `restaurant_hours_standard` | `restaurant_hours_none`, `restaurant_hours_special_dates`, `restaurant_hours_split_past_midnight` |
 | `getRestaurantMenu` | `menu_full` | `menu_empty`, `menu_single_item`, `menu_with_hidden_and_blocked_items` |
-| `getRestaurantOnboardingStatus` | `restaurant_onboarding_active` | `restaurant_onboarding_documents_approved`, `restaurant_onboarding_documents_pending`, `restaurant_onboarding_documents_rejected`, `restaurant_onboarding_documents_review`, `restaurant_onboarding_email_verified`, `restaurant_onboarding_menu_pending`, `restaurant_onboarding_payout_pending`, `restaurant_onboarding_profile_pending`, `restaurant_onboarding_registered`, `restaurant_onboarding_withdrawn` |
+| `getRestaurantOnboardingStatus` | `restaurant_onboarding_active` | `restaurant_onboarding_application_rejected`, `restaurant_onboarding_documents_approved`, `restaurant_onboarding_documents_pending`, `restaurant_onboarding_documents_rejected`, `restaurant_onboarding_documents_review`, `restaurant_onboarding_email_verified`, `restaurant_onboarding_menu_pending`, `restaurant_onboarding_payout_pending`, `restaurant_onboarding_profile_pending`, `restaurant_onboarding_registered`, `restaurant_onboarding_withdrawn` |
 | `getRestaurantOrder` | `restaurant_order_preparing` | `restaurant_order_arrived`, `restaurant_order_cancelled`, `restaurant_order_cancelled_after_accept`, `restaurant_order_completed`, `restaurant_order_delivered`, `restaurant_order_disputed`, `restaurant_order_picked_up`, `restaurant_order_pickup_code_locked`, `restaurant_order_ready_for_pickup`, `restaurant_order_rejected`, `restaurant_order_resolved`, `restaurant_order_restaurant_pending` |
 | `getRestaurantProfile` | `restaurant_profile` | `restaurant_profile_account_banned`, `restaurant_profile_account_closed`, `restaurant_profile_account_deactivated`, `restaurant_profile_account_delisted`, `restaurant_profile_account_live`, `restaurant_profile_account_pending`, `restaurant_profile_account_suspended`, `restaurant_profile_halal_certified`, `restaurant_profile_halal_expired`, `restaurant_profile_halal_expiring_soon`, `restaurant_profile_halal_missing`, `restaurant_profile_halal_unverified` |
 | `getRiderApplication` | `rider_application_pending_review` | `rider_application_approved`, `rider_application_attempt_3`, `rider_application_attempt_4`, `rider_application_bicycle`, `rider_application_changes_requested`, `rider_application_claimed_by_other`, `rider_application_on_foot`, `rider_application_under_18` |
@@ -1068,6 +1093,7 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | `reportTamper` | `handoff_tamper_report` | — |
 | `requestOtp` | `otp_challenge` | `error_invalid_phone`, `error_otp_rate_limited_with_retry`, `error_rate_limiter_unavailable`, `error_unsupported_country`, `otp_challenge_resend_open` |
 | `resetPassword` | `error_breached_password` | `error_reset_token_not_valid` |
+| `reverseGeocode` | `reverse_geocode_address` | `error_geocode_no_match`, `error_geocode_rate_limited`, `error_geocoder_unavailable`, `place_address_province_not_served`, `reverse_geocode_street_only` |
 | `reviewRestaurantDocument` | `document_approved` | `document_expired`, `document_in_review`, `document_rejected`, `document_rejected_expired`, `document_rejected_illegible`, `document_rejected_name_mismatch`, `document_rejected_plate_mismatch`, `document_rejected_suspected_forgery`, `document_rejected_wrong_document_type`, `document_submitted`, `document_superseded` |
 | `reviewRiderDocument` | `document_approved` | `document_expired`, `document_in_review`, `document_rejected`, `document_submitted`, `document_superseded` |
 | `scanDelivery` | `handoff_scan_delivery` | — |
@@ -1089,6 +1115,7 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | `submitRiderDocuments` | `rider_onboarding_documents_review` | `error_nothing_to_resubmit`, `rider_onboarding_active`, `rider_onboarding_documents_approved`, `rider_onboarding_documents_pending`, `rider_onboarding_documents_rejected`, `rider_onboarding_payout_pending`, `rider_onboarding_phone_verified`, `rider_onboarding_profile_pending`, `rider_onboarding_registered`, `rider_onboarding_vehicle_pending` |
 | `submitRiderProfile` | `rider_profile` | `error_rider_email_in_use` |
 | `submitRiderVehicle` | `rider_vehicle_scooter` | `error_field_not_applicable`, `error_field_required`, `error_plate_in_use`, `rider_vehicle_on_foot` |
+| `suggestAddresses` | `address_suggestions_populated` | `address_suggestions_broad`, `address_suggestions_empty`, `address_suggestions_without_location`, `error_geocode_rate_limited`, `error_geocoder_unavailable` |
 | `takeNextRestaurantApplication` | `restaurant_application_pending_review` | `restaurant_application_changes_requested`, `restaurant_application_claimed_by_other`, `restaurant_application_no_certificate`, `restaurant_application_none_to_take`, `restaurant_application_withdrawn` |
 | `takeNextRiderApplication` | `rider_application_pending_review` | `rider_application_attempt_3`, `rider_application_attempt_4`, `rider_application_bicycle`, `rider_application_claimed_by_other`, `rider_application_none_to_take`, `rider_application_on_foot`, `rider_application_under_18` |
 | `transcribeHalalCertificate` | `halal_certificate_status_pending` | `halal_certificate_pending_h5_computed_fail`, `halal_certificate_pending_h7_duplicate`, `halal_certificate_pending_issuer_suspended`, `halal_certificate_pending_scope_supplier_chain`, `halal_certificate_pending_transcribed_unchecked`, `halal_certificate_pending_untranscribed`, `halal_certificate_status_approved`, `halal_certificate_status_expired`, `halal_certificate_status_rejected`, `halal_certificate_status_revoked`, `halal_certificate_status_superseded` |

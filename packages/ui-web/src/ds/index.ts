@@ -74,35 +74,58 @@ export type { RatingProps } from '../content/index.js';
 export { ORDER_STATE_LABELS } from '../feedback/index.js';
 export type { OrderState } from '@hg/api-client';
 
-/* The halal family — invariants 8–10 hold inside these components, unchanged. */
+/* The halal family (W5): invariants 8–10 hold inside these components. HalalShield, HalalBadge and
+   HalalCertificationPanel are rebuilt; HalalChecklist and its approval-gate helpers are the legacy
+   ones, unchanged (the gate types cannot be forged outside approval-gate.ts). */
+export { HalalShield } from './HalalShield.js';
+export type { HalalShieldProps, HalalShieldVariant } from './HalalShield.js';
+export { HalalBadge } from './HalalBadge.js';
+export type { HalalBadgeProps, HalalBadgeSize, HalalBadgeSurface } from './HalalBadge.js';
+export { CERTIFICATE_NOT_VIEWABLE_COPY, HalalCertificationPanel } from './HalalCertificationPanel.js';
+export type {
+  CertificationPanelData as CertificationPanel,
+  HalalCertificationPanelProps,
+} from './HalalCertificationPanel.js';
 export {
-  HalalBadge,
-  HalalCertificationPanel,
-  HalalChecklist,
-  HalalShield,
   HALAL_ACCESSIBLE_LABEL,
+  HALAL_CHECK_NAME,
+  HALAL_CHECK_RESULT_LABEL,
+  HALAL_DISPLAY_STATES,
+  HALAL_REJECTION_REASONS,
+  HALAL_REJECTION_REASON_FOR_CHECK,
+  HALAL_REJECTION_REASON_LABEL,
   HALAL_VISIBLE_LABEL,
+  formatHalalLongDate,
+  formatHalalShortDate,
+  halalBadgeLabels,
+  halalCheckCode,
+  isHalalDisplayState,
+} from './halal-labels.js';
+export type { HalalBadgeLabels, HalalSurface } from './halal-labels.js';
+export {
+  HalalChecklist,
   HALAL_CHECK_DESCRIPTION,
   HALAL_CHECK_LOCK_REASON,
   HALAL_CHECK_ORDER,
   OVERRIDE_NOTE_MIN_LENGTH,
   SERVER_COMPUTED_CHECK_KEYS,
+  isOverride,
+  isServerComputedCheck,
+  isValidOverrideNote,
   openApprovalGate,
   openRejectionGate,
 } from '../certification/index.js';
 export type {
-  CertificationPanelData as CertificationPanel,
   HalalApprovalGate,
-  HalalBadgeProps,
   HalalCertificate,
-  HalalCertificationPanelProps,
   HalalCheck,
   HalalCheckKey,
   HalalCheckResult,
   HalalChecklistProps,
   HalalRejectionGate,
   HalalRejectionReasonCode,
-  HalalShieldProps,
+  OverridableCheckKey,
+  ServerComputedCheckKey,
 } from '../certification/index.js';
 
 /* Rebuilt in W2 (layout and shell): the live AppBar, and the owner-approved desktop layout
@@ -129,3 +152,39 @@ export { StatusTimeline, STEP_STATE_WORD } from './StatusTimeline.js';
 export type { StatusTimelineProps } from './StatusTimeline.js';
 export { ORDER_STATES, resolveTimeline } from './order-track.js';
 export type { ResolvedStep, ResolvedTimeline, StepState, TimelineAudience, TimelineTransition } from './order-track.js';
+
+/* Data (W6, #141): the DataTable on LyteNyte Grid Core and its cells. */
+export { DataTable } from './DataTable.js';
+export type {
+  DataTableColumn,
+  DataTableMenuItem,
+  DataTableProps,
+  DataTableSortState,
+} from './DataTable.js';
+export {
+  CountdownCell,
+  DateCell,
+  HALAL_STATE_MISSING_TEXT,
+  HalalStateCell,
+  IdCell,
+  MeterCell,
+  MissingValue,
+  MoneyCell,
+  StatusCell,
+  TextCell,
+  TimeCell,
+} from './cells.js';
+export type {
+  CountdownCellProps,
+  DateCellProps,
+  HalalStateCellProps,
+  HalalStateCellState,
+  IdCellProps,
+  MeterCellProps,
+  MeterVizToken,
+  MoneyCellProps,
+  StatusCellProps,
+  StatusCellVariant,
+  TextCellProps,
+  TimeCellProps,
+} from './cells.js';

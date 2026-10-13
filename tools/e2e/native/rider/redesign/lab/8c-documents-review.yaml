@@ -1,0 +1,46 @@
+# Rider redesign WP8: Review (R11) for a rider whose documents are with a person, against
+# devworld. rider-docs (+1 555 010 0152, DOCUMENTS_REVIEW, a government ID in review) signs in →
+# the server's next_step hands the application over to Review → "We're checking your documents",
+# the row In review, the sent time in 12-hour form. Backgrounding and returning re-reads the
+# status (the app polls; there is no socket).
+#
+# Built with EXPO_PUBLIC_HG_REDESIGN=1 and a cleared Metro cache (see 0-shell.yaml).
+# Env: PHONE_DIGITS (rider-docs' ten digits; dev codes for +1 555 010 01xx are always 000000).
+appId: com.halalgoes.rider.dev
+name: rider redesign, review
+env:
+  PHONE_DIGITS: "5550100152"
+---
+- launchApp:
+    clearState: true
+    permissions:
+      all: allow
+- extendedWaitUntil:
+    visible: "Sign in or apply to ride"
+    timeout: 90000
+- tapOn:
+    id: "phone-field"
+- inputText: ${PHONE_DIGITS}
+- hideKeyboard
+- tapOn: "Send code"
+- extendedWaitUntil:
+    visible: "Enter your code"
+    timeout: 30000
+- tapOn:
+    id: "code-cell-0"
+- inputText: "000000"
+
+- extendedWaitUntil:
+    visible: "(We're checking your documents|Your documents are sent|This is taking longer than usual)"
+    timeout: 60000
+- assertVisible: "Step 4 of 5: we check your documents"
+- assertVisible: "Government ID"
+- assertNotVisible: "Take a new photo"
+- takeScreenshot: rider-wp8c-01-review
+- pressKey: Home
+- launchApp:
+    stopApp: false
+- extendedWaitUntil:
+    visible: "Step 4 of 5: we check your documents"
+    timeout: 30000
+- takeScreenshot: rider-wp8c-02-review-after-foreground

@@ -68,7 +68,9 @@ func (s *Service) Authorise(ctx context.Context, in AuthoriseInput) (IntentRow, 
 // A full capture uses the authorised amount; a partial capture is supported for
 // item substitutions. The CAPTURE ledger batch is posted from the
 // payment_intent.succeeded webhook, not here, so capture and its accounting
-// share the store-then-process idempotency boundary.
+// share the store-then-process idempotency boundary. A failed capture is
+// counted and retried with backoff by the CaptureRetrier, and paged after
+// the eighth failure (capture_retry.go).
 func (s *Service) Capture(ctx context.Context, orderID string, amountCents int64) (IntentRow, error) {
 	if s.stripe == nil {
 		return IntentRow{}, ErrStripeNotConfigured
@@ -79,6 +81,11 @@ func (s *Service) Capture(ctx context.Context, orderID string, amountCents int64
 	}
 	pi, err := s.stripe.CapturePaymentIntent(ctx, cur.StripePaymentIntentID, amountCents, "capture:"+orderID)
 	if err != nil {
+		// Count the failure and arm the retry (capture_retry.go). Never
+		// swallowed: the caller still sees the Stripe error.
+		if rerr := s.repo.recordCaptureFailure(context.WithoutCancel(ctx), orderID, amountCents, err); rerr != nil {
+			s.log.ErrorContext(ctx, "could not record a failed capture", "order_id", orderID, "error", rerr.Error())
+		}
 		return IntentRow{}, err
 	}
 	return s.repo.UpsertOrderIntent(ctx, orderID, pi)
@@ -106,9 +113,16 @@ func (s *Service) Void(ctx context.Context, orderID string) (IntentRow, error) {
 // from a Stripe intent, keeping card display fields and the amounts current.
 func (r *Repo) UpsertOrderIntent(ctx context.Context, orderID string, pi *StripeIntent) (IntentRow, error) {
 	state := string(stateFromStripe(pi.Status))
-	authorized := pi.AmountCents
-	if pi.AmountCapturableCents > 0 {
+	// Nothing is authorised until the card is: an intent still waiting for a
+	// payment method or a confirmation holds no funds (P-16 / invariant 5), so
+	// it stores 0. Cancelled and failed intents also store 0, which the
+	// upsert's GREATEST turns into "keep what was authorised before".
+	var authorized int64
+	switch {
+	case pi.AmountCapturableCents > 0:
 		authorized = pi.AmountCapturableCents + pi.AmountReceivedCents
+	case stateFromStripe(pi.Status) == StateRequiresCapture || stateFromStripe(pi.Status) == StateSucceeded:
+		authorized = pi.AmountCents
 	}
 	captured := pi.AmountReceivedCents
 	terminal := stateFromStripe(pi.Status)

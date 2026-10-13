@@ -1,0 +1,37 @@
+id: rider-wp7-application
+app: rider
+avd: hg_rider
+api: devworld
+build:
+  env: { EXPO_PUBLIC_HG_REDESIGN: "1" }
+  note: "Clear the Metro cache when building (EXPO_PUBLIC_* is inlined at transform time; a warm cache from a flag-off build serves the legacy app)."
+# onboard-rider proves the backend path (profile, vehicle, documents, approval, payouts) on one
+# random number in +1 555 010 0160–0199; the flow signs up its own number (PHONE_DIGITS, 0197).
+# If onboard-rider happened to take 0197, the hub reads "Finish your application": run the flow
+# with another PHONE_DIGITS in the range.
+setup:
+  - "make dev-reset"
+  - "make dev-scenario s=onboard-rider"
+reality:
+  - theme: dark
+  - font-scale: 2.0
+flows: [ "tools/e2e/native/rider/redesign/lab/7-apply.yaml" ]
+explore: >
+  The flow runs in dark mode at 200% text: on every screenshot the body scrolls, the footer
+  (Continue, Call support) stays pinned, labels wrap and never clip, and the Day / Month / Year
+  fields stay on one row. Then, on the real API with another unused number in +1 555 010
+  0160–0199 (code 000000), screenshot each state: (1) Your details with a date of birth under 18
+  (e.g. 02 03 2015): "Check your date of birth. You must be 18 or older…"; Continue again: the
+  locked "You can apply once you turn 18" with Call support and Sign out (no Continue). (2) A new
+  number: an email already used by another account (sign up one rider with it first): "This email
+  is already on another account…". (3) Network loss mid-step: on How you deliver, choose Bicycle,
+  `adb shell cmd connectivity airplane-mode enable`, tap Continue: "You are offline" and nothing
+  in the API log; airplane mode off, Continue reaches documents. (4) Type a scooter plate, then
+  choose Bicycle: "We cleared your plate and scooter details"; the API log shows the vehicle POST
+  with vehicle_type only. (5) Scooter year 1985: "Enter a year from 1990 on…". (6) The plate
+  of the onboard-rider rider or of an earlier run: "This plate is on another rider's account…"
+  with "It's my vehicle: call support" and the support hours. (7) Back on Your details goes to the
+  application; Android Back on the hub does nothing. (8) Light theme (`adb shell cmd uimode night
+  no`) and font_scale 1.3: screenshot the hub, details and vehicle again. (9) Kill the API and
+  open the app past sign-in at the hub: "We couldn't load your application" with Try again.
+  Reset night mode and font_scale afterwards.

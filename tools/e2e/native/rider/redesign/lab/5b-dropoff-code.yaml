@@ -1,0 +1,72 @@
+# Rider redesign WP5: drop-off with the customer's 4-digit delivery code (required_pod_method OTP,
+# a customer who asked to be met: MEET_AT_DOOR or MEET_IN_LOBBY). Travel to the customer → I'm
+# here → Hand it over → The customer → type the code the customer reads out → Code accepted →
+# Mark as delivered → Delivered → Back to Home. Variant on the way: one wrong code first (422
+# DELIVERY_CODE_INCORRECT, the tries left from `attempts_remaining`).
+#
+# DELIVERY_CODE: the customer's code (OrderCustomerView.delivery_code / OrderTracking, #290),
+# which the lab reads through the customer API as Amina (GET the active order) once the order is
+# out for delivery. WRONG must differ from it. The code is only checked once contract #290 and
+# backend #315 merge; until then any 4 digits pass and the wrong-code step skips itself.
+# Needs Amina's order to be a met handover (MEET_AT_DOOR): a devworld seed not there yet.
+appId: com.halalgoes.rider.dev
+name: rider redesign, drop-off with the customer's code
+env:
+  DELIVERY_CODE: "0000"
+  WRONG: "9998"
+---
+- runFlow: 5-dropoff-to-door.yaml
+- assertVisible: "Hand over to .*|Meet .* in the lobby"
+- tapOn: "Hand it over"
+
+# DL/HandoverOtp: met handovers only.
+- extendedWaitUntil:
+    visible: "Who will you hand it to\\?"
+    timeout: 15000
+- assertNotVisible: "Leave it at the door"
+- tapOn: "The customer"
+- tapOn: "Next: enter the customer's code"
+
+# DL/PodOtp.
+- extendedWaitUntil:
+    visible: "Ask the customer for their 4-digit code"
+    timeout: 15000
+- takeScreenshot: rider-wp5-11-code
+- tapOn:
+    id: "proof-otp-code-field"
+- inputText: ${WRONG}
+- hideKeyboard
+- tapOn: "Check the code"
+- extendedWaitUntil:
+    visible: ".*That isn't the customer's code\\..*"
+    timeout: 30000
+    optional: true
+- runFlow:
+    when:
+      visible: ".*That isn't the customer's code\\..*"
+    commands:
+      - assertVisible: ".*\\d tr(y|ies) left\\..*"
+      - assertNotVisible: ".*photo.*"
+      - takeScreenshot: rider-wp5-12-wrong-code
+      - tapOn:
+          id: "proof-otp-code-field"
+      - eraseText: 4
+      - inputText: ${DELIVERY_CODE}
+      - hideKeyboard
+      - tapOn: "Check the code"
+
+# DL/PodOtpAccepted: the handover, then the deliberate tap.
+- extendedWaitUntil:
+    visible: "Code accepted"
+    timeout: 30000
+- takeScreenshot: rider-wp5-13-code-accepted
+- tapOn: "Mark as delivered"
+- extendedWaitUntil:
+    visible: "Delivered to .*"
+    timeout: 60000
+- assertVisible: "Customer's code confirmed at .*"
+- takeScreenshot: rider-wp5-14-delivered
+- tapOn: "Back to Home"
+- extendedWaitUntil:
+    visible: "Earnings"
+    timeout: 30000

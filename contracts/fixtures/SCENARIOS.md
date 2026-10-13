@@ -48,7 +48,7 @@ These are the rules the existing names already follow; new fixtures follow them 
 
 | Prefix | Fixtures | The suffix names | Example |
 |---|---:|---|---|
-| `error_` | 130 | `error_<code>` for a code's plain meaning; `error_<context>_<situation>` when one code means several things (`error_menu_locked_banned`, `error_staff_email_in_use`). Status and code live in the fixture, never only in the name. | `error_quote_stale` |
+| `error_` | 133 | `error_<code>` for a code's plain meaning; `error_<context>_<situation>` when one code means several things (`error_menu_locked_banned`, `error_staff_email_in_use`). Status and code live in the fixture, never only in the name. | `error_quote_stale` |
 | `realtime_` | 24 | `realtime_<area>_<story>`: a whole WebSocket script, played over one connection. Areas: `order`, `payment`, `rider`, `restaurant`, `admin_ops`, plus the transport stories `gap_and_resume` and `control_frames`. | `realtime_restaurant_offer_burst` |
 | `realtime_ticket` | 1 | Not a script: the single-use ticket `createRealtimeTicket` returns. | `realtime_ticket` |
 | `order_admin_view_` | 20 | An `OrderState` (lower case) as the staff projection shows it. | `order_admin_view_disputed` |
@@ -73,7 +73,7 @@ These are the rules the existing names already follow; new fixtures follow them 
 | `restaurant_open_state_` | 9 | A `RestaurantOpenState`, lower case. | `restaurant_open_state_closed_suspended` |
 | `restaurant_profile_account_` | 7 | A `RestaurantAccountState`, lower case. | `restaurant_profile_account_suspended` |
 | `restaurant_profile_halal_` | 5 | A `HalalDisplayState`, lower case, or `missing` (no `halal` object). | `restaurant_profile_halal_missing` |
-| `restaurant_onboarding_` | 11 | A `RestaurantOnboardingState`, lower case. | `restaurant_onboarding_documents_review` |
+| `restaurant_onboarding_` | 12 | A `RestaurantOnboardingState`, lower case. | `restaurant_onboarding_documents_review` |
 | `rider_onboarding_` | 10 | A `RiderOnboardingState`, lower case. | `rider_onboarding_vehicle_pending` |
 | `restaurant_application_` | 9 | An application in the staff review queue. | `restaurant_application_pending_review` |
 | `rider_application_` | 11 | An application in the staff review queue. | `rider_application_pending_review` |
@@ -95,7 +95,7 @@ These are the rules the existing names already follow; new fixtures follow them 
 | `owned_menu_` | 4 | The restaurant's own menu, as its editor reads it. | `owned_menu_every_review_status` |
 | `order_admin_list_` | 3 | A staff order list variant. | `order_admin_list_every_state` |
 | `staff_list` | 4 | A platform staff list variant. | `staff_list_edge_rows` |
-| (other) | 94 | One-off subjects named for what they are (`public_config`, `cart_many_lines`, `quote_standard`). | `public_config` |
+| (other) | 105 | One-off subjects named for what they are (`public_config`, `cart_many_lines`, `quote_standard`). | `public_config` |
 
 ## 2. How one scenario is chosen per operation (the mock server)
 

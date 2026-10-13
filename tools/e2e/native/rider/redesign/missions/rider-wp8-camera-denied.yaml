@@ -1,0 +1,23 @@
+id: rider-wp8-camera-denied
+app: rider
+avd: hg_rider
+api: devworld
+build:
+  env: { EXPO_PUBLIC_HG_REDESIGN: "1" }
+  note: "Clear the Metro cache when building (EXPO_PUBLIC_* is inlined at transform time; a warm cache from a flag-off build serves the legacy app)."
+setup:
+  - "make dev-reset"
+reality:
+  # Revoking a permission stops the app, so it goes before the flow launches it; the flow
+  # relaunches with the camera denied as well.
+  - deny-permission: camera
+  - theme: dark
+  - font-scale: 2.0
+flows: [ "tools/e2e/native/rider/redesign/lab/8d-camera-denied.yaml" ]
+explore: >
+  Dark theme, 200% text. On "Allow the camera to add documents": Open settings opens the app's
+  system settings; back in the app, "Choose a PDF instead" opens the photo library. On the photo
+  of you there is no file option, only Open settings and Back to documents. Screenshot both and
+  check nothing clips at 200% (the footer buttons wrap inside taller buttons). Then
+  `adb shell pm grant com.halalgoes.rider.dev android.permission.CAMERA`, open the capture again:
+  "Starting the camera" then the live camera. Reset night mode and font_scale afterwards.
