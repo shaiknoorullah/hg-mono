@@ -605,6 +605,8 @@ func (a Amount) MarshalJSON() ([]byte, error) // emits an integer, never a strin
                      + max(0, billable_km − included_km) × per_km_cents
                      + small_order_surcharge_cents           -- if subtotal < small_order_threshold_cents
   ```
+  A delivery address farther in a straight line from the restaurant than its `delivery_radius_m` is refused with `409 ADDRESS_OUT_OF_RANGE` at quote and at order time, using the same distance and boundary as the discovery card's `OUT_OF_RANGE` ([serviceability gating, C-14](02-customer.md#c-14--restaurant-availability--serviceability-gating)), so the fee clamp never prices a delivery that cannot happen.
+
   clamped to `[min_delivery_fee_cents, max_delivery_fee_cents]`. All parameters come from `pricing_config` (versioned, effective-dated), **never** from constants in code and never from the request. Note the address used is the order's, not the customer's primary — the old code measured to the primary address (B38).
 
   **Step 5 — service fee (customer-facing platform fee).**
@@ -1316,7 +1318,7 @@ CREATE UNIQUE INDEX dispatch_offer_unique ON dispatch_offer(order_id, rider_acco
      ```
   4. Return `{order, client_secret}`. The client confirms with Stripe.js / the Stripe React Native SDK — the card never touches our servers (SAQ-A scope). The customer app confirms on web with the Stripe.js Payment Element in a sheet (`redirect: 'if_required'`) and on iOS/Android with the SDK's payment sheet; a build without `EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY` takes no card and says so at checkout, keeping the order for **Retry payment**, and after a confirmed card the app reads `getOrderPayment` once so the order moves on even where no webhook can reach the API.
   5. `payment_intent.amount_capturable_updated` (status `requires_capture`) → T1 `AUTHORIZED`.
-  6. Restaurant accepts → `POST /v1/payments/{id}/capture` internally, `capture` with `amount_to_capture = order.total_cents` and `idempotency_key = 'cap:' || order_id`. Success → T6 `PREPARING`.
+  6. Restaurant accepts → `POST /v1/payments/{id}/capture` internally, `capture` with `amount_to_capture = order.total_cents` and `idempotency_key = 'cap:' || order_id`. Success → T6 `PREPARING`. The acceptance commits first and the capture follows, so a capture that fails (Stripe unreachable, a crash between the two) is not left to lapse: every failure is counted on the `payment_intent` row, the capture is retried with the same idempotency key after 1 m, 2 m, 4 m … (the webhook worker's backoff), and the eighth failure, or a refusal that retrying cannot change, sets the payment aside and pages on-call (`capture_dead_letter`) about two hours after acceptance, days before the authorisation expires; the `CAPTURE` ledger batch is still posted once, by `payment_intent.succeeded`.
   7. Restaurant rejects / times out / customer cancels pre-acceptance → `PaymentIntent.cancel(cancellation_reason='abandoned')`, `idempotency_key = 'cancel:' || order_id`.
 
   **3-D Secure / SCA**: Canada has no PSD2 mandate, but 3DS is used opportunistically via `request_three_d_secure: 'automatic'` and Radar rules. `requires_action` is a **normal** path: the order stays `CREATED`, the client is handed the action, and the 15-minute `CREATED` deadline covers abandonment.

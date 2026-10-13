@@ -39,6 +39,7 @@ const (
 	codeCartHasUnavailable  httpx.ErrorCode = "CART_HAS_UNAVAILABLE_ITEMS"
 	codeBelowMinimum        httpx.ErrorCode = "BELOW_MINIMUM_ORDER"
 	codeProvinceNotServed   httpx.ErrorCode = "PROVINCE_NOT_SERVED"
+	codeAddressOutOfRange   httpx.ErrorCode = "ADDRESS_OUT_OF_RANGE"
 	codeTaxProfileMissing   httpx.ErrorCode = "TAX_PROFILE_MISSING"
 	codeQuoteStale          httpx.ErrorCode = "QUOTE_STALE"
 	codeQuoteExpired        httpx.ErrorCode = "QUOTE_EXPIRED"
@@ -535,6 +536,9 @@ func (h *Handler) fail(w http.ResponseWriter, r *http.Request, err error) {
 		httpx.Fail(w, r, http.StatusConflict, codeRestaurantClosed, "The restaurant is not accepting orders right now.", nil)
 	case errors.Is(err, ErrCartEmpty):
 		httpx.Fail(w, r, http.StatusConflict, codeCartHasUnavailable, "The cart is empty.", nil)
+	case errors.Is(err, ErrAddressOutOfRange):
+		httpx.Fail(w, r, http.StatusConflict, codeAddressOutOfRange,
+			"This restaurant does not deliver to your address.", nil)
 	case errors.Is(err, ErrProvinceNotServed):
 		httpx.Fail(w, r, http.StatusUnprocessableEntity, codeProvinceNotServed, "We do not serve that province yet.", nil)
 	case errors.As(err, &taxMissing):
