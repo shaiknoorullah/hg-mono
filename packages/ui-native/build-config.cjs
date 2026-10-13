@@ -31,6 +31,14 @@ const NATIVE_SINGLETONS = [
 const NATIVEWIND_SCOPE = /[\\/](packages[\\/]ui-native[\\/]src[\\/]lib|apps[\\/][^\\/]+[\\/]src[\\/]redesign)[\\/]/;
 
 /**
+ * Test files and their mock modules stay on React's own runtime. The css-interop rewrite adds an
+ * out-of-scope helper to every createElement call, and babel-plugin-jest-hoist refuses that inside
+ * a jest.mock factory, so a shared mocks.ts failed to load. Component files under test still
+ * compile through NativeWind.
+ */
+const TEST_FILE = /[\\/]__tests__[\\/]|\.test\.[jt]sx?$/;
+
+/**
  * The Babel config for an Expo app in this workspace.
  *
  * babel-preset-expo is resolved through `expo` (a release bundle once failed with "Cannot find
@@ -49,7 +57,7 @@ function hgBabelConfig(api, appDir) {
     presets: [[preset, { jsxRuntime: 'automatic' }]],
     overrides: [
       {
-        test: (filename) => typeof filename === 'string' && NATIVEWIND_SCOPE.test(filename),
+        test: (filename) => typeof filename === 'string' && NATIVEWIND_SCOPE.test(filename) && !TEST_FILE.test(filename),
         presets: [[preset, { jsxRuntime: 'automatic', jsxImportSource: 'nativewind' }]],
         plugins: [cssInteropPlugin],
       },
