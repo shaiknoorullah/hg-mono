@@ -1,0 +1,1461 @@
+{
+  "scenario": "owned_menu_forty_categories",
+  "domain": "catalogue",
+  "schema": "OwnedMenu",
+  "describes": "Forty categories with one item each: the category rail scrolls and keeps the current one in view.",
+  "operations": [
+    "getOwnMenu"
+  ],
+  "status": 200,
+  "tags": [
+    "restaurant",
+    "menu",
+    "dense",
+    "overflow"
+  ],
+  "payload": {
+    "restaurant_id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+    "categories": [
+      {
+        "id": "d527e53f-aa1d-4e3e-ac59-d7c39b814f18",
+        "name": "Section 01",
+        "description": null,
+        "sort_order": 1,
+        "is_active": true,
+        "item_count": 1,
+        "items": [
+          {
+            "id": "65e86842-2c9d-4e3a-a324-3298dadd99a4",
+            "name": "Chicken Biryani",
+            "description": "Long-grain basmati layered with bone-in chicken, fried onion and kewra.",
+            "image_url": "https://cdn.halalgoes.ca/img/dish/chicken-biryani.webp",
+            "price_cents": 1695,
+            "currency": "CAD",
+            "availability_state": "AVAILABLE",
+            "out_of_stock_until": null,
+            "dietary_tags": [
+              "HALAL_CERTIFIED"
+            ],
+            "allergen_tags": [
+              "MILK"
+            ],
+            "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+            "tax_category": "PREPARED_FOOD",
+            "prep_minutes": 22,
+            "variant_groups": [],
+            "addon_groups": [],
+            "category_id": "d527e53f-aa1d-4e3e-ac59-d7c39b814f18",
+            "sort_order": 1,
+            "live_version": null,
+            "pending_version": null
+          }
+        ]
+      },
+      {
+        "id": "71ff7f34-b666-4f99-af9a-158390a6c904",
+        "name": "Section 02",
+        "description": null,
+        "sort_order": 2,
+        "is_active": true,
+        "item_count": 1,
+        "items": [
+          {
+            "id": "d999b64e-1057-4e70-aaa6-82dbdec901d1",
+            "name": "Beef Nihari",
+            "description": "Overnight-simmered beef shank in a bone-marrow gravy. Served with two naan.",
+            "image_url": "https://cdn.halalgoes.ca/img/dish/beef-nihari.webp",
+            "price_cents": 2145,
+            "currency": "CAD",
+            "availability_state": "AVAILABLE",
+            "out_of_stock_until": null,
+            "dietary_tags": [
+              "HALAL_CERTIFIED",
+              "SPICY"
+            ],
+            "allergen_tags": [
+              "WHEAT_TRITICALE"
+            ],
+            "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+            "tax_category": "PREPARED_FOOD",
+            "prep_minutes": 18,
+            "variant_groups": [],
+            "addon_groups": [],
+            "category_id": "71ff7f34-b666-4f99-af9a-158390a6c904",
+            "sort_order": 1,
+            "live_version": null,
+            "pending_version": null
+          }
+        ]
+      },
+      {
+        "id": "d19ec830-0b37-447a-a90f-1301a93ada43",
+        "name": "Section 03",
+        "description": null,
+        "sort_order": 3,
+        "is_active": true,
+        "item_count": 1,
+        "items": [
+          {
+            "id": "f533d936-ce96-45c9-a62a-22d692fedcae",
+            "name": "Chicken Karahi (Half)",
+            "description": "Wok-finished with tomato, ginger julienne and green chilli.",
+            "image_url": "https://cdn.halalgoes.ca/img/dish/chicken-karahi-half.webp",
+            "price_cents": 1899,
+            "currency": "CAD",
+            "availability_state": "AVAILABLE",
+            "out_of_stock_until": null,
+            "dietary_tags": [
+              "HALAL_CERTIFIED",
+              "SPICY",
+              "GLUTEN_FREE"
+            ],
+            "allergen_tags": [
+              "MILK"
+            ],
+            "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+            "tax_category": "PREPARED_FOOD",
+            "prep_minutes": 20,
+            "variant_groups": [],
+            "addon_groups": [],
+            "category_id": "d19ec830-0b37-447a-a90f-1301a93ada43",
+            "sort_order": 1,
+            "live_version": null,
+            "pending_version": null
+          }
+        ]
+      },
+      {
+        "id": "4dc325a9-1edd-4d27-afd9-9123bceeb2b9",
+        "name": "Section 04",
+        "description": null,
+        "sort_order": 4,
+        "is_active": true,
+        "item_count": 1,
+        "items": [
+          {
+            "id": "8ff79c90-da25-47ab-a531-c1071273487f",
+            "name": "Lamb Shawarma Platter",
+            "description": "Shaved lamb, garlic toum, pickled turnip, rice and salad.",
+            "image_url": "https://cdn.halalgoes.ca/img/dish/lamb-shawarma-platter.webp",
+            "price_cents": 1849,
+            "currency": "CAD",
+            "availability_state": "AVAILABLE",
+            "out_of_stock_until": null,
+            "dietary_tags": [
+              "HALAL_CERTIFIED"
+            ],
+            "allergen_tags": [
+              "SESAME",
+              "MILK"
+            ],
+            "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+            "tax_category": "PREPARED_FOOD",
+            "prep_minutes": 12,
+            "variant_groups": [],
+            "addon_groups": [],
+            "category_id": "4dc325a9-1edd-4d27-afd9-9123bceeb2b9",
+            "sort_order": 1,
+            "live_version": null,
+            "pending_version": null
+          }
+        ]
+      },
+      {
+        "id": "5096c679-0963-4414-a3f7-826703559e51",
+        "name": "Section 05",
+        "description": null,
+        "sort_order": 5,
+        "is_active": true,
+        "item_count": 1,
+        "items": [
+          {
+            "id": "0612a257-31b1-413d-a234-d923912738ef",
+            "name": "Falafel Wrap",
+            "description": "Chickpea falafel, tahini, tomato, parsley in a saj wrap.",
+            "image_url": "https://cdn.halalgoes.ca/img/dish/falafel-wrap.webp",
+            "price_cents": 1099,
+            "currency": "CAD",
+            "availability_state": "AVAILABLE",
+            "out_of_stock_until": null,
+            "dietary_tags": [
+              "VEGETARIAN",
+              "VEGAN",
+              "HALAL_CERTIFIED"
+            ],
+            "allergen_tags": [
+              "SESAME",
+              "WHEAT_TRITICALE"
+            ],
+            "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+            "tax_category": "PREPARED_FOOD",
+            "prep_minutes": 8,
+            "variant_groups": [],
+            "addon_groups": [],
+            "category_id": "5096c679-0963-4414-a3f7-826703559e51",
+            "sort_order": 1,
+            "live_version": null,
+            "pending_version": null
+          }
+        ]
+      },
+      {
+        "id": "9158dad3-4b9b-4733-ac72-c582677063a1",
+        "name": "Section 06",
+        "description": null,
+        "sort_order": 6,
+        "is_active": true,
+        "item_count": 1,
+        "items": [
+          {
+            "id": "ff69111c-7be6-4d5a-acba-2cb85aad8ddf",
+            "name": "Butter Chicken",
+            "description": "Tandoori chicken thigh in tomato and fenugreek cream.",
+            "image_url": "https://cdn.halalgoes.ca/img/dish/butter-chicken.webp",
+            "price_cents": 1795,
+            "currency": "CAD",
+            "availability_state": "AVAILABLE",
+            "out_of_stock_until": null,
+            "dietary_tags": [
+              "HALAL_CERTIFIED"
+            ],
+            "allergen_tags": [
+              "MILK",
+              "TREE_NUTS"
+            ],
+            "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+            "tax_category": "PREPARED_FOOD",
+            "prep_minutes": 16,
+            "variant_groups": [],
+            "addon_groups": [],
+            "category_id": "9158dad3-4b9b-4733-ac72-c582677063a1",
+            "sort_order": 1,
+            "live_version": null,
+            "pending_version": null
+          }
+        ]
+      },
+      {
+        "id": "c9f6ed53-e130-44cf-a19f-02c9be574ae0",
+        "name": "Section 07",
+        "description": null,
+        "sort_order": 7,
+        "is_active": true,
+        "item_count": 1,
+        "items": [
+          {
+            "id": "9a1a7e50-8abd-4ce8-a935-120816c76443",
+            "name": "Seekh Kebab (4 pc)",
+            "description": "Hand-minced beef, charcoal grilled, with mint chutney.",
+            "image_url": "https://cdn.halalgoes.ca/img/dish/seekh-kebab-4-pc.webp",
+            "price_cents": 1395,
+            "currency": "CAD",
+            "availability_state": "AVAILABLE",
+            "out_of_stock_until": null,
+            "dietary_tags": [
+              "HALAL_CERTIFIED",
+              "GLUTEN_FREE"
+            ],
+            "allergen_tags": [],
+            "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+            "tax_category": "PREPARED_FOOD",
+            "prep_minutes": 14,
+            "variant_groups": [],
+            "addon_groups": [],
+            "category_id": "c9f6ed53-e130-44cf-a19f-02c9be574ae0",
+            "sort_order": 1,
+            "live_version": null,
+            "pending_version": null
+          }
+        ]
+      },
+      {
+        "id": "5520203a-38c3-45e2-a130-79bddb491f2f",
+        "name": "Section 08",
+        "description": null,
+        "sort_order": 8,
+        "is_active": true,
+        "item_count": 1,
+        "items": [
+          {
+            "id": "9a0ac70b-dc81-4beb-aa39-e39b551562e1",
+            "name": "Chapli Kebab",
+            "description": "Peshawari-style flat kebab with coriander seed and pomegranate.",
+            "image_url": "https://cdn.halalgoes.ca/img/dish/chapli-kebab.webp",
+            "price_cents": 1495,
+            "currency": "CAD",
+            "availability_state": "AVAILABLE",
+            "out_of_stock_until": null,
+            "dietary_tags": [
+              "HALAL_CERTIFIED",
+              "SPICY"
+            ],
+            "allergen_tags": [
+              "EGGS",
+              "WHEAT_TRITICALE"
+            ],
+            "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+            "tax_category": "PREPARED_FOOD",
+            "prep_minutes": 15,
+            "variant_groups": [],
+            "addon_groups": [],
+            "category_id": "5520203a-38c3-45e2-a130-79bddb491f2f",
+            "sort_order": 1,
+            "live_version": null,
+            "pending_version": null
+          }
+        ]
+      },
+      {
+        "id": "955bc8c8-477b-4cbc-ac38-f0da9826b45e",
+        "name": "Section 09",
+        "description": null,
+        "sort_order": 9,
+        "is_active": true,
+        "item_count": 1,
+        "items": [
+          {
+            "id": "a3d444da-be20-4e84-abc3-b7d1374e7160",
+            "name": "Haleem",
+            "description": "Seven-lentil and shredded beef porridge, finished with crisp onion.",
+            "image_url": "https://cdn.halalgoes.ca/img/dish/haleem.webp",
+            "price_cents": 1299,
+            "currency": "CAD",
+            "availability_state": "AVAILABLE",
+            "out_of_stock_until": null,
+            "dietary_tags": [
+              "HALAL_CERTIFIED"
+            ],
+            "allergen_tags": [
+              "WHEAT_TRITICALE"
+            ],
+            "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+            "tax_category": "PREPARED_FOOD",
+            "prep_minutes": 10,
+            "variant_groups": [],
+            "addon_groups": [],
+            "category_id": "955bc8c8-477b-4cbc-ac38-f0da9826b45e",
+            "sort_order": 1,
+            "live_version": null,
+            "pending_version": null
+          }
+        ]
+      },
+      {
+        "id": "321a6c32-29b1-43f1-aa30-0d2b21dbebee",
+        "name": "Section 10",
+        "description": null,
+        "sort_order": 10,
+        "is_active": true,
+        "item_count": 1,
+        "items": [
+          {
+            "id": "86b6d662-5cc4-4dbe-aed6-671b8efe0c65",
+            "name": "Adana Kebab",
+            "description": "Hand-minced lamb on a wide skewer with sumac onion.",
+            "image_url": "https://cdn.halalgoes.ca/img/dish/adana-kebab.webp",
+            "price_cents": 2099,
+            "currency": "CAD",
+            "availability_state": "AVAILABLE",
+            "out_of_stock_until": null,
+            "dietary_tags": [
+              "HALAL_CERTIFIED",
+              "SPICY"
+            ],
+            "allergen_tags": [],
+            "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+            "tax_category": "PREPARED_FOOD",
+            "prep_minutes": 18,
+            "variant_groups": [],
+            "addon_groups": [],
+            "category_id": "321a6c32-29b1-43f1-aa30-0d2b21dbebee",
+            "sort_order": 1,
+            "live_version": null,
+            "pending_version": null
+          }
+        ]
+      },
+      {
+        "id": "117dd79f-d968-4cc9-a479-1fb25be5427b",
+        "name": "Section 11",
+        "description": null,
+        "sort_order": 11,
+        "is_active": true,
+        "item_count": 1,
+        "items": [
+          {
+            "id": "933c7f66-2ad2-4ca7-a012-bdb1db789e0a",
+            "name": "Lahmacun (2 pc)",
+            "description": "Thin Turkish flatbread with spiced minced lamb and parsley.",
+            "image_url": "https://cdn.halalgoes.ca/img/dish/lahmacun-2-pc.webp",
+            "price_cents": 1250,
+            "currency": "CAD",
+            "availability_state": "AVAILABLE",
+            "out_of_stock_until": null,
+            "dietary_tags": [
+              "HALAL_CERTIFIED"
+            ],
+            "allergen_tags": [
+              "WHEAT_TRITICALE"
+            ],
+            "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+            "tax_category": "PREPARED_FOOD",
+            "prep_minutes": 12,
+            "variant_groups": [],
+            "addon_groups": [],
+            "category_id": "117dd79f-d968-4cc9-a479-1fb25be5427b",
+            "sort_order": 1,
+            "live_version": null,
+            "pending_version": null
+          }
+        ]
+      },
+      {
+        "id": "5db9cef4-c62a-47dc-ab28-1f77108512e6",
+        "name": "Section 12",
+        "description": null,
+        "sort_order": 12,
+        "is_active": true,
+        "item_count": 1,
+        "items": [
+          {
+            "id": "5b89bc99-3e94-49c8-a946-00710235c637",
+            "name": "Chicken Shawarma Poutine",
+            "description": "Fries, cheese curds, shawarma gravy and garlic sauce.",
+            "image_url": "https://cdn.halalgoes.ca/img/dish/chicken-shawarma-poutine.webp",
+            "price_cents": 1599,
+            "currency": "CAD",
+            "availability_state": "AVAILABLE",
+            "out_of_stock_until": null,
+            "dietary_tags": [
+              "HALAL_CERTIFIED"
+            ],
+            "allergen_tags": [
+              "MILK",
+              "WHEAT_TRITICALE"
+            ],
+            "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+            "tax_category": "PREPARED_FOOD",
+            "prep_minutes": 11,
+            "variant_groups": [],
+            "addon_groups": [],
+            "category_id": "5db9cef4-c62a-47dc-ab28-1f77108512e6",
+            "sort_order": 1,
+            "live_version": null,
+            "pending_version": null
+          }
+        ]
+      },
+      {
+        "id": "391242f9-bd27-4c15-a390-8cda724daf37",
+        "name": "Section 13",
+        "description": null,
+        "sort_order": 13,
+        "is_active": true,
+        "item_count": 1,
+        "items": [
+          {
+            "id": "f4807592-5b72-46b8-a309-b1c249536278",
+            "name": "Mango Lassi",
+            "description": "Alphonso pulp, yoghurt, a pinch of cardamom.",
+            "image_url": "https://cdn.halalgoes.ca/img/dish/mango-lassi.webp",
+            "price_cents": 549,
+            "currency": "CAD",
+            "availability_state": "AVAILABLE",
+            "out_of_stock_until": null,
+            "dietary_tags": [
+              "VEGETARIAN",
+              "HALAL_CERTIFIED"
+            ],
+            "allergen_tags": [
+              "MILK"
+            ],
+            "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+            "tax_category": "PREPARED_FOOD",
+            "prep_minutes": 3,
+            "variant_groups": [],
+            "addon_groups": [],
+            "category_id": "391242f9-bd27-4c15-a390-8cda724daf37",
+            "sort_order": 1,
+            "live_version": null,
+            "pending_version": null
+          }
+        ]
+      },
+      {
+        "id": "b67b09c7-aa3a-4bb3-a9d3-77b1f9323920",
+        "name": "Section 14",
+        "description": null,
+        "sort_order": 14,
+        "is_active": true,
+        "item_count": 1,
+        "items": [
+          {
+            "id": "1a801230-7762-4a26-ac3c-55a6b00c65dd",
+            "name": "Baklava (3 pc)",
+            "description": "Pistachio and walnut, honey syrup, made in-house every morning.",
+            "image_url": "https://cdn.halalgoes.ca/img/dish/baklava-3-pc.webp",
+            "price_cents": 799,
+            "currency": "CAD",
+            "availability_state": "AVAILABLE",
+            "out_of_stock_until": null,
+            "dietary_tags": [
+              "VEGETARIAN",
+              "HALAL_CERTIFIED"
+            ],
+            "allergen_tags": [
+              "TREE_NUTS",
+              "WHEAT_TRITICALE",
+              "MILK"
+            ],
+            "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+            "tax_category": "PREPARED_FOOD",
+            "prep_minutes": 2,
+            "variant_groups": [],
+            "addon_groups": [],
+            "category_id": "b67b09c7-aa3a-4bb3-a9d3-77b1f9323920",
+            "sort_order": 1,
+            "live_version": null,
+            "pending_version": null
+          }
+        ]
+      },
+      {
+        "id": "2c882cd8-a1ea-4792-ae8d-04432d0ce31a",
+        "name": "Section 15",
+        "description": null,
+        "sort_order": 15,
+        "is_active": true,
+        "item_count": 1,
+        "items": [
+          {
+            "id": "808bbff4-40ec-43b0-adee-03b1008d032a",
+            "name": "Kunefe",
+            "description": "Shredded pastry over stretchy cheese, orange-blossom syrup.",
+            "image_url": "https://cdn.halalgoes.ca/img/dish/kunefe.webp",
+            "price_cents": 999,
+            "currency": "CAD",
+            "availability_state": "AVAILABLE",
+            "out_of_stock_until": null,
+            "dietary_tags": [
+              "VEGETARIAN",
+              "HALAL_CERTIFIED"
+            ],
+            "allergen_tags": [
+              "MILK",
+              "WHEAT_TRITICALE",
+              "TREE_NUTS"
+            ],
+            "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+            "tax_category": "PREPARED_FOOD",
+            "prep_minutes": 9,
+            "variant_groups": [],
+            "addon_groups": [],
+            "category_id": "2c882cd8-a1ea-4792-ae8d-04432d0ce31a",
+            "sort_order": 1,
+            "live_version": null,
+            "pending_version": null
+          }
+        ]
+      },
+      {
+        "id": "3cb3f6a2-7804-43db-ab4f-7bd37a449d49",
+        "name": "Section 16",
+        "description": null,
+        "sort_order": 16,
+        "is_active": true,
+        "item_count": 1,
+        "items": [
+          {
+            "id": "3be56182-0180-4d1c-a9c8-fda0bffd8927",
+            "name": "Chicken Biryani",
+            "description": "Long-grain basmati layered with bone-in chicken, fried onion and kewra.",
+            "image_url": "https://cdn.halalgoes.ca/img/dish/chicken-biryani.webp",
+            "price_cents": 1695,
+            "currency": "CAD",
+            "availability_state": "AVAILABLE",
+            "out_of_stock_until": null,
+            "dietary_tags": [
+              "HALAL_CERTIFIED"
+            ],
+            "allergen_tags": [
+              "MILK"
+            ],
+            "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+            "tax_category": "PREPARED_FOOD",
+            "prep_minutes": 22,
+            "variant_groups": [],
+            "addon_groups": [],
+            "category_id": "3cb3f6a2-7804-43db-ab4f-7bd37a449d49",
+            "sort_order": 1,
+            "live_version": null,
+            "pending_version": null
+          }
+        ]
+      },
+      {
+        "id": "c49f51cf-6540-4ca6-a257-d7e4ea56d2b9",
+        "name": "Section 17",
+        "description": null,
+        "sort_order": 17,
+        "is_active": true,
+        "item_count": 1,
+        "items": [
+          {
+            "id": "e581fafd-f872-4b28-a94d-fc326eb8a75e",
+            "name": "Beef Nihari",
+            "description": "Overnight-simmered beef shank in a bone-marrow gravy. Served with two naan.",
+            "image_url": "https://cdn.halalgoes.ca/img/dish/beef-nihari.webp",
+            "price_cents": 2145,
+            "currency": "CAD",
+            "availability_state": "AVAILABLE",
+            "out_of_stock_until": null,
+            "dietary_tags": [
+              "HALAL_CERTIFIED",
+              "SPICY"
+            ],
+            "allergen_tags": [
+              "WHEAT_TRITICALE"
+            ],
+            "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+            "tax_category": "PREPARED_FOOD",
+            "prep_minutes": 18,
+            "variant_groups": [],
+            "addon_groups": [],
+            "category_id": "c49f51cf-6540-4ca6-a257-d7e4ea56d2b9",
+            "sort_order": 1,
+            "live_version": null,
+            "pending_version": null
+          }
+        ]
+      },
+      {
+        "id": "46371fec-8dce-4bd3-a59a-a837be22747b",
+        "name": "Section 18",
+        "description": null,
+        "sort_order": 18,
+        "is_active": true,
+        "item_count": 1,
+        "items": [
+          {
+            "id": "bedb3007-8d16-4f31-a848-f3e75bd82606",
+            "name": "Chicken Karahi (Half)",
+            "description": "Wok-finished with tomato, ginger julienne and green chilli.",
+            "image_url": "https://cdn.halalgoes.ca/img/dish/chicken-karahi-half.webp",
+            "price_cents": 1899,
+            "currency": "CAD",
+            "availability_state": "AVAILABLE",
+            "out_of_stock_until": null,
+            "dietary_tags": [
+              "HALAL_CERTIFIED",
+              "SPICY",
+              "GLUTEN_FREE"
+            ],
+            "allergen_tags": [
+              "MILK"
+            ],
+            "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+            "tax_category": "PREPARED_FOOD",
+            "prep_minutes": 20,
+            "variant_groups": [],
+            "addon_groups": [],
+            "category_id": "46371fec-8dce-4bd3-a59a-a837be22747b",
+            "sort_order": 1,
+            "live_version": null,
+            "pending_version": null
+          }
+        ]
+      },
+      {
+        "id": "3e55d4cc-f1bc-4eed-aceb-708b0569e95a",
+        "name": "Section 19",
+        "description": null,
+        "sort_order": 19,
+        "is_active": true,
+        "item_count": 1,
+        "items": [
+          {
+            "id": "54f84587-3c6c-45dd-a8c0-1825f0cec7d4",
+            "name": "Lamb Shawarma Platter",
+            "description": "Shaved lamb, garlic toum, pickled turnip, rice and salad.",
+            "image_url": "https://cdn.halalgoes.ca/img/dish/lamb-shawarma-platter.webp",
+            "price_cents": 1849,
+            "currency": "CAD",
+            "availability_state": "AVAILABLE",
+            "out_of_stock_until": null,
+            "dietary_tags": [
+              "HALAL_CERTIFIED"
+            ],
+            "allergen_tags": [
+              "SESAME",
+              "MILK"
+            ],
+            "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+            "tax_category": "PREPARED_FOOD",
+            "prep_minutes": 12,
+            "variant_groups": [],
+            "addon_groups": [],
+            "category_id": "3e55d4cc-f1bc-4eed-aceb-708b0569e95a",
+            "sort_order": 1,
+            "live_version": null,
+            "pending_version": null
+          }
+        ]
+      },
+      {
+        "id": "ea3e1d7d-be30-454c-a588-50cffa14903c",
+        "name": "Section 20",
+        "description": null,
+        "sort_order": 20,
+        "is_active": true,
+        "item_count": 1,
+        "items": [
+          {
+            "id": "ff7d12b8-dc0f-43d6-a3cd-00216e3d7822",
+            "name": "Falafel Wrap",
+            "description": "Chickpea falafel, tahini, tomato, parsley in a saj wrap.",
+            "image_url": "https://cdn.halalgoes.ca/img/dish/falafel-wrap.webp",
+            "price_cents": 1099,
+            "currency": "CAD",
+            "availability_state": "AVAILABLE",
+            "out_of_stock_until": null,
+            "dietary_tags": [
+              "VEGETARIAN",
+              "VEGAN",
+              "HALAL_CERTIFIED"
+            ],
+            "allergen_tags": [
+              "SESAME",
+              "WHEAT_TRITICALE"
+            ],
+            "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+            "tax_category": "PREPARED_FOOD",
+            "prep_minutes": 8,
+            "variant_groups": [],
+            "addon_groups": [],
+            "category_id": "ea3e1d7d-be30-454c-a588-50cffa14903c",
+            "sort_order": 1,
+            "live_version": null,
+            "pending_version": null
+          }
+        ]
+      },
+      {
+        "id": "134a9626-a89b-4878-ad37-c32d3946e02d",
+        "name": "Section 21",
+        "description": null,
+        "sort_order": 21,
+        "is_active": true,
+        "item_count": 1,
+        "items": [
+          {
+            "id": "18d512da-a128-448b-adc7-17b4253e6c5b",
+            "name": "Butter Chicken",
+            "description": "Tandoori chicken thigh in tomato and fenugreek cream.",
+            "image_url": "https://cdn.halalgoes.ca/img/dish/butter-chicken.webp",
+            "price_cents": 1795,
+            "currency": "CAD",
+            "availability_state": "AVAILABLE",
+            "out_of_stock_until": null,
+            "dietary_tags": [
+              "HALAL_CERTIFIED"
+            ],
+            "allergen_tags": [
+              "MILK",
+              "TREE_NUTS"
+            ],
+            "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+            "tax_category": "PREPARED_FOOD",
+            "prep_minutes": 16,
+            "variant_groups": [],
+            "addon_groups": [],
+            "category_id": "134a9626-a89b-4878-ad37-c32d3946e02d",
+            "sort_order": 1,
+            "live_version": null,
+            "pending_version": null
+          }
+        ]
+      },
+      {
+        "id": "a0689b34-7531-4e6b-a69c-bf7ec3e198ab",
+        "name": "Section 22",
+        "description": null,
+        "sort_order": 22,
+        "is_active": true,
+        "item_count": 1,
+        "items": [
+          {
+            "id": "0c3c1c4b-370e-424a-af0e-f101d250985d",
+            "name": "Seekh Kebab (4 pc)",
+            "description": "Hand-minced beef, charcoal grilled, with mint chutney.",
+            "image_url": "https://cdn.halalgoes.ca/img/dish/seekh-kebab-4-pc.webp",
+            "price_cents": 1395,
+            "currency": "CAD",
+            "availability_state": "AVAILABLE",
+            "out_of_stock_until": null,
+            "dietary_tags": [
+              "HALAL_CERTIFIED",
+              "GLUTEN_FREE"
+            ],
+            "allergen_tags": [],
+            "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+            "tax_category": "PREPARED_FOOD",
+            "prep_minutes": 14,
+            "variant_groups": [],
+            "addon_groups": [],
+            "category_id": "a0689b34-7531-4e6b-a69c-bf7ec3e198ab",
+            "sort_order": 1,
+            "live_version": null,
+            "pending_version": null
+          }
+        ]
+      },
+      {
+        "id": "1fc29afc-9569-45d9-aa6a-2f7892013cfe",
+        "name": "Section 23",
+        "description": null,
+        "sort_order": 23,
+        "is_active": true,
+        "item_count": 1,
+        "items": [
+          {
+            "id": "4ef8da69-4ee5-44c6-abea-8218c0552e1e",
+            "name": "Chapli Kebab",
+            "description": "Peshawari-style flat kebab with coriander seed and pomegranate.",
+            "image_url": "https://cdn.halalgoes.ca/img/dish/chapli-kebab.webp",
+            "price_cents": 1495,
+            "currency": "CAD",
+            "availability_state": "AVAILABLE",
+            "out_of_stock_until": null,
+            "dietary_tags": [
+              "HALAL_CERTIFIED",
+              "SPICY"
+            ],
+            "allergen_tags": [
+              "EGGS",
+              "WHEAT_TRITICALE"
+            ],
+            "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+            "tax_category": "PREPARED_FOOD",
+            "prep_minutes": 15,
+            "variant_groups": [],
+            "addon_groups": [],
+            "category_id": "1fc29afc-9569-45d9-aa6a-2f7892013cfe",
+            "sort_order": 1,
+            "live_version": null,
+            "pending_version": null
+          }
+        ]
+      },
+      {
+        "id": "02301c24-b959-436a-a99e-291c0b9d651f",
+        "name": "Section 24",
+        "description": null,
+        "sort_order": 24,
+        "is_active": true,
+        "item_count": 1,
+        "items": [
+          {
+            "id": "0229e22b-ac41-46f5-ac05-bb3a845aaf22",
+            "name": "Haleem",
+            "description": "Seven-lentil and shredded beef porridge, finished with crisp onion.",
+            "image_url": "https://cdn.halalgoes.ca/img/dish/haleem.webp",
+            "price_cents": 1299,
+            "currency": "CAD",
+            "availability_state": "AVAILABLE",
+            "out_of_stock_until": null,
+            "dietary_tags": [
+              "HALAL_CERTIFIED"
+            ],
+            "allergen_tags": [
+              "WHEAT_TRITICALE"
+            ],
+            "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+            "tax_category": "PREPARED_FOOD",
+            "prep_minutes": 10,
+            "variant_groups": [],
+            "addon_groups": [],
+            "category_id": "02301c24-b959-436a-a99e-291c0b9d651f",
+            "sort_order": 1,
+            "live_version": null,
+            "pending_version": null
+          }
+        ]
+      },
+      {
+        "id": "c6391f12-1454-4116-a1a0-518e2971554b",
+        "name": "Section 25",
+        "description": null,
+        "sort_order": 25,
+        "is_active": true,
+        "item_count": 1,
+        "items": [
+          {
+            "id": "b7362403-aeb4-45af-a231-971c54477737",
+            "name": "Adana Kebab",
+            "description": "Hand-minced lamb on a wide skewer with sumac onion.",
+            "image_url": "https://cdn.halalgoes.ca/img/dish/adana-kebab.webp",
+            "price_cents": 2099,
+            "currency": "CAD",
+            "availability_state": "AVAILABLE",
+            "out_of_stock_until": null,
+            "dietary_tags": [
+              "HALAL_CERTIFIED",
+              "SPICY"
+            ],
+            "allergen_tags": [],
+            "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+            "tax_category": "PREPARED_FOOD",
+            "prep_minutes": 18,
+            "variant_groups": [],
+            "addon_groups": [],
+            "category_id": "c6391f12-1454-4116-a1a0-518e2971554b",
+            "sort_order": 1,
+            "live_version": null,
+            "pending_version": null
+          }
+        ]
+      },
+      {
+        "id": "278def49-172b-4acd-a0be-2a62bf7ae310",
+        "name": "Section 26",
+        "description": null,
+        "sort_order": 26,
+        "is_active": true,
+        "item_count": 1,
+        "items": [
+          {
+            "id": "198ed0db-0487-4659-a280-43469517c040",
+            "name": "Lahmacun (2 pc)",
+            "description": "Thin Turkish flatbread with spiced minced lamb and parsley.",
+            "image_url": "https://cdn.halalgoes.ca/img/dish/lahmacun-2-pc.webp",
+            "price_cents": 1250,
+            "currency": "CAD",
+            "availability_state": "AVAILABLE",
+            "out_of_stock_until": null,
+            "dietary_tags": [
+              "HALAL_CERTIFIED"
+            ],
+            "allergen_tags": [
+              "WHEAT_TRITICALE"
+            ],
+            "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+            "tax_category": "PREPARED_FOOD",
+            "prep_minutes": 12,
+            "variant_groups": [],
+            "addon_groups": [],
+            "category_id": "278def49-172b-4acd-a0be-2a62bf7ae310",
+            "sort_order": 1,
+            "live_version": null,
+            "pending_version": null
+          }
+        ]
+      },
+      {
+        "id": "0081e848-b451-45f5-a447-3e3c45d55a5b",
+        "name": "Section 27",
+        "description": null,
+        "sort_order": 27,
+        "is_active": true,
+        "item_count": 1,
+        "items": [
+          {
+            "id": "aa02f4ce-d487-41a4-a132-fbc74fce1bb5",
+            "name": "Chicken Shawarma Poutine",
+            "description": "Fries, cheese curds, shawarma gravy and garlic sauce.",
+            "image_url": "https://cdn.halalgoes.ca/img/dish/chicken-shawarma-poutine.webp",
+            "price_cents": 1599,
+            "currency": "CAD",
+            "availability_state": "AVAILABLE",
+            "out_of_stock_until": null,
+            "dietary_tags": [
+              "HALAL_CERTIFIED"
+            ],
+            "allergen_tags": [
+              "MILK",
+              "WHEAT_TRITICALE"
+            ],
+            "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+            "tax_category": "PREPARED_FOOD",
+            "prep_minutes": 11,
+            "variant_groups": [],
+            "addon_groups": [],
+            "category_id": "0081e848-b451-45f5-a447-3e3c45d55a5b",
+            "sort_order": 1,
+            "live_version": null,
+            "pending_version": null
+          }
+        ]
+      },
+      {
+        "id": "c0a3b064-86f7-43fd-a09a-b2ff439699fa",
+        "name": "Section 28",
+        "description": null,
+        "sort_order": 28,
+        "is_active": true,
+        "item_count": 1,
+        "items": [
+          {
+            "id": "19f1685f-065d-4087-ab65-8fc8bd12b763",
+            "name": "Mango Lassi",
+            "description": "Alphonso pulp, yoghurt, a pinch of cardamom.",
+            "image_url": "https://cdn.halalgoes.ca/img/dish/mango-lassi.webp",
+            "price_cents": 549,
+            "currency": "CAD",
+            "availability_state": "AVAILABLE",
+            "out_of_stock_until": null,
+            "dietary_tags": [
+              "VEGETARIAN",
+              "HALAL_CERTIFIED"
+            ],
+            "allergen_tags": [
+              "MILK"
+            ],
+            "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+            "tax_category": "PREPARED_FOOD",
+            "prep_minutes": 3,
+            "variant_groups": [],
+            "addon_groups": [],
+            "category_id": "c0a3b064-86f7-43fd-a09a-b2ff439699fa",
+            "sort_order": 1,
+            "live_version": null,
+            "pending_version": null
+          }
+        ]
+      },
+      {
+        "id": "f5ca6aff-7d63-4c98-aef0-142afbb26c79",
+        "name": "Section 29",
+        "description": null,
+        "sort_order": 29,
+        "is_active": true,
+        "item_count": 1,
+        "items": [
+          {
+            "id": "4abfa593-6b5f-4f2e-afc0-0352d0d2ba3f",
+            "name": "Baklava (3 pc)",
+            "description": "Pistachio and walnut, honey syrup, made in-house every morning.",
+            "image_url": "https://cdn.halalgoes.ca/img/dish/baklava-3-pc.webp",
+            "price_cents": 799,
+            "currency": "CAD",
+            "availability_state": "AVAILABLE",
+            "out_of_stock_until": null,
+            "dietary_tags": [
+              "VEGETARIAN",
+              "HALAL_CERTIFIED"
+            ],
+            "allergen_tags": [
+              "TREE_NUTS",
+              "WHEAT_TRITICALE",
+              "MILK"
+            ],
+            "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+            "tax_category": "PREPARED_FOOD",
+            "prep_minutes": 2,
+            "variant_groups": [],
+            "addon_groups": [],
+            "category_id": "f5ca6aff-7d63-4c98-aef0-142afbb26c79",
+            "sort_order": 1,
+            "live_version": null,
+            "pending_version": null
+          }
+        ]
+      },
+      {
+        "id": "a23a5c60-8a40-4727-ab3c-ce516d83c570",
+        "name": "Section 30",
+        "description": null,
+        "sort_order": 30,
+        "is_active": true,
+        "item_count": 1,
+        "items": [
+          {
+            "id": "247b9594-b9dc-454b-a0e8-65ed68f6a39d",
+            "name": "Kunefe",
+            "description": "Shredded pastry over stretchy cheese, orange-blossom syrup.",
+            "image_url": "https://cdn.halalgoes.ca/img/dish/kunefe.webp",
+            "price_cents": 999,
+            "currency": "CAD",
+            "availability_state": "AVAILABLE",
+            "out_of_stock_until": null,
+            "dietary_tags": [
+              "VEGETARIAN",
+              "HALAL_CERTIFIED"
+            ],
+            "allergen_tags": [
+              "MILK",
+              "WHEAT_TRITICALE",
+              "TREE_NUTS"
+            ],
+            "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+            "tax_category": "PREPARED_FOOD",
+            "prep_minutes": 9,
+            "variant_groups": [],
+            "addon_groups": [],
+            "category_id": "a23a5c60-8a40-4727-ab3c-ce516d83c570",
+            "sort_order": 1,
+            "live_version": null,
+            "pending_version": null
+          }
+        ]
+      },
+      {
+        "id": "6f896158-f5ed-49aa-a392-6311b1fe2a27",
+        "name": "Section 31",
+        "description": null,
+        "sort_order": 31,
+        "is_active": true,
+        "item_count": 1,
+        "items": [
+          {
+            "id": "6bb93a19-d51a-4711-af17-c7e2b3d4b6e0",
+            "name": "Chicken Biryani",
+            "description": "Long-grain basmati layered with bone-in chicken, fried onion and kewra.",
+            "image_url": "https://cdn.halalgoes.ca/img/dish/chicken-biryani.webp",
+            "price_cents": 1695,
+            "currency": "CAD",
+            "availability_state": "AVAILABLE",
+            "out_of_stock_until": null,
+            "dietary_tags": [
+              "HALAL_CERTIFIED"
+            ],
+            "allergen_tags": [
+              "MILK"
+            ],
+            "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+            "tax_category": "PREPARED_FOOD",
+            "prep_minutes": 22,
+            "variant_groups": [],
+            "addon_groups": [],
+            "category_id": "6f896158-f5ed-49aa-a392-6311b1fe2a27",
+            "sort_order": 1,
+            "live_version": null,
+            "pending_version": null
+          }
+        ]
+      },
+      {
+        "id": "9b719839-c8c0-4a9f-af0b-39932032e963",
+        "name": "Section 32",
+        "description": null,
+        "sort_order": 32,
+        "is_active": true,
+        "item_count": 1,
+        "items": [
+          {
+            "id": "78c15176-b5cf-4c92-a135-146fbbe6bbca",
+            "name": "Beef Nihari",
+            "description": "Overnight-simmered beef shank in a bone-marrow gravy. Served with two naan.",
+            "image_url": "https://cdn.halalgoes.ca/img/dish/beef-nihari.webp",
+            "price_cents": 2145,
+            "currency": "CAD",
+            "availability_state": "AVAILABLE",
+            "out_of_stock_until": null,
+            "dietary_tags": [
+              "HALAL_CERTIFIED",
+              "SPICY"
+            ],
+            "allergen_tags": [
+              "WHEAT_TRITICALE"
+            ],
+            "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+            "tax_category": "PREPARED_FOOD",
+            "prep_minutes": 18,
+            "variant_groups": [],
+            "addon_groups": [],
+            "category_id": "9b719839-c8c0-4a9f-af0b-39932032e963",
+            "sort_order": 1,
+            "live_version": null,
+            "pending_version": null
+          }
+        ]
+      },
+      {
+        "id": "9f27969b-7332-492f-afd1-1692b935e066",
+        "name": "Section 33",
+        "description": null,
+        "sort_order": 33,
+        "is_active": true,
+        "item_count": 1,
+        "items": [
+          {
+            "id": "88f7f1dd-d4e8-43cb-a34f-e638ffd1748b",
+            "name": "Chicken Karahi (Half)",
+            "description": "Wok-finished with tomato, ginger julienne and green chilli.",
+            "image_url": "https://cdn.halalgoes.ca/img/dish/chicken-karahi-half.webp",
+            "price_cents": 1899,
+            "currency": "CAD",
+            "availability_state": "AVAILABLE",
+            "out_of_stock_until": null,
+            "dietary_tags": [
+              "HALAL_CERTIFIED",
+              "SPICY",
+              "GLUTEN_FREE"
+            ],
+            "allergen_tags": [
+              "MILK"
+            ],
+            "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+            "tax_category": "PREPARED_FOOD",
+            "prep_minutes": 20,
+            "variant_groups": [],
+            "addon_groups": [],
+            "category_id": "9f27969b-7332-492f-afd1-1692b935e066",
+            "sort_order": 1,
+            "live_version": null,
+            "pending_version": null
+          }
+        ]
+      },
+      {
+        "id": "c9367345-a170-46dd-a33f-00bade0ca74a",
+        "name": "Section 34",
+        "description": null,
+        "sort_order": 34,
+        "is_active": true,
+        "item_count": 1,
+        "items": [
+          {
+            "id": "7ab36bd7-7a91-425d-a612-1b424c2e04b4",
+            "name": "Lamb Shawarma Platter",
+            "description": "Shaved lamb, garlic toum, pickled turnip, rice and salad.",
+            "image_url": "https://cdn.halalgoes.ca/img/dish/lamb-shawarma-platter.webp",
+            "price_cents": 1849,
+            "currency": "CAD",
+            "availability_state": "AVAILABLE",
+            "out_of_stock_until": null,
+            "dietary_tags": [
+              "HALAL_CERTIFIED"
+            ],
+            "allergen_tags": [
+              "SESAME",
+              "MILK"
+            ],
+            "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+            "tax_category": "PREPARED_FOOD",
+            "prep_minutes": 12,
+            "variant_groups": [],
+            "addon_groups": [],
+            "category_id": "c9367345-a170-46dd-a33f-00bade0ca74a",
+            "sort_order": 1,
+            "live_version": null,
+            "pending_version": null
+          }
+        ]
+      },
+      {
+        "id": "a4e19451-c3d7-4819-a7a5-cc8a6d6f10bb",
+        "name": "Section 35",
+        "description": null,
+        "sort_order": 35,
+        "is_active": true,
+        "item_count": 1,
+        "items": [
+          {
+            "id": "11b676a9-180e-4bc7-ab0d-e56ac4398f8e",
+            "name": "Falafel Wrap",
+            "description": "Chickpea falafel, tahini, tomato, parsley in a saj wrap.",
+            "image_url": "https://cdn.halalgoes.ca/img/dish/falafel-wrap.webp",
+            "price_cents": 1099,
+            "currency": "CAD",
+            "availability_state": "AVAILABLE",
+            "out_of_stock_until": null,
+            "dietary_tags": [
+              "VEGETARIAN",
+              "VEGAN",
+              "HALAL_CERTIFIED"
+            ],
+            "allergen_tags": [
+              "SESAME",
+              "WHEAT_TRITICALE"
+            ],
+            "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+            "tax_category": "PREPARED_FOOD",
+            "prep_minutes": 8,
+            "variant_groups": [],
+            "addon_groups": [],
+            "category_id": "a4e19451-c3d7-4819-a7a5-cc8a6d6f10bb",
+            "sort_order": 1,
+            "live_version": null,
+            "pending_version": null
+          }
+        ]
+      },
+      {
+        "id": "2eb44ac1-f3f6-44f9-a257-9a5db0de2f5b",
+        "name": "Section 36",
+        "description": null,
+        "sort_order": 36,
+        "is_active": true,
+        "item_count": 1,
+        "items": [
+          {
+            "id": "c30e857a-3b0a-4e0b-a079-972dbbb3f8b1",
+            "name": "Butter Chicken",
+            "description": "Tandoori chicken thigh in tomato and fenugreek cream.",
+            "image_url": "https://cdn.halalgoes.ca/img/dish/butter-chicken.webp",
+            "price_cents": 1795,
+            "currency": "CAD",
+            "availability_state": "AVAILABLE",
+            "out_of_stock_until": null,
+            "dietary_tags": [
+              "HALAL_CERTIFIED"
+            ],
+            "allergen_tags": [
+              "MILK",
+              "TREE_NUTS"
+            ],
+            "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+            "tax_category": "PREPARED_FOOD",
+            "prep_minutes": 16,
+            "variant_groups": [],
+            "addon_groups": [],
+            "category_id": "2eb44ac1-f3f6-44f9-a257-9a5db0de2f5b",
+            "sort_order": 1,
+            "live_version": null,
+            "pending_version": null
+          }
+        ]
+      },
+      {
+        "id": "214088b1-e3e6-4e78-ab38-c082e788779c",
+        "name": "Section 37",
+        "description": null,
+        "sort_order": 37,
+        "is_active": true,
+        "item_count": 1,
+        "items": [
+          {
+            "id": "58b1796a-44c9-4502-ae87-ba120ac0c3b4",
+            "name": "Seekh Kebab (4 pc)",
+            "description": "Hand-minced beef, charcoal grilled, with mint chutney.",
+            "image_url": "https://cdn.halalgoes.ca/img/dish/seekh-kebab-4-pc.webp",
+            "price_cents": 1395,
+            "currency": "CAD",
+            "availability_state": "AVAILABLE",
+            "out_of_stock_until": null,
+            "dietary_tags": [
+              "HALAL_CERTIFIED",
+              "GLUTEN_FREE"
+            ],
+            "allergen_tags": [],
+            "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+            "tax_category": "PREPARED_FOOD",
+            "prep_minutes": 14,
+            "variant_groups": [],
+            "addon_groups": [],
+            "category_id": "214088b1-e3e6-4e78-ab38-c082e788779c",
+            "sort_order": 1,
+            "live_version": null,
+            "pending_version": null
+          }
+        ]
+      },
+      {
+        "id": "57e5acd7-4edd-4e4c-acef-947c4ea8db11",
+        "name": "Section 38",
+        "description": null,
+        "sort_order": 38,
+        "is_active": true,
+        "item_count": 1,
+        "items": [
+          {
+            "id": "1688cec1-757f-475b-a9ba-f1bb02e52fc3",
+            "name": "Chapli Kebab",
+            "description": "Peshawari-style flat kebab with coriander seed and pomegranate.",
+            "image_url": "https://cdn.halalgoes.ca/img/dish/chapli-kebab.webp",
+            "price_cents": 1495,
+            "currency": "CAD",
+            "availability_state": "AVAILABLE",
+            "out_of_stock_until": null,
+            "dietary_tags": [
+              "HALAL_CERTIFIED",
+              "SPICY"
+            ],
+            "allergen_tags": [
+              "EGGS",
+              "WHEAT_TRITICALE"
+            ],
+            "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+            "tax_category": "PREPARED_FOOD",
+            "prep_minutes": 15,
+            "variant_groups": [],
+            "addon_groups": [],
+            "category_id": "57e5acd7-4edd-4e4c-acef-947c4ea8db11",
+            "sort_order": 1,
+            "live_version": null,
+            "pending_version": null
+          }
+        ]
+      },
+      {
+        "id": "47b85c80-20d1-4638-a2ac-b1f080f1b8f5",
+        "name": "Section 39",
+        "description": null,
+        "sort_order": 39,
+        "is_active": true,
+        "item_count": 1,
+        "items": [
+          {
+            "id": "4f1800fd-ea40-40bc-ad53-57954e1aa9df",
+            "name": "Haleem",
+            "description": "Seven-lentil and shredded beef porridge, finished with crisp onion.",
+            "image_url": "https://cdn.halalgoes.ca/img/dish/haleem.webp",
+            "price_cents": 1299,
+            "currency": "CAD",
+            "availability_state": "AVAILABLE",
+            "out_of_stock_until": null,
+            "dietary_tags": [
+              "HALAL_CERTIFIED"
+            ],
+            "allergen_tags": [
+              "WHEAT_TRITICALE"
+            ],
+            "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+            "tax_category": "PREPARED_FOOD",
+            "prep_minutes": 10,
+            "variant_groups": [],
+            "addon_groups": [],
+            "category_id": "47b85c80-20d1-4638-a2ac-b1f080f1b8f5",
+            "sort_order": 1,
+            "live_version": null,
+            "pending_version": null
+          }
+        ]
+      },
+      {
+        "id": "7a716d73-2ca9-4380-a672-49cdd7e41203",
+        "name": "Section 40",
+        "description": null,
+        "sort_order": 40,
+        "is_active": true,
+        "item_count": 1,
+        "items": [
+          {
+            "id": "d83cad44-4696-4541-a35c-210fe4070a8d",
+            "name": "Adana Kebab",
+            "description": "Hand-minced lamb on a wide skewer with sumac onion.",
+            "image_url": "https://cdn.halalgoes.ca/img/dish/adana-kebab.webp",
+            "price_cents": 2099,
+            "currency": "CAD",
+            "availability_state": "AVAILABLE",
+            "out_of_stock_until": null,
+            "dietary_tags": [
+              "HALAL_CERTIFIED",
+              "SPICY"
+            ],
+            "allergen_tags": [],
+            "ingredients_text": "Chicken, basmati rice, yoghurt, fried onion, tomato, ginger, garlic, garam masala, saffron, kewra water, ghee.",
+            "tax_category": "PREPARED_FOOD",
+            "prep_minutes": 18,
+            "variant_groups": [],
+            "addon_groups": [],
+            "category_id": "7a716d73-2ca9-4380-a672-49cdd7e41203",
+            "sort_order": 1,
+            "live_version": null,
+            "pending_version": null
+          }
+        ]
+      }
+    ]
+  }
+}

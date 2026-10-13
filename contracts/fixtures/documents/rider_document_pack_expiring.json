@@ -1,0 +1,113 @@
+{
+  "scenario": "rider_document_pack_expiring",
+  "domain": "documents",
+  "schema": "array<KycDocument>",
+  "describes": "Every document approved, but the driver's licence expires in 21 days (`valid_until`). Home and Account show the \"renew soon\" notice; the rider can still go online.",
+  "operations": [
+    "listRiderDocuments"
+  ],
+  "status": 200,
+  "tags": [
+    "rider",
+    "documents",
+    "boundary"
+  ],
+  "payload": [
+    {
+      "id": "0508fd9e-d9fb-4f45-a635-baa0a252f29c",
+      "subject_type": "RIDER",
+      "subject_id": "83e44264-b412-45ea-ab23-804e6ed50d97",
+      "doc_type": "DRIVERS_LICENCE",
+      "state": "APPROVED",
+      "issuer": "Province of Ontario",
+      "certificate_number": null,
+      "issued_on": "2026-03-09",
+      "valid_until": "2026-08-31",
+      "version": 1,
+      "rejection_reason_code": null,
+      "review_note": null,
+      "reviewed_at": "2026-08-08T18:42:11.412Z",
+      "created_at": "2026-08-04T18:42:11.412Z"
+    },
+    {
+      "id": "12564912-06c5-4cf9-af62-e20faafacc6a",
+      "subject_type": "RIDER",
+      "subject_id": "83e44264-b412-45ea-ab23-804e6ed50d97",
+      "doc_type": "VEHICLE_REGISTRATION",
+      "state": "APPROVED",
+      "issuer": "Province of Ontario",
+      "certificate_number": null,
+      "issued_on": "2026-03-09",
+      "valid_until": "2027-09-14",
+      "version": 1,
+      "rejection_reason_code": null,
+      "review_note": null,
+      "reviewed_at": "2026-08-08T18:42:11.412Z",
+      "created_at": "2026-08-04T18:42:11.412Z"
+    },
+    {
+      "id": "30e6f4e8-6360-431d-a0c2-011f200d79e0",
+      "subject_type": "RIDER",
+      "subject_id": "83e44264-b412-45ea-ab23-804e6ed50d97",
+      "doc_type": "VEHICLE_INSURANCE",
+      "state": "APPROVED",
+      "issuer": "Province of Ontario",
+      "certificate_number": null,
+      "issued_on": "2026-03-09",
+      "valid_until": "2027-09-14",
+      "version": 1,
+      "rejection_reason_code": null,
+      "review_note": null,
+      "reviewed_at": "2026-08-08T18:42:11.412Z",
+      "created_at": "2026-08-04T18:42:11.412Z"
+    },
+    {
+      "id": "29591264-39a0-4056-a23d-15c604cb661d",
+      "subject_type": "RIDER",
+      "subject_id": "83e44264-b412-45ea-ab23-804e6ed50d97",
+      "doc_type": "GOVERNMENT_ID",
+      "state": "APPROVED",
+      "issuer": "Province of Ontario",
+      "certificate_number": null,
+      "issued_on": "2026-03-09",
+      "valid_until": "2027-09-14",
+      "version": 1,
+      "rejection_reason_code": null,
+      "review_note": null,
+      "reviewed_at": "2026-08-08T18:42:11.412Z",
+      "created_at": "2026-08-04T18:42:11.412Z"
+    },
+    {
+      "id": "d0feffd8-30cf-4a3e-a6e6-0d10d5d66330",
+      "subject_type": "RIDER",
+      "subject_id": "83e44264-b412-45ea-ab23-804e6ed50d97",
+      "doc_type": "WORK_ELIGIBILITY",
+      "state": "APPROVED",
+      "issuer": "Province of Ontario",
+      "certificate_number": null,
+      "issued_on": "2026-03-09",
+      "valid_until": "2027-09-14",
+      "version": 1,
+      "rejection_reason_code": null,
+      "review_note": null,
+      "reviewed_at": "2026-08-08T18:42:11.412Z",
+      "created_at": "2026-08-04T18:42:11.412Z"
+    },
+    {
+      "id": "0029c657-9114-43b9-a212-3723852fd267",
+      "subject_type": "RIDER",
+      "subject_id": "83e44264-b412-45ea-ab23-804e6ed50d97",
+      "doc_type": "PROFILE_PHOTO",
+      "state": "APPROVED",
+      "issuer": "Province of Ontario",
+      "certificate_number": null,
+      "issued_on": "2026-03-09",
+      "valid_until": null,
+      "version": 1,
+      "rejection_reason_code": null,
+      "review_note": null,
+      "reviewed_at": "2026-08-08T18:42:11.412Z",
+      "created_at": "2026-08-04T18:42:11.412Z"
+    }
+  ]
+}
