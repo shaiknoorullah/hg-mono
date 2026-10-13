@@ -13,7 +13,7 @@
 import { execSync } from 'node:child_process';
 import { copyFileSync, mkdirSync } from 'node:fs';
 import { expect, test, type Page, type Route, type TestInfo } from '@playwright/test';
-import { documentScrolls, LIVE_OWNER, MODE, REAL_API, restaurantPrincipal } from './redesign-restaurant.support';
+import { DEVWORLD, documentScrolls, LIVE_OWNER, MODE, REAL_API, restaurantPrincipal } from './redesign-restaurant.support';
 
 const SHOTS = process.env.WP2_SHOTS_DIR ?? '/tmp/claude-0/-home-user-hg-mono/d41301d3-8d3a-541d-a6f4-40d847c8b738/scratchpad/shots/wp2';
 
@@ -456,6 +456,7 @@ test.describe('restaurant redesign · sign in (real API)', () => {
   });
 
   test('an unverified owner (fresh) gets Unverified with Send a new link', async ({ page }, info) => {
+    test.skip(!DEVWORLD, 'needs the devworld personas and mail log (E2E_DEVWORLD=1); the e2e world has neither');
     await page.goto('/login');
     await fillSignIn(page, 'fresh@seed.hg', LIVE_OWNER.password);
     await page.getByLabel(/^Password/).press('Enter');
@@ -479,6 +480,7 @@ test.describe('restaurant redesign · sign in (real API)', () => {
   });
 
   test('the suspended persona (restaurant suspended, sign-in account active) signs in to its console', async ({ page }, info) => {
+    test.skip(!DEVWORLD, 'needs the devworld personas and mail log (E2E_DEVWORLD=1); the e2e world has neither');
     await page.goto('/login');
     await fillSignIn(page, 'suspended@seed.hg', LIVE_OWNER.password);
     await page.getByLabel(/^Password/).press('Enter');
@@ -493,6 +495,7 @@ test.describe('restaurant redesign · sign in (real API)', () => {
   });
 
   test('register → check email → verify → sign in → onboarding; forgot → reset → sign in', async ({ page }, info) => {
+    test.skip(!DEVWORLD, 'needs the devworld personas and mail log (E2E_DEVWORLD=1); the e2e world has neither');
     test.setTimeout(120_000);
     const email = `wp2-${info.project.name}-${Date.now()}@wp2.test`;
     const password = 'a long kitchen password 2026';
