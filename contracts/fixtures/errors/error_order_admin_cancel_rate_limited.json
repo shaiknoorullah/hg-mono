@@ -1,0 +1,25 @@
+{
+  "scenario": "error_order_admin_cancel_rate_limited",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`429` · `RATE_LIMITED`. Cancelling too many orders too fast. `details.retry_after_seconds` is the wait. Contract-only: `services/hg` has no rate limit on this route yet.",
+  "operations": [
+    "cancelOrderAdmin"
+  ],
+  "status": 429,
+  "tags": [
+    "error-envelope",
+    "error-path",
+    "admin"
+  ],
+  "payload": {
+    "error": {
+      "code": "RATE_LIMITED",
+      "message": "Too many cancellations. Please wait before trying again.",
+      "request_id": "FH5QQCSGN7KZH3SJ2650N34F95",
+      "details": {
+        "retry_after_seconds": 30
+      }
+    }
+  }
+}
