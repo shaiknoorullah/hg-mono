@@ -1,0 +1,145 @@
+/* GENERATED FILE — DO NOT EDIT.
+ * Source: docs/design/tokens.json
+ * Regenerate: pnpm --filter @hg/ui-web generate:tokens
+ */
+
+/*
+ * shadcn/ui variable names, each an alias of a HalalGoes role. Opt-in:
+ *
+ *   @import '@hg/ui-web/styles.css';
+ *   @import '@hg/ui-web/shadcn.css';
+ *
+ * No values live here; every right-hand side is a role from tokens.css.
+ * `--accent` is the selected wash (state-selected-tint), never the forest
+ * ramp. No alias reaches a halal or success solid (invariant 10, lint L-4).
+ */
+
+/* shadcn `dark:` utilities follow our theme attribute, not the media query. */
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
+
+/* Declared wherever a role can change value, so each alias re-resolves there
+   (a custom property holding var() resolves on the element that declares it). */
+:root,
+[data-theme],
+[data-hg-density="comfortable"],
+[data-hg-density="compact"],
+[data-hg-density="roomy"],
+[data-hg-theme],
+[data-hg-text-scale] {
+  --background: var(--hg-surface-base);
+  --foreground: var(--hg-text-primary);
+  --card: var(--hg-surface-raised);
+  --card-foreground: var(--hg-text-primary);
+  --popover: var(--hg-surface-raised);
+  --popover-foreground: var(--hg-text-primary);
+  --primary: var(--hg-action-primary-bg);
+  --primary-foreground: var(--hg-action-primary-fg);
+  --secondary: var(--hg-action-secondary-bg);
+  --secondary-foreground: var(--hg-action-secondary-fg);
+  --muted: var(--hg-surface-subtle);
+  --muted-foreground: var(--hg-text-secondary);
+  --accent: var(--hg-state-selected-tint);
+  --accent-foreground: var(--hg-text-primary);
+  --destructive: var(--hg-action-danger-bg);
+  --destructive-foreground: var(--hg-action-danger-fg);
+  --border: var(--hg-border-decorative);
+  --input: var(--hg-control-border);
+  --ring: var(--hg-focus-ring);
+  --radius: var(--hg-radius-md);
+  --sidebar: var(--hg-surface-chrome);
+  --sidebar-foreground: var(--hg-text-on-accent);
+  --sidebar-primary: var(--hg-action-primary-bg);
+  --sidebar-primary-foreground: var(--hg-action-primary-fg);
+  --sidebar-ring: var(--hg-focus-ring-on-accent);
+  --chart-1: var(--hg-color-viz-1);
+  --chart-2: var(--hg-color-viz-2);
+  --chart-3: var(--hg-color-viz-3);
+  --chart-4: var(--hg-color-viz-4);
+  --chart-5: var(--hg-color-viz-5);
+
+  /* Density, under the live design system's names. */
+  --density-row-height: var(--hg-density-row-height);
+  --density-card-padding: var(--hg-density-card-padding);
+  --density-gutter: var(--hg-density-gutter);
+}
+
+/* Text at 200% (#194): type sizes scale, spacing and layout do not. */
+[data-hg-text-scale="200"] {
+  --hg-text-scale: 2;
+  --hg-text-display-lg-size: calc(2.25rem * var(--hg-text-scale));
+  --hg-text-display-lg-line-px: calc(42px * var(--hg-text-scale));
+  --hg-text-display-md-size: calc(1.875rem * var(--hg-text-scale));
+  --hg-text-display-md-line-px: calc(36px * var(--hg-text-scale));
+  --hg-text-heading-xl-size: calc(1.5rem * var(--hg-text-scale));
+  --hg-text-heading-xl-line-px: calc(30px * var(--hg-text-scale));
+  --hg-text-heading-lg-size: calc(1.25rem * var(--hg-text-scale));
+  --hg-text-heading-lg-line-px: calc(26px * var(--hg-text-scale));
+  --hg-text-heading-md-size: calc(1.125rem * var(--hg-text-scale));
+  --hg-text-heading-md-line-px: calc(24px * var(--hg-text-scale));
+  --hg-text-heading-sm-size: calc(1rem * var(--hg-text-scale));
+  --hg-text-heading-sm-line-px: calc(22px * var(--hg-text-scale));
+  --hg-text-body-lg-size: calc(1.0625rem * var(--hg-text-scale));
+  --hg-text-body-lg-line-px: calc(26px * var(--hg-text-scale));
+  --hg-text-body-md-size: calc(0.9375rem * var(--hg-text-scale));
+  --hg-text-body-md-line-px: calc(22px * var(--hg-text-scale));
+  --hg-text-body-sm-size: calc(0.8125rem * var(--hg-text-scale));
+  --hg-text-body-sm-line-px: calc(19px * var(--hg-text-scale));
+  --hg-text-label-lg-size: calc(0.9375rem * var(--hg-text-scale));
+  --hg-text-label-lg-line-px: calc(18px * var(--hg-text-scale));
+  --hg-text-label-md-size: calc(0.8125rem * var(--hg-text-scale));
+  --hg-text-label-md-line-px: calc(16px * var(--hg-text-scale));
+  --hg-text-label-sm-size: calc(0.6875rem * var(--hg-text-scale));
+  --hg-text-label-sm-line-px: calc(14px * var(--hg-text-scale));
+  --hg-text-caption-size: calc(0.75rem * var(--hg-text-scale));
+  --hg-text-caption-line-px: calc(17px * var(--hg-text-scale));
+  --hg-text-mono-md-size: calc(0.8125rem * var(--hg-text-scale));
+  --hg-text-mono-md-line-px: calc(19px * var(--hg-text-scale));
+  --hg-text-mono-sm-size: calc(0.6875rem * var(--hg-text-scale));
+  --hg-text-mono-sm-line-px: calc(15px * var(--hg-text-scale));
+  --hg-text-marketing-hero-size: calc(7.375rem * var(--hg-text-scale));
+  --hg-text-marketing-hero-line-px: calc(106px * var(--hg-text-scale));
+  --hg-text-marketing-hero-phone-size: calc(4.5rem * var(--hg-text-scale));
+  --hg-text-marketing-hero-phone-line-px: calc(61px * var(--hg-text-scale));
+  --hg-text-marketing-section-size: calc(3.75rem * var(--hg-text-scale));
+  --hg-text-marketing-section-line-px: calc(60px * var(--hg-text-scale));
+  --hg-text-marketing-section-phone-size: calc(2.125rem * var(--hg-text-scale));
+  --hg-text-marketing-section-phone-line-px: calc(35px * var(--hg-text-scale));
+}
+
+/* Tailwind v4 utilities for the aliases. `inline`, so they follow the
+   nearest scope instead of freezing the :root value. */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --spacing-density-row-height: var(--density-row-height);
+  --spacing-density-card-padding: var(--density-card-padding);
+  --spacing-density-gutter: var(--density-gutter);
+}

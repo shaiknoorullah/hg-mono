@@ -235,6 +235,13 @@ func (s *Store) CreateOrder(ctx context.Context, in OrderInput, freshQuote **Quo
 			if err != nil {
 				return fmt.Errorf("insert order_line: %w", err)
 			}
+			// The quote's variant snapshot, unchanged: the database checks the
+			// line's variant_part_cents against these rows at commit (00069).
+			for i, v := range l.Variants {
+				if err := insertLineVariant(ctx, tx, orderLineVariants, orderID, l.LineNo, i+1, v); err != nil {
+					return err
+				}
+			}
 			for _, a := range l.Addons {
 				_, err := tx.Exec(ctx, `
 					INSERT INTO order_line_addon (order_id, line_no, addon_id, addon_name, addon_quantity, addon_price_cents)

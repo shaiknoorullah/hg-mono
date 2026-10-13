@@ -1337,3 +1337,164 @@ func TestIntegration_UpdateMenuItem_ReviewedFieldsWaitForReview(t *testing.T) {
 		t.Fatalf("the older pending version is %q (err %v), want WITHDRAWN", older, err)
 	}
 }
+
+// A rejected owner must be told why, and a final REJECT must be told apart from
+// a request for changes (https://github.com/shaiknoorullah/hg-mono/issues/695).
+func TestIntegration_GetOnboardingStatus_RejectionCarriesDecisionAndReason(t *testing.T) {
+	for _, decision := range []string{"REJECT", "REQUEST_CHANGES"} {
+		t.Run(decision, func(t *testing.T) {
+			pool := testPool(t)
+			f := seedFixtures(t, pool)
+			h := newHandler(pool)
+			ctx := context.Background()
+			const text = "We could not verify the halal certificate for this location."
+
+			if _, err := pool.Exec(ctx, `UPDATE restaurant SET onboarding_state='DOCUMENTS_REJECTED' WHERE id=$1`, f.restaurantID); err != nil {
+				t.Fatalf("set state: %v", err)
+			}
+			if _, err := pool.Exec(ctx, `
+				INSERT INTO restaurant_application
+				  (restaurant_id, submission_count, submitted_at, decision, reject_reason_code, decided_at)
+				VALUES ($1, 2, now(), $2::restaurant_decision, 'HALAL_CERTIFICATION_INVALID', now())
+				ON CONFLICT (restaurant_id) DO UPDATE
+				SET submission_count=2, decision=EXCLUDED.decision,
+				    reject_reason_code=EXCLUDED.reject_reason_code, decided_at=now()`,
+				f.restaurantID, decision); err != nil {
+				t.Fatalf("seed application: %v", err)
+			}
+			if _, err := pool.Exec(ctx, `
+				INSERT INTO restaurant_onboarding_transition
+				  (restaurant_id, from_state, to_state, actor_kind, decision_reason_code, reason)
+				VALUES ($1, 'DOCUMENTS_REVIEW', 'DOCUMENTS_REJECTED', 'ADMIN', 'HALAL_CERTIFICATION_INVALID', $2)`,
+				f.restaurantID, text); err != nil {
+				t.Fatalf("seed transition: %v", err)
+			}
+
+			req := httptest.NewRequest(http.MethodGet, "/v1/restaurant/onboarding/status", nil)
+			req = withPrincipal(req, principalWith(f.ownerAccountID, httpx.RoleRestaurantOwner))
+			rec := httptest.NewRecorder()
+			h.GetRestaurantOnboardingStatus(rec, req)
+			if rec.Code != http.StatusOK {
+				t.Fatalf("status=%d (body: %s)", rec.Code, rec.Body.String())
+			}
+			var env struct {
+				Data struct {
+					BlockingReason *string `json:"blocking_reason"`
+					ReviewCycle    int     `json:"review_cycle"`
+					Rejection      *struct {
+						Decision   string  `json:"decision"`
+						ReasonCode *string `json:"reason_code"`
+						Note       *string `json:"note"`
+						Documents  []any   `json:"documents"`
+					} `json:"rejection"`
+				} `json:"data"`
+			}
+			if err := json.Unmarshal(rec.Body.Bytes(), &env); err != nil {
+				t.Fatalf("unmarshal: %v", err)
+			}
+			rej := env.Data.Rejection
+			if rej == nil {
+				t.Fatalf("rejection is null; the owner sees no reason (body: %s)", rec.Body.String())
+			}
+			if rej.Decision != decision {
+				t.Errorf("decision=%q, want %q", rej.Decision, decision)
+			}
+			if rej.ReasonCode == nil || *rej.ReasonCode != "HALAL_CERTIFICATION_INVALID" {
+				t.Errorf("reason_code=%v", rej.ReasonCode)
+			}
+			if rej.Note == nil || *rej.Note != text {
+				t.Errorf("note=%v, want the admin's reason text", rej.Note)
+			}
+			if env.Data.BlockingReason == nil || *env.Data.BlockingReason != text {
+				t.Errorf("blocking_reason=%v", env.Data.BlockingReason)
+			}
+			if env.Data.ReviewCycle != 2 {
+				t.Errorf("review_cycle=%d, want 2", env.Data.ReviewCycle)
+			}
+		})
+	}
+}
+
+// Only the latest document of each type is listed as needing a fix: a
+// re-upload adds a row and leaves the rejected one behind, and the owner must
+// not be told to fix a document they already replaced.
+func TestIntegration_GetOnboardingStatus_RejectionListsLatestDocumentPerType(t *testing.T) {
+	pool := testPool(t)
+	f := seedFixtures(t, pool)
+	h := newHandler(pool)
+	ctx := context.Background()
+
+	if _, err := pool.Exec(ctx, `UPDATE restaurant SET onboarding_state='DOCUMENTS_REJECTED' WHERE id=$1`, f.restaurantID); err != nil {
+		t.Fatalf("set state: %v", err)
+	}
+	if _, err := pool.Exec(ctx, `
+		INSERT INTO restaurant_application
+		  (restaurant_id, submission_count, submitted_at, decision, reject_reason_code, decided_at)
+		VALUES ($1, 2, now(), 'REQUEST_CHANGES', 'DOCUMENTS_INSUFFICIENT', now())
+		ON CONFLICT (restaurant_id) DO UPDATE
+		SET submission_count=2, decision=EXCLUDED.decision,
+		    reject_reason_code=EXCLUDED.reject_reason_code, decided_at=now()`, f.restaurantID); err != nil {
+		t.Fatalf("seed application: %v", err)
+	}
+	t.Cleanup(func() {
+		_, _ = pool.Exec(context.Background(), `DELETE FROM kyc_document WHERE subject_id=$1`, f.restaurantID)
+	})
+	seedDoc := func(docType, state, age string) {
+		t.Helper()
+		var objID string
+		if err := pool.QueryRow(ctx, `
+			INSERT INTO stored_object (bucket, object_key, purpose, content_type, byte_size, sha256, state, uploaded_by, confirmed_at)
+			VALUES ('hg-kyc', 'k/'||md5(random()::text), 'KYC_DOCUMENT', 'application/pdf', 1024, decode(repeat('a1',32),'hex'), 'READY', $1, now())
+			RETURNING id`, f.ownerAccountID).Scan(&objID); err != nil {
+			t.Fatalf("seed stored_object: %v", err)
+		}
+		t.Cleanup(func() { _, _ = pool.Exec(context.Background(), `DELETE FROM stored_object WHERE id=$1`, objID) })
+		rejected := state == "REJECTED"
+		if _, err := pool.Exec(ctx, `
+			INSERT INTO kyc_document (subject_type, subject_id, restaurant_doc_type, stored_object_id, state,
+			                          reviewed_by, reviewed_at, rejection_reason_code,
+			                          deadline_at, deadline_action, created_at)
+			VALUES ('RESTAURANT', $1, $2::restaurant_doc_type, $3, $4::kyc_document_state,
+			        CASE WHEN $5 THEN $6::uuid END, CASE WHEN $5 THEN now() END,
+			        CASE WHEN $5 THEN 'ILLEGIBLE'::document_rejection_reason_code END,
+			        CASE WHEN $5 THEN NULL ELSE now()+interval '72h' END,
+			        CASE WHEN $5 THEN NULL ELSE 'ESCALATE' END,
+			        now() - $7::interval)`,
+			f.restaurantID, docType, objID, state, rejected, f.ownerAccountID, age); err != nil {
+			t.Fatalf("seed kyc_document %s %s: %v", docType, state, err)
+		}
+	}
+	seedDoc("BUSINESS_LICENCE", "REJECTED", "1 hour") // replaced below
+	seedDoc("BUSINESS_LICENCE", "SUBMITTED", "1 minute")
+	seedDoc("FOOD_SAFETY", "REJECTED", "1 hour") // still the latest: needs a fix
+
+	req := httptest.NewRequest(http.MethodGet, "/v1/restaurant/onboarding/status", nil)
+	req = withPrincipal(req, principalWith(f.ownerAccountID, httpx.RoleRestaurantOwner))
+	rec := httptest.NewRecorder()
+	h.GetRestaurantOnboardingStatus(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status=%d (body: %s)", rec.Code, rec.Body.String())
+	}
+	var env struct {
+		Data struct {
+			Rejection *struct {
+				Documents []struct {
+					DocType string `json:"doc_type"`
+				} `json:"documents"`
+			} `json:"rejection"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &env); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if env.Data.Rejection == nil {
+		t.Fatalf("rejection is null (body: %s)", rec.Body.String())
+	}
+	var got []string
+	for _, d := range env.Data.Rejection.Documents {
+		got = append(got, d.DocType)
+	}
+	if len(got) != 1 || got[0] != "FOOD_SAFETY" {
+		t.Fatalf("documents to fix = %v, want only FOOD_SAFETY (the replaced BUSINESS_LICENCE must not come back)", got)
+	}
+}

@@ -8,9 +8,18 @@
  * a state; the server validates the geofence and the ordering). The ARRIVED steps are proximity-
  * checked, so each transition is stamped with the assignment's own pickup / drop-off coordinates.
  *
- * At the drop-off the required proof method comes from the server as `required_pod_method`: OTP
- * handovers show a 4-digit code entry; unattended drops require a photo. Once proof is recorded the
- * final DELIVERED transition commits and the delivered assignment is rendered.
+ * At the counter the rider types the 4-digit pickup code the kitchen reads out; PICKED_UP is sent
+ * as `PickupTransitionInput` with `pickup_code`, the only way through pickup (contract
+ * `createAssignmentTransition`, issue #311). A wrong code shows `details.attempts_remaining`.
+ *
+ * At the drop-off the required proof method comes from the server as `required_pod_method`: a met
+ * handover (OTP) accepts only the customer's 4-digit delivery code, and a wrong one shows the
+ * attempts left; unattended drops require a photo. Once proof is recorded the final DELIVERED
+ * transition commits and the delivered assignment is rendered.
+ *
+ * Five wrong codes lock that handover (`PICKUP_CODE_LOCKED` / `DELIVERY_CODE_LOCKED`): the screen
+ * says HalalGoes support is taking over and offers no code entry and no photo for it. Only support
+ * can confirm a locked handover; "Check again" re-reads the assignment.
  *
  * Money — the earnings estimate — renders through `Price`, never hand-formatted.
  *
@@ -133,6 +142,32 @@ const SCENARIOS: { value: string; label: string }[] = [
   { value: 'assignment_otp_pod_required', label: 'Meet at door (OTP POD)' },
 ];
 
+/** Which handover is locked after five wrong codes, and the assignment state it locked in. */
+type Locked = { kind: 'pickup' | 'delivery'; at: AssignmentState };
+
+/** The code errors' `details.attempts_remaining` (an object, not a field-error list). */
+function attemptsRemaining(e: unknown): number | undefined {
+  if (!isApiError(e)) return undefined;
+  const details = e.details as unknown as { attempts_remaining?: unknown } | undefined;
+  const n = details?.attempts_remaining;
+  return typeof n === 'number' ? n : undefined;
+}
+
+function wrongCodeMessage(who: 'kitchen' | 'customer', e: unknown): string {
+  const left = attemptsRemaining(e);
+  const ask = who === 'kitchen' ? 'Ask the kitchen to read it again.' : 'Ask the customer to read it again.';
+  if (left === undefined) return `That code isn't right. ${ask}`;
+  return `That code isn't right. ${left} ${left === 1 ? 'attempt' : 'attempts'} left. ${ask}`;
+}
+
+/** Demo-only: against the mock, `0000` renders the wrong-code fixture and `9999` the locked one. */
+function mockCodeScenario(kind: 'pickup' | 'delivery', code: string, fallback: string): string {
+  if (!IS_MOCK) return fallback;
+  if (code === '0000') return `error_${kind}_code_incorrect`;
+  if (code === '9999') return `error_${kind}_code_locked`;
+  return fallback;
+}
+
 type Load =
   | { status: 'loading' }
   | { status: 'error'; message: string; code?: string }
@@ -167,13 +202,15 @@ export function AssignmentScreen({
   );
   const [state, setState] = React.useState<Load>({ status: 'loading' });
   const [otp, setOtp] = React.useState('');
+  const [pickupCode, setPickupCode] = React.useState('');
+  const [locked, setLocked] = React.useState<Locked | null>(null);
   const [submitting, setSubmitting] = React.useState(false);
   const [advancing, setAdvancing] = React.useState(false);
   const [podError, setPodError] = React.useState<string | null>(null);
   const [stepError, setStepError] = React.useState<string | null>(null);
-  // Handoff seal scans: at pickup and at the door the rider scans the tamper-evident seal before
-  // advancing. "Skip" (no seal bound to this order) also sets these, so unsealed orders still flow.
-  const [pickupSealDone, setPickupSealDone] = React.useState(false);
+  // Handoff seal scan at the door: the rider scans the tamper-evident seal before recording proof.
+  // "Skip" (no seal bound to this order) also sets it, so unsealed orders still flow. At pickup the
+  // kitchen's code replaces the seal scan.
   const [deliverySealDone, setDeliverySealDone] = React.useState(false);
 
   const load = React.useCallback(async () => {
@@ -181,6 +218,7 @@ export function AssignmentScreen({
     setPodError(null);
     setStepError(null);
     setOtp('');
+    setPickupCode('');
     try {
       const data = await unwrap(
         clientFor(scenario).GET('/v1/riders/me/assignments/{assignmentId}', {
@@ -207,40 +245,59 @@ export function AssignmentScreen({
     const step = FORWARD[state.assignment.state];
     if (!step) return;
     const loc = step.at === 'pickup' ? state.assignment.pickup : state.assignment.dropoff;
+    const from = state.assignment.state;
+    const isPickup = step.next === 'PICKED_UP';
     setAdvancing(true);
     setStepError(null);
+    const stamp = {
+      latitude: loc.latitude,
+      longitude: loc.longitude,
+      accuracy_m: 5,
+      occurred_at: new Date().toISOString(),
+    };
     try {
       const data = await unwrap(
-        clientFor(scenario).POST('/v1/riders/me/assignments/{assignmentId}/transitions', {
-          params: {
-            path: { assignmentId },
-            header: { 'Idempotency-Key': idempotencyKey() },
+        clientFor(isPickup ? mockCodeScenario('pickup', pickupCode, scenario) : scenario).POST(
+          '/v1/riders/me/assignments/{assignmentId}/transitions',
+          {
+            params: {
+              path: { assignmentId },
+              header: { 'Idempotency-Key': idempotencyKey() },
+            },
+            // PICKED_UP carries the kitchen's code (PickupTransitionInput); every other step is a
+            // plain step (AssignmentStepInput).
+            body: isPickup
+              ? { to_state: 'PICKED_UP', pickup_code: pickupCode, ...stamp }
+              : { to_state: step.next, ...stamp },
           },
-          body: {
-            to_state: step.next,
-            latitude: loc.latitude,
-            longitude: loc.longitude,
-            accuracy_m: 5,
-            occurred_at: new Date().toISOString(),
-          },
-        }),
+        ),
       );
+      setPickupCode('');
       setState({ status: 'ready', assignment: data.data });
     } catch (e) {
-      setStepError(e instanceof Error ? e.message : 'Could not advance the delivery.');
+      if (isApiError(e) && e.code === 'PICKUP_CODE_LOCKED') {
+        setLocked({ kind: 'pickup', at: from });
+      } else if (isApiError(e) && e.code === 'PICKUP_CODE_INCORRECT') {
+        setStepError(wrongCodeMessage('kitchen', e));
+      } else if (isApiError(e) && e.code === 'PICKUP_CODE_REQUIRED') {
+        setStepError('Type the 4-digit pickup code the kitchen reads out.');
+      } else {
+        setStepError(e instanceof Error ? e.message : 'Could not advance the delivery.');
+      }
     } finally {
       setAdvancing(false);
     }
-  }, [state, scenario, assignmentId]);
+  }, [state, scenario, assignmentId, pickupCode]);
 
   const submitPod = React.useCallback(async () => {
     if (state.status !== 'ready') return;
     const method = state.assignment.required_pod_method;
+    const from = state.assignment.state;
     setSubmitting(true);
     setPodError(null);
-    // Demo the POD error state honestly against the mock: the code `0000` is routed to the real
-    // `error_otp_incorrect` ErrorEnvelope fixture; any other code takes the happy path.
-    const podScenario = IS_MOCK && method === 'OTP' && otp === '0000' ? 'error_otp_incorrect' : scenario;
+    // Demo the POD error states honestly against the mock: `0000` and `9999` are routed to the real
+    // wrong-code and locked ErrorEnvelope fixtures; any other code takes the happy path.
+    const podScenario = method === 'OTP' ? mockCodeScenario('delivery', otp, scenario) : scenario;
     try {
       const photoObjectId = method === 'PHOTO' ? await uploadPodPhoto() : undefined;
       let data = await unwrap(
@@ -280,12 +337,13 @@ export function AssignmentScreen({
       }
       setState({ status: 'ready', assignment: data.data });
     } catch (e) {
-      if (isApiError(e)) {
-        setPodError(
-          e.status === 423
-            ? 'The code is locked after five wrong tries. Use photo with attestation.'
-            : e.message,
-        );
+      if (isApiError(e) && e.code === 'DELIVERY_CODE_LOCKED') {
+        // No photo fallback for a met handover: support takes over.
+        setLocked({ kind: 'delivery', at: from });
+      } else if (isApiError(e) && e.code === 'DELIVERY_CODE_INCORRECT') {
+        setPodError(wrongCodeMessage('customer', e));
+      } else if (isApiError(e)) {
+        setPodError(e.message);
       } else {
         setPodError(e instanceof Error ? e.message : 'Could not submit proof of delivery.');
       }
@@ -299,6 +357,7 @@ export function AssignmentScreen({
   const delivered =
     state.status === 'ready' &&
     (state.assignment.pod_recorded || state.assignment.state === 'DELIVERED');
+  const isLocked = state.status === 'ready' && locked !== null && locked.at === state.assignment.state;
   const mapLeg = state.status === 'ready' && !delivered ? MAP_LEG[state.assignment.state] : undefined;
   const live = useLiveFix(mapLeg !== undefined);
 
@@ -413,6 +472,17 @@ export function AssignmentScreen({
               description="Proof of delivery is recorded. Nice work."
               action={{ label: 'Back to shift', onPress: nav.resetHome }}
             />
+          ) : isLocked && locked ? (
+            <Banner
+              variant="warning"
+              title="HalalGoes support is taking over"
+              description={
+                locked.kind === 'pickup'
+                  ? 'Five wrong pickup codes have locked this pickup. Support will confirm it with the restaurant. You can\'t confirm it in the app.'
+                  : 'Five wrong delivery codes have locked this handover. Support will confirm it with the customer. You can\'t confirm it in the app.'
+              }
+              action={{ label: 'Check again', onPress: () => void load() }}
+            />
           ) : atDropoff && !deliverySealDone ? (
             <SealScanCard
               orderId={state.assignment.order_id}
@@ -429,12 +499,13 @@ export function AssignmentScreen({
               submitting={submitting}
               onSubmit={() => void submitPod()}
             />
-          ) : step && state.assignment.state === 'ARRIVED_AT_PICKUP' && !pickupSealDone ? (
-            <SealScanCard
-              orderId={state.assignment.order_id}
-              phase="pickup"
-              onScanned={() => setPickupSealDone(true)}
-              onSkip={() => setPickupSealDone(true)}
+          ) : step && step.next === 'PICKED_UP' ? (
+            <PickupCodeCard
+              code={pickupCode}
+              onCode={setPickupCode}
+              error={stepError}
+              submitting={advancing}
+              onSubmit={() => void advance()}
             />
           ) : step ? (
             <Card variant="outlined">
@@ -481,6 +552,54 @@ function ItemsCard({ items }: { items: Assignment['items'] }): React.ReactElemen
             {item.variant_name ? ` (${item.variant_name})` : ''}
           </Text>
         ))}
+      </View>
+    </Card>
+  );
+}
+
+function PickupCodeCard({
+  code,
+  onCode,
+  error,
+  submitting,
+  onSubmit,
+}: {
+  code: string;
+  onCode: (next: string) => void;
+  error: string | null;
+  submitting: boolean;
+  onSubmit: () => void;
+}): React.ReactElement {
+  const theme = useTheme();
+  const label = useTypeStyle('label.lg');
+  const caption = useTypeStyle('caption');
+  return (
+    <Card variant="outlined">
+      <View style={{ gap: theme.density.gutter }}>
+        <Text style={{ ...label, color: theme.color.text.primary }}>Pickup code</Text>
+        <Text style={{ ...caption, color: theme.color.text.secondary }}>
+          Ask the kitchen to read out the 4-digit pickup code on their order screen.
+        </Text>
+        <Input
+          label="Pickup code"
+          value={code}
+          onChange={(v) => onCode(v.replace(/\D/g, '').slice(0, 4))}
+          variant="numeric"
+          size="lg"
+          placeholder="1234"
+          maxLength={4}
+          errorText={error ?? undefined}
+        />
+        <Button
+          variant="primary"
+          size="xl"
+          fullWidth
+          loading={submitting}
+          disabled={code.length !== 4}
+          onPress={onSubmit}
+        >
+          Confirm pickup
+        </Button>
       </View>
     </Card>
   );

@@ -1,0 +1,26 @@
+{
+  "scenario": "place_address_postcode",
+  "domain": "geo",
+  "schema": "GeocodedAddress",
+  "describes": "A postal code area: no `line1`, the pin at the area's centre. The user types the street and drags the pin to the door.",
+  "operations": [
+    "getPlaceAddress"
+  ],
+  "status": 200,
+  "tags": [
+    "geo",
+    "edge"
+  ],
+  "payload": {
+    "kind": "POSTCODE",
+    "name": null,
+    "line1": null,
+    "city": "Toronto",
+    "province": "ON",
+    "postal_code": "M5J 0C3",
+    "country": "CA",
+    "latitude": 43.641,
+    "longitude": -79.3812,
+    "formatted": "Toronto, Ontario M5J 0C3"
+  }
+}
