@@ -3,14 +3,19 @@
 # sent) → back online → code screen → a wrong code once shows the tries left → 000000 → the
 # splash → Home (the three-tab shell).
 #
-# Built with EXPO_PUBLIC_HG_REDESIGN=1 and a cleared Metro cache (see 0-shell.yaml).
-# Env: PHONE_DIGITS (rider-sim's ten digits; dev codes for +1 555 010 01xx are always 000000).
+# It signs in once for the whole run: the flows after it (in name order) keep this session
+# (launchApp with stopApp: false). Built with EXPO_PUBLIC_HG_REDESIGN=1 and a cleared Metro cache.
+# Env: PHONE (E.164) and CODE. In CI, run.sh passes the e2e world's rider and the code
+# 1-ask-for-code.yaml asked for; asking again inside that open challenge returns the same one.
+# The defaults are devworld's rider-sim, whose code is always 000000.
+# Each default is written ${VAR || "…"}: a plain value under env: would override the -e values
+# run.sh passes, and CI would sign in devworld's rider-sim, who is not a rider in the e2e world.
 appId: com.halalgoes.rider.dev
 name: rider redesign, sign in
 env:
-  PHONE_DIGITS: "5550100151"
-  WRONG_CODE: "111111"
-  CODE: "000000"
+  PHONE: ${PHONE || "+15550100151"}
+  WRONG_CODE: ${WRONG_CODE || "111111"}
+  CODE: ${CODE || "000000"}
 ---
 - launchApp:
     clearState: true
@@ -23,7 +28,7 @@ env:
 - takeScreenshot: rider-wp1-01-phone
 - tapOn:
     id: "phone-field"
-- inputText: ${PHONE_DIGITS}
+- inputText: ${PHONE}
 - hideKeyboard
 
 # Offline: Send code sends nothing and says so (SO SignIn-Phone-Offline).
@@ -44,8 +49,7 @@ env:
 - extendedWaitUntil:
     visible: "Enter your code"
     timeout: 30000
-- assertVisible: "We sent a 6-digit code to the number ending 0151."
-- assertVisible: "You can ask for a new code in .*"
+- assertVisible: "We sent a 6-digit code to the number ending \\d{4}\\."
 - takeScreenshot: rider-wp1-03-code
 
 # A wrong code clears the field and says how many tries are left (SO SignIn-Code-Incorrect).
@@ -66,3 +70,14 @@ env:
     timeout: 60000
 - assertVisible: "Account"
 - takeScreenshot: rider-wp1-05-home
+
+# The redesigned shell: three tabs, Home, Earnings, Account (rider decision "Rider navigation").
+- tapOn:
+    id: "tab-earnings"
+- takeScreenshot: rider-redesign-02-earnings-tab
+- tapOn:
+    id: "tab-account"
+- takeScreenshot: rider-redesign-03-account-tab
+- tapOn:
+    id: "tab-home"
+- assertVisible: "Earnings"

@@ -705,7 +705,12 @@ func (s *Service) ResetPassword(ctx context.Context, token, newPassword string, 
 	if err := resetTokenErr(res); err != nil {
 		return err
 	}
-	s.deny.AddAccount(res.AccountID)
+	// Deny the sessions the reset revoked, not the account: a session signed
+	// in after the reset must work at once (#748). Postgres stays the source
+	// of truth for the old ones; the 10 s refresh reloads them.
+	for _, sid := range res.RevokedSessionIDs {
+		s.deny.AddSession(sid)
+	}
 	return nil
 }
 

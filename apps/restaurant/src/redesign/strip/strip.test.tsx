@@ -644,7 +644,8 @@ describe('strip around the board', () => {
     await renderRedesign('/orders/history');
     expect(await screen.findByText('Paused until 2:32 pm')).toBeTruthy();
     expect(screen.getByText('New orders resume at 2:32 pm. Orders in progress still need finishing.')).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Resume now' })).toBeTruthy();
+    // The status bar (live board) has its own Resume now; this one is the strip's empty card.
+    expect(within(screen.getByTestId('new-order-strip')).getByRole('button', { name: 'Resume now' })).toBeTruthy();
     cleanup();
     installFakeApi(routesFor([pending('B3M9', 100)], { 'GET /v1/restaurant/availability': 'restaurant_open_state_closed_toggle' }));
     await renderRedesign('/orders/history');

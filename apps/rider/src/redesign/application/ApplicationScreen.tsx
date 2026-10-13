@@ -104,7 +104,7 @@ const CLOSED_CODES = new Set(['ACCOUNT_NOT_ACTIVE', 'ACCOUNT_DEACTIVATED', 'ACCO
  * without the probe Continue would stay off after the signal returns ("Continue works again once
  * you are back online").
  */
-function useStatus(): QueryResult<OnboardingStatus> {
+export function useStatus(): QueryResult<OnboardingStatus> {
   const online = useOnline();
   return useApiQuery('rider-onboarding-status', fetchOnboardingStatus, { pollMs: online ? null : OFFLINE_PROBE_MS });
 }
@@ -116,8 +116,10 @@ function leave(): void {
 
 // ───────────────────────────── shared layout (local to this file) ─────────────────────────────
 
-interface FrameProps {
+export interface FrameProps {
   testID: string;
+  /** The AppBar title; "Your application" unless a screen names its own (WP8 capture, edit screens). */
+  title?: string;
   subtitle?: string;
   back?: { label: string; onPress: () => void };
   /** 0–100 from the server; the AppBar's determinate bar stands in for ProgressSteps. */
@@ -129,7 +131,7 @@ interface FrameProps {
   children: React.ReactNode;
 }
 
-function Frame({ testID, subtitle, back, progress, ownHeading, footer, scrollRef, children }: FrameProps): React.ReactElement {
+export function Frame({ testID, title = APP_TITLE, subtitle, back, progress, ownHeading, footer, scrollRef, children }: FrameProps): React.ReactElement {
   const theme = useTheme();
   return (
     <KeyboardAvoidingView
@@ -140,7 +142,7 @@ function Frame({ testID, subtitle, back, progress, ownHeading, footer, scrollRef
       {/* ds-request(native): AppBar back 56 (field) — SO Profile-Default, Vehicle-Empty */}
       <AppBar
         tone="field"
-        title={APP_TITLE}
+        title={title}
         subtitle={subtitle}
         back={back ? { onPress: back.onPress } : undefined}
         backLabel={back?.label}
@@ -175,7 +177,7 @@ function Frame({ testID, subtitle, back, progress, ownHeading, footer, scrollRef
 }
 
 /** "Step 1 of 5: your details" and "10% done" (the server's percent). */
-function ProgressLine({ step, pct }: { step: number; pct: number }): React.ReactElement {
+export function ProgressLine({ step, pct }: { step: number; pct: number }): React.ReactElement {
   const theme = useTheme();
   const label = typeStyle(theme, 'label.lg');
   return (
@@ -187,7 +189,7 @@ function ProgressLine({ step, pct }: { step: number; pct: number }): React.React
   );
 }
 
-function SupportGhost({ support }: { support: Support }): React.ReactElement | null {
+export function SupportGhost({ support }: { support: Support }): React.ReactElement | null {
   if (!support.phone) return null;
   return (
     <View style={{ alignItems: 'center' }}>
@@ -198,7 +200,7 @@ function SupportGhost({ support }: { support: Support }): React.ReactElement | n
   );
 }
 
-function SupportHours({ support }: { support: Support }): React.ReactElement | null {
+export function SupportHours({ support }: { support: Support }): React.ReactElement | null {
   const theme = useTheme();
   if (!support.phone || !support.hours) return null;
   return (
@@ -208,7 +210,7 @@ function SupportHours({ support }: { support: Support }): React.ReactElement | n
   );
 }
 
-function LoadingBody({ label }: { label: string }): React.ReactElement {
+export function LoadingBody({ label }: { label: string }): React.ReactElement {
   const theme = useTheme();
   return (
     <View style={{ gap: space['4'] }}>
@@ -250,7 +252,7 @@ function LoadError({ testID, onRetry, support, subtitle, back }: {
   );
 }
 
-function FieldNote({ text, error, testID }: { text: string; error?: boolean; testID?: string }): React.ReactElement {
+export function FieldNote({ text, error, testID }: { text: string; error?: boolean; testID?: string }): React.ReactElement {
   const theme = useTheme();
   return (
     <View style={{ flexDirection: 'row', gap: space['2'], alignItems: 'flex-start' }}>
@@ -266,7 +268,7 @@ function FieldNote({ text, error, testID }: { text: string; error?: boolean; tes
   );
 }
 
-function OfflineAlert({ body }: { body: string }): React.ReactElement {
+export function OfflineAlert({ body }: { body: string }): React.ReactElement {
   const theme = useTheme();
   return (
     // ds-request(native): InlineAlert — SO Onboarding-Offline, Profile-Offline, Vehicle-Offline (Banner stands in)

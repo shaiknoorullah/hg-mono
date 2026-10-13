@@ -21,6 +21,8 @@ function grant(nextRoute: string, status = 'ACTIVE') {
 
 const NAMED: MockAnswer = { status: 200, body: { data: { ...payloadOf('customer_profile'), first_name: 'Aisha' } } };
 const NO_NAME: MockAnswer = { status: 200, body: { data: { ...payloadOf('customer_profile'), first_name: '' } } };
+// A new account's profile holds the server's placeholder, not a name (issue #779).
+const PLACEHOLDER_NAME: MockAnswer = { status: 200, body: { data: { ...payloadOf('customer_profile'), first_name: 'there' } } };
 const ORDER_ID = payloadOf('order_preparing').id as string;
 
 interface Row {
@@ -47,6 +49,12 @@ const ROWS: Row[] = [
     name: 'HOME with no first name → Your details',
     route: 'HOME',
     answers: { getCustomerProfile: NO_NAME },
+    expected: { kind: 'profile' },
+  },
+  {
+    name: 'HOME with only the server\'s placeholder name → Your details, never "Welcome back, there."',
+    route: 'HOME',
+    answers: { getCustomerProfile: PLACEHOLDER_NAME },
     expected: { kind: 'profile' },
   },
   {

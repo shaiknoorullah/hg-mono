@@ -1,0 +1,68 @@
+{
+  "scenario": "realtime_restaurant_offer_withdrawn_payment_failed",
+  "domain": "realtime",
+  "schema": "RealtimeEvent[]",
+  "describes": "The kitchen accepts, the capture is declined, and the offer is withdrawn with `reason: payment_failed`: \"Don't prepare this order. The customer was not charged.\" Accepting returns `error_capture_failed`.",
+  "operations": [],
+  "status": 200,
+  "tags": [
+    "realtime",
+    "script",
+    "restaurant",
+    "error-path"
+  ],
+  "payload": [
+    {
+      "id": "GJDAE2RQD8716KF5AWWTETZFM5",
+      "seq": 1,
+      "channel": "restaurant:a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+      "type": "restaurant.order_offered",
+      "v": 1,
+      "ts": "2026-08-10T18:42:11.412Z",
+      "data": {
+        "order_id": "22d6814a-470c-49f0-a279-e9d5f67fb18c",
+        "code": "HG-C8W4-2R",
+        "expires_at": "2026-08-10T18:45:11.412Z",
+        "deadline_at": "2026-08-10T18:45:11.412Z",
+        "customer_first_name": "Fatima",
+        "lines": [
+          {
+            "name": "Chicken Karahi (Half)",
+            "variant": null,
+            "addons": [
+              "Garlic naan"
+            ],
+            "qty": 1,
+            "note": null
+          },
+          {
+            "name": "Mango Lassi",
+            "variant": null,
+            "addons": [],
+            "qty": 3,
+            "note": "No ice"
+          }
+        ],
+        "subtotal_cents": 2846,
+        "total_cents": 3216,
+        "currency": "CAD",
+        "prep_eta_suggestion_min": 15,
+        "fulfilment": "PICKUP"
+      },
+      "_delay_ms": 0
+    },
+    {
+      "id": "FD4EQK09Z05G3GERYRJV3S3PNW",
+      "seq": 2,
+      "channel": "restaurant:a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+      "type": "restaurant.order_offer_withdrawn",
+      "v": 1,
+      "ts": "2026-08-10T18:42:20.412Z",
+      "data": {
+        "order_id": "22d6814a-470c-49f0-a279-e9d5f67fb18c",
+        "reason": "payment_failed"
+      },
+      "_delay_ms": 9000
+    }
+  ]
+}

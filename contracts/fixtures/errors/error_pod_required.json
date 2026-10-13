@@ -1,0 +1,26 @@
+{
+  "scenario": "error_pod_required",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`422` · `POD_REQUIRED`. `DELIVERED` without the proof artefact. `details.required_pod_method` says which proof the drop-off needs (`OTP` here).",
+  "operations": [
+    "createAssignmentTransition",
+    "submitProofOfDelivery"
+  ],
+  "status": 422,
+  "tags": [
+    "error-envelope",
+    "error-path",
+    "rider"
+  ],
+  "payload": {
+    "error": {
+      "code": "POD_REQUIRED",
+      "message": "Proof of delivery is required before delivering.",
+      "request_id": "20KQ12V42PVG9H2H31P3NFM1Q0",
+      "details": {
+        "required_pod_method": "OTP"
+      }
+    }
+  }
+}

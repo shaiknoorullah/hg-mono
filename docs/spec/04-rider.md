@@ -2,7 +2,7 @@
 covers:
   - apps/rider/**
   - services/hg/internal/rider/**
-reviewed: 2026-10-09
+reviewed: 2026-10-10
 ---
 
 # HalalGoes — RIDER Domain Specification
@@ -665,6 +665,15 @@ The rebuild **must not** reintroduce: Redis keys `riders:available:locations`, `
   - Every transition emits `order_update` to the customer and restaurant with the mapped customer-facing status, and updates the customer ETA.
   - Repeating the current state returns `200` with the unchanged assignment (idempotent). Any backwards transition returns `409 INVALID_TRANSITION` with `details.current_state`.
   - Transitions are accepted offline-first: the app queues them with `occurred_at` and replays on reconnect; the server accepts replays up to 2 h late.
+
+  **Release 1.0 build (legacy rider app, `apps/rider/src/screens/AssignmentScreen.tsx`,
+  [#311](https://github.com/shaiknoorullah/hg-mono/issues/311)):** at the counter the rider types
+  the 4-digit pickup code the kitchen reads out, and `PICKED_UP` is sent with `pickup_code`; this
+  replaces the pickup seal scan. A wrong code shows the attempts left
+  (`details.attempts_remaining`). When five wrong codes lock the pickup or the delivery code, the
+  screen says HalalGoes support is taking over, offers no code entry and no photo for that
+  handover, and a "Check again" button re-reads the assignment. A met handover accepts only the
+  customer's delivery code (D-21).
 - **Acceptance criteria**:
   1. Given a rider 2 km from the restaurant, When they tap "I'm at the restaurant" without an override reason, Then `422 GEOFENCE_REQUIRED` and no transition row is written.
   2. Given `ARRIVED_AT_PICKUP` at 10:00 and `PICKED_UP` at 10:14, When the delivery completes, Then `pickup_wait_seconds=840` is recorded.
