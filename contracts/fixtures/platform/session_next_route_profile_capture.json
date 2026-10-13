@@ -33,7 +33,7 @@
       "status": "ACTIVE",
       "locale": "en-CA",
       "timezone": "America/Toronto",
-      "next_route": "HOME"
+      "next_route": "PROFILE_CAPTURE"
     }
   }
 }

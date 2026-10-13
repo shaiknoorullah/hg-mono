@@ -1,0 +1,27 @@
+{
+  "scenario": "error_otp_incorrect_attempts_0",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`400` · `OTP_INCORRECT`. The last attempt was wrong: `attempts_remaining: 0`. The code field locks and the app offers \"Send a new code\"; the next `verifyOtp` on this challenge is `400 OTP_INVALID_OR_EXPIRED` (`error_otp_invalid_or_expired`).",
+  "operations": [
+    "verifyOtp"
+  ],
+  "status": 400,
+  "tags": [
+    "error-envelope",
+    "error-path",
+    "rider",
+    "customer",
+    "auth"
+  ],
+  "payload": {
+    "error": {
+      "code": "OTP_INCORRECT",
+      "message": "That code is incorrect.",
+      "request_id": "CP4CVD7V5MZJY51Q9VT6W036J9",
+      "details": {
+        "attempts_remaining": 0
+      }
+    }
+  }
+}
