@@ -83,6 +83,7 @@ jobs:
               - 'contracts/**'
               - 'tools/contract-tools/**'
               - 'tools/mock-server/**'
+              - 'tools/design-diff/**'
               # Exported by packages/emails; contract-kit checks they were not hand-edited.
               - 'services/hg/internal/notify/emailtmpl/templates/**'
               - 'package.json'
@@ -193,6 +194,10 @@ jobs:
       # moves realtime scripts to wall clock, against the fixtures just validated.
       - name: mock server unit tests
         run: pnpm --filter @hg/mock-server test:unit
+
+      # The design-diff harness's verdict, phone-bar and naming rules (tools/design-diff/README.md).
+      - name: design-diff unit tests
+        run: pnpm --filter @hg/design-diff test
 
       # The email templates the Go service embeds are exactly what packages/emails
       # exports. A hand edit to services/hg/internal/notify/emailtmpl/templates/**,
