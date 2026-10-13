@@ -750,6 +750,10 @@ func run() error {
 	// nothing to send to, and approved refunds wait.
 	if stripeClient != nil {
 		go payments.NewRefundSender(paymentsSvc).Run(ctx)
+		// The capture retrier retries a capture that failed when the
+		// restaurant accepted: claimed per row with SKIP LOCKED, backed off
+		// 1 m, 2 m, 4 m ..., and paged after eight failures (#741).
+		go payments.NewCaptureRetrier(paymentsSvc).Run(ctx)
 	}
 
 	// Wire orders to the payments gateway (deferred from B5 above): createOrder
