@@ -190,11 +190,17 @@ func (r *Repo) getOnboardingRejection(ctx context.Context, restaurantID string) 
 		return nil, fmt.Errorf("get onboarding rejection: %w", err)
 	}
 
+	// Only the latest document of each type counts: a re-upload adds a row and
+	// leaves the replaced one, which must not be listed as still needing a fix.
 	rows, err := r.db.Query(ctx, `
 		SELECT `+documentColumns+`
 		  FROM kyc_document d
-		 WHERE d.subject_id = $1 AND d.subject_type = 'RESTAURANT'
-		   AND d.state IN ('REJECTED','EXPIRED') AND d.deleted_at IS NULL
+		 WHERE d.id IN (
+		         SELECT DISTINCT ON (k.restaurant_doc_type) k.id
+		           FROM kyc_document k
+		          WHERE k.subject_id = $1 AND k.subject_type = 'RESTAURANT' AND k.deleted_at IS NULL
+		          ORDER BY k.restaurant_doc_type, k.created_at DESC, k.id DESC)
+		   AND d.state IN ('REJECTED','EXPIRED')
 		 ORDER BY d.created_at DESC`, restaurantID)
 	if err != nil {
 		return nil, fmt.Errorf("get rejected documents: %w", err)

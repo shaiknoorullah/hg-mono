@@ -129,9 +129,9 @@ def _restaurant_onboarding(reg, synth) -> None:
         "restaurant_onboarding_application_rejected",
         "onboarding",
         "RestaurantOnboardingStatus",
-        "`onboarding_state = DOCUMENTS_REJECTED` after a final `REJECT` decision "
-        "(`rejection.decision = REJECT`). Unlike a request for changes there is nothing to "
-        "fix and resubmit; the owner is shown the reason and who to contact.",
+        "`onboarding_state = DOCUMENTS_REJECTED` after a `REJECT` decision "
+        "(`rejection.decision = REJECT`). Unlike a request for changes no documents are listed "
+        "to fix and the screen offers no resubmission; the owner is shown the reason and who to contact.",
         final,
         operations=["getRestaurantOnboardingStatus"],
         tags=["restaurant"],

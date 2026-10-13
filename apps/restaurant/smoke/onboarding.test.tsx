@@ -182,7 +182,7 @@ describe('restaurant onboarding', () => {
     expect(statusCalls(calls)).toBe(2);
   });
 
-  it("shows the admin's reason, and a final rejection has nothing to resubmit (#695)", async () => {
+  it("shows the admin's reason, and a rejection offers no resubmission (#695)", async () => {
     scriptFetch({ 'GET /v1/restaurant/onboarding/status': statusOf(applicationRejected) });
 
     await mountAt('/onboarding');

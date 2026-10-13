@@ -466,7 +466,7 @@ Restaurant and rider onboarding, profiles, vehicles and trading state. — 48 sc
 |---|---|---:|---|
 | `restaurant_heartbeat` | `RestaurantHeartbeat` | 200 | The tablet's liveness ping response. |
 | `restaurant_onboarding_active` | `RestaurantOnboardingStatus` | 200 | `onboarding_state = ACTIVE`. Live and trading. Terminal, happy. |
-| `restaurant_onboarding_application_rejected` | `RestaurantOnboardingStatus` | 200 | `onboarding_state = DOCUMENTS_REJECTED` after a final `REJECT` decision (`rejection.decision = REJECT`). Unlike a request for changes there is nothing to fix and resubmit; the owner is shown the reason and who to contact. |
+| `restaurant_onboarding_application_rejected` | `RestaurantOnboardingStatus` | 200 | `onboarding_state = DOCUMENTS_REJECTED` after a `REJECT` decision (`rejection.decision = REJECT`). Unlike a request for changes no documents are listed to fix and the screen offers no resubmission; the owner is shown the reason and who to contact. |
 | `restaurant_onboarding_documents_approved` | `RestaurantOnboardingStatus` | 200 | `onboarding_state = DOCUMENTS_APPROVED`. Documents cleared; Stripe Connect is next. |
 | `restaurant_onboarding_documents_pending` | `RestaurantOnboardingStatus` | 200 | `onboarding_state = DOCUMENTS_PENDING`. Profile accepted; the five-document pack is outstanding. |
 | `restaurant_onboarding_documents_rejected` | `RestaurantOnboardingStatus` | 200 | `onboarding_state = DOCUMENTS_REJECTED`. **At least one document was rejected with a reason.** The applicant must resubmit exactly the failed documents. |

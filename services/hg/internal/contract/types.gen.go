@@ -8657,7 +8657,7 @@ type RestaurantOnboardingStatus struct {
 
 	// Rejection Present only while `onboarding_state` is `DOCUMENTS_REJECTED`; null otherwise.
 	Rejection *struct {
-		// Decision `REQUEST_CHANGES` means fix the listed documents and resubmit. `REJECT` is final for this application: there is nothing to fix and resubmit.
+		// Decision `REQUEST_CHANGES` means fix the listed documents and resubmit. `REJECT` means the application was declined, not sent back: no documents are listed to fix, and clients offer no resubmission. The server does not yet refuse a resubmission after `REJECT` (https://github.com/shaiknoorullah/hg-mono/issues/802).
 		Decision  RestaurantOnboardingStatusRejectionDecision `json:"decision"`
 		Documents []KycDocument                               `json:"documents"`
 
@@ -8681,7 +8681,7 @@ type RestaurantOnboardingStatus struct {
 // RestaurantOnboardingStatusCurrentStep defines model for RestaurantOnboardingStatus.CurrentStep.
 type RestaurantOnboardingStatusCurrentStep string
 
-// RestaurantOnboardingStatusRejectionDecision `REQUEST_CHANGES` means fix the listed documents and resubmit. `REJECT` is final for this application: there is nothing to fix and resubmit.
+// RestaurantOnboardingStatusRejectionDecision `REQUEST_CHANGES` means fix the listed documents and resubmit. `REJECT` means the application was declined, not sent back: no documents are listed to fix, and clients offer no resubmission. The server does not yet refuse a resubmission after `REJECT` (https://github.com/shaiknoorullah/hg-mono/issues/802).
 type RestaurantOnboardingStatusRejectionDecision string
 
 // RestaurantOpenState R-22. Evaluated in strict precedence. `CLOSED_OFFLINE` is the heartbeat gate: a

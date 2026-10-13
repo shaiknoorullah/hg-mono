@@ -13,8 +13,9 @@ export function ReviewStatus({ status, onRework }: { status: Schema['RestaurantO
   const rejection = status.current_step === 'FIX_DOCUMENTS' ? status.rejection : null;
 
   if (rejection) {
-    // A final REJECT has nothing to fix and resubmit; a request for changes does.
-    const final = rejection.decision === 'REJECT';
+    // A REJECT declines the application and lists nothing to fix; a request for
+    // changes does. The server does not yet refuse a resubmission after REJECT (#802).
+    const declined = rejection.decision === 'REJECT';
     const flagged = rejection.documents.filter((d) => d.state === 'REJECTED' || d.state === 'EXPIRED');
     const reason = rejection.note ?? status.blocking_reason;
     return (
@@ -25,11 +26,11 @@ export function ReviewStatus({ status, onRework }: { status: Schema['RestaurantO
           </div>
           <div>
             <h2 className="text-heading-sm font-extrabold text-fg-primary">
-              {final ? 'Application not approved' : 'Documents need attention'}
+              {declined ? 'Application not approved' : 'Documents need attention'}
             </h2>
             <p className="text-body-sm text-fg-secondary">
-              {final
-                ? `Review cycle ${status.review_cycle} · this decision is final for this application.`
+              {declined
+                ? `Review cycle ${status.review_cycle} · the application was declined, not sent back for changes.`
                 : `Review cycle ${status.review_cycle} · fix and resubmit below.`}
             </p>
           </div>
@@ -52,9 +53,9 @@ export function ReviewStatus({ status, onRework }: { status: Schema['RestaurantO
             ))}
           </div>
         )}
-        {final ? (
+        {declined ? (
           <p className="mt-4 text-body-sm text-fg-secondary">
-            There is nothing to resubmit. To ask about next steps, reply to the decision email or contact HalalGoes support.
+            No documents are listed to fix. To ask about next steps, reply to the decision email or contact HalalGoes support.
           </p>
         ) : (
           <Button fullWidth className="mt-5" onPress={onRework}>

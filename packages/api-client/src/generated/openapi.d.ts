@@ -7085,7 +7085,7 @@ export interface components {
             /** @description Present only while `onboarding_state` is `DOCUMENTS_REJECTED`; null otherwise. */
             rejection?: {
                 /**
-                 * @description `REQUEST_CHANGES` means fix the listed documents and resubmit. `REJECT` is final for this application: there is nothing to fix and resubmit.
+                 * @description `REQUEST_CHANGES` means fix the listed documents and resubmit. `REJECT` means the application was declined, not sent back: no documents are listed to fix, and clients offer no resubmission. The server does not yet refuse a resubmission after `REJECT` (https://github.com/shaiknoorullah/hg-mono/issues/802).
                  * @enum {string}
                  */
                 decision: "REQUEST_CHANGES" | "REJECT";
