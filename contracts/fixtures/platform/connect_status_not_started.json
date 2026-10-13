@@ -1,0 +1,30 @@
+{
+  "scenario": "connect_status_not_started",
+  "domain": "platform",
+  "schema": "ConnectStatus",
+  "describes": "No Stripe account yet: `services/hg` answers a zeroed, not-ready status (not 404), so the payout step renders \"Set up payouts\". Requirement ids and `disabled_reason` are Stripe's own, never paraphrased.",
+  "operations": [
+    "getConnectStatus"
+  ],
+  "status": 200,
+  "tags": [
+    "platform",
+    "money",
+    "connect-state-matrix"
+  ],
+  "payload": {
+    "stripe_account_id": null,
+    "charges_enabled": false,
+    "payouts_enabled": false,
+    "details_submitted": false,
+    "requirements": {
+      "currently_due": [],
+      "eventually_due": [],
+      "past_due": [],
+      "disabled_reason": null,
+      "deadline": null
+    },
+    "bank_last4": null,
+    "payout_interval": "WEEKLY"
+  }
+}

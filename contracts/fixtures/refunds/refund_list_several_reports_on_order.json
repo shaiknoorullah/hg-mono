@@ -1,0 +1,60 @@
+{
+  "scenario": "refund_list_several_reports_on_order",
+  "domain": "refunds",
+  "schema": "array<Refund>",
+  "describes": "`listRefunds?order_id=` for an order with two problem reports, newest first: a late delivery waiting for review and a missing item already refunded. They never merge, and together they stay under the captured amount.",
+  "operations": [
+    "listRefunds"
+  ],
+  "status": 200,
+  "tags": [
+    "money"
+  ],
+  "meta": {
+    "next_cursor": null,
+    "has_more": false,
+    "total": 2
+  },
+  "payload": [
+    {
+      "id": "5556e200-80c9-4278-a2c3-e3660a6ed7cb",
+      "order_id": "d1435528-5730-4b9a-a635-98014dc0201a",
+      "kind": "FEES_ONLY",
+      "scope": "PARTIAL_AMOUNT",
+      "reason_code": "LATE_DELIVERY",
+      "amount_cents": 902,
+      "tax_cents": 104,
+      "currency": "CAD",
+      "state": "REQUESTED",
+      "liability_split": {
+        "platform_cents": 902,
+        "restaurant_cents": 0,
+        "rider_cents": 0
+      },
+      "note": "Arrived 50 minutes after the latest promised time.",
+      "requested_at": "2026-08-10T18:22:11.412Z",
+      "settled_at": null,
+      "failure_message": null
+    },
+    {
+      "id": "98fd2a05-337b-470a-a587-97d705cc2f96",
+      "order_id": "d1435528-5730-4b9a-a635-98014dc0201a",
+      "kind": "PARTIAL_ITEMS",
+      "scope": "PARTIAL_ITEMS",
+      "reason_code": "ITEM_MISSING",
+      "amount_cents": 1695,
+      "tax_cents": 220,
+      "currency": "CAD",
+      "state": "SUCCEEDED",
+      "liability_split": {
+        "platform_cents": 495,
+        "restaurant_cents": 1200,
+        "rider_cents": 0
+      },
+      "note": "Biryani missing from a three-item bag.",
+      "requested_at": "2026-08-10T15:42:11.412Z",
+      "settled_at": null,
+      "failure_message": null
+    }
+  ]
+}

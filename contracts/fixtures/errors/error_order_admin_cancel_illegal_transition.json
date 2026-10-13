@@ -1,0 +1,22 @@
+{
+  "scenario": "error_order_admin_cancel_illegal_transition",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`409` · `ILLEGAL_TRANSITION`. `cancelOrderAdmin` on an order that can no longer be cancelled (it was delivered or already ended). Nothing changed; the screen re-reads the order.",
+  "operations": [
+    "cancelOrderAdmin"
+  ],
+  "status": 409,
+  "tags": [
+    "error-envelope",
+    "error-path",
+    "admin"
+  ],
+  "payload": {
+    "error": {
+      "code": "ILLEGAL_TRANSITION",
+      "message": "The order cannot be cancelled in its current state.",
+      "request_id": "V1RQ15JW9VWY7Z0EXHAZ8TWV63"
+    }
+  }
+}

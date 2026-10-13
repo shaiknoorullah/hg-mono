@@ -1,0 +1,31 @@
+{
+  "scenario": "realtime_admin_ops_reconciliation_exception",
+  "domain": "realtime",
+  "schema": "RealtimeEvent[]",
+  "describes": "`admin.reconciliation_exception`: a transfer of 39.80 where the ledger expected 41.20. Contract-only: `services/hg` reports reconciliation exceptions as an `admin.alert` with `subject_type: reconciliation_exception` (`realtime_admin_ops_alerts`), not as this frame.",
+  "operations": [],
+  "status": 200,
+  "tags": [
+    "realtime",
+    "script",
+    "admin",
+    "error-path"
+  ],
+  "payload": [
+    {
+      "id": "JX3YY20M0KM2FB83815WFZ7ER1",
+      "seq": 1,
+      "channel": "admin:ops",
+      "type": "admin.reconciliation_exception",
+      "v": 1,
+      "ts": "2026-08-10T18:42:11.412Z",
+      "data": {
+        "kind": "transfer_mismatch",
+        "order_id": "dd24f23c-2349-4129-a400-f5fd954d351f",
+        "expected_cents": 4120,
+        "actual_cents": 3980
+      },
+      "_delay_ms": 0
+    }
+  ]
+}

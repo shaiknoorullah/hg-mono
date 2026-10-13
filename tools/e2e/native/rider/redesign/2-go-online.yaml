@@ -1,0 +1,78 @@
+# Rider redesign WP2: stand at the restaurant, go online, wait for offers, lose the internet
+# connection and get it back, then go offline. Built with EXPO_PUBLIC_HG_REDESIGN=1 (and a
+# cleared Metro cache: EXPO_PUBLIC_* is inlined at transform time).
+# Env: LATITUDE/LONGITUDE (run.sh passes the e2e world's restaurant; the default is Bismillah
+# Grill, 1240 Danforth Avenue: dispatch only offers to riders within 3 km of a ready order).
+# Each default is written ${VAR || "…"}: a plain value under env: would override the -e values
+# run.sh passes, and CI would sign in devworld's rider-sim, who is not a rider in the e2e world.
+appId: com.halalgoes.rider.dev
+name: rider redesign, go online
+env:
+  LATITUDE: ${LATITUDE || "43.6815"}
+  LONGITUDE: ${LONGITUDE || "-79.3310"}
+---
+# Signed in by 1-sign-in.yaml, which runs before this flow (flows run in name order). The app
+# keeps running between flows, so its in-memory session holds. Run alone, run 1-sign-in.yaml first.
+- launchApp:
+    stopApp: false
+- setLocation:
+    latitude: ${LATITUDE}
+    longitude: ${LONGITUDE}
+- extendedWaitUntil:
+    visible: "Earnings"
+    timeout: 30000
+- tapOn:
+    id: "tab-home"
+
+# Start offline. In CI the legacy rider flow runs first with the same rider and can leave them
+# online on the server, so go offline first when Home says Online.
+- extendedWaitUntil:
+    visible: "You're offline|Go offline"
+    timeout: 60000
+- runFlow:
+    when:
+      visible: "Go offline"
+    commands:
+      - tapOn: "Go offline"
+
+# Home, offline (SH/Main).
+- extendedWaitUntil:
+    visible: "You're offline"
+    timeout: 60000
+- assertVisible: "You won't get offers"
+- assertVisible: "Today"
+- takeScreenshot: rider-wp2-01-offline
+
+# Go online: the bar keeps saying "Offline" until the server answers (SH/HomeGoingOnline), then
+# Waiting for offers (SH/HomeWaiting).
+- tapOn: "Go online"
+- tapOn:
+    text: "While using the app"
+    optional: true
+- extendedWaitUntil:
+    visible: "You can lock your phone.*"
+    timeout: 45000
+- assertVisible: "Online"
+- assertVisible: "Go offline"
+- takeScreenshot: rider-wp2-02-waiting
+
+# No internet connection (SH/HomeNoConnection): the next dashboard poll fails within 5 s.
+- setAirplaneMode: enabled
+- extendedWaitUntil:
+    visible: "No internet connection"
+    timeout: 30000
+- assertVisible: "Last known status: online"
+- takeScreenshot: rider-wp2-03-no-connection
+- setAirplaneMode: disabled
+- extendedWaitUntil:
+    visible: "You can lock your phone.*"
+    timeout: 60000
+- takeScreenshot: rider-wp2-04-reconnected
+
+# Go offline (SH/HomeGoingOffline → SH/Main).
+- tapOn: "Go offline"
+- extendedWaitUntil:
+    visible: "You're offline"
+    timeout: 30000
+- assertVisible: "Go online"
+- takeScreenshot: rider-wp2-05-offline-again

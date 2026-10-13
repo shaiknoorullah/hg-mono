@@ -261,11 +261,36 @@ def customer_order(state: str, *, tip_cents: int = 700, label: str | None = None
         }.get(state),
         "reject_reason": "ITEM_UNAVAILABLE" if state == "REJECTED" else None,
         "eta_at": _eta(state),
+        "delivery_code": None,
         "can_cancel": can_cancel,
         **stamps,
     }
     out.update(over)
+    if "delivery_code" not in over:
+        out["delivery_code"] = delivery_code(out["state"], out["delivery_instructions"])
     return out
+
+
+# The 4-digit code the customer reads to the rider at a met handover (round-2 decisions,
+# "Orders and delivery":
+# https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#orders-and-delivery).
+# Shown only while the order is out for delivery and the instruction asks the rider to meet
+# the customer; an unattended drop is proved with a photo, so it shows no code.
+DELIVERY_CODE = "4827"
+MET_HANDOVER = {"MEET_AT_DOOR", "MEET_IN_LOBBY"}
+OUT_FOR_DELIVERY = {"PICKED_UP", "ARRIVED"}
+
+
+def delivery_code(state: str, instructions: list[str]) -> str | None:
+    if state in OUT_FOR_DELIVERY and MET_HANDOVER.intersection(instructions):
+        return DELIVERY_CODE
+    return None
+
+
+# The 4-digit code the kitchen reads to the rider at the counter (same decision). The
+# restaurant sees it from acceptance until the rider has picked up; never before
+# acceptance, never after pickup, and never on an order the customer collects.
+PICKUP_CODE = "3051"
 
 
 def _order_payment(order_state: str, priced: dict, **over: Any) -> dict:
@@ -464,6 +489,63 @@ def _customer_orders(reg) -> None:
         tags=["edge"],
     )
 
+    # The delivery code across its states (round-2 decisions, "Orders and delivery":
+    # https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#orders-and-delivery).
+    # The state-matrix fixtures above are unattended drops, so they carry no code.
+    met = dict(
+        delivery_instructions=["MEET_AT_DOOR"],
+        special_instructions="Buzz 1204 and I will come down.",
+    )
+    reg.add(
+        "order_picked_up_meet_at_door",
+        "orders",
+        "OrderCustomerView",
+        "Out for delivery to a **met handover** (`MEET_AT_DOOR`): `delivery_code` is set. The "
+        "customer reads these 4 digits to the rider at the door; the rider is never shown them.",
+        customer_order("PICKED_UP", label="meet-at-door-picked-up", **met),
+        operations=["getOrder", "getActiveOrder"],
+        tags=["delivery-code", "edge"],
+    )
+    reg.add(
+        "order_arrived_meet_in_lobby",
+        "orders",
+        "OrderCustomerView",
+        "The rider is in the lobby (`MEET_IN_LOBBY`) and `delivery_code` is set: the screen "
+        "leads with the code. The same moment sends `order.rider_arrived` and a push that "
+        "say only \"Your rider is here\"; this authenticated view is where the app reads the "
+        "code, because no push or event carries it.",
+        customer_order(
+            "ARRIVED",
+            label="meet-in-lobby",
+            delivery_instructions=["MEET_IN_LOBBY"],
+            special_instructions="Lobby of the east tower; I will be at the front desk.",
+        ),
+        operations=["getOrder", "getActiveOrder"],
+        tags=["delivery-code", "edge"],
+    )
+    reg.add(
+        "order_arrived_delivery_code_locked",
+        "orders",
+        "OrderCustomerView",
+        "A met handover where five wrong codes have **locked** the delivery code: "
+        "`delivery_code` is null, so the screen stops asking the customer to read it out. "
+        "The order is now with support, who confirm the handover with "
+        "`overrideHandoverCode`; the rider has no fallback of their own.",
+        customer_order("ARRIVED", label="delivery-code-locked", delivery_code=None, **met),
+        operations=["getOrder", "getActiveOrder"],
+        tags=["delivery-code", "edge", "error-path"],
+    )
+    reg.add(
+        "order_delivered_meet_at_door",
+        "orders",
+        "OrderCustomerView",
+        "The met handover is done: `delivery_code` is null again once the order is "
+        "`DELIVERED`, so an old code is never left on screen.",
+        customer_order("DELIVERED", label="meet-at-door-delivered", **met),
+        operations=["getOrder"],
+        tags=["delivery-code", "edge"],
+    )
+
     reg.add(
         "order_no_active",
         "orders",
@@ -525,54 +607,61 @@ def _order_lists(reg) -> None:
     )
 
 
-def _restaurant_orders(reg, synth) -> None:
-    def restaurant_order(state: str, *, label: str | None = None, **over: Any) -> dict:
-        # `label` gives a distinct order (its own id). Without one, the id is the state's
-        # canonical order, the same one the customer, rider and payment fixtures show.
-        lines = standard_quote_lines()
-        priced = price_quote(lines, tip_cents=700)
-        base = customer_order(state, label=label)
-        accepted = base["accepted_at"] is not None
-        out = {
-            "id": base["id"],
-            "code": base["code"],
-            "state": state,
-            "deadline_at": base["deadline_at"],
-            "promised_ready_at": ts(9 * MINUTE) if accepted else None,
-            "customer": {"display_name": "Ayesha R.", "phone_masked": "+1 416 ••• 0142"},
-            "delivery_area": "Greektown",
-            # §5: the restaurant does NOT see the delivery address until ACCEPTED.
-            "delivery_address": address("home", 0) if accepted else None,
-            "delivery_instructions": ["LEAVE_AT_DOOR", "DO_NOT_RING_BELL"],
-            "special_instructions": "Please leave it on the mat, not the shoe rack.",
-            "lines": order_lines_from_quote(lines),
-            "money": restaurant_money(priced),
-            "rider": (
-                {
-                    "display_name": "Bilal S.",
-                    "photo_url": base["rider"]["photo_url"],
-                    "vehicle_type": "SCOOTER",
-                    "eta_at": ts(6 * MINUTE),
-                }
-                if base["rider"]
-                else None
-            ),
-            "elapsed_seconds": 100 if state == "RESTAURANT_PENDING" else 1920,
-            "is_late": state == "PREPARING",
-            "placed_at": base["placed_at"],
-            "accepted_at": base["accepted_at"],
-            "ready_at": base["ready_at"],
-        }
-        out.update(over)
-        return out
+def restaurant_order(state: str, *, label: str | None = None, **over: Any) -> dict:
+    # `label` gives a distinct order (its own id). Without one, the id is the state's
+    # canonical order, the same one the customer, rider and payment fixtures show.
+    lines = standard_quote_lines()
+    priced = price_quote(lines, tip_cents=700)
+    base = customer_order(state, label=label)
+    accepted = base["accepted_at"] is not None
+    out = {
+        "id": base["id"],
+        "code": base["code"],
+        "state": state,
+        "deadline_at": base["deadline_at"],
+        "promised_ready_at": ts(9 * MINUTE) if accepted else None,
+        "customer": {"display_name": "Ayesha R.", "phone_masked": "+1 416 ••• 0142"},
+        "delivery_area": "Greektown",
+        # §5: the restaurant does NOT see the delivery address until ACCEPTED.
+        "delivery_address": address("home", 0) if accepted else None,
+        "delivery_instructions": ["LEAVE_AT_DOOR", "DO_NOT_RING_BELL"],
+        "special_instructions": "Please leave it on the mat, not the shoe rack.",
+        "lines": order_lines_from_quote(lines),
+        "money": restaurant_money(priced),
+        "rider": (
+            {
+                "display_name": "Bilal S.",
+                "photo_url": base["rider"]["photo_url"],
+                "vehicle_type": "SCOOTER",
+                "eta_at": ts(6 * MINUTE),
+            }
+            if base["rider"]
+            else None
+        ),
+        # From acceptance until the rider has picked up; the rider is never sent it.
+        "pickup_code": PICKUP_CODE if state in ("PREPARING", "READY_FOR_PICKUP") else None,
+        "elapsed_seconds": 100 if state == "RESTAURANT_PENDING" else 1920,
+        "is_late": state == "PREPARING",
+        "placed_at": base["placed_at"],
+        "accepted_at": base["accepted_at"],
+        "ready_at": base["ready_at"],
+    }
+    out.update(over)
+    return out
 
+
+def _restaurant_orders(reg, synth) -> None:
     for state, note in [
         ("RESTAURANT_PENDING", "The incoming-order card with 80 s left on the 180 s window. "
-                               "**No delivery address yet** — §5 withholds it until acceptance."),
-        ("PREPARING", "Accepted and overdue (`is_late: true`). The address is now present."),
-        ("READY_FOR_PICKUP", "On the pass, rider assigned with an ETA to the restaurant."),
-        ("PICKED_UP", "Collected. The tablet's job is done."),
-        ("REJECTED", "Rejected by the kitchen for ITEM_UNAVAILABLE."),
+                               "**No delivery address and no pickup code yet** — both are "
+                               "withheld until acceptance."),
+        ("PREPARING", "Accepted and overdue (`is_late: true`). The address is now present, and "
+                      "so is the 4-digit `pickup_code` the kitchen will read to the rider."),
+        ("READY_FOR_PICKUP", "On the pass, rider assigned with an ETA to the restaurant. The "
+                             "screen shows `pickup_code` large, for the kitchen to read out."),
+        ("PICKED_UP", "Collected: the rider typed the right pickup code, so `pickup_code` is "
+                      "null again. The tablet's job is done."),
+        ("REJECTED", "Rejected by the kitchen for ITEM_UNAVAILABLE. Never a pickup code."),
     ]:
         reg.add(
             f"restaurant_order_{state.lower()}",
@@ -590,6 +679,18 @@ def _restaurant_orders(reg, synth) -> None:
             ],
             tags=["restaurant", "order-state-matrix"],
         )
+
+    reg.add(
+        "restaurant_order_pickup_code_locked",
+        "orders",
+        "OrderRestaurantView",
+        "On the pass, but five wrong pickup codes have **locked** the code: `pickup_code` is "
+        "null, so the screen stops showing it, and the order is with HalalGoes support, who "
+        "confirm the pickup with `overrideHandoverCode` after checking with the kitchen.",
+        restaurant_order("READY_FOR_PICKUP", pickup_code=None),
+        operations=["getRestaurantOrder", "listRestaurantOrders"],
+        tags=["restaurant", "edge", "error-path"],
+    )
 
     reg.add(
         "restaurant_order_queue_empty",
@@ -627,47 +728,56 @@ def _restaurant_orders(reg, synth) -> None:
     )
 
 
-def _admin_orders(reg, synth) -> None:
-    def admin_order(state: str, **over: Any) -> dict:
-        lines = standard_quote_lines()
-        priced = price_quote(lines, tip_cents=700)
-        base = customer_order(state)
-        ledger = [
-            {
-                **synth.make("LedgerEntry", f"ledger-{state}-{i}"),
-                "account": acct,
-                "component": comp,
-                "amount_cents": amount,
-                "currency": "CAD",
-            }
-            for i, (acct, comp, amount) in enumerate(
-                [
-                    ("CUSTOMER_CHARGES", "SUBTOTAL", -priced["total_cents"]),
-                    ("RESTAURANT_PAYABLE", "SUBTOTAL", priced["subtotal_cents"]),
-                    ("RIDER_PAYABLE", "TIP", priced["tip_cents"]),
-                    ("PLATFORM_REVENUE", "SERVICE_FEE", priced["service_fee_cents"]),
-                ]
-            )
-        ]
-        out = {
-            **base,
-            "timeline": _timeline(state),
-            "dispatch_history": [
-                {"state": "PENDING", "wave": None, "radius_m": None, "rider_account_id": None, "offer_outcome": None, "at": ts(-29 * MINUTE)},
-                {"state": "SEARCHING", "wave": 1, "radius_m": 3000, "rider_account_id": None, "offer_outcome": None, "at": ts(-28 * MINUTE)},
-                {"state": "OFFERED", "wave": 1, "radius_m": 3000, "rider_account_id": uuid_for("account:rider:bilal"), "offer_outcome": "EXPIRED", "at": ts(-27 * MINUTE)},
-                {"state": "OFFERED", "wave": 2, "radius_m": 6000, "rider_account_id": uuid_for("account:rider:omar"), "offer_outcome": "ACCEPTED", "at": ts(-16 * MINUTE)},
-                {"state": "ASSIGNED", "wave": 2, "radius_m": 6000, "rider_account_id": uuid_for("account:rider:omar"), "offer_outcome": None, "at": ts(-16 * MINUTE)},
-            ],
-            "payment": _order_payment(state, priced),
-            "refunds": [],
-            "internal_money": internal_money(priced, ledger_entries=ledger),
-            "pii_revealed": False,
-            "chargebacks": [],
+def order_admin_view(synth, state: str, *, base_over: dict | None = None, **over: Any) -> dict:
+    """`OrderAdminView` of the state's canonical order (shared with batch 2)."""
+    lines = standard_quote_lines()
+    priced = price_quote(lines, tip_cents=700)
+    base = customer_order(state, **(base_over or {}))
+    # The support projection never carries the customer's delivery code: it is always
+    # null, so nobody at HalalGoes can read a code out to a rider (security review on
+    # #183, https://github.com/shaiknoorullah/hg-mono/issues/183).
+    base["delivery_code"] = None
+    ledger = [
+        {
+            **synth.make("LedgerEntry", f"ledger-{state}-{i}"),
+            "account": acct,
+            "component": comp,
+            "amount_cents": amount,
+            "currency": "CAD",
         }
-        out["money_timeline"] = _money_timeline(out["payment"])
-        out.update(over)
-        return out
+        for i, (acct, comp, amount) in enumerate(
+            [
+                ("CUSTOMER_CHARGES", "SUBTOTAL", -priced["total_cents"]),
+                ("RESTAURANT_PAYABLE", "SUBTOTAL", priced["subtotal_cents"]),
+                ("RIDER_PAYABLE", "TIP", priced["tip_cents"]),
+                ("PLATFORM_REVENUE", "SERVICE_FEE", priced["service_fee_cents"]),
+            ]
+        )
+    ]
+    out = {
+        **base,
+        "timeline": _timeline(state),
+        "dispatch_history": [
+            {"state": "PENDING", "wave": None, "radius_m": None, "rider_account_id": None, "offer_outcome": None, "at": ts(-29 * MINUTE)},
+            {"state": "SEARCHING", "wave": 1, "radius_m": 3000, "rider_account_id": None, "offer_outcome": None, "at": ts(-28 * MINUTE)},
+            {"state": "OFFERED", "wave": 1, "radius_m": 3000, "rider_account_id": uuid_for("account:rider:bilal"), "offer_outcome": "EXPIRED", "at": ts(-27 * MINUTE)},
+            {"state": "OFFERED", "wave": 2, "radius_m": 6000, "rider_account_id": uuid_for("account:rider:omar"), "offer_outcome": "ACCEPTED", "at": ts(-16 * MINUTE)},
+            {"state": "ASSIGNED", "wave": 2, "radius_m": 6000, "rider_account_id": uuid_for("account:rider:omar"), "offer_outcome": None, "at": ts(-16 * MINUTE)},
+        ],
+        "payment": _order_payment(state, priced),
+        "refunds": [],
+        "internal_money": internal_money(priced, ledger_entries=ledger),
+        "pii_revealed": False,
+        "chargebacks": [],
+    }
+    out["money_timeline"] = _money_timeline(out["payment"])
+    out.update(over)
+    return out
+
+
+def _admin_orders(reg, synth) -> None:
+    def admin_order(state: str, *, base_over: dict | None = None, **over: Any) -> dict:
+        return order_admin_view(synth, state, base_over=base_over, **over)
 
     reg.add(
         "order_admin_view_completed",
@@ -747,6 +857,93 @@ def _admin_orders(reg, synth) -> None:
         tags=["admin", "error-path"],
     )
 
+    _handover_overrides(reg, admin_order)
+
+
+# The only way past a handover code (security review on #183:
+# https://github.com/shaiknoorullah/hg-mono/issues/183). The rider has no override; support
+# or an admin confirms the handover with `overrideHandoverCode`, with a reason and a support
+# case, and the call writes the append-only `HandoverOverride` audit record in the same
+# transaction as the transition. No record, view or event carries either code.
+def _handover_overrides(reg, admin_order) -> None:
+    reg.add(
+        "handover_override_pickup_locked",
+        "orders",
+        "HandoverOverride",
+        "**Admin override after the limit.** Five wrong pickup codes locked the code "
+        "(`error_pickup_code_locked`); a support agent called the kitchen, who confirmed the "
+        "bag went to the assigned rider, and confirmed the pickup. The order moved "
+        "`READY_FOR_PICKUP` → `PICKED_UP` with `actor_kind: SUPPORT`. The record names the "
+        "agent, the reason, the case and the 5 wrong attempts — never the code.",
+        {
+            "id": uuid_for("handover-override:pickup-locked"),
+            "order_id": uuid_for("order:picked_up"),
+            "handover": "PICKUP",
+            "reason": "Code locked after 5 tries. Called Karachi Kitchen: they confirmed they "
+                      "handed the bag to Bilal S. at the counter.",
+            "case_id": uuid_for("case:pickup-code-locked"),
+            "actor_account_id": uuid_for("account:support:yusuf"),
+            "actor_kind": "SUPPORT",
+            "wrong_code_attempts": 5,
+            "order_state": "PICKED_UP",
+            "created_at": ts(-11 * MINUTE),
+        },
+        operations=["overrideHandoverCode"],
+        tags=["admin", "error-path"],
+    )
+
+    reg.add(
+        "handover_override_delivery",
+        "orders",
+        "HandoverOverride",
+        "**Admin override at a met handover.** The customer's phone died in the lobby, so "
+        "they could not read their delivery code after two wrong guesses. Support reached "
+        "the customer, who confirmed they had the order, and an admin confirmed the "
+        "delivery: `ARRIVED` → `DELIVERED` with `actor_kind: ADMIN`. The rider could not "
+        "have done this: a photo never replaces the code at a met handover.",
+        {
+            "id": uuid_for("handover-override:delivery"),
+            "order_id": uuid_for("order:meet-in-lobby"),
+            "handover": "DELIVERY",
+            "reason": "Customer's phone died in the lobby. Reached them on the account email; "
+                      "they confirmed they have the order.",
+            "case_id": uuid_for("case:delivery-code-unreadable"),
+            "actor_account_id": uuid_for("account:admin:amina"),
+            "actor_kind": "ADMIN",
+            "wrong_code_attempts": 2,
+            "order_state": "DELIVERED",
+            "created_at": ts(-2 * MINUTE),
+        },
+        operations=["overrideHandoverCode"],
+        tags=["admin", "delivery-code"],
+    )
+
+    overridden = admin_order(
+        "DELIVERED",
+        base_over={
+            "label": "meet-in-lobby",
+            "delivery_instructions": ["MEET_IN_LOBBY"],
+            "special_instructions": "Lobby of the east tower; I will be at the front desk.",
+        },
+    )
+    overridden["timeline"][-1] = {
+        **overridden["timeline"][-1],
+        "actor_kind": "ADMIN",
+        "reason": "Delivery confirmed by an admin without the delivery code (case "
+                  f"{uuid_for('case:delivery-code-unreadable')}): customer's phone died in the lobby.",
+    }
+    reg.add(
+        "order_admin_view_delivery_overridden",
+        "orders",
+        "OrderAdminView",
+        "The order after `handover_override_delivery`: the timeline's `DELIVERED` step is "
+        "`actor_kind: ADMIN` with the reason and the case, and `delivery_code` is null, as "
+        "it always is for support and admin.",
+        overridden,
+        operations=["getOrderAdmin"],
+        tags=["admin", "delivery-code"],
+    )
+
 
 def _tracking(reg, synth) -> None:
     for state, dispatch_state, note in [
@@ -784,11 +981,86 @@ def _tracking(reg, synth) -> None:
                     else None
                 ),
                 "rider": rider_public_profile() if has_rider else None,
+                # These are unattended drops; the met-handover fixtures below carry a code.
+                "delivery_code": None,
                 "timeline": _timeline(state),
             },
             operations=["getOrderTracking"],
             tags=["tracking", "order-state-matrix"],
         )
+
+    for state, dispatch_state, note in [
+        ("PICKED_UP", "CARRYING", "Out for delivery to a met handover: the tracking screen "
+                                  "shows the 4-digit `delivery_code` under the map, ready "
+                                  "for the door."),
+        ("ARRIVED", "AT_CUSTOMER", "The rider is in the lobby for a met handover. The screen "
+                                   "leads with `delivery_code`; the customer reads it out."),
+    ]:
+        reg.add(
+            f"tracking_{state.lower()}_delivery_code",
+            "orders",
+            "OrderTracking",
+            note,
+            {
+                # The same orders as `order_picked_up_meet_at_door` and
+                # `order_arrived_meet_in_lobby`.
+                "order_id": uuid_for(
+                    "order:meet-at-door-picked-up" if state == "PICKED_UP" else "order:meet-in-lobby"
+                ),
+                "state": state,
+                "dispatch_state": dispatch_state,
+                "eta_at": ts(13 * MINUTE) if state == "PICKED_UP" else ts(1 * MINUTE),
+                "eta_window_minutes": 10,
+                "restaurant_location": {"latitude": 43.6817, "longitude": -79.3403},
+                "destination_location": {"latitude": 43.6412, "longitude": -79.3810},
+                "rider_location": {
+                    "latitude": 43.6598 if state == "PICKED_UP" else 43.6413,
+                    "longitude": -79.3652 if state == "PICKED_UP" else -79.3808,
+                    "heading_deg": 214.0,
+                    "speed_mps": 7.4 if state == "PICKED_UP" else 0.0,
+                    "accuracy_m": 12.0,
+                    "recorded_at": ts(-8),
+                    "is_coarse": False,
+                },
+                "rider": rider_public_profile(),
+                "delivery_code": DELIVERY_CODE,
+                "timeline": _timeline(state),
+            },
+            operations=["getOrderTracking"],
+            tags=["tracking", "delivery-code"],
+        )
+
+    reg.add(
+        "tracking_arrived_delivery_code_locked",
+        "orders",
+        "OrderTracking",
+        "The rider is in the lobby, but five wrong codes have **locked** the delivery code: "
+        "`delivery_code` is null and the order is with support. The screen says HalalGoes "
+        "support will confirm the handover, and stops showing a code.",
+        {
+            "order_id": uuid_for("order:delivery-code-locked"),
+            "state": "ARRIVED",
+            "dispatch_state": "AT_CUSTOMER",
+            "eta_at": ts(1 * MINUTE),
+            "eta_window_minutes": 10,
+            "restaurant_location": {"latitude": 43.6817, "longitude": -79.3403},
+            "destination_location": {"latitude": 43.6412, "longitude": -79.3810},
+            "rider_location": {
+                "latitude": 43.6413,
+                "longitude": -79.3808,
+                "heading_deg": 214.0,
+                "speed_mps": 0.0,
+                "accuracy_m": 12.0,
+                "recorded_at": ts(-8),
+                "is_coarse": False,
+            },
+            "rider": rider_public_profile(),
+            "delivery_code": None,
+            "timeline": _timeline("ARRIVED"),
+        },
+        operations=["getOrderTracking"],
+        tags=["tracking", "delivery-code", "error-path"],
+    )
 
     reg.add(
         "tracking_degraded_gps",
@@ -814,6 +1086,7 @@ def _tracking(reg, synth) -> None:
                 "is_coarse": True,
             },
             "rider": rider_public_profile(),
+            "delivery_code": None,
             "timeline": _timeline("PICKED_UP"),
         },
         operations=["getOrderTracking"],
@@ -1158,7 +1431,8 @@ def _refunds(reg, synth) -> None:
                     else None
                 ),
             },
-            operations=["getRefund", "listRefunds", "createRefund", "issueRefund"],
+            # One refund, not a list: `listRefunds` serves `refund_list_*` (issue #720).
+            operations=["getRefund", "createRefund", "issueRefund"],
             tags=["refund-state-matrix"],
         )
 
@@ -1212,6 +1486,93 @@ def _refunds(reg, synth) -> None:
         },
         operations=["issueRefund"],
         tags=["admin", "money"],
+    )
+
+    # Several problem reports on one order (https://github.com/shaiknoorullah/hg-mono/issues/184):
+    # each report is its own refund, decided on its own, and a later one is refused only
+    # when it claims an item or the fees another refund already holds.
+    item_report = {
+        "id": uuid_for("refund:report-1-item-missing"),
+        "order_id": uuid_for("order:completed"),
+        "kind": "PARTIAL_ITEMS",
+        "scope": "PARTIAL_ITEMS",
+        "reason_code": "ITEM_MISSING",
+        "amount_cents": 1695,
+        "tax_cents": 220,
+        "currency": "CAD",
+        "state": "SUCCEEDED",
+        "liability_split": {"platform_cents": 495, "restaurant_cents": 1200, "rider_cents": 0},
+        "note": "Biryani missing from a three-item bag.",
+        "requested_at": ts(-3 * HOUR),
+        "settled_at": None,
+        "failure_message": None,
+    }
+    late_report = {
+        "id": uuid_for("refund:report-2-late-delivery"),
+        "order_id": uuid_for("order:completed"),
+        "kind": "FEES_ONLY",
+        "scope": "PARTIAL_AMOUNT",
+        "reason_code": "LATE_DELIVERY",
+        "amount_cents": 902,
+        "tax_cents": 104,
+        "currency": "CAD",
+        "state": "REQUESTED",
+        "liability_split": {"platform_cents": 902, "restaurant_cents": 0, "rider_cents": 0},
+        "note": "Arrived 50 minutes after the latest promised time.",
+        "requested_at": ts(-20 * MINUTE),
+        "settled_at": None,
+        "failure_message": None,
+    }
+    reg.add(
+        "refund_second_report_on_order",
+        "refunds",
+        "Refund",
+        "A second problem report on an order that already has one: the missing item was "
+        "refunded, and now the customer reports the delivery was late. It is accepted as "
+        "its own refund with its own reason, so the platform absorbs the fees while the "
+        "restaurant was charged for the missing item. It does not claim the item again.",
+        late_report,
+        operations=["createRefund", "getRefund"],
+        tags=["money", "refund-state-matrix"],
+    )
+    reg.add(
+        "refund_list_several_reports_on_order",
+        "refunds",
+        "array<Refund>",
+        "`listRefunds?order_id=` for an order with two problem reports, newest first: a late "
+        "delivery waiting for review and a missing item already refunded. They never merge, "
+        "and together they stay under the captured amount.",
+        [late_report, item_report],
+        operations=["listRefunds"],
+        meta={"next_cursor": None, "has_more": False, "total": 2},
+        tags=["money"],
+    )
+    reg.add(
+        "refund_wrong_address_before_delivery",
+        "refunds",
+        "Refund",
+        "Reported from \"Get help\" before delivery: the order is going to the wrong address. "
+        "`WRONG_ADDRESS` waits for support, who redirect the delivery when they can. Any "
+        "refund is per support's judgement and absorbed by the platform: the restaurant "
+        "cooked the order and the rider carried it to the address on the order.",
+        {
+            "id": uuid_for("refund:wrong-address"),
+            "order_id": uuid_for("order:picked-up"),
+            "kind": "FULL",
+            "scope": "FULL",
+            "reason_code": "WRONG_ADDRESS",
+            "amount_cents": 6706,
+            "tax_cents": 691,
+            "currency": "CAD",
+            "state": "REQUESTED",
+            "liability_split": {"platform_cents": 6706, "restaurant_cents": 0, "rider_cents": 0},
+            "note": "I picked my old address by mistake; I'm at 22 Wellesley Street East now.",
+            "requested_at": ts(-4 * MINUTE),
+            "settled_at": None,
+            "failure_message": None,
+        },
+        operations=["createRefund", "getRefund"],
+        tags=["money", "refund-state-matrix"],
     )
 
     reg.add(

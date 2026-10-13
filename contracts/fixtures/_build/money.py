@@ -28,24 +28,57 @@ def hst_on(base_cents: int) -> int:
     return round_half_up(Decimal(base_cents) * ONTARIO_HST)
 
 
+def line_variant(group: dict, variant_name: str) -> dict:
+    """`LineVariant` for the variant named `variant_name` in a `VariantGroup` fixture."""
+    for v in group["variants"]:
+        if v["name"] == variant_name:
+            return {
+                "variant_group_id": group["id"],
+                "group_name": group["name"],
+                "variant_id": v["id"],
+                "variant_name": v["name"],
+                "pricing_mode": v["pricing_mode"],
+                "price_cents": v["price_cents"],
+                "delta_cents": v["delta_cents"],
+            }
+    raise KeyError(f"{variant_name!r} is not in {group['name']!r}")
+
+
+def variant_part(base_cents: int, variants: list[dict]) -> int:
+    """P-09 step 1: the ABSOLUTE variant's price (else the base) plus every DELTA."""
+    absolutes = [v["price_cents"] for v in variants if v["pricing_mode"] == "ABSOLUTE"]
+    assert len(absolutes) <= 1, "a line has at most one ABSOLUTE variant"
+    part = absolutes[0] if absolutes else base_cents
+    return part + sum(v["delta_cents"] for v in variants if v["pricing_mode"] == "DELTA")
+
+
+def legacy_variant_fields(variants: list[dict]) -> tuple[str | None, str | None, str | None]:
+    """The deprecated one-variant fields: id and mode only for exactly one variant, and
+    every chosen name joined with ", "."""
+    if not variants:
+        return None, None, None
+    joined = ", ".join(v["variant_name"] for v in variants)
+    if len(variants) == 1:
+        return variants[0]["variant_id"], joined, variants[0]["pricing_mode"]
+    return None, joined, None
+
+
 def quote_line(
     line_no: int,
     item: dict,
     quantity: int = 1,
     *,
-    variant: tuple[str, str, int] | None = None,
+    variants: list[dict] | None = None,
     addons: list[tuple[str, int, int]] | None = None,
     special_request: str | None = None,
 ) -> dict:
-    """`variant` is (name, pricing_mode, part_cents); `addons` is [(name, qty, unit_cents)]."""
+    """`variants` is a list of `LineVariant` (see `line_variant`); `addons` is
+    [(name, qty, unit_cents)]. `line_unit_cents = variant_part_cents + addons_part_cents`,
+    the identity the database checks."""
     base = item["price_cents"]
-    variant_part = 0
-    variant_id = None
-    variant_name = None
-    variant_mode = None
-    if variant:
-        variant_name, variant_mode, variant_part = variant
-        variant_id = uuid_for(f"variant:{item['id']}:{variant_name}")
+    variants = variants or []
+    part = variant_part(base, variants)
+    variant_id, variant_name, variant_mode = legacy_variant_fields(variants)
 
     addon_rows = []
     addons_part = 0
@@ -60,7 +93,7 @@ def quote_line(
         )
         addons_part += qty * unit
 
-    unit_cents = base + variant_part + addons_part
+    unit_cents = part + addons_part
     return {
         "line_no": line_no,
         "menu_item_id": item["id"],
@@ -68,10 +101,11 @@ def quote_line(
         "variant_id": variant_id,
         "variant_name": variant_name,
         "variant_pricing_mode": variant_mode,
+        "variants": variants,
         "addons": addon_rows,
         "quantity": quantity,
         "base_price_cents": base,
-        "variant_part_cents": variant_part,
+        "variant_part_cents": part,
         "addons_part_cents": addons_part,
         "line_unit_cents": unit_cents,
         "line_total_cents": unit_cents * quantity,
@@ -196,6 +230,7 @@ def order_lines_from_quote(quote_lines: list[dict]) -> list[dict]:
                 "menu_item_id": ql["menu_item_id"],
                 "name": ql["menu_item_name"],
                 "variant_name": ql["variant_name"],
+                "variants": ql["variants"],
                 "addons": ql["addons"],
                 "quantity": ql["quantity"],
                 "special_request": ql["special_request"],
