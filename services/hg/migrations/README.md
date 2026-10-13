@@ -28,6 +28,8 @@ loader, and a deploy never apply it. `make dev-reset` (or `go run ./cmd/devworld
 from `services/hg`) is the only loader, and it refuses every environment other
 than local and every database that is not on this machine. It loads
 `001_personas.sql` first, then every other file in `devworld/` in name order.
+`010_admin_staff.sql` adds ops-admin, so each staff role has one sign-in-ready
+account; reset then sets the shared password and enrols each authenticator.
 
 ## Running
 

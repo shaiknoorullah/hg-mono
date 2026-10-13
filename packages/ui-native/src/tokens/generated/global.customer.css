@@ -1,0 +1,114 @@
+/*
+ * GENERATED FILE — DO NOT EDIT.
+ *
+ * Source:    docs/design/tokens.json (W3C DTCG, the system of record)
+ * Generator: packages/ui-native/src/tokens/build.ts (nativewindGlobalCss)
+ * Command:   pnpm --filter @hg/ui-native generate:tokens
+ *
+ * NativeWind 4 input for the customer theme. Hex values, never hsl().
+ */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --hg-surface-base: #FFFAEA;
+  --hg-surface-sunken: #F6EFDD;
+  --hg-surface-subtle: #F6EFDD;
+  --hg-surface-raised: #FFFFFF;
+  --hg-surface-inverse: #232323;
+  --hg-surface-chrome: #1B3B31;
+  --hg-surface-scrim: #232323B8;
+  --hg-fg-primary: #232323;
+  --hg-fg-secondary: #4A4E48;
+  --hg-fg-tertiary: #6E7C77;
+  --hg-fg-placeholder: #8B8578;
+  --hg-fg-disabled: #B9B0A0;
+  --hg-fg-on-brand: #0F241C;
+  --hg-fg-on-inverse: #F6EFDD;
+  --hg-fg-on-accent: #FFFFFF;
+  --hg-fg-link: #0959B8;
+  --hg-fg-link-hover: #07458F;
+  --hg-fg-secondary-field: #4A4E48;
+  --hg-border-decorative: #E6E0D4;
+  --hg-border-interactive: #8B8578;
+  --hg-border-strong: #4A4E48;
+  --hg-border-brand: #D8410F;
+  --hg-focus-ring: #D8410F;
+  --hg-focus-offset: #FFFFFF;
+  --hg-focus-on-color: #FFFFFF;
+  --hg-state-hover-overlay: #2323230F;
+  --hg-state-pressed-overlay: #2323231F;
+  --hg-state-selected-tint: #FEF0EA;
+
+  --background: #FFFAEA;
+  --foreground: #232323;
+  --card: #FFFFFF;
+  --card-foreground: #232323;
+  --popover: #FFFFFF;
+  --popover-foreground: #232323;
+  --primary: #F1521E;
+  --primary-foreground: #0F241C;
+  --secondary: #1B3B31;
+  --secondary-foreground: #FFFFFF;
+  --muted: #F6EFDD;
+  --muted-foreground: #4A4E48;
+  --accent: #FEF0EA;
+  --accent-foreground: #232323;
+  --destructive: #C42B1C;
+  --destructive-foreground: #FFFFFF;
+  --border: #E6E0D4;
+  --input: #8B8578;
+  --ring: #D8410F;
+}
+
+.dark:root {
+  --hg-surface-base: #171717;
+  --hg-surface-sunken: #000000;
+  --hg-surface-subtle: #232323;
+  --hg-surface-raised: #33352F;
+  --hg-surface-inverse: #F6EFDD;
+  --hg-surface-chrome: #0A1913;
+  --hg-surface-scrim: #000000C4;
+  --hg-fg-primary: #F6EFDD;
+  --hg-fg-secondary: #B9B0A0;
+  --hg-fg-tertiary: #8B8578;
+  --hg-fg-placeholder: #6E7C77;
+  --hg-fg-disabled: #4A4E48;
+  --hg-fg-on-brand: #0F241C;
+  --hg-fg-on-inverse: #232323;
+  --hg-fg-on-accent: #FFFFFF;
+  --hg-fg-link: #6FA9F2;
+  --hg-fg-link-hover: #CBDFFC;
+  --hg-fg-secondary-field: #D8D0BF;
+  --hg-border-decorative: #33352F;
+  --hg-border-interactive: #6E7C77;
+  --hg-border-strong: #8B8578;
+  --hg-border-brand: #F3703F;
+  --hg-focus-ring: #F3703F;
+  --hg-focus-offset: #171717;
+  --hg-focus-on-color: #FFFFFF;
+  --hg-state-hover-overlay: #FFFFFF14;
+  --hg-state-pressed-overlay: #FFFFFF29;
+  --hg-state-selected-tint: #2E0D03;
+
+  --background: #171717;
+  --foreground: #F6EFDD;
+  --card: #33352F;
+  --card-foreground: #F6EFDD;
+  --popover: #33352F;
+  --popover-foreground: #F6EFDD;
+  --primary: #F1521E;
+  --primary-foreground: #0F241C;
+  --secondary: #1B3B31;
+  --secondary-foreground: #FFFFFF;
+  --muted: #232323;
+  --muted-foreground: #B9B0A0;
+  --accent: #2E0D03;
+  --accent-foreground: #F6EFDD;
+  --destructive: #C42B1C;
+  --destructive-foreground: #FFFFFF;
+  --border: #33352F;
+  --input: #6E7C77;
+  --ring: #F3703F;
+}

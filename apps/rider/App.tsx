@@ -28,7 +28,6 @@ import { NavProvider } from './src/nav';
 import { RiderShell } from './src/RiderShell';
 import { requestOtp, verifyOtp } from './src/auth';
 import { subscribe, isAuthed } from './src/token';
-import { REDESIGN_ENABLED } from './src/redesign/flag';
 
 // ---------------------------------------------------------------------------
 // OTP LoginGate
@@ -247,8 +246,14 @@ function LegacyApp(): React.ReactElement | null {
  * `EXPO_PUBLIC_HG_REDESIGN=1` mounts the redesigned app (`src/redesign/`); anything else, and
  * every release build, mounts the legacy app above unchanged. Required lazily so a flag-off
  * build never evaluates a redesign module.
+ *
+ * The condition is the literal `process.env.EXPO_PUBLIC_HG_REDESIGN` expression (the same one
+ * `src/redesign/flag.ts` exports), not an imported constant: Expo inlines it here, so the
+ * minifier sees `false` and drops the `require` — a flag-off bundle then contains no redesign
+ * module at all (and none of NativeWind, css-interop or Reanimated, which only the redesign
+ * imports). Through an import, the redesign was bundled, just never run.
  */
-const App: () => React.ReactElement | null = REDESIGN_ENABLED
+const App: () => React.ReactElement | null = process.env.EXPO_PUBLIC_HG_REDESIGN === '1'
   ? (require('./src/redesign/RedesignApp') as typeof import('./src/redesign/RedesignApp')).RedesignApp
   : LegacyApp;
 

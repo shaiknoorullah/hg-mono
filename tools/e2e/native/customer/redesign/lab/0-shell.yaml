@@ -25,7 +25,7 @@ env:
     visible: "Enter the 6-digit code"
     timeout: 30000
 - tapOn:
-    id: "Code-input-field"
+    id: "Code-input-cell-0"
 - inputText: ${CODE}
 - hideKeyboard
 - tapOn: "Verify and continue"
