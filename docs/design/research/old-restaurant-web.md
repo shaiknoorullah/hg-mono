@@ -1,20 +1,11 @@
 ---
 covers:
   - apps/restaurant/src/**
-reviewed: 2026-10-10
+reviewed: 2026-10-11
 ---
 
 # What the old restaurant web app teaches the redesign
 
-> **2026-10-10:** in the redesign, the public pages are now redesigned screens, not hosted legacy
-> ones (WP2, `apps/restaurant/src/redesign/auth/`): `/login`, `/register`, `/check-email`,
-> `/verify-email`, `/forgot-password` and `/reset-password` under a brand-only header. They keep
-> what [§10](#10-login-signup-and-verify-email) says the old app did well (the post-signup "Check
-> your email" screen, the designed verification states, password rules stated up front) and drop
-> the split-screen photo, the confirm-password field and the `href="#"` terms links (the terms
-> label is plain text until the contract carries a terms URL). With the flag off, the legacy pages
-> are unchanged.
->
 > **2026-10-09:** the redesign is being built in `apps/restaurant/src/redesign/`, behind the
 > `VITE_HG_REDESIGN` build flag (off in release builds), from the owner-approved canvases
 > ([#89](https://github.com/shaiknoorullah/hg-mono/issues/89), tracking
@@ -662,7 +653,7 @@ Each is a `Card` with `Price`, and each blank shows "—" rather than an invente
 - The **halal certificate row shows `HalalBadge` UNVERIFIED** (dashed and neutral) until it is approved. Never green before approval, never red after rejection.
 
 **FIX_DOCUMENTS** gets the old rejected page's structure:
-- The rejection summary: `rejection.reason_code` and `note`, word for word.
+- The rejection summary: `rejection.reason_code` and `note`, word for word. `rejection.decision` tells a request for changes (`REQUEST_CHANGES`: fix and resubmit) from a `REJECT` (the screen shows the reason and no "Go to documents" button).
 - **Each rejected document listed with its own `rejection_reason_code` and a button that goes straight to that document.**
 - A "What to do next" list.
 - Contact support.

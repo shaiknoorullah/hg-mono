@@ -184,6 +184,9 @@ EXCLUSIONS = {
     "RestaurantApplicationRequestChangesInput/properties/decision":
         "Single-value request discriminator; the decision is stored as "
         "restaurant_application.decision (restaurant_decision).",
+    "RestaurantOnboardingStatus/properties/rejection/oneOf/0/properties/decision":
+        "Read-only projection of restaurant_application.decision "
+        "(restaurant_decision), limited to the two non-approving values.",
     "RiderApplicationApproveInput/properties/decision":
         "Single-value request discriminator; the outcome lands in "
         "rider_profile.onboarding_state.",

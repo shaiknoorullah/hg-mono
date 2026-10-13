@@ -1,10 +1,12 @@
 ---
 covers:
   - apps/restaurant/src/**
-reviewed: 2026-10-10
+reviewed: 2026-10-11
 ---
 
 # Restaurant app — live updates and rider map
+
+> Update 2026-10-11: the onboarding review screen now shows the admin's reason from `GET /v1/restaurant/onboarding/status` (`rejection.decision`, `reason_code`, `note`), and a `REJECT` offers no resubmission on screen ([#695](https://github.com/shaiknoorullah/hg-mono/issues/695)).
 
 **Status:** design approved 2026-09-28 · **Kind:** product feature (`apps/restaurant`)
 > **2026-10-09:** the redesigned new-order strip (behind `VITE_HG_REDESIGN`,
@@ -80,8 +82,6 @@ On orders with an assigned rider (READY_FOR_PICKUP and the approach to pickup), 
 Alongside the map: rider first name, vehicle, pickup ETA (from `order.eta_updated` / `dispatch.assigned`, never computed), and **Rider arrived** when that state arrives.
 
 Engine and styles: the shared `LiveMap` in `packages/ui-web/src/live/` (`mapbox-gl`, `VITE_MAPBOX_TOKEN`), used by the admin maps too. Without a token the map renders its empty state and the text facts still show. Colours obey the halal colour rules: no solid green outside `color.halal.*`.
-
-> **2026-10-10 — sign-in after a lost session** (redesign WP2, `apps/restaurant/src/redesign/auth/`). Nothing here changes for the socket. When the silent refresh in the redesign fails, the shell's "Sign in again" now opens `/login?signed_out=expired|reuse-detected`, and the sign-in page says what the lost session costs: new orders cannot reach the screen and time out after the response window from `PublicConfig` (3 minutes), and two missed orders in a row stop new orders. A successful sign-in returns to the page the owner was on. The access token is kept in memory only (never `localStorage`); a reload or a new tab first tries `refreshSession` with the `hg_rt` cookie before it shows sign-in. On `services/hg` today that refresh cannot read the `hg_csrf` cookie from the app's origin, so a reload means signing in again ([#740](https://github.com/shaiknoorullah/hg-mono/issues/740)).
 
 > **2026-10-05 — built** (`apps/restaurant/src/components/RiderApproachMap.tsx`, owner request for live maps at launch). The socket (`src/lib/realtime.tsx`) carries only the `order:{id}` channels of cards with an assigned rider; the queue itself still polls every 7 s, so the queue-side events in [events are signals](#4-events-are-signals-rest-is-truth) remain to do.
 

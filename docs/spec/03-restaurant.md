@@ -333,7 +333,7 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
                         rejection_note, review_cycle int)
   ```
   Status response:
-  `{onboarding_state, current_step, progress_percent, steps_completed:{profile,documents_uploaded,documents_submitted,documents_approved,payout_account,menu_published}, blocking_reason, rejection: {reason_code, note, documents:[{doc_type, status, review_note}]}}`
+  `{onboarding_state, current_step, progress_percent, steps_completed:{profile,documents_uploaded,documents_submitted,documents_approved,payout_account,menu_published}, blocking_reason, rejection: {decision, reason_code, note, documents:[{doc_type, status, review_note}]}}`. While `onboarding_state='DOCUMENTS_REJECTED'`, `rejection` carries the admin's reason code and reason text verbatim (`blocking_reason` repeats the text), and `decision` tells a request for changes (`REQUEST_CHANGES`) from a `REJECT`; the review screen shows the reason and offers no resubmission after a `REJECT` ([#695](https://github.com/shaiknoorullah/hg-mono/issues/695)). The server does not yet refuse a resubmission after `REJECT`; re-application follows [A-13 R7, a 14-day cooldown unless the reason is remediable](05-admin.md#a-13--restaurant-onboarding-review-queue) ([#802](https://github.com/shaiknoorullah/hg-mono/issues/802)). Only the latest document of each type is listed in `rejection.documents`.
 
 - **States** (`onboarding_state`, exact list and triggers):
 
