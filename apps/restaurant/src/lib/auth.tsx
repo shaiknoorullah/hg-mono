@@ -62,6 +62,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const register = useCallback(
     async (input: { email: string; password: string; businessName: string }): Promise<LoginResult> => {
       try {
+        // Accept the terms version the server reports; registration refuses any
+        // other with TERMS_VERSION_STALE (https://github.com/shaiknoorullah/hg-mono/issues/738).
+        const config = await unwrapOrThrow(api.GET('/v1/config/public', {}));
         await unwrapOrThrow(
           api.POST('/v1/auth/register/restaurant', {
             params: { header: { 'Idempotency-Key': idempotencyKey(), ...CLIENT_HEADER } },
@@ -69,7 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               email: input.email,
               password: input.password,
               business_name: input.businessName,
-              terms_version: '2026-01-01',
+              terms_version: config.terms_version ?? '',
             },
           }),
         );

@@ -265,6 +265,7 @@ func buildAdminOrderView(row *adminOrderRow, piiRevealed bool) adminOrderView {
 			MenuItemID:     l.MenuItemID,
 			Name:           l.Name,
 			VariantName:    l.VariantName,
+			Variants:       l.Variants,
 			Quantity:       l.Quantity,
 			SpecialRequest: l.SpecialRequest,
 			UnitPriceCents: l.UnitPriceCents,

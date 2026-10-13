@@ -100,7 +100,7 @@ const cardColumns = `
 	r.id, r.slug, r.display_name, r.description,
 	r.line1, r.line2, r.city, r.province::text, r.postal_code, r.timezone,
 	r.public_phone_e164,
-	r.rating_avg, r.rating_count, r.price_band::text, r.halal_status::text,
+	r.rating_avg, r.rating_count, r.price_band::text, hn.halal_status::text,
 	r.minimum_order_cents, r.avg_prep_minutes, r.delivery_radius_m,
 	r.logo_object_id::text, r.cover_object_id::text,
 	so_logo.bucket, so_logo.object_key,
@@ -114,34 +114,13 @@ const cardColumns = `
 	b.name AS certifying_body,
 	c.expires_on AS cert_expires_on,` + tradingColumns
 
-// tradingColumns read what the card's open state is derived from: the toggle,
-// pause and heartbeat, the open payout collection that blocks quoting
-// (orders/quote_store.go), the weekly hours, and the overrides for the dates
-// around today (evaluateHours looks one day back and hoursHorizonDays ahead).
-const tradingColumns = `
-	r.account_state::text, r.is_accepting_orders, r.pause_until, r.last_heartbeat_at,
-	EXISTS (SELECT 1 FROM restaurant_collection rcl
-	         WHERE rcl.restaurant_id = r.id AND rcl.closed_at IS NULL) AS collection_block,
-	COALESCE((
-		SELECT json_agg(json_build_object('day', h.day_of_week,
-		         'opens', to_char(h.opens_at, 'HH24:MI'), 'closes', to_char(h.closes_at, 'HH24:MI'),
-		         'crosses_midnight', h.crosses_midnight))
-		  FROM restaurant_hours h WHERE h.restaurant_id = r.id
-	), '[]') AS weekly_hours,
-	COALESCE((
-		SELECT json_agg(json_build_object('date', o.on_date::text, 'closed', o.is_closed,
-		         'opens', to_char(o.opens_at, 'HH24:MI'), 'closes', to_char(o.closes_at, 'HH24:MI')))
-		  FROM restaurant_hours_override o
-		 WHERE o.restaurant_id = r.id AND o.on_date BETWEEN current_date - 2 AND current_date + 10
-	), '[]') AS hours_overrides`
-
-// cardJoins joins the active halal certificate and its issuing body so the badge
-// carries the certifying body name and expiry. LEFT JOIN because a visible
-// restaurant is EXPIRING_SOON/CERTIFIED and therefore always has one, but the
-// join must not itself re-gate.
+// cardJoins joins the halal state as of now and the certificate it names, with
+// its issuing body, so the badge carries the certifying body name and expiry.
+// LEFT JOIN because a visible restaurant is EXPIRING_SOON/CERTIFIED and
+// therefore always has one, but the join must not itself re-gate.
 const cardJoins = `
-	FROM restaurant r
-	LEFT JOIN halal_certificate c ON c.id = r.halal_certificate_id
+	FROM restaurant r` + halalNowJoin + `
+	LEFT JOIN halal_certificate c ON c.id = hn.certificate_id
 	LEFT JOIN halal_issuing_body b ON b.id = c.issuing_body_id
 	LEFT JOIN stored_object so_logo ON so_logo.id = r.logo_object_id AND so_logo.state = 'READY'
 	LEFT JOIN stored_object so_cover ON so_cover.id = r.cover_object_id AND so_cover.state = 'READY'`
@@ -321,11 +300,11 @@ type certificationRow struct {
 // getCertification loads the certification panel for a visible restaurant.
 func (rp *Repo) getCertification(ctx context.Context, id string) (certificationRow, error) {
 	const q = `
-		SELECT r.halal_status::text,
+		SELECT hn.halal_status::text,
 		       b.name, c.certificate_number, c.scope::text,
 		       c.issued_on, c.expires_on, c.verified_at, c.document_id::text
-		  FROM restaurant r
-		  LEFT JOIN halal_certificate c ON c.id = r.halal_certificate_id
+		  FROM restaurant r` + halalNowJoin + `
+		  LEFT JOIN halal_certificate c ON c.id = hn.certificate_id
 		  LEFT JOIN halal_issuing_body b ON b.id = c.issuing_body_id
 		 WHERE r.id = $1::uuid AND ` + visiblePredicate
 	var cr certificationRow

@@ -39,6 +39,11 @@ type Handler struct {
 	// The orders module owns the switch; cmd/hg wires its reader in with
 	// WithOrderingStatus.
 	orderingStatus OrderingStatusFunc
+	// termsVersion is the partner-terms version registerRestaurant accepts
+	// (auth.Secrets.CurrentTermsVersion), echoed as getPublicConfig.terms_version
+	// so the register page can send it on the first submit
+	// (https://github.com/shaiknoorullah/hg-mono/issues/738). Empty omits it.
+	termsVersion string
 }
 
 // OrderingStatusFunc reports whether staff have paused new orders
@@ -56,9 +61,10 @@ func (h *Handler) WithOrderingStatus(fn OrderingStatusFunc) *Handler {
 
 // NewHandler builds the system handler. It attempts to load contracts/openapi.yaml
 // from the working directory upward so that getOpenApiDocument can serve it; the
-// handler boots normally even if the file is absent.
-func NewHandler(cfg *config.Config, st *store.Store, startedAt time.Time, probes []store.Probe) *Handler {
-	h := &Handler{cfg: cfg, store: st, startedAt: startedAt, bootProbes: probes}
+// handler boots normally even if the file is absent. termsVersion is the
+// partner-terms version registration accepts; getPublicConfig reports it.
+func NewHandler(cfg *config.Config, st *store.Store, startedAt time.Time, probes []store.Probe, termsVersion string) *Handler {
+	h := &Handler{cfg: cfg, store: st, startedAt: startedAt, bootProbes: probes, termsVersion: termsVersion}
 	if b, err := loadContractAsJSON(); err == nil {
 		h.openAPIDocJSON = b
 	}
@@ -366,6 +372,7 @@ type orderingStatus struct {
 //   - max_tip_cents: 5000 ($50 CAD tip ceiling)
 //   - support_enabled: false (not yet configured — no A2P registration)
 //   - default_map_center: downtown Toronto (WGS84)
+//   - terms_version: the partner-terms version registerRestaurant accepts
 //
 // `ordering` is not a constant: it is the platform-wide pause on new orders,
 // read from Postgres on every request so it is never older than the request
@@ -389,6 +396,10 @@ func (h *Handler) PublicConfig(w http.ResponseWriter, r *http.Request) {
 		ts := httpx.Timestamp(*since)
 		ordering.PausedSince = &ts
 	}
+	var terms *string
+	if h.termsVersion != "" {
+		terms = &h.termsVersion
+	}
 	httpx.Respond(w, r, http.StatusOK, publicConfig{
 		Currency:                        "CAD",
 		ServedProvinces:                 []string{"ON"},
@@ -400,7 +411,8 @@ func (h *Handler) PublicConfig(w http.ResponseWriter, r *http.Request) {
 			Latitude:  43.6532,
 			Longitude: -79.3832,
 		},
-		Ordering: ordering,
+		TermsVersion: terms,
+		Ordering:     ordering,
 	})
 }
 

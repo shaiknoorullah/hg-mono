@@ -21,6 +21,11 @@ func (h *Handler) ListRestaurants(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var ok bool
+	if f.lat, f.lng, ok = h.withDeliveryAddress(w, r, f.lat, f.lng); !ok {
+		return
+	}
+
 	rows, err := h.repo.listVisible(r.Context(), f)
 	if h.mapErr(w, r, err) {
 		return
@@ -53,6 +58,34 @@ func (h *Handler) ListRestaurants(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// withDeliveryAddress turns the contract's `delivery_address_id` into the point that
+// serviceability, distance and ETA are computed against, for the list and the detail alike.
+// Explicit coordinates win. The id is resolved only among the signed-in caller's own saved
+// addresses: someone else's, a deleted one, an unlocated one and an anonymous caller all read
+// as no address (NO_ADDRESS), never as another account's location. ok is false once the
+// response has been written.
+func (h *Handler) withDeliveryAddress(w http.ResponseWriter, r *http.Request, lat, lng *float64) (*float64, *float64, bool) {
+	addrID := r.URL.Query().Get("delivery_address_id")
+	if addrID == "" || lat != nil {
+		return lat, lng, true
+	}
+	if _, err := uuid.Parse(addrID); err != nil {
+		httpx.Fail(w, r, http.StatusUnprocessableEntity, codeValidationFailed,
+			"delivery_address_id must be a UUID",
+			[]httpx.FieldError{{Field: "delivery_address_id", Code: "invalid", Message: "must be a UUID"}})
+		return nil, nil, false
+	}
+	accountID := httpx.PrincipalFrom(r.Context()).AccountID
+	if accountID == "" {
+		return nil, nil, true
+	}
+	la, lo, err := h.repo.addressPoint(r.Context(), accountID, addrID)
+	if h.mapErr(w, r, err) {
+		return nil, nil, false
+	}
+	return la, lo, true
+}
+
 // GetRestaurant implements getRestaurant (GET /v1/restaurants/{restaurantId}):
 // detail for a customer-visible restaurant, 404 otherwise (C-13).
 func (h *Handler) GetRestaurant(w http.ResponseWriter, r *http.Request) {
@@ -62,20 +95,9 @@ func (h *Handler) GetRestaurant(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, r, http.StatusUnprocessableEntity, codeValidationFailed, aerr.Error(), nil)
 		return
 	}
-	// The contract's parameter is the customer's address id (`delivery_address_id`); the app sends
-	// it, not coordinates. Without this every restaurant page answered NO_ADDRESS for a customer
-	// with a saved address, and add-to-cart stayed blocked.
-	if addrID := r.URL.Query().Get("delivery_address_id"); addrID != "" && lat == nil {
-		if _, perr := uuid.Parse(addrID); perr != nil {
-			httpx.Fail(w, r, http.StatusUnprocessableEntity, codeValidationFailed,
-				"delivery_address_id must be a UUID", nil)
-			return
-		}
-		var perr error
-		lat, lng, perr = h.repo.addressPoint(r.Context(), httpx.PrincipalFrom(r.Context()).AccountID, addrID)
-		if h.mapErr(w, r, perr) {
-			return
-		}
+	lat, lng, ok := h.withDeliveryAddress(w, r, lat, lng)
+	if !ok {
+		return
 	}
 
 	rr, err := h.repo.getVisible(r.Context(), id, lat, lng)

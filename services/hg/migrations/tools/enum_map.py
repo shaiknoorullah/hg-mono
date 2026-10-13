@@ -131,6 +131,16 @@ MAPPED = {
     "NotificationChannel":                "notification_channel",
     "NotificationPriority":               "notification_priority",
     "DevicePlatform":                     "device_platform",
+
+    # --- operations ---------------------------------------------------------
+    # Each replica writes its start-up check of the text-message sender to
+    # Postgres, so every admin page reads the same answer (getSmsSenderStatus).
+    "SmsSenderCheckState":                "sms_sender_check_state",
+
+    # --- pre-launch waitlist (#212, https://github.com/shaiknoorullah/hg-mono/issues/212)
+    # Stored on the waitlist_signup row with its consent record (joinWaitlist).
+    "WaitlistAudience":                   "waitlist_audience",
+    "WaitlistContactKind":                "waitlist_contact_kind",
 }
 
 # Contract enums whose Postgres type is created by the feature migration that
@@ -143,6 +153,7 @@ MAPPED_IN_MIGRATION = {
     "HandoffEventType":                   ("handoff_event_type", "00027_handoff.sql"),
     "HandoffActor":                       ("handoff_actor", "00027_handoff.sql"),
     "HandoffMethod":                      ("handoff_method", "00027_handoff.sql"),
+    "HandoverCodeKind":                   ("handover_code_kind", "00072_handover_codes.sql"),
     "PayoutRunKind":                      ("payout_run_kind", "00030_payout_run.sql"),
     "PayoutRunState":                     ("payout_run_state", "00030_payout_run.sql"),
     "PayoutRunOutcome":                   ("payout_run_outcome", "00030_payout_run.sql"),
@@ -154,6 +165,12 @@ EXCLUSIONS = {
         "Transport-level error vocabulary. Never stored; lives in the Go error registry.",
     "Address/properties/country":
         "Single-value ('CA') constant enforced by a CHECK on address.country, not a type.",
+    "GeocodedAddress/properties/country":
+        "Single-value ('CA') constant on a geocoding answer. The saved address stores it "
+        "as address.country, under that column's CHECK, not a type.",
+    "GeoResultKind":
+        "How precise a Mapbox search result is. Shown to the user and never stored: the "
+        "address search adds no persistent entity (customer spec, C-31).",
     "HealthStatus/properties/status":
         "Liveness probe literal. Not persisted.",
     "ReadinessStatus/properties/dependencies/items/properties/name":
@@ -184,6 +201,9 @@ EXCLUSIONS = {
     "RestaurantApplicationRequestChangesInput/properties/decision":
         "Single-value request discriminator; the decision is stored as "
         "restaurant_application.decision (restaurant_decision).",
+    "RestaurantOnboardingStatus/properties/rejection/oneOf/0/properties/decision":
+        "Read-only projection of restaurant_application.decision "
+        "(restaurant_decision), limited to the two non-approving values.",
     "RiderApplicationApproveInput/properties/decision":
         "Single-value request discriminator; the outcome lands in "
         "rider_profile.onboarding_state.",
@@ -234,6 +254,34 @@ EXCLUSIONS = {
     "OrderRatingInput/properties/rider/oneOf/0/properties/tags/items":
         "Rating tag vocabulary. Stored as free text[] on the rating row; the "
         "allowed set is enforced at the API boundary.",
+    # The handover-code request shapes
+    # (https://github.com/shaiknoorullah/hg-mono/pull/290). Each method/to_state
+    # below is a one-value discriminator that picks the request shape; what is
+    # stored is the full enum it narrows.
+    "AssignmentStepInput/properties/to_state/not":
+        "Request-shape rule: PICKED_UP is not a plain step (it needs the pickup "
+        "code). The stored value is assignment_state.",
+    "PickupTransitionInput/properties/to_state":
+        "One-value discriminator (PICKED_UP) of the pickup request; stored as "
+        "assignment_state.",
+    "OtpProofInput/properties/method":
+        "One-value discriminator of the proof shape; stored as pod_method.",
+    "PhotoProofInput/properties/method":
+        "One-value discriminator of the proof shape; stored as pod_method.",
+    "PhotoWithAttestationProofInput/properties/method":
+        "One-value discriminator of the proof shape; stored as pod_method.",
+    "HandoverOverride/properties/actor_kind":
+        "Subset of order_actor_kind (SUPPORT, ADMIN); stored as order_actor_kind "
+        "with a CHECK on handover_override.actor_kind.",
+    # Address search (https://github.com/shaiknoorullah/hg-mono/issues/179) is
+    # forwarded to Mapbox and answered without touching the database.
+    "GeoResultKind":
+        "Response-only: how precise an address-search result is. Search results "
+        "are forwarded from Mapbox and never stored; a chosen address is saved "
+        "as an Address.",
+    "GeocodedAddress/properties/country":
+        "Response-only, always CA: an address-search result is never stored. "
+        "A saved address carries Address.country.",
 }
 
 

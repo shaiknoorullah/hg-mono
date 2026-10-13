@@ -1,0 +1,27 @@
+{
+  "scenario": "error_cannot_go_online_account_not_active",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`422` · `CANNOT_GO_ONLINE`. One blocking reason, `ACCOUNT_NOT_ACTIVE`, so its row and deep link can be tested alone. Contract-only: `services/hg` sends only `STALE_LOCATION_FIX` in `blocking_reasons` today.",
+  "operations": [
+    "setRiderAvailability"
+  ],
+  "status": 422,
+  "tags": [
+    "error-envelope",
+    "error-path",
+    "rider"
+  ],
+  "payload": {
+    "error": {
+      "code": "CANNOT_GO_ONLINE",
+      "message": "You cannot go online yet.",
+      "request_id": "1SQ4HHXR6HCE6SSP03MJEHHJBK",
+      "details": {
+        "blocking_reasons": [
+          "ACCOUNT_NOT_ACTIVE"
+        ]
+      }
+    }
+  }
+}

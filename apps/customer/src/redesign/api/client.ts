@@ -32,15 +32,60 @@ export function setApiFetch(fetch: Fetch | null): void {
   transport = fetch ?? defaultFetch;
 }
 
+/**
+ * Responses to the two checkout calls (createQuote, createOrder). A 403 ACCOUNT_SUSPENDED from one
+ * of them raises the blocked route with "That order wasn't placed." (board SI/Blocked-midcheckout).
+ * `onError` only sees the response, so the request it answered is remembered here.
+ */
+const checkoutResponses = new WeakSet<Response>();
+
+/** POST /v1/quotes (createQuote) or POST /v1/orders (createOrder). */
+export function isCheckoutRequest(method: string, url: string): boolean {
+  if (method.toUpperCase() !== 'POST') return false;
+  let pathname: string;
+  try {
+    pathname = new URL(url).pathname;
+  } catch {
+    pathname = url.split('?')[0] ?? url;
+  }
+  return /\/v1\/(quotes|orders)\/?$/.test(pathname);
+}
+
 async function observedFetch(input: Request): Promise<Response> {
   try {
     const res = await transport(input);
     markOnline();
+    if (isCheckoutRequest(input.method, input.url)) checkoutResponses.add(res);
     return res;
   } catch (e) {
     markOffline();
     throw e;
   }
+}
+
+/**
+ * A POST straight through the transport, outside the shared session: no bearer from the token
+ * holder, no refresh on a 401 and no forced route from the error. For calls about a session this
+ * phone has already let go of (finishing a sign-out). Throws on a transport failure.
+ */
+export async function postDirect(
+  path: string,
+  { token, body }: { token?: string; body?: unknown } = {},
+): Promise<{ status: number; data: unknown; code: string | null }> {
+  const res = await observedFetch(
+    new Request(`${API_BASE_URL}${path}`, {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'X-HG-Client': 'customer-app',
+        ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    }),
+  );
+  const parsed = (await res.json().catch(() => null)) as { data?: unknown; error?: { code?: string } } | null;
+  return { status: res.status, data: parsed?.data ?? null, code: parsed?.error?.code ?? null };
 }
 
 let inflight: Promise<boolean> | null = null;
@@ -94,9 +139,10 @@ export const api = createHgClient({
   baseUrl: API_BASE_URL,
   getToken,
   onUnauthorized,
-  onError: (error) => {
+  onError: (error, response) => {
     const kind = forcedKindForCode(error.code);
-    if (kind) raiseForced({ kind });
+    if (!kind) return;
+    raiseForced(kind === 'on-hold' && checkoutResponses.has(response) ? { kind, midCheckout: true } : { kind });
   },
   clientSurface: 'customer-app',
   clientVersion: '0.0.0',

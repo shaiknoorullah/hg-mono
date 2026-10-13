@@ -339,8 +339,17 @@ export interface paths {
         /**
          * Accept, suspend, retire or reject a certifying body
          * @description A-16. Suspending or retiring a body does **not** auto-revoke certificates already
-         *     approved under it, but no new certificate from that issuer may be approved and a
-         *     case is raised per affected restaurant.
+         *     approved under it, but no new certificate from that issuer may be approved, and a
+         *     certificate vouches for a restaurant only while its issuing body is `ACCEPTED`.
+         *     In the same transaction as the change, every restaurant holding a certificate from
+         *     the body has its halal state derived again: one that no other accepted certificate
+         *     vouches for loses its badge and, if `LIVE`, becomes `DELISTED` (hidden from
+         *     customers, menu not locked); accepting the body again lists it again when that was
+         *     its only reason. Its owners and managers are notified, each change is audited, and
+         *     an `admin.alert` per restaurant goes to `admin:ops`
+         *     ([issue 346](https://github.com/shaiknoorullah/hg-mono/issues/346)).
+         *     Refused with `403 MFA_REQUIRED` unless the session was signed in with an
+         *     authenticator code.
          */
         post: operations["setHalalIssuingBodyStatus"];
         delete?: never;
@@ -531,6 +540,53 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/orders/{orderId}/handover-override": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Support confirms a pickup or a met handover without its code
+         * @description **The only way past a handover code**
+         *     ([security review on #183](https://github.com/shaiknoorullah/hg-mono/issues/183)).
+         *     The pickup code and the delivery code are proof of presence, and the rider has no
+         *     override for either. When a code cannot be used — five wrong codes locked it
+         *     (`PICKUP_CODE_LOCKED`, `DELIVERY_CODE_LOCKED`), the kitchen cannot show it, or the
+         *     customer cannot be reached at a met handover — support or an admin confirms the
+         *     handover here, after checking with the people involved.
+         *
+         *     - `PICKUP` moves the order `READY_FOR_PICKUP` → `PICKED_UP` and the assignment to
+         *       `PICKED_UP`. The assigned rider must be at the counter (`ARRIVED_AT_PICKUP`).
+         *     - `DELIVERY` moves the order `PICKED_UP`/`ARRIVED` → `DELIVERED` and the assignment
+         *       to `DELIVERED`, for an order whose `required_pod_method` is `OTP`. The assigned
+         *       rider must be at the drop-off (`ARRIVED_AT_DROPOFF`).
+         *     - Anything else is `409 ILLEGAL_TRANSITION` with `details.from`, `details.to` and
+         *       `details.allowed`, and nothing is written.
+         *
+         *     Every override needs a `reason` and a linked support `case_id` — there are no
+         *     context-free order mutations. The transition, the retiring of the code (no later
+         *     attempt can use it) and the `HandoverOverride` audit record commit in **one
+         *     transaction**; the audit record is append-only and names the actor, their role, the
+         *     reason, the case and how many wrong codes had been tried. The order's timeline shows
+         *     the transition with `actor_kind` `SUPPORT` or `ADMIN` and the reason, and the usual
+         *     `order.state_changed` event goes out. The rider and the restaurant see the order
+         *     move on; they are never told the code, and neither is the operator: no admin view
+         *     carries either code, so support cannot read a code out to a rider.
+         *
+         *     Repeating the call with the same `Idempotency-Key` returns the same record. A second
+         *     override of a handover that has already happened is `409 ILLEGAL_TRANSITION`.
+         */
+        post: operations["overrideHandoverCode"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/payout-runs": {
         parameters: {
             query?: never;
@@ -647,6 +703,25 @@ export interface paths {
          *     Amounts are server-computed for `FULL`, `PARTIAL_ITEMS` and `FEES_ONLY`.
          *     `amount_cents` is accepted **only** for `GOODWILL` — this is the single allowlisted
          *     inbound monetary field besides `tip_cents` (G-3).
+         *
+         *     **The same claim rules as a customer's report.** Staff cannot refund a line or the
+         *     fees a second time. The rules are written out on `createRefund` under "Several
+         *     problem reports on one order" ([P-18](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/01-platform.md#p-18--refunds-cancellations-and-compensation),
+         *     [#184](https://github.com/shaiknoorullah/hg-mono/issues/184)); in short:
+         *
+         *     * A refund holds its claim in every state except `DECLINED` and `CANCELLED`. **A
+         *       pending approval request holds its claim too**, from the `202` until it is
+         *       declined, so a second request cannot take the same lines or fees meanwhile.
+         *     * For each order line, the quantity across the refunds that hold a claim may not
+         *       exceed the quantity ordered.
+         *     * The delivery and service fees and their tax are refunded at most once.
+         *     * A `FULL` refund claims only what no other refund holds, so it never clashes; when
+         *       nothing is left it is `409 REFUND_EXCEEDS_CAPTURED`.
+         *     * The refunds that hold a claim never add up to more than the captured amount.
+         *     * This operation, `createRefund` and the approval transaction each first take
+         *       `SELECT … FROM "order" WHERE id = $1 FOR UPDATE`, then re-check the line
+         *       quantities, the fees and the cap together, so two requests at once cannot both
+         *       pass.
          *
          *     The customer-facing status never reads "refunded" before the provider confirms.
          */
@@ -1091,6 +1166,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/system/sms-sender": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The result of the text-message sender start-up check
+         * @description Whether the sender of sign-in codes passed its start-up check (the `sms_sender`
+         *     boot probe, [SMS and email](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/01-platform.md#p-26--sms-and-email)).
+         *     When it fails, nobody new can sign in, so every admin page shows a sticky banner
+         *     until it passes, for every staff role: support agents, admins and super admins
+         *     ([round-2 decisions, "Admin", a failed text-message sender check](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01);
+         *     [what to do when the sender is down](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/ops/runbook.md#the-sign-in-code-sender-is-down)).
+         *
+         *     This is a narrow, launch read of one check. The full dependency report
+         *     (`getDependencyStatus`) stays later-version and admin-only, because it carries
+         *     internal addresses a support agent does not need.
+         *
+         *     Each API replica runs the check when it starts and writes the result to Postgres,
+         *     so every replica answers the same and a Redis flush loses nothing. This operation
+         *     returns the most recent result. The banner clears once a later check passes, for
+         *     example after the credentials are fixed and the replicas restart.
+         */
+        get: operations["getSmsSenderStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/auth/email/resend": {
         parameters: {
             query?: never;
@@ -1137,31 +1246,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/auth/invite/totp": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Start an invited staff member's authenticator enrolment
-         * @description P-03/A-03. For an unused staff invitation (or reset) link whose account needs an
-         *     authenticator (`SUPPORT_AGENT`, `ADMIN`, `SUPER_ADMIN`) and has none yet. Returns the
-         *     provisioning URI; the link stays usable. `resetPassword` with the link, the new password
-         *     and the first code then confirms it. Calling again replaces the enrolment not yet
-         *     confirmed. An account that needs no authenticator or already has one answers `409
-         *     STEP_NOT_AVAILABLE` ([#170](https://github.com/shaiknoorullah/hg-mono/issues/170)).
-         */
-        post: operations["startInviteTotpEnrolment"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/v1/auth/login": {
         parameters: {
             query?: never;
@@ -1174,7 +1258,8 @@ export interface paths {
         /**
          * Email + password sign-in (restaurants, admins, support)
          * @description P-03. Argon2id verification, account status check, role auth-policy check, TOTP
-         *     when enrolled or required. Wrong email, wrong password and unverified email all
+         *     when the account has turned it on (it is opt-in for every role; `403 MFA_REQUIRED`
+         *     asks for the code). Wrong email, wrong password and unverified email all
          *     return the same `401 INVALID_CREDENTIALS` body; the unverified case additionally
          *     sets `error.details.email_verification_required` **only after** the credentials
          *     were correct. Lockout truth lives in Postgres, so a Redis flush does not unlock.
@@ -1270,7 +1355,8 @@ export interface paths {
          *     authorization.
          *
          *     Fails closed (`503 RATE_LIMITER_UNAVAILABLE`) when Redis is unreachable — this and
-         *     `verifyOtp` are the two endpoints where fail-open is unacceptable.
+         *     `verifyOtp` are the two sign-in endpoints where fail-open is unacceptable
+         *     (`joinWaitlist` fails closed too).
          */
         post: operations["requestOtp"];
         delete?: never;
@@ -1370,15 +1456,9 @@ export interface paths {
          *
          *     **Issues no session and sets no cookie**, also when the link is a staff invitation
          *     setting a first password. The user signs in afterwards with `login` (with the
-         *     authenticator code where the account requires one).
-         *
-         *     **Staff invitation with an authenticator.** A staff role needs an authenticator to sign
-         *     in, and enrolling one needs a session, so an invitee starts enrolment with
-         *     `startInviteTotpEnrolment` and sends the first code here as `totp_code`. The password is
-         *     set and the authenticator confirmed together. A wrong code answers `422
-         *     INVALID_CREDENTIALS` and leaves the link usable; a `totp_code` with no enrolment started
-         *     answers `422 VALIDATION_FAILED`. Without `totp_code` nothing changes
-         *     ([#170](https://github.com/shaiknoorullah/hg-mono/issues/170)).
+         *     authenticator code only if the account has turned two-step sign-in on). An invited staff
+         *     member signs in with the password alone and may turn two-step sign-in on afterwards with
+         *     `enrollTotp`; it is never set up from the invitation link.
          */
         post: operations["resetPassword"];
         delete?: never;
@@ -1482,7 +1562,7 @@ export interface paths {
         put?: never;
         /**
          * Disable TOTP (step-up required)
-         * @description Refused for roles whose policy requires TOTP (`403 MFA_REQUIRED`).
+         * @description Turns two-step sign-in off with a current authenticator code. Two-step sign-in is opt-in for every email account, so staff may turn it off too.
          */
         post: operations["disableTotp"];
         delete?: never;
@@ -1502,8 +1582,13 @@ export interface paths {
         put?: never;
         /**
          * Begin TOTP enrolment
-         * @description P-01/P-03/A-03. Mandatory for `SUPPORT_AGENT`, `ADMIN` and `SUPER_ADMIN`, optional
-         *     for restaurant staff. Returns the provisioning URI and recovery codes exactly once.
+         * @description P-01/P-03/A-03. Opt-in for every email account, staff included: an invited admin or a
+         *     new restaurant signs in with the password alone and turns two-step sign-in on here
+         *     afterwards. Moving money still needs a session signed in with an authenticator code.
+         *     Returns the provisioning URI (shown as a QR code) and recovery codes exactly once.
+         *     While an authenticator is confirmed this answers `409 STEP_NOT_AVAILABLE`: turn it off
+         *     with `disableTotp` first, so a working authenticator is never replaced by an
+         *     unconfirmed one.
          */
         post: operations["enrollTotp"];
         delete?: never;
@@ -1543,7 +1628,41 @@ export interface paths {
          *     line. Money on the cart is indicative only — the binding numbers come from a quote.
          */
         get: operations["getCart"];
-        put?: never;
+        /**
+         * Replace every line in the cart in one call
+         * @description Clears the cart and adds every line in the request as **one atomic call**: either
+         *     the whole new cart is saved, or the cart is unchanged. A two-call clear-then-add
+         *     stays prohibited, because it can leave an empty cart on failure. The owner approved
+         *     this operation on 2026-10-01 for "Put these items back in your cart" after an unpaid
+         *     order is cancelled, expires or fails payment ([round-2 decisions, "Orders and
+         *     delivery"](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#orders-and-delivery);
+         *     [#179](https://github.com/shaiknoorullah/hg-mono/issues/179)). It is the one
+         *     exception to the granular cart operations, and only because rebuilding a cart line
+         *     by line cannot be atomic.
+         *
+         *     The request carries **item identifiers, options and quantities only**, never a
+         *     price: [the server prices every order](https://github.com/shaiknoorullah/hg-mono/blob/main/AGENTS.md#3-non-negotiable-invariants).
+         *     Every line is priced again at today's price; the old order's prices are not reused.
+         *
+         *     Rules:
+         *
+         *     * Every line must be from the same restaurant; that restaurant becomes the cart's
+         *       restaurant. Lines from two restaurants are `422 VALIDATION_FAILED`.
+         *     * It replaces whatever the cart held, from any restaurant, so it never returns
+         *       `DIFFERENT_RESTAURANT`. If the current cart is not empty, the client asks the
+         *       customer before calling it.
+         *     * Lines are merged by the same line identity as `addCartLine`
+         *       (`menu_item_id`, `variant_id`, sorted add-ons, `special_request`). A merged
+         *       quantity above 20 is `422 VALIDATION_FAILED`.
+         *     * All or nothing. If any line cannot be added, the answer is `409` with the code of
+         *       the first failure (`ITEM_UNAVAILABLE`, `VARIANT_UNAVAILABLE`, `ADDON_UNAVAILABLE`,
+         *       `RESTAURANT_CLOSED` or `RESTAURANT_UNAVAILABLE`) and `details.lines` lists every
+         *       failing line as `{index, code}`, where `index` is the line's position in the
+         *       request. The cart is unchanged. The app can offer to put back the lines that are
+         *       still available by calling again without the failing ones.
+         *     * The cart's `delivery_address_id` is kept.
+         */
+        put: operations["replaceCart"];
         post?: never;
         /** Empty the cart */
         delete: operations["clearCart"];
@@ -1566,12 +1685,27 @@ export interface paths {
          * @description C-16 / C-19 / C-20. The request carries **item identifiers and quantities only** —
          *     no price field exists on this DTO (G-3).
          *
-         *     Line identity is `(menu_item_id, variant_id, sorted(addons), special_request)`; an
-         *     identical add increments quantity, any difference creates a distinct line, so two
+         *     Line identity is `(menu_item_id, sorted(variant_ids), sorted(addons), special_request)`;
+         *     an identical add increments quantity, any difference creates a distinct line, so two
          *     "Chicken Biryani" lines with different variants are representable.
          *
+         *     **Variants, one per group.** `variant_ids` carries one chosen variant per variant group
+         *     of the item: exactly one for every `required` group, at most one for any other. The
+         *     deprecated `variant_id` is read as a one-element `variant_ids`; sending both is
+         *     `422 VALIDATION_FAILED`. The server checks the line against the menu before it touches
+         *     the cart: a variant that is not one of the item's, a missing required group, two
+         *     variants from one group, or an add-on group outside its `min_select`..`max_select` is
+         *     `422 VALIDATION_FAILED`; an add-on that is not one of the item's is `422 INVALID_ADDON`.
+         *     Both carry `FieldError` details naming the field (`variant_ids[1]`, `addons[0]`,
+         *     `addons`). A variant or add-on that is on the item but unavailable is
+         *     `409 VARIANT_UNAVAILABLE` with `{variant_id}` or `409 ADDON_UNAVAILABLE` with
+         *     `{addon_id}`, so the app can say which choice ran out.
+         *
          *     Adding an item from a different restaurant returns `409 DIFFERENT_RESTAURANT` with
-         *     the current cart's restaurant and line count. `replace=true` performs clear + add as
+         *     the current cart's restaurant and line count in `details`
+         *     (`{current_restaurant_id, current_restaurant_name, current_line_count, current_item_count}`).
+         *     The menu is checked first, so the "Start a new cart?" dialog only appears for a line
+         *     that can be added. `replace=true` performs clear + add as
          *     **one atomic call** — a two-call clear-then-add is prohibited because it can leave an
          *     empty cart on failure.
          *
@@ -1794,6 +1928,142 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/geo/autocomplete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Suggest Canadian addresses as the user types
+         * @description Search-as-you-type for the location picker (customer spec C-31, "Address entry:
+         *     autocomplete, geocoding and map pin"). The server forwards the query to Mapbox with
+         *     the secret key, which never reaches a client. Suggestions carry **no coordinates**:
+         *     picking one calls `getPlaceAddress` with its `place_id` and the same
+         *     `session_token`.
+         *
+         *     **Canada only.** The server always asks the provider for Canadian results and drops
+         *     any non-Canadian result the provider returns anyway. Results are ranked towards
+         *     `latitude`/`longitude` when sent (the device's location or the map's centre), else
+         *     towards the customer's default address or the restaurant's saved location, else
+         *     towards `default_map_center` from `getPublicConfig`. A result in a province HalalGoes does not serve yet is still
+         *     suggested; saving it is refused later with `PROVINCE_NOT_SERVED`, and the client can
+         *     warn first by comparing with `getPublicConfig.served_provinces`.
+         *
+         *     **Session token.** The client makes a UUID when the search field opens and sends it
+         *     on every suggestion request and on the one `getPlaceAddress` call that ends the
+         *     session; after that call it makes a new one. The provider bills per session, not
+         *     per keystroke, so a missing or reused token is a cost bug, not a correctness bug.
+         *     The client should also wait for a pause in typing (about 250 ms) before calling.
+         *
+         *     **No match is not an error:** `200` with an empty `data` array. The client keeps
+         *     "Enter address manually" and the map pin available.
+         *
+         *     **Provider unavailable:** `503 GEOCODER_UNAVAILABLE`, also when Mapbox times out
+         *     or refuses our key. The client falls back to the manual form and the map pin with a
+         *     visible notice, so address entry never becomes impossible (C-31 rule 5).
+         *
+         *     **Rate limit:** rate class `GEO_SUGGEST`, 60 requests per account per minute with a
+         *     burst of 20, so one search typed a key at a time stays under it
+         *     (`docs/spec/01-platform.md`, "P-38 — Rate limiting"). It is counted apart from
+         *     `getPlaceAddress` and `reverseGeocode`.
+         *
+         *     **Not stored.** Suggestions are temporary Mapbox results, which Mapbox's terms do
+         *     not allow to be stored or cached; the server keeps none of them, not even in Redis.
+         *     The address that gets saved comes from `getPlaceAddress`.
+         */
+        get: operations["suggestAddresses"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/geo/places/{placeId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Turn a picked suggestion into an address and a point
+         * @description Called once, when the user picks a suggestion from `suggestAddresses`; it ends the
+         *     search session, so the client makes a new `session_token` for the next search. The
+         *     result fills the address form and places the map pin. The user can then drag the
+         *     pin, and **the pin's final position is what `createAddress` or
+         *     `submitRestaurantProfile` stores**, even when it differs from this point (C-31
+         *     rule 7). This operation stores nothing; the save operations validate the address
+         *     themselves.
+         *
+         *     **Permanent geocoding.** Because the save operations store this address and, when
+         *     the user does not move the pin, this point, the server resolves the picked
+         *     suggestion with Mapbox Geocoding v6 and `permanent=true`. Mapbox allows a permanent
+         *     result to be stored; a temporary one, the default, may not be stored or cached
+         *     (issue #297).
+         *
+         *     Fields the provider does not know are `null`, never guessed: a street without a
+         *     number has a `line1` but no `postal_code`, and a postcode has no `line1`. The user
+         *     types what is missing.
+         *
+         *     **No match:** `404 GEOCODE_NO_MATCH` when the provider no longer recognises the
+         *     `place_id` (suggestions are short-lived) or the place resolves outside Canada. The
+         *     client searches again or offers the map pin. **Provider unavailable:** `503
+         *     GEOCODER_UNAVAILABLE`, handled as for `suggestAddresses`.
+         *
+         *     **Rate limit:** rate class `GEO`, 30 requests per account per minute, burst 10,
+         *     counted separately for `getPlaceAddress` and `reverseGeocode`.
+         */
+        get: operations["getPlaceAddress"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/geo/reverse": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Turn a map pin into the nearest Canadian address
+         * @description Fills the address form when the user drops or drags the pin without searching
+         *     (C-31 rule 4). The client calls it when a drag **ends**, not while the pin moves.
+         *     Takes no session token: each call stands alone.
+         *
+         *     The returned `latitude`/`longitude` are the address's own point, which can be a few
+         *     metres from the pin. The client keeps its pin, because the pin's position is what
+         *     is saved (C-31 rule 7).
+         *
+         *     **Permanent geocoding.** The save operations store the address fields returned
+         *     here, so the server asks Mapbox Geocoding v6 for them with `permanent=true`, which
+         *     Mapbox requires before a result may be stored or cached (issue #297).
+         *
+         *     **No match:** `404 GEOCODE_NO_MATCH` when no Canadian address is near the pin: in a
+         *     lake, a field, or across the border. The pin stays where it is and the user types
+         *     the address. **Provider unavailable:** `503 GEOCODER_UNAVAILABLE`, handled as for
+         *     `suggestAddresses`.
+         *
+         *     **Rate limit:** rate class `GEO`, 30 requests per account per minute, burst 10,
+         *     counted separately for `getPlaceAddress` and `reverseGeocode`.
+         */
+        get: operations["reverseGeocode"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/me/profile": {
         parameters: {
             query?: never;
@@ -1989,13 +2259,16 @@ export interface paths {
         put?: never;
         /**
          * Rider scans the seal at delivery
-         * @description The one proof that gates `PICKED_UP`/`ARRIVED` → `DELIVERED` (T15/T16) on the handoff
-         *     side — the customer's own proof of delivery (OTP or photo, D-21) is a separate,
-         *     unrelated requirement and both must clear. Same signature, order-binding and
-         *     single-use-nonce checks as `scanPickup`, scoped to the `DELIVERY` proof so the same
-         *     physical QR can legally be scanned once at pickup and once at delivery without either
-         *     scan being treated as a replay of the other. `seal_intact: false` never blocks
-         *     delivery; it is recorded as tamper evidence for support to act on.
+         * @description **Later version: seals are not used at launch**
+         *     ([#47](https://github.com/shaiknoorullah/hg-mono/issues/47)). This scan
+         *     **does not gate and does not perform** `DELIVERED`: delivery is gated only by the
+         *     customer's proof of delivery (`submitProofOfDelivery`, a code or a photo).
+         *
+         *     When seals return: same signature, order-binding and single-use-nonce checks as
+         *     `scanPickup`, scoped to the `DELIVERY` proof so the same physical QR can legally be
+         *     scanned once at pickup and once at delivery without either scan being treated as a
+         *     replay of the other. `seal_intact: false` is recorded as tamper evidence for support
+         *     to act on and blocks nothing.
          */
         post: operations["scanDelivery"];
         delete?: never;
@@ -2015,13 +2288,19 @@ export interface paths {
         put?: never;
         /**
          * Rider scans the seal at pickup
-         * @description The one proof that gates `READY_FOR_PICKUP` → `PICKED_UP` (T12). The rider scans the
-         *     QR on the package; the server verifies the EdDSA signature, that the token's
-         *     `order_id` matches this order, and that its `nonce` has never been consumed for a
-         *     `PICKUP` proof on this seal (single-use — `UNIQUE(seal_id, nonce)` makes a replay a
-         *     constraint violation, not a check that might be skipped). A failed `seal_intact` check
-         *     does **not** block the pickup — the physical handoff still happened — but it is
-         *     recorded on the seal and the event trail as tamper evidence.
+         * @description **Later version: seals are not used at launch**
+         *     ([#47](https://github.com/shaiknoorullah/hg-mono/issues/47)). This scan
+         *     **does not gate and does not perform** `READY_FOR_PICKUP` → `PICKED_UP`: the rider
+         *     confirms pickup with the kitchen's `pickup_code` on `createAssignmentTransition`, as
+         *     the owner decided on 2026-10-01
+         *     ([round-2 decisions, "Orders and delivery"](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#orders-and-delivery)).
+         *
+         *     When seals return, the rider scans the QR on the package as custody evidence; the
+         *     server verifies the EdDSA signature, that the token's `order_id` matches this order,
+         *     and that its `nonce` has never been consumed for a `PICKUP` proof on this seal
+         *     (single-use — `UNIQUE(seal_id, nonce)` makes a replay a constraint violation, not a
+         *     check that might be skipped). A failed `seal_intact` check is recorded on the seal
+         *     and the event trail as tamper evidence and blocks nothing.
          */
         post: operations["scanPickup"];
         delete?: never;
@@ -2041,12 +2320,17 @@ export interface paths {
         put?: never;
         /**
          * Bind a physical seal to this order at packing
-         * @description Restaurant staff scan or key in the pre-coded `seal_code` printed on the physical
+         * @description **Later version: seals are not used at launch**
+         *     ([#47](https://github.com/shaiknoorullah/hg-mono/issues/47)). Nothing at
+         *     launch requires a bound seal; the kitchen proves the handover to the rider with the
+         *     order's `pickup_code` instead.
+         *
+         *     Restaurant staff scan or key in the pre-coded `seal_code` printed on the physical
          *     tamper-evident label as they finish packing. The seal must be `ISSUED` (platform-known
          *     stock, not yet bound) and is bound to exactly this order for its lifetime — a seal
          *     never moves between orders. Binding mints the EdDSA-signed `{order_id, seal_id, nonce}`
-         *     token (P-04 signing keys) that the client renders as the QR code affixed to the
-         *     package; that same code is what the rider scans at pickup and at delivery.
+         *     token that the client renders as the QR code affixed to the package; that same code
+         *     is what the rider scans at pickup and at delivery.
          */
         post: operations["bindPackageSeal"];
         delete?: never;
@@ -2066,11 +2350,17 @@ export interface paths {
         put?: never;
         /**
          * Customer reports the seal was tampered with
-         * @description Filed by the customer after delivery — the rider never files this; their only
-         *     tamper-adjacent signal is `seal_intact` on their own scan. This never auto-fails the
-         *     order or the payment: it appends a `TAMPER_REPORT` event carrying the photo trail and
-         *     opens the existing dispute flow (A-33/A-35, `DELIVERED`/`COMPLETED` → `DISPUTED`),
-         *     which decides the money outcome from the full scan-and-photo chain of custody.
+         * @description **Later version: seals are not used at launch**
+         *     ([#47](https://github.com/shaiknoorullah/hg-mono/issues/47)), so there is no
+         *     seal to report on; a customer reports a problem with a delivered order through a
+         *     refund request (`createRefund`).
+         *
+         *     When seals return, this is filed by the customer after delivery — the rider never
+         *     files this; their only tamper-adjacent signal is `seal_intact` on their own scan. It
+         *     never auto-fails the order or the payment: it appends a `TAMPER_REPORT` event carrying
+         *     the photo trail and opens the existing dispute flow (`DELIVERED`/`COMPLETED` →
+         *     `DISPUTED`), which decides the money outcome from the full scan-and-photo chain of
+         *     custody.
          */
         post: operations["reportTamper"];
         delete?: never;
@@ -2438,6 +2728,51 @@ export interface paths {
          *     A refund is only meaningful post-capture. A pre-capture cancellation **voids** the
          *     authorisation and is a different operation entirely (`cancelOrder`); no `refund` row
          *     and no Stripe refund call exists on that path.
+         *
+         *     **Several problem reports on one order.** A customer may report more than one
+         *     problem on the same order, as the owner approved on 2026-10-01
+         *     ([#184](https://github.com/shaiknoorullah/hg-mono/issues/184)). The rule this
+         *     contract chose: **each report is its own refund, decided on its own, and reports
+         *     never merge.** A later report is accepted while earlier ones are open or decided,
+         *     unless it claims something another report already holds:
+         *
+         *     * A refund *holds* its claim in every state except `DECLINED` and `CANCELLED`, the
+         *       two in which no money moves.
+         *     * A refund waiting for a second approval (`PENDING_APPROVAL`, including the approval
+         *       request `issueRefund` answers `202` with) holds its claim too, until it is declined.
+         *     * **Items.** For each order line, the quantity across the refunds that hold a claim
+         *       on it may not exceed the quantity ordered. A second report on a line is accepted
+         *       while some of that line's quantity is still unclaimed: with 3 ordered and 1
+         *       claimed, a report on 2 more is accepted and a report on 3 more is refused.
+         *     * **Fees.** The delivery and service fees and their tax are refunded at most once:
+         *       by `FEES_ONLY`, or as part of a `FULL` refund when no other refund holds them.
+         *     * **`FULL` never clashes.** A `FULL` refund claims only the quantities and the fees
+         *       that no other refund holds. It refunds the captured amount minus every refund that
+         *       holds a claim, and is `409 REFUND_EXCEEDS_CAPTURED` when nothing is left.
+         *     * A claim another refund already holds is `409 REFUND_ALREADY_REQUESTED`, with
+         *       `details.order_line_nos` naming the lines and `details.fees` true when the fees
+         *       were the clash. Nothing is created. Only `PARTIAL_ITEMS` and `FEES_ONLY` can
+         *       clash; `GOODWILL` claims no line and no fees, only part of the cap.
+         *     * **The cap.** The refunds that hold a claim never add up to more than the captured
+         *       amount (`409 REFUND_EXCEEDS_CAPTURED`). Source: [refunds never exceed the captured
+         *       amount](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/01-platform.md#p-18--refunds-cancellations-and-compensation).
+         *     * **Two requests at once cannot both pass.** `createRefund`, `issueRefund` and the
+         *       approval transaction each first take `SELECT … FROM "order" WHERE id = $1 FOR
+         *       UPDATE`, and only then re-check the line quantities, the fees and the cap
+         *       together. Locking the order row, not the existing refund rows, is what stops a
+         *       second request inserting a new refund row at the same moment. An approval
+         *       re-checks all three, not only the cap. The fee rule is also made unrepresentable
+         *       by a partial unique index on the refund table ([P-18, Data](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/01-platform.md#p-18--refunds-cancellations-and-compensation)).
+         *     * Each report keeps its own reason code and therefore its own liability split, so a
+         *       missing item charged to the restaurant and a late delivery absorbed by the
+         *       platform can sit on the same order.
+         *     * The rate limit of 5 refund requests per order per day still applies
+         *       ([rate limiting](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/01-platform.md#p-38--rate-limiting)).
+         *
+         *     **Reporting before delivery.** "Get help" opens from the restaurant's acceptance
+         *     ([round-2 decisions, "Orders and delivery"](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#orders-and-delivery)).
+         *     The reasons that fit before delivery are `LATE_DELIVERY` and `WRONG_ADDRESS`;
+         *     wanting to cancel is `cancelOrder`, not a refund request.
          */
         post: operations["createRefund"];
         delete?: never;
@@ -2497,6 +2832,20 @@ export interface paths {
          *
          *     Turning the toggle off never shortens an offer already outstanding: that order keeps
          *     its full 180-second response window.
+         *
+         *     **Pausing until closing.** `pause_until_closing: true` pauses new orders until the
+         *     end of the trading period the restaurant is in now, worked out by the server from
+         *     the restaurant's own hours, today's override if there is one, and its time zone. A
+         *     late night that runs past midnight pauses until it ends the next morning, which is
+         *     why the client never computes it. It replaces "rest of today", as the owner decided
+         *     on 2026-10-01 ([round-2 decisions](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01), "Restaurant", "For how long" options).
+         *     The response's `pause_until` is the closing time it chose. Rules:
+         *
+         *     * `is_accepting_orders` must be true, as for any pause.
+         *     * Send `pause_until` or `pause_until_closing`, never both: both is
+         *       `422 VALIDATION_FAILED`.
+         *     * Outside trading hours there is nothing to pause: `409 RESTAURANT_CLOSED`.
+         *     * Later changes to the hours do not move a pause already set; pausing again does.
          */
         patch: operations["setRestaurantAcceptingOrders"];
         trace?: never;
@@ -3221,10 +3570,53 @@ export interface paths {
          * Record proof of delivery
          * @description D-21. The required method is determined by the customer's delivery instruction and
          *     is returned to the rider on the assignment as `required_pod_method`:
-         *     met handovers require the customer's 4-digit OTP (which the rider is never shown);
-         *     unattended drops require a photo, uploaded to the private `hg-pod` bucket before
-         *     `DELIVERED` commits. Five wrong OTP attempts lock the code and fall back to
-         *     photo-with-attestation, and the event is flagged.
+         *     met handovers require the customer's 4-digit delivery code (which the rider is never
+         *     shown); unattended drops require a photo, uploaded to the private `hg-pod` bucket
+         *     before `DELIVERED` commits.
+         *
+         *     **The body is one of three shapes, chosen by `method`, and each one requires its
+         *     proof:** `OtpProofInput` requires `otp_code`, `PhotoProofInput` requires
+         *     `photo_object_id`, and `PhotoWithAttestationProofInput` requires `photo_object_id`
+         *     and `attestation_reason`. `method` must be the assignment's `required_pod_method`
+         *     (`422 POD_METHOD_MISMATCH` otherwise), with one widening: where a photo is required,
+         *     a photo with a statement is accepted too, straight away
+         *     ([round-2 decisions, "Leave at door"](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#orders-and-delivery)).
+         *
+         *     **A met handover can only be proved with the delivery code**
+         *     ([security review on #183](https://github.com/shaiknoorullah/hg-mono/issues/183)).
+         *     When `required_pod_method` is `OTP`, a photo or a photo with a statement is
+         *     `POD_METHOD_MISMATCH`, before or after the code locks. The rider has no fallback,
+         *     no "skip" and no override:
+         *
+         *     - A wrong code: `422 DELIVERY_CODE_INCORRECT` with `details.attempts_remaining`.
+         *       The attempt is counted and committed in Postgres per order with one atomic
+         *       conditional increment, exactly like the pickup code, so concurrent attempts can
+         *       never exceed five and a Redis flush cannot reset the count.
+         *     - **Five wrong codes per order.** The fifth locks the delivery code; that answer and
+         *       every later `OTP` proof is `423 DELIVERY_CODE_LOCKED`, and nothing more is
+         *       compared or counted. The lock **hands the order to support** in the same
+         *       transaction (an `admin.alert` of kind `HANDOVER_CODE_LOCKED` on `admin:ops`).
+         *       Support or an admin then confirms the delivery with `overrideHandoverCode`, or
+         *       opens an incident. The order's `ARRIVED` (or `PICKED_UP`) deadline keeps running
+         *       and ends in `DISPUTED` with an operations case, never in an automatic delivery.
+         *     - A customer who cannot be reached at a met handover is the same case: the rider
+         *       asks support, who can override with a reason. The rider never decides alone that
+         *       a met handover happened.
+         *
+         *     **The customer reads the code from their own authenticated order view:**
+         *     `delivery_code` on `OrderCustomerView` (`getOrder`, `getActiveOrder`) and on
+         *     `OrderTracking` (`getOrderTracking`), all `CUSTOMER`-only operations, while the order
+         *     is out for delivery
+         *     ([round-2 decisions, "Orders and delivery"](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#orders-and-delivery),
+         *     [#180](https://github.com/shaiknoorullah/hg-mono/issues/180)). The code is
+         *     **never** in a push, SMS, email or realtime event: those pass through APNs, FCM or a
+         *     carrier and show on the lock screen and in the notification history. The arrival
+         *     push says only "Your rider is here" and deep-links to the order
+         *     ([#280](https://github.com/shaiknoorullah/hg-mono/issues/280)); the app then fetches
+         *     the code over the authenticated API.
+         *
+         *     No error body carries a code: neither the code sent nor the expected code appears
+         *     in `error.message` or `error.details`.
          */
         post: operations["submitProofOfDelivery"];
         delete?: never;
@@ -3250,8 +3642,10 @@ export interface paths {
          *     the restaurant.
          *
          *     `ARRIVED_AT_PICKUP` and `PICKED_UP` are distinct states — conflating them destroys
-         *     restaurant wait-time measurement. A geofence failure does not block the rider: the
-         *     transition is allowed with a mandatory `override_reason` and is flagged for ops.
+         *     restaurant wait-time measurement. A geofence failure on a step does not block the
+         *     rider: the step is allowed with a mandatory `override_reason` and is flagged for
+         *     ops. **`override_reason` covers a failed geofence check and nothing else:** it never
+         *     stands in for a handover code or a proof of delivery.
          *     `occurred_at` is client-supplied but clamped to a 120-second window behind the
          *     server's receipt time; the server timestamp is authoritative for pay.
          *
@@ -3259,8 +3653,59 @@ export interface paths {
          *     `409 INVALID_TRANSITION`. Transitions queued offline are accepted up to 2 hours late
          *     with their original `occurred_at`.
          *
-         *     `DELIVERED` cannot commit without the proof-of-delivery artefact recorded in the
-         *     **same transaction** — there is no "mark delivered, upload later".
+         *     **The two handover codes are proof of presence, and the rider cannot get past
+         *     either one** ([security review on #183](https://github.com/shaiknoorullah/hg-mono/issues/183)).
+         *     There is no optional code field, no "skip" and no rider override. When a code
+         *     cannot be used, only support or an admin can move the order on, with
+         *     `overrideHandoverCode`, which needs a reason and a support case and writes an audit
+         *     record.
+         *
+         *     **`PICKED_UP` requires the pickup code.** The body is one of two shapes, chosen by
+         *     `to_state`: `PICKED_UP` is accepted only as `PickupTransitionInput`, whose
+         *     `pickup_code` is required; every other step is `AssignmentStepInput`, which cannot
+         *     carry `PICKED_UP`. At the counter the kitchen reads the order's 4-digit
+         *     `pickup_code` (shown on `OrderRestaurantView`) to the rider, who types it in. A
+         *     matching code proves the rider and the kitchen were both there, so `PICKED_UP` has
+         *     no geofence check and no `override_reason`; it replaces the seal scan, which no
+         *     longer gates pickup
+         *     ([round-2 decisions, "Orders and delivery"](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#orders-and-delivery);
+         *     [#178](https://github.com/shaiknoorullah/hg-mono/issues/178)). The rider is never
+         *     sent the code: no assignment, offer, error or realtime event carries it.
+         *
+         *     - `PICKED_UP` without `pickup_code`: `422 PICKUP_CODE_REQUIRED`. Nothing is
+         *       counted.
+         *     - A wrong code: `422 PICKUP_CODE_INCORRECT` with `details.attempts_remaining`.
+         *       The wrong attempt is counted and committed in Postgres even though the transition
+         *       is refused, using one atomic conditional increment
+         *       (`UPDATE ... SET pickup_code_attempts = pickup_code_attempts + 1 WHERE
+         *       pickup_code_attempts < 5 RETURNING ...`), so concurrent attempts can never exceed
+         *       five and a Redis flush cannot reset the lock
+         *       ([AGENTS.md, "Architecture in one picture"](https://github.com/shaiknoorullah/hg-mono/blob/main/AGENTS.md#2-architecture-in-one-picture):
+         *       Redis is disposable; [#289](https://github.com/shaiknoorullah/hg-mono/issues/289)).
+         *       The assignment's state does not change.
+         *     - **Five wrong codes per order.** The fifth wrong code locks the pickup code for
+         *       this order (the count belongs to the order, so a reassignment does not reset
+         *       it). That answer and every later `PICKED_UP` is `423 PICKUP_CODE_LOCKED`; no
+         *       further code is compared or counted. The lock **hands the order to support** in
+         *       the same transaction: it raises an `admin.alert` of kind `HANDOVER_CODE_LOCKED`
+         *       on `admin:ops` and the rider app tells the rider that support will take over.
+         *       Support or an admin then confirms the pickup with `overrideHandoverCode`, or
+         *       cancels the order. The order's `READY_FOR_PICKUP` deadline keeps running, so a
+         *       lock nobody resolves still ends through that state's deadline action.
+         *     - Repeating `PICKED_UP` after it has committed is the usual 200 no-op: the code is
+         *       not compared again and nothing is counted.
+         *
+         *     **`DELIVERED` requires the delivery code at a met handover.** `DELIVERED` commits
+         *     only on a proof of delivery already recorded with `submitProofOfDelivery`, in the
+         *     order's `required_pod_method`, and checked in the **same transaction** — there is
+         *     no "mark delivered, upload later". Without it: `422 POD_REQUIRED` with
+         *     `details.required_pod_method`. When the customer asked to meet the rider
+         *     (`required_pod_method: OTP`), the only proof that exists is the customer's
+         *     matching delivery code; a photo, a statement or an `override_reason` never
+         *     replaces it.
+         *
+         *     No error body carries a code: neither the code sent nor the expected code appears
+         *     in `error.message` or `error.details`.
          */
         post: operations["createAssignmentTransition"];
         delete?: never;
@@ -3458,8 +3903,9 @@ export interface paths {
          *     countdown is derived from the server's `expires_at` and `server_time`, never from a
          *     local constant — a device whose clock is ten minutes fast still shows ~30 seconds.
          *
-         *     The pre-accept projection deliberately withholds the customer's unit number and
-         *     phone alias; only the drop-off street and neighbourhood are shown.
+         *     The pre-accept projection shows only an approximate drop-off area (neighbourhood,
+         *     city, and the centre and radius of the area), never the street or the address; the
+         *     full address arrives once the rider accepts (`DispatchOffer`).
          */
         get: operations["getCurrentOffer"];
         put?: never;
@@ -3696,6 +4142,63 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/waitlist": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Join the pre-launch waitlist from the marketing site
+         * @description The marketing site's waitlist form posts here, so the site can be a static export
+         *     and the sign-ups land in the product database instead of a hosted one
+         *     ([#212](https://github.com/shaiknoorullah/hg-mono/issues/212); [every HalalGoes
+         *     system is self-hosted](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#settled--platform-decisions-owner-2026-10-01)).
+         *
+         *     **Public, and registered public on purpose:** a visitor joins before they have an
+         *     account. A route is public only if it is explicitly registered public ([deny by
+         *     default](https://github.com/shaiknoorullah/hg-mono/blob/main/AGENTS.md#3-non-negotiable-invariants)),
+         *     so this operation is added to the fixed public set in `contracts/README.md`.
+         *
+         *     **Rate-limited by client address:** rate class `WAITLIST`, 10 sign-ups per client
+         *     address per hour, burst 5 ([rate limiting](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/01-platform.md#p-38--rate-limiting)).
+         *     The address is the one Traefik forwards, trusted only from Traefik's network
+         *     ([middleware chain, client-address step](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/01-platform.md#p-06--deny-by-default-routing-and-the-middleware-chain)). Over
+         *     the limit is `429 RATE_LIMITED`, and nothing is stored. When Redis is down the
+         *     limit **fails closed**: `503 RATE_LIMITER_UNAVAILABLE`, and nothing is stored; the
+         *     form asks the visitor to try again. Failing open would let anyone store unlimited
+         *     sign-ups by varying the contact, because the idempotency key is a pair the caller
+         *     chooses, and [correctness may never depend on Redis](https://github.com/shaiknoorullah/hg-mono/blob/main/AGENTS.md#2-architecture-in-one-picture).
+         *
+         *     **The consent record.** Canada's anti-spam law (CASL) asks what the person agreed
+         *     to, not only that they agreed. The server keeps the exact `consent_text` the form
+         *     showed, the audience, the contact and its kind, the form it came from, the campaign
+         *     parameters, and `consented_at`, which the server sets to the time it receives the
+         *     request. `consent` must be `true`: an unticked box is a no.
+         *
+         *     **Idempotent on audience and contact.** Joining again with the same audience and
+         *     contact returns the same `202` and stores nothing new; the first consent is kept
+         *     and never overwritten. The answer is identical whether or not the contact was
+         *     already on the list, so the form cannot be used to find out who signed up. The same
+         *     person may join as a customer and as a restaurant: the pair is the key. That is why
+         *     it takes no `Idempotency-Key`: there is no account to scope a key to, and the
+         *     audience and contact already make a repeat harmless.
+         *
+         *     **Contact.** `EMAIL` is lower-cased before it is stored. `TEL` must be E.164.
+         *     The marketing site collects email only while text-message sender registration is
+         *     open ([#71](https://github.com/shaiknoorullah/hg-mono/issues/71)); `TEL` exists so
+         *     phone sign-ups need no contract change later.
+         */
+        post: operations["joinWaitlist"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/webhooks/stripe": {
         parameters: {
             query?: never;
@@ -3789,6 +4292,26 @@ export interface components {
             postal_code: components["schemas"]["PostalCode"];
             province: components["schemas"]["Province"];
             unit?: string;
+        };
+        /** @description One row in the search list. Carries no coordinates: picking it calls `getPlaceAddress`. */
+        AddressSuggestion: {
+            /**
+             * Format: int32
+             * @description Straight-line metres from the `latitude`/`longitude` the request sent. Null when the request sent no location.
+             */
+            distance_m: number | null;
+            kind: components["schemas"]["GeoResultKind"];
+            place_id: components["schemas"]["PlaceId"];
+            /**
+             * @description The second line, e.g. `Toronto, Ontario M5J 0C3`. Null when the title says it all, such as a province-wide result.
+             * @example Toronto, Ontario M5J 0C3
+             */
+            subtitle: string | null;
+            /**
+             * @description The first line of the row, e.g. `88 Harbour Street` or `CN Tower`.
+             * @example 88 Harbour Street
+             */
+            title: string;
         };
         /**
          * @description Partial update — every field is optional, but the **merged** row must still satisfy
@@ -3899,6 +4422,8 @@ export interface components {
          * @description D-19. The **post-accept** projection: full address, unit, buzzer and the proxied phone
          *     alias. Item prices and order totals are never present — the order is prepaid and the
          *     basket value is none of the rider's business, which removes a whole class of dispute.
+         *     Neither handover code is ever present: the rider hears the pickup code from the
+         *     kitchen and the delivery code from the customer, and types each one in.
          */
         Assignment: {
             /** Format: date-time */
@@ -3969,19 +4494,36 @@ export interface components {
          * @enum {string}
          */
         AssignmentState: "ASSIGNED" | "EN_ROUTE_TO_PICKUP" | "ARRIVED_AT_PICKUP" | "PICKED_UP" | "EN_ROUTE_TO_DROPOFF" | "ARRIVED_AT_DROPOFF" | "DELIVERED" | "UNDELIVERABLE" | "RETURNING" | "RETURNED" | "CANCELLED_BY_PLATFORM" | "REASSIGNED";
-        AssignmentTransitionInput: {
+        /**
+         * @description Every rider step except `PICKED_UP`. `DELIVERED` is one of these steps, and it
+         *     commits only on a proof of delivery already recorded with `submitProofOfDelivery`
+         *     (`422 POD_REQUIRED` otherwise); at a met handover that proof is the customer's
+         *     delivery code.
+         */
+        AssignmentStepInput: {
             accuracy_m?: number;
             latitude?: components["schemas"]["Latitude"];
             longitude?: components["schemas"]["Longitude"];
             occurred_at: components["schemas"]["Timestamp"];
             /**
-             * @description Mandatory when the geofence check fails. The transition is still allowed — a rider
-             *     is never trapped by GPS — but it is flagged for ops, and repeated overrides trigger
-             *     a review.
+             * @description Mandatory when the geofence check fails. The step is still allowed — a rider is
+             *     never trapped by GPS — but it is flagged for operations, and repeated overrides
+             *     trigger a review. It covers the geofence and nothing else: it never stands in for
+             *     a handover code or a proof of delivery.
              */
             override_reason?: string;
+            /** @description Any `AssignmentState` except `PICKED_UP`, which is `PickupTransitionInput`. */
             to_state: components["schemas"]["AssignmentState"];
         };
+        /**
+         * @description One of two shapes, chosen by `to_state`. `PICKED_UP` is accepted **only** as
+         *     `PickupTransitionInput`, whose `pickup_code` is required; every other step is
+         *     `AssignmentStepInput`, which cannot carry `PICKED_UP` or a code. So there is no
+         *     pickup without a code and no field a rider can use to skip one
+         *     ([security review on #183](https://github.com/shaiknoorullah/hg-mono/issues/183)).
+         *     See `createAssignmentTransition` for the attempt limit and what happens after it.
+         */
+        AssignmentTransitionInput: components["schemas"]["AssignmentStepInput"] | components["schemas"]["PickupTransitionInput"];
         /**
          * @description The access token's `amr` claim. Policy, not the client, decides which methods may
          *     obtain which roles: an account holding both `CUSTOMER` and `ADMIN` that signs in by
@@ -4038,7 +4580,14 @@ export interface components {
             quantity: number;
             special_request?: string | null;
             unit_price_cents: components["schemas"]["Cents"];
+            /**
+             * @deprecated
+             * @description Deprecated: read `variants`. The line's variant when it has exactly one; `null`
+             *     when it has none or several.
+             */
             variant?: components["schemas"]["SelectedVariant"] | null;
+            /** @description Every chosen variant, one per variant group, in the menu's group order. */
+            variants: components["schemas"]["LineVariant"][];
         };
         /**
          * @description R-19. The API annotates; it **never mutates the cart on the restaurant's behalf**.
@@ -4072,8 +4621,28 @@ export interface components {
             quantity: number;
             /** @description Advisory. Copied to the order line; never changes a price. */
             special_request?: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @deprecated
+             * @description Deprecated: send `variant_ids`. Read as a one-element `variant_ids`; sending both is
+             *     `422 VALIDATION_FAILED`.
+             */
             variant_id?: string | null;
+            /**
+             * @description One chosen variant per variant group of the item: exactly one for each `required`
+             *     group, at most one for any other. Order does not matter; line identity sorts them.
+             */
+            variant_ids?: string[];
+        };
+        /**
+         * @description The body of `replaceCart`. **Item identifiers, options and quantities only**: each
+         *     line is a `CartLineInput`, which has no price field, so no client-supplied price can
+         *     reach the cart ([the server prices every order](https://github.com/shaiknoorullah/hg-mono/blob/main/AGENTS.md#3-non-negotiable-invariants)).
+         *     To empty the cart, use `clearCart`; an empty `lines` is rejected.
+         */
+        CartReplaceInput: {
+            /** @description Every line of the new cart, from one restaurant. 100 bounds the request size; a cart rebuilt from an order never comes near it. */
+            lines: components["schemas"]["CartLineInput"][];
         };
         /**
          * Format: int64
@@ -4318,18 +4887,41 @@ export interface components {
             restaurant: components["schemas"]["RestaurantCard"];
         };
         /**
-         * @description D-14. The **pre-accept** projection. It deliberately omits the customer's unit number
-         *     and phone alias; only the drop-off street and neighbourhood are shown. The countdown
-         *     is computed from `expires_at` minus `server_time`, never from a local constant.
+         * @description D-14. The **pre-accept** projection. Before accepting, the rider sees only an
+         *     approximate drop-off area: no street, house number, unit, buzzer, name or phone
+         *     alias. The full address arrives with the `Assignment` once the rider accepts. The
+         *     owner decided this on 2026-10-01 ([round-2 decisions, "Orders and delivery"](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#orders-and-delivery);
+         *     [#183](https://github.com/shaiknoorullah/hg-mono/issues/183)). `distance_m` and
+         *     `est_duration_s` are still measured to the exact address, so the rider can judge the
+         *     trip. The countdown is computed from `expires_at` minus `server_time`, never from a
+         *     local constant.
          */
         DispatchOffer: {
             /** Format: int32 */
             distance_m?: number;
+            /**
+             * @description The approximate drop-off area. `latitude` and `longitude` are the centre of the
+             *     area, never the customer's address: the server snaps the address to a grid of
+             *     about 500 m and sends the centre of that cell, so the map can show a shaded
+             *     circle and the direction of travel without pointing at a house.
+             */
             dropoff: {
-                /** @description Street and neighbourhood only. The unit number arrives on accept. */
+                /**
+                 * @description The neighbourhood and city, such as "Harbourfront, Toronto". Never a street,
+                 *     a house number, a unit or a full postal code.
+                 * @example Harbourfront, Toronto
+                 */
                 area: string;
                 latitude: components["schemas"]["Latitude"];
                 longitude: components["schemas"]["Longitude"];
+                /**
+                 * Format: int32
+                 * @description The radius of the approximate area around the point, in metres, for the
+                 *     shaded circle. The address lies inside it. When absent, the client draws
+                 *     no circle and shows the area name alone.
+                 * @example 400
+                 */
+                radius_m?: number;
             };
             earnings: components["schemas"]["OfferEarningsEstimate"];
             /** Format: int32 */
@@ -4466,7 +5058,7 @@ export interface components {
          *     transformation was applied — no code was renamed, split or dropped.
          * @enum {string}
          */
-        ErrorCode: "INTERNAL_ERROR" | "TIMEOUT" | "PAYLOAD_TOO_LARGE" | "ORIGIN_NOT_ALLOWED" | "CSRF_ORIGIN_REJECTED" | "RATE_LIMITED" | "RATE_LIMITER_UNAVAILABLE" | "VALIDATION_FAILED" | "UNKNOWN_FIELD" | "INVALID_FIELD" | "INVALID_ENUM_VALUE" | "NOT_FOUND" | "FORBIDDEN" | "PERMISSION_DENIED" | "AUTHENTICATION_REQUIRED" | "METHOD_NOT_ALLOWED" | "UNSUPPORTED_MEDIA_TYPE" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_REUSE" | "IDEMPOTENCY_IN_PROGRESS" | "IDEMPOTENCY_CONFLICT" | "OTP_INVALID_OR_EXPIRED" | "OTP_INCORRECT" | "INVALID_PHONE" | "UNSUPPORTED_COUNTRY" | "INVALID_CREDENTIALS" | "EMAIL_NOT_VERIFIED" | "EMAIL_ALREADY_REGISTERED" | "TERMS_VERSION_STALE" | "BREACHED_PASSWORD" | "ACCOUNT_TEMPORARILY_LOCKED" | "ACCOUNT_LOCKED" | "SESSION_REVOKED" | "SESSION_EXPIRED" | "REFRESH_REUSE_DETECTED" | "TOKEN_CONSUMED" | "VERIFICATION_TOKEN_EXPIRED" | "VERIFICATION_TOKEN_USED" | "MFA_REQUIRED" | "LAST_OWNER_REQUIRED" | "ACCOUNT_SUSPENDED" | "ACCOUNT_DEACTIVATED" | "ACCOUNT_NOT_ACTIVE" | "ACCOUNT_BANNED" | "ONBOARDING_INCOMPLETE" | "PROFILE_INCOMPLETE" | "RESTAURANT_CLOSED" | "RESTAURANT_UNAVAILABLE" | "ITEM_UNAVAILABLE" | "CART_HAS_UNAVAILABLE_ITEMS" | "DIFFERENT_RESTAURANT" | "VARIANT_UNAVAILABLE" | "ADDON_UNAVAILABLE" | "INVALID_ADDON" | "BELOW_MINIMUM_ORDER" | "ADDRESS_OUT_OF_RANGE" | "ADDRESS_IN_USE" | "PROVINCE_NOT_SERVED" | "FAVOURITES_LIMIT" | "QUOTE_STALE" | "QUOTE_EXPIRED" | "TAX_PROFILE_MISSING" | "PRICE_CHANGED" | "BLOCKED_PRICE_CHANGED" | "REFUND_EXCEEDS_CAPTURED" | "PAYMENT_NOT_REFUNDABLE" | "REFUND_WINDOW_CLOSED" | "REFUND_ALREADY_REQUESTED" | "DAILY_CAP_EXCEEDED" | "EXCEEDS_REFUND_CAP" | "SELF_APPROVAL_FORBIDDEN" | "PAYMENT_METHOD_LIMIT" | "PAYMENT_METHOD_IN_USE" | "PAYMENT_METHOD_INVALID" | "CAPTURE_FAILED" | "LEDGER_BATCH_UNBALANCED" | "ILLEGAL_TRANSITION" | "ILLEGAL_STATUS_TRANSITION" | "TRANSITION_NOT_PERMITTED_FOR_ACTOR" | "ACTIVE_ORDER_EXISTS" | "CANCELLATION_WINDOW_CLOSED" | "RECEIPT_NOT_READY" | "ORDERING_PAUSED" | "DELAY_LIMIT_REACHED" | "DELAY_NOT_ALLOWED_IN_STATUS" | "REVIEW_WINDOW_CLOSED" | "REVIEW_EDIT_WINDOW_CLOSED" | "OFFER_ALREADY_TAKEN" | "OFFER_EXPIRED" | "OFFER_WITHDRAWN" | "ORDER_CANCELLED" | "RIDER_NOT_AVAILABLE" | "ACTIVE_DELIVERY_IN_PROGRESS" | "CANNOT_GO_ONLINE" | "PAYOUT_ACCOUNT_INCOMPLETE" | "INVALID_TRANSITION" | "GEOFENCE_REQUIRED" | "STALE_POINT" | "POD_REQUIRED" | "POD_METHOD_MISMATCH" | "OTP_LOCKED" | "CONTACT_WINDOW_CLOSED" | "SEAL_NOT_FOUND" | "SEAL_ALREADY_BOUND" | "SEAL_NOT_BOUND" | "SEAL_TOKEN_INVALID" | "SEAL_ORDER_MISMATCH" | "SEAL_NONCE_REPLAYED" | "STEP_NOT_AVAILABLE" | "ILLEGAL_STATE_TRANSITION" | "INCOMPLETE_DOCUMENT_PACK" | "DOCUMENT_LOCKED_FOR_REVIEW" | "DOCUMENT_ALREADY_EXPIRED" | "CONTENT_TYPE_MISMATCH" | "CHECKSUM_MISMATCH" | "IMAGE_TOO_SMALL" | "UPLOAD_NOT_FOUND" | "UNRECOGNISED_CERTIFIER" | "COORDINATES_OUTSIDE_SERVICE_AREA" | "INVALID_GST_HST_NUMBER" | "NON_CANADIAN_NUMBER" | "PRICE_OUT_OF_RANGE" | "PROHIBITED_INGREDIENT" | "FIELD_NOT_WRITABLE" | "CATEGORY_NAME_TAKEN" | "CATEGORY_NOT_EMPTY" | "ITEM_BLOCKED_BY_ADMIN" | "ITEM_DELETED" | "NO_LIVE_MENU_ITEM" | "MENU_VERSION_PENDING" | "MENU_LOCKED" | "DOCUMENTS_INCOMPLETE" | "DOCUMENT_EXPIRES_TOO_SOON" | "UNDERAGE" | "AGE_REQUIREMENT_NOT_MET" | "EMAIL_IN_USE" | "PLATE_IN_USE" | "FIELD_REQUIRED" | "FIELD_NOT_APPLICABLE" | "FIELD_NOT_EDITABLE" | "IMMUTABLE_AFTER_APPROVAL" | "RESUBMIT_TOO_SOON" | "NOTHING_TO_RESUBMIT" | "REVIEW_LOCK_LOST" | "ALREADY_DECIDED" | "PRECONDITION_NOT_MET" | "CHECK_NOT_OVERRIDABLE" | "CHECKLIST_INCOMPLETE" | "CHECK_FAILED" | "HALAL_CERTIFICATE_REQUIRED" | "DUPLICATE_CERTIFICATE" | "REVERSAL_WINDOW_EXPIRED" | "REOPEN_NOT_PERMITTED_FOR_REASON" | "CASE_REQUIRED" | "ETA_EXTENSION_LIMIT" | "FORBIDDEN_PERMISSION";
+        ErrorCode: "INTERNAL_ERROR" | "TIMEOUT" | "PAYLOAD_TOO_LARGE" | "ORIGIN_NOT_ALLOWED" | "CSRF_ORIGIN_REJECTED" | "RATE_LIMITED" | "RATE_LIMITER_UNAVAILABLE" | "VALIDATION_FAILED" | "UNKNOWN_FIELD" | "INVALID_FIELD" | "INVALID_ENUM_VALUE" | "NOT_FOUND" | "FORBIDDEN" | "PERMISSION_DENIED" | "AUTHENTICATION_REQUIRED" | "METHOD_NOT_ALLOWED" | "UNSUPPORTED_MEDIA_TYPE" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_REUSE" | "IDEMPOTENCY_IN_PROGRESS" | "IDEMPOTENCY_CONFLICT" | "OTP_INVALID_OR_EXPIRED" | "OTP_INCORRECT" | "INVALID_PHONE" | "UNSUPPORTED_COUNTRY" | "INVALID_CREDENTIALS" | "EMAIL_NOT_VERIFIED" | "EMAIL_ALREADY_REGISTERED" | "TERMS_VERSION_STALE" | "BREACHED_PASSWORD" | "ACCOUNT_TEMPORARILY_LOCKED" | "ACCOUNT_LOCKED" | "SESSION_REVOKED" | "SESSION_EXPIRED" | "REFRESH_REUSE_DETECTED" | "TOKEN_CONSUMED" | "VERIFICATION_TOKEN_EXPIRED" | "VERIFICATION_TOKEN_USED" | "MFA_REQUIRED" | "LAST_OWNER_REQUIRED" | "ACCOUNT_SUSPENDED" | "ACCOUNT_DEACTIVATED" | "ACCOUNT_NOT_ACTIVE" | "ACCOUNT_BANNED" | "ONBOARDING_INCOMPLETE" | "PROFILE_INCOMPLETE" | "RESTAURANT_CLOSED" | "RESTAURANT_UNAVAILABLE" | "ITEM_UNAVAILABLE" | "CART_HAS_UNAVAILABLE_ITEMS" | "DIFFERENT_RESTAURANT" | "VARIANT_UNAVAILABLE" | "ADDON_UNAVAILABLE" | "INVALID_ADDON" | "BELOW_MINIMUM_ORDER" | "ADDRESS_OUT_OF_RANGE" | "ADDRESS_IN_USE" | "PROVINCE_NOT_SERVED" | "FAVOURITES_LIMIT" | "GEOCODE_NO_MATCH" | "GEOCODER_UNAVAILABLE" | "QUOTE_STALE" | "QUOTE_EXPIRED" | "TAX_PROFILE_MISSING" | "PRICE_CHANGED" | "BLOCKED_PRICE_CHANGED" | "REFUND_EXCEEDS_CAPTURED" | "PAYMENT_NOT_REFUNDABLE" | "REFUND_WINDOW_CLOSED" | "REFUND_ALREADY_REQUESTED" | "DAILY_CAP_EXCEEDED" | "EXCEEDS_REFUND_CAP" | "SELF_APPROVAL_FORBIDDEN" | "PAYMENT_METHOD_LIMIT" | "PAYMENT_METHOD_IN_USE" | "PAYMENT_METHOD_INVALID" | "CAPTURE_FAILED" | "LEDGER_BATCH_UNBALANCED" | "ILLEGAL_TRANSITION" | "ILLEGAL_STATUS_TRANSITION" | "TRANSITION_NOT_PERMITTED_FOR_ACTOR" | "ACTIVE_ORDER_EXISTS" | "CANCELLATION_WINDOW_CLOSED" | "RECEIPT_NOT_READY" | "ORDERING_PAUSED" | "DELAY_LIMIT_REACHED" | "DELAY_NOT_ALLOWED_IN_STATUS" | "REVIEW_WINDOW_CLOSED" | "REVIEW_EDIT_WINDOW_CLOSED" | "OFFER_ALREADY_TAKEN" | "OFFER_EXPIRED" | "OFFER_WITHDRAWN" | "ORDER_CANCELLED" | "RIDER_NOT_AVAILABLE" | "ACTIVE_DELIVERY_IN_PROGRESS" | "CANNOT_GO_ONLINE" | "PAYOUT_ACCOUNT_INCOMPLETE" | "INVALID_TRANSITION" | "GEOFENCE_REQUIRED" | "STALE_POINT" | "POD_REQUIRED" | "POD_METHOD_MISMATCH" | "PICKUP_CODE_REQUIRED" | "PICKUP_CODE_INCORRECT" | "PICKUP_CODE_LOCKED" | "DELIVERY_CODE_INCORRECT" | "DELIVERY_CODE_LOCKED" | "CONTACT_WINDOW_CLOSED" | "SEAL_NOT_FOUND" | "SEAL_ALREADY_BOUND" | "SEAL_NOT_BOUND" | "SEAL_TOKEN_INVALID" | "SEAL_ORDER_MISMATCH" | "SEAL_NONCE_REPLAYED" | "STEP_NOT_AVAILABLE" | "ILLEGAL_STATE_TRANSITION" | "INCOMPLETE_DOCUMENT_PACK" | "DOCUMENT_LOCKED_FOR_REVIEW" | "DOCUMENT_ALREADY_EXPIRED" | "CONTENT_TYPE_MISMATCH" | "CHECKSUM_MISMATCH" | "IMAGE_TOO_SMALL" | "UPLOAD_NOT_FOUND" | "UNRECOGNISED_CERTIFIER" | "COORDINATES_OUTSIDE_SERVICE_AREA" | "INVALID_GST_HST_NUMBER" | "NON_CANADIAN_NUMBER" | "PRICE_OUT_OF_RANGE" | "PROHIBITED_INGREDIENT" | "FIELD_NOT_WRITABLE" | "CATEGORY_NAME_TAKEN" | "CATEGORY_NOT_EMPTY" | "ITEM_BLOCKED_BY_ADMIN" | "ITEM_DELETED" | "NO_LIVE_MENU_ITEM" | "MENU_VERSION_PENDING" | "MENU_LOCKED" | "DOCUMENTS_INCOMPLETE" | "DOCUMENT_EXPIRES_TOO_SOON" | "UNDERAGE" | "AGE_REQUIREMENT_NOT_MET" | "EMAIL_IN_USE" | "PLATE_IN_USE" | "FIELD_REQUIRED" | "FIELD_NOT_APPLICABLE" | "FIELD_NOT_EDITABLE" | "IMMUTABLE_AFTER_APPROVAL" | "RESUBMIT_TOO_SOON" | "NOTHING_TO_RESUBMIT" | "REVIEW_LOCK_LOST" | "ALREADY_DECIDED" | "PRECONDITION_NOT_MET" | "CHECK_NOT_OVERRIDABLE" | "CHECKLIST_INCOMPLETE" | "CHECK_FAILED" | "HALAL_CERTIFICATE_REQUIRED" | "DUPLICATE_CERTIFICATE" | "REVERSAL_WINDOW_EXPIRED" | "REOPEN_NOT_PERMITTED_FOR_REASON" | "CASE_REQUIRED" | "ETA_EXTENSION_LIMIT" | "FORBIDDEN_PERMISSION";
         ErrorEnvelope: {
             error: {
                 code: components["schemas"]["ErrorCode"];
@@ -4475,7 +5067,15 @@ export interface components {
                  *     `VALIDATION_FAILED` → `[{field, code, message}]`;
                  *     `QUOTE_STALE` → `{quote: Quote}`;
                  *     `ILLEGAL_TRANSITION` → `{from, to, allowed: [OrderState]}`;
-                 *     `DIFFERENT_RESTAURANT` → `{current_restaurant_id, current_restaurant_name, current_line_count}`;
+                 *     `DIFFERENT_RESTAURANT` → `{current_restaurant_id, current_restaurant_name, current_line_count, current_item_count}`
+                 *     (`current_line_count` counts lines, `current_item_count` sums their quantities);
+                 *     `VARIANT_UNAVAILABLE` → `{variant_id}`;
+                 *     `ADDON_UNAVAILABLE` → `{addon_id}`;
+                 *     `INVALID_ADDON` → `[{field, code, message}]`;
+                 *     `ITEM_UNAVAILABLE`, `VARIANT_UNAVAILABLE`, `ADDON_UNAVAILABLE`,
+                 *     `RESTAURANT_CLOSED`, `RESTAURANT_UNAVAILABLE` from `replaceCart` →
+                 *     `{lines: [{index, code}]}`;
+                 *     `REFUND_ALREADY_REQUESTED` → `{order_line_nos: [int], fees: bool}`;
                  *     `CART_HAS_UNAVAILABLE_ITEMS` → `{line_ids: [uuid]}`;
                  *     `INCOMPLETE_DOCUMENT_PACK` → `{missing: [doc_type]}`;
                  *     `MENU_LOCKED` → `{account_state}` (`SUSPENDED` or `BANNED`);
@@ -4483,7 +5083,14 @@ export interface components {
                  *     `PRECONDITION_NOT_MET` → `{blockers: [string]}`;
                  *     `CANNOT_GO_ONLINE` → `{blocking_reasons: [string]}`;
                  *     `POD_REQUIRED` → `{required_pod_method}`;
+                 *     `POD_METHOD_MISMATCH` → `{required_pod_method}`;
+                 *     `PICKUP_CODE_INCORRECT` → `{attempts_remaining}`;
+                 *     `DELIVERY_CODE_INCORRECT` → `{attempts_remaining}`;
                  *     `RATE_LIMITED` → `{retry_after_seconds}`.
+                 *
+                 *     **Never a handover code.** No error carries a pickup or delivery code, the
+                 *     one sent or the one expected, in `message` or `details`; a
+                 *     `VALIDATION_FAILED` on a code field names the field, never its value.
                  */
                 details?: {
                     [key: string]: unknown;
@@ -4527,10 +5134,45 @@ export interface components {
          * @enum {string}
          */
         Fulfilment: "DELIVERY" | "PICKUP";
+        /**
+         * @description A Canadian address that **prefills** the address form; it is not a saved address.
+         *     Its field names match `AddressInput` and `RestaurantProfileInput` so the form copies
+         *     them across. A field the provider does not know is `null`, never guessed. `unit`,
+         *     `buzzer` and delivery notes are never returned: the user types them.
+         */
+        GeocodedAddress: {
+            city: string | null;
+            /**
+             * @description Always `CA`. A result outside Canada is never returned.
+             * @enum {string}
+             */
+            country: "CA";
+            /** @description One line for display, e.g. `88 Harbour Street, Toronto, Ontario M5J 0C3`. */
+            formatted: string;
+            kind: components["schemas"]["GeoResultKind"];
+            latitude: components["schemas"]["Latitude"];
+            /** @description Street number and street, or the street alone for `STREET`. Null for `POSTCODE`, `NEIGHBOURHOOD` and `PLACE`. */
+            line1: string | null;
+            longitude: components["schemas"]["Longitude"];
+            /** @description The place's name when `kind` is `POI` (e.g. `CN Tower`); null otherwise. */
+            name: string | null;
+            /** @description Uppercased with a single space. Null when the provider has none, as for a whole street. */
+            postal_code: components["schemas"]["PostalCode"] | null;
+            province: components["schemas"]["Province"];
+        };
         GeoPoint: {
             latitude: components["schemas"]["Latitude"];
             longitude: components["schemas"]["Longitude"];
         };
+        /**
+         * @description How precise a search result is. `ADDRESS`: a street number on a street. `STREET`:
+         *     a street without a number. `POSTCODE`: a postal code area. `NEIGHBOURHOOD`: a
+         *     neighbourhood or locality. `PLACE`: a city or town. `POI`: a named place such as a
+         *     building, with its street address. Only `ADDRESS` and `POI` usually fill every
+         *     field the address form needs; for the rest the user adds what is missing.
+         * @enum {string}
+         */
+        GeoResultKind: "ADDRESS" | "STREET" | "POSTCODE" | "NEIGHBOURHOOD" | "PLACE" | "POI";
         /**
          * @description C-12. When this object is absent from a payload the client renders **no badge** and
          *     reports a client error — there is no "assume certified" path. The label is fixed
@@ -4721,8 +5363,59 @@ export interface components {
             order_state: components["schemas"]["OrderState"];
             seal: components["schemas"]["PackageSeal"];
         };
+        /**
+         * @description Which handover code a support override stands in for: `PICKUP`, the code the kitchen
+         *     reads to the rider at the counter, or `DELIVERY`, the code the customer reads to the
+         *     rider at a met handover.
+         * @enum {string}
+         */
+        HandoverCodeKind: "PICKUP" | "DELIVERY";
         /** @enum {string} */
         HandoverMethod: "HANDED_TO_CUSTOMER" | "LEFT_AT_DOOR" | "LEFT_WITH_RECEPTION" | "HANDED_TO_OTHER_PERSON";
+        /**
+         * @description The append-only audit record `overrideHandoverCode` writes, in the same transaction
+         *     as the transition it performs. It never contains either code.
+         */
+        HandoverOverride: {
+            /** Format: uuid */
+            actor_account_id: string;
+            /**
+             * @description `SUPPORT` for a support agent, `ADMIN` for an admin or super admin.
+             * @enum {string}
+             */
+            actor_kind: "SUPPORT" | "ADMIN";
+            /** Format: uuid */
+            case_id: string;
+            created_at: components["schemas"]["Timestamp"];
+            handover: components["schemas"]["HandoverCodeKind"];
+            /**
+             * Format: uuid
+             * @description The audit record. Quote it in the support case.
+             */
+            id: string;
+            /** Format: uuid */
+            order_id: string;
+            /** @description The order state after the override: `PICKED_UP` or `DELIVERED`. */
+            order_state: components["schemas"]["OrderState"];
+            reason: string;
+            /**
+             * Format: int32
+             * @description How many wrong codes had been tried for this handover; 5 means the code had locked.
+             */
+            wrong_code_attempts: number;
+        };
+        /** @description Every intervention requires a linked case — there are no context-free order mutations. */
+        HandoverOverrideInput: {
+            /** Format: uuid */
+            case_id: string;
+            handover: components["schemas"]["HandoverCodeKind"];
+            /**
+             * @description What support checked and why the code could not be used, for example "Code
+             *     locked after 5 tries; called the kitchen, who confirmed they handed the bag to
+             *     the rider". Kept on the audit record and the order's timeline.
+             */
+            reason: string;
+        };
         HealthStatus: {
             started_at: components["schemas"]["Timestamp"];
             /** @enum {string} */
@@ -4804,6 +5497,28 @@ export interface components {
             currency: components["schemas"]["Currency"];
             memo?: string | null;
             posted_at: components["schemas"]["Timestamp"];
+        };
+        /**
+         * @description One chosen variant on a cart, quote or order line, with its group. On a quote or order
+         *     line the name and money are snapshotted, so a later menu edit never changes them; on a
+         *     cart line they are the menu's current values. The line's `variant_part_cents` is the
+         *     `ABSOLUTE` variant's `price_cents` (else the item's base price) plus every `DELTA`
+         *     variant's `delta_cents`.
+         */
+        LineVariant: {
+            /** @description Set when `pricing_mode` is `DELTA`: adjusts the item's base price. */
+            delta_cents: components["schemas"]["Cents"] | null;
+            /** @example Rice */
+            group_name: string;
+            /** @description Set when `pricing_mode` is `ABSOLUTE`: replaces the item's base price. */
+            price_cents: components["schemas"]["Cents"] | null;
+            pricing_mode: components["schemas"]["VariantPricingMode"];
+            /** Format: uuid */
+            variant_group_id: string;
+            /** Format: uuid */
+            variant_id: string;
+            /** @example Kabuli pulao */
+            variant_name: string;
         };
         LoginInput: {
             /** Format: email */
@@ -5027,7 +5742,13 @@ export interface components {
          */
         NextRoute: "HOME" | "PROFILE_CAPTURE" | "ONBOARDING_PROFILE" | "ONBOARDING_VEHICLE" | "ONBOARDING_DOCUMENTS" | "ONBOARDING_AWAITING_REVIEW" | "ONBOARDING_REJECTED" | "ONBOARDING_PAYOUT" | "ONBOARDING_MENU" | "ACTIVE_DELIVERY" | "ORDER_TRACKING" | "SUSPENDED" | "APP_UPDATE_REQUIRED";
         Notification: {
-            /** @description Never contains an OTP code, a full address, card details or a token. */
+            /**
+             * @description Never contains a sign-in code, a pickup or delivery code, a full address, card
+             *     details or a token. Push and SMS pass through APNs, FCM or a carrier and show on
+             *     the lock screen and in the notification history, so a notification that leads to
+             *     a code says only what to do ("Your rider is here") and deep-links to the screen
+             *     that fetches the code over the authenticated API.
+             */
             body: string;
             /**
              * @description Which delivery channels were attempted for this notification. The `INAPP` row
@@ -5095,6 +5816,13 @@ export interface components {
         OrderAdminView: components["schemas"]["OrderCustomerView"] & {
             /** @description The disputes the customer raised with their bank over this order. */
             chargebacks: components["schemas"]["Chargeback"][];
+            /**
+             * @description Always null for support and admin. The customer's delivery code is shown
+             *     only to the customer, so nobody at HalalGoes can read a code out to a rider;
+             *     a handover that cannot use its code is confirmed with `overrideHandoverCode`
+             *     instead ([security review on #183](https://github.com/shaiknoorullah/hg-mono/issues/183)).
+             */
+            delivery_code?: null;
             /** @description The delivery address coordinates, for LiveMapBox. */
             destination_location?: components["schemas"]["GeoPoint"] | null;
             dispatch_history?: {
@@ -5177,6 +5905,25 @@ export interface components {
             /** Format: date-time */
             delivered_at?: string | null;
             delivery_address?: components["schemas"]["Address"] | null;
+            /**
+             * @description The 4-digit code the customer reads to the rider at a met handover, so the rider can
+             *     record proof of delivery (`submitProofOfDelivery`). Set only while the order is
+             *     `PICKED_UP` or `ARRIVED` **and** its delivery instruction is a met handover
+             *     (`MEET_AT_DOOR` or `MEET_IN_LOBBY`, proof method `OTP`). Null in every other state,
+             *     for an unattended drop (proof is a photo), and once five wrong codes have locked it
+             *     (the order is then with support, who can confirm the handover with
+             *     `overrideHandoverCode`). Only the customer's own authenticated projections carry
+             *     it: the support projection (`OrderAdminView`, which extends the customer view)
+             *     has it null, the rider is never sent it, and no push, SMS, email or realtime event
+             *     carries it — the arrival push says only "Your rider is here", and the app fetches
+             *     the code here
+             *     ([round-2 decisions, "Orders and delivery"](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#orders-and-delivery); [#180](https://github.com/shaiknoorullah/hg-mono/issues/180); [security review on #183](https://github.com/shaiknoorullah/hg-mono/issues/183)).
+             *     Stored encrypted at rest (AES-GCM under `APP_DATA_KEY`, like `totp_secret_enc`),
+             *     not as a hash, because the server shows it again
+             *     ([#289](https://github.com/shaiknoorullah/hg-mono/issues/289)).
+             * @example 4827
+             */
+            delivery_code?: string | null;
             delivery_instructions?: components["schemas"]["DeliveryInstruction"][];
             dispatch_state?: components["schemas"]["DispatchState"] | null;
             /** Format: date-time */
@@ -5305,7 +6052,13 @@ export interface components {
             quantity: number;
             special_request?: string | null;
             unit_price_cents: components["schemas"]["Cents"];
+            /**
+             * @description The chosen variants' names joined with ", " in group order, for a one-line ticket;
+             *     `null` when there is none. `variants` carries each one with its group.
+             */
             variant_name?: string | null;
+            /** @description Every chosen variant with its snapshotted price, in the menu's group order. */
+            variants: components["schemas"]["LineVariant"][];
         };
         /** @description The frozen copy of the quote's customer-facing decomposition. Renders in the fixed P-10 order. */
         OrderMoney: {
@@ -5412,6 +6165,28 @@ export interface components {
             is_late?: boolean;
             lines: components["schemas"]["OrderLine"][];
             money: components["schemas"]["RestaurantOrderMoney"];
+            /**
+             * @description The 4-digit code the kitchen reads to the rider at the counter. The rider types it
+             *     in to confirm pickup (`pickup_code` on `PickupTransitionInput`, required), which
+             *     proves the rider and the kitchen were both there and replaces the seal scan. Set
+             *     from acceptance while the order is `PREPARING` or `READY_FOR_PICKUP` and a rider
+             *     will collect it; null before acceptance, after pickup, once five wrong codes have
+             *     locked it (the order is then with support), for an order the customer collects,
+             *     and in every terminal state. **Only the restaurant's authenticated order view
+             *     carries it** (`getRestaurantOrder`, `listRestaurantOrders` and the restaurant's
+             *     order actions, all restaurant-staff operations), plus the restaurant-staff
+             *     projection of `restaurant.order_accepted` on the `restaurant:{id}` realtime
+             *     channel, which no rider can subscribe to. The rider is never sent it, the support
+             *     and admin projections never carry it, and no push, SMS or email does
+             *     ([round-2 decisions, "Orders and delivery"](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#orders-and-delivery);
+             *     [#178](https://github.com/shaiknoorullah/hg-mono/issues/178);
+             *     [security review on #183](https://github.com/shaiknoorullah/hg-mono/issues/183)).
+             *     Stored encrypted at rest (AES-GCM under `APP_DATA_KEY`, like `totp_secret_enc`),
+             *     not as a hash, because the server shows it again
+             *     ([#289](https://github.com/shaiknoorullah/hg-mono/issues/289)).
+             * @example 3051
+             */
+            pickup_code?: string | null;
             placed_at: components["schemas"]["Timestamp"];
             /** Format: date-time */
             promised_ready_at?: string | null;
@@ -5469,6 +6244,22 @@ export interface components {
             total_cents: components["schemas"]["Cents"];
         };
         OrderTracking: {
+            /**
+             * @description The 4-digit code the customer reads to the rider at a met handover, so the rider can
+             *     record proof of delivery (`submitProofOfDelivery`). Set only while the order is
+             *     `PICKED_UP` or `ARRIVED` **and** its delivery instruction is a met handover
+             *     (`MEET_AT_DOOR` or `MEET_IN_LOBBY`, proof method `OTP`). Null in every other state,
+             *     for an unattended drop (proof is a photo), and once five wrong codes have locked it
+             *     (the order is then with support). This is the polling twin of
+             *     `OrderCustomerView.delivery_code`, on a `CUSTOMER`-only operation: the rider is never
+             *     sent it, and no push, SMS, email or realtime event carries it
+             *     ([round-2 decisions, "Orders and delivery"](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#orders-and-delivery); [#180](https://github.com/shaiknoorullah/hg-mono/issues/180); [security review on #183](https://github.com/shaiknoorullah/hg-mono/issues/183)).
+             *     Stored encrypted at rest (AES-GCM under `APP_DATA_KEY`, like `totp_secret_enc`),
+             *     not as a hash, because the server shows it again
+             *     ([#289](https://github.com/shaiknoorullah/hg-mono/issues/289)).
+             * @example 4827
+             */
+            delivery_code?: string | null;
             destination_location?: components["schemas"]["GeoPoint"] | null;
             dispatch_state?: components["schemas"]["DispatchState"] | null;
             /** Format: date-time */
@@ -5506,6 +6297,22 @@ export interface components {
              * @description Remaining cooldown. 60 s between sends, maximum 3 sends per challenge.
              */
             resend_after_s: number;
+        };
+        /**
+         * @description A met handover (`MEET_AT_DOOR`, `MEET_IN_LOBBY`): the customer reads their delivery
+         *     code to the rider, who types it in. Wrong code: `422 DELIVERY_CODE_INCORRECT`; five
+         *     wrong codes per order: `423 DELIVERY_CODE_LOCKED` and the order goes to support.
+         */
+        OtpProofInput: {
+            handover_method?: components["schemas"]["HandoverMethod"];
+            /** @enum {string} */
+            method: "OTP";
+            /**
+             * @description The customer's 4-digit delivery code (`OrderCustomerView.delivery_code`), read
+             *     out by the customer. The rider is never shown it, and no response or error ever
+             *     echoes it.
+             */
+            otp_code: string;
         };
         OtpRequestInput: {
             device_id?: string | null;
@@ -5755,6 +6562,35 @@ export interface components {
          * @example +14165550123
          */
         PhoneE164: string;
+        /** @description An unattended drop (`LEAVE_AT_DOOR`, `DO_NOT_RING_BELL`): a photo of the placed order. */
+        PhotoProofInput: {
+            handover_method?: components["schemas"]["HandoverMethod"];
+            /** @enum {string} */
+            method: "PHOTO";
+            /**
+             * Format: uuid
+             * @description A `READY` object with purpose `POD`, uploaded by the assigned rider.
+             */
+            photo_object_id: string;
+        };
+        /**
+         * @description An unattended drop with a statement, accepted straight away wherever a photo is
+         *     required ([round-2 decisions, "Leave at door"](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#orders-and-delivery)).
+         *     Never accepted for a met handover: where `required_pod_method` is `OTP` it is
+         *     `422 POD_METHOD_MISMATCH`, before or after the delivery code locks.
+         */
+        PhotoWithAttestationProofInput: {
+            /** @description The rider's statement of where and how the order was left. */
+            attestation_reason: string;
+            handover_method?: components["schemas"]["HandoverMethod"];
+            /** @enum {string} */
+            method: "PHOTO_WITH_ATTESTATION";
+            /**
+             * Format: uuid
+             * @description A `READY` object with purpose `POD`, uploaded by the assigned rider.
+             */
+            photo_object_id: string;
+        };
         PickupScanInput: {
             latitude?: components["schemas"]["Latitude"];
             longitude?: components["schemas"]["Longitude"];
@@ -5769,9 +6605,43 @@ export interface components {
             seal_intact: boolean;
         };
         /**
+         * @description The rider confirms pickup with the code the kitchen reads out. `pickup_code` is
+         *     required, and there is no `override_reason`: a matching code is the proof that the
+         *     rider was at the counter, so pickup has no geofence check, and when the code cannot
+         *     be used only support or an admin can confirm the pickup (`overrideHandoverCode`).
+         *     Wrong code: `422 PICKUP_CODE_INCORRECT`; five wrong codes per order:
+         *     `423 PICKUP_CODE_LOCKED` and the order goes to support. See
+         *     `createAssignmentTransition`.
+         */
+        PickupTransitionInput: {
+            accuracy_m?: number;
+            latitude?: components["schemas"]["Latitude"];
+            longitude?: components["schemas"]["Longitude"];
+            occurred_at: components["schemas"]["Timestamp"];
+            /**
+             * @description The 4-digit code the kitchen reads out from its order screen
+             *     (`OrderRestaurantView.pickup_code`). The rider is never shown it, and no response
+             *     or error ever echoes it.
+             */
+            pickup_code: string;
+            /** @enum {string} */
+            to_state: "PICKED_UP";
+        };
+        /**
+         * @description The server's opaque, URL-safe handle for a suggestion. It names no provider, so the
+         *     provider can change without a contract change. Short-lived: use it in the same
+         *     search session, and never store it.
+         */
+        PlaceId: string;
+        /**
          * @description D-21. Derived from the order's delivery instruction and returned to the rider as
          *     `required_pod_method`. `DELIVERED` cannot commit without the artefact in the **same
          *     transaction** — there is no "mark delivered, upload later".
+         *
+         *     `OTP` (a met handover) is satisfied only by the customer's delivery code: no photo
+         *     and no statement replaces it, and when the code cannot be used the handover is
+         *     confirmed by support (`overrideHandoverCode`), never by the rider. Where `PHOTO` is
+         *     required, `PHOTO_WITH_ATTESTATION` (a photo with a statement) is accepted too.
          * @enum {string}
          */
         PodMethod: "OTP" | "PHOTO" | "PHOTO_WITH_ATTESTATION";
@@ -5815,19 +6685,15 @@ export interface components {
             status: components["schemas"]["AccountStatus"];
             timezone?: components["schemas"]["Timezone"];
         };
-        ProofOfDeliveryInput: {
-            /** @description Required for `PHOTO_WITH_ATTESTATION`, after the mandatory wait. */
-            attestation_reason?: string;
-            handover_method?: components["schemas"]["HandoverMethod"];
-            method: components["schemas"]["PodMethod"];
-            /** @description Read out by the customer. The rider is never shown it; five failures lock it. */
-            otp_code?: string;
-            /**
-             * Format: uuid
-             * @description A `READY` object with purpose `POD`, uploaded by the assigned rider.
-             */
-            photo_object_id?: string;
-        };
+        /**
+         * @description One of three shapes, chosen by `method`, and each one requires its proof: there is
+         *     no optional code and no method a rider can use to skip one
+         *     ([security review on #183](https://github.com/shaiknoorullah/hg-mono/issues/183)).
+         *     `method` must be the assignment's `required_pod_method`, except that where a photo
+         *     is required a photo with a statement is accepted too. A met handover (`OTP`) is
+         *     proved only by `OtpProofInput`. See `submitProofOfDelivery`.
+         */
+        ProofOfDeliveryInput: components["schemas"]["OtpProofInput"] | components["schemas"]["PhotoProofInput"] | components["schemas"]["PhotoWithAttestationProofInput"];
         /**
          * @description ISO 3166-2:CA subdivision. Drives the tax profile (place of supply). Ontario only is
          *     served at launch; other provinces are rejected at quote time with `PROVINCE_NOT_SERVED`
@@ -5866,6 +6732,17 @@ export interface components {
             restaurant_response_window_seconds: number;
             /** @description Ontario only at launch. Addresses elsewhere are rejected at quote time. */
             served_provinces: components["schemas"]["Province"][];
+            /**
+             * Format: email
+             * @description The support email address, for customers and partners alike. Never hardcoded in
+             *     a client. Unlike the phone line it does not depend on `support_enabled`: it is
+             *     the contact shown while phone support is off, and how a customer asks staff to
+             *     delete their account at launch ([round-2 decisions, "Launch scope and contract",
+             *     account deletion](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#launch-scope-and-contract);
+             *     [#181](https://github.com/shaiknoorullah/hg-mono/issues/181)). Null only when
+             *     none is configured, and then the client shows no email contact.
+             */
+            support_email?: string | null;
             support_enabled: boolean;
             support_hours?: string | null;
             /** @description Never hardcoded in a client. Absent when `support_enabled` is false. */
@@ -5966,6 +6843,9 @@ export interface components {
          *
          *     Identity: `line_unit_cents = variant_part_cents + addons_part_cents` and
          *     `line_total_cents = line_unit_cents × quantity`, both database `CHECK`s.
+         *     `variant_part_cents` is the chosen `ABSOLUTE` variant's `price_cents` (else
+         *     `base_price_cents`) plus every chosen `DELTA` variant's `delta_cents`, checked by a
+         *     database trigger against the snapshotted `variants`.
          */
         QuoteLine: {
             addons?: components["schemas"]["QuoteLineAddon"][];
@@ -5983,11 +6863,26 @@ export interface components {
             quantity: number;
             special_request?: string | null;
             tax_category: components["schemas"]["TaxCategory"];
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @deprecated
+             * @description Deprecated: read `variants`. Set only when the line has exactly one variant.
+             */
             variant_id?: string | null;
+            /**
+             * @deprecated
+             * @description Deprecated: read `variants`. The chosen variants' names joined with ", " in group
+             *     order (one name for a one-variant line); `null` when there is none.
+             */
             variant_name?: string | null;
             variant_part_cents: components["schemas"]["Cents"];
+            /**
+             * @deprecated
+             * @description Deprecated: read `variants`. Set only when the line has exactly one variant.
+             */
             variant_pricing_mode?: components["schemas"]["VariantPricingMode"] | null;
+            /** @description Every chosen variant with its snapshotted price, in the menu's group order. */
+            variants: components["schemas"]["LineVariant"][];
         };
         QuoteLineAddon: {
             /** Format: uuid */
@@ -6182,9 +7077,17 @@ export interface components {
          *     (customer refunded, restaurant charged back, rider charged back, platform absorbs) —
          *     the table is what makes the ledger balance. The specs enumerate overlapping sets; this
          *     is their reconciled union (see `contracts/README.md` §"Spec contradictions", item 8).
+         *
+         *     `WRONG_ADDRESS`: the customer reports, before delivery, that the order is going to
+         *     the wrong address ([round-2 decisions, "Orders and delivery"](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#orders-and-delivery);
+         *     [#180](https://github.com/shaiknoorullah/hg-mono/issues/180)). Support redirects
+         *     the delivery when it can; any refund is per support's judgement, and the platform
+         *     absorbs it, because the restaurant cooked the order and the rider carried it to the
+         *     address on the order. If the rider delivered somewhere other than the order's
+         *     address, staff file `NEVER_DELIVERED` instead, which charges the rider.
          * @enum {string}
          */
-        RefundReasonCode: "RESTAURANT_REJECTED" | "ITEM_MISSING" | "MISSING_ITEMS" | "WRONG_ITEM" | "WRONG_ITEMS" | "FOOD_QUALITY" | "FOOD_SAFETY" | "NEVER_DELIVERED" | "ORDER_NEVER_ARRIVED" | "LATE_DELIVERY" | "DAMAGED_SPILLED" | "NO_RIDER_FOUND" | "CUSTOMER_CHANGED_MIND" | "RESTAURANT_CANCELLED" | "PLATFORM_INITIATED_CANCELLATION" | "PLATFORM_ERROR" | "DUPLICATE_CHARGE" | "CHARGED_INCORRECTLY" | "PRICING_ERROR" | "HALAL_CONCERN" | "HALAL_INTEGRITY" | "GOODWILL" | "DISPUTE_RESOLUTION" | "CHARGEBACK_PREEMPTIVE" | "OTHER";
+        RefundReasonCode: "RESTAURANT_REJECTED" | "ITEM_MISSING" | "MISSING_ITEMS" | "WRONG_ITEM" | "WRONG_ITEMS" | "FOOD_QUALITY" | "FOOD_SAFETY" | "NEVER_DELIVERED" | "ORDER_NEVER_ARRIVED" | "LATE_DELIVERY" | "WRONG_ADDRESS" | "DAMAGED_SPILLED" | "NO_RIDER_FOUND" | "CUSTOMER_CHANGED_MIND" | "RESTAURANT_CANCELLED" | "PLATFORM_INITIATED_CANCELLATION" | "PLATFORM_ERROR" | "DUPLICATE_CHARGE" | "CHARGED_INCORRECTLY" | "PRICING_ERROR" | "HALAL_CONCERN" | "HALAL_INTEGRITY" | "GOODWILL" | "DISPUTE_RESOLUTION" | "CHARGEBACK_PREEMPTIVE" | "OTHER";
         /**
          * @description Who asked for a refund. `CUSTOMER`: the order's own customer (`createRefund`), whose
          *     request waits for staff review. `STAFF`: a member of staff (`issueRefund`, or a cancel
@@ -6209,8 +7112,9 @@ export interface components {
         /**
          * @description A-2.0. Orthogonal to onboarding. These six words mean exactly this everywhere in the
          *     product; `suspend`, `ban`, `deactivate` and `delist` are never synonyms.
-         *     `DELISTED` is the non-punitive system state (lapsed certificate, expired document, no
-         *     approved menu) and clears automatically when its cause does.
+         *     `DELISTED` is the non-punitive system state (lapsed certificate, a certificate whose
+         *     issuing body is no longer accepted, expired document, no approved menu) and clears
+         *     automatically when its cause does.
          * @enum {string}
          */
         RestaurantAccountState: "PENDING" | "LIVE" | "DELISTED" | "SUSPENDED" | "BANNED" | "DEACTIVATED" | "CLOSED";
@@ -6439,6 +7343,7 @@ export interface components {
         RestaurantOnboardingState: "REGISTERED" | "EMAIL_VERIFIED" | "PROFILE_PENDING" | "DOCUMENTS_PENDING" | "DOCUMENTS_REVIEW" | "DOCUMENTS_APPROVED" | "DOCUMENTS_REJECTED" | "PAYOUT_PENDING" | "MENU_PENDING" | "ACTIVE" | "WITHDRAWN";
         RestaurantOnboardingStatus: {
             account_state: components["schemas"]["RestaurantAccountState"];
+            /** @description While the application is sent back or rejected, the reason text the admin wrote, verbatim. Null otherwise. */
             blocking_reason?: string | null;
             /** @enum {string} */
             current_step: "PROFILE" | "DOCUMENTS" | "AWAITING_REVIEW" | "FIX_DOCUMENTS" | "PAYOUT" | "MENU" | "DONE";
@@ -6448,9 +7353,17 @@ export interface components {
              * @description Server-computed with fixed weights. The client never computes it.
              */
             progress_percent: number;
+            /** @description Present only while `onboarding_state` is `DOCUMENTS_REJECTED`; null otherwise. */
             rejection?: {
+                /**
+                 * @description `REQUEST_CHANGES` means fix the listed documents and resubmit. `REJECT` means the application was declined, not sent back: no documents are listed to fix, and clients offer no resubmission. The server does not yet refuse a resubmission after `REJECT` (https://github.com/shaiknoorullah/hg-mono/issues/802).
+                 * @enum {string}
+                 */
+                decision: "REQUEST_CHANGES" | "REJECT";
                 documents: components["schemas"]["KycDocument"][];
+                /** @description The reason text the admin wrote, sent verbatim. Never the internal note. */
                 note?: string | null;
+                /** @description The `RestaurantRejectApplicationReasonCode` the admin chose. */
                 reason_code?: string | null;
             } | null;
             /** Format: int32 */
@@ -6979,6 +7892,29 @@ export interface components {
         SetupIntent: {
             client_secret: string;
         };
+        /**
+         * @description `PASSED`: the last check passed. `FAILED`: the last check failed, and every admin
+         *     page shows the sticky banner. `NOT_CHECKED`: no replica has run the check yet, for
+         *     example in the first seconds of a new deployment; no banner.
+         * @enum {string}
+         */
+        SmsSenderCheckState: "PASSED" | "FAILED" | "NOT_CHECKED";
+        /** @description The result `getSmsSenderStatus` returns. Safe for every staff role: no credential, account id or internal address. */
+        SmsSenderStatus: {
+            /**
+             * Format: date-time
+             * @description When the latest check ran. Null only for `NOT_CHECKED`.
+             */
+            checked_at: string | null;
+            /**
+             * Format: date-time
+             * @description When the checks started failing, for "Failing since 7:42 pm". Null unless `state` is `FAILED`.
+             */
+            failing_since: string | null;
+            /** @description Plain language, safe to show on the banner, such as "Twilio refused our credentials." Null unless `state` is `FAILED`. */
+            message: string | null;
+            state: components["schemas"]["SmsSenderCheckState"];
+        };
         /** @enum {string} */
         StaffStatus: "INVITED" | "ACTIVE" | "SUSPENDED" | "DEACTIVATED";
         StaffUser: {
@@ -6990,7 +7926,7 @@ export interface components {
             id: string;
             /** Format: date-time */
             last_login_at?: string | null;
-            /** @description Mandatory for `SUPPORT_AGENT`, `ADMIN` and `SUPER_ADMIN`; there is no grace period. */
+            /** @description Whether the staff member has turned two-step sign-in on. It is opt-in; moving money needs it. */
             mfa_enrolled: boolean;
             role: components["schemas"]["Role"];
             status: components["schemas"]["StaffStatus"];
@@ -7106,6 +8042,12 @@ export interface components {
          * @description C-16. Single-select. When a group is required and no variant is flagged default,
          *     nothing is pre-selected and add-to-cart stays disabled — silent auto-selection of the
          *     first option is prohibited.
+         *
+         *     An item may have several groups (size, rice, heat level); a cart line carries one
+         *     chosen variant per group in `CartLineInput.variant_ids`. Prices combine as P-09 step 1
+         *     says: the chosen `ABSOLUTE` variant, if any, replaces the base price and every chosen
+         *     `DELTA` variant adjusts it. At most one chosen variant may be `ABSOLUTE`; a combination
+         *     with two cannot be priced and is refused `409 ITEM_UNAVAILABLE`.
          */
         VariantGroup: {
             /** Format: uuid */
@@ -7128,6 +8070,52 @@ export interface components {
          * @enum {string}
          */
         VehicleType: "CAR" | "SCOOTER" | "MOTORCYCLE" | "BICYCLE" | "ON_FOOT";
+        /**
+         * @description Which waitlist the visitor joins. One person may join more than one.
+         * @enum {string}
+         */
+        WaitlistAudience: "CUSTOMER" | "RESTAURANT" | "RIDER";
+        /**
+         * @description `EMAIL` while text-message sender registration is open ([#71](https://github.com/shaiknoorullah/hg-mono/issues/71)); `TEL` is E.164.
+         * @enum {string}
+         */
+        WaitlistContactKind: "EMAIL" | "TEL";
+        /**
+         * @description The body of `joinWaitlist`. Every field the consent record needs comes from the form;
+         *     `consented_at` does not, because the server sets it to the time it receives the
+         *     request.
+         */
+        WaitlistSignupInput: {
+            audience: components["schemas"]["WaitlistAudience"];
+            /**
+             * @description The ticked consent box. Anything but `true` is `422 VALIDATION_FAILED`: an unticked box is a no.
+             * @constant
+             */
+            consent: true;
+            /** @description The exact consent sentence the form showed, kept word for word as the record of what the person agreed to. */
+            consent_text: string;
+            /**
+             * @description An email address for `EMAIL`, lower-cased by the server; an E.164 number for `TEL`. A malformed one is `422 VALIDATION_FAILED`.
+             * @example amina@example.com
+             */
+            contact: string;
+            contact_kind: components["schemas"]["WaitlistContactKind"];
+            /**
+             * @description Which form on which page, such as `hero`, `final`, `footer` or `sticky`.
+             * @example hero
+             */
+            context: string;
+            /** @description Campaign parameters from the visit, such as `utm_source`. Empty or absent for a direct visit. */
+            utm?: {
+                [key: string]: string;
+            };
+        };
+        /** @description The answer to `joinWaitlist`: the same for a new sign-up and a repeat, so it never reveals who is already on the list. */
+        WaitlistSignupReceipt: {
+            audience: components["schemas"]["WaitlistAudience"];
+            /** @constant */
+            received: true;
+        };
     };
     responses: {
         /**
@@ -7189,6 +8177,13 @@ export interface components {
         Cursor: components["schemas"]["Cursor"];
         DocumentIdPath: string;
         /**
+         * @description A UUID the client makes when the address search field opens. It groups the
+         *     suggestion requests and the one `getPlaceAddress` call that ends them into one
+         *     provider session, which is how the provider bills. Make a new one after
+         *     `getPlaceAddress`, and never share one between two searches open at once.
+         */
+        GeoSessionToken: string;
+        /**
          * @description Client-generated UUID or ULID, 16–128 characters. Scope is
          *     `(account_id, method, path_template, key)`. Two concurrent requests with the same key
          *     produce exactly one business effect; a replay returns the original status and body
@@ -7217,6 +8212,7 @@ export type SchemaAddon = components['schemas']['Addon'];
 export type SchemaAddonGroup = components['schemas']['AddonGroup'];
 export type SchemaAddress = components['schemas']['Address'];
 export type SchemaAddressInput = components['schemas']['AddressInput'];
+export type SchemaAddressSuggestion = components['schemas']['AddressSuggestion'];
 export type SchemaAddressUpdateInput = components['schemas']['AddressUpdateInput'];
 export type SchemaAdminOrderCancellationInput = components['schemas']['AdminOrderCancellationInput'];
 export type SchemaAdminRefund = components['schemas']['AdminRefund'];
@@ -7224,12 +8220,14 @@ export type SchemaAdminRefundInput = components['schemas']['AdminRefundInput'];
 export type SchemaAllergenTag = components['schemas']['AllergenTag'];
 export type SchemaAssignment = components['schemas']['Assignment'];
 export type SchemaAssignmentState = components['schemas']['AssignmentState'];
+export type SchemaAssignmentStepInput = components['schemas']['AssignmentStepInput'];
 export type SchemaAssignmentTransitionInput = components['schemas']['AssignmentTransitionInput'];
 export type SchemaAuthMethod = components['schemas']['AuthMethod'];
 export type SchemaCart = components['schemas']['Cart'];
 export type SchemaCartLine = components['schemas']['CartLine'];
 export type SchemaCartLineAvailability = components['schemas']['CartLineAvailability'];
 export type SchemaCartLineInput = components['schemas']['CartLineInput'];
+export type SchemaCartReplaceInput = components['schemas']['CartReplaceInput'];
 export type SchemaCents = components['schemas']['Cents'];
 export type SchemaCertificationPanel = components['schemas']['CertificationPanel'];
 export type SchemaChargeback = components['schemas']['Chargeback'];
@@ -7272,7 +8270,9 @@ export type SchemaFeedSection = components['schemas']['FeedSection'];
 export type SchemaFieldError = components['schemas']['FieldError'];
 export type SchemaFoodRating = components['schemas']['FoodRating'];
 export type SchemaFulfilment = components['schemas']['Fulfilment'];
+export type SchemaGeocodedAddress = components['schemas']['GeocodedAddress'];
 export type SchemaGeoPoint = components['schemas']['GeoPoint'];
+export type SchemaGeoResultKind = components['schemas']['GeoResultKind'];
 export type SchemaHalalBadge = components['schemas']['HalalBadge'];
 export type SchemaHalalCertificate = components['schemas']['HalalCertificate'];
 export type SchemaHalalCertificateScope = components['schemas']['HalalCertificateScope'];
@@ -7294,7 +8294,10 @@ export type SchemaHandoffEvent = components['schemas']['HandoffEvent'];
 export type SchemaHandoffEventType = components['schemas']['HandoffEventType'];
 export type SchemaHandoffMethod = components['schemas']['HandoffMethod'];
 export type SchemaHandoffScanResult = components['schemas']['HandoffScanResult'];
+export type SchemaHandoverCodeKind = components['schemas']['HandoverCodeKind'];
 export type SchemaHandoverMethod = components['schemas']['HandoverMethod'];
+export type SchemaHandoverOverride = components['schemas']['HandoverOverride'];
+export type SchemaHandoverOverrideInput = components['schemas']['HandoverOverrideInput'];
 export type SchemaHealthStatus = components['schemas']['HealthStatus'];
 export type SchemaHoursOverride = components['schemas']['HoursOverride'];
 export type SchemaKycDocument = components['schemas']['KycDocument'];
@@ -7303,6 +8306,7 @@ export type SchemaLatitude = components['schemas']['Latitude'];
 export type SchemaLedgerAccount = components['schemas']['LedgerAccount'];
 export type SchemaLedgerComponent = components['schemas']['LedgerComponent'];
 export type SchemaLedgerEntry = components['schemas']['LedgerEntry'];
+export type SchemaLineVariant = components['schemas']['LineVariant'];
 export type SchemaLoginInput = components['schemas']['LoginInput'];
 export type SchemaLongitude = components['schemas']['Longitude'];
 export type SchemaMenu = components['schemas']['Menu'];
@@ -7359,6 +8363,7 @@ export type SchemaOrderSummary = components['schemas']['OrderSummary'];
 export type SchemaOrderTracking = components['schemas']['OrderTracking'];
 export type SchemaOrderTransition = components['schemas']['OrderTransition'];
 export type SchemaOtpChallenge = components['schemas']['OtpChallenge'];
+export type SchemaOtpProofInput = components['schemas']['OtpProofInput'];
 export type SchemaOtpRequestInput = components['schemas']['OtpRequestInput'];
 export type SchemaOtpVerifyInput = components['schemas']['OtpVerifyInput'];
 export type SchemaOwnedMenu = components['schemas']['OwnedMenu'];
@@ -7383,7 +8388,11 @@ export type SchemaPayoutRunOutcome = components['schemas']['PayoutRunOutcome'];
 export type SchemaPayoutRunState = components['schemas']['PayoutRunState'];
 export type SchemaPayoutState = components['schemas']['PayoutState'];
 export type SchemaPhoneE164 = components['schemas']['PhoneE164'];
+export type SchemaPhotoProofInput = components['schemas']['PhotoProofInput'];
+export type SchemaPhotoWithAttestationProofInput = components['schemas']['PhotoWithAttestationProofInput'];
 export type SchemaPickupScanInput = components['schemas']['PickupScanInput'];
+export type SchemaPickupTransitionInput = components['schemas']['PickupTransitionInput'];
+export type SchemaPlaceId = components['schemas']['PlaceId'];
 export type SchemaPodMethod = components['schemas']['PodMethod'];
 export type SchemaPostalCode = components['schemas']['PostalCode'];
 export type SchemaPresignedDownload = components['schemas']['PresignedDownload'];
@@ -7488,6 +8497,8 @@ export type SchemaSelectedVariant = components['schemas']['SelectedVariant'];
 export type SchemaSessionGrant = components['schemas']['SessionGrant'];
 export type SchemaSessionSummary = components['schemas']['SessionSummary'];
 export type SchemaSetupIntent = components['schemas']['SetupIntent'];
+export type SchemaSmsSenderCheckState = components['schemas']['SmsSenderCheckState'];
+export type SchemaSmsSenderStatus = components['schemas']['SmsSenderStatus'];
 export type SchemaStaffStatus = components['schemas']['StaffStatus'];
 export type SchemaStaffUser = components['schemas']['StaffUser'];
 export type SchemaStaffUserInput = components['schemas']['StaffUserInput'];
@@ -7508,6 +8519,10 @@ export type SchemaVariant = components['schemas']['Variant'];
 export type SchemaVariantGroup = components['schemas']['VariantGroup'];
 export type SchemaVariantPricingMode = components['schemas']['VariantPricingMode'];
 export type SchemaVehicleType = components['schemas']['VehicleType'];
+export type SchemaWaitlistAudience = components['schemas']['WaitlistAudience'];
+export type SchemaWaitlistContactKind = components['schemas']['WaitlistContactKind'];
+export type SchemaWaitlistSignupInput = components['schemas']['WaitlistSignupInput'];
+export type SchemaWaitlistSignupReceipt = components['schemas']['WaitlistSignupReceipt'];
 export type ResponseError = components['responses']['Error'];
 export type ResponseRateLimited = components['responses']['RateLimited'];
 export type ResponseServerBusy = components['responses']['ServerBusy'];
@@ -7517,6 +8532,7 @@ export type ParameterChargebackIdPath = components['parameters']['ChargebackIdPa
 export type ParameterClientHeader = components['parameters']['ClientHeader'];
 export type ParameterCursor = components['parameters']['Cursor'];
 export type ParameterDocumentIdPath = components['parameters']['DocumentIdPath'];
+export type ParameterGeoSessionToken = components['parameters']['GeoSessionToken'];
 export type ParameterIdempotencyKeyRequired = components['parameters']['IdempotencyKeyRequired'];
 export type ParameterLimit = components['parameters']['Limit'];
 export type ParameterMenuCategoryIdPath = components['parameters']['MenuCategoryIdPath'];
@@ -8470,6 +9486,68 @@ export interface operations {
             default: components["responses"]["Error"];
         };
     };
+    overrideHandoverCode: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated UUID or ULID, 16–128 characters. Scope is
+                 *     `(account_id, method, path_template, key)`. Two concurrent requests with the same key
+                 *     produce exactly one business effect; a replay returns the original status and body
+                 *     byte-identically with `Idempotency-Replayed: true`; the same key with a different body
+                 *     is `409 IDEMPOTENCY_KEY_REUSE`, never a silent replay of the wrong result. The record
+                 *     is written in the same transaction as the business effect and expires after 24 h.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKeyRequired"];
+            };
+            path: {
+                orderId: components["parameters"]["OrderIdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HandoverOverrideInput"];
+            };
+        };
+        responses: {
+            /** @description The handover is confirmed; the response is the audit record it wrote. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["HandoverOverride"];
+                    };
+                };
+            };
+            404: components["responses"]["Error"];
+            /**
+             * @description `ILLEGAL_TRANSITION` with `details.from`, `details.to` and `details.allowed`: the
+             *     order is not waiting on this handover (wrong state, no rider at the counter or
+             *     the drop-off, a photo drop-off, or the handover already happened).
+             */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description `VALIDATION_FAILED`: a missing or too-short `reason`, or no `case_id`. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
     listPayoutRuns: {
         parameters: {
             query?: {
@@ -8703,7 +9781,8 @@ export interface operations {
             };
             /**
              * @description Above the caller's cap: an approval request was created and the case escalated.
-             *     No refund exists yet.
+             *     No money has moved yet. The request already holds its claim on the lines and
+             *     fees it names, until it is declined.
              */
             202: {
                 headers: {
@@ -8736,8 +9815,12 @@ export interface operations {
                 };
             };
             /**
-             * @description `REFUND_EXCEEDS_CAPTURED`, `DAILY_CAP_EXCEEDED`, `SELF_APPROVAL_FORBIDDEN`,
-             *     `PAYMENT_NOT_REFUNDABLE`, `IDEMPOTENCY_KEY_REUSE`.
+             * @description `REFUND_EXCEEDS_CAPTURED` when the refunds that hold a claim would exceed the
+             *     captured amount, `REFUND_ALREADY_REQUESTED` when the request claims a line
+             *     quantity or the fees that another refund or pending approval request on the
+             *     order already holds (with `details.order_line_nos` and `details.fees`),
+             *     `DAILY_CAP_EXCEEDED`, `SELF_APPROVAL_FORBIDDEN`, `PAYMENT_NOT_REFUNDABLE`,
+             *     `IDEMPOTENCY_KEY_REUSE`.
              */
             409: {
                 headers: {
@@ -9551,6 +10634,29 @@ export interface operations {
             default: components["responses"]["Error"];
         };
     };
+    getSmsSenderStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The latest check. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["SmsSenderStatus"];
+                    };
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
     resendEmailVerification: {
         parameters: {
             query?: never;
@@ -9604,38 +10710,6 @@ export interface operations {
                 content?: never;
             };
             410: components["responses"]["Error"];
-            default: components["responses"]["Error"];
-        };
-    };
-    startInviteTotpEnrolment: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    token: string;
-                };
-            };
-        };
-        responses: {
-            /** @description Enrolment started; confirm it with `resetPassword` and `totp_code`. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        data: components["schemas"]["TotpEnrolment"];
-                    };
-                };
-            };
-            400: components["responses"]["Error"];
-            409: components["responses"]["Error"];
-            429: components["responses"]["RateLimited"];
             default: components["responses"]["Error"];
         };
     };
@@ -9895,8 +10969,6 @@ export interface operations {
                 "application/json": {
                     new_password: components["schemas"]["Password"];
                     token: string;
-                    /** @description The first code from the authenticator that `startInviteTotpEnrolment` set up for this link. */
-                    totp_code?: string;
                 };
             };
         };
@@ -10141,6 +11213,57 @@ export interface operations {
             default: components["responses"]["Error"];
         };
     };
+    replaceCart: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated UUID or ULID, 16–128 characters. Scope is
+                 *     `(account_id, method, path_template, key)`. Two concurrent requests with the same key
+                 *     produce exactly one business effect; a replay returns the original status and body
+                 *     byte-identically with `Idempotency-Replayed: true`; the same key with a different body
+                 *     is `409 IDEMPOTENCY_KEY_REUSE`, never a silent replay of the wrong result. The record
+                 *     is written in the same transaction as the business effect and expires after 24 h.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKeyRequired"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CartReplaceInput"];
+            };
+        };
+        responses: {
+            /** @description The new cart, recomputed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["Cart"];
+                    };
+                };
+            };
+            /**
+             * @description `ITEM_UNAVAILABLE`, `VARIANT_UNAVAILABLE`, `ADDON_UNAVAILABLE`,
+             *     `RESTAURANT_CLOSED` or `RESTAURANT_UNAVAILABLE`, with `details.lines` naming
+             *     every failing line. The cart is unchanged.
+             */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            422: components["responses"]["Error"];
+            default: components["responses"]["Error"];
+        };
+    };
     clearCart: {
         parameters: {
             query?: never;
@@ -10210,7 +11333,20 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            422: components["responses"]["Error"];
+            /**
+             * @description `VALIDATION_FAILED` (a malformed body, or a line the item's variant and add-on
+             *     groups do not allow), `INVALID_ADDON` (an add-on that is not one of the item's) or
+             *     `UNKNOWN_FIELD` (any field the DTO does not declare, such as a price). `details` is
+             *     a `FieldError` list. The cart is unchanged.
+             */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             default: components["responses"]["Error"];
         };
     };
@@ -10488,6 +11624,113 @@ export interface operations {
             default: components["responses"]["Error"];
         };
     };
+    suggestAddresses: {
+        parameters: {
+            query: {
+                /** @description Ranks results near this point. Send both `latitude` and `longitude` or neither; one alone is `422 VALIDATION_FAILED`. */
+                latitude?: components["schemas"]["Latitude"];
+                longitude?: components["schemas"]["Longitude"];
+                /** @description What the user has typed. 1–256 characters after trimming (the provider's limit). */
+                q: string;
+                /**
+                 * @description A UUID the client makes when the address search field opens. It groups the
+                 *     suggestion requests and the one `getPlaceAddress` call that ends them into one
+                 *     provider session, which is how the provider bills. Make a new one after
+                 *     `getPlaceAddress`, and never share one between two searches open at once.
+                 */
+                session_token: components["parameters"]["GeoSessionToken"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Up to 5 suggestions, best first. An empty array means nothing matched. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["AddressSuggestion"][];
+                    };
+                };
+            };
+            422: components["responses"]["Error"];
+            429: components["responses"]["RateLimited"];
+            503: components["responses"]["Error"];
+            default: components["responses"]["Error"];
+        };
+    };
+    getPlaceAddress: {
+        parameters: {
+            query: {
+                /**
+                 * @description A UUID the client makes when the address search field opens. It groups the
+                 *     suggestion requests and the one `getPlaceAddress` call that ends them into one
+                 *     provider session, which is how the provider bills. Make a new one after
+                 *     `getPlaceAddress`, and never share one between two searches open at once.
+                 */
+                session_token: components["parameters"]["GeoSessionToken"];
+            };
+            header?: never;
+            path: {
+                /** @description The `place_id` of a suggestion, exactly as `suggestAddresses` returned it. Opaque; a client never builds one. */
+                placeId: components["schemas"]["PlaceId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The resolved address. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["GeocodedAddress"];
+                    };
+                };
+            };
+            404: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+            429: components["responses"]["RateLimited"];
+            503: components["responses"]["Error"];
+            default: components["responses"]["Error"];
+        };
+    };
+    reverseGeocode: {
+        parameters: {
+            query: {
+                latitude: components["schemas"]["Latitude"];
+                longitude: components["schemas"]["Longitude"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The nearest Canadian address to the pin. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["GeocodedAddress"];
+                    };
+                };
+            };
+            404: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+            429: components["responses"]["RateLimited"];
+            503: components["responses"]["Error"];
+            default: components["responses"]["Error"];
+        };
+    };
     getCustomerProfile: {
         parameters: {
             query?: never;
@@ -10692,7 +11935,8 @@ export interface operations {
             /**
              * @description `QUOTE_STALE` (with `details.quote`), `QUOTE_EXPIRED`,
              *     `CART_HAS_UNAVAILABLE_ITEMS`, `ACTIVE_ORDER_EXISTS`, `RESTAURANT_UNAVAILABLE`,
-             *     `IDEMPOTENCY_KEY_REUSE`, `IDEMPOTENCY_IN_PROGRESS`, `ORDERING_PAUSED`.
+             *     `RESTAURANT_CLOSED` (outside its hours, paused, not accepting orders, or its order
+             *     screen offline), `IDEMPOTENCY_KEY_REUSE`, `IDEMPOTENCY_IN_PROGRESS`, `ORDERING_PAUSED`.
              */
             409: {
                 headers: {
@@ -10815,7 +12059,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Delivery verified; the order has advanced to `DELIVERED`. */
+            /** @description Delivery scan recorded; `order_state` is the order's state, which this scan did not change. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -10881,7 +12125,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Pickup verified; the order has advanced to `PICKED_UP`. */
+            /** @description Pickup scan recorded; `order_state` is the order's state, which this scan did not change. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -11567,8 +12811,10 @@ export interface operations {
                 };
             };
             /**
-             * @description `REFUND_EXCEEDS_CAPTURED`, `REFUND_WINDOW_CLOSED`, `REFUND_ALREADY_REQUESTED`,
-             *     `PAYMENT_NOT_REFUNDABLE`.
+             * @description `REFUND_EXCEEDS_CAPTURED`, `REFUND_WINDOW_CLOSED`, `PAYMENT_NOT_REFUNDABLE`,
+             *     or `REFUND_ALREADY_REQUESTED` when the report claims an item or the fees that
+             *     another refund on the order already holds (not merely because the order has
+             *     another refund).
              */
             409: {
                 headers: {
@@ -11647,6 +12893,12 @@ export interface operations {
                      * @description Optional short pause; ignored when `is_accepting_orders` is false.
                      */
                     pause_until?: string | null;
+                    /**
+                     * @description Pause until the end of the current trading period, worked out by the
+                     *     server. Not with `pause_until`.
+                     * @default false
+                     */
+                    pause_until_closing?: boolean;
                 };
             };
         };
@@ -11660,6 +12912,15 @@ export interface operations {
                     "application/json": {
                         data: components["schemas"]["RestaurantAvailability"];
                     };
+                };
+            };
+            /** @description `RESTAURANT_CLOSED` when `pause_until_closing` is sent outside trading hours. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
             422: components["responses"]["Error"];
@@ -12846,7 +14107,10 @@ export interface operations {
                     };
                 };
             };
-            /** @description `POD_REQUIRED`, `POD_METHOD_MISMATCH`, `OTP_INCORRECT`. */
+            /**
+             * @description `POD_REQUIRED`; `POD_METHOD_MISMATCH` with `details.required_pod_method`;
+             *     `DELIVERY_CODE_INCORRECT` with `details.attempts_remaining`. Never echoes a code.
+             */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -12855,7 +14119,11 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description `OTP_LOCKED` — five failures; use photo-with-attestation. */
+            /**
+             * @description `DELIVERY_CODE_LOCKED`: five wrong delivery codes have locked the code for this
+             *     order, and the order is now with support. There is no photo fallback: support
+             *     or an admin confirms the delivery with `overrideHandoverCode`.
+             */
             423: {
                 headers: {
                     [name: string]: unknown;
@@ -12912,8 +14180,27 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description `GEOFENCE_REQUIRED`, `POD_REQUIRED` with `details.required_pod_method`. */
+            /**
+             * @description `GEOFENCE_REQUIRED`; `POD_REQUIRED` with `details.required_pod_method`;
+             *     `PICKUP_CODE_REQUIRED`; `PICKUP_CODE_INCORRECT` with `details.attempts_remaining`.
+             *     Never echoes a code.
+             */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /**
+             * @description `PICKUP_CODE_LOCKED`: five wrong pickup codes have locked the code for this
+             *     order, and the order is now with support. Every later `PICKED_UP` gets this
+             *     answer, with or without a code; nothing is compared or counted. The rider has
+             *     no way past it: support or an admin confirms the pickup with
+             *     `overrideHandoverCode`, or cancels the order.
+             */
+            423: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -13579,6 +14866,39 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
+            default: components["responses"]["Error"];
+        };
+    };
+    joinWaitlist: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WaitlistSignupInput"];
+            };
+        };
+        responses: {
+            /**
+             * @description Received. The same answer for a new sign-up and for a repeat; it never says
+             *     whether the contact was already on the list.
+             */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["WaitlistSignupReceipt"];
+                    };
+                };
+            };
+            422: components["responses"]["Error"];
+            429: components["responses"]["RateLimited"];
+            503: components["responses"]["Error"];
             default: components["responses"]["Error"];
         };
     };

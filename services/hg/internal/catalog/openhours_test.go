@@ -120,7 +120,7 @@ func TestCardOpenStateUnknownTimezoneFailsClosed(t *testing.T) {
 	now := time.Now()
 	hv := evaluateHours([]weeklySlot{{Day: int(now.Weekday()), Opens: "00:00", Closes: "00:00", CrossesMidnight: true}},
 		nil, "Not/AZone", now)
-	if hv.within {
+	if hv.Within {
 		t.Fatal("an unknown timezone must not read as within hours")
 	}
 }
