@@ -1,5 +1,3 @@
-# Devworld only: the device lab runs this through its mission (missions/). CI runs the flows directly
-# under redesign/, which sign in the seeded world once (see 1-sign-in.yaml there).
 # Customer redesign WP0 (#656): the flagged shell. Built with EXPO_PUBLIC_HG_REDESIGN=1.
 # Signed out it shows sign-in; amina (a reserved dev phone that accepts the test code 000000)
 # signs in and lands on the four tabs: Home, Search, Orders, Account. No Alerts tab.

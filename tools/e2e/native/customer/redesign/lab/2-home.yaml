@@ -1,10 +1,8 @@
-# Devworld only: the device lab runs this through its mission (missions/). CI runs the flows directly
-# under redesign/, which sign in the seeded world once (see 1-sign-in.yaml there).
 # Customer redesign WP2 (#656): Home, the address switcher and How we check (manifest D1, D2, D8).
 # Built with EXPO_PUBLIC_HG_REDESIGN=1 against devworld. amina (test code 000000) signs in and lands
 # on Home for her default address, Home · 1250 Danforth Avenue. She sees bismillah-grill
 # ("Bismillah Grill") and expiring-halal ("Bamyan Kebab House", with its dated "expires" badge),
-# never expired-halal ("Devworld Expired").
+# never expired-halal ("Devworld Expired"). Until WP1 merges, sign-in is the legacy screen.
 # Switching to a far address ("nothing in range") needs amina's out-of-range "Cottage" address in
 # the devworld seed (w0-request); until it lands, the mission's explore step (3) adds one by hand.
 appId: com.halalgoes.customer.dev
@@ -95,7 +93,7 @@ env:
     notVisible: "Add address"
     timeout: 10000
 
-# A card opens its restaurant
+# A card opens its restaurant (legacy restaurant screen until WP4 merges)
 - tapOn: "Bismillah Grill"
 - takeScreenshot: redesign-wp2-06-restaurant
 - back

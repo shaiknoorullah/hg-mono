@@ -1,5 +1,3 @@
-# Devworld only: the device lab runs this through its mission (missions/). CI runs the flows directly
-# under redesign/, which sign in the seeded world once (see 1-sign-in.yaml there).
 # Customer redesign WP4 (#656): restaurant page (D5), certification sheet (D6), certificate
 # viewer (D7). Built with EXPO_PUBLIC_HG_REDESIGN=1 against devworld (`make dev-reset`).
 # amina (+15550100101, test code 000000) signs in, then each restaurant opens by deep link:

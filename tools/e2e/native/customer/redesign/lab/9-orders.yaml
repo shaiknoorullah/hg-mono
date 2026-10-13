@@ -1,11 +1,9 @@
-# Devworld only: the device lab runs this through its mission (missions/). CI runs the flows directly
-# under redesign/, which sign in the seeded world once (see 1-sign-in.yaml there).
 # Customer redesign WP9 (#656): Orders history and receipt (manifest T9, T10; journey J18).
 # Built with EXPO_PUBLIC_HG_REDESIGN=1 against devworld. The mission's setup completes one delivery
 # for amina (`make dev-journey route=short speed=4x auto=all`) and runs `restaurant-rejected`, so her
 # history holds a Completed order and a Not accepted one. amina (test code 000000) signs in, opens
 # Orders, sees the completed order under Past orders, opens its row menu (View receipt and Get help with this order;
-# no Order again, no Rate) and reads the receipt.
+# no Order again, no Rate) and reads the receipt. Until WP1 merges, sign-in is the legacy screen.
 appId: com.halalgoes.customer.dev
 name: customer redesign, Orders history and receipt
 env:

@@ -1,5 +1,3 @@
-# Devworld only: the device lab runs this through its mission (missions/). CI runs the flows directly
-# under redesign/, which sign in the seeded world once (see 1-sign-in.yaml there).
 # Customer redesign WP5 (#656): item sheet (D9) and cart (C1, CC/Cart-edit-line).
 # Built with EXPO_PUBLIC_HG_REDESIGN=1 against devworld (`make dev-reset`).
 # amina (+15550100101, test code 000000) signs in, then (manifest §6, J8):
