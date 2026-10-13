@@ -73,7 +73,7 @@ These are the rules the existing names already follow; new fixtures follow them 
 | `restaurant_open_state_` | 8 | A `RestaurantOpenState`, lower case. | `restaurant_open_state_closed_suspended` |
 | `restaurant_profile_account_` | 7 | A `RestaurantAccountState`, lower case. | `restaurant_profile_account_suspended` |
 | `restaurant_profile_halal_` | 5 | A `HalalDisplayState`, lower case, or `missing` (no `halal` object). | `restaurant_profile_halal_missing` |
-| `restaurant_onboarding_` | 11 | A `RestaurantOnboardingState`, lower case. | `restaurant_onboarding_documents_review` |
+| `restaurant_onboarding_` | 12 | A `RestaurantOnboardingState`, lower case. | `restaurant_onboarding_documents_review` |
 | `rider_onboarding_` | 10 | A `RiderOnboardingState`, lower case. | `rider_onboarding_vehicle_pending` |
 | `restaurant_application_` | 5 | An application in the staff review queue. | `restaurant_application_pending_review` |
 | `rider_application_` | 5 | An application in the staff review queue. | `rider_application_pending_review` |
