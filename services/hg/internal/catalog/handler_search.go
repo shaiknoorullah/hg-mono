@@ -136,6 +136,10 @@ func (h *Handler) GetHomeFeed(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, r, http.StatusUnprocessableEntity, codeValidationFailed, perr.Error(), nil)
 		return
 	}
+	var ok bool
+	if lat, lng, ok = h.withDeliveryAddress(w, r, lat, lng); !ok {
+		return
+	}
 	hasAddress := lat != nil && lng != nil
 	now := h.now()
 
