@@ -130,6 +130,9 @@ func seedBasics(t *testing.T, pool *pgxpool.Pool) basics {
 	// order path refuses a restaurant the platform cannot vouch for.
 	// https://github.com/shaiknoorullah/hg-mono/issues/292
 	testseed.CertifyRestaurant(t, pool, b.restaurantID, 300)
+	// Open now: the order path refuses a closed restaurant.
+	// https://github.com/shaiknoorullah/hg-mono/issues/648
+	testseed.OpenRestaurant(t, pool, b.restaurantID)
 	return b
 }
 

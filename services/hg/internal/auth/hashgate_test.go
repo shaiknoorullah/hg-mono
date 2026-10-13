@@ -325,8 +325,8 @@ func TestLoginSucceedsWhileSignupGateIsFull(t *testing.T) {
 		t.Fatalf("fill the login gate: %v", err)
 	}
 	defer loginHeld.release()
-	if _, err := svc.Login(context.Background(), admin, password, nil, ClientAdminWeb, nil, &ip); !errors.Is(err, errMFARequired) {
-		t.Fatalf("admin login with the sign-up and login gates full = %v, want the TOTP step (password verified)", err)
+	if _, err := svc.Login(context.Background(), admin, password, nil, ClientAdminWeb, nil, &ip); err != nil {
+		t.Fatalf("admin login with the sign-up and login gates full = %v, want signed in (password verified)", err)
 	}
 }
 
@@ -605,8 +605,8 @@ func TestCustomerPasswordChangeFloodDoesNotDelayStaffLogin(t *testing.T) {
 	ip := "203.0.113.80"
 	_, err := svc.Login(context.Background(), admin, password, nil, ClientAdminWeb, nil, &ip)
 	stopFlood()
-	if !errors.Is(err, errMFARequired) {
-		t.Fatalf("admin sign-in during a customer password-change flood = %v, want the TOTP step (password verified)", err)
+	if err != nil {
+		t.Fatalf("admin sign-in during a customer password-change flood = %v, want signed in (password verified)", err)
 	}
 	if got := gates.staff.acquired.Load() - staffBefore; got != 1 {
 		t.Fatalf("staff slots taken during the flood = %d, want 1 (the admin's own)", got)
@@ -758,7 +758,7 @@ func TestUnusableResetLinkNeverTakesAHashingSlot(t *testing.T) {
 		"a used link":     {used, errTokenUsed},
 		"an expired link": {expired, errTokenExpired},
 	} {
-		if err := svc.ResetPassword(ctx, tc.token, newPassword, "", &ip); !errors.Is(err, tc.want) {
+		if err := svc.ResetPassword(ctx, tc.token, newPassword, &ip); !errors.Is(err, tc.want) {
 			t.Errorf("%s with the sign-up gate full = %v, want %v", name, err, tc.want)
 		}
 	}
@@ -769,11 +769,11 @@ func TestUnusableResetLinkNeverTakesAHashingSlot(t *testing.T) {
 		t.Errorf("unusable links were turned away by the sign-up gate %d times, want 0", got)
 	}
 
-	if err := svc.ResetPassword(ctx, usable, newPassword, "", &ip); !errors.Is(err, ErrPasswordHashBusy) {
+	if err := svc.ResetPassword(ctx, usable, newPassword, &ip); !errors.Is(err, ErrPasswordHashBusy) {
 		t.Fatalf("a usable link with the sign-up gate full = %v, want busy", err)
 	}
 	held.release()
-	if err := svc.ResetPassword(ctx, usable, newPassword, "", &ip); err != nil {
+	if err := svc.ResetPassword(ctx, usable, newPassword, &ip); err != nil {
 		t.Fatalf("the same link once a slot is free = %v, want the password reset", err)
 	}
 }

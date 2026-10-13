@@ -41,10 +41,6 @@ type Service struct {
 	// linkEmailDelay is how long an unauthenticated email request takes
 	// whatever happens (email_limits.go); tests shorten it.
 	linkEmailDelay time.Duration
-	// beforeResetRedeem, when set, runs in ResetPassword after the
-	// authenticator code is checked and before the link is spent. Tests use
-	// it to start a second enrolment in that window; nil in production.
-	beforeResetRedeem func()
 }
 
 // UsePhoneVerifier switches this service onto the PhoneVerifier (Twilio Verify)

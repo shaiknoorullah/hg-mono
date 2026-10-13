@@ -170,21 +170,16 @@ func (s *Store) ResetPasswordAndRevokeAll(ctx context.Context, accountID, newHas
 		return err
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
-	if err := s.resetPasswordTx(ctx, tx, accountID, newHash); err != nil {
+	if _, err := s.resetPasswordTx(ctx, tx, accountID, newHash); err != nil {
 		return err
 	}
 	return tx.Commit(ctx)
 }
 
-// RedeemResetLink spends a PASSWORD_RESET link and does what it pays for, in
-// one transaction: ResetPasswordAndRevokeAll and, when totpSecret is set (a
-// staff invitation enrolling its authenticator), the confirmation of exactly
-// that sealed secret. Either all of it happens or none of it does: when the
-// secret is no longer the one pending (a second startInviteTotpEnrolment
-// replaced it after its code was checked), it answers errTOTPNotEnrolled and
-// the link, the password and the sessions are as they were, so the invitee is
-// never left with a spent link and no authenticator.
-func (s *Store) RedeemResetLink(ctx context.Context, tokenHash []byte, newHash string, totpSecret []byte) (ConsumeCredentialTokenResult, error) {
+// RedeemResetLink spends a PASSWORD_RESET link and does what it pays for
+// (ResetPasswordAndRevokeAll) in one transaction: either the link is spent and
+// the password set, or neither happens and the link still works.
+func (s *Store) RedeemResetLink(ctx context.Context, tokenHash []byte, newHash string) (ConsumeCredentialTokenResult, error) {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
 		return ConsumeCredentialTokenResult{}, err
@@ -194,24 +189,11 @@ func (s *Store) RedeemResetLink(ctx context.Context, tokenHash []byte, newHash s
 	if err != nil || res.AccountID == "" {
 		return res, err
 	}
-	if err := s.resetPasswordTx(ctx, tx, res.AccountID, newHash); err != nil {
+	revoked, err := s.resetPasswordTx(ctx, tx, res.AccountID, newHash)
+	if err != nil {
 		return ConsumeCredentialTokenResult{}, err
 	}
-	if totpSecret != nil {
-		// The account row is locked (resetPasswordTx), so the secret cannot be
-		// replaced between this check and the commit.
-		ct, err := tx.Exec(ctx, `
-			UPDATE account
-			SET totp_enrolled_at = now()
-			WHERE id = $1 AND deleted_at IS NULL
-			  AND totp_secret_enc = $2 AND totp_enrolled_at IS NULL`, res.AccountID, totpSecret)
-		if err != nil {
-			return ConsumeCredentialTokenResult{}, err
-		}
-		if ct.RowsAffected() == 0 {
-			return ConsumeCredentialTokenResult{}, errTOTPNotEnrolled
-		}
-	}
+	res.RevokedSessionIDs = revoked
 	if err := tx.Commit(ctx); err != nil {
 		return ConsumeCredentialTokenResult{}, err
 	}
@@ -219,13 +201,14 @@ func (s *Store) RedeemResetLink(ctx context.Context, tokenHash []byte, newHash s
 }
 
 // resetPasswordTx is ResetPasswordAndRevokeAll inside the caller's transaction.
-func (s *Store) resetPasswordTx(ctx context.Context, tx pgx.Tx, accountID, newHash string) error {
+// It returns the ids of the sessions it revoked.
+func (s *Store) resetPasswordTx(ctx context.Context, tx pgx.Tx, accountID, newHash string) ([]string, error) {
 	// A staff invitee sets their first password through this same path; that
 	// is not a reset of anything, so it sends no security alert.
 	var firstPassword bool
 	if err := tx.QueryRow(ctx, `SELECT password_hash IS NULL FROM account WHERE id = $1 FOR UPDATE`,
 		accountID).Scan(&firstPassword); err != nil {
-		return err
+		return nil, err
 	}
 	var setAt time.Time
 	if err := tx.QueryRow(ctx, `
@@ -233,21 +216,20 @@ func (s *Store) resetPasswordTx(ctx context.Context, tx pgx.Tx, accountID, newHa
 		                   email_verified_at = COALESCE(email_verified_at, now())
 		WHERE id = $1
 		RETURNING password_set_at`, accountID, newHash).Scan(&setAt); err != nil {
-		return err
+		return nil, err
 	}
-	if _, err := tx.Exec(ctx, `
-		UPDATE session SET revoked_at = now(), revoke_reason = 'password_reset'
-		WHERE account_id = $1 AND revoked_at IS NULL`, accountID); err != nil {
-		return err
+	revoked, err := revokeLiveSessions(ctx, tx, accountID, "password_reset")
+	if err != nil {
+		return nil, err
 	}
 	if err := emitSecurityEvent(ctx, tx, accountID, realtime.SecurityPasswordChanged, nil); err != nil {
-		return err
+		return nil, err
 	}
 	if !firstPassword {
 		if err := s.sendSecurityAlert(ctx, tx, accountID, notify.SecurityPasswordReset, "",
 			setAt.UTC().Format(time.RFC3339Nano), setAt, nil); err != nil {
-			return err
+			return nil, err
 		}
 	}
-	return nil
+	return revoked, nil
 }

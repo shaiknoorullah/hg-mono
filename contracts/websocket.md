@@ -229,9 +229,28 @@ that channel; the payload each role receives is the projection described in §5.
 | `order.cancelled` | all participants | `{order_id, reason_code: OrderCancellationReasonCode, by: OrderActorKind, refund: {kind, amount_cents, state} \| null}` |
 | `order.completed` | customer, restaurant, rider | `{order_id, delivered_at, receipt_url: string\|null}` |
 | `order.note_added` | restaurant, rider, support | `{order_id, author_kind: OrderActorKind, text, at}` |
+| `order.rider_arrived` | **customer only** | `{order_id, at}` — never a code |
 
 `deadline_at` is non-null on every non-terminal state. A client rendering a countdown derives it
 from `deadline_at` minus `server_time`, never from a local constant.
+
+`order.rider_arrived` is the arrival event: it is emitted in the same transaction as
+`order.state_changed` to `ARRIVED`, and it is also sent as a push, because the customer has to
+act on it. **The push says only "Your rider is here"** and deep-links to the order
+([#280](https://github.com/shaiknoorullah/hg-mono/issues/280)).
+
+**No handover code is ever on this channel, for any role, and never in a push.** The rider
+subscribes to `order:{order_id}`, so nothing published here may carry the pickup code or the
+delivery code, whichever serializer it goes through. A push, an SMS and an email pass through
+APNs, FCM or a carrier and show on the lock screen and in the notification history, so none of
+them carries a code either. On `order.rider_arrived` (or its push) the customer app fetches
+`delivery_code` from the customer's own authenticated order view: `OrderCustomerView` on
+`getOrder` / `getActiveOrder`, or `OrderTracking` on `getOrderTracking`, all `CUSTOMER`-only
+operations. The delivery code is the 4-digit code the customer reads to the rider at a met
+handover (`MEET_AT_DOOR` or `MEET_IN_LOBBY`); the rider is never shown it
+([round-2 decisions, "Orders and delivery"](../docs/decisions/README.md#orders-and-delivery),
+[#180](https://github.com/shaiknoorullah/hg-mono/issues/180),
+[security review on #183](https://github.com/shaiknoorullah/hg-mono/issues/183)).
 
 ### 4.3 Payment — channel `order:{order_id}` (out-of-order charges use `account:{id}`)
 
@@ -252,14 +271,25 @@ from `deadline_at` minus `server_time`, never from a local constant.
 | `restaurant.order_offered` | restaurant staff | `{order_id, code, expires_at, deadline_at, customer_first_name, lines: [{name, variant, addons, qty, note}], subtotal_cents, total_cents, currency, prep_eta_suggestion_min, fulfilment: Fulfilment}` |
 | `restaurant.order_offer_expired` | restaurant staff | `{order_id, reason: "timeout"}` |
 | `restaurant.order_offer_withdrawn` | restaurant staff | `{order_id, reason: "customer_cancelled" \| "payment_failed"}` |
-| `restaurant.order_accepted` | restaurant staff | `{order_id, accepted_by, prep_eta_minutes}` — fan-out to the restaurant's other tablets |
+| `restaurant.order_accepted` | restaurant staff | `{order_id, accepted_by, prep_eta_minutes, pickup_code: string\|null}` — fan-out to the restaurant's other tablets. `pickup_code` is the 4-digit code the kitchen reads to the rider at the counter (`OrderRestaurantView.pickup_code`); `null` when the customer collects the order, and always `null` in the support and admin projection |
 | `restaurant.order_rejected` | restaurant staff | `{order_id, rejected_by, reason_code: RestaurantRejectReasonCode}` |
 | `restaurant.status_changed` | restaurant staff | `{restaurant_id, is_accepting_orders, open_state: RestaurantOpenState, reason, changed_by}` |
 | `restaurant.payout_updated` | restaurant owner | `{payout_id, state: PayoutState, amount_cents, currency, period: {start, end}}` |
 
 `restaurant.order_offered` carries the **pre-acceptance** projection: the customer's first name,
-no phone, no street address. The full address arrives on the next `order.state_changed` after
-acceptance.
+no phone, no street address, no pickup code. The full address arrives on the next
+`order.state_changed` after acceptance, and the pickup code on `restaurant.order_accepted`.
+
+**The pickup code reaches only the restaurant's staff:** over REST on the restaurant's own
+authenticated order view (`OrderRestaurantView`), and here on `restaurant:{id}`, a channel no
+rider and no customer can subscribe to (§3.1). Support and admin may subscribe to this channel
+too, but their serializer for `restaurant.order_accepted` always sends `pickup_code: null`, so
+nobody at HalalGoes can read a code out to a rider. No push for this event carries the code, and
+no event on `order:{order_id}` does. The rider hears it from the kitchen and types it in to
+confirm pickup
+([round-2 decisions, "Orders and delivery"](../docs/decisions/README.md#orders-and-delivery),
+[#178](https://github.com/shaiknoorullah/hg-mono/issues/178),
+[security review on #183](https://github.com/shaiknoorullah/hg-mono/issues/183)).
 
 Losing this frame never loses the order. The offer is also delivered by push, escalates to SMS at
 60 s and to an automated voice call at 120 s, and the order stays `RESTAURANT_PENDING` until the
@@ -303,7 +333,7 @@ only while the order is `PICKED_UP` or `ARRIVED`, or dispatch is `ASSIGNED` or l
 
 | `type` | `data` |
 |---|---|
-| `admin.alert` | `{severity, kind, subject_type, subject_id, message, at}` |
+| `admin.alert` | `{severity, kind, subject_type, subject_id, message, at}` — `kind: "HANDOVER_CODE_LOCKED"` (`subject_type: "ORDER"`) when five wrong pickup or delivery codes hand an order to support; it names the order and which handover, never the code |
 | `admin.dispatch_failure` | `{order_id, waves, riders_offered, radius_m}` |
 | `admin.reconciliation_exception` | `{kind, order_id, expected_cents, actual_cents}` |
 | `admin.queue_depth` | `{pending_restaurant_reviews, pending_rider_reviews, open_disputes, failed_refunds}` |
@@ -318,10 +348,10 @@ leak waiting to be forgotten.
 
 | Audience | What is added | What is withheld |
 |---|---|---|
-| **Customer** | rider's *public* profile: first name, last initial, photo, vehicle type, rating average | the rider's earnings, phone, record or exact pre-pickup position |
-| **Restaurant** | customer's first name + last initial; masked phone (`+1 416 ••• 0123`) | the customer's full phone, always; the **delivery address until the order is `ACCEPTED`**; the rider's phone; the rider's precise coordinates |
-| **Rider** | pickup details from assignment; drop-off street and neighbourhood | the customer's **full address and unit until `PICKED_UP`**; the customer's raw phone at any time (a platform proxy alias is sent instead); every item price and the order total |
-| **Support / admin** | everything, with PII masked by default | nothing — but every privileged cross-tenant read writes an audit event *before* returning, and unmasking requires a recorded justification |
+| **Customer** | rider's *public* profile: first name, last initial, photo, vehicle type, rating average | the rider's earnings, phone, record or exact pre-pickup position; **both handover codes on every channel** — the customer's delivery code is fetched over REST only, from the customer's own order view |
+| **Restaurant** | customer's first name + last initial; masked phone (`+1 416 ••• 0123`); the **pickup code** on `restaurant.order_accepted` (`restaurant:{id}` only), from acceptance until pickup | the customer's full phone, always; the **delivery address until the order is `ACCEPTED`**; the rider's phone; the rider's precise coordinates; the delivery code; the pickup code on `order:{order_id}` |
+| **Rider** | pickup details from assignment; drop-off street and neighbourhood | the customer's **full address and unit until `PICKED_UP`**; the customer's raw phone at any time (a platform proxy alias is sent instead); every item price and the order total; **both handover codes, always** — the rider hears each one and types it in |
+| **Support / admin** | everything else, with PII masked by default | **both handover codes** — a code that cannot be used is replaced by an audited override (`overrideHandoverCode`), never read out; and every privileged cross-tenant read writes an audit event *before* returning, and unmasking requires a recorded justification |
 
 Two projections deserve to be spelled out because they are the ones most often got wrong:
 
@@ -333,10 +363,15 @@ Two projections deserve to be spelled out because they are the ones most often g
   minutes after the assignment terminates the address is redacted back to street level in the
   rider's history and the phone alias is deactivated.
 
-Two invariants back this up:
+Three invariants back this up:
 
 * No event payload contains a raw customer phone number, a full address for an unauthorised
   audience, card data, a token, or any monetary value not sourced from the order or its quote.
+* A handover code reaches only the party who reads it out, and only over an authenticated
+  channel that party alone can open: the pickup code only the restaurant's staff (their REST
+  order view and `restaurant:{id}`), the delivery code only the customer (their REST order view;
+  never the socket). The rider, who types each one in, is never sent either; no event on
+  `order:{order_id}`, no push, SMS or email, and no error body carries one.
 * A principal can never receive an event for a channel it is not subscribed to, and can never
   subscribe to a channel whose ownership check it cannot pass.
 

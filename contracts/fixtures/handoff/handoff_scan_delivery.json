@@ -2,7 +2,7 @@
   "scenario": "handoff_scan_delivery",
   "domain": "handoff",
   "schema": "HandoffScanResult",
-  "describes": "scanDelivery's 200: PICKED_UP → DELIVERED, gated on the same physical token scoped to the DELIVERY proof.",
+  "describes": "scanDelivery's 200 (later version): the same physical token scanned for the DELIVERY proof. `order_state` is the order's current state; delivery was gated only by proof of delivery.",
   "operations": [
     "scanDelivery"
   ],
