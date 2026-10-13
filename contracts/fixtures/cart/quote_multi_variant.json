@@ -1,0 +1,123 @@
+{
+  "scenario": "quote_multi_variant",
+  "domain": "cart",
+  "schema": "Quote",
+  "describes": "A platter line with one variant from each of three groups: `variant_part_cents` = 4299 (`For two`, ABSOLUTE, replaces the 2499 base) + 300 (`Kabuli pulao`, DELTA) + 0 (`Peshawari hot`, DELTA) = 4599, and `variants` carries each one with its snapshotted money. The deprecated `variant_id` and `variant_pricing_mode` are null; `variant_name` joins the three names.",
+  "operations": [
+    "createQuote",
+    "getQuote"
+  ],
+  "status": 200,
+  "tags": [
+    "variants",
+    "money"
+  ],
+  "payload": {
+    "id": "2b270f9b-99d4-415e-a34b-01730bfd55c5",
+    "cart_id": "febc4423-41c4-4919-ac41-a84c10f6f600",
+    "restaurant_id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+    "delivery_address_id": "926a8c05-3beb-4be0-af96-caf04f7299df",
+    "fulfilment": "DELIVERY",
+    "currency": "CAD",
+    "lines": [
+      {
+        "line_no": 1,
+        "menu_item_id": "c5ec6eae-ceb5-4957-a9e2-0e1ab3a4ef1c",
+        "menu_item_name": "Mixed Charcoal Grill Platter",
+        "variant_id": null,
+        "variant_name": "For two, Kabuli pulao, Peshawari hot",
+        "variant_pricing_mode": null,
+        "variants": [
+          {
+            "variant_group_id": "ec4c482e-beea-41f7-ac67-ff52bac02aa3",
+            "group_name": "Platter size",
+            "variant_id": "8dbd507f-30a2-44bb-a77e-f89de84f9da8",
+            "variant_name": "For two",
+            "pricing_mode": "ABSOLUTE",
+            "price_cents": 4299,
+            "delta_cents": null
+          },
+          {
+            "variant_group_id": "65f25cbd-0eb0-4146-a0c8-831086f4ffe8",
+            "group_name": "Rice",
+            "variant_id": "9f8b7ac0-a042-4748-ae81-ae72ef042957",
+            "variant_name": "Kabuli pulao",
+            "pricing_mode": "DELTA",
+            "price_cents": null,
+            "delta_cents": 300
+          },
+          {
+            "variant_group_id": "bc59d4db-de3b-4d7c-aa62-01407241b5bd",
+            "group_name": "Heat level",
+            "variant_id": "07606b9b-e90c-4f94-a547-68765b3f984b",
+            "variant_name": "Peshawari hot",
+            "pricing_mode": "DELTA",
+            "price_cents": null,
+            "delta_cents": 0
+          }
+        ],
+        "addons": [
+          {
+            "addon_id": "632ed32c-4309-450e-a052-17ae7c928b89",
+            "addon_name": "Garlic toum",
+            "addon_quantity": 1,
+            "addon_price_cents": 149
+          }
+        ],
+        "quantity": 2,
+        "base_price_cents": 2499,
+        "variant_part_cents": 4599,
+        "addons_part_cents": 149,
+        "line_unit_cents": 4748,
+        "line_total_cents": 9496,
+        "special_request": null,
+        "tax_category": "PREPARED_FOOD"
+      },
+      {
+        "line_no": 2,
+        "menu_item_id": "e3723319-f51b-42f0-a693-8c9eb954bb0f",
+        "menu_item_name": "Chicken Biryani",
+        "variant_id": null,
+        "variant_name": null,
+        "variant_pricing_mode": null,
+        "variants": [],
+        "addons": [],
+        "quantity": 1,
+        "base_price_cents": 1695,
+        "variant_part_cents": 1695,
+        "addons_part_cents": 0,
+        "line_unit_cents": 1695,
+        "line_total_cents": 1695,
+        "special_request": null,
+        "tax_category": "PREPARED_FOOD"
+      }
+    ],
+    "subtotal_cents": 11191,
+    "discount_items_cents": 0,
+    "discount_delivery_cents": 0,
+    "discount_service_cents": 0,
+    "discount": null,
+    "delivery_fee_cents": 449,
+    "service_fee_cents": 560,
+    "tax_lines": [
+      {
+        "jurisdiction_code": "CA-ON",
+        "tax_kind": "HST",
+        "statutory_label": "HST (13%)",
+        "rate": "0.13",
+        "base_cents": 12200,
+        "amount_cents": 1586,
+        "rebate_applied": false,
+        "remittable_by": "RESTAURANT"
+      }
+    ],
+    "tax_total_cents": 1586,
+    "tip_cents": 500,
+    "total_cents": 14286,
+    "billable_km": 4,
+    "route_meters": 3180,
+    "route_source": "ROUTED",
+    "expires_at": "2026-08-10T18:51:51.412Z",
+    "created_at": "2026-08-10T18:41:51.412Z"
+  }
+}

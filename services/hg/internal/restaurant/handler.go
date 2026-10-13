@@ -868,10 +868,11 @@ func (h *Handler) AcceptOrder(w http.ResponseWriter, r *http.Request) {
 	// T6 MoneyFX="capture": capture the authorised PaymentIntent now that the
 	// restaurant has accepted. This is a post-commit network effect (store-then-
 	// process): the order is already PREPARING in the database. On failure we log
-	// and return the accepted order anyway — a reconciler/webhook will retry.
+	// and return the accepted order anyway — the payments capture retrier takes it
+	// from here (payments.CaptureRetrier: backoff, then an ops alert).
 	if h.pay != nil {
 		if captureErr := h.pay.Capture(r.Context(), orderID, order.Money.TotalCents); captureErr != nil {
-			slog.Error("payment capture failed after accept — reconciler will retry",
+			slog.Error("payment capture failed after accept — the capture retrier will retry it with backoff and page on-call if it keeps failing",
 				slog.String("order_id", orderID),
 				slog.String("error", captureErr.Error()))
 		}

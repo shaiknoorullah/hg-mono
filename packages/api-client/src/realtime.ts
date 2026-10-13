@@ -148,6 +148,17 @@ export interface OrderNoteAddedData {
   text: string;
   at: string;
 }
+/**
+ * The arrival event, customer only, also sent as a push that says only "Your rider is here".
+ * It never carries a handover code: the rider subscribes to `order:{id}` too, and a push shows
+ * on the lock screen. On this event the customer app fetches `delivery_code` from its own
+ * authenticated order view (`getOrder` / `getOrderTracking`). Security review on #183:
+ * https://github.com/shaiknoorullah/hg-mono/issues/183
+ */
+export interface OrderRiderArrivedData {
+  order_id: string;
+  at: string;
+}
 
 /* ----------------------------- §4.3 payment ------------------------------ */
 
@@ -231,6 +242,12 @@ export interface RestaurantOrderAcceptedData {
   order_id: string;
   accepted_by: string;
   prep_eta_minutes: number;
+  /**
+   * The 4-digit code the kitchen reads to the rider at the counter; null when the customer
+   * collects the order, and always null in the support and admin projection. Restaurant
+   * channel only — the rider is never sent it.
+   */
+  pickup_code: string | null;
 }
 export interface RestaurantOrderRejectedData {
   order_id: string;
@@ -406,6 +423,7 @@ export interface RealtimeEventMap {
   'order.cancelled': OrderCancelledData;
   'order.completed': OrderCompletedData;
   'order.note_added': OrderNoteAddedData;
+  'order.rider_arrived': OrderRiderArrivedData;
 
   'payment.authorized': PaymentAuthorizedData;
   'payment.action_required': PaymentActionRequiredData;

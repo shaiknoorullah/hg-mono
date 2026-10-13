@@ -114,27 +114,6 @@ const cardColumns = `
 	b.name AS certifying_body,
 	c.expires_on AS cert_expires_on,` + tradingColumns
 
-// tradingColumns read what the card's open state is derived from: the toggle,
-// pause and heartbeat, the open payout collection that blocks quoting
-// (orders/quote_store.go), the weekly hours, and the overrides for the dates
-// around today (evaluateHours looks one day back and hoursHorizonDays ahead).
-const tradingColumns = `
-	r.account_state::text, r.is_accepting_orders, r.pause_until, r.last_heartbeat_at,
-	EXISTS (SELECT 1 FROM restaurant_collection rcl
-	         WHERE rcl.restaurant_id = r.id AND rcl.closed_at IS NULL) AS collection_block,
-	COALESCE((
-		SELECT json_agg(json_build_object('day', h.day_of_week,
-		         'opens', to_char(h.opens_at, 'HH24:MI'), 'closes', to_char(h.closes_at, 'HH24:MI'),
-		         'crosses_midnight', h.crosses_midnight))
-		  FROM restaurant_hours h WHERE h.restaurant_id = r.id
-	), '[]') AS weekly_hours,
-	COALESCE((
-		SELECT json_agg(json_build_object('date', o.on_date::text, 'closed', o.is_closed,
-		         'opens', to_char(o.opens_at, 'HH24:MI'), 'closes', to_char(o.closes_at, 'HH24:MI')))
-		  FROM restaurant_hours_override o
-		 WHERE o.restaurant_id = r.id AND o.on_date BETWEEN current_date - 2 AND current_date + 10
-	), '[]') AS hours_overrides`
-
 // cardJoins joins the active halal certificate and its issuing body so the badge
 // carries the certifying body name and expiry. LEFT JOIN because a visible
 // restaurant is EXPIRING_SOON/CERTIFIED and therefore always has one, but the

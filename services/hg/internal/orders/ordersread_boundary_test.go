@@ -352,7 +352,7 @@ func TestBoundaryReceiptClosedShape(t *testing.T) {
 		t.Fatal("receipt.lines must not be empty")
 	}
 	lineKeys := []string{
-		"line_no", "menu_item_id", "name", "variant_name", "addons",
+		"line_no", "menu_item_id", "name", "variant_name", "variants", "addons",
 		"quantity", "special_request", "unit_price_cents", "line_total_cents", "currency",
 	}
 	for i, raw := range lines {

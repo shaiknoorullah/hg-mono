@@ -1,6 +1,14 @@
 import { expect, test, type Page, type Route } from '@playwright/test';
 
+import { E2E_MODE } from './mode';
 import { stepper } from './shots';
+import { signOutAndExpectNotice } from './redesign-admin.support';
+
+// This spec drives the console against the mock server: it reads `login` from the mock and
+// rewrites the principal's role (below). On the e2e stack (E2E_MODE=real, what the `e2e` label
+// runs) the same request reaches the real API, whose answer has no such principal, so the file
+// runs in mock mode only: `E2E_MODE=mock`, see tools/e2e/README.md → Redesign.
+test.skip(E2E_MODE !== 'mock', 'written against the mock server; run with E2E_MODE=mock');
 
 /**
  * The redesigned admin console, work package 1 (issue #90): the shell and the public auth pages,
@@ -167,13 +175,7 @@ for (const vp of VIEWPORTS) {
       });
 
       await step(page, 'signed-out', async () => {
-        await page.getByRole('button', { name: /^Sign out/ }).click();
-        await expect(page.getByRole('heading', { level: 1, name: 'Sign in' })).toBeVisible();
-        await expect(page.getByText('You’re signed out')).toBeVisible();
-        await expect(page.getByText('You signed out of HalalGoes on this device. Sign in again to continue.')).toBeVisible();
-        await expect(nav(page)).toHaveCount(0);
-        // The email is remembered for the next sign-in.
-        await expect(page.getByLabel('Work email')).toHaveValue(EMAIL);
+        await signOutAndExpectNotice(page, EMAIL);
       });
     });
 

@@ -55,7 +55,7 @@ if (!explicit) {
 
 if (!explicit && files.length === 0) console.log('no mission files found');
 if (failed) {
-  console.error(`\n${failed} problem file(s). The mission format: tools/e2e/native/README.md`);
+  console.error(`\n${failed} problem file(s). The mission format and every allowed setup command and reality step: tools/e2e/native/README.md#missions`);
   process.exit(1);
 }
 console.log(`\n${results.length} mission(s)${explicit ? '' : ` and ${routes} route(s)`} valid.`);

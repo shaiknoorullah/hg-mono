@@ -664,6 +664,9 @@ importers:
         specifier: 3.7.0
         version: 3.7.0
     devDependencies:
+      '@1771technologies/lytenyte-core':
+        specifier: ^2.2.1
+        version: 2.2.1(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       '@iconify-json/solar':
         specifier: ^1.2.2
         version: 1.2.10

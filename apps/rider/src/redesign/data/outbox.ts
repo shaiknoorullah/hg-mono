@@ -135,17 +135,21 @@ export class Outbox {
   /**
    * Send a step now, or queue it if the phone cannot reach us. API errors are thrown (as
    * `HgApiError`) for the screen to show. `occurred_at` defaults to now.
+   *
+   * `options.key` resends a step the screen already tried (a 5xx "Try again"): the same
+   * `Idempotency-Key` with the same body, so a retry can never record the step twice (WP4).
    */
   async send(
     assignmentId: string,
     input: Omit<TransitionInput, 'occurred_at'> & { occurred_at?: string },
+    options: { key?: string } = {},
   ): Promise<SendResult> {
     if (input.to_state === 'DELIVERED') {
       throw new Error('DELIVERED never queues: it is sent with its proof (submitProofOfDelivery).');
     }
     await this.load();
     const entry: OutboxEntry = {
-      id: idempotencyKey(),
+      id: options.key ?? idempotencyKey(),
       assignmentId,
       input: { ...input, occurred_at: input.occurred_at ?? new Date().toISOString() } as TransitionInput,
       queuedAt: new Date().toISOString(),

@@ -13,7 +13,7 @@ This playbook tests role-based permission boundaries across Owner, Manager, and 
 
 1. **Setup command** (terminal, from `services/hg`):
    ```bash
-   make dev-reset
+   cd services/hg && make dev-reset
    ```
    Every login below uses the password `Seed!2026` and no authenticator code.
 2. **Browser action**:
@@ -21,7 +21,7 @@ This playbook tests role-based permission boundaries across Owner, Manager, and 
    - Navigate to `/payouts`.
 3. **Visible assertion**:
    - Header **Payouts** is visible with weekly settlement details.
-   - Payout history table lists completed, transferred, or pending weekly settlements.
+   - After a reset the list is empty (**No payouts yet**). A history with completed, transferred or pending settlements waits on [a dev world payout run (#676)](https://github.com/shaiknoorullah/hg-mono/issues/676).
 4. **Browser action**:
    - Navigate to `/staff`.
 5. **Visible assertion**:
@@ -32,7 +32,7 @@ This playbook tests role-based permission boundaries across Owner, Manager, and 
 ## 2. Manager Role: Operations Permitted, Payouts Restricted
 
 1. **Browser action**:
-   - Sign in as the manager (`bismillah-manager@seed.hg`).
+   - Sign in with manager credentials.
    - Verify ability to view `/orders`, update `/menu`, and edit `/hours`.
    - Navigate to `/payouts`.
 2. **Visible assertion**:

@@ -107,6 +107,11 @@ func (h *Handler) EnrollTOTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	enrolment, err := h.svc.EnrollTOTP(r.Context(), p.AccountID)
+	if errors.Is(err, errTOTPAlreadyEnrolled) {
+		httpx.Fail(w, r, http.StatusConflict, codeStepNotAvailable,
+			"Two-step sign-in is already on. Turn it off with a current code before setting it up again.", nil)
+		return
+	}
 	if err != nil {
 		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError,
 			"The server failed to process this request.", nil)
@@ -194,10 +199,6 @@ func (h *Handler) DisableTOTP(w http.ResponseWriter, r *http.Request) {
 
 	err := h.svc.DisableTOTP(r.Context(), p.AccountID, in.TOTPCode)
 	switch {
-	case errors.Is(err, errTOTPMandatory):
-		httpx.Fail(w, r, http.StatusForbidden, CodeMFARequired,
-			"TOTP is mandatory for your role and cannot be disabled.", nil)
-		return
 	case errors.Is(err, errTOTPNotEnrolled):
 		httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
 			"TOTP is not enabled on this account.", nil)
