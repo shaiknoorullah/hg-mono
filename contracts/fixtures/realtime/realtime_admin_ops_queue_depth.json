@@ -1,0 +1,75 @@
+{
+  "scenario": "realtime_admin_ops_queue_depth",
+  "domain": "realtime",
+  "schema": "RealtimeEvent[]",
+  "describes": "`admin.queue_depth` on `admin:ops`: the first frame fills the nav counts (hidden until it arrives), two updates change them, the last one is all zeros (no badge rendered for 0). Contract-only: `services/hg` does not emit `admin.queue_depth` yet, so on the real API the counts stay hidden; read the queues instead.",
+  "operations": [],
+  "status": 200,
+  "tags": [
+    "realtime",
+    "script",
+    "admin"
+  ],
+  "payload": [
+    {
+      "id": "BXCBRN7BTAT646N7NGZS1TZHFE",
+      "seq": 1,
+      "channel": "admin:ops",
+      "type": "admin.queue_depth",
+      "v": 1,
+      "ts": "2026-08-10T18:42:11.412Z",
+      "data": {
+        "pending_restaurant_reviews": 3,
+        "pending_rider_reviews": 5,
+        "open_disputes": 1,
+        "failed_refunds": 0
+      },
+      "_delay_ms": 0
+    },
+    {
+      "id": "WEN698SG9490VS75320R8TGPEC",
+      "seq": 2,
+      "channel": "admin:ops",
+      "type": "admin.queue_depth",
+      "v": 1,
+      "ts": "2026-08-10T18:42:17.412Z",
+      "data": {
+        "pending_restaurant_reviews": 4,
+        "pending_rider_reviews": 5,
+        "open_disputes": 1,
+        "failed_refunds": 0
+      },
+      "_delay_ms": 6000
+    },
+    {
+      "id": "JND83CJ52R35QYHTJRPBQVW043",
+      "seq": 3,
+      "channel": "admin:ops",
+      "type": "admin.queue_depth",
+      "v": 1,
+      "ts": "2026-08-10T18:42:23.412Z",
+      "data": {
+        "pending_restaurant_reviews": 4,
+        "pending_rider_reviews": 4,
+        "open_disputes": 2,
+        "failed_refunds": 1
+      },
+      "_delay_ms": 12000
+    },
+    {
+      "id": "4YZ8MNQFKXYZ4MBESPZSEC5WTQ",
+      "seq": 4,
+      "channel": "admin:ops",
+      "type": "admin.queue_depth",
+      "v": 1,
+      "ts": "2026-08-10T18:42:29.412Z",
+      "data": {
+        "pending_restaurant_reviews": 0,
+        "pending_rider_reviews": 0,
+        "open_disputes": 0,
+        "failed_refunds": 0
+      },
+      "_delay_ms": 18000
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+HalalGoes
+
+Your application is approved
+
+We checked the documents and halal certificate for {{.RestaurantName}}, and your application is approved.
+
+Approval does not put you live yet. Sign in to see what is left before customers can order from you, starting with setting up payouts.
+
+See your next steps {{.ActionURL}}
+
+----------------------------------------
+
+You are receiving this because you have a HalalGoes account. It is a service message about that account, not marketing.
+
+HalalGoes · Halal food delivery in Ontario

@@ -1,0 +1,14 @@
+# Local stack only: `make up` (services/hg/Makefile) layers this on docker-compose.yml.
+# The server never reads it: it runs docker-compose.yml with docker-compose.server.yml.
+#
+# A request from this machine to the published port reaches Traefik from Docker's bridge
+# gateway (172.18.0.1 on hg-net, say), not from 127.0.0.1, so the base file's loopback-only
+# allow-list on /internal and /debug refused it and the API journey runner
+# (tools/e2e/api/run.mjs) stopped at its environment check (issue #487). Docker gives its
+# bridge networks addresses from 172.16.0.0/12 by default, so allowing that range admits the
+# host and keeps the public internet out. Behind the edge nothing changes: /internal/deps
+# still needs a staff session, and /debug/deps answers without one only in HG_ENV=local.
+services:
+  api:
+    labels:
+      - traefik.http.middlewares.hg-internal-only.ipallowlist.sourcerange=127.0.0.1/32,172.16.0.0/12

@@ -55,7 +55,9 @@ services:
       - traefik.http.routers.hg-internal.priority=10
       - traefik.http.routers.hg-internal.service=hg-api
       - traefik.http.routers.hg-internal.middlewares=hg-internal-only@docker
-      - traefik.http.middlewares.hg-internal-only.ipallowlist.sourcerange=127.0.0.1/32
+      # Host requests to the published port arrive from the bridge gateway, not 127.0.0.1
+      # (issue #487); see docker-compose.local.yml.
+      - traefik.http.middlewares.hg-internal-only.ipallowlist.sourcerange=127.0.0.1/32,172.16.0.0/12
       - traefik.http.services.hg-api.loadbalancer.server.port=8080
       - traefik.http.services.hg-api.loadbalancer.healthcheck.path=/health/ready
       - traefik.http.services.hg-api.loadbalancer.healthcheck.interval=10s

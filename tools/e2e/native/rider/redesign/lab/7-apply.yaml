@@ -1,0 +1,124 @@
+# Rider redesign WP7: apply to ride (R04 hub, R06 your details, R07 how you deliver) against
+# devworld. A fresh number in the onboarding range signs in → "Apply to ride" → Your details with
+# a typed date of birth (Day / Month / Year, never a calendar) and a chosen time zone → How you
+# deliver: scooter with a plate → the documents step (WP8's screen, or the legacy onboarding
+# screen until WP8 merges).
+#
+# Built with EXPO_PUBLIC_HG_REDESIGN=1 and a cleared Metro cache (see 0-shell.yaml).
+# Env: PHONE_DIGITS, a number in onboard-rider's range (+1 555 010 0160–0199) nobody has used since
+# the last `make dev-reset` (dev codes for +1 555 010 01xx are always 000000). If the hub shows
+# "Finish your application" instead of "Apply to ride", the number was used: reset or pick another.
+appId: com.halalgoes.rider.dev
+name: rider redesign, apply to ride
+env:
+  PHONE_DIGITS: "5550100197"
+---
+- launchApp:
+    clearState: true
+    permissions:
+      all: allow
+- extendedWaitUntil:
+    visible: "Sign in or apply to ride"
+    timeout: 90000
+- tapOn:
+    id: "phone-field"
+- inputText: ${PHONE_DIGITS}
+- hideKeyboard
+- tapOn: "Send code"
+- extendedWaitUntil:
+    visible: "Enter your code"
+    timeout: 30000
+- tapOn:
+    id: "code-cell-0"
+# The 6th digit checks the code by itself.
+- inputText: "000000"
+
+# R04 hub, start: the five-row plan, no terms checkbox, no BottomNav.
+- extendedWaitUntil:
+    visible: "Apply to ride"
+    timeout: 60000
+- assertVisible: "Step 1 of 5: your details"
+- assertNotVisible: "Earnings"
+- takeScreenshot: rider-wp7-01-welcome
+- scrollUntilVisible:
+    element:
+      text: "By continuing you agree to the rider terms and privacy notice."
+- takeScreenshot: rider-wp7-02-welcome-terms
+- tapOn:
+    id: "application-next"
+
+# R06 Your details: Continue with nothing filled shows one summary and sends nothing.
+- extendedWaitUntil:
+    visible: "Tell us who you are"
+    timeout: 30000
+- takeScreenshot: rider-wp7-03-details
+- tapOn:
+    id: "details-continue"
+- extendedWaitUntil:
+    visible: ".* things? needs? fixing"
+    timeout: 10000
+- takeScreenshot: rider-wp7-04-details-required
+- scrollUntilVisible:
+    element:
+      id: "details-first-field"
+    direction: UP
+- tapOn:
+    id: "details-first-field"
+- inputText: "Yusuf"
+- tapOn:
+    id: "details-last-field"
+- inputText: "Onboard"
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "dob-day-field"
+- tapOn:
+    id: "dob-day-field"
+- inputText: "14"
+- tapOn:
+    id: "dob-month-field"
+- inputText: "05"
+- tapOn:
+    id: "dob-year-field"
+- inputText: "1996"
+- hideKeyboard
+# The emulator's zone may be outside Eastern / Central: choose it rather than rely on the preset.
+- scrollUntilVisible:
+    element:
+      id: "details-timezone-trigger"
+- tapOn:
+    id: "details-timezone-trigger"
+- tapOn: "Eastern time \\(Toronto\\)"
+- takeScreenshot: rider-wp7-05-details-filled
+- tapOn:
+    id: "details-continue"
+
+# R07 How you deliver: nothing is chosen until the rider picks.
+- extendedWaitUntil:
+    visible: "How will you deliver.*"
+    timeout: 30000
+- assertVisible: "Step 2 of 5: how you deliver"
+- takeScreenshot: rider-wp7-06-vehicle-empty
+- tapOn: "Scooter"
+- extendedWaitUntil:
+    visible: "About your scooter"
+    timeout: 10000
+- scrollUntilVisible:
+    element:
+      id: "vehicle-plate-field"
+- tapOn:
+    id: "vehicle-plate-field"
+# Plates are unique across riders: a random one so a rerun never meets PLATE_IN_USE.
+- inputText: "E2E"
+- inputRandomNumber:
+    length: 4
+- hideKeyboard
+- takeScreenshot: rider-wp7-07-vehicle-scooter
+- tapOn:
+    id: "vehicle-continue"
+
+# The documents step: WP8's screen, or the legacy onboarding screen until WP8 merges.
+- extendedWaitUntil:
+    visible: "(Add driver's licence|Step 3 · Documents)"
+    timeout: 30000
+- takeScreenshot: rider-wp7-08-documents

@@ -305,9 +305,10 @@ func TestConformance_MoreAdmin_DocumentReview(t *testing.T) {
 }
 
 // TestConformance_MoreAdmin_MenuOnBehalf covers createMenuCategoryOnBehalf,
-// createMenuItemOnBehalf and decideMenuVersion. The category and item are
-// created through the admin-on-behalf routes; the menu-version decision runs
-// against a seeded PENDING_REVIEW version.
+// createMenuItemOnBehalf, updateMenuItemOnBehalf, deleteMenuItemOnBehalf and
+// decideMenuVersion. The category and item are created, edited and removed
+// through the admin-on-behalf routes; the menu-version decision runs against a
+// seeded PENDING_REVIEW version.
 func TestConformance_MoreAdmin_MenuOnBehalf(t *testing.T) {
 	pool := openPool(t)
 	h := newARWHarness(t, pool)
@@ -369,7 +370,42 @@ func TestConformance_MoreAdmin_MenuOnBehalf(t *testing.T) {
 	if itemVerr != nil {
 		t.Fatalf("createMenuItemOnBehalf body not contract-valid (fix the test): %v", itemVerr)
 	}
-	h.CheckResponse(t, itemRq, http.StatusCreated)
+	_, itemResp := h.Do(t, itemRq)
+	defer itemResp.Body.Close()
+	if id, err := ValidateResponse(t, h.Spec, itemReq, itemResp); err != nil {
+		t.Errorf("CONFORMANCE FAIL (createMenuItemOnBehalf): %v", err)
+	} else {
+		h.MarkCovered(id)
+	}
+	if itemResp.StatusCode != http.StatusCreated {
+		t.Fatalf("createMenuItemOnBehalf status = %d, want 201", itemResp.StatusCode)
+	}
+	itemID, _ := dataObject(t, itemResp)["id"].(string)
+	if itemID == "" {
+		t.Fatalf("createMenuItemOnBehalf: empty item id")
+	}
+	itemPath := "/v1/admin/restaurants/" + restaurantID + "/menu/items/" + itemID
+
+	// updateMenuItemOnBehalf — 200 MenuItemOwnerView, a price and a claim-bearing
+	// field: the admin's own item has no version waiting for review.
+	updRq := Request{
+		Method: "PATCH", Path: itemPath,
+		AccountID: saID, Roles: []string{roleSuperAdmin},
+		Body: map[string]any{"price_cents": 1599, "description": "Now with garlic sauce."},
+	}
+	updReq := h.Build(t, updRq)
+	updOpID, updVerr := ValidateRequest(t, h.Spec, updReq)
+	h.MarkCovered(updOpID)
+	if updVerr != nil {
+		t.Fatalf("updateMenuItemOnBehalf body not contract-valid (fix the test): %v", updVerr)
+	}
+	h.CheckResponse(t, updRq, http.StatusOK)
+
+	// deleteMenuItemOnBehalf — 204, no body.
+	h.CheckResponse(t, Request{
+		Method: "DELETE", Path: itemPath,
+		AccountID: saID, Roles: []string{roleSuperAdmin},
+	}, http.StatusNoContent)
 
 	// decideMenuVersion — 200 MenuItemVersion. Seed a PENDING_REVIEW version.
 	versionID := madSeedPendingMenuVersion(t, ctx, pool, restaurantID)

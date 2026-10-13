@@ -1,0 +1,19 @@
+id: rider-wp0-shell
+app: rider
+avd: hg_rider
+api: devworld
+build:
+  env: { EXPO_PUBLIC_HG_REDESIGN: "1" }
+  note: "Clear the Metro cache when building (EXPO_PUBLIC_* is inlined at transform time; a warm cache from a flag-off build serves the legacy app)."
+setup: [ "make dev-reset" ]
+reality:
+  - theme: light
+flows: [ "tools/e2e/native/rider/redesign/0-shell.yaml" ]
+explore: >
+  After the flow passes: (1) `adb shell cmd uimode night yes`, relaunch, sign in again and
+  screenshot the three tabs: the redesign follows the phone, so the chrome must be dark (the
+  release app stays light). (2) `adb shell settings put system font_scale 2.0` and screenshot the
+  BottomNav: labels must not clip. (3) Press Android Back from Earnings: it returns to Home; Back
+  from Home leaves the app. (4) Kill the app and relaunch: sign-in again is expected today (the
+  session is memory-only until the AsyncStorage dependency lands; report it, it is not a defect).
+  Reset font_scale to 1.0 and night mode to no afterwards.

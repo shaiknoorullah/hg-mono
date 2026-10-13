@@ -1,0 +1,10 @@
+# Collections the playbooks use, pinned. provision.sh installs them into ./.collections.
+collections:
+  - name: ansible.posix
+    version: 2.2.0
+  - name: community.general
+    version: 12.6.1
+  - name: community.docker
+    version: 5.2.0
+  - name: community.sops
+    version: 2.4.0

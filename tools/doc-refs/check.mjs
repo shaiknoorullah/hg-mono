@@ -12,9 +12,11 @@
 //          (or a filtered package) that no package.json defines.
 //   env    an HG_* variable that neither services/hg/internal/config/config.go,
 //          deploy/.env.example nor a workflow's repository variables (`vars.HG_*`) knows.
-//   issue  #123 on a line that calls it pending / open / blocked, when the issue is closed.
+//   issue  #123 called pending / open / blocked, when the issue is closed. The status word must
+//          be in the same sentence and near the reference (issue-refs.mjs), not just on the line.
 //          Needs the GitHub API, so it runs only in CI with a token (skipped locally).
 //   link   broken relative links and #anchors, found by lychee and merged in with --lychee.
+//          A missing #fragment on a github.com issue or PR page is not a finding (see below).
 //
 // Existing findings live in tools/doc-refs/baseline.json; only findings missing from it fail.
 //
@@ -36,6 +38,7 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { issueRefs as issueRefsOf } from './issue-refs.mjs';
 
 // ---------------------------------------------------------------------------
 // arguments
@@ -375,8 +378,6 @@ function checkPnpm(words, cwd, docDir, add) {
   add('pnpm', filters.length ? `pnpm --filter ${filters.join(' --filter ')} ${cmd}` : `pnpm ${cmd}`, `no "${cmd}" script in ${where}`);
 }
 
-const STATUS_WORDS = /\b(pending|blocked|blocker|blocking|blocks|awaiting|waiting on|waits on|open|todo|not started|in progress|tracked in|tracked by|follow-?up)\b/i;
-
 function scan(doc) {
   const findings = [];
   const text = fs.readFileSync(path.join(ROOT, doc), 'utf8');
@@ -426,15 +427,7 @@ function scan(doc) {
   const issueRefs = [];
   lines.forEach((l, idx) => {
     const plain = isHtml ? decodeEntities(l.replace(/<[^>]+>/g, ' ')) : l;
-    if (!STATUS_WORDS.test(plain)) return;
-    const nums = new Set();
-    // Docs also number their own lists (invariant #7, contradiction #8), so a bare #N is not
-    // an issue. It is one only after an issue word, or as a link to this repo's issues.
-    const listed = /\b(?:issues?|PRs?|pull requests?|tracked (?:in|by)|blocked (?:on|by)|waiting on|waits on|depends on)\s+((?:#\d{1,5}\b(?:\s*(?:,|and|&|\/|or)\s*)?)+)/gi;
-    for (const m of plain.matchAll(listed)) for (const n of m[1].matchAll(/#(\d+)/g)) nums.add(Number(n[1]));
-    const own = new RegExp(`github\\.com/${escapeRe(REPO)}/(?:issues|pull)/(\\d+)`, 'g');
-    for (const m of plain.matchAll(own)) nums.add(Number(m[1]));
-    for (const n of nums) issueRefs.push({ n, line: idx + 1 });
+    for (const n of issueRefsOf(plain, REPO)) issueRefs.push({ n, line: idx + 1 });
   });
   return { findings, issueRefs };
 }
@@ -473,12 +466,31 @@ if (issueRefs.length && token && process.env.CI) {
   }
 }
 
+// GitHub draws the anchors of an issue or PR page (#issuecomment-…, #discussion_r…) with
+// JavaScript, so lychee never finds them in the HTML it fetches. Lychee only looks for a fragment
+// once the page itself answered 2xx, so a missing fragment there means the link works: dropped.
+// Any other error on such a URL (a 404, a timeout) is still a finding. A repeat of the same URL is
+// reported as "Error (cached)"; it is dropped only when the first report of that URL was a
+// missing fragment.
+const GH_THREAD_ANCHOR = /^https:\/\/github\.com\/[^/]+\/[^/]+\/(?:issues|pull)\/\d+[^#]*#/;
+const isMissingFragment = (e) => /fragment/i.test(`${e.status?.text ?? ''} ${e.status?.details ?? ''}`);
+const isCached = (e) => /\(cached\)/i.test(e.status?.text ?? '');
+function ghFragmentOnly(errorMap) {
+  const urls = new Set();
+  for (const errs of Object.values(errorMap)) {
+    for (const e of errs) if (GH_THREAD_ANCHOR.test(e.url) && !isCached(e) && isMissingFragment(e)) urls.add(e.url);
+  }
+  return (e) => GH_THREAD_ANCHOR.test(e.url) && (isMissingFragment(e) || (isCached(e) && urls.has(e.url)));
+}
+
 // lychee: relative links and #anchors (and external links in the weekly scan)
 for (const f of opts.lychee) {
   const j = JSON.parse(fs.readFileSync(f, 'utf8'));
+  const skip = ghFragmentOnly(j.error_map ?? {});
   for (const [input, errs] of Object.entries(j.error_map ?? {})) {
     const file = path.isAbsolute(input) ? rel(input) : input.replace(/^\.\//, '');
     for (const e of errs) {
+      if (skip(e)) continue;
       let ref = e.url.startsWith('file://') ? rel(fileURLToPath(e.url.split('#')[0])) + (e.url.includes('#') ? '#' + e.url.split('#').slice(1).join('#') : '') : e.url;
       if (ref === 'error:') ref = `unparseable: ${e.status?.details ?? e.status?.text ?? ''}`.slice(0, 200);
       findings.push({ kind: 'link', file, ref, detail: e.status?.text ?? 'broken', line: e.span?.line });

@@ -9,14 +9,17 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/jackc/pgx/v5"
 )
 
 // ---------------------------------------------------------------------------
 // Fake OrderLifecycle for unit/integration tests.
 // ---------------------------------------------------------------------------
 
-// fakeLifecycle records ConfirmPickup, MarkArrived and CompleteDelivery calls
-// so tests can assert the bridge fires at the right dispatch state transitions.
+// fakeLifecycle records ConfirmPickupTx, MarkArrived and CompleteDelivery
+// calls so tests can assert the bridge fires at the right dispatch state
+// transitions.
 type fakeLifecycle struct {
 	mu            sync.Mutex
 	pickupCalls   []lifecycleCall
@@ -32,7 +35,7 @@ type lifecycleCall struct {
 	riderAccountID string
 }
 
-func (f *fakeLifecycle) ConfirmPickup(_ context.Context, orderID, riderAccountID string) error {
+func (f *fakeLifecycle) ConfirmPickupTx(_ context.Context, _ pgx.Tx, orderID, riderAccountID string) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.pickupCalls = append(f.pickupCalls, lifecycleCall{orderID: orderID, riderAccountID: riderAccountID})
@@ -81,9 +84,12 @@ func (f *fakeLifecycle) deliveries() []lifecycleCall {
 // tests below it runs in CI. Dispatch may move the order forward only from
 // carrying to picked up, at the customer to arrived, and completed to delivered
 // (docs/spec/01-platform.md, "P-14 — Order lifecycle states and transitions").
-// Every assignment state is fed to the bridge: exactly those three call the
-// orders module, once each, for the order and rider given; the rest leave the
-// order alone. A failing call is logged at WARN, never swallowed silently.
+// Picked up moves the order inside the step's own transaction (pickup.go), so
+// it is checked through the step the store runs; the other two go through the
+// bridge after commit. Every assignment state is fed to that bridge: exactly
+// arrived and delivered call the orders module, once each, for the order and
+// rider given; the rest, picked up included, leave the order alone there. A
+// failing call is logged at WARN, never swallowed silently.
 func TestBridgeMovesOrderOnlyOnThreeSteps(t *testing.T) {
 	states := map[string]bool{}
 	for from, tos := range assignmentForward {
@@ -92,8 +98,28 @@ func TestBridgeMovesOrderOnlyOnThreeSteps(t *testing.T) {
 			states[to] = true
 		}
 	}
-	moves := map[string]string{"PICKED_UP": "pickup", "ARRIVED_AT_DROPOFF": "arrival", "DELIVERED": "delivery"}
+	moves := map[string]string{"ARRIVED_AT_DROPOFF": "arrival", "DELIVERED": "delivery"}
 	want := lifecycleCall{orderID: "order-1", riderAccountID: "rider-1"}
+
+	t.Run("picked up moves the order in the step's transaction", func(t *testing.T) {
+		lc := &fakeLifecycle{}
+		step := NewService(nil, lc).pickupStepFor(want.riderAccountID)
+		if step == nil {
+			t.Fatal("pickupStepFor returned nil with an OrderLifecycle wired")
+		}
+		if err := step(context.Background(), nil, want.orderID); err != nil {
+			t.Fatalf("pickup step: %v", err)
+		}
+		if got := lc.pickups(); len(got) != 1 || got[0] != want {
+			t.Errorf("pickup calls = %+v, want one for %+v", got, want)
+		}
+		if len(lc.arrivals())+len(lc.deliveries()) != 0 {
+			t.Errorf("pickup step also called arrival %d / delivery %d times", len(lc.arrivals()), len(lc.deliveries()))
+		}
+		if NewService(nil, nil).pickupStepFor(want.riderAccountID) != nil {
+			t.Error("pickupStepFor with no OrderLifecycle wired is not nil")
+		}
+	})
 
 	for st := range states {
 		t.Run(st, func(t *testing.T) {
@@ -132,7 +158,7 @@ func TestBridgeMovesOrderOnlyOnThreeSteps(t *testing.T) {
 
 // ---------------------------------------------------------------------------
 // TestLifecycleConfirmPickupCalled asserts that transitioning an assignment to
-// PICKED_UP calls lifecycle.ConfirmPickup with the correct orderID and riderID.
+// PICKED_UP calls lifecycle.ConfirmPickupTx with the correct orderID and riderID.
 // ---------------------------------------------------------------------------
 
 func TestLifecycleConfirmPickupCalled(t *testing.T) {
@@ -163,9 +189,9 @@ func TestLifecycleConfirmPickupCalled(t *testing.T) {
 		}
 	}
 
-	// Verify ConfirmPickup has NOT been called yet.
+	// Verify ConfirmPickupTx has NOT been called yet.
 	if len(lc.pickups()) != 0 {
-		t.Fatalf("ConfirmPickup called too early: %d calls before PICKED_UP", len(lc.pickups()))
+		t.Fatalf("ConfirmPickupTx called too early: %d calls before PICKED_UP", len(lc.pickups()))
 	}
 
 	// Transition to PICKED_UP.
@@ -177,16 +203,16 @@ func TestLifecycleConfirmPickupCalled(t *testing.T) {
 		t.Fatalf("Transition to PICKED_UP: %v", err)
 	}
 
-	// Assert ConfirmPickup was called exactly once with the right IDs.
+	// Assert ConfirmPickupTx was called exactly once with the right IDs.
 	calls := lc.pickups()
 	if len(calls) != 1 {
-		t.Fatalf("expected 1 ConfirmPickup call, got %d", len(calls))
+		t.Fatalf("expected 1 ConfirmPickupTx call, got %d", len(calls))
 	}
 	if calls[0].orderID != orderID {
-		t.Errorf("ConfirmPickup orderID = %q, want %q", calls[0].orderID, orderID)
+		t.Errorf("ConfirmPickupTx orderID = %q, want %q", calls[0].orderID, orderID)
 	}
 	if calls[0].riderAccountID != o.riderAccountID {
-		t.Errorf("ConfirmPickup riderAccountID = %q, want %q", calls[0].riderAccountID, o.riderAccountID)
+		t.Errorf("ConfirmPickupTx riderAccountID = %q, want %q", calls[0].riderAccountID, o.riderAccountID)
 	}
 	// CompleteDelivery must not have been called.
 	if len(lc.deliveries()) != 0 {
@@ -276,10 +302,10 @@ func TestLifecycleCompleteDeliveryCalled(t *testing.T) {
 		t.Errorf("CompleteDelivery riderAccountID = %q, want %q", dcalls[0].riderAccountID, o.riderAccountID)
 	}
 
-	// ConfirmPickup should have been called once (PICKED_UP transition above).
+	// ConfirmPickupTx should have been called once (PICKED_UP transition above).
 	pcalls := lc.pickups()
 	if len(pcalls) != 1 {
-		t.Errorf("expected 1 ConfirmPickup call (from PICKED_UP step), got %d", len(pcalls))
+		t.Errorf("expected 1 ConfirmPickupTx call (from PICKED_UP step), got %d", len(pcalls))
 	}
 }
 
@@ -315,14 +341,18 @@ func TestLifecycleNilSafe(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// TestLifecycleErrorDoesNotRollback asserts that a lifecycle error after the
-// dispatch commit does not roll back the dispatch assignment state.
+// TestPickupRefusedWhenTheOrderCannotMove asserts the other half of the
+// in-transaction pickup (pickup.go; https://github.com/shaiknoorullah/hg-mono/issues/317):
+// when the orders module refuses to move the order, the rider's PICKED_UP is
+// refused too. It answers 409 INVALID_TRANSITION, and the assignment stays at
+// the counter with no PICKED_UP row. Before, the assignment committed and the
+// refusal was only logged.
 // ---------------------------------------------------------------------------
 
-func TestLifecycleErrorDoesNotRollback(t *testing.T) {
+func TestPickupRefusedWhenTheOrderCannotMove(t *testing.T) {
 	pool := openPool(t)
 	store := NewStore(pool)
-	lc := &fakeLifecycle{pickupErr: errors.New("orders module unavailable (simulated)")}
+	lc := &fakeLifecycle{pickupErr: &OrderNotCollectableError{OrderState: "CANCELLED"}}
 	svc := NewService(store, lc)
 
 	_, offers := seedFixture(t, pool, 1)
@@ -344,32 +374,29 @@ func TestLifecycleErrorDoesNotRollback(t *testing.T) {
 		}
 	}
 
-	// Transition to PICKED_UP — lifecycle will return an error.
-	asn, err := svc.Transition(context.Background(), o.riderAccountID, assignmentID, TransitionInput{
+	_, err = svc.Transition(context.Background(), o.riderAccountID, assignmentID, TransitionInput{
 		ToState:    "PICKED_UP",
 		OccurredAt: time.Now().UTC(),
 	})
-	// The Transition call itself must succeed — only the lifecycle bridge errors.
-	if err != nil {
-		t.Fatalf("Transition to PICKED_UP must succeed even when lifecycle errors: %v", err)
+	se, ok := asServiceError(err)
+	if !ok || se.Status != 409 || se.Code != CodeInvalidTransition {
+		t.Fatalf("PICKED_UP of an order that cannot move: err = %v, want 409 %s", err, CodeInvalidTransition)
 	}
-	if asn.State != "PICKED_UP" {
-		t.Errorf("assignment state = %q, want PICKED_UP", asn.State)
+	if d, _ := se.Details.(map[string]any); d["current_state"] != "ARRIVED_AT_PICKUP" {
+		t.Errorf("details = %v, want current_state ARRIVED_AT_PICKUP", se.Details)
 	}
 
-	// Confirm the dispatch assignment row is committed in Postgres.
 	var dbState string
-	if err := pool.QueryRow(context.Background(),
-		`SELECT state::text FROM assignment WHERE id=$1`, assignmentID).Scan(&dbState); err != nil {
-		t.Fatalf("read assignment state: %v", err)
+	var pickedRows int
+	mustQuery(t, pool, `SELECT state::text FROM assignment WHERE id=$1`, &dbState, assignmentID)
+	mustQuery(t, pool, `SELECT count(*) FROM assignment_transition WHERE assignment_id=$1 AND to_state='PICKED_UP'`,
+		&pickedRows, assignmentID)
+	if dbState != "ARRIVED_AT_PICKUP" || pickedRows != 0 {
+		t.Errorf("assignment = %s with %d PICKED_UP row(s), want ARRIVED_AT_PICKUP with none (the refusal must roll the step back)",
+			dbState, pickedRows)
 	}
-	if dbState != "PICKED_UP" {
-		t.Errorf("DB assignment state = %q, want PICKED_UP after lifecycle error", dbState)
-	}
-
-	// The lifecycle error was swallowed but ConfirmPickup was attempted.
 	if len(lc.pickups()) != 1 {
-		t.Errorf("expected 1 ConfirmPickup attempt, got %d", len(lc.pickups()))
+		t.Errorf("expected 1 ConfirmPickupTx attempt, got %d", len(lc.pickups()))
 	}
 }
 

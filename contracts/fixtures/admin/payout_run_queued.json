@@ -1,0 +1,43 @@
+{
+  "scenario": "payout_run_queued",
+  "domain": "admin",
+  "schema": "PayoutRun",
+  "describes": "An admin asked to run the payout now; the worker picks it up within seconds.",
+  "operations": [
+    "createPayoutRun"
+  ],
+  "status": 202,
+  "tags": [
+    "payout-run-state-matrix",
+    "admin",
+    "money"
+  ],
+  "payload": {
+    "id": "073adf99-1b13-4a00-a1f7-025996179fe1",
+    "kind": "ADMIN",
+    "state": "QUEUED",
+    "payee": {
+      "type": "RIDER",
+      "id": "8234e39d-e539-4f42-a652-5c0fa0ddb9de"
+    },
+    "period_start": "2026-08-03T04:00:00.000Z",
+    "period_end": "2026-08-10T04:00:00.000Z",
+    "as_of": "2026-08-10T18:42:11.412Z",
+    "due_at": "2026-08-10T18:42:11.412Z",
+    "requested_by": "58d7d797-f882-4b9d-a16b-0b50a08d36a5",
+    "reason": "Riders asked to be paid before the long weekend.",
+    "started_at": null,
+    "finished_at": null,
+    "attempts": 0,
+    "partners": 0,
+    "paid": 0,
+    "held": 0,
+    "released": 0,
+    "carried": 0,
+    "failed": 0,
+    "paid_cents": 0,
+    "held_cents": 0,
+    "error": null,
+    "created_at": "2026-08-10T18:42:11.412Z"
+  }
+}

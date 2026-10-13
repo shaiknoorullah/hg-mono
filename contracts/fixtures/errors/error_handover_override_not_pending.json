@@ -1,0 +1,28 @@
+{
+  "scenario": "error_handover_override_not_pending",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`409` · `ILLEGAL_TRANSITION`. `overrideHandoverCode` for a handover that already happened (here a `DELIVERY` override on a delivered order). Nothing is written and no audit record is created.",
+  "operations": [
+    "overrideHandoverCode"
+  ],
+  "status": 409,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "ILLEGAL_TRANSITION",
+      "message": "This order is not waiting on that handover.",
+      "request_id": "Y6A9V697BJZR1M9JGWSAM7SQ0N",
+      "details": {
+        "from": "DELIVERED",
+        "to": "DELIVERED",
+        "allowed": [
+          "COMPLETED",
+          "DISPUTED"
+        ]
+      }
+    }
+  }
+}

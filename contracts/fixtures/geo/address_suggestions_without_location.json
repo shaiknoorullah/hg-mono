@@ -1,0 +1,37 @@
+{
+  "scenario": "address_suggestions_without_location",
+  "domain": "geo",
+  "schema": "array<AddressSuggestion>",
+  "describes": "Location permission denied and no location sent: results are ranked towards the default address or `default_map_center`, and `distance_m` is null on every row. A denied permission never blocks the address form.",
+  "operations": [
+    "suggestAddresses"
+  ],
+  "status": 200,
+  "tags": [
+    "geo",
+    "degraded"
+  ],
+  "payload": [
+    {
+      "place_id": "dXJuOmhnOnBsYWNlOjItYmxvb3Itc3RyZWV0LXdlc3Q",
+      "kind": "ADDRESS",
+      "title": "2 Bloor Street West",
+      "subtitle": "Toronto, Ontario M4W 3E2",
+      "distance_m": null
+    },
+    {
+      "place_id": "dXJuOmhnOnBsYWNlOjItYmxvb3Itc3RyZWV0LWVhc3Q",
+      "kind": "ADDRESS",
+      "title": "2 Bloor Street East",
+      "subtitle": "Toronto, Ontario M4W 1A8",
+      "distance_m": null
+    },
+    {
+      "place_id": "dXJuOmhnOnBsYWNlOmJsb29yLXN0cmVldC13ZXN0",
+      "kind": "STREET",
+      "title": "Bloor Street West",
+      "subtitle": "Toronto, Ontario",
+      "distance_m": null
+    }
+  ]
+}

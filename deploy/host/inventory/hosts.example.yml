@@ -1,0 +1,43 @@
+# Copied to inventory/hosts.yml by provision.sh, which fills in the __PLACEHOLDERS__.
+# hosts.yml stays on the owner's machine (gitignored): it names addresses and keys.
+all:
+  children:
+    hg_servers:
+      children:
+        prod:
+          hosts:
+            hg-prod:
+              # The public IPv4 address Contabo gives the server. provision.sh connects here
+              # until the WireGuard tunnel works, then over hg_wg_address.
+              hg_public_ipv4: __PUBLIC_IP__
+              hg_wg_address: 10.66.0.1
+              ansible_host: 10.66.0.1
+              # Plan port speed, for the "traffic near the port's limit" alert. Cloud VPS 6.
+              hg_port_mbit: 300
+        # Next month (#210): the warm standby. Add it here, then run standby.yml.
+        standby:
+          hosts: {}
+          #  hg-standby:
+          #    hg_public_ipv4: <standby public IPv4>
+          #    hg_wg_address: 10.66.0.2
+          #    ansible_host: 10.66.0.2
+          #    hg_port_mbit: 300
+    # The owner's always-on machine that pulls the off-server backup copy (#64).
+    offline:
+      hosts:
+        owner-backup:
+          ansible_host: 10.66.0.11
+          ansible_user: __OWNER_BACKUP_USER__
+  vars:
+    ansible_user: hg
+    hg_admin_ssh_keys:
+      - "__ADMIN_SSH_PUBLIC_KEY__"
+    # WireGuard peers of the server. Only public keys here.
+    hg_wg_peers:
+      - name: owner-laptop
+        public_key: "__LAPTOP_WG_PUBLIC_KEY__"
+        address: 10.66.0.10
+      # - name: owner-backup
+      #   public_key: "<the backup machine's WireGuard public key>"
+      #   address: 10.66.0.11
+    hg_alert_email_to: "__ALERT_EMAIL__"

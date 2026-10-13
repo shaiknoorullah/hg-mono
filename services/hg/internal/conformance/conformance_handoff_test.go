@@ -29,6 +29,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -105,7 +106,8 @@ type handoffFixture struct {
 	customerID        string
 	orderID           string
 	sealCode          string
-	podPhotoObjectID  string
+	podPhotoObjectID  string // the rider's photo
+	tamperPhotoID     string // the customer's photo
 }
 
 func seedHandoffFixture(t *testing.T, pool *pgxpool.Pool) handoffFixture {
@@ -177,6 +179,15 @@ func seedHandoffFixture(t *testing.T, pool *pgxpool.Pool) handoffFixture {
 		VALUES ('hg-pod', 'handoff-test/'||uuid_generate_v7(), 'POD', $1, $2,
 		        'image/jpeg', 12345, sha256('handoff-photo'::bytea), 'READY', $1, now())
 		RETURNING id`, &f.podPhotoObjectID, f.riderID, f.orderID)
+	// The customer's own photo of the package, for the tamper report: evidence
+	// is attached by the account that uploaded it, never borrowed from the
+	// rider (https://github.com/shaiknoorullah/hg-mono/issues/359).
+	mustScan(t, pool, `
+		INSERT INTO stored_object (bucket, object_key, purpose, owner_account_id, order_id,
+		                           content_type, byte_size, sha256, state, uploaded_by, confirmed_at)
+		VALUES ('hg-pod', 'handoff-test/'||uuid_generate_v7(), 'POD', $1, $2,
+		        'image/jpeg', 23456, sha256('handoff-tamper-photo'::bytea), 'READY', $1, now())
+		RETURNING id`, &f.tamperPhotoID, f.customerID, f.orderID)
 
 	t.Cleanup(func() {
 		bg := context.Background()
@@ -312,12 +323,36 @@ func TestConformance_Handoff(t *testing.T) {
 	// Never auto-fails: this is the customer opening the dispute flow, not a
 	// money decision made here.
 	t.Run("reportTamper", func(t *testing.T) {
+		// The rider's photo is not the customer's to attach: the same 422 as a
+		// missing photo, and the order is not disputed
+		// (https://github.com/shaiknoorullah/hg-mono/issues/359).
+		_, borrowed := h.Do(t, Request{
+			Method: "POST", Path: "/v1/orders/" + f.orderID + "/handoff/tamper-report",
+			AccountID: f.customerID, Roles: []string{"CUSTOMER"},
+			IdemKey: "handoff-tamper-borrowed-001",
+			Body: map[string]any{
+				"photo_object_id": f.podPhotoObjectID,
+				"note":            "The seal was broken when the package arrived.",
+			},
+		})
+		borrowedBody, _ := io.ReadAll(borrowed.Body)
+		borrowed.Body.Close()
+		if borrowed.StatusCode != http.StatusUnprocessableEntity || !strings.Contains(string(borrowedBody), "POD_REQUIRED") {
+			t.Errorf("reportTamper with the rider's photo: status = %d, want 422 POD_REQUIRED (body: %s)",
+				borrowed.StatusCode, truncate(string(borrowedBody), 400))
+		}
+		var stateAfterBorrowed string
+		mustScan(t, pool, `SELECT state::text FROM "order" WHERE id=$1`, &stateAfterBorrowed, f.orderID)
+		if stateAfterBorrowed != "DELIVERED" {
+			t.Fatalf("reportTamper with the rider's photo moved the order to %s", stateAfterBorrowed)
+		}
+
 		rq := Request{
 			Method: "POST", Path: "/v1/orders/" + f.orderID + "/handoff/tamper-report",
 			AccountID: f.customerID, Roles: []string{"CUSTOMER"},
 			IdemKey: "handoff-tamper-0000000001",
 			Body: map[string]any{
-				"photo_object_id": f.podPhotoObjectID,
+				"photo_object_id": f.tamperPhotoID,
 				"note":            "The seal was broken when the package arrived.",
 			},
 		}

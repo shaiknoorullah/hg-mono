@@ -1,0 +1,3 @@
+# node-exporter listens on the WireGuard address: VictoriaMetrics reaches it from its
+# container through the host, and the standby's from prod over the tunnel.
+hg_node_exporter_listen: "{{ hg_wg_address }}:9100"

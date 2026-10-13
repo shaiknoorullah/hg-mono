@@ -1,0 +1,2 @@
+# Addresses fail2ban never bans (the owner's, if fixed).
+hg_fail2ban_ignoreip: []

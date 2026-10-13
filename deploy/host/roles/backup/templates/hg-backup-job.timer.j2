@@ -1,0 +1,12 @@
+# Managed by Ansible (deploy/host/roles/backup).
+[Unit]
+Description=HalalGoes backup job {{ hg_timer_job }}
+
+[Timer]
+OnCalendar={{ hg_timer_when }}
+Persistent=true
+RandomizedDelaySec=60
+Unit=hg-backup@{{ hg_timer_job }}.service
+
+[Install]
+WantedBy=timers.target

@@ -107,6 +107,14 @@ var table = []Transition{
 	{From: StateDisputed, To: StateResolved, Actors: []ActorKind{ActorSupport, ActorAdmin, ActorSystem}, Action: ActionResolveDispute, MoneyFX: "refund + adjustment batch"}, // T20
 	{From: StatePreparing, To: StateDisputed, Actors: []ActorKind{ActorRestaurant}, Action: ActionOpenDispute, MoneyFX: "none yet"},                                          // T21
 	{From: StateReadyForPickup, To: StateDisputed, Actors: []ActorKind{ActorRestaurant}, Action: ActionOpenDispute, MoneyFX: "none yet"},                                     // T21
+	// Staff may cancel an order before the restaurant accepts it, recorded as
+	// ADMIN; these rows add that actor to the three cancel rows above that
+	// leave CREATED, AUTHORIZED and RESTAURANT_PENDING (docs/spec/05-admin.md,
+	// "A-38 — Order lookup and admin order intervention";
+	// https://github.com/shaiknoorullah/hg-mono/issues/337).
+	{From: StateCreated, To: StateCancelled, Actors: []ActorKind{ActorAdmin}, Action: ActionCancelSupport, MoneyFX: "PI cancelled"},
+	{From: StateAuthorized, To: StateCancelled, Actors: []ActorKind{ActorAdmin}, Action: ActionCancelSupport, MoneyFX: "auth voided"},
+	{From: StateRestaurantPending, To: StateCancelled, Actors: []ActorKind{ActorAdmin}, Action: ActionCancelSupport, MoneyFX: "auth voided"},
 }
 
 // P-05 action strings owned by this module. They are the authz.Action values a

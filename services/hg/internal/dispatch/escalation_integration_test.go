@@ -62,9 +62,9 @@ func TestEscalation_ExpireFindHardStop(t *testing.T) {
 		t.Fatalf("%d offers still PENDING after expire", pending)
 	}
 
-	due, err := store.FindWavesToEscalate(ctx, time.Now(), interWaveGap)
+	due, err := store.ClaimWavesToEscalate(ctx, time.Now(), interWaveGap, "test")
 	if err != nil {
-		t.Fatalf("FindWavesToEscalate: %v", err)
+		t.Fatalf("ClaimWavesToEscalate: %v", err)
 	}
 	var got *waveToEscalate
 	for i := range due {

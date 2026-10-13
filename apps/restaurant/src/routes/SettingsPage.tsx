@@ -6,6 +6,8 @@ import { useAsync } from '../lib/useAsync';
 import { PageLoading } from '../components/PageLoading';
 import { StatusChip } from '../components/StatusChip';
 import { IconSettings } from '../lib/icons';
+import { AddressSearch } from '../components/AddressSearch';
+import { applyPick, type GeocodeResult } from '../lib/geocode';
 
 const PROVINCES: Schema['Province'][] = ['ON', 'AB', 'BC', 'MB', 'NB', 'NL', 'NS', 'NT', 'NU', 'PE', 'QC', 'SK', 'YT'];
 const PROVINCE_OPTIONS = PROVINCES.map((p) => ({ value: p, label: p }));
@@ -58,12 +60,18 @@ function toForm(profile: Schema['RestaurantProfile']): FormShape {
 
 function ProfileForm({ profile, onSaved }: { profile: Schema['RestaurantProfile']; onSaved: (next: Schema['RestaurantProfile']) => void }) {
   const [form, setForm] = useState<FormShape>(toForm(profile));
+  const [point, setPoint] = useState<{ latitude: number; longitude: number } | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savedFlash, setSavedFlash] = useState(false);
 
   function set<K extends keyof FormShape>(key: K, value: FormShape[K]) {
     setForm((f) => ({ ...f, [key]: value }));
+  }
+
+  function onPick(r: GeocodeResult) {
+    setForm((f) => applyPick(f, r));
+    setPoint({ latitude: r.latitude, longitude: r.longitude });
   }
 
   async function onSubmit(e: FormEvent) {
@@ -88,11 +96,9 @@ function ProfileForm({ profile, onSaved }: { profile: Schema['RestaurantProfile'
             city: form.city,
             province: form.province,
             postal_code: form.postal_code,
-            // The reference map picker is out of scope here (see ProfileStep.tsx's identical
-            // note) — coordinates and timezone are carried forward unchanged rather than
-            // re-derived, since this screen edits an *already-anchored* listing.
-            latitude: profile.address.latitude,
-            longitude: profile.address.longitude,
+            // A picked search result replaces the point; otherwise the stored one is kept.
+            latitude: point?.latitude ?? profile.address.latitude,
+            longitude: point?.longitude ?? profile.address.longitude,
             timezone: profile.timezone,
             cuisine_ids: profile.cuisine_ids ?? [],
             avg_prep_minutes: form.avg_prep_minutes,
@@ -160,6 +166,9 @@ function ProfileForm({ profile, onSaved }: { profile: Schema['RestaurantProfile'
         </div>
         <div className="sm:col-span-2">
           <Textarea label="Description" required minLength={20} maxLength={1000} rows={3} value={form.description} onChange={(v) => set('description', v)} />
+        </div>
+        <div className="sm:col-span-2">
+          <AddressSearch confirmed={point !== null} onPick={onPick} />
         </div>
         <div className="sm:col-span-2">
           <Input label="Street address" required value={form.line1} onChange={(v) => set('line1', v)} />

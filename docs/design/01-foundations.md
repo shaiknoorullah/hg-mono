@@ -7,7 +7,7 @@ covers:
   - packages/ui-web/src/styles/**
   - packages/ui-web/src/lint/**
   - packages/ui-native/src/lint/**
-reviewed: 2026-10-04
+reviewed: 2026-10-05
 ---
 
 # HalalGoes — Design Foundations (token system)
@@ -413,6 +413,8 @@ tokens.json  (W3C DTCG, single source)
         ├─ packages/tokens/tokens.ts              → typed TS object for RN StyleSheet + tests
         └─ packages/tokens/tokens.d.ts            → literal union types for token names
 ```
+
+On the web, `packages/ui-web/scripts/generate-tokens.mjs` writes the generated files into `packages/ui-web/src/tokens/`. One of them is `grid-theme.css` (`@hg/ui-web/grid-theme.css`): the theme for LyteNyte Grid, the data-table library the admin console uses. It points every `--ln-*` variable LyteNyte's `grid.css` reads at a role, never a ramp step or a hex, so the grid follows light and dark like everything else. LyteNyte's own themes are never loaded. The generator stops if the theme names a custom property `tokens.css` does not declare ([#145](https://github.com/shaiknoorullah/hg-mono/issues/145), [the LyteNyte theming notes](research/lytenyte-tables.md#8-theming-our-tokens-on-lytenyte)).
 
 **Lint rules.** All seven are specified to block CI. **Only rule 4, no green solids, is implemented today** (Sep 2026). The other six are specification only; the contrast checker that rule 6 needs (`contrast.check.mjs`) does not exist yet.
 

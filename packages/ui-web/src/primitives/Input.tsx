@@ -1,9 +1,13 @@
 import {
   forwardRef,
   useId,
+  useRef,
+  useState,
   type InputHTMLAttributes,
   type ReactNode,
   type ChangeEvent,
+  type ClipboardEvent,
+  type KeyboardEvent,
 } from 'react';
 import { AlertCircle, Check } from 'lucide-react';
 import { cx } from './utils/cx.js';
@@ -17,7 +21,9 @@ import { Spinner } from './Spinner.js';
  * the type below makes it impossible to omit the label.
  *
  * States (all implemented): default (border.interactive 1px) · hover
- * (border.strong) · focus-visible (2px border.brand + two-layer ring) ·
+ * (border.strong) · focus-visible (the field's own border turns 2px in the
+ * focus colour, no ring; an invalid field keeps its danger border and gets the
+ * two-layer ring instead — docs/decisions/focus-indicator.md) ·
  * active/pressed n/a for a text field, stated explicitly · disabled
  * (surface.subtle fill + disabledOpacity) · loading (trailing spinner, field
  * stays editable unless readOnly) · error (2px danger border, errorText below
@@ -86,6 +92,186 @@ const SIZE: Record<'md' | 'lg', string> = {
   md: 'h-11 text-body-md',
   lg: 'h-13 text-body-lg',
 };
+
+/**
+ * The one-time-code field: `length` real one-digit boxes. Every box is its own
+ * <input>, so a digit can only ever sit in the box it was typed into (the old
+ * single input with letter-spacing drew digits across cells it did not own).
+ *
+ * Typing fills the box and advances · paste / OS one-time-code autofill spreads
+ * across the boxes · Backspace clears (and steps back from an empty box) ·
+ * arrows move · anything but 0-9 is dropped. A hidden input carries the joined
+ * digits, so a <form> submits one value under `name`.
+ */
+function OtpBoxes({
+  id,
+  length,
+  value,
+  onChange,
+  name,
+  label,
+  invalid,
+  disabled,
+  readOnly,
+  required,
+  describedBy,
+  size,
+  autoFocus,
+}: {
+  id: string;
+  length: number;
+  value: string;
+  onChange?: (value: string, event: ChangeEvent<HTMLInputElement>) => void;
+  name?: string;
+  label: string;
+  invalid: boolean;
+  disabled: boolean;
+  readOnly: boolean;
+  required: boolean;
+  describedBy?: string;
+  size: 'md' | 'lg';
+  autoFocus?: boolean;
+}) {
+  const refs = useRef<(HTMLInputElement | null)[]>([]);
+  const [cells, setCells] = useState<string[]>(() =>
+    Array.from({ length }, (_, i) => value[i] ?? ''),
+  );
+  // Controlled from outside (reset, restore): adopt the prop when it differs.
+  const joined = cells.join('');
+  if (value !== joined && /^\d*$/.test(value)) {
+    setCells(Array.from({ length }, (_, i) => value[i] ?? ''));
+  }
+
+  const focusBox = (i: number) => {
+    const el = refs.current[Math.max(0, Math.min(length - 1, i))];
+    el?.focus();
+    el?.select();
+  };
+
+  const commit = (next: string[], event: ChangeEvent<HTMLInputElement>) => {
+    setCells(next);
+    onChange?.(next.join(''), event);
+  };
+
+  /** Write `digits` into the boxes from `start`, then focus the next empty one. */
+  const spread = (digits: string, start: number, event: ChangeEvent<HTMLInputElement>) => {
+    const from = digits.length >= length ? 0 : start;
+    const next = [...cells];
+    let last = from;
+    for (let k = 0; k < digits.length && from + k < length; k++) {
+      next[from + k] = digits[k] as string;
+      last = from + k;
+    }
+    commit(next, event);
+    focusBox(last + 1);
+  };
+
+  const handleChange = (i: number) => (event: ChangeEvent<HTMLInputElement>) => {
+    const digits = event.target.value.replace(/\D/g, '');
+    if (digits === '') {
+      const next = [...cells];
+      next[i] = '';
+      commit(next, event);
+      return;
+    }
+    // A box that already held a digit now holds two: keep the newly typed one.
+    if (digits.length === 2 && cells[i] !== '' && length > 1) {
+      const typed = digits[0] === cells[i] ? digits[1] : digits[0];
+      spread(typed as string, i, event);
+      return;
+    }
+    spread(digits, i, event);
+  };
+
+  const handlePaste = (i: number) => (event: ClipboardEvent<HTMLInputElement>) => {
+    event.preventDefault();
+    const digits = event.clipboardData.getData('text').replace(/\D/g, '').slice(0, length);
+    if (digits === '') return;
+    const from = digits.length >= length ? 0 : i;
+    const next = [...cells];
+    for (let k = 0; k < digits.length && from + k < length; k++) {
+      next[from + k] = digits[k] as string;
+    }
+    setCells(next);
+    // No ChangeEvent exists for a paste; hand the caller the target's own event shape.
+    onChange?.(next.join(''), event as unknown as ChangeEvent<HTMLInputElement>);
+    focusBox(Math.min(from + digits.length, length - 1));
+  };
+
+  const handleKeyDown = (i: number) => (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Backspace') {
+      event.preventDefault();
+      const target = cells[i] !== '' ? i : i - 1;
+      if (target >= 0) {
+        const next = [...cells];
+        next[target] = '';
+        setCells(next);
+        onChange?.(next.join(''), event as unknown as ChangeEvent<HTMLInputElement>);
+        focusBox(target);
+      }
+    } else if (event.key === 'ArrowLeft') {
+      event.preventDefault();
+      focusBox(i - 1);
+    } else if (event.key === 'ArrowRight') {
+      event.preventDefault();
+      focusBox(i + 1);
+    } else if (event.key === 'Home') {
+      event.preventDefault();
+      focusBox(0);
+    } else if (event.key === 'End') {
+      event.preventDefault();
+      focusBox(length - 1);
+    }
+  };
+
+  return (
+    <div role="group" aria-labelledby={`${id}-label`} className="flex w-full gap-2">
+      {name ? <input type="hidden" name={name} value={cells.join('')} /> : null}
+      {cells.map((digit, i) => (
+        <div
+          key={i}
+          data-hg-otp-cell={i}
+          data-hg-state={invalid ? 'error' : disabled ? 'disabled' : 'default'}
+          className={cx(
+            'flex min-w-0 flex-1 items-center justify-center rounded-sm px-0',
+            'bg-control-bg text-fg-primary border transition-colors duration-[var(--hg-duration-fast)] ease-standard',
+            SIZE[size],
+            HG_FOCUS_FIELD,
+            invalid
+              ? 'border-2 border-feedback-danger-border'
+              : 'border-line-interactive hover:border-line-strong',
+            disabled && 'cursor-not-allowed bg-surface-subtle opacity-(--hg-state-disabled-opacity)',
+          )}
+        >
+          <input
+            ref={(el) => {
+              refs.current[i] = el;
+            }}
+            id={i === 0 ? id : `${id}-${i}`}
+            type="text"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            aria-label={`${label}, digit ${i + 1} of ${length}`}
+            aria-invalid={invalid || undefined}
+            aria-describedby={describedBy}
+            data-testid="hg-input"
+            data-variant="otp"
+            value={digit}
+            onChange={handleChange(i)}
+            onPaste={handlePaste(i)}
+            onKeyDown={handleKeyDown(i)}
+            onFocus={(e) => e.currentTarget.select()}
+            disabled={disabled}
+            readOnly={readOnly}
+            required={required}
+            autoFocus={autoFocus && i === 0}
+            className="h-full w-full min-w-0 bg-transparent text-center font-mono outline-none disabled:cursor-not-allowed"
+          />
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
   {
@@ -163,7 +349,6 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
         'w-full bg-transparent outline-none',
         'text-fg-primary placeholder:text-fg-placeholder',
         'disabled:cursor-not-allowed',
-        otp && 'text-center font-mono tracking-[0.75em] caret-transparent',
       )}
       {...rest}
     />
@@ -175,6 +360,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
       data-testid="hg-input-field"
     >
       <label
+        id={`${id}-label`}
         htmlFor={id}
         className={cx(
           'text-label-md text-fg-secondary',
@@ -190,6 +376,23 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
         ) : null}
       </label>
 
+      {otp ? (
+        <OtpBoxes
+          id={id}
+          length={limit ?? OTP_LENGTH}
+          value={typeof value === 'string' ? value : ''}
+          onChange={onChange}
+          name={rest.name}
+          label={label}
+          invalid={invalid}
+          disabled={disabled}
+          readOnly={readOnly}
+          required={required}
+          describedBy={describedBy}
+          size={size}
+          autoFocus={rest.autoFocus}
+        />
+      ) : (
       <div
         data-hg-state={
           invalid ? 'error' : disabled ? 'disabled' : loading ? 'loading' : 'default'
@@ -213,22 +416,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
           </span>
         ) : null}
 
-        {otp ? (
-          <span className="relative flex w-full items-center">
-            {field}
-            <span aria-hidden="true" className="pointer-events-none absolute inset-0 flex gap-2">
-              {Array.from({ length: limit ?? OTP_LENGTH }, (_, i) => (
-                <span
-                  key={i}
-                  data-hg-otp-cell={i}
-                  className="flex-1 rounded-xs border border-line-interactive"
-                />
-              ))}
-            </span>
-          </span>
-        ) : (
-          field
-        )}
+        {field}
 
         {loading ? <Spinner size="sm" decorative /> : null}
         {invalid ? (
@@ -247,6 +435,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
           </span>
         ) : null}
       </div>
+      )}
 
       {helperText && !invalid ? (
         <p id={helperId} className="text-body-sm text-fg-tertiary">

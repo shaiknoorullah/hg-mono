@@ -2,7 +2,7 @@
   "scenario": "handoff_scan_pickup",
   "domain": "handoff",
   "schema": "HandoffScanResult",
-  "describes": "scanPickup's 200: the proof and its effect together — the order has already advanced to PICKED_UP.",
+  "describes": "scanPickup's 200 (later version): the scan recorded as custody evidence. `order_state` is the order's current state; the rider already confirmed pickup with the pickup code, and the scan changed nothing.",
   "operations": [
     "scanPickup"
   ],

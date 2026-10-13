@@ -4,6 +4,8 @@ import (
 	"context"
 
 	"github.com/jackc/pgx/v5"
+
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/realtime"
 )
 
 // onboardingRank orders the automatic post-approval band. RecomputeOnboarding
@@ -75,10 +77,14 @@ SELECT r.onboarding_state::text,
 			`, updated_at = now() WHERE id = $1`, restaurantID, target); err != nil {
 		return err
 	}
-	_, err := tx.Exec(ctx, `
+	if _, err := tx.Exec(ctx, `
 INSERT INTO restaurant_onboarding_transition
   (restaurant_id, from_state, to_state, actor_kind, reason)
 VALUES ($1, $2::restaurant_onboarding_state, $3::restaurant_onboarding_state, 'SYSTEM', 'auto-advance')`,
-		restaurantID, cur, target)
-	return err
+		restaurantID, cur, target); err != nil {
+		return err
+	}
+	// The owners and managers see the step on their account channels: it is
+	// made by a gate (Stripe, a menu approval), not by them.
+	return realtime.EmitOnboardingChanged(ctx, tx, realtime.OnboardingRestaurant, restaurantID, cur, target)
 }

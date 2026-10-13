@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -22,8 +23,10 @@ type Client struct {
 
 // Options configures NewClient. MaxWorkers defaults to 10 when zero.
 type Options struct {
-	Notifier   *Notifier
-	Accounts   AccountLookup // nil is valid: falls back to NoAccountLookup
+	Notifier *Notifier
+	Accounts AccountLookup // nil is valid: falls back to NoAccountLookup
+	// Emails renders the EMAIL channel from the templates in emailtmpl.
+	Emails     *EmailRenderer
 	Log        *slog.Logger
 	MaxWorkers int
 }
@@ -51,11 +54,18 @@ func NewClient(pool *pgxpool.Pool, opts Options) (*Client, error) {
 		Repo:     repo,
 		Notifier: opts.Notifier,
 		Accounts: opts.Accounts,
+		Emails:   opts.Emails,
 		Log:      log,
 	})
 
 	riverClient, err := river.NewClient(riverpgxv5.New(pool), &river.Config{
-		Logger: log,
+		// A delivery job's arguments can hold a single-use link token or a
+		// sign-in code (ChannelOverride), so a finished job is deleted after
+		// an hour rather than River's default day. Encrypting them is issue
+		// #330.
+		CompletedJobRetentionPeriod: time.Hour,
+		CancelledJobRetentionPeriod: time.Hour,
+		Logger:                      log,
 		Queues: map[string]river.QueueConfig{
 			QueueDefault: {MaxWorkers: opts.MaxWorkers},
 		},

@@ -6,12 +6,13 @@ import (
 	"time"
 )
 
-// Close reasons sent with 1013 (try again later). Both tell the client to
+// Close reasons sent with 1013 (try again later). Each tells the client to
 // reconnect with backoff and resume every channel from Postgres
 // (contracts/websocket.md "Close codes").
 const (
-	reasonSlowConsumer = "slow_consumer" // fell outboundQueueFrames behind
-	reasonAtCapacity   = "at_capacity"   // this replica holds maxSockets already
+	reasonSlowConsumer    = "slow_consumer"    // fell outboundQueueFrames behind
+	reasonAtCapacity      = "at_capacity"      // this replica holds Limits.MaxSockets already
+	reasonConnectionLimit = "connection_limit" // the account or session holds its cap on this replica
 )
 
 // There are two ways out to a socket, and they differ in who may wait:

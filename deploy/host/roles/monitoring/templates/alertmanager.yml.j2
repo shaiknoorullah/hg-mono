@@ -1,0 +1,26 @@
+# Managed by Ansible (deploy/host/roles/monitoring). Every alert is emailed through Resend.
+{% if hg_alert_email_enabled | bool %}
+global:
+  smtp_smarthost: "{{ hg_alert_smtp_host }}:{{ hg_alert_smtp_port }}"
+  smtp_from: "HalalGoes alerts <{{ hg_alert_email_from }}>"
+  smtp_auth_username: "{{ hg_alert_smtp_user }}"
+  smtp_auth_password_file: /etc/alertmanager/smtp_password
+  smtp_require_tls: true
+{% else %}
+global: {}
+{% endif %}
+
+route:
+  receiver: owner
+  group_by: [alertname, host]
+  group_wait: 1m
+  group_interval: 10m
+  repeat_interval: 6h
+
+receivers:
+  - name: owner
+{% if hg_alert_email_enabled | bool %}
+    email_configs:
+      - to: "{{ hg_alert_email_to }}"
+        send_resolved: true
+{% endif %}

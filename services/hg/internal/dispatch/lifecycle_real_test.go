@@ -47,14 +47,16 @@ type realOrderLifecycle struct {
 	store *orders.Store
 }
 
-func (a *realOrderLifecycle) ConfirmPickup(ctx context.Context, orderID, riderAccountID string) error {
-	return a.store.Transition(ctx, orders.TransitionRequest{
-		OrderID:        orderID,
-		To:             machine.StatePickedUp,
-		Actor:          machine.ActorRider,
-		ActorAccountID: riderAccountID,
-		Reason:         "rider confirmed pickup",
-	})
+func (a *realOrderLifecycle) ConfirmPickupTx(ctx context.Context, tx pgx.Tx, orderID, riderAccountID string) error {
+	err := a.store.PickUpTx(ctx, tx, orderID, riderAccountID)
+	var illegal *orders.IllegalTransitionError
+	switch {
+	case errors.As(err, &illegal):
+		return &OrderNotCollectableError{OrderState: string(illegal.From)}
+	case errors.Is(err, orders.ErrRiderDoesNotHoldOrder):
+		return ErrRiderDoesNotHoldOrder
+	}
+	return err
 }
 
 func (a *realOrderLifecycle) MarkArrived(ctx context.Context, orderID, riderAccountID string) error {
@@ -84,9 +86,9 @@ func (a *realOrderLifecycle) CompleteDelivery(ctx context.Context, orderID, ride
 // READY_FOR_PICKUP -> PICKED_UP -> ARRIVED -> DELIVERED as a side effect,
 // proving:
 //   - the main.go wiring compiles and runs against the real sibling signatures,
-//   - the bridge fires ConfirmPickup at PICKED_UP, MarkArrived at
-//     ARRIVED_AT_DROPOFF (the rider's "I'm here", issue #250) and
-//     CompleteDelivery at DELIVERED, in that order,
+//   - the bridge fires ConfirmPickupTx at PICKED_UP (inside the step's own
+//     transaction), MarkArrived at ARRIVED_AT_DROPOFF (the rider's "I'm here",
+//     issue #250) and CompleteDelivery at DELIVERED, in that order,
 //   - ARRIVED is entered with its 15-minute handover-overdue deadline armed, so
 //     the order is never left waiting with no clock (docs/spec/01-platform.md,
 //     "P-15 — Deadlines and timeout actions"),
@@ -138,7 +140,7 @@ func TestLifecycleBridgeDrivesRealOrderStore(t *testing.T) {
 
 	mustQuery(t, pool, `SELECT state::text FROM "order" WHERE id=$1`, &st, orderID)
 	if st != "PICKED_UP" {
-		t.Fatalf("after dispatch PICKED_UP, real order state = %q, want PICKED_UP (bridge did not fire ConfirmPickup)", st)
+		t.Fatalf("after dispatch PICKED_UP, real order state = %q, want PICKED_UP (bridge did not fire ConfirmPickupTx)", st)
 	}
 	// The order carries a PICKED_UP deadline (order_deadline_required CHECK), and
 	// exactly one T12 transition row exists with the rider as actor.
@@ -311,7 +313,7 @@ func TestLifecycleBridgeSkippedOnIdempotentRepeat(t *testing.T) {
 		}
 	}
 	if got := len(lc.pickups()); got != 1 {
-		t.Fatalf("expected 1 ConfirmPickup after first PICKED_UP, got %d", got)
+		t.Fatalf("expected 1 ConfirmPickupTx after first PICKED_UP, got %d", got)
 	}
 
 	// Re-POST PICKED_UP: idempotent no-op, must NOT fire the bridge again.
@@ -326,6 +328,6 @@ func TestLifecycleBridgeSkippedOnIdempotentRepeat(t *testing.T) {
 		t.Errorf("assignment state = %q, want PICKED_UP", asn.State)
 	}
 	if got := len(lc.pickups()); got != 1 {
-		t.Errorf("idempotent repeat re-fired the bridge: ConfirmPickup calls = %d, want 1", got)
+		t.Errorf("idempotent repeat re-fired the bridge: ConfirmPickupTx calls = %d, want 1", got)
 	}
 }

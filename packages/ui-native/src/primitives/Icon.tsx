@@ -54,7 +54,18 @@ export type IconName =
   | 'check'
   | 'star'
   | 'clock'
-  | 'menu';
+  | 'menu'
+  // The live design system's extension names (`IconExtensionName` in its index.d.ts), same
+  // Solar ids. Additive: the fourteen names above are unchanged.
+  | 'chevron-down'
+  | 'chevron-right'
+  | 'minus'
+  | 'lock'
+  | 'info'
+  | 'warning'
+  | 'error'
+  | 'more'
+  | 'refresh';
 
 /**
  * The semantic name -> Solar icon id map, read from `solar-icon-map.json` — the single

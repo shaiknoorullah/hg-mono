@@ -1,0 +1,59 @@
+# Rider app, part 2 of 2: sign in with the code, go online at the restaurant, open the offer
+# screen and wait there for the dispatch offer. tools/e2e/run.sh runs this in the background and,
+# once the rider is online, has the restaurant mark the customer's order ready.
+# Env: CODE, LATITUDE, LONGITUDE, RESTAURANT.
+#
+# Dispatch offers a ready order to riders online within 3 km whose last position is under 90 s
+# old, and each offer lasts 30 s: the flow checks every couple of seconds and stops at the offer.
+appId: com.halalgoes.rider.dev
+name: rider, go online, receive the offer
+---
+- tapOn:
+    below: "Enter the code sent to.*"
+    above: "Verify"
+- inputText: ${CODE}
+- tapOn: "Verify"
+- extendedWaitUntil:
+    visible: "Your shift"
+    timeout: 60000
+- takeScreenshot: rider-03-shift
+
+- setLocation:
+    latitude: ${LATITUDE}
+    longitude: ${LONGITUDE}
+- tapOn: "Availability — go online / offline"
+- extendedWaitUntil:
+    visible: "Available for deliveries"
+    timeout: 30000
+- takeScreenshot: rider-04-offline
+
+- tapOn:
+    id: "Switch"
+# Location permission is granted at launch; this only answers the dialog if Android still asks.
+- tapOn:
+    text: "While using the app"
+    optional: true
+- extendedWaitUntil:
+    visible: "You're online"
+    timeout: 45000
+- takeScreenshot: rider-05-online
+
+- tapOn: "View current offer"
+# The offer screen asks once when it opens; "Check again" asks again. About two minutes in all.
+- repeat:
+    while:
+      notVisible: "Accept offer"
+    times: 50
+    commands:
+      - runFlow:
+          when:
+            visible: "Check again"
+          commands:
+            - tapOn: "Check again"
+      - waitForAnimationToEnd:
+          timeout: 2000
+- extendedWaitUntil:
+    visible: "Accept offer"
+    timeout: 5000
+- assertVisible: "${RESTAURANT}"
+- takeScreenshot: rider-06-offer
