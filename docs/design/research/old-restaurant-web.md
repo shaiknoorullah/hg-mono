@@ -6,6 +6,12 @@ reviewed: 2026-10-11
 
 # What the old restaurant web app teaches the redesign
 
+> **2026-10-10:** the Menu route is the first legacy screen the redesign replaces (WP8,
+> `apps/restaurant/src/redesign/menu/`): categories pane, items grid with a Review column that
+> never says Draft, the availability switch (out of stock at once, then a length menu), an item
+> details panel, Add a category, and the item editor, all in-page panels. The old app's menu
+> lessons below still hold; the legacy `MenuPage` is no longer mounted when the flag is on.
+
 > **2026-10-09:** the redesign is being built in `apps/restaurant/src/redesign/`, behind the
 > `VITE_HG_REDESIGN` build flag (off in release builds), from the owner-approved canvases
 > ([#89](https://github.com/shaiknoorullah/hg-mono/issues/89), tracking
