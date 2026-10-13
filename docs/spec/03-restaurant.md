@@ -3,7 +3,7 @@ covers:
   - apps/restaurant/**
   - services/hg/internal/restaurant/**
   - services/hg/internal/catalog/**
-reviewed: 2026-10-10
+reviewed: 2026-10-13
 ---
 
 # HalalGoes — RESTAURANT domain specification
@@ -175,7 +175,8 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
      (m=64MiB, t=3, p=2). Never logged, never returned.
   3. `legal_name` — 2–120 chars, Unicode letters/digits/space/`&'-.,` only.
   4. `terms_version` — must equal the current server-side `TERMS_VERSION` constant; a stale value →
-     `409 terms_version_stale`.
+     `409 terms_version_stale`. The app reads the current value from `GET /v1/config/public`
+     (`terms_version`), never a hard-coded one ([#738](https://github.com/shaiknoorullah/hg-mono/issues/738)).
   5. Rate limit 5 signups/hour/IP and 3/day/email-domain-prefix. Exceeded → `429`.
   6. No phone/OTP at signup. Phone is collected in R-05 and verified in V2.
   7. Signup is idempotent on `Idempotency-Key`; a replay returns the original `201` body.
