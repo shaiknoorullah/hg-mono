@@ -135,7 +135,7 @@ $$;
 -- Approvals made before this migration were made without a scan: they go back
 -- to review like any other approval whose file does not pass.
 SELECT kyc_document_reopen_on_file(so.id, so.virus_scan_state,
-                                   'approved before virus scanning existed (migration 00071_virus_scan)')
+                                   'approved before virus scanning existed (migration 00072_virus_scan)')
   FROM stored_object so
  WHERE NOT virus_scan_passed(so)
    AND EXISTS (SELECT 1 FROM kyc_document kd

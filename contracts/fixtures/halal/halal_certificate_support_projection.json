@@ -1,0 +1,29 @@
+{
+  "scenario": "halal_certificate_support_projection",
+  "domain": "halal",
+  "schema": "HalalCertificate",
+  "describes": "What a `SUPPORT_AGENT` gets for an approved certificate, exactly as `services/hg` redacts it: status, expiry, the issuing body's id, name and status, the rejection reason, and nothing else. No document, number, address, scope, dates or checks (`checks: []`).",
+  "operations": [
+    "getHalalCertificate"
+  ],
+  "status": 200,
+  "tags": [
+    "admin",
+    "halal",
+    "certificate",
+    "support"
+  ],
+  "payload": {
+    "id": "d0f9addb-e1ea-4033-adee-54218d471aae",
+    "restaurant_id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+    "issuing_body": {
+      "id": "2a5c05d7-d3df-442b-a992-b6cce917d419",
+      "name": "Halal Monitoring Authority (HMA Canada)",
+      "status": "ACCEPTED"
+    },
+    "expires_on": "2027-03-09",
+    "status": "APPROVED",
+    "checklist_version": 1,
+    "checks": []
+  }
+}

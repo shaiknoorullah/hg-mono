@@ -214,7 +214,7 @@ type uploadResult struct {
 // still the ones that were scanned: the object is re-read and its SHA-256
 // compared with the scanned one before the URL is minted. A file that changed
 // gets a new content version, which sends its verdict back to PENDING and any
-// approved document on it back to review (see migration 00071_virus_scan). Both
+// approved document on it back to review (see migration 00072_virus_scan). Both
 // refusals are ErrNotScannedClean
 // (https://github.com/shaiknoorullah/hg-mono/issues/218).
 func (r *Repo) DownloadURL(ctx context.Context, actor Actor, documentID string, canReadAny bool) (downloadResult, error) {

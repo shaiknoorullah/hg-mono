@@ -31,7 +31,7 @@
 // PENDING. Only a CLEAN file's document can be approved or downloaded, and only
 // while the file is unchanged: approval and download re-read the bytes, and
 // bytes that differ move content_version on, which resets the verdict to
-// PENDING. Migration 00071_virus_scan makes the database refuse an approval
+// PENDING. Migration 00072_virus_scan makes the database refuse an approval
 // unless the file passes (CLEAN, bound to its current SHA-256 and version),
 // keeps a verdict write-once except through Rescan, and sends an approved
 // document back to review when its file stops passing

@@ -61,7 +61,7 @@ var ErrDocDecided = errors.New("admin: document already decided")
 // ErrDocNotScanned is returned when an approval is attempted on a document
 // whose file has not been virus-scanned clean: the scan is still pending, found
 // a virus, could not read the whole file, or the bytes are no longer the ones
-// it read. Migration 00071_virus_scan makes the database refuse it too. Spec:
+// it read. Migration 00072_virus_scan makes the database refuse it too. Spec:
 // docs/spec/01-platform.md#p-28--presigned-upload-and-download.
 var ErrDocNotScanned = errors.New("admin: document file not virus-scanned clean")
 
@@ -222,7 +222,7 @@ func docDecided(state string) bool {
 }
 
 // notScannedErr maps the database's own refusal of an unscanned approval
-// (trigger kyc_document_virus_scan_clean, migration 00071_virus_scan) to
+// (trigger kyc_document_virus_scan_clean, migration 00072_virus_scan) to
 // ErrDocNotScanned. The checks above make it unreachable from this path; if
 // they ever drift from the trigger, the answer is still a 409, not a 500.
 func notScannedErr(err error) error {

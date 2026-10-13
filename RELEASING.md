@@ -163,6 +163,11 @@ loudly, never silently. The `clamav` service downloads its signature database on
 (a few minutes, about 1 GB of memory); until it is healthy, uploaded KYC documents wait to be scanned
 and cannot be approved.
 
+Leave `HG_DEADLINE_RUNNER_HOLD=false`. Set it to `true` only for a failover or a restore: the order
+deadline runner then starts held and fires nothing until ops inserts a `deadline_runner_release`
+row, and the deadlines that fell in the gap are handled as outage actions, never by editing
+`deadline_at` by hand ([deadlines spec, "Outages"](docs/spec/01-platform.md#p-15--deadlines-and-timeout-actions-waits-forever-is-unrepresentable)).
+
 ## 5. Verify the gate (any time)
 
 ```bash

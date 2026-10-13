@@ -140,6 +140,9 @@ x-api-env: &api-env
   HG_MINIO_BUCKET_TMP: ${HG_MINIO_BUCKET_TMP:-}
   HG_MINIO_PUBLIC_BASE_URL: ${HG_MINIO_PUBLIC_BASE_URL:-}
   HG_POSTGRES_CONNECT_TIMEOUT: ${HG_POSTGRES_CONNECT_TIMEOUT:-}
+  # Failover start-up switch: true holds the order deadline runner until ops
+  # releases it (see .env.example).
+  HG_DEADLINE_RUNNER_HOLD: ${HG_DEADLINE_RUNNER_HOLD:-false}
 
 services:
   # ---------------------------------------------------------------------------

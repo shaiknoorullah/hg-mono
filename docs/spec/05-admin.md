@@ -972,7 +972,7 @@ These six words mean exactly this everywhere in the product, in the API, and in 
     `INFECTED` file, a file `TOO_LARGE` or `UNSCANNABLE`, a scan `ERROR`, and a file whose bytes
     changed since the scan all refuse; approval re-reads the file to check. The database enforces it
     too, under a lock on the file's row, so a verdict that lands during the approval is never lost
-    (migration `services/hg/migrations/00071_virus_scan.sql`). It keeps enforcing it: if the file
+    (migration `services/hg/migrations/00072_virus_scan.sql`). It keeps enforcing it: if the file
     later stops passing (a new verdict, a re-scan, new bytes), the document returns to `IN_REVIEW`.
     The scan itself is specified in
     [presigned upload and download](01-platform.md#p-28--presigned-upload-and-download).

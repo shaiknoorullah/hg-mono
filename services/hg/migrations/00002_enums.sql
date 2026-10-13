@@ -606,6 +606,7 @@ CREATE TYPE refund_reason_code AS ENUM (
   'NEVER_DELIVERED',
   'ORDER_NEVER_ARRIVED',
   'LATE_DELIVERY',
+  'WRONG_ADDRESS',
   'DAMAGED_SPILLED',
   'NO_RIDER_FOUND',
   'CUSTOMER_CHANGED_MIND',
@@ -857,6 +858,13 @@ CREATE TYPE route_source AS ENUM (
   'FALLBACK'
 );
 
+-- sms_sender_check_state  <-  SmsSenderCheckState
+CREATE TYPE sms_sender_check_state AS ENUM (
+  'PASSED',
+  'FAILED',
+  'NOT_CHECKED'
+);
+
 -- staff_status  <-  StaffStatus
 CREATE TYPE staff_status AS ENUM (
   'INVITED',
@@ -924,9 +932,24 @@ CREATE TYPE vehicle_type AS ENUM (
   'ON_FOOT'
 );
 
+-- waitlist_audience  <-  WaitlistAudience
+CREATE TYPE waitlist_audience AS ENUM (
+  'CUSTOMER',
+  'RESTAURANT',
+  'RIDER'
+);
+
+-- waitlist_contact_kind  <-  WaitlistContactKind
+CREATE TYPE waitlist_contact_kind AS ENUM (
+  'EMAIL',
+  'TEL'
+);
+
 
 -- +goose Down
 
+DROP TYPE IF EXISTS waitlist_contact_kind;
+DROP TYPE IF EXISTS waitlist_audience;
 DROP TYPE IF EXISTS vehicle_type;
 DROP TYPE IF EXISTS variant_pricing_mode;
 DROP TYPE IF EXISTS tracking_health;
@@ -935,6 +958,7 @@ DROP TYPE IF EXISTS tax_category;
 DROP TYPE IF EXISTS stored_object_state;
 DROP TYPE IF EXISTS stored_object_purpose;
 DROP TYPE IF EXISTS staff_status;
+DROP TYPE IF EXISTS sms_sender_check_state;
 DROP TYPE IF EXISTS route_source;
 DROP TYPE IF EXISTS role_scope_type;
 DROP TYPE IF EXISTS role_name;
