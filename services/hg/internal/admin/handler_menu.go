@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/restaurant"
 )
 
 // validMenuDecision is the closed set of allowed decision values.
@@ -67,6 +68,9 @@ func (h *Handler) CreateMenuCategoryOnBehalf(w http.ResponseWriter, r *http.Requ
 		if errors.Is(err, ErrCategoryNameTaken) {
 			httpx.Fail(w, r, http.StatusConflict, CodeCategoryNameTaken,
 				"A category with this name already exists for this restaurant.", nil)
+			return
+		}
+		if restaurant.RespondMenuLocked(w, r, err) {
 			return
 		}
 		h.failInternal(w, r, err)
@@ -135,20 +139,7 @@ func (h *Handler) CreateMenuItemOnBehalf(w http.ResponseWriter, r *http.Request)
 		fieldFail(w, r, "name", "name must be between 2 and 80 characters")
 		return
 	}
-	if in.Description != nil && runeLen(*in.Description) > menuItemDescMax {
-		fieldFail(w, r, "description", "description must be at most 600 characters")
-		return
-	}
-	if in.IngredientsText != nil && runeLen(*in.IngredientsText) > menuIngredientsMax {
-		fieldFail(w, r, "ingredients_text", "ingredients_text must be at most 1000 characters")
-		return
-	}
-	if in.PrepMinutes != nil && (*in.PrepMinutes < menuPrepMinutesMin || *in.PrepMinutes > menuPrepMinutesMax) {
-		fieldFail(w, r, "prep_minutes", "prep_minutes must be between 1 and 120")
-		return
-	}
-	if in.ImageObjectID != nil && *in.ImageObjectID != "" && !isValidUUIDStr(*in.ImageObjectID) {
-		fieldFail(w, r, "image_object_id", "image_object_id must be a UUID")
+	if !menuItemOptionalFieldsOK(w, r, in.Description, in.IngredientsText, in.PrepMinutes, in.ImageObjectID) {
 		return
 	}
 
@@ -182,9 +173,16 @@ func (h *Handler) CreateMenuItemOnBehalf(w http.ResponseWriter, r *http.Request)
 			taxCategory:       taxCategory,
 		})
 	if err != nil {
+		if errors.Is(err, ErrUploadNotFound) {
+			httpx.Fail(w, r, http.StatusNotFound, CodeNotFound, "No such upload.", nil)
+			return
+		}
 		if errors.Is(err, ErrNotFound) {
 			httpx.Fail(w, r, http.StatusNotFound, CodeNotFound,
 				"Restaurant or category not found.", nil)
+			return
+		}
+		if restaurant.RespondMenuLocked(w, r, err) {
 			return
 		}
 		h.failInternal(w, r, err)
@@ -367,6 +365,9 @@ func (h *Handler) DecideMenuVersion(w http.ResponseWriter, r *http.Request) {
 				"The menu item has been deleted.", nil)
 			return
 		}
+		if restaurant.RespondMenuLocked(w, r, err) {
+			return
+		}
 		h.failInternal(w, r, err)
 		return
 	}
@@ -396,6 +397,27 @@ func (h *Handler) DecideMenuVersion(w http.ResponseWriter, r *http.Request) {
 		out.AllergenTags = []string{}
 	}
 	httpx.Respond(w, r, http.StatusOK, out)
+}
+
+// menuItemOptionalFieldsOK checks the optional fields MenuItemInput and
+// MenuItemUpdateInput share against the contract's bounds, answering 422 for the
+// first one out of bounds. It reports whether the request may go on. An image id
+// must be a UUID: anything else would fail the uuid cast as a 500.
+func menuItemOptionalFieldsOK(w http.ResponseWriter, r *http.Request,
+	description, ingredientsText *string, prepMinutes *int, imageObjectID *string) bool {
+	switch {
+	case description != nil && runeLen(*description) > menuItemDescMax:
+		fieldFail(w, r, "description", "description must be at most 600 characters")
+	case ingredientsText != nil && runeLen(*ingredientsText) > menuIngredientsMax:
+		fieldFail(w, r, "ingredients_text", "ingredients_text must be at most 1000 characters")
+	case prepMinutes != nil && (*prepMinutes < menuPrepMinutesMin || *prepMinutes > menuPrepMinutesMax):
+		fieldFail(w, r, "prep_minutes", "prep_minutes must be between 1 and 120")
+	case imageObjectID != nil && !isValidUUIDStr(*imageObjectID):
+		fieldFail(w, r, "image_object_id", "image_object_id must be a UUID")
+	default:
+		return true
+	}
+	return false
 }
 
 // renderMenuItemVersion converts a menuItemVersionRow to a menuItemVersion DTO.

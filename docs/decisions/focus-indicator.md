@@ -6,7 +6,7 @@ covers:
   - packages/ui-web/src/primitives/Textarea.tsx
   - packages/ui-native/src/primitives/Input.tsx
   - packages/ui-native/src/primitives/Select.tsx
-reviewed: 2026-09-28
+reviewed: 2026-10-05
 ---
 
 # Decision: one focus indicator, in the theme's colour

@@ -1,0 +1,17 @@
+// Managed by Ansible (deploy/host/roles/base).
+// Security updates only. Docker's own repository is not included: it is updated by hand,
+// monthly (docs/ops/runbook.md, "Routine work on one server"). Never reboot from here:
+// hg-reboot-if-needed.timer reboots in the quiet window when an update needs it.
+#clear Unattended-Upgrade::Origins-Pattern;
+#clear Unattended-Upgrade::Allowed-Origins;
+Unattended-Upgrade::Origins-Pattern {
+{% if ansible_distribution == 'Debian' %}
+        "origin=Debian,codename=${distro_codename}-security,label=Debian-Security";
+{% else %}
+        "origin=Ubuntu,archive=${distro_codename}-security";
+{% endif %}
+};
+Unattended-Upgrade::Automatic-Reboot "false";
+Unattended-Upgrade::Remove-Unused-Kernel-Packages "true";
+Unattended-Upgrade::Remove-Unused-Dependencies "true";
+Unattended-Upgrade::SyslogEnable "true";

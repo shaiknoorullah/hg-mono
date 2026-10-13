@@ -1,0 +1,31 @@
+{
+  "scenario": "chargeback_warning_closed",
+  "domain": "refunds",
+  "schema": "Chargeback",
+  "describes": "The inquiry closed without becoming a dispute.",
+  "operations": [
+    "getChargeback"
+  ],
+  "status": 200,
+  "tags": [
+    "admin",
+    "chargeback-state-matrix"
+  ],
+  "payload": {
+    "id": "70481aa3-814a-49c8-a646-7425bda3077a",
+    "order_id": "d1435528-5730-4b9a-a635-98014dc0201a",
+    "order_code": "HG-COED-9X",
+    "stripe_dispute_id": "dp_1Qkwarningclose",
+    "amount_cents": 4696,
+    "currency": "CAD",
+    "reason": "product_not_received",
+    "status": "WARNING_CLOSED",
+    "outcome": "WARNING_CLOSED",
+    "evidence_due_at": "2026-08-15T18:42:11.412Z",
+    "deadline_at": null,
+    "evidence_submitted_at": null,
+    "opened_at": "2026-08-08T18:42:11.412Z",
+    "updated_at": "2026-08-10T17:42:11.412Z",
+    "evidence_notes": []
+  }
+}

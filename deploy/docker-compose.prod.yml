@@ -321,9 +321,10 @@ services:
       HG_MINIO_PUBLIC_BASE_URL: https://${HG_FILES_HOST:?set HG_FILES_HOST in .env, e.g. files.halalgoes.com}
       HG_MINIO_PRESIGN_BASE_URL: https://${HG_FILES_HOST}
       # Dependencies by their production-only aliases, never by the service
-      # names compose also registers (see "Names", above). The password is
-      # the same .env value the base file uses.
-      HG_POSTGRES_DSN: postgres://${POSTGRES_USER:?set POSTGRES_USER in .env}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@hg-prod-postgres:5432/${POSTGRES_DB:?set POSTGRES_DB in .env}?sslmode=disable
+      # names compose also registers (see "Names", above). The API logs in as
+      # hg_app (no superuser, no owner, no DDL), with the same .env password
+      # the base file uses; the `pgroles` job creates the role.
+      HG_POSTGRES_DSN: postgres://hg_app:${HG_DB_APP_PASSWORD:?set HG_DB_APP_PASSWORD in .env}@hg-prod-postgres:5432/${POSTGRES_DB:?set POSTGRES_DB in .env}?sslmode=disable
       HG_REDIS_ADDR: hg-prod-valkey:6379
       HG_MINIO_ENDPOINT: hg-prod-silo:9000
       # Exactly hg-proxy's subnet, and never a data tier or Docker's private
@@ -360,6 +361,21 @@ services:
       - traefik.http.routers.hg-internal.service=hg-api
       - traefik.http.routers.hg-internal.middlewares=hg-internal-only@docker
       - traefik.http.middlewares.hg-internal-only.ipallowlist.sourcerange=127.0.0.1/32
+
+      # Sign-in router: the same service with the base file's per-address
+      # limit on every /v1/auth/ route (a backstop against floods; see the
+      # base file's hg-auth router). A `labels: !override` drops the base
+      # file's copy, so it is repeated here, with this file's host and
+      # entrypoint. The address counted is the connection's own.
+      - traefik.http.routers.hg-auth.rule=Host(`${HG_API_HOST}`) && PathPrefix(`/v1/auth/`)
+      - traefik.http.routers.hg-auth.entrypoints=websecure
+      - traefik.http.routers.hg-auth.priority=5
+      - traefik.http.routers.hg-auth.service=hg-api
+      - traefik.http.routers.hg-auth.middlewares=hg-auth-ratelimit@docker,hg-api-hsts@docker
+      - traefik.http.middlewares.hg-auth-ratelimit.ratelimit.average=120
+      - traefik.http.middlewares.hg-auth-ratelimit.ratelimit.period=1m
+      - traefik.http.middlewares.hg-auth-ratelimit.ratelimit.burst=60
+      - traefik.http.middlewares.hg-auth-ratelimit.ratelimit.sourcecriterion.ipstrategy.ipv6subnet=64
 
       - traefik.http.services.hg-api.loadbalancer.server.port=8080
       - traefik.http.services.hg-api.loadbalancer.healthcheck.path=/health/ready
@@ -621,6 +637,38 @@ services:
     memswap_limit: 64m
     logging: *logging
 
+  # Creates the database roles (hg_migrator, hg_app, hg_monitor) as the
+  # superuser before the API or goose logs in; idempotent, and the API waits
+  # for it. The base file's job, hardened the way the rest are: Postgres's own
+  # image (already pinned by digest, and it has psql), the superuser's password
+  # from its secret file, and only the data tier. The two role passwords come
+  # from .env, as they do for the API and goose, and the roles file is read
+  # from the checkout the compose files are in.
+  pgroles:
+    image: ${HG_IMAGE_REPO:-ghcr.io/shaiknoorullah}/hg-postgres@${HG_POSTGRES_DIGEST:?set HG_POSTGRES_DIGEST in .env to sha256:...}
+    entrypoint: !override
+      - /bin/sh
+      - -ec
+      - |
+        PGPASSWORD="$$(cat /run/secrets/postgres_password)"
+        export PGPASSWORD
+        exec psql -v ON_ERROR_STOP=1 -f /roles/roles.sql
+    environment: !override
+      PGHOST: hg-prod-postgres
+      PGUSER: ${POSTGRES_USER:?set POSTGRES_USER in .env}
+      PGDATABASE: ${POSTGRES_DB:?set POSTGRES_DB in .env}
+      HG_DB_MIGRATOR_PASSWORD: ${HG_DB_MIGRATOR_PASSWORD:?set HG_DB_MIGRATOR_PASSWORD in .env}
+      HG_DB_APP_PASSWORD: ${HG_DB_APP_PASSWORD:?set HG_DB_APP_PASSWORD in .env}
+      HG_DB_MONITOR_PASSWORD: ${HG_DB_MONITOR_PASSWORD:-}
+    secrets: [postgres_password]
+    networks: !override [hg-data]
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 64m
+    memswap_limit: 64m
+    logging: *logging
+
   # Migrations run as their own step before a deploy:
   #   docker compose ... --profile tools run --rm migrate
   # Distroless goose reads its connection string, password included, from the
@@ -629,7 +677,8 @@ services:
     build: !reset null
     image: ${HG_IMAGE_REPO:-ghcr.io/shaiknoorullah}/hg-migrate@${HG_MIGRATE_DIGEST:?set HG_MIGRATE_DIGEST in .env to sha256:...}
     environment:
-      GOOSE_DBSTRING: postgres://${POSTGRES_USER:?set POSTGRES_USER in .env}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@hg-prod-postgres:5432/${POSTGRES_DB:?set POSTGRES_DB in .env}?sslmode=disable
+      # goose runs as hg_migrator, the schema's owner, never as the superuser.
+      GOOSE_DBSTRING: postgres://hg_migrator:${HG_DB_MIGRATOR_PASSWORD:?set HG_DB_MIGRATOR_PASSWORD in .env}@hg-prod-postgres:5432/${POSTGRES_DB:?set POSTGRES_DB in .env}?sslmode=disable
     networks: !override [hg-data]
     read_only: true
     cap_drop: [ALL]

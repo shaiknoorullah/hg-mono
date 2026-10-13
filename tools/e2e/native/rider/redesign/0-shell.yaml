@@ -1,0 +1,18 @@
+# Rider redesign WP0: a cold start with no session lands on sign-in (R01). The signed-in shell
+# (three tabs: Home, Earnings, Account) is checked by 1-sign-in.yaml, which signs in once for the
+# whole run. Built with EXPO_PUBLIC_HG_REDESIGN=1 (and a cleared Metro cache: EXPO_PUBLIC_* is
+# inlined at transform time).
+appId: com.halalgoes.rider.dev
+name: rider redesign, cold start
+---
+- launchApp:
+    clearState: true
+    permissions:
+      all: allow
+- extendedWaitUntil:
+    visible: "Sign in or apply to ride"
+    timeout: 90000
+- assertVisible: "Mobile number.*"
+- assertVisible: "Send code"
+- assertNotVisible: "Earnings"
+- takeScreenshot: rider-redesign-00-cold-start

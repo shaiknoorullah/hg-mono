@@ -1,4 +1,5 @@
 import { chromium } from 'playwright';
+import { requireEnv } from './env.mjs';
 const APP = 'http://localhost:5186';
 const OUT = 'tools/verify';
 const b = await chromium.launch();
@@ -8,8 +9,8 @@ page.on('pageerror', (e) => errs.push(e.message));
 page.on('console', (m) => { if (m.type() === 'error') errs.push(m.text()); });
 
 await page.goto(APP, { waitUntil: 'networkidle' });
-await page.fill('#email', 'owner@demo.hg');
-await page.fill('#password', 'Password123!');
+await page.fill('#email', requireEnv('SEED_EMAIL'));
+await page.fill('#password', requireEnv('SEED_PASSWORD'));
 await page.click('button[type="submit"]');
 await page.waitForResponse((r) => r.url().includes('/v1/auth/login'), { timeout: 10000 }).catch(() => {});
 await page.goto(`${APP}/orders`, { waitUntil: 'networkidle' });

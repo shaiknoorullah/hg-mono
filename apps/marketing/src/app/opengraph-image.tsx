@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { ImageResponse } from 'next/og';
-import { WORDMARK } from '@/lib/wordmark-art';
+import { WORDMARK } from '@hg/brand';
 
 /**
  * The social card, generated rather than designed in a file.

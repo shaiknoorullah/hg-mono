@@ -1,0 +1,23 @@
+{
+  "scenario": "error_image_too_small",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`422` · `IMAGE_TOO_SMALL`. `confirmUpload` on a photo too small to be a real scan. PDFs are exempt. The app asks for a retake.",
+  "operations": [
+    "confirmUpload"
+  ],
+  "status": 422,
+  "tags": [
+    "error-envelope",
+    "error-path",
+    "rider",
+    "upload"
+  ],
+  "payload": {
+    "error": {
+      "code": "IMAGE_TOO_SMALL",
+      "message": "The uploaded image is below the minimum size for a document scan.",
+      "request_id": "BGJ90D2XT6H7QF1677BGAPPBRV"
+    }
+  }
+}

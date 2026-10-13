@@ -1,7 +1,8 @@
 import { chromium } from 'playwright';
 import { execSync } from 'node:child_process';
+import { VERIFY_OUT } from './env.mjs';
 
-const OUT = '/home/devsupreme/work/hg-mono/.claude/worktrees/wf_3a3764ca-14a-5/tools/verify';
+const OUT = VERIFY_OUT;
 const PHONE = '+14165550188';
 const PHONE_DIGITS = '4165550188';
 const BASE = 'http://localhost:5173';

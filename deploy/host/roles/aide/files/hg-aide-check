@@ -1,0 +1,21 @@
+#!/bin/bash
+# Managed by Ansible (deploy/host/roles/aide). Daily file-integrity check. The result is a log in
+# /var/log/aide and metrics; a change raises the AideChangesDetected alert. After reviewing a
+# change (or after a package update), accept it with: sudo hg-aide-accept
+set -uo pipefail
+dir=/var/log/aide
+metrics=/var/lib/prometheus/node-exporter/hg_aide.prom
+mkdir -p "$dir"
+log=$dir/check-$(date -u +%Y%m%d).log
+aide --config /etc/aide/aide.conf --check > "$log" 2>&1
+rc=$?
+# aide's exit status is a bit mask: 1 added, 2 removed, 4 changed; 14 and above are errors.
+changed=0; ok=1
+if [ $rc -ge 14 ]; then ok=0; elif [ $rc -ne 0 ]; then changed=1; fi
+echo "$(date -u +%FT%TZ) aide exit=$rc changes=$changed log=$log" >> "$dir/summary.txt"
+{ echo "hg_aide_last_run_success $ok"
+  echo "hg_aide_changes_detected $changed"
+  echo "hg_aide_last_run_timestamp_seconds $(date +%s)"
+} > "$metrics.tmp" && mv "$metrics.tmp" "$metrics"
+find "$dir" -maxdepth 1 -type f -name 'check-2*.log' -mtime +30 -delete
+exit 0

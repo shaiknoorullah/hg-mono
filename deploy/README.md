@@ -109,6 +109,7 @@ Set these in `.env` beside the ones in [`.env.example`](.env.example). The stack
 | `HG_UPLOAD_ORIGINS` | the admin and restaurant web origins, comma-separated |
 | `ACME_EMAIL` | the address Let's Encrypt writes to about expiring certificates |
 | `REDIS_PASSWORD`, `HG_APP_DATA_KEY` | `openssl rand -hex 32`. The Valkey password must be one word: Valkey reads it from a config line |
+| `HG_DB_MIGRATOR_PASSWORD`, `HG_DB_APP_PASSWORD` | `openssl rand -hex 32` each. The API logs in as `hg_app` and goose as `hg_migrator`, never as the superuser; the `pgroles` job creates both roles on every `up` and before `migrate`. Both go in `.env` only (the API and goose read the environment). `HG_DB_MONITOR_PASSWORD` is optional: `hg_monitor` may log in only when it is set |
 | `HG_TRUSTED_PROXY_CIDRS` | `10.88.0.0/29`. The base file requires it, and the override sets the API's to `hg-proxy`'s subnet whatever `.env` says |
 | `HG_SECRETS_DIR` | optional; the folder holding the secret files, `/srv/hg/secrets` unless set |
 
@@ -121,7 +122,7 @@ Set these in `.env` beside the ones in [`.env.example`](.env.example). The stack
 | `minio_root_user` | `MINIO_ROOT_USER` | root | Silo and the bucket job |
 | `minio_root_password` | `MINIO_ROOT_PASSWORD` | root | Silo and the bucket job |
 
-Both `.env` and these files must be written by the playbook's secrets role from the same entries in `prod.sops.env`, so the two copies cannot differ.
+`pgroles` also reads `roles.sql` from the checkout the compose files are in (`services/hg/migrations/roles`), so the checkout must be the release tag. Both `.env` and these files must be written by the playbook's secrets role from the same entries in `prod.sops.env`, so the two copies cannot differ.
 
 Check the merged file before every change, then start it:
 

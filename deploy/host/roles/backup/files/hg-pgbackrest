@@ -1,0 +1,22 @@
+#!/bin/bash
+# hg-pgbackrest <pgbackrest arguments...>
+# Runs pgBackRest in a throwaway container beside the production Postgres: the same image
+# (so the same pgBackRest version), the same volumes (data, socket, repository, logs), no
+# network, and capped at 256 MB so a backup never eats into Postgres's memory.
+# Example: hg-pgbackrest info
+# Managed by Ansible (deploy/host/roles/backup).
+set -euo pipefail
+# shellcheck source=/dev/null
+source /etc/hg/backup/backup.conf
+
+if ! docker inspect "$PG_CONTAINER" >/dev/null 2>&1; then
+  echo "hg-pgbackrest: container $PG_CONTAINER is not running" >&2
+  exit 1
+fi
+image=$(docker inspect -f '{{.Config.Image}}' "$PG_CONTAINER")
+exec docker run --rm --name "hg-pgbackrest-$$" \
+  --memory 256m --memory-swap 256m --cpus 1 \
+  --network none --user "$PG_UID:$PG_UID" \
+  --volumes-from "$PG_CONTAINER" \
+  --env-file "$PGBR_CIPHER_ENV" \
+  --entrypoint pgbackrest "$image" --stanza="$PGBR_STANZA" "$@"

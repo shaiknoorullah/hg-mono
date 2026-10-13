@@ -1,0 +1,24 @@
+#!/bin/bash
+# Reboots only when an installed update needs it. Run by hg-reboot-if-needed.timer.
+# Managed by Ansible (deploy/host/roles/base).
+set -euo pipefail
+
+reason=""
+if [ -f /run/reboot-required ]; then
+  pkgs=$(tr '\n' ' ' < /run/reboot-required.pkgs 2>/dev/null || true)
+  reason="updated packages need it: ${pkgs:-unknown}"
+elif command -v needrestart >/dev/null 2>&1; then
+  # KSTA 1: running the newest kernel; 2 or 3: a newer one is installed.
+  ksta=$(needrestart -b -k 2>/dev/null | sed -n 's/^NEEDRESTART-KSTA: //p')
+  if [ "${ksta:-1}" -ge 2 ]; then
+    reason="a newer kernel is installed"
+  fi
+fi
+
+if [ -z "$reason" ]; then
+  echo "no reboot pending"
+  exit 0
+fi
+echo "rebooting: $reason"
+logger -t hg-reboot "rebooting: $reason"
+systemctl reboot

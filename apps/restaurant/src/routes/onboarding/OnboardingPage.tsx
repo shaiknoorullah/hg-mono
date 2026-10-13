@@ -1,4 +1,5 @@
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { idempotencyKey, isApiError } from '@hg/api-client';
 import { Card, ErrorState } from '@hg/ui-web';
 import { api, unwrapOrThrow } from '../../lib/apiHelpers';
 import { useAsync } from '../../lib/useAsync';
@@ -11,8 +12,34 @@ import { useEffect } from 'react';
 
 const STEPS = ['PROFILE', 'DOCUMENTS', 'AWAITING_REVIEW', 'FIX_DOCUMENTS', 'PAYOUT', 'MENU', 'DONE'] as const;
 
+/**
+ * Stripe Connect: create the account (the link 409s without one), mint a fresh link, and send
+ * the browser to Stripe. The return/refresh URLs are server-generated.
+ */
+async function startConnectOnboarding() {
+  try {
+    await unwrapOrThrow(
+      api.POST('/v1/connect/account', { params: { header: { 'Idempotency-Key': idempotencyKey() } } }),
+    );
+  } catch (e) {
+    // Not approved yet is a real blocker; anything else (e.g. account already exists) falls through to the link.
+    if (isApiError(e) && e.is('STEP_NOT_AVAILABLE')) throw e;
+  }
+  const link = await unwrapOrThrow(api.POST('/v1/connect/onboarding-link', {}));
+  window.location.assign(link.url);
+  // Keep the button busy while the browser navigates away.
+  await new Promise(() => undefined);
+}
+
 export function OnboardingPage() {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+  // `/onboarding/refresh` = Stripe says the link expired: mint a new one. `/onboarding/return`
+  // = back from Stripe: the status fetch below is the source of truth (readiness is webhook-driven).
+  const refreshLink = pathname.endsWith('/refresh');
+  useEffect(() => {
+    if (refreshLink) void startConnectOnboarding().catch(() => navigate('/onboarding', { replace: true }));
+  }, [refreshLink, navigate]);
   const { status, data, error, reload } = useAsync(
     () => unwrapOrThrow(api.GET('/v1/restaurant/onboarding/status', {})),
     [],
@@ -72,10 +99,7 @@ export function OnboardingPage() {
             title="Connect payouts"
             description="HalalGoes pays out through Stripe Connect. Set up your payout account to start receiving orders."
             ctaLabel="Continue to Stripe"
-            onContinue={async () => {
-              await unwrapOrThrow(api.POST('/v1/connect/onboarding-link', {}));
-              reload();
-            }}
+            onContinue={startConnectOnboarding}
           />
         )}
         {data.current_step === 'MENU' && (
@@ -85,6 +109,15 @@ export function OnboardingPage() {
             ctaLabel="Open menu editor"
             onNavigate={() => navigate('/menu')}
           />
+        )}
+        {data.current_step === 'PAYOUT' && pathname.endsWith('/return') && (
+          <p className="mt-3 text-body-sm text-fg-secondary">
+            Back from Stripe. Payout approval can take a moment —{' '}
+            <button type="button" className="font-bold underline" onClick={reload}>
+              check again
+            </button>
+            .
+          </p>
         )}
         {stepIndex === -1 && <ErrorState title="Unrecognised onboarding step" description={data.current_step} />}
       </div>

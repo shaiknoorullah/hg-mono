@@ -26,6 +26,7 @@
     "packages/ui-web/src/tokens/theme.css",
     "apps/marketing/experiments/**",
     "contracts/fixtures/**",
+    "services/hg/internal/notify/emailtmpl/templates/**",
     "pnpm-lock.yaml",
     ".claude/**",
     ".git/**"

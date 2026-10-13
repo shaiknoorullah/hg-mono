@@ -64,7 +64,7 @@ func (f *fakePayActions) Void(_ context.Context, orderID string) error {
 // correct orderID and total_cents (1500, as seeded by seedOrder).
 func TestPaymentSeam_AcceptOrder_CallsCapture(t *testing.T) {
 	pool := testPool(t)
-	f := seedFixtures(t, pool)
+	f := seedOrderableFixtures(t, pool)
 	// seedOrder produces total_cents=1500; state=RESTAURANT_PENDING.
 	orderID := seedOrder(t, pool, f.restaurantID, f.menuItemID,
 		"RESTAURANT_PENDING", "now() + interval '3 minutes'")
@@ -150,7 +150,7 @@ func TestPaymentSeam_RejectOrder_CallsVoid(t *testing.T) {
 // The order is already PREPARING; the reconciler retries.
 func TestPaymentSeam_AcceptOrder_CaptureError_StillReturns200(t *testing.T) {
 	pool := testPool(t)
-	f := seedFixtures(t, pool)
+	f := seedOrderableFixtures(t, pool)
 	orderID := seedOrder(t, pool, f.restaurantID, f.menuItemID,
 		"RESTAURANT_PENDING", "now() + interval '3 minutes'")
 
@@ -177,7 +177,7 @@ func TestPaymentSeam_AcceptOrder_CaptureError_StillReturns200(t *testing.T) {
 // PaymentActions (boot without payments wired) does not break AcceptOrder.
 func TestPaymentSeam_NilPay_AcceptOrder_StillReturns200(t *testing.T) {
 	pool := testPool(t)
-	f := seedFixtures(t, pool)
+	f := seedOrderableFixtures(t, pool)
 	orderID := seedOrder(t, pool, f.restaurantID, f.menuItemID,
 		"RESTAURANT_PENDING", "now() + interval '3 minutes'")
 
@@ -207,7 +207,7 @@ func TestPaymentSeam_NilPay_AcceptOrder_StillReturns200(t *testing.T) {
 // an ILLEGAL_TRANSITION (409); Capture must be called zero times.
 func TestPaymentSeam_AcceptOrder_IllegalTransition_DoesNotCapture(t *testing.T) {
 	pool := testPool(t)
-	f := seedFixtures(t, pool)
+	f := seedOrderableFixtures(t, pool)
 	// PREPARING → accept is illegal (accept requires RESTAURANT_PENDING).
 	orderID := seedOrder(t, pool, f.restaurantID, f.menuItemID,
 		"PREPARING", "now() + interval '30 minutes'")

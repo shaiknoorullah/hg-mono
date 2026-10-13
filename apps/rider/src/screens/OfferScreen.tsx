@@ -13,7 +13,9 @@
  *   loading — the getCurrentOffer read.
  *   empty   — data is null (no live offer): an online-idle rider polling all day.
  *   error   — the read failed, or Accept lost the race.
- *   ready   — the offer card with a live countdown and Accept / Reject.
+ *   ready   — the offer card with a live countdown, a live map previewing the trip (the rider's
+ *             own position → pickup → drop-off area, with distances and times), and
+ *             Accept / Reject. Without a map in the build, the distances and times show alone.
  */
 import * as React from 'react';
 import { View } from 'react-native';
@@ -36,6 +38,8 @@ import { clientFor, IS_MOCK } from '../api';
 import type { DispatchOffer } from '../apiTypes';
 import { Screen, LoadingView, ErrorView, EmptyView } from './Screen';
 import { useNav } from '../nav';
+import { useLiveFix } from '../location';
+import { DeliveryMap } from '../map/DeliveryMap';
 
 type OfferRejectReasonCode = Schema['OfferRejectReasonCode'];
 
@@ -140,6 +144,7 @@ export function OfferScreen(): React.ReactElement {
 
   const offer = state.status === 'ready' ? state.offer : null;
   const remaining = useCountdown(offer);
+  const live = useLiveFix(offer !== null);
   const expired = remaining !== null && remaining <= 0;
 
   const accept = React.useCallback(async () => {
@@ -229,6 +234,21 @@ export function OfferScreen(): React.ReactElement {
                 />
                 <Badge label={`Wave ${state.offer.wave ?? 1}`} variant="outline" size="md" />
               </View>
+
+              <DeliveryMap
+                leg="preview"
+                pickup={{
+                  latitude: state.offer.pickup.latitude,
+                  longitude: state.offer.pickup.longitude,
+                  label: state.offer.pickup.restaurant_name,
+                }}
+                dropoff={{
+                  latitude: state.offer.dropoff.latitude,
+                  longitude: state.offer.dropoff.longitude,
+                  label: state.offer.dropoff.area,
+                }}
+                rider={live}
+              />
 
               <View style={{ gap: 4 }}>
                 <Text style={{ ...caption, color: theme.color.text.secondary }}>PICK UP</Text>

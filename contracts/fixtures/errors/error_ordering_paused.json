@@ -1,0 +1,21 @@
+{
+  "scenario": "error_ordering_paused",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`409` · `ORDERING_PAUSED`. Staff have paused new orders platform-wide during an incident. Nothing was stored and nothing was charged; the same Idempotency-Key can be sent again once ordering resumes. A 409 like `RESTAURANT_CLOSED`, not a 503: the server is fine.",
+  "operations": [
+    "createQuote",
+    "createOrder"
+  ],
+  "status": 409,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "ORDERING_PAUSED",
+      "message": "Ordering is paused on HalalGoes right now. Nothing was charged; please try again later.",
+      "request_id": "VFCMEED9XFXJB7M9Q3E708691Y"
+    }
+  }
+}

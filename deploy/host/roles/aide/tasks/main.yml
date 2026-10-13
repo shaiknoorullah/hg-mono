@@ -1,0 +1,69 @@
+- name: Install AIDE
+  ansible.builtin.apt:
+    name: [aide, aide-common]
+    state: present
+
+- name: Turn off the package's own daily mail job (there is no mail server; this role alerts instead)
+  ansible.builtin.copy:
+    dest: /etc/default/aide
+    content: |
+      # Managed by Ansible (deploy/host/roles/aide).
+      CRON_DAILY_RUN=no
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Exclude data and churn
+  ansible.builtin.template:
+    src: 99_hg_excludes.j2
+    dest: /etc/aide/aide.conf.d/99_hg_excludes
+    owner: root
+    group: root
+    mode: "0644"
+  register: hg_aide_conf
+
+- name: Install the check and accept scripts
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "/usr/local/sbin/{{ item }}"
+    owner: root
+    group: root
+    mode: "0755"
+  loop: [hg-aide-check, hg-aide-accept]
+
+- name: Check whether a baseline exists
+  ansible.builtin.stat:
+    path: /var/lib/aide/aide.db
+  register: hg_aide_db
+
+- name: Build the baseline (first run only; takes a few minutes)
+  ansible.builtin.shell: |
+    set -e
+    aideinit --yes --force
+    cp -f /var/lib/aide/aide.db.new /var/lib/aide/aide.db
+  args:
+    executable: /bin/bash
+    creates: /var/lib/aide/aide.db
+  when: not ansible_check_mode
+  async: 1800
+  poll: 15
+
+- name: Install the daily service and timer
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "/etc/systemd/system/{{ item }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop: [hg-aide.service, hg-aide.timer]
+  notify: Reload systemd
+
+- name: Apply systemd changes
+  ansible.builtin.meta: flush_handlers
+
+- name: Enable the daily timer
+  ansible.builtin.systemd_service:
+    name: hg-aide.timer
+    enabled: true
+    state: started
+  ignore_errors: "{{ ansible_check_mode }}"

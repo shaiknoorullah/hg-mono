@@ -5,10 +5,11 @@
 // Run from repo root: node tools/verify/admin-punchlist.mjs
 import { chromium } from 'playwright';
 import { execSync } from 'node:child_process';
+import { requireEnv } from './env.mjs';
 
 const APP = process.env.APP_URL ?? 'http://localhost:5176';
-const EMAIL = process.env.SEED_EMAIL ?? 'admin@demo.hg';
-const PASSWORD = process.env.SEED_PASSWORD ?? 'Admin@1234';
+const EMAIL = requireEnv('SEED_EMAIL');
+const PASSWORD = requireEnv('SEED_PASSWORD');
 
 // The DB and /tmp are shared with other concurrent agents on this host, who may
 // re-seed the same demo admin's TOTP secret mid-run. Re-seed it ourselves right

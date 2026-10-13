@@ -41,17 +41,18 @@ func TestReceiveWebhook_LivemodeMismatchRejected(t *testing.T) {
 	}
 }
 
-// ProcessStoredEvent parses a stored payload and dispatches by type. For a
-// type with no payment_intent effect it returns an "ignored" marker and no
-// error, and touches nothing (the repo is nil).
-func TestProcessStoredEvent_UnhandledTypeIgnored(t *testing.T) {
+// applyEvent parses a stored payload and dispatches by type. A type with no
+// handler is applied as ignored, with no error, and touches nothing (the
+// transaction is nil): it is still marked processed, so it never waits on a
+// handler that does not exist.
+func TestApplyEvent_UnhandledTypeIgnored(t *testing.T) {
 	svc := NewService(nil, &mockStripe{}, config.Stripe{}, nil)
 	payload := []byte(`{"id":"evt_x","type":"invoice.created","data":{"object":{}}}`)
-	res, err := svc.ProcessStoredEvent(context.Background(), payload)
+	eff, err := svc.applyEvent(context.Background(), nil, payload)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if res != "ignored:invoice.created" {
-		t.Fatalf("res = %q, want ignored:invoice.created", res)
+	if eff.kind != effectUnchanged || eff.String() != "ignored:invoice.created" {
+		t.Fatalf("effect = %v %q, want unchanged ignored:invoice.created", eff.kind, eff)
 	}
 }

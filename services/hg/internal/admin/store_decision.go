@@ -5,9 +5,13 @@ import (
 	"errors"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/notify"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/realtime"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/restaurant"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/rider"
 )
 
 // restaurantProfileRow is the full restaurant projection the review screen needs.
@@ -285,8 +289,10 @@ UPDATE restaurant_application
        approve_reason_code=$3::restaurant_approve_reason_code,
        reject_reason_code=$4::restaurant_reject_application_reason_code,
        decided_by=$5, decided_at=now()
- WHERE restaurant_id=$1`
-		if _, err := tx.Exec(ctx, upd, restaurantID, decision, approveCode, rejectCode, decidedBy); err != nil {
+ WHERE restaurant_id=$1
+RETURNING decided_at`
+		var decidedAt time.Time
+		if err := tx.QueryRow(ctx, upd, restaurantID, decision, approveCode, rejectCode, decidedBy).Scan(&decidedAt); err != nil {
 			return err
 		}
 		// The onboarding state advances on the decision (A-18). account_state is not
@@ -301,10 +307,30 @@ VALUES ($1, $2::restaurant_onboarding_state, $3::restaurant_onboarding_state, 'A
 			restaurantID, curOnboarding, toState, decidedBy, reasonCode, reasonText, nullStr(actor.requestID)); err != nil {
 			return err
 		}
+		// The owners and managers see the decision on their own account
+		// channels, in this transaction (contracts/websocket.md section 4.6).
+		if err := realtime.EmitOnboardingChanged(ctx, tx, realtime.OnboardingRestaurant, restaurantID,
+			curOnboarding, toState); err != nil {
+			return err
+		}
 		// DOCUMENTS_APPROVED → PAYOUT_PENDING is automatic (spec R, transition table);
 		// recompute advances it (and no-ops on rejection, which is out of the band).
 		if err := restaurant.RecomputeOnboarding(ctx, tx, restaurantID); err != nil {
 			return err
+		}
+
+		// Tell the owners and managers, in this transaction: the email exists
+		// exactly when the decision does (internal/notify/doc.go). reasonText
+		// is sent verbatim, as the contract promises; the internal note never is.
+		if r.notify != nil {
+			rid, err := uuid.Parse(restaurantID)
+			if err != nil {
+				return err
+			}
+			if err := notify.EnqueueRestaurantApplicationDecided(ctx, tx, r.notify, rid,
+				notify.Decision(decision), reasonText, decidedAt); err != nil {
+				return err
+			}
 		}
 
 		if err := writeAudit(ctx, tx, auditEntry{
@@ -538,15 +564,21 @@ func (r *Repo) DecideRiderApplication(ctx context.Context, actor auditActor, acc
 		if actor.staffID != "" {
 			decidedBy = actor.staffID
 		}
+		// Only a rejection or a request for changes carries a document rejection
+		// reason; an approval's reason (RiderApproveReasonCode) has no column here
+		// and is kept on the audit row below (issue #163:
+		// https://github.com/shaiknoorullah/hg-mono/issues/163).
 		var rc any
-		if reasonCode != "" {
+		if decision != "APPROVE" && reasonCode != "" {
 			rc = reasonCode
 		}
-		if _, err := tx.Exec(ctx, `
+		var decidedNow time.Time
+		if err := tx.QueryRow(ctx, `
 UPDATE rider_application
    SET reject_reason_code=$2::document_rejection_reason_code, review_note=$3,
        decided_by=$4, decided_at=now()
- WHERE account_id=$1`, accountID, rc, reasonText, decidedBy); err != nil {
+ WHERE account_id=$1
+RETURNING decided_at`, accountID, rc, reasonText, decidedBy).Scan(&decidedNow); err != nil {
 			return err
 		}
 		if decision == "APPROVE" {
@@ -557,6 +589,29 @@ UPDATE rider_profile SET onboarding_state=$2::rider_onboarding_state, approved_b
 			}
 		} else {
 			if _, err := tx.Exec(ctx, `UPDATE rider_profile SET onboarding_state=$2::rider_onboarding_state WHERE account_id=$1`, accountID, toState); err != nil {
+				return err
+			}
+		}
+		// The rider sees the decision on their own account channel, in this
+		// transaction (contracts/websocket.md section 4.6).
+		if err := realtime.EmitOnboardingChanged(ctx, tx, realtime.OnboardingRider, accountID,
+			profile.OnboardingState, toState); err != nil {
+			return err
+		}
+		if decision == "APPROVE" {
+			// Payouts may already be enabled: go straight to ACTIVE.
+			if err := rider.RecomputeOnboarding(ctx, tx, accountID); err != nil {
+				return err
+			}
+		}
+
+		if r.notify != nil {
+			aid, err := uuid.Parse(accountID)
+			if err != nil {
+				return err
+			}
+			if err := notify.EnqueueRiderApplicationDecided(ctx, tx, r.notify, aid,
+				notify.Decision(decision), reasonText, decidedNow); err != nil {
 				return err
 			}
 		}

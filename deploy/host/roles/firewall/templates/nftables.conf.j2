@@ -1,0 +1,66 @@
+#!/usr/sbin/nft -f
+# Managed by Ansible (deploy/host/roles/firewall). Host firewall for {{ inventory_hostname }}.
+#
+# Everything lives in its own table, "inet host" (IPv4 and IPv6). Reload with
+# "systemctl reload nftables", which flushes this table only. Never run "nft flush ruleset":
+# it also deletes Docker's chains. Ports Docker publishes do not pass through this table's
+# input chain; the DOCKER-USER guard (roles/docker) drops those from the internet.
+
+table inet host
+flush table inet host
+
+table inet host {
+  chain input {
+    type filter hook input priority filter; policy drop;
+
+    ct state established,related accept
+    ct state invalid drop
+    iifname "lo" accept
+
+    # ICMP: path MTU discovery and ping; IPv6 neighbour discovery cannot work without it.
+    meta l4proto icmp icmp type { echo-request, destination-unreachable, time-exceeded, parameter-problem } limit rate 20/second accept
+    meta l4proto ipv6-icmp icmpv6 type { destination-unreachable, packet-too-big, time-exceeded, parameter-problem, echo-request, nd-router-advert, nd-neighbor-solicit, nd-neighbor-advert, mld-listener-query } accept
+
+    # DHCP answers, in case the provider hands out addresses that way.
+    udp sport 67 udp dport 68 accept
+    udp sport 547 udp dport 546 accept
+
+    # WireGuard. It answers nothing to a packet without a valid key, so scans see nothing.
+    udp dport {{ hg_wg_port }} accept
+
+{% if hg_firewall_public_tcp_ports | length > 0 %}
+    # The public web: Traefik.
+    tcp dport { {{ hg_firewall_public_tcp_ports | join(', ') }} } accept
+{% endif %}
+{% if hg_ssh_public %}
+    # TEMPORARY: SSH from anywhere, keys only, until the owner's WireGuard tunnel works.
+    # The next provision.sh run over the tunnel removes this line.
+    tcp dport 22 accept
+{% endif %}
+
+    # From WireGuard peers only.
+    iifname "{{ hg_wg_interface }}" meta l4proto { icmp, ipv6-icmp } accept
+    iifname "{{ hg_wg_interface }}" tcp dport { {{ hg_firewall_wg_tcp_ports | join(', ') }} } accept
+{% for r in hg_firewall_wg_relays if r.sources | length > 0 %}
+    # A relay on this host, from the named peers alone.
+    iifname "{{ hg_wg_interface }}" ip saddr { {{ r.sources | join(', ') }} } tcp dport {{ r.port }} accept
+{% endfor %}
+
+    # From the monitoring containers (VictoriaMetrics scraping node-exporter).
+    iifname "{{ hg_networks.ops.bridge }}" tcp dport { {{ hg_firewall_from_ops_tcp_ports | join(', ') }} } accept
+  }
+
+  # Docker owns forwarding. This chain only narrows who on the tunnel may reach the few
+  # ports published on the WireGuard address; it accepts everything else.
+  chain forward {
+    type filter hook forward priority filter; policy accept;
+{% for r in hg_firewall_wg_restricted %}
+{% if r.sources | length > 0 %}
+    iifname "{{ hg_wg_interface }}" tcp dport {{ r.port }} ip saddr != { {{ r.sources | join(', ') }} } drop
+{% else %}
+    iifname "{{ hg_wg_interface }}" tcp dport {{ r.port }} drop
+{% endif %}
+{% endfor %}
+    iifname "{{ hg_wg_interface }}" meta nfproto ipv6 tcp dport { {{ hg_firewall_wg_restricted | map(attribute='port') | join(', ') }} } drop
+  }
+}

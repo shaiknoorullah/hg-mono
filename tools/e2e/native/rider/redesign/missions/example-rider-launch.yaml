@@ -1,0 +1,15 @@
+# EXAMPLE mission. It changes nothing on the server: it plays the dropoff route on the
+# emulator's GPS, slows the network to EDGE and only launches the app, so it is safe for the
+# lab to run (or skip: ids starting example- are examples).
+# Copy it to <your-id>.yaml, set id to the same name, and point flows at your own redesign flows.
+# Format: tools/e2e/native/README.md. Check: pnpm e2e:missions:check
+id: example-rider-launch
+app: rider
+avd: hg_rider
+api: devworld
+setup: [ "make dev-reset" ]
+reality:
+  - geo-route: tools/e2e/native/routes/restaurant-to-amina.gpx
+  - network: edge
+  - theme: light
+flows: [ "tools/e2e/native/rider/redesign/0-launch.yaml" ]

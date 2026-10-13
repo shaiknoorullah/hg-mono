@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
 )
 
@@ -17,6 +18,11 @@ func (h *Handler) ListRestaurants(w http.ResponseWriter, r *http.Request) {
 	if ferr != nil {
 		httpx.Fail(w, r, http.StatusUnprocessableEntity, codeValidationFailed, ferr.Error(),
 			[]httpx.FieldError{{Field: ferr.field, Code: "invalid", Message: ferr.Error()}})
+		return
+	}
+
+	var ok bool
+	if f.lat, f.lng, ok = h.withDeliveryAddress(w, r, f.lat, f.lng); !ok {
 		return
 	}
 
@@ -43,23 +49,41 @@ func (h *Handler) ListRestaurants(w http.ResponseWriter, r *http.Request) {
 	cards := make([]RestaurantCard, 0, len(rows))
 	now := h.now()
 	for _, rr := range rows {
-		// A listed restaurant is by predicate ACTIVE; its availability card is
-		// computed from the current row. Trading-hours evaluation is a TODO
-		// (requires the restaurant_hours join in the restaurant's timezone); a
-		// listed restaurant is treated as within hours until that lands.
-		verdict := deriveOpenState(availabilityRow{
-			accountState:      "LIVE",
-			isAcceptingOrders: true,
-			lastHeartbeatAt:   &now,
-		}, now, true, false)
-		info := buildAvailabilityInfo(rr, verdict, hasAddress)
-		cards = append(cards, toCard(rr, info, h.media))
+		cards = append(cards, h.cardFor(rr, hasAddress, now))
 	}
 
 	httpx.RespondList(w, r, http.StatusOK, cards, httpx.Meta{
 		NextCursor: nextCursor,
 		HasMore:    hasMore,
 	})
+}
+
+// withDeliveryAddress turns the contract's `delivery_address_id` into the point that
+// serviceability, distance and ETA are computed against, for the list and the detail alike.
+// Explicit coordinates win. The id is resolved only among the signed-in caller's own saved
+// addresses: someone else's, a deleted one, an unlocated one and an anonymous caller all read
+// as no address (NO_ADDRESS), never as another account's location. ok is false once the
+// response has been written.
+func (h *Handler) withDeliveryAddress(w http.ResponseWriter, r *http.Request, lat, lng *float64) (*float64, *float64, bool) {
+	addrID := r.URL.Query().Get("delivery_address_id")
+	if addrID == "" || lat != nil {
+		return lat, lng, true
+	}
+	if _, err := uuid.Parse(addrID); err != nil {
+		httpx.Fail(w, r, http.StatusUnprocessableEntity, codeValidationFailed,
+			"delivery_address_id must be a UUID",
+			[]httpx.FieldError{{Field: "delivery_address_id", Code: "invalid", Message: "must be a UUID"}})
+		return nil, nil, false
+	}
+	accountID := httpx.PrincipalFrom(r.Context()).AccountID
+	if accountID == "" {
+		return nil, nil, true
+	}
+	la, lo, err := h.repo.addressPoint(r.Context(), accountID, addrID)
+	if h.mapErr(w, r, err) {
+		return nil, nil, false
+	}
+	return la, lo, true
 }
 
 // GetRestaurant implements getRestaurant (GET /v1/restaurants/{restaurantId}):
@@ -69,6 +93,10 @@ func (h *Handler) GetRestaurant(w http.ResponseWriter, r *http.Request) {
 	lat, lng, aerr := parsePoint(r)
 	if aerr != nil {
 		httpx.Fail(w, r, http.StatusUnprocessableEntity, codeValidationFailed, aerr.Error(), nil)
+		return
+	}
+	lat, lng, ok := h.withDeliveryAddress(w, r, lat, lng)
+	if !ok {
 		return
 	}
 
@@ -86,12 +114,7 @@ func (h *Handler) GetRestaurant(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	now := h.now()
-	verdict := deriveOpenState(availabilityRow{
-		accountState: "LIVE", isAcceptingOrders: true, lastHeartbeatAt: &now,
-	}, now, true, false)
-	info := buildAvailabilityInfo(rr, verdict, lat != nil && lng != nil)
-	card := toCard(rr, info, h.media)
+	card := h.cardFor(rr, lat != nil && lng != nil, h.now())
 
 	viewable := h.presigner != nil && cr.documentID != nil
 	detail := RestaurantDetail{

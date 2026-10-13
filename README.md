@@ -24,6 +24,7 @@ Traefik  →  hg (single Go binary: HTTP + WebSocket)
 | `docs/spec/` | The specification of record — 198 features with states, rules and acceptance criteria |
 | `docs/decisions/` | Decision log: what is settled, what is still open |
 | `docs/analysis/` | Feature inventory of the previous system (what existed, what was broken) |
+| `docs/testing/` | [The launch flows](docs/testing/launch-flows.md): every flow each app must complete on launch day, and the test that covers it |
 | `contracts/` | OpenAPI contract, realtime contract and 310 fixtures. **Single source of truth for every API shape** |
 | `packages/api-client/` | The generated TypeScript client and the money helpers. The only place a frontend gets a type |
 | `tools/mock-server/` | The whole API with no backend running — `pnpm mock` |

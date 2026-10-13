@@ -1,0 +1,9 @@
+hg_standby_host: "{{ (groups['standby'] | default([]))[0] | default('') }}"
+# Production's Postgres is only on internal networks, which cannot publish a port, so the
+# standby's replica reaches it through a relay on this host: systemd-socket-proxyd, listening
+# on the WireGuard address and forwarding to Postgres's fixed address on hg-data. Installed
+# only once hg_standby_enabled is true; the host firewall admits the standby alone.
+hg_postgres_relay_listen: "{{ hg_wg_address }}:5432"
+hg_postgres_relay_target: "{{ hg_postgres_address }}:5432"
+# The address Postgres sees the relay's connections come from: this host, on hg-data.
+hg_postgres_relay_source: "{{ hg_networks.data.gateway }}"

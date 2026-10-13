@@ -16,7 +16,7 @@ const config: NextConfig = {
   // imports only its two stylesheets, so nothing here needs compiling — but the
   // moment a component is imported it does, and discovering that as a runtime
   // syntax error is worse than carrying one line of config.
-  transpilePackages: ['@hg/ui-web'],
+  transpilePackages: ['@hg/ui-web', '@hg/brand'],
 
   async headers() {
     return [

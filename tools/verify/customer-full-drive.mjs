@@ -3,10 +3,11 @@
 // tracking -> order history/reorder -> profile -> addresses -> notifications.
 import { chromium } from 'playwright';
 import { execSync } from 'node:child_process';
+import { VERIFY_OUT } from './env.mjs';
 
 const APP = 'http://localhost:19006';
 const PHONE = '+14165552233';
-const OUT = '/home/devsupreme/work/hg-mono/tools/verify';
+const OUT = VERIFY_OUT;
 
 const calls = [];
 const errors = [];

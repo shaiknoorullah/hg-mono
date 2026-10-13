@@ -1,0 +1,13 @@
+# Customer app, redesign build: launch smoke. Opens the dev APK as it is installed (no clearState,
+# no sign-in) and checks that it starts and does not crash in its first seconds. It asserts no
+# screen text, so it holds whatever the redesign's first screen becomes.
+# Used by the example mission in missions/. Run alone:
+#   maestro test tools/e2e/native/customer/redesign/0-launch.yaml
+appId: com.halalgoes.customer.dev
+name: customer redesign, launch smoke
+---
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 15000
+- assertNotVisible: ".*(keeps stopping|has stopped|isn't responding).*"
+- takeScreenshot: customer-redesign-00-launch

@@ -9,3 +9,9 @@ import "context"
 func WithPrincipalForTest(ctx context.Context, p Principal) context.Context {
 	return withPrincipal(ctx, p)
 }
+
+// WithIdempotencyKeyForTest puts a validated Idempotency-Key into a context,
+// as the IdempotencyKey middleware does for a keyed route.
+func WithIdempotencyKeyForTest(ctx context.Context, key string) context.Context {
+	return withIdempotencyKey(ctx, key)
+}

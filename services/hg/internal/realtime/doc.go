@@ -14,7 +14,10 @@
 //   - P-21 Channels and subscriptions
 //   - P-22 Event catalogue and envelope. Deleting a field is breaking: bump the
 //     envelope's `v` and keep emitting the old version through the deprecation
-//     window.
+//     window. Producers emit a source record (events.go); what each role is
+//     sent is built field by field from it by the serializer the allow-list in
+//     catalogue.go names for that role, and anything the allow-list does not
+//     name is dropped (projection.go).
 //   - P-23 Delivery guarantees, replay and multi-replica fan-out. Redis carries
 //     the fan-out; replay reads Postgres. G-1 holds: a Redis flush costs live
 //     fan-out, never a lost event.

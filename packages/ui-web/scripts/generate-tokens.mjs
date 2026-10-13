@@ -12,6 +12,9 @@
  *   themes.ts   the `restaurant` and `admin` themes, light + dark
  *   tokens.css  CSS custom properties (:root, dark scheme, density, theme)
  *   theme.css   Tailwind v4 `@theme inline` block
+ *   grid-theme.css  LyteNyte Grid's `--ln-*` variables pointed at our roles
+ *   shadcn-aliases.css  shadcn/ui's variable names as aliases of our roles
+ *                   (opt-in for redesign apps; styles.css does not import it)
  *   index.ts    barrel
  *
  * Usage:
@@ -212,8 +215,46 @@ function componentRoles(scheme) {
 
     'skeleton.base': dark ? '{color.neutral.800}' : '{color.neutral.300}',
     'skeleton.highlight': dark ? '{color.neutral.700}' : '{color.neutral.200}',
+
+    // Elevated surfaces (the live Claude Design file's elev-surface-* roles).
+    // Light lifts with a shadow over the raised surface; dark has no shadows and
+    // steps the surface instead, so each dark value is that elevation's
+    // `surfaceStep`, read from tokens.json rather than restated here.
+    ...elevationSurfaces(scheme),
   };
 }
+
+/**
+ * `elev.surface.<level>` and `elev.hairline` for one scheme. Additions for the
+ * redesign (S0): nothing in the released apps reads them.
+ */
+function elevationSurfaces(scheme) {
+  const out = {};
+  for (const level of Object.keys(nested('elevation'))) {
+    if (scheme === 'dark') {
+      out[`elev.surface.${level}`] = `{elevation.${level}}`; // resolved to .surfaceStep below
+    } else {
+      out[`elev.surface.${level}`] =
+        level === '0' ? '{theme.light.surface.base}' : '{theme.light.surface.raised}';
+    }
+  }
+  // The hairline that stands in for a shadow edge in dark; nothing in light.
+  out['elev.hairline'] = scheme === 'dark' ? '{theme.dark.border.decorative}' : 'transparent';
+  return out;
+}
+
+/**
+ * Flat role aliases the live Claude Design file names alongside the structured
+ * roles (`action-primary` = `action-primary-bg`, …). Emitted as `var()`
+ * forwards, so an alias can never hold a value of its own.
+ */
+const ROLE_ALIASES = {
+  'action-primary': 'action-primary-bg',
+  'action-primary-pressed': 'action-primary-bg-pressed',
+  'action-secondary': 'action-secondary-bg',
+  'action-secondary-pressed': 'action-secondary-bg-pressed',
+  'action-track-on': 'control-track-on',
+};
 
 /**
  * The two-layer focus ring (01-foundations.md §4.1 / 04-accessibility.md §4.1).
@@ -310,10 +351,17 @@ for (const scheme of SCHEMES) {
     const parts = path.split('.');
     let cursor = extra;
     for (const part of parts.slice(0, -1)) cursor = cursor[part] ??= {};
-    cursor[parts.at(-1)] = resolve(ref);
+    const value = resolve(ref);
+    // A dark elevation resolves to its dual-form object; the role is the surface step.
+    cursor[parts.at(-1)] = value && typeof value === 'object' ? value.surfaceStep : value;
   }
   const { out: ring, report } = focusRoles(scheme);
   ringReports[scheme] = report;
+  // `extra` only adds groups the base theme lacks, so a shallow merge is safe; the
+  // assertion keeps it that way if a component role ever lands in a base group.
+  for (const key of Object.keys(extra)) {
+    if (key in base) throw new Error(`componentRoles would overwrite theme.${scheme}.${key}`);
+  }
   roles[scheme] = { ...base, ...extra, focus: { ...base.focus, ringOn: ring } };
 }
 
@@ -373,6 +421,12 @@ ${Object.entries(ringReports)
   .join('\n')}
  */
 export const roles = ${j(roles)} as const;
+
+/**
+ * Flat aliases the live Claude Design file names next to the structured roles.
+ * Each is a CSS custom property that forwards to the role on the right.
+ */
+export const roleAliases = ${j(ROLE_ALIASES)} as const;
 
 export const tokens = {
   color,
@@ -563,6 +617,9 @@ function roleVars(scheme, indent = '  ') {
   emit('--hg-control', r.control);
   emit('--hg-feedback', r.feedback);
   emit('--hg-skeleton', r.skeleton);
+  emit('--hg-elev', r.elev);
+  for (const [alias, target] of Object.entries(ROLE_ALIASES))
+    out.push(`${indent}--hg-${alias}: var(--hg-${target});`);
   // Default the two focus-ring layers so `.hg-focus` works with no override.
   out.push(`${indent}--hg-focus-ring-color: var(--hg-focus-ring);`);
   out.push(`${indent}--hg-focus-ring-offset: var(--hg-focus-offset);`);
@@ -684,12 +741,295 @@ t.push(forwardColors('action', 'action', roles.light.action).join('\n'));
 t.push(forwardColors('control', 'control', roles.light.control).join('\n'));
 t.push(forwardColors('feedback', 'feedback', roles.light.feedback).join('\n'));
 t.push(forwardColors('skeleton', 'skeleton', roles.light.skeleton).join('\n'));
+t.push(forwardColors('elev', 'elev', roles.light.elev).join('\n'));
+for (const alias of Object.keys(ROLE_ALIASES)) t.push(`  --color-${alias}: var(--hg-${alias});`);
 t.push('  --color-focus-ring: var(--hg-focus-ring);');
 t.push('  --color-transparent: transparent;');
 t.push('  --color-current: currentColor;');
 t.push('}');
 
 const themeCss = t.join('\n') + '\n';
+
+// ---------------------------------------------------------------------------
+// 10b. Emit — grid-theme.css (LyteNyte Grid, themed with our roles)
+// ---------------------------------------------------------------------------
+//
+// LyteNyte Core ships its structure (`grid.css`, every rule scoped under
+// `.ln-grid` inside `@layer ln-grid`) separately from its themes. Its themes
+// (light-dark.css, design.css, …) write ~90 `--ln-*` variables onto :root,
+// load Inter, include a solid green and key dark mode on a `.dark` class we
+// never set — so we never load them. This file is the theme instead: every
+// `--ln-*` variable grid.css reads, pointed at a role, plus the few rules where
+// LyteNyte's own choice breaks ours (focus, selection, header type).
+//
+// It is generated, not hand-kept, so a renamed or removed token fails here at
+// generate time instead of leaving the grid silently unstyled — the failure in
+// https://github.com/shaiknoorullah/hg-mono/issues/145. Every `var()` below
+// goes through `hg()`, which refuses a custom property tokens.css does not
+// declare.
+
+const declared = new Set([...tokensCss.matchAll(/^\s*(--hg-[a-z0-9-]+):/gm)].map((m) => m[1]));
+
+function hg(name) {
+  if (!declared.has(name)) {
+    throw new Error(
+      `grid-theme.css: ${name} is not declared in tokens.css. A token was renamed or removed; ` +
+        'point the LyteNyte variable at the role that replaced it.',
+    );
+  }
+  return `var(${name})`;
+}
+
+/** The focusable parts LyteNyte outlines on :focus (grid.css, last block). */
+const LN_FOCUSABLE =
+  ":is([data-ln-cell='true'], [data-ln-header-cell='true'], [data-ln-header-group='true'], [data-ln-rowtype='full-width'] > div)";
+
+const gridThemeCss = `${BANNER(SOURCE_REL)}
+/*
+ * LyteNyte Grid, themed with HalalGoes roles.
+ *
+ * A grid needs exactly two stylesheets and one class:
+ *
+ *   import '@1771technologies/lytenyte-core/grid.css'; // structure only
+ *   import '@hg/ui-web/grid-theme.css';                 // this file
+ *
+ *   <div className="ln-grid">  <Grid … />  </div>
+ *
+ * Every rule in grid.css is scoped under \`.ln-grid\`. Without that class on an
+ * ancestor of <Grid>, none of it applies and the grid renders unstyled
+ * (https://github.com/shaiknoorullah/hg-mono/issues/145).
+ *
+ * Do not also load one of LyteNyte's themes (light-dark.css, light.css, dark.css,
+ * design.css, …). This file replaces them.
+ *
+ * Deliberately UNLAYERED. grid.css sits in \`@layer ln-grid\`, and an unlayered
+ * rule beats every layer, so these win whichever order the two files load in.
+ * Dark mode needs nothing here: every value is a role, and roles flip on :root.
+ */
+
+/* The variables grid.css reads. Set on the wrapper, never on :root, so nothing
+   leaks into the rest of the page. */
+.ln-grid {
+  --ln-typeface: ${hg('--hg-font-ui')};
+  --ln-font-md: ${hg('--hg-text-body-sm-size')};
+  --ln-padding-horizontal-cell: ${hg('--hg-density-card-padding')};
+  --ln-bg-ui-panel: ${hg('--hg-surface-base')};
+  /* No zebra banding: a second cream reads as a selected row. Rules separate rows. */
+  --ln-bg-row-alternate: ${hg('--hg-surface-base')};
+  --ln-bg-row-hover: ${hg('--hg-state-hover-overlay')};
+  /* LyteNyte's accent. Focus and selection are re-drawn below, so the only thing
+     left reading it is the column-resize handle. */
+  --ln-primary-50: ${hg('--hg-border-interactive')};
+  --ln-text-dark: ${hg('--hg-text-primary')};
+  --ln-text: ${hg('--hg-text-secondary')};
+  --ln-border: ${hg('--hg-border-decorative')};
+  --ln-border-row: ${hg('--hg-border-decorative')};
+  --ln-border-strong: ${hg('--hg-border-interactive')};
+  --ln-border-xstrong: ${hg('--hg-border-strong')};
+
+  /* The frame, as DataTable draws it. The wrapper owns it (rounded, clipped), so
+     the viewport's own square border is dropped below. */
+  border: 1px solid ${hg('--hg-border-decorative')};
+  border-radius: ${hg('--hg-radius-md')};
+  overflow: hidden;
+  background-color: ${hg('--hg-surface-base')};
+}
+
+.ln-grid [data-ln-viewport='true'] {
+  border: 0;
+}
+
+/* grid.css turns text selection off for the whole grid. Body cells turn it back on,
+   so an order code or a name can still be copied. */
+.ln-grid [data-ln-cell='true'] {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+/* Header: DataTable's header — the subtle surface, label type, secondary text. */
+.ln-grid [data-ln-header='true'],
+.ln-grid :is([data-ln-header-cell='true'], [data-ln-header-group='true']) {
+  background-color: ${hg('--hg-surface-subtle')};
+}
+
+.ln-grid :is([data-ln-header-cell='true'], [data-ln-header-group='true']) {
+  color: ${hg('--hg-text-secondary')};
+  font-size: ${hg('--hg-text-label-md-size')};
+  font-weight: ${hg('--hg-text-label-md-weight')};
+  letter-spacing: ${hg('--hg-text-label-md-tracking')};
+}
+
+/* Selected row: a fill, never a bar. LyteNyte paints selection as a translucent
+   overlay in its own blue; the selected tint is opaque, so it goes on the cells
+   (under their text) and the overlay is cleared. */
+.ln-grid [data-ln-row='true'][data-ln-selected='true']::before {
+  background: transparent;
+}
+
+.ln-grid [data-ln-row='true'][data-ln-selected='true'] [data-ln-cell='true'] {
+  background-color: ${hg('--hg-state-selected-tint')};
+}
+
+.ln-grid [data-ln-row='true'][data-ln-selected='true']:hover::before {
+  background: ${hg('--hg-state-hover-overlay')};
+}
+
+/* Focus (docs/decisions/focus-indicator.md): a cell is a borderless control in a
+   clipping container, so it takes the inset two-layer ring — the .hg-focus-inset
+   recipe — on :focus-visible only. LyteNyte draws a 1px ring in its own blue on
+   every :focus, a mouse click included; that one is removed. */
+.ln-grid ${LN_FOCUSABLE}:focus::before {
+  border: 0;
+}
+
+.ln-grid ${LN_FOCUSABLE}:focus-visible {
+  /* Drawn only in forced-colors mode, which strips box-shadow. */
+  outline: 2px solid transparent;
+  outline-offset: -2px;
+}
+
+.ln-grid ${LN_FOCUSABLE}:focus-visible::before {
+  box-shadow:
+    inset 0 0 0 2px ${hg('--hg-focus-ring-offset')},
+    inset 0 0 0 5px ${hg('--hg-focus-ring-color')};
+}
+
+/* The viewport is the grid's one Tab stop; arrow keys move between cells from
+   there. The cells would cover an inset ring, so the ring goes round the frame. */
+.ln-grid [data-ln-viewport='true']:focus-visible {
+  outline: 2px solid transparent;
+}
+
+.ln-grid:has([data-ln-viewport='true']:focus-visible) {
+  box-shadow:
+    0 0 0 2px ${hg('--hg-focus-ring-offset')},
+    0 0 0 5px ${hg('--hg-focus-ring-color')};
+}
+`;
+
+// ---------------------------------------------------------------------------
+// 10c. Emit — shadcn-aliases.css (shadcn/ui's variable names, as our roles)
+// ---------------------------------------------------------------------------
+//
+// shadcn/ui components read a fixed set of variable names (--background,
+// --primary, --accent, …). This file declares each of them as an ALIAS of a
+// role tokens.css already declares: no value is written here, so the redesign
+// cannot drift from the released palette, and a renamed role fails the build
+// through `hg()` instead of leaving a component unstyled.
+//
+// It is NOT imported by styles.css. The released apps keep exactly the CSS they
+// had; a redesign app opts in with
+//
+//   @import '@hg/ui-web/styles.css';
+//   @import '@hg/ui-web/shadcn.css';
+//
+// Mapping: the design-system rebuild plan, §3.2 (#110). Three rules are load-bearing:
+//  - `--accent` is shadcn's hover/selected WASH. Ours is the forest ramp. The
+//    alias goes to state-selected-tint and never to color.accent.*.
+//  - `--muted-foreground` is text-secondary, not text-tertiary (tertiary fails
+//    4.5:1 on raised and sunken surfaces, #167).
+//  - No alias may reach a halal or success solid. Solid green belongs to
+//    color.halal.* alone (invariant 10, lint L-4); the test pins it.
+//
+// Roles the mapping names that tokens.json does not declare yet
+// (surface-chrome-selected, border-on-chrome) are left out rather than
+// approximated; --sidebar-accent and --sidebar-border arrive with them.
+
+/** shadcn variable → our role custom property. Order is the emitted order. */
+const SHADCN_ALIASES = [
+  ['--background', '--hg-surface-base'],
+  ['--foreground', '--hg-text-primary'],
+  ['--card', '--hg-surface-raised'],
+  ['--card-foreground', '--hg-text-primary'],
+  ['--popover', '--hg-surface-raised'],
+  ['--popover-foreground', '--hg-text-primary'],
+  ['--primary', '--hg-action-primary-bg'],
+  ['--primary-foreground', '--hg-action-primary-fg'],
+  ['--secondary', '--hg-action-secondary-bg'],
+  ['--secondary-foreground', '--hg-action-secondary-fg'],
+  ['--muted', '--hg-surface-subtle'],
+  ['--muted-foreground', '--hg-text-secondary'],
+  ['--accent', '--hg-state-selected-tint'],
+  ['--accent-foreground', '--hg-text-primary'],
+  ['--destructive', '--hg-action-danger-bg'],
+  ['--destructive-foreground', '--hg-action-danger-fg'],
+  ['--border', '--hg-border-decorative'],
+  ['--input', '--hg-control-border'],
+  ['--ring', '--hg-focus-ring'],
+  ['--radius', '--hg-radius-md'],
+  ['--sidebar', '--hg-surface-chrome'],
+  ['--sidebar-foreground', '--hg-text-on-accent'],
+  ['--sidebar-primary', '--hg-action-primary-bg'],
+  ['--sidebar-primary-foreground', '--hg-action-primary-fg'],
+  // The chrome is forest; the computed ring for an accent container.
+  ['--sidebar-ring', '--hg-focus-ring-on-accent'],
+  ...[1, 2, 3, 4, 5].map((n) => [`--chart-${n}`, `--hg-color-viz-${n}`]),
+];
+
+/** Live design-system names (unprefixed) for density, re-resolved per scope. */
+const DENSITY_ALIASES = Object.keys(Object.values(density)[0]).map((k) => [
+  `--density-${kebab(k)}`,
+  `--hg-density-${kebab(k)}`,
+]);
+
+/** Colour aliases that become Tailwind utilities (bg-primary, text-muted-foreground, …). */
+const SHADCN_COLOURS = SHADCN_ALIASES.map(([name]) => name).filter((n) => n !== '--radius');
+
+const TEXT_SCALE = 2;
+const typeStyles = flattenTypography(typography);
+
+const shadcnAliasesCss = (() => {
+  const s = [];
+  s.push(BANNER(SOURCE_REL));
+  s.push('/*');
+  s.push(' * shadcn/ui variable names, each an alias of a HalalGoes role. Opt-in:');
+  s.push(' *');
+  s.push(" *   @import '@hg/ui-web/styles.css';");
+  s.push(" *   @import '@hg/ui-web/shadcn.css';");
+  s.push(' *');
+  s.push(' * No values live here; every right-hand side is a role from tokens.css.');
+  s.push(' * `--accent` is the selected wash (state-selected-tint), never the forest');
+  s.push(' * ramp. No alias reaches a halal or success solid (invariant 10, lint L-4).');
+  s.push(' */');
+  s.push('');
+  s.push('/* shadcn `dark:` utilities follow our theme attribute, not the media query. */');
+  s.push('@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));');
+  s.push('');
+  s.push('/* Declared wherever a role can change value, so each alias re-resolves there');
+  s.push('   (a custom property holding var() resolves on the element that declares it). */');
+  s.push(
+    ':root,\n[data-theme],\n' +
+      Object.keys(density)
+        .map((m) => `[data-hg-density="${m}"]`)
+        .join(',\n') +
+      ',\n[data-hg-theme],\n[data-hg-text-scale] {',
+  );
+  for (const [name, role] of SHADCN_ALIASES) s.push(`  ${name}: ${hg(role)};`);
+  s.push('');
+  s.push('  /* Density, under the live design system\'s names. */');
+  for (const [name, role] of DENSITY_ALIASES) s.push(`  ${name}: ${hg(role)};`);
+  s.push('}');
+  s.push('');
+  s.push(`/* Text at ${TEXT_SCALE * 100}% (#194): type sizes scale, spacing and layout do not. */`);
+  s.push(`[data-hg-text-scale="${TEXT_SCALE * 100}"] {`);
+  s.push(`  --hg-text-scale: ${TEXT_SCALE};`);
+  for (const [name, t] of Object.entries(typeStyles)) {
+    hg(`--hg-text-${name}-size`);
+    s.push(`  --hg-text-${name}-size: calc(${rem(t.fontSize)} * var(--hg-text-scale));`);
+    hg(`--hg-text-${name}-line-px`);
+    s.push(`  --hg-text-${name}-line-px: calc(${px(t.lineHeightPx)} * var(--hg-text-scale));`);
+  }
+  s.push('}');
+  s.push('');
+  s.push('/* Tailwind v4 utilities for the aliases. `inline`, so they follow the');
+  s.push('   nearest scope instead of freezing the :root value. */');
+  s.push('@theme inline {');
+  for (const name of SHADCN_COLOURS) s.push(`  --color-${name.slice(2)}: var(${name});`);
+  s.push('');
+  for (const [name] of DENSITY_ALIASES) s.push(`  --spacing-${name.slice(2)}: var(${name});`);
+  s.push('}');
+  return s.join('\n') + '\n';
+})();
 
 // ---------------------------------------------------------------------------
 // 11. Emit — index.ts
@@ -709,6 +1049,8 @@ const artifacts = {
   'themes.ts': themesTs,
   'tokens.css': tokensCss,
   'theme.css': themeCss,
+  'grid-theme.css': gridThemeCss,
+  'shadcn-aliases.css': shadcnAliasesCss,
   'index.ts': indexTs,
 };
 

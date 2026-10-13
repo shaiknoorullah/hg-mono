@@ -1,0 +1,123 @@
+# The off-server copy (#64), on the owner's always-on machine. It pulls: the server holds
+# no credential for this machine, so nothing on the server can erase this history.
+- name: Install restic and jq
+  ansible.builtin.package:
+    name: [restic, jq]
+    state: present
+
+- name: Create the offline copy's folders
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+  loop:
+    - "{{ hg_offline_dir }}"
+    - /etc/hg-offline
+    - /var/lib/hg-offline
+
+- name: Trust the server's SSH host key, read from the server itself
+  ansible.builtin.slurp:
+    src: /etc/ssh/ssh_host_ed25519_key.pub
+  delegate_to: "{{ hg_offline_server }}"
+  register: hg_server_hostkey
+
+- name: Record the server's host key
+  ansible.builtin.known_hosts:
+    path: /root/.ssh/known_hosts
+    name: "{{ hostvars[hg_offline_server].hg_wg_address }}"
+    key: "{{ hostvars[hg_offline_server].hg_wg_address }} {{ (hg_server_hostkey.content | b64decode).split()[:2] | join(' ') }}"
+    state: present
+  when: not ansible_check_mode
+
+- name: Name the server for SSH (the restic source repository uses this name)
+  ansible.builtin.blockinfile:
+    path: /root/.ssh/config
+    create: true
+    owner: root
+    group: root
+    mode: "0600"
+    marker: "# {mark} HalalGoes backup pull (deploy/host/roles/offline_copy)"
+    block: |
+      Host hg-backup-server
+        HostName {{ hostvars[hg_offline_server].hg_wg_address }}
+        User {{ hg_pull_user }}
+        IdentityFile /root/.ssh/hg-pull
+        IdentitiesOnly yes
+        BatchMode yes
+        ConnectTimeout 15
+
+- name: Write the passwords and settings, readable by root only
+  ansible.builtin.copy:
+    content: "{{ item.content }}"
+    dest: "/etc/hg-offline/{{ item.dest }}"
+    owner: root
+    group: root
+    mode: "0600"
+  loop:
+    - {dest: source.pass, content: "{{ hg_restic_password }}\n"}
+    - {dest: repo.pass, content: "{{ hg_offline_restic_password }}\n"}
+    - {dest: pgbackrest-cipher.env, content: "PGBACKREST_REPO1_CIPHER_PASS={{ hg_pgbackrest_cipher_pass }}\n"}
+  loop_control:
+    label: "{{ item.dest }}"
+  no_log: true
+  diff: false
+
+- name: Write the pull and drill settings
+  ansible.builtin.template:
+    src: backup.conf.j2
+    dest: /etc/hg-offline/backup.conf
+    owner: root
+    group: root
+    mode: "0600"
+
+- name: Install the pull script, and the restore drill for running against this copy
+  ansible.builtin.copy:
+    src: "{{ item.src }}"
+    dest: "/usr/local/sbin/{{ item.dest }}"
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - {src: hg-offline-pull, dest: hg-offline-pull}
+    - {src: "{{ role_path }}/../backup/files/hg-restore-drill", dest: hg-restore-drill}
+  loop_control:
+    label: "{{ item.dest }}"
+
+- name: Create this machine's own restic repository (same chunking, so copies stay small)
+  ansible.builtin.command: >-
+    restic init --repository-version 2 --copy-chunker-params
+    --from-repo sftp:hg-backup-server:/restic --from-password-file /etc/hg-offline/source.pass
+  environment:
+    RESTIC_REPOSITORY: "{{ hg_offline_repo }}"
+    RESTIC_PASSWORD_FILE: /etc/hg-offline/repo.pass
+  args:
+    creates: "{{ hg_offline_repo }}/config"
+
+- name: Install the hourly pull
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "/etc/systemd/system/{{ item }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - hg-offline-pull.service
+    - hg-offline-pull.timer
+  notify: Reload systemd
+
+- name: Apply systemd changes before enabling the timer
+  ansible.builtin.meta: flush_handlers
+
+- name: Pull whenever this machine is on
+  ansible.builtin.systemd_service:
+    name: hg-offline-pull.timer
+    enabled: true
+    state: started
+  # On a fresh machine in check mode the unit is not installed yet.
+  ignore_errors: "{{ ansible_check_mode }}"
+
+- name: Set up the outside watcher
+  ansible.builtin.include_tasks: watcher.yml
+  when: hg_offline_watcher

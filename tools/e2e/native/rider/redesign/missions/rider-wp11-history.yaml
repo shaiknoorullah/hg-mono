@@ -1,0 +1,45 @@
+id: rider-wp11-history
+app: rider
+avd: hg_rider
+api: devworld
+build:
+  env: { EXPO_PUBLIC_HG_REDESIGN: "1" }
+  note: "Clear the Metro cache when building (EXPO_PUBLIC_* is inlined at transform time; a warm cache from a flag-off build serves the legacy app)."
+setup:
+  - "make dev-reset"
+  # One delivery driven end to end so rider-sim has a DELIVERY line and its assignment to open.
+  - "make dev-journey route=short speed=max auto=all"
+reality:
+  - theme: dark
+  - font-scale: 2.0
+flows: [ "tools/e2e/native/rider/redesign/lab/11-history.yaml" ]
+explore: >
+  The flow runs in dark mode at 200% text. After it passes, with rider-sim signed in:
+  (1) Deliveries: compare each row's amount with GET /v1/riders/me/earnings/entries?type=DELIVERY
+  (the rider's token from the API log): every row is its line's gross_cents exactly, nothing is
+  summed; times read 12-hour ("9:12 pm"); rows lead with time and distance, the order code
+  second. At 200% the amount drops under the two text lines and nothing is clipped (report the
+  AppBar title truncation, a known DS gap).
+  (2) The delivery: the drop-off is the street only (no house number, no unit, no buzzer, no
+  customer name, no phone); the times match the assignment's assigned_at, arrived_pickup_at,
+  picked_up_at, arrived_dropoff_at and delivered_at; "See how it was worked out" opens the line
+  with "Back to Delivery", and the line has no "Delivery details" link.
+  (3) Earnings › Earnings activity › the delivery line › "Delivery details": the same delivery with
+  "Back to Delivery earnings"; its card goes back to the line.
+  (4) Airplane mode on (`adb shell cmd connectivity airplane-mode enable`), reopen Deliveries:
+  "You're offline" with the saved time and the rows kept; open a row: "You're offline" with
+  "See what it earned", which opens the line. Airplane mode off, Try again loads it.
+  (5) Documents: Download a copy twice: the API log shows two GET /v1/documents/{id}/download-url
+  (never reused); wait two minutes on the screen: "The download link has closed" with "Get a new
+  link". If rider-sim has an insurance expiring within 30 days (needs a seed; else skip),
+  "Add new insurance" → Take a new photo → the emulator's virtual scene → type an expiry 90 days
+  away → Use this photo: the API log shows POST /v1/uploads, the PUT, confirm and POST
+  /v1/riders/me/documents with expires_on, and the screen reads "Send your new insurance" with
+  Send for review disabled (submitRiderDocuments after approval is Needs API).
+  (6) What's new: build once more with APP_VERSION=1.4.0 (dev env) and relaunch: on Home, offline
+  and not on a delivery, the What's new sheet shows "New in version 1.4.0"; Got it closes it; it
+  returns on the next launch (memory storage until AsyncStorage lands, an open problem). Start a
+  delivery (`make dev-journey ... auto=none`) before relaunching: the sheet does not open over the
+  trip.
+  (7) Light mode (`adb shell cmd uimode night no`) and font_scale 1.0: screenshot Deliveries, the
+  delivery and a document. Nothing is solid green, no state is red, no halal badge anywhere.
