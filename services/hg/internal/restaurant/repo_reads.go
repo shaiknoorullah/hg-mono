@@ -137,13 +137,83 @@ func (r *Repo) GetOnboardingStatus(ctx context.Context, restaurantID string) (*O
 	}
 	pct := (checks * 100) / 6
 
-	return &OnboardingStatus{
+	out := &OnboardingStatus{
 		OnboardingState: state,
 		AccountState:    accountState,
 		CurrentStep:     onboardingCurrentStep(state, steps),
 		ProgressPercent: pct,
 		StepsCompleted:  steps,
-	}, nil
+	}
+
+	// The review cycle is the application's submission count.
+	var cycle int
+	if err := r.db.QueryRow(ctx,
+		`SELECT submission_count FROM restaurant_application WHERE restaurant_id = $1`,
+		restaurantID).Scan(&cycle); err == nil {
+		out.ReviewCycle = &cycle
+	} else if !errors.Is(err, pgx.ErrNoRows) {
+		return nil, fmt.Errorf("get review cycle: %w", err)
+	}
+
+	if state == "DOCUMENTS_REJECTED" {
+		rej, err := r.getOnboardingRejection(ctx, restaurantID)
+		if err != nil {
+			return nil, err
+		}
+		out.Rejection = rej
+		if rej != nil {
+			out.BlockingReason = rej.Note
+		}
+	}
+	return out, nil
+}
+
+// getOnboardingRejection reads the admin's decision on the application: whether
+// it was sent back for changes or finally rejected, the reason code, the reason
+// text the admin wrote (sent to the owner verbatim; the internal note is never
+// stored here) and the documents that need redoing. Nil when no decision is on
+// record.
+func (r *Repo) getOnboardingRejection(ctx context.Context, restaurantID string) (*OnboardingRejection, error) {
+	rej := &OnboardingRejection{Documents: []DocumentRow{}}
+	err := r.db.QueryRow(ctx, `
+		SELECT ra.decision::text, ra.reject_reason_code::text,
+		       (SELECT t.reason FROM restaurant_onboarding_transition t
+		         WHERE t.restaurant_id = ra.restaurant_id AND t.to_state = 'DOCUMENTS_REJECTED'
+		         ORDER BY t.at DESC, t.id DESC LIMIT 1)
+		  FROM restaurant_application ra
+		 WHERE ra.restaurant_id = $1 AND ra.decision IN ('REJECT','REQUEST_CHANGES')`,
+		restaurantID).Scan(&rej.Decision, &rej.ReasonCode, &rej.Note)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("get onboarding rejection: %w", err)
+	}
+
+	// Only the latest document of each type counts: a re-upload adds a row and
+	// leaves the replaced one, which must not be listed as still needing a fix.
+	rows, err := r.db.Query(ctx, `
+		SELECT `+documentColumns+`
+		  FROM kyc_document d
+		 WHERE d.id IN (
+		         SELECT DISTINCT ON (k.restaurant_doc_type) k.id
+		           FROM kyc_document k
+		          WHERE k.subject_id = $1 AND k.subject_type = 'RESTAURANT' AND k.deleted_at IS NULL
+		          ORDER BY k.restaurant_doc_type, k.created_at DESC, k.id DESC)
+		   AND d.state IN ('REJECTED','EXPIRED')
+		 ORDER BY d.created_at DESC`, restaurantID)
+	if err != nil {
+		return nil, fmt.Errorf("get rejected documents: %w", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		d, err := scanDocument(rows)
+		if err != nil {
+			return nil, err
+		}
+		rej.Documents = append(rej.Documents, d)
+	}
+	return rej, rows.Err()
 }
 
 // onboardingCurrentStep derives the current_step enum (contract:

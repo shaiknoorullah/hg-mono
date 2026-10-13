@@ -1,44 +1,18 @@
-# Rider redesign WP9: the Account tab. Sign in as rider-sim (ACTIVE, payouts set up), open
-# Account › Payouts, come back, sign out, and land on sign-in. Built with
-# EXPO_PUBLIC_HG_REDESIGN=1 and a cleared Metro cache (EXPO_PUBLIC_* is inlined at transform time).
-#
-# Sign-in uses either copy (legacy fallback until WP1 merges, or WP1's "Sign in or apply to ride").
-# Env: PHONE (default rider-sim +15550100151; dev codes for +1 555 010 01xx are always 000000).
+# Rider redesign WP9: the Account tab. Open Account › Payouts, come back, sign out, and land on
+# sign-in. It signs out, so it runs last (name order). Built with EXPO_PUBLIC_HG_REDESIGN=1 and a
+# cleared Metro cache (EXPO_PUBLIC_* is inlined at transform time).
 appId: com.halalgoes.rider.dev
 name: rider redesign, account and payouts
-env:
-  PHONE: "+15550100151"
 ---
+# Signed in by 1-sign-in.yaml, which runs before this flow (flows run in name order). The app
+# keeps running between flows, so its in-memory session holds. Run alone, run 1-sign-in.yaml first.
 - launchApp:
-    clearState: true
-    permissions:
-      all: allow
-- extendedWaitUntil:
-    visible: "Rider sign in|Sign in or apply to ride"
-    timeout: 90000
-- tapOn:
-    text: "Phone number.*|Mobile number"
-    optional: true
-- tapOn:
-    below: "Phone number .*"
-    above: "Send code"
-    optional: true
-- inputText: ${PHONE}
-- tapOn: "Send code"
-- extendedWaitUntil:
-    visible: "Enter the code sent to.*|Enter your code"
-    timeout: 30000
-- tapOn:
-    below: "Enter the code sent to.*"
-    above: "Verify"
-    optional: true
-- inputText: "000000"
-- tapOn:
-    text: "Verify"
-    optional: true
+    stopApp: false
 - extendedWaitUntil:
     visible: "Earnings"
-    timeout: 60000
+    timeout: 30000
+- tapOn:
+    id: "tab-home"
 
 # Account overview (PA/Account-Overview).
 - tapOn:

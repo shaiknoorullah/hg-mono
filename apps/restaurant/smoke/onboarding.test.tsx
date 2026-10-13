@@ -7,6 +7,7 @@ import profilePending from '../../../contracts/fixtures/onboarding/restaurant_on
 import documentsPending from '../../../contracts/fixtures/onboarding/restaurant_onboarding_documents_pending.json';
 import documentsReview from '../../../contracts/fixtures/onboarding/restaurant_onboarding_documents_review.json';
 import documentsRejected from '../../../contracts/fixtures/onboarding/restaurant_onboarding_documents_rejected.json';
+import applicationRejected from '../../../contracts/fixtures/onboarding/restaurant_onboarding_application_rejected.json';
 import documentsApproved from '../../../contracts/fixtures/onboarding/restaurant_onboarding_documents_approved.json';
 import payoutPending from '../../../contracts/fixtures/onboarding/restaurant_onboarding_payout_pending.json';
 import menuPending from '../../../contracts/fixtures/onboarding/restaurant_onboarding_menu_pending.json';
@@ -170,6 +171,7 @@ describe('restaurant onboarding', () => {
 
     expect(await screen.findByText('Documents need attention')).not.toBeNull();
     expect(container.textContent).toContain('Review cycle 2');
+    expect(screen.getByTestId('decision-reason').textContent).toContain(documentsRejected.payload.rejection.note);
     for (const doc of documentsRejected.payload.rejection.documents) {
       expect(screen.getByText(doc.doc_type)).not.toBeNull();
       expect(screen.getByText(doc.review_note)).not.toBeNull();
@@ -178,6 +180,17 @@ describe('restaurant onboarding', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Go to documents' }));
     expect(await screen.findByText('Compliance documents')).not.toBeNull();
     expect(statusCalls(calls)).toBe(2);
+  });
+
+  it("shows the admin's reason, and a rejection offers no resubmission (#695)", async () => {
+    scriptFetch({ 'GET /v1/restaurant/onboarding/status': statusOf(applicationRejected) });
+
+    await mountAt('/onboarding');
+
+    expect(await screen.findByText('Application not approved')).not.toBeNull();
+    expect(screen.getByTestId('decision-reason').textContent).toContain(applicationRejected.payload.rejection.note);
+    expect(screen.getByTestId('decision-reason').textContent).toContain('Halal certification invalid');
+    expect(screen.queryByRole('button', { name: 'Go to documents' })).toBeNull();
   });
 
   it('payout step: creates the Connect account, then sends the browser to the server-minted link', async () => {

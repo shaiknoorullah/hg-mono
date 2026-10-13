@@ -1,17 +1,22 @@
 ---
 covers:
   - apps/restaurant/src/**
-reviewed: 2026-10-09
+reviewed: 2026-10-11
 ---
 
 # Restaurant app — live updates and rider map
+
+> Update 2026-10-11: the onboarding review screen now shows the admin's reason from `GET /v1/restaurant/onboarding/status` (`rejection.decision`, `reason_code`, `note`), and a `REJECT` offers no resubmission on screen ([#695](https://github.com/shaiknoorullah/hg-mono/issues/695)).
 
 **Status:** design approved 2026-09-28 · **Kind:** product feature (`apps/restaurant`)
 > **2026-10-09:** the redesigned new-order strip (behind `VITE_HG_REDESIGN`,
 > `apps/restaurant/src/redesign/strip/`) follows the same rules: it listens on
 > `restaurant:{restaurant_id}` for offered, expired, withdrawn, accepted and rejected offers,
 > treats each event as a signal to re-read the order over REST, and polls the pending list every
-> 10 seconds whenever the socket is not open.
+> 10 seconds whenever the socket is not open. The redesigned Live orders board
+> (`src/redesign/orders/`) subscribes to `order:{order_id}` for each row on screen; order and
+> dispatch events (rider assigned, rider here, picked up, cancelled) update the row and are kept
+> only while the page is open, because the REST view does not carry them after a reload.
 
 **Companion spec:** [`2026-09-28-devworld-harness-design.md`](2026-09-28-devworld-harness-design.md) — the dev/QA harness used for this feature's end-to-end acceptance.
 

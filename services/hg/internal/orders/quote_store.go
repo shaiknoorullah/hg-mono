@@ -70,28 +70,21 @@ func (s *Store) resolve(ctx context.Context, tx pgx.Tx, req QuoteRequest) (resol
 	if err := LockOrderableRestaurant(ctx, tx, restaurantID); err != nil {
 		return rc, err
 	}
+	// Open now: hours, toggle, pause, order screen, and the payout run's block
+	// on a restaurant whose balance stayed below zero too long (open_now.go).
+	if err := refuseClosedRestaurant(ctx, tx, restaurantID); err != nil {
+		return rc, err
+	}
 
 	// The restaurant, read under that lock.
 	var province, taxRole string
 	var commissionBps int
-	var acceptingOrders, negativeBalanceBlock bool
-	// negativeBalanceBlock: the weekly payout run blocks new orders for a
-	// restaurant whose payout balance has stayed below zero too long
-	// (restaurant_collection, internal/payments/payout_run.go). Whether to
-	// block at all is the owner's open question, so the limit is
-	// HG_RESTAURANT_NEGATIVE_BALANCE_BLOCK_DAYS:
-	// https://github.com/shaiknoorullah/hg-mono/issues/164.
 	err = tx.QueryRow(ctx, `
-		SELECT is_accepting_orders, COALESCE(province::text, ''), commission_rate_bps, tax_role,
-		       EXISTS (SELECT 1 FROM restaurant_collection rc
-		                WHERE rc.restaurant_id = restaurant.id AND rc.closed_at IS NULL)
+		SELECT COALESCE(province::text, ''), commission_rate_bps, tax_role
 		  FROM restaurant WHERE id = $1`,
-		restaurantID).Scan(&acceptingOrders, &province, &commissionBps, &taxRole, &negativeBalanceBlock)
+		restaurantID).Scan(&province, &commissionBps, &taxRole)
 	if err != nil {
 		return rc, fmt.Errorf("resolve restaurant: %w", err)
-	}
-	if !acceptingOrders || negativeBalanceBlock {
-		return rc, ErrRestaurantClosed
 	}
 	rc.cartID = req.CartID
 	rc.restaurantID = restaurantID
@@ -277,11 +270,20 @@ func (s *Store) resolve(ctx context.Context, tx pgx.Tx, req QuoteRequest) (resol
 	// geography columns, not a fabricated constant. It is recorded as FALLBACK.
 	billableKM, routeMeters, routeSource := 0, 0, "FALLBACK"
 	if req.Fulfilment == "DELIVERY" && req.DeliveryAddressID != nil {
-		m, ok, err := s.straightLineMeters(ctx, tx, restaurantID, *req.DeliveryAddressID)
+		m, radius, ok, err := s.straightLineMeters(ctx, tx, restaurantID, *req.DeliveryAddressID)
 		if err != nil {
 			return rc, err
 		}
 		if ok {
+			// Serviceability (C-14): the same measure and boundary as the
+			// restaurant card's OUT_OF_RANGE (catalog/availabilityinfo.go),
+			// so the card and the quote cannot disagree. Quoting and
+			// createOrder both resolve here, so neither can price or place a
+			// delivery beyond the restaurant's delivery_radius_m.
+			// https://github.com/shaiknoorullah/hg-mono/issues/723
+			if m > radius {
+				return rc, ErrAddressOutOfRange
+			}
 			routeMeters = m
 			billableKM = (m + 999) / 1000 // ceil(km)
 		}
@@ -386,20 +388,22 @@ func (s *Store) loadTaxRates(ctx context.Context, tx pgx.Tx, jurisdiction string
 }
 
 // straightLineMeters returns the geodesic distance restaurant→address using
-// PostGIS ST_Distance over the geography columns. This is the eligibility
-// distance; a routing sibling will replace it for money once it exists.
-func (s *Store) straightLineMeters(ctx context.Context, tx pgx.Tx, restaurantID, addressID string) (int, bool, error) {
-	var meters *float64
-	err := tx.QueryRow(ctx, `
-		SELECT ST_Distance(r.location, a.location)
+// PostGIS ST_Distance over the geography columns, rounded to whole metres
+// exactly as discovery's distance_m is (ST_Distance(...)::int), together with
+// the restaurant's delivery_radius_m. The distance is the eligibility measure;
+// a routing sibling will replace it for money once it exists.
+func (s *Store) straightLineMeters(ctx context.Context, tx pgx.Tx, restaurantID, addressID string) (meters, radiusM int, ok bool, err error) {
+	var m *int
+	err = tx.QueryRow(ctx, `
+		SELECT ST_Distance(r.location, a.location)::int, r.delivery_radius_m
 		  FROM restaurant r, address a
 		 WHERE r.id = $1 AND a.id = $2 AND r.location IS NOT NULL`,
-		restaurantID, addressID).Scan(&meters)
-	if errors.Is(err, pgx.ErrNoRows) || meters == nil {
-		return 0, false, nil
+		restaurantID, addressID).Scan(&m, &radiusM)
+	if errors.Is(err, pgx.ErrNoRows) || (err == nil && m == nil) {
+		return 0, 0, false, nil
 	}
 	if err != nil {
-		return 0, false, fmt.Errorf("distance: %w", err)
+		return 0, 0, false, fmt.Errorf("distance: %w", err)
 	}
-	return int(*meters + 0.5), true, nil
+	return *m, radiusM, true, nil
 }

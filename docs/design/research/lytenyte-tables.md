@@ -2,7 +2,7 @@
 covers:
   - packages/ui-web/src/**
   - apps/admin/src/**
-reviewed: 2026-10-09
+reviewed: 2026-10-10
 ---
 
 # DataTable on LyteNyte Grid, and the cell component set — spec draft
@@ -233,7 +233,7 @@ These rules apply to every cell:
 ### 5.4 `TimeCell` (absolute time; relative only as a secondary)
 - **Props:** `at: string` (RFC-3339), `mode?: 'absolute' | 'absolute+relative'`, `serverNow?: string`
 - **When to use:** `placed_at`, `submitted_at`, `last_login_at`, `paid_at`.
-- **Rule:** the [`DataTable` spec](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/design/02-components.md#24-datatable-admin) says "dates absolute + a relative tooltip". The visible text is absolute ("28 Sep, 14:05"). The relative form ("12 min ago") appears only in a tooltip or as a secondary line. **Certificate `expires_on` is always absolute and never relative** (the [`HalalBadge` spec](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/design/02-components.md#12-halalbadge-): "Never 'expires in 7 months'").
+- **Rule:** the [`DataTable` spec](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/design/02-components.md#24-datatable-admin) says "dates absolute + a relative tooltip". The visible text is absolute ("28 Sep, 14:05"). The relative form ("12 min ago") appears only in a tooltip or as a secondary line. **Certificate `expires_on` is always absolute and never relative** (the [`HalalBadge` spec](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/design/02-components.md#12-halalbadge-): "Never 'expires in 7 months'"). A date-time shows its America/Toronto day and time; a calendar date (`expires_on`) is shown as written.
 - **Accessibility:** `<time dateTime>`. The accessible name is the full absolute date and time.
 - **Tokens:** `text.primary`, `text.tertiary` for the secondary line, `numeric.tabular`.
 
