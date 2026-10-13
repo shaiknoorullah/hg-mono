@@ -32,7 +32,7 @@ This playbook tests role-based permission boundaries across Owner, Manager, and 
 ## 2. Manager Role: Operations Permitted, Payouts Restricted
 
 1. **Browser action**:
-   - Sign in with manager credentials.
+   - Sign in as the manager (`bismillah-manager@seed.hg`).
    - Verify ability to view `/orders`, update `/menu`, and edit `/hours`.
    - Navigate to `/payouts`.
 2. **Visible assertion**:
