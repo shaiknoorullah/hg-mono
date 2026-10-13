@@ -1,0 +1,27 @@
+{
+  "scenario": "error_waitlist_consent_missing",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`422` · `VALIDATION_FAILED`. Canada's anti-spam law (CASL) needs express consent as an affirmative act, so `consent` must be `true`. Nothing is stored.",
+  "operations": [
+    "joinWaitlist"
+  ],
+  "status": 422,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "VALIDATION_FAILED",
+      "message": "Please tick the box so we're allowed to contact you.",
+      "request_id": "1V6EFYTR4KB42N3NHVQ6PJFZQ2",
+      "details": [
+        {
+          "field": "consent",
+          "code": "const",
+          "message": "Consent must be given; an unticked box is a no."
+        }
+      ]
+    }
+  }
+}
