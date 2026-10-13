@@ -1,0 +1,66 @@
+{
+  "scenario": "realtime_restaurant_offer_expired",
+  "domain": "realtime",
+  "schema": "RealtimeEvent[]",
+  "describes": "An offer seen with 15 seconds of its window left (as after a reconnect), then `restaurant.order_offer_expired {reason: timeout}` when it runs out. The server ends the offer; the customer was not charged. Accepting after this is `409 OFFER_EXPIRED` (`error_offer_expired`).",
+  "operations": [],
+  "status": 200,
+  "tags": [
+    "realtime",
+    "script",
+    "restaurant",
+    "error-path"
+  ],
+  "payload": [
+    {
+      "id": "GJDAE2RQD8716KF5AWWTETZFM5",
+      "seq": 1,
+      "channel": "restaurant:a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+      "type": "restaurant.order_offered",
+      "v": 1,
+      "ts": "2026-08-10T18:42:11.412Z",
+      "data": {
+        "order_id": "11cd6318-418f-4301-af7e-3e7f33818fa8",
+        "code": "HG-A7K2-4M",
+        "expires_at": "2026-08-10T18:42:26.412Z",
+        "deadline_at": "2026-08-10T18:42:26.412Z",
+        "customer_first_name": "Ayesha",
+        "lines": [
+          {
+            "name": "Chicken Biryani",
+            "variant": null,
+            "addons": [],
+            "qty": 2,
+            "note": null
+          },
+          {
+            "name": "Garlic Naan",
+            "variant": null,
+            "addons": [],
+            "qty": 2,
+            "note": null
+          }
+        ],
+        "subtotal_cents": 3298,
+        "total_cents": 4369,
+        "currency": "CAD",
+        "prep_eta_suggestion_min": 20,
+        "fulfilment": "DELIVERY"
+      },
+      "_delay_ms": 0
+    },
+    {
+      "id": "BTHYB1N3Y2D77DC62KENJCPQAG",
+      "seq": 2,
+      "channel": "restaurant:a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+      "type": "restaurant.order_offer_expired",
+      "v": 1,
+      "ts": "2026-08-10T18:42:26.412Z",
+      "data": {
+        "order_id": "11cd6318-418f-4301-af7e-3e7f33818fa8",
+        "reason": "timeout"
+      },
+      "_delay_ms": 15000
+    }
+  ]
+}

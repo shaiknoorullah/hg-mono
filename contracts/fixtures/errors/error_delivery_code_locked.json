@@ -1,0 +1,20 @@
+{
+  "scenario": "error_delivery_code_locked",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`423` · `DELIVERY_CODE_LOCKED`. **Limit reached.** The fifth wrong delivery code locks it for this order and hands the order to support (`HANDOVER_CODE_LOCKED` on `admin:ops`). There is no photo fallback: support or an admin confirms the delivery with `overrideHandoverCode` (see `handover_override_delivery`).",
+  "operations": [
+    "submitProofOfDelivery"
+  ],
+  "status": 423,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "DELIVERY_CODE_LOCKED",
+      "message": "Too many wrong codes. HalalGoes support is taking over this delivery; please stay with the order.",
+      "request_id": "9JSEBKQ9PBDC20C8T2RH984WVP"
+    }
+  }
+}

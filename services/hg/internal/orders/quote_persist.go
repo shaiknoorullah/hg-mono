@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -40,6 +41,12 @@ func (s *Store) CreateQuote(ctx context.Context, req QuoteRequest) (*Quote, erro
 		}
 		for _, l := range res.Lines {
 			cl := canonicalLine{MenuItemID: l.MenuItemID, VariantID: l.VariantID, Quantity: l.Quantity, SpecialRequest: l.SpecialRequest}
+			if len(l.Variants) > 1 {
+				for _, v := range l.Variants {
+					cl.VariantIDs = append(cl.VariantIDs, v.VariantID)
+				}
+				sort.Strings(cl.VariantIDs)
+			}
 			for _, a := range l.Addons {
 				cl.Addons = append(cl.Addons, canonicalAddon{AddonID: a.AddonID, Quantity: a.AddonQuantity})
 			}
@@ -145,6 +152,11 @@ func (s *Store) persistQuote(ctx context.Context, tx pgx.Tx, req QuoteRequest, r
 		if err != nil {
 			return nil, fmt.Errorf("insert quote_line: %w", err)
 		}
+		for i, v := range l.Variants {
+			if err := insertLineVariant(ctx, tx, quoteLineVariants, quoteID, l.LineNo, i+1, v); err != nil {
+				return nil, err
+			}
+		}
 		for _, a := range l.Addons {
 			_, err := tx.Exec(ctx, `
 				INSERT INTO quote_line_addon (quote_id, line_no, addon_id, addon_name, addon_quantity, addon_price_cents)
@@ -244,7 +256,12 @@ func (s *Store) loadQuoteTx(ctx context.Context, tx pgx.Tx, quoteID, accountID s
 	}
 	lineRows.Close()
 
+	variants, err := loadLineVariantSnapshots(ctx, tx, quoteLineVariants, quoteID)
+	if err != nil {
+		return nil, err
+	}
 	for i := range q.Lines {
+		q.Lines[i].Variants = variants[q.Lines[i].LineNo]
 		aRows, err := tx.Query(ctx, `
 			SELECT addon_id, addon_name, addon_quantity, addon_price_cents
 			  FROM quote_line_addon WHERE quote_id = $1 AND line_no = $2 ORDER BY addon_id`,

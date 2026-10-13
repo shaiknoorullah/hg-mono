@@ -1,0 +1,122 @@
+{
+  "scenario": "realtime_order_delivery_code_locked",
+  "domain": "realtime",
+  "schema": "RealtimeEvent[]",
+  "describes": "A met handover where **five wrong delivery codes** hand the order to support. The rider's fifth wrong code (`error_delivery_code_locked`) raises `HANDOVER_CODE_LOCKED` on `admin:ops`, which names the order and the handover, never the code. Support checks with the customer and confirms the delivery with `overrideHandoverCode` (`handover_override_delivery`): the order moves to `DELIVERED` with `actor_kind: SUPPORT` and the reason. The rider never had a fallback of their own.",
+  "operations": [],
+  "status": 200,
+  "tags": [
+    "realtime",
+    "script",
+    "delivery-code",
+    "admin",
+    "error-path"
+  ],
+  "payload": [
+    {
+      "id": "4Y6HRW5CB2DTFHKPXJ0A4KPHEV",
+      "seq": 1,
+      "channel": "order:1362e3e3-2975-4d34-a104-c54b647b6f5e",
+      "type": "order.state_changed",
+      "v": 1,
+      "ts": "2026-08-10T18:42:11.412Z",
+      "data": {
+        "order_id": "1362e3e3-2975-4d34-a104-c54b647b6f5e",
+        "from": "READY_FOR_PICKUP",
+        "to": "PICKED_UP",
+        "at": "2026-08-10T18:42:11.412Z",
+        "reason": null,
+        "actor_kind": "RIDER",
+        "deadline_at": "2026-08-10T18:56:11.412Z",
+        "eta_at": "2026-08-10T18:54:11.412Z"
+      },
+      "_delay_ms": 0
+    },
+    {
+      "id": "G0SDH0MMM9S44JA4BFY49ERT73",
+      "seq": 2,
+      "channel": "order:1362e3e3-2975-4d34-a104-c54b647b6f5e",
+      "type": "rider.location",
+      "v": 1,
+      "ts": "2026-08-10T18:42:16.412Z",
+      "data": {
+        "order_id": "1362e3e3-2975-4d34-a104-c54b647b6f5e",
+        "lat": 43.646,
+        "lng": -79.377,
+        "heading_deg": 226.0,
+        "speed_mps": 5.2,
+        "accuracy_m": 8.0,
+        "recorded_at": "2026-08-10T18:42:16.412Z"
+      },
+      "_delay_ms": 5000
+    },
+    {
+      "id": "ETP23BCP68Q3KH0TF5BP5F8XTC",
+      "seq": 3,
+      "channel": "order:1362e3e3-2975-4d34-a104-c54b647b6f5e",
+      "type": "order.state_changed",
+      "v": 1,
+      "ts": "2026-08-10T18:42:20.412Z",
+      "data": {
+        "order_id": "1362e3e3-2975-4d34-a104-c54b647b6f5e",
+        "from": "PICKED_UP",
+        "to": "ARRIVED",
+        "at": "2026-08-10T18:42:20.412Z",
+        "reason": null,
+        "actor_kind": "RIDER",
+        "deadline_at": "2026-08-10T18:47:11.412Z",
+        "eta_at": "2026-08-10T18:43:11.412Z"
+      },
+      "_delay_ms": 9000
+    },
+    {
+      "id": "H17AJW7DZZW13CWBTT56B5CBRN",
+      "seq": 4,
+      "channel": "order:1362e3e3-2975-4d34-a104-c54b647b6f5e",
+      "type": "order.rider_arrived",
+      "v": 1,
+      "ts": "2026-08-10T18:42:20.412Z",
+      "data": {
+        "order_id": "1362e3e3-2975-4d34-a104-c54b647b6f5e",
+        "at": "2026-08-10T18:42:20.412Z"
+      },
+      "_delay_ms": 9000
+    },
+    {
+      "id": "SZY63S0F2T5WQJHQFREMFBFKK6",
+      "seq": 1,
+      "channel": "admin:ops",
+      "type": "admin.alert",
+      "v": 1,
+      "ts": "2026-08-10T18:42:25.412Z",
+      "data": {
+        "severity": "WARNING",
+        "kind": "HANDOVER_CODE_LOCKED",
+        "subject_type": "ORDER",
+        "subject_id": "1362e3e3-2975-4d34-a104-c54b647b6f5e",
+        "message": "Five wrong delivery codes at a met handover. The delivery is with support.",
+        "at": "2026-08-10T18:42:25.412Z"
+      },
+      "_delay_ms": 14000
+    },
+    {
+      "id": "E6W5JQ5J1745EK02ZPGC5DR02E",
+      "seq": 5,
+      "channel": "order:1362e3e3-2975-4d34-a104-c54b647b6f5e",
+      "type": "order.state_changed",
+      "v": 1,
+      "ts": "2026-08-10T18:43:46.412Z",
+      "data": {
+        "order_id": "1362e3e3-2975-4d34-a104-c54b647b6f5e",
+        "from": "ARRIVED",
+        "to": "DELIVERED",
+        "at": "2026-08-10T18:43:46.412Z",
+        "reason": "Delivery confirmed by support: called the customer, who has the order.",
+        "actor_kind": "SUPPORT",
+        "deadline_at": "2026-08-10T19:12:11.412Z",
+        "eta_at": null
+      },
+      "_delay_ms": 95000
+    }
+  ]
+}

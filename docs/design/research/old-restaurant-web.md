@@ -1,7 +1,7 @@
 ---
 covers:
   - apps/restaurant/src/**
-reviewed: 2026-10-09
+reviewed: 2026-10-11
 ---
 
 # What the old restaurant web app teaches the redesign
@@ -11,7 +11,11 @@ reviewed: 2026-10-09
 > ([#89](https://github.com/shaiknoorullah/hg-mono/issues/89), tracking
 > [#658](https://github.com/shaiknoorullah/hg-mono/issues/658)). Until a redesigned screen lands, the
 > redesign hosts the legacy screen for that route inside the new shell. This brief still describes
-> the old Next.js app and what the redesign takes from it; nothing below changes.
+> the old Next.js app and what the redesign takes from it; nothing below changes. The new-order
+> strip (accept, decline with a reason, the order sound and the go-live gate) is redesigned in
+> `src/redesign/strip/`. The Live orders board (In progress list, order panel, Mark ready and the
+> pickup code), the service status bar and the halal banners are in `src/redesign/orders/` and
+> `src/redesign/status/`.
 
 > **2026-10-05:** the new app adds what the old one never had — a live "rider approaching" map on
 > accepted orders, drawn from the coarse realtime position
@@ -649,7 +653,7 @@ Each is a `Card` with `Price`, and each blank shows "—" rather than an invente
 - The **halal certificate row shows `HalalBadge` UNVERIFIED** (dashed and neutral) until it is approved. Never green before approval, never red after rejection.
 
 **FIX_DOCUMENTS** gets the old rejected page's structure:
-- The rejection summary: `rejection.reason_code` and `note`, word for word.
+- The rejection summary: `rejection.reason_code` and `note`, word for word. `rejection.decision` tells a request for changes (`REQUEST_CHANGES`: fix and resubmit) from a `REJECT` (the screen shows the reason and no "Go to documents" button).
 - **Each rejected document listed with its own `rejection_reason_code` and a button that goes straight to that document.**
 - A "What to do next" list.
 - Contact support.

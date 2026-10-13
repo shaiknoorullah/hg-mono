@@ -1,0 +1,31 @@
+{
+  "scenario": "principal_support_agent",
+  "domain": "platform",
+  "schema": "Principal",
+  "describes": "`GET /v1/auth/me` for a `SUPPORT_AGENT`: read-mostly console, no decisions, no staff management. The account id is the devworld `support-seed` persona's.",
+  "operations": [
+    "getCurrentPrincipal"
+  ],
+  "status": 200,
+  "tags": [
+    "platform",
+    "auth",
+    "staff"
+  ],
+  "payload": {
+    "account_id": "a0000000-0000-4000-8000-000000000002",
+    "session_id": "132a44a9-f0e6-49d5-a7f4-7689f5189b5e",
+    "roles": [
+      {
+        "role": "SUPPORT_AGENT",
+        "scope_type": "GLOBAL",
+        "scope_id": null
+      }
+    ],
+    "amr": "pwd",
+    "status": "ACTIVE",
+    "locale": "en-CA",
+    "timezone": "America/Toronto",
+    "next_route": "HOME"
+  }
+}

@@ -77,6 +77,7 @@ def _restaurant_onboarding(reg, synth) -> None:
         status["review_cycle"] = 2 if state == "DOCUMENTS_REJECTED" else 1
         status["rejection"] = (
             {
+                "decision": "REQUEST_CHANGES",
                 "reason_code": "DOCUMENTS_INSUFFICIENT",
                 "note": "The food-handling certificate has expired and the owner ID is cropped.",
                 "documents": [
@@ -98,6 +99,43 @@ def _restaurant_onboarding(reg, synth) -> None:
             operations=["getRestaurantOnboardingStatus", "submitRestaurantDocuments"],
             tags=["onboarding-state-matrix", "restaurant"],
         )
+
+    final = synth.make("RestaurantOnboardingStatus", "r-onboarding-application-rejected")
+    final["onboarding_state"] = "DOCUMENTS_REJECTED"
+    final["current_step"] = "FIX_DOCUMENTS"
+    final["account_state"] = "PENDING"
+    final["progress_percent"] = 60
+    final["steps_completed"] = {
+        "profile": True,
+        "documents_uploaded": True,
+        "documents_submitted": True,
+        "documents_approved": False,
+        "payout_account": False,
+        "menu_published": False,
+    }
+    final["blocking_reason"] = "We could not verify the halal certificate for this location."
+    final["review_cycle"] = 1
+    final["rejection"] = {
+        "decision": "REJECT",
+        "reason_code": "HALAL_CERTIFICATION_INVALID",
+        "note": "We could not verify the halal certificate for this location.",
+        "documents": [
+            _document("HALAL_CERTIFICATE", "REJECTED", subject="restaurant",
+                      rejection_reason_code="UNRECOGNISED_CERTIFIER",
+                      review_note="The issuing body could not confirm this certificate."),
+        ],
+    }
+    reg.add(
+        "restaurant_onboarding_application_rejected",
+        "onboarding",
+        "RestaurantOnboardingStatus",
+        "`onboarding_state = DOCUMENTS_REJECTED` after a `REJECT` decision "
+        "(`rejection.decision = REJECT`). Unlike a request for changes no documents are listed "
+        "to fix and the screen offers no resubmission; the owner is shown the reason and who to contact.",
+        final,
+        operations=["getRestaurantOnboardingStatus"],
+        tags=["restaurant"],
+    )
 
     reg.add(
         "restaurant_profile",
@@ -1257,26 +1295,6 @@ def _auth_and_config(reg, synth) -> None:
             ],
         },
         operations=["enrollTotp"],
-        tags=["platform", "auth"],
-    )
-    reg.add(
-        "totp_invite_enrolment",
-        "platform",
-        "TotpEnrolment",
-        "An invited admin, who has no session yet, starts the authenticator from the invitation "
-        "link (`startInviteTotpEnrolment`, issue #170). The link stays usable; `resetPassword` "
-        "with the link, the first password and the first code as `totp_code` confirms it.",
-        {
-            "provisioning_uri": (
-                "otpauth://totp/HalalGoes:new.admin%40halalgoes.ca"
-                "?secret=KRSXG5CTMVRXEZLUKN2XAZLSKNSWG4TF&issuer=HalalGoes&digits=6"
-            ),
-            "recovery_codes": [
-                f"{int_for(f'invite-recovery:{i}:a', 1000, 9999)}-{int_for(f'invite-recovery:{i}:b', 1000, 9999)}"
-                for i in range(10)
-            ],
-        },
-        operations=["startInviteTotpEnrolment"],
         tags=["platform", "auth"],
     )
 

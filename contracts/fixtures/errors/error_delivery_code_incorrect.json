@@ -1,0 +1,23 @@
+{
+  "scenario": "error_delivery_code_incorrect",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`422` · `DELIVERY_CODE_INCORRECT`. **Wrong code** at a met handover. The attempt is counted and committed in Postgres per order; no proof is recorded. Neither the code sent nor the expected code is in the body.",
+  "operations": [
+    "submitProofOfDelivery"
+  ],
+  "status": 422,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "DELIVERY_CODE_INCORRECT",
+      "message": "That delivery code is not right. 2 attempts remaining.",
+      "request_id": "TBY6JES0NYSV3AR3GY6989AKRY",
+      "details": {
+        "attempts_remaining": 2
+      }
+    }
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "scenario": "error_refresh_reuse_detected",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`401` · `REFRESH_REUSE_DETECTED`. A refresh token was used twice, so the whole session family was revoked. Same screen as `error_session_revoked`; never retried.",
+  "operations": [
+    "refreshSession"
+  ],
+  "status": 401,
+  "tags": [
+    "error-envelope",
+    "error-path",
+    "customer",
+    "auth",
+    "session"
+  ],
+  "payload": {
+    "error": {
+      "code": "REFRESH_REUSE_DETECTED",
+      "message": "This session has been revoked for security. Please sign in again.",
+      "request_id": "0ZRZKEDNY2NKGHFY72JJ6FEPY3"
+    }
+  }
+}
