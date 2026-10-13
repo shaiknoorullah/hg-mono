@@ -47,7 +47,7 @@ The fixed code works only for `+15550100100` to `+15550100199` and only when `HG
 | Table | Covered | Partial | Missing | Not in V1 | Blocked by external |
 |---|---:|---:|---:|---:|---:|
 | Customer app | 16 | 7 | 0 | 13 | 4 |
-| Restaurant portal | 21 | 7 | 3 | 5 | 0 |
+| Restaurant portal | 22 | 6 | 3 | 5 | 0 |
 | Rider app | 21 | 6 | 4 | 1 | 3 |
 | Admin console | 7 | 8 | 12 | 15 | 0 |
 | Platform | 26 | 10 | 0 | 0 | 3 |
@@ -110,7 +110,7 @@ The fixed code works only for `+15550100100` to `+15550100199` and only when `HG
 | [R-07](spec/03-restaurant.md#r-07--compliance-document-upload) | Upload documents | `docs-todo` | Covered | — |
 | [R-08](spec/03-restaurant.md#r-08--document-pack-submission-and-admin-verification-review) | Submit the pack; admin reviews it | `docs-review`, then `make dev-scenario s=docs-approve` or `s=docs-reject` | Covered | — |
 | [R-09](spec/03-restaurant.md#r-09--verification-status-tracking-real-time) | Follow the review as it happens | The personas show each state; a decision does not arrive live | Partial | [#376](https://github.com/shaiknoorullah/hg-mono/issues/376) |
-| [R-10](spec/03-restaurant.md#r-10--document-expiry-renewal-and-compliance-suspension) | Certificate expiry and renewal | `expiring-halal` and `expired-halal` are seeded in their states; nothing lapses or renews while you watch | Partial | [#685](https://github.com/shaiknoorullah/hg-mono/issues/685) |
+| [R-10](spec/03-restaurant.md#r-10--document-expiry-renewal-and-compliance-suspension) | Certificate expiry and renewal | `expiring-halal` and `expired-halal` are seeded in their states; `s=halal-lapse` lets `expiring-halal` expire, then `s=halal-renew` uploads a new certificate and `admin-seed` approves it | Covered | — |
 | [R-11](spec/03-restaurant.md#r-11--payout-account-add-and-verify-bank-details) | Payout account | `payout`. The fake gateway makes it ready at once; with a test key Stripe hosts the step ([Stripe test mode](playbooks/restaurant/onboarding.md#stripe-test-mode)) | Covered | — |
 | [R-12](spec/03-restaurant.md#r-12--profile-management-after-activation) | Edit the profile once live | `bismillah-grill` | Covered | — |
 | [R-13](spec/03-restaurant.md#r-13--restaurant-imagery-logo-cover-gallery) | Logo and cover pictures | Catalogue restaurants have them; upload one as `bismillah-grill` | Covered | — |
@@ -198,7 +198,7 @@ The fixed code works only for `+15550100100` to `+15550100199` and only when `HG
 | [A-14](spec/05-admin.md#a-14--kyc-document-review-non-halal-documents) | Review a document | `make dev-scenario s=docs-approve` or `s=docs-reject`; the seeded file does not open | Partial | [#686](https://github.com/shaiknoorullah/hg-mono/issues/686) |
 | [A-15](spec/05-admin.md#a-15--halal-certification-verification--core-product-function) | Halal seven-check verification | Only inside `s=onboard-restaurant`; no certificate waits for checks after a reset | Partial | [#678](https://github.com/shaiknoorullah/hg-mono/issues/678) |
 | [A-16](spec/05-admin.md#a-16--halal-issuing-body-registry) | Issuing bodies | `admin-seed`; the reference seed has accepted bodies | Covered | — |
-| [A-17](spec/05-admin.md#a-17--halal-certificate-expiry-monitoring-and-lapse-handling) | Certificate expiry and lapse | `expiring-halal`, `expired-halal`; nothing lapses while you watch | Partial | [#685](https://github.com/shaiknoorullah/hg-mono/issues/685) |
+| [A-17](spec/05-admin.md#a-17--halal-certificate-expiry-monitoring-and-lapse-handling) | Certificate expiry and lapse | `expiring-halal`, `expired-halal`; `s=halal-lapse` runs the expiry job for `expiring-halal` (`EXPIRED`, delisted, owner notified); reminders are not produced | Partial | [#685](https://github.com/shaiknoorullah/hg-mono/issues/685) |
 | [A-18](spec/05-admin.md#a-18--restaurant-approval--rejection-decision) | Approve or reject a restaurant | Approval inside `s=onboard-restaurant`; a rejection only seeded (`docs-rejected`) | Partial | [#678](https://github.com/shaiknoorullah/hg-mono/issues/678) |
 | [A-19](spec/05-admin.md#a-19--menu-approval-queue) | Menu review queue | `menu`, then `s=menu-approve` or `s=menu-reject` | Covered | — |
 | [A-20](spec/05-admin.md#a-20--restaurant-compliance-monitoring-violations-register) | Violations register | — | Not in V1 | — |
@@ -281,9 +281,9 @@ The four states a customer can see a restaurant in. A restaurant that is not `CE
 | [C-12](spec/02-customer.md#c-12--halal-certification-display-and-verification--critical) | `EXPIRING_SOON` | `expiring-halal` (Bamyan Kebab House) | Covered | — |
 | [C-12](spec/02-customer.md#c-12--halal-certification-display-and-verification--critical) | `EXPIRED` | `expired-halal`, delisted and hidden from customers | Covered | — |
 | [C-12](spec/02-customer.md#c-12--halal-certification-display-and-verification--critical) | `UNVERIFIED` | `fresh`, `profile`, `docs-todo`, `docs-review`, `docs-rejected`; never listed | Covered | — |
-| [A-17](spec/05-admin.md#a-17--halal-certificate-expiry-monitoring-and-lapse-handling) | A certificate lapses as the days pass | `s=cert-lapse-mid-order` moves `bismillah-grill`'s expiry to yesterday with an order live: `EXPIRED`, delisted, no badge, until `make dev-reset` | Covered | — |
+| [A-17](spec/05-admin.md#a-17--halal-certificate-expiry-monitoring-and-lapse-handling) | A certificate lapses as the days pass | `s=cert-lapse-mid-order` moves `bismillah-grill`'s expiry to yesterday with an order live: `EXPIRED`, delisted, no badge, until `make dev-reset`; or `s=halal-lapse` for `expiring-halal`, no order live | Covered | — |
 | [A-17](spec/05-admin.md#a-17--halal-certificate-expiry-monitoring-and-lapse-handling) | Renewal reminders (30, 14, 7 and 1 days) | Not produced | Missing | [#685](https://github.com/shaiknoorullah/hg-mono/issues/685) |
-| [R-10](spec/03-restaurant.md#r-10--document-expiry-renewal-and-compliance-suspension) | A renewed certificate relists the restaurant | Not produced | Missing | [#685](https://github.com/shaiknoorullah/hg-mono/issues/685) |
+| [R-10](spec/03-restaurant.md#r-10--document-expiry-renewal-and-compliance-suspension) | A renewed certificate relists the restaurant | `s=halal-renew` after `s=halal-lapse`: `CERTIFIED`, `LIVE`, public page 200 | Covered | — |
 | [C-12](spec/02-customer.md#c-12--halal-certification-display-and-verification--critical) | Open the certificate | The seeded file is missing from storage | Partial | [#686](https://github.com/shaiknoorullah/hg-mono/issues/686) |
 
 ### Realtime
