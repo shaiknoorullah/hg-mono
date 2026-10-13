@@ -450,6 +450,15 @@ test.describe('Hours (real API)', () => {
 
   test('bismillah-grill: pause 15 minutes, Right now says paused until the time, then resume', async ({ page }) => {
     const owner = await apiLogin(page.request, LIVE_OWNER.email);
+    // The spec never passes the go-live gate, so the app sends no heartbeat; without one in the
+    // last 5 minutes the server computes CLOSED_OFFLINE. Post one here so this spec does not
+    // depend on an earlier suite having left a fresh heartbeat.
+    const beat = () =>
+      page.request.post(`${REAL_API}/v1/restaurant/heartbeat`, {
+        headers: { Authorization: `Bearer ${owner.access_token}`, 'Content-Type': 'application/json' },
+        data: {},
+      });
+    expect((await beat()).ok()).toBe(true);
     try {
       await openSignedIn(page, '/hours');
       const badge = page.getByTestId('right-now-badge');
@@ -460,6 +469,7 @@ test.describe('Hours (real API)', () => {
           headers: { Authorization: `Bearer ${owner.access_token}`, 'Content-Type': 'application/json' },
           data: { is_accepting_orders: true, pause_until: null },
         });
+        await beat();
         await page.reload();
         await expect(badge).toHaveText('Open');
       }
