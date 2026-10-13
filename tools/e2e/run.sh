@@ -216,6 +216,9 @@ done
 redesign_offer() {
   local label="$1" placed id code pid online=false
   shift
+  # The browser specs before this keep the restaurant's order screen fresh only while they run; a
+  # screen unseen for 5 minutes is closed to orders (RESTAURANT_CLOSED).
+  (cd "$e2e" && node lib/api.mjs heartbeat >/dev/null) || echo "::warning::the restaurant's heartbeat was refused"
   if ! placed="$(cd "$e2e" && node lib/api.mjs place-order api)"; then
     record "$label" fail "could not place an order through the API"
     return
