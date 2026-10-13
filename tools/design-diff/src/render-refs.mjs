@@ -149,6 +149,11 @@ async function render(browser, base, job, out) {
       if (m && r.status() >= 400 && !rec.missingBlobs.includes(m[1])) rec.missingBlobs.push(m[1]);
     });
     page.on('pageerror', (e) => rec.errors.push(`page error: ${e.message.slice(0, 200)}`));
+    // The design runtime reports a board whose own script fails on the console, and draws the
+    // message where the board should be: the board did not render.
+    page.on('console', (m) => {
+      if (m.type() === 'error' && !/Failed to load resource/.test(m.text())) rec.errors.push(`console: ${m.text().slice(0, 200)}`);
+    });
     await page.goto(base + job.url, { waitUntil: 'networkidle', timeout: 45_000 });
     if (!(await page.evaluate(settle, { quietMs: 400, maxMs: 10_000 }))) rec.errors.push('still changing after 10 s');
     rec.notes = await page.evaluate(hideNotes, { classes: NOTE_CLASSES, prefixes: NOTE_PREFIXES, weakPrefixes: NOTE_WEAK_PREFIXES });

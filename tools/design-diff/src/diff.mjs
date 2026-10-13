@@ -100,7 +100,7 @@ function main() {
     let shot = readPng(c.file);
     if (cut) shot = crop(shot, 0, cut.top, shot.width, shot.height - cut.top - cut.bottom);
     const r = compare(readPng(path.join(o.refs, ref.file)), shot, { scale: ref.scale, ...thresholds });
-    const pair = { ...base, size: `${ref.w}×${ref.h}`, scale: ref.scale, theme: ref.theme, notes: ref.notes, caveats: ref.caveats, missingBlobs: ref.missingBlobs, ...r, images: undefined };
+    const pair = { ...base, size: `${ref.w}×${ref.h}`, scale: ref.scale, theme: ref.theme, notes: ref.notes, caveats: ref.caveats, missingBlobs: ref.missingBlobs, boardErrors: ref.errors, ...r, images: undefined };
     const layoutFile = c.file.replace(/\.png$/, '.layout.json');
     if (existsSync(layoutFile) && ref.layout && existsSync(path.join(o.refs, ref.layout))) {
       const l = compareLayouts(JSON.parse(readFileSync(path.join(o.refs, ref.layout), 'utf8')), JSON.parse(readFileSync(layoutFile, 'utf8')));

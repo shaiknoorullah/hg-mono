@@ -47,6 +47,7 @@ function pairCard(p, dir) {
 <header><h3>${esc(p.id)}</h3><span class="verdict v-${p.verdict.replace(' ', '-').toLowerCase()}">${p.verdict}</span></header>
 <p class="sub">${esc(p.title ?? '')} · capture <code>${esc(p.capture)}</code></p>
 ${p.caveats?.length ? `<div class="caveat"><strong>The drawing is not the approved design here.</strong> Do not change the app toward these parts:<ul>${p.caveats.map((c) => `<li>${esc(c)}</li>`).join('')}</ul></div>` : ''}
+${p.boardErrors?.length ? `<div class="caveat"><strong>The board did not render cleanly</strong>, so this comparison is not trustworthy:<ul>${p.boardErrors.map((e) => `<li>${esc(e)}</li>`).join('')}</ul></div>` : ''}
 ${metrics}
 ${(p.heightNotes ?? []).map((n) => `<p class="blob">${esc(n)}</p>`).join('')}
 ${p.missingBlobs?.length ? `<p class="blob">The board's uploaded image${p.missingBlobs.length > 1 ? 's are' : ' is'} missing offline (${p.missingBlobs.map(esc).join(', ')}): it shows as empty in the design.</p>` : ''}
