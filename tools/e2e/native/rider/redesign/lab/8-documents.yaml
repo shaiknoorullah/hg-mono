@@ -1,0 +1,79 @@
+# Rider redesign WP8: documents (R08), capture (R09), the notifications ask (R10) and Review (R11)
+# against devworld. A fresh number applies (7-apply.yaml: details, scooter with a plate) → the
+# documents step → four documents taken with the emulator's virtual camera (the photo of you with
+# the front camera, no expiry) → Submit for review → "Get told when we decide on your
+# application" → Not now → Review ("Your documents are sent").
+#
+# The backend's document set for a scooter also asks for a government ID (services/hg rider
+# requiredDocTypes; the contract says four): its 422 DOCUMENTS_INCOMPLETE adds the row, and the
+# flow adds it too.
+#
+# Built with EXPO_PUBLIC_HG_REDESIGN=1 and a cleared Metro cache (see 0-shell.yaml).
+# Env: PHONE_DIGITS, an unused number in +1 555 010 0160–0199 (code 000000).
+appId: com.halalgoes.rider.dev
+name: rider redesign, documents to review
+env:
+  PHONE_DIGITS: "5550100196"
+---
+- runFlow:
+    file: 7-apply.yaml
+    env:
+      PHONE_DIGITS: ${PHONE_DIGITS}
+
+# R08 Documents: four rows for a scooter, the work permit optional below them.
+- extendedWaitUntil:
+    visible: "Add driver's licence"
+    timeout: 30000
+- assertVisible: "Step 3 of 5: documents"
+- assertVisible: "For a scooter we need these four, plus a work permit if you have one.*"
+- assertNotVisible: "Submit for review"
+- takeScreenshot: rider-wp8-01-documents-empty
+
+- runFlow:
+    file: 8-add-document.yaml
+    env: { DOC_ID: DRIVERS_LICENCE, OPEN_ID: documents-next, EXPIRY_DAY: "14", EXPIRY_MONTH: "03", EXPIRY_YEAR: "2029" }
+- takeScreenshot: rider-wp8-02-documents-one-added
+- runFlow:
+    file: 8-add-document.yaml
+    env: { DOC_ID: VEHICLE_REGISTRATION, OPEN_ID: documents-next, EXPIRY_DAY: "02", EXPIRY_MONTH: "06", EXPIRY_YEAR: "2027" }
+- runFlow:
+    file: 8-add-document.yaml
+    env: { DOC_ID: VEHICLE_INSURANCE, OPEN_ID: documents-next, EXPIRY_DAY: "12", EXPIRY_MONTH: "01", EXPIRY_YEAR: "2027" }
+- runFlow:
+    file: 8-add-document.yaml
+    env: { DOC_ID: PROFILE_PHOTO, OPEN_ID: documents-next }
+
+# Every row reads Added: Submit for review is the primary.
+- scrollUntilVisible:
+    element:
+      text: "Submit for review"
+- takeScreenshot: rider-wp8-03-documents-ready
+- tapOn:
+    id: "documents-submit"
+- runFlow:
+    when:
+      visible: "Add government ID"
+    commands:
+      - takeScreenshot: rider-wp8-04-documents-incomplete
+      - runFlow:
+          file: 8-add-document.yaml
+          env: { DOC_ID: GOVERNMENT_ID, OPEN_ID: documents-next, EXPIRY_DAY: "03", EXPIRY_MONTH: "08", EXPIRY_YEAR: "2030" }
+      - tapOn:
+          id: "documents-submit"
+
+# R10 Notifications ask, only after the submit succeeded.
+- extendedWaitUntil:
+    visible: "Get told when we decide on your application"
+    timeout: 30000
+- assertVisible: "Your documents are sent"
+- takeScreenshot: rider-wp8-05-notify-prime
+- tapOn:
+    id: "notify-not-now"
+
+# R11 Review: sent, waiting for a person.
+- extendedWaitUntil:
+    visible: "(Your documents are sent|We're checking your documents)"
+    timeout: 30000
+- assertVisible: "Step 4 of 5: we check your documents"
+- assertVisible: "You can close the app. You can't go online until your documents are approved."
+- takeScreenshot: rider-wp8-06-review-sent

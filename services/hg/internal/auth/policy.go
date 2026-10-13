@@ -27,10 +27,17 @@ func permittedRoles(amr string) map[string]struct{} {
 	case "otp":
 		return map[string]struct{}{"CUSTOMER": {}, "RIDER": {}}
 	case "pwd":
+		// Two-step sign-in is opt-in for every email account, staff included
+		// (docs/decisions/README.md, "Two-step sign-in is opt-in"): a staff
+		// member who has not enabled it signs in with the password alone. Money
+		// moves still require a pwd+totp session (payments/staff.go).
 		return map[string]struct{}{
 			"RESTAURANT_OWNER":   {},
 			"RESTAURANT_MANAGER": {},
 			"RESTAURANT_STAFF":   {},
+			"SUPPORT_AGENT":      {},
+			"ADMIN":              {},
+			"SUPER_ADMIN":        {},
 		}
 	case "pwd+totp":
 		return map[string]struct{}{
@@ -44,22 +51,6 @@ func permittedRoles(amr string) map[string]struct{} {
 	default:
 		return map[string]struct{}{}
 	}
-}
-
-// requiresTOTP reports whether an account's grant set forces pwd+totp: support,
-// admin and super-admin cannot obtain a token without TOTP (P-01 account model:
-// TOTP required for every staff role). The
-// service enforces this on login; roles requiring TOTP that a pwd-only session
-// cannot carry are simply filtered out by rolesForAMR, but a login that would
-// yield *no* roles surfaces MFA_REQUIRED rather than an empty session.
-func requiresTOTP(grants []RoleGrant) bool {
-	for _, g := range grants {
-		switch g.Role {
-		case "SUPPORT_AGENT", "ADMIN", "SUPER_ADMIN":
-			return true
-		}
-	}
-	return false
 }
 
 // nextRoute derives the client's landing screen (P-04). It is a server decision

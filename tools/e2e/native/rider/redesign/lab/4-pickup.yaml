@@ -1,0 +1,58 @@
+# Rider redesign WP4: the pickup leg (DL steps 1 and 2). Accept → ride to Bismillah Grill →
+# I'm at the restaurant → wait → the restaurant marks it ready → type the pickup code →
+# I've got the food. Variant on the way: two wrong codes first (DL/PickupCodeWrong, with the
+# tries left from 422 PICKUP_CODE_INCORRECT `attempts_remaining`).
+#
+# The pickup code is checked by the server only once contract #290 and backend #315 merge; until
+# then any 4 digits are accepted and the wrong-code steps are skipped (they are optional).
+# PICKUP_CODE: the 4 digits on the restaurant's order (OrderRestaurantView.pickup_code, #290); the
+# lab reads it from the restaurant API or the journey log after `make dev-journey`. WRONG_1 and
+# WRONG_2 must differ from it.
+# Built with EXPO_PUBLIC_HG_REDESIGN=1 and a cleared Metro cache (see 0-shell.yaml).
+appId: com.halalgoes.rider.dev
+name: rider redesign, pickup
+env:
+  PICKUP_CODE: "0000"
+  WRONG_1: "9998"
+  WRONG_2: "9997"
+---
+- runFlow: 4-pickup-to-counter.yaml
+
+# Two wrong codes: the field keeps the digits and the line says the tries left.
+- tapOn:
+    id: "trip-pickup-code-field"
+- inputText: ${WRONG_1}
+- hideKeyboard
+- tapOn: "I've got the food"
+- extendedWaitUntil:
+    visible: ".*That isn't the pickup code for this order\\..*"
+    timeout: 30000
+    optional: true
+- takeScreenshot: rider-wp4-05-wrong-code-1
+- runFlow:
+    when:
+      visible: ".*That isn't the pickup code for this order\\..*"
+    commands:
+      - assertVisible: ".*\\d tr(y|ies) left\\..*"
+      - eraseText: 4
+      - inputText: ${WRONG_2}
+      - hideKeyboard
+      - tapOn: "I've got the food"
+      - extendedWaitUntil:
+          visible: ".*That isn't the pickup code for this order\\..*"
+          timeout: 30000
+      - takeScreenshot: rider-wp4-06-wrong-code-2
+      # The right code.
+      - tapOn:
+          id: "trip-pickup-code-field"
+      - eraseText: 4
+      - inputText: ${PICKUP_CODE}
+      - hideKeyboard
+      - tapOn: "I've got the food"
+
+# Picked up: the trip moves to the drop-off (WP5; the legacy assignment screen until it merges).
+- extendedWaitUntil:
+    notVisible: "Step 2 of 4 · .*"
+    timeout: 30000
+- assertNotVisible: "Too many wrong codes"
+- takeScreenshot: rider-wp4-07-picked-up

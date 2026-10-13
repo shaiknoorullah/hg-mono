@@ -323,8 +323,9 @@ def _assignments(reg) -> None:
         "dispatch",
         "Assignment",
         "`MEET_AT_DOOR` maps to **OTP** proof of delivery (contradiction log #6), not a "
-        "photo. The rider must be shown a code entry, and a photo must not satisfy it "
-        "(`POD_METHOD_MISMATCH`).",
+        "photo. The rider must be shown a code entry, and neither a photo nor a photo with "
+        "a statement satisfies it (`POD_METHOD_MISMATCH`), before or after the code locks. "
+        "The assignment carries no code: the customer reads it out.",
         _assignment(
             "ARRIVED_AT_DROPOFF",
             required_pod_method="OTP",
