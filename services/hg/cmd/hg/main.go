@@ -632,8 +632,10 @@ func run() error {
 	})
 
 	// getPublicConfig reports the platform-wide pause on new orders, which the
-	// orders module owns (https://github.com/shaiknoorullah/hg-mono/issues/244).
-	system.Routes(router, system.NewHandler(cfg, st, startedAt, probes).
+	// orders module owns (https://github.com/shaiknoorullah/hg-mono/issues/244),
+	// and the terms version registration accepts
+	// (https://github.com/shaiknoorullah/hg-mono/issues/738).
+	system.Routes(router, system.NewHandler(cfg, st, startedAt, probes, authSecrets.CurrentTermsVersion).
 		WithOrderingStatus(orders.NewStore(st.DB().Pool).OrderingStatus), cfg)
 	auth.Routes(router, authModule.Handler)
 
