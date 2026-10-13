@@ -356,6 +356,45 @@ func TestAcceptLoserCodes(t *testing.T) {
 		t.Fatalf("expected exactly one winner, got %d", winners)
 	}
 
+	// An offer withdrawn while its accept waited on the lock, with no rider
+	// assigned (a cancellation or redispatch), is OFFER_WITHDRAWN — nobody took it.
+	orderW, offersW := seedFixture(t, pool, 1)
+	holdW, err := pool.Begin(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer holdW.Rollback(ctx)
+	if _, err := holdW.Exec(ctx, `SELECT 1 FROM dispatch WHERE order_id=$1 FOR UPDATE`, orderW); err != nil {
+		t.Fatal(err)
+	}
+	withdrawnErr := make(chan error, 1)
+	go func() {
+		_, err := store.AcceptOffer(ctx, offersW[0].riderAccountID, offersW[0].offerID, time.Now().UTC())
+		withdrawnErr <- err
+	}()
+	deadline = time.Now().Add(10 * time.Second)
+	for {
+		var waiting int
+		mustQuery(t, pool, `SELECT count(*) FROM pg_stat_activity WHERE wait_event_type='Lock' AND query ILIKE '%FROM dispatch WHERE order_id%FOR UPDATE%' AND pid <> pg_backend_pid()`, &waiting)
+		if waiting >= 1 {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("accept never queued on the dispatch lock (waiting=%d)", waiting)
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	if _, err := holdW.Exec(ctx, `UPDATE dispatch_offer SET state='WITHDRAWN', outcome='WITHDRAWN', outcome_at=now() WHERE id=$1`, offersW[0].offerID); err != nil {
+		t.Fatal(err)
+	}
+	if err := holdW.Commit(ctx); err != nil {
+		t.Fatal(err)
+	}
+	err = <-withdrawnErr
+	if se, ok := asServiceError(err); !ok || se.Code != CodeOfferWithdrawn {
+		t.Errorf("withdrawn offer, no rider assigned: want OFFER_WITHDRAWN, got %v", err)
+	}
+
 	// A genuinely expired offer is still OFFER_EXPIRED.
 	_, offers2 := seedFixture(t, pool, 1)
 	mustExec(t, pool, `UPDATE dispatch_offer SET expires_at = now() - interval '1 minute' WHERE id=$1`, offers2[0].offerID)

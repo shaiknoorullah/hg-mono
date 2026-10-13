@@ -373,8 +373,10 @@ RETURNING order_id, wave::text, wave, earnings_cents, tip_estimate_cents, distan
 	if errors.Is(err, pgx.ErrNoRows) {
 		// The claim matched no row. The state read at the top predates the dispatch
 		// row lock, so it cannot say why; re-read under the lock (D-16 AC-1). A
-		// winner that withdrew this offer, or a dispatch row already holding a
-		// rider, is OFFER_ALREADY_TAKEN; only a lapsed offer is OFFER_EXPIRED.
+		// dispatch row already holding a rider, or this offer accepted, is
+		// OFFER_ALREADY_TAKEN. An offer withdrawn with no rider assigned (an order
+		// cancelled or redispatched while this accept waited on the lock) is
+		// OFFER_WITHDRAWN, as in Step 0. Anything else lapsed: OFFER_EXPIRED.
 		var curState string
 		if rerr := tx.QueryRow(ctx, `
 SELECT state::text FROM dispatch_offer
@@ -387,8 +389,11 @@ SELECT EXISTS (SELECT 1 FROM dispatch WHERE order_id = $1 AND rider_account_id I
 			st.OrderID).Scan(&taken); terr != nil {
 			return "", terr
 		}
-		if taken || curState == "ACCEPTED" || curState == "WITHDRAWN" {
+		if taken || curState == "ACCEPTED" {
 			return "", newError(409, CodeOfferAlreadyTaken, "This order was taken by another rider.", nil)
+		}
+		if curState == "WITHDRAWN" {
+			return "", newError(409, CodeOfferWithdrawn, "This offer was withdrawn.", nil)
 		}
 		return "", newError(409, CodeOfferExpired, "This offer has expired.", nil)
 	}
