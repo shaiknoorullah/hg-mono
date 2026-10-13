@@ -9,7 +9,7 @@ covers:
   - services/hg/internal/files/**
   - services/hg/internal/dispatch/**
   - services/hg/internal/httpx/**
-reviewed: 2026-10-09
+reviewed: 2026-10-13
 ---
 
 # HalalGoes — Cross-Cutting Platform Layer Specification
@@ -225,7 +225,7 @@ CREATE INDEX otp_challenge_open ON otp_challenge(phone_e164, purpose) WHERE cons
 ### P-03 — Email + password authentication (restaurants, admins, support)
 
 - **Behaviour**:
-  - `POST /v1/auth/register/restaurant` `{email, password, business_name, terms_version}` → creates `account` (unverified) + `restaurant` in `onboarding_state='REGISTERED'` + `RESTAURANT_OWNER` grant. Sends verification email with a single-use token. **No session is issued until the email is verified.**
+  - `POST /v1/auth/register/restaurant` `{email, password, business_name, terms_version}` → creates `account` (unverified) + `restaurant` in `onboarding_state='REGISTERED'` + `RESTAURANT_OWNER` grant. Sends verification email with a single-use token. **No session is issued until the email is verified.** `terms_version` must equal the version `GET /v1/config/public` reports as `terms_version`, so a client sends it on the first submit ([#738](https://github.com/shaiknoorullah/hg-mono/issues/738)).
   - `POST /v1/auth/email/verify` `{token}` → sets `email_verified_at`, advances onboarding to `PROFILE_PENDING`, answers `204`. **Issues no session and sets no cookie**: an emailed link never signs anyone in, or an attacker could send someone the link for the attacker's own account and have them work in it ([#356](https://github.com/shaiknoorullah/hg-mono/issues/356)). The owner then signs in with `login`.
   - `POST /v1/auth/email/resend` — rate limited like the reset email below; a 429 only when the caller is over its own limits.
   - `POST /v1/auth/login` `{email, password, totp_code?}` → verifies argon2id, checks `status`, checks role auth policy, checks TOTP when the account turned it on, issues session. Uniform failure `401 invalid_credentials` for wrong-email, wrong-password and unverified-email cases (unverified additionally returns `error.details.email_verification_required: true` only **after** correct credentials).
@@ -316,11 +316,11 @@ CREATE INDEX login_attempt_recent ON login_attempt(email, at DESC);
   **Transport**:
   - Web surfaces (`restaurant-web`, `admin-web`): refresh token in `Set-Cookie: hg_rt=…; HttpOnly; Secure; SameSite=Lax; Path=/v1/auth; Max-Age=…`. Access token returned in the JSON body and held **in memory only**. `localStorage` is forbidden — this is the R17/A4 fix, enforced by a frontend lint rule banning `localStorage.setItem` with a key matching `token`.
   - Native apps: both tokens in the JSON body; the app stores them in `expo-secure-store`/Keychain.
-  - CSRF for cookie-bearing routes: `Origin` must match the allowlist **and** a double-submit `X-HG-CSRF` header must equal the `hg_csrf` non-HttpOnly cookie.
+  - CSRF for cookie-bearing routes: `Origin` must match the allowlist **and** a double-submit `X-HG-CSRF` header must equal the `hg_csrf` non-HttpOnly cookie. `hg_csrf` is set at `Path=/` on the parent domain in `HG_AUTH_CSRF_COOKIE_DOMAIN` (empty: host-only), so a web app on its own host can read it, while `hg_rt` stays `HttpOnly` at `Path=/v1/auth` on the API host ([#740](https://github.com/shaiknoorullah/hg-mono/issues/740)).
 
   **Endpoints**: `POST /v1/auth/refresh`, `POST /v1/auth/logout` (this session), `POST /v1/auth/logout-all` (family), `GET /v1/auth/sessions`, `DELETE /v1/auth/sessions/{id}`, `GET /v1/auth/me`.
 
-  **Revocation propagation**: the API keeps an in-process deny set of revoked `sid`s (and `account_id`s revoked wholesale), refreshed from Postgres **every 10 seconds** and additionally invalidated immediately via Redis pub/sub channel `sys:session_revoked`. Redis makes revocation instant; Postgres makes it *correct*. Worst case with Redis down or flushed: **≤10 s** propagation. Access tokens are otherwise trusted for their ≤15-minute life.
+  **Revocation propagation**: the API keeps an in-process deny set of revoked `sid`s (and `account_id`s revoked wholesale), refreshed from Postgres **every 10 seconds** and additionally invalidated immediately via Redis pub/sub channel `sys:session_revoked`. Redis makes revocation instant; Postgres makes it *correct*. Worst case with Redis down or flushed: **≤10 s** propagation. Access tokens are otherwise trusted for their ≤15-minute life. A password reset and `logout-all` deny the session ids they revoked, never the whole account, so a session signed in straight afterwards works at once ([#748](https://github.com/shaiknoorullah/hg-mono/issues/748), [#752](https://github.com/shaiknoorullah/hg-mono/issues/752)).
 
 - **Data**:
 
@@ -568,7 +568,7 @@ func (a Amount) MarshalJSON() ([]byte, error) // emits an integer, never a strin
   `POST /v1/orders` `{ "quote_id":"…", "payment_method_id":"…", "delivery_instructions":[…], "idempotency_key" via header }`.
   The server **re-executes** `Quote()` at order time and compares to the stored quote. Identical ⟹ proceed. Different (price changed, item went unavailable, address changed) ⟹ `409 quote_stale` with the new quote embedded; the client must show the difference and get explicit re-confirmation. Expired ⟹ `409 quote_expired`.
 
-  **The restaurant must be able to take the order, at every step.** Adding a cart line, quoting (`POST /v1/quotes`), placing the order (`POST /v1/orders`) and the restaurant accepting it each lock the restaurant row `FOR SHARE` inside their own transaction, then refuse with `409 RESTAURANT_UNAVAILABLE` unless the restaurant is listed, `LIVE`, and its halal certificate is current as of that transaction. "Current" is computed from the admin-verified certificate data at that moment (`halal_certification_at(restaurant, now())`), not read from the stored `halal_status`, which can lag behind the calendar: the stored state can refuse an order but never admit one on its own. A suspension, ban, delisting or certificate expiry writes the same row, so it either commits first and is seen, or waits until the order's transaction has committed and then finds the order. The saved cart is kept, but cannot be quoted until the restaurant can take orders again ([halal display, rule 3](02-customer.md#c-12--halal-certification-display-and-verification--critical)).
+  **The restaurant must be able to take the order, at every step.** Adding a cart line, quoting (`POST /v1/quotes`), placing the order (`POST /v1/orders`) and the restaurant accepting it each lock the restaurant row `FOR SHARE` inside their own transaction, then refuse with `409 RESTAURANT_UNAVAILABLE` unless the restaurant is listed, `LIVE`, and its halal certificate is current as of that transaction. "Current" is computed from the admin-verified certificate data at that moment (`halal_certification_at(restaurant, now())`), not read from the stored `halal_status`, which can lag behind the calendar: the stored state can refuse an order but never admit one on its own. A suspension, ban, delisting or certificate expiry writes the same row, so it either commits first and is seen, or waits until the order's transaction has committed and then finds the order. The saved cart is kept, but cannot be quoted until the restaurant can take orders again ([halal display, rule 3](02-customer.md#c-12--halal-certification-display-and-verification--critical)). Adding a line, quoting and placing the order then also refuse with `409 RESTAURANT_CLOSED` unless the restaurant is open now by the rule its card shows (inside its hours in its own timezone, not paused, accepting orders, its order screen seen in the last 5 minutes and no payout block), while the restaurant accepting an order already placed is not held to it ([store availability, R-22](03-restaurant.md#r-22--store-availability-accepting-orders-toggle-and-auto-offline); [#648](https://github.com/shaiknoorullah/hg-mono/issues/648)).
 
   **The computation, in order. Each step is a pure function of DB state; none of it reads the request body for money.**
 
@@ -605,6 +605,8 @@ func (a Amount) MarshalJSON() ([]byte, error) // emits an integer, never a strin
                      + max(0, billable_km − included_km) × per_km_cents
                      + small_order_surcharge_cents           -- if subtotal < small_order_threshold_cents
   ```
+  A delivery address farther in a straight line from the restaurant than its `delivery_radius_m` is refused with `409 ADDRESS_OUT_OF_RANGE` at quote and at order time, using the same distance and boundary as the discovery card's `OUT_OF_RANGE` ([serviceability gating, C-14](02-customer.md#c-14--restaurant-availability--serviceability-gating)), so the fee clamp never prices a delivery that cannot happen.
+
   clamped to `[min_delivery_fee_cents, max_delivery_fee_cents]`. All parameters come from `pricing_config` (versioned, effective-dated), **never** from constants in code and never from the request. Note the address used is the order's, not the customer's primary — the old code measured to the primary address (B38).
 
   **Step 5 — service fee (customer-facing platform fee).**
@@ -1035,7 +1037,7 @@ CREATE INDEX ledger_entry_cp ON ledger_entry(counterparty_type, counterparty_id,
 
 # 4. Order state machine
 
-> Design decision stated up front, because it is the fix for a whole family of old bugs: **the order has one fulfilment state track, and rider assignment is a separate, subordinate machine.** The old system put `PREPARING` and `RIDER_ASSIGNED` on one line, which is precisely why the restaurant's own transitions became unreachable (B58/R31) and why the tracking workflow that owned the transition table started at `RIDER_ASSIGNED` and could never validate the restaurant-side moves. Here, `dispatch` runs concurrently with `PREPARING` and may only push the order forward through three named transitions.
+> Design decision stated up front, because it is the fix for a whole family of old bugs: **the order has one fulfilment state track, and rider assignment is a separate, subordinate machine.** The old system put `PREPARING` and `RIDER_ASSIGNED` on one line, which is precisely why the restaurant's own transitions became unreachable (B58/R31) and why the tracking workflow that owned the transition table started at `RIDER_ASSIGNED` and could never validate the restaurant-side moves. Here, `dispatch` runs concurrently with `PREPARING` and may only push the order forward through three named transitions. When two riders accept the same offer at once, the loser is told `OFFER_ALREADY_TAKEN` (the code is derived from the offer and dispatch row re-read under the order's lock), an offer withdrawn while nobody holds the order (a cancellation, or the order offered to other riders again) is `OFFER_WITHDRAWN`, and `OFFER_EXPIRED` is reserved for an offer whose `expires_at` has passed ([#696](https://github.com/shaiknoorullah/hg-mono/issues/696)).
 
 ### P-14 — Order lifecycle states and transitions
 
@@ -1264,6 +1266,7 @@ CREATE UNIQUE INDEX dispatch_offer_unique ON dispatch_offer(order_id, rider_acco
   - **I-15.4** `deadline_escalations` is monotonic and capped; reaching the cap always drives the row toward a terminal state or a human queue — never back into an unbounded loop.
   - **I-15.5** Deadline lag (`now() − deadline_at` at fire time) p99 < 5 s; an alert fires above 30 s.
   - **I-15.6** No timeout results in "money kept, no food, no refund": every cancelling action posts a refund/void batch in the same transaction as the transition.
+  - **I-15.7** Nothing in the server moves a deadline but the runner and the transitions. The local dev world's clock (`orders.BringDeadlineForward`, used by `make dev-scenario`) only brings a deadline earlier, only while the order is in the expected state and action, and refuses before touching the database unless `HG_ENV` is `local`. Tests pin that only `internal/devworld` calls it and that `cmd/hg` does not link `internal/devworld`.
 - **Acceptance criteria**:
   1. Given an attempt to insert an order in `PREPARING` with `deadline_at = NULL`, When committed, Then the statement fails with `order_deadline_required`.
   2. Given an order in `RESTAURANT_PENDING` and the restaurant never responds, When 180 s elapse, Then the order is `CANCELLED`, the PaymentIntent is cancelled, `SUM(ledger_entry) = 0` for the order, and the customer receives a push + email. (Old system: relied on a 15-minute workflow timeout that crashed without refunding — finding 4/§7.4.)
@@ -1315,7 +1318,8 @@ CREATE UNIQUE INDEX dispatch_offer_unique ON dispatch_offer(order_id, rider_acco
      ```
   4. Return `{order, client_secret}`. The client confirms with Stripe.js / the Stripe React Native SDK — the card never touches our servers (SAQ-A scope). The customer app confirms on web with the Stripe.js Payment Element in a sheet (`redirect: 'if_required'`) and on iOS/Android with the SDK's payment sheet; a build without `EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY` takes no card and says so at checkout, keeping the order for **Retry payment**, and after a confirmed card the app reads `getOrderPayment` once so the order moves on even where no webhook can reach the API.
   5. `payment_intent.amount_capturable_updated` (status `requires_capture`) → T1 `AUTHORIZED`.
-  6. Restaurant accepts → `POST /v1/payments/{id}/capture` internally, `capture` with `amount_to_capture = order.total_cents` and `idempotency_key = 'cap:' || order_id`. Success → T6 `PREPARING`.
+     Until then nothing is authorised: `GET /v1/orders/{orderId}/payment` reports `amount_authorized_cents` as `0` while the intent is still `REQUIRES_PAYMENT_METHOD`, `REQUIRES_CONFIRMATION` or `REQUIRES_ACTION`, and, once it reaches `REQUIRES_CAPTURE`, the amount Stripe reports it holds (`amount_capturable` plus `amount_received`), not the order total we expected. An authorisation that differs from the order total pages on-call (`admin.alert`, kind `authorisation_mismatch`); only a Stripe report carrying no amount falls back to the order total.
+  6. Restaurant accepts → `POST /v1/payments/{id}/capture` internally, `capture` with `amount_to_capture = order.total_cents` and `idempotency_key = 'cap:' || order_id`. Success → T6 `PREPARING`. The acceptance commits first and the capture follows, so a capture that fails (Stripe unreachable, a crash between the two) is not left to lapse: every failure is counted on the `payment_intent` row, the capture is retried with the same idempotency key after 1 m, 2 m, 4 m … (the webhook worker's backoff), and the eighth failure, or a refusal that retrying cannot change, sets the payment aside and pages on-call (`capture_dead_letter`) about two hours after acceptance, days before the authorisation expires; the `CAPTURE` ledger batch is still posted once, by `payment_intent.succeeded`.
   7. Restaurant rejects / times out / customer cancels pre-acceptance → `PaymentIntent.cancel(cancellation_reason='abandoned')`, `idempotency_key = 'cancel:' || order_id`.
 
   **3-D Secure / SCA**: Canada has no PSD2 mandate, but 3DS is used opportunistically via `request_three_d_secure: 'automatic'` and Radar rules. `requires_action` is a **normal** path: the order stays `CREATED`, the client is handed the action, and the 15-minute `CREATED` deadline covers abandonment.
@@ -2752,6 +2756,8 @@ CREATE UNIQUE INDEX idempotency_unique ON idempotency_record(account_id, method,
   | `UPLOAD` | 20 / hour | 5 | account |
   | `REALTIME` (ticket issue) | 30 / min | 10 | account |
   | `SEARCH` | 60 / min | 20 | account or ip |
+  | `GEO_SUGGEST` (address suggestions as the user types, `suggestAddresses`; forwarded to Mapbox. Sized so one search typed a key at a time stays under it) | 60 / min | 20 | account |
+  | `GEO` (place details and reverse geocoding, `getPlaceAddress` and `reverseGeocode`; forwarded to Mapbox, each operation counted separately) | 30 / min | 10 | account |
   | `WEBHOOK` | 1000 / min | 200 | provider ip |
   | `POSITION` (rider position ingest) | 120 / min | 30 | account |
 

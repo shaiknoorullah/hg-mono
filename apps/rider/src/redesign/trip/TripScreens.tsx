@@ -22,7 +22,9 @@
  * banner is slate (`Banner` neutral).
  *
  * Layout helpers below are local to this file on purpose: the app defines no components
- * (constitution §1). Each stand-in for a missing composite carries its `ds-request` line.
+ * (constitution §1). Each stand-in for a missing composite carries its `ds-request` line. The
+ * drop-off leg (WP5, `../dropoff`) lays its boards out with the same helpers, imported from here
+ * rather than copied, so the trip reads as one flow.
  */
 import * as React from 'react';
 import { AccessibilityInfo, ScrollView, Text, View, type TextStyle } from 'react-native';
@@ -54,7 +56,7 @@ import { formatTime } from '../format/time';
 import { useRiderDashboard } from '../home';
 import { openPhoneSettings } from '../home/permissions';
 import { useNav } from '../nav/Navigator';
-import type { ScreenProps } from '../nav/registry';
+import { screenFor, type ScreenProps } from '../nav/registry';
 import { fetchRiderMe } from '../session/Session';
 import {
   ENDED,
@@ -227,6 +229,7 @@ export function PickupStepScreen({ params }: ScreenProps<'tripPickup'>): React.R
   const [start, setStart] = React.useState<Attempt>({ phase: 'idle' });
   const [arrive, setArrive] = React.useState<Attempt>({ phase: 'idle' });
   const [sheet, setSheet] = React.useState<'wrong' | 'geofence' | null>(null);
+  const openWrong = useOpenWrong(id, () => setSheet('wrong'), start.phase === 'failed' || arrive.phase === 'failed');
   const [reason, setReason] = React.useState('');
 
   /** Send a step; `retry` reuses the failed attempt's key and body. */
@@ -339,7 +342,7 @@ export function PickupStepScreen({ params }: ScreenProps<'tripPickup'>): React.R
       testID="trip-pickup"
       actions={[
         ...(call ? [call] : []),
-        { label: BUTTON.somethingWrong, variant: 'ghost', onPress: () => setSheet('wrong'), disabled: busy },
+        { label: BUTTON.somethingWrong, variant: 'ghost', onPress: openWrong, disabled: busy },
         arrive.phase === 'failed'
           ? { label: BUTTON.tryAgain, variant: 'primary', onPress: () => void arrived(arrive.step), testID: 'trip-arrive' }
           : { label: BUTTON.arrived, variant: 'primary', onPress: () => void arrived(), loading: busy, testID: 'trip-arrive' },
@@ -463,6 +466,7 @@ export function AtRestaurantScreen({ params }: ScreenProps<'tripAtRestaurant'>):
   const alive = useAlive();
   const [code, setCode] = React.useState('');
   const [sheet, setSheet] = React.useState<'wrong' | 'help' | 'not-ready' | null>(null);
+  const openWrong = useOpenWrong(id, () => setSheet('wrong'), code !== '' || pickup.status !== 'idle');
   const ready = a?.pickup.order_state === 'READY_FOR_PICKUP';
   // "I'm at the restaurant" lands on the items when the food is already ready, else on the wait.
   const [checking, setChecking] = React.useState<boolean | null>(null);
@@ -589,7 +593,7 @@ export function AtRestaurantScreen({ params }: ScreenProps<'tripAtRestaurant'>):
         showItems
           ? [
               ...callAction,
-              { label: BUTTON.somethingWrong, variant: 'ghost', onPress: () => setSheet('wrong') },
+              { label: BUTTON.somethingWrong, variant: 'ghost', onPress: openWrong },
               {
                 label: pickup.status === 'failed' ? BUTTON.tryAgain : BUTTON.gotFood,
                 variant: 'primary',
@@ -602,7 +606,7 @@ export function AtRestaurantScreen({ params }: ScreenProps<'tripAtRestaurant'>):
             ]
           : [
               ...callAction,
-              { label: BUTTON.somethingWrong, variant: 'ghost', onPress: () => setSheet('wrong') },
+              { label: BUTTON.somethingWrong, variant: 'ghost', onPress: openWrong },
               {
                 label: BUTTON.checkItems,
                 variant: 'primary',
@@ -981,13 +985,13 @@ function QueuedRejected({ entry }: { entry: OutboxEntry }): React.ReactElement {
 /* ================================================================== shared pieces of these boards */
 
 /** Before the assignment is known on a step screen (normally the host has loaded it). */
-function StepPending({ view }: { view: TripAssignmentView }): React.ReactElement {
+export function StepPending({ view }: { view: TripAssignmentView }): React.ReactElement {
   if (view.status === 'error') return <TripLoadFailed retry={() => void view.refetch()} offline={view.error?.kind === 'offline'} />;
   return <TripLoading />;
 }
 
 /** Slate banners every pickup step can carry: moved on, no connection, tracking, stale poll. */
-function TripBanners({ view }: { view: TripAssignmentView }): React.ReactElement {
+export function TripBanners({ view, offlineBody = NO_CONNECTION.body }: { view: TripAssignmentView; offlineBody?: string }): React.ReactElement {
   const online = useOnline();
   const a = view.assignment!;
   const id = view.id ?? a.id;
@@ -1011,7 +1015,7 @@ function TripBanners({ view }: { view: TripAssignmentView }): React.ReactElement
       ) : null}
       {!online ? (
         // ds-request(native): InlineAlert (persistent) — DL/TripNoConnection
-        <Banner variant="neutral" title={NO_CONNECTION.title} description={NO_CONNECTION.body} testID="trip-offline" />
+        <Banner variant="neutral" title={NO_CONNECTION.title} description={offlineBody} testID="trip-offline" />
       ) : null}
       {tracking === 'LOST' ? (
         <View style={{ gap: space['2'] }}>
@@ -1032,7 +1036,7 @@ function TripBanners({ view }: { view: TripAssignmentView }): React.ReactElement
 }
 
 /** Steps saved on the phone, not sent yet (DL/PickupStartQueued, TripNoConnection). */
-function SavedSteps({ entries }: { entries: readonly OutboxEntry[] }): React.ReactElement | null {
+export function SavedSteps({ entries }: { entries: readonly OutboxEntry[] }): React.ReactElement | null {
   const latest = entries[entries.length - 1];
   if (!latest) return null;
   const name = STEP_NAME[latest.input.to_state] ?? STATE_WORDS[latest.input.to_state];
@@ -1047,7 +1051,7 @@ function SavedSteps({ entries }: { entries: readonly OutboxEntry[] }): React.Rea
   );
 }
 
-function SavedRow({ label }: { label: string }): React.ReactElement {
+export function SavedRow({ label }: { label: string }): React.ReactElement {
   return (
     // ds-request(native): QueuedStepRow (ListRow 56, static, no live region) — DL/PickupStartQueued, PickupRecordQueued
     <Card variant="filled" accessibilityLabel={`${label}. ${NOT_SENT}`}>
@@ -1115,7 +1119,7 @@ function ItemList({ a }: { a: Assignment }): React.ReactElement {
 }
 
 /** Label / value pairs; rows with no value are left out (KeyValueList stand-in). */
-function Facts({ rows, mono = false }: { rows: [string, string | null][]; mono?: boolean }): React.ReactElement | null {
+export function Facts({ rows, mono = false }: { rows: [string, string | null][]; mono?: boolean }): React.ReactElement | null {
   const shown = rows.filter((row): row is [string, string] => !!row[1]);
   if (!shown.length) return null;
   return (
@@ -1133,13 +1137,27 @@ function Facts({ rows, mono = false }: { rows: [string, string | null][]; mono?:
   );
 }
 
-function MessagesLink({ onPress }: { onPress: () => void }): React.ReactElement {
+export function MessagesLink({ onPress }: { onPress: () => void }): React.ReactElement {
   // ds-request(native): MessagePreview (Card outlined + ghost Button) — DL/PickupEnRoute; notes are Needs API (gap 22)
   return (
     <Button variant="ghost" size="xl" fullWidth onPress={onPress} testID="trip-messages">
       {BUTTON.seeAllMessages}
     </Button>
   );
+}
+
+/**
+ * WP6 hook: "Something's wrong" on the pickup steps opens WP6's menu for the leg
+ * (`tripException`, leg 'pickup', `../exceptions`) once it is registered, and the sheet below
+ * until then. Boards whose state must survive the trip there and back (the code lock, the
+ * pickup saved offline) and the sheets inside a step keep the sheet below.
+ */
+function useOpenWrong(assignmentId: string, fallback: () => void, keep: boolean): () => void {
+  const nav = useNav();
+  // The navigator draws only the top screen, so the trip there and back remounts this step: a
+  // typed code, a refused code's attempts or a failed step's Idempotency-Key would be lost. While
+  // the step holds one (`keep`), the sheet below opens instead.
+  return () => (!keep && screenFor('tripException') ? nav.push('tripException', { assignmentId, leg: 'pickup' }) : fallback());
 }
 
 /** "What's wrong?" for the pickup leg (DL/SomethingWrongPickup, SomethingWrongPickupNoSupport). */
@@ -1178,7 +1196,7 @@ function WrongSheet({
 }
 
 /** "Call HalalGoes support" with its number and hours, or nothing when support is off. */
-function supportAction(support: Support, variant: ButtonVariant): ActionSpec[] {
+export function supportAction(support: Support, variant: ButtonVariant): ActionSpec[] {
   if (!support.phone) return [];
   return [
     {
@@ -1193,7 +1211,7 @@ function supportAction(support: Support, variant: ButtonVariant): ActionSpec[] {
 
 /* ------------------------------------------------------------------ layout */
 
-interface ActionSpec {
+export interface ActionSpec {
   label: string;
   variant: ButtonVariant;
   onPress: () => void;
@@ -1206,7 +1224,7 @@ interface ActionSpec {
   testID?: string;
 }
 
-function Actions({ actions }: { actions: readonly ActionSpec[] }): React.ReactElement {
+export function Actions({ actions }: { actions: readonly ActionSpec[] }): React.ReactElement {
   return (
     <View style={{ gap: space['2'] }}>
       {actions.map((act) => (
@@ -1236,7 +1254,7 @@ function Actions({ actions }: { actions: readonly ActionSpec[] }): React.ReactEl
   );
 }
 
-function Screen({
+export function Screen({
   title,
   subtitle,
   progress,
@@ -1249,7 +1267,8 @@ function Screen({
   subtitle?: string;
   /** Step N of 4. */
   progress?: number;
-  back?: { onPress: () => void };
+  /** `previousTitle` names where Back goes ("Back to handover"). */
+  back?: { onPress: () => void; previousTitle?: string };
   actions?: readonly ActionSpec[];
   testID: string;
   children: React.ReactNode;
@@ -1279,7 +1298,7 @@ function Overlay({ children }: { children: React.ReactNode }): React.ReactElemen
   );
 }
 
-function Lead({ title, body, level = 2 }: { title: string; body?: string; level?: 2 | 3 }): React.ReactElement {
+export function Lead({ title, body, level = 2 }: { title: string; body?: string; level?: 2 | 3 }): React.ReactElement {
   return (
     <View style={{ gap: space['2'] }}>
       <Line type={level === 2 ? 'heading.xl' : 'heading.md'} header>
@@ -1290,9 +1309,9 @@ function Lead({ title, body, level = 2 }: { title: string; body?: string; level?
   );
 }
 
-type LineType = 'heading.xl' | 'heading.md' | 'heading.sm' | 'body.lg' | 'body.md' | 'label.lg' | 'label.md' | 'mono.md';
+export type LineType = 'heading.xl' | 'heading.md' | 'heading.sm' | 'body.lg' | 'body.md' | 'label.lg' | 'label.md' | 'mono.md';
 
-function Line({
+export function Line({
   children,
   type = 'body.lg',
   tone = 'primary',
@@ -1318,7 +1337,7 @@ function Line({
 }
 
 /** `false` after unmount: a step answered after the screen moved on sets nothing. */
-function useAlive(): React.MutableRefObject<boolean> {
+export function useAlive(): React.MutableRefObject<boolean> {
   const alive = React.useRef(true);
   React.useEffect(() => {
     alive.current = true;

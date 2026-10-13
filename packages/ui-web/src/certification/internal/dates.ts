@@ -11,20 +11,26 @@ const LONG_PARTS: Intl.DateTimeFormatOptions = {
   day: 'numeric',
   month: 'long',
   year: 'numeric',
-  timeZone: 'UTC',
 };
+
+/** The platform's zone (launch: Ontario). A date-time names the day it was here. */
+const PLATFORM_TIME_ZONE = 'America/Toronto';
+
+const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
 
 /**
  * A wire date (`2027-03-14`) or date-time is rendered as `14 March 2027`.
  *
- * Date-only values are anchored to UTC so a device west of Greenwich does not render the day
- * before the certificate expires.
+ * A date is a calendar day and is read as written (anchored to UTC), so a device west of
+ * Greenwich does not render the day before the certificate expires. A date-time is an instant
+ * and is read in the platform's zone: `2026-10-10T02:30:00Z` was 9 October in Toronto.
  */
 export function formatAbsoluteDate(value: string | null | undefined, locale = 'en-CA'): string | null {
   const date = parseWireDate(value);
   if (!date) return null;
 
-  const parts = new Intl.DateTimeFormat(locale, LONG_PARTS).formatToParts(date);
+  const timeZone = DATE_ONLY.test(value ?? '') ? 'UTC' : PLATFORM_TIME_ZONE;
+  const parts = new Intl.DateTimeFormat(locale, { ...LONG_PARTS, timeZone }).formatToParts(date);
   const day = parts.find((p) => p.type === 'day')?.value;
   const month = parts.find((p) => p.type === 'month')?.value;
   const year = parts.find((p) => p.type === 'year')?.value;
@@ -47,7 +53,6 @@ export function isoAttribute(value: string | null | undefined): string | undefin
 
 function parseWireDate(value: string | null | undefined): Date | null {
   if (!value) return null;
-  const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
-  const date = dateOnly ? new Date(`${value}T00:00:00Z`) : new Date(value);
+  const date = DATE_ONLY.test(value) ? new Date(`${value}T00:00:00Z`) : new Date(value);
   return Number.isNaN(date.getTime()) ? null : date;
 }

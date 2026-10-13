@@ -8,7 +8,7 @@
  * support is off.
  */
 import * as React from 'react';
-import { AccessibilityInfo, KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native';
+import { AccessibilityInfo, KeyboardAvoidingView, ScrollView, Text, View } from 'react-native';
 
 import { Banner, Button, Icon, Input, Wordmark, space, typeStyle, useTheme } from '../ds';
 import { callSupport, type Support } from '../data/config';
@@ -82,7 +82,11 @@ export function PhoneStep({ digits, onDigits, signedOut, online, support, onSent
   const lead = typeStyle(theme, 'body.lg');
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: theme.color.surface.base }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView
+      style={{ flex: 1, backgroundColor: theme.color.surface.base }}
+      // The footer rides above the keyboard on both platforms (SO Main-Keyboard). The app is
+      // edge-to-edge on Android, so the window no longer resizes for the keyboard there either.
+      behavior="padding">
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{ padding: space['5'], gap: space['5'] }}

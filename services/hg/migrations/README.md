@@ -1,7 +1,7 @@
 ---
 covers:
   - services/hg/migrations/**
-reviewed: 2026-10-10
+reviewed: 2026-10-11
 ---
 
 # HalalGoes — database schema
@@ -16,7 +16,9 @@ migrations/
   roles/roles.sql    the database roles; the superuser runs it before goose
   seed/              launch data — tax table, halal issuing bodies, fee config
   lint/schema_lint.sql   the money + geography lints, runnable standalone
-  test/              invariant tests: 115 assertions about what the DB refuses
+  test/              invariant tests: 115 assertions about what the DB refuses, and
+                     fixtures.sql, the fixed-UUID rows the Go tests read (its restaurant
+                     trades 24 hours a day; a test that orders refreshes its heartbeat)
   tools/             contract-enum generator and checker
   devworld/          local personas; loaded only by cmd/devworld
 ```
@@ -144,6 +146,10 @@ A contract enum the backend does not store yet (one a contract change adds
 ahead of its backend) is excluded with the reason "contract-only until the
 backend lands" and the issue or pull request that will store it; that change
 moves it to `MAPPED_IN_MIGRATION` with its migration.
+
+A response field that narrows a stored type to some of its labels (the onboarding status's rejection `decision`, a subset of `restaurant_decision`) is excluded too, with the stored column it projects named in the reason.
+An enum that only ever appears in a response forwarded from a provider, such as
+address search through Mapbox, is excluded as response-only: nothing stores it.
 
 ## Verification
 

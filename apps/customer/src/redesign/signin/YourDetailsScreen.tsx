@@ -29,6 +29,7 @@ import { useConnectivity } from '../lib/connectivity';
 import { NavContext } from '../navigation/context';
 import { finishProfileCapture } from '../session/session';
 import { announceError } from './a11y';
+import { givenFirstName } from '../../api/profileName';
 
 type CustomerProfile = Schema['CustomerProfile'];
 type ProfileInput = Schema['CustomerProfileUpdateInput'];
@@ -91,9 +92,9 @@ export function YourDetailsScreen({ fromCart = false }: { fromCart?: boolean }):
       .then((res) => {
         if (!live) return;
         const p = res.data as CustomerProfile;
-        // First run starts with no first name: a new account's profile row holds the server's
-        // placeholder ("there", for "Hi there"), never a name the customer gave.
-        setFirst(fromCart ? (p.first_name ?? '') : '');
+        // A new account's profile row holds the server's placeholder ("there", for "Hi there"),
+        // never a name the customer gave: the field starts empty then, on first run or from the cart.
+        setFirst(givenFirstName(p.first_name));
         setLast(p.last_name ?? '');
         setEmail(p.email ?? '');
         setLoadedEmail(p.email ?? null);

@@ -1,0 +1,31 @@
+id: rider-wp5-dropoff-code
+app: rider
+avd: hg_rider
+api: devworld
+build:
+  env: { EXPO_PUBLIC_HG_REDESIGN: "1" }
+  note: "Clear the Metro cache when building (EXPO_PUBLIC_* is inlined at transform time). The delivery code is only checked once contract #290 and backend #315 merge; before that any 4 digits pass and the wrong-code step skips itself."
+setup:
+  - "make dev-reset"
+  # Needs a met handover (Amina's address with MEET_AT_DOOR): a devworld seed that is not there
+  # yet. Until it is, required_pod_method is PHOTO and the flow stops at "Who will you hand it to?".
+  - "make dev-journey route=short auto=restaurant manual=rider"
+reality:
+  - geo-route: tools/e2e/native/routes/restaurant-to-amina.gpx
+  - network: umts
+  - theme: light
+  - font-scale: 1.3
+flows: [ "tools/e2e/native/rider/redesign/lab/5b-dropoff-code.yaml" ]
+explore: >
+  Set PICKUP_CODE (rider-wp4-pickup) and DELIVERY_CODE for the flow: sign in to the customer API
+  as Amina and read `delivery_code` from her active order (OrderCustomerView / OrderTracking,
+  #290) once the rider has picked up. Then, on fresh journeys, screenshot each state:
+  (1) Five wrong codes in a row: "The code is locked after 5 tries", "HalalGoes support is taking
+  over this delivery…", "Call HalalGoes support" primary with its number and hours, "Call
+  <customer>"; no photo option, no code field, nothing red (manifest §5 conflict 1).
+  (2) "The customer can't find the code": the sheet with where to look, Call <customer>, Back to
+  the code.
+  (3) `network: offline` after typing the code, then Check the code: "Keep the bag until you're
+  back online" and Try again; nothing marked delivered; restore and Try again sends the same
+  request (API log: one proof, the same Idempotency-Key).
+  (4) Theme dark and font scale 2.0: repeat (1) and the Delivered screen.

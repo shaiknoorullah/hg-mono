@@ -1,7 +1,7 @@
 ---
 covers:
   - apps/restaurant/src/**
-reviewed: 2026-10-10
+reviewed: 2026-10-11
 ---
 
 # What the old restaurant web app teaches the redesign
@@ -659,7 +659,7 @@ Each is a `Card` with `Price`, and each blank shows "—" rather than an invente
 - The **halal certificate row shows `HalalBadge` UNVERIFIED** (dashed and neutral) until it is approved. Never green before approval, never red after rejection.
 
 **FIX_DOCUMENTS** gets the old rejected page's structure:
-- The rejection summary: `rejection.reason_code` and `note`, word for word.
+- The rejection summary: `rejection.reason_code` and `note`, word for word. `rejection.decision` tells a request for changes (`REQUEST_CHANGES`: fix and resubmit) from a `REJECT` (the screen shows the reason and no "Go to documents" button).
 - **Each rejected document listed with its own `rejection_reason_code` and a button that goes straight to that document.**
 - A "What to do next" list.
 - Contact support.

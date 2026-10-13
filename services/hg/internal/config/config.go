@@ -8,6 +8,7 @@ import (
 	"net/netip"
 	"net/url"
 	"os"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -42,6 +43,12 @@ type Config struct {
 	// allowed only when HG_ENV=local: staging and production run behind
 	// Traefik, where an empty list makes every caller share one address.
 	TrustedProxies []netip.Prefix
+	// CSRFCookieDomain (HG_AUTH_CSRF_COOKIE_DOMAIN) is the Domain the hg_csrf
+	// double-submit cookie is set on, so a web app on a sibling host (the
+	// restaurant console beside the API) can read it and refresh its session
+	// (https://github.com/shaiknoorullah/hg-mono/issues/740). Empty, the
+	// default, sets a host-only cookie. Production sets ".halalgoes.com".
+	CSRFCookieDomain string
 
 	Postgres Postgres
 	Redis    Redis
@@ -404,6 +411,7 @@ func Load(getenv func(string) string) (*Config, error) {
 	cfg.LogLevel = l.logLevel("HG_LOG_LEVEL", slog.LevelInfo)
 	cfg.CORSOrigins = l.originList("HG_CORS_ALLOWED_ORIGINS")
 	cfg.TrustedProxies = l.prefixList("HG_TRUSTED_PROXY_CIDRS")
+	cfg.CSRFCookieDomain = l.cookieDomain("HG_AUTH_CSRF_COOKIE_DOMAIN")
 
 	cfg.Postgres = Postgres{
 		DSN:         l.required("HG_POSTGRES_DSN"),
@@ -733,6 +741,20 @@ func (l *loader) optional(key, def string) string {
 		return v
 	}
 	return def
+}
+
+// cookieDomainPattern is a lower-case DNS name of two or more labels, with an
+// optional leading dot: what a cookie's Domain attribute may carry.
+var cookieDomainPattern = regexp.MustCompile(`^\.?[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$`)
+
+// cookieDomain reads an optional cookie Domain: empty (host-only), or a DNS
+// name such as ".halalgoes.com" — no scheme, port or path.
+func (l *loader) cookieDomain(key string) string {
+	v := strings.TrimSpace(l.getenv(key))
+	if v != "" && !cookieDomainPattern.MatchString(v) {
+		l.errf("%s: %q is not a cookie domain like .halalgoes.com (no scheme, port or path)", key, v)
+	}
+	return v
 }
 
 func (l *loader) intVal(key string, def int) int {

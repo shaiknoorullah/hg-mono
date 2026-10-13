@@ -93,7 +93,7 @@ func miNewSystemServer(t *testing.T) (*Harness, *store.Store) {
 		t.Fatalf("miNewSystemServer: pool: %v", err)
 	}
 	t.Cleanup(pool.Close)
-	system.Routes(router, system.NewHandler(cfg, st, time.Now().UTC(), nil).
+	system.Routes(router, system.NewHandler(cfg, st, time.Now().UTC(), nil, "").
 		WithOrderingStatus(orders.NewStore(pool).OrderingStatus), cfg)
 	if err := router.Verify(); err != nil {
 		t.Fatalf("system router verify: %v", err)
