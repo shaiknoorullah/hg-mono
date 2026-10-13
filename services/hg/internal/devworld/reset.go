@@ -100,7 +100,10 @@ func migrateAndSeed(ctx context.Context, dsn string) error {
 	if err := ApplyCredentials(ctx, dsn); err != nil {
 		return err
 	}
-	return SeedImages(ctx, dsn)
+	if err := SeedImages(ctx, dsn); err != nil {
+		return err
+	}
+	return SeedDocumentFiles(ctx, dsn)
 }
 
 func recreatePublic(ctx context.Context, dsn string) error {
