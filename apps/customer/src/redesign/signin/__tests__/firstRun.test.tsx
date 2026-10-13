@@ -67,6 +67,20 @@ describe('S3 Your details', () => {
     expect(screen.getByText('Not you? Use a different number')).toBeTruthy();
   });
 
+  it("first run: the server's placeholder name is not shown as the customer's", async () => {
+    // A new account's profile row holds "there" (for "Hi there"), not a name anyone gave.
+    mock.answer('getCustomerProfile', {
+      status: 200,
+      body: { data: { ...PROFILE, first_name: 'there', last_name: null, email: null, default_address_id: null } },
+    });
+    renderRedesign(<YourDetailsScreen />);
+    await ready();
+    expect(screen.getByTestId('Profile-first-field').props.value).toBe('');
+    fireEvent.press(screen.getByText('Save and continue'));
+    expect(screen.getByText(/Enter your first name\./)).toBeTruthy();
+    expect(mock.callsTo('updateCustomerProfile')).toHaveLength(0);
+  });
+
   it('renders in dark, with the validation errors', async () => {
     renderRedesign(<YourDetailsScreen />, { scheme: 'dark' });
     await ready();
@@ -199,6 +213,16 @@ describe('S3 Your details', () => {
     await waitFor(() => expect(nav.log).toContainEqual({ action: 'replace', route: { name: 'checkout' } }));
     fireEvent.press(screen.getByLabelText('Back to cart'));
     expect(nav.log).toContainEqual({ action: 'back' });
+  });
+
+  it("from the cart: the server's placeholder name is not shown as the customer's either", async () => {
+    mock.answer('getCustomerProfile', {
+      status: 200,
+      body: { data: { ...PROFILE, first_name: 'there', last_name: null, email: null, default_address_id: null } },
+    });
+    renderRedesign(<YourDetailsScreen fromCart />, { nav: navSpy({ name: 'yourDetails', fromCart: true }) });
+    await ready();
+    expect(screen.getByTestId('Profile-first-field').props.value).toBe('');
   });
 
   it('"Not you?" signs this phone out with the Not you note', async () => {

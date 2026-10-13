@@ -5,7 +5,7 @@ covers:
   - services/hg/migrations/devworld/**
   - apps/restaurant/.claude/skills/**
   - docs/playbooks/**
-reviewed: 2026-10-09
+reviewed: 2026-10-10
 ---
 
 # Dev world — seeded personas, live scenarios, journey simulation, playbooks
@@ -48,7 +48,7 @@ The mock stays for contract work. Manual, agent-driven and e2e testing moves to 
 
 - **Things that exist → SQL. Things that happen → API.** Static world state (accounts, restaurants at a lifecycle stage, menus, hours, staff, certificates, payouts) is idempotent SQL. Anything with a clock or a ledger consequence (orders, dispatch, delivery, admin decisions) is produced by calling the real API.
 - **Purpose is declared, then checked.** Each persona declares the state it lands in; a verifier asserts it after every seed. The coverage tables (see [personas and coverage](#5-personas-and-coverage)) are data the verifier reads, so they cannot silently drift.
-- **Time-relative, not calendar-fixed.** "Expires in 10 days" is `now() + interval '10 days'` at seed time, so states stay true after any reset.
+- **Time-relative, not calendar-fixed.** "Expires in 10 days" is `now() + interval '10 days'` at seed time, so states stay true after any reset. Dates are counted from today in Toronto, the personas' timezone, not from the database server's UTC date, because the halal state compares a certificate's dates with the restaurant's local date.
 - **Seeded history stays inside retention.** The API binary runs the hourly retention sweep ([`services/hg/internal/retention`](../../../services/hg/internal/retention/rules.go)) in every environment, local included. A seeded row older than its table's retention period (a notification over 90 days old, a quote expired over 30 days ago with no order, a sign-in attempt over 90 days old) is deleted within the hour, so a persona that depends on one would silently drift out of its declared state.
 - **Auth is exercised, not bypassed.** Personas sign in with real password + TOTP. The only dev accommodation is a fixed OTP for a reserved fictional phone range, and only when the process environment is local or staging (see [scenario sign-in](#64-scenario-sign-in)).
 
@@ -105,8 +105,8 @@ Email-login personas share one local password and sign in as `<persona>@seed.hg`
 | `docs-todo` | DOCUMENTS_PENDING, 1 of 3 uploaded | PENDING | — | — | upload flow, incomplete pack |
 | `docs-review` | DOCUMENTS_REVIEW | PENDING | — | — | awaiting-review screen; target of `docs-approve` / `docs-reject` |
 | `docs-rejected` | DOCUMENTS_REJECTED — halal cert `ILLEGIBLE` | PENDING | — | — | rejection reason + resubmit |
-| `payout-setup` | PAYOUT_PENDING | PENDING | — | — | payout-account step |
-| `menu-setup` | MENU_PENDING, empty menu | PENDING | — | — | first-menu creation |
+| `payout` | PAYOUT_PENDING | PENDING | — | — | payout-account step |
+| `menu` | MENU_PENDING, empty menu | PENDING | — | — | first-menu creation |
 | **`bismillah-grill`** | ACTIVE | LIVE | CERTIFIED | OPEN | the operating surface (see [its depth below](#52-bismillah-grill-depth)) |
 | `expiring-halal` | ACTIVE | LIVE | EXPIRING_SOON (expires now + 10 d) | OPEN | expiring warning |
 | `expired-halal` | ACTIVE | DELISTED (reason `HALAL_CERTIFICATE_EXPIRED`) | EXPIRED (expired now − 7 d) | — | slate, never red ([never red for a halal state (invariant 9)](https://github.com/shaiknoorullah/hg-mono/blob/main/AGENTS.md#3-non-negotiable-invariants)); hidden from customers. Not `LIVE`: the schema refuses a listed restaurant with an expired certificate ([#252](https://github.com/shaiknoorullah/hg-mono/issues/252)) |
@@ -117,7 +117,7 @@ The customer apps see `expiring-halal` as Bamyan Kebab House and `paused` as Gal
 
 ### 5.1a Toronto catalogue
 
-Reset also seeds 14 live, certified restaurants within 8 km of both the Danforth persona address and downtown, so a new phone sign-in sees a full marketplace once it saves a Toronto address. Three are the personas above (`bismillah-grill`, `expiring-halal`, `paused`). The other 11 are created by [`catalogue.go`](../../../services/hg/internal/devworld/catalogue.go), each with a verified certificate, a Connect stand-in and an owner who signs in as `<slug>@seed.hg`. One of them, `padma-river-kitchen`, has no trading hours on the reset day. Menus have 12 to 20 items, with one variant group at most per item, required and optional add-on groups, and some items, variants and add-ons out of stock. Photos come from Wikimedia Commons under the licences in [`catalogue_photos.json`](../../../services/hg/internal/devworld/catalogue_photos.json). The reset downloads them to a cache outside the repository and uploads them to the local `hg-media` bucket. Logos, and any photo it cannot fetch, are generated. `HG_DEVWORLD_PHOTOS=off` skips the download. While `make run` serves a local stack, the API stands in for the catalogue's order screens: once a minute it touches the heartbeat of each seeded restaurant that is live and taking orders ([`tablets`](../../../services/hg/internal/devworld/tablets/tablets.go), `HG_DEVWORLD_TABLETS=on`, refused unless `HG_ENV` is `local`), so discovery keeps them open within their hours and `paused` stays paused.
+Reset also seeds 14 live, certified restaurants within 8 km of both the Danforth persona address and downtown, so a new phone sign-in sees a full marketplace once it saves a Toronto address. Three are the personas above (`bismillah-grill`, `expiring-halal`, `paused`). The other 11 are created by [`catalogue.go`](../../../services/hg/internal/devworld/catalogue.go), each with a verified certificate, a Connect stand-in and an owner who signs in as `<slug>@seed.hg`. One of them, `padma-river-kitchen`, has no trading hours on the reset day, so adding to its cart and quoting refuse with `RESTAURANT_CLOSED` that day, as at any restaurant outside its hours ([#648](https://github.com/shaiknoorullah/hg-mono/issues/648)). Menus have 12 to 20 items, with one variant group at most per item, required and optional add-on groups, and some items, variants and add-ons out of stock. Photos come from Wikimedia Commons under the licences in [`catalogue_photos.json`](../../../services/hg/internal/devworld/catalogue_photos.json). The reset downloads them to a cache outside the repository and uploads them to the local `hg-media` bucket. Logos, and any photo it cannot fetch, are generated. `HG_DEVWORLD_PHOTOS=off` skips the download. While `make run` serves a local stack, the API stands in for the catalogue's order screens: once a minute it touches the heartbeat of each seeded restaurant that is live and taking orders ([`tablets`](../../../services/hg/internal/devworld/tablets/tablets.go), `HG_DEVWORLD_TABLETS=on`, refused unless `HG_ENV` is `local`), so discovery keeps them open within their hours and `paused` stays paused.
 
 ### 5.2 `bismillah-grill` depth
 
@@ -165,7 +165,19 @@ These are the seed for the customer, rider and admin coverage tables that [exten
 | `onboard-rider` | a new rider signs in with a fresh number, submits profile, bicycle and documents; `admin-seed` approves them and the application; the rider sets up payouts and goes online | the new rider is `ACTIVE` and online beside `bismillah-grill` ([playbook](../../playbooks/rider/onboarding.md)) |
 | `payment-failed` | `amina` places an order with the local fake payment client's declined-card payment method (`pm_fake_declined`), after cancelling an order of hers still waiting for payment ([#680](https://github.com/shaiknoorullah/hg-mono/issues/680)) | her newest order `FAILED`, no payment, no ledger batch, no active order |
 | `payment-unpaid` | `amina` places an order with the fake's unpaid payment method (`pm_fake_unpaid`); the intent is created but never confirmed, and reading it back does not authorise it | an active `CREATED` order with its 15-minute deadline; left alone, the deadline runner cancels it |
+| `onboard-admin` | `admin-seed` invites a new admin; the invitee sets the first password from the invitation link, signs in with the password alone, then turns two-step sign-in on and signs in again with password and code | the new admin reads the review queue and holds a password-and-code session that may move money; `make dev-totp email=…` prints its current code ([playbook](../../playbooks/admin/onboarding.md)) |
+| `offer-to-rider` | `rider-sim` goes online at `bismillah-grill`; an order is accepted and marked ready; dispatch offers it | `rider-sim` holds a pending offer (30 s, real TTL) for a ready order; answer it in the rider app |
+| `restaurant-timeout` | `new-order`, then the order's restaurant deadline is brought forward to 30 s (clock) | the ticker cancels it: `CANCELLED`, `RESTAURANT_TIMEOUT`, authorisation voided |
+| `admin-cancel` | `order-preparing`, then `admin-seed` calls `cancelOrderAdmin` (`SUPPORT_CANCELLED`) | `CANCELLED` with a full refund, in one transaction |
+| `pickup-lapse` | `rider-sim` offline; an order is made ready; its pickup deadline is brought forward once (clock) | `READY_FOR_PICKUP`, first pickup lapse escalated (dispatch, ops, customer told), next lapse in 10 min |
+| `pickup-lapse-cancelled` | as `pickup-lapse`, repeated to the escalation cap (clock) | `CANCELLED`, `NO_RIDER_FOUND`, full refund |
+| `cert-lapse-mid-order` | an order is accepted, then `bismillah-grill`'s certificate expiry is moved to yesterday, local time (clock) | restaurant `EXPIRED` and `DELISTED`, public certification 404 (no badge); the order stays `PREPARING`. Run `make dev-reset` afterwards |
+| `order-completed` | `rider-sim` delivers an order end to end at full speed; the settle deadline is brought forward (clock) | `COMPLETED` with a receipt; one more delivery in `rider-sim`'s history and earnings |
 | `journey` | see [journey](#63-journey) | one live order through delivery when the rider is driven |
+
+**The clock.** Scenarios marked *clock* need time to pass. They move one row's clock in the local database and let the running API's own timers act: an order's `deadline_at` (only ever earlier, only while the order is still in the expected state and action; the deadline ticker then fires the real action) or, for `cert-lapse-mid-order`, a certificate's `expires_on`. They write no state, payment or ledger row, and refuse any database that is not this machine's, as reset does. `make dev-scenario` sets the local database address. Scenarios that leave an order waiting use `amina` first and `nour` second, so each runs about twice per reset. Phone personas' access tokens are cached under the user's cache directory (`hg-devworld/`, local APIs only), because phone sign-in allows five code requests per number per 15 minutes.
+
+Not built yet, because the API on `main` cannot produce them: `cancel-after-pickup` (admin cancel stops at `PREPARING`), `reassign-rider` (no admin reassign operation, one active rider persona), `customer-suspend` ([#335](https://github.com/shaiknoorullah/hg-mono/issues/335)), a `DISPUTED` order and `dispute-and-resolve` (a customer cannot upload the evidence photo the tamper report needs, and there is no resolve operation), a failed refund and `capture-fails` (the fake payment client never fails), `rider-payout` and a payout history (closed-week ledger rows need a seed).
 
 ### 6.2 Bootstrap (not run by `reset`)
 
@@ -202,6 +214,8 @@ Each playbook step is: **setup command** (terminal) → **action** (in browser) 
 
 Playbooks describe the app **as it behaves today**. Where the app does not yet update live, the step says "press Refresh"; the companion feature spec rewrites those steps to "appears without Refresh" when it lands. *Done for the restaurant order queue (Oct 2026, [#27](https://github.com/shaiknoorullah/hg-mono/issues/27)): `journey.md` and `order-handling.md` wait for orders to appear on their own; **Refresh** stays as a manual option.*
 
+A playbook names only personas that `go run ./cmd/devworld list` prints and commands that exist; a step that needs something the dev world does not seed yet links the issue that adds it instead of naming a login ([#687](https://github.com/shaiknoorullah/hg-mono/issues/687)).
+
 Two runners, same playbook:
 
 - **Claude in Chrome** — the user connects the extension to the Claude Code session (`/chrome`); Claude runs the terminal commands and drives the user's visible Chrome, reporting each assertion.
@@ -234,6 +248,8 @@ Adding customer, rider or admin coverage is additive — no change to the [archi
 4. **Run skill** — `apps/<app>/.claude/skills/run-<app>/` with a `--backend` mode (the customer and rider apps are Expo; their web target is the automation surface).
 
 One GitHub issue per app tracks this.
+
+Which journeys of each app, and which features of the specification, the dev world reproduces today, and the issue for each gap, is in the [dev world coverage map](../../devworld-coverage.md).
 
 ## 11. Relationship to the realtime feature
 

@@ -81,7 +81,7 @@ func TestSchemaForIsTheServedSchema(t *testing.T) {
 			t.Errorf("SchemaFor(%q) differs from the served %s@v1", typ, typ)
 		}
 	}
-	for _, typ := range []string{"order.rider_arrived", "order.invented", ""} {
+	for _, typ := range []string{"order.from_a_newer_contract", "order.invented", ""} {
 		if s := SchemaFor(typ); s != nil {
 			t.Errorf("SchemaFor(%q) = %v, want nil for a type not in the catalogue", typ, s)
 		}

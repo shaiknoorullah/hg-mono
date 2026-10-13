@@ -1,6 +1,7 @@
 package pricing
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders/money"
@@ -202,5 +203,74 @@ func assertAmount(t *testing.T, name string, got, want money.Amount) {
 	t.Helper()
 	if got != want {
 		t.Errorf("%s = %d, want %d", name, got, want)
+	}
+}
+
+// TestVariantPart pins P-09 step 1 for any number of chosen variants: the
+// ABSOLUTE variant replaces the base, every DELTA adjusts it, and a
+// combination that cannot be priced is refused rather than guessed.
+// https://github.com/shaiknoorullah/hg-mono/issues/628
+func TestVariantPart(t *testing.T) {
+	amt := func(c int64) *money.Amount { a := money.Amount(c); return &a }
+	abs := func(id string, c int64) VariantChoice {
+		return VariantChoice{VariantID: id, PricingMode: PricingAbsolute, PriceCents: amt(c)}
+	}
+	delta := func(id string, c int64) VariantChoice {
+		return VariantChoice{VariantID: id, PricingMode: PricingDelta, DeltaCents: amt(c)}
+	}
+	for _, tc := range []struct {
+		name    string
+		chosen  []VariantChoice
+		want    money.Amount
+		wantErr bool
+	}{
+		{"no variant is the base", nil, 2499, false},
+		{"one ABSOLUTE replaces the base", []VariantChoice{abs("two", 4299)}, 4299, false},
+		{"one DELTA adjusts the base", []VariantChoice{delta("pulao", 300)}, 2799, false},
+		{"ABSOLUTE plus DELTAs", []VariantChoice{delta("pulao", 300), abs("two", 4299), delta("hot", 0)}, 4599, false},
+		{"a negative DELTA", []VariantChoice{abs("two", 4299), delta("no-rice", -200)}, 4099, false},
+		{"two ABSOLUTE variants cannot be priced", []VariantChoice{abs("two", 4299), abs("gift", 500)}, 0, true},
+		{"below zero cannot be priced", []VariantChoice{abs("taste", 100), delta("no-rice", -200)}, 0, true},
+		{"an ABSOLUTE with no price", []VariantChoice{{VariantID: "x", PricingMode: PricingAbsolute}}, 0, true},
+		{"a DELTA with no delta", []VariantChoice{{VariantID: "x", PricingMode: PricingDelta}}, 0, true},
+		{"an unknown pricing mode", []VariantChoice{{VariantID: "x", PricingMode: "PERCENT"}}, 0, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := VariantPart(2499, tc.chosen)
+			if tc.wantErr {
+				if !errors.Is(err, ErrVariantPricing) {
+					t.Fatalf("err = %v, want ErrVariantPricing", err)
+				}
+				return
+			}
+			if err != nil || got != tc.want {
+				t.Fatalf("VariantPart = %d, %v; want %d", got, err, tc.want)
+			}
+		})
+	}
+
+	// Compute prices a line from its variants, whatever part the caller passed,
+	// and refuses a line whose variants cannot be priced.
+	line := LineInput{MenuItemID: "platter", Quantity: 2, BasePriceCents: 2499, VariantPartCents: 1,
+		TaxCategory: CategoryPreparedFood, Variants: []VariantChoice{abs("two", 4299), delta("pulao", 300)}}
+	res, err := Compute(Inputs{Fulfilment: FulfilmentPickup, Config: fixtureConfig(), Rates: ontarioRates(t), Lines: []LineInput{line}, CommissionRate: money.Rate{Num: 0, Den: 1}})
+	if err != nil {
+		t.Fatalf("compute: %v", err)
+	}
+	assertAmount(t, "variant part", res.Lines[0].VariantPartCents, 4599)
+	assertAmount(t, "line total", res.Lines[0].LineTotalCents, 9198)
+	line.Variants = append(line.Variants, abs("gift", 500))
+	if _, err := Compute(Inputs{Fulfilment: FulfilmentPickup, Config: fixtureConfig(), Rates: ontarioRates(t), Lines: []LineInput{line}, CommissionRate: money.Rate{Num: 0, Den: 1}}); !errors.Is(err, ErrVariantPricing) {
+		t.Errorf("compute with two ABSOLUTE variants: err = %v, want ErrVariantPricing", err)
+	}
+
+	// The legacy one-variant fields: id and mode for exactly one, names joined.
+	id, name, mode := VariantSummary([]VariantChoice{{VariantID: "two", Name: "For two", PricingMode: PricingAbsolute}})
+	if id == nil || *id != "two" || *name != "For two" || *mode != PricingAbsolute {
+		t.Errorf("one variant: %v %v %v", id, name, mode)
+	}
+	id, name, mode = VariantSummary([]VariantChoice{{Name: "For two"}, {Name: "Kabuli pulao"}})
+	if id != nil || mode != nil || *name != "For two, Kabuli pulao" {
+		t.Errorf("two variants: %v %v %v", id, name, mode)
 	}
 }

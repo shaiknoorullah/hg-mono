@@ -1,7 +1,6 @@
 /**
- * The redesign's API client. It shares the session store with the legacy app (`lib/api.ts`),
- * so signing in on one is signing in on the other, but it handles a 401 the way a kitchen
- * screen must (manifest §0, WP1):
+ * The redesign's API client. It shares the in-memory session with the legacy screens it still
+ * hosts (`lib/api.ts`), but it handles a 401 the way a kitchen screen must (manifest §0, WP1):
  *
  *   1. try `refreshSession` silently (web: `hg_rt` cookie + `X-HG-CSRF` double submit) and
  *      replay the request once;
@@ -11,8 +10,35 @@
  * Every response's `Date` header feeds the server clock (countdowns use server time).
  */
 import { createHgClient, type HgClient, type Schema } from '@hg/api-client';
-import { getSession, setSession } from '../../lib/api';
+import { getSession, setSession, type StoredSession } from '../../lib/api';
 import { observeServerDate } from './serverClock';
+
+/**
+ * The access token lives in memory only (WP2 spec §1.12, "Access token in memory only"). The
+ * legacy store (`lib/api.ts`) mirrors every session into `localStorage` for development against
+ * the mock server; the redesign drops that mirror whenever it stores a session, and once at
+ * start-up after `lib/api.ts` has read it, so a token never outlives the tab on a shared kitchen
+ * tablet and no script on the origin can read it back. A reload restores the session from the
+ * `hg_rt` cookie instead (`restoreSession`; on `services/hg` today that refresh cannot read the
+ * `hg_csrf` cookie cross-origin, #740, so a reload means signing in again).
+ */
+const LEGACY_MIRROR_KEY = 'hg_restaurant_session_v1';
+
+function dropStoredMirror(): void {
+  try {
+    localStorage.removeItem(LEGACY_MIRROR_KEY);
+  } catch {
+    /* storage blocked: nothing was stored */
+  }
+}
+
+dropStoredMirror();
+
+/** Stores (or clears) the session in memory, never in `localStorage`. */
+export function keepSession(next: StoredSession | null): void {
+  setSession(next);
+  dropStoredMirror();
+}
 
 export const API_BASE_URL: string = (import.meta.env['VITE_API_BASE_URL'] as string | undefined) ?? 'http://localhost:4010';
 
@@ -55,14 +81,29 @@ let refreshInFlight: Promise<boolean> | null = null;
  */
 export function refreshAccessToken(): Promise<boolean> {
   if (!refreshInFlight) {
-    refreshInFlight = doRefresh().finally(() => {
+    refreshInFlight = doRefresh(true).finally(() => {
       refreshInFlight = null;
     });
   }
   return refreshInFlight;
 }
 
-async function doRefresh(): Promise<boolean> {
+/**
+ * A fresh visit with no session in memory (a reload, a new tab): try the `hg_rt` cookie once,
+ * quietly. Nothing was on screen, so a refusal raises no "Signed out" alert; the caller sends
+ * the visit to sign-in instead.
+ */
+export function restoreSession(): Promise<boolean> {
+  if (getSession()) return Promise.resolve(true);
+  if (!refreshInFlight) {
+    refreshInFlight = doRefresh(false).finally(() => {
+      refreshInFlight = null;
+    });
+  }
+  return refreshInFlight;
+}
+
+async function doRefresh(raiseSignedOut: boolean): Promise<boolean> {
   const csrf = readCookie('hg_csrf');
   try {
     const response = await fetchWithCookies(`${API_BASE_URL}/v1/auth/refresh`, {
@@ -78,7 +119,7 @@ async function doRefresh(): Promise<boolean> {
     if (response.ok) {
       const body = (await response.json()) as { data: Schema['SessionGrant'] };
       const current = getSession();
-      setSession({ ...current, accessToken: body.data.access_token, accountId: body.data.principal.account_id });
+      keepSession({ ...current, accessToken: body.data.access_token, accountId: body.data.principal.account_id });
       return true;
     }
     let code: string | undefined;
@@ -87,12 +128,12 @@ async function doRefresh(): Promise<boolean> {
     } catch {
       /* non-JSON */
     }
-    signOutLocally(code === 'REFRESH_REUSE_DETECTED' ? 'reuse-detected' : 'expired');
+    if (raiseSignedOut) signOutLocally(code === 'REFRESH_REUSE_DETECTED' ? 'reuse-detected' : 'expired');
     return false;
   } catch {
     // Offline: the access token is dead and the refresh could not be tried. That is "signed
     // out" for the purpose of the next request; the alert offers Sign in again.
-    signOutLocally('expired');
+    if (raiseSignedOut) signOutLocally('expired');
     return false;
   }
 }
@@ -102,7 +143,7 @@ let signedOutRaised = false;
 function signOutLocally(reason: SignedOutReason) {
   if (signedOutRaised) return;
   signedOutRaised = true;
-  setSession(null);
+  keepSession(null);
   signedOutListeners.forEach((l) => l(reason));
 }
 

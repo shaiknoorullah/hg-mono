@@ -30,6 +30,9 @@ type Secrets struct {
 	// RefreshCookieSecure controls the Secure attribute on the hg_rt cookie. It
 	// is false only in local, where there is no TLS.
 	RefreshCookieSecure bool
+	// CSRFCookieDomain is the Domain of the hg_csrf cookie; empty means
+	// host-only. cmd/hg sets it from config (HG_AUTH_CSRF_COOKIE_DOMAIN).
+	CSRFCookieDomain string
 	// CurrentTermsVersion is the terms string registerRestaurant must match
 	// (409 TERMS_VERSION_STALE otherwise).
 	CurrentTermsVersion string
