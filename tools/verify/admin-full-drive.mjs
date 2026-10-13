@@ -3,19 +3,12 @@
 // queue -> staff -> system dashboard. Captures screenshots + real console
 // errors + failed/erroring network calls against the live backend on :8080.
 import { chromium } from 'playwright';
-import { execSync } from 'node:child_process';
+import { requireEnv, totpNow as totp } from './env.mjs';
 
 const APP = process.env.APP_URL ?? 'http://localhost:5173';
-const EMAIL = process.env.SEED_EMAIL ?? 'admin@demo.hg';
-const PASSWORD = process.env.SEED_PASSWORD ?? 'Admin@1234';
+const EMAIL = requireEnv('SEED_EMAIL');
+const PASSWORD = requireEnv('SEED_PASSWORD');
 const OUT = 'tools/verify';
-
-function totp() {
-  return execSync(
-    'SECRET=$(cat /tmp/hg-admin-totp-secret.txt) go run ./cmd/totpnow',
-    { cwd: '/home/devsupreme/work/hg-mono/services/hg', shell: '/bin/bash' },
-  ).toString().trim();
-}
 
 const calls = [];
 const consoleErrors = [];

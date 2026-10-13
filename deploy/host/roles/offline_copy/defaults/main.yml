@@ -1,0 +1,9 @@
+hg_offline_dir: /srv/hg-offline
+hg_offline_repo: "{{ hg_offline_dir }}/restic"
+hg_offline_server: hg-prod
+# Hourly, the pull runs if its last success is older than this and the server answers.
+hg_offline_min_hours: 20
+# A second Gatus here, the only watcher outside Contabo (needs Docker on this machine).
+hg_offline_watcher: true
+# The production Postgres image (#78), for running the restore drill from this copy.
+hg_postgres_image: ""

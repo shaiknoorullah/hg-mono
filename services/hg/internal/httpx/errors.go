@@ -26,6 +26,9 @@ const (
 	CodeOriginNotAllowed       ErrorCode = "ORIGIN_NOT_ALLOWED"
 	CodeRateLimiterUnavailable ErrorCode = "RATE_LIMITER_UNAVAILABLE"
 	CodeUpstreamTimeout        ErrorCode = "UPSTREAM_TIMEOUT"
+	// CodeTimeout: the server could not do the work in time and did nothing,
+	// e.g. every password-hashing slot stayed taken (503 + Retry-After).
+	CodeTimeout                ErrorCode = "TIMEOUT"
 	CodeFeatureNotAvailableYet ErrorCode = "FEATURE_NOT_AVAILABLE_YET"
 )
 

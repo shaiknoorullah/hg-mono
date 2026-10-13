@@ -1,0 +1,23 @@
+{
+  "scenario": "error_refund_daily_cap",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`409` · `DAILY_CAP_EXCEEDED`. Issuing a refund past the caller's 24-hour limit. Contract-only for `issueRefund`: `services/hg` escalates such a refund to an approval request (202, `refund_approval_request_pending`) instead; it answers this code when approving (`error_refund_approver_over_daily_limit`).",
+  "operations": [
+    "issueRefund"
+  ],
+  "status": 409,
+  "tags": [
+    "error-envelope",
+    "error-path",
+    "admin",
+    "money"
+  ],
+  "payload": {
+    "error": {
+      "code": "DAILY_CAP_EXCEEDED",
+      "message": "This refund would take you past your 24-hour refund limit.",
+      "request_id": "WQHF8T0KGWZ8SBRVSAGYK0MRG8"
+    }
+  }
+}

@@ -1,0 +1,6 @@
+# The warm standby (#210): a streaming replica of production's Postgres and a replica of
+# its Silo. Run by standby.yml, next month; site.yml never applies it, and it does nothing
+# unless hg_standby_enabled is true (group_vars/all.yml).
+- name: Set up the standby
+  ansible.builtin.include_tasks: enabled.yml
+  when: hg_standby_enabled | bool

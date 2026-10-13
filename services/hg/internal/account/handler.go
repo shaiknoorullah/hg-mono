@@ -265,6 +265,15 @@ func (h *Handler) UpdateCustomerProfile(w http.ResponseWriter, r *http.Request) 
 		*in.Email = e
 	}
 
+	// avatar_object_id reaches a uuid cast; a malformed value is a clean 422
+	// rather than a 500.
+	if in.AvatarObjectID != nil && !isUUID(*in.AvatarObjectID) {
+		httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
+			"avatar_object_id must be a UUID.",
+			[]httpx.FieldError{{Field: "avatar_object_id", Code: "invalid", Message: "must be a UUID"}})
+		return
+	}
+
 	if h.repo == nil {
 		httpx.Fail(w, r, http.StatusNotImplemented, httpx.CodeFeatureNotAvailableYet,
 			"updateCustomerProfile is not yet connected to a store.", nil)
@@ -273,6 +282,10 @@ func (h *Handler) UpdateCustomerProfile(w http.ResponseWriter, r *http.Request) 
 
 	profile, err := h.repo.UpdateCustomerProfile(r.Context(), p.AccountID, in)
 	if err != nil {
+		if isUploadNotFound(err) {
+			httpx.Fail(w, r, http.StatusNotFound, httpx.CodeNotFound, "No such upload.", nil)
+			return
+		}
 		if isNotFound(err) {
 			httpx.Fail(w, r, http.StatusNotFound, httpx.CodeNotFound, "No such resource.", nil)
 			return

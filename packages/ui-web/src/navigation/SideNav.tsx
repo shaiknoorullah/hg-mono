@@ -20,15 +20,20 @@ import { cx } from '../feedback/internal.js';
  *
  * Visual treatment, mirroring `@hg/ui-native`'s `BottomNav`: the rail is **glass** — a
  * translucent surface (`bg-surface-base/85`) with a real CSS `backdrop-blur`, not the old
- * fully opaque panel — and the active item is a **soft tint**
- * (`bg-[var(--hg-state-selected-tint)]`, a light wash of the action-orange ramp), never the
- * heavy solid `bg-control-selected-bg` fill the row used to carry. That solid fill is still
- * correct for a small control swatch (a checkbox's checked square, a switch's on-track); it
- * reads as "too much" stretched across an entire nav row, which is the same "too much on the
- * eyes" note that moved the RN action button off a solid fill. The left accent bar stays solid
- * orange (`before:bg-action-primary-bg`) — a 4px sliver is exactly the scale that fill is fine
- * at. Always orange, never green: RULE H-1 reserves solid green for `color.halal.*` alone, and
- * this is wayfinding chrome, not a certification.
+ * fully opaque panel.
+ *
+ * The current page is a **filled tile**: a rounded row in the selected tint
+ * (`bg-[var(--hg-state-selected-tint)]`, a light wash of the action-orange ramp in light mode,
+ * a dark one in dark mode) with its label in bold, plus `aria-current="page"`. It never has a
+ * bar, border or stripe on its inline-start edge. The owner ruled those out for any current,
+ * selected or active state on 1 Oct 2026, and the tile replaced the 4px orange bar this row
+ * used to carry (issue #398; rule 12 in docs/design/02-components.md). The tint is not the
+ * heavy solid `bg-control-selected-bg` fill, which suits a small control swatch (a checkbox's
+ * checked square, a switch's on-track) but is too much stretched across a whole nav row. On
+ * the dark chrome the design system shows the current item as an inverted tile instead; this
+ * rail sits on the light glass surface, so it takes the tint. Orange, never green: solid green
+ * is reserved for `color.halal.*` (the invariants in AGENTS.md), and this is wayfinding
+ * chrome, not a certification.
  */
 
 export interface SideNavItem {
@@ -108,7 +113,7 @@ export function SideNav({
                 {group.label}
               </h2>
             ) : null}
-            <ul role="list" aria-label={collapsed ? group.label : undefined} className="flex flex-col">
+            <ul role="list" aria-label={collapsed ? group.label : undefined} className="flex flex-col gap-0.5 px-2">
               {group.items.map((item) => {
                 const active = item.key === activeKey;
                 const name = badgeLabel(item);
@@ -142,15 +147,13 @@ export function SideNav({
                 );
 
                 const shared = cx(
-                  'relative flex min-h-11 w-full items-center gap-3 px-3 py-2 text-start',
+                  'relative flex min-h-11 w-full items-center gap-3 rounded-md px-3 py-2 text-start',
                   'text-label-lg',
                   'hg-focus-inset',
                   active
-                    ? // Soft tint, not the solid `bg-control-selected-bg` fill that role is
-                      // fine for on a small control swatch and "too much on the eyes" stretched
-                      // across a full nav row. The 4px accent bar stays a solid orange fill —
-                      // that scale is fine.
-                      'bg-[var(--hg-state-selected-tint)] font-semibold text-fg-primary before:absolute before:inset-y-1 before:start-0 before:w-1 before:rounded-e-full before:bg-action-primary-bg'
+                    ? // A filled tile, never an edge bar (issue #398): the selected tint plus a
+                      // bold label, so the current page does not rest on colour alone.
+                      'bg-[var(--hg-state-selected-tint)] font-bold text-fg-primary'
                     : 'text-fg-secondary hover:bg-surface-subtle',
                   item.disabled && 'pointer-events-none opacity-[var(--hg-state-disabled-opacity)]',
                 );

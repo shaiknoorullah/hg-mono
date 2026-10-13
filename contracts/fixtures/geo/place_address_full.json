@@ -1,0 +1,25 @@
+{
+  "scenario": "place_address_full",
+  "domain": "geo",
+  "schema": "GeocodedAddress",
+  "describes": "A picked street address: every field the form needs is filled. The user adds the unit and buzzer, may drag the pin, and the pin's final position is what is saved.",
+  "operations": [
+    "getPlaceAddress"
+  ],
+  "status": 200,
+  "tags": [
+    "geo"
+  ],
+  "payload": {
+    "kind": "ADDRESS",
+    "name": null,
+    "line1": "88 Harbour Street",
+    "city": "Toronto",
+    "province": "ON",
+    "postal_code": "M5J 0C3",
+    "country": "CA",
+    "latitude": 43.6412,
+    "longitude": -79.381,
+    "formatted": "88 Harbour Street, Toronto, Ontario M5J 0C3"
+  }
+}

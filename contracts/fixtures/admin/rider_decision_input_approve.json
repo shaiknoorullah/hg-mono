@@ -1,0 +1,17 @@
+{
+  "scenario": "rider_decision_input_approve",
+  "domain": "admin",
+  "schema": "RiderDecisionInput",
+  "describes": "Request body for `decideRiderApplication`. APPROVE: an approval reason, never a rejection reason. The text reaches the rider.",
+  "operations": [],
+  "status": 200,
+  "tags": [
+    "admin",
+    "request-body"
+  ],
+  "payload": {
+    "decision": "APPROVE",
+    "reason_code": "ALL_CHECKS_PASSED",
+    "reason_text": "Welcome to HalalGoes. Your documents are approved; set up payouts to start delivering."
+  }
+}

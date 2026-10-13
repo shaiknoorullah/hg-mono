@@ -56,6 +56,7 @@ type fixtures struct {
 	restaurantID     string
 	otherRestID      string // the other restaurant — never visible to ownerAccount
 	categoryID       string
+	emptyCategoryID  string // a second category holding no item
 	menuItemID       string
 	menuVersionID    string // pending version for the item above
 }
@@ -122,6 +123,11 @@ func seedFixtures(t *testing.T, pool *pgxpool.Pool) fixtures {
 		`INSERT INTO menu_category (restaurant_id, name) VALUES ($1, 'Mains') RETURNING id`,
 		f.restaurantID).Scan(&f.categoryID); err != nil {
 		t.Fatalf("seed category: %v", err)
+	}
+	if err := pool.QueryRow(ctx,
+		`INSERT INTO menu_category (restaurant_id, name, sort_order) VALUES ($1, 'Specials', 1) RETURNING id`,
+		f.restaurantID).Scan(&f.emptyCategoryID); err != nil {
+		t.Fatalf("seed empty category: %v", err)
 	}
 	if err := pool.QueryRow(ctx, `
 		INSERT INTO menu_item (restaurant_id, category_id, price_cents, availability_state, tax_category)
@@ -253,7 +259,7 @@ func TestIntegration_GetOnboardingStatus_NoGrant_Returns404(t *testing.T) {
 	// completely unscoped account:
 	var noGrantAccountID string
 	if err := pool.QueryRow(context.Background(),
-		`INSERT INTO account (email, status) VALUES ('ng-'||substr(uuid_generate_v7()::text,1,8)||'@test.local','ACTIVE') RETURNING id`,
+		`INSERT INTO account (email, status) VALUES ('ng-'||right(uuid_generate_v7()::text, 12)||'@test.local','ACTIVE') RETURNING id`,
 	).Scan(&noGrantAccountID); err != nil {
 		t.Fatalf("seed no-grant account: %v", err)
 	}
@@ -996,6 +1002,7 @@ func seedOrder(t *testing.T, pool *pgxpool.Pool, restaurantID, menuItemID, state
 
 	t.Cleanup(func() {
 		c := context.Background()
+		_, _ = pool.Exec(c, `DELETE FROM order_delay WHERE order_id=$1`, orderID)
 		_, _ = pool.Exec(c, `DELETE FROM "order" WHERE id=$1`, orderID)
 		_, _ = pool.Exec(c, `DELETE FROM quote WHERE id=$1`, quoteID)
 		_, _ = pool.Exec(c, `DELETE FROM cart_line WHERE cart_id=$1`, cartID)
@@ -1155,3 +1162,339 @@ func withChiParam(r *http.Request, key, val string) *http.Request {
 
 // Ensure time import is used (needed if any test uses it).
 var _ = time.Second
+
+// A restaurant at MENU_PENDING advances to ACTIVE (and goes LIVE) once it has
+// opening hours and a live menu item. The item it creates waits for review, so
+// the last step is the admin's approval (docs/spec/03-restaurant.md, "R-17").
+func TestIntegration_MenuItemAndHours_AdvanceOnboarding(t *testing.T) {
+	pool := testPool(t)
+	f := seedFixtures(t, pool)
+	h := newHandler(pool)
+	ctx := context.Background()
+
+	// Payouts ready, state MENU_PENDING, and no menu item yet.
+	if _, err := pool.Exec(ctx, `UPDATE menu_item SET live_version_id=NULL WHERE restaurant_id=$1`, f.restaurantID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `UPDATE restaurant SET onboarding_state='MENU_PENDING', province='ON', location=ST_SetSRID(ST_MakePoint(-79.34,43.68),4326)::geography WHERE id=$1`, f.restaurantID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `
+		INSERT INTO connect_account (owner_type, owner_id, stripe_account_id, payouts_enabled, details_submitted)
+		VALUES ('RESTAURANT', $1::uuid, 'acct_it_'||$1::uuid::text, true, true)`, f.restaurantID); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		c := context.Background()
+		_, _ = pool.Exec(c, `DELETE FROM restaurant_hours WHERE restaurant_id=$1`, f.restaurantID)
+		_, _ = pool.Exec(c, `DELETE FROM restaurant_onboarding_transition WHERE restaurant_id=$1`, f.restaurantID)
+		_, _ = pool.Exec(c, `DELETE FROM connect_account WHERE owner_id=$1`, f.restaurantID)
+	})
+	state := func() string {
+		var s string
+		if err := pool.QueryRow(ctx, `SELECT onboarding_state::text FROM restaurant WHERE id=$1`, f.restaurantID).Scan(&s); err != nil {
+			t.Fatal(err)
+		}
+		return s
+	}
+
+	body := fmt.Sprintf(`{"name":"Lamb Biryani","category_id":%q,"price_cents":2200,"dietary_tags":[],"allergen_tags":[]}`, f.categoryID)
+	req := httptest.NewRequest(http.MethodPost, "/v1/restaurant/menu/items", strings.NewReader(body))
+	req.Header.Set("Idempotency-Key", "test-idem-onboarding-item-1")
+	req = withPrincipal(req, principalWith(f.ownerAccountID, httpx.RoleRestaurantOwner))
+	rec := httptest.NewRecorder()
+	h.CreateMenuItem(rec, req)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("create item status=%d (%s)", rec.Code, rec.Body.String())
+	}
+	if s := state(); s != "MENU_PENDING" {
+		t.Fatalf("item but no hours: state=%s, want MENU_PENDING", s)
+	}
+
+	hours := `{"intervals":[{"day_of_week":1,"opens_at":"09:00","closes_at":"22:00"}],"overrides":[]}`
+	req = httptest.NewRequest(http.MethodPut, "/v1/restaurant/hours", strings.NewReader(hours))
+	req = withPrincipal(req, principalWith(f.ownerAccountID, httpx.RoleRestaurantOwner))
+	rec = httptest.NewRecorder()
+	h.SetRestaurantHours(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("set hours status=%d (%s)", rec.Code, rec.Body.String())
+	}
+	// The item waits for review: customers see nothing yet, so not ACTIVE (R-17 rule 1).
+	if s := state(); s != "MENU_PENDING" {
+		t.Fatalf("item waiting for review and hours: state=%s, want MENU_PENDING", s)
+	}
+	var live, pending *string
+	if err := pool.QueryRow(ctx, `SELECT live_version_id::text, pending_version_id::text FROM menu_item
+		WHERE restaurant_id=$1 AND deleted_at IS NULL AND pending_version_id IS NOT NULL`, f.restaurantID).Scan(&live, &pending); err != nil {
+		t.Fatalf("new item: %v", err)
+	}
+	if live != nil || pending == nil {
+		t.Fatalf("new item live=%v pending=%v; want no live version and one waiting", live, pending)
+	}
+
+	// An admin approves it (what decideMenuVersion writes), and the gate re-runs.
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Rollback(ctx) //nolint:errcheck
+	var adminID string
+	if err := tx.QueryRow(ctx, `INSERT INTO account (email, status) VALUES ('menu-reviewer-'||gen_random_uuid()||'@halalgoes.test', 'ACTIVE')
+		RETURNING id::text`).Scan(&adminID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := tx.Exec(ctx, `UPDATE menu_item_version SET review_status='APPROVED', reviewed_by=$2, reviewed_at=now() WHERE id=$1`,
+		*pending, adminID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := tx.Exec(ctx, `UPDATE menu_item SET live_version_id=pending_version_id, pending_version_id=NULL
+		WHERE pending_version_id=$1`, *pending); err != nil {
+		t.Fatal(err)
+	}
+	if err := restaurant.RecomputeOnboarding(ctx, tx, f.restaurantID); err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if s := state(); s != "ACTIVE" {
+		t.Fatalf("approved item and hours: state=%s, want ACTIVE", s)
+	}
+}
+
+// A restaurant's change to a reviewed field waits for review and never touches
+// what customers see; operational fields apply at once (docs/spec/03-restaurant.md,
+// "R-17 — Menu change approval workflow (admin)"). The new version is numbered
+// after every earlier one, so an item with no live version no longer reuses
+// version 1 and fails (https://github.com/shaiknoorullah/hg-mono/issues/594).
+func TestIntegration_UpdateMenuItem_ReviewedFieldsWaitForReview(t *testing.T) {
+	pool := testPool(t)
+	f := seedFixtures(t, pool)
+	h := newHandler(pool)
+	ctx := context.Background()
+
+	patch := func(body string) {
+		t.Helper()
+		req := httptest.NewRequest(http.MethodPatch, "/v1/restaurant/menu/items/"+f.menuItemID, strings.NewReader(body))
+		req = withChiParam(withPrincipal(req, principalWith(f.ownerAccountID, httpx.RoleRestaurantOwner)), "itemId", f.menuItemID)
+		rec := httptest.NewRecorder()
+		h.UpdateMenuItem(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("PATCH %s = %d (%s), want 200", body, rec.Code, rec.Body.String())
+		}
+	}
+	type item struct {
+		live, pending *string
+		price         int64
+		versions      int
+	}
+	read := func() item {
+		t.Helper()
+		var it item
+		if err := pool.QueryRow(ctx, `SELECT live_version_id::text, pending_version_id::text, price_cents,
+			(SELECT count(*) FROM menu_item_version WHERE menu_item_id = mi.id)
+			FROM menu_item mi WHERE id = $1`, f.menuItemID).Scan(&it.live, &it.pending, &it.price, &it.versions); err != nil {
+			t.Fatal(err)
+		}
+		return it
+	}
+	before := read()
+
+	// Price only: instant, no new version.
+	patch(`{"price_cents":1999}`)
+	if it := read(); it.price != 1999 || it.versions != before.versions || it.pending != before.pending {
+		t.Fatalf("price change: %+v, want price 1999 and no new version", it)
+	}
+
+	// A new name: a version waiting for review; the live one is unchanged.
+	patch(`{"name":"Chicken Biryani Royale"}`)
+	first := read()
+	if first.pending == nil || first.versions != before.versions+1 || (before.live == nil) != (first.live == nil) ||
+		(before.live != nil && *first.live != *before.live) {
+		t.Fatalf("name change: %+v (before %+v), want one more version, pending, live unchanged", first, before)
+	}
+
+	// Edited again before review, with no live version at all: the newer
+	// version replaces the older one and takes the next number.
+	if _, err := pool.Exec(ctx, `UPDATE menu_item SET live_version_id = NULL WHERE id = $1`, f.menuItemID); err != nil {
+		t.Fatal(err)
+	}
+	patch(`{"description":"Slow-cooked, with saffron."}`)
+	second := read()
+	var name, status string
+	var number, maxNumber int
+	if err := pool.QueryRow(ctx, `SELECT name, review_status::text, version,
+		(SELECT max(version) FROM menu_item_version WHERE menu_item_id = $2)
+		FROM menu_item_version WHERE id = $1`, *second.pending, f.menuItemID).Scan(&name, &status, &number, &maxNumber); err != nil {
+		t.Fatal(err)
+	}
+	if name != "Chicken Biryani Royale" || status != "PENDING_REVIEW" || number != maxNumber || second.live != nil {
+		t.Fatalf("second change: name=%q status=%s version=%d of %d live=%v; want the earlier name kept, PENDING_REVIEW, the newest number, still not live",
+			name, status, number, maxNumber, second.live)
+	}
+	var older string
+	if err := pool.QueryRow(ctx, `SELECT review_status::text FROM menu_item_version WHERE id = $1`, *first.pending).Scan(&older); err != nil || older != "WITHDRAWN" {
+		t.Fatalf("the older pending version is %q (err %v), want WITHDRAWN", older, err)
+	}
+}
+
+// A rejected owner must be told why, and a final REJECT must be told apart from
+// a request for changes (https://github.com/shaiknoorullah/hg-mono/issues/695).
+func TestIntegration_GetOnboardingStatus_RejectionCarriesDecisionAndReason(t *testing.T) {
+	for _, decision := range []string{"REJECT", "REQUEST_CHANGES"} {
+		t.Run(decision, func(t *testing.T) {
+			pool := testPool(t)
+			f := seedFixtures(t, pool)
+			h := newHandler(pool)
+			ctx := context.Background()
+			const text = "We could not verify the halal certificate for this location."
+
+			if _, err := pool.Exec(ctx, `UPDATE restaurant SET onboarding_state='DOCUMENTS_REJECTED' WHERE id=$1`, f.restaurantID); err != nil {
+				t.Fatalf("set state: %v", err)
+			}
+			if _, err := pool.Exec(ctx, `
+				INSERT INTO restaurant_application
+				  (restaurant_id, submission_count, submitted_at, decision, reject_reason_code, decided_at)
+				VALUES ($1, 2, now(), $2::restaurant_decision, 'HALAL_CERTIFICATION_INVALID', now())
+				ON CONFLICT (restaurant_id) DO UPDATE
+				SET submission_count=2, decision=EXCLUDED.decision,
+				    reject_reason_code=EXCLUDED.reject_reason_code, decided_at=now()`,
+				f.restaurantID, decision); err != nil {
+				t.Fatalf("seed application: %v", err)
+			}
+			if _, err := pool.Exec(ctx, `
+				INSERT INTO restaurant_onboarding_transition
+				  (restaurant_id, from_state, to_state, actor_kind, decision_reason_code, reason)
+				VALUES ($1, 'DOCUMENTS_REVIEW', 'DOCUMENTS_REJECTED', 'ADMIN', 'HALAL_CERTIFICATION_INVALID', $2)`,
+				f.restaurantID, text); err != nil {
+				t.Fatalf("seed transition: %v", err)
+			}
+
+			req := httptest.NewRequest(http.MethodGet, "/v1/restaurant/onboarding/status", nil)
+			req = withPrincipal(req, principalWith(f.ownerAccountID, httpx.RoleRestaurantOwner))
+			rec := httptest.NewRecorder()
+			h.GetRestaurantOnboardingStatus(rec, req)
+			if rec.Code != http.StatusOK {
+				t.Fatalf("status=%d (body: %s)", rec.Code, rec.Body.String())
+			}
+			var env struct {
+				Data struct {
+					BlockingReason *string `json:"blocking_reason"`
+					ReviewCycle    int     `json:"review_cycle"`
+					Rejection      *struct {
+						Decision   string  `json:"decision"`
+						ReasonCode *string `json:"reason_code"`
+						Note       *string `json:"note"`
+						Documents  []any   `json:"documents"`
+					} `json:"rejection"`
+				} `json:"data"`
+			}
+			if err := json.Unmarshal(rec.Body.Bytes(), &env); err != nil {
+				t.Fatalf("unmarshal: %v", err)
+			}
+			rej := env.Data.Rejection
+			if rej == nil {
+				t.Fatalf("rejection is null; the owner sees no reason (body: %s)", rec.Body.String())
+			}
+			if rej.Decision != decision {
+				t.Errorf("decision=%q, want %q", rej.Decision, decision)
+			}
+			if rej.ReasonCode == nil || *rej.ReasonCode != "HALAL_CERTIFICATION_INVALID" {
+				t.Errorf("reason_code=%v", rej.ReasonCode)
+			}
+			if rej.Note == nil || *rej.Note != text {
+				t.Errorf("note=%v, want the admin's reason text", rej.Note)
+			}
+			if env.Data.BlockingReason == nil || *env.Data.BlockingReason != text {
+				t.Errorf("blocking_reason=%v", env.Data.BlockingReason)
+			}
+			if env.Data.ReviewCycle != 2 {
+				t.Errorf("review_cycle=%d, want 2", env.Data.ReviewCycle)
+			}
+		})
+	}
+}
+
+// Only the latest document of each type is listed as needing a fix: a
+// re-upload adds a row and leaves the rejected one behind, and the owner must
+// not be told to fix a document they already replaced.
+func TestIntegration_GetOnboardingStatus_RejectionListsLatestDocumentPerType(t *testing.T) {
+	pool := testPool(t)
+	f := seedFixtures(t, pool)
+	h := newHandler(pool)
+	ctx := context.Background()
+
+	if _, err := pool.Exec(ctx, `UPDATE restaurant SET onboarding_state='DOCUMENTS_REJECTED' WHERE id=$1`, f.restaurantID); err != nil {
+		t.Fatalf("set state: %v", err)
+	}
+	if _, err := pool.Exec(ctx, `
+		INSERT INTO restaurant_application
+		  (restaurant_id, submission_count, submitted_at, decision, reject_reason_code, decided_at)
+		VALUES ($1, 2, now(), 'REQUEST_CHANGES', 'DOCUMENTS_INSUFFICIENT', now())
+		ON CONFLICT (restaurant_id) DO UPDATE
+		SET submission_count=2, decision=EXCLUDED.decision,
+		    reject_reason_code=EXCLUDED.reject_reason_code, decided_at=now()`, f.restaurantID); err != nil {
+		t.Fatalf("seed application: %v", err)
+	}
+	t.Cleanup(func() {
+		_, _ = pool.Exec(context.Background(), `DELETE FROM kyc_document WHERE subject_id=$1`, f.restaurantID)
+	})
+	seedDoc := func(docType, state, age string) {
+		t.Helper()
+		var objID string
+		if err := pool.QueryRow(ctx, `
+			INSERT INTO stored_object (bucket, object_key, purpose, content_type, byte_size, sha256, state, uploaded_by, confirmed_at)
+			VALUES ('hg-kyc', 'k/'||md5(random()::text), 'KYC_DOCUMENT', 'application/pdf', 1024, decode(repeat('a1',32),'hex'), 'READY', $1, now())
+			RETURNING id`, f.ownerAccountID).Scan(&objID); err != nil {
+			t.Fatalf("seed stored_object: %v", err)
+		}
+		t.Cleanup(func() { _, _ = pool.Exec(context.Background(), `DELETE FROM stored_object WHERE id=$1`, objID) })
+		rejected := state == "REJECTED"
+		if _, err := pool.Exec(ctx, `
+			INSERT INTO kyc_document (subject_type, subject_id, restaurant_doc_type, stored_object_id, state,
+			                          reviewed_by, reviewed_at, rejection_reason_code,
+			                          deadline_at, deadline_action, created_at)
+			VALUES ('RESTAURANT', $1, $2::restaurant_doc_type, $3, $4::kyc_document_state,
+			        CASE WHEN $5 THEN $6::uuid END, CASE WHEN $5 THEN now() END,
+			        CASE WHEN $5 THEN 'ILLEGIBLE'::document_rejection_reason_code END,
+			        CASE WHEN $5 THEN NULL ELSE now()+interval '72h' END,
+			        CASE WHEN $5 THEN NULL ELSE 'ESCALATE' END,
+			        now() - $7::interval)`,
+			f.restaurantID, docType, objID, state, rejected, f.ownerAccountID, age); err != nil {
+			t.Fatalf("seed kyc_document %s %s: %v", docType, state, err)
+		}
+	}
+	seedDoc("BUSINESS_LICENCE", "REJECTED", "1 hour") // replaced below
+	seedDoc("BUSINESS_LICENCE", "SUBMITTED", "1 minute")
+	seedDoc("FOOD_SAFETY", "REJECTED", "1 hour") // still the latest: needs a fix
+
+	req := httptest.NewRequest(http.MethodGet, "/v1/restaurant/onboarding/status", nil)
+	req = withPrincipal(req, principalWith(f.ownerAccountID, httpx.RoleRestaurantOwner))
+	rec := httptest.NewRecorder()
+	h.GetRestaurantOnboardingStatus(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status=%d (body: %s)", rec.Code, rec.Body.String())
+	}
+	var env struct {
+		Data struct {
+			Rejection *struct {
+				Documents []struct {
+					DocType string `json:"doc_type"`
+				} `json:"documents"`
+			} `json:"rejection"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &env); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if env.Data.Rejection == nil {
+		t.Fatalf("rejection is null (body: %s)", rec.Body.String())
+	}
+	var got []string
+	for _, d := range env.Data.Rejection.Documents {
+		got = append(got, d.DocType)
+	}
+	if len(got) != 1 || got[0] != "FOOD_SAFETY" {
+		t.Fatalf("documents to fix = %v, want only FOOD_SAFETY (the replaced BUSINESS_LICENCE must not come back)", got)
+	}
+}

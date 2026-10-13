@@ -72,7 +72,12 @@ func newPaymentsHarness(t *testing.T, pool *pgxpool.Pool) *Harness {
 			ConnectRefreshURL: "https://partners.local/connect/refresh",
 		},
 	}
-	svc := payments.NewService(payments.NewRepo(pool), payments.NewFakeStripe(), cfg.Stripe, slog.Default())
+	repo, stripe := payments.NewRepo(pool), payments.NewFakeStripe()
+	// The payout runner only queues admin runs here: its loop is not started,
+	// so nothing is paid out of the shared database.
+	runner := payments.NewPayoutRunner(repo, stripe, payments.PayoutPolicy{RestaurantNegativeBlockDays: 30},
+		"conformance", slog.Default())
+	svc := payments.NewService(repo, stripe, cfg.Stripe, slog.Default()).WithPayoutRunner(runner)
 	payments.Routes(router, payments.NewHandler(svc, cfg))
 
 	if err := router.Verify(); err != nil {

@@ -61,7 +61,7 @@ func issuerServer(t *testing.T, pool *pgxpool.Pool) *httptest.Server {
 		t.Fatalf("river client: %v", err)
 	}
 	router := httpx.NewRouter(httpx.Options{Env: "local", Authenticator: issuerTestAuth{}, Authorizer: auth.Matrix{}})
-	Routes(router, NewHandler(NewRepo(pool).WithNotifier(notify.NewEnqueuer(notify.NewRepo(), riverClient)), DefaultConfig()))
+	Routes(router, NewHandler(NewRepo(pool).WithNotifications(notify.NewEnqueuer(notify.NewRepo(), riverClient), nil), DefaultConfig()))
 	catalog.Routes(router, catalog.NewHandler(catalog.NewRepo(pool), nil, nil, nil))
 	srv := httptest.NewServer(router)
 	t.Cleanup(srv.Close)
@@ -422,7 +422,7 @@ RETURNING id, (SELECT name FROM body)`, w.restaurantID, w.superAdmin, w.bodyID).
 	if err != nil {
 		t.Fatal(err)
 	}
-	repo := NewRepo(w.pool).WithNotifier(notify.NewEnqueuer(notify.NewRepo(), riverClient))
+	repo := NewRepo(w.pool).WithNotifications(notify.NewEnqueuer(notify.NewRepo(), riverClient), nil)
 	actor := auditActor{staffID: w.superAdmin, roles: []string{"SUPER_ADMIN"}, requestID: "req-issuer-test"}
 	at := time.Now().UTC()
 	human := []halalCheckInput{

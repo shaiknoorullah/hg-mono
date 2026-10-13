@@ -1,0 +1,10 @@
+# Managed by Ansible (deploy/host/roles/backup).
+[Unit]
+Description=Measure WAL archiving and the off-server copy every minute
+
+[Timer]
+OnCalendar=*-*-* *:*:30
+AccuracySec=10s
+
+[Install]
+WantedBy=timers.target

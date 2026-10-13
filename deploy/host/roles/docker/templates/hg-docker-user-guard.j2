@@ -1,0 +1,29 @@
+#!/bin/bash
+# Managed by Ansible (deploy/host/roles/docker).
+#
+# Ports Docker publishes skip the host firewall's input chain. This fills Docker's
+# DOCKER-USER chain so that traffic arriving from the internet reaches a container only on
+# the public web ports ({{ hg_firewall_public_tcp_ports | join(', ') or 'none' }}); anything published by mistake stays
+# unreachable. Traffic over WireGuard is untouched. Run by hg-docker-user-guard.service.
+#   hg-docker-user-guard apply | remove
+set -euo pipefail
+action=${1:-apply}
+interfaces=({{ hg_public_interfaces | join(' ') }})
+ports=({{ hg_firewall_public_tcp_ports | join(' ') }})
+
+for ipt in iptables ip6tables; do
+  command -v "$ipt" >/dev/null 2>&1 || continue
+  # Docker has not created the chain for this family (IPv6 off, for example).
+  "$ipt" -w -n -L DOCKER-USER >/dev/null 2>&1 || continue
+  "$ipt" -w -F DOCKER-USER
+  if [ "$action" = apply ]; then
+    for i in "${interfaces[@]}"; do
+      "$ipt" -w -A DOCKER-USER -i "$i" -m conntrack --ctstate ESTABLISHED,RELATED -j RETURN
+      for p in "${ports[@]}"; do
+        "$ipt" -w -A DOCKER-USER -i "$i" -p tcp -m conntrack --ctorigdstport "$p" -j RETURN
+      done
+      "$ipt" -w -A DOCKER-USER -i "$i" -j DROP
+    done
+  fi
+  "$ipt" -w -A DOCKER-USER -j RETURN
+done

@@ -42,11 +42,15 @@ import (
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/auth"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/catalog"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/config"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/devworld/tablets"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/dispatch"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/files"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/halalexpiry"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/handoff"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/handover"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/notify"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/notify/emailtmpl"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders/machine"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/partitions"
@@ -59,46 +63,76 @@ import (
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/system"
 )
 
-// orderRealtimeEmitter bridges the orders module to the realtime module: it
-// implements orders.EventEmitter by calling realtime.EmitInTx inside the
-// caller's transaction, so the outbox event and the state change commit
-// atomically (the transactional outbox). The store field is set once
-// realtime.NewStore is called in run() and before the HTTP server starts, so
-// it is always non-nil by the time any Transition can run.
+// orderRealtimeEmitter implements orders.EventEmitter: it writes the
+// order-lifecycle notifications inside the transition's transaction. The
+// realtime events themselves are written by orders.Transition directly, in the
+// contract's shapes (internal/orders/events.go;
+// https://github.com/shaiknoorullah/hg-mono/issues/247), so this type no longer
+// touches the realtime outbox.
 type orderRealtimeEmitter struct {
+	// store is no longer read: the realtime write moved into orders.Transition.
+	// It goes when the realtime wiring in run() is next edited (open
+	// https://github.com/shaiknoorullah/hg-mono/pull/291 edits those lines).
 	store *realtime.Store
 	// notify is the transactional-outbox enqueuer (P-24). It is optional: when
 	// nil (e.g. a build without the notify module wired) EmitOrderTransition
-	// still emits the realtime event and simply skips the notification. When
-	// set, the order-lifecycle notification is written into the SAME tx as the
-	// state change, so it commits or rolls back atomically with the transition
-	// (notify/doc.go: a notification is a row first, a delivery attempt second).
+	// does nothing. When set, the order-lifecycle notification is written into
+	// the SAME tx as the state change, so it commits or rolls back atomically
+	// with the transition (notify/doc.go: a notification is a row first, a
+	// delivery attempt second).
 	notify *notify.Enqueuer
 }
 
 func (e *orderRealtimeEmitter) EmitOrderTransition(ctx context.Context, tx pgx.Tx, orderID, newState string) error {
-	payload, err := json.Marshal(struct {
-		State string `json:"state"`
-	}{State: newState})
-	if err != nil {
-		return fmt.Errorf("marshal order transition payload: %w", err)
-	}
-	oid := orderID
-	if _, _, err = realtime.EmitInTx(ctx, tx,
-		"order:"+orderID,
-		"order.state_changed",
-		1,
-		nil,
-		json.RawMessage(payload),
-		&oid,
-		nil,
-	); err != nil {
-		return err
-	}
 	if e.notify == nil {
 		return nil
 	}
 	return e.enqueueLifecycleNotification(ctx, tx, orderID, newState)
+}
+
+// AlertOps implements orders.OpsAlerter: it writes an admin.alert event on the
+// admin:ops channel (contracts/websocket.md, "Admin — channel admin:ops")
+// inside the caller's transaction, so the alert commits with the record it
+// describes. The deadline runner raises one when it records an outage.
+func (e *orderRealtimeEmitter) AlertOps(ctx context.Context, tx pgx.Tx, a orders.OpsAlert) error {
+	payload, err := json.Marshal(struct {
+		Severity    string `json:"severity"`
+		Kind        string `json:"kind"`
+		SubjectType string `json:"subject_type"`
+		SubjectID   string `json:"subject_id"`
+		Message     string `json:"message"`
+		At          string `json:"at"`
+	}{a.Severity, a.Kind, a.SubjectType, a.SubjectID, a.Message, a.At.UTC().Format(time.RFC3339)})
+	if err != nil {
+		return fmt.Errorf("marshal ops alert: %w", err)
+	}
+	_, _, err = realtime.EmitInTx(ctx, tx, realtime.AdminOpsChannel, "admin.alert", 1, nil, payload, nil, nil)
+	return err
+}
+
+var _ orders.DelayNotifier = (*orderRealtimeEmitter)(nil)
+
+// EmitOrderDelay tells the customer the restaurant delayed their order
+// (orders.DelayNotifier), inside the delay's transaction
+// (https://github.com/shaiknoorullah/hg-mono/issues/351).
+func (e *orderRealtimeEmitter) EmitOrderDelay(ctx context.Context, tx pgx.Tx, orderID string, delayNo, addedMinutes int) error {
+	if e.notify == nil {
+		return nil
+	}
+	oid, err := uuid.Parse(orderID)
+	if err != nil {
+		return fmt.Errorf("notify: parse order id %q: %w", orderID, err)
+	}
+	ev := notify.OrderEvent{OrderID: oid}
+	if err := tx.QueryRow(ctx, `
+		SELECT o.code, o.account_id, r.display_name
+		  FROM "order" o
+		  JOIN restaurant r ON r.id = o.restaurant_id
+		 WHERE o.id = $1`, oid).Scan(&ev.OrderShortCode, &ev.AccountID, &ev.RestaurantName); err != nil {
+		return fmt.Errorf("notify: load order %s for delay notification: %w", orderID, err)
+	}
+	_, err = e.notify.Enqueue(ctx, tx, notify.NotifyPrepDelayed(ev, delayNo, addedMinutes))
+	return err
 }
 
 // enqueueLifecycleNotification maps an order state transition to its notify
@@ -233,12 +267,15 @@ func (e *orderRealtimeEmitter) notifyRestaurantStaff(ctx context.Context, tx pgx
 // (e.g. dispatch has not yet matched a rider by the time the restaurant marks
 // ready) is a deliberate no-op: there is no recipient to tell yet, and the
 // dispatch module's own ready-check drives the rider once one is assigned.
+// Nor is a rider who already has the food told it is ready: a pickup before
+// the kitchen tapped ready marks the order ready in the pickup's own
+// transaction (orders.Store.PickUpTx).
 func (e *orderRealtimeEmitter) notifyAssignedRider(ctx context.Context, tx pgx.Tx, orderID uuid.UUID, ev notify.OrderEvent) error {
 	var riderAccountID uuid.UUID
 	err := tx.QueryRow(ctx, `
 		SELECT rider_account_id
 		  FROM assignment
-		 WHERE order_id = $1 AND terminated_at IS NULL`, orderID).
+		 WHERE order_id = $1 AND terminated_at IS NULL AND picked_up_at IS NULL`, orderID).
 		Scan(&riderAccountID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil
@@ -316,7 +353,23 @@ func (g orderPaymentGateway) CreateOrderIntent(ctx context.Context, in orders.Cr
 			Reason: "presented to restaurant",
 		})
 	}
-	return orders.CreateIntentResult{ClientSecret: row.StripePaymentIntentID + "_secret"}, nil
+	// Stripe's own client secret, never one built from the intent id: Stripe.js
+	// and the mobile SDK confirm the payment with it
+	// (https://github.com/shaiknoorullah/hg-mono/issues/509).
+	return orders.CreateIntentResult{ClientSecret: row.ClientSecret}, nil
+}
+
+// VoidOrderPayment voids the order's uncaptured PaymentIntent after the
+// deadline runner cancels an order the restaurant never accepted (authorise
+// then capture — AGENTS.md, "Non-negotiable invariants"). An order with no
+// payment_intent row (still CREATED) has nothing to void, and with Stripe not
+// configured there is no hold to release, so both are no-ops.
+func (g orderPaymentGateway) VoidOrderPayment(ctx context.Context, orderID string) error {
+	_, err := g.svc.Void(ctx, orderID)
+	if errors.Is(err, payments.ErrNotFound) || errors.Is(err, payments.ErrStripeNotConfigured) {
+		return nil
+	}
+	return err
 }
 
 // orderLifecycleAdapter implements dispatch.OrderLifecycle by forwarding to the
@@ -324,22 +377,27 @@ func (g orderPaymentGateway) CreateOrderIntent(ctx context.Context, in orders.Cr
 // assignment machine and the P-14 order state machine: dispatch may not write
 // order.state directly; it must call through this interface (P-14).
 //
-// Both calls use ActorRider because the transition is triggered by the rider
-// completing a physical step (picking up / delivering the order). The orders
-// module validates the pair against the compile-time transition table, so an
-// invalid call (e.g. wrong current state) returns IllegalTransitionError and the
-// lifecycle call is a no-op.
+// The three dispatch calls use ActorRider because each transition is triggered
+// by the rider completing a physical step (picking up, arriving at the
+// customer, delivering the order). The orders module validates the pair
+// against the compile-time transition table, so an invalid call (e.g. wrong
+// current state) returns IllegalTransitionError and the lifecycle call is a
+// no-op.
 type orderLifecycleAdapter struct {
 	store *orders.Store
 }
 
-func (a *orderLifecycleAdapter) ConfirmPickup(ctx context.Context, orderID, riderAccountID string) error {
+// MarkArrived is the picked-up to arrived step, taken when the rider taps "I'm
+// here" at the drop-off (issue #250). Going through Transition arms the
+// 15-minute handover-overdue deadline and emits the same order.state_changed
+// event as every other step.
+func (a *orderLifecycleAdapter) MarkArrived(ctx context.Context, orderID, riderAccountID string) error {
 	return a.store.Transition(ctx, orders.TransitionRequest{
 		OrderID:        orderID,
-		To:             machine.StatePickedUp,
+		To:             machine.StateArrived,
 		Actor:          machine.ActorRider,
 		ActorAccountID: riderAccountID,
-		Reason:         "rider confirmed pickup",
+		Reason:         "rider arrived at the drop-off",
 	})
 }
 
@@ -452,22 +510,77 @@ func run() error {
 		return err
 	}
 
-	// P-24 transactional notifications. The notify module enqueues a
-	// notification row + River delivery job inside a business tx (see the order
-	// emitter below). Channel senders are fakes for now: real SMS/push is
-	// blocked on O-03 (A2P registration) — until then the INAPP inbox row (the
-	// system of record per listNotifications) is written and push/SMS are
-	// no-ops rather than a hard boot dependency. NoAccountLookup means no
-	// external target is resolved, which is the correct behaviour while senders
-	// are fakes. River's own tables ship as migration 00024_river_outbox.sql.
+	// Transactional notifications (docs/spec/01-platform.md, "P-24 —
+	// Notification router"). The notify module enqueues a notification row and
+	// a River delivery job inside the business transaction (the order emitter
+	// below, auth's sign-up and reset emails, admin decisions, staff invites).
+	// River's own tables ship as migration 00024_river_outbox.sql.
+	//
+	// Email goes through Resend when HG_RESEND_API_KEY is set (issue #59).
+	// Outside production every email first passes the allow-list, so dev never
+	// messages a real person (issue #235); with no key the log sender records
+	// each email instead (captured in full outside production, issue #248).
+	// Push goes through Expo only when HG_PUSH_ENABLED is true (issue #58);
+	// off, as by default, every push is recorded SUPPRESSED and the inbox row
+	// stays the record. Notification SMS (blocked on the A2P registration,
+	// docs/decisions/README.md "Open — blocking") has no provider yet.
+	// Delivery runs in the outbox worker, after the business transaction has
+	// committed, so a failed push never fails the request that caused it.
+	emailTemplates, err := emailtmpl.Load()
+	if err != nil {
+		return fmt.Errorf("notify: email templates: %w", err)
+	}
+	captureEmail := cfg.Env != config.EnvProduction
+	var emailSender notify.EmailSender
+	switch {
+	case cfg.Email.Configured() && cfg.Env == config.EnvProduction:
+		emailSender = &notify.ResendSender{APIKey: cfg.Email.ResendAPIKey, From: cfg.Email.From, ReplyTo: cfg.Email.ReplyTo}
+		log.Info("email provider: resend")
+	case cfg.Email.Configured():
+		allow, err := notify.NewAllowList(cfg.Email.AllowList)
+		if err != nil {
+			return fmt.Errorf("HG_EMAIL_ALLOWLIST: %w", err)
+		}
+		emailSender = notify.AllowListSender{
+			Next:  &notify.ResendSender{APIKey: cfg.Email.ResendAPIKey, From: cfg.Email.From, ReplyTo: cfg.Email.ReplyTo},
+			Allow: allow, Log: log, Capture: captureEmail,
+		}
+		log.Info("email provider: resend, limited to the non-production allow-list",
+			slog.Int("allow_list_entries", allow.Len()))
+	default:
+		emailSender = notify.LogEmailSender{Log: log, Capture: captureEmail}
+		if cfg.Env == config.EnvProduction {
+			log.Warn("email provider: log — no email is sent (set HG_RESEND_API_KEY)")
+		} else {
+			log.Info("email provider: log — emails are written to this log, not sent")
+		}
+	}
+	accountRepo := account.NewRepo(st.DB().Pool)
+	var pushSender notify.ChannelSender = notify.LogSender{Channel: notify.ChannelPush, Log: log}
+	switch {
+	case cfg.Push.Invalid != "":
+		log.Warn("push provider: log — HG_PUSH_ENABLED is not a boolean, so push stays off",
+			slog.String("value", cfg.Push.Invalid))
+	case cfg.Push.Enabled:
+		// A token Expo reports as DeviceNotRegistered is revoked by the
+		// account module, which owns the device table.
+		pushSender = &notify.ExpoSender{AccessToken: cfg.Push.ExpoAccessToken, Revoke: accountRepo.RevokePushToken, Log: log}
+		log.Info("push provider: expo", slog.Bool("access_token", cfg.Push.ExpoAccessToken != ""))
+	default:
+		log.Info("push provider: log — no push is sent (set HG_PUSH_ENABLED=true)")
+	}
 	notifier := notify.NewNotifier().
-		Register(notify.ChannelPush, notify.NewFakeSender()).
-		Register(notify.ChannelSMS, notify.NewFakeSender()).
-		Register(notify.ChannelEmail, notify.NewFakeSender())
+		Register(notify.ChannelPush, pushSender).
+		Register(notify.ChannelSMS, notify.LogSender{Channel: notify.ChannelSMS, Log: log}).
+		Register(notify.ChannelEmail, notify.EmailAdapter{EmailSender: emailSender})
 	notifyClient, err := notify.NewClient(st.DB().Pool, notify.Options{
 		Notifier: notifier,
-		Accounts: notify.NoAccountLookup{},
-		Log:      log,
+		Accounts: notify.PgAccountLookup{DB: st.DB().Pool},
+		Emails: &notify.EmailRenderer{
+			Templates: emailTemplates,
+			Links:     notify.Links{Restaurant: cfg.Email.RestaurantWebURL, Admin: cfg.Email.AdminWebURL},
+		},
+		Log: log,
 	})
 	if err != nil {
 		return fmt.Errorf("notify: construct client: %w", err)
@@ -483,6 +596,11 @@ func run() error {
 	if err != nil {
 		return err
 	}
+	// The handover codes (the kitchen's pickup code, the customer's delivery
+	// code) are sealed under the same APP_DATA_KEY as the staff TOTP secrets,
+	// set once for every module that seals or opens one (internal/handover;
+	// https://github.com/shaiknoorullah/hg-mono/issues/289).
+	handover.UseKey(authSecrets.AppDataKey)
 	// O-03 (SMS provider): HG_SMS_PROVIDER=twilio + credentials is the one-line
 	// flip from LogSMSSender (records the send, delivers nothing) to a real
 	// Twilio send. Config already refuses to boot with provider=twilio and
@@ -513,9 +631,14 @@ func run() error {
 	} else {
 		log.Info("otp provider: log (self-hosted challenge)")
 	}
+	// The hg_csrf cookie's parent domain, so the web apps can refresh (#740).
+	authSecrets.CSRFCookieDomain = cfg.CSRFCookieDomain
 	authModule := auth.NewModule(
 		st.DB().Pool, st.Cache().Client, authSecrets,
-		smsSender, phoneVerifier, verifyChannel, cfg.Env.IsLocal(), log)
+		smsSender, phoneVerifier, verifyChannel, cfg.Env.IsLocal(), string(cfg.Env), log)
+	// Email verification, password reset and staff invitations go out
+	// through the notification outbox (issue #248).
+	authModule.UseNotifications(notifyClient.Enqueue)
 
 	// Behind Traefik with no trusted proxy, every request's client address is
 	// Traefik's, so say which mode this process is in.
@@ -535,13 +658,18 @@ func run() error {
 		Authorizer:     authModule.Authorizer,
 	})
 
-	system.Routes(router, system.NewHandler(cfg, st, startedAt, probes), cfg)
+	// getPublicConfig reports the platform-wide pause on new orders, which the
+	// orders module owns (https://github.com/shaiknoorullah/hg-mono/issues/244),
+	// and the terms version registration accepts
+	// (https://github.com/shaiknoorullah/hg-mono/issues/738).
+	system.Routes(router, system.NewHandler(cfg, st, startedAt, probes, authSecrets.CurrentTermsVersion).
+		WithOrderingStatus(orders.NewStore(st.DB().Pool).OrderingStatus), cfg)
 	auth.Routes(router, authModule.Handler)
 
 	// B2 — Customer delivery addresses (internal/addresses, P-30).
 	addresses.Routes(router, addresses.NewHandler(addresses.NewRepo(st.DB().Pool)))
 	// B2 — Account self-service (C-03, P-24, P-25): profile, devices, notifications.
-	account.Routes(router, account.NewHandler(account.NewRepo(st.DB().Pool)))
+	account.Routes(router, account.NewHandler(accountRepo))
 	// The revocation deny set refreshes from Postgres every 10 s (P-04).
 	authModule.StartRevocationRefresher(ctx)
 	// TODO(siblings): catalog.Routes(router, …), orders.Routes(router, …),
@@ -571,10 +699,8 @@ func run() error {
 	// to provide; until it is wired, orders uses the honest unwired gateway that
 	// 503s rather than fabricating a client_secret, and createOrder answers 503.
 	//
-	// The realtime emitter (Seam C) is created now and its store field is set
-	// after rtStore is built (B8 below). The HTTP server starts only after all
-	// wiring completes, so emitter.store is always non-nil before any Transition
-	// can be called.
+	// The order-lifecycle notifier. Transition writes the realtime events
+	// itself (internal/orders/events.go); this carries only the notifications.
 	rtEmitter := &orderRealtimeEmitter{notify: notifyClient.Enqueue}
 	// O-01 (HST registration): HG_TAX_HST_REGISTRATION_NUMBER is the one-line
 	// flip that stamps the platform's registration number onto every receipt
@@ -598,8 +724,10 @@ func run() error {
 	var stripeClient payments.StripeClient
 	if cfg.Stripe.Configured() {
 		stripeClient = payments.NewLiveStripe(cfg.Stripe.SecretKey, cfg.Stripe.WebhookSecret)
+		// The API version every call is made in, never the key.
 		log.Info("stripe configured",
 			slog.Bool("livemode", cfg.Stripe.LiveMode()),
+			slog.String("api_version", payments.StripeAPIVersion),
 			slog.Bool("webhook_secret_set", cfg.Stripe.WebhookSecret != ""))
 	} else if cfg.Env.IsLocal() {
 		// Local dev only: a fake payment client so orders can be placed end-to-end
@@ -609,14 +737,71 @@ func run() error {
 	} else {
 		log.Warn("stripe not configured — payment mutation routes answer 503 (HG_STRIPE_SECRET_KEY unset)")
 	}
-	paymentsSvc := payments.NewService(payments.NewRepo(st.DB().Pool), stripeClient, cfg.Stripe, log)
+	paymentsRepo := payments.NewRepo(st.DB().Pool)
+	// A customer whose refund request staff decline is told through the
+	// notification outbox, in the decline's own transaction (#172).
+	paymentsSvc := payments.NewService(paymentsRepo, stripeClient, cfg.Stripe, log).
+		WithOrderHooks(ordersStore).
+		WithOutbox(notifyClient.Enqueue)
+	// The weekly payout run (issue #251): Monday 09:00 America/Toronto, for
+	// every rider and restaurant, and on demand through createPayoutRun. It
+	// needs Stripe, so without a client there is no runner and createPayoutRun
+	// answers 503. Started with the other background loops below.
+	var payoutRunner *payments.PayoutRunner
+	if stripeClient != nil {
+		host, _ := os.Hostname()
+		payoutRunner = payments.NewPayoutRunner(paymentsRepo, stripeClient, payments.PayoutPolicy{
+			RestaurantNegativeBlockDays: cfg.Payouts.RestaurantNegativeBalanceBlockDays,
+			RestaurantHold:              time.Duration(cfg.Payouts.RestaurantHoldHours) * time.Hour,
+		}, host, log)
+		paymentsSvc.WithPayoutRunner(payoutRunner)
+	}
 	payments.Routes(router, payments.NewHandler(paymentsSvc, cfg))
+	// The rider who delivered is paid inside the order's DELIVERED transition,
+	// under the rider pay rules the owner has not settled (issue #306).
+	paymentsSvc.WithRiderPay(cfg.RiderPay)
+	ordersStore.WithRiderEarnings(paymentsSvc)
+	// A cancelled order releases its rider in the cancel's transaction, on
+	// this one store that every caller (admin included) cancels through
+	// (https://github.com/shaiknoorullah/hg-mono/issues/415).
+	ordersStore.WithOrderCancelled(dispatchCancel{})
+
+	// The webhook worker applies stored Stripe events from the database: one
+	// replica at a time under an advisory-lock lease, each event's effect and
+	// its processed_at in one transaction, retried with backoff and
+	// dead-lettered with an ops alert after eight failures (#231, #249). An
+	// authorisation event moves its order through the orders store
+	// (orders.Store.PaymentAuthorised) in that same transaction.
+	go payments.NewWebhookWorker(paymentsSvc, cfg.Env == config.EnvProduction).Run(ctx)
+	// The refund sender sends approved refunds to Stripe: one replica at a
+	// time under an advisory-lock lease, each refund claimed and recorded
+	// before the call, keyed rf:<refund id>, retried with backoff and set
+	// aside with an ops alert after eight failures (#318). The refund
+	// webhooks above finalise what it sends. With no Stripe client there is
+	// nothing to send to, and approved refunds wait.
+	if stripeClient != nil {
+		go payments.NewRefundSender(paymentsSvc).Run(ctx)
+		// The capture retrier retries a capture that failed when the
+		// restaurant accepted: claimed per row with SKIP LOCKED, backed off
+		// 1 m, 2 m, 4 m ..., and paged after eight failures (#741).
+		go payments.NewCaptureRetrier(paymentsSvc).Run(ctx)
+	}
 
 	// Wire orders to the payments gateway (deferred from B5 above): createOrder
 	// now asks the payments sibling to authorise the PaymentIntent (P-16 3/4).
 	orderGateway := orderPaymentGateway{svc: paymentsSvc, store: ordersStore, advanceLocal: !cfg.Stripe.Configured() && cfg.Env.IsLocal()}
 	orders.Routes(router, orders.NewHandler(ordersStore, orderGateway, log))
-	deadlineRunner := orders.NewDeadlineRunner(ordersStore, orderGateway, log, cfg.HTTPAddr)
+	// HG_DEADLINE_RUNNER_HOLD starts the runner held until ops releases it, so
+	// a failover can catch up first; deadlines that fell in the gap are then
+	// handled as outage actions (internal/orders/runner_outage.go).
+	// A ready order nobody collects is escalated on each lapse of its pickup
+	// deadline: re-dispatch, an ops alert, a customer notice; at the cap, if
+	// no rider holds it, it is cancelled with a full refund (pickup.go).
+	deadlineRunner := orders.NewDeadlineRunner(ordersStore, orderGateway, log, cfg.HTTPAddr).
+		WithHold(cfg.DeadlineRunner.Hold).
+		WithOpsAlerter(rtEmitter).
+		WithPickupEscalator(&pickupEscalator{notify: notifyClient.Enqueue}).
+		WithUncollectedCanceller(uncollectedCanceller{})
 	go deadlineRunner.Run(ctx)
 
 	// TODO(siblings): auth.Routes(router, …), catalog.Routes(router, …),
@@ -627,12 +812,25 @@ func run() error {
 	dispatch.Routes(router, dispatch.NewHandler(dispatchSvc))
 	dispatchRunner := dispatch.NewDispatchRunner(dispatchSvc, log, 3000, 5*time.Second)
 	go dispatchRunner.Run(ctx)
+	// Rider availability sweeps (issue #255; docs/spec/04-rider.md, "D-10 —
+	// Availability: online / offline"): a silent online rider goes ONLINE_STALE,
+	// and a rider stuck ON_DELIVERY with no live assignment is restored. Every
+	// replica runs them; a lease lets one sweep at a time. riderSweeps.RunOnce is
+	// the "sweep now" hook for the dev environment's controls (issue #235).
+	riderSweeps := dispatch.NewAvailabilitySweeper(dispatchSvc, log, dispatch.AvailabilitySweepConfig{
+		StaleAfter:     cfg.Dispatch.RiderStaleAfter,
+		StaleEvery:     cfg.Dispatch.RiderStaleSweepEvery,
+		ReconcileEvery: cfg.Dispatch.RiderReconcileEvery,
+	})
+	go riderSweeps.Run(ctx)
 
 	// B11 — Handoff (internal/handoff, migration 00027): package-seal chain of
-	// custody. Reuses the same orderLifecycleAdapter instance dispatch is wired
-	// with above — it already satisfies dispatch.OrderLifecycle's two methods
-	// plus handoff.OrderLifecycle's OpenDispute — and auth's P-04 Ed25519 signing
-	// key, so no second key pair is minted for this module alone.
+	// custody, later-version at launch: a scan is evidence and never moves an
+	// order (https://github.com/shaiknoorullah/hg-mono/issues/310). Reuses the
+	// same orderLifecycleAdapter instance dispatch is wired with above (it
+	// satisfies dispatch.OrderLifecycle's three methods) for
+	// handoff.OrderLifecycle's one method, OpenDispute, and auth's P-04 Ed25519
+	// signing key, so no second key pair is minted for this module alone.
 	handoffStore := handoff.NewStore(st.DB().Pool)
 	handoffSvc := handoff.NewService(handoffStore, dispatchLifecycle, authSecrets.SigningPriv, authSecrets.SigningPub, log)
 	handoff.Routes(router, handoff.NewHandler(handoffSvc))
@@ -642,7 +840,13 @@ func run() error {
 	// restaurantPay bridges restaurant.PaymentActions to the payments sibling so
 	// AcceptOrder captures (T6) and RejectOrder voids (T7) without importing the
 	// payments package from the restaurant package (modular-monolith seam).
-	restaurantRepo := restaurant.NewRepo(st.DB().Pool)
+	// Restaurant staff get no invitation email in 1.0: restaurant accounts are
+	// owner-only at launch (docs/decisions/README.md, "Staff accounts").
+	// Staff invitations are for HalalGoes's own admin staff (issue #170).
+	// ordersStore carries the realtime emitter, so accept, reject and
+	// mark-ready reach the customer like every other order move
+	// (https://github.com/shaiknoorullah/hg-mono/issues/337).
+	restaurantRepo := restaurant.NewRepo(st.DB().Pool, ordersStore)
 	restaurantPay := restaurantPayAdapter{svc: paymentsSvc}
 	restaurant.Routes(router, restaurant.NewHandler(restaurantRepo, nil, restaurantPay))
 
@@ -659,9 +863,18 @@ func run() error {
 	// Complete the Seam C wiring: orders.Store now emits realtime outbox events
 	// on every state transition via the transactional outbox (I-15 / §6.1).
 	rtEmitter.store = rtStore
-	rtGateway := realtime.NewGateway(rtStore, st.Cache().Client, log, nil, cfg.Realtime.MaxSockets)
+	rtGateway := realtime.NewGateway(rtStore, st.Cache().Client, log, nil, realtime.Limits{
+		MaxSockets:           cfg.Realtime.MaxSockets,
+		MaxSocketsPerAccount: cfg.Realtime.MaxSocketsPerAccount,
+		MaxSocketsPerSession: cfg.Realtime.MaxSocketsPerSession,
+		UpgradesPerAddress:   cfg.Realtime.UpgradesPerAddressPerMinute,
+		TicketsPerSession:    cfg.Realtime.TicketsPerSessionPerMinute,
+	})
 	rtRelay := realtime.NewRelay(st.DB().Pool, st.Cache().Client, log, nodeID)
-	realtime.Routes(router, realtime.NewHandler(rtStore, rtGateway, log, cfg.CORSOrigins))
+	// Upgrade attempts per address and ticket mints per session are counted in
+	// Redis with the same fixed-window limiter sign-in uses (issue #288).
+	rtLimiter := realtimeLimiter{auth.NewRateLimiter(st.Cache().Client, log)}
+	realtime.Routes(router, realtime.NewHandler(rtStore, rtGateway, log, cfg.CORSOrigins, rtLimiter))
 	go rtGateway.Run(ctx)
 	go rtRelay.Run(ctx)
 
@@ -679,11 +892,40 @@ func run() error {
 	// fleet. It never deletes ledger, order, audit or KYC rows.
 	go retention.New(st.DB().Pool, log).Run(ctx)
 
+	// Payouts: every replica checks each minute for a due payout run; a
+	// session advisory lock lets one run at a time, and a run a replica
+	// abandons is finished by the next (internal/payments/payout_run.go).
+	if payoutRunner != nil {
+		go payoutRunner.Run(ctx)
+	}
+
 	// Start the notify worker pool now that migrations have run and the process
 	// is otherwise ready. Enqueue (used inside order transitions above) works
 	// without Start; Start is what drains and delivers queued jobs.
 	if err := notifyClient.Start(ctx); err != nil {
 		return fmt.Errorf("notify: start worker pool: %w", err)
+	}
+
+	// Halal certificate expiry (#252): lapses certificates the day after they
+	// expire, delists the restaurant, and sends the 30/14/7/1-day renewal
+	// reminders through the notification outbox. One replica works at a time
+	// (advisory lock); the other skips. Spec: docs/spec/05-admin.md, "A-17 —
+	// Halal certificate expiry monitoring and lapse handling".
+	halalExpiry := halalexpiry.New(st.DB().Pool, notifyClient.Enqueue, log, halalexpiry.Config{
+		SuspendAfterExpiredDays: cfg.Halal.SuspendAfterExpiredDays,
+	})
+	go halalExpiry.Run(ctx)
+
+	// Local dev world only: stand in for the seeded restaurants' order screens
+	// so their heartbeats stay fresh and discovery keeps reading them open
+	// (internal/devworld/tablets). Config refuses the switch unless HG_ENV is
+	// local, and New refuses it again.
+	if cfg.DevworldTablets {
+		devTablets, err := tablets.New(string(cfg.Env), cfg.DevworldTablets, st.DB().Pool, log)
+		if err != nil {
+			return err
+		}
+		go devTablets.Run(ctx)
 	}
 
 	// TODO(siblings): auth.Routes(router, …), catalog.Routes(router, …),
@@ -694,11 +936,13 @@ func run() error {
 	rider.Routes(router, rider.NewHandler(rider.NewService(rider.NewRepo(st.DB().Pool))))
 
 	// B9 — Admin, RBAC & files (internal/admin, internal/files).
-	// The notification outbox is wired so a change of a halal issuing body's
-	// status tells the owners of every restaurant it lists or delists, in the
-	// same transaction (https://github.com/shaiknoorullah/hg-mono/issues/346).
 	admin.Routes(router, admin.NewHandler(
-		admin.NewRepo(st.DB().Pool).WithNotifier(notifyClient.Enqueue), admin.DefaultConfig()))
+		// ordersStore carries the notification emitter, so a staff cancel
+		// tells the customer like every other transition
+		// (https://github.com/shaiknoorullah/hg-mono/issues/352).
+		admin.NewRepo(st.DB().Pool).WithNotifications(notifyClient.Enqueue, authModule.StaffInviter()).
+			WithOrdersStore(ordersStore),
+		admin.DefaultConfig()))
 	files.Routes(router, files.NewHandler(files.NewRepo(
 		st.DB().Pool,
 		// Links are signed for the public host phones reach; server-side
@@ -783,4 +1027,28 @@ func run() error {
 	st.Close()
 	log.Info("stopped")
 	return nil
+}
+
+// dispatchCancel implements orders.OrderCancelled with the dispatch module's
+// half of a cancellation (dispatch.ReleaseCancelledOrderTx).
+type dispatchCancel struct{}
+
+func (dispatchCancel) OrderCancelledTx(ctx context.Context, tx pgx.Tx, orderID string) error {
+	return dispatch.ReleaseCancelledOrderTx(ctx, tx, orderID)
+}
+
+// realtimeLimiter implements realtime.RateLimiter with auth's Redis
+// fixed-window limiter (realtime cannot import auth: auth imports notify,
+// which imports realtime). The limits fail closed in auth's terms, so while
+// Redis cannot answer Allow returns an error and the realtime handler lets the
+// request through, as the rate-limiting spec requires for every class but
+// sign-in (docs/spec/01-platform.md, "P-38 — Rate limiting").
+type realtimeLimiter struct{ rl *auth.RateLimiter }
+
+func (l realtimeLimiter) Allow(ctx context.Context, name, subject string, limit int64, window time.Duration) (bool, error) {
+	err := l.rl.Allow(ctx, auth.Limit{Name: name, Subject: subject, Max: limit, Window: window})
+	if errors.Is(err, auth.ErrRateLimited) {
+		return false, nil
+	}
+	return err == nil, err
 }

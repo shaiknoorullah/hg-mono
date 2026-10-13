@@ -1,0 +1,148 @@
+{
+  "scenario": "restaurant_hours_split_past_midnight",
+  "domain": "catalogue",
+  "schema": "RestaurantHours",
+  "describes": "Three ranges every day: breakfast, lunch, and dinner until 02:00 the next morning (`crosses_midnight: true`). Friday's last range still counts as Friday.",
+  "operations": [
+    "getRestaurantHours",
+    "setRestaurantHours"
+  ],
+  "status": 200,
+  "tags": [
+    "restaurant",
+    "hours",
+    "dense"
+  ],
+  "payload": {
+    "timezone": "America/Toronto",
+    "intervals": [
+      {
+        "day_of_week": 0,
+        "opens_at": "06:00",
+        "closes_at": "10:30",
+        "crosses_midnight": false
+      },
+      {
+        "day_of_week": 0,
+        "opens_at": "12:00",
+        "closes_at": "15:00",
+        "crosses_midnight": false
+      },
+      {
+        "day_of_week": 0,
+        "opens_at": "18:00",
+        "closes_at": "02:00",
+        "crosses_midnight": true
+      },
+      {
+        "day_of_week": 1,
+        "opens_at": "06:00",
+        "closes_at": "10:30",
+        "crosses_midnight": false
+      },
+      {
+        "day_of_week": 1,
+        "opens_at": "12:00",
+        "closes_at": "15:00",
+        "crosses_midnight": false
+      },
+      {
+        "day_of_week": 1,
+        "opens_at": "18:00",
+        "closes_at": "02:00",
+        "crosses_midnight": true
+      },
+      {
+        "day_of_week": 2,
+        "opens_at": "06:00",
+        "closes_at": "10:30",
+        "crosses_midnight": false
+      },
+      {
+        "day_of_week": 2,
+        "opens_at": "12:00",
+        "closes_at": "15:00",
+        "crosses_midnight": false
+      },
+      {
+        "day_of_week": 2,
+        "opens_at": "18:00",
+        "closes_at": "02:00",
+        "crosses_midnight": true
+      },
+      {
+        "day_of_week": 3,
+        "opens_at": "06:00",
+        "closes_at": "10:30",
+        "crosses_midnight": false
+      },
+      {
+        "day_of_week": 3,
+        "opens_at": "12:00",
+        "closes_at": "15:00",
+        "crosses_midnight": false
+      },
+      {
+        "day_of_week": 3,
+        "opens_at": "18:00",
+        "closes_at": "02:00",
+        "crosses_midnight": true
+      },
+      {
+        "day_of_week": 4,
+        "opens_at": "06:00",
+        "closes_at": "10:30",
+        "crosses_midnight": false
+      },
+      {
+        "day_of_week": 4,
+        "opens_at": "12:00",
+        "closes_at": "15:00",
+        "crosses_midnight": false
+      },
+      {
+        "day_of_week": 4,
+        "opens_at": "18:00",
+        "closes_at": "02:00",
+        "crosses_midnight": true
+      },
+      {
+        "day_of_week": 5,
+        "opens_at": "06:00",
+        "closes_at": "10:30",
+        "crosses_midnight": false
+      },
+      {
+        "day_of_week": 5,
+        "opens_at": "12:00",
+        "closes_at": "15:00",
+        "crosses_midnight": false
+      },
+      {
+        "day_of_week": 5,
+        "opens_at": "18:00",
+        "closes_at": "02:00",
+        "crosses_midnight": true
+      },
+      {
+        "day_of_week": 6,
+        "opens_at": "06:00",
+        "closes_at": "10:30",
+        "crosses_midnight": false
+      },
+      {
+        "day_of_week": 6,
+        "opens_at": "12:00",
+        "closes_at": "15:00",
+        "crosses_midnight": false
+      },
+      {
+        "day_of_week": 6,
+        "opens_at": "18:00",
+        "closes_at": "02:00",
+        "crosses_midnight": true
+      }
+    ],
+    "overrides": []
+  }
+}

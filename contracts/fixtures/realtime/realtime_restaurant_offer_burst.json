@@ -1,0 +1,168 @@
+{
+  "scenario": "realtime_restaurant_offer_burst",
+  "domain": "realtime",
+  "schema": "RealtimeEvent[]",
+  "describes": "A burst of four offers inside six seconds, each with its own 180-second window: three tiles in full and the fourth behind \"+1 more\". A new offer never takes focus. One is a pickup order.",
+  "operations": [],
+  "status": 200,
+  "tags": [
+    "realtime",
+    "script",
+    "restaurant",
+    "dense"
+  ],
+  "payload": [
+    {
+      "id": "GJDAE2RQD8716KF5AWWTETZFM5",
+      "seq": 1,
+      "channel": "restaurant:a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+      "type": "restaurant.order_offered",
+      "v": 1,
+      "ts": "2026-08-10T18:42:11.412Z",
+      "data": {
+        "order_id": "11cd6318-418f-4301-af7e-3e7f33818fa8",
+        "code": "HG-A7K2-4M",
+        "expires_at": "2026-08-10T18:45:11.412Z",
+        "deadline_at": "2026-08-10T18:45:11.412Z",
+        "customer_first_name": "Ayesha",
+        "lines": [
+          {
+            "name": "Chicken Biryani",
+            "variant": null,
+            "addons": [],
+            "qty": 2,
+            "note": null
+          },
+          {
+            "name": "Garlic Naan",
+            "variant": null,
+            "addons": [],
+            "qty": 2,
+            "note": null
+          }
+        ],
+        "subtotal_cents": 3298,
+        "total_cents": 4369,
+        "currency": "CAD",
+        "prep_eta_suggestion_min": 20,
+        "fulfilment": "DELIVERY"
+      },
+      "_delay_ms": 0
+    },
+    {
+      "id": "3E71J8Q4PH2FDY3TVQZ3J67ZAW",
+      "seq": 2,
+      "channel": "restaurant:a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+      "type": "restaurant.order_offered",
+      "v": 1,
+      "ts": "2026-08-10T18:42:12.912Z",
+      "data": {
+        "order_id": "bee84871-8c40-47d3-ad99-2d0880ff42cb",
+        "code": "HG-B3Q9-7T",
+        "expires_at": "2026-08-10T18:45:12.912Z",
+        "deadline_at": "2026-08-10T18:45:12.912Z",
+        "customer_first_name": "Bilal",
+        "lines": [
+          {
+            "name": "Beef Nihari",
+            "variant": "Full",
+            "addons": [],
+            "qty": 1,
+            "note": "Extra gravy on the side"
+          }
+        ],
+        "subtotal_cents": 1899,
+        "total_cents": 2671,
+        "currency": "CAD",
+        "prep_eta_suggestion_min": 25,
+        "fulfilment": "DELIVERY"
+      },
+      "_delay_ms": 1500
+    },
+    {
+      "id": "S365CFRSPZ1KAWDQT0NS7NNHZM",
+      "seq": 3,
+      "channel": "restaurant:a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+      "type": "restaurant.order_offered",
+      "v": 1,
+      "ts": "2026-08-10T18:42:14.912Z",
+      "data": {
+        "order_id": "22d6814a-470c-49f0-a279-e9d5f67fb18c",
+        "code": "HG-C8W4-2R",
+        "expires_at": "2026-08-10T18:45:14.912Z",
+        "deadline_at": "2026-08-10T18:45:14.912Z",
+        "customer_first_name": "Fatima",
+        "lines": [
+          {
+            "name": "Chicken Karahi (Half)",
+            "variant": null,
+            "addons": [
+              "Garlic naan"
+            ],
+            "qty": 1,
+            "note": null
+          },
+          {
+            "name": "Mango Lassi",
+            "variant": null,
+            "addons": [],
+            "qty": 3,
+            "note": "No ice"
+          }
+        ],
+        "subtotal_cents": 2846,
+        "total_cents": 3216,
+        "currency": "CAD",
+        "prep_eta_suggestion_min": 15,
+        "fulfilment": "PICKUP"
+      },
+      "_delay_ms": 3500
+    },
+    {
+      "id": "V6KN0RHPX6FPJ8EFGJ4Z0Z6J1T",
+      "seq": 4,
+      "channel": "restaurant:a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+      "type": "restaurant.order_offered",
+      "v": 1,
+      "ts": "2026-08-10T18:42:17.412Z",
+      "data": {
+        "order_id": "7cad285e-b3a0-47a5-a8ca-6c25344e6e2a",
+        "code": "HG-D2M6-9K",
+        "expires_at": "2026-08-10T18:45:17.412Z",
+        "deadline_at": "2026-08-10T18:45:17.412Z",
+        "customer_first_name": "Omar",
+        "lines": [
+          {
+            "name": "Lamb Seekh Kebab",
+            "variant": null,
+            "addons": [],
+            "qty": 4,
+            "note": null
+          },
+          {
+            "name": "Chicken Tikka",
+            "variant": "Boneless",
+            "addons": [
+              "Mint chutney"
+            ],
+            "qty": 2,
+            "note": null
+          },
+          {
+            "name": "Gulab Jamun",
+            "variant": null,
+            "addons": [],
+            "qty": 2,
+            "note": null
+          }
+        ],
+        "subtotal_cents": 6118,
+        "total_cents": 7932,
+        "currency": "CAD",
+        "prep_eta_suggestion_min": 30,
+        "fulfilment": "DELIVERY"
+      },
+      "_delay_ms": 6000
+    }
+  ]
+}

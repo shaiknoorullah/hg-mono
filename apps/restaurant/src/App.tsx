@@ -4,6 +4,8 @@ import { ToastProvider, TooltipProvider, themeAttributes } from '@hg/ui-web';
 import { AuthProvider, isSignedIn } from './lib/auth';
 import { LoginPage } from './routes/LoginPage';
 import { RegisterPage } from './routes/RegisterPage';
+import { VerifyEmailPage } from './routes/VerifyEmailPage';
+import { ResetPasswordPage } from './routes/ResetPasswordPage';
 import { OnboardingPage } from './routes/onboarding/OnboardingPage';
 import { OrdersPage } from './routes/OrdersPage';
 import { MenuPage } from './routes/MenuPage';
@@ -12,6 +14,7 @@ import { PayoutsPage } from './routes/PayoutsPage';
 import { StaffPage } from './routes/StaffPage';
 import { SettingsPage } from './routes/SettingsPage';
 import { Shell } from './components/Shell';
+import { RestaurantRealtime } from './lib/realtime';
 
 const SCHEME = 'light' as const;
 const THEME = 'restaurant' as const;
@@ -42,8 +45,11 @@ export function App() {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          {/* Public: the pages our emails link to (issue #329). */}
+          <Route path="/verify-email" element={<VerifyEmailPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route
-            path="/onboarding"
+            path="/onboarding/*"
             element={
               <RequireAuth>
                 <OnboardingPage />
@@ -53,7 +59,9 @@ export function App() {
           <Route
             element={
               <RequireAuth>
-                <Shell />
+                <RestaurantRealtime>
+                  <Shell />
+                </RestaurantRealtime>
               </RequireAuth>
             }
           >

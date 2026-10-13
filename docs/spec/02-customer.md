@@ -3,7 +3,7 @@ covers:
   - apps/customer/**
   - services/hg/internal/account/**
   - services/hg/internal/addresses/**
-reviewed: 2026-10-04
+reviewed: 2026-10-10
 ---
 
 # HalalGoes — CUSTOMER Domain Specification
@@ -56,6 +56,16 @@ These exist so that individual features do not have to re-litigate them. Anythin
 - Rider position is published at **1 message / 10 s** while an order is in `PICKED_UP` or `ON_THE_WAY`. If no position has arrived for **45 s**, the map shows a "Location updating…" banner and freezes the last known marker.
 - Degradation: if the socket is not `OPEN`, the client polls `GET /orders/:orderId` every **15 s**. Any feature that says "live" must remain correct (only less fresh) on the polling path.
 - Reconnect: exponential backoff 1 s → 2 s → 4 s → 8 s → 15 s (cap), full jitter. On reconnect the client sends `resume{last_event_id}` and the server replays missed events for that order from Redis stream `order:{orderId}:events` (retained 6 h).
+
+### 0.6 The redesigned app, behind a build flag
+
+Release 1.0 ships the current customer app. The redesign from the owner-approved canvases ([#87](https://github.com/shaiknoorullah/hg-mono/issues/87), tracked in [#656](https://github.com/shaiknoorullah/hg-mono/issues/656)) is built beside it in `apps/customer/src/redesign/` and mounts only when the build sets `EXPO_PUBLIC_HG_REDESIGN=1`. Release builds leave it off, so a release build runs exactly the legacy app.
+
+The rules in this spec apply to both. With the flag on:
+- the bottom navigation is Home · Search · Orders · Account, with no notifications tab;
+- light and dark follow the phone;
+- an account or session error (suspended, banned, not active, session revoked or expired, refresh token reused) replaces whatever screen is open with a full-screen explanation and a way out;
+- a screen not yet redesigned falls back to its current version.
 
 ### 0.5 Sizing / versioning key
 
@@ -133,7 +143,7 @@ These exist so that individual features do not have to re-litigate them. Anythin
   2. The request/response field names are **`first_name` / `last_name`** in snake_case. There is no `name` field anywhere (the current app sends `{name,...}` against a `first_name/last_name` contract).
   3. `phone` is read-only on this endpoint; sending it returns `400 FIELD_NOT_EDITABLE`.
   4. Email is **not unique** (matches the existing schema — phone is the identity). Two accounts may share an email.
-  5. Avatar upload uses a Silo presigned PUT (`POST /users/:id/avatar/upload-url` → PUT → `POST /users/:id/avatar/confirm`); max 5 MB, `image/jpeg|png|webp` only, server re-encodes to 512×512 webp.
+  5. The profile's avatar is only the caller's own `READY` `AVATAR` upload: any other file is `404`, the same as one that does not exist, and a malformed id is `422` ([who may attach an upload](01-platform.md#p-28--presigned-upload-and-download)). Avatar upload uses a Silo presigned PUT (`POST /users/:id/avatar/upload-url` → PUT → `POST /users/:id/avatar/confirm`); max 5 MB, `image/jpeg|png|webp` only, server re-encodes to 512×512 webp.
   6. Profile completion is required before any cart or order endpoint will accept a request: those return `409 PROFILE_INCOMPLETE`.
 - **Acceptance criteria**:
   1. Given a user in `PROFILE_PENDING`, when a valid profile is submitted, then `onboarding_state='ACTIVE'` and the onboarding token is consumed and rejected on reuse.
@@ -210,8 +220,8 @@ These exist so that individual features do not have to re-litigate them. Anythin
 
 ### C-07 — Call support
 - **SOW trace**: *"Support and Help: … Call support"*
-- **Behaviour**: A "Call support" button that opens the device dialler (`tel:`) with a single platform support number fetched from `GET /config/public` (never hardcoded). The server turns support on during the set hours only; outside them the button disappears and the screen shows the support hours plus the self-serve actions: cancel before acceptance, report a problem ([support channel](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28), [line closed](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
-- **Data**: `platform_config` row keys `support_phone_e164`, `support_hours_open_local`, `support_hours_close_local`, `support_timezone`, `support_enabled`.
+- **Behaviour**: A "Call support" button that opens the device dialler (`tel:`) with a single platform support number fetched from `GET /config/public` (never hardcoded). The server turns support on during the set hours only; outside them the button disappears and the screen shows the support hours plus the self-serve actions: cancel before acceptance, report a problem ([support channel](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28), [line closed](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)). The support email, also from `GET /config/public` (`support_email`), is shown whether or not the line is open; it is how a customer asks staff to delete their account at launch ([#181](https://github.com/shaiknoorullah/hg-mono/issues/181)).
+- **Data**: `platform_config` row keys `support_phone_e164`, `support_hours_open_local`, `support_hours_close_local`, `support_timezone`, `support_enabled`, `support_email`.
 - **States**: derived only: `OPEN` / `CLOSED` computed from the config and current time.
 - **Rules**:
   1. The number is `tel:`-dialled by the OS. The app does **not** place VoIP calls and does not record calls.
@@ -395,6 +405,7 @@ These exist so that individual features do not have to re-litigate them. Anythin
   4. The hero image is `restaurants.hero_object_key` resolved through the media CDN path; if null, a neutral cuisine-derived placeholder. A test asserts no bundled restaurant photograph exists in the app bundle.
   5. Menu payload is cached client-side for 5 min and invalidated on cart mutation failure with `ITEM_UNAVAILABLE`.
   6. A floating cart bar appears when the cart is non-empty, showing **sum of quantities** (not distinct line count) and the cart subtotal.
+  7. `GET /v1/restaurants/{id}?delivery_address_id=` prices the availability strip against that saved address when it belongs to the signed-in customer; an address that is not theirs, is deleted or has no location reads as no address (`NO_ADDRESS`), never another customer's location.
 - **Acceptance criteria**:
   1. Given a restaurant with a `hero_object_key`, when the detail page renders, then the displayed image URL contains that key and matches no path under the app's static assets directory.
   2. Given a menu with items in 3 categories, when the page renders, then tabs are `All` + those 3 in `sort_order`, and selecting a tab shows only that category's items.
@@ -422,6 +433,7 @@ These exist so that individual features do not have to re-litigate them. Anythin
   4. `CLOSED_HOURS` cards show "Opens {time}" using `opens_at`; the restaurant remains browsable and its menu readable.
   5. Minimum order is compared against `item_total` **before** fees and discounts. Below minimum, checkout returns `409 BELOW_MINIMUM_ORDER` with `details.shortfall_cents`, and the cart screen shows "Add ${x} more to order".
   6. `NO_ADDRESS` never blocks browsing; it blocks add-to-cart with a prompt to add an address.
+  7. The delivery radius is enforced where the order is priced, not only on the card: `createQuote` and `createOrder` refuse a `DELIVERY` address farther than the restaurant's `delivery_radius_m` (the same rounded geodesic distance and `>` boundary the card uses for `OUT_OF_RANGE`) with `409 ADDRESS_OUT_OF_RANGE`, and nothing is stored ([#723](https://github.com/shaiknoorullah/hg-mono/issues/723)).
 - **Acceptance criteria**:
   1. Given a restaurant with hours 17:00–02:00 America/Toronto and a request at 01:30 local, then `state='OPEN'`.
   2. Given `is_accepting_orders=false` during opening hours, when the detail page renders, then the state is `PAUSED`, add controls are disabled, and the menu is still readable.
@@ -467,8 +479,11 @@ These exist so that individual features do not have to re-litigate them. Anythin
   1. **Variant price replaces the base price; add-on prices are added.** Line total = `(variant_price ?? item_price) + Σ(addon.price) ) × quantity`. This single formula is used by cart, pricing, and order creation. (Today the cart *adds* variant price to base while order creation *replaces* it — the two disagree, so cart, pricing and order totals can all differ.)
   2. If an item has variants, one group per `variant_type` is **required**; the `is_default_variant=true` option is pre-selected. If no default exists, nothing is pre-selected and add-to-cart is disabled. Silent auto-selection of `item_variants[0]` is prohibited.
   3. Unavailable variants/add-ons (`is_currently_available=false`) render disabled with "Unavailable", and are rejected server-side with `409 VARIANT_UNAVAILABLE` / `409 ADDON_UNAVAILABLE`.
-  4. `selected_addon_ids` is validated server-side against the item's linked add-ons; unknown ids ⇒ `400 INVALID_ADDON`. (Today it is an unconstrained uuid[] with no FK and the client always sends `[]`.)
-  5. Cart line identity = `(cart_id, food_item_id, selected_variant_id, sorted(selected_addon_ids), special_request)`. Two adds with identical identity increment quantity; any difference creates a distinct line.
+  4. `selected_addon_ids` is validated server-side against the item's linked add-ons; unknown ids ⇒ `422 INVALID_ADDON` with the field that is wrong (the contract's status; this rule said `400`). (Today it is an unconstrained uuid[] with no FK and the client always sends `[]`.)
+  5. Cart line identity = `(cart_id, food_item_id, sorted(selected_variant_ids), sorted(selected_addon_ids), special_request)`. Two adds with identical identity increment quantity; any difference creates a distinct line.
+  8. A dish may have several variant groups, and the add request carries one chosen variant per group (`variant_ids`; the single `variant_id` is still read, as a list of one). The server checks the line against the menu before the cart changes: a required group with no choice, two choices from one group, a variant of another item, or an add-on group outside its minimum and maximum is `422 VALIDATION_FAILED` with a field error for each problem ([#628](https://github.com/shaiknoorullah/hg-mono/issues/628), [#629](https://github.com/shaiknoorullah/hg-mono/issues/629)).
+  9. `409 VARIANT_UNAVAILABLE` and `409 ADDON_UNAVAILABLE` name the choice in `details` (`variant_id`, `addon_id`), so the app can say which one ran out.
+  10. The cart, quote, order and receipt lines list every chosen variant with its group (`variants`); the single `variant` field is set only for a one-variant line, and the order line's `variant_name` joins every chosen name for the restaurant's ticket.
   6. `order_food_items` **must** persist the variant and add-on selection. (Today the order table drops them, so the restaurant receives the wrong ticket.)
   7. Max **10 add-ons** per line; quantity per line 1–20 (the current cap of 99 is reduced).
 - **Acceptance criteria**:
@@ -476,7 +491,7 @@ These exist so that individual features do not have to re-litigate them. Anythin
   2. Given base price $10, `Large` variant $14, and two add-ons at $1.50 each, quantity 2, then the displayed line total is $34.00 and the server-computed cart line total is 3400 cents.
   3. Given the same item added twice with different spice levels, when the cart renders, then there are two distinct lines.
   4. Given an order placed with variant `Large` and add-on `Extra cheese`, when the restaurant fetches the order, then `order_food_items` carries `selected_variant_id` and `selected_addon_ids` matching the cart.
-- **Out of scope**: nested/conditional add-on groups; add-on quantity > 1 per add-on; min/max selection rules per group beyond required-single-select; combo/meal builders; per-variant images.
+- **Out of scope**: nested/conditional add-on groups; add-on quantity > 1 per add-on; combo/meal builders; per-variant images. (Each add-on group's `min_select` and `max_select` are now checked on add, rule 8.)
 - **Version**: V1 · **Size**: M
 
 ---
@@ -531,7 +546,7 @@ These exist so that individual features do not have to re-litigate them. Anythin
 - **States**: cart is either absent (no row) or present; there is no cart status enum. A cart is deleted on successful order creation and on `DELETE /cart`.
 - **Rules**:
   1. Exactly **one cart per customer** (`carts.user_id` unique) — matching today's de-facto behaviour, now enforced by constraint.
-  2. Operations are **granular**, not full-replacement PUTs. (Today every quantity change PUTs the entire desired cart, and removal is implemented as `quantity = -999`.) Removal is `DELETE`; `quantity` must be `1..20`; `quantity=0` is rejected with `400 VALIDATION_FAILED`.
+  2. Operations are **granular**, not full-replacement PUTs. (Today every quantity change PUTs the entire desired cart, and removal is implemented as `quantity = -999`.) Removal is `DELETE`; `quantity` must be `1..20`; `quantity=0` is rejected with `400 VALIDATION_FAILED`. The one exception is `PUT /cart` (`replaceCart`), only for "Put these items back in your cart" after an unpaid order is cancelled, expires or fails payment: it replaces every line in one atomic call, all or nothing, because rebuilding a cart line by line cannot be atomic ([round-2 decisions](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01), [#179](https://github.com/shaiknoorullah/hg-mono/issues/179)). It carries item ids, options and quantities, never a price.
   3. `carts.delivery_address_id` is set from the **customer's currently selected address** (C-30) and updated whenever the selection changes — never from `addresses[0]`. If no address is selected, cart operations still succeed but `delivery_fee_cents` is `null` and checkout is blocked.
   4. Every mutation re-validates: item exists, `is_currently_available`, belongs to the cart's restaurant, variant/add-on valid and available, restaurant still visible and `OPEN`. Failure returns a typed error and the **unchanged** cart, so the client can reconcile.
   5. Prices are snapshotted onto `cart_lines.unit_price_cents` at add time, and **re-validated at checkout**: if any unit price changed, checkout returns `409 PRICE_CHANGED` with the diff, and the client shows a "Prices updated" confirmation before retrying.
@@ -556,7 +571,7 @@ These exist so that individual features do not have to re-litigate them. Anythin
 - **Rules**:
   1. The constraint is enforced **server-side** as the authority. The client modal is a UX affordance, not the enforcement. (Today the only such logic lives in a dead React Context that nothing mounts, so a second restaurant's items silently join the cart.)
   2. "Start a new cart" is a **single atomic call** `POST /cart/lines?replace=true` — clear + add in one transaction. A two-call clear-then-add is prohibited (it can leave an empty cart on failure).
-  3. The modal names the current restaurant explicitly ("Your cart has 3 items from Al-Noor Grill").
+  3. The modal names the current restaurant explicitly ("Your cart has 3 items from Al-Noor Grill"), from the error's `details`: `current_restaurant_id`, `current_restaurant_name`, `current_line_count` (lines) and `current_item_count` (the sum of their quantities), so the app needs no second request ([#629](https://github.com/shaiknoorullah/hg-mono/issues/629)).
   4. Checkout re-asserts that every line belongs to `carts.restaurant_id`; a violation is a `500` class invariant failure, alarmed, never surfaced as a customer error.
   5. Order creation copies `carts.restaurant_id` to `orders.restaurant_id`; there is no path to a multi-restaurant order at any version.
 - **Acceptance criteria**:
@@ -657,6 +672,7 @@ These exist so that individual features do not have to re-litigate them. Anythin
   6. The success screen is reached only on a server response of `AWAITING_RESTAURANT` or later. On any error the customer stays on checkout with the specific reason.
   7. `orders.short_code` = 6-character Crockford base-32, unique per day, shown to the customer and used in support.
   8. When an unpaid order is cancelled, expires or fails payment, the app offers "Put these items back in your cart": it re-adds the lines through the cart operations, and the server prices them again ([cart after an unpaid order](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
+  9. While staff have paused new orders platform-wide ([#244](https://github.com/shaiknoorullah/hg-mono/issues/244)), the app reads `ordering.paused` from `getPublicConfig` at launch and on every return to the foreground, says plainly that ordering is paused for now on home, the restaurant page, the cart and checkout, and offers no checkout; the cart shows the same when `blocking_reasons` contains `ORDERING_PAUSED`, and a `409 ORDERING_PAUSED` from `createQuote` or `createOrder` shows that message and that nothing was charged, never a generic error ([#388](https://github.com/shaiknoorullah/hg-mono/issues/388)).
 - **Acceptance criteria**:
   1. Given a valid cart and a working payment method, when Place order is pressed, then exactly one `orders` row exists, the cart row is deleted, and the app shows the pending screen only after the server responds.
   2. Given the payment authorisation fails, when the response returns, then `orders.status='PAYMENT_FAILED'`, the customer remains on checkout with a retry affordance, and the app offers "Put these items back in your cart".
@@ -702,6 +718,8 @@ These exist so that individual features do not have to re-litigate them. Anythin
 ### C-25 — Payment execution and 3DS
 - **SOW trace**: *"Secure Payments: Integration with secure payment gateways for seamless and safe transactions."*
 - **Behaviour**: On order creation the server creates a provider PaymentIntent for `amount_to_pay_cents` with `capture_method=manual` (authorise now, capture later). If the provider requires 3-D Secure, the server returns `requires_action` with a client secret; the app presents the provider's challenge sheet and confirms. **Capture occurs when the restaurant accepts** (`AWAITING_RESTAURANT → CONFIRMED`). Authorisation is **voided** on rejection, timeout, no-rider, or customer cancellation before capture.
+
+  **V0 build (customer app):** the card is confirmed on web with the Stripe.js Payment Element in a sheet (`redirect: 'if_required'`; Stripe.js loads on the first payment) and on iOS and Android with the Stripe SDK's payment sheet, both keyed by `EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY`. A build without that key takes no card and says so at checkout, keeping the order for **Retry payment**; a decline, a failed challenge or a closed sheet also keeps the order, and a retry never places a second one. After a confirmed card the app reads `GET /v1/orders/{orderId}/payment` once, so the order moves on even where no webhook can reach the API ([card payments playbook](../playbooks/customer/card-payments.md)).
 - **Data**: `payments(id, order_id, user_id, payment_method_id, provider, provider_intent_id UNIQUE, amount_cents, currency, status, captured_at, voided_at, failure_code, created_at)`; `payment_events(id, payment_id, provider_event_id UNIQUE, type, payload jsonb, received_at)` for webhook idempotency; `refunds` (C-37).
 - **States**: `payments.status ∈ {REQUIRES_ACTION, AUTHORIZED, CAPTURED, VOIDED, FAILED, REFUND_PENDING, PARTIALLY_REFUNDED, REFUNDED}`.
   - `(new) → REQUIRES_ACTION|AUTHORIZED|FAILED` — intent creation/confirmation.
@@ -764,6 +782,7 @@ These exist so that individual features do not have to re-litigate them. Anythin
   3. PDF generation is on-demand and cached to Silo under `receipts/{year}/{receipt_number}.pdf`; the share link is a presigned GET with a **15 min** TTL.
   4. The receipt is available for orders that were cancelled after capture (showing the charge and the refund), and is **not** issued for orders that never captured.
   5. Tax registration number comes from `platform_config.tax_registration_number`; if it is empty the receipt renders without a tax line and the build emits a warning — it never prints a placeholder.
+  6. In the app, a delivered or completed order's tracking screen loads the receipt with `getOrderReceipt` and shows its lines (quantity, name, variant, add-ons, special request, line total), each fee, the tax lines, the total and the payment; until the order completes the server answers `409 RECEIPT_NOT_READY`, and on that code (any other 409 is an error) the app says calmly that the receipt will be ready when the order is complete, never an error ([#60](https://github.com/shaiknoorullah/hg-mono/issues/60)).
 - **Acceptance criteria**:
   1. Given a delivered order, when the receipt is opened, then every C-22 line and the payment method's last4 are present and the totals sum exactly to `amount charged`.
   2. Given the restaurant later renames itself, when the old receipt is reopened, then it shows the original name from `snapshot`.
@@ -797,6 +816,7 @@ These exist so that individual features do not have to re-litigate them. Anythin
 ### C-29 — Order cancellation by the customer
 - **SOW trace**: not in SOW 9–17 explicitly, but *"Refund Requests: Request refunds for canceled or unsatisfactory orders"* (SOW 13) and *"Refund Requests: Submit refund requests for canceled, incorrect, or unsatisfactory orders"* (SOW 17) both presuppose customer cancellation. The current in-app FAQ instructs customers to use a cancel flow that does not exist.
 - **Behaviour**: A **Cancel order** action is available on the tracking screen while the order is in `AWAITING_RESTAURANT`, which is when the server's `can_cancel` is true. It requires selecting a reason from a fixed list and confirming in a modal that states the refund outcome in plain words before the customer commits. Once the restaurant accepts, the action is replaced by "Get help" (C-08/C-39), with reasons that fit before delivery: very late, wrong address, want to cancel ([problem before delivery](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)). The customer cannot self-cancel after acceptance; staff may cancel without a support case ([cancellation policy](../decisions/README.md#settled--client-decisions)).
+- **Customer app**: the tracking screen offers **Cancel order** while the order is `CREATED`, `AUTHORIZED` or `RESTAURANT_PENDING`, sends `cancelOrder` with a reason and an `Idempotency-Key` after a confirmation, says "you were not charged" on success, and answers `409 CANCELLATION_WINDOW_CLOSED` with "the restaurant has already started your order" and the order code to give support ([#543](https://github.com/shaiknoorullah/hg-mono/issues/543)).
 - **Data**: `orders.status`, `orders.cancelled_at`, `orders.cancellation_reason_code`, `orders.cancelled_by ENUM(CUSTOMER,RESTAURANT,ADMIN,SYSTEM)`, `order_status_events`, `payments`, `refunds`.
 - **States**: `AWAITING_RESTAURANT → CANCELLED`, actor `CUSTOMER`. No other customer-triggered transition exists.
 - **Rules**:
@@ -850,15 +870,15 @@ These exist so that individual features do not have to re-litigate them. Anythin
 
 ### C-31 — Address entry: autocomplete, geocoding and map pin
 - **SOW trace**: enabling requirement for *"Delivery Address Management"* — without it, every address is seven manual fields plus a mandatory map pin, which the current app requires.
-- **Behaviour**: Address entry starts with a **search-as-you-type** field. Suggestions come from Mapbox through our API (`GET /geo/autocomplete?q&session_token&lat&lng`), restricted to Canada and biased to the current location. Selecting a suggestion calls `GET /geo/place/:id` which returns the structured components and coordinates, pre-filling the form. The customer then confirms or adjusts the pin on a map and fills only unit/floor/instructions. Manual entry remains available via "Enter address manually", which requires dropping a pin. A denied location permission never blocks the form ([setting a location](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28); map picker: [#150](https://github.com/shaiknoorullah/hg-mono/issues/150)).
-- **Data**: no new persistent entity; writes into `delivery_addresses` (C-30). Redis cache `geo:auto:{sha256(q|geohash5)}` TTL 3600 s; `geo:place:{placeId}` TTL 30 days.
+- **Behaviour**: Address entry starts with a **search-as-you-type** field. Suggestions come from Mapbox through our API (`GET /v1/geo/autocomplete?q&session_token&latitude&longitude`, `suggestAddresses` in [the contract](../../contracts/openapi.yaml)), restricted to Canada and biased to the current location. Selecting a suggestion calls `GET /v1/geo/places/{placeId}` (`getPlaceAddress`) which returns the structured components and coordinates, pre-filling the form. The customer then confirms or adjusts the pin on a map and fills only unit/floor/instructions. Manual entry remains available via "Enter address manually", which requires dropping a pin. A denied location permission never blocks the form ([setting a location](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28); map picker: [#150](https://github.com/shaiknoorullah/hg-mono/issues/150)).
+- **Data**: no new persistent entity; writes into `delivery_addresses` (C-30). No Redis cache for suggestions: they are temporary Mapbox results, which [Mapbox does not allow to be stored or cached](https://docs.mapbox.com/api/search/geocoding/#storing-geocoding-results). The address and point that `getPlaceAddress` and `reverseGeocode` return are permanent results (Mapbox Geocoding v6 with `permanent=true`), because the save stores them; only a permanent result may be cached, and none is at launch. A `placeId` is never a cache key: it is short-lived ([permanent geocoding cost: #297](https://github.com/shaiknoorullah/hg-mono/issues/297)).
 - **States**: none.
 - **Rules**:
   1. The provider key lives **server-side only**. The app never holds a places/geocoding key; map tiles use a public Mapbox token ([#57](https://github.com/shaiknoorullah/hg-mono/issues/57)). (Today two Google keys are committed into the repo.)
-  2. Requests are proxied and rate-limited to **30 autocomplete calls per user per minute**; session tokens are used to keep provider billing on the session model.
+  2. Requests are proxied and rate-limited per user: suggestions at **60 calls per minute, burst 20** ([rate class `GEO_SUGGEST`](01-platform.md#p-38--rate-limiting)), so one search typed a key at a time stays under it; place details and reverse geocoding at **30 calls per minute, burst 10** each ([rate class `GEO`](01-platform.md#p-38--rate-limiting)). Session tokens are used to keep provider billing on the session model.
   3. Results are restricted to Canada in the provider request (`country=ca`); non-Canadian results are filtered server-side even if the provider returns them.
-  4. Reverse geocoding (`GET /geo/reverse?lat&lng`) fills the form when the customer drops a pin without searching.
-  5. If the provider is unavailable, the flow degrades to manual entry + map pin, with a visible notice — address entry never becomes impossible.
+  4. Reverse geocoding (`GET /v1/geo/reverse?latitude&longitude`, `reverseGeocode`) fills the form when the customer drops a pin without searching.
+  5. If the provider is unavailable (`503 GEOCODER_UNAVAILABLE`), the flow degrades to manual entry + map pin, with a visible notice — address entry never becomes impossible.
   6. The map picker's initial camera is: the customer's current GPS fix if permitted, else the current default address, else the launch city centre from `platform_config.default_map_center`. **No hardcoded Dubai or Hyderabad fallback.**
   7. The pin's final coordinates are what is stored, even if they differ from the geocoded result — the customer's pin wins.
 - **Acceptance criteria**:
@@ -878,6 +898,7 @@ These exist so that individual features do not have to re-litigate them. Anythin
 - **Behaviour**: One tracking screen per order, reachable from the resume banner (C-26), the post-checkout flow, and order history. It shows: a status stepper, a map, the ETA, the rider card (once assigned), the delivery address, delivery instructions, an order summary, and contextual actions (cancel → C-29 while eligible; call rider → C-34; get help → C-08). The order view and this screen also show the 4-digit delivery code, with a push when the rider arrives; the rider is never shown it (needs a new contract field; [delivery code](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
   The stepper has **five** steps, mapped from `orders.status`: **Confirmed** (`AWAITING_RESTAURANT`, `CONFIRMED`) → **Preparing** (`PREPARING`) → **Ready / Rider assigned** (`READY_FOR_PICKUP`, `RIDER_ASSIGNED`) → **On the way** (`PICKED_UP`, `ON_THE_WAY`) → **Delivered** (`DELIVERED`). Terminal failures (`REJECTED`, `CANCELLED`, `NO_RIDER_FOUND`, `PAYMENT_FAILED`) replace the stepper with a full-screen outcome state.
   The map shows the restaurant marker, the delivery marker, and the rider marker once `RIDER_ASSIGNED`; a route polyline is drawn from the rider to the current leg's destination.
+  **V0 build (customer app):** while the order is `PICKED_UP` or `ARRIVED` the screen shows a live native Mapbox map (`@rnmapbox/maps`) with the restaurant pin, the drop-off pin and the rider marker, plus the ETA text. The rider's position arrives on the realtime channel `order:{orderId}` as `rider.location` ([websocket contract](../../contracts/websocket.md)); when the socket is not open the screen polls `GET /v1/orders/{orderId}/tracking` every 5 s instead (its `rider_location`), and the newest fix wins on either path. The marker glides between fixes, the camera fits the three points, and a fix older than 30 s adds "Rider location updated N seconds ago". The rider is not exposed before pickup (the contract), so until then the map shows the restaurant and the drop-off. No route polyline yet. The map exists only in a build with the Mapbox native SDK and `EXPO_PUBLIC_MAPBOX_TOKEN` ([how the SDK is built or left out](../release/README.md)); without either, the ETA text remains. If the first read fails the card says live tracking is unavailable and offers "Try again".
 - **Data**: `orders`, `order_status_events`, `riders` (via the slim projection in C-18 rule 3), Redis `rider:{id}:location`, socket topic `order:{orderId}`.
 - **States**: as C-23. The client subscribes to `order:{orderId}` and receives typed events: `order.status_changed`, `order.rider_assigned`, `order.rider_location`, `order.eta_updated`, `order.cancelled`.
 - **Rules**:
@@ -1015,7 +1036,7 @@ These exist so that individual features do not have to re-litigate them. Anythin
   1. **Eligibility window**: a customer-requested refund may be opened while the order is in any status **from `CONFIRMED` up to 48 hours after `DELIVERED`**. Outside that ⇒ `409 REFUND_WINDOW_CLOSED` with a link to C-08.
   2. Reason codes (fixed): `NEVER_DELIVERED`, `MISSING_ITEMS`, `WRONG_ITEMS`, `FOOD_QUALITY`, `LATE_DELIVERY`, `DAMAGED_SPILLED`, `HALAL_CONCERN`, `CHARGED_INCORRECTLY`, `OTHER` (description required). `HALAL_CONCERN` also auto-creates a linked grievance (C-39) at `HIGH` priority.
   3. **The customer never proposes an amount.** For `FULL` scope the amount is `orders.total_cents` minus any prior refunds. For `PARTIAL` the amount is `Σ(selected line unit_price × quantity)` plus a proportional share of tax, **excluding** delivery and platform fees unless the reason is `NEVER_DELIVERED` (which refunds everything including fees and tip).
-  4. A customer may report more than one problem on the same order, as the owner approved on 1 Oct; the contract still refuses a second request until [#184](https://github.com/shaiknoorullah/hg-mono/issues/184) lands. Total refunds against an order may never exceed the captured amount (enforced by a check inside the approval transaction).
+  4. A customer may report more than one problem on the same order, as the owner approved on 1 Oct ([#184](https://github.com/shaiknoorullah/hg-mono/issues/184)). Each report is its own refund, decided on its own, and reports never merge. A later report is refused with `409 REFUND_ALREADY_REQUESTED` only when it claims a line quantity, or the delivery and service fees, that another refund on the order already holds: per order line, the quantities claimed may not exceed the quantity ordered (with 3 ordered and 1 claimed, a report on 2 more is accepted), and the fees are refunded at most once. A refund holds its claim in every state but declined and cancelled, a refund waiting for approval included. A full refund claims only what no other refund holds, so it never clashes; it refunds what is left. Total refunds against an order may never exceed the captured amount (`409 REFUND_EXCEEDS_CAPTURED`, also for a full refund with nothing left). Each request and each approval locks the order row first and re-checks line quantities, fees and the cap together, so two reports at once cannot both pass. The rule is written out on `createRefund` in [the API contract](../../contracts/openapi.yaml).
   5. Automatic refunds are never queued for human review and are submitted to the provider immediately.
   6. Refunds go **back to the original payment method** only. No store credit, no alternative destination.
   7. Expected settlement time is displayed as "5–10 business days" from `platform_config.refund_settlement_days_copy`, and the status timeline shows the actual `completed_at` when the webhook lands.
@@ -1106,6 +1127,8 @@ These exist so that individual features do not have to re-litigate them. Anythin
   - **In-app realtime** when the app is foregrounded (the socket already carries the event; the app renders a toast instead of a system notification).
   - **In-app inbox** — a persisted, cursor-paginated list of every notification ever sent to the customer, with read/unread state and a tab-bar/header unread badge. The inbox and its bell stay hidden at launch, until Alerts ships ([bottom navigation](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28), [later-version operations](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
   Permission is requested **contextually**, immediately after the first successful order placement ("Get updates on your order?"), never at app launch.
+  Built for launch ([#58](https://github.com/shaiknoorullah/hg-mono/issues/58)): `apps/customer/src/api/push.ts` asks right after sign-in instead, registers the Expo push token through the contract's `registerDevice` (role `CUSTOMER`) and removes it with `unregisterDevice` on sign-out; a refused permission, a missing EAS project id or token, or a failed request logs one line and never blocks sign-in or ordering.
+  An open app learns of a new inbox row, and of a read on another device, from `notification.created` and `notification.read` on the customer's own `account:{id}` channel ([realtime contract](../../contracts/websocket.md#4-event-catalogue)); only the first read sends one.
 - **Data**: `push_tokens(id, user_id, token, platform ENUM(IOS,ANDROID), device_id, app_version, is_active, last_seen_at, created_at)`; `notifications(id, user_id, type, title, body, data jsonb, order_id NULL, created_at, read_at, push_sent_at, push_status)`; `user_preferences` (C-04) for the promotional opt-outs.
 - **States**: `notifications.read_at` null/set. `push_tokens.is_active` flips to false on a provider `DeviceNotRegistered` error.
 - **Rules**:
@@ -1115,7 +1138,7 @@ These exist so that individual features do not have to re-litigate them. Anythin
   4. **Every notification is persisted to the inbox regardless of push outcome or OS permission.** The inbox is the system of record; push is a delivery optimisation. (Today the inbox is a permanently static "No New Notifications" screen.)
   5. Deduplication: one notification per `(user_id, type, order_id)` — a repeated status event never produces a second push.
   6. Quiet hours 22:00–08:00 local suppress **`PROMOTION` only**; transactional pushes are always delivered.
-  7. Token lifecycle: registered on login and on app foreground if changed; deactivated on logout and on provider rejection. A token is bound to exactly one `user_id` (re-registration under a new user detaches it from the old).
+  7. Token lifecycle: registered on login and on app foreground if changed; deactivated on logout and on provider rejection (the server's `RevokePushToken` in `services/hg/internal/account/store.go` revokes the device when Expo answers `DeviceNotRegistered`). A token is bound to exactly one `user_id` (re-registration under a new user detaches it from the old).
   8. If the OS permission is denied, the app shows a one-line inbox banner explaining that updates are in the inbox and offering a link to system settings; it does not re-prompt more than once per 30 days.
   9. Badge count = unread inbox rows, updated over the socket and on cold start.
 - **Acceptance criteria**:

@@ -1,6 +1,43 @@
 package orders
 
-import "context"
+import (
+	"context"
+	"errors"
+
+	"github.com/jackc/pgx/v5"
+
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders/machine"
+)
+
+// PaymentAuthorised moves an order still waiting for its payment (CREATED) to
+// AUTHORIZED and on to RESTAURANT_PENDING (docs/spec/01-platform.md, "P-14 —
+// Order lifecycle states and transitions": the system's first two edges)
+// inside a transaction the payments module owns. It implements
+// payments.OrderHooks: in production the payment_intent.amount_capturable_updated
+// webhook is what presents a paid order to the restaurant, and the stored
+// event is marked processed in this same transaction (#231). It reports
+// whether the order moved; an order already past CREATED, or cancelled by its
+// deadline, is left as it is, so applying the event twice moves it once.
+func (s *Store) PaymentAuthorised(ctx context.Context, tx pgx.Tx, orderID string) (bool, error) {
+	err := s.transitionTx(ctx, tx, TransitionRequest{
+		OrderID: orderID, To: machine.StateAuthorized, Actor: machine.ActorSystem,
+		Reason: "payment authorised (Stripe webhook)",
+	})
+	var illegal *IllegalTransitionError
+	if errors.As(err, &illegal) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	if err := s.transitionTx(ctx, tx, TransitionRequest{
+		OrderID: orderID, To: machine.StateRestaurantPending, Actor: machine.ActorSystem,
+		Reason: "presented to restaurant",
+	}); err != nil {
+		return false, err
+	}
+	return true, nil
+}
 
 // PaymentGateway is the boundary to the payments module (P-16). The orders
 // module owns the order and its state machine; the Stripe PaymentIntent is
@@ -20,6 +57,16 @@ type PaymentGateway interface {
 	// order id inside the implementation (I-16.1). The real implementation lives
 	// in the payments module; orders depends only on this contract.
 	CreateOrderIntent(ctx context.Context, in CreateIntentInput) (CreateIntentResult, error)
+
+	// VoidOrderPayment cancels the order's uncaptured PaymentIntent, releasing
+	// the hold on the customer's card. The deadline runner calls it after a
+	// system cancel of an order the restaurant never accepted: authorise then
+	// capture means such an order was never captured, so a void, not a refund,
+	// gives the money back (AGENTS.md, "Non-negotiable invariants", authorise
+	// then capture: https://github.com/shaiknoorullah/hg-mono/blob/main/AGENTS.md#3-non-negotiable-invariants).
+	// An order with no PaymentIntent yet (still CREATED) has nothing to void
+	// and returns nil.
+	VoidOrderPayment(ctx context.Context, orderID string) error
 }
 
 // CreateIntentInput is the P-16 PaymentIntent creation input. It carries the
@@ -58,4 +105,8 @@ func (errPaymentGatewayUnavailable) Error() string {
 
 func (unwiredGateway) CreateOrderIntent(context.Context, CreateIntentInput) (CreateIntentResult, error) {
 	return CreateIntentResult{}, ErrPaymentGatewayUnavailable
+}
+
+func (unwiredGateway) VoidOrderPayment(context.Context, string) error {
+	return ErrPaymentGatewayUnavailable
 }

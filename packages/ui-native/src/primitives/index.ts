@@ -54,3 +54,6 @@ export type { SpinnerProps, SpinnerSize } from './Spinner';
 
 export { Divider } from './Divider';
 export type { DividerProps } from './Divider';
+
+export { Wordmark } from './Wordmark';
+export type { WordmarkProps } from './Wordmark';

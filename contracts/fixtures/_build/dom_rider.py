@@ -54,6 +54,7 @@ def build(reg, synth) -> None:
     _availability(reg, synth)
     _earnings(reg, synth)
     _payouts(reg, synth)
+    _payout_runs(reg, synth)
 
 
 def _dispatch(reg, synth) -> None:
@@ -103,8 +104,17 @@ def _offer(label: str, state: str, **over: Any) -> dict:
             "latitude": 43.6817,
             "longitude": -79.3403,
         },
-        # §5 / websocket.md §4.5: street and neighbourhood only. No unit, no phone alias.
-        "dropoff": {"area": "Harbourfront, Toronto", "latitude": 43.6412, "longitude": -79.3810},
+        # An approximate area only, before accepting: the neighbourhood and city, and the
+        # centre and radius of a ~500 m cell, never the address (the owner's round-2
+        # decision, docs/decisions/README.md "Orders and delivery";
+        # https://github.com/shaiknoorullah/hg-mono/issues/183). The
+        # street, unit, buzzer, name and phone alias arrive on accept.
+        "dropoff": {
+            "area": "Harbourfront, Toronto",
+            "latitude": 43.6405,
+            "longitude": -79.3815,
+            "radius_m": 400,
+        },
         "distance_m": 5240,
         "est_duration_s": 780,
         "earnings": {
@@ -122,6 +132,21 @@ def _offer(label: str, state: str, **over: Any) -> dict:
 
 
 def _offers(reg) -> None:
+    reg.add(
+        "offer_pending_area_without_radius",
+        "dispatch",
+        "DispatchOffer",
+        "A live offer whose approximate drop-off area has no `radius_m`. The map shows the "
+        "area name and the direction from the area's centre, and draws no circle. It never "
+        "shows a street or a pin on a house: the full address comes only on accept.",
+        _offer(
+            "area-only",
+            "PENDING",
+            dropoff={"area": "Riverdale, Toronto", "latitude": 43.6675, "longitude": -79.3500},
+        ),
+        operations=["getCurrentOffer"],
+        tags=["rider", "offer-state-matrix", "privacy"],
+    )
     reg.add(
         "offer_pending",
         "dispatch",
@@ -322,8 +347,9 @@ def _assignments(reg) -> None:
         "dispatch",
         "Assignment",
         "`MEET_AT_DOOR` maps to **OTP** proof of delivery (contradiction log #6), not a "
-        "photo. The rider must be shown a code entry, and a photo must not satisfy it "
-        "(`POD_METHOD_MISMATCH`).",
+        "photo. The rider must be shown a code entry, and neither a photo nor a photo with "
+        "a statement satisfies it (`POD_METHOD_MISMATCH`), before or after the code locks. "
+        "The assignment carries no code: the customer reads it out.",
         _assignment(
             "ARRIVED_AT_DROPOFF",
             required_pod_method="OTP",
@@ -398,30 +424,45 @@ def _availability(reg, synth) -> None:
             tags=["rider", "state-matrix"],
         )
 
-    dash = synth.make("RiderDashboard", "dashboard-active")
+    def approximate(dashboard: dict) -> dict:
+        # The synthesiser's generic radius is a delivery-zone size; an offer's approximate
+        # drop-off area is a ~500 m cell (https://github.com/shaiknoorullah/hg-mono/issues/183).
+        offer = dashboard.get("current_offer")
+        if isinstance(offer, dict) and isinstance(offer.get("dropoff"), dict):
+            offer["dropoff"]["radius_m"] = 400
+        return dashboard
+
+    dash = approximate(synth.make("RiderDashboard", "dashboard-active"))
+    # A rider holding an assignment is ON_DELIVERY, never ONLINE_IDLE (issue #708).
+    dash["mode"] = "ON_DELIVERY"
     reg.add(
         "rider_dashboard_active",
         "rider",
         "RiderDashboard",
-        "A rider mid-shift with an assignment in progress and earnings accrued today.",
+        "A rider mid-shift with an assignment in progress (`mode: ON_DELIVERY`) and earnings "
+        "accrued today.",
         dash,
         operations=["getRiderDashboard"],
         tags=["rider"],
     )
 
-    zero = synth.make("RiderDashboard", "dashboard-zero")
-    for key, value in list(zero.items()):
-        if key.endswith("_cents"):
-            zero[key] = 0
-        if key in ("deliveries", "deliveries_today", "trips", "trip_count"):
-            zero[key] = 0
+    # Built by hand: the money and counts live under `today`, and a rider who has not
+    # started has no assignment and no offer (issue #708).
+    zero = {
+        "mode": "ONLINE_IDLE",
+        "today": {"gross_cents": 0, "currency": "CAD", "trips": 0, "online_seconds": 0},
+        "active_assignment": None,
+        "current_offer": None,
+        "tracking_health": "HEALTHY",
+        "blocking_reasons": [],
+    }
     reg.add(
         "rider_dashboard_zero_earnings",
         "rider",
         "RiderDashboard",
-        "**A rider with zero earnings** — approved this morning, no deliveries yet. Every "
-        "money field is 0 and every count is 0. The dashboard must read as 'not started', "
-        "never as an error or a blank screen.",
+        "**A rider with zero earnings** — approved this morning, just went online, no "
+        "deliveries yet: no assignment, no offer, every money field and count 0. The "
+        "dashboard must read as 'not started', never as an error or a blank screen.",
         zero,
         operations=["getRiderDashboard"],
         tags=["rider", "edge", "empty", "money"],
@@ -453,6 +494,11 @@ def _availability(reg, synth) -> None:
 
 def _earnings(reg, synth) -> None:
     week = synth.make("EarningsSummary", "earnings-week")
+    # One bucket per day of the week, Monday first (issue #708: every bucket used to carry
+    # the same `bucket_start`). Monday 3 August 2026 00:00 America/Toronto is 04:00 UTC.
+    for i, bucket in enumerate(week["buckets"]):
+        bucket["bucket_start"] = f"2026-08-{3 + i:02d}T04:00:00.000Z"
+    week["total"]["bucket_start"] = week["buckets"][0]["bucket_start"]
     reg.add(
         "earnings_summary_week",
         "rider",
@@ -542,13 +588,18 @@ def _payouts(reg, synth) -> None:
             for k in payout:
                 if k.endswith("_cents"):
                     payout[k] = 0
+        payout["failure_message"] = (
+            "The bank declined the transfer: the account number on file is closed."
+            if state == "FAILED" else None
+        )
+        # One payout row, not a list: no list operation serves it (issue #708). The lists
+        # are `payout_list_*` and `restaurant_payout_history`.
         reg.add(
             f"payout_{state.lower()}",
             "rider",
             "Payout",
-            note,
+            note + " A single `Payout` row; the list operations serve `payout_list_*`.",
             payout,
-            operations=["listRiderPayouts", "listRestaurantPayouts"],
             tags=["payout-state-matrix", "money"],
         )
 
@@ -609,4 +660,121 @@ def _payouts(reg, synth) -> None:
         operations=["listRiderPayouts", "listRestaurantPayouts"],
         meta={"next_cursor": None, "has_more": False, "total": 0},
         tags=["edge", "empty"],
+    )
+
+
+# The payout run closed at NOW (Monday 10 August 2026): the week from Monday
+# 3 August 00:00 to Monday 10 August 00:00 America/Toronto, due 09:00 Toronto.
+RUN_PERIOD_START = "2026-08-03T04:00:00.000Z"
+RUN_PERIOD_END = "2026-08-10T04:00:00.000Z"
+RUN_DUE = "2026-08-10T13:00:00.000Z"
+
+PAYOUT_RUN_OUTCOMES = {
+    "PAID": (2099, "Stripe transfer tr_1Q2w3E4r5T6y7U8i"),
+    "HELD": (700, "Stripe has payouts turned off for this partner: requirements_due: external_account"),
+    "STILL_HELD": (1250, "Stripe still has payouts turned off: requirements_due: individual.verification.document"),
+    "RELEASED": (650, "Stripe transfer tr_9O8i7U6y5T4r3E2w"),
+    "TRANSFER_FAILED": (4500, "stripe create transfer: insufficient available balance"),
+    "ALREADY_PAID": (3000, "this period's payout already exists (PAID)"),
+    "NOTHING_DUE": (0, None),
+    "CARRIED_NEGATIVE": (-500, "below zero since 2026-08-05; carried to the next run"),
+    "NO_PAYOUT_ACCOUNT": (0, "no Stripe account yet; the balance is paid once onboarding is complete"),
+    "PARTNER_SUSPENDED": (0, "the restaurant is SUSPENDED; its balance is kept until it is reinstated"),
+    "ORDERS_BLOCKED": (-500, "balance below zero since 2026-07-05, more than 30 days: no new orders until it recovers"),
+    "ORDERS_UNBLOCKED": (0, "the balance has recovered"),
+    "ERROR": (0, "build payout: connection reset by peer"),
+    "BANK_PAYOUT": (2099, "Stripe bank payout po_1Q2w3E4r5T6y7U8i"),
+    "BANK_PAYOUT_FAILED": (650, "stripe create bank payout: balance_insufficient; the next run asks again"),
+}
+
+
+def _payout_run(synth, label: str, state: str, kind: str = "SCHEDULED") -> dict[str, Any]:
+    run = synth.make("PayoutRun", label)
+    scheduled = kind == "SCHEDULED"
+    run.update(
+        kind=kind,
+        state=state,
+        payee=None if scheduled else {"type": "RIDER", "id": uuid_for("rider-payout-run")},
+        period_start=RUN_PERIOD_START,
+        period_end=RUN_PERIOD_END,
+        as_of=RUN_DUE if scheduled else ts(),
+        due_at=RUN_DUE if scheduled else ts(),
+        requested_by=None if scheduled else uuid_for("admin-payout-run"),
+        reason=None if scheduled else "Riders asked to be paid before the long weekend.",
+        started_at=None,
+        finished_at=None,
+        attempts=0,
+        partners=0,
+        paid=0,
+        held=0,
+        released=0,
+        carried=0,
+        failed=0,
+        paid_cents=0,
+        held_cents=0,
+        error=None,
+        created_at=RUN_DUE if scheduled else ts(),
+    )
+    if state != "QUEUED":
+        run.update(started_at=RUN_DUE, attempts=1)
+    if state in ("SUCCEEDED", "FAILED"):
+        run.update(finished_at="2026-08-10T13:00:04.180Z", partners=42, paid=37, held=2, released=1,
+                   carried=2, paid_cents=184210, held_cents=1950)
+    if state == "FAILED":
+        run.update(paid=36, failed=1, paid_cents=179710)
+    return run
+
+
+def _payout_runs(reg, synth) -> None:
+    notes = {
+        "QUEUED": "An admin asked to run the payout now; the worker picks it up within seconds.",
+        "RUNNING": "The Monday run is paying partners. A worker that stops mid-run is relieved by the next.",
+        "SUCCEEDED": "The Monday run paid everyone it could; holds and carried balances are not failures.",
+        "FAILED": "One transfer failed. The payout stays owed and the next run tries it again.",
+    }
+    for state, note in notes.items():
+        kind = "ADMIN" if state == "QUEUED" else "SCHEDULED"
+        reg.add(
+            f"payout_run_{state.lower()}",
+            "admin",
+            "PayoutRun",
+            note,
+            _payout_run(synth, f"payout-run-{state}", state, kind),
+            operations=["createPayoutRun"] if state == "QUEUED" else ["listPayoutRuns"],
+            status=202 if state == "QUEUED" else 200,
+            tags=["payout-run-state-matrix", "admin", "money"],
+        )
+
+    detail = _payout_run(synth, "payout-run-detail", "FAILED")
+    detail["lines"] = [
+        {
+            "payee": {"type": "RESTAURANT" if outcome in ("PARTNER_SUSPENDED", "ORDERS_BLOCKED", "ORDERS_UNBLOCKED") else "RIDER",
+                      "id": uuid_for(f"payee-{outcome}")},
+            "outcome": outcome,
+            "payout_id": uuid_for(f"payout-{outcome}") if outcome in ("PAID", "HELD", "STILL_HELD", "RELEASED", "TRANSFER_FAILED", "ALREADY_PAID", "BANK_PAYOUT", "BANK_PAYOUT_FAILED") else None,
+            "amount_cents": cents,
+            "detail": text,
+            "at": "2026-08-10T13:00:02.517Z",
+        }
+        for outcome, (cents, text) in PAYOUT_RUN_OUTCOMES.items()
+    ]
+    reg.add(
+        "payout_run_detail_every_outcome",
+        "admin",
+        "PayoutRunDetail",
+        "A run's audit trail with one line for every outcome a run can record.",
+        detail,
+        operations=["getPayoutRun"],
+        tags=["admin", "money", "state-matrix"],
+    )
+
+    reg.add(
+        "payout_run_list_empty",
+        "admin",
+        "array<PayoutRun>",
+        "No payout run has happened yet.",
+        [],
+        operations=["listPayoutRuns"],
+        meta={"next_cursor": None, "has_more": False, "total": 0},
+        tags=["admin", "edge", "empty"],
     )

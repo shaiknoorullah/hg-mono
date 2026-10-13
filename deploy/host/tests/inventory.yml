@@ -1,0 +1,29 @@
+# For the checks only (syntax, lint, the disposable-container run): never a real server.
+all:
+  children:
+    hg_servers:
+      children:
+        prod:
+          hosts:
+            hg-prod:
+              ansible_connection: community.docker.docker
+              ansible_host: hg-testbox
+              hg_public_ipv4: 192.0.2.10
+              hg_wg_address: 10.66.0.1
+              hg_port_mbit: 300
+              hg_in_container: true
+              hg_node_exporter_listen: 127.0.0.1:9100
+        standby:
+          hosts: {}
+    offline:
+      hosts:
+        owner-backup:
+          ansible_host: 10.66.0.11
+  vars:
+    ansible_user: root
+    hg_admin_ssh_keys:
+      - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIExampleKeyForTheTestInventoryOnly0000000 test@example"
+    hg_wg_peers:
+      - {name: owner-laptop, public_key: "4kK2qtv3P0TkbHu3xD0x2u8Hc3Xc0cRb3Hu7uWqJk1c=", address: 10.66.0.10}
+    hg_alert_email_to: alerts@example.com
+    hg_wg_write_peer_configs: false

@@ -110,7 +110,7 @@ func (h *Handler) ProposeHalalIssuingBody(w http.ResponseWriter, r *http.Request
 // session must have been signed in with an authenticator code.
 // Issue: https://github.com/shaiknoorullah/hg-mono/issues/346
 func (h *Handler) SetHalalIssuingBodyStatus(w http.ResponseWriter, r *http.Request) {
-	if !signedInWithTOTP(httpx.PrincipalFrom(r.Context())) {
+	if !signedInWithTwoStep(httpx.PrincipalFrom(r.Context())) {
 		httpx.Fail(w, r, http.StatusForbidden, CodeMFARequired,
 			"Changing a certifying body's status needs a session signed in with an authenticator code.", nil)
 		return
@@ -157,19 +157,4 @@ func renderIssuingBody(b issuingBodyRow) halalIssuingBody {
 		out.Aliases = []string{}
 	}
 	return out
-}
-
-// signedInWithTOTP reports whether the session was signed in with a password and
-// an authenticator code. A super admin cannot get a token without one (the
-// sign-in policy in internal/auth/policy.go, requiresTOTP); this holds the line
-// here too, so a token minted any other way cannot change the registry.
-// TODO(https://github.com/shaiknoorullah/hg-mono/issues/170): require a recent
-// step-up as well, once sessions record when the code was last entered.
-func signedInWithTOTP(p httpx.Principal) bool {
-	for _, m := range p.AMR {
-		if m == "pwd+totp" {
-			return true
-		}
-	}
-	return false
 }

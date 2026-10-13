@@ -1,14 +1,17 @@
+import { useEffect } from 'react';
 import { useLocation, useNavigate, Outlet } from 'react-router-dom';
-import { AppShell, Icon, SideNav, cx, type IconName, type SideNavItem } from '@hg/ui-web';
+import { AppShell, Icon, SideNav, Wordmark, cx, type IconName, type SideNavItem } from '@hg/ui-web';
 import { useAuth } from '../lib/auth';
+import { api } from '../lib/api';
 import { IconMenuBook, IconWallet, IconUsers, IconSettings, IconLogout } from '../lib/icons';
 
 /**
  * The persistent restaurant-operator chrome, on the shared `AppShell` + `SideNav` frame
  * (`@hg/ui-web` navigation tier) instead of a bespoke aside. `SideNav` is glass — a
- * translucent surface with a real backdrop blur — and its active row is a soft orange tint
- * with a solid 4px orange accent bar, never green (RULE H-1: solid green is reserved to
- * `color.halal.*` alone; this is wayfinding chrome, not a certification).
+ * translucent surface with a real backdrop blur — and its current page is a filled tile in the
+ * soft orange selected tint with a bold label, never an edge bar (issue #398), and never green
+ * (solid green is reserved to `color.halal.*` alone; this is wayfinding chrome, not a
+ * certification).
  *
  * Semantic `Icon` names cover Orders (checklist) and Hours (clock); Menu, Payouts, Staff and
  * Settings have no match in the shared primitive's small cross-platform set, so those keep
@@ -47,8 +50,23 @@ function navGlyph(icon: (typeof NAV)[number]['icon'], active: boolean) {
   }
 }
 
+/** Keeps the restaurant "online": without a heartbeat in 5 minutes it computes to CLOSED_OFFLINE. */
+const HEARTBEAT_MS = 60_000;
+
 export function Shell() {
   const { logout, principal } = useAuth();
+
+  useEffect(() => {
+    const beat = () => {
+      api.POST('/v1/restaurant/heartbeat', {}).catch(() => {
+        /* transient; the next tick retries */
+      });
+    };
+    beat();
+    const id = window.setInterval(beat, HEARTBEAT_MS);
+    return () => window.clearInterval(id);
+  }, []);
+
   const location = useLocation();
   const navigate = useNavigate();
   const activeKey = NAV.find((item) => location.pathname.startsWith(item.to))?.key;
@@ -73,14 +91,9 @@ export function Shell() {
               groups={[{ key: 'main', items }]}
               activeKey={activeKey}
               header={
-                <div className="flex items-center gap-2 px-1 py-1">
-                  <div className="grid size-9 place-items-center rounded-md bg-action-primary-bg text-action-primary-fg shadow-e1">
-                    <Icon name="check" weight="bold" size={18} />
-                  </div>
-                  <div>
-                    <p className="text-label-lg font-extrabold leading-tight text-fg-primary">HalalGoes</p>
-                    <p className="text-label-sm text-fg-tertiary">for restaurants</p>
-                  </div>
+                <div className="flex flex-col items-start gap-0.5 px-1 py-1">
+                  <Wordmark height={34} />
+                  <p className="text-label-sm text-fg-tertiary">for restaurants</p>
                 </div>
               }
               footer={
@@ -109,7 +122,10 @@ export function Shell() {
 
       {/* Narrow viewports: no persistent rail, a detached glass-pill bottom bar instead.
           `@hg/ui-web` ships no web bottom-nav (`BottomNav` is native-only by design), so this
-          stays a small local composition, retoned onto the shared tokens. */}
+          stays a small local composition, retoned onto the shared tokens. Its current page is
+          the same filled tile as `SideNav`'s: the selected tint, a bold label (the others are
+          the label's own semibold) and `aria-current="page"`, never colour alone and never an
+          edge bar (rule 12 in docs/design/02-components.md; issue #405). */}
       <nav
         aria-label="Primary"
         className="fixed inset-x-3 bottom-3 z-(--hg-z-sticky) flex items-center justify-around rounded-full border border-line-decorative bg-surface-base/92 px-2 py-2 shadow-e3 backdrop-blur-md md:hidden"
@@ -123,8 +139,8 @@ export function Shell() {
               aria-current={active ? 'page' : undefined}
               onClick={() => navigate(item.to)}
               className={cx(
-                'flex flex-col items-center gap-0.5 rounded-full px-4 py-1.5 text-label-sm font-bold hg-focus-inset',
-                active ? 'text-action-primary-bg' : 'text-fg-secondary',
+                'flex flex-col items-center gap-0.5 rounded-full px-4 py-1.5 text-label-sm hg-focus-inset',
+                active ? 'bg-[var(--hg-state-selected-tint)] font-bold text-fg-primary' : 'text-fg-secondary',
               )}
             >
               {navGlyph(item.icon, active)}

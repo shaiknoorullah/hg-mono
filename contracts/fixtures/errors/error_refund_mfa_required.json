@@ -1,0 +1,21 @@
+{
+  "scenario": "error_refund_mfa_required",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`403` · `MFA_REQUIRED`. Money actions need a session signed in with an authenticator code (staff MFA for money actions).",
+  "operations": [
+    "approveRefund",
+    "issueRefund"
+  ],
+  "status": 403,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "MFA_REQUIRED",
+      "message": "Refunds need a session signed in with your authenticator code. Sign in again with it.",
+      "request_id": "6DT4JJGYMMM8PWZR01BX3JZD4C"
+    }
+  }
+}

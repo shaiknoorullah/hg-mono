@@ -7,9 +7,11 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/go-chi/chi/v5"
 
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/contract"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders"
 )
@@ -283,13 +285,26 @@ func (h *Handler) AttachRestaurantDocument(w http.ResponseWriter, r *http.Reques
 			[]httpx.FieldError{{Field: "doc_type", Code: "invalid", Message: "unknown document type"}})
 		return
 	}
+	// stored_object_id reaches a uuid column; a malformed value is a clean 422
+	// rather than a 22P02-induced 500.
+	if !isValidUUID(body.StoredObjectID) {
+		httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
+			"stored_object_id must be a UUID.",
+			[]httpx.FieldError{{Field: "stored_object_id", Code: "invalid", Message: "must be a UUID"}})
+		return
+	}
 	restaurantID, ok := h.resolveRestaurant(w, r, p)
 	if !ok {
 		return
 	}
-	doc, err := h.repo.AttachDocument(r.Context(), restaurantID, body)
+	doc, err := h.repo.AttachDocument(r.Context(), p.AccountID, restaurantID, body)
 	if err != nil {
 		switch {
+		case errors.Is(err, ErrUploadNotFound):
+			// One answer for every file the caller may not attach, so it says
+			// nothing about whether the file exists (#359).
+			httpx.Fail(w, r, http.StatusNotFound, httpx.CodeNotFound,
+				"No such upload.", nil)
 		case errors.Is(err, ErrHalalCertMissingFields):
 			httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
 				"A halal certificate must name an issuing body, a certificate number and a valid_until.",
@@ -395,11 +410,148 @@ func (h *Handler) CreateMenuCategory(w http.ResponseWriter, r *http.Request) {
 			"A category with this name already exists.", nil)
 		return
 	}
+	if RespondMenuLocked(w, r, err) {
+		return
+	}
 	if err != nil {
 		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError, "Internal error.", nil)
 		return
 	}
 	httpx.Respond(w, r, http.StatusCreated, cat)
+}
+
+// UpdateMenuCategory implements PATCH /v1/restaurant/menu/categories/{categoryId}:
+// rename, reorder, deactivate or reactivate one of the caller's own categories.
+// x-roles: OWNER, MANAGER only. A category carries no halal claim and no price, so
+// the change is live at once and never goes to review (R-14).
+func (h *Handler) UpdateMenuCategory(w http.ResponseWriter, r *http.Request) {
+	p, ok := requireAuth(w, r)
+	if !ok {
+		return
+	}
+	if !requireRole(w, r, p, httpx.RoleRestaurantOwner, httpx.RoleRestaurantManager) {
+		return
+	}
+	var body categoryUpdateDTO
+	if !decodeStrict(w, r, &body) {
+		return
+	}
+	// Contract MenuCategoryUpdateInput: name 1–60 characters, description at most 500.
+	if body.Name != nil {
+		name := strings.TrimSpace(*body.Name)
+		body.Name = &name
+		if n := utf8.RuneCountInString(name); n < 1 || n > 60 {
+			httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
+				"name must be between 1 and 60 characters.",
+				[]httpx.FieldError{{Field: "name", Code: "invalid", Message: "must be 1 to 60 characters"}})
+			return
+		}
+	}
+	if body.Description != nil && utf8.RuneCountInString(*body.Description) > 500 {
+		httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
+			"description must be at most 500 characters.",
+			[]httpx.FieldError{{Field: "description", Code: "invalid", Message: "at most 500 characters"}})
+		return
+	}
+	restaurantID, ok := h.resolveRestaurant(w, r, p)
+	if !ok {
+		return
+	}
+	categoryID := chi.URLParam(r, "categoryId")
+	if !isValidUUID(categoryID) {
+		// A malformed id names no category on this menu: the same 404 as a foreign one.
+		httpx.Fail(w, r, http.StatusNotFound, httpx.CodeNotFound, "Menu category not found.", nil)
+		return
+	}
+	cat, err := h.repo.UpdateCategory(r.Context(), restaurantID, categoryID, body)
+	if errors.Is(err, ErrNotFound) {
+		httpx.Fail(w, r, http.StatusNotFound, httpx.CodeNotFound, "Menu category not found.", nil)
+		return
+	}
+	if errors.Is(err, ErrCategoryNameTaken) {
+		httpx.Fail(w, r, http.StatusConflict,
+			httpx.ErrorCode("CATEGORY_NAME_TAKEN"),
+			"A category with this name already exists.", nil)
+		return
+	}
+	if RespondMenuLocked(w, r, err) {
+		return
+	}
+	if err != nil {
+		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError, "Internal error.", nil)
+		return
+	}
+	httpx.Respond(w, r, http.StatusOK, cat)
+}
+
+// DeleteMenuCategory implements DELETE /v1/restaurant/menu/categories/{categoryId}.
+// x-roles: OWNER, MANAGER only. Only an empty category can be deleted (R-14): one
+// that still holds items is 409 CATEGORY_NOT_EMPTY with details.item_count.
+func (h *Handler) DeleteMenuCategory(w http.ResponseWriter, r *http.Request) {
+	p, ok := requireAuth(w, r)
+	if !ok {
+		return
+	}
+	if !requireRole(w, r, p, httpx.RoleRestaurantOwner, httpx.RoleRestaurantManager) {
+		return
+	}
+	restaurantID, ok := h.resolveRestaurant(w, r, p)
+	if !ok {
+		return
+	}
+	categoryID := chi.URLParam(r, "categoryId")
+	if !isValidUUID(categoryID) {
+		// A malformed id names no category on this menu: the same 404 as a foreign one.
+		httpx.Fail(w, r, http.StatusNotFound, httpx.CodeNotFound, "Menu category not found.", nil)
+		return
+	}
+	err := h.repo.DeleteCategory(r.Context(), restaurantID, categoryID)
+	var notEmpty *CategoryNotEmptyError
+	switch {
+	case err == nil:
+		w.WriteHeader(http.StatusNoContent)
+	case errors.Is(err, ErrNotFound):
+		httpx.Fail(w, r, http.StatusNotFound, httpx.CodeNotFound, "Menu category not found.", nil)
+	case errors.As(err, &notEmpty):
+		httpx.Fail(w, r, http.StatusConflict, httpx.ErrorCode(contract.ErrorCodeCATEGORYNOTEMPTY),
+			"Move or delete the items in this category before deleting it.",
+			map[string]any{"item_count": notEmpty.ItemCount})
+	case RespondMenuLocked(w, r, err):
+	default:
+		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError, "Internal error.", nil)
+	}
+}
+
+// DeleteMenuItem implements DELETE /v1/restaurant/menu/items/{itemId}.
+// x-roles: OWNER, MANAGER only. A soft delete (R-15): order lines keep their own
+// snapshot, so no order in flight changes.
+func (h *Handler) DeleteMenuItem(w http.ResponseWriter, r *http.Request) {
+	p, ok := requireAuth(w, r)
+	if !ok {
+		return
+	}
+	if !requireRole(w, r, p, httpx.RoleRestaurantOwner, httpx.RoleRestaurantManager) {
+		return
+	}
+	restaurantID, ok := h.resolveRestaurant(w, r, p)
+	if !ok {
+		return
+	}
+	itemID := chi.URLParam(r, "itemId")
+	if !isValidUUID(itemID) {
+		httpx.Fail(w, r, http.StatusNotFound, httpx.CodeNotFound, "Menu item not found.", nil)
+		return
+	}
+	err := h.repo.DeleteMenuItem(r.Context(), restaurantID, itemID)
+	switch {
+	case err == nil:
+		w.WriteHeader(http.StatusNoContent)
+	case errors.Is(err, ErrNotFound):
+		httpx.Fail(w, r, http.StatusNotFound, httpx.CodeNotFound, "Menu item not found.", nil)
+	case RespondMenuLocked(w, r, err):
+	default:
+		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError, "Internal error.", nil)
+	}
 }
 
 // CreateMenuItem implements POST /v1/restaurant/menu/items.
@@ -452,15 +604,25 @@ func (h *Handler) CreateMenuItem(w http.ResponseWriter, r *http.Request) {
 			[]httpx.FieldError{{Field: "category_id", Code: "invalid", Message: "malformed UUID"}})
 		return
 	}
+	if !validImageObjectID(w, r, body.ImageObjectID) {
+		return
+	}
 	restaurantID, ok := h.resolveRestaurant(w, r, p)
 	if !ok {
 		return
 	}
-	item, err := h.repo.CreateMenuItem(r.Context(), restaurantID, body)
+	item, err := h.repo.CreateMenuItem(r.Context(), p.AccountID, restaurantID, body)
+	if errors.Is(err, ErrUploadNotFound) {
+		httpx.Fail(w, r, http.StatusNotFound, httpx.CodeNotFound, "No such upload.", nil)
+		return
+	}
 	if errors.Is(err, ErrNotFound) {
 		// Target category does not belong to this restaurant (or does not exist):
 		// invisible → 404, never a 403 that would confirm a foreign category.
 		httpx.Fail(w, r, http.StatusNotFound, httpx.CodeNotFound, "Menu category not found.", nil)
+		return
+	}
+	if RespondMenuLocked(w, r, err) {
 		return
 	}
 	if err != nil {
@@ -515,14 +677,24 @@ func (h *Handler) UpdateMenuItem(w http.ResponseWriter, r *http.Request) {
 				Message: "must be between 50 (CAD 0.50) and 50000 (CAD 500.00)"}})
 		return
 	}
+	if !validImageObjectID(w, r, body.ImageObjectID) {
+		return
+	}
 	restaurantID, ok := h.resolveRestaurant(w, r, p)
 	if !ok {
 		return
 	}
 	itemID := chi.URLParam(r, "itemId")
-	item, err := h.repo.UpdateMenuItem(r.Context(), restaurantID, itemID, body)
+	item, err := h.repo.UpdateMenuItem(r.Context(), p.AccountID, restaurantID, itemID, body)
+	if errors.Is(err, ErrUploadNotFound) {
+		httpx.Fail(w, r, http.StatusNotFound, httpx.CodeNotFound, "No such upload.", nil)
+		return
+	}
 	if errors.Is(err, ErrNotFound) {
 		httpx.Fail(w, r, http.StatusNotFound, httpx.CodeNotFound, "Menu item not found.", nil)
+		return
+	}
+	if RespondMenuLocked(w, r, err) {
 		return
 	}
 	if err != nil {
@@ -530,6 +702,19 @@ func (h *Handler) UpdateMenuItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httpx.Respond(w, r, http.StatusOK, item)
+}
+
+// validImageObjectID answers 422 for an image_object_id that is not a UUID, which
+// would otherwise reach a uuid cast and fail as a 500. It reports whether the
+// request may go on.
+func validImageObjectID(w http.ResponseWriter, r *http.Request, id *string) bool {
+	if id == nil || isValidUUID(*id) {
+		return true
+	}
+	httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
+		"image_object_id must be a UUID.",
+		[]httpx.FieldError{{Field: "image_object_id", Code: "invalid", Message: "must be a UUID"}})
+	return false
 }
 
 // SetMenuItemAvailability implements PUT /v1/restaurant/menu/items/{itemId}/availability.
@@ -564,6 +749,9 @@ func (h *Handler) SetMenuItemAvailability(w http.ResponseWriter, r *http.Request
 	item, err := h.repo.SetMenuItemAvailability(r.Context(), restaurantID, itemID, body)
 	if errors.Is(err, ErrNotFound) {
 		httpx.Fail(w, r, http.StatusNotFound, httpx.CodeNotFound, "Menu item not found.", nil)
+		return
+	}
+	if RespondMenuLocked(w, r, err) {
 		return
 	}
 	if err != nil {
@@ -680,10 +868,11 @@ func (h *Handler) AcceptOrder(w http.ResponseWriter, r *http.Request) {
 	// T6 MoneyFX="capture": capture the authorised PaymentIntent now that the
 	// restaurant has accepted. This is a post-commit network effect (store-then-
 	// process): the order is already PREPARING in the database. On failure we log
-	// and return the accepted order anyway — a reconciler/webhook will retry.
+	// and return the accepted order anyway — the payments capture retrier takes it
+	// from here (payments.CaptureRetrier: backoff, then an ops alert).
 	if h.pay != nil {
 		if captureErr := h.pay.Capture(r.Context(), orderID, order.Money.TotalCents); captureErr != nil {
-			slog.Error("payment capture failed after accept — reconciler will retry",
+			slog.Error("payment capture failed after accept — the capture retrier will retry it with backoff and page on-call if it keeps failing",
 				slog.String("order_id", orderID),
 				slog.String("error", captureErr.Error()))
 		}

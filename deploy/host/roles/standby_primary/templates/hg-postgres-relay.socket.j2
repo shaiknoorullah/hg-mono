@@ -1,0 +1,18 @@
+# Managed by Ansible (deploy/host/roles/standby_primary). Installed only once
+# hg_standby_enabled is true (#210).
+#
+# The standby's replica connects here, over WireGuard. Production's Postgres is only on
+# internal networks, which cannot publish a port; the host can still reach it there, so this
+# relay carries the connection on. The host firewall accepts this port from the standby's
+# WireGuard address alone (roles/firewall, hg_firewall_wg_relays).
+[Unit]
+Description=HalalGoes: relay from the standby to production's Postgres
+After=wg-quick@{{ hg_wg_interface }}.service
+
+[Socket]
+ListenStream={{ hg_postgres_relay_listen }}
+# Listen even if WireGuard's address is not up yet.
+FreeBind=true
+
+[Install]
+WantedBy=sockets.target

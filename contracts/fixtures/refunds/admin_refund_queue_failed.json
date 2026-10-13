@@ -1,0 +1,84 @@
+{
+  "scenario": "admin_refund_queue_failed",
+  "domain": "refunds",
+  "schema": "array<AdminRefund>",
+  "describes": "`listRefundsAdmin?state=FAILED`: two refunds Stripe refused, each with its `failure_message`. The customer has not been paid on either.",
+  "operations": [
+    "listRefundsAdmin"
+  ],
+  "status": 200,
+  "tags": [
+    "admin",
+    "money",
+    "error-path"
+  ],
+  "meta": {
+    "next_cursor": null,
+    "has_more": false,
+    "total": 2
+  },
+  "payload": [
+    {
+      "id": "81c72b64-3d56-49a5-afd3-ce5db48a5b32",
+      "order_id": "d1435528-5730-4b9a-a635-98014dc0201a",
+      "order_code": "HG-COED-9X",
+      "kind": "PARTIAL_ITEMS",
+      "scope": "PARTIAL_ITEMS",
+      "reason_code": "ITEM_MISSING",
+      "amount_cents": 1915,
+      "tax_cents": 220,
+      "currency": "CAD",
+      "state": "FAILED",
+      "liability_split": {
+        "platform_cents": 220,
+        "restaurant_cents": 1695,
+        "rider_cents": 0
+      },
+      "note": "The biryani was missing from the bag.",
+      "requested_at": "2026-08-10T18:02:11.412Z",
+      "requested_by": "c2a83f3e-d7b9-4a92-abb3-af31e948f03f",
+      "requester_kind": "CUSTOMER",
+      "approval_required_role": null,
+      "escalated_by": null,
+      "escalated_at": null,
+      "approved_by": "6eadb17e-4986-45d0-a5ed-7d24980666dd",
+      "approved_at": "2026-08-10T18:12:11.412Z",
+      "declined_by": null,
+      "declined_at": null,
+      "decision_reason": "The bag photo shows no biryani.",
+      "settled_at": null,
+      "failure_message": "Stripe refused the refund: the charge is disputed."
+    },
+    {
+      "id": "70adccba-1476-45b3-ab5b-f2628efe3b30",
+      "order_id": "809f9cdb-9cb9-40eb-a278-28166df445d4",
+      "order_code": "HG-F2RD-8K",
+      "kind": "PARTIAL_ITEMS",
+      "scope": "PARTIAL_ITEMS",
+      "reason_code": "ITEM_MISSING",
+      "amount_cents": 1915,
+      "tax_cents": 220,
+      "currency": "CAD",
+      "state": "FAILED",
+      "liability_split": {
+        "platform_cents": 220,
+        "restaurant_cents": 1695,
+        "rider_cents": 0
+      },
+      "note": "The biryani was missing from the bag.",
+      "requested_at": "2026-08-10T15:42:11.412Z",
+      "requested_by": "c2a83f3e-d7b9-4a92-abb3-af31e948f03f",
+      "requester_kind": "CUSTOMER",
+      "approval_required_role": null,
+      "escalated_by": null,
+      "escalated_at": null,
+      "approved_by": "6eadb17e-4986-45d0-a5ed-7d24980666dd",
+      "approved_at": "2026-08-10T18:12:11.412Z",
+      "declined_by": null,
+      "declined_at": null,
+      "decision_reason": "The bag photo shows no biryani.",
+      "settled_at": null,
+      "failure_message": "Stripe refused the refund: the card account is closed."
+    }
+  ]
+}

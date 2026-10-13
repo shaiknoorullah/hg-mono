@@ -1,0 +1,15 @@
+# Managed by Ansible (deploy/host/roles/docker).
+[Unit]
+Description=Drop internet traffic to Docker-published ports other than the public web
+After=docker.service
+Requires=docker.service
+PartOf=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/hg-docker-user-guard apply
+ExecStop=/usr/local/sbin/hg-docker-user-guard remove
+
+[Install]
+WantedBy=docker.service

@@ -1,0 +1,23 @@
+# Rider app, part 1 of 2: open the app with no data, type the phone number, ask for a code.
+# No SMS is sent: tools/e2e/run.sh reads the code from the API's log, then runs part 2 with it.
+# Env: PHONE.
+appId: com.halalgoes.rider.dev
+name: rider, ask for a sign-in code
+---
+- launchApp:
+    clearState: true
+    permissions:
+      all: allow
+- extendedWaitUntil:
+    visible: "Rider sign in"
+    timeout: 90000
+- takeScreenshot: rider-01-sign-in
+- tapOn:
+    below: "Phone number .*"
+    above: "Send code"
+- inputText: ${PHONE}
+- tapOn: "Send code"
+- extendedWaitUntil:
+    visible: "Enter the code sent to.*"
+    timeout: 30000
+- takeScreenshot: rider-02-code-sent

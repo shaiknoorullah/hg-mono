@@ -21,7 +21,7 @@ import (
 func TestStalledReaderDoesNotDelayOthers(t *testing.T) {
 	const readers = 100
 	const channel = "order:" + sampleUUID
-	gw := NewGateway(nil, nil, slog.New(slog.NewTextHandler(io.Discard, nil)), nil, readers+1)
+	gw := NewGateway(nil, nil, slog.New(slog.NewTextHandler(io.Discard, nil)), nil, Limits{MaxSockets: readers + 1})
 
 	// open subscribes one socket to the channel. net.Pipe has no buffer, so a
 	// write blocks until the peer reads: a peer that never reads is a phone on a
@@ -101,7 +101,7 @@ func TestStalledReaderDoesNotDelayOthers(t *testing.T) {
 // (abnormal closure). A stalled socket must not hold the deploy past
 // shutdownFlushBudget.
 func TestShutdownFlushesGoingAway(t *testing.T) {
-	gw := NewGateway(nil, nil, slog.New(slog.NewTextHandler(io.Discard, nil)), nil, 2)
+	gw := NewGateway(nil, nil, slog.New(slog.NewTextHandler(io.Discard, nil)), nil, Limits{MaxSockets: 2})
 	open := func() (*connection, net.Conn) {
 		srv, peer := net.Pipe()
 		c := newConnection(gw, &wsConn{raw: srv, br: bufio.NewReader(srv)}, gw.log, "", "", "", nil)

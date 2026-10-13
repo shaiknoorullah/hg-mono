@@ -1,0 +1,6 @@
+# Log size: 5 files of 20 MB, oldest rotated away: at most 100 MB, whatever happens.
+hg_auditd_max_log_file_mb: 20
+hg_auditd_num_logs: 5
+# true: rules are locked until reboot (-e 2). A changed rule set then loads at the next reboot
+# (the weekly reboot window, or by hand), which the role says in its output.
+hg_auditd_immutable: true

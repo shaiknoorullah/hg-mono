@@ -70,6 +70,15 @@ type categoryInputDTO struct {
 	SortOrder   *int    `json:"sort_order"`
 }
 
+// categoryUpdateDTO is the MenuCategoryUpdateInput schema: every field optional,
+// so a pointer tells an unsent field from a sent zero.
+type categoryUpdateDTO struct {
+	Name        *string `json:"name"`
+	Description *string `json:"description"`
+	SortOrder   *int    `json:"sort_order"`
+	IsActive    *bool   `json:"is_active"`
+}
+
 // menuItemInputDTO is the MenuItemInput schema.
 // price_cents is the ONLY monetary field allowed on an inbound item body (G-3).
 // HALAL_CERTIFIED may not appear in dietary_tags — the halal gate checks and 403s.

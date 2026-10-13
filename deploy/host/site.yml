@@ -1,0 +1,32 @@
+# The HalalGoes production server: everything, in order. Safe to run again at any time:
+# a reinstalled server comes back the same. provision.sh runs it; see README.md.
+- name: Set up the production server
+  hosts: prod
+  become: true
+  gather_facts: true
+
+  pre_tasks:
+    - name: Refuse to close public SSH unless this run is coming over WireGuard
+      ansible.builtin.assert:
+        that: >-
+          hg_ssh_public or ansible_connection | default('ssh') != 'ssh'
+          or ansible_host == hg_wg_address
+        fail_msg: >-
+          This run would close public SSH, but it is connected to {{ ansible_host }}, not over
+          WireGuard ({{ hg_wg_address }}). Use provision.sh, which picks the right address.
+        quiet: true
+
+  roles:
+    - secrets          # sops-encrypted secrets, decrypted on this machine (README, "Secrets")
+    - base             # admin account, security updates, reboot window, journald, swap
+    - wireguard        # the tunnel for the owner's devices
+    - firewall         # nftables "inet host": 80, 443 and WireGuard only
+    - ssh              # keys only, no root, WireGuard peers only
+    - docker           # Docker from its repository, log caps, DOCKER-USER guard, networks
+    - socket_proxy     # Traefik reads Docker through it, never the socket
+    - node_exporter    # host metrics
+    - clamav           # here until hg_clamav_host moves it to the standby
+    - backup           # pgBackRest, restic, the off-server pull account, the monthly drill
+    - monitoring       # VictoriaMetrics, vmalert, Alertmanager, Gatus, postgres-exporter
+    - logging          # Fluent Bit and VictoriaLogs, logs kept here and capped
+    - dev_env          # the capped, isolated dev environment beside production

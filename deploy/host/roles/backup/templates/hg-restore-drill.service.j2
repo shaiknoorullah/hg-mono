@@ -1,0 +1,13 @@
+# Managed by Ansible (deploy/host/roles/backup).
+[Unit]
+Description=Monthly restore drill (docs/ops/runbook.md)
+Wants=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/hg-restore-drill
+Nice=10
+IOSchedulingClass=idle
+MemoryMax=1G
+TimeoutStartSec=4h

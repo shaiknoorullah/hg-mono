@@ -1,0 +1,17 @@
+{
+  "scenario": "restaurant_decision_input_reject",
+  "domain": "admin",
+  "schema": "RestaurantDecisionInput",
+  "describes": "Request body for `decideRestaurantApplication`. REJECT: a rejection reason. Final for this application.",
+  "operations": [],
+  "status": 200,
+  "tags": [
+    "admin",
+    "request-body"
+  ],
+  "payload": {
+    "decision": "REJECT",
+    "reason_code": "OUTSIDE_SERVICE_AREA",
+    "reason_text": "We do not deliver in your area yet. We will email you when we do."
+  }
+}

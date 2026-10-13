@@ -1,0 +1,5 @@
+# Managed by Ansible (deploy/host/roles/backup_current).
+# HELP hg_backup_max_age_seconds Seconds after a backup job's last success before it is overdue.
+# TYPE hg_backup_max_age_seconds gauge
+hg_backup_max_age_seconds{backup="pg"} {{ hg_backup_current_max_age }}
+hg_backup_max_age_seconds{backup="silo"} {{ hg_backup_current_max_age }}

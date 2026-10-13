@@ -127,23 +127,11 @@ func (rp *Repo) searchDishes(ctx context.Context, q string, lat, lng *float64, c
 		var d dishSearchRow
 		var rr restaurantRow
 		// The tail of the SELECT is cardColumns + geoExpr + distanceExpr, so the
-		// scan targets must mirror cardColumns exactly (including logo/cover ids,
-		// the joined logo/cover bucket+key, and cuisines) and then the two geo
-		// columns and the always-present distance_m column.
-		dest := []any{&d.menuItemID, &d.name, &d.description, &d.priceCents, &d.currency,
-			&rr.id, &rr.slug, &rr.displayName, &rr.description,
-			&rr.line1, &rr.line2, &rr.city, &rr.province, &rr.postalCode, &rr.timezone,
-			&rr.publicPhone,
-			&rr.ratingAvg, &rr.ratingCount, &rr.priceBand, &rr.halalStatus,
-			&rr.minimumOrderCents, &rr.avgPrepMinutes, &rr.deliveryRadiusM,
-			&rr.logoObjectID, &rr.coverObjectID,
-			&rr.logoObjectBucket, &rr.logoObjectKey,
-			&rr.coverObjectBucket, &rr.coverObjectKey,
-			&rr.cuisines,
-			&rr.certifyingBody, &rr.certExpiresOn,
-			&rr.latitude, &rr.longitude,
-			&rr.distanceM,
-		}
+		// scan targets are the card's, then the two geo columns and the
+		// always-present distance_m column.
+		dest := append([]any{&d.menuItemID, &d.name, &d.description, &d.priceCents, &d.currency},
+			rr.cardTargets()...)
+		dest = append(dest, &rr.latitude, &rr.longitude, &rr.distanceM)
 		if err := rows.Scan(dest...); err != nil {
 			return nil, err
 		}

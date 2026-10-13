@@ -21,13 +21,30 @@ import (
 //
 // Scheduling lives entirely in Postgres so a Redis flush cannot lose a timeout
 // (P-15). There is no external orchestrator.
+//
+// Every tick starts with a heartbeat. A gap of more than OutageThreshold since
+// the last heartbeat of any runner is recorded as an outage, and the deadlines
+// that fell inside it are handled as outage actions rather than as misses
+// (runner_outage.go; docs/spec/01-platform.md, "P-15 — Deadlines and timeout
+// actions", "Outages").
 type DeadlineRunner struct {
-	store   *Store
-	log     *slog.Logger
-	owner   string
-	batch   int
-	tick    time.Duration
-	gateway PaymentGateway
+	store       *Store
+	pickup      PickupEscalator      // runner_pickup.go; nil re-arms a lapsed pickup only
+	uncollected UncollectedCanceller // runner_pickup.go; nil keeps escalating at the cap
+	log         *slog.Logger
+	owner       string
+	batch       int
+	tick        time.Duration
+	gateway     PaymentGateway
+
+	// hold makes Run wait for a deadline_runner_release row before its first
+	// heartbeat (HG_DEADLINE_RUNNER_HOLD, for failover).
+	hold bool
+	// alerter raises admin.alert on admin:ops when an outage is recorded. Nil
+	// means the outage is logged only.
+	alerter OpsAlerter
+	// outageAfter is OutageThreshold; a field so it is visible next to tick.
+	outageAfter time.Duration
 }
 
 // NewDeadlineRunner builds a runner. owner names this worker in the lease.
@@ -35,25 +52,46 @@ func NewDeadlineRunner(store *Store, gw PaymentGateway, log *slog.Logger, owner 
 	if owner == "" {
 		owner = "hg"
 	}
-	return &DeadlineRunner{store: store, gateway: gw, log: log, owner: owner, batch: 50, tick: time.Second}
+	return &DeadlineRunner{store: store, gateway: gw, log: log, owner: owner, batch: 50, tick: time.Second,
+		outageAfter: OutageThreshold}
 }
 
-// Run loops until ctx is cancelled, sweeping due deadlines each tick.
+// Run loops until ctx is cancelled. When the runner was built with WithHold it
+// first waits for a release. Each tick then writes the heartbeat (recording an
+// outage if the gap since the last one is too long) and sweeps due deadlines.
+// A tick whose heartbeat fails does not sweep: a sweep must never run before
+// the gap it may be closing has been recorded.
 func (r *DeadlineRunner) Run(ctx context.Context) {
+	if r.hold && !r.waitForRelease(ctx) {
+		return
+	}
+	r.log.Info("deadline runner started", slog.String("owner", r.owner))
 	t := time.NewTicker(r.tick)
 	defer t.Stop()
 	for {
+		r.step(ctx)
 		select {
 		case <-ctx.Done():
 			return
 		case <-t.C:
-			n, err := r.Sweep(ctx)
-			if err != nil {
-				r.log.Warn("deadline sweep failed", slog.String("error", err.Error()))
-			} else if n > 0 {
-				r.log.Info("deadline sweep", slog.Int("fired", n))
-			}
 		}
+	}
+}
+
+// step is one tick: heartbeat, then sweep.
+func (r *DeadlineRunner) step(ctx context.Context) {
+	if ctx.Err() != nil {
+		return
+	}
+	if err := r.beat(ctx); err != nil {
+		r.log.Warn("deadline runner heartbeat failed; not sweeping this tick", slog.String("error", err.Error()))
+		return
+	}
+	n, err := r.Sweep(ctx)
+	if err != nil {
+		r.log.Warn("deadline sweep failed", slog.String("error", err.Error()))
+	} else if n > 0 {
+		r.log.Info("deadline sweep", slog.Int("fired", n))
 	}
 }
 
@@ -67,6 +105,9 @@ type claimedOrder struct {
 	prepEtaMinutes int
 	acceptedAt     *time.Time
 	restaurantID   string
+	// outageID is set when deadlineAt fell inside a recorded outage; the row
+	// then takes the outage path instead of its normal action.
+	outageID *string
 }
 
 // Sweep claims and fires one batch of due deadlines. It returns the number of
@@ -104,7 +145,9 @@ func (r *DeadlineRunner) claim(ctx context.Context) ([]claimedOrder, error) {
 				 FOR UPDATE SKIP LOCKED
 				 LIMIT $2)
 			RETURNING id, state::text, deadline_action, deadline_escalations, deadline_at,
-			          COALESCE(prep_eta_minutes, 0), accepted_at, restaurant_id`,
+			          COALESCE(prep_eta_minutes, 0), accepted_at, restaurant_id,
+			          (SELECT w.id::text FROM deadline_outage w
+			            WHERE tstzrange(w.gap_start, w.gap_end, '(]') @> "order".deadline_at)`,
 			r.owner, r.batch)
 		if err != nil {
 			return err
@@ -114,7 +157,7 @@ func (r *DeadlineRunner) claim(ctx context.Context) ([]claimedOrder, error) {
 			var c claimedOrder
 			var stateStr string
 			if err := rows.Scan(&c.id, &stateStr, &c.action, &c.escalations, &c.deadlineAt,
-				&c.prepEtaMinutes, &c.acceptedAt, &c.restaurantID); err != nil {
+				&c.prepEtaMinutes, &c.acceptedAt, &c.restaurantID, &c.outageID); err != nil {
 				return err
 			}
 			c.state = machine.State(stateStr)
@@ -128,11 +171,15 @@ func (r *DeadlineRunner) claim(ctx context.Context) ([]claimedOrder, error) {
 // fire executes one claimed row's action. The set of actions implemented here is
 // the subset the orders module owns end-to-end without a sibling: the pure
 // state-machine timeouts (RESTAURANT_TIMEOUT, PREP_OVERDUE re-arm/cap,
-// PICKUP/DELIVERY/HANDOVER re-arm, DISPUTE_SLA re-arm) and EXPIRE_PAYMENT (which
-// cancels the order). Actions whose money effect belongs to a sibling
-// (OFFER_RESTAURANT → dispatch, SETTLE → ledger) re-arm the deadline and record
-// the audit rather than fabricating the sibling's work.
+// DELIVERY/HANDOVER re-arm, DISPUTE_SLA re-arm), EXPIRE_PAYMENT (which cancels
+// the order), SETTLE (which completes a delivered order and issues its
+// receipt) and the PICKUP_OVERDUE escalation (runner_pickup.go). An action
+// whose effect belongs to a sibling (OFFER_RESTAURANT → dispatch) re-arms the
+// deadline and records the audit rather than fabricating the sibling's work.
 func (r *DeadlineRunner) fire(ctx context.Context, c claimedOrder) error {
+	if c.outageID != nil {
+		return r.fireOutage(ctx, c)
+	}
 	start := time.Now()
 	switch c.action {
 	case machine.ActionExpirePayment:
@@ -142,29 +189,79 @@ func (r *DeadlineRunner) fire(ctx context.Context, c claimedOrder) error {
 		return r.transitionExpire(ctx, c, machine.StateCancelled, "PAYMENT_EXPIRED", machine.ActionExpirePayment)
 
 	case machine.ActionRestaurantTimeout:
-		// RESTAURANT_PENDING 180s elapsed: cancel + void auth (T8).
-		return r.transitionExpire(ctx, c, machine.StateCancelled, "RESTAURANT_TIMEOUT", machine.ActionRestaurantTimeout)
+		// RESTAURANT_PENDING 180s elapsed: cancel, then void the authorisation
+		// (docs/spec/01-platform.md, "P-15 — Deadlines and timeout actions",
+		// RESTAURANT_TIMEOUT; voidAfterCancel in runner_outage.go).
+		if err := r.transitionExpire(ctx, c, machine.StateCancelled, "RESTAURANT_TIMEOUT", machine.ActionRestaurantTimeout); err != nil {
+			return err
+		}
+		r.voidAfterCancel(ctx, c)
+		return nil
 
-	case machine.ActionPrepOverdue, machine.ActionPickupOverdue, machine.ActionDeliveryOverdue,
-		machine.ActionHandoverOverdue, machine.ActionDisputeSLABreach, machine.ActionOfferRestaurant,
-		machine.ActionSettle:
+	case machine.ActionPrepOverdue, machine.ActionDeliveryOverdue,
+		machine.ActionHandoverOverdue, machine.ActionDisputeSLABreach, machine.ActionOfferRestaurant:
 		// Re-arm within the escalation cap, or drive toward the cap's terminal
-		// action. The cap's terminal effect (refund, dispute, settle) belongs to
-		// the ledger/dispatch siblings; until they are wired, the runner re-arms
+		// action. The cap's terminal effect (refund, dispute) belongs to the
+		// ledger/dispatch siblings; until they are wired, the runner re-arms
 		// and records the audit so nothing is abandoned and no money is faked.
 		return r.reArm(ctx, c, start)
 
+	case machine.ActionSettle:
+		// DELIVERED and nobody disputed it in time: COMPLETED, with its
+		// receipt (T18; https://github.com/shaiknoorullah/hg-mono/issues/511).
+		// A settle that fails leaves the order DELIVERED and re-arms it, so it
+		// is retried 2 minutes on, audited, and never abandoned.
+		if err := r.settle(ctx, c); err != nil {
+			if rerr := r.reArm(ctx, c, start); rerr != nil {
+				return errors.Join(err, fmt.Errorf("re-arm after a failed settle: %w", rerr))
+			}
+			return err
+		}
+		return nil
+
+	case machine.ActionPickupOverdue:
+		// READY_FOR_PICKUP lapsed and nobody has collected the order: escalate
+		// dispatch, alert ops, tell the customer, re-arm (runner_pickup.go;
+		// https://github.com/shaiknoorullah/hg-mono/issues/293).
+		return r.escalatePickup(ctx, c)
+
 	default:
-		return fmt.Errorf("unknown deadline action %q", c.action)
+		return r.fireByState(ctx, c)
 	}
+}
+
+// fireByState handles a deadline whose stored action this runner does not
+// know by the action the deadline table names for the order's state. Every
+// non-terminal state has an action and every action has a case in fire (a
+// database-backed test walks all of them), so an order can never fail its
+// deadline on every pass and stay where it is. An action written outside the
+// transition function, like the RIDER_NO_SHOW the restaurant's mark-ready
+// wrote before #293 was fixed, is handled as its state's action and logged so
+// the writer gets fixed (https://github.com/shaiknoorullah/hg-mono/issues/337).
+func (r *DeadlineRunner) fireByState(ctx context.Context, c claimedOrder) error {
+	spec, ok := machine.DeadlineFor(c.state)
+	if !ok || spec.Action == c.action {
+		return fmt.Errorf("unknown deadline action %q in state %s", c.action, c.state)
+	}
+	r.log.Warn("deadline action does not match the order's state; handling it as the state's action",
+		slog.String("order_id", c.id), slog.String("state", string(c.state)),
+		slog.String("action", c.action), slog.String("handled_as", spec.Action))
+	c.action = spec.Action
+	return r.fire(ctx, c)
 }
 
 // transitionExpire runs a system transition to a terminal state with a cancel
 // reason, recording the deadline audit in the same transaction (exactly once).
 func (r *DeadlineRunner) transitionExpire(ctx context.Context, c claimedOrder, to machine.State, reason, action string) error {
-	cancelReason := reason
+	return r.transitionWithAudit(ctx, c, to, reason, reason, action, "TRANSITIONED")
+}
+
+// transitionWithAudit is one system transition plus its deadline_audit row, in
+// one transaction.
+func (r *DeadlineRunner) transitionWithAudit(ctx context.Context, c claimedOrder, to machine.State,
+	cancelReason, reason, action, outcome string) error {
 	return r.store.inTx(ctx, func(tx pgx.Tx) error {
-		if err := r.recordAudit(ctx, tx, c, action, "TRANSITIONED"); err != nil {
+		if err := r.recordAudit(ctx, tx, c, action, outcome); err != nil {
 			return err
 		}
 		return r.store.transitionTx(ctx, tx, TransitionRequest{
@@ -174,10 +271,50 @@ func (r *DeadlineRunner) transitionExpire(ctx context.Context, c claimedOrder, t
 	})
 }
 
+// settle handles SETTLE: a delivered order whose settle deadline has passed
+// moves DELIVERED → COMPLETED (T18, a SYSTEM edge) through the one transition
+// function, and its receipt is written in the same transaction
+// (receipt.go), with the deadline audit. Settling moves no money: the capture
+// batch already split the charge to the restaurant, the tax authority and the
+// platform's held delivery share, and the rider's own DELIVERED transition
+// paid the rider (docs/spec/01-platform.md, "P-13 — The ledger and the
+// zero-residual invariant"). So no ledger batch is posted here.
+//
+// The order is re-checked under its row lock: it must still be DELIVERED with
+// a deadline that has passed. An order disputed in the meantime is left to
+// its dispute, and a second run of the same claim finds a COMPLETED order and
+// does nothing, so an order completes, and its receipt is written, once.
+func (r *DeadlineRunner) settle(ctx context.Context, c claimedOrder) error {
+	return r.store.inTx(ctx, func(tx pgx.Tx) error {
+		var due bool
+		err := tx.QueryRow(ctx, `
+			SELECT true FROM "order"
+			 WHERE id = $1 AND state = 'DELIVERED' AND deadline_at <= now()
+			 FOR UPDATE`, c.id).Scan(&due)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil
+		}
+		if err != nil {
+			return fmt.Errorf("lock delivered order: %w", err)
+		}
+		if err := r.recordAudit(ctx, tx, c, machine.ActionSettle, "TRANSITIONED"); err != nil {
+			return err
+		}
+		return r.store.transitionTx(ctx, tx, TransitionRequest{
+			OrderID: c.id, To: machine.StateCompleted, Actor: machine.ActorSystem,
+			Reason: "settle deadline passed",
+		}, func(tx pgx.Tx) error {
+			return r.store.writeReceiptSnapshotTx(ctx, tx, c.id)
+		})
+	})
+}
+
 // reArm bumps the deadline forward by the state's ReArm interval and increments
 // deadline_escalations, up to the cap. At the cap it records the audit as
 // CAP_REACHED and leaves the row with a fresh deadline (never abandoned); the
-// terminal effect is a sibling's job and is a clearly-scoped TODO.
+// terminal effect is a sibling's job and is a clearly-scoped TODO. It only
+// touches an order still in the state it was claimed in: one that moved on
+// carries its new state's deadline, which is not this action's to change.
 func (r *DeadlineRunner) reArm(ctx context.Context, c claimedOrder, start time.Time) error {
 	spec, ok := machine.DeadlineFor(c.state)
 	if !ok {
@@ -193,28 +330,31 @@ func (r *DeadlineRunner) reArm(ctx context.Context, c claimedOrder, start time.T
 	}
 	next := time.Now().UTC().Add(interval)
 	return r.store.inTx(ctx, func(tx pgx.Tx) error {
-		if err := r.recordAudit(ctx, tx, c, c.action, outcome); err != nil {
-			return err
-		}
-		_, err := tx.Exec(ctx, `
+		ct, err := tx.Exec(ctx, `
 			UPDATE "order"
 			   SET deadline_at = $1, deadline_escalations = LEAST(deadline_escalations + 1, 32),
 			       lease_until = NULL, lease_owner = NULL
-			 WHERE id = $2`, next, c.id)
-		return err
+			 WHERE id = $2 AND state = $3`, next, c.id, string(c.state))
+		if err != nil || ct.RowsAffected() == 0 {
+			return err
+		}
+		return r.recordAudit(ctx, tx, c, c.action, outcome)
 	})
 }
 
 // recordAudit inserts the exactly-once deadline_audit row. A duplicate insert
-// (a re-run after a crash) is a no-op via ON CONFLICT DO NOTHING, which is the
-// I-15.3 exactly-once assertion made a database fact.
+// (a re-run after a crash) is a no-op via ON CONFLICT DO NOTHING on the
+// deadline_audit_once index, which makes "every deadline action runs exactly
+// once" (docs/spec/01-platform.md, "P-15 — Deadlines and timeout actions",
+// rules) a database fact. A row handled by the outage path carries its outage_id; the
+// schema refuses an OUTAGE_* outcome without one (migrations/00071).
 func (r *DeadlineRunner) recordAudit(ctx context.Context, tx pgx.Tx, c claimedOrder, action, outcome string) error {
 	lagMs := int(time.Since(c.deadlineAt).Milliseconds())
 	_, err := tx.Exec(ctx, `
-		INSERT INTO deadline_audit (subject_type, subject_id, action, escalation_no, lag_ms, outcome)
-		VALUES ('order', $1, $2, $3, $4, $5)
-		ON CONFLICT (subject_type, subject_id, action, escalation_no) DO NOTHING`,
-		c.id, action, c.escalations, lagMs, outcome)
+		INSERT INTO deadline_audit (subject_type, subject_id, action, escalation_no, lag_ms, outcome, outage_id)
+		VALUES ('order', $1, $2, $3, $4, $5, $6)
+		ON CONFLICT DO NOTHING`,
+		c.id, action, c.escalations, lagMs, outcome, c.outageID)
 	return err
 }
 

@@ -1,0 +1,125 @@
+/* GENERATED FILE — DO NOT EDIT.
+ * Source: docs/design/tokens.json
+ * Regenerate: pnpm --filter @hg/ui-web generate:tokens
+ */
+
+/*
+ * LyteNyte Grid, themed with HalalGoes roles.
+ *
+ * A grid needs exactly two stylesheets and one class:
+ *
+ *   import '@1771technologies/lytenyte-core/grid.css'; // structure only
+ *   import '@hg/ui-web/grid-theme.css';                 // this file
+ *
+ *   <div className="ln-grid">  <Grid … />  </div>
+ *
+ * Every rule in grid.css is scoped under `.ln-grid`. Without that class on an
+ * ancestor of <Grid>, none of it applies and the grid renders unstyled
+ * (https://github.com/shaiknoorullah/hg-mono/issues/145).
+ *
+ * Do not also load one of LyteNyte's themes (light-dark.css, light.css, dark.css,
+ * design.css, …). This file replaces them.
+ *
+ * Deliberately UNLAYERED. grid.css sits in `@layer ln-grid`, and an unlayered
+ * rule beats every layer, so these win whichever order the two files load in.
+ * Dark mode needs nothing here: every value is a role, and roles flip on :root.
+ */
+
+/* The variables grid.css reads. Set on the wrapper, never on :root, so nothing
+   leaks into the rest of the page. */
+.ln-grid {
+  --ln-typeface: var(--hg-font-ui);
+  --ln-font-md: var(--hg-text-body-sm-size);
+  --ln-padding-horizontal-cell: var(--hg-density-card-padding);
+  --ln-bg-ui-panel: var(--hg-surface-base);
+  /* No zebra banding: a second cream reads as a selected row. Rules separate rows. */
+  --ln-bg-row-alternate: var(--hg-surface-base);
+  --ln-bg-row-hover: var(--hg-state-hover-overlay);
+  /* LyteNyte's accent. Focus and selection are re-drawn below, so the only thing
+     left reading it is the column-resize handle. */
+  --ln-primary-50: var(--hg-border-interactive);
+  --ln-text-dark: var(--hg-text-primary);
+  --ln-text: var(--hg-text-secondary);
+  --ln-border: var(--hg-border-decorative);
+  --ln-border-row: var(--hg-border-decorative);
+  --ln-border-strong: var(--hg-border-interactive);
+  --ln-border-xstrong: var(--hg-border-strong);
+
+  /* The frame, as DataTable draws it. The wrapper owns it (rounded, clipped), so
+     the viewport's own square border is dropped below. */
+  border: 1px solid var(--hg-border-decorative);
+  border-radius: var(--hg-radius-md);
+  overflow: hidden;
+  background-color: var(--hg-surface-base);
+}
+
+.ln-grid [data-ln-viewport='true'] {
+  border: 0;
+}
+
+/* grid.css turns text selection off for the whole grid. Body cells turn it back on,
+   so an order code or a name can still be copied. */
+.ln-grid [data-ln-cell='true'] {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+/* Header: DataTable's header — the subtle surface, label type, secondary text. */
+.ln-grid [data-ln-header='true'],
+.ln-grid :is([data-ln-header-cell='true'], [data-ln-header-group='true']) {
+  background-color: var(--hg-surface-subtle);
+}
+
+.ln-grid :is([data-ln-header-cell='true'], [data-ln-header-group='true']) {
+  color: var(--hg-text-secondary);
+  font-size: var(--hg-text-label-md-size);
+  font-weight: var(--hg-text-label-md-weight);
+  letter-spacing: var(--hg-text-label-md-tracking);
+}
+
+/* Selected row: a fill, never a bar. LyteNyte paints selection as a translucent
+   overlay in its own blue; the selected tint is opaque, so it goes on the cells
+   (under their text) and the overlay is cleared. */
+.ln-grid [data-ln-row='true'][data-ln-selected='true']::before {
+  background: transparent;
+}
+
+.ln-grid [data-ln-row='true'][data-ln-selected='true'] [data-ln-cell='true'] {
+  background-color: var(--hg-state-selected-tint);
+}
+
+.ln-grid [data-ln-row='true'][data-ln-selected='true']:hover::before {
+  background: var(--hg-state-hover-overlay);
+}
+
+/* Focus (docs/decisions/focus-indicator.md): a cell is a borderless control in a
+   clipping container, so it takes the inset two-layer ring — the .hg-focus-inset
+   recipe — on :focus-visible only. LyteNyte draws a 1px ring in its own blue on
+   every :focus, a mouse click included; that one is removed. */
+.ln-grid :is([data-ln-cell='true'], [data-ln-header-cell='true'], [data-ln-header-group='true'], [data-ln-rowtype='full-width'] > div):focus::before {
+  border: 0;
+}
+
+.ln-grid :is([data-ln-cell='true'], [data-ln-header-cell='true'], [data-ln-header-group='true'], [data-ln-rowtype='full-width'] > div):focus-visible {
+  /* Drawn only in forced-colors mode, which strips box-shadow. */
+  outline: 2px solid transparent;
+  outline-offset: -2px;
+}
+
+.ln-grid :is([data-ln-cell='true'], [data-ln-header-cell='true'], [data-ln-header-group='true'], [data-ln-rowtype='full-width'] > div):focus-visible::before {
+  box-shadow:
+    inset 0 0 0 2px var(--hg-focus-ring-offset),
+    inset 0 0 0 5px var(--hg-focus-ring-color);
+}
+
+/* The viewport is the grid's one Tab stop; arrow keys move between cells from
+   there. The cells would cover an inset ring, so the ring goes round the frame. */
+.ln-grid [data-ln-viewport='true']:focus-visible {
+  outline: 2px solid transparent;
+}
+
+.ln-grid:has([data-ln-viewport='true']:focus-visible) {
+  box-shadow:
+    0 0 0 2px var(--hg-focus-ring-offset),
+    0 0 0 5px var(--hg-focus-ring-color);
+}

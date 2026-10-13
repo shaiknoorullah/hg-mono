@@ -1,0 +1,46 @@
+{
+  "scenario": "earnings_summary_day",
+  "domain": "rider",
+  "schema": "EarningsSummary",
+  "describes": "`period=DAY` for today: one bucket, as `services/hg` answers `period=DAY&from=` today (the bucket unit is the period). Three trips so far.",
+  "operations": [
+    "getRiderEarningsSummary"
+  ],
+  "status": 200,
+  "tags": [
+    "rider",
+    "money"
+  ],
+  "payload": {
+    "period": "DAY",
+    "buckets": [
+      {
+        "bucket_start": "2026-08-10T04:00:00.000Z",
+        "gross_cents": 4296,
+        "delivery_cents": 2696,
+        "tip_cents": 1600,
+        "bonus_cents": 0,
+        "adjustment_cents": 0,
+        "trips": 3,
+        "online_seconds": 4680,
+        "distance_m": 12360,
+        "effective_cents_per_hour": 3304
+      }
+    ],
+    "total": {
+      "bucket_start": "2026-08-10T04:00:00.000Z",
+      "gross_cents": 4296,
+      "delivery_cents": 2696,
+      "tip_cents": 1600,
+      "bonus_cents": 0,
+      "adjustment_cents": 0,
+      "trips": 3,
+      "online_seconds": 4680,
+      "distance_m": 12360,
+      "effective_cents_per_hour": 3304
+    },
+    "unpaid_balance_cents": 4296,
+    "next_payout_at": "2026-08-17T13:00:00.000Z",
+    "currency": "CAD"
+  }
+}

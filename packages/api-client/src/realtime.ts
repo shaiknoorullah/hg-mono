@@ -148,6 +148,17 @@ export interface OrderNoteAddedData {
   text: string;
   at: string;
 }
+/**
+ * The arrival event, customer only, also sent as a push that says only "Your rider is here".
+ * It never carries a handover code: the rider subscribes to `order:{id}` too, and a push shows
+ * on the lock screen. On this event the customer app fetches `delivery_code` from its own
+ * authenticated order view (`getOrder` / `getOrderTracking`). Security review on #183:
+ * https://github.com/shaiknoorullah/hg-mono/issues/183
+ */
+export interface OrderRiderArrivedData {
+  order_id: string;
+  at: string;
+}
 
 /* ----------------------------- §4.3 payment ------------------------------ */
 
@@ -231,6 +242,12 @@ export interface RestaurantOrderAcceptedData {
   order_id: string;
   accepted_by: string;
   prep_eta_minutes: number;
+  /**
+   * The 4-digit code the kitchen reads to the rider at the counter; null when the customer
+   * collects the order, and always null in the support and admin projection. Restaurant
+   * channel only — the rider is never sent it.
+   */
+  pickup_code: string | null;
 }
 export interface RestaurantOrderRejectedData {
   order_id: string;
@@ -261,8 +278,15 @@ export interface DispatchOfferData {
   /** Countdown = `expires_at - server_time`, corrected for device clock skew. */
   server_time: string;
   pickup: { restaurant_name: string; address_short: string; lat: number; lng: number };
-  /** Never the unit number or phone alias — those exist only after acceptance. */
-  dropoff: { area: string; lat: number; lng: number };
+  /**
+   * An approximate area only: `area` is the neighbourhood and city, and `lat`/`lng` are the
+   * centre of an area of about 500 m with `radius_m` its radius, never the address. The
+   * street, unit, buzzer, name and phone alias arrive only after acceptance (round-2
+   * decisions, "Orders and delivery":
+   * https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#orders-and-delivery).
+   * `radius_m` may be absent; then draw no circle.
+   */
+  dropoff: { area: string; lat: number; lng: number; radius_m?: number };
   distance_m: number;
   est_duration_s: number;
   earnings_cents: number;
@@ -406,6 +430,7 @@ export interface RealtimeEventMap {
   'order.cancelled': OrderCancelledData;
   'order.completed': OrderCompletedData;
   'order.note_added': OrderNoteAddedData;
+  'order.rider_arrived': OrderRiderArrivedData;
 
   'payment.authorized': PaymentAuthorizedData;
   'payment.action_required': PaymentActionRequiredData;
@@ -455,7 +480,7 @@ export type RealtimeEvent = {
 export const REALTIME_CLOSE = {
   NORMAL: 1000,
   GOING_AWAY: 1001,
-  /** `slow_consumer` or `at_capacity`: reconnect with backoff, then resume every channel. */
+  /** `slow_consumer`, `at_capacity` or `connection_limit`: reconnect with backoff, then resume every channel. */
   TRY_AGAIN_LATER: 1013,
   MALFORMED_FRAME: 4400,
   UNAUTHENTICATED: 4401,

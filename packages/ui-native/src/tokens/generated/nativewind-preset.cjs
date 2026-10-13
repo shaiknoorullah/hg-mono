@@ -182,6 +182,8 @@ module.exports = {
           'on-inverse': 'var(--hg-fg-on-inverse)',
           'on-accent': 'var(--hg-fg-on-accent)',
           link: 'var(--hg-fg-link)',
+          'link-hover': 'var(--hg-fg-link-hover)',
+          'secondary-field': 'var(--hg-fg-secondary-field)',
         },
         border: {
           decorative: 'var(--hg-border-decorative)',

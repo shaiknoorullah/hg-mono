@@ -37,6 +37,7 @@ package conformance
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -54,6 +55,7 @@ import (
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders/machine"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/payments"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/testseed"
 )
 
 // ─── orders harness wired with the local fake payment gateway ────────────────
@@ -67,6 +69,15 @@ import (
 type gapsOrderGateway struct {
 	svc   *payments.Service
 	store *orders.Store
+}
+
+// VoidOrderPayment voids through the payments service, as cmd/hg/main.go does.
+func (g gapsOrderGateway) VoidOrderPayment(ctx context.Context, orderID string) error {
+	_, err := g.svc.Void(ctx, orderID)
+	if errors.Is(err, payments.ErrNotFound) {
+		return nil
+	}
+	return err
 }
 
 func (g gapsOrderGateway) CreateOrderIntent(ctx context.Context, in orders.CreateIntentInput) (orders.CreateIntentResult, error) {
@@ -190,6 +201,9 @@ func TestConformance_Gaps_OrderLifecycle(t *testing.T) {
 	t.Cleanup(func() { writeCoverage(t, h) })
 
 	acct, addr := gapsSeedCustomerWithAddress(t, pool)
+	// The fixture restaurant's order screen checks in now: the order path
+	// refuses a restaurant that is not open (https://github.com/shaiknoorullah/hg-mono/issues/648).
+	testseed.OpenRestaurant(t, pool, "33333333-3333-4333-8333-333333333333")
 
 	// Seed the cart via the real addCartLine handler: one unit of the fixture
 	// restaurant's AVAILABLE menu item (5555…), which binds the cart to the

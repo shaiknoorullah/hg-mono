@@ -82,23 +82,10 @@ const alertKindIssuerStatus = "HALAL_ISSUER_STATUS_CHANGE"
 // through that pull request's generic template until it has one of its own.
 var issuerMessageChannels = []notify.Channel{notify.ChannelEmail, notify.ChannelInApp}
 
-// Enqueuer is the write side of the notification outbox (*notify.Enqueuer): it
-// writes the notification row and its delivery job in the caller's transaction.
-type Enqueuer interface {
-	Enqueue(ctx context.Context, tx pgx.Tx, n notify.New) (notify.EnqueueResult, error)
-}
-
 // errNotifierNotWired refuses a status change that has restaurant owners to tell
 // when the repository was built without the notification outbox: the change and
 // the message commit together or not at all.
-var errNotifierNotWired = errors.New("admin: issuing-body status change has owners to notify, but no notification outbox is wired (Repo.WithNotifier)")
-
-// WithNotifier gives the repository the notification outbox that status changes
-// of issuing bodies write to. cmd/hg/main.go wires notify.Client's Enqueuer.
-func (r *Repo) WithNotifier(e Enqueuer) *Repo {
-	r.notify = e
-	return r
-}
+var errNotifierNotWired = errors.New("admin: issuing-body status change has owners to notify, but no notification outbox is wired (Repo.WithNotifications)")
 
 // halalCurrent reports whether a halal display state vouches for a restaurant.
 // It is the catalog's rule, so a restaurant is listed exactly when a customer

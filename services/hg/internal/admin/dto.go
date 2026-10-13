@@ -1,5 +1,10 @@
 package admin
 
+import (
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/payments"
+)
+
 // Wire DTOs. Every shape here is the contract's schema verbatim
 // (contracts/openapi.yaml) with additionalProperties:false honoured by not
 // emitting fields the schema does not name. Money is never present in an admin
@@ -238,8 +243,9 @@ type restaurantApplication struct {
 	AddressPinWarning *string           `json:"address_pin_warning"`
 }
 
-// restaurantDecisionInput is the contract's RestaurantDecisionInput. No admin_id
-// is ever present: the decider is the authenticated principal.
+// restaurantDecisionInput is the contract's RestaurantDecisionInput: the union of
+// its three per-decision shapes, which validDecision tells apart by Decision. No
+// admin_id is ever present: the decider is the authenticated principal.
 type restaurantDecisionInput struct {
 	Decision        string   `json:"decision"`
 	ReasonCode      string   `json:"reason_code"`
@@ -280,7 +286,8 @@ type riderApplication struct {
 	Blockers         []string      `json:"blockers"`
 }
 
-// riderDecisionInput is the contract's RiderDecisionInput.
+// riderDecisionInput is the contract's RiderDecisionInput: the union of its three
+// per-decision shapes, which validDecision tells apart by Decision.
 type riderDecisionInput struct {
 	Decision        string   `json:"decision"`
 	ReasonCode      string   `json:"reason_code"`
@@ -310,15 +317,17 @@ type adminOrderSummary struct {
 
 // adminOrderLine is one line in the admin order view.
 type adminOrderLine struct {
-	LineNo         int     `json:"line_no"`
-	MenuItemID     string  `json:"menu_item_id"`
-	Name           string  `json:"name"`
-	VariantName    *string `json:"variant_name"`
-	Quantity       int     `json:"quantity"`
-	SpecialRequest *string `json:"special_request"`
-	UnitPriceCents int64   `json:"unit_price_cents"`
-	LineTotalCents int64   `json:"line_total_cents"`
-	Currency       string  `json:"currency"`
+	LineNo      int     `json:"line_no"`
+	MenuItemID  string  `json:"menu_item_id"`
+	Name        string  `json:"name"`
+	VariantName *string `json:"variant_name"`
+	// Variants is every chosen variant with its group (contract OrderLine).
+	Variants       []orders.LineVariantDTO `json:"variants"`
+	Quantity       int                     `json:"quantity"`
+	SpecialRequest *string                 `json:"special_request"`
+	UnitPriceCents int64                   `json:"unit_price_cents"`
+	LineTotalCents int64                   `json:"line_total_cents"`
+	Currency       string                  `json:"currency"`
 }
 
 // adminOrderMoney is the customer-visible money breakdown.
@@ -423,6 +432,15 @@ type adminOrderView struct {
 	Rider                any     `json:"rider"`
 	DispatchState        *string `json:"dispatch_state"`
 
+	// DeliveryCode is always null for support and admin: the delivery code is
+	// shown only to the customer, so nobody at HalalGoes can read one out to a
+	// rider, and a handover that cannot use its code is confirmed with
+	// overrideHandoverCode instead (contracts/openapi.yaml,
+	// OrderAdminView.delivery_code; security review on
+	// https://github.com/shaiknoorullah/hg-mono/issues/183). The type can only
+	// ever render null.
+	DeliveryCode alwaysNull `json:"delivery_code"`
+
 	// OrderAdminView additional optional fields.
 	DispatchHistory []adminDispatchHistoryEntry `json:"dispatch_history"`
 
@@ -432,6 +450,10 @@ type adminOrderView struct {
 	Payment       adminOrderPayment       `json:"payment"`
 	Refunds       []adminRefund           `json:"refunds"`
 	PiiRevealed   bool                    `json:"pii_revealed"`
+
+	// The order's money timeline and chargebacks (#172).
+	MoneyTimeline []payments.MoneyEventDTO `json:"money_timeline"`
+	Chargebacks   []payments.ChargebackDTO `json:"chargebacks"`
 
 	// LiveMapBox fields (admin-only widening of the customer-scoped OrderTracking
 	// shape): restaurant + destination coordinates and the rider's live position.
@@ -573,6 +595,23 @@ type menuItemInput struct {
 	SortOrder         *int     `json:"sort_order"`
 }
 
+// menuItemUpdateInput is the contract's MenuItemUpdateInput
+// (updateMenuItemOnBehalf): every field optional, so every field is a pointer
+// (or a nil slice) and an unsent field is told apart from a sent zero.
+type menuItemUpdateInput struct {
+	CategoryID        *string  `json:"category_id"`
+	Name              *string  `json:"name"`
+	Description       *string  `json:"description"`
+	IngredientsText   *string  `json:"ingredients_text"`
+	PriceCents        *int64   `json:"price_cents"`
+	DietaryTags       []string `json:"dietary_tags"`
+	AllergenTags      []string `json:"allergen_tags"`
+	AllergensDeclared *bool    `json:"allergens_declared"`
+	ImageObjectID     *string  `json:"image_object_id"`
+	PrepMinutes       *int     `json:"prep_minutes"`
+	SortOrder         *int     `json:"sort_order"`
+}
+
 // menuItemVersion is the contract's MenuItemVersion. The schema is
 // additionalProperties:false and names neither reviewed_by nor updated_at, so
 // neither is emitted; reviewed_by remains internal to the audit log only.
@@ -602,6 +641,35 @@ type menuDecisionInput struct {
 	Decision   string  `json:"decision"`
 	ReasonCode *string `json:"reason_code"`
 	ReviewNote *string `json:"review_note"`
+}
+
+// alwaysNull is a field that can only ever be rendered as JSON null. It holds
+// no value, so no code path can put a handover code in it.
+type alwaysNull struct{}
+
+// MarshalJSON renders null.
+func (alwaysNull) MarshalJSON() ([]byte, error) { return []byte("null"), nil }
+
+// handoverOverrideInput is the contract's HandoverOverrideInput.
+type handoverOverrideInput struct {
+	Handover string `json:"handover"`
+	Reason   string `json:"reason"`
+	CaseID   string `json:"case_id"`
+}
+
+// handoverOverrideView is the contract's HandoverOverride: the append-only
+// audit record overrideHandoverCode writes. It never contains either code.
+type handoverOverrideView struct {
+	ID                string `json:"id"`
+	OrderID           string `json:"order_id"`
+	Handover          string `json:"handover"`
+	Reason            string `json:"reason"`
+	CaseID            string `json:"case_id"`
+	ActorAccountID    string `json:"actor_account_id"`
+	ActorKind         string `json:"actor_kind"`
+	WrongCodeAttempts int    `json:"wrong_code_attempts"`
+	OrderState        string `json:"order_state"`
+	CreatedAt         string `json:"created_at"`
 }
 
 // cancelOrderAdminInput is the body for cancelOrderAdmin (contract:

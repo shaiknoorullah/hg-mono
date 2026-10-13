@@ -3,6 +3,7 @@ import * as Dialog from '@radix-ui/react-dialog';
 import { isApiError, type Schema } from '@hg/api-client';
 import { Button, Chip, Icon, IconButton, Input, Textarea } from '@hg/ui-web';
 import { api, unwrapOrThrow } from '../lib/apiHelpers';
+import { menuLockFromError, type MenuLockState } from './MenuLockedNotice';
 
 const DIETARY_TAGS: Exclude<Schema['DietaryTag'], 'HALAL_CERTIFIED'>[] = [
   'VEGETARIAN',
@@ -103,10 +104,13 @@ export function EditItemDialog({
   item,
   onClose,
   onSaved,
+  onLocked,
 }: {
   item: EditableMenuItem;
   onClose: () => void;
   onSaved: () => void;
+  /** A save refused with `403 MENU_LOCKED`: the page shows the locked-menu notice instead of an error. */
+  onLocked: (state: MenuLockState) => void;
 }) {
   const [name, setName] = useState(item.name);
   const [price, setPrice] = useState((Number(item.price_cents) / 100).toFixed(2));
@@ -145,6 +149,11 @@ export function EditItemDialog({
       );
       onSaved();
     } catch (e) {
+      const refused = menuLockFromError(e);
+      if (refused) {
+        onLocked(refused);
+        return;
+      }
       setError(isApiError(e) ? e.message : e instanceof Error ? e.message : 'Could not update this item.');
     } finally {
       setBusy(false);

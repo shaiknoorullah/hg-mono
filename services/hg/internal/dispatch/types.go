@@ -1,9 +1,11 @@
 package dispatch
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/riderview"
 )
 
 // Domain error codes this module raises. Each must exist in the contract's
@@ -23,9 +25,17 @@ const (
 	CodeGeofenceRequired        httpx.ErrorCode = "GEOFENCE_REQUIRED"
 	CodePodRequired             httpx.ErrorCode = "POD_REQUIRED"
 	CodePodMethodMismatch       httpx.ErrorCode = "POD_METHOD_MISMATCH"
-	CodeOtpIncorrect            httpx.ErrorCode = "OTP_INCORRECT"
-	CodeOtpLocked               httpx.ErrorCode = "OTP_LOCKED"
 	CodeStalePoint              httpx.ErrorCode = "STALE_POINT"
+
+	// The handover codes (contracts/README.md, "Neither code can be bypassed";
+	// https://github.com/shaiknoorullah/hg-mono/issues/310). A wrong code
+	// carries details.attempts_remaining; the fifth wrong code locks the code
+	// and the order goes to support. No error body ever carries a code.
+	CodePickupCodeRequired    httpx.ErrorCode = "PICKUP_CODE_REQUIRED"
+	CodePickupCodeIncorrect   httpx.ErrorCode = "PICKUP_CODE_INCORRECT"
+	CodePickupCodeLocked      httpx.ErrorCode = "PICKUP_CODE_LOCKED"
+	CodeDeliveryCodeIncorrect httpx.ErrorCode = "DELIVERY_CODE_INCORRECT"
+	CodeDeliveryCodeLocked    httpx.ErrorCode = "DELIVERY_CODE_LOCKED"
 )
 
 // Actions this module owns. P-05: constants live beside the module that owns the
@@ -52,8 +62,20 @@ const (
 	interWaveGap      = 2 * time.Second
 	locationFreshness = 90 * time.Second
 	geoArrivalRadiusM = 150
-	otpMaxFailures    = 5
 	candidateLimit    = 50
+
+	// emptyWaveHold is how long a wave that found nobody holds the search
+	// before the next, wider wave runs: the SEARCHING row of the dispatch
+	// deadline table, "+20 s, NEXT_WAVE — widen radius (3 → 6 → 10 km),
+	// re-offer" (docs/spec/01-platform.md, "P-15 — Deadlines and timeout
+	// actions"). Holding is what lets a rider who comes online meanwhile be
+	// found (https://github.com/shaiknoorullah/hg-mono/issues/294).
+	emptyWaveHold = 20 * time.Second
+	// escalationLease is how long a replica holds a due search it claimed to
+	// run the next wave: the dispatch row's lease_until, as in the runner
+	// mechanics of "P-15 — Deadlines and timeout actions" (docs/spec/01-platform.md).
+	// A replica that dies mid-wave lets the search go after this.
+	escalationLease = 30 * time.Second
 )
 
 // radiusLadderM is the widening search ladder in metres (D-13).
@@ -77,11 +99,23 @@ type OfferPickup struct {
 	Longitude      float64 `json:"longitude"`
 }
 
-// OfferDropoff is the pre-accept dropoff projection (street + neighbourhood only).
+// OfferDropoff is the pre-accept drop-off: the area's name (the address's
+// city column, passed through whole) and its point. The point is a
+// riderview.Area, which can only hold a point rounded to about a kilometre, so
+// the delivery address's exact point cannot reach a rider who has not
+// accepted.
 type OfferDropoff struct {
-	Area      string  `json:"area"`
-	Latitude  float64 `json:"latitude"`
-	Longitude float64 `json:"longitude"`
+	Area  string
+	Point riderview.Area
+}
+
+// MarshalJSON writes the contract's shape: {area, latitude, longitude}.
+func (d OfferDropoff) MarshalJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		Area      string  `json:"area"`
+		Latitude  float64 `json:"latitude"`
+		Longitude float64 `json:"longitude"`
+	}{Area: d.Area, Latitude: d.Point.Lat(), Longitude: d.Point.Lng()})
 }
 
 // DispatchOffer is the contract DispatchOffer (pre-accept projection, D-14).

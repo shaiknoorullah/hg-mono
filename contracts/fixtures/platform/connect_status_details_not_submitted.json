@@ -1,0 +1,36 @@
+{
+  "scenario": "connect_status_details_not_submitted",
+  "domain": "platform",
+  "schema": "ConnectStatus",
+  "describes": "The rider opened Stripe's form and left before finishing: `details_submitted: false` and Stripe's requirement ids in `currently_due`, verbatim. Requirement ids and `disabled_reason` are Stripe's own, never paraphrased.",
+  "operations": [
+    "getConnectStatus"
+  ],
+  "status": 200,
+  "tags": [
+    "platform",
+    "money",
+    "connect-state-matrix",
+    "error-path"
+  ],
+  "payload": {
+    "stripe_account_id": "acct_1QkR7mE8xVn2LbQ1",
+    "charges_enabled": false,
+    "payouts_enabled": false,
+    "details_submitted": false,
+    "requirements": {
+      "currently_due": [
+        "external_account",
+        "individual.dob.day",
+        "individual.id_number",
+        "tos_acceptance.date"
+      ],
+      "eventually_due": [],
+      "past_due": [],
+      "disabled_reason": "requirements.past_due",
+      "deadline": null
+    },
+    "bank_last4": null,
+    "payout_interval": "WEEKLY"
+  }
+}

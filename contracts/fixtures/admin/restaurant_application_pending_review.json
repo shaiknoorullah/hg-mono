@@ -5,8 +5,7 @@
   "describes": "A complete application sitting in the queue: five documents, a halal certificate awaiting the seven checks, and no decision yet.",
   "operations": [
     "getRestaurantApplication",
-    "takeNextRestaurantApplication",
-    "decideRestaurantApplication"
+    "takeNextRestaurantApplication"
   ],
   "status": 200,
   "tags": [

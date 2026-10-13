@@ -8,6 +8,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/handover"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders/machine"
 )
 
@@ -58,11 +59,29 @@ func (s *Store) Transition(ctx context.Context, req TransitionRequest, effects .
 	})
 }
 
+// TransitionInTx is Transition inside a transaction the caller already holds.
+// It is for a caller that must lock its own rows first and commit its own
+// records with the state change: the restaurant's accept, reject and
+// mark-ready lock the order under the restaurant's ownership predicate, then
+// move it here (https://github.com/shaiknoorullah/hg-mono/issues/337); the
+// support override of a handover code locks the assignment, then moves the
+// order here, then writes its audit record (contracts/openapi.yaml,
+// overrideHandoverCode; https://github.com/shaiknoorullah/hg-mono/issues/310).
+// It is the same single function as Transition, not a second writer of
+// order.state (docs/spec/01-platform.md, "P-14 — Order lifecycle states and
+// transitions"). The caller commits or rolls back tx.
+func (s *Store) TransitionInTx(ctx context.Context, tx pgx.Tx, req TransitionRequest, effects ...func(pgx.Tx) error) error {
+	return s.transitionTx(ctx, tx, req, effects...)
+}
+
 func (s *Store) transitionTx(ctx context.Context, tx pgx.Tx, req TransitionRequest, effects ...func(pgx.Tx) error) error {
-	var fromStr string
+	var fromStr, fulfilment string
 	var acceptedAt *time.Time
-	err := tx.QueryRow(ctx, `SELECT state::text, accepted_at FROM "order" WHERE id = $1 FOR UPDATE`,
-		req.OrderID).Scan(&fromStr, &acceptedAt)
+	var instructions []string
+	err := tx.QueryRow(ctx, `
+		SELECT state::text, accepted_at, fulfilment::text, delivery_instructions::text[]
+		  FROM "order" WHERE id = $1 FOR UPDATE`,
+		req.OrderID).Scan(&fromStr, &acceptedAt, &fulfilment, &instructions)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return ErrOrderNotFound
 	}
@@ -131,19 +150,76 @@ func (s *Store) transitionTx(ctx context.Context, tx pgx.Tx, req TransitionReque
 		return fmt.Errorf("insert transition: %w", err)
 	}
 
-	// Emit a realtime outbox event in the same transaction so the customer's
-	// order channel receives a live update. The emitter is optional (nil when
-	// the realtime module is not wired, e.g. in unit tests).
-	if s.emitter != nil {
-		if err := s.emitter.EmitOrderTransition(ctx, tx, req.OrderID, string(req.To)); err != nil {
-			return fmt.Errorf("emit order transition: %w", err)
+	if err := handoverCodesTx(ctx, tx, req.OrderID, req.To, fulfilment, instructions); err != nil {
+		return err
+	}
+
+	// The rider who delivered is paid in the same transaction as the
+	// delivery, and only by the rider's own DELIVERED transition: no other
+	// actor's state change writes earnings, and a failed write rolls the
+	// delivery back (https://github.com/shaiknoorullah/hg-mono/issues/306).
+	// DELIVERED is reachable once per order, so this runs once.
+	if req.To == machine.StateDelivered && req.Actor == machine.ActorRider && s.riderEarnings != nil {
+		if err := s.riderEarnings.CreditDeliveryTx(ctx, tx, req.OrderID, req.ActorAccountID); err != nil {
+			return fmt.Errorf("rider earnings: %w", err)
 		}
+	}
+
+	// A cancelled order needs no rider: the dispatch half runs here, in the
+	// cancel's transaction, whoever cancelled it.
+	if req.To == machine.StateCancelled && s.orderCancelled != nil {
+		if err := s.orderCancelled.OrderCancelledTx(ctx, tx, req.OrderID); err != nil {
+			return fmt.Errorf("release the cancelled order's rider: %w", err)
+		}
+	}
+
+	// Emit a realtime outbox event in the same transaction so the customer's
+	// tracking, the restaurant's queue and the rider see the change, in the
+	// contract's shapes, whoever called this function (events.go; issue #247).
+	// The notifier behind s.emitter is optional (nil in unit tests).
+	if err := s.emitTransition(ctx, tx, transitionFacts{
+		OrderID: req.OrderID, From: &fromCopy, To: req.To, Actor: req.Actor,
+		ActorAccountID: req.ActorAccountID, PrepEtaMinutes: req.PrepEtaMinutes,
+	}); err != nil {
+		return fmt.Errorf("emit order transition: %w", err)
 	}
 
 	for _, eff := range effects {
 		if err := eff(tx); err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+// handoverCodesTx mints and retires the two handover codes as the order moves,
+// inside the transition's own transaction, so every path through this one
+// function gets them right (contracts/README.md, "Neither code can be
+// bypassed"; https://github.com/shaiknoorullah/hg-mono/issues/310):
+//
+//   - PREPARING (the restaurant accepted): mint the pickup code the kitchen
+//     reads to the rider, for an order a rider collects.
+//   - PICKED_UP: the pickup code is spent, so delete it; mint the delivery code
+//     the customer reads to the rider, for a met handover.
+//   - DELIVERED, and every terminal state: delete whatever code is left.
+//
+// The restaurant's accept moves the order to PREPARING through TransitionInTx,
+// so this hook mints its pickup code too; accept mints nothing of its own.
+func handoverCodesTx(ctx context.Context, tx pgx.Tx, orderID string, to machine.State, fulfilment string, instructions []string) error {
+	switch {
+	case to == machine.StatePreparing:
+		if fulfilment == "DELIVERY" {
+			return handover.MintTx(ctx, tx, orderID, handover.Pickup)
+		}
+	case to == machine.StatePickedUp:
+		if err := handover.RetireTx(ctx, tx, orderID, handover.Pickup); err != nil {
+			return err
+		}
+		if handover.MetHandover(instructions) {
+			return handover.MintTx(ctx, tx, orderID, handover.Delivery)
+		}
+	case to == machine.StateDelivered || machine.IsTerminal(to):
+		return handover.RetireTx(ctx, tx, orderID, handover.Pickup, handover.Delivery)
 	}
 	return nil
 }

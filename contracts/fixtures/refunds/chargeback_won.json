@@ -1,0 +1,31 @@
+{
+  "scenario": "chargeback_won",
+  "domain": "refunds",
+  "schema": "Chargeback",
+  "describes": "The bank decided for us; the money stays.",
+  "operations": [
+    "getChargeback"
+  ],
+  "status": 200,
+  "tags": [
+    "admin",
+    "chargeback-state-matrix"
+  ],
+  "payload": {
+    "id": "99c8506e-c3f5-430e-acca-ce3d8f4a24b3",
+    "order_id": "d1435528-5730-4b9a-a635-98014dc0201a",
+    "order_code": "HG-COED-9X",
+    "stripe_dispute_id": "dp_1Qkwon",
+    "amount_cents": 4696,
+    "currency": "CAD",
+    "reason": "product_not_received",
+    "status": "WON",
+    "outcome": "WON",
+    "evidence_due_at": "2026-08-15T18:42:11.412Z",
+    "deadline_at": null,
+    "evidence_submitted_at": "2026-08-09T18:42:11.412Z",
+    "opened_at": "2026-08-08T18:42:11.412Z",
+    "updated_at": "2026-08-10T17:42:11.412Z",
+    "evidence_notes": []
+  }
+}

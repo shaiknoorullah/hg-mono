@@ -36,6 +36,12 @@ DEFAULT_SCENARIO: dict[str, str] = {
     "listRefunds": "refund_list_empty",
     "createRefund": "refund_requested",
     "issueRefund": "refund_goodwill_admin",
+    "listRefundsAdmin": "admin_refund_queue",
+    "approveRefund": "admin_refund_authorised",
+    "declineRefund": "admin_refund_declined",
+    "listChargebacks": "chargeback_list",
+    "getChargeback": "chargeback_needs_response",
+    "addChargebackEvidenceNote": "chargeback_evidence_note_added",
     "getCurrentOffer": "offer_pending",
     "acceptOffer": "assignment_assigned",
     "getAssignment": "assignment_en_route_to_dropoff",
@@ -45,9 +51,13 @@ DEFAULT_SCENARIO: dict[str, str] = {
     "getRiderDashboard": "rider_dashboard_active",
     "getRiderEarningsSummary": "earnings_summary_week",
     "listRiderEarningEntries": "earning_entries_mixed",
-    "listRiderPayouts": "payout_paid",
+    # Was `payout_paid`, a single Payout served for a list (issue #708).
+    "listRiderPayouts": "payout_list_draft_paid",
     "listRestaurantPayouts": "restaurant_payout_history",
     "getRiderPayout": "payout_detail_paid",
+    "createPayoutRun": "payout_run_queued",
+    "listPayoutRuns": "payout_run_succeeded",
+    "getPayoutRun": "payout_run_detail_every_outcome",
     "getRestaurantOnboardingStatus": "restaurant_onboarding_active",
     "getRiderOnboardingStatus": "rider_onboarding_active",
     "submitRestaurantDocuments": "restaurant_onboarding_documents_review",
@@ -59,8 +69,10 @@ DEFAULT_SCENARIO: dict[str, str] = {
     "reviewRestaurantDocument": "document_approved",
     "reviewRiderDocument": "document_approved",
     "getHalalCertificate": "halal_certificate_valid",
-    "decideHalalCertificate": "halal_certificate_valid",
-    "recordHalalChecks": "halal_certificate_valid",
+    # `halal_certificate_valid` is not registered for it; this is what the mock served.
+    "decideHalalCertificate": "halal_certificate_status_approved",
+    # `halal_certificate_valid` is not registered for it; this is what the mock served.
+    "recordHalalChecks": "halal_certificate_status_approved",
     "transcribeHalalCertificate": "halal_certificate_status_pending",
     "listHalalIssuingBodies": "halal_issuing_body_accepted",
     "getRestaurantAvailability": "restaurant_open_state_open",
@@ -80,8 +92,12 @@ DEFAULT_SCENARIO: dict[str, str] = {
     "getHomeFeed": "feed_sections",
     "listRestaurantApplications": "restaurant_application_queue",
     "takeNextRestaurantApplication": "restaurant_application_pending_review",
+    "getRestaurantApplication": "restaurant_application_pending_review",
+    "decideRestaurantApplication": "restaurant_application_approved",
     "listRiderApplications": "rider_application_queue",
     "takeNextRiderApplication": "rider_application_pending_review",
+    "getRiderApplication": "rider_application_pending_review",
+    "decideRiderApplication": "rider_application_approved",
     "listMenuReviewQueue": "menu_review_queue",
     "decideMenuVersion": "menu_version_approved",
     "createMenuItem": "menu_item_created_pending_review",
@@ -91,6 +107,21 @@ DEFAULT_SCENARIO: dict[str, str] = {
     "changePassword": "session_grant_password_changed",
     "getConnectStatus": "connect_status_complete",
     "confirmUpload": "stored_object_ready",
+    # Batch 2 added certificate links that would otherwise win on name order.
+    "createCertificateViewUrl": "presigned_download",
+    "getOwnMenu": "owned_menu_with_pending_version",
+    "getRestaurantHours": "restaurant_hours_standard",
+    "setRestaurantHours": "restaurant_hours_standard",
+    "login": "session_grant_customer",
+    "refreshSession": "session_grant_customer",
+    # The healthy answer. Without this the three states tie on weight and the name
+    # tie-break picks FAILED, so every admin page in `pnpm mock` showed the sticky
+    # "sign-in codes cannot be sent" banner.
+    "getSmsSenderStatus": "sms_sender_passed",
+    # Staff principals and the restaurant profile matrix share these operations; the
+    # plain customer and LIVE + CERTIFIED shapes stay the defaults.
+    "getCurrentPrincipal": "principal_customer",
+    "getRestaurantProfile": "restaurant_profile",
 }
 
 

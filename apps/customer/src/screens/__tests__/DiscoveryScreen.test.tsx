@@ -31,6 +31,10 @@ function neverResolves(): Promise<Response> {
 // the (singleton, already-imported) client holds.
 const fetchSpy = jest.spyOn(globalThis, 'fetch');
 
+afterEach(() => {
+  jest.useRealTimers();
+});
+
 afterAll(() => {
   fetchSpy.mockRestore();
 });
@@ -56,6 +60,14 @@ function renderDiscovery() {
 
 describe('DiscoveryScreen — loading, empty, error', () => {
   it('shows loading skeletons while the fetch is in flight', async () => {
+    // The fetch never resolves, so the skeletons' shimmer (an endless JS-driven `Animated.loop`)
+    // is still running when the test ends. On real timers its next frame fired in the gap before
+    // the library's auto-cleanup unmounted the screen, outside act(), and React logged one
+    // "not wrapped in act(...)" warning per animated block (issue #136). On fake timers a frame
+    // runs only when the test advances the clock, which this one never needs to, so the loop
+    // stays still until cleanup stops it. Same approach as
+    // packages/ui-native/src/primitives/__tests__/Toast.test.tsx.
+    jest.useFakeTimers();
     fetchSpy.mockImplementation(neverResolves);
 
     renderDiscovery();
