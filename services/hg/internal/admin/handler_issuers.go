@@ -104,7 +104,17 @@ func (h *Handler) ProposeHalalIssuingBody(w http.ResponseWriter, r *http.Request
 }
 
 // SetHalalIssuingBodyStatus implements setHalalIssuingBodyStatus (super-admin).
+// Accepting or withdrawing a body widens or narrows what the platform calls
+// halal and lists or delists every restaurant the body vouches for, so beyond
+// the role matrix (only SUPER_ADMIN holds halal_issuing_body.set_status) the
+// session must have been signed in with an authenticator code.
+// Issue: https://github.com/shaiknoorullah/hg-mono/issues/346
 func (h *Handler) SetHalalIssuingBodyStatus(w http.ResponseWriter, r *http.Request) {
+	if !signedInWithTwoStep(httpx.PrincipalFrom(r.Context())) {
+		httpx.Fail(w, r, http.StatusForbidden, CodeMFARequired,
+			"Changing a certifying body's status needs a session signed in with an authenticator code.", nil)
+		return
+	}
 	id := chi.URLParam(r, "bodyId")
 	var in halalIssuingBodyStatusInput
 	if !decodeJSON(w, r, &in) {
