@@ -1,0 +1,29 @@
+{
+  "scenario": "error_field_not_applicable",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`422` · `FIELD_NOT_APPLICABLE`. A bicycle or on-foot rider sent a plate. The form hides the field for those types.",
+  "operations": [
+    "submitRiderVehicle"
+  ],
+  "status": 422,
+  "tags": [
+    "error-envelope",
+    "error-path",
+    "rider"
+  ],
+  "payload": {
+    "error": {
+      "code": "FIELD_NOT_APPLICABLE",
+      "message": "licence_plate is not applicable for this vehicle type.",
+      "request_id": "JR0TS0A42K247BMCNJCVYEAFP3",
+      "details": [
+        {
+          "field": "licence_plate",
+          "code": "not_applicable",
+          "message": "licence_plate must be absent for BICYCLE and ON_FOOT"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "scenario": "restaurant_profile_halal_missing",
+  "domain": "onboarding",
+  "schema": "RestaurantProfile",
+  "describes": "`getRestaurantProfile` with **no `halal` object** (`services/hg` omits it when there is no certificate). Render **no badge**, never an optimistic one.",
+  "operations": [
+    "getRestaurantProfile"
+  ],
+  "status": 200,
+  "tags": [
+    "restaurant",
+    "halal-state-matrix",
+    "edge"
+  ],
+  "payload": {
+    "id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+    "legal_name": "Karachi Kitchen Inc.",
+    "display_name": "Karachi Kitchen",
+    "description": "Karachi-style biryani, nihari and charcoal grill on the Danforth.",
+    "owner_first_name": "Hamza",
+    "owner_last_name": "Khan",
+    "phone_e164": "+14165555976",
+    "public_phone_e164": "+14165555892",
+    "gst_hst_number": "812345678RT0001",
+    "address": {
+      "line1": "1245 Danforth Avenue",
+      "line2": null,
+      "city": "Toronto",
+      "province": "ON",
+      "postal_code": "M4J 1M8",
+      "latitude": 43.6817,
+      "longitude": -79.3403
+    },
+    "timezone": "America/Toronto",
+    "cuisine_ids": [
+      "cd6fe9ce-5679-4835-a405-8d3bb9a1959a",
+      "57610de6-476b-4f3f-afa2-96fb7df6031b"
+    ],
+    "avg_prep_minutes": 20,
+    "delivery_radius_m": 7000,
+    "account_state": "LIVE",
+    "onboarding_state": "ACTIVE",
+    "commission_rate_bps": 0
+  }
+}

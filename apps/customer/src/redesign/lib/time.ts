@@ -93,3 +93,43 @@ export function formatShortDate(value: DateLike): string {
 export function timeAfter(base: DateLike, seconds: number): Date {
   return new Date(toDate(base).getTime() + seconds * 1000);
 }
+
+/* WP4 (restaurant page): wall-clock times and calendar days. */
+
+/**
+ * A contract wall-clock time ("13:00", `TradingInterval.opens_at`) as "1:00 pm". It is a time of
+ * day in the restaurant's own zone, not an instant, so it is formatted as written, never shifted.
+ */
+export function formatWallClock(hhmm: string): string {
+  const m = /^(\d{1,2}):(\d{2})$/.exec(hhmm.trim());
+  if (!m) return hhmm;
+  const h = Number(m[1]);
+  const period = h >= 12 && h < 24 ? 'pm' : 'am';
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return `${h12}:${m[2]} ${period}`;
+}
+
+/** "11:00 am–10:00 pm": a wall-clock range, both ends with their period. The dash is an en dash. */
+export function formatWallClockRange(from: string, to: string): string {
+  return `${formatWallClock(from)}–${formatWallClock(to)}`;
+}
+
+const WEEKDAY_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+/** The weekday (0 = Sunday) of an instant in a zone, for "Monday (today)". */
+export function weekdayIn(value: DateLike, timeZone: string = APP_TIME_ZONE): number {
+  const name = new Intl.DateTimeFormat('en-US', { timeZone, weekday: 'short' }).format(toDate(value));
+  return WEEKDAY_SHORT.indexOf(name);
+}
+
+/** Whole calendar days from `from` to `to` in a zone: 0 the same day, 1 tomorrow. */
+export function calendarDaysBetween(from: DateLike, to: DateLike, timeZone: string = APP_TIME_ZONE): number {
+  const ymd = new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' });
+  const day = (v: DateLike) => Date.parse(`${ymd.format(toDate(v))}T00:00:00Z`);
+  return Math.round((day(to) - day(from)) / 86_400_000);
+}
+
+/** "Friday": the weekday name of an instant in a zone. */
+export function formatWeekday(value: DateLike, timeZone: string = APP_TIME_ZONE): string {
+  return new Intl.DateTimeFormat('en-US', { timeZone, weekday: 'long' }).format(toDate(value));
+}

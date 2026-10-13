@@ -18,13 +18,17 @@ func TestOTPCannotCarryAdmin(t *testing.T) {
 	}
 }
 
-func TestPwdCannotCarryAdminWithoutTOTP(t *testing.T) {
-	grants := []RoleGrant{{Role: "ADMIN", ScopeType: "GLOBAL"}}
-	if got := rolesForAMR("pwd", grants); len(got) != 0 {
-		t.Fatalf("pwd session carried %+v, want none (admin needs pwd+totp)", got)
-	}
-	if got := rolesForAMR("pwd+totp", grants); len(got) != 1 {
-		t.Fatalf("pwd+totp session carried %+v, want ADMIN", got)
+// Two-step sign-in is opt-in for staff (docs/decisions/README.md, "Two-step
+// sign-in is opt-in"): a password session carries every staff role, and so does
+// pwd+totp. Money moves check for pwd+totp themselves (payments/staff.go).
+func TestPwdCarriesStaffRoles(t *testing.T) {
+	for _, role := range []string{"SUPPORT_AGENT", "ADMIN", "SUPER_ADMIN"} {
+		grants := []RoleGrant{{Role: role, ScopeType: "GLOBAL"}}
+		for _, amr := range []string{"pwd", "pwd+totp"} {
+			if got := rolesForAMR(amr, grants); len(got) != 1 {
+				t.Errorf("%s session carried %+v, want %s", amr, got, role)
+			}
+		}
 	}
 }
 
@@ -70,21 +74,5 @@ func TestRefreshTTLByRoleClass(t *testing.T) {
 			t.Errorf("refreshTTL(%v) = %v idle, %v absolute; want %v, %v",
 				c.roles, idle, absolute, c.idle, c.absolute)
 		}
-	}
-}
-
-// TestSupportAgentNeedsTOTP: TOTP is required for support agents as for admins
-// (docs/spec/01-platform.md "P-01 — Account model"). A password-only login of a
-// support agent is refused, and a pwd session cannot carry the role.
-func TestSupportAgentNeedsTOTP(t *testing.T) {
-	grants := []RoleGrant{{Role: "SUPPORT_AGENT", ScopeType: "GLOBAL"}}
-	if !requiresTOTP(grants) {
-		t.Fatal("requiresTOTP(SUPPORT_AGENT) = false, want true")
-	}
-	if got := rolesForAMR("pwd", grants); len(got) != 0 {
-		t.Fatalf("pwd session carried %+v, want none (support needs pwd+totp)", got)
-	}
-	if got := rolesForAMR("pwd+totp", grants); len(got) != 1 {
-		t.Fatalf("pwd+totp session carried %+v, want SUPPORT_AGENT", got)
 	}
 }
