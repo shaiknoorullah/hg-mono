@@ -261,11 +261,36 @@ def customer_order(state: str, *, tip_cents: int = 700, label: str | None = None
         }.get(state),
         "reject_reason": "ITEM_UNAVAILABLE" if state == "REJECTED" else None,
         "eta_at": _eta(state),
+        "delivery_code": None,
         "can_cancel": can_cancel,
         **stamps,
     }
     out.update(over)
+    if "delivery_code" not in over:
+        out["delivery_code"] = delivery_code(out["state"], out["delivery_instructions"])
     return out
+
+
+# The 4-digit code the customer reads to the rider at a met handover (round-2 decisions,
+# "Orders and delivery":
+# https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#orders-and-delivery).
+# Shown only while the order is out for delivery and the instruction asks the rider to meet
+# the customer; an unattended drop is proved with a photo, so it shows no code.
+DELIVERY_CODE = "4827"
+MET_HANDOVER = {"MEET_AT_DOOR", "MEET_IN_LOBBY"}
+OUT_FOR_DELIVERY = {"PICKED_UP", "ARRIVED"}
+
+
+def delivery_code(state: str, instructions: list[str]) -> str | None:
+    if state in OUT_FOR_DELIVERY and MET_HANDOVER.intersection(instructions):
+        return DELIVERY_CODE
+    return None
+
+
+# The 4-digit code the kitchen reads to the rider at the counter (same decision). The
+# restaurant sees it from acceptance until the rider has picked up; never before
+# acceptance, never after pickup, and never on an order the customer collects.
+PICKUP_CODE = "3051"
 
 
 def _order_payment(order_state: str, priced: dict, **over: Any) -> dict:
@@ -299,6 +324,86 @@ def _order_payment(order_state: str, priced: dict, **over: Any) -> dict:
     return out
 
 
+def _money_event(kind: str, at: str, amount: int | None, actor_kind: str, *, actor: str | None = None,
+                 refund_id: str | None = None, chargeback_id: str | None = None, reason: str | None = None) -> dict:
+    return {
+        "kind": kind,
+        "at": at,
+        "amount_cents": amount,
+        "currency": "CAD",
+        "actor_kind": actor_kind,
+        "actor_account_id": actor,
+        "refund_id": refund_id,
+        "chargeback_id": chargeback_id,
+        "reason": reason,
+    }
+
+
+def _money_timeline(payment: dict, extra: list[dict] | None = None) -> list[dict]:
+    """The admin view's money timeline: the payment's steps, then whatever the scenario adds."""
+    events = []
+    if payment.get("authorized_at"):
+        events.append(_money_event("PAYMENT_AUTHORISED", payment["authorized_at"], payment["amount_authorized_cents"], "SYSTEM"))
+    if payment.get("captured_at"):
+        events.append(_money_event("PAYMENT_CAPTURED", payment["captured_at"], payment["amount_captured_cents"], "SYSTEM"))
+    if payment["state"] == "CANCELED" and payment["amount_authorized_cents"]:
+        events.append(_money_event("PAYMENT_VOIDED", ts(-30 * MINUTE), payment["amount_authorized_cents"], "SYSTEM"))
+    return events + (extra or [])
+
+
+SUPPORT_AGENT = uuid_for("account:support:yusuf")
+ADMIN_STAFF = uuid_for("account:admin:amina")
+CUSTOMER = uuid_for("account:customer:ayesha")
+
+# Stripe's dispute statuses as the contract sends them; the closed ones end a chargeback.
+CHARGEBACK_STATUSES = {
+    "WARNING_NEEDS_RESPONSE": "An early warning from the bank (an inquiry); it may become a dispute.",
+    "WARNING_UNDER_REVIEW": "Evidence was sent for an inquiry; the bank is reviewing it.",
+    "WARNING_CLOSED": "The inquiry closed without becoming a dispute.",
+    "NEEDS_RESPONSE": "A dispute waiting for our evidence, on the clock of its deadline.",
+    "UNDER_REVIEW": "Evidence was sent; the bank is deciding.",
+    "WON": "The bank decided for us; the money stays.",
+    "LOST": "The bank decided for the customer; Stripe has taken the money back.",
+    "PREVENTED": "Stopped before it became a dispute.",
+    "CHARGE_REFUNDED": "Closed because the charge was refunded.",
+}
+CHARGEBACK_CLOSED = {"WARNING_CLOSED", "WON", "LOST", "PREVENTED", "CHARGE_REFUNDED"}
+
+
+def chargeback(name: str, status: str, *, order_state: str = "COMPLETED", notes: int = 0,
+               reason: str = "product_not_received", amount: int = 4696) -> dict:
+    closed = status in CHARGEBACK_CLOSED
+    cb_id = uuid_for(f"chargeback:{name}")
+    return {
+        "id": cb_id,
+        "order_id": uuid_for(f"order:{order_state.lower()}"),
+        "order_code": customer_order(order_state)["code"],
+        "stripe_dispute_id": f"dp_1Qk{name.replace('-', '').replace('_', '')[:12]}",
+        "amount_cents": amount,
+        "currency": "CAD",
+        "reason": reason,
+        "status": status,
+        "outcome": status if closed else None,
+        "evidence_due_at": ts(5 * DAY),
+        "deadline_at": None if closed else ts(5 * DAY),
+        "evidence_submitted_at": ts(-1 * DAY) if status in ("UNDER_REVIEW", "WARNING_UNDER_REVIEW", "WON", "LOST") else None,
+        "opened_at": ts(-2 * DAY),
+        "updated_at": ts(-1 * HOUR),
+        "evidence_notes": [
+            {
+                "id": uuid_for(f"chargeback-note:{name}:{i}"),
+                "body": [
+                    "Proof of delivery photo at the front door, 19:42, matches the address on the order.",
+                    "Customer messaged support at 19:50 to thank the rider; transcript attached to the case.",
+                ][i % 2],
+                "author_account_id": SUPPORT_AGENT,
+                "created_at": ts(-(2 * DAY) + (i + 1) * HOUR),
+            }
+            for i in range(notes)
+        ],
+    }
+
+
 def build(reg, synth) -> None:
     _customer_orders(reg)
     _order_lists(reg)
@@ -308,6 +413,8 @@ def build(reg, synth) -> None:
     _receipts(reg)
     _payments(reg, synth)
     _refunds(reg, synth)
+    _refund_review(reg)
+    _chargebacks(reg)
     _ratings(reg, synth)
 
 
@@ -380,6 +487,63 @@ def _customer_orders(reg) -> None:
         ),
         operations=["getOrder"],
         tags=["edge"],
+    )
+
+    # The delivery code across its states (round-2 decisions, "Orders and delivery":
+    # https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#orders-and-delivery).
+    # The state-matrix fixtures above are unattended drops, so they carry no code.
+    met = dict(
+        delivery_instructions=["MEET_AT_DOOR"],
+        special_instructions="Buzz 1204 and I will come down.",
+    )
+    reg.add(
+        "order_picked_up_meet_at_door",
+        "orders",
+        "OrderCustomerView",
+        "Out for delivery to a **met handover** (`MEET_AT_DOOR`): `delivery_code` is set. The "
+        "customer reads these 4 digits to the rider at the door; the rider is never shown them.",
+        customer_order("PICKED_UP", label="meet-at-door-picked-up", **met),
+        operations=["getOrder", "getActiveOrder"],
+        tags=["delivery-code", "edge"],
+    )
+    reg.add(
+        "order_arrived_meet_in_lobby",
+        "orders",
+        "OrderCustomerView",
+        "The rider is in the lobby (`MEET_IN_LOBBY`) and `delivery_code` is set: the screen "
+        "leads with the code. The same moment sends `order.rider_arrived` and a push that "
+        "say only \"Your rider is here\"; this authenticated view is where the app reads the "
+        "code, because no push or event carries it.",
+        customer_order(
+            "ARRIVED",
+            label="meet-in-lobby",
+            delivery_instructions=["MEET_IN_LOBBY"],
+            special_instructions="Lobby of the east tower; I will be at the front desk.",
+        ),
+        operations=["getOrder", "getActiveOrder"],
+        tags=["delivery-code", "edge"],
+    )
+    reg.add(
+        "order_arrived_delivery_code_locked",
+        "orders",
+        "OrderCustomerView",
+        "A met handover where five wrong codes have **locked** the delivery code: "
+        "`delivery_code` is null, so the screen stops asking the customer to read it out. "
+        "The order is now with support, who confirm the handover with "
+        "`overrideHandoverCode`; the rider has no fallback of their own.",
+        customer_order("ARRIVED", label="delivery-code-locked", delivery_code=None, **met),
+        operations=["getOrder", "getActiveOrder"],
+        tags=["delivery-code", "edge", "error-path"],
+    )
+    reg.add(
+        "order_delivered_meet_at_door",
+        "orders",
+        "OrderCustomerView",
+        "The met handover is done: `delivery_code` is null again once the order is "
+        "`DELIVERED`, so an old code is never left on screen.",
+        customer_order("DELIVERED", label="meet-at-door-delivered", **met),
+        operations=["getOrder"],
+        tags=["delivery-code", "edge"],
     )
 
     reg.add(
@@ -475,6 +639,8 @@ def _restaurant_orders(reg, synth) -> None:
                 if base["rider"]
                 else None
             ),
+            # From acceptance until the rider has picked up; the rider is never sent it.
+            "pickup_code": PICKUP_CODE if state in ("PREPARING", "READY_FOR_PICKUP") else None,
             "elapsed_seconds": 100 if state == "RESTAURANT_PENDING" else 1920,
             "is_late": state == "PREPARING",
             "placed_at": base["placed_at"],
@@ -486,11 +652,15 @@ def _restaurant_orders(reg, synth) -> None:
 
     for state, note in [
         ("RESTAURANT_PENDING", "The incoming-order card with 80 s left on the 180 s window. "
-                               "**No delivery address yet** — §5 withholds it until acceptance."),
-        ("PREPARING", "Accepted and overdue (`is_late: true`). The address is now present."),
-        ("READY_FOR_PICKUP", "On the pass, rider assigned with an ETA to the restaurant."),
-        ("PICKED_UP", "Collected. The tablet's job is done."),
-        ("REJECTED", "Rejected by the kitchen for ITEM_UNAVAILABLE."),
+                               "**No delivery address and no pickup code yet** — both are "
+                               "withheld until acceptance."),
+        ("PREPARING", "Accepted and overdue (`is_late: true`). The address is now present, and "
+                      "so is the 4-digit `pickup_code` the kitchen will read to the rider."),
+        ("READY_FOR_PICKUP", "On the pass, rider assigned with an ETA to the restaurant. The "
+                             "screen shows `pickup_code` large, for the kitchen to read out."),
+        ("PICKED_UP", "Collected: the rider typed the right pickup code, so `pickup_code` is "
+                      "null again. The tablet's job is done."),
+        ("REJECTED", "Rejected by the kitchen for ITEM_UNAVAILABLE. Never a pickup code."),
     ]:
         reg.add(
             f"restaurant_order_{state.lower()}",
@@ -508,6 +678,18 @@ def _restaurant_orders(reg, synth) -> None:
             ],
             tags=["restaurant", "order-state-matrix"],
         )
+
+    reg.add(
+        "restaurant_order_pickup_code_locked",
+        "orders",
+        "OrderRestaurantView",
+        "On the pass, but five wrong pickup codes have **locked** the code: `pickup_code` is "
+        "null, so the screen stops showing it, and the order is with HalalGoes support, who "
+        "confirm the pickup with `overrideHandoverCode` after checking with the kitchen.",
+        restaurant_order("READY_FOR_PICKUP", pickup_code=None),
+        operations=["getRestaurantOrder", "listRestaurantOrders"],
+        tags=["restaurant", "edge", "error-path"],
+    )
 
     reg.add(
         "restaurant_order_queue_empty",
@@ -546,10 +728,10 @@ def _restaurant_orders(reg, synth) -> None:
 
 
 def _admin_orders(reg, synth) -> None:
-    def admin_order(state: str, **over: Any) -> dict:
+    def admin_order(state: str, *, base_over: dict | None = None, **over: Any) -> dict:
         lines = standard_quote_lines()
         priced = price_quote(lines, tip_cents=700)
-        base = customer_order(state)
+        base = customer_order(state, **(base_over or {}))
         ledger = [
             {
                 **synth.make("LedgerEntry", f"ledger-{state}-{i}"),
@@ -567,6 +749,10 @@ def _admin_orders(reg, synth) -> None:
                 ]
             )
         ]
+        # The support projection never carries the customer's delivery code: it is always
+        # null, so nobody at HalalGoes can read a code out to a rider (security review on
+        # #183, https://github.com/shaiknoorullah/hg-mono/issues/183).
+        base["delivery_code"] = None
         out = {
             **base,
             "timeline": _timeline(state),
@@ -581,7 +767,9 @@ def _admin_orders(reg, synth) -> None:
             "refunds": [],
             "internal_money": internal_money(priced, ledger_entries=ledger),
             "pii_revealed": False,
+            "chargebacks": [],
         }
+        out["money_timeline"] = _money_timeline(out["payment"])
         out.update(over)
         return out
 
@@ -616,13 +804,28 @@ def _admin_orders(reg, synth) -> None:
             "failure_message": None,
         }
     ]
+    disputed_cb = chargeback("disputed", "NEEDS_RESPONSE", order_state="DISPUTED", notes=1, amount=1695)
+    disputed_cb["opened_at"] = ts(-8 * MINUTE)
+    disputed_cb["evidence_notes"][0]["created_at"] = ts(-3 * MINUTE)
+    disputed["chargebacks"] = [disputed_cb]
+    disputed["money_timeline"] = _money_timeline(disputed["payment"], [
+        _money_event("REFUND_REQUESTED", ts(-18 * MINUTE), 1695, "ACCOUNT", actor=CUSTOMER,
+                     refund_id=uuid_for("refund:disputed"), reason="Customer reports the biryani was missing from the bag."),
+        _money_event("REFUND_ESCALATED", ts(-12 * MINUTE), 1695, "ACCOUNT", actor=SUPPORT_AGENT,
+                     refund_id=uuid_for("refund:disputed"), reason="Over what I can approve today; needs an admin."),
+        _money_event("CHARGEBACK_OPENED", ts(-8 * MINUTE), 1695, "WEBHOOK",
+                     chargeback_id=disputed_cb["id"], reason="product_not_received"),
+        _money_event("CHARGEBACK_EVIDENCE_NOTE", ts(-3 * MINUTE), None, "ACCOUNT", actor=SUPPORT_AGENT,
+                     chargeback_id=disputed_cb["id"]),
+    ])
     reg.add(
         "order_admin_view_disputed",
         "orders",
         "OrderAdminView",
         "A delivered order in dispute with a partial refund awaiting approval and a "
         "liability split that puts the whole amount on the restaurant (O-04 is open; the "
-        "split is computed at authorisation and stored).",
+        "split is computed at authorisation and stored). The money timeline shows the "
+        "payment, the request, the agent sending it up, and a chargeback with one evidence note.",
         disputed,
         operations=["getOrderAdmin"],
         tags=["admin", "error-path"],
@@ -646,6 +849,93 @@ def _admin_orders(reg, synth) -> None:
         ),
         operations=["getOrderAdmin"],
         tags=["admin", "error-path"],
+    )
+
+    _handover_overrides(reg, admin_order)
+
+
+# The only way past a handover code (security review on #183:
+# https://github.com/shaiknoorullah/hg-mono/issues/183). The rider has no override; support
+# or an admin confirms the handover with `overrideHandoverCode`, with a reason and a support
+# case, and the call writes the append-only `HandoverOverride` audit record in the same
+# transaction as the transition. No record, view or event carries either code.
+def _handover_overrides(reg, admin_order) -> None:
+    reg.add(
+        "handover_override_pickup_locked",
+        "orders",
+        "HandoverOverride",
+        "**Admin override after the limit.** Five wrong pickup codes locked the code "
+        "(`error_pickup_code_locked`); a support agent called the kitchen, who confirmed the "
+        "bag went to the assigned rider, and confirmed the pickup. The order moved "
+        "`READY_FOR_PICKUP` → `PICKED_UP` with `actor_kind: SUPPORT`. The record names the "
+        "agent, the reason, the case and the 5 wrong attempts — never the code.",
+        {
+            "id": uuid_for("handover-override:pickup-locked"),
+            "order_id": uuid_for("order:picked_up"),
+            "handover": "PICKUP",
+            "reason": "Code locked after 5 tries. Called Karachi Kitchen: they confirmed they "
+                      "handed the bag to Bilal S. at the counter.",
+            "case_id": uuid_for("case:pickup-code-locked"),
+            "actor_account_id": uuid_for("account:support:yusuf"),
+            "actor_kind": "SUPPORT",
+            "wrong_code_attempts": 5,
+            "order_state": "PICKED_UP",
+            "created_at": ts(-11 * MINUTE),
+        },
+        operations=["overrideHandoverCode"],
+        tags=["admin", "error-path"],
+    )
+
+    reg.add(
+        "handover_override_delivery",
+        "orders",
+        "HandoverOverride",
+        "**Admin override at a met handover.** The customer's phone died in the lobby, so "
+        "they could not read their delivery code after two wrong guesses. Support reached "
+        "the customer, who confirmed they had the order, and an admin confirmed the "
+        "delivery: `ARRIVED` → `DELIVERED` with `actor_kind: ADMIN`. The rider could not "
+        "have done this: a photo never replaces the code at a met handover.",
+        {
+            "id": uuid_for("handover-override:delivery"),
+            "order_id": uuid_for("order:meet-in-lobby"),
+            "handover": "DELIVERY",
+            "reason": "Customer's phone died in the lobby. Reached them on the account email; "
+                      "they confirmed they have the order.",
+            "case_id": uuid_for("case:delivery-code-unreadable"),
+            "actor_account_id": uuid_for("account:admin:amina"),
+            "actor_kind": "ADMIN",
+            "wrong_code_attempts": 2,
+            "order_state": "DELIVERED",
+            "created_at": ts(-2 * MINUTE),
+        },
+        operations=["overrideHandoverCode"],
+        tags=["admin", "delivery-code"],
+    )
+
+    overridden = admin_order(
+        "DELIVERED",
+        base_over={
+            "label": "meet-in-lobby",
+            "delivery_instructions": ["MEET_IN_LOBBY"],
+            "special_instructions": "Lobby of the east tower; I will be at the front desk.",
+        },
+    )
+    overridden["timeline"][-1] = {
+        **overridden["timeline"][-1],
+        "actor_kind": "ADMIN",
+        "reason": "Delivery confirmed by an admin without the delivery code (case "
+                  f"{uuid_for('case:delivery-code-unreadable')}): customer's phone died in the lobby.",
+    }
+    reg.add(
+        "order_admin_view_delivery_overridden",
+        "orders",
+        "OrderAdminView",
+        "The order after `handover_override_delivery`: the timeline's `DELIVERED` step is "
+        "`actor_kind: ADMIN` with the reason and the case, and `delivery_code` is null, as "
+        "it always is for support and admin.",
+        overridden,
+        operations=["getOrderAdmin"],
+        tags=["admin", "delivery-code"],
     )
 
 
@@ -685,11 +975,86 @@ def _tracking(reg, synth) -> None:
                     else None
                 ),
                 "rider": rider_public_profile() if has_rider else None,
+                # These are unattended drops; the met-handover fixtures below carry a code.
+                "delivery_code": None,
                 "timeline": _timeline(state),
             },
             operations=["getOrderTracking"],
             tags=["tracking", "order-state-matrix"],
         )
+
+    for state, dispatch_state, note in [
+        ("PICKED_UP", "CARRYING", "Out for delivery to a met handover: the tracking screen "
+                                  "shows the 4-digit `delivery_code` under the map, ready "
+                                  "for the door."),
+        ("ARRIVED", "AT_CUSTOMER", "The rider is in the lobby for a met handover. The screen "
+                                   "leads with `delivery_code`; the customer reads it out."),
+    ]:
+        reg.add(
+            f"tracking_{state.lower()}_delivery_code",
+            "orders",
+            "OrderTracking",
+            note,
+            {
+                # The same orders as `order_picked_up_meet_at_door` and
+                # `order_arrived_meet_in_lobby`.
+                "order_id": uuid_for(
+                    "order:meet-at-door-picked-up" if state == "PICKED_UP" else "order:meet-in-lobby"
+                ),
+                "state": state,
+                "dispatch_state": dispatch_state,
+                "eta_at": ts(13 * MINUTE) if state == "PICKED_UP" else ts(1 * MINUTE),
+                "eta_window_minutes": 10,
+                "restaurant_location": {"latitude": 43.6817, "longitude": -79.3403},
+                "destination_location": {"latitude": 43.6412, "longitude": -79.3810},
+                "rider_location": {
+                    "latitude": 43.6598 if state == "PICKED_UP" else 43.6413,
+                    "longitude": -79.3652 if state == "PICKED_UP" else -79.3808,
+                    "heading_deg": 214.0,
+                    "speed_mps": 7.4 if state == "PICKED_UP" else 0.0,
+                    "accuracy_m": 12.0,
+                    "recorded_at": ts(-8),
+                    "is_coarse": False,
+                },
+                "rider": rider_public_profile(),
+                "delivery_code": DELIVERY_CODE,
+                "timeline": _timeline(state),
+            },
+            operations=["getOrderTracking"],
+            tags=["tracking", "delivery-code"],
+        )
+
+    reg.add(
+        "tracking_arrived_delivery_code_locked",
+        "orders",
+        "OrderTracking",
+        "The rider is in the lobby, but five wrong codes have **locked** the delivery code: "
+        "`delivery_code` is null and the order is with support. The screen says HalalGoes "
+        "support will confirm the handover, and stops showing a code.",
+        {
+            "order_id": uuid_for("order:delivery-code-locked"),
+            "state": "ARRIVED",
+            "dispatch_state": "AT_CUSTOMER",
+            "eta_at": ts(1 * MINUTE),
+            "eta_window_minutes": 10,
+            "restaurant_location": {"latitude": 43.6817, "longitude": -79.3403},
+            "destination_location": {"latitude": 43.6412, "longitude": -79.3810},
+            "rider_location": {
+                "latitude": 43.6413,
+                "longitude": -79.3808,
+                "heading_deg": 214.0,
+                "speed_mps": 0.0,
+                "accuracy_m": 12.0,
+                "recorded_at": ts(-8),
+                "is_coarse": False,
+            },
+            "rider": rider_public_profile(),
+            "delivery_code": None,
+            "timeline": _timeline("ARRIVED"),
+        },
+        operations=["getOrderTracking"],
+        tags=["tracking", "delivery-code", "error-path"],
+    )
 
     reg.add(
         "tracking_degraded_gps",
@@ -715,6 +1080,7 @@ def _tracking(reg, synth) -> None:
                 "is_coarse": True,
             },
             "rider": rider_public_profile(),
+            "delivery_code": None,
             "timeline": _timeline("PICKED_UP"),
         },
         operations=["getOrderTracking"],
@@ -1144,5 +1510,177 @@ def _refunds(reg, synth) -> None:
         },
         operations=["issueRefund"],
         status=202,
+        tags=["admin"],
+    )
+
+
+def _admin_refund(state: str, **over: Any) -> dict:
+    """A customer's request for a missing item, at one RefundState, as staff see it (#172)."""
+    decided = state in ("APPROVED", "AUTHORISED", "SUBMITTED", "SUCCEEDED", "SETTLED", "FAILED")
+    out = {
+        "id": uuid_for(f"admin-refund:{state.lower()}"),
+        "order_id": uuid_for("order:completed"),
+        "order_code": customer_order("COMPLETED")["code"],
+        "kind": "PARTIAL_ITEMS",
+        "scope": "PARTIAL_ITEMS",
+        "reason_code": "ITEM_MISSING",
+        "amount_cents": 1915,
+        "tax_cents": 220,
+        "currency": "CAD",
+        "state": state,
+        "liability_split": {"platform_cents": 220, "restaurant_cents": 1695, "rider_cents": 0},
+        "note": "The biryani was missing from the bag.",
+        "requested_at": ts(-40 * MINUTE),
+        "requested_by": CUSTOMER,
+        "requester_kind": "CUSTOMER",
+        "approval_required_role": None,
+        "escalated_by": None,
+        "escalated_at": None,
+        "approved_by": SUPPORT_AGENT if decided else None,
+        "approved_at": ts(-30 * MINUTE) if decided else None,
+        "declined_by": None,
+        "declined_at": None,
+        "decision_reason": "The bag photo shows no biryani." if decided else None,
+        "settled_at": ts(-10 * MINUTE) if state == "SETTLED" else None,
+        "failure_message": (
+            "Stripe refused the refund: the charge is disputed." if state == "FAILED" else None
+        ),
+    }
+    if state == "PENDING_APPROVAL":
+        out.update({
+            "approval_required_role": "ADMIN",
+            "escalated_by": SUPPORT_AGENT,
+            "escalated_at": ts(-30 * MINUTE),
+            "decision_reason": "Over what I can approve today; needs an admin.",
+        })
+    if state == "DECLINED":
+        out.update({
+            "declined_by": SUPPORT_AGENT,
+            "declined_at": ts(-30 * MINUTE),
+            "decision_reason": "The proof of delivery photo shows the full bag at the door.",
+        })
+    out.update(over)
+    return out
+
+
+def _refund_review(reg) -> None:
+    notes = {
+        "REQUESTED": "A customer's request waiting for staff review. Nothing has moved.",
+        "PENDING_APPROVAL": "Above the reviewing agent's 24-hour limit: sent up to an admin "
+        "(`approval_required_role`). The agent who sent it up (`escalated_by`) may not approve it.",
+        "APPROVED": "Legacy state; nothing writes it at launch. Approval goes straight to `AUTHORISED`.",
+        "AUTHORISED": "Approved within the agent's limit: its ledger batch is posted and the refund "
+        "sender sends it to Stripe.",
+        "SUBMITTED": "Sent to Stripe, waiting for its answer.",
+        "SUCCEEDED": "Stripe accepted it.",
+        "SETTLED": "Back on the card.",
+        "FAILED": "Stripe refused it; support must act. `failure_message` says why.",
+        "DECLINED": "Declined with a staff reason (never shown to the customer). Nothing was sent to "
+        "Stripe; the customer was told through the notification outbox.",
+        "CANCELLED": "Withdrawn before anyone approved it. No money moved.",
+    }
+    ops = {"AUTHORISED": ["approveRefund"], "PENDING_APPROVAL": ["approveRefund"], "DECLINED": ["declineRefund"]}
+    for state, note in notes.items():
+        reg.add(
+            f"admin_refund_{state.lower()}",
+            "refunds",
+            "AdminRefund",
+            note,
+            _admin_refund(state),
+            operations=ops.get(state, []),
+            status=202 if state == "PENDING_APPROVAL" else 200,
+            tags=["admin", "refund-state-matrix"],
+        )
+
+    goodwill = _admin_refund(
+        "PENDING_APPROVAL",
+        id=uuid_for("admin-refund:goodwill-pending"),
+        kind="GOODWILL",
+        scope="PARTIAL_AMOUNT",
+        reason_code="GOODWILL",
+        amount_cents=6000,
+        tax_cents=0,
+        liability_split={"platform_cents": 6000, "restaurant_cents": 0, "rider_cents": 0},
+        note="Third late order this month; a retention gesture.",
+        requested_by=SUPPORT_AGENT,
+        requester_kind="STAFF",
+        escalated_by=SUPPORT_AGENT,
+        decision_reason=None,
+    )
+    reg.add(
+        "admin_refund_goodwill_needs_second_person",
+        "refunds",
+        "AdminRefund",
+        "A goodwill refund above CAD 50.00 an agent asked for: it always waits for a second "
+        "person, whatever the asker's limit.",
+        goodwill,
+        operations=[],
+        tags=["admin", "money"],
+    )
+    reg.add(
+        "admin_refund_queue",
+        "refunds",
+        "array<AdminRefund>",
+        "The review queue: what waits for a person, oldest first.",
+        [_admin_refund("REQUESTED"), _admin_refund("PENDING_APPROVAL"), goodwill],
+        operations=["listRefundsAdmin"],
+        meta={"next_cursor": None, "has_more": False},
+        tags=["admin"],
+    )
+    reg.add(
+        "admin_refund_queue_empty",
+        "refunds",
+        "array<AdminRefund>",
+        "Nothing waiting for a person.",
+        [],
+        operations=["listRefundsAdmin"],
+        meta={"next_cursor": None, "has_more": False},
+        tags=["admin", "edge", "empty"],
+    )
+
+
+def _chargebacks(reg) -> None:
+    for status, note in CHARGEBACK_STATUSES.items():
+        reg.add(
+            f"chargeback_{status.lower()}",
+            "refunds",
+            "Chargeback",
+            note,
+            chargeback(status.lower(), status, notes=1 if status == "NEEDS_RESPONSE" else 0),
+            operations=["getChargeback"],
+            tags=["admin", "chargeback-state-matrix"],
+        )
+    reg.add(
+        "chargeback_list",
+        "refunds",
+        "array<Chargeback>",
+        "Open chargebacks first, soonest evidence deadline first; closed ones after.",
+        [
+            chargeback("list-needs-response", "NEEDS_RESPONSE", notes=1),
+            chargeback("list-warning", "WARNING_NEEDS_RESPONSE", reason="general"),
+            chargeback("list-lost", "LOST", reason="fraudulent"),
+        ],
+        operations=["listChargebacks"],
+        meta={"next_cursor": None, "has_more": False},
+        tags=["admin"],
+    )
+    reg.add(
+        "chargeback_list_empty",
+        "refunds",
+        "array<Chargeback>",
+        "No chargebacks.",
+        [],
+        operations=["listChargebacks"],
+        meta={"next_cursor": None, "has_more": False},
+        tags=["admin", "edge", "empty"],
+    )
+    reg.add(
+        "chargeback_evidence_note_added",
+        "refunds",
+        "Chargeback",
+        "`201` after an evidence note: the chargeback with the new note last.",
+        chargeback("note-added", "NEEDS_RESPONSE", notes=2),
+        operations=["addChargebackEvidenceNote"],
+        status=201,
         tags=["admin"],
     )

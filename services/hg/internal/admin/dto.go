@@ -1,5 +1,10 @@
 package admin
 
+import (
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/payments"
+)
+
 // Wire DTOs. Every shape here is the contract's schema verbatim
 // (contracts/openapi.yaml) with additionalProperties:false honoured by not
 // emitting fields the schema does not name. Money is never present in an admin
@@ -312,15 +317,17 @@ type adminOrderSummary struct {
 
 // adminOrderLine is one line in the admin order view.
 type adminOrderLine struct {
-	LineNo         int     `json:"line_no"`
-	MenuItemID     string  `json:"menu_item_id"`
-	Name           string  `json:"name"`
-	VariantName    *string `json:"variant_name"`
-	Quantity       int     `json:"quantity"`
-	SpecialRequest *string `json:"special_request"`
-	UnitPriceCents int64   `json:"unit_price_cents"`
-	LineTotalCents int64   `json:"line_total_cents"`
-	Currency       string  `json:"currency"`
+	LineNo      int     `json:"line_no"`
+	MenuItemID  string  `json:"menu_item_id"`
+	Name        string  `json:"name"`
+	VariantName *string `json:"variant_name"`
+	// Variants is every chosen variant with its group (contract OrderLine).
+	Variants       []orders.LineVariantDTO `json:"variants"`
+	Quantity       int                     `json:"quantity"`
+	SpecialRequest *string                 `json:"special_request"`
+	UnitPriceCents int64                   `json:"unit_price_cents"`
+	LineTotalCents int64                   `json:"line_total_cents"`
+	Currency       string                  `json:"currency"`
 }
 
 // adminOrderMoney is the customer-visible money breakdown.
@@ -434,6 +441,10 @@ type adminOrderView struct {
 	Payment       adminOrderPayment       `json:"payment"`
 	Refunds       []adminRefund           `json:"refunds"`
 	PiiRevealed   bool                    `json:"pii_revealed"`
+
+	// The order's money timeline and chargebacks (#172).
+	MoneyTimeline []payments.MoneyEventDTO `json:"money_timeline"`
+	Chargebacks   []payments.ChargebackDTO `json:"chargebacks"`
 
 	// LiveMapBox fields (admin-only widening of the customer-scoped OrderTracking
 	// shape): restaurant + destination coordinates and the rider's live position.
@@ -567,6 +578,23 @@ type menuItemInput struct {
 	Description       *string  `json:"description"`
 	IngredientsText   *string  `json:"ingredients_text"`
 	PriceCents        int64    `json:"price_cents"`
+	DietaryTags       []string `json:"dietary_tags"`
+	AllergenTags      []string `json:"allergen_tags"`
+	AllergensDeclared *bool    `json:"allergens_declared"`
+	ImageObjectID     *string  `json:"image_object_id"`
+	PrepMinutes       *int     `json:"prep_minutes"`
+	SortOrder         *int     `json:"sort_order"`
+}
+
+// menuItemUpdateInput is the contract's MenuItemUpdateInput
+// (updateMenuItemOnBehalf): every field optional, so every field is a pointer
+// (or a nil slice) and an unsent field is told apart from a sent zero.
+type menuItemUpdateInput struct {
+	CategoryID        *string  `json:"category_id"`
+	Name              *string  `json:"name"`
+	Description       *string  `json:"description"`
+	IngredientsText   *string  `json:"ingredients_text"`
+	PriceCents        *int64   `json:"price_cents"`
 	DietaryTags       []string `json:"dietary_tags"`
 	AllergenTags      []string `json:"allergen_tags"`
 	AllergensDeclared *bool    `json:"allergens_declared"`

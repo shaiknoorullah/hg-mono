@@ -1,0 +1,15 @@
+HalalGoes
+
+Your application needs changes
+
+We reviewed the application for {{.RestaurantName}}. Before we can approve it, we need you to change a few things. Sign in to see exactly what to change.
+
+Update your application {{.ActionURL}}
+
+When you send the changes, we review the application again.
+
+----------------------------------------
+
+You are receiving this because you have a HalalGoes account. It is a service message about that account, not marketing.
+
+HalalGoes · Halal food delivery in Ontario

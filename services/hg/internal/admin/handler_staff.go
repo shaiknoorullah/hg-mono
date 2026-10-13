@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/notify"
 )
 
 var validStaffRole = map[string]bool{"SUPPORT_AGENT": true, "ADMIN": true, "SUPER_ADMIN": true}
@@ -75,6 +76,12 @@ func (h *Handler) CreateStaffUser(w http.ResponseWriter, r *http.Request) {
 		if errors.Is(err, ErrEmailInUse) {
 			httpx.Fail(w, r, http.StatusConflict, CodeEmailInUse,
 				"That email already belongs to an account.", nil)
+			return
+		}
+		if errors.Is(err, notify.ErrInviteLimited) {
+			w.Header().Set("Retry-After", "86400")
+			httpx.Fail(w, r, http.StatusTooManyRequests, httpx.CodeRateLimited,
+				"Too many invitations today. Try again tomorrow.", nil)
 			return
 		}
 		h.failInternal(w, r, err)

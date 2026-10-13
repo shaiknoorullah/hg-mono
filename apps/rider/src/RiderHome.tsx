@@ -31,6 +31,7 @@ import { unwrap } from '@hg/api-client';
 
 import { api, API_BASE_URL } from './api';
 import { useNav } from './nav';
+import { useDashboard } from './dashboard';
 
 type RiderMe = Schema['RiderMe'];
 
@@ -188,6 +189,7 @@ function RiderPanel({
 }): React.ReactElement {
   const theme = useTheme();
   const nav = useNav();
+  const activeAssignmentId = useDashboard()?.active_assignment?.id ?? null;
   const name = useTypeStyle('heading.lg');
   const body = useTypeStyle('body.lg');
   const caption = useTypeStyle('caption');
@@ -262,18 +264,16 @@ function RiderPanel({
           >
             Current offer
           </Button>
-          <Button
-            variant="secondary"
-            size="lg"
-            fullWidth
-            onPress={() =>
-              nav.push('assignment', {
-                assignmentId: '4ea97aca-78d6-4735-a8f0-253dd437e00d',
-              })
-            }
-          >
-            Active delivery
-          </Button>
+          {activeAssignmentId ? (
+            <Button
+              variant="secondary"
+              size="lg"
+              fullWidth
+              onPress={() => nav.push('assignment', { assignmentId: activeAssignmentId })}
+            >
+              Resume active delivery
+            </Button>
+          ) : null}
         </View>
       </Card>
 

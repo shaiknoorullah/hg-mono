@@ -1,0 +1,14 @@
+# Managed by Ansible (deploy/host/roles/hardening).
+[DEFAULT]
+banaction = nftables
+banaction_allports = nftables[type=allports]
+backend = systemd
+bantime = 1h
+findtime = 10m
+maxretry = 5
+{% if hg_fail2ban_ignoreip | length > 0 %}
+ignoreip = 127.0.0.1/8 ::1 {{ hg_fail2ban_ignoreip | join(' ') }}
+{% endif %}
+
+[sshd]
+enabled = true

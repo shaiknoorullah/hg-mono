@@ -127,7 +127,7 @@ func (r *DispatchRunner) EscalateAndExpire(ctx context.Context) error {
 		return err
 	}
 	for _, d := range due {
-		if d.Wave >= maxWaves || time.Duration(d.ElapsedS)*time.Second >= maxTotalSearch {
+		if d.RoundWaves >= maxWaves || time.Duration(d.ElapsedS)*time.Second >= maxTotalSearch {
 			if err := r.svc.store.MarkNoRiderFound(ctx, d.OrderID); err != nil {
 				r.log.Warn("dispatch: mark no-rider-found failed",
 					slog.String("order_id", d.OrderID), slog.String("error", err.Error()))

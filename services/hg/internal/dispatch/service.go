@@ -5,6 +5,8 @@ import (
 	"log/slog"
 	"net/http"
 	"time"
+
+	"github.com/jackc/pgx/v5"
 )
 
 // OrderLifecycle is the seam from dispatch to the orders module. Dispatch calls
@@ -16,8 +18,13 @@ import (
 // completed ⇒ delivered). Keeping this as an interface (not a direct import)
 // keeps the dependency direction clean and lets tests inject a fake.
 type OrderLifecycle interface {
-	// ConfirmPickup advances the order from READY_FOR_PICKUP to PICKED_UP (T12).
-	ConfirmPickup(ctx context.Context, orderID, riderAccountID string) error
+	// ConfirmPickupTx moves the order to PICKED_UP (T12) inside the rider's
+	// PICKED_UP step's own transaction, so the two commit together or not at
+	// all (pickup.go). A state the pickup cannot move the order out of,
+	// PREPARING included, is *OrderNotCollectableError, and a rider who does
+	// not hold the order's delivery is ErrRiderDoesNotHoldOrder; either
+	// refuses the step.
+	ConfirmPickupTx(ctx context.Context, tx pgx.Tx, orderID, riderAccountID string) error
 	// MarkArrived advances the order from PICKED_UP to ARRIVED (row T14 of the
 	// transition table in that spec section) when the rider taps "I'm here" at
 	// the drop-off: the assignment's ARRIVED_AT_DROPOFF, the dispatch
@@ -143,13 +150,15 @@ func (s *Service) GetAssignment(ctx context.Context, riderAccountID, assignmentI
 	return s.store.LoadAssignment(ctx, riderAccountID, assignmentID)
 }
 
-// Transition advances an assignment one step. After the dispatch transaction
-// commits, it calls the OrderLifecycle bridge for PICKED_UP, ARRIVED_AT_DROPOFF
-// and DELIVERED to keep the order state machine in sync (P-14: only the orders
-// module writes order.state; dispatch calls it via the interface, never
-// directly). Every other assignment step leaves the order where it is.
+// Transition advances an assignment one step, keeping the order state machine
+// in sync through the OrderLifecycle bridge (P-14: only the orders module
+// writes order.state; dispatch calls it via the interface, never directly).
+// PICKED_UP moves the order inside the step's own transaction (pickup.go);
+// ARRIVED_AT_DROPOFF and DELIVERED call the bridge after the dispatch
+// transaction commits (advanceOrder). Every other assignment step leaves the
+// order where it is.
 func (s *Service) Transition(ctx context.Context, riderAccountID, assignmentID string, in TransitionInput) (*Assignment, error) {
-	asn, transitioned, err := s.store.Transition(ctx, riderAccountID, assignmentID, in, s.now())
+	asn, transitioned, err := s.store.Transition(ctx, riderAccountID, assignmentID, in, s.now(), s.pickupStepFor(riderAccountID))
 	if err != nil {
 		return nil, err
 	}
@@ -165,11 +174,13 @@ func (s *Service) Transition(ctx context.Context, riderAccountID, assignmentID s
 	return asn, nil
 }
 
-// advanceOrder is the bridge itself: it maps the assignment step the rider just
-// committed to the one order transition it implies, if any. Only three steps
-// move the order; every other step (setting off, arriving at the restaurant,
-// leaving it, the undeliverable/return path, platform cancel or reassign)
-// leaves order.state alone.
+// advanceOrder is the bridge after commit: it maps the assignment step the
+// rider just committed to the one order transition it implies, if any. Only
+// three steps move the order. Picked up has already moved it, inside the
+// step's own transaction (pickup.go), so it is not here; arrived at the
+// drop-off and delivered move it now. Every other step (setting off, arriving
+// at the restaurant, leaving it, the undeliverable/return path, platform
+// cancel or reassign) leaves order.state alone.
 //
 // Each call is log-and-swallow: the dispatch assignment is committed and must
 // not roll back on an orders-module failure. But the order is then stranded
@@ -183,8 +194,6 @@ func (s *Service) advanceOrder(ctx context.Context, assignmentState, orderID, ri
 	var step string
 	var err error
 	switch assignmentState {
-	case "PICKED_UP":
-		step, err = "confirm_pickup", s.lifecycle.ConfirmPickup(ctx, orderID, riderAccountID)
 	case "ARRIVED_AT_DROPOFF":
 		// The rider is at the customer: PICKED_UP -> ARRIVED. Without this the
 		// order skipped straight to DELIVERED, so "your rider is here", the
@@ -360,7 +369,9 @@ func scoreFor(distanceM float64) int {
 	return int(1000 - 0.1*eta)
 }
 
-// Reconcile is the availability backstop (D-10).
-func (s *Service) Reconcile(ctx context.Context) (int64, error) {
+// Reconcile is the availability backstop of docs/spec/04-rider.md, "D-10 —
+// Availability: online / offline": it restores every rider stuck ON_DELIVERY
+// with no live assignment and returns them.
+func (s *Service) Reconcile(ctx context.Context) ([]string, error) {
 	return s.store.ReconcileAvailability(ctx)
 }

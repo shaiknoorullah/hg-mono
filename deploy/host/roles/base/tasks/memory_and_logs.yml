@@ -1,0 +1,62 @@
+- name: Create the journald drop-in folder
+  ansible.builtin.file:
+    path: /etc/systemd/journald.conf.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Cap the journal
+  ansible.builtin.template:
+    src: journald.conf.j2
+    dest: /etc/systemd/journald.conf.d/00-hg.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart journald
+
+- name: Add a swapfile
+  when: not hg_in_container and hg_swap_size_mb | int > 0
+  block:
+    - name: Look for the swapfile
+      ansible.builtin.stat:
+        path: /swapfile
+      register: hg_swapfile
+
+    - name: Create the swapfile
+      ansible.builtin.command: "fallocate -l {{ hg_swap_size_mb }}M /swapfile"
+      args:
+        creates: /swapfile
+      when: not hg_swapfile.stat.exists
+
+    - name: Make the swapfile readable by root only
+      ansible.builtin.file:
+        path: /swapfile
+        owner: root
+        group: root
+        mode: "0600"
+
+    - name: Format the swapfile
+      ansible.builtin.command: mkswap /swapfile
+      when: not hg_swapfile.stat.exists
+      changed_when: true
+
+    - name: Turn the swapfile on
+      ansible.builtin.command: swapon /swapfile
+      when: not hg_swapfile.stat.exists
+      changed_when: true
+
+    - name: Turn the swapfile on at boot
+      ansible.posix.mount:
+        src: /swapfile
+        path: none
+        fstype: swap
+        opts: sw
+        state: present
+
+    - name: Swap only under real pressure
+      ansible.posix.sysctl:
+        name: vm.swappiness
+        value: "{{ hg_swappiness }}"
+        sysctl_file: /etc/sysctl.d/90-hg.conf
+        state: present

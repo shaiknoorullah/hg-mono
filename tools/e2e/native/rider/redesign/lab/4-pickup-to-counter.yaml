@@ -1,0 +1,105 @@
+# Rider redesign WP4, shared first half of the pickup flows (run from 4-pickup.yaml and
+# 4b-pickup-offline.yaml, not on its own): sign in as rider-sim at the devworld short-route start,
+# go online, accept the journey's offer, ride to Bismillah Grill and tap "I'm at the restaurant",
+# then wait until the restaurant marks the food ready and open the items (DL step 1 → step 2).
+#
+# Needs a live order: the mission runs `make dev-journey route=short auto=restaurant manual=rider`
+# (the restaurant accepts and marks it ready by itself; the rider is left to the app).
+# The offer is the WP3 sheet once it merges, the legacy offer screen until then (per-route
+# fallback): the steps accept either.
+appId: com.halalgoes.rider.dev
+name: rider redesign, pickup, to the counter
+env:
+  PHONE_DIGITS: "5550100151"
+  CODE: "000000"
+  # devworld route.go shortStart, 300 m north of Bismillah Grill, and the restaurant's door.
+  START_LAT: "43.6842"
+  START_LNG: "-79.3310"
+  RESTAURANT: "43.6815,-79.3310"
+---
+- launchApp:
+    clearState: true
+    permissions:
+      all: allow
+- setLocation:
+    latitude: ${START_LAT}
+    longitude: ${START_LNG}
+- extendedWaitUntil:
+    visible: "Sign in or apply to ride"
+    timeout: 90000
+- tapOn:
+    id: "phone-field"
+- inputText: ${PHONE_DIGITS}
+- hideKeyboard
+- tapOn: "Send code"
+- extendedWaitUntil:
+    visible: "Enter your code"
+    timeout: 30000
+- tapOn:
+    id: "code-cell-0"
+- inputText: ${CODE}
+- extendedWaitUntil:
+    visible: "Earnings"
+    timeout: 60000
+
+# Online, then the journey's offer (dispatch offers within 3 km to a fix under 90 s old).
+- tapOn:
+    text: "Go online"
+    optional: true
+- tapOn:
+    text: "While using the app"
+    optional: true
+- tapOn:
+    text: "View current offer"
+    optional: true
+- extendedWaitUntil:
+    visible: "Accept offer|Accept"
+    timeout: 180000
+- tapOn: "Accept offer|Accept"
+
+# Step 1 (DL/PickupEnRoute or PickupReady): EN_ROUTE_TO_PICKUP is posted by itself, no button.
+- extendedWaitUntil:
+    visible: "Go to Bismillah Grill"
+    timeout: 30000
+- assertVisible: "Step 1 of 4 · Go to the restaurant"
+- assertVisible: "Navigate"
+- assertNotVisible: "We couldn't start the trip"
+- takeScreenshot: rider-wp4-01-go-to-restaurant
+- travel:
+    points:
+      - ${START_LAT},${START_LNG}
+      - ${RESTAURANT}
+    speed: 18
+- tapOn: "I'm at the restaurant"
+
+# 422 GEOFENCE_REQUIRED never strands the rider: if the fix lags, give a reason and carry on.
+- runFlow:
+    when:
+      visible: "We can't place you at the restaurant"
+    commands:
+      - takeScreenshot: rider-wp4-02-geofence
+      - tapOn:
+          id: "trip-geofence-reason-field"
+      - inputText: "GPS is off by a block"
+      - hideKeyboard
+      - tapOn: "Continue: I'm at the restaurant"
+
+# Step 2: wait (DL/PickupWaiting) until the restaurant marks it ready, then the items.
+- extendedWaitUntil:
+    visible: "Step 2 of 4 · At the restaurant"
+    timeout: 30000
+- runFlow:
+    when:
+      visible: "Wait for the food"
+    commands:
+      - takeScreenshot: rider-wp4-03-waiting
+      - extendedWaitUntil:
+          notVisible: "Turns on when the restaurant marks the food ready."
+          timeout: 300000
+      - tapOn: "Check the items"
+- extendedWaitUntil:
+    visible: "Check the bag has .* items?"
+    timeout: 30000
+- assertVisible: "Ask the kitchen for the pickup code"
+- assertVisible: "Turns on when the code has 4 digits."
+- takeScreenshot: rider-wp4-04-items

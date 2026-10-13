@@ -56,7 +56,7 @@ RETURNING id, object_key`, owner, len(data), sum[:]).Scan(&id, &key); err != nil
 	return id, key
 }
 
-func seedAccount(t *testing.T, ctx context.Context, pool *pgxpool.Pool) string {
+func seedScanAccount(t *testing.T, ctx context.Context, pool *pgxpool.Pool) string {
 	t.Helper()
 	var id string
 	if err := pool.QueryRow(ctx, `
@@ -105,16 +105,16 @@ func (f fixedScanner) Scan(_ context.Context, r io.Reader) (Verdict, string, err
 	return f.v, f.detail, nil
 }
 
-// recordingPresigner mints fake URLs and remembers the headers it was asked to
+// headerRecordingPresigner mints fake URLs and remembers the headers it was asked to
 // sign.
-type recordingPresigner struct{ signed http.Header }
+type headerRecordingPresigner struct{ signed http.Header }
 
-func (p *recordingPresigner) PresignHeader(_ context.Context, _, _, _ string, _ time.Duration, _ url.Values, h http.Header) (*url.URL, error) {
+func (p *headerRecordingPresigner) PresignHeader(_ context.Context, _, _, _ string, _ time.Duration, _ url.Values, h http.Header) (*url.URL, error) {
 	p.signed = h
 	return url.Parse("https://store.test/put")
 }
 
-func (p *recordingPresigner) PresignedGetObject(context.Context, string, string, time.Duration, url.Values) (*url.URL, error) {
+func (p *headerRecordingPresigner) PresignedGetObject(context.Context, string, string, time.Duration, url.Values) (*url.URL, error) {
 	return url.Parse("https://store.test/get")
 }
 
@@ -161,7 +161,7 @@ UPDATE kyc_document SET state='APPROVED', reviewed_by=$2, reviewed_at=now(), dea
 func TestScanWorker(t *testing.T) {
 	ctx := context.Background()
 	pool := dialTestPool(t)
-	owner := seedAccount(t, ctx, pool)
+	owner := seedScanAccount(t, ctx, pool)
 
 	const maxBytes = 4096
 	cleanData := []byte("%PDF-1.7 a business licence")
@@ -242,7 +242,7 @@ VALUES ('RIDER', $1, 'GOVERNMENT_ID', $2, 'APPROVED', $1, now())`, owner, id)
 func TestScanQueueSkipsUnreadableObjects(t *testing.T) {
 	ctx := context.Background()
 	pool := dialTestPool(t)
-	owner := seedAccount(t, ctx, pool)
+	owner := seedScanAccount(t, ctx, pool)
 
 	const batch = 2
 	var missing []string
@@ -294,9 +294,9 @@ UPDATE stored_object SET virus_scan_attempts=$2, virus_scan_next_at=now() WHERE 
 func TestUploadURLBindsTheBytes(t *testing.T) {
 	ctx := context.Background()
 	pool := dialTestPool(t)
-	owner := seedAccount(t, ctx, pool)
+	owner := seedScanAccount(t, ctx, pool)
 
-	presigner := &recordingPresigner{}
+	presigner := &headerRecordingPresigner{}
 	repo := NewRepo(pool, presigner, keyedObjectStore{}, Buckets{KYC: "hg-kyc"})
 	data := []byte("%PDF-1.7 to be uploaded")
 	sum := sha256.Sum256(data)
@@ -330,7 +330,7 @@ func TestUploadURLBindsTheBytes(t *testing.T) {
 func TestApprovalFollowsTheFile(t *testing.T) {
 	ctx := context.Background()
 	pool := dialTestPool(t)
-	owner := seedAccount(t, ctx, pool)
+	owner := seedScanAccount(t, ctx, pool)
 	admin := Actor{AccountID: owner, RequestID: "req-scan"}
 	quiet := slog.New(slog.NewTextHandler(io.Discard, nil))
 
@@ -347,7 +347,7 @@ func TestApprovalFollowsTheFile(t *testing.T) {
 	swapDoc := approveDocument(t, ctx, pool, owner, swapID)
 	checkDoc := approveDocument(t, ctx, pool, owner, checkID)
 	rescanDoc := approveDocument(t, ctx, pool, owner, rescanID)
-	repo := NewRepo(pool, &recordingPresigner{}, store, Buckets{KYC: "hg-kyc"})
+	repo := NewRepo(pool, &headerRecordingPresigner{}, store, Buckets{KYC: "hg-kyc"})
 
 	if _, err := repo.DownloadURL(ctx, admin, swapDoc, true); err != nil {
 		t.Fatalf("download of an approved, clean, unchanged file: %v", err)
@@ -425,7 +425,7 @@ func TestApprovalFollowsTheFile(t *testing.T) {
 func TestLateInfectedVerdictRevokesApproval(t *testing.T) {
 	ctx := context.Background()
 	pool := dialTestPool(t)
-	owner := seedAccount(t, ctx, pool)
+	owner := seedScanAccount(t, ctx, pool)
 	data := []byte("%PDF-1.7 a certificate passed by yesterday's signatures")
 	id, key := seedConfirmedKYC(t, ctx, pool, owner, data)
 	w := NewScanWorker(pool, keyedObjectStore{key: data}, fixedScanner{v: VerdictClean}, 1<<20,
@@ -474,7 +474,7 @@ SELECT EXISTS (SELECT 1 FROM audit_event WHERE subject_id=$1 AND action='kyc_doc
 func TestUnknownVerdictFailsClosed(t *testing.T) {
 	ctx := context.Background()
 	pool := dialTestPool(t)
-	owner := seedAccount(t, ctx, pool)
+	owner := seedScanAccount(t, ctx, pool)
 	data := []byte("%PDF-1.7 scanned by a confused scanner")
 	id, key := seedConfirmedKYC(t, ctx, pool, owner, data)
 	w := NewScanWorker(pool, keyedObjectStore{key: data}, fixedScanner{v: Verdict("PROBABLY_FINE")}, 1<<20,

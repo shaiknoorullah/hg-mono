@@ -7,6 +7,9 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/contract"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/realtime"
 )
 
 // kycDocRow is the kyc_document projection.
@@ -58,7 +61,7 @@ var ErrDocDecided = errors.New("admin: document already decided")
 // ErrDocNotScanned is returned when an approval is attempted on a document
 // whose file has not been virus-scanned clean: the scan is still pending, found
 // a virus, could not read the whole file, or the bytes are no longer the ones
-// it read. Migration 00031_virus_scan makes the database refuse it too. Spec:
+// it read. Migration 00071_virus_scan makes the database refuse it too. Spec:
 // docs/spec/01-platform.md#p-28--presigned-upload-and-download.
 var ErrDocNotScanned = errors.New("admin: document file not virus-scanned clean")
 
@@ -191,6 +194,9 @@ UPDATE kyc_document
 			return err
 		}
 		after["state"] = out.State
+		if err := emitDocumentReviewed(ctx, tx, out); err != nil {
+			return err
+		}
 		return writeAudit(ctx, tx, auditEntry{
 			actor:       actor,
 			action:      "kyc_document." + decisionVerbDoc(decision),
@@ -216,7 +222,7 @@ func docDecided(state string) bool {
 }
 
 // notScannedErr maps the database's own refusal of an unscanned approval
-// (trigger kyc_document_virus_scan_clean, migration 00031_virus_scan) to
+// (trigger kyc_document_virus_scan_clean, migration 00071_virus_scan) to
 // ErrDocNotScanned. The checks above make it unreachable from this path; if
 // they ever drift from the trigger, the answer is still a 409, not a 500.
 func notScannedErr(err error) error {
@@ -246,4 +252,35 @@ func decisionVerbDoc(decision string) string {
 		return "approve"
 	}
 	return "reject"
+}
+
+// emitDocumentReviewed tells a restaurant's owners and managers, on their own
+// account channels and in the review's transaction, how one of its documents
+// was reviewed (contracts/websocket.md section 4.6). The reason is the
+// rejection code, never the reviewer's note. A rider is not told document by
+// document: only the application decision reaches a rider, as one message per
+// review (docs/decisions/README.md, "Settled — redesign decisions (owner,
+// 2026-09-28)").
+func emitDocumentReviewed(ctx context.Context, tx pgx.Tx, d kycDocRow) error {
+	if d.SubjectType != "RESTAURANT" {
+		return nil
+	}
+	accounts, err := realtime.RestaurantAccounts(ctx, tx, d.SubjectID)
+	if err != nil {
+		return err
+	}
+	reviewed := time.Now()
+	if d.ReviewedAt != nil {
+		reviewed = *d.ReviewedAt
+	}
+	ev := realtime.DocumentReviewStateChanged{
+		DocumentID: d.ID, DocType: d.DocType, State: contract.KycDocumentState(d.State),
+		Reason: d.RejectionReasonCode, ReviewedAt: realtime.At(reviewed),
+	}
+	for _, a := range accounts {
+		if err := realtime.EmitAccount(ctx, tx, a, ev); err != nil {
+			return err
+		}
+	}
+	return nil
 }

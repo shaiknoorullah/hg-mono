@@ -1,0 +1,24 @@
+{
+  "scenario": "error_otp_invalid_or_expired",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`400` · `OTP_INVALID_OR_EXPIRED`. The challenge expired or was used up. Different from `error_otp_incorrect`: the app clears the code and offers \"Send a new code\".",
+  "operations": [
+    "verifyOtp"
+  ],
+  "status": 400,
+  "tags": [
+    "error-envelope",
+    "error-path",
+    "rider",
+    "customer",
+    "auth"
+  ],
+  "payload": {
+    "error": {
+      "code": "OTP_INVALID_OR_EXPIRED",
+      "message": "This code is invalid or has expired. Request a new one.",
+      "request_id": "22TYA9KNH9RJBPPTT6BSVYSVPD"
+    }
+  }
+}

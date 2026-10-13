@@ -1,0 +1,40 @@
+# Managed by Ansible (deploy/host/roles/hardening). Kernel and network hardening.
+# Docker needs IPv4 forwarding: it stays on, and is written down here so a later
+# "sysctl --system" cannot turn it off under a running stack.
+net.ipv4.ip_forward = 1
+net.ipv6.conf.all.forwarding = 1
+
+# Spoofed sources: loose reverse-path filtering (2), the setting that is safe with Docker's
+# bridges and WireGuard's routes; strict (1) can drop legitimate asymmetric traffic.
+net.ipv4.conf.all.rp_filter = 2
+net.ipv4.conf.default.rp_filter = 2
+# No ICMP redirects, accepted or sent.
+net.ipv4.conf.all.accept_redirects = 0
+net.ipv4.conf.default.accept_redirects = 0
+net.ipv4.conf.all.secure_redirects = 0
+net.ipv4.conf.default.secure_redirects = 0
+net.ipv6.conf.all.accept_redirects = 0
+net.ipv6.conf.default.accept_redirects = 0
+net.ipv4.conf.all.send_redirects = 0
+net.ipv4.conf.default.send_redirects = 0
+net.ipv4.conf.all.accept_source_route = 0
+net.ipv4.conf.default.accept_source_route = 0
+net.ipv6.conf.all.accept_source_route = 0
+net.ipv4.conf.all.log_martians = 1
+net.ipv4.icmp_echo_ignore_broadcasts = 1
+net.ipv4.icmp_ignore_bogus_error_responses = 1
+net.ipv4.tcp_syncookies = 1
+
+# Kernel
+kernel.randomize_va_space = 2
+kernel.kptr_restrict = 2
+kernel.dmesg_restrict = 1
+kernel.sysrq = 0
+kernel.yama.ptrace_scope = 1
+kernel.unprivileged_bpf_disabled = 1
+net.core.bpf_jit_harden = 2
+fs.protected_symlinks = 1
+fs.protected_hardlinks = 1
+fs.protected_fifos = 2
+fs.protected_regular = 2
+fs.suid_dumpable = 0

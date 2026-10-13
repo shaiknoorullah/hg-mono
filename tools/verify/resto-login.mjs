@@ -2,10 +2,11 @@
 // queue, capture every backend call. Proves CORS + X-HG-Client + baseURL + bearer
 // + response-shape all line up. Run from repo root: node tools/verify/resto-login.mjs
 import { chromium } from 'playwright';
+import { requireEnv } from './env.mjs';
 
 const APP = process.env.APP_URL ?? 'http://localhost:5173';
-const EMAIL = process.env.SEED_EMAIL ?? 'resto@demo.hg';
-const PASSWORD = process.env.SEED_PASSWORD ?? 'Resto@1234';
+const EMAIL = requireEnv('SEED_EMAIL');
+const PASSWORD = requireEnv('SEED_PASSWORD');
 
 const calls = [];
 const consoleErrors = [];

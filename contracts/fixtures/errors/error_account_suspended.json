@@ -1,0 +1,25 @@
+{
+  "scenario": "error_account_suspended",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`403` · `ACCOUNT_SUSPENDED`. The signed-in account is suspended; the app routes to the on-hold screen. Contract-only: `services/hg` answers a suspended account with `ACCOUNT_NOT_ACTIVE` at sign-in (`error_account_not_active`) and `SESSION_REVOKED` at refresh (`error_session_revoked`); handle all three.",
+  "operations": [
+    "getCurrentPrincipal",
+    "refreshSession"
+  ],
+  "status": 403,
+  "tags": [
+    "error-envelope",
+    "error-path",
+    "customer",
+    "auth",
+    "session"
+  ],
+  "payload": {
+    "error": {
+      "code": "ACCOUNT_SUSPENDED",
+      "message": "Your account is on hold. Contact support.",
+      "request_id": "G8SZ6D37HVQPWMVH056F6QKXT4"
+    }
+  }
+}

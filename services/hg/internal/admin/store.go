@@ -7,6 +7,9 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/notify"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders"
 )
 
 // ErrNotFound is returned by the repository when a row does not exist.
@@ -20,6 +23,16 @@ var ErrNotFound = errors.New("admin: not found")
 type Repo struct {
 	pool      *pgxpool.Pool
 	fileCheck ScannedFileCheck
+
+	// notify and inviter send the messages a decision or an invitation owes
+	// someone, inside the same transaction (internal/notify). Nil sends
+	// nothing, which only tests rely on.
+	notify  notify.TxEnqueuer
+	inviter notify.StaffInviter
+
+	// orders is the orders module's store with its notification emitter
+	// (WithOrdersStore). Nil builds one with none, which only tests rely on.
+	orders *orders.Store
 }
 
 // NewRepo builds the repository over the shared pool.
@@ -39,6 +52,22 @@ type ScannedFileCheck func(ctx context.Context, objectID, actorAccountID, reques
 // content version, but does not look at the bytes in the store.
 func (r *Repo) WithScannedFileCheck(check ScannedFileCheck) *Repo {
 	r.fileCheck = check
+	return r
+}
+
+// WithNotifications wires the notification outbox and the staff inviter
+// (auth.Module.StaffInviter). Call once at boot.
+func (r *Repo) WithNotifications(enq notify.TxEnqueuer, inviter notify.StaffInviter) *Repo {
+	r.notify = enq
+	r.inviter = inviter
+	return r
+}
+
+// WithOrdersStore wires the orders module's store that carries the
+// notification emitter (cmd/hg/main.go), so a staff cancel notifies the
+// customer like every other order transition. Call once at boot.
+func (r *Repo) WithOrdersStore(st *orders.Store) *Repo {
+	r.orders = st
 	return r
 }
 

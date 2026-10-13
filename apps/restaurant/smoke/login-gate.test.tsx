@@ -142,11 +142,11 @@ describe('restaurant app — login gate', () => {
     const { fireEvent, waitFor } = await renderAndSignIn('/login');
 
     // Still signed out: the password step gives way to the code, and nothing protected shows.
-    const code = await screen.findByLabelText('6-digit authentication code', { exact: false });
+    const code = (await screen.findAllByRole('textbox', { name: /^6-digit authentication code/ }))[0]!;
     expect(screen.queryByLabelText('Password', { exact: false })).toBeNull();
     expect(screen.queryByRole('link', { name: 'Orders' })).toBeNull();
 
-    fireEvent.change(code, { target: { value: '123456' } });
+    fireEvent.paste(code, { clipboardData: { getData: () => '123456' } });
     fireEvent.click(screen.getByRole('button', { name: 'Verify and sign in' }));
 
     await waitFor(

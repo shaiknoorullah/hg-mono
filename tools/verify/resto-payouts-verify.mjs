@@ -3,19 +3,11 @@
 // payouts UX fix (neutral explanation, not a scary red error card).
 // Run: node tools/verify/resto-payouts-verify.mjs
 import { chromium } from 'playwright';
-import { execSync } from 'node:child_process';
+import { requireEnv, totpNow as totp } from './env.mjs';
 
 const APP = 'http://localhost:5190';
-const EMAIL = 'resto-qa@demo.hg';
-const PASSWORD = 'Resto@1234';
-const SECRET = '3E2AMKTIAML53ETZPY4LKJGAGYO5QBTM';
-
-function totp() {
-  return execSync(
-    `cd services/hg && SECRET=${SECRET} go run ./cmd/totpnow`,
-    { cwd: process.cwd() },
-  ).toString().trim();
-}
+const EMAIL = requireEnv('SEED_EMAIL');
+const PASSWORD = requireEnv('SEED_PASSWORD');
 
 const calls = [];
 const corsErrors = [];

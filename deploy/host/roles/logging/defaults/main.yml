@@ -1,0 +1,4 @@
+hg_logging_dir: "{{ hg_ops_dir }}/logging"
+# Logs stay on this server: 30 days, and never more than this much disk.
+hg_logs_retention: 30d
+hg_logs_max_disk: 10GiB

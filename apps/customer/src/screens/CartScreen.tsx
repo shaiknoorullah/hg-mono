@@ -11,6 +11,10 @@
  * A line whose `availability.is_available` is false is annotated, never silently dropped (R-19):
  * the customer sees exactly why, and the "Continue to checkout" button is disabled while the cart
  * is not quotable.
+ *
+ * While staff have paused new orders (#388) — the public config says so, or the cart's
+ * `blocking_reasons` carries `ORDERING_PAUSED` — the cart says ordering is paused and offers no
+ * checkout at all.
  */
 import * as React from 'react';
 import { ScrollView, Text, View } from 'react-native';
@@ -33,6 +37,7 @@ import {
 import { clearCart, getCart, removeLine, setLineQuantity } from '../api/cart';
 import { errorCodeOf } from '../api/async';
 import { useNavigation } from '../navigation/stack';
+import { ORDERING_PAUSED, OrderingPausedNotice, useOrderingPause } from '../ordering/orderingPause';
 
 type Cart = Schema['Cart'];
 type CartLine = Schema['CartLine'];
@@ -122,6 +127,7 @@ function Body({
   const theme = useTheme();
   const labelStyle = useTypeStyle('label.lg');
   const bodyStyle = useTypeStyle('body.md');
+  const { paused: configPaused } = useOrderingPause();
 
   if (state.kind === 'loading') {
     return (
@@ -140,6 +146,7 @@ function Body({
   }
 
   const { cart } = state;
+  const orderingPaused = configPaused || (cart.blocking_reasons ?? []).includes(ORDERING_PAUSED);
 
   if (cart.lines.length === 0) {
     return (
@@ -182,7 +189,9 @@ function Body({
           borderTopColor: theme.color.border.decorative,
         }}
       >
-        {!cart.is_quotable ? (
+        {orderingPaused ? (
+          <OrderingPausedNotice />
+        ) : !cart.is_quotable ? (
           <Banner
             variant="warning"
             title="Not ready to check out"
@@ -201,9 +210,11 @@ function Body({
           <Price cents={cents(cart.indicative_subtotal_cents)} size="lg" />
         </View>
 
-        <Button variant="primary" fullWidth onPress={onCheckout} disabled={!cart.is_quotable}>
-          Continue to checkout
-        </Button>
+        {orderingPaused ? null : (
+          <Button variant="primary" fullWidth onPress={onCheckout} disabled={!cart.is_quotable}>
+            Continue to checkout
+          </Button>
+        )}
         <Button variant="ghost" onPress={onClear} disabled={mutating === '__all__'}>
           Clear cart
         </Button>
@@ -226,6 +237,15 @@ function LineRow({
   const subStyle = useTypeStyle('body.sm');
   const unavailable = !line.availability.is_available;
 
+  // Every chosen variant (one per group; the deprecated `variant` is null when there are several)
+  // and every chosen add-on, by name.
+  const choices = [
+    ...(line.variants?.length ? line.variants.map((v) => v.variant_name) : [line.variant?.name]),
+    ...(line.addons ?? []).map((a) => a.name),
+  ]
+    .filter(Boolean)
+    .join(' · ');
+
   return (
     <View
       style={{
@@ -241,10 +261,8 @@ function LineRow({
     >
       <View style={{ flex: 1, gap: 4 }}>
         <Text style={[nameStyle, { color: theme.color.text.primary }]}>{line.name}</Text>
-        {line.variant ? (
-          <Text style={[subStyle, { color: theme.color.text.secondary }]}>
-            {line.variant.name}
-          </Text>
+        {choices ? (
+          <Text style={[subStyle, { color: theme.color.text.secondary }]}>{choices}</Text>
         ) : null}
         {unavailable ? (
           <Text style={[subStyle, { color: theme.color.text.tertiary }]}>

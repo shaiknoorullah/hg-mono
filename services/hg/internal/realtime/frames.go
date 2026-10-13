@@ -158,7 +158,7 @@ type reauthRequiredData struct {
 const (
 	CloseNormal         = 1000
 	CloseGoingAway      = 1001
-	CloseTryAgainLater  = 1013 // slow_consumer or at_capacity: reconnect, then resume
+	CloseTryAgainLater  = 1013 // slow_consumer, at_capacity or connection_limit: reconnect, then resume
 	CloseMalformedFrame = 4400
 	CloseUnauthorized   = 4401 // session_revoked, reauth_timeout, ticket invalid
 	CloseOriginNotAllow = 4403

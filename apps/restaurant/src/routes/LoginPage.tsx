@@ -95,6 +95,15 @@ export function LoginPage() {
             <Button type="submit" loading={busy} fullWidth className="mt-1">
               {needsTotp ? 'Verify and sign in' : 'Sign in'}
             </Button>
+            {!needsTotp && (
+              <p className="m-0 text-body-sm text-fg-secondary">
+                Forgot your password?{' '}
+                <Link to="/reset-password" className="font-semibold text-fg-link">
+                  Reset it by email
+                </Link>
+                .
+              </p>
+            )}
             {needsTotp && (
               <button
                 type="button"

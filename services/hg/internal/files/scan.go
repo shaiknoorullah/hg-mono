@@ -24,7 +24,7 @@ import (
 // key (https://github.com/shaiknoorullah/hg-mono/issues/218). Each verdict is
 // recorded with the SHA-256 of the bytes it is about and the object's
 // content_version, and the database accepts CLEAN only when both match the
-// object's current ones (migration 00031_virus_scan, CHECK
+// object's current ones (migration 00071_virus_scan, CHECK
 // stored_object_clean_is_bound).
 //
 // The queue is the table itself, so a restart, a Redis flush or a second
@@ -34,7 +34,7 @@ import (
 //
 // When the scanner is down the worker backs off and tries again; documents wait
 // in PENDING meanwhile and cannot be approved, because the database refuses to
-// approve a KYC document whose file is not CLEAN (migration 00031_virus_scan).
+// approve a KYC document whose file is not CLEAN (migration 00071_virus_scan).
 type ScanWorker struct {
 	pool     *pgxpool.Pool
 	objects  ObjectStore

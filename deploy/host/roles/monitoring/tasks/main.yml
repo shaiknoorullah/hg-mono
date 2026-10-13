@@ -1,0 +1,82 @@
+- name: Refuse to send alerts nowhere
+  ansible.builtin.assert:
+    that:
+      - hg_alert_email_to | default('') | length > 0
+      - "'__' not in hg_alert_email_to | default('')"
+    fail_msg: "Set hg_alert_email_to in the inventory: the address alerts are emailed to."
+    quiet: true
+
+- name: Create the monitoring folders
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - "{{ hg_monitoring_dir }}"
+    - "{{ hg_monitoring_dir }}/rules"
+
+- name: Write the monitoring configs
+  ansible.builtin.template:
+    src: "{{ item.src }}"
+    dest: "{{ hg_monitoring_dir }}/{{ item.dest }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - {src: compose.yml.j2, dest: compose.yml}
+    - {src: scrape.yml.j2, dest: scrape.yml}
+    - {src: alertmanager.yml.j2, dest: alertmanager.yml}
+    - {src: gatus.yaml.j2, dest: gatus.yaml}
+    - {src: rules-host.yml.j2, dest: rules/host.yml}
+    - {src: rules-backups.yml.j2, dest: rules/backups.yml}
+    - {src: rules-services.yml.j2, dest: rules/services.yml}
+    - {src: rules-security.yml.j2, dest: rules/security.yml}
+  loop_control:
+    label: "{{ item.dest }}"
+  when: item.dest != 'rules/security.yml' or hg_security_rules | bool
+  notify: Restart the monitoring stack
+
+# Alertmanager runs as nobody (65534): the password file is readable by that group only.
+- name: Write the SMTP password for Alertmanager
+  ansible.builtin.copy:
+    content: "{{ hg_alert_smtp_password | default('') }}"
+    dest: "{{ hg_monitoring_dir }}/smtp_password"
+    owner: root
+    group: "65534"
+    mode: "0440"
+  no_log: true
+  diff: false
+  notify: Restart the monitoring stack
+
+- name: Write the secrets Gatus and postgres-exporter read, readable by root only
+  ansible.builtin.copy:
+    content: "{{ item.content }}"
+    dest: "{{ hg_monitoring_dir }}/{{ item.dest }}"
+    owner: root
+    group: root
+    mode: "0600"
+  loop:
+    - dest: gatus.env
+      content: "GATUS_SMTP_PASSWORD={{ hg_alert_smtp_password | default('') }}\n"
+    - dest: postgres-exporter.env
+      content: >-
+        DATA_SOURCE_NAME=postgresql://hg_monitor:{{ hg_monitor_postgres_password | default("") | urlencode }}@{{
+        hg_postgres_host }}:5432/{{ hg_postgres_db }}?sslmode=disable
+  loop_control:
+    label: "{{ item.dest }}"
+  when: item.dest != 'postgres-exporter.env' or 'postgres_exporter' in hg_monitoring_components
+  no_log: true
+  diff: false
+  notify: Restart the monitoring stack
+
+- name: Run the monitoring stack
+  community.docker.docker_compose_v2:
+    project_src: "{{ hg_monitoring_dir }}"
+    state: present
+    pull: missing
+    remove_orphans: true
+  when: hg_docker_ready
+  # In check mode the folder above was not created.
+  ignore_errors: "{{ ansible_check_mode }}"

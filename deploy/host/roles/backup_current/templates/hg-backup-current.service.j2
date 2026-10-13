@@ -1,0 +1,12 @@
+# Managed by Ansible (deploy/host/roles/backup_current).
+[Unit]
+Description=Nightly HalalGoes backup (Postgres dump and Silo buckets)
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/hg-backup-current
+Nice=10
+IOSchedulingClass=idle
+TimeoutStartSec=2h

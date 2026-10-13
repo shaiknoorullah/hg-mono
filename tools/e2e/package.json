@@ -1,0 +1,16 @@
+{
+  "name": "@hg/e2e",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "End-to-end flows against the real HalalGoes API: the seeded world, Playwright for the restaurant and admin web apps, Maestro for the customer and rider APKs. Run by .github/workflows/e2e.yml; how to run it: README.md.",
+  "scripts": {
+    "web": "playwright test --config web/playwright.config.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.50.1",
+    "@types/node": "^22.10.0",
+    "typescript": "^5.9.0"
+  }
+}
