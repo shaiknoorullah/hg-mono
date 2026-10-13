@@ -82,3 +82,14 @@ condition = "AND"
 paths = ['''^services/hg/internal/realtime/[^/]+_test\.go$''']
 regexTarget = "secret"
 regexes = ['''^dGhlIHNhbXBsZSBub25jZQ==$''']
+
+# A made-up email-link token in the redesign restaurant sign-in spec, in commit
+# 4958e3cc of #782. The test serves its response from a mocked route, so it was
+# never a credential; the spec now uses an obviously fake value. Exact value, and
+# only in that file.
+[[allowlists]]
+description = "Made-up email-link token in an old commit of the redesign restaurant sign-in spec"
+condition = "AND"
+paths = ['''^tools/e2e/web/redesign-restaurant\.sign-in\.spec\.ts$''']
+regexTarget = "secret"
+regexes = ['''^tok_e2e_0123456789abcdefghijklmnopqrstuv$''']

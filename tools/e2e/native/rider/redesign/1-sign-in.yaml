@@ -1,0 +1,83 @@
+# Rider redesign WP1: sign in (R01 phone, R02 code, R03 opening) against devworld.
+# Cold start → "Sign in or apply to ride" → airplane mode on Send code ("You are offline", nothing
+# sent) → back online → code screen → a wrong code once shows the tries left → 000000 → the
+# splash → Home (the three-tab shell).
+#
+# It signs in once for the whole run: the flows after it (in name order) keep this session
+# (launchApp with stopApp: false). Built with EXPO_PUBLIC_HG_REDESIGN=1 and a cleared Metro cache.
+# Env: PHONE (E.164) and CODE. In CI, run.sh passes the e2e world's rider and the code
+# 1-ask-for-code.yaml asked for; asking again inside that open challenge returns the same one.
+# The defaults are devworld's rider-sim, whose code is always 000000.
+# Each default is written ${VAR || "…"}: a plain value under env: would override the -e values
+# run.sh passes, and CI would sign in devworld's rider-sim, who is not a rider in the e2e world.
+appId: com.halalgoes.rider.dev
+name: rider redesign, sign in
+env:
+  PHONE: ${PHONE || "+15550100151"}
+  WRONG_CODE: ${WRONG_CODE || "111111"}
+  CODE: ${CODE || "000000"}
+---
+- launchApp:
+    clearState: true
+    permissions:
+      all: allow
+- extendedWaitUntil:
+    visible: "Sign in or apply to ride"
+    timeout: 90000
+- assertVisible: "Canadian numbers only (+1)."
+- takeScreenshot: rider-wp1-01-phone
+- tapOn:
+    id: "phone-field"
+- inputText: ${PHONE}
+- hideKeyboard
+
+# Offline: Send code sends nothing and says so (SO SignIn-Phone-Offline).
+- setAirplaneMode: enabled
+- tapOn: "Send code"
+- extendedWaitUntil:
+    visible: "You are offline"
+    timeout: 20000
+- assertVisible: "Nothing was sent. Connect to mobile data or Wi-Fi, then try again."
+- takeScreenshot: rider-wp1-02-phone-offline
+- setAirplaneMode: disabled
+# The screen re-reads PublicConfig every 5 s while offline; its answer clears the alert.
+- extendedWaitUntil:
+    notVisible: "You are offline"
+    timeout: 60000
+
+- tapOn: "Send code"
+- extendedWaitUntil:
+    visible: "Enter your code"
+    timeout: 30000
+- assertVisible: "We sent a 6-digit code to the number ending \\d{4}\\."
+- takeScreenshot: rider-wp1-03-code
+
+# A wrong code clears the field and says how many tries are left (SO SignIn-Code-Incorrect).
+- tapOn:
+    id: "code-cell-0"
+- inputText: ${WRONG_CODE}
+- extendedWaitUntil:
+    visible: ".*That code is not right\\. You have \\d tr(y|ies) left\\..*"
+    timeout: 30000
+- takeScreenshot: rider-wp1-04-code-incorrect
+
+# The right code: the 6th digit checks it by itself.
+- tapOn:
+    id: "code-cell-0"
+- inputText: ${CODE}
+- extendedWaitUntil:
+    visible: "Earnings"
+    timeout: 60000
+- assertVisible: "Account"
+- takeScreenshot: rider-wp1-05-home
+
+# The redesigned shell: three tabs, Home, Earnings, Account (rider decision "Rider navigation").
+- tapOn:
+    id: "tab-earnings"
+- takeScreenshot: rider-redesign-02-earnings-tab
+- tapOn:
+    id: "tab-account"
+- takeScreenshot: rider-redesign-03-account-tab
+- tapOn:
+    id: "tab-home"
+- assertVisible: "Earnings"

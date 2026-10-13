@@ -1,0 +1,22 @@
+{
+  "scenario": "error_geofence_required",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`422` · `GEOFENCE_REQUIRED`. A transition that needs the rider at the pickup or drop-off, sent from too far away and without `override_reason`. The app offers \"I'm here\" with a reason, which makes it a flagged manual transition.",
+  "operations": [
+    "createAssignmentTransition"
+  ],
+  "status": 422,
+  "tags": [
+    "error-envelope",
+    "error-path",
+    "rider"
+  ],
+  "payload": {
+    "error": {
+      "code": "GEOFENCE_REQUIRED",
+      "message": "You must be near the location, or supply an override reason.",
+      "request_id": "93DTSW1CYFD6QXBEGMN2CHWDZF"
+    }
+  }
+}

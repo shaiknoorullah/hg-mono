@@ -1,7 +1,7 @@
 ---
 covers:
   - apps/restaurant/src/**
-reviewed: 2026-10-09
+reviewed: 2026-10-11
 ---
 
 # What the old restaurant web app teaches the redesign
@@ -11,7 +11,20 @@ reviewed: 2026-10-09
 > ([#89](https://github.com/shaiknoorullah/hg-mono/issues/89), tracking
 > [#658](https://github.com/shaiknoorullah/hg-mono/issues/658)). Until a redesigned screen lands, the
 > redesign hosts the legacy screen for that route inside the new shell. This brief still describes
-> the old Next.js app and what the redesign takes from it; nothing below changes.
+> the old Next.js app and what the redesign takes from it; nothing below changes. The new-order
+> strip (accept, decline with a reason, the order sound and the go-live gate) is redesigned in
+> `src/redesign/strip/`. The Live orders board (In progress list, order panel, Mark ready and the
+> pickup code), the service status bar and the halal banners are in `src/redesign/orders/` and
+> `src/redesign/status/`.
+>
+> **2026-10-10 (WP9, Hours):** `/hours` is now the redesigned screen in the flag-on build
+> (`src/redesign/hours/`). It answers the [Settings and profile](#8-settings-and-profile) section's "single interval" finding: each day is Closed or up to
+> 3 ranges, a closing time earlier than the opening time runs past midnight (`crosses_midnight`),
+> and special dates (closed, other hours, 24 hours) sit beside the week, each saved on its own.
+> The "Automatic scheduling" switch is not offered: the Right now card says "Outside your opening
+> hours" and explains why switching New orders on does not open you, as that section recommends. The
+> accepting-orders control also lives on this page (the Right now card), beside the status bar's
+> on every screen; both read and write the same availability.
 
 > **2026-10-05:** the new app adds what the old one never had — a live "rider approaching" map on
 > accepted orders, drawn from the coarse realtime position
@@ -649,7 +662,7 @@ Each is a `Card` with `Price`, and each blank shows "—" rather than an invente
 - The **halal certificate row shows `HalalBadge` UNVERIFIED** (dashed and neutral) until it is approved. Never green before approval, never red after rejection.
 
 **FIX_DOCUMENTS** gets the old rejected page's structure:
-- The rejection summary: `rejection.reason_code` and `note`, word for word.
+- The rejection summary: `rejection.reason_code` and `note`, word for word. `rejection.decision` tells a request for changes (`REQUEST_CHANGES`: fix and resubmit) from a `REJECT` (the screen shows the reason and no "Go to documents" button).
 - **Each rejected document listed with its own `rejection_reason_code` and a button that goes straight to that document.**
 - A "What to do next" list.
 - Contact support.

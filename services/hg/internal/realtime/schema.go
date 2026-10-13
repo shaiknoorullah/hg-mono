@@ -185,8 +185,8 @@ var enumValues = func() map[reflect.Type][]string {
 			contract.RefundReasonCodeORDERNEVERARRIVED, contract.RefundReasonCodeOTHER,
 			contract.RefundReasonCodePLATFORMERROR, contract.RefundReasonCodePLATFORMINITIATEDCANCELLATION,
 			contract.RefundReasonCodePRICINGERROR, contract.RefundReasonCodeRESTAURANTCANCELLED,
-			contract.RefundReasonCodeRESTAURANTREJECTED, contract.RefundReasonCodeWRONGITEM,
-			contract.RefundReasonCodeWRONGITEMS,
+			contract.RefundReasonCodeRESTAURANTREJECTED, contract.RefundReasonCodeWRONGADDRESS,
+			contract.RefundReasonCodeWRONGITEM, contract.RefundReasonCodeWRONGITEMS,
 		),
 		enumOf(
 			contract.RefundStateAPPROVED, contract.RefundStateAUTHORISED, contract.RefundStateCANCELLED,

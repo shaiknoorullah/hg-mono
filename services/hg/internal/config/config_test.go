@@ -530,3 +530,24 @@ func TestLoadRefusesDevworldTabletsOutsideLocal(t *testing.T) {
 		}
 	}
 }
+
+// HG_AUTH_CSRF_COOKIE_DOMAIN is empty (host-only) by default, takes a parent
+// domain such as .halalgoes.com, and refuses a URL
+// (https://github.com/shaiknoorullah/hg-mono/issues/740).
+func TestCSRFCookieDomain(t *testing.T) {
+	env := validEnv()
+	cfg, err := Load(getenvFrom(env))
+	if err != nil || cfg.CSRFCookieDomain != "" {
+		t.Fatalf("default = %q, %v; want empty (host-only)", cfg.CSRFCookieDomain, err)
+	}
+	env["HG_AUTH_CSRF_COOKIE_DOMAIN"] = ".halalgoes.com"
+	if cfg, err := Load(getenvFrom(env)); err != nil || cfg.CSRFCookieDomain != ".halalgoes.com" {
+		t.Fatalf("parent domain = %q, %v; want .halalgoes.com", cfg.CSRFCookieDomain, err)
+	}
+	for _, bad := range []string{"https://halalgoes.com", "halalgoes.com:443", ".halalgoes.com/v1", "localhost"} {
+		env["HG_AUTH_CSRF_COOKIE_DOMAIN"] = bad
+		if _, err := Load(getenvFrom(env)); err == nil || !strings.Contains(err.Error(), "HG_AUTH_CSRF_COOKIE_DOMAIN") {
+			t.Errorf("%q: err = %v, want it refused", bad, err)
+		}
+	}
+}

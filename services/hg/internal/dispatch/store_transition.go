@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/handover"
 )
 
 // assignmentForward is the strictly-forward transition graph (D-20 / §0.4). A
@@ -54,6 +56,9 @@ type TransitionInput struct {
 	AccuracyM      *float64
 	OccurredAt     time.Time
 	OverrideReason *string
+	// PickupCode is the code the kitchen read out, for PICKED_UP only
+	// (contract PickupTransitionInput). It is compared and never echoed.
+	PickupCode *string
 }
 
 // Transition advances an assignment one forward step. It validates the machine,
@@ -112,6 +117,32 @@ FOR UPDATE OF asn`, assignmentID, riderAccountID).Scan(
 	if !isForward(cur, in.ToState) {
 		return nil, false, newError(409, CodeInvalidTransition, "That transition is not allowed.",
 			map[string]any{"current_state": cur})
+	}
+
+	// PICKED_UP needs the pickup code, and nothing stands in for it: no
+	// override_reason, no geofence (handover_codes.go). The order row is locked
+	// after the assignment, the lock order every code check uses. A refusal
+	// commits first, so a counted wrong code and a lock alert survive it.
+	//
+	// The code is asked for only when the pickup could otherwise go ahead: the
+	// order is waiting at the counter and this rider holds its delivery. Any
+	// other order is refused by the order move below (pickup.go) without
+	// touching the code, so a pickup that is not allowed never counts a try.
+	codeDue, err := pickupCodeDue(ctx, tx, in.ToState, orderID, riderAccountID)
+	if err != nil {
+		return nil, false, err
+	}
+	if codeDue {
+		refusal, err := codeGate(ctx, tx, orderID, handover.Pickup, in.PickupCode)
+		if err != nil {
+			return nil, false, err
+		}
+		if refusal != nil {
+			if err := tx.Commit(ctx); err != nil {
+				return nil, false, err
+			}
+			return nil, false, refusal
+		}
 	}
 
 	// Geofence precondition. A failure does not trap the rider: an override_reason
@@ -199,7 +230,7 @@ VALUES ($1, $2, $3, 'RIDER', $4, $5, $6)`,
 	// Terminal ⇒ restore availability in the same transaction (D-10). The rider
 	// returns to ONLINE_IDLE, or OFFLINE if they asked to end the shift.
 	if terminalAssignment(in.ToState) {
-		if err := s.restoreAvailabilityTx(ctx, tx, riderAccountID); err != nil {
+		if err := restoreAvailabilityTx(ctx, tx, riderAccountID); err != nil {
 			return nil, false, err
 		}
 		// Advance the dispatch row to COMPLETED on DELIVERED so the rider is no
@@ -234,12 +265,27 @@ UPDATE dispatch SET state = 'COMPLETED', state_since = now(),
 	return asn, true, err
 }
 
-// restoreAvailabilityTx returns a rider from ON_DELIVERY to ONLINE_IDLE (or
-// OFFLINE if go_offline_after_delivery), inside the caller's transaction.
-func (s *Store) restoreAvailabilityTx(ctx context.Context, tx pgx.Tx, riderAccountID string) error {
-	return restoreAvailabilityTx(ctx, tx, riderAccountID)
+// pickupCodeDue reports whether a step must pass the pickup code: a PICKED_UP
+// of an order that is READY_FOR_PICKUP and whose live dispatch this rider
+// holds. It locks the order row, after the assignment row.
+func pickupCodeDue(ctx context.Context, tx pgx.Tx, toState, orderID, riderAccountID string) (bool, error) {
+	if toState != "PICKED_UP" {
+		return false, nil
+	}
+	var due bool
+	err := tx.QueryRow(ctx, `
+SELECT o.state = 'READY_FOR_PICKUP'
+       AND EXISTS (SELECT 1 FROM dispatch d
+                    WHERE d.order_id = o.id AND d.rider_account_id = $2
+                      AND d.state IN ('ASSIGNED', 'AT_RESTAURANT', 'CARRYING'))
+  FROM "order" o
+ WHERE o.id = $1
+   FOR UPDATE OF o`, orderID, riderAccountID).Scan(&due)
+	return due, err
 }
 
+// restoreAvailabilityTx returns a rider from ON_DELIVERY to ONLINE_IDLE (or
+// OFFLINE if go_offline_after_delivery), inside the caller's transaction.
 func restoreAvailabilityTx(ctx context.Context, tx pgx.Tx, riderAccountID string) error {
 	var from, to string
 	err := tx.QueryRow(ctx, `
@@ -313,13 +359,34 @@ type PodInput struct {
 	Attestation    *string
 }
 
-// RecordPod records proof of delivery. The method must match the assignment's
-// required_pod_method. OTP is verified against the order's stored delivery OTP;
-// PHOTO requires a READY object with purpose POD owned by the rider. On success
-// it sets pod_recorded=true and stores the artefact so DELIVERED can commit.
+// podMethodAccepted reports whether a submitted proof method satisfies the
+// assignment's required one. A met handover (OTP) accepts only the customer's
+// delivery code: a photo or a statement never replaces it, before or after the
+// code locks. Where a photo is required, a photo with a statement is accepted
+// too (round-2 decisions, "Leave at door"; contracts/openapi.yaml,
+// submitProofOfDelivery).
+func podMethodAccepted(required, method string) bool {
+	if required == "PHOTO" {
+		return method == "PHOTO" || method == "PHOTO_WITH_ATTESTATION"
+	}
+	return method == required
+}
+
+// RecordPod records proof of delivery, which DELIVERED then requires in its own
+// transaction (docs/spec/04-rider.md, "D-21 — Proof of delivery"). The method
+// must satisfy the assignment's required_pod_method (podMethodAccepted). A met
+// handover is proved only by the customer's delivery code, compared in constant
+// time against the code stored on the order, with five wrong codes per order
+// before it locks and the order goes to support (handover_codes.go;
+// https://github.com/shaiknoorullah/hg-mono/issues/259).
+// A photo must be a READY object with purpose POD.
 //
-// The OTP verification path is intentionally strict: five wrong attempts lock the
-// code (OTP_LOCKED) and the rider must fall back to photo-with-attestation.
+// Only the order's current rider proves the handover: the assignment row is
+// locked, and one that has ended (the order was moved to another rider, or
+// cancelled) is refused before anything is compared. The wrong-code count
+// lives on the order, so an old assignment id must never reach it: that rider
+// could otherwise test guesses, or spend the next rider's five tries and lock
+// the code.
 func (s *Store) RecordPod(ctx context.Context, riderAccountID, assignmentID string, in PodInput) (*Assignment, error) {
 	tx, err := s.db.Begin(ctx)
 	if err != nil {
@@ -327,36 +394,69 @@ func (s *Store) RecordPod(ctx context.Context, riderAccountID, assignmentID stri
 	}
 	defer tx.Rollback(ctx)
 
-	var requiredPod, state string
+	var requiredPod, orderID, state string
 	var podObjectID *string
+	var podRecorded, ended bool
 	err = tx.QueryRow(ctx, `
-SELECT required_pod_method, state::text, pod_object_id
+SELECT COALESCE(required_pod_method::text, ''), order_id, pod_object_id, pod_recorded,
+       state::text, terminated_at IS NOT NULL
 FROM assignment WHERE id = $1 AND rider_account_id = $2 FOR UPDATE`,
-		assignmentID, riderAccountID).Scan(&requiredPod, &state, &podObjectID)
+		assignmentID, riderAccountID).Scan(&requiredPod, &orderID, &podObjectID, &podRecorded, &state, &ended)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, errAssignmentNotFound
 	}
 	if err != nil {
 		return nil, err
 	}
+	if ended {
+		return nil, newError(409, CodeInvalidTransition, "This assignment has ended.",
+			map[string]any{"current_state": state})
+	}
 
 	if requiredPod == "" {
 		return nil, newError(422, CodePodRequired, "This delivery does not require proof of delivery.", nil)
 	}
-	// PHOTO_WITH_ATTESTATION is the fallback and is always acceptable; otherwise
-	// the submitted method must equal the required method.
-	if in.Method != requiredPod && in.Method != "PHOTO_WITH_ATTESTATION" {
-		return nil, newError(422, CodePodMethodMismatch, "Wrong proof-of-delivery method.",
+	if !podMethodAccepted(requiredPod, in.Method) {
+		msg := "Wrong proof-of-delivery method."
+		if requiredPod == "OTP" {
+			msg = "This delivery needs a code from the customer, not a photo."
+		}
+		return nil, newError(422, CodePodMethodMismatch, msg,
 			map[string]any{"required_pod_method": requiredPod})
 	}
 
 	switch in.Method {
 	case "OTP":
-		if in.OtpCode == nil {
-			return nil, newError(422, CodePodRequired, "An OTP code is required.", nil)
+		// The customer reads the code out at the door, so it is typed there:
+		// at ARRIVED_AT_DROPOFF, the step a met handover's DELIVERED follows
+		// (proof of delivery gates ARRIVED_AT_DROPOFF → DELIVERED:
+		// https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/04-rider.md#d-21--proof-of-delivery)
+		// and the one support's override waits on. Anywhere else nothing is
+		// compared or counted, so a rider cannot spend the five tries, or lock
+		// the code, before reaching the customer (before pickup there is not
+		// even a code to compare).
+		if state != "ARRIVED_AT_DROPOFF" {
+			return nil, newError(409, CodeInvalidTransition,
+				"Enter the customer's code at the drop-off.",
+				map[string]any{"current_state": state})
 		}
-		if err := s.verifyDeliveryOtpTx(ctx, tx, assignmentID, *in.OtpCode); err != nil {
+		// A repeat after the code was accepted is a no-op: the code is not
+		// compared again and nothing is counted.
+		if podRecorded {
+			if err := tx.Commit(ctx); err != nil {
+				return nil, err
+			}
+			return s.LoadAssignment(ctx, riderAccountID, assignmentID)
+		}
+		refusal, err := codeGate(ctx, tx, orderID, handover.Delivery, in.OtpCode)
+		if err != nil {
 			return nil, err
+		}
+		if refusal != nil {
+			if err := tx.Commit(ctx); err != nil {
+				return nil, err
+			}
+			return nil, refusal
 		}
 	case "PHOTO", "PHOTO_WITH_ATTESTATION":
 		if in.PhotoObjectID == nil {
@@ -392,23 +492,6 @@ UPDATE assignment
 		return nil, err
 	}
 	return s.LoadAssignment(ctx, riderAccountID, assignmentID)
-}
-
-// verifyDeliveryOtpTx checks the customer's delivery OTP for the assignment's
-// order. There is no dedicated delivery-OTP table in the current schema, so this
-// path is not yet wired to a real code store.
-//
-// TODO(pod-otp): the delivery OTP is generated and shared with the customer by
-// the orders/notifications module; there is no delivery_otp column or table in
-// the schema yet. Until that lands, an OTP-method POD cannot be verified and this
-// returns OTP_INCORRECT rather than fabricating a pass. Riders on OTP deliveries
-// must use PHOTO_WITH_ATTESTATION in the interim.
-func (s *Store) verifyDeliveryOtpTx(ctx context.Context, tx pgx.Tx, assignmentID, code string) error {
-	_ = ctx
-	_ = tx
-	_ = assignmentID
-	_ = code
-	return newError(422, CodeOtpIncorrect, "The delivery OTP could not be verified.", nil)
 }
 
 // ---------------------------------------------------------------------------

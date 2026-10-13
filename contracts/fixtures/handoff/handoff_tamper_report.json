@@ -2,7 +2,7 @@
   "scenario": "handoff_tamper_report",
   "domain": "handoff",
   "schema": "HandoffScanResult",
-  "describes": "reportTamper's 200: DELIVERED → DISPUTED. Never a money decision by itself — it hands the scan-and-photo trail to the dispute flow (A-33/A-35).",
+  "describes": "reportTamper's 200 (later version): DELIVERED → DISPUTED. Never a money decision by itself — it hands the scan-and-photo trail to the dispute flow.",
   "operations": [
     "reportTamper"
   ],

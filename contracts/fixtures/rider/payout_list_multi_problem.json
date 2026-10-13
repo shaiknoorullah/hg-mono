@@ -1,0 +1,70 @@
+{
+  "scenario": "payout_list_multi_problem",
+  "domain": "rider",
+  "schema": "array<Payout>",
+  "describes": "Two problems at once: last week's payout `FAILED` and the week before is `HELD`. The alert names both (\"Two payouts need attention\"), not just the newest.",
+  "operations": [
+    "listRiderPayouts"
+  ],
+  "status": 200,
+  "tags": [
+    "rider",
+    "money",
+    "error-path"
+  ],
+  "meta": {
+    "next_cursor": null,
+    "has_more": false,
+    "total": 4
+  },
+  "payload": [
+    {
+      "id": "ed53fad7-7e15-4910-a095-d1f7e36b0417",
+      "period_start": "2026-08-10T04:00:00.000Z",
+      "period_end": "2026-08-17T04:00:00.000Z",
+      "amount_cents": 0,
+      "currency": "CAD",
+      "state": "DRAFT",
+      "hold_reason": null,
+      "entry_count": 0,
+      "paid_at": null,
+      "failure_message": null
+    },
+    {
+      "id": "9ae9f28c-14aa-4026-add3-0cda289ca857",
+      "period_start": "2026-08-03T04:00:00.000Z",
+      "period_end": "2026-08-10T04:00:00.000Z",
+      "amount_cents": 41235,
+      "currency": "CAD",
+      "state": "FAILED",
+      "hold_reason": null,
+      "entry_count": 23,
+      "paid_at": null,
+      "failure_message": "The bank declined the transfer: the account number on file is closed."
+    },
+    {
+      "id": "e5b383f1-7636-4695-a2c5-54f88afd7017",
+      "period_start": "2026-07-27T04:00:00.000Z",
+      "period_end": "2026-08-03T04:00:00.000Z",
+      "amount_cents": 38810,
+      "currency": "CAD",
+      "state": "HELD",
+      "hold_reason": "Payouts are paused while Stripe checks your identity. Your earnings are safe.",
+      "entry_count": 21,
+      "paid_at": null,
+      "failure_message": null
+    },
+    {
+      "id": "ca0d038c-09a3-4210-a12f-55e2a74a6c27",
+      "period_start": "2026-07-20T04:00:00.000Z",
+      "period_end": "2026-07-27T04:00:00.000Z",
+      "amount_cents": 44120,
+      "currency": "CAD",
+      "state": "PAID",
+      "hold_reason": null,
+      "entry_count": 25,
+      "paid_at": "2026-07-29T13:00:00.000Z",
+      "failure_message": null
+    }
+  ]
+}

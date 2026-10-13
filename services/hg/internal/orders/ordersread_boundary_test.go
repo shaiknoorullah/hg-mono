@@ -123,6 +123,9 @@ var (
 	orderTrackingKeys = []string{
 		"order_id", "state", "dispatch_state", "eta_at", "eta_window_minutes",
 		"restaurant_location", "destination_location", "rider_location", "rider", "timeline",
+		// The customer's delivery code for a met handover, null otherwise
+		// (https://github.com/shaiknoorullah/hg-mono/issues/310).
+		"delivery_code",
 	}
 	geoPointKeys        = []string{"latitude", "longitude"}
 	riderLocationKeys   = []string{"latitude", "longitude", "heading_deg", "speed_mps", "accuracy_m", "recorded_at", "is_coarse"}
@@ -352,7 +355,7 @@ func TestBoundaryReceiptClosedShape(t *testing.T) {
 		t.Fatal("receipt.lines must not be empty")
 	}
 	lineKeys := []string{
-		"line_no", "menu_item_id", "name", "variant_name", "addons",
+		"line_no", "menu_item_id", "name", "variant_name", "variants", "addons",
 		"quantity", "special_request", "unit_price_cents", "line_total_cents", "currency",
 	}
 	for i, raw := range lines {

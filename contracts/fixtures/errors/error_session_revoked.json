@@ -1,0 +1,24 @@
+{
+  "scenario": "error_session_revoked",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`401` · `SESSION_REVOKED`. `refreshSession` after the session was signed out elsewhere (`logoutAll`) or revoked by staff. The app drops its tokens and shows the signed-out screen.",
+  "operations": [
+    "refreshSession"
+  ],
+  "status": 401,
+  "tags": [
+    "error-envelope",
+    "error-path",
+    "customer",
+    "auth",
+    "session"
+  ],
+  "payload": {
+    "error": {
+      "code": "SESSION_REVOKED",
+      "message": "This session has been revoked. Please sign in again.",
+      "request_id": "4P6BK2PASA7FM72WKQGQZJ8G4C"
+    }
+  }
+}
