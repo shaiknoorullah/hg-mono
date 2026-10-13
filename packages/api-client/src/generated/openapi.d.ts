@@ -202,6 +202,50 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/customers/{customerAccountId}/account-actions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Suspend, reinstate or ban a customer
+         * @description Moves a customer's account `status` by one named action, per the
+         *     [customer account actions spec](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/05-admin.md#a-28--customer-account-state-actions).
+         *     The state change, its audit record, the history row and the notice to the customer
+         *     commit in one transaction.
+         *
+         *     | Action | From | To | Who |
+         *     |---|---|---|---|
+         *     | `SUSPEND` | `ACTIVE` | `SUSPENDED` | admin, super admin |
+         *     | `PROPOSE_BAN` | `ACTIVE`, `SUSPENDED` | `SUSPENDED`, with a ban proposal | admin, super admin |
+         *     | `CONFIRM_BAN` | `SUSPENDED` with a ban proposal less than 7 days old | `BANNED` | a super admin who did not propose it |
+         *     | `REINSTATE` | `SUSPENDED` | `ACTIVE` | admin, super admin |
+         *     | `REINSTATE` | `BANNED` | `ACTIVE` | super admin only |
+         *
+         *     One person has one account, so the status is the person's: a suspended or banned
+         *     customer cannot sign in for any role, and their access tokens stop working within
+         *     10 seconds. Staff accounts are not changed here (`FORBIDDEN_PERMISSION`), and nobody
+         *     can act on their own account.
+         *
+         *     **Orders already in progress.** Orders not yet accepted by the restaurant are
+         *     cancelled and their payment authorisation released; accepted orders finish. A ban is
+         *     refused with `409 IN_FLIGHT_ORDERS_PRESENT`, naming the orders, while an accepted order
+         *     is still in progress. **A ban** also revokes every session.
+         *
+         *     A retry with the same `Idempotency-Key` returns the first result with
+         *     `Idempotency-Replayed: true` and changes nothing.
+         */
+        post: operations["applyCustomerAccountAction"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/halal-certificates/{certificateId}": {
         parameters: {
             query?: never;
@@ -695,6 +739,25 @@ export interface paths {
          *     `amount_cents` is accepted **only** for `GOODWILL` — this is the single allowlisted
          *     inbound monetary field besides `tip_cents` (G-3).
          *
+         *     **The same claim rules as a customer's report.** Staff cannot refund a line or the
+         *     fees a second time. The rules are written out on `createRefund` under "Several
+         *     problem reports on one order" ([P-18](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/01-platform.md#p-18--refunds-cancellations-and-compensation),
+         *     [#184](https://github.com/shaiknoorullah/hg-mono/issues/184)); in short:
+         *
+         *     * A refund holds its claim in every state except `DECLINED` and `CANCELLED`. **A
+         *       pending approval request holds its claim too**, from the `202` until it is
+         *       declined, so a second request cannot take the same lines or fees meanwhile.
+         *     * For each order line, the quantity across the refunds that hold a claim may not
+         *       exceed the quantity ordered.
+         *     * The delivery and service fees and their tax are refunded at most once.
+         *     * A `FULL` refund claims only what no other refund holds, so it never clashes; when
+         *       nothing is left it is `409 REFUND_EXCEEDS_CAPTURED`.
+         *     * The refunds that hold a claim never add up to more than the captured amount.
+         *     * This operation, `createRefund` and the approval transaction each first take
+         *       `SELECT … FROM "order" WHERE id = $1 FOR UPDATE`, then re-check the line
+         *       quantities, the fees and the cap together, so two requests at once cannot both
+         *       pass.
+         *
          *     The customer-facing status never reads "refunded" before the provider confirms.
          */
         post: operations["issueRefund"];
@@ -889,6 +952,63 @@ export interface paths {
          *     approved ones. `SUSPECTED_FORGERY` blocks approval until a super admin clears it.
          */
         post: operations["reviewRestaurantDocument"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/restaurants/{restaurantId}/account-actions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Suspend, reinstate, delist, deactivate or ban a restaurant
+         * @description Moves a restaurant's `account_state` by one named action, per the
+         *     [restaurant account actions spec](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/05-admin.md#a-22--restaurant-account-state-actions-suspend--ban--deactivate--reinstate--delist).
+         *     The state change, its audit record, the history row and the notices to the
+         *     restaurant's owners and managers commit in one transaction.
+         *
+         *     | Action | From | To | Who |
+         *     |---|---|---|---|
+         *     | `SUSPEND` | `LIVE`, `DELISTED` | `SUSPENDED` | admin, super admin |
+         *     | `DELIST` | `LIVE` | `DELISTED` | admin, super admin |
+         *     | `PROPOSE_BAN` | `LIVE`, `DELISTED`, `SUSPENDED` | `SUSPENDED`, with a ban proposal | admin, super admin |
+         *     | `CONFIRM_BAN` | `SUSPENDED` with a ban proposal less than 7 days old | `BANNED` | a super admin who did not propose it |
+         *     | `DEACTIVATE` | `LIVE`, `DELISTED` | `DEACTIVATED` | admin, super admin, only with `MERCHANT_REQUEST` |
+         *     | `REINSTATE` | `SUSPENDED`, `DEACTIVATED`, `DELISTED` | `LIVE`, or `DELISTED` (below) | admin, super admin |
+         *     | `REINSTATE` | `BANNED` | `LIVE`, or `DELISTED` (below) | super admin only |
+         *
+         *     **Reinstating needs a current halal certificate.** A restaurant goes `LIVE` only with
+         *     an admin-verified certificate that has not expired. Relisting a `DELISTED` restaurant
+         *     without one is `409 HALAL_CERTIFICATE_REQUIRED`. Reinstating a suspended,
+         *     deactivated or banned restaurant whose certificate lapsed, or which still has a
+         *     delisting reason, returns it to `DELISTED`, never `LIVE`.
+         *
+         *     **Orders already in progress.** Orders not yet accepted (`CREATED`, `AUTHORIZED`,
+         *     `RESTAURANT_PENDING`) are cancelled and their payment authorisation released on
+         *     `SUSPEND`, `DELIST`, `PROPOSE_BAN`, `DEACTIVATE` and `CONFIRM_BAN`. Accepted orders
+         *     finish, except: a confirmed ban, or a suspension for `HALAL_INTEGRITY` or
+         *     `FOOD_SAFETY_RISK`, also cancels and fully refunds orders still `PREPARING`. Orders
+         *     that are ready or with a rider finish. Every order touched is listed in `in_flight`.
+         *
+         *     **Menu.** A `SUSPENDED` or `BANNED` restaurant's menu is locked for everyone, admins
+         *     included; a `DELISTED` one is not
+         *     ([menu lock](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
+         *     `menu_locked` in the response says which applies.
+         *
+         *     **A ban** revokes every session of the restaurant's staff, and their restaurant roles
+         *     stop being granted at sign-in. Payouts to a suspended or banned restaurant are held.
+         *
+         *     A retry with the same `Idempotency-Key` returns the first result with
+         *     `Idempotency-Replayed: true` and changes nothing.
+         */
+        post: operations["applyRestaurantAccountAction"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1112,6 +1232,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/riders/{riderAccountId}/account-actions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Suspend, reinstate, deactivate or ban a rider
+         * @description Moves a rider's `account_status` by one named action, per the
+         *     [rider account actions spec](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/05-admin.md#a-27--rider-account-state-actions).
+         *     The state change, its audit record, the history row and the notice to the rider
+         *     commit in one transaction.
+         *
+         *     | Action | From | To | Who |
+         *     |---|---|---|---|
+         *     | `SUSPEND` | `ACTIVE` | `SUSPENDED` | admin, super admin |
+         *     | `PROPOSE_BAN` | `ACTIVE`, `SUSPENDED` | `SUSPENDED`, with a ban proposal | admin, super admin |
+         *     | `CONFIRM_BAN` | `SUSPENDED` with a ban proposal less than 7 days old | `BANNED` | a super admin who did not propose it |
+         *     | `DEACTIVATE` | `ACTIVE`, `SUSPENDED` | `DEACTIVATED` | admin, super admin, only with `RIDER_REQUEST` |
+         *     | `REINSTATE` | `SUSPENDED`, `DEACTIVATED` | `ACTIVE` | admin, super admin |
+         *     | `REINSTATE` | `BANNED` | `ACTIVE` | super admin only |
+         *
+         *     **New offers stop at once; the current delivery finishes.** Offers waiting for the
+         *     rider are withdrawn and no new ones are made. A rider who is online and idle goes
+         *     offline; a rider on a delivery finishes it, is paid for it, and goes offline
+         *     afterwards
+         *     ([rider suspended mid-delivery](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#settled--redesign-decisions-owner-2026-09-28)).
+         *     `in_flight` lists the withdrawn offers and the delivery that continues. Reinstating
+         *     needs a rider whose onboarding finished (`PRECONDITION_NOT_MET` otherwise) and sends
+         *     the rider a notice that they can go online again
+         *     ([reinstatement notice](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
+         *
+         *     **A ban** revokes every session of the rider's account, and the rider role stops being
+         *     granted at sign-in. Earned money is paid; payouts to a banned rider are held.
+         *
+         *     A retry with the same `Idempotency-Key` returns the first result with
+         *     `Idempotency-Replayed: true` and changes nothing.
+         */
+        post: operations["applyRiderAccountAction"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/staff": {
         parameters: {
             query?: never;
@@ -1132,6 +1300,40 @@ export interface paths {
          *     hard delete. A staff user may never change their own role.
          */
         post: operations["createStaffUser"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/system/sms-sender": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The result of the text-message sender start-up check
+         * @description Whether the sender of sign-in codes passed its start-up check (the `sms_sender`
+         *     boot probe, [SMS and email](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/01-platform.md#p-26--sms-and-email)).
+         *     When it fails, nobody new can sign in, so every admin page shows a sticky banner
+         *     until it passes, for every staff role: support agents, admins and super admins
+         *     ([round-2 decisions, "Admin", a failed text-message sender check](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01);
+         *     [what to do when the sender is down](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/ops/runbook.md#the-sign-in-code-sender-is-down)).
+         *
+         *     This is a narrow, launch read of one check. The full dependency report
+         *     (`getDependencyStatus`) stays later-version and admin-only, because it carries
+         *     internal addresses a support agent does not need.
+         *
+         *     Each API replica runs the check when it starts and writes the result to Postgres,
+         *     so every replica answers the same and a Redis flush loses nothing. This operation
+         *     returns the most recent result. The banner clears once a later check passes, for
+         *     example after the credentials are fixed and the replicas restart.
+         */
+        get: operations["getSmsSenderStatus"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1293,7 +1495,8 @@ export interface paths {
          *     authorization.
          *
          *     Fails closed (`503 RATE_LIMITER_UNAVAILABLE`) when Redis is unreachable — this and
-         *     `verifyOtp` are the two endpoints where fail-open is unacceptable.
+         *     `verifyOtp` are the two sign-in endpoints where fail-open is unacceptable
+         *     (`joinWaitlist` fails closed too).
          */
         post: operations["requestOtp"];
         delete?: never;
@@ -1565,7 +1768,41 @@ export interface paths {
          *     line. Money on the cart is indicative only — the binding numbers come from a quote.
          */
         get: operations["getCart"];
-        put?: never;
+        /**
+         * Replace every line in the cart in one call
+         * @description Clears the cart and adds every line in the request as **one atomic call**: either
+         *     the whole new cart is saved, or the cart is unchanged. A two-call clear-then-add
+         *     stays prohibited, because it can leave an empty cart on failure. The owner approved
+         *     this operation on 2026-10-01 for "Put these items back in your cart" after an unpaid
+         *     order is cancelled, expires or fails payment ([round-2 decisions, "Orders and
+         *     delivery"](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#orders-and-delivery);
+         *     [#179](https://github.com/shaiknoorullah/hg-mono/issues/179)). It is the one
+         *     exception to the granular cart operations, and only because rebuilding a cart line
+         *     by line cannot be atomic.
+         *
+         *     The request carries **item identifiers, options and quantities only**, never a
+         *     price: [the server prices every order](https://github.com/shaiknoorullah/hg-mono/blob/main/AGENTS.md#3-non-negotiable-invariants).
+         *     Every line is priced again at today's price; the old order's prices are not reused.
+         *
+         *     Rules:
+         *
+         *     * Every line must be from the same restaurant; that restaurant becomes the cart's
+         *       restaurant. Lines from two restaurants are `422 VALIDATION_FAILED`.
+         *     * It replaces whatever the cart held, from any restaurant, so it never returns
+         *       `DIFFERENT_RESTAURANT`. If the current cart is not empty, the client asks the
+         *       customer before calling it.
+         *     * Lines are merged by the same line identity as `addCartLine`
+         *       (`menu_item_id`, `variant_id`, sorted add-ons, `special_request`). A merged
+         *       quantity above 20 is `422 VALIDATION_FAILED`.
+         *     * All or nothing. If any line cannot be added, the answer is `409` with the code of
+         *       the first failure (`ITEM_UNAVAILABLE`, `VARIANT_UNAVAILABLE`, `ADDON_UNAVAILABLE`,
+         *       `RESTAURANT_CLOSED` or `RESTAURANT_UNAVAILABLE`) and `details.lines` lists every
+         *       failing line as `{index, code}`, where `index` is the line's position in the
+         *       request. The cart is unchanged. The app can offer to put back the lines that are
+         *       still available by calling again without the failing ones.
+         *     * The cart's `delivery_address_id` is kept.
+         */
+        put: operations["replaceCart"];
         post?: never;
         /** Empty the cart */
         delete: operations["clearCart"];
@@ -2631,6 +2868,51 @@ export interface paths {
          *     A refund is only meaningful post-capture. A pre-capture cancellation **voids** the
          *     authorisation and is a different operation entirely (`cancelOrder`); no `refund` row
          *     and no Stripe refund call exists on that path.
+         *
+         *     **Several problem reports on one order.** A customer may report more than one
+         *     problem on the same order, as the owner approved on 2026-10-01
+         *     ([#184](https://github.com/shaiknoorullah/hg-mono/issues/184)). The rule this
+         *     contract chose: **each report is its own refund, decided on its own, and reports
+         *     never merge.** A later report is accepted while earlier ones are open or decided,
+         *     unless it claims something another report already holds:
+         *
+         *     * A refund *holds* its claim in every state except `DECLINED` and `CANCELLED`, the
+         *       two in which no money moves.
+         *     * A refund waiting for a second approval (`PENDING_APPROVAL`, including the approval
+         *       request `issueRefund` answers `202` with) holds its claim too, until it is declined.
+         *     * **Items.** For each order line, the quantity across the refunds that hold a claim
+         *       on it may not exceed the quantity ordered. A second report on a line is accepted
+         *       while some of that line's quantity is still unclaimed: with 3 ordered and 1
+         *       claimed, a report on 2 more is accepted and a report on 3 more is refused.
+         *     * **Fees.** The delivery and service fees and their tax are refunded at most once:
+         *       by `FEES_ONLY`, or as part of a `FULL` refund when no other refund holds them.
+         *     * **`FULL` never clashes.** A `FULL` refund claims only the quantities and the fees
+         *       that no other refund holds. It refunds the captured amount minus every refund that
+         *       holds a claim, and is `409 REFUND_EXCEEDS_CAPTURED` when nothing is left.
+         *     * A claim another refund already holds is `409 REFUND_ALREADY_REQUESTED`, with
+         *       `details.order_line_nos` naming the lines and `details.fees` true when the fees
+         *       were the clash. Nothing is created. Only `PARTIAL_ITEMS` and `FEES_ONLY` can
+         *       clash; `GOODWILL` claims no line and no fees, only part of the cap.
+         *     * **The cap.** The refunds that hold a claim never add up to more than the captured
+         *       amount (`409 REFUND_EXCEEDS_CAPTURED`). Source: [refunds never exceed the captured
+         *       amount](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/01-platform.md#p-18--refunds-cancellations-and-compensation).
+         *     * **Two requests at once cannot both pass.** `createRefund`, `issueRefund` and the
+         *       approval transaction each first take `SELECT … FROM "order" WHERE id = $1 FOR
+         *       UPDATE`, and only then re-check the line quantities, the fees and the cap
+         *       together. Locking the order row, not the existing refund rows, is what stops a
+         *       second request inserting a new refund row at the same moment. An approval
+         *       re-checks all three, not only the cap. The fee rule is also made unrepresentable
+         *       by a partial unique index on the refund table ([P-18, Data](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/01-platform.md#p-18--refunds-cancellations-and-compensation)).
+         *     * Each report keeps its own reason code and therefore its own liability split, so a
+         *       missing item charged to the restaurant and a late delivery absorbed by the
+         *       platform can sit on the same order.
+         *     * The rate limit of 5 refund requests per order per day still applies
+         *       ([rate limiting](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/01-platform.md#p-38--rate-limiting)).
+         *
+         *     **Reporting before delivery.** "Get help" opens from the restaurant's acceptance
+         *     ([round-2 decisions, "Orders and delivery"](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#orders-and-delivery)).
+         *     The reasons that fit before delivery are `LATE_DELIVERY` and `WRONG_ADDRESS`;
+         *     wanting to cancel is `cancelOrder`, not a refund request.
          */
         post: operations["createRefund"];
         delete?: never;
@@ -2690,6 +2972,20 @@ export interface paths {
          *
          *     Turning the toggle off never shortens an offer already outstanding: that order keeps
          *     its full 180-second response window.
+         *
+         *     **Pausing until closing.** `pause_until_closing: true` pauses new orders until the
+         *     end of the trading period the restaurant is in now, worked out by the server from
+         *     the restaurant's own hours, today's override if there is one, and its time zone. A
+         *     late night that runs past midnight pauses until it ends the next morning, which is
+         *     why the client never computes it. It replaces "rest of today", as the owner decided
+         *     on 2026-10-01 ([round-2 decisions](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01), "Restaurant", "For how long" options).
+         *     The response's `pause_until` is the closing time it chose. Rules:
+         *
+         *     * `is_accepting_orders` must be true, as for any pause.
+         *     * Send `pause_until` or `pause_until_closing`, never both: both is
+         *       `422 VALIDATION_FAILED`.
+         *     * Outside trading hours there is nothing to pause: `409 RESTAURANT_CLOSED`.
+         *     * Later changes to the hours do not move a pause already set; pausing again does.
          */
         patch: operations["setRestaurantAcceptingOrders"];
         trace?: never;
@@ -3747,8 +4043,9 @@ export interface paths {
          *     countdown is derived from the server's `expires_at` and `server_time`, never from a
          *     local constant — a device whose clock is ten minutes fast still shows ~30 seconds.
          *
-         *     The pre-accept projection deliberately withholds the customer's unit number and
-         *     phone alias; only the drop-off street and neighbourhood are shown.
+         *     The pre-accept projection shows only an approximate drop-off area (neighbourhood,
+         *     city, and the centre and radius of the area), never the street or the address; the
+         *     full address arrives once the rider accepts (`DispatchOffer`).
          */
         get: operations["getCurrentOffer"];
         put?: never;
@@ -3985,6 +4282,63 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/waitlist": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Join the pre-launch waitlist from the marketing site
+         * @description The marketing site's waitlist form posts here, so the site can be a static export
+         *     and the sign-ups land in the product database instead of a hosted one
+         *     ([#212](https://github.com/shaiknoorullah/hg-mono/issues/212); [every HalalGoes
+         *     system is self-hosted](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#settled--platform-decisions-owner-2026-10-01)).
+         *
+         *     **Public, and registered public on purpose:** a visitor joins before they have an
+         *     account. A route is public only if it is explicitly registered public ([deny by
+         *     default](https://github.com/shaiknoorullah/hg-mono/blob/main/AGENTS.md#3-non-negotiable-invariants)),
+         *     so this operation is added to the fixed public set in `contracts/README.md`.
+         *
+         *     **Rate-limited by client address:** rate class `WAITLIST`, 10 sign-ups per client
+         *     address per hour, burst 5 ([rate limiting](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/01-platform.md#p-38--rate-limiting)).
+         *     The address is the one Traefik forwards, trusted only from Traefik's network
+         *     ([middleware chain, client-address step](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/01-platform.md#p-06--deny-by-default-routing-and-the-middleware-chain)). Over
+         *     the limit is `429 RATE_LIMITED`, and nothing is stored. When Redis is down the
+         *     limit **fails closed**: `503 RATE_LIMITER_UNAVAILABLE`, and nothing is stored; the
+         *     form asks the visitor to try again. Failing open would let anyone store unlimited
+         *     sign-ups by varying the contact, because the idempotency key is a pair the caller
+         *     chooses, and [correctness may never depend on Redis](https://github.com/shaiknoorullah/hg-mono/blob/main/AGENTS.md#2-architecture-in-one-picture).
+         *
+         *     **The consent record.** Canada's anti-spam law (CASL) asks what the person agreed
+         *     to, not only that they agreed. The server keeps the exact `consent_text` the form
+         *     showed, the audience, the contact and its kind, the form it came from, the campaign
+         *     parameters, and `consented_at`, which the server sets to the time it receives the
+         *     request. `consent` must be `true`: an unticked box is a no.
+         *
+         *     **Idempotent on audience and contact.** Joining again with the same audience and
+         *     contact returns the same `202` and stores nothing new; the first consent is kept
+         *     and never overwritten. The answer is identical whether or not the contact was
+         *     already on the list, so the form cannot be used to find out who signed up. The same
+         *     person may join as a customer and as a restaurant: the pair is the key. That is why
+         *     it takes no `Idempotency-Key`: there is no account to scope a key to, and the
+         *     audience and contact already make a repeat harmless.
+         *
+         *     **Contact.** `EMAIL` is lower-cased before it is stored. `TEL` must be E.164.
+         *     The marketing site collects email only while text-message sender registration is
+         *     open ([#71](https://github.com/shaiknoorullah/hg-mono/issues/71)); `TEL` exists so
+         *     phone sign-ups need no contract change later.
+         */
+        post: operations["joinWaitlist"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/webhooks/stripe": {
         parameters: {
             query?: never;
@@ -4016,10 +4370,81 @@ export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         /**
+         * @description The named actions that move an account's state. `suspend`, `ban`, `deactivate` and
+         *     `delist` are never synonyms: suspending is a reversible penalty; a ban is permanent and
+         *     needs two people (an admin or super admin proposes it, a different super admin confirms
+         *     it within 7 days); deactivating is a voluntary exit at the partner's request; delisting
+         *     takes a restaurant out of customer listings without a penalty. Reinstating undoes any
+         *     of them. Only restaurants can be delisted, and customers cannot be deactivated here.
+         * @enum {string}
+         */
+        AccountAction: "SUSPEND" | "REINSTATE" | "DELIST" | "PROPOSE_BAN" | "CONFIRM_BAN" | "DEACTIVATE";
+        /**
+         * @description What the action did to work already in progress, recorded with the history row so it
+         *     can be reconstructed later. A refunded order is also in `cancelled_order_ids`.
+         */
+        AccountActionInFlight: {
+            cancelled_order_ids: string[];
+            /** @description Orders, or for a rider the delivery, left to finish normally. */
+            continuing_order_ids: string[];
+            refunded_order_ids: string[];
+            /** @description Delivery offers withdrawn from a rider. Always empty for restaurants and customers. */
+            withdrawn_offer_ids: string[];
+        };
+        /**
+         * @description One applied account action: the history row an admin action writes. `reason_code` is
+         *     a `RestaurantAccountReasonCode`, `RiderAccountReasonCode` or
+         *     `CustomerAccountReasonCode`, following `subject_type`.
+         */
+        AccountStateChange: {
+            action: components["schemas"]["AccountAction"];
+            /** Format: uuid */
+            actor_account_id: string;
+            /** @description Set after `PROPOSE_BAN`; null once the ban is confirmed or for any other action. */
+            ban_proposal: components["schemas"]["BanProposal"] | null;
+            created_at: components["schemas"]["Timestamp"];
+            /** @description A restaurant's delisting reasons after the action. Always empty for riders and customers. */
+            delist_reasons: string[];
+            from_state: components["schemas"]["AccountStateName"];
+            /** Format: uuid */
+            id: string;
+            in_flight: components["schemas"]["AccountActionInFlight"];
+            /**
+             * @description For a restaurant, whether its menu is now locked for everyone, admins included
+             *     (`SUSPENDED` or `BANNED`). Null for riders and customers.
+             */
+            menu_locked: boolean | null;
+            reason_code: string;
+            reason_text: string;
+            /**
+             * Format: int32
+             * @description How many sign-in sessions the action ended. Only a confirmed ban ends sessions.
+             */
+            sessions_revoked: number;
+            /**
+             * Format: uuid
+             * @description The restaurant id, or the rider's or customer's account id.
+             */
+            subject_id: string;
+            subject_type: components["schemas"]["AccountSubjectType"];
+            to_state: components["schemas"]["AccountStateName"];
+        };
+        /**
+         * @description A state in a restaurant's `RestaurantAccountState`, a rider's `RiderAccountStatus`
+         *     or a customer's `AccountStatus`, as recorded on an `AccountStateChange`.
+         * @enum {string}
+         */
+        AccountStateName: "PENDING" | "LIVE" | "DELISTED" | "SUSPENDED" | "BANNED" | "DEACTIVATED" | "CLOSED" | "ACTIVE" | "DELETED";
+        /**
          * @description Anything other than `ACTIVE` blocks new sessions and revokes existing ones within 10 s.
          * @enum {string}
          */
         AccountStatus: "ACTIVE" | "SUSPENDED" | "BANNED" | "DELETED";
+        /**
+         * @description Whose account an account action changed: a restaurant, a rider or a customer.
+         * @enum {string}
+         */
+        AccountSubjectType: "RESTAURANT" | "RIDER" | "CUSTOMER";
         AcknowledgementResponse: {
             data: {
                 acknowledged: boolean;
@@ -4317,6 +4742,13 @@ export interface components {
          * @enum {string}
          */
         AuthMethod: "otp" | "pwd" | "pwd+totp";
+        /** @description A ban waiting for a second person. Unconfirmed at `lapses_at`, it lapses and the account stays suspended. */
+        BanProposal: {
+            lapses_at: components["schemas"]["Timestamp"];
+            proposed_at: components["schemas"]["Timestamp"];
+            /** Format: uuid */
+            proposed_by: string;
+        };
         /**
          * @description C-19. The server holds the single source of truth. Money here is **indicative** and
          *     exists so the badge and the floating bar can render; `createQuote` produces the only
@@ -4419,6 +4851,16 @@ export interface components {
              *     group, at most one for any other. Order does not matter; line identity sorts them.
              */
             variant_ids?: string[];
+        };
+        /**
+         * @description The body of `replaceCart`. **Item identifiers, options and quantities only**: each
+         *     line is a `CartLineInput`, which has no price field, so no client-supplied price can
+         *     reach the cart ([the server prices every order](https://github.com/shaiknoorullah/hg-mono/blob/main/AGENTS.md#3-non-negotiable-invariants)).
+         *     To empty the cart, use `clearCart`; an empty `lines` is rejected.
+         */
+        CartReplaceInput: {
+            /** @description Every line of the new cart, from one restaurant. 100 bounds the request size; a cart rebuilt from an order never comes near it. */
+            lines: components["schemas"]["CartLineInput"][];
         };
         /**
          * Format: int64
@@ -4539,6 +4981,25 @@ export interface components {
         Currency: "CAD";
         /** @description Opaque keyset cursor encoding the sort tuple. Not an offset. */
         Cursor: string;
+        /**
+         * @description The `AccountAction` values that apply to a customer.
+         * @enum {string}
+         */
+        CustomerAccountAction: "SUSPEND" | "REINSTATE" | "PROPOSE_BAN" | "CONFIRM_BAN";
+        /** @description `reason_text` stays on the audit record and the history; the customer's notice carries fixed wording. */
+        CustomerAccountActionInput: {
+            action: components["schemas"]["CustomerAccountAction"];
+            reason_code: components["schemas"]["CustomerAccountReasonCode"];
+            reason_text: string;
+        };
+        /**
+         * @description Why an admin acted on a customer. `SUSPEND`, `PROPOSE_BAN` and `CONFIRM_BAN` take a
+         *     penalty reason (`PAYMENT_FAILURE_UNRESOLVED` to `LEGAL_ORDER`, or `OTHER`).
+         *     `REINSTATE` takes `ISSUE_RESOLVED`, `APPEAL_UPHELD`, `ACTIONED_IN_ERROR` or `OTHER`.
+         *     Any other pairing is a `422`.
+         * @enum {string}
+         */
+        CustomerAccountReasonCode: "PAYMENT_FAILURE_UNRESOLVED" | "REFUND_ABUSE" | "FRAUDULENT_CHARGEBACK" | "ABUSIVE_CONDUCT_TO_RIDER" | "ABUSIVE_CONDUCT_TO_RESTAURANT" | "FAKE_REVIEWS" | "ACCOUNT_TAKEOVER_RISK" | "PROMOTION_ABUSE" | "LEGAL_ORDER" | "ISSUE_RESOLVED" | "APPEAL_UPHELD" | "ACTIONED_IN_ERROR" | "OTHER";
         /**
          * @description C-29. `OTHER` requires 5–200 characters of free text.
          * @enum {string}
@@ -4663,18 +5124,41 @@ export interface components {
             restaurant: components["schemas"]["RestaurantCard"];
         };
         /**
-         * @description D-14. The **pre-accept** projection. It deliberately omits the customer's unit number
-         *     and phone alias; only the drop-off street and neighbourhood are shown. The countdown
-         *     is computed from `expires_at` minus `server_time`, never from a local constant.
+         * @description D-14. The **pre-accept** projection. Before accepting, the rider sees only an
+         *     approximate drop-off area: no street, house number, unit, buzzer, name or phone
+         *     alias. The full address arrives with the `Assignment` once the rider accepts. The
+         *     owner decided this on 2026-10-01 ([round-2 decisions, "Orders and delivery"](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#orders-and-delivery);
+         *     [#183](https://github.com/shaiknoorullah/hg-mono/issues/183)). `distance_m` and
+         *     `est_duration_s` are still measured to the exact address, so the rider can judge the
+         *     trip. The countdown is computed from `expires_at` minus `server_time`, never from a
+         *     local constant.
          */
         DispatchOffer: {
             /** Format: int32 */
             distance_m?: number;
+            /**
+             * @description The approximate drop-off area. `latitude` and `longitude` are the centre of the
+             *     area, never the customer's address: the server snaps the address to a grid of
+             *     about 500 m and sends the centre of that cell, so the map can show a shaded
+             *     circle and the direction of travel without pointing at a house.
+             */
             dropoff: {
-                /** @description Street and neighbourhood only. The unit number arrives on accept. */
+                /**
+                 * @description The neighbourhood and city, such as "Harbourfront, Toronto". Never a street,
+                 *     a house number, a unit or a full postal code.
+                 * @example Harbourfront, Toronto
+                 */
                 area: string;
                 latitude: components["schemas"]["Latitude"];
                 longitude: components["schemas"]["Longitude"];
+                /**
+                 * Format: int32
+                 * @description The radius of the approximate area around the point, in metres, for the
+                 *     shaded circle. The address lies inside it. When absent, the client draws
+                 *     no circle and shows the area name alone.
+                 * @example 400
+                 */
+                radius_m?: number;
             };
             earnings: components["schemas"]["OfferEarningsEstimate"];
             /** Format: int32 */
@@ -4811,7 +5295,7 @@ export interface components {
          *     transformation was applied — no code was renamed, split or dropped.
          * @enum {string}
          */
-        ErrorCode: "INTERNAL_ERROR" | "TIMEOUT" | "PAYLOAD_TOO_LARGE" | "ORIGIN_NOT_ALLOWED" | "CSRF_ORIGIN_REJECTED" | "RATE_LIMITED" | "RATE_LIMITER_UNAVAILABLE" | "VALIDATION_FAILED" | "UNKNOWN_FIELD" | "INVALID_FIELD" | "INVALID_ENUM_VALUE" | "NOT_FOUND" | "FORBIDDEN" | "PERMISSION_DENIED" | "AUTHENTICATION_REQUIRED" | "METHOD_NOT_ALLOWED" | "UNSUPPORTED_MEDIA_TYPE" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_REUSE" | "IDEMPOTENCY_IN_PROGRESS" | "IDEMPOTENCY_CONFLICT" | "OTP_INVALID_OR_EXPIRED" | "OTP_INCORRECT" | "INVALID_PHONE" | "UNSUPPORTED_COUNTRY" | "INVALID_CREDENTIALS" | "EMAIL_NOT_VERIFIED" | "EMAIL_ALREADY_REGISTERED" | "TERMS_VERSION_STALE" | "BREACHED_PASSWORD" | "ACCOUNT_TEMPORARILY_LOCKED" | "ACCOUNT_LOCKED" | "SESSION_REVOKED" | "SESSION_EXPIRED" | "REFRESH_REUSE_DETECTED" | "TOKEN_CONSUMED" | "VERIFICATION_TOKEN_EXPIRED" | "VERIFICATION_TOKEN_USED" | "MFA_REQUIRED" | "LAST_OWNER_REQUIRED" | "ACCOUNT_SUSPENDED" | "ACCOUNT_DEACTIVATED" | "ACCOUNT_NOT_ACTIVE" | "ACCOUNT_BANNED" | "ONBOARDING_INCOMPLETE" | "PROFILE_INCOMPLETE" | "RESTAURANT_CLOSED" | "RESTAURANT_UNAVAILABLE" | "ITEM_UNAVAILABLE" | "CART_HAS_UNAVAILABLE_ITEMS" | "DIFFERENT_RESTAURANT" | "VARIANT_UNAVAILABLE" | "ADDON_UNAVAILABLE" | "INVALID_ADDON" | "BELOW_MINIMUM_ORDER" | "ADDRESS_OUT_OF_RANGE" | "ADDRESS_IN_USE" | "PROVINCE_NOT_SERVED" | "FAVOURITES_LIMIT" | "GEOCODE_NO_MATCH" | "GEOCODER_UNAVAILABLE" | "QUOTE_STALE" | "QUOTE_EXPIRED" | "TAX_PROFILE_MISSING" | "PRICE_CHANGED" | "BLOCKED_PRICE_CHANGED" | "REFUND_EXCEEDS_CAPTURED" | "PAYMENT_NOT_REFUNDABLE" | "REFUND_WINDOW_CLOSED" | "REFUND_ALREADY_REQUESTED" | "DAILY_CAP_EXCEEDED" | "EXCEEDS_REFUND_CAP" | "SELF_APPROVAL_FORBIDDEN" | "PAYMENT_METHOD_LIMIT" | "PAYMENT_METHOD_IN_USE" | "PAYMENT_METHOD_INVALID" | "CAPTURE_FAILED" | "LEDGER_BATCH_UNBALANCED" | "ILLEGAL_TRANSITION" | "ILLEGAL_STATUS_TRANSITION" | "TRANSITION_NOT_PERMITTED_FOR_ACTOR" | "ACTIVE_ORDER_EXISTS" | "CANCELLATION_WINDOW_CLOSED" | "RECEIPT_NOT_READY" | "ORDERING_PAUSED" | "DELAY_LIMIT_REACHED" | "DELAY_NOT_ALLOWED_IN_STATUS" | "REVIEW_WINDOW_CLOSED" | "REVIEW_EDIT_WINDOW_CLOSED" | "OFFER_ALREADY_TAKEN" | "OFFER_EXPIRED" | "OFFER_WITHDRAWN" | "ORDER_CANCELLED" | "RIDER_NOT_AVAILABLE" | "ACTIVE_DELIVERY_IN_PROGRESS" | "CANNOT_GO_ONLINE" | "PAYOUT_ACCOUNT_INCOMPLETE" | "INVALID_TRANSITION" | "GEOFENCE_REQUIRED" | "STALE_POINT" | "POD_REQUIRED" | "POD_METHOD_MISMATCH" | "PICKUP_CODE_REQUIRED" | "PICKUP_CODE_INCORRECT" | "PICKUP_CODE_LOCKED" | "DELIVERY_CODE_INCORRECT" | "DELIVERY_CODE_LOCKED" | "CONTACT_WINDOW_CLOSED" | "SEAL_NOT_FOUND" | "SEAL_ALREADY_BOUND" | "SEAL_NOT_BOUND" | "SEAL_TOKEN_INVALID" | "SEAL_ORDER_MISMATCH" | "SEAL_NONCE_REPLAYED" | "STEP_NOT_AVAILABLE" | "ILLEGAL_STATE_TRANSITION" | "INCOMPLETE_DOCUMENT_PACK" | "DOCUMENT_LOCKED_FOR_REVIEW" | "DOCUMENT_ALREADY_EXPIRED" | "CONTENT_TYPE_MISMATCH" | "CHECKSUM_MISMATCH" | "IMAGE_TOO_SMALL" | "UPLOAD_NOT_FOUND" | "UNRECOGNISED_CERTIFIER" | "COORDINATES_OUTSIDE_SERVICE_AREA" | "INVALID_GST_HST_NUMBER" | "NON_CANADIAN_NUMBER" | "PRICE_OUT_OF_RANGE" | "PROHIBITED_INGREDIENT" | "FIELD_NOT_WRITABLE" | "CATEGORY_NAME_TAKEN" | "CATEGORY_NOT_EMPTY" | "ITEM_BLOCKED_BY_ADMIN" | "ITEM_DELETED" | "NO_LIVE_MENU_ITEM" | "MENU_VERSION_PENDING" | "MENU_LOCKED" | "DOCUMENTS_INCOMPLETE" | "DOCUMENT_EXPIRES_TOO_SOON" | "UNDERAGE" | "AGE_REQUIREMENT_NOT_MET" | "EMAIL_IN_USE" | "PLATE_IN_USE" | "FIELD_REQUIRED" | "FIELD_NOT_APPLICABLE" | "FIELD_NOT_EDITABLE" | "IMMUTABLE_AFTER_APPROVAL" | "RESUBMIT_TOO_SOON" | "NOTHING_TO_RESUBMIT" | "REVIEW_LOCK_LOST" | "ALREADY_DECIDED" | "PRECONDITION_NOT_MET" | "CHECK_NOT_OVERRIDABLE" | "CHECKLIST_INCOMPLETE" | "CHECK_FAILED" | "HALAL_CERTIFICATE_REQUIRED" | "DUPLICATE_CERTIFICATE" | "REVERSAL_WINDOW_EXPIRED" | "REOPEN_NOT_PERMITTED_FOR_REASON" | "CASE_REQUIRED" | "ETA_EXTENSION_LIMIT" | "FORBIDDEN_PERMISSION";
+        ErrorCode: "INTERNAL_ERROR" | "TIMEOUT" | "PAYLOAD_TOO_LARGE" | "ORIGIN_NOT_ALLOWED" | "CSRF_ORIGIN_REJECTED" | "RATE_LIMITED" | "RATE_LIMITER_UNAVAILABLE" | "VALIDATION_FAILED" | "UNKNOWN_FIELD" | "INVALID_FIELD" | "INVALID_ENUM_VALUE" | "NOT_FOUND" | "FORBIDDEN" | "PERMISSION_DENIED" | "AUTHENTICATION_REQUIRED" | "METHOD_NOT_ALLOWED" | "UNSUPPORTED_MEDIA_TYPE" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_REUSE" | "IDEMPOTENCY_IN_PROGRESS" | "IDEMPOTENCY_CONFLICT" | "OTP_INVALID_OR_EXPIRED" | "OTP_INCORRECT" | "INVALID_PHONE" | "UNSUPPORTED_COUNTRY" | "INVALID_CREDENTIALS" | "EMAIL_NOT_VERIFIED" | "EMAIL_ALREADY_REGISTERED" | "TERMS_VERSION_STALE" | "BREACHED_PASSWORD" | "ACCOUNT_TEMPORARILY_LOCKED" | "ACCOUNT_LOCKED" | "SESSION_REVOKED" | "SESSION_EXPIRED" | "REFRESH_REUSE_DETECTED" | "TOKEN_CONSUMED" | "VERIFICATION_TOKEN_EXPIRED" | "VERIFICATION_TOKEN_USED" | "MFA_REQUIRED" | "LAST_OWNER_REQUIRED" | "ACCOUNT_SUSPENDED" | "ACCOUNT_DEACTIVATED" | "ACCOUNT_NOT_ACTIVE" | "ACCOUNT_BANNED" | "ONBOARDING_INCOMPLETE" | "PROFILE_INCOMPLETE" | "RESTAURANT_CLOSED" | "RESTAURANT_UNAVAILABLE" | "ITEM_UNAVAILABLE" | "CART_HAS_UNAVAILABLE_ITEMS" | "DIFFERENT_RESTAURANT" | "VARIANT_UNAVAILABLE" | "ADDON_UNAVAILABLE" | "INVALID_ADDON" | "BELOW_MINIMUM_ORDER" | "ADDRESS_OUT_OF_RANGE" | "ADDRESS_IN_USE" | "PROVINCE_NOT_SERVED" | "FAVOURITES_LIMIT" | "GEOCODE_NO_MATCH" | "GEOCODER_UNAVAILABLE" | "QUOTE_STALE" | "QUOTE_EXPIRED" | "TAX_PROFILE_MISSING" | "PRICE_CHANGED" | "BLOCKED_PRICE_CHANGED" | "REFUND_EXCEEDS_CAPTURED" | "PAYMENT_NOT_REFUNDABLE" | "REFUND_WINDOW_CLOSED" | "REFUND_ALREADY_REQUESTED" | "DAILY_CAP_EXCEEDED" | "EXCEEDS_REFUND_CAP" | "SELF_APPROVAL_FORBIDDEN" | "PAYMENT_METHOD_LIMIT" | "PAYMENT_METHOD_IN_USE" | "PAYMENT_METHOD_INVALID" | "CAPTURE_FAILED" | "LEDGER_BATCH_UNBALANCED" | "ILLEGAL_TRANSITION" | "ILLEGAL_STATUS_TRANSITION" | "TRANSITION_NOT_PERMITTED_FOR_ACTOR" | "ACTIVE_ORDER_EXISTS" | "CANCELLATION_WINDOW_CLOSED" | "RECEIPT_NOT_READY" | "ORDERING_PAUSED" | "DELAY_LIMIT_REACHED" | "DELAY_NOT_ALLOWED_IN_STATUS" | "REVIEW_WINDOW_CLOSED" | "REVIEW_EDIT_WINDOW_CLOSED" | "OFFER_ALREADY_TAKEN" | "OFFER_EXPIRED" | "OFFER_WITHDRAWN" | "ORDER_CANCELLED" | "RIDER_NOT_AVAILABLE" | "ACTIVE_DELIVERY_IN_PROGRESS" | "CANNOT_GO_ONLINE" | "PAYOUT_ACCOUNT_INCOMPLETE" | "INVALID_TRANSITION" | "GEOFENCE_REQUIRED" | "STALE_POINT" | "POD_REQUIRED" | "POD_METHOD_MISMATCH" | "PICKUP_CODE_REQUIRED" | "PICKUP_CODE_INCORRECT" | "PICKUP_CODE_LOCKED" | "DELIVERY_CODE_INCORRECT" | "DELIVERY_CODE_LOCKED" | "CONTACT_WINDOW_CLOSED" | "SEAL_NOT_FOUND" | "SEAL_ALREADY_BOUND" | "SEAL_NOT_BOUND" | "SEAL_TOKEN_INVALID" | "SEAL_ORDER_MISMATCH" | "SEAL_NONCE_REPLAYED" | "STEP_NOT_AVAILABLE" | "ILLEGAL_STATE_TRANSITION" | "INCOMPLETE_DOCUMENT_PACK" | "DOCUMENT_LOCKED_FOR_REVIEW" | "DOCUMENT_ALREADY_EXPIRED" | "CONTENT_TYPE_MISMATCH" | "CHECKSUM_MISMATCH" | "IMAGE_TOO_SMALL" | "UPLOAD_NOT_FOUND" | "UNRECOGNISED_CERTIFIER" | "COORDINATES_OUTSIDE_SERVICE_AREA" | "INVALID_GST_HST_NUMBER" | "NON_CANADIAN_NUMBER" | "PRICE_OUT_OF_RANGE" | "PROHIBITED_INGREDIENT" | "FIELD_NOT_WRITABLE" | "CATEGORY_NAME_TAKEN" | "CATEGORY_NOT_EMPTY" | "ITEM_BLOCKED_BY_ADMIN" | "ITEM_DELETED" | "NO_LIVE_MENU_ITEM" | "MENU_VERSION_PENDING" | "MENU_LOCKED" | "DOCUMENTS_INCOMPLETE" | "DOCUMENT_EXPIRES_TOO_SOON" | "UNDERAGE" | "AGE_REQUIREMENT_NOT_MET" | "EMAIL_IN_USE" | "PLATE_IN_USE" | "FIELD_REQUIRED" | "FIELD_NOT_APPLICABLE" | "FIELD_NOT_EDITABLE" | "IMMUTABLE_AFTER_APPROVAL" | "RESUBMIT_TOO_SOON" | "NOTHING_TO_RESUBMIT" | "REVIEW_LOCK_LOST" | "ALREADY_DECIDED" | "PRECONDITION_NOT_MET" | "CHECK_NOT_OVERRIDABLE" | "CHECKLIST_INCOMPLETE" | "CHECK_FAILED" | "HALAL_CERTIFICATE_REQUIRED" | "DUPLICATE_CERTIFICATE" | "REVERSAL_WINDOW_EXPIRED" | "REOPEN_NOT_PERMITTED_FOR_REASON" | "CASE_REQUIRED" | "ETA_EXTENSION_LIMIT" | "FORBIDDEN_PERMISSION" | "IN_FLIGHT_ORDERS_PRESENT";
         ErrorEnvelope: {
             error: {
                 code: components["schemas"]["ErrorCode"];
@@ -4825,6 +5309,10 @@ export interface components {
                  *     `VARIANT_UNAVAILABLE` → `{variant_id}`;
                  *     `ADDON_UNAVAILABLE` → `{addon_id}`;
                  *     `INVALID_ADDON` → `[{field, code, message}]`;
+                 *     `ITEM_UNAVAILABLE`, `VARIANT_UNAVAILABLE`, `ADDON_UNAVAILABLE`,
+                 *     `RESTAURANT_CLOSED`, `RESTAURANT_UNAVAILABLE` from `replaceCart` →
+                 *     `{lines: [{index, code}]}`;
+                 *     `REFUND_ALREADY_REQUESTED` → `{order_line_nos: [int], fees: bool}`;
                  *     `CART_HAS_UNAVAILABLE_ITEMS` → `{line_ids: [uuid]}`;
                  *     `INCOMPLETE_DOCUMENT_PACK` → `{missing: [doc_type]}`;
                  *     `MENU_LOCKED` → `{account_state}` (`SUSPENDED` or `BANNED`);
@@ -4835,7 +5323,11 @@ export interface components {
                  *     `POD_METHOD_MISMATCH` → `{required_pod_method}`;
                  *     `PICKUP_CODE_INCORRECT` → `{attempts_remaining}`;
                  *     `DELIVERY_CODE_INCORRECT` → `{attempts_remaining}`;
-                 *     `RATE_LIMITED` → `{retry_after_seconds}`.
+                 *     `RATE_LIMITED` → `{retry_after_seconds}`;
+                 *     `ILLEGAL_STATE_TRANSITION` → `{from_state, action, allowed_actions: [AccountAction]}`;
+                 *     `FORBIDDEN_PERMISSION` → `{permission}`;
+                 *     `HALAL_CERTIFICATE_REQUIRED` → `{halal_status}` (account actions);
+                 *     `IN_FLIGHT_ORDERS_PRESENT` → `{order_ids: [uuid]}`.
                  *
                  *     **Never a handover code.** No error carries a pickup or delivery code, the
                  *     one sent or the one expected, in `message` or `details`; a
@@ -6481,6 +6973,17 @@ export interface components {
             restaurant_response_window_seconds: number;
             /** @description Ontario only at launch. Addresses elsewhere are rejected at quote time. */
             served_provinces: components["schemas"]["Province"][];
+            /**
+             * Format: email
+             * @description The support email address, for customers and partners alike. Never hardcoded in
+             *     a client. Unlike the phone line it does not depend on `support_enabled`: it is
+             *     the contact shown while phone support is off, and how a customer asks staff to
+             *     delete their account at launch ([round-2 decisions, "Launch scope and contract",
+             *     account deletion](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#launch-scope-and-contract);
+             *     [#181](https://github.com/shaiknoorullah/hg-mono/issues/181)). Null only when
+             *     none is configured, and then the client shows no email contact.
+             */
+            support_email?: string | null;
             support_enabled: boolean;
             support_hours?: string | null;
             /** @description Never hardcoded in a client. Absent when `support_enabled` is false. */
@@ -6815,9 +7318,17 @@ export interface components {
          *     (customer refunded, restaurant charged back, rider charged back, platform absorbs) —
          *     the table is what makes the ledger balance. The specs enumerate overlapping sets; this
          *     is their reconciled union (see `contracts/README.md` §"Spec contradictions", item 8).
+         *
+         *     `WRONG_ADDRESS`: the customer reports, before delivery, that the order is going to
+         *     the wrong address ([round-2 decisions, "Orders and delivery"](https://github.com/shaiknoorullah/hg-mono/blob/main/docs/decisions/README.md#orders-and-delivery);
+         *     [#180](https://github.com/shaiknoorullah/hg-mono/issues/180)). Support redirects
+         *     the delivery when it can; any refund is per support's judgement, and the platform
+         *     absorbs it, because the restaurant cooked the order and the rider carried it to the
+         *     address on the order. If the rider delivered somewhere other than the order's
+         *     address, staff file `NEVER_DELIVERED` instead, which charges the rider.
          * @enum {string}
          */
-        RefundReasonCode: "RESTAURANT_REJECTED" | "ITEM_MISSING" | "MISSING_ITEMS" | "WRONG_ITEM" | "WRONG_ITEMS" | "FOOD_QUALITY" | "FOOD_SAFETY" | "NEVER_DELIVERED" | "ORDER_NEVER_ARRIVED" | "LATE_DELIVERY" | "DAMAGED_SPILLED" | "NO_RIDER_FOUND" | "CUSTOMER_CHANGED_MIND" | "RESTAURANT_CANCELLED" | "PLATFORM_INITIATED_CANCELLATION" | "PLATFORM_ERROR" | "DUPLICATE_CHARGE" | "CHARGED_INCORRECTLY" | "PRICING_ERROR" | "HALAL_CONCERN" | "HALAL_INTEGRITY" | "GOODWILL" | "DISPUTE_RESOLUTION" | "CHARGEBACK_PREEMPTIVE" | "OTHER";
+        RefundReasonCode: "RESTAURANT_REJECTED" | "ITEM_MISSING" | "MISSING_ITEMS" | "WRONG_ITEM" | "WRONG_ITEMS" | "FOOD_QUALITY" | "FOOD_SAFETY" | "NEVER_DELIVERED" | "ORDER_NEVER_ARRIVED" | "LATE_DELIVERY" | "WRONG_ADDRESS" | "DAMAGED_SPILLED" | "NO_RIDER_FOUND" | "CUSTOMER_CHANGED_MIND" | "RESTAURANT_CANCELLED" | "PLATFORM_INITIATED_CANCELLATION" | "PLATFORM_ERROR" | "DUPLICATE_CHARGE" | "CHARGED_INCORRECTLY" | "PRICING_ERROR" | "HALAL_CONCERN" | "HALAL_INTEGRITY" | "GOODWILL" | "DISPUTE_RESOLUTION" | "CHARGEBACK_PREEMPTIVE" | "OTHER";
         /**
          * @description Who asked for a refund. `CUSTOMER`: the order's own customer (`createRefund`), whose
          *     request waits for staff review. `STAFF`: a member of staff (`issueRefund`, or a cancel
@@ -6839,6 +7350,25 @@ export interface components {
          * @enum {string}
          */
         RemittableBy: "PLATFORM" | "RESTAURANT";
+        /**
+         * @description `reason_text` is the staff member's own account of why, kept on the audit record and
+         *     the account's history. It is never sent to the restaurant: notices carry fixed wording.
+         */
+        RestaurantAccountActionInput: {
+            action: components["schemas"]["AccountAction"];
+            reason_code: components["schemas"]["RestaurantAccountReasonCode"];
+            reason_text: string;
+        };
+        /**
+         * @description Why an admin acted on a restaurant. `SUSPEND`, `PROPOSE_BAN` and `CONFIRM_BAN` take
+         *     a penalty reason (`COMPLIANCE_THRESHOLD` to `REPEATED_VIOLATIONS`, or `OTHER`).
+         *     `DELIST` takes `HALAL_CERTIFICATE_EXPIRED`, `DOCUMENT_EXPIRED`, `NO_APPROVED_MENU` or
+         *     `OTHER`, and the code is added to the restaurant's delisting reasons. `DEACTIVATE`
+         *     takes only `MERCHANT_REQUEST`. `REINSTATE` takes `ISSUE_RESOLVED`, `APPEAL_UPHELD`,
+         *     `ACTIONED_IN_ERROR`, `MERCHANT_REQUEST` or `OTHER`. Any other pairing is a `422`.
+         * @enum {string}
+         */
+        RestaurantAccountReasonCode: "COMPLIANCE_THRESHOLD" | "HALAL_INTEGRITY" | "FOOD_SAFETY_RISK" | "FRAUD_SUSPECTED" | "PAYMENT_OR_SETTLEMENT_ISSUE" | "ABUSIVE_CONDUCT" | "LEGAL_ORDER" | "REPEATED_VIOLATIONS" | "HALAL_CERTIFICATE_EXPIRED" | "DOCUMENT_EXPIRED" | "NO_APPROVED_MENU" | "MERCHANT_REQUEST" | "ISSUE_RESOLVED" | "APPEAL_UPHELD" | "ACTIONED_IN_ERROR" | "OTHER";
         /**
          * @description A-2.0. Orthogonal to onboarding. These six words mean exactly this everywhere in the
          *     product; `suspend`, `ban`, `deactivate` and `delist` are never synonyms.
@@ -7227,10 +7757,32 @@ export interface components {
             full_name: string;
         };
         /**
-         * @description Only `ACTIVE` account status **and** `ACTIVE` onboarding state can be dispatched.
+         * @description The `AccountAction` values that apply to a rider.
          * @enum {string}
          */
-        RiderAccountStatus: "PENDING" | "ACTIVE" | "SUSPENDED" | "DEACTIVATED";
+        RiderAccountAction: "SUSPEND" | "REINSTATE" | "PROPOSE_BAN" | "CONFIRM_BAN" | "DEACTIVATE";
+        /** @description `reason_text` stays on the audit record and the history; the rider's notice carries fixed wording. */
+        RiderAccountActionInput: {
+            action: components["schemas"]["RiderAccountAction"];
+            reason_code: components["schemas"]["RiderAccountReasonCode"];
+            reason_text: string;
+        };
+        /**
+         * @description Why an admin acted on a rider. `SUSPEND`, `PROPOSE_BAN` and `CONFIRM_BAN` take a
+         *     penalty reason (`DOCUMENT_EXPIRED` to `LEGAL_ORDER`, or `OTHER`). `DEACTIVATE` takes
+         *     only `RIDER_REQUEST`. `REINSTATE` takes `ISSUE_RESOLVED`, `APPEAL_UPHELD`,
+         *     `ACTIONED_IN_ERROR`, `RIDER_REQUEST` or `OTHER`. Any other pairing is a `422`.
+         * @enum {string}
+         */
+        RiderAccountReasonCode: "DOCUMENT_EXPIRED" | "INCIDENT_UNDER_INVESTIGATION" | "SAFETY_RISK" | "FRAUD_SUSPECTED" | "REPEATED_CANCELLATIONS" | "ABUSIVE_CONDUCT" | "LOW_PERFORMANCE" | "ACCOUNT_SHARING" | "LEGAL_ORDER" | "RIDER_REQUEST" | "ISSUE_RESOLVED" | "APPEAL_UPHELD" | "ACTIONED_IN_ERROR" | "OTHER";
+        /**
+         * @description Only `ACTIVE` account status **and** `ACTIVE` onboarding state can be dispatched.
+         *     `BANNED` is permanent unless a super admin reinstates the rider; a banned rider holds
+         *     no rider role at sign-in. The admin actions that move this status are
+         *     `applyRiderAccountAction`.
+         * @enum {string}
+         */
+        RiderAccountStatus: "PENDING" | "ACTIVE" | "SUSPENDED" | "DEACTIVATED" | "BANNED";
         RiderApplication: components["schemas"]["RiderApplicationSummary"] & {
             blockers: string[];
             /**
@@ -7621,6 +8173,29 @@ export interface components {
         SetupIntent: {
             client_secret: string;
         };
+        /**
+         * @description `PASSED`: the last check passed. `FAILED`: the last check failed, and every admin
+         *     page shows the sticky banner. `NOT_CHECKED`: no replica has run the check yet, for
+         *     example in the first seconds of a new deployment; no banner.
+         * @enum {string}
+         */
+        SmsSenderCheckState: "PASSED" | "FAILED" | "NOT_CHECKED";
+        /** @description The result `getSmsSenderStatus` returns. Safe for every staff role: no credential, account id or internal address. */
+        SmsSenderStatus: {
+            /**
+             * Format: date-time
+             * @description When the latest check ran. Null only for `NOT_CHECKED`.
+             */
+            checked_at: string | null;
+            /**
+             * Format: date-time
+             * @description When the checks started failing, for "Failing since 7:42 pm". Null unless `state` is `FAILED`.
+             */
+            failing_since: string | null;
+            /** @description Plain language, safe to show on the banner, such as "Twilio refused our credentials." Null unless `state` is `FAILED`. */
+            message: string | null;
+            state: components["schemas"]["SmsSenderCheckState"];
+        };
         /** @enum {string} */
         StaffStatus: "INVITED" | "ACTIVE" | "SUSPENDED" | "DEACTIVATED";
         StaffUser: {
@@ -7776,6 +8351,52 @@ export interface components {
          * @enum {string}
          */
         VehicleType: "CAR" | "SCOOTER" | "MOTORCYCLE" | "BICYCLE" | "ON_FOOT";
+        /**
+         * @description Which waitlist the visitor joins. One person may join more than one.
+         * @enum {string}
+         */
+        WaitlistAudience: "CUSTOMER" | "RESTAURANT" | "RIDER";
+        /**
+         * @description `EMAIL` while text-message sender registration is open ([#71](https://github.com/shaiknoorullah/hg-mono/issues/71)); `TEL` is E.164.
+         * @enum {string}
+         */
+        WaitlistContactKind: "EMAIL" | "TEL";
+        /**
+         * @description The body of `joinWaitlist`. Every field the consent record needs comes from the form;
+         *     `consented_at` does not, because the server sets it to the time it receives the
+         *     request.
+         */
+        WaitlistSignupInput: {
+            audience: components["schemas"]["WaitlistAudience"];
+            /**
+             * @description The ticked consent box. Anything but `true` is `422 VALIDATION_FAILED`: an unticked box is a no.
+             * @constant
+             */
+            consent: true;
+            /** @description The exact consent sentence the form showed, kept word for word as the record of what the person agreed to. */
+            consent_text: string;
+            /**
+             * @description An email address for `EMAIL`, lower-cased by the server; an E.164 number for `TEL`. A malformed one is `422 VALIDATION_FAILED`.
+             * @example amina@example.com
+             */
+            contact: string;
+            contact_kind: components["schemas"]["WaitlistContactKind"];
+            /**
+             * @description Which form on which page, such as `hero`, `final`, `footer` or `sticky`.
+             * @example hero
+             */
+            context: string;
+            /** @description Campaign parameters from the visit, such as `utm_source`. Empty or absent for a direct visit. */
+            utm?: {
+                [key: string]: string;
+            };
+        };
+        /** @description The answer to `joinWaitlist`: the same for a new sign-up and a repeat, so it never reveals who is already on the list. */
+        WaitlistSignupReceipt: {
+            audience: components["schemas"]["WaitlistAudience"];
+            /** @constant */
+            received: true;
+        };
     };
     responses: {
         /**
@@ -7835,6 +8456,7 @@ export interface components {
         ClientHeader: components["schemas"]["ClientSurface"];
         /** @description Opaque keyset cursor from `meta.next_cursor`. Never an offset or a page number. */
         Cursor: components["schemas"]["Cursor"];
+        CustomerAccountIdPath: string;
         DocumentIdPath: string;
         /**
          * @description A UUID the client makes when the address search field opens. It groups the
@@ -7866,7 +8488,12 @@ export interface components {
     headers: never;
     pathItems: never;
 }
+export type SchemaAccountAction = components['schemas']['AccountAction'];
+export type SchemaAccountActionInFlight = components['schemas']['AccountActionInFlight'];
+export type SchemaAccountStateChange = components['schemas']['AccountStateChange'];
+export type SchemaAccountStateName = components['schemas']['AccountStateName'];
 export type SchemaAccountStatus = components['schemas']['AccountStatus'];
+export type SchemaAccountSubjectType = components['schemas']['AccountSubjectType'];
 export type SchemaAcknowledgementResponse = components['schemas']['AcknowledgementResponse'];
 export type SchemaAddon = components['schemas']['Addon'];
 export type SchemaAddonGroup = components['schemas']['AddonGroup'];
@@ -7883,10 +8510,12 @@ export type SchemaAssignmentState = components['schemas']['AssignmentState'];
 export type SchemaAssignmentStepInput = components['schemas']['AssignmentStepInput'];
 export type SchemaAssignmentTransitionInput = components['schemas']['AssignmentTransitionInput'];
 export type SchemaAuthMethod = components['schemas']['AuthMethod'];
+export type SchemaBanProposal = components['schemas']['BanProposal'];
 export type SchemaCart = components['schemas']['Cart'];
 export type SchemaCartLine = components['schemas']['CartLine'];
 export type SchemaCartLineAvailability = components['schemas']['CartLineAvailability'];
 export type SchemaCartLineInput = components['schemas']['CartLineInput'];
+export type SchemaCartReplaceInput = components['schemas']['CartReplaceInput'];
 export type SchemaCents = components['schemas']['Cents'];
 export type SchemaCertificationPanel = components['schemas']['CertificationPanel'];
 export type SchemaChargeback = components['schemas']['Chargeback'];
@@ -7898,6 +8527,9 @@ export type SchemaConnectOnboardingLink = components['schemas']['ConnectOnboardi
 export type SchemaConnectStatus = components['schemas']['ConnectStatus'];
 export type SchemaCurrency = components['schemas']['Currency'];
 export type SchemaCursor = components['schemas']['Cursor'];
+export type SchemaCustomerAccountAction = components['schemas']['CustomerAccountAction'];
+export type SchemaCustomerAccountActionInput = components['schemas']['CustomerAccountActionInput'];
+export type SchemaCustomerAccountReasonCode = components['schemas']['CustomerAccountReasonCode'];
 export type SchemaCustomerCancellationReasonCode = components['schemas']['CustomerCancellationReasonCode'];
 export type SchemaCustomerProfile = components['schemas']['CustomerProfile'];
 export type SchemaCustomerProfileUpdateInput = components['schemas']['CustomerProfileUpdateInput'];
@@ -8086,6 +8718,8 @@ export type SchemaRefundRequesterKind = components['schemas']['RefundRequesterKi
 export type SchemaRefundScope = components['schemas']['RefundScope'];
 export type SchemaRefundState = components['schemas']['RefundState'];
 export type SchemaRemittableBy = components['schemas']['RemittableBy'];
+export type SchemaRestaurantAccountActionInput = components['schemas']['RestaurantAccountActionInput'];
+export type SchemaRestaurantAccountReasonCode = components['schemas']['RestaurantAccountReasonCode'];
 export type SchemaRestaurantAccountState = components['schemas']['RestaurantAccountState'];
 export type SchemaRestaurantApplication = components['schemas']['RestaurantApplication'];
 export type SchemaRestaurantApplicationApproveInput = components['schemas']['RestaurantApplicationApproveInput'];
@@ -8119,6 +8753,9 @@ export type SchemaRestaurantRejectReasonCode = components['schemas']['Restaurant
 export type SchemaRestaurantSort = components['schemas']['RestaurantSort'];
 export type SchemaRestaurantStaffUser = components['schemas']['RestaurantStaffUser'];
 export type SchemaRestaurantStaffUserInput = components['schemas']['RestaurantStaffUserInput'];
+export type SchemaRiderAccountAction = components['schemas']['RiderAccountAction'];
+export type SchemaRiderAccountActionInput = components['schemas']['RiderAccountActionInput'];
+export type SchemaRiderAccountReasonCode = components['schemas']['RiderAccountReasonCode'];
 export type SchemaRiderAccountStatus = components['schemas']['RiderAccountStatus'];
 export type SchemaRiderApplication = components['schemas']['RiderApplication'];
 export type SchemaRiderApplicationApproveInput = components['schemas']['RiderApplicationApproveInput'];
@@ -8156,6 +8793,8 @@ export type SchemaSelectedVariant = components['schemas']['SelectedVariant'];
 export type SchemaSessionGrant = components['schemas']['SessionGrant'];
 export type SchemaSessionSummary = components['schemas']['SessionSummary'];
 export type SchemaSetupIntent = components['schemas']['SetupIntent'];
+export type SchemaSmsSenderCheckState = components['schemas']['SmsSenderCheckState'];
+export type SchemaSmsSenderStatus = components['schemas']['SmsSenderStatus'];
 export type SchemaStaffStatus = components['schemas']['StaffStatus'];
 export type SchemaStaffUser = components['schemas']['StaffUser'];
 export type SchemaStaffUserInput = components['schemas']['StaffUserInput'];
@@ -8176,6 +8815,10 @@ export type SchemaVariant = components['schemas']['Variant'];
 export type SchemaVariantGroup = components['schemas']['VariantGroup'];
 export type SchemaVariantPricingMode = components['schemas']['VariantPricingMode'];
 export type SchemaVehicleType = components['schemas']['VehicleType'];
+export type SchemaWaitlistAudience = components['schemas']['WaitlistAudience'];
+export type SchemaWaitlistContactKind = components['schemas']['WaitlistContactKind'];
+export type SchemaWaitlistSignupInput = components['schemas']['WaitlistSignupInput'];
+export type SchemaWaitlistSignupReceipt = components['schemas']['WaitlistSignupReceipt'];
 export type ResponseError = components['responses']['Error'];
 export type ResponseRateLimited = components['responses']['RateLimited'];
 export type ResponseServerBusy = components['responses']['ServerBusy'];
@@ -8184,6 +8827,7 @@ export type ParameterCertificateIdPath = components['parameters']['CertificateId
 export type ParameterChargebackIdPath = components['parameters']['ChargebackIdPath'];
 export type ParameterClientHeader = components['parameters']['ClientHeader'];
 export type ParameterCursor = components['parameters']['Cursor'];
+export type ParameterCustomerAccountIdPath = components['parameters']['CustomerAccountIdPath'];
 export type ParameterDocumentIdPath = components['parameters']['DocumentIdPath'];
 export type ParameterGeoSessionToken = components['parameters']['GeoSessionToken'];
 export type ParameterIdempotencyKeyRequired = components['parameters']['IdempotencyKeyRequired'];
@@ -8574,6 +9218,65 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
+            default: components["responses"]["Error"];
+        };
+    };
+    applyCustomerAccountAction: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated UUID or ULID, 16–128 characters. Scope is
+                 *     `(account_id, method, path_template, key)`. Two concurrent requests with the same key
+                 *     produce exactly one business effect; a replay returns the original status and body
+                 *     byte-identically with `Idempotency-Replayed: true`; the same key with a different body
+                 *     is `409 IDEMPOTENCY_KEY_REUSE`, never a silent replay of the wrong result. The record
+                 *     is written in the same transaction as the business effect and expires after 24 h.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKeyRequired"];
+            };
+            path: {
+                customerAccountId: components["parameters"]["CustomerAccountIdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CustomerAccountActionInput"];
+            };
+        };
+        responses: {
+            /** @description The action is applied, or a retry returned the first result. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["AccountStateChange"];
+                    };
+                };
+            };
+            /** @description `FORBIDDEN_PERMISSION`, `SELF_APPROVAL_FORBIDDEN`, `MFA_REQUIRED`. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            404: components["responses"]["Error"];
+            /** @description `ILLEGAL_STATE_TRANSITION`, `IN_FLIGHT_ORDERS_PRESENT` (`details.order_ids`), `IDEMPOTENCY_KEY_REUSE`. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            422: components["responses"]["Error"];
             default: components["responses"]["Error"];
         };
     };
@@ -9434,7 +10137,8 @@ export interface operations {
             };
             /**
              * @description Above the caller's cap: an approval request was created and the case escalated.
-             *     No refund exists yet.
+             *     No money has moved yet. The request already holds its claim on the lines and
+             *     fees it names, until it is declined.
              */
             202: {
                 headers: {
@@ -9467,8 +10171,12 @@ export interface operations {
                 };
             };
             /**
-             * @description `REFUND_EXCEEDS_CAPTURED`, `DAILY_CAP_EXCEEDED`, `SELF_APPROVAL_FORBIDDEN`,
-             *     `PAYMENT_NOT_REFUNDABLE`, `IDEMPOTENCY_KEY_REUSE`.
+             * @description `REFUND_EXCEEDS_CAPTURED` when the refunds that hold a claim would exceed the
+             *     captured amount, `REFUND_ALREADY_REQUESTED` when the request claims a line
+             *     quantity or the fees that another refund or pending approval request on the
+             *     order already holds (with `details.order_line_nos` and `details.fees`),
+             *     `DAILY_CAP_EXCEEDED`, `SELF_APPROVAL_FORBIDDEN`, `PAYMENT_NOT_REFUNDABLE`,
+             *     `IDEMPOTENCY_KEY_REUSE`.
              */
             409: {
                 headers: {
@@ -9835,6 +10543,74 @@ export interface operations {
                 };
             };
             404: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+            default: components["responses"]["Error"];
+        };
+    };
+    applyRestaurantAccountAction: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated UUID or ULID, 16–128 characters. Scope is
+                 *     `(account_id, method, path_template, key)`. Two concurrent requests with the same key
+                 *     produce exactly one business effect; a replay returns the original status and body
+                 *     byte-identically with `Idempotency-Replayed: true`; the same key with a different body
+                 *     is `409 IDEMPOTENCY_KEY_REUSE`, never a silent replay of the wrong result. The record
+                 *     is written in the same transaction as the business effect and expires after 24 h.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKeyRequired"];
+            };
+            path: {
+                restaurantId: components["parameters"]["RestaurantIdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RestaurantAccountActionInput"];
+            };
+        };
+        responses: {
+            /** @description The action is applied, or a retry returned the first result. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["AccountStateChange"];
+                    };
+                };
+            };
+            /**
+             * @description `FORBIDDEN_PERMISSION` (an admin confirming a ban or reinstating a banned
+             *     restaurant: `details.permission` names the permission), `SELF_APPROVAL_FORBIDDEN`
+             *     (confirming your own ban proposal), `MFA_REQUIRED` (a session without two-step
+             *     sign-in).
+             */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            404: components["responses"]["Error"];
+            /**
+             * @description `ILLEGAL_STATE_TRANSITION` (`details.from_state`, `details.action`,
+             *     `details.allowed_actions`), `HALAL_CERTIFICATE_REQUIRED`, `PRECONDITION_NOT_MET`,
+             *     `IDEMPOTENCY_KEY_REUSE`.
+             */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
             422: components["responses"]["Error"];
             default: components["responses"]["Error"];
         };
@@ -10215,6 +10991,65 @@ export interface operations {
             default: components["responses"]["Error"];
         };
     };
+    applyRiderAccountAction: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated UUID or ULID, 16–128 characters. Scope is
+                 *     `(account_id, method, path_template, key)`. Two concurrent requests with the same key
+                 *     produce exactly one business effect; a replay returns the original status and body
+                 *     byte-identically with `Idempotency-Replayed: true`; the same key with a different body
+                 *     is `409 IDEMPOTENCY_KEY_REUSE`, never a silent replay of the wrong result. The record
+                 *     is written in the same transaction as the business effect and expires after 24 h.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKeyRequired"];
+            };
+            path: {
+                riderAccountId: components["parameters"]["RiderAccountIdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RiderAccountActionInput"];
+            };
+        };
+        responses: {
+            /** @description The action is applied, or a retry returned the first result. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["AccountStateChange"];
+                    };
+                };
+            };
+            /** @description `FORBIDDEN_PERMISSION`, `SELF_APPROVAL_FORBIDDEN`, `MFA_REQUIRED`. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            404: components["responses"]["Error"];
+            /** @description `ILLEGAL_STATE_TRANSITION`, `PRECONDITION_NOT_MET`, `IDEMPOTENCY_KEY_REUSE`. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            422: components["responses"]["Error"];
+            default: components["responses"]["Error"];
+        };
+    };
     listStaff: {
         parameters: {
             query?: {
@@ -10279,6 +11114,29 @@ export interface operations {
                 };
             };
             409: components["responses"]["Error"];
+            default: components["responses"]["Error"];
+        };
+    };
+    getSmsSenderStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The latest check. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["SmsSenderStatus"];
+                    };
+                };
+            };
             default: components["responses"]["Error"];
         };
     };
@@ -10835,6 +11693,57 @@ export interface operations {
                     };
                 };
             };
+            default: components["responses"]["Error"];
+        };
+    };
+    replaceCart: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Client-generated UUID or ULID, 16–128 characters. Scope is
+                 *     `(account_id, method, path_template, key)`. Two concurrent requests with the same key
+                 *     produce exactly one business effect; a replay returns the original status and body
+                 *     byte-identically with `Idempotency-Replayed: true`; the same key with a different body
+                 *     is `409 IDEMPOTENCY_KEY_REUSE`, never a silent replay of the wrong result. The record
+                 *     is written in the same transaction as the business effect and expires after 24 h.
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKeyRequired"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CartReplaceInput"];
+            };
+        };
+        responses: {
+            /** @description The new cart, recomputed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["Cart"];
+                    };
+                };
+            };
+            /**
+             * @description `ITEM_UNAVAILABLE`, `VARIANT_UNAVAILABLE`, `ADDON_UNAVAILABLE`,
+             *     `RESTAURANT_CLOSED` or `RESTAURANT_UNAVAILABLE`, with `details.lines` naming
+             *     every failing line. The cart is unchanged.
+             */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            422: components["responses"]["Error"];
             default: components["responses"]["Error"];
         };
     };
@@ -12385,8 +13294,10 @@ export interface operations {
                 };
             };
             /**
-             * @description `REFUND_EXCEEDS_CAPTURED`, `REFUND_WINDOW_CLOSED`, `REFUND_ALREADY_REQUESTED`,
-             *     `PAYMENT_NOT_REFUNDABLE`.
+             * @description `REFUND_EXCEEDS_CAPTURED`, `REFUND_WINDOW_CLOSED`, `PAYMENT_NOT_REFUNDABLE`,
+             *     or `REFUND_ALREADY_REQUESTED` when the report claims an item or the fees that
+             *     another refund on the order already holds (not merely because the order has
+             *     another refund).
              */
             409: {
                 headers: {
@@ -12465,6 +13376,12 @@ export interface operations {
                      * @description Optional short pause; ignored when `is_accepting_orders` is false.
                      */
                     pause_until?: string | null;
+                    /**
+                     * @description Pause until the end of the current trading period, worked out by the
+                     *     server. Not with `pause_until`.
+                     * @default false
+                     */
+                    pause_until_closing?: boolean;
                 };
             };
         };
@@ -12478,6 +13395,15 @@ export interface operations {
                     "application/json": {
                         data: components["schemas"]["RestaurantAvailability"];
                     };
+                };
+            };
+            /** @description `RESTAURANT_CLOSED` when `pause_until_closing` is sent outside trading hours. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
             422: components["responses"]["Error"];
@@ -14423,6 +15349,39 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
+            default: components["responses"]["Error"];
+        };
+    };
+    joinWaitlist: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WaitlistSignupInput"];
+            };
+        };
+        responses: {
+            /**
+             * @description Received. The same answer for a new sign-up and for a repeat; it never says
+             *     whether the contact was already on the list.
+             */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["WaitlistSignupReceipt"];
+                    };
+                };
+            };
+            422: components["responses"]["Error"];
+            429: components["responses"]["RateLimited"];
+            503: components["responses"]["Error"];
             default: components["responses"]["Error"];
         };
     };

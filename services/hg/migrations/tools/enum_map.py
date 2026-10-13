@@ -131,6 +131,16 @@ MAPPED = {
     "NotificationChannel":                "notification_channel",
     "NotificationPriority":               "notification_priority",
     "DevicePlatform":                     "device_platform",
+
+    # --- operations ---------------------------------------------------------
+    # Each replica writes its start-up check of the text-message sender to
+    # Postgres, so every admin page reads the same answer (getSmsSenderStatus).
+    "SmsSenderCheckState":                "sms_sender_check_state",
+
+    # --- pre-launch waitlist (#212, https://github.com/shaiknoorullah/hg-mono/issues/212)
+    # Stored on the waitlist_signup row with its consent record (joinWaitlist).
+    "WaitlistAudience":                   "waitlist_audience",
+    "WaitlistContactKind":                "waitlist_contact_kind",
 }
 
 # Contract enums whose Postgres type is created by the feature migration that
@@ -143,14 +153,11 @@ MAPPED_IN_MIGRATION = {
     "HandoffEventType":                   ("handoff_event_type", "00027_handoff.sql"),
     "HandoffActor":                       ("handoff_actor", "00027_handoff.sql"),
     "HandoffMethod":                      ("handoff_method", "00027_handoff.sql"),
-<<<<<<< ours
     "AccountSubjectType":                 ("account_subject_type", "00044_account_state_actions.sql"),
     "AccountAction":                      ("account_action", "00044_account_state_actions.sql"),
-=======
     "PayoutRunKind":                      ("payout_run_kind", "00030_payout_run.sql"),
     "PayoutRunState":                     ("payout_run_state", "00030_payout_run.sql"),
     "PayoutRunOutcome":                   ("payout_run_outcome", "00030_payout_run.sql"),
->>>>>>> theirs
 }
 
 # Contract enums with no persisted counterpart. Each needs a reason.
@@ -159,6 +166,12 @@ EXCLUSIONS = {
         "Transport-level error vocabulary. Never stored; lives in the Go error registry.",
     "Address/properties/country":
         "Single-value ('CA') constant enforced by a CHECK on address.country, not a type.",
+    "GeocodedAddress/properties/country":
+        "Single-value ('CA') constant on a geocoding answer. The saved address stores it "
+        "as address.country, under that column's CHECK, not a type.",
+    "GeoResultKind":
+        "How precise a Mapbox search result is. Shown to the user and never stored: the "
+        "address search adds no persistent entity (customer spec, C-31).",
     "HealthStatus/properties/status":
         "Liveness probe literal. Not persisted.",
     "ReadinessStatus/properties/dependencies/items/properties/name":
@@ -242,7 +255,6 @@ EXCLUSIONS = {
     "OrderRatingInput/properties/rider/oneOf/0/properties/tags/items":
         "Rating tag vocabulary. Stored as free text[] on the rating row; the "
         "allowed set is enforced at the API boundary.",
-<<<<<<< ours
     "RiderAccountAction":
         "Request-only subset of account_action (the actions that apply to a rider). "
         "Enforced at the API boundary.",
@@ -259,7 +271,6 @@ EXCLUSIONS = {
         "Stored as text on account_state_event, held to this set by a CHECK per subject type.",
     "CustomerAccountReasonCode":
         "Stored as text on account_state_event, held to this set by a CHECK per subject type.",
-=======
     # The handover-code request shapes
     # (https://github.com/shaiknoorullah/hg-mono/pull/290). Each method/to_state
     # below is a one-value discriminator that picks the request shape; what is
@@ -293,7 +304,6 @@ EXCLUSIONS = {
     "GeocodedAddress/properties/country":
         "Response-only, always CA: an address-search result is never stored. "
         "A saved address carries Address.country.",
->>>>>>> theirs
 }
 
 
