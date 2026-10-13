@@ -35,6 +35,7 @@ import { CheckEmailScreen } from './auth/CheckEmailScreen';
 import { VerifyEmailScreen } from './auth/VerifyEmailScreen';
 import { ForgotPasswordScreen } from './auth/ForgotPasswordScreen';
 import { ResetPasswordScreen } from './auth/ResetPasswordScreen';
+import { HoursPage } from './hours/HoursPage';
 import { NewOrdersProvider } from './strip/NewOrdersProvider';
 import { OrdersGate } from './orders/GoLiveGate';
 import { LiveOrdersPage } from './orders/LiveOrdersPage';
@@ -145,7 +146,7 @@ export function RedesignApp() {
     root.setAttribute('data-theme', 'light');
     root.style.colorScheme = 'light';
   }, []);
-  const { Onboarding, Hours, Payouts, Settings } = LEGACY;
+  const { Onboarding, Payouts, Settings } = LEGACY;
   return (
     <div {...themeAttributes('restaurant')} className="relative h-dvh overflow-hidden bg-surface-sunken text-fg-primary" data-redesign="">
       <AuthProvider>
@@ -192,7 +193,7 @@ export function RedesignApp() {
               element={<PendingRoute title="Past orders" description="Orders you finished, declined or that were cancelled appear here." />}
             />
             <Route path="/menu" element={<MenuPage />} />
-            <Route path="/hours" element={<LegacyPane><Hours /></LegacyPane>} />
+            <Route path="/hours" element={<HoursPage />} />
             <Route path="/payouts" element={<LegacyPane><Payouts /></LegacyPane>} />
             <Route path="/settings/*" element={<LegacyPane><Settings /></LegacyPane>} />
           </Route>

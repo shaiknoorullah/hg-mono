@@ -195,6 +195,16 @@ flow gets `PHONE` (the app's persona), `RESTAURANT`, `DISH`, `EXPIRED_RESTAURANT
 from the API's log). Each redesign spec runs twice against one world (desktop, then tablet), so it
 must not depend on state the other pass changed.
 
+**Specs that change the shared restaurant** (2026-10-10, `redesign-restaurant.hours.spec.ts`):
+in real mode the Hours journeys read the restaurant's hours and open state through the API first
+and put them back in a `finally` (the weekly hours and special dates with one `PUT`, the pause
+with a `PATCH` to accepting, unpaused), so the tablet pass and other specs see the world as it
+was. They sign in once per persona per worker (sign-in is rate-limited per account). The
+`paused@seed.hg` and `suspended@seed.hg` journeys use devworld personas and skip themselves in a
+world without them (the CI seed world); the suspended one opens the editor and saves nothing.
+In mock mode the spec answers the hours `PUT` and the availability `PATCH` with `page.route`,
+echoing what was sent, because the mock forgets every write.
+
 **Run it locally:**
 
 ```bash
