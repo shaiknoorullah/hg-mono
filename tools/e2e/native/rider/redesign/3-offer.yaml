@@ -35,8 +35,10 @@ env:
       - tapOn:
           text: "While using the app"
           optional: true
+# Online: the waiting line, or already the offer (run.sh marks the order ready the moment this
+# rider is ONLINE_IDLE, so the offer can replace the waiting line within seconds).
 - extendedWaitUntil:
-    visible: "You can lock your phone.*"
+    visible: "You can lock your phone.*|Delivery offer"
     timeout: 45000
 
 # SH/OfferLive: a real offer, the area only until Accept.
