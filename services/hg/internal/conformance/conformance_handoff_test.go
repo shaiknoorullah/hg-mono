@@ -10,14 +10,20 @@ package conformance
 //      READY_FOR_PICKUP, a live rider assignment for it, and an ISSUED
 //      package_seal for the restaurant.
 //   2. bindPackageSeal (restaurant) — ISSUED → BOUND, mints the signed token.
-//   3. scanPickup (rider), presenting that token — the order advances
-//      READY_FOR_PICKUP → PICKED_UP through the real OrderLifecycle bridge to
-//      orders.Store.Transition, not a fake.
-//   4. scanDelivery (rider), the same physical token — PICKED_UP → DELIVERED.
-//      Proves the per-proof-type nonce scoping: the identical qr_token that
-//      already cleared scanPickup is accepted again for the DELIVERY proof
-//      without tripping handoff_event_nonce_unique as a false replay.
-//   5. reportTamper (customer) — DELIVERED → DISPUTED, the dispute-flow bridge.
+//   3. scanPickup (rider), presenting that token — recorded as custody
+//      evidence. It does NOT move the order: at launch the rider confirms
+//      pickup with the kitchen's pickup code, and a scan can never stand in
+//      for a handover code (contracts/openapi.yaml, scanPickup;
+//      https://github.com/shaiknoorullah/hg-mono/issues/310). The order stays
+//      READY_FOR_PICKUP and order_state says so.
+//   4. scanDelivery (rider), the same physical token — evidence again, the
+//      order unchanged. Proves the per-proof-type nonce scoping: the identical
+//      qr_token that already cleared scanPickup is accepted again for the
+//      DELIVERY proof without tripping handoff_event_nonce_unique as a false
+//      replay.
+//   5. The order is delivered the way the rider app delivers it (through the
+//      orders transition), then reportTamper (customer) — DELIVERED →
+//      DISPUTED, the dispute-flow bridge.
 //
 // Every 2xx body is validated against contracts/openapi.yaml exactly like every
 // other conformance test in this package; nothing here weakens the oracle.
@@ -40,25 +46,12 @@ import (
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders/machine"
 )
 
-// handoffLifecycleAdapter is a faithful copy of cmd/hg/main.go's
+// handoffLifecycleAdapter is the handoff half of cmd/hg/main.go's
 // orderLifecycleAdapter (unexported there, so duplicated here rather than
-// exported for a test) — it is the same bridge, calling the same
-// orders.Store.Transition, so a passing test here proves the real bridge works.
+// exported for a test): OpenDispute, calling the same orders.Store.Transition,
+// so a passing test here proves the real bridge works. handoff.OrderLifecycle
+// has no pickup or delivery method, because a seal scan never moves an order.
 type handoffLifecycleAdapter struct{ store *orders.Store }
-
-func (a handoffLifecycleAdapter) ConfirmPickup(ctx context.Context, orderID, riderAccountID string) error {
-	return a.store.Transition(ctx, orders.TransitionRequest{
-		OrderID: orderID, To: machine.StatePickedUp, Actor: machine.ActorRider,
-		ActorAccountID: riderAccountID, Reason: "rider confirmed pickup",
-	})
-}
-
-func (a handoffLifecycleAdapter) CompleteDelivery(ctx context.Context, orderID, riderAccountID string) error {
-	return a.store.Transition(ctx, orders.TransitionRequest{
-		OrderID: orderID, To: machine.StateDelivered, Actor: machine.ActorRider,
-		ActorAccountID: riderAccountID, Reason: "rider completed delivery",
-	})
-}
 
 func (a handoffLifecycleAdapter) OpenDispute(ctx context.Context, orderID, customerAccountID, reason string) error {
 	return a.store.Transition(ctx, orders.TransitionRequest{
@@ -67,9 +60,8 @@ func (a handoffLifecycleAdapter) OpenDispute(ctx context.Context, orderID, custo
 	})
 }
 
-// newHandoffHarness wires orders (with a REAL lifecycle bridge, unlike
-// newARWHarness's nil one — the whole point of these four routes is that they
-// gate a real order transition) and handoff over a fresh Ed25519 test key pair.
+// newHandoffHarness wires orders (with a REAL lifecycle bridge for the tamper
+// report's dispute) and handoff over a fresh Ed25519 test key pair.
 func newHandoffHarness(t *testing.T, pool *pgxpool.Pool) (*Harness, ed25519.PublicKey) {
 	t.Helper()
 	spec := LoadSpec(t)
@@ -253,7 +245,7 @@ func TestConformance_Handoff(t *testing.T) {
 		t.Fatalf("bindPackageSeal did not yield a qr_token; cannot scan")
 	}
 
-	// scanPickup (rider) → 200 HandoffScanResult, order READY_FOR_PICKUP → PICKED_UP.
+	// scanPickup (rider) → 200 HandoffScanResult; the order stays READY_FOR_PICKUP.
 	t.Run("scanPickup", func(t *testing.T) {
 		rq := Request{
 			Method: "POST", Path: "/v1/orders/" + f.orderID + "/handoff/pickup-scan",
@@ -272,8 +264,8 @@ func TestConformance_Handoff(t *testing.T) {
 			t.Fatalf("scanPickup: status = %d, want 200 (body: %s)", resp.StatusCode, truncate(string(body), 400))
 		}
 		data := dataObject(t, resp)
-		if data["order_state"] != "PICKED_UP" {
-			t.Errorf("scanPickup: order_state = %v, want PICKED_UP", data["order_state"])
+		if data["order_state"] != "READY_FOR_PICKUP" {
+			t.Errorf("scanPickup: order_state = %v, want READY_FOR_PICKUP (a scan never moves the order)", data["order_state"])
 		}
 		if _, err := ValidateResponse(t, h.Spec, vreq, resp); err != nil {
 			t.Errorf("CONFORMANCE FAIL (scanPickup): %v", err)
@@ -284,13 +276,23 @@ func TestConformance_Handoff(t *testing.T) {
 
 	var orderState string
 	mustScan(t, pool, `SELECT state::text FROM "order" WHERE id=$1`, &orderState, f.orderID)
-	if orderState != "PICKED_UP" {
-		t.Fatalf("order state after scanPickup = %s, want PICKED_UP — the OrderLifecycle bridge did not fire", orderState)
+	if orderState != "READY_FOR_PICKUP" {
+		t.Fatalf("order state after scanPickup = %s, want READY_FOR_PICKUP — a seal scan moved the order", orderState)
+	}
+
+	// The rider confirms pickup with the pickup code (internal/dispatch), which
+	// moves the order through the orders transition; done directly here.
+	ordersStore := orders.NewStore(pool)
+	if err := ordersStore.Transition(context.Background(), orders.TransitionRequest{
+		OrderID: f.orderID, To: machine.StatePickedUp, Actor: machine.ActorRider,
+		ActorAccountID: f.riderID, Reason: "rider confirmed pickup with the code",
+	}); err != nil {
+		t.Fatalf("pickup through the orders transition: %v", err)
 	}
 
 	// scanDelivery (rider), the SAME token — proves the per-proof-type nonce
-	// scoping (eventNonce) rather than a false SEAL_NONCE_REPLAYED. Order
-	// PICKED_UP → DELIVERED.
+	// scoping (eventNonce) rather than a false SEAL_NONCE_REPLAYED. The order
+	// stays PICKED_UP.
 	t.Run("scanDelivery", func(t *testing.T) {
 		rq := Request{
 			Method: "POST", Path: "/v1/orders/" + f.orderID + "/handoff/delivery-scan",
@@ -309,8 +311,8 @@ func TestConformance_Handoff(t *testing.T) {
 			t.Fatalf("scanDelivery: status = %d, want 200 (body: %s)", resp.StatusCode, truncate(string(body), 400))
 		}
 		data := dataObject(t, resp)
-		if data["order_state"] != "DELIVERED" {
-			t.Errorf("scanDelivery: order_state = %v, want DELIVERED", data["order_state"])
+		if data["order_state"] != "PICKED_UP" {
+			t.Errorf("scanDelivery: order_state = %v, want PICKED_UP (a scan never moves the order)", data["order_state"])
 		}
 		if _, err := ValidateResponse(t, h.Spec, vreq, resp); err != nil {
 			t.Errorf("CONFORMANCE FAIL (scanDelivery): %v", err)
@@ -318,6 +320,19 @@ func TestConformance_Handoff(t *testing.T) {
 			h.MarkCovered("scanDelivery")
 		}
 	})
+
+	mustScan(t, pool, `SELECT state::text FROM "order" WHERE id=$1`, &orderState, f.orderID)
+	if orderState != "PICKED_UP" {
+		t.Fatalf("order state after scanDelivery = %s, want PICKED_UP — a seal scan moved the order", orderState)
+	}
+	// Delivery is proved by the customer's proof of delivery (internal/dispatch),
+	// then the order moves through the orders transition; done directly here.
+	if err := ordersStore.Transition(context.Background(), orders.TransitionRequest{
+		OrderID: f.orderID, To: machine.StateDelivered, Actor: machine.ActorRider,
+		ActorAccountID: f.riderID, Reason: "rider completed delivery",
+	}); err != nil {
+		t.Fatalf("delivery through the orders transition: %v", err)
+	}
 
 	// reportTamper (customer) → 200 HandoffScanResult, DELIVERED → DISPUTED.
 	// Never auto-fails: this is the customer opening the dispute flow, not a

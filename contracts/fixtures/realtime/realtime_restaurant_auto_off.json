@@ -1,0 +1,125 @@
+{
+  "scenario": "realtime_restaurant_auto_off",
+  "domain": "realtime",
+  "schema": "RealtimeEvent[]",
+  "describes": "Two offers in a row run out unanswered, and the platform turns ordering off: `restaurant.status_changed {is_accepting_orders: false, open_state: CLOSED_TOGGLE}` after the second `restaurant.order_offer_expired`. The tablet shows \"Ordering is off\" with a button to turn it back on. Contract-only: `services/hg` counts missed offers but does not turn ordering off by itself yet.",
+  "operations": [],
+  "status": 200,
+  "tags": [
+    "realtime",
+    "script",
+    "restaurant",
+    "error-path"
+  ],
+  "payload": [
+    {
+      "id": "GJDAE2RQD8716KF5AWWTETZFM5",
+      "seq": 1,
+      "channel": "restaurant:a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+      "type": "restaurant.order_offered",
+      "v": 1,
+      "ts": "2026-08-10T18:42:11.412Z",
+      "data": {
+        "order_id": "11cd6318-418f-4301-af7e-3e7f33818fa8",
+        "code": "HG-A7K2-4M",
+        "expires_at": "2026-08-10T18:42:23.412Z",
+        "deadline_at": "2026-08-10T18:42:23.412Z",
+        "customer_first_name": "Ayesha",
+        "lines": [
+          {
+            "name": "Chicken Biryani",
+            "variant": null,
+            "addons": [],
+            "qty": 2,
+            "note": null
+          },
+          {
+            "name": "Garlic Naan",
+            "variant": null,
+            "addons": [],
+            "qty": 2,
+            "note": null
+          }
+        ],
+        "subtotal_cents": 3298,
+        "total_cents": 4369,
+        "currency": "CAD",
+        "prep_eta_suggestion_min": 20,
+        "fulfilment": "DELIVERY"
+      },
+      "_delay_ms": 0
+    },
+    {
+      "id": "BKF8QE21H077G0W66YP2RJVHDK",
+      "seq": 2,
+      "channel": "restaurant:a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+      "type": "restaurant.order_offer_expired",
+      "v": 1,
+      "ts": "2026-08-10T18:42:23.412Z",
+      "data": {
+        "order_id": "11cd6318-418f-4301-af7e-3e7f33818fa8",
+        "reason": "timeout"
+      },
+      "_delay_ms": 12000
+    },
+    {
+      "id": "TZN946PBKVZ06AM23ER6D7VBH3",
+      "seq": 3,
+      "channel": "restaurant:a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+      "type": "restaurant.order_offered",
+      "v": 1,
+      "ts": "2026-08-10T18:42:26.412Z",
+      "data": {
+        "order_id": "bee84871-8c40-47d3-ad99-2d0880ff42cb",
+        "code": "HG-B3Q9-7T",
+        "expires_at": "2026-08-10T18:42:38.412Z",
+        "deadline_at": "2026-08-10T18:42:38.412Z",
+        "customer_first_name": "Bilal",
+        "lines": [
+          {
+            "name": "Beef Nihari",
+            "variant": "Full",
+            "addons": [],
+            "qty": 1,
+            "note": "Extra gravy on the side"
+          }
+        ],
+        "subtotal_cents": 1899,
+        "total_cents": 2671,
+        "currency": "CAD",
+        "prep_eta_suggestion_min": 25,
+        "fulfilment": "DELIVERY"
+      },
+      "_delay_ms": 15000
+    },
+    {
+      "id": "CV7CJ8BN5JGV83BDVWSPGXWBJM",
+      "seq": 4,
+      "channel": "restaurant:a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+      "type": "restaurant.order_offer_expired",
+      "v": 1,
+      "ts": "2026-08-10T18:42:38.412Z",
+      "data": {
+        "order_id": "bee84871-8c40-47d3-ad99-2d0880ff42cb",
+        "reason": "timeout"
+      },
+      "_delay_ms": 27000
+    },
+    {
+      "id": "MBKHT33TKKRV9QF04GCGE2GXJ3",
+      "seq": 5,
+      "channel": "restaurant:a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+      "type": "restaurant.status_changed",
+      "v": 1,
+      "ts": "2026-08-10T18:42:38.912Z",
+      "data": {
+        "restaurant_id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+        "is_accepting_orders": false,
+        "open_state": "CLOSED_TOGGLE",
+        "reason": "Ordering was turned off after two orders in a row went unanswered.",
+        "changed_by": "HalalGoes"
+      },
+      "_delay_ms": 27500
+    }
+  ]
+}

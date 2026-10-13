@@ -13,17 +13,26 @@ func TestWorldLiteralsAreInTheSQL(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	raw, err := os.ReadFile(filepath.Join(root, "devworld", "001_personas.sql"))
+	files, err := personaSQLFiles(root)
 	if err != nil {
 		t.Fatal(err)
 	}
-	sql := string(raw)
-	if strings.Contains(sql, "+goose") {
-		t.Fatal("devworld SQL must not be a goose migration")
+	var all strings.Builder
+	for _, path := range files {
+		raw, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		one := string(raw)
+		if strings.Contains(one, "+goose") {
+			t.Fatalf("%s: devworld SQL must not be a goose migration", filepath.Base(path))
+		}
+		if !strings.Contains(one, "BEGIN;") || !strings.Contains(one, "COMMIT;") {
+			t.Fatalf("%s: devworld SQL must be one transaction so certificate checks commit together", filepath.Base(path))
+		}
+		all.WriteString(one)
 	}
-	if !strings.Contains(sql, "BEGIN;") || !strings.Contains(sql, "COMMIT;") {
-		t.Fatal("devworld SQL must be one transaction so certificate checks commit together")
-	}
+	sql := all.String()
 	for _, id := range World {
 		for _, lit := range []string{id.AccountID, id.RestaurantID, id.Email, id.Phone} {
 			if lit == "" {

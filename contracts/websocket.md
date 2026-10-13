@@ -300,7 +300,7 @@ not reject anything.
 
 | `type` | Channel | Audience | `data` |
 |---|---|---|---|
-| `dispatch.offer` | `rider:{id}` | rider | `{order_id, offer_id, expires_at, server_time, pickup: {restaurant_name, address_short, lat, lng}, dropoff: {area, lat, lng}, distance_m, est_duration_s, earnings_cents, tip_cents_estimate, items_count}` |
+| `dispatch.offer` | `rider:{id}` | rider | `{order_id, offer_id, expires_at, server_time, pickup: {restaurant_name, address_short, lat, lng}, dropoff: {area, lat, lng, radius_m}, distance_m, est_duration_s, earnings_cents, tip_cents_estimate, items_count}` |
 | `dispatch.offer_withdrawn` | `rider:{id}` | rider | `{order_id, offer_id, reason: "taken" \| "expired" \| "cancelled"}` |
 | `dispatch.assigned` | `order:{id}` | customer, restaurant, rider | `{order_id, rider: {first_name, photo_url, vehicle_type, rating_avg}, pickup_eta_at}` |
 | `dispatch.unassigned` | `order:{id}` | customer, restaurant, rider | `{order_id, reason}` |
@@ -309,8 +309,13 @@ not reject anything.
 | `rider.availability_changed` | `rider:{id}` | rider, admin | `{account_id, is_online, availability_state: RiderAvailabilityState, at}` |
 | `rider.earnings_updated` | `rider:{id}` | rider | `{account_id, period, earnings_cents, currency, deliveries}` |
 
-`dispatch.offer` never carries the customer's unit number or phone alias — those exist only after
-the offer is accepted. The countdown is computed from `expires_at` minus `server_time`, corrected
+`dispatch.offer` carries only an approximate drop-off area: `area` is the neighbourhood and city,
+never a street or house number, and `lat`/`lng` are the centre of an area of about 500 m with
+`radius_m` its radius, never the address. The street, unit, buzzer, name and phone alias exist
+only after the offer is accepted, on the assignment. `distance_m` and `est_duration_s` are still
+measured to the exact address. The owner decided this on 2026-10-01
+([round-2 decisions, "Orders and delivery"](../docs/decisions/README.md#orders-and-delivery);
+[#183](https://github.com/shaiknoorullah/hg-mono/issues/183)). The countdown is computed from `expires_at` minus `server_time`, corrected
 for device clock skew, so a phone whose clock is ten minutes fast still shows ~30 seconds.
 
 `rider.location` is throttled to **at most one event per 5 seconds per order** and is published
@@ -337,6 +342,8 @@ only while the order is `PICKED_UP` or `ARRIVED`, or dispatch is `ASSIGNED` or l
 | `admin.dispatch_failure` | `{order_id, waves, riders_offered, radius_m}` |
 | `admin.reconciliation_exception` | `{kind, order_id, expected_cents, actual_cents}` |
 | `admin.queue_depth` | `{pending_restaurant_reviews, pending_rider_reviews, open_disputes, failed_refunds}` |
+
+`admin.alert` kind `HALAL_ISSUER_STATUS_CHANGE`: a super admin changed a certifying body's status and this restaurant (`subject_type: RESTAURANT`) lost or regained its halal badge, or was delisted or listed again. `severity` is `WARNING` when the platform can no longer vouch for it, `INFO` when it can again ([issue 346](https://github.com/shaiknoorullah/hg-mono/issues/346)).
 
 ---
 
