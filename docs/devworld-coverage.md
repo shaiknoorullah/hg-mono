@@ -36,6 +36,7 @@ Commands run from `services/hg`, against a local stack (`make up`, `make migrate
 |---|---|---|
 | `amina`, `nour` | `+15550100101`, `+15550100102`, code `000000` | customer app |
 | `rider-sim`, `rider-docs`, `rider-rejected`, `rider-registered` | `+15550100151` to `+15550100154`, code `000000` | rider app |
+| `rider-sim-2` | `+15550100155`, code `000000`, offline | rider app; the second rider of the offer scenarios |
 | Restaurant personas and catalogue owners | `<slug>@seed.hg`, password `Seed!2026` | restaurant console, `http://localhost:5183` |
 | `admin-seed` | `admin-seed@seed.hg`, `Seed!2026`, and the code from `make dev-totp` | admin console |
 | `support-seed` | cannot sign in yet ([#677](https://github.com/shaiknoorullah/hg-mono/issues/677)) | admin console |
@@ -47,10 +48,10 @@ The fixed code works only for `+15550100100` to `+15550100199` and only when `HG
 | Table | Covered | Partial | Missing | Not in V1 | Blocked by external |
 |---|---:|---:|---:|---:|---:|
 | Customer app | 16 | 7 | 0 | 13 | 4 |
-| Restaurant portal | 21 | 7 | 3 | 5 | 0 |
-| Rider app | 21 | 6 | 4 | 1 | 3 |
+| Restaurant portal | 22 | 6 | 3 | 5 | 0 |
+| Rider app | 23 | 6 | 2 | 1 | 3 |
 | Admin console | 7 | 8 | 12 | 15 | 0 |
-| Platform | 26 | 10 | 0 | 0 | 3 |
+| Platform | 27 | 9 | 0 | 0 | 3 |
 
 ## Customer app
 
@@ -110,7 +111,7 @@ The fixed code works only for `+15550100100` to `+15550100199` and only when `HG
 | [R-07](spec/03-restaurant.md#r-07--compliance-document-upload) | Upload documents | `docs-todo` | Covered | — |
 | [R-08](spec/03-restaurant.md#r-08--document-pack-submission-and-admin-verification-review) | Submit the pack; admin reviews it | `docs-review`, then `make dev-scenario s=docs-approve` or `s=docs-reject` | Covered | — |
 | [R-09](spec/03-restaurant.md#r-09--verification-status-tracking-real-time) | Follow the review as it happens | The personas show each state; a decision does not arrive live | Partial | [#376](https://github.com/shaiknoorullah/hg-mono/issues/376) |
-| [R-10](spec/03-restaurant.md#r-10--document-expiry-renewal-and-compliance-suspension) | Certificate expiry and renewal | `expiring-halal` and `expired-halal` are seeded in their states; nothing lapses or renews while you watch | Partial | [#685](https://github.com/shaiknoorullah/hg-mono/issues/685) |
+| [R-10](spec/03-restaurant.md#r-10--document-expiry-renewal-and-compliance-suspension) | Certificate expiry and renewal | `expiring-halal` and `expired-halal` are seeded in their states; `s=halal-lapse` lets `expiring-halal` expire, then `s=halal-renew` uploads a new certificate and `admin-seed` approves it | Covered | — |
 | [R-11](spec/03-restaurant.md#r-11--payout-account-add-and-verify-bank-details) | Payout account | `payout`. The fake gateway makes it ready at once; with a test key Stripe hosts the step ([Stripe test mode](playbooks/restaurant/onboarding.md#stripe-test-mode)) | Covered | — |
 | [R-12](spec/03-restaurant.md#r-12--profile-management-after-activation) | Edit the profile once live | `bismillah-grill` | Covered | — |
 | [R-13](spec/03-restaurant.md#r-13--restaurant-imagery-logo-cover-gallery) | Logo and cover pictures | Catalogue restaurants have them; upload one as `bismillah-grill` | Covered | — |
@@ -156,12 +157,12 @@ The fixed code works only for `+15550100100` to `+15550100199` and only when `HG
 | [D-12](spec/04-rider.md#d-12--background-location-during-an-active-delivery) | Location in the background while delivering | Needs a device build; the web app cannot | Partial | [#25](https://github.com/shaiknoorullah/hg-mono/issues/25) |
 | [D-13](spec/04-rider.md#d-13--dispatch-candidate-selection-ranking-and-offer-waves) | Dispatch picks a rider | `make dev-journey auto=all` | Covered | — |
 | [D-14](spec/04-rider.md#d-14--receiving-an-offer-on-the-device) | Receive an offer | `s=offer-to-rider` leaves `rider-sim` holding a real 30-second offer; or `rider-sim` in the app during `make dev-journey auto=all manual=rider`; push needs Expo | Covered | — |
-| [D-15](spec/04-rider.md#d-15--offer-expiry-wave-escalation-and-the-no-rider-found-path) | An offer expires; nobody takes the order | Not produced | Missing | [#684](https://github.com/shaiknoorullah/hg-mono/issues/684) |
-| [D-16](spec/04-rider.md#d-16--accepting-an-offer-single-winner-concurrency) | Two riders accept; one wins | Only one active rider | Missing | [#684](https://github.com/shaiknoorullah/hg-mono/issues/684) |
-| [D-17](spec/04-rider.md#d-17--rejecting-or-ignoring-an-offer) | Reject or ignore an offer | Reject in the app after `manual=rider`; no second rider gets it | Partial | [#684](https://github.com/shaiknoorullah/hg-mono/issues/684) |
+| [D-15](spec/04-rider.md#d-15--offer-expiry-wave-escalation-and-the-no-rider-found-path) | An offer expires; nobody takes the order | `make dev-scenario s=offer-ignored` (expiry, next wave); `s=no-rider` (about 2 minutes to `NO_RIDER_FOUND`) | Covered | — |
+| [D-16](spec/04-rider.md#d-16--accepting-an-offer-single-winner-concurrency) | Two riders accept; one wins | `s=offer-race` with `rider-sim` and `rider-sim-2`; the loser is answered `OFFER_EXPIRED` where the spec says `OFFER_ALREADY_TAKEN` ([#696](https://github.com/shaiknoorullah/hg-mono/issues/696)) | Partial | [#696](https://github.com/shaiknoorullah/hg-mono/issues/696) |
+| [D-17](spec/04-rider.md#d-17--rejecting-or-ignoring-an-offer) | Reject or ignore an offer | `s=offer-reject` or `s=offer-ignored`; `rider-sim-2` gets the next wave | Covered | — |
 | [D-18](spec/04-rider.md#d-18--order-dashboard-active-work--resume) | Active delivery screen | `rider-sim` during `make dev-journey auto=all manual=rider` | Covered | — |
 | [D-19](spec/04-rider.md#d-19--order-details) | Order details | As above | Covered | — |
-| [D-20](spec/04-rider.md#d-20--delivery-status-updates-arrived--picked-up--in-transit--delivered) | Arrived, picked up, delivered | `make dev-journey auto=all`, or by hand with `manual=rider` | Covered | — |
+| [D-20](spec/04-rider.md#d-20--delivery-status-updates-arrived--picked-up--in-transit--delivered) | Arrived, picked up, delivered | `make dev-journey auto=all`, which types the pickup code the restaurant's order view shows, or by hand with `manual=rider` | Covered | — |
 | [D-21](spec/04-rider.md#d-21--proof-of-delivery) | Proof of delivery | The journey uploads a photo; the delivery code check fails ([#259](https://github.com/shaiknoorullah/hg-mono/issues/259)) | Covered | — |
 | [D-22](spec/04-rider.md#d-22--navigation--maps) | Navigation and maps | A straight line without a token; maps and directions need Mapbox | Blocked by external (Mapbox token) | [#57](https://github.com/shaiknoorullah/hg-mono/issues/57) |
 | [D-23](spec/04-rider.md#d-23--distance-tracking-for-payment) | Distance for pay | `rider-sim` after `make dev-journey auto=all` | Covered | — |
@@ -198,7 +199,7 @@ The fixed code works only for `+15550100100` to `+15550100199` and only when `HG
 | [A-14](spec/05-admin.md#a-14--kyc-document-review-non-halal-documents) | Review a document | `make dev-scenario s=docs-approve` or `s=docs-reject`; the seeded file does not open | Partial | [#686](https://github.com/shaiknoorullah/hg-mono/issues/686) |
 | [A-15](spec/05-admin.md#a-15--halal-certification-verification--core-product-function) | Halal seven-check verification | Only inside `s=onboard-restaurant`; no certificate waits for checks after a reset | Partial | [#678](https://github.com/shaiknoorullah/hg-mono/issues/678) |
 | [A-16](spec/05-admin.md#a-16--halal-issuing-body-registry) | Issuing bodies | `admin-seed`; the reference seed has accepted bodies | Covered | — |
-| [A-17](spec/05-admin.md#a-17--halal-certificate-expiry-monitoring-and-lapse-handling) | Certificate expiry and lapse | `expiring-halal`, `expired-halal`; nothing lapses while you watch | Partial | [#685](https://github.com/shaiknoorullah/hg-mono/issues/685) |
+| [A-17](spec/05-admin.md#a-17--halal-certificate-expiry-monitoring-and-lapse-handling) | Certificate expiry and lapse | `expiring-halal`, `expired-halal`; `s=halal-lapse` runs the expiry job for `expiring-halal` (`EXPIRED`, delisted, owner notified); reminders are not produced | Partial | [#685](https://github.com/shaiknoorullah/hg-mono/issues/685) |
 | [A-18](spec/05-admin.md#a-18--restaurant-approval--rejection-decision) | Approve or reject a restaurant | Approval inside `s=onboard-restaurant`; a rejection only seeded (`docs-rejected`) | Partial | [#678](https://github.com/shaiknoorullah/hg-mono/issues/678) |
 | [A-19](spec/05-admin.md#a-19--menu-approval-queue) | Menu review queue | `menu`, then `s=menu-approve` or `s=menu-reject` | Covered | — |
 | [A-20](spec/05-admin.md#a-20--restaurant-compliance-monitoring-violations-register) | Violations register | — | Not in V1 | — |
@@ -281,9 +282,9 @@ The four states a customer can see a restaurant in. A restaurant that is not `CE
 | [C-12](spec/02-customer.md#c-12--halal-certification-display-and-verification--critical) | `EXPIRING_SOON` | `expiring-halal` (Bamyan Kebab House) | Covered | — |
 | [C-12](spec/02-customer.md#c-12--halal-certification-display-and-verification--critical) | `EXPIRED` | `expired-halal`, delisted and hidden from customers | Covered | — |
 | [C-12](spec/02-customer.md#c-12--halal-certification-display-and-verification--critical) | `UNVERIFIED` | `fresh`, `profile`, `docs-todo`, `docs-review`, `docs-rejected`; never listed | Covered | — |
-| [A-17](spec/05-admin.md#a-17--halal-certificate-expiry-monitoring-and-lapse-handling) | A certificate lapses as the days pass | `s=cert-lapse-mid-order` moves `bismillah-grill`'s expiry to yesterday with an order live: `EXPIRED`, delisted, no badge, until `make dev-reset` | Covered | — |
+| [A-17](spec/05-admin.md#a-17--halal-certificate-expiry-monitoring-and-lapse-handling) | A certificate lapses as the days pass | `s=cert-lapse-mid-order` moves `bismillah-grill`'s expiry to yesterday with an order live: `EXPIRED`, delisted, no badge, until `make dev-reset`; or `s=halal-lapse` for `expiring-halal`, no order live | Covered | — |
 | [A-17](spec/05-admin.md#a-17--halal-certificate-expiry-monitoring-and-lapse-handling) | Renewal reminders (30, 14, 7 and 1 days) | Not produced | Missing | [#685](https://github.com/shaiknoorullah/hg-mono/issues/685) |
-| [R-10](spec/03-restaurant.md#r-10--document-expiry-renewal-and-compliance-suspension) | A renewed certificate relists the restaurant | Not produced | Missing | [#685](https://github.com/shaiknoorullah/hg-mono/issues/685) |
+| [R-10](spec/03-restaurant.md#r-10--document-expiry-renewal-and-compliance-suspension) | A renewed certificate relists the restaurant | `s=halal-renew` after `s=halal-lapse`: `CERTIFIED`, `LIVE`, public page 200 | Covered | — |
 | [C-12](spec/02-customer.md#c-12--halal-certification-display-and-verification--critical) | Open the certificate | The seeded file is missing from storage | Partial | [#686](https://github.com/shaiknoorullah/hg-mono/issues/686) |
 
 ### Realtime
@@ -351,7 +352,7 @@ Every platform feature, for completeness. Most are exercised by any journey abov
 | [P-29](spec/01-platform.md#p-29--document-lifecycle-review-and-retention) | Document lifecycle | The restaurant and rider onboarding personas | Covered | — |
 | [P-30](spec/01-platform.md#p-30--canonical-geography-schema-one-column-no-split-brain) | Locations | The catalogue around Danforth and downtown Toronto | Covered | — |
 | [P-31](spec/01-platform.md#p-31--distance-duration-and-eta) | Distance and arrival times | The journey | Covered | — |
-| [P-32](spec/01-platform.md#p-32--rider-search-and-offer) | Find a rider and offer | One rider only | Partial | [#684](https://github.com/shaiknoorullah/hg-mono/issues/684) |
+| [P-32](spec/01-platform.md#p-32--rider-search-and-offer) | Find a rider and offer | `s=offer-reject`, `s=offer-ignored`, `s=offer-race`, `s=no-rider` with two riders | Covered | — |
 | [P-33](spec/01-platform.md#p-33--restaurant-and-dish-search) | Restaurant and dish search | The catalogue | Covered | — |
 | [P-34](spec/01-platform.md#p-34--filters-and-halal-certification) | Halal filters | See [halal states](#halal-states) | Covered | — |
 | [P-35](spec/01-platform.md#p-35--append-only-audit-trail) | Audit trail | Every admin scenario | Covered | — |

@@ -607,49 +607,50 @@ def _order_lists(reg) -> None:
     )
 
 
-def _restaurant_orders(reg, synth) -> None:
-    def restaurant_order(state: str, *, label: str | None = None, **over: Any) -> dict:
-        # `label` gives a distinct order (its own id). Without one, the id is the state's
-        # canonical order, the same one the customer, rider and payment fixtures show.
-        lines = standard_quote_lines()
-        priced = price_quote(lines, tip_cents=700)
-        base = customer_order(state, label=label)
-        accepted = base["accepted_at"] is not None
-        out = {
-            "id": base["id"],
-            "code": base["code"],
-            "state": state,
-            "deadline_at": base["deadline_at"],
-            "promised_ready_at": ts(9 * MINUTE) if accepted else None,
-            "customer": {"display_name": "Ayesha R.", "phone_masked": "+1 416 ••• 0142"},
-            "delivery_area": "Greektown",
-            # §5: the restaurant does NOT see the delivery address until ACCEPTED.
-            "delivery_address": address("home", 0) if accepted else None,
-            "delivery_instructions": ["LEAVE_AT_DOOR", "DO_NOT_RING_BELL"],
-            "special_instructions": "Please leave it on the mat, not the shoe rack.",
-            "lines": order_lines_from_quote(lines),
-            "money": restaurant_money(priced),
-            "rider": (
-                {
-                    "display_name": "Bilal S.",
-                    "photo_url": base["rider"]["photo_url"],
-                    "vehicle_type": "SCOOTER",
-                    "eta_at": ts(6 * MINUTE),
-                }
-                if base["rider"]
-                else None
-            ),
-            # From acceptance until the rider has picked up; the rider is never sent it.
-            "pickup_code": PICKUP_CODE if state in ("PREPARING", "READY_FOR_PICKUP") else None,
-            "elapsed_seconds": 100 if state == "RESTAURANT_PENDING" else 1920,
-            "is_late": state == "PREPARING",
-            "placed_at": base["placed_at"],
-            "accepted_at": base["accepted_at"],
-            "ready_at": base["ready_at"],
-        }
-        out.update(over)
-        return out
+def restaurant_order(state: str, *, label: str | None = None, **over: Any) -> dict:
+    # `label` gives a distinct order (its own id). Without one, the id is the state's
+    # canonical order, the same one the customer, rider and payment fixtures show.
+    lines = standard_quote_lines()
+    priced = price_quote(lines, tip_cents=700)
+    base = customer_order(state, label=label)
+    accepted = base["accepted_at"] is not None
+    out = {
+        "id": base["id"],
+        "code": base["code"],
+        "state": state,
+        "deadline_at": base["deadline_at"],
+        "promised_ready_at": ts(9 * MINUTE) if accepted else None,
+        "customer": {"display_name": "Ayesha R.", "phone_masked": "+1 416 ••• 0142"},
+        "delivery_area": "Greektown",
+        # §5: the restaurant does NOT see the delivery address until ACCEPTED.
+        "delivery_address": address("home", 0) if accepted else None,
+        "delivery_instructions": ["LEAVE_AT_DOOR", "DO_NOT_RING_BELL"],
+        "special_instructions": "Please leave it on the mat, not the shoe rack.",
+        "lines": order_lines_from_quote(lines),
+        "money": restaurant_money(priced),
+        "rider": (
+            {
+                "display_name": "Bilal S.",
+                "photo_url": base["rider"]["photo_url"],
+                "vehicle_type": "SCOOTER",
+                "eta_at": ts(6 * MINUTE),
+            }
+            if base["rider"]
+            else None
+        ),
+        # From acceptance until the rider has picked up; the rider is never sent it.
+        "pickup_code": PICKUP_CODE if state in ("PREPARING", "READY_FOR_PICKUP") else None,
+        "elapsed_seconds": 100 if state == "RESTAURANT_PENDING" else 1920,
+        "is_late": state == "PREPARING",
+        "placed_at": base["placed_at"],
+        "accepted_at": base["accepted_at"],
+        "ready_at": base["ready_at"],
+    }
+    out.update(over)
+    return out
 
+
+def _restaurant_orders(reg, synth) -> None:
     for state, note in [
         ("RESTAURANT_PENDING", "The incoming-order card with 80 s left on the 180 s window. "
                                "**No delivery address and no pickup code yet** — both are "
@@ -727,51 +728,56 @@ def _restaurant_orders(reg, synth) -> None:
     )
 
 
+def order_admin_view(synth, state: str, *, base_over: dict | None = None, **over: Any) -> dict:
+    """`OrderAdminView` of the state's canonical order (shared with batch 2)."""
+    lines = standard_quote_lines()
+    priced = price_quote(lines, tip_cents=700)
+    base = customer_order(state, **(base_over or {}))
+    # The support projection never carries the customer's delivery code: it is always
+    # null, so nobody at HalalGoes can read a code out to a rider (security review on
+    # #183, https://github.com/shaiknoorullah/hg-mono/issues/183).
+    base["delivery_code"] = None
+    ledger = [
+        {
+            **synth.make("LedgerEntry", f"ledger-{state}-{i}"),
+            "account": acct,
+            "component": comp,
+            "amount_cents": amount,
+            "currency": "CAD",
+        }
+        for i, (acct, comp, amount) in enumerate(
+            [
+                ("CUSTOMER_CHARGES", "SUBTOTAL", -priced["total_cents"]),
+                ("RESTAURANT_PAYABLE", "SUBTOTAL", priced["subtotal_cents"]),
+                ("RIDER_PAYABLE", "TIP", priced["tip_cents"]),
+                ("PLATFORM_REVENUE", "SERVICE_FEE", priced["service_fee_cents"]),
+            ]
+        )
+    ]
+    out = {
+        **base,
+        "timeline": _timeline(state),
+        "dispatch_history": [
+            {"state": "PENDING", "wave": None, "radius_m": None, "rider_account_id": None, "offer_outcome": None, "at": ts(-29 * MINUTE)},
+            {"state": "SEARCHING", "wave": 1, "radius_m": 3000, "rider_account_id": None, "offer_outcome": None, "at": ts(-28 * MINUTE)},
+            {"state": "OFFERED", "wave": 1, "radius_m": 3000, "rider_account_id": uuid_for("account:rider:bilal"), "offer_outcome": "EXPIRED", "at": ts(-27 * MINUTE)},
+            {"state": "OFFERED", "wave": 2, "radius_m": 6000, "rider_account_id": uuid_for("account:rider:omar"), "offer_outcome": "ACCEPTED", "at": ts(-16 * MINUTE)},
+            {"state": "ASSIGNED", "wave": 2, "radius_m": 6000, "rider_account_id": uuid_for("account:rider:omar"), "offer_outcome": None, "at": ts(-16 * MINUTE)},
+        ],
+        "payment": _order_payment(state, priced),
+        "refunds": [],
+        "internal_money": internal_money(priced, ledger_entries=ledger),
+        "pii_revealed": False,
+        "chargebacks": [],
+    }
+    out["money_timeline"] = _money_timeline(out["payment"])
+    out.update(over)
+    return out
+
+
 def _admin_orders(reg, synth) -> None:
     def admin_order(state: str, *, base_over: dict | None = None, **over: Any) -> dict:
-        lines = standard_quote_lines()
-        priced = price_quote(lines, tip_cents=700)
-        base = customer_order(state, **(base_over or {}))
-        ledger = [
-            {
-                **synth.make("LedgerEntry", f"ledger-{state}-{i}"),
-                "account": acct,
-                "component": comp,
-                "amount_cents": amount,
-                "currency": "CAD",
-            }
-            for i, (acct, comp, amount) in enumerate(
-                [
-                    ("CUSTOMER_CHARGES", "SUBTOTAL", -priced["total_cents"]),
-                    ("RESTAURANT_PAYABLE", "SUBTOTAL", priced["subtotal_cents"]),
-                    ("RIDER_PAYABLE", "TIP", priced["tip_cents"]),
-                    ("PLATFORM_REVENUE", "SERVICE_FEE", priced["service_fee_cents"]),
-                ]
-            )
-        ]
-        # The support projection never carries the customer's delivery code: it is always
-        # null, so nobody at HalalGoes can read a code out to a rider (security review on
-        # #183, https://github.com/shaiknoorullah/hg-mono/issues/183).
-        base["delivery_code"] = None
-        out = {
-            **base,
-            "timeline": _timeline(state),
-            "dispatch_history": [
-                {"state": "PENDING", "wave": None, "radius_m": None, "rider_account_id": None, "offer_outcome": None, "at": ts(-29 * MINUTE)},
-                {"state": "SEARCHING", "wave": 1, "radius_m": 3000, "rider_account_id": None, "offer_outcome": None, "at": ts(-28 * MINUTE)},
-                {"state": "OFFERED", "wave": 1, "radius_m": 3000, "rider_account_id": uuid_for("account:rider:bilal"), "offer_outcome": "EXPIRED", "at": ts(-27 * MINUTE)},
-                {"state": "OFFERED", "wave": 2, "radius_m": 6000, "rider_account_id": uuid_for("account:rider:omar"), "offer_outcome": "ACCEPTED", "at": ts(-16 * MINUTE)},
-                {"state": "ASSIGNED", "wave": 2, "radius_m": 6000, "rider_account_id": uuid_for("account:rider:omar"), "offer_outcome": None, "at": ts(-16 * MINUTE)},
-            ],
-            "payment": _order_payment(state, priced),
-            "refunds": [],
-            "internal_money": internal_money(priced, ledger_entries=ledger),
-            "pii_revealed": False,
-            "chargebacks": [],
-        }
-        out["money_timeline"] = _money_timeline(out["payment"])
-        out.update(over)
-        return out
+        return order_admin_view(synth, state, base_over=base_over, **over)
 
     reg.add(
         "order_admin_view_completed",
@@ -1425,7 +1431,8 @@ def _refunds(reg, synth) -> None:
                     else None
                 ),
             },
-            operations=["getRefund", "listRefunds", "createRefund", "issueRefund"],
+            # One refund, not a list: `listRefunds` serves `refund_list_*` (issue #720).
+            operations=["getRefund", "createRefund", "issueRefund"],
             tags=["refund-state-matrix"],
         )
 
@@ -1479,6 +1486,93 @@ def _refunds(reg, synth) -> None:
         },
         operations=["issueRefund"],
         tags=["admin", "money"],
+    )
+
+    # Several problem reports on one order (https://github.com/shaiknoorullah/hg-mono/issues/184):
+    # each report is its own refund, decided on its own, and a later one is refused only
+    # when it claims an item or the fees another refund already holds.
+    item_report = {
+        "id": uuid_for("refund:report-1-item-missing"),
+        "order_id": uuid_for("order:completed"),
+        "kind": "PARTIAL_ITEMS",
+        "scope": "PARTIAL_ITEMS",
+        "reason_code": "ITEM_MISSING",
+        "amount_cents": 1695,
+        "tax_cents": 220,
+        "currency": "CAD",
+        "state": "SUCCEEDED",
+        "liability_split": {"platform_cents": 495, "restaurant_cents": 1200, "rider_cents": 0},
+        "note": "Biryani missing from a three-item bag.",
+        "requested_at": ts(-3 * HOUR),
+        "settled_at": None,
+        "failure_message": None,
+    }
+    late_report = {
+        "id": uuid_for("refund:report-2-late-delivery"),
+        "order_id": uuid_for("order:completed"),
+        "kind": "FEES_ONLY",
+        "scope": "PARTIAL_AMOUNT",
+        "reason_code": "LATE_DELIVERY",
+        "amount_cents": 902,
+        "tax_cents": 104,
+        "currency": "CAD",
+        "state": "REQUESTED",
+        "liability_split": {"platform_cents": 902, "restaurant_cents": 0, "rider_cents": 0},
+        "note": "Arrived 50 minutes after the latest promised time.",
+        "requested_at": ts(-20 * MINUTE),
+        "settled_at": None,
+        "failure_message": None,
+    }
+    reg.add(
+        "refund_second_report_on_order",
+        "refunds",
+        "Refund",
+        "A second problem report on an order that already has one: the missing item was "
+        "refunded, and now the customer reports the delivery was late. It is accepted as "
+        "its own refund with its own reason, so the platform absorbs the fees while the "
+        "restaurant was charged for the missing item. It does not claim the item again.",
+        late_report,
+        operations=["createRefund", "getRefund"],
+        tags=["money", "refund-state-matrix"],
+    )
+    reg.add(
+        "refund_list_several_reports_on_order",
+        "refunds",
+        "array<Refund>",
+        "`listRefunds?order_id=` for an order with two problem reports, newest first: a late "
+        "delivery waiting for review and a missing item already refunded. They never merge, "
+        "and together they stay under the captured amount.",
+        [late_report, item_report],
+        operations=["listRefunds"],
+        meta={"next_cursor": None, "has_more": False, "total": 2},
+        tags=["money"],
+    )
+    reg.add(
+        "refund_wrong_address_before_delivery",
+        "refunds",
+        "Refund",
+        "Reported from \"Get help\" before delivery: the order is going to the wrong address. "
+        "`WRONG_ADDRESS` waits for support, who redirect the delivery when they can. Any "
+        "refund is per support's judgement and absorbed by the platform: the restaurant "
+        "cooked the order and the rider carried it to the address on the order.",
+        {
+            "id": uuid_for("refund:wrong-address"),
+            "order_id": uuid_for("order:picked-up"),
+            "kind": "FULL",
+            "scope": "FULL",
+            "reason_code": "WRONG_ADDRESS",
+            "amount_cents": 6706,
+            "tax_cents": 691,
+            "currency": "CAD",
+            "state": "REQUESTED",
+            "liability_split": {"platform_cents": 6706, "restaurant_cents": 0, "rider_cents": 0},
+            "note": "I picked my old address by mistake; I'm at 22 Wellesley Street East now.",
+            "requested_at": ts(-4 * MINUTE),
+            "settled_at": None,
+            "failure_message": None,
+        },
+        operations=["createRefund", "getRefund"],
+        tags=["money", "refund-state-matrix"],
     )
 
     reg.add(

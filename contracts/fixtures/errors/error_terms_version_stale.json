@@ -1,0 +1,26 @@
+{
+  "scenario": "error_terms_version_stale",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`409` · `TERMS_VERSION_STALE`. Sign-up accepted an older version of the terms. `details.current` is the version to show and accept again.",
+  "operations": [
+    "registerRestaurant"
+  ],
+  "status": 409,
+  "tags": [
+    "error-envelope",
+    "error-path",
+    "restaurant",
+    "auth"
+  ],
+  "payload": {
+    "error": {
+      "code": "TERMS_VERSION_STALE",
+      "message": "The terms version is out of date.",
+      "request_id": "01XSH99ZM8XKWB99QSXC4C60KT",
+      "details": {
+        "current": "2026-05-01"
+      }
+    }
+  }
+}

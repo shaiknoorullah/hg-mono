@@ -1,0 +1,57 @@
+{
+  "scenario": "payout_list_draft_paid",
+  "domain": "rider",
+  "schema": "array<Payout>",
+  "describes": "The ordinary history: this week accruing, two paid weeks before it. Nothing needs attention.",
+  "operations": [
+    "listRiderPayouts"
+  ],
+  "status": 200,
+  "tags": [
+    "rider",
+    "money"
+  ],
+  "meta": {
+    "next_cursor": null,
+    "has_more": false,
+    "total": 3
+  },
+  "payload": [
+    {
+      "id": "2f21a406-ae13-4006-a6d4-c2268da22ca5",
+      "period_start": "2026-08-10T04:00:00.000Z",
+      "period_end": "2026-08-17T04:00:00.000Z",
+      "amount_cents": 0,
+      "currency": "CAD",
+      "state": "DRAFT",
+      "hold_reason": null,
+      "entry_count": 0,
+      "paid_at": null,
+      "failure_message": null
+    },
+    {
+      "id": "bf0f8ea0-7c4f-41d3-a3eb-fcce9546fefc",
+      "period_start": "2026-08-03T04:00:00.000Z",
+      "period_end": "2026-08-10T04:00:00.000Z",
+      "amount_cents": 41235,
+      "currency": "CAD",
+      "state": "PAID",
+      "hold_reason": null,
+      "entry_count": 23,
+      "paid_at": "2026-08-12T13:00:00.000Z",
+      "failure_message": null
+    },
+    {
+      "id": "080daa50-6e56-4757-a41f-aaa43979815f",
+      "period_start": "2026-07-27T04:00:00.000Z",
+      "period_end": "2026-08-03T04:00:00.000Z",
+      "amount_cents": 38810,
+      "currency": "CAD",
+      "state": "PAID",
+      "hold_reason": null,
+      "entry_count": 21,
+      "paid_at": "2026-08-05T13:00:00.000Z",
+      "failure_message": null
+    }
+  ]
+}
