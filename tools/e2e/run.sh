@@ -196,6 +196,13 @@ else
   record admin fail "see the Playwright report and trace"
 fi
 
+# The redesign restaurant specs read emailed links from the database and clear the sign-in rate
+# limits between tests; both default to the dev stack's containers (tools/e2e/README.md, web/).
+# Here they are this stack's. Flushing Redis is safe at any moment (AGENTS.md, "Architecture").
+e2e_env() { sed -n "s/^$1=//p" "$root/deploy/.env.e2e" | tail -1; }
+export E2E_PSQL_CMD="${E2E_PSQL_CMD:-docker exec -i hg-e2e-postgres-1 psql -U $(e2e_env POSTGRES_USER) -d $(e2e_env POSTGRES_DB) -tA}"
+export E2E_RESET_LIMITS_CMD="${E2E_RESET_LIMITS_CMD:-docker exec hg-e2e-redis-1 valkey-cli FLUSHALL}"
+
 # --- 6. the redesign, in the browser ------------------------------------------------------------
 # Each app's redesign specs, desktop then tablet, against its VITE_HG_REDESIGN=1 build. They run
 # after the legacy flows on the same world: the cross-app order above is still active.
