@@ -604,6 +604,8 @@ func run() error {
 	} else {
 		log.Info("otp provider: log (self-hosted challenge)")
 	}
+	// The hg_csrf cookie's parent domain, so the web apps can refresh (#740).
+	authSecrets.CSRFCookieDomain = cfg.CSRFCookieDomain
 	authModule := auth.NewModule(
 		st.DB().Pool, st.Cache().Client, authSecrets,
 		smsSender, phoneVerifier, verifyChannel, cfg.Env.IsLocal(), string(cfg.Env), log)

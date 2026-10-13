@@ -9,7 +9,7 @@ covers:
   - services/hg/internal/files/**
   - services/hg/internal/dispatch/**
   - services/hg/internal/httpx/**
-reviewed: 2026-10-10
+reviewed: 2026-10-13
 ---
 
 # HalalGoes — Cross-Cutting Platform Layer Specification
@@ -316,7 +316,7 @@ CREATE INDEX login_attempt_recent ON login_attempt(email, at DESC);
   **Transport**:
   - Web surfaces (`restaurant-web`, `admin-web`): refresh token in `Set-Cookie: hg_rt=…; HttpOnly; Secure; SameSite=Lax; Path=/v1/auth; Max-Age=…`. Access token returned in the JSON body and held **in memory only**. `localStorage` is forbidden — this is the R17/A4 fix, enforced by a frontend lint rule banning `localStorage.setItem` with a key matching `token`.
   - Native apps: both tokens in the JSON body; the app stores them in `expo-secure-store`/Keychain.
-  - CSRF for cookie-bearing routes: `Origin` must match the allowlist **and** a double-submit `X-HG-CSRF` header must equal the `hg_csrf` non-HttpOnly cookie.
+  - CSRF for cookie-bearing routes: `Origin` must match the allowlist **and** a double-submit `X-HG-CSRF` header must equal the `hg_csrf` non-HttpOnly cookie. `hg_csrf` is set at `Path=/` on the parent domain in `HG_AUTH_CSRF_COOKIE_DOMAIN` (empty: host-only), so a web app on its own host can read it, while `hg_rt` stays `HttpOnly` at `Path=/v1/auth` on the API host ([#740](https://github.com/shaiknoorullah/hg-mono/issues/740)).
 
   **Endpoints**: `POST /v1/auth/refresh`, `POST /v1/auth/logout` (this session), `POST /v1/auth/logout-all` (family), `GET /v1/auth/sessions`, `DELETE /v1/auth/sessions/{id}`, `GET /v1/auth/me`.
 
