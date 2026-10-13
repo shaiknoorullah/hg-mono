@@ -53,10 +53,11 @@ name: customer redesign, item sheet and cart
       visible: "Start a new cart\\?"
     commands:
       - tapOn: "Start a new cart"
+# The "Added to your cart" toast is transient and can be gone before Maestro looks (CI run
+# 38051366378 shows the cart bar but no toast), so the proof of the add is the cart bar.
 - extendedWaitUntil:
-    visible: "Added to your cart"
+    visible: "View cart · 1 item · .*"
     timeout: 15000
-- assertVisible: "View cart · 1 item · .*"
 - takeScreenshot: redesign-wp5-04-item-added
 
 # C1: the cart, priced by the server for her address.
