@@ -114,6 +114,10 @@ DEFAULT_SCENARIO: dict[str, str] = {
     "setRestaurantHours": "restaurant_hours_standard",
     "login": "session_grant_customer",
     "refreshSession": "session_grant_customer",
+    # The healthy answer. Without this the three states tie on weight and the name
+    # tie-break picks FAILED, so every admin page in `pnpm mock` showed the sticky
+    # "sign-in codes cannot be sent" banner.
+    "getSmsSenderStatus": "sms_sender_passed",
     # Staff principals and the restaurant profile matrix share these operations; the
     # plain customer and LIVE + CERTIFIED shapes stay the defaults.
     "getCurrentPrincipal": "principal_customer",

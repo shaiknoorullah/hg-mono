@@ -48,7 +48,7 @@ These are the rules the existing names already follow; new fixtures follow them 
 
 | Prefix | Fixtures | The suffix names | Example |
 |---|---:|---|---|
-| `error_` | 133 | `error_<code>` for a code's plain meaning; `error_<context>_<situation>` when one code means several things (`error_menu_locked_banned`, `error_staff_email_in_use`). Status and code live in the fixture, never only in the name. | `error_quote_stale` |
+| `error_` | 145 | `error_<code>` for a code's plain meaning; `error_<context>_<situation>` when one code means several things (`error_menu_locked_banned`, `error_staff_email_in_use`). Status and code live in the fixture, never only in the name. | `error_quote_stale` |
 | `realtime_` | 24 | `realtime_<area>_<story>`: a whole WebSocket script, played over one connection. Areas: `order`, `payment`, `rider`, `restaurant`, `admin_ops`, plus the transport stories `gap_and_resume` and `control_frames`. | `realtime_restaurant_offer_burst` |
 | `realtime_ticket` | 1 | Not a script: the single-use ticket `createRealtimeTicket` returns. | `realtime_ticket` |
 | `order_admin_view_` | 20 | An `OrderState` (lower case) as the staff projection shows it. | `order_admin_view_disputed` |
@@ -59,9 +59,9 @@ These are the rules the existing names already follow; new fixtures follow them 
 | `tracking_` | 9 | An `OrderState` (or a degraded signal) in the tracking projection. | `tracking_picked_up` |
 | `assignment_` | 14 | An `AssignmentState`, lower case, or a drop-off instruction edge. | `assignment_arrived_at_pickup` |
 | `dispatch_` | 10 | A `DispatchState`, lower case. | `dispatch_searching` |
-| `offer_` | 7 | A rider offer outcome. | `offer_pending` |
+| `offer_` | 8 | A rider offer outcome. | `offer_pending` |
 | `payment_` | 11 | A `PaymentState`, lower case, or saved methods. | `payment_requires_action` |
-| `refund_` | 15 | A `RefundState` in the customer view. | `refund_settled` |
+| `refund_` | 18 | A `RefundState` in the customer view. | `refund_settled` |
 | `admin_refund_` | 14 | A `RefundState` or queue in the staff view. | `admin_refund_queue` |
 | `chargeback_` | 12 | A chargeback state or list. | `chargeback_needs_response` |
 | `halal_badge_` | 4 | A `HalalDisplayState`, lower case. | `halal_badge_expiring_soon` |
@@ -95,7 +95,7 @@ These are the rules the existing names already follow; new fixtures follow them 
 | `owned_menu_` | 4 | The restaurant's own menu, as its editor reads it. | `owned_menu_every_review_status` |
 | `order_admin_list_` | 3 | A staff order list variant. | `order_admin_list_every_state` |
 | `staff_list` | 4 | A platform staff list variant. | `staff_list_edge_rows` |
-| (other) | 105 | One-off subjects named for what they are (`public_config`, `cart_many_lines`, `quote_standard`). | `public_config` |
+| (other) | 114 | One-off subjects named for what they are (`public_config`, `cart_many_lines`, `quote_standard`). | `public_config` |
 
 ## 2. How one scenario is chosen per operation (the mock server)
 

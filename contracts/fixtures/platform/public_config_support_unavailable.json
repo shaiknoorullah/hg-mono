@@ -26,6 +26,7 @@
     "support_enabled": false,
     "support_phone_e164": null,
     "support_hours": null,
+    "support_email": "support@halalgoes.com",
     "default_map_center": {
       "latitude": 43.6199,
       "longitude": -79.6033

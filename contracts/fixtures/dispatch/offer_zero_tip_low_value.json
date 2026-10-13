@@ -27,8 +27,9 @@
     },
     "dropoff": {
       "area": "Harbourfront, Toronto",
-      "latitude": 43.6412,
-      "longitude": -79.381
+      "latitude": 43.6405,
+      "longitude": -79.3815,
+      "radius_m": 400
     },
     "distance_m": 12140,
     "est_duration_s": 1680,

@@ -1320,24 +1320,6 @@ def _restaurant_orders(reg) -> None:
 def _restaurant_availability(reg) -> None:
     ops = ["getRestaurantAvailability", "setRestaurantAcceptingOrders"]
     reg.add(
-        "restaurant_open_state_paused_until_closing",
-        "onboarding",
-        "RestaurantAvailability",
-        "Paused for the rest of the day: `pause_until` is tonight's closing time (22:00 "
-        "Toronto). Ordering resumes by itself tomorrow at opening.",
-        {
-            "open_state": "PAUSED",
-            "is_accepting_orders": True,
-            "pause_until": "2026-08-11T02:00:00.000Z",
-            "last_heartbeat_at": ts(-40),
-            "missed_order_count": 0,
-            "reason": "Paused until closing at 10:00 p.m.",
-            "resolvable_by": "TIME",
-        },
-        operations=ops,
-        tags=["restaurant", "state-matrix"],
-    )
-    reg.add(
         "restaurant_open_state_closed_toggle_auto_off",
         "onboarding",
         "RestaurantAvailability",
