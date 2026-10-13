@@ -1,0 +1,24 @@
+{
+  "scenario": "restaurant_open_state_paused_until_closing",
+  "domain": "onboarding",
+  "schema": "RestaurantAvailability",
+  "describes": "`setRestaurantAcceptingOrders` with `pause_until_closing: true` on a late night that runs past midnight. `pause_until` is the closing time the server chose: 2:00 am the next morning, not midnight.",
+  "operations": [
+    "setRestaurantAcceptingOrders",
+    "getRestaurantAvailability"
+  ],
+  "status": 200,
+  "tags": [
+    "restaurant",
+    "state-matrix"
+  ],
+  "payload": {
+    "open_state": "PAUSED",
+    "is_accepting_orders": true,
+    "pause_until": "2026-08-11T06:00:00.000Z",
+    "last_heartbeat_at": "2026-08-10T18:32:11.412Z",
+    "missed_order_count": 10,
+    "reason": "Paused until closing at 2:00 am. New orders resume when you next open.",
+    "resolvable_by": "RESTAURANT"
+  }
+}
