@@ -106,45 +106,21 @@ func TestAcceptKey(t *testing.T) {
 	}
 }
 
-func TestCoarsenLocationRoundsAndStripsPII(t *testing.T) {
-	in := json.RawMessage(`{"order_id":"o","lat":43.6532157,"lng":-79.3831846,"heading_deg":90,"speed_mps":5.2,"accuracy_m":3.1,"customer_phone":"+14165550123"}`)
-	out := coarsenLocation(in)
-
-	var m map[string]any
-	if err := json.Unmarshal(out, &m); err != nil {
-		t.Fatalf("coarsened payload does not parse: %v", err)
-	}
-	if _, ok := m["accuracy_m"]; ok {
-		t.Error("accuracy_m must be stripped for the restaurant view")
-	}
-	if _, ok := m["speed_mps"]; ok {
-		t.Error("speed_mps must be stripped for the restaurant view")
-	}
-	if _, ok := m["customer_phone"]; ok {
-		t.Error("customer_phone must never reach a restaurant")
-	}
-	lat, _ := m["lat"].(float64)
-	if lat != 43.653 {
-		t.Errorf("lat = %v, want it rounded to ~100 m (43.653)", lat)
-	}
-}
-
 func TestProjectDropsOutOfAudience(t *testing.T) {
 	// A payment.captured event is customer-only. A restaurant viewer must not
 	// receive it.
-	_, deliver := Project("payment.captured", ViewRestaurant, []string{"customer"}, json.RawMessage(`{}`))
+	_, deliver := Project("payment.captured", ViewRestaurant, nil, json.RawMessage(`{}`))
 	if deliver {
 		t.Error("restaurant must not receive a customer-only payment event")
 	}
-	_, deliver = Project("payment.captured", ViewCustomer, []string{"customer"}, json.RawMessage(`{}`))
+	_, deliver = Project("payment.captured", ViewCustomer, nil, json.RawMessage(`{}`))
 	if !deliver {
 		t.Error("customer must receive its own payment event")
 	}
 }
 
-func TestProjectAllParticipantsDefault(t *testing.T) {
-	// order.state_changed goes to all participants — an empty audience means
-	// everyone subscribed receives it.
+func TestProjectAllParticipants(t *testing.T) {
+	// order.state_changed goes to every participant.
 	for _, v := range []Viewer{ViewCustomer, ViewRestaurant, ViewRider, ViewSupport} {
 		if _, deliver := Project("order.state_changed", v, nil, json.RawMessage(`{}`)); !deliver {
 			t.Errorf("viewer %d should receive an all-participants event", v)
@@ -152,30 +128,83 @@ func TestProjectAllParticipantsDefault(t *testing.T) {
 	}
 }
 
-func TestProjectRiderLocationCoarseForRestaurant(t *testing.T) {
-	in := json.RawMessage(`{"lat":43.6532157,"lng":-79.3831846,"accuracy_m":3.0}`)
-	// Customer gets it precise.
-	precise, deliver := Project("rider.location", ViewCustomer, nil, in)
-	if !deliver {
-		t.Fatal("customer should receive rider.location")
+func TestProjectFailsClosed(t *testing.T) {
+	// A type outside the catalogue, or a source that does not decode, is never
+	// passed through.
+	if _, deliver := Project("order.invented", ViewSupport, nil, json.RawMessage(`{"order_id":"x"}`)); deliver {
+		t.Error("an event type outside the catalogue must not be delivered")
 	}
-	var pm map[string]any
-	_ = json.Unmarshal(precise, &pm)
-	if pm["lat"].(float64) != 43.6532157 {
-		t.Errorf("customer lat should be precise, got %v", pm["lat"])
+	if _, deliver := Project("order.state_changed", ViewCustomer, nil, json.RawMessage(`{"to": 7}`)); deliver {
+		t.Error("a source that does not decode must not be delivered")
 	}
-	// Restaurant gets it coarse.
-	coarse, deliver := Project("rider.location", ViewRestaurant, nil, in)
-	if !deliver {
-		t.Fatal("restaurant should receive rider.location")
+	// The stored audience narrows further.
+	if _, deliver := Project("order.state_changed", ViewRider, []string{"customer"}, json.RawMessage(`{}`)); deliver {
+		t.Error("a stored audience must narrow delivery")
 	}
-	var cm map[string]any
-	_ = json.Unmarshal(coarse, &cm)
-	if _, ok := cm["accuracy_m"]; ok {
-		t.Error("restaurant rider.location must be coarse (no accuracy)")
+}
+
+func TestProjectRiderLocationPerRole(t *testing.T) {
+	src := json.RawMessage(`{"order_id":"o","lat":43.6532157,"lng":-79.3831846,"heading_deg":90,"speed_mps":5.2,"accuracy_m":3.1,"recorded_at":"2026-08-10T18:42:45.412Z","source_picked_up":false}`)
+	decode := func(t *testing.T, v Viewer, raw json.RawMessage) map[string]any {
+		t.Helper()
+		out, ok := Project("rider.location", v, nil, raw)
+		if !ok {
+			t.Fatalf("viewer %d should receive rider.location", v)
+		}
+		var m map[string]any
+		if err := json.Unmarshal(out, &m); err != nil {
+			t.Fatal(err)
+		}
+		if _, leaked := m["source_picked_up"]; leaked {
+			t.Errorf("viewer %d was sent the internal source_picked_up flag", v)
+		}
+		return m
 	}
-	if cm["lat"].(float64) == 43.6532157 {
-		t.Error("restaurant lat must be rounded, not precise")
+
+	coarse := func(t *testing.T, who string, m map[string]any) {
+		t.Helper()
+		if m["lat"].(float64) != 43.653 || m["lng"].(float64) != -79.383 {
+			t.Errorf("%s position must be rounded to ~100 m, got %v,%v", who, m["lat"], m["lng"])
+		}
+		for _, k := range []string{"heading_deg", "speed_mps", "accuracy_m"} {
+			if v, ok := m[k]; !ok || v != nil {
+				t.Errorf("%s %s must be present and null, got %v (present %v)", who, k, v, ok)
+			}
+		}
+	}
+
+	// The restaurant always gets the coarse position.
+	coarse(t, "restaurant", decode(t, ViewRestaurant, src))
+	// The customer gets it coarse before pickup ...
+	coarse(t, "customer before pickup", decode(t, ViewCustomer, src))
+	// ... and precise after.
+	after := json.RawMessage(bytes.Replace(src, []byte(`"source_picked_up":false`), []byte(`"source_picked_up":true`), 1))
+	if m := decode(t, ViewCustomer, after); m["lat"].(float64) != 43.6532157 || m["accuracy_m"].(float64) != 3.1 {
+		t.Errorf("customer after pickup should see the precise position, got %v", m)
+	}
+	// Support always precise; the rider is not in the audience.
+	if m := decode(t, ViewSupport, src); m["lat"].(float64) != 43.6532157 {
+		t.Errorf("support should see the precise position, got %v", m["lat"])
+	}
+	if _, ok := Project("rider.location", ViewRider, nil, src); ok {
+		t.Error("the rider is not in rider.location's audience")
+	}
+}
+
+func TestProjectRiderNeverSeesOrderMoney(t *testing.T) {
+	cancelled := json.RawMessage(`{"order_id":"o","reason_code":"SUPPORT_CANCELLED","by":"SUPPORT","refund":{"kind":"FULL","amount_cents":6706,"state":"REQUESTED"}}`)
+	out, ok := Project("order.cancelled", ViewRider, nil, cancelled)
+	if !ok || bytes.Contains(out, []byte("6706")) || !bytes.Contains(out, []byte(`"refund":null`)) {
+		t.Errorf("the rider's order.cancelled must carry refund: null, got %s", out)
+	}
+	if out, _ := Project("order.cancelled", ViewCustomer, nil, cancelled); !bytes.Contains(out, []byte("6706")) {
+		t.Errorf("the customer's order.cancelled must carry the refund, got %s", out)
+	}
+	completed := json.RawMessage(`{"order_id":"o","delivered_at":"2026-08-10T18:43:05.412Z","receipt_url":"/v1/orders/o/receipt"}`)
+	for _, v := range []Viewer{ViewRider, ViewRestaurant} {
+		if out, _ := Project("order.completed", v, nil, completed); !bytes.Contains(out, []byte(`"receipt_url":null`)) {
+			t.Errorf("viewer %d must not get the customer's receipt, got %s", v, out)
+		}
 	}
 }
 
@@ -225,7 +254,7 @@ func TestSchemaBundleCoversCatalogue(t *testing.T) {
 		t.Errorf("bundle protocol = %d, want %d", b.Protocol, Protocol)
 	}
 	// Every catalogue type is present at v1.
-	for _, ty := range catalogueTypes {
+	for _, ty := range CatalogueTypes() {
 		if _, ok := b.Events[ty+"@v1"]; !ok {
 			t.Errorf("schema bundle missing %s@v1", ty)
 		}

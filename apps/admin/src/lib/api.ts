@@ -8,7 +8,7 @@
 import { createHgClient } from '@hg/api-client';
 
 import { API_BASE_URL, MOCK_SCENARIO } from './config.js';
-import { getToken } from './token.js';
+import { getToken, setToken } from './token.js';
 
 export const api = createHgClient({
   baseUrl: API_BASE_URL,
@@ -16,4 +16,9 @@ export const api = createHgClient({
   clientSurface: 'admin-web',
   clientVersion: '0.0.0',
   mockScenario: MOCK_SCENARIO,
+  // A 401 means the session is gone: clear the token so the auth gate shows the login form.
+  onUnauthorized: () => {
+    setToken(null);
+    return false;
+  },
 });

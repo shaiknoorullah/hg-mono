@@ -1,0 +1,21 @@
+{
+  "scenario": "ordering_pause_never_changed",
+  "domain": "admin",
+  "schema": "OrderingPause",
+  "describes": "Ordering is open and nobody has ever paused it: every field but `paused` is null.",
+  "operations": [
+    "getOrderingPause"
+  ],
+  "status": 200,
+  "tags": [
+    "admin",
+    "empty"
+  ],
+  "payload": {
+    "paused": false,
+    "paused_since": null,
+    "reason": null,
+    "changed_at": null,
+    "changed_by": null
+  }
+}

@@ -1,18 +1,10 @@
 import { chromium } from 'playwright';
-import { execSync } from 'node:child_process';
+import { requireEnv, totpNow, VERIFY_OUT } from './env.mjs';
 
 const APP = 'http://localhost:5183';
-const EMAIL = 'resto-qa@demo.hg';
-const PASSWORD = 'RestoQA@1234';
-const TOTP_SECRET = 'MSRMDH22NRZ7KJKFSWTXTHCDPULSEBPH';
-const OUT = '/home/devsupreme/work/hg-mono/tools/verify';
-
-function totpNow() {
-  return execSync(
-    `cd /home/devsupreme/work/hg-mono/services/hg && SECRET=${TOTP_SECRET} go run ./cmd/totpnow`,
-    { encoding: 'utf8' },
-  ).trim();
-}
+const EMAIL = requireEnv('SEED_EMAIL');
+const PASSWORD = requireEnv('SEED_PASSWORD');
+const OUT = VERIFY_OUT;
 
 const calls = [];
 const errors = [];

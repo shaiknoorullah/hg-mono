@@ -111,3 +111,36 @@ func TestProximityUsesGeography(t *testing.T) {
 	}
 	_ = countVisible // referenced to keep the helper compiled in
 }
+
+// TestAddressPointIsTheCallersOnly pins getRestaurant's delivery_address_id lookup: the caller's
+// own saved address yields its point; the same id asked for by another account, or an unknown id,
+// yields no point (NO_ADDRESS), never another customer's location.
+func TestAddressPointIsTheCallersOnly(t *testing.T) {
+	pool := requirePool(t)
+	rp := NewRepo(pool)
+	ctx := context.Background()
+
+	var addressID, owner string
+	err := pool.QueryRow(ctx, `
+		SELECT id::text, account_id::text FROM address
+		 WHERE deleted_at IS NULL AND location IS NOT NULL LIMIT 1`).Scan(&addressID, &owner)
+	if err != nil {
+		t.Skipf("no located address in the target database: %v", err)
+	}
+
+	lat, lng, err := rp.addressPoint(ctx, owner, addressID)
+	if err != nil || lat == nil || lng == nil {
+		t.Fatalf("owner's address: lat=%v lng=%v err=%v", lat, lng, err)
+	}
+	if *lat < -90 || *lat > 90 || *lng < -180 || *lng > 180 {
+		t.Fatalf("point out of range: %v,%v", *lat, *lng)
+	}
+
+	other := "00000000-0000-4000-8000-0000000000ff"
+	if lat, lng, err := rp.addressPoint(ctx, other, addressID); err != nil || lat != nil || lng != nil {
+		t.Fatalf("another account got a point: lat=%v lng=%v err=%v", lat, lng, err)
+	}
+	if lat, lng, err := rp.addressPoint(ctx, owner, other); err != nil || lat != nil || lng != nil {
+		t.Fatalf("unknown id got a point: lat=%v lng=%v err=%v", lat, lng, err)
+	}
+}

@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -32,12 +33,26 @@ type Secrets struct {
 	// RefreshCookieSecure controls the Secure attribute on the hg_rt cookie. It
 	// is false only in local, where there is no TLS.
 	RefreshCookieSecure bool
+	// CSRFCookieDomain is the Domain of the hg_csrf cookie; empty means
+	// host-only. cmd/hg sets it from config (HG_AUTH_CSRF_COOKIE_DOMAIN).
+	CSRFCookieDomain string
 	// CurrentTermsVersion is the terms string registerRestaurant must match
 	// (409 TERMS_VERSION_STALE otherwise).
 	CurrentTermsVersion string
 	// AppDataKey is the 32-byte AES-256-GCM key used to seal TOTP secrets in the
 	// database (totp_secret_enc). Read from HG_APP_DATA_KEY (hex or base64).
 	AppDataKey [32]byte
+	// HashConcurrency caps how many argon2id password hashes run at once in this
+	// process, across the sign-up, login and staff gates (hashgate.go). Each one
+	// allocates 64 MiB.
+	HashConcurrency int
+	// HashWait is how long a sign-up or login waits for a free hashing slot
+	// before it is answered 503 with Retry-After. At most MaxHashWait.
+	HashWait time.Duration
+	// HashMaxWaiters caps how many callers may wait for a hashing slot at once,
+	// split across the gates; the rest are answered 503 at once. 0 means the
+	// default, DefaultHashWaitersPerSlot per slot.
+	HashMaxWaiters int
 }
 
 // Getenv is the minimal environment accessor, matching config.Load's shape so a
@@ -51,6 +66,9 @@ type Getenv func(string) string
 //   - HG_APP_DATA_KEY          (required outside local) 32 bytes, hex or base64
 //   - HG_AUTH_SIGNING_KID      (optional, default "k1")
 //   - HG_AUTH_TERMS_VERSION    (optional, default "2026-01")
+//   - HG_AUTH_HASH_CONCURRENCY (optional, default 3, 3 to 64) password hashes at once
+//   - HG_AUTH_HASH_WAIT        (optional, default 2s, at most 5s) wait for a hashing slot
+//   - HG_AUTH_HASH_MAX_WAITERS (optional, default 4 per slot, 1 to 1024) callers waiting at once
 //
 // In production getenv is config.Config.Lookup, so each key may also come
 // from a file (HG_APP_DATA_KEY_FILE and so on).
@@ -137,6 +155,37 @@ func LoadSecrets(getenv Getenv, strict bool) (*Secrets, error) {
 		}
 	}
 
+	hashConcurrency := DefaultHashConcurrency
+	if raw := strings.TrimSpace(getenv("HG_AUTH_HASH_CONCURRENCY")); raw != "" {
+		n, err := strconv.Atoi(raw)
+		if err != nil || n < MinHashConcurrency || n > MaxHashConcurrency {
+			problems = append(problems, fmt.Sprintf(
+				"HG_AUTH_HASH_CONCURRENCY must be a whole number from %d (one slot each for sign-up, login and staff) to %d",
+				MinHashConcurrency, MaxHashConcurrency))
+		} else {
+			hashConcurrency = n
+		}
+	}
+	hashWait := DefaultHashWait
+	if raw := strings.TrimSpace(getenv("HG_AUTH_HASH_WAIT")); raw != "" {
+		d, err := time.ParseDuration(raw)
+		if err != nil || d <= 0 || d > MaxHashWait {
+			problems = append(problems, fmt.Sprintf(
+				"HG_AUTH_HASH_WAIT must be a duration above 0 and at most %s, e.g. 2s", MaxHashWait))
+		} else {
+			hashWait = d
+		}
+	}
+	hashMaxWaiters := 0 // newHashGates applies DefaultHashWaitersPerSlot
+	if raw := strings.TrimSpace(getenv("HG_AUTH_HASH_MAX_WAITERS")); raw != "" {
+		n, err := strconv.Atoi(raw)
+		if err != nil || n < 1 || n > MaxHashWaiters {
+			problems = append(problems, fmt.Sprintf(
+				"HG_AUTH_HASH_MAX_WAITERS must be a whole number from 1 to %d", MaxHashWaiters))
+		} else {
+			hashMaxWaiters = n
+		}
+	}
 	if strict {
 		var seed []byte
 		if priv != nil {
@@ -164,6 +213,9 @@ func LoadSecrets(getenv Getenv, strict bool) (*Secrets, error) {
 		RefreshCookieSecure: strict,
 		CurrentTermsVersion: terms,
 		AppDataKey:          appDataKey,
+		HashConcurrency:     hashConcurrency,
+		HashWait:            hashWait,
+		HashMaxWaiters:      hashMaxWaiters,
 	}, nil
 }
 
@@ -248,13 +300,13 @@ const (
 // refreshTTL returns the idle and absolute refresh-token TTLs for a role class
 // (P-04 table). The most privileged role in the session decides the class, so a
 // short-lived admin session cannot be extended by a co-held customer grant.
+// Every staff role (support, admin, super admin) ends after 30 minutes idle and
+// 12 hours in total — docs/decisions/README.md "Staff session length".
 func refreshTTL(roles []string) (idle, absolute time.Duration) {
 	class := roleClass(roles)
 	switch class {
-	case classAdmin:
-		return 8 * time.Hour, 24 * time.Hour
-	case classSupport:
-		return 12 * time.Hour, 7 * 24 * time.Hour
+	case classAdmin, classSupport:
+		return 30 * time.Minute, 12 * time.Hour
 	case classRestaurant:
 		return 14 * 24 * time.Hour, 90 * 24 * time.Hour
 	default: // customer / rider

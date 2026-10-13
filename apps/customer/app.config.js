@@ -6,13 +6,14 @@
  * environment. Without `APP_ENV` the app is the dev one, and a prod build refuses to bundle any
  * API but production's. How to build each: docs/release/README.md.
  *
- * Mapbox: the runtime token is the PUBLIC `EXPO_PUBLIC_MAPBOX_TOKEN` (`pk.…`), read at render
- * time (see `.env.example`). The native SDK no longer needs a download token: Mapbox serves it
- * without one, and the `@rnmapbox/maps` plugin only adds credentials when
- * `RNMAPBOX_MAPS_DOWNLOAD_TOKEN` is set. Never pass the public token as a download token: the
- * download server rejects a `pk.` token and the native build fails.
+ * Maps: the live tracking map uses `@rnmapbox/maps`, which needs Mapbox's secret download token to
+ * build for Android. With `RNMAPBOX_MAPS_DOWNLOAD_TOKEN` set the module is autolinked and its
+ * config plugin added; without it both are left out (react-native.config.js) and the app shows the
+ * ETA text only. The mechanism is in scripts/release/mapbox.cjs. The public map token,
+ * `EXPO_PUBLIC_MAPBOX_TOKEN`, is read at run time.
  */
 const { expoAppEnv } = require('../../scripts/release/app-env.cjs');
+const { mapboxPlugins } = require('../../scripts/release/mapbox.cjs');
 
 module.exports = () => {
   const env = expoAppEnv(process.env);
@@ -25,10 +26,20 @@ module.exports = () => {
       scheme: 'hgcustomer',
       userInterfaceStyle: 'light',
       newArchEnabled: true,
+      // The HalalGoes logo. Every file under assets/ is written by
+      // `pnpm --filter @hg/brand build:assets` from the one traced geometry; do
+      // not edit them by hand. #FFFAEA is the light theme's surface.base.
+      icon: './assets/icon.png',
+      splash: {
+        image: './assets/splash.png',
+        resizeMode: 'contain',
+        backgroundColor: '#FFFAEA',
+      },
       platforms: ['ios', 'android', 'web'],
       web: {
         bundler: 'metro',
         output: 'single',
+        favicon: './assets/favicon.png',
       },
       ios: {
         supportsTablet: true,
@@ -38,12 +49,27 @@ module.exports = () => {
         edgeToEdgeEnabled: true,
         package: `com.halalgoes.customer${env.idSuffix}`,
         versionCode: env.versionCode,
+        adaptiveIcon: {
+          foregroundImage: './assets/adaptive-icon.png',
+          backgroundColor: '#FFFAEA',
+        },
       },
-      plugins: ['@rnmapbox/maps', 'expo-dev-client'],
+      plugins: [
+        'expo-dev-client',
+        ['@stripe/stripe-react-native', {}],
+        // Order updates by push (src/api/push.ts). Android delivery also needs the project's FCM
+        // credentials in Expo; without them, or without EAS_PROJECT_ID, there is no push token
+        // and the app works without push.
+        'expo-notifications',
+        ...mapboxPlugins(),
+      ],
       extra: {
         appEnv: env.name,
         // So `npx expo config --type public` shows whether a map token was present at build time.
         mapboxPublicTokenConfigured: Boolean(process.env.EXPO_PUBLIC_MAPBOX_TOKEN),
+        // The EAS project the push token is issued for. Only set when EAS_PROJECT_ID is, so a
+        // local prebuild or Gradle build never needs EAS (docs/release/README.md).
+        ...(process.env.EAS_PROJECT_ID ? { eas: { projectId: process.env.EAS_PROJECT_ID } } : {}),
       },
     },
   };

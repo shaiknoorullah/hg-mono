@@ -1,10 +1,11 @@
 // Fresh customer-app QA loop against the REAL backend (:8080) via Expo-web (:8082).
 import { chromium } from 'playwright';
 import { execSync } from 'node:child_process';
+import { VERIFY_OUT } from './env.mjs';
 
 const APP = 'http://localhost:19006';
 const PHONE = '+14165559876';
-const OUT = '/home/devsupreme/work/hg-mono/tools/verify';
+const OUT = VERIFY_OUT;
 
 const calls = [];
 const errors = [];

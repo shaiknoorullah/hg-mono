@@ -178,72 +178,117 @@ const (
 	SubForbidden
 )
 
-// AuthorizeSubscribe runs the fresh Postgres ownership check for a subscribe
-// (§0 rule 2, §3.1). It obeys the 404-vs-403 rule: an unrelated principal that
-// asks for an order it has no relationship to gets not_found, never forbidden,
-// so it cannot learn the order exists.
+// Grant is the outcome of an ownership check: whether the principal may
+// subscribe and, when it may, the ONE role that authorised it. The gateway
+// projects every event on the subscription for that role (projection.go), so
+// the ownership decision and the projection are made from the same facts, in
+// the same read.
+//
+// Viewer is ViewNone whenever Result is not SubAllowed, so a denied or failed
+// check can never be mistaken for a role.
+type Grant struct {
+	Result SubResult
+	Viewer Viewer
+}
+
+func allowed(v Viewer) Grant { return Grant{Result: SubAllowed, Viewer: v} }
+
+var (
+	notFound  = Grant{Result: SubNotFound}
+	forbidden = Grant{Result: SubForbidden}
+)
+
+// privilegedRoles are the roles that may read any order, restaurant or rider
+// channel (contracts/websocket.md section 3.1).
+var privilegedRoles = []string{"SUPPORT_AGENT", "ADMIN", "SUPER_ADMIN"}
+
+// AuthorizeSubscribe runs the fresh Postgres ownership check for a subscribe —
+// the socket is not a second, weaker authorization surface
+// (contracts/websocket.md, "The three rules this document exists to enforce",
+// rule 2; section 3.1, "Channels") — and names the role that authorised it. It
+// obeys the 404-vs-403 rule: an unrelated principal that asks for an order it
+// has no relationship to gets not_found, never forbidden, so it cannot learn
+// the order exists.
 //
 // The predicates mirror the HTTP surface's ownership rules:
-//   - order:{id}       customer (order.account_id), restaurant staff (live
-//     account_role scoped to order.restaurant_id), assigned rider
-//     (dispatch.rider_account_id), or support/admin.
+//   - order:{id}       the customer (order.account_id), the assigned rider
+//     (dispatch.rider_account_id), staff of the order's restaurant (a live
+//     account_role scoped to order.restaurant_id), or support/admin.
 //   - restaurant:{id}  live scoped staff grant, or support/admin.
-//   - rider:{id}       the rider themselves, or support/admin.
+//   - rider:{id}       the rider themselves (holding RIDER), or support/admin.
 //   - account:{id}     that account only.
 //   - admin:ops        ADMIN, SUPER_ADMIN, SUPPORT_AGENT.
-func (s *Store) AuthorizeSubscribe(ctx context.Context, accountID string, roles []string, ch Channel) (SubResult, error) {
-	priv := hasAny(roles, "SUPPORT_AGENT", "ADMIN", "SUPER_ADMIN")
+//
+// When more than one relationship holds, the role is the first in this order:
+// customer, rider, restaurant staff, support. A participant is projected as
+// that participant, and support's view is only for a principal with no other
+// relationship to the channel. Nothing is ever projected for two roles at once
+// (https://github.com/shaiknoorullah/hg-mono/issues/247).
+//
+// Any error is a denial: the Grant then carries no role.
+func (s *Store) AuthorizeSubscribe(ctx context.Context, accountID string, roles []string, ch Channel) (Grant, error) {
+	priv := hasAny(roles, privilegedRoles...)
 
 	switch ch.Kind {
 	case KindAccount:
 		if ch.Subject == accountID {
-			return SubAllowed, nil
+			return allowed(ViewAccountOwner), nil
 		}
 		// Another account's personal channel simply does not exist for you.
-		return SubNotFound, nil
+		return notFound, nil
 
 	case KindAdminOps:
-		if hasAny(roles, "ADMIN", "SUPER_ADMIN", "SUPPORT_AGENT") {
-			return SubAllowed, nil
+		if priv {
+			return allowed(ViewSupport), nil
 		}
-		return SubForbidden, nil
+		return forbidden, nil
 
 	case KindRider:
-		if ch.Subject == accountID || priv {
-			return SubAllowed, nil
+		switch {
+		case ch.Subject == accountID && hasAny(roles, "RIDER"):
+			return allowed(ViewRiderSelf), nil
+		case priv:
+			return allowed(ViewSupport), nil
 		}
-		return SubNotFound, nil
+		return notFound, nil
 
 	case KindRestaurant:
-		if priv {
-			return SubAllowed, nil
-		}
 		ok, err := s.hasLiveRestaurantGrant(ctx, accountID, ch.Subject)
 		if err != nil {
-			return SubForbidden, err
+			return forbidden, err
 		}
-		if ok {
-			return SubAllowed, nil
+		switch {
+		case ok:
+			return allowed(ViewRestaurant), nil
+		case priv:
+			return allowed(ViewSupport), nil
 		}
-		return SubNotFound, nil
+		return notFound, nil
 
 	case KindOrder:
-		exists, related, err := s.orderRelationship(ctx, accountID, roles, ch.Subject, priv)
+		rel, err := s.orderRelationship(ctx, accountID, ch.Subject)
 		if err != nil {
-			return SubForbidden, err
+			return forbidden, err
 		}
-		if !exists {
-			return SubNotFound, nil
-		}
-		if related {
-			return SubAllowed, nil
+		switch {
+		case !rel.exists:
+			return notFound, nil
+		case rel.customer:
+			return allowed(ViewCustomer), nil
+		case rel.rider:
+			return allowed(ViewRider), nil
+		case rel.staff:
+			return allowed(ViewRestaurant), nil
+		case priv:
+			return allowed(ViewSupport), nil
 		}
 		// The order exists but you are not a participant. The 404-vs-403 rule
-		// (§4.1 note) says an unrelated principal must not learn it exists, so
-		// this is not_found, not forbidden.
-		return SubNotFound, nil
+		// (contracts/websocket.md section 4.1, the note under the control
+		// frames) says an unrelated principal must not learn it exists, so this
+		// is not_found, not forbidden.
+		return notFound, nil
 	}
-	return SubForbidden, nil
+	return forbidden, nil
 }
 
 // hasLiveRestaurantGrant reports whether an account holds a live (non-revoked)
@@ -264,73 +309,41 @@ func (s *Store) hasLiveRestaurantGrant(ctx context.Context, accountID, restauran
 	return ok, nil
 }
 
-// orderRelationship answers, in one round trip, whether the order exists and
-// whether this account is a participant of it. A privileged principal is always
-// related to an existing order.
-func (s *Store) orderRelationship(ctx context.Context, accountID string, roles []string, orderID string, priv bool) (exists, related bool, err error) {
-	err = s.pool.QueryRow(ctx, `
-		SELECT
-			TRUE,
-			(
-				o.account_id = $2
-				OR $3::bool
-				OR EXISTS (
-					SELECT 1 FROM account_role ar
-					 WHERE ar.account_id = $2
-					   AND ar.scope_type = 'RESTAURANT'
-					   AND ar.scope_id = o.restaurant_id
-					   AND ar.revoked_at IS NULL)
-				OR EXISTS (
-					SELECT 1 FROM dispatch d
-					 WHERE d.order_id = o.id
-					   AND d.rider_account_id = $2)
-			)
-		FROM "order" o
-		WHERE o.id = $1`,
-		orderID, accountID, priv).Scan(&exists, &related)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return false, false, nil
-	}
-	if err != nil {
-		return false, false, fmt.Errorf("order relationship: %w", err)
-	}
-	return exists, related, nil
+// orderRelation is every way an account is related to one order.
+type orderRelation struct {
+	exists, customer, rider, staff bool
 }
 
-// OrderViewer classifies a participant's projection relationship to an order
-// (§5), used to pick the one serializer for (event, role) at send time. It is a
-// cheap read separate from the authorize step, and defaults to the most
-// restrictive customer view on ambiguity.
-func (s *Store) OrderViewer(ctx context.Context, accountID, orderID string) (Viewer, error) {
-	var isCustomer, isStaff, isRider bool
+// orderRelationship answers, in one round trip, whether the order exists and
+// each way this account takes part in it.
+func (s *Store) orderRelationship(ctx context.Context, accountID, orderID string) (orderRelation, error) {
+	var r orderRelation
 	err := s.pool.QueryRow(ctx, `
 		SELECT
+			TRUE,
 			o.account_id = $2,
+			EXISTS (
+				SELECT 1 FROM dispatch d
+				  JOIN assignment a ON a.order_id = d.order_id AND a.rider_account_id = d.rider_account_id
+				 WHERE d.order_id = o.id
+				   AND d.rider_account_id = $2
+				   AND a.terminated_at IS NULL),
 			EXISTS (
 				SELECT 1 FROM account_role ar
 				 WHERE ar.account_id = $2
 				   AND ar.scope_type = 'RESTAURANT'
 				   AND ar.scope_id = o.restaurant_id
-				   AND ar.revoked_at IS NULL),
-			EXISTS (
-				SELECT 1 FROM dispatch d
-				 WHERE d.order_id = o.id AND d.rider_account_id = $2)
+				   AND ar.revoked_at IS NULL)
 		FROM "order" o
 		WHERE o.id = $1`,
-		orderID, accountID).Scan(&isCustomer, &isStaff, &isRider)
+		orderID, accountID).Scan(&r.exists, &r.customer, &r.rider, &r.staff)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return orderRelation{}, nil
+	}
 	if err != nil {
-		return ViewCustomer, fmt.Errorf("order viewer: %w", err)
+		return orderRelation{}, fmt.Errorf("order relationship: %w", err)
 	}
-	switch {
-	case isCustomer:
-		return ViewCustomer, nil
-	case isRider:
-		return ViewRider, nil
-	case isStaff:
-		return ViewRestaurant, nil
-	default:
-		return ViewCustomer, nil
-	}
+	return r, nil
 }
 
 // ChannelHead returns the current head seq for a channel — what subscribed's
@@ -422,7 +435,21 @@ func (s *Store) Replay(ctx context.Context, channel string, afterSeq int64) (eve
 //
 // The caller passes a pgx.Tx that already contains the state mutation; on commit
 // both the state and the event become visible together.
+//
+// It is the low-level writer under Emit (emit.go), which producers use. It
+// refuses an event type that is not in the catalogue, or one written to a
+// channel family that does not carry it: such an event could never be
+// delivered (Project drops it), so writing it would only burn a seq and leave
+// every subscriber a gap.
 func EmitInTx(ctx context.Context, tx pgx.Tx, channel, eventType string, version int, audience []string, payload json.RawMessage, orderID, accountID *string) (seq int64, ulid string, err error) {
+	s, ok := byType[eventType]
+	if !ok {
+		return 0, "", fmt.Errorf("event type %q is not in the realtime catalogue", eventType)
+	}
+	ch, ok := ParseChannel(channel)
+	if !ok || ch.Kind != s.kind {
+		return 0, "", fmt.Errorf("event type %q does not travel on channel %q", eventType, channel)
+	}
 	if err = tx.QueryRow(ctx, `SELECT next_channel_seq($1)`, channel).Scan(&seq); err != nil {
 		return 0, "", fmt.Errorf("allocate seq: %w", err)
 	}
@@ -491,7 +518,7 @@ func (s *Store) AllowedChannels(ctx context.Context, accountID string, roles []s
 	if hasAny(roles, "RIDER") {
 		add(RiderChannel(accountID))
 	}
-	if hasAny(roles, "ADMIN", "SUPER_ADMIN", "SUPPORT_AGENT") {
+	if hasAny(roles, privilegedRoles...) {
 		add(AdminOpsChannel)
 	}
 

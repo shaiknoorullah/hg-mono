@@ -1,0 +1,21 @@
+{
+  "scenario": "error_refund_already_decided",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`409` · `ALREADY_DECIDED`. Someone else decided it first, or it was never waiting. Reload the queue.",
+  "operations": [
+    "approveRefund",
+    "declineRefund"
+  ],
+  "status": 409,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "ALREADY_DECIDED",
+      "message": "This refund is not waiting for a decision; it is AUTHORISED.",
+      "request_id": "F5J068SJX2BRKTQBZN2TWSCMZ2"
+    }
+  }
+}

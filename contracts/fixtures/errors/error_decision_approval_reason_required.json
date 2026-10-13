@@ -1,0 +1,28 @@
+{
+  "scenario": "error_decision_approval_reason_required",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`422` · `VALIDATION_FAILED`. An approval sent with a rejection reason (or none). An approval carries `ALL_CHECKS_PASSED` or `APPROVED_WITH_NOTES`; nothing changed.",
+  "operations": [
+    "decideRiderApplication",
+    "decideRestaurantApplication"
+  ],
+  "status": 422,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "VALIDATION_FAILED",
+      "message": "reason_code must be an approval reason (ALL_CHECKS_PASSED or APPROVED_WITH_NOTES) for an APPROVE decision",
+      "request_id": "EBFYFP3GXTZG18HWGB8Z1DNNC3",
+      "details": [
+        {
+          "field": "reason_code",
+          "code": "invalid",
+          "message": "reason_code must be an approval reason (ALL_CHECKS_PASSED or APPROVED_WITH_NOTES) for an APPROVE decision"
+        }
+      ]
+    }
+  }
+}

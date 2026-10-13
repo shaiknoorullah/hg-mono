@@ -1,0 +1,64 @@
+# Customer redesign WP1 (#656), journey J1: a returning customer signs in. Built with
+# EXPO_PUBLIC_HG_REDESIGN=1, against devworld (`make dev-reset`).
+# amina is a reserved dev phone (+1 555 010 0101) that accepts the test code 000000; she has a
+# name, so verifyOtp answers next_route HOME and she lands on Home with "You're signed in".
+# The sign-in strings are the Sign-in canvas copy (SI/Main, SI/SignInCode): "Sign in or create an
+# account", "Send code", "Enter the 6-digit code", "Verify and continue". The legacy flows
+# (1-ask-for-code, 2-sign-in-and-order) run on the flag-off build and keep the legacy strings.
+appId: com.halalgoes.customer.dev
+name: customer redesign, sign in (returning customer)
+env:
+  PHONE: "5550100101"
+  CODE: "000000"
+---
+- launchApp:
+    clearState: true
+    permissions:
+      all: allow
+- extendedWaitUntil:
+    visible: "Sign in or create an account"
+    timeout: 90000
+- assertNotVisible: "Account"
+- takeScreenshot: redesign-wp1-01-sign-in
+
+# Send code validates on press: a short number is refused with the board's message.
+- tapOn:
+    id: "SignIn-phone-field"
+- inputText: "41655501"
+- tapOn: "Send code"
+- assertVisible: ".*Enter all 10 digits of your mobile number.*"
+- takeScreenshot: redesign-wp1-02-invalid
+- eraseText: 20
+- inputText: ${PHONE}
+- hideKeyboard
+- tapOn: "Send code"
+- extendedWaitUntil:
+    visible: "Enter the 6-digit code"
+    timeout: 30000
+- assertVisible: "We sent it to \\+1 555 010 0101\\."
+- assertVisible: "You can resend the code at .* (am|pm)\\."
+- takeScreenshot: redesign-wp1-03-code
+
+# Too few digits: said on Verify, nothing sent.
+- tapOn:
+    id: "Code-input-field"
+- inputText: "000"
+- hideKeyboard
+- tapOn: "Verify and continue"
+- assertVisible: ".*Enter all 6 digits of the code\\..*"
+- tapOn:
+    id: "Code-input-field"
+- eraseText: 6
+- inputText: ${CODE}
+- hideKeyboard
+- tapOn: "Verify and continue"
+
+# next_route HOME: the four tabs and the greeting toast.
+- extendedWaitUntil:
+    visible: "Account"
+    timeout: 30000
+- assertVisible: "You're signed in"
+- assertVisible: "Home"
+- assertVisible: "Search"
+- assertVisible: "Orders"
+- takeScreenshot: redesign-wp1-04-signed-in

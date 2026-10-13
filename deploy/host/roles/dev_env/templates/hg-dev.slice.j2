@@ -1,0 +1,14 @@
+# Managed by Ansible (deploy/host/roles/dev_env).
+# Every dev container runs in this slice (cgroup_parent in {{ hg_dev_dir }}/compose.yml), so
+# all of dev together can never use more than these, whatever its own limits say.
+[Unit]
+Description=HalalGoes dev environment, capped so it never starves production
+Before=slices.target
+
+[Slice]
+MemoryMax={{ hg_dev_memory_max }}
+MemorySwapMax=0
+CPUQuota={{ hg_dev_cpu_quota }}
+CPUWeight={{ hg_dev_cpu_weight }}
+IOWeight={{ hg_dev_cpu_weight }}
+TasksMax=4096

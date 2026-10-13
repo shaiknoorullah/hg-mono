@@ -3,11 +3,15 @@ package notify
 import (
 	"context"
 	"fmt"
+	"slices"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/riverqueue/river"
 	"github.com/riverqueue/river/rivertype"
+
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/realtime"
 )
 
 // QueueDefault is the single River queue this module uses. Splitting by
@@ -119,5 +123,31 @@ func (e *Enqueuer) Enqueue(ctx context.Context, tx pgx.Tx, n New) (EnqueueResult
 	if err != nil {
 		return EnqueueResult{}, fmt.Errorf("notify: enqueue delivery job for %s: %w", id, err)
 	}
+	if err := emitCreated(ctx, tx, id, n); err != nil {
+		return EnqueueResult{}, err
+	}
 	return EnqueueResult{NotificationID: id, Queued: true}, nil
+}
+
+// emitCreated writes notification.created on the recipient's own account
+// channel, in the enqueue's transaction, for a notification that lands in the
+// in-app inbox (contracts/websocket.md section 4.6): an open app shows it
+// without polling. A notification with no inbox row to find (a sign-in code,
+// a link email) is not announced.
+func emitCreated(ctx context.Context, tx pgx.Tx, id uuid.UUID, n New) error {
+	if !slices.Contains(n.Channels, ChannelInApp) {
+		return nil
+	}
+	ev := realtime.NotificationCreated{
+		NotificationID: id.String(), Kind: string(n.Kind), Title: n.Title, Body: n.Body,
+		CreatedAt: realtime.At(time.Now()),
+	}
+	if n.DeepLink != "" {
+		link := n.DeepLink
+		ev.DeepLink = &link
+	}
+	if err := realtime.EmitAccount(ctx, tx, n.AccountID.String(), ev); err != nil {
+		return fmt.Errorf("notify: announce %s: %w", id, err)
+	}
+	return nil
 }

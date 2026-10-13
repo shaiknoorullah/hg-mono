@@ -35,9 +35,10 @@
 // static role→action matrix, then wire them in cmd/hg. Do not change the Guard's
 // decision table; only its two inputs.
 //
-// TODO(orders/payments siblings): P-37 idempotency is *extracted* here but not
-// yet *enforced* — the claim/replay transaction against idempotency_record
-// belongs in the store, in the same tx as the business effect.
+// P-37 idempotency is *extracted* here; the claim/replay against
+// idempotency_record is internal/idempotency, in the same tx as the business
+// effect, and not every keyed route calls it yet
+// (https://github.com/shaiknoorullah/hg-mono/issues/363).
 //
 // TODO: P-06 stages not yet present — SecurityHeaders, RateLimit (P-38),
 // Validate with DisallowUnknownFields (P-36), ownership Authorize (P-07),

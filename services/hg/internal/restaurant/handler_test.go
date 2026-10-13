@@ -446,3 +446,89 @@ func TestDelayOrderRejectsPriceField(t *testing.T) {
 		t.Fatalf("status=%d, want 422 for price field (body: %s)", rec.Code, rec.Body.String())
 	}
 }
+
+// ─── menu writes — refused before the database (unit) ────────────────────────
+
+// TestMenuWrites_RefusedBeforeTheDatabase: the four menu write handlers the menu
+// lock guards (https://github.com/shaiknoorullah/hg-mono/issues/256) refuse a
+// caller who is not signed in, a role that may not write, and a body that fails
+// validation before they read anything, so none of these requests ever reaches the
+// lock or the menu. The lock's own refusal needs Postgres; it is pinned in
+// menu_lock_test.go.
+func TestMenuWrites_RefusedBeforeTheDatabase(t *testing.T) {
+	h := restaurant.NewHandler(nil, nil, nil)
+	type handle func(http.ResponseWriter, *http.Request)
+	for _, tc := range []struct {
+		name       string
+		handle     handle
+		method     string
+		path       string
+		principal  httpx.Principal
+		body       string
+		wantStatus int
+		wantCode   string
+	}{
+		{"createMenuCategory/anonymous", h.CreateMenuCategory, http.MethodPost, "/v1/restaurant/menu/categories",
+			anonPrincipal(), `{"name":"Grills"}`, http.StatusUnauthorized, string(httpx.CodeAuthenticationRequired)},
+		{"createMenuItem/anonymous", h.CreateMenuItem, http.MethodPost, "/v1/restaurant/menu/items",
+			anonPrincipal(), `{"name":"X","category_id":"cat-1","price_cents":1500}`, http.StatusUnauthorized, string(httpx.CodeAuthenticationRequired)},
+		{"updateMenuItem/anonymous", h.UpdateMenuItem, http.MethodPatch, "/v1/restaurant/menu/items/item-1",
+			anonPrincipal(), `{"price_cents":1900}`, http.StatusUnauthorized, string(httpx.CodeAuthenticationRequired)},
+		{"setMenuItemAvailability/anonymous", h.SetMenuItemAvailability, http.MethodPut, "/v1/restaurant/menu/items/item-1/availability",
+			anonPrincipal(), `{"availability_state":"OUT_OF_STOCK"}`, http.StatusUnauthorized, string(httpx.CodeAuthenticationRequired)},
+		{"updateMenuItem/staff", h.UpdateMenuItem, http.MethodPatch, "/v1/restaurant/menu/items/item-1",
+			staffPrincipal("acct-staff"), `{"price_cents":1900}`, http.StatusForbidden, string(httpx.CodeForbidden)},
+		{"setMenuItemAvailability/customer", h.SetMenuItemAvailability, http.MethodPut, "/v1/restaurant/menu/items/item-1/availability",
+			customerPrincipal("acct-cust"), `{"availability_state":"OUT_OF_STOCK"}`, http.StatusForbidden, string(httpx.CodeForbidden)},
+		{"createMenuItem/unknown dietary tag", h.CreateMenuItem, http.MethodPost, "/v1/restaurant/menu/items",
+			ownerPrincipal("acct-1"), `{"name":"X","category_id":"cat-1","price_cents":1500,"dietary_tags":["NOT_A_TAG"]}`,
+			http.StatusUnprocessableEntity, string(httpx.CodeValidationFailed)},
+		{"updateMenuItem/HALAL_CERTIFIED", h.UpdateMenuItem, http.MethodPatch, "/v1/restaurant/menu/items/item-1",
+			managerPrincipal("acct-mgr"), `{"dietary_tags":["HALAL_CERTIFIED"]}`, http.StatusForbidden, "FIELD_NOT_WRITABLE"},
+		{"updateMenuItem/unknown allergen tag", h.UpdateMenuItem, http.MethodPatch, "/v1/restaurant/menu/items/item-1",
+			ownerPrincipal("acct-1"), `{"allergen_tags":["NOT_A_TAG"]}`, http.StatusUnprocessableEntity, string(httpx.CodeValidationFailed)},
+		{"updateMenuItem/malformed category_id", h.UpdateMenuItem, http.MethodPatch, "/v1/restaurant/menu/items/item-1",
+			ownerPrincipal("acct-1"), `{"category_id":"not-a-uuid"}`, http.StatusUnprocessableEntity, string(httpx.CodeValidationFailed)},
+		{"updateMenuItem/price out of range", h.UpdateMenuItem, http.MethodPatch, "/v1/restaurant/menu/items/item-1",
+			ownerPrincipal("acct-1"), `{"price_cents":49}`, http.StatusUnprocessableEntity, "PRICE_OUT_OF_RANGE"},
+		{"updateMenuCategory/anonymous", h.UpdateMenuCategory, http.MethodPatch, "/v1/restaurant/menu/categories/cat-1",
+			anonPrincipal(), `{"name":"Grills"}`, http.StatusUnauthorized, string(httpx.CodeAuthenticationRequired)},
+		{"updateMenuCategory/staff", h.UpdateMenuCategory, http.MethodPatch, "/v1/restaurant/menu/categories/cat-1",
+			staffPrincipal("acct-staff"), `{"is_active":false}`, http.StatusForbidden, string(httpx.CodeForbidden)},
+		{"updateMenuCategory/blank name", h.UpdateMenuCategory, http.MethodPatch, "/v1/restaurant/menu/categories/cat-1",
+			ownerPrincipal("acct-1"), `{"name":"   "}`, http.StatusUnprocessableEntity, string(httpx.CodeValidationFailed)},
+		{"updateMenuCategory/description too long", h.UpdateMenuCategory, http.MethodPatch, "/v1/restaurant/menu/categories/cat-1",
+			ownerPrincipal("acct-1"), `{"description":"` + strings.Repeat("x", 501) + `"}`, http.StatusUnprocessableEntity, string(httpx.CodeValidationFailed)},
+		{"deleteMenuCategory/anonymous", h.DeleteMenuCategory, http.MethodDelete, "/v1/restaurant/menu/categories/cat-1",
+			anonPrincipal(), ``, http.StatusUnauthorized, string(httpx.CodeAuthenticationRequired)},
+		{"deleteMenuCategory/staff", h.DeleteMenuCategory, http.MethodDelete, "/v1/restaurant/menu/categories/cat-1",
+			staffPrincipal("acct-staff"), ``, http.StatusForbidden, string(httpx.CodeForbidden)},
+		{"deleteMenuItem/anonymous", h.DeleteMenuItem, http.MethodDelete, "/v1/restaurant/menu/items/item-1",
+			anonPrincipal(), ``, http.StatusUnauthorized, string(httpx.CodeAuthenticationRequired)},
+		{"deleteMenuItem/customer", h.DeleteMenuItem, http.MethodDelete, "/v1/restaurant/menu/items/item-1",
+			customerPrincipal("acct-cust"), ``, http.StatusForbidden, string(httpx.CodeForbidden)},
+		{"setMenuItemAvailability/HIDDEN", h.SetMenuItemAvailability, http.MethodPut, "/v1/restaurant/menu/items/item-1/availability",
+			staffPrincipal("acct-staff"), `{"availability_state":"HIDDEN"}`, http.StatusUnprocessableEntity, string(httpx.CodeValidationFailed)},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			req := httptest.NewRequest(tc.method, tc.path, strings.NewReader(tc.body))
+			req = withPrincipal(req, tc.principal)
+			rec := httptest.NewRecorder()
+			tc.handle(rec, req)
+			if rec.Code != tc.wantStatus {
+				t.Fatalf("status=%d, want %d (body: %s)", rec.Code, tc.wantStatus, rec.Body.String())
+			}
+			var env struct {
+				Error struct {
+					Code string `json:"code"`
+				} `json:"error"`
+			}
+			if err := json.Unmarshal(rec.Body.Bytes(), &env); err != nil {
+				t.Fatalf("decode error envelope: %v (body: %s)", err, rec.Body.String())
+			}
+			if env.Error.Code != tc.wantCode {
+				t.Errorf("code=%q, want %q", env.Error.Code, tc.wantCode)
+			}
+		})
+	}
+}

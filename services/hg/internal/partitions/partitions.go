@@ -12,8 +12,15 @@
 //
 // One pass is idempotent and safe on any number of replicas: a session
 // advisory lock (the lease) lets one replica work at a time, and every step
-// re-reads the catalogue before it acts. The connecting role must own the
-// partitioned tables, as the migration role does today.
+// re-reads the catalogue before it acts.
+//
+// The API logs in as hg_app, which owns nothing and may run no DDL
+// (https://github.com/shaiknoorullah/hg-mono/issues/215). It creates and drops
+// partitions only through hg_partition_ensure and hg_partition_drop_before,
+// SECURITY DEFINER functions owned by the migration role
+// (migrations/00032_least_privilege.sql). They refuse any other table, any
+// range that is not one whole period, and any drop inside a table's retention,
+// all by the database's clock, so a pass reads its clock from the database too.
 package partitions
 
 import (
@@ -63,9 +70,6 @@ type table struct {
 	parent string
 	key    string // the partition key column
 	period period
-	// ensure creates the partition starting at $1 (a date), with any
-	// per-partition unique index the migration's helper adds. Idempotent.
-	ensure string
 	// ahead is how many periods past the current one are kept created.
 	ahead int
 	// dropAfter is the retention: a partition is dropped once its newest
@@ -76,13 +80,15 @@ type table struct {
 }
 
 // tables is every partitioned table in the schema, with the retention its spec
-// sets (all in docs/spec/01-platform.md).
+// sets (all in docs/spec/01-platform.md). The database holds the same list,
+// and the same retentions, in hg_partition_policy
+// (migrations/00032_least_privilege.sql); a table or a shorter retention that
+// is only here is refused there.
 var tables = []table{
 	{
 		// "P-22 — Event catalogue and envelope": realtime events are kept 7
 		// days, one partition per day.
 		parent: "realtime_event", key: "created_at", period: daily,
-		ensure:    `SELECT realtime_event_ensure_partition($1::date)`,
 		ahead:     7,
 		dropAfter: 7 * 24 * time.Hour,
 	},
@@ -91,7 +97,6 @@ var tables = []table{
 		// days. Partitions are monthly, so a month is dropped once its last
 		// day is 30 days old; no point is dropped younger than 30 days.
 		parent: "rider_position_history", key: "recorded_at", period: monthly,
-		ensure:    `SELECT ensure_monthly_partition('rider_position_history', $1::date)`,
 		ahead:     2,
 		dropAfter: 30 * 24 * time.Hour,
 	},
@@ -101,8 +106,7 @@ var tables = []table{
 		// whole), so audit partitions are never dropped and no audit row is
 		// ever moved.
 		parent: "audit_event", key: "at", period: monthly,
-		ensure: `SELECT audit_event_ensure_partition($1::date)`,
-		ahead:  2,
+		ahead: 2,
 	},
 }
 
@@ -129,12 +133,11 @@ type Report struct {
 type Maintainer struct {
 	pool *pgxpool.Pool
 	log  *slog.Logger
-	now  func() time.Time
 }
 
 // New builds a Maintainer.
 func New(pool *pgxpool.Pool, log *slog.Logger) *Maintainer {
-	return &Maintainer{pool: pool, log: log, now: time.Now}
+	return &Maintainer{pool: pool, log: log}
 }
 
 // Run makes one pass at once, then one every Interval, until ctx is cancelled.
@@ -200,11 +203,20 @@ func (m *Maintainer) RunOnce(ctx context.Context) (rep Report, ran bool, err err
 		return rep, false, err
 	}
 
+	// The database's clock, not this host's: the partition functions check
+	// retention against now(), and a cutoff a millisecond ahead of it would be
+	// refused. Each step's transaction starts later, so its now() is never
+	// earlier than this.
+	var now time.Time
+	if err := conn.QueryRow(ctx, `SELECT now()`).Scan(&now); err != nil {
+		return rep, true, err
+	}
+
 	var runID int64
 	if err := conn.QueryRow(ctx, `INSERT INTO job_run (job) VALUES ('partition_maintenance') RETURNING id`).Scan(&runID); err != nil {
 		m.log.Warn("partition maintenance: job_run not recorded", slog.String("error", err.Error()))
 	}
-	rep = m.maintain(ctx, conn, m.now())
+	rep = m.maintain(ctx, conn, now)
 	if runID != 0 {
 		m.finish(ctx, conn, runID, rep)
 	}
@@ -253,29 +265,30 @@ func (m *Maintainer) maintain(ctx context.Context, conn *pgx.Conn, now time.Time
 		}
 		cutoff := now.Add(-t.dropAfter)
 
-		// 1. Drop partitions wholly past retention.
+		// 1. Drop partitions wholly past retention: every one that ends at or
+		// before the cutoff.
+		if t.dropAfter > 0 {
+			var dropped []string
+			err := inTx(ctx, conn, func(tx pgx.Tx) error {
+				rows, err := tx.Query(ctx, `SELECT hg_partition_drop_before($1::regclass, $2)`, t.parent, cutoff)
+				if err != nil {
+					return err
+				}
+				dropped, err = pgx.CollectRows(rows, pgx.RowTo[string])
+				return err
+			})
+			if err != nil {
+				// The transaction rolled back: nothing was dropped.
+				fail(t, "drop partitions ending by "+cutoff.Format(time.RFC3339), err)
+			} else {
+				rep.Dropped = append(rep.Dropped, dropped...)
+			}
+		}
 		parts, err := partitionsOf(ctx, conn, t)
 		if err != nil {
 			fail(t, "list partitions", err)
 			continue
 		}
-		kept := parts[:0]
-		for _, p := range parts {
-			if t.dropAfter == 0 || p.hi.After(cutoff) {
-				kept = append(kept, p)
-				continue
-			}
-			if err := inTx(ctx, conn, func(tx pgx.Tx) error {
-				_, err := tx.Exec(ctx, `DROP TABLE `+pgx.Identifier{p.name}.Sanitize())
-				return err
-			}); err != nil {
-				fail(t, "drop "+p.name, err)
-				kept = append(kept, p)
-				continue
-			}
-			rep.Dropped = append(rep.Dropped, p.name)
-		}
-		parts = kept
 
 		// 2. Create every period from the oldest still retained (for a table
 		// with retention) or the current one, through `ahead` periods on.
@@ -291,12 +304,14 @@ func (m *Maintainer) maintain(ctx context.Context, conn *pgx.Conn, now time.Time
 			if covered(parts, lo) {
 				continue
 			}
-			moved, err := m.create(ctx, conn, t, def, lo)
+			created, moved, err := create(ctx, conn, t, lo)
 			if err != nil {
 				fail(t, "create partition from "+lo.Format("2006-01-02"), err)
 				continue
 			}
-			rep.Created = append(rep.Created, fmt.Sprintf("%s from %s", t.parent, lo.Format("2006-01-02")))
+			if created {
+				rep.Created = append(rep.Created, fmt.Sprintf("%s from %s", t.parent, lo.Format("2006-01-02")))
+			}
 			rep.Moved += moved
 		}
 
@@ -330,51 +345,19 @@ func (m *Maintainer) maintain(ctx context.Context, conn *pgx.Conn, now time.Time
 	return rep
 }
 
-// create makes the partition starting at lo. Rows already in the default for
-// its range would make the CREATE fail, so for a table whose rows may be
-// removed they are taken out first and put back through the parent, which
-// routes them into the new partition. It returns how many rows moved. An
-// append-only table's rows are never moved: its CREATE fails, and the default
-// count raises the alert.
-func (m *Maintainer) create(ctx context.Context, conn *pgx.Conn, t table, def string, lo time.Time) (int64, error) {
-	hi := t.period.next(lo)
-	var moved int64
-	err := inTx(ctx, conn, func(tx pgx.Tx) error {
-		movable := def != "" && t.dropAfter > 0
-		if movable {
-			// Writers wait for this short transaction instead of putting a
-			// new row into the default between the move and the create.
-			if _, err := tx.Exec(ctx, `LOCK TABLE `+pgx.Identifier{t.parent}.Sanitize()+` IN ACCESS EXCLUSIVE MODE`); err != nil {
-				return err
-			}
-			if _, err := tx.Exec(ctx, `CREATE TEMP TABLE hg_partition_move (LIKE `+
-				pgx.Identifier{t.parent}.Sanitize()+`) ON COMMIT DROP`); err != nil {
-				return err
-			}
-			key := pgx.Identifier{t.key}.Sanitize()
-			tag, err := tx.Exec(ctx, `
-				WITH moved AS (
-				  DELETE FROM `+pgx.Identifier{def}.Sanitize()+` WHERE `+key+` >= $1 AND `+key+` < $2
-				  RETURNING *)
-				INSERT INTO hg_partition_move SELECT * FROM moved`, lo, hi)
-			if err != nil {
-				return err
-			}
-			moved = tag.RowsAffected()
-		}
-		if _, err := tx.Exec(ctx, t.ensure, lo.Format("2006-01-02")); err != nil {
-			return err
-		}
-		if movable && moved > 0 {
-			// OVERRIDING SYSTEM VALUE keeps each row's own identity value.
-			if _, err := tx.Exec(ctx, `INSERT INTO `+pgx.Identifier{t.parent}.Sanitize()+
-				` OVERRIDING SYSTEM VALUE SELECT * FROM hg_partition_move`); err != nil {
-				return err
-			}
-		}
-		return nil
+// create makes the partition for the period starting at lo, through
+// hg_partition_ensure. Rows already in the default for its range would make
+// the create fail, so for a table whose rows may be removed the function takes
+// them out first and puts them back through the parent, which routes them into
+// the new partition; moved counts them. An append-only table's rows are never
+// moved: its create fails, and the default count raises the alert. created is
+// false when the partition already existed.
+func create(ctx context.Context, conn *pgx.Conn, t table, lo time.Time) (created bool, moved int64, err error) {
+	err = inTx(ctx, conn, func(tx pgx.Tx) error {
+		return tx.QueryRow(ctx, `SELECT created, moved FROM hg_partition_ensure($1::regclass, $2, $3)`,
+			t.parent, lo, t.period.next(lo)).Scan(&created, &moved)
 	})
-	return moved, err
+	return created, moved, err
 }
 
 // inTx runs fn in a transaction with UTC as the session time zone (partition

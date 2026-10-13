@@ -6,15 +6,23 @@
  * tip and total — every one rendered through `Price` from branded `Cents`. Nothing on this screen
  * adds cents by hand; the server priced it and the client displays it (G-1).
  *
+ * After the order is created, `payForOrder` confirms its `client_secret` in the card sheet (the
+ * Stripe SDK's on native, Stripe.js Payment Element on web; authorise only: the server captures on
+ * restaurant acceptance). Cancel, decline or a build without a Stripe key keeps the same order and
+ * offers "Retry payment". The fake local gateway (`pi_fake_*` secrets) skips the sheet.
+ *
  * "Place order" POSTs `/v1/orders` with the `quote_id` only (no amount, G-3). On success it routes
- * to tracking with the returned order id. Against the mock, `createOrder` has no fixture and
- * returns `INTERNAL_ERROR`; the screen recognises that known gap and recovers the order to track
- * from `getActiveOrder` (a real fixture), so the journey completes end-to-end on real data.
+ * to tracking with the returned order id. A failure shows its real error code; nothing is faked.
+ *
+ * While staff have paused new orders (#388) there is no "Place order": the screen says ordering
+ * is paused, and a `409 ORDERING_PAUSED` from the quote or the order says the same, plus that
+ * nothing was charged, never a generic error. An order already created and awaiting payment is
+ * not new, so its "Retry payment" stays.
  */
 import * as React from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { cents, isApiError } from '@hg/api-client';
+import { cents } from '@hg/api-client';
 import type { Schema } from '@hg/api-client';
 import {
   AppBar,
@@ -29,17 +37,19 @@ import {
 } from '@hg/ui-native';
 
 import { getCart } from '../api/cart';
-import { ensureDeliveryAddress } from '../api/addresses';
-import { createQuote, getActiveOrder, placeOrder } from '../api/orders';
+import { listAddresses, sortForDelivery, type Address } from '../api/addresses';
+import { createQuote, placeOrder } from '../api/orders';
+import { payForOrder } from '../payments/payForOrder';
 import { errorCodeOf } from '../api/async';
 import { useNavigation } from '../navigation/stack';
+import { ORDERING_PAUSED, OrderingPausedNotice, useOrderingPause } from '../ordering/orderingPause';
 
 type Quote = Schema['Quote'];
 
 type State =
   | { kind: 'loading' }
   | { kind: 'error'; code: string | null }
-  | { kind: 'ready'; quote: Quote };
+  | { kind: 'ready'; quote: Quote; addresses: Address[]; addressId: string };
 
 export function CheckoutScreen(): React.ReactElement {
   const theme = useTheme();
@@ -49,19 +59,54 @@ export function CheckoutScreen(): React.ReactElement {
   const [state, setState] = React.useState<State>({ kind: 'loading' });
   const [placing, setPlacing] = React.useState(false);
   const [placeError, setPlaceError] = React.useState<string | null>(null);
+  // Set once the order exists but is not yet paid: retrying pays THIS order, never a new one.
+  const [unpaid, setUnpaid] = React.useState<{ orderId: string; secret: string } | null>(null);
+  const [payError, setPayError] = React.useState<string | null>(null);
+  const { paused: configPaused, markPaused } = useOrderingPause();
 
-  const load = React.useCallback(() => {
-    setState({ kind: 'loading' });
-    setPlaceError(null);
-    // A delivery quote is priced against a concrete address (the server derives the tax
-    // province from it, P-11), so resolve one before quoting.
-    Promise.all([getCart(), ensureDeliveryAddress()])
-      .then(([cart, address]) =>
-        createQuote({ cartId: cart.id, fulfilment: 'DELIVERY', deliveryAddressId: address.id }),
-      )
-      .then((quote) => setState({ kind: 'ready', quote }))
-      .catch((e) => setState({ kind: 'error', code: errorCodeOf(e) }));
-  }, []);
+  const pay = React.useCallback(
+    async (orderId: string, secret: string) => {
+      setPayError(null);
+      // The whole pay path (fake gateway, the card sheet, the server read that moves the order
+      // on, the retry secret) lives in payForOrder; it never throws.
+      const outcome = await payForOrder(orderId, secret);
+      if (outcome.kind === 'placed') {
+        nav.reset({ name: 'tracking', orderId });
+        return;
+      }
+      setUnpaid({ orderId, secret: outcome.secret });
+      setPayError(outcome.message);
+    },
+    [nav],
+  );
+
+  const load = React.useCallback(
+    (chosenId?: string) => {
+      setState({ kind: 'loading' });
+      setPlaceError(null);
+      // A delivery quote is priced against a concrete address (the server derives the tax
+      // province from it, P-11): the customer's pick, else their default. No address at all
+      // means the address form, not a made-up one.
+      Promise.all([getCart(), listAddresses()])
+        .then(async ([cart, list]) => {
+          const addresses = sortForDelivery(list);
+          const address = addresses.find((a) => a.id === chosenId) ?? addresses[0];
+          if (!address) {
+            nav.replace({ name: 'addressForm', addressId: null });
+            return;
+          }
+          const quote = await createQuote({
+            cartId: cart.id,
+            fulfilment: 'DELIVERY',
+            deliveryAddressId: address.id,
+          });
+          setState({ kind: 'ready', quote, addresses, addressId: address.id });
+        })
+        .catch((e) => setState({ kind: 'error', code: errorCodeOf(e) }));
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
 
   React.useEffect(() => load(), [load]);
 
@@ -70,27 +115,26 @@ export function CheckoutScreen(): React.ReactElement {
     setPlacing(true);
     setPlaceError(null);
     try {
-      const created = await placeOrder(state.quote.id);
-      nav.reset({ name: 'tracking', orderId: created.order.id });
-    } catch (e) {
-      // Known mock gap: `createOrder` has no fixture and 500s. Recover the order to track from
-      // the active-order endpoint, which is served from a real fixture, so the demo completes.
-      if (isApiError(e) && e.status >= 500) {
-        try {
-          const active = await getActiveOrder();
-          if (active) {
-            nav.reset({ name: 'tracking', orderId: active.id });
-            return;
-          }
-        } catch {
-          /* fall through to the error banner */
-        }
+      if (unpaid) {
+        await pay(unpaid.orderId, unpaid.secret);
+        return;
       }
+      const created = await placeOrder(state.quote.id);
+      setUnpaid({ orderId: created.order.id, secret: created.client_secret });
+      await pay(created.order.id, created.client_secret);
+    } catch (e) {
       setPlaceError(errorCodeOf(e) ?? 'ORDER_FAILED');
     } finally {
       setPlacing(false);
     }
-  }, [state, nav]);
+  }, [state, nav, unpaid, pay]);
+
+  const refused =
+    (state.kind === 'error' && state.code === ORDERING_PAUSED) || placeError === ORDERING_PAUSED;
+  React.useEffect(() => {
+    if (refused) markPaused();
+  }, [refused, markPaused]);
+  const showPaused = !unpaid && (configPaused || refused);
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.color.surface.sunken }}>
@@ -100,23 +144,39 @@ export function CheckoutScreen(): React.ReactElement {
         loading={state.kind === 'loading'}
       />
 
-      {state.kind === 'loading' ? (
+      {showPaused ? (
+        <View style={{ flex: 1, justifyContent: 'center', padding: 16, gap: 16 }}>
+          <OrderingPausedNotice refused={refused} />
+          <Button variant="secondary" fullWidth onPress={nav.back}>
+            Back to cart
+          </Button>
+        </View>
+      ) : state.kind === 'loading' ? (
         <View style={{ flex: 1, padding: 16 }}>
           <Spinner label="Pricing your order" />
         </View>
       ) : state.kind === 'error' ? (
         <View style={{ flex: 1, justifyContent: 'center', padding: 16 }}>
-          <ErrorState errorCode={state.code} onRetry={load} />
+          <ErrorState errorCode={state.code} onRetry={() => load()} />
         </View>
       ) : (
         <>
           <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
+            <AddressPicker
+              addresses={state.addresses}
+              selectedId={state.addressId}
+              onPick={(id) => load(id)}
+              onAdd={() => nav.push({ name: 'addressForm', addressId: null })}
+            />
             <QuoteSummary quote={state.quote} />
+            {payError ? (
+              <Banner variant="danger" title="Payment not completed" description={payError} />
+            ) : null}
             {placeError ? (
               <Banner
                 variant="danger"
                 title="We couldn't place your order"
-                description="Nothing was charged. Please try again."
+                description={`${placeError}. Nothing was charged. Please try again.`}
               />
             ) : null}
           </ScrollView>
@@ -133,11 +193,54 @@ export function CheckoutScreen(): React.ReactElement {
           >
             <TotalRow label="Total" cents={state.quote.total_cents} emphasise />
             <Button variant="primary" fullWidth loading={placing} onPress={() => void onPlace()}>
-              Place order
+              {unpaid ? 'Retry payment' : 'Place order'}
             </Button>
           </View>
         </>
       )}
+    </View>
+  );
+}
+
+/** Where this order goes: the chosen address, and a plain list to switch when there are several. */
+function AddressPicker({
+  addresses,
+  selectedId,
+  onPick,
+  onAdd,
+}: {
+  addresses: Address[];
+  selectedId: string;
+  onPick: (id: string) => void;
+  onAdd: () => void;
+}): React.ReactElement {
+  const theme = useTheme();
+  const heading = useTypeStyle('heading.sm');
+  return (
+    <View
+      style={{
+        gap: 8,
+        padding: 16,
+        borderRadius: 12,
+        backgroundColor: theme.color.surface.raised,
+        borderWidth: 1,
+        borderColor: theme.color.border.decorative,
+      }}
+    >
+      <Text style={[heading, { color: theme.color.text.primary }]}>Deliver to</Text>
+      {addresses.map((a) => (
+        <Button
+          key={a.id}
+          variant={a.id === selectedId ? 'primary' : 'secondary'}
+          fullWidth
+          onPress={() => (a.id === selectedId ? undefined : onPick(a.id))}
+        >
+          {`${a.label ? `${a.label}: ` : ''}${a.line1}, ${a.city}`}
+        </Button>
+      ))}
+      <Button variant="secondary" fullWidth onPress={onAdd}>
+        Add a new address
+      </Button>
     </View>
   );
 }

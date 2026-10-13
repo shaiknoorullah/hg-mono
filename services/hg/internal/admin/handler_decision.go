@@ -8,27 +8,95 @@ import (
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
 )
 
-// approveReasonCodes and rejectApplicationReasonCodes are the closed enums a
-// restaurant decision may carry (contract RestaurantApproveReasonCode /
-// RestaurantRejectApplicationReasonCode). A code outside the set is a 422.
-var approveReasonCodes = map[string]bool{
-	"ALL_CHECKS_PASSED": true, "APPROVED_WITH_NOTES": true,
+// An application decision body has one shape per decision (contract
+// RestaurantDecisionInput and RiderDecisionInput, issue #163:
+// https://github.com/shaiknoorullah/hg-mono/issues/163). An approval carries an
+// approval reason; a rejection or a request for changes carries a rejection
+// reason; only a request for changes names documents to redo. Every decision
+// carries a reason code and a reason text, because every state-changing admin
+// action does (admin conventions:
+// https://github.com/shaiknoorullah/hg-mono/blob/main/docs/spec/05-admin.md#01-units-time-money-identity).
+// A code that does not fit the decision is a 422.
+type decisionVocabulary struct {
+	approveCodes map[string]bool // codes an APPROVE may carry
+	rejectCodes  map[string]bool // codes a REJECT or REQUEST_CHANGES may carry
+	docTypes     map[string]bool // documents a REQUEST_CHANGES may name
 }
 
-var rejectApplicationReasonCodes = map[string]bool{
-	"HALAL_CERTIFICATION_INVALID": true, "DOCUMENTS_INSUFFICIENT": true,
-	"IDENTITY_UNVERIFIED": true, "OUTSIDE_SERVICE_AREA": true,
-	"PROHIBITED_CUISINE_OR_PRODUCT": true, "SUSPECTED_FRAUD": true,
-	"DUPLICATE_APPLICATION": true, "WITHDRAWN_BY_APPLICANT": true, "OTHER": true,
+// restaurantDecisionVocabulary is the contract's RestaurantApproveReasonCode,
+// RestaurantRejectApplicationReasonCode and RestaurantDocType.
+var restaurantDecisionVocabulary = decisionVocabulary{
+	approveCodes: map[string]bool{"ALL_CHECKS_PASSED": true, "APPROVED_WITH_NOTES": true},
+	rejectCodes: map[string]bool{
+		"HALAL_CERTIFICATION_INVALID": true, "DOCUMENTS_INSUFFICIENT": true,
+		"IDENTITY_UNVERIFIED": true, "OUTSIDE_SERVICE_AREA": true,
+		"PROHIBITED_CUISINE_OR_PRODUCT": true, "SUSPECTED_FRAUD": true,
+		"DUPLICATE_APPLICATION": true, "WITHDRAWN_BY_APPLICANT": true, "OTHER": true,
+	},
+	docTypes: map[string]bool{
+		"BUSINESS_LICENCE": true, "HALAL_CERTIFICATE": true, "FOOD_SAFETY": true,
+		"OWNER_ID": true, "LIABILITY_INSURANCE": true,
+	},
 }
 
-// riderDecisionReasonCodes is DocumentRejectionReasonCode (the rider decision
-// reason enum per the contract).
-var riderDecisionReasonCodes = map[string]bool{
-	"ILLEGIBLE": true, "EXPIRED": true, "WRONG_DOCUMENT_TYPE": true, "NAME_MISMATCH": true,
-	"DOB_MISMATCH": true, "ADDRESS_MISMATCH": true, "PLATE_MISMATCH": true,
-	"UNRECOGNISED_CERTIFIER": true, "SUSPECTED_FORGERY": true, "SUSPECTED_ALTERATION": true,
-	"INCOMPLETE_PAGES": true, "OTHER": true,
+// riderDecisionVocabulary is the contract's RiderApproveReasonCode,
+// DocumentRejectionReasonCode and RiderDocType.
+var riderDecisionVocabulary = decisionVocabulary{
+	approveCodes: map[string]bool{"ALL_CHECKS_PASSED": true, "APPROVED_WITH_NOTES": true},
+	rejectCodes: map[string]bool{
+		"ILLEGIBLE": true, "EXPIRED": true, "WRONG_DOCUMENT_TYPE": true, "NAME_MISMATCH": true,
+		"DOB_MISMATCH": true, "ADDRESS_MISMATCH": true, "PLATE_MISMATCH": true,
+		"UNRECOGNISED_CERTIFIER": true, "SUSPECTED_FORGERY": true, "SUSPECTED_ALTERATION": true,
+		"INCOMPLETE_PAGES": true, "OTHER": true,
+	},
+	docTypes: map[string]bool{
+		"DRIVERS_LICENCE": true, "VEHICLE_REGISTRATION": true, "VEHICLE_INSURANCE": true,
+		"GOVERNMENT_ID": true, "WORK_ELIGIBILITY": true, "PROFILE_PHOTO": true,
+	},
+}
+
+// validDecision checks a decision body against the shape its decision selects.
+// It writes the 422 and returns false when the body does not fit.
+func validDecision(w http.ResponseWriter, r *http.Request, v decisionVocabulary, decision, reasonCode, reasonText string, documentsToRedo []string) bool {
+	switch decision {
+	case "APPROVE":
+		if !v.approveCodes[reasonCode] {
+			fieldFail(w, r, "reason_code", "reason_code must be an approval reason (ALL_CHECKS_PASSED or APPROVED_WITH_NOTES) for an APPROVE decision")
+			return false
+		}
+	case "REJECT", "REQUEST_CHANGES":
+		if !v.rejectCodes[reasonCode] {
+			fieldFail(w, r, "reason_code", "reason_code must be a rejection reason for this decision")
+			return false
+		}
+	default:
+		fieldFail(w, r, "decision", "decision must be APPROVE, REQUEST_CHANGES or REJECT")
+		return false
+	}
+	if n := len([]rune(reasonText)); n < 10 || n > 1000 {
+		fieldFail(w, r, "reason_text", "reason_text must be between 10 and 1000 characters")
+		return false
+	}
+	if decision != "REQUEST_CHANGES" {
+		if documentsToRedo != nil {
+			fieldFail(w, r, "documents_to_redo", "documents_to_redo is only for a REQUEST_CHANGES decision")
+			return false
+		}
+		return true
+	}
+	if len(documentsToRedo) == 0 {
+		fieldFail(w, r, "documents_to_redo", "documents_to_redo must name at least one document for a REQUEST_CHANGES decision")
+		return false
+	}
+	seen := make(map[string]bool, len(documentsToRedo))
+	for _, doc := range documentsToRedo {
+		if !v.docTypes[doc] || seen[doc] {
+			fieldFail(w, r, "documents_to_redo", "documents_to_redo must name each document once, from this application's document types")
+			return false
+		}
+		seen[doc] = true
+	}
+	return true
 }
 
 // GetRestaurantApplication implements getRestaurantApplication (A-13). Support
@@ -55,23 +123,7 @@ func (h *Handler) DecideRestaurantApplication(w http.ResponseWriter, r *http.Req
 	if !decodeJSON(w, r, &in) {
 		return
 	}
-	switch in.Decision {
-	case "APPROVE":
-		if !approveReasonCodes[in.ReasonCode] {
-			fieldFail(w, r, "reason_code", "reason_code must be an approve reason for an APPROVE decision")
-			return
-		}
-	case "REJECT", "REQUEST_CHANGES":
-		if !rejectApplicationReasonCodes[in.ReasonCode] {
-			fieldFail(w, r, "reason_code", "reason_code must be a reject reason for this decision")
-			return
-		}
-	default:
-		fieldFail(w, r, "decision", "decision must be APPROVE, REQUEST_CHANGES or REJECT")
-		return
-	}
-	if n := len([]rune(in.ReasonText)); n < 10 || n > 1000 {
-		fieldFail(w, r, "reason_text", "reason_text must be between 10 and 1000 characters")
+	if !validDecision(w, r, restaurantDecisionVocabulary, in.Decision, in.ReasonCode, in.ReasonText, in.DocumentsToRedo) {
 		return
 	}
 	if in.InternalNote != nil && len([]rune(*in.InternalNote)) > 2000 {
@@ -82,22 +134,34 @@ func (h *Handler) DecideRestaurantApplication(w http.ResponseWriter, r *http.Req
 	detail, err := h.repo.DecideRestaurantApplication(r.Context(), actorFrom(r), id,
 		in.Decision, in.ReasonCode, in.ReasonText, h.cfg.HalalCertMinRemainingDays, h.today())
 	if err != nil {
-		var pe preconditionError
-		switch {
-		case errors.As(err, &pe):
-			httpx.Fail(w, r, http.StatusConflict, CodePreconditionNotMet,
-				"The application is not yet approvable.",
-				map[string]any{"blockers": pe.Blockers})
-		case errors.Is(err, ErrAlreadyDecided):
-			httpx.Fail(w, r, http.StatusConflict, CodeAlreadyDecided, "The application is already decided.", nil)
-		case errors.Is(err, ErrNotFound):
-			httpx.Fail(w, r, http.StatusNotFound, CodeNotFound, "No such application.", nil)
-		default:
-			h.failInternal(w, r, err)
-		}
+		// The contract answers an unapprovable restaurant with 409.
+		h.failDecision(w, r, err, http.StatusConflict)
 		return
 	}
 	httpx.Respond(w, r, http.StatusOK, h.renderRestaurantApplication(r, detail))
+}
+
+// failDecision writes the error for a decision the store refused: an under-18
+// rider, live blockers (blockedStatus is the status the operation's contract
+// gives them), a second decision on a decided application, or no such
+// application. Anything else is an internal error.
+func (h *Handler) failDecision(w http.ResponseWriter, r *http.Request, err error, blockedStatus int) {
+	var pe preconditionError
+	switch {
+	case errors.Is(err, ErrAgeNotMet):
+		httpx.Fail(w, r, http.StatusUnprocessableEntity, CodeAgeNotMet,
+			"The rider is under 18; approval is refused and cannot be overridden.", nil)
+	case errors.As(err, &pe):
+		httpx.Fail(w, r, blockedStatus, CodePreconditionNotMet,
+			"The application is not yet approvable.",
+			map[string]any{"blockers": pe.Blockers})
+	case errors.Is(err, ErrAlreadyDecided):
+		httpx.Fail(w, r, http.StatusConflict, CodeAlreadyDecided, "The application is already decided.", nil)
+	case errors.Is(err, ErrNotFound):
+		httpx.Fail(w, r, http.StatusNotFound, CodeNotFound, "No such application.", nil)
+	default:
+		h.failInternal(w, r, err)
+	}
 }
 
 // GetRiderApplication implements getRiderApplication (A-23).
@@ -122,40 +186,15 @@ func (h *Handler) DecideRiderApplication(w http.ResponseWriter, r *http.Request)
 	if !decodeJSON(w, r, &in) {
 		return
 	}
-	switch in.Decision {
-	case "APPROVE", "REJECT", "REQUEST_CHANGES":
-	default:
-		fieldFail(w, r, "decision", "decision must be APPROVE, REQUEST_CHANGES or REJECT")
-		return
-	}
-	if in.Decision != "APPROVE" && !riderDecisionReasonCodes[in.ReasonCode] {
-		fieldFail(w, r, "reason_code", "reason_code must be a valid rider decision reason")
-		return
-	}
-	if n := len([]rune(in.ReasonText)); n < 10 || n > 1000 {
-		fieldFail(w, r, "reason_text", "reason_text must be between 10 and 1000 characters")
+	if !validDecision(w, r, riderDecisionVocabulary, in.Decision, in.ReasonCode, in.ReasonText, in.DocumentsToRedo) {
 		return
 	}
 
 	detail, err := h.repo.DecideRiderApplication(r.Context(), actorFrom(r), id,
 		in.Decision, in.ReasonCode, in.ReasonText, h.today())
 	if err != nil {
-		var pe preconditionError
-		switch {
-		case errors.Is(err, ErrAgeNotMet):
-			httpx.Fail(w, r, http.StatusUnprocessableEntity, CodeAgeNotMet,
-				"The rider is under 18; approval is refused and cannot be overridden.", nil)
-		case errors.As(err, &pe):
-			httpx.Fail(w, r, http.StatusUnprocessableEntity, CodePreconditionNotMet,
-				"The application is not yet approvable.",
-				map[string]any{"blockers": pe.Blockers})
-		case errors.Is(err, ErrAlreadyDecided):
-			httpx.Fail(w, r, http.StatusConflict, CodeAlreadyDecided, "The application is already decided.", nil)
-		case errors.Is(err, ErrNotFound):
-			httpx.Fail(w, r, http.StatusNotFound, CodeNotFound, "No such application.", nil)
-		default:
-			h.failInternal(w, r, err)
-		}
+		// The contract answers an unapprovable rider with 422.
+		h.failDecision(w, r, err, http.StatusUnprocessableEntity)
 		return
 	}
 	httpx.Respond(w, r, http.StatusOK, h.renderRiderApplication(r, detail))

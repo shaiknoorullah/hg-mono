@@ -61,11 +61,9 @@ func (h *Handler) GetRestaurantAvailability(w http.ResponseWriter, r *http.Reque
 	if h.mapErr(w, r, err) {
 		return
 	}
-	// TODO(scope): within-hours and holiday evaluation in the restaurant's
-	// timezone. Until the hours join lands, both are treated as "open" — a
-	// conservative default that only ever reports MORE open, which the toggle and
-	// heartbeat gates still override.
-	verdict := deriveOpenState(a, h.now(), true, false)
+	// Hours and holidays are evaluated in the restaurant's timezone, as the
+	// order path does (https://github.com/shaiknoorullah/hg-mono/issues/648).
+	verdict := a.openState(h.now())
 	httpx.Respond(w, r, http.StatusOK, toRestaurantAvailability(a, verdict))
 }
 
@@ -111,11 +109,13 @@ func (h *Handler) SetRestaurantAcceptingOrders(w http.ResponseWriter, r *http.Re
 		pause = &t
 	}
 
-	a, err := h.repo.setAcceptingOrders(r.Context(), restaurantID, *in.IsAcceptingOrders, pause)
+	now := h.now()
+	a, err := h.repo.setAcceptingOrders(r.Context(), restaurantID, *in.IsAcceptingOrders, pause,
+		httpx.PrincipalFrom(r.Context()).AccountID, now)
 	if h.mapErr(w, r, err) {
 		return
 	}
-	verdict := deriveOpenState(a, h.now(), true, false)
+	verdict := a.openState(now)
 	httpx.Respond(w, r, http.StatusOK, toRestaurantAvailability(a, verdict))
 }
 
@@ -130,7 +130,7 @@ func (h *Handler) SendRestaurantHeartbeat(w http.ResponseWriter, r *http.Request
 	if h.mapErr(w, r, err) {
 		return
 	}
-	verdict := deriveOpenState(a, h.now(), true, false)
+	verdict := a.openState(h.now())
 	httpx.Respond(w, r, http.StatusOK, RestaurantHeartbeat{
 		OpenState:  verdict.state,
 		ReceivedAt: httpx.Timestamp(received),

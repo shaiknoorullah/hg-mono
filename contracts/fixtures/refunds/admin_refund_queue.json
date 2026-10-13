@@ -1,0 +1,112 @@
+{
+  "scenario": "admin_refund_queue",
+  "domain": "refunds",
+  "schema": "array<AdminRefund>",
+  "describes": "The review queue: what waits for a person, oldest first.",
+  "operations": [
+    "listRefundsAdmin"
+  ],
+  "status": 200,
+  "tags": [
+    "admin"
+  ],
+  "meta": {
+    "next_cursor": null,
+    "has_more": false
+  },
+  "payload": [
+    {
+      "id": "e9e91b0a-ce70-4242-a511-e748c5cb10da",
+      "order_id": "d1435528-5730-4b9a-a635-98014dc0201a",
+      "order_code": "HG-COED-9X",
+      "kind": "PARTIAL_ITEMS",
+      "scope": "PARTIAL_ITEMS",
+      "reason_code": "ITEM_MISSING",
+      "amount_cents": 1915,
+      "tax_cents": 220,
+      "currency": "CAD",
+      "state": "REQUESTED",
+      "liability_split": {
+        "platform_cents": 220,
+        "restaurant_cents": 1695,
+        "rider_cents": 0
+      },
+      "note": "The biryani was missing from the bag.",
+      "requested_at": "2026-08-10T18:02:11.412Z",
+      "requested_by": "c2a83f3e-d7b9-4a92-abb3-af31e948f03f",
+      "requester_kind": "CUSTOMER",
+      "approval_required_role": null,
+      "escalated_by": null,
+      "escalated_at": null,
+      "approved_by": null,
+      "approved_at": null,
+      "declined_by": null,
+      "declined_at": null,
+      "decision_reason": null,
+      "settled_at": null,
+      "failure_message": null
+    },
+    {
+      "id": "8333e7f3-81ad-4ead-a4ca-25ab2e003797",
+      "order_id": "d1435528-5730-4b9a-a635-98014dc0201a",
+      "order_code": "HG-COED-9X",
+      "kind": "PARTIAL_ITEMS",
+      "scope": "PARTIAL_ITEMS",
+      "reason_code": "ITEM_MISSING",
+      "amount_cents": 1915,
+      "tax_cents": 220,
+      "currency": "CAD",
+      "state": "PENDING_APPROVAL",
+      "liability_split": {
+        "platform_cents": 220,
+        "restaurant_cents": 1695,
+        "rider_cents": 0
+      },
+      "note": "The biryani was missing from the bag.",
+      "requested_at": "2026-08-10T18:02:11.412Z",
+      "requested_by": "c2a83f3e-d7b9-4a92-abb3-af31e948f03f",
+      "requester_kind": "CUSTOMER",
+      "approval_required_role": "ADMIN",
+      "escalated_by": "6eadb17e-4986-45d0-a5ed-7d24980666dd",
+      "escalated_at": "2026-08-10T18:12:11.412Z",
+      "approved_by": null,
+      "approved_at": null,
+      "declined_by": null,
+      "declined_at": null,
+      "decision_reason": "Over what I can approve today; needs an admin.",
+      "settled_at": null,
+      "failure_message": null
+    },
+    {
+      "id": "311d4de5-6948-45dd-a202-a1344241610c",
+      "order_id": "d1435528-5730-4b9a-a635-98014dc0201a",
+      "order_code": "HG-COED-9X",
+      "kind": "GOODWILL",
+      "scope": "PARTIAL_AMOUNT",
+      "reason_code": "GOODWILL",
+      "amount_cents": 6000,
+      "tax_cents": 0,
+      "currency": "CAD",
+      "state": "PENDING_APPROVAL",
+      "liability_split": {
+        "platform_cents": 6000,
+        "restaurant_cents": 0,
+        "rider_cents": 0
+      },
+      "note": "Third late order this month; a retention gesture.",
+      "requested_at": "2026-08-10T18:02:11.412Z",
+      "requested_by": "6eadb17e-4986-45d0-a5ed-7d24980666dd",
+      "requester_kind": "STAFF",
+      "approval_required_role": "ADMIN",
+      "escalated_by": "6eadb17e-4986-45d0-a5ed-7d24980666dd",
+      "escalated_at": "2026-08-10T18:12:11.412Z",
+      "approved_by": null,
+      "approved_at": null,
+      "declined_by": null,
+      "declined_at": null,
+      "decision_reason": null,
+      "settled_at": null,
+      "failure_message": null
+    }
+  ]
+}

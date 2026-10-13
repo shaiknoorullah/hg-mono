@@ -3,10 +3,11 @@
 // data are exercised identically either way).
 import { chromium } from 'playwright';
 import { execSync } from 'node:child_process';
+import { requireEnv } from './env.mjs';
 
 const APP = process.env.APP_URL ?? 'http://localhost:5175';
-const EMAIL = 'admin@demo.hg';
-const PASSWORD = 'Admin@1234';
+const EMAIL = requireEnv('SEED_EMAIL');
+const PASSWORD = requireEnv('SEED_PASSWORD');
 const RESTAURANT_ID = process.env.RESTAURANT_ID ?? '01a05317-dfaa-75ff-a234-cb904d7bad7b';
 
 function reseedAndTotp() {

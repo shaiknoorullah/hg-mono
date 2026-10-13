@@ -85,6 +85,21 @@ func TestUpdateCartLineRejectsZeroQuantity(t *testing.T) {
 	}
 }
 
+// TestAddCartLineRefusesBothVariantFields: the deprecated variant_id is read as
+// a one-element variant_ids, so sending both is ambiguous and is 422 before the
+// store is reached (https://github.com/shaiknoorullah/hg-mono/issues/628).
+func TestAddCartLineRefusesBothVariantFields(t *testing.T) {
+	h := NewHandler(nil, nil, slog.Default())
+	id := "0190f3c4-1111-7000-8000-000000000001"
+	body := `{"menu_item_id":"` + id + `","quantity":1,"variant_id":"` + id + `","variant_ids":["` + id + `"]}`
+	req := httptest.NewRequest(http.MethodPost, "/v1/cart/lines", strings.NewReader(body))
+	rec := httptest.NewRecorder()
+	h.AddCartLine(rec, req)
+	if rec.Code != http.StatusUnprocessableEntity || !strings.Contains(rec.Body.String(), `"field":"variant_id"`) {
+		t.Fatalf("status = %d, want 422 naming variant_id (body: %s)", rec.Code, rec.Body.String())
+	}
+}
+
 func TestDecodeStrictAcceptsValid(t *testing.T) {
 	var in quoteInputDTO
 	dec := json.NewDecoder(bytes.NewReader([]byte(`{"cart_id":"c","fulfilment":"PICKUP","tip_cents":300}`)))

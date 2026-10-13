@@ -1,0 +1,6 @@
+hg_standby_dir: /srv/hg-standby
+# The production Postgres image (Postgres 17, PostGIS 3.5 and pgBackRest; built in CI, #78),
+# by digest. The replica must run exactly the same one.
+hg_postgres_image: ""
+hg_standby_slot: standby1
+hg_primary_host: "{{ groups['prod'][0] }}"

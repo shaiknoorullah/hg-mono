@@ -7,6 +7,13 @@
  * verifyOtp) can depend on it without a cycle.
  */
 let accessToken: string | null = null;
+let refreshToken: string | null = null;
+let epoch = 0;
+
+/** Bumped on every sign-in/out, so an in-flight refresh can tell its session was replaced. */
+export function getEpoch(): number {
+  return epoch;
+}
 const listeners = new Set<() => void>();
 
 /** The api-client `getToken` hook: the current bearer, or `null` when signed out. */
@@ -14,8 +21,21 @@ export function getToken(): string | null {
   return accessToken;
 }
 
-export function setToken(token: string | null): void {
+/** The native refresh token from sign-in (memory only; expo-secure-store is not a dependency). */
+export function getRefreshToken(): string | null {
+  return refreshToken;
+}
+
+/** Store a rotated token pair without treating it as a sign-in/out event (no auth-gate flicker). */
+export function setTokens(access: string, refresh: string | null): void {
+  accessToken = access;
+  refreshToken = refresh;
+}
+
+export function setToken(token: string | null, refresh: string | null = null): void {
+  epoch += 1;
   accessToken = token;
+  refreshToken = token === null ? null : refresh;
   for (const fn of listeners) fn();
 }
 

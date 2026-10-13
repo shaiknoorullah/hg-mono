@@ -9,7 +9,7 @@
  *
  * Loading, empty (application not found) and error states are all real and driven by `useLoad`.
  */
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import type { Schema } from '@hg/api-client';
 import {
@@ -21,12 +21,16 @@ import {
   EmptyState,
   ErrorState,
   Icon,
+  ConfirmDialog,
   Skeleton,
+  useToast,
   type DataTableColumn,
 } from '@hg/ui-web';
 
 import { api } from '../lib/api.js';
-import { unwrap, useLoad } from '../lib/load.js';
+import { unwrap, useLoad, toAsyncError } from '../lib/load.js';
+import { newIdempotencyKey } from '../lib/idempotency.js';
+import { DocumentReviewActions } from '../components/DocumentReviewActions.js';
 
 type Application = Schema['RestaurantApplication'];
 type KycDocument = Schema['KycDocument'];
@@ -58,7 +62,8 @@ const DOC_STATE_TONE: Partial<Record<string, 'warning' | 'neutral'>> = {
   SUPERSEDED: 'neutral',
 };
 
-const DOC_COLUMNS: readonly DataTableColumn<KycDocument>[] = [
+function docColumns(onReviewed: () => void): readonly DataTableColumn<KycDocument>[] {
+  return [
   {
     key: 'doc_type',
     header: 'Document',
@@ -91,7 +96,38 @@ const DOC_COLUMNS: readonly DataTableColumn<KycDocument>[] = [
     contentClass: 'date',
     cell: (row) => formatDate(row.reviewed_at),
   },
-];
+  {
+    key: 'review',
+    header: 'Review',
+    contentClass: 'text',
+    cell: (row) => (
+      <DocumentReviewActions
+        kind="restaurant"
+        documentId={row.id}
+        state={row.state}
+        label={docTypeLabel(row.doc_type)}
+        onReviewed={onReviewed}
+      />
+    ),
+  },
+  ];
+}
+
+const APPROVE_REASONS = [
+  { value: 'ALL_CHECKS_PASSED', label: 'All checks passed' },
+  { value: 'APPROVED_WITH_NOTES', label: 'Approved with notes' },
+] as const;
+
+const REJECT_REASONS = [
+  { value: 'HALAL_CERTIFICATION_INVALID', label: 'Halal certification invalid' },
+  { value: 'DOCUMENTS_INSUFFICIENT', label: 'Documents insufficient' },
+  { value: 'IDENTITY_UNVERIFIED', label: 'Identity unverified' },
+  { value: 'OUTSIDE_SERVICE_AREA', label: 'Outside service area' },
+  { value: 'PROHIBITED_CUISINE_OR_PRODUCT', label: 'Prohibited cuisine or product' },
+  { value: 'SUSPECTED_FRAUD', label: 'Suspected fraud' },
+  { value: 'DUPLICATE_APPLICATION', label: 'Duplicate application' },
+  { value: 'OTHER', label: 'Other' },
+] as const;
 
 function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -144,7 +180,11 @@ export function ApplicationDetailScreen() {
       ) : null}
 
       {status === 'ready' && data ? (
-        <ApplicationBody application={data} onOpenVerification={(certId) => navigate(`/certificates/${certId}`)} />
+        <ApplicationBody
+          application={data}
+          onOpenVerification={(certId) => navigate(`/certificates/${certId}`)}
+          onChanged={reload}
+        />
       ) : null}
     </section>
   );
@@ -153,10 +193,32 @@ export function ApplicationDetailScreen() {
 function ApplicationBody({
   application,
   onOpenVerification,
+  onChanged,
 }: {
   application: Application;
   onOpenVerification: (certificateId: string) => void;
+  onChanged: () => void;
 }) {
+  const { restaurantId = '' } = useParams();
+  const toast = useToast();
+  const [approveOpen, setApproveOpen] = useState(false);
+  const [rejectOpen, setRejectOpen] = useState(false);
+  const decide = async (body: Schema['RestaurantDecisionInput'], title: string) => {
+    try {
+      await unwrap(
+        api.POST('/v1/admin/restaurant-applications/{restaurantId}/decision', {
+          params: { path: { restaurantId }, header: { 'Idempotency-Key': newIdempotencyKey() } },
+          body,
+        }),
+      );
+    } catch (err) {
+      toast.show({ variant: 'danger', title: 'Decision failed', description: toAsyncError(err).message });
+      throw err;
+    }
+    toast.show({ variant: 'success', title });
+    onChanged();
+  };
+
   const { profile, documents, halal_certificate: cert, blockers } = application;
   const address = profile?.address;
 
@@ -222,7 +284,7 @@ function ApplicationBody({
           id="application-documents"
           caption="Required documents for this application"
           entityPlural="documents"
-          columns={DOC_COLUMNS}
+          columns={docColumns(onChanged)}
           rows={documents ?? []}
           getRowId={(row) => row.id}
           getRowLabel={(row) => docTypeLabel(row.doc_type)}
@@ -264,6 +326,61 @@ function ApplicationBody({
           />
         )}
       </Card>
+
+      {application.onboarding_state === 'DOCUMENTS_REVIEW' ? (
+        <div className="adm-form-actions">
+          <Button variant="primary" iconStart={<Icon name="check" size={18} weight="bold" />} onPress={() => setApproveOpen(true)}>
+            Approve application
+          </Button>
+          <Button variant="secondary" iconStart={<Icon name="close" size={18} />} onPress={() => setRejectOpen(true)}>
+            Reject application
+          </Button>
+        </div>
+      ) : null}
+
+      <ConfirmDialog
+        open={approveOpen}
+        onOpenChange={setApproveOpen}
+        title="Approve restaurant application"
+        description="Approval does not make the restaurant live. The reason is sent to the restaurant."
+        confirmLabel="Approve application"
+        reasonCodes={APPROVE_REASONS}
+        noteLabel="Message to the restaurant"
+        noteMinLength={10}
+        noteRequired
+        onConfirm={async ({ reasonCode, note }) => {
+          await decide(
+            {
+              decision: 'APPROVE',
+              reason_code: (reasonCode ?? 'ALL_CHECKS_PASSED') as Schema['RestaurantApplicationApproveInput']['reason_code'],
+              reason_text: note ?? '',
+            },
+            'Application approved',
+          );
+        }}
+      />
+      <ConfirmDialog
+        open={rejectOpen}
+        onOpenChange={setRejectOpen}
+        title="Reject restaurant application"
+        description="Rejection is final for this application. The reason is sent to the restaurant."
+        confirmLabel="Reject application"
+        destructive
+        reasonCodes={REJECT_REASONS}
+        noteLabel="Message to the restaurant"
+        noteMinLength={10}
+        noteRequired
+        onConfirm={async ({ reasonCode, note }) => {
+          await decide(
+            {
+              decision: 'REJECT',
+              reason_code: (reasonCode ?? 'OTHER') as Schema['RestaurantApplicationRejectInput']['reason_code'],
+              reason_text: note ?? '',
+            },
+            'Application rejected',
+          );
+        }}
+      />
     </>
   );
 }

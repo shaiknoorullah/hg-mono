@@ -1,0 +1,21 @@
+{
+  "scenario": "error_register_restaurant_rate_limited",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`429` · `RATE_LIMITED` from `registerRestaurant`: more than 5 restaurant sign-ups from one client address in an hour (docs/spec/03-restaurant.md, \"R-01 — Restaurant account signup\"). Checked before the password is hashed, so nothing was created; the response carries `Retry-After` in seconds.",
+  "operations": [
+    "registerRestaurant"
+  ],
+  "status": 429,
+  "tags": [
+    "error-envelope",
+    "error-path"
+  ],
+  "payload": {
+    "error": {
+      "code": "RATE_LIMITED",
+      "message": "Too many sign-ups from this network. Please wait before trying again.",
+      "request_id": "V11T01YHA7WY3BYRHARK3MSFCJ"
+    }
+  }
+}

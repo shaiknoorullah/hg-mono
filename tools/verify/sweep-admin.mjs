@@ -3,19 +3,12 @@
 // row-activation fix, mouse + keyboard) -> System dashboard (proves the CORS/guard fix) ->
 // a nav screenshot (proves SideNav + Icon + Plus Jakarta Sans are live app-wide).
 import { chromium } from 'playwright';
-import { execSync } from 'node:child_process';
+import { requireEnv, totpNow as totp } from './env.mjs';
 
 const APP = process.env.APP_URL ?? 'http://localhost:5175';
-const EMAIL = process.env.SEED_EMAIL ?? 'dev-admin@halalgoes.test';
-const PASSWORD = process.env.SEED_PASSWORD ?? 'DevAdmin!2026';
+const EMAIL = requireEnv('SEED_EMAIL');
+const PASSWORD = requireEnv('SEED_PASSWORD');
 const OUT = 'tools/verify';
-
-function totp() {
-  return execSync(
-    'SECRET=$(cat /tmp/hg-admin-totp-secret.txt) go run ./cmd/totpnow',
-    { cwd: '/home/devsupreme/work/hg-mono/.claude/worktrees/wf_35632bc9-df9-3/services/hg', shell: '/bin/bash' },
-  ).toString().trim();
-}
 
 const consoleErrors = [];
 const pageErrors = [];

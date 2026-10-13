@@ -1,0 +1,39 @@
+hg_aide_time: "*-*-* 05:30:00 UTC"
+# Paths that change all the time or are data, not system files.
+hg_aide_excludes:
+  - /var/lib/docker
+  - /var/lib/containerd
+  - /var/lib/prometheus
+  - /var/lib/aide
+  - /var/log
+  - /var/cache
+  - /var/spool
+  - /var/lib/apt
+  - /var/lib/dpkg
+  - /var/lib/systemd
+  - /var/lib/snapd
+  - /var/lib/fail2ban
+  - /var/lib/logrotate
+  - /var/lib/ubuntu-advantage
+  - /var/lib/cloud
+  - /var/lib/private
+  - /var/lib/chrony
+  - /var/lib/fwupd
+  - /var/lib/polkit-1
+  - /var/lib/PackageKit
+  - /var/lib/command-not-found
+  - /var/lib/update-notifier
+  - /var/lib/ucf
+  - /var/lib/man-db
+  - /var/lib/sudo
+  - /var/lib/pam
+  - /var/lib/shells.state
+  - /srv
+  - /swapfile
+  - /root/.cache
+  - /home/.*/\.cache
+  - /etc/mtab
+  - /etc/resolv.conf
+  - /etc/machine-id
+  - /etc/audit/audit.rules
+  - /etc/hg-ops

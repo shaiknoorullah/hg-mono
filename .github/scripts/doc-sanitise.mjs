@@ -278,7 +278,7 @@ function fileIssues(findings) {
       '',
       HELP[f.check],
       '',
-      'Check: `.github/workflows/doc-sanitise.yml` (issue #121).',
+      'Check: the doc-sanitise steps of `.github/workflows/docs.yml` (issue #121).',
     ].filter((l) => l !== null).join('\n');
     execFileSync('gh', ['issue', 'create', '--title', title, '--body', body, '--label', 'chore'], { stdio: 'inherit' });
     opened++;

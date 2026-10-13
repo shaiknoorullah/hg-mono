@@ -1,0 +1,17 @@
+hg_dev_enabled: true
+# The hg images dev runs, pulled by digest from GHCR once #78 builds them. Dev may run a
+# newer build than production. Empty: the API is not started, the data services are.
+hg_dev_api_image: ""
+hg_dev_migrate_image: ""
+
+# Hard limits for everything dev runs (a systemd slice): dev can never starve production.
+# Under contention dev also gets a fifth of production's share of CPU and disk time.
+hg_dev_memory_max: 1536M
+hg_dev_cpu_quota: 150%
+hg_dev_cpu_weight: 20
+
+hg_dev_hosts:
+  api: "api.dev.{{ hg_domain }}"
+  files: "files.dev.{{ hg_domain }}"
+  admin: "admin.dev.{{ hg_domain }}"
+  restaurant: "restaurant.dev.{{ hg_domain }}"

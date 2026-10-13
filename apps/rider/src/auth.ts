@@ -6,7 +6,8 @@
  * with this surface (`rider-app`) at the call site, exactly as the operation requires.
  */
 import { api } from './api';
-import { setToken } from './token';
+import { registerForPush, unregisterForPush } from './push';
+import { getToken, setToken } from './token';
 
 /** Request a phone OTP challenge. Returns the challenge_id to pass to verifyOtp. */
 export async function requestOtp(phone: string): Promise<string> {
@@ -35,9 +36,12 @@ export async function verifyOtp(challengeId: string, code: string): Promise<void
       `OTP verification failed (${response.status})`;
     throw new Error(message);
   }
-  setToken(data.data.access_token);
+  setToken(data.data.access_token, data.data.refresh_token ?? null);
+  // Not awaited: push is never a gate on sign-in (src/push.ts).
+  void registerForPush();
 }
 
 export function logout(): void {
+  unregisterForPush(getToken());
   setToken(null);
 }

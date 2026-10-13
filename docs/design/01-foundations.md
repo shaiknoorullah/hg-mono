@@ -7,7 +7,7 @@ covers:
   - packages/ui-web/src/styles/**
   - packages/ui-web/src/lint/**
   - packages/ui-native/src/lint/**
-reviewed: 2026-10-04
+reviewed: 2026-10-05
 ---
 
 # HalalGoes — Design Foundations (token system)
@@ -414,6 +414,8 @@ tokens.json  (W3C DTCG, single source)
         └─ packages/tokens/tokens.d.ts            → literal union types for token names
 ```
 
+On the web, `packages/ui-web/scripts/generate-tokens.mjs` writes the generated files into `packages/ui-web/src/tokens/`. One of them is `grid-theme.css` (`@hg/ui-web/grid-theme.css`): the theme for LyteNyte Grid, the data-table library the admin console uses. It points every `--ln-*` variable LyteNyte's `grid.css` reads at a role, never a ramp step or a hex, so the grid follows light and dark like everything else. LyteNyte's own themes are never loaded. The generator stops if the theme names a custom property `tokens.css` does not declare ([#145](https://github.com/shaiknoorullah/hg-mono/issues/145), [the LyteNyte theming notes](research/lytenyte-tables.md#8-theming-our-tokens-on-lytenyte)).
+
 **Lint rules.** All seven are specified to block CI. **Only rule 4, no green solids, is implemented today** (Sep 2026). The other six are specification only; the contrast checker that rule 6 needs (`contrast.check.mjs`) does not exist yet.
 
 1. **L-1 no raw colour.** No hex, `rgb()`, `hsl()` or named colour literal in any `apps/**` file. Only token references.
@@ -462,5 +464,5 @@ All three share one `tokens.json`. A surface never defines a colour; it selects 
 ## 13. Open questions for the client
 
 1. **Brand hex.** `#FFC220` is derived, not sampled (§1.2). If the client can supply the HungerStation brand book or a licensed brand kit, replace `color.brand.500` and re-run §8. Nothing else in the system depends on the exact value — the accessible pairings are all against `text.onBrand`.
-2. **HalalGoes has its own wordmark.** This document specifies no logo. A yellow-and-green mark that includes a seal motif would let the badge and the logo reinforce each other; that is a brand-design engagement, not a token decision.
+2. **HalalGoes has its own wordmark.** *Answered:* the owner approved the supplied script wordmark. It has no green and no seal motif, so it never competes with the halal badge; the rules are in Claude Design's [wordmark and app icon guideline](https://claude.ai/artifact/1GwGVZz8Ju9wcz4HfCnzbv) and the geometry is in [`@hg/brand`](../../packages/brand/README.md).
 3. **Density preference on the restaurant tablet.** `compact` assumes a 10" tablet at arm's length in a kitchen. If the deployment is a phone, the queue needs `comfortable` and a two-column layout instead of four.

@@ -1,0 +1,24 @@
+# Run first by offline.yml: the key this machine pulls with. The server authorises it next.
+- name: Create root's SSH folder
+  ansible.builtin.file:
+    path: /root/.ssh
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+
+- name: Create this machine's pull key
+  ansible.builtin.command: ssh-keygen -q -t ed25519 -N "" -C "hg-pull@{{ inventory_hostname }}" -f /root/.ssh/hg-pull
+  args:
+    creates: /root/.ssh/hg-pull
+
+- name: Read the pull key's public half
+  ansible.builtin.slurp:
+    src: /root/.ssh/hg-pull.pub
+  register: hg_offline_pubkey
+  when: not ansible_check_mode
+
+- name: Remember it for the server
+  ansible.builtin.set_fact:
+    hg_offline_pull_ssh_key: "{{ hg_offline_pubkey.content | b64decode | trim }}"
+  when: not ansible_check_mode

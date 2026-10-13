@@ -1,0 +1,40 @@
+- name: Install Lynis
+  ansible.builtin.apt:
+    name: lynis
+    state: present
+
+- name: Create the report folder
+  ansible.builtin.file:
+    path: /var/log/lynis
+    state: directory
+    owner: root
+    group: root
+    mode: "0750"
+
+- name: Install the weekly run
+  ansible.builtin.copy:
+    src: hg-lynis
+    dest: /usr/local/sbin/hg-lynis
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Install its service and timer
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "/etc/systemd/system/{{ item }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop: [hg-lynis.service, hg-lynis.timer]
+  notify: Reload systemd
+
+- name: Apply systemd changes
+  ansible.builtin.meta: flush_handlers
+
+- name: Enable the weekly timer
+  ansible.builtin.systemd_service:
+    name: hg-lynis.timer
+    enabled: true
+    state: started
+  ignore_errors: "{{ ansible_check_mode }}"
