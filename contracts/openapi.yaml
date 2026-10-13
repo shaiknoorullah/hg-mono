@@ -2240,7 +2240,8 @@ paths:
           description: |
             `QUOTE_STALE` (with `details.quote`), `QUOTE_EXPIRED`,
             `CART_HAS_UNAVAILABLE_ITEMS`, `ACTIVE_ORDER_EXISTS`, `RESTAURANT_UNAVAILABLE`,
-            `IDEMPOTENCY_KEY_REUSE`, `IDEMPOTENCY_IN_PROGRESS`, `ORDERING_PAUSED`.
+            `RESTAURANT_CLOSED` (outside its hours, paused, not accepting orders, or its order
+            screen offline), `IDEMPOTENCY_KEY_REUSE`, `IDEMPOTENCY_IN_PROGRESS`, `ORDERING_PAUSED`.
           content:
             application/json:
               schema:
@@ -11530,19 +11531,27 @@ components:
               type: boolean
         blocking_reason:
           type: [string, 'null']
+          description: 'While the application is sent back or rejected, the reason text the admin wrote, verbatim. Null otherwise.'
         review_cycle:
           type: integer
           format: int32
         rejection:
+          description: 'Present only while `onboarding_state` is `DOCUMENTS_REJECTED`; null otherwise.'
           oneOf:
             - type: object
               additionalProperties: false
-              required: [documents]
+              required: [decision, documents]
               properties:
+                decision:
+                  type: string
+                  enum: [REQUEST_CHANGES, REJECT]
+                  description: '`REQUEST_CHANGES` means fix the listed documents and resubmit. `REJECT` means the application was declined, not sent back: no documents are listed to fix, and clients offer no resubmission. The server does not yet refuse a resubmission after `REJECT` (https://github.com/shaiknoorullah/hg-mono/issues/802).'
                 reason_code:
                   type: [string, 'null']
+                  description: 'The `RestaurantRejectApplicationReasonCode` the admin chose.'
                 note:
                   type: [string, 'null']
+                  description: 'The reason text the admin wrote, sent verbatim. Never the internal note.'
                 documents:
                   type: array
                   items:

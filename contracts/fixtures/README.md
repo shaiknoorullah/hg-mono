@@ -72,7 +72,7 @@ falling through, so a typo is visible immediately.
 
 ## Scenarios by domain
 
-**530 scenarios** across 16 domains.
+**531 scenarios** across 16 domains.
 
 | Domain | Scenarios | What it covers |
 |---|---:|---|
@@ -85,7 +85,7 @@ falling through, so a typo is visible immediately.
 | [`geo`](#geo) | 11 | Address search through our API to Mapbox — suggestions, a picked place, a map pin, and the no-match and provider-down paths. |
 | [`halal`](#halal) | 25 | Badges, certificates, checks and issuing bodies — the platform's core promise. |
 | [`handoff`](#handoff) | 13 | The package-seal chain of custody (later version: seals are not used at launch) — every `PackageSeal` status, `HandoffEvent` type, and the bind/pickup-scan/delivery-scan/tamper-report results. |
-| [`onboarding`](#onboarding) | 47 | Restaurant and rider onboarding, profiles, vehicles and trading state. |
+| [`onboarding`](#onboarding) | 48 | Restaurant and rider onboarding, profiles, vehicles and trading state. |
 | [`orders`](#orders) | 55 | The 14 `OrderState` values, per-audience projections, tracking and receipts. |
 | [`payments`](#payments) | 12 | The 8 `PaymentState` values, saved cards and setup intents. |
 | [`platform`](#platform) | 31 | Auth, config, addresses, notifications, Connect and health. |
@@ -460,12 +460,13 @@ The package-seal chain of custody (later version: seals are not used at launch) 
 
 ### onboarding
 
-Restaurant and rider onboarding, profiles, vehicles and trading state. — 47 scenarios.
+Restaurant and rider onboarding, profiles, vehicles and trading state. — 48 scenarios.
 
 | Scenario | Schema | Status | Represents |
 |---|---|---:|---|
 | `restaurant_heartbeat` | `RestaurantHeartbeat` | 200 | The tablet's liveness ping response. |
 | `restaurant_onboarding_active` | `RestaurantOnboardingStatus` | 200 | `onboarding_state = ACTIVE`. Live and trading. Terminal, happy. |
+| `restaurant_onboarding_application_rejected` | `RestaurantOnboardingStatus` | 200 | `onboarding_state = DOCUMENTS_REJECTED` after a `REJECT` decision (`rejection.decision = REJECT`). Unlike a request for changes no documents are listed to fix and the screen offers no resubmission; the owner is shown the reason and who to contact. |
 | `restaurant_onboarding_documents_approved` | `RestaurantOnboardingStatus` | 200 | `onboarding_state = DOCUMENTS_APPROVED`. Documents cleared; Stripe Connect is next. |
 | `restaurant_onboarding_documents_pending` | `RestaurantOnboardingStatus` | 200 | `onboarding_state = DOCUMENTS_PENDING`. Profile accepted; the five-document pack is outstanding. |
 | `restaurant_onboarding_documents_rejected` | `RestaurantOnboardingStatus` | 200 | `onboarding_state = DOCUMENTS_REJECTED`. **At least one document was rejected with a reason.** The applicant must resubmit exactly the failed documents. |
@@ -747,7 +748,7 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | `error-path` | 70 | The unhappy branch a client must handle. |
 | `edge` | 68 | A shape that breaks naive layouts — empty, overflowing, at a boundary. |
 | `state-matrix` | 67 | One fixture per member of a closed enum. |
-| `restaurant` | 61 | Restaurant-facing surface. |
+| `restaurant` | 62 | Restaurant-facing surface. |
 | `money` | 33 | Exercises the money path specifically. |
 | `platform` | 31 | Cross-cutting platform surface. |
 | `halal` | 30 | Touches the halal claim surface. |
@@ -878,7 +879,7 @@ Filter with `GET /__mock/scenarios?tag=edge`.
 | `getRestaurantCertification` | `certification_panel_certified` | `certification_panel_expired`, `certification_panel_expiring_soon`, `certification_panel_unverified` |
 | `getRestaurantHours` | `restaurant_hours_standard` | — |
 | `getRestaurantMenu` | `menu_full` | `menu_empty`, `menu_single_item` |
-| `getRestaurantOnboardingStatus` | `restaurant_onboarding_active` | `restaurant_onboarding_documents_approved`, `restaurant_onboarding_documents_pending`, `restaurant_onboarding_documents_rejected`, `restaurant_onboarding_documents_review`, `restaurant_onboarding_email_verified`, `restaurant_onboarding_menu_pending`, `restaurant_onboarding_payout_pending`, `restaurant_onboarding_profile_pending`, `restaurant_onboarding_registered`, `restaurant_onboarding_withdrawn` |
+| `getRestaurantOnboardingStatus` | `restaurant_onboarding_active` | `restaurant_onboarding_application_rejected`, `restaurant_onboarding_documents_approved`, `restaurant_onboarding_documents_pending`, `restaurant_onboarding_documents_rejected`, `restaurant_onboarding_documents_review`, `restaurant_onboarding_email_verified`, `restaurant_onboarding_menu_pending`, `restaurant_onboarding_payout_pending`, `restaurant_onboarding_profile_pending`, `restaurant_onboarding_registered`, `restaurant_onboarding_withdrawn` |
 | `getRestaurantOrder` | `restaurant_order_preparing` | `restaurant_order_picked_up`, `restaurant_order_pickup_code_locked`, `restaurant_order_ready_for_pickup`, `restaurant_order_rejected`, `restaurant_order_restaurant_pending` |
 | `getRestaurantProfile` | `restaurant_profile` | `restaurant_profile_account_banned`, `restaurant_profile_account_closed`, `restaurant_profile_account_deactivated`, `restaurant_profile_account_delisted`, `restaurant_profile_account_live`, `restaurant_profile_account_pending`, `restaurant_profile_account_suspended`, `restaurant_profile_halal_certified`, `restaurant_profile_halal_expired`, `restaurant_profile_halal_expiring_soon`, `restaurant_profile_halal_missing`, `restaurant_profile_halal_unverified` |
 | `getRiderApplication` | `rider_application_pending_review` | `rider_application_approved`, `rider_application_changes_requested` |

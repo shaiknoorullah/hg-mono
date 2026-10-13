@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"crypto/subtle"
 	"encoding/json"
 	"errors"
 	"io"
@@ -555,12 +556,17 @@ func (h *Handler) LogoutAll(w http.ResponseWriter, r *http.Request) {
 			"Authentication is required.", nil)
 		return
 	}
-	if err := h.store.RevokeAllForAccount(r.Context(), p.AccountID, "logout_all"); err != nil {
+	revoked, err := h.store.RevokeAllForAccount(r.Context(), p.AccountID, "logout_all")
+	if err != nil {
 		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError,
 			"The server failed to process this request.", nil)
 		return
 	}
-	h.deny.AddAccount(p.AccountID)
+	// The revoked sessions, not the account: signing in again right after
+	// must work at once (#748, #752).
+	for _, sid := range revoked {
+		h.deny.AddSession(sid)
+	}
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -672,7 +678,10 @@ func (h *Handler) Me(w http.ResponseWriter, r *http.Request) {
 
 // writeSessionGrant renders a SessionGrant and, for web surfaces, sets the hg_rt
 // refresh cookie (HttpOnly; Secure; SameSite=Lax; Path=/v1/auth) plus the
-// hg_csrf double-submit cookie (P-04 transport).
+// hg_csrf double-submit cookie (P-04 transport). hg_csrf is Path=/ on the
+// configured parent Domain, so a web app on a sibling host can read it from
+// document.cookie and send it back as X-HG-CSRF; on the API host alone at
+// Path=/v1/auth no app could, and no web session could refresh (#740).
 func (h *Handler) writeSessionGrant(w http.ResponseWriter, r *http.Request, issued *issuedSession, status int) {
 	if issued.client.isWeb() {
 		idle, _ := refreshTTL(nil) // conservative Max-Age; the token's own expiry is authoritative
@@ -690,7 +699,8 @@ func (h *Handler) writeSessionGrant(w http.ResponseWriter, r *http.Request, issu
 			http.SetCookie(w, &http.Cookie{
 				Name:     "hg_csrf",
 				Value:    csrf,
-				Path:     "/v1/auth",
+				Path:     "/",
+				Domain:   h.secrets.CSRFCookieDomain,
 				HttpOnly: false,
 				Secure:   h.secrets.RefreshCookieSecure,
 				SameSite: http.SameSiteLaxMode,
@@ -719,11 +729,18 @@ func (h *Handler) refreshTokenFrom(r *http.Request) string {
 	// Web: hg_rt cookie, gated by the CSRF double-submit.
 	if c, err := r.Cookie("hg_rt"); err == nil && c.Value != "" {
 		csrfHeader := strings.TrimSpace(r.Header.Get("X-HG-CSRF"))
-		csrfCookie, cerr := r.Cookie("hg_csrf")
-		if csrfHeader == "" || cerr != nil || csrfCookie.Value == "" || csrfHeader != csrfCookie.Value {
+		if csrfHeader == "" {
 			return ""
 		}
-		return c.Value
+		// Any hg_csrf the browser sent may match: one set before #740 at
+		// Path=/v1/auth can still sit beside the Path=/ one until it expires.
+		for _, cc := range r.Cookies() {
+			if cc.Name == "hg_csrf" && cc.Value != "" &&
+				subtle.ConstantTimeCompare([]byte(cc.Value), []byte(csrfHeader)) == 1 {
+				return c.Value
+			}
+		}
+		return ""
 	}
 	return ""
 }

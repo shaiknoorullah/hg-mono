@@ -4,7 +4,7 @@ covers:
   - services/hg/internal/devworld/**
   - services/hg/migrations/devworld/**
   - docs/playbooks/**
-reviewed: 2026-10-10
+reviewed: 2026-10-13
 ---
 
 # Dev world coverage map
@@ -69,7 +69,7 @@ The fixed code works only for `+15550100100` to `+15550100199` and only when `HG
 | [C-11](spec/02-customer.md#c-11--filters-and-sort-advanced-filters) | Advanced filters and sort | — | Not in V1 | — |
 | [C-12](spec/02-customer.md#c-12--halal-certification-display-and-verification--critical) | See the halal badge and the certification panel | `amina`: Bismillah Grill is certified, Bamyan Kebab House (`expiring-halal`) is expiring; `expired-halal` and the onboarding restaurants are never listed. The certificate file does not open | Partial | [#686](https://github.com/shaiknoorullah/hg-mono/issues/686) |
 | [C-13](spec/02-customer.md#c-13--restaurant-detail-page) | Restaurant page | `amina`, any catalogue restaurant | Covered | — |
-| [C-14](spec/02-customer.md#c-14--restaurant-availability--serviceability-gating) | Closed, paused or out-of-range restaurant | `amina`: Galata Pide & Grill (`paused`), `padma-river-kitchen` (no hours on the reset day), the ordering pause in the admin console. No saved address is out of range | Partial | [#681](https://github.com/shaiknoorullah/hg-mono/issues/681) |
+| [C-14](spec/02-customer.md#c-14--restaurant-availability--serviceability-gating) | Closed, paused or out-of-range restaurant | `amina`: Galata Pide & Grill (`paused`), `padma-river-kitchen` (no hours on the reset day), the ordering pause in the admin console. The catalogue test checks that every catalogue restaurant closed by its hours refuses a cart line. No saved address is out of range | Partial | [#681](https://github.com/shaiknoorullah/hg-mono/issues/681) |
 | [C-15](spec/02-customer.md#c-15--food-item-detail) | Dish detail | `amina`, any catalogue dish | Covered | — |
 | [C-16](spec/02-customer.md#c-16--variant-and-add-on-selection) | Choose a size and add-ons | `amina`: catalogue dishes with a size group, required and optional add-ons, and sold-out options | Covered | — |
 | [C-17](spec/02-customer.md#c-17--favourite-restaurants) | Favourite restaurants | — | Not in V1 | — |

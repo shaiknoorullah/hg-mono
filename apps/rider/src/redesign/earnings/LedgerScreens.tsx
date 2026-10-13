@@ -51,6 +51,7 @@ import {
   savedAtLabel,
 } from './format';
 import type { LineFrom } from './routes';
+import { LINE_DELIVERY } from '../history/copy';
 
 /* =========================================================================== R36 Activity */
 
@@ -165,6 +166,7 @@ const LINE_BACK: Record<LineFrom, string> = {
   payout: 'Payout',
   earnings: 'Earnings',
   payouts: 'Payouts',
+  delivery: 'Delivery',
 };
 
 function explainLines(e: EarningEntry): string[] {
@@ -280,6 +282,18 @@ export function LineScreen({ params }: ScreenProps<'earningsLine'>): React.React
           <Body testID="line-no-payout">{noPayoutText(e)}</Body>
         )}
       </View>
+
+      {/* WP11: the job this line pays (EA/EntryDetail "Delivery details"); off when opened from that job. */}
+      {e.assignment_id && (e.type === 'DELIVERY' || e.type === 'TIP') && params.from !== 'delivery' ? (
+        <LinkRow
+          title={LINE_DELIVERY.title}
+          sub={LINE_DELIVERY.sub}
+          onPress={() =>
+            nav.push('delivery', e.type === 'TIP' ? { assignmentId: e.assignment_id!, from: 'tip' } : { assignmentId: e.assignment_id!, from: 'entry', entry: e })
+          }
+          testID="line-delivery"
+        />
+      ) : null}
     </Frame>
   );
 }
