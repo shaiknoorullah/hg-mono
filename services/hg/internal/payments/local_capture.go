@@ -27,7 +27,7 @@ func (s *Service) WithLocalCaptureLedger() *Service {
 // recordLocalCapture applies a captured intent as its succeeded event would.
 func (s *Service) recordLocalCapture(ctx context.Context, pi *StripeIntent) error {
 	return s.repo.tx(ctx, func(tx pgx.Tx) error {
-		eff, err := s.assertIntentState(ctx, tx, pi.ID, StateSucceeded, pi.AmountReceivedCents, s.now(), nil)
+		eff, err := s.assertIntentState(ctx, tx, pi.ID, StateSucceeded, stripeAmounts{Received: pi.AmountReceivedCents}, s.now(), nil)
 		if err != nil {
 			return err
 		}

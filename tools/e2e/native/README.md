@@ -67,6 +67,8 @@ explore: "Optional free-form instructions for the lab agent to explore and scree
 | `airplane` | `on`, `off` |
 | `camera-media` | A file in `media/`, pushed to `/sdcard/Pictures` for the photo library |
 
+Reality steps run once, in order, before the flows. A change in the middle of a flow (airplane mode for one tap, a GPS jump) belongs in the flow itself, for example Maestro `setAirplaneMode`; free-text notes for the lab go in `explore`.
+
 **Flows** are one or more Maestro files under `tools/e2e/native/<app>/redesign/` (never the legacy
 flows, never `missions/`). They target `com.halalgoes.<app>.dev`.
 

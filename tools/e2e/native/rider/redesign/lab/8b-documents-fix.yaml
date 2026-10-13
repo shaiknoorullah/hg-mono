@@ -1,0 +1,75 @@
+# Rider redesign WP8: Fix documents (R12) and the resend, against devworld. rider-rejected
+# (+1 555 010 0153, DOCUMENTS_REJECTED: a government ID turned down as ILLEGIBLE) signs in → the
+# gate opens the application → the server's next_step hands over to Fix ("Fix 1 document") →
+# Take a new photo (camera, typed expiry) → the card becomes Added → Send for review again →
+# Review.
+#
+# Built with EXPO_PUBLIC_HG_REDESIGN=1 and a cleared Metro cache (see 0-shell.yaml).
+# Env: PHONE_DIGITS (rider-rejected's ten digits; dev codes for +1 555 010 01xx are always 000000).
+appId: com.halalgoes.rider.dev
+name: rider redesign, fix documents
+env:
+  PHONE_DIGITS: "5550100153"
+---
+- launchApp:
+    clearState: true
+    permissions:
+      all: allow
+- extendedWaitUntil:
+    visible: "Sign in or apply to ride"
+    timeout: 90000
+- tapOn:
+    id: "phone-field"
+- inputText: ${PHONE_DIGITS}
+- hideKeyboard
+- tapOn: "Send code"
+- extendedWaitUntil:
+    visible: "Enter your code"
+    timeout: 30000
+- tapOn:
+    id: "code-cell-0"
+- inputText: "000000"
+
+# R12 Fix: one card per turned-down document, its remedy the footer primary; no Send yet.
+- extendedWaitUntil:
+    visible: "Fix [0-9]+ documents?"
+    timeout: 60000
+- assertVisible: "Government ID"
+- assertVisible: "New upload needed"
+- assertNotVisible: "Send for review again"
+- takeScreenshot: rider-wp8b-01-fix
+- tapOn:
+    id: "fix-primary"
+- extendedWaitUntil:
+    visible: "Fit the whole ID inside the frame"
+    timeout: 30000
+- tapOn:
+    id: "capture-take"
+- extendedWaitUntil:
+    visible: "Use this photo"
+    timeout: 20000
+- tapOn:
+    id: "expiry-day-field"
+- inputText: "03"
+- tapOn:
+    id: "expiry-month-field"
+- inputText: "08"
+- tapOn:
+    id: "expiry-year-field"
+- inputText: "2030"
+- hideKeyboard
+- tapOn:
+    id: "capture-use"
+
+# The new photo lands: the card becomes Added and Send for review again appears.
+- extendedWaitUntil:
+    visible: "Send for review again"
+    timeout: 60000
+- assertVisible: "Only the new ID will be checked."
+- takeScreenshot: rider-wp8b-02-fix-ready
+- tapOn:
+    id: "fix-send"
+- extendedWaitUntil:
+    visible: "(Your documents are sent|We're checking your documents)"
+    timeout: 30000
+- takeScreenshot: rider-wp8b-03-review-after-resend

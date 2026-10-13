@@ -23,6 +23,9 @@ function checks(overrides: Partial<Record<Schema['HalalCheckKey'], Partial<Check
     check_key: key,
     result: 'PASS',
     overridable: key !== 'H5_DATES_VALID' && key !== 'H7_UNIQUE_NOT_REUSED',
+    // Recorded, as the server returns a decided check; H5/H7 carry the server's own evaluation.
+    checked_at: '2026-10-01T12:00:00Z',
+    ...(key === 'H5_DATES_VALID' || key === 'H7_UNIQUE_NOT_REUSED' ? { computed_result: 'PASS' as const } : {}),
     ...overrides[key],
   }));
 }

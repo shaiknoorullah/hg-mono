@@ -53,6 +53,10 @@ var uncoveredReasons = map[string]string{
 	// alone does not have (https://github.com/shaiknoorullah/hg-mono/issues/377).
 	"getDependencyStatus": "needs Redis and the object store",
 	"getReadiness":        "needs Redis and the object store",
+	// The handover-code contract (#290) lands before the backend that serves it:
+	// the handler and its conformance tests are #315
+	// (https://github.com/shaiknoorullah/hg-mono/pull/315).
+	"overrideHandoverCode": "no handler yet: the backend lands in #315",
 }
 
 // coveredOperationsRelPath is where COVERAGE.md lands (next to this source).

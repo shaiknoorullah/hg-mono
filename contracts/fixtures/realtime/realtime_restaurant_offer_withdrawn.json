@@ -1,0 +1,59 @@
+{
+  "scenario": "realtime_restaurant_offer_withdrawn",
+  "domain": "realtime",
+  "schema": "RealtimeEvent[]",
+  "describes": "The customer cancels while the offer is ringing: `restaurant.order_offer_withdrawn {reason: customer_cancelled}` at 8 s. The tile leaves; nothing is prepared.",
+  "operations": [],
+  "status": 200,
+  "tags": [
+    "realtime",
+    "script",
+    "restaurant",
+    "error-path"
+  ],
+  "payload": [
+    {
+      "id": "GJDAE2RQD8716KF5AWWTETZFM5",
+      "seq": 1,
+      "channel": "restaurant:a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+      "type": "restaurant.order_offered",
+      "v": 1,
+      "ts": "2026-08-10T18:42:11.412Z",
+      "data": {
+        "order_id": "bee84871-8c40-47d3-ad99-2d0880ff42cb",
+        "code": "HG-B3Q9-7T",
+        "expires_at": "2026-08-10T18:45:11.412Z",
+        "deadline_at": "2026-08-10T18:45:11.412Z",
+        "customer_first_name": "Bilal",
+        "lines": [
+          {
+            "name": "Beef Nihari",
+            "variant": "Full",
+            "addons": [],
+            "qty": 1,
+            "note": "Extra gravy on the side"
+          }
+        ],
+        "subtotal_cents": 1899,
+        "total_cents": 2671,
+        "currency": "CAD",
+        "prep_eta_suggestion_min": 25,
+        "fulfilment": "DELIVERY"
+      },
+      "_delay_ms": 0
+    },
+    {
+      "id": "CBWGTTQEK79SXJTJRWJV5BV637",
+      "seq": 2,
+      "channel": "restaurant:a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+      "type": "restaurant.order_offer_withdrawn",
+      "v": 1,
+      "ts": "2026-08-10T18:42:19.412Z",
+      "data": {
+        "order_id": "bee84871-8c40-47d3-ad99-2d0880ff42cb",
+        "reason": "customer_cancelled"
+      },
+      "_delay_ms": 8000
+    }
+  ]
+}

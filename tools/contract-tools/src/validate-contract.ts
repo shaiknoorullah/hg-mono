@@ -183,6 +183,44 @@ function main(): number {
     });
   }
 
+  // ------------------------------------------- handover codes never reach a rider
+  // The pickup and delivery codes are proof of presence that the rider types in, so no
+  // response of an operation a rider can call (RIDER or PUBLIC) may carry one, however deep
+  // the $ref chain. Security review on #183:
+  // https://github.com/shaiknoorullah/hg-mono/issues/183 — contracts/README.md,
+  // "Neither code can be bypassed".
+  const HANDOVER_CODE_FIELDS = new Set(['pickup_code', 'delivery_code', 'otp_code']);
+  const resolveRef = (ref: string): unknown =>
+    ref
+      .slice(2)
+      .split('/')
+      .reduce((cursor: any, part) => cursor?.[part.replace(/~1/g, '/').replace(/~0/g, '~')], spec);
+  for (const [route, methods] of Object.entries(spec.paths ?? {})) {
+    for (const [method, op] of Object.entries(methods as Record<string, any>)) {
+      if (!HTTP_METHODS.includes(method)) continue;
+      const roles: string[] = op['x-roles'] ?? [];
+      if (!roles.includes('RIDER') && !roles.includes('PUBLIC')) continue;
+      const followed = new Set<string>();
+      const visit = (node: unknown, path: string): void => {
+        walk(node, path, (n, p) => {
+          for (const prop of Object.keys(n.properties ?? {})) {
+            if (HANDOVER_CODE_FIELDS.has(prop)) {
+              fail(
+                `${method.toUpperCase()} ${route} (${op.operationId}) is callable by a rider, and ` +
+                  `its response reaches \`${prop}\` at ${p}: a handover code must never reach a rider`,
+              );
+            }
+          }
+          if (typeof n.$ref === 'string' && n.$ref.startsWith('#/') && !followed.has(n.$ref)) {
+            followed.add(n.$ref);
+            visit(resolveRef(n.$ref), n.$ref);
+          }
+        });
+      };
+      visit(op.responses ?? {}, `${method.toUpperCase()} ${route} responses`);
+    }
+  }
+
   // ------------------------------------------------- YAML 1.1 truthy landmines
   // `ON` unquoted in a flow sequence is boolean `true` to every YAML 1.1 parser (PyYAML,
   // libyaml, Go's gopkg.in/yaml.v2) while YAML 1.2 reads it as the string "ON". Ontario is

@@ -1,0 +1,34 @@
+id: rider-wp6-cant-deliver
+app: rider
+avd: hg_rider
+api: devworld
+build:
+  env: { EXPO_PUBLIC_HG_REDESIGN: "1" }
+  note: "Clear the Metro cache when building (EXPO_PUBLIC_* is inlined at transform time). The pickup code is only checked once contract #290 and backend #315 merge; before that any 4 digits pass."
+setup:
+  - "make dev-reset"
+  - "make dev-journey route=short auto=restaurant manual=rider"
+reality:
+  # The GPS rides from Bismillah Grill to Amina's door; the flow rides it back with `travel`.
+  - geo-route: tools/e2e/native/routes/restaurant-to-amina.gpx
+  - network: edge
+  - theme: dark
+  - font-scale: 1.3
+flows: [ "tools/e2e/native/rider/redesign/lab/6b-cant-deliver.yaml" ]
+explore: >
+  Set PICKUP_CODE as for rider-wp4-pickup. The flow drops the connection itself (setAirplaneMode)
+  for the "I've returned it" tap. Check the API log afterwards: UNDELIVERABLE, then RETURNING,
+  then RETURNED, each once, RETURNED with the original occurred_at of the offline tap. Then, on
+  fresh journeys, screenshot each state:
+  (1) Can't deliver on the way (before "I'm here"): Something's wrong, then I can't deliver this
+  order: "Can't get this order to <customer>? You can take it back to the restaurant." with only
+  "Return it to the restaurant" and "Keep going"; Keep going sends nothing.
+  (2) Airplane mode on just before "Return it to the restaurant": the return leg opens with "Not
+  sent yet" and "Can't deliver · <time>"; airplane off and both steps replay in order.
+  (3) A customer who asked for LEAVE_AT_DOOR (devworld seed missing): at the door "Leave it at the
+  door with a photo and a statement" is the primary and opens the photo-and-statement proof;
+  Back returns to the Can't deliver sheet.
+  (4) Location permission denied (`deny-permission: location` before launching): every step still
+  sends without a position; nothing strands the rider.
+  (5) Something's wrong on the way back: 911, HalalGoes support, the restaurant only, "Back to
+  the return". Font scale 2.0 and light theme: every label wraps, nothing clipped.
