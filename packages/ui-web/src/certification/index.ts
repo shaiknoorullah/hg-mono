@@ -34,6 +34,7 @@ export {
   OVERRIDE_NOTE_MIN_LENGTH,
   SERVER_COMPUTED_CHECK_KEYS,
   isOverride,
+  isCheckRecorded,
   isServerComputedCheck,
   isValidOverrideNote,
   openApprovalGate,

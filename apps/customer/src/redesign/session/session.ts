@@ -14,7 +14,7 @@
 import * as React from 'react';
 
 import { isAuthed, subscribe as subscribeToken } from '../../api/token';
-import type { Route } from '../navigation/routes';
+import type { Route, TabKey } from '../navigation/routes';
 
 /**
  * `signin`: no session. `verifying`: a code is being checked and the sign-in screen will route
@@ -33,6 +33,11 @@ export interface Welcome {
 export interface SessionState {
   phase: SessionPhase;
   landing: Route;
+  /**
+   * The tab whose stack the landing opens on, when not its own. Signing in with an order on the
+   * way lands on tracking above Home, so Back goes to Home (`SI/SignedIn-tracking`).
+   */
+  landingTab: TabKey | null;
   welcome: Welcome | null;
   signedOut: SignedOutNote | null;
 }
@@ -40,7 +45,7 @@ export interface SessionState {
 const HOME: Route = { name: 'home' };
 
 function initial(): SessionState {
-  return { phase: isAuthed() ? 'app' : 'signin', landing: HOME, welcome: null, signedOut: null };
+  return { phase: isAuthed() ? 'app' : 'signin', landing: HOME, landingTab: null, welcome: null, signedOut: null };
 }
 
 let state: SessionState = initial();
@@ -53,9 +58,9 @@ function set(next: Partial<SessionState>): void {
 
 subscribeToken(() => {
   if (!isAuthed()) {
-    if (state.phase !== 'signin') set({ phase: 'signin', landing: HOME, welcome: null });
+    if (state.phase !== 'signin') set({ phase: 'signin', landing: HOME, landingTab: null, welcome: null });
   } else if (state.phase === 'signin') {
-    set({ phase: 'app', landing: HOME });
+    set({ phase: 'app', landing: HOME, landingTab: null });
   }
 });
 
@@ -83,8 +88,8 @@ export function cancelVerify(): void {
 }
 
 /** Into the tabs on `landing` (`next_route` HOME or ORDER_TRACKING). */
-export function enterApp(landing: Route = HOME, welcome: Welcome | null = null): void {
-  set({ phase: 'app', landing, welcome, signedOut: null });
+export function enterApp(landing: Route = HOME, welcome: Welcome | null = null, landingTab: TabKey | null = null): void {
+  set({ phase: 'app', landing, landingTab, welcome, signedOut: null });
 }
 
 /** Signed in with no name yet: "Your details" first. */
@@ -94,7 +99,7 @@ export function enterProfileCapture(): void {
 
 /** Details saved: the address step when there is no default address, else Home. */
 export function finishProfileCapture(hasDefaultAddress: boolean): void {
-  set({ phase: 'app', landing: hasDefaultAddress ? HOME : { name: 'addressStep' }, welcome: null });
+  set({ phase: 'app', landing: hasDefaultAddress ? HOME : { name: 'addressStep' }, landingTab: null, welcome: null });
 }
 
 export function noteSignedOut(note: SignedOutNote): void {

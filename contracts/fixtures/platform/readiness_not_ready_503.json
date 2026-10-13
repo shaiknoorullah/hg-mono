@@ -1,0 +1,35 @@
+{
+  "scenario": "readiness_not_ready_503",
+  "domain": "platform",
+  "schema": "ReadinessStatus",
+  "describes": "`/health/ready` with Valkey unreachable: `503`, `ready: false`, the failing dependency named with its error. `services/hg` sends this `ReadinessStatus` body with the 503 (the status and the body always agree); the contract's 503 says error envelope, so a client reads `ready` from either.",
+  "operations": [
+    "getReadiness"
+  ],
+  "status": 503,
+  "tags": [
+    "platform",
+    "error-path",
+    "degraded"
+  ],
+  "payload": {
+    "ready": false,
+    "dependencies": [
+      {
+        "name": "postgres",
+        "ready": true,
+        "detail": null
+      },
+      {
+        "name": "redis",
+        "ready": false,
+        "detail": "dial tcp 10.0.1.12:6379: connect: connection refused"
+      },
+      {
+        "name": "minio",
+        "ready": true,
+        "detail": null
+      }
+    ]
+  }
+}

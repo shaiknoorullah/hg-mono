@@ -5,7 +5,6 @@
   "describes": "Sent to Stripe, awaiting acknowledgement.",
   "operations": [
     "getRefund",
-    "listRefunds",
     "createRefund",
     "issueRefund"
   ],

@@ -1,0 +1,25 @@
+{
+  "scenario": "error_geocode_rate_limited",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`429` · `RATE_LIMITED`. One account went over an address search limit: more than 60 suggestion requests in a minute (rate class `GEO_SUGGEST`, burst 20, which one search typed a key at a time stays under), or more than 30 place or pin lookups in a minute for one operation (rate class `GEO`, burst 10). Nothing was sent to the provider. The client stops searching as the user types until `Retry-After` passes, and the manual form still works.",
+  "operations": [
+    "suggestAddresses",
+    "getPlaceAddress",
+    "reverseGeocode"
+  ],
+  "status": 429,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "RATE_LIMITED",
+      "message": "Too many address searches. Try again in 20 seconds.",
+      "request_id": "5VS2RQV2VNPN3205BTGFY62K6P",
+      "details": {
+        "retry_after_seconds": 20
+      }
+    }
+  }
+}

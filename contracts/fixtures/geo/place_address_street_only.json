@@ -1,0 +1,26 @@
+{
+  "scenario": "place_address_street_only",
+  "domain": "geo",
+  "schema": "GeocodedAddress",
+  "describes": "A whole street with no number: `line1` is the street and `postal_code` is null, because a street spans many. The form asks for the number and postal code.",
+  "operations": [
+    "getPlaceAddress"
+  ],
+  "status": 200,
+  "tags": [
+    "geo",
+    "edge"
+  ],
+  "payload": {
+    "kind": "STREET",
+    "name": null,
+    "line1": "Harbour Street",
+    "city": "Toronto",
+    "province": "ON",
+    "postal_code": null,
+    "country": "CA",
+    "latitude": 43.6416,
+    "longitude": -79.3793,
+    "formatted": "Harbour Street, Toronto, Ontario"
+  }
+}

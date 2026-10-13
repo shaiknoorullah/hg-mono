@@ -67,6 +67,9 @@ export type {
 } from './Halal';
 export { HALAL_VISIBLE_LABEL, HALAL_ACCESSIBLE_LABEL } from '../certification';
 
+export { Countdown } from './Countdown';
+export type { CountdownProps, CountdownPhase } from './Countdown';
+
 export { StatusTimeline, ORDER_STATES, ORDER_STATE_LABELS, resolveTimeline } from './StatusTimeline';
 export type { StatusTimelineProps, OrderState, StepState } from './StatusTimeline';
 

@@ -164,6 +164,13 @@ reject "a declined refund that does not say who declined it and why is rejected"
            'PLATFORM_ERROR', 100, 'DECLINED', '11111111-1111-4111-8111-111111111111');"
 zero_rows "no live order lacks a deadline" "SELECT * FROM order_without_deadline"
 zero_rows "no live dispatch lacks a deadline" "SELECT * FROM dispatch_without_deadline"
+reject "an outage outcome without its outage is rejected" "deadline_audit_outage_tagged" \
+  "INSERT INTO deadline_audit (subject_type, subject_id, action, escalation_no, outcome)
+   VALUES ('order','88888888-8888-4888-8888-888888888888','RESTAURANT_TIMEOUT',0,'OUTAGE_VOIDED');"
+reject "two outage windows cannot cover the same moment" "deadline_outage_no_overlap" \
+  "INSERT INTO deadline_outage (gap_start, gap_end, detected_by)
+   VALUES (now()-interval '10 minutes', now()-interval '5 minutes', 'a'),
+          (now()-interval '6 minutes', now(), 'b');"
 
 echo
 echo "4. Double-entry ledger"
@@ -291,6 +298,9 @@ reject "H5 and H7 are not overridable" "halal_check_hard_computed_flags" \
        overridable, checked_by, checked_at)
      VALUES ('ee000000-0000-4000-8000-000000000013','H5_DATES_VALID','PASS','FAIL',true,
              '11111111-1111-4111-8111-111111111111',now());"
+reject "a deleted issuing body cannot stay ACCEPTED, so ACCEPTED means accepted now" \
+  "halal_issuing_body_deleted_not_accepted" \
+  "UPDATE halal_issuing_body SET deleted_at = now() WHERE status = 'ACCEPTED';"
 n_rows "the three accepted issuing bodies are seeded" "3" \
   "SELECT 1 FROM halal_issuing_body WHERE status='ACCEPTED'"
 zero_rows "no restaurant shows a halal badge (certified or expiring soon) without a live certificate" \
@@ -334,6 +344,46 @@ reject "a line total that is not unit x quantity is rejected" "order_line_identi
      base_price_cents, variant_part_cents, addons_part_cents, line_unit_cents, line_total_cents, tax_category)
    VALUES ('88888888-8888-4888-8888-888888888888',9,'55555555-5555-4555-8555-555555555555',
      'Bad Line',2,1500,1500,0,1500,1,'PREPARED_FOOD');"
+# A line's variant part is its variants' money: the ABSOLUTE price (else the
+# base) plus the DELTAs (00069, https://github.com/shaiknoorullah/hg-mono/issues/628).
+reject "a variant part its variants do not add up to is rejected" "order_line_variant_part_mismatch" \
+  "INSERT INTO order_line (order_id, line_no, menu_item_id, name_snapshot, quantity,
+     base_price_cents, variant_part_cents, addons_part_cents, line_unit_cents, line_total_cents, tax_category)
+   VALUES ('88888888-8888-4888-8888-888888888888',9,'55555555-5555-4555-8555-555555555555',
+     'Bad Line',1,1500,1800,0,1800,1800,'PREPARED_FOOD');"
+# The two ABSOLUTE groups sit on two dishes: one dish cannot hold both (00070,
+# below), so this proves the line's own index, not the menu's.
+reject "a line with two ABSOLUTE variants is rejected" "quote_line_variant_one_absolute" \
+  "INSERT INTO menu_item (id, restaurant_id, category_id, price_cents, tax_category) VALUES
+     ('ff000000-0000-4000-8000-0000000000d1','33333333-3333-4333-8333-333333333333',
+      '44444444-4444-4444-8444-444444444444',1500,'PREPARED_FOOD');
+   INSERT INTO variant_group (id, menu_item_id, name) VALUES
+     ('ff000000-0000-4000-8000-0000000000a1','55555555-5555-4555-8555-555555555555','Size'),
+     ('ff000000-0000-4000-8000-0000000000a2','ff000000-0000-4000-8000-0000000000d1','Box');
+   INSERT INTO variant (id, variant_group_id, name, pricing_mode, price_cents) VALUES
+     ('ff000000-0000-4000-8000-0000000000b1','ff000000-0000-4000-8000-0000000000a1','Large','ABSOLUTE',2000),
+     ('ff000000-0000-4000-8000-0000000000b2','ff000000-0000-4000-8000-0000000000a2','Gift','ABSOLUTE',2500);
+   INSERT INTO quote_line_variant (quote_id, line_no, variant_id, variant_group_id, group_name, variant_name,
+     pricing_mode, price_cents, sort_no) VALUES
+     ('77777777-7777-4777-8777-777777777777',1,'ff000000-0000-4000-8000-0000000000b1','ff000000-0000-4000-8000-0000000000a1','Size','Large','ABSOLUTE',2000,1),
+     ('77777777-7777-4777-8777-777777777777',1,'ff000000-0000-4000-8000-0000000000b2','ff000000-0000-4000-8000-0000000000a2','Box','Gift','ABSOLUTE',2500,2);"
+# A dish has at most one variant group that sets its full price (an ABSOLUTE
+# variant); the others are DELTA add-on amounts (00070, owner decision 2026-10-09).
+accept "a dish with one ABSOLUTE group and one DELTA group is accepted" \
+  "INSERT INTO variant_group (id, menu_item_id, name) VALUES
+     ('ff000000-0000-4000-8000-0000000000e1','55555555-5555-4555-8555-555555555555','Size'),
+     ('ff000000-0000-4000-8000-0000000000e2','55555555-5555-4555-8555-555555555555','Rice');
+   INSERT INTO variant (variant_group_id, name, pricing_mode, price_cents, delta_cents) VALUES
+     ('ff000000-0000-4000-8000-0000000000e1','Large','ABSOLUTE',2000,NULL),
+     ('ff000000-0000-4000-8000-0000000000e2','Biryani','DELTA',NULL,350);
+   ROLLBACK; BEGIN;"
+reject "a dish with two ABSOLUTE groups is rejected" "variant_group_one_full_price" \
+  "INSERT INTO variant_group (id, menu_item_id, name) VALUES
+     ('ff000000-0000-4000-8000-0000000000e1','55555555-5555-4555-8555-555555555555','Size'),
+     ('ff000000-0000-4000-8000-0000000000e2','55555555-5555-4555-8555-555555555555','Box');
+   INSERT INTO variant (variant_group_id, name, pricing_mode, price_cents) VALUES
+     ('ff000000-0000-4000-8000-0000000000e1','Large','ABSOLUTE',2000),
+     ('ff000000-0000-4000-8000-0000000000e2','Gift','ABSOLUTE',2500);"
 reject "a receipt snapshot cannot be rewritten" "receipt_snapshot_is_immutable" \
   "UPDATE \"order\" SET receipt_snapshot = '{\"v\":1}' WHERE id='88888888-8888-4888-8888-888888888888';
    UPDATE \"order\" SET receipt_snapshot = '{\"v\":2}' WHERE id='88888888-8888-4888-8888-888888888888';"

@@ -209,7 +209,7 @@ func TestPickupIsIdempotent(t *testing.T) {
 		svc, orderID, riders, assignmentID := counterFixture(t, pool, orders.NewStore(pool, emitter), 1, "READY_FOR_PICKUP", "PICKUP_OVERDUE")
 		for i := 0; i < 2; i++ {
 			if _, err := svc.Transition(context.Background(), riders[0], assignmentID, TransitionInput{
-				ToState: "PICKED_UP", OccurredAt: time.Now().UTC(),
+				ToState: "PICKED_UP", PickupCode: pickupCodeFor("PICKED_UP"), OccurredAt: time.Now().UTC(),
 			}); err != nil {
 				t.Fatalf("PICKED_UP #%d: %v", i+1, err)
 			}
