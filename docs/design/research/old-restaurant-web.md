@@ -16,6 +16,15 @@ reviewed: 2026-10-11
 > `src/redesign/strip/`. The Live orders board (In progress list, order panel, Mark ready and the
 > pickup code), the service status bar and the halal banners are in `src/redesign/orders/` and
 > `src/redesign/status/`.
+>
+> **2026-10-10 (WP9, Hours):** `/hours` is now the redesigned screen in the flag-on build
+> (`src/redesign/hours/`). It answers the [Settings and profile](#8-settings-and-profile) section's "single interval" finding: each day is Closed or up to
+> 3 ranges, a closing time earlier than the opening time runs past midnight (`crosses_midnight`),
+> and special dates (closed, other hours, 24 hours) sit beside the week, each saved on its own.
+> The "Automatic scheduling" switch is not offered: the Right now card says "Outside your opening
+> hours" and explains why switching New orders on does not open you, as that section recommends. The
+> accepting-orders control also lives on this page (the Right now card), beside the status bar's
+> on every screen; both read and write the same availability.
 
 > **2026-10-05:** the new app adds what the old one never had — a live "rider approaching" map on
 > accepted orders, drawn from the coarse realtime position
