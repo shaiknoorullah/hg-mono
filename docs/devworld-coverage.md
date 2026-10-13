@@ -39,7 +39,7 @@ Commands run from `services/hg`, against a local stack (`make up`, `make migrate
 | `rider-sim-2` | `+15550100155`, code `000000`, offline | rider app; the second rider of the offer scenarios |
 | Restaurant personas and catalogue owners | `<slug>@seed.hg`, password `Seed!2026` | restaurant console, `http://localhost:5183` |
 | `admin-seed` | `admin-seed@seed.hg`, `Seed!2026`, and the code from `make dev-totp` | admin console |
-| `support-seed` | cannot sign in yet ([#677](https://github.com/shaiknoorullah/hg-mono/issues/677)) | admin console |
+| `support-seed`, `ops-admin` | `support-seed@seed.hg` (support agent) and `ops-admin@seed.hg` (admin), `Seed!2026`, and the code from `make dev-totp email=<address>` | admin console |
 
 The fixed code works only for `+15550100100` to `+15550100199` and only when `HG_ENV` is `local` or `staging` ([scenario sign-in](superpowers/specs/2026-09-28-devworld-harness-design.md#64-scenario-sign-in)). The admin code needs `HG_APP_DATA_KEY` set before `make dev-reset`.
 
@@ -184,7 +184,7 @@ The fixed code works only for `+15550100100` to `+15550100199` and only when `HG
 | Feature | Journey | How to reach it | Status | Gap |
 |---|---|---|---|---|
 | [A-01](spec/05-admin.md#a-01--staff-account-provisioning) | Invite a staff member | In the console as `admin-seed`; or the invitation-to-sign-in scenario `onboard-admin` | Covered | — |
-| [A-02](spec/05-admin.md#a-02--role-based-access-control-model) | Roles: what each staff role may do | Only `admin-seed` can sign in; `support-seed` has no authenticator, and no plain admin exists | Partial | [#677](https://github.com/shaiknoorullah/hg-mono/issues/677) |
+| [A-02](spec/05-admin.md#a-02--role-based-access-control-model) | Roles: what each staff role may do | `admin-seed`, `ops-admin` (admin) and `support-seed` (support agent) all sign in with a code; a support agent gets `403` on `POST /v1/admin/payout-runs` | Covered | — |
 | [A-03](spec/05-admin.md#a-03--staff-authentication-mfa-and-session-policy) | Staff sign-in with a code | `admin-seed`, `make dev-totp`; or `make dev-admin` | Covered | — |
 | [A-04](spec/05-admin.md#a-04--audit-log-append-only-hash-chained) | Audit trail is written | Every admin scenario writes rows; read them in the database | Covered | — |
 | [A-05](spec/05-admin.md#a-05--audit-log-viewer-and-export) | Read and export the audit trail | No operation yet | Missing | [#327](https://github.com/shaiknoorullah/hg-mono/issues/327) |
