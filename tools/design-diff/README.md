@@ -99,7 +99,8 @@ an app, or `--app`. `--map pairs.json` adds screenshots named otherwise:
 every capture, then per capture its verdict, numbers, findings, the designers' notes and the side
 by side, embedded at a reduced size (the full-size images are linked). Boards whose notes say the
 drawing is not the approved design are flagged first, so nobody moves an app toward a drawing
-known to be wrong; the uploaded images missing offline are listed per area.
+known to be wrong; a board whose own script failed in the design runtime (its `errors` in the
+manifest) is flagged as not trustworthy; the uploaded images missing offline are listed per area.
 
 ## Phone captures
 
