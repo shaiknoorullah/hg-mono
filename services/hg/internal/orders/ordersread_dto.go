@@ -28,6 +28,8 @@ type orderTrackingDTO struct {
 	RiderLocation       *riderLocationDTO      `json:"rider_location"`
 	Rider               *riderPublicProfileDTO `json:"rider"`
 	Timeline            []orderTransitionDTO   `json:"timeline"`
+	// DeliveryCode: see OrderTracking.DeliveryCode. Null unless shown.
+	DeliveryCode *string `json:"delivery_code"`
 }
 
 type geoPointDTO struct {
@@ -175,6 +177,7 @@ func orderTrackingToDTO(ot *OrderTracking) orderTrackingDTO {
 		DispatchState:      ot.DispatchState,
 		RestaurantLocation: geoPointDTO{Latitude: ot.RestaurantLocation.Latitude, Longitude: ot.RestaurantLocation.Longitude},
 		Timeline:           make([]orderTransitionDTO, 0, len(ot.Timeline)),
+		DeliveryCode:       ot.DeliveryCode,
 		// rider_location and rider are always present in the JSON (null when absent).
 	}
 	if ot.DestinationLocation != nil {

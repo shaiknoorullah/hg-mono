@@ -1,7 +1,7 @@
 ---
 covers:
   - services/hg/migrations/**
-reviewed: 2026-10-11
+reviewed: 2026-10-13
 ---
 
 # HalalGoes — database schema
@@ -16,7 +16,7 @@ migrations/
   roles/roles.sql    the database roles; the superuser runs it before goose
   seed/              launch data — tax table, halal issuing bodies, fee config
   lint/schema_lint.sql   the money + geography lints, runnable standalone
-  test/              invariant tests: 136 assertions about what the DB refuses, and
+  test/              invariant tests: 139 assertions about what the DB refuses, and
                      fixtures.sql, the fixed-UUID rows the Go tests read (its restaurant
                      trades 24 hours a day; a test that orders refreshes its heartbeat)
   tools/             contract-enum generator and checker
@@ -26,7 +26,8 @@ migrations/
 `devworld/` is not a goose migration. `make migrate`, `make seed`, the reference
 loader, and a deploy never apply it. `make dev-reset` (or `go run ./cmd/devworld reset`
 from `services/hg`) is the only loader, and it refuses every environment other
-than local and every database that is not on this machine.
+than local and every database that is not on this machine. It loads
+`001_personas.sql` first, then every other file in `devworld/` in name order.
 
 ## Running
 
@@ -100,8 +101,10 @@ These are the invariants. Each is enforced by the schema, and each has a test in
 | 17 | A partner's bank payout is asked of Stripe at most once at a time per payout, so a retry can never pay a payout out to the bank twice ([#301](https://github.com/shaiknoorullah/hg-mono/issues/301)). A payout past its transfer names the transfer. | `payout_bank_attempt` (`00068`): every attempt is recorded before the Stripe call, `UNIQUE (payout_id, attempt)`, and the partial unique index `payout_bank_attempt_one_live` allows one attempt that has not `FAILED` per payout; `REVOKE DELETE, TRUNCATE` from `hg_app`. `payout_transferred_has_transfer` CHECK on `payout`. |
 | 18 | A cart, quote or order line carries one chosen variant per variant group, and a quote or order line's `variant_part_cents` is its variants' money: the `ABSOLUTE` variant's price (else the base price) plus every `DELTA` ([#628](https://github.com/shaiknoorullah/hg-mono/issues/628)). | `00069_line_variants.sql`: `cart_line_variant`, `quote_line_variant`, `order_line_variant`, each `UNIQUE` per line and group with a foreign key to a real `(variant, group)` pair; the partial unique indexes `*_line_variant_one_absolute` allow one `ABSOLUTE` variant per line; the deferred constraint triggers `quote_line_variant_part_balanced` and `order_line_variant_part_balanced` (and their `*_rows_balanced` twins) refuse at commit a line whose part its variants do not add up to. `cart_line.variant_id` is empty (`cart_line_variant_moved`). |
 | 19 | A dish has at most one variant group that sets its full price: a group with an `ABSOLUTE` variant. The others are `DELTA`, add-on amounts (owner decision, 2026-10-09). Two full-price groups give a dish no single price, so the menu is refused, not the customer's cart line. | `00070_one_full_price_group.sql`: `variant_group.sets_full_price`, derived by triggers from the group's live variants on every write (a value a writer sends is ignored), and the partial unique index `variant_group_one_full_price` on `menu_item_id` over live full-price groups. An index rather than a counting trigger, so two concurrent edits to two groups of one dish cannot both commit. The cart's `409 ITEM_UNAVAILABLE` (row 18) stays as a backstop. |
-| 20 | A ban needs two people, and an account's history of suspensions, reinstatements and bans is never rewritten ([#253](https://github.com/shaiknoorullah/hg-mono/issues/253)). | `00044`: a `BEFORE INSERT` trigger refuses a `CONFIRM_BAN` unless the account's latest row is a `PROPOSE_BAN` by somebody else less than 7 days old; CHECKs make `BANNED` reachable only by confirming a ban and hold each reason to its subject's vocabulary; `account_state_event` is append-only (trigger + `REVOKE`). |
-| 21 | An account's state changes only through its database writer, with that writer's gates, and leaves a history row ([#335](https://github.com/shaiknoorullah/hg-mono/pull/335) security reviews). | `00045`: `hg_app` has no UPDATE on `restaurant.account_state`/`delist_reasons`, `rider_profile.account_status` or `account.status`/`status_reason` (or the tables' keys), may INSERT those rows only in their default state, may DELETE none of them, and may not write `account_state_event` or `account_state_rule`. The only writers are owner-defined `SECURITY DEFINER` functions: `account_state_apply()` for a staff action (given the request's access token, which it hashes to find the live two-step session it was issued for; that session's account is the actor, and `hg_app` holds only token hashes and may not rewrite a session's account, sign-in method, expiry or hashes; the actor's grants read as they stand and carried by the token, the transition checked against `account_state_rule` (the same list as `accountstate.Transitions()` in Go), the own-account rule, no staff account treated as a rider or customer, the two-person ban by an independent super admin of longer standing, a restaurant's listing decided from its halal certificate; state, history and audit written together), and one function per system principal (onboarding, halal expiry, halal renewal, certifying body), which takes no actor or action. Every function pins `search_path` and names its tables; only the five writers are executable by `hg_app`. A listed restaurant carries no delisting reason (CHECK). A migration that adds a column to these tables calls `account_state_grant_app_columns()`. `00074`: `halal_refresh_restaurant_status()` (00049) no longer writes the listing itself; it calls the expiry and renewal writers, so the trigger on `halal_certificate` works as `hg_app`. `account_state_complete_rider_onboarding()` moves a `PENDING` rider to `ACTIVE`, and nothing else. |
+| 20 | A deadline action taken because the deadline fell during an outage says which outage, and outage windows never overlap. | `deadline_audit_outage_tagged` CHECK: an `OUTAGE_*` outcome requires `outage_id`, and `outage_id` requires an `OUTAGE_*` outcome. `deadline_outage_no_overlap` EXCLUDE on the `(gap_start, gap_end]` range, so two replicas that come back together record one window. `deadline_outage` and `deadline_runner_release` are append-only for `hg_app`. See [the outages paragraph of the deadlines spec](../../../docs/spec/01-platform.md#p-15--deadlines-and-timeout-actions-waits-forever-is-unrepresentable). |
+| 21 | A handover code — the 4-digit pickup code the kitchen reads to the rider, and the delivery code the customer reads at a met handover — takes at most five wrong tries, and a support override of a locked code is recorded once, with its reason, and never changed ([#310](https://github.com/shaiknoorullah/hg-mono/issues/310)). The codes are stored encrypted, never in plain text. | `00072_handover_codes`: `order_pickup_code_attempts_bounded` and `order_delivery_code_attempts_bounded` CHECKs (0 to 5) on `"order"`, backstopping the one conditional increment in `internal/handover`; `handover_override` with `handover_override_once` `UNIQUE (order_id, handover)`, `handover_override_state_matches`, a reason of 10 to 1000 characters and `actor_kind` `SUPPORT` or `ADMIN`; append-only by `REVOKE UPDATE, DELETE, TRUNCATE` from `hg_app` and a rejecting trigger. `HandoverCodeKind` maps to `handover_code_kind` in `tools/enum_map.py`. |
+| 22 | A ban needs two people, and an account's history of suspensions, reinstatements and bans is never rewritten ([#253](https://github.com/shaiknoorullah/hg-mono/issues/253)). | `00044`: a `BEFORE INSERT` trigger refuses a `CONFIRM_BAN` unless the account's latest row is a `PROPOSE_BAN` by somebody else less than 7 days old; CHECKs make `BANNED` reachable only by confirming a ban and hold each reason to its subject's vocabulary; `account_state_event` is append-only (trigger + `REVOKE`). |
+| 23 | An account's state changes only through its database writer, with that writer's gates, and leaves a history row ([#335](https://github.com/shaiknoorullah/hg-mono/pull/335) security reviews). | `00045`: `hg_app` has no UPDATE on `restaurant.account_state`/`delist_reasons`, `rider_profile.account_status` or `account.status`/`status_reason` (or the tables' keys), may INSERT those rows only in their default state, may DELETE none of them, and may not write `account_state_event` or `account_state_rule`. The only writers are owner-defined `SECURITY DEFINER` functions: `account_state_apply()` for a staff action (given the request's access token, which it hashes to find the live two-step session it was issued for; that session's account is the actor, and `hg_app` holds only token hashes and may not rewrite a session's account, sign-in method, expiry or hashes; the actor's grants read as they stand and carried by the token, the transition checked against `account_state_rule` (the same list as `accountstate.Transitions()` in Go), the own-account rule, no staff account treated as a rider or customer, the two-person ban by an independent super admin of longer standing, a restaurant's listing decided from its halal certificate; state, history and audit written together), and one function per system principal (onboarding, halal expiry, halal renewal, certifying body), which takes no actor or action. Every function pins `search_path` and names its tables; only the five writers are executable by `hg_app`. A listed restaurant carries no delisting reason (CHECK). A migration that adds a column to these tables calls `account_state_grant_app_columns()`. `00074`: `halal_refresh_restaurant_status()` (00049) no longer writes the listing itself; it calls the expiry and renewal writers, so the trigger on `halal_certificate` works as `hg_app`. `account_state_complete_rider_onboarding()` moves a `PENDING` rider to `ACTIVE`, and nothing else. |
 
 The two schema lints are also runnable on their own:
 
@@ -155,11 +158,11 @@ address search through Mapbox, is excluded as response-only: nothing stores it.
 
 ## Verification
 
-- **Applied**: `goose up` runs all 23 migrations against a real
+- **Applied**: `goose up` runs all 45 migrations against a real
   Postgres + PostGIS database. `goose reset` rolls all of them back with no
   leftovers, and `up` again succeeds.
 - **Seeded**: `seed/seed.sql` applies and is idempotent.
-- **Tested**: 136 invariant assertions pass (`test/run_invariant_tests.sh`).
+- **Tested**: 139 invariant assertions pass (`test/run_invariant_tests.sh`).
 - **Environment caveat**: Docker was not available, so this was verified
   against a locally installed **Postgres 16.13 with PostGIS 3.4.2**, not the
   spec's Postgres 17 + PostGIS 3.6. Nothing here uses a 17-only or 3.6-only

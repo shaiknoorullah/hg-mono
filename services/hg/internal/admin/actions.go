@@ -47,6 +47,10 @@ const (
 	// ActionOrderCancelSupport guards cancelOrderAdmin: staff can force-cancel via
 	// the support/admin path (machine transition T11).
 	ActionOrderCancelSupport httpx.Action = "order.cancel_support"
+	// ActionOrderHandoverOverride guards overrideHandoverCode: support or an
+	// admin confirms a pickup or a met handover whose code cannot be used — the
+	// only way past a handover code (https://github.com/shaiknoorullah/hg-mono/issues/310).
+	ActionOrderHandoverOverride httpx.Action = "order.handover_override"
 
 	// Account actions: suspend, reinstate, delist, deactivate or ban
 	// (https://github.com/shaiknoorullah/hg-mono/issues/253). Each route action

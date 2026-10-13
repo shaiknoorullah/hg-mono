@@ -50,8 +50,8 @@ type authorisationReleaser interface {
 // Errors an account action can end in, each mapped to one contract error code by
 // the handler.
 var (
-	// errIdempotencyKeyReuse: the same Idempotency-Key was sent with a different request.
-	errIdempotencyKeyReuse = errors.New("admin: idempotency key reused for a different account action")
+	// An Idempotency-Key sent again with a different request is
+	// errIdempotencyKeyReuse (store_handover.go); the handler answers it alike.
 	// errActOnOwnAccount: staff cannot act on their own account or their own restaurant.
 	errActOnOwnAccount = errors.New("admin: staff cannot act on their own account")
 	// errStaffAccount: staff accounts are managed through the staff operations.
@@ -802,13 +802,4 @@ func stringColumn(ctx context.Context, tx pgx.Tx, query string, args ...any) ([]
 		out = append(out, s)
 	}
 	return out, rows.Err()
-}
-
-func containsString(xs []string, x string) bool {
-	for _, v := range xs {
-		if v == x {
-			return true
-		}
-	}
-	return false
 }

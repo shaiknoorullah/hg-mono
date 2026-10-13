@@ -155,6 +155,7 @@ MAPPED_IN_MIGRATION = {
     "HandoffMethod":                      ("handoff_method", "00027_handoff.sql"),
     "AccountSubjectType":                 ("account_subject_type", "00044_account_state_actions.sql"),
     "AccountAction":                      ("account_action", "00044_account_state_actions.sql"),
+    "HandoverCodeKind":                   ("handover_code_kind", "00072_handover_codes.sql"),
     "PayoutRunKind":                      ("payout_run_kind", "00030_payout_run.sql"),
     "PayoutRunState":                     ("payout_run_state", "00030_payout_run.sql"),
     "PayoutRunOutcome":                   ("payout_run_outcome", "00030_payout_run.sql"),
@@ -290,11 +291,6 @@ EXCLUSIONS = {
     "HandoverOverride/properties/actor_kind":
         "Subset of order_actor_kind (SUPPORT, ADMIN); stored as order_actor_kind "
         "with a CHECK on handover_override.actor_kind.",
-    "HandoverCodeKind":
-        "Contract-only until the backend lands "
-        "(https://github.com/shaiknoorullah/hg-mono/pull/315): nothing stores it yet. "
-        "That PR adds handover_code_kind in its own migration and moves this entry "
-        "to MAPPED_IN_MIGRATION.",
     # Address search (https://github.com/shaiknoorullah/hg-mono/issues/179) is
     # forwarded to Mapbox and answered without touching the database.
     "GeoResultKind":
