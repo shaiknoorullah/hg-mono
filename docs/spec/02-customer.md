@@ -3,7 +3,7 @@ covers:
   - apps/customer/**
   - services/hg/internal/account/**
   - services/hg/internal/addresses/**
-reviewed: 2026-10-09
+reviewed: 2026-10-10
 ---
 
 # HalalGoes — CUSTOMER Domain Specification
@@ -433,6 +433,7 @@ The rules in this spec apply to both. With the flag on:
   4. `CLOSED_HOURS` cards show "Opens {time}" using `opens_at`; the restaurant remains browsable and its menu readable.
   5. Minimum order is compared against `item_total` **before** fees and discounts. Below minimum, checkout returns `409 BELOW_MINIMUM_ORDER` with `details.shortfall_cents`, and the cart screen shows "Add ${x} more to order".
   6. `NO_ADDRESS` never blocks browsing; it blocks add-to-cart with a prompt to add an address.
+  7. The delivery radius is enforced where the order is priced, not only on the card: `createQuote` and `createOrder` refuse a `DELIVERY` address farther than the restaurant's `delivery_radius_m` (the same rounded geodesic distance and `>` boundary the card uses for `OUT_OF_RANGE`) with `409 ADDRESS_OUT_OF_RANGE`, and nothing is stored ([#723](https://github.com/shaiknoorullah/hg-mono/issues/723)).
 - **Acceptance criteria**:
   1. Given a restaurant with hours 17:00–02:00 America/Toronto and a request at 01:30 local, then `state='OPEN'`.
   2. Given `is_accepting_orders=false` during opening hours, when the detail page renders, then the state is `PAUSED`, add controls are disabled, and the menu is still readable.
