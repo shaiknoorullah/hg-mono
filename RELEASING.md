@@ -51,6 +51,13 @@ and staff gates so a sign-up flood cannot lock admins out. A sign-up or login th
 replica's memory limit has room for another 64 MiB per step
 ([#216](https://github.com/shaiknoorullah/hg-mono/issues/216)).
 
+**Web session refresh.** Set `HG_AUTH_CSRF_COOKIE_DOMAIN=.halalgoes.com` in production
+(`deploy/.env`). The API then sets the `hg_csrf` cookie on that parent domain with `Path=/`, so the
+restaurant and admin web apps on their own hosts can read it and refresh a session after a reload or
+after 15 minutes; empty (the default) sets it on the API host only, which is right only when the app
+and the API share a host. The refresh cookie `hg_rt` stays `HttpOnly` on the API host at
+`Path=/v1/auth` ([#740](https://github.com/shaiknoorullah/hg-mono/issues/740)).
+
 **Mapbox tokens** (create at https://account.mapbox.com/access-tokens):
 - Make **public tokens** (`pk.…`) with **public scopes only** (STYLES:TILES, STYLES:READ,
   FONTS:READ, DATASETS:READ, VISION:READ) — **no secret scopes**.

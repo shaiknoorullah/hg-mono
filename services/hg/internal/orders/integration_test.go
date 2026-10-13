@@ -112,6 +112,9 @@ func seedBasics(t *testing.T, pool *pgxpool.Pool) basics {
 	// order path refuses a restaurant the platform cannot vouch for.
 	// https://github.com/shaiknoorullah/hg-mono/issues/292
 	testseed.CertifyRestaurant(t, pool, b.restaurantID, 300)
+	// Open now: hours and a fresh order screen (open_now.go).
+	// https://github.com/shaiknoorullah/hg-mono/issues/648
+	testseed.OpenRestaurant(t, pool, b.restaurantID)
 	return b
 }
 
@@ -385,12 +388,11 @@ func TestIntegrationExpiredQuoteRejected(t *testing.T) {
 	}
 }
 
-func TestIntegrationDeadlineRunnerExpiresCreatedOrder(t *testing.T) {
-	pool := testPool(t)
-	st := NewStore(pool)
+// placeCreatedOrder puts one item in a cart, quotes it and places the order,
+// which waits in CREATED for its payment.
+func placeCreatedOrder(t *testing.T, st *Store, b basics) *PreparedOrder {
+	t.Helper()
 	ctx := context.Background()
-	b := seedBasics(t, pool)
-
 	cart, _ := st.AddCartLine(ctx, b.accountID, b.restaurantID, CartLineInput{MenuItemID: b.menuItemID, Quantity: 1}, false)
 	q, _ := st.CreateQuote(ctx, QuoteRequest{AccountID: b.accountID, CartID: cart.ID, DeliveryAddressID: &b.addressID, Fulfilment: "DELIVERY"})
 	var fresh *Quote
@@ -398,6 +400,16 @@ func TestIntegrationDeadlineRunnerExpiresCreatedOrder(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create order: %v", err)
 	}
+	return prepared
+}
+
+func TestIntegrationDeadlineRunnerExpiresCreatedOrder(t *testing.T) {
+	pool := testPool(t)
+	st := NewStore(pool)
+	ctx := context.Background()
+	b := seedBasics(t, pool)
+
+	prepared := placeCreatedOrder(t, st, b)
 	// Force the CREATED deadline into the past.
 	if _, err := pool.Exec(ctx, `UPDATE "order" SET deadline_at = now() - interval '1 second' WHERE id = $1`, prepared.OrderID); err != nil {
 		t.Fatalf("force due: %v", err)

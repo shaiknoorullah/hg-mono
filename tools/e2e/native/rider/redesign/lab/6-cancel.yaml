@@ -1,0 +1,36 @@
+# Rider redesign WP6, the order is cancelled during the pickup (DL/OrderCancelled): the WP4 pickup
+# to the counter, then the lab cancels the order while the rider waits at Bismillah Grill; the
+# trip ends by itself on the next poll (5 s): "Order cancelled", "HalalGoes cancelled this order",
+# where it was going at street level, no call buttons; Back to Home closes the trip.
+#
+# The cancel comes from outside the app, mid-flow (the mission's explore says how): the flow waits
+# up to 10 minutes on step 2 for it. `make dev-scenario s=customer-cancels` only cancels an order
+# the restaurant has not accepted yet (self-service cancel closes at acceptance), so for a live
+# trip the lab cancels as the dev admin (`make dev-admin`, POST /v1/admin/orders/{orderId}/cancel,
+# cancelOrderAdmin). A devworld helper that cancels the rider's live order is not there yet.
+# Built with EXPO_PUBLIC_HG_REDESIGN=1 and a cleared Metro cache (see 0-shell.yaml).
+appId: com.halalgoes.rider.dev
+name: rider redesign, order cancelled during the pickup
+---
+- runFlow: 4-pickup-to-counter.yaml
+- takeScreenshot: rider-wp6-01-waiting-for-the-cancel
+
+# The lab cancels the order now (explore). The trip follows the next poll.
+- extendedWaitUntil:
+    visible: "HalalGoes cancelled this order"
+    timeout: 600000
+- assertVisible: "Order cancelled"
+- assertVisible: "Order HG-.*"
+- assertVisible: "Don't go to Bismillah Grill\\. You're (back to waiting for offers|offline now)\\."
+- assertVisible: "Was going to"
+- assertNotVisible: "Call .*"
+- assertNotVisible: "Step . of 4.*"
+- assertNotVisible: ".*[Hh]alal [Bb]adge.*"
+- takeScreenshot: rider-wp6-02-cancelled-before-pickup
+
+- tapOn: "Back to Home"
+- extendedWaitUntil:
+    visible: "Earnings"
+    timeout: 30000
+- assertNotVisible: "Order cancelled"
+- takeScreenshot: rider-wp6-03-home-after-cancel

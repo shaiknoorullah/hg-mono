@@ -246,7 +246,7 @@ func (s *Service) reconcileIntents(ctx context.Context, rep *CatchUpReport) erro
 		err = s.repo.tx(ctx, func(tx pgx.Tx) error {
 			if target, ok := stripeIntentTarget(pi.Status, pi.FailureCode != ""); ok {
 				// Stripe's current view is as new as anything can be.
-				if eff, err = s.assertIntentState(ctx, tx, id, target, pi.AmountReceivedCents, s.now(), nil); err != nil {
+				if eff, err = s.assertIntentState(ctx, tx, id, target, intentAmounts(pi), s.now(), nil); err != nil {
 					return err
 				}
 			} else {

@@ -11,7 +11,7 @@ covers:
   - packages/ui-native/src/content/**
   - packages/ui-native/src/feedback/**
   - packages/ui-native/src/navigation/**
-reviewed: 2026-10-05
+reviewed: 2026-10-10
 ---
 
 # HalalGoes — Component Inventory
@@ -21,6 +21,15 @@ reviewed: 2026-10-05
 **Read with:** [`03-patterns.md`](./03-patterns.md) (where these get composed), [`04-accessibility.md`](./04-accessibility.md) (the rules every entry below defers to)
 
 **41 components** in five tiers. No implementation code — this is what four app agents build against.
+
+### The redesign surface on native: `@hg/ui-native/ds` and `/proposed`
+
+Redesigned customer and rider screens (behind `EXPO_PUBLIC_HG_REDESIGN`) import only from:
+
+- **`@hg/ui-native/ds`**: the live design system's components, with the names and props of its `index.d.ts` ([Claude Design](https://claude.ai/artifact/1GwGVZz8Ju9wcz4HfCnzbv)). Today each entry adapts those props onto the legacy component below; the rebuild on React Native Reusables ([#111](https://github.com/shaiknoorullah/hg-mono/issues/111)) swaps the internals without changing the API. Native differs from the web `.d.ts` in four ways: `style` is a `StyleProp`, `onChange` receives the value, money is the branded `Cents`, and labels are strings. `Icon` also takes the live extension names (`chevron-down`, `chevron-right`, `minus`, `lock`, `info`, `warning`, `error`, `more`, `refresh`); an unknown name renders nothing and reports `ICON_NAME_UNKNOWN`. A non-integer `Price` renders nothing and reports `MONEY_NOT_INTEGER_CENTS`.
+- **`@hg/ui-native/proposed`**: composites drawn on the approved canvases but not yet approved as components ([#191](https://github.com/shaiknoorullah/hg-mono/issues/191)–[#198](https://github.com/shaiknoorullah/hg-mono/issues/198)). Owner decision, 9 Oct 2026: allowed on `main` for flagged screens only.
+
+The package root stays what the released apps use until the post-launch cut-over.
 
 ---
 
@@ -244,7 +253,7 @@ There is **no** `color`, `label`, `variant` or `icon` prop. The four states are 
 4. **Renewal note row** — rendered **only** when `state === 'EXPIRING_SOON'`: clock glyph + "Certificate renews {absolute date}" on `halal.expiring.tint`. Not an alert, not the warning ramp (foundations §2.5).
 5. Scope, when present (`WHOLE_ESTABLISHMENT` | `KITCHEN_ONLY` | `SPECIFIC_MENU_ITEMS` | `SUPPLIER_CHAIN_ONLY`, A-15) rendered as plain English.
 6. **"View certificate"** — `Button variant="tertiary"`, opens `DocumentViewer` via a per-request presigned GET, TTL 300 s, audited (C-12 R5).
-7. **Standing line**, `caption`, always present, never collapsible: *"Certification verified by HalalGoes on {verified_at}. HalalGoes does not itself certify food."* (C-12 R7).
+7. **Standing line**, `caption`, always present, never collapsible: *"Certification verified by HalalGoes on {verified_at}. HalalGoes does not itself certify food."* (C-12 R7). `verified_at` is an instant, so it names the day it was in Toronto (America/Toronto), not the UTC day; the issue and expiry dates are calendar days and are shown as written.
 8. **"Report a halal concern"** — `Button variant="ghost"`, opens the C-39 grievance flow with category `HALAL_CONCERN` pre-set (server-assigned `CRITICAL`, 4 h acknowledge SLA).
 
 **States.**
@@ -268,8 +277,8 @@ There is **no** `color`, `label`, `variant` or `icon` prop. The four states are 
 - `H5_DATES_VALID` and `H7_UNIQUE_NOT_REUSED` are server-computed and **not overridable** — the control renders read-only with the computed result and a lock glyph. An attempt returns `409 CHECK_NOT_OVERRIDABLE`; the UI must not offer the affordance in the first place.
 - `H2`/`H3`/`H4` render the server's pre-computed suggestion as a pre-selected value with a visible "system suggested" marker; changing it **requires** a note.
 - Any human override requires a note of ≥20 characters (A-15 R5). The `Textarea` counter enforces it and Approve stays enabled-but-blocking with an explanatory error, not silently disabled.
-- **Approve is disabled until all seven are `PASS`.** Its disabled state names the outstanding keys ("2 checks outstanding: H1, H6") — a disabled button that will not say why is a defect.
-- Reject requires ≥1 `FAIL` and a reason code from the closed enum.
+- **Approve is disabled until all seven are recorded `PASS`.** A check counts only once it is recorded (`checked_at` set, otherwise the row reads "Not recorded"), and H5 and H7 also need the server's `computed_result` present and `PASS`. Its disabled state names the outstanding keys ("2 checks outstanding: H1, H6") — a disabled button that will not say why is a defect.
+- Reject requires ≥1 `FAIL`, a reason code from the closed enum and a message to the restaurant of 10–1000 characters (`HalalDecisionInput.reason_text` in the contract), sent word for word. The 20-character minimum is the override note's, not the rejection's.
 
 **Accessibility.** A `<fieldset>` per check with a legend. Locked checks are `aria-readonly` with the reason in `aria-describedby`. Approve/Reject are separated by ≥24 and are not colour-only. Every recorded value writes an `audit_event` — the UI shows a persistent "this action is audited" note, because it changes behaviour.
 

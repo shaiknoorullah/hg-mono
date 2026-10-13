@@ -375,8 +375,8 @@ func TestAnEventTypeWithoutASerializerIsDropped(t *testing.T) {
 	src := json.RawMessage(`{"order_id":"o","at":"2026-10-06T12:00:00.000Z","pickup_code":"4821"}`)
 
 	// A type this binary has never heard of — including one a newer contract
-	// adds, like order.rider_arrived — is sent to no role.
-	for _, typ := range []string{"order.rider_arrived", "order.invented", ""} {
+	// adds, like order.from_a_newer_contract — is sent to no role.
+	for _, typ := range []string{"order.from_a_newer_contract", "order.invented", ""} {
 		for _, v := range Viewers() {
 			if out, why := project(typ, v, nil, src); why != unknownEvent || out != nil {
 				t.Errorf("%s got %q for %s (%s), want it dropped", v, out, typ, why)

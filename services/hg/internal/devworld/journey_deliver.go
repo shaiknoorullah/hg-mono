@@ -37,6 +37,18 @@ const (
 // and marks the assignment delivered. A refused seal does not stop it. The
 // customer follow-ups run after delivery even when the order stays delivered.
 func deliverLeg(ctx context.Context, cust, kitchen, rider *apiClient, order placedOrder, assignmentID string, pickup routePoint) error {
+	if err := riderDelivers(ctx, cust, kitchen, rider, order, assignmentID, pickup); err != nil {
+		return err
+	}
+	_, serr := pollSettled(ctx, cust, order.ID)
+	ferr := customerFollowUps(ctx, cust, kitchen, order.ID)
+	return errors.Join(serr, ferr)
+}
+
+// riderDelivers is the part of the ride from the restaurant door to
+// DELIVERED: the seal attempt, pickup, the drop-off walk, the proof photo and
+// the delivered transition. The order is left DELIVERED.
+func riderDelivers(ctx context.Context, cust, kitchen, rider *apiClient, order placedOrder, assignmentID string, pickup routePoint) error {
 	if kitchen == nil || rider == nil {
 		return errors.New("devworld: delivery needs the restaurant and rider sessions")
 	}
@@ -72,10 +84,7 @@ func deliverLeg(ctx context.Context, cust, kitchen, rider *apiClient, order plac
 		return err
 	}
 	fmt.Println("assignment  DELIVERED")
-
-	_, serr := pollSettled(ctx, cust, order.ID)
-	ferr := customerFollowUps(ctx, cust, kitchen, order.ID)
-	return errors.Join(serr, ferr)
+	return nil
 }
 
 func (c *apiClient) recordSeal(ctx context.Context, order placedOrder) error {
