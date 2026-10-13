@@ -65,6 +65,8 @@ type Config struct {
 	Halal    Halal
 	Payouts  Payouts
 
+	DeadlineRunner DeadlineRunner
+
 	// DevworldTablets (HG_DEVWORLD_TABLETS=on) keeps the local dev world's
 	// seeded restaurants' heartbeats fresh, as their order screens would
 	// (internal/devworld/tablets). Refused unless HG_ENV is local.
@@ -146,6 +148,15 @@ type Halal struct {
 	// after 14 days is an open owner question:
 	// https://github.com/shaiknoorullah/hg-mono/issues/164.
 	SuspendAfterExpiredDays int
+}
+
+// DeadlineRunner holds the order deadline runner's start-up switch.
+type DeadlineRunner struct {
+	// Hold starts the runner held: no heartbeat and no deadline fires until ops
+	// inserts a deadline_runner_release row. A failover sets it so the Stripe
+	// catch-up runs before any deadline does; the gap is then handled as an
+	// outage (docs/spec/01-platform.md, "P-15 — Deadlines and timeout actions").
+	Hold bool
 }
 
 // OTP holds the phone-verification provider selection. It is orthogonal to SMS
@@ -642,6 +653,8 @@ func Load(getenv func(string) string) (*Config, error) {
 	default:
 		l.errf("HG_DEVWORLD_TABLETS: %q is not one of on, off", v)
 	}
+
+	cfg.DeadlineRunner = DeadlineRunner{Hold: l.boolVal("HG_DEADLINE_RUNNER_HOLD", false)}
 
 	// G-7: outside local, no dependency may point at loopback. This is the
 	// check that would have caught the hardcoded localhost:6379.

@@ -20,7 +20,7 @@ const AdminEmail = "admin-seed@seed.hg"
 const BismillahRestaurantID = "b0000000-0000-4000-8000-000000000208"
 
 // Identity is one stable persona. The same account id, email and phone are
-// literals in migrations/devworld/001_personas.sql.
+// literals in the SQL under migrations/devworld.
 type Identity struct {
 	Slug         string
 	AccountID    string
@@ -39,6 +39,7 @@ var World = []Identity{
 	{Slug: "rider-docs", AccountID: "a0000000-0000-4000-8000-000000000152", Phone: "+15550100152"},
 	{Slug: "rider-rejected", AccountID: "a0000000-0000-4000-8000-000000000153", Phone: "+15550100153"},
 	{Slug: "rider-registered", AccountID: "a0000000-0000-4000-8000-000000000154", Phone: "+15550100154"},
+	{Slug: "rider-sim-2", AccountID: "a0000000-0000-4000-8000-000000000155", Phone: "+15550100155"},
 	{Slug: "fresh", AccountID: "a0000000-0000-4000-8000-000000000201", RestaurantID: "b0000000-0000-4000-8000-000000000201", Email: "fresh@seed.hg"},
 	{Slug: "profile", AccountID: "a0000000-0000-4000-8000-000000000202", RestaurantID: "b0000000-0000-4000-8000-000000000202", Email: "profile@seed.hg"},
 	{Slug: "docs-todo", AccountID: "a0000000-0000-4000-8000-000000000203", RestaurantID: "b0000000-0000-4000-8000-000000000203", Email: "docs-todo@seed.hg"},

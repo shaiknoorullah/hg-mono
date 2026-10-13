@@ -36,6 +36,7 @@ Commands run from `services/hg`, against a local stack (`make up`, `make migrate
 |---|---|---|
 | `amina`, `nour` | `+15550100101`, `+15550100102`, code `000000` | customer app |
 | `rider-sim`, `rider-docs`, `rider-rejected`, `rider-registered` | `+15550100151` to `+15550100154`, code `000000` | rider app |
+| `rider-sim-2` | `+15550100155`, code `000000`, offline | rider app; the second rider of the offer scenarios |
 | Restaurant personas and catalogue owners | `<slug>@seed.hg`, password `Seed!2026` | restaurant console, `http://localhost:5183` |
 | `admin-seed` | `admin-seed@seed.hg`, `Seed!2026`, and the code from `make dev-totp` | admin console |
 | `support-seed` | cannot sign in yet ([#677](https://github.com/shaiknoorullah/hg-mono/issues/677)) | admin console |
@@ -48,9 +49,9 @@ The fixed code works only for `+15550100100` to `+15550100199` and only when `HG
 |---|---:|---:|---:|---:|---:|
 | Customer app | 16 | 7 | 0 | 13 | 4 |
 | Restaurant portal | 22 | 6 | 3 | 5 | 0 |
-| Rider app | 21 | 6 | 4 | 1 | 3 |
+| Rider app | 23 | 6 | 2 | 1 | 3 |
 | Admin console | 7 | 8 | 12 | 15 | 0 |
-| Platform | 26 | 10 | 0 | 0 | 3 |
+| Platform | 27 | 9 | 0 | 0 | 3 |
 
 ## Customer app
 
@@ -156,12 +157,12 @@ The fixed code works only for `+15550100100` to `+15550100199` and only when `HG
 | [D-12](spec/04-rider.md#d-12--background-location-during-an-active-delivery) | Location in the background while delivering | Needs a device build; the web app cannot | Partial | [#25](https://github.com/shaiknoorullah/hg-mono/issues/25) |
 | [D-13](spec/04-rider.md#d-13--dispatch-candidate-selection-ranking-and-offer-waves) | Dispatch picks a rider | `make dev-journey auto=all` | Covered | — |
 | [D-14](spec/04-rider.md#d-14--receiving-an-offer-on-the-device) | Receive an offer | `s=offer-to-rider` leaves `rider-sim` holding a real 30-second offer; or `rider-sim` in the app during `make dev-journey auto=all manual=rider`; push needs Expo | Covered | — |
-| [D-15](spec/04-rider.md#d-15--offer-expiry-wave-escalation-and-the-no-rider-found-path) | An offer expires; nobody takes the order | Not produced | Missing | [#684](https://github.com/shaiknoorullah/hg-mono/issues/684) |
-| [D-16](spec/04-rider.md#d-16--accepting-an-offer-single-winner-concurrency) | Two riders accept; one wins | Only one active rider | Missing | [#684](https://github.com/shaiknoorullah/hg-mono/issues/684) |
-| [D-17](spec/04-rider.md#d-17--rejecting-or-ignoring-an-offer) | Reject or ignore an offer | Reject in the app after `manual=rider`; no second rider gets it | Partial | [#684](https://github.com/shaiknoorullah/hg-mono/issues/684) |
+| [D-15](spec/04-rider.md#d-15--offer-expiry-wave-escalation-and-the-no-rider-found-path) | An offer expires; nobody takes the order | `make dev-scenario s=offer-ignored` (expiry, next wave); `s=no-rider` (about 2 minutes to `NO_RIDER_FOUND`) | Covered | — |
+| [D-16](spec/04-rider.md#d-16--accepting-an-offer-single-winner-concurrency) | Two riders accept; one wins | `s=offer-race` with `rider-sim` and `rider-sim-2`; the loser is answered `OFFER_EXPIRED` where the spec says `OFFER_ALREADY_TAKEN` ([#696](https://github.com/shaiknoorullah/hg-mono/issues/696)) | Partial | [#696](https://github.com/shaiknoorullah/hg-mono/issues/696) |
+| [D-17](spec/04-rider.md#d-17--rejecting-or-ignoring-an-offer) | Reject or ignore an offer | `s=offer-reject` or `s=offer-ignored`; `rider-sim-2` gets the next wave | Covered | — |
 | [D-18](spec/04-rider.md#d-18--order-dashboard-active-work--resume) | Active delivery screen | `rider-sim` during `make dev-journey auto=all manual=rider` | Covered | — |
 | [D-19](spec/04-rider.md#d-19--order-details) | Order details | As above | Covered | — |
-| [D-20](spec/04-rider.md#d-20--delivery-status-updates-arrived--picked-up--in-transit--delivered) | Arrived, picked up, delivered | `make dev-journey auto=all`, or by hand with `manual=rider` | Covered | — |
+| [D-20](spec/04-rider.md#d-20--delivery-status-updates-arrived--picked-up--in-transit--delivered) | Arrived, picked up, delivered | `make dev-journey auto=all`, which types the pickup code the restaurant's order view shows, or by hand with `manual=rider` | Covered | — |
 | [D-21](spec/04-rider.md#d-21--proof-of-delivery) | Proof of delivery | The journey uploads a photo; the delivery code check fails ([#259](https://github.com/shaiknoorullah/hg-mono/issues/259)) | Covered | — |
 | [D-22](spec/04-rider.md#d-22--navigation--maps) | Navigation and maps | A straight line without a token; maps and directions need Mapbox | Blocked by external (Mapbox token) | [#57](https://github.com/shaiknoorullah/hg-mono/issues/57) |
 | [D-23](spec/04-rider.md#d-23--distance-tracking-for-payment) | Distance for pay | `rider-sim` after `make dev-journey auto=all` | Covered | — |
@@ -351,7 +352,7 @@ Every platform feature, for completeness. Most are exercised by any journey abov
 | [P-29](spec/01-platform.md#p-29--document-lifecycle-review-and-retention) | Document lifecycle | The restaurant and rider onboarding personas | Covered | — |
 | [P-30](spec/01-platform.md#p-30--canonical-geography-schema-one-column-no-split-brain) | Locations | The catalogue around Danforth and downtown Toronto | Covered | — |
 | [P-31](spec/01-platform.md#p-31--distance-duration-and-eta) | Distance and arrival times | The journey | Covered | — |
-| [P-32](spec/01-platform.md#p-32--rider-search-and-offer) | Find a rider and offer | One rider only | Partial | [#684](https://github.com/shaiknoorullah/hg-mono/issues/684) |
+| [P-32](spec/01-platform.md#p-32--rider-search-and-offer) | Find a rider and offer | `s=offer-reject`, `s=offer-ignored`, `s=offer-race`, `s=no-rider` with two riders | Covered | — |
 | [P-33](spec/01-platform.md#p-33--restaurant-and-dish-search) | Restaurant and dish search | The catalogue | Covered | — |
 | [P-34](spec/01-platform.md#p-34--filters-and-halal-certification) | Halal filters | See [halal states](#halal-states) | Covered | — |
 | [P-35](spec/01-platform.md#p-35--append-only-audit-trail) | Audit trail | Every admin scenario | Covered | — |
