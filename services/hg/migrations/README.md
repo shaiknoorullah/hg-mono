@@ -1,7 +1,7 @@
 ---
 covers:
   - services/hg/migrations/**
-reviewed: 2026-10-11
+reviewed: 2026-10-13
 ---
 
 # HalalGoes — database schema
@@ -16,7 +16,7 @@ migrations/
   roles/roles.sql    the database roles; the superuser runs it before goose
   seed/              launch data — tax table, halal issuing bodies, fee config
   lint/schema_lint.sql   the money + geography lints, runnable standalone
-  test/              invariant tests: 117 assertions about what the DB refuses, and
+  test/              invariant tests: 118 assertions about what the DB refuses, and
                      fixtures.sql, the fixed-UUID rows the Go tests read (its restaurant
                      trades 24 hours a day; a test that orders refreshes its heartbeat)
   tools/             contract-enum generator and checker
@@ -26,7 +26,8 @@ migrations/
 `devworld/` is not a goose migration. `make migrate`, `make seed`, the reference
 loader, and a deploy never apply it. `make dev-reset` (or `go run ./cmd/devworld reset`
 from `services/hg`) is the only loader, and it refuses every environment other
-than local and every database that is not on this machine.
+than local and every database that is not on this machine. It loads
+`001_personas.sql` first, then every other file in `devworld/` in name order.
 
 ## Running
 
@@ -159,7 +160,7 @@ address search through Mapbox, is excluded as response-only: nothing stores it.
   Postgres + PostGIS database. `goose reset` rolls all of them back with no
   leftovers, and `up` again succeeds.
 - **Seeded**: `seed/seed.sql` applies and is idempotent.
-- **Tested**: 117 invariant assertions pass (`test/run_invariant_tests.sh`).
+- **Tested**: 118 invariant assertions pass (`test/run_invariant_tests.sh`).
 - **Environment caveat**: Docker was not available, so this was verified
   against a locally installed **Postgres 16.13 with PostGIS 3.4.2**, not the
   spec's Postgres 17 + PostGIS 3.6. Nothing here uses a 17-only or 3.6-only
