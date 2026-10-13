@@ -46,6 +46,10 @@ var ScenarioNames = []string{
 	"menu-reject",
 	"onboard-restaurant",
 	"onboard-rider",
+	"offer-reject",
+	"offer-ignored",
+	"offer-race",
+	"no-rider",
 	"onboard-admin",
 	"offer-to-rider",
 	"restaurant-timeout",
@@ -71,6 +75,10 @@ var scenarioSummaries = map[string]string{
 	"menu-reject":            "admin-seed rejects the oldest menu version waiting (menu persona)",
 	"onboard-restaurant":     "a new restaurant signs up and is approved to take orders",
 	"onboard-rider":          "a new rider signs up, is approved and goes online",
+	"offer-reject":           "rider-sim rejects the offer; rider-sim-2 accepts the next wave (READY_FOR_PICKUP, assigned)",
+	"offer-ignored":          "rider-sim lets the offer expire; rider-sim-2 accepts the next wave (READY_FOR_PICKUP, assigned)",
+	"offer-race":             "rider-sim and rider-sim-2 accept at once; one assignment, one refused",
+	"no-rider":               "both riders offline; the search ends NO_RIDER_FOUND (READY_FOR_PICKUP, no rider)",
 	"onboard-admin":          "an invited admin sets a password, signs in, turns on two-step sign-in and signs in with a code",
 	"offer-to-rider":         "rider-sim is online at bismillah-grill with a pending 30 s offer for a ready order",
 	"restaurant-timeout":     "an order's restaurant window is cut to 30 s; it times out (CANCELLED, RESTAURANT_TIMEOUT)",
@@ -118,6 +126,8 @@ func RunScenario(ctx context.Context, baseURL, name string) error {
 		return scenarioOnboardRestaurant(ctx, baseURL)
 	case "onboard-rider":
 		return scenarioOnboardRider(ctx, baseURL)
+	case "offer-reject", "offer-ignored", "offer-race", "no-rider":
+		return runOfferScenario(ctx, baseURL, name)
 	case "onboard-admin":
 		return scenarioOnboardAdmin(ctx, baseURL)
 	case "offer-to-rider":

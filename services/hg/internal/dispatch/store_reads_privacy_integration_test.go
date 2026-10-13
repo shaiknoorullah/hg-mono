@@ -244,7 +244,7 @@ func TestAssignment_ReleasesTheDropoffByStage(t *testing.T) {
 		t.Helper()
 		reason := "test step"
 		if _, err := svc.Transition(ctx, rider, asnID, TransitionInput{
-			ToState: to, OccurredAt: time.Now().UTC(), OverrideReason: &reason,
+			ToState: to, PickupCode: pickupCodeFor(to), OccurredAt: time.Now().UTC(), OverrideReason: &reason,
 		}); err != nil {
 			t.Fatalf("assignment to %s: %v", to, err)
 		}
