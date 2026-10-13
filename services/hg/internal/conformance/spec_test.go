@@ -41,7 +41,8 @@ func TestConformance_SpecLoadsAndEnumerates(t *testing.T) {
 	// overrideHandoverCode (support or an admin confirms a pickup or a met handover
 	// whose code cannot be used, with a reason, a case and an audit record — the only
 	// way past a handover code, security review on #183:
-	// https://github.com/shaiknoorullah/hg-mono/issues/183; no handler yet) +
+	// https://github.com/shaiknoorullah/hg-mono/issues/183; served by
+	// internal/admin since https://github.com/shaiknoorullah/hg-mono/issues/310) +
 	// replaceCart (put an unpaid order's items back in the cart in one atomic
 	// call, https://github.com/shaiknoorullah/hg-mono/issues/179) + joinWaitlist
 	// (the marketing site's public waitlist form,
