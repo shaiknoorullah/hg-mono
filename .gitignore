@@ -1,5 +1,7 @@
 node_modules/
 dist/
+# The redesign builds tools/e2e/web/serve.sh makes beside dist/
+dist-redesign/
 build/
 .env
 .env.*

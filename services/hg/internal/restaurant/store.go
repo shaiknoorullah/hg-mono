@@ -4,7 +4,11 @@ package restaurant
 // that handlers marshal to JSON; they mirror the contract response schemas
 // exactly (additionalProperties:false — no extra fields, all required present).
 
-import "time"
+import (
+	"time"
+
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders"
+)
 
 // HalalBadge is the contract's HalalBadge schema (C-12). When this object is
 // absent the client renders no badge and reports an error — there is no
@@ -188,18 +192,21 @@ type OrderCustomerRef struct {
 }
 
 // OrderLineView is one line of an order as seen by the restaurant
-// (contract OrderLine). required: [line_no, menu_item_id, name, quantity,
-// unit_price_cents, line_total_cents, currency].
+// (contract OrderLine). required: [line_no, menu_item_id, name, variants,
+// quantity, unit_price_cents, line_total_cents, currency].
 type OrderLineView struct {
-	LineNo         int     `json:"line_no"`
-	MenuItemID     string  `json:"menu_item_id"`
-	Name           string  `json:"name"`
-	VariantName    *string `json:"variant_name,omitempty"`
-	Quantity       int     `json:"quantity"`
-	SpecialRequest *string `json:"special_request,omitempty"`
-	UnitPriceCents int64   `json:"unit_price_cents"`
-	LineTotalCents int64   `json:"line_total_cents"`
-	Currency       string  `json:"currency"`
+	LineNo      int     `json:"line_no"`
+	MenuItemID  string  `json:"menu_item_id"`
+	Name        string  `json:"name"`
+	VariantName *string `json:"variant_name,omitempty"`
+	// Variants is every chosen variant with its group, so the ticket shows
+	// each choice (https://github.com/shaiknoorullah/hg-mono/issues/628).
+	Variants       []orders.LineVariantDTO `json:"variants"`
+	Quantity       int                     `json:"quantity"`
+	SpecialRequest *string                 `json:"special_request,omitempty"`
+	UnitPriceCents int64                   `json:"unit_price_cents"`
+	LineTotalCents int64                   `json:"line_total_cents"`
+	Currency       string                  `json:"currency"`
 }
 
 // OrderRestaurantView is the restaurant's view of one order (contract

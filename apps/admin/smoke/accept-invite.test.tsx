@@ -36,7 +36,8 @@ describe('admin /accept-invite', () => {
     await mount(`/accept-invite?token=${TOKEN}`);
 
     expect(screen.getByRole('heading', { name: 'Set up your HalalGoes admin account' })).not.toBeNull();
-    expect(screen.getByText('Step 1 of 2')).not.toBeNull();
+    // Two-step sign-in is opt-in (#623): the password is the whole of accepting.
+    expect(screen.queryByText('Step 1 of 2')).toBeNull();
     expect(screen.queryByRole('heading', { name: 'Admin sign in' })).toBeNull();
     expect(window.location.href).not.toContain(TOKEN);
     expect(window.location.pathname).toBe('/accept-invite');

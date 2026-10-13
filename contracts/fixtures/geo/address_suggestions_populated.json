@@ -1,0 +1,50 @@
+{
+  "scenario": "address_suggestions_populated",
+  "domain": "geo",
+  "schema": "array<AddressSuggestion>",
+  "describes": "The user typed `88 Harb` with the device's location sent. Five Canadian results, nearest first, mixing an exact address, a building by name and a whole street. Picking one calls `getPlaceAddress` with its `place_id` and the same session token.",
+  "operations": [
+    "suggestAddresses"
+  ],
+  "status": 200,
+  "tags": [
+    "geo"
+  ],
+  "payload": [
+    {
+      "place_id": "dXJuOmhnOnBsYWNlOjg4LWhhcmJvdXItc3RyZWV0",
+      "kind": "ADDRESS",
+      "title": "88 Harbour Street",
+      "subtitle": "Toronto, Ontario M5J 0C3",
+      "distance_m": 420
+    },
+    {
+      "place_id": "dXJuOmhnOnBsYWNlOmhhcmJvdXItc3F1YXJl",
+      "kind": "POI",
+      "title": "Harbour Square Park",
+      "subtitle": "Queens Quay West, Toronto, Ontario M5J 2G8",
+      "distance_m": 610
+    },
+    {
+      "place_id": "dXJuOmhnOnBsYWNlOmhhcmJvdXItc3RyZWV0",
+      "kind": "STREET",
+      "title": "Harbour Street",
+      "subtitle": "Toronto, Ontario",
+      "distance_m": 450
+    },
+    {
+      "place_id": "dXJuOmhnOnBsYWNlOjg4LWhhcmJvdXItZnJvbnQtZHJpdmUtaGFtaWx0b24",
+      "kind": "ADDRESS",
+      "title": "88 Harbour Front Drive",
+      "subtitle": "Hamilton, Ontario L8L 8M8",
+      "distance_m": 58210
+    },
+    {
+      "place_id": "dXJuOmhnOnBsYWNlOjg4LWhhcmJvdXJ2aWV3LWRyaXZlLW1pc3Npc3NhdWdh",
+      "kind": "ADDRESS",
+      "title": "88 Harbourview Drive",
+      "subtitle": "Mississauga, Ontario L5H 2T8",
+      "distance_m": 24130
+    }
+  ]
+}

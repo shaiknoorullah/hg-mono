@@ -3,7 +3,7 @@ covers:
   - apps/restaurant/**
   - services/hg/internal/restaurant/**
   - services/hg/internal/catalog/**
-reviewed: 2026-10-09
+reviewed: 2026-10-10
 ---
 
 # HalalGoes — RESTAURANT domain specification
@@ -1306,6 +1306,20 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
   modifier groups (add-ons with min/max selection counts, each option carrying a price delta). Both
   are captured on the order line's `options_json` and priced server-side.
 
+  A dish may now have several variant groups (size, rice, heat level), and an order line carries one
+  chosen variant per group ([#628](https://github.com/shaiknoorullah/hg-mono/issues/628); the price
+  rule is step 1 of the quote in the platform spec). The restaurant's order view
+  (`GET /v1/restaurant/orders/{orderId}`) lists every chosen variant with its group on each line
+  (`variants`), and `variant_name` joins the chosen names, so the ticket shows every choice.
+
+  Only one of a dish's variant groups may set its full price (an `ABSOLUTE` variant); the others must
+  be add-on amounts (`DELTA`), and the database refuses a menu save that would give a dish a second
+  full-price group (owner decision, 2026-10-09; the `variant_group_one_full_price` index, migration
+  `00070`), so the customer's `409 ITEM_UNAVAILABLE` for such a dish remains only as a backstop. No
+  API edits variants yet (this feature is V2); when one does, it answers that refusal with
+  `422 VALIDATION_FAILED` and a field error on the group: "Only one option group can set the full
+  price; make the others add-on amounts."
+
 - **Data**:
   ```
   menu_item_variant_group(id, menu_item_id, name, is_required=true, sort_order)
@@ -1573,6 +1587,8 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
   `response_deadline_at = offered_at + RESPONSE_WINDOW`, and pushes an `order.offered` event. The
   restaurant has until the deadline to `accept` or `reject`. The **server** is the sole authority on
   expiry; the client countdown is decorative.
+
+  Accepting captures the payment; if that capture fails, the accept still succeeds and the capture is retried in the background with backoff, then raised to on-call as a critical alert after the eighth failure ([PaymentIntent lifecycle and capture timing, P-16](01-platform.md#p-16--paymentintent-lifecycle-and-capture-timing)).
 
   > **Decided:** `RESPONSE_WINDOW = 180 seconds` ([acceptance window](../decisions/README.md#settled--reconciliations)); expiry voids the authorisation, never captures ([authorise then capture](../../AGENTS.md#3-non-negotiable-invariants)).
   > **Open** (proposed defaults stand): an apology credit offer to the customer; toggle forced off after two consecutive expiries (R-22); no re-offer, no re-route.

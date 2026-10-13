@@ -43,6 +43,7 @@ func (OrderItemsAdjusted) orderEvent()    {}
 func (OrderCancelled) orderEvent()        {}
 func (OrderCompleted) orderEvent()        {}
 func (OrderNoteAdded) orderEvent()        {}
+func (OrderRiderArrived) orderEvent()     {}
 func (PaymentAuthorized) orderEvent()     {}
 func (PaymentActionRequired) orderEvent() {}
 func (PaymentCaptured) orderEvent()       {}

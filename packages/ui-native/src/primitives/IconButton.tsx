@@ -51,6 +51,11 @@ export interface IconButtonProps {
    * ("Cart, 3 items"), never as a separate node a screen reader meets on its own.
    */
   badge?: { count?: number; max?: number } | true;
+  /**
+   * The full accessible name, badge included, when the caller composes it (the `/ds` surface
+   * uses the live rule: "Cart, 3 items"). Unset, the name is `accessibilityLabel` plus the count.
+   */
+  accessibleName?: string;
   accessibilityHint?: string;
   testID?: string;
 }
@@ -64,6 +69,7 @@ export function IconButton({
   loading = false,
   disabled = false,
   badge,
+  accessibleName,
   accessibilityHint,
   testID = 'IconButton',
 }: IconButtonProps) {
@@ -112,7 +118,7 @@ export function IconButton({
       accessibilityRole="button"
       // The count is part of the name, not a sibling node.
       accessibilityLabel={
-        countLabel ? `${accessibilityLabel}, ${countLabel}` : accessibilityLabel
+        accessibleName ?? (countLabel ? `${accessibilityLabel}, ${countLabel}` : accessibilityLabel)
       }
       accessibilityHint={accessibilityHint}
       accessibilityState={accessibilityState}

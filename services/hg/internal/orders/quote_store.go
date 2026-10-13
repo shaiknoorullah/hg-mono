@@ -118,7 +118,7 @@ func (s *Store) resolve(ctx context.Context, tx pgx.Tx, req QuoteRequest) (resol
 	rows, err := tx.Query(ctx, `
 		SELECT cl.id, cl.menu_item_id, mi.live_version_id, mi.price_cents, mi.availability_state,
 		       mi.deleted_at IS NOT NULL, mi.tax_category::text, mi.restaurant_id,
-		       COALESCE(miv.name, ''), cl.variant_id, cl.quantity, cl.special_request
+		       COALESCE(miv.name, ''), cl.quantity, cl.special_request
 		  FROM cart_line cl
 		  JOIN menu_item mi ON mi.id = cl.menu_item_id
 		  LEFT JOIN menu_item_version miv ON miv.id = mi.live_version_id
@@ -137,7 +137,6 @@ func (s *Store) resolve(ctx context.Context, tx pgx.Tx, req QuoteRequest) (resol
 		availability, taxCat, itemRestaurant string
 		itemName                             string
 		deleted                              bool
-		variantID                            *string
 		quantity                             int
 		specialRequest                       *string
 	}
@@ -145,7 +144,7 @@ func (s *Store) resolve(ctx context.Context, tx pgx.Tx, req QuoteRequest) (resol
 	for rows.Next() {
 		var rl rawLine
 		if err := rows.Scan(&rl.lineID, &rl.menuItemID, &rl.versionID, &rl.priceCents,
-			&rl.availability, &rl.deleted, &rl.taxCat, &rl.itemRestaurant, &rl.itemName, &rl.variantID,
+			&rl.availability, &rl.deleted, &rl.taxCat, &rl.itemRestaurant, &rl.itemName,
 			&rl.quantity, &rl.specialRequest); err != nil {
 			return rc, fmt.Errorf("scan line: %w", err)
 		}
@@ -157,6 +156,14 @@ func (s *Store) resolve(ctx context.Context, tx pgx.Tx, req QuoteRequest) (resol
 	rows.Close()
 	if len(raws) == 0 {
 		return rc, ErrCartEmpty
+	}
+
+	// Every chosen variant of every line, in the menu's group order, read in
+	// this transaction. One that was switched off or removed since it was
+	// added fails the quote, as an unavailable item does.
+	lineVariants, variantGone, err := loadCartLineVariants(ctx, tx, req.CartID)
+	if err != nil {
+		return rc, err
 	}
 
 	var lines []pricing.LineInput
@@ -179,32 +186,25 @@ func (s *Store) resolve(ctx context.Context, tx pgx.Tx, req QuoteRequest) (resol
 		}
 		rc.stateRows = append(rc.stateRows, stateRow{Kind: "menu_item", ID: rl.menuItemID, Value: rl.priceCents})
 
-		// Variant: read its price/mode and resolve variant_part per P-09 step 1.
-		if rl.variantID != nil {
-			var mode string
-			var priceC, deltaC *int64
-			var varName string
-			var available bool
-			err = tx.QueryRow(ctx, `
-				SELECT pricing_mode::text, price_cents, delta_cents, name, is_available
-				  FROM variant WHERE id = $1 AND deleted_at IS NULL`, *rl.variantID).
-				Scan(&mode, &priceC, &deltaC, &varName, &available)
-			if errors.Is(err, pgx.ErrNoRows) || (err == nil && !available) {
-				return rc, fmt.Errorf("%w: variant %s", ErrItemUnavailable, *rl.variantID)
-			}
+		// Variants: P-09 step 1, the chosen ABSOLUTE variant's price (else the
+		// base price) plus every chosen DELTA variant's delta.
+		if variantGone[rl.lineID] {
+			return rc, fmt.Errorf("%w: a variant on %s", ErrItemUnavailable, rl.menuItemID)
+		}
+		if vs := lineVariants[rl.lineID]; len(vs) > 0 {
+			part, err := pricing.VariantPart(li.BasePriceCents, vs)
 			if err != nil {
-				return rc, fmt.Errorf("resolve variant: %w", err)
+				return rc, fmt.Errorf("%w: %s: %v", ErrItemUnavailable, rl.menuItemID, err)
 			}
-			li.VariantID = rl.variantID
-			li.VariantName = &varName
-			li.VariantPricingMode = &mode
-			switch mode {
-			case "ABSOLUTE":
-				li.VariantPartCents = money.Amount(*priceC)
-				rc.stateRows = append(rc.stateRows, stateRow{Kind: "variant", ID: *rl.variantID, Value: *priceC})
-			case "DELTA":
-				li.VariantPartCents = money.Amount(rl.priceCents + *deltaC)
-				rc.stateRows = append(rc.stateRows, stateRow{Kind: "variant", ID: *rl.variantID, Value: *deltaC})
+			li.Variants = vs
+			li.VariantPartCents = part
+			li.VariantID, li.VariantName, li.VariantPricingMode = pricing.VariantSummary(vs)
+			for _, v := range vs {
+				if v.PricingMode == pricing.PricingAbsolute {
+					rc.stateRows = append(rc.stateRows, stateRow{Kind: "variant", ID: v.VariantID, Value: v.PriceCents.Cents()})
+				} else {
+					rc.stateRows = append(rc.stateRows, stateRow{Kind: "variant", ID: v.VariantID, Value: v.DeltaCents.Cents()})
+				}
 			}
 		}
 
@@ -270,11 +270,20 @@ func (s *Store) resolve(ctx context.Context, tx pgx.Tx, req QuoteRequest) (resol
 	// geography columns, not a fabricated constant. It is recorded as FALLBACK.
 	billableKM, routeMeters, routeSource := 0, 0, "FALLBACK"
 	if req.Fulfilment == "DELIVERY" && req.DeliveryAddressID != nil {
-		m, ok, err := s.straightLineMeters(ctx, tx, restaurantID, *req.DeliveryAddressID)
+		m, radius, ok, err := s.straightLineMeters(ctx, tx, restaurantID, *req.DeliveryAddressID)
 		if err != nil {
 			return rc, err
 		}
 		if ok {
+			// Serviceability (C-14): the same measure and boundary as the
+			// restaurant card's OUT_OF_RANGE (catalog/availabilityinfo.go),
+			// so the card and the quote cannot disagree. Quoting and
+			// createOrder both resolve here, so neither can price or place a
+			// delivery beyond the restaurant's delivery_radius_m.
+			// https://github.com/shaiknoorullah/hg-mono/issues/723
+			if m > radius {
+				return rc, ErrAddressOutOfRange
+			}
 			routeMeters = m
 			billableKM = (m + 999) / 1000 // ceil(km)
 		}
@@ -379,20 +388,22 @@ func (s *Store) loadTaxRates(ctx context.Context, tx pgx.Tx, jurisdiction string
 }
 
 // straightLineMeters returns the geodesic distance restaurant→address using
-// PostGIS ST_Distance over the geography columns. This is the eligibility
-// distance; a routing sibling will replace it for money once it exists.
-func (s *Store) straightLineMeters(ctx context.Context, tx pgx.Tx, restaurantID, addressID string) (int, bool, error) {
-	var meters *float64
-	err := tx.QueryRow(ctx, `
-		SELECT ST_Distance(r.location, a.location)
+// PostGIS ST_Distance over the geography columns, rounded to whole metres
+// exactly as discovery's distance_m is (ST_Distance(...)::int), together with
+// the restaurant's delivery_radius_m. The distance is the eligibility measure;
+// a routing sibling will replace it for money once it exists.
+func (s *Store) straightLineMeters(ctx context.Context, tx pgx.Tx, restaurantID, addressID string) (meters, radiusM int, ok bool, err error) {
+	var m *int
+	err = tx.QueryRow(ctx, `
+		SELECT ST_Distance(r.location, a.location)::int, r.delivery_radius_m
 		  FROM restaurant r, address a
 		 WHERE r.id = $1 AND a.id = $2 AND r.location IS NOT NULL`,
-		restaurantID, addressID).Scan(&meters)
-	if errors.Is(err, pgx.ErrNoRows) || meters == nil {
-		return 0, false, nil
+		restaurantID, addressID).Scan(&m, &radiusM)
+	if errors.Is(err, pgx.ErrNoRows) || (err == nil && m == nil) {
+		return 0, 0, false, nil
 	}
 	if err != nil {
-		return 0, false, fmt.Errorf("distance: %w", err)
+		return 0, 0, false, fmt.Errorf("distance: %w", err)
 	}
-	return int(*meters + 0.5), true, nil
+	return *m, radiusM, true, nil
 }

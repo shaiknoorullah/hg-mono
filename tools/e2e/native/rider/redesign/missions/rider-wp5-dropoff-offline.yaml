@@ -1,0 +1,26 @@
+id: rider-wp5-dropoff-offline
+app: rider
+avd: hg_rider
+api: devworld
+build:
+  env: { EXPO_PUBLIC_HG_REDESIGN: "1" }
+  note: "Clear the Metro cache when building (EXPO_PUBLIC_* is inlined at transform time)."
+setup:
+  - "make dev-reset"
+  - "make dev-journey route=short auto=restaurant manual=rider"
+reality:
+  - geo-route: tools/e2e/native/routes/restaurant-to-amina.gpx
+  - network: gsm
+  - theme: dark
+  - font-scale: 2.0
+flows: [ "tools/e2e/native/rider/redesign/lab/5c-dropoff-offline.yaml" ]
+explore: >
+  The flow switches airplane mode itself (setAirplaneMode) at the door and again at Mark as
+  delivered. Check the API log afterwards: no submitProofOfDelivery or DELIVERED while the phone
+  was offline, and after it came back one proof and one DELIVERED, the retry with the
+  Idempotency-Key of the first try. Then, on a fresh journey: airplane on just before "I'm here":
+  the arrival is saved ("Not sent yet", "I'm here · <time>"), the door screen says "Keep the bag
+  until you're back online" with Hand it over off; airplane off and the saved arrival replays
+  with its original time, then Hand it over turns on. Kill the app at the door with the proof
+  recorded and DELIVERED not sent (airplane on right after the proof's 200), relaunch: "Picking
+  up where you left off", then "Proof saved · delivery not sent yet" with Mark as delivered.
