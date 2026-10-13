@@ -1,7 +1,7 @@
 ---
 covers:
   - deploy/**
-reviewed: 2026-10-05
+reviewed: 2026-10-13
 ---
 
 # Releasing HalalGoes
