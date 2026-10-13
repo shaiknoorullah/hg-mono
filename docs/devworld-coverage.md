@@ -50,7 +50,7 @@ The fixed code works only for `+15550100100` to `+15550100199` and only when `HG
 | Restaurant portal | 21 | 7 | 3 | 5 | 0 |
 | Rider app | 21 | 6 | 4 | 1 | 3 |
 | Admin console | 8 | 7 | 12 | 15 | 0 |
-| Platform | 26 | 10 | 0 | 0 | 3 |
+| Platform | 27 | 9 | 0 | 0 | 3 |
 
 ## Customer app
 
@@ -337,7 +337,7 @@ Every platform feature, for completeness. Most are exercised by any journey abov
 | [P-15](spec/01-platform.md#p-15--deadlines-and-timeout-actions-waits-forever-is-unrepresentable) | Deadlines | See [order states and deadlines](#order-states-and-deadlines) | Covered | — |
 | [P-16](spec/01-platform.md#p-16--paymentintent-lifecycle-and-capture-timing) | Payment authorise and capture | See [money](#money) | Partial | [#680](https://github.com/shaiknoorullah/hg-mono/issues/680) |
 | [P-17](spec/01-platform.md#p-17--webhooks-idempotency-and-reconciliation) | Stripe webhooks | Stripe test keys and `stripe listen` ([card payments playbook](playbooks/customer/card-payments.md)) | Blocked by external (Stripe test keys) | — |
-| [P-18](spec/01-platform.md#p-18--refunds-cancellations-and-compensation) | Refunds and cancellations | See [money](#money) | Partial | [#679](https://github.com/shaiknoorullah/hg-mono/issues/679) |
+| [P-18](spec/01-platform.md#p-18--refunds-cancellations-and-compensation) | Refunds and cancellations | See [money](#money) | Covered | — |
 | [P-19](spec/01-platform.md#p-19--stripe-connect-onboarding-and-payouts-canada) | Connect accounts and payouts | Accounts: `payout`, `s=onboard-rider`. Payouts: none | Partial | [#676](https://github.com/shaiknoorullah/hg-mono/issues/676) |
 | [P-20](spec/01-platform.md#p-20--websocket-connection-authentication) | Socket sign-in | See [realtime](#realtime) | Covered | — |
 | [P-21](spec/01-platform.md#p-21--channels-and-subscriptions) | Channels | See [realtime](#realtime) | Covered | — |
