@@ -562,6 +562,13 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
      `halal_certifier` allowlist (**D-10**); `OTHER` is permitted, and the reviewer then marks the
      application "waiting on certifying body" until a super admin decides on that body
      ([body not on the accepted list](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
+     A certificate counts only while its body is accepted. If a super admin later suspends,
+     retires or rejects the body, a restaurant no other accepted certificate vouches for loses its
+     badge and is delisted (hidden from customers, menu not locked) in the same request, and its
+     owners and managers are told. It is listed again when the body is accepted again or when a
+     current certificate from an accepted body is approved. Customer reads show the halal state
+     as of now, never a stored badge alone
+     ([withdrawing a body's acceptance](https://github.com/shaiknoorullah/hg-mono/issues/346)).
   8. Re-uploading a `doc_type` supersedes the previous row rather than mutating it. Full history is
      retained for audit; only the newest non-superseded row is "current".
   9. Uploads are permitted only in `onboarding_state ∈ {DOCUMENTS_PENDING, DOCUMENTS_REJECTED}` or,
@@ -1688,6 +1695,13 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
   up an order the kitchen has not marked ready: the pickup is refused and the rider is told to wait
   for the kitchen, until the kitchen's pickup code is checked
   ([early pickup with the kitchen's code](https://github.com/shaiknoorullah/hg-mono/issues/413)).
+
+  Accepting an order a rider will collect mints its 4-digit pickup code, in the same transition.
+  The restaurant's order view (`pickup_code`) shows it while the order is `PREPARING` or
+  `READY_FOR_PICKUP`, for the kitchen to read out; never after pickup, and never once five wrong
+  codes have locked it and the order is with support. The rider must type it to pick up a ready
+  order they hold; nothing stands in for it but a support override
+  ([handover codes](https://github.com/shaiknoorullah/hg-mono/issues/310)).
 
   *(In the current system this is unreachable: the transition table lives in a workflow that starts
   at `RIDER_ASSIGNED`, the `updateStatus()` function on the order page is defined and never called,

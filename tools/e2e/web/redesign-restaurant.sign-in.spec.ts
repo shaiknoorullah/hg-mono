@@ -456,7 +456,7 @@ test.describe('restaurant redesign · sign in (real API)', () => {
   });
 
   test('an unverified owner (fresh) gets Unverified with Send a new link', async ({ page }, info) => {
-    test.skip(!DEVWORLD, 'needs the devworld personas and mail log (E2E_DEVWORLD=1); the e2e world has neither');
+    test.skip(!DEVWORLD, 'devworld persona fresh@seed.hg: the e2e world has no such account');
     await page.goto('/login');
     await fillSignIn(page, 'fresh@seed.hg', LIVE_OWNER.password);
     await page.getByLabel(/^Password/).press('Enter');
@@ -480,7 +480,7 @@ test.describe('restaurant redesign · sign in (real API)', () => {
   });
 
   test('the suspended persona (restaurant suspended, sign-in account active) signs in to its console', async ({ page }, info) => {
-    test.skip(!DEVWORLD, 'needs the devworld personas and mail log (E2E_DEVWORLD=1); the e2e world has neither');
+    test.skip(!DEVWORLD, 'devworld persona suspended@seed.hg: the e2e world has no such account');
     await page.goto('/login');
     await fillSignIn(page, 'suspended@seed.hg', LIVE_OWNER.password);
     await page.getByLabel(/^Password/).press('Enter');
@@ -495,7 +495,6 @@ test.describe('restaurant redesign · sign in (real API)', () => {
   });
 
   test('register → check email → verify → sign in → onboarding; forgot → reset → sign in', async ({ page }, info) => {
-    test.skip(!DEVWORLD, 'needs the devworld personas and mail log (E2E_DEVWORLD=1); the e2e world has neither');
     test.setTimeout(120_000);
     const email = `wp2-${info.project.name}-${Date.now()}@wp2.test`;
     const password = 'a long kitchen password 2026';

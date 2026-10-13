@@ -58,6 +58,7 @@ func TestMatrixGolden(t *testing.T) {
 		httpx.Action("offer.reject"):                      {},
 		httpx.Action("order.cancel"):                      {},
 		httpx.Action("order.cancel_support"):              {},
+		httpx.Action("order.handover_override"):           {},
 		httpx.Action("order.create"):                      {},
 		httpx.Action("order.read"):                        {},
 		httpx.Action("order.read_any"):                    {},
