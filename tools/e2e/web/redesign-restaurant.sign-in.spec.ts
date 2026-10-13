@@ -310,7 +310,7 @@ test.describe('restaurant redesign · sign in (mock)', () => {
   });
 
   test('Verify link: working, used, expired (and sending, error), error', async ({ page }, info) => {
-    const token = 'tok_e2e_0123456789abcdefghijklmnopqrstuv';
+    const token = 'e2e_test_token_not_a_secret_000000000000';
     let release: () => void = () => {};
     const gate = new Promise<void>((r) => (release = r));
     await page.route('**/v1/auth/email/verify', async (route) => {
