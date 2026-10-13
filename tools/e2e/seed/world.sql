@@ -7,6 +7,7 @@
 --   Crescent Kitchen  LIVE, but its certificate expired 7 days ago: hidden from customers
 --   customer Amina    +1 416 555 0110, home 900 m north of the grill   (the Android app)
 --   customer Omar     +1 416 555 0111, home 900 m south of the grill   (orders placed through the API)
+--   customer Yusuf    +1 416 555 0112, home 900 m south of the grill   (the redesigned rider's offer: Omar's order is still in flight)
 --   rider Bilal       +1 416 555 0161, approved, payouts set up, offline (the Android app)
 --   admin             super admin, email + password + TOTP
 --
@@ -30,12 +31,14 @@ ON CONFLICT (id) DO NOTHING;
 INSERT INTO account (id, phone_e164, phone_verified_at, status, timezone) VALUES
   ('e2e00000-0000-4000-8000-00000000c001', '+14165550110', now(), 'ACTIVE', 'America/Toronto'),
   ('e2e00000-0000-4000-8000-00000000c002', '+14165550111', now(), 'ACTIVE', 'America/Toronto'),
+  ('e2e00000-0000-4000-8000-00000000c003', '+14165550112', now(), 'ACTIVE', 'America/Toronto'),
   ('e2e00000-0000-4000-8000-00000000d001', '+14165550161', now(), 'ACTIVE', 'America/Toronto')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO customer_profile (account_id, first_name, last_name) VALUES
   ('e2e00000-0000-4000-8000-00000000c001', 'Amina', 'Test'),
-  ('e2e00000-0000-4000-8000-00000000c002', 'Omar', 'Test')
+  ('e2e00000-0000-4000-8000-00000000c002', 'Omar', 'Test'),
+  ('e2e00000-0000-4000-8000-00000000c003', 'Yusuf', 'Test')
 ON CONFLICT (account_id) DO NOTHING;
 
 -- ---------------------------------------------------------------------------
@@ -61,6 +64,7 @@ INSERT INTO account_role (account_id, role, scope_type, scope_id) VALUES
   ('e2e00000-0000-4000-8000-00000000b001', 'RESTAURANT_OWNER', 'RESTAURANT', 'e2e00000-0000-4000-8000-0000000000a1'),
   ('e2e00000-0000-4000-8000-00000000c001', 'CUSTOMER', 'GLOBAL', NULL),
   ('e2e00000-0000-4000-8000-00000000c002', 'CUSTOMER', 'GLOBAL', NULL),
+  ('e2e00000-0000-4000-8000-00000000c003', 'CUSTOMER', 'GLOBAL', NULL),
   ('e2e00000-0000-4000-8000-00000000d001', 'RIDER', 'GLOBAL', NULL)
 ON CONFLICT DO NOTHING;
 
@@ -178,12 +182,15 @@ VALUES
   ('e2e00000-0000-4000-8000-0000000007c1', 'e2e00000-0000-4000-8000-00000000c001', 'Home', '1 Dundas St W',
    'Toronto', 'ON', 'M5G 1Z3', ST_SetSRID(ST_MakePoint(-79.3832, 43.6613), 4326)::geography, 'America/Toronto', true),
   ('e2e00000-0000-4000-8000-0000000007c2', 'e2e00000-0000-4000-8000-00000000c002', 'Home', '200 Front St W',
+   'Toronto', 'ON', 'M5V 3K2', ST_SetSRID(ST_MakePoint(-79.3832, 43.6451), 4326)::geography, 'America/Toronto', true),
+  ('e2e00000-0000-4000-8000-0000000007c3', 'e2e00000-0000-4000-8000-00000000c003', 'Home', '210 Front St W',
    'Toronto', 'ON', 'M5V 3K2', ST_SetSRID(ST_MakePoint(-79.3832, 43.6451), 4326)::geography, 'America/Toronto', true)
 ON CONFLICT (id) DO NOTHING;
 
 UPDATE customer_profile AS cp SET default_address_id = x.address_id::uuid
   FROM (VALUES ('e2e00000-0000-4000-8000-00000000c001', 'e2e00000-0000-4000-8000-0000000007c1'),
-               ('e2e00000-0000-4000-8000-00000000c002', 'e2e00000-0000-4000-8000-0000000007c2')
+               ('e2e00000-0000-4000-8000-00000000c002', 'e2e00000-0000-4000-8000-0000000007c2'),
+               ('e2e00000-0000-4000-8000-00000000c003', 'e2e00000-0000-4000-8000-0000000007c3')
        ) AS x(account_id, address_id)
  WHERE cp.account_id = x.account_id::uuid AND cp.default_address_id IS NULL;
 

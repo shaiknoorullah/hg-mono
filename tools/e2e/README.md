@@ -79,6 +79,7 @@ through the API during the flows.
 | Crescent Kitchen | Live, certificate expired 7 days ago: customers never see it | — |
 | Amina | Customer, home 900 m from the grill | `+1 416 555 0110` on the Android app |
 | Omar | Customer, home 900 m from the grill | `+1 416 555 0111`, through the API (one active order per customer, so a second person) |
+| Yusuf | Customer, home 900 m from the grill | `+1 416 555 0112`, through the API, for the redesigned rider's offer (Omar's order is still in flight by then) |
 | Bilal | Rider, approved, payouts set up, offline | `+1 416 555 0161` on the Android app |
 | Admin | Super admin | `admin@e2e.halalgoes.test`, the run's password and a TOTP code |
 
@@ -165,7 +166,7 @@ not in the e2e world.
 
 **The rider's offer, on the emulator.** `run.sh` runs the rider's `redesign/3-offer.yaml` with a
 real order: while the flow waits online at the restaurant, it places an order through the API
-(`lib/api.mjs place-order api`), accepts it with the `@cross-accept` spec and, once the rider is
+(`lib/api.mjs place-order redesign`, as Yusuf, and refreshes the restaurant heartbeat first), accepts it with the `@cross-accept` spec and, once the rider is
 online, marks it ready with `@cross-ready`. The flow checks the offer shows the drop-off area and
 not the address, then declines it. Accepting and the trip stay in the device lab until the backend
 takes the pickup code instead of a seal scan ([#315](https://github.com/shaiknoorullah/hg-mono/issues/315)).
