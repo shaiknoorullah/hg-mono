@@ -1,0 +1,18 @@
+{
+  "scenario": "health_version",
+  "domain": "platform",
+  "schema": "HealthStatus",
+  "describes": "`/health` on a released build: `version` is the release the replica runs (`HG_SERVICE_VERSION`; `dev` locally), `started_at` when this process started. The console footer shows both.",
+  "operations": [
+    "getHealth"
+  ],
+  "status": 200,
+  "tags": [
+    "platform"
+  ],
+  "payload": {
+    "status": "ok",
+    "version": "1.0.0+a3268a23",
+    "started_at": "2026-08-07T14:42:11.412Z"
+  }
+}

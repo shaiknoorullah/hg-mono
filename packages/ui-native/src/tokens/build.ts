@@ -254,6 +254,171 @@ function derivedRoles(color: any, scheme: 'light' | 'dark') {
   };
 }
 
+/* --------------------------------------------- shadcn / RNR semantic aliases */
+
+/**
+ * The semantic variable names React Native Reusables (and shadcn/ui) components are written
+ * against, each an ALIAS of one of our roles — never a new value. The table is the plan's
+ * §3.2 mapping (design-system plan, "Mapping to Tailwind v4 and NativeWind v4").
+ *
+ * Two deliberate departures from RNR's defaults:
+ *   - values are hex, not `hsl()` channel triples: RNR's `hsl(var(--x))` template is rewritten
+ *     to `var(--x)` on copy-in, so the variable holds a complete colour;
+ *   - `--accent` is the selected-state TINT, not our forest `color.accent.*` ramp. shadcn's
+ *     "accent" is a hover/selected wash; mapping it to the forest ramp would paint forest
+ *     washes on hover.
+ *
+ * `--primary-foreground` is `text.onBrand` (#0F241C), never white (1.62:1 on brand 500).
+ */
+type ThemeColorsLoose = Record<string, Record<string, any>>;
+/** shadcn/RNR variable name -> the role it aliases, read from one theme × scheme's colours. */
+export const RNR_ALIASES: Record<string, (c: ThemeColorsLoose) => string> = {
+  '--background': (c) => c.surface!.base,
+  '--foreground': (c) => c.text!.primary,
+  '--card': (c) => c.surface!.raised,
+  '--card-foreground': (c) => c.text!.primary,
+  '--popover': (c) => c.surface!.raised,
+  '--popover-foreground': (c) => c.text!.primary,
+  '--primary': (c) => c.action!.primary,
+  '--primary-foreground': (c) => c.text!.onBrand,
+  '--secondary': (c) => c.action!.secondary,
+  '--secondary-foreground': (c) => c.text!.onAccent,
+  '--muted': (c) => c.surface!.subtle,
+  '--muted-foreground': (c) => c.text!.secondary,
+  '--accent': (c) => c.state!.selectedTint,
+  '--accent-foreground': (c) => c.text!.primary,
+  '--destructive': (c) => c.action!.danger,
+  '--destructive-foreground': (c) => c.feedback!.danger.onSolid,
+  '--border': (c) => c.border!.decorative,
+  '--input': (c) => c.border!.interactive,
+  '--ring': (c) => c.focus!.ring,
+};
+
+/** Tailwind colour utilities for the aliases above (`bg-primary`, `text-muted-foreground`). */
+const RNR_PRESET_COLORS = {
+  background: 'var(--background)',
+  foreground: 'var(--foreground)',
+  card: { DEFAULT: 'var(--card)', foreground: 'var(--card-foreground)' },
+  popover: { DEFAULT: 'var(--popover)', foreground: 'var(--popover-foreground)' },
+  primary: { DEFAULT: 'var(--primary)', foreground: 'var(--primary-foreground)' },
+  secondary: { DEFAULT: 'var(--secondary)', foreground: 'var(--secondary-foreground)' },
+  muted: { DEFAULT: 'var(--muted)', foreground: 'var(--muted-foreground)' },
+  destructive: { DEFAULT: 'var(--destructive)', foreground: 'var(--destructive-foreground)' },
+  input: 'var(--input)',
+  ring: 'var(--ring)',
+} as const;
+
+/**
+ * `global.<theme>.css` — what an app hands to `withNativeWind(config, { input })` and imports
+ * once at its root. `:root` holds the light scheme, `.dark:root` the dark one (NativeWind 4's
+ * class dark mode), each as resolved hex: the `--hg-*` role variables the preset's role
+ * utilities read (`bg-surface-base`), then the RNR aliases (`bg-primary`).
+ */
+export function nativewindGlobalCss(
+  themeName: string,
+  vars: Record<'light' | 'dark', Record<string, string>>,
+  colors: Record<'light' | 'dark', ThemeColorsLoose>,
+): string {
+  const block = (selector: string, scheme: 'light' | 'dark') => {
+    const lines = Object.entries(vars[scheme]).map(([k, v]) => `  ${k}: ${v};`);
+    lines.push('');
+    for (const [name, pick] of Object.entries(RNR_ALIASES)) {
+      lines.push(`  ${name}: ${pick(colors[scheme])};`);
+    }
+    return `${selector} {\n${lines.join('\n')}\n}\n`;
+  };
+  return [
+    '/*',
+    ' * GENERATED FILE — DO NOT EDIT.',
+    ' *',
+    ' * Source:    docs/design/tokens.json (W3C DTCG, the system of record)',
+    ' * Generator: packages/ui-native/src/tokens/build.ts (nativewindGlobalCss)',
+    ' * Command:   pnpm --filter @hg/ui-native generate:tokens',
+    ' *',
+    ` * NativeWind 4 input for the ${themeName} theme. Hex values, never hsl().`,
+    ' */',
+    '@tailwind base;',
+    '@tailwind components;',
+    '@tailwind utilities;',
+    '',
+    block(':root', 'light'),
+    block('.dark:root', 'dark'),
+  ].join('\n');
+}
+
+/**
+ * React Native has no font fallback chain and takes one static face per weight, so the web
+ * stack in `font.family.ui` is useless to NativeWind. These utilities name the four
+ * `@expo-google-fonts/plus-jakarta-sans` faces that `useHgFonts()` registers and
+ * `ThemeProvider`'s `UI_FAMILY_BY_WEIGHT` uses: `font-sans` (regular), `font-sans-medium`,
+ * `font-sans-semibold`, `font-sans-bold`. Derived from `font.weight`, so a weight added to the
+ * tokens without a face here fails the build instead of rendering the system font.
+ */
+const RN_UI_FACE_SUFFIX: Record<number, string> = {
+  400: '400Regular',
+  500: '500Medium',
+  600: '600SemiBold',
+  700: '700Bold',
+};
+
+/** `font.weight` -> `{ sans, 'sans-medium', … }` Tailwind font families naming the RN faces. */
+export function rnUiFontFamilies(weights: Record<string, number>): Record<string, string[]> {
+  const out: Record<string, string[]> = {};
+  for (const [name, weight] of Object.entries(weights)) {
+    const suffix = RN_UI_FACE_SUFFIX[weight];
+    if (!suffix) throw new Error(`no Plus Jakarta Sans face for font.weight.${name} (${weight})`);
+    out[name === 'regular' ? 'sans' : `sans-${name}`] = [`PlusJakartaSans_${suffix}`];
+  }
+  return out;
+}
+
+/**
+ * Role groups the className tier needs that `vars.ts` (the StyleSheet tier's map) never carried:
+ * the semantic feedback set (`--hg-feedback-danger-tint`, …) and the skeleton shimmer. Written
+ * to `global.<theme>.css` only, so `themeVars` and everything the released apps bundle stay as
+ * they were (one value differs on purpose: the dark skeleton base, see below). A `null` role is skipped, not emitted: `feedback.success.solid` is `null` (RULE
+ * H-1), so `bg-feedback-success-solid` has no variable behind it and paints nothing.
+ */
+export function cssOnlyRoleVars(
+  color: ThemeColorsLoose,
+  scheme: 'light' | 'dark',
+  ramps: Record<string, Record<string, string>>,
+): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [name, role] of Object.entries(color.feedback ?? {})) {
+    for (const [leaf, value] of Object.entries(role as Record<string, unknown>)) {
+      if (typeof value === 'string') out[`--hg-feedback-${name}-${kebab(leaf)}`] = value;
+    }
+    // The soft edge of a tint plate (the live Badge draws `<name>.100`); in the dark scheme
+    // the plate needs no edge, so it is the tint itself.
+    const tint = (role as Record<string, unknown>).tint;
+    const soft = scheme === 'dark' ? tint : ramps[name]?.['100'];
+    if (typeof soft === 'string') out[`--hg-feedback-${name}-tint-border`] = soft;
+  }
+  for (const [leaf, value] of Object.entries(color.skeleton ?? {})) {
+    if (typeof value === 'string') out[`--hg-skeleton-${kebab(leaf)}`] = value;
+  }
+  // #167: the dark base `neutral.800` is the raised surface itself (1.0:1 on a card), so the
+  // className tier's skeleton steps down to `neutral.700`. The StyleSheet tier keeps its value.
+  if (scheme === 'dark' && ramps.neutral?.['700']) out['--hg-skeleton-base'] = ramps.neutral['700'];
+  return out;
+}
+
+/** Tailwind colour utilities for `cssOnlyRoleVars` (`bg-feedback-danger-tint`, `bg-skeleton-base`). */
+function cssOnlyRoleColors(color: ThemeColorsLoose): Record<string, unknown> {
+  const feedback: Record<string, Record<string, string>> = {};
+  for (const [name, role] of Object.entries(color.feedback ?? {})) {
+    const leaves = Object.entries(role as Record<string, unknown>).filter(([, v]) => typeof v === 'string');
+    feedback[name] = Object.fromEntries(
+      [...leaves.map(([leaf]) => kebab(leaf)), 'tint-border'].map((leaf) => [leaf, `var(--hg-feedback-${name}-${leaf})`]),
+    );
+  }
+  const skeleton = Object.fromEntries(
+    Object.keys(color.skeleton ?? {}).map((leaf) => [kebab(leaf), `var(--hg-skeleton-${kebab(leaf)})`]),
+  );
+  return { feedback, skeleton };
+}
+
 /* ----------------------------------------------------------------- builder */
 
 export function buildFiles(doc: Dtcg): Record<string, string> {
@@ -453,6 +618,21 @@ export function buildFiles(doc: Dtcg): Record<string, string> {
       '',
     ].join('\n');
 
+  /* ------------------------------------------------- global.<theme>.css */
+
+  for (const themeName of Object.keys(THEME_SPEC)) {
+    const t = themes[themeName] as any;
+    const withRoles = (scheme: 'light' | 'dark') => ({
+      ...(varsOut[themeName]![scheme] as Record<string, string>),
+      ...cssOnlyRoleVars(t[scheme].color, scheme, tokens.color),
+    });
+    files[`global.${themeName}.css`] = nativewindGlobalCss(
+      themeName,
+      { light: withRoles('light'), dark: withRoles('dark') },
+      { light: t.light.color, dark: t.dark.color },
+    );
+  }
+
   /* ------------------------------------------------- nativewind-preset.cjs */
 
   const presetColors: Record<string, unknown> = {};
@@ -465,6 +645,20 @@ export function buildFiles(doc: Dtcg): Record<string, string> {
       leafs.map((leaf) => [kebab(leaf), `var(${cssVar(group === 'text' ? 'fg' : group, leaf)})`]),
     );
   }
+  /*
+   * RNR aliases (`global.<theme>.css`). Two names already exist as our groups and gain a
+   * DEFAULT rather than being replaced: `border` (so `border-border` works beside
+   * `border-border-interactive`) and `accent` (the forest ramp keeps its numbered steps;
+   * bare `bg-accent` is shadcn's selected wash, `--accent`).
+   */
+  Object.assign(presetColors, RNR_PRESET_COLORS);
+  Object.assign(presetColors, cssOnlyRoleColors((themes.customer as any).light.color));
+  presetColors.border = { DEFAULT: 'var(--border)', ...(presetColors.border as object) };
+  presetColors.accent = {
+    ...(presetColors.accent as object),
+    DEFAULT: 'var(--accent)',
+    foreground: 'var(--accent-foreground)',
+  };
 
   const preset = {
     darkMode: 'class',
@@ -477,7 +671,7 @@ export function buildFiles(doc: Dtcg): Record<string, string> {
         borderRadius: Object.fromEntries(
           Object.entries(tokens.radius as Record<string, number>).map(([k, v]) => [k, `${v}px`]),
         ),
-        fontFamily: tokens.font.family,
+        fontFamily: { ...tokens.font.family, ...rnUiFontFamilies(tokens.font.weight) },
         fontWeight: Object.fromEntries(
           Object.entries(tokens.font.weight as Record<string, number>).map(([k, v]) => [
             k,

@@ -1,0 +1,119 @@
+{
+  "scenario": "earnings_summary_negative_balance",
+  "domain": "rider",
+  "schema": "EarningsSummary",
+  "describes": "Last week ended below zero: two clawbacks on Wednesday (-18.98) outweigh the five trips, so the week's total is 7.96 and `unpaid_balance_cents` is -4.49. A negative balance is carried to the next run, never paid out or charged.",
+  "operations": [
+    "getRiderEarningsSummary"
+  ],
+  "status": 200,
+  "tags": [
+    "rider",
+    "money",
+    "edge"
+  ],
+  "payload": {
+    "period": "WEEK",
+    "buckets": [
+      {
+        "bucket_start": "2026-08-03T04:00:00.000Z",
+        "gross_cents": 1347,
+        "delivery_cents": 897,
+        "tip_cents": 450,
+        "bonus_cents": 0,
+        "adjustment_cents": 0,
+        "trips": 2,
+        "online_seconds": 3120,
+        "distance_m": 8240,
+        "effective_cents_per_hour": 1554
+      },
+      {
+        "bucket_start": "2026-08-04T04:00:00.000Z",
+        "gross_cents": 0,
+        "delivery_cents": 0,
+        "tip_cents": 0,
+        "bonus_cents": 0,
+        "adjustment_cents": 0,
+        "trips": 0,
+        "online_seconds": 0,
+        "distance_m": 0,
+        "effective_cents_per_hour": null
+      },
+      {
+        "bucket_start": "2026-08-05T04:00:00.000Z",
+        "gross_cents": -1898,
+        "delivery_cents": 0,
+        "tip_cents": 0,
+        "bonus_cents": 0,
+        "adjustment_cents": -1898,
+        "trips": 0,
+        "online_seconds": 0,
+        "distance_m": 0,
+        "effective_cents_per_hour": null
+      },
+      {
+        "bucket_start": "2026-08-06T04:00:00.000Z",
+        "gross_cents": 898,
+        "delivery_cents": 898,
+        "tip_cents": 0,
+        "bonus_cents": 0,
+        "adjustment_cents": 0,
+        "trips": 2,
+        "online_seconds": 3120,
+        "distance_m": 8240,
+        "effective_cents_per_hour": 1036
+      },
+      {
+        "bucket_start": "2026-08-07T04:00:00.000Z",
+        "gross_cents": 0,
+        "delivery_cents": 0,
+        "tip_cents": 0,
+        "bonus_cents": 0,
+        "adjustment_cents": 0,
+        "trips": 0,
+        "online_seconds": 0,
+        "distance_m": 0,
+        "effective_cents_per_hour": null
+      },
+      {
+        "bucket_start": "2026-08-08T04:00:00.000Z",
+        "gross_cents": 449,
+        "delivery_cents": 449,
+        "tip_cents": 0,
+        "bonus_cents": 0,
+        "adjustment_cents": 0,
+        "trips": 1,
+        "online_seconds": 1560,
+        "distance_m": 4120,
+        "effective_cents_per_hour": 1036
+      },
+      {
+        "bucket_start": "2026-08-09T04:00:00.000Z",
+        "gross_cents": 0,
+        "delivery_cents": 0,
+        "tip_cents": 0,
+        "bonus_cents": 0,
+        "adjustment_cents": 0,
+        "trips": 0,
+        "online_seconds": 0,
+        "distance_m": 0,
+        "effective_cents_per_hour": null
+      }
+    ],
+    "total": {
+      "bucket_start": "2026-08-03T04:00:00.000Z",
+      "gross_cents": 796,
+      "delivery_cents": 2244,
+      "tip_cents": 450,
+      "bonus_cents": 0,
+      "adjustment_cents": -1898,
+      "trips": 5,
+      "online_seconds": 7800,
+      "distance_m": 20600,
+      "effective_cents_per_hour": 367
+    },
+    "unpaid_balance_cents": -449,
+    "next_payout_at": "2026-08-17T13:00:00.000Z",
+    "currency": "CAD"
+  }
+}

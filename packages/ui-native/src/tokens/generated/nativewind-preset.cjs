@@ -51,6 +51,8 @@ module.exports = {
           '800': '#0F241C',
           '900': '#0A1913',
           '950': '#05100B',
+          DEFAULT: 'var(--accent)',
+          foreground: 'var(--accent-foreground)',
         },
         neutral: {
           '0': '#FFFFFF',
@@ -186,6 +188,7 @@ module.exports = {
           'secondary-field': 'var(--hg-fg-secondary-field)',
         },
         border: {
+          DEFAULT: 'var(--border)',
           decorative: 'var(--hg-border-decorative)',
           interactive: 'var(--hg-border-interactive)',
           strong: 'var(--hg-border-strong)',
@@ -195,6 +198,78 @@ module.exports = {
           ring: 'var(--hg-focus-ring)',
           offset: 'var(--hg-focus-offset)',
           'on-color': 'var(--hg-focus-on-color)',
+        },
+        background: 'var(--background)',
+        foreground: 'var(--foreground)',
+        card: {
+          DEFAULT: 'var(--card)',
+          foreground: 'var(--card-foreground)',
+        },
+        popover: {
+          DEFAULT: 'var(--popover)',
+          foreground: 'var(--popover-foreground)',
+        },
+        primary: {
+          DEFAULT: 'var(--primary)',
+          foreground: 'var(--primary-foreground)',
+        },
+        secondary: {
+          DEFAULT: 'var(--secondary)',
+          foreground: 'var(--secondary-foreground)',
+        },
+        muted: {
+          DEFAULT: 'var(--muted)',
+          foreground: 'var(--muted-foreground)',
+        },
+        destructive: {
+          DEFAULT: 'var(--destructive)',
+          foreground: 'var(--destructive-foreground)',
+        },
+        input: 'var(--input)',
+        ring: 'var(--ring)',
+        feedback: {
+          success: {
+            tint: 'var(--hg-feedback-success-tint)',
+            'tint-text': 'var(--hg-feedback-success-tint-text)',
+            text: 'var(--hg-feedback-success-text)',
+            icon: 'var(--hg-feedback-success-icon)',
+            border: 'var(--hg-feedback-success-border)',
+            'tint-border': 'var(--hg-feedback-success-tint-border)',
+          },
+          warning: {
+            tint: 'var(--hg-feedback-warning-tint)',
+            'tint-text': 'var(--hg-feedback-warning-tint-text)',
+            text: 'var(--hg-feedback-warning-text)',
+            icon: 'var(--hg-feedback-warning-icon)',
+            border: 'var(--hg-feedback-warning-border)',
+            solid: 'var(--hg-feedback-warning-solid)',
+            'on-solid': 'var(--hg-feedback-warning-on-solid)',
+            'tint-border': 'var(--hg-feedback-warning-tint-border)',
+          },
+          danger: {
+            tint: 'var(--hg-feedback-danger-tint)',
+            'tint-text': 'var(--hg-feedback-danger-tint-text)',
+            text: 'var(--hg-feedback-danger-text)',
+            icon: 'var(--hg-feedback-danger-icon)',
+            border: 'var(--hg-feedback-danger-border)',
+            solid: 'var(--hg-feedback-danger-solid)',
+            'on-solid': 'var(--hg-feedback-danger-on-solid)',
+            'tint-border': 'var(--hg-feedback-danger-tint-border)',
+          },
+          info: {
+            tint: 'var(--hg-feedback-info-tint)',
+            'tint-text': 'var(--hg-feedback-info-tint-text)',
+            text: 'var(--hg-feedback-info-text)',
+            icon: 'var(--hg-feedback-info-icon)',
+            border: 'var(--hg-feedback-info-border)',
+            solid: 'var(--hg-feedback-info-solid)',
+            'on-solid': 'var(--hg-feedback-info-on-solid)',
+            'tint-border': 'var(--hg-feedback-info-tint-border)',
+          },
+        },
+        skeleton: {
+          base: 'var(--hg-skeleton-base)',
+          highlight: 'var(--hg-skeleton-highlight)',
         },
       },
       spacing: {
@@ -260,6 +335,18 @@ module.exports = {
           'Consolas',
           'Liberation Mono',
           'monospace',
+        ],
+        sans: [
+          'PlusJakartaSans_400Regular',
+        ],
+        'sans-medium': [
+          'PlusJakartaSans_500Medium',
+        ],
+        'sans-semibold': [
+          'PlusJakartaSans_600SemiBold',
+        ],
+        'sans-bold': [
+          'PlusJakartaSans_700Bold',
         ],
       },
       fontWeight: {

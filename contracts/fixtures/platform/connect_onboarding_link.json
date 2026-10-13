@@ -1,0 +1,18 @@
+{
+  "scenario": "connect_onboarding_link",
+  "domain": "platform",
+  "schema": "ConnectOnboardingLink",
+  "describes": "`createConnectOnboardingLink` (201): a single-use Stripe-hosted onboarding URL that expires in five minutes. Open it straight away; never store it.",
+  "operations": [
+    "createConnectOnboardingLink"
+  ],
+  "status": 201,
+  "tags": [
+    "platform",
+    "money"
+  ],
+  "payload": {
+    "url": "https://connect.stripe.com/setup/e/acct_1QkR7mE8xVn2LbQ1/Xy7Qp2Lm9Rt4",
+    "expires_at": "2026-08-10T18:47:11.412Z"
+  }
+}

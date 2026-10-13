@@ -1,0 +1,20 @@
+{
+  "scenario": "otp_challenge_resend_open",
+  "domain": "platform",
+  "schema": "OtpChallenge",
+  "describes": "A challenge whose resend cooldown is over (`resend_after_s: 0`): \"Send a new code\" is enabled at once. The code itself is still valid for four minutes.",
+  "operations": [
+    "requestOtp"
+  ],
+  "status": 200,
+  "tags": [
+    "platform",
+    "auth",
+    "edge"
+  ],
+  "payload": {
+    "challenge_id": "a0918c3e-0008-48f8-a06a-5dc11cc254ca",
+    "resend_after_s": 0,
+    "expires_at": "2026-08-10T18:46:11.412Z"
+  }
+}

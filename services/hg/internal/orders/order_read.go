@@ -8,6 +8,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/handover"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders/machine"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders/money"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders/pricing"
@@ -54,6 +55,12 @@ type OrderView struct {
 	PickedUpAt           *time.Time
 	DeliveredAt          *time.Time
 	CompletedAt          *time.Time
+	// DeliveryCode is the 4-digit code the customer reads to the rider at a met
+	// handover, set only while handover.DeliveryCodeVisible says so. This view
+	// is the customer's own (order_visibility via CUSTOMER), so it is one of the
+	// two places the code may appear (contracts/openapi.yaml,
+	// OrderCustomerView.delivery_code; https://github.com/shaiknoorullah/hg-mono/issues/310).
+	DeliveryCode *string
 }
 
 // OrderViewLine is one customer-facing order line.
@@ -124,6 +131,8 @@ func (s *Store) loadOrderView(ctx context.Context, tx pgx.Tx, accountID, orderID
 	var v OrderView
 	var halalCertExpiresOn *time.Time
 	var logoBucket, logoKey *string
+	var deliveryCodeEnc []byte
+	var deliveryCodeAttempts int
 	// The restaurant's logo object (READY only) is joined from stored_object so
 	// logo_image_url carries the direct public URL — logo_object_id is a
 	// stored_object UUID, not a URI, so it is resolved through the media builder
@@ -139,7 +148,8 @@ func (s *Store) loadOrderView(ctx context.Context, tx pgx.Tx, accountID, orderID
 		       o.tax_total_cents, o.tip_cents, o.total_cents, o.currency::text,
 		       o.delivery_instructions, o.special_instructions,
 		       o.cancel_reason::text, o.reject_reason::text, o.fulfilment::text,
-		       o.placed_at, o.accepted_at, o.ready_at, o.picked_up_at, o.delivered_at, o.completed_at
+		       o.placed_at, o.accepted_at, o.ready_at, o.picked_up_at, o.delivered_at, o.completed_at,
+		       o.delivery_code_enc, o.delivery_code_attempts
 		  FROM "order" o
 		  JOIN order_visibility ov ON ov.order_id = o.id AND ov.account_id = $1 AND ov.via = 'CUSTOMER'
 		  JOIN restaurant r ON r.id = o.restaurant_id
@@ -156,12 +166,16 @@ func (s *Store) loadOrderView(ctx context.Context, tx pgx.Tx, accountID, orderID
 		&v.TaxTotalCents, &v.TipCents, &v.TotalCents, &v.Currency,
 		&v.DeliveryInstructions, &v.SpecialInstructions,
 		&v.CancelReason, &v.RejectReason, &v.Fulfilment,
-		&v.PlacedAt, &v.AcceptedAt, &v.ReadyAt, &v.PickedUpAt, &v.DeliveredAt, &v.CompletedAt)
+		&v.PlacedAt, &v.AcceptedAt, &v.ReadyAt, &v.PickedUpAt, &v.DeliveredAt, &v.CompletedAt,
+		&deliveryCodeEnc, &deliveryCodeAttempts)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrOrderNotFound
 	}
 	if err != nil {
 		return nil, fmt.Errorf("load order: %w", err)
+	}
+	if handover.DeliveryCodeVisible(v.State, v.DeliveryInstructions, deliveryCodeAttempts) {
+		v.DeliveryCode = handover.Reveal(v.ID, handover.Delivery, deliveryCodeEnc)
 	}
 	if halalCertExpiresOn != nil {
 		s := halalCertExpiresOn.Format("2006-01-02")
