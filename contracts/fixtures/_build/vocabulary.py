@@ -71,6 +71,17 @@ FAMILIES = [
     ("menu_", "A menu, item, category or version state.", "menu_version_pending_review"),
     ("rider_availability_", "A `RiderAvailabilityState`, lower case.", "rider_availability_online_idle"),
     ("payout_", "A `PayoutState`, lower case, or a payout run.", "payout_held"),
+    ("payout_list_", "A rider payout list (`_every_state`, `_multi_problem`, `_draft_paid`).", "payout_list_every_state"),
+    ("rider_dashboard_", "Rider Home: a `RiderAvailabilityState` (lower case), a `TrackingHealth` problem, a blocking reason or a delivery leg.", "rider_dashboard_online_stale"),
+    ("connect_status_", "A Stripe Connect requirement state, in Stripe's words (`currently_due`, `past_due`, `pending_verification`).", "connect_status_past_due"),
+    ("earnings_summary_", "An `EarningsPeriod`, lower case, or a money edge.", "earnings_summary_day"),
+    ("earning_entries_", "A rider ledger page or situation (`_paging`, `_clawback`, `_pending`).", "earning_entries_clawback"),
+    ("restaurant_list_", "A customer home list: halal-field gaps, sort order, availability mix, a page.", "restaurant_list_partial_halal"),
+    ("restaurant_hours_", "An opening-hours shape.", "restaurant_hours_split_past_midnight"),
+    ("restaurant_payout_history", "A restaurant's payout list or one of its pages.", "restaurant_payout_history_every_state"),
+    ("owned_menu_", "The restaurant's own menu, as its editor reads it.", "owned_menu_every_review_status"),
+    ("order_admin_list_", "A staff order list variant.", "order_admin_list_every_state"),
+    ("staff_list", "A platform staff list variant.", "staff_list_edge_rows"),
 ]
 
 

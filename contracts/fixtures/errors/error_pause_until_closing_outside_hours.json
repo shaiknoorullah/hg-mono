@@ -1,0 +1,20 @@
+{
+  "scenario": "error_pause_until_closing_outside_hours",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`409` · `RESTAURANT_CLOSED`. `pause_until_closing: true` outside trading hours. There is no current trading period to pause until the end of; nothing changes.",
+  "operations": [
+    "setRestaurantAcceptingOrders"
+  ],
+  "status": 409,
+  "tags": [
+    "error-envelope"
+  ],
+  "payload": {
+    "error": {
+      "code": "RESTAURANT_CLOSED",
+      "message": "You're outside your opening hours, so there is nothing to pause.",
+      "request_id": "Z9BZJ4PJH4VSB5DJ28T6SWMM7D"
+    }
+  }
+}

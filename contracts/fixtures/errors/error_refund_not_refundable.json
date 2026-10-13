@@ -1,0 +1,24 @@
+{
+  "scenario": "error_refund_not_refundable",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`409` · `PAYMENT_NOT_REFUNDABLE`. A refund on an order whose payment was never captured (it was voided). There is nothing to refund; cancel the order instead.",
+  "operations": [
+    "issueRefund",
+    "createRefund"
+  ],
+  "status": 409,
+  "tags": [
+    "error-envelope",
+    "error-path",
+    "admin",
+    "money"
+  ],
+  "payload": {
+    "error": {
+      "code": "PAYMENT_NOT_REFUNDABLE",
+      "message": "This order was never captured; cancel it instead of refunding.",
+      "request_id": "3VJ4XK5TRKE36DZSJTKY15T2HN"
+    }
+  }
+}

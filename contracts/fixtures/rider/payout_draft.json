@@ -2,11 +2,8 @@
   "scenario": "payout_draft",
   "domain": "rider",
   "schema": "Payout",
-  "describes": "The week is still accruing. Nothing is owed yet.",
-  "operations": [
-    "listRiderPayouts",
-    "listRestaurantPayouts"
-  ],
+  "describes": "The week is still accruing. Nothing is owed yet. A single `Payout` row; the list operations serve `payout_list_*`.",
+  "operations": [],
   "status": 200,
   "tags": [
     "payout-state-matrix",

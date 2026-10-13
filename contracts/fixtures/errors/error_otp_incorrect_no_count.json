@@ -1,0 +1,21 @@
+{
+  "scenario": "error_otp_incorrect_no_count",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`400` · `OTP_INCORRECT`. A wrong sign-in code with `details` absent. `services/hg` always sends the count; this pins the client's fallback copy when a count is missing.",
+  "operations": [
+    "verifyOtp"
+  ],
+  "status": 400,
+  "tags": [
+    "error-envelope",
+    "error-path"
+  ],
+  "payload": {
+    "error": {
+      "code": "OTP_INCORRECT",
+      "message": "That code is incorrect.",
+      "request_id": "PFAV690QJZT9NN47QYK8SVR62K"
+    }
+  }
+}

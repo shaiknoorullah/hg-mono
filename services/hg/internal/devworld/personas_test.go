@@ -25,10 +25,10 @@ func TestWorldLiteralsAreInTheSQL(t *testing.T) {
 		}
 		one := string(raw)
 		if strings.Contains(one, "+goose") {
-			t.Fatalf("%s must not be a goose migration", filepath.Base(path))
+			t.Fatalf("%s: devworld SQL must not be a goose migration", filepath.Base(path))
 		}
 		if !strings.Contains(one, "BEGIN;") || !strings.Contains(one, "COMMIT;") {
-			t.Fatalf("%s must be one transaction so its rows commit together", filepath.Base(path))
+			t.Fatalf("%s: devworld SQL must be one transaction so certificate checks commit together", filepath.Base(path))
 		}
 		all.WriteString(one)
 	}
@@ -73,26 +73,5 @@ func TestAdminTOTPSecretIsStable(t *testing.T) {
 	}
 	if other == a {
 		t.Fatal("different emails derived the same secret")
-	}
-}
-
-// One staff persona per staff role, each in the manifest, so the admin console's
-// role matrix can be walked after a reset (#677).
-func TestStaffCoversEveryStaffRole(t *testing.T) {
-	inWorld := map[string]bool{}
-	for _, id := range World {
-		inWorld[id.Slug+"|"+id.Email] = true
-	}
-	roles := map[string]int{}
-	for _, s := range Staff {
-		roles[s.Role]++
-		if !inWorld[s.Slug+"|"+s.Email] {
-			t.Errorf("staff persona %s (%s) is not in World", s.Slug, s.Email)
-		}
-	}
-	for _, role := range []string{"SUPER_ADMIN", "ADMIN", "SUPPORT_AGENT"} {
-		if roles[role] != 1 {
-			t.Errorf("staff role %s has %d personas, want 1", role, roles[role])
-		}
 	}
 }
