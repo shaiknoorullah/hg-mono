@@ -1,0 +1,24 @@
+{
+  "scenario": "error_session_expired",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`401` · `SESSION_EXPIRED`. `refreshSession` with a refresh token past its lifetime.",
+  "operations": [
+    "refreshSession"
+  ],
+  "status": 401,
+  "tags": [
+    "error-envelope",
+    "error-path",
+    "customer",
+    "auth",
+    "session"
+  ],
+  "payload": {
+    "error": {
+      "code": "SESSION_EXPIRED",
+      "message": "This session has expired. Please sign in again.",
+      "request_id": "0RFCZFJGDZQB8EN43M6AMEDF8W"
+    }
+  }
+}

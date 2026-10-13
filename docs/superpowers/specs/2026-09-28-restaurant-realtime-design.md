@@ -1,10 +1,12 @@
 ---
 covers:
   - apps/restaurant/src/**
-reviewed: 2026-10-09
+reviewed: 2026-10-11
 ---
 
 # Restaurant app — live updates and rider map
+
+> Update 2026-10-11: the onboarding review screen now shows the admin's reason from `GET /v1/restaurant/onboarding/status` (`rejection.decision`, `reason_code`, `note`), and a `REJECT` offers no resubmission on screen ([#695](https://github.com/shaiknoorullah/hg-mono/issues/695)).
 
 **Status:** design approved 2026-09-28 · **Kind:** product feature (`apps/restaurant`)
 > **2026-10-09:** the redesigned new-order strip (behind `VITE_HG_REDESIGN`,

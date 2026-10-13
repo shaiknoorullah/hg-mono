@@ -74,6 +74,9 @@ x-api-env: &api-env
   HG_AUTH_SIGNING_KEY_SEED: ${HG_AUTH_SIGNING_KEY_SEED:?set HG_AUTH_SIGNING_KEY_SEED in .env}
   HG_AUTH_SIGNING_KID: ${HG_AUTH_SIGNING_KID:-k1}
   HG_AUTH_TERMS_VERSION: ${HG_AUTH_TERMS_VERSION:-2026-01}
+  # The hg_csrf cookie's parent domain, so the web apps can refresh (#740).
+  # Empty: host-only. Production: .halalgoes.com.
+  HG_AUTH_CSRF_COOKIE_DOMAIN: ${HG_AUTH_CSRF_COOKIE_DOMAIN:-}
   HG_APP_DATA_KEY: ${HG_APP_DATA_KEY:-}
   HG_HALAL_SUSPEND_AFTER_EXPIRED_DAYS: ${HG_HALAL_SUSPEND_AFTER_EXPIRED_DAYS:-0}
   # Rider pay the owner has not settled (#164); the default is the documented

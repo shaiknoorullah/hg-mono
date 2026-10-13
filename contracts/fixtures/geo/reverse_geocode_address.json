@@ -1,0 +1,25 @@
+{
+  "scenario": "reverse_geocode_address",
+  "domain": "geo",
+  "schema": "GeocodedAddress",
+  "describes": "The pin dropped on a building: the nearest street address fills the form. Its point is a few metres from the pin; the client keeps the pin, which is what is saved.",
+  "operations": [
+    "reverseGeocode"
+  ],
+  "status": 200,
+  "tags": [
+    "geo"
+  ],
+  "payload": {
+    "kind": "ADDRESS",
+    "name": null,
+    "line1": "21 Iceboat Terrace",
+    "city": "Toronto",
+    "province": "ON",
+    "postal_code": "M5V 4A8",
+    "country": "CA",
+    "latitude": 43.6403,
+    "longitude": -79.3958,
+    "formatted": "21 Iceboat Terrace, Toronto, Ontario M5V 4A8"
+  }
+}

@@ -6,7 +6,7 @@
  * keys never show; nothing sent carries a price.
  */
 import * as React from 'react';
-import { AppState, Linking, Text } from 'react-native';
+import { Animated, AppState, Linking, Text } from 'react-native';
 import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 
 import './mocks';
@@ -138,6 +138,9 @@ describe.each(SCHEMES)('Payouts with Stripe (%s)', (scheme) => {
 
   it('checking, Check again re-reads, and after two minutes "still checking" (PA/Payout-Checking, -CheckingSlow)', async () => {
     jest.useFakeTimers({ now: new Date('2026-10-09T18:00:00Z') });
+    // The spinner's looping animation would run two minutes of frames under fake timers, which
+    // can pass Jest's 5 s limit on a busy runner. What this test checks is the copy, not the spin.
+    const loop = jest.spyOn(Animated, 'loop').mockReturnValue({ start: () => {}, stop: () => {}, reset: () => {} });
     api = mockApi({ getConnectStatus: 'connect_status_requirements_due', getPublicConfig: config() });
     renderPayouts(scheme, 'application');
     await screen.findByText('Checking with Stripe');
@@ -149,6 +152,7 @@ describe.each(SCHEMES)('Payouts with Stripe (%s)', (scheme) => {
     });
     await screen.findByText('Stripe is still checking your details');
     expect(screen.getByText("We'll let you know when Stripe finishes.")).toBeTruthy();
+    loop.mockRestore();
   });
 
   it('Stripe needs things: count, later, never the raw keys; Copy details puts them on the clipboard (PA/Payout-Due)', async () => {

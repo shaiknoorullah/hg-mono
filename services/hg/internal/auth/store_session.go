@@ -188,12 +188,25 @@ func (s *Store) RevokeFamily(ctx context.Context, familyID, reason string) error
 }
 
 // RevokeAllForAccount revokes every live session for an account (password reset,
-// account suspension).
-func (s *Store) RevokeAllForAccount(ctx context.Context, accountID, reason string) error {
-	_, err := s.pool.Exec(ctx, `
+// account suspension) and returns the ids it revoked, for the deny set. A
+// session issued afterwards is not among them, so it works at once (#748).
+func (s *Store) RevokeAllForAccount(ctx context.Context, accountID, reason string) ([]string, error) {
+	return revokeLiveSessions(ctx, s.pool, accountID, reason)
+}
+
+// revokeLiveSessions revokes every live session of an account through q (the
+// pool or a transaction) and returns the revoked ids.
+func revokeLiveSessions(ctx context.Context, q interface {
+	Query(context.Context, string, ...any) (pgx.Rows, error)
+}, accountID, reason string) ([]string, error) {
+	rows, err := q.Query(ctx, `
 		UPDATE session SET revoked_at = now(), revoke_reason = $2
-		WHERE account_id = $1 AND revoked_at IS NULL`, accountID, reason)
-	return err
+		WHERE account_id = $1 AND revoked_at IS NULL
+		RETURNING id::text`, accountID, reason)
+	if err != nil {
+		return nil, err
+	}
+	return pgx.CollectRows(rows, pgx.RowTo[string])
 }
 
 // RevokeSessionForAccount revokes one session, but only if it belongs to the
