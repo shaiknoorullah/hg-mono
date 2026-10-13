@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -17,15 +18,18 @@ import (
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders/pricing"
 )
 
-// EventEmitter is the boundary to the realtime module. orders.Store calls it
-// inside Transition — in the same database transaction — so the outbox event
-// and the state change commit atomically (the transactional outbox pattern).
+// EventEmitter is the boundary to the notify module. orders.Store calls it
+// inside Transition — in the same database transaction — so the order-lifecycle
+// notification and the state change commit atomically (the transactional
+// outbox pattern). The concrete implementation lives in cmd/hg/main.go.
 //
-// The concrete implementation lives in cmd/hg/main.go and calls
-// realtime.EmitInTx; the orders package declares only this interface so it
-// never imports realtime (the two modules are siblings, not dependents).
+// The realtime events are not behind this seam: Transition writes them itself
+// (events.go), through the realtime package's Emit functions, so every
+// orders.Store — however it was built — emits them
+// (https://github.com/shaiknoorullah/hg-mono/issues/247). The realtime package
+// imports no domain module, so the dependency runs one way.
 type EventEmitter interface {
-	// EmitOrderTransition writes a realtime outbox event for the state change
+	// EmitOrderTransition enqueues the notifications for the state change
 	// inside the caller's transaction tx. It must not commit or roll back the
 	// transaction; that responsibility stays with Transition.
 	EmitOrderTransition(ctx context.Context, tx pgx.Tx, orderID, newState string) error
@@ -38,8 +42,14 @@ type EventEmitter interface {
 // GetOrderForCustomer(accountID, id).
 type Store struct {
 	pool    *pgxpool.Pool
-	emitter EventEmitter    // optional; nil means no realtime events
+	emitter EventEmitter    // optional; nil means no notifications
 	media   MediaURLBuilder // optional; nil renders every image URL as null
+	// riderEarnings pays the rider inside the DELIVERED transition. Optional:
+	// nil (tests, minimal wiring) delivers without writing earnings.
+	riderEarnings RiderEarnings
+	// orderCancelled releases the order's rider inside every cancellation.
+	// Optional: nil (tests, minimal wiring) cancels without it.
+	orderCancelled OrderCancelled
 
 	// platformTaxRegistrationNumber and platformLegalName are the O-01 values
 	// (HG_TAX_HST_REGISTRATION_NUMBER / HG_TAX_PLATFORM_LEGAL_NAME) that the
@@ -70,6 +80,42 @@ func NewStore(pool *pgxpool.Pool, emitter ...EventEmitter) *Store {
 	if len(emitter) > 0 {
 		s.emitter = emitter[0]
 	}
+	return s
+}
+
+// RiderEarnings writes a rider's earnings for a delivered order: the ledger
+// postings and the rider's earning lines, inside the transaction tx that
+// moves the order to DELIVERED. The payee comes from the database (the
+// order's DELIVERED assignment with its proof of delivery); riderAccountID,
+// the rider completing the transition, is only checked against it. It must
+// not commit or roll back tx, and it must write nothing when the order is
+// already paid. The payments module implements it and cmd/hg/main.go injects
+// it, so orders never imports payments
+// (https://github.com/shaiknoorullah/hg-mono/issues/306).
+type RiderEarnings interface {
+	CreditDeliveryTx(ctx context.Context, tx pgx.Tx, orderID, riderAccountID string) error
+}
+
+// OrderCancelled is the dispatch half of a cancellation, run inside the
+// transaction that moves the order to CANCELLED: a live assignment ends, its
+// rider is available again, the dispatch row stops naming them and a search
+// with no rider is closed (https://github.com/shaiknoorullah/hg-mono/issues/415).
+// It must not commit or roll back tx. The dispatch module implements it and
+// cmd/hg injects it, so orders never imports dispatch.
+type OrderCancelled interface {
+	OrderCancelledTx(ctx context.Context, tx pgx.Tx, orderID string) error
+}
+
+// WithOrderCancelled attaches the cancellation's dispatch half and returns the
+// store.
+func (s *Store) WithOrderCancelled(h OrderCancelled) *Store {
+	s.orderCancelled = h
+	return s
+}
+
+// WithRiderEarnings attaches the rider earnings writer and returns the store.
+func (s *Store) WithRiderEarnings(e RiderEarnings) *Store {
+	s.riderEarnings = e
 	return s
 }
 
@@ -125,6 +171,7 @@ var (
 	ErrActiveOrderExists   = errors.New("an active order already exists")
 	ErrIllegalTransition   = errors.New("illegal state transition")
 	ErrProvinceNotServed   = errors.New("province not served")
+	ErrAddressOutOfRange   = errors.New("delivery address is outside the restaurant's delivery radius")
 )
 
 // resolvedContext is everything Compute needs, read from Postgres inside the
@@ -160,8 +207,12 @@ type canonicalInput struct {
 }
 
 type canonicalLine struct {
-	MenuItemID     string           `json:"menu_item_id"`
-	VariantID      *string          `json:"variant_id"`
+	MenuItemID string  `json:"menu_item_id"`
+	VariantID  *string `json:"variant_id"`
+	// VariantIDs, sorted, is set only for a line with more than one variant,
+	// so a one-variant line hashes exactly as it did before lines carried
+	// several.
+	VariantIDs     []string         `json:"variant_ids,omitempty"`
 	Quantity       int              `json:"quantity"`
 	SpecialRequest *string          `json:"special_request"`
 	Addons         []canonicalAddon `json:"addons"`
@@ -186,7 +237,10 @@ func hashInput(ci canonicalInput) []byte {
 		if ci.Lines[j].VariantID != nil {
 			vj = *ci.Lines[j].VariantID
 		}
-		return vi < vj
+		if vi != vj {
+			return vi < vj
+		}
+		return strings.Join(ci.Lines[i].VariantIDs, ",") < strings.Join(ci.Lines[j].VariantIDs, ",")
 	})
 	for _, l := range ci.Lines {
 		sort.Slice(l.Addons, func(i, j int) bool { return l.Addons[i].AddonID < l.Addons[j].AddonID })
@@ -264,6 +318,7 @@ type QuoteLine struct {
 	VariantID          *string
 	VariantName        *string
 	VariantPricingMode *string
+	Variants           []pricing.VariantChoice
 	Quantity           int
 	BasePriceCents     int64
 	VariantPartCents   int64

@@ -1,18 +1,13 @@
 // Direct-nav order-detail render: login -> #/orders/<real id> -> wait for the
 // Mapbox canvas -> screenshot. Bypasses the flaky grid row-click.
 import { chromium } from 'playwright';
-import { execSync } from 'node:child_process';
+import { requireEnv, totpNow as totp } from './env.mjs';
 
 const APP = process.env.APP_URL ?? 'http://localhost:5175';
-const EMAIL = 'dev-admin@halalgoes.test';
-const PASSWORD = 'DevAdmin!2026';
+const EMAIL = requireEnv('SEED_EMAIL');
+const PASSWORD = requireEnv('SEED_PASSWORD');
 const ORDER = '88888888-8888-4888-8888-888888888888';
 const OUT = 'tools/verify';
-
-function totp() {
-  return execSync('SECRET=$(cat /tmp/hg-admin-totp-secret.txt) go run ./cmd/totpnow',
-    { cwd: '/home/devsupreme/work/hg-mono/services/hg', shell: '/bin/bash' }).toString().trim();
-}
 
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });

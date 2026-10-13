@@ -1,0 +1,23 @@
+# Managed by Ansible (deploy/host/roles/standby_primary). Started by hg-postgres-relay.socket.
+# Forwards to Postgres's fixed address on {{ hg_networks.data.name }}; Postgres sees the connection come from
+# {{ hg_postgres_relay_source }}, and pg_hba admits the replication role from there alone.
+[Unit]
+Description=HalalGoes: relay from the standby to production's Postgres
+Requires=hg-postgres-relay.socket
+After=hg-postgres-relay.socket
+
+[Service]
+# Two connections: the replicator role's own limit (a base backup streams on a second one).
+ExecStart=/usr/lib/systemd/systemd-socket-proxyd --connections-max=2 {{ hg_postgres_relay_target }}
+DynamicUser=true
+NoNewPrivileges=true
+CapabilityBoundingSet=
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+MemoryMax=32M

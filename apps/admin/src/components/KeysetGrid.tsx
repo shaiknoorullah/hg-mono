@@ -10,11 +10,18 @@
  *
  * Loading / empty / error are real, driven by the caller's `AsyncState` (repo rule: every
  * screen implements all three).
+ *
+ * Styling is LyteNyte's structural `grid.css` plus our generated `@hg/ui-web/grid-theme.css`,
+ * and both only apply under the `ln-grid` class on the wrapper below. Never also import one
+ * of LyteNyte's own themes (`light-dark.css` and friends): they write their palette onto
+ * `:root` and key dark mode on a `.dark` class this app never sets. The test in
+ * `smoke/grid-styles.test.tsx` pins all three
+ * (https://github.com/shaiknoorullah/hg-mono/issues/145).
  */
 import { useMemo, type ReactNode } from 'react';
 import { Grid, useClientDataSource } from '@1771technologies/lytenyte-core';
 import '@1771technologies/lytenyte-core/grid.css';
-import '@1771technologies/lytenyte-core/light-dark.css';
+import '@hg/ui-web/grid-theme.css';
 import { EmptyState, ErrorState, Pagination, Skeleton, type PageMeta } from '@hg/ui-web';
 import type { UseCursorPaginationResult } from '@hg/ui-web';
 
@@ -102,11 +109,17 @@ export function KeysetGrid<T>({
 
   return (
     <div className="adm-stack">
-      <div className="adm-grid-box" style={{ height }}>
+      {/* `ln-grid` is what LyteNyte's stylesheet and our theme are scoped to; the theme
+          also draws the frame (border, radius, clip) on it. */}
+      <div className="ln-grid" style={{ height }}>
         <Grid<Spec>
           columns={gridColumns}
           rowSource={source}
           rowHeight={44}
+          // Each column's `width` is its floor; spare width is shared out, so the rows and
+          // their rules run the full width of the frame as DataTable's do. When the floors
+          // don't fit (a phone), the grid scrolls sideways inside its frame instead.
+          columnBase={{ widthFlex: 1 }}
           events={
             onRowActivate
               ? {
@@ -117,12 +130,11 @@ export function KeysetGrid<T>({
                   // geometry of its own (this is what made the row nav flaky: clicking near a
                   // row edge, or any programmatic click on the row element itself, could land
                   // outside any actionable target). Each `role="gridcell"` child is the real
-                  // interactive unit — full row height, `pointer-events: all`, `tabIndex: 0` —
-                  // so activation is wired there for both pointer and keyboard, giving reliable
-                  // click *and* keyboard Enter (a cell is natively in the tab order; arrow keys
-                  // already move focus between cells/rows via LyteNyte's built-in range
-                  // selection, so Tab + Enter reaches and activates any row without a custom
-                  // roving-tabindex implementation here).
+                  // interactive unit — full row height, `pointer-events: all` — so activation
+                  // is wired there for both pointer and keyboard Enter. Keyboard path: the grid
+                  // is ONE Tab stop (its viewport; LyteNyte hands Tab straight back out of the
+                  // grid), the arrow keys move focus between cells and rows from there, and
+                  // Enter on a focused cell activates its row. Tab does not walk the cells.
                   cell: {
                     click: ({ row }) => {
                       const data = row.kind === 'leaf' ? row.data : null;

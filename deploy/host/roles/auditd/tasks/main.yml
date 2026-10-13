@@ -1,0 +1,35 @@
+- name: Install auditd
+  ansible.builtin.apt:
+    name: [auditd, audispd-plugins]
+    state: present
+
+- name: Cap the audit log (rotate, bounded count)
+  ansible.builtin.template:
+    src: auditd.conf.j2
+    dest: /etc/audit/auditd.conf
+    owner: root
+    group: root
+    mode: "0640"
+  notify: Restart auditd
+
+- name: Write the audit rules (immutable at the end)
+  ansible.builtin.template:
+    src: hg.rules.j2
+    dest: /etc/audit/rules.d/hg.rules
+    owner: root
+    group: root
+    mode: "0640"
+  notify: Reload audit rules
+
+- name: Remove the package's default rules file (it would end the rule list with its own settings)
+  ansible.builtin.file:
+    path: /etc/audit/rules.d/audit.rules
+    state: absent
+  notify: Reload audit rules
+
+- name: Start auditd now and at boot
+  ansible.builtin.systemd_service:
+    name: auditd
+    enabled: true
+    state: started
+  ignore_errors: "{{ ansible_check_mode }}"

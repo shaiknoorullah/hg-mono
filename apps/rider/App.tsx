@@ -28,6 +28,7 @@ import { NavProvider } from './src/nav';
 import { RiderShell } from './src/RiderShell';
 import { requestOtp, verifyOtp } from './src/auth';
 import { subscribe, isAuthed } from './src/token';
+import { REDESIGN_ENABLED } from './src/redesign/flag';
 
 // ---------------------------------------------------------------------------
 // OTP LoginGate
@@ -35,7 +36,7 @@ import { subscribe, isAuthed } from './src/token';
 
 type Phase = 'phone' | 'code';
 
-function LoginGate(): React.ReactElement {
+export function LoginGate(): React.ReactElement {
   // Inside ThemeProvider (see the root below), so colours come from the rider
   // register. They were raw hexes because this branch mounted outside it.
   const theme = useTheme();
@@ -194,7 +195,7 @@ const styles = StyleSheet.create({
 // Root
 // ---------------------------------------------------------------------------
 
-export default function App(): React.ReactElement | null {
+function LegacyApp(): React.ReactElement | null {
   const authed = React.useSyncExternalStore(subscribe, isAuthed, isAuthed);
   // Plus Jakarta Sans (--hg-font-ui's RN counterpart) must be registered before anything under
   // `ThemeProvider` renders — `typeStyle()` names these exact face strings. Render nothing (the
@@ -237,3 +238,18 @@ export default function App(): React.ReactElement | null {
     </SafeAreaProvider>
   );
 }
+
+// ---------------------------------------------------------------------------
+// Flag switch (MASTER-PLAN §0.2)
+// ---------------------------------------------------------------------------
+
+/**
+ * `EXPO_PUBLIC_HG_REDESIGN=1` mounts the redesigned app (`src/redesign/`); anything else, and
+ * every release build, mounts the legacy app above unchanged. Required lazily so a flag-off
+ * build never evaluates a redesign module.
+ */
+const App: () => React.ReactElement | null = REDESIGN_ENABLED
+  ? (require('./src/redesign/RedesignApp') as typeof import('./src/redesign/RedesignApp')).RedesignApp
+  : LegacyApp;
+
+export default App;

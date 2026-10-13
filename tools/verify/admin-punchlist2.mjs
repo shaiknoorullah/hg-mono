@@ -3,10 +3,11 @@
 // separately by admin-punchlist.mjs + a direct curl check).
 import { chromium } from 'playwright';
 import { execSync } from 'node:child_process';
+import { requireEnv } from './env.mjs';
 
 const APP = process.env.APP_URL ?? 'http://localhost:5175';
-const EMAIL = 'admin@demo.hg';
-const PASSWORD = 'Admin@1234';
+const EMAIL = requireEnv('SEED_EMAIL');
+const PASSWORD = requireEnv('SEED_PASSWORD');
 
 function reseedAndTotp() {
   const out = execSync(

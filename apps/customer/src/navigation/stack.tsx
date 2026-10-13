@@ -77,6 +77,13 @@ export interface Navigation {
 
 const NavContext = React.createContext<Navigation | null>(null);
 
+/**
+ * The legacy navigation context, exported so the redesign shell (`src/redesign/navigation/
+ * LegacyBridge.tsx`) can render a legacy screen for a route not redesigned yet and translate its
+ * navigation calls. With the redesign flag off nothing reads it from outside this file.
+ */
+export const LegacyNavContext = NavContext;
+
 export function NavigationProvider({
   initial = { name: 'discovery' },
   children,

@@ -6,15 +6,11 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strconv"
 	"time"
 
 	stripe "github.com/stripe/stripe-go/v79"
-	"github.com/stripe/stripe-go/v79/account"
-	"github.com/stripe/stripe-go/v79/accountlink"
 	"github.com/stripe/stripe-go/v79/client"
-	"github.com/stripe/stripe-go/v79/refund"
-	"github.com/stripe/stripe-go/v79/setupintent"
-	"github.com/stripe/stripe-go/v79/transfer"
 	"github.com/stripe/stripe-go/v79/webhook"
 )
 
@@ -55,6 +51,25 @@ type StripeClient interface {
 	// CreateTransfer moves platform balance to a connected account (P-19),
 	// keyed by 'po:'||payout_id.
 	CreateTransfer(ctx context.Context, in CreateTransferInput) (*StripeTransfer, error)
+	// FindTransfer returns the transfer made in a transfer group, or nil when
+	// there is none. A payout's transfer is in the group 'payout_'||payout_id,
+	// so a retry after an attempt that may have reached Stripe (a timeout, a
+	// crash) finds the first transfer instead of making a second one: Stripe
+	// forgets an idempotency key after 24 hours, and the next weekly run is
+	// days later.
+	FindTransfer(ctx context.Context, transferGroup string) (*StripeTransfer, error)
+
+	// CreateBankPayout pays a connected account's Stripe balance out to the
+	// partner's bank (P-19: the Payout after the Transfer). It is made on the
+	// connected account, keyed by 'pb:'||payout_id||':'||attempt, and carries
+	// the payout id and the attempt in its metadata.
+	CreateBankPayout(ctx context.Context, in CreateBankPayoutInput) (*StripeBankPayout, error)
+	// FindBankPayout returns the bank payout an attempt made on the connected
+	// account, found by its metadata among those created since, or nil when
+	// there is none. As with FindTransfer, a retry after an attempt that may
+	// have reached Stripe looks before it asks again: Stripe forgets an
+	// idempotency key after 24 hours.
+	FindBankPayout(ctx context.Context, stripeAccountID, payoutID string, attempt int, since time.Time) (*StripeBankPayout, error)
 
 	// VerifyWebhook checks the Stripe-Signature header against the signing
 	// secret with a 300-second tolerance (P-17 / I-17.2) and returns the
@@ -106,6 +121,16 @@ type CreateTransferInput struct {
 	IdempotencyKey  string
 	PayoutID        string
 	TransferGroup   string
+}
+
+// CreateBankPayoutInput pays out a connected account's balance to its bank.
+type CreateBankPayoutInput struct {
+	StripeAccountID string // the connected account the payout is made on
+	AmountCents     int64
+	Currency        string
+	IdempotencyKey  string
+	PayoutID        string // stored in metadata
+	Attempt         int    // stored in metadata
 }
 
 // StripeIntent is the subset of a PaymentIntent the ledger and state machine need.
@@ -162,6 +187,12 @@ type StripeTransfer struct {
 	ID string
 }
 
+// StripeBankPayout is the subset of a connected account's Payout we persist.
+type StripeBankPayout struct {
+	ID     string
+	Status string // pending | in_transit | paid | failed | canceled
+}
+
 // StripeEvent is a verified webhook event.
 type StripeEvent struct {
 	ID         string
@@ -177,7 +208,22 @@ type StripeEvent struct {
 // ErrStripeNotConfigured is returned by the no-op client for any call.
 var ErrStripeNotConfigured = errors.New("stripe is not configured (HG_STRIPE_SECRET_KEY unset)")
 
+// StripeAPIVersion is the Stripe API version every call is made in. stripe-go
+// fixes it per major version and sends it in the Stripe-Version header of every
+// request; it has no per-client setting, so it moves only when the library is
+// upgraded. A test pins it, so an upgrade that moves it is a deliberate change
+// (https://github.com/shaiknoorullah/hg-mono/issues/320). Webhook events are
+// not held to it: see VerifyWebhook.
+const StripeAPIVersion = stripe.APIVersion
+
 // liveStripe is the production StripeClient backed by the Stripe Go SDK.
+//
+// Every call goes through api, the client that holds the secret key. The SDK's
+// package-level functions (setupintent.New, transfer.New and the rest) read the
+// global stripe.Key instead, which nothing sets, so a call made through one goes
+// out with no key and Stripe answers 401
+// (https://github.com/shaiknoorullah/hg-mono/issues/338). stripe_guard_test.go
+// fails if one comes back.
 type liveStripe struct {
 	api           *client.API
 	webhookSecret string
@@ -185,9 +231,13 @@ type liveStripe struct {
 
 // NewLiveStripe builds a StripeClient from a test- or live-mode secret key.
 func NewLiveStripe(secretKey, webhookSecret string) StripeClient {
-	sc := &client.API{}
-	sc.Init(secretKey, nil)
-	return &liveStripe{api: sc, webhookSecret: webhookSecret}
+	return newLiveStripe(secretKey, webhookSecret, nil)
+}
+
+// newLiveStripe is NewLiveStripe over the given backends, nil meaning Stripe's
+// own; a test points them at a stub.
+func newLiveStripe(secretKey, webhookSecret string, backends *stripe.Backends) *liveStripe {
+	return &liveStripe{api: client.New(secretKey, backends), webhookSecret: webhookSecret}
 }
 
 func (s *liveStripe) CreatePaymentIntent(ctx context.Context, in CreateIntentInput) (*StripeIntent, error) {
@@ -275,7 +325,7 @@ func (s *liveStripe) CreateSetupIntent(ctx context.Context, customerID, key stri
 	if key != "" {
 		params.SetIdempotencyKey(key)
 	}
-	si, err := setupintent.New(params)
+	si, err := s.api.SetupIntents.New(params)
 	if err != nil {
 		return nil, fmt.Errorf("stripe create setup intent: %w", err)
 	}
@@ -299,7 +349,10 @@ func (s *liveStripe) CreateRefund(ctx context.Context, in CreateRefundInput) (*S
 	if in.RefundID != "" {
 		params.AddMetadata("refund_id", in.RefundID)
 	}
-	rf, err := refund.New(params)
+	// Through this client, which holds the secret key. The package-level
+	// refund.New reads the global stripe.Key, which nothing sets, so it sent
+	// every refund with no key at all (#318).
+	rf, err := s.api.Refunds.New(params)
 	if err != nil {
 		return nil, fmt.Errorf("stripe create refund: %w", err)
 	}
@@ -330,7 +383,7 @@ func (s *liveStripe) CreateConnectAccount(ctx context.Context, in CreateConnectI
 	}
 	params.AddMetadata("owner_type", in.OwnerType)
 	params.AddMetadata("owner_id", in.OwnerID)
-	acct, err := account.New(params)
+	acct, err := s.api.Accounts.New(params)
 	if err != nil {
 		return nil, fmt.Errorf("stripe create connect account: %w", err)
 	}
@@ -345,7 +398,7 @@ func (s *liveStripe) CreateAccountLink(ctx context.Context, acctID, returnURL, r
 		Type:       stripe.String("account_onboarding"),
 	}
 	params.Context = ctx
-	link, err := accountlink.New(params)
+	link, err := s.api.AccountLinks.New(params)
 	if err != nil {
 		return nil, fmt.Errorf("stripe create account link: %w", err)
 	}
@@ -355,7 +408,7 @@ func (s *liveStripe) CreateAccountLink(ctx context.Context, acctID, returnURL, r
 func (s *liveStripe) GetConnectAccount(ctx context.Context, acctID string) (*StripeAccount, error) {
 	params := &stripe.AccountParams{}
 	params.Context = ctx
-	acct, err := account.GetByID(acctID, params)
+	acct, err := s.api.Accounts.GetByID(acctID, params)
 	if err != nil {
 		return nil, fmt.Errorf("stripe get connect account: %w", err)
 	}
@@ -378,15 +431,74 @@ func (s *liveStripe) CreateTransfer(ctx context.Context, in CreateTransferInput)
 	if in.PayoutID != "" {
 		params.AddMetadata("payout_id", in.PayoutID)
 	}
-	tr, err := transfer.New(params)
+	tr, err := s.api.Transfers.New(params)
 	if err != nil {
 		return nil, fmt.Errorf("stripe create transfer: %w", err)
 	}
 	return &StripeTransfer{ID: tr.ID}, nil
 }
 
+func (s *liveStripe) FindTransfer(ctx context.Context, transferGroup string) (*StripeTransfer, error) {
+	params := &stripe.TransferListParams{TransferGroup: stripe.String(transferGroup)}
+	params.Context = ctx
+	params.Limit = stripe.Int64(1)
+	it := s.api.Transfers.List(params)
+	if it.Next() {
+		return &StripeTransfer{ID: it.Transfer().ID}, nil
+	}
+	if err := it.Err(); err != nil {
+		return nil, fmt.Errorf("stripe find transfer: %w", err)
+	}
+	return nil, nil
+}
+
+func (s *liveStripe) CreateBankPayout(ctx context.Context, in CreateBankPayoutInput) (*StripeBankPayout, error) {
+	params := &stripe.PayoutParams{
+		Amount:   stripe.Int64(in.AmountCents),
+		Currency: stripe.String(in.Currency),
+	}
+	params.Context = ctx
+	params.SetStripeAccount(in.StripeAccountID)
+	if in.IdempotencyKey != "" {
+		params.SetIdempotencyKey(in.IdempotencyKey)
+	}
+	params.AddMetadata("payout_id", in.PayoutID)
+	params.AddMetadata("attempt", strconv.Itoa(in.Attempt))
+	po, err := s.api.Payouts.New(params)
+	if err != nil {
+		return nil, fmt.Errorf("stripe create bank payout: %w", err)
+	}
+	return &StripeBankPayout{ID: po.ID, Status: string(po.Status)}, nil
+}
+
+func (s *liveStripe) FindBankPayout(ctx context.Context, stripeAccountID, payoutID string, attempt int, since time.Time) (*StripeBankPayout, error) {
+	params := &stripe.PayoutListParams{CreatedRange: &stripe.RangeQueryParams{GreaterThanOrEqual: since.Unix()}}
+	params.Context = ctx
+	params.SetStripeAccount(stripeAccountID)
+	params.Limit = stripe.Int64(100) // page size; the iterator follows every page
+	it := s.api.Payouts.List(params)
+	for it.Next() {
+		po := it.Payout()
+		if po.Metadata["payout_id"] == payoutID && po.Metadata["attempt"] == strconv.Itoa(attempt) {
+			return &StripeBankPayout{ID: po.ID, Status: string(po.Status)}, nil
+		}
+	}
+	if err := it.Err(); err != nil {
+		return nil, fmt.Errorf("stripe find bank payout: %w", err)
+	}
+	return nil, nil
+}
+
+// VerifyWebhook checks the signature and its timestamp, and accepts an event
+// in any API version. A webhook endpoint sends events in the version it was
+// created in, usually the account's default, which is not StripeAPIVersion;
+// refusing those answered every webhook 400
+// (https://github.com/shaiknoorullah/hg-mono/issues/529). Nothing here decodes
+// with stripe-go's types: each effect parses data.object into its own struct
+// of fields that are the same in every version, as the catch-up does.
 func (s *liveStripe) VerifyWebhook(payload []byte, sig string) (StripeEvent, error) {
-	ev, err := webhook.ConstructEvent(payload, sig, s.webhookSecret)
+	ev, err := webhook.ConstructEventWithOptions(payload, sig, s.webhookSecret,
+		webhook.ConstructEventOptions{IgnoreAPIVersionMismatch: true})
 	if err != nil {
 		return StripeEvent{}, fmt.Errorf("webhook signature verification failed: %w", err)
 	}

@@ -1,0 +1,11 @@
+# Managed by Ansible (deploy/host/roles/backup_current).
+[Unit]
+Description=Nightly HalalGoes backup
+
+[Timer]
+OnCalendar={{ hg_backup_current_time }}
+Persistent=true
+RandomizedDelaySec=0
+
+[Install]
+WantedBy=timers.target

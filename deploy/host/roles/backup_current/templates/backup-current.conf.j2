@@ -1,0 +1,11 @@
+# Managed by Ansible (deploy/host/roles/backup_current).
+HG_BACKUP_ROOT={{ hg_backup_root }}
+HG_TEXTFILE_DIR={{ hg_textfile_dir }}
+HG_POSTGRES={{ hg_backup_current_postgres }}
+HG_SILO={{ hg_backup_current_silo }}
+HG_SILO_ENDPOINT={{ hg_backup_current_silo }}:9000
+HG_NETWORK={{ hg_backup_current_network }}
+HG_MC_IMAGE={{ hg_images.mc }}
+HG_KEEP_DAYS={{ hg_backup_keep_days }}
+HG_PULL_GROUP={{ hg_pull_user }}
+HG_DRILL_TABLES="{{ hg_backup_drill_tables | join(' ') }}"

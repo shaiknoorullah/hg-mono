@@ -56,4 +56,11 @@ const (
 	ActionRestaurantAccountState httpx.Action = "restaurant.account_state_change"
 	ActionRiderAccountState      httpx.Action = "rider.account_state_change"
 	ActionCustomerAccountState   httpx.Action = "customer.account_state_change"
+
+	// The platform-wide pause on new orders
+	// (https://github.com/shaiknoorullah/hg-mono/issues/244). Reading it is for
+	// every staff role; changing it is for ADMIN and SUPER_ADMIN only
+	// (ordering_pause.go says why).
+	ActionOrderingPauseRead httpx.Action = "ordering_pause.read"
+	ActionOrderingPauseSet  httpx.Action = "ordering_pause.set"
 )

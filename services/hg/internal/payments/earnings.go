@@ -115,8 +115,9 @@ func (s *Service) EarningsSummary(ctx context.Context, accountID, period, tz str
 	}
 	total.BucketStart = tsFor(from)
 
-	next := nextMondayUTC(s.now())
-	nextStr := tsFor(next)
+	// The next automatic payout run: Monday 09:00 America/Toronto
+	// (payout_schedule.go).
+	nextStr := tsFor(nextScheduledRun(s.now()))
 	return EarningsSummaryDTO{
 		Period:             period,
 		Buckets:            buckets,
@@ -136,18 +137,6 @@ func stepBucket(t time.Time, unit string) time.Time {
 	default: // week
 		return t.AddDate(0, 0, 7)
 	}
-}
-
-// nextMondayUTC returns the next Monday 00:00 UTC at or after now, the S-04
-// weekly-Monday payout anchor.
-func nextMondayUTC(now time.Time) time.Time {
-	n := now.UTC()
-	daysUntilMon := (int(time.Monday) - int(n.Weekday()) + 7) % 7
-	if daysUntilMon == 0 {
-		daysUntilMon = 7
-	}
-	mon := time.Date(n.Year(), n.Month(), n.Day(), 0, 0, 0, 0, time.UTC).AddDate(0, 0, daysUntilMon)
-	return mon
 }
 
 // ---------------------------------------------------------------------------

@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"context"
 	"regexp"
 	"strings"
 	"testing"
@@ -8,18 +9,18 @@ import (
 
 func TestHashAndVerifyPassword(t *testing.T) {
 	const pw = "correct horse battery staple"
-	enc, err := HashPassword(pw)
+	enc, err := HashPassword(context.Background(), pw)
 	if err != nil {
 		t.Fatalf("HashPassword: %v", err)
 	}
 	if !strings.HasPrefix(enc, "$argon2id$") {
 		t.Fatalf("encoding is not argon2id PHC: %q", enc)
 	}
-	ok, err := VerifyPassword(enc, pw)
+	ok, err := VerifyPassword(context.Background(), enc, pw)
 	if err != nil || !ok {
 		t.Fatalf("VerifyPassword correct = (%v, %v), want (true, nil)", ok, err)
 	}
-	ok, err = VerifyPassword(enc, "wrong password entirely")
+	ok, err = VerifyPassword(context.Background(), enc, "wrong password entirely")
 	if err != nil {
 		t.Fatalf("VerifyPassword wrong returned error: %v", err)
 	}
@@ -29,8 +30,8 @@ func TestHashAndVerifyPassword(t *testing.T) {
 }
 
 func TestHashPasswordIsSalted(t *testing.T) {
-	a, _ := HashPassword("same-password-1234")
-	b, _ := HashPassword("same-password-1234")
+	a, _ := HashPassword(context.Background(), "same-password-1234")
+	b, _ := HashPassword(context.Background(), "same-password-1234")
 	if a == b {
 		t.Fatal("two hashes of the same password are identical — salt is not random")
 	}

@@ -41,6 +41,8 @@ import (
 
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/account"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/realtime"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/realtime/realtimetest"
 )
 
 // ─── Test infrastructure ──────────────────────────────────────────────────────
@@ -1171,6 +1173,13 @@ func TestIntegration_MarkNotificationRead_Idempotent(t *testing.T) {
 			t.Fatalf("mark read #%d: status=%d, want 204 (body: %s)", i+1, rec.Code, rec.Body.String())
 		}
 	}
+
+	// The first read, and only the first, tells the caller's other devices
+	// (contracts/websocket.md section 4.6, notification.read).
+	events := realtimetest.Events(t, pool, realtime.AccountChannel(f.customerAccountID), "notification.read")
+	if len(events) != 1 || !strings.Contains(string(events[0].Payload), f.notificationID) {
+		t.Fatalf("notification.read events after two reads = %d, want 1 naming %s", len(events), f.notificationID)
+	}
 }
 
 // TestIntegration_MarkNotificationRead_IDOR_Returns404: a caller must not be
@@ -1191,6 +1200,11 @@ func TestIntegration_MarkNotificationRead_IDOR_Returns404(t *testing.T) {
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("IDOR markRead: status=%d, want 404 — must not expose another account's notification (body: %s)",
 			rec.Code, rec.Body.String())
+	}
+	for _, acct := range []string{f.customerAccountID, f.otherAccountID} {
+		if got := realtimetest.Events(t, pool, realtime.AccountChannel(acct), "notification.read"); len(got) != 0 {
+			t.Errorf("a refused read wrote notification.read on %s", acct)
+		}
 	}
 }
 

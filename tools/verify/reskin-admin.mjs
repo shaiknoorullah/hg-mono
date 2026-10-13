@@ -3,21 +3,12 @@
 // dashboard (forest chrome + cream canvas), and the halal verification
 // instrument (emerald seal + brass ring on the new skin).
 import { chromium } from 'playwright';
-import { execSync } from 'node:child_process';
+import { requireEnv, totpNow as totp } from './env.mjs';
 
 const APP = process.env.APP_URL ?? 'http://localhost:5175';
-const EMAIL = process.env.SEED_EMAIL ?? 'admin@demo.hg';
-const PASSWORD = process.env.SEED_PASSWORD ?? 'Admin@1234';
+const EMAIL = requireEnv('SEED_EMAIL');
+const PASSWORD = requireEnv('SEED_PASSWORD');
 const OUT = 'tools/verify';
-
-function totp() {
-  return execSync('SECRET=$(cat /tmp/hg-admin-totp-secret.txt) go run ./cmd/totpnow', {
-    cwd: '/home/devsupreme/work/hg-mono/services/hg',
-    shell: '/bin/bash',
-  })
-    .toString()
-    .trim();
-}
 
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });

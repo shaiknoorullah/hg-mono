@@ -1,0 +1,23 @@
+{
+  "scenario": "ordering_pause_on",
+  "domain": "admin",
+  "schema": "OrderingPause",
+  "describes": "New orders are paused platform-wide during an incident. Orders already placed carry on; `createQuote` and `createOrder` answer `error_ordering_paused`.",
+  "operations": [
+    "getOrderingPause",
+    "setOrderingPause"
+  ],
+  "status": 200,
+  "tags": [
+    "admin",
+    "state-matrix",
+    "degraded"
+  ],
+  "payload": {
+    "paused": true,
+    "paused_since": "2026-08-10T18:30:11.412Z",
+    "reason": "Stripe is refusing card authorisations; pausing new orders until their incident clears.",
+    "changed_at": "2026-08-10T18:30:11.412Z",
+    "changed_by": "bf15b10c-08ab-47bd-a892-e5daa2ce1e82"
+  }
+}

@@ -1,10 +1,25 @@
 ---
 covers:
   - apps/restaurant/src/**
-reviewed: 2026-09-28
+reviewed: 2026-10-11
 ---
 
 # What the old restaurant web app teaches the redesign
+
+> **2026-10-09:** the redesign is being built in `apps/restaurant/src/redesign/`, behind the
+> `VITE_HG_REDESIGN` build flag (off in release builds), from the owner-approved canvases
+> ([#89](https://github.com/shaiknoorullah/hg-mono/issues/89), tracking
+> [#658](https://github.com/shaiknoorullah/hg-mono/issues/658)). Until a redesigned screen lands, the
+> redesign hosts the legacy screen for that route inside the new shell. This brief still describes
+> the old Next.js app and what the redesign takes from it; nothing below changes. The new-order
+> strip (accept, decline with a reason, the order sound and the go-live gate) is redesigned in
+> `src/redesign/strip/`. The Live orders board (In progress list, order panel, Mark ready and the
+> pickup code), the service status bar and the halal banners are in `src/redesign/orders/` and
+> `src/redesign/status/`.
+
+> **2026-10-05:** the new app adds what the old one never had — a live "rider approaching" map on
+> accepted orders, drawn from the coarse realtime position
+> ([R-23 rule 8](../../spec/03-restaurant.md#r-23--live-order-dashboard)). Nothing below changes.
 
 Brief for issue #140, which feeds the restaurant redesign (#82). Written 28 Sep 2026.
 
@@ -251,6 +266,7 @@ Loading shows skeleton cards shaped like the stat cards. An error shows an inlin
 
 **Live updates.**
 - The page polls every 30 seconds, even though an SSE connection was open elsewhere in the app. New orders could therefore take up to 30 seconds to appear.
+- *The rebuild (Oct 2026):* the queue (`apps/restaurant/src/routes/OrdersPage.tsx`) refetches the moment an order event arrives on the realtime socket, and keeps a 7-second poll underneath for when the socket is down.
 
 ### Recommendation
 
@@ -637,7 +653,7 @@ Each is a `Card` with `Price`, and each blank shows "—" rather than an invente
 - The **halal certificate row shows `HalalBadge` UNVERIFIED** (dashed and neutral) until it is approved. Never green before approval, never red after rejection.
 
 **FIX_DOCUMENTS** gets the old rejected page's structure:
-- The rejection summary: `rejection.reason_code` and `note`, word for word.
+- The rejection summary: `rejection.reason_code` and `note`, word for word. `rejection.decision` tells a request for changes (`REQUEST_CHANGES`: fix and resubmit) from a `REJECT` (the screen shows the reason and no "Go to documents" button).
 - **Each rejected document listed with its own `rejection_reason_code` and a button that goes straight to that document.**
 - A "What to do next" list.
 - Contact support.

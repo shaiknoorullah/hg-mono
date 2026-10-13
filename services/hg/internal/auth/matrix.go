@@ -218,30 +218,31 @@ var matrix = map[httpx.Role]map[httpx.Action]struct{}{
 		httpx.Action("upload.confirm"),
 		httpx.Action("upload.create"),
 	),
-	httpx.RoleSupportAgent: setOf(
-		ActionSessionReadSelf,
-		ActionSessionRevokeSelf,
-		httpx.Action("auth.password_change"),
-		httpx.Action("auth.totp_enroll"),
-		httpx.Action("auth.totp_verify_enrolment"),
+	httpx.RoleSupportAgent: withStaffAccount(
+		httpx.Action("chargeback.annotate"),
+		httpx.Action("chargeback.read"),
 		httpx.Action("halal_certificate.read"),
 		httpx.Action("halal_issuing_body.read"),
 		httpx.Action("order.cancel_support"),
 		httpx.Action("order.read_any"),
+		// Reads the platform-wide pause on new orders, never changes it: that
+		// is ADMIN and SUPER_ADMIN only (https://github.com/shaiknoorullah/hg-mono/issues/244;
+		// internal/admin/ordering_pause.go says why).
+		httpx.Action("ordering_pause.read"),
 		httpx.Action("realtime_schema.read"),
 		httpx.Action("realtime_ticket.create"),
+		httpx.Action("refund.approve"),
+		httpx.Action("refund.decline"),
 		httpx.Action("refund.issue_goodwill"),
 		httpx.Action("refund.read"),
+		httpx.Action("refund.read_any"),
 		httpx.Action("refund.request"),
 		httpx.Action("restaurant_application.read"),
 		httpx.Action("rider_application.read"),
 	),
-	httpx.RoleAdmin: setOf(
-		ActionSessionReadSelf,
-		ActionSessionRevokeSelf,
-		httpx.Action("auth.password_change"),
-		httpx.Action("auth.totp_enroll"),
-		httpx.Action("auth.totp_verify_enrolment"),
+	httpx.RoleAdmin: withStaffAccount(
+		httpx.Action("chargeback.annotate"),
+		httpx.Action("chargeback.read"),
 		// Account actions (https://github.com/shaiknoorullah/hg-mono/issues/253): the
 		// handler narrows confirming a ban and reinstating a banned account to
 		// super admins.
@@ -259,11 +260,20 @@ var matrix = map[httpx.Role]map[httpx.Action]struct{}{
 		httpx.Action("menu_version.read"),
 		httpx.Action("order.cancel_support"),
 		httpx.Action("order.read_any"),
+		// The platform-wide pause on new orders
+		// (https://github.com/shaiknoorullah/hg-mono/issues/244).
+		httpx.Action("ordering_pause.read"),
+		httpx.Action("ordering_pause.set"),
 		httpx.Action("platform_deps.read"),
+		httpx.Action("payout_run.create"),
+		httpx.Action("payout_run.read"),
 		httpx.Action("realtime_schema.read"),
 		httpx.Action("realtime_ticket.create"),
+		httpx.Action("refund.approve"),
+		httpx.Action("refund.decline"),
 		httpx.Action("refund.issue_goodwill"),
 		httpx.Action("refund.read"),
+		httpx.Action("refund.read_any"),
 		httpx.Action("refund.request"),
 		httpx.Action("restaurant.account_state_change"),
 		httpx.Action("restaurant.approve"),
@@ -277,12 +287,9 @@ var matrix = map[httpx.Role]map[httpx.Action]struct{}{
 		httpx.Action("upload.confirm"),
 		httpx.Action("upload.create"),
 	),
-	httpx.RoleSuperAdmin: setOf(
-		ActionSessionReadSelf,
-		ActionSessionRevokeSelf,
-		httpx.Action("auth.password_change"),
-		httpx.Action("auth.totp_enroll"),
-		httpx.Action("auth.totp_verify_enrolment"),
+	httpx.RoleSuperAdmin: withStaffAccount(
+		httpx.Action("chargeback.annotate"),
+		httpx.Action("chargeback.read"),
 		httpx.Action("customer.account_state_change"),
 		httpx.Action("document.review"),
 		httpx.Action("halal_certificate.check"),
@@ -298,11 +305,18 @@ var matrix = map[httpx.Role]map[httpx.Action]struct{}{
 		httpx.Action("menu_version.read"),
 		httpx.Action("order.cancel_support"),
 		httpx.Action("order.read_any"),
+		httpx.Action("ordering_pause.read"),
+		httpx.Action("ordering_pause.set"),
 		httpx.Action("platform_deps.read"),
+		httpx.Action("payout_run.create"),
+		httpx.Action("payout_run.read"),
 		httpx.Action("realtime_schema.read"),
 		httpx.Action("realtime_ticket.create"),
+		httpx.Action("refund.approve"),
+		httpx.Action("refund.decline"),
 		httpx.Action("refund.issue_goodwill"),
 		httpx.Action("refund.read"),
+		httpx.Action("refund.read_any"),
 		httpx.Action("refund.request"),
 		httpx.Action("restaurant.account_state_change"),
 		httpx.Action("restaurant.approve"),
@@ -317,6 +331,25 @@ var matrix = map[httpx.Role]map[httpx.Action]struct{}{
 		httpx.Action("upload.confirm"),
 		httpx.Action("upload.create"),
 	),
+}
+
+// staffAccount is what every platform staff member (support, admin, super
+// admin) may do to their own account: see and revoke their sessions, change
+// their password, and turn two-step sign-in on or off.
+var staffAccount = []httpx.Action{
+	ActionSessionReadSelf,
+	ActionSessionRevokeSelf,
+	httpx.Action("auth.password_change"),
+	httpx.Action("auth.totp_disable"),
+	httpx.Action("auth.totp_enroll"),
+	httpx.Action("auth.totp_verify_enrolment"),
+}
+
+// withStaffAccount is setOf with the staffAccount actions added.
+func withStaffAccount(actions ...httpx.Action) map[httpx.Action]struct{} {
+	all := make([]httpx.Action, 0, len(staffAccount)+len(actions))
+	all = append(all, staffAccount...)
+	return setOf(append(all, actions...)...)
 }
 
 func setOf(actions ...httpx.Action) map[httpx.Action]struct{} {

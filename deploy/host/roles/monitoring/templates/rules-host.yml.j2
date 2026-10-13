@@ -1,0 +1,71 @@
+# Managed by Ansible (deploy/host/roles/monitoring). The server itself (#65), with the
+# upgrade triggers from the hosting plan (#207). Runbook: docs/ops/runbook.md.
+{% set nic = hg_public_interfaces[0] | default('eth0') %}
+{% set port_bits = (hg_port_mbit | default(300)) * 1000000 %}
+groups:
+  - name: host
+    rules:
+{% raw %}
+      - alert: DiskOver70Percent
+        expr: >-
+          1 - node_filesystem_avail_bytes{mountpoint="/",fstype!~"tmpfs|overlay"}
+            / node_filesystem_size_bytes{mountpoint="/",fstype!~"tmpfs|overlay"} > 0.70
+        for: 15m
+        annotations:
+          summary: "{{ $labels.host }}: disk over 70% full"
+          description: "The hosting plan's disk trigger (#207). Runbook: 'The disk is full'."
+      - alert: DiskFullIn60Days
+        expr: >-
+          predict_linear(node_filesystem_avail_bytes{mountpoint="/",fstype!~"tmpfs|overlay"}[7d], 60 * 86400)
+            < 0.15 * node_filesystem_size_bytes{mountpoint="/",fstype!~"tmpfs|overlay"}
+        for: 6h
+        annotations:
+          summary: "{{ $labels.host }}: disk due to reach 85% within 60 days"
+          description: "At the last week's rate. The hosting plan's disk trigger (#207)."
+      - alert: MemoryAvailableLow
+        expr: node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes < 0.15
+        for: 15m
+        annotations:
+          summary: "{{ $labels.host }}: under 15% of memory available"
+          description: "Stop dev first (hg-dev). If it lasts at dinner peak, the plan's upgrade trigger applies (#207)."
+      - alert: MemoryPressure
+        expr: rate(node_pressure_memory_waiting_seconds_total[5m]) > 0.05
+        for: 15m
+        annotations:
+          summary: "{{ $labels.host }}: processes waiting on memory over 5% of the time"
+      - alert: OutOfMemoryKill
+        expr: increase(node_vmstat_oom_kill[5m]) > 0
+        annotations:
+          summary: "{{ $labels.host }}: the kernel killed a process for lack of memory"
+          description: "dmesg -T | grep -i oom names it. If it was Postgres, the database restarted: check the API's /health/ready now."
+      - alert: LoadHigh
+        expr: node_load15 / on(instance) group_left count by (instance) (node_cpu_seconds_total{mode="idle"}) > 0.7
+        for: 1h
+        annotations:
+          summary: "{{ $labels.host }}: 15-minute load above 70% of the CPUs for an hour"
+      - alert: CpuStealHigh
+        expr: avg by (instance, host) (rate(node_cpu_seconds_total{mode="steal"}[5m])) > 0.10
+        for: 15m
+        annotations:
+          summary: "{{ $labels.host }}: other tenants are taking over 10% of the CPU"
+          description: "Noisy neighbours. The plan says: ask Contabo to move the server (#207)."
+      - alert: TargetDown
+        expr: up == 0
+        for: 10m
+        annotations:
+          summary: "{{ $labels.job }} on {{ $labels.instance }} is not answering"
+      - alert: MetricsFileBroken
+        expr: node_textfile_scrape_error == 1
+        for: 15m
+        annotations:
+          summary: "{{ $labels.host }}: a backup metrics file cannot be read, so backup alerts are blind"
+{% endraw %}
+      - alert: TrafficNearPortLimit
+        expr: >-
+          rate(node_network_transmit_bytes_total{device="{{ nic }}"}[5m]) * 8 > {{ (port_bits * 0.6) | int }}
+          or rate(node_network_receive_bytes_total{device="{{ nic }}"}[5m]) * 8 > {{ (port_bits * 0.6) | int }}
+        for: 15m
+        annotations:
+{% raw %}
+          summary: "{{ $labels.host }}: traffic above 60% of the port's speed"
+{% endraw %}

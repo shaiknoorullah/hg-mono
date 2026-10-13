@@ -28,6 +28,7 @@ import {
 import { api } from '../lib/api.js';
 import { unwrap, useLoad, toAsyncError } from '../lib/load.js';
 import { formatDate, enumLabel } from '../lib/format.js';
+import { DocumentReviewActions } from '../components/DocumentReviewActions.js';
 
 type RiderApplication = Schema['RiderApplication'];
 type KycDocument = Schema['KycDocument'];
@@ -45,7 +46,8 @@ const DOC_STATE_TONE: Partial<Record<string, 'warning' | 'neutral'>> = {
   SUPERSEDED: 'neutral',
 };
 
-const DOC_COLUMNS: readonly DataTableColumn<KycDocument>[] = [
+function docColumns(onReviewed: () => void): readonly DataTableColumn<KycDocument>[] {
+  return [
   {
     key: 'doc_type',
     header: 'Document',
@@ -60,7 +62,22 @@ const DOC_COLUMNS: readonly DataTableColumn<KycDocument>[] = [
     cell: (row) => <Chip label={row.state} tone={DOC_STATE_TONE[row.state] ?? 'neutral'} />,
   },
   { key: 'valid_until', header: 'Valid until', contentClass: 'date', cell: (row) => formatDate(row.valid_until) },
-];
+  {
+    key: 'review',
+    header: 'Review',
+    contentClass: 'text',
+    cell: (row) => (
+      <DocumentReviewActions
+        kind="rider"
+        documentId={row.id}
+        state={row.state}
+        label={enumLabel(row.doc_type)}
+        onReviewed={onReviewed}
+      />
+    ),
+  },
+  ];
+}
 
 const REJECT_REASONS = [
   { value: 'ILLEGIBLE', label: 'Illegible' },
@@ -206,7 +223,7 @@ export function RiderApplicationDetailScreen() {
               id="rider-application-documents"
               caption="Required documents for this rider"
               entityPlural="documents"
-              columns={DOC_COLUMNS}
+              columns={docColumns(reload)}
               rows={data.documents ?? []}
               getRowId={(row) => row.id}
               getRowLabel={(row) => enumLabel(row.doc_type)}

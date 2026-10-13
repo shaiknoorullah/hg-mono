@@ -1,0 +1,16 @@
+id: customer-wp0-shell
+app: customer
+avd: hg_customer
+api: devworld
+# Build the dev APK from this branch with EXPO_PUBLIC_HG_REDESIGN=1.
+setup: [ "make dev-reset" ]
+flows: [ "tools/e2e/native/customer/redesign/0-shell.yaml" ]
+reality:
+  - theme: dark
+  - font-scale: 1.3
+explore: >
+  After the flow, with the phone in dark mode and 130% text, open each tab and screenshot it.
+  Then: (1) deep link `adb shell am start -W -a android.intent.action.VIEW -d "hgcustomer://order/<amina's active order id or any uuid>"`
+  and screenshot where it lands (Orders tab, tracking screen); (2) `adb shell svc wifi disable && adb shell svc data disable`,
+  pull to refresh on Home, screenshot, then re-enable. Report any screen where the bottom bar shows on a pushed screen,
+  where two bottom bars show at once, or where text is clipped at 130%.

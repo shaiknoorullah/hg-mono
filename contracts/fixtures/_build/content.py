@@ -188,6 +188,10 @@ class Content:
             return ulid_for(label)
         if name == "Province":
             return "ON"
+        if name == "OrderingStatus":
+            # Ordering is open unless a fixture says otherwise; only
+            # dom_ordering_pause draws a pause (https://github.com/shaiknoorullah/hg-mono/issues/244).
+            return {"paused": False, "paused_since": None}
         return MISS
 
     # --------------------------------------------------------------- scalars --

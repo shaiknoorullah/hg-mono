@@ -1,0 +1,11 @@
+# Managed by Ansible (deploy/host/roles/offline_copy).
+[Unit]
+Description=Try the HalalGoes backup pull every hour
+
+[Timer]
+OnCalendar=hourly
+Persistent=true
+RandomizedDelaySec=300
+
+[Install]
+WantedBy=timers.target

@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"testing"
+	"time"
 )
 
 func validEnv() map[string]string {
@@ -67,5 +68,47 @@ func TestLoadSecretsSignedTokenVerifies(t *testing.T) {
 	sig := ed25519.Sign(s.SigningPriv, msg)
 	if !ed25519.Verify(s.SigningPub, msg, sig) {
 		t.Fatal("loaded key pair does not round-trip a signature")
+	}
+}
+
+// The hashing cap defaults to 3 at a time (one per gate) with a 2s wait, can be
+// tuned, and a value that would disable or break the cap refuses to boot.
+func TestLoadSecretsHashingCap(t *testing.T) {
+	s, err := LoadSecrets(getenvFrom(validEnv()), false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s.HashConcurrency != 3 || s.HashWait != 2*time.Second || s.HashMaxWaiters != 0 {
+		t.Fatalf("defaults = (%d, %s, %d), want (3, 2s, 0)", s.HashConcurrency, s.HashWait, s.HashMaxWaiters)
+	}
+
+	env := validEnv()
+	env["HG_AUTH_HASH_CONCURRENCY"] = "4"
+	env["HG_AUTH_HASH_WAIT"] = "1500ms"
+	env["HG_AUTH_HASH_MAX_WAITERS"] = "12"
+	s, err = LoadSecrets(getenvFrom(env), false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s.HashConcurrency != 4 || s.HashWait != 1500*time.Millisecond || s.HashMaxWaiters != 12 {
+		t.Fatalf("overrides = (%d, %s, %d), want (4, 1.5s, 12)", s.HashConcurrency, s.HashWait, s.HashMaxWaiters)
+	}
+
+	for _, bad := range []map[string]string{
+		{"HG_AUTH_HASH_CONCURRENCY": "0"},
+		{"HG_AUTH_HASH_CONCURRENCY": "2"}, // a gate would have no slot
+		{"HG_AUTH_HASH_CONCURRENCY": "two"},
+		{"HG_AUTH_HASH_WAIT": "0s"},
+		{"HG_AUTH_HASH_WAIT": "2"},
+		{"HG_AUTH_HASH_WAIT": "30s"}, // waiters would hold connections that long
+		{"HG_AUTH_HASH_MAX_WAITERS": "0"},
+	} {
+		env := validEnv()
+		for k, v := range bad {
+			env[k] = v
+		}
+		if _, err := LoadSecrets(getenvFrom(env), false); err == nil {
+			t.Errorf("LoadSecrets accepted %v", bad)
+		}
 	}
 }

@@ -7,6 +7,8 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/notify"
 )
 
 // Store is the auth module's data access. Every method takes a context and
@@ -16,6 +18,8 @@ import (
 type Store struct {
 	pool *pgxpool.Pool
 	now  func() time.Time
+	// alerts queues the security emails (security_events.go); nil sends none.
+	alerts notify.TxEnqueuer
 }
 
 // NewStore builds a Store over an existing pool. Repositories never open a pool

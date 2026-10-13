@@ -1,0 +1,12 @@
+# Managed by Ansible (deploy/host/roles/base). About 2 minutes down; anything longer waits
+# for a planned window with new orders paused (docs/ops/runbook.md).
+[Unit]
+Description=Weekly quiet window for a pending reboot
+
+[Timer]
+OnCalendar={{ hg_reboot_window_ramadan if hg_ramadan else hg_reboot_window }}
+# A missed window is never caught up later, at a busy hour.
+Persistent=false
+
+[Install]
+WantedBy=timers.target
