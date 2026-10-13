@@ -146,4 +146,4 @@ the board's size, and loses Android's status and navigation bars before the comp
 | `src/names.mjs`, `src/insets.mjs` | The capture names; the phone profiles and their bars |
 | `src/vendor-fonts.mjs`, `third-party/` | React and the fonts the boards load, and their licences |
 | `android/` | The capture AVDs and the device state |
-| `test/` | `pnpm --filter @hg/design-diff test`: the verdict, the bars, the names, the findings |
+| `test/` | `pnpm --filter @hg/design-diff test:unit`: the verdict, the bars, the names, the findings |

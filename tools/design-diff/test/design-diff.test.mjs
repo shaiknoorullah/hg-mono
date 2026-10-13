@@ -1,5 +1,5 @@
 // The few rules the harness must not lose: the verdict, the phone bars it cuts, the capture names
-// and the worded layout findings. Run: pnpm --filter @hg/design-diff test
+// and the worded layout findings. Run: pnpm --filter @hg/design-diff test:unit
 
 import assert from 'node:assert/strict';
 import { test } from 'node:test';

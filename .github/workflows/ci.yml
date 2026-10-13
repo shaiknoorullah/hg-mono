@@ -197,7 +197,7 @@ jobs:
 
       # The design-diff harness's verdict, phone-bar and naming rules (tools/design-diff/README.md).
       - name: design-diff unit tests
-        run: pnpm --filter @hg/design-diff test
+        run: pnpm --filter @hg/design-diff test:unit
 
       # The email templates the Go service embeds are exactly what packages/emails
       # exports. A hand edit to services/hg/internal/notify/emailtmpl/templates/**,
