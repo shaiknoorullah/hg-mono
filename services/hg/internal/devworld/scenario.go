@@ -58,6 +58,8 @@ var ScenarioNames = []string{
 	"pickup-lapse-cancelled",
 	"cert-lapse-mid-order",
 	"order-completed",
+	"halal-lapse",
+	"halal-renew",
 }
 
 // scenarioSummaries is what `devworld scenario list` prints beside each name:
@@ -87,6 +89,8 @@ var scenarioSummaries = map[string]string{
 	"pickup-lapse-cancelled": "rider-sim offline; a ready order lapses to the cap (CANCELLED, NO_RIDER_FOUND, full refund)",
 	"cert-lapse-mid-order":   "an accepted order is live when bismillah-grill's certificate lapses (EXPIRED, delisted until dev-reset)",
 	"order-completed":        "rider-sim delivers an order and it settles (COMPLETED, receipt, rider earnings)",
+	"halal-lapse":            "the certificate expiry job runs as of two days ahead; expiring-halal reads EXPIRED and is delisted (local only, dev-reset undoes it)",
+	"halal-renew":            "after halal-lapse: the owner attaches a new certificate and admin-seed approves it; expiring-halal is CERTIFIED and LIVE again",
 }
 
 // RunScenario signs in as the personas the scenario needs and calls the API
@@ -144,6 +148,10 @@ func RunScenario(ctx context.Context, baseURL, name string) error {
 		return scenarioCertLapse(ctx, baseURL)
 	case "order-completed":
 		return scenarioOrderCompleted(ctx, baseURL)
+	case "halal-lapse":
+		return scenarioHalalLapse(ctx, baseURL)
+	case "halal-renew":
+		return scenarioHalalRenew(ctx, baseURL)
 	default:
 		return fmt.Errorf("devworld: unknown scenario %q", name)
 	}
