@@ -422,7 +422,7 @@ RETURNING id, (SELECT name FROM body)`, w.restaurantID, w.superAdmin, w.bodyID).
 	if err != nil {
 		t.Fatal(err)
 	}
-	repo := NewRepo(w.pool).WithNotifier(notify.NewEnqueuer(notify.NewRepo(), riverClient))
+	repo := NewRepo(w.pool).WithNotifications(notify.NewEnqueuer(notify.NewRepo(), riverClient), nil)
 	actor := auditActor{staffID: w.superAdmin, roles: []string{"SUPER_ADMIN"}, requestID: "req-issuer-test"}
 	at := time.Now().UTC()
 	human := []halalCheckInput{
