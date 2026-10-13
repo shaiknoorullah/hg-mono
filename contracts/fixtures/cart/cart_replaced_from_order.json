@@ -1,0 +1,95 @@
+{
+  "scenario": "cart_replaced_from_order",
+  "domain": "cart",
+  "schema": "Cart",
+  "describes": "`replaceCart` rebuilt the cart from a cancelled unpaid order in one call. The second dish costs $1.00 more than it did on the old order: the server priced every line again, and the old order's prices were never sent or reused.",
+  "operations": [
+    "replaceCart",
+    "getCart"
+  ],
+  "status": 200,
+  "tags": [
+    "cart",
+    "money"
+  ],
+  "payload": {
+    "id": "18f8c074-a911-4635-a2da-d7271a322f6f",
+    "restaurant": {
+      "id": "a74bdb39-6440-4ffe-a9ba-d6c88a81e15e",
+      "name": "Karachi Kitchen",
+      "slug": "karachi-kitchen",
+      "hero_image_url": "https://cdn.halalgoes.ca/img/restaurant/hero/karachi-kitchen.webp",
+      "logo_image_url": "https://cdn.halalgoes.ca/img/restaurant/logo/karachi-kitchen.webp",
+      "cuisines": [
+        "Pakistani",
+        "Biryani",
+        "Halal"
+      ],
+      "rating_avg": 4.8,
+      "rating_count": 412,
+      "price_band": "$$",
+      "halal": {
+        "display_state": "CERTIFIED",
+        "certifying_body_name": "Halal Monitoring Authority (HMA Canada)",
+        "expires_on": "2027-03-09"
+      },
+      "availability": {
+        "state": "OPEN",
+        "opens_at": "2026-08-10T12:24:11.412Z",
+        "closes_at": "2026-08-10T22:00:11.412Z",
+        "eta_min_minutes": 25,
+        "eta_max_minutes": 40,
+        "indicative_delivery_fee_cents": 449,
+        "minimum_order_cents": 1500,
+        "distance_m": 1200,
+        "out_of_range_reason": null
+      }
+    },
+    "delivery_address_id": "926a8c05-3beb-4be0-af96-caf04f7299df",
+    "lines": [
+      {
+        "id": "59a77c6b-0522-4a03-aeef-e20b940e21ef",
+        "menu_item_id": "e3723319-f51b-42f0-a693-8c9eb954bb0f",
+        "name": "Chicken Biryani",
+        "image_url": "https://cdn.halalgoes.ca/img/dish/chicken-biryani.webp",
+        "variant": null,
+        "variants": [],
+        "addons": [],
+        "quantity": 2,
+        "special_request": null,
+        "unit_price_cents": 1695,
+        "line_total_cents": 3390,
+        "currency": "CAD",
+        "availability": {
+          "is_available": true,
+          "reason": null,
+          "current_price_cents": null
+        }
+      },
+      {
+        "id": "46b0111c-174f-4d91-abb9-565af658da2c",
+        "menu_item_id": "260778de-cee3-4a79-ad10-f79f5e9ab98e",
+        "name": "Beef Nihari",
+        "image_url": "https://cdn.halalgoes.ca/img/dish/beef-nihari.webp",
+        "variant": null,
+        "variants": [],
+        "addons": [],
+        "quantity": 1,
+        "special_request": "Extra spicy, please.",
+        "unit_price_cents": 2245,
+        "line_total_cents": 2245,
+        "currency": "CAD",
+        "availability": {
+          "is_available": true,
+          "reason": null,
+          "current_price_cents": null
+        }
+      }
+    ],
+    "item_count": 3,
+    "indicative_subtotal_cents": 5635,
+    "currency": "CAD",
+    "is_quotable": true,
+    "blocking_reasons": []
+  }
+}

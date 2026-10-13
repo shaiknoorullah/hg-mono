@@ -52,7 +52,7 @@ func TestConformance_OrderingPause(t *testing.T) {
 	router := httpx.NewRouter(httpx.Options{Env: "local", Authenticator: testAuthenticator{}, Authorizer: authMatrix()})
 	admin.Routes(router, admin.NewHandler(admin.NewRepo(pool), admin.DefaultConfig()))
 	cfg := miConfig()
-	system.Routes(router, system.NewHandler(cfg, nil, time.Now().UTC(), nil).
+	system.Routes(router, system.NewHandler(cfg, nil, time.Now().UTC(), nil, "").
 		WithOrderingStatus(orders.NewStore(pool).OrderingStatus), cfg)
 	if err := router.Verify(); err != nil {
 		t.Fatal(err)

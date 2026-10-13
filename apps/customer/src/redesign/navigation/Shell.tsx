@@ -1,23 +1,23 @@
 /**
  * The redesign's navigation shell (manifest §1, WP0).
  *
- * - No session: the signed-out flow (sign-in; the legacy sign-in until WP1 merges).
+ * - No session: the signed-out flow (WP1's sign-in owns its own stack: sign-in, code, terms).
  * - A forced route (S5) replaces everything, with no bottom navigation.
  * - Signed in: four tabs, Home · Search · Orders · Account (no bell), each with its own stack. The
  *   bottom navigation shows on tab roots only; the Orders tab carries the count of active orders.
  * - Deep links open on the tab they belong to.
  */
 import * as React from 'react';
-import { Linking, StyleSheet, View } from 'react-native';
+import { BackHandler, Linking, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { unwrap } from '@hg/api-client';
 
 import { LoginGate } from '../../../App';
-import { BottomNav, Icon, useTheme, type BottomNavItem } from '../ds';
+import { BottomNav, Icon, Toast, tokens, useTheme, type BottomNavItem } from '../ds';
 import { api } from '../api/client';
 import { BlockedScreen } from '../session/BlockedScreen';
 import { useForcedRoute } from '../session/forced';
-import { useSession } from '../session/session';
+import { clearWelcome, useSession } from '../session/session';
 import { NavContext, type Nav } from './context';
 import { routeForUrl } from './deepLinks';
 import { LegacyBridge } from './LegacyBridge';
@@ -61,15 +61,55 @@ function ScreenFor({ route, nav }: { route: Route; nav: Nav }): React.ReactEleme
   );
 }
 
-function Tabs({ landing, pendingLink }: { landing: Route; pendingLink: Route | null }): React.ReactElement {
+/**
+ * The one greeting after sign-in or the first address ("You're signed in" · "Welcome back, Aisha.",
+ * "Address saved"), docked above the bottom navigation (WP1, `SI/SignedIn`). Home does not show it
+ * again.
+ */
+function WelcomeToast(): React.ReactElement | null {
+  const { welcome } = useSession();
+  if (!welcome) return null;
+  return (
+    <View pointerEvents="box-none" style={[styles.toastDock, { bottom: tokens.space['20'] }]}>
+      <Toast
+        variant={welcome.variant}
+        title={welcome.title}
+        description={welcome.description}
+        onDismiss={clearWelcome}
+        testID="WelcomeToast"
+      />
+    </View>
+  );
+}
+
+function Tabs({
+  landing,
+  landingTab,
+  pendingLink,
+}: {
+  landing: Route;
+  landingTab: TabKey | null;
+  pendingLink: Route | null;
+}): React.ReactElement {
   const theme = useTheme();
-  const [state, dispatch] = React.useReducer(reduceNav, landing, initialNavState);
+  const [state, dispatch] = React.useReducer(reduceNav, landing, (route) => initialNavState(route, landingTab ?? undefined));
   const current = currentRoute(state);
   const back = canGoBack(state);
 
   React.useEffect(() => {
     if (pendingLink) dispatch({ type: 'open', route: pendingLink });
   }, [pendingLink]);
+
+  // Android's Back pops the tab's stack, like the page's own back; on a tab root it is the
+  // system's (it leaves the app).
+  React.useEffect(() => {
+    if (!back) return undefined;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      dispatch({ type: 'back' });
+      return true;
+    });
+    return () => sub.remove();
+  }, [back]);
 
   const nav = React.useMemo<Nav>(
     () => ({
@@ -108,6 +148,7 @@ function Tabs({ landing, pendingLink }: { landing: Route; pendingLink: Route | n
             testID="RedesignBottomNav"
           />
         ) : null}
+        <WelcomeToast />
       </View>
     </NavContext.Provider>
   );
@@ -158,9 +199,17 @@ export function Shell(): React.ReactElement {
     if (details) return details;
   }
 
-  return <Tabs key={routeKey(session.landing)} landing={session.landing} pendingLink={pendingLink} />;
+  return (
+    <Tabs
+      key={`${session.landingTab ?? ''}:${routeKey(session.landing)}`}
+      landing={session.landing}
+      landingTab={session.landingTab}
+      pendingLink={pendingLink}
+    />
+  );
 }
 
 const styles = StyleSheet.create({
   fill: { flex: 1 },
+  toastDock: { position: 'absolute', left: 16, right: 16 },
 });

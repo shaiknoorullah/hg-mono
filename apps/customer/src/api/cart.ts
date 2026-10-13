@@ -18,17 +18,32 @@ import type { Schema } from '@hg/api-client';
 import { api } from './client';
 
 export type Cart = Schema['Cart'];
+export type CartLineInput = Schema['CartLineInput'];
 
 export async function getCart(): Promise<Cart> {
   const body = await unwrap(api.GET('/v1/cart'));
   return body.data as unknown as Cart;
 }
 
-export async function addToCart(menuItemId: string, quantity = 1): Promise<Cart> {
+/**
+ * `POST /v1/cart/lines`. The line names the item, a quantity, one chosen variant per variant
+ * group (`variant_ids`) and the chosen add-ons — identifiers only. The body is rebuilt field by
+ * field from those, so nothing else a caller holds (a menu price, a past order's line total)
+ * can ride along.
+ */
+export async function addToCart(line: CartLineInput): Promise<Cart> {
   const body = await unwrap(
     api.POST('/v1/cart/lines', {
       params: { header: { 'Idempotency-Key': idempotencyKey() } },
-      body: { menu_item_id: menuItemId, quantity },
+      body: {
+        menu_item_id: line.menu_item_id,
+        quantity: line.quantity,
+        ...(line.variant_ids?.length ? { variant_ids: [...line.variant_ids] } : {}),
+        ...(line.addons?.length
+          ? { addons: line.addons.map((a) => ({ addon_id: a.addon_id, quantity: a.quantity })) }
+          : {}),
+        ...(line.special_request ? { special_request: line.special_request } : {}),
+      },
     }),
   );
   return body.data as unknown as Cart;

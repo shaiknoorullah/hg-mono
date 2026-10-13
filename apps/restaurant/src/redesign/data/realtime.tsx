@@ -5,7 +5,7 @@
  * `open` they poll REST instead (the socket is an optimisation, never the only path).
  */
 import type { ReactNode } from 'react';
-import { RealtimeProvider } from '@hg/ui-web/live';
+import { RealtimeProvider, type SocketLike } from '@hg/ui-web/live';
 import { getSession } from '../../lib/api';
 import { API_BASE_URL, client } from './client';
 import { call } from './call';
@@ -17,6 +17,13 @@ async function mintTicket() {
   return { ticket: ticket.ticket, websocket_url: ticket.websocket_url };
 }
 
+let socketFactory: ((url: string) => SocketLike) | undefined;
+
+/** Test seam: the next console mounts its socket through this factory (`FakeRealtimeSocket`). */
+export function setRealtimeSocketFactoryForTests(factory: ((url: string) => SocketLike) | undefined): void {
+  socketFactory = factory;
+}
+
 export function ConsoleRealtime({ children, enabled = true }: { children: ReactNode; enabled?: boolean }) {
   return (
     <RealtimeProvider
@@ -26,6 +33,7 @@ export function ConsoleRealtime({ children, enabled = true }: { children: ReactN
       mintTicket={mintTicket}
       getAccessToken={() => getSession()?.accessToken ?? null}
       enabled={enabled}
+      createSocket={socketFactory}
     >
       {children}
     </RealtimeProvider>

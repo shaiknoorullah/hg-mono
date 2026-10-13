@@ -28,7 +28,7 @@ func testSetup(t *testing.T, env config.Environment) (*httpx.Router, time.Time) 
 	// Health does not touch a dependency, so a nil store is the honest fixture
 	// for the routing and envelope assertions here. The dependency-reading paths
 	// are covered in internal/store against a real database.
-	Routes(rt, NewHandler(cfg, nil, startedAt, nil), cfg)
+	Routes(rt, NewHandler(cfg, nil, startedAt, nil, ""), cfg)
 	return rt, startedAt
 }
 

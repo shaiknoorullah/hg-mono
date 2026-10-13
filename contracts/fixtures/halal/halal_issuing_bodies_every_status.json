@@ -1,0 +1,93 @@
+{
+  "scenario": "halal_issuing_bodies_every_status",
+  "domain": "halal",
+  "schema": "array<HalalIssuingBody>",
+  "describes": "One issuing body in each `HalalIssuingBodyStatus`: accepted, proposed, suspended, retired and rejected. Only `ACCEPTED` satisfies H2.",
+  "operations": [
+    "listHalalIssuingBodies"
+  ],
+  "status": 200,
+  "tags": [
+    "admin",
+    "halal",
+    "state-matrix"
+  ],
+  "meta": {
+    "next_cursor": null,
+    "has_more": false,
+    "total": 5
+  },
+  "payload": [
+    {
+      "id": "2a5c05d7-d3df-442b-a992-b6cce917d419",
+      "name": "Halal Monitoring Authority (HMA Canada)",
+      "aliases": [
+        "HMA",
+        "HMA Canada"
+      ],
+      "country": "CA",
+      "region": "ON",
+      "website": "https://www.hmacanada.org",
+      "accreditation_ref": null,
+      "requires_issuer_confirmation": false,
+      "status": "ACCEPTED",
+      "notes": null
+    },
+    {
+      "id": "97cb920d-7a43-4449-ae6b-b7fd827e08b3",
+      "name": "Islamic Food and Nutrition Council of Canada",
+      "aliases": [
+        "IFANCC"
+      ],
+      "country": "CA",
+      "region": "ON",
+      "website": null,
+      "accreditation_ref": null,
+      "requires_issuer_confirmation": false,
+      "status": "PROPOSED",
+      "notes": "Proposed by a reviewer on 8 August; not usable until accepted."
+    },
+    {
+      "id": "b763c420-7a70-43d8-ae72-54c3fc825675",
+      "name": "Halal Advisory Council of Ontario",
+      "aliases": [
+        "HACO"
+      ],
+      "country": "CA",
+      "region": "ON",
+      "website": null,
+      "accreditation_ref": null,
+      "requires_issuer_confirmation": false,
+      "status": "SUSPENDED",
+      "notes": "Suspended pending an accreditation review."
+    },
+    {
+      "id": "ede2510b-e40a-494f-aca4-64d29db9dc66",
+      "name": "Canadian Halal Certification Bureau",
+      "aliases": [
+        "CHCB"
+      ],
+      "country": "CA",
+      "region": "ON",
+      "website": null,
+      "accreditation_ref": null,
+      "requires_issuer_confirmation": false,
+      "status": "RETIRED",
+      "notes": "Stopped issuing in 2025. Existing certificates stand until they expire."
+    },
+    {
+      "id": "ce7f1d46-0e64-496e-aa1c-f5fa3c8b4b8d",
+      "name": "Toronto Halal Standards Office",
+      "aliases": [
+        "THSO"
+      ],
+      "country": null,
+      "region": null,
+      "website": null,
+      "accreditation_ref": null,
+      "requires_issuer_confirmation": false,
+      "status": "REJECTED",
+      "notes": "Could not verify an accreditation."
+    }
+  ]
+}

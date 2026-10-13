@@ -33,6 +33,33 @@ function nowIso(): string {
   return new Date().toISOString().replace(/\.(\d{3})\d*Z$/, '.$1Z');
 }
 
+const RFC3339_UTC = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/;
+
+/**
+ * Shift every RFC 3339 UTC timestamp inside a frame's `data` by `offsetMs`. Fixtures are
+ * written against a frozen clock, so a script's `expires_at` / `deadline_at` would be in
+ * the past by the time it plays; shifted by (play start - frozen clock) they land where
+ * the script meant them, and a client countdown is live. Plain dates (`2027-03-08`) and
+ * numbers are left alone.
+ */
+export function restamp<T>(value: T, offsetMs: number): T {
+  if (typeof value === 'string') {
+    if (!RFC3339_UTC.test(value)) return value;
+    const shifted = Date.parse(value) + offsetMs;
+    if (Number.isNaN(shifted)) return value;
+    return new Date(shifted).toISOString() as unknown as T;
+  }
+  if (Array.isArray(value)) return value.map((item) => restamp(item, offsetMs)) as unknown as T;
+  if (value && typeof value === 'object') {
+    const out: Record<string, unknown> = {};
+    for (const [key, item] of Object.entries(value as Record<string, unknown>)) {
+      out[key] = restamp(item, offsetMs);
+    }
+    return out as T;
+  }
+  return value;
+}
+
 interface ScriptEvent {
   id: string;
   seq: number;
@@ -149,13 +176,24 @@ export function attachRealtime(server: Server, options: RealtimeOptions): WebSoc
       }
       played = true;
       log(`ws: playing \`${name}\` (${(fixture.payload as ScriptEvent[]).length} events)`);
+      // Every timestamp in a fixture is relative to the frozen clock; move them so the
+      // script starts now.
+      const frozen = Date.parse(store.manifest.frozen_clock ?? '');
+      const offsetMs = Number.isNaN(frozen) ? 0 : Date.now() - frozen;
       for (const raw of fixture.payload as ScriptEvent[]) {
         const delay = Math.round((raw._delay_ms ?? 0) * options.speed);
         const timer = setTimeout(() => {
           const { _delay_ms, ...event } = raw;
-          // Re-stamp `ts` to wall clock so countdowns in the client are live, and give the
-          // event a fresh id so a reconnecting client's dedup LRU behaves realistically.
-          const frame: ScriptEvent = { ...event, id: ulid(), ts: nowIso() };
+          // Re-stamp `ts` to wall clock and the timestamps in `data` (expires_at,
+          // deadline_at, ...) to the script's start, so countdowns in the client are live,
+          // and give the event a fresh id so a reconnecting client's dedup LRU behaves
+          // realistically.
+          const frame: ScriptEvent = {
+            ...event,
+            id: ulid(),
+            ts: nowIso(),
+            data: restamp(event.data, offsetMs),
+          };
           const history = conn.history.get(frame.channel) ?? [];
           history.push(frame);
           conn.history.set(frame.channel, history);

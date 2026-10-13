@@ -21,7 +21,7 @@ installs a browser; set `PLAYWRIGHT_CHROMIUM_EXECUTABLE` if its pinned Chromium 
 
 ## Writing a specimen file
 
-A specimen file sits beside its component, for example `src/primitives/Button.preview.tsx`. It
+A specimen file sits beside its component, for example `src/ds/Button.preview.tsx`. It
 exports `component` (the design system's component name) and one function per state, named after
 the matching labelled row of `components/<Name>/preview.html`, so the report can pair them.
 

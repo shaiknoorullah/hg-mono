@@ -1,0 +1,28 @@
+{
+  "scenario": "error_precondition_not_met",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`409` · `PRECONDITION_NOT_MET`. Approving a restaurant with live blockers. `details.blockers` is the list `services/hg` computes, verbatim; the screen lists them. (A rider application answers the same body with 422.)",
+  "operations": [
+    "decideRestaurantApplication"
+  ],
+  "status": 409,
+  "tags": [
+    "error-envelope",
+    "error-path",
+    "admin"
+  ],
+  "payload": {
+    "error": {
+      "code": "PRECONDITION_NOT_MET",
+      "message": "The application is not yet approvable.",
+      "request_id": "ATTTJH6FRZJYRWRBQKX99A4N0D",
+      "details": {
+        "blockers": [
+          "Required document not approved: FOOD_SAFETY",
+          "No approved halal certificate"
+        ]
+      }
+    }
+  }
+}

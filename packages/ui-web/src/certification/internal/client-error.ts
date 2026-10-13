@@ -10,7 +10,11 @@
  * at boot. The default writes to `console.error` so a missing installation is still visible.
  */
 
-export type HalalClientErrorCode = 'HALAL_DISPLAY_STATE_MISSING';
+/**
+ * `HALAL_DISPLAY_STATE_MISSING`: no usable `halal_display_state`. `HALAL_PROOF_MISSING`: a
+ * certified claim arrived without the body or expiry that backs it, so nothing was drawn.
+ */
+export type HalalClientErrorCode = 'HALAL_DISPLAY_STATE_MISSING' | 'HALAL_PROOF_MISSING';
 
 export interface HalalClientErrorContext {
   readonly restaurantId?: string | undefined;
