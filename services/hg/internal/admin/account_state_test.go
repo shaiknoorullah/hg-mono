@@ -485,6 +485,12 @@ func TestReinstatingNeedsACurrentHalalCertificate(t *testing.T) {
 	order, _ := seedOrderForAdmin(t, pool, "COMPLETED")
 	restaurant := restaurantOf(t, pool, order)
 	srv := accountServer(t, pool, staff(t, pool, httpx.RoleAdmin), &recordingReleaser{})
+	// seedOrderForAdmin certifies the restaurant so the order path accepts it;
+	// this test starts from one with no certificate at all.
+	if _, err := pool.Exec(context.Background(),
+		`UPDATE halal_certificate SET deleted_at = now() WHERE restaurant_id = $1 AND deleted_at IS NULL`, restaurant); err != nil {
+		t.Fatal(err)
+	}
 
 	got := act(t, srv, "RESTAURANT", restaurant, "DELIST", "NO_APPROVED_MENU", "")
 	mustStatus(t, "delist", got, 200, "")

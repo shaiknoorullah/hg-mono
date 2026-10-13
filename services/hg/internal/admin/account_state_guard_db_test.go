@@ -486,7 +486,7 @@ func TestTheGuardsBelongToTheOwner(t *testing.T) {
 		t.Fatal(err)
 	}
 	writers := map[string]bool{"account_state_apply": true, "account_state_complete_onboarding": true,
-		"account_state_halal_expiry": true, "account_state_halal_renewal": true, "account_state_issuer_listing": true}
+		"account_state_complete_rider_onboarding": true, "account_state_halal_expiry": true, "account_state_halal_renewal": true, "account_state_issuer_listing": true}
 	seen := 0
 	for rows.Next() {
 		var name, config string
@@ -506,8 +506,8 @@ func TestTheGuardsBelongToTheOwner(t *testing.T) {
 		}
 	}
 	rows.Close()
-	if seen != 11 {
-		t.Errorf("found %d account_state functions, want 11", seen)
+	if seen != 12 {
+		t.Errorf("found %d account_state functions, want 12", seen)
 	}
 
 	denied := func(what string, stmts ...stmt) {
@@ -525,7 +525,10 @@ func TestTheGuardsBelongToTheOwner(t *testing.T) {
 
 	// Temporary tables named like the sessions, the grants, the rules and the
 	// history change nothing: a customer still cannot act, the app cannot make up
-	// a token, and a lone super admin still cannot ban.
+	// a token, and a lone super admin still cannot ban. The application role has
+	// no TEMPORARY privilege (migration 00032 withholds it), so it cannot even
+	// create one; the pinned search_path asserted above is what would hold if it
+	// could (a name in pg_temp is never looked up first).
 	customer, rider := guardCustomer(t, pool), seedRider(t, pool, "OFFLINE")
 	_, signedIn := signIn(t, pool, httpx.Principal{AccountID: customer, Roles: []httpx.Role{httpx.RoleCustomer}},
 		"pwd+totp", 15*time.Minute)
@@ -538,14 +541,14 @@ func TestTheGuardsBelongToTheOwner(t *testing.T) {
 			                                         principal text, permission text, reason_code text) ON COMMIT DROP`),
 			q(`INSERT INTO account_state_rule VALUES ('RIDER', 'SUSPEND', 'ACTIVE', 'SUSPENDED', 'ADMIN', 'rider.suspend', NULL)`),
 			applyFn("RIDER", rider, "SUSPEND", as(signedIn), "LOW_PERFORMANCE")),
-		"42501", "account_state_actor_not_permitted")
+		"42501", "temporary tables")
 	refused(t, "the app forges an admin's session in a temporary table",
 		direct(app,
 			q(`CREATE TEMP TABLE session ON COMMIT DROP AS SELECT * FROM public.session WHERE false`),
 			q(`INSERT INTO session SELECT * FROM public.session WHERE id = $1`, admin.SessionID),
 			q(`UPDATE session SET access_hash = sha256(convert_to('a token the app made up', 'UTF8'))`),
 			applyFn("RIDER", rider, "SUSPEND", "a token the app made up", "LOW_PERFORMANCE")),
-		"42501", "account_state_session_required")
+		"42501", "temporary tables")
 	super := staff(t, pool, httpx.RoleSuperAdmin)
 	accepted(t, "suspend", direct(app, applyFn("RIDER", rider, "SUSPEND", as(admin), "LOW_PERFORMANCE")))
 	refused(t, "a super admin forges a second person's proposal in a temporary history",
@@ -557,7 +560,7 @@ func TestTheGuardsBelongToTheOwner(t *testing.T) {
 			   VALUES (gen_random_uuid(), 'RIDER', $1, 'PROPOSE_BAN', 'SUSPENDED', 'SUSPENDED', 'SAFETY_RISK',
 			           'a proposal nobody made', gen_random_uuid(), now(), '{}', '{}', 0, 'STAFF')`, rider),
 			applyFn("RIDER", rider, "CONFIRM_BAN", as(super), "SAFETY_RISK")),
-		"23514", "account_ban_needs_proposal")
+		"42501", "temporary tables")
 	if got := stateOf(t, pool, "RIDER", rider); got != "SUSPENDED" {
 		t.Errorf("rider is %s, want SUSPENDED", got)
 	}

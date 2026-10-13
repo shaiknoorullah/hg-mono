@@ -234,19 +234,27 @@ CREATE UNIQUE INDEX session_access_hash ON session (access_hash) WHERE access_ha
 REVOKE UPDATE ON session FROM hg_app;
 GRANT UPDATE (rotated_at, rotated_to, last_used_at, revoked_at, revoke_reason) ON session TO hg_app;
 
--- Whether a restaurant's admin-verified halal certificate is current today, in
--- its timezone: CURRENT, EXPIRED, or UNVERIFIED (none). The same reading as
--- internal/admin and the order path: APPROVED (or later EXPIRED), verified by an
--- admin, from an ACCEPTED issuing body; valid through its last day (grace_until
--- when a super admin granted one); an unknown zone takes the latest date anywhere.
+-- Whether a restaurant's admin-verified halal certificate is current at an
+-- instant, in its timezone: CURRENT, EXPIRED, or UNVERIFIED (none). The same
+-- reading as internal/admin, the order path and halal_refresh_restaurant_status
+-- (00049): APPROVED (or later EXPIRED), verified by an admin, from an ACCEPTED
+-- issuing body, with an expiry date; valid through its last day (grace_until when a
+-- super admin granted one); an unknown zone takes the latest date anywhere.
+-- An instant earlier than five minutes ago is refused: it could only make a
+-- lapsed certificate look current. A later one can only make it look lapsed sooner.
 -- +goose StatementBegin
-CREATE OR REPLACE FUNCTION account_state_certificate(p_restaurant_id uuid) RETURNS text
+CREATE OR REPLACE FUNCTION account_state_certificate(p_restaurant_id uuid, p_at timestamptz DEFAULT NULL)
+RETURNS text
 LANGUAGE plpgsql STABLE SET search_path = pg_catalog, public, pg_temp AS $$
 DECLARE
   c     record;
   tz    text;
   today date;
+  at    timestamptz := coalesce(p_at, pg_catalog.now());
 BEGIN
+  IF at < pg_catalog.now() - interval '5 minutes' THEN
+    RAISE EXCEPTION 'account_state_certificate: % is in the past', at USING ERRCODE = 'invalid_parameter_value';
+  END IF;
   SELECT x.timezone INTO tz FROM public.restaurant x WHERE x.id = p_restaurant_id;
   SELECT hc.status::text AS status, hc.expires_on, hc.grace_until INTO c
     FROM public.halal_certificate hc
@@ -254,6 +262,7 @@ BEGIN
    WHERE hc.restaurant_id = p_restaurant_id
      AND hc.status IN ('APPROVED', 'EXPIRED')
      AND hc.verified_by IS NOT NULL AND hc.verified_at IS NOT NULL
+     AND hc.expires_on IS NOT NULL
      AND b.status = 'ACCEPTED' AND hc.deleted_at IS NULL
    ORDER BY (hc.status = 'APPROVED') DESC, hc.expires_on DESC, hc.id DESC
    LIMIT 1;
@@ -261,12 +270,12 @@ BEGIN
     RETURN 'UNVERIFIED';
   END IF;
   BEGIN
-    today := (pg_catalog.now() AT TIME ZONE tz)::date;
+    today := (at AT TIME ZONE tz)::date;
   EXCEPTION WHEN invalid_parameter_value THEN
     today := NULL;
   END;
   IF today IS NULL THEN
-    today := ((pg_catalog.now() AT TIME ZONE 'UTC') + interval '14 hours')::date;
+    today := ((at AT TIME ZONE 'UTC') + interval '14 hours')::date;
   END IF;
   RETURN CASE WHEN c.status = 'APPROVED' AND coalesce(c.grace_until, c.expires_on) >= today
               THEN 'CURRENT' ELSE 'EXPIRED' END;
@@ -707,7 +716,7 @@ $$;
 -- reinstating it cannot skip the lapse. Nothing happens while the certificate is
 -- current, or when there is none to lapse. It never suspends, bans or lists.
 -- +goose StatementBegin
-CREATE OR REPLACE FUNCTION account_state_halal_expiry(p_restaurant_id uuid)
+CREATE OR REPLACE FUNCTION account_state_halal_expiry(p_restaurant_id uuid, p_at timestamptz DEFAULT NULL)
 RETURNS TABLE (from_state text, to_state text, delist_reasons text[], changed boolean)
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp AS $$
 #variable_conflict use_variable
@@ -723,7 +732,7 @@ BEGIN
     RAISE EXCEPTION 'account_state_subject_not_found: no restaurant %', p_restaurant_id USING ERRCODE = 'no_data_found';
   END IF;
   v_new := v_reasons;
-  IF public.account_state_certificate(p_restaurant_id) = 'EXPIRED'
+  IF public.account_state_certificate(p_restaurant_id, p_at) = 'EXPIRED'
      AND NOT ('HALAL_CERTIFICATE_EXPIRED' = ANY (v_reasons)) THEN
     v_new := v_reasons || 'HALAL_CERTIFICATE_EXPIRED'::text;
   END IF;
@@ -746,7 +755,7 @@ $$;
 -- again. It never lifts a suspension, a ban or a deactivation, and never clears
 -- another reason.
 -- +goose StatementBegin
-CREATE OR REPLACE FUNCTION account_state_halal_renewal(p_restaurant_id uuid)
+CREATE OR REPLACE FUNCTION account_state_halal_renewal(p_restaurant_id uuid, p_at timestamptz DEFAULT NULL)
 RETURNS TABLE (from_state text, to_state text, delist_reasons text[], changed boolean)
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp AS $$
 #variable_conflict use_variable
@@ -758,13 +767,14 @@ DECLARE
   v_to      text;
   v_ready   boolean;
 BEGIN
-  SELECT x.account_state::text, x.delist_reasons, x.onboarding_state = 'ACTIVE' AND x.location IS NOT NULL
+  SELECT x.account_state::text, x.delist_reasons,
+         x.onboarding_state = 'ACTIVE' AND x.location IS NOT NULL AND x.province IS NOT NULL
     INTO v_from, v_reasons, v_ready
     FROM public.restaurant x WHERE x.id = p_restaurant_id FOR UPDATE;
   IF NOT FOUND THEN
     RAISE EXCEPTION 'account_state_subject_not_found: no restaurant %', p_restaurant_id USING ERRCODE = 'no_data_found';
   END IF;
-  IF public.account_state_certificate(p_restaurant_id) <> 'CURRENT' THEN
+  IF public.account_state_certificate(p_restaurant_id, p_at) <> 'CURRENT' THEN
     RETURN QUERY SELECT v_from, v_from, v_reasons, false;
     RETURN;
   END IF;
@@ -850,33 +860,56 @@ END
 $$;
 -- +goose StatementEnd
 
--- Nothing here is executable by PUBLIC; hg_app may execute the five writers only.
+-- The ONBOARDING principal for a rider: an approved rider whose onboarding has
+-- reached ACTIVE (payouts enabled) leaves PENDING for ACTIVE, which going online
+-- needs. It moves PENDING only: it never lifts a suspension or a ban, and never
+-- suspends. internal/rider's RecomputeOnboarding calls it in the transaction that
+-- advances the onboarding step.
+-- +goose StatementBegin
+CREATE OR REPLACE FUNCTION account_state_complete_rider_onboarding(p_account_id uuid)
+RETURNS boolean
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, public, pg_temp AS $$
+BEGIN
+  UPDATE public.rider_profile rp
+     SET account_status = 'ACTIVE', updated_at = pg_catalog.now()
+   WHERE rp.account_id = p_account_id
+     AND rp.account_status = 'PENDING'
+     AND rp.onboarding_state = 'ACTIVE';
+  RETURN FOUND;
+END
+$$;
+-- +goose StatementEnd
+
+-- Nothing here is executable by PUBLIC; hg_app may execute the six writers only.
 REVOKE ALL ON FUNCTION account_state_grant_app_columns() FROM PUBLIC;
-REVOKE ALL ON FUNCTION account_state_certificate(uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION account_state_certificate(uuid, timestamptz) FROM PUBLIC;
 REVOKE ALL ON FUNCTION account_state_audit(text, uuid, jsonb, text, text, uuid, text, text, jsonb, jsonb, jsonb) FROM PUBLIC;
 REVOKE ALL ON FUNCTION account_state_apply(account_subject_type, uuid, account_action, text, text, text, text, bytea, jsonb, jsonb) FROM PUBLIC;
 REVOKE ALL ON FUNCTION account_state_system_write(uuid, text, text, text, text[], text[], account_action, text, text, text) FROM PUBLIC;
 REVOKE ALL ON FUNCTION account_state_complete_onboarding(uuid) FROM PUBLIC;
-REVOKE ALL ON FUNCTION account_state_halal_expiry(uuid) FROM PUBLIC;
-REVOKE ALL ON FUNCTION account_state_halal_renewal(uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION account_state_halal_expiry(uuid, timestamptz) FROM PUBLIC;
+REVOKE ALL ON FUNCTION account_state_halal_renewal(uuid, timestamptz) FROM PUBLIC;
 REVOKE ALL ON FUNCTION account_state_issuer_listing(uuid, boolean) FROM PUBLIC;
+REVOKE ALL ON FUNCTION account_state_complete_rider_onboarding(uuid) FROM PUBLIC;
 REVOKE ALL ON FUNCTION account_state_event_guard_ban() FROM PUBLIC, hg_app;
 REVOKE ALL ON FUNCTION account_state_event_reject_mutation() FROM PUBLIC, hg_app;
 GRANT EXECUTE ON FUNCTION account_state_apply(account_subject_type, uuid, account_action, text, text, text, text, bytea, jsonb, jsonb) TO hg_app;
 GRANT EXECUTE ON FUNCTION account_state_complete_onboarding(uuid) TO hg_app;
-GRANT EXECUTE ON FUNCTION account_state_halal_expiry(uuid) TO hg_app;
-GRANT EXECUTE ON FUNCTION account_state_halal_renewal(uuid) TO hg_app;
+GRANT EXECUTE ON FUNCTION account_state_halal_expiry(uuid, timestamptz) TO hg_app;
+GRANT EXECUTE ON FUNCTION account_state_halal_renewal(uuid, timestamptz) TO hg_app;
 GRANT EXECUTE ON FUNCTION account_state_issuer_listing(uuid, boolean) TO hg_app;
+GRANT EXECUTE ON FUNCTION account_state_complete_rider_onboarding(uuid) TO hg_app;
 
 -- +goose Down
 DROP FUNCTION IF EXISTS account_state_issuer_listing(uuid, boolean);
-DROP FUNCTION IF EXISTS account_state_halal_renewal(uuid);
-DROP FUNCTION IF EXISTS account_state_halal_expiry(uuid);
+DROP FUNCTION IF EXISTS account_state_complete_rider_onboarding(uuid);
+DROP FUNCTION IF EXISTS account_state_halal_renewal(uuid, timestamptz);
+DROP FUNCTION IF EXISTS account_state_halal_expiry(uuid, timestamptz);
 DROP FUNCTION IF EXISTS account_state_complete_onboarding(uuid);
 DROP FUNCTION IF EXISTS account_state_system_write(uuid, text, text, text, text[], text[], account_action, text, text, text);
 DROP FUNCTION IF EXISTS account_state_apply(account_subject_type, uuid, account_action, text, text, text, text, bytea, jsonb, jsonb);
 DROP FUNCTION IF EXISTS account_state_audit(text, uuid, jsonb, text, text, uuid, text, text, jsonb, jsonb, jsonb);
-DROP FUNCTION IF EXISTS account_state_certificate(uuid);
+DROP FUNCTION IF EXISTS account_state_certificate(uuid, timestamptz);
 DROP FUNCTION IF EXISTS account_state_grant_app_columns();
 -- The application role gets back the table rights 00023 gave it.
 GRANT INSERT, UPDATE, DELETE ON restaurant, rider_profile, account TO hg_app;

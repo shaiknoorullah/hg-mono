@@ -42,6 +42,14 @@ func writes(sql string) []string {
 	return out
 }
 
+// ownerRun names the code that runs as the database's owner, never as the
+// application role, so migration 00045's privileges do not bind it: the
+// development world's reset and seed (cmd/devworld, run with the owner's DSN by
+// `make dev-world`) and the test seeders. Neither is part of the API process.
+func ownerRun(rel string) bool {
+	return strings.HasPrefix(rel, "internal/devworld/") || strings.HasPrefix(rel, "internal/testseed/")
+}
+
 // TestNoGoCodeWritesAnAccountsState: no Go file writes an account's state or its
 // history. Migration 00045 makes the database functions (account_state_apply and
 // the system principals' functions) the only writers and refuses the application
@@ -75,6 +83,9 @@ func TestNoGoCodeWritesAnAccountsState(t *testing.T) {
 			return err
 		}
 		rel, _ := filepath.Rel(root, path)
+		if ownerRun(filepath.ToSlash(rel)) {
+			return nil
+		}
 		ast.Inspect(f, func(n ast.Node) bool {
 			lit, ok := n.(*ast.BasicLit)
 			if !ok || lit.Kind != token.STRING {

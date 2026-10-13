@@ -39,20 +39,21 @@ var wakeZone = mustZone("America/Toronto")
 
 // Config holds the settings that are policy rather than mechanism.
 type Config struct {
-	// SuspendAfterExpiredDays, when above zero, moves a restaurant that is
-	// DELISTED for a lapsed certificate to SUSPENDED once its certificate has
-	// been expired for that many days. A suspended restaurant is not relisted
-	// automatically when a renewal is approved; staff reinstate it.
-	//
-	// Zero, the default, never suspends: the specification documents "delisted,
-	// not suspended" (docs/spec/05-admin.md, "A-17 — Halal certificate expiry
-	// monitoring and lapse handling"), which is also the recommended answer to
-	// the delist-or-suspend conflict (https://github.com/shaiknoorullah/hg-mono/issues/269):
-	// a delisted restaurant is hidden but not locked, so it can keep its menu
-	// ready while it renews. Suspending 14 days after expiry is an open owner
-	// question: https://github.com/shaiknoorullah/hg-mono/issues/164.
+	// SuspendAfterExpiredDays must be zero. Suspending a restaurant some days
+	// after its certificate lapsed is an open owner question
+	// (https://github.com/shaiknoorullah/hg-mono/issues/164), and since
+	// migration 00045 the database's expiry writer only ever delists: an expired
+	// certificate delists the restaurant and nothing more ("A-17 — Halal
+	// certificate expiry monitoring and lapse handling" in docs/spec/05-admin.md;
+	// https://github.com/shaiknoorullah/hg-mono/issues/269). A value above zero
+	// makes every pass refuse to run, so the setting cannot be mistaken for
+	// working.
 	SuspendAfterExpiredDays int
 }
+
+// errSuspendUnsupported is what a pass returns when suspension after a lapse is
+// switched on: the account-state writers do not suspend for a lapse (Config).
+var errSuspendUnsupported = errors.New("halalexpiry: suspending after a lapse is not supported; set SuspendAfterExpiredDays to 0 (https://github.com/shaiknoorullah/hg-mono/issues/164)")
 
 // Enqueuer is the write side of the notification outbox (*notify.Enqueuer): it
 // writes the notification row and its delivery job in the caller's transaction.
@@ -90,7 +91,6 @@ type Report struct {
 	Expired   int // certificates moved from APPROVED to EXPIRED
 	Delisted  int
 	Relisted  int
-	Suspended int
 	Reminders int // reminder thresholds recorded (each notifies every recipient)
 	// Errors are restaurants not evaluated, or evaluated whose suspension or
 	// messages failed (their halal state change still committed).
@@ -98,7 +98,7 @@ type Report struct {
 }
 
 func (r Report) changed() bool {
-	return r.Expired+r.Delisted+r.Relisted+r.Suspended+r.Reminders > 0
+	return r.Expired+r.Delisted+r.Relisted+r.Reminders > 0
 }
 
 // Run makes a pass at once, then again just after each Toronto midnight and at
@@ -119,7 +119,7 @@ func (j *Job) Run(ctx context.Context) {
 				j.log.Info("halal expiry pass",
 					slog.Int("evaluated", rep.Evaluated), slog.Int("expired", rep.Expired),
 					slog.Int("delisted", rep.Delisted), slog.Int("relisted", rep.Relisted),
-					slog.Int("suspended", rep.Suspended), slog.Int("reminders", rep.Reminders))
+					slog.Int("reminders", rep.Reminders))
 			}
 		}
 		wait := untilNextPass(j.now())
@@ -152,6 +152,9 @@ func (j *Job) RunAt(ctx context.Context, at time.Time) (rep Report, ran bool, er
 	// The database also refuses any instant in the past.
 	if at.IsZero() {
 		return rep, false, errors.New("halalexpiry: RunAt needs an instant; the zero time would fail open")
+	}
+	if j.cfg.SuspendAfterExpiredDays > 0 {
+		return rep, false, errSuspendUnsupported
 	}
 	c, err := j.pool.Acquire(ctx)
 	if err != nil {
@@ -268,17 +271,6 @@ func (j *Job) evaluate(ctx context.Context, conn *pgx.Conn, restaurantID uuid.UU
 		// What follows is optional to the halal state, so each part runs in a
 		// savepoint: if it fails, the expiry and delisting above still commit.
 		// The failure is reported, and job_run counts it.
-		if j.cfg.SuspendAfterExpiredDays > 0 {
-			if err := pgx.BeginFunc(ctx, tx, func(sp pgx.Tx) error {
-				n, err := suspendLongLapsed(ctx, sp, restaurantID, at, j.cfg.SuspendAfterExpiredDays)
-				out.Suspended = n
-				return err
-			}); err != nil {
-				out.Suspended = 0
-				later = append(later, fmt.Errorf("suspend after lapse: %w", err))
-			}
-		}
-
 		var after string
 		if err := tx.QueryRow(ctx, `SELECT account_state::text FROM restaurant WHERE id = $1`, restaurantID).Scan(&after); err != nil {
 			return err
@@ -322,7 +314,6 @@ func (j *Job) evaluate(ctx context.Context, conn *pgx.Conn, restaurantID uuid.UU
 	rep.Expired += out.Expired
 	rep.Delisted += out.Delisted
 	rep.Relisted += out.Relisted
-	rep.Suspended += out.Suspended
 	rep.Reminders += out.Reminders
 	return errors.Join(later...)
 }
@@ -360,37 +351,6 @@ func expireLapsed(ctx context.Context, tx pgx.Tx, restaurantID uuid.UUID, at tim
 		err := row.Scan(&lc.id, &lc.expiresOn, &lc.body, &lc.restaurantName)
 		return lc, err
 	})
-}
-
-// suspendLongLapsed is the switched-off answer to the open owner question
-// (https://github.com/shaiknoorullah/hg-mono/issues/164): a restaurant delisted
-// for a certificate that has been expired for `after` days becomes SUSPENDED.
-func suspendLongLapsed(ctx context.Context, tx pgx.Tx, restaurantID uuid.UUID, at time.Time, after int) (int, error) {
-	tag, err := tx.Exec(ctx, `
-		WITH s AS (
-		  UPDATE restaurant r
-		     SET account_state = 'SUSPENDED'
-		    FROM halal_certificate hc
-		   WHERE r.id = $1
-		     AND hc.id = r.halal_certificate_id
-		     AND r.account_state = 'DELISTED'
-		     AND r.halal_status = 'EXPIRED'
-		     AND COALESCE(hc.grace_until, hc.expires_on) + $3::int < halal_local_date(r.timezone, $2::timestamptz)
-		  RETURNING r.id, r.delist_reasons
-		)
-		INSERT INTO audit_event
-		  (actor_kind, action, subject_type, subject_id, outcome, reason_code, before, after,
-		   day, seq, prev_hash, hash)
-		SELECT 'SYSTEM', 'restaurant.suspended', 'RESTAURANT', s.id, 'SUCCESS', 'HALAL_CERTIFICATE_EXPIRED',
-		       jsonb_build_object('account_state', 'DELISTED', 'delist_reasons', to_jsonb(s.delist_reasons)),
-		       jsonb_build_object('account_state', 'SUSPENDED', 'delist_reasons', to_jsonb(s.delist_reasons),
-		                          'suspend_after_expired_days', $3::int),
-		       current_date, 0, '\x00'::bytea, '\x00'::bytea
-		  FROM s`, restaurantID, at, after)
-	if err != nil {
-		return 0, err
-	}
-	return int(tag.RowsAffected()), nil
 }
 
 // staffToTell is who hears about the restaurant's certificate: its live owner
