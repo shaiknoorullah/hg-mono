@@ -3534,6 +3534,24 @@ func (e RestaurantOnboardingStatusCurrentStep) Valid() bool {
 	}
 }
 
+// Defines values for RestaurantOnboardingStatusRejectionDecision.
+const (
+	RestaurantOnboardingStatusRejectionDecisionREJECT         RestaurantOnboardingStatusRejectionDecision = "REJECT"
+	RestaurantOnboardingStatusRejectionDecisionREQUESTCHANGES RestaurantOnboardingStatusRejectionDecision = "REQUEST_CHANGES"
+)
+
+// Valid indicates whether the value is a known member of the RestaurantOnboardingStatusRejectionDecision enum.
+func (e RestaurantOnboardingStatusRejectionDecision) Valid() bool {
+	switch e {
+	case RestaurantOnboardingStatusRejectionDecisionREJECT:
+		return true
+	case RestaurantOnboardingStatusRejectionDecisionREQUESTCHANGES:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for RestaurantOpenState.
 const (
 	RestaurantOpenStateCLOSEDHOLIDAY   RestaurantOpenState = "CLOSED_HOLIDAY"
@@ -8624,7 +8642,9 @@ type RestaurantOnboardingStatus struct {
 	// product; `suspend`, `ban`, `deactivate` and `delist` are never synonyms.
 	// `DELISTED` is the non-punitive system state (lapsed certificate, expired document, no
 	// approved menu) and clears automatically when its cause does.
-	AccountState   RestaurantAccountState                `json:"account_state"`
+	AccountState RestaurantAccountState `json:"account_state"`
+
+	// BlockingReason While the application is sent back or rejected, the reason text the admin wrote, verbatim. Null otherwise.
 	BlockingReason *string                               `json:"blocking_reason,omitempty"`
 	CurrentStep    RestaurantOnboardingStatusCurrentStep `json:"current_step"`
 
@@ -8634,10 +8654,18 @@ type RestaurantOnboardingStatus struct {
 
 	// ProgressPercent Server-computed with fixed weights. The client never computes it.
 	ProgressPercent int32 `json:"progress_percent"`
-	Rejection       *struct {
-		Documents  []KycDocument `json:"documents"`
-		Note       *string       `json:"note,omitempty"`
-		ReasonCode *string       `json:"reason_code,omitempty"`
+
+	// Rejection Present only while `onboarding_state` is `DOCUMENTS_REJECTED`; null otherwise.
+	Rejection *struct {
+		// Decision `REQUEST_CHANGES` means fix the listed documents and resubmit. `REJECT` means the application was declined, not sent back: no documents are listed to fix, and clients offer no resubmission. The server does not yet refuse a resubmission after `REJECT` (https://github.com/shaiknoorullah/hg-mono/issues/802).
+		Decision  RestaurantOnboardingStatusRejectionDecision `json:"decision"`
+		Documents []KycDocument                               `json:"documents"`
+
+		// Note The reason text the admin wrote, sent verbatim. Never the internal note.
+		Note *string `json:"note,omitempty"`
+
+		// ReasonCode The `RestaurantRejectApplicationReasonCode` the admin chose.
+		ReasonCode *string `json:"reason_code,omitempty"`
 	} `json:"rejection,omitempty"`
 	ReviewCycle    *int32 `json:"review_cycle,omitempty"`
 	StepsCompleted struct {
@@ -8652,6 +8680,9 @@ type RestaurantOnboardingStatus struct {
 
 // RestaurantOnboardingStatusCurrentStep defines model for RestaurantOnboardingStatus.CurrentStep.
 type RestaurantOnboardingStatusCurrentStep string
+
+// RestaurantOnboardingStatusRejectionDecision `REQUEST_CHANGES` means fix the listed documents and resubmit. `REJECT` means the application was declined, not sent back: no documents are listed to fix, and clients offer no resubmission. The server does not yet refuse a resubmission after `REJECT` (https://github.com/shaiknoorullah/hg-mono/issues/802).
+type RestaurantOnboardingStatusRejectionDecision string
 
 // RestaurantOpenState R-22. Evaluated in strict precedence. `CLOSED_OFFLINE` is the heartbeat gate: a
 // restaurant whose order screen has not checked in for 5 minutes is offered nothing,

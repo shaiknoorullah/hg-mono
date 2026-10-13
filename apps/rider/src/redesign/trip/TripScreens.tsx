@@ -56,7 +56,7 @@ import { formatTime } from '../format/time';
 import { useRiderDashboard } from '../home';
 import { openPhoneSettings } from '../home/permissions';
 import { useNav } from '../nav/Navigator';
-import type { ScreenProps } from '../nav/registry';
+import { screenFor, type ScreenProps } from '../nav/registry';
 import { fetchRiderMe } from '../session/Session';
 import {
   ENDED,
@@ -229,6 +229,7 @@ export function PickupStepScreen({ params }: ScreenProps<'tripPickup'>): React.R
   const [start, setStart] = React.useState<Attempt>({ phase: 'idle' });
   const [arrive, setArrive] = React.useState<Attempt>({ phase: 'idle' });
   const [sheet, setSheet] = React.useState<'wrong' | 'geofence' | null>(null);
+  const openWrong = useOpenWrong(id, () => setSheet('wrong'), start.phase === 'failed' || arrive.phase === 'failed');
   const [reason, setReason] = React.useState('');
 
   /** Send a step; `retry` reuses the failed attempt's key and body. */
@@ -341,7 +342,7 @@ export function PickupStepScreen({ params }: ScreenProps<'tripPickup'>): React.R
       testID="trip-pickup"
       actions={[
         ...(call ? [call] : []),
-        { label: BUTTON.somethingWrong, variant: 'ghost', onPress: () => setSheet('wrong'), disabled: busy },
+        { label: BUTTON.somethingWrong, variant: 'ghost', onPress: openWrong, disabled: busy },
         arrive.phase === 'failed'
           ? { label: BUTTON.tryAgain, variant: 'primary', onPress: () => void arrived(arrive.step), testID: 'trip-arrive' }
           : { label: BUTTON.arrived, variant: 'primary', onPress: () => void arrived(), loading: busy, testID: 'trip-arrive' },
@@ -465,6 +466,7 @@ export function AtRestaurantScreen({ params }: ScreenProps<'tripAtRestaurant'>):
   const alive = useAlive();
   const [code, setCode] = React.useState('');
   const [sheet, setSheet] = React.useState<'wrong' | 'help' | 'not-ready' | null>(null);
+  const openWrong = useOpenWrong(id, () => setSheet('wrong'), code !== '' || pickup.status !== 'idle');
   const ready = a?.pickup.order_state === 'READY_FOR_PICKUP';
   // "I'm at the restaurant" lands on the items when the food is already ready, else on the wait.
   const [checking, setChecking] = React.useState<boolean | null>(null);
@@ -591,7 +593,7 @@ export function AtRestaurantScreen({ params }: ScreenProps<'tripAtRestaurant'>):
         showItems
           ? [
               ...callAction,
-              { label: BUTTON.somethingWrong, variant: 'ghost', onPress: () => setSheet('wrong') },
+              { label: BUTTON.somethingWrong, variant: 'ghost', onPress: openWrong },
               {
                 label: pickup.status === 'failed' ? BUTTON.tryAgain : BUTTON.gotFood,
                 variant: 'primary',
@@ -604,7 +606,7 @@ export function AtRestaurantScreen({ params }: ScreenProps<'tripAtRestaurant'>):
             ]
           : [
               ...callAction,
-              { label: BUTTON.somethingWrong, variant: 'ghost', onPress: () => setSheet('wrong') },
+              { label: BUTTON.somethingWrong, variant: 'ghost', onPress: openWrong },
               {
                 label: BUTTON.checkItems,
                 variant: 'primary',
@@ -1142,6 +1144,20 @@ export function MessagesLink({ onPress }: { onPress: () => void }): React.ReactE
       {BUTTON.seeAllMessages}
     </Button>
   );
+}
+
+/**
+ * WP6 hook: "Something's wrong" on the pickup steps opens WP6's menu for the leg
+ * (`tripException`, leg 'pickup', `../exceptions`) once it is registered, and the sheet below
+ * until then. Boards whose state must survive the trip there and back (the code lock, the
+ * pickup saved offline) and the sheets inside a step keep the sheet below.
+ */
+function useOpenWrong(assignmentId: string, fallback: () => void, keep: boolean): () => void {
+  const nav = useNav();
+  // The navigator draws only the top screen, so the trip there and back remounts this step: a
+  // typed code, a refused code's attempts or a failed step's Idempotency-Key would be lost. While
+  // the step holds one (`keep`), the sheet below opens instead.
+  return () => (!keep && screenFor('tripException') ? nav.push('tripException', { assignmentId, leg: 'pickup' }) : fallback());
 }
 
 /** "What's wrong?" for the pickup leg (DL/SomethingWrongPickup, SomethingWrongPickupNoSupport). */

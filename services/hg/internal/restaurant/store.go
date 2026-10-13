@@ -71,6 +71,24 @@ type OnboardingStatus struct {
 	CurrentStep     string          `json:"current_step"`
 	ProgressPercent int             `json:"progress_percent"`
 	StepsCompleted  OnboardingSteps `json:"steps_completed"`
+	// BlockingReason is the admin's reason text while the application is sent
+	// back or rejected; null otherwise.
+	BlockingReason *string `json:"blocking_reason"`
+	// ReviewCycle is the number of times the application has been submitted;
+	// omitted until the first submission.
+	ReviewCycle *int `json:"review_cycle,omitempty"`
+	// Rejection is non-null only in DOCUMENTS_REJECTED.
+	Rejection *OnboardingRejection `json:"rejection"`
+}
+
+// OnboardingRejection is the rejection object on RestaurantOnboardingStatus.
+// required: [decision, documents]. Decision tells a request for changes (fix
+// and resubmit) from a final REJECT.
+type OnboardingRejection struct {
+	Decision   string        `json:"decision"`
+	ReasonCode *string       `json:"reason_code"`
+	Note       *string       `json:"note"`
+	Documents  []DocumentRow `json:"documents"`
 }
 
 // HoursSlotRow is one trading-hours record (contract TradingInterval).

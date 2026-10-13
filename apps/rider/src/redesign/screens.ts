@@ -3,9 +3,11 @@
  * One line per WP folder; a route whose module is not listed falls back to the legacy screen.
  */
 import './application';
-import './dropoff';
 import './documents';
+import './dropoff';
 import './earnings';
+import './exceptions';
+import './history';
 import './home';
 import './offer';
 import './signin';

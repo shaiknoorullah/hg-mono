@@ -12,7 +12,7 @@ import { expect, test, type Page, type Request, type TestInfo } from '@playwrigh
 import { execSync } from 'node:child_process';
 import { copyFileSync, mkdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-import { DEVWORLD, MOCK_API, MODE, REAL_API, documentScrolls, openSignedIn } from './redesign-restaurant.support';
+import { DEVWORLD, MOCK_API, MODE, REAL_API, documentScrolls, liveAccessToken, openSignedIn } from './redesign-restaurant.support';
 import { projectMeta } from './mode';
 
 const SHOTS = process.env.WP3_SHOTS_DIR;
@@ -318,7 +318,7 @@ function placeOrder(): string {
 }
 
 async function orderState(page: Page, code: string): Promise<string | undefined> {
-  const token = await page.evaluate(() => JSON.parse(localStorage.getItem('hg_restaurant_session_v1') ?? '{}').accessToken as string);
+  const token = await liveAccessToken(page);
   const res = await page.request.get(`${REAL_API}/v1/restaurant/orders?limit=50`, {
     headers: { Authorization: `Bearer ${token}`, 'X-HG-Client': 'restaurant-web' },
   });

@@ -215,6 +215,16 @@ describe('S3 Your details', () => {
     expect(nav.log).toContainEqual({ action: 'back' });
   });
 
+  it("from the cart: the server's placeholder name is not shown as the customer's either", async () => {
+    mock.answer('getCustomerProfile', {
+      status: 200,
+      body: { data: { ...PROFILE, first_name: 'there', last_name: null, email: null, default_address_id: null } },
+    });
+    renderRedesign(<YourDetailsScreen fromCart />, { nav: navSpy({ name: 'yourDetails', fromCart: true }) });
+    await ready();
+    expect(screen.getByTestId('Profile-first-field').props.value).toBe('');
+  });
+
   it('"Not you?" signs this phone out with the Not you note', async () => {
     renderRedesign(<YourDetailsScreen />);
     await ready();
