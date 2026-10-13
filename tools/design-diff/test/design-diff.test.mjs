@@ -42,7 +42,7 @@ test('sizes: a shorter capture counts its missing part, another width is not com
   const board = paint(canvas(60, 90, WHITE), 6, 6, 30, 9);
   const short = compare(board, paint(canvas(60, 60, WHITE), 6, 6, 30, 9), { scale: 3 });
   assert.equal(short.verdict, 'FAIL');
-  assert.match(short.notes[0], /10 dp shorter/);
+  assert.match(short.heightNotes[0], /10 dp shorter/);
   assert.equal(compare(board, canvas(54, 90, WHITE), { scale: 3 }).verdict, 'NOT COMPARED');
 });
 

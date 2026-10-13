@@ -45,6 +45,7 @@ the board shows, for the worded findings) and `<out>/manifest.json`, per board:
 | `notes` | The designers' notes hidden from the picture: `{ kind, text }` |
 | `caveats` | The notes (or the title) saying the drawing is not the approved design |
 | `missingBlobs` | Uploaded images (`/_blob/<id>`) the mirror does not carry; they render empty |
+| `browser` | The Chromium binary that drew it |
 | `blocked`, `errors` | Requests to other hosts that were refused; what went wrong |
 
 Per area, `manifest.areas` has the artifact's link and the union of its missing images, so they can
@@ -54,9 +55,10 @@ boards it renders and keeps the rest.
 **The designers' notes.** Boards carry inline notes ("Needs API: …", "Proposed component: …",
 "DS issue: …") that are not UI and push the layout. They are hidden before the screenshot and kept
 in the manifest (`src/page-scripts.mjs`, `hideNotes`): by the classes the canvases use only for
-notes, by their opening words, and by mono-font sentences hidden from screen readers. The outlines
-drawn around proposed components go too. The rules are heuristics over today's canvases; a note
-they miss shows up in the diff as text "only in the design".
+notes, by their opening words, and by small mono-font sentences. The outlines drawn around
+proposed components go too, and so does the margin a box kept for a chip hung above it. The rules
+are heuristics over today's canvases; a note they miss shows up in the diff as text "only in the
+design".
 
 **Same input, same pixels.** React 18.3.1 (`third-party/react/`, MIT, the files the canvases' runtime
 loads, checked against its integrity hashes) is in the page before the design system's bundle reads
@@ -64,7 +66,10 @@ it. The web fonts are in `third-party/fonts/` (SIL Open Font License, `OFL-*.txt
 served them to the canvases; `node src/vendor-fonts.mjs --src <canvases>` refreshes them when a
 canvas asks for a new family or weight. Every other request off the local server is blocked and
 listed. The clock is fixed at 9:41 on 1 October 2026 (Toronto), animations are off, and Chromium
-starts with the web flows' flags, so boards and captures rasterise text alike.
+starts with the web flows' flags. Render the boards with the Chromium binary the web captures use
+(`PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH`, or Playwright's default for both): a full Chrome and the
+headless shell of the same version rasterise text differently, 0.5 to 1.3 % of a board's pixels.
+Each board records its `browser` in the manifest.
 
 ## Compare
 

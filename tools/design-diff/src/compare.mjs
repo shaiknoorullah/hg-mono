@@ -39,9 +39,9 @@ export function compare(ref, cap, { scale = 1, ...options } = {}) {
   if (cap.width !== W) {
     return { verdict: 'NOT COMPARED', reason: `the capture is ${dp(cap.width)} dp wide and the board ${dp(W)} dp` };
   }
-  const notes = [];
-  if (cap.height > H) notes.push(`The capture is ${dp(cap.height - H)} dp taller than the board; the part below the board was not compared.`);
-  if (cap.height < H) notes.push(`The capture is ${dp(H - cap.height)} dp shorter than the board; the missing part counts as different.`);
+  const heightNotes = [];
+  if (cap.height > H) heightNotes.push(`The capture is ${dp(cap.height - H)} dp taller than the board; the part below the board was not compared.`);
+  if (cap.height < H) heightNotes.push(`The capture is ${dp(H - cap.height)} dp shorter than the board; the missing part counts as different.`);
   const app = cap.height === H ? cap : crop(cap, 0, 0, W, H, PAD);
 
   const mask = new PNG({ width: W, height: H });
@@ -65,7 +65,7 @@ export function compare(ref, cap, { scale = 1, ...options } = {}) {
     largestRegion: box(largest),
     regionsOverLimit: overLimit,
     areas: areas.map(box),
-    notes,
+    heightNotes,
     images: { app, diff },
   };
 }

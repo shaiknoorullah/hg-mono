@@ -90,6 +90,19 @@ export function hideNotes({ classes, prefixes, weakPrefixes }) {
     const labelled = chipColours.has(cs.outlineColor) && marked.some((m) => el.contains(m.el));
     if (cs.outlineStyle === 'dashed' || labelled) el.style.setProperty('outline', 'none', 'important');
   }
+  // A chip hung above (or below) its box, `top: -32px`, came with a margin on the box to make room
+  // for it (`margin-top: 32px`). That room is the note's, not the design's: give it back.
+  for (const { el } of marked) {
+    const cs = getComputedStyle(el);
+    const box = el.parentElement;
+    if (cs.position !== 'absolute' || !box) continue;
+    const bs = getComputedStyle(box);
+    for (const [edge, margin] of [['top', 'marginTop'], ['bottom', 'marginBottom']]) {
+      const hang = -parseFloat(cs[edge]);
+      const room = parseFloat(bs[margin]);
+      if (hang > 0 && room >= hang) box.style.setProperty(edge === 'top' ? 'margin-top' : 'margin-bottom', `${room - hang}px`, 'important');
+    }
+  }
   const notes = marked.map(({ el, kind }) => ({ kind, text: squash(el.innerText || el.textContent).slice(0, 1000) })).filter((n) => n.text);
   // A box left with nothing but notes in it (an annotation card, the row a note sat in) goes too.
   const hidden = new Set(marked.map((m) => m.el));

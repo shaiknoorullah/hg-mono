@@ -48,6 +48,7 @@ function pairCard(p, dir) {
 <p class="sub">${esc(p.title ?? '')} · capture <code>${esc(p.capture)}</code></p>
 ${p.caveats?.length ? `<div class="caveat"><strong>The drawing is not the approved design here.</strong> Do not change the app toward these parts:<ul>${p.caveats.map((c) => `<li>${esc(c)}</li>`).join('')}</ul></div>` : ''}
 ${metrics}
+${(p.heightNotes ?? []).map((n) => `<p class="blob">${esc(n)}</p>`).join('')}
 ${p.missingBlobs?.length ? `<p class="blob">The board's uploaded image${p.missingBlobs.length > 1 ? 's are' : ' is'} missing offline (${p.missingBlobs.map(esc).join(', ')}): it shows as empty in the design.</p>` : ''}
 ${p.areas?.length ? `<details><summary>${p.areas.length} areas of difference (dp)</summary><ol class="areas">${p.areas.map((a) => `<li>${a.w}×${a.h} at ${a.x}, ${a.y} · ${a.px} px</li>`).join('')}</ol></details>` : ''}
 ${findings.length ? `<h4>In words (${findings.length})</h4><ul class="findings">${findings.slice(0, 25).map((f) => `<li class="k-${f.kind}">${esc(f.text)}</li>`).join('')}</ul>${findings.length > 25 ? `<p class="more">and ${findings.length - 25} more in results.json</p>` : ''}` : p.verdict === 'FAIL' ? '<p class="more">No layout snapshot for this capture (a phone screenshot), so the differences are in the picture only.</p>' : ''}

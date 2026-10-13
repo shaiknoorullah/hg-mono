@@ -25,7 +25,9 @@ function sameColour(a, b) {
   return [0, 1, 2].every((i) => Math.abs(x[i] - y[i]) <= 2) && Math.abs((x[3] ?? 1) - (y[3] ?? 1)) < 0.02;
 }
 
-const typeOf = (t) => `${num(t.size)}/${num(t.line)} ${WEIGHTS[t.weight] ?? t.weight}${t.letter ? ` ${num(t.letter)} tracking` : ''} ${t.family}`;
+/** A family's name without the packaging: "Plus Jakarta Sans Variable" is Plus Jakarta Sans. */
+const familyOf = (f) => (f ?? '').replace(/ Variable$/, '');
+const typeOf = (t) => `${num(t.size)}/${num(t.line)} ${WEIGHTS[t.weight] ?? t.weight}${t.letter ? ` ${num(t.letter)} tracking` : ''} ${familyOf(t.family)}`;
 const loose = (s) => s.toLowerCase().replace(/[’‘]/g, "'").replace(/[“”]/g, '"').replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
 
 /** Pairs the items of `a` and `b` with the same `key`, in reading order. */
@@ -57,6 +59,12 @@ export function compareLayouts(design, app) {
   for (const d of near.onlyA) out.push({ kind: 'missing', text: `Only in the design: ${quote(d.text)} (at ${num(d.x)}, ${num(d.y)}).` });
   for (const a of near.onlyB) out.push({ kind: 'extra', text: `Only in the app: ${quote(a.text)} (at ${num(a.x)}, ${num(a.y)}).` });
 
+  // The same typeface under another name is said once, not on every text.
+  const named = (list) => [...new Set(list.map((t) => t.family))].sort().join(', ');
+  if (pairs.length && named(pairs.map(([d]) => d)) !== named(pairs.map(([, a]) => a))) {
+    out.push({ kind: 'type', text: `Font family names: ${named(pairs.map(([d]) => d))} in the design, ${named(pairs.map(([, a]) => a))} in the app.` });
+  }
+
   // Type and colour of the same text.
   for (const [d, a] of pairs) {
     if (typeOf(d) !== typeOf(a)) out.push({ kind: 'type', text: `${quote(d.text)}: ${typeOf(d)} in the design, ${typeOf(a)} in the app.` });
@@ -70,7 +78,7 @@ export function compareLayouts(design, app) {
     const diffs = [];
     if (Math.abs(d.radius - a.radius) >= 1) diffs.push(`corner radius ${num(d.radius)} vs ${num(a.radius)}`);
     if (!sameColour(d.bg ?? 'rgba(0, 0, 0, 0)', a.bg ?? 'rgba(0, 0, 0, 0)')) diffs.push(`fill ${d.bg ? hex(d.bg) : 'none'} vs ${a.bg ? hex(a.bg) : 'none'}`);
-    if ((d.border ?? '') !== (a.border ?? '')) diffs.push(`border ${border(d.border)} vs ${border(a.border)}`);
+    if (seen(d.border) !== seen(a.border)) diffs.push(`border ${border(d.border)} vs ${border(a.border)}`);
     if (Boolean(d.shadow) !== Boolean(a.shadow)) diffs.push(d.shadow ? 'a shadow in the design, none in the app' : 'no shadow in the design, one in the app');
     if (Math.abs(d.w - a.w) >= 2 || Math.abs(d.h - a.h) >= 2) diffs.push(`size ${num(d.w)}×${num(d.h)} vs ${num(a.w)}×${num(a.h)}`);
     if (diffs.length) out.push({ kind: 'box', text: `Box holding ${quote(d.key)}: ${diffs.join('; ')} (design vs app).` });
@@ -92,8 +100,13 @@ export function compareLayouts(design, app) {
   return { matched: pairs.length, findings: out };
 }
 
+/** A border as it shows: a fully transparent one is none. */
+function seen(b) {
+  return !b || /rgba\([^)]*,\s*0\)$/.test(b) ? '' : b;
+}
+
 function border(b) {
-  if (!b) return 'none';
+  if (!seen(b)) return 'none';
   const m = /^([\d.]+px) (\w+) (.+)$/.exec(b);
   return m ? `${m[1]} ${m[2]} ${hex(m[3])}` : b;
 }
