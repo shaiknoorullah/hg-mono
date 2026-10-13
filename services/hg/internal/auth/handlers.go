@@ -556,12 +556,17 @@ func (h *Handler) LogoutAll(w http.ResponseWriter, r *http.Request) {
 			"Authentication is required.", nil)
 		return
 	}
-	if err := h.store.RevokeAllForAccount(r.Context(), p.AccountID, "logout_all"); err != nil {
+	revoked, err := h.store.RevokeAllForAccount(r.Context(), p.AccountID, "logout_all")
+	if err != nil {
 		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError,
 			"The server failed to process this request.", nil)
 		return
 	}
-	h.deny.AddAccount(p.AccountID)
+	// The revoked sessions, not the account: signing in again right after
+	// must work at once (#748, #752).
+	for _, sid := range revoked {
+		h.deny.AddSession(sid)
+	}
 	w.WriteHeader(http.StatusNoContent)
 }
 

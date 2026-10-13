@@ -113,9 +113,16 @@ func (s *Service) Void(ctx context.Context, orderID string) (IntentRow, error) {
 // from a Stripe intent, keeping card display fields and the amounts current.
 func (r *Repo) UpsertOrderIntent(ctx context.Context, orderID string, pi *StripeIntent) (IntentRow, error) {
 	state := string(stateFromStripe(pi.Status))
-	authorized := pi.AmountCents
-	if pi.AmountCapturableCents > 0 {
+	// Nothing is authorised until the card is: an intent still waiting for a
+	// payment method or a confirmation holds no funds (P-16 / invariant 5), so
+	// it stores 0. Cancelled and failed intents also store 0, which the
+	// upsert's GREATEST turns into "keep what was authorised before".
+	var authorized int64
+	switch {
+	case pi.AmountCapturableCents > 0:
 		authorized = pi.AmountCapturableCents + pi.AmountReceivedCents
+	case stateFromStripe(pi.Status) == StateRequiresCapture || stateFromStripe(pi.Status) == StateSucceeded:
+		authorized = pi.AmountCents
 	}
 	captured := pi.AmountReceivedCents
 	terminal := stateFromStripe(pi.Status)
