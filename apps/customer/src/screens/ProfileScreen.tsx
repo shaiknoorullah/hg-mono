@@ -26,6 +26,7 @@ import {
 } from '@hg/ui-native';
 
 import { getProfile, updateProfile, type CustomerProfile } from '../api/profile';
+import { givenFirstName } from '../api/profileName';
 import { useAsync } from '../api/async';
 import { useNavigation } from '../navigation/stack';
 import { CustomerTabBar } from '../navigation/TabBar';
@@ -65,7 +66,7 @@ export function ProfileScreen(): React.ReactElement {
   );
 }
 
-function ProfileForm({
+export function ProfileForm({
   profile,
   onSaved,
   bottomInset,
@@ -84,7 +85,10 @@ function ProfileForm({
   const heading = useTypeStyle('heading.sm');
   const body = useTypeStyle('body.sm');
 
-  const [firstName, setFirstName] = React.useState(profile.first_name);
+  // A new account's profile holds the server's placeholder, not a name the customer gave.
+  const givenFirst = givenFirstName(profile.first_name);
+  const fullName = `${givenFirst} ${profile.last_name ?? ''}`.trim();
+  const [firstName, setFirstName] = React.useState(givenFirst);
   const [lastName, setLastName] = React.useState(profile.last_name ?? '');
   const [email, setEmail] = React.useState(profile.email ?? '');
   const [marketing, setMarketing] = React.useState(profile.marketing_consent_at !== null);
@@ -93,7 +97,7 @@ function ProfileForm({
   const [errorText, setErrorText] = React.useState<string | null>(null);
 
   const dirty =
-    firstName !== profile.first_name ||
+    firstName !== givenFirst ||
     lastName !== (profile.last_name ?? '') ||
     email !== (profile.email ?? '') ||
     marketing !== (profile.marketing_consent_at !== null);
@@ -125,11 +129,9 @@ function ProfileForm({
     <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 16 + bottomInset, gap: 16 }}>
       <Card variant="outlined">
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-          <Avatar name={`${profile.first_name} ${profile.last_name ?? ''}`.trim()} src={profile.avatar_url ?? undefined} size="lg" />
+          <Avatar name={fullName} src={profile.avatar_url ?? undefined} size="lg" />
           <View style={{ flex: 1, gap: 2 }}>
-            <Text style={[heading, { color: theme.color.text.primary }]}>
-              {profile.first_name} {profile.last_name ?? ''}
-            </Text>
+            {fullName ? <Text style={[heading, { color: theme.color.text.primary }]}>{fullName}</Text> : null}
             <Text style={[body, { color: theme.color.text.secondary }]}>{profile.phone_e164}</Text>
           </View>
         </View>

@@ -4,7 +4,11 @@ package restaurant
 // that handlers marshal to JSON; they mirror the contract response schemas
 // exactly (additionalProperties:false — no extra fields, all required present).
 
-import "time"
+import (
+	"time"
+
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders"
+)
 
 // HalalBadge is the contract's HalalBadge schema (C-12). When this object is
 // absent the client renders no badge and reports an error — there is no
@@ -67,6 +71,24 @@ type OnboardingStatus struct {
 	CurrentStep     string          `json:"current_step"`
 	ProgressPercent int             `json:"progress_percent"`
 	StepsCompleted  OnboardingSteps `json:"steps_completed"`
+	// BlockingReason is the admin's reason text while the application is sent
+	// back or rejected; null otherwise.
+	BlockingReason *string `json:"blocking_reason"`
+	// ReviewCycle is the number of times the application has been submitted;
+	// omitted until the first submission.
+	ReviewCycle *int `json:"review_cycle,omitempty"`
+	// Rejection is non-null only in DOCUMENTS_REJECTED.
+	Rejection *OnboardingRejection `json:"rejection"`
+}
+
+// OnboardingRejection is the rejection object on RestaurantOnboardingStatus.
+// required: [decision, documents]. Decision tells a request for changes (fix
+// and resubmit) from a final REJECT.
+type OnboardingRejection struct {
+	Decision   string        `json:"decision"`
+	ReasonCode *string       `json:"reason_code"`
+	Note       *string       `json:"note"`
+	Documents  []DocumentRow `json:"documents"`
 }
 
 // HoursSlotRow is one trading-hours record (contract TradingInterval).
@@ -188,18 +210,21 @@ type OrderCustomerRef struct {
 }
 
 // OrderLineView is one line of an order as seen by the restaurant
-// (contract OrderLine). required: [line_no, menu_item_id, name, quantity,
-// unit_price_cents, line_total_cents, currency].
+// (contract OrderLine). required: [line_no, menu_item_id, name, variants,
+// quantity, unit_price_cents, line_total_cents, currency].
 type OrderLineView struct {
-	LineNo         int     `json:"line_no"`
-	MenuItemID     string  `json:"menu_item_id"`
-	Name           string  `json:"name"`
-	VariantName    *string `json:"variant_name,omitempty"`
-	Quantity       int     `json:"quantity"`
-	SpecialRequest *string `json:"special_request,omitempty"`
-	UnitPriceCents int64   `json:"unit_price_cents"`
-	LineTotalCents int64   `json:"line_total_cents"`
-	Currency       string  `json:"currency"`
+	LineNo      int     `json:"line_no"`
+	MenuItemID  string  `json:"menu_item_id"`
+	Name        string  `json:"name"`
+	VariantName *string `json:"variant_name,omitempty"`
+	// Variants is every chosen variant with its group, so the ticket shows
+	// each choice (https://github.com/shaiknoorullah/hg-mono/issues/628).
+	Variants       []orders.LineVariantDTO `json:"variants"`
+	Quantity       int                     `json:"quantity"`
+	SpecialRequest *string                 `json:"special_request,omitempty"`
+	UnitPriceCents int64                   `json:"unit_price_cents"`
+	LineTotalCents int64                   `json:"line_total_cents"`
+	Currency       string                  `json:"currency"`
 }
 
 // OrderRestaurantView is the restaurant's view of one order (contract

@@ -1,0 +1,60 @@
+# Rider redesign WP5, shared first half of the drop-off flows (run from 5-dropoff-photo.yaml and
+# 5b-dropoff-code.yaml, not on its own): the WP4 pickup to the counter, the pickup code, then
+# DL step 3 (go to the customer: EN_ROUTE_TO_DROPOFF is posted by itself, no button), the ride
+# from Bismillah Grill to Amina's door and "I'm here" (ARRIVED_AT_DROPOFF), to DL step 4.
+#
+# Needs a live order: the mission runs `make dev-journey route=short auto=restaurant manual=rider`.
+# PICKUP_CODE: the 4 digits on the restaurant's order (OrderRestaurantView.pickup_code, #290); see
+# 4-pickup.yaml. Before #290 + #315 merge any 4 digits pass.
+appId: com.halalgoes.rider.dev
+name: rider redesign, drop-off, to the door
+env:
+  PICKUP_CODE: "0000"
+  # Bismillah Grill and Amina's home pin (devworld route.go customerPoint), the ends of
+  # tools/e2e/native/routes/restaurant-to-amina.gpx.
+  RESTAURANT: "43.6815,-79.3310"
+  CORNER: "43.6815,-79.3300"
+  AMINA: "43.6825,-79.3300"
+---
+- runFlow: 4-pickup-to-counter.yaml
+- tapOn:
+    id: "trip-pickup-code-field"
+- inputText: ${PICKUP_CODE}
+- hideKeyboard
+- tapOn: "I've got the food"
+
+# Step 3 (DL/DropoffEnRoute): the customer, the full address, what they asked, the proof needed.
+- extendedWaitUntil:
+    visible: "Step 3 of 4 · Go to the customer"
+    timeout: 30000
+- assertVisible: "(Go to|Meet) .*"
+- assertVisible: "Proof needed"
+- assertVisible: "I'm here"
+- assertNotVisible: ".*[Hh]alal.*"
+- takeScreenshot: rider-wp5-01-go-to-customer
+- travel:
+    points:
+      - ${RESTAURANT}
+      - ${CORNER}
+      - ${AMINA}
+    speed: 5
+- tapOn: "I'm here"
+
+# 422 GEOFENCE_REQUIRED never strands the rider: if the fix lags, give a reason and carry on.
+- runFlow:
+    when:
+      visible: "We can't place you at the drop-off"
+    commands:
+      - takeScreenshot: rider-wp5-02-geofence
+      - tapOn:
+          id: "dropoff-geofence-reason-field"
+      - inputText: "GPS is off by a block"
+      - hideKeyboard
+      - tapOn: "Continue: I'm here"
+
+# Step 4 (DL/DropoffArrived): at the door.
+- extendedWaitUntil:
+    visible: "Step 4 of 4 · Hand it over"
+    timeout: 30000
+- assertVisible: "Hand it over"
+- takeScreenshot: rider-wp5-03-at-the-door

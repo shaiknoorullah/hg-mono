@@ -1,0 +1,29 @@
+# Rider redesign WP3 variant: decline with one reason (SH/OfferDecline) → the offer closes and
+# Home is waiting again, still online. Needs a fresh ready order (`make dev-reset` and
+# `make dev-scenario s=order-ready` first).
+appId: com.halalgoes.rider.dev
+name: rider redesign, offer declined
+---
+- runFlow: 3-offer-online.yaml
+- tapOn: "Decline"
+# The reasons: no close X, "Keep the offer" is the way back; one tap declines, no confirm.
+- extendedWaitUntil:
+    visible: "Keep the offer"
+    timeout: 5000
+- assertVisible: "Pickup is too far"
+- assertVisible: "Taking a break"
+- assertVisible: "More reasons"
+- takeScreenshot: rider-wp3-06-decline-reasons
+- tapOn: "More reasons"
+- assertVisible: "Safety concern"
+- assertNotVisible: "More reasons"
+- tapOn: "Keep the offer"
+- assertVisible: "Delivery offer"
+- assertNotVisible: "Keep the offer"
+- tapOn: "Decline"
+- tapOn: "Pickup is too far"
+- extendedWaitUntil:
+    notVisible: "Delivery offer"
+    timeout: 15000
+- assertVisible: "Waiting for offers"
+- takeScreenshot: rider-wp3-07-declined

@@ -29,7 +29,9 @@ module.exports = () => {
       version: env.version,
       orientation: 'portrait',
       scheme: 'hgrider',
-      userInterfaceStyle: 'light',
+      // The redesign follows the phone into dark mode (rider manifest WP0); the released app stays
+      // light. `automatic` only when the redesign flag is on, so release builds are unchanged.
+      userInterfaceStyle: process.env.EXPO_PUBLIC_HG_REDESIGN === '1' ? 'automatic' : 'light',
       newArchEnabled: true,
       // The HalalGoes logo. Every file under assets/ is written by
       // `pnpm --filter @hg/brand build:assets` from the one traced geometry; do

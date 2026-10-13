@@ -29,9 +29,8 @@ func (c *countingTransport) RoundTrip(r *http.Request) (*http.Response, error) {
 	return nil, errors.New("devworld test: no request may leave")
 }
 
-func TestAccountScenariosRefuseNonLocalAPIBeforeAnyRequest(t *testing.T) {
-	// The scenarios that create accounts or make a final decision.
-	for _, name := range []string{"onboard-restaurant", "application-in-review", "application-reject"} {
+func TestOnboardingScenariosRefuseNonLocalAPIBeforeAnyRequest(t *testing.T) {
+	for _, name := range []string{"onboard-restaurant", "onboard-rider", "onboard-admin", "application-in-review", "application-reject"} {
 		t.Run(name, func(t *testing.T) {
 			rec := &countingTransport{}
 			prev := http.DefaultTransport

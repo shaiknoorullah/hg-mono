@@ -1,5 +1,7 @@
 node_modules/
 dist/
+# The redesign builds tools/e2e/web/serve.sh makes beside dist/
+dist-redesign/
 build/
 .env
 .env.*
@@ -23,6 +25,8 @@ next-env.d.ts
 
 .claude/*
 !.claude/skills/
+# The project's shared Claude Code settings (enabled plugins); settings.local.json stays personal.
+!.claude/settings.json
 .expo/
 *.tsbuildinfo
 .neon

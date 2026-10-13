@@ -1,0 +1,27 @@
+{
+  "scenario": "error_cannot_go_online",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`422` · `CANNOT_GO_ONLINE`. Going online without a fresh location fix: the one soft reason `services/hg` sends today. The app deep-links each `details.blocking_reasons` entry to its fix.",
+  "operations": [
+    "setRiderAvailability"
+  ],
+  "status": 422,
+  "tags": [
+    "error-envelope",
+    "error-path",
+    "rider"
+  ],
+  "payload": {
+    "error": {
+      "code": "CANNOT_GO_ONLINE",
+      "message": "You cannot go online yet.",
+      "request_id": "Q42JQDET4VV0QC7N8PCT7C2CFK",
+      "details": {
+        "blocking_reasons": [
+          "STALE_LOCATION_FIX"
+        ]
+      }
+    }
+  }
+}
