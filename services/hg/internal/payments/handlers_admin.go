@@ -25,7 +25,7 @@ var validRefundStates = map[string]bool{
 
 // validRefundReasonCodes is the contract RefundReasonCode enum.
 var validRefundReasonCodes = map[string]bool{
-	"RESTAURANT_REJECTED": true, "ITEM_MISSING": true, "MISSING_ITEMS": true, "WRONG_ITEM": true,
+	"RESTAURANT_REJECTED": true, "ITEM_MISSING": true, "MISSING_ITEMS": true, "WRONG_ADDRESS": true, "WRONG_ITEM": true,
 	"WRONG_ITEMS": true, "FOOD_QUALITY": true, "FOOD_SAFETY": true, "NEVER_DELIVERED": true,
 	"ORDER_NEVER_ARRIVED": true, "LATE_DELIVERY": true, "DAMAGED_SPILLED": true, "NO_RIDER_FOUND": true,
 	"CUSTOMER_CHANGED_MIND": true, "RESTAURANT_CANCELLED": true, "PLATFORM_INITIATED_CANCELLATION": true,

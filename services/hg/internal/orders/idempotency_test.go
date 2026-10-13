@@ -25,6 +25,8 @@ func (g *countingGateway) CreateOrderIntent(_ context.Context, in CreateIntentIn
 	return CreateIntentResult{ClientSecret: "secret-for-" + in.OrderID}, nil
 }
 
+func (g *countingGateway) VoidOrderPayment(context.Context, string) error { return nil }
+
 func postOrder(t *testing.T, h *Handler, accountID, key, body string) *httptest.ResponseRecorder {
 	t.Helper()
 	req := httptest.NewRequest(http.MethodPost, "/v1/orders", strings.NewReader(body))

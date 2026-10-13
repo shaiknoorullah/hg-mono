@@ -1,0 +1,23 @@
+{
+  "scenario": "error_refund_conflict",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`409` · `REFUND_EXCEEDS_CAPTURED`. A partial refund on an order that has already been mostly refunded: this one would take the total past what was captured. Nothing was refunded; the screen shows what is left.",
+  "operations": [
+    "issueRefund"
+  ],
+  "status": 409,
+  "tags": [
+    "error-envelope",
+    "error-path",
+    "admin",
+    "money"
+  ],
+  "payload": {
+    "error": {
+      "code": "REFUND_EXCEEDS_CAPTURED",
+      "message": "Refund of 1915 would exceed the captured 10684 (already refunded 9390).",
+      "request_id": "KSHCEQC5VK1NVXHDBXFF97MGW0"
+    }
+  }
+}
