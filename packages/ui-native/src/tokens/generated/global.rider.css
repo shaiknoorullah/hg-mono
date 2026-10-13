@@ -72,6 +72,13 @@
   --hg-feedback-info-tint-border: #CBDFFC;
   --hg-skeleton-base: #D8D0BF;
   --hg-skeleton-highlight: #E6E0D4;
+  --hg-feedback-neutral-tint: #F6EFDD;
+  --hg-feedback-neutral-border: #E6E0D4;
+  --hg-feedback-neutral-icon: #4A4E48;
+  --hg-feedback-slate-tint: #EDEFF1;
+  --hg-feedback-slate-border: #B9C0C7;
+  --hg-feedback-slate-icon: #4E5862;
+  --hg-progress-fill: #4A4E48;
 
   --background: #FFFAEA;
   --foreground: #232323;
@@ -155,6 +162,13 @@
   --hg-feedback-info-tint-border: #04264F;
   --hg-skeleton-base: #4A4E48;
   --hg-skeleton-highlight: #8B8578;
+  --hg-feedback-neutral-tint: #232323;
+  --hg-feedback-neutral-border: #33352F;
+  --hg-feedback-neutral-icon: #B9B0A0;
+  --hg-feedback-slate-tint: #1B1F24;
+  --hg-feedback-slate-border: #4E5862;
+  --hg-feedback-slate-icon: #7C8794;
+  --hg-progress-fill: #B9B0A0;
 
   --background: #171717;
   --foreground: #F6EFDD;

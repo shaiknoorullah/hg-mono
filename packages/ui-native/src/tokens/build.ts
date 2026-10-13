@@ -419,6 +419,44 @@ function cssOnlyRoleColors(color: ThemeColorsLoose): Record<string, unknown> {
   return { feedback, skeleton };
 }
 
+/**
+ * Status roles for the feedback family (N5), beside `cssOnlyRoleVars` and, like it, written to
+ * `global.<theme>.css` only (`themes.ts` and `vars.ts` are untouched):
+ *
+ *   - `--hg-feedback-neutral-{tint,border,icon}`: the warm surface plate the legacy Banner used;
+ *   - `--hg-feedback-slate-{tint,border,icon}`: the tone for HALAL messages (invariant 9: never
+ *     red for a halal state). It is the expired-certification palette (foundations §2.4, "cool
+ *     slate: we can't currently vouch"), reached through these roles so components never name
+ *     `color.halal.*` (lint L-3);
+ *   - `--hg-progress-fill`: the neutral indicator of WaitProgress and ProgressSteps (#197 asks
+ *     for a fill that is not `text.primary`): `text.secondary`, never brand, green or urgency.
+ */
+export function statusRoleVars(
+  color: ThemeColorsLoose,
+  scheme: 'light' | 'dark',
+  ramps: Record<string, any>,
+): Record<string, string> {
+  const expired = ramps.halal.expired as Record<string, string>;
+  const slate =
+    scheme === 'dark'
+      ? { tint: expired.tintDark!, border: expired.seal!, icon: expired.sealDark! }
+      : { tint: expired.tint!, border: expired.border!, icon: expired.seal! };
+  const neutral = { tint: color.surface!.subtle, border: color.border!.decorative, icon: color.text!.secondary };
+  const out: Record<string, string> = {};
+  for (const [tone, parts] of Object.entries({ neutral, slate })) {
+    for (const [part, value] of Object.entries(parts)) out[`--hg-feedback-${tone}-${part}`] = value;
+  }
+  out['--hg-progress-fill'] = color.text!.secondary;
+  return out;
+}
+
+/** Tailwind colour utilities for `statusRoleVars` (`bg-feedback-slate-tint`, `bg-progress-fill`). */
+const STATUS_ROLE_COLORS = {
+  neutral: { tint: 'var(--hg-feedback-neutral-tint)', border: 'var(--hg-feedback-neutral-border)', icon: 'var(--hg-feedback-neutral-icon)' },
+  slate: { tint: 'var(--hg-feedback-slate-tint)', border: 'var(--hg-feedback-slate-border)', icon: 'var(--hg-feedback-slate-icon)' },
+  progress: { fill: 'var(--hg-progress-fill)' },
+};
+
 /* ----------------------------------------------------------------- builder */
 
 export function buildFiles(doc: Dtcg): Record<string, string> {
@@ -625,6 +663,7 @@ export function buildFiles(doc: Dtcg): Record<string, string> {
     const withRoles = (scheme: 'light' | 'dark') => ({
       ...(varsOut[themeName]![scheme] as Record<string, string>),
       ...cssOnlyRoleVars(t[scheme].color, scheme, tokens.color),
+      ...statusRoleVars(t[scheme].color, scheme, tokens.color),
     });
     files[`global.${themeName}.css`] = nativewindGlobalCss(
       themeName,
@@ -653,6 +692,10 @@ export function buildFiles(doc: Dtcg): Record<string, string> {
    */
   Object.assign(presetColors, RNR_PRESET_COLORS);
   Object.assign(presetColors, cssOnlyRoleColors((themes.customer as any).light.color));
+  const feedback = presetColors.feedback as Record<string, unknown>;
+  feedback.neutral = STATUS_ROLE_COLORS.neutral;
+  feedback.slate = STATUS_ROLE_COLORS.slate;
+  presetColors.progress = STATUS_ROLE_COLORS.progress;
   presetColors.border = { DEFAULT: 'var(--border)', ...(presetColors.border as object) };
   presetColors.accent = {
     ...(presetColors.accent as object),
