@@ -2,7 +2,7 @@
   "scenario": "rider_dashboard_zero_earnings",
   "domain": "rider",
   "schema": "RiderDashboard",
-  "describes": "**A rider with zero earnings** — approved this morning, no deliveries yet. Every money field is 0 and every count is 0. The dashboard must read as 'not started', never as an error or a blank screen.",
+  "describes": "**A rider with zero earnings** — approved this morning, just went online, no deliveries yet: no assignment, no offer, every money field and count 0. The dashboard must read as 'not started', never as an error or a blank screen.",
   "operations": [
     "getRiderDashboard"
   ],
@@ -16,130 +16,13 @@
   "payload": {
     "mode": "ONLINE_IDLE",
     "today": {
-      "gross_cents": 1149,
+      "gross_cents": 0,
       "currency": "CAD",
       "trips": 0,
-      "online_seconds": 19
+      "online_seconds": 0
     },
-    "active_assignment": {
-      "id": "036875b5-a62b-42b5-a986-7cdd2b90359b",
-      "order_id": "61ed6cdb-1664-4b33-ab70-bc963fea8666",
-      "order_code": "HG-4K2M-9T",
-      "state": "EN_ROUTE_TO_DROPOFF",
-      "pickup": {
-        "restaurant_name": "Al-Noor Shawarma House",
-        "address": "55 Peel Centre Drive, Brampton, ON",
-        "latitude": 43.6817,
-        "longitude": -79.7195,
-        "phone_alias": "+16475550188",
-        "pickup_notes": "Collect from the hot counter on the left, ask for the app order.",
-        "order_state": "PREPARING"
-      },
-      "dropoff": {
-        "address": "890 Markham Road, Scarborough, ON",
-        "unit": "Unit 12",
-        "buzzer": "1204",
-        "latitude": 43.5806,
-        "longitude": -79.6212,
-        "customer_display_name": "Sana A.",
-        "phone_alias": "+16475550188",
-        "delivery_instructions": [
-          "LEAVE_AT_DOOR"
-        ],
-        "special_instructions": "Extra napkins please, and no cutlery."
-      },
-      "items": [
-        {
-          "name": "Marhaba Fried Chicken",
-          "quantity": 1,
-          "variant_name": "Regular",
-          "addon_names": [
-            "Addon Names"
-          ],
-          "note": "Customer called to confirm the buzzer code.",
-          "allergen_tags": [
-            "PEANUTS",
-            "PEANUTS"
-          ]
-        },
-        {
-          "name": "Sultan's Table",
-          "quantity": 1,
-          "variant_name": "Regular",
-          "addon_names": [
-            "Addon Names"
-          ],
-          "note": "Customer called to confirm the buzzer code.",
-          "allergen_tags": [
-            "PEANUTS",
-            "PEANUTS"
-          ]
-        },
-        {
-          "name": "Karachi Kitchen",
-          "quantity": 1,
-          "variant_name": "Regular",
-          "addon_names": [
-            "Addon Names"
-          ],
-          "note": "Customer called to confirm the buzzer code.",
-          "allergen_tags": [
-            "PEANUTS",
-            "PEANUTS"
-          ]
-        }
-      ],
-      "payment_status": "PREPAID",
-      "earnings": {
-        "base_cents": 4634,
-        "distance_cents": 0,
-        "surge_cents": 0,
-        "tip_so_far_cents": 700,
-        "estimated_total_cents": 1149,
-        "currency": "CAD"
-      },
-      "required_pod_method": "PHOTO",
-      "pod_recorded": false,
-      "handover_method": "LEFT_AT_DOOR",
-      "tracking_health": "HEALTHY",
-      "billable_distance_m": 3180,
-      "pickup_wait_seconds": 240,
-      "assigned_at": "2026-08-10T18:26:11.412Z",
-      "arrived_pickup_at": "2026-08-10T18:30:11.412Z",
-      "picked_up_at": "2026-08-10T18:31:11.412Z",
-      "arrived_dropoff_at": "2026-08-10T18:39:11.412Z",
-      "delivered_at": "2026-08-10T18:40:11.412Z"
-    },
-    "current_offer": {
-      "offer_id": "ac3bb255-f1e9-41c1-a50e-4ee0bc2d5d46",
-      "order_id": "16f80c05-1d7d-4236-a0c7-2643b457e9f5",
-      "state": "PENDING",
-      "wave": 2,
-      "expires_at": "2026-08-10T18:51:11.412Z",
-      "server_time": "2026-08-10T18:42:11.412Z",
-      "pickup": {
-        "restaurant_name": "Zaytoun Mediterranean Grill",
-        "address_short": "275 Bank Street, Ottawa",
-        "latitude": 43.7369,
-        "longitude": -79.453
-      },
-      "dropoff": {
-        "area": "Downtown Kitchener",
-        "latitude": 43.6199,
-        "longitude": -79.453
-      },
-      "distance_m": 3180,
-      "est_duration_s": 660,
-      "earnings": {
-        "base_cents": 4634,
-        "distance_cents": 0,
-        "surge_cents": 0,
-        "tip_so_far_cents": 700,
-        "estimated_total_cents": 1149,
-        "currency": "CAD"
-      },
-      "items_count": 3
-    },
+    "active_assignment": null,
+    "current_offer": null,
     "tracking_health": "HEALTHY",
     "blocking_reasons": []
   }

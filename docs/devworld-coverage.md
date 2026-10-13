@@ -161,7 +161,7 @@ The fixed code works only for `+15550100100` to `+15550100199` and only when `HG
 | [D-17](spec/04-rider.md#d-17--rejecting-or-ignoring-an-offer) | Reject or ignore an offer | Reject in the app after `manual=rider`; no second rider gets it | Partial | [#684](https://github.com/shaiknoorullah/hg-mono/issues/684) |
 | [D-18](spec/04-rider.md#d-18--order-dashboard-active-work--resume) | Active delivery screen | `rider-sim` during `make dev-journey auto=all manual=rider` | Covered | — |
 | [D-19](spec/04-rider.md#d-19--order-details) | Order details | As above | Covered | — |
-| [D-20](spec/04-rider.md#d-20--delivery-status-updates-arrived--picked-up--in-transit--delivered) | Arrived, picked up, delivered | `make dev-journey auto=all`, or by hand with `manual=rider` | Covered | — |
+| [D-20](spec/04-rider.md#d-20--delivery-status-updates-arrived--picked-up--in-transit--delivered) | Arrived, picked up, delivered | `make dev-journey auto=all`, which types the pickup code the restaurant's order view shows, or by hand with `manual=rider` | Covered | — |
 | [D-21](spec/04-rider.md#d-21--proof-of-delivery) | Proof of delivery | The journey uploads a photo; the delivery code check fails ([#259](https://github.com/shaiknoorullah/hg-mono/issues/259)) | Covered | — |
 | [D-22](spec/04-rider.md#d-22--navigation--maps) | Navigation and maps | A straight line without a token; maps and directions need Mapbox | Blocked by external (Mapbox token) | [#57](https://github.com/shaiknoorullah/hg-mono/issues/57) |
 | [D-23](spec/04-rider.md#d-23--distance-tracking-for-payment) | Distance for pay | `rider-sim` after `make dev-journey auto=all` | Covered | — |
