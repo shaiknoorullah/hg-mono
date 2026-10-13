@@ -51,6 +51,7 @@ import {
   Sheet,
   Skeleton,
   Tabs,
+  Toast,
   elevationStyle,
   formatPrice,
   reportClientError,
@@ -64,8 +65,11 @@ import { CERTIFICATE_UNAVAILABLE, OFFLINE_HALAL_LINE, halalCacheFresh, type Hala
 import { useNow } from '../lib/now';
 import { useQuery, type Query } from '../lib/query';
 import { formatShortDate, formatTime } from '../lib/time';
+import { ADDED_TOAST, ItemSheet } from '../ordering/ItemSheet';
+import { lineSummary } from '../ordering/itemSelection';
 import {
   aboutAddressLine,
+  addressName,
   availabilityBanner,
   availabilityLine,
   containsLine,
@@ -101,18 +105,16 @@ import {
 export const NOT_AVAILABLE_TITLE = "This restaurant isn't available right now";
 
 /**
- * Tapping a dish opens the item sheet (D9), which is WP5. Until it lands the row is a button that
- * does nothing new: no route is pushed and no legacy sheet is opened from the redesign.
+ * Tapping a dish opens the item sheet (D9, WP5), owned by this page. A caller (a test) may take
+ * the tap instead.
  */
-// TODO(WP5, #656): open the item sheet (D9) for `item` here.
 export type OpenItem = (item: MenuItem) => void;
-const openItemUntilWp5: OpenItem = () => {};
 
 type HalalRow = HalalPresentation | { kind: 'failed' } | { kind: 'checking' };
 
 export function RestaurantScreen({
   restaurantId,
-  onOpenItem = openItemUntilWp5,
+  onOpenItem,
 }: {
   restaurantId: string;
   onOpenItem?: OpenItem;
@@ -218,14 +220,21 @@ function ReadyPage({
   restaurantId: string;
   page: RestaurantPage & { cart: Cart | null };
   asOf: number;
-  onOpenItem: OpenItem;
+  onOpenItem?: OpenItem;
 }): React.ReactElement {
   const nav = useNav();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { online } = useConnectivity();
   const now = useNow(30_000);
-  const { detail, address, cart } = page;
+  const { detail, address } = page;
+
+  // WP5: the item sheet, the cart the server returned from the last add, and the "Added" toast.
+  const [sheetItem, setSheetItem] = React.useState<MenuItem | null>(null);
+  const [addedCart, setAddedCart] = React.useState<Cart | null>(null);
+  const [addedToast, setAddedToast] = React.useState<string | null>(null);
+  const cart = addedCart ?? page.cart;
+  const openItem: OpenItem = onOpenItem ?? setSheetItem;
 
   React.useEffect(() => rememberRestaurantName(detail.id, detail.name), [detail.id, detail.name]);
 
@@ -421,7 +430,7 @@ function ReadyPage({
             restaurantName={detail.name}
             categories={categories}
             onRetry={reloadMenu}
-            onOpenItem={onOpenItem}
+            onOpenItem={openItem}
             onFindAnother={() => nav.push({ name: 'browse' })}
             onSectionLayout={(id, y) => {
               sectionY.current[id] = y;
@@ -453,6 +462,49 @@ function ReadyPage({
             {`View cart · ${itemCountText(itemCount)} · ${formatPrice(cents(cart.indicative_subtotal_cents))}`}
           </Button>
         </View>
+      ) : null}
+
+      {addedToast ? (
+        <View
+          pointerEvents="box-none"
+          style={[styles.toastDock, { bottom: (itemCount > 0 ? barHeight : insets.bottom) + 12 }]}
+        >
+          <Toast
+            variant="success"
+            title={ADDED_TOAST}
+            description={addedToast}
+            onDismiss={() => setAddedToast(null)}
+            testID="Restaurant-addedToast"
+          />
+        </View>
+      ) : null}
+
+      {sheetItem ? (
+        <ItemSheet
+          restaurantId={restaurantId}
+          restaurantName={detail.name}
+          availability={detail.availability}
+          addressName={addressName(address)}
+          item={sheetItem}
+          onClose={() => setSheetItem(null)}
+          onAdded={(next, line) => {
+            setSheetItem(null);
+            setAddedCart(next);
+            setAddedToast(line ? lineSummary(line) : sheetItem.name);
+          }}
+          onAddAddress={() => {
+            setSheetItem(null);
+            nav.push({ name: 'addressForm', addressId: null });
+          }}
+          onChangeAddress={() => {
+            setSheetItem(null);
+            nav.push({ name: 'addresses' });
+          }}
+          onFindOpen={() => {
+            setSheetItem(null);
+            nav.push({ name: 'browse', openNow: true });
+          }}
+        />
       ) : null}
 
       {certOpen ? (
@@ -1000,6 +1052,7 @@ const styles = StyleSheet.create({
   skeletonRow: { padding: 16, borderWidth: 1, borderRadius: 16 },
   about: { gap: 8, paddingTop: 16, borderTopWidth: 1 },
   media: { overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
+  toastDock: { position: 'absolute', start: 16, end: 16 },
   cartBar: { position: 'absolute', start: 0, end: 0, bottom: 0, paddingHorizontal: 16, paddingTop: 12 },
   sheetBody: { gap: 12 },
 });

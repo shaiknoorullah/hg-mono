@@ -18,7 +18,7 @@
  * Nothing here is green or red.
  */
 import * as React from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { BackHandler, KeyboardAvoidingView, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { api } from '../api/client';
 import {
@@ -92,6 +92,32 @@ export function SignInScreen(): React.ReactElement {
     [top, stack.length],
   );
 
+  // Code → Sign in with the number kept (the code page's own back, "Change number").
+  const backToPhone = (phoneE164: string, wait?: number | null): void => {
+    setPhone(nationalDigits(phoneE164));
+    setPhoneWait(wait ?? null);
+    setStack([{ name: 'signIn' }]);
+  };
+
+  // Android's Back does what the page's back does: Code returns to Sign in with the number kept,
+  // Terms returns to the page under it. Only on Sign in itself does it leave the app.
+  const onHardwareBack = React.useRef<() => boolean>(() => false);
+  onHardwareBack.current = () => {
+    if (top.name === 'code' && code) {
+      backToPhone(code.phoneE164);
+      return true;
+    }
+    if (stack.length > 1) {
+      nav.back();
+      return true;
+    }
+    return false;
+  };
+  React.useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => onHardwareBack.current());
+    return () => sub.remove();
+  }, []);
+
   let page: React.ReactElement;
   if (top.name === 'terms') {
     page = <TermsScreen signedOut />;
@@ -102,11 +128,7 @@ export function SignInScreen(): React.ReactElement {
         phoneE164={code.phoneE164}
         sent={code.sent}
         onSent={(sent) => setCode({ ...code, sent })}
-        onBack={(wait) => {
-          setPhone(nationalDigits(code.phoneE164));
-          setPhoneWait(wait ?? null);
-          setStack([{ name: 'signIn' }]);
-        }}
+        onBack={(wait) => backToPhone(code.phoneE164, wait)}
       />
     );
   } else {
@@ -131,7 +153,8 @@ export function SignInScreen(): React.ReactElement {
 }
 
 // ---------------------------------------------------------------------------------------------
-// Page frame: content scrolls, the footer stays at the bottom above the keyboard.
+// Page frame: content scrolls, the footer stays at the bottom above the keyboard. Padding on both
+// platforms: with edge-to-edge on, Android no longer resizes the window for the keyboard.
 // ---------------------------------------------------------------------------------------------
 
 function Frame({
@@ -148,7 +171,7 @@ function Frame({
   const theme = useTheme();
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior="padding"
       style={[styles.fill, { backgroundColor: theme.color.surface.base }]}
       testID={testID}
     >

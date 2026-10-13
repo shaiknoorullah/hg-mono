@@ -1,9 +1,14 @@
 package orders
 
 import (
+	"strconv"
 	"time"
+	"unicode/utf8"
+
+	"github.com/google/uuid"
 
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders/pricing"
 )
 
 // This file holds the wire DTOs — the exact shapes from contracts/openapi.yaml.
@@ -74,6 +79,7 @@ type cartLineDTO struct {
 	Name           string              `json:"name"`
 	ImageURL       *string             `json:"image_url"`
 	Variant        *selectedVariantDTO `json:"variant"`
+	Variants       []LineVariantDTO    `json:"variants"`
 	Addons         []selectedAddonDTO  `json:"addons"`
 	Quantity       int                 `json:"quantity"`
 	SpecialRequest *string             `json:"special_request"`
@@ -89,6 +95,30 @@ type selectedVariantDTO struct {
 	PricingMode string `json:"pricing_mode"`
 }
 
+// LineVariantDTO is the contract's LineVariant: one chosen variant with its
+// group, on a cart, quote or order line.
+type LineVariantDTO struct {
+	VariantGroupID string `json:"variant_group_id"`
+	GroupName      string `json:"group_name"`
+	VariantID      string `json:"variant_id"`
+	VariantName    string `json:"variant_name"`
+	PricingMode    string `json:"pricing_mode"`
+	PriceCents     *int64 `json:"price_cents"`
+	DeltaCents     *int64 `json:"delta_cents"`
+}
+
+func lineVariantsToDTO(vs []pricing.VariantChoice) []LineVariantDTO {
+	out := make([]LineVariantDTO, 0, len(vs))
+	for _, v := range vs {
+		out = append(out, LineVariantDTO{
+			VariantGroupID: v.VariantGroupID, GroupName: v.GroupName,
+			VariantID: v.VariantID, VariantName: v.Name, PricingMode: v.PricingMode,
+			PriceCents: centsPtr(v.PriceCents), DeltaCents: centsPtr(v.DeltaCents),
+		})
+	}
+	return out
+}
+
 type selectedAddonDTO struct {
 	AddonID  string `json:"addon_id"`
 	Name     string `json:"name"`
@@ -102,12 +132,83 @@ type cartAvailabilityDTO struct {
 }
 
 // cartLineInputDTO is the addCartLine body — identifiers and quantities only.
+// variant_id is deprecated: it is read as a one-element variant_ids.
 type cartLineInputDTO struct {
 	MenuItemID     string              `json:"menu_item_id"`
 	VariantID      *string             `json:"variant_id"`
+	VariantIDs     *[]string           `json:"variant_ids"`
 	Addons         []cartAddonInputDTO `json:"addons"`
 	Quantity       int                 `json:"quantity"`
 	SpecialRequest *string             `json:"special_request"`
+}
+
+// toInput checks the body's shape (what the contract's schema says, before
+// the menu is read) and returns the store input, or a FieldError per problem.
+func (in cartLineInputDTO) toInput() (CartLineInput, []httpx.FieldError) {
+	var problems []httpx.FieldError
+	bad := func(field, code, msg string) {
+		problems = append(problems, httpx.FieldError{Field: field, Code: code, Message: msg})
+	}
+	// Ids are kept in canonical form, so line identity compares them as the
+	// database stores them.
+	canonical := func(id string) (string, bool) {
+		u, err := uuid.Parse(id)
+		if err != nil {
+			return id, false
+		}
+		return u.String(), true
+	}
+	menuItemID, ok := canonical(in.MenuItemID)
+	if !ok {
+		bad("menu_item_id", "format", "menu_item_id must be a UUID.")
+	}
+	if in.Quantity < 1 || in.Quantity > 20 {
+		bad("quantity", "range", "quantity must be 1..20.")
+	}
+	li := CartLineInput{MenuItemID: menuItemID, Quantity: in.Quantity, SpecialRequest: in.SpecialRequest}
+	switch {
+	case in.VariantID != nil && in.VariantIDs != nil:
+		bad("variant_id", "conflict", "Send variant_ids, not both variant_ids and the deprecated variant_id.")
+	case in.VariantIDs != nil:
+		li.VariantIDs = append([]string(nil), (*in.VariantIDs)...)
+		if len(li.VariantIDs) > 10 {
+			bad("variant_ids", "max_items", "At most 10 variants, one per variant group.")
+		}
+	case in.VariantID != nil:
+		li.VariantIDs = []string{*in.VariantID}
+	}
+	for i, id := range li.VariantIDs {
+		var ok bool
+		if li.VariantIDs[i], ok = canonical(id); !ok {
+			field := "variant_ids[" + strconv.Itoa(i) + "]"
+			if in.VariantIDs == nil {
+				field = "variant_id"
+			}
+			bad(field, "format", "A variant id must be a UUID.")
+		}
+	}
+	if len(in.Addons) > 10 {
+		bad("addons", "max_items", "At most 10 add-ons per line.")
+	}
+	for i, a := range in.Addons {
+		field := "addons[" + strconv.Itoa(i) + "]"
+		addonID, ok := canonical(a.AddonID)
+		if !ok {
+			bad(field+".addon_id", "format", "addon_id must be a UUID.")
+		}
+		qty := 1
+		if a.Quantity != nil {
+			qty = *a.Quantity
+			if qty < 1 || qty > 10 {
+				bad(field+".quantity", "range", "An add-on quantity must be 1..10.")
+			}
+		}
+		li.Addons = append(li.Addons, CartAddonInput{AddonID: addonID, Quantity: qty})
+	}
+	if in.SpecialRequest != nil && utf8.RuneCountInString(*in.SpecialRequest) > 140 {
+		bad("special_request", "max_length", "special_request is at most 140 characters.")
+	}
+	return li, problems
 }
 
 type cartAddonInputDTO struct {
@@ -165,6 +266,7 @@ type quoteLineDTO struct {
 	VariantID          *string             `json:"variant_id"`
 	VariantName        *string             `json:"variant_name"`
 	VariantPricingMode *string             `json:"variant_pricing_mode"`
+	Variants           []LineVariantDTO    `json:"variants"`
 	Addons             []quoteLineAddonDTO `json:"addons"`
 	Quantity           int                 `json:"quantity"`
 	BasePriceCents     int64               `json:"base_price_cents"`
@@ -279,6 +381,7 @@ type orderLineDTO struct {
 	MenuItemID     string              `json:"menu_item_id"`
 	Name           string              `json:"name"`
 	VariantName    *string             `json:"variant_name"`
+	Variants       []LineVariantDTO    `json:"variants"`
 	Addons         []quoteLineAddonDTO `json:"addons"`
 	Quantity       int                 `json:"quantity"`
 	SpecialRequest *string             `json:"special_request"`

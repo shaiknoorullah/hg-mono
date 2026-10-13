@@ -1,0 +1,24 @@
+# Rider redesign WP3: online at the restaurant → order-ready → the offer fills the screen →
+# Accept → "You've got this delivery" with the full address → the trip (WP4, or the legacy
+# delivery screen until WP4 merges).
+#
+# Variants with their own flows (each needs a fresh ready order: `make dev-reset` and
+# `make dev-scenario s=order-ready` before each): 3b-offer-expire.yaml (let the 30 s run out),
+# 3c-offer-decline.yaml (decline with one reason).
+appId: com.halalgoes.rider.dev
+name: rider redesign, offer accepted
+---
+- runFlow: 3-offer-online.yaml
+# Android Back is ignored while the offer is live (SH note: not dismissable before expires_at).
+- back
+- assertVisible: "Delivery offer"
+- tapOn: "Accept"
+- extendedWaitUntil:
+    visible: "You've got this delivery"
+    timeout: 20000
+- assertVisible: "Go to .*\\. Your route and the order code are on the next screen\\."
+- assertVisible: "Drop-off"
+- takeScreenshot: rider-wp3-02-accepted
+- tapOn: "Go to the restaurant"
+- assertNotVisible: "You've got this delivery"
+- takeScreenshot: rider-wp3-03-trip

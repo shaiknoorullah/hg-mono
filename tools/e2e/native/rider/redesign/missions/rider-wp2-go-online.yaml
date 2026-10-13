@@ -8,7 +8,7 @@ build:
 setup: [ "make dev-reset" ]
 reality:
   - theme: light
-flows: [ "tools/e2e/native/rider/redesign/2-go-online.yaml" ]
+flows: [ "tools/e2e/native/rider/redesign/1-sign-in.yaml", "tools/e2e/native/rider/redesign/2-go-online.yaml" ]   # 2-go-online keeps the session 1-sign-in opens
 explore: >
   The flow sets the location (setLocation) and switches airplane mode (setAirplaneMode) itself
   where it needs to; the reality steps above only set the theme.
