@@ -5,7 +5,7 @@
  * runs on.
  *
  * The merge is taught the preset's type scale (`text-body-md`, `text-label-lg`, …), named
- * exactly as the generator names them. Without that, tailwind-merge reads `text-body-md` as a
+ * exactly as the generator names them, and its touch targets (`min-h-target-field`). Without that, tailwind-merge reads `text-body-md` as a
  * COLOUR and drops it as soon as a `text-foreground` follows.
  */
 import { clsx, type ClassValue } from 'clsx';
@@ -14,11 +14,15 @@ import { extendTailwindMerge } from 'tailwind-merge';
 import { tokens } from '../tokens/generated/tokens';
 
 const typeScale = Object.keys(tokens.typography).map((name) => name.replace('.', '-'));
+/** The preset's touch targets (`min-h-target-field`), named as the generator names them. */
+const targets = Object.keys(tokens.target).map((name) => `target-${name.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase()}`);
 
 const twMerge = extendTailwindMerge({
   extend: {
     classGroups: {
       'font-size': [{ text: typeScale }],
+      'min-h': [{ 'min-h': targets }],
+      'min-w': [{ 'min-w': targets }],
     },
   },
 });

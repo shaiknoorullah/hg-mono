@@ -13,6 +13,7 @@ import * as proposed from '../../proposed';
 import { renderThemed, styleOf, themes } from '../../primitives/__tests__/harness';
 import { resetClientErrorReporter, setClientErrorReporter } from '../../certification/internal/reportClientError';
 import type { ColorScheme, ThemeName } from '../../tokens';
+import { loadThemeCss, renderNw } from '../../lib/ui/__tests__/harness';
 
 const {
   AppBar,
@@ -42,6 +43,9 @@ beforeEach(() => {
   setClientErrorReporter((code, context) => reports.push([code, context]));
 });
 afterEach(() => resetClientErrorReporter());
+// Button, IconButton, Badge, Card and Price render through the className tier (N1): targets are
+// measured against the real generated stylesheet.
+beforeAll(loadThemeCss, 120_000);
 
 const SCHEMES: Array<[ThemeName, ColorScheme]> = [
   ['customer', 'light'],
@@ -110,6 +114,12 @@ describe('the /ds surface', () => {
     for (const name of live) expect(ds).toHaveProperty(name);
   });
 
+  it('adds the owner-approved KeyValueList and StatCard, and the N1 core parts to /proposed', () => {
+    expect(ds).toHaveProperty('KeyValueList');
+    expect(ds).toHaveProperty('StatCard');
+    for (const name of ['Text', 'Skeleton', 'Spinner', 'Separator', 'Avatar']) expect(proposed).toHaveProperty(name);
+  });
+
   it('keeps the halal shield and the halal tokens out of both barrels', () => {
     for (const barrel of [ds, proposed]) {
       expect(barrel).not.toHaveProperty('HalalShield');
@@ -156,7 +166,7 @@ describe('Button and IconButton', () => {
   it('takes icon names, keeps 44/56/72 targets and swallows presses while disabled', () => {
     const onPress = jest.fn();
     for (const [theme, scheme] of SCHEMES) {
-      const { unmount } = renderThemed(
+      const { unmount } = renderNw(
         <Button iconStart="plus" onPress={onPress} disabled>
           Add to order
         </Button>,
@@ -171,7 +181,7 @@ describe('Button and IconButton', () => {
     }
     expect(onPress).not.toHaveBeenCalled();
 
-    renderThemed(
+    renderNw(
       <Button critical onPress={onPress} testId="accept">
         Accept
       </Button>,
