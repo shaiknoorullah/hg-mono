@@ -19,7 +19,7 @@ Commands run from `services/hg`, against a local stack (`make up`, `make migrate
 
 - **Scenario**: `make dev-scenario s=<name>`; `go run ./cmd/devworld scenario list` prints the names. A scenario signs in as personas and calls the API; it writes no row.
 - **Journey**: `make dev-journey`, one live order (`route=`, `speed=`, `auto=none|restaurant|all`, `manual=rider`). See the [journey](superpowers/specs/2026-09-28-devworld-harness-design.md#63-journey).
-- **Persona**: a seeded account in a fixed state, from `services/hg/migrations/devworld/001_personas.sql` and the [Toronto catalogue](superpowers/specs/2026-09-28-devworld-harness-design.md#51a-toronto-catalogue). `go run ./cmd/devworld list` prints them.
+- **Persona**: a seeded account in a fixed state, from `services/hg/migrations/devworld/001_personas.sql` and the [Toronto catalogue](superpowers/specs/2026-09-28-devworld-harness-design.md#51a-toronto-catalogue). `go run ./cmd/devworld list` prints them. Every persona and catalogue file that is already approved carries a `CLEAN` virus-scan verdict bound to its bytes, because the database refuses to approve a KYC document otherwise ([#218](https://github.com/shaiknoorullah/hg-mono/issues/218)).
 - **Playbook**: the manual steps in [`docs/playbooks`](playbooks/README.md).
 
 | Status | Meaning |

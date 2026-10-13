@@ -5,7 +5,7 @@ covers:
   - services/hg/migrations/devworld/**
   - apps/restaurant/.claude/skills/**
   - docs/playbooks/**
-reviewed: 2026-10-10
+reviewed: 2026-10-13
 ---
 
 # Dev world — seeded personas, live scenarios, journey simulation, playbooks
@@ -257,6 +257,7 @@ The harness produces real realtime events (order state changes, offers, `rider.l
 - **Payout seeds vs the ledger.** The [zero-residual ledger rule (invariant 6)](https://github.com/shaiknoorullah/hg-mono/blob/main/AGENTS.md#3-non-negotiable-invariants) requires every order's money to decompose to zero via the append-only ledger. If payout rows need backing ledger batches the SQL cannot honestly produce, payouts move from SQL to an admin payout run over the API; any state the API cannot reach (e.g. FAILED) is listed as a gap rather than forged. Against a Stripe sandbox, Stripe's own test-mode events reach those states: the webhook worker applies `transfer.*` and `payout.*` to the payout, `account.updated` to the payout account and `charge.dispute.*` to a chargeback ([#249](https://github.com/shaiknoorullah/hg-mono/issues/249)). Refunds in every state come from the API too: a customer's request, then staff approval or decline (`approveRefund`, `declineRefund`, [#172](https://github.com/shaiknoorullah/hg-mono/issues/172)), so each approved refund carries its ledger batch and approver.
 - **Proof of delivery.** If PoD requires an uploaded object in MinIO, the simulator uploads a bundled test image through the documented presigned flow.
 - **Dispatch reach.** The journey assumes dispatch offers to an online rider within range of the restaurant. `rider-sim` starts at the route's origin inside that radius; planning confirms the radius and offer loop in `internal/dispatch`.
+- **Approved documents need a clean scan.** An `APPROVED` `kyc_document` in the world SQL must point at a `stored_object` with `virus_scan_state = 'CLEAN'`, `virus_scan_sha256` equal to its `sha256` and `virus_scan_version` equal to its `content_version`; the database refuses the approval otherwise (`services/hg/migrations/00072_virus_scan.sql`).
 - **Drift.** The world SQL must follow schema migrations. Mitigated by the world verify in CI (see [verification](#8-verification)) — a migration that breaks the world fails the build.
 - **One document per rider file.** The world SQL cannot give a rider two live `kyc_document` rows for the same document type and `stored_object`; the database refuses the second (`kyc_document_rider_file_once`, `services/hg/migrations/00038_rider_document_attached_once.sql`). Each seeded rider document needs its own file.
 - **CORS.** `HG_CORS_ALLOWED_ORIGINS` must include each app's dev origin (restaurant `http://localhost:5183`); `.env.example` has them, and `devworld reset` warns when the running config lacks one.

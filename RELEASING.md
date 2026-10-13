@@ -1,7 +1,7 @@
 ---
 covers:
   - deploy/**
-reviewed: 2026-10-05
+reviewed: 2026-10-13
 ---
 
 # Releasing HalalGoes
@@ -135,7 +135,7 @@ On the production server, provision first with [deploy/host](deploy/host/README.
 ```bash
 cp deploy/.env.example deploy/.env      # edit secrets + §3 flips; HG_ENV=production
 cd services/hg
-make up            # Traefik + 2× API + Postgres/PostGIS + Valkey + Silo
+make up            # Traefik + 2× API + Postgres/PostGIS + Valkey + Silo + ClamAV
 make migrate       # apply migrations 0→N
 curl -fsS http://<host>:${HG_HTTP_PORT:-8080}/health/ready   # expect 200
 ```
@@ -158,7 +158,10 @@ before this change keeps its old binding until those three containers are recrea
 
 Outside `local`, the binary refuses to boot if any dependency still points at `localhost`, if
 `HG_MINIO_PRESIGN_BASE_URL` is unset or not `https` (every signed link is a bearer credential),
-or if `HG_SMS_PROVIDER=twilio` with incomplete creds — misconfig fails loudly, never silently.
+if `HG_SMS_PROVIDER=twilio` with incomplete creds, or if `HG_CLAMD_ADDR` is unset — misconfig fails
+loudly, never silently. The `clamav` service downloads its signature database on first start
+(a few minutes, about 1 GB of memory); until it is healthy, uploaded KYC documents wait to be scanned
+and cannot be approved.
 
 Leave `HG_DEADLINE_RUNNER_HOLD=false`. Set it to `true` only for a failover or a restore: the order
 deadline runner then starts held and fires nothing until ops inserts a `deadline_runner_release`

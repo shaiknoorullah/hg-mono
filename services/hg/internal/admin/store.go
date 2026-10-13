@@ -21,7 +21,8 @@ var ErrNotFound = errors.New("admin: not found")
 // BEFORE INSERT trigger chains and seals — the handler supplies actor identity
 // from the verified principal, never from a request body.
 type Repo struct {
-	pool *pgxpool.Pool
+	pool      *pgxpool.Pool
+	fileCheck ScannedFileCheck
 
 	// notify and inviter send the messages a decision or an invitation owes
 	// someone, inside the same transaction (internal/notify). Nil sends
@@ -36,6 +37,23 @@ type Repo struct {
 
 // NewRepo builds the repository over the shared pool.
 func NewRepo(pool *pgxpool.Pool) *Repo { return &Repo{pool: pool} }
+
+// ScannedFileCheck re-reads a KYC document's file from the object store and
+// reports whether its bytes are still the bytes the virus scanner passed, and
+// at which content version. clean is false, with a nil error, when they are
+// not; the implementation records the change before answering. An error means
+// the file could not be checked. files.Repo.CheckScannedFile implements it.
+type ScannedFileCheck func(ctx context.Context, objectID, actorAccountID, requestID string) (version int64, clean bool, err error)
+
+// WithScannedFileCheck makes document approval re-read the file and refuse
+// bytes that are not the scanned bytes, as download does
+// (https://github.com/shaiknoorullah/hg-mono/issues/218). Without it, approval
+// still requires a CLEAN verdict bound to the file's recorded SHA-256 and
+// content version, but does not look at the bytes in the store.
+func (r *Repo) WithScannedFileCheck(check ScannedFileCheck) *Repo {
+	r.fileCheck = check
+	return r
+}
 
 // WithNotifications wires the notification outbox and the staff inviter
 // (auth.Module.StaffInviter). Call once at boot.

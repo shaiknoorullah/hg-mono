@@ -59,6 +59,7 @@ One person runs commands on the server at a time. Keep a timeline as you go, in 
 | "No space left on device" in the logs | [The disk is full](#the-disk-is-full) |
 | A certificate warning in the browser | [Certificates are expiring](#certificates-are-expiring) |
 | New sign-ins fail; a sticky banner on every admin page | [The sign-in code sender is down](#the-sign-in-code-sender-is-down) |
+| KYC documents stay pending and cannot be approved | [The virus scanner is down](#the-virus-scanner-is-down) |
 | `/health/ready` names Redis; sign-in codes answer 503 | [The cache is down](#the-cache-is-down) |
 | Checkout fails; `/health/ready` names Stripe; reconciliation exceptions | [Payments are failing](#payments-are-failing) |
 | Access nobody can explain, or a leaked secret | [A suspected breach](#a-suspected-breach) |
@@ -250,6 +251,16 @@ A plain-text `429 Too Many Requests` on a `/v1/auth/` route, without the API's J
 
 If Twilio is fine but every customer is refused with "too many attempts" at once, the API is probably taking Traefik's address as everyone's, so one per-address limit covers all of them. The API logs `trusted proxies:` at start-up: check that `HG_TRUSTED_PROXY_CIDRS` in the secrets store covers the network Traefik reaches the API from (`docker network inspect hg-net -f '{{range .IPAM.Config}}{{.Subnet}}{{end}}'`), then restart the replicas one at a time. Never set it to `0.0.0.0/0` or any public range: the API refuses to start unless every entry lies inside `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `127.0.0.0/8`, `::1/128` or `fc00::/7` ([middleware chain, client-address step](../spec/01-platform.md#p-06--deny-by-default-routing-and-the-middleware-chain)).
 
+## The virus scanner is down
+
+Every uploaded KYC document is scanned by the `clamav` service before it can be approved or downloaded ([presigned upload and download](../spec/01-platform.md#p-28--presigned-upload-and-download), [#218][i218]).
+
+- **What breaks:** new rider and restaurant documents wait in review. An approval is refused with 409, and the document cannot be downloaded. Documents that are already approved are unaffected.
+- **Signs:** `virus scan sweep failed, documents stay pending` in the API logs; `docker compose ps` shows `clamav` unhealthy or restarting.
+- **Check** `docker compose logs --since 30m clamav` and `free -m`. On first start, `clamav` downloads its signature database, which takes a few minutes and about 1 GB of memory.
+
+Restart it with `docker compose restart clamav`. The API retries by itself and scans the waiting documents once `clamav` is healthy. Never approve a document by changing its scan state in the database: the database refuses a changed verdict that is not a recorded re-scan.
+
 ## The cache is down
 
 Redis (Valkey in production) holds only what can be lost: rate-limit counts, cached reads, realtime fan-out. The system stays correct without it ([Redis is disposable](../spec/01-platform.md#0-ground-rules-that-bind-every-section)).
@@ -391,6 +402,7 @@ Also: reboots and plan changes longer than about 2 minutes fail over first; the 
 [one-box]: https://github.com/shaiknoorullah/hg-mono/issues/207#issuecomment-5976966570
 [i207]: https://github.com/shaiknoorullah/hg-mono/issues/207
 [i210]: https://github.com/shaiknoorullah/hg-mono/issues/210
+[i218]: https://github.com/shaiknoorullah/hg-mono/issues/218
 [i235]: https://github.com/shaiknoorullah/hg-mono/issues/235
 [i64]: https://github.com/shaiknoorullah/hg-mono/issues/64
 [i65]: https://github.com/shaiknoorullah/hg-mono/issues/65

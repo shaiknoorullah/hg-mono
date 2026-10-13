@@ -68,6 +68,13 @@ x-api-env: &api-env
   # browser can resolve. Required outside local.
   HG_MINIO_PRESIGN_BASE_URL: ${HG_MINIO_PRESIGN_BASE_URL:-http://localhost:${MINIO_API_PORT:-9000}}
 
+  # Virus scanning of KYC uploads (docs/spec/01-platform.md#p-28--presigned-upload-and-download).
+  # Required outside local: a KYC document cannot be approved until clamd has
+  # scanned its file CLEAN.
+  HG_CLAMD_ADDR: ${HG_CLAMD_ADDR:-clamav:3310}
+  HG_CLAMD_MAX_BYTES: ${HG_CLAMD_MAX_BYTES:-26214400}
+  HG_CLAMD_TIMEOUT: ${HG_CLAMD_TIMEOUT:-}
+
   # auth (P-02/P-04). The auth module refuses to boot without these two — added
   # here the same commit they became required, per the P-27 parity rule above.
   HG_OTP_PEPPER: ${HG_OTP_PEPPER:?set HG_OTP_PEPPER in .env}
@@ -339,6 +346,43 @@ services:
       timeout: 5s
       retries: 20
 
+  # Virus scanner for KYC uploads (docs/spec/01-platform.md#p-28--presigned-upload-and-download).
+  # The API streams each confirmed document to clamd over INSTREAM and records
+  # CLEAN, INFECTED, TOO_LARGE or UNSCANNABLE.
+  # The API does not depend_on it: while clamd is down (including its first
+  # start, which downloads the signature database and takes a few minutes),
+  # documents wait in PENDING and cannot be approved — nothing is passed
+  # unscanned. clamd's default StreamMaxLength is 25 MiB, which is what
+  # HG_CLAMD_MAX_BYTES defaults to; keep the two in step.
+  clamav:
+    image: docker.io/clamav/clamav:1.5.4@sha256:ebec5bc138401b36ae987caa1a3fa3c3b2a21ed3d51f0bfa5852825e663e67b0
+    restart: unless-stopped
+    # The image writes each CLAMD_CONF_<Option> into clamd.conf at start. With
+    # the stock settings clamd skips an archive member or embedded file over
+    # its limits, and encrypted content, and still answers "OK" — a file nobody
+    # fully read would be passed CLEAN. These make clamd report them instead
+    # (Heuristics.Limits.Exceeded.*, Heuristics.Encrypted.*), which the API
+    # records as TOO_LARGE or UNSCANNABLE, never CLEAN
+    # (https://github.com/shaiknoorullah/hg-mono/issues/218).
+    environment:
+      CLAMD_CONF_AlertExceedsMax: "yes"
+      CLAMD_CONF_AlertEncrypted: "yes"
+      CLAMD_CONF_AlertBrokenExecutables: "yes"
+      CLAMD_CONF_StreamMaxLength: 25M
+    volumes:
+      - clamavdb:/var/lib/clamav
+    ports:
+      # Published for `make run` from the host, on loopback only.
+      - "127.0.0.1:${CLAMD_PORT:-3310}:3310"
+    networks: [hg-net]
+    healthcheck:
+      test: ["CMD", "clamdcheck.sh"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 300s
+
+
   # Creates the bucket layout (docs/spec/01-platform.md, "Bucket layout and
   # private-by-default") and sets exactly one bucket public.
   # The API's boot probe independently verifies the result, so a mistake here
@@ -469,3 +513,4 @@ volumes:
   pgdata:
   redisdata:
   miniodata:
+  clamavdb:

@@ -42,9 +42,11 @@ func CertifyRestaurant(t testing.TB, pool *pgxpool.Pool, restaurantID string, ex
 	}
 	if err := tx.QueryRow(ctx, `
 		INSERT INTO stored_object (bucket, object_key, purpose, content_type, byte_size, sha256,
-		                           state, uploaded_by, confirmed_at)
+		                           state, uploaded_by, confirmed_at,
+		                           virus_scan_state, virus_scan_sha256, virus_scan_version)
 		VALUES ('hg-kyc', 'test/halal-'||uuid_generate_v7()::text||'.pdf', 'KYC_DOCUMENT',
-		        'application/pdf', 2048, decode(repeat('c3', 32), 'hex'), 'READY', $1, now())
+		        'application/pdf', 2048, decode(repeat('c3', 32), 'hex'), 'READY', $1, now(),
+		        'CLEAN', decode(repeat('c3', 32), 'hex'), 1)
 		RETURNING id`, reviewerID).Scan(&objectID); err != nil {
 		t.Fatalf("certify restaurant: stored object: %v", err)
 	}

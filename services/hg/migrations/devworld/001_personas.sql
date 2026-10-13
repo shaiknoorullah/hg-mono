@@ -110,10 +110,12 @@ BEGIN
 
   INSERT INTO stored_object (
     id, bucket, object_key, purpose, owner_account_id, restaurant_id,
-    content_type, byte_size, sha256, state, virus_scan_state, uploaded_by, confirmed_at
+    content_type, byte_size, sha256, state, virus_scan_state, virus_scan_sha256, virus_scan_version,
+    uploaded_by, confirmed_at
   ) VALUES (
     p_obj, 'hg-kyc', 'devworld/' || p_number || '.pdf', 'KYC_DOCUMENT', p_admin, p_restaurant,
-    'application/pdf', 1024, sha256(p_cert::text::bytea), 'READY', 'CLEAN', p_admin, now()
+    'application/pdf', 1024, sha256(p_cert::text::bytea), 'READY', 'CLEAN', sha256(p_cert::text::bytea), 1,
+    p_admin, now()
   )
   ON CONFLICT (id) DO NOTHING;
 
@@ -254,12 +256,12 @@ ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO stored_object (
   id, bucket, object_key, purpose, owner_account_id, content_type, byte_size, sha256,
-  state, virus_scan_state, uploaded_by, confirmed_at
+  state, virus_scan_state, virus_scan_sha256, virus_scan_version, uploaded_by, confirmed_at
 ) VALUES
-  ('d0000000-0000-4000-8000-000000000152', 'hg-kyc', 'devworld/rider-docs.pdf', 'KYC_DOCUMENT', 'a0000000-0000-4000-8000-000000000152', 'application/pdf', 1024, sha256('rider-docs'::bytea), 'READY', 'CLEAN', 'a0000000-0000-4000-8000-000000000001', now()),
-  ('d0000000-0000-4000-8000-000000000153', 'hg-kyc', 'devworld/rider-rejected.pdf', 'KYC_DOCUMENT', 'a0000000-0000-4000-8000-000000000153', 'application/pdf', 1024, sha256('rider-rejected'::bytea), 'READY', 'CLEAN', 'a0000000-0000-4000-8000-000000000001', now()),
-  ('d0000000-0000-4000-8000-000000000204', 'hg-kyc', 'devworld/docs-review.pdf', 'KYC_DOCUMENT', 'a0000000-0000-4000-8000-000000000204', 'application/pdf', 1024, sha256('docs-review'::bytea), 'READY', 'CLEAN', 'a0000000-0000-4000-8000-000000000001', now()),
-  ('d0000000-0000-4000-8000-000000000205', 'hg-kyc', 'devworld/docs-rejected.pdf', 'KYC_DOCUMENT', 'a0000000-0000-4000-8000-000000000205', 'application/pdf', 1024, sha256('docs-rejected'::bytea), 'READY', 'CLEAN', 'a0000000-0000-4000-8000-000000000001', now())
+  ('d0000000-0000-4000-8000-000000000152', 'hg-kyc', 'devworld/rider-docs.pdf', 'KYC_DOCUMENT', 'a0000000-0000-4000-8000-000000000152', 'application/pdf', 1024, sha256('rider-docs'::bytea), 'READY', 'CLEAN', sha256('rider-docs'::bytea), 1, 'a0000000-0000-4000-8000-000000000001', now()),
+  ('d0000000-0000-4000-8000-000000000153', 'hg-kyc', 'devworld/rider-rejected.pdf', 'KYC_DOCUMENT', 'a0000000-0000-4000-8000-000000000153', 'application/pdf', 1024, sha256('rider-rejected'::bytea), 'READY', 'CLEAN', sha256('rider-rejected'::bytea), 1, 'a0000000-0000-4000-8000-000000000001', now()),
+  ('d0000000-0000-4000-8000-000000000204', 'hg-kyc', 'devworld/docs-review.pdf', 'KYC_DOCUMENT', 'a0000000-0000-4000-8000-000000000204', 'application/pdf', 1024, sha256('docs-review'::bytea), 'READY', 'CLEAN', sha256('docs-review'::bytea), 1, 'a0000000-0000-4000-8000-000000000001', now()),
+  ('d0000000-0000-4000-8000-000000000205', 'hg-kyc', 'devworld/docs-rejected.pdf', 'KYC_DOCUMENT', 'a0000000-0000-4000-8000-000000000205', 'application/pdf', 1024, sha256('docs-rejected'::bytea), 'READY', 'CLEAN', sha256('docs-rejected'::bytea), 1, 'a0000000-0000-4000-8000-000000000001', now())
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO kyc_document (

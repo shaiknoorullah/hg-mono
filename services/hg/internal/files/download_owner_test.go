@@ -1,12 +1,16 @@
 package files
 
 import (
+	"bytes"
 	"context"
+	"crypto/sha256"
 	"errors"
 	"net/http"
 	"net/url"
 	"testing"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 // recordingPresigner signs nothing; it counts the download links it was asked for.
@@ -56,12 +60,18 @@ INSERT INTO account_role (account_id, role, scope_type, scope_id) VALUES ($1, $2
 	}
 
 	var objects, documents []string
+	data := bytes.Repeat([]byte{0xd1}, 1024)
+	sum := sha256.Sum256(data)
+	store := keyedObjectStore{}
 	upload := func(uploader string) string {
 		var id string
+		key := "dl/" + uuid.NewString()
+		store[key] = data
 		if err := pool.QueryRow(ctx, `
-INSERT INTO stored_object (bucket, object_key, purpose, content_type, byte_size, sha256, state, uploaded_by, confirmed_at)
-VALUES ('hg-kyc', 'dl/'||md5(random()::text), 'KYC_DOCUMENT', 'application/pdf', 1024,
-        decode(repeat('d1',32),'hex'), 'READY', $1, now()) RETURNING id`, uploader).Scan(&id); err != nil {
+INSERT INTO stored_object (bucket, object_key, purpose, content_type, byte_size, sha256, state, uploaded_by, confirmed_at,
+                           virus_scan_state, virus_scan_sha256, virus_scan_version)
+VALUES ('hg-kyc', $2, 'KYC_DOCUMENT', 'application/pdf', 1024, $3, 'READY', $1, now(), 'CLEAN', $3, 1)
+RETURNING id`, uploader, key, sum[:]).Scan(&id); err != nil {
 			t.Fatalf("seed stored_object: %v", err)
 		}
 		objects = append(objects, id)
@@ -111,7 +121,7 @@ VALUES ('RESTAURANT', $1, 'OWNER_ID', $2, 'SUBMITTED', now()+interval '72h', 'ES
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			p := &recordingPresigner{}
-			repo := NewRepo(pool, p, nil, Buckets{KYC: "hg-kyc"})
+			repo := NewRepo(pool, p, store, Buckets{KYC: "hg-kyc"})
 			res, err := repo.DownloadURL(ctx, Actor{AccountID: c.actor, RequestID: "dl-test"}, c.documentID, c.canReadAny)
 			if c.wantURL {
 				if err != nil || res.URL == "" || p.gets != 1 {

@@ -373,9 +373,10 @@ func (w *world) approveCertificate(t *testing.T, days int) uuid.UUID {
 		var object, doc uuid.UUID
 		if err := tx.QueryRow(ctx, `
 			INSERT INTO stored_object (bucket, object_key, purpose, content_type, byte_size, sha256,
-			                           state, uploaded_by, confirmed_at)
+			                           state, uploaded_by, confirmed_at,
+			                           virus_scan_state, virus_scan_sha256, virus_scan_version)
 			VALUES ('hg-kyc', $1, 'KYC_DOCUMENT', 'application/pdf', 1024, digest($1, 'sha256'),
-			        'READY', $2, now()) RETURNING id`,
+			        'READY', $2, now(), 'CLEAN', digest($1, 'sha256'), 1) RETURNING id`,
 			"test/halal-expiry/"+uuid.NewString()+".pdf", w.owner).Scan(&object); err != nil {
 			return err
 		}

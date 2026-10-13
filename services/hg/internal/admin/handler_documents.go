@@ -62,6 +62,9 @@ func (h *Handler) reviewDocument(w http.ResponseWriter, r *http.Request, subject
 		case errors.Is(err, ErrForgeryHold):
 			httpx.Fail(w, r, http.StatusConflict, CodePreconditionNotMet,
 				"A suspected-forgery finding must be cleared by a super admin before approval.", nil)
+		case errors.Is(err, ErrDocNotScanned):
+			httpx.Fail(w, r, http.StatusConflict, CodePreconditionNotMet,
+				"The document's file has not passed the virus scan, so it cannot be approved yet.", nil)
 		case errors.Is(err, ErrDocDecided):
 			httpx.Fail(w, r, http.StatusConflict, CodeAlreadyDecided, "The document is already decided.", nil)
 		default:
