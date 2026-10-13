@@ -3,7 +3,7 @@ covers:
   - apps/restaurant/**
   - services/hg/internal/restaurant/**
   - services/hg/internal/catalog/**
-reviewed: 2026-10-05
+reviewed: 2026-10-13
 ---
 
 # HalalGoes — RESTAURANT domain specification
@@ -175,7 +175,8 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
      (m=64MiB, t=3, p=2). Never logged, never returned.
   3. `legal_name` — 2–120 chars, Unicode letters/digits/space/`&'-.,` only.
   4. `terms_version` — must equal the current server-side `TERMS_VERSION` constant; a stale value →
-     `409 terms_version_stale`.
+     `409 terms_version_stale`. The app reads the current value from `GET /v1/config/public`
+     (`terms_version`), never a hard-coded one ([#738](https://github.com/shaiknoorullah/hg-mono/issues/738)).
   5. Rate limit 5 signups/hour/IP and 3/day/email-domain-prefix. Exceeded → `429`.
   6. No phone/OTP at signup. Phone is collected in R-05 and verified in V2.
   7. Signup is idempotent on `Idempotency-Key`; a replay returns the original `201` body.
@@ -332,7 +333,7 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
                         rejection_note, review_cycle int)
   ```
   Status response:
-  `{onboarding_state, current_step, progress_percent, steps_completed:{profile,documents_uploaded,documents_submitted,documents_approved,payout_account,menu_published}, blocking_reason, rejection: {reason_code, note, documents:[{doc_type, status, review_note}]}}`
+  `{onboarding_state, current_step, progress_percent, steps_completed:{profile,documents_uploaded,documents_submitted,documents_approved,payout_account,menu_published}, blocking_reason, rejection: {decision, reason_code, note, documents:[{doc_type, status, review_note}]}}`. While `onboarding_state='DOCUMENTS_REJECTED'`, `rejection` carries the admin's reason code and reason text verbatim (`blocking_reason` repeats the text), and `decision` tells a request for changes (`REQUEST_CHANGES`) from a `REJECT`; the review screen shows the reason and offers no resubmission after a `REJECT` ([#695](https://github.com/shaiknoorullah/hg-mono/issues/695)). The server does not yet refuse a resubmission after `REJECT`; re-application follows [A-13 R7, a 14-day cooldown unless the reason is remediable](05-admin.md#a-13--restaurant-onboarding-review-queue) ([#802](https://github.com/shaiknoorullah/hg-mono/issues/802)). Only the latest document of each type is listed in `rejection.documents`.
 
 - **States** (`onboarding_state`, exact list and triggers):
 
@@ -418,6 +419,7 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
      `ST_SetSRID(ST_MakePoint(lng, lat), 4326)::geography`. There is exactly one geographic column
      used by dispatch and discovery. **The legacy `location POINT` column is not created.** (This
      eliminates the current geo split-brain where every checkout dies at rider assignment.)
+     > **Built (Oct 2026):** customers see that point as distance and serviceability on the restaurant list and detail, computed against `delivery_address_id` (their own saved address only; another account's reads as no address) or against `latitude`/`longitude` ([availability and serviceability gating (C-14)](02-customer.md#c-14--restaurant-availability--serviceability-gating)).
   7. `description` 20–1000 chars. `avg_prep_minutes` integer 5–120.
   8. `timezone` must be an IANA zone whose country is CA; defaulted from `province_code` and
      overridable.
@@ -475,7 +477,9 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
   5. **Last-order cutoff**: new orders are refused from `closes_at − avg_prep_minutes`. A restaurant
      is never handed an order it cannot finish before closing.
   6. `pause_until` accepts only the values 15, 30, 60 minutes or "until closing" (the restaurant's
-     next closing time, past midnight included), which replaces "rest of today"; an API change
+     next closing time, past midnight included), which replaces "rest of today". The client sends
+     `pause_until_closing: true` on `setRestaurantAcceptingOrders` and the server works out the
+     closing time; outside trading hours it is `409 RESTAURANT_CLOSED`
      ([pausing on late nights](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28), ["for how long" options](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
      Pausing does **not** affect already-accepted orders.
   7. Editing hours while orders are in flight is allowed and has no effect on them.
@@ -558,6 +562,13 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
      `halal_certifier` allowlist (**D-10**); `OTHER` is permitted, and the reviewer then marks the
      application "waiting on certifying body" until a super admin decides on that body
      ([body not on the accepted list](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)).
+     A certificate counts only while its body is accepted. If a super admin later suspends,
+     retires or rejects the body, a restaurant no other accepted certificate vouches for loses its
+     badge and is delisted (hidden from customers, menu not locked) in the same request, and its
+     owners and managers are told. It is listed again when the body is accepted again or when a
+     current certificate from an accepted body is approved. Customer reads show the halal state
+     as of now, never a stored badge alone
+     ([withdrawing a body's acceptance](https://github.com/shaiknoorullah/hg-mono/issues/346)).
   8. Re-uploading a `doc_type` supersedes the previous row rather than mutating it. Full history is
      retained for audit; only the newest non-superseded row is "current".
   9. Uploads are permitted only in `onboarding_state ∈ {DOCUMENTS_PENDING, DOCUMENTS_REJECTED}` or,
@@ -1306,6 +1317,20 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
   modifier groups (add-ons with min/max selection counts, each option carrying a price delta). Both
   are captured on the order line's `options_json` and priced server-side.
 
+  A dish may now have several variant groups (size, rice, heat level), and an order line carries one
+  chosen variant per group ([#628](https://github.com/shaiknoorullah/hg-mono/issues/628); the price
+  rule is step 1 of the quote in the platform spec). The restaurant's order view
+  (`GET /v1/restaurant/orders/{orderId}`) lists every chosen variant with its group on each line
+  (`variants`), and `variant_name` joins the chosen names, so the ticket shows every choice.
+
+  Only one of a dish's variant groups may set its full price (an `ABSOLUTE` variant); the others must
+  be add-on amounts (`DELTA`), and the database refuses a menu save that would give a dish a second
+  full-price group (owner decision, 2026-10-09; the `variant_group_one_full_price` index, migration
+  `00070`), so the customer's `409 ITEM_UNAVAILABLE` for such a dish remains only as a backstop. No
+  API edits variants yet (this feature is V2); when one does, it answers that refusal with
+  `422 VALIDATION_FAILED` and a field error on the group: "Only one option group can set the full
+  price; make the others add-on amounts."
+
 - **Data**:
   ```
   menu_item_variant_group(id, menu_item_id, name, is_required=true, sort_order)
@@ -1446,9 +1471,9 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
   orders at all. It is combined with hours (R-06), pause (R-06), account status (R-36) and a
   **liveness heartbeat** into a single computed `open_state` that the customer feed and checkout
   pre-flight both read.
-  Today the customer feed, search and restaurant detail derive it from `restaurant_hours` and its overrides in the restaurant's timezone together with the toggle, pause and heartbeat, reading `CLOSED_HOURS` with the next opening outside hours and `PAUSED` inside hours when not taking orders ([#645](https://github.com/shaiknoorullah/hg-mono/issues/645)); checkout does not yet check hours, pause or heartbeat ([#648](https://github.com/shaiknoorullah/hg-mono/issues/648)).
+  Today the customer feed, search and restaurant detail derive it from `restaurant_hours` and its overrides in the restaurant's timezone together with the toggle, pause and heartbeat, reading `CLOSED_HOURS` with the next opening outside hours and `PAUSED` inside hours when not taking orders ([#645](https://github.com/shaiknoorullah/hg-mono/issues/645)). Adding a cart line, quoting and placing an order apply the same rule in their own transaction and refuse with `409 RESTAURANT_CLOSED` unless it reads `OPEN`, the saved cart listing `RESTAURANT_CLOSED` in its blocking reasons, while accepting an order already placed is not refused by it ([#648](https://github.com/shaiknoorullah/hg-mono/issues/648)).
 
-  > **DECISION REQUIRED — heartbeat-gated availability**: Should a restaurant with no live browser session still receive orders? · **Proposed default**: no. The web app POSTs a heartbeat every 30 s while the orders screen is focused or backgrounded-but-open. If `now() - last_heartbeat_at > 5 minutes`, `open_state` becomes `CLOSED_OFFLINE` and no orders are offered; `is_accepting_orders` itself is **not** mutated, so the restaurant returns to service automatically the moment the tab reconnects. A banner and an email fire on the first auto-offline event of a day. · **Why**: an order offered to an unattended screen expires, cancels a paid customer order and burns the customer relationship; requiring proven liveness is how every mature delivery platform handles it. *(D-09)*
+  > **DECISION REQUIRED — heartbeat-gated availability**: Should a restaurant with no live browser session still receive orders? · **Proposed default**: no. The web app POSTs a heartbeat every 30 s while the orders screen is focused or backgrounded-but-open. If `now() - last_heartbeat_at > 5 minutes`, `open_state` becomes `CLOSED_OFFLINE` and no orders are offered; `is_accepting_orders` itself is **not** mutated, so the restaurant returns to service automatically the moment the tab reconnects. A banner and an email fire on the first auto-offline event of a day. The customer sees `CLOSED_OFFLINE` as `PAUSED`, with "Temporarily not accepting orders, please try again later." (owner decision 2026-10-09). · **Why**: an order offered to an unattended screen expires, cancels a paid customer order and burns the customer relationship; requiring proven liveness is how every mature delivery platform handles it. *(D-09)*
 
 - **Data**: `restaurant.is_accepting_orders`, `restaurant.last_heartbeat_at`,
   `restaurant.pause_until`, `restaurant.missed_order_count`,
@@ -1478,7 +1503,7 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
 
 - **Acceptance criteria**:
   1. **Given** `is_accepting_orders=true`, **when** `PATCH {"is_accepting_orders": false}` is sent, **then** the response body contains `is_accepting_orders:false` read back from the database, and a contract test asserts no other spelling of the field is accepted (`is_accepting`, `isAccepting` → `422 unknown_field`).
-  2. **Given** the last heartbeat was 6 minutes ago, **when** a customer attempts checkout, **then** `409 restaurant_unavailable` with `reason:"CLOSED_OFFLINE"`, and `is_accepting_orders` in the database is still `true`.
+  2. **Given** the last heartbeat was 6 minutes ago, **when** a customer views the restaurant, **then** its card shows `availability.state` `PAUSED` and the customer sees "Temporarily not accepting orders, please try again later."; **when** the customer adds to the cart, quotes or places an order, **then** `409 RESTAURANT_CLOSED`; and `is_accepting_orders` in the database is still `true`.
   3. **Given** two consecutive offers expired unanswered, **when** the second expiry commits, **then** `is_accepting_orders=false`, `source='AUTO_MISSED_ORDERS'`, and an email plus an in-app banner are emitted.
   4. **Given** an order in `PENDING_RESTAURANT` with 90 s remaining, **when** the restaurant toggles off, **then** that order's `response_deadline_at` is unchanged and it can still be accepted.
 
@@ -1670,6 +1695,13 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
   up an order the kitchen has not marked ready: the pickup is refused and the rider is told to wait
   for the kitchen, until the kitchen's pickup code is checked
   ([early pickup with the kitchen's code](https://github.com/shaiknoorullah/hg-mono/issues/413)).
+
+  Accepting an order a rider will collect mints its 4-digit pickup code, in the same transition.
+  The restaurant's order view (`pickup_code`) shows it while the order is `PREPARING` or
+  `READY_FOR_PICKUP`, for the kitchen to read out; never after pickup, and never once five wrong
+  codes have locked it and the order is with support. The rider must type it to pick up a ready
+  order they hold; nothing stands in for it but a support override
+  ([handover codes](https://github.com/shaiknoorullah/hg-mono/issues/310)).
 
   *(In the current system this is unreachable: the transition table lives in a workflow that starts
   at `RIDER_ASSIGNED`, the `updateStatus()` function on the order page is defined and never called,
@@ -2515,7 +2547,7 @@ sentence; none requires new engineering analysis.
 | **D-06** | Commission | What does the platform charge? | **Decided:** 0% at launch, kept per restaurant as `commission_rate_bps` and switchable ([platform commission](../decisions/README.md#settled--client-decisions)). Restaurant does not bear processing, delivery or platform fees; tips pass to the rider. | Standard, auditable, and per-restaurant deals become a data change. | decided |
 | **D-07** | Payout cadence | How often, how soon, what minimum? | **Decided:** weekly, Monday, automatic, no minimum ([payout cadence](../decisions/README.md#settled--client-decisions), [payout minimum](../decisions/README.md#settled--reconciliations)). Still proposed: **3-day hold** after delivery; daily/monthly options possibly later; Stripe bank payout only. | 3 days is the shortest hold that nets same-day disputes instead of clawing back. | R-32 · **V1** |
 | **D-08** | On-demand payouts | Limits and fee for "request a payout"? | Min CAD 50 available, max 1/calendar day, CAD 1.50 fee, only while payout account `READY` and account `ACTIVE`. Standard 1–2 business day arrival — no "instant" promise. | Free unlimited on-demand payouts are a per-transaction cost and a fraud lever. | R-32 · V2 |
-| **D-09** | Heartbeat-gated availability | Should a restaurant with no live session receive orders? | No. 30 s heartbeat; >5 min stale → `CLOSED_OFFLINE`; `is_accepting_orders` is not mutated, so service resumes automatically on reconnect. | Preventing an unattended offer is cheaper and more reliable than escalating after one. | R-22 · **V1** |
+| **D-09** | Heartbeat-gated availability | Should a restaurant with no live session receive orders? | No. 30 s heartbeat; >5 min stale → `CLOSED_OFFLINE`; `is_accepting_orders` is not mutated, so service resumes automatically on reconnect. The customer sees it as `PAUSED`, "Temporarily not accepting orders, please try again later." (owner decision 2026-10-09). | Preventing an unattended offer is cheaper and more reliable than escalating after one. | R-22 · **V1** |
 | **D-10** | Halal certifier allowlist | Which Canadian halal certifiers does the platform recognise? | **Decided:** three seeded bodies, extensible by a super admin; any other body puts the application in "waiting on certifying body" ([accepted certifying bodies](../decisions/README.md#settled--client-decisions), [body not on the accepted list](../decisions/README.md#settled--redesign-decisions-round-2-owner-2026-10-01)). | The platform's entire value proposition is that the halal claim is verifiable; an unbounded free-text issuer field makes it unverifiable. | decided |
 | **D-11** | Canadian document set (FSSAI) | The SOW names FSSAI, an **Indian** authority with no Canadian meaning. What replaces it? | **Decided** ([FSSAI certificate](../decisions/README.md#settled--reconciliations)): `BUSINESS_LICENCE`, `HALAL_CERTIFICATE`, `FOOD_SAFETY` (provincial/municipal food-premises permit or food-handler certificate), `OWNER_ID`. `LIABILITY_INSURANCE` hidden until V2. `gst_hst_number` as a field, CRA format `\d{9}RT\d{4}` — **not** an Indian GSTIN. | FSSAI is a template error; no Canadian restaurant can produce one, and food-premises permitting in Canada is provincial/municipal. | decided |
 | **D-12** | Expired-document consequence | Auto-suspend, flag, or grace period? | Expired `HALAL_CERTIFICATE` or `FOOD_SAFETY` → automatic suspension, **no grace period**. Expired `OWNER_ID` or `BUSINESS_LICENCE` → admin flag only. Reminders at T−30/14/7/1 (decided: [certificate renewal reminders](../decisions/README.md#settled--redesign-decisions-owner-2026-09-28)). | Trading on an expired halal certificate is the single failure that destroys the platform's premise. | R-10 · **V1** |

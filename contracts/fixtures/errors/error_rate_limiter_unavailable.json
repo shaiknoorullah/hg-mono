@@ -1,0 +1,25 @@
+{
+  "scenario": "error_rate_limiter_unavailable",
+  "domain": "errors",
+  "schema": "ErrorEnvelope",
+  "describes": "`503` · `RATE_LIMITER_UNAVAILABLE`. The sign-in code service's rate limiter cannot be reached, so no code is sent (fail closed). This is the 503 the rider manifest calls `error_service_unavailable`.",
+  "operations": [
+    "requestOtp",
+    "verifyOtp"
+  ],
+  "status": 503,
+  "tags": [
+    "error-envelope",
+    "error-path",
+    "rider",
+    "customer",
+    "auth"
+  ],
+  "payload": {
+    "error": {
+      "code": "RATE_LIMITER_UNAVAILABLE",
+      "message": "Verification is temporarily unavailable. Please try again shortly.",
+      "request_id": "ZFMH6B0FNQBE76XQ0RSF5NZYY4"
+    }
+  }
+}

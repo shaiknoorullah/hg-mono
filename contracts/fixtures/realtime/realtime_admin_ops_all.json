@@ -1,0 +1,109 @@
+{
+  "scenario": "realtime_admin_ops_all",
+  "domain": "realtime",
+  "schema": "RealtimeEvent[]",
+  "describes": "Every `admin:ops` type in one script, `seq` 1 to 6: queue depth, an alert, a dispatch failure, a critical alert, a reconciliation exception, queue depth again. Drives the alerts page from empty to busy.",
+  "operations": [],
+  "status": 200,
+  "tags": [
+    "realtime",
+    "script",
+    "admin"
+  ],
+  "payload": [
+    {
+      "id": "BXCBRN7BTAT646N7NGZS1TZHFE",
+      "seq": 1,
+      "channel": "admin:ops",
+      "type": "admin.queue_depth",
+      "v": 1,
+      "ts": "2026-08-10T18:42:11.412Z",
+      "data": {
+        "pending_restaurant_reviews": 3,
+        "pending_rider_reviews": 5,
+        "open_disputes": 1,
+        "failed_refunds": 0
+      },
+      "_delay_ms": 0
+    },
+    {
+      "id": "GB7E184HS728ZQRTH342KEM31J",
+      "seq": 2,
+      "channel": "admin:ops",
+      "type": "admin.alert",
+      "v": 1,
+      "ts": "2026-08-10T18:42:14.412Z",
+      "data": {
+        "severity": "high",
+        "kind": "webhook_refused",
+        "subject_type": "stripe_event",
+        "subject_id": "evt_3QkR7mE8xVn2LbQ1",
+        "message": "A Stripe webhook was refused: its signature did not verify.",
+        "at": "2026-08-10T18:42:14.412Z"
+      },
+      "_delay_ms": 3000
+    },
+    {
+      "id": "9AKJHMSBAM9HJ77630R3B1JAV6",
+      "seq": 3,
+      "channel": "admin:ops",
+      "type": "admin.dispatch_failure",
+      "v": 1,
+      "ts": "2026-08-10T18:42:17.412Z",
+      "data": {
+        "order_id": "d99d0f25-0c93-42c0-af42-ba0a8794bf0b",
+        "waves": 3,
+        "riders_offered": 8,
+        "radius_m": 10000
+      },
+      "_delay_ms": 6000
+    },
+    {
+      "id": "1Q5MRAH10JB9A9XTGKPGG3PS2A",
+      "seq": 4,
+      "channel": "admin:ops",
+      "type": "admin.alert",
+      "v": 1,
+      "ts": "2026-08-10T18:42:20.412Z",
+      "data": {
+        "severity": "critical",
+        "kind": "refund_dead_letter",
+        "subject_type": "refund",
+        "subject_id": "5d1285e1-efed-45a7-aa7c-e097af727eca",
+        "message": "A refund failed five times and stopped retrying. The customer has not been paid.",
+        "at": "2026-08-10T18:42:20.412Z"
+      },
+      "_delay_ms": 9000
+    },
+    {
+      "id": "Y17DFVD0NV9DB3FZ09EZXE7PNV",
+      "seq": 5,
+      "channel": "admin:ops",
+      "type": "admin.reconciliation_exception",
+      "v": 1,
+      "ts": "2026-08-10T18:42:23.412Z",
+      "data": {
+        "kind": "transfer_mismatch",
+        "order_id": "dd24f23c-2349-4129-a400-f5fd954d351f",
+        "expected_cents": 4120,
+        "actual_cents": 3980
+      },
+      "_delay_ms": 12000
+    },
+    {
+      "id": "XJB90JY9TRGFQBXR0GFZ81AQ0B",
+      "seq": 6,
+      "channel": "admin:ops",
+      "type": "admin.queue_depth",
+      "v": 1,
+      "ts": "2026-08-10T18:42:26.412Z",
+      "data": {
+        "pending_restaurant_reviews": 3,
+        "pending_rider_reviews": 5,
+        "open_disputes": 2,
+        "failed_refunds": 1
+      },
+      "_delay_ms": 15000
+    }
+  ]
+}

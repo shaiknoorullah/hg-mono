@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"crypto/subtle"
 	"encoding/json"
 	"errors"
 	"io"
@@ -65,11 +66,6 @@ type tokenInput struct {
 type resetPasswordInput struct {
 	Token       string `json:"token"`
 	NewPassword string `json:"new_password"`
-	TOTPCode    string `json:"totp_code"`
-}
-
-type inviteTotpInput struct {
-	Token string `json:"token"`
 }
 
 type refreshInput struct {
@@ -468,22 +464,8 @@ func (h *Handler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 			"Password must be between 12 and 256 characters.", nil)
 		return
 	}
-	if in.TOTPCode != "" && !totpDigits.MatchString(in.TOTPCode) {
-		httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
-			"totp_code must be a 6-digit number.",
-			[]httpx.FieldError{{Field: "totp_code", Code: "format", Message: "must be 6 digits"}})
-		return
-	}
-	err := h.svc.ResetPassword(r.Context(), in.Token, in.NewPassword, in.TOTPCode, clientIPPtr(r))
+	err := h.svc.ResetPassword(r.Context(), in.Token, in.NewPassword, clientIPPtr(r))
 	switch {
-	case errors.Is(err, errTOTPNotEnrolled):
-		httpx.Fail(w, r, http.StatusUnprocessableEntity, httpx.CodeValidationFailed,
-			"No authenticator enrolment was started for this link. Call startInviteTotpEnrolment first.", nil)
-		return
-	case errors.Is(err, errTOTPInvalidCode):
-		httpx.Fail(w, r, http.StatusUnprocessableEntity, CodeInvalidCredentials,
-			"The authenticator code is incorrect.", nil)
-		return
 	case errors.Is(err, ErrRateLimited):
 		failRateLimited(w, r, err, "Too many password resets from this network. Please wait before trying again.")
 		return
@@ -504,38 +486,6 @@ func (h *Handler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
-}
-
-// StartInviteTOTP implements startInviteTotpEnrolment: an invited staff member,
-// who has no session yet, starts the authenticator enrolment their role needs,
-// authorised by the invitation link (#170). resetPassword with totp_code
-// confirms it.
-func (h *Handler) StartInviteTOTP(w http.ResponseWriter, r *http.Request) {
-	var in inviteTotpInput
-	if err := decodeJSON(r, &in); err != nil || len(in.Token) < 32 || len(in.Token) > 128 {
-		httpx.Fail(w, r, http.StatusBadRequest, httpx.CodeValidationFailed,
-			"A valid token is required.", nil)
-		return
-	}
-	enrolment, err := h.svc.StartInviteTOTP(r.Context(), in.Token, clientIPPtr(r))
-	switch {
-	case errors.Is(err, ErrRateLimited):
-		failRateLimited(w, r, err, "Too many attempts from this network. Please wait before trying again.")
-		return
-	case errors.Is(err, errTokenExpired), errors.Is(err, errTokenUsed), errors.Is(err, ErrNotFound):
-		httpx.Fail(w, r, http.StatusBadRequest, CodeTokenConsumed,
-			"This link is not valid.", nil)
-		return
-	case errors.Is(err, errInviteTOTPNotAvailable):
-		httpx.Fail(w, r, http.StatusConflict, codeStepNotAvailable,
-			"This account needs no authenticator set-up here.", nil)
-		return
-	case err != nil:
-		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError,
-			"The server failed to process this request.", nil)
-		return
-	}
-	httpx.Respond(w, r, http.StatusOK, enrolment)
 }
 
 // ---- refresh (P-04) ---------------------------------------------------------
@@ -606,12 +556,17 @@ func (h *Handler) LogoutAll(w http.ResponseWriter, r *http.Request) {
 			"Authentication is required.", nil)
 		return
 	}
-	if err := h.store.RevokeAllForAccount(r.Context(), p.AccountID, "logout_all"); err != nil {
+	revoked, err := h.store.RevokeAllForAccount(r.Context(), p.AccountID, "logout_all")
+	if err != nil {
 		httpx.Fail(w, r, http.StatusInternalServerError, httpx.CodeInternalError,
 			"The server failed to process this request.", nil)
 		return
 	}
-	h.deny.AddAccount(p.AccountID)
+	// The revoked sessions, not the account: signing in again right after
+	// must work at once (#748, #752).
+	for _, sid := range revoked {
+		h.deny.AddSession(sid)
+	}
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -723,7 +678,10 @@ func (h *Handler) Me(w http.ResponseWriter, r *http.Request) {
 
 // writeSessionGrant renders a SessionGrant and, for web surfaces, sets the hg_rt
 // refresh cookie (HttpOnly; Secure; SameSite=Lax; Path=/v1/auth) plus the
-// hg_csrf double-submit cookie (P-04 transport).
+// hg_csrf double-submit cookie (P-04 transport). hg_csrf is Path=/ on the
+// configured parent Domain, so a web app on a sibling host can read it from
+// document.cookie and send it back as X-HG-CSRF; on the API host alone at
+// Path=/v1/auth no app could, and no web session could refresh (#740).
 func (h *Handler) writeSessionGrant(w http.ResponseWriter, r *http.Request, issued *issuedSession, status int) {
 	if issued.client.isWeb() {
 		idle, _ := refreshTTL(nil) // conservative Max-Age; the token's own expiry is authoritative
@@ -741,7 +699,8 @@ func (h *Handler) writeSessionGrant(w http.ResponseWriter, r *http.Request, issu
 			http.SetCookie(w, &http.Cookie{
 				Name:     "hg_csrf",
 				Value:    csrf,
-				Path:     "/v1/auth",
+				Path:     "/",
+				Domain:   h.secrets.CSRFCookieDomain,
 				HttpOnly: false,
 				Secure:   h.secrets.RefreshCookieSecure,
 				SameSite: http.SameSiteLaxMode,
@@ -770,11 +729,18 @@ func (h *Handler) refreshTokenFrom(r *http.Request) string {
 	// Web: hg_rt cookie, gated by the CSRF double-submit.
 	if c, err := r.Cookie("hg_rt"); err == nil && c.Value != "" {
 		csrfHeader := strings.TrimSpace(r.Header.Get("X-HG-CSRF"))
-		csrfCookie, cerr := r.Cookie("hg_csrf")
-		if csrfHeader == "" || cerr != nil || csrfCookie.Value == "" || csrfHeader != csrfCookie.Value {
+		if csrfHeader == "" {
 			return ""
 		}
-		return c.Value
+		// Any hg_csrf the browser sent may match: one set before #740 at
+		// Path=/v1/auth can still sit beside the Path=/ one until it expires.
+		for _, cc := range r.Cookies() {
+			if cc.Name == "hg_csrf" && cc.Value != "" &&
+				subtle.ConstantTimeCompare([]byte(cc.Value), []byte(csrfHeader)) == 1 {
+				return c.Value
+			}
+		}
+		return ""
 	}
 	return ""
 }

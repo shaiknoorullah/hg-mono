@@ -31,7 +31,8 @@ export type Route =
   // Order
   | { name: 'cart' }
   | { name: 'checkout' }
-  | { name: 'tracking'; orderId: string }
+  // `sheet: 'getHelp'` opens the order page with its Get help sheet up (Orders, Receipt: WP9).
+  | { name: 'tracking'; orderId: string; sheet?: 'getHelp' }
   | { name: 'receipt'; orderId: string }
   | { name: 'reportProblem'; orderId: string; reason?: string }
   // Account

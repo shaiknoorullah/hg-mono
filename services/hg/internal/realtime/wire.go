@@ -175,6 +175,15 @@ func orderNoteAddedPayload(s OrderNoteAdded) orderNoteAddedWire {
 	return orderNoteAddedWire{OrderID: s.OrderID, AuthorKind: s.AuthorKind, Text: s.Text, At: s.At}
 }
 
+type orderRiderArrivedWire struct {
+	OrderID string    `json:"order_id"`
+	At      Timestamp `json:"at"`
+}
+
+func orderRiderArrivedPayload(s OrderRiderArrived) orderRiderArrivedWire {
+	return orderRiderArrivedWire{OrderID: s.OrderID, At: s.At}
+}
+
 // ---------------------------------------------------------------------------
 // Section 4.3 — payment, on order:{order_id}.
 // ---------------------------------------------------------------------------
@@ -335,14 +344,36 @@ func restaurantOrderOfferWithdrawnPayload(s RestaurantOrderOfferWithdrawn) resta
 	return restaurantOrderOfferWithdrawnWire{OrderID: s.OrderID, Reason: s.Reason}
 }
 
+// restaurantOrderAcceptedWire is restaurant.order_accepted for the restaurant's
+// staff. PickupCode is the 4-digit code the kitchen reads to the rider at the
+// counter (contracts/websocket.md section 4.4). The source record holds no
+// code yet: the backend that issues and stores the codes is
+// https://github.com/shaiknoorullah/hg-mono/pull/315, so until it lands this
+// is always null and the restaurant reads the code from its own order view
+// (OrderRestaurantView.pickup_code), which is null too.
 type restaurantOrderAcceptedWire struct {
-	OrderID        string `json:"order_id"`
-	AcceptedBy     string `json:"accepted_by"`
-	PrepEtaMinutes int    `json:"prep_eta_minutes"`
+	OrderID        string  `json:"order_id"`
+	AcceptedBy     string  `json:"accepted_by"`
+	PrepEtaMinutes int     `json:"prep_eta_minutes"`
+	PickupCode     *string `json:"pickup_code"`
 }
 
 func restaurantOrderAcceptedPayload(s RestaurantOrderAccepted) restaurantOrderAcceptedWire {
 	return restaurantOrderAcceptedWire{OrderID: s.OrderID, AcceptedBy: s.AcceptedBy, PrepEtaMinutes: s.PrepEtaMinutes}
+}
+
+// restaurantOrderAcceptedForSupportWire is restaurant.order_accepted for
+// support and admin: the pickup code is withheld, so nobody at HalalGoes can
+// read a code out to a rider (contracts/websocket.md section 4.4).
+type restaurantOrderAcceptedForSupportWire struct {
+	OrderID        string   `json:"order_id"`
+	AcceptedBy     string   `json:"accepted_by"`
+	PrepEtaMinutes int      `json:"prep_eta_minutes"`
+	PickupCode     Withheld `json:"pickup_code"`
+}
+
+func restaurantOrderAcceptedForSupport(s RestaurantOrderAccepted) restaurantOrderAcceptedForSupportWire {
+	return restaurantOrderAcceptedForSupportWire{OrderID: s.OrderID, AcceptedBy: s.AcceptedBy, PrepEtaMinutes: s.PrepEtaMinutes}
 }
 
 type restaurantOrderRejectedWire struct {
@@ -418,10 +449,18 @@ type offerPickupWire struct {
 // offerDropoffWire is the drop-off's approximate area only: no street number,
 // no unit, and a point about a kilometre across, never the address's own.
 type offerDropoffWire struct {
-	Area string  `json:"area"`
-	Lat  float64 `json:"lat"`
-	Lng  float64 `json:"lng"`
+	Area    string  `json:"area"`
+	Lat     float64 `json:"lat"`
+	Lng     float64 `json:"lng"`
+	RadiusM int32   `json:"radius_m"`
 }
+
+// offerAreaRadiusM is the radius of the circle around the rounded drop-off
+// point that is sure to contain the address. areaDegrees moves each
+// coordinate by at most 0.005 degrees: about 556 m north–south, and at most
+// 414 m east–west south of Canada's southernmost point (41.7° N), so the
+// address is within 693 m.
+const offerAreaRadiusM = 700
 
 // areaDegrees rounds a coordinate to two decimals: a cell about 1.1 km
 // north–south and 0.8 km east–west at Ontario's latitudes. That is a
@@ -449,7 +488,7 @@ func dispatchOfferPayload(s DispatchOffer) dispatchOfferWire {
 			RestaurantName: s.Pickup.RestaurantName, AddressShort: s.Pickup.AddressShort,
 			Lat: s.Pickup.Lat, Lng: s.Pickup.Lng,
 		},
-		Dropoff:   offerDropoffWire{Area: s.Dropoff.Area, Lat: lat, Lng: lng},
+		Dropoff:   offerDropoffWire{Area: s.Dropoff.Area, Lat: lat, Lng: lng, RadiusM: offerAreaRadiusM},
 		DistanceM: s.DistanceM, EstDurationS: s.EstDurationS,
 		EarningsCents: s.EarningsCents, TipCentsEstimate: s.TipCentsEstimate, ItemsCount: s.ItemsCount,
 	}

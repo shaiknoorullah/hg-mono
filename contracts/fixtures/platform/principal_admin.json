@@ -1,0 +1,31 @@
+{
+  "scenario": "principal_admin",
+  "domain": "platform",
+  "schema": "Principal",
+  "describes": "`GET /v1/auth/me` for an `ADMIN` signed in with password and authenticator code (`amr: pwd+totp`), so money actions are allowed. Global grant, `scope_id: null`. Devworld has no plain `ADMIN` persona yet; `admin-seed` is the super admin.",
+  "operations": [
+    "getCurrentPrincipal"
+  ],
+  "status": 200,
+  "tags": [
+    "platform",
+    "auth",
+    "staff"
+  ],
+  "payload": {
+    "account_id": "ead0de3d-e848-4b7c-a62e-ad8cb4648a7a",
+    "session_id": "60feb198-4b7d-4792-ae24-aa4650f96555",
+    "roles": [
+      {
+        "role": "ADMIN",
+        "scope_type": "GLOBAL",
+        "scope_id": null
+      }
+    ],
+    "amr": "pwd+totp",
+    "status": "ACTIVE",
+    "locale": "en-CA",
+    "timezone": "America/Toronto",
+    "next_route": "HOME"
+  }
+}

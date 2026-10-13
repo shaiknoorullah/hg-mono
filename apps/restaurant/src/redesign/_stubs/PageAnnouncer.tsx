@@ -5,7 +5,8 @@
  * One page announcer (LO `A11y-announcements`): a polite and an assertive live region,
  * rate-limited so several countdowns and new orders never talk over each other. The same
  * message is not repeated within 5 s; polite messages queue at least 1.5 s apart; an
- * assertive message jumps the queue.
+ * assertive message jumps the polite queue, and assertive messages are at most one per 5 s
+ * (the next waits: LO `A11y-announcements`).
  */
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 
@@ -19,6 +20,7 @@ const AnnouncerContext = createContext<PageAnnouncerApi>({ announce: () => {} })
 
 const GAP_MS = 1500;
 const DEDUPE_MS = 5000;
+const ASSERTIVE_GAP_MS = 5000;
 
 const visuallyHidden: React.CSSProperties = {
   position: 'absolute',
@@ -38,6 +40,8 @@ export function PageAnnouncerProvider({ children }: { children: ReactNode }) {
   const queue = useRef<string[]>([]);
   const lastSpoken = useRef(new Map<string, number>());
   const timer = useRef<number | null>(null);
+  const assertiveQueue = useRef<string[]>([]);
+  const assertiveTimer = useRef<number | null>(null);
 
   const drain = useCallback(() => {
     timer.current = null;
@@ -47,6 +51,14 @@ export function PageAnnouncerProvider({ children }: { children: ReactNode }) {
     timer.current = window.setTimeout(drain, GAP_MS);
   }, []);
 
+  const drainAssertive = useCallback(() => {
+    assertiveTimer.current = null;
+    const next = assertiveQueue.current.shift();
+    if (next === undefined) return;
+    setAssertive(next);
+    assertiveTimer.current = window.setTimeout(drainAssertive, ASSERTIVE_GAP_MS);
+  }, []);
+
   const announce = useCallback(
     (message: string, politeness: Politeness = 'polite') => {
       const now = Date.now();
@@ -54,18 +66,20 @@ export function PageAnnouncerProvider({ children }: { children: ReactNode }) {
       if (last !== undefined && now - last < DEDUPE_MS) return;
       lastSpoken.current.set(message, now);
       if (politeness === 'assertive') {
-        setAssertive(message);
+        assertiveQueue.current.push(message);
+        if (assertiveTimer.current === null) drainAssertive();
         return;
       }
       queue.current.push(message);
       if (timer.current === null) drain();
     },
-    [drain],
+    [drain, drainAssertive],
   );
 
   useEffect(
     () => () => {
       if (timer.current !== null) window.clearTimeout(timer.current);
+      if (assertiveTimer.current !== null) window.clearTimeout(assertiveTimer.current);
     },
     [],
   );

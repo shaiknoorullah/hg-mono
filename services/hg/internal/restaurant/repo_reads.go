@@ -8,6 +8,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
+	"github.com/shaiknoorullah/hg-mono/services/hg/internal/handover"
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/orders"
 )
 
@@ -137,13 +138,83 @@ func (r *Repo) GetOnboardingStatus(ctx context.Context, restaurantID string) (*O
 	}
 	pct := (checks * 100) / 6
 
-	return &OnboardingStatus{
+	out := &OnboardingStatus{
 		OnboardingState: state,
 		AccountState:    accountState,
 		CurrentStep:     onboardingCurrentStep(state, steps),
 		ProgressPercent: pct,
 		StepsCompleted:  steps,
-	}, nil
+	}
+
+	// The review cycle is the application's submission count.
+	var cycle int
+	if err := r.db.QueryRow(ctx,
+		`SELECT submission_count FROM restaurant_application WHERE restaurant_id = $1`,
+		restaurantID).Scan(&cycle); err == nil {
+		out.ReviewCycle = &cycle
+	} else if !errors.Is(err, pgx.ErrNoRows) {
+		return nil, fmt.Errorf("get review cycle: %w", err)
+	}
+
+	if state == "DOCUMENTS_REJECTED" {
+		rej, err := r.getOnboardingRejection(ctx, restaurantID)
+		if err != nil {
+			return nil, err
+		}
+		out.Rejection = rej
+		if rej != nil {
+			out.BlockingReason = rej.Note
+		}
+	}
+	return out, nil
+}
+
+// getOnboardingRejection reads the admin's decision on the application: whether
+// it was sent back for changes or finally rejected, the reason code, the reason
+// text the admin wrote (sent to the owner verbatim; the internal note is never
+// stored here) and the documents that need redoing. Nil when no decision is on
+// record.
+func (r *Repo) getOnboardingRejection(ctx context.Context, restaurantID string) (*OnboardingRejection, error) {
+	rej := &OnboardingRejection{Documents: []DocumentRow{}}
+	err := r.db.QueryRow(ctx, `
+		SELECT ra.decision::text, ra.reject_reason_code::text,
+		       (SELECT t.reason FROM restaurant_onboarding_transition t
+		         WHERE t.restaurant_id = ra.restaurant_id AND t.to_state = 'DOCUMENTS_REJECTED'
+		         ORDER BY t.at DESC, t.id DESC LIMIT 1)
+		  FROM restaurant_application ra
+		 WHERE ra.restaurant_id = $1 AND ra.decision IN ('REJECT','REQUEST_CHANGES')`,
+		restaurantID).Scan(&rej.Decision, &rej.ReasonCode, &rej.Note)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("get onboarding rejection: %w", err)
+	}
+
+	// Only the latest document of each type counts: a re-upload adds a row and
+	// leaves the replaced one, which must not be listed as still needing a fix.
+	rows, err := r.db.Query(ctx, `
+		SELECT `+documentColumns+`
+		  FROM kyc_document d
+		 WHERE d.id IN (
+		         SELECT DISTINCT ON (k.restaurant_doc_type) k.id
+		           FROM kyc_document k
+		          WHERE k.subject_id = $1 AND k.subject_type = 'RESTAURANT' AND k.deleted_at IS NULL
+		          ORDER BY k.restaurant_doc_type, k.created_at DESC, k.id DESC)
+		   AND d.state IN ('REJECTED','EXPIRED')
+		 ORDER BY d.created_at DESC`, restaurantID)
+	if err != nil {
+		return nil, fmt.Errorf("get rejected documents: %w", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		d, err := scanDocument(rows)
+		if err != nil {
+			return nil, err
+		}
+		rej.Documents = append(rej.Documents, d)
+	}
+	return rej, rows.Err()
 }
 
 // onboardingCurrentStep derives the current_step enum (contract:
@@ -1637,6 +1708,10 @@ func (r *Repo) GetOrder(ctx context.Context, restaurantID, orderID string) (*Ord
 	var custPhone *string
 	// Delivery area: city + distance band. City is available on the address.
 	var city *string
+	// The pickup code the kitchen reads to the rider (handover.PickupCodeVisible).
+	var fulfilment string
+	var pickupCodeEnc []byte
+	var pickupCodeAttempts int
 	err := r.db.QueryRow(ctx, `
 		SELECT o.id::text, o.code, o.state::text, o.state_since, o.deadline_at,
 		       o.promised_ready_at,
@@ -1644,7 +1719,8 @@ func (r *Repo) GetOrder(ctx context.Context, restaurantID, orderID string) (*Ord
 		       o.restaurant_net_cents, o.total_cents, o.currency::text,
 		       o.placed_at, o.accepted_at, o.ready_at, o.special_instructions,
 		       cp.first_name, cp.last_name, acc.phone_e164,
-		       addr.city
+		       addr.city,
+		       o.fulfilment::text, o.pickup_code_enc, o.pickup_code_attempts
 		  FROM "order" o
 		  LEFT JOIN account acc ON acc.id = o.account_id
 		  LEFT JOIN customer_profile cp ON cp.account_id = o.account_id
@@ -1657,12 +1733,20 @@ func (r *Repo) GetOrder(ctx context.Context, restaurantID, orderID string) (*Ord
 		&money.RestaurantNetCents, &money.TotalCents, &money.Currency,
 		&placedAt, &acceptedAt, &readyAt, &o.SpecialInstructions,
 		&custFirst, &custLast, &custPhone,
-		&city)
+		&city,
+		&fulfilment, &pickupCodeEnc, &pickupCodeAttempts)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
 	}
 	if err != nil {
 		return nil, fmt.Errorf("get order: %w", err)
+	}
+	// The restaurant staff's own order view is the one place the pickup code is
+	// shown (contracts/openapi.yaml, OrderRestaurantView.pickup_code;
+	// https://github.com/shaiknoorullah/hg-mono/issues/310). The ownership
+	// predicate above (o.restaurant_id = $2) keeps it to this restaurant.
+	if handover.PickupCodeVisible(o.State, fulfilment, pickupCodeAttempts) {
+		o.PickupCode = handover.Reveal(o.ID, handover.Pickup, pickupCodeEnc)
 	}
 	if discountCents != 0 {
 		o.Money = money
@@ -1708,10 +1792,26 @@ func (r *Repo) GetOrder(ctx context.Context, restaurantID, orderID string) (*Ord
 		l.Currency = o.Money.Currency
 		o.Lines = append(o.Lines, l)
 	}
+	if err := lRows.Err(); err != nil {
+		return nil, err
+	}
+	lRows.Close()
 	if o.Lines == nil {
 		o.Lines = []OrderLineView{}
 	}
-	return &o, lRows.Err()
+
+	// Each line's chosen variants, so the ticket shows every choice.
+	variants, err := orders.OrderLineVariants(ctx, r.db, orderID)
+	if err != nil {
+		return nil, err
+	}
+	for i := range o.Lines {
+		o.Lines[i].Variants = variants[o.Lines[i].LineNo]
+		if o.Lines[i].Variants == nil {
+			o.Lines[i].Variants = []orders.LineVariantDTO{}
+		}
+	}
+	return &o, nil
 }
 
 // customerDisplayName renders "Aisha K." — first name plus last initial (P-07).
