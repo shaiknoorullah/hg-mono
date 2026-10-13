@@ -50,7 +50,7 @@ The fixed code works only for `+15550100100` to `+15550100199` and only when `HG
 | Customer app | 17 | 6 | 0 | 13 | 4 |
 | Restaurant portal | 22 | 6 | 3 | 5 | 0 |
 | Rider app | 23 | 6 | 2 | 1 | 3 |
-| Admin console | 8 | 7 | 12 | 15 | 0 |
+| Admin console | 9 | 6 | 12 | 15 | 0 |
 | Platform | 28 | 8 | 0 | 0 | 3 |
 
 ## Customer app
