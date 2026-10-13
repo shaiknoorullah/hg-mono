@@ -9,7 +9,7 @@ covers:
   - services/hg/internal/files/**
   - services/hg/internal/dispatch/**
   - services/hg/internal/httpx/**
-reviewed: 2026-10-11
+reviewed: 2026-10-13
 ---
 
 # HalalGoes — Cross-Cutting Platform Layer Specification
@@ -1316,7 +1316,7 @@ CREATE UNIQUE INDEX dispatch_offer_unique ON dispatch_offer(order_id, rider_acco
      ```
   4. Return `{order, client_secret}`. The client confirms with Stripe.js / the Stripe React Native SDK — the card never touches our servers (SAQ-A scope). The customer app confirms on web with the Stripe.js Payment Element in a sheet (`redirect: 'if_required'`) and on iOS/Android with the SDK's payment sheet; a build without `EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY` takes no card and says so at checkout, keeping the order for **Retry payment**, and after a confirmed card the app reads `getOrderPayment` once so the order moves on even where no webhook can reach the API.
   5. `payment_intent.amount_capturable_updated` (status `requires_capture`) → T1 `AUTHORIZED`.
-     Until then nothing is authorised: `GET /v1/orders/{orderId}/payment` reports `amount_authorized_cents` as `0` while the intent is still `REQUIRES_PAYMENT_METHOD`, `REQUIRES_CONFIRMATION` or `REQUIRES_ACTION`, and the order total once it reaches `REQUIRES_CAPTURE`.
+     Until then nothing is authorised: `GET /v1/orders/{orderId}/payment` reports `amount_authorized_cents` as `0` while the intent is still `REQUIRES_PAYMENT_METHOD`, `REQUIRES_CONFIRMATION` or `REQUIRES_ACTION`, and, once it reaches `REQUIRES_CAPTURE`, the amount Stripe reports it holds (`amount_capturable` plus `amount_received`), not the order total we expected. An authorisation that differs from the order total pages on-call (`admin.alert`, kind `authorisation_mismatch`); only a Stripe report carrying no amount falls back to the order total.
   6. Restaurant accepts → `POST /v1/payments/{id}/capture` internally, `capture` with `amount_to_capture = order.total_cents` and `idempotency_key = 'cap:' || order_id`. Success → T6 `PREPARING`.
   7. Restaurant rejects / times out / customer cancels pre-acceptance → `PaymentIntent.cancel(cancellation_reason='abandoned')`, `idempotency_key = 'cancel:' || order_id`.
 

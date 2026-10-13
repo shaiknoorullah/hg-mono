@@ -74,7 +74,10 @@ func getIntentForUpdate(ctx context.Context, tx pgx.Tx, stripeID string) (Intent
 // one keeps it, or, for a declined card the customer retried, arms one again,
 // so the deadline CHECK holds either way. last_stripe_event_created_at only
 // ever moves forward. applied is false when the row was already in that state.
-func advanceIntentState(ctx context.Context, tx pgx.Tx, stripeID string, target PaymentState, asOf time.Time, failure *intentFailure) (bool, error) {
+// authorizedCents is what Stripe reports it holds on the card (0 if unknown),
+// recorded on REQUIRES_CAPTURE.
+func advanceIntentState(ctx context.Context, tx pgx.Tx, stripeID string, target PaymentState, asOf time.Time,
+	authorizedCents int64, failure *intentFailure) (bool, error) {
 	set := "state = $2, last_stripe_event_created_at = GREATEST(last_stripe_event_created_at, $3)"
 	args := []any{stripeID, string(target), asOf}
 	switch target {
@@ -93,12 +96,15 @@ func advanceIntentState(ctx context.Context, tx pgx.Tx, stripeID string, target 
 		        deadline_at = coalesce(deadline_at, now() + interval '20 minutes'),
 		        deadline_action = coalesce(deadline_action, 'await_capture')`
 		if target == StateRequiresCapture {
-			// The card is authorised for the server-priced order total, which is
-			// what the intent was created for; an intent stored before then
-			// holds 0 (https://github.com/shaiknoorullah/hg-mono/issues/729).
+			// The authorised amount is what Stripe says the card holds, not
+			// what we expected it to; an intent stored before then holds 0
+			// (https://github.com/shaiknoorullah/hg-mono/issues/729). Only a
+			// report with no amount falls back to the server-priced total
+			// the intent was created for.
+			args = append(args, authorizedCents)
 			set += `, authorized_at = coalesce(authorized_at, now()),
-			        amount_authorized_cents = GREATEST(amount_authorized_cents,
-			          (SELECT o.total_cents FROM "order" o WHERE o.id = payment_intent.order_id))`
+			        amount_authorized_cents = GREATEST(amount_authorized_cents, coalesce(nullif($4::bigint, 0),
+			          (SELECT o.total_cents FROM "order" o WHERE o.id = payment_intent.order_id)))`
 		}
 	}
 	tag, err := tx.Exec(ctx,

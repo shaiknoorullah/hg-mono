@@ -338,6 +338,39 @@ type intentFailure struct {
 	Code, DeclineCode, Message string
 }
 
+// stripeAmounts is what Stripe reports a PaymentIntent holds, in cents: the
+// part still capturable and the part already captured.
+type stripeAmounts struct {
+	Received, Capturable int64
+}
+
+// authorised is the amount Stripe holds on the card for this intent; 0 when
+// the event or read carried no amount.
+func (a stripeAmounts) authorised() int64 { return a.Capturable + a.Received }
+
+// intentAmounts is stripeAmounts for a PaymentIntent read back from Stripe.
+func intentAmounts(pi *StripeIntent) stripeAmounts {
+	return stripeAmounts{Received: pi.AmountReceivedCents, Capturable: pi.AmountCapturableCents}
+}
+
+// alertIfAuthorisationDiffers pages on-call when Stripe holds a different
+// amount than the server priced the order at: an intent created for a stale
+// total, say. The amount Stripe reports is still what is recorded — it is
+// what the card actually holds — but nobody may assume it matches the order.
+func alertIfAuthorisationDiffers(ctx context.Context, tx pgx.Tx, cur IntentRow, stripeAuthorised int64) error {
+	var total int64
+	if err := tx.QueryRow(ctx, `SELECT total_cents FROM "order" WHERE id = $1`, cur.OrderID).Scan(&total); err != nil {
+		return fmt.Errorf("read order total for %s: %w", cur.StripePaymentIntentID, err)
+	}
+	if total == stripeAuthorised {
+		return nil
+	}
+	return raiseOpsAlert(ctx, tx, opsAlert{Severity: "high", Kind: "authorisation_mismatch",
+		SubjectType: "payment_intent", SubjectID: cur.ID,
+		Message: fmt.Sprintf("Stripe holds %d cents on %s, but the order total is %d.",
+			stripeAuthorised, cur.StripePaymentIntentID, total)})
+}
+
 // stripeIntentTarget is the payment state a Stripe PaymentIntent status
 // asserts. After a decline Stripe puts the intent back to needing a card,
 // with the decline in last_payment_error; that is FAILED here. A status this
@@ -384,7 +417,8 @@ func (s *Service) applyIntentEvent(ctx context.Context, tx pgx.Tx, ev stripeEven
 		failure = &intentFailure{Code: obj.LastPaymentError.Code, DeclineCode: obj.LastPaymentError.DeclineCode,
 			Message: obj.LastPaymentError.Message}
 	}
-	return s.assertIntentAndOrder(ctx, tx, obj.ID, target, obj.AmountReceived, ev.asOf(), failure)
+	amounts := stripeAmounts{Received: obj.AmountReceived, Capturable: obj.AmountCapturable}
+	return s.assertIntentAndOrder(ctx, tx, obj.ID, target, amounts, ev.asOf(), failure)
 }
 
 // assertIntentAndOrder is assertIntentState followed by the order move an
@@ -392,8 +426,8 @@ func (s *Service) applyIntentEvent(ctx context.Context, tx pgx.Tx, ev stripeEven
 // reconcile-on-read in GetOrderPayment (reconcile_read.go), so both apply
 // exactly the same transition.
 func (s *Service) assertIntentAndOrder(ctx context.Context, tx pgx.Tx, stripeID string, target PaymentState,
-	amountReceived int64, asOf time.Time, failure *intentFailure) (effect, error) {
-	eff, err := s.assertIntentState(ctx, tx, stripeID, target, amountReceived, asOf, failure)
+	amounts stripeAmounts, asOf time.Time, failure *intentFailure) (effect, error) {
+	eff, err := s.assertIntentState(ctx, tx, stripeID, target, amounts, asOf, failure)
 	if err != nil {
 		return effect{}, err
 	}
@@ -420,9 +454,10 @@ func (s *Service) assertIntentAndOrder(ctx context.Context, tx pgx.Tx, stripeID 
 // docs/spec/01-platform.md "Webhooks, idempotency and reconciliation"), and
 // never moves a captured or cancelled one at all. asOf is how current the
 // asserted state is: the event's creation time, or now for Stripe's current
-// view. amountReceived is read only for SUCCEEDED.
+// view. amounts is what Stripe reports the intent holds: read for
+// REQUIRES_CAPTURE (the authorised amount) and SUCCEEDED (the capture).
 func (s *Service) assertIntentState(ctx context.Context, tx pgx.Tx, stripeID string, target PaymentState,
-	amountReceived int64, asOf time.Time, failure *intentFailure) (effect, error) {
+	amounts stripeAmounts, asOf time.Time, failure *intentFailure) (effect, error) {
 	cur, err := getIntentForUpdate(ctx, tx, stripeID)
 	if errors.Is(err, ErrNotFound) {
 		return effect{kind: effectMismatch, label: exceptionUnknownIntent + ":" + stripeID,
@@ -467,9 +502,14 @@ func (s *Service) assertIntentState(ctx context.Context, tx pgx.Tx, stripeID str
 			exception: exceptionSettledConflict, stripeID: stripeID, orderID: cur.OrderID}, nil
 	}
 	if target == StateSucceeded {
-		return s.recordSucceeded(ctx, tx, cur, amountReceived, asOf)
+		return s.recordSucceeded(ctx, tx, cur, amounts, asOf)
 	}
-	applied, err := advanceIntentState(ctx, tx, stripeID, target, asOf, failure)
+	if target == StateRequiresCapture && amounts.authorised() > 0 && curState != StateRequiresCapture {
+		if err := alertIfAuthorisationDiffers(ctx, tx, cur, amounts.authorised()); err != nil {
+			return effect{}, err
+		}
+	}
+	applied, err := advanceIntentState(ctx, tx, stripeID, target, asOf, amounts.authorised(), failure)
 	if err != nil {
 		return effect{}, err
 	}
@@ -483,26 +523,32 @@ func (s *Service) assertIntentState(ctx context.Context, tx pgx.Tx, stripeID str
 // already posted, post the CAPTURE ledger batch, in the caller's transaction.
 // The batch's idempotency key is the order id so a redelivered succeeded
 // event posts exactly one batch.
-func (s *Service) recordSucceeded(ctx context.Context, tx pgx.Tx, cur IntentRow, amountReceived int64, asOf time.Time) (effect, error) {
+func (s *Service) recordSucceeded(ctx context.Context, tx pgx.Tx, cur IntentRow, amounts stripeAmounts, asOf time.Time) (effect, error) {
 	money, _, err := getOrderMoney(ctx, tx, cur.OrderID)
 	if err != nil {
 		return effect{}, err
 	}
 	// A capture that arrives before the authorisation was recorded (the card
-	// was confirmed and captured between two reads) finds 0 stored; the
-	// authorisation it implies is the server-priced order total.
+	// was confirmed and captured between two reads) finds 0 stored. The
+	// authorisation it implies is what Stripe says the intent held; only an
+	// event carrying no amount falls back to the server-priced order total.
 	authorised := cur.AmountAuthorizedCents
 	if authorised == 0 {
-		authorised = money.TotalCents
+		authorised = amounts.authorised()
+		if authorised == 0 {
+			authorised = money.TotalCents
+		} else if err := alertIfAuthorisationDiffers(ctx, tx, cur, authorised); err != nil {
+			return effect{}, err
+		}
 	}
-	captured := amountReceived
+	captured := amounts.Received
 	if captured == 0 {
 		captured = authorised
 	}
 	if captured > authorised {
-		// Stripe never captures more than it authorised, and the amount we
-		// authorised is the server-priced order total. A larger figure is
-		// not this payment's capture: record nothing and page on-call.
+		// Stripe never captures more than it authorised, and the amount
+		// recorded as authorised is what Stripe said it held. A larger figure
+		// is not this payment's capture: record nothing and page on-call.
 		if err := raiseOpsAlert(ctx, tx, opsAlert{Severity: "high", Kind: "webhook_refused",
 			SubjectType: "payment_intent", SubjectID: cur.ID,
 			Message: fmt.Sprintf("Stripe reports %d cents captured on %s, more than the %d authorised; nothing was recorded.",
