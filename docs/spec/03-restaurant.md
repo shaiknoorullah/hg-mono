@@ -419,6 +419,7 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
      `ST_SetSRID(ST_MakePoint(lng, lat), 4326)::geography`. There is exactly one geographic column
      used by dispatch and discovery. **The legacy `location POINT` column is not created.** (This
      eliminates the current geo split-brain where every checkout dies at rider assignment.)
+     > **Built (Oct 2026):** customers see that point as distance and serviceability on the restaurant list and detail, computed against `delivery_address_id` (their own saved address only; another account's reads as no address) or against `latitude`/`longitude` ([availability and serviceability gating (C-14)](02-customer.md#c-14--restaurant-availability--serviceability-gating)).
   7. `description` 20–1000 chars. `avg_prep_minutes` integer 5–120.
   8. `timezone` must be an IANA zone whose country is CA; defaulted from `province_code` and
      overridable.
@@ -1588,8 +1589,6 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
   `response_deadline_at = offered_at + RESPONSE_WINDOW`, and pushes an `order.offered` event. The
   restaurant has until the deadline to `accept` or `reject`. The **server** is the sole authority on
   expiry; the client countdown is decorative.
-
-  Accepting captures the payment; if that capture fails, the accept still succeeds and the capture is retried in the background with backoff, then raised to on-call as a critical alert after the eighth failure ([PaymentIntent lifecycle and capture timing, P-16](01-platform.md#p-16--paymentintent-lifecycle-and-capture-timing)).
 
   > **Decided:** `RESPONSE_WINDOW = 180 seconds` ([acceptance window](../decisions/README.md#settled--reconciliations)); expiry voids the authorisation, never captures ([authorise then capture](../../AGENTS.md#3-non-negotiable-invariants)).
   > **Open** (proposed defaults stand): an apology credit offer to the customer; toggle forced off after two consecutive expiries (R-22); no re-offer, no re-route.
