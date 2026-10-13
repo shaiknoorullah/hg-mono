@@ -7,7 +7,7 @@ api: devworld
 # account (+15550100141) for the first run. Test sign-in code 000000.
 setup: [ "make dev-reset" ]
 flows:
-  - "tools/e2e/native/customer/redesign/1-sign-in.yaml"
+  - "tools/e2e/native/customer/redesign/lab/1-sign-in.yaml"
   - "tools/e2e/native/customer/redesign/1-first-run.yaml"
 reality:
   - theme: dark

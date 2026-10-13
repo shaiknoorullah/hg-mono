@@ -25,9 +25,12 @@ env:
 - tapOn:
     id: "SignIn-phone-field"
 - inputText: "41655501"
+- hideKeyboard
 - tapOn: "Send code"
 - assertVisible: ".*Enter all 10 digits of your mobile number.*"
 - takeScreenshot: redesign-wp1-02-invalid
+- tapOn:
+    id: "SignIn-phone-field"
 - eraseText: 20
 - inputText: ${PHONE}
 - hideKeyboard
@@ -41,13 +44,13 @@ env:
 
 # Too few digits: said on Verify, nothing sent.
 - tapOn:
-    id: "Code-input-field"
+    id: "Code-input-cell-0"
 - inputText: "000"
 - hideKeyboard
 - tapOn: "Verify and continue"
 - assertVisible: ".*Enter all 6 digits of the code\\..*"
 - tapOn:
-    id: "Code-input-field"
+    id: "Code-input-cell-0"
 - eraseText: 6
 - inputText: ${CODE}
 - hideKeyboard
