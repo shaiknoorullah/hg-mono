@@ -41,8 +41,14 @@ func TestConformance_SpecLoadsAndEnumerates(t *testing.T) {
 	// overrideHandoverCode (support or an admin confirms a pickup or a met handover
 	// whose code cannot be used, with a reason, a case and an audit record — the only
 	// way past a handover code, security review on #183:
-	// https://github.com/shaiknoorullah/hg-mono/issues/183; no handler yet).
-	const wantOps = 172
+	// https://github.com/shaiknoorullah/hg-mono/issues/183; no handler yet) +
+	// replaceCart (put an unpaid order's items back in the cart in one atomic
+	// call, https://github.com/shaiknoorullah/hg-mono/issues/179) + joinWaitlist
+	// (the marketing site's public waitlist form,
+	// https://github.com/shaiknoorullah/hg-mono/issues/212) + getSmsSenderStatus
+	// (the text-message sender check every staff role reads for the admin
+	// banner, docs/decisions/README.md round 2, "Admin"); no handlers yet.
+	const wantOps = 175
 	if got := len(spec.Operations); got != wantOps {
 		ids := make([]string, 0, len(spec.Operations))
 		for id := range spec.Operations {

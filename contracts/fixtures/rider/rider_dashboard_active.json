@@ -123,7 +123,8 @@
       "dropoff": {
         "area": "Greektown",
         "latitude": 43.7369,
-        "longitude": -79.3856
+        "longitude": -79.3856,
+        "radius_m": 400
       },
       "distance_m": 3180,
       "est_duration_s": 660,
