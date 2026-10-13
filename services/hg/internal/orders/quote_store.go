@@ -70,28 +70,21 @@ func (s *Store) resolve(ctx context.Context, tx pgx.Tx, req QuoteRequest) (resol
 	if err := LockOrderableRestaurant(ctx, tx, restaurantID); err != nil {
 		return rc, err
 	}
+	// Open now: hours, toggle, pause, order screen, and the payout run's block
+	// on a restaurant whose balance stayed below zero too long (open_now.go).
+	if err := refuseClosedRestaurant(ctx, tx, restaurantID); err != nil {
+		return rc, err
+	}
 
 	// The restaurant, read under that lock.
 	var province, taxRole string
 	var commissionBps int
-	var acceptingOrders, negativeBalanceBlock bool
-	// negativeBalanceBlock: the weekly payout run blocks new orders for a
-	// restaurant whose payout balance has stayed below zero too long
-	// (restaurant_collection, internal/payments/payout_run.go). Whether to
-	// block at all is the owner's open question, so the limit is
-	// HG_RESTAURANT_NEGATIVE_BALANCE_BLOCK_DAYS:
-	// https://github.com/shaiknoorullah/hg-mono/issues/164.
 	err = tx.QueryRow(ctx, `
-		SELECT is_accepting_orders, COALESCE(province::text, ''), commission_rate_bps, tax_role,
-		       EXISTS (SELECT 1 FROM restaurant_collection rc
-		                WHERE rc.restaurant_id = restaurant.id AND rc.closed_at IS NULL)
+		SELECT COALESCE(province::text, ''), commission_rate_bps, tax_role
 		  FROM restaurant WHERE id = $1`,
-		restaurantID).Scan(&acceptingOrders, &province, &commissionBps, &taxRole, &negativeBalanceBlock)
+		restaurantID).Scan(&province, &commissionBps, &taxRole)
 	if err != nil {
 		return rc, fmt.Errorf("resolve restaurant: %w", err)
-	}
-	if !acceptingOrders || negativeBalanceBlock {
-		return rc, ErrRestaurantClosed
 	}
 	rc.cartID = req.CartID
 	rc.restaurantID = restaurantID
