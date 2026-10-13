@@ -59,9 +59,11 @@ INSERT INTO account_role (account_id, role, scope_type, scope_id) VALUES ($1, $2
 	upload := func(uploader string) string {
 		var id string
 		if err := pool.QueryRow(ctx, `
-INSERT INTO stored_object (bucket, object_key, purpose, content_type, byte_size, sha256, state, uploaded_by, confirmed_at)
+INSERT INTO stored_object (bucket, object_key, purpose, content_type, byte_size, sha256, state, uploaded_by, confirmed_at,
+                           virus_scan_state, virus_scan_sha256, virus_scan_version)
 VALUES ('hg-kyc', 'dl/'||md5(random()::text), 'KYC_DOCUMENT', 'application/pdf', 1024,
-        decode(repeat('d1',32),'hex'), 'READY', $1, now()) RETURNING id`, uploader).Scan(&id); err != nil {
+        decode(repeat('d1',32),'hex'), 'READY', $1, now(),
+        'CLEAN', decode(repeat('d1',32),'hex'), 1) RETURNING id`, uploader).Scan(&id); err != nil {
 			t.Fatalf("seed stored_object: %v", err)
 		}
 		objects = append(objects, id)

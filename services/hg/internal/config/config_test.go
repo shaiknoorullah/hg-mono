@@ -462,6 +462,7 @@ func TestLoadEmailSettings(t *testing.T) {
 		env["HG_CORS_ALLOWED_ORIGINS"] = "https://app.halalgoes.com"
 		env["HG_TRUSTED_PROXY_CIDRS"] = "172.16.0.0/12"
 		env["HG_MINIO_PRESIGN_BASE_URL"] = "https://files.halalgoes.com"
+		env["HG_CLAMD_ADDR"] = "clamav:3310"
 		return env
 	}
 

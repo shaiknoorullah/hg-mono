@@ -73,6 +73,7 @@ x-api-env: &api-env
   # scanned its file CLEAN.
   HG_CLAMD_ADDR: ${HG_CLAMD_ADDR:-clamav:3310}
   HG_CLAMD_MAX_BYTES: ${HG_CLAMD_MAX_BYTES:-26214400}
+  HG_CLAMD_TIMEOUT: ${HG_CLAMD_TIMEOUT:-}
 
   # auth (P-02/P-04). The auth module refuses to boot without these two — added
   # here the same commit they became required, per the P-27 parity rule above.

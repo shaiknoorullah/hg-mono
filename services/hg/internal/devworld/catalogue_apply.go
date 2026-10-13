@@ -176,10 +176,12 @@ func insertOwnedRestaurant(ctx context.Context, tx pgx.Tx, r CatalogueRestaurant
 	if _, err := tx.Exec(ctx, `
 		INSERT INTO stored_object (
 		  id, bucket, object_key, purpose, owner_account_id, restaurant_id,
-		  content_type, byte_size, sha256, state, virus_scan_state, uploaded_by, confirmed_at
+		  content_type, byte_size, sha256, state, virus_scan_state, virus_scan_sha256, virus_scan_version,
+		  uploaded_by, confirmed_at
 		) VALUES (
 		  $1::uuid, 'hg-kyc', 'devworld/' || $3 || '.pdf', 'KYC_DOCUMENT', $4, $2,
-		  'application/pdf', 1024, sha256($1::uuid::text::bytea), 'READY', 'CLEAN', $4, now()
+		  'application/pdf', 1024, sha256($1::uuid::text::bytea), 'READY', 'CLEAN', sha256($1::uuid::text::bytea), 1,
+		  $4, now()
 		) ON CONFLICT (id) DO NOTHING`, objID, r.ID, number, catalogueAdminID); err != nil {
 		return fmt.Errorf("certificate object: %w", err)
 	}

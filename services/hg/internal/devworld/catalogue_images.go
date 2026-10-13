@@ -152,8 +152,9 @@ func SeedImages(ctx context.Context, dsn string) error {
 			if _, err := conn.Exec(ctx, `
 				INSERT INTO stored_object (
 				  id, bucket, object_key, purpose, owner_account_id, restaurant_id,
-				  content_type, byte_size, sha256, state, virus_scan_state, uploaded_by, confirmed_at
-				) VALUES ($1, $2, $3, 'MENU_IMAGE', $4, $5, $6, $7, $8, 'READY', 'CLEAN', $4, now())
+				  content_type, byte_size, sha256, state, virus_scan_state, virus_scan_sha256, virus_scan_version,
+				  uploaded_by, confirmed_at
+				) VALUES ($1, $2, $3, 'MENU_IMAGE', $4, $5, $6, $7, $8, 'READY', 'CLEAN', $8, 1, $4, now())
 				ON CONFLICT (id) DO UPDATE SET object_key = EXCLUDED.object_key, content_type = EXCLUDED.content_type,
 				  byte_size = EXCLUDED.byte_size, sha256 = EXCLUDED.sha256, state = 'READY', confirmed_at = now()`,
 				objID, bucket, objectKey, catalogueAdminID, r.ID, ctype, len(body), sum[:]); err != nil {
