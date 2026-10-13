@@ -3,7 +3,7 @@ covers:
   - apps/restaurant/**
   - services/hg/internal/restaurant/**
   - services/hg/internal/catalog/**
-reviewed: 2026-10-05
+reviewed: 2026-10-11
 ---
 
 # HalalGoes — RESTAURANT domain specification
@@ -418,6 +418,7 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
      `ST_SetSRID(ST_MakePoint(lng, lat), 4326)::geography`. There is exactly one geographic column
      used by dispatch and discovery. **The legacy `location POINT` column is not created.** (This
      eliminates the current geo split-brain where every checkout dies at rider assignment.)
+     > **Built (Oct 2026):** customers see that point as distance and serviceability on the restaurant list and detail, computed against `delivery_address_id` (their own saved address only; another account's reads as no address) or against `latitude`/`longitude` ([availability and serviceability gating (C-14)](02-customer.md#c-14--restaurant-availability--serviceability-gating)).
   7. `description` 20–1000 chars. `avg_prep_minutes` integer 5–120.
   8. `timezone` must be an IANA zone whose country is CA; defaulted from `province_code` and
      overridable.
