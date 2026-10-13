@@ -175,7 +175,8 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
      (m=64MiB, t=3, p=2). Never logged, never returned.
   3. `legal_name` — 2–120 chars, Unicode letters/digits/space/`&'-.,` only.
   4. `terms_version` — must equal the current server-side `TERMS_VERSION` constant; a stale value →
-     `409 terms_version_stale`.
+     `409 terms_version_stale`. The app reads the current value from `GET /v1/config/public`
+     (`terms_version`), never a hard-coded one ([#738](https://github.com/shaiknoorullah/hg-mono/issues/738)).
   5. Rate limit 5 signups/hour/IP and 3/day/email-domain-prefix. Exceeded → `429`.
   6. No phone/OTP at signup. Phone is collected in R-05 and verified in V2.
   7. Signup is idempotent on `Idempotency-Key`; a replay returns the original `201` body.
@@ -418,6 +419,7 @@ restaurant. The restaurant may write only: `accept`, `reject`, `mark_preparing`,
      `ST_SetSRID(ST_MakePoint(lng, lat), 4326)::geography`. There is exactly one geographic column
      used by dispatch and discovery. **The legacy `location POINT` column is not created.** (This
      eliminates the current geo split-brain where every checkout dies at rider assignment.)
+     > **Built (Oct 2026):** customers see that point as distance and serviceability on the restaurant list and detail, computed against `delivery_address_id` (their own saved address only; another account's reads as no address) or against `latitude`/`longitude` ([availability and serviceability gating (C-14)](02-customer.md#c-14--restaurant-availability--serviceability-gating)).
   7. `description` 20–1000 chars. `avg_prep_minutes` integer 5–120.
   8. `timezone` must be an IANA zone whose country is CA; defaulted from `province_code` and
      overridable.

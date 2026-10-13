@@ -8,10 +8,18 @@
  */
 import { useEffect, useState, type ReactNode } from 'react';
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
-import { AlertDialog, PageAnnouncerProvider, ToastProvider, TooltipProvider, themeAttributes } from './ds';
+import { AlertDialog, PageAnnouncerProvider, Spinner, ToastProvider, TooltipProvider, themeAttributes } from './ds';
 import { AuthProvider } from '../lib/auth';
-import { getSession, setSession, setUnauthorizedOverride } from '../lib/api';
-import { client, onSignedOut, refreshAccessToken, resetSignedOut, type SignedOutReason } from './data/client';
+import { getSession, setUnauthorizedOverride } from '../lib/api';
+import {
+  client,
+  keepSession,
+  onSignedOut,
+  refreshAccessToken,
+  resetSignedOut,
+  restoreSession,
+  type SignedOutReason,
+} from './data/client';
 import { ConsoleProvider, consoleRoute, useConsole } from './data/console';
 import { AvailabilityProvider } from './data/availability';
 import { ConsoleRealtime } from './data/realtime';
@@ -19,6 +27,13 @@ import { ConsoleLayout } from './shell/ConsoleLayout';
 import { ConsoleStatus } from './shell/ConsoleStatus';
 import { LEGACY } from './routes/legacy';
 import { PendingRoute } from './routes/PendingRoute';
+import { AuthLayout } from './auth/frame';
+import { SignInScreen } from './auth/SignInScreen';
+import { RegisterScreen } from './auth/RegisterScreen';
+import { CheckEmailScreen } from './auth/CheckEmailScreen';
+import { VerifyEmailScreen } from './auth/VerifyEmailScreen';
+import { ForgotPasswordScreen } from './auth/ForgotPasswordScreen';
+import { ResetPasswordScreen } from './auth/ResetPasswordScreen';
 import { NewOrdersProvider } from './strip/NewOrdersProvider';
 import { OrdersGate } from './orders/GoLiveGate';
 import { LiveOrdersPage } from './orders/LiveOrdersPage';
@@ -50,18 +65,39 @@ function SignedOutAlert() {
       onAction={() => {
         resetSignedOut();
         setReason(null);
-        navigate(`/login?return_to=${encodeURIComponent(location.pathname + location.search)}`);
+        // The sign-in page shows the matching SI board (SessionExpired / ReuseDetected).
+        navigate(`/login?signed_out=${reason}&return_to=${encodeURIComponent(location.pathname + location.search)}`);
       }}
     />
   );
 }
 
+type SessionCheck = 'present' | 'restoring' | 'absent';
+
 function RequireSession({ children }: { children: ReactNode }) {
   const location = useLocation();
   // A session that ends while the console is open keeps the console on screen behind the
-  // signed-out alert; only a fresh visit with no session goes to sign-in.
-  const [hadSession] = useState(() => getSession() !== null);
-  if (!hadSession) return <Navigate to={`/login?return_to=${encodeURIComponent(location.pathname)}`} replace />;
+  // signed-out alert; only a fresh visit with no session goes to sign-in. The access token
+  // lives in memory only, so a fresh visit (a reload) first tries the `hg_rt` cookie.
+  const [check, setCheck] = useState<SessionCheck>(() => (getSession() !== null ? 'present' : 'restoring'));
+  useEffect(() => {
+    if (check !== 'restoring') return;
+    let live = true;
+    void restoreSession().then((ok) => {
+      if (live) setCheck(ok ? 'present' : 'absent');
+    });
+    return () => {
+      live = false;
+    };
+  }, [check]);
+  if (check === 'restoring') {
+    return (
+      <div className="flex h-dvh items-center justify-center bg-surface-base" data-testid="session-restoring">
+        <Spinner size="lg" label="Checking your sign-in" />
+      </div>
+    );
+  }
+  if (check === 'absent') return <Navigate to={`/login?return_to=${encodeURIComponent(location.pathname)}`} replace />;
   return <>{children}</>;
 }
 
@@ -81,7 +117,7 @@ async function signOut(navigate: ReturnType<typeof useNavigate>) {
   } catch {
     /* best effort: the session is cleared here regardless */
   }
-  setSession(null);
+  keepSession(null);
   navigate('/login', { replace: true });
 }
 
@@ -108,16 +144,20 @@ export function RedesignApp() {
     root.setAttribute('data-theme', 'light');
     root.style.colorScheme = 'light';
   }, []);
-  const { Login, Register, VerifyEmail, ResetPassword, Onboarding, Menu, Hours, Payouts, Settings } = LEGACY;
+  const { Onboarding, Menu, Hours, Payouts, Settings } = LEGACY;
   return (
     <div {...themeAttributes('restaurant')} className="relative h-dvh overflow-hidden bg-surface-sunken text-fg-primary" data-redesign="">
       <AuthProvider>
         <Routes>
-          {/* Public (WP2 replaces these). */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/verify-email" element={<VerifyEmail />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
+          {/* Public: sign-in and account access (WP2, canvas SI). */}
+          <Route element={<AuthLayout />}>
+            <Route path="/login" element={<FreshSignIn />} />
+            <Route path="/register" element={<RegisterScreen />} />
+            <Route path="/check-email" element={<CheckEmailScreen />} />
+            <Route path="/verify-email" element={<VerifyEmailScreen />} />
+            <Route path="/forgot-password" element={<ForgotPasswordScreen />} />
+            <Route path="/reset-password" element={<ResetPasswordScreen />} />
+          </Route>
           {/* Onboarding (WP6/WP7 replace this). */}
           <Route
             path="/onboarding/*"
@@ -162,6 +202,12 @@ export function RedesignApp() {
       </AuthProvider>
     </div>
   );
+}
+
+/** "Back to sign in" from a sign-in card is a new visit: a clean form, not the last state. */
+function FreshSignIn() {
+  const location = useLocation();
+  return <SignInScreen key={location.key} />;
 }
 
 /** A legacy screen inside the redesigned shell scrolls inside its pane, never the page. */
