@@ -50,7 +50,7 @@ const NOTE_PREFIXES = [
 // …and words real copy may open with too, a note only when set like one (mono, dashed):
 const NOTE_WEAK_PREFIXES = ['Blocked', 'Contract', 'Notes?', 'Not final', 'Not used at launch', 'Not a modal', 'Opened from [^:]{1,40}', 'Nothing [^:]{1,40}', 'API'];
 /** Notes that say the drawing itself is not the approved design: the report puts them first. */
-export const CAVEAT = /not approved|not for approval|DS issue|design-system issue|needs design-system fix|DS change logged|DS fix recorded/i;
+export const CAVEAT = /not approved as drawn|not for approval|DS issue|design-system issue|needs design-system fix|DS change logged|DS fix recorded/i;
 
 function args(argv) {
   const o = { apps: APPS, areas: null, only: null, concurrency: 3, ref: 'origin/claude/redesign-canvases', src: null, out: null, repo: process.cwd() };
