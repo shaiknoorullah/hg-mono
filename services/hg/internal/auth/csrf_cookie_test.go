@@ -7,36 +7,18 @@ package auth
 // (https://github.com/shaiknoorullah/hg-mono/issues/740).
 
 import (
-	"crypto/ed25519"
 	"encoding/json"
 	"io"
 	"net/http"
-	"net/http/httptest"
 	"strings"
 	"testing"
 
 	"github.com/shaiknoorullah/hg-mono/services/hg/internal/httpx"
-	"github.com/shaiknoorullah/hg-mono/services/hg/internal/session"
 )
 
 func TestWebSessionRefreshesWithTheSharedDomainCSRFCookie(t *testing.T) {
 	pool := openTestPool(t)
-	secrets := testSecrets(t)
-	secrets.CSRFCookieDomain = ".halalgoes.com"
-	store := NewStore(pool)
-	deny := session.NewDenySet()
-	issuer := session.NewIssuer(secrets.SigningKID, secrets.SigningPriv, "hg-api")
-	verifier := session.NewVerifier(
-		map[string]ed25519.PublicKey{secrets.SigningKID: secrets.SigningPub}, "hg-api")
-	svc := NewService(store, NewRateLimiter(nil, nil), NewLogSMSSender(nil, false), issuer, deny, secrets, nil)
-	router := httpx.NewRouter(httpx.Options{
-		Env:           "local",
-		Authenticator: NewAuthenticator(verifier, deny),
-		Authorizer:    Matrix{},
-	})
-	Routes(router, NewHandler(svc, store, deny, secrets))
-	srv := httptest.NewServer(router)
-	defer srv.Close()
+	srv := buildDenyingTestServer(t, pool, func(s *Secrets) { s.CSRFCookieDomain = ".halalgoes.com" })
 
 	const pw = "CsrfCookiePass12!"
 	email := uniqueEmail("csrf_cookie")

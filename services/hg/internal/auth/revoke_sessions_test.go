@@ -23,10 +23,14 @@ import (
 
 // buildDenyingTestServer wires the auth routes behind the real access-token
 // authenticator and deny set, as auth.NewModule does, with no refresher: what
-// the deny set holds is only what the handlers put there.
-func buildDenyingTestServer(t *testing.T, pool *pgxpool.Pool) *httptest.Server {
+// the deny set holds is only what the handlers put there. adjust changes the
+// secrets first, for a test that needs another setting.
+func buildDenyingTestServer(t *testing.T, pool *pgxpool.Pool, adjust ...func(*Secrets)) *httptest.Server {
 	t.Helper()
 	secrets := testSecrets(t)
+	for _, f := range adjust {
+		f(secrets)
+	}
 	store := NewStore(pool)
 	deny := session.NewDenySet()
 	issuer := session.NewIssuer(secrets.SigningKID, secrets.SigningPriv, "hg-api")
