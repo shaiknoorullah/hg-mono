@@ -2,7 +2,7 @@
   "generated_by": "contracts/fixtures/_build/build.py",
   "do_not_edit": "Every file under contracts/fixtures/ is generated. Run `pnpm fixtures:build`.",
   "frozen_clock": "2026-08-10T18:42:11.412Z",
-  "count": 530,
+  "count": 531,
   "counts_by_domain": {
     "admin": 35,
     "cart": 16,
@@ -13,7 +13,7 @@
     "geo": 11,
     "halal": 25,
     "handoff": 13,
-    "onboarding": 47,
+    "onboarding": 48,
     "orders": 55,
     "payments": 12,
     "platform": 31,
@@ -4581,6 +4581,20 @@
       "file": "onboarding/restaurant_onboarding_active.json"
     },
     {
+      "scenario": "restaurant_onboarding_application_rejected",
+      "domain": "onboarding",
+      "schema": "RestaurantOnboardingStatus",
+      "describes": "`onboarding_state = DOCUMENTS_REJECTED` after a `REJECT` decision (`rejection.decision = REJECT`). Unlike a request for changes no documents are listed to fix and the screen offers no resubmission; the owner is shown the reason and who to contact.",
+      "operations": [
+        "getRestaurantOnboardingStatus"
+      ],
+      "status": 200,
+      "tags": [
+        "restaurant"
+      ],
+      "file": "onboarding/restaurant_onboarding_application_rejected.json"
+    },
+    {
       "scenario": "restaurant_onboarding_documents_approved",
       "domain": "onboarding",
       "schema": "RestaurantOnboardingStatus",
@@ -8598,6 +8612,7 @@
     ],
     "getRestaurantOnboardingStatus": [
       "restaurant_onboarding_active",
+      "restaurant_onboarding_application_rejected",
       "restaurant_onboarding_documents_approved",
       "restaurant_onboarding_documents_pending",
       "restaurant_onboarding_documents_rejected",

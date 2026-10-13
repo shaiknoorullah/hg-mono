@@ -68,7 +68,7 @@ func (s *Service) reconcileIntentOnRead(ctx context.Context, i IntentRow) *Strip
 	err = s.repo.tx(ctx, func(tx pgx.Tx) error {
 		var err error
 		// Stripe's current view is as new as anything can be.
-		eff, err = s.assertIntentAndOrder(ctx, tx, i.StripePaymentIntentID, target, pi.AmountReceivedCents, s.now(), failure)
+		eff, err = s.assertIntentAndOrder(ctx, tx, i.StripePaymentIntentID, target, intentAmounts(pi), s.now(), failure)
 		return err
 	})
 	if err != nil {
