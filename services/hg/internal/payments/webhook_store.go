@@ -74,7 +74,10 @@ func getIntentForUpdate(ctx context.Context, tx pgx.Tx, stripeID string) (Intent
 // one keeps it, or, for a declined card the customer retried, arms one again,
 // so the deadline CHECK holds either way. last_stripe_event_created_at only
 // ever moves forward. applied is false when the row was already in that state.
-func advanceIntentState(ctx context.Context, tx pgx.Tx, stripeID string, target PaymentState, asOf time.Time, failure *intentFailure) (bool, error) {
+// authorizedCents is what Stripe reports it holds on the card (0 if unknown),
+// recorded on REQUIRES_CAPTURE.
+func advanceIntentState(ctx context.Context, tx pgx.Tx, stripeID string, target PaymentState, asOf time.Time,
+	authorizedCents int64, failure *intentFailure) (bool, error) {
 	set := "state = $2, last_stripe_event_created_at = GREATEST(last_stripe_event_created_at, $3)"
 	args := []any{stripeID, string(target), asOf}
 	switch target {
@@ -93,7 +96,15 @@ func advanceIntentState(ctx context.Context, tx pgx.Tx, stripeID string, target 
 		        deadline_at = coalesce(deadline_at, now() + interval '20 minutes'),
 		        deadline_action = coalesce(deadline_action, 'await_capture')`
 		if target == StateRequiresCapture {
-			set += ", authorized_at = coalesce(authorized_at, now())"
+			// The authorised amount is what Stripe says the card holds, not
+			// what we expected it to; an intent stored before then holds 0
+			// (https://github.com/shaiknoorullah/hg-mono/issues/729). Only a
+			// report with no amount falls back to the server-priced total
+			// the intent was created for.
+			args = append(args, authorizedCents)
+			set += `, authorized_at = coalesce(authorized_at, now()),
+			        amount_authorized_cents = GREATEST(amount_authorized_cents, coalesce(nullif($4::bigint, 0),
+			          (SELECT o.total_cents FROM "order" o WHERE o.id = payment_intent.order_id)))`
 		}
 	}
 	tag, err := tx.Exec(ctx,
@@ -107,16 +118,17 @@ func advanceIntentState(ctx context.Context, tx pgx.Tx, stripeID string, target 
 // recordCapture stamps a captured amount and posts the CAPTURE ledger batch.
 // Both are idempotent: a redelivered succeeded event captures once and posts
 // one batch.
-func recordCapture(ctx context.Context, tx pgx.Tx, stripeID string, capturedCents int64, asOf time.Time, batch LedgerBatch) error {
+func recordCapture(ctx context.Context, tx pgx.Tx, stripeID string, capturedCents, authorizedCents int64, asOf time.Time, batch LedgerBatch) error {
 	_, err := tx.Exec(ctx, `
 		UPDATE payment_intent
 		   SET state = 'SUCCEEDED',
 		       amount_captured_cents = $2,
+		       amount_authorized_cents = GREATEST(amount_authorized_cents, $4),
 		       captured_at = coalesce(captured_at, now()),
 		       canceled_at = NULL,
 		       last_stripe_event_created_at = GREATEST(last_stripe_event_created_at, $3),
 		       deadline_at = NULL, deadline_action = NULL
-		 WHERE stripe_payment_intent_id = $1`, stripeID, capturedCents, asOf)
+		 WHERE stripe_payment_intent_id = $1`, stripeID, capturedCents, asOf, authorizedCents)
 	if err != nil {
 		return err
 	}

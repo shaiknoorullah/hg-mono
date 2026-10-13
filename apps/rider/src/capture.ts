@@ -15,6 +15,8 @@ import { base64ToBytes } from './base64';
 export interface CapturedImage {
   bytes: Uint8Array;
   contentType: string;
+  /** The local file, for a preview (the redesigned proof-of-delivery review). */
+  uri?: string;
   sha256: (hex: (bytes: Uint8Array) => string) => string;
 }
 
@@ -38,7 +40,7 @@ async function launch(
     const contentType = asset.mimeType ?? 'image/jpeg';
     return {
       ok: true,
-      image: { bytes, contentType, sha256: (hex) => hex(bytes) },
+      image: { bytes, contentType, uri: asset.uri, sha256: (hex) => hex(bytes) },
     };
   } catch (e) {
     return {
@@ -49,11 +51,19 @@ async function launch(
   }
 }
 
+export interface CaptureOptions {
+  /**
+   * Proof of delivery: the in-app camera only, never the photo library (DL/PodPhoto). A refused
+   * camera is `PERMISSION_DENIED` and a missing one `UNAVAILABLE`; nothing falls back.
+   */
+  cameraOnly?: boolean;
+}
+
 /** Take a photo with the device camera, falling back to the library where no camera exists. */
-export async function captureImage(): Promise<CaptureOutcome> {
+export async function captureImage(options: CaptureOptions = {}): Promise<CaptureOutcome> {
   const perm = await ImagePicker.requestCameraPermissionsAsync();
   if (perm.status !== 'granted') {
-    if (!perm.canAskAgain) {
+    if (!perm.canAskAgain || options.cameraOnly) {
       return {
         ok: false,
         reason: 'PERMISSION_DENIED',
@@ -65,7 +75,7 @@ export async function captureImage(): Promise<CaptureOutcome> {
   const outcome = await launch(() =>
     ImagePicker.launchCameraAsync({ base64: true, quality: 0.7, allowsEditing: false }),
   );
-  if (!outcome.ok && outcome.reason === 'UNAVAILABLE') {
+  if (!outcome.ok && outcome.reason === 'UNAVAILABLE' && !options.cameraOnly) {
     // No camera device (common on web / simulators) — fall back to the library rather than dead-end.
     return pickImage();
   }

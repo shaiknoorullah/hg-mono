@@ -1,11 +1,11 @@
 # Customer redesign WP0 (#656): the flagged shell. Built with EXPO_PUBLIC_HG_REDESIGN=1.
 # Signed out it shows sign-in; amina (a reserved dev phone that accepts the test code 000000)
 # signs in and lands on the four tabs: Home, Search, Orders, Account. No Alerts tab.
-# Until WP1 merges, sign-in is the legacy screen rendered inside the redesign shell.
+# Sign-in is WP1's redesigned screen (the Sign-in canvas copy, see 1-sign-in.yaml).
 appId: com.halalgoes.customer.dev
 name: customer redesign, shell and tabs
 env:
-  PHONE: "+15550100101"
+  PHONE: "5550100101"
   CODE: "000000"
 ---
 - launchApp:
@@ -13,22 +13,22 @@ env:
     permissions:
       all: allow
 - extendedWaitUntil:
-    visible: "Sign in"
+    visible: "Sign in or create an account"
     timeout: 90000
 - takeScreenshot: redesign-wp0-01-signed-out
 - tapOn:
-    below: "Phone number .*"
-    above: "Send code"
+    id: "SignIn-phone-field"
 - inputText: ${PHONE}
+- hideKeyboard
 - tapOn: "Send code"
 - extendedWaitUntil:
-    visible: "Enter the code sent to.*"
+    visible: "Enter the 6-digit code"
     timeout: 30000
 - tapOn:
-    below: "Enter the code sent to.*"
-    above: "Verify"
+    id: "Code-input-field"
 - inputText: ${CODE}
-- tapOn: "Verify"
+- hideKeyboard
+- tapOn: "Verify and continue"
 - extendedWaitUntil:
     visible: "Account"
     timeout: 30000

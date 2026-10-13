@@ -20,14 +20,15 @@ export type NavAction =
   | { type: 'back' }
   | { type: 'selectTab'; tab: TabKey }
   | { type: 'open'; route: Route }
-  | { type: 'reset'; route: Route };
+  /** `tab` puts the route on that tab's stack instead of its own (sign-in → active order, Back → Home). */
+  | { type: 'reset'; route: Route; tab?: TabKey };
 
 function freshStacks(): Record<TabKey, Route[]> {
   return Object.fromEntries(TAB_ORDER.map((t) => [t, [TAB_ROOTS[t]]])) as Record<TabKey, Route[]>;
 }
 
-export function initialNavState(landing: Route = TAB_ROOTS.home): NavState {
-  return reduceNav({ tab: 'home', stacks: freshStacks() }, { type: 'reset', route: landing });
+export function initialNavState(landing: Route = TAB_ROOTS.home, tab?: TabKey): NavState {
+  return reduceNav({ tab: 'home', stacks: freshStacks() }, { type: 'reset', route: landing, tab });
 }
 
 export function currentRoute(state: NavState): Route {
@@ -66,7 +67,7 @@ export function reduceNav(state: NavState, action: NavAction): NavState {
       return { tab, stacks: { ...state.stacks, [tab]: next } };
     }
     case 'reset': {
-      const tab = tabFor(action.route);
+      const tab = action.tab ?? tabFor(action.route);
       const stacks = freshStacks();
       if (action.route.name !== TAB_ROOTS[tab].name) stacks[tab] = [TAB_ROOTS[tab], action.route];
       return { tab, stacks };

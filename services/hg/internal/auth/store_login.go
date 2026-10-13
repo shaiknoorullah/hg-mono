@@ -136,6 +136,9 @@ type ConsumeCredentialTokenResult struct {
 	Expired bool
 	// NotFound is true when no token matched the hash at all.
 	NotFound bool
+	// RevokedSessionIDs are the sessions a password reset revoked, for the
+	// deny set (RedeemResetLink only).
+	RevokedSessionIDs []string
 }
 
 // ConsumeCredentialToken atomically consumes a token of a given kind by hash. The

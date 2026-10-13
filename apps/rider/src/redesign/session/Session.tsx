@@ -37,6 +37,14 @@ export function useSession(): SessionValue {
   return s;
 }
 
+/**
+ * The session, or null outside one: for a screen that can also be rendered on its own (a
+ * pushed screen under test, a flow step) and only needs `refresh` when there is a session.
+ */
+export function useOptionalSession(): SessionValue | null {
+  return React.useContext(SessionContext);
+}
+
 export const SLOW_MS = 10_000;
 
 export async function fetchRiderMe(): Promise<RiderMe> {

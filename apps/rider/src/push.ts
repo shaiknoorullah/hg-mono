@@ -75,6 +75,17 @@ export async function registerForPush(): Promise<void> {
 }
 
 /**
+ * The device id this run registered, or null, for a caller that unregisters it itself and waits
+ * for the answer (the redesign's Account › Sign out, which must unregister before it revokes the
+ * session). Taking it marks the device unregistered, so `unregisterForPush` does not repeat it.
+ */
+export function takeRegisteredDeviceId(): string | null {
+  if (!registered) return null;
+  registered = false;
+  return DEVICE_ID;
+}
+
+/**
  * Unregister this device. Call it with the session's bearer token *before* signing out: the
  * request goes on its own client holding that token, so sign-out never waits for it.
  */

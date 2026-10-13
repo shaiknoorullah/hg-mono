@@ -148,9 +148,13 @@ export async function reportCurrentPosition(assignmentId?: string | null): Promi
 export function useLocationReporting(
   active: boolean,
   assignment?: ActiveAssignmentRef | null,
+  /** Optional: told each tick's outcome (the redesign shows a banner when permission is refused). */
+  onOutcome?: (outcome: LocationOutcome) => void,
 ): void {
   const intervalMs = reportIntervalMs(assignment);
   const assignmentId = isActiveAssignment(assignment) ? assignment!.id : null;
+  const onOutcomeRef = React.useRef(onOutcome);
+  onOutcomeRef.current = onOutcome;
   React.useEffect(() => {
     if (!active) return;
     let cancelled = false;
@@ -159,9 +163,13 @@ export function useLocationReporting(
       // A slow GPS fix must not stack reports up behind it.
       if (cancelled || inFlight) return;
       inFlight = true;
-      void reportCurrentPosition(assignmentId).finally(() => {
-        inFlight = false;
-      });
+      void reportCurrentPosition(assignmentId)
+        .then((outcome) => {
+          if (!cancelled) onOutcomeRef.current?.(outcome);
+        })
+        .finally(() => {
+          inFlight = false;
+        });
     };
     tick();
     const id = setInterval(tick, intervalMs);
